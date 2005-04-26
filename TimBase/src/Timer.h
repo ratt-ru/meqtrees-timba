@@ -45,14 +45,26 @@ namespace LOFAR {
         NSTimer  (const char *name = 0);
         ~NSTimer ();
 
-        void                   start();
-        void                   stop();
-        void                   reset();
+        void                   start ();
+        void                   stop  ();
+        void                   reset ();
         
         std::ostream           &print(std::ostream &);
         
-        long long              elapsed ()
+        bool                   isRunning () const
+        { return running; }
+        
+        long long              totalTime () const
         { return total_time; }
+        
+        int                    shotCount () const
+        { return count; }
+        
+        long long              averageTime () const
+        { return total_time/count; }
+        
+        double                 faverageTime () const
+        { return total_time/double(count); }
         
         static double          cpuSpeedInMHz ()
         { return CPU_speed_in_MHz; }
@@ -62,7 +74,8 @@ namespace LOFAR {
 
         long long              total_time;
         unsigned long long     count;
-        std::string           name;
+        std::string            name;
+        bool                   running;
 
         static double          CPU_speed_in_MHz, get_CPU_speed_in_MHz();
   };
@@ -75,6 +88,7 @@ namespace LOFAR {
   {
     total_time = 0;
     count      = 0;
+    running    = false;
   }
 
 
@@ -106,6 +120,7 @@ namespace LOFAR {
     :
         "eax", "edx"
     );
+    running = true;
 #endif
   }
 
@@ -126,6 +141,7 @@ namespace LOFAR {
         "eax", "edx"
     );
 #endif
+    running = false;
 
     ++ count;
   }

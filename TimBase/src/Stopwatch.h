@@ -98,7 +98,7 @@ namespace LOFAR
       st[0] = tms1.tms_utime - tms.tms_utime;
       st[1] = tms1.tms_stime - tms.tms_stime;
       st[2] = tick1 - tick;
-      st[3] = hires_timer.elapsed();
+      st[3] = hires_timer.totalTime();
       if( do_reset )
         reset();
     }
@@ -111,7 +111,7 @@ namespace LOFAR
       st[0] += tms1.tms_utime - tms.tms_utime;
       st[1] += tms1.tms_stime - tms.tms_stime;
       st[2] += tick1 - tick;
-      st[3] += hires_timer.elapsed();
+      st[3] += hires_timer.totalTime();
       if( do_reset )
         reset();
     }

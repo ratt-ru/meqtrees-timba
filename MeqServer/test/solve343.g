@@ -738,6 +738,9 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
       mqs.meq('Node.Set.Breakpoint',[name='solver']);
       mqs.meq('Debug.Set.Level',[debug_level=100]);
   }
+  
+  if( any(argv == '-cacheall') )
+    mqs.meq('Set.Forest.State',[state=[cache_policy=100]]);
 
   # run over MS
   if( run )
