@@ -232,7 +232,6 @@ class ParmFiddler (browsers.GriddedPlugin):
     browsers.GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     _dprint(1,"started with",dataitem.udi,dataitem.data);
     self._has_data = False;
-
     self.rid=0;
     self._wtop = QVBox(self.wparent());
 #    self._wtop.setFrameShape(QFrame.Panel+QFrame.Sunken);
@@ -252,6 +251,10 @@ class ParmFiddler (browsers.GriddedPlugin):
     reqVFrame = QVBox(reqCtrlFrame);
     self.labelParm = QLabel("c00: 0", reqVFrame ,"labelParm");
     reqSlideFrame = QHBox(reqVFrame);
+
+
+    self.enable_exec = QCheckBox("reexecute",reqVFrame, "enable_exec");
+    
 
     reqButtonFrame = QHBox(reqVFrame);
         
@@ -291,6 +294,7 @@ class ParmFiddler (browsers.GriddedPlugin):
 
     self._request = [];
     self._parmlist= [];
+    self._nodelist= [];
     self._currentparm=None;
     self._parmindex=-1;
     self.c00=0.0;
@@ -430,32 +434,38 @@ class ParmFiddler (browsers.GriddedPlugin):
           QMessageBox.warning(self.wtop(),
                               "Warning",
                             "No request found in Node, Please specify request first via Reexecute");
-          self.buttonOk.setEnabled(False);          
-          self.buttonReset.setEnabled(False);
+          self.enable_exec.setOn(False);
+          self.enable_exec.setEnabled (False);
+#          self.buttonOk.setEnabled(False);          
+#          self.buttonReset.setEnabled(False);
       else:
           #
           #      print self._node;
+          self.enable_exec.setOn(True);
+          self.enable_exec.setEnabled (True);
           self._request = request;
-          self._parmlist= [];
-          self.getnodelist(meqds.nodelist[self._node]);
-          # fill listbox with MeqParm names
-          self.lb.clear();
-          if self._currentparm:
-              self._currentparm.reject();
-              self._currentparm=None;
-          self._parmindex=-1;
-          for parm in self._parmlist:
-              self.lb.insertItem( parm.name )
+
+      self._parmlist= [];
+      self._nodelist= [];
+      self.getnodelist(meqds.nodelist[self._node]);
+      # fill listbox with MeqParm names
+      self.lb.clear();
+      if self._currentparm:
+          self._currentparm.reject();
+          self._currentparm=None;
+      self._parmindex=-1;
+      for parm in self._parmlist:
+          self.lb.insertItem( parm.name )
+      self.buttonOk.setEnabled(False);
+      self.buttonReset.setEnabled(False);
+
+      if not self._parmlist:
+          QMessageBox.warning(self.wtop(),
+                              "Warning",
+                              "No parameters found");
           self.buttonOk.setEnabled(False);
           self.buttonReset.setEnabled(False);
-        
-          if not self._parmlist:
-              QMessageBox.warning(self.wtop(),
-                                  "Warning",
-                                  "No parameters found");
-              self.buttonOk.setEnabled(False);
-              self.buttonReset.setEnabled(False);
-        
+
       self.enable();
       self.flash_refresh();
 
@@ -471,6 +481,10 @@ class ParmFiddler (browsers.GriddedPlugin):
           self.checkparm(node);
           
       else:
+          # check if we have been at this node before
+          if not self.checknodenew(node):
+              # improves speed but not totally satisfactory
+              return;
           # loop over chilren          
           if node.children:
               for (key,ni) in node.children:
@@ -478,6 +492,22 @@ class ParmFiddler (browsers.GriddedPlugin):
            
                   self.getnodelist(child);
           
+  def checknodenew(self,node):
+      #check if we have been at this node b4
+      #nodelist_ contains everything but the parms
+      for i in range(len(self._nodelist)):
+          checknode=self._nodelist[i];
+          if checknode.name==node.name:
+              return False;
+          if(checknode.name>node.name):
+              # store in alphabetic order
+              self._nodelist.insert(i,node);
+              return True;
+      self._nodelist.append(node);
+          
+      return True;      
+
+      
 
   def checkparm(self,node):
       for i in range(len(self._parmlist)):
@@ -495,6 +525,9 @@ class ParmFiddler (browsers.GriddedPlugin):
 
 
   def reexecute(self):
+      if not self.enable_exec.state () : #reexecute not enabled
+          return;
+      
       if not self._request:
           return;
       _dprint(1,'accepted: ',self._request);
