@@ -295,6 +295,7 @@ class ParmFiddler (browsers.GriddedPlugin):
     self._request = [];
     self._parmlist= [];
     self._nodelist= [];
+    self._nodedict= {};
     self._currentparm=None;
     self._parmindex=-1;
     self.c00=0.0;
@@ -447,6 +448,7 @@ class ParmFiddler (browsers.GriddedPlugin):
 
       self._parmlist= [];
       self._nodelist= [];
+      self._nodedict= {};
       self.getnodelist(meqds.nodelist[self._node]);
       # fill listbox with MeqParm names
       self.lb.clear();
@@ -493,19 +495,12 @@ class ParmFiddler (browsers.GriddedPlugin):
                   self.getnodelist(child);
           
   def checknodenew(self,node):
-      #check if we have been at this node b4
-      #nodelist_ contains everything but the parms
-      for i in range(len(self._nodelist)):
-          checknode=self._nodelist[i];
-          if checknode.name==node.name:
-              return False;
-          if(checknode.name>node.name):
-              # store in alphabetic order
-              self._nodelist.insert(i,node);
-              return True;
-      self._nodelist.append(node);
-          
-      return True;      
+      if self._nodedict.has_key(node.name):
+          return False;
+      
+      self._nodedict[node.name] = 1; 
+      return True;   
+
 
       
 
