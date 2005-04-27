@@ -475,9 +475,9 @@ class ResultPlotter(GriddedPlugin):
 
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
-      try: self._rec = self._rec.cache_result; # look for cached_result field
+      try: self._rec = self._rec.cache.result; # look for cache.result record
       except:
-        Message = "No cache_result record was found, so no plot can be made with the <b>result plotter</b>! You may wish to select another type of display."
+        Message = "No result record was found in the cache, so no plot can be made with the <b>result plotter</b>! You may wish to select another type of display."
         cache_message = QLabel(Message,self.wparent())
         cache_message.setTextFormat(Qt.RichText)
         self._wtop = cache_message
