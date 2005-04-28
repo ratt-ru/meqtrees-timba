@@ -348,6 +348,11 @@ class TreeBrowser (QObject):
         action.setEnabled(False);
         have_sep = False;
 
+    # add stretch
+    self._toolbar.addSeparator();
+    stretch = QWidget(self._toolbar);
+    self._toolbar.setStretchableWidget(stretch);
+    
     # added by AGW
     QWhatsThis.whatsThisButton(self._toolbar)
 
