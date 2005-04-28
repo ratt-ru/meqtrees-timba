@@ -325,8 +325,8 @@ class meqserver_gui (app_proxy_gui):
 # but eventually we'll make it the default viewer
 Grid.Services.registerViewer(meqds.NodeClass(),NodeBrowser,priority=30);
 
-_default_state_open =  ({'cache_result':({'vellsets':({'0':None},None)},None), \
-                        'request':None },None);
+_default_state_open =  ({'cache':({'result':({'vellsets':({'0':None},None)},None)},None), \
+                         'request':None },None);
 
 _defaultResultViewopts = { \
   RecordBrowser: { 'default_open': _default_state_open }, \
