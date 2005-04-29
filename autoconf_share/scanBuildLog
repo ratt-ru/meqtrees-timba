@@ -539,6 +539,36 @@ def main(argv):
   dateString = date.today().isoformat()
   openHTMLPage(htmlFile,"BuildReport on "+machineName()+" "+dateString,"yes")
 
+  #
+  # Legenda
+  #
+  htmlFile.write('<center>\n')
+  htmlFile.write('<h3>Legend</h3>\n')
+  htmlFile.write('<table border cellspacing=2 cellpadding=5>\n')
+  htmlFile.write('<tr>\n')
+  htmlFile.write('<td bgcolor="GREY"><font color="GREY">xxxxxxxx</font></td>\n')
+  htmlFile.write('<td>Not Build</td>')
+  htmlFile.write('</tr>\n')
+  htmlFile.write('<tr>\n')
+  htmlFile.write('<td bgcolor="GREEN"><font color="GREEN">xxxxxxxx</font></td>\n')
+  htmlFile.write('<td>Build, no errors</td>')
+  htmlFile.write('</tr>\n')
+  htmlFile.write('<tr>\n')
+  htmlFile.write('<td bgcolor="RED"><font color="RED">xxxxxxxx</font></td>\n')
+  htmlFile.write('<td>Build, compile or Link error(s)</td>')
+  htmlFile.write('</tr>\n')
+  htmlFile.write('<tr>\n')
+  htmlFile.write('<td bgcolor="YELLOW"><font color="YELLOW">xxxxxxxx</font></td>\n')
+  htmlFile.write('<td>Build, Test program(s) failed</td>')
+  htmlFile.write('</tr>\n')
+  htmlFile.write('<tr>\n')
+  htmlFile.write('<td bgcolor="ORANGE"><font color="ORANGE">xxxxxxxx</font></td>\n')
+  htmlFile.write('<td>Build, Both compilation/link and testrun errors</td>')
+
+  htmlFile.write('</tr>\n')
+  htmlFile.write('</table>\n')
+  htmlFile.write('</center>\n')
+  
 
   #
   # Start the table
@@ -567,13 +597,20 @@ def main(argv):
         if package == pck:
           found=1
       if found:
-        if (findFailedTests(entry[0],package,testResultsArray) or
-            findFailedBuilds(entry[0],package,buildResultsArray)):
+        color="GREEN"
+        if (findFailedTests(entry[0],package,testResultsArray)):
+          color="YELLOW"
+        if (findFailedBuilds(entry[0],package,buildResultsArray)):
+          if (color == "YELLOW") :
+            color="ORANGE"
+          else:
+            color="RED"
+        if (color != "GREEN"):
           rawName=entry[0]+'_'+package+'_Failed_'+machineName()+'.html'
           linkName=str.replace(rawName,'/','_')
-          htmlFile.write('<td bgcolor="RED">'
+          htmlFile.write('<td bgcolor="'+color+'">'
                           '<a href="'+linkName+'">')
-          htmlFile.write('<font color="red">')
+          htmlFile.write('<font color="'+color+'">')
           for i in entry[0][1:len(entry[0])]:
             htmlFile.write('x')
           
