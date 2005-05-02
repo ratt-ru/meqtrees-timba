@@ -62,8 +62,6 @@ class vtk_qt_3d_display(qt.QWidget):
 # add control buttons
     self.h_box = qt.QHBox(self.v_box_controls)
 # buttons
-#    self.button_quit = qt.QPushButton("Quit",self.h_box)
-    self.button_test = qt.QPushButton("Update",self.h_box)
     self.button_capture = qt.QPushButton("Postscript",self.h_box)
     self.button_x = qt.QPushButton("X Freq",self.h_box)
     self.button_y = qt.QPushButton("Y Time",self.h_box)
@@ -74,13 +72,20 @@ class vtk_qt_3d_display(qt.QWidget):
     self.lcd.setNumDigits(3)
     self.lcd.display(0)
 # slider
-    self.slider = qt.QSlider(qt.Qt.Horizontal,self.v_box_controls)
+    self.h_box1 = qt.QHBox(self.v_box_controls)
+    self.slider = qt.QSlider(qt.Qt.Horizontal,self.h_box1)
     self.slider.setTickmarks(qt.QSlider.Below)
     self.slider.setTickInterval(10)
+    self.h_box1.setStretchFactor(self.slider,1)
+
+#add a spacer
+    self.spacer = qt.QSpacerItem( 0, 0, qt.QSizePolicy.Expanding, qt.QSizePolicy.Minimum )
+#    self.h_box1.addItem(self.spacer)
+#    self.h_box1.addStretch(1)
+
 
 # create connections from buttons to callbacks
 #    qt.QObject.connect(self.button_quit, qt.SIGNAL("clicked()"), qt.qApp, qt.SLOT("quit()"))
-    qt.QObject.connect(self.button_test, qt.SIGNAL("clicked()"),self.testEvent)
     qt.QObject.connect(self.button_capture,qt.SIGNAL("clicked()"),self.CaptureImage)
     qt.QObject.connect(self.button_x,qt.SIGNAL("clicked()"),self.AlignXaxis)
     qt.QObject.connect(self.button_y,qt.SIGNAL("clicked()"),self.AlignYaxis)
@@ -203,6 +208,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.current_widget = self.planeWidgetZ
     self.mode_widget = self.planeWidgetZ
     self.slider.setRange(zMin,zMax)
+    self.slider.setTickInterval( (zMax-zMin) / 10 )
     self.slider.setValue(z_index)
 
 # Create a text property for cube axes
@@ -307,6 +313,7 @@ class vtk_qt_3d_display(qt.QWidget):
  
     self.current_widget = self.planeWidgetX
     self.slider.setRange(xMin,xMax)
+    self.slider.setTickInterval( (xMax-xMin) / 10 )
     self.slider.setValue(slice_number)
     self.AlignCamera(slice_number)
 
@@ -323,6 +330,7 @@ class vtk_qt_3d_display(qt.QWidget):
  
     self.current_widget = self.planeWidgetY
     self.slider.setRange(yMin,yMax)
+    self.slider.setTickInterval( (yMax-yMin) / 10 )
     self.slider.setValue(slice_number)
     self.AlignCamera(slice_number)
  
@@ -339,6 +347,7 @@ class vtk_qt_3d_display(qt.QWidget):
  
     self.current_widget = self.planeWidgetZ
     self.slider.setRange(zMin,zMax)
+    self.slider.setTickInterval( (zMax-zMin) / 10 )
     self.slider.setValue(slice_number)
     self.AlignCamera(slice_number)
 
@@ -351,10 +360,11 @@ class vtk_qt_3d_display(qt.QWidget):
 # VTK code for test array
 #=============================
   def define_image(self, iteration=1):
-    num_arrays = 92
+#    num_arrays = 2
+#    num_arrays = 92
+#    num_arrays = 10
+#    array_dim = 700
     num_arrays = 800
-    num_arrays = 2
-    num_arrays = 300
     array_dim = 64
     gain = 1.0 / num_arrays
     if self.image_array is None:
@@ -444,6 +454,11 @@ class vtk_qt_3d_display(qt.QWidget):
 # next line causes confusion when run inside the browser
     self.renwininter.AddObserver("ExitEvent", lambda o, e, a=app: a.quit())
 
+# used in standalone test mode
+  def AddUpdateButton(self):
+    self.button_test = qt.QPushButton("Update",self.h_box)
+    qt.QObject.connect(self.button_test, qt.SIGNAL("clicked()"),self.testEvent)
+
 class ThreeDPlotter(GriddedPlugin):
   """ a class to plot 3 dimensional displays of array data distributions """
 
@@ -486,6 +501,7 @@ if __name__ == "__main__":
   qt.QObject.connect(app,qt.SIGNAL("lastWindowClosed()"),
 		app,qt.SLOT("quit()"))
   display = vtk_qt_3d_display()
+  display.AddUpdateButton()
   display.AddVTKExitEvent()
   display.show()
   app.exec_loop()
