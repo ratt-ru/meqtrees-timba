@@ -78,13 +78,15 @@ class CellBlock (object):
     # return parent
     return self._cells[offset].wtop();
     
-  def set_widgets (self,widgets,captions=None,icon=None):
+  def set_widgets (self,widgets,captions=None,icon=None,enable_viewers=True):
     """Sets widget contents. Should only be called once.
     widgets:    a sequence of one widget per cell, counting across 
                 the block, then down. If only a 1x1 block is allocated, 
                 content may be a single widget.
     captions:   is an list of captions of the same size as widgets.
-                If None is supplied, the dataitem caption is used instead.""";
+                If None is supplied, the dataitem caption is used instead.
+    enable_viewers: if False, certain GUI functions will be disabled
+    """;
     if isinstance(widgets,QWidget):
       if len(self._cells) != 1:
         raise ValueError,"len of widgets argument does not match cell layout";
@@ -101,7 +103,7 @@ class CellBlock (object):
       self._captions = captions;
     _dprint(2,id(self),': set content',widgets);
     # initialize cells with contents
-    self._init_cells(self._cells,icon=icon);
+    self._init_cells(self._cells,icon=icon,enable_viewers=enable_viewers);
     
   def _allocate_grid (self,**kwds):
     """Allocates self._cells: a grid of cells from a workspace.
@@ -123,14 +125,14 @@ class CellBlock (object):
     # connect signal: float cells
     QObject.connect(leadcell.wtop(),PYSIGNAL("float()"),self.float_cells);
     
-  def _init_cells (self,cells,icon=None):
+  def _init_cells (self,cells,icon=None,enable_viewers=True):
     """initializes cells with captions and dataitem.""";
     cw = zip(cells,self._content);
     # init leader cell
-    cells[0].set_content(self._content[0],dataitem=self._dataitem,icon=icon);
+    cells[0].set_content(self._content[0],dataitem=self._dataitem,icon=icon,enable_viewers=enable_viewers);
     # init other cells as followers
     for (c,w) in cw[1:]:
-      c.set_content(w,leader=cells[0],icon=icon);
+      c.set_content(w,leader=cells[0],icon=icon,enable_viewers=enable_viewers);
     # setup cell captions
     if self._captions is None:
       cells[0].set_caption(self._dataitem.caption);

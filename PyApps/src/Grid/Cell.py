@@ -56,11 +56,13 @@ class Cell (object):
       if self._menu:
         self._menu.exec_loop(ev.globalPos());
       
-  def __init__ (self,parent,gridpos,fixed_cell=False,notitle=False):
+  def __init__ (self,parent,gridpos,fixed_cell=False,notitle=False,noviewer=False):
     """constructor. 
     parent:     parent widget
     gridpos:    the grid position. A tuple of (gridpage,ix,iy).
                 This is used to uniquely identify the cell within the workspace.
+    noviewer:   if True, the cell will not support change of viewers or drops
+                of data items
     fixed_cell: if True, the cell will not support change of viewers, closing,
                 pinning, etc., and will not accept drops of data items.
     notitle:    if True, cell will be fixed, and will not have a 'titlebar'.
@@ -77,6 +79,7 @@ class Cell (object):
     # init widgets
     wtop = self._wtop = self.TopLevelWidget(parent,'cell '+str(id(self))+' top');
     wtop.hide();
+    self.enable_viewers(not noviewer);
     # --- build toolbar
     self._toolbar = QToolBar("Panel tools",wtop,wtop);
     # icon button and popup menu    
@@ -132,6 +135,9 @@ class Cell (object):
     self._wtop.hide();
   def show (self):
     self._wtop.show();
+  def enable_viewers (self,enable):
+    self._enable_viewers = enable;
+    self._wtop.setAcceptDrops(enable);
   def get_udi (self):
     return self._udi;
   def is_parent_of (self,udi):
@@ -193,6 +199,7 @@ class Cell (object):
     self.set_pinned(False);
     self._clear_content();
     self._refresh_func = lambda:None;
+    _dprint(5,id(self),': emitting wiped() signal');
     self.wtop().emit(PYSIGNAL("wiped()"),());
     self.wtop().set_context_menu(None);
 
@@ -263,7 +270,8 @@ class Cell (object):
       # self._menu.setAccel(Qt.CTRL+Qt.Key_Plus,i1);
       # i1 = self._menu.insertItem("Smaller font",self.decrease_font);
       # self._menu.setAccel(Qt.CTRL+Qt.Key_Minus,i1);
-    self._m_viewers = menu.insertItem("View using",self._viewers_menu);
+    if self._enable_viewers:
+      self._m_viewers = menu.insertItem("View using",self._viewers_menu);
     self._pin.addTo(menu);
     self._pin.setOn(self.is_pinned());
     self._float_act.addTo(menu);
@@ -300,7 +308,7 @@ class Cell (object):
   def _change_viewer (self,dataitem,viewer):
     self.wtop().emit(PYSIGNAL("changeViewer()"),(dataitem,viewer));
     
-  def set_content (self,widget,dataitem=None,leader=None,icon=None):
+  def set_content (self,widget,dataitem=None,leader=None,icon=None,enable_viewers=True):
     """inits cell as a leader cell for a dataitem. Leader cells have
     an active toolbar and menu. When a viewer is using a single cell,
     that cell is always a leader cell."""
@@ -308,6 +316,7 @@ class Cell (object):
     if widget.parent() is not self.wtop():
       raise ValueError,'content widget must be child of this Grid.Cell';
     # init cell content
+    self.enable_viewers(enable_viewers);
     self._wtop.hide();
     # insert new content
     self._clear_content();

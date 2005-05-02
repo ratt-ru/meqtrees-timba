@@ -37,8 +37,7 @@ def processVisHeader (hdr):
         setState(label+'.'+sn,value=pos[j,iant]);
     except: pass;
   # array reference position
-  for (j,label) in r
-  enumerate(coords):
+  for (j,label) in enumerate(coords):
     setState(label+'0',value=pos[j,0]);
 
 # register the handler with meqserver

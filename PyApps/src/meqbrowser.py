@@ -28,6 +28,7 @@ importPlugin('histogram_plotter');
 importPlugin('result_plotter');
 importPlugin('parm_plotter');
 importPlugin('parmfiddler');
+importPlugin('stream_control');
 
 #-------- update default debuglevels
 app_defaults.debuglevels.update({

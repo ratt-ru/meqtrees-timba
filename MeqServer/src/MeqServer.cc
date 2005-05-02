@@ -803,6 +803,13 @@ void MeqServer::run ()
       continue;
     }
     
+    // put init record into forest state
+    {
+      DMI::Record::Ref tmp(DMI::ANONWR);
+      tmp[AidStream] = initrec;
+      forest.setState(tmp,false);
+    }
+        
     // init the data mux
     data_mux.init(*initrec,input(),output(),control());
     // get params from control record
