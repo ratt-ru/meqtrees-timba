@@ -488,6 +488,8 @@ class QwtImagePlot(QwtPlot):
         self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
         self.setAxisTitle(QwtPlot.yLeft, 'value')
         
+        self.enableAxis(QwtPlot.yRight, False)
+        self.enableAxis(QwtPlot.xTop, False)
         self.dummy_xCrossSection = None
         self.xCrossSection = None
         self.yCrossSection = None
@@ -892,7 +894,7 @@ class QwtImagePlot(QwtPlot):
         QwtPlot.drawCanvasItems(self, painter, rectangle, maps, filter)
 
 
-    def formatCoordinates(self, x, y):
+    def formatCoordinates(self, x, y, value = None):
         """Format mouse coordinates as real world plot coordinates.
         """
         result = ''
@@ -928,7 +930,8 @@ class QwtImagePlot(QwtPlot):
 	      marker_index = 0
           temp_str = result + " y =%+.2g" % ypos1
           result = temp_str
-        value = self.raw_image[xpos,ypos]
+        if value is None:
+          value = self.raw_image[xpos,ypos]
 	message = None
         temp_str = " value: %-.3g" % value
 	if not marker_index is None:
@@ -961,6 +964,34 @@ class QwtImagePlot(QwtPlot):
 #        timer.start(2000, True)
             
     # formatCoordinates()
+
+    def reportCoordinates(self, x, y):
+        """Format mouse coordinates as real world plot coordinates.
+        """
+        result = ''
+        xpos = x
+        ypos = y
+        temp_str = "nearest x=%-.3g" % x
+        temp_str1 = " y=%-.3g" % y
+	message = temp_str + temp_str1 
+# alias
+        fn = self.fontInfo().family()
+
+# text marker giving source of point that was clicked
+        self.marker = self.insertMarker()
+        ylb = self.axisScale(QwtPlot.yLeft).lBound()
+        xlb = self.axisScale(QwtPlot.xBottom).lBound()
+        self.setMarkerPos(self.marker, xlb, ylb)
+        self.setMarkerLabelAlign(self.marker, Qt.AlignRight | Qt.AlignTop)
+        self.setMarkerLabel( self.marker, message,
+          QFont(fn, 9, QFont.Bold, False),
+          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+
+# insert array info if available
+        self.insert_array_info()
+        self.replot()
+        _dprint(3, 'called replot in reportCoordinates ')
+    # reportCoordinates()
 
     def refresh_marker_display(self):
       self.removeMarkers()
@@ -1016,11 +1047,12 @@ class QwtImagePlot(QwtPlot):
 # sequence number of the nearest point in that curve.
               curve_number, distance, xVal, yVal, index = self.closestCurve(xPos, yPos)
               _dprint(2,' curve_number, distance, xVal, yVal, index ', curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', index);
-#              print ' curve_number, distance, xVal, yVal, index ', curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', index;
-#              print ' data value is ', self.x_array[index]
-              return
+#             print ' curve_number, distance, xVal, yVal, index ', curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', index;
+              self.reportCoordinates(xVal, yVal)
+#             return
 
-            self.formatCoordinates(e.pos().x(), e.pos().y())
+            else:
+              self.formatCoordinates(e.pos().x(), e.pos().y())
             self.xpos = e.pos().x()
             self.ypos = e.pos().y()
             self.enableOutline(1)
@@ -1132,8 +1164,8 @@ class QwtImagePlot(QwtPlot):
     def onMouseReleased(self, e):
         if self._plot_type == 'histogram':
             return
-        if self.is_vector:
-            return
+#       if self.is_vector:
+#           return
         if Qt.LeftButton == e.button():
             self.refresh_marker_display()
             xmin = min(self.xpos, e.pos().x())
@@ -1491,6 +1523,8 @@ class QwtImagePlot(QwtPlot):
       self.removeCurves()
       self.xCrossSection = None
       self.yCrossSection = None
+      self.enableAxis(QwtPlot.yRight, False)
+      self.enableAxis(QwtPlot.xTop, False)
       self.xCrossSectionLoc = None
       self.yCrossSectionLoc = None
       self.dummy_xCrossSection = None
@@ -1498,6 +1532,20 @@ class QwtImagePlot(QwtPlot):
       self.myYScale = None
       self.split_axis = None
       self.array_parms = None
+
+# pop up menu for printing
+      if self._menu is None:
+        self._menu = QPopupMenu(self._mainwin);
+        zoom = QAction(self);
+        zoom.setIconSet(pixmaps.viewmag.iconset());
+        zoom.setText("Disable zoomer");
+        zoom.addTo(self._menu);
+        printer = QAction(self);
+        printer.setIconSet(pixmaps.fileprint.iconset());
+        printer.setText("Print plot");
+        QObject.connect(printer,SIGNAL("activated()"),self.printplot);
+        printer.addTo(self._menu);
+        QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_spectrum_display);
 
 # set title
       if self._title is None:
