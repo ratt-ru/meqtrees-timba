@@ -105,8 +105,8 @@ if test "$pkgs" = ""; then
 fi
 
 echo ""
-echo 'Building PACKAGES="'"$pkgs"'"'
-echo '         VARIANTS="'"$variants"'"'
+echo 'Building PACKAGES="'$pkgs'"'
+echo '         VARIANTS="'$variants'"'
 echo ""
 
 # Build the system.
