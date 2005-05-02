@@ -1727,9 +1727,17 @@ class QwtImagePlot(QwtPlot):
             for j in range(n_cols):
               self.x_index[j] = start_time + j * x_step
         else:
-          self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
+	  if self._x_axis is None:
+            self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
+	  else:  
+            self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
           self.x_index = arange(num_elements)
           self.x_index = self.x_index + 0.5
+# if we are plotting a single iteration solver solution
+# plot on 'locations' of solver parameters. Use 'self.metrics_rank'
+# as test, but don't plot metrics in this case
+          if not self.metrics_rank is None:
+            self.x_index = self.x_index + 0.5
         flattened_array = reshape(plot_array,(num_elements,))
         if not self._flags_array is None:
           if complex_type:
