@@ -23,7 +23,7 @@ _dbg = verbosity(0,name='node_fiddle');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-solverstart =2;
+solverstart =3;
 
 
 
@@ -218,10 +218,10 @@ class ParmFiddler (browsers.GriddedPlugin):
         # fill listbox with MeqParm names
         self.parmtable.setNumCols(len(self._solverdict.keys())+solverstart);
         self.parmtable.setNumRows(len(self._parmlist));
-        self.parmtable.setColumnReadOnly(0,True);
-        self.parmtable.setColumnReadOnly(1,True);
+        self.parmtable.setReadOnly(True);
         self.parmtable.horizontalHeader () .setLabel(0,"name");
         self.parmtable.horizontalHeader () .setLabel(1,"c00");
+        self.parmtable.horizontalHeader () .setLabel(2,"shape");
         QObject.connect( self.parmtable.horizontalHeader (),SIGNAL("released(int)"),self.sortColumn);
         if self._currentparm:
             self._currentparm.reject();
@@ -287,12 +287,12 @@ class ParmFiddler (browsers.GriddedPlugin):
       if(checknode>node.name):
         # store in alphabetic order
         self._parmlist.insert(i,node.name);
-        self._parmdict[node.name] = {'node' : node, 'name': node.name,'solvers':{},'c00':0.,'groups':[],'row':-1};
+        self._parmdict[node.name] = {'node' : node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','groups':[],'row':-1};
         return True;
 
     self._parmlist.append(node.name);
   
-    self._parmdict[node.name] = {'node':node, 'name': node.name,'solvers':{},'c00':0.,'groups':[],'row':-1};
+    self._parmdict[node.name] = {'node':node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','groups':[],'row':-1};
       
           
     return True;
@@ -307,7 +307,7 @@ class ParmFiddler (browsers.GriddedPlugin):
           for solvernm in solvernamelist:
               self.parmtable.horizontalHeader () .setLabel(n,solvernm);              
               self._solverdict[solvernm]['col']=n;
-              self.parmtable.setColumnReadOnly(n,True);
+ #             self.parmtable.setColumnReadOnly(n,True);
               n+=1;
       #QObject.connect(self.parmtable.horizontalHeader (),SIGNAL("clicked(int)"),self.sortbycol)
       parmnr=0;
@@ -316,8 +316,10 @@ class ParmFiddler (browsers.GriddedPlugin):
           parm =self._parmdict[parmkey]['node'];
           solvers = self._parmdict[parmkey]['solvers'];
           c00 =  self._parmdict[parmkey]['c00'];
+          shape =  self._parmdict[parmkey]['shape'];
           self.parmtable.setText( parmnr,0,parm.name );
           self.parmtable.setText( parmnr,1,str(c00) );
+          self.parmtable.setText( parmnr,2,shape );
           self._parmdict[parmkey]['row']=parmnr;
               
           parmnr+=1;
@@ -344,8 +346,10 @@ class ParmFiddler (browsers.GriddedPlugin):
   def updateRow(self,row):
     parmkey = str(self.parmtable.text(row,0));
     c00=self._parmdict[parmkey]['c00'];
+    shape =  self._parmdict[parmkey]['shape'];
     solvers = self._parmdict[parmkey]['solvers'];
     self.parmtable.setText( row,1,str(c00) );
+    self.parmtable.setText( row,2,shape );
     for solver in self._solverdict.keys():
       col = self._solverdict[solver]['col'];
       checkbutton = self.parmtable.item(row,col);
@@ -387,8 +391,12 @@ class ParmFiddler (browsers.GriddedPlugin):
           coeff=[[coeff]];
       if is_scalar(coeff[0]):
           coeff=[coeff];
-          
+
+      shapex= len(coeff);
+      shapey=len(coeff[0]);
+      shapestr="["+str(shapex)+","+str(shapey)+"]";
       self._parmdict[node.name]['c00']=coeff[0][0];
+      self._parmdict[node.name]['shape']=shapestr;
       nodegroups=make_hiid_list(nodegroups);
       self._update_subscribedsolvers(node,nodegroups);
 
