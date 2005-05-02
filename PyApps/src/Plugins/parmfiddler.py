@@ -23,180 +23,8 @@ _dbg = verbosity(0,name='node_fiddle');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+solverstart =2;
 
-
-class editParm(QDialog):
-    def __init__(self, parent,grandparent):
-      self.parent = parent;
-      self.grandparent = grandparent;
-      self.parentname=parent._nodename;
-      funklet=self.parent._funklet;
-      if funklet:
-          self._coeff=funklet.coeff;
-      else:
-          self._coeff=0;
-
-      if is_scalar(self._coeff):
-          self._coeff=[[self._coeff]]
-      if is_scalar(self._coeff[0]):
-          self._coeff=[self._coeff];
-      self._nx=len(self._coeff);
-      self._ny=len(self._coeff[0]);
-
-      QDialog.__init__(self,grandparent,"Test",0,0);
-      self.setCaption('Funklet of '+self.parentname);
-      self.v = QVBoxLayout(self, 10, 5)
-
-      self.funkgrid=QTable(self);
-      self.funkgrid.setCaption("funklet values")
-
-      self.horh = self.funkgrid.horizontalHeader()
-      self.verth = self.funkgrid.verticalHeader()
-
-#      self.updateCoeff_fromparent();
-
-      
-      self.updategrid();
-
-      self.v.addWidget(self.funkgrid);
-
-      self.Bh = QHBoxLayout(self.v, 5)
-      
-      self.cmdAddRow = QPushButton('Add Row', self)
-      QObject.connect(self.cmdAddRow, SIGNAL('clicked()'), self.slotcmdAddRow)
-      self.Bh.addWidget(self.cmdAddRow)
-      self.cmdRemoveRow = QPushButton('Remove Row', self)
-      QObject.connect(self.cmdRemoveRow, SIGNAL('clicked()'), self.slotcmdRemoveRow)
-      self.Bh.addWidget(self.cmdRemoveRow)
-      self.cmdAddCol = QPushButton('Add Column', self)
-      QObject.connect(self.cmdAddCol, SIGNAL('clicked()'), self.slotcmdAddCol)
-      self.Bh.addWidget(self.cmdAddCol)
-      self.cmdRemoveCol = QPushButton('Remove Column', self)
-      QObject.connect(self.cmdRemoveCol, SIGNAL('clicked()'), self.slotcmdRemoveCol)
-      self.Bh.addWidget(self.cmdRemoveCol)
-      self.Bh2 = QHBoxLayout(self.v, 5)
-      
-      self.cmdOK = QPushButton('Apply', self)
-      QObject.connect(self.cmdOK, SIGNAL('clicked()'), self.slotcmdOK)
-      self.Bh2.addWidget(self.cmdOK)
-      self.cmdCancel = QPushButton('Cancel', self)
-      QObject.connect(self.cmdCancel, SIGNAL('clicked()'), self.slotcmdCancel)
-      self.Bh2.addWidget(self.cmdCancel)
-
-      self.cmdCancel.setIconSet(pixmaps.cancel.iconset());
-      self.cmdOK.setIconSet(pixmaps.check.iconset());
-
-      QObject.connect(self.funkgrid,SIGNAL('valueChanged(int,int)'),self.updateCoeff);
-      
-      
-      self.show()
-      
-
-    def slotcmdAddRow(self):
-        array1=self._coeff;
-        array2=numarray.resize(array1,(self._nx+1,self._ny));
-#       something I have to do , since increasing size of a numarray does strange things with values
-        for i in range(self._nx):
-            for j in range(self._ny):
-                array2[i,j]=self._coeff[i][j];
-        self._coeff=array2;
-        for i in range(self._ny):
-            self._coeff[self._nx][i]=0.0;
-        self._nx+=1;
-        self.funkgrid.setNumRows(self._nx);
-        self.funkgrid.setNumCols(self._ny);
-        self.updategrid();
-
-
-
-    def slotcmdAddCol(self):
-        array1=self._coeff;
-        array2=numarray.resize(array1,(self._nx,self._ny+1));
-        for i in range(self._nx):
-            for j in range(self._ny):
-                array2[i,j]=self._coeff[i][j];
-        self._coeff=array2;
-        for i in range(self._nx):
-            self._coeff[i][self._ny]=0.0;
-        self._ny+=1;
-        self.funkgrid.setNumRows(self._nx);
-        self.funkgrid.setNumCols(self._ny);
-        self.updategrid();
-
-    def slotcmdRemoveRow(self):
-        if self._nx<=1:
-            return;
-        array1=self._coeff;
-        array2=numarray.resize(array1,(self._nx-1,self._ny));
-        self._coeff=array2;
-        self._nx-=1;
-        self.funkgrid.setNumRows(self._nx);
-        self.funkgrid.setNumCols(self._ny);
-        self.updategrid();
-       
-        
-
-    def slotcmdRemoveCol(self):
-        if self._ny<=1:
-            return;
-        array1=self._coeff;
-        array2=numarray.resize(array1,(self._nx,self._ny-1));
-        self._coeff=array2;
-        self._ny-=1;
-        self.funkgrid.setNumRows(self._nx);
-        self.funkgrid.setNumCols(self._ny);
-        self.updategrid();
-
-    def slotcmdCancel(self):
-#        self.parent._dorefresh();
-#        self.reject();
-        self.parent.rejectedit();
-    def slotcmdOK(self):
-#        print self.parent._funklet.coeff;
-        array1=numarray.resize(self.parent._funklet.coeff,(self._nx,self._ny));
-        self.parent._funklet.coeff=array1;
-        for i in range(self._nx):
-            for j in range(self._ny):
-                
-                self.parent._funklet.coeff[i][j] = float(str(self.funkgrid.text(i,j)));
-#        print self.parent._funklet.coeff;
-#       self.updategrid();
-        self.parent.updatechange();
-#        self.reject();
-                
-                
-    def updategrid(self):
-        self.funkgrid.setNumRows(self._nx);
-        self.funkgrid.setNumCols(self._ny);
-        maxc=1;
-        for j in range(self._ny):
-            self.horh.setLabel(j,"");
-            for i in range(self._nx):
-                if j==0 : self.verth.setLabel(i,""); 
-                self.funkgrid.setText(i,j,str(self._coeff[i][j]));
-                width= len(self.funkgrid.text(i,j));
-                if width>maxc : maxc =width;
-            self.funkgrid.setColumnWidth(j,maxc*15);
-            maxc=1;
-        self.horh.setLabel(0,"t");
-        self.verth.setLabel(0,"f");
- 
-    def updateCoeff(self,row,col):
-        self._coeff[row][col]= float(str(self.funkgrid.text(row,col)));
-
-    def updateCoeff_fromparent(self):
-        funklet=self.parent._funklet;
-        if funklet:
-            self._coeff=funklet.coeff;
-        else:
-            self._coeff=0;
-        if is_scalar(self._coeff):
-            self._coeff=[[self._coeff]]
-        if is_scalar(self._coeff[0]):
-            self._coeff=[self._coeff];
-        self._nx=len(self._coeff);
-        self._ny=len(self._coeff[0]);
-        self.updategrid();
 
 
 class NA_ParmFiddler(NodeAction):
@@ -218,9 +46,11 @@ _request_type = dmi_type('MeqRequest',record);
 
 
 
+
 class ParmFiddler (browsers.GriddedPlugin):
   viewer_name = "ParmFiddler";
   _icon = pixmaps.fiddle;
+
 
   def is_viewable (data):
     return isinstance(data,_request_type) or \
@@ -228,80 +58,83 @@ class ParmFiddler (browsers.GriddedPlugin):
   is_viewable = staticmethod(is_viewable);
 
 
+
+
   def __init__(self,gw,dataitem,cellspec={},**opts):
     browsers.GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     _dprint(1,"started with",dataitem.udi,dataitem.data);
     self._has_data = False;
     self.rid=0;
-    self._wtop = QVBox(self.wparent());
-#    self._wtop.setFrameShape(QFrame.Panel+QFrame.Sunken);
-#    self._wtop.setMargin(10);
+    self.c00=0.;
+    self._wtop = QHBox(self.wparent());
+    self._parmlist= [];
+    self._solverdict= {};
+    self._parmdict= {};
+    #all names off the nodes except parms
+    self._nodedict= {};
+    self._currentparm = None;
+    self.swapsort=True;
+    self.sorted=0; 
+    #Initialize subscribe state
+    self._callbackparm = curry(self._update_parmlist);
+    self._callbacksolver = curry(self._update_solverlist);
 
-    udi_root = dataitem.udi;
-    reqCtrlFrame = QHBox(self.wtop());
-    # Create a list box
-    self.lb = QListBox(reqCtrlFrame , "listBox" );
+
+    self.parmtable = QTable(self._wtop , "parmtable" );
+    self.parmtable.setShowGrid(False);
+    self.parmtable.setFocusStyle(QTable.FollowStyle);
+    QObject.connect( self.parmtable, SIGNAL("selectionChanged()"), self.parmSetIndex )
+    QObject.connect( self.parmtable, SIGNAL("doubleClicked(int, int, int, const QPoint &)"), self.parmSelected )
+    QObject.connect( self.parmtable, SIGNAL("clicked(int, int, int, const QPoint &)"), self.parmClicked)
+
+    self.sliderframe = QVBox(self.wtop());
+#    self.c00frame = QHBox(self.sliderframe);
+
+    self.labelParm = QLabel("no parm selected", self.sliderframe ,"labelParm");
+    self.c00Text = QLabel(self.sliderframe ,"c00text");
+    alignment = Qt.AlignLeft|Qt.SingleLine;
+    self.c00Text.setAlignment(alignment);
+    self.labelParm.setAlignment(alignment);
+    style = QFrame.StyledPanel|QFrame.Sunken;
+    self.c00Text.setFrameStyle(style);
     
 
-    #on double click:
-    QObject.connect( self.lb, SIGNAL("selected(int)"), self.parmSelected )
-    #    QObject.connect( self.lb, SIGNAL("selected(int)"), self.parmSetIndex )
-    QObject.connect( self.lb, SIGNAL("clicked(QListBoxItem *)"), self.parmSetIndex )
-    
-    reqVFrame = QVBox(reqCtrlFrame);
-    self.labelParm = QLabel("c00: 0", reqVFrame ,"labelParm");
-    reqSlideFrame = QHBox(reqVFrame);
-
-
-    self.enable_exec = QCheckBox("reexecute",reqVFrame, "enable_exec");
-    
-
-    reqButtonFrame = QHBox(reqVFrame);
-        
-    self.buttonOk = QPushButton(reqButtonFrame,"buttonOk")
-#    self.buttonOk.setIconSet(pixmaps.check.iconset());
-    self.buttonOk.setText('Funklet');
-
-    self.buttonReset = QPushButton(reqButtonFrame,"buttonReset")
-    self.buttonReset.setText('Zero');
-
-
-    self.slider1 = QSlider (reqSlideFrame,"slider1");
-    self.slider1.setMinValue ( -20 );
-    self.slider1.setMaxValue ( 20 );
-    self.slider2 = QSlider (reqSlideFrame,"slider2");
-    self.slider2.setMinValue ( -99 );
-    self.slider2.setMaxValue ( 99 );
+    self.slider1 = QSlider (self.sliderframe,"slider1");
+    self.slider1.setMinValue ( -50 );
+    self.slider1.setMaxValue ( 50 );
 
     self.slider1.setTickInterval(5);
-    self.slider2.setTickInterval(2);
     self.slider1.setTickmarks(QSlider.Both);
-    self.slider2.setTickmarks(QSlider.Both);
     
     self.slider1.setTracking(True);
-    self.slider2.setTracking(True);
-
-    QObject.connect(self.slider1,SIGNAL("valueChanged(int)"),self.changeGrof);
-    QObject.connect(self.slider2,SIGNAL("valueChanged(int)"),self.changeFine);
-    QObject.connect(self.slider1,SIGNAL("sliderReleased()"),self.updateC00);
-    QObject.connect(self.slider2,SIGNAL("sliderReleased()"),self.updateC00);
+    self.slider1.setEnabled(False);
     
+    QObject.connect(self.slider1,SIGNAL("valueChanged(int)"),self.changeC00Text);
+    QObject.connect(self.slider1,SIGNAL("sliderReleased()"),self.updateC00);
+
+    self.spinframe = QHBox(self.sliderframe);
+    self.labelSpin =  QLabel("stepsize:", self.spinframe ,"labelSpin");
+    self.stepsizeList = QComboBox(False, self.spinframe ,"stepsizeList");
+    QObject.connect(self.stepsizeList,SIGNAL("activated(int)"),self.changeStepsize);
+    self.fillstepsizelist();
+    self.stepsize=1.;
 
 
- 
-    QObject.connect(self.buttonOk,SIGNAL("clicked()"),self.getparms);
+    self.enable_exec = QCheckBox("reexecute",self.sliderframe, "enable_exec");
+    self.enable_exec.setEnabled(False);
+    
+    self.ButtonFrame = QHBox(self.sliderframe);
+        
+    self.buttonOk = QPushButton(self.ButtonFrame,"buttonOk")
+    self.buttonOk.setText('Execute');
+
+    self.buttonReset = QPushButton(self.ButtonFrame,"buttonReset")
+    self.buttonReset.setText('Zero');
+    self.buttonOk.setEnabled(False);
+    self.buttonReset.setEnabled(False);
+    QObject.connect(self.buttonOk,SIGNAL("clicked()"),self.do_reexecute);
     QObject.connect(self.buttonReset,SIGNAL("clicked()"),self.resetfunklet);
 
-    self._request = [];
-    self._parmlist= [];
-    self._nodelist= [];
-    self._nodedict= {};
-    self._currentparm=None;
-    self._parmindex=-1;
-    self.c00=0.0;
-    # find parms
-    #self.getparms();
-    # set data
     # form a caption and set contents
     (name,ni) = meqds.parse_node_udi(dataitem.udi);
     caption = "Fiddle from <b>%s</b>" % (name or '#'+str(ni),);
@@ -313,186 +146,128 @@ class ParmFiddler (browsers.GriddedPlugin):
         self.set_data(dataitem);
 
 
+   
+
+    
+    
+    
+
   def wtop(self):
       return self._wtop;
 
 
-  def changeGrof(self,value):
-      fine=self.slider2.value()/100.;
-      sign = 1;
-      if not value == 0:
-          sign = abs(value)/value;
-
+  def fillstepsizelist(self):
+      for i in range(-10,11):
+        if  abs(i) <4:
+          stepsize = pow(10.,i);
+          self.stepsizeList.insertItem(str(stepsize));
+        else:
+          sign = "+";
+          if i<0:
+            sign = "-";
           
-      self.c00=sign*(abs(value)+fine);
-      self.changeCaption(self.c00);
-
-  def changeFine(self,value):
-      grof=self.slider1.value();
-      self.c00=value/100.+grof;
-      self.changeCaption(self.c00);
+          stpstring = "1e"+sign+str(abs(i));
+          self.stepsizeList.insertItem(stpstring);
+         
+      self.stepsizeList.setCurrentItem(10);
+      self.stepsize=1;
       
+  def changeStepsize(self,stepnr=10):
+    self.stepsize= pow(10.,stepnr-10);
 
-  def changeCaption(self,value):
-      self.labelParm.setText("c00: " + str(value))
-
-
-
-  def resetfunklet(self):
-      if not self._currentparm:
-          return;
-      self._currentparm.resettozero();
-
-
-  def updateC00(self):
-      if not self._currentparm:
-          return;
-      self._currentparm.setc00(self.c00);
-      
-  def changeC00(self, value=0.00):
-
-      sign=1;
-      if not value == 0:
-          sign = abs(value)/value;
-
-      value=int(abs(value)*100+0.5);
-      value=sign*value/100.;
-      min=self.slider1.minValue();
-      max=self.slider1.maxValue();
-
-      if (value-min)<5 or (max-value)<5:
-          self.slider1.setRange(value-20,value+20);
-      self.changeCaption(value);
-      
-      self.c00 = value;
-      grof=int(abs(value)+0.5);
-      fine=(abs(value)-grof)*100;
-      grof =sign*grof;
-      self.slider1.setValue(grof)
-      self.slider2.setValue(fine)
-
-
-  def parmSetIndex(self,item=None):
-      if item:
-          self._parmindex = self.lb.currentItem();
-      self.buttonOk.setEnabled(True);
-      self.buttonReset.setEnabled(True);
-      changenode=self._parmlist[self._parmindex];
-      if self._currentparm:
-          self._currentparm.reject();
-#          del self._currentparm;
-      self._currentparm = ParmChange(self,changenode);
-
-
-  def parmSelected(self,index):
-      self._parmindex = index;
-      self.buttonOk.setEnabled(True);
-      self.buttonReset.setEnabled(True);
-      changenode=self._parmlist[self._parmindex];
-      if self._currentparm:
-          self._currentparm.reject();
-#          del self._currentparm;
-      self._currentparm = ParmChange(self,changenode);
-
-
-      self.getparms();
-
-      
-
-
-  def getparms(self):
-    if not self._parmlist:
-        QMessageBox.warning(self.wtop(),
-                            "Warning",
-                            "No parameters found");
-        return;
-    
-    if self._parmindex >= len(self._parmlist) or self._parmindex< 0 :
-        QMessageBox.warning(self.wtop(),
-                            "Warning",
-                            "No parameter selected");
-        return;
-
-
-
-
-    changenode=self._parmlist[self._parmindex];
-    if not self._currentparm:
-        self._currentparm = ParmChange(self,changenode);
-    if self._currentparm.edit_parm :
-        self._currentparm.rejectedit();
-    # create new editor
-    self._currentparm._edit();
-    self.changeC00(self._currentparm.getc00());
-    
 
   def set_data (self,dataitem,**opts):
-    if not self._has_data:
-      self._has_data = True;
-      state = dataitem.data;
-      request = getattr(state,'request',None);
-      if not request:
-          QMessageBox.warning(self.wtop(),
-                              "Warning",
-                            "No request found in Node, Please specify request first via Reexecute");
-          self.enable_exec.setOn(False);
-          self.enable_exec.setEnabled (False);
-#          self.buttonOk.setEnabled(False);          
-#          self.buttonReset.setEnabled(False);
-      else:
-          #
-          #      print self._node;
-          self.enable_exec.setOn(True);
-          self.enable_exec.setEnabled (True);
-          self._request = request;
+      if not self._has_data:
+        self._has_data = True;
+        state = dataitem.data;
+        request = getattr(state,'request',None);
+        if not request:
+            QMessageBox.warning(self.wtop(),
+                                "Warning",
+                              "No request found in Node, Please specify request first via Reexecute");
+            self.enable_exec.setOn(False);
+            self.enable_exec.setEnabled (False);
+            self.buttonOk.setEnabled(False);          
+        else:
+            #
+            #     #print self._node;
+            self.enable_exec.setOn(True);
+            self.enable_exec.setEnabled (True);
+            self.buttonOk.setEnabled(True);          
+            self._request = request;
 
-      self._parmlist= [];
-      self._nodelist= [];
-      self._nodedict= {};
-      self.getnodelist(meqds.nodelist[self._node]);
-      # fill listbox with MeqParm names
-      self.lb.clear();
-      if self._currentparm:
-          self._currentparm.reject();
-          self._currentparm=None;
-      self._parmindex=-1;
-      for parm in self._parmlist:
-          self.lb.insertItem( parm.name )
-      self.buttonOk.setEnabled(False);
-      self.buttonReset.setEnabled(False);
+        self.unsubscribe_all();
+        #parmlist is sorted by name.
+        self._parmlist= [];
+        self._solverdict= {};
+        self._parmdict= {};
+        #all names off the nodes except parms
+        self._nodedict= {};
 
-      if not self._parmlist:
-          QMessageBox.warning(self.wtop(),
-                              "Warning",
-                              "No parameters found");
-          self.buttonOk.setEnabled(False);
-          self.buttonReset.setEnabled(False);
 
-      self.enable();
-      self.flash_refresh();
+        # recursively get all parms and solvers behind this node
+        self.getnodelist(meqds.nodelist[self._node]);
 
-    
-  def _refresh (self):
-    # clear the has_data flag, so that set_data above will accept new data
-    _dprint(2,'refresh expected now');
-    self._has_data = False;
-        
+        #subscribe to solvers
+        for solverkey in self._solverdict.keys():
+          solver = self._solverdict[solverkey]['node'];
+          # subscribe
+          solver.subscribe_state(self._callbacksolver);
+          meqds.request_node_state(solver);
+
+        # fill listbox with MeqParm names
+        self.parmtable.setNumCols(len(self._solverdict.keys())+solverstart);
+        self.parmtable.setNumRows(len(self._parmlist));
+        self.parmtable.setColumnReadOnly(0,True);
+        self.parmtable.setColumnReadOnly(1,True);
+        self.parmtable.horizontalHeader () .setLabel(0,"name");
+        self.parmtable.horizontalHeader () .setLabel(1,"c00");
+        QObject.connect( self.parmtable.horizontalHeader (),SIGNAL("released(int)"),self.sortColumn);
+        if self._currentparm:
+            self._currentparm.reject();
+            self._currentparm=None;
+        self._parmindex=-1;
+
+        self.updateTable();
+        for parmkey in self._parmlist:
+          parm =self._parmdict[parmkey]['node'];
+          parm.subscribe_state(self._callbackparm);
+          meqds.request_node_state(parm);
+
+
+        self.buttonReset.setEnabled(False);
+
+        if not self._parmlist:
+            QMessageBox.warning(self.wtop(),
+                                "Warning",
+                                "No parameters found");
+            self.buttonReset.setEnabled(False);
+
+        self.enable();
+        self.flash_refresh();
+
+
+
+
 
   def getnodelist(self,node):
       if node.classname == 'MeqParm':
           self.checkparm(node);
-          
       else:
           # check if we have been at this node before
           if not self.checknodenew(node):
-              # improves speed but not totally satisfactory
+              # improves speed
               return;
-          # loop over chilren          
+          if node.classname == 'MeqSolver':
+              self._solverdict[node.name]={'group':'','node':node,'parms':{},'col':-1};
+
+              
           if node.children:
               for (key,ni) in node.children:
                   child = meqds.nodelist[ni];
            
                   self.getnodelist(child);
+                  
           
   def checknodenew(self,node):
       if self._nodedict.has_key(node.name):
@@ -505,38 +280,379 @@ class ParmFiddler (browsers.GriddedPlugin):
       
 
   def checkparm(self,node):
-      for i in range(len(self._parmlist)):
-          checknode=self._parmlist[i];
-          if checknode.name==node.name:
-              return False;
-          if(checknode.name>node.name):
-              # store in alphabetic order
-              self._parmlist.insert(i,node);
-              return True;
+    for i in range(len(self._parmlist)):
+      checknode=self._parmlist[i];
+      if checknode==node.name:
+        return False;
+      if(checknode>node.name):
+        # store in alphabetic order
+        self._parmlist.insert(i,node.name);
+        self._parmdict[node.name] = {'node' : node, 'name': node.name,'solvers':{},'c00':0.,'groups':[],'row':-1};
+        return True;
 
-      self._parmlist.append(node);
-          
-      return True;
-
-
-  def reexecute(self):
-      if not self.enable_exec.state () : #reexecute not enabled
-          return;
+    self._parmlist.append(node.name);
+  
+    self._parmdict[node.name] = {'node':node, 'name': node.name,'solvers':{},'c00':0.,'groups':[],'row':-1};
       
-      if not self._request:
+          
+    return True;
+
+
+
+  def updateTable(self): 
+      #print "got updateTable ",self._parmdict;
+      solvernamelist = self._solverdict.keys();
+      if solvernamelist:
+          n=solverstart;
+          for solvernm in solvernamelist:
+              self.parmtable.horizontalHeader () .setLabel(n,solvernm);              
+              self._solverdict[solvernm]['col']=n;
+              self.parmtable.setColumnReadOnly(n,True);
+              n+=1;
+      #QObject.connect(self.parmtable.horizontalHeader (),SIGNAL("clicked(int)"),self.sortbycol)
+      parmnr=0;
+      for parmkey in self._parmlist:
+          
+          parm =self._parmdict[parmkey]['node'];
+          solvers = self._parmdict[parmkey]['solvers'];
+          c00 =  self._parmdict[parmkey]['c00'];
+          self.parmtable.setText( parmnr,0,parm.name );
+          self.parmtable.setText( parmnr,1,str(c00) );
+          self._parmdict[parmkey]['row']=parmnr;
+              
+          parmnr+=1;
+
+      self.putcheckboxes();
+
+
+  def sortColumn(self,col):
+    swapsort =True;
+    if self.sorted==col:
+      swapsort = not self.swapsort;
+    
+    self.parmtable.sortColumn ( col,swapsort,True)
+    self.sorted=col;
+    self.swapsort = swapsort;
+    #update indices
+    for i in range(self.parmtable.numRows()):
+      parmkey = str(self.parmtable.text(i,0));
+      self._parmdict[parmkey]['row']=i;
+      
+    
+
+
+  def updateRow(self,row):
+    parmkey = str(self.parmtable.text(row,0));
+    c00=self._parmdict[parmkey]['c00'];
+    solvers = self._parmdict[parmkey]['solvers'];
+    self.parmtable.setText( row,1,str(c00) );
+    for solver in self._solverdict.keys():
+      col = self._solverdict[solver]['col'];
+      checkbutton = self.parmtable.item(row,col);
+      if not checkbutton:
+        return;
+      if solvers.has_key(solver):
+        if solvers[solver]:
+          checkbutton.setChecked(True);
+     
+    
+
+  def putcheckboxes(self):
+     for solver in self._solverdict.keys():
+         col = self._solverdict[solver]['col'];
+         if self._solverdict[solver].has_key('parms'):
+             for parm in self._solverdict[solver]['parms'].keys():
+                 row =  self._parmdict[parm]['row'];
+                 solvers = self._parmdict[parm]['solvers'];
+                 checkbutton = QCheckTableItem(self.parmtable, "");
+                 checkbutton.setChecked(False);
+                 if solvers.has_key(solver):
+                     if solvers[solver]:
+                         checkbutton.setChecked(True);
+                 self.parmtable.setItem(row,col,checkbutton);
+               
+
+
+  def _update_parmlist(self,node,state,event=None):
+      nodegroups=[];
+      try: nodegroups=state.node_groups;
+      except AttributeError: pass;
+      funklet=None;
+      try: funklet=state.funklet;
+      except AttributeError: pass;
+      coeff=[[0]];
+      if funklet:
+          coeff=funklet.coeff;
+      if is_scalar(coeff):
+          coeff=[[coeff]];
+      if is_scalar(coeff[0]):
+          coeff=[coeff];
+          
+      self._parmdict[node.name]['c00']=coeff[0][0];
+      nodegroups=make_hiid_list(nodegroups);
+      self._update_subscribedsolvers(node,nodegroups);
+
+  def _update_subscribedsolvers(self,node, nodegroups):
+      solvers={};
+      for solver in self._solverdict.keys():
+          solvers[solver]=0;
+          if self._solverdict[solver]['parms'].has_key(node.name): #if parm in list of solvable parms, 
+              for group in nodegroups:
+                  if group==self._solverdict[solver]['group']:
+                      solvers[solver]=1;
+      self._parmdict[node.name]['solvers']=solvers;
+      self._parmdict[node.name]['groups']=nodegroups;
+
+      row = self._parmdict[node.name]['row'];
+      self.updateRow(row);      
+
+
+  def _update_solverlist(self,node,state,event=None):
+
+      names={};
+      for i in state.solvable['command_by_list']:
+          if i.has_key('state') and i['state']['solvable']  and i.has_key('name'):
+              nameslist=i['name'];
+      if isinstance(nameslist,str):
+          names[nameslist]=1;
+      else:
+          for name in nameslist:
+              names[name]=1;
+      
+      try: nodegroups=state.parm_group;
+      except AttributeError: return;
+      # get solver from dictionary
+      if self._solverdict[node.name]['group'] == nodegroups:
           return;
+      else:
+         self._solverdict[node.name]['group']=  nodegroups;
+         self._solverdict[node.name]['parms']=  names;
+         for parm in self._parmdict.keys():
+             parmnode=self._parmdict[parm]['node'];
+             # update parmtable if needed
+             meqds.request_node_state(parmnode);
+      self.putcheckboxes();
+
+  def changeC00Text(self, value):
+    change=self.c00 + value*self.stepsize;
+    self.c00Text.setText(str(change));
+
+
+  def changeC00(self, value=0.00):
+    self.c00=value;
+    if(self.slider1.value()==0):
+      self.changeC00Text(0);
+    self.slider1.setValue(0);
+    
+  def updateC00(self):
+    ok = True;
+    change = self.c00Text.text().toDouble()[0];
+    self.changeC00(change);
+ 
+    if not self._currentparm:
+      return;
+    self._currentparm.setc00(self.c00);
+    
+
+
+  def resetfunklet(self):
+      if not self._currentparm:
+          return;
+      self._currentparm.resettozero();
+
+
+
+  def parmSetIndex(self ):
+      row = self.parmtable.currentRow();
+      col = self.parmtable.currentColumn();
+      
+      if col >1:
+        return;
+
+
+      if row>=0 and row <len(self._parmlist) and not row == self._parmindex :
+          self._parmindex = row;
+      else:
+          #nothing
+          return;
+
+      self.buttonOk.setEnabled(True);
+      self.buttonReset.setEnabled(True);
+      self.slider1.setEnabled(True);
+      changenodekey=str(self.parmtable.text(row,0));
+      changenode=self._parmdict[changenodekey]['node'];
+      if self._currentparm:
+          self._currentparm.reject();
+#          del self._currentparm;
+      self._currentparm = ParmChange(self,changenode);
+
+      label="c00 of "+changenodekey;
+      self.labelParm.setText(label);
+
+      
+  def parmSelected(self,row,col,button,mousePos):
+      if col>1 :
+          #nothing
+          return;
+      if row>=0 and row <len(self._parmlist):
+          self._parmindex = row;
+      else:
+          #nothing
+          return;
+      self.buttonOk.setEnabled(True);
+      self.buttonReset.setEnabled(True);
+      self.slider1.setEnabled(True);
+      changenodekey=str(self.parmtable.text(row,0));
+      changenode=self._parmdict[changenodekey]['node'];
+      if self._currentparm:
+          self._currentparm.reject();
+#          del self._currentparm;
+      self._currentparm = ParmChange(self,changenode);
+
+
+      self.getparms();
+
+
+      
+  def parmClicked(self,row,col,button,mousePos):
+    #check if solvable paramters are updated
+    if col <=1 :
+      #nothing
+      return;
+    if row<0 or row >len(self._parmlist) or col > len(self._solverdict.keys())+solverstart:
+      #nothing
+      return;
+    checkbutton = self.parmtable.item(row,col);
+    if not checkbutton:
+        return;
+    parmkey = str(self.parmtable.text(row,0));
+    solver = str(self.parmtable.horizontalHeader().label(col));
+    solvers = self._parmdict[parmkey]['solvers'];
+    if checkbutton.isChecked():
+      checkbutton.setChecked(False);
+    else:
+      checkbutton.setChecked(True);
+      
+    updateneeded = False;
+    if solvers.has_key(solver):
+        if solvers[solver]  and not checkbutton.isChecked():
+          solvers[solver]=0;
+          self._parmdict[parmkey]['solvers']=solvers;
+          updateneeded=True;
+        if not solvers[solver]  and checkbutton.isChecked():
+          solvers[solver]=1;
+          self._parmdict[parmkey]['solvers']=solvers;
+          updateneeded=True;
+        
+          
+    if updateneeded:
+      parm=self._parmdict[parmkey]['node'];    
+      nodegroups=[];
+      for solver in self._solverdict.keys():
+        group = self._solverdict[solver]['group'];
+        if solvers.has_key(solver):
+          if solvers[solver]:
+            nodegroups.append(group);
+      dmigroups=make_hiid_list(nodegroups);
+      if nodegroups:
+        meqds.set_node_state(parm,node_groups=dmigroups);
+      else:
+        meqds.set_node_state(parm,node_groups=hiid(0));
+        meqds.set_node_state(parm,solvable=False);
+      
+      
+
+  def getparms(self):
+    if not self._parmlist:
+        QMessageBox.warning(self.wtop(),
+                            "Warning",
+                            "No parameters found");
+        return;
+
+    if self._parmindex >= len(self._parmlist) or self._parmindex< 0 :
+        QMessageBox.warning(self.wtop(),
+                            "Warning",
+                            "No parameter selected");
+        return;
+
+
+
+
+    changenodekey=str(self.parmtable.text(self._parmindex,0));
+    changenode=self._parmdict[changenodekey]['node'];
+    if not self._currentparm:
+        self._currentparm = ParmChange(self,changenode);
+    if self._currentparm.edit_parm :
+        self._currentparm.rejectedit();
+    # create new editor
+    self._currentparm._edit();
+
+
+
+  def _refresh (self):
+    # clear the has_data flag, so that set_data above will accept new data
+    _dprint(2,'refresh expected now');
+    self._has_data = False;
+
+  def do_reexecute(self):
+      self.reexecute(True);
+
+  def reexecute(self,do_execute = False):
+
+      if not self.enable_exec.state () and not do_execute: #reexecute not enabled
+          #print "auto execute not eneabled"
+          return;
+
+      if not self._request:
+          print "no request to execute"
+          return;
+      #check solver status:
+#      self.updateTable();
       _dprint(1,'accepted: ',self._request);
+      reqid_old= self._request.request_id;
+      if not reqid_old:
+          reqid_old=  hiid(1,1,1,1);
+
       self.rid+=1;
-      reqid=hiid(self.rid,self.rid,self.rid,self.rid);
+      #print "reqid old",reqid_old;
+
+      reqid=hiid(reqid_old[0],self.rid,self.rid,0);
+
+      if reqid[2]==reqid_old[2]:
+          self.rid+=1;
+      reqid=hiid(reqid_old[0],self.rid,self.rid,0);
+
+
+      #print "reqid ",reqid;
       self._request.request_id = reqid;
+      #self._request.cache_override = True;
       cmd = record(nodeindex=self._node,request=self._request,get_state=True);
       mqs().meq('Node.Execute',cmd,wait=False);
 
+
+
+  def unsubscribe_all(self):
+      for parmkey in self._parmdict.keys():
+          parm =  self._parmdict[parmkey]['node'];
+          #print "unsubscribe node ", parm.name;
+          parm.unsubscribe_state(self._callbackparm);
+      #print "unsubscribing solvers", self._solverdict;
+      for solverkey in self._solverdict.keys():
+          solver = self._solverdict[solverkey]['node'];
+          #print "unsubscribe solver ", solver.name;
+          solver.unsubscribe_state(self._callbacksolver);
+
   def cleanup (self):
+      #unsubscribe
+      
+      self.unsubscribe_all();
+
       if self._currentparm:
           self._currentparm.reject();
           del self._currentparm;
-      
+
+
+
 
 
 class ParmChange:
@@ -654,6 +770,181 @@ class ParmChange:
   def reject(self):
       self._node = self._callback = None; # this will disconnect the Qt signal
       self.rejectedit();
+
+
+class editParm(QDialog):
+    def __init__(self, parent,grandparent):
+      self.parent = parent;
+      self.grandparent = grandparent;
+      self.parentname=parent._nodename;
+      funklet=self.parent._funklet;
+      if funklet:
+          self._coeff=funklet.coeff;
+      else:
+          self._coeff=[[0.]];
+
+      if is_scalar(self._coeff):
+          self._coeff=[[self._coeff]]
+      if is_scalar(self._coeff[0]):
+          self._coeff=[self._coeff];
+      self._nx=len(self._coeff);
+      self._ny=len(self._coeff[0]);
+
+      QDialog.__init__(self,grandparent,"Test",0,0);
+      self.setCaption('Funklet of '+self.parentname);
+      self.v = QVBoxLayout(self, 10, 5)
+
+      self.funkgrid=QTable(self);
+      self.funkgrid.setCaption("funklet values")
+
+      self.horh = self.funkgrid.horizontalHeader()
+      self.verth = self.funkgrid.verticalHeader()
+
+#      self.updateCoeff_fromparent();
+
+      
+      self.updategrid();
+
+      self.v.addWidget(self.funkgrid);
+
+      self.Bh = QHBoxLayout(self.v, 5)
+      
+      self.cmdAddRow = QPushButton('Add Row', self)
+      QObject.connect(self.cmdAddRow, SIGNAL('clicked()'), self.slotcmdAddRow)
+      self.Bh.addWidget(self.cmdAddRow)
+      self.cmdRemoveRow = QPushButton('Remove Row', self)
+      QObject.connect(self.cmdRemoveRow, SIGNAL('clicked()'), self.slotcmdRemoveRow)
+      self.Bh.addWidget(self.cmdRemoveRow)
+      self.cmdAddCol = QPushButton('Add Column', self)
+      QObject.connect(self.cmdAddCol, SIGNAL('clicked()'), self.slotcmdAddCol)
+      self.Bh.addWidget(self.cmdAddCol)
+      self.cmdRemoveCol = QPushButton('Remove Column', self)
+      QObject.connect(self.cmdRemoveCol, SIGNAL('clicked()'), self.slotcmdRemoveCol)
+      self.Bh.addWidget(self.cmdRemoveCol)
+      self.Bh2 = QHBoxLayout(self.v, 5)
+      
+      self.cmdOK = QPushButton('Apply', self)
+      QObject.connect(self.cmdOK, SIGNAL('clicked()'), self.slotcmdOK)
+      self.Bh2.addWidget(self.cmdOK)
+      self.cmdCancel = QPushButton('Cancel', self)
+      QObject.connect(self.cmdCancel, SIGNAL('clicked()'), self.slotcmdCancel)
+      self.Bh2.addWidget(self.cmdCancel)
+
+      self.cmdCancel.setIconSet(pixmaps.cancel.iconset());
+      self.cmdOK.setIconSet(pixmaps.check.iconset());
+
+      QObject.connect(self.funkgrid,SIGNAL('valueChanged(int,int)'),self.updateCoeff);
+      
+      
+      self.show()
+      
+
+    def slotcmdAddRow(self):
+        array1=self._coeff;
+        array2=numarray.resize(array1,(self._nx+1,self._ny));
+#       something I have to do , since increasing size of a numarray does strange things with values
+        for i in range(self._nx):
+            for j in range(self._ny):
+                array2[i,j]=self._coeff[i][j];
+        self._coeff=array2;
+        for i in range(self._ny):
+            self._coeff[self._nx][i]=0.0;
+        self._nx+=1;
+        self.funkgrid.setNumRows(self._nx);
+        self.funkgrid.setNumCols(self._ny);
+        self.updategrid();
+
+
+
+    def slotcmdAddCol(self):
+        array1=self._coeff;
+        array2=numarray.resize(array1,(self._nx,self._ny+1));
+        for i in range(self._nx):
+            for j in range(self._ny):
+                array2[i,j]=self._coeff[i][j];
+        self._coeff=array2;
+        for i in range(self._nx):
+            self._coeff[i][self._ny]=0.0;
+        self._ny+=1;
+        self.funkgrid.setNumRows(self._nx);
+        self.funkgrid.setNumCols(self._ny);
+        self.updategrid();
+
+    def slotcmdRemoveRow(self):
+        if self._nx<=1:
+            return;
+        array1=self._coeff;
+        array2=numarray.resize(array1,(self._nx-1,self._ny));
+        self._coeff=array2;
+        self._nx-=1;
+        self.funkgrid.setNumRows(self._nx);
+        self.funkgrid.setNumCols(self._ny);
+        self.updategrid();
+       
+        
+
+    def slotcmdRemoveCol(self):
+        if self._ny<=1:
+            return;
+        array1=self._coeff;
+        array2=numarray.resize(array1,(self._nx,self._ny-1));
+        self._coeff=array2;
+        self._ny-=1;
+        self.funkgrid.setNumRows(self._nx);
+        self.funkgrid.setNumCols(self._ny);
+        self.updategrid();
+
+    def slotcmdCancel(self):
+#        self.parent._dorefresh();
+#        self.reject();
+        self.parent.rejectedit();
+    def slotcmdOK(self):
+#       #print self.parent._funklet.coeff;
+        array1=numarray.resize(self.parent._funklet.coeff,(self._nx,self._ny));
+        self.parent._funklet.coeff=array1;
+        for i in range(self._nx):
+            for j in range(self._ny):
+                
+                self.parent._funklet.coeff[i][j] = float(str(self.funkgrid.text(i,j)));
+#       #print self.parent._funklet.coeff;
+#       self.updategrid();
+        self.parent.updatechange();
+#        self.reject();
+                
+                
+    def updategrid(self):
+        self.funkgrid.setNumRows(self._nx);
+        self.funkgrid.setNumCols(self._ny);
+        maxc=1;
+        for j in range(self._ny):
+            self.horh.setLabel(j,"");
+            for i in range(self._nx):
+                if j==0 : self.verth.setLabel(i,""); 
+                self.funkgrid.setText(i,j,str(self._coeff[i][j]));
+                width= len(self.funkgrid.text(i,j));
+                if width>maxc : maxc =width;
+            self.funkgrid.setColumnWidth(j,maxc*15);
+            maxc=1;
+        self.horh.setLabel(0,"t");
+        self.verth.setLabel(0,"f");
+ 
+    def updateCoeff(self,row,col):
+        self._coeff[row][col]= float(str(self.funkgrid.text(row,col)));
+
+    def updateCoeff_fromparent(self):
+        funklet=self.parent._funklet;
+        if funklet:
+            self._coeff=funklet.coeff;
+        else:
+            self._coeff=0;
+        if is_scalar(self._coeff):
+            self._coeff=[[self._coeff]]
+        if is_scalar(self._coeff[0]):
+            self._coeff=[self._coeff];
+        self._nx=len(self._coeff);
+        self._ny=len(self._coeff[0]);
+        self.updategrid();
+
 
 def define_treebrowser_actions (tb):
   _dprint(1,'defining parm fiddling treebrowser actions');
