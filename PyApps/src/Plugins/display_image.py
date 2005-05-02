@@ -480,6 +480,8 @@ class QwtImagePlot(QwtPlot):
         self.imag_flag_vector = None
         self.real_flag_vector = None
         self.array_parms = None
+        self.metrics_rank = None
+        self.iteration_number = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -1226,6 +1228,18 @@ class QwtImagePlot(QwtPlot):
          self.removeMarkers()
 	 self.insert_marker_lines()
       self.insert_array_info()
+
+# add solver metrics info?
+      if not self.metrics_rank is None:
+        self.metrics_plot = self.insertCurve('metrics')
+        self.setCurvePen(self.metrics_plot, QPen(Qt.black, 2))
+        self.setCurveStyle(self.metrics_plot,Qt.SolidLine)
+        self.setCurveYAxis(self.metrics_plot, QwtPlot.yLeft)
+        self.setCurveXAxis(self.metrics_plot, QwtPlot.xBottom)
+        plot_curve=self.curve(self.metrics_plot)
+        plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
+                   QPen(Qt.black), QSize(10,10)))
+        self.setCurveData(self.metrics_plot, self.metrics_rank, self.iteration_number)
       self.replot()
       _dprint(2, 'called replot in display_image');
     # display_image()
@@ -1397,6 +1411,8 @@ class QwtImagePlot(QwtPlot):
           appropriate type of plot """
 
       _dprint(2, 'in plot_vells_data');
+      self.metrics_rank = None
+      self.iteration_number = None
       self._vells_rec = vells_record;
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
@@ -1415,6 +1431,13 @@ class QwtImagePlot(QwtPlot):
           if self._vells_rec.solver_result.incremental_solutions.type() == Complex64:
             complex_type = True;
           self._value_array = self._vells_rec.solver_result.incremental_solutions
+          if self._vells_rec.solver_result.has_key("metrics"):
+            metrics = self._vells_rec.solver_result.metrics
+            self.metrics_rank = zeros(len(metrics), Int32)
+            self.iteration_number = zeros(len(metrics), Int32)
+            for i in range(len(metrics)):
+               self.metrics_rank[i] = metrics[i].rank
+               self.iteration_number[i] = i+1
           self.array_plot("Solver Incremental Solutions", self._value_array, True)
 
 # are we dealing with Vellsets?
