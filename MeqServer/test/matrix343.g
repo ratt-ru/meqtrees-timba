@@ -366,7 +366,7 @@ const make_predict_tree := function (st1,st2,sources)
   }
   # create a sink
   mqs.createnode(meq.node('MeqSink',sinkname,
-                         [ output_col      = '',   # init-rec for sink
+                         [ output_col      = 'PREDICT',   # init-rec for sink
                            station_1_index = st1,
                            station_2_index = st2,
                            corr_index      = [1],
