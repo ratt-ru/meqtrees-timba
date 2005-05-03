@@ -387,6 +387,8 @@ void Node::setState (DMI::Record::Ref &rec)
     // success: merge record into state record
     if( !initializing )
       wstate().merge(rec,true);
+    // force a flush of upstream caches
+    flushUpstreamCache(true);
   }
 }
 
@@ -394,32 +396,6 @@ void Node::setState (DMI::Record::Ref &rec)
 void Node::setNodeIndex (int nodeindex)
 {
   wstate()[FNodeIndex] = node_index_ = nodeindex;
-}
-
-//##ModelId=3F85710E011F
-Node & Node::getChild (int i)
-{
-  FailWhen(!children_[i].valid(),"unresolved child");
-  return children_[i].dewr();
-}
-
-const Node & Node::getChild (int i) const
-{
-  FailWhen(!children_[i].valid(),"unresolved child");
-  return children_[i].deref();
-}
-
-//##ModelId=3F85710E011F
-Node & Node::getStepChild (int i)
-{
-  FailWhen(!stepchildren_[i].valid(),"unresolved child");
-  return stepchildren_[i].dewr();
-}
-
-const Node & Node::getStepChild (int i) const
-{
-  FailWhen(!stepchildren_[i].valid(),"unresolved child");
-  return stepchildren_[i].deref();
 }
 
 //##ModelId=3F85710E028E
@@ -476,6 +452,17 @@ void Node::setCurrentRequest (const Request &req)
   current_reqid_ = req.id();
 }
 
+void Node::flushUpstreamCache (bool force,bool quiet)
+{
+  if( force || getExecState() == CS_ES_IDLE )
+  {
+    clearCache(false,quiet);
+    for( int i=0; i<numParents(); i++ )
+      if( !isStepParent(i) )
+        getParent(i).flushUpstreamCache(false,quiet);
+  }
+}
+
 //##ModelId=400E531300C8
 void Node::clearCache (bool recursive,bool quiet)
 {
@@ -490,7 +477,7 @@ void Node::clearCache (bool recursive,bool quiet)
   }
   if( recursive )
   {
-    // in recusrive mode, also clear stats
+    // in recursive mode, also clear stats
     memset(pcs_total_,0,sizeof(CacheStats));
     memset(pcs_new_,0,sizeof(CacheStats));
     for( int i=0; i<numChildren(); i++ )
@@ -900,11 +887,17 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   return retcode;
 } 
 
-int Node::resolve (DMI::Record::Ref &depmasks,int rpid)
+int Node::resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int rpid)
 {
   // increment the parent count
-  pcparents_->npar++;
-  // if node already resolved with this parent ID, do nothing
+  if( parent )
+  {
+    pcparents_->npar++;
+    parents_.push_back(ParentEntry());
+    parents_.back().ref.attach(parent,DMI::SHARED);
+    parents_.back().stepparent = stepparent;
+  }
+  // if node already resolved with this resolve parent ID, do nothing
   if( node_resolve_id_ == rpid )
   {
     cdebug(4)<<"node already resolved for rpid "<<rpid<<endl;
@@ -976,9 +969,9 @@ int Node::resolve (DMI::Record::Ref &depmasks,int rpid)
   stepchild_retcodes_.resize(numStepChildren());
   // pass recursively onto children
   for( int i=0; i<numChildren(); i++ )
-    children_[i]().resolve(depmasks,rpid);
+    children_[i]().resolve(this,false,depmasks,rpid);
   for( int i=0; i<numStepChildren(); i++ )
-    stepchildren_[i]().resolve(depmasks,rpid);
+    stepchildren_[i]().resolve(this,true,depmasks,rpid);
   return 0;
 }
 

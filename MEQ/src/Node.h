@@ -260,9 +260,13 @@ class Node : public DMI::BObj
     // reinitializes node after loading. Ref will be transferred & COWed
     virtual void reinit (DMI::Record::Ref &initrec, Forest* frst);
 
-    // resolves children and symdeps. Must be called after init(),
-    // before a node is executed() for the first time
-    int resolve (DMI::Record::Ref &depmasks,int rsid);
+    // Resolves children and symdeps. Must be called after init(),
+    // before a node is executed() for the first time.
+    // When called recursively, parent is set to the parent node, so
+    // that the parents_ vector is populated. Stepparent is true
+    // if we are a stepchild of that parent.
+    // Root nodes are called with a parent of 0.
+    int resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int rsid);
         
     //##ModelId=3F83FAC80375
     void resolveChildren (bool recursive=true);
@@ -355,14 +359,44 @@ class Node : public DMI::BObj
     int numStepChildren () const
     { return stepchildren_.size(); }
     
-    //##ModelId=3F85710E011F
-    Node & getChild (int i);
-    const Node & getChild (int i) const;
+    int numParents () const
+    { return parents_.size(); }
     
-    Node & getStepChild (int i);
-    const Node & getStepChild (int i) const;
+    //##ModelId=3F85710E011F
+    //## return child by number
+    Node & getChild (int i)
+    {
+      FailWhen(!children_[i].valid(),"unresolved child");
+      return children_[i].dewr();
+    }
+    const Node & getChild (int i) const
+    {
+      FailWhen(!children_[i].valid(),"unresolved child");
+      return children_[i].deref();
+    }
+    //## return stepchild by number
+    Node & getStepChild (int i)
+    {
+      FailWhen(!stepchildren_[i].valid(),"unresolved stepchild");
+      return stepchildren_[i].dewr();
+    }
+    const Node & getStepChild (int i) const
+    {
+      FailWhen(!stepchildren_[i].valid(),"unresolved stepchild");
+      return stepchildren_[i].deref();
+    }
+    //## return parent by number
+    Node & getParent (int i)
+    { return parents_[i].ref.dewr(); }
+    
+    const Node & getParent (int i) const
+    { return parents_[i].ref.deref(); }
+    
+    bool isStepParent (int i) const
+    { return parents_[i].stepparent; }
     
     //##ModelId=3F85710E028E
+    //## return child by ID
     Node & getChild (const HIID &id);
     
     //##ModelId=3F98D9D20201
@@ -714,6 +748,14 @@ class Node : public DMI::BObj
     //## sets the current request
     void setCurrentRequest (const Request &req);
 
+    //## If node is currently executing and force=false, does nothing.
+    //## Otherwise, clears cache and recursively calls parents to do the same
+    //## (with force=false, to avoid already active parents, since these
+    //## will have a recalculated cache anyway).
+    //## This is meant to be used by child nodes to flush their caches
+    //## when their state changes.
+    void flushUpstreamCache (bool force=true,bool quiet=false);
+    
     //##ModelId=400E531A021A
     //##Documentation
     //## Checks for cached result; if hit, attaches it to ref and returns true.
@@ -849,8 +891,16 @@ class Node : public DMI::BObj
     std::vector<Node::Ref> children_;
     //## vector of refs to stepchildren
     std::vector<Node::Ref> stepchildren_;
-    // flag: children & stepchildren have been resolved
-    bool children_resolved_;
+
+    typedef struct
+    {
+      Node::Ref ref;
+      bool stepparent;
+    } ParentEntry;    
+    std::vector<ParentEntry> parents_;
+    
+    // flag: parents, children & stepchildren have been resolved
+    // bool nodes_resolved_;
     //##ModelId=400E530A0143
     //##Documentation
     //## child labels specified in constructor. Labelled children may

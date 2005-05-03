@@ -466,8 +466,9 @@ class TreeBrowser (QObject):
       
   def clear (self):
     self.is_loaded = False;
-    self._fst_item = self._bkmark_item = self._recent_item = \
-      self._debug_node = self._current_debug_stack = None;
+    self._nlv_rootitem = self._fst_item = self._bkmark_item = \
+      self._recent_item = self._debug_node = \
+      self._current_debug_stack = None;
     self.NodeItem.clear_children(self._nlv);
     self._nlv.clear();
     self._update_all_controls();
@@ -705,7 +706,8 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     else: # no suitable item was found, try to expand the root tree
       _dprint(3,"no suitable items found, expanding tree to look for active item");
       best_item = self.expand_active_tree(active_ni=node.nodeindex);
-    self._nlv.ensureItemVisible(best_item);
+    if best_item:
+      self._nlv.ensureItemVisible(best_item);
     
   def expand_active_tree (self,start=None,active_ni=None):
     """expands all items from start (the "Root nodes" menu, if start=None) that
@@ -714,6 +716,8 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     if start is None:
       try: start = self._nlv_rootitem;
       except AttributeError: return;
+      if not start:
+        return None;
     active_item = None;
     self._nlv.setOpen(start,True);
     # recursively expand all non-idle child nodes

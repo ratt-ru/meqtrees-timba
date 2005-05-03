@@ -222,9 +222,7 @@ void MeqServer::resolve (DMI::Record::Ref &out,DMI::Record::Ref &in)
   bool getstate;
   Node & node = resolveNode(getstate,*rec);
   cdebug(2)<<"resolve for node "<<node.name()<<endl;
-  // create request for the commands. Note that request ID will be null,
-  // meaning it will ignore cache and go up the entire tree
-  node.resolve(rec,0);
+  node.resolve(0,false,rec,0);
   cdebug(3)<<"resolve complete"<<endl;
   out[AidMessage] = ssprintf("node %d (%s): resolve complete",
       node.nodeIndex(),node.name().c_str());

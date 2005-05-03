@@ -73,13 +73,13 @@ int ReqSeq::pollChildren (std::vector<Result::Ref> &chres,
   RequestId rqid = req.id();
   for( int i=0; i<numChildren(); i++ )
   {
-    // *** ugly kludge for now, until we allow children to tell parents
-    // *** to clear cache!
-    if( i )
-    {
-      forest().incrRequestId(rqid,AidSolution);
-      reqref().setId(rqid);
-    }
+//     // *** ugly kludge for now, until we allow children to tell parents
+//     // *** to clear cache!
+//     if( i )
+//     {
+//       forest().incrRequestId(rqid,AidSolution);
+//       reqref().setId(rqid);
+//     }
     Result::Ref res;
     int code = getChild(i).execute(res,*reqref);
     cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",code)<<endl;
@@ -95,13 +95,13 @@ int ReqSeq::pollChildren (std::vector<Result::Ref> &chres,
       result_code_ = code;
     }
   }
-  // *** ugly kludge for now, until we allow children to tell parents
-  // *** to clear cache!
-  if( numStepChildren() )
-  {
-    forest().incrRequestId(rqid,AidSolution);
-    reqref().setId(rqid);
-  }
+//  // *** ugly kludge for now, until we allow children to tell parents
+//  // *** to clear cache!
+//  if( numStepChildren() )
+//  {
+//    forest().incrRequestId(rqid,AidSolution);
+//    reqref().setId(rqid);
+//  }
   pollStepChildren(*reqref);
   return 0;
 }
