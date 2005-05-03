@@ -77,10 +77,12 @@ const create_source_subtrees := function (src, mep_table_name='')
     #fmax := ms_freqranges[2][1];
     #tmin := ms_timerange[1];
     #tmax := ms_timerange[2];
-    polc_i := meq.polc(polc_i_array,scale=[10000.0, 1e6], offset=[4.47204e9,1.175e9]);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
-    polc_q := meq.polc(polc_q_array,scale=[10000.0, 1e6], offset=[4.47204e9,1.175e9]);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
-    polc_u := meq.polc(polc_u_array,scale=[10000.0, 1e6], offset=[4.47204e9,1.175e9]);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
-    polc_v := meq.polc(polc_v_array,scale=[10000.0, 1e6], offset=[4.47204e9,1.175e9]);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
+    polc_scale  := [1/10000.0, 1e-6];
+    polc_offset := [4.47204e9,1.175e9];
+    polc_i := meq.polc(polc_i_array,scale=polc_scale, offset=polc_offset);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
+    polc_q := meq.polc(polc_q_array,scale=polc_scale, offset=polc_offset);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
+    polc_u := meq.polc(polc_u_array,scale=polc_scale, offset=polc_offset);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
+    polc_v := meq.polc(polc_v_array,scale=polc_scale, offset=polc_offset);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
     
     print polc_i;
     # meq.parm(), meq.node() return init-records
@@ -247,25 +249,12 @@ const sta_source_dft_tree := function (st,src=[=])
                            [link_or_create=T,dims=[2,2]],
                            children=source_jones_list);
                            
-#                           meq.list(fq_name('J',st,src.name,'11'),
-#                                             fq_name('J',st,src.name,'12'),
-#                                             fq_name('J',st,src.name,'21'),
-#                                             fq_name('J',st,src.name,'22')))
- 
   stat_jones := meq.node('MeqComposer', fq_name('G',st),
                          [link_or_create=T,dims=[2,2]],
                          children=stat_jones_list);
                          
-#                         meq.list(fq_name('G',st,'11'),
-#                                           fq_name('G',st,'12'),
-#                                           fq_name('G',st,'21'),
-#                                           fq_name('G',st,'22')))
- 
-  gain := meq.node('MeqMatrixMultiply', fq_name('GJ', st, src.name),[link_or_create=T],
-                   children=meq.list(stat_jones, source_stat_jones));
-              
   return meq.node('MeqMatrixMultiply',fq_name('dft',st,src.name),[link_or_create=T],
-                    children=meq.list(gain,dft));
+                    children=meq.list(stat_jones, source_stat_jones,dft));
 }
 
 
@@ -284,21 +273,15 @@ const ifr_source_predict_tree := function (st1,st2,src=[=])
                          [link_or_create=T,conj=T],
                          children=meq.list(dft2));
     
-    dft_left := meq.node('MeqMatrixMultiply', fq_name('dft_left', src.name, st1,st2),
-                         [link_or_create=T],
-                         children=meq.list(dft1, fq_name('coherency', src.name)));
-
     one_over_n  := meq.node('MeqDivide', fq_name('one_over_n',src.name),
                          [link_or_create=T],
                          children=meq.list('one',
                                            fq_name('n', src.name)));
     
-    dft_right := meq.node('MeqMatrixMultiply', fq_name('dft_right', src.name, st1, st2), [link_or_create=T],
-                 children=meq.list(conj_st2, one_over_n));
-    
-    predict  := meq.node('MeqMatrixMultiply', fq_name('predict',src.name,st1,st2),
-                         [link_or_create=T],
-                         children=meq.list(dft_left, dft_right));
+    predict:=meq.node('MeqMatrixMultiply', fq_name('predict',src.name,st1,st2),
+                      [link_or_create=T],
+                      children=meq.list(dft1,fq_name('coherency', src.name),
+                      conj_st2, one_over_n));
     return predict;
 }
 
@@ -319,7 +302,7 @@ const ifr_predict_tree := function (st1,st2,sources)
   list := dmi.list();
   for( s in sources ) 
     dmi.add_list(list,ifr_source_predict_tree(st1,st2,s));
-  return meq.node('MeqAdd',fq_name('predict',st1,st2),children=list);
+  return meq.node('MeqAdd',fq_name('predict',st1,st2),[cache_num_active_parents=1],children=list);
 }
 
 
@@ -424,7 +407,8 @@ const make_subtract_tree := function (st1,st2,sources)
             station_1_index=st1,
             station_2_index=st2,
             flag_bit=4,
-            input_column='DATA']),
+            input_column='DATA',
+            cache_policy=-10]),
         ifr_predict_tree(st1,st2,sources)
       ))
     ))
@@ -765,8 +749,6 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
       {
           for( s in sources )
           {
-              mqs.meq('Node.Publish.Results',[name=fq_name("ra",s.name)]);
-              mqs.meq('Node.Publish.Results',[name=fq_name("dec",s.name)]);
               mqs.meq('Node.Publish.Results',[name=fq_name("stokes_i",s.name)]);
           }
       }
@@ -897,7 +879,7 @@ source_flux_fit_no_calibration := function()
     solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
-                 tile_size=60,# clear_flags=T,
+                 tile_size=1500,# clear_flags=T,
                  selection = [ channel_start_index=5,
                               channel_end_index=60 ,
                               selection_string=''] ];
@@ -1005,5 +987,5 @@ phase_solution_with_given_fluxes := function()
 
 
 
-#source_flux_fit_no_calibration();
-phase_solution_with_given_fluxes();
+source_flux_fit_no_calibration();
+#phase_solution_with_given_fluxes();
