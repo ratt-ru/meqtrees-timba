@@ -262,13 +262,19 @@ class NodeList (object):
     return True;
   is_valid_meqnodelist = staticmethod(is_valid_meqnodelist);
 
+
+def _node_subudi (name,nodeindex):
+  """creates UDI sub-string using node name (if not empty) or
+  nodeindex (if no name)."""
+  return name or ("#%d" % (nodeindex,));
+
 def node_udi (node,suffix=None):
   """creates a UDI from a node record or node index or node name""";
   try: (name,index) = (node.name,node.nodeindex);
   except AttributeError,KeyError: 
     node = nodelist[node];
     (name,index) = (node.name,node.nodeindex);
-  udi = "/node/%s#%d"%(name,index);
+  udi = "/node/" + _node_subudi(name,index);
   if suffix:
     udi += "/" + suffix;
   return udi;
@@ -279,17 +285,17 @@ def snapshot_udi (node,suffix=None):
   except AttributeError,KeyError: 
     node = nodelist[node];
     (name,index) = (node.name,node.nodeindex);
-  udi = "/snapshot/%X/%s#%d"%(id(node),name,index);
+  udi = "/snapshot/%X/%s"%(id(node),_node_subudi(name,index));
   if suffix:
     udi += "/" + suffix;
   return udi;
 
-_patt_Udi_NodeState = re.compile("^/(node|snapshot/[^/]+)/([^#/]*)(#[0-9]+)?(/.*)?$");
+_patt_Udi_NodeState = re.compile("^/(node|snapshot/[^/]+)/(([^#/]+)|(#[0-9]+))(/.*)?$");
 def parse_node_udi (udi):
   match = _patt_Udi_NodeState.match(udi);
   if match is None:
     return (None,None);
-  (prefix,name,ni,rest) = match.groups();
+  (prefix,nameorni,name,ni,rest) = match.groups();
   if ni is not None:
     ni = int(ni[1:]);
   return (name,ni);
@@ -321,6 +327,10 @@ def mqs ():
     raise RuntimeError,"meqserver not initialized or not running";
   return mqs1;
 
+
+# ----------------------------------------------------------------------
+# --- Forest state record management
+# ----------------------------------------------------------------------
 _forest_state = {};
 _forest_state_obj = QObject();
 
@@ -348,9 +358,16 @@ def update_forest_state (fst,merge=False):
   else:
     _forest_state = fst;
   _forest_state_obj.emit(PYSIGNAL("state()"),(_forest_state,));
+  
+def set_forest_state (field,value):
+  mqs().meq('Set.Forest.State',record(state=record(field=value)),wait=False);
 
-# Adds a subscriber to node state changes
+# ----------------------------------------------------------------------
+# --- Node state management
+# ----------------------------------------------------------------------
+
 def subscribe_node_state (node,callback):
+  """Adds a subscriber to node state changes""";
   nodelist[nodeindex(node)].subscribe_state(callback);
 
 def request_node_state (node):

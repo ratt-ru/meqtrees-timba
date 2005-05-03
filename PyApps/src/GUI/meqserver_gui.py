@@ -6,6 +6,7 @@ from Timba.GUI.pixmaps import pixmaps
 from Timba.Meq import meqds
 from Timba.GUI.browsers import *
 from Timba.GUI.treebrowser import *
+from Timba.GUI import meqgui 
 from Timba import Grid
 
 import weakref
@@ -13,18 +14,15 @@ import math
 import sets
 import re
 
-_dbg = verbosity(0,name='meqgui');
+_dbg = verbosity(0,name='meqserver_gui');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
+
+makeNodeDataItem = meqgui.makeNodeDataItem;
 
 # global symbol: meqserver object; initialized when a meqserver_gui
 # is constructed
 mqs = None;
-
-# ---------------- TODO -----------------------------------------------------
-# As of 14/12/2004, this list has been moved into the Bugzilla database
-# http://lofar9.astron.nl/bugzilla/
-# ---------------------------------------------------------------------------
 
 class NodeBrowser(HierBrowser,GriddedPlugin):
   _icon = pixmaps.treeviewoblique;
@@ -324,35 +322,6 @@ class meqserver_gui (app_proxy_gui):
 # register NodeBrowser at low priority for now (still experimental),
 # but eventually we'll make it the default viewer
 Grid.Services.registerViewer(meqds.NodeClass(),NodeBrowser,priority=30);
-
-_default_state_open =  ({'cache':({'result':({'vellsets':({'0':None},None)},None)},None), \
-                         'request':None },None);
-
-_defaultResultViewopts = { \
-  RecordBrowser: { 'default_open': _default_state_open }, \
-  };
-
-_defaultNodeViewopts = { \
-  RecordBrowser: { 'default_open': _default_state_open },
-  NodeBrowser:   { 'default_open': ({'state':_default_state_open},None) } 
-};
-
-def makeNodeDataItem (node,viewer=None,viewopts={}):
-  """creates a GridDataItem for a node""";
-  udi = meqds.node_udi(node);
-  nodeclass = meqds.NodeClass(node);
-  vo = viewopts.copy();
-  vo.update(_defaultNodeViewopts);
-  namestr = node.name or '#'+str(node.nodeindex);
-  name = "%s (%s)" % (namestr,node.classname);
-  caption = "<b>%s</b> <small><i>(%s)</i></small>" % (namestr,node.classname);
-  desc = "State record of node %s#%d (class %s)" % (node.name,node.nodeindex,node.classname);
-  # curry is used to create a call for refreshing its state
-  return Grid.DataItem(udi,name=name,caption=caption,desc=desc,
-            datatype=nodeclass,
-            refresh=curry(meqds.request_node_state,node.nodeindex),
-            viewer=viewer,viewopts=vo);
-            
 
 # register reloadables
 reloadableModule(__name__);

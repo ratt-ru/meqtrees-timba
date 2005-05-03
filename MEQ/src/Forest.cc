@@ -63,7 +63,7 @@ Forest::Forest ()
   node_breakpoint_callback = 0;
   debug_level_ = 0;
   // default cache policy
-  cache_policy_ = Node::CACHE_SMART_AGR;
+  cache_policy_ = Node::CACHE_SMART;
   profiling_enabled_ = true;
   
   // init the state record

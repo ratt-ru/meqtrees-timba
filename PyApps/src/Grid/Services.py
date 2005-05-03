@@ -16,6 +16,7 @@ import sets
 from qt import *
 
 _reg_viewers = {};
+_reg_viewers_byname = {};
 
 # registers a viewer plug-in for the specified type
 #
@@ -75,8 +76,11 @@ def registerViewer (tp,viewer,priority=0):
   the same on behalf of the viewer.
   """;
   global _reg_viewers;
-  _dprint(1,"registering",viewer,"for type",tp);
+  global _reg_viewers_byname;
+  name = getattr(viewer,'viewer_name',viewer.__name__);
+  _dprint(1,"registering",name,"for type",tp);
   _reg_viewers.setdefault(tp,[]).append((priority,viewer));
+  _reg_viewers_byname[name] = viewer;
 
 def isViewableWith (arg,viewer):
   if type(arg) is type:

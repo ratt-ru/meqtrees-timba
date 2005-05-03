@@ -6,6 +6,7 @@ from Timba.GUI.app_proxy_gui import *
 from Timba.GUI.pixmaps import pixmaps
 from Timba.Meq import meqds
 from Timba.Meq.meqds import mqs
+from Timba.GUI import meqgui
 
 from qt import *
 import weakref
@@ -18,6 +19,7 @@ _dbg = verbosity(0,name='tb');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+
 class AppState (object):
   Idle       = -hiid('idle').get(0);
   Stream     = -hiid('stream').get(0);
@@ -25,6 +27,25 @@ class AppState (object):
   Execute    = -hiid('execute').get(0);
   
 class TreeBrowser (QObject):
+
+  class StickyListViewItem (QListViewItem):
+    """This is a QListViewItem that ignores sorting, 'sticking' to one
+    place in the listview.
+    Each such item is created with a 'key' argument that determines its 
+    placement in the listview, regardless of sort column or order. Items 
+    with keys>0 are placed after regular items, items with keys<0 are 
+    placed before regular items.
+    """;
+    def __init__(self,*args,**kw):
+      QListViewItem.__init__(self,*args);
+      self._key = kw.get('key',1);
+    def compare (self,other,col,ascending):
+      try: val = cmp(self._key,other._key);
+      except AttributeError:  # other item not keyed
+        val = self._key;
+      if ascending:
+        return val;
+      return -val;
 
   class NodeItem (QListViewItem):
     def __init__(self,tb,node,name,parent,after,stepchild=False):
@@ -56,6 +77,24 @@ class TreeBrowser (QObject):
       # default color group is None to use normal colors
       # make sure pixmaps, etc. are updated
       self._update_status(node,node.control_status);
+      # add click handlers
+      self._item_event_handler = {};
+      # left-click: view
+      self._item_event_handler[('click',1)] = xcurry(self._add_node_viewer);
+      # middle-click: new view
+      self._item_event_handler[('click',4)] = xcurry(self._add_node_viewer,newcell=True);
+      self._item_event_handler['menu'] = self._show_context_menu;
+      
+    def _show_context_menu (self,point,col):
+      if col in (self.tb.icolumn("execstate"),self.tb.icolumn("breakpoint")):
+        menu = self.debug_menu();
+      else:
+        menu = self.context_menu();
+      if menu is not None:
+        menu.exec_loop(point);
+      
+    def _add_node_viewer (self,viewer=None,**kws):
+      Grid.addDataItem(meqgui.makeNodeDataItem(self.node,viewer),show_gw=True,**kws);
       
     def _update_state (self,node,state,event):
       """updates node item based on changes in state.""";
@@ -250,9 +289,9 @@ class TreeBrowser (QObject):
             except AttributeError: icon = QIconSet();
             # add entry to both menus ("Display with" and "New display with")
             menu1.insertItem(icon,name,
-              self.xcurry(self.tb.wtop().emit,(PYSIGNAL("view_node()"),(node.nodeindex,v)),_argslice=slice(0)));
+              self.xcurry(self._add_node_viewer,viewer=v));
             menu2.insertItem(icon,name,
-              self.xcurry(self.tb.wtop().emit,(PYSIGNAL("view_node()"),(node.nodeindex,v,dict(newcell=True))),_argslice=slice(0)));
+              self.xcurry(self._add_node_viewer,viewer=v,newcell=True));
         # add node actions
         self._fill_menu(menu,"node",separator=True);
         # add debugging menu
@@ -295,7 +334,7 @@ class TreeBrowser (QObject):
     nlv.setFocus();
     QObject.connect(nlv,SIGNAL('expanded(QListViewItem*)'),self._expand_node);
     QObject.connect(nlv,SIGNAL('mouseButtonClicked(int,QListViewItem*,const QPoint &,int)'),
-                     self._node_clicked);
+                     self._item_clicked);
     QObject.connect(nlv,SIGNAL('contextMenuRequested(QListViewItem*,const QPoint &,int)'),
                      self._show_context_menu);
     QObject.connect(nlv,SIGNAL('currentChanged(QListViewItem*)'),self._set_recent_item);
@@ -389,21 +428,31 @@ class TreeBrowser (QObject):
     self.clear();
     self.is_loaded = True;
     self._update_all_controls();
-    # add forest state
-    self._fst_item = QListViewItem(self._nlv,"Forest state");
-    # reset the nodelist view
+    # add forest state and bookmarks
+    self._fst_item = self.StickyListViewItem(self._nlv,"Forest state",key=50);
+    self._fst_item.setPixmap(0,pixmaps.view_tree.pm());
+    self._fst_item._item_event_handler = {};
+   # left-click: view
+    self._fst_item._item_event_handler[('click',1)] = xcurry(self._view_forest_state);
+    # middle-click: new view
+    self._fst_item._item_event_handler[('click',4)] = xcurry(self._view_forest_state,newcell=True);
+    self._bkmark_item = self.StickyListViewItem(self._nlv,"Bookmarks",key=60);
+    self._bkmark_item.setPixmap(0,pixmaps.bookmark.pm());
+    # add nodelist views
     nodelist = meqds.nodelist;
     self._recent_item = None;
-    all_item  = QListViewItem(self._nlv,"All Nodes (%d)"%len(nodelist));
+    all_item  = self.StickyListViewItem(self._nlv,"All nodes (%d)"%len(nodelist),key=10);
     all_item._no_auto_open = True;
     all_item._iter_nodes = nodelist.iternodes();
     all_item.setExpandable(True);
     rootnodes = nodelist.rootnodes();
-    rootitem  = self._nlv_rootitem = QListViewItem(self._nlv,all_item,"Root Nodes (%d)"%len(rootnodes));
+    rootitem  = self._nlv_rootitem = \
+      self.StickyListViewItem(self._nlv,all_item,"Root nodes (%d)"%len(rootnodes),key=30);
     rootitem._iter_nodes = iter(rootnodes);
     rootitem.setExpandable(True);
     classes = nodelist.classes();
-    cls_item  = item = QListViewItem(self._nlv,rootitem,"By Class (%d)"%len(classes));
+    cls_item  = item = \
+      self.StickyListViewItem(self._nlv,rootitem,"By class (%d)"%len(classes),key=20);
     cls_item._no_auto_open = True;
     for (cls,nodes) in classes.iteritems():
       if len(nodes) == 1:
@@ -414,6 +463,14 @@ class TreeBrowser (QObject):
         item.setExpandable(True);
         item._iter_nodes = iter(nodes);
       item._no_auto_open = True;
+      
+  def clear (self):
+    self.is_loaded = False;
+    self._fst_item = self._bkmark_item = self._recent_item = \
+      self._debug_node = self._current_debug_stack = None;
+    self.NodeItem.clear_children(self._nlv);
+    self._nlv.clear();
+    self._update_all_controls();
     
     
   def xcurry (self,*args,**kwargs):
@@ -532,17 +589,10 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       except ValueError: # can't convert nodeindex to int: malformed udi
         raise ValueError,'bad udi (nodeindex must be numeric): '+udi;
     # create and return dataitem object
-    return Timba.GUI.meqserver_gui.makeNodeDataItem(node);
+    return meqgui.makeNodeDataItem(node);
  
   def wtop (self):
     return self._wtop;
-    
-  def clear (self):
-    self.is_loaded = False;
-    self._debug_node = self._current_debug_stack = None;
-    self.NodeItem.clear_children(self._nlv);
-    self._nlv.clear();
-    self._update_all_controls();
     
   def connected (self,conn,auto_request=True):
     self.emit(PYSIGNAL("connected()"),(conn,));
@@ -678,24 +728,31 @@ Please press OK to confirm.""",QMessageBox.Ok,\
           active_item = active_item or i1;
       item = item.nextSibling();
     return active_item;
+    
+  def _view_forest_state (self,viewer=None,**kws):
+    _dprint(2,"adding viewer for forest state");
+    item = Grid.DataItem('/forest',name='Forest state',caption='<b>Forest state</b>',
+                          desc='State of forest',data=meqds.get_forest_state(),
+                          refresh=meqds.request_forest_state,viewer=viewer);
+    Grid.addDataItem(item,show_gw=True,**kws);
   
   # slot: called to show a context menu for a browser item
+  def _item_event (self,item,event,*args,**kw):
+    handlers = getattr(item,'_item_event_handler',None);
+    if handlers:
+      hh = handlers.get(event,None);
+      if callable(hh):
+        hh(*args,**kw);
+  
   def _show_context_menu (self,item,point,col):
-    if isinstance(item,self.NodeItem):
-      if col in (self.icolumn("execstate"),self.icolumn("breakpoint")):
-        menu = item.debug_menu();
-      else:
-        menu = item.context_menu();
-      if menu is not None:
-        menu.exec_loop(point);
+    _dprint(3,item,point,col);
+    self._item_event(item,'menu',point,col);
       
-  def _node_clicked (self,button,item,point,col):
-    self._recent_item = item;
-    if isinstance(item,self.NodeItem):
-      if button == 1:
-        self.wtop().emit(PYSIGNAL("view_node()"),(item.node,None));
-    elif item is self._fst_item:
-      self.wtop().emit(PYSIGNAL("view_forest_state()"),());
+  def _item_clicked (self,button,item,point,col):
+    _dprint(3,button,item,point,col);
+    if button == 1:
+      self._recent_item = item;
+    self._item_event(item,('click',button),point,col);
         
   def _set_recent_item (self,item):
     self._recent_item = item;
