@@ -259,7 +259,7 @@ class meqserver_gui (app_proxy_gui):
         caption = caption + ( ' <small>(rqid: %s)</small>' % (rqid,) );
       udi = meqds.snapshot_udi(value);
       self.resultlog.add(txt,content=value,category=Logger.Event,
-        udi=udi,name=name,desc=desc,caption=caption,viewopts=_defaultResultViewopts);
+        udi=udi,name=name,desc=desc,caption=caption,viewopts=meqgui.defaultResultViewopts);
       wtop = self.resultlog.wtop();
       if self.maintab.currentPage() is not wtop and not wtop._newresults:
         self.maintab.changeTab(wtop,wtop._newres_iconset,wtop._newres_label);
