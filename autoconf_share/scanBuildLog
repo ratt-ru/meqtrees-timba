@@ -331,12 +331,10 @@ def main(argv):
         # If PACKAGES found then lift out the different PACKAGES
         #
         matchPackage = packagePattern.search(aLine)
-      
         if matchPackage:
           start,end=matchPackage.span()
           pckArray = re.split(' *',re.sub('(PACKAGES *= *)|(packages *= *)'
                                           ,'',re.sub('"','',aLine[start:end],2)))
-
 
         #
         # because a PACKAGE in the PACAKAGES line can also say that
@@ -345,9 +343,8 @@ def main(argv):
         #
         pckArray=extendPackageArray(pckArray,allBuildablePackages)
 
-
         #
-        # search for VARIANTS in same line
+        # search for VARIANTS keyword in the same line (Old Makefile way)
         #
         matchVariant = variantPattern.search(aLine)
         if matchVariant:
@@ -355,6 +352,21 @@ def main(argv):
           for variant in re.split(' *',re.sub('(VARIANTS *= *)|(variants *= *)',
                                               '',re.sub('"','',aLine[start:end],2))):
             variantPackageArray.append([variant,pckArray])
+
+      #
+      # search for Variants keyword in other lines (rub way of building)
+      #
+      if str.find(aLine,"VARIANTS")>-1:
+        #
+        # If VARIANTS found then lift out the different VARIANTS
+        #
+        matchVariant = variantPattern.search(aLine)
+        if matchVariant:
+          start,end=matchVariant.span()
+          for variant in re.split(' *',re.sub('(VARIANTS *= *)|(variants *= *)',
+                                              '',re.sub('"','',aLine[start:end],2))):
+            variantPackageArray.append([variant,pckArray])
+
       #
       # Find CONFIGURING start
       #
@@ -467,6 +479,7 @@ def main(argv):
   # failed something during the build
   #
   usedFiles=[]
+  first=1
   for row in testResultsArray:
     rawName=row[1]+'_'+row[2]+'_Failed_'+machineName()+'.html'
     fileName=str.replace(rawName,'/','_')
@@ -488,9 +501,16 @@ def main(argv):
                  "Variant: "+row[1]+"</h3></center>\n")
       file.write('<ul>\n')
       usedFiles.append(fileName)
+    if first == 1:
+      first=0
+      file.write('</ul>\n')
+      file.write("<b>during make test:</b>\n")
+      file.write('<ul>\n')
+
     file.write('<li><A href="'+row[3]+'#'+row[2]+'/'+row[0]+'">'+row[0]+'</A></li>\n')
     file.close()
 
+  first=1;
   for row in buildResultsArray:
     rawName=row[1]+'_'+row[2]+'_Failed_'+machineName()+'.html'
     fileName=str.replace(rawName,'/','_')
@@ -510,6 +530,12 @@ def main(argv):
                  "Variant: "+row[1]+"</h3></center>\n")
       file.write('<ul>\n')
       usedFiles.append(fileName)
+    if first == 1:
+      first=0
+      file.write('</ul>\n')
+      file.write("<b>during make:</b>\n")
+      file.write('<ul>\n')
+
     file.write('<li><A href="'+row[3]+'#'+row[2]+'/'+row[0]+'">'+row[0]+'</A></li>\n')
     file.close()
 
@@ -546,7 +572,7 @@ def main(argv):
   htmlFile.write('<h3>Legend</h3>\n')
   htmlFile.write('<table border cellspacing=2 cellpadding=5>\n')
   htmlFile.write('<tr>\n')
-  htmlFile.write('<td bgcolor="GREY"><font color="GREY">xxxxxxxx</font></td>\n')
+  htmlFile.write('<td bgcolor="GRAY"><font color="GRAY">xxxxxxxx</font></td>\n')
   htmlFile.write('<td>Not Build</td>')
   htmlFile.write('</tr>\n')
   htmlFile.write('<tr>\n')
