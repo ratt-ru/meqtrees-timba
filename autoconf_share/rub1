@@ -87,7 +87,14 @@ if [ $notfound != 0  -a  $checkout = 1 ]; then
   fi
   if [ $status != 0 ]; then
     echo "Exiting; update/checkout returned with an error status ..."
-    tail -2 rub.log
+    egrep "^C " rub.log > greplog.tmp 2>&1
+    if [ $? = 0 ]; then
+      echo "There seem to be UPDATE CONFLICTS"
+      cat greplog.tmp
+      \rm -f greplog.tmp
+    else
+      tail -2 rub.log
+    fi
     exit 1
   fi
 fi
