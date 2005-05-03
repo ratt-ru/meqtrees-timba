@@ -231,7 +231,7 @@ dnl
     echo "insure++.c_as_cpp    on" >> psrc
     echo "coverage-map-file    $lofar_curwd/tca.map" >> psrc
     echo "coverage-log-file    $lofar_curwd/tca.log" >> psrc
-    echo 'header_ignore        /usr/include/g++/*, /usr/include/g++/std/*' >> psrc
+    echo 'header_ignore        /usr/include/c++/*,/usr/include/c++/3.2.2/*' >> psrc
     echo 'function_ignore      *_default_alloc_template*' >> psrc
     echo '#threaded_runtime     on' >> psrc
     echo 'demangle             full_types' >> psrc
