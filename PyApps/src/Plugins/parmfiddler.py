@@ -75,7 +75,7 @@ class ParmFiddler (browsers.GriddedPlugin):
     self._currentparm = None;
     self.swapsort=True;
     self.sorted=0; 
-    #Initialize subscribe state
+    # Initialize subscribe state
     self._callbackparm = curry(self._update_parmlist);
     self._callbacksolver = curry(self._update_solverlist);
 
@@ -83,10 +83,12 @@ class ParmFiddler (browsers.GriddedPlugin):
     self.parmtable = QTable(self._wtop , "parmtable" );
     self.parmtable.setShowGrid(False);
     self.parmtable.setFocusStyle(QTable.FollowStyle);
+    self.parmtable.setSelectionMode (QTable.MultiRow );
+    self._menu=QPopupMenu(self.parmtable);
     QObject.connect( self.parmtable, SIGNAL("selectionChanged()"), self.parmSetIndex )
     QObject.connect( self.parmtable, SIGNAL("doubleClicked(int, int, int, const QPoint &)"), self.parmSelected )
     QObject.connect( self.parmtable, SIGNAL("clicked(int, int, int, const QPoint &)"), self.parmClicked)
-
+    QObject.connect( self.parmtable, SIGNAL("contextMenuRequested ( int, int, const QPoint &)"), self.rightMouse);
     self.sliderframe = QVBox(self.wtop());
 #    self.c00frame = QHBox(self.sliderframe);
 
@@ -98,7 +100,7 @@ class ParmFiddler (browsers.GriddedPlugin):
     style = QFrame.StyledPanel|QFrame.Sunken;
     self.c00Text.setFrameStyle(style);
     
-
+  
     self.slider1 = QSlider (self.sliderframe,"slider1");
     self.slider1.setMinValue ( -50 );
     self.slider1.setMaxValue ( 50 );
@@ -332,14 +334,18 @@ class ParmFiddler (browsers.GriddedPlugin):
     if self.sorted==col:
       swapsort = not self.swapsort;
     
-    self.parmtable.sortColumn ( col,swapsort,True)
+    self.parmtable.sortColumn ( col,swapsort,True);
     self.sorted=col;
     self.swapsort = swapsort;
     #update indices
     for i in range(self.parmtable.numRows()):
       parmkey = str(self.parmtable.text(i,0));
       self._parmdict[parmkey]['row']=i;
-      
+
+    # update selected parm
+    self._parmindex=-1;
+    self.parmSetIndex();
+  
     
 
 
@@ -473,9 +479,8 @@ class ParmFiddler (browsers.GriddedPlugin):
   def parmSetIndex(self ):
       row = self.parmtable.currentRow();
       col = self.parmtable.currentColumn();
-      
-      if col >1:
-        return;
+     # if col >=solverstart:
+      #   return;
 
 
       if row>=0 and row <len(self._parmlist) and not row == self._parmindex :
@@ -499,41 +504,55 @@ class ParmFiddler (browsers.GriddedPlugin):
 
       
   def parmSelected(self,row,col,button,mousePos):
-      if col>1 :
-          #nothing
-          return;
-      if row>=0 and row <len(self._parmlist):
-          self._parmindex = row;
-      else:
-          #nothing
-          return;
-      self.buttonOk.setEnabled(True);
-      self.buttonReset.setEnabled(True);
-      self.slider1.setEnabled(True);
-      changenodekey=str(self.parmtable.text(row,0));
-      changenode=self._parmdict[changenodekey]['node'];
-      if self._currentparm:
-          self._currentparm.reject();
-#          del self._currentparm;
-      self._currentparm = ParmChange(self,changenode);
+    if col>=solverstart :
+      #nothing
+      return;
+    if row>=0 and row <len(self._parmlist):
+      self._parmindex = row;
+    else:
+      #nothing
+      return;
+    self.buttonOk.setEnabled(True);
+    self.buttonReset.setEnabled(True);
+    self.slider1.setEnabled(True);
+    changenodekey=str(self.parmtable.text(row,0));
+    changenode=self._parmdict[changenodekey]['node'];
+    if self._currentparm:
+      self._currentparm.reject();
+    #          del self._currentparm;
+    self._currentparm = ParmChange(self,changenode);
 
 
-      self.getparms();
+    self.getparms();
 
 
       
   def parmClicked(self,row,col,button,mousePos):
+  
+    if button == Qt.LeftButton:
+      self.leftMouse(row,col);
+    if button == Qt.RightButton:
+      self.rightMouse(row,col);
+    if button == Qt.MidButton:
+      self.rightMouse(row,col);
+      
+
+    
+  def leftMouse(self,row,col):
     #check if solvable paramters are updated
-    if col <=1 :
+    if row<0 or row >len(self._parmlist) or col > len(self._solverdict.keys())+solverstart:
       #nothing
       return;
-    if row<0 or row >len(self._parmlist) or col > len(self._solverdict.keys())+solverstart:
+    if col <solverstart :
+      if not row == self._parmindex:
+        self.parmSetIndex();
       #nothing
       return;
     checkbutton = self.parmtable.item(row,col);
     if not checkbutton:
         return;
     parmkey = str(self.parmtable.text(row,0));
+    parm=self._parmdict[parmkey]['node'];    
     solver = str(self.parmtable.horizontalHeader().label(col));
     solvers = self._parmdict[parmkey]['solvers'];
     if checkbutton.isChecked():
@@ -554,7 +573,6 @@ class ParmFiddler (browsers.GriddedPlugin):
         
           
     if updateneeded:
-      parm=self._parmdict[parmkey]['node'];    
       nodegroups=[];
       for solver in self._solverdict.keys():
         group = self._solverdict[solver]['group'];
@@ -568,7 +586,11 @@ class ParmFiddler (browsers.GriddedPlugin):
         meqds.set_node_state(parm,node_groups=hiid(0));
         meqds.set_node_state(parm,solvable=False);
       
-      
+  def rightMouse(self,row,col,mousePos=0):
+    #popup publish
+    pass
+    #self._menu.popup();
+       
 
   def getparms(self):
     if not self._parmlist:
@@ -738,17 +760,17 @@ class ParmChange:
 
   def resettozero(self):
       if not self._funklet:
-          return 0;
+        return 0;
       if is_scalar(self._funklet.coeff):
-          self._funklet.coeff=0;
+          self._funklet.coeff=0.;
       else:
           if is_scalar(self._funklet.coeff[0]):
               for i in range(len(self._funklet.coeff)):
-                  self._funklet.coeff[i]=0;
+                  self._funklet.coeff[i]=0.;
           else:
               for i in range(len(self._funklet.coeff)):
                   for j in range(len(self._funklet.coeff[i])):
-                                 self._funklet.coeff[i][j]=0;
+                                 self._funklet.coeff[i][j]=0.;
       self.updatechange();
       if self.edit_parm:
           self.edit_parm.updateCoeff_fromparent();
@@ -760,9 +782,10 @@ class ParmChange:
 
   def updatechange (self):
       if not self._funklet:
-          return;
+         return;
       if not self._parent:
           self.reject();
+
       meqds.set_node_state(self._node,funklet=self._funklet);
 
       self._parent.changeC00(self.getc00());
@@ -944,7 +967,7 @@ class editParm(QDialog):
         if funklet:
             self._coeff=funklet.coeff;
         else:
-            self._coeff=0;
+            self._coeff=0.;
         if is_scalar(self._coeff):
             self._coeff=[[self._coeff]]
         if is_scalar(self._coeff[0]):
