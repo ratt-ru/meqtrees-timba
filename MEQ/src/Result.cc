@@ -224,10 +224,11 @@ int Result::allocateVellSets (const Dims &dims)
   // 1 element? this corresponds to zero dimensions
   if( nvs == 1 )
     dims_.clear();
+  else
+    dims_ = dims;
   // if dims are non-trivial, store them in record
   if( dims.size() > 1 )
   {
-    dims_ = dims;
     ref <<= new DMI::Vec(Tpint,dims.size(),&(dims[0]));
     Record::addField(FDims,ref,DMI::REPLACE|Record::PROTECT);
   }
