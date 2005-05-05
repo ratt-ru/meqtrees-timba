@@ -26,6 +26,7 @@ BOIO                             1220       ; from /home/oms/LOFAR/Timba/AppAgen
 bool                             32         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:104
 Bound                            1046       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 Breakpoint                       1359       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:40
+Broadcast                        1545       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/StatusMonitorWP.h:7
 By                               1297       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
 Bye                              1090       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:25
 C                                1017       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
@@ -297,9 +298,9 @@ MeqSelector                      1447       ; from /home/oms/LOFAR/Timba/MeqNode
 MeqServer                        1462       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
 MeqSin                           1430       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
 MeqSinh                          1407       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sinh.h:29
-#MeqSink                         1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
+MeqSink                          1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
 MeqSolver                        1401       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:30
-#MeqSpigot                       1468       ; from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:9
+MeqSpigot                        1468       ; from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:9
 MeqSqr                           1458       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqr.h:30
 MeqSqrt                          1408       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqrt.h:30
 MeqStatPointSourceDFT            1396       ; from /home/oms/LOFAR/Timba/MeqNodes/src/StatPointSourceDFT.h:31
@@ -350,7 +351,7 @@ Normalized                       1334       ; from /home/oms/LOFAR/Timba/MEQ/src
 Notify                           1210       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
 Num                              1163       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 O                                1034       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
-OctopussyMessage                 1049       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:29
+#OctopussyMessage                1049       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:29
 Offset                           1195       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
 Only                             1390       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ReqSeq.h:32
 Open                             1045       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
@@ -372,6 +373,7 @@ Pause                            1245       ; from /home/oms/LOFAR/Timba/AppAgen
 Paused                           1234       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
 Peers                            1051       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 Per                              1534       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:42
+Period                           1546       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/StatusMonitorWP.h:7
 Pert                             1325       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:36
 Perturbations                    1367       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:36
 Perturbed                        1372       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:36
@@ -477,6 +479,7 @@ State                            1072       ; from /home/oms/LOFAR/Timba/OCTOPUS
 Station                          1131       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
 Stats                            1531       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:41
 Status                           1209       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
+StatusMonitorWP                  1547       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/StatusMonitorWP.h:7
 StdDev                           1350       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 Step                             1473       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:16
 Steps                            1284       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
