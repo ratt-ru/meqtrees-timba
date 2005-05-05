@@ -44,6 +44,11 @@ using namespace AppState;
   
 static int dum = aidRegistry_AppUtils();
 
+static AppEventSink * makeSink ()
+{ return new MSOutputSink; }
+static int _dum3 = AppEventSink::addToRegistry
+                                ("ms_out",makeSink);
+
 //##ModelId=3E2831C7010D
 MSOutputSink::MSOutputSink ()
     : FileSink(),msname_("(none)")
@@ -76,8 +81,9 @@ void MSOutputSink::close ()
 }
 
 //##ModelId=3EC25BF002D4
-void MSOutputSink::postEvent (const HIID &id, const ObjRef &data,AtomicID,const HIID &)
+void MSOutputSink::postEvent (const HIID &id, const ObjRef &data,AtomicID cat,const HIID &src)
 {
+  recordOutputEvent(id,data,cat,src);
   try
   {
     int code = VisEventType(id);

@@ -61,6 +61,11 @@ using namespace AppState;
 
 static int dum = aidRegistry_AppUtils();
 
+static AppEventSink * makeSink ()
+{ return new MSInputSink; }
+static int _dum3 = AppEventSink::addToRegistry
+                                ("ms_in",makeSink);
+
 //##ModelId=3DF9FECD0219
 MSInputSink::MSInputSink ()
     : FileSink(),obsid_(0)
@@ -217,6 +222,9 @@ void MSInputSink::openMS (DMI::Record &header,const DMI::Record &select)
 bool MSInputSink::init (const DMI::Record &params)
 {
   FailWhen( !FileSink::init(params),"FileSink init failed" );
+  // if file sink is in playback mode, do nothing
+  if( isPlaybackEnabled() )
+    return true;
 
   DMI::Record &header = *new DMI::Record;
   ObjRef href(header,DMI::ANONWR); 

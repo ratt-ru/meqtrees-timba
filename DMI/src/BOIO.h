@@ -27,6 +27,9 @@ class BOIO
       
     //##ModelId=3DB949AE0254
       ~BOIO ();
+      
+      bool isOpen () const
+      { return fp !=0; }
   
       // attaches to a file
     //##ModelId=3DB949AE0255

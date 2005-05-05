@@ -9,6 +9,8 @@
 #include <deque>
 
 #pragma aid Header Data Footer
+#pragma aid Playback 
+
     
 namespace AppAgent
 {    
@@ -24,11 +26,19 @@ namespace AppState
   }
   AppState_FileSink;
 };
+
+namespace FileSinkVocabulary
+{
+  const HIID FPlayback     = AidPlayback;
+}
         
 //##ModelId=3EB9163E00AF
 class FileSink : public AppEventSink
 {
   public:
+    virtual bool init (const DMI::Record &params);
+    virtual void close ();
+    
     //##ModelId=3EB9169701B4
     //##Documentation
     //## gets event from file
@@ -48,6 +58,9 @@ class FileSink : public AppEventSink
     //##Documentation
     //## Returns agent state as a string
     virtual string stateString() const;
+    
+    bool isPlaybackEnabled () const
+    { return playback_.isOpen(); }
 
   protected:
     //##ModelId=3EB916630067
@@ -85,6 +98,8 @@ class FileSink : public AppEventSink
     int state_;
     //##ModelId=3EC24346021D
     string error_string_;
+    
+    mutable BOIO playback_;
 };
 
 inline int FileSink::state() const

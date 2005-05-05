@@ -25,10 +25,12 @@
 
 #include <AppAgent/AppAgent.h>
 #include <AppAgent/AppEventFlag.h>
+#include <DMI/BOIO.h>
   
 #pragma aidgroup AppAgent
-#pragma aid AppAgent Event Text Category Destination
+#pragma aid AppAgent Event Text Category Destination Address
 #pragma aid Normal Notify Warning Error Critical Info Debug
+#pragma aid Record Input Output Sink Type
 
 namespace AppAgent
 {    
@@ -60,6 +62,10 @@ const AtomicID EventCategories[] =
 
 namespace AppEventSinkVocabulary
 {
+  const HIID FSinkType     = AidSink|AidType;
+  
+  const HIID FRecordInput  = AidRecord|AidInput;
+  const HIID FRecordOutput = AidRecord|AidOutput;
 };
   
 //##ModelId=3E394D4C0195
@@ -76,6 +82,12 @@ class AppEventSink : public AppAgent
   protected:
     //##ModelId=3F5F43630252
     static HIID _dummy_hiid;
+
+    // declare registry of sink types
+  public:
+    typedef AppEventSink * (*SinkConstructor)();
+  
+    DeclareRegistry(AppEventSink,string,SinkConstructor);
   
   public:
     //##ModelId=3E410DB50060
@@ -87,8 +99,22 @@ class AppEventSink : public AppAgent
     //##ModelId=3E4784B1021A
     AppEventSink (const HIID &initf, AppEventFlag &evflag);
     
+    // constructs a sink class by name, or returns 0 if no such name
+    static AppEventSink * constructSink (const std::string &name)
+    {
+      SinkConstructor ptr = registry.find(strlowercase(name));
+      FailWhen1(!ptr,"unknown sink type: "+name);
+      return (*ptr)();
+    }
+    
     //##ModelId=3E4787070046
     void attach (AppEventFlag& evflag,int dmiflags = DMI::WRITE);
+    
+    bool hasEventFlag () const
+    { return eventFlag.valid(); }
+    
+    AppEventFlag::Ref eventFlagRef () const
+    { return eventFlag.copy(); }
     
     //##ModelId=3E4143B200F2
     //##Documentation
@@ -96,6 +122,7 @@ class AppEventSink : public AppAgent
     //## or reinitialize an agent. Agent parameters are supplied via a
     //## DMI::Record.
     virtual bool init (const DMI::Record &data);
+    virtual void close ();
   
     //##ModelId=3E8C3BDC0159
     //##Documentation
@@ -226,13 +253,30 @@ class AppEventSink : public AppAgent
       virtual string sdebug ( int = 1,const string & = "",
                               const char * = 0 ) const
       { return "NullEventSink"; }
-
-
-
-
+      
+  protected:
+    void recordInputEvent (const HIID &id, const ObjRef &ref,AtomicID cat,const HIID &source) const
+    {
+      if( record_input.isOpen() )
+        recordEvent(record_input,id,ref,cat,source);
+    }
+    
+    void recordOutputEvent (const HIID &id, const ObjRef &ref,AtomicID cat,const HIID &source) const
+    {
+      if( record_output.isOpen() )
+        recordEvent(record_output,id,ref,cat,source);
+    }
+        
   private:
+    // helper function, records event on given BOIO object
+    void recordEvent (BOIO &boio,const HIID &id, const ObjRef &ref,AtomicID cat,const HIID &source) const;
+      
     //##ModelId=3E43E3B30155
     mutable AppEventFlag::Ref eventFlag;
+  
+    mutable BOIO record_input;
+    mutable BOIO record_output;
+  
     //##ModelId=3E47837F02C2
     int sink_num;
 

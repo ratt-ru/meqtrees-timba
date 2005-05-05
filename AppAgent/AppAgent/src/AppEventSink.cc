@@ -29,6 +29,10 @@ namespace AppAgent
 // const AtomicID AppEvent::EventCategories[] = { AidNormal,AidNotify,AidWarning,AidError,AidCritical,AidInfo,AidDebug };
 
 using namespace AppEvent;
+using namespace AppEventSinkVocabulary;
+
+
+DefineRegistry(AppEventSink,0);
 
 
 //##ModelId=3F5F43630252
@@ -61,19 +65,32 @@ void AppEventSink::attach (AppEventFlag& evflag,int dmiflags)
 
 
 //##ModelId=3E4143B200F2
-bool AppEventSink::init (const DMI::Record &)
+bool AppEventSink::init (const DMI::Record &params)
 {
+  close();
+  string infile = params[FRecordInput].as<string>("");
+  if( !infile.empty() )
+    record_input.open(infile,BOIO::WRITE);
+  string outfile = params[FRecordOutput].as<string>("");
+  if( !outfile.empty() )
+    record_output.open(outfile,BOIO::WRITE);
   return true;
+}
+
+void AppEventSink::close ()
+{
+  record_output.close();
+  record_input.close();
 }
     
 //##ModelId=3E394D4C02BB
-int AppEventSink::getEvent (HIID &,ObjRef &,const HIID &,int wait,HIID &)
+int AppEventSink::getEvent (HIID &id,ObjRef &ref,const HIID &mask,int wait,HIID &source)
 { 
   return waitOtherEvents(wait);
 }
 
 //##ModelId=3E394D4C02C1
-int AppEventSink::hasEvent (const HIID &,HIID &) const
+int AppEventSink::hasEvent (const HIID &mask,HIID &out) const
 { 
   // if we have an event flag and it's raised, this means some other sink
   // has an event pending. In this case return OUTOFSEQ
@@ -83,9 +100,24 @@ int AppEventSink::hasEvent (const HIID &,HIID &) const
          : WAIT; 
 }
 
-//##ModelId=3E394D4C02C9
-void AppEventSink::postEvent (const HIID &, const ObjRef &ref,AtomicID cat,const HIID &)
+void AppEventSink::recordEvent (BOIO &boio,const HIID &id, const ObjRef &data,AtomicID cat,const HIID &addr) const
 {
+  cdebug(3)<<"storing event "<<id<<endl;
+  ObjRef recref;
+  DMI::Record & rec = * new DMI::Record;
+  recref.attach(rec,DMI::ANONWR);
+  rec[AidEvent] = id;
+  rec[AidCategory] = cat;
+  rec[AidAddress] = addr;
+  if( data.valid() )
+    rec[AidData] = data.copy();
+  boio << recref;
+}
+
+//##ModelId=3E394D4C02C9
+void AppEventSink::postEvent (const HIID &id, const ObjRef &ref,AtomicID cat,const HIID &source)
+{
+  recordOutputEvent(id,ref,cat,source);
 }
 
 void AppEventSink::flush ()

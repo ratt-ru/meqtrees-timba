@@ -856,6 +856,9 @@ class Node : public DMI::BObj
     std::vector<int> child_retcodes_;
     //## vector of stepchild return codes, filled in by pollStepChildren()
     std::vector<int> stepchild_retcodes_;
+    
+    // cache policy setting
+    int cache_policy_;
      
   private:
     //##Documentation
@@ -1006,10 +1009,7 @@ class Node : public DMI::BObj
     //## mask of current single-shot breakpoints
     int breakpoints_ss_;
     
-    // cache policy setting
-    int cache_policy_;
-    
-    // real cache policy (equal to forest policy is ours is 0)
+    // real cache policy (equal to forest policy if ours is 0)
     int actual_cache_policy_;
     
     // cache management info

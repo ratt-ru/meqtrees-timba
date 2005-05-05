@@ -7,6 +7,11 @@ namespace AppAgent
 InitDebugContext(BOIOSink,"BOIOSink");
 
 static int dum = aidRegistry_AppAgent();
+
+static AppEventSink * makeSink ()
+{ return new BOIOSink; }
+static int dum2 = AppEventSink::addToRegistry
+                                ("boio",makeSink);
     
 using namespace AppEvent;
 using namespace AppState;
@@ -61,6 +66,7 @@ int BOIOSink::refillStream()
       cdebug(1)<<"EOF on BOIO file, closing"<<endl;
       setState(CLOSED);
       boio.close();
+      return CLOSED;
     }
     else if( tid != TpDMIRecord )
     {

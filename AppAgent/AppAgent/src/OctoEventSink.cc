@@ -13,6 +13,11 @@ InitDebugContext(EventSink,"OctoEventSink");
 DMI::Record EventSink::_dum;
 
 static int _dum2 = aidRegistry_AppAgent();
+
+static AppEventSink * makeSink ()
+{ return new EventSink; }
+static int _dum3 = AppEventSink::addToRegistry
+                                ("octopussy",makeSink);
     
 //##ModelId=3E26DA36005C
 EventSink::EventSink()
@@ -134,7 +139,10 @@ void EventSink::solicitEvent (const HIID &mask)
 int EventSink::getEvent (HIID &id,ObjRef &data,const HIID &mask,int wait,HIID &source)
 {
   FailWhen(!multiplexer,"no mux attached");
-  return multiplexer->getEvent(id,data,mask,wait,source,my_multiplex_id);
+  int res = multiplexer->getEvent(id,data,mask,wait,source,my_multiplex_id);
+  if( res == AppEvent::SUCCESS )
+    recordInputEvent(id,data,AidNormal,source);
+  return res;      
 }
 
 //##ModelId=3E0918BF02F0
@@ -149,6 +157,7 @@ void EventSink::postEvent (const HIID &id,const ObjRef &data,
                            AtomicID category,const HIID &dest)
 {
   cdebug(3)<<"postEvent("<<id<<")\n";
+  recordOutputEvent(id,data,AidNormal,HIID());
   // find event in output map
   EMCI iter = post_map.find(category|id);
   Message::Ref mref;

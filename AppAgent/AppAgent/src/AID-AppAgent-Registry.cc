@@ -20,6 +20,7 @@
         AtomicID::registerId(-1056,"Error")+
         AtomicID::registerId(-1201,"Header")+
         AtomicID::registerId(-1135,"Footer")+
+        AtomicID::registerId(-1542,"Playback")+
         AtomicID::registerId(-1203,"App")+
         AtomicID::registerId(-1142,"Control")+
         AtomicID::registerId(-1235,"Parameters")+
@@ -50,11 +51,17 @@
         AtomicID::registerId(-1055,"Text")+
         AtomicID::registerId(-1496,"Category")+
         AtomicID::registerId(-1495,"Destination")+
+        AtomicID::registerId(-1543,"Address")+
         AtomicID::registerId(-1223,"Normal")+
         AtomicID::registerId(-1493,"Warning")+
         AtomicID::registerId(-1497,"Critical")+
         AtomicID::registerId(-1494,"Info")+
         AtomicID::registerId(-1482,"Debug")+
+        AtomicID::registerId(-1541,"Record")+
+        AtomicID::registerId(-1036,"Input")+
+        AtomicID::registerId(-1241,"Output")+
+        AtomicID::registerId(-1470,"Sink")+
+        AtomicID::registerId(-1085,"Type")+
         AtomicID::registerId(-1243,"Agent")+
         AtomicID::registerId(-1216,"Map")+
         AtomicID::registerId(-1236,"Receive")+
@@ -75,8 +82,6 @@
         AtomicID::registerId(-1246,"High")+
         AtomicID::registerId(-1222,"Higher")+
         AtomicID::registerId(-1240,"Vis")+
-        AtomicID::registerId(-1036,"Input")+
-        AtomicID::registerId(-1241,"Output")+
         AtomicID::registerId(-1232,"Tile")+
         AtomicID::registerId(-1219,"Suspend")+
     0;

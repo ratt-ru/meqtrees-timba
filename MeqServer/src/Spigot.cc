@@ -25,6 +25,10 @@ Spigot::Spigot ()
       dims_(2,2),
       integrated_(false)
 {
+  // since we effectively hold our own cache, disable node's result caching
+  // by default
+  cache_policy_ = CACHE_NEVER;
+  
   corr_index_.resize(4);
   for( int i=0; i<4; i++ )
     corr_index_[i] = i;

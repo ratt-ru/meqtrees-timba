@@ -3,7 +3,7 @@
     
 #include <AppAgent/AppAgent.h>
 #include <AppAgent/AppEventSink.h>
-    
+        
 namespace DMI { class Record; }
 
 namespace AppAgent
@@ -12,7 +12,7 @@ using namespace DMI;
     
 class AppEventFlag;
 class AppEventSink;
-    
+
 //##ModelId=3E4147EF00D6
 class AppEventAgentBase : public AppAgent
 {

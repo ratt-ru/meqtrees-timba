@@ -4,6 +4,7 @@
 namespace AppAgent
 {    
 
+
 static int dum = aidRegistry_AppAgent();
 
 //##ModelId=3E414887001F
@@ -43,6 +44,19 @@ bool AppEventAgentBase::isAsynchronous() const
 bool AppEventAgentBase::init (const DMI::Record &data)
 {
   const DMI::Record dum;
+  const DMI::Record &params = data[initfield()].as<DMI::Record>(dum);
+  // change sink if specified
+  string sinktype = params[AppEventSinkVocabulary::FSinkType].as<string>("");
+  if( !sinktype.empty() )
+  {
+    AppEventFlag::Ref flagref;
+    if( sink_.valid() && sink_().hasEventFlag() )
+      flagref = sink_().eventFlagRef();
+    sink_ <<= AppEventSink::constructSink(sinktype);
+    if( flagref.valid() )
+      sink_().attach(flagref());
+  }
+  // init sink
   return sink().init(data[initfield()].as<DMI::Record>(dum));
 }
 
