@@ -172,7 +172,7 @@ Higher                           1222       ; from /home/oms/LOFAR/Timba/AppAgen
 Host                             1096       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 Hosts                            1065       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
 I                                1027       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
-ID                               1208       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
+Id                               1208       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
 Idle                             1477       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:15
 IF                               1114       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:33
 IFR                              1179       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
@@ -240,6 +240,7 @@ MeqAsin                          1399       ; from /home/oms/LOFAR/Timba/MeqNode
 MeqAtan                          1428       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Atan.h:29
 MeqCeil                          1437       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
 MeqCells                         1339       ; from /home/oms/LOFAR/Timba/MEQ/src/Cells.h:35
+MeqClient                        1544       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
 MeqComposer                      1442       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Composer.h:30
 MeqCondeq                        1443       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:31
 MeqConj                          1394       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Conj.h:30
@@ -296,9 +297,9 @@ MeqSelector                      1447       ; from /home/oms/LOFAR/Timba/MeqNode
 MeqServer                        1462       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
 MeqSin                           1430       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
 MeqSinh                          1407       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sinh.h:29
-MeqSink                          1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
+#MeqSink                         1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
 MeqSolver                        1401       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:30
-MeqSpigot                        1468       ; from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:9
+#MeqSpigot                       1468       ; from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:9
 MeqSqr                           1458       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqr.h:30
 MeqSqrt                          1408       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqrt.h:30
 MeqStatPointSourceDFT            1396       ; from /home/oms/LOFAR/Timba/MeqNodes/src/StatPointSourceDFT.h:31
