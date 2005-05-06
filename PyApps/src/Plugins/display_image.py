@@ -1423,8 +1423,6 @@ class QwtImagePlot(QwtPlot):
       if self._vells_rec.has_key("solver_result"):
         if self._vells_rec.solver_result.has_key("incremental_solutions"):
           self._solver_flag = True
-          self._x_axis = 'Solvable Coeffs'
-          self._y_axis = 'Iteration Nr'
           complex_type = False;
           if self._vells_rec.solver_result.incremental_solutions.type() == Complex32:
             complex_type = True;
@@ -1438,7 +1436,15 @@ class QwtImagePlot(QwtPlot):
             for i in range(len(metrics)):
                self.metrics_rank[i] = metrics[i].rank
                self.iteration_number[i] = i+1
-          self.array_plot("Solver Incremental Solutions", self._value_array, True)
+          shape = self._value_array.shape
+          if shape[1] > 1:
+            self._x_axis = 'Solvable Coeffs'
+            self._y_axis = 'Iteration Nr'
+            self.array_plot("Solver Incremental Solutions", self._value_array, True)
+          else:
+            self._y_axis = 'Value'
+            self._x_axis = 'Iteration Nr'
+            self.array_plot("Solver Incremental Solution", self._value_array, True)
 
 # are we dealing with Vellsets?
       if self._vells_rec.has_key("vellsets") and not self._solver_flag:
