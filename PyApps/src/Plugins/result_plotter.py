@@ -488,6 +488,16 @@ class ResultPlotter(GriddedPlugin):
 # menu to switch to a different viewer)
 
 # are we dealing with Vellsets?
+    if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
+      Message = "No cells record for vellsets; scalar assumed. No plot can be made with the <b>result plotter</b>. "
+      scalar_value = self._rec.vellsets[0].value
+      temp_str = "vellsets[0] value is %-.3g " % scalar_value[0,0]
+      Message = Message + temp_str + "Use the record browser to get further information about this vellset." 
+      cache_message = QLabel(Message,self.wparent())
+      cache_message.setTextFormat(Qt.RichText)
+      self._wtop = cache_message
+      self.set_widgets(cache_message)
+      return
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       if self._visu_plotter is None:
         self._visu_plotter = QwtImagePlot('spectra',parent=self.wparent())
