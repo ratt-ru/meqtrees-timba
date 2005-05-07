@@ -22,8 +22,8 @@ mpich-prof.variant.conf:  $(standard) $(mpich) --enable-mpi-profiler --with-cppf
 bgl.variant.conf:         $(lofar_root) $(debugopt) $(nothreads) $(noshmem) $(bgl_cpp) $(bgl_ldd) --without-log4cplus --with-bglmpich
 fakebgl.variant.conf:     $(lofar_root) $(debug) $(nothreads) $(noshmem) --without-log4cplus --with-cppflags="-DHAVE_BGL"
 nolog4cplus.variant.conf: $(standard) $(debug) --without-log4cplus 
-insure.variant.conf:	  $(standard) --with-insuretools
-insure.variant.make:	  QA=insure
+insure.variant.conf:	  $(standard) --with-insuretools --with-cppflags="-D__INSURE__"
+insure.variant.make:	  QA=insure --with-cppflags="-D__INSURE__"
 
 standard.var:             $(lofar_root) $(aipspp) $(threads) $(sse) $(shmem)
 
