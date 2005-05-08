@@ -223,6 +223,11 @@ const int AidMandate_int = -1486;
 const DMI::AtomicID AidMask(-1263);               // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 const int AidMask_int = -1263;
 #endif
+#ifndef _defined_id_AidMeqClient
+#define _defined_id_AidMeqClient 1
+const DMI::AtomicID AidMeqClient(-1544);          // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
+const int AidMeqClient_int = -1544;
+#endif
 #ifndef _defined_id_AidMeqServer
 #define _defined_id_AidMeqServer 1
 const DMI::AtomicID AidMeqServer(-1462);          // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11

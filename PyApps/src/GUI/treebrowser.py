@@ -280,8 +280,8 @@ class TreeBrowser (QObject):
           # create display submenus
           menu1 = self._display_menu1 = QPopupMenu();
           menu2 = self._display_menu2 = QPopupMenu();
-          menu.insertItem(pixmaps.view_split.iconset(),"Display with",menu1);
-          menu.insertItem(pixmaps.view_right.iconset(),"New display with",menu2);
+          menu.insertItem(pixmaps.viewmag.iconset(),"Display with",menu1);
+          menu.insertItem(pixmaps.viewmag_plus.iconset(),"New display with",menu2);
           for v in viewer_list:
             # create entry for viewer
             name = getattr(v,'viewer_name',v.__name__);
@@ -371,7 +371,7 @@ class TreeBrowser (QObject):
     for f in funcs:
       f(self);
     # --- now, build up toolbar from defined actions
-    self._toolbar = QToolBar("Trees",parent,parent);
+    self._toolbar = QToolBar(parent,"Trees");
     self._toolbar_actions = [];
     tba = self.get_action_list("toolbar");
     tba.sort();
@@ -381,18 +381,16 @@ class TreeBrowser (QObject):
         if not have_sep: 
           self._toolbar.addSeparator();
           have_sep = True;
+      elif action == "stretch":
+        stretch = QWidget(self._toolbar);
+        self._toolbar.setStretchableWidget(stretch);
       elif isinstance(action,QAction):
         self._toolbar_actions.append(action);
         action.addTo(self._toolbar);
         action.setEnabled(False);
         have_sep = False;
 
-    # add stretch
-    self._toolbar.addSeparator();
-    stretch = QWidget(self._toolbar);
-    self._toolbar.setStretchableWidget(stretch);
-    
-    # added by AGW
+    # add a what's this button
     QWhatsThis.whatsThisButton(self._toolbar)
 
     # make toolbar disappear when we leave this panel
@@ -517,6 +515,12 @@ class TreeBrowser (QObject):
     # toolbar
     for act in self._toolbar_actions:
       try:
+        visible = act._is_visible();
+      except AttributeError: pass;
+      else:
+        _dprint(4,'action',act.text(),'visible:',enable);
+        act.setVisible(visible);
+      try:
         enable = act._is_enabled();
       except AttributeError: pass;
       else:
@@ -539,8 +543,8 @@ class TreeBrowser (QObject):
     """Sends a debug enable/disable message.""";
     if enable:
       self._qa_dbg_enable.setAccel(Qt.CTRL+Qt.Key_F5);
-      self._qa_dbg_enable.setText("Disable debugger and continue");
-      self._qa_dbg_enable.setMenuText("&Disable debugger");
+      self._qa_dbg_enable.setText("Disable tree debugger and continue");
+      self._qa_dbg_enable.setMenuText("Disable tree &debugger");
       if not getattr(self,'_setting_debug_control',False):
         mqs().meq('Debug.Set.Level',record(debug_level=2,get_forest_status=True),wait=False);
     else:
@@ -561,8 +565,8 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       # really disable
       self.clear_debug_stack();
       self._qa_dbg_enable.setAccel(Qt.Key_F5);
-      self._qa_dbg_enable.setText("Enable debugger");
-      self._qa_dbg_enable.setMenuText("Enable &Debugger");
+      self._qa_dbg_enable.setText("Enable tree debugger");
+      self._qa_dbg_enable.setMenuText("Enable tree &debugger");
 
   def get_color_group (self,which,is_stopped=-1):
     return self._cg[(which,is_stopped)][0];
@@ -815,6 +819,9 @@ Please press OK to confirm.""",QMessageBox.Ok,\
   def add_separator (self,order=1000,where="toolbar"):
     self._actions.setdefault(where,[]).append((order,None));
     
+  def add_stretch (self,order=1000,where="toolbar"):
+    self._actions.setdefault(where,[]).append((order,"stretch"));
+    
   def get_action_list (self,which):
     return self._actions.get(which,[]);
 
@@ -922,31 +929,31 @@ def define_treebrowser_actions (tb):
   parent = tb.wtop();
   # populate the toolbar
   # Refresh
-  refresh = QAction("Refresh",pixmaps.refresh.iconset(),"Refresh node list",Qt.Key_F2,parent);
+  refresh = tb._qa_refresh = QAction("Refresh",pixmaps.refresh.iconset(),"Refresh node list",Qt.Key_F2,parent);
   refresh._is_enabled = lambda tb=tb: tb.is_connected;
   tb.add_action(refresh,10,callback=tb._request_nodelist);
   tb.add_separator(20);
   # Save and load
-  load = QAction("Load",pixmaps.file_open.iconset(),"Load forest",Qt.Key_L+Qt.ALT,parent);
-  save = QAction("Save",pixmaps.file_save.iconset(),"Save forest",Qt.Key_S+Qt.ALT,parent);
-  load._is_enabled = save._is_enabled = lambda tb=tb: tb.is_connected and tb.app_state == AppState.Idle;
-  tb.add_action(load,30,callback=tb.load_forest_dialog);
-  tb.add_action(save,40,callback=tb.save_forest_dialog);
+  qa_load = tb._qa_load = QAction("Load",pixmaps.file_open.iconset(),"Load forest",Qt.Key_L+Qt.ALT,parent);
+  qa_save = tb._qa_save = QAction("Save",pixmaps.file_save.iconset(),"Save forest",Qt.Key_S+Qt.ALT,parent);
+  qa_load._is_enabled = qa_save._is_enabled = lambda tb=tb: tb.is_connected and tb.app_state == AppState.Idle;
+  tb.add_action(qa_load,30,callback=tb.load_forest_dialog);
+  tb.add_action(qa_save,40,callback=tb.save_forest_dialog);
   tb.add_separator(50);
   # Enable debugger
-  dbg_enable = tb._qa_dbg_enable = QAction("Enable debugger",pixmaps.debugger.iconset(),"Enable &Debugger",Qt.Key_F5,parent,"",True);
+  dbg_enable = tb._qa_dbg_enable = QAction("Enable tree debugging",pixmaps.debugger.iconset(),"Enable &Debugger",Qt.Key_F5,parent,"",True);
   QObject.connect(dbg_enable,SIGNAL("toggled(bool)"),tb._debug_enable_slot);
   QObject.connect(tb,PYSIGNAL("debug_enabled()"),dbg_enable.setOn);
   dbg_enable._is_enabled = lambda tb=tb: tb.is_connected;
   tb.add_action(dbg_enable,60);
   # Pause
   pause = QAction("Pause",pixmaps.pause.iconset(),"&Pause",Qt.Key_F6,parent);
-  pause._is_enabled = lambda tb=tb: tb.is_connected and tb.debug_level>0 and \
-                                    tb.is_running and not tb.is_stopped;
+  pause._is_visible = lambda tb=tb: tb.is_connected and tb.debug_level>0;
+  pause._is_enabled = lambda tb=tb: tb.is_running and not tb.is_stopped;
   tb.add_action(pause,70,callback=tb._debug_pause);
   tb.add_separator(80);
   # Debug action group
-  ag_debug = QActionGroup(parent);
+  ag_debug = tb._qa_dbg_tools = QActionGroup(parent);
   ag_debug.setText("Debugger tools");
   dbgcont  = QAction("Continue",pixmaps.right_2triangles.iconset(),"&Continue",Qt.Key_F6+Qt.SHIFT,parent);      
   QObject.connect(dbgcont,SIGNAL("activated()"),tb._debug_continue);
@@ -954,19 +961,19 @@ def define_treebrowser_actions (tb):
   QObject.connect(dbgstep,SIGNAL("activated()"),tb._debug_single_step);
   dbgnext  = QAction("Step to next node",pixmaps.down_2triangles.iconset(),"Step to &next node",Qt.Key_F8,parent);      
   QObject.connect(dbgnext,SIGNAL("activated()"),tb._debug_next_node);
-  ag_debug._is_enabled = lambda tb=tb: tb.is_connected and tb.debug_level>0 and \
-                                       tb.is_loaded and tb.is_stopped;
+  ag_debug._is_visible = lambda tb=tb: tb.is_connected and tb.debug_level>0;
+  ag_debug._is_enabled = lambda tb=tb: tb.is_loaded and tb.is_stopped;
   ag_debug.add(dbgcont);
   ag_debug.add(dbgstep);
   ag_debug.add(dbgnext);
   tb.add_action(ag_debug,90);
   
   # show node icon reference
-  tb.add_separator(100);
-  show_help = QAction("Show icon reference",pixmaps.info_blue_round.iconset(),"Show icon &reference...",Qt.Key_F1,parent);
+  tb.add_stretch(1000);
+  show_help = QAction("Show icon reference",pixmaps.info_blue_round.iconset(),"Show icon &reference...",Qt.CTRL+Qt.Key_F1,parent);
   QObject.connect(show_help,SIGNAL("activated()"),tb.show_icon_reference);
   show_help._is_enabled = lambda tb=tb:True;
-  tb.add_action(show_help,100);
+  tb.add_action(show_help,1010);
   tb.add_action(show_help,5,where="node");
   
   # populate node context menu

@@ -26,11 +26,12 @@ class app_proxy (verbosity):
   set_debug = staticmethod(octopussy.set_debug);
   setdebug = staticmethod(octopussy.set_debug);
   
-  def __init__(self,appid,launch=None,spawn=None,
+  def __init__(self,appid,client_id,launch=None,spawn=None,
                verbose=0,wp_verbose=0,
                gui=False,threads=False,debug=True):
     verbosity.__init__(self,verbose,name=str(appid));
     self.appid = hiid(appid);
+    self.client_id = hiid(client_id);
     self._rcv_prefix = self.appid + "Out";          # messages from app
     self._rcv_prefix_debug = self.appid + "Debug";  # debug messages from app
     self._snd_prefix = self.appid + "In";           # messages to app
@@ -46,10 +47,10 @@ class app_proxy (verbosity):
       # select threading API
       if gui: api = Timba.qt_threading;
       else:   api = threading;
-      self._pwp = octopussy.proxy_wp_thread(str(appid),verbose=wp_verbose,thread_api=api);
+      self._pwp = octopussy.proxy_wp_thread(str(client_id),verbose=wp_verbose,thread_api=api);
     else:
       _dprint(1,"running in non-threaded mode");
-      self._pwp = octopussy.proxy_wp(str(appid),verbose=wp_verbose);
+      self._pwp = octopussy.proxy_wp(str(client_id),verbose=wp_verbose);
       
     # subscribe and register handler for app events
     self._pwp.whenever(self._rcv_prefix+"*",self._event_handler,subscribe=True);
@@ -61,6 +62,8 @@ class app_proxy (verbosity):
     self._pwp.whenever('wp.bye'+self.appid+'*',self._bye_handler,subscribe=True);
     # subscribe to down message
     self._pwp.whenever('gw.remote.down.*',self._remote_down_handler,subscribe=True);
+    # subscribe to process status
+    self._pwp.whenever('process.status.*',self._process_stat_handler,subscribe=True);
     
     # setup state
     self._verbose_events = True;
@@ -70,6 +73,7 @@ class app_proxy (verbosity):
     self.state = None; # None means offline -- we'll get a Hello message for online
     self.statestr = 'no connection';
     self.app_addr = None;
+    self.client_addr = self._pwp.address();
     self.status = record();
     self.paused = False;
     # ------------------------------ export some proxy_wp and octopussy methods
@@ -169,6 +173,8 @@ class app_proxy (verbosity):
       
   hello_event = hiid("Hello");
   bye_event = hiid("Bye");
+  process_status_event = hiid("Process.Status");
+  
   def _hello_handler (self,msg):
     _dprint(2,"got hello message:",msg);
     self.app_addr = getattr(msg,'from');
@@ -187,6 +193,19 @@ class app_proxy (verbosity):
     self.state = None;
     self.statestr = 'no connection';
     self._gui_event_handler(self.bye_event,getattr(msg,'from'));
+
+  def _process_stat_handler (self,msg):
+    _dprint(5,"got process status: ",msg.msgid);
+    if self.app_addr is None:
+      _dprint(5,"no app address set, ignoring");
+      return;
+    fromaddr = getattr(msg,'from');
+    if fromaddr[2:3] == self.app_addr[2:3]:
+      self.app_process_status = msg.msgid[2:];
+      _dprint(5,"process status set");
+    else:
+      _dprint(5,"process status source does not match app address, ignoring");
+    self._gui_event_handler(self.process_status_event,self.app_process_status);
     
   def _remote_down_handler (self,msg):
     _dprint(2,"got gw.remote.down message:",msg);
@@ -202,6 +221,16 @@ class app_proxy (verbosity):
   def _event_handler (self,msg):
     "event handler for app";
     _dprint(5,"got message: ",msg.msgid);
+    # verify source address
+    addr = getattr(msg,'from');
+    if self.app_addr is None:
+      _dprint(2,"hmmm, no app address set, let's assume this is it",addr);
+      self.app_addr = addr;
+    else:
+      if self.app_addr != addr:
+        _dprint(2,"ignoring message from",addr,": doesn't match app address",self.app_addr);
+        return;
+    # update state if not connected
     if self.state is None:
       self.state = -1;
       self.statestr = 'connected';

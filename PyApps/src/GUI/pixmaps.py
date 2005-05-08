@@ -9,10 +9,51 @@ _dbg = verbosity(0,name='pixmaps');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-# A QPixMap wrapper defers initialization of a pixmap until the pixmap
-# is actually retrieved with the pm() method for the first time.
+# define a catch-all case for all missing icons
+_missing_icon_xpm = ["16 16 14 1",
+                     "# c None",
+                     "k c None",
+                     "d c None",
+                     "c c None",
+                     "b c None",
+                     "f c None",
+                     "l c None",
+                     "i c None",
+                     "j c None",
+                     "h c None",
+                     ". c None",
+                     "a c #000000",
+                     "g c #808080",
+                     "e c #ff0000",
+                     "....##aaabb#c#.#",
+                     "##db#aeeea##c###",
+                     "f#gg#aeeeahgg#d#",
+                     ".#gggaeeeaggg#c#",
+                     "c##ggaeeeaggc#.#",
+                     "##hhgaeeeag#c###",
+                     "##h##aeeeahh##f#",
+                     "##hhhaeeeaihhh#.",
+                     ".c#hhaeeeahih#dc",
+                     "#jf#gaaaaagh#dfh",
+                     "##kggg#hbggglchh",
+                     "##gggbaaahggg#d#",
+                     "c.gg#aeeeahgg###",
+                     "###hhaeeea#h####",
+                     "#####aeeea######",
+                     "f#.#.jaaad.cccdj"  ];
+                               
+
 class QPixmapWrapper(object):
-  def __init__(self,pm):
+  """QPixmapWrapper can defer initialization of a pixmap until the pixmap
+  is actually retrieved with the pm() or iconset() method for the first time.
+  This gets around the problem of not being able to create QPixmaps until a Qt
+  application has been initialized.
+  """;
+  def __init__(self,pm=_missing_icon_xpm):
+    """Initialize wrapper with a pixmap or with an xpm string array""";
+    self.assign(pm);
+  def assign (self,pm):
+    """Reassign pixmap or xpm string array to wrapper""";
     if isinstance(pm,QPixmap):
       self._pm = pm;
     else:             # assume xpm string list to be decoded on-demand 
@@ -20,48 +61,15 @@ class QPixmapWrapper(object):
       self._pm = None;
     self._iconset = None;
   def pm (self):
+    """Get QPixmap from wrapper""";
     if self._pm is None:
       self._pm = QPixmap(self._xpmstr);
     return self._pm;
   def iconset (self):
+    """Get QIconSet from wrapper""";
     if self._iconset is None:
       self._iconset = QIconSet(self.pm());
     return self._iconset;
-
-# define a catch-all case for all missing icons
-missing_icon = QPixmapWrapper(["16 16 14 1",
-                               "# c None",
-                               "k c None",
-                               "d c None",
-                               "c c None",
-                               "b c None",
-                               "f c None",
-                               "l c None",
-                               "i c None",
-                               "j c None",
-                               "h c None",
-                               ". c None",
-                               "a c #000000",
-                               "g c #808080",
-                               "e c #ff0000",
-                               "....##aaabb#c#.#",
-                               "##db#aeeea##c###",
-                               "f#gg#aeeeahgg#d#",
-                               ".#gggaeeeaggg#c#",
-                               "c##ggaeeeaggc#.#",
-                               "##hhgaeeeag#c###",
-                               "##h##aeeeahh##f#",
-                               "##hhhaeeeaihhh#.",
-                               ".c#hhaeeeahih#dc",
-                               "#jf#gaaaaagh#dfh",
-                               "##kggg#hbggglchh",
-                               "##gggbaaahggg#d#",
-                               "c.gg#aeeeahgg###",
-                               "###hhaeeea#h####",
-                               "#####aeeea######",
-                               "f#.#.jaaad.cccdj"]);
-                               
-                              
 
 exclaim = QPixmapWrapper([ "14 14 3 1",
           "       c None",
@@ -607,36 +615,6 @@ remove = QPixmapWrapper(["16 16 15 1",
                          "-@@@@@@@@@@@@@@#",
                          "################" ]);
                              
-                             
-
-magnify = QPixmapWrapper(["16 16 9 1",
-                         "  c #000000",
-                         ". c #800000",
-                         "X c #DCDCDC",
-                         "o c #FF8000",
-                         "O c #A0A0A0",
-                         "+ c #C05800",
-                         "@ c None",
-                         "# c #C3C3C3",
-                         "$ c None",
-                         "@@@@@   @@@@@@@@",
-                         "@@@  O#O  @@@@@@",
-                         "@@ O##X##O @@@@@",
-                         "@ O#X@@XX#O @@@@",
-                         "@ #X@XXXXX# @@@@",
-                         " O#@XXXXXX#O @@@",
-                         " #X@XXXXX#X# @@@",
-                         " O#XXXXXX##O @@@",
-                         "@ #XXXXX#X# @@@@",
-                         "@ O#XX##X#O @@@@",
-                         "@@ O##X##O . @@@",
-                         "@@@  O#O  .o. @@",
-                         "@@@@@   @@ .o. @",
-                         "@@@@@@@@@@@ .+. ",
-                         "@@@@@@@@@@@@ . @",
-                         "@@@@@@@@@@@@@ @@" ]);
-
-
 eventnew = QPixmapWrapper(["16 16 7 1",
                            "  c None",
                            ". c #87852B",
@@ -2921,16 +2899,22 @@ def load_icons (appname):
         try: pm = QPixmap(f);
         except: continue;
         # register pixmap as global symbol using the supplied name
-        globals()[name] = QPixmapWrapper(pm);
+        if name in globals():
+          globals()[name].assign(pm);
+        else:
+          globals()[name] = QPixmapWrapper(pm);
         nicons += 1;
+        _dprint(4,'loaded icon',name);
     _dprint(1,nicons,'icons loaded from ',trydir);
     __icons_loaded = True;
 
 # define a pixmap access hook
+# if name is undefined, it will be inserted into globals 
+# as a default QPixmapWrapper containing the missing icon xpm. This may be overridden
+# later by load_icons() above. This allows apps to refer to icons before they're loaded.
 class __PixmapHook(object):
   def __getattr__ (self,name):
-    try: return globals()[name] 
-    except KeyError:
-      return missing_icon;
+    _dprint(4,'returning icon',name);
+    return globals().setdefault(name,QPixmapWrapper());
 
 pixmaps = __PixmapHook();

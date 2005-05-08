@@ -22,7 +22,7 @@
 //  Index (1-based) of first station comprising the interferometer
 //field: station_2_index 0
 //  Index (1-based) of second station comprising the interferometer
-//field: output_column ''
+//field: output_col ''
 //  tile column to write results to: DATA, PREDICT or RESIDUALS for 
 //  correlation data, but other columns may be used too,
 //  If empty, then no output is generated.

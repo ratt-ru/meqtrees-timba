@@ -379,8 +379,8 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     
     #------ populate the custom event map
     self._ce_handler_map = { 
-      hiid("hello"):            [self.ce_Hello,self.ce_UpdateState],
-      hiid("bye"):              [self.ce_Bye,self.ce_UpdateState],
+      hiid("hello"):            [self._connected_event,self.ce_UpdateState],
+      hiid("bye"):              [self._disconnected_event,self.ce_UpdateState],
       hiid("app.notify.state"): [self.ce_UpdateState]                };
       
     #------ start timer when in polling mode
@@ -564,29 +564,28 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       for handler in self._ce_handler_map.get(ev0,()):
         handler(ev,value);
       # finally, just in case we've somehow missed a Hello message,
-      # force a connected() signal
+      # force a connected call signal
       if not self._connected and ev0 != hiid('bye'):
-        self.emit(PYSIGNAL("connected()"),("?",));
-        self.log_message("found kernel (missed Hello message)",category=Logger.Normal);
-        self._connected = True;
+        self._connected_event(ev,value);
     except:
       (exctype,excvalue,tb) = sys.exc_info();
       self.dprint(0,'exception',str(exctype),'while handling event ',ev);
       traceback.print_exc();
       
-##### custom event handlers for various messages
-  def ce_Hello (self,ev,value):
-    self.emit(PYSIGNAL("connected()"),(value,));
-    self.log_message("found kernel ("+str(value)+")",category=Logger.Normal);
-    self.gw.clear();
-    self._connected = True;
-    
-  def ce_Bye (self,ev,value):
-    self.emit(PYSIGNAL("disconnected()"),(value,));
-    self.log_message("kernel disconnected",category=Logger.Normal);
+  def _connected_event (self,ev,value):
+    if not self._connected:
+      self._connected = True;
+      self.emit(PYSIGNAL("connected()"),(value,));
+      self.log_message("found kernel ("+str(self.app.app_addr)+")",category=Logger.Normal);
+      self.gw.clear();
+
+  def _disconnected_event (self,ev,value):
+    if self._connected:
+      self._connected = False;
+      self.emit(PYSIGNAL("disconnected()"),(value,));
+      self.log_message("kernel disconnected",category=Logger.Normal);
     self._update_app_state();
-    self._connected = False;
-    
+      
   def ce_UpdateState (self,ev,value):
     self._update_app_state();
     

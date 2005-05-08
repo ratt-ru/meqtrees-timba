@@ -151,11 +151,11 @@ _current_gw = None;
 def setDefaultWorkspace (gw):
   global _current_gw;
   _current_gw = gw;
-
+  
 def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=None,newcell=False,newpage=False):
   """Adds a data cell with a viewer the given item.
-     viewer:    if not None, must a be a viewer plugion class. Overrides
-                the viewer specified by the item.
+     viewer:    if not None, must a be a viewer plugin class, or name. 
+                Overrides the viewer specified by the item.
      gw:        if not None, specifies a non-default gridded workspace to
                 display the item on.
      position:  if not None, must be a tuple specifying a cell to allocate, 
@@ -257,6 +257,7 @@ def highlightDataItem (item):
     map(lambda i:i.highlight(False),_highlighted_items);
   _highlighted_items = _dataitems.get(item.udi,[]);
   map(lambda i:i.highlight(),_highlighted_items);
+  _current_gw.wtop().emit(PYSIGNAL("hasSelectedItems()"),(bool(_highlighted_items),));
 
 # updates a data item, if it is known
 def updateDataItem (udi,data):

@@ -2,6 +2,7 @@
 #include <AppUtils/MSInputSink.h>
 #include <AppUtils/MSOutputSink.h>
 #include <OCTOPUSSY/Octopussy.h>
+#include <OCTOPUSSY/StatusMonitorWP.h>
 #include <OCTOGlish/GlishConnServerWP.h>
 #include <AppAgent/OctoEventMultiplexer.h>
 #include <AppUtils/VisRepeater.h>
@@ -155,6 +156,8 @@ int main (int argc,const char *argv[])
       cout<<"=================== initializing Glish gateway =================\n";
       Octopussy::dispatcher().attach(new OctoGlish::GlishConnServerWP);
     }
+    cout<<"=================== starting StatusMonitor ====================\n";
+      Octopussy::dispatcher().attach(new Octopussy::StatusMonitorWP());
     
     cout<<"=================== starting OCTOPUSSY thread =================\n";
     Octopussy::initThread(true);

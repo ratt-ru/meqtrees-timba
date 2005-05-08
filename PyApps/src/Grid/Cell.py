@@ -256,7 +256,7 @@ class Cell (object):
     if font:
       self._font_menu = QPopupMenu(self.wtop());
       self._m_fonts = {};
-      menu.insertItem("Change font size",self._font_menu);
+      menu.insertItem(pixmaps.fontsizedown.iconset(),"Change font size",self._font_menu);
       # populate font menu
       ps = font.pointSize();
       if ps<0:
@@ -270,8 +270,8 @@ class Cell (object):
       # self._menu.setAccel(Qt.CTRL+Qt.Key_Plus,i1);
       # i1 = self._menu.insertItem("Smaller font",self.decrease_font);
       # self._menu.setAccel(Qt.CTRL+Qt.Key_Minus,i1);
-    if self._enable_viewers:
-      self._m_viewers = menu.insertItem("View using",self._viewers_menu);
+    if self._enable_viewers and self._viewers_menu:
+      self._m_viewers = menu.insertItem(pixmaps.viewmag.iconset(),"View using",self._viewers_menu);
     self._pin.addTo(menu);
     self._pin.setOn(self.is_pinned());
     self._float_act.addTo(menu);
@@ -334,7 +334,7 @@ class Cell (object):
       _dprint(5,id(self),': dataitem is',dataitem);
       self.clear_menu();
       # set icon for the menu button
-      self._icon_act.setIconSet(icon or pixmaps.magnify.iconset());
+      self._icon_act.setIconSet(icon or pixmaps.viewmag.iconset());
       # build a "Display with" submenu 
       if len(dataitem.viewer_list) > 1:
         vmenu = self._viewers_menu = QPopupMenu(self.wtop());
@@ -346,6 +346,8 @@ class Cell (object):
           func = self._menu_currier.xcurry(self._change_viewer,_args=(dataitem,v));
           mid = vmenu.insertItem(icon,name,func);
           vmenu.setItemChecked(mid,v is dataitem.viewer_obj.__class__);
+      else:
+        self._viewers_menu = None;
       # build main/context menu
       self.rebuild_menu(dataitem.caption,font=widget.font(),
                         use_refresh=dataitem.is_mutable());

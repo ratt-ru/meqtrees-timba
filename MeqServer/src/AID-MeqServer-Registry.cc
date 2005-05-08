@@ -14,6 +14,7 @@ DMI::BObj * __construct_MeqSpigot (int n) { return n>0 ? new Meq::Spigot [n] : n
     {
       static int res = 
 
+        AtomicID::registerId(-1544,"MeqClient")+
         AtomicID::registerId(-1288,"Node")+
         AtomicID::registerId(-1122,"Name")+
         AtomicID::registerId(-1338,"NodeIndex")+

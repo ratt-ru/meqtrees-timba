@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
 # Original file name: /home/oms/LOFAR/Timba/MeqServer/src/defrecs_MeqServer.g
-# Generated on Tue Apr 19 09:53:02 CEST 2005
+# Generated on Fri May  6 18:15:49 CEST 2005
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
@@ -21,10 +21,10 @@ r.station_1_index := 0;
 r.station_1_index::description := 'Index (1-based) of first station comprising the interferometer';
 r.station_2_index := 0;
 r.station_2_index::description := 'Index (1-based) of second station comprising the interferometer';
-r.output_column := '';
-r.output_column::description := 'tile column to write results to: DATA, PREDICT or RESIDUALS for  \
-                                 correlation data, but other columns may be used too, \
-                                 If empty, then no output is generated.';
+r.output_col := '';
+r.output_col::description := 'tile column to write results to: DATA, PREDICT or RESIDUALS for  \
+                              correlation data, but other columns may be used too, \
+                              If empty, then no output is generated.';
 r.corr_index := [];
 r.corr_index::description := 'Defines mappings from result vellsets to correlations. If empty, then \
                               a default one-to-one mapping is used, and an error will be thrown if \
@@ -53,7 +53,7 @@ r::description := 'A MeqSpigot is attached to a VisAgent data source, and repres
                    in that a sink is placed at the base of the tree, and generates  \
                    results matching the input data.  \
                    A MeqSpigot can have no children. \
-                   field input_column \"DATA\" \
+                   field input_col \"DATA\" \
                    Gives the tile column from which data is to be read. Note that any double \
                    or fcomplex tile column can be used (i.e. WEIGHT and SIGMA and such, not \
                    just DATA, PREDICT and RESIDUALS, which contain correlations).  \

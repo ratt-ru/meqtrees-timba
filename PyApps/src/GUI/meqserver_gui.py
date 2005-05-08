@@ -5,7 +5,8 @@ from Timba.GUI.app_proxy_gui import *
 from Timba.GUI.pixmaps import pixmaps
 from Timba.Meq import meqds
 from Timba.GUI.browsers import *
-from Timba.GUI.treebrowser import *
+from Timba.GUI import treebrowser
+from Timba.GUI.procstatuswidget import *
 from Timba.GUI import meqgui 
 from Timba import Grid
 
@@ -131,13 +132,13 @@ class NodeBrowser(HierBrowser,GriddedPlugin):
     # apply saved open tree
     self.set_open_items(openitems);
     self._state = dataitem.data;
-
+    
 class meqserver_gui (app_proxy_gui):
 
   StatePixmaps = { None: pixmaps.stop, \
-    AppState.Idle: pixmaps.grey_cross,
-    AppState.Stream: pixmaps.spigot,
-    AppState.Debug: pixmaps.breakpoint };
+    treebrowser.AppState.Idle: pixmaps.grey_cross,
+    treebrowser.AppState.Stream: pixmaps.spigot,
+    treebrowser.AppState.Debug: pixmaps.breakpoint };
 
   def __init__(self,app,*args,**kwargs):
     meqds.set_meqserver(app);
@@ -146,12 +147,11 @@ class meqserver_gui (app_proxy_gui):
     self.mqs.track_results(False);
     # init standard proxy GUI
     app_proxy_gui.__init__(self,app,*args,**kwargs);
-    # add handlers for result log
+    # add handlers for various application events
     self._add_ce_handler("node.result",self.ce_NodeResult);
+    self._add_ce_handler("process.status",self.ce_ProcessStatus);
     self._add_ce_handler("app.result.node.get.state",self.ce_NodeState);
     self._add_ce_handler("app.result.get.node.list",self.ce_LoadNodeList);
-    self._add_ce_handler("hello",self.ce_mqs_Hello);
-    self._add_ce_handler("bye",self.ce_mqs_Bye);
     self._add_ce_handler("app.update.status.num.tiles",self.ce_UpdateAppStatus);
     
   def populate (self,main_parent=None,*args,**kwargs):
@@ -161,9 +161,10 @@ class meqserver_gui (app_proxy_gui):
     app_proxy_gui.populate(self,main_parent=main_parent,*args,**kwargs);
     self.setIcon(pixmaps.trees48x48.pm());
     self.set_verbose(self.get_verbose());
+    
     _dprint(2,"meqserver-specifc init"); 
     # add Tree browser panel
-    self.treebrowser = TreeBrowser(self);
+    self.treebrowser = treebrowser.TreeBrowser(self);
     self.maintab.insertTab(self.treebrowser.wtop(),"Trees",1);
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_node()"),self._view_node);
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_forest_state()"),self._view_forest_state);
@@ -181,11 +182,116 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
     
     # excluse ubiquotous events from the event logger
-    self.eventlog.set_mask('!node.status.*;'+self.eventlog.get_mask());
+    self.eventlog.set_mask('!node.status.*;!process.status;'+self.eventlog.get_mask());
     
+    # add dummy stretch, and a memory size widget
+    self._wstat = ProcStatusWidget(self.statusbar);
+    self._wstat.hide();
+    dum = QWidget(self.statusbar);
+    self.statusbar.addWidget(dum,10);
+    self.statusbar.addWidget(self._wstat,0);
+    
+    # build menu bar
+    self._menus = {};
+    kernel_menu    = self._menus['MeqTimba'] = QPopupMenu(self);
+    bookmarks_menu = self._menus['Bookmarks'] = QPopupMenu(self);
+    debug_menu     = self._menus['Debug'] = QPopupMenu(self);
+    help_menu      = self._menus['Help'] = QPopupMenu(self);
+
+    menubar = self.menuBar();    
+    kernel_menu_id = menubar.insertItem("&MeqTimba",kernel_menu);
+    bookmarks_menu_id = menubar.insertItem("&Bookmarks",bookmarks_menu);
+    debug_menu_id = menubar.insertItem("&Debugger",debug_menu);
+    menubar.insertSeparator();
+    help_menu_id = menubar.insertItem("&Help",help_menu);
+    
+    # some menus only available when connected
+    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(menubar.setItemVisible,_args=(bookmarks_menu_id,True)));
+    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(menubar.setItemVisible,_args=(debug_menu_id,True)));
+    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(menubar.setItemVisible,_args=(bookmarks_menu_id,False)));
+    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(menubar.setItemVisible,_args=(debug_menu_id,False)));
+    menubar.setItemVisible(bookmarks_menu_id,False);
+    menubar.setItemVisible(debug_menu_id,False);
+
+    connect = QAction("Connect to kernel...",0,self);    
+    connect.addTo(kernel_menu);
+    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(connect.setEnabled,_args=(False,)));
+    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(connect.setEnabled,_args=(True,)));
+    self.treebrowser._qa_refresh.addTo(kernel_menu);
+    self.treebrowser._qa_load.addTo(kernel_menu);
+    self.treebrowser._qa_save.addTo(kernel_menu);
+    
+    showgw = QAction("Show grid",Qt.Key_F3,self);
+    showgw.addTo(bookmarks_menu);
+    showgw.setToggleAction(True);
+    QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),showgw.setOn);
+    QObject.connect(showgw,SIGNAL("toggled(bool)"),self.gw.show);
+    
+    self._qa_addbkmark = addbkmark = QAction(pixmaps.bookmark_add.iconset(),"Add bookmark",Qt.ALT+Qt.Key_B,self);
+    addbkmark.addTo(bookmarks_menu);
+    self._qa_addpagemark = addpagemark = QAction(pixmaps.bookmark_toolbar.iconset(),"Add bookmark for page",Qt.ALT+Qt.CTRL+Qt.Key_B,self);
+    addpagemark.addTo(bookmarks_menu);
+    QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),addbkmark.setEnabled);
+    QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),addpagemark.setEnabled);
+    addbkmark.setEnabled(False);
+    addpagemark.setEnabled(False);
+
+    self.treebrowser._qa_dbg_enable.addTo(debug_menu);
+    self.treebrowser._qa_dbg_tools.addTo(debug_menu);
+    debug_menu.insertSeparator();
+    attach_gdb = QAction("Attach debugger to kernel",0,self);
+    attach_gdb.addTo(debug_menu);
+    attach_gdb.setEnabled(False); # for now
+    
+    help_menu.insertItem(QWhatsThis.whatsThisButton(self).iconSet(),
+                              "What's &This",self.whatsThis,Qt.SHIFT+Qt.Key_F1);
+    
+    # populate menus from plugins                          
+    # scan all modules for define_mainmenu_actions methods, and call them all
+    self._actions = {};
+    funcs = sets.Set();
+    for (name,mod) in sys.modules.iteritems():
+      _dprint(4,'looking for mainmenu actions in',name);
+      try: 
+        if callable(mod.define_mainmenu_actions):
+          _dprint(3,'mainmenu action found in',name,'adding to set');
+          funcs.add(mod.define_mainmenu_actions);
+      except AttributeError: pass;
+    _dprint(1,len(funcs),'unique mainmenu action-definition methods found');
+    for f in funcs:
+      f(self._menus);
+      
+    # finally, add standard stuff to bottom of menus
+    kernel_menu.insertSeparator();
+    exit = QAction(pixmaps.grey_round_cross.iconset(),"Quit browser",Qt.ALT+Qt.Key_Q,self);
+    exit.addTo(kernel_menu);
+    QObject.connect(exit,SIGNAL("activated()"),self.close);
+ 
     # subscribe to updates of forest state
     meqds.subscribe_forest_state(self._update_forest_state);
-
+    
+  def _connected_event (self,ev,value):  
+    app_proxy_gui._connected_event(self,ev,value);
+    self.treebrowser.clear();
+    self.treebrowser.connected(True);  
+    self.resultlog.connected(True);
+    wtop = self.resultlog.wtop();
+    self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
+    meqds.request_forest_state();
+    self._wstat.show();
+      
+  def _disconnected_event (self,ev,value):  
+    app_proxy_gui._disconnected_event(self,ev,value);
+    self.treebrowser.connected(False);  
+    self.resultlog.connected(False);
+    wtop = self.resultlog.wtop();
+    self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
+    self._wstat.hide();
+    
+  def ce_ProcessStatus (self,ev,value):
+    _dprint(5,'status:',map(int,value));
+    self._wstat.setStatus(map(int,value));
+    
   def _checkStateUpdate (self,ev,value):
     try: 
       state = value.node_state;
@@ -227,16 +333,6 @@ class meqserver_gui (app_proxy_gui):
     # call top-level handler
     app_proxy_gui.handleAppEvent(self,ev,value);
     
-  def ce_mqs_Hello (self,ev,value):
-    self.treebrowser.clear();
-    self.treebrowser.connected(True);  
-    self.resultlog.clear();
-    wtop = self.resultlog.wtop();
-    self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
-    meqds.request_forest_state();
-    
-  def ce_mqs_Bye (self,ev,value):
-    self.treebrowser.connected(False);  
     
   def ce_NodeState (self,ev,value):
     if hasattr(value,'name'):
@@ -281,7 +377,7 @@ class meqserver_gui (app_proxy_gui):
     try: nt = status.num_tiles;
     except AttributeError: pass;
     else:
-      if self.app.state == AppState.Stream:
+      if self.app.state == treebrowser.AppState.Stream:
         state = self.app.statestr.lower();
         self.status_label.setText(' %s (%d) ' % (state,nt) ); 
         
@@ -315,7 +411,7 @@ class meqserver_gui (app_proxy_gui):
 
   def _update_app_state (self):
     app_proxy_gui._update_app_state(self);
-    if self.app.state == AppState.Stream:
+    if self.app.state == treebrowser.AppState.Stream:
       self.ce_UpdateAppStatus(None,self.app.status);
     self.treebrowser.update_app_state(self.app.state);
 

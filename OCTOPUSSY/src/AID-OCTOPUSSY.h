@@ -28,6 +28,11 @@ const int AidBind_int = -1079;
 const DMI::AtomicID AidBound(-1046);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 const int AidBound_int = -1046;
 #endif
+#ifndef _defined_id_AidBroadcast
+#define _defined_id_AidBroadcast 1
+const DMI::AtomicID AidBroadcast(-1545);          // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/StatusMonitorWP.h:7
+const int AidBroadcast_int = -1545;
+#endif
 #ifndef _defined_id_AidBye
 #define _defined_id_AidBye 1
 const DMI::AtomicID AidBye(-1090);                // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:25
@@ -228,6 +233,11 @@ const int AidOpen_int = -1045;
 const DMI::AtomicID AidPeers(-1051);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 const int AidPeers_int = -1051;
 #endif
+#ifndef _defined_id_AidPeriod
+#define _defined_id_AidPeriod 1
+const DMI::AtomicID AidPeriod(-1546);             // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/StatusMonitorWP.h:7
+const int AidPeriod_int = -1546;
+#endif
 #ifndef _defined_id_AidPort
 #define _defined_id_AidPort 1
 const DMI::AtomicID AidPort(-1081);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
@@ -237,6 +247,11 @@ const int AidPort_int = -1081;
 #define _defined_id_AidPorts 1
 const DMI::AtomicID AidPorts(-1083);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
 const int AidPorts_int = -1083;
+#endif
+#ifndef _defined_id_AidProcess
+#define _defined_id_AidProcess 1
+const DMI::AtomicID AidProcess(-1104);            // from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
+const int AidProcess_int = -1104;
 #endif
 #ifndef _defined_id_AidPublish
 #define _defined_id_AidPublish 1
@@ -268,6 +283,11 @@ const int AidRemote_int = -1073;
 const DMI::AtomicID AidReopen(-1057);             // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
 const int AidReopen_int = -1057;
 #endif
+#ifndef _defined_id_AidRequest
+#define _defined_id_AidRequest 1
+const DMI::AtomicID AidRequest(-1226);            // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
+const int AidRequest_int = -1226;
+#endif
 #ifndef _defined_id_AidScope
 #define _defined_id_AidScope 1
 const DMI::AtomicID AidScope(-1041);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/LoggerWP.h:9
@@ -278,6 +298,11 @@ const int AidScope_int = -1041;
 const DMI::AtomicID AidServer(-1078);             // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 const int AidServer_int = -1078;
 #endif
+#ifndef _defined_id_AidSet
+#define _defined_id_AidSet 1
+const DMI::AtomicID AidSet(-1272);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
+const int AidSet_int = -1272;
+#endif
 #ifndef _defined_id_AidSignal
 #define _defined_id_AidSignal 1
 const DMI::AtomicID AidSignal(-1059);             // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
@@ -287,6 +312,16 @@ const int AidSignal_int = -1059;
 #define _defined_id_AidState 1
 const DMI::AtomicID AidState(-1072);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:25
 const int AidState_int = -1072;
+#endif
+#ifndef _defined_id_AidStatus
+#define _defined_id_AidStatus 1
+const DMI::AtomicID AidStatus(-1209);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
+const int AidStatus_int = -1209;
+#endif
+#ifndef _defined_id_AidStatusMonitorWP
+#define _defined_id_AidStatusMonitorWP 1
+const DMI::AtomicID AidStatusMonitorWP(-1547);    // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/StatusMonitorWP.h:7
+const int AidStatusMonitorWP_int = -1547;
 #endif
 #ifndef _defined_id_AidSubscribe
 #define _defined_id_AidSubscribe 1

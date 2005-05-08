@@ -8,7 +8,7 @@ DOCHDRS =  LatencyVector.h  Octopussy.h \
   MsgAddress.h       Dispatcher.h             MTGatewayWP.h            \
   Gateways.h         Octoproxy.h              WorkProcess.h \
   GatewayWP.h        OctoproxyWP.h            WPInterface.h \
-  GWClientWP.h       OctopussyConfig.h \
+  GWClientWP.h       OctopussyConfig.h        StatusMonitorWP.h \
   GWServerWP.h       OctopussyDebugContext.h ListenerWP.h
 
 liboctopussy_la_SOURCES = Dispatcher.cc Octopussy.cc Message.cc MsgAddress.cc \
@@ -17,7 +17,7 @@ liboctopussy_la_SOURCES = Dispatcher.cc Octopussy.cc Message.cc MsgAddress.cc \
   LatencyVector.cc OctopussyConfig.cc \
   Subscriptions.cc ReflectorWP.cc \
   Octoproxy.cc OctoproxyWP.cc \
-  LoggerWP.cc ListenerWP.cc \
+  LoggerWP.cc ListenerWP.cc StatusMonitorWP.cc \
   AID-OCTOPUSSY-Registry.cc
   
   

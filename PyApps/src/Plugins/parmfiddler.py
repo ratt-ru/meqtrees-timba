@@ -30,7 +30,7 @@ solverstart =3;
 class NA_ParmFiddler(NodeAction):
   text = "ParmFiddler";
   nodeclass = meqds.NodeClass('MeqNode');
-  iconset= pixmaps.fiddle.iconset;
+  iconset = pixmaps.fiddle.iconset;
   def activate (self,node):
       Grid.Services.addDataItem(makeNodeDataItem(node,viewer=ParmFiddler));
 

@@ -126,14 +126,26 @@ def _start_stream_control ():
   # this registers us with the grid and creates a viewer
   Grid.addDataItem(item);
   
-    
+# this is called automatically by the browser to populate the tree browser
+# context menus and toolbar
 def define_treebrowser_actions (tb):
   _dprint(1,'defining stream control treebrowser actions');
   parent = tb.wtop();
   # create QAction for the Stream control plugin
-  stream = QAction("Stream Control",pixmaps.spigot.iconset(),"Stream Control",0,parent);
+  global _qa_stream;
+  _qa_stream = QAction("Stream Control",pixmaps.spigot.iconset(),"Stream Control",0,parent);
+  _qa_stream.setMenuText("I/O stream control");
   # make sure it's enabled/disabled as appropriate
-  stream._is_enabled = lambda tb=tb: tb.is_connected;
-  # "200" is priority of action, determining its place in the toolbar
-  tb.add_action(stream,200,callback=_start_stream_control);
+  _qa_stream._is_enabled = lambda tb=tb: tb.is_connected;
+  # "45" is priority of action, determining its place in the toolbar
+  tb.add_action(_qa_stream,45,callback=_start_stream_control);
+
+# this is called automatically by the main app to populate its menus.
+# Called *after* define_treebrowser_actions, so it's ok to use stuff initialized
+# there.
+def define_mainmenu_actions (menu):
+  _dprint(1,'defining stream control menu actions');
+  global _qa_stream;
+  # add ourselves to the MeqTimba menu
+  _qa_stream.addTo(menu['MeqTimba']);
 

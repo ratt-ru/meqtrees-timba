@@ -175,7 +175,7 @@ class HierBrowser (object):
       self._viewable = viewable;
       if viewable:
         self._viewopts = viewopts;
-        self.setPixmap(1,pixmaps.magnify.pm());
+        self.setPixmap(1,pixmaps.viewmag_plus.pm());
         self.setDragEnabled(True);
         
     # helper static method to expand content into Items record 
@@ -314,7 +314,7 @@ class HierBrowser (object):
         menu.insertItem(' '.join((self._name,self._desc)));
         menu.insertSeparator();
         # insert Copy item
-        copy_item = menu.insertItem('&Copy to clipboard',self.copy_to_clipboard);
+        copy_item = menu.insertItem(pixmaps.editcopy.iconset(),'&Copy to clipboard',self.copy_to_clipboard);
           # this doesn't work for some reason:
           # menu.setAccel(Qt.CTRL+Qt.Key_Insert,copy_item);
         # create "Precision" submenu
@@ -328,8 +328,8 @@ class HierBrowser (object):
           # create display submenus
           menu1 = self._display_menu1 = QPopupMenu();
           menu2 = self._display_menu2 = QPopupMenu();
-          menu.insertItem(pixmaps.view_split.iconset(),"Display with",menu1);
-          menu.insertItem(pixmaps.view_right.iconset(),"New display with",menu2);
+          menu.insertItem(pixmaps.viewmag.iconset(),"Display with",menu1);
+          menu.insertItem(pixmaps.viewmag_plus.iconset(),"New display with",menu2);
           for v in viewer_list:
             # create entry for viewer
             name = getattr(v,'viewer_name',v.__name__);
@@ -531,7 +531,7 @@ class HierBrowser (object):
       self.set_open_items(openitems);
     
 class GriddedPlugin (Grid.CellBlock):
-  _icon = pixmaps.magnify;  # default icon
+  _icon = pixmaps.viewmag;  # default icon
 
   def __init__ (self,*args,**kw):
     Grid.CellBlock.__init__(self,*args,**kw);
@@ -545,7 +545,7 @@ class GriddedPlugin (Grid.CellBlock):
   viewer_name = classmethod(viewer_name);
   
 class TextBrowser(GriddedPlugin):
-  # _icon = pixmaps.view_tree;
+  _icon = pixmaps.text_left;
   viewer_name = "Text Browser";
   
   def __init__(self,gw,dataitem,cellspec={},default_open=None,**opts):

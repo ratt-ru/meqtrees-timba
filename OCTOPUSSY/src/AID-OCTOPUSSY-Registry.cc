@@ -76,6 +76,13 @@ DMI::BObj * __construct_OctopussyMessage (int n) { return n>0 ? new Octopussy::M
         AtomicID::registerId(-1040,"List")+
         AtomicID::registerId(-1065,"Hosts")+
         AtomicID::registerId(-1083,"Ports")+
+        AtomicID::registerId(-1547,"StatusMonitorWP")+
+        AtomicID::registerId(-1546,"Period")+
+        AtomicID::registerId(-1104,"Process")+
+        AtomicID::registerId(-1209,"Status")+
+        AtomicID::registerId(-1545,"Broadcast")+
+        AtomicID::registerId(-1226,"Request")+
+        AtomicID::registerId(-1272,"Set")+
         AtomicID::registerId(-1089,"Gateway")+
         AtomicID::registerId(-1492,"ListenerWP")+
     0;

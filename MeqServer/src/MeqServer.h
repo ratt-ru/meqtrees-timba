@@ -8,6 +8,7 @@
 #include <AppUtils/VisRepeater.h>
 
 #pragma aidgroup MeqServer    
+#pragma aid MeqClient
 #pragma aid Node Name NodeIndex MeqServer
 #pragma aid Create Delete Get Set State Request Resolve Child Children List
 #pragma aid App Command Args Result Data Processing Error Message Code

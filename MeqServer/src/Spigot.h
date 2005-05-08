@@ -20,7 +20,7 @@
 //  in that a sink is placed at the base of the tree, and generates 
 //  results matching the input data. 
 //  A MeqSpigot can have no children.
-//field input_column "DATA"
+//field input_col "DATA"
 //  Gives the tile column from which data is to be read. Note that any double
 //  or fcomplex tile column can be used (i.e. WEIGHT and SIGMA and such, not
 //  just DATA, PREDICT and RESIDUALS, which contain correlations). 

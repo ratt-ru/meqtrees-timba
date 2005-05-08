@@ -47,7 +47,7 @@ default_spawn = ( os.environ['HOME']+'/LOFAR/installed/current/bin/meqserver',
 
 class meqserver (app_proxy):
   "interface to MeqServer app";
-  def __init__(self,appid='meqserver',launch=None,spawn=None,**kwargs):
+  def __init__(self,appid='meqserver',client_id='meqclient',launch=None,spawn=None,**kwargs):
     # if launch or spawn is just True, substitute default values
     if launch:
       if isinstance(launch,bool) and launch:
@@ -61,7 +61,7 @@ class meqserver (app_proxy):
       kwargs['gui'] = meqserver_gui;
     self._we_track_results = None;
     # init base class  
-    app_proxy.__init__(self,appid,launch=launch,spawn=spawn,**kwargs);
+    app_proxy.__init__(self,appid,client_id,launch=launch,spawn=spawn,**kwargs);
     # setup own state
     self._pprint = PrettyPrinter(width=78,stream=sys.stderr);
     # if base/gui init() has explicitly disabled result tracking, _we_track_results
