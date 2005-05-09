@@ -272,24 +272,24 @@ class meqserver_gui (app_proxy_gui):
     
   def _connected_event (self,ev,value):  
     app_proxy_gui._connected_event(self,ev,value);
+    self._wstat.show();
     self.treebrowser.clear();
     self.treebrowser.connected(True);  
     self.resultlog.connected(True);
     wtop = self.resultlog.wtop();
     self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
     meqds.request_forest_state();
-    self._wstat.show();
       
   def _disconnected_event (self,ev,value):  
     app_proxy_gui._disconnected_event(self,ev,value);
+    self._wstat.hide();
     self.treebrowser.connected(False);  
     self.resultlog.connected(False);
     wtop = self.resultlog.wtop();
     self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
-    self._wstat.hide();
     
   def ce_ProcessStatus (self,ev,value):
-    _dprint(5,'status:',map(int,value));
+    _dprint(5,'status:',ev,value);
     self._wstat.setStatus(map(int,value));
     
   def _checkStateUpdate (self,ev,value):

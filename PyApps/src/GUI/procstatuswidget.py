@@ -17,9 +17,22 @@ class ProcStatusWidget (QLabel):
     
   def reset (self):
     self._maxsizes = [0,0,0];
+    
+  def formatTime(self,sec,usec):
+    h = sec/3600;
+    sec %= 3600;
+    m = sec/60;
+    sec %= 60;
+    sec += 0.01*(usec/10000);
+    if h and m:
+      return "<b>%d:%02d:%.2f</b>"%(h,m,sec);
+    elif m:
+      return "<b>%d:%.2f</b>"%(m,sec);
+    else:
+      return "<b>%.2f</b>"%(sec,);
   
   def setStatus (self,stat):
-    (vsz,rss,shm,code,lib,data,dirty,cpu_sec,cpu_usec) = self._stat = stat;
+    (vsz,rss,shm,code,lib,data,dirty,cpu_sec,cpu_usec,cpus_sec,cpus_usec) = self._stat = stat;
     lbls = ("VSZ","RSS","DS");
     s = "<nobr><small>";
     # form memory size strings
@@ -31,17 +44,8 @@ class ProcStatusWidget (QLabel):
       else:
         s += "%s:<b>%d</b>M " % (lbls[i],val);
     # form cpu time string
-    h = cpu_sec/3600;
-    cpu_sec %= 3600;
-    m = cpu_sec/60;
-    cpu_sec %= 60;
-    cpu_sec += 0.01*(cpu_usec/10000);
-    if h and m:
-      s += "cpu:<b>%d:%02d:%.2f</b>"%(h,m,cpu_sec);
-    elif m:
-      s += "cpu:<b>%d:%.2f</b>"%(m,cpu_sec);
-    else:
-      s += "cpu:<b>%.2f</b>"%(cpu_sec,);
-    # set label
+    s += "cpu:" + self.formatTime(cpu_sec,cpu_usec);
+    s += "/" + self.formatTime(cpus_sec,cpus_usec);
     s += " </small></nobr>";
+    # set label
     self.setText(s);

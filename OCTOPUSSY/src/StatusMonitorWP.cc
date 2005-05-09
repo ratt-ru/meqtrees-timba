@@ -62,7 +62,7 @@ void StatusMonitorWP::makeStatusMessage (Message::Ref &msg)
   // form message
   HIID msgid = prefix_;
   int i = prefix_.size();
-  msgid.resize(i+9);
+  msgid.resize(i+11);
   msgid[i++] = tot_pg*pagesize_;
   msgid[i++] = mem_pg*pagesize_;
   msgid[i++] = shared_pg*pagesize_;
@@ -72,6 +72,8 @@ void StatusMonitorWP::makeStatusMessage (Message::Ref &msg)
   msgid[i++] = dirty_pg*pagesize_;
   msgid[i++] = ru.ru_utime.tv_sec;
   msgid[i++] = ru.ru_utime.tv_usec;
+  msgid[i++] = ru.ru_stime.tv_sec;
+  msgid[i++] = ru.ru_stime.tv_usec;
   // create message 
   msg <<= new Message(msgid);
 }
