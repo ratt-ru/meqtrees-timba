@@ -286,6 +286,7 @@ class Executor (browsers.GriddedPlugin):
     (name,ni) = meqds.parse_node_udi(dataitem.udi);
     caption = "Reexecute <b>%s</b>" % (name or '#'+str(ni),);
     self._node = ni;
+    self._name = name;
     # setup widgets
     self.set_widgets(self.wtop(),caption,icon=self.icon());
     
@@ -352,7 +353,11 @@ class Executor (browsers.GriddedPlugin):
     if not self._request:
       return;
     _dprint(1,'accepted: ',self._request);
-    cmd = record(nodeindex=self._node,request=self._request,get_state=True);
+    
+    if self._node:
+      cmd = record(nodeindex=self._node,request=self._request,get_state=True);
+    elif self._name:
+      cmd = record(name=self._name,request=self._request,get_state=True);
     mqs().meq('Node.Execute',cmd,wait=False);
 
   def _startLoop(self):
@@ -390,7 +395,10 @@ class Executor (browsers.GriddedPlugin):
     self.rid2 = self.rid2 + 1
     self.rid3 = self.rid3 + 1
     self.rid4 = self.rid4 + 1
-    cmd = record(nodeindex=self._node,request=self._request,get_state=True);
+    if self._node:
+      cmd = record(nodeindex=self._node,request=self._request,get_state=True);
+    elif self._name:
+      cmd = record(name=self._name,request=self._request,get_state=True);
     mqs().meq('Node.Execute',cmd,wait=False);
 
 def define_treebrowser_actions (tb):

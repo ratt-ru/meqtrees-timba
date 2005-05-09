@@ -141,6 +141,7 @@ class ParmFiddler (browsers.GriddedPlugin):
     (name,ni) = meqds.parse_node_udi(dataitem.udi);
     caption = "Fiddle from <b>%s</b>" % (name or '#'+str(ni),);
     self._node = ni;
+    self._name = name;
     # setup widgets
     self.set_widgets(self.wtop(),caption,icon=self.icon());
 
@@ -208,8 +209,10 @@ class ParmFiddler (browsers.GriddedPlugin):
 
 
         # recursively get all parms and solvers behind this node
-        self.getnodelist(meqds.nodelist[self._node]);
-
+        if self._node:
+          self.getnodelist(meqds.nodelist[self._node]);
+        else:
+          self.getnodelist(meqds.nodelist[self._name]);          
         #subscribe to solvers
         for solverkey in self._solverdict.keys():
           solver = self._solverdict[solverkey]['node'];
@@ -656,7 +659,10 @@ class ParmFiddler (browsers.GriddedPlugin):
       #print "reqid ",reqid;
       self._request.request_id = reqid;
       #self._request.cache_override = True;
-      cmd = record(nodeindex=self._node,request=self._request,get_state=True);
+      if self._node:
+        cmd = record(nodeindex=self._node,request=self._request,get_state=True);
+      elif self._name:
+        cmd = record(name=self._name,request=self._request,get_state=True);
       mqs().meq('Node.Execute',cmd,wait=False);
 
 
