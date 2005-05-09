@@ -15,7 +15,7 @@ using namespace DMI;
 class StatusMonitorWP : public WorkProcess
 {
   public:
-      StatusMonitorWP (int period_ms=1000,AtomicID wpid = AidStatusMonitorWP);
+      StatusMonitorWP (int period_ms=2000,AtomicID wpid = AidStatusMonitorWP);
 
       ~StatusMonitorWP();
 
@@ -38,8 +38,6 @@ class StatusMonitorWP : public WorkProcess
       HIID prefix_;
       
       int pagesize_;
-      
-      FILE *fstat_;
       
       StatusMonitorWP(const StatusMonitorWP &right);
 

@@ -13,17 +13,11 @@ StatusMonitorWP::StatusMonitorWP (int ms,AtomicID wpid)
    period_ms_(ms),
    prefix_("Process.Status")
 {
-  using Debug::ssprintf;
   pagesize_ = sysconf(_SC_PAGESIZE)>>10;
-  string statfilename = ssprintf("/proc/%d/statm",(int)getpid());
-  fstat_ = fopen(statfilename.c_str(),"r");
-  cerr<<"stat file: "<<fstat_<<endl;
 }
 
 StatusMonitorWP::~StatusMonitorWP()
 {
-  if( fstat_ )
-    fclose(fstat_);
 }
 
 //##ModelId=3C7E4AC70261
@@ -56,11 +50,11 @@ void StatusMonitorWP::makeStatusMessage (Message::Ref &msg)
 //   getrlimit(RLIMIT_RSS,&rlim_rss);
   // get memory status
   int tot_pg=0,mem_pg=0,shared_pg=0,code_pg=0,data_pg=0,lib_pg=0,dirty_pg=0;
-  if( fstat_ )
+  FILE *fs = fopen("/proc/self/statm","r");
+  if( fs )
   {
-    rewind(fstat_);
-    fscanf(fstat_,"%d %d %d %d %d %d %d",&tot_pg,&mem_pg,&shared_pg,&code_pg,&data_pg,&lib_pg,&dirty_pg);
-    cerr<<"mem stats: "<<tot_pg<<" "<<mem_pg<<" "<<shared_pg<<" "<<code_pg<<" "<<data_pg<<" "<<lib_pg<<" "<<dirty_pg<<endl;
+    fscanf(fs,"%d %d %d %d %d %d %d",&tot_pg,&mem_pg,&shared_pg,&code_pg,&data_pg,&lib_pg,&dirty_pg);
+    fclose(fs);
   }
   // get cpu time usage
   struct rusage ru;
