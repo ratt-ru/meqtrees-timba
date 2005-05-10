@@ -423,11 +423,6 @@ const int AidMeqFunction_int = -1283;
 const DMI::AtomicID AidMeqFunklet(-1321);         // from /home/oms/LOFAR/Timba/MEQ/src/Funklet.h:31
 const int AidMeqFunklet_int = -1321;
 #endif
-#ifndef _defined_id_AidMeqLogPolc
-#define _defined_id_AidMeqLogPolc 1
-const DMI::AtomicID AidMeqLogPolc(-1548);         // from /home/mevius/LOFAR/Timba/MEQ/src/LogPolc.h:9
-const int AidMeqLogPolc_int = -1548;
-#endif
 #ifndef _defined_id_AidMeqNode
 #define _defined_id_AidMeqNode 1
 const DMI::AtomicID AidMeqNode(-1378);            // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:37
@@ -437,6 +432,11 @@ const int AidMeqNode_int = -1378;
 #define _defined_id_AidMeqPolc 1
 const DMI::AtomicID AidMeqPolc(-1361);            // from /home/oms/LOFAR/Timba/MEQ/src/Polc.h:32
 const int AidMeqPolc_int = -1361;
+#endif
+#ifndef _defined_id_AidMeqPolcLog
+#define _defined_id_AidMeqPolcLog 1
+const DMI::AtomicID AidMeqPolcLog(-1549);         // from /home/mevius/LOFAR/Timba/MEQ/src/PolcLog.h:9
+const int AidMeqPolcLog_int = -1549;
 #endif
 #ifndef _defined_id_AidMeqRequest
 #define _defined_id_AidMeqRequest 1

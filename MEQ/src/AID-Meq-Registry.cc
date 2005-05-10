@@ -20,8 +20,8 @@ DMI::BObj * __construct_MeqResult (int n) { return n>0 ? new Meq::Result [n] : n
 DMI::BObj * __construct_MeqFunklet (int n) { return n>0 ? new Meq::Funklet [n] : new Meq::Funklet; }
 #include "Polc.h"
 DMI::BObj * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] : new Meq::Polc; }
-#include "LogPolc.h"
-DMI::BObj * __construct_MeqLogPolc (int n) { return n>0 ? new Meq::LogPolc [n] : new Meq::LogPolc; }
+#include "PolcLog.h"
+DMI::BObj * __construct_MeqPolcLog (int n) { return n>0 ? new Meq::PolcLog [n] : new Meq::PolcLog; }
 #include "Node.h"
 DMI::BObj * __construct_MeqNode (int n) { return n>0 ? new Meq::Node [n] : new Meq::Node; }
 #include "Function.h"
@@ -182,9 +182,9 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1361,"MeqPolc")+
         TypeInfoReg::addToRegistry(-1361,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1361,__construct_MeqPolc)+
-        AtomicID::registerId(-1548,"MeqLogPolc")+
-        TypeInfoReg::addToRegistry(-1548,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1548,__construct_MeqLogPolc)+
+        AtomicID::registerId(-1549,"MeqPolcLog")+
+        TypeInfoReg::addToRegistry(-1549,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1549,__construct_MeqPolcLog)+
         AtomicID::registerId(-1378,"MeqNode")+
         TypeInfoReg::addToRegistry(-1378,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1378,__construct_MeqNode)+

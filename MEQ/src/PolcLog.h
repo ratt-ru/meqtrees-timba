@@ -1,39 +1,39 @@
 
-#ifndef MEQ_LOGPOLC_H
-#define MEQ_LOGPOLC_H
+#ifndef MEQ_POLCLOG_H
+#define MEQ_POLCLOG_H
 
 //# Includes
 #include <MEQ/Polc.h>
 
 #pragma aidgroup Meq
-#pragma type #Meq::LogPolc
+#pragma type #Meq::PolcLog
 
-// This class implements a LogPolc funklet --
+// This class implements a PolcLog funklet --
 // It takes the log of all axes 
 
 namespace Meq 
 { 
 
 
-  class LogPolc : public Polc
+  class PolcLog : public Polc
   {
     //reimplement axis function 
   public:
-  typedef DMI::CountedRef<LogPolc> Ref;
+  typedef DMI::CountedRef<PolcLog> Ref;
 
   virtual DMI::TypeId objectType () const
-  { return TpMeqLogPolc; }
+  { return TpMeqPolcLog; }
   
   // implement standard clone method via copy constructor
     //##ModelId=400E53550131
   virtual DMI::CountedRefTarget* clone (int flags, int depth) const
-  { return new LogPolc(*this,flags,depth); }
+  { return new PolcLog(*this,flags,depth); }
   
 
   //constructors
-  LogPolc (){}
-  LogPolc (const Polc &other,int flags=0,int depth=0): Polc(other,flags,depth){}
-  ~LogPolc(){}
+  PolcLog (){}
+  PolcLog (const Polc &other,int flags=0,int depth=0): Polc(other,flags,depth){}
+  ~PolcLog(){}
     
     virtual void axis_function(int axis, LoVec_double & grid) const ;  
   };

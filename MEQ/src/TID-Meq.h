@@ -84,25 +84,6 @@ namespace Meq { class Funklet; };
               };
             };
 #endif
-#ifndef _defined_id_TpMeqLogPolc
-#define _defined_id_TpMeqLogPolc 1
-const DMI::TypeId TpMeqLogPolc(-1548);            // from /home/mevius/LOFAR/Timba/MEQ/src/LogPolc.h:9
-const int TpMeqLogPolc_int = -1548;
-namespace Meq { class LogPolc; };
-            namespace DMI {
-              template<>
-              class DMIBaseTypeTraits<Meq::LogPolc> : public TypeTraits<Meq::LogPolc>
-              {
-                public:
-                enum { isContainable = true };
-                enum { typeId = TpMeqLogPolc_int };
-                enum { TypeCategory = TypeCategories::DYNAMIC };
-                enum { ParamByRef = true, ReturnByRef = true };
-                typedef const Meq::LogPolc & ContainerReturnType;
-                typedef const Meq::LogPolc & ContainerParamType;
-              };
-            };
-#endif
 #ifndef _defined_id_TpMeqNode
 #define _defined_id_TpMeqNode 1
 const DMI::TypeId TpMeqNode(-1378);               // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:37
@@ -138,6 +119,25 @@ namespace Meq { class Polc; };
                 enum { ParamByRef = true, ReturnByRef = true };
                 typedef const Meq::Polc & ContainerReturnType;
                 typedef const Meq::Polc & ContainerParamType;
+              };
+            };
+#endif
+#ifndef _defined_id_TpMeqPolcLog
+#define _defined_id_TpMeqPolcLog 1
+const DMI::TypeId TpMeqPolcLog(-1549);            // from /home/mevius/LOFAR/Timba/MEQ/src/PolcLog.h:9
+const int TpMeqPolcLog_int = -1549;
+namespace Meq { class PolcLog; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::PolcLog> : public TypeTraits<Meq::PolcLog>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqPolcLog_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::PolcLog & ContainerReturnType;
+                typedef const Meq::PolcLog & ContainerParamType;
               };
             };
 #endif
