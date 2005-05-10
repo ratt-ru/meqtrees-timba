@@ -3,9 +3,9 @@
 from Timba.utils import *
 from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI.widgets import *
-import Timba.Grid 
 from Timba import *
 from Timba.Grid.Debug import *
+import Timba.Grid.Services
 
 import weakref
 import sets
@@ -23,6 +23,7 @@ class Cell (object):
   
   The top-level widget of a cell is available as cell.wtop(). This
   widget will emit the following PYSIGNALS:
+    "clicked()"             : cell has been clicked anywhere
     "float()"               : float of cell is requested
     "flash(bool)"           : cell is flash/unflashing its refresh button  
     "highlight(color|bool)" : cell is highlighted (True for default color)
@@ -51,7 +52,11 @@ class Cell (object):
       self._menu = None;
     def set_context_menu (self,menu):
       self._menu = menu;
+    def mousePressEvent (self,ev):
+      self.emit(PYSIGNAL("clicked()"),());
+      ev.ignore();
     def contextMenuEvent (self,ev):
+      # self.emit(PYSIGNAL("clicked()"),());
       ev.accept();
       if self._menu:
         self._menu.exec_loop(ev.globalPos());
@@ -76,10 +81,12 @@ class Cell (object):
        QApplication.palette().active().highlightedText()); \
     self._highlight = False;
     self._enabled = False;  
+    self._dataitem = None;
     # init widgets
     wtop = self._wtop = self.TopLevelWidget(parent,'cell '+str(id(self))+' top');
     wtop.hide();
     self.enable_viewers(not noviewer);
+    QObject.connect(wtop,PYSIGNAL("clicked()"),self.exclusive_highlight);
     # --- build toolbar
     self._toolbar = QToolBar("Panel tools",wtop,wtop);
     # icon button and popup menu    
@@ -196,6 +203,7 @@ class Cell (object):
   # wipe: deletes contents in preparation for inserting other content
   def wipe (self):
     _dprint(5,id(self),': wiping cell');
+    self._dataitem = None;
     self.set_pinned(False);
     self._clear_content();
     self._refresh_func = lambda:None;
@@ -308,6 +316,10 @@ class Cell (object):
   def _change_viewer (self,dataitem,viewer):
     self.wtop().emit(PYSIGNAL("changeViewer()"),(dataitem,viewer));
     
+  def exclusive_highlight (self):
+    if self._dataitem:
+      Timba.Grid.Services.highlightDataItem(self._dataitem);
+    
   def set_content (self,widget,dataitem=None,leader=None,icon=None,enable_viewers=True):
     """inits cell as a leader cell for a dataitem. Leader cells have
     an active toolbar and menu. When a viewer is using a single cell,
@@ -325,6 +337,7 @@ class Cell (object):
     _dprint(5,id(self),': widget',widget,'added');
     # recreate currier for callbacks (discards old curries)
     self._menu_currier = PersistentCurrier();
+    self._dataitem = dataitem;
     # setup cell controls based on data item
     if dataitem is not None:
       self._udi = dataitem.udi;
@@ -370,6 +383,7 @@ class Cell (object):
         raise ValueError,"leader must be specified if dataitem isn't";
       _dprint(5,id(self),': leader is',leader);
       self._leader = leader;
+      self._dataitem = leader._dataitem;
       self._udi = leader.get_udi();
       # disable controls
       self.clear_menu();

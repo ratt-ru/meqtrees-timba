@@ -44,8 +44,10 @@ class ProcStatusWidget (QLabel):
       else:
         s += "%s:<b>%d</b>M " % (lbls[i],val);
     # form cpu time string
-    s += "cpu:" + self.formatTime(cpu_sec,cpu_usec);
-    s += "/" + self.formatTime(cpus_sec,cpus_usec);
+    ## disabled for now, since time accounting on 2.6 kernels is broken
+    # s += "cpu:" + self.formatTime(cpu_sec,cpu_usec);
+    # s += "/" + self.formatTime(cpus_sec,cpus_usec);
+    
     s += " </small></nobr>";
     # set label
     self.setText(s);

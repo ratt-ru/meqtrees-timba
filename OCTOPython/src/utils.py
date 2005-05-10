@@ -112,6 +112,8 @@ def curry (func,*args,**kwds):
 def xcurry (func,_args=(),_argslice=slice(0),_kwds={},**kwds):
   kwds0 = _kwds.copy();
   kwds0.update(kwds);
+  if not isinstance(_args,tuple):
+    _args = (_args,);
   def callit(*args1,**kwds1):
     a = _args+args1[_argslice];
     kw = kwds0.copy();

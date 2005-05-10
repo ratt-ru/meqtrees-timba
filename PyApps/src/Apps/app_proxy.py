@@ -158,15 +158,21 @@ class app_proxy (verbosity):
     
   # message handler to actually construct an application's GUI
   def _construct_gui (self,poll_app=None):
-    _dprint(2,"_construct_gui: creating GUI");
-    self._gui = self._gui(self,poll_app=poll_app,verbose=self.get_verbose());
-    _dprint(2,"_construct_gui: showing GUI");
-    self._gui.show();
-    if poll_app:
-      self._gui_event_handler = self._gui.handleAppEvent;
-    else:
-      self._gui_event_handler = self._gui._relay_event;
-    
+    try:
+      _dprint(2,"_construct_gui: creating GUI");
+      self._gui = self._gui(self,poll_app=poll_app,verbose=self.get_verbose());
+      _dprint(2,"_construct_gui: showing GUI");
+      self._gui.show();
+      if poll_app:
+        self._gui_event_handler = self._gui.handleAppEvent;
+      else:
+        self._gui_event_handler = self._gui._relay_event;
+    except:
+      (exctype,excvalue,tb) = sys.exc_info();
+      self.dprint(0,'exception',str(exctype),'while constructing GUI');
+      traceback.print_exc();
+      self.dprint(0,'exiting');
+      sys.exit(1);
     
   def name(self):
     return str(self.appid);

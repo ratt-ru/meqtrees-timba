@@ -434,8 +434,9 @@ class TreeBrowser (QObject):
     self._fst_item._item_event_handler[('click',1)] = xcurry(self._view_forest_state);
     # middle-click: new view
     self._fst_item._item_event_handler[('click',4)] = xcurry(self._view_forest_state,newcell=True);
-    self._bkmark_item = self.StickyListViewItem(self._nlv,"Bookmarks",key=60);
-    self._bkmark_item.setPixmap(0,pixmaps.bookmark.pm());
+    
+    # self._bkmark_item = self.StickyListViewItem(self._nlv,"Bookmarks",key=60);
+    # self._bkmark_item.setPixmap(0,pixmaps.bookmark.pm());
     # add nodelist views
     nodelist = meqds.nodelist;
     self._recent_item = None;
@@ -856,6 +857,8 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       fname = str(dialog.selectedFile());
       rec = record(file_name=fname,get_forest_status=True);
       mqs().meq('Load.Forest',rec,wait=False);
+      self._request_nodelist();
+      meqds.request_forest_state();
       
   def show_icon_reference (self):
     try: iconref = self._icon_reference;

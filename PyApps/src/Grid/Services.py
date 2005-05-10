@@ -106,6 +106,10 @@ def isViewable (arg):
         if isViewableWith(arg,viewer):
           return True;
   return False;
+  
+def getViewerByName (name):
+  global _reg_viewers_byname;
+  return _reg_viewers_byname.get(name,None);
 
 def getViewerList (arg):
   global _reg_viewers;
@@ -179,7 +183,14 @@ def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=N
     item._gridded_workspace = gw = position[0].gw();
   else:
     item._gridded_workspace = gw = gw or _current_gw;
-  viewer = viewer or item.viewer;
+  if isinstance(viewer,str):
+    vc = getViewerByName(viewer,None);
+    if vc:
+      viewer = vc;
+    else:
+      raise TypeError,"unknown viewer type "+viewer;
+  else:  
+    viewer = viewer or item.viewer;
   if not viewer:
     if not item.viewer_list:
       raise TypeError,"no viewers registered and none explicitly specified";
@@ -194,9 +205,9 @@ def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=N
     for item0 in itemlist:
       if item0.viewer == viewer and item0.viewer_obj.make_visible():
         _dprint(2,'found visible viewer');
-        # in this case, highligh the data item, ask for a refresh, and
+        # in this case, highlight the data item, ask for a refresh, and
         # let the viewers take care of the rest
-        highlightDataItem(item);
+        highlightDataItem(item0);
         if item.data is not None:
           item0.update(item.data);
         else:
@@ -238,8 +249,14 @@ def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=N
 
 def removeDataItem (item):
   global _dataitems;
+  global _highlighted_item;
   itemlist = _dataitems.get(item.udi,[]);
   _dprint(2,item.udi,len(itemlist),'instances');
+  # remove from highlight list
+  if item is _highlighted_item:
+    _highlighted_item = None;
+    _current_gw.wtop().emit(PYSIGNAL("itemSelected()"),(None,));
+  # remove from item list
   for i in range(len(itemlist)):
     if itemlist[i] is item:
       _dprint(2,'removing instance',i);
@@ -248,16 +265,26 @@ def removeDataItem (item):
       return;
   _dprint(2,'no matching items found');
   
-_highlighted_items = [];  
+_highlighted_item = None;
   
 def highlightDataItem (item):
-  global _highlighted_items;
+  global _highlighted_item;
+  _dprint(2,item.udi);
   # remove highlights from previous cells, if any
-  if _highlighted_items:
-    map(lambda i:i.highlight(False),_highlighted_items);
-  _highlighted_items = _dataitems.get(item.udi,[]);
-  map(lambda i:i.highlight(),_highlighted_items);
-  _current_gw.wtop().emit(PYSIGNAL("hasSelectedItems()"),(bool(_highlighted_items),));
+  if _highlighted_item:
+    if item is _highlighted_item:
+      _dprint(3,'already highlighted');
+      return;
+    else:
+      _dprint(3,'de-highlighting previous',_highlighted_item.udi);
+      _highlighted_item.highlight(False);
+  _dprint(3,'highlighting',item.udi);
+  _highlighted_item = item;  
+  item.highlight(True);
+  _current_gw.wtop().emit(PYSIGNAL("itemSelected()"),(item,));
+  
+def getHighlightedItem ():
+  return _highlighted_item;
 
 # updates a data item, if it is known
 def updateDataItem (udi,data):

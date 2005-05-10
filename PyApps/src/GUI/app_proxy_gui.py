@@ -405,16 +405,15 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.msglog = MessageLogger(self,"message log",enable=None,limit=1000,
           udi_root='message');
     self.msglog.add('start of log',category=Logger.Normal);
-    self.msglog.wtop()._default_label = "Messages";
-    self.msglog.wtop()._default_iconset = QIconSet();
-    self.msglog.wtop()._error_label = "%d errors";
-    self.msglog.wtop()._error_iconset = pixmaps.exclaim.iconset();
     QObject.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
     QObject.connect(self.msglog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(self.msglog.connected,_args=(True,)));
     QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(self.msglog.connected,_args=(False,)));
     # set current page to message log
     self._current_page = self.msglog.wtop();
+    self.add_tab(self.msglog.wtop(),"Messages");
+    self.msglog.wtop()._error_label = "%d errors";
+    self.msglog.wtop()._error_iconset = pixmaps.exclaim.iconset();
     
     #------ create an event log
     self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*",
@@ -423,10 +422,8 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(self.eventlog.connected,_args=(True,)));
     QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(self.eventlog.connected,_args=(False,)));
     
-    self.maintab.addTab(self.msglog.wtop(),self.msglog.wtop()._default_label);
-    
     self.eventtab = QTabWidget(self.maintab);
-    self.maintab.addTab(self.eventtab,"Events");
+    self.add_tab(self.eventtab,"Events");
     
     #------ event window tab bar
     self.eventtab.setTabShape(QTabWidget.Triangular);
@@ -493,6 +490,31 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.dprint(2,"showing GUI"); 
     self._update_app_state();
     QMainWindow.show(self);
+    
+  def add_tab (self,widget,label,iconset=None,index=-1):
+    widget._default_label = label;
+    widget._default_iconset = iconset = iconset or QIconSet();
+    widget._default_index = index;
+    widget._show_qaction = QAction(iconset,label+" tab",0,self);
+    widget._show_qaction.setToggleAction(True);
+    widget._show_qaction.setOn(True);
+    self.maintab.insertTab(widget,iconset,label,index);
+    QObject.connect(widget._show_qaction,SIGNAL("toggled(bool)"),
+      self.curry(self.show_tab,widget));
+    
+  def show_tab (self,widget,show=True,switch=True):
+    curindex = self.maintab.indexOf(widget);
+    if show and curindex<0:
+      widget.show();
+      self.maintab.insertTab(widget,widget._default_iconset,widget._default_label,widget._default_index);
+      widget._show_qaction.setOn(True);
+      if switch:
+        self.maintab.showPage(widget);
+    elif not show and curindex>=0:
+      widget._default_index = curindex;
+      widget.hide();
+      self.maintab.removePage(widget);
+      widget._show_qaction.setOn(False);
     
   def _gridded_workspace_shown (self,shown):
     page = self.maintab.currentPage();

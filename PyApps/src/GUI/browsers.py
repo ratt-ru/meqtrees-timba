@@ -531,18 +531,18 @@ class HierBrowser (object):
       self.set_open_items(openitems);
     
 class GriddedPlugin (Grid.CellBlock):
-  _icon = pixmaps.viewmag;  # default icon
-
   def __init__ (self,*args,**kw):
     Grid.CellBlock.__init__(self,*args,**kw);
   
   def icon (_class):
+    """icon() should return a QIconSet""";
     return _class._icon.iconset();
   icon = classmethod(icon);
   
-  def viewer_name (_class):
-    return getattr(_class,'_name',_class.__name__);
-  viewer_name = classmethod(viewer_name);
+  # redefine this 
+  viewer_name = "?";
+  # and this
+  _icon = pixmaps.viewmag;  # default icon
   
 class TextBrowser(GriddedPlugin):
   _icon = pixmaps.text_left;

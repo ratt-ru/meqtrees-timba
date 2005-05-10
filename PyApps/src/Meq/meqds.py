@@ -95,7 +95,8 @@ class NodeList (object):
   NodeAttrs = ('name','class','children','step_children','control_status');
   RequestRecord = record(**dict.fromkeys(NodeAttrs,True));
   RequestRecord.nodeindex=True;
-  RequestRecord.get_forest_status=True;
+  RequestRecord.get_forest_status = True;
+  RequestRecord.get_forest_state  = True;
   
   class Node (QObject):
     def __init__ (self,ni):
@@ -360,7 +361,7 @@ def update_forest_state (fst,merge=False):
   _forest_state_obj.emit(PYSIGNAL("state()"),(_forest_state,));
   
 def set_forest_state (field,value):
-  mqs().meq('Set.Forest.State',record(state=record(field=value)),wait=False);
+  mqs().meq('Set.Forest.State',record(state=record(**{field:value})),wait=False);
 
 # ----------------------------------------------------------------------
 # --- Node state management

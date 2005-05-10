@@ -39,7 +39,7 @@ class DataItem (object):
               'refresh' button calling this function when pressed)
     viewer:   If None, a viewer will be selected from among the registered
               viewers for the data type. Otherwise, provide a callable 
-              viewer plug-in. See registerViewer() for details.
+              viewer plug-in, or a name. See registerViewer() for details.
     viewopts: dict of dicts of viewer options (passed in as keyword arguments
               to the viewer constructor).
               viewopts[None]   applies to all viewers,
@@ -58,8 +58,14 @@ class DataItem (object):
     self.refresh_func = refresh;
     # build list of compatible viewers
     self.viewer_list = Services.getViewerList(datatype or data);
-    # is a viewer also explicitly specifed?
-    self.viewer = viewer;
+    # if viewer specified by string, try to look it up
+    if isinstance(viewer,str):
+      vc = Services.getViewerByName(viewer);
+      if vc:
+        viewer = vc;
+      else:
+        raise TypeError,"unknown viewer type "+viewer;
+    # if viewer not specified, try to select from list
     if viewer is None:
       if not self.viewer_list:
         raise TypeError,"no viewers registered and none specified";
@@ -71,6 +77,7 @@ class DataItem (object):
       if viewer not in self.viewer_list:
         self.viewer_list.insert(0,viewer);
     self.viewer = viewer;
+    self.viewer_name = getattr(viewer,'viewer_name',viewer.__name__);
     self.viewer_obj = None;
   def __del__ (self):
     self.cleanup();
@@ -89,7 +96,8 @@ class DataItem (object):
       _dprint(3,'updating',self.viewer_obj,'with item',self);
       self.viewer_obj.set_data(self); 
   def highlight (self,color=True):
-    self.viewer_obj.highlight(color);
+    if self.viewer_obj:
+      self.viewer_obj.highlight(color);
   # returns True if the specified viewer class is already displaying this item
   def is_viewed_by (self,viewer):
     for v in self.viewers:

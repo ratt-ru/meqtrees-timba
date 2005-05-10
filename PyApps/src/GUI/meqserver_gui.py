@@ -8,6 +8,7 @@ from Timba.GUI.browsers import *
 from Timba.GUI import treebrowser
 from Timba.GUI.procstatuswidget import *
 from Timba.GUI import meqgui 
+from Timba.GUI import bookmarks 
 from Timba import Grid
 
 import weakref
@@ -165,19 +166,17 @@ class meqserver_gui (app_proxy_gui):
     _dprint(2,"meqserver-specifc init"); 
     # add Tree browser panel
     self.treebrowser = treebrowser.TreeBrowser(self);
-    self.maintab.insertTab(self.treebrowser.wtop(),"Trees",1);
+    self.add_tab(self.treebrowser.wtop(),"Trees",index=1);
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_node()"),self._view_node);
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_forest_state()"),self._view_forest_state);
     
     # add Result Log panel
     self.resultlog = Logger(self,"node snapshot log",limit=1000,scroll=False,
           udi_root='snapshot');
-    self.maintab.insertTab(self.resultlog.wtop(),"Snapshots",2);
-    self.resultlog.wtop()._default_iconset = QIconSet();
-    self.resultlog.wtop()._default_label   = "Snapshots";
     self.resultlog.wtop()._newres_iconset  = pixmaps.check.iconset();
     self.resultlog.wtop()._newres_label    = "Snapshots";
     self.resultlog.wtop()._newresults      = False;
+    self.add_tab(self.resultlog.wtop(),"Snapshots",index=2);
     QObject.connect(self.resultlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QObject.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
     
@@ -195,11 +194,13 @@ class meqserver_gui (app_proxy_gui):
     self._menus = {};
     kernel_menu    = self._menus['MeqTimba'] = QPopupMenu(self);
     bookmarks_menu = self._menus['Bookmarks'] = QPopupMenu(self);
+    view_menu      = self._menus['View'] = QPopupMenu(self);
     debug_menu     = self._menus['Debug'] = QPopupMenu(self);
     help_menu      = self._menus['Help'] = QPopupMenu(self);
 
     menubar = self.menuBar();    
     kernel_menu_id = menubar.insertItem("&MeqTimba",kernel_menu);
+    window_menu_id = menubar.insertItem("&View",view_menu);
     bookmarks_menu_id = menubar.insertItem("&Bookmarks",bookmarks_menu);
     debug_menu_id = menubar.insertItem("&Debugger",debug_menu);
     menubar.insertSeparator();
@@ -213,6 +214,7 @@ class meqserver_gui (app_proxy_gui):
     menubar.setItemVisible(bookmarks_menu_id,False);
     menubar.setItemVisible(debug_menu_id,False);
 
+    # --- MeqTimba menu
     connect = QAction("Connect to kernel...",0,self);    
     connect.addTo(kernel_menu);
     QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(connect.setEnabled,_args=(False,)));
@@ -221,21 +223,44 @@ class meqserver_gui (app_proxy_gui):
     self.treebrowser._qa_load.addTo(kernel_menu);
     self.treebrowser._qa_save.addTo(kernel_menu);
     
-    showgw = QAction("Show grid",Qt.Key_F3,self);
-    showgw.addTo(bookmarks_menu);
+    # --- View menu
+    showgw = QAction(pixmaps.view_split.iconset(),"&Gridded workspace",Qt.Key_F3,self);
+    showgw.addTo(view_menu);
     showgw.setToggleAction(True);
     QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),showgw.setOn);
     QObject.connect(showgw,SIGNAL("toggled(bool)"),self.gw.show);
+    # optional tab views
+    self.resultlog.wtop()._show_qaction.addTo(view_menu);
+    self.eventtab._show_qaction.addTo(view_menu);
+    # process status view
+    showps = QAction("&Process status",0,self);
+    showps.addTo(view_menu);
+    showps.setToggleAction(True);
+    showps.setOn(False);
+    QObject.connect(showps,SIGNAL("toggled(bool)"),self._wstat.setShown);
+    QObject.connect(self._wstat,PYSIGNAL("shown()"),showps.setOn);
     
+    # --- Bookmarks menu
     self._qa_addbkmark = addbkmark = QAction(pixmaps.bookmark_add.iconset(),"Add bookmark",Qt.ALT+Qt.Key_B,self);
     addbkmark.addTo(bookmarks_menu);
     self._qa_addpagemark = addpagemark = QAction(pixmaps.bookmark_toolbar.iconset(),"Add bookmark for page",Qt.ALT+Qt.CTRL+Qt.Key_B,self);
     addpagemark.addTo(bookmarks_menu);
-    QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),addbkmark.setEnabled);
-    QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),addpagemark.setEnabled);
+    QObject.connect(addbkmark,SIGNAL("activated()"),self._add_bookmark);
+    QObject.connect(addpagemark,SIGNAL("activated()"),self._add_pagemark);
+    QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self._gw_reset_bookmark_actions);
+    QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self._gw_reset_bookmark_actions);
+    QObject.connect(self.gw.wtop(),PYSIGNAL("itemSelected()"),self._gw_reset_bookmark_actions);
+    QObject.connect(self.gw.wtop(),PYSIGNAL("pageShown()"),self._gw_reset_bookmark_actions);
     addbkmark.setEnabled(False);
     addpagemark.setEnabled(False);
-
+    # bookmark manager
+    bookmarks_menu.insertSeparator();
+    self._bookmarks = bookmarks.BookmarkFolder("main",self,menu=bookmarks_menu);
+    # copy of current bookmark record
+    self._bookmarks_rec = None;
+    QObject.connect(self._bookmarks,PYSIGNAL("updated()"),self._save_bookmarks);
+    
+    # --- Debug menu
     self.treebrowser._qa_dbg_enable.addTo(debug_menu);
     self.treebrowser._qa_dbg_tools.addTo(debug_menu);
     debug_menu.insertSeparator();
@@ -243,6 +268,7 @@ class meqserver_gui (app_proxy_gui):
     attach_gdb.addTo(debug_menu);
     attach_gdb.setEnabled(False); # for now
     
+    # --- Help menu
     help_menu.insertItem(QWhatsThis.whatsThisButton(self).iconSet(),
                               "What's &This",self.whatsThis,Qt.SHIFT+Qt.Key_F1);
     
@@ -270,12 +296,50 @@ class meqserver_gui (app_proxy_gui):
     # subscribe to updates of forest state
     meqds.subscribe_forest_state(self._update_forest_state);
     
+  def _add_bookmark (self):
+    item = Grid.Services.getHighlightedItem();
+    if item is not None:
+      if not meqgui.isBookmarkable(item.udi):
+        caption = "Can't set bookmark";
+        text = "Item <b>"+item.name+"<b> is transient and thus cannot be bookmarked";
+        QMessage(self,caption,text,QMessageBox.Cancel);
+      else:
+        vname = getattr(item.viewer,'viewer_name',item.viewer.__name__);
+        name = "%s [%s]" % (item.name,vname);
+        self._bookmarks.add(name,item.udi,item.viewer);
+
+  def _add_pagemark (self):
+    pass;
+      
+  def _save_bookmarks (self):
+    """saves current bookmarks to forest state""";
+    self._bookmarks_rec = self._bookmarks.getList();
+    meqds.set_forest_state("bookmarks",self._bookmarks_rec);
+    
+  def _gw_reset_bookmark_actions (self,dum=None):
+    # figure out if Add bookmark is enabled
+    enable_bkmark = False;
+    if self._connected and self.gw.isVisible():
+      item = Grid.Services.getHighlightedItem();
+      if item:
+        enable_bkmark = meqgui.isBookmarkable(item.udi);
+        if enable_bkmark:
+          self._qa_addbkmark.setMenuText("Add bookmark for "+item.name);
+    self._qa_addbkmark.setEnabled(enable_bkmark);
+    if not enable_bkmark:
+      self._qa_addbkmark.setMenuText("Add bookmark");
+    # figure out if Add bookmark for page is enabled
+    # self._qa_addpagemark.setEnabled(self._connected and self.gw.isVisible());
+    self._qa_addpagemark.setEnabled(False);
+        
   def _connected_event (self,ev,value):  
     app_proxy_gui._connected_event(self,ev,value);
     self._wstat.show();
+    self._wstat.emit(PYSIGNAL("shown()"),(True,));
     self.treebrowser.clear();
     self.treebrowser.connected(True);  
     self.resultlog.connected(True);
+    self._gw_reset_bookmark_actions();
     wtop = self.resultlog.wtop();
     self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
     meqds.request_forest_state();
@@ -283,8 +347,10 @@ class meqserver_gui (app_proxy_gui):
   def _disconnected_event (self,ev,value):  
     app_proxy_gui._disconnected_event(self,ev,value);
     self._wstat.hide();
+    self._wstat.emit(PYSIGNAL("shown()"),(False,));
     self.treebrowser.connected(False);  
     self.resultlog.connected(False);
+    self._gw_reset_bookmark_actions();
     wtop = self.resultlog.wtop();
     self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
     
@@ -332,7 +398,6 @@ class meqserver_gui (app_proxy_gui):
         meqds.update_forest_state(fstatus,True);
     # call top-level handler
     app_proxy_gui.handleAppEvent(self,ev,value);
-    
     
   def ce_NodeState (self,ev,value):
     if hasattr(value,'name'):
@@ -395,13 +460,19 @@ class meqserver_gui (app_proxy_gui):
     
   def _view_forest_state (self,viewer=None,**kws):
     _dprint(2,"adding viewer for forest state");
-    item = Grid.DataItem('/forest',name='Forest state',caption='<b>Forest state</b>',
-                          desc='State of forest',data=meqds.get_forest_state(),
-                          refresh=meqds.request_forest_state,viewer=viewer);
+    item = meqgui.makeForestDataItem(viewer=viewer);
     Grid.addDataItem(item,**kws);
     self.show_gridded_workspace();
     
   def _update_forest_state (self,fst):
+    # update bookmarks if needed
+    bkrec = getattr(fst,'bookmarks',None);
+    if bkrec != self._bookmarks_rec:
+      _dprint(1,"bookmarks changed in forest, reloading");
+      self._bookmarks_rec = bkrec;
+      self._bookmarks.load(bkrec);
+    else:
+      _dprint(3,"bookmarks not changed in forest, ignoring");
     Grid.updateDataItem('/forest',fst);
     
   def _reset_resultlog_label (self,tabwin):
@@ -417,7 +488,7 @@ class meqserver_gui (app_proxy_gui):
 
 # register NodeBrowser at low priority for now (still experimental),
 # but eventually we'll make it the default viewer
-Grid.Services.registerViewer(meqds.NodeClass(),NodeBrowser,priority=30);
+# Grid.Services.registerViewer(meqds.NodeClass(),NodeBrowser,priority=30);
 
 # register reloadables
 reloadableModule(__name__);

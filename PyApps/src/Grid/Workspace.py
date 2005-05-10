@@ -99,6 +99,9 @@ class Workspace (object):
     self.wtop().hide();
     self.wtop().emit(PYSIGNAL("shown()"),(False,));
     
+  def isVisible (self):
+    return self.wtop().isVisible();
+    
   def add_page (self,name=None):
     page = Timba.Grid.Page(self,self._maintab,max_nx=self.max_nx,max_ny=self.max_ny);
     wpage = page.wtop();
