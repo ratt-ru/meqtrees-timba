@@ -145,6 +145,7 @@ public:
   // (or when the underlying DMI::Record is privatized, etc.)
     //##ModelId=400E53550156
   virtual void validateContent (bool recursive);
+  virtual void axis_function(int axis, LoVec_double & grid) const{}
 
 protected:
   //------------------ implement protected Funklet interface ---------------------------------

@@ -195,6 +195,10 @@ public:
   // automatically whenever a Funklet is made from a DMI::Record
   virtual void validateContent (bool recursive);
 
+  // this function applies to one of the axes of the funklet and is called in do_evaluate
+  //  in specific subclasses of Polc
+  virtual void axis_function(int axis, LoVec_double & grid) const {    cdebug(0)<<"not changing grid "<<endl;
+}
 
 protected:
   Record::protectField;  

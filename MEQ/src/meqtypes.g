@@ -127,7 +127,7 @@ const meq.node := function (class,name,extra=[=],children=F,step_children=F,defa
 # Creates a Polc object
 # Axes may be specified by name or index
 
-const meq.polc := function (coeff,axis=[],offset=[],scale=[],
+const meq.polc := function (coeff,class='MeqPolc',axis=[],offset=[],scale=[],
                             domain=F,pert=F,weight=F,dbid=F)
 {
   rank := len(shape(coeff));
@@ -162,7 +162,8 @@ const meq.polc := function (coeff,axis=[],offset=[],scale=[],
       fail 'meq.polc: domain argument must be a meq.domain';
     rec.domain := domain;
   }
-  const rec::dmi_actual_type := 'MeqPolc';
+  const rec::dmi_actual_type := class;
+  rec.class:=class;
   return rec;
 }
 
@@ -176,28 +177,33 @@ const meq.parm := function (name,default=F,extra=[=],polc=F,groups="")
   # set default if specified
   if( !is_boolean(default) )
   {
-    if( !is_dmi_type(default,'MeqPolc') )
+    if( !is_dmi_type(default,'MeqPolc') && !is_dmi_type(default,'MeqLogPolc'))
       default := meq.polc(default);
     rec.default_funklet := default;
   }
   # set polcs if specified
   if( is_record(polc) )
   {
-    if( is_dmi_type(polc,'MeqPolc') ) # single polc
+    if( is_dmi_type(polc,'MeqPolc')  || is_dmi_type(polc,'MeqLogPolc')) # single polc
     {
       rec.polcs := [=];
       rec.polcs['#1'] := polc;
+      polct := polc;
     }
     else
     {
       for( i in 1:len(polc) )  # else must be a vector of polcs
       {
-        if( !is_dmi_type(polc[i],'MeqPolc') )
+        if( !is_dmi_type(polc[i],'MeqPolc') && !is_dmi_type(polc[i],'MeqLogPolc'))
           fail 'meq.parm: polc argument must be a meq.polc or a vector of meqpolcs';
+	polct := polc[i];
       }
       rec.polcs := polc;
     }
-    const rec.polcs::dmi_datafield_content_type := 'MeqPolc';
+  if( is_dmi_type(polct,'MeqPolc'))
+     const rec.polcs::dmi_datafield_content_type := 'MeqPolc';
+  if( is_dmi_type(polct,'MeqLogPolc'))
+     const rec.polcs::dmi_datafield_content_type := 'MeqLogPolc';
   }
   return rec;
 }

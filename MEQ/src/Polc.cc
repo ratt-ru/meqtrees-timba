@@ -115,8 +115,18 @@ void Polc::validateContent (bool recursive)
       Funklet::validateContent(true);
     // get polc coefficients
     Field * fld = Record::findField(FCoeff);
-    if( fld )
+    if( fld ){
       pcoeff_ = &( fld->ref.ref_cast<DMI::NumArray>() );
+      //coeff should be doubles:
+      if ((*pcoeff_)->elementType()==Tpint ||(*pcoeff_)->elementType()==Tpfloat||(*pcoeff_)->elementType()==Tplong )
+	{
+	  //convert to double
+
+	}
+      FailWhen((*pcoeff_)->elementType()!=Tpdouble,"Meq::Polc: coeff array must be of type double");
+     
+
+    }
     else
       pcoeff_ = 0;
     // check for sanity
@@ -208,6 +218,8 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
       grid[i].resize(cells.ncells(iaxis));
       grid[i] = ( cells.center(iaxis) - getOffset(i) ) * getScale(i);
       res_shape[iaxis] = grid[i].size();
+      //apply axis function here
+      axis_function(iaxis,grid[i]);
     }
   }
   // now evaluate
