@@ -264,7 +264,7 @@ MeqImag                          1427       ; from /home/oms/LOFAR/Timba/MeqNode
 MeqInvert                        1507       ; from /home/assendorp/LOFAR/Timba/MeqNodes/src/Invert.h:29
 MeqLMN                           1410       ; from /home/oms/LOFAR/Timba/MeqNodes/src/LMN.h:30
 MeqLog                           1397       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Log.h:29
-#MeqLogPolc                      1548       ; from /home/mevius/LOFAR/Timba/MEQ/src/LogPolc.h:9
+MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/src/LogPolc.h:9
 MeqMatrixInvert22                1522       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixInvert22.h:30
 MeqMatrixMultiply                1516       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixMultiply.h:30
 MeqMax                           1452       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Max.h:29
@@ -281,6 +281,7 @@ MeqPaster                        1519       ; from /home/oms/LOFAR/Timba/MeqNode
 MeqPointSourceDFT                1405       ; from /home/oms/LOFAR/Timba/MeqNodes/src/PointSourceDFT.h:31
 MeqPolar                         1383       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Polar.h:30
 #MeqPolc                         1361       ; from /home/oms/LOFAR/Timba/MEQ/src/Polc.h:32
+#MeqPolcLog                      1549       ; from /home/mevius/LOFAR/Timba/MEQ/src/PolcLog.h:9
 MeqPow                           1386       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Pow.h:30
 MeqPow2                          1439       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Pow2.h:29
 MeqPow3                          1412       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Pow3.h:29
