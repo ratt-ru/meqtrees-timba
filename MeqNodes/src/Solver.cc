@@ -197,7 +197,7 @@ int Solver::getResult (Result::Ref &resref,
   // corresponding to our symdeps
   RequestId rqid = request.id();
   RqId::setSubId(rqid,iter_depmask_,0);
-  // forest().incrRequestId(rqid,solution_symdeps_);
+  forest().incrRequestId(rqid,solution_symdeps_);
   RequestId next_rqid = rqid;
   RqId::incrSubId(next_rqid,iter_depmask_);
   // Create a new request and attach the solvable parm specification if needed.
