@@ -61,16 +61,18 @@ class Cell (object):
       if self._menu:
         self._menu.exec_loop(ev.globalPos());
       
-  def __init__ (self,parent,gridpos,fixed_cell=False,notitle=False,noviewer=False):
+  def __init__ (self,parent,gridpos,page=None,fixed_cell=False,notitle=False,noviewer=False):
     """constructor. 
     parent:     parent widget
-    gridpos:    the grid position. A tuple of (gridpage,ix,iy).
+    gridpos:    the grid position. A tuple of (gridpage,row,col).
                 This is used to uniquely identify the cell within the workspace.
     noviewer:   if True, the cell will not support change of viewers or drops
                 of data items
     fixed_cell: if True, the cell will not support change of viewers, closing,
                 pinning, etc., and will not accept drops of data items.
     notitle:    if True, cell will be fixed, and will not have a 'titlebar'.
+    page:       this cell's Page parent. None if cell does not belong to a grid
+                page (e.g. a floater window)
     """
     # init state
     self._content_widget = self._leader = self._udi = None;
@@ -82,6 +84,7 @@ class Cell (object):
     self._highlight = False;
     self._enabled = False;  
     self._dataitem = None;
+    self._parent_page = page;
     # init widgets
     wtop = self._wtop = self.TopLevelWidget(parent,'cell '+str(id(self))+' top');
     wtop.hide();
@@ -103,6 +106,7 @@ class Cell (object):
     self._toolbar.addSeparator();
     self._label = QLabel("(empty)",self._toolbar);
     self._label.setAlignment(Qt.AlignLeft+Qt.AlignVCenter+Qt.SingleLine);
+    self._label.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
     self._toolbar.addSeparator();
     # pin button
     pin_is = pixmaps.pin_up.iconset();
@@ -128,6 +132,11 @@ class Cell (object):
     self._toolbar.setHorizontallyStretchable(True);
     self._toolbar.setStretchableWidget(self._label);
     self._toolbar.setMovingEnabled(False);
+    self._label.setEnabled(False);
+    self._refresh.setVisible(False);
+    self._pin.setVisible(False);
+    self._close.setVisible(False);
+    self._float_act.setVisible(False);
     # set resize policy
     wtop.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding));
     
@@ -136,6 +145,8 @@ class Cell (object):
   def wcontent (self):
     try: return self._content_widget();
     except AttributeError: return None;
+  def parent_page (self):
+    return self._parent_page;
   def grid_position (self):
     return self._gridpos;
   def hide (self):
@@ -201,32 +212,40 @@ class Cell (object):
       self._content_widget = None;
       
   # wipe: deletes contents in preparation for inserting other content
-  def wipe (self):
+  def wipe (self,delete_content=True):
     _dprint(5,id(self),': wiping cell');
-    self._dataitem = None;
+    self._dataitem = self._udi = None;
     self.set_pinned(False);
-    self._clear_content();
+    if delete_content:
+      self._clear_content();
+    else:
+      self._content_widget = None;
     self._refresh_func = lambda:None;
     _dprint(5,id(self),': emitting wiped() signal');
     self.wtop().emit(PYSIGNAL("wiped()"),());
     self.wtop().set_context_menu(None);
+    QToolTip.remove(self._label);
+    self.highlight(False);
+    self._label.setText("(empty)");
+    self._label.setEnabled(False);
+    self._icon_act.setVisible(False);
+    self._refresh.setVisible(False);
+    self._pin.setVisible(False);
+    self._close.setVisible(False);
+    self._float_act.setVisible(False);
 
   # close(): wipe, hide everything, and emit a closed signal
   def close (self):
     _dprint(5,id(self),': clearing cell');
     self.wipe();
-    self._wtop.hide();
-    self._toolbar.hide();
-    self._label.setText("(empty)");
+    # self._wtop.hide();
+    # self._toolbar.hide();
     self.wtop().emit(PYSIGNAL("closed()"),());
     
   def release (self):
-    self._content_widget = None;
-    self._refresh_func = lambda:None;
-    self.wtop().set_context_menu(None);
-    self._wtop.hide();
-    self._toolbar.hide();
-    self._label.setText("(empty)");
+    """same as wipe, except content widget is not deleted. Used
+    when content has been reparented."""
+    self.wipe(delete_content=False);
 
   def disable (self,disable=True):
     self.enable(not disable);
@@ -397,8 +416,8 @@ class Cell (object):
       QObject.connect(leader.wtop(),PYSIGNAL("enable()"),self.enable);
       QObject.connect(leader.wtop(),PYSIGNAL("highlight()"),self.highlight);
       QObject.connect(leader.wtop(),PYSIGNAL("closed()"),self.close);
-    # show the control box
-    self._toolbar.show();
+    self._icon_act.setVisible(True);
+    self._label.setEnabled(True);
     # disable cell if no data yet
     # show and resize everything
     self._toolbar.show();
@@ -408,6 +427,7 @@ class Cell (object):
     
   def set_caption (self,caption):
     """sets the caption of a cell."""
+    QToolTip.add(self._label,caption);
     self._label.setText(caption);
     # set negative margin, to keep rich text from bloating the label's height
     self._label.setMargin(-20);
@@ -417,6 +437,10 @@ class Cell (object):
     
   def leader (self):
     return self._leader;
+  def content_udi (self):
+    return self._udi;
+  def content_dataitem (self):
+    return self._dataitem;
     
   def flash (self,flash=True):
     _dprint(5,id(self),': flash()');

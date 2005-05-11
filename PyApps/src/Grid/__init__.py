@@ -10,6 +10,8 @@ from Timba.Grid.Workspace import Workspace
 
 from Timba.Grid.Debug import *
 
+from Timba.Meq import meqds
+
 
 class Error (RuntimeError):
   """Grid widget manipulation error""";
@@ -50,7 +52,7 @@ class DataItem (object):
     self.udi      = udi;
     self.name     = name or udi;
     self.caption  = caption or udi;
-    self.desc     = desc or udi;
+    self.desc     = desc or self.name;
     self.data     = data;
     if viewopts is None:
       viewopts = {};

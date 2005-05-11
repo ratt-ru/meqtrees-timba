@@ -173,12 +173,17 @@ class Logger(HierBrowser):
     if callable(click):
       self._lv.connect(self._lv,
         SIGNAL('mouseButtonClicked(int,QListViewItem*,const QPoint &,int)'),click);
+    # event counter
+    self._event_count = 0;        
     # set log limit        
     self.set_log_limit(limit);
     # compile regex to match our udi pattern
     self._patt_udi = re.compile("/"+self._udi_root+"/(.*)$");
     # define get_data_item method for the listview
     self.wlistview().get_data_item = self.get_data_item;
+    
+  def event_count (self):
+    return self._event_count;
     
   def wtop (self):
     return self._vbox;
@@ -223,8 +228,9 @@ class Logger(HierBrowser):
                if True, item is always added.
       udi_key: item UDI key, auto-generated if None
     If content is not None, then content will be available to viewers. In
-    this case, the following parameters define its properties:
-      name:    item name for viewers; if None, then category name is used
+    this case, the following parameters may define its properties:
+      name:    item name for viewers; if None, then generated from udi
+      caption: item caption for viewers; if None, then generated from udi
       desc:    item description; if None, then label is used
       viewopts: dict of optional viewer settings for this item
     Return value: a QListViewItem
@@ -236,17 +242,17 @@ class Logger(HierBrowser):
     # preserve_top_item = self._scroll is not None and not self._scroll.isOn() and \
     #                    self.wlistview().itemAt(QPoint(0,0));
     # if label not specified, use a timestamp 
+    self._event_count += 1;
     if label is None:
       label = time.strftime("%H:%M:%S");
     # if udi_key is None, set to the id type object. This will tell the
     # HierBrowser.Item constructor to use the item id for key, rather than 
     # the text in column 0
     if udi is None and udi_key is None:
-      udi_key = id;
+      udi_key = str(self._event_count);
     # create listview item
     item = self.Item(self.wlistview(),label,msg,udi=udi,udi_key=udi_key, \
-      name=name or self._LogCatNames.get(category,self._udi_root),\
-      desc=desc or label,caption=caption or name);
+      name=name,caption=caption,desc=desc or label);
     item._category = category;
     # if content is specified, cache it inside the item
     if content is not None:
@@ -324,11 +330,14 @@ class EventLogger (Logger):
     else: # matched nothing
       return None;
     # add entry
+    msg = msg.lower();
     label = time.strftime("%H:%M:%S");
     kw = kwargs.copy();
+    kw['udi_key'] = "%s:%d:%s" % (msg,self._event_count,time.strftime("%H%M%S"));
     kw['label'] = label;
-    kw['name'] = msg;
-    kw['desc'] = 'event '+label;
+    kw['name'] = "%s @%s" % (msg,label);
+    kw['caption'] = "%s <small>%s</small>" % (msg,label);
+    kw['desc'] = "event %s at %s" % (msg,label);
     Logger.add(self,msg,*args,**kw);
 
 class MessageLogger (Logger):
@@ -339,7 +348,8 @@ class MessageLogger (Logger):
                         self._clear_error_count);
     
   def add (self,msg,category=Logger.Normal,*args,**kwargs):
-    Logger.add(self,msg,category=category,*args,**kwargs);
+    udi_key = "%d:%s" % (self._event_count,time.strftime("%H%M%S"));
+    Logger.add(self,msg,category=category,udi_key=udi_key,*args,**kwargs);
     # keep track of new errors
     if category is Logger.Error:
       items = self.get_items();
@@ -612,8 +622,8 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self._update_app_state();
     
 ##### updates status bar based on app state 
-  StatePixmaps = { None: pixmaps.stop };
-  StatePixmap_Default = pixmaps.check;
+  StatePixmaps = { None: pixmaps.red_round_cross };
+  StatePixmap_Default = pixmaps.grey_cross;
   def _update_app_state (self):
     state = self.app.statestr.lower();
     self.status_label.setText(' '+state+' '); 

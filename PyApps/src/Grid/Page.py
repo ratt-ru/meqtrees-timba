@@ -33,7 +33,7 @@ class Page (object):
     self.max_items  = max_nx*max_ny;
     self._rows      = [];
     # possible layout formats (nrow,ncol)
-    self._layouts = [(0,0),(1,1)];
+    self._layouts = [(1,1)];
     for i in range(2,self.max_nx+1):
       self._layouts += [(i,i-1),(i,i)];
     # create cells matrix
@@ -42,8 +42,8 @@ class Page (object):
       row.hide();
       self._rows.append(row);
       for icol in range(self.max_nx):
-        pos = (self,icol,irow);
-        cell = Timba.Grid.Cell(row,pos,fixed_cell=fixed_cells);
+        pos = (self,irow,icol);
+        cell = Timba.Grid.Cell(row,pos,fixed_cell=fixed_cells,page=self);
         row._cells.append(cell);
         cell._clear_slot = curry(self._clear_cell,cell);
         QWidget.connect(cell.wtop(),PYSIGNAL("closed()"),cell._clear_slot);
@@ -63,19 +63,41 @@ class Page (object):
     """returns parent Grid.Workspace object""";
     return self._gw;
     
-  def num_layouts (self):
-    return len(self._layouts);
-  def current_layout (self):
-    return (self._cur_layout_num,) + self._cur_layout;
-    
   def change_viewer (self,cell,dataitem,viewer):
     dataitem.kill_viewer();
     cell.wipe();
     Timba.Grid.Services.addDataItem(dataitem,viewer=viewer,
                   gw=self._gw,position=cell.grid_position());
   
+  def num_layouts (self):
+    return len(self._layouts);
+    
+  def current_layout (self):
+    return (self._cur_layout_num,) + self._cur_layout;
+    
+  def has_content (self):
+    """returns True if page has content on it""";
+    (nrow,ncol) = self._cur_layout;
+    for row in self._rows[:nrow]:
+      for cell in row._cells[:ncol]:
+        if cell.content_udi():
+          return True;
+    return False;
+  
+  def get_cell (self,row,col):
+    return self._rows[row]._cells[col];
+  
   # changes current layout scheme
-  def set_layout (self,nlo):
+  def set_layout (self,nrow,ncol=None):
+    """set_layout(n) sets layout #n. set_layout(nr,nc) sets minimal layout 
+    to display nr x nc cells""";
+    if ncol is None:
+      nlo = nrow;
+    else:
+      for (i,(nc,nr)) in enumerate(self._layouts):
+        if nr >= nrow and nc >= ncol:
+          nlo = i;
+          break;
     (nrow,ncol) = self._cur_layout = self._layouts[nlo];
     self._cur_layout_num = nlo;
     _dprint(5,"setting layout:",self._cur_layout);
@@ -160,14 +182,14 @@ class Page (object):
         return None;
         
   def alloc_cells (self,pos,nrow=1,ncol=1):
-    (x,y) = pos;
-    _dprint(2,x,y);
+    (row,col) = pos;
+    _dprint(2,row,col);
     # increment layout until we can house the cell position
-    while x >= self._cur_layout[1] or y >= self._cur_layout[0]:
+    while col >= self._cur_layout[1] or row >= self._cur_layout[0]:
       if not self.next_layout():
         return None;
-    row = self._rows[y];
-    cell = row.cells()[x];
+    row = self._rows[row];
+    cell = row.cells()[col];
     if not cell.is_empty():
       cell.wipe();
     return (cell,);

@@ -39,21 +39,7 @@ def isBookmarkable (udi):
 def makeDataItem (udi,data=None,viewer=None,viewopts={}):
   """Creates a data item given a UDI""";
   # parse udi
-  ff = udi.split('/',3);
-  if ff[0] != '' or len(ff)<2:
-    raise ValueError,"invalid UDI: "+udi;
-  cat = ff[1];
-  if len(ff)>2:
-    name = ff[2];
-  else:
-    name = None;
-  if not cat:
-    raise ValueError,"invalid UDI: "+udi;
-  if len(ff) > 3:
-    trailer = ff[3];
-  else:
-    trailer = None;
-  # see what data category it belongs to
+  (cat,name,trailer) = meqds.parse_udi(udi);
   if cat == 'node':
     if not name:
       raise ValueError,"invalid UDI: "+udi;
@@ -62,26 +48,24 @@ def makeDataItem (udi,data=None,viewer=None,viewopts={}):
     if not nn[0]:
       name = int(nn[1]);     # use node index if no name given
     node = meqds.nodelist[name];
-    if trailer is None:
+    if not trailer:
       return makeNodeDataItem(node,viewer,viewopts);
     else:
-      namestr = node.name or '#'+str(node.nodeindex);
-      name = "%s %s" % (namestr,trailer);
-      caption = "<b>%s</b> <small>%s</small>" % (namestr,trailer);
-      desc = "node %s#%d field %s" % (node.name,node.nodeindex,trailer);
-      return Grid.DataItem(udi,name=name,caption=caption,desc=desc,
+      (name,caption) = meqds.make_udi_node_caption(node,trailer);
+      desc = "node %s#%d, state field %s" % (node.name,node.nodeindex,trailer);
+      return Grid.DataItem(udi,
+                name=name,caption=caption,desc=desc,
                 data=data,
                 refresh=curry(meqds.request_node_state,node.nodeindex),
                               viewer=viewer,viewopts=viewopts);
   elif cat == 'forest':
-    if trailer is None:
+    if not trailer:
       return makeForestDataItem(data,viewer,viewopts);
     else:
-      name = "forest %s" % (namestr,trailer);
-      caption = "<b>Forest</b> <small>%s</small>" % (trailer,);
-      desc = "forest state field "+trailer;
-      return Grid.DataItem('/forest',name=name,
-         caption=caption,desc=desc,data=data,
+      (name,caption) = meqds.make_parsed_udi_caption(cat,name,trailer);
+      return Grid.DataItem(udi,
+         name=name,caption=caption,desc="Forest state field "+trailer,
+         data=data,
          refresh=meqds.request_forest_state,
          viewer=viewer,viewopts=viewopts);
   else:
@@ -93,12 +77,9 @@ def makeNodeDataItem (node,viewer=None,viewopts={}):
   nodeclass = meqds.NodeClass(node);
   vo = viewopts.copy();
   vo.update(defaultNodeViewopts);
-  namestr = node.name or '#'+str(node.nodeindex);
-  name = "%s (%s)" % (namestr,node.classname);
-  caption = "<b>%s</b> <small><i>(%s)</i></small>" % (namestr,node.classname);
-  desc = "State record of node %s#%d (class %s)" % (node.name,node.nodeindex,node.classname);
+  (name,caption) = meqds.make_udi_node_caption(node,None);
   # curry is used to create a call for refreshing its state
-  return Grid.DataItem(udi,name=name,caption=caption,desc=desc,
+  return Grid.DataItem(udi,name=name,caption=caption,desc=name,
             datatype=nodeclass,
             refresh=curry(meqds.request_node_state,node.nodeindex),
             viewer=viewer,viewopts=vo);
@@ -106,7 +87,9 @@ def makeNodeDataItem (node,viewer=None,viewopts={}):
 def makeForestDataItem (data=None,viewer=None,viewopts={}):
   """creates a GridDataItem for forest state""";
   data = data or meqds.get_forest_state();
-  return Grid.DataItem('/forest',name='Forest state',
-     caption='<b>Forest state</b>',
-     desc='State of forest',data=meqds.get_forest_state(),
+  udi = '/forest';
+  (name,caption) = meqds.make_parsed_udi_caption('forest',None,None);
+  return Grid.DataItem('/forest',
+     name=name,caption=caption,desc='State of forest',
+     data=meqds.get_forest_state(),
      refresh=meqds.request_forest_state,viewer=viewer,viewopts=viewopts);

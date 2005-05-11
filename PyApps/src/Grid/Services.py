@@ -6,6 +6,7 @@ from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI.widgets import *
 from Timba.Grid.Debug import *
 import Timba.Grid.Cell
+import Timba.Grid.Page
 from Timba import *
 
 import weakref
@@ -54,12 +55,9 @@ def registerViewer (tp,viewer,priority=0):
       # populated. 
       # **opts may be used to pass in optional keyword arguments on a 
       # per-viewer basis.
-    vo.make_visible();
-      # Try to make this viewer visible; return True on success. 
-      # Cell-based viewers should simply call make_visible() on their cell; 
-      # viewers with their own windows should bring their windows to the 
-      # front. Returns True if viewer was made visible, False if not 
-      # (i.e. cell is on a non-visible page).
+    vo.grid_page();
+      # Return page on which viewer resides (a Grid.Page object), or None
+      # if viewer is outside the grid.
     vo.set_data(dataitem,**opts);
       # sets/updates the content of the viewer. **opts may be used to pass 
       # in optional keyword arguments on a per-viewer basis.
@@ -156,6 +154,9 @@ def setDefaultWorkspace (gw):
   global _current_gw;
   _current_gw = gw;
   
+def getCurrentWorkspace ():
+  return _current_gw;
+  
 def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=None,newcell=False,newpage=False):
   """Adds a data cell with a viewer the given item.
      viewer:    if not None, must a be a viewer plugin class, or name. 
@@ -179,10 +180,10 @@ def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=N
   _dprint(2,item.udi,item.viewer);
   global _dataitems,_current_gw;
   # if position is specified, select workspace from page
-  if position is not None:
-    item._gridded_workspace = gw = position[0].gw();
-  else:
-    item._gridded_workspace = gw = gw or _current_gw;
+  gw = None;
+  if position is not None and isinstance(position[0],Timba.Grid.Page):
+    gw = position[0].gw();
+  item._gridded_workspace = gw = gw or _current_gw;
   if isinstance(viewer,str):
     vc = getViewerByName(viewer,None);
     if vc:
@@ -198,12 +199,14 @@ def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=N
   # Are we already displaying this item? (if not, init with empty list)
   itemlist = _dataitems.setdefault(item.udi,[]);
   # see if we can get away with not adding a viewer at all, because
-  # it is already displayed with the same viewer class, and we're
-  # not requested to put it into a new cell or a specific cell
+  # the item is already displayed on the current page with the same viewer,
+  # and we're not requested to put it into a new cell or a specific cell
   if itemlist and not (position or newcell or newpage):
     _dprint(2,'item already displayed, checking for suitable viewers');
+    _dprint(2,'current page',_current_gw.current_page());
     for item0 in itemlist:
-      if item0.viewer == viewer and item0.viewer_obj.make_visible():
+      _dprint(2,'item page',item0.viewer_obj.grid_page());
+      if item0.viewer == viewer and item0.viewer_obj.grid_page() is _current_gw.current_page():
         _dprint(2,'found visible viewer');
         # in this case, highlight the data item, ask for a refresh, and
         # let the viewers take care of the rest

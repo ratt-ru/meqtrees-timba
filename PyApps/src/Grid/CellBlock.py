@@ -223,9 +223,8 @@ class CellBlock (object):
       if not float_window.isHidden():
         float_window.hide();
    
-  def make_visible (self):
-    self._cells[0].wtop().topLevelWidget().raiseW();
-    return True;
+  def grid_page (self):
+    return self._cells[0].parent_page();
     
   def cell_menu (self):
     return self._cells[0].cell_menu();

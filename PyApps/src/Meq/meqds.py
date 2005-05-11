@@ -280,27 +280,17 @@ def node_udi (node,suffix=None):
     udi += "/" + suffix;
   return udi;
 
-def snapshot_udi (node,suffix=None):
+def snapshot_udi (node,rqid='',count='',suffix=None):
   """creates a snapshot UDI from a node state record.""";
   try: (name,index) = (node.name,node.nodeindex);
   except AttributeError,KeyError: 
     node = nodelist[node];
     (name,index) = (node.name,node.nodeindex);
-  udi = "/snapshot/%X/%s"%(id(node),_node_subudi(name,index));
+  udi = "/snapshot/%s:%s/%s"%(rqid,count,_node_subudi(name,index));
   if suffix:
     udi += "/" + suffix;
   return udi;
 
-_patt_Udi_NodeState = re.compile("^/(node|snapshot/[^/]+)/(([^#/]+)|(#[0-9]+))(/.*)?$");
-def parse_node_udi (udi):
-  match = _patt_Udi_NodeState.match(udi);
-  if match is None:
-    return (None,None);
-  (prefix,nameorni,name,ni,rest) = match.groups();
-  if ni is not None:
-    ni = int(ni[1:]);
-  return (name,ni);
-  
 def set_meqserver (mqs1):
   global _mqs;
   _mqs = weakref.proxy(mqs1);
@@ -329,6 +319,77 @@ def mqs ():
   return mqs1;
 
 
+# ----------------------------------------------------------------------
+# --- UDI management
+# ----------------------------------------------------------------------
+_patt_Udi_NodeState = re.compile("^/(node|snapshot/[^/]+)/([^/]+)(/.*)?$");
+def parse_node_udi (udi):
+  match = _patt_Udi_NodeState.match(udi);
+  if match is None:
+    return (None,None);
+  (prefix,name_or_ni,rest) = match.groups();
+  if name_or_ni[0] == '#':
+    return (None,int(name_or_ni[1:]));
+  else:
+    return (name_or_ni,None);
+  
+def parse_udi (udi):
+  """Parses UDI, returns tuple of (category,trailer)""";
+  # parse udi
+  ff = udi.split('/',3);
+  if ff[0] != '' or len(ff)<2:
+    raise ValueError,"invalid UDI: "+udi;
+  cat = ff[1];
+  if cat == 'forest':
+    return (cat,'','/'.join(ff[2:]));
+  else:
+    name = trailer = '';
+    if len(ff)>2:
+      name = ff[2];
+    if len(ff)>3:
+      trailer = ff[3];
+  return (cat,name,trailer);
+  
+def make_udi_node_caption (node,trailer):
+  namestr = node.name or '#'+str(node.nodeindex);
+  if not trailer:
+    name = "%s (%s)" % (namestr,node.classname);
+    caption = "<b>%s</b> <small><i>(%s)</i></small>" % (namestr,node.classname);
+  else:
+    namestr = node.name or '#'+str(node.nodeindex);
+    name = "%s %s" % (namestr,trailer);
+    caption = "<b>%s</b> <small>%s</small>" % (namestr,trailer);
+  return (name,caption);  
+  
+_patt_Udi_NodeName = re.compile("([^#/]+)?(#[0-9]+)?$");
+def make_parsed_udi_caption (cat,name,trailer):
+  """generates UDI caption (with Qt Rich Text tags) for a given UDI
+  category, name and trailer.
+  Returns tuple of (name,caption).""";
+  if cat == 'node':
+    match = _patt_Udi_NodeName.match(name);
+    if not match:
+      raise ValueError,"invalid udi "+'/'.join((cat,name,trailer));
+    # check name or node index
+    (name,nodeindex) = match.groups();
+    node = nodelist[name or nodeindex];
+    return make_udi_node_caption(node,trailer);
+  elif cat == 'forest':
+    if not trailer:
+      name = "Forest state";
+      caption ="<b>Forest state</b>";
+    else:
+      name = "Forest %s" % (trailer,);
+      caption = "<b>Forest</b> <small>%s</small>" % (trailer,);
+  else:
+    name = '/'.join(('',cat,name,trailer));
+    caption = '<small>'+name+'</small>';
+  return (name,caption)
+    
+def make_udi_caption (udi):
+  """generates UDI caption (with Qt Rich Text tags) for a given UDI""";
+  return make_parsed_udi_caption(*parse_udi(udi));
+  
 # ----------------------------------------------------------------------
 # --- Forest state record management
 # ----------------------------------------------------------------------

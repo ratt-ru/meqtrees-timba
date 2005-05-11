@@ -6,6 +6,7 @@ from Timba import dmi_repr
 from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI import widgets
 from Timba import Grid
+from Timba.Meq import meqds
 
 from qt import *
 import sys
@@ -125,9 +126,9 @@ class HierBrowser (object):
       if self._udi:
         self.listView()._content_map[self._udi] = self;
       # set name and/or description
-      self._name     = name or self._udi or str(key);
+      self._name     = name;
       self._desc     = desc;
-      self._caption  = caption or self._udi or str(key);
+      self._caption  = caption;
       # other state
       self._curries  = [];
       
@@ -255,10 +256,13 @@ class HierBrowser (object):
         # a refresh function may be defined in the list view
         refresh = getattr(self.listView(),'_refresh_func',None);
         # make item and return
-        return Grid.DataItem(self._udi,
-                  name=self._name,caption=self._caption,desc=self._desc,
-                  data=self._content,viewer=viewer,viewopts=vo,
-                  refresh=refresh);
+        if not self._name and not self._caption:
+          (name,caption) = meqds.make_udi_caption(self._udi);
+        else:
+          (name,caption) = (self._name or self._caption,self._caption or self._name);
+        return Grid.DataItem(self._udi,name=name,caption=caption,
+                             data=self._content,viewer=viewer,viewopts=vo,
+                             refresh=refresh);
       return None;
 
     def get_precision (self):
@@ -453,8 +457,11 @@ class HierBrowser (object):
 
   # slot: called when one of the items is clicked
   def _process_item_click (self,button,item,point,col):
-    if button == 1 and col == 1:
-      item.emit_display_signal();
+    if col == 1:
+      if button == 1:
+        item.emit_display_signal();
+      elif button == 4:
+        item.emit_display_signal(newcell=True);
       
   # slot: called to show a context menu for an item
   def _show_context_menu (self,item,point,col):

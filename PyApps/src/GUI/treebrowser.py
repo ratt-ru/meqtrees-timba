@@ -391,7 +391,7 @@ class TreeBrowser (QObject):
         have_sep = False;
 
     # add a what's this button
-    QWhatsThis.whatsThisButton(self._toolbar)
+    self._whatsthisbutton = QWhatsThis.whatsThisButton(self._toolbar)
 
     # make toolbar disappear when we leave this panel
     QObject.connect(self.wtop(),PYSIGNAL("entering()"),self._toolbar,SLOT("show()"));
@@ -427,8 +427,10 @@ class TreeBrowser (QObject):
     self.is_loaded = True;
     self._update_all_controls();
     # add forest state and bookmarks
-    self._fst_item = self.StickyListViewItem(self._nlv,"Forest state",key=50);
+    self._fst_item = self.StickyListViewItem(self._nlv,"Forest state",key=5);
     self._fst_item.setPixmap(0,pixmaps.view_tree.pm());
+    self._fst_item._udi = '/forest';
+    self._fst_item.setDragEnabled(True);
     self._fst_item._item_event_handler = {};
    # left-click: view
     self._fst_item._item_event_handler[('click',1)] = xcurry(self._view_forest_state);
@@ -582,23 +584,21 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     return (cg,palette);
     
   def get_data_item (self,udi):
-    (name,ni) = meqds.parse_node_udi(udi);
-    if ni is None:
-      if name is None:
-        return None;
-      if not len(name):
-        raise ValueError,'bad udi (either name or nodeindex must be supplied): '+udi;
-      node = meqds.nodelist[name];
-    else:
-      try: 
-        node = meqds.nodelist[ni];
-      except ValueError: # can't convert nodeindex to int: malformed udi
-        raise ValueError,'bad udi (nodeindex must be numeric): '+udi;
-    # create and return dataitem object
-    return meqgui.makeNodeDataItem(node);
+    if udi == '/forest':
+      return meqgui.makeForestDataItem();
+    elif udi.startswith('/node'):
+      (name,ni) = meqds.parse_node_udi(udi);
+      node = meqds.nodelist[name or ni];
+      return meqgui.makeNodeDataItem(node);
  
   def wtop (self):
     return self._wtop;
+    
+  def wtoolbar (self):
+    return self._toolbar;
+    
+  def whatsthisbutton (self):
+    return self._whatsthisbutton;
     
   def connected (self,conn,auto_request=True):
     self.emit(PYSIGNAL("connected()"),(conn,));
@@ -759,7 +759,7 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       
   def _item_clicked (self,button,item,point,col):
     _dprint(3,button,item,point,col);
-    if button == 1:
+    if button == 1 or button == 4:
       self._recent_item = item;
     self._item_event(item,('click',button),point,col);
         

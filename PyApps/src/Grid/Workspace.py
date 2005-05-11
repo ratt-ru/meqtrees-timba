@@ -151,17 +151,9 @@ class Workspace (object):
       page = self._maintab.page(p);
       page._page.clear();
       self._maintab.removePage(page);
-  
-  # highlights specfic cells, removes highlights from previous cells (if any)
-  def highlight_cells (self,cells):
-    # ensure arg is sequence
-    if isinstance(cells,Grid.Cell):
-      cells = (cells,);
-    # remove highlights from previous cells, if any
-    if self._highlight:
-      map(lambda c:c.highlight(False),self._highlight);
-    map(lambda c:c.highlight(self._highlight_color),cells);
-    self._highlight = cells;
+      
+  def set_current_page (self,page):
+    self._maintab.showPage(page.wtop());
     
   def allocate_cells (self,nrow=1,ncol=1,position=None,avoid_pos=None,
                            newcell=False,newpage=False,udi=''):
@@ -169,9 +161,16 @@ class Workspace (object):
     # is an explicit cell specified?
     if position:
       (page,x,y) = position;
+      if isinstance(page,Timba.Grid.Page):
+        self.set_current_page(page);
+      else:  # if page specified, create new one, else use current
+        if page:
+          page = self.add_page();
+        else:
+          page = self.current_page();
       return page.alloc_cells((x,y),nrow=nrow,ncol=ncol);
     # no, do we need a new page?
-    if newpage:
+    elif newpage:
       self.add_page();
     # find suitable cell(s) and return
     if avoid_pos is not None:

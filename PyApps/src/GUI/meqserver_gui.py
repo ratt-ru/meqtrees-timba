@@ -243,14 +243,14 @@ class meqserver_gui (app_proxy_gui):
     # --- Bookmarks menu
     self._qa_addbkmark = addbkmark = QAction(pixmaps.bookmark_add.iconset(),"Add bookmark",Qt.ALT+Qt.Key_B,self);
     addbkmark.addTo(bookmarks_menu);
-    self._qa_addpagemark = addpagemark = QAction(pixmaps.bookmark_toolbar.iconset(),"Add bookmark for page",Qt.ALT+Qt.CTRL+Qt.Key_B,self);
+    self._qa_addpagemark = addpagemark = QAction(pixmaps.bookmark_toolbar.iconset(),"Add pagemark for this page",Qt.ALT+Qt.CTRL+Qt.Key_B,self);
     addpagemark.addTo(bookmarks_menu);
     QObject.connect(addbkmark,SIGNAL("activated()"),self._add_bookmark);
     QObject.connect(addpagemark,SIGNAL("activated()"),self._add_pagemark);
     QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self._gw_reset_bookmark_actions);
     QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self._gw_reset_bookmark_actions);
     QObject.connect(self.gw.wtop(),PYSIGNAL("itemSelected()"),self._gw_reset_bookmark_actions);
-    QObject.connect(self.gw.wtop(),PYSIGNAL("pageShown()"),self._gw_reset_bookmark_actions);
+    QObject.connect(self.gw.wtop(),SIGNAL("currentChanged(QWidget*)"),self._gw_reset_bookmark_actions);
     addbkmark.setEnabled(False);
     addpagemark.setEnabled(False);
     # bookmark manager
@@ -259,6 +259,8 @@ class meqserver_gui (app_proxy_gui):
     # copy of current bookmark record
     self._bookmarks_rec = None;
     QObject.connect(self._bookmarks,PYSIGNAL("updated()"),self._save_bookmarks);
+    QObject.connect(self._bookmarks,PYSIGNAL("showBookmark()"),self._show_bookmark);
+    QObject.connect(self._bookmarks,PYSIGNAL("showPagemark()"),self._show_pagemark);
     
     # --- Debug menu
     self.treebrowser._qa_dbg_enable.addTo(debug_menu);
@@ -269,7 +271,7 @@ class meqserver_gui (app_proxy_gui):
     attach_gdb.setEnabled(False); # for now
     
     # --- Help menu
-    help_menu.insertItem(QWhatsThis.whatsThisButton(self).iconSet(),
+    help_menu.insertItem(self.treebrowser.whatsthisbutton().iconSet(),
                               "What's &This",self.whatsThis,Qt.SHIFT+Qt.Key_F1);
     
     # populate menus from plugins                          
@@ -302,35 +304,77 @@ class meqserver_gui (app_proxy_gui):
       if not meqgui.isBookmarkable(item.udi):
         caption = "Can't set bookmark";
         text = "Item <b>"+item.name+"<b> is transient and thus cannot be bookmarked";
-        QMessage(self,caption,text,QMessageBox.Cancel);
+        QMessageBox.warning(self,caption,text,QMessageBox.Cancel);
       else:
         vname = getattr(item.viewer,'viewer_name',item.viewer.__name__);
         name = "%s [%s]" % (item.name,vname);
         self._bookmarks.add(name,item.udi,item.viewer);
 
   def _add_pagemark (self):
-    pass;
+    if self.gw.isVisible():
+      page = self.gw.current_page();
+      (nl,nrow,ncol) = page.current_layout();
+      _dprint(2,'creating pagemark for layout',nrow,ncol);
+      pagelist = [];
+      for irow in range(nrow):
+        for icol in range(ncol):
+          cell = page.get_cell(irow,icol);
+          item = cell.content_dataitem();
+          if not cell.leader() and item and meqgui.isBookmarkable(item.udi):
+            viewer = item.viewer;
+            vname = getattr(viewer,'viewer_name',viewer.__name__);
+            _dprint(3,irow,icol,item.udi,vname);
+            pagelist.append(record(udi=item.udi,viewer=vname,pos=(irow,icol)));
+      if pagelist:
+        name = self._bookmarks.generatePageName();
+        (name,ok) = QInputDialog.getText("Setting pagemark",
+                    "Enter name for new pagemark",QLineEdit.Normal,name);
+        if ok:
+          self._bookmarks.addPage(str(name),pagelist);
+      else:
+        caption = "Can't set pagemark";
+        text = "Current page does not have any bookmarkable content";
+        QMessageBox.warning(self,caption,text,QMessageBox.Cancel);
       
   def _save_bookmarks (self):
     """saves current bookmarks to forest state""";
+    _dprint(2,'saving bookmarks');
     self._bookmarks_rec = self._bookmarks.getList();
     meqds.set_forest_state("bookmarks",self._bookmarks_rec);
     
+  def _show_bookmark (self,udi,viewer):
+    item = meqgui.makeDataItem(udi,viewer=viewer);
+    Grid.addDataItem(item,show_gw=True);
+    
+  def _show_pagemark (self,pagelist):
+    self.gw.show();
+    if self.gw.current_page().has_content():
+      self.gw.add_page();
+    # preset page layout
+    (nrow,ncol) = (0,0);
+    for rec in pagelist:
+      nrow = max(nrow,rec.pos[0]);
+      ncol = max(ncol,rec.pos[1]);
+    self.gw.current_page().set_layout(nrow+1,ncol+1);
+    for rec in pagelist:
+      item = meqgui.makeDataItem(rec.udi,viewer=rec.viewer);
+      Grid.addDataItem(item,position=(0,rec.pos[0],rec.pos[1]));
+    self.gw.current_page().rearrange_cells();
+    
   def _gw_reset_bookmark_actions (self,dum=None):
     # figure out if Add bookmark is enabled
-    enable_bkmark = False;
+    enable_bkmark = enable_pgmark = False;
     if self._connected and self.gw.isVisible():
       item = Grid.Services.getHighlightedItem();
       if item:
         enable_bkmark = meqgui.isBookmarkable(item.udi);
         if enable_bkmark:
           self._qa_addbkmark.setMenuText("Add bookmark for "+item.name);
+      enable_pgmark = self.gw.current_page().has_content();
     self._qa_addbkmark.setEnabled(enable_bkmark);
     if not enable_bkmark:
       self._qa_addbkmark.setMenuText("Add bookmark");
-    # figure out if Add bookmark for page is enabled
-    # self._qa_addpagemark.setEnabled(self._connected and self.gw.isVisible());
-    self._qa_addpagemark.setEnabled(False);
+    self._qa_addpagemark.setEnabled(enable_pgmark);
         
   def _connected_event (self,ev,value):  
     app_proxy_gui._connected_event(self,ev,value);
@@ -408,7 +452,7 @@ class meqserver_gui (app_proxy_gui):
     self.update_node_state(value,ev);
     if self.resultlog.enabled:
       txt = '';
-      name = getattr(value,'name','') or '<unnamed>';
+      name = getattr(value,'name','') or "#" + str(value.nodeindex);
       cls  = getattr(value,'class','') or '?';
       rqid = str(getattr(value,'request_id',None)) or None;
       txt = ''.join((name,' <',cls.lower(),'>'));
@@ -418,7 +462,7 @@ class meqserver_gui (app_proxy_gui):
         txt = ''.join((txt,' rqid:',rqid));
         desc = desc + '; rqid: ' + rqid;
         caption = caption + ( ' <small>(rqid: %s)</small>' % (rqid,) );
-      udi = meqds.snapshot_udi(value);
+      udi = meqds.snapshot_udi(value,rqid=rqid,count=self.resultlog.event_count());
       self.resultlog.add(txt,content=value,category=Logger.Event,
         udi=udi,name=name,desc=desc,caption=caption,viewopts=meqgui.defaultResultViewopts);
       wtop = self.resultlog.wtop();

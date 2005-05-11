@@ -38,10 +38,8 @@ class Bookmark (QObject):
       else:
         self.iconset = QIconSet;
         self.enabled = False;
-      
   def show(self,**kws):
-    item = meqgui.makeDataItem(self.rec.udi,viewer=self.viewer);
-    Grid.addDataItem(item,show_gw=True,**kws);
+    self.parent().emit(PYSIGNAL("showBookmark()"),(self.rec.udi,self.rec.viewer));
 
 class Pagemark (QObject):
   iconset = pixmaps.bookmark_toolbar.iconset;
@@ -51,8 +49,8 @@ class Pagemark (QObject):
     QObject.connect(self,PYSIGNAL("updated()"),parent,PYSIGNAL("updated()"));
     self.name = name;
     self.rec = record(name=name,page=page);
-  def show(self,**kws):
-    pass;
+  def show (self,**kws):
+    self.parent().emit(PYSIGNAL("showPagemark()"),(self.rec.page,));
 
 class BookmarkFolder (QObject):
   iconset = pixmaps.bookmark_folder.iconset;
@@ -65,6 +63,8 @@ class BookmarkFolder (QObject):
     self._initial_menu_size = self._menu.count();
     if load is not None:
       self.load(load);
+    QObject.connect(self,PYSIGNAL("showBookmark()"),self.parent(),PYSIGNAL("showBookmark()"));
+    QObject.connect(self,PYSIGNAL("showPagemark()"),self.parent(),PYSIGNAL("showPagemark()"));
     
   def load (self,bklist):
     """loads bookmarks from list""";
@@ -82,7 +82,7 @@ class BookmarkFolder (QObject):
       # add all items here too!
       # determine type
       if hasattr(item,'page'):  # page bookmark
-        self.addItem(Pagemark(name,item.list,self),quiet=True);
+        self.addItem(Pagemark(name,item.page,self),quiet=True);
       elif hasattr(item,'folder'): # folder
         self.addItem(BookmarkFolder(name,self,load=item.folder),quiet=True);
       elif hasattr(item,'udi'): # bookmark
@@ -131,4 +131,12 @@ class BookmarkFolder (QObject):
   def getMenu (self):
     """returns popup menu containing all items.""";
     return self._menu;
+    
+  def generatePageName (self):
+    """convenience function to generate a default name for a new pagemark.""";
+    # use list comprehension to count the number of pagemarks
+    count = len([item for item in self._bklist if isinstance(item,Pagemark)]);
+    return "Page " + str(count+1);
+    
+    
     
