@@ -197,8 +197,7 @@ public:
 
   // this function applies to one of the axes of the funklet and is called in do_evaluate
   //  in specific subclasses of Polc
-  virtual void axis_function(int axis, LoVec_double & grid) const {    cdebug(0)<<"not changing grid "<<endl;
-}
+  virtual void axis_function(int axis, LoVec_double & grid) const {   }
 
 protected:
   Record::protectField;  

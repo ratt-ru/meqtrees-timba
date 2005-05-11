@@ -1,9 +1,11 @@
 
 #ifndef MEQ_POLCLOG_H
 #define MEQ_POLCLOG_H
-
 //# Includes
 #include <MEQ/Polc.h>
+#include <Common/lofar_vector.h>
+
+
 
 #pragma aidgroup Meq
 #pragma type #Meq::PolcLog
@@ -13,7 +15,6 @@
 
 namespace Meq 
 { 
-
 
   class PolcLog : public Polc
   {
@@ -31,11 +32,13 @@ namespace Meq
   
 
   //constructors
-  PolcLog (){}
-  PolcLog (const Polc &other,int flags=0,int depth=0): Polc(other,flags,depth){}
+  PolcLog ();
+  PolcLog (const Polc &other,int flags,int depth);
   ~PolcLog(){}
     
     virtual void axis_function(int axis, LoVec_double & grid) const ;  
+  private:
+    double scale0;//scale 
   };
 }
  // namespace Meq
