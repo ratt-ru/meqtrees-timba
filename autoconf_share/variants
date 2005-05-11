@@ -2,6 +2,7 @@ gnu.compiler.conf: CXX=/usr/bin/g++
 kcc.compiler.conf:
 icc.compiler.conf:
 xlc.compiler.conf: CC=blrts_xlc CXX=blrts_xlC
+blrts.compiler.conf: CC=blrts_xlc CXX=blrts_xlC
 
 profile.variant.conf:	  $(standard) $(profile) $(mpe)
 debug.variant.conf:	  $(standard) $(debug)
