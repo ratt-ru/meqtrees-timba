@@ -23,7 +23,7 @@ _dbg = verbosity(0,name='node_fiddle');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-solverstart =3;
+solverstart =4;
 
 
 
@@ -85,6 +85,12 @@ class ParmFiddler (browsers.GriddedPlugin):
     self.parmtable.setFocusStyle(QTable.FollowStyle);
     self.parmtable.setSelectionMode (QTable.MultiRow );
     self._menu=QPopupMenu(self.parmtable);
+    self._menu.insertItem(pixmaps.publish.iconset(),"Publish",self.publish_selected);
+    tooltip="invert publishing of all selected rows";
+    QToolTip.add(self._menu,tooltip);
+   
+    tooltip="Double Click to get complete funklet";
+    QToolTip.add(self.parmtable,tooltip);
     QObject.connect( self.parmtable, SIGNAL("selectionChanged()"), self.parmSetIndex )
     QObject.connect( self.parmtable, SIGNAL("doubleClicked(int, int, int, const QPoint &)"), self.parmSelected )
     QObject.connect( self.parmtable, SIGNAL("clicked(int, int, int, const QPoint &)"), self.parmClicked)
@@ -94,6 +100,8 @@ class ParmFiddler (browsers.GriddedPlugin):
 
     self.labelParm = QLabel("no parm selected", self.sliderframe ,"labelParm");
     self.c00Text = QLabel(self.sliderframe ,"c00text");
+    tooltip="Selected Parm";
+    QToolTip.add(self.labelParm,tooltip);
     alignment = Qt.AlignLeft|Qt.SingleLine;
     self.c00Text.setAlignment(alignment);
     self.labelParm.setAlignment(alignment);
@@ -102,6 +110,8 @@ class ParmFiddler (browsers.GriddedPlugin):
     
   
     self.slider1 = QSlider (self.sliderframe,"slider1");
+    tooltip="Adjust c00 of selected Parm and reexecute";
+    QToolTip.add(self.slider1,tooltip);
     self.slider1.setMinValue ( -50 );
     self.slider1.setMaxValue ( 50 );
 
@@ -117,21 +127,29 @@ class ParmFiddler (browsers.GriddedPlugin):
     self.spinframe = QHBox(self.sliderframe);
     self.labelSpin =  QLabel("stepsize:", self.spinframe ,"labelSpin");
     self.stepsizeList = QComboBox(False, self.spinframe ,"stepsizeList");
+    tooltip="Adjust stepsize of slider";
+    QToolTip.add(self.stepsizeList,tooltip);
     QObject.connect(self.stepsizeList,SIGNAL("activated(int)"),self.changeStepsize);
     self.fillstepsizelist();
     self.stepsize=1.;
 
 
     self.enable_exec = QCheckBox("reexecute",self.sliderframe, "enable_exec");
+    tooltip="If checked, node is executed after change";
+    QToolTip.add(self.enable_exec,tooltip);
     self.enable_exec.setEnabled(False);
     
     self.ButtonFrame = QHBox(self.sliderframe);
         
     self.buttonOk = QPushButton(self.ButtonFrame,"buttonOk")
     self.buttonOk.setText('Execute');
+    tooltip="executes node";
+    QToolTip.add(self.buttonOk,tooltip);
 
     self.buttonReset = QPushButton(self.ButtonFrame,"buttonReset")
     self.buttonReset.setText('Zero');
+    tooltip="sets all coefficients of selected Parm to 0";
+    QToolTip.add(self.buttonReset,tooltip);
     self.buttonOk.setEnabled(False);
     self.buttonReset.setEnabled(False);
     QObject.connect(self.buttonOk,SIGNAL("clicked()"),self.do_reexecute);
@@ -227,6 +245,14 @@ class ParmFiddler (browsers.GriddedPlugin):
         self.parmtable.horizontalHeader () .setLabel(0,"name");
         self.parmtable.horizontalHeader () .setLabel(1,"c00");
         self.parmtable.horizontalHeader () .setLabel(2,"shape");
+        self.parmtable.horizontalHeader () .setLabel(3,pixmaps.publish.iconset(),"");
+        self.parmtable.setColumnWidth(0,100);
+        self.parmtable.setColumnWidth(1,200);
+        self.parmtable.setColumnWidth(2,60);
+        self.parmtable.setColumnWidth(3,25);
+#        self.parmtable.horizontalHeader () .setLabel(3,"i");
+        tooltip="click to sort";
+        QToolTip.add(self.parmtable.horizontalHeader (),tooltip);
         QObject.connect( self.parmtable.horizontalHeader (),SIGNAL("released(int)"),self.sortColumn);
         if self._currentparm:
             self._currentparm.reject();
@@ -292,12 +318,12 @@ class ParmFiddler (browsers.GriddedPlugin):
       if(checknode>node.name):
         # store in alphabetic order
         self._parmlist.insert(i,node.name);
-        self._parmdict[node.name] = {'node' : node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','groups':[],'row':-1};
+        self._parmdict[node.name] = {'node' : node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','publish':0,'groups':[],'row':-1};
         return True;
 
     self._parmlist.append(node.name);
   
-    self._parmdict[node.name] = {'node':node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','groups':[],'row':-1};
+    self._parmdict[node.name] = {'node':node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','publish':0,'groups':[],'row':-1};
       
           
     return True;
@@ -322,9 +348,14 @@ class ParmFiddler (browsers.GriddedPlugin):
           solvers = self._parmdict[parmkey]['solvers'];
           c00 =  self._parmdict[parmkey]['c00'];
           shape =  self._parmdict[parmkey]['shape'];
+          publish =  self._parmdict[parmkey]['publish'];
           self.parmtable.setText( parmnr,0,parm.name );
           self.parmtable.setText( parmnr,1,str(c00) );
           self.parmtable.setText( parmnr,2,shape );
+          if publish:
+            self.parmtable.setItem(parmnr,3,pixmaps.publish.iconset());
+          else:
+            self.parmtable.clearCell(parmnr,3);
           self._parmdict[parmkey]['row']=parmnr;
               
           parmnr+=1;
@@ -357,8 +388,14 @@ class ParmFiddler (browsers.GriddedPlugin):
     c00=self._parmdict[parmkey]['c00'];
     shape =  self._parmdict[parmkey]['shape'];
     solvers = self._parmdict[parmkey]['solvers'];
+    publish =  self._parmdict[parmkey]['publish'];
     self.parmtable.setText( row,1,str(c00) );
     self.parmtable.setText( row,2,shape );
+    if publish:
+      self.parmtable.setPixmap(row,3,pixmaps.publish.pm());
+    else:
+      self.parmtable.clearCell(row,3);
+ 
     for solver in self._solverdict.keys():
       col = self._solverdict[solver]['col'];
       checkbutton = self.parmtable.item(row,col);
@@ -406,6 +443,7 @@ class ParmFiddler (browsers.GriddedPlugin):
       shapestr="["+str(shapex)+","+str(shapey)+"]";
       self._parmdict[node.name]['c00']=coeff[0][0];
       self._parmdict[node.name]['shape']=shapestr;
+      self._parmdict[node.name]['publish']=node.is_publishing();
       nodegroups=make_hiid_list(nodegroups);
       self._update_subscribedsolvers(node,nodegroups);
 
@@ -535,9 +573,9 @@ class ParmFiddler (browsers.GriddedPlugin):
     if button == Qt.LeftButton:
       self.leftMouse(row,col);
     if button == Qt.RightButton:
-      self.rightMouse(row,col);
+      self.rightMouse(row,col,mousePos);
     if button == Qt.MidButton:
-      self.rightMouse(row,col);
+      self.rightMouse(row,col,mousePos);
       
 
     
@@ -589,12 +627,18 @@ class ParmFiddler (browsers.GriddedPlugin):
         meqds.set_node_state(parm,node_groups=hiid(0));
         meqds.set_node_state(parm,solvable=False);
       
-  def rightMouse(self,row,col,mousePos=0):
-    #popup publish
-    pass
-    #self._menu.popup();
+  def rightMouse(self,row,col,mousePos):
+    self._menu.popup(mousePos);
        
-
+  def publish_selected(self):
+    #get selected rows
+    for parmkey in self._parmlist:
+#      if not self._parmdict[parmkey]['publish']:
+        if self.parmtable.isRowSelected(self._parmdict[parmkey]['row']):
+          cmd = record(name=parmkey,get_state=True,enable=not self._parmdict[parmkey]['publish']);
+          mqs().meq('Node.Publish.Results',cmd,wait=False);
+     
+  
   def getparms(self):
     if not self._parmlist:
         QMessageBox.warning(self.wtop(),
