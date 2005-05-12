@@ -212,14 +212,14 @@ public:
   
     //##ModelId=400E53550189
   const VellSet & vellSet (int i) const
-    { return pvellsets_->deref()[i].as<VellSet>(); }
+    { return pvellsets_->deref().as<VellSet>(i); }
   
   VellSet::Ref vellSetRef (int i) const
-    { return pvellsets_->deref()[i].ref(); }
+    { return pvellsets_->deref().getObj(i); }
   
     //##ModelId=400E53550193
   VellSet & vellSetWr (int i)
-    { return wrVellSets()[i].as_wr<VellSet>(); }
+    { return wrVellSets().as<VellSet>(i); }
   
     //##ModelId=400E5355019D
   const VellSet & setVellSet (int i,const VellSet *pvs,int flags=0)
