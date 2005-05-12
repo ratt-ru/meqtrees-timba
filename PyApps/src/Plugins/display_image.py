@@ -484,6 +484,8 @@ class QwtImagePlot(QwtPlot):
         self.iteration_number = None
         self._active_plane = None
         self._active_perturb = None
+        self._mhz = False
+        self._khz = False
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -912,7 +914,7 @@ class QwtImagePlot(QwtPlot):
 	  xpos1 = xpos
 	  if not self.split_axis is None:
 	    if xpos1 >  self.split_axis:
-	      xpos1 = xpos1 % self.split_axis
+	        xpos1 = xpos1 - self.delta_vells
           temp_str = result + "x =%+.2g" % xpos1
           result = temp_str
           temp_str = result + " y =%+.2g" % ypos
@@ -1406,6 +1408,14 @@ class QwtImagePlot(QwtPlot):
       self.vells_end_freq  =  self._vells_rec.cells.domain.freq[1]
       self.vells_start_time = self._vells_rec.cells.domain.time[0] 
       self.vells_end_time  =  self._vells_rec.cells.domain.time[1]
+      if self.vells_start_freq > 1.0e6:
+        self.vells_start_freq = self.vells_start_freq / 1.0e6
+        self.vells_end_freq = self.vells_end_freq / 1.0e6
+        self._mhz = True
+      elif self.vells_start_freq > 1.0e3:
+        self.vells_start_freq = self.vells_start_freq / 1.0e3
+        self.vells_end_freq = self.vells_end_freq / 1.0e3
+        self._khz = True
 
       self.vells_freq = (self.vells_start_freq,self.vells_end_freq)
       self.vells_time = (self.vells_start_time,self.vells_end_time)
@@ -1661,18 +1671,23 @@ class QwtImagePlot(QwtPlot):
         if complex_type and self._display_type != "brentjens":
           if self._vells_plot:
 	    if self._x_axis is None:
-              self.setAxisTitle(QwtPlot.xBottom, 'Frequency (real followed by imaginary)')
+              if self._mhz:
+                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(MHz): (real followed by imaginary)')
+              elif self._khz:
+                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(KHz): (real followed by imaginary)')
+              else:
+                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(Hz): (real followed by imaginary)')
 	    else:  
               self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
 	    if self._y_axis is None:
               self.setAxisTitle(QwtPlot.yLeft, 'Time')
 	    else:
               self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
-	    self.vells_end_freq = 2 * self.vells_end_freq
+            self.myXScale = ComplexScaleSeparate(self.vells_start_freq,self.vells_end_freq)
+            self.delta_vells = self.vells_end_freq - self.vells_start_freq
+	    self.vells_end_freq = self.vells_start_freq + 2 * self.delta_vells
 	    self.vells_freq = (self.vells_start_freq,self.vells_end_freq)
-            delta_vells = self.vells_end_freq - self.vells_start_freq
-            self.split_axis = self.vells_start_freq  + 0.5 * delta_vells
-            self.myXScale = ComplexScaleDraw(self.split_axis)
+            self.split_axis = self.vells_start_freq  + self.delta_vells
             self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
           else:
 	    if self._x_axis is None:
@@ -1704,7 +1719,12 @@ class QwtImagePlot(QwtPlot):
         else:
           if self._vells_plot:
 	    if self._x_axis is None:
-              self.setAxisTitle(QwtPlot.xBottom, 'Frequency')
+              if self._mhz:
+                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(MHz)')
+              elif self._khz:
+                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(KHz)')
+              else:
+                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(Hz)')
 	    else:  
               self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
 	    if self._y_axis is None:
@@ -1736,7 +1756,12 @@ class QwtImagePlot(QwtPlot):
         num_elements = n_rows*n_cols
         if self._vells_plot:
           if is_frequency:
-            self.setAxisTitle(QwtPlot.xBottom, 'Frequency')
+            if self._mhz:
+              self.setAxisTitle(QwtPlot.xBottom, 'Frequency(MHz)')
+            elif self._khz:
+              self.setAxisTitle(QwtPlot.xBottom, 'Frequency(KHz)')
+            else:
+              self.setAxisTitle(QwtPlot.xBottom, 'Frequency(Hz)')
             delta_vells = self.vells_end_freq - self.vells_start_freq
             x_step = delta_vells / n_rows 
             start_freq = self.vells_start_freq + 0.5 * x_step
