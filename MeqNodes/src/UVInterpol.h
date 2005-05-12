@@ -31,7 +31,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::UVInterpol
-#pragma aids UVInterpol Map Count Additional Info UVImage UVZ UVDelta
+#pragma aids UVInterpol Map Count Additional Info UVImage UVZ UVDelta UVCurvature
 
 namespace Meq {
 
@@ -80,7 +80,29 @@ public:
 
   void UVInterpol::fillVells2(const std::vector<Result::Ref> &fchildres, 
 			      Vells &fvells1, Vells &fvells2, Vells &fvells3, 
-			      Vells &fvells4, const Cells &fcells);
+			      Vells &fvells4, Vells &fvells5, const Cells &fcells);
+
+  void UVInterpol::fillVells3(const std::vector<Result::Ref> &fchildres, 
+			      Vells &fvells1, Vells &fvells2, Vells &fvells3, 
+			      Vells &fvells4, Vells &fvells5, const Cells &fcells);
+
+  void UVInterpol::interpolate(int &j, int &ni,int &imin, int &nj, int &jmin, LoMat_dcomplex &coeff, blitz::Array<dcomplex,3> &barr,LoVec_double uu,LoVec_double vv);
+
+  void UVInterpol::myludcmp(blitz::Array<double,2> &A,int n,blitz::Array<int,1> &indx);
+
+  void UVInterpol::mylubksb(blitz::Array<double,2> &A,int n,blitz::Array<int,1>&indx,blitz::Array<dcomplex,1> &B);
+
+  void UVInterpol::mysplie2(blitz::Array<double,1> &x1a, blitz::Array<double,1> &x2a, blitz::Array<dcomplex,2> &ya, int &m, int &n, blitz::Array<dcomplex,2> &y2a);
+
+  void UVInterpol::mysplin2(blitz::Array<double,1> &x1a, blitz::Array<double,1> &x2a, blitz::Array<dcomplex,2> &ya, blitz::Array<dcomplex,2> &y2a, int &m, int &n, double &x1, double &x2, dcomplex &y);
+
+  void UVInterpol::myspline(blitz::Array<double,1> &x, blitz::Array<dcomplex,1> &y,int &n, double yp1, double ypn, blitz::Array<dcomplex,1> &y2);
+
+void UVInterpol::mysplint(blitz::Array<double,1> &xa, blitz::Array<dcomplex,1> &ya, blitz::Array<dcomplex,1> &y2a, int &n, double &x, dcomplex &y);
+
+ void UVInterpol::mypolin2(blitz::Array<double,1> &x1a, blitz::Array<double,1> &x2a, blitz::Array<dcomplex,2> &ya, int m, int n, double &x1, double &x2, dcomplex &y, dcomplex &dy);
+
+ void UVInterpol::mypolint(blitz::Array<double,1> &xa, blitz::Array<double,1> &ya, int n, double &x, double &y, double &dy);
    
 };
 
