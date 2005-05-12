@@ -482,6 +482,8 @@ class QwtImagePlot(QwtPlot):
         self.array_parms = None
         self.metrics_rank = None
         self.iteration_number = None
+        self._active_plane = None
+        self._active_perturb = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -790,6 +792,8 @@ class QwtImagePlot(QwtPlot):
       plane_loc = id_string.find("go to plane")
       if plane_loc >= 0:
         plane = int( id_string[plane_loc+12:plane_loc+14])
+        self._active_plane = plane
+        self._active_perturb = None
 # get the shape tuple - useful if the Vells have been compressed down to
 # a constant
       self._shape = self._vells_rec.vellsets[plane]["shape"]
@@ -850,6 +854,7 @@ class QwtImagePlot(QwtPlot):
 # test if we have a numarray
           complex_type = False;
           perturbed_array_diff = None
+          self._active_perturb = perturb
           try:
             if self._vells_rec.vellsets[plane].perturbed_value[perturb].type() == Complex32:
               complex_type = True;
@@ -1455,16 +1460,18 @@ class QwtImagePlot(QwtPlot):
 
 
 # how many VellSet planes (e.g. I, Q, U, V would each be a plane) are there?
+        if self._active_plane is None:
+          self._active_plane = 0
         number_of_planes = len(self._vells_rec["vellsets"])
         _dprint(3, 'number of planes ', number_of_planes)
-        if self._vells_rec.vellsets[0].has_key("shape"):
-          self._shape = self._vells_rec.vellsets[0]["shape"]
+        if self._vells_rec.vellsets[self._active_plane].has_key("shape"):
+          self._shape = self._vells_rec.vellsets[self._active_plane]["shape"]
 
 # do we have flags for data	  
-        if self._vells_rec.vellsets[0].has_key("flags"):
+        if self._vells_rec.vellsets[self._active_plane].has_key("flags"):
 # test if we have a numarray
           try:
-            self._flags_array = self._vells_rec.vellsets[0].flags
+            self._flags_array = self._vells_rec.vellsets[self._active_plane].flags
             _dprint(3, 'self._flags_array ', self._flags_array)
             array_shape = self._flags_array.shape
             if len(array_shape) == 1 and array_shape[0] == 1:
@@ -1472,21 +1479,25 @@ class QwtImagePlot(QwtPlot):
               temp_array = asarray(temp_value)
               self._flags_array = resize(temp_array,self._shape)
           except:
-            temp_array = asarray(self._vells_rec.vellsets[0].flags)
+            temp_array = asarray(self._vells_rec.vellsets[self._active_plane].flags)
             self._flags_array = resize(temp_array,self._shape)
 
           self.setFlagsData(self._flags_array)
 
-# plot the first plane member
-        if self._vells_rec.vellsets[0].has_key("value"):
-          complex_type = False;
+	
+# plot the appropriate plane / perturbed value
+        complex_type = False;
+        if not self._active_perturb is None:
+          self._value_array = self._vells_rec.vellsets[self._active_plane].perturbed_value[self._active_perturb]
+        else:
+          if self._vells_rec.vellsets[self._active_plane].has_key("value"):
+            self._value_array = self._vells_rec.vellsets[self._active_plane].value
 # test if we have a numarray
-          try:
-            if self._vells_rec.vellsets[0].value.type() == Complex32:
+        try:
+            if self._value_array.type() == Complex32:
               complex_type = True;
-            if self._vells_rec.vellsets[0].value.type() == Complex64:
+            if self._value_array.type() == Complex64:
               complex_type = True;
-            self._value_array = self._vells_rec.vellsets[0].value
             _dprint(3, 'self._value_array ', self._value_array)
             array_shape = self._value_array.shape
             if len(array_shape) == 1 and array_shape[0] == 1:
@@ -1494,9 +1505,13 @@ class QwtImagePlot(QwtPlot):
               temp_array = asarray(temp_value)
               self._value_array = resize(temp_array,self._shape)
 
-          except:
-            temp_array = asarray(self._vells_rec.vellsets[0].value)
-            self._shape = self._vells_rec.vellsets[0]["shape"]
+        except:
+            temp_array = None
+            if self._active_perturb is None:
+              temp_array = asarray(self._vells_rec.vellsets[self._active_plane].value)
+            else:
+              temp_array = asarray(self._vells_rec.vellsets[self._active_plane].perturbed_value[self._active_perturb])
+            self._shape = self._vells_rec.vellsets[self._active_plane]["shape"]
             self._value_array = resize(temp_array,self._shape)
             if self._value_array.type() == Complex32:
               complex_type = True;
@@ -1512,8 +1527,14 @@ class QwtImagePlot(QwtPlot):
 #         self._flags_array[0,31] = 1.0
 #         self.setFlagsData(self._flags_array)
 
+        key = ""
+        if self._active_perturb is None:
           key = " value "
-          if complex_type:
+          self._label =  "plane " + str(self._active_plane) + key 
+        else:
+          key = " perturbed_value "
+          self._label =  "plane " + str(self._active_plane) + key + str(self._active_perturb)
+        if complex_type:
             _dprint(3,'handling complex array')
 #extract real component
             self._value_real_array = self._value_array.getreal()
@@ -1523,15 +1544,13 @@ class QwtImagePlot(QwtPlot):
             self._value_imag_array = self._value_array.getimag()
             self._z_imag_min = self._value_imag_array.min()
             self._z_imag_max = self._value_imag_array.max()
-            self._label = "plane " + str(0) + key 
             if self._solver_flag:
               self.array_plot(self._label, self._value_array, False)
             else:
               self.array_plot(self._label, self._value_array)
-          else:
+        else:
 #we have a real array
             _dprint(3,'handling real array')
-            self._label = "plane " + str(0) + key 
             self._z_real_min = self._value_array.min()
             self._z_real_max = self._value_array.max()
             if self._solver_flag:
