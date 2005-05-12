@@ -1406,8 +1406,10 @@ class QwtImagePlot(QwtPlot):
                                                                                 
       self.vells_start_freq = self._vells_rec.cells.domain.freq[0] 
       self.vells_end_freq  =  self._vells_rec.cells.domain.freq[1]
-      self.vells_start_time = self._vells_rec.cells.domain.time[0] 
-      self.vells_end_time  =  self._vells_rec.cells.domain.time[1]
+#     self.vells_start_time = self._vells_rec.cells.domain.time[0] 
+#     self.vells_end_time  =  self._vells_rec.cells.domain.time[1]
+      self.vells_start_time = 0
+      self.vells_end_time  =  self._vells_rec.cells.domain.time[1] - self._vells_rec.cells.domain.time[0]
       if self.vells_start_freq > 1.0e6:
         self.vells_start_freq = self.vells_start_freq / 1.0e6
         self.vells_end_freq = self.vells_end_freq / 1.0e6
@@ -1680,7 +1682,7 @@ class QwtImagePlot(QwtPlot):
 	    else:  
               self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
 	    if self._y_axis is None:
-              self.setAxisTitle(QwtPlot.yLeft, 'Time')
+              self.setAxisTitle(QwtPlot.yLeft, 'Time(sec): (relative to start)')
 	    else:
               self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
             self.myXScale = ComplexScaleSeparate(self.vells_start_freq,self.vells_end_freq)
@@ -1728,7 +1730,7 @@ class QwtImagePlot(QwtPlot):
 	    else:  
               self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
 	    if self._y_axis is None:
-              self.setAxisTitle(QwtPlot.yLeft, 'Time')
+              self.setAxisTitle(QwtPlot.yLeft, 'Time(sec): (relative to start)')
 	    else:
               self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
           else:
@@ -1769,7 +1771,7 @@ class QwtImagePlot(QwtPlot):
             for j in range(n_rows):
               self.x_index[j] = start_freq + j * x_step
           else:
-            self.setAxisTitle(QwtPlot.xBottom, 'Time')
+            self.setAxisTitle(QwtPlot.xBottom, 'Time(sec): (relative to start)')
             delta_vells = self.vells_end_time - self.vells_start_time
             x_step = delta_vells / n_cols 
             start_time = self.vells_start_time + 0.5 * x_step
