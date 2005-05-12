@@ -267,6 +267,7 @@ namespace Meq {
 
     };
     
+    valid = false;
     return valid;
 
   };
@@ -313,8 +314,8 @@ namespace Meq {
     //   the Patch Image is 15 times larger than the source it contains. 
     //   (since umax = 1 / delta_RA en du = 1 / RA_size) 
     //
-    const double RA_size = 0.0175; // rad
-    const double Dec_size = 0.0175; //rad
+    const double RA_size = 0.0173; // rad
+    const double Dec_size = 0.0177; //rad
 
     const double delta_RA = 1.0 / (freq_max * 2 * _umax / c0 + 1/RA_size);
     const double delta_Dec = 1.0 / (freq_max * 2 * _vmax / c0 + 1/Dec_size); 
@@ -411,12 +412,13 @@ namespace Meq {
       blitz::Array<double,1> arrDec = Decvells.as<double,1>();
 
       // Beware: in this rounding off a pixel may lie just outside the image
-      position(0)=int(nRA / 2.0  + 0.5)+int(arrRA(0)+0.5); // int(pixel(0)+0.5);
-      position(1)=int(nDec / 2.0 + 0.5)+int(arrDec(0)+0.5); // int(pixel(1)+0.5);
+      position(0)=int(nRA / 2.0  + 0.5) + int(arrRA(0)+0.5); // int(pixel(0)+0.5);
+      position(1)=int(nDec / 2.0 + 0.5) + int(arrDec(0)+0.5); // int(pixel(1)+0.5);
       position(2)=int(pixel(2)+0.5);
       position(3)=int(pixel(3)+0.5);
     
-      _patch->putAt(5.0025*(i+1), position);
+      //_patch->putAt(5.0025*(i+1), position);
+      _patch->putAt(1.0, position);
 
     };
 	
