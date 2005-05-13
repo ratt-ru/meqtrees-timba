@@ -18,8 +18,10 @@ from qt import *
 # implements a multi-page, multi-panel viewing grid
 #
 class Workspace (object):
-  # define a toolbutton that accepts data drops
-  DataDropButton = Timba.GUI.widgets.DataDroppableWidget(QToolButton);
+  # define a toolbutton that accepts drops of DataItems
+  class DataDropButton(Timba.GUI.widgets.DataDroppableWidget(QToolButton)):
+    def accept_drop_item_type (self,itemtype):
+      return issubclass(itemtype,Timba.Grid.DataItem);
         
   def __init__ (self,parent,max_nx=4,max_ny=4,use_hide=None):
     # dictionary of UDIs -> list of GridDataItem objects 
@@ -41,16 +43,16 @@ class Workspace (object):
         tooltip="open new page. You can also drop data items here.",
         class_=self.DataDropButton,
         click=self.add_page);
-    newpage._dropitem = curry(Timba.Grid.Services.addDataItem,newpage=True);
-    QWidget.connect(newpage,PYSIGNAL("dataItemDropped()"),
+    newpage._dropitem = xcurry(Timba.Grid.Services.addDataItem,_argslice=slice(0,1),newpage=True);
+    QWidget.connect(newpage,PYSIGNAL("itemDropped()"),
         newpage._dropitem);
     #------ new panels button
     self._new_panel = self.add_tool_button(Qt.TopLeft,pixmaps.view_right.pm(),
         tooltip="add more panels to this page. You can also drop data items here.",
         class_=self.DataDropButton,
         click=self._add_more_panels);
-    self._new_panel._dropitem = curry(Timba.Grid.Services.addDataItem,newcell=True);
-    QWidget.connect(self._new_panel,PYSIGNAL("dataItemDropped()"),
+    self._new_panel._dropitem = xcurry(Timba.Grid.Services.addDataItem,_argslice=slice(0,1),newcell=True);
+    QWidget.connect(self._new_panel,PYSIGNAL("itemDropped()"),
         self._new_panel._dropitem);
     #------ align button
     self.add_tool_button(Qt.TopLeft,pixmaps.view_split.pm(),

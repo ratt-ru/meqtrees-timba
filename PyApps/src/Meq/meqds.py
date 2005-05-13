@@ -322,6 +322,10 @@ def mqs ():
 # ----------------------------------------------------------------------
 # --- UDI management
 # ----------------------------------------------------------------------
+
+class UDI(str):
+  pass;
+
 _patt_Udi_NodeState = re.compile("^/(node|snapshot/[^/]+)/([^/]+)(/.*)?$");
 def parse_node_udi (udi):
   match = _patt_Udi_NodeState.match(udi);

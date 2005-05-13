@@ -95,7 +95,8 @@ class Logger(HierBrowser):
   Normal = 0;
   Event  = 1;
   Error  = 2;
-  _LogPixmaps =  { Normal:pixmaps.check, Error:pixmaps.exclaim };
+#  _LogPixmaps =  { Normal:pixmaps.gear, Error:pixmaps.round_red_cross };
+  _LogPixmaps =  { Error:pixmaps.red_round_cross };
   _LogCatNames = { Normal:"message",Event:"event",Error:"error" };
   def __init__(self,parent,name,
                click=None,udi_root=None,
@@ -179,8 +180,9 @@ class Logger(HierBrowser):
     self.set_log_limit(limit);
     # compile regex to match our udi pattern
     self._patt_udi = re.compile("/"+self._udi_root+"/(.*)$");
-    # define get_data_item method for the listview
-    self.wlistview().get_data_item = self.get_data_item;
+    # define get_drag_item methods for the listview
+    self.wlistview().get_drag_item = self.get_drag_item;
+    self.wlistview().get_drag_item = self.get_drag_item;
     
   def event_count (self):
     return self._event_count;
@@ -444,12 +446,15 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.statusbar = self.statusBar();
     ## self.pause_button = QToolButton(self.statusbar);
     ## self.pause_button.setAutoRaise(True);
-    self.status_label = QLabel(self.statusbar);
-    self.status_icon  = QLabel(self.statusbar);
-    self.status_icon.setFrameStyle(QFrame.NoFrame);
+    statholder = QHBox(self.statusbar);
+    statholder.setMargin(2);
+    self.status_icon  = QLabel(statholder);
+    self.status_label = QLabel(statholder);
+    # self.status_icon.setFrameStyle(QFrame.NoFrame);
     self.status_icon.setMinimumWidth(20);
     self.status_icon.setMaximumWidth(20);
     self.status_icon.setAlignment(QLabel.AlignVCenter|QLabel.AlignHCenter);
+    
                  
     ##    self.pause_button.setIconSet(pixmaps.pause_normal.iconset());
     ##    QToolTip.add(self.pause_button,"pause the application");
@@ -468,8 +473,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     ## self.statusbar.addWidget(self.pause_button,0,True);
     if _reloading_enabled:
       self.statusbar.addWidget(reloadbtn,0,True);
-    self.statusbar.addWidget(self.status_icon);
-    self.statusbar.addWidget(self.status_label);
+    self.statusbar.addWidget(statholder);
     
     #------ gridded workspace
     self.gw = gw = Grid.Workspace(splitter,max_nx=4,max_ny=4);
@@ -486,7 +490,8 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.show_workspace_button.setAutoRaise(True);
     maintab.setCornerWidget(self.show_workspace_button,Qt.BottomRight);
     QObject.connect(self.show_workspace_button,SIGNAL("clicked()"),self.gw.show);
-    QObject.connect(self.show_workspace_button,PYSIGNAL("dataItemDropped()"),self.display_data_item);
+    QObject.connect(self.show_workspace_button,PYSIGNAL("itemDropped()"),
+                    self.xcurry(self.display_data_item,_argslice=slice(0,1)));
     QToolTip.add(self.show_workspace_button,"show the viewer panel. You can also drop data items here.");
     
     splitter.setSizes([200,600]);

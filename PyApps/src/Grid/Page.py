@@ -47,9 +47,8 @@ class Page (object):
         row._cells.append(cell);
         cell._clear_slot = curry(self._clear_cell,cell);
         QWidget.connect(cell.wtop(),PYSIGNAL("closed()"),cell._clear_slot);
-        cell._drop_slot = curry(Timba.Grid.Services.addDataItem,
-                                gw=gw,position=pos);
-        QWidget.connect(cell.wtop(),PYSIGNAL("dataItemDropped()"),
+        cell._drop_slot = curry(self.drop_cell_item,cell);
+        QWidget.connect(cell.wtop(),PYSIGNAL("itemDropped()"),
                         cell._drop_slot);
         cell._cv_slot = curry(self.change_viewer,cell);                
         QWidget.connect(cell.wtop(),PYSIGNAL("changeViewer()"),cell._cv_slot);
@@ -64,10 +63,62 @@ class Page (object):
     return self._gw;
     
   def change_viewer (self,cell,dataitem,viewer):
-    dataitem.kill_viewer();
+    dataitem.cleanup();
     cell.wipe();
     Timba.Grid.Services.addDataItem(dataitem,viewer=viewer,
                   gw=self._gw,position=cell.grid_position());
+                  
+  def drop_cell_item (self,cell,item,event):
+    source_cell = getattr(event.source(),'_grid_cell',None);
+    if not isinstance(source_cell,Timba.Grid.Cell):
+      source_cell = None;
+    our_content = cell.content_dataitem();
+    # figure out if we need to swap source/destination cells
+    action = 0;
+    # dropping item from another cell: show menu for move/swap
+    if source_cell:
+      try: menu = self._cell_swap_menu;
+      except AttributeError:
+        menu = self._cell_swap_menu = QPopupMenu(self.wtop());
+        self._menu_slab = QLabel('',menu);
+        self._menu_slab.setAlignment(Qt.AlignCenter);
+        self._menu_slab.setFrameShape(QFrame.ToolBarPanel);
+        self._menu_slab.setFrameShadow(QFrame.Sunken);
+        self._menu_slab.setFrameShadow(QFrame.Sunken);
+        self._menu_slab.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Minimum);
+        menu.insertItem(self._menu_slab,100);
+        menu.insertItem(pixmaps.slick_redo.iconset(),"Move cell",1);
+        menu.insertItem(pixmaps.slick_editcopy.iconset(),"Duplicate cell",2);
+        menu.insertItem(pixmaps.slick_reload.iconset(),"Swap cells",3);
+        menu.insertItem(pixmaps.red_round_cross.iconset(),"Cancel drop",0);
+        menu.setAccel(Qt.Key_Escape,0);
+      self._menu_slab.setText("<nobr>dragging "+item.caption+"</nobr>");
+      menu.setItemVisible(2,our_content is not None); 
+      pos = cell.wtop().mapToGlobal(event.pos());
+      action = menu.exec_loop(pos);
+      # cancel selected or menu closed, do nothing
+      if action < 1:
+        return;
+    # clear our own cell
+    if our_content:
+      our_content.cleanup();
+      cell.wipe();
+    # if duplicate cell is selected, create a new data item
+    if action == 2:
+      item = Timba.Grid.DataItem(item);
+    # move cell is selected, clear source cell completely
+    elif action == 1:
+      if source_cell:
+        source_cell.close();
+    # swap is selected, move our content to source cell
+    elif action == 3:
+      item.cleanup();
+      source_cell.wipe();
+      source_pos = source_cell.grid_position();
+      Timba.Grid.Services.addDataItem(our_content,
+          gw=source_pos[0].gw(),position=source_pos);
+    # add content for this cell
+    Timba.Grid.Services.addDataItem(item,gw=self.gw(),position=cell.grid_position());
   
   def num_layouts (self):
     return len(self._layouts);

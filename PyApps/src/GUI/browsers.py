@@ -375,8 +375,9 @@ class HierBrowser (object):
                      self._show_context_menu);
 #    self._lv.connect(self._lv,SIGNAL('doubleClicked(QListViewItem*)'),
 #                     self.display_item);
-    # connect the get_data_item method for drag-and-drop
-    self._lv.get_data_item = WeakInstanceMethod(self.get_data_item);
+    # connect the get_drag_item method for drag-and-drop
+    self._lv.get_drag_item = self.get_drag_item;
+    self._lv.get_drag_item_type = self.get_drag_item_type;
     # this serves as a list of active items.
     # Populated in Item constructor, and also used by apply_limit, etc.
     self._lv._content_list = [];
@@ -424,9 +425,12 @@ class HierBrowser (object):
         _dprint(4,'  _content_map: ',lencont,' items');
       except AttributeError: pass;
     
-  def get_data_item (self,udi):
-    item = self._lv._content_map.get(udi,None);
+  def get_drag_item (self,key):
+    item = self._lv._content_map.get(key,None);
     return item and item.make_data_item();
+
+  def get_drag_item_type (self,key):
+    return key in self._lv._content_map and Timba.Grid.DataItem;
     
   def wlistview (self):
     return self._lv;

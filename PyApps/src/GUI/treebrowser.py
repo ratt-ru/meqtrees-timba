@@ -338,8 +338,9 @@ class TreeBrowser (QObject):
     QObject.connect(nlv,SIGNAL('contextMenuRequested(QListViewItem*,const QPoint &,int)'),
                      self._show_context_menu);
     QObject.connect(nlv,SIGNAL('currentChanged(QListViewItem*)'),self._set_recent_item);
-    # map the get_data_item method
-    nlv.get_data_item = self.get_data_item;
+    # map the get_drag_item methods
+    nlv.get_drag_item = self.get_drag_item;
+    nlv.get_drag_item_type = self.get_drag_item_type;
     #---------------------- setup color groups for items
     self._cg = {};
     # color group for stopped nodes
@@ -583,13 +584,16 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       cg.setColor(QColorGroup.Text,foreground);
     return (cg,palette);
     
-  def get_data_item (self,udi):
-    if udi == '/forest':
+  def get_drag_item (self,key):
+    if key == '/forest':
       return meqgui.makeForestDataItem();
-    elif udi.startswith('/node'):
-      (name,ni) = meqds.parse_node_udi(udi);
+    elif key.startswith('/node'):
+      (name,ni) = meqds.parse_node_udi(key);
       node = meqds.nodelist[name or ni];
       return meqgui.makeNodeDataItem(node);
+      
+  def get_drag_item_type (self,key):
+    return Timba.Grid.DataItem;
  
   def wtop (self):
     return self._wtop;

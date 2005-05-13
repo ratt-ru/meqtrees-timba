@@ -35,7 +35,7 @@ class Cell (object):
     "fontChanged(QFont)"    : cell font has been changed. The same signal is
                               emitted by the content widget.
     "changeViewer(viewer_class)": different viewer selected from "Dispay with" menu
-    "dataItemDropped(item)" : a dataitem has been dropped on the cell.
+    "itemDropped(item)"     : a dataitem has been dropped on the cell.
                                         
   In addition, a cell will connect PYSIGNAL("refresh()") from its content
   widget to the refresh function of its dataitem, if available. Thus cell
@@ -47,8 +47,9 @@ class Cell (object):
   # displays context menus, has toolbars, etc.
   DataDroppableMainWindow = DataDroppableWidget(QMainWindow);
   class TopLevelWidget (DataDroppableMainWindow):
-    def __init__ (self,parent,name=None):
+    def __init__ (self,cell,parent,name=None):
       Cell.DataDroppableMainWindow.__init__(self,parent,name,0);
+      self._cell = cell;
       self._menu = None;
     def set_context_menu (self,menu):
       self._menu = menu;
@@ -60,6 +61,54 @@ class Cell (object):
       ev.accept();
       if self._menu:
         self._menu.exec_loop(ev.globalPos());
+    def accept_drop_item_type (self,itemtype):
+      return issubclass(itemtype,Timba.Grid.DataItem);
+    def get_cell (self):
+      return self._cell;
+      
+  class DraggableCellLabel (QLabel):
+    def __init__ (self,cell,*args):
+      QLabel.__init__(self,*args);
+      self._grid_cell = cell;
+      self._pressed = None;
+      self._dragtimer = QTimer(self);
+      QObject.connect(self._dragtimer,SIGNAL("timeout()"),self._timeout);
+    # these are standard methods to support drags
+    def get_drag_item (self,key):
+      return self._grid_cell.content_dataitem();
+    def get_drag_item_type (self,key):
+      item = self._grid_cell.content_dataitem();
+      if item is None:
+        return None;
+      return type(item);
+    # process mouse and timer events to start a drag  
+    def mousePressEvent (self,ev):
+      if ev.button() == Qt.LeftButton \
+         and self._grid_cell.content_dataitem() is not None:
+        self._pressed = ev.pos();
+        self._dragtimer.start(QApplication.startDragTime(),True);
+    # mouse released, cancel drag  
+    def mouseReleaseEvent (self,ev):
+      self._pressed = None;
+      self._dragtimer.stop();
+    # mouse move, start drag if far enough      
+    def mouseMoveEvent (self,ev):
+      # start a drag if mouse has moved far enough
+      if self._pressed and ev.state() & Qt.LeftButton: 
+        dist = (self._pressed - ev.pos()).manhattanLength();
+        if dist >= QApplication.startDragDistance():
+          self._dragtimer.stop();
+          self._start_drag();
+    # timer fired, start drag if mouse still pressed
+    def _timeout (self):
+      if self._pressed:
+        self._start_drag();
+    # this method starts the drag  
+    def _start_drag (self):
+      item = self._grid_cell.content_dataitem();
+      if item is not None:
+        drag = QTextDrag(item.udi,self);
+        drag.drag();
       
   def __init__ (self,parent,gridpos,page=None,fixed_cell=False,notitle=False,noviewer=False):
     """constructor. 
@@ -86,7 +135,7 @@ class Cell (object):
     self._dataitem = None;
     self._parent_page = page;
     # init widgets
-    wtop = self._wtop = self.TopLevelWidget(parent,'cell '+str(id(self))+' top');
+    wtop = self._wtop = self.TopLevelWidget(self,parent,'cell '+str(id(self))+' top');
     wtop.hide();
     self.enable_viewers(not noviewer);
     QObject.connect(wtop,PYSIGNAL("clicked()"),self.exclusive_highlight);
@@ -104,7 +153,7 @@ class Cell (object):
     QObject.connect(refresh,SIGNAL("activated()"),self._dorefresh);
     # stretchable label
     self._toolbar.addSeparator();
-    self._label = QLabel("(empty)",self._toolbar);
+    self._label = self.DraggableCellLabel(self,"(empty)",self._toolbar);
     self._label.setAlignment(Qt.AlignLeft+Qt.AlignVCenter+Qt.SingleLine);
     self._label.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
     self._toolbar.addSeparator();
@@ -394,7 +443,7 @@ class Cell (object):
       # setup pin and close button
       self._pin.setVisible(True);
       self._close.setVisible(True);
-      self._float_act.setEnabled(True);
+      self._float_act.setVisible(True);
       # enable cell if data is available
       self.enable(dataitem.data is not None);
     else: # no dataitem, assume follower cell

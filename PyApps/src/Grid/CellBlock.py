@@ -163,7 +163,7 @@ class CellBlock (object):
     except AttributeError:
       self._float_window = float_window = Timba.Grid.Floater(self._gw.wtop());
       QObject.connect(float_window,PYSIGNAL("hidden()"),self._unfloat);
-      float_window.setCaption(self._dataitem.caption);
+      float_window.setCaption(self._dataitem.name);
       # allocate single cell or grid
       if self._totsize == 1: 
         # notitle=True: do not create cell titlebar

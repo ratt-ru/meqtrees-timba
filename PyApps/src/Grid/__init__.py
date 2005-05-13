@@ -47,39 +47,46 @@ class DataItem (object):
               viewopts[None]   applies to all viewers,
               viewopts[class]  applies to a specific class (overrides [None])
     """;
-    if self.refresh and not callable(self.refresh):
-      raise ValueError,'refresh argument must be a callable';
-    self.udi      = udi;
-    self.name     = name or udi;
-    self.caption  = caption or udi;
-    self.desc     = desc or self.name;
-    self.data     = data;
-    if viewopts is None:
-      viewopts = {};
-    self.viewopts = viewopts;
-    self.refresh_func = refresh;
-    # build list of compatible viewers
-    self.viewer_list = Services.getViewerList(datatype or data);
-    # if viewer specified by string, try to look it up
-    if isinstance(viewer,str):
-      vc = Services.getViewerByName(viewer);
-      if vc:
-        viewer = vc;
+    # copy-constructor form?
+    if isinstance(udi,DataItem):
+      for attr in ("udi","name","caption","desc","data","refresh_func",
+                   "viewer","viewopts","viewer_list"):
+        setattr(self,attr,getattr(udi,attr));
+    else: # else new item
+      if refresh and not callable(refresh):
+        raise ValueError,'refresh argument must be a callable';
+      self.udi      = udi;
+      self.name     = name or udi;
+      self.caption  = caption or udi;
+      self.desc     = desc or self.name;
+      self.data     = data;
+      if viewopts is None:
+        viewopts = {};
+      self.viewopts = viewopts;
+      self.refresh_func = refresh;
+      # build list of compatible viewers
+      self.viewer_list = Services.getViewerList(datatype or data);
+      # if viewer specified by string, try to look it up
+      if isinstance(viewer,str):
+        vc = Services.getViewerByName(viewer);
+        if vc:
+          viewer = vc;
+        else:
+          raise TypeError,"unknown viewer type "+viewer;
+      # if viewer not specified, try to select from list
+      if viewer is None:
+        if not self.viewer_list:
+          raise TypeError,"no viewers registered and none specified";
+        viewer = self.viewer_list[0];
       else:
-        raise TypeError,"unknown viewer type "+viewer;
-    # if viewer not specified, try to select from list
-    if viewer is None:
-      if not self.viewer_list:
-        raise TypeError,"no viewers registered and none specified";
-      viewer = self.viewer_list[0];
-    else:
-      if not callable(viewer):
-        raise TypeError,'viewer argument must be a callable';
-      # prepend to list
-      if viewer not in self.viewer_list:
-        self.viewer_list.insert(0,viewer);
-    self.viewer = viewer;
-    self.viewer_name = getattr(viewer,'viewer_name',viewer.__name__);
+        if not callable(viewer):
+          raise TypeError,'viewer argument must be a callable';
+        # prepend to list
+        if viewer not in self.viewer_list:
+          self.viewer_list.insert(0,viewer);
+      self.viewer = viewer;
+      self.viewer_name = getattr(viewer,'viewer_name',viewer.__name__);
+    # init other internal state
     self.viewer_obj = None;
   def __del__ (self):
     self.cleanup();

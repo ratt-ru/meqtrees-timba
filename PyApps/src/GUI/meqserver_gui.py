@@ -139,6 +139,7 @@ class meqserver_gui (app_proxy_gui):
   StatePixmaps = { None: pixmaps.stop, \
     treebrowser.AppState.Idle: pixmaps.grey_cross,
     treebrowser.AppState.Stream: pixmaps.spigot,
+    treebrowser.AppState.Execute: pixmaps.gear,
     treebrowser.AppState.Debug: pixmaps.breakpoint };
 
   def __init__(self,app,*args,**kwargs):
@@ -173,7 +174,7 @@ class meqserver_gui (app_proxy_gui):
     # add Result Log panel
     self.resultlog = Logger(self,"node snapshot log",limit=1000,scroll=False,
           udi_root='snapshot');
-    self.resultlog.wtop()._newres_iconset  = pixmaps.check.iconset();
+    self.resultlog.wtop()._newres_iconset  = pixmaps.gear.iconset();
     self.resultlog.wtop()._newres_label    = "Snapshots";
     self.resultlog.wtop()._newresults      = False;
     self.add_tab(self.resultlog.wtop(),"Snapshots",index=2);
@@ -291,7 +292,7 @@ class meqserver_gui (app_proxy_gui):
       
     # finally, add standard stuff to bottom of menus
     kernel_menu.insertSeparator();
-    exit = QAction(pixmaps.grey_round_cross.iconset(),"Quit browser",Qt.ALT+Qt.Key_Q,self);
+    exit = QAction(pixmaps.exit.iconset(),"Quit browser",Qt.ALT+Qt.Key_Q,self);
     exit.addTo(kernel_menu);
     QObject.connect(exit,SIGNAL("activated()"),self.close);
  
@@ -487,8 +488,7 @@ class meqserver_gui (app_proxy_gui):
     except AttributeError: pass;
     else:
       if self.app.state == treebrowser.AppState.Stream:
-        state = self.app.statestr.lower();
-        self.status_label.setText(' %s (%d) ' % (state,nt) ); 
+        self.status_label.setText(' streaming data (%d tiles) ' % (state,nt) ); 
         
   def update_node_state (self,node,event=None):
     meqds.reclassify_nodestate(node);

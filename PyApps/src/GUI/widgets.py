@@ -1,10 +1,15 @@
 from qt import *
+from Timba.utils import verbosity
+
+_dbg = verbosity(0,name='widgets');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
 
 # ====== DataDroppableWidget ===================================================
 # A metaclass implementing a data-droppable widget.
 # Use, e.g., DataDroppableWidget(QToolButton) to create a class that
-# subclasses QToolButton, handles data-drop events, and emits a
-# dataItemDropped() signal.
+# subclasses QToolButton, handles data-drop events, and emits an
+# itemDropped() signal.
 #
 def DataDroppableWidget (parent_class):
   class widgetclass (parent_class):
@@ -14,33 +19,80 @@ def DataDroppableWidget (parent_class):
       self._accept_drops_from_children = False;
     def setAcceptDropsFromChildren(self,value):
       self._accept_drops_from_children = value;
-    # Drag objects must be text drags containing a UDI, originating from 
-    # another widget (i.e., within the same app). The widget must implement a 
-    # get_data_item(udi) method.
+    # Drag objects must be text drags originating from another widget (i.e., 
+    # within the same app). The source widget must implement a 
+    # get_drag_item(key) method and a get_drag_item_type(key) method,
+    # where 'key' is a string containing the text of the drag.
+    # The method can return any object, or None for none, it is up to the
+    # subclass to deal with this.
     def dragEnterEvent (self,ev):
-      udi = QString();
+      key = QString();
       try: 
         wsrc = ev.source();
+        # refuse event if source widget does not define get_drag_item(),
+        # or drag is not a string
         try: 
-          if not (callable(wsrc.get_data_item) and QTextDrag.decode(ev,udi)):
+          if not callable(wsrc.get_drag_item) or not QTextDrag.decode(ev,key):
+            _dprint(3,'invalid drag or drag source');
             return;
         except AttributeError: return;
+        _dprint(3,'got drag key',str(key));
+        # if source widget is a child of ours, we may refuse the drop
         if not self._accept_drops_from_children:
-          while wsrc:
-            if wsrc is self:
+          ws = wsrc;
+          while ws:
+            if ws is self:
+              _dprint(3,'refusing drop from child widget');
               return;
-            wsrc = wsrc.parent();
-        ev.accept(True);
-      except AttributeError: pass;
-    # The text drag is decoded into a UDI, a data item is fetched from the 
-    # source using get_data_item(udi), and a dataItemDropped() signal is 
-    # emitted
+            ws = ws.parent();
+        # check if we accept this item
+        if hasattr(self,'accept_drop_item'):
+          item = wsrc.get_drag_item(str(key));
+          _dprint(3,'drag item is',item);
+          if item is not None and self.accept_drop_item(item):
+            _dprint(3,'accepted');
+            ev.accept(True);
+        elif hasattr(self,'accept_drop_item_type'):
+          itemtype = wsrc.get_drag_item_type(str(key));
+          _dprint(3,'drag item type is',itemtype);
+          if itemtype is not None and self.accept_drop_item_type(itemtype):
+            _dprint(3,'accepted');
+            ev.accept(True);
+        else:
+          _dprint(3,'no accept_() methods defined, accepting by default');
+          ev.accept(True);
+      except AttributeError: 
+        _dprint(3,'attribute error somewhere, rejecting drag');
+        pass;
+    # The text drag is decoded into a text key, an item is fetched from the 
+    # source using get_drag_item(key), and process_drop_item is called
     def dropEvent (self,ev):
-      udi = QString();
-      QTextDrag.decode(ev,udi);
-      item = ev.source().get_data_item(str(udi));
-      if item:
-        self.emit(PYSIGNAL("dataItemDropped()"),(item,));
+      key = QString();
+      if QTextDrag.decode(ev,key):
+        try: dragfunc = ev.source().get_drag_item;
+        except AttributeError: return;
+        item = dragfunc(str(key));
+        if item is not None:
+          self.process_drop_item(item,ev);
+        
+#     def accept_drop_item (self,item):
+#       """Provide this function to selectively accept drops based on item
+#       itself. Return False to reject item.""";
+#       return True;
+#       
+#     def accept_drop_item_type (self,itemtype):
+#       """Provide this function to selectively accept drops based on item
+#       type. Only called if accept_drop_item() is not defined. This is 
+#       usually more efficient than defining accept_drop_item() itself. 
+#       If neither accept_xxx() method is defined, True is assumed.
+#       Return False if item type is not supported.""";
+#       return True;
+      
+    def process_drop_item (self,item,event):
+      """This function is called when a drop occurs.
+      Default action is to emit an itemDropped() signal.""";
+      self.emit(PYSIGNAL("itemDropped()"),(item,event));
+      
   return widgetclass;
 
 
