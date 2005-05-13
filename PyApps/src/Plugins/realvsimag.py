@@ -86,6 +86,12 @@ class PrintFilter(QwtPlotPrintFilter):
 
 # class PrintFilter
 
+realvsimag_instructions = \
+'''The <b>visu</b> realvsimag and error plots plot real vs imaginary values for data points within a MeqTree. These plots are constructed from <b>visu</b>
+commands set to <b>MeqDataCollect</b> nodes. A single plot may combine data from many different nodes together. You may interact with a plot by clicking on the plot with your mouse. <br><br>
+Button 1 (Left): If you click the <b>left</b> mouse button on a location inside a plot, you obtain the provenance of the point nearest the location. This information will appear at the lower left hand corner of the display. The information is shown until you release the mouse button. <br><br>
+Button 3 (Right):Click the <b>right</b> mouse button in a plot window to get a context menu with options for printing, or zooming the display. The zoom display option acts as a toggle between having zooming on or off. Selecting the Printer option from the Context Menu causes the standard Qt printer widget to appear. That widget will enable you print out a copy of your plot, or save the plot in Postscript format to a file.'''
+
 class realvsimag_plotter(object):
   """ a class to plot real vs imaginary values for data points """
 
@@ -217,6 +223,9 @@ class realvsimag_plotter(object):
 
 # used for errors plot testing 
         self.gain = 1.0
+
+# add on-line instructions
+        QWhatsThis.add(self.plot, realvsimag_instructions)
 
   # __init__()
 
@@ -430,13 +439,14 @@ class realvsimag_plotter(object):
   def slotMousePressed(self, e):
     """ Mouse press processing instructions go here"""
 
+    print' in slotMousePressed'
     _dprint(2,' in slotMousePressed');
     _dprint(3,' slotMousePressed event:',e);
 # we use a middle mouse button pressed event to retrieve and display
 # information in the lower left corner of the plot about
 # the point closest to the location where the mouse was pressed
     if e.button() == QMouseEvent.LeftButton:
-        _dprint(2,'button is mid button');
+        _dprint(2,'button is left button');
         xPos = e.pos().x()
         yPos = e.pos().y()
         _dprint(2,'xPos yPos ', xPos, ' ', yPos);
