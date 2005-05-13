@@ -24,7 +24,7 @@ bgl.variant.conf:         $(lofar_root) $(debugopt) $(nothreads) $(noshmem) $(bg
 fakebgl.variant.conf:     $(lofar_root) $(debug) $(nothreads) $(noshmem) --without-log4cplus --with-cppflags="-DHAVE_BGL"
 nolog4cplus.variant.conf: $(standard) $(debug) --without-log4cplus 
 insure.variant.conf:	  $(standard) --with-insuretools --with-cppflags="-D__INSURE__"
-insure.variant.make:	  QA=insure --with-cppflags="-D__INSURE__"
+insure.variant.make:	  QA=insure
 
 standard.var:             $(lofar_root) $(aipspp) $(threads) $(sse) $(shmem)
 
