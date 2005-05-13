@@ -649,6 +649,8 @@ class QwtImagePlot(QwtPlot):
         self.unzoom()
         return
       self.active_image_index = menuid
+      if self.is_combined_image:
+        self.removeMarkers()
       self.is_combined_image = False
       if not self._combined_image_id is None:
         if self._combined_image_id == menuid:
