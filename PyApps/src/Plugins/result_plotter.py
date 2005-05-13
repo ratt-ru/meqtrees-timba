@@ -279,7 +279,8 @@ class ResultPlotter(GriddedPlugin):
         _dprint(3, 'pre_work setting visu_plotter to realvsimag_plotter!')
         self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.wparent())
         self.set_widgets(self._visu_plotter.plot,self.dataitem.caption,icon=self.icon())
-        self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
+        self._wtop = self._visu_plotter.plot;  # QwtPlot widget inside realvsimag_plotter
+                                               # is our top widget
 
   def do_postwork(self, node):
     _dprint(3,"in postwork: do nothing at present");
