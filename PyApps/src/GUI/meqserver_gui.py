@@ -488,7 +488,7 @@ class meqserver_gui (app_proxy_gui):
     except AttributeError: pass;
     else:
       if self.app.state == treebrowser.AppState.Stream:
-        self.status_label.setText(' streaming data (%d tiles) ' % (state,nt) ); 
+        self.status_label.setText(' streaming data (%d tiles) ' % (nt,) ); 
         
   def update_node_state (self,node,event=None):
     meqds.reclassify_nodestate(node);
