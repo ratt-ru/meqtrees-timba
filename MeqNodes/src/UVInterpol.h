@@ -31,7 +31,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::UVInterpol
-#pragma aids UVInterpol Map Count Additional Info UVImage UVZ UVDelta UVCurvature
+#pragma aids UVInterpol Map Count Additional Info UVImage UVZ UVDelta UVCurvature Method
 
 namespace Meq {
 
@@ -70,6 +70,7 @@ public:
   bool _additional_info;  
   double _uvZ;
   double _uvDelta;
+  int _method;
 
   void UVInterpol::fillVells(const std::vector<Result::Ref> &fchildres, 
 			     Vells &fvells, const Cells &fcells);
