@@ -31,6 +31,10 @@
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/Vector.h>
 #include <DMI/List.h>
+#include <MEQ/Forest.h>
+
+
+static int checknr=0;
 
 using namespace casa;
 
@@ -159,11 +163,12 @@ const HIID
 	  {
 	    const Funklet *deffunklet = state()[FDefaultFunklet].as_po<Funklet>();
 	    FailWhen(!deffunklet,"no funklets found and no default_funklet specified");
-	    cdebug(3)<<"no funklets found, using default value from state record"<<endl;
+	    cdebug(3)<<"no funklets found, using default value from state record, type "<<deffunklet -> objectType()<<endl;
 	    funkletref <<= deffunklet;
 	  }
 	funkletref().clearSolvable();
 	funkletref().setDomain(domain);
+	
 	return funkletref.dewr_p();
       }
     return 0;
@@ -199,7 +204,7 @@ const HIID
     Funklet * pfunklet = wstate()[FFunklet].as_wpo<Funklet>();
     // see if this can be reused
  
-    if(!LPDomain.isDefined(0)) {//first domain
+    if(auto_solve_ && !LPDomain.isDefined(0)) {//first domain
       LPnr_equations=0;
       LPDomain=Domain(domain);
     }   
@@ -237,6 +242,7 @@ const HIID
     else
       pfunklet = findRelevantFunklet(funkref,domain);
     FailWhen(!pfunklet,"no funklets found for specified domain");
+    cdebug(0)<<"found relevant funklet, type "<<pfunklet->objectType()<<endl;
     // update state record
     wstate()[FFunklet].replace() <<= pfunklet;
     wstate()[FDomainId] = domain_id_ = rq_dom_id;
@@ -376,38 +382,49 @@ const HIID
     const Funklet *deffunklet = rec[FDefaultFunklet].as_po<Funklet>();
     if( deffunklet )
       {
-	cdebug(2)<<"default funklet set via state\n";
+	cdebug(0)<<"default funklet set via state\n type = "<<deffunklet->objectType()<< endl;;
       }
     // Get ParmTable name 
     string tableName;
-    if( rec[FTableName].get(tableName) )
-      {
-	if( tableName.empty() ) { // no table
-	  parmtable_ = 0;
-	  if(auto_solve_ && initializing)
-	    {
-	      //open default table
-	      cdebug(3)<<"no table name given, creating default with name: default_table"<<endl;
-	      ParmTable::createTable("default_table");
-	      parmtable_ = ParmTable::openTable("default_table");
-	      wstate()[FTableName] = "default_table";
-	    }
-	}
-	else    // else open a table
-	  parmtable_ = ParmTable::openTable(tableName);
+    HIID tableId;
+    TypeId  TableType;
+    if( (*rec).hasField(FTableName))
+      {  TableType= rec[FTableName].type();   
+	//check wether tablename is a string or a hiid in which case one should look in the forest state for the name
+	if(TableType==Tpstring)
+	  rec[FTableName].get(tableName);
+	else if(TableType==TpDMIHIID)
+	  {
+	    //try to get the name from forest
+	    rec[FTableName].get(tableId);
+	    cdebug(3)<<"looking for tablename in forest state, field: "<<tableId<<endl;
+	    const DMI::Record &Fstate=forest().state();
+	    if(Fstate[tableId].type()==Tpstring) 
+	      {
+		Fstate[tableId].get(tableName);
+		cdebug(3)<<"opening table: "<<tableName<<endl;
+
+	      }
+	  }
+	if (tableName.empty())
+	  cdebug(2)<<"TableName doesnot have  correct type, or not found in forest state"<<endl; 
       }
-    else
+    if( tableName.empty() ) { // no table
+      parmtable_ = 0;
       if(auto_solve_ && initializing)
 	{
 	  //open default table
-	  cdebug(3)<<"no table given, creating default with name: default_table"<<endl;
+	  cdebug(2)<<"no table name given, creating default with name: default_table"<<endl;
 	  ParmTable::createTable("default_table");
 	  parmtable_ = ParmTable::openTable("default_table");
 	  wstate()[FTableName] = "default_table";
-	  
 	}
-     
-
+    }
+    else    // else open a table
+      {
+	parmtable_ = ParmTable::openTable(tableName);
+      }
+    
     if(auto_solve_ && initializing)
       {
 	DMI::List &LongPolc = wstate()[FLongPolc] <<=new DMI::List();
@@ -440,6 +457,7 @@ const HIID
 		//now update longpolc_solution
 		//called here, because we want to sace LP, b4 saving "short polc", to have DBId
 		if(auto_solve_ && auto_save_ ){
+		  cdebug(0)<<"updating LP for the "<<++checknr<<"th time"<<endl;
 		  UpdateLongPolc(1,&funklet);
 		}
 
@@ -471,6 +489,7 @@ const HIID
     if( !saved && rec[FSaveFunklets].as<bool>(false) ){
       if(auto_solve_){
 	Funklet &funklet = wstate()[FFunklet].as_wr<Funklet>();
+	cdebug(0)<<"updating LP for the "<<++checknr<<"th time"<<endl;
 	UpdateLongPolc(1,&funklet);
       }
       save();
@@ -518,6 +537,7 @@ const HIID
 	cdebug(3)<<"new domain restart long polc "<<endl;
 
 	pfunklet = findRelevantFunklet(funkletref,rdom);
+	
  	if(pfunklet)
 	  {
 	    
