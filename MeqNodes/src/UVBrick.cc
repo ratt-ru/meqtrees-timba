@@ -414,8 +414,16 @@ namespace Meq {
       blitz::Array<double,1> arrDec = Decvells.as<double,1>();
 
       // Beware: in this rounding off a pixel may lie just outside the image
-      position(0)=int(nRA / 2.0  + 0.5) + int(arrRA(0)+0.5); // int(pixel(0)+0.5);
-      position(1)=int(nDec / 2.0 + 0.5) + int(arrDec(0)+0.5); // int(pixel(1)+0.5);
+      if (arrRA(0)>0.0){
+	position(0)=int(nRA / 2.0 +arrRA(0) + 0.5)-1;// + int(arrRA(0)+0.5); // int(pixel(0)+0.5);
+      } else {
+	position(0)=int(nRA / 2.0 +arrRA(0) + 0.5)-1;// + int(arrRA(0)-0.5); // int(pixel(0)+0.5);
+      };
+      if (arrDec(0) > 0.0){
+	position(1)=int(nDec / 2.0 +arrDec(0)+ 0.5);// + int(arrDec(0)+0.5); // int(pixel(1)+0.5);
+      } else {
+	position(1)=int(nDec / 2.0 +arrDec(0)+ 0.5);// + int(arrDec(0)-0.5); // int(pixel(1)+0.5);
+      };
       position(2)=int(pixel(2)+0.5);
       position(3)=int(pixel(3)+0.5);
     
