@@ -307,7 +307,7 @@ const HIID
     Funklet * pfunklet = wstate()[FFunklet].as_wpo<Funklet>();
     if( !pfunklet ) 
       return;
-    cdebug(2)<<"saving funklet "<<LPDbId<<endl;
+    cdebug(3)<<"saving funklet "<<LPDbId<<endl;
     parmtable_->putCoeff1(name_,*pfunklet,LPDbId,false);
   }
 
@@ -382,8 +382,10 @@ const HIID
     const Funklet *deffunklet = rec[FDefaultFunklet].as_po<Funklet>();
     if( deffunklet )
       {
-	cdebug(0)<<"default funklet set via state\n type = "<<deffunklet->objectType()<< endl;;
+	cdebug(2)<<"default funklet set via state\n type = "<<deffunklet->objectType()<< endl;;
       }
+
+
     // Get ParmTable name 
     string tableName;
     HIID tableId;
@@ -402,28 +404,42 @@ const HIID
 	    if(Fstate[tableId].type()==Tpstring) 
 	      {
 		Fstate[tableId].get(tableName);
-		cdebug(3)<<"opening table: "<<tableName<<endl;
-
 	      }
 	  }
 	if (tableName.empty())
 	  cdebug(2)<<"TableName doesnot have  correct type, or not found in forest state"<<endl; 
-      }
-    if( tableName.empty() ) { // no table
-      parmtable_ = 0;
-      if(auto_solve_ && initializing)
-	{
-	  //open default table
-	  cdebug(2)<<"no table name given, creating default with name: default_table"<<endl;
-	  ParmTable::createTable("default_table");
-	  parmtable_ = ParmTable::openTable("default_table");
-	  wstate()[FTableName] = "default_table";
+      
+	if( tableName.empty() ) { // no table
+	  parmtable_ = 0;
+	  if(auto_solve_ && initializing)
+	    {
+	      //open default table
+	      cdebug(2)<<"no table name given, creating default with name: default_table"<<endl;
+	      
+	      if(!Table::isOpened("default_table"))
+		ParmTable::createTable("default_table");
+	      parmtable_ = ParmTable::openTable("default_table");
+	      wstate()[FTableName] = "default_table";
+	    }
 	}
-    }
-    else    // else open a table
+	else    // else open a table
+	  {
+	    cdebug(3)<<"opening table: "<<tableName<<endl;
+	    parmtable_ = ParmTable::openTable(tableName);
+	  }
+      }//if rec[TableName]
+    
+    else if(auto_solve_ && initializing)
       {
-	parmtable_ = ParmTable::openTable(tableName);
+	//open default table
+	cdebug(2)<<"no table name given, creating default with name: default_table"<<endl;
+	
+	if(!Table::isOpened("default_table"))
+	  ParmTable::createTable("default_table");
+	parmtable_ = ParmTable::openTable("default_table");
+	wstate()[FTableName] = "default_table";
       }
+  
     
     if(auto_solve_ && initializing)
       {
