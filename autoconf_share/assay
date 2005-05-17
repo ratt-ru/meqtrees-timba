@@ -135,6 +135,9 @@
   if [ -x $LOFARROOT/bin/LimitExec ]
   then
     CMDPREFIX="$LOFARROOT/bin/LimitExec $MAXTIME"
+  elif [ -x $lofar_sharedir/limitexec.sh ]
+  then
+    CMDPREFIX="$lofar_sharedir/limitexec.sh $MAXTIME"
   fi
   
   if [ "x$CHECKTOOL" != "x" ]
