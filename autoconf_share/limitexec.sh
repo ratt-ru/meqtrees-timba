@@ -37,7 +37,6 @@ $2 &
 # Check every second if the program is still running. Kill the program
 # when the maximum execution time, specified by $1, has elapsed.
 # Note: pid of last started background program is $!.
-ps
 sec=0
 while ps | awk '{print $1}' | grep $! >/dev/null; do
   if test $sec -ge $1; then
