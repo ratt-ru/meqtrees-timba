@@ -87,10 +87,12 @@ class Cell (object):
          and self._grid_cell.content_dataitem() is not None:
         self._pressed = ev.pos();
         self._dragtimer.start(QApplication.startDragTime(),True);
+      return QLabel.mousePressEvent(self,ev);
     # mouse released, cancel drag  
     def mouseReleaseEvent (self,ev):
       self._pressed = None;
       self._dragtimer.stop();
+      return QLabel.mouseReleaseEvent(self,ev);
     # mouse move, start drag if far enough      
     def mouseMoveEvent (self,ev):
       # start a drag if mouse has moved far enough
@@ -99,6 +101,7 @@ class Cell (object):
         if dist >= QApplication.startDragDistance():
           self._dragtimer.stop();
           self._start_drag();
+      return QLabel.mouseMoveEvent(self,ev);
     # timer fired, start drag if mouse still pressed
     def _timeout (self):
       if self._pressed:

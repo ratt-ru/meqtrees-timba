@@ -93,7 +93,7 @@ class Page (object):
         menu.insertItem(pixmaps.red_round_cross.iconset(),"Cancel drop",0);
         menu.setAccel(Qt.Key_Escape,0);
       self._menu_slab.setText("<nobr>dragging "+item.caption+"</nobr>");
-      menu.setItemVisible(2,our_content is not None); 
+      menu.setItemVisible(3,our_content is not None); 
       pos = cell.wtop().mapToGlobal(event.pos());
       action = menu.exec_loop(pos);
       # cancel selected or menu closed, do nothing
