@@ -27,7 +27,9 @@ class VisDataMux : public EventRecepient
     VisDataMux (Meq::Forest &frst);
     
     virtual ~VisDataMux () 
-    {}
+    { clear(); }
+    
+    void clear ();
       
     //##ModelId=3FA1016000B0
     void init (const DMI::Record &rec,

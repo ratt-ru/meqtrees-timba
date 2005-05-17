@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.42  2005/05/17 21:15:07  smirnov
+//  %[ER: ]%
+//  Fixed memory leak in NumArray.
+//  Misc cleanups to nodes to make memory leaks easier to find.
+//
 //  Revision 1.41  2005/03/26 13:43:57  smirnov
 //  %[ER: ]%
 //  Fixing conversion of pathological data structures to/from Glish and Python
@@ -84,7 +89,15 @@ static void * newArrayWithData (void *data,const LoShape & shape)
   return new blitz::Array<T,N>(static_cast<T*>(data),shape,blitz::neverDeleteData); 
 } 
 
-// templated method to assign the data (using the given shape & stride)
+// templated method to assign a ref to the data to an array
+template<class T,int N>
+static void referenceData (void *parr,void *data,const LoShape & shape)
+{ 
+  blitz::Array<T,N> tmp(static_cast<T*>(data),shape,blitz::neverDeleteData);
+  static_cast<blitz::Array<T,N>*>(parr)->reference(tmp);
+}
+
+// templated method to assign a ref to the data (using the given shape & stride)
 // to an array
 template<class T,int N>
 static void referenceDataWithStride (void *parr,void *data,const LoShape & shape,const LoShape &stride)
@@ -129,6 +142,13 @@ DMI::NumArray::AllocatorWithData DMI::NumArray::allocatorWithData[NumTypes][MaxL
 DMI::NumArray::AssignWithStride DMI::NumArray::assignerWithStride[NumTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &referenceDataWithStride<T,N>
+  DoForAllArrayTypes1(OneLine,)
+#undef OneElement
+};
+
+DMI::NumArray::AssignDataReference DMI::NumArray::assignerDataReference[NumTypes][MaxLorrayRank] =
+{
+#define OneElement(N,T) &referenceData<T,N>
   DoForAllArrayTypes1(OneLine,)
 #undef OneElement
 };
@@ -603,16 +623,6 @@ int DMI::NumArray::toBlock (BlockSet& set) const
   return 1;
 }
 
-void DMI::NumArray::makeWritable ()
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  if( itsData.privatize() )
-  {
-    itsArrayData = itsData().cdata() + itsDataOffset;
-    makeArray();
-  }
-}
-  
 //##ModelId=3DB949AE03CB
 DMI::CountedRefTarget* DMI::NumArray::clone (int flags, int depth) const
 {

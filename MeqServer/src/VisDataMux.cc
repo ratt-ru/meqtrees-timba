@@ -46,6 +46,12 @@ Meq::VisDataMux::VisDataMux (Meq::Forest &frst)
   frst.incrRequestId(rqid_,FDataset);
 }
 
+void Meq::VisDataMux::clear ()
+{
+  for( uint i=0; i<handlers_.size(); i++ )
+    handlers_[i].clear();  
+}
+
 //##ModelId=3FA1016000B0
 void Meq::VisDataMux::init (const DMI::Record &rec,
                 VisAgent::InputAgent  & inp,

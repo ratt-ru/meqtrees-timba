@@ -11,6 +11,10 @@ from Timba import qt_threading
 from Timba import octopussy
 from Timba.Apps import meqserver
 
+#from Timba.GUI import app_proxy_gui
+#from Timba.GUI.pixmaps import pixmaps
+#app_proxy_gui.set_splash_screen(pixmaps.trees_splash.pm,"Starting MeqTimba Brower");
+
 def importPlugin (name):
   name = 'Timba.Plugins.'+name;
   try:

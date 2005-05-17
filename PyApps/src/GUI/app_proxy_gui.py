@@ -384,6 +384,9 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self._connected = False;
     
     #------ populate the GUI
+    global _splash_screen;
+    if _splash_screen is not None:
+      _splash_screen.finish(self);
     self.populate(size=size,*args,**kwargs);
     
     #------ set size 
@@ -742,6 +745,16 @@ def mainapp ():
   if not MainApp:
     MainApp = MainAppClass(sys.argv);
   return MainApp;
+
+_splash_screen = None;
+  
+def set_splash_screen (pm,message=None):
+  mainapp();
+  global _splash_screen;
+  _splash_screen = QSplashScreen(pm());
+  _splash_screen.show();
+  if message is not None:
+    _splash_screen.message(message);
 
 def mainapp_run ():
   MainApp.exec_loop();

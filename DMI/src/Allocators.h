@@ -11,14 +11,14 @@
 
 #if defined(DMI_USE_STD_ALLOC)
 
-  #define DMI_Allocator std::alloc
+  #define DMI_Allocator std::allocator
   
-#elsif defined(DMI_USE_POOL_ALLOC)
+#elif defined(DMI_USE_POOL_ALLOC)
 
   #include <ext/pool_allocator.h>
   #define DMI_Allocator __gnu_cxx::__pool_alloc
 
-#elsif defined(DMI_USE_BITMAP_ALLOC)
+#elif defined(DMI_USE_BITMAP_ALLOC)
 
   #include <ext/bitmap_allocator.h>
   #define DMI_Allocator __gnu_cxx::bitmap_allocator

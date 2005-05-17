@@ -189,6 +189,12 @@ int main (int argc,const char *argv[])
     cout<<"=================== rejoining app threads =====================\n";
     for( uint i=0; i<appthreads.size(); i++ )
       appthreads[i].join();
+
+    cout<<"=================== deleting app objects ======================\n";
+    apps.clear();
+
+    pthread_kill_other_threads_np();
+    exit(1);
     
     cout<<"=================== stopping OCTOPUSSY ========================\n";
     Octopussy::stopThread();

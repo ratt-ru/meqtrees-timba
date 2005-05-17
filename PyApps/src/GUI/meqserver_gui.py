@@ -23,6 +23,13 @@ _dprintf = _dbg.dprintf;
 
 makeNodeDataItem = meqgui.makeNodeDataItem;
 
+# splash screen
+
+#_mainapp = mainapp();
+#_splash_screen = QSplashScreen(pixmaps.trees48x48.pm());
+#_splash_screen.show();
+#_splash_screen.message("Starting MeqTimba Browser");
+
 # global symbol: meqserver object; initialized when a meqserver_gui
 # is constructed
 mqs = None;
@@ -305,6 +312,9 @@ class meqserver_gui (app_proxy_gui):
  
     # subscribe to updates of forest state
     meqds.subscribe_forest_state(self._update_forest_state);
+    
+    # clear the splash screen
+    # _splash_screen.finish(self);
     
   def _add_bookmark (self):
     item = Grid.Services.getHighlightedItem();

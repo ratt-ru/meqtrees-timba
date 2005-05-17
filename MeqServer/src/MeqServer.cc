@@ -10,6 +10,8 @@
 #include <DMI/BOIO.h>
 #include <DMI/List.h>
 #include <MeqServer/MeqPython.h>
+
+#include <linux/unistd.h>
     
 using Debug::ssprintf;
 using namespace AppAgent;
@@ -932,6 +934,8 @@ void MeqServer::run ()
     }
     // go back up for another start() call
   }
+  forest.clear();
+  data_mux.clear();
   cdebug(1)<<"exiting with control state "<<control().stateString()<<endl;
   control().close();
   forest.removeSubscriber(AidCreate,&data_mux);

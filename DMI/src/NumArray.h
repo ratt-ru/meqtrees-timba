@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.38  2005/05/17 21:15:07  smirnov
+//  %[ER: ]%
+//  Fixed memory leak in NumArray.
+//  Misc cleanups to nodes to make memory leaks easier to find.
+//
 //  Revision 1.37  2005/03/24 15:03:35  smirnov
 //  %[ER: ]%
 //  Fixed bug in conversion of arrays to Glish
@@ -356,9 +361,6 @@ public:
   void * getDataPtr () 
   { Thread::Mutex::Lock lock(mutex()); makeWritable(); return itsArrayData; }
   
-  // Ensures writability of underlying data object
-  void makeWritable ();
-
   // Return the object type (TpNumArray).
     //##ModelId=3DB949AE03BE
   virtual TypeId objectType() const;
@@ -386,6 +388,17 @@ public:
   // The actual type of the array (TpArray_float, etc.).
     //##ModelId=3DB949AF000C
   virtual TypeId type() const;
+  
+  // Ensures writability of underlying data block, inlined here for speed
+  void makeWritable ()
+  {
+    Thread::Mutex::Lock _nclock(mutex());
+    if( itsData.privatize() )
+    {
+      itsArrayData = itsData().cdata() + itsDataOffset;
+      assignDataReference(itsScaType,itsArray,itsArrayData,itsShape);
+    }
+  }
   
   // Parse a HIID describing a subset and fill start,end,incr.
   // NB: "end" is one past ending position at each axis: 
@@ -474,6 +487,7 @@ private:
   typedef void * (*AllocatorDefault)();
     //##ModelId=3E9BD914038B
   typedef void (*AssignWithStride)(void*,void *,const LoShape &,const LoShape &);
+  typedef void (*AssignDataReference)(void*,void *,const LoShape &);
     //##ModelId=3E9BD91403A0
   typedef void (*Destructor)(void*);
   
@@ -483,14 +497,15 @@ private:
     //##ModelId=3F5487DA015B
   typedef void (*ShapeOfArray)(LoShape &,const void*);
   
-  static AllocatorWithData    allocatorWithData   [NumTypes][MaxLorrayRank];
-  static AllocatorDefault     allocatorDefault    [NumTypes][MaxLorrayRank];
-  static AssignWithStride     assignerWithStride  [NumTypes][MaxLorrayRank];
-  static Destructor           destructor          [NumTypes][MaxLorrayRank];
+  static AllocatorWithData    allocatorWithData     [NumTypes][MaxLorrayRank];
+  static AllocatorDefault     allocatorDefault      [NumTypes][MaxLorrayRank];
+  static AssignWithStride     assignerWithStride    [NumTypes][MaxLorrayRank];
+  static AssignDataReference  assignerDataReference [NumTypes][MaxLorrayRank];
+  static Destructor           destructor            [NumTypes][MaxLorrayRank];
     //##ModelId=3F5487DA023F
-  static ArrayCopier          copier              [NumTypes][MaxLorrayRank];
+  static ArrayCopier          copier                [NumTypes][MaxLorrayRank];
     //##ModelId=3F5487DA0273
-  static ShapeOfArray         shapeOfArray        [NumTypes][MaxLorrayRank];
+  static ShapeOfArray         shapeOfArray          [NumTypes][MaxLorrayRank];
   
   // converts a type id into a numeric offset into the table above
     //##ModelId=3E9BD9180129
@@ -506,6 +521,10 @@ private:
   static void assignWithStride (TypeId tid,void *ptr,void *data,const LoShape &shape,const LoShape &stride )
   {
     (*assignerWithStride[typeIndex(tid)][shape.size()-1])(ptr,data,shape,stride);
+  }
+  static void assignDataReference (TypeId tid,void *ptr,void *data,const LoShape &shape)
+  {
+    (*assignerDataReference[typeIndex(tid)][shape.size()-1])(ptr,data,shape);
   }
     //##ModelId=3E9BD91802D8
   static void * allocateArrayDefault (TypeId tid,int rank)
