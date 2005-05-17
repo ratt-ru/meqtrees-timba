@@ -47,7 +47,6 @@ namespace Meq {
     // Null-pointers to images
       _uvreal(0),
       _uvimag(0),
-      _uvabs(0),
       _patch(0),
       // max baselines for WSRT in [m]
       _umax(2700.0),
@@ -67,7 +66,6 @@ namespace Meq {
     //     
     delete _uvreal;
     delete _uvimag;
-    delete _uvabs;
     delete _patch;
   };
   
@@ -76,9 +74,6 @@ namespace Meq {
 			  const std::vector<Result::Ref> &childres,
 			  const Request &request,bool newreq)
   {
-
-    const double c0 = casa::C::c; // Speed of light
-
     // Get the Request cells.
     const Cells& rcells = request.cells();
     
@@ -169,8 +164,10 @@ namespace Meq {
 	resref <<= new Result(4);
 
 	// Make the Vells
-	// For now, 4 Images are put in separate planes. In the future, 
-	//  just 1 plane may combine the real and imaginary images.
+	// Vells1: complex UVImage f
+	// Vells2: complex fu
+	// Vells3: complex fv
+	// Vells4: complex fuv
 
 	Vells::Shape shape;
 	Axis::degenerateShape(shape,cells->rank());
@@ -179,13 +176,13 @@ namespace Meq {
 	shape[Axis::axis("v")]    = cells->ncells(Axis::axis("v"));
 
 	VellSet& vs1  = resref().setNewVellSet(0);  
-	Vells& vells1 = vs1.setValue(new Vells(double(0),shape,false));
+	Vells& vells1 = vs1.setValue(new Vells(dcomplex(0.0),shape,false));
 	VellSet& vs2  = resref().setNewVellSet(1);  
-	Vells& vells2 = vs2.setValue(new Vells(double(0),shape,false));
+	Vells& vells2 = vs2.setValue(new Vells(dcomplex(0.0),shape,false));
 	VellSet& vs3  = resref().setNewVellSet(2);  
-	Vells& vells3 = vs3.setValue(new Vells(double(0),shape,false));
+	Vells& vells3 = vs3.setValue(new Vells(dcomplex(0.0),shape,false));
 	VellSet& vs4  = resref().setNewVellSet(3);  
-	Vells& vells4 = vs4.setValue(new Vells(double(0),shape,false));
+	Vells& vells4 = vs4.setValue(new Vells(dcomplex(0.0),shape,false));
 
 	fillVells(vells1, vells2, vells3, vells4, cells);
 
@@ -267,6 +264,10 @@ namespace Meq {
 
     };
     
+    // Temporarily always return 'valid = false' in order to be able to 
+    //  fiddle with the non-zero pixel position (determined by children).
+    //  This is to be removed in the future.
+
     valid = false;
     return valid;
 
@@ -281,7 +282,6 @@ namespace Meq {
     // Clear the allocated memory of the MeqUVbrick image objects
     delete _uvreal;
     delete _uvimag;
-    delete _uvabs;
     delete _patch;
 
     _image_exists = false;
@@ -322,6 +322,8 @@ namespace Meq {
     
     const int nRA = int( 2*RA_size / delta_RA )+1;
     const int nDec = int( 2*Dec_size / delta_Dec)+1;
+    //const int nRA = 256;
+    //const int nDec = 256;
     // Rounding off to upper value and number of gridpoints is number of intervals + 1, hence +2
 
     // RA: nRa pixels, Dec: nDec pixels, Stokes: 1 pixels, Freq: nf pixels
@@ -427,17 +429,13 @@ namespace Meq {
     //
     _uvreal = new casa::PagedImage<float>(image_shape, casa::CoordinateUtil::defaultCoords4D(), "fft_real.image");
     _uvimag = new casa::PagedImage<float>(image_shape, casa::CoordinateUtil::defaultCoords4D(), "fft_imag.image");
-    _uvabs = new casa::PagedImage<float>(image_shape, casa::CoordinateUtil::defaultCoords4D(), "fft_ampl.image");
-    casa::PagedImage<float> test(image_shape, casa::CoordinateUtil::defaultCoords4D(), "test.image");
     
     casa::ImageFFT fft;
     fft.fftsky(*_patch);
     
     fft.getReal(*_uvreal);
     fft.getImaginary(*_uvimag);
-    fft.getAmplitude(*_uvabs); 
-    fft.getReal(test);  
-
+   
     _image_exists = true;
 
   };
@@ -453,17 +451,17 @@ namespace Meq {
     int nf = fcells.ncells(Axis::axis("freq"));
 
     // Make an array, connected to the Vells, with which we fill the Vells.
-    blitz::Array<double,3> arr1 = fvells1.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-    blitz::Array<double,3> arr2 = fvells2.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-    blitz::Array<double,3> arr3 = fvells3.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-    blitz::Array<double,3> arr4 = fvells4.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+    blitz::Array<dcomplex,3> arr1 = fvells1.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+    blitz::Array<dcomplex,3> arr2 = fvells2.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+    blitz::Array<dcomplex,3> arr3 = fvells3.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+    blitz::Array<dcomplex,3> arr4 = fvells4.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
     // Note that the Vells are 4D (including time), whereas the corresponding 
     //  Cells are 3D (without time).
     // arr(k,i,j)
-    arr1 = 0.0;
-    arr2 = 0.0;
-    arr3 = 0.0;
-    arr4 = 0.0;
+    arr1 = dcomplex(0.0);
+    arr2 = dcomplex(0.0);
+    arr3 = dcomplex(0.0);
+    arr4 = dcomplex(0.0);
 
     // For now fill Vells with image values.    
     casa::IPosition image_shape = _uvreal->shape();
@@ -476,14 +474,74 @@ namespace Meq {
       for (int i = 0; i < nu; i++){
 	position(1)=0;
 	for (int j = 0; j < nv; j++){
-	  arr4(k,i,j) = _patch->getAt(position);
-	  arr1(k,i,j) = _uvreal->getAt(position);
-	  arr2(k,i,j) = _uvimag->getAt(position);
-	  arr3(k,i,j) = _uvabs->getAt(position);
+	  
+	  arr1(k,i,j) = dcomplex( _uvreal->getAt(position),
+                                  _uvimag->getAt(position) );
+     
 	  position(1)+=1;
 	};
 	position(0)+=1;
       };
+
+      // This could possibly be made optional by a Request parameter
+
+      for (int i = 1; i < nu-1; i++){
+	for (int j = 1; j < nv-1; j++){
+	  arr2(k,i,j) = (arr1(k,i+1,j) + arr1(k,i-1,j))/2.;
+	  arr3(k,i,j) = (arr1(k,i,j+1) + arr1(k,i,j-1))/2.;
+	  arr4(k,i,j) = (arr1(k,i+1,j+1) + arr1(k,i-1,j+1) +
+			 arr1(k,i+1,j-1) + arr1(k,i-1,j-1))/4.;
+	};
+      };
+
+      // Assume periodicity: value at '-1' equals 'nu-1' or 'nv-1'
+      //                     value at 'nu', 'nv' equals '0'
+      // Check this!
+
+      for (int i = 1; i < nu-1; i++){
+	  arr2(k,i,0) = (arr1(k,i+1,0) + arr1(k,i-1,0))/2.;
+	  arr3(k,i,0) = (arr1(k,i,1) + arr1(k,i,nv-1))/2.;
+	  arr4(k,i,0) = (arr1(k,i+1,1) + arr1(k,i-1,1) +
+			 arr1(k,i+1,nv-1) + arr1(k,i-1,nv-1))/4.;
+
+	  arr2(k,i,nv-1) = (arr1(k,i+1,nv-1) + arr1(k,i-1,nv-1))/2.;
+	  arr3(k,i,nv-1) = (arr1(k,i,0) + arr1(k,i,nv-2))/2.;
+	  arr4(k,i,nv-1) = (arr1(k,i+1,0) + arr1(k,i-1,0) +
+			 arr1(k,i+1,nv-2) + arr1(k,i-1,nv-2))/4.;
+      };
+
+      for (int j = 1; j < nv-1; j++){
+	arr2(k,0,j) = (arr1(k,1,j) + arr1(k,nu-1,j))/2.;
+	arr3(k,0,j) = (arr1(k,0,j+1) + arr1(k,0,j-1))/2.;
+	arr4(k,0,j) = (arr1(k,1,j+1) + arr1(k,nu-1,j+1) +
+		       arr1(k,1,j-1) + arr1(k,nu-1,j-1))/4.;
+
+	arr2(k,nu-1,j) = (arr1(k,0,j) + arr1(k,nu-1,j))/2.;
+	arr3(k,nu-1,j) = (arr1(k,nu-1,j+1) + arr1(k,nu-1,j-1))/2.;
+	arr4(k,nu-1,j) = (arr1(k,0,j+1) + arr1(k,nu-2,j+1) +
+		          arr1(k,0,j-1) + arr1(k,nu-2,j-1))/4.;
+      };
+
+      arr2(k,0,0) = (arr1(k,1,0) + arr1(k,nu-1,0))/2.;
+      arr3(k,0,0) = (arr1(k,0,1) + arr1(k,0,nv-1))/2.;
+      arr4(k,0,0) = (arr1(k,1,1) + arr1(k,nu-1,1) +
+		     arr1(k,1,nv-1) + arr1(k,nu-1,nv-1))/4.;
+
+      arr2(k,0,nv-1) = (arr1(k,1,nv-1) + arr1(k,nu-1,nv-1))/2.;
+      arr3(k,0,nv-1) = (arr1(k,0,0) + arr1(k,0,nv-2))/2.;
+      arr4(k,0,nv-1) = (arr1(k,1,0) + arr1(k,nu-1,0) +
+			arr1(k,1,nv-2) + arr1(k,nu-1,nv-2))/4.;
+
+      arr2(k,nu-1,0) = (arr1(k,0,0) + arr1(k,nu-2,0))/2.;
+      arr3(k,nu-1,0) = (arr1(k,nu-1,1) + arr1(k,nu-1,nv-1))/2.;
+      arr4(k,nu-1,0) = (arr1(k,0,1) + arr1(k,nu-2,1) +
+			arr1(k,0,nv-1) + arr1(k,nu-2,nv-1))/4.;
+
+      arr2(k,nu-1,nv-1) = (arr1(k,0,nv-1) + arr1(k,nu-2,nv-1))/2.;
+      arr3(k,nu-1,nv-1) = (arr1(k,nu-1,0) + arr1(k,nu-1,nv-2))/2.;
+      arr4(k,nu-1,nv-1) = (arr1(k,0,0) + arr1(k,nu-2,0) +
+			   arr1(k,0,nv-2) + arr1(k,nu-2,nv-2))/4.;
+
     };
   };
   
