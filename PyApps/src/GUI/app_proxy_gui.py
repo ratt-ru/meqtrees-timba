@@ -372,6 +372,8 @@ class MessageLogger (Logger):
 class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
   def __init__(self,app,verbose=0,size=(500,500),poll_app=None,*args,**kwargs):
     """create and populate the main application window""";
+    global gui;
+    gui = self;
     #------ starts the main app object and event thread, if not already started
     self._qapp = mainapp();
     #------ init base classes

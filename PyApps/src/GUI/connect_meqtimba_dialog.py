@@ -1,0 +1,205 @@
+#/usr/bin/python
+from Timba.GUI import meqgui
+from Timba.GUI.pixmaps import pixmaps
+from qt import *
+
+
+class ConnectMeqKernel(QDialog):
+    def __init__(self,parent = None,name = None,modal = 0,fl = None):
+        if fl is None:
+          fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
+          fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
+        
+        QDialog.__init__(self,parent,name,modal,fl)
+        
+        self._default_path = "meqserver";
+        
+        self.image0 = pixmaps.trees48x48.pm();
+        if not name:
+            self.setName("ConnectDialog")
+
+        self.setSizeGripEnabled(0)
+
+
+        LayoutWidget = QWidget(self,"lo_top")
+        LayoutWidget.setGeometry(QRect(10,10,472,350))
+        lo_top = QVBoxLayout(LayoutWidget,11,6,"lo_top")
+
+        lo_title = QHBoxLayout(None,0,6,"lo_title")
+
+        self.title_icon = QLabel(LayoutWidget,"title_icon")
+        self.title_icon.setSizePolicy(QSizePolicy(0,0,0,0,self.title_icon.sizePolicy().hasHeightForWidth()))
+        self.title_icon.setPixmap(self.image0)
+        self.title_icon.setAlignment(QLabel.AlignCenter)
+        lo_title.addWidget(self.title_icon)
+
+        self.title_label = QLabel(LayoutWidget,"title_label")
+        lo_title.addWidget(self.title_label)
+        lo_top.addLayout(lo_title)
+
+        self.bg_connect = QButtonGroup(LayoutWidget,"bg_connect")
+#        self.bg_connect.setInsideMargin(10);
+
+        lo_connect = QVBoxLayout(self.bg_connect,11,6,"lo_connect")
+        lo_connect_space = QSpacerItem(20,20,QSizePolicy.Minimum,QSizePolicy.Fixed)
+        lo_connect.addItem(lo_connect_space)
+
+        self.btn_wait = QRadioButton(self.bg_connect,"btn_wait")
+        self.btn_wait.setChecked(1)
+        lo_connect.addWidget(self.btn_wait)
+
+        self.btn_start = QRadioButton(self.bg_connect,"btn_start")
+        lo_connect.addWidget(self.btn_start)
+
+        lo_start_grp = QWidget(self.bg_connect)
+        lo_start = QHBoxLayout(lo_start_grp,0,6,"lo_start")
+        lo_start_space = QSpacerItem(20,20,QSizePolicy.Fixed,QSizePolicy.Minimum)
+        lo_start.addItem(lo_start_space)
+        
+        lo_start_lbl = QLabel("Program:",lo_start_grp);
+        lo_start.addWidget(lo_start_lbl)
+        self.start_pathname = QLineEdit(lo_start_grp,"start_pathname")
+        self.start_pathname.setText(self._default_path);
+        lo_start.addWidget(self.start_pathname)
+
+        lo_start_grp2 = QWidget(self.bg_connect)
+        lo_start2 = QHBoxLayout(lo_start_grp2,0,6,"lo_start2")
+        lo_start_space2 = QSpacerItem(20,20,QSizePolicy.Fixed,QSizePolicy.Minimum)
+        lo_start2.addItem(lo_start_space2)
+        lo_start_lbl2 = QLabel("Args:",lo_start_grp2);
+        lo_start2.addWidget(lo_start_lbl2)
+        self.start_args = QLineEdit(lo_start_grp2,"start_args")
+        lo_start2.addWidget(self.start_args)
+        self.start_browse = QPushButton(lo_start_grp2,"start_browse")
+        lo_start2.addWidget(self.start_browse)
+        self.start_default = QPushButton(lo_start_grp2,"start_default")
+        self.start_default.setEnabled(False);
+        lo_start2.addWidget(self.start_default)
+
+        lo_connect.addWidget(lo_start_grp)
+        lo_connect.addWidget(lo_start_grp2)
+        
+        lo_start_grp.setEnabled(False);
+        lo_start_grp2.setEnabled(False);
+
+        self.btn_remote = QRadioButton(self.bg_connect,"btn_remote")
+        self.btn_remote.setEnabled(0)
+        lo_connect.addWidget(self.btn_remote)
+        
+        lo_remote_grp = QWidget(self.bg_connect)
+        lo_remote = QHBoxLayout(lo_remote_grp,0,6,"lo_remote")
+        lo_remote_space = QSpacerItem(20,20,QSizePolicy.Fixed,QSizePolicy.Minimum)
+        lo_remote.addItem(lo_remote_space)
+
+        self.remote_host_lbl = QLabel(lo_remote_grp,"remote_host_lbl")
+        self.remote_host_lbl.setAlignment(QLabel.AlignVCenter | QLabel.AlignRight)
+        lo_remote.addWidget(self.remote_host_lbl)
+
+        self.remote_host = QLineEdit(lo_remote_grp,"remote_host")
+        lo_remote.addWidget(self.remote_host)
+
+        self.remote_port_lbl = QLabel(lo_remote_grp,"remote_port_lbl")
+        self.remote_port_lbl.setAlignment(QLabel.AlignVCenter | QLabel.AlignRight)
+        lo_remote.addWidget(self.remote_port_lbl)
+
+        self.remote_port = QLineEdit(lo_remote_grp,"remote_port")
+        self.remote_port.setSizePolicy(QSizePolicy(0,1,0,0,self.remote_port.sizePolicy().hasHeightForWidth()))
+        self.remote_port.setMinimumSize(QSize(40,20))
+        lo_remote.addWidget(self.remote_port)
+        lo_connect.addWidget(lo_remote_grp)
+        lo_remote_grp.setEnabled(False);
+        
+        lo_top.addWidget(self.bg_connect)
+
+        lo_mainbtn = QHBoxLayout(None,0,6,"lo_mainbtn")
+        lo_mainbtn_space = QSpacerItem(20,20,QSizePolicy.Expanding,QSizePolicy.Minimum)
+        lo_mainbtn.addItem(lo_mainbtn_space)
+
+        self.btn_ok = QPushButton(LayoutWidget,"btn_ok")
+        self.btn_ok.setSizePolicy(QSizePolicy(0,0,1,0,self.btn_ok.sizePolicy().hasHeightForWidth()))
+        self.btn_ok.setMinimumSize(QSize(60,0))
+        self.btn_ok.setAutoDefault(1)
+        self.btn_ok.setDefault(1)
+        lo_mainbtn.addWidget(self.btn_ok)
+
+        self.btn_cancel = QPushButton(LayoutWidget,"btn_cancel")
+        self.btn_cancel.setSizePolicy(QSizePolicy(0,0,1,0,self.btn_cancel.sizePolicy().hasHeightForWidth()))
+        self.btn_cancel.setMinimumSize(QSize(60,0))
+        self.btn_cancel.setAutoDefault(1)
+        lo_mainbtn.addWidget(self.btn_cancel)
+        lo_top.addLayout(lo_mainbtn)
+
+        self.languageChange()
+
+        # self.resize(QSize(489,330).expandedTo(self.minimumSizeHint()))
+        self.clearWState(Qt.WState_Polished)
+
+        self.connect(self.btn_ok,SIGNAL("clicked()"),self.accept)
+        self.connect(self.btn_cancel,SIGNAL("clicked()"),self.reject)
+        
+        ### my additions
+        self.connect(self.btn_start,SIGNAL("toggled(bool)"),lo_start_grp,SLOT("setEnabled(bool)"));
+        self.connect(self.btn_start,SIGNAL("toggled(bool)"),lo_start_grp2,SLOT("setEnabled(bool)"));
+        self.connect(self.btn_remote,SIGNAL("toggled(bool)"),lo_remote_grp,SLOT("setEnabled(bool)"));
+        self.connect(self.start_browse,SIGNAL("clicked()"),self.browse_kernel_dialog);
+        self.connect(self.start_default,SIGNAL("clicked()"),self.reset_default_path);
+        self.connect(self.start_pathname,SIGNAL("textChanged(const QString &)"),self.changed_path);
+
+
+    def languageChange(self):
+        self.setCaption(self.__tr("Connect to MeqTimba kernel"))
+        self.title_icon.setText(QString.null)
+        self.title_label.setText(self.__tr("<p>Not connected to a MeqTimba kernel.</p>\n"
+"<p><i>If you will be starting a kernel locally using external tools, a connection should be established automatically.</i></p>"))
+        self.bg_connect.setTitle(self.__tr("Pick a connection method"))
+        self.btn_wait.setText(self.__tr("wait for local connection"))
+        self.btn_start.setText(self.__tr("start a local MeqTimba kernel:"))
+        self.start_browse.setText(self.__tr("Browse..."))
+        self.start_default.setText(self.__tr("Reset"))
+        self.btn_remote.setText(self.__tr("connect to remote kernel:"))
+        self.remote_host_lbl.setText(self.__tr("Host"))
+        self.remote_port_lbl.setText(self.__tr("Port"))
+        self.remote_port.setInputMask(self.__tr("#####; "))
+        self.btn_ok.setText(self.__tr("&OK"))
+        self.btn_ok.setAccel(QString.null)
+        self.btn_cancel.setText(self.__tr("&Cancel"))
+        self.btn_cancel.setAccel(QString.null)
+
+
+    def __tr(self,s,c = None):
+        return qApp.translate("ConnectMeqKernel",s,c)
+
+    ### override the accept method to start kernel as appropriate
+    def accept (self):
+      selected = self.bg_connect.selected();
+      if selected is self.btn_start:
+        # start kernel
+        pathname = str(self.start_pathname.text());
+        args = str(self.start_args.text());
+        meqgui.start_kernel(pathname,args);
+      elif selected is self.btn_remote:
+        # not implemented yet
+        pass;
+      QDialog.accept(self);
+
+    def reset_default_path (self):
+      self.start_pathname.setText(self._default_path);
+      self.start_default.setEnabled(False);
+      
+    def changed_path (self,path):
+      self.start_default.setEnabled(bool(str(path) != self._default_path));
+
+    def browse_kernel_dialog (self):
+      try: dialog = self._browse_dialog;
+      except AttributeError:
+        self._browse_dialog = dialog = QFileDialog(self,"kernel dialog",True);
+        dialog.resize(500,dialog.height());
+        dialog.setMode(QFileDialog.ExistingFile);
+        # dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
+        dialog.setViewMode(QFileDialog.Detail);
+        dialog.setCaption("Select kernel executable");
+      else:
+        dialog.rereadDir();
+      if dialog.exec_loop() == QDialog.Accepted:
+        self.start_pathname.setText(str(dialog.selectedFile()));
+        

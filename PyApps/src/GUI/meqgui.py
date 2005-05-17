@@ -4,6 +4,8 @@ from Timba.dmi import *
 from Timba.Meq import meqds
 from Timba import Grid
 from Timba.GUI import browsers
+from Timba.GUI import app_proxy_gui
+import os
 
 _dbg = verbosity(0,name='meqgui');
 _dprint = _dbg.dprint;
@@ -93,3 +95,7 @@ def makeForestDataItem (data=None,viewer=None,viewopts={}):
      name=name,caption=caption,desc='State of forest',
      data=meqds.get_forest_state(),
      refresh=meqds.request_forest_state,viewer=viewer,viewopts=viewopts);
+
+def start_kernel (pathname,args=''):
+  app_proxy_gui.gui.log_message(' '.join(('starting kernel process:',pathname,args)));
+  pid = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));

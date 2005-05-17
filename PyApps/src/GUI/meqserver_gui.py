@@ -9,6 +9,7 @@ from Timba.GUI import treebrowser
 from Timba.GUI.procstatuswidget import *
 from Timba.GUI import meqgui 
 from Timba.GUI import bookmarks 
+from Timba.GUI import connect_meqtimba_dialog 
 from Timba import Grid
 
 import weakref
@@ -223,6 +224,12 @@ class meqserver_gui (app_proxy_gui):
     self.treebrowser._qa_refresh.addTo(kernel_menu);
     self.treebrowser._qa_load.addTo(kernel_menu);
     self.treebrowser._qa_save.addTo(kernel_menu);
+    self._connect_dialog = connect_meqtimba_dialog.ConnectMeqKernel(self,\
+        name="Connect to MeqTimba kernel",modal=False);
+    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(self._connect_dialog.accept));
+    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(self._connect_dialog.show));
+    QObject.connect(connect,SIGNAL("activated()"),self._connect_dialog.show);
+    self._connect_dialog.show();
     
     # --- View menu
     showgw = QAction(pixmaps.view_split.iconset(),"&Gridded workspace",Qt.Key_F3,self);
