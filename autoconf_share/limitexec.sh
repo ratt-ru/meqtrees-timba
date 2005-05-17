@@ -27,7 +27,7 @@
 #
 
 if test $# -ne 2; then
-  echo "Usage: limitexec.sh <max-runtime(sec)> <executable>"
+  echo "Usage: limitexec.sh <max-runtime(sec)> <executable>" >&2
   exit 1
 fi
 
@@ -40,9 +40,9 @@ $2 &
 sec=0
 while ps | awk '{print $1}' | grep $! >/dev/null; do
   if test $sec -ge $1; then
-    echo "limitexec.sh: Process $! has exceeded time limit and will be killed."
+    echo "limitexec.sh: Process $! has exceeded time limit and will be killed." >&2
     kill -9 $!
-    break;
+    exit 255
   fi
   sec=`expr $sec + 1`
   sleep 1
