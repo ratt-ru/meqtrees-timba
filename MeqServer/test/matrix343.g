@@ -60,30 +60,37 @@ const create_source_subtrees := function (src, mep_table_name='')
 {
     global ms_timerange, ms_freqranges;
 
-    # 2nd order frequency-dependence, 0th order time dependence
-    polc_i_array := array(as_double(0),1,src.Iorder+1);
-    polc_i_array[1,1] := src.I;
+    polc_i := F;
+    polc_q := F;
+    polc_u := F;
+    polc_v := F;
     
-    polc_q_array := array(as_double(0),1,1);
-    polc_q_array[1,1] := src.Q;
-    
-    polc_u_array := array(as_double(0),1,1);
-    polc_u_array[1,1] := src.U;
-    
-    polc_v_array := array(as_double(0),1,1);
-    polc_v_array[1,1] := src.V;
-    
-    #fmin := ms_freqranges[1][1];
-    #fmax := ms_freqranges[2][1];
-    #tmin := ms_timerange[1];
-    #tmax := ms_timerange[2];
     polc_scale  := [1/10000.0, 1e-6];
     polc_offset := [4.47204e9,1.175e9];
-    polc_i := meq.polc(polc_i_array,scale=polc_scale, offset=polc_offset);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
-    polc_q := meq.polc(polc_q_array,scale=polc_scale, offset=polc_offset);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
-    polc_u := meq.polc(polc_u_array,scale=polc_scale, offset=polc_offset);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
-    polc_v := meq.polc(polc_v_array,scale=polc_scale, offset=polc_offset);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
-    
+    # 2nd order frequency-dependence, 0th order time dependence
+    if( !is_boolean(src.I)){
+        polc_i_array := array(as_double(0),1,src.Iorder+1);
+        polc_i_array[1,1] := src.I;
+        polc_i := meq.polc(polc_i_array,scale=polc_scale, offset=polc_offset);
+    }
+
+    if(!is_boolean(src.Q)){
+        polc_q_array := array(as_double(0),1,src.Qorder+1);
+        polc_q_array[1,1] := src.Q;
+        polc_q := meq.polc(polc_q_array,scale=polc_scale, offset=polc_offset);
+    }
+
+    if(!is_boolean(src.U)){
+        polc_u_array := array(as_double(0),1,1);
+        polc_u_array[1,1] := src.U;
+        polc_u := meq.polc(polc_u_array,scale=polc_scale, offset=polc_offset);
+    }
+
+    if(!is_boolean(src.V)){
+        polc_v_array := array(as_double(0),1,1);
+        polc_v_array[1,1] := src.V;
+        polc_v := meq.polc(polc_v_array,scale=polc_scale, offset=polc_offset);
+    }
     print polc_i;
     # meq.parm(), meq.node() return init-records
     # mqs.createnode() actually creates a node from an init-record.
@@ -92,13 +99,15 @@ const create_source_subtrees := function (src, mep_table_name='')
     stokes_Q_node := meq.parm(fq_name('stokes_q',src.name),polc_q,groups="a");
     stokes_U_node := meq.parm(fq_name('stokes_u',src.name),polc_u,groups="a");
     stokes_V_node := meq.parm(fq_name('stokes_v',src.name),polc_v,groups="a");
+    
     if( mep_table_name != ''){
         stokes_I_node.table_name := mep_table_name;
         stokes_Q_node.table_name := mep_table_name;
         stokes_U_node.table_name := mep_table_name;
         stokes_V_node.table_name := mep_table_name;
     }
-    
+    print stokes_I_node;
+
     IQUV_node := meq.node('MeqComposer', fq_name('IQUV',src.name),
                           [link_or_create=T,dims=[2,2]],
                           children=meq.list(stokes_I_node,
@@ -318,7 +327,7 @@ const ifr_predict_tree := function (st1,st2,sources)
 
 # creates nodes shared among trees: source parms, array center (x0,y0,z0)
 const make_shared_nodes := function (sources=[=],
-                                     mep_table_name='')
+                                     source_mep_table_name='')
 {
   global ms_phasedir;
   ra0  := ms_phasedir[1];  # phase center
@@ -330,7 +339,7 @@ const make_shared_nodes := function (sources=[=],
   
   for( src in sources ) {
     print src.name;
-    print create_source_subtrees(src, mep_table_name);
+    print create_source_subtrees(src, source_mep_table_name);
   }
   # setup zero position
   global ms_antpos;
@@ -647,10 +656,11 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
     msname='test.ms',
     stset=1:4,                      # stations for which to make trees
     sources=[=],
-    solve_fluxes=F,
+    solve_fluxes=[F,F,F,F],
     solve_gains=F,
     solve_phases=F,
     mep_table_name='',
+    source_mep_table_name='',
     msuvw=F,                        # use UVW values from MS
     mepuvw=F,                       # use UVW from MEP table (should be filled already)
     load='',                        # load forest from file 
@@ -702,7 +712,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
   {
       # create common nodes (source parms and such)
       
-      make_shared_nodes(sources, mep_table_name);
+      make_shared_nodes(sources, source_mep_table_name);
       
       # make a solver node (since it's only one)
       if( solve )
@@ -715,11 +725,28 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
                       condeqs := [condeqs,fq_name('ce',st1,st2)];
           # solvable parms
           solvables := "";
-          if(solve_fluxes){
+          # I,Q,U,V
+          if(solve_fluxes[1]){
               for(source in sources){
                   solvables := [solvables, fq_name('stokes_i', source.name)];
               }
           }
+          if(solve_fluxes[2]){
+              for(source in sources){
+                  solvables := [solvables, fq_name('stokes_q', source.name)];
+              }
+          }
+          if(solve_fluxes[3]){
+              for(source in sources){
+                  solvables := [solvables, fq_name('stokes_u', source.name)];
+              }
+          }
+          if(solve_fluxes[4]){
+              for(source in sources){
+                  solvables := [solvables, fq_name('stokes_v', source.name)];
+              }
+          }
+              
           if( solve_gains ){
               for( st in stset[1:len(stset)] ){
                   solvables := [solvables,fq_name('GA',st,'11')];
@@ -750,6 +777,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
           for( s in sources )
           {
               mqs.meq('Node.Publish.Results',[name=fq_name("stokes_i",s.name)]);
+              mqs.meq('Node.Publish.Results',[name=fq_name("stokes_q",s.name)]);
           }
       }
       rootnodes := [];
@@ -839,25 +867,28 @@ source_flux_fit_no_calibration := function()
 
     msname := '3C343.MS';
     mep_table_name := '3C343.mep';
+    source_mep_table_name := 'fluxes_16_channels.mep';
+    clear_mep_table := F;
 
     # Clear MEP table
-    meptable := table(mep_table_name, readonly=F);
-    nrows := meptable.nrows();
-    meptable.removerows(1:nrows);
-    meptable.done();
-
+    if(clear_mep_table){
+        meptable := table(mep_table_name, readonly=F);
+        nrows := meptable.nrows();
+        meptable.removerows(1:nrows);
+        meptable.done();
+    }
     mepuvw := F;
     filluvw := any(argv=='-filluvw');
-    solve_fluxes:= T;#any(argv == '-fluxes');
+    solve_fluxes:= [T,T,F,F];#any(argv == '-fluxes');
     solve_gains := any(argv=='-gains');
     solve_phases := any(argv=='-phases');
     set_breakpoint := any(argv=='-bp');
     
     src_3C343_1 := [name="3C343_1",I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=1,
+                    Iorder=1,Qorder=1,
                     ra=4.356645791155902,dec=1.092208429052697];
     src_3C343   := [name="3C343",  I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=3,
+                    Iorder=3,Qorder=3,
                     ra=4.3396003966265599,dec=1.0953677174056471];
     
     sources := [a=src_3C343_1,
@@ -880,11 +911,12 @@ source_flux_fit_no_calibration := function()
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
                  tile_size=1500,# clear_flags=T,
-                 selection = [ channel_start_index=5,
-                              channel_end_index=60 ,
+                 selection = [ channel_start_index=25,
+                              channel_end_index=40 ,
                               selection_string=''] ];
     
-    outputrec := [ write_flags=F,predict_column=outcol ];
+    #outputrec := [ write_flags=F,predict_column=outcol ];
+    outputrec := [ write_flags=F];
     
     res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
                    stset=[1:14],
@@ -894,6 +926,7 @@ source_flux_fit_no_calibration := function()
                    solve_phases=solve_phases,
                    set_breakpoint=set_breakpoint,
                    mep_table_name=mep_table_name,
+                   source_mep_table_name=source_mep_table_name,
                    publish=1,mepuvw=mepuvw,msuvw=msuvw);
     
     
@@ -921,25 +954,29 @@ phase_solution_with_given_fluxes := function()
 
     msname := '3C343.MS';
     mep_table_name := '3C343.mep';
+    source_mep_table_name := 'fluxes_16_channels.mep';
+    clear_mep_table := T;
     
     # Clear MEP table
-    meptable := table(mep_table_name, readonly=F);
-    nrows := meptable.nrows();
-    meptable.removerows(1:nrows);
-    meptable.done();
+    if(clear_mep_table){
+        meptable := table(mep_table_name, readonly=F);
+        nrows := meptable.nrows();
+        meptable.removerows(1:nrows);
+        meptable.done();
+    }
     
     mepuvw := F;
     filluvw := any(argv=='-filluvw');
-    solve_fluxes:= any(argv == '-fluxes');
+    solve_fluxes:= [F,F,F,F]; any(argv == '-fluxes');
     solve_gains := any(argv=='-gains');
     solve_phases := T;#any(argv=='-phases');
     set_breakpoint := any(argv=='-bp');
     
-    src_3C343_1 := [name="3C343_1",I=5.35113, Q=0.0, U=0.0, V=0.0,
-                    Iorder=1,
+    src_3C343_1 := [name="3C343_1",I=F, Q=F, U=0, V=0,
+                    Iorder=1, Qorder=1,
                     ra=4.356645791155902,dec=1.092208429052697];
-    src_3C343   := [name="3C343",  I=1.60887, Q=0.0, U=0.0, V=0.0,
-                    Iorder=3,
+    src_3C343   := [name="3C343",  I=F, Q=F, U=0, V=0,
+                    Iorder=3, Qorder=3,
                     ra=4.3396003966265599,dec=1.0953677174056471];
     
     sources := [a=src_3C343_1,
@@ -958,16 +995,17 @@ phase_solution_with_given_fluxes := function()
     else
         mepuvw := F;
     
-    outcol := 'PREDICTED_DATA';
+    outcol := 'CORRECTED_DATA'; # DO NOT WRITE RESULTS TO MS
     solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
-                 tile_size=2,# clear_flags=T,
-                 selection = [ channel_start_index=5,
-                              channel_end_index=60, 
-                              selection_string=''] ];
+                 tile_size=1,# clear_flags=T,
+                 selection = [ channel_start_index=25,
+                              channel_end_index=40, 
+                              selection_string=''] ];#'TIME < 4472025830'] ];
     
-    outputrec := [ write_flags=F,predict_column=outcol ]; 
+    #outputrec := [ write_flags=F,predict_column=outcol ]; 
+    outputrec := [ write_flags=F];
     
     res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
                    stset=1:14,
@@ -977,6 +1015,7 @@ phase_solution_with_given_fluxes := function()
                    solve_phases=solve_phases,
                    set_breakpoint=set_breakpoint,
                    mep_table_name=mep_table_name,
+                   source_mep_table_name=source_mep_table_name,
                    publish=1,mepuvw=mepuvw,msuvw=msuvw);
     
     
