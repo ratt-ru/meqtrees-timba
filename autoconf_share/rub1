@@ -61,7 +61,7 @@ notfound=$?
 # If found, check if tag matches (only if checkout/update needs to be done).
 if [ $notfound = 0  -a  $checkout = 1  -a  "$pkgtag" != "" ]; then
   tmptag=`grep "^$pkgname [^ ]" allpkg.tmp | head -1 | sed -e 's/.* //'`
-  if [ "$tmptag" != "$pkgtag" ]; then
+  if [ "$tmptag" != "$pkgtag"  -a  "$tmptag" != "" ]; then
     echo "Error: package $pkgname is used with different tags ($pkgtag and $tmptag)"
     exit 1
   fi
