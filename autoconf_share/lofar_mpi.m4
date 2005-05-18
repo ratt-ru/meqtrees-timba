@@ -99,6 +99,7 @@ AC_CHECK_FILE([$mpich_prefix/include/mpi.h],
 		MPIBIN="$mpich_prefix/bin"
 		MPICH_CC="$MPIBIN/mpicc"
 		MPICH_CXX="$MPIBIN/mpiCC"
+		LIBTOOL="$LIBTOOL --tag CXX "
 
 		if test "$mpi_profiler" = "yes"; then
 		  MPICH_CC="$MPICH_CC -mpilog";
