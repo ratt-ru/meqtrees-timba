@@ -832,6 +832,7 @@ void MeqServer::run ()
       cdebug(4)<<"checking input\n";
       HIID id;
       ObjRef ref,header_ref;
+      bool tile_failed = false;
       int instat = input().getNext(id,ref,0,AppEvent::WAIT);
       if( instat > 0 )
       { 
@@ -841,7 +842,6 @@ void MeqServer::run ()
         int retcode = 0;
         try
         {
-          
           // process data event
           if( instat == DATA )
           {
@@ -903,11 +903,14 @@ void MeqServer::run ()
           // generate output event if one was queued up
           if( !output_event.empty() )
             postDataEvent(output_event,output_message,eventrec);
-          // throw exception if a fail was indicated
-          if( retcode&Node::RES_FAIL )
+          // throw exception any time we go from success to fail
+          if( retcode&Node::RES_FAIL && !tile_failed)
           {
-            Throw("one or more Sink(s) or Spigot(s) reported a FAIL");
+            tile_failed = true;
+            Throw("tree returns fail during stream processing, please check the tree caches for more information");
           }
+          else
+            tile_failed = false;
         }
         catch( std::exception &exc )
         {

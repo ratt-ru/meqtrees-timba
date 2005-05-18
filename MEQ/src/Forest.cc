@@ -84,21 +84,27 @@ void Forest::clear ()
 Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitializing)
 {
   string classname;
+  string nodename;
   Node::Ref noderef;
   Node *pnode;
   // get class from initrec and try to construct a node of that class
   try
   {
     classname = (*initrec)[FClass].as<string>("");
+    nodename = (*initrec)[FName].as<string>("");
     node_index = (*initrec)[FNodeIndex].as<int>(-1);
-    FailWhen( !classname.length(),"missing or invalid Class field in init record"); 
+    // check the node name for duplicates
+    if( !nodename.empty() && name_map.find(nodename) != name_map.end() )
+      Throw("node '"+nodename+"' already exists");
+    // attempt to create node
+    FailWhen(classname.empty(),nodename +": missing or invalid 'class' field in init record"); 
     DMI::BObj * pbp = DynamicTypeManager::construct(TypeId(classname));
-    FailWhen(!pbp,"construct failed");
+    FailWhen(!pbp,nodename +": "+classname+" construct failed");
     pnode = dynamic_cast<Meq::Node*>(pbp);
     if( !pnode )
     {
       delete pbp;
-      Throw(classname+" is not a Meq::Node descendant");
+      Throw(nodename +": "+classname+" is not a Meq::Node descendant");
     }
     noderef.attach(pnode,DMI::SHARED);
     if( reinitializing )
@@ -108,21 +114,17 @@ Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitiali
   }
   catch( std::exception &exc )
   {
-    Throw("failed to init a "+classname+": "+exc.what()); 
+    Throw(nodename +": failed to init a "+classname+": "+exc.what()); 
   }
   catch(...)
   {
-    Throw("failed to init a "+classname); 
+    Throw(nodename +": failed to init a "+classname); 
   }
-  // check the node name for duplicates
-  string name = noderef->name();
-  if( !name.empty() && name_map.find(name) != name_map.end() )
-    Throw("node '"+name+"' already exists");
   // check if node index is already set (i.e. via init record),
   if( node_index > 0 ) // node index already set (i.e. when reloading)
   {
     FailWhen(node_index<int(nodes.size()) && nodes[node_index].valid(),
-        Debug::ssprintf("node %d already created",node_index));
+        Debug::ssprintf("%s: node %d already created",nodename.c_str(),node_index));
   }
   else  // not set, allocate new node index
     node_index = nodes.size();
@@ -135,8 +137,8 @@ Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitiali
   pnode->setNodeIndex(node_index);
   // add to repository and name map
   num_valid_nodes++;
-  if( !name.empty() )
-    name_map[name] = node_index;
+  if( !nodename.empty() )
+    name_map[nodename] = node_index;
   // post event
   if( evgen_create.active() )
     evgen_create.generateEvent(ObjRef(pnode->state()),pnode);

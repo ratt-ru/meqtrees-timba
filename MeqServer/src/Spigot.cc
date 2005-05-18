@@ -32,7 +32,8 @@ Spigot::Spigot ()
   corr_index_.resize(4);
   for( int i=0; i<4; i++ )
     corr_index_[i] = i;
-  setActiveSymDeps(FDomain);
+  const HIID deps[2] = {FDataset,FDomain};
+  setActiveSymDeps(deps,2);
 }
   
 //##ModelId=3F9FF6AA03D2

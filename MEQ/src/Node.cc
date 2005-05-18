@@ -558,7 +558,11 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
   int diffmask = RES_VOLATILE | RqId::diffMask(req.id(),req.nextId());
   bool do_cache = false;    // do we cache at all?
   bool longcache = false;   // do we cache beyond the last parent?
-  if( actual_cache_policy_ <= CACHE_NEVER )         // never cache
+  if( retcode&RES_FAIL )
+  {
+    do_cache = longcache = true;           // fails always cached
+  }
+  else if( actual_cache_policy_ <= CACHE_NEVER )         // never cache
   { 
     do_cache = longcache = false;
   }
