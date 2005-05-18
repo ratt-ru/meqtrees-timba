@@ -7,4 +7,26 @@ optimize.var:	 --with-optimize='-O4'
 
 debugopt.var:	 --with-optimize='-ggdb -O4'
 
-profopt.var:	 --with-optimize='-O4 -pg'
+prof.var: --with-optimize='-ggdb -pg'
+
+profopt.var: --with-optimize='-O4 -pg'
+
+debug-std.variant.conf: $(standard) --with-optimize='-ggdb -DDMI_USE_STD_ALLOC'
+
+#<<<<<<< variants.lofar10
+#prof.variant.conf:	 --with-optimize='-ggdb -pg'
+#
+#profopt.variant.conf:	 --with-optimize='-O4 -pg'
+#
+#profopt-std.variant.conf: --with-optimize='-O4 -pg' --with-cppflags="-m32 -msse -m3dnow -Wno-deprecated -Wa,--32 -DDMI_USE_STD_ALLOC"
+#profopt-mt.variant.conf: --with-optimize='-O4 -pg' --with-cppflags="-m32 -msse -m3dnow -Wno-deprecated -Wa,--32 -DDMI_USE_MT_ALLOC"
+#profopt-pool.variant.conf: --with-optimize='-O4 -pg' --with-cppflags="-m32 -msse -m3dnow -Wno-deprecated -Wa,--32 -DDMI_USE_POOL_ALLOC"
+#profopt-bitmap.variant.conf: --with-optimize='-O4 -pg' --with-cppflags="-m32 -msse -m3dnow -Wno-deprecated -Wa,--32 -DDMI_USE_BITMAP_ALLOC"
+#
+#debug-std.variant.conf: --with-optimize='-ggdb' --with-cppflags="-m32 -msse -m3dnow -Wno-deprecated -Wa,--32 -DDMI_USE_STD_ALLOC"
+#debug-mt.variant.conf: --with-optimize='-ggdb' --with-cppflags="-m32 -msse -m3dnow -Wno-deprecated -Wa,--32 -DDMI_USE_MT_ALLOC"
+#debug-pool.variant.conf: --with-optimize='-ggdb' --with-cppflags="-m32 -msse -m3dnow -Wno-deprecated -Wa,--32 -DDMI_USE_POOL_ALLOC"
+#debug-bitmap.variant.conf: --with-optimize='-ggdb' --with-cppflags="-m32 -msse -m3dnow -Wno-deprecated -Wa,--32 -DDMI_USE_BITMAP_ALLOC"
+#=======
+#profopt.var:	 --with-optimize='-O4 -pg'
+#>>>>>>> 1.7
