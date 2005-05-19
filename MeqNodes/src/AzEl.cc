@@ -122,6 +122,8 @@ int AzEl::getResult (Result::Ref &resref,
     Frame.set (mepoch);
     // convert ra, dec to Az El at given time
     MDirection az_el_out(MDirection::Convert(sourceCoord,MDirection::Ref(MDirection::AZEL,Frame))());
+    //Gawd - what a mouthfull - luckily some old ACSIS code provided the
+    //rigth incantation for the following line!
     Vector<Double> az_el = az_el_out.getValue().getAngle("rad").getValue();
     Az[i] = az_el(0);
     El[i] = az_el(1);
