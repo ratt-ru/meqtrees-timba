@@ -239,6 +239,7 @@ Meas                             1184       ; from /home/oms/LOFAR/Timba/VisCube
 #MeqArg                          1457       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Arg.h:29
 #MeqAsin                         1399       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Asin.h:29
 #MeqAtan                         1428       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Atan.h:29
+#MeqAZEL                         1551       ; from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:31
 #MeqCeil                         1437       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
 MeqCells                         1339       ; from /home/oms/LOFAR/Timba/MEQ/src/Cells.h:35
 MeqClient                        1544       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
