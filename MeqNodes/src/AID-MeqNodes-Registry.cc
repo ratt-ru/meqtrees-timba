@@ -124,6 +124,8 @@ DMI::BObj * __construct_MeqStripper (int n) { return n>0 ? new Meq::Stripper [n]
 DMI::BObj * __construct_MeqDataCollect (int n) { return n>0 ? new Meq::DataCollect [n] : new Meq::DataCollect; }
 #include "DataConcat.h"
 DMI::BObj * __construct_MeqDataConcat (int n) { return n>0 ? new Meq::DataConcat [n] : new Meq::DataConcat; }
+#include "AzEl.h"
+DMI::BObj * __construct_MeqAzEl (int n) { return n>0 ? new Meq::AzEl [n] : new Meq::AzEl; }
 #include "RandomNoise.h"
 DMI::BObj * __construct_MeqRandomNoise (int n) { return n>0 ? new Meq::RandomNoise [n] : new Meq::RandomNoise; }
 #include "GaussNoise.h"
@@ -366,6 +368,9 @@ DMI::BObj * __construct_MeqUVInterpol (int n) { return n>0 ? new Meq::UVInterpol
         TypeInfoReg::addToRegistry(-1448,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1448,__construct_MeqDataConcat)+
         AtomicID::registerId(-1389,"Skeleton")+
+        AtomicID::registerId(-1551,"MeqAzEl")+
+        TypeInfoReg::addToRegistry(-1551,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1551,__construct_MeqAzEl)+
         AtomicID::registerId(-1384,"MeqRandomNoise")+
         TypeInfoReg::addToRegistry(-1384,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1384,__construct_MeqRandomNoise)+
@@ -414,6 +419,16 @@ DMI::BObj * __construct_MeqUVInterpol (int n) { return n>0 ? new Meq::UVInterpol
         AtomicID::registerId(-1508,"MeqUVInterpol")+
         TypeInfoReg::addToRegistry(-1508,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1508,__construct_MeqUVInterpol)+
+        AtomicID::registerId(-1523,"UVInterpol")+
+        AtomicID::registerId(-1216,"Map")+
+        AtomicID::registerId(-1099,"Count")+
+        AtomicID::registerId(-1524,"Additional")+
+        AtomicID::registerId(-1494,"Info")+
+        AtomicID::registerId(-1527,"UVImage")+
+        AtomicID::registerId(-1528,"UVZ")+
+        AtomicID::registerId(-1526,"UVDelta")+
+        AtomicID::registerId(-1540,"UVCurvature")+
+        AtomicID::registerId(-1550,"Method")+
     0;
     return res;
   }

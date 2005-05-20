@@ -35,21 +35,17 @@ MatrixMultiply::MatrixMultiply()
 MatrixMultiply::~MatrixMultiply()
 {}
 
-// computes sum(v[2*i]*v[2*i+1]) over i 
-Vells::Ref MatrixMultiply::computeSum (const std::vector<const Vells*> &pv)
+inline Vells * computeSum (Vells &out,const Vells * pv[],int nsum)
 {
-  uint i=0;
-  Vells::Ref outref;
-  // an empty Vells is treated as null, so we don't need any initialization
-  Vells &out = outref <<= new Vells;
-  while( i < pv.size() )
+  int j=0;
+  for( int i=0; i<nsum; i++ )
   {
-    const Vells *pa = pv[i++];
-    const Vells *pb = pv[i++];
+    const Vells *pa = pv[j++];
+    const Vells *pb = pv[j++];
     if( pa && pb )
       out += (*pa)*(*pb);
   }
-  return outref;
+  return &out;
 }
 
 // multiplies a scalar result by a tensor result
@@ -282,9 +278,9 @@ int MatrixMultiply::getResult (Result::Ref &resref,
       int nsum = da[1]; // number of indices summed over
       // these vectors will hold pointers to values for each summation
       // (A/B values alternating)
-      vector<const Vells *> pvv(nsum*2);
+      const Vells * pvv[nsum*2];
       // pointers to each vellset in the sum
-      vector<const VellSet *> pvset(nsum*2); 
+      vector<const VellSet *> pvset(nsum*2);
       // compute matrix multiplication as Cik = sum( Aij*Bjk )
       for( int i=0; i<da[0]; i++ )
       {
@@ -333,7 +329,8 @@ int MatrixMultiply::getResult (Result::Ref &resref,
           if( flagref.valid() )
             vellset.setDataFlags(flagref);
           // now compute the sum
-          vellset.setValue(computeSum(pvv));
+          Vells::Ref valref(DMI::ANONWR);
+          vellset.setValue(computeSum(valref(),pvv,nsum));
           // now repeat this whole rigamole for perturbed values
           // work out the spids first
           int npertsets;
@@ -342,7 +339,7 @@ int MatrixMultiply::getResult (Result::Ref &resref,
           vellset.setNumPertSets(npertsets);
           vellset.setSpids(spids);
           // Evaluate all perturbed values.
-          vector<const Vells*> pert_values[npertsets];
+          const Vells* pert_values[npertsets][nsum*2];
           double pert[npertsets];
           vector<int> indices(nvs,0);
           int found[npertsets];
@@ -354,7 +351,7 @@ int MatrixMultiply::getResult (Result::Ref &resref,
             for( int ipert=0; ipert<npertsets; ipert++ )
             {
               found[ipert] = -1;
-              pert_values[ipert] = pvv;
+              memcpy(pert_values[ipert],pvv,sizeof(pvv));
             }
             // loop over child vellsets. For every vs that contains a perturbed
             // value for spid[ispid], put a pointer to the perturbed value into 
@@ -397,7 +394,8 @@ int MatrixMultiply::getResult (Result::Ref &resref,
                        ssprintf("no perturbation set %d found for spid %d",
                                 ipert,spids[ispid]));
               vellset.setPerturbation(ispid,pert[ipert],ipert);
-              vellset.setPerturbedValue(ispid,computeSum(pert_values[ipert]),ipert);
+              Vells &out = valref <<= new Vells;
+              vellset.setPerturbedValue(ispid,computeSum(out,pert_values[ipert],nsum),ipert);
             }
           } // for spids
         } // for j

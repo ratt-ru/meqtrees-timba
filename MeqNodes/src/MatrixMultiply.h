@@ -53,9 +53,6 @@ protected:
 
   // helper functions
 
-  // computes sum(v[2*i]*v[2*i+1]) over i 
-  Vells::Ref computeSum (const std::vector<const Vells*> &pv);
-  
   // multiplies a scalar child by a tensor child
   void scalarMultiply (Result::Ref &res,const Result &scalar,const Result &tensor,
                        VellsFlagType fms,VellsFlagType fmt,

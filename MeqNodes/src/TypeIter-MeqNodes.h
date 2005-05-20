@@ -78,6 +78,7 @@
         Do(Meq::Stripper,arg) separator \
         Do(Meq::DataCollect,arg) separator \
         Do(Meq::DataConcat,arg) separator \
+        Do(Meq::AzEl,arg) separator \
         Do(Meq::RandomNoise,arg) separator \
         Do(Meq::GaussNoise,arg) separator \
         Do(Meq::ZeroFlagger,arg) separator \

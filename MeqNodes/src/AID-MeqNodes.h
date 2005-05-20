@@ -8,6 +8,11 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_MeqNodes ();
 
+#ifndef _defined_id_AidAdditional
+#define _defined_id_AidAdditional 1
+const DMI::AtomicID AidAdditional(-1524);         // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
+const int AidAdditional_int = -1524;
+#endif
 #ifndef _defined_id_AidAttrib
 #define _defined_id_AidAttrib 1
 const DMI::AtomicID AidAttrib(-1382);             // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
@@ -32,6 +37,11 @@ const int AidColor_int = -1426;
 #define _defined_id_AidConj 1
 const DMI::AtomicID AidConj(-1520);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:33
 const int AidConj_int = -1520;
+#endif
+#ifndef _defined_id_AidCount
+#define _defined_id_AidCount 1
+const DMI::AtomicID AidCount(-1099);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
+const int AidCount_int = -1099;
 #endif
 #ifndef _defined_id_AidData
 #define _defined_id_AidData 1
@@ -73,6 +83,11 @@ const int AidGT_int = -1431;
 const DMI::AtomicID AidIncremental(-1515);        // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:32
 const int AidIncremental_int = -1515;
 #endif
+#ifndef _defined_id_AidInfo
+#define _defined_id_AidInfo 1
+const DMI::AtomicID AidInfo(-1494);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:31
+const int AidInfo_int = -1494;
+#endif
 #ifndef _defined_id_AidLE
 #define _defined_id_AidLE 1
 const DMI::AtomicID AidLE(-1414);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
@@ -92,6 +107,11 @@ const int AidLT_int = -1455;
 #define _defined_id_AidLabel 1
 const DMI::AtomicID AidLabel(-1456);              // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 const int AidLabel_int = -1456;
+#endif
+#ifndef _defined_id_AidMap
+#define _defined_id_AidMap 1
+const DMI::AtomicID AidMap(-1216);                // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:12
+const int AidMap_int = -1216;
 #endif
 #ifndef _defined_id_AidMask
 #define _defined_id_AidMask 1
@@ -127,6 +147,11 @@ const int AidMeqAsin_int = -1399;
 #define _defined_id_AidMeqAtan 1
 const DMI::AtomicID AidMeqAtan(-1428);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Atan.h:29
 const int AidMeqAtan_int = -1428;
+#endif
+#ifndef _defined_id_AidMeqAzEl
+#define _defined_id_AidMeqAzEl 1
+const DMI::AtomicID AidMeqAzEl(-1551);            // from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:31
+const int AidMeqAzEl_int = -1551;
 #endif
 #ifndef _defined_id_AidMeqCeil
 #define _defined_id_AidMeqCeil 1
@@ -458,6 +483,11 @@ const int AidMeqWSum_int = -1502;
 const DMI::AtomicID AidMeqZeroFlagger(-1434);     // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:32
 const int AidMeqZeroFlagger_int = -1434;
 #endif
+#ifndef _defined_id_AidMethod
+#define _defined_id_AidMethod 1
+const DMI::AtomicID AidMethod(-1550);             // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
+const int AidMethod_int = -1550;
+#endif
 #ifndef _defined_id_AidMulti
 #define _defined_id_AidMulti 1
 const DMI::AtomicID AidMulti(-1518);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:33
@@ -538,10 +568,35 @@ const int AidStyle_int = -1406;
 const DMI::AtomicID AidTop(-1400);                // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 const int AidTop_int = -1400;
 #endif
+#ifndef _defined_id_AidUVCurvature
+#define _defined_id_AidUVCurvature 1
+const DMI::AtomicID AidUVCurvature(-1540);        // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
+const int AidUVCurvature_int = -1540;
+#endif
+#ifndef _defined_id_AidUVDelta
+#define _defined_id_AidUVDelta 1
+const DMI::AtomicID AidUVDelta(-1526);            // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
+const int AidUVDelta_int = -1526;
+#endif
+#ifndef _defined_id_AidUVImage
+#define _defined_id_AidUVImage 1
+const DMI::AtomicID AidUVImage(-1527);            // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
+const int AidUVImage_int = -1527;
+#endif
+#ifndef _defined_id_AidUVInterpol
+#define _defined_id_AidUVInterpol 1
+const DMI::AtomicID AidUVInterpol(-1523);         // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
+const int AidUVInterpol_int = -1523;
+#endif
 #ifndef _defined_id_AidUVW
 #define _defined_id_AidUVW 1
 const DMI::AtomicID AidUVW(-1123);                // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
 const int AidUVW_int = -1123;
+#endif
+#ifndef _defined_id_AidUVZ
+#define _defined_id_AidUVZ 1
+const DMI::AtomicID AidUVZ(-1528);                // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
+const int AidUVZ_int = -1528;
 #endif
 #ifndef _defined_id_AidVisu
 #define _defined_id_AidVisu 1
