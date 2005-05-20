@@ -33,6 +33,11 @@ const int AidClosed_int = -1252;
 const DMI::AtomicID AidColumn(-1258);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 const int AidColumn_int = -1258;
 #endif
+#ifndef _defined_id_AidCwd
+#define _defined_id_AidCwd 1
+const DMI::AtomicID AidCwd(-1553);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
+const int AidCwd_int = -1553;
+#endif
 #ifndef _defined_id_AidDDID
 #define _defined_id_AidDDID 1
 const DMI::AtomicID AidDDID(-1270);               // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34

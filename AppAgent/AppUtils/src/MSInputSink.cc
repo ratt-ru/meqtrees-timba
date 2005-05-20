@@ -46,6 +46,7 @@
 #include <tables/Tables/ExprNodeSet.h>
 #include <tables/Tables/SetupNewTab.h>
 #include <tables/Tables/TableParse.h>
+#include <unistd.h>
 
 using namespace casa;
 using namespace LOFAR;
@@ -173,6 +174,12 @@ void MSInputSink::openMS (DMI::Record &header,const DMI::Record &select)
   fillHeader(header,select);
   // put MS name into header
   header[FMSName] = msname_;
+  // get CWD
+  const size_t cwdsize = 16384;
+  char *cwd_temp = new char[cwdsize];
+  getcwd(cwd_temp,cwdsize);
+  header[FCwd] = cwd_temp;
+  delete [] cwd_temp;
   
   // figure out max ifr index
   num_ifrs_ = ifrNumber(num_antennas_-1,num_antennas_-1) + 1;

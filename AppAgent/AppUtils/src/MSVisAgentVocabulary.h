@@ -36,7 +36,7 @@
 #pragma aid Time Data Predict Residuals Column Name Message Type
 #pragma aid Throw Error Domain start string Original Shape Flip Clear
 
-#pragma aid MS Raw Non Calibrated Predict Residuals Iteration
+#pragma aid MS Raw Non Calibrated Predict Residuals Iteration Cwd
 
 namespace AppAgent
 {
@@ -56,6 +56,7 @@ namespace MSVisAgent
        FNumAntenna        = AidNum|AidAntenna,
        FAntennaPos        = AidAntenna|AidPos,
        FMSName            = AidMS|AidName,
+       FCwd               = AidCwd,
        FChannelStartIndex = AidChannel|Aidstart|AidIndex,
        FChannelEndIndex   = AidChannel|AidEnd|AidIndex,
        FSelectionString   = AidSelection|Aidstring,
