@@ -39,7 +39,8 @@ const HIID FDebugLevel = AidDebug|AidLevel;
 const HIID FKnownSymdeps = AidKnown|AidSymdeps;
 const HIID FSymdeps = AidSymdeps;
 const HIID FProfilingEnabled = AidProfiling|AidEnabled;
-  
+const HIID FCwd = AidCwd;
+
 //##ModelId=3F60697A00ED
 Forest::Forest ()
 {
@@ -351,6 +352,13 @@ void Forest::fillSymDeps (DMI::Record &rec,const SymdepMap &map)
 void Forest::initDefaultState ()
 {
   DMI::Record &st = wstate();
+  // get CWD
+  const size_t cwdsize = 16384;
+  char *cwd_temp = new char[cwdsize];
+  getcwd(cwd_temp,cwdsize);
+  st[FCwd] = cwd_temp;
+  delete [] cwd_temp;
+  // state maps
   st[FAxisMap] = Axis::getAxisRecords();
   st[FDebugLevel] = debug_level_;
   DMI::Record &known = st[FKnownSymDeps] <<= new DMI::Record;
@@ -362,6 +370,9 @@ void Forest::initDefaultState ()
 
 void Forest::setStateImpl (DMI::Record::Ref &rec)
 {
+  // always ignore cwd field
+  if( rec->hasField(FCwd) )
+    rec().removeField(FCwd);
   if( rec->hasField(FAxisMap) )
     Axis::setAxisRecords(rec[FAxisMap].as<DMI::Vec>());
   rec[FCachePolicy].get(cache_policy_);

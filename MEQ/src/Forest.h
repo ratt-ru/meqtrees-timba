@@ -31,7 +31,7 @@
 #include <map>
 
 #pragma aid Create Delete
-#pragma aid Axes Symdeps Debug Level Profiling Enabled
+#pragma aid Axes Symdeps Debug Level Profiling Enabled Cwd
 
 namespace Meq 
 { 
