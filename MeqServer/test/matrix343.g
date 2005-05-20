@@ -726,23 +726,17 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
           # solvable parms
           solvables := "";
           # I,Q,U,V
-          if(solve_fluxes[1]){
-              for(source in sources){
+          for(source in sources){
+              if(source.solve_fluxes[1]){
                   solvables := [solvables, fq_name('stokes_i', source.name)];
               }
-          }
-          if(solve_fluxes[2]){
-              for(source in sources){
+              if(source.solve_fluxes[2]){
                   solvables := [solvables, fq_name('stokes_q', source.name)];
               }
-          }
-          if(solve_fluxes[3]){
-              for(source in sources){
+              if(source.solve_fluxes[3]){
                   solvables := [solvables, fq_name('stokes_u', source.name)];
               }
-          }
-          if(solve_fluxes[4]){
-              for(source in sources){
+              if(source.solve_fluxes[4]){
                   solvables := [solvables, fq_name('stokes_v', source.name)];
               }
           }
@@ -879,16 +873,17 @@ source_flux_fit_no_calibration := function()
     }
     mepuvw := F;
     filluvw := any(argv=='-filluvw');
-    solve_fluxes:= [T,T,F,F];#any(argv == '-fluxes');
     solve_gains := any(argv=='-gains');
     solve_phases := any(argv=='-phases');
     set_breakpoint := any(argv=='-bp');
     
     src_3C343_1 := [name="3C343_1",I=1.0, Q=0.0, U=0.0, V=0.0,
                     Iorder=1,Qorder=1,
+                    solve_fluxes=[T,F,F,F],
                     ra=4.356645791155902,dec=1.092208429052697];
     src_3C343   := [name="3C343",  I=1.0, Q=0.0, U=0.0, V=0.0,
                     Iorder=3,Qorder=3,
+                    solve_fluxes=[T,T,F,F],
                     ra=4.3396003966265599,dec=1.0953677174056471];
     
     sources := [a=src_3C343_1,
@@ -906,7 +901,7 @@ source_flux_fit_no_calibration := function()
     else
         mepuvw := F;
     
-    outcol := 'PREDICTED_DATA';
+    outcol := 'CORRECTED_DATA';
     solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
@@ -915,13 +910,12 @@ source_flux_fit_no_calibration := function()
                               channel_end_index=40 ,
                               selection_string=''] ];
     
-    #outputrec := [ write_flags=F,predict_column=outcol ];
-    outputrec := [ write_flags=F];
+    outputrec := [ write_flags=F,predict_column=outcol ];
+    #outputrec := [ write_flags=F];
     
     res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
                    stset=[1:14],
                    sources=sources,
-                   solve_fluxes=solve_fluxes,
                    solve_gains=solve_gains,
                    solve_phases=solve_phases,
                    set_breakpoint=set_breakpoint,
@@ -967,16 +961,17 @@ phase_solution_with_given_fluxes := function()
     
     mepuvw := F;
     filluvw := any(argv=='-filluvw');
-    solve_fluxes:= [F,F,F,F]; any(argv == '-fluxes');
     solve_gains := any(argv=='-gains');
     solve_phases := T;#any(argv=='-phases');
     set_breakpoint := any(argv=='-bp');
     
-    src_3C343_1 := [name="3C343_1",I=F, Q=F, U=0, V=0,
+    src_3C343_1 := [name="3C343_1",I=F, Q=0, U=0, V=0,
                     Iorder=1, Qorder=1,
+                    solve_fluxes=[F,F,F,F],
                     ra=4.356645791155902,dec=1.092208429052697];
     src_3C343   := [name="3C343",  I=F, Q=F, U=0, V=0,
                     Iorder=3, Qorder=3,
+                    solve_fluxes=[F,F,F,F],
                     ra=4.3396003966265599,dec=1.0953677174056471];
     
     sources := [a=src_3C343_1,
@@ -1004,13 +999,12 @@ phase_solution_with_given_fluxes := function()
                               channel_end_index=40, 
                               selection_string=''] ];#'TIME < 4472025830'] ];
     
-    #outputrec := [ write_flags=F,predict_column=outcol ]; 
-    outputrec := [ write_flags=F];
+    outputrec := [ write_flags=F,predict_column=outcol ]; 
+    #outputrec := [ write_flags=F];
     
     res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
                    stset=1:14,
                    sources=sources,
-                   solve_fluxes=solve_fluxes,
                    solve_gains=solve_gains,
                    solve_phases=solve_phases,
                    set_breakpoint=set_breakpoint,
@@ -1026,5 +1020,5 @@ phase_solution_with_given_fluxes := function()
 
 
 
-source_flux_fit_no_calibration();
-#phase_solution_with_given_fluxes();
+#source_flux_fit_no_calibration();
+phase_solution_with_given_fluxes();
