@@ -15,7 +15,7 @@ namespace DMI
 class BlockSet 
 {
   private:
-      typedef std::list<BlockRef,DMI_RefAllocator(BlockRef) > BlockList;
+      typedef std::list<BlockRef,DMI_MT_Allocator<BlockRef> > BlockList;
   
   public:
       typedef BlockList::const_iterator const_iterator;

@@ -32,23 +32,8 @@ const int LITERAL_MARKER = 0x7FFFFFFF;
 
 //##ModelId=3DB934880197
 HIID::HIID (const void* block, int sz)
-  : Vector_AtomicID(sz/sizeof(int))
 {
-  reserve();
   unpack(block,sz);
-}
-
-
-//##ModelId=3BE977510397
-HIID & HIID::add (const HIID &other)
-{
-  if( other.empty() )
-    return *this;
-  int n = size();
-  resize(n+other.size());
-  for( const_iterator iter = other.begin(); iter != other.end(); iter++ )
-    (*this)[n++] = *iter;
-  return *this;
 }
 
 //##ModelId=3C55695F00CC
@@ -127,7 +112,7 @@ int HIID::popTrailIndex ()
   int ret = back().index();
   if( ret<0 ) 
     return 0;
-  resize(size()-1);
+  HIID_Base::resize(size()-1);
   return ret;
 }
 

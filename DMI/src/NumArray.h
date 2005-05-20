@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.39  2005/05/20 13:35:53  smirnov
+//  %[ER: ]%
+//  Some speedups to HIIDs and Containers, cut down on memory allocs/reallocs
+//
 //  Revision 1.38  2005/05/17 21:15:07  smirnov
 //  %[ER: ]%
 //  Fixed memory leak in NumArray.
@@ -424,6 +428,7 @@ protected:
   virtual int get (const HIID& id,ContentInfo &info,bool nonconst,int flags) const;
 
 private:
+    
   // Initialize internal shape and create array using the given shape.
   // flags: DMI::NOZERO to skip init of array
   // realtype only needs to be supplied when calling from constructor
@@ -459,7 +464,13 @@ private:
     //##ModelId=3DB949AE038E
   char*      itsArrayData;      // pointer to array data in SmartBlock
     //##ModelId=3DB949AE0394
-  void *     itsArray;
+  // void *     itsArray;
+  
+  // blitz array object created here via placement-new
+  unsigned char itsArray [sizeof(blitz::Array<dcomplex,10>)];
+
+  // true when object is valid
+  bool       itsArrayValid;
 
   //##ModelId=3DB949AE0370
   BlockRef    itsData;
@@ -482,9 +493,10 @@ private:
   
   // These are the actual method tables
     //##ModelId=3E9BD9140364
-  typedef void * (*AllocatorWithData)(void*,const LoShape &);
+  typedef void * (*AllocatorWithData)(void*,void*,const LoShape &);
     //##ModelId=3E9BD9140377
   typedef void * (*AllocatorDefault)();
+  typedef void (*AllocatorPlacement)(void*);
     //##ModelId=3E9BD914038B
   typedef void (*AssignWithStride)(void*,void *,const LoShape &,const LoShape &);
   typedef void (*AssignDataReference)(void*,void *,const LoShape &);
@@ -499,9 +511,11 @@ private:
   
   static AllocatorWithData    allocatorWithData     [NumTypes][MaxLorrayRank];
   static AllocatorDefault     allocatorDefault      [NumTypes][MaxLorrayRank];
+  static AllocatorPlacement   allocatorPlacement    [NumTypes][MaxLorrayRank];
   static AssignWithStride     assignerWithStride    [NumTypes][MaxLorrayRank];
   static AssignDataReference  assignerDataReference [NumTypes][MaxLorrayRank];
   static Destructor           destructor            [NumTypes][MaxLorrayRank];
+  static Destructor           destructor_inplace    [NumTypes][MaxLorrayRank];
     //##ModelId=3F5487DA023F
   static ArrayCopier          copier                [NumTypes][MaxLorrayRank];
     //##ModelId=3F5487DA0273
@@ -513,9 +527,9 @@ private:
   { return Tpbool_int - tid.id(); }
   // These methods do a lookup & call into each method table
     //##ModelId=3E9BD918015A
-  static void * allocateArrayWithData (TypeId tid,void *data,const LoShape &shape )
+  static void * allocateArrayWithData (TypeId tid,void *where,void *data,const LoShape &shape )
   {
-    return (*allocatorWithData[typeIndex(tid)][shape.size()-1])(data,shape);
+    return (*allocatorWithData[typeIndex(tid)][shape.size()-1])(where,data,shape);
   }
     //##ModelId=3E9BD91801EA
   static void assignWithStride (TypeId tid,void *ptr,void *data,const LoShape &shape,const LoShape &stride )
@@ -535,6 +549,10 @@ private:
   static void destroyArray (TypeId tid,int rank,void *ptr)
   {
     (*destructor[typeIndex(tid)][rank-1])(ptr);
+  }
+  static void destroyPlacementArray (TypeId tid,int rank,void *ptr)
+  {
+    (*destructor_inplace[typeIndex(tid)][rank-1])(ptr);
   }
   
     //##ModelId=3F5487DB02E7
@@ -591,7 +609,7 @@ DefineRefTypes(NumArray,NumArrayRef);
 
 inline bool NumArray::valid () const
 {
-  return itsArray != 0 ;
+  return itsArrayValid;
 }
 
     
@@ -622,7 +640,7 @@ inline TypeId NumArray::elementType () const
 template<class T,int N>
 NumArray::NumArray (const typename Traits<T,N>::Array & array,TypeId realtype)
 : Container(),
-  itsArray    (0)
+  itsArrayValid(false)
 {
   initSubArray();
   itsScaType  = typeIdOf(T);
@@ -631,13 +649,13 @@ NumArray::NumArray (const typename Traits<T,N>::Array & array,TypeId realtype)
   init(array.shape(),DMI::NOZERO,realtype);
   // after an init, itsArray contains a valid array of the given shape,
   // so we can assign the other array to it, to copy the data over
-  *static_cast<typename Traits<T,N>::Array*>(itsArray) = array;
+  *reinterpret_cast<typename Traits<T,N>::Array*>(itsArray) = array;
 }
 
 template<class T,int N>
 NumArray::NumArray (const blitz::Array<T,N> &array,TypeId realtype)
 : Container(),
-  itsArray    (0)
+  itsArrayValid(false)
 {
   initSubArray();
   itsScaType  = typeIdOf(T);
@@ -646,7 +664,7 @@ NumArray::NumArray (const blitz::Array<T,N> &array,TypeId realtype)
   init(array.shape(),DMI::NOZERO,realtype);
   // after an init, itsArray contains a valid array of the given shape,
   // so we can assign the other array to it, to copy the data over
-  *static_cast<blitz::Array<T,N>*>(itsArray) = array;
+  *reinterpret_cast<blitz::Array<T,N>*>(itsArray) = array;
 }
 
 #ifdef HAVE_AIPSPP
@@ -674,7 +692,7 @@ inline bool NumArray::verifyAipsType (const casa::String*) const
 template<class T>
 NumArray::NumArray (const casa::Array<T> &array,TypeId realtype)
 : Container(),
-  itsArray    (0)
+  itsArrayValid(false)
 {
   initSubArray();
   init(array,realtype);
@@ -693,16 +711,16 @@ void NumArray::init (const casa::Array<T> &array,TypeId realtype)
   switch( array.ndim() )
   {
     case 0:   break;
-    case 1:   B2A::assignArray(*static_cast<typename Traits<T,1>::Array*>(itsArray),array); break;
-    case 2:   B2A::assignArray(*static_cast<typename Traits<T,2>::Array*>(itsArray),array); break;
-    case 3:   B2A::assignArray(*static_cast<typename Traits<T,3>::Array*>(itsArray),array); break;
-    case 4:   B2A::assignArray(*static_cast<typename Traits<T,4>::Array*>(itsArray),array); break;
-    case 5:   B2A::assignArray(*static_cast<typename Traits<T,5>::Array*>(itsArray),array); break;
-    case 6:   B2A::assignArray(*static_cast<typename Traits<T,6>::Array*>(itsArray),array); break;
-    case 7:   B2A::assignArray(*static_cast<typename Traits<T,7>::Array*>(itsArray),array); break;
-    case 8:   B2A::assignArray(*static_cast<typename Traits<T,8>::Array*>(itsArray),array); break;
-    case 9:   B2A::assignArray(*static_cast<typename Traits<T,9>::Array*>(itsArray),array); break;
-    case 10:  B2A::assignArray(*static_cast<typename Traits<T,10>::Array*>(itsArray),array); break;
+    case 1:   B2A::assignArray(*reinterpret_cast<typename Traits<T,1>::Array*>(itsArray),array); break;
+    case 2:   B2A::assignArray(*reinterpret_cast<typename Traits<T,2>::Array*>(itsArray),array); break;
+    case 3:   B2A::assignArray(*reinterpret_cast<typename Traits<T,3>::Array*>(itsArray),array); break;
+    case 4:   B2A::assignArray(*reinterpret_cast<typename Traits<T,4>::Array*>(itsArray),array); break;
+    case 5:   B2A::assignArray(*reinterpret_cast<typename Traits<T,5>::Array*>(itsArray),array); break;
+    case 6:   B2A::assignArray(*reinterpret_cast<typename Traits<T,6>::Array*>(itsArray),array); break;
+    case 7:   B2A::assignArray(*reinterpret_cast<typename Traits<T,7>::Array*>(itsArray),array); break;
+    case 8:   B2A::assignArray(*reinterpret_cast<typename Traits<T,8>::Array*>(itsArray),array); break;
+    case 9:   B2A::assignArray(*reinterpret_cast<typename Traits<T,9>::Array*>(itsArray),array); break;
+    case 10:  B2A::assignArray(*reinterpret_cast<typename Traits<T,10>::Array*>(itsArray),array); break;
   }
 }
 
@@ -715,16 +733,16 @@ casa::Array<T> NumArray::copyAipsArray (const T* dum) const
   switch( rank() )
   {
     case 0: return casa::Array<T>();
-    case 1: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,1>::Array*>(itsArray));
-    case 2: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,2>::Array*>(itsArray));
-    case 3: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,3>::Array*>(itsArray));
-    case 4: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,4>::Array*>(itsArray));
-    case 5: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,5>::Array*>(itsArray));
-    case 6: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,6>::Array*>(itsArray));
-    case 7: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,7>::Array*>(itsArray));
-    case 8: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,8>::Array*>(itsArray));
-    case 9: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,9>::Array*>(itsArray));
-    case 10:return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,10>::Array*>(itsArray));
+    case 1: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,1>::Array*>(itsArray));
+    case 2: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,2>::Array*>(itsArray));
+    case 3: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,3>::Array*>(itsArray));
+    case 4: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,4>::Array*>(itsArray));
+    case 5: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,5>::Array*>(itsArray));
+    case 6: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,6>::Array*>(itsArray));
+    case 7: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,7>::Array*>(itsArray));
+    case 8: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,8>::Array*>(itsArray));
+    case 9: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,9>::Array*>(itsArray));
+    case 10:return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,10>::Array*>(itsArray));
     default: Throw("copyAipsArray(): array rank too high");
   }
 }

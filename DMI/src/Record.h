@@ -71,8 +71,10 @@ class Record : public Container
         BlockSet bset;
         bool     protect;
       } Field;
+      
+      typedef DMI_MT_Allocator<Field> FieldAllocator;
 
-      typedef hash_map<HIID,Field,DMI_hash_namespace::hash<HIID>,std::equal_to<HIID>,DMI_Allocator<Field> > FieldMap; 
+      typedef hash_map<HIID,Field,DMI_hash_namespace::hash<HIID>,std::equal_to<HIID>,FieldAllocator > FieldMap; 
   
   public:
       typedef CountedRef<Record> Ref;

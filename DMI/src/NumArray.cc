@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.43  2005/05/20 13:35:53  smirnov
+//  %[ER: ]%
+//  Some speedups to HIIDs and Containers, cut down on memory allocs/reallocs
+//
 //  Revision 1.42  2005/05/17 21:15:07  smirnov
 //  %[ER: ]%
 //  Fixed memory leak in NumArray.
@@ -81,12 +85,18 @@ static void * newArrayDefault ()
   return new blitz::Array<T,N>; 
 }
 
+template<class T,int N>
+static void newArrayPlacement (void *where)
+{ 
+  new (where) blitz::Array<T,N>; 
+}
+
 // templated method to allocate a Lorray(N,T) of the given shape, using
 // pre-existing data
 template<class T,int N>
-static void * newArrayWithData (void *data,const LoShape & shape)
+static void * newArrayWithData (void *where,void *data,const LoShape & shape)
 { 
-  return new blitz::Array<T,N>(static_cast<T*>(data),shape,blitz::neverDeleteData); 
+  return new (where) blitz::Array<T,N>(static_cast<T*>(data),shape,blitz::neverDeleteData); 
 } 
 
 // templated method to assign a ref to the data to an array
@@ -111,6 +121,13 @@ template<class T,int N>
 static void deleteArray (void *parr)
 { 
   delete static_cast<blitz::Array<T,N>*>(parr); 
+}
+// templated method to destroy a Lorray(N,T) at the given address without deallocing the memory
+template<class T,int N>
+static void deletePlacementArray (void *parr)
+{ 
+  typedef blitz::Array<T,N> ArrType;
+  static_cast<ArrType*>(parr)->~ArrType(); 
 }
 
 // templated method to copy one Lorray to another
@@ -166,6 +183,13 @@ DMI::NumArray::Destructor DMI::NumArray::destructor[NumTypes][MaxLorrayRank] =
   DoForAllArrayTypes1(OneLine,)
 #undef OneElement
 };
+  
+DMI::NumArray::Destructor DMI::NumArray::destructor_inplace[NumTypes][MaxLorrayRank] =
+{
+#define OneElement(N,T) &deletePlacementArray<T,N>
+  DoForAllArrayTypes1(OneLine,)
+#undef OneElement
+};
 
 //##ModelId=3F5487DA023F
 DMI::NumArray::ArrayCopier DMI::NumArray::copier[NumTypes][MaxLorrayRank] =
@@ -204,7 +228,7 @@ static void destroyStringArray (void *start,int num)
 //##ModelId=3DB949AE039F
 DMI::NumArray::NumArray ()
 : Container (),
-  itsArray  (0)
+  itsArrayValid(false)
 {
   initSubArray();
 }
@@ -212,7 +236,7 @@ DMI::NumArray::NumArray ()
 //##ModelId=3DB949AE03A4
 DMI::NumArray::NumArray (TypeId type, const LoShape & shape,int flags,TypeId realtype) 
 : Container (),
-  itsArray  (0)
+  itsArrayValid(false)
 {
   initSubArray();
   init(type,shape,flags,realtype);
@@ -245,7 +269,7 @@ void DMI::NumArray::init (TypeId type, const LoShape & shape,int flags,TypeId re
 //##ModelId=3DB949AE03AF
 DMI::NumArray::NumArray (TypeId tid,const void *other,TypeId realtype) 
 : Container (),
-  itsArray  (0)
+  itsArrayValid(false)
 {
   initSubArray();
   // check arguments
@@ -271,7 +295,7 @@ DMI::NumArray::NumArray (TypeId tid,const void *other,TypeId realtype)
 //##ModelId=3F5487DA034E
 DMI::NumArray::NumArray (const NumArray& other, int flags,int depth,TypeId realtype)
 : Container (),
-  itsArray  (0)
+  itsArrayValid(false)
 {
   initSubArray();
   cloneOther(other,flags,depth,true,realtype);
@@ -301,7 +325,7 @@ void DMI::NumArray::cloneOther (const NumArray& other,int flags,int depth,bool c
   Thread::Mutex::Lock _nclock(mutex());
   Thread::Mutex::Lock _nclock1(other.mutex());
   Assert (!valid());
-  if( other.itsArray ) 
+  if( other.itsArrayValid ) 
   {
     itsScaType  = other.itsScaType;
     itsType     = other.itsType;
@@ -336,7 +360,8 @@ void DMI::NumArray::cloneOther (const NumArray& other,int flags,int depth,bool c
 
 void DMI::NumArray::makeArray ()
 {
-  itsArray = allocateArrayWithData(itsScaType,itsArrayData,itsShape);
+  allocateArrayWithData(itsScaType,itsArray,itsArrayData,itsShape);
+  itsArrayValid = true;
 }
 
 //##ModelId=3E9BD91803CC
@@ -425,14 +450,18 @@ void DMI::NumArray::init (const LoShape & shape,int flags,TypeId realtype)
 void DMI::NumArray::clear()
 {
   Thread::Mutex::Lock _nclock(mutex());
-  if( itsArray )
+  if( itsArrayValid )
   {
-    destroyArray(elementType(),rank(),itsArray);
+    // NB:**********************************************************************************
+    // since itsArray is allocated with placement-new, we don't bother deleting it
+    // (mostly because explicit call of a templated destructor is not quite supported)
+    // This is ok with blitz (as of 0.8) since Array doesn't even have a destructor
+    destroyPlacementArray(elementType(),rank(),itsArray);
+    itsArrayValid = false;
     // destroy string objects, if needed
     if( itsScaType == Tpstring )
       destroyStringArray(itsArrayData,itsSize);
   }
-  
 #ifdef USE_THREADS
   for( SubArrayMap::const_iterator iter = itsSubArrayMap.begin();
        iter != itsSubArrayMap.end(); iter ++ )
@@ -448,7 +477,6 @@ void DMI::NumArray::clear()
     itsSubArray.ptr = 0;
   }
 #endif
-  itsArray    = 0;
   itsShape.resize (0);
   
   itsData.unlock().detach();
@@ -881,7 +909,7 @@ string DMI::NumArray::sdebug ( int detail,const string &prefix,const char *name 
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    if( !itsArray )
+    if( !itsArrayValid )
       out += "empty";
     else
     {
@@ -892,7 +920,7 @@ string DMI::NumArray::sdebug ( int detail,const string &prefix,const char *name 
   }
   if( detail >= 2 || detail <= -2 )   // high detail
   {
-    if( itsArray )
+    if( itsArrayValid )
     {
       // append debug info from block
       string str = itsData.sdebug(2,prefix,"data");

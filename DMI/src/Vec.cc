@@ -148,10 +148,7 @@ DMI::Vec & DMI::Vec::init (TypeId tid, int num, const void *data,TypeId realtype
         dynamic_type = true;
         container_type = isNestable(tid);
         FailWhen(data,Debug::ssprintf("can't init field of type %s with data",tid.toString().c_str(),num) );
-        objects.resize(mysize_);
-        blocks.resize(mysize_);
-        objstate.resize(mysize_);
-        objstate.assign(mysize_,UNINITIALIZED);
+        elems_.resize(mysize_);
         break;
     }    
     case TypeInfo::SPECIAL: 
@@ -215,18 +212,16 @@ void DMI::Vec::resize (int newsize)
     // this is horribly inefficient, but we really must keep the object
     // references locked. Hence, unlock first...
     if( newsize>mysize_ )
-      for( ObjectVector::iterator iter = objects.begin(); iter != objects.end(); iter++ )
-        iter->unlock();
+      for( ElementVector::iterator iter = elems_.begin(); iter != elems_.end(); iter++ )
+        iter->ref.unlock();
     // resize (since this involves a ref assignment)
-    objects.resize(newsize);
+    elems_.resize(newsize);
     // relock
     if( newsize>mysize_ )
-      for( ObjectVector::iterator iter = objects.begin(); iter != objects.end(); iter++ )
-        iter->lock();
-    blocks.resize(newsize);
-    objstate.resize(newsize);
+      for( ElementVector::iterator iter = elems_.begin(); iter != elems_.end(); iter++ )
+        iter->ref.lock();
     // note that when resizing upwards, this implicitly fills the empty
-    // objstates with 0 = UNINITIALIZED
+    // element states with 0 = UNINITIALIZED
   }
   else  // special type -- resize & copy
   {
@@ -259,9 +254,7 @@ void DMI::Vec::clear ()
   {
     dprintf(2)("clearing\n");
     headref_.detach();
-    objects.clear();
-    blocks.clear();
-    objstate.clear();
+    elems_.clear();
     mytype = 0;
   }
 }
@@ -274,7 +267,7 @@ bool DMI::Vec::isValid (int n) const
     return false;
   checkIndex(n);
   if( dynamic_type ) 
-    return objstate[n] != UNINITIALIZED;
+    return elems_[n].state != UNINITIALIZED;
   else
     return true; // built-ins always valid
 }
@@ -365,10 +358,7 @@ int DMI::Vec::fromBlock (BlockSet& set)
       container_type = isNestable(mytype);
       dprintf(2)("fromBlock: dynamic type %s[%d]\n",mytype.toString().c_str(),mysize_);
       FailWhen( hsize != sizeof(HeaderBlock)+sizeof(int)*mysize_,"incorrect block size" );
-      objects.resize(mysize_);
-      blocks.resize(mysize_);
-      objstate.resize(mysize_);
-      objstate.assign(mysize_,INBLOCK);
+      elems_.resize(mysize_);
       // Get blocks from set
       // Do not unblock objects, as that is done at dereference time
       // Note that we don't privatize the blocks, so field contents may
@@ -382,10 +372,11 @@ int DMI::Vec::fromBlock (BlockSet& set)
           {
             npopped += nbl;
             dprintf(3)("fromBlock: [%d] taking over %d blocks\n",i,nbl);
-            set.popMove(blocks[i],nbl);
+            set.popMove(elems_[i].bset,nbl);
+            elems_[i].state = INBLOCK;
           }
           else // no blocks assigned to this object => is uninitialized
-            objstate[i] = UNINITIALIZED;
+            elems_[i].state = UNINITIALIZED;
         }
       }
       dprintf(2)("fromBlock: %d blocks were popped\n",npopped);
@@ -461,7 +452,8 @@ int DMI::Vec::toBlock (BlockSet &set) const
     for( int i=0; i<mysize_; i++ )
     {
       int nb;
-      switch( objstate[i] )
+      Element &elem = elems_[i];
+      switch( elem.state )
       {
         case UNINITIALIZED: // if uninitialized, then do nothing
             dprintf(3)("toBlock: [%d] is uninitialized, no blocks\n",i);
@@ -469,22 +461,22 @@ int DMI::Vec::toBlock (BlockSet &set) const
             nb = 0;
             break;
         case INBLOCK:
-            nb = blocks[i].size();
+            nb = elem.bset.size();
             dprintf(3)("toBlock: [%d] still cached in %d blocks, copying\n",i,nb);
-            set.pushCopy(blocks[i]);
+            set.pushCopy(elem.bset);
             break;
         case UNBLOCKED:
         case MODIFIED:
-            blocks[i].clear();
-            if( objects[i].valid() )
+            elem.bset.clear();
+            if( elem.ref.valid() )
             {
-              nb = objects[i]->toBlock(set);
+              nb = elem.ref->toBlock(set);
               dprintf(3)("toBlock: [%d] converted to %d blocks\n",i,nb);
             }
             else
             {
               dprintf(3)("toBlock: [%d] is uninitialized, 0 blocks\n",i);
-              objstate[i] = UNINITIALIZED;
+              elem.state = UNINITIALIZED;
               // set.push(emptyObjectBlock());
               nb = 0;
             }
@@ -519,42 +511,42 @@ int DMI::Vec::toBlock (BlockSet &set) const
 DMI::ObjRef & DMI::Vec::resolveObject (int n) const
 {
   Thread::Mutex::Lock _nclock(mutex());
-  switch( objstate[n] )
+  Element &elem = elems_[n];
+  switch( elem.state )
   {
     // uninitialized object - create default
     case UNINITIALIZED:
     {
         dprintf(3)("resolveObject(%d): creating new %s\n",n,mytype.toString().c_str());
-        objects[n].attach(DynamicTypeManager::construct(mytype),DMI::LOCK);
-        objstate[n] = MODIFIED;
+        elem.ref.attach(DynamicTypeManager::construct(mytype),DMI::LOCK);
+        elem.state = MODIFIED;
         headref_.detach(); // in case we implicitly initialized
         phead_ = 0;
-        return objects[n];
+        return elem.ref;
     }
     // object hasn't been unblocked
     case INBLOCK:
     {
         dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
-        objects[n] = DynamicTypeManager::construct(0,blocks[n]);
-        objects[n].lock();
+        elem.ref = DynamicTypeManager::construct(0,elem.bset);
+        elem.ref.lock();
         // verify that no blocks were left over
-        FailWhen( blocks[n].size()>0,"block count mismatch" );
-        blocks[n].clear();
-        objstate[n] = MODIFIED;
-        return objects[n];
+        FailWhen( elem.bset.size()>0,"block count mismatch" );
+        elem.bset.clear();
+        elem.state = MODIFIED;
+        return elem.ref;
     }
     // object exists (unblocked and maybe modified)
     case UNBLOCKED:
     case MODIFIED:
     {
-        ObjRef &ref = objects[n];
         // not valid? Mark as uninitialized and try again
-        if( !ref.valid() )
+        if( !elem.ref.valid() )
         {
-          objstate[n] = UNINITIALIZED;
+          elem.state = UNINITIALIZED;
           return resolveObject(n);
         }
-        return ref;
+        return elem.ref;
     }
     default:
         Throw("unexpected object state");
@@ -598,30 +590,8 @@ void DMI::Vec::cloneOther (const DMI::Vec &other,int flags,int depth,bool constr
   }
   if( dynamic_type )   // handle dynamic types
   {
-    objstate = other.objstate;
-    objects.clear();
-    objects.resize(mysize_);
-    blocks.clear();
-    blocks.resize(mysize_);
-    for( int i=0; i<mysize_; i++ )
-    {
-      switch( objstate[i] )
-      {
-        case UNINITIALIZED: // if uninitialized, then do nothing
-            break;
-        // if still in block, then copy & privatize the blockset
-        case INBLOCK:
-            blocks[i] = other.blocks[i]; // blockset copy (=ref.copy)
-            break;
-        // otherwise, privatize the object reference
-        case UNBLOCKED:
-        case MODIFIED:
-            objects[i].copy(other.objects[i],DMI::LOCK);
-            break;
-        default:
-            Throw("illegal object state");
-      }
-    }
+    elems_.clear();
+    elems_ = other.elems_;
   }
   // handle special types -- need to be copied
   else if( !binary_type )
@@ -700,7 +670,8 @@ int DMI::Vec::get (const HIID &id,ContentInfo &info,bool nonconst,int flags) con
     // since dynamic objects are non-contiguous, prohibit vector access
     FailWhen(info.size>1,"DMI::Vec of "+type().toString()+"s can't be accessed in vector mode");
     // object hasn't been initialized? If not assigning, then return 0
-    if( objstate[n] == UNINITIALIZED )
+    Element &elem = elems_[n];
+    if( elem.state == UNINITIALIZED )
     {
 // invalid objects automatically initialized to empty on first access
 //      if( !(flags&DMI::ASSIGN) )
@@ -708,19 +679,19 @@ int DMI::Vec::get (const HIID &id,ContentInfo &info,bool nonconst,int flags) con
       resolveObject(n);
     }
     // object hasn't been unblocked yet? Then we need to unblock it first
-    else if( objstate[n] == INBLOCK )
+    else if( elem.state == INBLOCK )
       resolveObject(n);
     // return ref to object; mark it as modified if expected to write,
     // dereference once to insure COW
     if( flags&DMI::WRITE )
     {
-      objects[n].dewr();
-      blocks[n].clear();
-      objstate[n] = MODIFIED;
+      elem.ref.dewr();
+      elem.bset.clear();
+      elem.state = MODIFIED;
     }
     info.tid = TpDMIObjRef;
     info.obj_tid = type();
-    info.ptr = &objects[n];
+    info.ptr = &elem.ref;
   }
   else // binary or special type
   {
@@ -794,8 +765,8 @@ int DMI::Vec::insert (const HIID &id,ContentInfo &info)
   else if( dynamic_type )
   {
     info.tid = TpDMIObjRef;
-    objstate[n] = MODIFIED;
-    info.ptr = &objects[n];
+    elems_[n].state = MODIFIED;
+    info.ptr = &elems_[n].ref;
   }
   else // special type
   {
@@ -844,9 +815,10 @@ DMI::ObjRef & DMI::Vec::prepareForPut (TypeId tid,int n)
       checkIndex(n);
   }
   // grab the ref, and mark object as modified
-  blocks[n].clear();
-  objstate[n] = MODIFIED;
-  return objects[n];
+  Element & elem = elems_[n];
+  elem.bset.clear();
+  elem.state = MODIFIED;
+  return elem.ref;
 }
 
 //##ModelId=3DB934730394
@@ -890,24 +862,25 @@ string DMI::Vec::sdebug ( int detail,const string &prefix,const char *name ) con
     {
       if( out.length() )
         out += "\n"+prefix;
-      switch( objstate[i] )
+      const Element & elem = elems_[i];
+      switch( elem.state )
       {
         case UNINITIALIZED: // if uninitialized, then do nothing
             out += "    "+Debug::ssprintf("%d: uninitialized",i);
             break;
         case INBLOCK:
             out += "    "+Debug::ssprintf("%d: in block: ",i)
-                         +blocks[i].sdebug(abs(detail)-1,prefix+"    ");
+                         +elem.bset.sdebug(abs(detail)-1,prefix+"    ");
             break;
         case UNBLOCKED:
             out += "    "+Debug::ssprintf("%d: unblocked [",i)
-                         +blocks[i].sdebug(abs(detail)-1,prefix+"    ")
+                         +elem.bset.sdebug(abs(detail)-1,prefix+"    ")
                          +"], to"
-                         +objects[i].sdebug(abs(detail)-1,prefix+"    ");
+                         +elem.ref.sdebug(abs(detail)-1,prefix+"    ");
             break;
         case MODIFIED:
             out += "    "+Debug::ssprintf("%d: modified ",i)
-                         +objects[i].sdebug(abs(detail)-1,prefix+"    ");
+                         +elem.ref.sdebug(abs(detail)-1,prefix+"    ");
             break;
         default:
             Throw("illegal object state");

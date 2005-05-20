@@ -36,14 +36,17 @@ namespace DMI
 {
 
 //##ModelId=3C55652D01B8
-typedef std::vector<AtomicID,DMI_Allocator<AtomicID> > Vector_AtomicID;
+typedef std::vector<AtomicID,DMI_Allocator<AtomicID> > HIID_Base;
+
 
 //##ModelId=3BE96FE601C5
-class HIID : public Vector_AtomicID
+class HIID : public HIID_Base
 {
   public:
     //##ModelId=3BE9774C003C
-      HIID();
+      HIID ();
+  
+      HIID (const HIID &other,int extra_size=0);
 
       //##ModelId=3C5E7527020F
       HIID (AtomicID aid);
@@ -73,7 +76,15 @@ class HIID : public Vector_AtomicID
 
     //##ModelId=3DB9348901D5
       bool operator!=(const HIID &right) const;
+      
+      HIID & operator = (const HIID &other);
 
+      void resize (size_type sz)
+      {
+        if( sz > capacity() )
+          reserve(sz);
+        HIID_Base::resize(sz);
+      }
 
       //##ModelId=3BE977510397
       HIID & add (const HIID &other);
@@ -192,13 +203,18 @@ class HIID : public Vector_AtomicID
   private:
     // Additional Implementation Declarations
     //##ModelId=3DB9343C01F1
-      typedef Vector_AtomicID::iterator VI;  
+      typedef HIID_Base::iterator VI;  
     //##ModelId=3DB9343C025F
-      typedef Vector_AtomicID::const_iterator CVI;  
+      typedef HIID_Base::const_iterator CVI;  
       
       // this function reserves initial space for the HIID vector
     //##ModelId=3DB9348C0215
-      void reserve ()     { Vector_AtomicID::reserve(8); };
+      static size_type ALLOC_STEP () { return 16; }
+      
+      void reserve (size_type sz = 0)
+      { 
+        HIID_Base::reserve((1+sz/ALLOC_STEP())*ALLOC_STEP()); 
+      }
 
       // creates from string
     //##ModelId=3DB9348C0305
@@ -242,25 +258,25 @@ inline HIID & HIID::operator |= (int id2)
   { return add(AtomicID(id2)); }
 
 inline HIID operator | (const HIID &id1,const HIID &id2)
-{ HIID ret(id1); return ret|=id2; }
+{ HIID ret(id1,id2.size()); return ret|=id2; }
 
 inline HIID operator | (const HIID &id1,const char *id2)
 { HIID ret(id1); return ret|=id2; }
 
 inline HIID operator | (const HIID &id1,AtomicID id2)
-{ HIID ret(id1); return ret|=id2; }
+{ HIID ret(id1,1); return ret|=id2; }
 
 inline HIID operator | (const HIID &id1,int id2)
-{ HIID ret(id1); return ret|=AtomicID(id2); }
+{ HIID ret(id1,1); return ret|=AtomicID(id2); }
 
 inline HIID operator | (AtomicID id1,const HIID &id2)
-{ HIID ret(id1); return ret|=id2; }
+{ HIID ret(id1,id2.size()); return ret|=id2; }
 
 inline HIID operator | (AtomicID id1,const char *id2)
 { HIID ret(id1); return ret|=id2; }
 
 inline HIID operator | (AtomicID id1,AtomicID id2)
-{ HIID ret(id1); return ret|=id2; }
+{ HIID ret(id1,1); return ret|=id2; }
 
 inline HIID operator | (AtomicID id1,int id2)
 { HIID ret(id1); return ret|=id2; }
@@ -274,16 +290,32 @@ inline HIID operator | (int id1,AtomicID id2)
 // Class HIID 
 
 //##ModelId=3BE9774C003C
-inline HIID::HIID()
+inline HIID::HIID ()
 {
   reserve();
 }
 
+inline HIID::HIID (const HIID &other,int extra_size)
+  : HIID_Base ()
+{
+  reserve(other.size()+extra_size);
+  HIID_Base::operator = (other);
+}
+
+inline HIID & HIID::operator = (const HIID &other)
+{
+  if( other.size() > capacity() )
+    reserve(other.size());
+  HIID_Base::operator = (other);
+  return *this;
+}
+
 //##ModelId=3C5E7527020F
 inline HIID::HIID (AtomicID aid)
-    : Vector_AtomicID(1,aid)
 {
   reserve();
+  HIID_Base::resize(1);
+  front() = aid;
 }
 
 //##ModelId=3C6141BA03B4
@@ -314,12 +346,23 @@ inline bool HIID::operator!=(const HIID &right) const
   return ! ( (*this) == right );
 }
 
-
-
 //##ModelId=3BE97792003D
 inline HIID & HIID::add (AtomicID aid)
 {
+  if( size()+1 > capacity() )
+    reserve(size()+1);
   push_back(aid);
+  return *this;
+}
+
+inline HIID & HIID::add (const HIID &other)
+{
+  if( !other.empty() )
+  {
+    int n = size(), n1 = other.size();
+    resize(n+n1);
+    memcpy(&((*this)[n]),&( other.front() ),n1*sizeof(AtomicID));
+  }
   return *this;
 }
 
@@ -342,11 +385,11 @@ inline void HIID::pop_front (uint n)
   {
     int nleft = int(size()) - int(n);
     if( nleft<=0 )
-      resize(0);
+      HIID_Base::resize(0);
     else
     {
       memmove(&(front()),&((*this)[n]),nleft*sizeof(AtomicID));
-      resize(nleft);
+      HIID_Base::resize(nleft);
     }
   }
 }
@@ -358,8 +401,9 @@ inline void HIID::push_front (AtomicID aid,uint n)
     int sz0 = size();
     resize(sz0+n);
     memmove(&(*this)[n],&(front()),sz0);
-    for( uint i=0; i<n; i++ )
-      (*this)[i] = aid;
+    iterator iter = begin();
+    for( uint i=0; i < n; i++,iter++ )
+      *iter = aid;
   }
 }
 
@@ -395,9 +439,9 @@ inline size_t HIID::packSize () const
 }
 
 template<class In> inline HIID::HIID( In first,In last )
-      : Vector_AtomicID(first,last)
 {
-  reserve();
+  reserve(last-first);
+  assign(first,last);
 }
 
 

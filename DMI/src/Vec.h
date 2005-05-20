@@ -39,6 +39,26 @@ class Record;
 
 class Vec : public Container
 {
+  protected:
+      // state of each object - still in block / unblocked / modified
+    //##ModelId=3DB9343B0196
+      typedef enum { UNINITIALIZED=0,INBLOCK=1,UNBLOCKED=2,MODIFIED=3 } ElementState;
+  
+      class Element 
+      {
+        public:
+          ObjRef   ref;
+          BlockSet bset;
+          int      state;
+          
+          Element ()
+          : state(UNINITIALIZED) {}
+      };
+      
+      typedef DMI_MT_Allocator<Element> ElementAllocator;
+
+      typedef std::vector<Element,ElementAllocator > ElementVector; 
+      
   public:
       //##ModelId=3C3D64DC016E
       Vec ();
@@ -188,6 +208,18 @@ class Vec : public Container
       ObjRef & prepareForPut (TypeId tid,int n);
       
   private:
+      class HeaderBlock : public BObj::Header
+      {
+        public: int type;
+                int size;
+                uchar data[];
+      };
+      
+      void makeNewHeader (size_t extra_size) const;
+      
+      void makeWritable ();
+      
+      const BlockRef & emptyObjectBlock () const;
     // Additional Private Declarations
       // verifies that index is in range
     //##ModelId=3DB9347C00FD
@@ -197,11 +229,6 @@ class Vec : public Container
       // info. For built-in types, also contains the data block itself.
       // For dynamic objects, contains info on # of blocks per each object
       
-      // state of each object - still in block / unblocked / modified
-    //##ModelId=3DB9343B0196
-      typedef enum { UNINITIALIZED=0,INBLOCK=1,UNBLOCKED=2,MODIFIED=3 } ObjectState;
-    //##ModelId=3DB934680272
-      mutable vector<int> objstate;
 
     //##ModelId=3F5487DD0214
       TypeInfo typeinfo;  // type info for current field
@@ -225,19 +252,6 @@ class Vec : public Container
     //##ModelId=3DB9346D02C3
       bool    container_type;
       
-  private:
-      class HeaderBlock : public BObj::Header
-      {
-        public: int type;
-                int size;
-                uchar data[];
-      };
-      
-      void makeNewHeader (size_t extra_size) const;
-      
-      void makeWritable ();
-      
-      const BlockRef & emptyObjectBlock () const;
 
       //##ModelId=3F5487DD028A
       TypeId mytype;
@@ -248,15 +262,17 @@ class Vec : public Container
       //##ModelId=3C7A2BC7030F
       bool scalar;
 
-    // Data Members for Associations
-
+    //##ModelId=3DB934680272
+//      mutable vector<int> objstate;
       //##ModelId=3F5487DD031B
-      typedef std::vector<BlockSet,BlockSetAllocator> BlockVector;
-      mutable BlockVector blocks;
-
-      //##ModelId=3F5487DE0143
-      typedef std::vector<ObjRef,ObjRefAllocator> ObjectVector;
-      mutable ObjectVector objects;
+      mutable ElementVector elems_;
+      
+//       typedef std::vector<BlockSet,BlockSetAllocator> BlockVector;
+//       mutable BlockVector blocks;
+// 
+//       //##ModelId=3F5487DE0143
+//       typedef std::vector<ObjRef,ObjRefAllocator> ObjectVector;
+//       mutable ObjectVector objects;
       
       //##ModelId=3DB9346801A2
       // cached blockset header (+data, for binary types)
