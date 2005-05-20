@@ -145,13 +145,13 @@ class Page (object):
     if ncol is None:
       nlo = nrow;
     else:
-      for (i,(nc,nr)) in enumerate(self._layouts):
+      for (i,(nr,nc)) in enumerate(self._layouts):
         if nr >= nrow and nc >= ncol:
           nlo = i;
           break;
     (nrow,ncol) = self._cur_layout = self._layouts[nlo];
     self._cur_layout_num = nlo;
-    _dprint(5,"setting layout:",self._cur_layout);
+    _dprint(4,"setting layout:",self._cur_layout);
     for row in self._rows[:nrow]:
       for cell in row.cells()[:ncol]: 
         # if not cell.is_empty(): 

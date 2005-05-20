@@ -373,11 +373,12 @@ class meqserver_gui (app_proxy_gui):
     for rec in pagelist:
       nrow = max(nrow,rec.pos[0]);
       ncol = max(ncol,rec.pos[1]);
-    self.gw.current_page().set_layout(nrow+1,ncol+1);
     for rec in pagelist:
       item = meqgui.makeDataItem(rec.udi,viewer=rec.viewer);
       Grid.addDataItem(item,position=(0,rec.pos[0],rec.pos[1]));
-    self.gw.current_page().rearrange_cells();
+    _dprint(2,'setting layout',nrow+1,ncol+1);
+    self.gw.current_page().set_layout(nrow+1,ncol+1);
+    # self.gw.current_page().rearrange_cells();
     
   def _gw_reset_bookmark_actions (self,dum=None):
     # figure out if Add bookmark is enabled
