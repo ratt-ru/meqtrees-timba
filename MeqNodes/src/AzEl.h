@@ -46,6 +46,8 @@ public:
 
   virtual TypeId objectType() const
     { return TpMeqAzEl; }
+  
+  LocalDebugContext;
 
 protected:
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);

@@ -371,6 +371,7 @@ DMI::BObj * __construct_MeqUVInterpol (int n) { return n>0 ? new Meq::UVInterpol
         AtomicID::registerId(-1551,"MeqAzEl")+
         TypeInfoReg::addToRegistry(-1551,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1551,__construct_MeqAzEl)+
+        AtomicID::registerId(-1554,"Observatory")+
         AtomicID::registerId(-1384,"MeqRandomNoise")+
         TypeInfoReg::addToRegistry(-1384,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1384,__construct_MeqRandomNoise)+

@@ -36,13 +36,16 @@
 using namespace casa;
 
 namespace Meq {
-
+  
 const HIID FObservatory = AidObservatory;
 
 const HIID child_labels[] = { AidRA,AidDec};
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 const HIID FDomain = AidDomain;
+
+InitDebugContext(AzEl,"MeqAzEl");
+
 
 AzEl::AzEl()
 : Function(num_children,child_labels)
@@ -63,10 +66,9 @@ AzEl::~AzEl()
 // station positions.
 void AzEl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
+  Function::setStateImpl(rec,initializing);
   cdebug(4) << "in setStateImpl "<<endl;
-// get attribute record
-  if( rec[FObservatory].exists() )
-    rec[FObservatory].get(obs_name_,initializing);
+  rec[FObservatory].get(obs_name_,initializing);
   cdebug(4) << "observatory name:  " << obs_name_ << endl;
 }
 
@@ -74,12 +76,8 @@ int AzEl::getResult (Result::Ref &resref,
                     const std::vector<Result::Ref> &childres,
                     const Request &request,bool newreq)
 {
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,childres);
   // Check that child results are all OK (no fails, 1 vellset per child)
   string fails;
-  std::vector<Thread::Mutex::Lock> childvs_lock(num_children);
-  std::vector<Thread::Mutex::Lock> childval_lock(num_children);
   for( int i=0; i<num_children; i++ )
   {
     int nvs = childres[i]->numVellSets();
@@ -88,8 +86,6 @@ int AzEl::getResult (Result::Ref &resref,
           child_labels[i].toString().c_str(),nvs);
     if( childres[i]->hasFails() )
       Debug::appendf(fails,"child %s: has fails",child_labels[i].toString().c_str());
-    childvs_lock[i].relock(childres[i]->vellSet(0).mutex());
-    childval_lock[i].relock(childres[i]->vellSet(0).getValue().mutex());
   }
   if( !fails.empty() )
     NodeThrow1(fails);

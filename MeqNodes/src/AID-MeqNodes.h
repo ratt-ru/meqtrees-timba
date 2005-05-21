@@ -498,6 +498,11 @@ const int AidMulti_int = -1518;
 const DMI::AtomicID AidNE(-1381);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 const int AidNE_int = -1381;
 #endif
+#ifndef _defined_id_AidObservatory
+#define _defined_id_AidObservatory 1
+const DMI::AtomicID AidObservatory(-1554);        // from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:33
+const int AidObservatory_int = -1554;
+#endif
 #ifndef _defined_id_AidOnly
 #define _defined_id_AidOnly 1
 const DMI::AtomicID AidOnly(-1390);               // from /home/oms/LOFAR/Timba/MeqNodes/src/ReqSeq.h:32
