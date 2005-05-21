@@ -30,6 +30,7 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::AzEl
 #pragma aid RA Dec 
+#pragma aid Observatory
 
 namespace Meq {    
 
@@ -38,6 +39,7 @@ class AzEl : public Function
 {
 public:
 
+  AzEl(const string& name);
   AzEl();
 
   virtual ~AzEl();
@@ -45,11 +47,15 @@ public:
   virtual TypeId objectType() const
     { return TpMeqAzEl; }
 
+protected:
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+
   // Get the result for the given request.
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
 private:
+  string obs_name_;
 
 };
 

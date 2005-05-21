@@ -37,6 +37,8 @@ using namespace casa;
 
 namespace Meq {
 
+const HIID FObservatory = AidObservatory;
+
 const HIID child_labels[] = { AidRA,AidDec};
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
@@ -47,10 +49,26 @@ AzEl::AzEl()
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
+// obs_name_ = "WSRT";
+//obs_name_ = "VLA";
+  obs_name_ = "";
 }
 
 AzEl::~AzEl()
 {}
+
+// Obtain an observatory - if a name is supplied
+// use a 'global observatory position' to calculate AzEl.
+// Otherwise AzEl will be calculated for individual
+// station positions.
+void AzEl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+  cdebug(4) << "in setStateImpl "<<endl;
+// get attribute record
+  if( rec[FObservatory].exists() )
+    rec[FObservatory].get(obs_name_,initializing);
+  cdebug(4) << "observatory name:  " << obs_name_ << endl;
+}
 
 int AzEl::getResult (Result::Ref &resref, 
                     const std::vector<Result::Ref> &childres,
@@ -81,22 +99,26 @@ int AzEl::getResult (Result::Ref &resref,
   // For the time being we only support scalars
   Assert( vra.isScalar() && vdec.isScalar() );
 
-  // Define an observatory location - for the moment assume
-  // that this is an observatory known to aips++. Need to get
-  // observatory name passed as a string when this node is 
-  // constructed. 
-  // e.g MeasTable::Observatory(Obs, observatory_string)
-  // where observatory_string == "WSRT"
-  // e.g.
-  // MPosition Obs;
-  // MeasTable::Observatory(Obs,"JCMT");
-  MPosition Obs;
-// MeasTable::Observatory(Obs,observatory_string)
-  MeasTable::Observatory(Obs,"VLA");
-
-  // Now create a frame
+  // create a frame for an Observatory, or a telescope station
   MeasFrame Frame; // create default frame 
-  Frame.set(Obs);  // and tie this frame to given observatory
+
+  if (obs_name_.size() == 0) {
+    // create frame for individual telescope station
+    const Vells& vx  = childres[3]->vellSet(0).getValue();
+    const Vells& vy  = childres[4]->vellSet(0).getValue();
+    const Vells& vz  = childres[5]->vellSet(0).getValue();
+    Assert( vx.isScalar() && vy.isScalar() && vz.isScalar() );
+    double x0 = vx.getScalar<double>();
+    double y0 = vy.getScalar<double>();
+    double z0 = vz.getScalar<double>();
+    MPosition stnpos(MVPosition(x0,y0,z0),MPosition::ITRF);
+    Frame.set(stnpos); // tie this frame to station position
+  } else {
+    // create frame for an observatory
+    MPosition Obs;
+    MeasTable::Observatory(Obs,obs_name_);
+    Frame.set(Obs);  // tie this frame to a known observatory
+  }  
 
   const Cells& cells = request.cells();
   // Allocate a 2-plane result for Az and El
