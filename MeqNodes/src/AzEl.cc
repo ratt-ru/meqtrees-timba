@@ -52,8 +52,8 @@ AzEl::AzEl()
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
-// obs_name_ = "WSRT";
-//obs_name_ = "VLA";
+// Default observatory name is null. If an observatory name
+// is not supplied, the node will use the station position.
   obs_name_ = "";
 }
 
