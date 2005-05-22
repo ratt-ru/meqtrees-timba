@@ -20,6 +20,27 @@
 //#
 //# $Id$
 
+// A MeqAzEl node transforms Right Ascension and Declination coordinates 
+// (first and second children) into observed Azimuth and Elevation. 
+// Since azimuth and elevation are dependent on the location on the Earth 
+// where a source is observed, you must provide this mode with a location. 
+// This can be done in two ways. If you instantiate the node with the name 
+// of an observatory known to aips++, then the location of the observatory, 
+// in ITRF coordinates, is used for the transformation. If you do not supply 
+// the node with an observatory name, then you must supply the 
+// ITRF X,Y,Z cooordinates of the station location (with third, fourth 
+// and fifth children).
+
+// A MeqAzEl node can be set up by specifying the following field in its 
+// init-record: 
+
+// field 	 description
+// observatory 	name of observatory
+
+// The name of the observatory can presently be any one of 
+// ALMA ARECIBO ATCA BIMA CLRO DRAO DWL GB GBT GMRT IRAM PDB 
+// IRAM_PDB JCMT MOPRA MOST NRAO12M NRAO_GBT PKS VLA VLBA WSRT.
+
 #ifndef MEQNODES_AZEL_H
 #define MEQNODES_AZEL_H
     
@@ -33,7 +54,6 @@
 #pragma aid Observatory
 
 namespace Meq {    
-
 
 class AzEl : public Function
 {
