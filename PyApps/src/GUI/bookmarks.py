@@ -116,18 +116,19 @@ class BookmarkFolder (QObject):
       self._menu.setItemEnabled(iid,False);
     if not quiet:
       self.emit(PYSIGNAL("updated()"),());
+    return item;
     
   def add (self,name,udi,viewer=None):
     """adds bookmark to end of list, updates popup menu if present.""";
-    self.addItem(Bookmark(name,udi,self,viewer=viewer));
+    return self.addItem(Bookmark(name,udi,self,viewer=viewer));
       
   def addFolder (self,name):
     """adds bookmark folder to end of list, updates popup menu if present.""";
-    self.addItem(BookmarkFolder(name,self));
+    return self.addItem(BookmarkFolder(name,self));
   
   def addPage (self,name,page):
     """adds page bookmark to end of list, updates popup menu if present.""";
-    self.addItem(Pagemark(name,page,self));
+    return self.addItem(Pagemark(name,page,self));
     
   def getMenu (self):
     """returns popup menu containing all items.""";

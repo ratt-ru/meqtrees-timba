@@ -365,7 +365,10 @@ class meqserver_gui (app_proxy_gui):
         (name,ok) = QInputDialog.getText("Setting pagemark",prompt,
                     QLineEdit.Normal,name);
         if ok:
-          self._bookmarks.addPage(str(name),pagelist);
+          name = str(name);
+          pagemark = self._bookmarks.addPage(name,pagelist);
+          page.set_fragile_tag(pagemark);
+          self.gw.rename_page(page,name);
       else:
         caption = "Can't set pagemark";
         text = "Current page does not have any bookmarkable content";
@@ -398,7 +401,10 @@ class meqserver_gui (app_proxy_gui):
     if curpage.has_content():
       # if page is still tagged with this pagemark, then do nothing
       # (this avoid multiple openings of the same pagemark)
-      if curpage.get_fragile_tag() is pagemark:
+      if curpage.get_fragile_tag() is pagemark and \
+        QMessageBox.question(self,"Pagemark already loaded","""<p>This pagemark is already loaded. Load
+          another copy in a new tab?</p>""",QMessageBox.Ok,QMessageBox.Cancel) \
+           == QMessageBox.Cancel:
         return;
       curpage = self.gw.add_page(pagemark.name);
     else: # no content, just use current page
