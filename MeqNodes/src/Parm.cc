@@ -21,6 +21,7 @@
 //# $Id$
 
 #include <MeqNodes/Parm.h>
+#include <MEQ/ComposedPolc.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
@@ -139,7 +140,16 @@ const HIID
 	cdebug(3)<<n<<" funklets found in MEP table"<<endl;
 	if( n>1 )
 	  {
-	    cdebug(3)<<"discarding mutliple funklets as only one is currently suported"<<endl;
+	    cdebug(0)<<"discarding mutliple funklets as only one is currently suported, unless ? "<<isSolvable()<< "= false "<<endl;
+	    // ok think of something to make somthing big out of multiple funklets...
+	    //What about creating a "mutliplePolc" class that does the job for you
+	    //only if non-solvable..otherwise, at least select best fitting!
+	    if(!isSolvable()){
+	      funkletref <<=new ComposedPolc(funklets);
+	      cdebug(0)<<"composed funklet found? "<<funkletref-> objectType()<<endl;
+	      return funkletref.dewr_p();
+	    }
+	    
 	  }
 	if( n )
 	  {
