@@ -67,7 +67,7 @@ int ReqSeq::pollChildren (std::vector<Result::Ref> &chres,
   // in cells-only mode, process cell-less requests just like a regular Node
   if( cells_only_ && !req.hasCells() )
     return Node::pollChildren(chres,resref,req);
-  int retcode = 0;
+  int retcode = result_code_ = 0;
   cdebug(3)<<"calling execute() on "<<numChildren()<<" children in turn"<<endl;
   Request::Ref reqref(req);
   RequestId rqid = req.id();
@@ -84,15 +84,15 @@ int ReqSeq::pollChildren (std::vector<Result::Ref> &chres,
     int code = getChild(i).execute(res,*reqref);
     cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",code)<<endl;
     // a wait is returne immediately
+    result_code_ |= code;
     if( code&RES_WAIT )
-      return code;
+      return result_code_;
     // note that we only cache the result if the request has cells in it,
     // since otherwise our getResult is not called at all
     if( i == which_result_ && req.hasCells() )
     {
       cdebug(3)<<"retaining result of child "<<i<<" with code "<<code<<endl;
       result_ = res;
-      result_code_ = code;
     }
   }
 //  // *** ugly kludge for now, until we allow children to tell parents

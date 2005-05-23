@@ -66,7 +66,7 @@ Solver::Solver()
   solution_symdeps_.assign(1,FSolution);
   const HIID symdeps[] = { FDomain,FResolution,FDataset,FSolution,FIteration };
   setKnownSymDeps(symdeps,5);
-  const HIID symdeps1[] = { FDomain,FResolution,FDataset };
+  const HIID symdeps1[] = { FDomain,FResolution,FSolution,FDataset };
   setActiveSymDeps(symdeps1,3);
 }
 
