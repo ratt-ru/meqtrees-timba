@@ -189,6 +189,7 @@ class app_proxy (verbosity):
       self.statestr = 'connected';
     # request state & status 
     if self._req_state:
+      _dprint(2,"requesting state and status update");
       self.send_command("Request.State");
       self.send_command("Request.Status");
     self._gui_event_handler(self.hello_event,getattr(msg,'from'));
@@ -209,9 +210,9 @@ class app_proxy (verbosity):
     if fromaddr[2:3] == self.app_addr[2:3]:
       self.app_process_status = msg.msgid[2:];
       _dprint(5,"process status set");
+      self._gui_event_handler(self.process_status_event,self.app_process_status);
     else:
       _dprint(5,"process status source does not match app address, ignoring");
-    self._gui_event_handler(self.process_status_event,self.app_process_status);
     
   def _remote_down_handler (self,msg):
     _dprint(2,"got gw.remote.down message:",msg);

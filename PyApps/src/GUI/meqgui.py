@@ -99,5 +99,6 @@ def makeForestDataItem (data=None,viewer=None,viewopts={}):
      refresh=meqds.request_forest_state,viewer=viewer,viewopts=viewopts);
 
 def start_kernel (pathname,args=''):
+  _dprint(0,pathname,args);
   app_proxy_gui.gui.log_message(' '.join(('starting kernel process:',pathname,args)));
   pid = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));

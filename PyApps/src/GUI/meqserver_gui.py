@@ -16,6 +16,8 @@ import weakref
 import math
 import sets
 import re
+import os
+import os.path
 
 _dbg = verbosity(0,name='meqserver_gui');
 _dprint = _dbg.dprint;
@@ -233,9 +235,17 @@ class meqserver_gui (app_proxy_gui):
     self.treebrowser._qa_save.addTo(kernel_menu);
     self._connect_dialog = connect_meqtimba_dialog.ConnectMeqKernel(self,\
         name="Connect to MeqTimba kernel",modal=False);
-    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(self._connect_dialog.accept));
+    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(self._connect_dialog.hide));
     QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(self._connect_dialog.show));
     QObject.connect(connect,SIGNAL("activated()"),self._connect_dialog.show);
+    QObject.connect(self._connect_dialog,PYSIGNAL("startKernel()"),self._start_kernel);
+    # --- find default path to kernel binary
+    binname = "meqserver";
+    for dirname in os.environ['PATH'].split(':'):
+      filename = os.path.join(dirname,binname);
+      if os.path.isfile(filename) and os.access(filename,os.X_OK):
+        self._connect_dialog.set_default_path(filename);
+        break;
     self._connect_dialog.show();
     
     # --- View menu
@@ -319,6 +329,15 @@ class meqserver_gui (app_proxy_gui):
     
     # clear the splash screen
     # _splash_screen.finish(self);
+    
+  def _start_kernel (self,pathname,args):
+    _dprint(0,pathname,args);
+    if not os.path.isfile(pathname) or not os.access(pathname,os.X_OK):
+      self.log_message("can't start kernel %s: not an executable file" % (pathname,), \
+        category=Logger.Error);
+      return;
+    self.log_message(' '.join(('starting kernel process:',pathname,args)));
+    self._kernel_pid = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));
     
   def _add_bookmark (self):
     item = Grid.Services.getHighlightedItem();

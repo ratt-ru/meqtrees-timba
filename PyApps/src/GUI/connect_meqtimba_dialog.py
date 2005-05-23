@@ -5,7 +5,7 @@ from qt import *
 
 
 class ConnectMeqKernel(QDialog):
-    def __init__(self,parent = None,name = None,modal = 0,fl = None):
+    def __init__(self,parent=None,name=None,modal=0,fl=None):
         if fl is None:
           fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
           fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
@@ -45,11 +45,12 @@ class ConnectMeqKernel(QDialog):
         lo_connect_space = QSpacerItem(20,20,QSizePolicy.Minimum,QSizePolicy.Fixed)
         lo_connect.addItem(lo_connect_space)
 
-        self.btn_wait = QRadioButton(self.bg_connect,"btn_wait")
-        self.btn_wait.setChecked(1)
-        lo_connect.addWidget(self.btn_wait)
+        # self.btn_wait = QRadioButton(self.bg_connect,"btn_wait")
+        # self.btn_wait.setChecked(1)
+        # lo_connect.addWidget(self.btn_wait)
 
         self.btn_start = QRadioButton(self.bg_connect,"btn_start")
+        self.btn_start.setChecked(1)
         lo_connect.addWidget(self.btn_start)
 
         lo_start_grp = QWidget(self.bg_connect)
@@ -57,7 +58,7 @@ class ConnectMeqKernel(QDialog):
         lo_start_space = QSpacerItem(20,20,QSizePolicy.Fixed,QSizePolicy.Minimum)
         lo_start.addItem(lo_start_space)
         
-        lo_start_lbl = QLabel("Program:",lo_start_grp);
+        lo_start_lbl = QLabel("program:",lo_start_grp);
         lo_start.addWidget(lo_start_lbl)
         self.start_pathname = QLineEdit(lo_start_grp,"start_pathname")
         self.start_pathname.setText(self._default_path);
@@ -67,7 +68,7 @@ class ConnectMeqKernel(QDialog):
         lo_start2 = QHBoxLayout(lo_start_grp2,0,6,"lo_start2")
         lo_start_space2 = QSpacerItem(20,20,QSizePolicy.Fixed,QSizePolicy.Minimum)
         lo_start2.addItem(lo_start_space2)
-        lo_start_lbl2 = QLabel("Args:",lo_start_grp2);
+        lo_start_lbl2 = QLabel("args:",lo_start_grp2);
         lo_start2.addWidget(lo_start_lbl2)
         self.start_args = QLineEdit(lo_start_grp2,"start_args")
         lo_start2.addWidget(self.start_args)
@@ -80,8 +81,8 @@ class ConnectMeqKernel(QDialog):
         lo_connect.addWidget(lo_start_grp)
         lo_connect.addWidget(lo_start_grp2)
         
-        lo_start_grp.setEnabled(False);
-        lo_start_grp2.setEnabled(False);
+        # lo_start_grp.setEnabled(False);
+        # lo_start_grp2.setEnabled(False);
 
         self.btn_remote = QRadioButton(self.bg_connect,"btn_remote")
         self.btn_remote.setEnabled(0)
@@ -104,8 +105,8 @@ class ConnectMeqKernel(QDialog):
         lo_remote.addWidget(self.remote_port_lbl)
 
         self.remote_port = QLineEdit(lo_remote_grp,"remote_port")
-        self.remote_port.setSizePolicy(QSizePolicy(0,1,0,0,self.remote_port.sizePolicy().hasHeightForWidth()))
-        self.remote_port.setMinimumSize(QSize(40,20))
+        self.remote_port.setSizePolicy(QSizePolicy.Minimum,QSizePolicy.Fixed);
+        self.remote_port.setMinimumSize(QSize(60,0))
         lo_remote.addWidget(self.remote_port)
         lo_connect.addWidget(lo_remote_grp)
         lo_remote_grp.setEnabled(False);
@@ -151,10 +152,15 @@ class ConnectMeqKernel(QDialog):
     def languageChange(self):
         self.setCaption(self.__tr("Connect to MeqTimba kernel"))
         self.title_icon.setText(QString.null)
-        self.title_label.setText(self.__tr("<p>Not connected to a MeqTimba kernel.</p>\n"
-"<p><i>If you will be starting a kernel locally using external tools, a connection should be established automatically.</i></p>"))
+        self.title_label.setText(self.__tr( \
+          """<p>Not connected to a MeqTimba kernel.</p>
+          <p><i>If you will be starting a kernel locally using external tools,
+          a connection should be established automatically.</i></p>
+          <p><i>Otherwise, select one of the connection methods below.</i></p>""" \
+          ));
+
         self.bg_connect.setTitle(self.__tr("Pick a connection method"))
-        self.btn_wait.setText(self.__tr("wait for local connection"))
+        # self.btn_wait.setText(self.__tr("wait for local connection"))
         self.btn_start.setText(self.__tr("start a local MeqTimba kernel:"))
         self.start_browse.setText(self.__tr("Browse..."))
         self.start_default.setText(self.__tr("Reset"))
@@ -178,11 +184,16 @@ class ConnectMeqKernel(QDialog):
         # start kernel
         pathname = str(self.start_pathname.text());
         args = str(self.start_args.text());
-        meqgui.start_kernel(pathname,args);
+        self.emit(PYSIGNAL("startKernel()"),(pathname,args));
       elif selected is self.btn_remote:
         # not implemented yet
         pass;
       QDialog.accept(self);
+      
+    def set_default_path (self,path):
+      self._default_path = path;
+      self.start_pathname.setText(path);
+      self.start_default.setEnabled(False);
 
     def reset_default_path (self):
       self.start_pathname.setText(self._default_path);
