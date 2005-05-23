@@ -368,7 +368,8 @@ class meqserver_gui (app_proxy_gui):
           name = str(name);
           pagemark = self._bookmarks.addPage(name,pagelist);
           page.set_fragile_tag(pagemark);
-          self.gw.rename_page(page,name);
+          page.set_name(name);
+          page.set_icon(pixmaps.bookmark.iconset(),True);
       else:
         caption = "Can't set pagemark";
         text = "Current page does not have any bookmarkable content";
@@ -406,9 +407,9 @@ class meqserver_gui (app_proxy_gui):
           another copy in a new tab?</p>""",QMessageBox.Ok,QMessageBox.Cancel) \
            == QMessageBox.Cancel:
         return;
-      curpage = self.gw.add_page(pagemark.name);
+      curpage = self.gw.add_page(pagemark.name,pixmaps.bookmark.iconset());
     else: # no content, just use current page
-      self.gw.rename_page(curpage,pagemark.name);
+      curpage.set_name(pagemark.name);
     # preset page layout
     (nrow,ncol) = (0,0);
     errs = [];
@@ -435,6 +436,7 @@ class meqserver_gui (app_proxy_gui):
       QMessageBox.warning(self,"Errors loading pagemark",message,QMessageBox.Ok);
     # self.gw.current_page().rearrange_cells();
     curpage.set_fragile_tag(pagemark);
+    curpage.set_icon(pixmaps.bookmark.iconset(),True);
     
   def _gw_reset_bookmark_actions (self,dum=None):
     # figure out if Add bookmark is enabled

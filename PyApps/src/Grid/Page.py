@@ -35,6 +35,8 @@ class Page (object):
     self._frag_tag = None;
     self._pagename = '';
     self._autoname = True;
+    self._iconset = QIconSet();
+    self._iconset_cou = False;
     # possible layout formats (nrow,ncol)
     self._layouts = [(1,1)];
     for i in range(2,self.max_nx+1):
@@ -61,9 +63,23 @@ class Page (object):
     # prepare layout
     self.set_layout(0);
     
+  def set_icon (self,iconset,clear_on_update=False):
+    _dprint(2,iconset);
+    self._iconset = iconset or QIconSet();
+    self._iconset_cou = clear_on_update;
+    self.wtop().emit(PYSIGNAL("setIcon()"),(self._iconset,));
+    
+  def clear_icon (self):
+    self.set_icon(None);
+    
+  def get_icon (self):
+    return self._iconset;
+    
   def set_name (self,name,auto=False):
+    _dprint(2,name,auto);
     self._pagename = name;
     self._autoname = auto;
+    self.wtop().emit(PYSIGNAL("setName()"),(name,));
   
   def get_name (self):
     return self._pagename;
@@ -90,7 +106,10 @@ class Page (object):
     return self._frag_tag();
       
   def updated (self):
+    _dprint(3,'page updated');
     self._frag_tag = None;
+    if self._iconset_cou:
+      self.clear_icon();
     self.wtop().emit(PYSIGNAL("updated()"),());
     
   def change_viewer (self,cell,dataitem,viewer):
@@ -220,6 +239,8 @@ class Page (object):
     for row in self._rows:
       _dprint(2,'GriddedPage: clearing row',row);
       map(lambda cell:cell.close(),row.cells());
+    self.clear_icon();
+    self.set_name('',None);
     
   def find_cells (self,udi,new=False,avoid_pos=None,nrow=1,ncol=1):
     """Finds a free cell if one is available, switches to the next layout

@@ -30,6 +30,10 @@ class Workspace (object):
     self._highlight = None;
     # highlight color
     self._highlight_color = QApplication.palette().active().highlight();
+    # currier
+    self._currier = PersistentCurrier();
+    self.curry = self._currier.curry;
+    self.xcurry = self._currier.xcurry;
   
     self._maintab = QTabWidget(parent);
     self._maintab.setTabPosition(QTabWidget.Top);
@@ -104,43 +108,43 @@ class Workspace (object):
   def isVisible (self):
     return self.wtop().isVisible();
     
-  def add_page (self,name=None):
+  def add_page (self,name=None,iconset=None):
     page = Timba.Grid.Page(self,self._maintab,max_nx=self.max_nx,max_ny=self.max_ny);
     wpage = page.wtop();
     wpage._page = page;
     # generate page name, if none is supplied
     if name is None:
       name = 'Page '+str(self._maintab.count()+1);
-      wpage._auto_name = True;
+      page.set_name(name,True); # auto_name = True
     else:
-      wpage._auto_name = False;
-    page.set_name(name,wpage._auto_name);
+      page.set_name(name);
+    page.set_icon(iconset);
     # add page to tab
-    self._maintab.addTab(wpage,name);
+    iconset = iconset or QIconSet();
+    self._maintab.addTab(wpage,iconset,name);
     self._maintab.setCurrentPage(self._maintab.count()-1);
-    QWidget.connect(page.wtop(),PYSIGNAL("layoutChanged()"),self._set_layout_button);
+    QWidget.connect(wpage,PYSIGNAL("layoutChanged()"),self._set_layout_button);
+    wpage._change_icon = curry(self._maintab.setTabIconSet,wpage);
+    QWidget.connect(wpage,PYSIGNAL("setIcon()"),wpage._change_icon);
+    wpage._rename = curry(self._maintab.setTabLabel,wpage);
+    QWidget.connect(wpage,PYSIGNAL("setName()"),wpage._rename);
     return page;
-    
-  def rename_page (self,page,name):
-    page.set_name(name,False);
-    wpage = page.wtop();
-    self._maintab.setTabLabel(wpage,name);
-    wpage._auto_name = False;
     
   def remove_current_page (self):
     ipage = self._maintab.currentPageIndex();
     page = self._maintab.currentPage();
     page._page.clear();
-    # if more than one page, then remove (else clear only)
+    # if more than one page, then remove (else clear and rename only)
     if self._maintab.count()>1:
       self._maintab.removePage(page);
+    else:
+      page._page.set_name("Page 1",True);
     # renumber remaining pages
     for i in range(ipage,self._maintab.count()):
       wpage = self._maintab.page(i);
-      if wpage._auto_name:
-        name = 'Page '+str(i+1)
-        self._maintab.setTabLabel(wpage,name);
-        wpage._page.set_name(name,True);
+      page = wpage._page;
+      if page.is_auto_name():
+        page.set_name('Page '+str(i+1),True);
       
   def current_page (self):
     return self._maintab.currentPage()._page;
