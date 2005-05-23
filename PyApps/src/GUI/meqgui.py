@@ -38,7 +38,7 @@ def isBookmarkable (udi):
     return True;
   return False;
 
-def makeDataItem (udi,data=None,viewer=None,viewopts={}):
+def makeDataItem (udi,data=None,viewer=None,publish=False,viewopts={}):
   """Creates a data item given a UDI""";
   # parse udi
   (cat,name,trailer) = meqds.parse_udi(udi);
@@ -50,6 +50,8 @@ def makeDataItem (udi,data=None,viewer=None,viewopts={}):
     if not nn[0]:
       name = int(nn[1]);     # use node index if no name given
     node = meqds.nodelist[name];
+    if publish:
+      meqds.enable_node_publish(node,True);
     if not trailer:
       return makeNodeDataItem(node,viewer,viewopts);
     else:

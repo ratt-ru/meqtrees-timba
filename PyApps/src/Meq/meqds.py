@@ -432,6 +432,13 @@ def set_forest_state (field,value):
 # --- Node state management
 # ----------------------------------------------------------------------
 
+def enable_node_publish (node,enable=True):
+  ni = nodeindex(node);
+  mqs().meq('Node.Publish.Results',record(nodeindex=ni,get_state=True,enable=enable),wait=False);
+
+def disable_node_publish (node,disable=True):
+  return enable_node_publish(node,not disable);
+
 def subscribe_node_state (node,callback):
   """Adds a subscriber to node state changes""";
   nodelist[nodeindex(node)].subscribe_state(callback);

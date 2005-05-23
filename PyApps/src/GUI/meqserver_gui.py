@@ -260,6 +260,8 @@ class meqserver_gui (app_proxy_gui):
     addbkmark.addTo(bookmarks_menu);
     self._qa_addpagemark = addpagemark = QAction(pixmaps.bookmark_toolbar.iconset(),"Add pagemark for this page",Qt.ALT+Qt.CTRL+Qt.Key_B,self);
     addpagemark.addTo(bookmarks_menu);
+    self._qa_autopublish = autopublish = QAction(pixmaps.publish.iconset(),"Auto-publish loaded bookmarks",0,self);
+    autopublish.addTo(bookmarks_menu);
     QObject.connect(addbkmark,SIGNAL("activated()"),self._add_bookmark);
     QObject.connect(addpagemark,SIGNAL("activated()"),self._add_pagemark);
     QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self._gw_reset_bookmark_actions);
@@ -268,6 +270,8 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self.gw.wtop(),SIGNAL("currentChanged(QWidget*)"),self._gw_reset_bookmark_actions);
     addbkmark.setEnabled(False);
     addpagemark.setEnabled(False);
+    autopublish.setToggleAction(True);
+    autopublish.setOn(True);
     # bookmark manager
     bookmarks_menu.insertSeparator();
     self._bookmarks = bookmarks.BookmarkFolder("main",self,menu=bookmarks_menu);
@@ -327,10 +331,13 @@ class meqserver_gui (app_proxy_gui):
         vname = getattr(item.viewer,'viewer_name',item.viewer.__name__);
         name = "%s [%s]" % (item.name,vname);
         self._bookmarks.add(name,item.udi,item.viewer);
-
+        
   def _add_pagemark (self):
     if self.gw.isVisible():
       page = self.gw.current_page();
+      # if page has a fragile tag, get the name
+      tag = page.get_fragile_tag();
+      pagemarked = isinstance(tag,bookmarks.Pagemark) and tag.name;
       (nl,nrow,ncol) = page.current_layout();
       _dprint(2,'creating pagemark for layout',nrow,ncol);
       pagelist = [];
@@ -344,9 +351,19 @@ class meqserver_gui (app_proxy_gui):
             _dprint(3,irow,icol,item.udi,vname);
             pagelist.append(record(udi=item.udi,viewer=vname,pos=(irow,icol)));
       if pagelist:
-        name = self._bookmarks.generatePageName();
-        (name,ok) = QInputDialog.getText("Setting pagemark",
-                    "Enter name for new pagemark",QLineEdit.Normal,name);
+        if page.is_auto_name():
+          name = self._bookmarks.generatePageName();
+        else:
+          name = page.get_name();
+        if pagemarked:
+          prompt = """<p><b>Warning:</b> this pagemark is already defined as 
+                   <i>"%s"</i>. Please press <i>Cancel</i> if you don't want
+                   to set it again.</p> 
+                   <p>Enter name for new pagemark:</p>""" % (pagemarked);
+        else:
+          prompt = "Enter name for new pagemark:";
+        (name,ok) = QInputDialog.getText("Setting pagemark",prompt,
+                    QLineEdit.Normal,name);
         if ok:
           self._bookmarks.addPage(str(name),pagelist);
       else:
@@ -361,24 +378,57 @@ class meqserver_gui (app_proxy_gui):
     meqds.set_forest_state("bookmarks",self._bookmarks_rec);
     
   def _show_bookmark (self,udi,viewer):
-    item = meqgui.makeDataItem(udi,viewer=viewer);
-    Grid.addDataItem(item,show_gw=True);
+    pub = self._qa_autopublish.isOn();
+    try:
+      item = meqgui.makeDataItem(udi,viewer=viewer,publish=pub);
+      Grid.addDataItem(item,show_gw=True);
+    except:
+      (exctype,excvalue,tb) = sys.exc_info();
+      self.dprint(0,'exception',str(exctype),'while loading bookmark',udi);
+      QMessageBox.warning(self,"Error loading bookmark",
+        """<p>Cannot load bookmark:</p>
+        <p><small><i>%s: %s</i><small></p>""" % (exctype.__name__,excvalue),
+        QMessageBox.Ok);
     
-  def _show_pagemark (self,pagelist):
+  def _show_pagemark (self,pagemark):
+    pub = self._qa_autopublish.isOn();
     self.gw.show();
-    if self.gw.current_page().has_content():
-      self.gw.add_page();
+    curpage = self.gw.current_page();
+    # check if current page has content
+    if curpage.has_content():
+      # if page is still tagged with this pagemark, then do nothing
+      # (this avoid multiple openings of the same pagemark)
+      if curpage.get_fragile_tag() is pagemark:
+        return;
+      curpage = self.gw.add_page(pagemark.name);
+    else: # no content, just use current page
+      self.gw.rename_page(curpage,pagemark.name);
     # preset page layout
     (nrow,ncol) = (0,0);
-    for rec in pagelist:
-      nrow = max(nrow,rec.pos[0]);
-      ncol = max(ncol,rec.pos[1]);
-    for rec in pagelist:
-      item = meqgui.makeDataItem(rec.udi,viewer=rec.viewer);
-      Grid.addDataItem(item,position=(0,rec.pos[0],rec.pos[1]));
+    errs = [];
+    for rec in pagemark.page:
+      udi = getattr(rec,'udi',None);
+      try:
+        item = meqgui.makeDataItem(rec.udi,viewer=rec.viewer,publish=pub);
+        Grid.addDataItem(item,position=(0,rec.pos[0],rec.pos[1]));
+        nrow = max(nrow,rec.pos[0]);
+        ncol = max(ncol,rec.pos[1]);
+      except:
+        (exctype,excvalue,tb) = sys.exc_info();
+        self.dprint(0,'exception',str(exctype),'while loading pagemark item',rec);
+        traceback.print_exc();
+        errs.append((udi,exctype.__name__,excvalue));
     _dprint(2,'setting layout',nrow+1,ncol+1);
-    self.gw.current_page().set_layout(nrow+1,ncol+1);
+    curpage.set_layout(nrow+1,ncol+1);
+    # display errors, if any
+    if errs:
+      message = """<p>Some items within this pagemark could not be loaded:</p><dl>""";
+      for (udi,exctype,excvalue) in errs:
+        message += "<dt><b>%s</b></dt> <dd><small><i>%s: %s</i><small></dd>" % (udi,exctype,excvalue);
+      message += "</dl>";
+      QMessageBox.warning(self,"Errors loading pagemark",message,QMessageBox.Ok);
     # self.gw.current_page().rearrange_cells();
+    curpage.set_fragile_tag(pagemark);
     
   def _gw_reset_bookmark_actions (self,dum=None):
     # figure out if Add bookmark is enabled

@@ -48,9 +48,10 @@ class Pagemark (QObject):
     QObject.__init__(self,parent);
     QObject.connect(self,PYSIGNAL("updated()"),parent,PYSIGNAL("updated()"));
     self.name = name;
+    self.page = page;
     self.rec = record(name=name,page=page);
   def show (self,**kws):
-    self.parent().emit(PYSIGNAL("showPagemark()"),(self.rec.page,));
+    self.parent().emit(PYSIGNAL("showPagemark()"),(self,));
 
 class BookmarkFolder (QObject):
   iconset = pixmaps.bookmark_folder.iconset;

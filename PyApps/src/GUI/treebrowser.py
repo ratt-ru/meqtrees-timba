@@ -1067,8 +1067,7 @@ class NA_NodePublish (NodeAction):
   text = "Publish";
   iconset = pixmaps.publish.iconset;
   def activate (self,node):
-    cmd = record(nodeindex=node.nodeindex,get_state=True,enable=not node.is_publishing());
-    mqs().meq('Node.Publish.Results',cmd,wait=False);
+    meqds.enable_node_publish(node,not node.is_publishing());
   def is_checked (self,node):
     return node.is_publishing();
 

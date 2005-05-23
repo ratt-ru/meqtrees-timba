@@ -114,11 +114,18 @@ class Workspace (object):
       wpage._auto_name = True;
     else:
       wpage._auto_name = False;
+    page.set_name(name,wpage._auto_name);
     # add page to tab
     self._maintab.addTab(wpage,name);
     self._maintab.setCurrentPage(self._maintab.count()-1);
     QWidget.connect(page.wtop(),PYSIGNAL("layoutChanged()"),self._set_layout_button);
     return page;
+    
+  def rename_page (self,page,name):
+    page.set_name(name,False);
+    wpage = page.wtop();
+    self._maintab.setTabLabel(wpage,name);
+    wpage._auto_name = False;
     
   def remove_current_page (self):
     ipage = self._maintab.currentPageIndex();
@@ -131,7 +138,9 @@ class Workspace (object):
     for i in range(ipage,self._maintab.count()):
       wpage = self._maintab.page(i);
       if wpage._auto_name:
-        self._maintab.setTabLabel(wpage,'Page '+str(i+1));
+        name = 'Page '+str(i+1)
+        self._maintab.setTabLabel(wpage,name);
+        wpage._page.set_name(name,True);
       
   def current_page (self):
     return self._maintab.currentPage()._page;

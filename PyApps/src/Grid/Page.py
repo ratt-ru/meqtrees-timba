@@ -32,6 +32,9 @@ class Page (object):
     self.max_ny     = max_ny;
     self.max_items  = max_nx*max_ny;
     self._rows      = [];
+    self._frag_tag = None;
+    self._pagename = '';
+    self._autoname = True;
     # possible layout formats (nrow,ncol)
     self._layouts = [(1,1)];
     for i in range(2,self.max_nx+1):
@@ -58,11 +61,40 @@ class Page (object):
     # prepare layout
     self.set_layout(0);
     
+  def set_name (self,name,auto=False):
+    self._pagename = name;
+    self._autoname = auto;
+  
+  def get_name (self):
+    return self._pagename;
+    
+  def is_auto_name (self):
+    return self._autoname;
+    
   def gw (self):
     """returns parent Grid.Workspace object""";
     return self._gw;
     
+  def set_fragile_tag (self,tag=None):
+    """A "fragile tag" disappears whenever a page is updated with anything.
+    This is useful for, e.g., keeping track of whether a page has been loaded
+    from a pagemark and not modified since, etc.""";
+    if tag is None:
+      self._frag_tag = None;
+    else:
+      self._frag_tag = weakref.ref(tag);
+      
+  def get_fragile_tag (self):
+    if self._frag_tag is None:
+      return None;
+    return self._frag_tag();
+      
+  def updated (self):
+    self._frag_tag = None;
+    self.wtop().emit(PYSIGNAL("updated()"),());
+    
   def change_viewer (self,cell,dataitem,viewer):
+    self.updated();
     dataitem.cleanup();
     cell.wipe();
     Timba.Grid.Services.addDataItem(dataitem,viewer=viewer,
@@ -142,6 +174,7 @@ class Page (object):
   def set_layout (self,nrow,ncol=None):
     """set_layout(n) sets layout #n. set_layout(nr,nc) sets minimal layout 
     to display nr x nc cells""";
+    self.updated();
     if ncol is None:
       nlo = nrow;
     else:
@@ -182,6 +215,7 @@ class Page (object):
     
   def clear (self):
     _dprint(2,'GriddedPage: clearing');
+    self.updated();
     self.set_layout(0);
     for row in self._rows:
       _dprint(2,'GriddedPage: clearing row',row);
@@ -233,6 +267,7 @@ class Page (object):
         return None;
         
   def alloc_cells (self,pos,nrow=1,ncol=1):
+    self.updated();
     (row,col) = pos;
     _dprint(2,row,col);
     # increment layout until we can house the cell position
