@@ -59,7 +59,6 @@ class AzEl : public Function
 {
 public:
 
-  AzEl(const string& name);
   AzEl();
 
   virtual ~AzEl();
