@@ -373,6 +373,10 @@ void Node::reinit (DMI::Record::Ref &initrec, Forest* frst)
   cdebug(1)<<"reinitializing node"<<endl;
   forest_ = frst;
       
+  // init symdeps and depmask
+  symdep_masks_ = frst->getSymdepMasks();
+  resetDependMasks();
+  
   // xfer & COW the state record -- we don't want anyone
   // changing it under us
   DMI::Record &rec = staterec_.xfer(initrec).dewr();
