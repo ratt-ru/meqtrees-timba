@@ -149,12 +149,17 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
       double offset[] = { t0Col(i),f0Col(i) };
       double scale[]  = { tsCol(i),fsCol(i) };
       // for now, only Polcs are supported
-      Funklet &funklet = funklets[i] <<= new Polc(fromParmMatrix(valCol(i)),
-          axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
-      funklet.setDomain(Domain(sfCol(i), efCol(i), stCol(i), etCol(i)));
+      
+
+      Funklet *funklet = new Polc(fromParmMatrix(valCol(i)),
+				       axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
+      funklet->setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
+      
       if(auto_solve_)
 	//reset Dbid, to keep all information
-	funklet.setDbId(-1);
+	funklet->setDbId(-1);
+      funklets[i] <<=funklet;
+            
     }
   }
   return funklets.size();
@@ -180,7 +185,6 @@ int ParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName)
       if (rownrs.nelements() > 0) 
       {
         Assert( rownrs.nelements() == 1 );
-        Funklet &result = funkletref <<= new Funklet;
         int row = rownrs(0);
         TableLocker locker(itsInitTable, FileLocker::Read);
         ROArrayColumn<Double> valCol (itsInitTable, ColValues);
@@ -193,10 +197,11 @@ int ParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName)
         double offset[] = { t0Col(row),f0Col(row) };
         double scale[]  = { tsCol(row),fsCol(row) };
         // for now, only Polcs are supported
-        Polc *polc = new Polc(fromParmMatrix(valCol(row)),
+	Polc polc(fromParmMatrix(valCol(row)),
                               axis,offset,scale,diffCol(row));
-        funkletref <<= polc;
-        return polc->ncoeff();
+	funkletref <<= new Polc(fromParmMatrix(valCol(row)),
+                              axis,offset,scale,diffCol(row));
+        return polc.ncoeff();
       }
       string::size_type idx = name.rfind ('.');
       // Exit loop if no more name parts.
@@ -351,6 +356,7 @@ Table ParmTable::find (const string& parmName,
                      domain.start(Axis::TIME) < sel.col(ColEndTime)   &&
                      domain.end(Axis::TIME)   > sel.col(ColStartTime));
     result = sel3;
+
   }
   return result;
 }
