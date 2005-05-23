@@ -392,6 +392,7 @@ void Node::reinit (DMI::Record::Ref &initrec, Forest* frst)
   if( nch )
   {
     children_.resize(nch);
+    child_retcodes_.resize(nch);
     for( int i=0; i<nch; i++ )
       child_map_[getChildLabel(i)] = i;
     rcr_cache_.resize(nch);
@@ -400,6 +401,18 @@ void Node::reinit (DMI::Record::Ref &initrec, Forest* frst)
   else
   {
     cdebug(2)<<"no children to reintialize"<<endl;
+  }
+  // setup stepchildren directly from relevant fields
+  nch = rec[FStepChildrenNames].size();
+  if( nch )
+  {
+    stepchildren_.resize(nch);
+    stepchild_retcodes_.resize(nch);
+    cdebug(2)<<"reinitialized with "<<nch<<" stepchildren"<<endl;
+  }
+  else
+  {
+    cdebug(3)<<"no stepchildren to reintialize"<<endl;
   }
   // finally, call setStateImpl to set up reconfigurable node state
   cdebug(2)<<"reinitializing node (setStateImpl)"<<endl;
