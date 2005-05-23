@@ -36,7 +36,7 @@ namespace Meq
   PolcLog (const Polc &other,int flags,int depth);
   ~PolcLog(){}
     
-    virtual void axis_function(int axis, LoVec_double & grid) const ;  
+  virtual void axis_function(int axis, LoVec_double & grid) const ;  
   private:
     double scale0;//scale 
   };

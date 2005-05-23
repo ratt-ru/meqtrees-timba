@@ -27,6 +27,25 @@ namespace Meq { class Cells; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqComposedPolc
+#define _defined_id_TpMeqComposedPolc 1
+const DMI::TypeId TpMeqComposedPolc(-1552);       // from /home/mevius/LOFAR/Timba/MEQ/src/ComposedPolc.h:8
+const int TpMeqComposedPolc_int = -1552;
+namespace Meq { class ComposedPolc; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::ComposedPolc> : public TypeTraits<Meq::ComposedPolc>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqComposedPolc_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::ComposedPolc & ContainerReturnType;
+                typedef const Meq::ComposedPolc & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqDomain
 #define _defined_id_TpMeqDomain 1
 const DMI::TypeId TpMeqDomain(-1294);             // from /home/oms/LOFAR/Timba/MEQ/src/Domain.h:30

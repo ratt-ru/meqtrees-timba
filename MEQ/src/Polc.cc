@@ -195,6 +195,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     const std::vector<int>    &spidIndex,
     int makePerturbed) const
 {
+ 
   // init shape of result
   Vells::Shape res_shape;
   Axis::degenerateShape(res_shape,cells.rank());
@@ -378,7 +379,10 @@ void Polc::do_update (const double values[],const std::vector<int> &spidIndex)
   for( uint i=0; i<spidIndex.size(); i++ ) 
   {
     if( spidIndex[i] >= 0 ) 
-      coeff[i] += values[spidIndex[i]];
+      {
+	cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
+	coeff[i] += values[spidIndex[i]];
+      }
   }
 }
 

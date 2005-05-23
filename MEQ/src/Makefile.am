@@ -4,7 +4,7 @@ LOCALHDRS = MeqVocabulary.h RequestId.h Meq.h
 
 LOCALSRCS = \
   Axis.cc Domain.cc	Cells.cc Request.cc RequestId.cc \
-  Vells.cc VellSet.cc Result.cc Funklet.cc Polc.cc PolcLog.cc \
+  Vells.cc VellSet.cc Result.cc Funklet.cc Polc.cc ComposedPolc.cc PolcLog.cc \
   Node.cc Function.cc CompoundFunction.cc \
   EventGenerator.cc Forest.cc 
 

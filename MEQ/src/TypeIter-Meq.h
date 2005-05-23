@@ -26,6 +26,7 @@
         Do(Meq::Result,arg) separator \
         Do(Meq::Funklet,arg) separator \
         Do(Meq::Polc,arg) separator \
+        Do(Meq::ComposedPolc,arg) separator \
         Do(Meq::PolcLog,arg) separator \
         Do(Meq::Node,arg) separator \
         Do(Meq::Function,arg)

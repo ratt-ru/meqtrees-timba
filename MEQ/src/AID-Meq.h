@@ -413,6 +413,11 @@ const int AidMatrix_int = -1345;
 const DMI::AtomicID AidMeqCells(-1339);           // from /home/oms/LOFAR/Timba/MEQ/src/Cells.h:35
 const int AidMeqCells_int = -1339;
 #endif
+#ifndef _defined_id_AidMeqComposedPolc
+#define _defined_id_AidMeqComposedPolc 1
+const DMI::AtomicID AidMeqComposedPolc(-1552);    // from /home/mevius/LOFAR/Timba/MEQ/src/ComposedPolc.h:8
+const int AidMeqComposedPolc_int = -1552;
+#endif
 #ifndef _defined_id_AidMeqDomain
 #define _defined_id_AidMeqDomain 1
 const DMI::AtomicID AidMeqDomain(-1294);          // from /home/oms/LOFAR/Timba/MEQ/src/Domain.h:30
