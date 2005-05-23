@@ -68,7 +68,7 @@ bool setupApp (ApplicationBase::Ref &app,const string &str)
   rec[FThrowError] = true;
   // setup control agent for delayed initialization
   rec[AidControl] <<= new DMI::Record;
-  rec[AidControl][FDelayInit] = true;
+  rec[AidControl][FDelayInit] = false;
   rec[AidControl][FEventMapIn] <<= new DMI::Record;
   rec[AidControl][FEventMapIn][FDefaultPrefix] = HIID(specs[2])|AidIn;
   rec[AidControl][FEventMapOut] <<= new DMI::Record;
@@ -123,7 +123,7 @@ int main (int argc,const char *argv[])
     // use defaults if none
     if( args.empty() )
     {
-      args.push_back(string("-meq:M:O:MeqServer"));
+      args.push_back(string("-meq:M:M:MeqServer"));
     }
     else // else fill from command line
     {
