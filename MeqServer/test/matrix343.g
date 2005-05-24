@@ -91,7 +91,7 @@ const create_source_subtrees := function (src, mep_table_name='')
         polc_v_array[1,1] := src.V;
         polc_v := meq.polc(polc_v_array,scale=polc_scale, offset=polc_offset);
     }
-    print polc_i;
+    print 'polc_i : ',polc_i;
     # meq.parm(), meq.node() return init-records
     # mqs.createnode() actually creates a node from an init-record.
     
@@ -106,7 +106,7 @@ const create_source_subtrees := function (src, mep_table_name='')
         stokes_U_node.table_name := mep_table_name;
         stokes_V_node.table_name := mep_table_name;
     }
-    print stokes_I_node;
+    print 'stokes_I_node : ',stokes_I_node;
 
     IQUV_node := meq.node('MeqComposer', fq_name('IQUV',src.name),
                           [link_or_create=T,dims=[2,2]],
@@ -339,7 +339,7 @@ const make_shared_nodes := function (sources=[=],
   
   for( src in sources ) {
     print src.name;
-    print create_source_subtrees(src, source_mep_table_name);
+    print 'Source subtree : ', create_source_subtrees(src, source_mep_table_name);
   }
   # setup zero position
   global ms_antpos;
@@ -378,7 +378,7 @@ const make_predict_tree := function (st1,st2,sources)
                          [ output_col      = 'PREDICT',   # init-rec for sink
                            station_1_index = st1,
                            station_2_index = st2,
-                           corr_index      = [1],
+                           corr_index      = [1,2,3,4],
                            flag_mask       = -1 ],
                            children=dmi.list(
                             ifr_predict_tree(st1,st2,sources)
@@ -405,10 +405,10 @@ const make_subtract_tree := function (st1,st2,sources)
   # other fields in the init-record
   mqs.createnode(
     meq.node('MeqSink',sinkname,
-                         [ output_col      = '',
+                         [ output_col      = 'PREDICT',
                            station_1_index = st1,
                            station_2_index = st2,
-                           corr_index      = [1],
+                           corr_index      = [1,2,3,4],
                            flag_mask        = -1 ],
                          children=meq.list(
       meq.node('MeqSubtract',fq_name('sub',st1,st2),children=meq.list(
@@ -437,6 +437,8 @@ const make_subtract_tree := function (st1,st2,sources)
 # builds a solve tree for stations st1, st2
 const make_solve_tree := function (st1,st2,sources=[=],subtract=F,flag=F)
 {
+  global outputrec;
+
   sinkname := fq_name('sink',st1,st2);
   predtree := ifr_predict_tree(st1,st2,sources);
   predname := predtree.name;
@@ -488,10 +490,10 @@ const make_solve_tree := function (st1,st2,sources=[=],subtract=F,flag=F)
   
   # create root tree (plugs into solver & subtract)     
   mqs.createnode(
-    meq.node('MeqSink',sinkname,[ output_col      = '',
+    meq.node('MeqSink',sinkname,[ output_col      = 'PREDICT',
                                   station_1_index = st1,
                                   station_2_index = st2,
-                                  corr_index      = [1], 
+                                  corr_index      = [1,2,3,4],
                                   flag_mask       = -1 ],children=meq.list(
       meq.node('MeqReqSeq',fq_name('seq',st1,st2),[result_index=2],
         children=['solver',datanodename])
@@ -533,11 +535,11 @@ const get_ms_info := function (msname='test.ms',uvw=T)
   num_chan := freqtab.getcol('NUM_CHAN');
   chan_freqs := freqtab.getcol('CHAN_FREQ');
   num_spw := freqtab.nrows();
-  print num_spw;
+  print 'num_spw : ',num_spw;
   print 'CHAN_FREQ SHAPE: ', shape(chan_freqs);
   ms_freqranges := array(0.0,2,num_spw);
   for( i in 1:num_spw){
-      print i;
+      print 'spw : ',i;
       ms_freqranges[,i] := [min(chan_freqs[,i]), max(chan_freqs[,i])];
   }
   freqtab.close();
@@ -670,7 +672,11 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
 {
   # clear output column in MS
   # (I still can't get this to work from C++, hence this bit of glish here)
-  if( use_initcol )
+  global outputrec;
+
+  outcol := outputrec.predict_column;
+  #if( use_initcol )
+  if(!is_boolean(outcol) && outcol != '')
   {
     print 'Clearing',outcol,'column, please ignore error messages'
     tbl := table(msname,readonly=F);
@@ -699,7 +705,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
   # initialize meqserver (see mqsinit_test.g)
   if( is_fail(mqsinit()) )
   {
-    print mqs;
+    print 'mqs : ', mqs;
     fail;
   }
   mqs.track_results(F);
@@ -755,7 +761,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
               }
           }
 
-          print solvables;
+          print 'Solvables : ',solvables;
 
           # note that child names will be resolved later
           global solver_defaults;
@@ -1020,5 +1026,5 @@ phase_solution_with_given_fluxes := function()
 
 
 
-#source_flux_fit_no_calibration();
-phase_solution_with_given_fluxes();
+source_flux_fit_no_calibration();
+#phase_solution_with_given_fluxes();
