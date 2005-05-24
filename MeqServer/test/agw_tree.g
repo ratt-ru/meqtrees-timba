@@ -56,6 +56,9 @@ global mqs;
 # the server does the work of creating nodes etc
 mqsinit(debug=debug,verbose=verbose,gui=gui)
 
+# set cache to 'always on'
+mqs.meq('Set.Forest.State',[state=[cache_policy=20]])
+
 # now create a simple MeqTree
 
 #### 2
@@ -102,6 +105,7 @@ mqs.meq('Create.Node',meq.node('MeqCondeq','condeq',children="add coeff"));
 #### 10
 # now define parameters for the solver - there are several parameters
 rec := meq.node('MeqSolver','solver',children="condeq");
+
 # specify that we are to iterate the solution 3 times
 rec.default := [ num_iter = 3 ];
 rec.parm_group := hiid('Parm');
