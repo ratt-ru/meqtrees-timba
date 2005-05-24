@@ -24,6 +24,7 @@
 #include <MEQ/Meq.h>
 #include <MEQ/Domain.h>
 #include <MEQ/Polc.h>
+#include <MEQ/PolcLog.h>
 #include <Common/Debug.h>
 #include <tables/Tables/TableLocker.h>
 #include <tables/Tables/TableDesc.h>
@@ -63,6 +64,8 @@ const String ColTimeScale     = "TIMESCALE";
 const String ColPerturbation  = "PERT";
 const String ColWeight        = "WEIGHT";
 const String ColLongPolcId    = "LONGPOLCID";
+const String ColFunkletType   = "FUNKLETTYPE";
+const String ColLScale        = "LSCALE";
 
 const String KeywordDefValues = "DEFAULTVALUES";
 
@@ -141,6 +144,13 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
     ROScalarColumn<double> tsCol (sel, ColTimeScale);
     ROScalarColumn<double> diffCol (sel, ColPerturbation);
     ROScalarColumn<double> weightCol (sel, ColWeight);    
+    ROScalarColumn<String> ftypeCol; 
+    
+    if(itsTable.actualTableDesc().isColumn(ColFunkletType))
+      ftypeCol.attach(sel, ColFunkletType);    
+    ROScalarColumn<double> lscaleCol;
+    if(itsTable.actualTableDesc().isColumn(ColLScale))
+      lscaleCol.attach(sel, ColLScale);    
     //    ROScalarColumn<int> longpolcidCol (sel, ColLongPolcId);
     Vector<uInt> rowNums = sel.rowNumbers(itsTable);
     for( uint i=0; i<sel.nrow(); i++ )
@@ -150,9 +160,16 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
       double scale[]  = { tsCol(i),fsCol(i) };
       // for now, only Polcs are supported
       
-
-      Funklet *funklet = new Polc(fromParmMatrix(valCol(i)),
-				       axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
+      Funklet *funklet;
+      if (!ftypeCol.isNull() && ftypeCol(i)=="PolcLog"){
+	double lscale=1.;
+	if(!lscaleCol.isNull()) lscale=lscaleCol(i);
+	funklet= new PolcLog(fromParmMatrix(valCol(i)),
+			     axis,offset,scale,diffCol(i),weightCol(i),rowNums(i),lscale);
+      }
+      else
+	funklet= new Polc(fromParmMatrix(valCol(i)),
+			  axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
       funklet->setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
       
       if(auto_solve_)

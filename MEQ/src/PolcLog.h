@@ -34,8 +34,28 @@ namespace Meq
   //constructors
   PolcLog ();
   PolcLog (const Polc &other,int flags,int depth);
+
+  explicit PolcLog(const LoVec_double &coeff,
+		   int iaxis=0,double x0=0,double xsc=1,
+		   double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
+		   DbId id=-1, double lscale=1.);
+
+  explicit PolcLog(const LoMat_double &coeff,
+		   const int    iaxis[]  = defaultPolcAxes,
+		   const double offset[] = defaultPolcOffset,
+		   const double scale[]  = defaultPolcScale,
+		   double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
+		   DbId id=-1, double lscale=1.);
+  
+
+  explicit  PolcLog(DMI::NumArray *pcoeff,
+		    const int    iaxis[]  = defaultPolcAxes,
+		    const double offset[] = defaultPolcOffset,
+		    const double scale[]  = defaultPolcScale,
+		    double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
+		    DbId id=-1, double lscale=1.);
   ~PolcLog(){}
-    
+  
   virtual void axis_function(int axis, LoVec_double & grid) const ;  
   private:
     double scale0;//scale 

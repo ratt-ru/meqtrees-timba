@@ -19,6 +19,9 @@ namespace Meq {
       if((*scaleArray)->elementType()==Tpint)scale0 = *((int *)(*scaleArray).deref().getConstDataPtr());
       if((*scaleArray)->elementType()==Tplong)scale0 = *((long *)(*scaleArray).deref().getConstDataPtr());
     }
+    else
+      (*this)[FLScale]=scale0;
+  
   }
 
 
@@ -31,18 +34,60 @@ namespace Meq {
       if((*scaleArray)->elementType()==Tpint)scale0 = *((int *)(*scaleArray).deref().getConstDataPtr());
       if((*scaleArray)->elementType()==Tplong)scale0 = *((long *)(*scaleArray).deref().getConstDataPtr());
     }
+    else
+      (*this)[FLScale]=scale0;
+   }
+  
+  PolcLog::PolcLog(const LoVec_double &coeff,
+	     int iaxis,double x0,double xsc,
+	     double pert,double weight,DbId id,double lscale)
+    : Polc(coeff,iaxis,x0,xsc,pert,weight,id)
+  {
+    scale0=lscale;
+    //set state record
+    LoVec_double sc(1);
+    sc = scale0;
+    ObjRef ref(new DMI::NumArray(sc));
+    Record::addField(FLScale,ref,Record::PROTECT|DMI::REPLACE);
+       
   }
   
+  PolcLog::PolcLog(const LoMat_double &coeff,
+           const int iaxis[],const double offset[],const double scale[],
+	     double pert,double weight,DbId id,double lscale)
+    : Polc(coeff,iaxis,offset,scale,pert,weight,id)
+  {
+    scale0=lscale;
+    LoVec_double sc(1);
+    sc = scale0;
+    ObjRef ref(new DMI::NumArray(sc));
+    Record::addField(FLScale,ref,Record::PROTECT|DMI::REPLACE);
+         
+  }
+  
+  PolcLog::PolcLog(DMI::NumArray *pcoeff,
+	     const int iaxis[],const double offset[],const double scale[],
+	     double pert,double weight,DbId id,double lscale)
+    : Polc(pcoeff,iaxis,offset,scale,pert,weight,id)
+  {
+    scale0=lscale;
+    LoVec_double sc(1);
+    sc = scale0;
+    ObjRef ref(new DMI::NumArray(sc));
+    Record::addField(FLScale,ref,Record::PROTECT|DMI::REPLACE);
+  }
+    
+
+
   void PolcLog::axis_function(int axis, LoVec_double &grid) const
   {
-    cdebug(0)<<"changing grid "<<endl;
     if(scale0*grid(0) <=0 || scale0*grid(grid.size()-1)<=0){
       cdebug(0)<<"trying to take log of 0 or negative value, axis not changed"<<endl;
 
       return;
     }
     grid=1./log(10.)*log(grid/scale0);
- 
+    cdebug(0)<<grid<<endl;
    
   }
 }
