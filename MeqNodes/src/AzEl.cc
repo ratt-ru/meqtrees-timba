@@ -49,7 +49,7 @@ InitDebugContext(AzEl,"MeqAzEl");
 
 
 AzEl::AzEl()
-: Function(-1,child_labels,2)
+: Function(5,child_labels,2)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
@@ -99,18 +99,22 @@ int AzEl::getResult (Result::Ref &resref,
   // create a frame for an Observatory, or a telescope station
   MeasFrame Frame; // create default frame 
 
-  if (obs_name_.size() == 0) {
+  if( obs_name_.empty() ) 
+  {
+    FailWhen(childres.size() < 5,"observatory name not supplied so X,Y,Z children expected");
     // create frame for individual telescope station
-    const Vells& vx  = childres[3]->vellSet(0).getValue();
-    const Vells& vy  = childres[4]->vellSet(0).getValue();
-    const Vells& vz  = childres[5]->vellSet(0).getValue();
+    const Vells& vx  = childres[2]->vellSet(0).getValue();
+    const Vells& vy  = childres[3]->vellSet(0).getValue();
+    const Vells& vz  = childres[4]->vellSet(0).getValue();
     Assert( vx.isScalar() && vy.isScalar() && vz.isScalar() );
     double x = vx.getScalar<double>();
     double y = vy.getScalar<double>();
     double z = vz.getScalar<double>();
     MPosition stnpos(MVPosition(x,y,z),MPosition::ITRF);
     Frame.set(stnpos); // tie this frame to station position
-  } else {
+  } 
+  else 
+  {
     // create frame for an observatory
     MPosition Obs;
     MeasTable::Observatory(Obs,obs_name_);
