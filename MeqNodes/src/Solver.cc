@@ -20,6 +20,10 @@
 //#
 //# $Id$
 
+
+// Needed for Aips++ array and matrix assignments for DMI
+#define AIPSPP_HOOKS
+
 #include <MEQ/Request.h>
 #include <MEQ/Vells.h>
 #include <MEQ/Function.h>
@@ -31,7 +35,11 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/Vector.h>
-    
+
+#include <iostream>
+
+using namespace std;
+
 using namespace casa;
 
 namespace Meq {
@@ -440,6 +448,15 @@ int Solver::getResult (Result::Ref &resref,
   return 0;
 }
 
+
+
+
+
+
+
+
+//====================>>>  Solver::solve  <<<====================
+
 void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
                     DMI::Record& solRec, Result::Ref& resref,
                     std::vector<Result::Ref>& child_results,
@@ -467,25 +484,32 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   double fit;
   Matrix<double> covar;
   Vector<double> errors;
-  {
-    LSQaips tmpSolver = itsSolver;
-    // both of these calls produce SEGV in certain situations; commented out until
-    // Wim or Ger fixes it
-    ///     tmpSolver.getCovariance (covar);
-    ///     tmpSolver.getErrors (errors);
-  }
+
   // Make a copy of the solver for the actual solve.
   // This is needed because the solver does in-place transformations.
   ////  FitLSQ solver = itsSolver;
   bool solFlag = itsSolver.solveLoop (fit, rank, solution, itsCurUseSVD);
+
+  // {
+  LSQaips tmpSolver(itsSolver);
+    // both of these calls produce SEGV in certain situations; commented out until
+    // Wim or Ger fixes it
+    //cdebug(1) << "result_covar = itsSolver.getCovariance (covar);" << endl;
+    //bool result_covar = itsSolver.getCovariance (covar);
+   //cdebug(1) << "result_errors = itsSolver.getErrors (errors);" << endl;
+   bool result_errors = tmpSolver.getErrors (errors);
+    //cdebug(1) << "result_errors = " << result_errors << endl;
+ // }
+  
+  
   cdebug(4) << "Solution after:  " << solution << endl;
   // Put the statistics in a record the result.
-  solRec[FRank] = int(rank);
-  solRec[FFit] = fit;
-  //  solRec[FErrors] = errors;
-  //  solRec[FCoVar ] = covar; 
-  solRec[FFlag] = solFlag; 
-  solRec[FMu] = itsSolver.getWeightedSD();
+  solRec[FRank]   = int(rank);
+  solRec[FFit]    = fit;
+  solRec[FErrors] = errors;
+  //solRec[FCoVar ] = covar; 
+  solRec[FFlag]   = solFlag; 
+  solRec[FMu]     = itsSolver.getWeightedSD();
   solRec[FStdDev] = itsSolver.getSD();
   //  solRec[FChi   ] = itsSolver.getChi());
   
@@ -499,6 +523,17 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   req.validateRider();
   ParmTable::unlockTables();
 }
+
+
+
+
+
+
+
+
+
+
+
 
 //##ModelId=400E53550276
 void Solver::fillSolution (DMI::Record& rec, const vector<int>& spids,
