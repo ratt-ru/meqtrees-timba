@@ -32,12 +32,13 @@ _dprintf = _dbg.dprintf;
 class StreamData:
   def __init__(self, parent):
     self.parent = parent;
+    self.cwd = ''            # Directory for pre-loaded MS 
     self.NChan = -1;         # Number of channels in the Measurement Set (MS)
     self.Ch0 = 0;            # First channel of the data in the tree, user selected
     self.Ch1 = -1;           # Last channel of the data in the tree, user selected
     self.FullMS = '';        # Name of the MS with full Path
     self.MS = '';            # Name of the MS
-    self.DataFRom = '';      # Column to read from
+    self.DataFrom = '';      # Column to read from
     self.DataTo = '';        # Column to write to
     self.Ant1 = 0;           # One of the antennas of the interferometer for
                              # which datee is selected.
@@ -48,7 +49,9 @@ class StreamData:
 #
 # Load the data from the input stream to the object.
 #
-  def loadData(self, InData):
+  def loadData(self, fst):
+    self.cwd = fst.cwd;
+    InData = fst.stream
     self.Ch0 = InData.input.selection.channel_start_index;
     if self.Ch0 == -1:
       print 'ERROR Ch0 == -1'
@@ -61,7 +64,7 @@ class StreamData:
     self.TileSize = InData.input.tile_size;
 
     self.DataFrom = str(InData.input.data_column_name);
-    self.DataTo = str(InData.output_col);
+    self.DataTo = str(InData.output.predict_column);
 
 #
 # Set the current MS.
@@ -70,8 +73,12 @@ class StreamData:
   def setMS(self, FullMS):
     self.FullMS = FullMS;
     MSa = split(self.FullMS, '/');
-    l = len(MSa)-2;
-    self.MS = MSa[l];
+    if len(MSa) == 1:
+      self.MS = FullMS;
+      self.FullMS = self.cwd + '/' + FullMS;
+    else:
+      l = len(MSa)-1;
+      self.MS = MSa[l];
 
 #
 # Update the GUI in the parent with myself
@@ -80,6 +87,7 @@ class StreamData:
     self.parent.ChInfo.setText(self.chInfo());
     self.parent.MSInfo.setText(self.MSInfo());
     self.parent.TileInfo.setText(self.TileInfo());
+    self.parent.ColInfo.setText(self.ColInfo());
 
 #
 # Copy my contents to the ourput stream
@@ -88,12 +96,16 @@ class StreamData:
     OutData.input.selection.channel_start_index = self.Ch0;
     OutData.input.selection.channel_end_index = self.Ch1;
     OutData.input.ms_name = self.FullMS;
+#    print 'DEBUG - MS=', OutData.input.ms_name;
+    OutData.input.data_column_name = self.DataFrom;
+    OutData.output.predict_column = self.DataTo;
 
 #
 # Show myself on-screen
 #
   def show(self):
     print '*****************************';
+    print '      cwd:', self.cwd;
     print 'Channel info:';
     print '      Max:', self.NChan;
     print '    Start:', self.Ch0;
@@ -106,6 +118,16 @@ class StreamData:
     print 'Tilesize:';
     print '      Max:', self.MaxTSize;
     print '  Current:', self.TileSize;
+
+#
+# Produce a string with column info
+#
+  def ColInfo(self):
+    msg = 'Column info:';
+    msg = msg + ' from ' + self.DataFrom;
+    msg = msg + ', to ' + self.DataTo;
+    msg = msg + '   ';
+    return msg;
 
 #
 # Produce a string with channel info
@@ -149,6 +171,77 @@ class StreamData:
     return msg;
 
 #
+# GUI to allow user to select columns
+#
+class ColumnSelect(QDialog):
+  def __init__(self, parent):
+    self.parent = parent
+    QDialog.__init__(self, parent._wtop, 'Set Columns', 1, 0)
+    self.parent = parent;
+    self.StrData = parent.StrData;
+    self.DataFrom = self.StrData.DataFrom;
+    self.DataTo = self.StrData.DataTo;
+
+    self.GUI = QVBoxLayout(self);
+
+    btnIN = QVButtonGroup('Select input column', self);
+    self.InData = QRadioButton('DATA', btnIN);
+    if self.StrData.DataFrom == 'DATA':
+       self.InData.setChecked(1);
+    self.InPred = QRadioButton('PREDICT', btnIN);
+    if self.StrData.DataFrom == 'PREDICT':
+       self.InPred.setChecked(1);
+    self.InRes = QRadioButton('RESIDUALS', btnIN);
+    if self.StrData.DataFrom == 'RESIDUALS':
+       self.InRes.setChecked(1);
+    self.GUI.addWidget(btnIN);
+
+    btnOUT = QVButtonGroup('Select output column', self);
+    self.OutData = QRadioButton('DATA', btnOUT);
+    if self.StrData.DataTo == 'DATA':
+       self.OutData.setChecked(1);
+    self.OutPred = QRadioButton('PREDICT', btnOUT);
+    if self.StrData.DataTo == 'PREDICT':
+       self.OutPred.setChecked(1);
+    self.OutRes = QRadioButton('RESIDUALS', btnOUT);
+    if self.StrData.DataTo == 'RESIDUALS':
+       self.OutRes.setChecked(1);
+    self.GUI.addWidget(btnOUT);
+
+    self.Btns = QVBox(self);
+    run = QPushButton('OK', self.Btns);
+    QObject.connect(run,SIGNAL("clicked()"),self.runOK);
+    cnc = QPushButton('Cancel', self.Btns);
+    QObject.connect(cnc,SIGNAL("clicked()"),self.runCancel);
+    self.GUI.addWidget(self.Btns);
+
+  def runOK(self):
+    if self.InData.isOn():
+      self.StrData.DataFrom = 'DATA';
+    elif self.InPred.isOn():
+      self.StrData.DataFrom = 'PREDICT';
+    elif self.InRes.isOn():
+      self.StrData.DataFrom = 'RESIDUALS';
+    else:
+      print 'ERROR ...';
+
+    if self.OutData.isOn():
+      self.StrData.DataTo = 'DATA';
+    elif self.OutPred.isOn():
+      self.StrData.DataTo = 'PREDICT';
+    elif self.OutRes.isOn():
+      self.StrData.DataTo = 'RESIDUALS';
+    else:
+      print 'ERROR ...';
+
+    self.StrData.updateGui()
+    self.close()
+
+  def runCancel(self):
+    self.close();
+
+
+#
 # GUI to allow the user to select channels
 #
 class ChannelSelect(QDialog):
@@ -158,7 +251,7 @@ class ChannelSelect(QDialog):
     self.parent = parent;
     self.StrData = parent.StrData;
 
-    self.GUI = QVBoxLayout(self)
+    self.GUI = QVBoxLayout(self);
     self.UserIn = QVBox(self);
     self.GUI.addWidget(self.UserIn);
 
@@ -374,17 +467,14 @@ class StreamController (browsers.GriddedPlugin):
     TileSize = QPushButton('Set', self.TileBox);
     QObject.connect(TileSize,SIGNAL("clicked()"),self._TileSet);
 
-    QLabel('   ', self.UserIn);
-    QLabel('==============================================', self.UserIn);
-    QLabel('BELOW THIS LINE IS NOT YET UPDATED', self.UserIn);
-
-    self.DataBox = QHBox(self.UserIn);
-    self.DataLbl = QVBox(self.DataBox);
-    lbl = QLabel('From Column ', self.DataLbl);
-    lbl = QLabel('To Column ', self.DataLbl);
-    self.DataVal = QVBox(self.DataBox);
-    self.DataFrom = QLineEdit(self.DataVal);
-    self.DataTo = QLineEdit(self.DataVal);
+#
+# Data column box
+#
+    self.ColBox = QHBox(self.UserIn);
+    msg = self.StrData.ColInfo();
+    self.ColInfo = QLabel(msg, self.ColBox);
+    ColSel = QPushButton('Select', self.ColBox);
+    QObject.connect(ColSel, SIGNAL("clicked()"), self._ColSet);
 
 #
 # Put empty label to create a right-margin
@@ -393,7 +483,7 @@ class StreamController (browsers.GriddedPlugin):
     lbl = QLabel('  ', self.MSBox);
     lbl = QLabel('  ', self.IntferBox);
     lbl = QLabel('  ', self.TileBox);
-    lbl = QLabel('  ', self.DataBox);
+    lbl = QLabel('  ', self.ColBox);
 
     self.Buttons = QHBox(self.GUI);
     run = QPushButton('GO', self.Buttons);
@@ -469,7 +559,7 @@ class StreamController (browsers.GriddedPlugin):
 #
 # Load values in Data object, update gui
 #
-    self.StrData.loadData(self._streamrec);
+    self.StrData.loadData(fst);
 #    self.StrData.show();
     self.StrData.updateGui();
 
@@ -477,12 +567,6 @@ class StreamController (browsers.GriddedPlugin):
 # update values in GUI
 #
 #    self.NTiles.setText(str(self._streamrec.input.tile_size));
-
-# !!! following must be updated
-    self.currDataFrom = str(self._streamrec.input.data_column_name);
-    self.DataFrom.setText(self.currDataFrom);
-    self.currDataTo = str(self._streamrec.output_col);
-    self.DataTo.setText(self.currDataTo);
 
 #
 # Select an MS, update GUI
@@ -517,6 +601,10 @@ class StreamController (browsers.GriddedPlugin):
     self.StrData.TileSize = x;
     self.StrData.updateGui();
 
+  def _ColSet(self):
+    cs = ColumnSelect(self);
+    cs.show();
+
 #  def test_stuff(self):
 #    cs = ChannelSelect(self);
 #    cs.show();
@@ -548,12 +636,12 @@ class StreamController (browsers.GriddedPlugin):
 #      else:
       self._streamrec.input.selection.selection_string = '';
 
-      DataFrom = str(self.DataFrom.text());
-      if DataFrom != self.currDataFrom:
-	self._streamrec.input.data_column_name = DataFrom;
-      DataTo = str(self.DataTo.text());
-      if DataTo != self.currDataTo:
-	self._streamrec.output_col = DataFrom;
+#      DataFrom = str(self.DataFrom.text());
+#      if DataFrom != self.currDataFrom:
+#	self._streamrec.input.data_column_name = DataFrom;
+#      DataTo = str(self.DataTo.text());
+#      if DataTo != self.currDataTo:
+#	self._streamrec.output_col = DataFrom;
 
       mqs().init(self._streamrec);
 #
