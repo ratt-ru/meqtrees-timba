@@ -55,7 +55,12 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
     child_labels_.resize(nchildren);
     for( int i=0; i<nchildren; i++ )
       child_labels_[i] = labels[i];
-    check_nmandatory_ = 0;
+    // if nmandatory is specified, then check that and not children count
+    if( nmandatory )
+    {
+      check_nchildren_ = -1;
+      check_nmandatory_ = nmandatory;
+    }
   }
   // else child_labels_ stays empty to indicate no labels -- this is checked below
   

@@ -14,14 +14,14 @@ using Debug::ssprintf;
 void Node::initChildren (int nch)
 {
   // check against expected number
+  FailWhen( nch < check_nmandatory_,
+            ssprintf("%d children specified, at least %d expected",
+            nch,check_nmandatory_) );
   if( check_nchildren_ >= 0 && !check_nmandatory_ )
   {
     FailWhen( nch != check_nchildren_,
               ssprintf("%d children specified, %d expected",nch,check_nchildren_) );
   }
-  FailWhen( nch < check_nmandatory_,
-            ssprintf("%d children specified, at least %d expected",
-            nch,check_nmandatory_) );
   children_.resize(nch);
   // form the children name/index fields
   if( nch )
