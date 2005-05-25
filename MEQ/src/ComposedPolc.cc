@@ -143,28 +143,33 @@ namespace Meq {
 
       //partvs.setShape(res_shape);
      
+      int VellsisConstant=0;
       int partshape[2]={1,1};
       if(partvs.hasShape()){
 	partshape[0] =  partvs.shape()[0];
 	partshape[1] =  partvs.shape()[1];
       }
-  
+      
+      if(partshape[0]<=1 && partshape[1]<=1)
+	VellsisConstant=1;
       int j=0;
       int jpartidx=0;
       Vells partvells(partvs.getValue());
       blitz::Array<double,2> parts ;
-      cdebug(0)<<" shape "<<partvells<<endl;
-      int isConstant=0;
       double constpart=0;
-      if(partshape[0]<=1 && partshape[1]<=1)	// constant;
+      if(VellsisConstant)	// constant;
 	{
-	  isConstant =1;
-	  constpart= partvells.getArray<double,1>()(0);
+	  if(partvells.isScalar())
+	    constpart = partvells.getScalar<double>();
+	  else
+	    constpart= partvells.getArray<double,2>()(0);
 	}
-      else parts= partvells.getArray<double,2>();
+      else 
+	{
+	  parts.resize(partvells.shape());
+	  parts= partvells.getArray<double,2>();
 
-
-
+	}
       if(varying_axis<0){
 	//value = (partvs.getValue());
 	Vells fullvells = vs.getValue();
@@ -175,28 +180,28 @@ namespace Meq {
 
 	//	  break;
 	}
-	else
-	  while(lastend[varying_axis]>=endgrid[varying_axis](partidx))
+      else
+	while(lastend[varying_axis]>=endgrid[varying_axis](partidx))
 	  {
-
-	    if(! isConstant){
-	    if(partshape[varying_axis]==res_shape[varying_axis]) jpartidx=partidx;
-	    else jpartidx=0;
-	    for(int i= 0;i<nr_notvarying;i++)
-	      {
-		
-		if(partshape[abs(varying_axis-1)]== nr_notvarying) j=i;
-		else j=0;
-		if(varying_axis==0){
-		  //		  value[partidx*nr_notvarying + i] =  partvs.getValue()[jpartidx][j];
-		  value[partidx*nr_notvarying + i] = parts(jpartidx,j);
-		}
-		else
-		  {
-		  //		  value[i*res_shape[varying_axis]+partidx] =  partvs.getValue()[j][jpartidx];
-		    value[i*res_shape[varying_axis]+partidx] =  parts(j,jpartidx);
-		
+	    
+	    if(! VellsisConstant){
+	      if(partshape[varying_axis]==res_shape[varying_axis]) jpartidx=partidx;
+	      else jpartidx=0;
+	      for(int i= 0;i<nr_notvarying;i++)
+		{
+		  
+		  if(partshape[abs(varying_axis-1)]== nr_notvarying) j=i;
+		  else j=0;
+		  if(varying_axis==0){
+		    //		  value[partidx*nr_notvarying + i] =  partvs.getValue()[jpartidx][j];
+		    value[partidx*nr_notvarying + i] = parts(jpartidx,j);
 		  }
+		  else
+		    {
+		      //		  value[i*res_shape[varying_axis]+partidx] =  partvs.getValue()[j][jpartidx];
+		      value[i*res_shape[varying_axis]+partidx] =  parts(j,jpartidx);
+		      
+		    }
 	      }
 	    }
 	    else //constant
@@ -206,7 +211,7 @@ namespace Meq {
 	      }
 
 	      
-
+	    
 	    partidx++;
 	    if(partidx >=res_shape[varying_axis]) return;
 	  }
