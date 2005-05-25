@@ -39,7 +39,8 @@ namespace Meq {
   
 const HIID FObservatory = AidObservatory;
 
-const HIID child_labels[] = { AidRA,AidDec};
+const HIID child_labels[] = { AidRA,AidDec,AidX,AidY,AidZ };
+//const HIID child_labels[] = { AidRA,AidDec};
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 const HIID FDomain = AidDomain;
@@ -48,7 +49,7 @@ InitDebugContext(AzEl,"MeqAzEl");
 
 
 AzEl::AzEl()
-: Function(num_children,child_labels)
+: Function(-1,child_labels,2)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
@@ -104,10 +105,10 @@ int AzEl::getResult (Result::Ref &resref,
     const Vells& vy  = childres[4]->vellSet(0).getValue();
     const Vells& vz  = childres[5]->vellSet(0).getValue();
     Assert( vx.isScalar() && vy.isScalar() && vz.isScalar() );
-    double x0 = vx.getScalar<double>();
-    double y0 = vy.getScalar<double>();
-    double z0 = vz.getScalar<double>();
-    MPosition stnpos(MVPosition(x0,y0,z0),MPosition::ITRF);
+    double x = vx.getScalar<double>();
+    double y = vy.getScalar<double>();
+    double z = vz.getScalar<double>();
+    MPosition stnpos(MVPosition(x,y,z),MPosition::ITRF);
     Frame.set(stnpos); // tie this frame to station position
   } else {
     // create frame for an observatory
@@ -140,8 +141,8 @@ int AzEl::getResult (Result::Ref &resref,
     Frame.set (mepoch);
     // convert ra, dec to Az El at given time
     MDirection az_el_out(MDirection::Convert(sourceCoord,MDirection::Ref(MDirection::AZEL,Frame))());
-    //Gawd - what a mouthfull - luckily some old ACSIS code provided the
-    //rigth incantation for the following line!
+    //Gawd - what a mouthful - luckily some old ACSIS code provided the
+    //right incantation for the following line!
     Vector<Double> az_el = az_el_out.getValue().getAngle("rad").getValue();
     Az[i] = az_el(0);
     El[i] = az_el(1);
