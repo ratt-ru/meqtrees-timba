@@ -226,13 +226,26 @@ const sta_source_dft_tree := function (st,src=[=])
   for( i in 1:2){
       for( j in 1:2){
           value := as_double(i==j);
+          if(value != 0){
+              value_polc_array := array(as_double(0),2,2);
+              phase_polc_array := array(as_double(0),1,2);
+          }else{
+              value_polc_array := array(as_double(0),1,1);
+              phase_polc_array := array(as_double(0),1,1);
+          }
+          value_polc_array[1,1] := value;
+          value_polc := meq.polc(value_polc_array);
+          phase_polc := meq.polc(phase_polc_array);
+
+          
+                         
           elem := spaste(i,j);
-          amp_node := meq.parm(fq_name('JA',st,src.name,elem),value,
+          amp_node := meq.parm(fq_name('JA',st,src.name,elem),value_polc,
                                groups="a");
           amp_node.table_name := '3C343.mep';
           amp_node.link_or_create := T;
 
-          phase_node :=meq.parm(fq_name('JP',st, src.name,elem),0.0, groups="a");
+          phase_node :=meq.parm(fq_name('JP',st, src.name,elem),phase_polc, groups="a");
           phase_node.table_name := '3C343.mep';
           phase_node.link_or_create := T;
 
@@ -241,11 +254,11 @@ const sta_source_dft_tree := function (st,src=[=])
   
           dmi.add_list(source_jones_list, source_jones_elem);
           
-          stat_amp_node := meq.parm(fq_name('GA',st,elem),value,groups="a");
+          stat_amp_node := meq.parm(fq_name('GA',st,elem),value_polc,groups="a");
           stat_amp_node.table_name := '3C343.mep';
           stat_amp_node.link_or_create:=T;
 
-          stat_phase_node :=meq.parm(fq_name('GP',st,elem),0.0,groups="a");
+          stat_phase_node :=meq.parm(fq_name('GP',st,elem),phase_polc,groups="a");
           stat_phase_node.table_name := '3C343.mep';
           stat_phase_node.link_or_create := T;
 
@@ -311,7 +324,7 @@ const ifr_predict_tree := function (st1,st2,sources)
   list := dmi.list();
   for( s in sources ) 
     dmi.add_list(list,ifr_source_predict_tree(st1,st2,s));
-  return meq.node('MeqAdd',fq_name('predict',st1,st2),[cache_num_active_parents=1],children=list);
+  return meq.node('MeqAdd',fq_name('predict',st1,st2),[cache_num_active_parents=1,link_or_create=T],children=list);
 }
 
 
@@ -403,6 +416,45 @@ const make_subtract_tree := function (st1,st2,sources)
   # create a sink & subtree attached to it
   # note how meq.node() can be passed a record in the third argument, to specify
   # other fields in the init-record
+  spigot_node := meq.node('MeqSpigot',fq_name('spigot',st1,st2),
+  [ station_1_index=st1, station_2_index=st2, flag_bit=4,
+    input_column='DATA', cache_policy=-10, link_or_create=T]);
+ 
+  subtract_node := meq.node('MeqSubtract',fq_name('sub',st1,st2),
+                            [link_or_create=T],
+                            children=meq.list( spigot_node,
+                                     ifr_predict_tree(st1,st2,sources)));
+ 
+
+  GC1_node := meq.node('MeqMatrixInvert22', fq_name('GC',st1),
+                       [link_or_create=T],
+                       children=meq.list(fq_name('G',st1)));
+  JC1_node := meq.node('MeqMatrixInvert22', fq_name('JC',st1),
+                       [link_or_create=T],
+                       children=meq.list(fq_name('J',st1, sources[1].name)));
+  
+  conjG2_node := meq.node('MeqTranspose', fq_name('Gconj',st2),
+                         [link_or_create=T,conj=T],
+                         children=meq.list(fq_name('G',st2)));
+  conjJ2_node := meq.node('MeqTranspose', fq_name('Jconj',st2),
+                         [link_or_create=T,conj=T],
+                         children=meq.list(fq_name('J',st2, sources[1].name)));
+  
+  GC2_node := meq.node('MeqMatrixInvert22', fq_name('GCconj',st2),
+                       [link_or_create=T],
+                       children=meq.list(conjG2_node));
+  JC2_node := meq.node('MeqMatrixInvert22', fq_name('JCconj',st2),
+                       [link_or_create=T],
+                       children=meq.list(conjJ2_node));
+
+  
+  corrected_node := meq.node('MeqMatrixMultiply', fq_name('corrected',st1,st2),
+                    [link_or_create=T],
+                    children=meq.list(JC1_node,
+                                      GC1_node,
+                                      subtract_node,
+                                      GC2_node,
+                                      JC2_node));
   mqs.createnode(
     meq.node('MeqSink',sinkname,
                          [ output_col      = 'PREDICT',
@@ -410,18 +462,8 @@ const make_subtract_tree := function (st1,st2,sources)
                            station_2_index = st2,
                            corr_index      = [1,2,3,4],
                            flag_mask        = -1 ],
-                         children=meq.list(
-      meq.node('MeqSubtract',fq_name('sub',st1,st2),children=meq.list(
-          meq.node('MeqSpigot',fq_name('spigot',st1,st2),[
-            station_1_index=st1,
-            station_2_index=st2,
-            flag_bit=4,
-            input_column='DATA',
-            cache_policy=-10]),
-        ifr_predict_tree(st1,st2,sources)
-      ))
-    ))
-  );
+                         children=meq.list(corrected_node))
+                );
   return sinkname;
 }
 
@@ -462,43 +504,63 @@ const make_solve_tree := function (st1,st2,sources=[=],subtract=F,flag=F)
                           )
                  );
   # create subtract sub-tree
+  datanodename := '';
   if( subtract )
   {
     subname := fq_name('sub',st1,st2);
-    mqs.createnode(meq.node('MeqSubtract',subname,
-                      children=[fq_name('spigot',st1,st2),predname]));
-    if( !is_boolean(flag) )
-    {
-      datanodename:=fq_name('mof',st1,st2);
-      mqs.createnode(
-        meq.node('MeqMergeFlags',datanodename,children=meq.list(
-          subname,
-          meq.node('MeqZeroFlagger',fq_name('zf',st1,st2),[flag_bit=2,oper='GE',force_output=T],children=meq.list(
-            meq.node('MeqSubtract',fq_name('zfsub',st1,st2),children=meq.list(
-              meq.node('MeqAbs',fq_name('zfabs',st1,st2),children=subname),
-              meq.node('MeqConstant',fq_name('of1threshold',st1,st2),[value=flag])
-            ))
-          ))
-        ))
-      );
-    }
-    else
-      datanodename := subname;
-  }
-  else
-    subname := fq_name('spigot',st1,st2);
+    
+    subtract_node := meq.node('MeqSubtract',fq_name('sub',st1,st2),
+                            [link_or_create=T],
+                            children=meq.list( spigot_node,
+                                     ifr_predict_tree(st1,st2,sources)));
+ 
+
+    GC1_node := meq.node('MeqMatrixInvert22', fq_name('GC',st1),
+                       [link_or_create=T],
+                       children=meq.list(fq_name('G',st1)));
+    JC1_node := meq.node('MeqMatrixInvert22', fq_name('JC',st1),
+                       [link_or_create=T],
+                       children=meq.list(fq_name('J',st1, sources[1].name)));
   
+    conjG2_node := meq.node('MeqTranspose', fq_name('Gconj',st2),
+                         [link_or_create=T,conj=T],
+                         children=meq.list(fq_name('G',st2)));
+    conjJ2_node := meq.node('MeqTranspose', fq_name('Jconj',st2),
+                         [link_or_create=T,conj=T],
+                         children=meq.list(fq_name('J',st2, sources[1].name)));
+  
+    GC2_node := meq.node('MeqMatrixInvert22', fq_name('GCconj',st2),
+                       [link_or_create=T],
+                       children=meq.list(conjG2_node));
+    JC2_node := meq.node('MeqMatrixInvert22', fq_name('JCconj',st2),
+                       [link_or_create=T],
+                       children=meq.list(conjJ2_node));
+
+  
+    corrected_node := meq.node('MeqMatrixMultiply', fq_name('corrected',st1,st2),
+                    [link_or_create=T],
+                    children=meq.list(JC1_node,
+                                      GC1_node,
+                                      subtract_node,
+                                      GC2_node,
+                                      JC2_node));
+    
+     datanodename := corrected_node;
+  }else{
+     datanodename := fq_name('spigot',st1,st2);
+  }  
   # create root tree (plugs into solver & subtract)     
+  sequencer_node := meq.node('MeqReqSeq',fq_name('seq',st1,st2),
+  [result_index=2], children=meq.list('solver',datanodename));
+  
   mqs.createnode(
     meq.node('MeqSink',sinkname,[ output_col      = 'PREDICT',
                                   station_1_index = st1,
                                   station_2_index = st2,
                                   corr_index      = [1,2,3,4],
                                   flag_mask       = -1 ],children=meq.list(
-      meq.node('MeqReqSeq',fq_name('seq',st1,st2),[result_index=2],
-        children=['solver',datanodename])
-   ))
- );
+                                  sequencer_node))
+  );
 
   return sinkname;
 }
@@ -749,15 +811,21 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
               
           if( solve_gains ){
               for( st in stset[1:len(stset)] ){
-                  solvables := [solvables,fq_name('GA',st,'11')];
-                  solvables := [solvables,fq_name('GA',st,'22')];
+                  for(source in sources){
+                      solvables := [solvables,fq_name('JA',st,source.name,'11')];
+                      solvables := [solvables,fq_name('JA',st,source.name,'22')];
+                  }
               }
           }
 
           if( solve_phases ){
+              solvables := [solvables,fq_name('JP',1,sources[2].name, '11')];
+              solvables := [solvables,fq_name('JP',1,sources[2].name, '22')];
               for( st in stset[2:len(stset)] ){
                   solvables := [solvables,fq_name('GP',st,'11')];
                   solvables := [solvables,fq_name('GP',st,'22')];
+                  solvables := [solvables,fq_name('JP',st,sources[2].name, '11')];
+                  solvables := [solvables,fq_name('JP',st,sources[2].name, '22')];
               }
           }
 
@@ -1025,6 +1093,92 @@ phase_solution_with_given_fluxes := function()
 }
 
 
+#--------------------------------------------
+#
+# Source flux fitting on raw data
+#
+#--------------------------------------------
+gain_solution_with_given_fluxes := function()
+{
+    global inputrec, outputrec,solver_defaults,msname,mepuvw;
+    global outcol;
+    global use_initcol
 
-source_flux_fit_no_calibration();
-#phase_solution_with_given_fluxes();
+    use_initcol := F;       # initialize output column with zeroes
+
+    msname := '3C343.MS';
+    mep_table_name := '3C343.mep';
+    source_mep_table_name := 'fluxes_16_channels.mep';
+    clear_mep_table := F;
+    
+    # Clear MEP table
+    if(clear_mep_table){
+        meptable := table(mep_table_name, readonly=F);
+        nrows := meptable.nrows();
+        meptable.removerows(1:nrows);
+        meptable.done();
+    }
+    
+    mepuvw := F;
+    filluvw := any(argv=='-filluvw');
+    solve_gains := T;
+    solve_phases := F;
+    set_breakpoint := any(argv=='-bp');
+    
+    src_3C343_1 := [name="3C343_1",I=F, Q=0, U=0, V=0,
+                    Iorder=1, Qorder=1,
+                    solve_fluxes=[F,F,F,F],
+                    ra=4.356645791155902,dec=1.092208429052697];
+    src_3C343   := [name="3C343",  I=F, Q=F, U=0, V=0,
+                    Iorder=3, Qorder=3,
+                    solve_fluxes=[F,F,F,F],
+                    ra=4.3396003966265599,dec=1.0953677174056471];
+    
+    sources := [a=src_3C343_1,
+                b=src_3C343];
+    print sources;
+    
+    
+# fill UVW parms from MS if requested
+    if( mepuvw )
+    {
+        include 'meq/msuvw_to_mep.g'
+            mepuvw := msname ~ s/.ms/.mep/;
+        if( filluvw )
+            fill_uvw(msname,mepuvw);
+    }
+    else
+        mepuvw := F;
+    
+    outcol := 'CORRECTED_DATA'; # DO NOT WRITE RESULTS TO MS
+    solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
+    
+    inputrec := [ ms_name = msname,data_column_name = 'DATA',
+                 tile_size=30,# clear_flags=T,
+                 selection = [ channel_start_index=25,
+                              channel_end_index=40, 
+                              selection_string=''] ];#'TIME < 4472025830'] ];
+    
+    outputrec := [ write_flags=F,predict_column=outcol ]; 
+    #outputrec := [ write_flags=F];
+    
+    res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
+                   stset=1:14,
+                   sources=sources,
+                   solve_gains=solve_gains,
+                   solve_phases=solve_phases,
+                   set_breakpoint=set_breakpoint,
+                   mep_table_name=mep_table_name,
+                   source_mep_table_name=source_mep_table_name,
+                   publish=1,mepuvw=mepuvw,msuvw=msuvw);
+    
+    
+    print res;
+    
+    print 'errors reported:',mqs.num_errors();
+}
+
+
+#source_flux_fit_no_calibration();
+phase_solution_with_given_fluxes();
+#gain_solution_with_given_fluxes();
