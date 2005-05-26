@@ -21,9 +21,7 @@ class ConnectMeqKernel(QDialog):
         self.setSizeGripEnabled(0)
 
         LayoutWidget = QWidget(self,"lo_top")
-        # LayoutWidget.setGeometry(QRect(10,10,472,380))
-        LayoutWidget.setMinimumSize(500,380);
-        LayoutWidget.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred);
+        LayoutWidget.setGeometry(QRect(10,10,472,400))
         lo_top = QVBoxLayout(LayoutWidget,11,6,"lo_top")
 
         lo_title = QHBoxLayout(None,0,6,"lo_title")
@@ -136,7 +134,7 @@ class ConnectMeqKernel(QDialog):
         #LayoutWidget.resize(QSize(489,330).expandedTo(LayoutWidget.minimumSizeHint()))
         #self.resize(QSize(489,330).expandedTo(self.minimumSizeHint()))
         self.clearWState(Qt.WState_Polished)
-
+        
         self.connect(self.btn_ok,SIGNAL("clicked()"),self.accept)
         self.connect(self.btn_cancel,SIGNAL("clicked()"),self.reject)
         

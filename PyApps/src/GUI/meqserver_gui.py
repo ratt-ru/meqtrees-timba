@@ -18,6 +18,7 @@ import sets
 import re
 import os
 import os.path
+import signal
 
 _dbg = verbosity(0,name='meqserver_gui');
 _dprint = _dbg.dprint;
@@ -226,10 +227,16 @@ class meqserver_gui (app_proxy_gui):
     menubar.setItemVisible(debug_menu_id,False);
 
     # --- MeqTimba menu
-    connect = QAction("Connect to kernel...",0,self);    
+    connect = QAction("Connect to kernel...",0,self);
     connect.addTo(kernel_menu);
     QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(connect.setEnabled,_args=(False,)));
     QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(connect.setEnabled,_args=(True,)));
+    stopkern = QAction(pixmaps.red_round_cross.iconset(),"Stop kernel process",0,self);
+    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(stopkern.setEnabled,_args=(True,)));
+    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(stopkern.setEnabled,_args=(False,)));
+    QObject.connect(stopkern,SIGNAL("activated()"),self._stop_kernel);
+    stopkern.addTo(kernel_menu);
+    kernel_menu.insertSeparator();
     self.treebrowser._qa_refresh.addTo(kernel_menu);
     self.treebrowser._qa_load.addTo(kernel_menu);
     self.treebrowser._qa_save.addTo(kernel_menu);
@@ -298,6 +305,9 @@ class meqserver_gui (app_proxy_gui):
     attach_gdb = QAction("Attach debugger to kernel",0,self);
     attach_gdb.addTo(debug_menu);
     attach_gdb.setEnabled(False); # for now
+    QObject.connect(attach_gdb,SIGNAL("activated()"),self._debug_kernel);
+    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(attach_gdb.setEnabled,_args=(True,)));
+    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(attach_gdb.setEnabled,_args=(False,)));
     
     # --- Help menu
     help_menu.insertItem(self.treebrowser.whatsthisbutton().iconSet(),
@@ -322,13 +332,27 @@ class meqserver_gui (app_proxy_gui):
     kernel_menu.insertSeparator();
     exit = QAction(pixmaps.exit.iconset(),"Quit browser",Qt.ALT+Qt.Key_Q,self);
     exit.addTo(kernel_menu);
-    QObject.connect(exit,SIGNAL("activated()"),self.close);
+    QObject.connect(exit,SIGNAL("activated()"),self._quit_browser);
  
     # subscribe to updates of forest state
     meqds.subscribe_forest_state(self._update_forest_state);
     
     # clear the splash screen
     # _splash_screen.finish(self);
+    self._kernel_pid = None;
+    # add signal handler for SIGCHLD
+    signal.signal(signal.SIGCHLD,self._sigchld_handler);
+    
+  def _debug_kernel (self):
+    pid = self.app.app_addr[2];    
+    cmd = "ddd /proc/%d/exe %d" % (pid,pid);
+    prompt = "Debugger command:";
+    (cmd,ok) = QInputDialog.getText("Attaching debugger to kernel",prompt,QLineEdit.Normal,cmd);
+    if ok:
+      cmd = str(cmd);
+      args = cmd.split(' ');
+      self.log_message("running \""+cmd+"\"");
+      os.spawnvp(os.P_NOWAIT,args[0],args);
     
   def _start_kernel (self,pathname,args):
     _dprint(0,pathname,args);
@@ -338,6 +362,57 @@ class meqserver_gui (app_proxy_gui):
       return;
     self.log_message(' '.join(('starting kernel process:',pathname,args)));
     self._kernel_pid = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));
+    
+  def _stop_kernel (self):
+    res = QMessageBox.warning(self,"Stopping MeqTimba kernel",
+      """<p>The normal way to stop the MeqTimba kernel is by sending it
+      a <tt>HALT</tt> command. If the kernel doesn't respond to this, we can always
+      brute-force it with a <tt>KILL</tt> signal. Which method do you want to use?""",
+      "HALT","KILL","Cancel",0,2);
+    if res == 0:
+      self.log_message('sending HALT command to kernel');
+      self.app.halt();
+    elif res == 1:
+      pid = self.app.app_addr[2];    
+      self.log_message('sending KILL signal to kernel process '+str(pid));
+      os.kill(pid,signal.SIGKILL);
+      
+  def _quit_browser (self):
+    if self._connected and self._kernel_pid:
+      res = QMessageBox.warning(self,"Quit browser",
+        """<p>We have started a kernel process (pid %d) from this browser. 
+        Would you like to quit the browser only, or kill the kernel as 
+        well?</p>""" % (self._kernel_pid,),
+        "Quit only","Quit && kill","Cancel",0,2);
+      if res == 0:
+        self.close();
+      elif res == 1:
+        os.kill(self._kernel_pid,signal.SIGKILL);
+        self.close();
+      else:
+        return;
+    else:
+      self.close();
+    
+  def _sigchld_handler (self,sig,stackframe):
+    _dprint(0,'signal',sig);
+    wstat = os.waitpid(-1,os.WNOHANG);
+    if wstat:
+      (pid,st) = wstat;
+      if pid == self._kernel_pid:
+        msg = "kernel process " + str(pid);
+        self._kernel_pid = None;
+        cat = Logger.Error;
+      else:
+        msg = "child process " + str(pid);
+        cat = Logger.Normal;
+      if st&0x7F:
+        msg += " killed by signal " + str(st&0x7F);
+      else:
+        msg += " exited with status " + str(st>>8);
+      if st&0x80:
+        msg += " (core dumped)";
+      self.log_message(msg,category=cat);
     
   def _add_bookmark (self):
     item = Grid.Services.getHighlightedItem();

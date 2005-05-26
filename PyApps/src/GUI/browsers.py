@@ -441,6 +441,7 @@ class HierBrowser (object):
     for attr in ('_content','_content_list'):
       try: delattr(self._lv,attr);
       except: pass;
+    self.wtop().emit(PYSIGNAL("cleared()"),());
 
   def get_items (self):
     try: return self._lv._content_list;

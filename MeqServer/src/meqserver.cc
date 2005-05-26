@@ -123,7 +123,7 @@ int main (int argc,const char *argv[])
     // use defaults if none
     if( args.empty() )
     {
-      args.push_back(string("-meq:M:M:MeqServer"));
+//      args.push_back(string("-meq:M:M:MeqServer"));
     }
     else // else fill from command line
     {
@@ -174,7 +174,7 @@ int main (int argc,const char *argv[])
     if( apps.empty() )
     {
       ApplicationBase::Ref ref;
-      if( setupApp(ref,"-meq:M:M:Solver") )
+      if( setupApp(ref,"-meq:M:M:MeqServer") )
         apps.push_back(ref);
     }
     

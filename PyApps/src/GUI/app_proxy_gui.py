@@ -422,6 +422,8 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.msglog = MessageLogger(self,"message log",enable=None,limit=1000,
           udi_root='message');
     self.msglog.add('start of log',category=Logger.Normal);
+    QObject.connect(self.msglog.wtop(),PYSIGNAL("cleared()"),
+                    self.curry(self._reset_maintab_label,self.msglog.wtop()));
     QObject.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
     QObject.connect(self.msglog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(self.msglog.connected,_args=(True,)));
