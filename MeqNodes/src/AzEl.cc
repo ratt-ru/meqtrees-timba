@@ -79,7 +79,7 @@ int AzEl::getResult (Result::Ref &resref,
 {
   // Check that child results are all OK (no fails, 1 vellset per child)
   string fails;
-  for( int i=0; i<num_children; i++ )
+  for( uint i=0; i<childres.size(); i++ )
   {
     int nvs = childres[i]->numVellSets();
     if( nvs != 1 )
