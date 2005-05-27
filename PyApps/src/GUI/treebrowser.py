@@ -786,8 +786,9 @@ Please press OK to confirm.""",QMessageBox.Ok,\
   # _expand_node = busyCursorMethod(_expand_node);
   
   def _request_nodelist (self):
-    _dprint(1,"requesting node list");
-    mqs().meq('Get.Node.List',meqds.NodeList.RequestRecord,wait=False);
+    _dprint(1,"requesting node list and forest state");
+    meqds.request_forest_state();
+    meqds.request_nodelist();
     
   def _debug_single_step (self):
     self.clear_debug_stack();
@@ -862,7 +863,6 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       rec = record(file_name=fname,get_forest_status=True);
       mqs().meq('Load.Forest',rec,wait=False);
       self._request_nodelist();
-      meqds.request_forest_state();
       
   def show_icon_reference (self):
     try: iconref = self._icon_reference;

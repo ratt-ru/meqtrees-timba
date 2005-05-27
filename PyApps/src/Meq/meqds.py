@@ -432,6 +432,10 @@ def set_forest_state (field,value):
 # --- Node state management
 # ----------------------------------------------------------------------
 
+def request_nodelist ():
+  """Sends a request to the kernel to return a nodelist.""";
+  mqs().meq('Get.Node.List',NodeList.RequestRecord,wait=False);
+
 def enable_node_publish (node,enable=True):
   ni = nodeindex(node);
   mqs().meq('Node.Publish.Results',record(nodeindex=ni,get_state=True,enable=enable),wait=False);

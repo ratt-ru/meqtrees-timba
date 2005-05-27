@@ -336,12 +336,16 @@ class meqserver_gui (app_proxy_gui):
  
     # subscribe to updates of forest state
     meqds.subscribe_forest_state(self._update_forest_state);
-    
     # clear the splash screen
     # _splash_screen.finish(self);
-    self._kernel_pid = None;
     # add signal handler for SIGCHLD
     signal.signal(signal.SIGCHLD,self._sigchld_handler);
+    self._kernel_pid = None;
+    # other internal state
+    self._have_nodelist = False;
+    self._have_forest_state = False;
+    self._autoreq_timer = QTimer(self);
+    QObject.connect(self._autoreq_timer,SIGNAL("timeout()"),self._auto_update_request);
     
   def _debug_kernel (self):
     pid = self.app.app_addr[2];    
@@ -561,6 +565,7 @@ class meqserver_gui (app_proxy_gui):
       
   def _disconnected_event (self,ev,value):  
     app_proxy_gui._disconnected_event(self,ev,value);
+    self._autoreq_timer.stop();
     self._wstat.hide();
     self._wstat.emit(PYSIGNAL("shown()"),(False,));
     self.treebrowser.connected(False);  
@@ -594,7 +599,14 @@ class meqserver_gui (app_proxy_gui):
       try: node = meqds.nodelist[ni];
       except KeyError: pass;
       else: node.update_status(status,rqid);
+    # check for generic event flags
     if isinstance(value,record):
+      # check if forest has changed
+      if getattr(value,'forest_changed',False):
+        if self._have_nodelist:
+          self._have_nodelist = False;
+          self.treebrowser.clear();
+        self._have_forest_state = False;
       # check if message includes update of node state
       self._checkStateUpdate(ev,value);
       # check if message includes update of forest status
@@ -613,6 +625,24 @@ class meqserver_gui (app_proxy_gui):
         meqds.update_forest_state(fstatus,True);
     # call top-level handler
     app_proxy_gui.handleAppEvent(self,ev,value);
+    # auto-request mechanism:
+    # if we're not up-to-date with a node list or forest state, start a timer as soon as we
+    # reach idle mode or stopped mode. If this timer is allowed to expire, consider the application
+    # "quiet" and go request an update
+    if not ev.startswith("process.status"):
+      if self._connected:
+        if self._have_nodelist and self._have_forest_state:
+          self._autoreq_timer.stop();
+        elif self.app.state == treebrowser.AppState.Idle or self.app.state == treebrowser.AppState.Debug:
+          self._autoreq_timer.start(800);
+          
+  def _auto_update_request (self):
+    if self._connected and \
+          self.app.state == treebrowser.AppState.Idle or self.app.state == treebrowser.AppState.Debug:
+      if not self._have_nodelist:
+        meqds.request_nodelist();
+      if not self._have_forest_state:
+        meqds.request_forest_state();
     
   def ce_NodeState (self,ev,value):
     if hasattr(value,'name'):
@@ -645,6 +675,7 @@ class meqserver_gui (app_proxy_gui):
     if not meqds.nodelist.is_valid_meqnodelist(meqnl):
       _dprint(2,"got nodelist but it is not valid, ignoring");
       return;
+    self._have_nodelist = True;
     meqds.nodelist.load(meqnl);
     _dprintf(2,"loaded %d nodes into nodelist\n",len(meqds.nodelist));
     self.treebrowser.update_nodelist();
@@ -679,6 +710,7 @@ class meqserver_gui (app_proxy_gui):
     self.show_gridded_workspace();
     
   def _update_forest_state (self,fst):
+    self._have_forest_state = True;
     # update bookmarks if needed
     bkrec = getattr(fst,'bookmarks',None);
     if bkrec != self._bookmarks_rec:
