@@ -31,17 +31,6 @@ const create_common_parms := function (ra0,dec0)
 {
   mqs.createnode(meq.parm('ra0',ra0));
   mqs.createnode(meq.parm('dec0',dec0));
-  #create AzEl node for field_centre
-  defrec_azel := meq.node('MeqAzEl','AzEl',children=[
-         ra = 'ra0', dec = 'dec0' ])
-  defrec_azel.observatory := 'VLA';
-  mqs.createnode(defrec_azel);
-  mqs.createnode(meq.node('MeqSelector','AzEl_az0',[index=1],
-                            children='AzEl'));
-  mqs.createnode(meq.node('MeqSelector','AzEl_el0',[index=2],
-                            children='AzEl'));
- 
-  mqs.createnode(meq.node('MeqSin','sine_el',children='AzEl_el0'));
 }
 
 
@@ -51,10 +40,15 @@ const create_constants := function()
     mqs.createnode(meq.node('MeqConstant','one',[value=1.0]));
     mqs.createnode(meq.node('MeqConstant','half',[value=0.5]));
 
-# create parameters for CLAR beam nodes
+# create constant parameters for CLAR beam nodes
+# eventually these should be a function of frequency
 # HPBW of 3 arcmin = 0.00087266 radians; 1145.9156 = 1 / 0.00087266
     mqs.createnode(meq.node('MeqConstant','width_l',[value=1145.9156]));
     mqs.createnode(meq.node('MeqConstant','width_m',[value=1145.9156]));
+    mqs.createnode(meq.node('MeqSqr','width_l_sq'),
+                            children='width_l');
+    mqs.createnode(meq.node('MeqSqr','width_m_sq'),
+                            children='width_m');
     mqs.createnode(meq.node('MeqConstant','ln_16',[value=-2.7725887]));
 
 }
@@ -157,78 +151,40 @@ const create_source_subtrees := function (src, mep_table_name='')
                             children=fq_name("lmn",src.name)));
     mqs.createnode(meq.node('MeqSelector',fq_name('n',src.name),[index=3],
                             children=fq_name("lmn",src.name)));
-
-    #create AzEl node for source
-    print 'creating AzEl node for source ', src.name
-    defrec_azel := meq.node('MeqAzEl',fq_name('az_el',src.name),children=[
-                          ra    = fq_name('ra',src.name),
-                          dec   = fq_name('dec',src.name)])
-    defrec_azel.observatory := 'VLA';
-    mqs.createnode(defrec_azel);
-    mqs.createnode(meq.node('MeqSelector',fq_name('az_AzEl',src.name),[index=1],
-                            children=fq_name("az_el",src.name)));
-    mqs.createnode(meq.node('MeqSelector',fq_name('el_AzEl',src.name),[index=2],
-                            children=fq_name("az_el",src.name)));
-
-    # do computation of LMN in AzEl frame
-    mqs.createnode(meq.node('MeqLMN',
-                            fq_name('lmn_azel',src.name),
-                            children=[
-                                      ra_0  ='AzEl_az0',
-                                      dec_0 ='AzEl_el0',
-                                      ra    =fq_name('az_AzEl',src.name),
-                                      dec   =fq_name('el_AzEl',src.name)]));
-    mqs.createnode(meq.node('MeqSelector',fq_name('l_azel',src.name),[index=1],
-                            children=fq_name("lmn_azel",src.name)));
-    mqs.createnode(meq.node('MeqSelector',fq_name('m_azel',src.name),[index=2],
-                            children=fq_name("lmn_azel",src.name)));
-    mqs.createnode(meq.node('MeqSelector',fq_name('n_azel',src.name),[index=3],
-                            children=fq_name("lmn_azel",src.name)));
-
-    #compute CLAR voltage gain at this position
-    first_child := fq_name('l_azel',src.name)
-    second_child := "width_l";
-    children := paste(first_child,second_child) 
-    mqs.createnode(meq.node('MeqMultiply',fq_name('l_vp1',src.name),
-                            children=children));
-    mqs.createnode(meq.node('MeqSqr',fq_name('l_vp_sq',src.name),
-                            children=fq_name('l_vp1',src.name)));
-    first_child := fq_name('l_vp_sq',src.name)
-    second_child := "ln_16";
-    children := paste(first_child,second_child) 
-    mqs.createnode(meq.node('MeqMultiply',fq_name('l_vp2',src.name),
-                            children=children));
-    mqs.createnode(meq.node('MeqExp',fq_name('l_vp3',src.name),
-                            children=fq_name('l_vp2',src.name)));
-    mqs.createnode(meq.node('MeqSqrt',fq_name('l_vp4',src.name),
-                            children=fq_name('l_vp3',src.name)));
-
-    first_child := fq_name('m_azel',src.name)
-    second_child := "width_m";
-    third_child := "sine_el";
-    children := paste(first_child,second_child,third_child) 
-    mqs.createnode(meq.node('MeqMultiply',fq_name('m_vp1',src.name),
-                            children=children));
-    mqs.createnode(meq.node('MeqSqr',fq_name('m_vp_sq',src.name),
-                            children=fq_name('m_vp1',src.name)));
-    first_child := fq_name('m_vp_sq',src.name)
-    second_child := "ln_16";
-    children := paste(first_child,second_child) 
-    mqs.createnode(meq.node('MeqMultiply',fq_name('m_vp2',src.name),
-                            children=children));
-    mqs.createnode(meq.node('MeqExp',fq_name('m_vp3',src.name),
-                            children=fq_name('m_vp2',src.name)));
-    mqs.createnode(meq.node('MeqSqrt',fq_name('m_vp4',src.name),
-                            children=fq_name('m_vp3',src.name)));
-    first_child := fq_name('m_vp4',src.name)
-    second_child := fq_name('l_vp4',src.name)
-    children := paste(first_child,second_child) 
-    mqs.createnode(meq.node('MeqMultiply',fq_name('voltage_gain',src.name),
-                            children=children));
 }
 
 
 
+const create_station_subtrees := function (st)
+{
+  print 'in create_station_subtrees for st ', st
+  global ms_antpos; # station positions from MS
+  pos := ms_antpos[st];
+
+  # create nodes used to calculate AzEl of field centre as seen
+  # from a specific station
+
+  # first create AzEl node for field_centre as seen from this station
+  defrec_azel := meq.node('MeqAzEl',fq_name('AzEl_fc',st),children=[
+                     ra ='ra0', dec ='dec0',
+                     x = meq.parm(fq_name('x',st),pos.x),
+                     y = meq.parm(fq_name('y',st),pos.y),
+                     z = meq.parm(fq_name('z',st),pos.z)])
+  mqs.createnode(defrec_azel);
+  # then get azimuth and elevation of FC as seen from this station as separate
+  # elements
+  mqs.createnode(meq.node('MeqSelector',fq_name('AzEl_az0',st),[index=1],
+                            children=fq_name('AzEl_fc',st)));
+  mqs.createnode(meq.node('MeqSelector',fq_name('AzEl_el0',st),[index=2],
+                            children=fq_name('AzEl_fc',st)));
+
+  # get sine of elevation of field centre - used later to determine CLAR
+  # beam broadening
+  mqs.createnode(meq.node('MeqSin',fq_name('sine_el',st),children=fq_name('AzEl_el0',st)));
+  # square this sine value
+  mqs.createnode(meq.node('MeqSqr',fq_name('sine_el_sq',st),
+                  children=fq_name('sine_el',st)));
+}
 
 
 
@@ -243,6 +199,81 @@ const sta_source_dft_tree := function (st,src=[=])
   global mepuvw;    # MEP table with UVWs
   pos := ms_antpos[st];
   print 'positions ', pos
+
+# we first build up the mathematical expression of a CLAR voltage
+# pattern for a source using the equations
+# log16 =  (-1.0) * log(16.0);
+# L,M give direction cosines of the source wrt field centre in
+# AzEl coordinate frame
+# L_gain = (L * L) / (widthl_ * widthl_);
+# sin_factor = sqr(sin(field centre elevation));
+# M_gain = (sin_factor * M * M ) / (widthm_ * widthm_);
+# voltage_gain = sqrt(exp(log16 * (L_gain + M_gain)));
+
+# see the create_station_subtrees function for creation
+# of nodes used to compute Az, El of field centre
+
+  # create AZEl node for source as seen from this station
+  defrec_azel := meq.node('MeqAzEl',fq_name('az_el',st,src.name),children=[
+                  x = fq_name('x',st),
+                  y = fq_name('y',st),
+                  z = fq_name('z',st),
+                  ra    = fq_name('ra',src.name),
+                  dec   = fq_name('dec',src.name)])
+  az_AzEl := meq.node('MeqSelector',fq_name('az_AzEl',st,src.name),[index=1],
+                            children=defrec_azel);
+  el_AzEl := meq.node('MeqSelector',fq_name('el_AzEl',st,src.name),[index=2],
+                            children=defrec_azel);
+
+  # do computation of LMN of source wrt field centre in AzEl frame
+  lmn_azel := meq.node('MeqLMN',
+                      fq_name('lmn_azel',st,src.name),
+                      children=[
+                                 ra_0  =fq_name('AzEl_az0',st),
+                                 dec_0 =fq_name('AzEl_el0',st),
+                                 ra    = az_AzEl,
+                                 dec   = el_AzEl]);
+  l_azel := meq.node('MeqSelector',fq_name('l_azel',st,src.name),[index=1],
+                            children=lmn_azel);
+  m_azel := meq.node('MeqSelector',fq_name('m_azel',st,src.name),[index=2],
+                            children=lmn_azel);
+  n_azel := meq.node('MeqSelector',fq_name('n_azel',st,src.name),[index=3],
+                            children=lmn_azel);
+			    
+  # compute CLAR voltage gain as seen for this source at this station
+  # first square L and M
+  l_sq := meq.node('MeqSqr',fq_name('l_sq',st,src.name),
+                            children=l_azel);
+  print 'm_azel = ', m_azel
+  m_sq := meq.node('MeqSqr',fq_name('m_sq',st,src.name),
+                            children=m_azel);
+
+  # then multiply by width squared, for L, M
+  l_vpsq := meq.node('MeqMultiply',fq_name('l_vpsq',st,src.name),
+                            children=meq.list(l_sq,'width_l_sq'));
+  m_vpsq := meq.node('MeqMultiply',fq_name('m_vpsq',st,src.name),
+                            children=meq.list(m_sq,'width_m_sq'));
+
+  # for M, adjust by sin of elevation squared
+  m_vpsq_sin := meq.node('MeqMultiply',fq_name('m_vpsq_sin',st,src.name),
+                            children=meq.list(m_vpsq,fq_name('sine_el_sq',st)));
+
+  # add L and M gains together
+  l_and_m_sq := meq.node('MeqAdd',fq_name('l_and_m_sq',st,src.name),
+                            children=meq.list(l_vpsq, m_vpsq_sin));
+  # then multiply by log 16
+  v_gain := meq.node('MeqMultiply',fq_name('v_gain',st,src.name),
+                            children=meq.list(l_and_m_sq, 'ln_16'));
+  # raise to exponent
+  exp_v_gain := meq.node('MeqExp',fq_name('exp_v_gain',st,src.name),
+                          children=meq.list(v_gain));
+
+  # and take square root to get voltage pattern
+  # see below where Jones matrices are constructed for
+  # actual instantiation of this node
+  # v_pattern := meq.node('MeqSqrt',fq_name('v_pattern',st,src.name),
+  #                       children=meq.list(exp_v_gain));
+
   # create a number of UVW nodes, depending on settings
   uvwlist := dmi.list();
   # parms from MEP table
@@ -302,7 +333,13 @@ const sta_source_dft_tree := function (st,src=[=])
       for( j in 1:2){
           value := as_double(i==j);
           elem := spaste(i,j);
-          amp_node := meq.parm(fq_name('JA',st,src.name,elem),value,
+	  amp_node := 0
+          if (value == 1) 
+             # use voltage pattern of CLAR
+              amp_node := meq.node('MeqSqrt',fq_name('JA',st,src.name,elem),
+                          children=meq.list(exp_v_gain)); 
+          else			  
+            amp_node := meq.parm(fq_name('JA',st,src.name,elem),value,
                                groups="a");
           amp_node.table_name := 'my.mep';
           amp_node.link_or_create := T;
@@ -311,7 +348,7 @@ const sta_source_dft_tree := function (st,src=[=])
           phase_node.table_name := 'my.mep';
           phase_node.link_or_create := T;
 
-#          print 'parameters for fq_name : J ', st, ' ', src.name, ' ', elem
+#         print 'parameters for fq_name : J ', st, ' ', src.name, ' ', elem
           source_jones_elem := meq.node('MeqPolar',fq_name('J',st,src.name,elem),[link_or_create=T],
                    children=meq.list(amp_node, phase_node) );
   
@@ -352,7 +389,9 @@ const sta_source_dft_tree := function (st,src=[=])
 const ifr_source_predict_tree := function (st1,st2,src=[=])
 {
     print 'in ifr_source_predict_tree for stns and src ', st1, ' ', st2, ' ', src
+    print 'ifr_source_predict_tree calling sta_source_dft_tree for stn source ',st1,' ', source
     dft1 := sta_source_dft_tree(st1, src);
+    print 'ifr_source_predict_tree calling sta_source_dft_tree for stn source ',st2,' ', source
     dft2 := sta_source_dft_tree(st2, src);
     
     conj_st2 := meq.node('MeqTranspose', fq_name('pointsource_conj', st2,src.name),
@@ -389,11 +428,13 @@ const solve_ifr_predict_tree := function (st1,st2,sources)
 const ifr_predict_tree := function (st1,st2,sources, one=T)
 {
   print 'in ifr_predict_tree st1 st2 sources ', st1, st2, sources
-  if( one )
+  if( one ){
+    print 'ifr_predict_tree calling ifr_source_predict_tree for stns sources ', st1,' ',st2,' ', sources
     return ifr_source_predict_tree(st1,st2,sources);
+  }
   list := dmi.list();
   for( s in sources )  {
-    print 'calling ifr_source_predict_tree for source ', s
+    print 'ifr_predict_tree calling ifr_source_predict_tree for source ', s
     dmi.add_list(list,ifr_source_predict_tree(st1,st2,s));
   }
   return meq.node('MeqAdd',fq_name('predict',st1,st2),[cache_num_active_parents=1],children=list);
@@ -414,23 +455,38 @@ const ifr_predict_tree := function (st1,st2,sources, one=T)
 const make_shared_nodes := function (sources=[=],
                                      mep_table_name='')
 {
+  print 'creating shared nodes' 
+  # create constants
+  create_constants();
+  print 'created constants' 
+  
   global ms_phasedir;
   ra0  := ms_phasedir[1];  # phase center
   dec0 := ms_phasedir[2];
-  # setup source parameters and subtrees
+  # setup field centre coodinate parameters
   create_common_parms(ra0,dec0);
-  
-  create_constants();
-  
-  for( src in sources ) {
-    print src.name;
-    print create_source_subtrees(src, mep_table_name);
-  }
+  print 'created field centre parameters' 
+
   # setup zero position
   global ms_antpos;
   names := "x0 y0 z0";
   for( i in 1:3 )
     mqs.createnode(meq.node('MeqConstant',names[i],[value=ms_antpos[1][i]]));
+  print 'created X0, Y0, Z0 antenna nodes'
+
+  # create parameters for stations
+  for( i in 1:len(ms_antpos))
+    print create_station_subtrees(i);
+  print 'called create_station_subtrees'
+
+  
+  for( src in sources ) {
+    print src.name;
+    print create_source_subtrees(src, mep_table_name);
+  }
+  print 'called create_source_subtrees'
+  print ' exiting make_shared_nodes'
+
 }
 
 
@@ -464,6 +520,7 @@ const make_predict_tree := function (st1,st2,sources)
   one := T
   if (len(sources) > 1)
     one := F
+  print '*** creating Meqsink '
   mqs.createnode(meq.node('MeqSink',sinkname,
                          [ output_col      = 'PREDICT',   # init-rec for sink
                            station_1_index = st1,
@@ -473,6 +530,7 @@ const make_predict_tree := function (st1,st2,sources)
                            children=dmi.list(
                             ifr_predict_tree(st1,st2,sources,one)
                            )));
+  print '*** called ifr_predict_tree for source ', s
   return sinkname;
 }
 
@@ -881,7 +939,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
                       rootnodes := [rootnodes,
                                     make_subtract_tree(st1,st2,sources)];
                   else {
-                      print '***** predicting ******'
+                      print '***** predicting ****** for stations ', st1, ' ', st2
                       rootnodes := [rootnodes,
                                     make_predict_tree(st1,st2,sources)];
                   }
@@ -1123,7 +1181,7 @@ phase_solution_with_given_fluxes := function()
     outputrec := [ write_flags=F,predict_column=outcol ]; 
     
     res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
-                   stset=1:14,
+                   stset=1:2,
                    sources=sources,
                    solve_fluxes=solve_fluxes,
                    solve_gains=solve_gains,
