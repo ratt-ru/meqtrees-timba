@@ -223,24 +223,26 @@ const sta_source_dft_tree := function (st,src=[=])
 # add antenna gains/phases
   source_jones_list := dmi.list();
   stat_jones_list   := dmi.list();
+  polc_scale  := [1/10000.0, 1e-9];
+  polc_offset := [4.47204e9,1.175e9];
   for( i in 1:2){
       for( j in 1:2){
           value := as_double(i==j);
           if(value != 0){
-              value_polc_array := array(as_double(0),2,2);
-              phase_polc_array := array(as_double(0),1,2);
+              gain_polc_array := array(as_double(0),2,1);
+              phase_polc_array := array(as_double(0),1,1);
           }else{
-              value_polc_array := array(as_double(0),1,1);
+              gain_polc_array := array(as_double(0),1,1);
               phase_polc_array := array(as_double(0),1,1);
           }
-          value_polc_array[1,1] := value;
-          value_polc := meq.polc(value_polc_array);
-          phase_polc := meq.polc(phase_polc_array);
+          gain_polc_array[1,1] := value;
+          gain_polc := meq.polc(gain_polc_array,scale=polc_scale, offset=polc_offset);
+          phase_polc := meq.polc(phase_polc_array,scale=polc_scale, offset=polc_offset);
 
           
                          
           elem := spaste(i,j);
-          amp_node := meq.parm(fq_name('JA',st,src.name,elem),value_polc,
+          amp_node := meq.parm(fq_name('JA',st,src.name,elem),gain_polc,
                                groups="a");
           amp_node.table_name := '3C343.mep';
           amp_node.link_or_create := T;
@@ -254,7 +256,7 @@ const sta_source_dft_tree := function (st,src=[=])
   
           dmi.add_list(source_jones_list, source_jones_elem);
           
-          stat_amp_node := meq.parm(fq_name('GA',st,elem),value_polc,groups="a");
+          stat_amp_node := meq.parm(fq_name('GA',st,elem),gain_polc,groups="a");
           stat_amp_node.table_name := '3C343.mep';
           stat_amp_node.link_or_create:=T;
 
@@ -819,13 +821,13 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
           }
 
           if( solve_phases ){
-              solvables := [solvables,fq_name('JP',1,sources[2].name, '11')];
-              solvables := [solvables,fq_name('JP',1,sources[2].name, '22')];
+              #solvables := [solvables,fq_name('JP',1,sources[2].name, '11')];
+              #solvables := [solvables,fq_name('JP',1,sources[2].name, '22')];
               for( st in stset[2:len(stset)] ){
                   solvables := [solvables,fq_name('GP',st,'11')];
                   solvables := [solvables,fq_name('GP',st,'22')];
-                  solvables := [solvables,fq_name('JP',st,sources[2].name, '11')];
-                  solvables := [solvables,fq_name('JP',st,sources[2].name, '22')];
+                  #solvables := [solvables,fq_name('JP',st,sources[2].name, '11')];
+                  #solvables := [solvables,fq_name('JP',st,sources[2].name, '22')];
               }
           }
 
@@ -1180,5 +1182,5 @@ gain_solution_with_given_fluxes := function()
 
 
 #source_flux_fit_no_calibration();
-phase_solution_with_given_fluxes();
-#gain_solution_with_given_fluxes();
+#phase_solution_with_given_fluxes();
+gain_solution_with_given_fluxes();
