@@ -45,10 +45,8 @@ const create_constants := function()
 # HPBW of 3 arcmin = 0.00087266 radians; 1145.9156 = 1 / 0.00087266
     mqs.createnode(meq.node('MeqConstant','width_l',[value=1145.9156]));
     mqs.createnode(meq.node('MeqConstant','width_m',[value=1145.9156]));
-    mqs.createnode(meq.node('MeqSqr','width_l_sq'),
-                            children='width_l');
-    mqs.createnode(meq.node('MeqSqr','width_m_sq'),
-                            children='width_m');
+    mqs.createnode(meq.node('MeqSqr','width_l_sq', children='width_l'));
+    mqs.createnode(meq.node('MeqSqr','width_m_sq', children='width_m'));
     mqs.createnode(meq.node('MeqConstant','ln_16',[value=-2.7725887]));
 
 }
@@ -214,39 +212,41 @@ const sta_source_dft_tree := function (st,src=[=])
 # of nodes used to compute Az, El of field centre
 
   # create AZEl node for source as seen from this station
-  defrec_azel := meq.node('MeqAzEl',fq_name('az_el',st,src.name),children=[
+  defrec_azel := meq.node('MeqAzEl',fq_name('az_el',st,src.name),
+                  [link_or_create=T],
+                  children=[
                   x = fq_name('x',st),
                   y = fq_name('y',st),
                   z = fq_name('z',st),
                   ra    = fq_name('ra',src.name),
                   dec   = fq_name('dec',src.name)])
   az_AzEl := meq.node('MeqSelector',fq_name('az_AzEl',st,src.name),[index=1],
-                            children=defrec_azel);
+                            children=meq.list(defrec_azel));
   el_AzEl := meq.node('MeqSelector',fq_name('el_AzEl',st,src.name),[index=2],
-                            children=defrec_azel);
+                            children=meq.list(defrec_azel));
 
   # do computation of LMN of source wrt field centre in AzEl frame
   lmn_azel := meq.node('MeqLMN',
                       fq_name('lmn_azel',st,src.name),
+		      [link_or_create=T],
                       children=[
                                  ra_0  =fq_name('AzEl_az0',st),
                                  dec_0 =fq_name('AzEl_el0',st),
                                  ra    = az_AzEl,
                                  dec   = el_AzEl]);
   l_azel := meq.node('MeqSelector',fq_name('l_azel',st,src.name),[index=1],
-                            children=lmn_azel);
+                            children=meq.list(lmn_azel));
   m_azel := meq.node('MeqSelector',fq_name('m_azel',st,src.name),[index=2],
-                            children=lmn_azel);
+                            children=meq.list(lmn_azel));
   n_azel := meq.node('MeqSelector',fq_name('n_azel',st,src.name),[index=3],
-                            children=lmn_azel);
+                            children=meq.list(lmn_azel));
 			    
   # compute CLAR voltage gain as seen for this source at this station
   # first square L and M
   l_sq := meq.node('MeqSqr',fq_name('l_sq',st,src.name),
-                            children=l_azel);
-  print 'm_azel = ', m_azel
+                            children=meq.list(l_azel));
   m_sq := meq.node('MeqSqr',fq_name('m_sq',st,src.name),
-                            children=m_azel);
+                            children=meq.list(m_azel));
 
   # then multiply by width squared, for L, M
   l_vpsq := meq.node('MeqMultiply',fq_name('l_vpsq',st,src.name),
@@ -266,6 +266,7 @@ const sta_source_dft_tree := function (st,src=[=])
                             children=meq.list(l_and_m_sq, 'ln_16'));
   # raise to exponent
   exp_v_gain := meq.node('MeqExp',fq_name('exp_v_gain',st,src.name),
+                          [link_or_create=T],
                           children=meq.list(v_gain));
 
   # and take square root to get voltage pattern
@@ -300,9 +301,9 @@ const sta_source_dft_tree := function (st,src=[=])
   print 'we are here pos x y z = ',pos.x,' ', pos.y,' ',pos.z
   dmi.add_list(uvwlist,
             meq.node('MeqUVW',fq_name('uvw',st),children=[
-                         x = meq.parm(fq_name('x',st),pos.x),
-                         y = meq.parm(fq_name('y',st),pos.y),
-                         z = meq.parm(fq_name('z',st),pos.z),
+                         x = fq_name('x',st),
+                         y = fq_name('y',st),
+                         z = fq_name('z',st),
                          ra = 'ra0',dec = 'dec0',
                          x_0='x0',y_0='y0',z_0='z0' ]));
                         
@@ -389,9 +390,9 @@ const sta_source_dft_tree := function (st,src=[=])
 const ifr_source_predict_tree := function (st1,st2,src=[=])
 {
     print 'in ifr_source_predict_tree for stns and src ', st1, ' ', st2, ' ', src
-    print 'ifr_source_predict_tree calling sta_source_dft_tree for stn source ',st1,' ', source
+    print 'ifr_source_predict_tree calling sta_source_dft_tree for stn source ',st1,' ', src
     dft1 := sta_source_dft_tree(st1, src);
-    print 'ifr_source_predict_tree calling sta_source_dft_tree for stn source ',st2,' ', source
+    print 'ifr_source_predict_tree calling sta_source_dft_tree for stn source ',st2,' ', src
     dft2 := sta_source_dft_tree(st2, src);
     
     conj_st2 := meq.node('MeqTranspose', fq_name('pointsource_conj', st2,src.name),
@@ -1025,47 +1026,47 @@ source_flux_fit_no_calibration := function()
     src_test_1 := [name="src_1",I=1.0, Q=0.0, U=0.0, V=0.0,
                     Iorder=3, ra=0.030272885, dec=0.575762621]
 
-#   src_test_2   := [name="src_2",  I=1.0, Q=0.0, U=0.0, V=0.0,
-#                   Iorder=3, ra=0.0306782675, dec=0.575526087]
+    src_test_2   := [name="src_2",  I=1.0, Q=0.0, U=0.0, V=0.0,
+                    Iorder=3, ra=0.0306782675, dec=0.575526087]
 
-#   src_test_3 := [name="src_3",I=1.0, Q=0.0, U=0.0, V=0.0,
-#                   Iorder=3, ra=0.0308948646, dec=0.5762655]
+    src_test_3 := [name="src_3",I=1.0, Q=0.0, U=0.0, V=0.0,
+                    Iorder=3, ra=0.0308948646, dec=0.5762655]
 
-#   src_test_4 := [name="src_4",I=1.0, Q=0.0, U=0.0, V=0.0,
-#                   Iorder=3, ra=0.0308043705, dec=0.576256621]
+    src_test_4 := [name="src_4",I=1.0, Q=0.0, U=0.0, V=0.0,
+                    Iorder=3, ra=0.0308043705, dec=0.576256621]
 
-#   src_test_5 := [name="src_5",I=1.0, Q=0.0, U=0.0, V=0.0,
-#                   Iorder=3, ra=0.030120036, dec=0.576310965]
+    src_test_5 := [name="src_5",I=1.0, Q=0.0, U=0.0, V=0.0,
+                    Iorder=3, ra=0.030120036, dec=0.576310965]
 
-#   src_test_6 := [name="src_6",I=1.0, Q=0.0, U=0.0, V=0.0,
-#                   Iorder=3, ra=0.0301734016, dec=0.576108805]
+    src_test_6 := [name="src_6",I=1.0, Q=0.0, U=0.0, V=0.0,
+                    Iorder=3, ra=0.0301734016, dec=0.576108805]
 
-#   src_test_7 := [name="src_7",I=1.0, Q=0.0, U=0.0, V=0.0,
-#                   Iorder=3, ra=0.0302269161, dec=0.576333355]
+    src_test_7 := [name="src_7",I=1.0, Q=0.0, U=0.0, V=0.0,
+                    Iorder=3, ra=0.0302269161, dec=0.576333355]
 
-#   src_test_8 := [name="src_8",I=1.0, Q=0.0, U=0.0, V=0.0,
-#                   Iorder=3, ra=0.0304215356, dec=0.575777607]
+    src_test_8 := [name="src_8",I=1.0, Q=0.0, U=0.0, V=0.0,
+                    Iorder=3, ra=0.0304215356, dec=0.575777607]
 
-#   src_test_9 := [name="src_9",I=1.0, Q=0.0, U=0.0, V=0.0,
-#                   Iorder=3, ra=0.0307416105, dec=0.576347166]
+    src_test_9 := [name="src_9",I=1.0, Q=0.0, U=0.0, V=0.0,
+                    Iorder=3, ra=0.0307416105, dec=0.576347166]
 
-#   src_test_10 := [name="src_10",I=1.0, Q=0.0, U=0.0, V=0.0,
-#                   Iorder=3, ra=0.0306878027, dec=0.575851951]
+    src_test_10 := [name="src_10",I=1.0, Q=0.0, U=0.0, V=0.0,
+                    Iorder=3, ra=0.0306878027, dec=0.575851951]
 
     src_test_11 := [name="src_11",I=1.0, Q=0.0, U=0.0, V=0.0,
                     Iorder=3, ra=0.030272885, dec=0.575762621]
 
     sources := [a= src_test_1,
-                b= src_test_11]
-#               b= src_test_2,
-#               c= src_test_3,
-#               d= src_test_4,
-#               e= src_test_5,
-#               f= src_test_6,
-#               g= src_test_7,
-#               h= src_test_8,
-#               i= src_test_9,
-#               j= src_test_10]
+#               b= src_test_11]
+                b= src_test_2,
+                c= src_test_3,
+                d= src_test_4,
+                e= src_test_5,
+                f= src_test_6,
+                g= src_test_7,
+                h= src_test_8,
+                i= src_test_9,
+                j= src_test_10]
 
     print sources;
     
@@ -1096,7 +1097,7 @@ source_flux_fit_no_calibration := function()
     print 'calling do_test'
 #   res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
     res := do_test(msname=msname,predict=T,solve=F,subtract=F,run=T,flag=F,
-                   stset=[1:2],
+                   stset=[1:14],
                    sources=sources,
                    solve_fluxes=solve_fluxes,
                    solve_gains=solve_gains,
