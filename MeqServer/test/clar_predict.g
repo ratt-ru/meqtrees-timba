@@ -1087,7 +1087,7 @@ source_flux_fit_no_calibration := function()
     solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
-                 tile_size=1500,# clear_flags=T,
+                 tile_size=6000,# clear_flags=T,
                  selection = [ channel_start_index=1,
                               channel_end_index=1 ,
                               selection_string=''] ];
