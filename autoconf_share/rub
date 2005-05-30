@@ -84,6 +84,9 @@ if test "$1" = ""  -o  "$1" = "-h"  -o  "$1" = "--help"; then
   echo '  -recur            Do everything recursively, thus also for all'
   echo '                    packages used by the given packages.'
   echo '                    Default = -recur.'
+  echo '  -newest           Always use newest package version, thus do not use'
+  echo '                    the package version from LOFAR_INTERNAL macros.'
+  echo '                    Default = -nonewest.'
   echo '  -build variants   gives the variants to do (e.g. gnu3_debug)'
   echo '                    Separate multiple variants by whitespace and'
   echo '                    enclose in quotes.'
@@ -120,6 +123,7 @@ install=0
 update=1
 system=0
 recur=1
+newest=0
 while [ 1 = 1 ]
 do
   # Special cvs command?
@@ -214,6 +218,12 @@ do
   elif [ "$1" = -nosystem ]; then
     shift
     system=0
+  elif [ "$1" = -newest ]; then
+    shift
+    newest=1
+  elif [ "$1" = -nonewest ]; then
+    shift
+    newest=0
   elif test "$1" = -recur  -o  "$1" = -recursive; then
     shift
     recur=1
@@ -273,7 +283,7 @@ if [ $update != 0 ]; then
     echo "Checkout of LOFAR/bootstrap"
     (cd .. && $cvscomm checkout LOFAR/bootstrap) >> rub.log 2>&1
   fi
-  $pgmpath/rub1 autoconf_share "" "$update" "$recur" "$cvscomm" "$updq" || exit 1
+  $pgmpath/rub1 autoconf_share 0 "" "$update" "$recur" "$cvscomm" "$updq" || exit 1
 fi
 \rm -f allpkg.tmp
 touch allpkg.tmp
@@ -281,7 +291,7 @@ touch allpkg.tmp
 # Update the packages and optionally all packages they need.
 for PKG in $*
 do
-  $pgmpath/rub1 $PKG "$cvstag" "$update" "$recur" "$cvscomm" "$updq" || exit 1
+  $pgmpath/rub1 $PKG "$newest" "$cvstag" "$update" "$recur" "$cvscomm" "$updq" || exit 1
 done
 
 # Convert allpkg.tmp to lofarconf.in.private

@@ -27,9 +27,10 @@
 # See rub for more details.
 #
 # Use as:
-#   rub1 package cvstag checkout recur cvscomm updq
+#   rub1 package newest cvstag checkout recur cvscomm updq
 #
 #     package     name of package to checkout/update
+#     newest      1 = always use newest package version; implies cvstag=""
 #     cvstag      tag of package to checkout/update (blank = no tag)
 #     checkout    1 = do actual checkout/update if not done yet
 #                 0 = do not checkout/update, but only write used
@@ -42,18 +43,22 @@
 
 # Get package name and tag.
 pkgname="$1"
-pkgtag="$2"
+newest="$2"
+pkgtag="$3"
+if [ "$newest" = 1 ]; then
+  pkgtag=""
+fi
 # Does an actual checkout/update need to be done.
-checkout="$3"
+checkout="$4"
 # Does it need to be done recursively?
-recur="$4"
+recur="$5"
 # Get cvs command (defaults to cvs).
-cvscomm="$5"
+cvscomm="$6"
 if [ "$cvscomm" = "" ]; then
   cvscomm="cvs"
 fi
 # Get cvs update flags.
-updq="$6"
+updq="$7"
 
 # See if this package was already updated.
 grep "^$pkgname " allpkg.tmp > /dev/null 2>&1
@@ -116,7 +121,7 @@ if [ -f $pkgname/configure.in ]; then
       # Possible third name is the tag.
       tag=`echo $nma | awk -F, '{ print $3 }'`
       # Check out the package.
-      $0 $nm "$tag" "$checkout" "$recur" "$cvscomm" "$updq"  ||  exit 1
+      $0 $nm "$newest" "$tag" "$checkout" "$recur" "$cvscomm" "$updq"  ||  exit 1
     done
   fi
 else
@@ -133,7 +138,7 @@ else
     for pkg in $pkgs
     do
       # Check out the package.
-      $0 $pkgname/$pkg "" "$checkout" "$recur" "$cvscomm" "$updq"  ||  exit 1
+      $0 $pkgname/$pkg "$newest" "" "$checkout" "$recur" "$cvscomm" "$updq"  ||  exit 1
     done
   fi
 fi
