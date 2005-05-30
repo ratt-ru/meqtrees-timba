@@ -47,7 +47,8 @@ if test "$1" = ""  -o  "$1" = "-h"  -o  "$1" = "--help"; then
   echo ''
   echo 'Run as:'
   echo ' rub [-cvs cvs-command] [-update] [-updq string] [-r<cvstag>]'
-  echo '     [-conf] [-[dist]clean] [-make] [-check] [-install] [-system]'
+  echo '     [-conf] [-confopt string]'
+  echo '     [-[dist]clean] [-make] [-check] [-install] [-system]'
   echo '     [-recur[sive]] [-build variants]]'
   echo '     package1 [...]'
   echo ''
@@ -61,6 +62,7 @@ if test "$1" = ""  -o  "$1" = "-h"  -o  "$1" = "--help"; then
   echo '  -r<cvstag>        cvs tag of the package(s) to be updated/checked out'
   echo '  -conf             do bootstrap and configure before build.'
   echo '                    Default is -noconf.'
+  echo '  -confopt string   configure options.'
   echo '  -clean            indicates that all build/<variant> directories'
   echo '                    will be cleaned in order to start a clean build.'
   echo '                    Default is -noclean.'
@@ -116,6 +118,7 @@ cvstag=
 variants=
 buildmake=1
 conf=0
+confopt=
 clean=0
 distclean=0
 check=0
@@ -188,6 +191,13 @@ do
   elif [ "$1" = -noconf ]; then
     shift
     conf=0
+  elif [ "$1" = -confopt ]; then
+    shift
+    confopt="$1"
+    shift
+  elif [ "$1" = -noconfopt ]; then
+    shift
+    confopt=""
   elif [ "$1" = -clean ]; then
     shift
     clean=1
@@ -336,7 +346,7 @@ fi
 
 # System build is a bit different.
 if [ "$system" != 0 ]; then
-  $pgmpath/buildsys "$variants" "$pkgs"
+  $pgmpath/buildsys -confopt "$confopt" "$variants" "$pkgs"
   exit 0
 fi
 
@@ -351,14 +361,14 @@ postmake=
 # Make sure bootstrap is executable; Eclipse does not set x bit.
 if [ $conf = 1 ]; then
   bootcmd="chmod +x bootstrap && ./bootstrap && "
-  confcmd="../../lofarconf && "
+  confcmd="../../lofarconf $confopt && "
   echo "Packages will be bootstrapped and configured"
 fi
 if [ $clean = 1 ]; then
   premake="make clean && "
   echo "Packages will be cleaned"
 elif [ $clean = 2 ]; then
-  premake="make distclean && ../../lofarconf && "
+  premake="make distclean && ../../lofarconf $confopt && "
   echo "Packages will be distcleaned"
 fi
 if [ $buildmake = 1 ]; then
