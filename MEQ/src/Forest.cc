@@ -371,8 +371,8 @@ void Forest::initDefaultState ()
 void Forest::setStateImpl (DMI::Record::Ref &rec)
 {
   // always ignore cwd field
-  if( rec->hasField(FCwd) )
-    rec().removeField(FCwd);
+//  if( rec->hasField(FCwd) )
+//    rec().removeField(FCwd);
   if( rec->hasField(FAxisMap) )
     Axis::setAxisRecords(rec[FAxisMap].as<DMI::Vec>());
   rec[FCachePolicy].get(cache_policy_);
