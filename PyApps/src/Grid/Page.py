@@ -33,8 +33,7 @@ class Page (object):
     self.max_items  = max_nx*max_ny;
     self._rows      = [];
     self._frag_tag = None;
-    self._pagename = '';
-    self._autoname = True;
+    self._pagename = self._autoname = '';
     self._iconset = QIconSet();
     self._iconset_cou = False;
     # possible layout formats (nrow,ncol)
@@ -72,20 +71,24 @@ class Page (object):
   def clear_icon (self):
     self.set_icon(None);
     
+  def clear_name (self):
+    self.set_name(self._autoname);
+    
   def get_icon (self):
     return self._iconset;
     
   def set_name (self,name,auto=False):
     _dprint(2,name,auto);
     self._pagename = name;
-    self._autoname = auto;
+    if auto:
+      self._autoname = name;
     self.wtop().emit(PYSIGNAL("setName()"),(name,));
   
   def get_name (self):
     return self._pagename;
     
   def is_auto_name (self):
-    return self._autoname;
+    return self._autoname == self._pagename;
     
   def gw (self):
     """returns parent Grid.Workspace object""";
@@ -240,7 +243,7 @@ class Page (object):
       _dprint(2,'GriddedPage: clearing row',row);
       map(lambda cell:cell.close(),row.cells());
     self.clear_icon();
-    self.set_name('',None);
+    self.clear_name();
     
   def find_cells (self,udi,new=False,avoid_pos=None,nrow=1,ncol=1):
     """Finds a free cell if one is available, switches to the next layout

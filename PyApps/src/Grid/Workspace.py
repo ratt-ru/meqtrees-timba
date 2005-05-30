@@ -112,6 +112,7 @@ class Workspace (object):
     page = Timba.Grid.Page(self,self._maintab,max_nx=self.max_nx,max_ny=self.max_ny);
     wpage = page.wtop();
     wpage._page = page;
+    _dprint(2,'name',name,'iconset',iconset);
     # generate page name, if none is supplied
     if name is None:
       name = 'Page '+str(self._maintab.count()+1);
@@ -121,6 +122,7 @@ class Workspace (object):
     page.set_icon(iconset);
     # add page to tab
     iconset = iconset or QIconSet();
+    _dprint(2,'addTab:',name,iconset);
     self._maintab.addTab(wpage,iconset,name);
     self._maintab.setCurrentPage(self._maintab.count()-1);
     QWidget.connect(wpage,PYSIGNAL("layoutChanged()"),self._set_layout_button);
