@@ -526,7 +526,8 @@ const make_predict_tree := function (st1,st2,sources)
                          [ output_col      = 'PREDICT',   # init-rec for sink
                            station_1_index = st1,
                            station_2_index = st2,
-                           corr_index      = [1],
+                           corr_index      = [1,2,3,4],
+#                          corr_index      = [1],
                            flag_mask       = -1 ],
                            children=dmi.list(
                             ifr_predict_tree(st1,st2,sources,one)
@@ -557,7 +558,8 @@ const make_subtract_tree := function (st1,st2,sources)
                          [ output_col      = '',
                            station_1_index = st1,
                            station_2_index = st2,
-                           corr_index      = [1],
+                           corr_index      = [1,2,3,4],
+#                          corr_index      = [1],
                            flag_mask        = -1 ],
                          children=meq.list(
       meq.node('MeqSubtract',fq_name('sub',st1,st2),children=meq.list(
@@ -641,7 +643,8 @@ const make_solve_tree := function (st1,st2,sources=[=],subtract=F,flag=F)
     meq.node('MeqSink',sinkname,[ output_col      = '',
                                   station_1_index = st1,
                                   station_2_index = st2,
-                                  corr_index      = [1], 
+                                  corr_index      = [1,2,3,4],
+#                                 corr_index      = [1], 
                                   flag_mask       = -1 ],children=meq.list(
       meq.node('MeqReqSeq',fq_name('seq',st1,st2),[result_index=2],
         children=['solver',datanodename])
