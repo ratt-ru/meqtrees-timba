@@ -23,8 +23,8 @@
 #  $Id$
 
 
-if test $# -lt 1 || test $# -gt 2; then
-  echo "usage: runtest.sh <testname> [<max run-time>]"
+if test $# -lt 1 || test $# -gt 3; then
+  echo "usage: runtest.sh <testname> [<max run-time>] [<precision>]"
   exit 0
 fi
 
@@ -32,6 +32,12 @@ if test $# -eq 2; then
   MAXTIME=$2
 else
   MAXTIME=3600  # 3600 seconds == 1 hour
+fi
+
+if test $# -eq 3; then
+  PREC=$3
+else
+  PREC=1e-5
 fi
 
 # Get directory of this script.
@@ -92,4 +98,4 @@ fi
 #
 LOFAR_PKGSRCDIR=$srcdir
 export LOFAR_PKGSRCDIR
-$lfr_share_dir/assay $MAXTIME $1
+$lfr_share_dir/assay $1 $MAXTIME $PREC

@@ -24,17 +24,20 @@
 
 
 #-----------------------------------------------------------------------------
-# Usage: assay <max run-time(sec)> <testexe> [<arguments>]
+# Usage: assay <testexe> <max run-time(sec)> <precision> [<arguments>]
 #-----------------------------------------------------------------------------
 # This script is an adapted version of the AIPS++ assay script.
 #
-# assay invokes a LofarSim test program. If the test program has an associated
+# assay invokes a test program. If the test program has an associated
 # .run file then it simply invokes it. Otherwise assay invokes the test
-# executable directly
+# executable directly.
 #
 # assay redirects the output of program or .run file to a temporary file
 # and compare it with a corresponding .out file (if there) using diff.
 # Parts of the output can be skipped using special markers (>>> and <<<).
+# If the out files are different, it tries to find out if they match
+# by comparing numbers with the given precision (e.g. 1e-5) using:
+#    abs(a1-a2) <= precision * max(abs(a1),abs(a2))
 #
 # example:
 #
@@ -111,9 +114,9 @@
 #=============================================================================
 
 # CHECKTOOL is a Make option that contains the checktoolcommand. To be able to 
-# insert the programname into the options (for logfile nameing for example)
+# insert the program name into the options (for logfile naming for example)
 # a [PROGNAME] can be inserted into the call, this will be substituted by the
-# program name that stands in $1.
+# program name.
 #
 # For example:
 #  make check CHECKTOOL='valgrind --tool=memcheck \
@@ -123,12 +126,16 @@
 #                                 --track-fds=yes \
 #                                 --logfile=[PROGNAME]_valgrind'
 
-  if test $# -lt 2; then
-    echo "usage: assay <max run-time(sec)> <testexe> [<arguments>]"
+  if test $# -lt 3; then
+    echo "usage: assay <testexe> <max run-time(sec)> <precision> [<arguments>]"
     exit 1
   fi
 
+  PROG=$1
+  shift
   MAXTIME=$1
+  shift
+  PREC=$1
   shift
 
 # Use LimitExec if available
@@ -142,26 +149,26 @@
   
   if [ "x$CHECKTOOL" != "x" ]
   then
-    CHKTOOL=`echo "$CHECKTOOL" | sed -e 's/\[PROGNAME\]/'$1'/g'`
+    CHKTOOL=`echo "$CHECKTOOL" | sed -e 's/\[PROGNAME\]/'$PROG'/g'`
   fi
 
 # Initialize the command to be executed.
-  COMMAND="$CMDPREFIX ./$@"
-  CHECKTOOLCOMMAND="$CHKTOOL ./$@"
+  COMMAND="$CMDPREFIX ./$PROG"
+  CHECKTOOLCOMMAND="$CHKTOOL ./$PROG"
 
 
 # Define exit and interrupt handler.
-  trap 'rm -rf core ${1}_tmp* ; \
+  trap 'rm -rf core ${PROG}_tmp* ; \
         trap 0 ; \
         exit $STATUS' 0 1 2 3 15
 
 # If there is a .run file then use it.
-  if [ -f "$1.run" ]
+  if [ -f "$PROG.run" ]
   then
-     COMMAND="./$1.run"
+     COMMAND="./$PROG.run"
      LOFAR_CHECKTOOL="$CHKTOOL"
      export LOFAR_CHECKTOOL
-     CHECKTOOLCOMMAND="./$1.run"
+     CHECKTOOLCOMMAND="./$PROG.run"
   fi
 
 # Determine if this program also needs another checktool check.
@@ -169,7 +176,7 @@
 # Check for the variable name CHECKTOOLPROGS in Makefile.
 # that variable should contain the programs that need to be run through 
 # an extra checktool that has been supplied via the CHECKTOOL line in Make
-  match=`cat Makefile |awk '/CHECKTOOLPROGS/,/ENDCHECKTOOLPROGS/ {print $0}'|grep -v '#'| grep -w $1`
+  match=`cat Makefile |awk '/CHECKTOOLPROGS/,/ENDCHECKTOOLPROGS/ {print $0}'|grep -v '#'| grep -w $PROG`
 
   if [ "x$CHECKTOOL" != "x" ]
   then
@@ -180,13 +187,13 @@
   fi
 
 # Execute the command.
-  if eval "$COMMAND" > ${1}_tmp.out
+  if eval "$COMMAND" > ${PROG}_tmp.out
   then
-     if [ -f $1.out ]
+     if [ -f $PROG.out ]
      then
         CAT=cat
      else
-        echo "PASS (execution succeeded): $*"
+        echo "PASS (execution succeeded): $PROG"
         STATUS=0
         exit
      fi
@@ -194,43 +201,43 @@
      STATUS=$?
      if [ $STATUS = 3 ]
      then
-        echo "UNTESTED: $*"
+        echo "UNTESTED: $PROG"
         STATUS=77
      else
-        echo "FAIL (execution failure): $*"
+        echo "FAIL (execution failure): $PROG"
         # We may want to know what went wrong, so we'll secure the log file
-        if [ -f ${1}_tmp.log ]
+        if [ -f ${PROG}_tmp.log ]
         then
-           mv ${1}_tmp.log ${1}.err
+           mv ${PROG}_tmp.log ${PROG}.err
         fi
      fi
      exit
   fi
 
-  echo "Comparing output with $1.out ..."
+  echo "Comparing output with $PROG.out ..."
 # Strip out demarked text.
 # inline parts enclosed by >>> && <<<
-  sed -e 's/>>>.*<<<//' ${1}_tmp.out > ${1}_tmp.out2
+  sed -e 's/>>>.*<<<//' ${PROG}_tmp.out > ${PROG}_tmp.out2
 # lines enclosed by >>> && <<<
-  sed -e '/^>>>/,/^<<</d' ${1}_tmp.out2 > ${1}_tmp.out
+  sed -e '/^>>>/,/^<<</d' ${PROG}_tmp.out2 > ${PROG}_tmp.out
 
 # Compare with the expected output.
-  $CAT $1.out | sed -e 's/>>>.*<<<//' | sed -e '/^>>>/,/^<<</d' > ${1}_tmp_orig.out
-  if diff ${1}_tmp.out ${1}_tmp_orig.out
+  $CAT $PROG.out | sed -e 's/>>>.*<<<//' | sed -e '/^>>>/,/^<<</d' > ${PROG}_tmp_orig.out
+  if diff ${PROG}_tmp.out ${PROG}_tmp_orig.out
   then
-     echo "PASS (output verified): $*"
+     echo "PASS (output verified): $PROG"
      STATUS=0
      exit
   fi
 
 # Not fully equal, check if equal except for numbers.
 # Replace for this purpose all numbers by x.
-  sed -e 's/[+-]\?\(\(\([0-9]\+\)\|\([0-9]*\.\?[0-9]*\)\)\(e[+-]\?[0-9]\+\)\?\)/x/g' ${1}_tmp.out > ${1}_tmp.out2
-  sed -e 's/[+-]\?\(\(\([0-9]\+\)\|\([0-9]*\.\?[0-9]*\)\)\(e[+-]\?[0-9]\+\)\?\)/x/g' ${1}_tmp_orig.out > ${1}_tmp_orig.out2
-  diff ${1}_tmp.out2 ${1}_tmp_orig.out2 > /dev/null 2>&1
+  sed -e 's/[+-]\?\(\(\([0-9]\+\)\|\([0-9]*\.\?[0-9]*\)\)\(e[+-]\?[0-9]\+\)\?\)/x/g' ${PROG}_tmp.out > ${PROG}_tmp.out2
+  sed -e 's/[+-]\?\(\(\([0-9]\+\)\|\([0-9]*\.\?[0-9]*\)\)\(e[+-]\?[0-9]\+\)\?\)/x/g' ${PROG}_tmp_orig.out > ${PROG}_tmp_orig.out2
+  diff ${PROG}_tmp.out2 ${PROG}_tmp_orig.out2 > /dev/null 2>&1
   if [ $? != 0 ]
   then
-     echo "FAIL (output not verified): $*"
+     echo "FAIL (output not verified): $PROG"
      STATUS=2
      exit
   fi
@@ -239,20 +246,20 @@
 # Now check if all numbers are approximately equal.
 # First replace all non-numeric characters and single e.+- by a blank.
 # Remove blanks by a newline.
-  sed -e 's/[^-+.e0-9]/ /g' ${1}_tmp.out | sed -e 's/\(^\| \)[e.+-]\+\( \|$\)//g' | sed -e 's/^ \+//' -e 's/ \+$//' -e 's/ \+/\n/g' > ${1}_tmp.out2
-sed -e 's/[^-+.e0-9]/ /g' ${1}_tmp_orig.out | sed -e 's/\(^\| \)[e.+-]\+\( \|$\)//g' | sed -e 's/^ \+//' -e 's/ \+$//' -e 's/ \+/\n/g' > ${1}_tmp_orig.out2
+  sed -e 's/[^-+.e0-9]/ /g' ${PROG}_tmp.out | sed -e 's/\(^\| \)[e.+-]\+\( \|$\)//g' | sed -e 's/^ \+//' -e 's/ \+$//' -e 's/ \+/\n/g' > ${PROG}_tmp.out2
+sed -e 's/[^-+.e0-9]/ /g' ${PROG}_tmp_orig.out | sed -e 's/\(^\| \)[e.+-]\+\( \|$\)//g' | sed -e 's/^ \+//' -e 's/ \+$//' -e 's/ \+/\n/g' > ${PROG}_tmp_orig.out2
 # Show the differences column-wise.
-  diff -y --suppress-common-lines ${1}_tmp.out2 ${1}_tmp_orig.out2 > ${1}_tmp_diff.out
+  diff -y --suppress-common-lines ${PROG}_tmp.out2 ${PROG}_tmp_orig.out2 > ${PROG}_tmp_diff.out
 
 # Now loop through all differences and see if almost equal.
-  awk '{ a1=$1; if (a1<0) a1=-a1; a2=$3; if (a2<0) a2=-a2; if (a1>1e-20 || a2>1e-20) if ((a1>a2 && a1-a2> 1e-5*a1) || (a2>a1 && a2-a1> 1e-5*a2)) print "float diff>1e-5:",a1,a2 }' ${1}_tmp_diff.out > ${1}_tmp_diff.out2
-  if [ -s ${1}_tmp_diff.out2 ]
+  awk '{ a1=$1; if (a1<0) a1=-a1; a2=$3; if (a2<0) a2=-a2; if (a1>1e-20 || a2>1e-20) if ((a1>a2 && a1-a2> '"$PREC"'*a1) || (a2>a1 && a2-a1> '"$PREC"'*a2)) print "float diff>'"$PREC"':",a1,a2 }' ${PROG}_tmp_diff.out > ${PROG}_tmp_diff.out2
+  if [ -s ${PROG}_tmp_diff.out2 ]
   then
-     $CAT ${1}_tmp_diff.out2
-     echo "FAIL (large floating point discrepancies): $*"
+     $CAT ${PROG}_tmp_diff.out2
+     echo "FAIL (floating point discrepancies > $PREC): $PROG"
      STATUS=2
      exit
   fi
-  echo "PASS (small floating point discrepancies): $*"
+  echo "PASS (floating point discrepancies <= $PREC): $PROG"
   STATUS=0
   exit
