@@ -21,6 +21,17 @@ _dbg = verbosity(0,name='StreamCtrl');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+def mkInput():
+  inp = record();
+  inp.tile_size = 1;
+  sel = record();
+  sel.channel_start_index=0;
+  sel.channel_end_index=-1;
+  inp.selection = sel;
+  inp.ms_name = '';
+  inp.date_column_name = 'DATA';
+  return inp;
+
 #
 # Class StreamData
 # Contains:
@@ -52,6 +63,9 @@ class StreamData:
   def loadData(self, fst):
     self.cwd = fst.cwd;
     InData = fst.stream
+    if not hasattr(InData, 'input'):
+       InData.input = mkInput();
+       return;
     self.Ch0 = InData.input.selection.channel_start_index;
     if self.Ch0 == -1:
       print 'ERROR Ch0 == -1'
