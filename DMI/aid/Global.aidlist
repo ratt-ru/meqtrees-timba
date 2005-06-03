@@ -122,6 +122,7 @@ Epsilon                          1377       ; from /home/oms/LOFAR/Timba/MEQ/src
 EQ                               1444       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 Error                            1056       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 Errors                           1310       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
+Eval                             1557       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:41
 Event                            1080       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
 Execute                          1479       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:14
 Exit                             1230       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
