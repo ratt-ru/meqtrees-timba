@@ -150,6 +150,7 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1376,"Dataset")+
         AtomicID::registerId(-1480,"Next")+
         AtomicID::registerId(-1558,"Service")+
+        AtomicID::registerId(-1559,"Sequence")+
         AtomicID::registerId(-1032,"L")+
         AtomicID::registerId(-1030,"M")+
         AtomicID::registerId(-1028,"N")+

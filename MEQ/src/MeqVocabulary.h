@@ -39,7 +39,7 @@
 #pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear Invert
 #pragma aid Metrics Rank Fit Errors CoVar Flag Bit Mu StdDev Chi Iter Last Update
 #pragma aid Override Policy Discover Spids Map Eval Mode
-#pragma aid Iteration Solution Dataset Next Service
+#pragma aid Iteration Solution Dataset Next Service Sequence
 
 
 namespace Meq

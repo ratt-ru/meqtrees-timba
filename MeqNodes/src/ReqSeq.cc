@@ -32,6 +32,8 @@ namespace Meq {
 
 const HIID FResultIndex = AidResult|AidIndex;
 const HIID FCellsOnly = AidCells|AidOnly;
+const HIID FSequenceSymdeps = AidSequence|AidSymdeps;
+const HIID FSequenceDependMask = AidSequence|AidDepend|AidMask;
 
 
 //##ModelId=400E5355029C
@@ -41,6 +43,9 @@ ReqSeq::ReqSeq()
   cells_only_(false)
 {
   disableAutoResample();
+  // init default seq symdeps 
+  seq_symdeps_.assign(1,AidSequence);
+  setKnownSymDeps(seq_symdeps_);
 }
 
 //##ModelId=400E5355029D
@@ -56,6 +61,12 @@ void ReqSeq::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     FailWhen( which_result_ <0 || which_result_ >= numChildren(),
               "illegal "+FResultIndex.toString()+" value");
   }
+  // get symdeps
+  if( rec[FSequenceSymdeps].get_vector(seq_symdeps_,initializing) || initializing )
+    wstate()[FSequenceDependMask] = seq_depmask_ = computeDependMask(seq_symdeps_);
+  // now reset the dependency mask if specified; this will override
+  // possible modifications made above
+  rec[FSequenceDependMask].get(seq_depmask_,initializing);
 }
 
 
@@ -73,14 +84,14 @@ int ReqSeq::pollChildren (std::vector<Result::Ref> &chres,
   RequestId rqid = req.id();
   for( int i=0; i<numChildren(); i++ )
   {
-//     // *** ugly kludge for now, until we allow children to tell parents
-//     // *** to clear cache!
-//     if( i )
-//     {
-//       forest().incrRequestId(rqid,AidSolution);
-//       reqref().setId(rqid);
-//     }
     Result::Ref res;
+    // increment sequence ID for subsequent children
+    if( i )
+    {
+      RqId::incrSubId(rqid,seq_depmask_);
+      reqref().setId(rqid);
+    }
+    // poll children
     int code = getChild(i).execute(res,*reqref);
     cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",code)<<endl;
     // a wait is returne immediately
@@ -95,13 +106,6 @@ int ReqSeq::pollChildren (std::vector<Result::Ref> &chres,
       result_ = res;
     }
   }
-//  // *** ugly kludge for now, until we allow children to tell parents
-//  // *** to clear cache!
-//  if( numStepChildren() )
-//  {
-//    forest().incrRequestId(rqid,AidSolution);
-//    reqref().setId(rqid);
-//  }
   pollStepChildren(*reqref);
   return 0;
 }

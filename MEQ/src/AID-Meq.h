@@ -698,6 +698,11 @@ const int AidSecond_int = -1535;
 const DMI::AtomicID AidSegments(-1287);           // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 const int AidSegments_int = -1287;
 #endif
+#ifndef _defined_id_AidSequence
+#define _defined_id_AidSequence 1
+const DMI::AtomicID AidSequence(-1559);           // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:42
+const int AidSequence_int = -1559;
+#endif
 #ifndef _defined_id_AidService
 #define _defined_id_AidService 1
 const DMI::AtomicID AidService(-1558);            // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:42

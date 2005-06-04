@@ -433,7 +433,7 @@ int Solver::getResult (Result::Ref &resref,
     solution.resize(nspid);
     // Solve the equation.
     DMI::Record& solRec = metricsList[step] <<= new DMI::Record;
-    // request for last iteration is processed reparately
+    // request for last iteration is processed separately
     bool lastIter = itsCurLastUpdate && step==itsCurNumIter-1;
     solve(solution, reqref, solRec, resref, child_results_,
           itsCurSaveFunklets,lastIter);
@@ -441,9 +441,11 @@ int Solver::getResult (Result::Ref &resref,
     if( lastIter )
     {
       // increment the solve-dependent parts of the request ID one last time
+      Request &lastreq = reqref <<= new Request;
       RqId::incrSubId(rqid,iter_depmask_);
-      reqref().setId(rqid);
-      reqref().setNextId(request.nextId());
+      lastreq.setId(rqid);
+      lastreq.setServiceFlag(True);
+      lastreq.setNextId(request.nextId());
       ParmTable::lockTables();
       // unlock all child results
       for( int i=0; i<numChildren(); i++ )
@@ -451,7 +453,7 @@ int Solver::getResult (Result::Ref &resref,
 	      child_reslock[i].release();
         child_results_[i].detach();
       }
-      Node::pollChildren(child_results_, resref, *reqref);
+      Node::pollChildren(child_results_, resref, lastreq);
     }
     // Unlock all parm tables used.
     ParmTable::unlockTables();
