@@ -70,6 +70,10 @@ protected:
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
   
+  virtual int discoverSpids (Result::Ref &resref, 
+                             const std::vector<Result::Ref> &childres,
+                             const Request &req);
+  
 private:
   int which_result_;
   bool cells_only_;

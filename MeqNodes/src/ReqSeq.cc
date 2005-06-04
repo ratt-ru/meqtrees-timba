@@ -110,7 +110,15 @@ int ReqSeq::pollChildren (std::vector<Result::Ref> &chres,
   return 0;
 }
 
-
+int ReqSeq::discoverSpids (Result::Ref &ref,
+                         const std::vector<Result::Ref> &,
+                         const Request &)
+{
+  // ignore child results since we don't keep any, but return the result
+  // we were holding from the active child
+  ref.xfer(result_);
+  return 0;
+}
 
 int ReqSeq::getResult (Result::Ref &resref, 
                        const std::vector<Result::Ref> &,

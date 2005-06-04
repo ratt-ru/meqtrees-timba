@@ -106,6 +106,11 @@ protected:
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
   
+  // solver result contains no spids
+  virtual int discoverSpids (Result::Ref &,const std::vector<Result::Ref> &,
+                             const Request &)
+  { return 0; }
+  
 private:
   //##Documentation
   //## Do a solution.
