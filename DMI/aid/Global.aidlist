@@ -458,6 +458,7 @@ Segment                          1180       ; from /home/oms/LOFAR/Timba/VisCube
 Segments                         1287       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 Selection                        1271       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 Seq                              1250       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
+Sequence                         1559       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:42
 Server                           1078       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 Service                          1558       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:42
 Set                              1272       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
