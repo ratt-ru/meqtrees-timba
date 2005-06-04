@@ -539,7 +539,7 @@ const meq.rqid := function(domain=-1,dataset=0,resolution=0,value=0,
 
 #-- meq.request() -------------------------------------------------------------
 # creates a request
-const meq.request := function (cells=F,rqid=F,calc_deriv=0)
+const meq.request := function (cells=F,rqid=F,eval_mode=0)
 {
   global _meqdomain_id;
   # if no request ID supplied, generate one by incrementing the
@@ -547,7 +547,7 @@ const meq.request := function (cells=F,rqid=F,calc_deriv=0)
   if( is_boolean(rqid) )
     rqid := meq.rqid(_meqdomain_id+:=1);
   req := [ request_id=hiid(rqid),
-           calc_deriv=as_integer(calc_deriv) ];
+           eval_mode=as_integer(eval_mode) ];
   if( !is_boolean(cells) )
     req.cells := cells;
   req::dmi_actual_type := 'MeqRequest';

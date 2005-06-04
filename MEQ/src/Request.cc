@@ -30,34 +30,34 @@ static DMI::Container::Register reg(TpMeqRequest,true);
 
 //##ModelId=3F8688700056
 Request::Request()
-: pcells_(0),calc_deriv_(0),has_rider_(false),cache_override_(false)
+: pcells_(0),eval_mode_(0),has_rider_(false),service_flag_(false)
 {
 }
 
 //##ModelId=3F8688700061
 Request::Request (const DMI::Record &other,int flags,int depth)
 : Record(), 
-  pcells_(0),calc_deriv_(0),has_rider_(false),cache_override_(false)
+  pcells_(0),eval_mode_(0),has_rider_(false),service_flag_(false)
 {
   Record::cloneOther(other,flags,depth,true);
 }
 
 //##ModelId=400E535403DD
-Request::Request (const Cells& cells,int calcDeriv,const HIID &id,int cellflags)
-: has_rider_(false),cache_override_(false)
+Request::Request (const Cells& cells,int em,const HIID &id,int cellflags)
+: has_rider_(false),service_flag_(false)
 {
   setCells(cells,cellflags);
   setId(id);
-  setCalcDeriv(calcDeriv);
+  setEvalMode(em);
 }
 
 //##ModelId=400E53550016
-Request::Request (const Cells * cells, int calcDeriv, const HIID &id,int cellflags)
-: has_rider_(false),cache_override_(false)
+Request::Request (const Cells * cells, int em, const HIID &id,int cellflags)
+: has_rider_(false),service_flag_(false)
 {
   setCells(cells,cellflags);
   setId(id);
-  setCalcDeriv(calcDeriv);
+  setEvalMode(em);
 }
 
 // Set the request id.
@@ -72,14 +72,14 @@ void Request::setNextId (const HIID &id)
   (*this)[FNextRequestId] = next_id_ = id;
 }
 
-void Request::setCalcDeriv (int calc)
+void Request::setEvalMode (int em)
 { 
-  (*this)[FCalcDeriv] = calc_deriv_ = calc; 
+  (*this)[FEvalMode] = eval_mode_ = em; 
 }
 
-void Request::setCacheOverride (bool flag)
+void Request::setServiceFlag (bool flag)
 { 
-  (*this)[FCacheOverride] = cache_override_ = flag; 
+  (*this)[FServiceFlag] = service_flag_ = flag; 
 }
 
 //##ModelId=3F868870006E
@@ -111,8 +111,8 @@ void Request::validateContent (bool)
     id_ = (*this)[FRequestId].as<HIID>(HIID());
     next_id_ = (*this)[FNextRequestId].as<HIID>(HIID());
     // flags
-    calc_deriv_ = (*this)[FCalcDeriv].as<int>(0);
-    cache_override_ = (*this)[FCacheOverride].as<bool>(false);
+    eval_mode_ = (*this)[FEvalMode].as<int>(GET_RESULT);
+    service_flag_ = (*this)[FServiceFlag].as<bool>(false);
     // rider
     validateRider();
   }

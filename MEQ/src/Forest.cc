@@ -46,15 +46,11 @@ Forest::Forest ()
 {
   staterec_ <<= new DMI::Record;
   // init default symdep set
-  known_symdeps[AidIteration]  = 0x01;
-  known_symdeps[AidSolution]   = 0x02;
-  known_symdeps[AidDomain]     = 0x04;
-  known_symdeps[AidResolution] = 0x04; // same as domain for now
-  known_symdeps[AidDataset]    = 0x08;
+  known_symdeps[AidIteration]   = 0x01;
+  known_symdeps[AidDomain]      = 0x04;
+  known_symdeps[AidResolution]  = 0x04; 
+  known_symdeps[AidDataset]     = 0x08;
   symdep_map = known_symdeps;
-  // init required depmasks
-  depmask_dataset_ = symdep_map[AidDataset];
-  depmask_domain_  = symdep_map[AidDomain];
   // resize repository to 1 initially, so that index #0 is never used
   nodes.reserve(RepositoryChunkSize);
   nodes.resize(1);
@@ -218,33 +214,6 @@ const Node::Ref & Forest::getRef (int node_index)
           "invalid node index");
   return nodes[node_index];
 }
-
-// //##ModelId=3F9937F601A5
-// const HIID & Forest::assignRequestId (Request &req)
-// {
-//   if( !last_req_cells.valid() ) // first request ever?
-//   {
-//     incrSubId(last_req_id,depmask_dataset_);
-//     last_req_cells.attach(req.cells());
-//   }
-//   else
-//   {
-//     // cells do not match last request? Update the ID
-//     if( req.cells() != *last_req_cells )
-//     {
-//       last_req_cells.attach(req.cells());
-//       incrSubId(last_req_id,depmask_domain_);
-//     }
-//   }
-//   req.setId(last_req_id);
-//   return last_req_id;
-// }
-// 
-// 
-// void Forest::resetForNewDataSet ()
-// {
-//   last_req_cells.detach();
-// }
 
 void Forest::incrRequestId (RequestId &rqid,const HIID &symdep)
 {

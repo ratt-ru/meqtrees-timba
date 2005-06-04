@@ -221,12 +221,12 @@ const solver_test := function (gui=use_gui,verbose=4,publish=T)
   st1 := mqs.getnodestate('a');
   cells  := meq.cells(meq.domain(0,.5,0,.5),num_freq=4,num_time=4);
   cells2 := meq.cells(meq.domain(.5,1,.5,1),num_freq=4,num_time=4);
-  request := meq.request(cells,calc_deriv=2);
+  request := meq.request(cells,eval_mode=2);
   
   cmdrec := [ clear_matrix=F,invert_matrix=F,num_iter=5,save_polcs=F ];
   meq.add_command(request,'Solver','solver1',cmdrec);
   
-  request2 := meq.request(cells2,calc_deriv=0);
+  request2 := meq.request(cells2,eval_mode=0);
   res := mqs.meq('Node.Publish.Results',[name='condeq1'],T);
   res := mqs.meq('Node.Execute',[name='solver1',request=request],T);
   print res;
@@ -280,7 +280,7 @@ const mep_test := function (gui=use_gui)
   
   global cells,request,res;
   cells := meq.cells(meq.domain(0,1,0,1),4,4);
-  request := meq.request(cells,calc_deriv=0);
+  request := meq.request(cells,eval_mode=0);
   
   res := mqs.meq('Node.Publish.Results',[name='a'],T);
   res := mqs.meq('Node.Execute',[name='a',request=request],T);
@@ -303,13 +303,13 @@ const mep_grow_test := function (gui=use_gui)
   
   global cells,request,res1,res2;
   cells := meq.cells(meq.domain(0,1,0,1),4,4);
-  request := meq.request(cells,calc_deriv=1);
+  request := meq.request(cells,eval_mode=1);
   
   mqs.meq('Node.Publish.Results',[name='a'],T);
   res1 := mqs.meq('Node.Execute',[name='a',request=request],T);
 
   cells := meq.cells(meq.domain(0,2,0,2),4,4);
-  request := meq.request(cells,calc_deriv=1);
+  request := meq.request(cells,eval_mode=1);
   
   res2 := mqs.meq('Node.Execute',[name='a',request=request],T);
 }
@@ -446,7 +446,7 @@ const rs_test := function (flags=[],flag_mask=-1,flag_bit=0,flag_density=.5)
   rqid := meq.rqid(0);
   # first, init the cache of the parm node
   cells := meq.cells(domain,2,2);
-  req := meq.request(cells,rqid=rqid,calc_deriv=0);
+  req := meq.request(cells,rqid=rqid,eval_mode=0);
   res := mqs.execute('a',req);
   # add flags to cache, if specified
   if( len(flags) )
@@ -459,17 +459,17 @@ const rs_test := function (flags=[],flag_mask=-1,flag_bit=0,flag_density=.5)
   res := mqs.execute('rs',req);
 
   cells2 := meq.cells(domain,1,1);
-  req2 := meq.request(cells2,rqid=rqid,calc_deriv=2);
+  req2 := meq.request(cells2,rqid=rqid,eval_mode=2);
   mqs.meq('Node.Clear.Cache',[name='rs'],T);
   res2 := mqs.execute('rs',req2);
 
   cells3 := meq.cells(domain,4,2);
-  req3 := meq.request(cells3,rqid=rqid,calc_deriv=2);
+  req3 := meq.request(cells3,rqid=rqid,eval_mode=2);
   mqs.meq('Node.Clear.Cache',[name='rs'],T);
   res3 := mqs.execute('rs',req3);
   
   cells4 := meq.cells(domain,1,4);
-  req4 := meq.request(cells3,rqid=rqid,calc_deriv=2);
+  req4 := meq.request(cells3,rqid=rqid,eval_mode=2);
   mqs.meq('Node.Clear.Cache',[name='rs'],T);
   res4 := mqs.execute('rs',req4);
   
@@ -521,7 +521,7 @@ const ars_test := function ()
   
   print mqs.resolve('compose',T);
   
-  req := meq.request(cells,calc_deriv=0);
+  req := meq.request(cells,eval_mode=0);
   res := mqs.execute('compose',req);
   
   print res;

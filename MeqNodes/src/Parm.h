@@ -139,6 +139,11 @@ protected:
     //##ModelId=400E5353033A
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
   
+  
+  virtual int discoverSpids (Result::Ref &resref, 
+                             const std::vector<Result::Ref> &childres,
+                             const Request &req);
+  
 private:
     
     //##ModelId=3F86886F0216

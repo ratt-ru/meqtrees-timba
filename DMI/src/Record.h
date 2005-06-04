@@ -140,6 +140,27 @@ class Record : public Container
         return pf->ref.as<T>();
       }
       
+      template<class T>
+      const T * as_po (const HIID &id,Type2Type<T> =Type2Type<T>()) const
+      {
+        Thread::Mutex::Lock lock(mutex());
+        const Field * pf = findField(id);
+        if( !pf )
+          return 0;
+        return &( pf->ref.as<T>() );
+      }
+      
+      template<class T>
+      T * as_po (const HIID &id,Type2Type<T> =Type2Type<T>()) 
+      {
+        Thread::Mutex::Lock lock(mutex());
+        Field * pf = findField(id);
+        if( !pf )
+          return 0;
+        FailWhen(pf->protect,"field "+id.toString()+" is protected for writing");
+        return &( pf->ref.as<T>() );
+      }
+      
     //##ModelId=400E4D6903B8
       //##Documentation
       //## merges other record into this one (adds all its fields).

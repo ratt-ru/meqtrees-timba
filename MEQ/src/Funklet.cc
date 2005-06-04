@@ -290,7 +290,7 @@ void Funklet::update (const double values[])
 // shortcut to standard evaluate()
 void Funklet::evaluate (VellSet &vs,const Request &request) const
 {
-  evaluate(vs,request.cells(),request.calcDeriv());
+  evaluate(vs,request.cells(),request.evalMode());
 }
 
 void Funklet::do_evaluate (VellSet &,const Cells &,

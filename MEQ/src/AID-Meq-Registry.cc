@@ -140,10 +140,16 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1342,"Last")+
         AtomicID::registerId(-1337,"Override")+
         AtomicID::registerId(-1529,"Policy")+
+        AtomicID::registerId(-1556,"Discover")+
+        AtomicID::registerId(-1555,"Spids")+
+        AtomicID::registerId(-1216,"Map")+
+        AtomicID::registerId(-1557,"Eval")+
+        AtomicID::registerId(-1215,"Mode")+
         AtomicID::registerId(-1266,"Iteration")+
         AtomicID::registerId(-1525,"Solution")+
         AtomicID::registerId(-1376,"Dataset")+
         AtomicID::registerId(-1480,"Next")+
+        AtomicID::registerId(-1558,"Service")+
         AtomicID::registerId(-1032,"L")+
         AtomicID::registerId(-1030,"M")+
         AtomicID::registerId(-1028,"N")+
@@ -161,7 +167,6 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         DynamicTypeManager::addToRegistry(-1294,__construct_MeqDomain)+
         AtomicID::registerId(-1309,"ndim")+
         AtomicID::registerId(-1346,"axes")+
-        AtomicID::registerId(-1216,"Map")+
         AtomicID::registerId(-1339,"MeqCells")+
         TypeInfoReg::addToRegistry(-1339,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1339,__construct_MeqCells)+

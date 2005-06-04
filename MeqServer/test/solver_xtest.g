@@ -306,7 +306,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
     global dom1,cells1,request1,res1;
     dom1 := meq.domain(axis="x y z",start=[0,0,0],end=[1,1,1])
     cells1 := meq.cells(dom1,ncells=[2,3,4]);
-    request1 := meq.request(cells1,rqid=meq.rqid(),calc_deriv=0);
+    request1 := meq.request(cells1,rqid=meq.rqid(),eval_mode=0);
     print 'executing',request1;
     res1 := mqs.meq('Node.Execute',[name='z',request=request1],T);
     res1 := mqs.meq('Node.Execute',[name='z1',request=request1],T);
@@ -314,7 +314,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
     # execute request on x and y parms to load polcs and get original values
     global cells,request,res;
     cells := meq.cells(meq.domain(0,1,0,1),num_freq=4,num_time=3);
-    request := meq.request(cells,rqid=meq.rqid(),calc_deriv=0);
+    request := meq.request(cells,rqid=meq.rqid(),eval_mode=0);
     print 'executing',request;
     res := mqs.meq('Node.Execute',[name='x',request=request],T);
     res := mqs.meq('Node.Execute',[name='y',request=request],T);
@@ -347,7 +347,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
   # execute request on solver
   global cells,request,res;
   cells := meq.cells(meq.domain(0,1,0,1),num_freq=4,num_time=3);
-  request := meq.request(cells,calc_deriv=1);
+  request := meq.request(cells,eval_mode=1);
   res := mqs.meq('Node.Execute',[name='solver',request=request],T);
   print res;
   

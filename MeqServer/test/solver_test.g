@@ -116,7 +116,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
     # execute request on x and y parms to load funklet and get original values
     global cells,request,res;
     cells := meq.cells(meq.domain(0,1,0,1),num_freq=4,num_time=4);
-    request := meq.request(cells,rqid=meq.rqid(),calc_deriv=0);
+    request := meq.request(cells,rqid=meq.rqid(),eval_mode=0);
     res := mqs.meq('Node.Execute',[name='x',request=request],T);
     res := mqs.meq('Node.Execute',[name='y',request=request],T);
    
@@ -142,7 +142,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
   # execute request on solver
   global cells,request,res;
   cells := meq.cells(meq.domain(0,1,0,1),num_freq=4,num_time=4);
-  request := meq.request(cells,calc_deriv=1);
+  request := meq.request(cells,eval_mode=1);
   mqs.meq('Node.Clear.Cache',[name='solver',recursive=T],F);
   res := mqs.meq('Node.Execute',[name='solver',request=request],T);
   print res;

@@ -50,7 +50,6 @@ const HIID FSolverResult = AidSolver|AidResult;
 const HIID FIncrementalSolutions = AidIncremental|AidSolutions;
 
 const HIID FIterationSymdeps = AidIteration|AidSymdeps;
-const HIID FSolutionSymdeps = AidSolution|AidSymdeps;
 const HIID FIterationDependMask = AidIteration|AidDepend|AidMask;
 
 //##ModelId=400E53550260
@@ -71,10 +70,9 @@ Solver::Solver()
   itsResetCur = true;
   // set Solver dependencies
   iter_symdeps_.assign(1,FIteration);
-  solution_symdeps_.assign(1,FSolution);
-  const HIID symdeps[] = { FDomain,FResolution,FDataset,FSolution,FIteration };
-  setKnownSymDeps(symdeps,5);
-  const HIID symdeps1[] = { FDomain,FResolution,FSolution,FDataset };
+  const HIID symdeps[] = { FDomain,FResolution,FDataset,FIteration };
+  setKnownSymDeps(symdeps,4);
+  const HIID symdeps1[] = { FDomain,FResolution,FDataset };
   setActiveSymDeps(symdeps1,3);
 }
 
@@ -173,13 +171,10 @@ int Solver::getResult (Result::Ref &resref,
 {
   // a cell-less request contains commands and states only, and thus it should
   // passed on to the children as is (since we override pollChildren() to do
-  // nothing)
-  // pass it on to the children as is (using Node's standard poll method) -- 
-  // since we override pollChildren() and do nothing else  
+  // nothing) ad nothing else done
   if( !request.hasCells() )
   {
-    std::vector<Result::Ref> dum(numChildren());
-    return Node::pollChildren(dum,resref,request);
+    return Node::pollChildren(child_results_,resref,request);
   }
   // Reset current values if needed.
   // That is possible if a getResult is done without a processCommands
@@ -188,8 +183,8 @@ int Solver::getResult (Result::Ref &resref,
     resetCur();
     setCurState();
   }
-  // Use 1 derivative by default, or 2 if specified in request
-  int calcDeriv = std::max(request.calcDeriv(),1);
+  // Use single derivative by default, or higher mode if specified in request
+  int eval_mode = std::max(request.evalMode(),int(Request::DERIV_SINGLE));
   // The result has 1 plane.
   Result& result = resref <<= new Result(0);
 //  VellSet& vellset = result.setNewVellSet(0);
@@ -199,13 +194,11 @@ int Solver::getResult (Result::Ref &resref,
   uint nspid = 0;
   vector<int> spids;
   Vector<double> solution;
-  std::vector<Result::Ref> child_results(numChildren());
   std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
   // get the request ID -- we're going to be incrementing the part of it 
   // corresponding to our symdeps
   RequestId rqid = request.id();
   RqId::setSubId(rqid,iter_depmask_,0);
-  forest().incrRequestId(rqid,solution_symdeps_);
   RequestId next_rqid = rqid;
   RqId::incrSubId(next_rqid,iter_depmask_);
   // Create a new request and attach the solvable parm specification if needed.
@@ -215,9 +208,10 @@ int Solver::getResult (Result::Ref &resref,
   // and use req from then on, as the request object is likely to change.
   // Instead, all operations will go via the ref.
   Request::Ref reqref;
-  reqref <<= new Request(request.cells(),calcDeriv,rqid);
+  reqref <<= new Request(request.cells(),Request::DISCOVER_SPIDS,rqid);
   // rider of original request gets sent up the first time
   reqref().copyRider(request);
+  reqref().setServiceFlag(true);
   if( state()[FSolvable].exists() ) {
     DMI::Record& rider = Rider::getRider(reqref);
     rider[itsParmGroup].replace() <<= wstate()[FSolvable].as_wp<DMI::Record>();
@@ -226,6 +220,29 @@ int Solver::getResult (Result::Ref &resref,
     Rider::getGroupRec(reqref,itsParmGroup,Rider::NEW_GROUPREC);
   }
   reqref().validateRider();
+  // send up request to figure out spids
+  int retcode = Node::pollChildren(child_results_,resref,*reqref);
+  if( retcode&(RES_FAIL|RES_WAIT) )
+    return retcode;
+  // merge all child spids together using Node's standard function
+  Result::Ref tmpres;
+  Node::discoverSpids(tmpres,child_results_,*reqref);
+  // ok, now we should have a spid map:
+  const DMI::Record * spid_map = tmpres[FSpidMap].as_po<DMI::Record>();
+  if( spid_map )
+  {
+    // for the time being, just stuff it into our state record
+    wstate()[FSpidMap].replace() <<= spid_map;
+  }
+  else
+  {
+    // no spids discovered, so may as well fail...
+    Throw("no spids discovered by this solver");
+  }
+  // clear everything from the request and set eval mode properly
+  reqref().setServiceFlag(false);
+  reqref().clearRider();
+  reqref().setEvalMode(eval_mode);
   // Take care that the matrix is cleared if needed.
   if (itsCurClearMatrix) 
       itsSpids.clear();
@@ -244,31 +261,31 @@ int Solver::getResult (Result::Ref &resref,
     for( int i=0; i<numChildren(); i++ )
     {
 	    child_reslock[i].release();
-      child_results[i].detach();
+      child_results_[i].detach();
     }
-    int retcode = Node::pollChildren(child_results, resref, *reqref);
+    int retcode = Node::pollChildren(child_results_, resref, *reqref);
     // tell children to only hold cache if it doesn't depend on iteration
     holdChildCaches(true,iter_depmask_);
     
     setExecState(CS_ES_EVALUATING);
     for( int i=0; i<numChildren(); i++ )
-      if( child_results[i].valid() )
-        child_reslock[i].relock(child_results[i]->mutex());
+      if( child_results_[i].valid() )
+        child_reslock[i].relock(child_results_[i]->mutex());
     // a fail or a wait is returned immediately
     if( retcode&(RES_FAIL|RES_WAIT) )
       return retcode;
     // else process 
     vector<const VellSet*> chvellsets;
-    chvellsets.reserve(numChildren() * child_results[0]->numVellSets());
+    chvellsets.reserve(numChildren() * child_results_[0]->numVellSets());
     // Find the set of all spids from all condeq results.
-    for (uint i=0; i<child_results.size(); i++)
+    for (uint i=0; i<child_results_.size(); i++)
       if( itsIsCondeq[i] )
       {
-        for (int iplane=0; iplane<child_results[i]->numVellSets(); iplane++) 
+        for (int iplane=0; iplane<child_results_[i]->numVellSets(); iplane++) 
         {
-          if (! child_results[i]->vellSet(iplane).isFail()) 
+          if (! child_results_[i]->vellSet(iplane).isFail()) 
           {
-            chvellsets.push_back (&(child_results[i]->vellSet(iplane)));
+            chvellsets.push_back (&(child_results_[i]->vellSet(iplane)));
           }
         }
       }
@@ -418,7 +435,7 @@ int Solver::getResult (Result::Ref &resref,
     DMI::Record& solRec = metricsList[step] <<= new DMI::Record;
     // request for last iteration is processed reparately
     bool lastIter = itsCurLastUpdate && step==itsCurNumIter-1;
-    solve(solution, reqref, solRec, resref, child_results,
+    solve(solution, reqref, solRec, resref, child_results_,
           itsCurSaveFunklets,lastIter);
     // send up one final update if needed
     if( lastIter )
@@ -432,9 +449,9 @@ int Solver::getResult (Result::Ref &resref,
       for( int i=0; i<numChildren(); i++ )
       {
 	      child_reslock[i].release();
-        child_results[i].detach();
+        child_results_[i].detach();
       }
-      Node::pollChildren(child_results, resref, *reqref);
+      Node::pollChildren(child_results_, resref, *reqref);
     }
     // Unlock all parm tables used.
     ParmTable::unlockTables();
@@ -575,8 +592,6 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
   // now reset the dependency mask if specified; this will override
   // possible modifications made above
   newst[FIterationDependMask].get(iter_depmask_,initializing);
-  // for solution symdeps, no depmask since we get it straight from the forest
-  newst[FSolutionSymdeps].get_vector(solution_symdeps_,initializing);
   
   // get default solve job description
   DMI::Record *pdef = newst[FDefault].as_wpo<DMI::Record>();

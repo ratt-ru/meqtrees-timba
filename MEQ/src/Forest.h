@@ -266,10 +266,6 @@ class Forest
     
     SymdepMap known_symdeps;
     
-    // depmasks used by forest itself
-    int depmask_domain_;
-    int depmask_dataset_;
-
     // helper function to convert SymdepMap to Record
     void fillSymDeps (DMI::Record &rec,const SymdepMap &map);
     

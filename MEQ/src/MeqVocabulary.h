@@ -38,17 +38,14 @@
 #pragma aid Solvable Config Groups All By List Polc Polcs Scale Matrix
 #pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear Invert
 #pragma aid Metrics Rank Fit Errors CoVar Flag Bit Mu StdDev Chi Iter Last Update
-#pragma aid Override Policy
-#pragma aid Iteration Solution Dataset Next
+#pragma aid Override Policy Discover Spids Map Eval Mode
+#pragma aid Iteration Solution Dataset Next Service
 
 
 namespace Meq
 {
   const HIID 
       
-    FRequestId       = AidRequest|AidId,
-    FCells           = AidCells,
-    FCalcDeriv       = AidCalc|AidDeriv,
     FClearSolver     = AidClear|AidSolver,
     FRider           = AidRider,
     FNodeName        = AidNode|AidName,
@@ -58,14 +55,18 @@ namespace Meq
     FResult          = AidResult,
     FRequest         = AidRequest,
     FState           = AidState,
-    FCacheOverride   = AidCache|AidOverride,
     
     // result fields
     FVellSets        = AidVellSets,
     FDims            = AidDims,
+    FSpidMap         = AidSpid|AidMap,
     
     // Request fields
+    FRequestId       = AidRequest|AidId,
     FNextRequestId   = AidNext|AidRequest|AidId,
+    FCells           = AidCells,
+    FEvalMode        = AidEval|AidMode,
+    FServiceFlag     = AidService|AidFlag,
     // Request rider fields (for commands)
 //    FAll                = AidAll,
     FCommandAll         = AidCommand|AidAll,

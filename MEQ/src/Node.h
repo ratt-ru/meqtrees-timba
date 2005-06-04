@@ -650,9 +650,12 @@ class Node : public DMI::BObj
 
     //##ModelId=3F98D9D100B9
     //##Documentation
-    //## Called from execute() to compute the result of a request.
-    //##  childres is a vector of child results (empty if no children);
-    //##  req is request; newreq is true if the request is new.
+    //## Called from execute() to compute the result of a request, when
+    //## the request contains a Cells field, and eval mode is GET_RESULT 
+    //## or higher.
+    //##    childres: vector of child results (empty if no children);
+    //##    req:      request; 
+    //##    newreq:   true if the request is new.
     //## Result should be created and attached to resref. Return code indicates
     //## result properties. If the RES_WAIT flag is returned, then no result is 
     //## expected; otherwise a Result must be attached to the ref.
@@ -660,6 +663,22 @@ class Node : public DMI::BObj
     virtual int getResult (Result::Ref &resref, 
                            const std::vector<Result::Ref> &childres,
                            const Request &req,bool newreq);
+    
+    //##Documentation
+    //## Called from execute() when request contains a Cells field, and eval
+    //## mode is DISCOVER_SPIDS
+    //##    resref:   ref to Result, may be invalid, in which case
+    //##              a result should be attached as needed.
+    //##    childres: vector of child results (empty if no children);
+    //##    cells:    cells for which spids are requested;
+    //##    req:      request for which spids are requested;
+    //## Return code indicates result properties, and is added
+    //## to the execute() return code.
+    //## RES_FAIL may be returned to indicate complete failure.
+    //## Default version simply merges spid maps of all children.
+    virtual int discoverSpids (Result::Ref &resref, 
+                               const std::vector<Result::Ref> &childres,
+                               const Request &req);
     
     // ----------------- symdep and depmask management ------------------------
     
@@ -852,10 +871,13 @@ class Node : public DMI::BObj
     //## control_status word
     int control_status_;
     
+    //## vector of child results, filled in during execute()
+    std::vector<Result::Ref> child_results_;
     //## vector of child return codes, filled in by pollChildren()
     std::vector<int> child_retcodes_;
     //## vector of stepchild return codes, filled in by pollStepChildren()
     std::vector<int> stepchild_retcodes_;
+    std::vector<const Result *> child_fails_;
     
     // cache policy setting
     int cache_policy_;
@@ -871,6 +893,7 @@ class Node : public DMI::BObj
     //##ModelId=400E531F0085
     void initChildren (int nch);
     void initStepChildren (int nch);
+    void allocChildSupport (int nch);
     //##ModelId=3F8433C20193
     // adds a child or stepchild. A child may be specified by index or label
     // (if labels are defined); stepchildren always use indices.
@@ -1018,10 +1041,11 @@ class Node : public DMI::BObj
     {
       public:
         // sets the cache
-        void set (const Result::Ref &resref,const RequestId &rq,int code)
+        void set (const Result::Ref &resref,const Request &req,int code)
         {
           result  = resref;
-          rqid    = rq;
+          rqid    = req.id();
+          service_flag = req.serviceFlag();
           rescode = code;
           recref_.detach();
         }
@@ -1045,6 +1069,7 @@ class Node : public DMI::BObj
         Result::Ref result;
         RequestId   rqid;
         int         rescode;
+        bool        service_flag;
         
       private:
         DMI::Record::Ref recref_;

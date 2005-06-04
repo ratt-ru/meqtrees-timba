@@ -208,6 +208,11 @@ const int AidDeriv_int = -1324;
 const DMI::AtomicID AidDims(-1513);               // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:32
 const int AidDims_int = -1513;
 #endif
+#ifndef _defined_id_AidDiscover
+#define _defined_id_AidDiscover 1
+const DMI::AtomicID AidDiscover(-1556);           // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:41
+const int AidDiscover_int = -1556;
+#endif
 #ifndef _defined_id_AidDomain
 #define _defined_id_AidDomain 1
 const DMI::AtomicID AidDomain(-1256);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:37
@@ -232,6 +237,11 @@ const int AidEpsilon_int = -1377;
 #define _defined_id_AidErrors 1
 const DMI::AtomicID AidErrors(-1310);             // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 const int AidErrors_int = -1310;
+#endif
+#ifndef _defined_id_AidEval
+#define _defined_id_AidEval 1
+const DMI::AtomicID AidEval(-1557);               // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:41
+const int AidEval_int = -1557;
 #endif
 #ifndef _defined_id_AidFail
 #define _defined_id_AidFail 1
@@ -478,6 +488,11 @@ const int AidMessage_int = -1269;
 const DMI::AtomicID AidMetrics(-1363);            // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 const int AidMetrics_int = -1363;
 #endif
+#ifndef _defined_id_AidMode
+#define _defined_id_AidMode 1
+const DMI::AtomicID AidMode(-1215);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
+const int AidMode_int = -1215;
+#endif
 #ifndef _defined_id_AidMu
 #define _defined_id_AidMu 1
 const DMI::AtomicID AidMu(-1362);                 // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
@@ -683,6 +698,11 @@ const int AidSecond_int = -1535;
 const DMI::AtomicID AidSegments(-1287);           // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 const int AidSegments_int = -1287;
 #endif
+#ifndef _defined_id_AidService
+#define _defined_id_AidService 1
+const DMI::AtomicID AidService(-1558);            // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:42
+const int AidService_int = -1558;
+#endif
 #ifndef _defined_id_AidSet
 #define _defined_id_AidSet 1
 const DMI::AtomicID AidSet(-1272);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
@@ -732,6 +752,11 @@ const int AidSolver_int = -1373;
 #define _defined_id_AidSpid 1
 const DMI::AtomicID AidSpid(-1340);               // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:36
 const int AidSpid_int = -1340;
+#endif
+#ifndef _defined_id_AidSpids
+#define _defined_id_AidSpids 1
+const DMI::AtomicID AidSpids(-1555);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:41
+const int AidSpids_int = -1555;
 #endif
 #ifndef _defined_id_AidStart
 #define _defined_id_AidStart 1

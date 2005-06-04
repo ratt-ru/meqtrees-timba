@@ -177,6 +177,7 @@ const DMI::Record & Node::Cache::record ()
     rec.add(FResult,result);
     rec[FRequestId] = rqid;    
     rec[FResultCode] = rescode;
+    rec[FServiceFlag] = service_flag;
   }
   return rec;
 }
@@ -195,6 +196,7 @@ bool Node::Cache::fromRecord (const Record &rec)
     result <<= rec[FResult].as_p<Result>();
     rqid = rec[FRequestId].as<HIID>();
     rescode = rec[FResultCode].as<int>();
+    service_flag = rec[FServiceFlag].as<bool>(false);
     return true;
   }
   catch( std::exception &exc )
@@ -506,16 +508,15 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   // Check that cached result is applicable:
   // (1) An empty reqid never matches, hence it can be used to 
   //     always force a recalculation.
-  // (2) A cached RES_VOLATILE code requires an exact ID match
-  //     (i.e. volatile results recomputed for any different request)
+  // (2) A cached RES_VOLATILE code, or a service flag on current or
+  //      previous request requires an exact ID match.
   // (3) Otherwise, do a masked compare using the cached result code
   cdebug(4)<<"checking cache: request "<<cache_.rqid<<", code "<<ssprintf("0x%x",cache_.rescode)<<endl;
 //   fprintf(flog,"%s: cache contains %s, code %x, request is %s\n",
 //           name().c_str(),
 //           cache_.rqid.toString().c_str(),cache_.rescode,req.id().toString().c_str());
-  if( !req.id().empty() && !cache_.rqid.empty() && 
-      !req.hasCacheOverride() &&
-      (cache_.rescode&RES_VOLATILE 
+  if( !req.id().empty() && !cache_.rqid.empty() &&
+      ( ( cache_.rescode&RES_VOLATILE || req.serviceFlag() || cache_.service_flag )
         ? req.id() == cache_.rqid
         : RqId::maskedCompare(req.id(),cache_.rqid,cache_.rescode) ) )
   {
@@ -555,6 +556,9 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
   int npar = pcparents_->nact ? pcparents_->nact : pcparents_->npar ; 
   pcparents_->nhint = pcparents_->nhold = 0;
   *pcrescode_ = retcode&((1<<RQIDM_NBITS)-1);
+  // clear child results if we're holding any
+  for( uint i=0; i<child_results_.size(); i++ )
+    child_results_[i].detach();
   // policy decided by ourselves or forest
   actual_cache_policy_ = cache_policy_;
   if( actual_cache_policy_ == CACHE_DEFAULT )
@@ -579,7 +583,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
   else if( actual_cache_policy_ < CACHE_ALWAYS )  // some form of smart caching 
   {
     // cache if result is not invalidated by next request
-    longcache = !(diffmask&retcode);
+    longcache = !(diffmask&retcode) && !req.serviceFlag();
     do_cache = longcache || npar > 1;
   }
   else    // CACHE_ALWAYS: always retain cache
@@ -603,7 +607,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
         pcs_new_->longcached++;
     }
     // update the rest
-    cache_.set(ref,req.id(),retcode&~RES_UPDATED);
+    cache_.set(ref,req,retcode&~RES_UPDATED);
     cdebug(3)<<"caching result "<<req.id()<<" with code "<<ssprintf("0x%x",retcode&~RES_UPDATED)<<endl;
     // control status set directly (not via setControlStatus call) because
     // caller (execute(), presumably) is going to update status anyway
@@ -620,7 +624,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
     // if we need to publish state, insert cache temporarily
     if( result_event_gen_.active() )
     {
-      cache_.set(ref,req.id(),retcode&~RES_UPDATED);
+      cache_.set(ref,req,retcode&~RES_UPDATED);
       syncState();
       result_event_gen_.generateEvent(staterec_.copy());  
     }
@@ -839,10 +843,9 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   bool cache_result = false;
   int retcode = 0;
   cdebug(3)<<"  calling execute() on "<<numChildren()<<" child nodes"<<endl;
-  std::vector<const Result *> child_fails; // RES_FAILs from children are kept track of separately
-  child_fails.reserve(numChildren());
   int nfails = 0;
   timers_.children.start();
+  child_fails_.resize(0);
   for( int i=0; i<numChildren(); i++ )
   {
     int childcode = child_retcodes_[i] = getChild(i).execute(child_results[i],req);
@@ -856,7 +859,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
 //         chres[i] <<= pchildres;
       if( childcode&RES_FAIL )
       {
-        child_fails.push_back(pchildres);
+        child_fails_.push_back(pchildres);
         nfails += pchildres->numFails();
       }
     }
@@ -868,16 +871,16 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   pollStepChildren(req);
   timers_.children.stop();
   // if any child has completely failed, return a Result containing all of the fails 
-  if( !child_fails.empty() )
+  if( !child_fails_.empty() )
   {
     if( propagate_child_fails_ )
     {
       cdebug(3)<<"  got RES_FAIL from children ("<<nfails<<"), returning fail-result"<<endl;
       Result &result = resref <<= new Result(nfails);
       int ires = 0;
-      for( uint i=0; i<child_fails.size(); i++ )
+      for( uint i=0; i<child_fails_.size(); i++ )
       {
-        const Result &childres = *(child_fails[i]);
+        const Result &childres = *(child_fails_[i]);
         for( int j=0; j<childres.numVellSets(); j++ )
         {
           const VellSet &vs = childres.vellSet(j);
@@ -974,6 +977,7 @@ int Node::resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int r
 //     }
 //   }
   // init other stuff
+  child_results_.resize(numChildren());
   child_retcodes_.resize(numChildren());
   stepchild_retcodes_.resize(numStepChildren());
   // pass recursively onto children
@@ -1055,6 +1059,38 @@ int Node::processCommands (const DMI::Record &rec,Request::Ref &reqref)
 // or should we? I think we should (if only to ignore the same command
 // coming from multiple parents)
   return RES_VOLATILE;
+}
+
+int Node::discoverSpids (Result::Ref &ref,
+                         const std::vector<Result::Ref> &child_results,
+                         const Request &)
+{
+  Result *presult = 0;
+  // loop over child results
+  for( uint i=0; i<child_results.size(); i++ )
+  {
+    const Result &chres = *child_results[i];
+    const DMI::Record *pchmap = chres[FSpidMap].as_po<DMI::Record>();
+    if( pchmap )
+    {
+      // no output result yet? simply attach copy of this result
+      if( !ref.valid() )
+        ref.attach(chres);
+      // else have a result
+      else 
+      {
+        if( !presult )
+          presult = ref.dewr_p(); // COW the result
+        // does it have a spid map? If not, insert child's map
+        DMI::Record *pmap = presult->as_po<DMI::Record>(FSpidMap);
+        if( !pmap )
+          presult->add(FSpidMap,pchmap);
+        else // else merge child spid map into result map
+          pmap->merge(*pchmap,false);
+      }
+    }
+  }
+  return 0;
 }
 
 //##ModelId=3F6726C4039D
@@ -1141,11 +1177,11 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       retcode = 0;
     }
     // Pass request on to children and accumulate their results
-    std::vector<Result::Ref> child_results(numChildren());
+    int result_status; // result status, this will be placed into our control_status
     if( numChildren() )
     {
       stage = "polling children";
-      retcode |= pollChildren(child_results,ref,req);
+      retcode |= pollChildren(child_results_,ref,req);
       // a WAIT from any child is returned immediately w/o a result
       if( retcode&RES_WAIT )
       {
@@ -1162,48 +1198,56 @@ int Node::execute (Result::Ref &ref,const Request &req0)
         return ret;
       }
       // if request has cells, then resample children (will do nothing if disabled)
-      resampleChildren(rescells,child_results);
+      resampleChildren(rescells,child_results_);
     }
     // does request have a Cells object? Compute our Result then
     if( req.hasCells() )
     {
       setExecState(CS_ES_EVALUATING);
-      stage = "getting result";
-      cdebug(3)<<"  calling getResult(): cells are "<<req.cells();
-      timers_.getresult.start();
-      int code = getResult(ref,child_results,req,new_request_);
-      timers_.getresult.stop();
-      // default dependency mask added to return code
-      retcode |= code | getDependMask();
-      cdebug(3)<<"  getResult() returns code "<<ssprintf("0x%x",code)<<
-          ", cumulative "<<ssprintf("0x%x",retcode)<<endl;
-      // a WAIT is returned immediately with no valid result expected
-      if( code&RES_WAIT )
+      // normal getResult() mode
+      if( req.evalMode() >= Request::GET_RESULT )
       {
-        setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
-        timers_.total.stop();
-        return retcode;
+        stage = "getting result";
+        cdebug(3)<<"  calling getResult(): cells are "<<req.cells();
+        timers_.getresult.start();
+        int code = getResult(ref,child_results_,req,new_request_);
+        timers_.getresult.stop();
+        // default dependency mask added to return code
+        retcode |= code | getDependMask();
+        cdebug(3)<<"  getResult() returns code "<<ssprintf("0x%x",code)<<
+            ", cumulative "<<ssprintf("0x%x",retcode)<<endl;
+        // a WAIT is returned immediately with no valid result expected
+        if( code&RES_WAIT )
+        {
+          setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
+          timers_.total.stop();
+          return retcode;
+        }
+        // else we must have a valid Result object now, even if it's a fail.
+        // (in case of RES_FAIL, getResult() should have put a fail in there)
+        if( !ref.valid() )
+        {
+          NodeThrow1("must return a valid Result or else RES_WAIT");
+        }
+        // Set Cells in the Result object as needed
+        // (will do nothing when no variability)
+        if( !ref->hasCells() && rescells.valid() )
+          ref().setCells(*rescells);
       }
-      // else we must have a valid Result object now, even if it's a fail.
-      // (in case of RES_FAIL, getResult() should have put a fail in there)
-      if( !ref.valid() )
+      else // else spid discovery mode
       {
-        NodeThrow1("must return a valid Result or else RES_WAIT");
+        retcode |= discoverSpids(ref,child_results_,req);
       }
+      result_status = retcode&RES_FAIL ? CS_RES_FAIL : CS_RES_OK;
     }
-    else // no cells, ensure an empty result
+    else // no cells at all, allocate an empty result
     {
-      ref <<= new Result(0);
-      cdebug(3)<<"  empty result. Cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
-      int ret = cacheResult(ref,req0,retcode) | RES_UPDATED;
-      setExecState(CS_ES_IDLE,control_status_|CS_RES_EMPTY);
-      timers_.total.stop();
-      return ret;
+      result_status = CS_RES_EMPTY;
     }
-    // Set Cells in the Result object as needed
-    // (will do nothing when no variability)
-    if( !ref->hasCells() && rescells.valid() )
-      ref().setCells(*rescells);
+    // end of request processing
+    // still no result? allocate an empty one just in case
+    if( !ref.valid() )
+      ref <<= new Result(0);
     // OK, at this point we have a valid Result to return
     if( DebugLevel>=3 ) // print it out
     {
@@ -1216,8 +1260,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     }
     // cache & return accumulated return code
     int ret = cacheResult(ref,req0,retcode) | RES_UPDATED;
-    int st = ret&RES_FAIL ? CS_RES_FAIL : CS_RES_OK;
-    setExecState(CS_ES_IDLE,control_status_|st);
+    setExecState(CS_ES_IDLE,control_status_|result_status);
     timers_.total.stop();
     return ret;
   }

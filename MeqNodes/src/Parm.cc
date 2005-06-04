@@ -43,10 +43,10 @@ namespace Meq {
 
   InitDebugContext(Parm,"MeqParm");
 
-const HIID symdeps_all[]     = { FDomain,FResolution,FIteration,FSolution };
+const HIID symdeps_all[]     = { FDomain,FResolution,FIteration };
 const HIID symdeps_domain[]  = { FDomain,FResolution };
 const HIID symdeps_solve[]   = { FIteration };
-const HIID symdeps_default[] = { FSolution };
+const HIID symdeps_default[] = { };
 
 const HIID
     // Parm staterec fields
@@ -260,6 +260,28 @@ const HIID
     return pfunklet;
   }
 
+  // creates spid map in output result
+  int Parm::discoverSpids (Result::Ref &ref,
+                           const std::vector<Result::Ref> &,
+                           const Request &request)
+  {
+    // init solvable funklet for this request
+    Funklet * pfunklet = initFunklet(request,True);
+    if( !pfunklet->isSolvable() )
+    	initSolvable(*pfunklet,request);
+    // get spids from funklet
+    const std::vector<int> & spids = pfunklet->getSpids();
+    ref <<= new Result(0);
+    // populate spid map with default spid description record containing
+    // just our node name
+    DMI::Record::Ref defrec(DMI::ANONWR);
+    defrec[AidName] = name();
+    DMI::Record &map = ref()[FSpidMap] <<= new DMI::Record; 
+    for( uint i=0; i<spids.size(); i++ )
+      map[spids[i]] = defrec; 
+    return domain_depend_mask_|solve_depend_mask_;
+  }
+
   //##ModelId=3F86886F022E
   int Parm::getResult (Result::Ref &resref,
 		       const std::vector<Result::Ref> &,
@@ -267,7 +289,7 @@ const HIID
   {
     cdebug(3)<<"evaluating parm for domain "<<request.cells().domain()<<endl;
     // is request for solvable parm values?
-    bool solve = isSolvable() && request.calcDeriv();
+    bool solve = isSolvable() && request.evalMode() > Request::GET_RESULT;
     // find a funklet to use
     Funklet * pfunklet = initFunklet(request,solve);
     // if funklet not set to solvable, do some extra init
@@ -287,7 +309,7 @@ const HIID
     // Create result object and attach to the ref that was passed in
     //    Result &result = resref <<= new Result(1,request); // result has one vellset
     Result &result = resref <<= new Result(1); // result has one vellset
-    VellSet & vs = result.setNewVellSet(0,0,request.calcDeriv());
+    VellSet & vs = result.setNewVellSet(0,0,request.evalMode());
     cdebug(3)<<"evaluating funklet"<<endl;
     pfunklet->evaluate(vs,request);
   

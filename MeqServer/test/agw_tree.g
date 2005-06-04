@@ -133,7 +133,7 @@ cells := meq.cells(test_domain,num_freq=8,num_time=4);
 #### 14
 # now create a calculation request for the 'cells' object - we just want 
 # to calculate first order derivatives
-request := meq.request(cells,rqid=meq.rqid(),calc_deriv=1);
+request := meq.request(cells,rqid=meq.rqid(),eval_mode=1);
 
 #### 15
 # finally tell the solver to execute the request

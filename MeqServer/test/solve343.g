@@ -924,7 +924,7 @@ polar_test := function()
     mqs.resolve('G');
 
     cells := meq.cells(meq.domain(0,1,0,1),1,1);
-    request := meq.request(cells,rqid=meq.rqid(),calc_deriv=F);
+    request := meq.request(cells,rqid=meq.rqid(),eval_mode=F);
     res := mqs.meq('Node.Execute', [name='G',request=request], F);
 }
 
@@ -970,7 +970,7 @@ visphaseshift_test := function()
     mqs.createnode(vis);
     mqs.resolve('vis');
     cells := meq.cells(meq.domain(1e+9,1.2e+9,0,1),20,10);
-    request := meq.request(cells,rqid=meq.rqid(),calc_deriv=F);
+    request := meq.request(cells,rqid=meq.rqid(),eval_mode=F);
     res := mqs.meq('Node.Execute', [name='vis',request=request], F);
 }
 

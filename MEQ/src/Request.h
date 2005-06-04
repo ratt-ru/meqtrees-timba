@@ -43,6 +43,14 @@ class Node;
 class Request : public DMI::Record
 {
 public:
+  typedef enum 
+  {
+    DISCOVER_SPIDS = -1,
+    GET_RESULT     = 0,
+    DERIV_SINGLE   = 1,
+    DERIV_DOUBLE   = 2
+  } EvaluationMode;
+    
     //##ModelId=400E53040057
   typedef CountedRef<Request> Ref;
     
@@ -57,11 +65,11 @@ public:
     //##ModelId=400E535403DD
   //##Documentation
   //## Create the request from the cells for which the expression has
-  //## to be calculated. Optionally no derivatives are calculated.
-  explicit Request (const Cells&, int calcDeriv=1, const HIID &id=HIID(),int cellflags=DMI::AUTOCLONE);
+  //## to be evaluated. 
+  explicit Request (const Cells &, int evmode = DERIV_SINGLE, const HIID &id=HIID(),int cellflags=DMI::AUTOCLONE);
   
     //##ModelId=400E53550016
-  explicit Request (const Cells *, int calcDeriv=1, const HIID &id=HIID(),int cellflags=0);
+  explicit Request (const Cells *, int evmode = DERIV_SINGLE, const HIID &id=HIID(),int cellflags=0);
 
     //##ModelId=400E53550034
   virtual TypeId objectType () const
@@ -82,16 +90,19 @@ public:
   
     //##ModelId=3F868870006C
   //##Documentation
-  //## Calculate derivatives? 0 for none, 1 for standard, 2 for double-deriv
-  int calcDeriv() const
-  { return calc_deriv_; }
+  //## Evaluation mode (only makes sense if Cells are attached).
+  //## See enum EvluationMode above for details
+  int evalMode () const
+  { return eval_mode_; }
   
-  void setCalcDeriv (int calc);
+  void setEvalMode (int em);
   
-  bool hasCacheOverride () const
-  { return cache_override_; }
+  //## Service flag. Requests with a service flag bypass the normal cache.
+  //## Used for requests that manage tree state, etc.
+  bool serviceFlag () const
+  { return service_flag_; }
 
-  void setCacheOverride (bool flag=true);
+  void setServiceFlag (bool flag=true);
   
     //##ModelId=3F868870006E
   //##Documentation
@@ -165,11 +176,11 @@ private:
     //##ModelId=3F86BFF80269
   Cells::Ref * pcells_;
     //##ModelId=3F868870003C
-  int    calc_deriv_;
+  int    eval_mode_;
   
   bool   has_rider_;
   
-  bool   cache_override_;
+  bool   service_flag_;
 };
 
 

@@ -9,7 +9,18 @@ namespace Meq {
 
 using Debug::ssprintf;
 
-// this initializes the children-related fields
+// this initializes the children-related members. Called from init() and reinit()
+void Node::allocChildSupport (int nch)
+{
+  children_.resize(nch);
+  child_results_.resize(nch);
+  child_retcodes_.resize(nch);
+  child_fails_.reserve(nch);
+  rcr_cache_.resize(nch);
+}
+
+// this initializes the children-related state fields, called from init()
+// only. reinit() uses its own code, see below
 //##ModelId=400E531F0085
 void Node::initChildren (int nch)
 {
@@ -22,7 +33,7 @@ void Node::initChildren (int nch)
     FailWhen( nch != check_nchildren_,
               ssprintf("%d children specified, %d expected",nch,check_nchildren_) );
   }
-  children_.resize(nch);
+  allocChildSupport(nch);
   // form the children name/index fields
   if( nch )
   {
@@ -356,7 +367,6 @@ void Node::init (DMI::Record::Ref &initrec, Forest* frst)
         Throw("mandatory child "+getChildLabel(i).toString()+" not specified" );
       }
   }
-  rcr_cache_.resize(numChildren());
   cdebug(2)<<"initialized with "<<numChildren()<<" children"<<endl;
   cdebug(2)<<"initializing node step children"<<endl;
   setupChildren(rec,true);
@@ -395,11 +405,9 @@ void Node::reinit (DMI::Record::Ref &initrec, Forest* frst)
   int nch = rec[FChildrenNames].size();
   if( nch )
   {
-    children_.resize(nch);
-    child_retcodes_.resize(nch);
+    allocChildSupport(nch);
     for( int i=0; i<nch; i++ )
       child_map_[getChildLabel(i)] = i;
-    rcr_cache_.resize(nch);
     cdebug(2)<<"reinitialized with "<<nch<<" children"<<endl;
   }
   else
