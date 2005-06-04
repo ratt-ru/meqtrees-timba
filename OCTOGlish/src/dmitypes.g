@@ -132,7 +132,6 @@ const dmi.add_list := function (ref list,...)
 {
   if( !dmi.is_type(list,'DMIList') )
     return dmi._fail('add_list: first argument must be a dmi.list');
-  print num_args(...);
   if( num_args(...) )
     for( i in 1:num_args(...) )
     {
