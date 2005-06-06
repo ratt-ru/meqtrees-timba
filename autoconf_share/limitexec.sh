@@ -26,20 +26,24 @@
 # A poor man's implementation of LimitExec.
 #
 
-if test $# -ne 2; then
-  echo "Usage: limitexec.sh <max-runtime(sec)> <executable>" >&2
+if test $# -lt 2; then
+  echo "Usage: limitexec.sh <max-runtime(sec)> <executable> [<arguments>]" >&2
   exit 1
 fi
 
-# Start the program specified by $2 in the background.
-$2 &
+MAXTIME=$1
+PROGRAM=$2
+shift 2
+
+# Start the program specified by $PROGRAM in the background.
+$PROGRAM $* &
 
 # Check every second if the program is still running. Kill the program
-# when the maximum execution time, specified by $1, has elapsed.
+# when the maximum execution time, specified by $MAXTIME, has elapsed.
 # Note: pid of last started background program is $!.
 sec=0
-while ps | awk '{print $1}' | grep $! >/dev/null; do
-  if test $sec -ge $1; then
+while ps | awk '{print $MAXTIME}' | grep $! >/dev/null; do
+  if test $sec -ge $MAXTIME; then
     echo "limitexec.sh: Process $! has exceeded time limit and will be killed." >&2
     kill -9 $!
     exit 255
