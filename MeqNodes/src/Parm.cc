@@ -172,9 +172,19 @@ const HIID
 	if( !funkletref.valid() )
 	  {
 	    const Funklet *deffunklet = state()[FDefaultFunklet].as_po<Funklet>();
-	    FailWhen(!deffunklet,"no funklets found and no default_funklet specified");
-	    cdebug(3)<<"no funklets found, using default value from state record, type "<<deffunklet -> objectType()<<endl;
-	    funkletref <<= deffunklet;
+	    //	    FailWhen(!deffunklet,"no funklets found and no default_funklet specified");
+	    if(!deffunklet) {
+	      cdebug(3)<<"no funklets found, try reusing old one "<<endl;
+	      Funklet *oldfunklet = wstate()[FFunklet].as_wpo<Funklet>();
+	      FailWhen(!oldfunklet,"no funklets found,no default_funklet and no funklet specified");
+	      //reset dbid
+	      oldfunklet-> setDbId (-1);
+	      funkletref <<= oldfunklet;
+	    }
+	    else{
+	      cdebug(3)<<"no funklets found, using default value from state record, type "<<deffunklet -> objectType()<<endl;
+	      funkletref <<= deffunklet;
+	    }
 	  }
 	funkletref().clearSolvable();
 	funkletref().setDomain(domain);
@@ -457,6 +467,8 @@ const HIID
 	else    // else open a table
 	  {
 	    cdebug(3)<<"opening table: "<<tableName<<endl;
+	    //check if table exists, otherwise create.
+	    
 	    parmtable_ = ParmTable::openTable(tableName);
 	  }
       }//if rec[TableName]
@@ -495,7 +507,7 @@ const HIID
 	    HIID req_domain_id = RqId::maskSubId(reqref->id(),domain_depend_mask_);
 	    if( req_domain_id == domain_id_ )
 	      {
-		cdebug(4)<<"got "<<FUpdateValues<<" command"<<endl;
+		cdebug(2)<<"got "<<FUpdateValues<<" command"<<endl;
 		// Update the funklet coefficients with the new values.
 		LoVec_double values = hset.as<LoVec_double>();
 		Funklet &funklet = wstate()[FFunklet].as_wr<Funklet>();

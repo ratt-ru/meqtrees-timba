@@ -386,9 +386,14 @@ ParmTable* ParmTable::openTable (const String& tableName)
   if (p != theirTables.end()) {
     return p->second;
   }
+  //check if table is existing otherwise create
+  if(!(Table::isReadable(tableName)))
+    ParmTable::createTable(tableName);
+  
   ParmTable* tab = new ParmTable(tableName);
   theirTables[tableName] = tab;
   return tab;
+
 }
 
 //##ModelId=3F95060D0372
