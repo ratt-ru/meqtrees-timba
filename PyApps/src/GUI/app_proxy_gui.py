@@ -121,7 +121,7 @@ class Logger(HierBrowser):
     HierBrowser.__init__(self,self._vbox,name,udi_root=udi_root);
     # add controls
     self._controlgrid = QWidget(self._vbox);
-    self._controlgrid_lo = QGridLayout(self._controlgrid,2,6);
+    self._controlgrid_lo = QGridLayout(self._controlgrid,3,6);
     self._controlgrid_lo.setColStretch(0,1000);
     self._controlgrid_lo.setColSpacing(1,8);
     self._controlgrid_lo.setColSpacing(3,8);
@@ -133,14 +133,14 @@ class Logger(HierBrowser):
       self._enable = QCheckBox("log",self._controlgrid);
       self._enable.setChecked(enable);
       QObject.connect(self._enable,SIGNAL('toggled(bool)'),self._toggle_enable);
-      self._controlgrid_lo.addWidget(self._enable,0,2);
+      self._controlgrid_lo.addWidget(self._enable,1,2);
     else:
       self._enable = None;
     # scroll control
     if scroll is not None:
       self._scroll = QCheckBox("scroll",self._controlgrid);
       self._scroll.setChecked(scroll);
-      self._controlgrid_lo.addWidget(self._scroll,1,2);
+      self._controlgrid_lo.addWidget(self._scroll,2,2);
     else:
       self._scroll = None;
     # limit control
@@ -154,22 +154,22 @@ class Logger(HierBrowser):
                       self._limit_field,SLOT('setEnabled(bool)'));
       self.wtop().connect(self._limit_field,SIGNAL('returnPressed()'),
                       self._enter_log_limit);
-      self._controlgrid_lo.addWidget(self._limit_enable,0,4);
-      self._controlgrid_lo.addWidget(self._limit_field,1,4);
+      self._controlgrid_lo.addWidget(self._limit_enable,1,4);
+      self._controlgrid_lo.addWidget(self._limit_field,2,4);
     else:
       self._limit_enable = None;
     # auto-clear control
     if auto_clear is not None:
-      self._auto_clear = QCheckBox("clear on connect",self._controlgrid);
+      self._auto_clear = QCheckBox("autoclear",self._controlgrid);
       self._auto_clear.setChecked(auto_clear);
-      self._controlgrid_lo.addWidget(self._auto_clear,0,6);
+      self._controlgrid_lo.addWidget(self._auto_clear,1,6);
     else:
       self._auto_clear = None;
     # clear button
     if use_clear:
       clear = QPushButton("Clear",self._controlgrid);
       QObject.connect(clear,SIGNAL("clicked()"),self.clear);
-      self._controlgrid_lo.addWidget(clear,1,6);
+      self._controlgrid_lo.addWidget(clear,2,6);
     # connect click callback
     if callable(click):
       self._lv.connect(self._lv,
@@ -285,10 +285,10 @@ class Logger(HierBrowser):
 class EventLogger (Logger):
   def __init__(self,parent,name,evmask="*",*args,**kwargs):
     Logger.__init__(self,parent,name,scroll=True,*args,**kwargs);
-    label = QLabel('Event mask:',self._controlgrid);
-    self._controlgrid_lo.addWidget(label,0,0);
+    # label = QLabel('Event mask:',self._controlgrid);
+    # self._controlgrid_lo.addWidget(label,0,0);
     self._evmask_field  = QLineEdit(str(evmask),self._controlgrid);
-    self._controlgrid_lo.addMultiCellWidget(self._evmask_field,1,1,0,0);
+    self._controlgrid_lo.addMultiCellWidget(self._evmask_field,0,0,2,6);
     self.wtop().connect(self._evmask_field,SIGNAL('returnPressed()'),
                         self._enter_mask);
     self.set_mask('*');
@@ -350,8 +350,13 @@ class MessageLogger (Logger):
                         self._clear_error_count);
     
   def add (self,msg,category=Logger.Normal,*args,**kwargs):
-    udi_key = "%d:%s" % (self._event_count,time.strftime("%H%M%S"));
-    Logger.add(self,msg,category=category,udi_key=udi_key,*args,**kwargs);
+    label = time.strftime("%H:%M:%S");
+    kw = kwargs.copy();
+    kw['udi_key'] = "%d:%s" % (self._event_count,label);
+    kw['name'] = "message @%s" % (label,);
+    kw['caption'] = "message <small>%s</small>" % (label,);
+    kw['desc'] = "message at %s" % (label,);
+    Logger.add(self,msg,category=category,*args,**kw);
     # keep track of new errors
     if category is Logger.Error:
       items = self.get_items();
@@ -410,7 +415,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     #------ split main window in two
     splitter = self.splitter = QSplitter(QSplitter.Horizontal,main_parent or self);
     splitter.setFrameStyle(QFrame.Box+QFrame.Plain);
-    splitter.setChildrenCollapsible(False);
+    splitter.setChildrenCollapsible(True);
   
     #------ create top-level tab bar
     self.maintab = maintab = QTabWidget(splitter);
@@ -612,7 +617,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       if not self._connected and ev0 != hiid('bye'):
         self._connected_event(ev,value);
     except:
-      (exctype,excvalue,tb) = sys.exc_info();
+      (exctype,excvalue) = sys.exc_info()[:2];
       self.dprint(0,'exception',str(exctype),'while handling event ',ev);
       traceback.print_exc();
       

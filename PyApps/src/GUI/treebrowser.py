@@ -518,15 +518,23 @@ class TreeBrowser (QObject):
     self._set_debug_control(self.debug_level>0);
     # toolbar
     for act in self._toolbar_actions:
+      # call _is_visible() to setup visibility
       try:
         visible = act._is_visible();
       except AttributeError: pass;
+      except:
+        _dprint(0,'exception while calling _is_visible on tb action:',sys.exc_info());
+        traceback.print_exc();
       else:
         _dprint(4,'action',act.text(),'visible:',enable);
         act.setVisible(visible);
+      # call _is_enabled() to setup enabledness
       try:
         enable = act._is_enabled();
       except AttributeError: pass;
+      except:
+        _dprint(0,'exception while calling _is_enabled on tb action:',sys.exc_info());
+        traceback.print_exc();
       else:
         _dprint(4,'action',act.text(),'enabled:',enable);
         act.setEnabled(enable);

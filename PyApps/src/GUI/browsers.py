@@ -315,7 +315,7 @@ class HierBrowser (object):
         # create menu
         menu = self._context_menu = QPopupMenu(self.listView());
         menu._callbacks = [];
-        menu.insertItem(' '.join((self._name,self._desc)));
+        menu.insertItem(self._desc or self._name or str(self.text(0)));
         menu.insertSeparator();
         # insert Copy item
         copy_item = menu.insertItem(pixmaps.editcopy.iconset(),'&Copy to clipboard',self.copy_to_clipboard);
@@ -470,7 +470,7 @@ class HierBrowser (object):
       
   # slot: called to show a context menu for an item
   def _show_context_menu (self,item,point,col):
-    menu = item.get_context_menu();
+    menu = item and item.get_context_menu();
     if menu is not None:
       menu.exec_loop(point);
 
