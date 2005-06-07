@@ -117,8 +117,13 @@ const meq.node := function (class,name,extra=[=],children=F,step_children=F,defa
   if( len(groups) )
     defrec.node_groups := dmi.hiid_list(groups);
   if( len(extra) )
-    for( f in field_names(extra) )
+    for( f in field_names(extra) ){
+
       defrec[f] := extra[f];
+
+	print "f ",f,extra[f];
+	}
+  print defrec;
   return defrec;
 }
 
@@ -177,14 +182,14 @@ const meq.parm := function (name,default=F,extra=[=],polc=F,groups="")
   # set default if specified
   if( !is_boolean(default) )
   {
-    if( !is_dmi_type(default,'MeqPolc') && !is_dmi_type(default,'MeqLogPolc'))
+    if( !is_dmi_type(default,'MeqPolc') && !is_dmi_type(default,'MeqPolcLog'))
       default := meq.polc(default);
     rec.default_funklet := default;
   }
   # set polcs if specified
   if( is_record(polc) )
   {
-    if( is_dmi_type(polc,'MeqPolc')  || is_dmi_type(polc,'MeqLogPolc')) # single polc
+    if( is_dmi_type(polc,'MeqPolc')  || is_dmi_type(polc,'MeqPolcLog')) # single polc
     {
       rec.polcs := [=];
       rec.polcs['#1'] := polc;
@@ -194,7 +199,7 @@ const meq.parm := function (name,default=F,extra=[=],polc=F,groups="")
     {
       for( i in 1:len(polc) )  # else must be a vector of polcs
       {
-        if( !is_dmi_type(polc[i],'MeqPolc') && !is_dmi_type(polc[i],'MeqLogPolc'))
+        if( !is_dmi_type(polc[i],'MeqPolc') && !is_dmi_type(polc[i],'MeqPolcLog'))
           fail 'meq.parm: polc argument must be a meq.polc or a vector of meqpolcs';
 	polct := polc[i];
       }
@@ -202,8 +207,8 @@ const meq.parm := function (name,default=F,extra=[=],polc=F,groups="")
     }
   if( is_dmi_type(polct,'MeqPolc'))
      const rec.polcs::dmi_datafield_content_type := 'MeqPolc';
-  if( is_dmi_type(polct,'MeqLogPolc'))
-     const rec.polcs::dmi_datafield_content_type := 'MeqLogPolc';
+  if( is_dmi_type(polct,'MeqPolcLog'))
+     const rec.polcs::dmi_datafield_content_type := 'MeqPolcLog';
   }
   return rec;
 }
