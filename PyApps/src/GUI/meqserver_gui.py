@@ -264,6 +264,7 @@ class meqserver_gui (app_proxy_gui):
     # optional tab views
     self.resultlog.wtop()._show_qaction.addTo(view_menu);
     self.eventtab._show_qaction.addTo(view_menu);
+    self.show_tab(self.eventtab,False);
     # process status view
     showps = QAction("&Process status",0,self);
     showps.addTo(view_menu);
