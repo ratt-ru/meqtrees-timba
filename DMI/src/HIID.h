@@ -36,7 +36,7 @@ namespace DMI
 {
 
 //##ModelId=3C55652D01B8
-typedef std::vector<AtomicID,DMI_Allocator<AtomicID> > HIID_Base;
+typedef std::vector<AtomicID,DMI_Pool_Allocator<AtomicID> > HIID_Base;
 
 
 //##ModelId=3BE96FE601C5

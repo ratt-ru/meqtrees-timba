@@ -24,7 +24,7 @@
   #define DMI_Allocator DMI_Std_Allocator
   
   // redefine other allocators to use the standard
-  #under DMI_Pool_Allocator 
+  #undef DMI_Pool_Allocator 
   #undef DMI_MT_Allocator 
   #define DMI_Pool_Allocator DMI_Std_Allocator
   #define DMI_MT_Allocator DMI_Std_Allocator
