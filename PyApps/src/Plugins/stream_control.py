@@ -384,7 +384,7 @@ class MSinfoWnd(QDialog):
 #  - the maximum tile size
 #
   def setMS(self, MS):
-    self.lblMS.setText('Info on: '+ MS);
+    self.lblMS.setText('TEST - Info on: '+ MS);
     p = popen('glish -l MSinfo.g '+MS);
     rtnval = 'Not Found';
     cnt = 0;
