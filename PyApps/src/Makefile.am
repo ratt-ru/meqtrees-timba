@@ -28,7 +28,7 @@ griddir = $(pythondir)/Timba/Grid
 guidir = $(pythondir)/Timba/GUI
 meqdir = $(pythondir)/Timba/Meq
 plugindir = $(pythondir)/Timba/Plugins
-
+glishdir = $(libexecdir)/glish/plugins
 dist_bin_SCRIPTS = meqbrowser.py 
 
 dist_python_SCRIPTS = 
@@ -57,6 +57,8 @@ dist_plugin_SCRIPTS = \
 dist_grid_SCRIPTS = Grid/__init__.py \
   Grid/Services.py Grid/Workspace.py Grid/Page.py \
   Grid/CellBlock.py Grid/Cell.py Grid/Debug.py
+
+dist_glish_SCRIPTS = Plugins/MSinfo.g
 
 include $(lofar_sharedir)/Makefile.aids
 include $(lofar_sharedir)/Makefile.common
