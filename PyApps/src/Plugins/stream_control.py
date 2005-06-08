@@ -15,7 +15,7 @@ from time import sleep
 from qt import *
 from string import *
 from operator import isNumberType
-from os import popen
+import os
 
 _dbg = verbosity(0,name='StreamCtrl');
 _dprint = _dbg.dprint;
@@ -385,7 +385,12 @@ class MSinfoWnd(QDialog):
 #
   def setMS(self, MS):
     self.lblMS.setText('TEST - Info on: '+ MS);
-    p = popen('glish -l MSinfo.g '+MS);
+    syscmd = 'glish -l MSinfo.g ' + MS + ' >! /tmp/out.txt';
+    print 'DEBUG - ', syscmd;
+    try: os.system(syscmd);
+    except: pass;
+    p = open('/tmp/out.txt');
+#    print 'DEBUG - ', p;
     rtnval = 'Not Found';
     cnt = 0;
     inData = False;
