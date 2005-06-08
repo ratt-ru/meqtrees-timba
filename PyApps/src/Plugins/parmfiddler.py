@@ -561,7 +561,8 @@ class ParmFiddler (browsers.GriddedPlugin):
       changenode=self._parmdict[changenodekey]['node'];
       if self._currentparm:
           self._currentparm.reject();
-#          del self._currentparm;
+      #          del self._currentparm;
+      print "new parm selected", changenode,changenodekey;
       self._currentparm = ParmChange(self,changenode);
 
       label="c00 of "+changenodekey;
@@ -587,6 +588,7 @@ class ParmFiddler (browsers.GriddedPlugin):
     if self._currentparm:
       self._currentparm.reject();
     #          del self._currentparm;
+    print "new parm selected", changenode,changenodekey;
     self._currentparm = ParmChange(self,changenode);
 
 
@@ -663,6 +665,8 @@ class ParmFiddler (browsers.GriddedPlugin):
         if self.parmtable.isRowSelected(self._parmdict[parmkey]['row']):
           cmd = record(name=parmkey,get_state=True,enable=not self._parmdict[parmkey]['publish']);
           mqs().meq('Node.Publish.Results',cmd,wait=False);
+
+
      
   
   def getparms(self):
@@ -684,9 +688,10 @@ class ParmFiddler (browsers.GriddedPlugin):
     changenodekey=str(self.parmtable.text(self._parmindex,0));
     changenode=self._parmdict[changenodekey]['node'];
     if not self._currentparm:
-        self._currentparm = ParmChange(self,changenode);
+      print "new parm selected", changenode,changenodekey;
+      self._currentparm = ParmChange(self,changenode);
     if self._currentparm.edit_parm :
-        self._currentparm.rejectedit();
+      self._currentparm.rejectedit();
     # create new editor
     self._currentparm._edit();
 
@@ -723,7 +728,7 @@ class ParmFiddler (browsers.GriddedPlugin):
 
       if reqid[2]==reqid_old[2]:
           self.rid+=1;
-      reqid=hiid(reqid_old[0],self.rid,self.rid,0);
+      reqid=hiid(reqid_old[0],reqid_old[1],self.rid,0);
 
 
       #print "reqid ",reqid;
@@ -854,6 +859,13 @@ class ParmChange:
 
 
 
+  def setDefault(self):
+      if not self._funklet:
+         return;
+      if not self._parent:
+          self.reject();
+
+      meqds.set_node_state(self._node,default_funklet=self._funklet);
 
 
   def updatechange (self):
@@ -910,11 +922,12 @@ class editParm(QDialog):
 #      self.updateCoeff_fromparent();
 
       
-      self.updategrid();
 
       self.v.addWidget(self.funkgrid);
 
+
       self.Bh = QHBoxLayout(self.v, 5)
+
       
       self.cmdAddRow = QPushButton('Add Row', self)
       QObject.connect(self.cmdAddRow, SIGNAL('clicked()'), self.slotcmdAddRow)
@@ -928,24 +941,63 @@ class editParm(QDialog):
       self.cmdRemoveCol = QPushButton('Remove Column', self)
       QObject.connect(self.cmdRemoveCol, SIGNAL('clicked()'), self.slotcmdRemoveCol)
       self.Bh.addWidget(self.cmdRemoveCol)
+      self.Bh0 = QHBoxLayout(self.v, 5)
+      self.offsLabel = QLabel("Offset (t,f)",self);
+      self.Bh0.addWidget(self.offsLabel);
+      self.offsF = QLineEdit(self);
+#      QObject.connect(self.offsF, SIGNAL(' textChanged(QString)'), self.slotcmdUpdateOffs)
+      self.Bh0.addWidget(self.offsF);
+      self.offsT = QLineEdit(self);
+#      QObject.connect(self.offsT, SIGNAL(' textChanged(QString)'), self.slotcmdUpdateOffs)
+      self.Bh0.addWidget(self.offsT);
+
+      self.Bh1 = QHBoxLayout(self.v, 5)
+      self.scaleLabel = QLabel("Scale (t,f)",self);
+      self.Bh1.addWidget(self.scaleLabel);
+      self.scaleF = QLineEdit(self);
+      self.Bh1.addWidget(self.scaleF);
+      self.scaleT = QLineEdit(self);
+      self.Bh1.addWidget(self.scaleT);
+
+      self._offset=[0.,0.];
+      self._scale=[1.,1.];
+
       self.Bh2 = QHBoxLayout(self.v, 5)
       
       self.cmdOK = QPushButton('Apply', self)
       QObject.connect(self.cmdOK, SIGNAL('clicked()'), self.slotcmdOK)
+
+      self.cmdOK.setFocus();
+      
       self.Bh2.addWidget(self.cmdOK)
       self.cmdCancel = QPushButton('Cancel', self)
       QObject.connect(self.cmdCancel, SIGNAL('clicked()'), self.slotcmdCancel)
-      self.Bh2.addWidget(self.cmdCancel)
+      self.Bh2.addWidget(self.cmdCancel);
+      self.cmdDefault = QPushButton('Set as Default', self)
+      QObject.connect(self.cmdDefault, SIGNAL('clicked()'), self.slotcmdDefault)
+      self.Bh2.addWidget(self.cmdDefault)
 
       self.cmdCancel.setIconSet(pixmaps.cancel.iconset());
       self.cmdOK.setIconSet(pixmaps.check.iconset());
 
       QObject.connect(self.funkgrid,SIGNAL('valueChanged(int,int)'),self.updateCoeff);
       
+      self.updategrid();
+
+            
       
       self.show()
       
-
+    def UpdateOffs(self):
+#      print "updating offset ",self._offset;
+      self._offset[0]=float(str(self.offsF.text()));
+      self._offset[1]=float(str(self.offsT.text()));
+ 
+    def UpdateScale(self):
+#      print "updating scale ",self._scale;
+      self._scale[0]=float(str(self.scaleF.text()));
+      self._scale[1]=float(str(self.scaleT.text()));
+      
     def slotcmdAddRow(self):
         array1=self._coeff;
         array2=numarray.resize(array1,(self._nx+1,self._ny));
@@ -1005,6 +1057,12 @@ class editParm(QDialog):
 #        self.parent._dorefresh();
 #        self.reject();
         self.parent.rejectedit();
+
+
+    def slotcmdDefault(self):
+      self.slotcmdOK();
+      self.parent.setDefault();
+
     def slotcmdOK(self):
 #       #print self.parent._funklet.coeff;
         array1=numarray.resize(self.parent._funklet.coeff,(self._nx,self._ny));
@@ -1013,6 +1071,16 @@ class editParm(QDialog):
             for j in range(self._ny):
                 
                 self.parent._funklet.coeff[i][j] = float(str(self.funkgrid.text(i,j)));
+
+        self.UpdateOffs();
+        self.UpdateScale();
+
+        offset=self._offset;
+        scale = self._scale;
+
+        self.parent._funklet.offset=offset;
+        self.parent._funklet.scale=scale;
+        
 #       #print self.parent._funklet.coeff;
 #       self.updategrid();
         self.parent.updatechange();
@@ -1032,18 +1100,31 @@ class editParm(QDialog):
                 if width>maxc : maxc =width;
             self.funkgrid.setColumnWidth(j,maxc*15);
             maxc=1;
-        self.horh.setLabel(0,"t");
-        self.verth.setLabel(0,"f");
+        self.horh.setLabel(0,"f");
+        self.verth.setLabel(0,"t");
+        self.offsF.setText(str(self._offset[0]));
+        self.offsT.setText(str(self._offset[1]));
+        self.scaleF.setText(str(self._scale[0]));
+        self.scaleT.setText(str(self._scale[1]));
+
  
     def updateCoeff(self,row,col):
         self._coeff[row][col]= float(str(self.funkgrid.text(row,col)));
 
     def updateCoeff_fromparent(self):
         funklet=self.parent._funklet;
+        self._offset=[0.,0.];
+        self._scale=[1.,1.];
+        self._coeff=0.;
+
         if funklet:
+#          print funklet;
+          if hasattr(funklet,'coeff'):
             self._coeff=funklet.coeff;
-        else:
-            self._coeff=0.;
+          if hasattr(funklet,'offset'):
+            self._offset=funklet.offset;
+          if hasattr(funklet,'scale'):
+            self._scale = funklet.scale;
         if is_scalar(self._coeff):
             self._coeff=[[self._coeff]]
         if is_scalar(self._coeff[0]):
