@@ -40,9 +40,9 @@ $PROGRAM $* &
 
 # Check every second if the program is still running. Kill the program
 # when the maximum execution time, specified by $MAXTIME, has elapsed.
-# Note: pid of last started background program is $!.
+# Note: $! expands to the process ID of last started background program.
 sec=0
-while ps | awk '{print $MAXTIME}' | grep $! >/dev/null; do
+while kill -0 $! 2>/dev/null; do
   if test $sec -ge $MAXTIME; then
     echo "limitexec.sh: Process $! has exceeded time limit and will be killed." >&2
     kill -9 $!
@@ -51,3 +51,9 @@ while ps | awk '{print $MAXTIME}' | grep $! >/dev/null; do
   sec=`expr $sec + 1`
   sleep 1
 done
+
+# Once we reach here, $PROGRAM has already terminated. 
+# To fetch its return status, however, we must call wait.
+# Note: this trick does not work in some old Bourne shells where
+# wait returns 0 when waiting for an already terminated process.
+wait $!
