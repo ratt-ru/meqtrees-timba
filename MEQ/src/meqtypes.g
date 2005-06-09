@@ -121,9 +121,7 @@ const meq.node := function (class,name,extra=[=],children=F,step_children=F,defa
 
       defrec[f] := extra[f];
 
-	print "f ",f,extra[f];
 	}
-  print defrec;
   return defrec;
 }
 
@@ -450,7 +448,6 @@ const meq.cellsx := function (domain=F,axis=[],num=[],grid=[=],cell_size=[])
     else
       csz := [];
     # resolve grids
-    print a,rng[i],np,gr,csz,segs;
     np := meq_private.resolve_grid(a,rng[i],np,gr,csz,segs);
     if( is_fail(np) )
       fail;
