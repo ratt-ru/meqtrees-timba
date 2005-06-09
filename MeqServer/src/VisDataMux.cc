@@ -43,7 +43,7 @@ Meq::VisDataMux::VisDataMux (Meq::Forest &frst)
   // use reasonable default
   handlers_.resize(VisVocabulary::ifrNumber(30,30)+1);
   // init request id for dataset=1
-  frst.incrRequestId(rqid_,FDataset);
+  // frst.incrRequestId(rqid_,FDataset);
 }
 
 void Meq::VisDataMux::clear ()
