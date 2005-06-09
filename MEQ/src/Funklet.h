@@ -91,7 +91,7 @@ public:
   }
   // sets offset along axis of variability
   int setOffset (int i, double offset) {
-    if( offsets_.size()<=i){
+    if( offsets_.size()<=uint(i)){
       cdebug(2)<<" cannot set offset, no default defined ..."<<endl;
       return 0;
     }
