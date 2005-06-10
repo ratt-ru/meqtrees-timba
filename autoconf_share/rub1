@@ -111,7 +111,7 @@ if [ -f $pkgname/configure.in ]; then
   if [ $recur != 0 ]; then
     # Do it recursively for packages used by this package.
     # Find them by looking in the configure.in file.
-    pkgs=`grep "^[ \t]*lofar_\(PACKAGE\)\|\(INTERNAL\)[ \t]*(.*)" $pkgname/configure.in | sed -e 's/ //g'`
+    pkgs=`grep "^[ \t]*lofar_\(\(PACKAGE\)\|\(INTERNAL\)\)[ \t]*(.*)" $pkgname/configure.in | sed -e 's/ //g'`
     for pkg in $pkgs
     do
       # Extract package name and tag.
