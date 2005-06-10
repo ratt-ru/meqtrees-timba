@@ -8,13 +8,13 @@ if( any(argv == '-runtest' ) ) {
   app_path  := 'appagent/'
 }
   
-default_debuglevels := [  MeqNode       =2,
-                          MeqForest     =2,
-                          MeqSink       =2,
-                          MeqSpigot     =2,
-                          MeqVisHandler =2,
-                          MeqServer     =2,
-                          meqserver     =1 ];
+default_debuglevels := [  MeqNode       =0,
+                          MeqForest     =0,
+                          MeqSink       =0,
+                          MeqSpigot     =0,
+                          MeqVisHandler =0,
+                          MeqServer     =0,
+                          meqserver     =0 ];
                           
 include spaste(app_path,'/app_defaults.g')
 include spaste(root_path,'dmitypes.g')
