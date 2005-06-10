@@ -44,8 +44,9 @@ $PROGRAM $* &
 sec=0
 while kill -0 $! 2>/dev/null; do
   if test $sec -ge $MAXTIME; then
-    echo "limitexec.sh: Process $! has exceeded time limit and will be killed." >&2
-    kill -9 $!
+    echo "limitexec.sh: $PROGRAM (pid=$!) has exceeded time limit" \
+         "($MAXTIME s) and will be killed" >&2
+    kill -9 $! 2>/dev/null
     exit 255
   fi
   sec=`expr $sec + 1`
@@ -56,4 +57,4 @@ done
 # To fetch its return status, however, we must call wait.
 # Note: this trick does not work in some old Bourne shells where
 # wait returns 0 when waiting for an already terminated process.
-wait $!
+wait $! 2>/dev/null
