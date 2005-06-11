@@ -1,4 +1,5 @@
 gnu3.compiler.conf: CXX=/local/gcc-3.2/bin/g++ --with-cppflags="-Wno-deprecated"
+gnu.compiler.conf: CXX=/local/gcc-3.2/bin/g++ --with-cppflags="-Wno-deprecated"
 
 mtsupport.var:    --with-threads=no
 
