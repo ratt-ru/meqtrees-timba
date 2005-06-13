@@ -386,7 +386,7 @@ class MSinfoWnd(QDialog):
   def setMS(self, MS):
     self.lblMS.setText('TEST - Info on: '+ MS);
     syscmd = 'glish -l MSinfo.g ' + MS + ' >! /tmp/out.txt';
-    print 'DEBUG - ', syscmd;
+#    print 'DEBUG - ', syscmd;
     try: os.system(syscmd);
     except: pass;
     p = open('/tmp/out.txt');
