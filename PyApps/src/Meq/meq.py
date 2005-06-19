@@ -7,11 +7,11 @@ from numarray import *
 domain_ndim = 2;
 domain_axes = ( "freq","time" );
 
-_polc_type = dmi_type('MeqPolc',record);
+_funklet_type = dmi_type('MeqFunklet',record);
+_polc_type = dmi_type('MeqPolc',_funklet_type);
 _domain_type = dmi_type('MeqDomain',record);
 _cells_type = dmi_type('MeqCells',record);
 _request_type = dmi_type('MeqRequest',record);
-
 
 def node (classname,name,children=None,groups=None,**kwargs):
   "creates a node record";
@@ -24,33 +24,51 @@ def node (classname,name,children=None,groups=None,**kwargs):
     self.node_groups = make_hiid_list(groups);
   return rec;
   
+def array_double (*args,**kw):
+  return array(typecode=arr_double,*args,**kw);
+
+def array_complex (*args,**kw):
+  return array(typecode=arr_dcomplex,*args,**kw);
   
-def polc (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
-          scale=None,weight=1,domain=None,dbid=-1):
-  "creates a polc record";
-  if scale is None:  # scale supplied as seq of four numbers, or explicitly
-    scale = ( freq0,freqsc,time0,timesc );
-  rec = _polc_type(freq_0=scale[0],freq_scale=scale[1],
-                time_0=scale[2],time_scale=scale[3],
-                pert=pert,weight=weight,dbid_index=dbid);
-  # process coeff argument -- force into a 2D array
+def polc (coeff,shape=None,offset=None,scale=None,domain=None,
+          weight=None,dbid=None,subclass=_polc_type):
+  """creates a polc record""";
+  rec = subclass();
+  # process coeff argument -- if a list, then force into a 2D array
+  if isinstance(coeff,(tuple,list)):
+    if shape and len(shape)>2:
+      raise ValueError,'coeff array must be one- or two-dimensional';
+    if filter(lambda x:isinstance(x,complex),coeff):
+      coeff = array_complex(coeff,shape=shape);
+    else:
+      coeff = array_double(coeff,shape=shape);
   if is_scalar(coeff):
     if not isinstance(coeff,complex):  # force float or complex
       coeff = float(coeff);
-    rec.coeff = array(coeff,shape=(1,1));
-  elif is_array(coeff) and len(coeff.getshape()) == 2:
-    if coeff.type() in (arr_double,arr_dcomplex):
-      rec.coeff = coeff;
-    else:
+    rec.coeff = array(coeff);
+  elif is_array(coeff):
+    if len(coeff.getshape()) > 2:
+      raise TypeError,'coeff array must be one- or two-dimensional';
+    if coeff.type() not in (arr_double,arr_dcomplex):
       raise TypeError,'coeff array must be float (Float64) or dcomplex (Complex64)';
+    rec.coeff = coeff;
   else:
-    raise TypeError,'coeff argument must be a scalar or a rank-2 array';
+    raise TypeError,'illegal coeff argument';
   # process domain argument
   if domain is not None:
     if isinstance(domain,_domain_type):
       rec.domain = domain;
     else:
       raise TypeError,'domain argument must be a MeqDomain object';
+  # other optional arguments
+  if offset is not None:
+    rec.offset = offset;
+  if scale is not None:
+    rec.scale = scale;
+  if weight is not None:
+    rec.weight = weight;
+  if dbid is not None:
+    rec.dbid = dbid;
   return rec;
   
 def make_polc (p):
@@ -273,7 +291,7 @@ _meqdomain_id = 0;
 def requestid (domain_id,config_id=0,iter_id=0):
   return hiid((domain_id,config_id,iter_id));
 
-def request (cells=None,rqid=None,calc_deriv=0):
+def request (cells=None,rqid=None,eval_mode=0):
   # generate rqid if not supplied
   if rqid is None:
     global _meqdomain_id;
@@ -281,7 +299,7 @@ def request (cells=None,rqid=None,calc_deriv=0):
     _meqdomain_id += 1;
   else:
     _meqdomain_id = rqid[0];
-  rec = _request_type(request_id=make_hiid(rqid),calc_deriv=calc_deriv);
+  rec = _request_type(request_id=make_hiid(rqid),eval_mode=eval_mode);
   if cells is not None:
     if not isinstance(cells,_cells_type):
       raise TypeError,'cells argument must me a MeqCells object';

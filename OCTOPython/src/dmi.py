@@ -262,7 +262,10 @@ class record (dict):
 ##          print 'type mismatch';
           return False;
         elif isinstance(a,array_class):
-          return numarray.alltrue((a==b).getflat());
+          eq = (a==b);
+          if isinstance(eq,int):
+            return eq;
+          return numarray.alltrue(eq.getflat());
         elif isinstance(a,(list,tuple)):
           if len(a) != len(b):
 ##            print 'length mismatch';
@@ -353,7 +356,6 @@ array_class = type(numarray.array(0));
 # shortcuts for array types 
 arr_double = numarray.Float64;
 arr_dcomplex = numarray.Complex64;
-
 
 def is_array (x):
   return isinstance(x,array_class);

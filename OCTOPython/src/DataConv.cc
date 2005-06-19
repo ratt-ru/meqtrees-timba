@@ -274,9 +274,14 @@ int pyToArray (DMI::NumArray::Ref &arref,PyObject *pyobj)
   uint ndim = pyarr->nd;
   if( ndim>MaxLorrayRank )
     throwError(Type,ssprintf("array of rank %d, maximum supported is %d",ndim,MaxLorrayRank));
-  LoShape shape(ndim|LoShape::SETRANK);
-  for( uint i=0; i<ndim; i++ )
-    shape[i] = pyarr->dimensions[i];
+  // create shape of output array -- but do note that 0-dimensional 
+  // numarrays (i.e. scalars) are represented by one-element 1D NumArrays
+  LoShape shape((ndim?ndim:1)|LoShape::SETRANK);
+  if( ndim )
+    for( uint i=0; i<ndim; i++ )
+      shape[i] = pyarr->dimensions[i];
+  else
+    shape[0] = 1;
   TypeId tid = numarrayToTypeId(pyarr->descr->type_num);
   ulong nb = ulong(pyarr->itemsize)*shape.product();
   // init DMI::NumArray

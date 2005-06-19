@@ -10,7 +10,7 @@
 #pragma aidgroup MeqServer    
 #pragma aid MeqClient
 #pragma aid Node Name NodeIndex MeqServer
-#pragma aid Create Delete Get Set State Request Resolve Child Children List
+#pragma aid Create Delete Get Set State Request Resolve Child Children List Batch
 #pragma aid App Command Args Result Data Processing Error Message Code
 #pragma aid Execute Clear Cache Save Load Forest Recursive Forest Header Version 
 #pragma aid Publish Results Enable Disable Event Id Silent Idle Stream 
@@ -59,6 +59,7 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     
     //##ModelId=3F61920F01A8
     void createNode   (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F61920F01FA
     void deleteNode   (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F61920F024E
@@ -67,6 +68,7 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     void nodeSetState (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F98D91A03B9
     void resolve      (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void resolveBatch (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F98D91B0064
     void getNodeList  (DMI::Record::Ref &out,DMI::Record::Ref &in);
     

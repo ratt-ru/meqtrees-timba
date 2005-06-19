@@ -79,8 +79,10 @@ MeqServer::MeqServer()
   command_map["Set.Forest.State"] = &MeqServer::setForestState;
   
   command_map["Create.Node"] = &MeqServer::createNode;
+  command_map["Create.Node.Batch"] = &MeqServer::createNodeBatch;
   command_map["Delete.Node"] = &MeqServer::deleteNode;
   command_map["Resolve"] = &MeqServer::resolve;
+  command_map["Resolve.Batch"] = &MeqServer::resolveBatch;
   command_map["Get.Node.List"] = &MeqServer::getNodeList;
   command_map["Get.Forest.Status"] = &MeqServer::getForestStatus;
   command_map["Get.NodeIndex"] = &MeqServer::getNodeIndex;
@@ -164,6 +166,26 @@ void MeqServer::createNode (DMI::Record::Ref &out,DMI::Record::Ref &initrec)
   out[FForestChanged] = true;
 }
 
+void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
+{
+  DMI::Container &batch = in[AidBatch].as_wr<DMI::Container>();
+  int nn = batch.size();
+  postMessage(ssprintf("creating %d nodes, please wait",nn));
+  cdebug(2)<<"batch-creating "<<nn<<" nodes";
+  for( int i=0; i<nn; i++ )
+  {
+    ObjRef ref;
+    batch[i].detach(&ref);
+    DMI::Record::Ref recref(ref);
+    ref.detach();
+    int nodeindex;
+    forest.create(nodeindex,recref);
+  }
+  // form a response message
+  out[AidMessage] = ssprintf("created %d nodes",nn);
+  out[FForestChanged] = true;
+}
+
 void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   int nodeindex = (*in)[AidNodeIndex].as<int>(-1);
@@ -230,6 +252,22 @@ void MeqServer::resolve (DMI::Record::Ref &out,DMI::Record::Ref &in)
       node.nodeIndex(),node.name().c_str());
   if( getstate )
     out[FNodeState] <<= node.syncState();
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
+}
+
+void MeqServer::resolveBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
+{
+  const DMI::Vec & names = in[AidName].as<DMI::Vec>();
+  int nn = names.size(Tpstring);
+  postMessage(ssprintf("resolving %d nodes, please wait",nn));
+  cdebug(2)<<"batch-resolve of "<<nn<<" nodes\n";
+  for( int i=0; i<nn; i++ )
+  {
+    Node &node = forest.findNode(names[i].as<string>());
+    node.resolve(0,false,in,0);
+  }
+  cdebug(3)<<"resolve complete"<<endl;
+  out[AidMessage] = ssprintf("resolved %d nodes",nn);
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
@@ -683,13 +721,16 @@ DMI::Record::Ref MeqServer::executeCommand (const HIID &cmd,const ObjRef &argref
 {
   DMI::Record::Ref retval(DMI::ANONWR);
   DMI::Record::Ref args;
+  CommandMap::const_iterator iter = command_map.find(cmd);
+  FailWhen(iter == command_map.end(),"unknown command "+cmd.toString('.'));
+  // provide an args record
   if( argref.valid() )
   {
     FailWhen(!argref->objectType()==TpDMIRecord,"invalid args field");
     args = argref.ref_cast<DMI::Record>();
   }
-  CommandMap::const_iterator iter = command_map.find(cmd);
-  FailWhen(iter == command_map.end(),"unknown command "+cmd.toString('.'));
+  else
+    args <<= new DMI::Record;
   // execute the command, catching any errors
   (this->*(iter->second))(retval,args);
   return retval;

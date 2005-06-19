@@ -40,7 +40,7 @@ DMI::Vec::Vec ()
 
 //##ModelId=3C3EE3EA022A
 DMI::Vec::Vec (const Vec &right, int flags, int depth,TypeId realtype)
-    :Container(),spvec(0),mytype(0)
+    :Container(),spvec(0),mytype(0),mysize_(0)
 {
   dprintf(2)("copy constructor (%s,%x)\n",right.debug(),flags);
   cloneOther(right,flags,depth,true,realtype);
@@ -256,6 +256,7 @@ void DMI::Vec::clear ()
     headref_.detach();
     elems_.clear();
     mytype = 0;
+    mysize_ = 0;
   }
 }
 

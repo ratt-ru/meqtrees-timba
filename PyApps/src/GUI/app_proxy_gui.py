@@ -431,8 +431,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
                     self.curry(self._reset_maintab_label,self.msglog.wtop()));
     QObject.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
     QObject.connect(self.msglog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
-    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(self.msglog.connected,_args=(True,)));
-    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(self.msglog.connected,_args=(False,)));
+    QObject.connect(self,PYSIGNAL("isConnected()"),self.msglog.connected);
     # set current page to message log
     self._current_page = self.msglog.wtop();
     self.add_tab(self.msglog.wtop(),"Messages");
@@ -443,8 +442,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*",
           udi_root='event');
     QObject.connect(self.eventlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
-    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(self.eventlog.connected,_args=(True,)));
-    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(self.eventlog.connected,_args=(False,)));
+    QObject.connect(self,PYSIGNAL("isConnected()"),self.eventlog.connected);
     
     self.eventtab = QTabWidget(self.maintab);
     self.add_tab(self.eventtab,"Events");
@@ -625,6 +623,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     if not self._connected:
       self._connected = True;
       self.emit(PYSIGNAL("connected()"),(value,));
+      self.emit(PYSIGNAL("isConnected()"),(True,));
       self.log_message("found kernel ("+str(self.app.app_addr)+")",category=Logger.Normal);
       self.gw.clear();
 
@@ -632,6 +631,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     if self._connected:
       self._connected = False;
       self.emit(PYSIGNAL("disconnected()"),(value,));
+      self.emit(PYSIGNAL("isConnected()"),(False,));
       self.log_message("kernel disconnected",category=Logger.Normal);
     self._update_app_state();
       

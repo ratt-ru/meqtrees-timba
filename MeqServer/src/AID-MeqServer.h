@@ -28,6 +28,11 @@ const int AidApp_int = -1203;
 const DMI::AtomicID AidArgs(-1483);               // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:13
 const int AidArgs_int = -1483;
 #endif
+#ifndef _defined_id_AidBatch
+#define _defined_id_AidBatch 1
+const DMI::AtomicID AidBatch(-1563);              // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:13
+const int AidBatch_int = -1563;
+#endif
 #ifndef _defined_id_AidBreakpoint
 #define _defined_id_AidBreakpoint 1
 const DMI::AtomicID AidBreakpoint(-1359);         // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:40

@@ -6,11 +6,13 @@ from Timba.GUI.pixmaps import pixmaps
 from Timba.Meq import meqds
 from Timba.GUI.browsers import *
 from Timba.GUI import treebrowser
+from Timba.GUI import tdlgui
 from Timba.GUI.procstatuswidget import *
 from Timba.GUI import meqgui 
 from Timba.GUI import bookmarks 
 from Timba.GUI import connect_meqtimba_dialog 
 from Timba import Grid
+from Timba import TDL
 
 import weakref
 import math
@@ -229,11 +231,9 @@ class meqserver_gui (app_proxy_gui):
     # --- MeqTimba menu
     connect = QAction("Connect to kernel...",0,self);
     connect.addTo(kernel_menu);
-    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(connect.setEnabled,_args=(False,)));
-    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(connect.setEnabled,_args=(True,)));
+    QObject.connect(self,PYSIGNAL("isConnected()"),connect.setDisabled);
     stopkern = QAction(pixmaps.red_round_cross.iconset(),"Stop kernel process",0,self);
-    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(stopkern.setEnabled,_args=(True,)));
-    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(stopkern.setEnabled,_args=(False,)));
+    QObject.connect(self,PYSIGNAL("isConnected()"),stopkern.setEnabled);
     QObject.connect(stopkern,SIGNAL("activated()"),self._stop_kernel);
     stopkern.addTo(kernel_menu);
     kernel_menu.insertSeparator();
@@ -242,8 +242,7 @@ class meqserver_gui (app_proxy_gui):
     self.treebrowser._qa_save.addTo(kernel_menu);
     self._connect_dialog = connect_meqtimba_dialog.ConnectMeqKernel(self,\
         name="Connect to MeqTimba kernel",modal=False);
-    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(self._connect_dialog.hide));
-    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(self._connect_dialog.show));
+    QObject.connect(self,PYSIGNAL("isConnected()"),self._connect_dialog.setHidden);
     QObject.connect(connect,SIGNAL("activated()"),self._connect_dialog.show);
     QObject.connect(self._connect_dialog,PYSIGNAL("startKernel()"),self._start_kernel);
     # --- find default path to kernel binary
@@ -307,8 +306,7 @@ class meqserver_gui (app_proxy_gui):
     attach_gdb.addTo(debug_menu);
     attach_gdb.setEnabled(False); # for now
     QObject.connect(attach_gdb,SIGNAL("activated()"),self._debug_kernel);
-    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(attach_gdb.setEnabled,_args=(True,)));
-    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(attach_gdb.setEnabled,_args=(False,)));
+    QObject.connect(self,PYSIGNAL("isConnected()"),attach_gdb.setEnabled);
     
     # --- Help menu
     help_menu.insertItem(self.treebrowser.whatsthisbutton().iconSet(),
@@ -330,6 +328,11 @@ class meqserver_gui (app_proxy_gui):
       f(self._menus);
       
     # finally, add standard stuff to bottom of menus
+    kernel_menu.insertSeparator();
+    runtdl = QAction("Run TDL script...",Qt.ALT+Qt.Key_T,self);
+    runtdl.addTo(kernel_menu);
+    QObject.connect(self,PYSIGNAL("isConnected()"),runtdl.setEnabled);
+    QObject.connect(runtdl,SIGNAL("activated()"),self._run_tdl_script);
     kernel_menu.insertSeparator();
     exit = QAction(pixmaps.exit.iconset(),"Quit browser",Qt.ALT+Qt.Key_Q,self);
     exit.addTo(kernel_menu);
@@ -381,6 +384,23 @@ class meqserver_gui (app_proxy_gui):
       pid = self.app.app_addr[2];    
       self.log_message('sending KILL signal to kernel process '+str(pid));
       os.kill(pid,signal.SIGKILL);
+      
+  def _run_tdl_script (self):
+    # tdlgui.run_tdl_script('tdl_test.tdl',self);
+    # return;    
+    try: dialog = self._run_tdl_dialog;
+    except AttributeError:
+      self._run_tdl_dialog = dialog = QFileDialog(self,"load tdl dialog",True);
+      dialog.resize(800,dialog.height());
+      dialog.setMode(QFileDialog.ExistingFile);
+      dialog.setFilters("TDL scripts (*.tdl);;Python scripts (*.py);;All files (*.*)");
+      dialog.setViewMode(QFileDialog.Detail);
+      dialog.setCaption("Run TDL Script");
+    else:
+      dialog.rereadDir();
+    if dialog.exec_loop() == QDialog.Accepted:
+      pathname = str(dialog.selectedFile());
+      tdlgui.run_tdl_script(pathname,self);
       
   def _quit_browser (self):
     if self._connected and self._kernel_pid:

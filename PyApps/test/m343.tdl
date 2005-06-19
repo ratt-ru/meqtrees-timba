@@ -1,0 +1,148 @@
+# standard preamble
+from Timba.TDL import *
+from Timba.Meq import meq
+
+# forest_state is a standard TDL name. If defined in the script, this
+# record is passed to Set.Forest.State. 
+forest_state = record(cache_policy=100);
+
+# some global bits  
+STATIONS = range(1,15);
+
+IFRS   = [ (s1,s2) for s1 in STATIONS for s2 in STATIONS if s1<s2 ];
+
+STOKES = ("I","Q","U","V");
+
+SOURCES = [ record(name="3C343_1",I=1,Q=0,U=0,V=0,
+                   ra=4.356645791155902,dec=1.092208429052697),
+            record(name="3C343"  ,I=1,Q=0,U=0,V=0,
+                   ra=4.3396003966265599,dec=1.0953677174056471)
+          ];
+
+POLC_SCALE  = [1e+5, 1e+6];
+POLC_OFFSET = [4.47204e9,1.175e9];
+
+def make_source_subtree (ns,src):
+  ns.IQUV(src.name) << Meq.Matrix22( 
+    *[ ns.stokes(st,src.name) << Meq.Parm(meq.polc(src[st],scale=POLC_SCALE,offset=POLC_OFFSET)) for st in STOKES ] );
+  coher = ns.coherency(src.name) << Meq.Matrix22( 
+      ns.xx(src.name) << ns.stokes('I',src.name) + ns.stokes('Q',src.name),
+      ns.yx(src.name) << Meq.ToComplex(ns.stokes('U',src.name),ns.stokes('V',src.name)),
+      ns.xy(src.name) << Meq.Conj(ns.yx(src.name)),
+      ns.yy(src.name) << ns.stokes('I',src.name) - ns.stokes('Q',src.name)
+    ) * 0.5;
+  lmn = ns.lmn(src.name) << Meq.LMN(
+          ra_0  = ns.ra0,
+          dec_0 = ns.dec0,
+          ra    = ns.ra(src.name) << Meq.Parm(src.ra,groups="a"),
+          dec   = ns.dec(src.name) << Meq.Parm(src.dec,groups="a")
+    );
+  ns.lmn_minus1(src.name) << Meq.Paster(lmn,(ns.n(src.name) << Meq.Selector(lmn,index=2)) - 1,index=2);
+  ns.coherency_n(src.name) << coher / ns.n(src.name);
+  
+
+def diagonal_jones_matrix (node,ampl=1,phase=0):
+  """defines node as a diagonal Jones matrix with the given polcs for amplitude and phase""";
+  if not isinstance(ampl,dmi_type('MeqFunklet')):
+    ampl = meq.polc(ampl,offset=POLC_OFFSET,scale=POLC_SCALE);
+  if not isinstance(phase,dmi_type('MeqFunklet')):
+    phase = meq.polc(phase,offset=POLC_OFFSET,scale=POLC_SCALE);
+  return node << Meq.Matrix22(
+      node('xx') << Meq.Polar( node('xx','a') << Meq.Parm(ampl), node('xx','p') << Meq.Parm(phase) ),
+      0,0,
+      node('yy') << Meq.Polar( node('yy','a') << Meq.Parm(ampl), node('yy','p') << Meq.Parm(phase) ),
+  );
+
+def make_station_dft_subtree (ns,sta,src):
+  dft = ns.dft(sta,src.name) << Meq.MatrixMultiply(
+    diagonal_jones_matrix(ns.J(sta,src.name),[1,0],0),
+    diagonal_jones_matrix(ns.G(sta),[1,0],0),
+    ns.dft0(sta,src.name) << Meq.VisPhaseShift(lmn=ns.lmn_minus1(src.name),uvw=ns.uvw(sta))
+  ); 
+  ns.conj_dft(sta,src.name) << Meq.ConjTranspose(dft);
+  
+def make_predict_tree (ns,st1,st2):
+  return ns.predict(st1,st2) << Meq.Add(
+    *[  ns.predict(st1,st2,src.name) << Meq.MatrixMultiply(
+          ns.dft(st1,src.name),
+          ns.coherency_n(src.name),
+          ns.conj_dft(st2,src.name),
+        )
+     for src in SOURCES ]
+  );
+  
+def make_correction_tree (ns,st1,st2,visnode,src0):
+  return ns.correct(st1,st2) << Meq.MatrixMultiply(
+    Meq.MatrixInvert22(ns.G(st1)),
+    Meq.MatrixInvert22(ns.J(st1,src0.name)),
+    visnode,
+    Meq.MatrixInvert22(Meq.ConjTranspose(ns.J(st2,src0.name))),
+    Meq.MatrixInvert22(Meq.ConjTranspose(ns.G(st1)))
+  );
+
+def define_forest (ns):
+  """define_forest() is a standard TDL name. When a forest script is
+  loaded by, e.g., the browser, this method is automatically called to
+  define the forest. The 'ns' argument is a NodeScope object in which
+  the forest is to be defined, usually this is simply the global scope.
+  """;
+  # global parameters: phase center
+  ns.ra0 << Meq.Parm;
+  ns.dec0 << Meq.Parm;
+  # array position
+  ns.x0 << Meq.Parm;
+  ns.y0 << Meq.Parm;
+  ns.z0 << Meq.Parm;
+  
+  # build source subtrees
+  for src in SOURCES:
+    make_source_subtree(ns,src);
+    
+  # define per-station stuff
+  for sta in STATIONS:
+    # postions and uvws
+    ns.uvw(sta) << Meq.UVW(ra=ns.ra0,dec=ns.dec0,x_0=ns.x0,y_0=ns.y0,z_0=ns.z0,
+                           x = ns.x(sta) << Meq.Parm,
+                           y = ns.y(sta) << Meq.Parm,
+                           z = ns.z(sta) << Meq.Parm
+    );
+    # per-source branches
+    for src in SOURCES:
+      make_station_dft_subtree(ns,sta,src);
+      
+  # define a solver with condeqs
+  ns.solver << Meq.Solver(
+    num_iter=5,debug_level=10,
+    children = [  ns.ce(st1,st2) << Meq.Condeq( 
+                    make_predict_tree(ns,st1,st2), 
+                    ns.spigot(st1,st2) << Meq.Spigot(station_1_index=st1,station_2_index=st2,flag_bit=4,input_column='DATA') 
+                  ) for (st1,st2) in IFRS ]
+  );
+  
+  # define sink/solve/correct/subtract sequence
+  for (st1,st2) in IFRS:
+    subtract = ns.subtract(st1,st2) << ( ns.spigot(st1,st2) - ns.predict(st1,st2) );
+    correct = make_correction_tree(ns,st1,st2,subtract,SOURCES[0]);
+    ns.ROOT << ns.sink(st1,st2) << Meq.Sink(station_1_index=st1, station_2_index=st2,flag_bit=4,input_column='DATA',
+      children = [ ns.seq(st1,st2) << Meq.ReqSeq(ns.solver,correct) ] );
+
+# def test_forest (mqs):
+#   """test_forest() is a standard TDL name. When a forest script is
+#   loaded by, e.g., the browser, and the "test" option is set to true,
+#   this method is automatically called after define_forest() to run a 
+#   test on the forest. The 'mqs' argument is a meqserver proxy object.
+#   """;
+#   from Timba.Meq import meq
+
+
+
+# this is a useful thing to have at the bottom of the script, it allows us to check the tree for consistency
+# simply by running 'python script.tdl'
+
+if __name__ == '__main__':
+  ns = NodeScope();
+  define_forest(ns);
+  # resolves nodes
+  ns.Resolve();
+  
+  print len(ns.AllNodes()),'nodes defined';

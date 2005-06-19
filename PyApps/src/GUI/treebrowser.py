@@ -843,7 +843,7 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     try: dialog = self._save_forest_dialog;
     except AttributeError:
       self._save_forest_dialog = dialog = QFileDialog(self.wtop(),"save dialog",True);
-      dialog.resize(500,dialog.height());
+      dialog.resize(800,dialog.height());
       dialog.setMode(QFileDialog.AnyFile);
       dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
@@ -859,7 +859,7 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     try: dialog = self._load_forest_dialog;
     except AttributeError:
       self._load_forest_dialog = dialog = QFileDialog(self.wtop(),"load dialog",True);
-      dialog.resize(500,dialog.height());
+      dialog.resize(800,dialog.height());
       dialog.setMode(QFileDialog.ExistingFile);
       dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
