@@ -24,6 +24,8 @@ def run_tdl_script (pathname,parent):
   # open file first
   try:
     ff = file(pathname,'r');
+    tdltext = ff.read();
+    ff.seek(0);
   except IOError:
     (exctype,excvalue,tb) = sys.exc_info();
     _dprint(0,'exception',sys.exc_info(),'opening TDL file',pathname);
@@ -80,11 +82,12 @@ def run_tdl_script (pathname,parent):
   
   ### NB: presume this was successful for now
   
-  # if a forest state is defined, set it
-  fst = getattr(mod,'forest_state',None);
-  if fst:
-    mqs.meq('Set.Forest.State',record(state=fst));
-    delattr(mod,'forest_state');  # delete so it doesn't confuse the next import
+  # is a forest state defined?
+  fst = getattr(mod,'forest_state',record());
+  # add in source code
+  fst.tdl_source = record(**{os.path.basename(pathname):tdltext});
+  mqs.meq('Set.Forest.State',record(state=fst));
+  delattr(mod,'forest_state');  # delete so it doesn't confuse the next import
     
   # does the script define a testing function?
   testfunc = getattr(mod,'test_forest',None);
@@ -186,4 +189,4 @@ class TDLBrowser(browsers.GriddedPlugin):
     _dprint(3,'set_data ',dataitem.udi);
     self._wedit.load_file(None,text=dataitem.data,readonly=True);
 
-Grid.Services.registerViewer(TDLSource,TDLBrowser,priority=10);
+Grid.Services.registerViewer(str,TDLBrowser,priority=10,check_udi=lambda x:x.endswith('.tdl'));

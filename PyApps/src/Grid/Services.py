@@ -24,7 +24,7 @@ _reg_viewers_byname = {};
 # a viewer plug-in must provide the following interface:
 #
 
-def registerViewer (tp,viewer,priority=0):
+def registerViewer (tp,viewer,check_udi=lambda x:True,priority=0):
   """Registers a viewer for the specified type:
   The 'viewer' argument must be a class (or callable) providing the following 
   interface:
@@ -77,7 +77,7 @@ def registerViewer (tp,viewer,priority=0):
   global _reg_viewers_byname;
   name = getattr(viewer,'viewer_name',viewer.__name__);
   _dprint(1,"registering",name,"for type",tp);
-  _reg_viewers.setdefault(tp,[]).append((priority,viewer));
+  _reg_viewers.setdefault(tp,[]).append((priority,viewer,check_udi));
   _reg_viewers_byname[name] = viewer;
 
 def isViewableWith (arg,viewer):
@@ -89,7 +89,7 @@ def isViewableWith (arg,viewer):
     return checker(arg);
   return True;
 
-def isViewable (arg):
+def isViewable (arg,udi=None):
   global _reg_viewers;
   # arg may specify a type or a data object
   if type(arg) is type:
@@ -100,8 +100,8 @@ def isViewable (arg):
     # registered type must be a superclass of the supplied type;
     # registered dmi type must be either None or match the argument dmi type
     if issubclass(datatype,tp):
-      for (pri,viewer) in vlist:
-        if isViewableWith(arg,viewer):
+      for (pri,viewer,check_udi) in vlist:
+        if isViewableWith(arg,viewer) and ( not udi or check_udi(udi) ):
           return True;
   return False;
   
@@ -109,7 +109,7 @@ def getViewerByName (name):
   global _reg_viewers_byname;
   return _reg_viewers_byname.get(name,None);
 
-def getViewerList (arg):
+def getViewerList (arg,udi=None):
   global _reg_viewers;
   if arg is None:
     return [];
@@ -123,10 +123,12 @@ def getViewerList (arg):
   for (tp,vlist) in _reg_viewers.iteritems():
     # find viewers for this class
     if issubclass(datatype,tp):
-      for (pri,v) in vlist:
+      for (pri,v,checker) in vlist:
         if type(arg) is type or isViewableWith(arg,v): # if specified as object, check viewability
-          _dprint(3,arg,'viewer',v,'priority',pri);
-          viewer_pri[v] = min(pri,viewer_pri.get(v,999999));
+          # check udi if specified
+          if udi is None or checker(udi):
+            _dprint(3,arg,'viewer',v,'priority',pri);
+            viewer_pri[v] = min(pri,viewer_pri.get(v,999999));
   # return list sorted by priority
   vlist = viewer_pri.keys();
   vlist.sort(lambda a,b,dd=viewer_pri:cmp(dd[a],dd[b]));
@@ -304,9 +306,9 @@ def updateDataItem (udi,data):
         # split into keys and process one by one (first one is empty string)
         for key in subudi.split("/")[1:]:
           try: data1 = data1[key];
-          except TypeError: # try to convert key to integer instead
+          except (TypeError,KeyError): # try to convert key to integer instead
             try: data1 = data1[int(key)];
-            except TypeError,KeyError: 
+            except: 
               update = False;
               break;
       # update for all items in list

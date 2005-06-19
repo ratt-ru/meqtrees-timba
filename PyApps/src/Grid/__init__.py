@@ -40,7 +40,7 @@ class DataItem (object):
     refresh:  refresh function. (If not None, then the GridCell will have a 
               'refresh' button calling this function when pressed)
     viewer:   If None, a viewer will be selected from among the registered
-              viewers for the data type. Otherwise, provide a callable 
+              viewers for the data type/udi. Otherwise, provide a callable 
               viewer plug-in, or a name. See registerViewer() for details.
     viewopts: dict of dicts of viewer options (passed in as keyword arguments
               to the viewer constructor).
@@ -65,7 +65,7 @@ class DataItem (object):
       self.viewopts = viewopts;
       self.refresh_func = refresh;
       # build list of compatible viewers
-      self.viewer_list = Services.getViewerList(datatype or data);
+      self.viewer_list = Services.getViewerList(datatype or data,udi=udi);
       # if viewer specified by string, try to look it up
       if isinstance(viewer,str):
         vc = Services.getViewerByName(viewer);

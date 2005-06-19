@@ -138,6 +138,11 @@ const int AidEvent_int = -1080;
 const DMI::AtomicID AidExecute(-1479);            // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:14
 const int AidExecute_int = -1479;
 #endif
+#ifndef _defined_id_AidFile
+#define _defined_id_AidFile 1
+const DMI::AtomicID AidFile(-1224);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
+const int AidFile_int = -1224;
+#endif
 #ifndef _defined_id_AidFlag
 #define _defined_id_AidFlag 1
 const DMI::AtomicID AidFlag(-1134);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
@@ -358,6 +363,11 @@ const int AidRunning_int = -1472;
 const DMI::AtomicID AidSave(-1332);               // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
 const int AidSave_int = -1332;
 #endif
+#ifndef _defined_id_AidScript
+#define _defined_id_AidScript 1
+const DMI::AtomicID AidScript(-1565);             // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
+const int AidScript_int = -1565;
+#endif
 #ifndef _defined_id_AidSet
 #define _defined_id_AidSet 1
 const DMI::AtomicID AidSet(-1272);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
@@ -382,6 +392,11 @@ const int AidSingle_int = -1315;
 #define _defined_id_AidSink 1
 const DMI::AtomicID AidSink(-1470);               // from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:7
 const int AidSink_int = -1470;
+#endif
+#ifndef _defined_id_AidSource
+#define _defined_id_AidSource 1
+const DMI::AtomicID AidSource(-1162);             // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
+const int AidSource_int = -1162;
 #endif
 #ifndef _defined_id_AidSpigot
 #define _defined_id_AidSpigot 1
@@ -422,6 +437,11 @@ const int AidStop_int = -1247;
 #define _defined_id_AidStream 1
 const DMI::AtomicID AidStream(-1268);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:12
 const int AidStream_int = -1268;
+#endif
+#ifndef _defined_id_AidTDL
+#define _defined_id_AidTDL 1
+const DMI::AtomicID AidTDL(-1564);                // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
+const int AidTDL_int = -1564;
 #endif
 #ifndef _defined_id_AidTile
 #define _defined_id_AidTile 1

@@ -16,7 +16,7 @@
 #pragma aid Publish Results Enable Disable Event Id Silent Idle Stream 
 #pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
 #pragma aid Get Forest Status Stack Running Changed All Disabled Publishing
-#pragma aid Python Init
+#pragma aid Python Init TDL Script File Source
     
 namespace Meq
 {
