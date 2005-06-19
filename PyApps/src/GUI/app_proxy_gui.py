@@ -526,13 +526,22 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.maintab.insertTab(widget,iconset,label,index);
     QObject.connect(widget._show_qaction,SIGNAL("toggled(bool)"),
       self.curry(self.show_tab,widget));
+      
+  def rename_tab (self,widget,label,iconset=None):
+    widget._default_label = label;
+    self.maintab.setTabLabel(widget,label);
+    if iconset:
+      widget._default_iconset = iconset;
+      self.maintab.setTabIconSet(widget,iconset);
+    widget._show_qaction.setText(label);
     
   def show_tab (self,widget,show=True,switch=True):
     curindex = self.maintab.indexOf(widget);
-    if show and curindex<0:
-      widget.show();
-      self.maintab.insertTab(widget,widget._default_iconset,widget._default_label,widget._default_index);
-      widget._show_qaction.setOn(True);
+    if show:
+      if curindex<0:
+        widget.show();
+        self.maintab.insertTab(widget,widget._default_iconset,widget._default_label,widget._default_index);
+        widget._show_qaction.setOn(True);
       if switch:
         self.maintab.showPage(widget);
     elif not show and curindex>=0:

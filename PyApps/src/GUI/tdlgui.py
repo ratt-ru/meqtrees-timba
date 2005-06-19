@@ -2,19 +2,23 @@
 
 from Timba.dmi import *
 from Timba.utils import *
+from Timba import Grid 
+from Timba.GUI import browsers
 from Timba.GUI.pixmaps import pixmaps
 from Timba.Meq import meqds
 from Timba import TDL
 
 from qt import *
+from qtext import *
+
 import imp
 import sys
 import traceback
+import os.path
 
 _dbg = verbosity(0,name='tdlgui');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
-
 
 def run_tdl_script (pathname,parent):
   # open file first
@@ -111,3 +115,75 @@ def run_tdl_script (pathname,parent):
       """<p>Error running tests in <tt>%s</tt>:</p>
       <p><small><i>%s: %s</i><small></p>""" % (pathname,exctype.__name__,excvalue),
       QMessageBox.Ok);
+
+class TDLEditor (QFrame):
+  def __init__ (self,*args):
+    QFrame.__init__(self,*args);
+    lo_top = QVBoxLayout(self);
+    self._pathlabel = QLabel(self);
+    lo_top.addWidget(self._pathlabel);
+    self._pathsep = QFrame(self);
+    self._pathsep.setFrameStyle(QFrame.HLine|QFrame.Sunken);
+    lo_top.addWidget(self._pathsep);
+    self._editor = QextScintilla(self);
+    lo_top.addWidget(self._editor);
+    self._lexer = QextScintillaLexerPython(self);
+    self._editor.setLexer(self._lexer);
+    self._filename = None;
+    
+  def load_file (self,filename,text=None,readonly=False):
+    # load text from file if not supplied
+    if text is None:
+      ff = file(filename);
+      text = ff.read();
+      ff.close();
+    self._filename = filename;
+    if filename is None:
+      self._pathlabel.hide();
+      self._pathsep.hide();
+    else:
+      self._pathlabel.setText("<b>"+filename+"</b>");
+      self._pathlabel.show();
+      self._pathsep.show();
+    self._editor.setText(text);
+    self._editor.setReadOnly(readonly);
+    # emit signals
+    self.emit(PYSIGNAL("loadedFile()"),(filename,));
+    
+class TDLSource (str):
+  """Dummy subclass of str to reprent TDL source code""";
+  pass;
+
+def makeTDLFileDataItem (pathname):
+  """creates a GridDataItem for a TDL script""";
+  # read the file (exception propagated outwards on error)
+  ff = file(pathname);
+  text = ff.read();
+  ff.close();
+  basename = os.path.basename(pathname);
+  # create the item
+  udi = '/tdlfile/'+pathname;
+  name = basename;
+  caption = '<b>'+basename+'</b>';
+  desc = 'TDL file '+pathname;
+  return Grid.DataItem(udi,name=name,caption=caption,desc=desc,data=text,viewer=TDLBrowser,refresh=None);
+
+class TDLBrowser(browsers.GriddedPlugin):
+  _icon = pixmaps.text_left;
+  viewer_name = "TDL Browser";
+  
+  def __init__(self,gw,dataitem,cellspec={},default_open=None,**opts):
+    browsers.GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
+    self._wedit = TDLEditor(self.wparent());
+    self.set_widgets(self.wtop(),dataitem.caption,icon=self.icon());
+    if dataitem.data is not None:
+      self.set_data(dataitem);
+      
+  def wtop (self):
+    return self._wedit;
+      
+  def set_data (self,dataitem,default_open=None,**opts):
+    _dprint(3,'set_data ',dataitem.udi);
+    self._wedit.load_file(None,text=dataitem.data,readonly=True);
+
+Grid.Services.registerViewer(TDLSource,TDLBrowser,priority=10);

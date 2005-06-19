@@ -184,7 +184,7 @@ class meqserver_gui (app_proxy_gui):
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_node()"),self._view_node);
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_forest_state()"),self._view_forest_state);
     
-    # add Result Log panel
+    # add Snapshots panel
     self.resultlog = Logger(self,"node snapshot log",limit=1000,scroll=False,
           udi_root='snapshot');
     self.resultlog.wtop()._newres_iconset  = pixmaps.gear.iconset();
@@ -193,6 +193,11 @@ class meqserver_gui (app_proxy_gui):
     self.add_tab(self.resultlog.wtop(),"Snapshots",index=2);
     QObject.connect(self.resultlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QObject.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
+    
+#     # add TDL editor panel
+#     self.tdledit = tdl_editor.TDLEditor(self,"tdl editor tab");
+#     self.add_tab(self.tdledit,"TDL");
+#     QObject.connect(self.tdledit,PYSIGNAL("loadedFile()"),self._set_tdl_pathname);
     
     # excluse ubiquotous events from the event logger
     self.eventlog.set_mask('!node.status.*;!process.status;'+self.eventlog.get_mask());
@@ -264,6 +269,8 @@ class meqserver_gui (app_proxy_gui):
     self.resultlog.wtop()._show_qaction.addTo(view_menu);
     self.eventtab._show_qaction.addTo(view_menu);
     self.show_tab(self.eventtab,False);
+#    self.tdledit._show_qaction.addTo(view_menu);
+#    self.show_tab(self.tdledit,False);
     # process status view
     showps = QAction("&Process status",0,self);
     showps.addTo(view_menu);
@@ -400,7 +407,26 @@ class meqserver_gui (app_proxy_gui):
       dialog.rereadDir();
     if dialog.exec_loop() == QDialog.Accepted:
       pathname = str(dialog.selectedFile());
+      # load in viewer
+      try:
+        item = tdlgui.makeTDLFileDataItem(pathname);
+      except:
+        (exctype,excvalue,tb) = sys.exc_info();
+        _dprint(0,'exception',sys.exc_info(),'loafing TDL file',pathname);
+        QMessageBox.warning(parent,"Error loading TDL script",
+          """<p>Error reading <tt>%s</tt>:</p>
+          <p><small><i>%s: %s</i><small></p>""" % (pathname,exctype.__name__,excvalue),
+          QMessageBox.Ok);
+        return;
+      # self.show_tab(self.tdledit);
       tdlgui.run_tdl_script(pathname,self);
+      # add viewer
+      self.show_tab(self.treebrowser.wtop(),switch=True);
+      Grid.addDataItem(item);
+      self.show_gridded_workspace();
+      
+#   def _set_tdl_pathname (self,pathname):
+#     self.rename_tab(self.tdledit,os.path.basename(pathname));
       
   def _quit_browser (self):
     if self._connected and self._kernel_pid:
