@@ -454,6 +454,7 @@ S                                1015       ; from /home/oms/LOFAR/Timba/DMI/src
 Save                             1332       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
 Scale                            1323       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
 Scope                            1041       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/LoggerWP.h:9
+Script                           1565       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
 Second                           1535       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:42
 Segment                          1180       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
 Segments                         1287       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
@@ -510,6 +511,7 @@ Symdeps                          1322       ; from /home/oms/LOFAR/Timba/MEQ/src
 T                                1011       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Table                            1354       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:35
 Target                           1116       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:35
+TDL                              1564       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
 Text                             1055       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:30
 Throw                            1205       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppAgent.h:10
 Ticks                            1533       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:42
