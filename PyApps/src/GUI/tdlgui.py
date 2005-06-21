@@ -122,16 +122,31 @@ def run_tdl_script (pathname,parent):
 class TDLEditor (QFrame):
   def __init__ (self,*args):
     QFrame.__init__(self,*args);
-    lo_top = QVBoxLayout(self);
-    self._pathlabel = QLabel(self);
-    lo_top.addWidget(self._pathlabel);
-    self._pathsep = QFrame(self);
-    self._pathsep.setFrameStyle(QFrame.HLine|QFrame.Sunken);
-    lo_top.addWidget(self._pathsep);
-    self._editor = QextScintilla(self);
-    lo_top.addWidget(self._editor);
+    lo = QVBoxLayout(self);
+    # find main window to associate our toolbar with
+    mainwin = self.parent();
+    while mainwin and not isinstance(mainwin,QMainWindow):
+      mainwin = self.parent();
+    self._toolbar = QToolBar("TDL tools",mainwin,self);
+    lo.addWidget(self._toolbar);
+    # populate toolbar
+    self._qa_jobs = QActionGroup(self);
+    self._qa_jobs.setUsesDropDown(True);
+    self._pathlabel = QLabel(self._toolbar);
+    self._toolbar.setStretchableWidget(self._pathlabel);
+    # add splitter
+    self._splitter = QSplitter(QSplitter.Vertical,self);
+    lo.addWidget(self._splitter);
+    # add editor window
+    self._editor = QextScintilla(self._splitter);
     self._lexer = QextScintillaLexerPython(self);
     self._editor.setLexer(self._lexer);
+    self._editor.show();
+    # add message window
+    self._message = QLabel(self._splitter);
+    self._splitter.setCollapsible(self._message,True);
+    self._message.hide();
+    # set filename
     self._filename = None;
     
   def load_file (self,filename,text=None,readonly=False):
@@ -142,21 +157,14 @@ class TDLEditor (QFrame):
       ff.close();
     self._filename = filename;
     if filename is None:
-      self._pathlabel.hide();
-      self._pathsep.hide();
+      self._pathlabel.setText("");
     else:
       self._pathlabel.setText("<b>"+filename+"</b>");
-      self._pathlabel.show();
-      self._pathsep.show();
     self._editor.setText(text);
     self._editor.setReadOnly(readonly);
     # emit signals
     self.emit(PYSIGNAL("loadedFile()"),(filename,));
     
-class TDLSource (str):
-  """Dummy subclass of str to reprent TDL source code""";
-  pass;
-
 def makeTDLFileDataItem (pathname):
   """creates a GridDataItem for a TDL script""";
   # read the file (exception propagated outwards on error)
