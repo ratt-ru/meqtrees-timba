@@ -451,7 +451,8 @@ class ParmFiddler (browsers.GriddedPlugin):
       if is_scalar(coeff):
           coeff=[[coeff]];
       if is_scalar(coeff[0]):
-          coeff=[coeff];
+        for i in range(len(coeff)):
+          coeff[i]=[coeff[i]];
       zero=1;
       shapex= len(coeff);
       shapey=len(coeff[0]);
@@ -562,7 +563,6 @@ class ParmFiddler (browsers.GriddedPlugin):
       if self._currentparm:
           self._currentparm.reject();
       #          del self._currentparm;
-      print "new parm selected", changenode,changenodekey;
       self._currentparm = ParmChange(self,changenode);
 
       label="c00 of "+changenodekey;
@@ -588,7 +588,6 @@ class ParmFiddler (browsers.GriddedPlugin):
     if self._currentparm:
       self._currentparm.reject();
     #          del self._currentparm;
-    print "new parm selected", changenode,changenodekey;
     self._currentparm = ParmChange(self,changenode);
 
 
@@ -688,7 +687,6 @@ class ParmFiddler (browsers.GriddedPlugin):
     changenodekey=str(self.parmtable.text(self._parmindex,0));
     changenode=self._parmdict[changenodekey]['node'];
     if not self._currentparm:
-      print "new parm selected", changenode,changenodekey;
       self._currentparm = ParmChange(self,changenode);
     if self._currentparm.edit_parm :
       self._currentparm.rejectedit();
@@ -712,7 +710,7 @@ class ParmFiddler (browsers.GriddedPlugin):
           return;
 
       if not self._request:
-          print "no request to execute"
+          _dprint(2,'no request to execute');
           return;
       #check solver status:
 #      self.updateTable();
@@ -905,7 +903,8 @@ class editParm(QDialog):
       if is_scalar(self._coeff):
           self._coeff=[[self._coeff]]
       if is_scalar(self._coeff[0]):
-          self._coeff=[self._coeff];
+        for i in range(len(self._coeff)):
+          self._coeff[i]=[self._coeff[i]];
       self._nx=len(self._coeff);
       self._ny=len(self._coeff[0]);
 
@@ -959,8 +958,8 @@ class editParm(QDialog):
       self.scaleT = QLineEdit(self);
       self.Bh1.addWidget(self.scaleT);
 
-      self._offset=[0.,0.];
-      self._scale=[1.,1.];
+      self._offset=array([0.,0.]);
+      self._scale=array([1.,1.]);
 
       self.Bh2 = QHBoxLayout(self.v, 5)
       
@@ -989,7 +988,7 @@ class editParm(QDialog):
       self.show()
       
     def UpdateOffs(self):
-#      print "updating offset ",self._offset;
+#      print "updating offset ",float(str(self.offsF.text()));
       self._offset[0]=float(str(self.offsF.text()));
       self._offset[1]=float(str(self.offsT.text()));
  
@@ -1113,8 +1112,8 @@ class editParm(QDialog):
 
     def updateCoeff_fromparent(self):
         funklet=self.parent._funklet;
-        self._offset=[0.,0.];
-        self._scale=[1.,1.];
+        self._offset=array([0.,0.]);
+        self._scale=array([1.,1.]);
         self._coeff=0.;
 
         if funklet:
@@ -1128,7 +1127,8 @@ class editParm(QDialog):
         if is_scalar(self._coeff):
             self._coeff=[[self._coeff]]
         if is_scalar(self._coeff[0]):
-            self._coeff=[self._coeff];
+          for i in range(len(self._coeff)):
+            self._coeff[i]=[self._coeff[i]];
         self._nx=len(self._coeff);
         self._ny=len(self._coeff[0]);
         self.updategrid();
