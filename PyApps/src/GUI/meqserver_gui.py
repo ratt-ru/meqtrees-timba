@@ -21,6 +21,7 @@ import re
 import os
 import os.path
 import signal
+import traceback
 
 _dbg = verbosity(0,name='meqserver_gui');
 _dprint = _dbg.dprint;
@@ -237,7 +238,7 @@ class meqserver_gui (app_proxy_gui):
     connect = QAction("Connect to kernel...",0,self);
     connect.addTo(kernel_menu);
     QObject.connect(self,PYSIGNAL("isConnected()"),connect.setDisabled);
-    stopkern = QAction(pixmaps.red_round_cross.iconset(),"Stop kernel process",0,self);
+    stopkern = QAction(pixmaps.red_round_cross.iconset(),"&Stop kernel process",0,self);
     QObject.connect(self,PYSIGNAL("isConnected()"),stopkern.setEnabled);
     QObject.connect(stopkern,SIGNAL("activated()"),self._stop_kernel);
     stopkern.addTo(kernel_menu);
@@ -246,7 +247,7 @@ class meqserver_gui (app_proxy_gui):
     self.treebrowser._qa_load.addTo(kernel_menu);
     self.treebrowser._qa_save.addTo(kernel_menu);
     self._connect_dialog = connect_meqtimba_dialog.ConnectMeqKernel(self,\
-        name="Connect to MeqTimba kernel",modal=False);
+        name="&Connect to MeqTimba kernel",modal=False);
     QObject.connect(self,PYSIGNAL("isConnected()"),self._connect_dialog.setHidden);
     QObject.connect(connect,SIGNAL("activated()"),self._connect_dialog.show);
     QObject.connect(self._connect_dialog,PYSIGNAL("startKernel()"),self._start_kernel);
@@ -336,14 +337,20 @@ class meqserver_gui (app_proxy_gui):
       
     # finally, add standard stuff to bottom of menus
     kernel_menu.insertSeparator();
-    runtdl = QAction("Run TDL script...",Qt.ALT+Qt.Key_T,self);
+    loadtdl = QAction("Load &TDL script...",Qt.ALT+Qt.Key_T,self);
+    loadtdl.addTo(kernel_menu);
+    QObject.connect(loadtdl,SIGNAL("activated()"),self._load_tdl_script);
+    runtdl = QAction("Load && &run TDL script...",Qt.ALT+Qt.Key_R,self);
     runtdl.addTo(kernel_menu);
     QObject.connect(self,PYSIGNAL("isConnected()"),runtdl.setEnabled);
     QObject.connect(runtdl,SIGNAL("activated()"),self._run_tdl_script);
     kernel_menu.insertSeparator();
-    exit = QAction(pixmaps.exit.iconset(),"Quit browser",Qt.ALT+Qt.Key_Q,self);
+    exit = QAction(pixmaps.exit.iconset(),"&Quit browser",Qt.ALT+Qt.Key_Q,self);
     exit.addTo(kernel_menu);
-    QObject.connect(exit,SIGNAL("activated()"),self._quit_browser);
+    QObject.connect(exit,SIGNAL("activated()"),self.close);
+    ## NB: uncomment the line below to have Ctrl+C handled through the GUI
+    ## (confirmation dialog will be displayed if running a kernel)
+    # signal.signal(signal.SIGINT,self.xcurry(self.close));
  
     # subscribe to updates of forest state
     meqds.subscribe_forest_state(self._update_forest_state);
@@ -392,7 +399,10 @@ class meqserver_gui (app_proxy_gui):
       self.log_message('sending KILL signal to kernel process '+str(pid));
       os.kill(pid,signal.SIGKILL);
       
-  def _run_tdl_script (self):
+  def _run_tdl_script (self,run=False):
+    self._load_tdl_script(True);
+    
+  def _load_tdl_script (self,run=False):
     # tdlgui.run_tdl_script('tdl_test.tdl',self);
     # return;    
     try: dialog = self._run_tdl_dialog;
@@ -409,41 +419,52 @@ class meqserver_gui (app_proxy_gui):
       pathname = str(dialog.selectedFile());
       # load in viewer
       try:
-        item = tdlgui.makeTDLFileDataItem(pathname);
+        item = tdlgui.TDLFileDataItem(pathname);
       except:
         (exctype,excvalue,tb) = sys.exc_info();
-        _dprint(0,'exception',sys.exc_info(),'loafing TDL file',pathname);
-        QMessageBox.warning(parent,"Error loading TDL script",
+        _dprint(0,'exception loading TDL file',pathname,':');
+        traceback.print_exc();
+        QMessageBox.warning(self,"Error loading TDL script",
           """<p>Error reading <tt>%s</tt>:</p>
           <p><small><i>%s: %s</i><small></p>""" % (pathname,exctype.__name__,excvalue),
           QMessageBox.Ok);
         return;
-      # self.show_tab(self.tdledit);
-      tdlgui.run_tdl_script(pathname,self);
-      # add viewer
+      # show item in grid
       self.show_tab(self.treebrowser.wtop(),switch=True);
-      Grid.addDataItem(item);
+      item = Grid.addDataItem(item);
       self.show_gridded_workspace();
+      # tell viewer to run file
+      if run and item:
+        item.viewer_obj.editor().compile_content();
+      # self.show_tab(self.tdledit);
+      # tdlgui.run_tdl_script(pathname,self);
+      # add viewer
       
 #   def _set_tdl_pathname (self,pathname):
 #     self.rename_tab(self.tdledit,os.path.basename(pathname));
-      
-  def _quit_browser (self):
+
+  def _verify_quit (self):
     if self._connected and self._kernel_pid:
       res = QMessageBox.warning(self,"Quit browser",
         """<p>We have started a kernel process (pid %d) from this browser. 
         Would you like to quit the browser only, or kill the kernel as 
         well?</p>""" % (self._kernel_pid,),
-        "Quit only","Quit && kill","Cancel",0,2);
+        "&Quit only","Quit && &kill","Cancel",1,2);
       if res == 0:
-        self.close();
+        return True;
       elif res == 1:
         os.kill(self._kernel_pid,signal.SIGKILL);
-        self.close();
+        return True;
       else:
-        return;
+        return False;
     else:
-      self.close();
+      return True;
+      
+  def closeEvent (self,event):
+    if self._verify_quit():
+      event.accept();
+    else:
+      event.ignore();
     
   def _sigchld_handler (self,sig,stackframe):
     _dprint(0,'signal',sig);

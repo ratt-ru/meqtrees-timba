@@ -731,7 +731,8 @@ class MainAppClass (QApplication):
 #    font.setStyleHint(QFont.System);
 #    self.setFont(font);
     self.connect(self,SIGNAL("lastWindowClosed()"),self,SLOT("quit()"));
-    # connect Ctrl+C handler
+    ## NB: uncomment the line below to have Ctrl+C quit the app
+    ## unconditionally (for alternative, see meqserver_gui.py)
     signal.signal(signal.SIGINT,self.__sigint_handler);
     # notify all waiters
     self._waitcond.acquire();

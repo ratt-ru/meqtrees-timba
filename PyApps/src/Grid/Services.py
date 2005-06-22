@@ -161,23 +161,26 @@ def getCurrentWorkspace ():
   
 def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=None,newcell=False,newpage=False):
   """Adds a data cell with a viewer the given item.
-     viewer:    if not None, must a be a viewer plugin class, or name. 
-                Overrides the viewer specified by the item.
-     gw:        if not None, specifies a non-default gridded workspace to
-                display the item on.
-     position:  if not None, must be a tuple specifying a cell to allocate, 
-                as (gridpage,x,y)
-     avoid_pos: if not None, must be a tuple specifying a cell to AVOID
-                allocating, as (gridpage,x,y). 
-     newpage:   if True, creates a new page with the data cell
-     newcell:   if True, uses an empty cell (changing layouts as needed)
-                rather than reusing an existing unpinned panel. If False,
-                reuses a panel if possible.
-     Note that the position, newpage and newcell argument are rolled up into
-     a "cell specification" dict, and passed to the viewer object as the 
-     cellspec argument. The cellspec is then passed as keyword arguments
-     (via **cellspec) to Workspace.allocate_cells() when the viewer goes 
-     to allocate cells for itself.
+       viewer:    if not None, must a be a viewer plugin class, or name. 
+                  Overrides the viewer specified by the item.
+       gw:        if not None, specifies a non-default gridded workspace to
+                  display the item on.
+       position:  if not None, must be a tuple specifying a cell to allocate, 
+                  as (gridpage,x,y)
+       avoid_pos: if not None, must be a tuple specifying a cell to AVOID
+                  allocating, as (gridpage,x,y). 
+       newpage:   if True, creates a new page with the data cell
+       newcell:   if True, uses an empty cell (changing layouts as needed)
+                  rather than reusing an existing unpinned panel. If False,
+                  reuses a panel if possible.
+       Note that the position, newpage and newcell argument are rolled up into
+       a "cell specification" dict, and passed to the viewer object as the 
+       cellspec argument. The cellspec is then passed as keyword arguments
+       (via **cellspec) to Workspace.allocate_cells() when the viewer goes 
+       to allocate cells for itself.
+     Return value is either the item object itself if added, or if the
+     same item (i.e. same udi/viewer) is already displayed, then the old
+     item object is returned, or None on error.
   """;
   _dprint(2,item.udi,item.viewer);
   global _dataitems,_current_gw;
@@ -219,7 +222,7 @@ def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=N
           item0.refresh();
         if show_gw:
           gw.show();
-        return;
+        return item0;
   # ok, we got to here so we have to create a viewer
   vopts = {};
   vopts.update(item.viewopts.get(None,{}));
@@ -231,17 +234,16 @@ def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=N
     item.viewer_obj = viewer(gw,dataitem=item,cellspec=cellspec,**vopts);
   except:
     (et,ev,etb) = sys.exc_info();
+    _dprint(0,'error creating plugin',viewer.__name__);
+    traceback.print_exc();
     errstr = '<qt><center><big>Error creating a plug-in of class <b>%s</b> for item <tt>%s</tt>.</big></center>'%(viewer.__name__,item.udi);
     errstr += '<p><tt>%s</tt>: %s'% \
         (getattr(ev,'_classname',ev.__class__.__name__),getattr(ev,'__doc__',''));
     if hasattr(ev,'args'):
       errstr += '</p><p>("'+' '.join(ev.args)+'")</p>';
     errstr += '</p></qt>';
-    _dprint(0,errstr);
-    print '======== exception traceback follows:';
-    traceback.print_tb(etb);
     QMessageBox.warning(None,'Error initializing plug-in',errstr,QMessageBox.Ok,QMessageBox.NoButton);
-    return;
+    return None;
   # add to list
   itemlist.append(item);
   # highlight it
@@ -251,6 +253,7 @@ def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=N
   # show the workspace
   if show_gw:
     gw.show();
+  return item;
 
 def removeDataItem (item):
   global _dataitems;
