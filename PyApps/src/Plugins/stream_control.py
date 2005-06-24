@@ -700,7 +700,7 @@ def define_treebrowser_actions (tb):
 # this is called automatically by the main app to populate its menus.
 # Called *after* define_treebrowser_actions, so it's ok to use stuff initialized
 # there.
-def define_mainmenu_actions (menu):
+def define_mainmenu_actions (menu,parent):
   _dprint(1,'defining stream control menu actions');
   global _qa_stream;
   # add ourselves to the MeqTimba menu

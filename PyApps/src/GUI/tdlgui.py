@@ -24,14 +24,28 @@ _dprintf = _dbg.dprintf;
 _tdlmod = None;
 
 class TDLEditor (QFrame,PersistentCurrier):
+  ErrorMarker = 0;
+  CurrentErrorMarker = 1;
+  # a single editor always has the focus
+  current_editor = None;
+  
   def __init__ (self,*args):
     QFrame.__init__(self,*args);
-    lo = QVBoxLayout(self);
+    toplo = QVBoxLayout(self);
+    self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
+    splitter = QSplitter(Qt.Vertical,self);
+    toplo.addWidget(splitter);
+    splitter.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
+    splitter.setChildrenCollapsible(False);
+    
+    # create an editor box
+    editor_box = QFrame(splitter);
+    lo = QVBoxLayout(editor_box);
     # find main window to associate our toolbar with
     mainwin = self.parent();
     while mainwin and not isinstance(mainwin,QMainWindow):
       mainwin = self.parent();
-    self._toolbar = QToolBar("TDL tools",mainwin,self);
+    self._toolbar = QToolBar("TDL tools",mainwin,editor_box);
     lo.addWidget(self._toolbar);
     # populate toolbar
     self._qa_jobs = QActionGroup(self);
@@ -39,18 +53,23 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._pathlabel = QLabel(self._toolbar);
     self._toolbar.setStretchableWidget(self._pathlabel);
     # add editor window
-    self._editor = QextScintilla(self);
+    self._editor = QextScintilla(editor_box);
     lo.addWidget(self._editor);
     self._editor.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     self._lexer = QextScintillaLexerPython(self);
     self._editor.setLexer(self._lexer);
-    self._editor.markerDefine(QextScintilla.RightTriangle,self.Error.Marker);
-    self._editor.markerDefine(QextScintilla.RightTriangle,self.Error.CurrentMarker);
-    self._editor.setMarkerForegroundColor(QColor("red"),self.Error.Marker);
-    self._editor.setMarkerForegroundColor(QColor("red"),self.Error.CurrentMarker);
-    self._editor.setMarkerBackgroundColor(QColor("red"),self.Error.CurrentMarker);
+    self._editor.markerDefine(QextScintilla.RightTriangle,self.ErrorMarker);
+    self._editor.markerDefine(QextScintilla.RightTriangle,self.CurrentErrorMarker);
+    self._editor.setMarkerForegroundColor(QColor("red"),self.ErrorMarker);
+    self._editor.setMarkerForegroundColor(QColor("red"),self.CurrentErrorMarker);
+    self._editor.setMarkerBackgroundColor(QColor("red"),self.CurrentErrorMarker);
+    self._editor.setMarginSensitivity(1,True);
+    QObject.connect(self._editor,SIGNAL("marginClicked(int,int,Qt::ButtonState)"),self._process_margin_click);
+    QObject.connect(self._editor,SIGNAL("modificationAttempted()"),self._clear_transients);
+    QObject.connect(self._editor,SIGNAL("textChanged()"),self._clear_transients);
+
     # add message window
-    self._message_box = QFrame(self);
+    self._message_box = QFrame(editor_box);
     lo.addWidget(self._message_box);
     self._message_box.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Preferred);
     self._message_box.setFrameStyle(QFrame.Panel+QFrame.Sunken);
@@ -68,16 +87,30 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._message_icon.setSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed);
     self._message_widgets = [];
     self._message_transient = False;
+
+    # add error list widget
+    self._errlist_box = QFrame(splitter);
+    eblo = QVBoxLayout(self._errlist_box);
+    # error list header is a toolbar
+    errlist_hdr = QToolBar("TDL errors",mainwin,self._errlist_box);
+    eblo.addWidget(errlist_hdr);
+    errsym = QLabel(errlist_hdr);
+    errsym.setPixmap(pixmaps.red_round_cross.pm());
+    errlist_hdr.addSeparator();
+    self._error_count_label = QLabel(errlist_hdr);
+    errlist_hdr.setStretchableWidget(self._error_count_label);
+    # error list itself
+    self._errlist = QListBox(self._errlist_box);
+    eblo.addWidget(self._errlist);
+    QObject.connect(self._errlist,SIGNAL("highlighted(int)"),self._highlight_error);
+    self._errlist_box.hide();
+    self._errloc = [];
+
     # set filename
     self._filename = None;
-    # set error list
-    self._errlist = [];
-    self._cur_err = -1;
-    # connect up some signals
-    QObject.connect(self._editor,SIGNAL("modificationAttempted()"),
-      self._clear_transients);
-    QObject.connect(self._editor,SIGNAL("textChanged()"),
-      self._clear_transients);
+    
+  def __del__ (self):
+    self.has_focus(False);
     
   def _clear_transients (self):
     """if message box contains a transient message, clears it""";
@@ -94,7 +127,6 @@ class TDLEditor (QFrame,PersistentCurrier):
       for w in self._message_widgets:
         w.reparent(dum);
       self._message_widgets = [];
-    self._editor.markerDeleteAll(self.Error.CurrentMarker);
     
   def show_message (self,msg,error=False,pixmap=None,transient=False):
     """Shows message in box.
@@ -121,57 +153,52 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._mblo.addWidget(widget);
     self._message_widgets.append(widget);
     
-  class Error (object):
-    Marker = 0;
-    CurrentMarker = 1;
-    def __init__ (self,editor,message,line=None):
-      self.editor = editor;
-      self.message = message;
-      self.line = line;
-      if line is not None:
-        self.mhandle = editor.markerAdd(line,self.Marker);
-      else:
-        self.mhandle = None;
-    def __del__ (self):
-      if self.mhandle is not None:
-        self.editor.markerDeleteHandle(self.mhandle);
-    def highlight (self):
-      self.editor.markerDeleteAll(self.CurrentMarker);
-      if self.line is not None:
-        self.editor.markerAdd(self.line,self.CurrentMarker);
-        self.editor.ensureLineVisible(self.line);
-    
-  def clear_errors (self):
+  def clear_error_list (self):
+    self._errlist.clear();
     self._editor.markerDeleteAll();
+    self._error_count_label.setText('');
+    self._errloc = []
     self.clear_message();
-    self._errlist = [];
-    self._cur_err = -1;
-    
-  def add_error (self,errtype,errvalue,tb):
-    """Adds an error to the error list.  Arguments are as returned by 
-    sys.exc_info(). A source position in the current script will be looked
-    for in the tb traceback""";
-    # look for error line
-    errline = None;
-    stack = traceback.extract_tb(tb);
-    for (filename,line,funcname,text) in stack[-1::-1]:
-      if filename == self._filename:
-        errline = line-1;  # lines (as reported by traceback) are 1-based
+      
+  def show_error_list (self,errlist):
+    self.clear_error_list();
+    if errlist:
+      for (errtype,errmsg,filename,line) in errlist:
+        index = self._errlist.count();
+        self._errlist.insertItem('');
+        if filename == self._filename:
+          self._errlist.changeItem("%d: %s (%s) [%d]" % (index+1,errmsg,errtype,line),index);
+          self._editor.markerAdd(line-1,self.ErrorMarker);
+          self._errloc.append(line-1);
+        else:
+          self._errlist.changeItem("%d: %s (%s) [%s:%d]" % (index+1,errmsg,errtype,filename,line),index);
+          self._errloc.append((filename,line));
+      self._error_count_label.setText('<b>%d</b> errors'%(len(errlist)));
+      self._errlist_box.show();
+      self._errlist.setCurrentItem(0);
+    else:
+      self._errlist_box.hide();
+      
+  def _highlight_error (self,number):
+    self._editor.markerDeleteAll(self.CurrentErrorMarker);
+    if number < len(self._errloc):
+      loc = self._errloc[number];
+      if isinstance(loc,int):
+        self._editor.ensureLineVisible(loc);
+        # a little kludge to prevent line from being hidden by a resize
+        self._editor.ensureLineVisible(loc+5); 
+        self._editor.markerAdd(loc,self.CurrentErrorMarker);
+        
+  def _process_margin_click (self,margin,line,button):
+    _dprint(0,margin,line,button);
+    for (ierr,errline) in enumerate(self._errloc):
+      if errline == line:
+        self._errlist.setCurrentItem(ierr);
         break;
-    # form message
-    msg = "%s <i>(%s)</i>" % (errvalue,errtype.__name__)
-    err = self.Error(self._editor,msg,errline);
-    self._errlist.append(err);
-    
-  def show_next_error (self):
-    self._cur_err = max(self._cur_err+1,len(self._errlist)-1);
-    if self._cur_err >= 0:
-      err = self._errlist[self._cur_err];
-      err.highlight();
-      self.show_message(err.message,error=True,transient=True);
-    
+      
   def compile_content (self):
-    self.clear_errors();
+    self.clear_message();
+    self.clear_error_list();
     pathname = self._filename;
     # open file first
     try:
@@ -207,17 +234,33 @@ class TDLEditor (QFrame,PersistentCurrier):
     ff.close();
     mqs = meqds.mqs();
     # module here, call functions
+    errlist = [];
     try:
       ns = TDL.NodeScope();
       _tdlmod.define_forest(ns);
       ns.Resolve();
+    except TDL.CumulativeError,value:
+    # this exception gives us an error list directly
+      errlist = value[0];
     except:
+    # other exception; check if we also have an error list
+      errlist = ns.GetErrors();
+      # look through traceback to figure out caller
       (exctype,excvalue,tb) = sys.exc_info();
       traceback.print_exc();
       _dprint(0,'exception',sys.exc_info(),'in define_forest() of TDL file',pathname);
-      self.add_error(exctype,excvalue,tb);
-      self.show_next_error();
-      return None;
+      errline = None;
+      stack = traceback.extract_tb(tb);
+      for (filename,line,funcname,text) in stack[-1::-1]:
+        if filename == self._filename:
+          errlist.append((exctype.__name__,str(excvalue),filename,line));
+          break;
+      else:
+        errlist.append((exctype.__name__,str(excvalue),stack[-1][0],stack[-1][1]));
+    # do we have an error list? show it
+    if errlist:
+      self.show_error_list(errlist);
+      return;
     num_nodes = len(ns.AllNodes());
     # no nodes? return
     if not num_nodes:
@@ -266,6 +309,8 @@ class TDLEditor (QFrame,PersistentCurrier):
 #         QMessageBox.Ok);
     
   def load_file (self,filename,text=None,readonly=False):
+    self.clear_message();
+    self.clear_error_list();
     # load text from file if not supplied
     if text is None:
       ff = file(filename);
@@ -281,14 +326,12 @@ class TDLEditor (QFrame,PersistentCurrier):
     # emit signals
     self.emit(PYSIGNAL("loadedFile()"),(filename,));
     
-
-
-
-
-
-
-
-
+  def has_focus (self,focus):
+    if focus:
+      TDLEditor.current_editor = self;
+    else:
+      if TDLEditor.current_editor == self:
+        TDLEditor.current_editor = None;
 
 class TDLFileDataItem (Grid.DataItem):
   """represents a GridDataItem for a TDL script""";
@@ -332,5 +375,25 @@ class TDLBrowser(browsers.GriddedPlugin):
     _dprint(3,'set_data ',dataitem.udi);
     pathname = getattr(dataitem,'tdl_pathname',None);
     self._wedit.load_file(pathname,text=dataitem.data,readonly=True);
+    
+  def highlight (self,color=True):
+    browsers.GriddedPlugin.highlight(self,color);
+    self._wedit.has_focus(bool(color));
 
 Grid.Services.registerViewer(str,TDLBrowser,priority=10,check_udi=lambda x:x.endswith('.tdl'));
+
+# standard method to register actions in the main menu
+#
+def define_mainmenu_actions (menu,parent):
+  _dprint(1,'defining stream control menu actions');
+  global _qa_next,_qa_prev,_qa_run;
+  _qa_next = QAction(pixmaps.blue_round_rightarrow.iconset(),"&Next error",Qt.CTRL+Qt.Key_N,parent);
+  _qa_next.addTo(menu['TDL']);
+  _qa_next.setEnabled(False);
+  _qa_prev = QAction(pixmaps.blue_round_leftarrow.iconset(),"&Previous error",Qt.CTRL+Qt.Key_P,parent);
+  _qa_prev.addTo(menu['TDL']);
+  _qa_prev.setEnabled(False);
+  _qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.CTRL+Qt.Key_R,parent);
+  _qa_run.addTo(menu['TDL']);
+  _qa_run.setEnabled(False);
+

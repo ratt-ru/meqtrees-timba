@@ -1,12 +1,16 @@
 from Timba import dmi
 from Timba.TDL import TDLimpl
+from TDLimpl import *
 from Timba.Meq import meq
 import sys
 import traceback
 
+
 _dbg = TDLimpl._dbg;
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
+
+_NodeDef = TDLimpl._NodeDef;
 
 class _MeqGen (TDLimpl.ClassGen):
   """This class defines the standard 'Meq' class generator. Having a 
@@ -26,8 +30,8 @@ class _MeqGen (TDLimpl.ClassGen):
         except:
           if _dbg.verbose>0:
             traceback.print_exc();
-          raise TDLimpl.NodeDefError,"illegal funklet argument in call to Meq.Parm at "+TDLimpl._identifyCaller();
-    return TDLimpl._NodeDef('MeqParm',**kw);
+          return _NodeDef(NodeDefError("illegal funklet argument in call to Meq.Parm"));
+    return _NodeDef('MeqParm',**kw);
     
   def Solver (self,*childlist,**kw):
     solvables = kw.get('solvable',None);
@@ -39,13 +43,27 @@ class _MeqGen (TDLimpl.ClassGen):
       kw['solvable'] = dmi.record(
         command_by_list=[dmi.record(name=solvables,state=dmi.record(solvable=True)),
                          dmi.record(state=dmi.record(solvable=False))]);
-    return TDLimpl._NodeDef('MeqSolver',*childlist,**kw);
+    return _NodeDef('MeqSolver',*childlist,**kw);
     
   # now for some aliases
-  def Matrix22 (self,a,b,c,d,**kw):
+  def Matrix22 (self,*children,**kw):
     "composes a 2x2 matrix as [[a,b],[c,d]]";
-    kw['dims'] = [2,2];
-    return self.Composer(a,b,c,d,**kw);
+    if len(children) != 4:
+      return _NodeDef(NodeDefError("Meq.Matrix22 takes exactly 4 arguments (%d given)"%(len(children),)));
+    # are all children numeric constants?
+    for ch in children:
+      if not isinstance(ch,(bool,int,long,float,complex)):
+        # no, so create a composer node
+        kw['dims'] = [2,2];
+        return self.Composer(*children,**kw);
+    # yes, all constants. Do we have at least one complex?
+    for ch in children:
+      if isinstance(ch,complex):
+        children = map(complex,children);
+        break;
+    else:
+      children = map(float,children);
+    return Meq.Constant(value=dmi.array(children,shape=[2,2]));
     
   def ConjTranspose (self,arg,**kw):
     "conjugate (hermitian) transpose";

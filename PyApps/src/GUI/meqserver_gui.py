@@ -213,16 +213,18 @@ class meqserver_gui (app_proxy_gui):
     # build menu bar
     self._menus = {};
     kernel_menu    = self._menus['MeqTimba'] = QPopupMenu(self);
+    tdl_menu       = self._menus['TDL'] = QPopupMenu(self);
     bookmarks_menu = self._menus['Bookmarks'] = QPopupMenu(self);
-    view_menu      = self._menus['View'] = QPopupMenu(self);
     debug_menu     = self._menus['Debug'] = QPopupMenu(self);
+    view_menu      = self._menus['View'] = QPopupMenu(self);
     help_menu      = self._menus['Help'] = QPopupMenu(self);
 
     menubar = self.menuBar();    
     kernel_menu_id = menubar.insertItem("&MeqTimba",kernel_menu);
-    window_menu_id = menubar.insertItem("&View",view_menu);
+    kernel_menu_id = menubar.insertItem("&TDL",tdl_menu);
     bookmarks_menu_id = menubar.insertItem("&Bookmarks",bookmarks_menu);
     debug_menu_id = menubar.insertItem("&Debugger",debug_menu);
+    window_menu_id = menubar.insertItem("&View",view_menu);
     menubar.insertSeparator();
     help_menu_id = menubar.insertItem("&Help",help_menu);
     
@@ -259,6 +261,16 @@ class meqserver_gui (app_proxy_gui):
         self._connect_dialog.set_default_path(filename);
         break;
     self._connect_dialog.show();
+    
+    # --- TDL menu
+    loadtdl = QAction("Load TDL script...",0,self);
+    loadtdl.addTo(tdl_menu);
+    QObject.connect(loadtdl,SIGNAL("activated()"),self._load_tdl_script);
+    runtdl = QAction("&Load && run TDL script...",Qt.ALT+Qt.Key_R,self);
+    runtdl.addTo(tdl_menu);
+    QObject.connect(self,PYSIGNAL("isConnected()"),runtdl.setEnabled);
+    QObject.connect(runtdl,SIGNAL("activated()"),self._run_tdl_script);
+    tdl_menu.insertSeparator();
     
     # --- View menu
     showgw = QAction(pixmaps.view_split.iconset(),"&Gridded workspace",Qt.Key_F3,self);
@@ -333,17 +345,9 @@ class meqserver_gui (app_proxy_gui):
       except AttributeError: pass;
     _dprint(1,len(funcs),'unique mainmenu action-definition methods found');
     for f in funcs:
-      f(self._menus);
+      f(self._menus,self);
       
     # finally, add standard stuff to bottom of menus
-    kernel_menu.insertSeparator();
-    loadtdl = QAction("Load &TDL script...",Qt.ALT+Qt.Key_T,self);
-    loadtdl.addTo(kernel_menu);
-    QObject.connect(loadtdl,SIGNAL("activated()"),self._load_tdl_script);
-    runtdl = QAction("Load && &run TDL script...",Qt.ALT+Qt.Key_R,self);
-    runtdl.addTo(kernel_menu);
-    QObject.connect(self,PYSIGNAL("isConnected()"),runtdl.setEnabled);
-    QObject.connect(runtdl,SIGNAL("activated()"),self._run_tdl_script);
     kernel_menu.insertSeparator();
     exit = QAction(pixmaps.exit.iconset(),"&Quit browser",Qt.ALT+Qt.Key_Q,self);
     exit.addTo(kernel_menu);
