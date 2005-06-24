@@ -1,0 +1,50 @@
+# standard preamble
+from Timba.TDL import *
+
+# forest_state is a standard TDL name. If defined in the script, this
+# record is passed to Set.Forest.State. 
+forest_state = record(cache_policy=100);
+
+def define_forest (ns):
+  """
+  This script is deliberately full of errors. We use it to test TDL error
+  reporting.
+  """;
+  ns['solver'] << Meq.Solver(
+    num_iter=5,debug_level=10,solvable="x",
+    children = [
+      Meq.Condeq(
+        Meq.Parm([0,1]),
+        5 + (ns.x << Meq.Parm(0,tiling=record(time=1),node_groups='Parm'))
+      ),
+      ns.xx
+    ]
+  );
+  ns.z1 << Meq.Matrix22(0,1,2,3);
+  ns.z2 << Meq.Matrix22(0,1,2,3j);
+  ns.z3 << Meq.Matrix22(ns.z1,1,2,3);
+  ns.z4 << Meq.Matrix22(1,2,3);
+  ns.yy << Meq.Add(1,2,3,4,children=[ns.a,ns.d]);
+  # xx;
+
+# this is the testing branch, executed when the script is run directly
+# via 'python script.py'
+
+if __name__ == '__main__':
+#  from Timba.Meq import meqds 
+  
+  Timba.TDL._dbg.set_verbose(5);
+  
+  ns = NodeScope();
+
+  define_forest(ns);
+  
+  # resolves nodes
+  ns.Resolve();
+  
+#  test_forest(None);
+  
+#  # feeds repository to back-end to create the forest
+#  MqsBackend.create_forest(ns.repository(),mqs);
+#
+#  test_forest(meqds.mqs());
