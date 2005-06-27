@@ -96,7 +96,7 @@ AC_ARG_ENABLE(dbgassert,
   fi
 
   if test "$lofar_compiler" = "xlc"; then
-    lofar_warnflags="-w";   # this turns warnings off; not perfect
+    lofar_warnflags="-qflag=I:W";   # show Info and up in the list file, Warnings and up on the console
   fi
 
   enable_debug="no";
