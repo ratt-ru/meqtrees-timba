@@ -82,12 +82,11 @@ namespace Meq {
   void PolcLog::axis_function(int axis, LoVec_double &grid) const
   {
     if(scale0*grid(0) <=0 || scale0*grid(grid.size()-1)<=0){
-      cdebug(0)<<"trying to take log of 0 or negative value, axis not changed"<<endl;
+      cdebug(2)<<"trying to take log of 0 or negative value, axis not changed"<<endl;
 
       return;
     }
     grid=1./log(10.)*log(grid/scale0);
-    cdebug(0)<<grid<<endl;
    
   }
 }

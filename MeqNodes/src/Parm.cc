@@ -140,13 +140,13 @@ const HIID
 	cdebug(3)<<n<<" funklets found in MEP table"<<endl;
 	if( n>1 )
 	  {
-	    cdebug(0)<<"discarding mutliple funklets as only one is currently suported, unless ? "<<isSolvable()<< "= false "<<endl;
+	    cdebug(2)<<"discarding mutliple funklets as only one is currently suported, unless ? "<<isSolvable()<< "= false "<<endl;
 	    // ok think of something to make somthing big out of multiple funklets...
 	    //What about creating a "mutliplePolc" class that does the job for you
 	    //only if non-solvable..otherwise, at least select best fitting!
 	    if(!isSolvable()){
 	      funkletref <<=new ComposedPolc(funklets);
-	      cdebug(0)<<"composed funklet found? "<<funkletref-> objectType()<<endl;
+	      cdebug(2)<<"composed funklet found? "<<funkletref-> objectType()<<endl;
 	      return funkletref.dewr_p();
 	    }
 	    
@@ -262,7 +262,7 @@ const HIID
     else
       pfunklet = findRelevantFunklet(funkref,domain);
     FailWhen(!pfunklet,"no funklets found for specified domain");
-    cdebug(0)<<"found relevant funklet, type "<<pfunklet->objectType()<<endl;
+    cdebug(2)<<"found relevant funklet, type "<<pfunklet->objectType()<<endl;
     // update state record
     wstate()[FFunklet].replace() <<= pfunklet;
     wstate()[FDomainId] = domain_id_ = rq_dom_id;
@@ -443,7 +443,7 @@ const HIID
 	    rec[FTableName].get(tableId);
 	    cdebug(3)<<"looking for tablename in forest state, field: "<<tableId<<endl;
 	    const DMI::Record &Fstate=forest().state();
-	    if(Fstate[tableId].type()==Tpstring) 
+	    if(Fstate.hasField(tableId) && Fstate[tableId].type()==Tpstring) 
 	      {
 		Fstate[tableId].get(tableName);
 	      }
@@ -466,7 +466,7 @@ const HIID
 	}
 	else    // else open a table
 	  {
-	    cdebug(3)<<"opening table: "<<tableName<<endl;
+	    cdebug(2)<<"opening table: "<<tableName<<endl;
 	    //check if table exists, otherwise create.
 	    
 	    parmtable_ = ParmTable::openTable(tableName);
@@ -517,7 +517,7 @@ const HIID
 		//now update longpolc_solution
 		//called here, because we want to sace LP, b4 saving "short polc", to have DBId
 		if(auto_solve_ && auto_save_ ){
-		  cdebug(0)<<"updating LP for the "<<++checknr<<"th time"<<endl;
+		  cdebug(2)<<"updating LP for the "<<++checknr<<"th time"<<endl;
 		  UpdateLongPolc(1,&funklet);
 		}
 
@@ -549,7 +549,7 @@ const HIID
     if( !saved && rec[FSaveFunklets].as<bool>(false) ){
       if(auto_solve_){
 	Funklet &funklet = wstate()[FFunklet].as_wr<Funklet>();
-	cdebug(0)<<"updating LP for the "<<++checknr<<"th time"<<endl;
+	cdebug(2)<<"updating LP for the "<<++checknr<<"th time"<<endl;
 	UpdateLongPolc(1,&funklet);
       }
       save();

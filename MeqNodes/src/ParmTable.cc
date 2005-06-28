@@ -127,6 +127,13 @@ ParmTable::~ParmTable()
 int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
 			    const string& parmName,const Domain& domain, const bool auto_solve_ )
 {
+
+  //check if table is still existing, needed if table is deleted in between to tests..
+  if(!(Table::isReadable(itsTable.tableName()))){
+    cdebug(2)<<"Cannot read Funklet in Table, table not existing "<<endl;
+    return 0;
+  }
+
   Thread::Mutex::Lock lock(theirMutex);
   TableLocker locker(itsTable, FileLocker::Read);
   Table sel = find (parmName, domain);
@@ -243,10 +250,15 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
                                 bool domain_is_key)
 {
 
-  cdebug(0)<<"putting coeef , lpid = "<<LPId<<endl;
   Thread::Mutex::Lock lock(theirMutex);
   // for now, only Polcs are supported
   FailWhen(funklet.objectType() != TpMeqPolc,"ParmTable currently only supports Meq::Polc funklets");  
+
+  //check if table is still existing, needed if table is deleted in between to tests..
+  if(!(Table::isReadable(itsTable.tableName()))){
+    cdebug(2)<<"Cannot put Funklet in Table, table not existing "<<endl;
+    return -1;
+  }
   itsTable.reopenRW();
   TableLocker locker(itsTable, FileLocker::Write);
   ScalarColumn<String> namCol (itsTable, ColName);
@@ -297,7 +309,6 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
     values = polc.getCoeff0();
   }
   int rownr = polc.getDbId();
-  cdebug(0)<<"putting polc dbid = "<<rownr<<endl;
   // have a row number? check name, etc.
   if( rownr >= 0 )
   {

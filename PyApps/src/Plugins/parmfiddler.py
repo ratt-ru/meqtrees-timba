@@ -26,6 +26,13 @@ _dprintf = _dbg.dprintf;
 solverstart =5;
 
 
+parmfiddler_instructions = \
+                         '''The Parmfiddler shows all the MeqParms as well as all solvers in the tree below the node it is started from.<br>
+                         The funklet/default_funklet/solvability/scales and offsets for any Parm can be adjusted via the fiddler. The first coefficient of the funklet of a selected Parm can be easily adjusted with the slider. If the reexecute mark is checked, the node from which the fiddler is started is reexecuted automatically after each change.<br> Use the right mouse button for extra options.'''
+
+
+
+
 
 class NA_ParmFiddler(NodeAction):
   text = "ParmFiddler";
@@ -62,6 +69,7 @@ class ParmFiddler (browsers.GriddedPlugin):
 
   def __init__(self,gw,dataitem,cellspec={},**opts):
     browsers.GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
+
     _dprint(1,"started with",dataitem.udi,dataitem.data);
     self._has_data = False;
     self.rid=0;
@@ -81,6 +89,11 @@ class ParmFiddler (browsers.GriddedPlugin):
 
 
     self.parmtable = QTable(self._wtop , "parmtable" );
+
+    QWhatsThis.add(self._wtop,parmfiddler_instructions);
+
+
+
     self.parmtable.setShowGrid(False);
     self.parmtable.setFocusStyle(QTable.FollowStyle);
     self.parmtable.setSelectionMode (QTable.MultiRow );
