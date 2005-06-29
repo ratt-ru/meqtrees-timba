@@ -27,8 +27,8 @@ solverstart =5;
 
 
 parmfiddler_instructions = \
-                         '''The Parmfiddler shows all the MeqParms as well as all solvers in the tree below the node it is started from.<br>
-                         The funklet/default_funklet/solvability/scales and offsets for any Parm can be adjusted via the fiddler. The first coefficient of the funklet of a selected Parm can be easily adjusted with the slider. If the reexecute mark is checked, the node from which the fiddler is started is reexecuted automatically after each change.<br> Use the right mouse button for extra options.'''
+                         '''The Parmfiddler shows all the MeqParms as well as all solvers in the tree below the node it is started from.<br> 
+                         The funklet/default_funklet/solvability/scales and offsets for the selected Parm(s) can be adjusted via the fiddler. The first coefficient of the funklet of the selected Parm(s) can be easily changed with the slider. The <b>Zero</b> button is a shortcut to reset all coefficients of the selected Parm(s) to 0. <br>To allow for  multiple selection use the <b>multi</b> checkbox, if checked all changes are applied to any selected (highlighted) Parm.  If the <b>reexecute</b> box is checked, the node from which the fiddler is started is reexecuted automatically after each change.<br> Use the right mouse button for extra options.'''
 
 
 
@@ -97,6 +97,10 @@ class ParmFiddler (browsers.GriddedPlugin):
     self.parmtable.setShowGrid(False);
     self.parmtable.setFocusStyle(QTable.FollowStyle);
     self.parmtable.setSelectionMode (QTable.MultiRow );
+
+
+
+
     self._menu=QPopupMenu(self.parmtable);
     self._menu.insertItem(pixmaps.publish.iconset(),"Publish",self.publish_selected);
     self._menu.insertItem(pixmaps.table.iconset(),"Funklet",self.parmSelected);
@@ -152,6 +156,15 @@ class ParmFiddler (browsers.GriddedPlugin):
     tooltip="If checked, node is executed after change";
     QToolTip.add(self.enable_exec,tooltip);
     self.enable_exec.setEnabled(False);
+
+
+    self.enable_multi = QCheckBox("multi",self.sliderframe, "multi");
+    tooltip="If checked, multiple parms can be adjusted at the same time";
+    QToolTip.add(self.enable_multi,tooltip);
+    self.enable_multi.setEnabled(True);
+    self.enable_multi.setChecked(True);
+    QObject.connect(self.enable_multi,SIGNAL("clicked()"),self.toggle_multi);
+    
     
     self.ButtonFrame = QHBox(self.sliderframe);
         
@@ -185,11 +198,17 @@ class ParmFiddler (browsers.GriddedPlugin):
 
     
     
-    
 
   def wtop(self):
       return self._wtop;
 
+
+  def toggle_multi(self):
+    if self.enable_multi.state():
+      self.parmtable.setSelectionMode (QTable.MultiRow );
+    else:
+      self.parmtable.setSelectionMode (QTable.SingleRow );
+      
 
   def fillstepsizelist(self):
       for i in range(-10,11):
@@ -334,12 +353,12 @@ class ParmFiddler (browsers.GriddedPlugin):
       if(checknode>node.name):
         # store in alphabetic order
         self._parmlist.insert(i,node.name);
-        self._parmdict[node.name] = {'node' : node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','publish':0,'groups':[],'zero':0,'row':-1};
+        self._parmdict[node.name] = {'node' : node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','publish':0,'groups':[],'zero':0,'row':-1,'funklet':{}};
         return True;
 
     self._parmlist.append(node.name);
   
-    self._parmdict[node.name] = {'node':node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','publish':0,'groups':[],'zero':0,'row':-1};
+    self._parmdict[node.name] = {'node':node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','publish':0,'groups':[],'zero':0,'row':-1,'funklet':{}};
       
           
     return True;
@@ -478,6 +497,7 @@ class ParmFiddler (browsers.GriddedPlugin):
         if not zero:
           break
       shapestr="["+str(shapex)+","+str(shapey)+"]";
+      self._parmdict[node.name]['funklet']=funklet;
       self._parmdict[node.name]['c00']=coeff[0][0];
       self._parmdict[node.name]['shape']=shapestr;
       self._parmdict[node.name]['publish']=node.is_publishing();
@@ -541,16 +561,63 @@ class ParmFiddler (browsers.GriddedPlugin):
     ok = True;
     change = self.c00Text.text().toDouble()[0];
     self.changeC00(change);
- 
+
     if not self._currentparm:
       return;
+    
+
+    if self.enable_multi.state():
+      #change all selected
+      for parmkey in self._parmlist:
+        #      if not self._parmdict[parmkey]['publish']:
+        if self.parmtable.isRowSelected(self._parmdict[parmkey]['row']):
+          #set c00
+          funklet = self._parmdict[parmkey]['funklet'];
+          coeff=0;
+          if funklet:
+            coeff=funklet.coeff;
+          if is_scalar(coeff):
+            coeff=[[coeff]];
+          if is_scalar(coeff[0]):
+            for i in range(len(coeff)):
+              coeff[i]=[coeff[i]];
+          coeff[0][0]=self.c00;
+          funklet.coeff=coeff;
+          self._parmdict[parmkey]['funklet']=funklet;
+          meqds.set_node_state(parmkey,funklet=funklet);
+                    
     self._currentparm.setc00(self.c00);
+      
+ 
     
 
 
   def resetfunklet(self):
       if not self._currentparm:
-          return;
+        return;
+      if self.enable_multi.state():
+        #change all selected
+        for parmkey in self._parmlist:
+          #      if not self._parmdict[parmkey]['publish']:
+          if self.parmtable.isRowSelected(self._parmdict[parmkey]['row']):
+            #set to 0
+            funklet = self._parmdict[parmkey]['funklet'];
+            coeff=0;
+            if funklet:
+              coeff=funklet.coeff;
+            if is_scalar(coeff):
+              coeff=[[coeff]];
+            if is_scalar(coeff[0]):
+              for i in range(len(coeff)):
+                coeff[i]=[coeff[i]];
+            for i in range(len(coeff)):
+              for j in  range(len(coeff[0])):
+
+                coeff[i][j]=0;
+            funklet.coeff=coeff;
+            self._parmdict[parmkey]['funklet']=funklet;
+            meqds.set_node_state(parmkey,funklet=funklet);
+        
       self._currentparm.resettozero();
 
 
@@ -705,6 +772,21 @@ class ParmFiddler (browsers.GriddedPlugin):
       self._currentparm.rejectedit();
     # create new editor
     self._currentparm._edit();
+
+
+
+  def update_default_selected(self,funklet):
+    for parmkey in self._parmlist:
+      if self.parmtable.isRowSelected(self._parmdict[parmkey]['row']):
+        meqds.set_node_state(parmkey,default_funklet=funklet);    
+
+
+  def update_selected(self,funklet):
+    for parmkey in self._parmlist:
+      if self.parmtable.isRowSelected(self._parmdict[parmkey]['row']):
+        self._parmdict[parmkey]['funklet']=funklet;
+        meqds.set_node_state(parmkey,funklet=funklet);
+ 
 
 
 
@@ -875,6 +957,7 @@ class ParmChange:
          return;
       if not self._parent:
           self.reject();
+      self._parent.update_default_selected(self._funklet);
 
       meqds.set_node_state(self._node,default_funklet=self._funklet);
 
@@ -885,7 +968,8 @@ class ParmChange:
       if not self._parent:
           self.reject();
 
-      meqds.set_node_state(self._node,funklet=self._funklet);
+
+      self._parent.update_selected(self._funklet);
 
       self._parent.changeC00(self.getc00());
       
