@@ -166,7 +166,7 @@ else
       *)      arch=UNKNOWN;;
     esac
 
-    AIPSPP_CPPFLAGS="-I$AIP -DAIPS_$arch"
+    AIPSPP_CPPFLAGS="-I$AIP -DAIPS_$arch -DAIPS_NO_TEMPLATE_SRC"
     if test "$lofar_compiler" = "kcc"; then
       AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_KAICC"
     fi
