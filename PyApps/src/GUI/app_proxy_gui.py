@@ -754,7 +754,9 @@ class MainAppClass (QApplication):
       func(*args,**kwargs);
       
   def postCallable(self,func,*args,**kwargs):
-    self.postEvent(self,QCustomEvent(self.EvType_Callable,(func,args,kwargs)));
+    ev = QCustomEvent(self.EvType_Callable);
+    ev.setData((func,args,kwargs));
+    self.postEvent(self,ev);
 
 def mainapp ():
   """Creates if needed, and returns the MainApp object."""
