@@ -138,13 +138,14 @@ int AzEl::getResult (Result::Ref &resref,
   qepoch.setValue(time(0));
   MEpoch mepoch(qepoch, MEpoch::UTC);
   Frame.set (mepoch);
+  MDirection::Convert azel_converter = MDirection::Convert(sourceCoord,MDirection::Ref(MDirection::AZEL,Frame));
   for( int i=0; i<ntime; i++) 
   {
     qepoch.setValue (time(i));
     mepoch.set (qepoch);
     Frame.set (mepoch);
     // convert ra, dec to Az El at given time
-    MDirection az_el_out(MDirection::Convert(sourceCoord,MDirection::Ref(MDirection::AZEL,Frame))());
+    MDirection az_el_out(azel_converter());
     //Gawd - what a mouthful - luckily some old ACSIS code provided the
     //right incantation for the following line!
     Vector<Double> az_el = az_el_out.getValue().getAngle("rad").getValue();
