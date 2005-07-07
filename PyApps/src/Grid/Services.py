@@ -120,14 +120,17 @@ def getViewerList (arg,udi=None):
     datatype = type(arg);
   viewer_pri = {};
   # resolve data type (argument may be object or type)
+  _dprint(3,udi,type(arg),'looking for viewers for',datatype);
   for (tp,vlist) in _reg_viewers.iteritems():
     # find viewers for this class
+    _dprint(3,udi,datatype,'subclass of',tp,issubclass(datatype,tp));
     if issubclass(datatype,tp):
       for (pri,v,checker) in vlist:
+        _dprint(3,udi,'isViewableWith(arg,v)',v,isViewableWith(arg,v),checker(udi));
         if type(arg) is type or isViewableWith(arg,v): # if specified as object, check viewability
           # check udi if specified
           if udi is None or checker(udi):
-            _dprint(3,arg,'viewer',v,'priority',pri);
+            _dprint(3,udi,type(arg),'viewer',v,'priority',pri);
             viewer_pri[v] = min(pri,viewer_pri.get(v,999999));
   # return list sorted by priority
   vlist = viewer_pri.keys();

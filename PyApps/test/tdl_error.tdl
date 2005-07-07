@@ -23,7 +23,7 @@ def define_forest (ns):
   ns.z1 << Meq.Matrix22(0,1,2,3);
   ns.z2 << Meq.Matrix22(0,1,2,3j);
   ns.z3 << Meq.Matrix22(ns.z1,1,2,3);
-  ns.z4 << Meq.Matrix22(1,2,3);
+  ns.z4 << Meq.Matrix2             2(1,2,3);
   ns.yy << Meq.Add(1,2,3,4,children=[ns.a,ns.d]);
   # xx;
 

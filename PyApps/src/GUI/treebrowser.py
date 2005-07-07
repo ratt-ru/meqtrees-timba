@@ -949,8 +949,8 @@ def define_treebrowser_actions (tb):
   tb.add_action(refresh,10,callback=tb._request_nodelist);
   tb.add_separator(20);
   # Save and load
-  qa_load = tb._qa_load = QAction("Load",pixmaps.file_open.iconset(),"Load forest",Qt.Key_L+Qt.ALT,parent);
-  qa_save = tb._qa_save = QAction("Save",pixmaps.file_save.iconset(),"Save forest",Qt.Key_S+Qt.ALT,parent);
+  qa_load = tb._qa_load = QAction("Load",pixmaps.file_open.iconset(),"Load forest",0,parent);
+  qa_save = tb._qa_save = QAction("Save",pixmaps.file_save.iconset(),"Save forest",0,parent);
   qa_load._is_enabled = qa_save._is_enabled = lambda tb=tb: tb.is_connected and tb.app_state == AppState.Idle;
   tb.add_action(qa_load,30,callback=tb.load_forest_dialog);
   tb.add_action(qa_save,40,callback=tb.save_forest_dialog);

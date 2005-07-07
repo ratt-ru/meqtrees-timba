@@ -311,7 +311,7 @@ class HierBrowser (object):
       except AttributeError:
         # create menu on the fly when first called for this item
         viewer_list = self._content is not None and self._viewable and \
-                   Grid.Services.getViewerList(self._content);
+                   Grid.Services.getViewerList(self._content,self._udi);
         # create menu
         menu = self._context_menu = QPopupMenu(self.listView());
         menu._callbacks = [];

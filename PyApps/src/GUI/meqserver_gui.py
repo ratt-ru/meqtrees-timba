@@ -266,7 +266,7 @@ class meqserver_gui (app_proxy_gui):
     loadtdl = QAction("Load TDL script...",0,self);
     loadtdl.addTo(tdl_menu);
     QObject.connect(loadtdl,SIGNAL("activated()"),self._load_tdl_script);
-    runtdl = QAction("&Load && run TDL script...",Qt.ALT+Qt.Key_R,self);
+    runtdl = QAction("&Load && run TDL script...",Qt.ALT+Qt.Key_T,self);
     runtdl.addTo(tdl_menu);
     QObject.connect(self,PYSIGNAL("isConnected()"),runtdl.setEnabled);
     QObject.connect(runtdl,SIGNAL("activated()"),self._run_tdl_script);
