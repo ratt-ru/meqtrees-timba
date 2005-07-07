@@ -115,10 +115,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._error_count_label = QLabel(errlist_hdr);
     errlist_hdr.setStretchableWidget(self._error_count_label);
     # prev/next error buttons
-    self._qa_prev_err = QAction(pixmaps.blue_round_leftarrow.iconset(),"Show &previous error",Qt.ALT+Qt.Key_P,self);
+    self._qa_prev_err = QAction(pixmaps.red_leftarrow.iconset(),"Show &previous error",Qt.ALT+Qt.Key_P,self);
     self._qa_prev_err.addTo(errlist_hdr);
     QObject.connect(self._qa_prev_err,SIGNAL("activated()"),self._show_prev_error);
-    self._qa_next_err = QAction(pixmaps.blue_round_rightarrow.iconset(),"Show &next error",Qt.ALT+Qt.Key_N,self);
+    self._qa_next_err = QAction(pixmaps.red_rightarrow.iconset(),"Show &next error",Qt.ALT+Qt.Key_N,self);
     self._qa_next_err.addTo(errlist_hdr);
     QObject.connect(self._qa_next_err,SIGNAL("activated()"),self._show_next_error);
     # run button
