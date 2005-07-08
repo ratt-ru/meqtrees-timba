@@ -239,6 +239,10 @@ class Executor (browsers.GriddedPlugin):
   defaultOpenItems = ({'cells':({'grid':None,'domain':None},None)},None);
 
   def __init__(self,gw,dataitem,cellspec={},**opts):
+    self.rid1 = 0
+    self.rid2 = 0
+    self.rid3 = 0
+    self.rid4 = 0
     browsers.GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     _dprint(1,"started with",dataitem.udi,dataitem.data);
     self._has_data = False;
@@ -306,10 +310,6 @@ class Executor (browsers.GriddedPlugin):
     if dataitem.data is not None:
       self.set_data(dataitem);
 
-    self.rid1 = 0
-    self.rid2 = 0
-    self.rid3 = 0
-    self.rid4 = 0
     
   def wtop(self):
     return self._wtop;
@@ -336,7 +336,12 @@ class Executor (browsers.GriddedPlugin):
       # ok, at this point req is a valid request object, load it
       self._request = req;
       self.reqView.wlistview().setRootIsDecorated(True);
-      self._request.request_id = hiid();
+      if not self._request.has_field('request_id'):
+        self._request.request_id = hiid(0,0,0,0);
+      self.rid1 = int(self._request.request_id[0]);
+      self.rid2 = int(self._request.request_id[1]);
+      self.rid3 = int(self._request.request_id[2]);
+      self.rid4 = int(self._request.request_id[3]);
       self.buttonOk.setEnabled(True);
       self.reqView.set_content(self._request);
       self.reqView.set_open_items(self.defaultOpenItems);
@@ -353,12 +358,15 @@ class Executor (browsers.GriddedPlugin):
     if not self._request:
       return;
     _dprint(1,'accepted: ',self._request);
+    self.rid1 = self.rid1 + 1
+    self._request.request_id = hiid(self.rid1, self.rid2, self.rid3, self.rid4);
     
     if self._node:
       cmd = record(nodeindex=self._node,request=self._request,get_state=True);
     elif self._name:
       cmd = record(name=self._name,request=self._request,get_state=True);
     mqs().meq('Node.Execute',cmd,wait=False);
+    self._refresh();
 
   def _startLoop(self):
     startLoop(self)
@@ -385,21 +393,24 @@ class Executor (browsers.GriddedPlugin):
       else:
         self.tn = len(self._request.cells.cell_size.time);
     editRequest(self);
+    self._refresh();
 
   def doNewRequest(self):
     newd = meq.domain(self.f0, self.f1, self.t0, self.t1);
     newc = meq.cells(domain=newd, num_freq=self.fn, num_time=self.tn);
     self._request = meq.request(cells=newc);
-    self._request.request_id = hiid(self.rid1, self.rid2, self.rid3, self.rid4);
     self.rid1 = self.rid1 + 1
     self.rid2 = self.rid2 + 1
     self.rid3 = self.rid3 + 1
     self.rid4 = self.rid4 + 1
+    self._request.request_id = hiid(self.rid1, self.rid2, self.rid3, self.rid4);
     if self._node:
       cmd = record(nodeindex=self._node,request=self._request,get_state=True);
     elif self._name:
       cmd = record(name=self._name,request=self._request,get_state=True);
     mqs().meq('Node.Execute',cmd,wait=False);
+    self._refresh();
+
 
 def define_treebrowser_actions (tb):
   _dprint(1,'defining node-execute treebrowser actions');

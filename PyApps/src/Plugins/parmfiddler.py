@@ -821,7 +821,9 @@ class ParmFiddler (browsers.GriddedPlugin):
 
       if reqid[2]==reqid_old[2]:
           self.rid+=1;
-      reqid=hiid(reqid_old[0],reqid_old[1],self.rid,0);
+      rid0=int(reqid_old[0]);
+      rid1=int(reqid_old[1]);
+      reqid=hiid(rid0,rid1,self.rid,0);
 
 
       #print "reqid ",reqid;
