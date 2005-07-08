@@ -23,14 +23,15 @@ from Timba.utils import *
 class hiid (tuple):
   "Represents the DMI HIID class";
   def __new__ (self,*args,**kw):
-    sep = kw.get('sep','.');           # use '.' separator by default
+    sep = kw.get('sep','._');           # use '.' separator by default
     mylist = ();
     for x in args:
       if isinstance(x,str):            # a string? Use HIID mapping functions
         try:
           mylist = mylist + Timba.octopython.str_to_hiid(x,sep);
         except:
-          raise ValueError, "'%s' is not a valid hiid"%x;
+          # normally, this would never fail, but if it ever does, here's a fallback
+          mylist = mylist + (x,);
       elif isinstance(x,(tuple,list)): # other sequence? use as list
         mylist = mylist + tuple(x);
       elif isinstance(x,(int,long)):   # int/long? add to list
@@ -49,7 +50,10 @@ class hiid (tuple):
     # print 'getslice: ',i,j;
     return hiid(tuple.__getslice__(self,i,j));
   def __str__ (self):
-    return Timba.octopython.hiid_to_str(self);
+    try:
+      return Timba.octopython.hiid_to_str(self);
+    except:
+      return '.'.join(map(str,self));
   def __repr__ (self):
     return "hiid('%s')" % str(self);
   # matches() function matches hiids
@@ -421,7 +425,15 @@ def dmi_coerce (obj,dmitype):
   obj.__class__ = dmitype;
   
 # import C module
-import Timba.octopython 
+try:
+  import Timba.octopython 
+except ImportError:
+  print '=========================================================================';
+  print '======= Error importing octopython module:';
+  traceback.print_exc();
+  print '======= Running Timba.dmi module stand-alone with limited functionality';
+  print '======= (some things may fail)';
+  print '=========================================================================';
 
 #
 # self-test code follows

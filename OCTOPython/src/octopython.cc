@@ -46,7 +46,7 @@ static PyObject * string_to_hiid (PyObject *, PyObject *args)
   HIID id;
   try
   {
-    return convertHIIDToSeq(HIID(str,0,sepset));
+    return convertHIIDToSeq(HIID(str,true,sepset));
   }
   catchStandardErrors(NULL);
 }
