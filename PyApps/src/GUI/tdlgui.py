@@ -64,10 +64,17 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.ALT+Qt.Key_R,self);
     self._qa_run.addTo(self._toolbar);
     QObject.connect(self._qa_run,SIGNAL("activated()"),self.compile_content);
+    self._toolbar.addSeparator();
+    self._poslabel = QLabel(self._toolbar);
     self._pathlabel = QLabel(self._toolbar);
+    self._pathlabel.setAlignment(Qt.AlignRight);
+    self._pathlabel.setIndent(10);
     self._toolbar.setStretchableWidget(self._pathlabel);
     # add editor window
     self._editor = QextScintilla(editor_box);
+    # base font adjustment factor
+    self._editor_fontadjust = self.fontInfo().pointSize() + 3;
+    self.adjust_editor_font();
     lo.addWidget(self._editor);
     self._editor.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     self._lexer = QextScintillaLexerPython(self);
@@ -81,6 +88,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     QObject.connect(self._editor,SIGNAL("marginClicked(int,int,Qt::ButtonState)"),self._process_margin_click);
     QObject.connect(self._editor,SIGNAL("textChanged()"),self._text_changed);
     QObject.connect(self._editor,SIGNAL("modificationChanged(bool)"),self._text_modified);
+    QObject.connect(self._editor,SIGNAL("cursorPositionChanged(int,int)"),self._display_cursor_position);
     # QObject.connect(self._editor,SIGNAL("textChanged()"),self._clear_transients);
 
     # add message window
@@ -147,11 +155,21 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._clear_transients();
     self._qa_run.setVisible(True);
   
+  def _display_cursor_position (self,line,col):
+    self._poslabel.setText("L:<b>%d</b> C:<b>%d</b>" % (line+1,col+1));
+    self._poslabel.repaint();
+  
   def _text_modified (self,mod):
     self._qa_save.setVisible(mod);
+    if self._filename:
+      label = '<b>' + self._filename + '</b>';
+    else:
+      label = '';
     if mod:
       self._clear_transients();
       self._qa_run.setVisible(True);
+      label = '(modified) ' + label;
+    self._pathlabel.setText(label);
     
   def clear_message (self):
     self._message_box.hide();
@@ -309,7 +327,6 @@ class TDLEditor (QFrame,PersistentCurrier):
       return None;
     # saved successfully, update stuff
     self._filename = self._real_filename = filename;
-    self._pathlabel.setText("<b>"+filename+"</b>");
     self._file_disktime = _file_mod_time(filename);
     self._editor.setModified(False);
     self._text_modified(False);
@@ -501,10 +518,6 @@ class TDLEditor (QFrame,PersistentCurrier):
       ff = file(filename);
       text = ff.read();
       ff.close();
-    if filename:
-      self._pathlabel.setText("<b>"+filename+"</b>");
-    else:
-      self._pathlabel.setText("");
     self._filename = self._real_filename = filename;
     self._file_disktime = filename and _file_mod_time(filename);
     self._editor.setText(text);
@@ -513,6 +526,11 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._text_modified(False);
     # emit signals
     self.emit(PYSIGNAL("loadedFile()"),(filename,));
+    
+  def adjust_editor_font (self):
+    # sets the editor font size based on our own size
+    fi = self.fontInfo();
+    self._editor.zoomTo(fi.pointSize() - self._editor_fontadjust);
     
   def has_focus (self,focus):
     if focus:
@@ -553,12 +571,13 @@ class TDLBrowser(browsers.GriddedPlugin):
     self.set_widgets(self.wtop(),dataitem.caption,icon=self.icon());
     if dataitem.data is not None:
       self.set_data(dataitem);
-      
+    QObject.connect(self.wtop(),PYSIGNAL("fontChanged()"),self.wtop().adjust_editor_font);
+    
   def wtop (self):
     return self._wedit;
   def editor (self):
     return self._wedit;
-      
+    
   def set_data (self,dataitem,default_open=None,**opts):
     _dprint(3,'set_data ',dataitem.udi);
     pathname = getattr(dataitem,'tdl_pathname',None);

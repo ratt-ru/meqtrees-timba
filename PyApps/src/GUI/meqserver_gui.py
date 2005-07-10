@@ -416,9 +416,12 @@ class meqserver_gui (app_proxy_gui):
       dialog.setMode(QFileDialog.ExistingFile);
       dialog.setFilters("TDL scripts (*.tdl);;Python scripts (*.py);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
-      dialog.setCaption("Run TDL Script");
     else:
       dialog.rereadDir();
+    if run:
+      dialog.setCaption("Run TDL Script");
+    else:
+      dialog.setCaption("Load TDL Script");
     if dialog.exec_loop() == QDialog.Accepted:
       pathname = str(dialog.selectedFile());
       # load in viewer

@@ -15,7 +15,7 @@ def define_forest (ns):
     num_iter=5,debug_level=10,solvable="x",
     children = Meq.Condeq(
       Meq.Parm([0,1]),
-      5 + (ns.x << Meq.Parm(0,tiling=record(time=1),node_groups='Parm'))
+      5 + (ns.x << Meq.Parm(0,tiling=record(time=1),node_groups='Parm1'))
     ),
   );
 
