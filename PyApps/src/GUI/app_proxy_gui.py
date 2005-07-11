@@ -369,6 +369,10 @@ class MessageLogger (Logger):
     self._num_err = 0;
     self._first_err = self._last_err = None;
     self.wtop().emit(PYSIGNAL('hasErrors()'),(self.wtop(),0));
+  def clear (self):
+    Logger.clear(self);
+    self._clear_error_count();
+    
 
 
 #--------------------------------------------------------------
