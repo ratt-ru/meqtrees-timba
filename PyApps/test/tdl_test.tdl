@@ -19,7 +19,7 @@ def define_forest (ns):
     ),
   );
 
-def test_forest (mqs):
+def test_forest (mqs,parent):
   """test_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, and the "test" option is set to true,
   this method is automatically called after define_forest() to run a 
@@ -34,6 +34,14 @@ def test_forest (mqs):
   # execute request on solver
   request = meq.request(cells,eval_mode=1);
   mqs.meq('Node.Execute',record(name='solver',request=request));
+
+def tdl_job_test1 (mqs,parent):
+  """this is a test job. You can see it appear in the menu automatically."""
+  pass;
+
+def tdl_job_test2 (mqs,parent):
+  """this is another test job. You can see it appear in the menu automatically."""
+  pass;
 
 
 # this is the testing branch, executed when the script is run directly

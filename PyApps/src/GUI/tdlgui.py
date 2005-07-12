@@ -13,6 +13,7 @@ from qtext import *
 
 import imp
 import sys
+import re
 import traceback
 import os
 import os.path
@@ -56,8 +57,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._toolbar = QToolBar("TDL tools",mainwin,editor_box);
     lo.addWidget(self._toolbar);
     # populate toolbar
-    self._qa_jobs = QActionGroup(self);
-    self._qa_jobs.setUsesDropDown(True);
+    self._qa_jobs = QAction(pixmaps.gear.iconset(),"Predefined functions",0,self);
+    self._qa_jobs.addTo(self._toolbar);
+    self._qa_jobs.setVisible(False);
+    QObject.connect(self._qa_jobs,SIGNAL("activated()"),self._show_jobs_menu);
     self._qa_save = QAction(pixmaps.file_save.iconset(),"&Save script",Qt.ALT+Qt.Key_S,self);
     self._qa_save.addTo(self._toolbar);
     QObject.connect(self._qa_save,SIGNAL("activated()"),self._save_file);
@@ -66,6 +69,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     QObject.connect(self._qa_run,SIGNAL("activated()"),self.compile_content);
     self._toolbar.addSeparator();
     self._poslabel = QLabel(self._toolbar);
+    width = self._poslabel.fontMetrics().width("L:999 C:999");
+    self._poslabel.setMinimumWidth(width);
     self._pathlabel = QLabel(self._toolbar);
     self._pathlabel.setAlignment(Qt.AlignRight);
     self._pathlabel.setIndent(10);
@@ -73,7 +78,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     # add editor window
     self._editor = QextScintilla(editor_box);
     # base font adjustment factor
-    self._editor_fontadjust = self.fontInfo().pointSize() + 3;
+    self._editor_fontadjust = self.fontInfo().pointSize() + 1;
     self.adjust_editor_font();
     lo.addWidget(self._editor);
     self._editor.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
@@ -170,6 +175,11 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._qa_run.setVisible(True);
       label = '(modified) ' + label;
     self._pathlabel.setText(label);
+    
+  def _show_jobs_menu (self):
+    if self._jobmenu:
+      pos = self._toolbar.mapToGlobal(QPoint(0,self._toolbar.height()));
+      self._jobmenu.popup(pos);
     
   def clear_message (self):
     self._message_box.hide();
@@ -351,6 +361,13 @@ class TDLEditor (QFrame,PersistentCurrier):
     self.clear_message();
     self.clear_error_list();
     editor_text = str(self._editor.text());
+    # clear predefined functions
+    self._qa_jobs.setVisible(False);
+    # dum = QObject();
+    # for qa in self._qa_jobs_list:
+    #  qa.reparent(dum);
+    # self._qa_jobs_list = [];
+    dum = None;
     # The Python imp module expects text to reside in a disk file, which is
     # a pain in the ass for us if we're dealing with modified text or text
     # entered on-the-fly. So, several scenarios:
@@ -481,14 +498,44 @@ class TDLEditor (QFrame,PersistentCurrier):
     # add in source code
     fst.tdl_source = record(**{os.path.basename(pathname):tdltext});
     mqs.meq('Set.Forest.State',record(state=fst));
-
+    
+    # does the script define an explicit job list?
+    joblist = getattr(_tdlmod,'tdl_job_list',[]);
+    if not joblist:
+      joblist = []; 
+      # try to build it from implicit function names
+      for (name,func) in _tdlmod.__dict__.iteritems():
+        if name.startswith("tdl_job_") and callable(func):
+          joblist.append(func);
     # does the script define a testing function?
     testfunc = getattr(_tdlmod,'test_forest',None);
+    if callable(testfunc):
+      joblist.append(testfunc);
+    
+    # create list of job actions
+    if joblist:
+      self._qa_jobs.setVisible(True);
+      self._jobmenu = QPopupMenu(self);
+      for func in joblist:
+        name = re.sub("^tdl_job_","",func.__name__);
+        name = name.replace('_',' ' );
+        qa = QAction(pixmaps.gear.iconset(),name,0,self._jobmenu);
+        qa.setToolTip(func.__doc__);
+        qa._call = curry(func,mqs,self);
+        QObject.connect(qa,SIGNAL("activated()"),qa._call);
+        qa.addTo(self._jobmenu);
+    else:
+      self._qa_jobs.setVisible(False);
+      self._jobmenu = None;
+    
     # no, show status and return
 #    if not callable(testfunc):
-    self.show_message("Script executed successfully. %d node definitions (of which %d are root nodes) sent to the kernel."
-            % (num_nodes,len(ns.RootNodes())),
-            transient=True);
+    msg = """Script executed successfully. %d node definitions 
+      (of which %d are root nodes) sent to the kernel.
+      """ % (num_nodes,len(ns.RootNodes()));
+    if joblist:
+      msg += " %d predefined function(s) available." % (len(joblist),);
+    self.show_message(msg,transient=True);
     return None;
 #     # yes, offer to run the test
 #     if QMessageBox.information(self,"TDL script executed",
