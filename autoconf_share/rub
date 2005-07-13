@@ -79,7 +79,8 @@ if test "$1" = ""  -o  "$1" = "-h"  -o  "$1" = "--help"; then
   echo '  -check            indicates that a make check should be done.'
   echo '                    Default is -nocheck.'
   echo '  -install          indicates that a make install should be done.'
-  echo '                    Default is -noinstall.'
+  echo '                    Default is -install if -build is given.'
+  echo '                    Otherwise -noinstall.'
   echo '  -system           Do system build for given variants (using buildsys).'
   echo '                    Options like -make, -conf, etc. are ignored.'
   echo '                    Default is -nosystem.'
@@ -122,7 +123,7 @@ confopt=
 clean=0
 distclean=0
 check=0
-install=0
+install=2
 update=1
 system=0
 recur=1
@@ -169,6 +170,9 @@ do
       ;;
     esac
     variants="$1"
+    if [ $install = 2 ]; then
+      install=1;
+    fi
     shift
   elif [ "$1" = -nobuild ]; then
     shift
@@ -176,7 +180,9 @@ do
     conf=0
     clean=0
     check=0
-    install=0
+    if [ $install = 1 ]; then
+      install=0
+    fi
   elif [ "$1" = -make ]; then
     shift
     buildmake=1
@@ -184,7 +190,9 @@ do
     shift
     buildmake=0
     check=0
-    install=0
+    if [ $install = 1 ]; then
+      install=0
+    fi
   elif [ "$1" = -conf ]; then
     shift
     conf=1
@@ -263,7 +271,7 @@ fi
 
 # Check if variants are given if other options needing build are given.
 # Otherwise clear the variants.
-if test $install != 0  -o  $clean != 0  -o  $check != 0  -o  $conf != 0; then
+if test $install = 1  -o  $clean != 0  -o  $check = 1  -o  conf = 1; then
   if [ "$variants" = "" ]; then
     echo "rub: -build variants are needed with -conf, -(dist)clean, -check and -install"
     exit 1
@@ -346,6 +354,7 @@ fi
 
 # System build is a bit different.
 if [ "$system" != 0 ]; then
+echo "system=$system $variants"
   $pgmpath/buildsys -confopt "$confopt" "$variants" "$pkgs"
   exit 0
 fi
