@@ -303,7 +303,7 @@ def updateDataItem (udi,data):
   _dprint(3,udi);
   # scan current data items to see which need updating
   for (u,itemlist) in _dataitems.iteritems():
-    if u.startswith(udi):
+    if u == udi or u.startswith(udi+'/'):
       _dprint(3,len(itemlist),'items for',u);
       update = True;
       data1 = data;  # data1 may get modified below
