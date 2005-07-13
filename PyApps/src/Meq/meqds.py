@@ -168,6 +168,10 @@ class NodeList (object):
   def __init__ (self,meqnl=None):
     if meqnl:
       self.load_meqlist(meqnl);
+      
+  def clear (self):
+    self._nimap = self._namemap = self._classmap = {};
+    self._rootnodes = [];
   
   # initialize from a MEQ-produced nodelist
   def load (self,meqnl):

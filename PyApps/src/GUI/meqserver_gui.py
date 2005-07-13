@@ -362,16 +362,18 @@ class meqserver_gui (app_proxy_gui):
     # _splash_screen.finish(self);
     # add signal handler for SIGCHLD
     signal.signal(signal.SIGCHLD,self._sigchld_handler);
-    self._kernel_pid = None;
+    self._kernel_pid = self._kernel_pathname = None;
     # other internal state
     self._have_nodelist = False;
     self._have_forest_state = False;
     self._autoreq_timer = QTimer(self);
     QObject.connect(self._autoreq_timer,SIGNAL("timeout()"),self._auto_update_request);
     
+    
   def _debug_kernel (self):
     pid = self.app.app_addr[2];    
-    cmd = "ddd /proc/%d/exe %d" % (pid,pid);
+    pathname = self._kernel_pathname or ( "/proc/%d/exe"%(pid,) );
+    cmd = "ddd %s %d" % (pathname,pid);
     prompt = "Debugger command:";
     (cmd,ok) = QInputDialog.getText("Attaching debugger to kernel",prompt,QLineEdit.Normal,cmd);
     if ok:
@@ -388,6 +390,7 @@ class meqserver_gui (app_proxy_gui):
       return;
     self.log_message(' '.join(('starting kernel process:',pathname,args)));
     self._kernel_pid = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));
+    self._kernel_pathname = pathname;
     
   def _stop_kernel (self):
     res = QMessageBox.warning(self,"Stopping MeqTimba kernel",
@@ -674,12 +677,15 @@ class meqserver_gui (app_proxy_gui):
       try: node = meqds.nodelist[ni];
       except KeyError: pass;
       else: node.update_status(status,rqid);
-    # check for generic event flags
+    # call top-level handler
+    app_proxy_gui.handleAppEvent(self,ev,value);
+    # check for generic event contents
     if isinstance(value,record):
       # check if forest has changed
       if getattr(value,'forest_changed',False):
         if self._have_nodelist:
           self._have_nodelist = False;
+          meqds.nodelist.clear();
           self.treebrowser.clear();
         self._have_forest_state = False;
       # check if message includes update of node state
@@ -698,12 +704,10 @@ class meqserver_gui (app_proxy_gui):
       # no forest state supplied but a status is: merge it in
       elif fstatus is not None:
         meqds.update_forest_state(fstatus,True);
-    # call top-level handler
-    app_proxy_gui.handleAppEvent(self,ev,value);
     # auto-request mechanism:
     # if we're not up-to-date with a node list or forest state, start a timer as soon as we
-    # reach idle mode or stopped mode. If this timer is allowed to expire, consider the application
-    # "quiet" and go request an update
+    # reach idle mode or stopped mode. If this timer is allowed to expire, consider the 
+    # application "quiet" and go request an update
     if not ev.startswith("process.status"):
       if self._connected:
         if self._have_nodelist and self._have_forest_state:

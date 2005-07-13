@@ -15,7 +15,7 @@ def define_forest (ns):
     num_iter=5,debug_level=10,solvable="x",
     children = Meq.Condeq(
       Meq.Parm([0,1]),
-      5 + (ns.x << Meq.Parm(0,tiling=record(time=1),node_groups='Parm1'))
+      5 + (ns.x << Meq.Parm(0,node_groups='Parm'))
     ),
   );
 
@@ -33,6 +33,8 @@ def test_forest (mqs,parent):
   mqs.meq('Save.Forest',record(file_name='tile_test.forest.save'));
   # execute request on solver
   request = meq.request(cells,eval_mode=1);
+#  mqs.meq('Node.Set.Breakpoint',record(name='solver'));
+#  mqs.meq('Debug.Set.Level',record(debug_level=100));
   mqs.meq('Node.Execute',record(name='solver',request=request));
 
 def tdl_job_test1 (mqs,parent):

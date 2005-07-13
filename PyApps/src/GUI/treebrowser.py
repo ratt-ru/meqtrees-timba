@@ -50,6 +50,7 @@ class TreeBrowser (QObject):
   class NodeItem (QListViewItem):
     def __init__(self,tb,node,name,parent,after,stepchild=False):
       QListViewItem.__init__(self,parent,after,name);
+      _dprint(3,"creating TreeBrowser.NodeItem",name);
       # fill basic listview stuff
       self.setText(tb.icolumn("class"),str(node.classname));
       self.setText(tb.icolumn("index"),str(node.nodeindex));
@@ -84,6 +85,19 @@ class TreeBrowser (QObject):
       # middle-click: new view
       self._item_event_handler[('click',4)] = xcurry(self._add_node_viewer,newcell=True);
       self._item_event_handler['menu'] = self._show_context_menu;
+      
+    def __del__ (self):
+      _dprint(3,"deleting TreeBrowser.NodeItem for node",self.node.name);
+      self.cleanup();
+    
+    def cleanup (self):
+      _dprint(3,"cleaning up TreeBrowser.NodeItem for node",self.node.name);
+      self._callbacks = self._item_event_handler = None;
+      # try: 
+      #  node = self.node;
+      #  node._tb_items = None; # NB: kludge
+      #  node.unsubscribe_status(self._update_status);
+      #  node.unsubscribe_state(self._update_state);
       
     def _show_context_menu (self,point,col):
       if col in (self.tb.icolumn("execstate"),self.tb.icolumn("breakpoint")):
@@ -309,10 +323,10 @@ class TreeBrowser (QObject):
       references caused by the NodeItem._callbacks list.""";
       item = parent.firstChild();
       while item:
-        try: delattr(item,'_callbacks');
-        except: pass;
-        if hasattr(item,'clear_children'):
-          item.clear_children(item);
+        _dprint(2,item.text(0),item);
+        try: item.cleanup();
+        except AttributeError: pass;
+        TreeBrowser.NodeItem.clear_children(item);
         item = item.nextSibling();
     clear_children = staticmethod(clear_children);
     
@@ -424,6 +438,7 @@ class TreeBrowser (QObject):
       icol = self.add_column("index",width=60);
       self._nlv.setColumnAlignment(icol,Qt.AlignRight);
     # clear view
+    _dprint(1,"updating node list");
     self.clear();
     self.is_loaded = True;
     self._update_all_controls();
@@ -467,6 +482,7 @@ class TreeBrowser (QObject):
       item._no_auto_open = True;
       
   def clear (self):
+    _dprint(2,"clearing tree browser");
     self.is_loaded = False;
     self._nlv_rootitem = self._fst_item = self._bkmark_item = \
       self._recent_item = self._debug_node = \
