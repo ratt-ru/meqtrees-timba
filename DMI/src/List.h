@@ -91,6 +91,23 @@ class List : public Container
       
       ObjRef remove (int n);
 
+      //## accesses item #n as an object of the specified type,
+      //## or throws an exception on mismatch
+      template<class T>
+      const T & as (int n,Type2Type<T> =Type2Type<T>()) const
+      {
+        Thread::Mutex::Lock lock(mutex());
+        return (*applyIndexConst(n)).as<T>();
+      }
+      
+      //## accesses item #n as a writable object of the specified type,
+      //## or throws an exception on mismatch
+      template<class T>
+      T & as (int n,Type2Type<T> =Type2Type<T>()) 
+      {
+        Thread::Mutex::Lock lock(mutex());
+        return (*applyIndex(n,false)).as<T>();
+      }
 
       virtual int insert (const HIID &id,ContentInfo &info);
 

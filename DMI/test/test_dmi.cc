@@ -134,6 +134,7 @@ void TestList ()
   f2[0] = 1;
   f2[1] = "a string";
   f2[2] <<= new DMI::Record;
+  DMI::Record &rec = f2.as<DMI::Record>(2);
   f2[2]["a"] = 1;
   f2[2]["b"] = "another string";
   cout<<f2.sdebug(4)<<endl;
