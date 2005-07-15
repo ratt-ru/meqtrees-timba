@@ -92,7 +92,7 @@ const HIID
 // Domain mask will be added if the funklet has >1 coefficient; solve_depend_mask 
 // is added if the parm is solvable
     setKnownSymDeps(symdeps_all,3);
-    setActiveSymDeps(symdeps_default,1);
+    setActiveSymDeps(symdeps_default,0);
   }
 
   //##ModelId=3F86886F0242
@@ -122,7 +122,7 @@ const HIID
 // Domain mask will be added if the funklet has >1 coefficient; solve_depend_mask 
 // is added if the parm is solvable
     setKnownSymDeps(symdeps_all,3);
-    setActiveSymDeps(symdeps_default,1);
+    setActiveSymDeps(symdeps_default,0);
   }
 
   //##ModelId=3F86886F021E
