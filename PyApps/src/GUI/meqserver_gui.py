@@ -184,8 +184,6 @@ class meqserver_gui (app_proxy_gui):
     self.tb_panel = self.PanelizedWindow(self.splitter,"Trees","Trees",pixmaps.view_tree.iconset());
     self.treebrowser = treebrowser.TreeBrowser(self.tb_panel);
     
-    self.connect(self.treebrowser.wtop(),PYSIGNAL("view_node()"),self._view_node);
-    self.connect(self.treebrowser.wtop(),PYSIGNAL("view_forest_state()"),self._view_forest_state);
     # self.add_tab(self.treebrowser.wtop(),"Trees",index=1);
     self.splitter.moveToFirst(self.tb_panel);
     self.splitter.setResizeMode(self.tb_panel,QSplitter.KeepSize);
@@ -875,18 +873,6 @@ class meqserver_gui (app_proxy_gui):
     meqds.add_node_snapshot(node,event);
     udi = meqds.node_udi(node);
     Grid.updateDataItem(udi,node);
-    
-  def _view_node (self,node,viewer=None,kws={}):
-    _dprint(2,"node clicked, adding item");
-    node = meqds.nodeobject(node);
-    Grid.addDataItem(makeNodeDataItem(node,viewer),**kws);
-    self.show_gridded_workspace();
-    
-  def _view_forest_state (self,viewer=None,**kws):
-    _dprint(2,"adding viewer for forest state");
-    item = meqgui.makeForestDataItem(viewer=viewer);
-    Grid.addDataItem(item,**kws);
-    self.show_gridded_workspace();
     
   def _update_forest_state (self,fst):
     self._have_forest_state = True;

@@ -17,6 +17,7 @@ import re
 import traceback
 import os
 import os.path
+import sets
 import tempfile
 
 _dbg = verbosity(0,name='tdlgui');
@@ -24,7 +25,7 @@ _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
 # this holds the module object which all TDL scripts are imported into
-_tdlmod = None;
+_tdlmodlist = [];
 
 def _file_mod_time (path):
   try:
@@ -506,10 +507,15 @@ class TDLEditor (QFrame,PersistentCurrier):
     # infile is now an open input file object, pathname is some (possibly fake) 
     # name, self._real_filename is the real filename, and tdltext is the script 
     # text
+    
+    # flush all modules imported via previous TDL run
+    global _tdlmodlist;
+    _dprint(1,'clearing out TDL-imported modules',_tdlmodlist);
+    for m in _tdlmodlist:
+      del sys.modules[m];
+    # remember which modules are still imported
+    prior_mods = sets.Set(sys.modules.keys());
     modname = '__tdlruntime';
-    global _tdlmod;
-    if _tdlmod is not None:
-      _tdlmod.__dict__.clear();
     try:
       imp.acquire_lock();
       _tdlmod = imp.load_source(modname,self._real_filename,infile);
@@ -526,9 +532,14 @@ class TDLEditor (QFrame,PersistentCurrier):
       self.show_message("""<b>Error importing <tt>%s</tt>:
         <i>%s (%s)</i></b>""" % (self._real_filename,excvalue,exctype.__name__),
         error=True,transient=True);
+      # set of imported modules is current set minus prior set
+      _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
+      _dprint(1,'TDL run imported',_tdlmodlist);
       return None;
     imp.release_lock();
     infile.close();
+    _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
+    _dprint(1,'TDL run imported',_tdlmodlist);
     mqs = meqds.mqs();
     # module here, call functions
     errlist = [];

@@ -460,14 +460,20 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       layout.addWidget(minbtn);
     def show (self):
       QVBox.show(self);
-      _dprint(0,'showing',self,self.parent());
+      _dprint(1,'showing',self,self.parent());
       self.emit(PYSIGNAL("visible()"),(True,));
       self.emit(PYSIGNAL("shown()"),());
     def hide (self):
       QVBox.hide(self);
-      _dprint(0,'hiding',self,self.parent());
+      _dprint(1,'hiding',self,self.parent());
       self.emit(PYSIGNAL("visible()"),(False,));
       self.emit(PYSIGNAL("hidden()"),());
+    def setShown (self,shown):
+      if shown: self.show();
+      else:     self.hide();
+    def setHidden (self,hidden):
+      if not hidden: self.show();
+      else:          self.hide();
     def visQAction (self,parent):
       try: return self._qa_vis;
       except AttributeError: pass;
@@ -583,6 +589,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.gw = gw = Grid.Workspace(self.gw_panel,max_nx=4,max_ny=4);
     splitter.setResizeMode(self.gw_panel,QSplitter.Stretch);
     self.gw_panel.hide();
+    QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self.gw_panel.setShown);
     
     self.gw_visible = {};
 #    gw.add_tool_button(Qt.TopRight,pixmaps.remove.pm(),
@@ -652,6 +659,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
 #     self.show_workspace_button.setHidden(shown)
     
   def show_gridded_workspace (self,shown=True):
+    _dprint(1,"showing",shown);
     self.gw_panel.setShown(shown);
     self.gw.show(shown);
     
