@@ -2897,14 +2897,18 @@ def load_icons (appname):
       if ext in ('.png','.xpm','.gif'):
         f = os.path.join(trydir,f);
         try: pm = QPixmap(f);
-        except: continue;
+        except: 
+          _dprint(3,'error loading icon',name,sys.exc_value());
+          continue;
         # register pixmap as global symbol using the supplied name
         if name in globals():
           globals()[name].assign(pm);
         else:
           globals()[name] = QPixmapWrapper(pm);
         nicons += 1;
-        _dprint(4,'loaded icon',name);
+        _dprint(4,'loaded icon',f);
+      else:
+        _dprint(4,'ignoring entry',f);
     _dprint(1,nicons,'icons loaded from ',trydir);
     __icons_loaded = True;
 

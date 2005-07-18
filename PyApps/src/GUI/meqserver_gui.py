@@ -11,6 +11,7 @@ from Timba.GUI.procstatuswidget import *
 from Timba.GUI import meqgui 
 from Timba.GUI import bookmarks 
 from Timba.GUI import connect_meqtimba_dialog 
+from Timba.GUI import widgets 
 from Timba import Grid
 from Timba import TDL
 
@@ -23,7 +24,7 @@ import os.path
 import signal
 import traceback
 
-_dbg = verbosity(0,name='meqserver_gui');
+_dbg = verbosity(0,name='gui');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
@@ -173,19 +174,29 @@ class meqserver_gui (app_proxy_gui):
   def populate (self,main_parent=None,*args,**kwargs):
     # init icons
     pixmaps.load_icons('treebrowser');
-    # populate GUI
+    
     app_proxy_gui.populate(self,main_parent=main_parent,*args,**kwargs);
     self.setIcon(pixmaps.trees48x48.pm());
     self.set_verbose(self.get_verbose());
     
     _dprint(2,"meqserver-specifc init"); 
     # add Tree browser panel
-    self.treebrowser = treebrowser.TreeBrowser(self);
-    self.add_tab(self.treebrowser.wtop(),"Trees",index=1);
+    self.tb_panel = self.PanelizedWindow(self.splitter,"Forest Browser","Forest",pixmaps.view_tree.iconset());
+    self.treebrowser = treebrowser.TreeBrowser(self.tb_panel);
+    
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_node()"),self._view_node);
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_forest_state()"),self._view_forest_state);
+    # self.add_tab(self.treebrowser.wtop(),"Trees",index=1);
+    self.splitter.moveToFirst(self.tb_panel);
+    self.splitter.setResizeMode(self.tb_panel,QSplitter.KeepSize);
     
-    # add Snapshots panel
+    self.splitter.setSizes([100,300,400]);
+    
+    self.maintab_panel.show();
+    self.gw_panel.hide();
+    self.tb_panel.hide();
+    
+    # add Snapshots tab
     self.resultlog = Logger(self,"node snapshot log",limit=1000,scroll=False,
           udi_root='snapshot');
     self.resultlog.wtop()._newres_iconset  = pixmaps.gear.iconset();
@@ -194,6 +205,22 @@ class meqserver_gui (app_proxy_gui):
     self.add_tab(self.resultlog.wtop(),"Snapshots",index=2);
     QObject.connect(self.resultlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QObject.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
+    
+    # create main toolbar
+    self.maintoolbar = QToolBar(self,"Panels");
+    self.qa_viewpanels = QActionGroup(self);
+    self.qa_viewpanels.setExclusive(False);
+    
+    # populate it with view controls
+    for panel in (self.tb_panel,self.maintab_panel,self.gw_panel):
+      panel.visQAction(self.qa_viewpanels);
+      panel.makeMinButton(self.maintoolbar);
+    dum = QWidget(self.maintoolbar);
+    self.maintoolbar.setStretchableWidget(dum);
+    self._whatsthisbutton = QWhatsThis.whatsThisButton(self.maintoolbar);
+    # self.moveDockWindow(self.maintoolbar,QMainWindow.DockTop);
+    self.moveDockWindow(self.treebrowser.wtoolbar(),QMainWindow.DockLeft);
+    self.treebrowser.wtoolbar().hide();
     
 #     # add TDL editor panel
 #     self.tdledit = tdl_editor.TDLEditor(self,"tdl editor tab");
@@ -273,11 +300,13 @@ class meqserver_gui (app_proxy_gui):
     tdl_menu.insertSeparator();
     
     # --- View menu
-    showgw = QAction(pixmaps.view_split.iconset(),"&Gridded workspace",Qt.Key_F3,self);
-    showgw.addTo(view_menu);
-    showgw.setToggleAction(True);
-    QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),showgw.setOn);
-    QObject.connect(showgw,SIGNAL("toggled(bool)"),self.gw.show);
+    self.qa_viewpanels.addTo(view_menu);
+#     showgw = QAction(pixmaps.view_split.iconset(),"&Gridded workspace",Qt.Key_F3,self);
+#     showgw.addTo(view_menu);
+#     showgw.setToggleAction(True);
+#     QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),showgw.setOn);
+#     QObject.connect(showgw,SIGNAL("toggled(bool)"),self.gw.show);
+    view_menu.insertSeparator();
     # optional tab views
     self.resultlog.wtop()._show_qaction.addTo(view_menu);
     self.eventtab._show_qaction.addTo(view_menu);
@@ -329,7 +358,7 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self,PYSIGNAL("isConnected()"),attach_gdb.setEnabled);
     
     # --- Help menu
-    help_menu.insertItem(self.treebrowser.whatsthisbutton().iconSet(),
+    help_menu.insertItem(self._whatsthisbutton.iconSet(),
                               "What's &This",self.whatsThis,Qt.SHIFT+Qt.Key_F1);
     
     # populate menus from plugins                          
@@ -368,7 +397,8 @@ class meqserver_gui (app_proxy_gui):
     self._have_forest_state = False;
     self._autoreq_timer = QTimer(self);
     QObject.connect(self._autoreq_timer,SIGNAL("timeout()"),self._auto_update_request);
-    
+    # tdl tabs
+    self._tdl_tabs = {};
     
   def _debug_kernel (self):
     pid = self.app.app_addr[2];    
@@ -409,27 +439,54 @@ class meqserver_gui (app_proxy_gui):
   def _run_tdl_script (self,run=False):
     self._load_tdl_script(True);
     
+  class LoadTDLDialog (QFileDialog):
+    def __init__ (self,*args):
+      QFileDialog.__init__(self,*args);
+      self.setMode(QFileDialog.ExistingFile);
+      self.setFilters("TDL scripts (*.tdl);;Python scripts (*.py);;All files (*.*)");
+      self.setViewMode(QFileDialog.Detail);
+      self._replace = QCheckBox("close all currently loaded scripts first",self);
+      self._replace.setChecked(True);
+      self.addWidgets(None,self._replace,None);
+    def set_replace_visible (self,visible):
+      self._replace.setShown(visible);
+    def get_replace (self):
+      return self._replace.isOn();
+    
   def _load_tdl_script (self,run=False):
     # tdlgui.run_tdl_script('tdl_test.tdl',self);
     # return;    
     try: dialog = self._run_tdl_dialog;
     except AttributeError:
-      self._run_tdl_dialog = dialog = QFileDialog(self,"load tdl dialog",True);
+      self._run_tdl_dialog = dialog = self.LoadTDLDialog(self,"load tdl dialog",True);
       dialog.resize(800,dialog.height());
-      dialog.setMode(QFileDialog.ExistingFile);
-      dialog.setFilters("TDL scripts (*.tdl);;Python scripts (*.py);;All files (*.*)");
-      dialog.setViewMode(QFileDialog.Detail);
     else:
       dialog.rereadDir();
+    dialog.set_replace_visible(bool(self._tdl_tabs));
     if run:
       dialog.setCaption("Run TDL Script");
     else:
       dialog.setCaption("Load TDL Script");
     if dialog.exec_loop() == QDialog.Accepted:
-      pathname = str(dialog.selectedFile());
-      # load in viewer
+      # close all TDL tabs if requested
+      for (path,tab) in self._tdl_tabs.items():
+        self.maintab.showPage(tab);
+        if tab.confirm_close():
+          del self._tdl_tabs[path];
+          self.maintab.removePage(tab);
+          tab.reparent(QWidget(),0,QPoint(0,0));
+      # show this file
+      self.show_tdl_file(str(dialog.selectedFile()),run=run);
+      
+  def show_tdl_file (self,pathname,pos=None,run=False):
+    tab = self._tdl_tabs.get(pathname,None);
+    if tab is None:
+      _dprint(1,'No tab open, loading',pathname);
+    # try to load file into new tab
       try:
-        item = tdlgui.TDLFileDataItem(pathname);
+        ff = file(pathname);
+        text = ff.read();
+        ff.close();
       except:
         (exctype,excvalue,tb) = sys.exc_info();
         _dprint(0,'exception loading TDL file',pathname,':');
@@ -439,19 +496,62 @@ class meqserver_gui (app_proxy_gui):
           <p><small><i>%s: %s</i><small></p>""" % (pathname,exctype.__name__,excvalue),
           QMessageBox.Ok);
         return;
-      # show item in grid
-      self.show_tab(self.treebrowser.wtop(),switch=True);
-      item = Grid.addDataItem(item);
-      self.show_gridded_workspace();
-      # tell viewer to run file
-      if run and item:
-        item.viewer_obj.editor().compile_content();
-      # self.show_tab(self.tdledit);
-      # tdlgui.run_tdl_script(pathname,self);
-      # add viewer
-      
+      _dprint(1,'Creating editor tab for',pathname);
+      # create editor tab with item
+      tab = tdlgui.TDLEditor(self.maintab,close_button=True);
+      tab.load_file(pathname,text);
+      label = os.path.basename(pathname);
+      self.add_tab(tab,label);
+      self._tdl_tabs[pathname] = tab;
+      QObject.connect(tab,PYSIGNAL("fileSaved()"),self.curry(self._tdltab_change,tab));
+      QObject.connect(tab,PYSIGNAL("hasErrors()"),self.curry(self._tdltab_errors,tab));
+      QObject.connect(tab,PYSIGNAL("textModified()"),self.curry(self._tdltab_modified,tab));
+      QObject.connect(tab,PYSIGNAL("fileClosed()"),self.curry(self._tdltab_close,tab));
+    else:
+      _dprint(1,'we already have a tab for',pathname);
+    self.show_tab(tab);
+    self.gw_panel.hide();
+    self.maintab_panel.show();
+    # ok, we have a working tab now
+    if pos:
+      tab.show_position(*pos);
+    if run and tab.compile_content():
+      self.tb_panel.show();
+    self.splitter.refresh();
 #   def _set_tdl_pathname (self,pathname):
 #     self.rename_tab(self.tdledit,os.path.basename(pathname));
+
+  def _tdltab_change (self,tab,pathname):
+    for (path,tab1) in self._tdl_tabs.iteritems():
+      if tab is tab1:
+        del self._tdl_tabs[path];
+        self._tdl_tabs[pathname] = tab;
+        self.maintab.setTabLabel(tab,os.path.basename(pathname));
+        return;
+    raise ValueError,"tab not found in map";
+  
+  def _tdltab_errors (self,tab,nerr):
+    if nerr:
+      self.maintab.setTabIconSet(tab,pixmaps.red_round_cross.iconset());
+    else:
+      self.maintab.setTabIconSet(tab,QIconSet());
+    
+  def _tdltab_modified (self,tab,mod):
+    if mod:
+      self.maintab.setTabIconSet(tab,pixmaps.file_save.iconset());
+    else:
+      self.maintab.setTabIconSet(tab,QIconSet());
+    
+  def _tdltab_close (self,tab):
+    for (path,tab1) in self._tdl_tabs.iteritems():
+      if tab is tab1:
+        self.maintab.showPage(tab);
+        if tab.confirm_close():
+          del self._tdl_tabs[path];
+          self.maintab.removePage(tab);
+          tab.reparent(QWidget(),0,QPoint(0,0));
+        return;
+    raise ValueError,"tab not found in map";
 
   def _verify_quit (self):
     if self._connected and self._kernel_pid:

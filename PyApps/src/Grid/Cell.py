@@ -139,6 +139,7 @@ class Cell (object):
     self._parent_page = page;
     # init widgets
     wtop = self._wtop = self.TopLevelWidget(self,parent,'cell '+str(id(self))+' top');
+    wtop.setDockWindowsMovable(False);
     wtop.hide();
     self.enable_viewers(not noviewer);
     QObject.connect(wtop,PYSIGNAL("clicked()"),self.exclusive_highlight);

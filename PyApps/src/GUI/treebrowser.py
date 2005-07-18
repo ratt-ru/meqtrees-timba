@@ -87,11 +87,9 @@ class TreeBrowser (QObject):
       self._item_event_handler['menu'] = self._show_context_menu;
       
     def __del__ (self):
-      _dprint(3,"deleting TreeBrowser.NodeItem for node",self.node.name);
       self.cleanup();
     
     def cleanup (self):
-      _dprint(3,"cleaning up TreeBrowser.NodeItem for node",self.node.name);
       self._callbacks = self._item_event_handler = None;
       # try: 
       #  node = self.node;
@@ -386,7 +384,10 @@ class TreeBrowser (QObject):
     for f in funcs:
       f(self);
     # --- now, build up toolbar from defined actions
-    self._toolbar = QToolBar(parent,"Trees");
+    mainwin = parent;
+    while mainwin and not isinstance(mainwin,QMainWindow):
+      mainwin = mainwin.parent();
+    self._toolbar = QToolBar(mainwin,"Trees");
     self._toolbar_actions = [];
     tba = self.get_action_list("toolbar");
     tba.sort();
@@ -405,13 +406,8 @@ class TreeBrowser (QObject):
         action.setEnabled(False);
         have_sep = False;
 
-    # add a what's this button
-    self._whatsthisbutton = QWhatsThis.whatsThisButton(self._toolbar)
-
-    # make toolbar disappear when we leave this panel
-    QObject.connect(self.wtop(),PYSIGNAL("entering()"),self._toolbar,SLOT("show()"));
-    QObject.connect(self.wtop(),PYSIGNAL("leaving()"),self._toolbar,SLOT("hide()"));
-    self._toolbar.hide();
+    # make toolbar disappear when we hide the top widget
+    QObject.connect(self.wtop(),PYSIGNAL("visible()"),self._toolbar,SLOT("setShown()"));
     # ---------------------- other internal state
     self._column_map = {};
     self._recent_item = None;
@@ -624,9 +620,6 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     
   def wtoolbar (self):
     return self._toolbar;
-    
-  def whatsthisbutton (self):
-    return self._whatsthisbutton;
     
   def connected (self,conn,auto_request=True):
     self.emit(PYSIGNAL("connected()"),(conn,));

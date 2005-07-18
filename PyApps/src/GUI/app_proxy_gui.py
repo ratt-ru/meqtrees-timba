@@ -21,8 +21,11 @@ import imp
 import sets
 import signal
 
-
 dmirepr = dmi_repr.dmi_repr();
+
+_dbg = verbosity(0,name='appgui');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
 
 _MessageCategories = {};
 
@@ -413,19 +416,100 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     if poll_app:
       self.startTimer(poll_app);
       
-    self.dprint(2,"init complete");
-
+    self.dprint(2,"init complete");\
+    
+  class PanelizedWindow (QVBox):
+    BackgroundMode = Qt.PaletteMid;
+    def __init__ (self,parent,name,shortname,icon,*args):
+      QVBox.__init__(self,parent,*args);
+      self.name = name;
+      self.shortname = shortname;
+      self.icon = icon;
+      # build title "toolbar"
+      titlebar = QFrame(self);
+      titlebar.setMargin(0);
+      titlebar.setBackgroundMode(self.BackgroundMode);
+      self.populate_titlebar(titlebar,QHBoxLayout(titlebar));
+    def populate_titlebar (self,titlebar,layout):
+      icon = QLabel(titlebar);
+      pm = self.icon.pixmap();
+      height = pm.height() + 4;
+      icon.setPixmap(pm);
+      icon.setMargin(0);
+      icon.setSizePolicy(QSizePolicy.Minimum,QSizePolicy.Minimum);
+      icon.setFixedSize(height,height);
+      icon.setBackgroundMode(self.BackgroundMode);
+      label = QLabel("<b>"+self.name+"</b>",titlebar);
+      label.setMargin(0);
+      label.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
+      label.setFixedHeight(height);
+      label.setBackgroundMode(self.BackgroundMode);
+      minbtn = QToolButton(titlebar);
+      minbtn.setIconSet(pixmaps.minimize_line.iconset());
+      minbtn.setAutoRaise(True);
+      minbtn.setFixedSize(height,height);
+      minbtn.setBackgroundMode(self.BackgroundMode);
+      QToolTip.add(minbtn,"Minimize this panel");
+      QObject.connect(minbtn,SIGNAL("clicked()"),self.hide);
+      layout.addSpacing(2);
+      layout.addWidget(icon);
+      layout.addSpacing(2);
+      layout.addWidget(label);
+      layout.addWidget(minbtn);
+    def show (self):
+      QVBox.show(self);
+      _dprint(0,'showing',self,self.parent());
+      self.emit(PYSIGNAL("visible()"),(True,));
+      self.emit(PYSIGNAL("shown()"),());
+    def hide (self):
+      QVBox.hide(self);
+      _dprint(0,'hiding',self,self.parent());
+      self.emit(PYSIGNAL("visible()"),(False,));
+      self.emit(PYSIGNAL("hidden()"),());
+    def visQAction (self,parent):
+      try: return self._qa_vis;
+      except AttributeError: pass;
+      qa = self._qa_vis = QAction(self.icon,"Show/hide "+self.name,0,parent);
+      qa.setToggleAction(True);
+      qa.setOn(self.isVisible());
+      QObject.connect(qa,SIGNAL("toggled(bool)"),self.setShown);
+      QObject.connect(self,PYSIGNAL("visible()"),qa.setOn);
+      return qa;
+    def makeMinButton (self,parent):
+      return self.MinimizedPanelButton(self,parent);
+      
+    class MinimizedPanelButton (QToolButton):
+      def __init__ (self,panel,parent):
+        QToolButton.__init__(self,parent);
+        self.setIconSet(panel.icon,);
+        self.setTextLabel(panel.shortname);
+        self.setTextPosition(QToolButton.BesideIcon);
+        self.setUsesTextLabel(True);
+        self.setShown(not panel.isVisible());
+        # self.setBackgroundMode(app_proxy_gui.PanelizedWindow.BackgroundMode);
+        QToolTip.add(self,"Show "+panel.name);
+        QObject.connect(self,SIGNAL("clicked()"),panel.show);
+        QObject.connect(panel,PYSIGNAL("shown()"),self.hide);
+        QObject.connect(panel,PYSIGNAL("hidden()"),self._flash);
+        self._flashcolor = QColor("yellow");
+      def _flash (self):
+        self.setPaletteBackgroundColor(self._flashcolor);
+        self.show();
+        QTimer.singleShot(300,self.unsetPalette);
+      
   def populate (self,main_parent=None,*args,**kwargs):
-    #------ split main window in two
+    #------ main window contains a splitter
     splitter = self.splitter = QSplitter(QSplitter.Horizontal,main_parent or self);
     splitter.setFrameStyle(QFrame.Box+QFrame.Plain);
     splitter.setChildrenCollapsible(True);
-  
+    
     #------ create top-level tab bar
-    self.maintab = maintab = QTabWidget(splitter);
+    self.maintab_panel = self.PanelizedWindow(splitter,"Tabbed Tools","Tabs",pixmaps.tabs.iconset());
+    self.maintab = maintab = QTabWidget(self.maintab_panel);
     self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._change_current_page);
     maintab.setTabPosition(QTabWidget.Bottom);
-    splitter.setResizeMode(maintab,QSplitter.KeepSize);
+    splitter.setResizeMode(self.maintab_panel,QSplitter.KeepSize);
+    _dprint(0,self.maintab_panel.parent());
     
     #------ create a message log
     self.msglog = MessageLogger(self,"message log",enable=None,limit=1000,
@@ -490,23 +574,28 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.statusbar.addWidget(statholder);
     
     #------ gridded workspace
-    self.gw = gw = Grid.Workspace(splitter,max_nx=4,max_ny=4);
-    splitter.setResizeMode(gw.wtop(),QSplitter.Stretch);
-    self.gw_visible = {};
-    gw.wtop().hide();
-    gw.add_tool_button(Qt.TopRight,pixmaps.remove.pm(),
-      tooltip="hide the value browser panel",click=self.hide_gridded_workspace);
-    Grid.Services.setDefaultWorkspace(self.gw);
-    QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self._gridded_workspace_shown);
+    self.gw_panel = self.PanelizedWindow(splitter,"Gridded Viewers","Grid",pixmaps.view_split.iconset());
+    # separator
+    sep = QFrame(self.gw_panel);
+    sep.setFrameStyle(QFrame.HLine+QFrame.Sunken);
+    self.gw = gw = Grid.Workspace(self.gw_panel,max_nx=4,max_ny=4);
+    splitter.setResizeMode(self.gw_panel,QSplitter.Stretch);
+    self.gw_panel.hide();
     
-    self.show_workspace_button = DataDroppableWidget(QToolButton)(maintab);
-    self.show_workspace_button.setPixmap(pixmaps.view_split.pm());
-    self.show_workspace_button.setAutoRaise(True);
-    maintab.setCornerWidget(self.show_workspace_button,Qt.BottomRight);
-    QObject.connect(self.show_workspace_button,SIGNAL("clicked()"),self.gw.show);
-    QObject.connect(self.show_workspace_button,PYSIGNAL("itemDropped()"),
-                    self.xcurry(self.display_data_item,_argslice=slice(0,1)));
-    QToolTip.add(self.show_workspace_button,"show the viewer panel. You can also drop data items here.");
+    self.gw_visible = {};
+#    gw.add_tool_button(Qt.TopRight,pixmaps.remove.pm(),
+#      tooltip="hide the value browser panel",click=self.hide_gridded_workspace);
+    Grid.Services.setDefaultWorkspace(self.gw);
+    # QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self._gridded_workspace_shown);
+    
+#     self.show_workspace_button = DataDroppableWidget(QToolButton)(maintab);
+#     self.show_workspace_button.setPixmap(pixmaps.view_split.pm());
+#     self.show_workspace_button.setAutoRaise(True);
+#     maintab.setCornerWidget(self.show_workspace_button,Qt.BottomRight);
+#     QObject.connect(self.show_workspace_button,SIGNAL("clicked()"),self.gw.show);
+#     QObject.connect(self.show_workspace_button,PYSIGNAL("itemDropped()"),
+#                     self.xcurry(self.display_data_item,_argslice=slice(0,1)));
+#     QToolTip.add(self.show_workspace_button,"show the viewer panel. You can also drop data items here.");
     
     splitter.setSizes([200,600]);
 ##    self.maintab.setCornerWidget(self.pause_button,Qt.TopRight);
@@ -554,13 +643,14 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       self.maintab.removePage(widget);
       widget._show_qaction.setOn(False);
     
-  def _gridded_workspace_shown (self,shown):
-    page = self.maintab.currentPage();
-    self.gw_visible[page] = shown;
-    # "hide workspace" button only visible when workspace is hidden
-    self.show_workspace_button.setHidden(shown)
+#   def _gridded_workspace_shown (self,shown):
+#     page = self.maintab.currentPage();
+#     self.gw_visible[page] = shown;
+#     # "hide workspace" button only visible when workspace is hidden
+#     self.show_workspace_button.setHidden(shown)
     
   def show_gridded_workspace (self,shown=True):
+    self.gw_panel.setShown(shown);
     self.gw.show(shown);
     
   def hide_gridded_workspace (self):
@@ -575,13 +665,13 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       self._current_page.emit(PYSIGNAL("leaving()"),());
       page.emit(PYSIGNAL("entering()"),());
       self._current_page = page;
-      # show or hide the workspace
-      if self.gw_visible.get(page,False):
-        self.gw.wtop().show();
-        self.show_workspace_button.hide();
-      else:
-        self.gw.wtop().hide();
-        self.show_workspace_button.show();
+#       # show or hide the workspace
+#       if self.gw_visible.get(page,False):
+#         self.gw.wtop().show();
+#         self.show_workspace_button.hide();
+#       else:
+#         self.gw.wtop().hide();
+#         self.show_workspace_button.show();
       
 ##### displays data item in gridded workspace
   def display_data_item (self,item,kwargs={}):
@@ -688,6 +778,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
 #       self._reset_maintab_label(logger);
 #     logger._numerr = numerr;
     if numerr:
+      self.maintab.show();
       self.maintab.changeTab(logger,logger._error_iconset,logger._error_label % numerr);
     else:
       self._reset_maintab_label(logger);

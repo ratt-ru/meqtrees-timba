@@ -109,3 +109,4 @@ class DataDraggableListView (QListView):
     except AttributeError:
       return None;
     return udi and QTextDrag(udi,self);
+

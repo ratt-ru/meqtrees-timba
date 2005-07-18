@@ -38,8 +38,8 @@ class TDLEditor (QFrame,PersistentCurrier):
   # a single editor always has the focus
   current_editor = None;
   
-  def __init__ (self,*args):
-    QFrame.__init__(self,*args);
+  def __init__ (self,parent,close_button=False):
+    QFrame.__init__(self,parent);
     toplo = QVBoxLayout(self);
     self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     splitter = QSplitter(Qt.Vertical,self);
@@ -53,17 +53,42 @@ class TDLEditor (QFrame,PersistentCurrier):
     # find main window to associate our toolbar with
     mainwin = self.parent();
     while mainwin and not isinstance(mainwin,QMainWindow):
-      mainwin = self.parent();
+      mainwin = mainwin.parent();
     self._toolbar = QToolBar("TDL tools",mainwin,editor_box);
     lo.addWidget(self._toolbar);
-    # populate toolbar
-    self._qa_jobs = QAction(pixmaps.gear.iconset(),"Predefined functions",0,self);
-    self._qa_jobs.addTo(self._toolbar);
-    self._qa_jobs.setVisible(False);
-    QObject.connect(self._qa_jobs,SIGNAL("activated()"),self._show_jobs_menu);
-    self._qa_save = QAction(pixmaps.file_save.iconset(),"&Save script",Qt.ALT+Qt.Key_S,self);
-    self._qa_save.addTo(self._toolbar);
-    QObject.connect(self._qa_save,SIGNAL("activated()"),self._save_file);
+    
+    #### populate toolbar
+    
+    self._tb_jobs = QToolButton(self._toolbar);
+    self._tb_jobs.setIconSet(pixmaps.gear.iconset());
+    self._tb_jobs.setTextLabel("Jobs");
+    self._tb_jobs.setUsesTextLabel(True);
+    self._tb_jobs.setTextPosition(QToolButton.BesideIcon);
+    QToolTip.add(self._tb_jobs,"Display menu of functions defined by this TDL script");
+    self._jobmenu = QPopupMenu(self);
+    self._tb_jobs.setPopup(self._jobmenu);
+    self._tb_jobs.setPopupDelay(1);
+    self._tb_jobs.hide();
+    #self._qa_jobs = QAction(pixmaps.gear.iconset(),"Predefined functions",0,self);
+    #self._qa_jobs.addTo(self._toolbar);
+    #self._qa_jobs.setVisible(False);
+    #QObject.connect(self._qa_jobs,SIGNAL("activated()"),self._show_jobs_menu);
+    self._tb_save = QToolButton(self._toolbar);
+    self._tb_save.setIconSet(pixmaps.file_save.iconset());
+    QToolTip.add(self._tb_save,"Saves script. Click on the down-arrow for other options.");
+    savemenu = QPopupMenu(self);
+    self._tb_save.setPopup(savemenu);
+    self._tb_save.setPopupDelay(0);
+    qa_save = QAction(pixmaps.file_save.iconset(),"&Save script",Qt.ALT+Qt.Key_S,self);
+    QObject.connect(qa_save,SIGNAL("activated()"),self._save_file);
+    QObject.connect(self._tb_save,SIGNAL("clicked()"),self._save_file);
+    qa_save.addTo(savemenu);
+    qa_save_as = QAction(pixmaps.file_save.iconset(),"Save script &as...",0,self);
+    QObject.connect(qa_save_as,SIGNAL("activated()"),self.curry(self._save_file,save_as=True));
+    qa_save_as.addTo(savemenu);
+    qa_revert = self._qa_revert = QAction("Revert to saved",0,self);
+    QObject.connect(qa_revert,SIGNAL("activated()"),self._revert_to_saved);
+    qa_revert.addTo(savemenu);
     self._qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.ALT+Qt.Key_R,self);
     self._qa_run.addTo(self._toolbar);
     QObject.connect(self._qa_run,SIGNAL("activated()"),self.compile_content);
@@ -74,8 +99,16 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._pathlabel = QLabel(self._toolbar);
     self._pathlabel.setAlignment(Qt.AlignRight);
     self._pathlabel.setIndent(10);
+    if close_button:
+      if not isinstance(close_button,QIconSet):
+        close_button = pixmaps.remove.iconset();
+      self._qa_close = QAction(close_button,"&Close editor",Qt.ALT+Qt.Key_W,self);
+      QObject.connect(self._qa_close,SIGNAL("activated()"),self,PYSIGNAL("fileClosed()"));
+      self._qa_close.addTo(self._toolbar);
     self._toolbar.setStretchableWidget(self._pathlabel);
-    # add editor window
+    
+    #### add editor window
+    
     self._editor = QextScintilla(editor_box);
     # base font adjustment factor
     self._editor_fontadjust = self.fontInfo().pointSize() + 1;
@@ -105,14 +138,17 @@ class TDLEditor (QFrame,PersistentCurrier):
     mblo = QVBoxLayout(self._message_box);
     msgb1 = QHBox(self._message_box);
     mblo.addWidget(msgb1);
-    self._message_icon = QLabel(msgb1);
+    self._message_icon = QToolButton(msgb1);
     self._message = QLabel(msgb1);
     self._message.setTextFormat(Qt.RichText);
     self._message.setMargin(0);
     self._message.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Preferred);
-    self._message_icon.setAlignment(Qt.AlignTop);
-    self._message_icon.setMargin(4);
+    # self._message_icon.setAlignment(Qt.AlignTop);
+    # self._message_icon.setMargin(4);
+    self._message_icon.setAutoRaise(True);
     self._message_icon.setSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed);
+    QObject.connect(self._message_icon,SIGNAL("clicked()"),self.clear_message);
+    QToolTip.add(self._message_icon,"Click here to clear the message");
     self._message_widgets = [];
     self._message_transient = False;
 
@@ -147,6 +183,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._filename = None;       # "official" path of file (None if new script not yet saved)
     self._real_filename = None;  # real name of disk file. This may be a temp file.
     self._file_disktime = None;  # modtime on disk when file was loaded
+    self._basename = None;
+    self._modified = False;
     
   def __del__ (self):
     self.has_focus(False);
@@ -165,21 +203,27 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._poslabel.repaint();
   
   def _text_modified (self,mod):
-    self._qa_save.setVisible(mod);
+    self._modified = mod;
+    self.emit(PYSIGNAL("textModified()"),(bool(mod),));
+    self._tb_save.setShown(mod);
     if self._filename:
-      label = '<b>' + self._filename + '</b>';
+      label = '<b>' + self._basename + '</b>';
+      QToolTip.add(self._pathlabel,self._filename);
     else:
       label = '';
+      QToolTip.remove(self._pathlabel);
+    if self._readonly:
+      label = '(r/o) ' + label;
     if mod:
       self._clear_transients();
       self._qa_run.setVisible(True);
       label = '(modified) ' + label;
     self._pathlabel.setText(label);
     
-  def _show_jobs_menu (self):
-    if self._jobmenu:
-      pos = self._toolbar.mapToGlobal(QPoint(0,self._toolbar.height()));
-      self._jobmenu.popup(pos);
+#   def _show_jobs_menu (self):
+#     if self._jobmenu:
+#       pos = self._toolbar.mapToGlobal(QPoint(0,self._toolbar.height()));
+#       self._jobmenu.popup(pos);
     
   def clear_message (self):
     self._message_box.hide();
@@ -192,21 +236,19 @@ class TDLEditor (QFrame,PersistentCurrier):
         w.reparent(dum);
       self._message_widgets = [];
     
-  def show_message (self,msg,error=False,pixmap=None,transient=False):
+  def show_message (self,msg,error=False,iconset=None,transient=False):
     """Shows message in box.
-    If pixmap is not None, a pixmap is shown as well.
-    If error=True, an error pixmap is show (pixmap overrides this).
+    If iconset is not None, overrides standard icon.
+    If error=True, uses error icon (iconset overrides this).
     If transient=True, message will be cleared when text is edited.
     """;
     self._message.setText(msg);
-    if not pixmap:
+    if not iconset:
       if error:
-        pixmap = pixmaps.red_round_cross.pm();
+        iconset = pixmaps.red_round_cross.iconset();
       else:
-        pixmap = pixmaps.info_blue_round.pm();
-    # show pixmap
-    if pixmap:    
-      self._message_icon.setPixmap(pixmap);
+        iconset = pixmaps.info_blue_round.iconset();
+    self._message_icon.setIconSet(iconset);
     self._message_box.show();
     self._message_transient = transient;
     self._errlist_box.hide();
@@ -219,6 +261,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._message_widgets.append(widget);
     
   def clear_error_list (self):
+    self.emit(PYSIGNAL("hasErrors()"),(0,));
     self._errlist.clear();
     self._editor.markerDeleteAll();
     self._error_count_label.setText('');
@@ -227,6 +270,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       
   def show_error_list (self,errlist):
     self.clear_error_list();
+    self.emit(PYSIGNAL("hasErrors()"),(len(errlist),));
     if errlist:
       for (errtype,errmsg,filename,location) in errlist:
         if isinstance(location,int):
@@ -251,6 +295,16 @@ class TDLEditor (QFrame,PersistentCurrier):
     else:
       self._errlist_box.hide();
       self._qa_run.setVisible(True);
+  
+  def show_position (self,line,column=0,mark_error=False):
+    """shows indicated position""";
+    self._editor.ensureLineVisible(line);
+    self._editor.setCursorPosition(line,column);
+    # a little kludge to prevent line from being hidden by a resize
+    self._editor.ensureLineVisible(line+5); 
+    if mark_error:
+      self._editor.markerDeleteAll(self.CurrentErrorMarker);
+      self._editor.markerAdd(line,self.CurrentErrorMarker);
       
   def _show_next_error (self):
     ni = self._errlist.currentItem()+1;
@@ -272,11 +326,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       loc = self._errloc[number];
       if len(loc) == 2:
         (line,column) = loc;
-        self._editor.ensureLineVisible(line);
-        self._editor.setCursorPosition(line,column);
-        # a little kludge to prevent line from being hidden by a resize
-        self._editor.ensureLineVisible(line+5); 
-        self._editor.markerAdd(line,self.CurrentErrorMarker);
+        self.show_position(line,column,mark_error=True);
         
   def _process_margin_click (self,margin,line,button):
     _dprint(0,margin,line,button);
@@ -285,13 +335,13 @@ class TDLEditor (QFrame,PersistentCurrier):
         self._errlist.setCurrentItem(ierr);
         break;
         
-  def _save_file (self,filename=None,text=None,force=False):
+  def _save_file (self,filename=None,text=None,force=False,save_as=False):
     """Saves text. If force=False, checks modification times in case
     the file has been modified by another program, otherwise saves
     unconditionally. If no filename is known, asks for one.
     Returns True if file was successfully saved, else None.""";
     filename = filename or self._filename;
-    if filename:
+    if filename and not save_as:
       if not force:
         filetime = _file_mod_time(filename);
         if filetime and filetime != self._file_disktime:
@@ -337,9 +387,37 @@ class TDLEditor (QFrame,PersistentCurrier):
       return None;
     # saved successfully, update stuff
     self._filename = self._real_filename = filename;
+    self._qa_revert.setEnabled(True);
+    self._basename = os.path.basename(filename);
     self._file_disktime = _file_mod_time(filename);
     self._editor.setModified(False);
     self._text_modified(False);
+    self.emit(PYSIGNAL("fileSaved()"),(filename,));
+    return self._filename;
+    
+  def confirm_close (self):
+    if not self._modified:
+      return True;
+    res = QMessageBox.warning(self,"TDL file modified",
+      """Save modified file <p><tt>%s</tt>?</p>"""
+      % (self._filename or "",),
+      "Save","Don't Save","Cancel",0,2);
+    if res == 2:
+      return False;
+    if res == 0:
+      return bool(self._save_file());
+    return True; 
+    
+  def _revert_to_saved (self,force=False):
+    if not self._filename:
+      return;
+    if not force:
+      if QMessageBox.question(self,"Revert to saved",
+        """Revert to saved version of <p><tt>%s</tt>?"""
+        % (self._filename,),
+        "Revert","Cancel",None,0,1):
+        return;
+    self.load_file(self._filename);
         
   def _write_to_tempfile (self,text,prefix='tmp',suffix='.py'):
     """helper func for compile below: writes text to a temporary file.""";
@@ -362,7 +440,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self.clear_error_list();
     editor_text = str(self._editor.text());
     # clear predefined functions
-    self._qa_jobs.setVisible(False);
+    self._tb_jobs.hide();
     # dum = QObject();
     # for qa in self._qa_jobs_list:
     #  qa.reparent(dum);
@@ -513,9 +591,9 @@ class TDLEditor (QFrame,PersistentCurrier):
       joblist.append(testfunc);
     
     # create list of job actions
+    self._jobmenu.clear();
     if joblist:
-      self._qa_jobs.setVisible(True);
-      self._jobmenu = QPopupMenu(self);
+      self._tb_jobs.show();
       for func in joblist:
         name = re.sub("^tdl_job_","",func.__name__);
         name = name.replace('_',' ' );
@@ -524,9 +602,6 @@ class TDLEditor (QFrame,PersistentCurrier):
         qa._call = curry(func,mqs,self);
         QObject.connect(qa,SIGNAL("activated()"),qa._call);
         qa.addTo(self._jobmenu);
-    else:
-      self._qa_jobs.setVisible(False);
-      self._jobmenu = None;
     
     # no, show status and return
 #    if not callable(testfunc):
@@ -536,7 +611,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     if joblist:
       msg += " %d predefined function(s) available." % (len(joblist),);
     self.show_message(msg,transient=True);
-    return None;
+    return True;
 #     # yes, offer to run the test
 #     if QMessageBox.information(self,"TDL script executed",
 #          """<p>Executed TDL script <tt>%s</tt>.</p>
@@ -560,19 +635,24 @@ class TDLEditor (QFrame,PersistentCurrier):
   def load_file (self,filename,text=None,readonly=False):
     self.clear_message();
     self.clear_error_list();
+    if not os.access(filename,os.W_OK):
+      readonly = True;
     # load text from file if not supplied
     if text is None:
       ff = file(filename);
       text = ff.read();
       ff.close();
     self._filename = self._real_filename = filename;
+    self._qa_revert.setEnabled(bool(filename));
+    self._basename = os.path.basename(filename);
+    self._readonly = readonly;
     self._file_disktime = filename and _file_mod_time(filename);
     self._editor.setText(text);
     self._editor.setReadOnly(readonly);
     self._editor.setModified(False);
     self._text_modified(False);
     # emit signals
-    self.emit(PYSIGNAL("loadedFile()"),(filename,));
+    self.emit(PYSIGNAL("fileLoaded()"),(filename,));
     
   def adjust_editor_font (self):
     # sets the editor font size based on our own size
@@ -603,10 +683,6 @@ class TDLFileDataItem (Grid.DataItem):
     # add extra pathname attribute for tdl objects
     self.tdl_pathname = pathname;
       
-
-
-
-
 
 class TDLBrowser(browsers.GriddedPlugin):
   _icon = pixmaps.text_tdl;
