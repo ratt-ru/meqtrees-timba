@@ -419,7 +419,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.dprint(2,"init complete");\
     
   class PanelizedWindow (QVBox):
-    BackgroundMode = Qt.PaletteMid;
+    BackgroundMode = Qt.PaletteBackground;
     def __init__ (self,parent,name,shortname,icon,*args):
       QVBox.__init__(self,parent,*args);
       self.name = name;
@@ -427,9 +427,11 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       self.icon = icon;
       # build title "toolbar"
       titlebar = QFrame(self);
-      titlebar.setMargin(0);
       titlebar.setBackgroundMode(self.BackgroundMode);
-      self.populate_titlebar(titlebar,QHBoxLayout(titlebar));
+      titlebar.setFrameStyle(QFrame.Panel|QFrame.Raised);
+      tblo = QHBoxLayout(titlebar);
+      tblo.setMargin(2);
+      self.populate_titlebar(titlebar,tblo);
     def populate_titlebar (self,titlebar,layout):
       icon = QLabel(titlebar);
       pm = self.icon.pixmap();

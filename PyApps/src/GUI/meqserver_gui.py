@@ -181,7 +181,7 @@ class meqserver_gui (app_proxy_gui):
     
     _dprint(2,"meqserver-specifc init"); 
     # add Tree browser panel
-    self.tb_panel = self.PanelizedWindow(self.splitter,"Forest Browser","Forest",pixmaps.view_tree.iconset());
+    self.tb_panel = self.PanelizedWindow(self.splitter,"Trees","Trees",pixmaps.view_tree.iconset());
     self.treebrowser = treebrowser.TreeBrowser(self.tb_panel);
     
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_node()"),self._view_node);
