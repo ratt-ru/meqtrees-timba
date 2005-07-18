@@ -81,6 +81,7 @@ class ParmFiddler (browsers.GriddedPlugin):
     #all names off the nodes except parms
     self._nodedict= {};
     self._currentparm = None;
+    self._request = None;
     self.swapsort=True;
     self.sorted=0; 
     # Initialize subscribe state
@@ -231,10 +232,14 @@ class ParmFiddler (browsers.GriddedPlugin):
 
 
   def set_data (self,dataitem,**opts):
+      request = getattr(dataitem.data,'request',None);
+      if self._request and request:
+        self._request  =  request;
+      
+      
       if not self._has_data:
         self._has_data = True;
         state = dataitem.data;
-        request = getattr(state,'request',None);
         if not request:
             QMessageBox.warning(self.wtop(),
                                 "Warning",
@@ -483,8 +488,10 @@ class ParmFiddler (browsers.GriddedPlugin):
       if is_scalar(coeff):
           coeff=[[coeff]];
       if is_scalar(coeff[0]):
+        ncoeff=[];
         for i in range(len(coeff)):
-          coeff[i]=[coeff[i]];
+          ncoeff.append([coeff[i]]);
+        coeff=ncoeff;
       zero=1;
       shapex= len(coeff);
       shapey=len(coeff[0]);
@@ -579,8 +586,10 @@ class ParmFiddler (browsers.GriddedPlugin):
           if is_scalar(coeff):
             coeff=[[coeff]];
           if is_scalar(coeff[0]):
+            ncoeff=[];
             for i in range(len(coeff)):
-              coeff[i]=[coeff[i]];
+              ncoeff.append([coeff[i]]);
+            coeff=ncoeff;
           coeff[0][0]=self.c00;
           funklet.coeff=coeff;
           self._parmdict[parmkey]['funklet']=funklet;
@@ -608,8 +617,10 @@ class ParmFiddler (browsers.GriddedPlugin):
             if is_scalar(coeff):
               coeff=[[coeff]];
             if is_scalar(coeff[0]):
+              ncoeff=[];
               for i in range(len(coeff)):
-                coeff[i]=[coeff[i]];
+                ncoeff.append([coeff[i]]);
+              coeff=ncoeff;
             for i in range(len(coeff)):
               for j in  range(len(coeff[0])):
 
@@ -800,40 +811,34 @@ class ParmFiddler (browsers.GriddedPlugin):
 
   def reexecute(self,do_execute = False):
 
-      if not self.enable_exec.state () and not do_execute: #reexecute not enabled
-          #print "auto execute not eneabled"
-          return;
+ 
+    if not self.enable_exec.state () and not do_execute: #reexecute not enabled
+      #print "auto execute not eneabled"
+      return;
+    
+    if not self._request:
+      _dprint(2,'no request to execute');
+      return;
+    #check solver status:
+    #      self.updateTable();
+    _dprint(1,'accepted: ',self._request);
+    reqid_old= self._request.request_id;
+    if not reqid_old:
+      reqid_old=  hiid(1,1,1,1);
 
-      if not self._request:
-          _dprint(2,'no request to execute');
-          return;
-      #check solver status:
-#      self.updateTable();
-      _dprint(1,'accepted: ',self._request);
-      reqid_old= self._request.request_id;
-      if not reqid_old:
-          reqid_old=  hiid(1,1,1,1);
-
-      self.rid+=1;
-      #print "reqid old",reqid_old;
-
-      reqid=hiid(reqid_old[0],self.rid,self.rid,0);
-
-      if reqid[2]==reqid_old[2]:
-          self.rid+=1;
-      rid0=int(reqid_old[0]);
-      rid1=int(reqid_old[1]);
-      reqid=hiid(rid0,rid1,self.rid,0);
+    rid0=int(reqid_old[0]);
+    rid1=int(reqid_old[1])+1;
+    rid2=int(reqid_old[2])+1;
+    reqid=hiid(rid0,rid1,rid2,0);
 
 
-      #print "reqid ",reqid;
-      self._request.request_id = reqid;
-      #self._request.cache_override = True;
-      if self._node:
-        cmd = record(nodeindex=self._node,request=self._request,get_state=True);
-      elif self._name:
-        cmd = record(name=self._name,request=self._request,get_state=True);
-      mqs().meq('Node.Execute',cmd,wait=False);
+    self._request.request_id = reqid;
+    #self._request.cache_override = True;
+    if self._node:
+      cmd = record(nodeindex=self._node,request=self._request,get_state=True);
+    elif self._name:
+      cmd = record(name=self._name,request=self._request,get_state=True);
+    mqs().meq('Node.Execute',cmd,wait=False);
 
 
 
@@ -1002,8 +1007,10 @@ class editParm(QDialog):
       if is_scalar(self._coeff):
           self._coeff=[[self._coeff]]
       if is_scalar(self._coeff[0]):
-        for i in range(len(self._coeff)):
-          self._coeff[i]=[self._coeff[i]];
+        ncoeff=[];
+        for i in range(len(coeff)):
+          ncoeff.append([coeff[i]]);
+        coeff=ncoeff;
       self._nx=len(self._coeff);
       self._ny=len(self._coeff[0]);
 
@@ -1158,10 +1165,9 @@ class editParm(QDialog):
 
 
     def slotcmdDefault(self):
-      self.slotcmdOK();
-      self.parent.setDefault();
+      self.slotcmdOK(1);
 
-    def slotcmdOK(self):
+    def slotcmdOK(self, set_default=0):
 #       #print self.parent._funklet.coeff;
         array1=numarray.resize(self.parent._funklet.coeff,(self._nx,self._ny));
         self.parent._funklet.coeff=array1;
@@ -1178,6 +1184,8 @@ class editParm(QDialog):
 
         self.parent._funklet.offset=offset;
         self.parent._funklet.scale=scale;
+        if set_default:
+          self.parent.setDefault();
         
 #       #print self.parent._funklet.coeff;
 #       self.updategrid();
@@ -1226,8 +1234,10 @@ class editParm(QDialog):
         if is_scalar(self._coeff):
             self._coeff=[[self._coeff]]
         if is_scalar(self._coeff[0]):
+          ncoeff=[];
           for i in range(len(self._coeff)):
-            self._coeff[i]=[self._coeff[i]];
+            ncoeff.append([self._coeff[i]]);
+          self._coeff=ncoeff;
         self._nx=len(self._coeff);
         self._ny=len(self._coeff[0]);
         self.updategrid();
