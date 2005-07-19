@@ -1,9 +1,9 @@
 # standard preamble
 from Timba.TDL import *
  
-# forest_state is a standard TDL name. If defined in the script, this
-# record is passed to Set.Forest.State. 
-forest_state = record(cache_policy=100);
+# Timba.TDL.Settings.forest_state is a standard TDL name. 
+# This is a record passed to Set.Forest.State. 
+Settings.forest_state.cache_policy = 100;
 
 def define_forest (ns):
   """define_forest() is a standard TDL name. When a forest script is

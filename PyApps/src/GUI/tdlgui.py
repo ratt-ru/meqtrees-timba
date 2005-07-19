@@ -7,6 +7,7 @@ from Timba.GUI import browsers
 from Timba.GUI.pixmaps import pixmaps
 from Timba.Meq import meqds
 from Timba import TDL
+import Timba.TDL.Settings
 
 from qt import *
 from qtext import *
@@ -513,6 +514,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     _dprint(1,'clearing out TDL-imported modules',_tdlmodlist);
     for m in _tdlmodlist:
       del sys.modules[m];
+    reload(Timba.TDL.Settings);
     # remember which modules are still imported
     prior_mods = sets.Set(sys.modules.keys());
     modname = '__tdlruntime';
@@ -583,7 +585,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     ### NB: presume this was successful for now
 
     # is a forest state defined?
-    fst = getattr(_tdlmod,'forest_state',record());
+    fst = getattr(Timba.TDL.Settings,'forest_state',record());
     # add in source code
     fst.tdl_source = record(**{os.path.basename(pathname):tdltext});
     mqs.meq('Set.Forest.State',record(state=fst));

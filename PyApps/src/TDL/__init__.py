@@ -3,6 +3,7 @@ from Timba.dmi import *
 from Timba.TDL import TDLimpl
 from Timba.TDL.TDLimpl import *
 from Timba.TDL.MeqClasses import Meq
+from Timba.TDL import Settings
 
 _dbg = TDLimpl._dbg;
 _dprint = _dbg.dprint;

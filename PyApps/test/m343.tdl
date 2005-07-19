@@ -2,9 +2,9 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# forest_state is a standard TDL name. If defined in the script, this
+# TDL.Settings.forest_state is a standard TDL name. If defined in the script, this
 # record is passed to Set.Forest.State. 
-forest_state = record(cache_policy=100);
+Settings.forest_state = record(cache_policy=100);
 
 # some global bits  
 STATIONS = range(1,15);
