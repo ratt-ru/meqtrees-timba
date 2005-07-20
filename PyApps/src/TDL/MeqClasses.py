@@ -20,6 +20,9 @@ class _MeqGen (TDLimpl.ClassGen):
   def __init__ (self):
     TDLimpl.ClassGen.__init__(self,'Meq');
     
+  def Constant (self,value):
+    return _NodeDef('Meq','Constant',value=value);
+    
   def Parm (self,funklet=None,**kw):
     if funklet is not None:
       if isinstance(funklet,dmi.dmi_type('MeqFunklet')):

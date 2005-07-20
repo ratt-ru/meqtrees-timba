@@ -324,7 +324,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._qa_prev_err.setEnabled(number>0);
     self._qa_next_err.setEnabled(number<self._errlist.count()-1);
     self._editor.markerDeleteAll(self.CurrentErrorMarker);
-    if number < len(self._errloc):
+    _dprint(1,number,len(self._errloc));
+    if number >= 0 and number < len(self._errloc):
       loc = self._errloc[number];
       if len(loc) == 2:
         (line,column) = loc;
@@ -525,19 +526,27 @@ class TDLEditor (QFrame,PersistentCurrier):
     except: # other import errors
       imp.release_lock();
       infile.close();
+      _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
+      _dprint(1,'TDL run imported',_tdlmodlist);
       (exctype,excvalue,tb) = sys.exc_info();
       traceback.print_exc();
       _dprint(0,'exception',sys.exc_info(),'importing TDL file',self._real_filename);
+      # syntax error in module: determine location
       if exctype is SyntaxError:
-        msg = "syntax error at column %d" % (excvalue.offset,);
-        self.show_error_list([('SyntaxError',msg,excvalue.filename,(excvalue.lineno,excvalue.offset))]);
-        return None;
-      self.show_message("""<b>Error importing <tt>%s</tt>:
-        <i>%s (%s)</i></b>""" % (self._real_filename,excvalue,exctype.__name__),
-        error=True,transient=True);
-      # set of imported modules is current set minus prior set
-      _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
-      _dprint(1,'TDL run imported',_tdlmodlist);
+        offset = excvalue.offset;
+        if offset is None:
+          msg = "syntax error";
+          offste = 0;
+        else:
+          msg = "syntax error at column %d" % (offset,);
+        self.show_error_list([('SyntaxError',msg,excvalue.filename,(excvalue.lineno,offset))]);
+      else: # other error, try to find location via traceback
+        stack = traceback.extract_tb(tb);
+        (filename,line,funcname,text) = stack[-1];
+        self.show_error_list([(exctype.__name__,excvalue.args[0],filename,(line,0))]);
+      # self.show_message("""<b>Error importing <tt>%s</tt>:
+      #  <i>%s (%s)</i></b>""" % (self._real_filename,excvalue,exctype.__name__),
+      #  error=True,transient=True);
       return None;
     imp.release_lock();
     infile.close();
