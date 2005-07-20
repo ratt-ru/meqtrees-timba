@@ -354,7 +354,6 @@ fi
 
 # System build is a bit different.
 if [ "$system" != 0 ]; then
-echo "system=$system $variants"
   $pgmpath/buildsys -confopt "$confopt" "$variants" "$pkgs"
   exit 0
 fi
