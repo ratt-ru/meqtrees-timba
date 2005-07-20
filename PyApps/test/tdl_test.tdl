@@ -11,7 +11,7 @@ def define_forest (ns):
   define the forest. The 'ns' argument is a NodeScope object in which
   the forest is to be defined, usually this is simply the global scope.
   """;
-  ns['solver'] << Meq['Solver'](
+  ns['solver'] << Meq.Solver(
     num_iter=5,debug_level=10,solvable="x",
     children = Meq.Condeq(
       Meq.Parm([0,1]),
