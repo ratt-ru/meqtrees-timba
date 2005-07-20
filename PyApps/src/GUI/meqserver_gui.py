@@ -183,6 +183,8 @@ class meqserver_gui (app_proxy_gui):
     # add Tree browser panel
     self.tb_panel = self.PanelizedWindow(self.splitter,"Trees","Trees",pixmaps.view_tree.iconset());
     self.treebrowser = treebrowser.TreeBrowser(self.tb_panel);
+    QObject.connect(self.tb_panel,PYSIGNAL("visible()"),
+          self.treebrowser.wtoolbar().setShown);
     
     # self.add_tab(self.treebrowser.wtop(),"Trees",index=1);
     self.splitter.moveToFirst(self.tb_panel);

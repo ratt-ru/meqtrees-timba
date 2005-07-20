@@ -489,21 +489,28 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     class MinimizedPanelButton (QToolButton):
       def __init__ (self,panel,parent):
         QToolButton.__init__(self,parent);
-        self.setIconSet(panel.icon,);
-        self.setTextLabel(panel.shortname);
+        self._panel = panel;
+        self._label = [ "("+panel.shortname+")",panel.shortname+" " ];
+        self.setIconSet(panel.icon);
+        self.setTextLabel(self._label[int(panel.isShown())]);
         self.setTextPosition(QToolButton.BesideIcon);
         self.setUsesTextLabel(True);
         self.setShown(not panel.isVisible());
         # self.setBackgroundMode(app_proxy_gui.PanelizedWindow.BackgroundMode);
         QToolTip.add(self,"Show "+panel.name);
-        QObject.connect(self,SIGNAL("clicked()"),panel.show);
-        QObject.connect(panel,PYSIGNAL("shown()"),self.hide);
-        QObject.connect(panel,PYSIGNAL("hidden()"),self._flash);
+        QObject.connect(self,SIGNAL("clicked()"),self._toggle);
+        QObject.connect(panel,PYSIGNAL("visible()"),self._show_panel);
         self._flashcolor = QColor("yellow");
-      def _flash (self):
-        self.setPaletteBackgroundColor(self._flashcolor);
-        self.show();
-        QTimer.singleShot(300,self.unsetPalette);
+      def _toggle (self):
+        self._panel.setShown(not self._panel.isShown());
+      def _show_panel (self,show):
+        if show:
+          self.setTextLabel(self._label[1]);
+          self.setFixedWidth(self.width());
+        else:
+          self.setTextLabel(self._label[0]);
+          self.setPaletteBackgroundColor(self._flashcolor);
+          QTimer.singleShot(300,self.unsetPalette);
       
   def populate (self,main_parent=None,*args,**kwargs):
     #------ main window contains a splitter

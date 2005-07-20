@@ -1,5 +1,6 @@
 from Timba import dmi
 from Timba import utils
+import Timba.TDL.Settings
 
 import sys
 import weakref
@@ -23,6 +24,10 @@ class NodeRedefinedError (TDLError):
 class UninitializedNode (TDLError):
   """this error is raised when a node has not been initialized with an init-record""";
   pass;
+
+class UnboundNode (TDLError):
+  """this error is raised when a node definition has not been bound to a name""";
+  pass;
   
 class ChildError (TDLError):
   """this error is raised when a child is incorrectly specified""";
@@ -37,55 +42,117 @@ class CumulativeError (TDLError):
   but deferred.""";
   pass;
 
+class ExtraInfoError (RuntimeError):
+  """this error is added after one of the "real" errors above to indicate
+  additional information such as, e.g., "called from", "first defined here",
+  etc.""";
+  pass;
+  
 
 class _NodeDef (object):
   """this represents a node definition, as returned by a node class call""";
-  __slots__ = ("children","initrec","error");
-  def __init__ (self,classname,*childlist,**kw):
-    """Creates a _NodeDef object for a node of the given classname.
+  __slots__ = ("children","stepchildren","initrec","error","_class");
+  
+  class ChildList (list):
+    """A ChildList is a list of (id,child) pairs. 
+    'id' may be a child label, or an ordinal number.
+    'child' may be a NodeStub, a string node name, a numeric constant, or
+        something that resolves to a NodeDef.
+    """;
+    def __init__ (self,x=None):
+      """A ChildList may be initialized from a dict, from a sequence,
+      or from a single object.""";
+      self.is_dict = isinstance(x,dict);
+      if x is None:
+        list.__init__(self);
+      elif self.is_dict:
+        list.__init__(self,x.iteritems());
+      elif isinstance(x,(list,tuple)):
+        list.__init__(self,enumerate(x));
+      else:
+        list.__init__(self,[(0,x)]);
+      self._resolved = False;
+    def resolve (self,scope):
+      """Returns a 'resolved' list based on this list. A resolved list
+      contains only valid NodeStubs. The scope argument is used to look
+      up and create nodes.""";
+      if self._resolved:
+        return self;
+      reslist = _NodeDef.ChildList();
+      for (i,(ich,child)) in enumerate(self):
+        _dprint(5,'checking child',i,ich,'=',child);
+        if not isinstance(child,_NodeStub):
+          if isinstance(child,str):        # child referenced by name? 
+            try: child = scope.Repository()[child];
+            except KeyError:
+              raise ChildError,"child %s = %s not found" % (str(ich),child);
+          elif isinstance(child,(complex,float)):
+            child = scope.MakeConstant(child);
+          elif isinstance(child,(bool,int,long)):
+            child = scope.MakeConstant(float(child));
+          else:
+            # try to resolve child to a _NodeDef
+            anonch = _NodeDef.resolve(child);
+            if anonch is None:
+              raise ChildError,"child %s has illegal type %s" % (str(ich),type(child).__name__);
+            _dprint(4,'creating anon child',ich);
+            child = anonch.autodefine(scope);
+        reslist.append((ich,child));
+      reslist.is_dict = self.is_dict;
+      reslist._resolved = True;
+      return reslist;
+        
+  def __init__ (self,pkgname,classname,*childlist,**kw):
+    """Creates a _NodeDef object for a node of the given package/classname.
     Children are built up from either the argument list, or the 'children'
     keyword (if both are supplied, an error is thrown), or from keywords of
     type '_NodeDef' or '_NodeStub', or set to None if no children are specified. 
     The initrec is built from the remaining keyword arguments, with the field
-    class=classname inserted as well.
+    class=pkgname+classname inserted as well.
     """;
     try:
-      # an error def may be constructed with an exception opjkect
+      # an error def may be constructed with an exception opject
       if isinstance(classname,Exception):
         raise classname;
-      # figure out children
-      children = kw.pop('children',None);
-      if children:
-        if childlist: raise ChildError,"children specified both by arguments and keyword";
-      else:  # no children dict, use list if we got it
-        if childlist: children = childlist;
-        else: # else see if some keywords specify children
-          children = {};
-          for (key,val) in kw.iteritems():
-            if isinstance(val,(_NodeDef,_NodeStub)):
-              children[key] = val;
-          # remove from keyword set if found any   
-          if children:
-            map(kw.pop,children.iterkeys());
-          else:
-            children = None;
+      # figure out children. May be specified as
+      # (a) a 'children' keyword 
+      # (b) an argument list (but not both a and b)
+      # (c) keywords with values of type NodeDef or NodeStub
+      try:
+        children = kw.pop('children');
+        if childlist: 
+          raise ChildError,"children specified both by arguments and 'children' keyword";
+      except KeyError:  # no 'children' keyword, case (b) or (c)
+        if childlist: 
+          children = childlist;
+        else: # else see if some keyword arguments specify children-like objects
+          children = dict([(key,val) for (key,val) in kw.iteritems()
+                            if isinstance(val,(_NodeDef,_NodeStub)) ]);
+          map(kw.pop,children.iterkeys());
+      self.children = self.ChildList(children);
+      # now check for step_children:
+      stepchildren = kw.pop('stepchildren',None);
+      if isinstance(stepchildren,dict):
+        raise ChildError,"'stepchildren' must be a list or a single node";
+      self.stepchildren = self.ChildList(stepchildren);
       # create init-record 
       initrec = dmi.record(**kw);
-      initrec['class'] = classname;
+      initrec['class'] = ''.join((pkgname,classname));
+      self._class = classname;
       # ensure type of node_groups argument (so that strings are implicitly converted to hiids)
       groups = getattr(initrec,'node_groups',None);
       if groups is not None:
         initrec.node_groups = dmi.make_hiid_list(groups);
-      self.children = children;
       self.initrec = initrec;
       self.error = None;
     except:
-      # catch exceptions and produce an "error" def, to be reported later
+      # catch exceptions and produce an "error" def, to be reported later on
       self.children = self.initrec = None;
       (exctype,excvalue) = sys.exc_info()[:2];
       if len(excvalue.args) == 1:
         excvalue = exctype(excvalue.args[0],*_identifyCaller()[:2]);
       self.error = excvalue;
+  
   def resolve (arg,recurse=5):
     """static method to resolve an argument to a _NodeDef object, or return None on error.
     This method implements some implicit ways to create a node:
@@ -103,7 +170,29 @@ class _NodeDef (object):
       return _NodeDef.resolve(arg(),recurse=recurse-1);
     return None;
   resolve = staticmethod(resolve);
-  # define implicit arithmetic
+  
+  def autodefine (self,scope):
+    """Auto-defines a stub from NodeDef. Name is generated
+    automatically using classname, child names and child qualifiers."""
+    # for starters, we need to resolve all children to NodeStubs
+    self.children = self.children.resolve(scope);
+    classname = self._class.lower();
+    # create name as Class(child1,child2,...):qualifiers
+    if self.children:
+      # generate qualifier list
+      quals = [];
+      kwquals = {};
+      for (ich,child) in self.children:
+        _mergeQualifiers(quals,kwquals,child.quals,child.kwquals,uniq=True);
+      basename = ','.join(map(lambda x:x[1].basename,self.children));
+      basename = "%s(%s)" % (classname,basename);
+      _dprint(4,"creating auto-name",basename,quals,kwquals);
+      return scope[basename](*quals,**kwquals) << self;
+    else:
+      basename = scope.MakeUniqueName(classname);
+      return scope[basename]() << self;
+    
+  # define implicit arithmetic operators
   def __add__ (self,other):
     return _Meq.Add(self,other);
   def __sub__ (self,other):
@@ -120,6 +209,23 @@ class _NodeDef (object):
     return _Meq.Multiply(other,self);
   def __rdiv__ (self,other):
     return _Meq.Divide(other,self);
+    
+def _mergeQualifiers (qual0,kwqual0,qual,kwqual,uniq=False):
+  # merge unnamed qualifiers
+  if uniq:
+    qual0.extend([ q for q in qual if q not in qual0 ]);
+  else:
+    qual0.extend(qual);
+  # merge keyword qualifiers
+  for kw,val in kwqual.iteritems():
+    val0 = kwqual0.get(kw,None);
+    if val0 is None:
+      kwqual0[kw] = val;
+    elif isinstance(val0,list):
+      val0.append(val);
+    else:
+      kwqual0[kw] = [val0,val];
+    
   
 class _NodeStub (object):
   """A NodeStub represents a node. Initially a stub is created with only
@@ -130,7 +236,7 @@ class _NodeStub (object):
   with qualified names.
   """;
   slots = ( "name","scope","basename","quals","kwquals",
-            "classname","parents","children",
+            "classname","parents","children","stepchildren",
             "_initrec","_caller","_debuginfo" );
   def __init__ (self,fqname,basename,scope,*quals,**kwquals):
     _dprint(5,'creating node stub',fqname,basename,scope._name,quals,kwquals);
@@ -158,66 +264,45 @@ class _NodeStub (object):
   def __lshift__ (self,arg):
     try:
       # resolve argument to a node spec. This will throw an exception on error
-      arg = _NodeDef.resolve(arg);
-      _dprint(4,self.name,'<<',arg);
+      nodedef = _NodeDef.resolve(arg);
+      _dprint(4,self.name,'<<',nodedef);
       # can't resolve? error
-      if arg is None:
-        raise NodeDefError,"cannot bind node to something of type "+type(arg).__name__;
+      if nodedef is None:
+        raise TypeError,"can't bind node name (operator <<) with argument of type "+type(arg).__name__;
       # error NodeDef? raise it as a proper exception
-      if arg.error:
-        raise arg.error;
-      # process the nodedef
-      (children,initrec) = (arg.children,arg.initrec);
-      if not self.initialized():
-        try: self.classname = getattr(initrec,'class');
-        except AttributeError: 
-          raise NodeDefError,"init record missing class field";
-        # normalize child list
-        if children is None:
-          children = [];
-        elif isinstance(children,dict): # dict of children
-          children = list(children.iteritems());
-          self._child_dict = True;
-        elif isinstance(children,(list,tuple)): # sequence of children
-          children = list(enumerate(children));
-        else: # single child converted to list anyway
-          children = [(0,children)];
-        _dprint(4,self.name,'children are',children);
-        self.children = children;
-        # resolve children, check their types and mark parents
-        for (i,(ich,child)) in enumerate(self.children):
-          _dprint(5,'checking child',i,ich,'=',child);
-          if not isinstance(child,_NodeStub):
-            if isinstance(child,str):        # child referenced by name? 
-              try: child = self.scope.Repository()[child];
-              except KeyError:
-                raise ChildError,"child %s = %s not found" % (str(ich),child);
-            elif isinstance(child,(complex,float)):
-              child = self.scope.MakeConstant(child);
-            elif isinstance(child,(bool,int,long,float)):
-              child = self.scope.MakeConstant(float(child));
-            else:
-              # try to resolve child to a _NodeDef
-              anonch = _NodeDef.resolve(child);
-              if anonch is None:
-                raise ChildError,"child %s has illegal type %s" % (str(ich),type(child).__name__);
-              _dprint(4,self.name,': creating anon child',ich);
-              childnode = self('-'+str(ich));    # add extra "-n" qualifier to our own name to get child node
-              child = childnode << anonch;
-            self.children[i] = (ich,child);
-          # add ourselves to parent list
-          child.parents[self.name] = self;
-        # set init record and add ourselves to repository
-        _dprint(5,'adding',self.name,'to repository with initrec',self._initrec);
-        self.scope._repository[self.name] = self;
-        self._initrec = initrec;
-      else: # already initialized, check for conflicts
+      if nodedef.error:
+        raise nodedef.error;
+      # resolve list of children in the nodedef to a list of node stubs
+      children = nodedef.children.resolve(self.scope);
+      stepchildren = nodedef.stepchildren.resolve(self.scope);
+      # are we already initialized? If yes, check for exact match of initrec
+      # and child list
+      initrec = nodedef.initrec;
+      if self.initialized():
         if self._initrec != initrec:
           _dprint(1,'old definition',self._initrec);
           _dprint(1,'new definition',initrec);
           for (f,val) in initrec.iteritems():
             _dprint(2,f,val,self._initrec[f],val == self._initrec[f]);
-          raise NodeRedefinedError,"node %s already defined with conflicting definition at %s"%(self.name,self._debuginfo);
+          raise NodeRedefinedError,"node %s already defined with different settings at %s"%(self.name,self._debuginfo);
+        if children != self.children:
+          raise NodeRedefinedError,"node %s already defined with different children at %s"%(self.name,self._debuginfo);
+        if stepchildren != self.stepchildren:
+          raise NodeRedefinedError,"node %s already defined with different children at %s"%(self.name,self._debuginfo);
+      else:
+        try: self.classname = getattr(initrec,'class');
+        except AttributeError: 
+          raise NodeDefError,"init record missing class field";
+        _dprint(4,self.name,'children are',children);
+        self.children = children;
+        self.stepchildren = stepchildren;
+        # add ourselves to parent list
+        for child in self.children + self.stepchildren:
+          child[1].parents[self.name] = self;
+        # set init record and add ourselves to repository
+        _dprint(5,'adding',self.name,'to repository with initrec',self._initrec);
+        self.scope._repository[self.name] = self;
+        self._initrec = initrec;
       # return weakref to self (real ref stays in repository)
       return weakref.proxy(self);
     # any error is reported to the scope object for accumulation, we remain
@@ -226,6 +311,8 @@ class _NodeStub (object):
       (exctype,excvalue) = sys.exc_info()[:2];
       args = excvalue.args;
       _dprint(0,"caught",exctype,args);
+      if _dbg.verbose > 0:
+        traceback.print_exc();
       if len(args) == 3:
         self.scope.Repository().add_error(exctype,*args);
       else:
@@ -239,14 +326,14 @@ class _NodeStub (object):
     return self._initrec;
   def __call__ (self,*quals,**kwquals):
     """Creates a node based on this one, with additional qualifiers. Returns a _NodeStub.""";
-    quals = self.quals + quals;
-    kw = self.kwquals;
-    kw.update(kwquals);
-    fqname = qualifyName(self.basename,*quals,**kw);
+    (q,kw) = (list(self.quals),self.kwquals.copy());
+    _mergeQualifiers(q,kw,quals,kwquals);
+    _dprint(4,"creating requalified node",self.basename,q,kw);
+    fqname = qualifyName(self.basename,*q,**kw);
     try: 
       return self.scope._repository[fqname];
     except KeyError:
-      return _NodeStub(fqname,self.basename,self.scope,*quals,**kw);
+      return _NodeStub(fqname,self.basename,self.scope,*q,**kw);
   # define implicit arithmetic
   def __add__ (self,other):
     return _Meq.Add(self,other);
@@ -268,14 +355,14 @@ class _NodeStub (object):
 class ClassGen (object):
   class _ClassStub (object):
     """_ClassStub represents a node class. When called with (), it returns
-    a tuple of (children,initrec) composed of its arguments."""
-    __slots__ = ("_name",);
-    def __init__ (self,name):
-      self._name = name;
+    a _NodeDef composed of its arguments."""
+    __slots__ = ("_names");
+    def __init__ (self,*names):
+      self._names = names;
     def __call__ (self,*arg,**kw):
-      """Calling a node class creates a _NodeDef object. See _make_nodespec()
-      method below for details.""";
-      return _NodeDef(self._name,*arg,**kw);
+      """Calling a node class stub creates a _NodeDef object, with the
+      _names passed in as the initial arguments.""";
+      return _NodeDef(*(self._names+arg),**kw);
   def __init__ (self,prefix=''):
     self._prefix = prefix;
   def __getattr__ (self,name):
@@ -283,11 +370,13 @@ class ClassGen (object):
     attribute for 'NodeClass'.""";
     try: return object.__getattr__(self,name);
     except AttributeError: pass;
-    stubname = self._prefix+name;
-    _dprint(5,'creating class stub',stubname);
-    stub = self._ClassStub(stubname);
+    _dprint(5,'creating class stub',self._prefix,name);
+    stub = self._ClassStub(self._prefix,name);
     setattr(self,name,stub);
     return stub;
+  __getitem__ = __getattr__;
+  __setitem__ = object.__setattr__;
+  
   
 class NodeGroup (dict):
   """This represents a group of nodes, such as, e.g., root nodes. The
@@ -296,7 +385,15 @@ class NodeGroup (dict):
     self.name = name;
   def __lshift__ (self,node):
     if not isinstance(node,_NodeStub):
-      raise TypeError,"you may only add nodes to a node group with <<";
+      nodedef = _NodeDef.resolve(node);
+      _dprint(4,self.name,'<<',nodedef);
+      # can't resolve? error
+      if nodedef is None:
+        raise TypeError,"can't use NodeGroup operator << with argument of type "+type(node).__name__;
+      # error NodeDef? raise it as a proper exception
+      if nodedef.error:
+        raise nodedef.error;
+      node = nodedef.autodefine(self);
     dict.__setitem__(self,node.name,node);
     return node;
   def __contains__ (self,node):
@@ -304,6 +401,8 @@ class NodeGroup (dict):
       return dict.__contains__(self,node);
     try: return dict.__contains__(self,node.name);
     except AttributeError: return False;
+
+
 
 class _NodeRepository (dict):
   def __init__ (self):
@@ -370,11 +469,11 @@ class _NodeRepository (dict):
           if not ch.initialized():
             self.add_error(ChildError,"child %s = %s is not initialized" % (str(i),ch.name),*node._caller);
             if node._caller != ch._caller:
-              self.add_error(ChildError,"     child referenced here",*ch._caller);
+              self.add_error(ExtraInfoError,"     child referenced here",*ch._caller);
         # finalize the init-record by adding node name and children
         node._initrec.defined_at = node._debuginfo;
         node._initrec.name = node.name;
-        if getattr(node,'_child_dict',False): # children as record
+        if node.children.is_dict:
           children = dmi.record();
           for (name,ch) in node.children:
             children[name] = ch.name;
@@ -382,6 +481,8 @@ class _NodeRepository (dict):
           children = map(lambda x:x[1].name,node.children);
         if children:
           node._initrec.children = children;
+        if node.stepchildren:
+          node._initrec.step_children = map(lambda x:x[1].name,node.stepchildren);
     # now check for accumulated errors
     if len(self._errors):
       _dprint(1,len(self._errors),"errors reported");
@@ -403,6 +504,9 @@ class _NodeRepository (dict):
     _dprint(2,"root nodes:",self._roots.keys());
     _dprint(1,len(self),"total nodes in repository");
 
+
+
+
 class NodeScope (object):
   def __init__ (self,name=None,parent=None,*quals,**kwquals):
     if name is None:
@@ -420,8 +524,10 @@ class NodeScope (object):
       self._constants = parent._constants;
     # root nodes
     self._roots = None;
+    # unique names
+    self._uniqname_counters = {};
     # predefined root group to be used by TDL scripts
-    self.ROOT = NodeGroup();
+    object.__setattr__(self,'ROOT',NodeGroup());
       
   def __getattr__ (self,name):
     try: node = self.__dict__[name];
@@ -437,19 +543,44 @@ class NodeScope (object):
     return node;
   __getitem__ = __getattr__;
   
+  def __setattr__ (self,name,value):
+    """you can directly assign a node definition to a scope. Names
+    starting with "_" are treated as true attributes though.
+    """;
+    if name.startswith("_"):
+      return object.__setattr__(self,name,value);
+    self.__getattr__(name) << value;
+    
+  def __lshift__ (self,arg):
+    """<<ing a NodeDef into a scope creates a node with an auto-generated name""";
+    nodedef = _NodeDef.resolve(arg);
+    _dprint(4,self.name,'<<',nodedef);
+    # can't resolve? error
+    if nodedef is None:
+      raise TypeError,"can't use NodeScope operator << with argument of type "+type(arg).__name__;
+    # error NodeDef? raise it as a proper exception
+    if nodedef.error:
+      raise nodedef.error;
+    return nodedef.autodefine(self);
+  
   def GetErrors (self):
     return self._repository.get_errors();
+    
+  def MakeUniqueName (self,name):
+    num = self._uniqname_counters.get(name,0);
+    self._uniqname_counters[name] = num+1;
+    return "%s%d" % (name,num);
   
   def MakeConstant (self,value):
     """make or reuse a Meq.Constant node with the given value""";
     node = self._constants.get(value,None);
     if node:
       return node;
-    name = name0 = qualifyName('c',value);
+    name = name0 = 'c%s' % (str(value),);
     # oops, name already defined for some reason, requalify with a counter
     count = 1;
     while name in self._repository:
-      name = qualifyName(name0,count);
+      name = "%s%d" % (name0,count);
       count += 1;
     # create the node
     node = _NodeStub(name,name,self);
@@ -490,9 +621,15 @@ class NodeScope (object):
 def qualifyName (name,*args,**kws):
   """Qualifies name by appending a dict of qualifiers to it, in the form
   of name:a1:a2:k1=v1:k2=v2, etc."""
-  qqs = list(kws.iteritems());
-  qqs.sort();
-  qqs = map(lambda x: '='.join(map(str,x)),qqs);
+  qqs0 = list(kws.iteritems());
+  qqs0.sort();
+  qqs = [];
+  for (kw,val) in qqs0:
+    if isinstance(val,list):
+      val = ','.join(val);
+    else:
+      val = str(val);
+    qqs.append('='.join((kw,val)));
   return ':'.join([name]+map(str,args)+qqs);
 
 # used to generate Meq.Constants and such

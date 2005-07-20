@@ -406,8 +406,6 @@ class TreeBrowser (QObject):
         action.setEnabled(False);
         have_sep = False;
 
-    # make toolbar disappear when we hide the top widget
-    QObject.connect(self.wtop(),PYSIGNAL("visible()"),self._toolbar,SLOT("setShown()"));
     # ---------------------- other internal state
     self._column_map = {};
     self._recent_item = None;

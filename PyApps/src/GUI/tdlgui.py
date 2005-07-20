@@ -198,7 +198,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       
   def _text_changed (self):
     self._clear_transients();
-    self._qa_run.setVisible(True);
+#    self._qa_run.setVisible(True);
   
   def _display_cursor_position (self,line,col):
     self._poslabel.setText("L:<b>%d</b> C:<b>%d</b>" % (line+1,col+1));
@@ -293,7 +293,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._errlist.setCurrentItem(0);
       self._highlight_error(0);
       # disable run control until something gets modified
-      self._qa_run.setVisible(False);
+      # self._qa_run.setVisible(False);
     else:
       self._errlist_box.hide();
       self._qa_run.setVisible(True);
@@ -725,18 +725,18 @@ class TDLBrowser(browsers.GriddedPlugin):
 
 Grid.Services.registerViewer(str,TDLBrowser,priority=10,check_udi=lambda x:x.endswith('_tdl'));
 
-# standard method to register actions in the main menu
-#
-def define_mainmenu_actions (menu,parent):
-  _dprint(1,'defining stream control menu actions');
-  global _qa_next,_qa_prev,_qa_run;
-  _qa_next = QAction(pixmaps.blue_round_rightarrow.iconset(),"&Next error",Qt.CTRL+Qt.Key_N,parent);
-  _qa_next.addTo(menu['TDL']);
-  _qa_next.setEnabled(False);
-  _qa_prev = QAction(pixmaps.blue_round_leftarrow.iconset(),"&Previous error",Qt.CTRL+Qt.Key_P,parent);
-  _qa_prev.addTo(menu['TDL']);
-  _qa_prev.setEnabled(False);
-  _qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.CTRL+Qt.Key_R,parent);
-  _qa_run.addTo(menu['TDL']);
-  _qa_run.setEnabled(False);
-
+# # standard method to register actions in the main menu
+# #
+# def define_mainmenu_actions (menu,parent):
+#   _dprint(1,'defining stream control menu actions');
+#   global _qa_next,_qa_prev,_qa_run;
+#   _qa_next = QAction(pixmaps.blue_round_rightarrow.iconset(),"&Next error",Qt.CTRL+Qt.Key_N,parent);
+#   _qa_next.addTo(menu['TDL']);
+#   _qa_next.setEnabled(False);
+#   _qa_prev = QAction(pixmaps.blue_round_leftarrow.iconset(),"&Previous error",Qt.CTRL+Qt.Key_P,parent);
+#   _qa_prev.addTo(menu['TDL']);
+#   _qa_prev.setEnabled(False);
+#   _qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.CTRL+Qt.Key_R,parent);
+#   _qa_run.addTo(menu['TDL']);
+#   _qa_run.setEnabled(False);
+# 

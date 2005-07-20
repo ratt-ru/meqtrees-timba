@@ -31,7 +31,7 @@ class _MeqGen (TDLimpl.ClassGen):
           if _dbg.verbose>0:
             traceback.print_exc();
           return _NodeDef(NodeDefError("illegal funklet argument in call to Meq.Parm"));
-    return _NodeDef('MeqParm',**kw);
+    return _NodeDef('Meq','Parm',**kw);
     
   def Solver (self,*childlist,**kw):
     solvables = kw.get('solvable',None);
@@ -43,13 +43,13 @@ class _MeqGen (TDLimpl.ClassGen):
       kw['solvable'] = dmi.record(
         command_by_list=[dmi.record(name=solvables,state=dmi.record(solvable=True)),
                          dmi.record(state=dmi.record(solvable=False))]);
-    return _NodeDef('MeqSolver',*childlist,**kw);
+    return _NodeDef('Meq','Solver',*childlist,**kw);
     
   # now for some aliases
   def Matrix22 (self,*children,**kw):
     "composes a 2x2 matrix as [[a,b],[c,d]]";
     if len(children) != 4:
-      return _NodeDef(NodeDefError("Meq.Matrix22 takes exactly 4 arguments (%d given)"%(len(children),)));
+      return _NodeDef(NodeDefError("Matrix22 takes exactly 4 arguments (%d given)"%(len(children),)));
     # are all children numeric constants?
     for ch in children:
       if not isinstance(ch,(bool,int,long,float,complex)):

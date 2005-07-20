@@ -2,9 +2,11 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# TDL.Settings.forest_state is a standard TDL name. If defined in the script, this
-# record is passed to Set.Forest.State. 
-Settings.forest_state = record(cache_policy=100);
+# TDL.Settings.forest_state is a standard TDL name. 
+# This record is passed to Set.Forest.State. 
+#
+
+Settings.forest_state.cache_policy = 100;
 
 # some global bits  
 STATIONS = range(1,15);
@@ -32,10 +34,10 @@ def make_source_subtree (ns,src):
       ns.yy(src.name) << ns.stokes('I',src.name) - ns.stokes('Q',src.name)
     ) * 0.5;
   lmn = ns.lmn(src.name) << Meq.LMN(
-          ra_0  = ns.ra0,
-          dec_0 = ns.dec0,
-          ra    = ns.ra(src.name) << Meq.Parm(src.ra,groups="a"),
-          dec   = ns.dec(src.name) << Meq.Parm(src.dec,groups="a")
+          radec_0 = ns.radec0,
+          radec   = ns.radec(src.name) <<
+                Meq.Composer(ns.ra(src.name) << Meq.Parm(src.ra,groups="a"),
+                             ns.dec(src.name) << Meq.Parm(src.dec,groups="a"))
     );
   ns.lmn_minus1(src.name) << Meq.Paster(lmn,(ns.n(src.name) << Meq.Selector(lmn,index=2)) - 1,index=2);
   ns.coherency_n(src.name) << coher / ns.n(src.name);
@@ -57,7 +59,8 @@ def make_station_dft_subtree (ns,sta,src):
   dft = ns.dft(sta,src.name) << Meq.MatrixMultiply(
     diagonal_jones_matrix(ns.J(sta,src.name),[1,0],0),
     diagonal_jones_matrix(ns.G(sta),[1,0],0),
-    ns.dft0(sta,src.name) << Meq.VisPhaseShift(lmn=ns.lmn_minus1(src.name),uvw=ns.uvw(sta))
+    ns.dft0(sta,src.name) << Meq.VisPhaseShift(lmn=ns.lmn_minus1(src.name),
+                                               uvw=ns.uvw(sta))
   ); 
   ns.conj_dft(sta,src.name) << Meq.ConjTranspose(dft);
   
@@ -87,12 +90,12 @@ def define_forest (ns):
   the forest is to be defined, usually this is simply the global scope.
   """;
   # global parameters: phase center
-  ns.ra0 << Meq.Parm;
-  ns.dec0 << Meq.Parm;
+  ns.radec0 = Meq.Composer(ns.ra0<<Meq.Parm,
+                            ns.dec0<<Meq.Parm);
   # array position
-  ns.x0 << Meq.Parm;
-  ns.y0 << Meq.Parm;
-  ns.z0 << Meq.Parm;
+  ns.xyz0   = Meq.Composer(ns.x0<<Meq.Parm,
+                            ns.y0<<Meq.Parm,
+                            ns.z0<<Meq.Parm);
   
   # build source subtrees
   for src in SOURCES:
@@ -101,10 +104,11 @@ def define_forest (ns):
   # define per-station stuff
   for sta in STATIONS:
     # postions and uvws
-    ns.uvw(sta) << Meq.UVW(ra=ns.ra0,dec=ns.dec0,x_0=ns.x0,y_0=ns.y0,z_0=ns.z0,
-                           x = ns.x(sta) << Meq.Parm,
-                           y = ns.y(sta) << Meq.Parm,
-                           z = ns.z(sta) << Meq.Parm
+    ns.uvw(sta) << Meq.UVW(
+      radec=ns.radec0,xyz_0=ns.xyz0,
+      xyz = ns.xyz(sta) << Meq.Composer(x=ns.x(sta) << Meq.Parm,
+                                        y=ns.y(sta) << Meq.Parm,
+                                        z=ns.z(sta) << Meq.Parm)
     );
     # per-source branches
     for src in SOURCES:
