@@ -388,7 +388,6 @@ void MeqServer::saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
   out[AidMessage] = ssprintf("saved %d nodes to file %s",
       nsaved,filename.c_str());
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-  out[FForestChanged] = true;
 }
 
 //##ModelId=400E5B6C02B3
