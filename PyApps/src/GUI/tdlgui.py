@@ -513,7 +513,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     global _tdlmodlist;
     _dprint(1,'clearing out TDL-imported modules',_tdlmodlist);
     for m in _tdlmodlist:
-      del sys.modules[m];
+      try: del sys.modules[m];
+      except KeyError: pass;
     reload(Timba.TDL.Settings);
     # remember which modules are still imported
     prior_mods = sets.Set(sys.modules.keys());

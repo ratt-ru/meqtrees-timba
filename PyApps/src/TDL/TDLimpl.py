@@ -536,7 +536,7 @@ class NodeScope (object):
       if self._name is None:
         nodename = name;
       else:
-        nodename = '/'.join((self._name,name));
+        nodename = '::'.join((self._name,name));
       node = _NodeStub(nodename,nodename,self);
       _dprint(5,'inserting node stub',name,'into our attributes');
       self.__dict__[name] = node;
