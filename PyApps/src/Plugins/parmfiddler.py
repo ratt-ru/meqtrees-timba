@@ -582,9 +582,7 @@ class ParmFiddler (browsers.GriddedPlugin):
     change = self.c00Text.text().toDouble()[0];
     self.changeC00(change);
 
-    if not self._currentparm:
-      return;
-    
+     
 
     if self.enable_multi.state():
       #change all selected
@@ -597,28 +595,33 @@ class ParmFiddler (browsers.GriddedPlugin):
           if funklet:
             coeff=funklet.coeff;
           if is_scalar(coeff):
-            coeff=[[coeff]];
-          if is_scalar(coeff[0]):
-            ncoeff=[];
-            for i in range(len(coeff)):
-              ncoeff.append([coeff[i]]);
-            coeff=ncoeff;
-          coeff[0][0]=self.c00;
+            coeff=self.c00;
+            #            coeff=[[coeff]];
+          else:
+            if is_scalar(coeff[0]):
+              #            ncoeff=[];
+              #            for i in range(len(coeff)):
+              #              ncoeff.append([coeff[i]]);
+              #            coeff=ncoeff;
+              coeff[0]=self.c00;
+            else:
+              if is_scalar(coeff[0][0]):
+                coeff[0][0]=self.c00;
+
           funklet.coeff=coeff;
           self._parmdict[parmkey]['funklet']=funklet;
 
-#          print "setting funklet ",funklet;
           meqds.set_node_state(parmkey,funklet=funklet);
-                    
-    self._currentparm.setc00(self.c00);
+    else:
+      if not self._currentparm:
+        return;
+      self._currentparm.setc00(self.c00);
       
  
     
 
 
   def resetfunklet(self):
-      if not self._currentparm:
-        return;
       if self.enable_multi.state():
         #change all selected
         for parmkey in self._parmlist:
@@ -630,22 +633,24 @@ class ParmFiddler (browsers.GriddedPlugin):
             if funklet:
               coeff=funklet.coeff;
             if is_scalar(coeff):
-              coeff=[[coeff]];
-            if is_scalar(coeff[0]):
-              ncoeff=[];
-              for i in range(len(coeff)):
-                ncoeff.append([coeff[i]]);
-              coeff=ncoeff;
-            for i in range(len(coeff)):
-              for j in  range(len(coeff[0])):
+              coeff=0;
+            else:
+              if is_scalar(coeff[0]):
+                for i in range(len(coeff)):
+                  coeff[i]=0;
+              else:
+                for i in range(len(coeff)):
+                  for j in  range(len(coeff[0])):
 
-                coeff[i][j]=0;
+                    coeff[i][j]=0;
             funklet.coeff=coeff;
             self._parmdict[parmkey]['funklet']=funklet;
 #            print "setting funklet ",funklet;
             meqds.set_node_state(parmkey,funklet=funklet);
-        
-      self._currentparm.resettozero();
+      else:
+        if not self._currentparm:
+          return;
+        self._currentparm.resettozero();
 
 
 
