@@ -19,6 +19,7 @@ namespace Meq {
       newdom=newdom.envelope((*funkIt)->domain());
     setDomain(newdom);
     setCoeff(0);
+    (*this)[FClass]=objectType().toString();
   }
 
 
@@ -26,12 +27,15 @@ namespace Meq {
     Polc(other,flags,depth)
   {
       itsFunklets=vector<Funklet::Ref> ( other.itsFunklets);
-    setCoeff(0);
+      setCoeff(0);
+      (*this)[FClass]=objectType().toString();
   }
   
   ComposedPolc::ComposedPolc (double pert,double weight,DbId id):
     Polc(pert,weight,id),itsFunklets(0)
    {    setCoeff(0);
+     (*this)[FClass]=objectType().toString();
+
    }
 
   

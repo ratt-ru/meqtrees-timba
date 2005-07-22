@@ -9,6 +9,7 @@ domain_axes = ( "freq","time" );
 
 _funklet_type = dmi_type('MeqFunklet',record);
 _polc_type = dmi_type('MeqPolc',_funklet_type);
+_polclog_type = dmi_type('MeqPolcLog',_polc_type);
 _domain_type = dmi_type('MeqDomain',record);
 _cells_type = dmi_type('MeqCells',record);
 _request_type = dmi_type('MeqRequest',record);
@@ -70,7 +71,48 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
   if dbid is not None:
     rec.dbid = dbid;
   return rec;
-  
+
+def polclog (coeff,shape=None,offset=None,scale=None,domain=None,
+             weight=None,dbid=None,subclass=_polclog_type):
+  """creates a polc record""";
+  rec = subclass();
+  # process coeff argument -- if a list, then force into a 2D array
+  if isinstance(coeff,(tuple,list)):
+    if shape and len(shape)>2:
+      raise ValueError,'coeff array must be one- or two-dimensional';
+    if filter(lambda x:isinstance(x,complex),coeff):
+      coeff = array_complex(coeff,shape=shape);
+    else:
+      coeff = array_double(coeff,shape=shape);
+  if is_scalar(coeff):
+    if not isinstance(coeff,complex):  # force float or complex
+      coeff = float(coeff);
+    rec.coeff = array(coeff);
+  elif is_array(coeff):
+    if len(coeff.getshape()) > 2:
+      raise TypeError,'coeff array must be one- or two-dimensional';
+    if coeff.type() not in (arr_double,arr_dcomplex):
+      raise TypeError,'coeff array must be float (Float64) or dcomplex (Complex64)';
+    rec.coeff = coeff;
+  else:
+    raise TypeError,'illegal coeff argument';
+  # process domain argument
+  if domain is not None:
+    if isinstance(domain,_domain_type):
+      rec.domain = domain;
+    else:
+      raise TypeError,'domain argument must be a MeqDomain object';
+  # other optional arguments
+  if offset is not None:
+    rec.offset = offset;
+  if scale is not None:
+    rec.scale = scale;
+  if weight is not None:
+    rec.weight = weight;
+  if dbid is not None:
+    rec.dbid = dbid;
+  return rec;
+
 def make_polc (p):
   if isinstance(p,_polc_type):
     return p;

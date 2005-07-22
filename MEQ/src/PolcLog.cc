@@ -21,6 +21,7 @@ namespace Meq {
     }
     else
       (*this)[FLScale]=scale0;
+  (*this)[FClass]=objectType().toString();
   
   }
 
@@ -36,6 +37,7 @@ namespace Meq {
     }
     else
       (*this)[FLScale]=scale0;
+  (*this)[FClass]=objectType().toString();
    }
   
   PolcLog::PolcLog(const LoVec_double &coeff,
@@ -49,6 +51,7 @@ namespace Meq {
     sc = scale0;
     ObjRef ref(new DMI::NumArray(sc));
     Record::addField(FLScale,ref,Record::PROTECT|DMI::REPLACE);
+    (*this)[FClass]=objectType().toString();
        
   }
   
@@ -62,7 +65,8 @@ namespace Meq {
     sc = scale0;
     ObjRef ref(new DMI::NumArray(sc));
     Record::addField(FLScale,ref,Record::PROTECT|DMI::REPLACE);
-         
+    (*this)[FClass]=objectType().toString();
+      
   }
   
   PolcLog::PolcLog(DMI::NumArray *pcoeff,
@@ -75,6 +79,7 @@ namespace Meq {
     sc = scale0;
     ObjRef ref(new DMI::NumArray(sc));
     Record::addField(FLScale,ref,Record::PROTECT|DMI::REPLACE);
+    (*this)[FClass]=objectType().toString();
   }
     
 

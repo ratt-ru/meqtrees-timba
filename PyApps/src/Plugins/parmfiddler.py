@@ -358,12 +358,12 @@ class ParmFiddler (browsers.GriddedPlugin):
       if(checknode>node.name):
         # store in alphabetic order
         self._parmlist.insert(i,node.name);
-        self._parmdict[node.name] = {'node' : node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','publish':0,'groups':[],'zero':0,'row':-1,'funklet':{}};
+        self._parmdict[node.name] = {'node' : node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','publish':0,'groups':[],'zero':0,'row':-1,'funklet':{},'class':'MeqPolc','defaultclass':'MeqPolc'};
         return True;
 
     self._parmlist.append(node.name);
   
-    self._parmdict[node.name] = {'node':node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','publish':0,'groups':[],'zero':0,'row':-1,'funklet':{}};
+    self._parmdict[node.name] = {'node':node, 'name': node.name,'solvers':{},'c00':0.,'shape':'','publish':0,'groups':[],'zero':0,'row':-1,'funklet':{},'class':'MeqPolc','defaultclass':'MeqPolc'};
       
           
     return True;
@@ -390,6 +390,7 @@ class ParmFiddler (browsers.GriddedPlugin):
           shape =  self._parmdict[parmkey]['shape'];
           publish =  self._parmdict[parmkey]['publish'];
           zero =  self._parmdict[parmkey]['zero'];
+          funkletclass = self._parmdict[parmkey]['class'];
           self.parmtable.setText( parmnr,0,parm.name );
           self.parmtable.setText( parmnr,1,str(c00) );
           self.parmtable.setText( parmnr,2,shape );
@@ -435,8 +436,9 @@ class ParmFiddler (browsers.GriddedPlugin):
     solvers = self._parmdict[parmkey]['solvers'];
     publish =  self._parmdict[parmkey]['publish'];
     zero =  self._parmdict[parmkey]['zero'];
-
-    #print "updating parm ",self._parmdict[parmkey];
+    funkletclass = self._parmdict[parmkey]['class'];
+    
+#    print "updating parm ",self._parmdict[parmkey];
     self.parmtable.setText( row,1,str(c00) );
     self.parmtable.setText( row,2,shape );
     if publish:
@@ -457,7 +459,6 @@ class ParmFiddler (browsers.GriddedPlugin):
         if solvers[solver]:
           checkbutton.setChecked(True);
      
-    
 
   def putcheckboxes(self):
      for solver in self._solverdict.keys():
@@ -482,9 +483,19 @@ class ParmFiddler (browsers.GriddedPlugin):
       funklet=None;
       try: funklet=state.funklet;
       except AttributeError: pass;
+      default_funklet=None;
+      try: default_funklet=state.default_funklet;
+      except AttributeError: pass;
       coeff=[[0]];
+      funkletclass = 'MeqPolc';
       if funklet:
           coeff=funklet.coeff;
+          if hasattr(funklet,'class'):
+            funkletclass = getattr(funklet,'class');
+      defaultfunkclass = 'MeqPolc';
+      if default_funklet:
+        if hasattr(default_funklet,'class'):
+          defaultfunkclass = getattr(default_funklet,'class');
       if is_scalar(coeff):
           coeff=[[coeff]];
       if is_scalar(coeff[0]):
@@ -509,6 +520,8 @@ class ParmFiddler (browsers.GriddedPlugin):
       self._parmdict[node.name]['shape']=shapestr;
       self._parmdict[node.name]['publish']=node.is_publishing();
       self._parmdict[node.name]['zero']=zero;
+      self._parmdict[node.name]['class']=funkletclass;
+      self._parmdict[node.name]['defaultclass']=defaultfunkclass;
       nodegroups=make_hiid_list(nodegroups);
       self._update_subscribedsolvers(node,nodegroups);
 
@@ -593,6 +606,8 @@ class ParmFiddler (browsers.GriddedPlugin):
           coeff[0][0]=self.c00;
           funklet.coeff=coeff;
           self._parmdict[parmkey]['funklet']=funklet;
+
+#          print "setting funklet ",funklet;
           meqds.set_node_state(parmkey,funklet=funklet);
                     
     self._currentparm.setc00(self.c00);
@@ -627,6 +642,7 @@ class ParmFiddler (browsers.GriddedPlugin):
                 coeff[i][j]=0;
             funklet.coeff=coeff;
             self._parmdict[parmkey]['funklet']=funklet;
+#            print "setting funklet ",funklet;
             meqds.set_node_state(parmkey,funklet=funklet);
         
       self._currentparm.resettozero();
@@ -787,15 +803,31 @@ class ParmFiddler (browsers.GriddedPlugin):
 
 
   def update_default_selected(self,funklet):
+    newfunkclass = 'MeqPolc';
+    if hasattr(funklet,'class'):
+      newfunkclass=getattr(funklet,'class');
     for parmkey in self._parmlist:
       if self.parmtable.isRowSelected(self._parmdict[parmkey]['row']):
+        funkletclass = self._parmdict[parmkey]['defaultclass'];
+        if not newfunkclass==funkletclass:
+          # cannot change class
+          continue;
+#        print "setting def_funklet ",funklet;
         meqds.set_node_state(parmkey,default_funklet=funklet);    
 
 
   def update_selected(self,funklet):
+    newfunkclass = 'MeqPolc';
+    if hasattr(funklet,'class'):
+      newfunkclass=getattr(funklet,'class');
     for parmkey in self._parmlist:
       if self.parmtable.isRowSelected(self._parmdict[parmkey]['row']):
+        funkletclass = self._parmdict[parmkey]['class'];
+        if not newfunkclass==funkletclass:
+          # cannot change class
+          continue;
         self._parmdict[parmkey]['funklet']=funklet;
+#        print "setting funklet ",funklet;
         meqds.set_node_state(parmkey,funklet=funklet);
  
 
@@ -966,7 +998,7 @@ class ParmChange:
           self.reject();
       self._parent.update_default_selected(self._funklet);
 
-      meqds.set_node_state(self._node,default_funklet=self._funklet);
+#      meqds.set_node_state(self._node,default_funklet=self._funklet);
 
 
   def updatechange (self):
