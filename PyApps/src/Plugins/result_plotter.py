@@ -20,6 +20,8 @@ from qt import *
 from numarray import *
 from Timba.Plugins.display_image import *
 from Timba.Plugins.realvsimag import *
+from QwtPlotImage import *
+from QwtColorBar import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='result_plotter');
@@ -114,10 +116,10 @@ class ResultPlotter(GriddedPlugin):
 
 # some intitial tests for extracting forest_state
     meqds_rec = meqds.get_forest_state()
-#    print 'forest state record is ', meqds_rec
-#    print 'forest state record axes number, values ', len(meqds_rec.axis_map), ' ',meqds_rec.axis_map
-#    print 'first axis ', meqds_rec.axis_map[0].id
-#    print 'second axis ', meqds_rec.axis_map[1].id
+#   print 'forest state record is ', meqds_rec
+#   print 'forest state record axes number, values ', len(meqds_rec.axis_map), ' ',meqds_rec.axis_map
+#   print 'first axis ', meqds_rec.axis_map[0].id
+#   print 'second axis ', meqds_rec.axis_map[1].id
     try:
      _dprint(3, 'third axis ', meqds_rec.axis_map[2].id)
     except:
@@ -135,7 +137,6 @@ class ResultPlotter(GriddedPlugin):
 # function needed by Oleg for reasons known only to him!
   def wtop (self):
     return self._wtop;
-    
 
   def check_attributes(self, attributes):
      """ check parameters of plot attributes against allowable values """
@@ -229,6 +230,7 @@ class ResultPlotter(GriddedPlugin):
                       QMessageBox.NoButton,
                       QMessageBox.NoButton)
            mb_symbol.exec_loop()
+  # check_attributes
 
 #
 # tree traversal code adapted from the pasteur institute python 
@@ -270,10 +272,8 @@ class ResultPlotter(GriddedPlugin):
               break
       _dprint(3, 'pre_work gives plot_type ', self._plot_type)
       if self._plot_type == 'spectra':
-        _dprint(3, 'pre_work setting visu_plotter to QwtImagePlot for spectra!')
-        self._visu_plotter = QwtImagePlot(self._plot_type,parent=self.wparent())
-        self.set_widgets(self._visu_plotter,self.dataitem.caption,icon=self.icon())
-        self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
+        _dprint(3, 'pre_work setting visu_plotter to QwtImageDisplay for spectra!')
+        self.create_image_plotters()
 
       if self._plot_type == 'realvsimag':
         _dprint(3, 'pre_work setting visu_plotter to realvsimag_plotter!')
@@ -334,6 +334,7 @@ class ResultPlotter(GriddedPlugin):
     if self.first_spectrum_plot and self._plot_type == 'spectra':
       self._visu_plotter.plot_data(leaf, attrib_list)
       self.first_spectrum_plot = False
+  # do_leafwork
 
   def tree_traversal (self, node, label=None, attribute_list=None):
     """ routine to do a recursive tree traversal of a Visu plot tree """
@@ -460,6 +461,18 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.update_plot()
       self._visu_plotter.reset_data_collectors()
 
+  def create_image_plotters(self):
+        self.layout = QHBox(self.wparent())
+        self.colorbar =  QwtColorBar(parent=self.layout)
+        self.colorbar.setRange(-1,1)
+        self.colorbar.hide()
+        self._visu_plotter = QwtImageDisplay('spectra',parent=self.layout)
+        QObject.connect(self._visu_plotter, PYSIGNAL('image_range'), self.colorbar.setRange) 
+        QObject.connect(self._visu_plotter, PYSIGNAL('display_type'), self.colorbar.setDisplayType) 
+
+        self.set_widgets(self.layout,self.dataitem.caption,icon=self.icon())
+        self._wtop = self.layout;       
+  # create_image_plotters
 
   def set_data (self,dataitem,default_open=None,**opts):
     """ this callback receives data from the meqbrowser, when the
@@ -498,9 +511,7 @@ class ResultPlotter(GriddedPlugin):
       return
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       if self._visu_plotter is None:
-        self._visu_plotter = QwtImagePlot('spectra',parent=self.wparent())
-        self.set_widgets(self._visu_plotter,self.dataitem.caption,icon=self.icon())
-        self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
+        self.create_image_plotters()
       self._visu_plotter.plot_vells_data(self._rec)
 # otherwise we are dealing with a set of visualization data
     else:
