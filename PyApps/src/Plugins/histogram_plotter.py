@@ -8,11 +8,341 @@ from Timba.GUI import widgets
 from Timba.GUI.browsers import *
 from Timba import Grid
 
-from Timba.Plugins.display_image import *
-
+import sys
 from qt import *
+from qwt import *
 from numarray import *
+import numarray.nd_image
 
+from printfilter import *
+
+import random
+
+from Timba.utils import verbosity
+_dbg = verbosity(0,name='histogramplot');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
+
+#  distance from (15,5) squared
+def dist(x,y):
+  return (x-15)**2+(y-5)**2
+def imag_dist(x,y):
+  return (x-10)**2+(y-10)**2
+def RealDist(x,y):
+  return (x)**2
+def ImagDist(x,y):
+  return (x-29)**2
+#m = fromfunction(dist, (10,10))
+
+# A class to plot simple histograms of the intensity distributions
+# from incoming arrays
+
+class QwtHistogramPlotter(QwtPlot):
+
+    def __init__(self, plot_key=None, parent=None):
+      QwtPlot.__init__(self, plot_key, parent)
+
+      self.mainwin = parent and parent.topLevelWidget()
+
+      # make a QwtPlot widget
+      self.plotLayout().setMargin(0)
+      self.plotLayout().setCanvasMargin(0)
+      self.plotLayout().setAlignCanvasToScales(1)
+      self.setlegend = 1
+      self.setAutoLegend(self.setlegend)
+      self.enableLegend(True)
+      self.setLegendPos(Qwt.Right)
+      # set axis titles
+      self.title = None
+      self.setTitle('Histogram')
+      self.setAxisTitle(QwtPlot.yLeft, 'number in bin')
+      self.zoomStack = []
+      self.connect(self,
+                     SIGNAL('plotMouseMoved(const QMouseEvent&)'),
+                     self.onMouseMoved)
+      self.connect(self,
+                     SIGNAL('plotMousePressed(const QMouseEvent&)'),
+                     self.onMousePressed)
+      self.connect(self,
+                     SIGNAL('plotMouseReleased(const QMouseEvent&)'),
+                     self.onMouseReleased)
+      self.connect(self, SIGNAL("legendClicked(long)"), self.toggleCurve)
+
+      #create a context menu to over-ride the one from Oleg
+      if self.mainwin:
+        self.menu = QPopupMenu(self.mainwin);
+      else:
+        self.menu = QPopupMenu(self);
+      toggle_id = 200
+      self.menu.insertItem("Toggle Legend", toggle_id)
+
+      zoom = QAction(self);
+      zoom.setIconSet(pixmaps.viewmag.iconset());
+      zoom.setText("Disable zoomer");
+      zoom.addTo(self.menu);
+      printer = QAction(self);
+      printer.setIconSet(pixmaps.fileprint.iconset());
+      printer.setText("Print plot");
+      QObject.connect(printer,SIGNAL("activated()"),self.printplot);
+      printer.addTo(self.menu);
+      QObject.connect(self.menu,SIGNAL("activated(int)"),self.update_display);
+
+        
+    # __init__()
+
+    def histogram_plot (self, data_label, input_array, num_bins=10):
+      """ plot histogram of array or vector """
+
+# set title
+      if self.title is None:
+        self.setTitle(data_label)
+
+# figure out type and rank of incoming array
+      complex_type = False
+      if input_array.type() == Complex32:
+            complex_type = True;
+      if input_array.type() == Complex64:
+            complex_type = True;
+      histogram_in = None
+      if complex_type:
+#        histogram_in = abs(input_array)
+        histogram_in = input_array.getreal()
+        self.setAxisTitle(QwtPlot.xBottom, 'array value (real=black, red=imag) ')
+      else:
+        self.setAxisTitle(QwtPlot.xBottom, 'array value ')
+        histogram_in = input_array
+      array_min = histogram_in.min()
+      array_max = histogram_in.max()
+      histogram_array = numarray.nd_image.histogram(histogram_in, array_min, array_max, num_bins)
+
+# remove any previous curves
+      self.removeCurves()
+# make sure we are autoscaling in case a previous plot is being over-written
+      self.setAxisAutoScale(QwtPlot.xBottom)
+      self.setAxisAutoScale(QwtPlot.yLeft)
+
+# we have created bins, now generate a Qwt curve for each bin
+      histogram_curve_x = zeros(4 * num_bins, Float32) 
+      histogram_curve_y = zeros(4 * num_bins, Float32) 
+      bin_incr = (array_max - array_min) / num_bins
+      curve_index = 0
+      for i in range(num_bins):
+        bin_start = array_min + i * bin_incr
+        bin_end = bin_start + bin_incr
+        histogram_curve_x[curve_index] = bin_start
+        histogram_curve_y[curve_index] = 0
+        histogram_curve_x[curve_index+1] = bin_start
+        histogram_curve_y[curve_index+1] = histogram_array[i]
+        histogram_curve_x[curve_index+2] = bin_end
+        histogram_curve_y[curve_index+2] = histogram_array[i]
+        histogram_curve_x[curve_index+3] = bin_end
+        histogram_curve_y[curve_index+3] = 0
+        curve_index = curve_index + 4
+      curve_key = 'histogram_curve'
+      curve_index = self.insertCurve(curve_key)
+      self.setCurvePen(curve_index, QPen(Qt.black, 2))
+      self.setCurveData(curve_index, histogram_curve_x, histogram_curve_y)
+
+# add in histogram for imaginary stuff if we have a complex array
+      if complex_type:
+#        real_array_max = array_max
+        histogram_in = input_array.getimag()
+        array_min = histogram_in.min()
+        array_max = histogram_in.max()
+        histogram_array = numarray.nd_image.histogram(histogram_in, array_min, array_max, num_bins)
+        histogram_curve_x_im = zeros(4 * num_bins, Float32) 
+        histogram_curve_y_im = zeros(4 * num_bins, Float32) 
+        bin_incr = (array_max - array_min) / num_bins
+        curve_index = 0
+#        array_min = array_min + real_array_max
+        for i in range(num_bins):
+          bin_start = array_min + i * bin_incr
+          bin_end = bin_start + bin_incr
+          histogram_curve_x_im[curve_index] = bin_start
+          histogram_curve_y_im[curve_index] = 0
+          histogram_curve_x_im[curve_index+1] = bin_start
+          histogram_curve_y_im[curve_index+1] = histogram_array[i]
+          histogram_curve_x_im[curve_index+2] = bin_end
+          histogram_curve_y_im[curve_index+2] = histogram_array[i]
+          histogram_curve_x_im[curve_index+3] = bin_end
+          histogram_curve_y[curve_index+3] = 0
+          curve_index = curve_index + 4
+        curve_key = 'histogram_curve_imag'
+        curve_index_imag = self.insertCurve(curve_key)
+        self.setCurvePen(curve_index_imag, QPen(Qt.red, 2))
+        self.setCurveData(curve_index_imag, histogram_curve_x_im, histogram_curve_y_im)
+      self.replot()
+     
+    # histogram_plot()
+
+
+    def printplot(self):
+      try:
+          printer = QPrinter(QPrinter.HighResolution)
+      except AttributeError:
+          printer = QPrinter()
+      printer.setOrientation(QPrinter.Landscape)
+      printer.setColorMode(QPrinter.Color)
+      printer.setOutputToFile(True)
+      printer.setOutputFileName('histogram_plot.ps')
+      if printer.setup():
+          filter = PrintFilter()
+          if (QPrinter.GrayScale == printer.colorMode()):
+              filter.setOptions(QwtPlotPrintFilter.PrintAll
+                                & ~QwtPlotPrintFilter.PrintCanvasBackground)
+          self.printPlot(printer, filter)
+    # printplot()
+
+
+    def onMouseMoved(self, e):
+        pass
+
+    # onMouseMoved()
+
+    def onMousePressed(self, e):
+        if Qt.LeftButton == e.button():
+            # Python semantics: self.pos = e.pos() does not work; force a copy
+            self.xpos = e.pos().x()
+            self.ypos = e.pos().y()
+            self.enableOutline(1)
+            self.setOutlinePen(QPen(Qt.black))
+            self.setOutlineStyle(Qwt.Rect)
+            if self.zoomStack == []:
+                self.zoomState = (
+                    self.axisScale(QwtPlot.xBottom).lBound(),
+                    self.axisScale(QwtPlot.xBottom).hBound(),
+                    self.axisScale(QwtPlot.yLeft).lBound(),
+                    self.axisScale(QwtPlot.yLeft).hBound(),
+                    )
+        elif Qt.RightButton == e.button():
+            e.accept()
+            self.menu.popup(e.globalPos())
+        # fake a mouse move to show the cursor position
+        self.onMouseMoved(e)
+
+    # onMousePressed()
+
+    def onMouseReleased(self, e):
+        if Qt.LeftButton == e.button():
+            xmin = min(self.xpos, e.pos().x())
+            xmax = max(self.xpos, e.pos().x())
+            ymin = min(self.ypos, e.pos().y())
+            ymax = max(self.ypos, e.pos().y())
+            self.setOutlineStyle(Qwt.Cross)
+            xmin = self.invTransform(QwtPlot.xBottom, xmin)
+            xmax = self.invTransform(QwtPlot.xBottom, xmax)
+            ymin = self.invTransform(QwtPlot.yLeft, ymin)
+            ymax = self.invTransform(QwtPlot.yLeft, ymax)
+            if xmin == xmax or ymin == ymax:
+                return
+            self.zoomStack.append(self.zoomState)
+            self.zoomState = (xmin, xmax, ymin, ymax)
+            self.enableOutline(0)
+        elif Qt.RightButton == e.button():
+            if len(self.zoomStack):
+                xmin, xmax, ymin, ymax = self.zoomStack.pop()
+            else:
+                return
+        self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+        self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+        self.replot()
+
+
+    # onMouseReleased()
+
+    def toggleCurve(self, key):
+        curve = self.curve(key)
+        if curve:
+            curve.setEnabled(not curve.enabled())
+            self.replot()
+    # toggleCurve()
+
+    def update_display(self, menuid):
+      if menuid < 0:
+        self.unzoom()
+        return
+      if menuid == 200:
+        self.toggleLegend()
+        return
+    # update_display
+
+
+    def unzoom(self):
+      if len(self.zoomStack):
+        xmin, xmax, ymin, ymax = self.zoomStack.pop()
+        self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+        self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+        self.replot()
+        _dprint(3, 'called replot in unzoom')
+      else:
+        return
+    # unzoom()
+
+    def toggleLegend(self):
+      if self.setlegend == 1:
+        self.setlegend = 0
+        self.enableLegend(False)
+      else:
+        self.setlegend = 1
+        self.enableLegend(True)
+      self.setAutoLegend(self.setlegend)
+      self.replot()
+    # toggleLegend()
+    
+
+    # functions for testing the plotting
+    def start_test_timer(self, time, test_complex):
+      self.test_complex = test_complex
+      self.startTimer(time)
+      self.index = 0
+      self.num_bins = 10
+    # start_test_timer()
+                                                                                
+    def timerEvent(self, e):
+      if self.test_complex:
+        m = fromfunction(RealDist, (30,20))
+        n = fromfunction(ImagDist, (30,20))
+        vector_array = zeros((30,1), Complex64)
+        shape = m.shape
+        for i in range(shape[0]):
+          for j in range(shape[1]):
+            m[i,j] = m[i,j] + self.index * random.random()
+            n[i,j] = n[i,j] + 3 * self.index * random.random()
+        a = zeros((shape[0],shape[1]), Complex64)
+        a.setreal(m)
+        a.setimag(n)         
+        for i in range(shape[0]):
+          vector_array[i,0] = a[i,0]
+        if self.index % 2 == 0:
+          _dprint(2, 'plotting array');
+          self.histogram_plot ('histogram of complex array', a, self.num_bins)
+          self.test_complex = False
+        else:
+          _dprint(2, 'plotting vector');
+          self.histogram_plot ('histogram of complex vector', vector_array, self.num_bins)
+      else:
+        vector_array = zeros((30,1), Float32)
+        m = fromfunction(dist, (30,20))
+        shape = m.shape
+        for i in range(shape[0]):
+          for j in range(shape[1]):
+            m[i,j] = m[i,j] + self.index * random.random()
+        for i in range(shape[0]):
+          vector_array[i,0] = m[i,0]
+        if self.index % 2 == 0:
+          _dprint(2, 'plotting array');
+          self.histogram_plot ('histogram of real array', m, self.num_bins)
+          self.test_complex = True
+        else:
+          _dprint(2, 'plotting vector');
+          self.histogram_plot ('histogram of real vector', vector_array, self.num_bins)
+
+      self.index = self.index + 1
+      self.num_bins = self.num_bins + 1
+    # timerEvent()
+
+# class QwtHistogramPlotter
 
 class HistogramPlotter(GriddedPlugin):
   """ a class to plot very simple histograms of array data distributions """
@@ -27,7 +357,7 @@ class HistogramPlotter(GriddedPlugin):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
 
 # create the plotter
-    self._plotter = QwtImagePlot('histogram', self.wparent())
+    self._plotter = QwtHistogramPlotter(parent=self.wparent())
     self._plotter.show()
     self.set_widgets(self._plotter,dataitem.caption,icon=self.icon());
 
@@ -49,5 +379,24 @@ class HistogramPlotter(GriddedPlugin):
 # enable & highlight the cell
     self.enable();
     self.flash_refresh();
+# class HistogramPlotter
+
     
-Grid.Services.registerViewer(array_class,HistogramPlotter,priority=15)
+def make():
+    demo = QwtHistogramPlotter('demo')
+    demo.start_test_timer(10000, False)
+    demo.show()
+    return demo
+
+def main(args):
+    app = QApplication(args)
+    demo = make()
+    app.setMainWidget(demo)
+    app.exec_loop()
+
+
+# Admire
+if __name__ == '__main__':
+    main(sys.argv)
+else:
+    Grid.Services.registerViewer(array_class,HistogramPlotter,priority=15)
