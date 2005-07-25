@@ -38,6 +38,13 @@ def ImagDist(x,y):
 # A class to plot simple histograms of the intensity distributions
 # from incoming arrays
 
+display_histogram_instructions = \
+'''This plot basically shows histograms of the intensity / data distributions in n-dimensional arrays. At present the number of bins in the histogram is fixed at 10. Most decision making takes place behind the scenes, so to speak, as the system uses the dimensionality of the data and the source of the data to decide how the data will be displayed. However, once a display appears, you can interact with it in certain standardized ways.<br><br>
+Button 1 (Left): If you hold the <b>left</b> mouse button down on a location inside a plot and then drag it, a rectangular square will be seen. Then when you release the left mouse button, the plot will 'zoom in' on the area defined inside the rectangle.<br><br>
+Button 2 (Right):Click the <b>right</b> mouse button in a display window to get get a context menu with options for printing, resetting the zoom, or toggling a <b>Legends</b> display. If you click on the 'Disable zoomer ' icon  in a window where you had zoomed in on a selected region, then the original entire array is re-displayed. If you select the Print option from the menu, the standard Qt printer widget will appear. That widget will enable you print out a copy of your plot, or save the plot in Postscript format to a file. When the histogram plot first appears, a <b>Legends</b> display associating a push button with the histogram is shown at the right hand side of the display. You can toggle the display of this push button ON or OFF by selecting the Toggle Legend option from the context menu. Clicking on a <b>Legends</b> push button will cause the corresponding histogram to appear or disappear, depending on the current state.<br><br>
+'''
+
+
 class QwtHistogramPlotter(QwtPlot):
 
     def __init__(self, plot_key=None, parent=None):
@@ -87,6 +94,9 @@ class QwtHistogramPlotter(QwtPlot):
       QObject.connect(printer,SIGNAL("activated()"),self.printplot);
       printer.addTo(self.menu);
       QObject.connect(self.menu,SIGNAL("activated(int)"),self.update_display);
+      
+      # add help facility
+      QWhatsThis.add(self, display_histogram_instructions)
 
         
     # __init__()
