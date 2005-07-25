@@ -284,9 +284,9 @@ class ParmPlotter(ResultPlotter):
           # are we dealing with Vellsets?
         if self._rec.has_key("vellsets"):
           if self._visu_plotter is None:
-            self._visu_plotter = QwtImagePlot('spectra',parent=self.wparent())
+            self._visu_plotter = QwtImageDisplay('spectra',parent=self.wparent())
             self.set_widgets(self._visu_plotter,self.dataitem.caption,icon=self.icon())
-            self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
+            self._wtop = self._visu_plotter;     # QwtImageDisplay inherits from QwtPlot
           self._visu_plotter.plot_vells_data(self._rec)
           # otherwise we are dealing with a set of visualization data
         else:
