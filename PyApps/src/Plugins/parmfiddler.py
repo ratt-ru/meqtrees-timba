@@ -591,11 +591,11 @@ class ParmFiddler (browsers.GriddedPlugin):
         if self.parmtable.isRowSelected(self._parmdict[parmkey]['row']):
           #set c00
           funklet = self._parmdict[parmkey]['funklet'];
-          coeff=0;
+          coeff=array([[0.]]);
           if funklet:
             coeff=funklet.coeff;
           if is_scalar(coeff):
-            coeff=self.c00;
+            coeff=array([[self.c00]]);
             #            coeff=[[coeff]];
           else:
             if is_scalar(coeff[0]):
@@ -612,6 +612,7 @@ class ParmFiddler (browsers.GriddedPlugin):
           self._parmdict[parmkey]['funklet']=funklet;
 
           meqds.set_node_state(parmkey,funklet=funklet);
+      self.reexecute();
     else:
       if not self._currentparm:
         return;
@@ -629,24 +630,26 @@ class ParmFiddler (browsers.GriddedPlugin):
           if self.parmtable.isRowSelected(self._parmdict[parmkey]['row']):
             #set to 0
             funklet = self._parmdict[parmkey]['funklet'];
-            coeff=0;
+            coeff=array([[0.]]);
             if funklet:
               coeff=funklet.coeff;
             if is_scalar(coeff):
-              coeff=0;
+              coeff=array([[0.]]);
             else:
               if is_scalar(coeff[0]):
                 for i in range(len(coeff)):
-                  coeff[i]=0;
+                  coeff[i]=0.;
               else:
                 for i in range(len(coeff)):
                   for j in  range(len(coeff[0])):
 
-                    coeff[i][j]=0;
+                    coeff[i][j]=0.;
             funklet.coeff=coeff;
             self._parmdict[parmkey]['funklet']=funklet;
 #            print "setting funklet ",funklet;
             meqds.set_node_state(parmkey,funklet=funklet);
+        self.reexecute();
+
       else:
         if not self._currentparm:
           return;
@@ -980,7 +983,7 @@ class ParmChange:
       if not self._funklet:
         return 0;
       if is_scalar(self._funklet.coeff):
-          self._funklet.coeff=0.;
+          self._funklet.coeff=array([[0.]]);
       else:
           if is_scalar(self._funklet.coeff[0]):
               for i in range(len(self._funklet.coeff)):
