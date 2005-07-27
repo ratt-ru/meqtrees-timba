@@ -110,6 +110,8 @@ def make_hiid_list (x):
 def dmize_object (obj):
   "coerces object into a DMI-supported type as needed. Returns the "
   "object on success, or raises a TypeError on failure";
+  if obj is None:
+    return obj;
   # check if sequence of supported types
   if isinstance(obj,(list,tuple)):
     seqtype = type(obj);
@@ -174,6 +176,11 @@ class record (dict):
           dict.__setitem__(self,key,value);
           if _verbose_>1: print "adding %s=%s" % (key,value);
         if _verbose_>0: print "initialized",dict.__len__(self),"fields";
+  def copy (self):
+    rec = record();
+    for (k,v) in self.iteritems():
+      rec[k] = v;
+    return rec;
   # make_key: coerces value to legal key, throws TypeError if illegal
   # this version coerces to string keys, subclasses may redefine this to
   # use different kinds of keys

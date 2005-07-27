@@ -16,8 +16,8 @@ libmeqserver_la_SOURCES = \
 bin_PROGRAMS   		= meqserver
   
 meqserver_SOURCES		    = meqserver.cc
-meqserver_LDADD		      = libmeqserver.la -lpython2.3
-# -lglish -lsos -lnpd
+meqserver_LDADD		      = libmeqserver.la -lpython2.3 
+# NB: older systems may require -ldl -lutil as well
 meqserver_DEPENDENCIES	= libmeqserver.la $(LOFAR_DEPEND)
 
 check_PROGRAMS = octolistener

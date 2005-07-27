@@ -179,7 +179,14 @@ void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
     DMI::Record::Ref recref(ref);
     ref.detach();
     int nodeindex;
-    forest.create(nodeindex,recref);
+    try
+    {
+      forest.create(nodeindex,recref);
+    }
+    catch( std::exception &exc )
+    {
+      postMessage(exc.what(),AidError);
+    }
   }
   // form a response message
   out[AidMessage] = ssprintf("created %d nodes",nn);

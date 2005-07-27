@@ -222,9 +222,11 @@ def _mergeQualifiers (qual0,kwqual0,qual,kwqual,uniq=False):
     if val0 is None:
       kwqual0[kw] = val;
     elif isinstance(val0,list):
-      val0.append(val);
+      if val not in val0:
+        val0.append(val);
     else:
-      kwqual0[kw] = [val0,val];
+      if val != val0:
+        kwqual0[kw] = [val0,val];
     
   
 class _NodeStub (object):
@@ -374,9 +376,8 @@ class ClassGen (object):
     stub = self._ClassStub(self._prefix,name);
     setattr(self,name,stub);
     return stub;
-  __getitem__ = __getattr__;
-  __setitem__ = object.__setattr__;
-  
+  def __getitem__ (self,name):
+    return getattr(self,name);
   
 class NodeGroup (dict):
   """This represents a group of nodes, such as, e.g., root nodes. The
@@ -405,8 +406,9 @@ class NodeGroup (dict):
 
 
 class _NodeRepository (dict):
-  def __init__ (self):
+  def __init__ (self,testing=False):
     self._errors = [];
+    self._testing = testing;
 
   def deleteOrphan (self,name):
     """recursively deletes orphaned branches""";
@@ -439,6 +441,8 @@ class _NodeRepository (dict):
       raise TDLError,"Repository must be resolve()d to determine root nodes";
       
   def add_error (self,errtype,errmsg,filename,line):
+    if self._testing:
+      raise errtype,(errmsg,filename,line)
     self._errors.append((errtype.__name__,errmsg,filename,line));
     if len(self._errors) > 100:
       raise CumulativeError,self._errors;
@@ -470,6 +474,9 @@ class _NodeRepository (dict):
             self.add_error(ChildError,"child %s = %s is not initialized" % (str(i),ch.name),*node._caller);
             if node._caller != ch._caller:
               self.add_error(ExtraInfoError,"     child referenced here",*ch._caller);
+        # make copy of initrec if needed
+        if hasattr(node._initrec,'name'):
+          node._initrec = node._initrec.copy();
         # finalize the init-record by adding node name and children
         node._initrec.defined_at = node._debuginfo;
         node._initrec.name = node.name;
@@ -508,7 +515,7 @@ class _NodeRepository (dict):
 
 
 class NodeScope (object):
-  def __init__ (self,name=None,parent=None,*quals,**kwquals):
+  def __init__ (self,name=None,parent=None,test=False,*quals,**kwquals):
     if name is None:
       if quals:
         raise ValueError,"scope name must be set if qualifiers are used";
@@ -517,7 +524,7 @@ class NodeScope (object):
       self._name = qualifyName(name,*quals,**kwquals);
     # repository: only one parent repositorey is created
     if parent is None:
-      self._repository = _NodeRepository();
+      self._repository = _NodeRepository(test);
       self._constants = weakref.WeakValueDictionary();
     else:
       self._repository = parent._repository;
@@ -626,7 +633,7 @@ def qualifyName (name,*args,**kws):
   qqs = [];
   for (kw,val) in qqs0:
     if isinstance(val,list):
-      val = ','.join(val);
+      val = ','.join(map(str,val));
     else:
       val = str(val);
     qqs.append('='.join((kw,val)));

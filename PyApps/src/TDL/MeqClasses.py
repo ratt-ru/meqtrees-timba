@@ -36,6 +36,19 @@ class _MeqGen (TDLimpl.ClassGen):
           return _NodeDef(NodeDefError("illegal funklet argument in call to Meq.Parm"));
     return _NodeDef('Meq','Parm',**kw);
     
+  def Constant (self,value,**kw):
+    if isinstance(value,(list,tuple)):
+      if filter(lambda x:isinstance(x,complex),value):
+        value = dmi.array(map(complex,value));
+      else:
+        value = dmi.array(map(float,value));
+    elif isinstance(value,(int,long)):
+      value = float(value);
+    elif not isinstance(value,(float,complex,dmi.array_class)):
+      raise TypeError,"can't create Meq.Constant from value of type "+type(value).__name__;
+    kw['value'] = value;
+    return _NodeDef('Meq','Constant',**kw);
+    
   def Solver (self,*childlist,**kw):
     solvables = kw.get('solvable',None);
     if solvables:

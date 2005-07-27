@@ -1,0 +1,260 @@
+# A TDL tutorial
+# NB: work in progress!!!
+# This script is meant as both a tutorial and a test of most of the
+# features of TDL. If something is missing, please feel free to add.
+# The CVS path is Timba/PyApps/test/tdl_tutorial.tdl.
+
+# standard preamble, every TDL script must start with this
+from Timba.TDL import *
+ 
+# Initial forest state may be modified by assigning to 
+# Timba.TDL.Settings.forest_state. Since we import all names from Timba.TDL
+# above, the record is available as Settings.forest_state
+Settings.forest_state.cache_policy = 100;
+
+
+def define_forest (ns):
+  """define_forest() is a standard TDL name. When a forest script is
+  loaded by, e.g., the browser, this method is automatically called to
+  define the forest. The 'ns' argument is a NodeScope object in which
+  the forest is to be defined, usually this is simply the global scope.
+  """;
+  # So, this is where we start defining our forest
+  
+  # A node can be defined as follows: 
+  ns.a << Meq.Parm(cache_policy=10);
+  # This creates a MeqParm named 'a'. The thingy on the left ('ns.a') is
+  # called a "node stub" (hence 'ns' can be thought of both as "node scope"
+  # and "node stub"), and it determines the name of the node. The thingy
+  # on the left ('Meq.Parm()') is a "node def", which determines the class
+  # of the node and its init-record. The init-record can be given as keyword
+  # parameters to Meq.Parm(). The "<<" operator binds the two together and 
+  # results in a real node being created.
+  
+  # Other variations on this theme. Here's nodes with a default init-record:
+  ns.a1 << Meq.Parm();
+  ns.a2 << Meq.Parm;      # this works too
+  ns.a3 = Meq.Parm;       
+  # assignment works too but note the following: the result of operator <<
+  # is the node stub itself, and it that may be reused (see below). 
+  # By contrast, Python won't let you reuse the result of operator = 
+  # (i.e. you can say a=b=1 but not a=(b=1)+1.) The importance of this 
+  # will become obvious below.
+  
+  # node names can also have arbitrary qualifiers:
+  ns.b1(1,2,'x',y=2) << Meq.Parm;  # creates node named 'b1:1:2:x:y=2'
+  
+  # a name may also be computed, the [] operator comes in handy for this
+  name = 'b2';
+  ns[name](1,2) << Meq.Parm;   # creates 'b2:1:2'
+  
+  # in fact, even the class itself may be computed:
+  classname = 'Parm';
+  ns.b3 << Meq[classname](cache_policy=10);  
+  
+  # note also that a node def may be reused to create multiple nodes.
+  # Suppose we want to create a bunch of MeqParms, each with a 2x1 polc
+  # in it, with c00=1 and c01=0 We can save the def into a variable:
+  P22 = Meq.Parm([1,0]);
+  # and reuse it several times:
+  ns.b4 << P22;
+  ns.b5 << P22;
+  ns.b6 << P22;
+  
+  # Qualifiers are particularly useful when creating whole series of nodes 
+  # in a loop:
+  stations = range(1,5);
+  P0 = Meq.Parm(0);      # saved def 
+  for st in stations:
+    x0 = ns.x0(st) << P0;
+    y0 = ns.y0(st) << P0;
+    z0 = ns.z0(st) << P0;
+    ns.xyz0(st) << Meq.Composer(x0,y0,z0);
+  # This loop creates a set of subtrees (i=1..4) of the form:
+  #   xyz0:i (MeqComposer)
+  #     +-- x0:i (MeqParm)
+  #     +-- y0:i (MeqParm)
+  #     +-- z0:i (MeqParm)
+  # So, children to a node may be specified by passing node stubs as 
+  # arguments to its definition. (Note that stubs can be assigned to variables
+  # like any other Python object). But, remember that operator << 
+  # returns the node stub. So, we can use it in-place to create the whole
+  # subtree with a single statement:
+  for st in stations:
+    ns.xyz1(st) << Meq.Composer(ns.x1(st)<<P0,ns.y1(st)<<P0,ns.z1(st)<<P0);
+  # or here's an even more concise way to do the same subtree, using Python 
+  # list comprehension syntax, and passing in the argument list via *:
+  coords = 'xyz';
+  for st in stations:
+    ns.xyz(st) << Meq.Composer(*[ns[a](st) << P0 for a in coords]);
+    
+  # Now, can you guess what tree this going to generate?
+  ns.d1 << Meq.Composer(1,-2,5);
+  # The answer is, also a subtree:
+  #   d1 (MeqComposer)
+  #    +-- c1  (MeqConstant value=1)
+  #    +-- c-2 (MeqConstant value=-2)
+  #    +-- c5  (MeqConstant value=5)
+  # So, using a constant where a node is expected implicitly creates a 
+  # Meq.Constant node. And here too:
+  ns.d2 << 0;  # d2 is a MeqConstant with value=0
+  
+  # Of course, children may be nested to any depth. Here's another subtree:
+  ns.solver << Meq.Solver(
+    num_iter=5,debug_level=10,solvable="x",
+    # an alternative way to specify children is via the 'children' keyword.
+    # this is simply a matter of taste, since you may want to give the node's
+    # init-record first, as we do here.
+    # The value of children may be a list of children, a dict (see below), 
+    # or a single child as here:
+    children = Meq.Condeq(  # a condeq, with 2 children.
+      # What is this child going to be called? We see here a node def but
+      # no stub. This is an unnamed node. A name for it will be generated
+      # automatically, probably something of the form "parmN".
+      Meq.Parm([0,1]),
+      # What about here? Of course, a Meq.Add node, with two children
+      # of its own: a Meq.Constant with value 5, and a Parm named 'x'.
+      Meq.Add(5,ns.x << Meq.Parm(0,node_groups='Parm'))
+    ),
+    # stepchildren are specified via this keyword. A list or a single
+    # stepchild may be supplied.
+    stepchildren = [ Meq.Parm(0),Meq.Parm(1) ] 
+  );
+  
+  # As a final wrinkle on specifying children, note that some nodes
+  # may use child labels. For example, MeqUVW has children labelled 
+  # 'radec_0' (phase center), 'xyz_0' (reference position), and 'xyz' (antenna
+  # position). MeqUVW has two children labelled 'radec_0' and 'radec'.
+  # If we defined a UVW node as:
+  #   ns.uvw << Meq.UVW(ns.radec0,ns.xyz0,ns.xyz)
+  # we'd never be sure if the order of the children is right. This is where 
+  # child labels help avoid mistakes. The first way to use labels is to 
+  # pass in a dict of children:
+  phasecen = ns.phasecen << Meq.Constant([0.,0]);
+  srcpos = ns.srcpos << Meq.Constant([.1,.1]);
+  ns.lmn = Meq.LMN(children={'radec_0':phasecen,'radec':srcpos});
+  # This syntax is a  bit cumbersome. Fortunately, you can also do it 
+  # like this:
+  for st in stations:
+    ns.uvw(st) << Meq.UVW(radec=phasecen,xyz=ns.xyz(st),xyz_0=ns.xyz0(st));
+  # There's some potential for confusion here because both labelled children
+  # and initrec fields are specified via keyword arguments. How does TDL
+  # know the difference? The answer is, a keyword argument that is a node stub
+  # or a node def is treated as a child, and everything else is assumed to be 
+  # an initrec field. Hence,
+  #     ns.lmn << Meq.LMN(radec0=Meq.Constant([0,0]),radec=ns.position)
+  # ...correctly specifies two children, but
+  #     ns.lmn << Meq.LMN(radec0=0,radec=ns.position)
+  # specifies an initrec field, initrec.radec0=0. So, you can use implicit
+  # constant nodes for regular children, but not for labelled ones.
+  
+  # More examples of automatic node names.
+  # Now here's another interesting subtree:
+  ns.d3 << (ns.d4 << Meq.Parm(1)) * Meq.Parm + 5;
+  # This creates something like:
+  # 'd3' (MeqAdd)
+  #   +-- 'multiply(d4,parm3)' (MeqMultiply)
+  #   |      +-- 'd4'          (MeqParm)
+  #   |      +-- 'parm3'       (MeqParm)
+  #   +-- 'c5'     q            (MeqConstant)
+  # This illustrates two things: 
+  # 1. Simple arithmetic (+ - * /) with nodes automatically expands into trees
+  # 2. Unnamed function nodes (such as the MeqMultiply here) are assigned 
+  #    names based on their child names.
+  
+  # Note that (quite obviously if you think about it)
+  ns.d5 << 1 + 2
+  # does not define a subtree, but just one constant node. This is because
+  # Python interprets and computes '1+2' directly. 
+  
+  # Subscopes
+  # Subscopes are a useful way to modularize subtrees. Consider a function
+  # that creates a subtree. 
+  def subtree (ns):
+    ns.d6 << ( (ns.d7 << Meq.Parm) + 5 );
+  # of course we can call it only once, subsequent calls will redefine 
+  # the same node names
+  subtree(ns);
+  # how do we create the same subtree multiple times with different names?
+  # Using qualifiers is one idea:
+  def subtree1 (ns,*q,**kq):
+    ns.d6(*q,**kq) << ( (ns.d7(*q,**kq) << Meq.Parm) + 5 );
+  subtree1(ns,'a');   # d6:a  d7:a  
+  subtree1(ns,'b');   # d6:b  d7:b
+  # this however is cumbersome, and may get in the way of using qualifiers
+  # for something else (e.g. stations, etc.). Subscopes come to the rescue:
+  ns1 = ns.Subscope('a');   # ns1 is also a node scope object
+  subtree(ns1);   # creates 'a::d6', 'a::d7'
+  ns2 = ns.Subscope('b',1,x=2);    # subscopes can have qualifiers
+  subtree(ns2);   # creates 'b:1:x=2::d6', 'b:1:x=2::d7'
+  
+  # More fun with automatic node naming. First, note that we can assign
+  # a node def directly to the 'ns' object to create an auto-named node
+  # without specifying a stub.
+  ns << Meq.Cos(ns.x(1)-ns.y(1));
+  # now, note that node qualifiers are retained: the above creates
+  # 'cos(sub(x,c1)):1', with a single '1' qualifier retained
+  # Compare this with
+  ns << Meq.Add(Meq.Sqr(ns.x(1)),Meq.Sqr(ns.y(1)),Meq.Sqr(ns.z(2)));
+  # this creates 'add(sqr(x),sqr(y),sqr(z)):1:2', so the rule is:
+  # identical qualifiers are merged, and differing qualifiers are accumulated
+  
+  # note the treatment of keyword qualifers
+  ns.e(a=1) << 0;
+  ns.f(a=1) << 1;
+  ns.f(a=2) << 1;
+  ns.f(b=1) << 2;
+  ns << ns.e(a=1) + ns.f(a=1);   # creates 'add(e,f):a=1'
+  ns << ns.e(a=1) + ns.f(a=2);   # creates 'add(e,f):a=1,2'
+  ns << ns.e(a=1) + ns.f(b=1);   # creates 'add(e,f):a=1:b=1'
+  
+  
+  
+def test_forest (mqs,parent):
+  """test_forest() is a standard TDL name. When a forest script is
+  loaded by, e.g., the browser, and the "test" option is set to true,
+  this method is automatically called after define_forest() to run a 
+  test on the forest. The 'mqs' argument is a meqserver proxy object.
+  """;
+  from Timba.Meq import meq
+  # run tests on the forest
+  cells = meq.cells(meq.domain(0,1,0,1),num_freq=6,num_time=4);
+  request = meq.request(cells,eval_mode=0);
+  mqs.meq('Node.Execute',record(name='x',request=request));
+  mqs.meq('Save.Forest',record(file_name='tile_test.forest.save'));
+  # execute request on solver
+  request = meq.request(cells,eval_mode=1);
+#  mqs.meq('Node.Set.Breakpoint',record(name='solver'));
+#  mqs.meq('Debug.Set.Level',record(debug_level=100));
+  mqs.meq('Node.Execute',record(name='solver',request=request));
+
+def tdl_job_test1 (mqs,parent):
+  """this is a test job. You can see it appear in the menu automatically."""
+  pass;
+
+def tdl_job_test2 (mqs,parent):
+  """this is another test job. You can see it appear in the menu automatically."""
+  pass;
+
+
+# this is the testing branch, executed when the script is run directly
+# via 'python script.py'
+
+if __name__ == '__main__':
+#  from Timba.Meq import meqds 
+  
+  Timba.TDL._dbg.set_verbose(5);
+  
+  ns = NodeScope(test=True);
+
+  define_forest(ns);
+  
+  # resolves nodes
+  ns.Resolve();
+  
+#  test_forest(None);
+  
+#  # feeds repository to back-end to create the forest
+#  MqsBackend.create_forest(ns.repository(),mqs);
+#
+#  test_forest(meqds.mqs());
