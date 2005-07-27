@@ -27,26 +27,31 @@
 #include <MEQ/VellSet.h>
 #include <scimath/Fitting/LSQaips.h>
 
+#include <set>
+
 #pragma types #Meq::Solver
 
-#pragma aid Solve Result Incremental Solutions
+#pragma aid Solve Result Incremental Solutions Tile Size
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
 
 //defrec begin MeqSolver
-//  ***UPDATE THIS***
-//  Represents a solver,
+//  Represents a solver.
 //  A MeqSolver can have an arbitrary number of children.
-//  Only the results from the children that are a MeqCondeq are used.
-//  The other children can be other solvers that wait for this solver
-//  to finish.
-//field: num_step 1  
-//  number of iterations to do in a solve
+//field: flag_mask -1
+//  Flag mask applied to condeq results. No equations are generated for
+//  flagged points. Default -1 uses all flags.
+//field: num_iter 3  
+//  Number of iterations to do in a solve
 //field: epsilon 0
-//  convergence criterium; not used at the moment
-//field: usesvd false
+//  Convergence criterium; not used at the moment
+//field: use_svd T
 //  Use singular value decomposition in solver?
+//field: last_update F
+//  Send up a final update to parms after solve
+//field: save_funklets F
+//  Send up a Save.Funklets command after solve
 //field: parm_group hiid('parm')
 //  HIID of the parameter group to use. 
 //field: solvable [=]
@@ -78,13 +83,6 @@ public:
     //##ModelId=400E53550263
   virtual TypeId objectType() const;
 
-    //##ModelId=400E53550265
-  //##Documentation
-  virtual void checkChildren();
-  
-  // called to process request rider commands, if any.
-  virtual int processCommands (const DMI::Record &rec,Request::Ref &reqref);
-
   LocalDebugContext;
 
 protected:
@@ -112,6 +110,22 @@ protected:
   { return 0; }
   
 private:
+  // this method is called from getResult() to populate spids_ (the internal
+  // SpidMap) from a spidmap record returned by spid discovery.
+  int populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells);
+
+  // this method is called from getResult() to fill solver equations
+  // from the given VellSet. Templated because double and dcomplex values
+  // are treated differently.
+  template<typename T>
+  void fillEquations (const VellSet &vs);
+
+  // helper function for fillEquations()
+  template<typename T>
+  inline void fillEqVectors (int npert,int uk_index[],
+        const T &diff,const std::vector<Vells::ConstStridedIterator<T> > &deriv_iter);
+      
+  
   //##Documentation
   //## Do a solution.
   //## If it is the last iteration, the solution is put in a new request
@@ -119,58 +133,72 @@ private:
   //## tables are updated too.
   //## <br> If it is not the last iteration, the solution is put in the
   //## given request, so a next iteration can first update the parms.
-  void solve (casa::Vector<double>& solution, Request::Ref &reqref,
-	      DMI::Record& solRec, Result::Ref& resref,
-	      std::vector<Result::Ref>& child_results,
-	      bool saveFunklets, bool lastIter);
-
-  //##Documentation
-  //## Result current values to default values.
-  void resetCur();
-  //##Documentation
-  //## Put current values in wstate.
-  void setCurState();
-
-    //##ModelId=400E53550276
-  //##Documentation
-  //## Fill the solution (per parmid) in the DMI::Record.
-  void fillSolution (DMI::Record& rec, const vector<int>& spids,
-		     const casa::Vector<double>& solution,bool save_polc);
-
-    //##ModelId=400E53550257
-  int             itsNumCondeqs;
-  std::vector<bool> itsIsCondeq;
+  //## debugRec is pointer to debug record, 0 for no debugging
+  void solve (casa::Vector<double>& solution,Request::Ref &reqref,
+	            DMI::Record& solRec,DMI::Record *debugRec,
+              bool saveFunklets);
   
-    //##ModelId=400E5355025A
-  casa::LSQaips   itsSolver;
-  int             itsNrEquations;
-    //##ModelId=400E5355025C
-  int             itsDefNumIter;
-    //##ModelId=400E5355025D
-  double          itsDefEpsilon;
-    //##ModelId=400E5355025F
-  bool            itsDefUseSVD;
-  bool            itsDefClearMatrix;
-  bool            itsDefInvertMatrix;
-  bool            itsDefSaveFunklets;
-  bool            itsDefLastUpdate;
-  int             itsCurNumIter;
-  double          itsCurEpsilon;
-  bool            itsCurUseSVD;
-  bool            itsCurClearMatrix;
-  bool            itsCurInvertMatrix;
-  bool            itsCurSaveFunklets;
-  bool            itsCurLastUpdate;
-  bool            itsResetCur;
-  vector<int>     itsSpids;
+  
+  // === state set from the state record
+  
+  int             flag_mask_;         // flag mask applied during solve
+  bool            do_save_funklets_;  // save funklets after solve?
+  bool            do_last_update_;    // send up final update after solve?
+  bool            use_svd_;           // use SVD?
+  int             max_num_iter_;      // max # of iterations
+  double          min_epsilon_;       // epsilon threshold
+  
+  int             debug_lvl_;         // debug detail generated
   
   //##Documentation
   //## solvable parm group for this solver ("Parm" by default)
-  HIID            itsParmGroup;
+  HIID            parm_group_;
   
   // symdeps generated by the solver
   vector<HIID>    iter_symdeps_;
   int             iter_depmask_;
+  
+  
+  // === other internal state
+  
+    //##ModelId=400E5355025A
+  casa::LSQaips   solver_;
+  int             num_spids_;
+  int             num_unknowns_;
+  int             num_equations_;
+
+  // # of child whose result is currently being processed
+  int cur_child_;
+  
+  typedef VellSet::SpidType SpidType;
+  
+  // spid map populated during discovery
+  typedef struct
+  {
+    int  nuk;                         // how many unknowns per this spid (1 if not tiled)
+    int  uk_index;                    // index of first unknown in vector
+    int  tile_size  [Axis::MaxAxis];  // tile sizes per each axis
+    int  tile_stride[Axis::MaxAxis];  // tile stride per each axis (how many uknowns are strides when we go to next tile)
+    int  tile_index [Axis::MaxAxis];  // current tile index (used when filling equations)
+    int  tile_uk0   [Axis::MaxAxis];  // current tile slice (used when filling equations)
+  } SpidInfo;   // haha 
+
+  typedef std::map<SpidType,SpidInfo> SpidMap;
+  
+  SpidMap spids_;
+  
+  // in addition, we need a map from nodeindices to their associated unknowns
+  typedef std::set<int> IndexSet;
+  typedef std::map<int,IndexSet> ParmUkMap;
+  
+  ParmUkMap parm_uks_;
+  
+  // various temporary arrays used when filling equations, we keep them here
+  // as members for convenience, and to minimize reallocations
+  std::vector<double> deriv_real_;
+  std::vector<double> deriv_imag_;
+  Vells::Strides      *strides_;
+  
 };
 
 

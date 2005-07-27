@@ -49,21 +49,24 @@ const HIID symdeps_solve[]   = { FIteration };
 const HIID symdeps_default[] = { };
 
 const HIID
-    // Parm staterec fields
-    FTableName       = AidTable|AidName,
-    FParmName        = AidParm|AidName,
-    FAutoSave        = AidAuto|AidSave,
-    FDomainId        = AidDomain|AidId,
-  // FDomain      defined previously
-    FAutoSolve = AidAuto|AidSolve,
-    FSolveAxis = AidSolve|AidAxis,
-    FSolveRank = AidSolve|AidRank,
-    FFunklet         = AidFunklet,
-    FDefaultFunklet  = AidDefault|AidFunklet,
-    FLongPolc = AidSolve|AidPolc,
-    FParmValues = AidParm|AidValues,
-    FSolveOffset = AidSolve|AidOffset;
- 
+// Parm staterec fields
+  FTableName       = AidTable|AidName,
+  FParmName        = AidParm|AidName,
+  FAutoSave        = AidAuto|AidSave,
+  FDomainId        = AidDomain|AidId,
+// FDomain      defined previously
+  FAutoSolve = AidAuto|AidSolve,
+  FSolveAxis = AidSolve|AidAxis,
+  FSolveRank = AidSolve|AidRank,
+  FFunklet         = AidFunklet,
+  FDefaultFunklet  = AidDefault|AidFunklet,
+  FLongPolc = AidSolve|AidPolc,
+  FParmValues = AidParm|AidValues,
+  FSolveOffset = AidSolve|AidOffset,
+  FSolveDomain = AidSolve|AidDomain,
+  FTileSize = AidTile|AidSize,
+  FTiling = AidTiling;
+
   static const int minimal_points=1;
   //hardcoded scale factor to keep axis in reasonable range, 60 is chosen to convert seconds to minutes
   static const double scalefactor=1.;
@@ -73,11 +76,13 @@ const HIID
     : Node  (0), // no children allowed
       solvable_ (false),
       auto_save_(false),
+      tiled_ (false),
       parmtable_(0),
       domain_depend_mask_(0),
       solve_depend_mask_(0),
       domain_symdeps_(symdeps_domain,symdeps_domain+2),
       solve_symdeps_(symdeps_solve,symdeps_solve+1),
+      solve_domain_(2),
       integrated_(false),
       LPnr_equations(0),
       auto_solve_(false),
@@ -101,6 +106,7 @@ const HIID
     : Node  (0), // no children allowed
       solvable_  (false),
       auto_save_ (false),
+      tiled_ (false),
       name_      (name),
       parmtable_ (table),
       default_funklet_(defaultValue),
@@ -108,6 +114,7 @@ const HIID
       solve_depend_mask_(0),
       domain_symdeps_(symdeps_domain,symdeps_domain+2),
       solve_symdeps_(symdeps_solve,symdeps_solve+1),
+      solve_domain_(2),
       integrated_(false),
       LPnr_equations(0),
       auto_solve_(false),
@@ -140,16 +147,12 @@ const HIID
 	cdebug(3)<<n<<" funklets found in MEP table"<<endl;
 	if( n>1 )
 	  {
-	    cdebug(2)<<"discarding mutliple funklets as only one is currently suported, unless ? "<<isSolvable()<< "= false "<<endl;
-	    // ok think of something to make somthing big out of multiple funklets...
-	    //What about creating a "mutliplePolc" class that does the job for you
-	    //only if non-solvable..otherwise, at least select best fitting!
-	    if(!isSolvable()){
+	    cdebug(4)<<"discarding mutliple funklets as only one is currently suported, unless ? "<<(!isSolvable()||tiled_)<< "= true "<<endl;
+	    if(tiled_ || !isSolvable() ){
 	      funkletref <<=new ComposedPolc(funklets);
-	      cdebug(2)<<"composed funklet found? "<<funkletref-> objectType()<<endl;
+	      cdebug(4)<<"composed funklet found? "<<funkletref-> objectType()<<endl;
 	      return funkletref.dewr_p();
 	    }
-	    
 	  }
 	if( n )
 	  {
@@ -175,11 +178,11 @@ const HIID
 	    //	    FailWhen(!deffunklet,"no funklets found and no default_funklet specified");
 	    if(!deffunklet) {
 	      cdebug(3)<<"no funklets found, try reusing old one "<<endl;
-	      Funklet *oldfunklet = wstate()[FFunklet].as_wpo<Funklet>();
+	      const Funklet *oldfunklet = wstate()[FFunklet].as_po<Funklet>();
 	      FailWhen(!oldfunklet,"no funklets found,no default_funklet and no funklet specified");
-	      //reset dbid
-	      oldfunklet-> setDbId (-1);
 	      funkletref <<= oldfunklet;
+	      //reset dbid
+	      funkletref(). setDbId (-1);
 	    }
 	    else{
 	      cdebug(3)<<"no funklets found, using default value from state record, type "<<deffunklet -> objectType()<<endl;
@@ -194,15 +197,22 @@ const HIID
     return 0;
   }
 
+
+  
+
+
   //##ModelId=400E5353019E
   int Parm::initSolvable (Funklet &funklet,const Request &request)
   {
     // copy current domain into solvable funklet
     // (once we start solving, it is only valid for the solve domain, even if it may
     // have been valid for a bigger/different domain before)
+
+    cdebug(4)<<"init solvable "<<endl;
     funklet.setDomain(request.cells().domain());
     int nr = 0;
     funklet.clearSolvable();
+
     if( isSolvable() )
       {
 	int spidIndex = 256*nodeIndex();
@@ -213,12 +223,124 @@ const HIID
 	    funklet.setPerturbation(1e-6);
 	  }
       } 
+    cdebug(4)<<"init solvable, nr:"<<nr<<endl;
+
     return nr;
   }
+
+  void Parm::GetTiledDomains(Domain::Ref & domain, const Cells & cells,vector<Domain::Ref> & domainV){
+    //   vector<Domain> domainV; //create vector of domains..1 per funklettile
+    domainV.push_back(domain);
+    //calculate domains..
+    for(int axis=0;axis<Axis::MaxAxis;axis++){
+      cdebug(4)<<"tiling axis "<<axis<<", nr_tiles:"<<tiling_[axis]<<endl;
+
+      if(tiling_[axis]<=0) continue; //not tiled in this direction
+      int nr_cells=cells.ncells(axis);
+      const LoVec_double & cellStart = cells.cellStart (axis);
+      const LoVec_double & cellEnd = cells.cellEnd (axis);
+      if(nr_cells<=0) continue;
+
+      int nr_tiles=(nr_cells+tiling_[axis]-1)/tiling_[axis]; //round to higher value
+      vector<Domain::Ref> helpV;
+ 
+      for(vector<Domain::Ref>::iterator domIt=domainV.begin();domIt<domainV.end();domIt++)
+	  {
+	    
+	    for(int i=0;i<nr_tiles;i++)
+	      {
+		(*domIt)().defineAxis(axis,cellStart(i*tiling_[axis]),cellEnd(std::min(nr_cells-1,(i+1)*tiling_[axis]-1)));
+		helpV.push_back(*domIt);
+	      }
+	    
+	    
+	  }
+      domainV.clear();
+
+      for(vector<Domain::Ref>::iterator domIt2=helpV.begin();domIt2<helpV.end();domIt2++)
+	{
+	  domainV.push_back(*domIt2);
+	  
+	}
+      helpV.clear();
+      cdebug(2)<<" total nr domains : "<<domainV.size()<<endl;
+      
+    }
+  }
+
+
+  Funklet * Parm::initTiledFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells){
+
+    //now if tiling change to ComposedPolc, all initialized with the same funklet....(should we check on solvability here?) 
+    vector<Domain::Ref> domainV; //create vector of domains..1 per funklettile
+    Domain::Ref domref;
+    Domain & dom = domref <<=new Domain(domain);
+
+
+    GetTiledDomains(domref,cells,domainV);
+    //now create funklet for every domain.
+    if (funkletref->objectType()==TpMeqComposedPolc)
+	{
+	  bool match =true;
+	  const DMI::List *funklist = funkletref[FFunkletList].as_po<DMI::List>();
+	  FailWhen(!funklist,"Composed Polc does not contain funklist");
+	  const Funklet::Ref & firstfunk = funklist->get(0);
+	  int ncoeff = firstfunk->ncoeff();
+	  
+	  if(!funklist  || (domainV.size()!=funklist->size())) match=false;
+	  else
+	    for(int axis=0;axis<Axis::MaxAxis;axis++){
+	      if(!tiling_[axis]) continue;
+	      int funknr=0;
+	      for(vector<Domain::Ref>::iterator domIt=domainV.begin();domIt<domainV.end();domIt++){
+		const Funklet::Ref & partfunk = funklist->get(funknr++); 
+
+		if(((*domIt)->start(axis)!= partfunk->domain().start(axis)) ||
+		   ((*domIt)->end(axis)!= partfunk->domain().end(axis))||
+		   (partfunk->ncoeff()!=ncoeff))
+		  {
+		    //maybe even better; only keep those funklets that do match in case nr_funklets>nr_domains
+		    match=false;
+		    break;
+		  }
+
+	      }
+	      if(!match) break;
+
+	    }
+	  if(match){
+	    return funkletref.dewr_p();
+	  }
+	  else
+	    funkletref = firstfunk;
+	}
+    
+
+    if(domainV.empty())
+      return funkletref.dewr_p();
+      
+ 
+    vector<Funklet::Ref> funklets;
+    funklets.resize(domainV.size());
+    int n=0;
+    for(vector<Domain::Ref>::iterator domIt=domainV.begin();domIt<domainV.end();domIt++){
+      funkletref().setDomain(**domIt);
+      funkletref().setDbId(-1);
+      funklets[n++]=funkletref;
+    }
+    cdebug(2)<<"creating composed polc  "<<funklets.size()<<endl;
+    //   funkletref.detach();
+    ComposedPolc * cpolc =new ComposedPolc(funklets);
+    funkletref<<=cpolc;
+    return funkletref.dewr_p();
+      
+  }
+
 
   Funklet * Parm::initFunklet (const Request &request,bool solve)
   {
     const Domain &domain = request.cells().domain();
+    const Cells &cells = request.cells();
     HIID rq_dom_id = RqId::maskSubId(request.id(),domain_depend_mask_); 
     // do we have a current funklet set up?
     Funklet * pfunklet = wstate()[FFunklet].as_wpo<Funklet>();
@@ -239,7 +361,7 @@ const HIID
 	  }
 	
 	// (b) no domain in funklet (i.e. effectively infinite domain of applicability)
-	if( !pfunklet->hasDomain() )
+	if( ! tiled_ && !pfunklet->hasDomain() )
 	  { 
 	    cdebug(3)<<"current funklet has infinite domain, re-using"<<endl;
 	    wstate()[FDomainId] = domain_id_ = rq_dom_id;
@@ -247,9 +369,9 @@ const HIID
 	    return pfunklet;
 	  }
 	// (c) funklet domain is a superset of the requested domain
-	if( pfunklet->domain().supersetOfProj(domain) )
+	if(!tiled_ && pfunklet->domain().supersetOfProj(domain) )
 	  {
-	    cdebug(3)<<"current funklet defined for superset of requested domain, re-using"<<endl;
+	    cdebug(3)<<"current funklet defined for superset of requested domain, re-using"<<pfunklet->getDbId()<<endl;
 	    wstate()[FDomainId] = domain_id_ = rq_dom_id;
 	    wstate()[FDomain].replace() <<= &domain;
 	    return pfunklet;
@@ -258,11 +380,24 @@ const HIID
     // no funklet, or funklet not suitable -- get a new one
     Funklet::Ref funkref;
     if(auto_solve_ && solve)//try snippet prediction 
-      pfunklet = PredictFromLongPolc(funkref,request.cells().domain());
+      pfunklet = PredictFromLongPolc(funkref,domain);
     else
       pfunklet = findRelevantFunklet(funkref,domain);
     FailWhen(!pfunklet,"no funklets found for specified domain");
     cdebug(2)<<"found relevant funklet, type "<<pfunklet->objectType()<<endl;
+    if(tiled_ && isSolvable()){
+     
+	cdebug(4)<<"tiling funklet, "<<endl;
+	Funklet *newfunklet = initTiledFunklet(funkref,domain,cells);
+	newfunklet->setDomain(domain);
+	wstate()[FFunklet].replace() <<= newfunklet;
+	wstate()[FDomainId] = domain_id_ = rq_dom_id;
+	wstate()[FDomain].replace() <<= &domain;
+	cdebug(2)<<"found relevant funklet,after tiling type "<<newfunklet->objectType()<<endl;
+	return newfunklet;
+      }
+
+
     // update state record
     wstate()[FFunklet].replace() <<= pfunklet;
     wstate()[FDomainId] = domain_id_ = rq_dom_id;
@@ -277,8 +412,19 @@ const HIID
   {
     // init solvable funklet for this request
     Funklet * pfunklet = initFunklet(request,True);
+    
+    cdebug(2)<<"init funklet "<<pfunklet->objectType()<<" "<<pfunklet->isSolvable()<<endl;
+    pfunklet->setDomain(request.cells().domain());
     if( !pfunklet->isSolvable() )
-    	initSolvable(*pfunklet,request);
+      {	
+	initSolvable(*pfunklet,request);
+	if(  isSolvable()){
+	  //set solve domain, default [0,1]
+	  pfunklet->changeSolveDomain(solve_domain_);
+
+	}
+      }
+
     // get spids from funklet
     const std::vector<int> & spids = pfunklet->getSpids();
     ref <<= new Result(0);
@@ -286,6 +432,13 @@ const HIID
     // just our node name
     DMI::Record::Ref defrec(DMI::ANONWR);
     defrec[AidName] = name();
+    defrec[FNodeIndex] = nodeIndex();
+    //get tilesizes, 0 for no tiling
+
+    if(tiled_ && isSolvable())
+      {
+	DMI::Vec & tiles  = defrec[FTileSize] <<=new DMI::Vec(Tpint,Axis::MaxAxis,tiling_);
+      }
     DMI::Record &map = ref()[FSpidMap] <<= new DMI::Record; 
     for( uint i=0; i<spids.size(); i++ )
       map[spids[i]] = defrec; 
@@ -302,20 +455,22 @@ const HIID
     bool solve = isSolvable() && request.evalMode() > Request::GET_RESULT;
     // find a funklet to use
     Funklet * pfunklet = initFunklet(request,solve);
+    pfunklet->setDomain(request.cells().domain());
     // if funklet not set to solvable, do some extra init
     if( solve && !pfunklet->isSolvable() )
       {
 	cdebug(3)<<"new solve domain, initializing"<<endl;
 	initSolvable(*pfunklet,request);
+	pfunklet->changeSolveDomain(solve_domain_);
       }
     else if( !solve && pfunklet->isSolvable() )
       {
 	pfunklet->clearSolvable();
       }
+
     // init depend mask
     // if we are solvable, then we always depend on solution progress
     int depend = isSolvable() ? solve_depend_mask_ : 0;
-  
     // Create result object and attach to the ref that was passed in
     //    Result &result = resref <<= new Result(1,request); // result has one vellset
     Result &result = resref <<= new Result(1); // result has one vellset
@@ -349,8 +504,21 @@ const HIID
     Funklet * pfunklet = wstate()[FFunklet].as_wpo<Funklet>();
     if( !pfunklet ) 
       return;
-    cdebug(3)<<"saving funklet "<<LPDbId<<endl;
-    parmtable_->putCoeff1(name_,*pfunklet,LPDbId,false);
+    if(pfunklet->objectType()==TpMeqComposedPolc){
+      DMI::List *funklist = (*pfunklet)[FFunkletList].as_wpo<DMI::List>();
+      if(!funklist) return;
+      int nr_funk=funklist->size();
+      cdebug(2)<<"saving "<<nr_funk<<" funklets"<<endl;
+      for (int ifunk=0;ifunk<nr_funk;ifunk++)
+	{
+	  Funklet::Ref partfunk = funklist->get(ifunk);
+	  parmtable_->putCoeff1(name_,partfunk(),LPDbId,false);
+	  cdebug(4)<<" put in database "<<partfunk->getDbId()<<endl;
+	  funklist->replace(ifunk,partfunk);
+	}
+    }
+    else
+      parmtable_->putCoeff1(name_,*pfunklet,LPDbId,false);
   }
 
   void Parm::resetDependMasks ()
@@ -380,6 +548,24 @@ const HIID
     rec[FSolveAxis].get(solve_axis_,initializing);
     rec[FSolveRank].get(solve_rank_,initializing);
     rec[FSolveOffset].get(solve_offset_,initializing);
+    
+    //default
+    solve_domain_[0]=0.;
+    solve_domain_[1]=1.;
+    
+
+    rec[FSolveDomain].get_vector(solve_domain_,initializing);
+
+    const DMI::Record *tiling = rec[FTiling].as_po<DMI::Record>();
+    if(tiling){
+      for(int i=0;i<Axis::MaxAxis;i++){
+	tiling_[i]=0;
+	(*tiling)[Axis::axisId(i)].get(tiling_[i],0);
+      
+	if(tiling_[i]) tiled_=true;
+      }
+    }
+
     // recompute depmasks if active sysdeps change
     if( rec[FDomainSymDeps].get_vector(domain_symdeps_,initializing) )
       {
@@ -406,11 +592,8 @@ const HIID
 	// then reset cached domain & domain ID. This will force an reinit
 	// on the next getResult() call, thus either re-using or discarding the
 	// funklet as appropriate.
-	// not in case the funklet is constant, therefore also remove cache 
 	if( !initializing )
 	  {
-	    //	    cdebug(2)<<"new funklet, clearing cache"<<endl;
-	    //	    clearCache();	    
 	    wstate()[FDomain].remove(); 
 	    wstate()[FDomainId] = domain_id_ = HIID();
 	  }
@@ -432,7 +615,7 @@ const HIID
     string tableName;
     HIID tableId;
     TypeId  TableType;
-    if( (*rec).hasField(FTableName))
+    if( rec->hasField(FTableName))
       {  TableType= rec[FTableName].type();   
 	//check wether tablename is a string or a hiid in which case one should look in the forest state for the name
 	if(TableType==Tpstring)
@@ -458,8 +641,6 @@ const HIID
 	      //open default table
 	      cdebug(2)<<"no table name given, creating default with name: default_table"<<endl;
 	      
-	      if(!Table::isOpened("default_table"))
-		ParmTable::createTable("default_table");
 	      parmtable_ = ParmTable::openTable("default_table");
 	      wstate()[FTableName] = "default_table";
 	    }
@@ -477,9 +658,6 @@ const HIID
       {
 	//open default table
 	cdebug(2)<<"no table name given, creating default with name: default_table"<<endl;
-	
-	if(!Table::isOpened("default_table"))
-	  ParmTable::createTable("default_table");
 	parmtable_ = ParmTable::openTable("default_table");
 	wstate()[FTableName] = "default_table";
       }
@@ -511,13 +689,13 @@ const HIID
 		// Update the funklet coefficients with the new values.
 		LoVec_double values = hset.as<LoVec_double>();
 		Funklet &funklet = wstate()[FFunklet].as_wr<Funklet>();
-		FailWhen(values.size() != int(funklet.getSpids().size()),
+		FailWhen(!tiled_ && (values.size() != int(funklet.getSpids().size())),
 			 "size of "+FUpdateValues.toString()+" does not match size of funklets");
 		funklet.update(values.data());
 		//now update longpolc_solution
 		//called here, because we want to sace LP, b4 saving "short polc", to have DBId
 		if(auto_solve_ && auto_save_ ){
-		  cdebug(2)<<"updating LP for the "<<++checknr<<"th time"<<endl;
+		  cdebug(4)<<"updating LP for the "<<++checknr<<"th time"<<endl;
 		  UpdateLongPolc(1,&funklet);
 		}
 
@@ -546,10 +724,13 @@ const HIID
 	  }
       }
     // if not already saved, then check for a Save.Funklets command
+
+    cdebug(2)<<"saving funklets ? "<<rec[FSaveFunklets].as<bool>(false)<<endl;
+
     if( !saved && rec[FSaveFunklets].as<bool>(false) ){
       if(auto_solve_){
 	Funklet &funklet = wstate()[FFunklet].as_wr<Funklet>();
-	cdebug(2)<<"updating LP for the "<<++checknr<<"th time"<<endl;
+	cdebug(4)<<"updating LP for the "<<++checknr<<"th time"<<endl;
 	UpdateLongPolc(1,&funklet);
       }
       save();
@@ -565,6 +746,7 @@ const HIID
 	domain_id_ = HIID();
 	//    retcode |= RES_NO_CACHE;
       }
+
     return retcode;
   }
 
@@ -740,7 +922,7 @@ const HIID
 
  
     if(! rpolc) return  0;
-    if (rpolc->objectType() != TpMeqPolc) return 0;
+    if (rpolc->objectType() != TpMeqPolc && rpolc->objectType() != TpMeqPolcLog) return 0;
     Polc::Ref polcref;
     polcref<<= new Polc(*rpolc);
     //initialize LongPolcs

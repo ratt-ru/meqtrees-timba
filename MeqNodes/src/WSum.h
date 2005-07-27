@@ -24,6 +24,7 @@
 #define MEQNODES_WSUM_H
     
 #include <MEQ/Function.h>
+#include <MEQ/MeqVocabulary.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -32,11 +33,6 @@
 
 
 namespace Meq {    
-
-  //state field for weights 
-
-const HIID FWeights = AidWeights;
-
 
 //##ModelId=3F86886E0162
 class WSum : public Function

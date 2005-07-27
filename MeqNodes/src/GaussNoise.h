@@ -26,6 +26,7 @@
 #include <MEQ/Function.h>
 #include <MeqNodes/BlitzRandom.h>
 #include <MeqNodes/NoiseNode.h>
+#include <MEQ/MeqVocabulary.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -33,9 +34,6 @@
 #pragma aid StdDev
 
 namespace Meq {    
-
-// state field for stddev (optional, can also be supplied by child 2)
-const HIID FStdDev = AidStdDev;
 
 //##ModelId=400E530400AB
 class GaussNoise : public NoiseNode

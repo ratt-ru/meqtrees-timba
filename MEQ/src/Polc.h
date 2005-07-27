@@ -91,38 +91,13 @@ public:
   void setCoeff (const LoMat_double & coeff);
   void setCoeff (const DMI::NumArray & coeff);
   
-  // Get number of coefficients.
-    //##ModelId=3F86886F036F
-  int ncoeff() const
-  { return pcoeff_ ? pcoeff_->deref().size() : 0; }
   
-  // Get shape of coefficients
-  const LoShape & getCoeffShape () const
-  { return coeff().shape(); }
   
-  const DMI::NumArray & coeff () const
-  { DbgAssert(pcoeff_); return pcoeff_->deref(); }
-  
-  DMI::NumArray & coeffWr () const
-  { DbgAssert(pcoeff_); return pcoeff_->dewr(); }
-  
-  // Get c00 coefficient
-  double getCoeff0 () const
-  { return *static_cast<const double*>(coeff().getConstDataPtr()); }
-  
-  // Get vector of coeffs 
-  const LoVec_double & getCoeff1 () const
-  { return coeff().getConstArray<double,1>(); }
-  
-  // Get matrix of coeffs 
-  const LoMat_double & getCoeff2 () const
-  { return coeff().getConstArray<double,2>(); }
-
   //------------------ implement public Funklet interface ---------------------------------
   // returns the number of parameters describing this funklet
-  virtual int getNumParms () const
+  /*  virtual int getNumParms () const
   { return ncoeff(); }
-  
+  */
   // returns max rank for funklets of this type
   virtual int maxFunkletRank () const
   { return MaxPolcRank; }
@@ -146,6 +121,11 @@ public:
     //##ModelId=400E53550156
   virtual void validateContent (bool recursive);
   virtual void axis_function(int axis, LoVec_double & grid) const{}
+  virtual void changeSolveDomain(const Domain & solveDomain);
+  virtual void changeSolveDomain(const std::vector<double> & solveDomain);
+
+
+  virtual int makeSolvable (int spidIndex);
 
 protected:
   //------------------ implement protected Funklet interface ---------------------------------
@@ -157,12 +137,11 @@ protected:
   virtual void do_update (const double values[],const std::vector<int> &spidIndex);
 
   //------------------ end of protected Funklet interface ------------------------------------
+  virtual void transformCoeff(const std::vector<double> & newoffsets,const std::vector<double> & newscales);
     
 private:
   static const int MaxNumPerts = 2;
 
-    //##ModelId=3F86BFF80221
-  DMI::NumArray::Ref * pcoeff_;
   
 };
   

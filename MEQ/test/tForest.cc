@@ -25,6 +25,9 @@
 #include <MEQ/Forest.h>
 #include <MEQ/Node.h>
 #include <exception>
+#include <DMI/Vec.h>
+#include <MEQ/Polc.h>
+#include <MEQ/PolcLog.h>
 
 using namespace Meq;
 
@@ -81,6 +84,14 @@ int main (int argc,const char *argv[])
     cout << "============ resolving children on parent1 =========\n";
     parent1.resolveChildren();
     cout << "parent1: "<<parent1.sdebug(5)<<endl;
+    
+//     cout << "============ creating vec of funklets ==============\n";
+//     DMI::Vec::Ref vecref;
+//     vecref <<= new DMI::Vec(TpMeqFunklet,2);
+//     vecref().put(0,new Polc);
+//     vecref().put(1,new PolcLog);
+//     const Funklet &funk = vecref->as<Funklet>(0);
+//     const Polc &polc = vecref->as<PolcLog>(1);
   } 
   catch (std::exception& x) 
   {

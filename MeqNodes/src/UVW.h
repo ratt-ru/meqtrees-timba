@@ -29,7 +29,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::UVW
-#pragma aid RA Dec X Y Z
+#pragma aid RADec XYZ
 
 namespace Meq {    
 

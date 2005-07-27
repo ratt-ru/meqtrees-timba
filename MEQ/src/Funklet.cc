@@ -50,19 +50,21 @@ Domain Funklet::default_domain;
 
 //##ModelId=3F86886F0366
 Funklet::Funklet(double pert,double weight,DbId id)
+  :pcoeff_(0)
 {
   init(0,0,0,0,pert,weight,id);
 }
 
 Funklet::Funklet(int naxis,const int iaxis[],const double offset[],const double scale[],
            double pert,double weight,DbId id)
+  :pcoeff_(0)
 {
   init(naxis,iaxis,offset,scale,pert,weight,id);
 }
 
 //##ModelId=400E5354033A
 Funklet::Funklet (const DMI::Record &other,int flags,int depth)
-: DMI::Record(other,flags,depth)
+  : DMI::Record(other,flags,depth),pcoeff_(0)
 {
   validateContent(false); // not recursive
 }
@@ -109,6 +111,25 @@ void Funklet::validateContent (bool)
     pertValue_  = (*this)[FPerturbation].as<double>(defaultFunkletPerturbation);
     weight_     = (*this)[FWeight].as<double>(defaultFunkletWeight);
     id_         = (*this)[FDbId].as<int>(-1);
+    
+
+    fld = Record::findField(FCoeff);
+    if( fld ){
+      pcoeff_ = &( fld->ref.ref_cast<DMI::NumArray>() );
+      //coeff should be doubles:
+      if ((*pcoeff_)->elementType()==Tpint ||(*pcoeff_)->elementType()==Tpfloat||(*pcoeff_)->elementType()==Tplong )
+	{
+	  //convert to double
+
+	}
+      FailWhen((*pcoeff_)->elementType()!=Tpdouble,"Meq::Polc: coeff array must be of type double");
+     
+
+    }
+    else
+      pcoeff_ = 0;
+    // check for sanity
+    Assert( coeff().rank()<=rank());
   }
   catch( std::exception &err )
   {
@@ -206,6 +227,7 @@ void Funklet::setDbId (Funklet::DbId id)
 //##ModelId=3F86886F03A6
 int Funklet::makeSolvable (int spidIndex0)
 {
+
   int nspids = getNumParms();
   parm_perts_.resize(nspids);
   calcPerturbations(parm_perts_,pertValue_);
@@ -248,6 +270,8 @@ int Funklet::makeSolvable (int spidIndex0,const std::vector<bool> &mask)
     {
       spidInx_[i] = -1;
     }
+
+
   return nspids;
 }
 
@@ -265,6 +289,8 @@ void Funklet::evaluate (VellSet &vs,const Cells &cells,int makePerturbed) const
   Thread::Mutex::Lock lock(mutex());
   PERFPROFILE(__PRETTY_FUNCTION__);
   // sets spids and perturbations in output vellset
+
+
   if( spids_.empty() ) // no active solvable spids? Force no perturbations then
     makePerturbed = 0;
   else if( makePerturbed )
@@ -272,6 +298,9 @@ void Funklet::evaluate (VellSet &vs,const Cells &cells,int makePerturbed) const
     Assert(makePerturbed==1 || makePerturbed==2);
     vs.setNumPertSets(makePerturbed);
     vs.setSpids(spids_);
+
+    cdebug(4)<<"nr spids in Funklet "<<spids_.size()<<endl;
+    
     vs.setPerturbations(spid_perts_);
     // since we can't just do unary-minus on an std::vector, do ugly loop:
     if( makePerturbed==2 )

@@ -28,6 +28,7 @@
 #include <MEQ/Vells.h>
 #include <MEQ/Funklet.h>
 #include <MEQ/Polc.h>
+#include <MEQ/PolcLog.h>
 #include <MeqNodes/ParmTable.h>
 #include <Common/lofar_vector.h>
 
@@ -126,6 +127,7 @@ public:
 
 protected:
   virtual void resetDependMasks ();
+  Funklet * initTiledFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells);
 
   // checks if current funklet can be reused
   Funklet * initFunklet (const Request &request,bool solve);
@@ -149,7 +151,9 @@ private:
     //##ModelId=3F86886F0216
   bool solvable_;
   bool auto_save_;
-  
+  bool tiled_;//true for tiled solvables
+  int tiling_[Axis::MaxAxis]; //vector containing tilesizes per axis (<= 0 means no tiling)
+
     //##ModelId=3F86886F0213
   string name_;
   
@@ -169,6 +173,8 @@ private:
   int         solve_depend_mask_;
   std::vector<HIID> domain_symdeps_;
   std::vector<HIID> solve_symdeps_;
+  std::vector<double> solve_domain_; //solve domain, default = [0,1]
+
   
   bool        integrated_;
 
@@ -187,6 +193,7 @@ private:
   vector<casa::LSQaips>   itsSolver;//the solver per spid  
   
   //some functions
+  void GetTiledDomains(Domain::Ref & domain, const Cells& cells,vector<Domain::Ref> & domainV);
   
   Funklet * PredictFromLongPolc(Funklet::Ref &funkletref,const Domain & rdom);
   int UpdateLPDomain(const Domain &rdom);

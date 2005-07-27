@@ -25,18 +25,42 @@
 
 //# Includes
 #include <MEQ/Domain.h>
+#include <DMI/NumArray.h>
+#include <DMI/List.h>
+#include <MEQ/MeqVocabulary.h>
 
 #include <MEQ/TID-Meq.h>
 #pragma aidgroup Meq
 #pragma type #Meq::Funklet
 
 namespace Meq { 
-
+  
 class Request;
 class VellSet;
 
 const double defaultFunkletPerturbation = 1e-6;
 const double defaultFunkletWeight = 1;
+
+static double logfac(int n)
+{
+  // calculates log of n factorial
+  double fac=0.;
+  for(int i=n;i>0;i--)
+    fac += log(i);
+  
+  return fac;
+}
+
+static double noverm(int n, int m)
+{
+  //calculates  n over m
+  double result;
+  result=logfac(n)-logfac(m)-logfac(n-m);
+  return exp(result);
+
+}
+
+
 
 //##ModelId=3F86886E01F6
 class Funklet : public DMI::Record
@@ -89,6 +113,12 @@ public:
   int getAxis (int i) const {
     return axes_[i]; 
   }
+
+  const std::vector<int> getAxes() {
+    return axes_;
+  }
+
+
   // sets offset along axis of variability
   int setOffset (int i, double offset) {
     if( offsets_.size()<=uint(i)){
@@ -97,6 +127,19 @@ public:
     }
 
     offsets_[i]= offset; 
+    (*this)[FOffset]    = offsets_;
+    return 1;
+  }
+
+  // sets scale along axis of variability
+  int setScale (int i, double scale) {
+    if( scales_.size()<=uint(i)){
+      cdebug(2)<<" cannot set scale, no default defined ..."<<endl;
+      return 0;
+    }
+
+    scales_[i]= scale; 
+    (*this)[FScale]     = scales_;
     return 1;
   }
   // returns offset along axis of variability
@@ -107,6 +150,13 @@ public:
   double getScale (int i) const {
     return scales_[i]; 
   }
+
+  // returns scale of axis_function (overwritten by PolcLog)
+  virtual LoVec_double getLScaleVector () const {
+    LoVec_double axis_scales(1);
+    return  axis_scales;
+
+ }
   
   // get/set the base perturbation.
   double getPerturbation(int ipert=0) const
@@ -126,7 +176,7 @@ public:
   //------------------ public Funklet interface (to be implemented by subclasses) ---------
   // returns the number of parameters describing this funklet
   virtual int getNumParms () const
-  { return 0; }
+  { return ncoeff();}//spids_.empty()?ncoeff():spids_.size(); }
   
   // returns max rank for funklets of this type
   virtual int maxFunkletRank () const
@@ -155,12 +205,12 @@ public:
   // contiguously. 
   // Returns the number of spids in this funklet (==getNumParms())
     //##ModelId=3F86886F03A6
-  int makeSolvable (int spidIndex);
+  virtual int makeSolvable (int spidIndex);
   // Make the funklet solvable, but only w.r.t. a specific subset of its parameters.
   // The mask vector (must be same size as returned by getNumParms()) tells which 
   // parameters are solvable. 
   // Returns the number of spids in this funklet (==number of true values in mask)
-  int makeSolvable (int spidIndex,const std::vector<bool> &mask);
+  virtual int makeSolvable (int spidIndex,const std::vector<bool> &mask);
 
   // Updates solvable parms of funklet. Size of values must be equal to the number 
   // of solvable parms.
@@ -177,6 +227,10 @@ public:
   // If makeSolvable() was called with a mask, then there may be fewer spids
   const std::vector<int> & getSpids() const
   { return spids_; }
+
+  //get number of solvable coeff
+  const int getNrSpids() const
+  { return spids_.size(); }
   
   // Get vector of spid perturbations (set up by the makeSolvable() methods above)
   // There is one for each spid; thus its size is same as that of getSpids()
@@ -198,6 +252,50 @@ public:
   // this function applies to one of the axes of the funklet and is called in do_evaluate
   //  in specific subclasses of Polc
   virtual void axis_function(int axis, LoVec_double & grid) const {   }
+
+
+
+  // Get c00 coefficient
+  const double getCoeff0 () const
+  { return *static_cast<const double*>(coeff().getConstDataPtr()); }
+  
+  // Get vector of coeffs 
+  const LoVec_double & getCoeff1 () const
+  { return coeff().getConstArray<double,1>(); }
+  
+  // Get matrix of coeffs 
+  const LoMat_double & getCoeff2 () const
+  { return coeff().getConstArray<double,2>(); }
+
+  //various virtual acces functions for coeefs
+  virtual void setCoeff (double c00){}
+  virtual void setCoeff (const LoVec_double & coeff){}
+  virtual void setCoeff (const LoMat_double & coeff){}
+  virtual void setCoeff (const DMI::NumArray & coeff){}
+  // Get number of coefficients.
+    //##ModelId=3F86886F036F
+  int ncoeff() const
+  { return pcoeff_ ? pcoeff_->deref().size() : 0; }
+  
+  // Get shape of coefficients
+  const LoShape & getCoeffShape () const
+  { return coeff().shape(); }
+  
+  virtual const DMI::NumArray & coeff () const
+  { DbgAssert(pcoeff_); return pcoeff_->deref(); }
+  
+  virtual DMI::NumArray & coeffWr () const
+  {DbgAssert(pcoeff_); return pcoeff_->dewr(); }
+  
+
+
+
+
+  //changeSolveDomain: this function determines new offsets and scales and projects the Funklet 
+  // to the solveDomain (to avoid large numbers that the solvver has difficulties to deal with.
+  // Typically the solvedomain = [0,1][0,1] or [-1,1][-1,1]...
+  virtual void changeSolveDomain(const Domain & solveDomain){};
+  virtual void changeSolveDomain(const std::vector<double> & solveDomain){};
 
 protected:
   Record::protectField;  
@@ -243,6 +341,10 @@ protected:
   //------------------ other protected methods -----------------------------------------------
   Funklet (const DMI::Record &other,int flags=0,int depth=0);
   Funklet (const Funklet &other,int flags=0,int depth=0);
+  DMI::NumArray::Ref * pcoeff_;
+  virtual void transformCoeff(const std::vector<double> & newoffsets,const std::vector<double> & newscales)
+  {}
+
 
 private:
   //------------------ data members ----------------------------------------------------------

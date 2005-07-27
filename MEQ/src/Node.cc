@@ -174,7 +174,10 @@ const DMI::Record & Node::Cache::record ()
   Record & rec = recref_ <<= new Record;
   if( result.valid() )
   {
-    rec.add(FResult,result);
+    if( is_valid )
+      rec.add(FResult,result);
+    else
+      rec.add(FFail,result);
     rec[FRequestId] = rqid;    
     rec[FResultCode] = rescode;
     rec[FServiceFlag] = service_flag;
@@ -724,7 +727,6 @@ void Node::removeResultSubscriber (const EventSlot &slot)
 
 void Node::resampleChildren (Cells::Ref &rescells,std::vector<Result::Ref> &childres)
 {
-  rescells.detach();
   if( auto_resample_ == RESAMPLE_NONE )
     return;
   const Cells *pcells = 0;
@@ -829,6 +831,29 @@ int Node::pollStepChildren (const Request &req)
   return retcode;
 }
 
+int Node::startAsyncPoll (const Request &)
+{
+  setExecState(CS_ES_POLLING);
+  async_poll_child_ = 0;
+  return numChildren();
+}
+
+int Node::awaitChildResult (int &rescode,Result::Ref &resref,const Request &req)
+{
+  // out of children? return -1
+  if( async_poll_child_ >= numChildren() )
+    return -1;
+  // poll current child
+  int ichild = async_poll_child_;
+  timers_.children.start();
+  rescode = getChild(ichild).execute(resref,req);
+  // last child? poll all stepchildren
+  if( ++async_poll_child_ >= numChildren() )
+    pollStepChildren(req);
+  timers_.children.stop();
+  return ichild;
+}
+
 //##ModelId=400E531702FD
 int Node::pollChildren (std::vector<Result::Ref> &child_results,
                         Result::Ref &resref,
@@ -901,81 +926,70 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
 
 int Node::resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int rpid)
 {
-  // increment the parent count
-  if( parent )
+  try
   {
-    pcparents_->npar++;
-    parents_.push_back(ParentEntry());
-    parents_.back().ref.attach(parent,DMI::SHARED);
-    parents_.back().stepparent = stepparent;
-  }
-  // if node already resolved with this resolve parent ID, do nothing
-  if( node_resolve_id_ == rpid )
-  {
-    cdebug(4)<<"node already resolved for rpid "<<rpid<<endl;
-    return 0;
-  }
-  cdebug(3)<<"resolving node, rpid="<<rpid<<endl;
-  wstate()[FResolveParentId] = node_resolve_id_ = rpid;
-  // resolve children
-  resolveChildren(false);
-  // process depmasks 
-  if( !known_symdeps_.empty() )
-  {
-    cdebug(3)<<"checking for "<<known_symdeps_.size()<<" known symdeps\n";
-    const DMI::Record &rec = *depmasks;
-    bool changed = false;
-    for( uint i=0; i<node_groups_.size(); i++ )
+    // increment the parent count
+    if( parent )
     {
-      DMI::Record::Hook hgroup(rec,node_groups_[i]);
-      if( hgroup.exists() )
+      pcparents_->npar++;
+      parents_.push_back(ParentEntry());
+      parents_.back().ref.attach(parent,DMI::SHARED);
+      parents_.back().stepparent = stepparent;
+    }
+    // if node already resolved with this resolve parent ID, do nothing
+    if( node_resolve_id_ == rpid )
+    {
+      cdebug(4)<<"node already resolved for rpid "<<rpid<<endl;
+      return 0;
+    }
+    cdebug(3)<<"resolving node, rpid="<<rpid<<endl;
+    wstate()[FResolveParentId] = node_resolve_id_ = rpid;
+    // resolve children
+    resolveChildren(false);
+    // process depmasks 
+    if( !known_symdeps_.empty() )
+    {
+      cdebug(3)<<"checking for "<<known_symdeps_.size()<<" known symdeps\n";
+      const DMI::Record &rec = *depmasks;
+      bool changed = false;
+      for( uint i=0; i<node_groups_.size(); i++ )
       {
-        cdebug(4)<<"found symdeps for group "<<node_groups_[i]<<endl;
-        const DMI::Record &grouprec = hgroup.as<DMI::Record>();
-        for( uint i=0; i<known_symdeps_.size(); i++ )
+        DMI::Record::Hook hgroup(rec,node_groups_[i]);
+        if( hgroup.exists() )
         {
-          const HIID &id = known_symdeps_[i];
-          int mask;
-          if( grouprec[id].get(mask) )
+          cdebug(4)<<"found symdeps for group "<<node_groups_[i]<<endl;
+          const DMI::Record &grouprec = hgroup.as<DMI::Record>();
+          for( uint i=0; i<known_symdeps_.size(); i++ )
           {
-            // add to its mask, if the symdep is present in the record.
-            symdep_masks_[id] |= mask;
-            cdebug(4)<<"symdep_mask["<<id<<"]="<<ssprintf("%x\n",symdep_masks_[id]);
-            changed = true;
+            const HIID &id = known_symdeps_[i];
+            int mask;
+            if( grouprec[id].get(mask) )
+            {
+              // add to its mask, if the symdep is present in the record.
+              symdep_masks_[id] |= mask;
+              cdebug(4)<<"symdep_mask["<<id<<"]="<<ssprintf("%x\n",symdep_masks_[id]);
+              changed = true;
+            }
           }
         }
       }
-    }
-    // recompute stuff if anything has changed
-    if( changed )
-    {
-      cdebug(3)<<"recomputing depmasks\n"<<endl;
-      // recompute the active depend mask
-      resetDependMasks();
-      // reset subrecord in state rec
-      DMI::Record &known = wstate()[FSymDepMasks].replace() <<= new DMI::Record;
-      for( uint i=0; i<known_symdeps_.size(); i++ )
-        known[known_symdeps_[i]] = symdep_masks_[known_symdeps_[i]];
+      // recompute stuff if anything has changed
+      if( changed )
+      {
+        cdebug(3)<<"recomputing depmasks\n"<<endl;
+        // recompute the active depend mask
+        resetDependMasks();
+        // reset subrecord in state rec
+        DMI::Record &known = wstate()[FSymDepMasks].replace() <<= new DMI::Record;
+        for( uint i=0; i<known_symdeps_.size(); i++ )
+          known[known_symdeps_[i]] = symdep_masks_[known_symdeps_[i]];
+      }
     }
   }
-// 18/04/05 OMS: phasing this out, ModRes will need to be rewritten a-la Solver
-//   // add our own generated symdeps, if any. This COWs the record
-//   if( !gen_symdep_masks_.empty() )
-//   {
-//     rpid = nodeIndex(); // change the rpid
-//     const HIID &group = gen_symdep_group_.empty() ? FAll : gen_symdep_group_;
-//     cdebug(3)<<"inserting generated symdeps for group "<<group<<endl;
-//     DMI::Record &grouprec = Rider::getOrInit(depmasks(),group);
-//     std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
-//     for( ; iter != gen_symdep_masks_.end(); iter++ )
-//     {
-//       DMI::Record::Hook hook(grouprec,iter->first);
-//       if( hook.exists() )
-//         hook.as_wr<int>() |=  iter->second;
-//       else
-//         hook = iter->second;
-//     }
-//   }
+  catch( std::exception &exc )
+  {
+    Throw("failed to resolve node "+name()+": "+exc.what());
+  }
   // init other stuff
   child_results_.resize(numChildren());
   child_retcodes_.resize(numChildren());

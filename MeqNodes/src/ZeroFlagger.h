@@ -27,6 +27,7 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 #include <MeqNodes/TID-MeqNodes.h>
+#include <MEQ/MeqVocabulary.h>
 
 #pragma aidgroup MeqNodes
 #pragma types #Meq::ZeroFlagger 
@@ -51,7 +52,6 @@
 namespace Meq {    
 
 const HIID FOper    = AidOper;
-const HIID FFlagBit = AidFlag|AidBit;
 const HIID FForceOutput = AidForce|AidOutput;
 
 //##ModelId=400E530400A3

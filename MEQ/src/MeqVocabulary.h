@@ -40,6 +40,7 @@
 #pragma aid Metrics Rank Fit Errors CoVar Flag Bit Mu StdDev Chi Iter Last Update
 #pragma aid Override Policy Discover Spids Map Eval Mode
 #pragma aid Iteration Solution Dataset Next Service Sequence
+#pragma aid Tile Tiled Tiles Tiling Sizes
 
 
 namespace Meq
@@ -100,7 +101,8 @@ namespace Meq
     FPertRelative    = AidPert|AidRelative,
 //    FGrowDomain      = AidGrow|AidDomain,
 //    FInfDomain       = AidInf|AidDomain,
-    FDbId            = AidDbId|AidIndex,
+    FDbId            = AidDbId|AidIndex, 
+    FFunkletList     = AidFunklet|AidList,
     
     // VellSet fields
     FShape           = AidShape,

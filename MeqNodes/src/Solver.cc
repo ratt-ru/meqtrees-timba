@@ -35,6 +35,7 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/Vector.h>
+#include <DMI/List.h>
 
 #include <iostream>
 
@@ -46,28 +47,35 @@ namespace Meq {
 
 InitDebugContext(Solver,"MeqSolver");
 
+const HIID FTileSize = AidTile|AidSize;
+
 const HIID FSolverResult = AidSolver|AidResult;
 const HIID FIncrementalSolutions = AidIncremental|AidSolutions;
 
 const HIID FIterationSymdeps = AidIteration|AidSymdeps;
 const HIID FIterationDependMask = AidIteration|AidDepend|AidMask;
 
+const HIID FDebugLevel = AidDebug|AidLevel;
+
+#if LOFAR_DEBUG
+const int DefaultDebugLevel = 100;
+#else
+const int DefaultDebugLevel = 0;
+#endif
+
 //##ModelId=400E53550260
 Solver::Solver()
-: itsSolver          (1),
-  itsNrEquations     (0),
-  itsDefNumIter      (1),
-  itsDefEpsilon      (1e-8),
-  itsDefUseSVD       (true),
-  itsDefClearMatrix  (true),
-  itsDefInvertMatrix (true),
-  itsDefSaveFunklets (true),
-  itsDefLastUpdate   (false),
-  itsParmGroup       (AidParm)
+: flag_mask_        (-1),
+  do_save_funklets_ (false),
+  do_last_update_   (false),
+  use_svd_          (true),
+  max_num_iter_     (3),
+  min_epsilon_      (0),
+  debug_lvl_        (DefaultDebugLevel),
+  parm_group_       (AidParm),
+  solver_           (1),
+  strides_          (0)
 {
-  resetCur();
-  // Set this flag, so setCurState will be called in first getResult.
-  itsResetCur = true;
   // set Solver dependencies
   iter_symdeps_.assign(1,FIteration);
   const HIID symdeps[] = { FDomain,FResolution,FDataset,FIteration };
@@ -78,24 +86,15 @@ Solver::Solver()
 
 //##ModelId=400E53550261
 Solver::~Solver()
-{}
+{
+  if( strides_ )
+    delete [] strides_;
+}
 
 //##ModelId=400E53550263
 TypeId Solver::objectType() const
 {
   return TpMeqSolver;
-}
-
-//##ModelId=400E53550265
-void Solver::checkChildren()
-{
-  // count the number of Condeq nodes
-  itsNumCondeqs = 0;
-  itsIsCondeq.resize(numChildren());
-  for (int i=0; i<numChildren(); i++) 
-    if( itsIsCondeq[i] = ( getChild(i).objectType() == TpMeqCondeq ) )
-      itsNumCondeqs++;
-  FailWhen(!itsNumCondeqs,"Solver node must have at least one Condeq child");
 }
 
 // do nothing here -- we'll do it manually in getResult()
@@ -114,54 +113,213 @@ int Solver::pollChildren (std::vector<Result::Ref> &chres,
     return Node::pollChildren(chres,resref,request);
 }
 
-// Process rider for the given request
-// (this will be called prior to getResult() on the same request)
-int Solver::processCommands (const DMI::Record &rec,Request::Ref &reqref)
+int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
 {
-  const Request &request = *reqref;
-  int retcode = Node::processCommands(rec,reqref); // required
-  // Get new current values (use default if not given).
-  itsCurNumIter   = rec[FNumIter].as<int>(itsDefNumIter);
-  if (itsCurNumIter < 1) itsCurNumIter = 1;
-  itsCurEpsilon   = rec[FEpsilon].as<double>(itsDefEpsilon);
-  itsCurUseSVD    = rec[FUseSVD].as<bool>(itsDefUseSVD);
-  itsCurSaveFunklets = rec[FSaveFunklets].as<bool>(itsDefSaveFunklets);
-  itsCurLastUpdate = rec[FLastUpdate].as<bool>(itsDefLastUpdate);
-  bool clearGiven  = rec[FClearMatrix].get(itsCurClearMatrix);
-  bool invertGiven = rec[FInvertMatrix].get(itsCurInvertMatrix);
-  // Take care that these current values are used in getResult (if called).
-  itsResetCur = false;
-  cdebug(1)<<"Solver rider: "
-           <<itsCurNumIter<<','
-           <<itsCurEpsilon<<','
-           <<itsCurUseSVD<<','
-           <<clearGiven<<':'<<itsCurClearMatrix<<','
-           <<invertGiven<<':'<<itsCurInvertMatrix<<','
-           <<itsCurSaveFunklets<<','
-           <<itsCurLastUpdate<<endl;
-  // Update wstate.
-  setCurState();
-  // getResult won't be called if the request has no cells.
-  // So process here if clear or invert has to be done.
-  if (! request.hasCells()) {
-    // Remove all spids if the matrix has to be cleared.
-    if (clearGiven && itsCurClearMatrix) {
-      itsSpids.clear();
-    } else if (invertGiven && itsCurInvertMatrix) {
-      Vector<double> solution(itsSpids.size());
-      DMI::Record::Ref solRef;
-      DMI::Record& solRec = solRef <<= new DMI::Record;
-      std::vector<Result::Ref> child_results;
-      Result::Ref resref;
-      solve(solution,reqref,solRec,resref,child_results,
-            false,true);
+  parm_uks_.clear();
+  spids_.clear();
+  // convert spid map record into internal spid map, and count up the unknowns
+  for( DMI::Record::const_iterator iter = spidmap_rec.begin(); 
+      iter != spidmap_rec.end(); iter++ )
+  {
+    // each spidmap entry is expected to be a record
+    const DMI::Record &rec = iter.ref().as<DMI::Record>();
+        VellSet::SpidType spid = iter.id()[0].id();  // spid is first element of HIID
+    // insert entry into spid table
+    SpidInfo & spi = spids_[spid];     
+    spi.uk_index  = num_unknowns_;
+    spi.nuk = 1;
+    // OK, figure out tiling
+    memset(spi.tile_size,0,sizeof(spi.tile_size));
+    int sz;
+    const int *ptiles = rec[FTileSize].as_po<int>(sz);
+    if( ptiles )
+    {
+      int rank = std::min(sz,Axis::MaxAxis);
+      int stride = 1;
+      for( int i=rank-1; i>=0; i-- )
+      {
+        int tsz = spi.tile_size[i] = ptiles[i];
+        spi.tile_stride[i] = stride;
+        // is this axis tiled by the spid?
+        if( tsz )
+        {
+          int nc = cells.ncells(i);
+          int ntiles = nc/tsz + ((nc%tsz)?1:0);     // a minimum of 1 tile always
+          spi.nuk *= ntiles;
+          stride *= ntiles;
+        }
+      }
     }
-    // Take care that current gets reset to default if no
-    // processCommands is called for the next getResult.
-    itsResetCur = true;
+    // increment count of unknowns
+    num_unknowns_ += spi.nuk;
+    // add unknown's indices to map for this nodeindex
+    IndexSet &iset = parm_uks_[rec[FNodeIndex].as<int>()];
+    for( int i = spi.uk_index; i<num_unknowns_; i++ )
+      iset.insert(i);
   }
-  return retcode;
+  return num_unknowns_;
 }
+
+// This is a helper function for fillEquations(). Note that this function 
+// encapsulates the only difference in the code between the double
+// and the complex case. This allows us to have a single templated 
+// definition of fillEquations() below which works for both cases.
+template<typename T>
+inline void Solver::fillEqVectors (int npert,int uk_index[],
+      const T &diff,const std::vector<Vells::ConstStridedIterator<T> > &deriv_iter)
+{
+  // fill vectors of derivatives for each unknown 
+  for( int i=0; i<npert; i++ )
+    deriv_real_ [i] = *deriv_iter[i];
+  if( Debug(4) )
+  {
+    cdebug(4)<<"equation: ";
+    for( int i=0; i<npert; i++ )
+      ::Debug::getDebugStream()<<uk_index[i]<<":"<<deriv_real_[i]<<" "; 
+    ::Debug::getDebugStream()<<" -> "<<diff<<endl;
+  }
+  // add equation to solver
+  solver_.makeNorm(npert,uk_index,&deriv_real_[0],1.,diff);
+  num_equations_++;
+}
+
+// Specialization for complex case: each value produces two equations
+template<>
+inline void Solver::fillEqVectors (int npert,int uk_index[],
+      const dcomplex &diff,const std::vector<Vells::ConstStridedIterator<dcomplex> > &deriv_iter)
+{
+  // fill vectors of derivatives for each unknown 
+  for( int i=0; i<npert; i++ )
+  {
+    deriv_real_[i] = (*deriv_iter[i]).real();
+    deriv_imag_[i] = (*deriv_iter[i]).imag();
+  }
+  if( Debug(4) )
+  {
+    cdebug(4)<<"equation: ";
+    for( int i=0; i<npert; i++ )
+    { 
+      ::Debug::getDebugStream()<<uk_index[i]<<":"<<deriv_real_[i]<<","<<deriv_imag_[i]<<" "; 
+    }
+    ::Debug::getDebugStream()<<" -> "<<diff<<endl;
+  }
+  // add equation to solver
+  solver_.makeNorm(npert,uk_index,&deriv_real_[0],1.,diff.real());
+  num_equations_++;
+  solver_.makeNorm(npert,uk_index,&deriv_imag_[0],1.,diff.imag());
+  num_equations_++;
+}
+
+template<typename T>
+void Solver::fillEquations (const VellSet &vs)
+{
+  int npert = vs.numSpids();
+  FailWhen(npert>num_spids_,ssprintf("child %d returned %d spids, but only "
+            "%d were reported during spid discovery",cur_child_,npert,num_spids_));
+  const Vells &diffval = vs.getValue();
+
+  // ok, this is where it gets hairy. The main val and each pertval 
+  // could, in principle, have a different set of variability axes 
+  // (that is, their shape along any axis can be equal to 1, to indicate
+  // no variability). This is the same problem we deal with in Vells 
+  // math, only on a grander scale, since here N+2 Vells have to 
+  // be iterated over simultaneously (1 driving term, N derivatives,
+  // 1 flag vells). Fortunately Vells math provides some help here
+  // in the form of strided iterators
+  SpidInfo *pspi[npert];    // spid map for each derivative looked up in advance
+  Vells::Shape outshape;          // output shape: superset of input shapes
+  // fill in shape arrays for computeStrides() below
+  const Vells::Shape * shapes[npert+2];
+  int uk_index[npert];            // index of current unknown per each 
+  // derivative (since we may have multiple unknowns per spid due to tiling,
+  // we keep track of the current one when filling equations)
+  shapes[0] = &( diffval.shape() );
+  shapes[1] = &( diffval.flagShape() ); // returns null shape if no flags
+  int j=2;
+  // go over derivatives, find spids in map, fill in shapes
+  for( int i=0; i<npert; i++,j++ )
+  {
+    // find spid in map, and save pointer to map entry
+    VellSet::SpidType spid = vs.getSpid(i);
+    SpidMap::iterator iter = spids_.find(vs.getSpid(i));
+    FailWhen(iter == spids_.end(),ssprintf("child %d returned spid %d that was "
+            "not reported during spid discovery",cur_child_,spid));
+    SpidInfo &spi = iter->second;
+    pspi[i] = &spi;
+    // init various indices
+    uk_index[i] = spi.uk_index;
+    for( int ii=0; ii<Axis::MaxAxis; ii++ )
+    {
+      spi.tile_index[ii] = 0;
+      spi.tile_uk0[ii] = spi.uk_index;
+    }
+    // get shape of derivative
+    shapes[j] = &( vs.getPerturbedValue(i).shape() );
+  }
+  // compute output shape (the union of all input shapes), and
+  // strides for all vells 
+  Vells::computeStrides(outshape,strides_,npert+2,shapes,"Solver::getResult");
+  int outrank = outshape.size();
+  // create strided iterators for all vells
+  Vells::ConstStridedIterator<T> diff_iter(diffval,strides_[0]);
+  Vells::ConstStridedFlagIterator flag_iter(diffval,strides_[1]);
+  std::vector<Vells::ConstStridedIterator<T> > deriv_iter(npert);
+  j=2;
+  for( int i=0; i<npert; i++,j++ )
+    deriv_iter[i] = Vells::ConstStridedIterator<T>(vs.getPerturbedValue(i),strides_[j]);
+  // create counter for output shape
+  Vells::DimCounter counter(outshape);
+  // now start generating equations. repeat while counter is valid
+  // (we break out below, when incrementing the counter)
+  while( true )
+  {
+    // fill equations only if unflagged...
+    if( !(*flag_iter&flag_mask_) )
+      fillEqVectors(npert,uk_index,*diff_iter,deriv_iter);
+    // increment counter and all iterators
+    int ndim = counter.incr(); 
+    if( !ndim )    // break out when counter is finished
+      break;
+    diff_iter.incr(ndim);
+    flag_iter.incr(ndim);
+    for( int ipert=0; ipert<npert; ipert++ )
+    {
+      deriv_iter[ipert].incr(ndim);
+      // if this is a tiled spid, we need to figure out whether we
+      // have changed tiles, and what the new uk_index is
+      SpidInfo &spi = *pspi[ipert];
+      if( spi.nuk > 1 )
+      {
+        // ndim tells us how many dimensions we have advanced over
+        // (with the last dimension iterating the fastest)
+        // That is, index N-ndim has been incremented, while indices
+        // N-ndim+1 ... N-1 have been reset to 0. Work out our tile
+        // numbers appropriately
+        int idim = outrank - ndim;  // idim=N-ndim, the incremented dimension
+        // Reset unknown index for this dimension to beginning of slice.
+        // tile_uki0[i] is the index of the start of the slice for the
+        // current values of tile indices 0...i-1.
+        int uk0 = spi.tile_uk0[idim];
+        if( spi.tile_size[idim] )
+        {
+          int ti = spi.tile_index[idim] = counter.counter(idim) / spi.tile_size[idim];
+          // work out start of slice for indices 0...idim-1,idim
+          uk0 += ti * spi.tile_stride[idim];
+        }
+        // this is the new uk_index then
+        uk_index[ipert] = uk0;
+        // reset the remaining tile indices to 0, and update
+        // their slice starting points
+        for( idim++; idim < outrank; idim++ )
+        {
+          spi.tile_uk0[idim] = uk0;
+          spi.tile_index[idim] = 0;
+        }
+      }
+    }
+  }
+}        
+
 
 // Get the result for the given request.
 //##ModelId=400E53550270
@@ -169,333 +327,207 @@ int Solver::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &,
                        const Request &request, bool newreq)
 {
-  // a cell-less request contains commands and states only, and thus it should
-  // passed on to the children as is (since we override pollChildren() to do
-  // nothing) ad nothing else done
-  if( !request.hasCells() )
-  {
-    return Node::pollChildren(child_results_,resref,request);
-  }
-  // Reset current values if needed.
-  // That is possible if a getResult is done without a processCommands
-  // (thus without a rider in the request).
-  if (itsResetCur) {
-    resetCur();
-    setCurState();
-  }
-  // Use single derivative by default, or higher mode if specified in request
+  // Use single derivative by default, or a higher mode if specified in request
   int eval_mode = std::max(request.evalMode(),int(Request::DERIV_SINGLE));
-  // The result has 1 plane.
+  // The result has no planes, all solver information is in extra fields
   Result& result = resref <<= new Result(0);
-//  VellSet& vellset = result.setNewVellSet(0);
   DMI::Record &solveResult = result[FSolverResult] <<= new DMI::Record;
-  DMI::Vec& metricsList = solveResult[FMetrics] <<= new DMI::Vec(TpDMIRecord,1);
-  // Allocate variables needed for the solution.
-  uint nspid = 0;
-  vector<int> spids;
-  Vector<double> solution;
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  // get the request ID -- we're going to be incrementing the part of it 
-  // corresponding to our symdeps
+  // Keep a copy of the solver result in the state record, so that per-iteration metrics
+  // can be tracked while debugging
+  wstate()[FSolverResult].replace() <<= &solveResult;
+  DMI::List & metricsList = solveResult[FMetrics] <<= new DMI::List;
+  DMI::List * pDebugList = 0;
+  if( debug_lvl_>0 )
+    solveResult["Debug"] <<= pDebugList = new DMI::List;
+  // get the request ID -- we're going to be incrementing the iteration index
   RequestId rqid = request.id();
-  RqId::setSubId(rqid,iter_depmask_,0);
-  RequestId next_rqid = rqid;
-  RqId::incrSubId(next_rqid,iter_depmask_);
-  // Create a new request and attach the solvable parm specification if needed.
-  // We'll keep the request object via reference; note that
-  // solve()/fillSolution() may subsequently create new request objects
-  // and attach them to this ref; so we can't just say Request &req = reqref()
-  // and use req from then on, as the request object is likely to change.
-  // Instead, all operations will go via the ref.
+  RqId::setSubId(rqid,iter_depmask_,0);      // current ID starts at 0
+  RequestId next_rqid = rqid;  
+  RqId::incrSubId(next_rqid,iter_depmask_);  // next ID is iteration 1
+  // Now, generate a "service" request that will 
+  // (a) setup our solvables
+  // (b) do spid discovery
   Request::Ref reqref;
-  reqref <<= new Request(request.cells(),Request::DISCOVER_SPIDS,rqid);
-  // rider of original request gets sent up the first time
-  reqref().copyRider(request);
-  reqref().setServiceFlag(true);
-  if( state()[FSolvable].exists() ) {
+  Request &req = reqref <<= new Request(request.cells(),Request::DISCOVER_SPIDS,rqid);
+  // rider of original request gets sent up along with it
+  req.copyRider(request);
+  req.setServiceFlag(true);
+  // do we have a solvables spec in our state record?
+  const DMI::Record *solvables = state()[FSolvable].as_po<DMI::Record>();
+  if( solvables )
+  {
     DMI::Record& rider = Rider::getRider(reqref);
-    rider[itsParmGroup].replace() <<= wstate()[FSolvable].as_wp<DMI::Record>();
-  } else {
-    // no solvables specified -- clear the group record
-    Rider::getGroupRec(reqref,itsParmGroup,Rider::NEW_GROUPREC);
+    rider[parm_group_].replace() <<= wstate()[FSolvable].as_wp<DMI::Record>();
+  } 
+  else 
+  {
+    // no solvables specified -- clear the group record, and assume parms have been
+    // set solvable externally somehow
+    Rider::getGroupRec(reqref,parm_group_,Rider::NEW_GROUPREC);
   }
   reqref().validateRider();
-  // send up request to figure out spids
+  // send up request to figure out spids. We can poll syncronously since there's
+  // nothing for us to do until all children have returned
   int retcode = Node::pollChildren(child_results_,resref,*reqref);
   if( retcode&(RES_FAIL|RES_WAIT) )
     return retcode;
-  // merge all child spids together using Node's standard function
+  // Node's standard discoverSpids() implementation merges all child spids together
+  // into a result object. This is exactly what we need here
   Result::Ref tmpres;
-  Node::discoverSpids(tmpres,child_results_,*reqref);
-  // ok, now we should have a spid map:
-  const DMI::Record * spid_map = tmpres[FSpidMap].as_po<DMI::Record>();
-  if( spid_map )
+  Node::discoverSpids(tmpres,child_results_,req);
+  // discard child results
+  for( uint i=0; i<child_results_.size(); i++ )
+    child_results_[i].detach();
+  // ok, now we should have a spid map
+  num_unknowns_ = 0;
+  const DMI::Record * pspid_map = tmpres[FSpidMap].as_po<DMI::Record>();
+  if( pspid_map )
   {
-    // for the time being, just stuff it into our state record
-    wstate()[FSpidMap].replace() <<= spid_map;
+    // insert a copy of spid map record into the solver result
+    solveResult[FSpidMap].replace() <<= pspid_map;
+    // populate our map from the record
+    populateSpidMap(*pspid_map,request.cells());
   }
-  else
+  if( !num_unknowns_ )
   {
-    // no spids discovered, so may as well fail...
-    Throw("no spids discovered by this solver");
+    // no unknowns/spids discovered, so may as well fail...
+    Throw("spid discovery did not return any solvable parameters");
   }
-  // clear everything from the request and set eval mode properly
-  reqref().setServiceFlag(false);
-  reqref().clearRider();
-  reqref().setEvalMode(eval_mode);
-  // Take care that the matrix is cleared if needed.
-  if (itsCurClearMatrix) 
-      itsSpids.clear();
-  // Iterate as many times as needed.
-  // matrix of solutions kept here
-  LoMat_double allSolutions;
+  num_spids_ = spids_.size();
+  solver_.set(num_unknowns_);
+  cdebug(2)<<"solver initialized for "<<num_unknowns_<<" unknowns\n";
+  
+  // resize temporaries used in fillEquations()
+  deriv_real_.resize(num_unknowns_);
+  deriv_imag_.resize(num_unknowns_);
+  // ISO C++ won't allow a vector of Strides, hence this old-style kludge
+  if( strides_ )
+    delete [] strides_;
+  strides_ = new Vells::Strides[num_spids_+2];
+  // and other stuff used during solution
+  Vector<double> solution(num_unknowns_);   // solution vector from solver
+  
+  // matrix of incremental solutions -- allocate directly in solver
+  // result so that it stays visible in our state record (handy
+  // when debugging trees, for instance)
+  DMI::NumArray & allSolNA = solveResult[FIncrementalSolutions] 
+        <<= new DMI::NumArray(Tpdouble,LoShape(max_num_iter_,num_unknowns_));
+  LoMat_double & incr_solutions = allSolNA.getArray<double,2>();
+  
+  // OK, now create the "real" request object. This will be modified from 
+  // iteration to iteration, so we keep it attached to reqref and rely on COW
+  reqref <<= new Request(request.cells(),eval_mode);
   int step;
-  for (step=0; step<itsCurNumIter; step++) 
+  for( step=0; step < max_num_iter_; step++ ) 
   {
     // increment the solve-dependent parts of the request ID
     rqid = next_rqid;
     RqId::incrSubId(next_rqid,iter_depmask_);
+    // set request Ids in the request object
     reqref().setId(rqid);
     reqref().setNextId(next_rqid);
-    // clear/unlock child results
-    for( int i=0; i<numChildren(); i++ )
+    num_equations_ = 0;
+    // start async child poll
+    startAsyncPoll(*reqref);
+    int rescode;
+    Result::Ref child_res;
+    // wait for child results until all have been polled (await will return -1 when this is the case)
+    std::list<Result::Ref> child_fails;  // any fails accumulated here
+    while( (cur_child_ = awaitChildResult(rescode,child_res,*reqref)) >= 0 )
     {
-	    child_reslock[i].release();
-      child_results_[i].detach();
-    }
-    int retcode = Node::pollChildren(child_results_, resref, *reqref);
-    // tell children to only hold cache if it doesn't depend on iteration
-    holdChildCaches(true,iter_depmask_);
-    
-    setExecState(CS_ES_EVALUATING);
-    for( int i=0; i<numChildren(); i++ )
-      if( child_results_[i].valid() )
-        child_reslock[i].relock(child_results_[i]->mutex());
-    // a fail or a wait is returned immediately
-    if( retcode&(RES_FAIL|RES_WAIT) )
-      return retcode;
-    // else process 
-    vector<const VellSet*> chvellsets;
-    chvellsets.reserve(numChildren() * child_results_[0]->numVellSets());
-    // Find the set of all spids from all condeq results.
-    for (uint i=0; i<child_results_.size(); i++)
-      if( itsIsCondeq[i] )
+      // tell child to hold cache if it doesn't depend on iteration
+      getChild(cur_child_).holdCache(!(rescode&iter_depmask_));
+//    setExecState(CS_ES_EVALUATING);
+      // has the child failed? 
+      if( rescode&RES_FAIL )
       {
-        for (int iplane=0; iplane<child_results_[i]->numVellSets(); iplane++) 
-        {
-          if (! child_results_[i]->vellSet(iplane).isFail()) 
-          {
-            chvellsets.push_back (&(child_results_[i]->vellSet(iplane)));
-          }
-        }
+        child_fails.push_back(child_res);
+        continue;
       }
-    int npertsets;
-    spids = Function::findSpids (npertsets,chvellsets);
-    nspid = spids.size();
-    // It first time, initialize the solver.
-    // Otherwise check if spids are still the same and initialize
-    // solver for the 2nd step and so.
-    if (itsSpids.empty()) {
-      AssertStr( nspid > 0,
-                 "No solvable parameters found in solver " << name() );
-      itsSolver.set (nspid);
-      itsNrEquations = 0;
-      itsSpids = spids;
-    } else {
-      AssertStr( itsSpids == spids,
-                 "Different spids while solver is not restarted" );
-      if (step > 0) {
-        itsNrEquations = 0;
+      // has the child asked us to wait?
+      if( rescode&RES_WAIT )  // this never happens, so ok to return for now
+        return rescode;
+      // treat each vellset in the result independently
+      for( int ivs = 0; ivs < child_res->numVellSets(); ivs++ )
+      {
+        const VellSet &vs = child_res->vellSet(ivs);
+        // ignore failed or null vellsets
+        if( vs.isFail() || vs.isNull() )
+          continue;
+        if( vs.getValue().isReal() )
+          fillEquations<double>(vs);
+        else
+          fillEquations<dcomplex>(vs);
       }
-    }
-    
-    // Now feed the solver with equations from the results.
-    // Define the vector with derivatives (for real and imaginary part).
-    vector<double> derivReal(nspid);
-    vector<double> derivImag(nspid);
-
-    // To be used as an index array for quickly feeding the equations
-    // to the solver.
-    vector<int>    derivIndex(nspid);
-    
-    // Loop through all results and fill the deriv vectors.
-    for (uint i=0; i<chvellsets.size(); i++) {
-      const VellSet& chresult = *chvellsets[i];
-      bool isReal = chresult.getValue().isReal();
-
-      // Get nr of elements in the values.
-      int nrval = chresult.getValue().nelements();
-
-      // Get pointer to all perturbed values.
-      int index=0;
-      
-      const VellsFlagType* isFlagged=0;
-      bool hasFlags = chresult.hasDataFlags();
-      
-      if(hasFlags){
-        AssertStr( chresult.dataFlags().nelements() == nrval,"Number of flags is not equal to number of data points");
-        isFlagged = chresult.dataFlags().begin<VellsFlagType>();
-      }
-
-
-      if (isReal) {
-        //------------ If Real -----------
-
-        const double* values = chresult.getValue().realStorage();
-        vector<const double*> perts(nspid, 0);
-        for (uint j=0; j<nspid; j++) {
-          int inx = chresult.isDefined (spids[j], index);
-          if (inx >= 0) {
-            Assert(chresult.getPerturbedValue(inx).nelements() == nrval);
-            perts[j] = chresult.getPerturbedValue(inx).realStorage();
-          }
-        }// for j...
-       
-        
-        // Generate an equation for each value element.
-        // An equation contains the value and all derivatives.
-        for (int j=0; j<nrval; j++) {
-          if(!hasFlags || (hasFlags && !isFlagged[j])){
-            int numDerivatives=0;
-            for (uint spid=0; spid<perts.size(); spid++) {
-              if (perts[spid]) {
-                derivReal[numDerivatives] = perts[spid][j];
-                derivIndex[numDerivatives] = spid;
-                numDerivatives++;
-              }
-            }// for spid...
-
-            
-            //====  THE EQUATION  ===
-            itsSolver.makeNorm (numDerivatives, &derivIndex[0], &derivReal[0], 1., values[j]);
-            itsNrEquations++;
-
-
-          }// if not flagged
-        } // for j...
-        
-      } else {
-      //------------ If Complex ------------
-
-        const dcomplex* values = chresult.getValue().complexStorage();
-        vector<const dcomplex*> perts(nspid, 0);
-        for (uint j=0; j<nspid; j++) {
-          int inx = chresult.isDefined (spids[j], index);
-          if (inx >= 0) {
-            Assert(chresult.getPerturbedValue(inx).nelements() == nrval );
-            perts[j] = chresult.getPerturbedValue(inx).complexStorage();
-          }
-        }
-        // Generate an equation for each value element.
-        // An equation contains the value and all derivatives.
-        double val;
-        for (int j=0; j<nrval; j++) {
-          if(!hasFlags || (hasFlags && !isFlagged[j])){
-            int numDerivatives=0;
-            for (uint spid=0; spid<perts.size(); spid++) {
-              if (perts[spid]) {
-                derivReal[numDerivatives] = perts[spid][j].real();
-                derivImag[numDerivatives] = perts[spid][j].imag();
-                derivIndex[numDerivatives] = spid;
-                numDerivatives++;
-              }
-            }// for spid...
-
-            //====  THE EQUATIONS  ====
-            val = values[j].real();
-            itsSolver.makeNorm (numDerivatives, &derivIndex[0],
-                                &derivReal[0], 1., val);
-            itsNrEquations++;
-
-            val = values[j].imag();
-            itsSolver.makeNorm (numDerivatives, &derivIndex[0],
-                                &derivImag[0], 1., val);
-            itsNrEquations++;
-
-
-          } // if not Flagged
-        } // For j...
-
-      }// If isReal / else
-
-    }// Loop over VellSets
-
-
-    // Size the solutions vector.
-    // Fill it with zeroes and stop if no invert will be done.
-    if (step == itsCurNumIter-1  &&  !itsCurInvertMatrix) {
-      if (step == 0) {
-        allSolutions.resize(1,nspid);
-        allSolutions = 0.;
-      }
-      break;
-    }
-    solution.resize(nspid);
+    } // end of loop over children
+    FailWhen(!num_equations_,"no equations were generated");
+    cdebug(4)<<"accumulated "<<num_equations_<<" equations\n";
     // Solve the equation.
-    DMI::Record& solRec = metricsList[step] <<= new DMI::Record;
-    // request for last iteration is processed separately
-    bool lastIter = itsCurLastUpdate && step==itsCurNumIter-1;
-    solve(solution, reqref, solRec, resref, child_results_,
-          itsCurSaveFunklets,lastIter);
-    // send up one final update if needed
-    if( lastIter )
-    {
-      // increment the solve-dependent parts of the request ID one last time
-      Request &lastreq = reqref <<= new Request;
-      RqId::incrSubId(rqid,iter_depmask_);
-      lastreq.setId(rqid);
-      lastreq.setServiceFlag(True);
-      lastreq.setNextId(request.nextId());
-      ParmTable::lockTables();
-      // unlock all child results
-      for( int i=0; i<numChildren(); i++ )
-      {
-	      child_reslock[i].release();
-        child_results_[i].detach();
-      }
-      Node::pollChildren(child_results_, resref, lastreq);
-    }
-    // Unlock all parm tables used.
-    ParmTable::unlockTables();
+    DMI::Record * pSolRec = new DMI::Record;
+    metricsList.addBack(pSolRec);
+    DMI::Record * pDebug = 0;
+    if( pDebugList )
+      pDebugList->addBack(pDebug = new DMI::Record);
+    solve(solution,reqref,*pSolRec,pDebug,do_save_funklets_ && step == max_num_iter_-1);
     // copy solutions vector to allSolutions row
-    allSolutions.resizeAndPreserve(step+1,nspid);
-    allSolutions(step,LoRange::all()) = B2A::refAipsToBlitz<double,1>(solution);
+    incr_solutions(step,LoRange::all()) = B2A::refAipsToBlitz<double,1>(solution);
   }
-  // Put the spids in the result.
-  solveResult[FSpids] = spids;
-  solveResult[FIncrementalSolutions] = new DMI::NumArray(allSolutions);
+  // send up one final update if needed
+  if( do_last_update_ && step == max_num_iter_ )
+  {
+    // reqref will have already been populated with updates by solve() above.
+    // However, we want to clear out the cells to avoid re-evaluation, so
+    // we create another request object here and copy over the rider
+    Request::Ref lastref;
+    Request &lastreq = lastref <<= new Request;
+    lastreq.setId(next_rqid);
+    // note that this is not a service request, since it doesn't imply 
+    // any state changes
+    lastreq.copyRider(*reqref);
+    lastreq.setNextId(request.nextId());
+    ParmTable::lockTables();
+    Node::pollChildren(child_results_, resref, lastreq);
+    ParmTable::unlockTables();
+  }
+  // if we broke out of the loop because of some other criterion, we need
+  // to crop the incremental solutions matrix to [0:step-1,*]
+  if( step < max_num_iter_ )
+  {
+    // create new array and copy subarray of incremental solutions into it
+    DMI::NumArray::Ref arr_ref;
+    arr_ref <<= new NumArray(Tpdouble,LoShape(step,num_unknowns_));
+    arr_ref().getArray<double,2>() = incr_solutions(LoRange(0,step),LoRange::all());
+    // replace incr_solutions in solver result
+    solveResult[FIncrementalSolutions].replace() <<= arr_ref;
+  }
   return 0;
 }
 
 
-
-
-
-
-
+// helper function to copy a triangular matrix (from solver object)
+// to a proper square matrix
+template<class T>
+static DMI::NumArray::Ref triMatrix (T *tridata,int n)
+{
+  DMI::NumArray::Ref out(new DMI::NumArray(typeIdOf(T),LoShape(n,n)));
+  blitz::Array<T,2> & arr = out().getArray<T,2>();
+  for( int row=0; row<n; row++ )
+  {
+    int len = n-row;
+    arr(row,LoRange(0,len-1)) = blitz::Array<T,1>(tridata,LoShape1(len),blitz::neverDeleteData);
+    tridata += len;
+  }
+  return out;
+}
 
 //====================>>>  Solver::solve  <<<====================
 
 void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
-                    DMI::Record& solRec, Result::Ref& resref,
-                    std::vector<Result::Ref>& child_results,
-                    bool saveFunklets, bool lastIter)
+                    DMI::Record& solRec,DMI::Record * pDebugRec,
+                    bool saveFunklets)
 {
-  // Do some checks and initialize.
-  int nspid = itsSpids.size();
-  Assert(int(solution.nelements()) == nspid);
-  ///  AssertStr(itsNrEquations >= nspid, "Only " << itsNrEquations
-  ///             << " equations for "
-  ///             << nspid << " solvable parameters in solver " << name());
+  reqref().clearRider();
   solution = 0;
-  if (lastIter) 
-  {
-    // generate a command-only (no cells) request for the last update
-    reqref <<= new Request;
-    reqref[FRider] <<= new DMI::Record;
-  }
-  Request &req = reqref();
-  req.clearRider();
   // It looks as if in LSQ solveLoop and getCovariance
   // interact badly (maybe both doing an invert).
   // So make a copy to separate them.
@@ -506,79 +538,81 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
 
   // Make a copy of the solver for the actual solve.
   // This is needed because the solver does in-place transformations.
-  ////  FitLSQ solver = itsSolver;
-  bool solFlag = itsSolver.solveLoop (fit, rank, solution, itsCurUseSVD);
+  ////  FitLSQ solver = solver_;
+  bool solFlag = solver_.solveLoop (fit, rank, solution, use_svd_);
 
   // {
-  LSQaips tmpSolver(itsSolver);
+  LSQaips tmpSolver(solver_);
     // both of these calls produce SEGV in certain situations; commented out until
     // Wim or Ger fixes it
-    //cdebug(1) << "result_covar = itsSolver.getCovariance (covar);" << endl;
-    //bool result_covar = itsSolver.getCovariance (covar);
-   //cdebug(1) << "result_errors = itsSolver.getErrors (errors);" << endl;
+    //cdebug(1) << "result_covar = solver_.getCovariance (covar);" << endl;
+    //bool result_covar = solver_.getCovariance (covar);
+   //cdebug(1) << "result_errors = solver_.getErrors (errors);" << endl;
    bool result_errors = tmpSolver.getErrors (errors);
     //cdebug(1) << "result_errors = " << result_errors << endl;
  // }
   
   
-  cdebug(4) << "Solution after:  " << solution << endl;
+  cdebug(4)<<"solution after: " << solution << ", rank " << rank << endl;
   // Put the statistics in a record the result.
   solRec[FRank]   = int(rank);
   solRec[FFit]    = fit;
   solRec[FErrors] = errors;
   //solRec[FCoVar ] = covar; 
   solRec[FFlag]   = solFlag; 
-  solRec[FMu]     = itsSolver.getWeightedSD();
-  solRec[FStdDev] = itsSolver.getSD();
-  //  solRec[FChi   ] = itsSolver.getChi());
+  solRec[FMu]     = solver_.getWeightedSD();
+  solRec[FStdDev] = solver_.getSD();
+  //  solRec[FChi   ] = solver_.getChi());
+  // Put debug info
+  if( pDebugRec )
+  {
+    DMI::Record &dbg = *pDebugRec;
+    uint nun,np,ncon,ner,rank;
+    double * nEq,*known,*constr,*er,*sEq,*sol,prec,nonlin;
+    uint * piv;
+    solver_.debugIt(nun,np,ncon,ner,rank,nEq,known,constr,er,piv, sEq,sol,prec,nonlin);
+    if( nEq )
+      dbg["$nEq"] = triMatrix(nEq,nun);
+    dbg["$known"] = LoVec_double(known,LoShape1(np),blitz::neverDeleteData);
+    if( ncon )
+      dbg["$constr"] = LoMat_double(constr,LoShape2(ncon,nun),blitz::neverDeleteData,blitz::ColumnMajorArray<2>());
+    dbg["$er"] = LoVec_double(er,LoShape1(ner),blitz::neverDeleteData);
+    dbg["$piv"] = LoVec_int(reinterpret_cast<int*>(piv),LoShape1(np),blitz::neverDeleteData);
+    if( sEq )
+      dbg["$sEq"] = triMatrix(sEq,np);
+    dbg["$sol"] = LoVec_double(sol,LoShape1(np),blitz::neverDeleteData);
+    dbg["$prec"] = prec;
+    dbg["$nonlin"] = nonlin;
+  }
   
   // Put the solution in the rider:
   //    [FRider][<parm_group>][CommandByNodeIndex][<parmid>]
   // will contain a DMI::Record for each parm 
-  DMI::Record& dr1 = Rider::getCmdRec_ByNodeIndex(reqref,itsParmGroup,
-                                                 Rider::NEW_GROUPREC);
-  fillSolution (dr1,itsSpids, solution, saveFunklets);
-  // make sure the request rider is validated
-  req.validateRider();
-  ParmTable::unlockTables();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-//##ModelId=400E53550276
-void Solver::fillSolution (DMI::Record& rec, const vector<int>& spids,
-                           const Vector<double>& solution, bool save_polc)
-{
-  // Split the solution into vectors for each parm.
-  // Reserve enough space in the vector.
-  vector<double> parmSol;
-  uint nspid = spids.size();
-  parmSol.reserve (nspid);
-  int lastParmid = spids[0] / 256;
-  for (uint i=0; i<nspid; i++) {
-    if (spids[i]/256 != lastParmid) {
-      DMI::Record& drp = rec[lastParmid] <<= new DMI::Record;
-      drp[FUpdateValues] = parmSol;
-      lastParmid = spids[i] / 256;
-      parmSol.resize(0);
-      if( save_polc )
-        drp[FSaveFunklets] = true;
-    }
-    parmSol.push_back (solution[i]);
+  DMI::Record& grouprec = Rider::getCmdRec_ByNodeIndex(reqref,parm_group_,
+                                                       Rider::NEW_GROUPREC);
+  
+  for( ParmUkMap::const_iterator iparm = parm_uks_.begin(); 
+       iparm != parm_uks_.end(); iparm++ )
+  {
+    int nodeindex = iparm->first;
+    // create command record for this parm
+    DMI::Record & cmdrec = grouprec[nodeindex] <<= new DMI::Record;
+    const IndexSet & idxset = iparm->second;
+    // create vector of updates and get pointer to its data
+    DMI::NumArray &arr = cmdrec[FUpdateValues] <<= new DMI::NumArray(Tpdouble,LoShape(idxset.size()));
+    double *pupd = static_cast<double*>(arr.getDataPtr());
+    int j=0;
+    // fill updates for this node's spids, by fetching them from the solution 
+    // vector one by one via the index set
+    for( IndexSet::const_iterator ii = idxset.begin(); ii != idxset.end(); ii++ )
+      pupd[j++] = solution(*ii);
+    // add save command if requested
+    if( saveFunklets )
+      cmdrec[FSaveFunklets] = true;
   }
-  DMI::Record& drp = rec[lastParmid] <<= new DMI::Record;
-  drp[FUpdateValues] = parmSol;
-  if( save_polc )
-    drp[FSaveFunklets] = true;
+  // make sure the request rider is validated
+  reqref().validateRider();
+  ParmTable::unlockTables();
 }
 
 //##ModelId=400E53550267
@@ -586,7 +620,7 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
 {
   Node::setStateImpl(newst,initializing);
   // get the parm group
-  newst[FParmGroup].get(itsParmGroup,initializing);
+  newst[FParmGroup].get(parm_group_,initializing);
   // get symdeps for iteration and solution
   // recompute depmasks if active sysdeps change
   if( newst[FIterationSymdeps].get_vector(iter_symdeps_,initializing) || initializing )
@@ -594,51 +628,18 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
   // now reset the dependency mask if specified; this will override
   // possible modifications made above
   newst[FIterationDependMask].get(iter_depmask_,initializing);
-  
-  // get default solve job description
-  DMI::Record *pdef = newst[FDefault].as_wpo<DMI::Record>();
-  // if no default record at init time, create a new one
-  if( !pdef && initializing )
-    newst[FDefault] <<= pdef = new DMI::Record; 
-  else
-    itsResetCur = true;
-  if( pdef )
-  {
-    DMI::Record &def = *pdef;
-    if( def[FNumIter].get(itsDefNumIter,initializing) &&
-        itsDefNumIter < 1 )
-      def[FNumIter] = itsDefNumIter = 1;
-    def[FClearMatrix].get(itsDefClearMatrix,initializing);
-    def[FInvertMatrix].get(itsDefInvertMatrix,initializing);
-    def[FSaveFunklets].get(itsDefSaveFunklets,initializing);
-    def[FLastUpdate].get(itsDefLastUpdate,initializing);
-    def[FEpsilon].get(itsDefEpsilon,initializing);
-    def[FUseSVD].get(itsDefUseSVD,initializing);
-  }
+
+  // get debug flag
+  newst[FDebugLevel].get(debug_lvl_,initializing);
+  // get other solver parameters
+  newst[FFlagMask].get(flag_mask_,initializing);
+  newst[FSaveFunklets].get(do_save_funklets_,initializing);  
+  newst[FLastUpdate].get(do_last_update_,initializing);  
+  newst[FUseSVD].get(use_svd_,initializing);  
+  newst[FNumIter].get(max_num_iter_,initializing);  
+  newst[FEpsilon].get(min_epsilon_,initializing);
 }
 
-void Solver::resetCur()
-{
-  itsCurNumIter      = itsDefNumIter;
-  itsCurInvertMatrix = itsDefInvertMatrix;
-  itsCurClearMatrix  = itsDefClearMatrix;
-  itsCurSaveFunklets    = itsDefSaveFunklets;
-  itsCurLastUpdate   = itsDefLastUpdate;
-  itsCurEpsilon      = itsDefEpsilon;
-  itsCurUseSVD       = itsDefUseSVD;
-  itsResetCur = false;
-}
-
-void Solver::setCurState()
-{
-  wstate()[FNumIter]      = itsCurNumIter;
-  wstate()[FClearMatrix]  = itsCurClearMatrix;
-  wstate()[FInvertMatrix] = itsCurInvertMatrix;
-  wstate()[FSaveFunklets]    = itsCurSaveFunklets;
-  wstate()[FLastUpdate]   = itsCurLastUpdate;
-  wstate()[FEpsilon]      = itsCurEpsilon;
-  wstate()[FUseSVD]       = itsCurUseSVD;
-}
 
 } // namespace Meq
 

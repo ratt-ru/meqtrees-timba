@@ -37,7 +37,7 @@ using namespace casa;
 
 namespace Meq {
 
-const HIID child_labels[] = { AidRA,AidDec,AidX,AidY,AidZ,AidX|0,AidY|0,AidZ|0  };
+const HIID child_labels[] = { AidRADec,AidXYZ,AidXYZ|0  };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 const HIID FDomain = AidDomain;
@@ -64,34 +64,29 @@ int UVW::getResult (Result::Ref &resref,
                     const std::vector<Result::Ref> &childres,
                     const Request &request,bool newreq)
 {
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,childres);
-  // Check that child results are all OK (no fails, 1 vellset per child)
+  // Check that child results are all OK (no fails, right # of vellsets per child)
   string fails;
-  std::vector<Thread::Mutex::Lock> childvs_lock(num_children);
-  std::vector<Thread::Mutex::Lock> childval_lock(num_children);
+  const int expected_nvs[] = { 2,3,3 };
   for( int i=0; i<num_children; i++ )
   {
     int nvs = childres[i]->numVellSets();
-    if( nvs != 1 )
-      Debug::appendf(fails,"child %s: expecting single VellsSet, got %d;",
-          child_labels[i].toString().c_str(),nvs);
+    if( nvs != expected_nvs[i] )
+      Debug::appendf(fails,"child %s: expecting %d VellSets, got %d;",
+          child_labels[i].toString().c_str(),expected_nvs[i],nvs);
     if( childres[i]->hasFails() )
       Debug::appendf(fails,"child %s: has fails",child_labels[i].toString().c_str());
-    childvs_lock[i].relock(childres[i]->vellSet(0).mutex());
-    childval_lock[i].relock(childres[i]->vellSet(0).getValue().mutex());
   }
   if( !fails.empty() )
     NodeThrow1(fails);
   // Get RA and DEC of phase center, and station positions
   const Vells& vra  = childres[0]->vellSet(0).getValue();
-  const Vells& vdec = childres[1]->vellSet(0).getValue();
-  const Vells& vstx = childres[2]->vellSet(0).getValue();
-  const Vells& vsty = childres[3]->vellSet(0).getValue();
-  const Vells& vstz = childres[4]->vellSet(0).getValue();
-  const Vells& vx0  = childres[5]->vellSet(0).getValue();
-  const Vells& vy0  = childres[6]->vellSet(0).getValue();
-  const Vells& vz0  = childres[7]->vellSet(0).getValue();
+  const Vells& vdec = childres[0]->vellSet(1).getValue();
+  const Vells& vstx = childres[1]->vellSet(0).getValue();
+  const Vells& vsty = childres[1]->vellSet(1).getValue();
+  const Vells& vstz = childres[1]->vellSet(2).getValue();
+  const Vells& vx0  = childres[2]->vellSet(0).getValue();
+  const Vells& vy0  = childres[2]->vellSet(1).getValue();
+  const Vells& vz0  = childres[2]->vellSet(2).getValue();
   // For the time being we only support scalars
   Assert( vra.isScalar() && vdec.isScalar() &&
       	  vstx.isScalar() && vsty.isScalar() && vstz.isScalar() && 

@@ -39,7 +39,7 @@ namespace Meq {
   
 const HIID FObservatory = AidObservatory;
 
-const HIID child_labels[] = { AidRA,AidDec,AidX,AidY,AidZ };
+const HIID child_labels[] = { AidRADec,AidXYZ };
 //const HIID child_labels[] = { AidRA,AidDec};
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
@@ -49,7 +49,7 @@ InitDebugContext(AzEl,"MeqAzEl");
 
 
 AzEl::AzEl()
-: Function(5,child_labels,2)
+: Function(2,child_labels,2)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
@@ -79,12 +79,13 @@ int AzEl::getResult (Result::Ref &resref,
 {
   // Check that child results are all OK (no fails, 1 vellset per child)
   string fails;
+  const int expected_nvs[] = { 2,3 };
   for( uint i=0; i<childres.size(); i++ )
   {
     int nvs = childres[i]->numVellSets();
-    if( nvs != 1 )
-      Debug::appendf(fails,"child %s: expecting single VellsSet, got %d;",
-          child_labels[i].toString().c_str(),nvs);
+    if( nvs != expected_nvs[i] )
+      Debug::appendf(fails,"child %s: expecting %d VellSets, got %d;",
+          child_labels[i].toString().c_str(),expected_nvs[i],nvs);
     if( childres[i]->hasFails() )
       Debug::appendf(fails,"child %s: has fails",child_labels[i].toString().c_str());
   }
@@ -92,7 +93,7 @@ int AzEl::getResult (Result::Ref &resref,
     NodeThrow1(fails);
   // Get RA and DEC for conversion
   const Vells& vra  = childres[0]->vellSet(0).getValue();
-  const Vells& vdec = childres[1]->vellSet(0).getValue();
+  const Vells& vdec = childres[0]->vellSet(1).getValue();
   // For the time being we only support scalars
   Assert( vra.isScalar() && vdec.isScalar() );
 
@@ -103,9 +104,9 @@ int AzEl::getResult (Result::Ref &resref,
   {
     FailWhen(childres.size() < 5,"observatory name not supplied so X,Y,Z children expected");
     // create frame for individual telescope station
-    const Vells& vx  = childres[2]->vellSet(0).getValue();
-    const Vells& vy  = childres[3]->vellSet(0).getValue();
-    const Vells& vz  = childres[4]->vellSet(0).getValue();
+    const Vells& vx  = childres[1]->vellSet(0).getValue();
+    const Vells& vy  = childres[1]->vellSet(1).getValue();
+    const Vells& vz  = childres[1]->vellSet(2).getValue();
     Assert( vx.isScalar() && vy.isScalar() && vz.isScalar() );
     double x = vx.getScalar<double>();
     double y = vy.getScalar<double>();

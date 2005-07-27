@@ -208,6 +208,9 @@ public:
   //##ModelId=400E530400F0
   typedef CountedRef<Vells> Ref;
   typedef Axis::Shape       Shape;
+  typedef int Strides[Axis::MaxAxis];
+
+  static Strides null_strides;  
     
   // deine some constant Vells
   static const Vells & Null  ()   { _init_static(); return *pNull_; }
@@ -526,25 +529,156 @@ public:
     //##ModelId=400E5356011F
   string sdebug (int detail=1,const string &prefix="",const char *nm=0) const;
   
+  // =========================== Iterator and stride support 
+  
   // helper funtion to compute output shape and data strides, given two
   // input shapes. Used throughout Vells math
   static void computeStrides (Vells::Shape &outshape,
-                       int strides[][Axis::MaxAxis],
-                       int nshapes,const Vells::Shape * shapes[],
-                       const string &opname);
+                              Strides strides[],
+                              int nshapes,const Vells::Shape * shapes[],
+                              const string &opname = "computeStrides");
   
-  // convenience version for two shape arguments
+  // convenience version for two Vells arguments
   static void computeStrides (Vells::Shape &shape,
-                       int strides[2][Axis::MaxAxis],
-                       const Vells::Shape &a,const Vells::Shape &b,
-                       const string &opname);
+                              Strides strides[2],
+                              const Vells::Shape &a,const Vells::Shape &b,
+                              const string &opname = "computeStrides")
+  {
+    const Vells::Shape * shapes[2] = { &a,&b };
+    computeStrides(shape,strides,2,shapes,opname);
+  }
   
   // convenience version for two Vells arguments with optional flags
   // strides filled as follows: 0/1 Vells a/b, 2/3 flags a/b
   static void computeStrides (Vells::Shape &shape,
-                       int strides[4][Axis::MaxAxis],
-                       const Vells &a,const Vells &b,
-                       const string &opname);
+                              Strides strides[4],
+                              const Vells &a,const Vells &b,
+                              const string &opname = "computeStrides")
+  {
+    const Vells::Shape * shapes[4] = { &a.shape(),&b.shape(),&a.flagShape(),&b.flagShape() };
+    computeStrides(shape,strides,4,shapes,opname);
+  }
+  
+  // === Iterator
+  // Helper class implementing iteration over a strided vells
+  template<class T>
+  class ConstStridedIterator
+  {
+    protected:
+      const T   *ptr;
+      const int *strides;
+      
+    public:
+      ConstStridedIterator ()
+      {}
+    
+      ConstStridedIterator (const T * p,const Strides &str)
+      { init(p,str); }
+
+      ConstStridedIterator (const Vells &vells,const Strides &str)
+      { init(vells,str); }
+
+      ConstStridedIterator (const T & value)
+      { init(value); }
+
+      void init (const T * p,const Strides &str)
+      { ptr = p; strides = str; }
+
+      void init (const Meq::Vells &vells,const Strides &str)
+      { ptr = vells.begin(Type2Type<T>()); strides = str; }
+
+      // a trivial iterator always returning the same value
+      void init (const T &value)
+      { ptr = &value; strides = Vells::null_strides; }
+
+      const T & operator * () const
+      { return *ptr; }
+
+      // advances to next element in the specified number of dimensions
+      // (i.e. if ndim==3, then advances along dimensions 1,2 and 3)
+      void incr (int ndim=1)
+      { 
+        for( int i=0; i<ndim; i++ )
+          ptr += strides[i];
+      }
+  };
+  
+  // Helper class implementing iteration over a strided flag vells
+  class ConstStridedFlagIterator : public ConstStridedIterator<VellsFlagType>
+  {
+    public:
+      ConstStridedFlagIterator (const Vells &vells,const Strides &str)
+      { 
+        if( vells.hasDataFlags() )
+          init(vells.dataFlags(),str); 
+        else
+        {
+          static VellsFlagType zero = 0;
+          init(zero);
+        }
+      }
+    
+  };
+  
+  // Helper class implementing iteration over an N-dimensional shape
+  class DimCounter 
+  {
+    protected:
+      int   rank_;
+      int   shape_[Axis::MaxAxis];
+      int   counter_[Axis::MaxAxis];
+      bool  valid_;
+
+    public:
+      void init (const Vells::Shape &shape0)
+      // note that dimensions in 'shape' are reversed for convenience, 
+      // since the it's the last dimension of the Vells array that iterates
+      // fastest. The strides returned by computeStrides() above are also 
+      // reversed in this manner. The shape() and counter() accessors
+      // below reverse dimensions yet again.
+      {
+        valid_ = true;
+        rank_ = shape0.size();
+        int j = rank_ - 1; 
+        for( int i=0; i<rank_; i++,j-- )
+          shape_[i] = shape0[j];
+        memset(counter_,0,sizeof(int)*rank_); 
+      }
+
+      DimCounter (const Meq::Vells &vells)
+      { init(vells.shape()); }
+
+      DimCounter (const Meq::Vells::Shape &shape)
+      { init(shape); }
+
+      bool valid () const
+      { return valid_; }
+
+      int rank () const
+      { return rank_; }
+
+      int shape (int idim) const
+      { idim = rank_ - idim - 1; return idim>=0 ? shape_[idim] : 0; }
+
+      int counter (int idim) const
+      { idim = rank_ - idim - 1; return idim>=0 ? counter_[idim] : 0; }
+
+      // increments counter. Returns number of dimensions incremented
+      // (i.e. 1 most of the time, when only the last dimension is being
+      // incremented, 2 when the second-to-last is incremented as well, etc.),
+      // or 0 when finished
+      int incr ()
+      {
+        int idim = 0;
+        while( ++counter_[idim] >= shape_[idim] )
+        {
+          counter_[idim] = 0;
+          if( ++idim >= rank_ )
+            return valid_ = 0;
+        }
+        return idim+1;
+      }
+  };
   
   // Helper function to merge vells flags using copy-on-write
   // Executes flags0 |= flags1 & fm
@@ -568,7 +702,6 @@ private:
   static const Vells *pNull_;
   static const Vells *pUnity_;
   
-    
   Vells::Ref  dataflags_;
 
   static VellsFlagType null_flag_;
@@ -618,7 +751,7 @@ private:
   // The opname argument is used for error reporting
     //##ModelId=400E53560174
   Vells (const Vells &a,const Vells &b,int flags,
-         int strides[][Axis::MaxAxis],const std::string &opname);
+         Strides strides[],const std::string &opname);
 
   // helper functions for these two constructors
     //##ModelId=400E5356019D
@@ -626,7 +759,7 @@ private:
 
   static TypeId getResultType (int flags,bool arg_is_complex);
 
-  bool canApplyInPlace (const Vells &other,int strides[Axis::MaxAxis],const std::string &opname);
+  bool canApplyInPlace (const Vells &other,Strides &strides,const std::string &opname);
 
   //##ModelId=400E535601CB
   int getLutIndex () const
@@ -649,11 +782,11 @@ public:
 // pointer to function implementing a binary operation 
     //##ModelId=400E53040116
   typedef void (*BinaryOperPtr)(Vells &out,const Vells &,const Vells &,
-                                const int [2][Axis::MaxAxis]);
+                                const Strides [2]);
   typedef void (*BinaryFuncWFPtr)(Vells &out,const Vells &,const Vells &,
-                                  VellsFlagType,const int [4][Axis::MaxAxis]);
+                                  VellsFlagType,const Strides [4]);
 // pointer to function implementing an unary in-place operation 
-  typedef void (*InPlaceOperPtr)(Vells &out,const Vells &,const int [Axis::MaxAxis]);
+  typedef void (*InPlaceOperPtr)(Vells &out,const Vells &,const Strides &);
   
 // Declares inline unary operator OPER (internally named OPERNAME),
 // plus lookup table for implementations
@@ -682,7 +815,7 @@ public:
 #define declareBinaryOperator(OPER,OPERNAME,x) \
   private: static BinaryOperPtr binary_##OPERNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  \
   public: Vells operator OPER (const Vells &right) const \
-          { int strides[2][Axis::MaxAxis]; \
+          { Strides strides[2]; \
             Vells result(*this,right,0,strides,"operator "#OPER); \
             (*binary_##OPERNAME##_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,strides);  \
             return result; }
@@ -699,7 +832,7 @@ public:
               return right;
             if( right.isNull() )
               return *this;
-            int strides[2][Axis::MaxAxis]; 
+            Strides strides[2]; 
             Vells result(*this,right,0,strides,"operator +"); 
             (*binary_ADD_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,strides);  
             return result; 
@@ -713,7 +846,7 @@ public:
               return right;
             if( right.isUnity() )
               return *this;
-            int strides[2][Axis::MaxAxis]; 
+            Strides strides[2]; 
             Vells result(*this,right,0,strides,"operator *"); 
             (*binary_MUL_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,strides);  
             return result; 
@@ -730,7 +863,7 @@ public:
 #define declareInPlaceOperator(OPER,OPERNAME,x) \
   private: static InPlaceOperPtr inplace_##OPERNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  \
   public: Vells & operator OPER##= (const Vells &right) \
-          { int strides[Axis::MaxAxis]; \
+          { Strides strides; \
             if( canApplyInPlace(right,strides,#OPERNAME) ) \
               (*inplace_##OPERNAME##_lut[getLutIndex()][right.getLutIndex()])(*this,right,strides); \
             else \
@@ -748,7 +881,7 @@ public:
               return *this;
             if( isNull() )
               return (*this) = right;
-            int strides[Axis::MaxAxis]; 
+            Strides strides; 
             if( canApplyInPlace(right,strides,"ADD1") ) 
               (*inplace_ADD1_lut[getLutIndex()][right.getLutIndex()])(*this,right,strides); 
             else 
@@ -764,7 +897,7 @@ public:
               return (*this) = right;
             if( right.isUnity() )
               return *this;
-            int strides[Axis::MaxAxis]; 
+            Strides strides; 
             if( canApplyInPlace(right,strides,"ADD1") ) 
               (*inplace_MUL1_lut[getLutIndex()][right.getLutIndex()])(*this,right,strides); 
             else 
@@ -906,7 +1039,7 @@ defineUnaryRdFuncWS(nelements,Vells::VF_SCALAR|Vells::VF_REAL);
 
 #define defineBinaryFunc(FUNCNAME,flags) \
   inline Vells VellsMath::FUNCNAME (const Vells &left,const Vells &right) \
-  { int strides[2][Axis::MaxAxis]; \
+  { Vells::Strides strides[2]; \
     Vells result(left,right,flags,strides,#FUNCNAME); \
     (*Vells::binfunc_##FUNCNAME##_lut[left.getLutIndex()][right.getLutIndex()])(result,left,right,strides);  \
     return result; }
@@ -918,7 +1051,7 @@ defineBinaryFunc(atan2,Vells::VF_REAL|Vells::VF_CHECKREAL);
 
 #define defineBinaryFuncWF(FUNCNAME,flags) \
   inline Vells VellsMath::FUNCNAME (const Vells &left,const Vells &right,VellsFlagType flagmask) \
-  { int strides[4][Axis::MaxAxis]; \
+  { Vells::Strides strides[4]; \
     Vells result(left,right,flags|Vells::VF_FLAG_STRIDES,strides,#FUNCNAME); \
     (*Vells::binfunc_##FUNCNAME##_lut[left.getLutIndex()][right.getLutIndex()])(result,left,right,flagmask,strides);  \
     return result; }

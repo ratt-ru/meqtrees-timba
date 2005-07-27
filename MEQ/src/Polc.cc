@@ -45,8 +45,9 @@ static std::vector<double> default_offset(defaultPolcOffset,defaultPolcOffset+Ma
 static std::vector<double> default_scale(defaultPolcScale,defaultPolcScale+MaxPolcRank);
 
 Polc::Polc(double pert,double weight,DbId id)
-  : Funklet(pert,weight,id),pcoeff_(0)
+  : Funklet(pert,weight,id)
 {
+ 
 }
 
 //##ModelId=3F86886F0366
@@ -100,6 +101,7 @@ Polc::Polc (const Polc &other,int flags,int depth)
 {
 // no need to validate content outside the coeff, eveything else handled by funklet copy
   Field * fld = Record::findField(FCoeff);
+
   pcoeff_ = fld ? &( fld->ref.ref_cast<DMI::NumArray>() ) : 0;
 }
 
@@ -114,23 +116,26 @@ void Polc::validateContent (bool recursive)
     if( recursive )
       Funklet::validateContent(true);
     // get polc coefficients
-    Field * fld = Record::findField(FCoeff);
-    if( fld ){
-      pcoeff_ = &( fld->ref.ref_cast<DMI::NumArray>() );
-      //coeff should be doubles:
-      if ((*pcoeff_)->elementType()==Tpint ||(*pcoeff_)->elementType()==Tpfloat||(*pcoeff_)->elementType()==Tplong )
+    else{
+      Field * fld = Record::findField(FCoeff);
+      if( fld ){
+	pcoeff_ = &( fld->ref.ref_cast<DMI::NumArray>() );
+	//coeff should be doubles:
+	if ((*pcoeff_)->elementType()==Tpint ||(*pcoeff_)->elementType()==Tpfloat||(*pcoeff_)->elementType()==Tplong )
 	{
 	  //convert to double
-
+	  
 	}
-      FailWhen((*pcoeff_)->elementType()!=Tpdouble,"Meq::Polc: coeff array must be of type double");
-     
-
+	FailWhen((*pcoeff_)->elementType()!=Tpdouble,"Meq::Polc: coeff array must be of type double");
+	
+	
+      }
+      else
+	pcoeff_ = 0;
     }
-    else
-      pcoeff_ = 0;
     // check for sanity
     Assert(rank()<=MaxPolcRank && coeff().rank()<=rank());
+      
   }
   catch( std::exception &err )
   {
@@ -195,7 +200,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     const std::vector<int>    &spidIndex,
     int makePerturbed) const
 {
- 
+
   // init shape of result
   Vells::Shape res_shape;
   Axis::degenerateShape(res_shape,cells.rank());
@@ -216,11 +221,38 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
       FailWhen(!cells.isDefined(iaxis),
             "Meq::Polc: axis " + Axis::axisId(iaxis).toString() + 
             " is not defined in Cells");
-      grid[i].resize(cells.ncells(iaxis));
-      grid[i] = ( cells.center(iaxis) - getOffset(i) ) * getScale(i);
-      res_shape[iaxis] = grid[i].size();
+      //faster to multiply could be done init of course...
       //apply axis function here
+      // if(_function_axis[i])
+      LoVec_double tempgrid = ( cells.center(iaxis));
+      int k=0;
+      while(tempgrid(k)< domain().start(i) && k < tempgrid.size()){k++;}
+      int firstk=k;
+      k=tempgrid.size()-1;
+      while(tempgrid(k)>domain().end(i) && k > 0){k--;}
+      int lastk=k;
+      //reduce grid, such that it fits on domain of this funklet
+
+      if(lastk<firstk) return;
+
+
+      grid[i].resize(lastk-firstk+1);
+      if(firstk==0 && lastk==(tempgrid.size()-1))
+	{
+	  grid[i]=tempgrid;
+	}
+      else{
+	for(k=firstk;k<=lastk;k++){
+	  grid[i](k-firstk)=tempgrid(k);
+	}
+      }
       axis_function(iaxis,grid[i]);
+
+      double one_over_scale=(getScale(i) ? 1./getScale(i) : 1.);
+
+      grid[i] = ( grid[i] - getOffset(i) )*one_over_scale;
+      cdebug(2)<<"calculating polc on grid["<<i<<"]"<<grid[i]<<endl;
+      res_shape[iaxis] = std::max(grid[i].size(),1);
     }
   }
   // now evaluate
@@ -228,6 +260,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
   // of x and y.
   // So set the value to the coefficient and possibly set the perturbed value.
   // Make sure it is turned into a scalar value.
+
   if( coeff_size == 1 )
   {
     double c00 = getCoeff0();
@@ -369,6 +402,8 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
       *value++ = total;
     } // endfor(i) over cells
   } // endfor(j) over cells
+
+ 
 }
 
 //##ModelId=3F86886F03BE
@@ -384,6 +419,155 @@ void Polc::do_update (const double values[],const std::vector<int> &spidIndex)
 	coeff[i] += values[spidIndex[i]];
       }
   }
+}
+
+
+void Polc::changeSolveDomain(const Domain & solveDomain){
+  Thread::Mutex::Lock lock(mutex());
+
+  if(!hasDomain()) return; //nothing to change
+    else{
+      const Domain &valDomain =  domain(); //validity domain
+      std::vector<double> newoffsets(2);
+      std::vector<double> newscales(2);
+      for(int axisi=0;axisi<2;axisi++){
+	newoffsets[axisi] = solveDomain.start(axisi)*valDomain.end(axisi)-
+	  solveDomain.end(axisi)*valDomain.start(axisi);
+	newoffsets[axisi] /= solveDomain.start(axisi)-solveDomain.end(axisi);
+	newscales[axisi] = valDomain.end(axisi) - valDomain.start(axisi);
+	newscales[axisi] /= solveDomain.end(axisi) - solveDomain.start(axisi);
+      
+      }
+     transformCoeff(newoffsets,newscales);      
+      
+    }
+  
+}
+
+
+  void Polc::changeSolveDomain(const std::vector<double> & solveDomain){
+    Thread::Mutex::Lock lock(mutex());
+ 
+    if(solveDomain.size()<2) return; //incorrect format
+    if(!hasDomain()) return; //nothing to change
+    else{
+      const Domain &valDomain =  domain(); //validity domain
+      std::vector<double> newoffsets(2);
+      std::vector<double> newscales(2);
+      for(int axisi=0;axisi<2;axisi++){
+	newoffsets[axisi] = solveDomain[0]*valDomain.end(axisi)-
+	  solveDomain[1]*valDomain.start(axisi);
+	newoffsets[axisi] /= solveDomain[0]-solveDomain[1];
+	newscales[axisi] = valDomain.end(axisi) - valDomain.start(axisi);
+	newscales[axisi] /= solveDomain[1] - solveDomain[0];
+      
+      }
+     transformCoeff(newoffsets,newscales);      
+     
+    }
+  
+}
+
+
+
+int Polc::makeSolvable (int spidIndex){
+  Thread::Mutex::Lock lock(mutex());
+
+
+  if( ncoeff()<=4) return Funklet::makeSolvable(spidIndex) ;
+  const LoShape shape =  getCoeffShape ();
+  int NX=shape[0];
+  int NY=shape[1];
+  int maxRank = std::max(NX,NY)-1;
+  if(maxRank<=1) return Funklet::makeSolvable(spidIndex) ; //shouldnt happen leave [1,1] coeff solvable
+  double* coeff = static_cast<double*>(coeffWr().getDataPtr());
+  std::vector<bool> mask(NX*NY);
+
+  for(int xi=0;xi<NX;xi++)
+    for(int yi=0;yi<NY;yi++)
+      {
+	if(xi+yi > maxRank){
+	  coeff[xi*NY+yi]=0.;
+	  mask[xi*NY+yi]=false;
+	}
+	else mask[xi*NY+yi]=true;
+	
+      }
+  return Funklet::makeSolvable(spidIndex,mask);
+
+}
+
+
+void Polc::transformCoeff(const std::vector<double> & newoffsets,const std::vector<double> & newscales){
+  //sets new offsets/scales and transforms Coeff if necessary
+  Thread::Mutex::Lock lock(mutex());
+  const LoShape shape =  getCoeffShape ();
+  int NX=1;
+  int NY=1;
+  uint coeff_rank = coeff().rank(); 
+  for(uint i=0;i<coeff_rank&&i<2;i++){
+    if(i==0) NX=std::max(NX,shape[i]);
+    if(i==1) NY=std::max(NY,shape[i]);
+  }
+  double C[NX][NY];
+  double oldOffset[MaxPolcRank];
+  double oldScale[MaxPolcRank];
+  double diffOffset[MaxPolcRank];
+  double diffScale[MaxPolcRank];
+
+
+  double* coeff = static_cast<double*>(coeffWr().getDataPtr());
+  int realchange=0;
+  for(uint  i =0; i<newoffsets.size();i++){
+    oldOffset[i]=getOffset(i);
+    oldScale[i]=getScale(i);
+    if(oldScale[i]==0) oldScale[i]=1.;
+    if(newscales[i]==0) return; //shouldnt happen
+
+    diffOffset[i]=(newoffsets[i]-oldOffset[i])/newscales[i];
+    diffScale[i]=newscales[i]/oldScale[i];
+
+    setOffset(i,newoffsets[i]);
+    setScale(i,newscales[i]);
+    if(diffOffset[i]!=0 || diffScale[i]!=1) realchange=1;
+  }
+
+
+  if(NX<=1 && NY<=1) return; //no x,y dpendencies, no change needed
+  if(!realchange) return; //nothing changed really
+  for(int xi=0;xi<NX;xi++)
+    for(int yi=0;yi<NY;yi++){
+      if((xi>0 || yi>0) && coeff[xi*NY+yi]!=0) realchange=0;
+      C[xi][yi]=0;    }
+
+  if(realchange) //all coefficients 0, no updat needed
+    return;
+  
+  for(int xi=0;xi<NX;xi++)
+    for(int yi=0;yi<NY;yi++)
+      {
+	double Cxy=coeff[xi*NY+yi];
+	for(int rx=0;rx<=xi;rx++)
+	  //loop over x ranking
+	  for(int ry=0;ry<=yi;ry++)
+	    {//loop over y ranking
+
+	      C[rx][ry] += noverm(xi,rx)*noverm(yi,ry) *pow(diffOffset[0],xi-rx)*pow(diffOffset[1],yi-ry) * Cxy *(pow(diffScale[0],xi)*pow(diffScale[1],yi));
+	    }
+	
+      }
+  
+
+  for(int xi=0;xi<NX;xi++)
+    for(int yi=0;yi<NY;yi++)
+      {
+	cdebug(2)<<"transforming coeff["<<xi<<","<<yi<<"] from "<<coeff[xi*NY+yi]; 
+
+	coeff[xi*NY+yi]=C[xi][yi];
+	cdebug(2)<<" to "<<coeff[xi*NY+yi]<<endl; 
+      }    
+  
+
 }
 
 } // namespace Meq

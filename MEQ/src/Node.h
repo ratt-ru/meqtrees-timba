@@ -338,6 +338,11 @@ class Node : public DMI::BObj
     //## If quiet is false, updates control_status but does not advertise
     void clearCache (bool recursive=false,bool quiet=false);
     
+    //## called by parent node (from holdChildCaches() usually) to hint to 
+    //## a child whether it needs to hold cache or not
+    void holdCache (bool hold);
+    
+    
     //##Documentation
     //## adds an event slot to which generated results will be published
     void addResultSubscriber    (const EventSlot &slot);
@@ -642,12 +647,24 @@ class Node : public DMI::BObj
     //## fail, resref is left untouched.
     //## Stepchildren are also polled, after all children have been polled
     //## (even if children return fails).
+    //## Parallelization-wise, the semantics of this call are synchronous:
+    //## send request to children, wait for all children to return a result.
     //## Nodes should only reimplement this if they prefer to poll children 
     //## themselves (i.e. the Solver). 
     virtual int pollChildren (std::vector<Result::Ref> &child_results,
                               Result::Ref &resref,
                               const Request &req);
-
+                              
+    //## Helper function for asynchronous polling:
+    //## Starts the async poll (send request to all children and stepchildren, presumably).
+    //## Returns number of children (stepchildren excluded).
+    int  startAsyncPoll   (const Request &req);
+    
+    //## Helper function for asynchronous polling: waits for one child result and 
+    //## returns it in (rescode,resref).
+    //## The return value is the child number, or -1 once all children have returned.
+    int  awaitChildResult (int &rescode,Result::Ref &resref,const Request &req);
+                              
     //##ModelId=3F98D9D100B9
     //##Documentation
     //## Called from execute() to compute the result of a request, when
@@ -864,10 +881,6 @@ class Node : public DMI::BObj
     //   the rest get holdCache(false)
     void holdChildCaches (bool hold,int depmask=0);
         
-    // called by parent node (from function above) to hint to a child whether 
-    // it needs to hold cache or not
-    void holdCache (bool hold);
-    
     //## control_status word
     int control_status_;
     
@@ -1002,6 +1015,8 @@ class Node : public DMI::BObj
     // used by resolve()
     int node_resolve_id_;
     
+    // used during async polling
+    int async_poll_child_;
     
     //##ModelId=400E55D00080
     //##Documentation
@@ -1048,17 +1063,20 @@ class Node : public DMI::BObj
           service_flag = req.serviceFlag();
           rescode = code;
           recref_.detach();
+          is_valid = true;
         }
         // clears the cache
         void clear ()
         {
-          result.detach();
+          if( !(rescode&RES_FAIL) ) // fail results preserved
+            result.detach();
+          is_valid = false;
           recref_.detach();
         }
         // is cache valid?
         bool valid () const
         {
-          return result.valid();
+          return is_valid && result.valid();
         }
           
         // rebuilds (if needed) and returns a representative cache record
@@ -1070,6 +1088,7 @@ class Node : public DMI::BObj
         RequestId   rqid;
         int         rescode;
         bool        service_flag;
+        bool        is_valid;
         
       private:
         DMI::Record::Ref recref_;

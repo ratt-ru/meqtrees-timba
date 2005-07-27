@@ -46,6 +46,8 @@ public:
   //##ModelId=400E530400D6
   typedef CountedRef<VellSet> Ref;
 
+  typedef int SpidType;
+
   // Create a time,frequency result for the given shape, number of spids,
   // number of pert sets
     //##ModelId=400E5355031E
@@ -116,7 +118,7 @@ public:
   { return numspids_; }
   
     //##ModelId=400E5355033E
-  int getSpid (int i) const
+  SpidType getSpid (int i) const
   { return spids_[i]; }
   
   // number of perturbation sets (1 or 2)
@@ -134,7 +136,7 @@ public:
   // then the size of the vector must match. If VellSet was created
   // with 0 spids, this can be used to initialize spids & perturbations.
     //##ModelId=400E53550344
-  void setSpids (const vector<int>& spids);
+  void setSpids (const vector<SpidType>& spids);
 
   // Copies spids from other VellSet. If VellSet was created with >0 nspids,
   // then the number in other must match. If VellSet was created with 0 
@@ -144,7 +146,7 @@ public:
   // is spid defined at this position? increments index if true
   // It returns the index (-1 if not found).
     //##ModelId=400E53550348
-  int isDefined (int spid, int& index) const
+  int isDefined (SpidType spid, int& index) const
   { return (index>=numspids_  ?  -1 :
 	    spid==spids_[index]  ?  index++ : -1); }
 
@@ -166,7 +168,7 @@ public:
   // a vellset is a "null" when it has no main value, or main value
   // is a null and there are no perturbed values
   bool isNull () const
-  { return !hasValue() || !( numSpids() && pvalue_->deref().isNull() ); }
+  { return !hasValue() || ( !numSpids() && pvalue_->deref().isNull() ); }
 
   // returns true if vellset has a value
   bool hasValue () const

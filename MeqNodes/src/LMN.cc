@@ -31,7 +31,7 @@ namespace Meq {
 
 using namespace VellsMath;
 
-const HIID child_labels[] = { AidRA|0,AidDec|0,AidRA,AidDec };
+const HIID child_labels[] = { AidRADec|0,AidRADec };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 const HIID FDomain = AidDomain;
@@ -75,10 +75,8 @@ int LMN::getResult (Result::Ref &resref,
                     const std::vector<Result::Ref> &childres,
                     const Request &request,bool newreq)
 {
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,childres);
-  const int expect_nvs[]        = {1,1,1,1};
-  const int expect_integrated[] = {0,0,0,0};
+  const int expect_nvs[]        = {2,2};
+  const int expect_integrated[] = {0,0};
   Assert(int(childres.size()) == num_children);
   vector<const VellSet *> child_vs(4);
   // Check that child results are all OK (no fails, expected # of vellsets per child)

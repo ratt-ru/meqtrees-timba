@@ -226,11 +226,8 @@ DMI::BObj * __construct_MeqUVInterpol (int n) { return n>0 ? new Meq::UVInterpol
         AtomicID::registerId(-1421,"MeqUVW")+
         TypeInfoReg::addToRegistry(-1421,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1421,__construct_MeqUVW)+
-        AtomicID::registerId(-1435,"RA")+
-        AtomicID::registerId(-1446,"Dec")+
-        AtomicID::registerId(-1024,"X")+
-        AtomicID::registerId(-1005,"Y")+
-        AtomicID::registerId(-1021,"Z")+
+        AtomicID::registerId(-1566,"RADec")+
+        AtomicID::registerId(-1567,"XYZ")+
         AtomicID::registerId(-1410,"MeqLMN")+
         TypeInfoReg::addToRegistry(-1410,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1410,__construct_MeqLMN)+
@@ -264,6 +261,8 @@ DMI::BObj * __construct_MeqUVInterpol (int n) { return n>0 ? new Meq::UVInterpol
         AtomicID::registerId(-1242,"Result")+
         AtomicID::registerId(-1515,"Incremental")+
         AtomicID::registerId(-1514,"Solutions")+
+        AtomicID::registerId(-1232,"Tile")+
+        AtomicID::registerId(-1255,"Size")+
         AtomicID::registerId(-1437,"MeqCeil")+
         TypeInfoReg::addToRegistry(-1437,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1437,__construct_MeqCeil)+
@@ -357,7 +356,6 @@ DMI::BObj * __construct_MeqUVInterpol (int n) { return n>0 ? new Meq::UVInterpol
         AtomicID::registerId(-1103,"Data")+
         AtomicID::registerId(-1426,"Color")+
         AtomicID::registerId(-1406,"Style")+
-        AtomicID::registerId(-1255,"Size")+
         AtomicID::registerId(-1433,"Profile")+
         AtomicID::registerId(-1440,"Visu")+
         AtomicID::registerId(-1115,"XX")+
@@ -371,6 +369,8 @@ DMI::BObj * __construct_MeqUVInterpol (int n) { return n>0 ? new Meq::UVInterpol
         AtomicID::registerId(-1551,"MeqAzEl")+
         TypeInfoReg::addToRegistry(-1551,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1551,__construct_MeqAzEl)+
+        AtomicID::registerId(-1435,"RA")+
+        AtomicID::registerId(-1446,"Dec")+
         AtomicID::registerId(-1554,"Observatory")+
         AtomicID::registerId(-1384,"MeqRandomNoise")+
         TypeInfoReg::addToRegistry(-1384,TypeInfo(TypeInfo::DYNAMIC,0))+

@@ -851,7 +851,6 @@ class ParmFiddler (browsers.GriddedPlugin):
 
   def reexecute(self,do_execute = False):
 
- 
     if not self.enable_exec.state () and not do_execute: #reexecute not enabled
       #print "auto execute not eneabled"
       return;

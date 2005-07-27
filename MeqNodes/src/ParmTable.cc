@@ -73,6 +73,28 @@ const String KeywordDefValues = "DEFAULTVALUES";
 std::map<string, ParmTable*> ParmTable::theirTables;
 
 Thread::Mutex ParmTable::theirMutex;
+Vector<double> toParmVector (const LoVec_double &values)
+{
+
+
+  Vector<double> matrix(IPosition(1,values.extent(0)));
+  /*  return Matrix<double> (IPosition(2,values.extent(0),values.extent(1)),
+                         const_cast<double*>(values.data()),
+                         SHARE);
+  */
+  B2A::copyArray (matrix , values);
+  return matrix;
+
+}
+
+LoVec_double fromParmVector (const Array<double>& values)
+{
+  Assert (values.ndim() == 1);
+  LoVec_double mat(values.data(),
+                   LoVecShape(values.shape()[0]),
+                   blitz::duplicateData);
+  return mat;
+}
 
 
 Matrix<double> toParmMatrix (const LoMat_double &values)
@@ -106,6 +128,7 @@ ParmTable::ParmTable (const string& tableName)
   itsIndexName(itsIndex.accessKey(),ColName),
   itsInitIndex(0)
 {
+ 
   if(itsTable.keywordSet().isDefined (KeywordDefValues)) 
   {
     itsInitTable = itsTable.keywordSet().asTable (KeywordDefValues);
@@ -155,10 +178,7 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
     
     if(itsTable.actualTableDesc().isColumn(ColFunkletType))
       ftypeCol.attach(sel, ColFunkletType);    
-    ROScalarColumn<double> lscaleCol;
-    if(itsTable.actualTableDesc().isColumn(ColLScale))
-      lscaleCol.attach(sel, ColLScale);    
-    //    ROScalarColumn<int> longpolcidCol (sel, ColLongPolcId);
+    ROArrayColumn<double> lscaleCol;
     Vector<uInt> rowNums = sel.rowNumbers(itsTable);
     for( uint i=0; i<sel.nrow(); i++ )
     {
@@ -167,22 +187,34 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
       double scale[]  = { tsCol(i),fsCol(i) };
       // for now, only Polcs are supported
       
-      Funklet *funklet;
-      if (!ftypeCol.isNull() && ftypeCol(i)=="PolcLog"){
-	double lscale=1.;
-	if(!lscaleCol.isNull()) lscale=lscaleCol(i);
-	funklet= new PolcLog(fromParmMatrix(valCol(i)),
-			     axis,offset,scale,diffCol(i),weightCol(i),rowNums(i),lscale);
+      Funklet::Ref funklet;
+      if (!ftypeCol.isNull() && (ftypeCol(i)=="MeqPolcLog"||ftypeCol(i)=="PolcLog")){
+	std::vector<double>scale_vector(2,1.);
+	if(lscaleCol.isNull()){
+	  if(itsTable.actualTableDesc().isColumn(ColLScale))
+	    lscaleCol.attach(sel, ColLScale);
+	}    
+	if(!lscaleCol.isNull()) {
+	  
+
+	  scale_vector[0] = scale_vector[1] = lscaleCol(i).data()[0];
+	  if(lscaleCol(i).nelements()>=2)
+	    scale_vector[1]=lscaleCol(i).data()[1];
+	  
+	}
+	
+	funklet<<= new PolcLog(fromParmMatrix(valCol(i)),
+			     axis,offset,scale,diffCol(i),weightCol(i),rowNums(i),scale_vector);
       }
       else
-	funklet= new Polc(fromParmMatrix(valCol(i)),
+	funklet<<= new Polc(fromParmMatrix(valCol(i)),
 			  axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
-      funklet->setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
+      funklet().setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
       
       if(auto_solve_)
 	//reset Dbid, to keep all information
-	funklet->setDbId(-1);
-      funklets[i] <<=funklet;
+	funklet().setDbId(-1);
+      funklets[i] =funklet;
             
     }
   }
@@ -252,13 +284,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
 
   Thread::Mutex::Lock lock(theirMutex);
   // for now, only Polcs are supported
-  FailWhen(funklet.objectType() != TpMeqPolc,"ParmTable currently only supports Meq::Polc funklets");  
-
-  //check if table is still existing, needed if table is deleted in between to tests..
-  if(!(Table::isReadable(itsTable.tableName()))){
-    cdebug(2)<<"Cannot put Funklet in Table, table not existing "<<endl;
-    return -1;
-  }
+  FailWhen(funklet.objectType() != TpMeqPolc && funklet.objectType() != TpMeqPolcLog ,"ParmTable currently only supports Meq::Polc(Log) funklets");  
   itsTable.reopenRW();
   TableLocker locker(itsTable, FileLocker::Write);
   ScalarColumn<String> namCol (itsTable, ColName);
@@ -281,8 +307,17 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
     
   }
   ScalarColumn<int> longpolcidCol(itsTable, ColLongPolcId);
+  if(!itsTable.actualTableDesc().isColumn(ColFunkletType)){
+    cdebug(2)<<"funklettype column not existing, creating"<<endl;
+    ScalarColumnDesc<String> newfunklettypeCol(ColFunkletType); 
+    newfunklettypeCol.setDefault ("MeqPolc");
+    itsTable.addColumn(newfunklettypeCol);
+    
+  }
+  ScalarColumn<String> funklettypeCol(itsTable, ColFunkletType);
   const Domain& domain = funklet.domain();
   const Polc & polc = dynamic_cast<const Polc&>(funklet);
+
   // for the moment, only Time-Freq variable polcs are supported
   Assert(polc.rank()==2);
   Assert(polc.getAxis(0)==Axis::TIME);
@@ -365,6 +400,19 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   diffCol.put (rownr, polc.getPerturbation());
   weightCol.put(rownr, polc.getWeight());
   longpolcidCol.put(rownr,LPId);
+  funklettypeCol.put(rownr,polc.objectType().toString());
+
+  if(polc.objectType()==TpMeqPolcLog){
+    if(!itsTable.actualTableDesc().isColumn(ColLScale)){
+      cdebug(2)<<"lscale column not existing, creating"<<endl;
+      ArrayColumnDesc<Double> newlscaleCol(ColLScale,1); 
+      itsTable.addColumn(newlscaleCol);
+    
+    }
+    ArrayColumn<Double> lscaleCol(itsTable, ColLScale);
+    LoVec_double logscales = polc.getLScaleVector();
+    lscaleCol.put(rownr,toParmVector(logscales));
+  }
   return rownr;
 }
 
@@ -401,7 +449,7 @@ ParmTable* ParmTable::openTable (const String& tableName)
   if(!(Table::isReadable(tableName)))
     ParmTable::createTable(tableName);
   
-  ParmTable* tab = new ParmTable(tableName);
+  ParmTable *tab = new ParmTable(tableName);
   theirTables[tableName] = tab;
   return tab;
 
@@ -437,6 +485,8 @@ void ParmTable::createTable (const String& tableName)
   tdesc.addColumn (ScalarColumnDesc<Double>(ColPerturbation));
   tdesc.addColumn (ScalarColumnDesc<Double>(ColWeight));
   tdesc.addColumn (ScalarColumnDesc<Int>(ColLongPolcId));
+  tdesc.addColumn (ScalarColumnDesc<String>(ColFunkletType));
+  tdesc.addColumn (ArrayColumnDesc<Double>(ColLScale,1));
   SetupNewTable newtab(tableName, tdesc, Table::New);
   Table tab(newtab);
 }

@@ -49,6 +49,10 @@ void Vells::_init_static_impl ()
   Vells::pUnity_ = new Vells(double(1),false);
 }
 
+Vells::Strides Vells::null_strides;
+
+static void * _init_null_strides = memset(const_cast<Vells::Strides*>(&Vells::null_strides),0,sizeof(Vells::null_strides));
+
 void Vells::mergeFlags (Vells::Ref &flags0,const Vells &flags1,VellsFlagType fm)
 {
   if( !fm )
@@ -357,7 +361,7 @@ inline int degenerateAxis (int total,bool &degenerate)
 // stored in row-major order. I.e. the last dimension has a stride of 1,
 // and previous dimensions have larger strides.
 void Vells::computeStrides (Vells::Shape &outshape,
-                            int strides[][Axis::MaxAxis],
+                            Strides strides[],
                             int nshapes,const Vells::Shape * shapes[],
                             const string &opname)
 {
@@ -401,33 +405,12 @@ void Vells::computeStrides (Vells::Shape &outshape,
   }
 }
 
-// convenience version for two shape arguments
-void Vells::computeStrides (Vells::Shape &shape,
-                            int strides[2][Axis::MaxAxis],
-                            const Vells::Shape &a,const Vells::Shape &b,
-                            const string &opname)
-{
-  const Vells::Shape * shapes[2] = { &a,&b };
-  computeStrides(shape,strides,2,shapes,opname);
-}
-
-// convenience version for two Vells arguments with optional flags
-// strides filled as follows: 0/1 Vells, 2/3 flags
-void Vells::computeStrides (Vells::Shape &shape,
-                            int strides[4][Axis::MaxAxis],
-                            const Vells &a,const Vells &b,
-                            const string &opname)
-{
-  const Vells::Shape * shapes[4] = { &a.shape(),&b.shape(),&a.flagShape(),&b.flagShape() };
-  computeStrides(shape,strides,4,shapes,opname);
-}
-
 // Constructor for a temp vells for the result of a binary expression. 
 // The shape of the result is the maximum of the argument shapes;
 // the constructor will also compute strides for the arguments.
 //##ModelId=400E53560174
 Vells::Vells (const Vells &a,const Vells &b,int flags,
-              int strides[][Axis::MaxAxis],const std::string &opname)
+              Strides strides[],const std::string &opname)
 : is_temp_ (true)
 {
   // check input if requested by flags
@@ -454,7 +437,7 @@ Vells::Vells (const Vells &a,const Vells &b,int flags,
 // If operation is not applicable, returns false.
 // If it is, returns true and populates strides[] with the incremental strides
 // which need to be applied to other.
-bool Vells::canApplyInPlace (const Vells &other,int strides[Axis::MaxAxis],const std::string &opname)
+bool Vells::canApplyInPlace (const Vells &other,Strides & strides,const std::string &opname)
 {
   // try the simple tests first
   if( (isReal() && other.isComplex()) || (rank() < other.rank()) )
@@ -547,11 +530,11 @@ definePromotion2(double,dcomplex,dcomplex);
   { Throw(message); }
 // defines a standard error function (for illegal binary ops)
 #define defineErrorFunc2(errname,message) \
-  static void errname (Meq::Vells &,const Meq::Vells &,const Meq::Vells &,const int [2][Meq::Axis::MaxAxis]) \
+  static void errname (Meq::Vells &,const Meq::Vells &,const Meq::Vells &,const Meq::Vells::Strides [2]) \
   { Throw(message); }
 // defines a standard error function (for illegal binary ops with flags)
 #define defineErrorFunc2WF(errname,message) \
-  static void errname (Meq::Vells &,const Meq::Vells &,const Meq::Vells &,FT,const int [4][Meq::Axis::MaxAxis]) \
+  static void errname (Meq::Vells &,const Meq::Vells &,const Meq::Vells &,FT,const Meq::Vells::Strides [4]) \
   { Throw(message); }
   
 // defines a standard error function template (for illegal unary ops)
@@ -572,94 +555,6 @@ template<class TY,class TX>
 static void implement_zero (Meq::Vells &out,const Meq::Vells &)
 { out.zeroData(); }
 
-
-static int null_strides[Meq::Axis::MaxAxis];
-static void * _init_null_strides = memset(null_strides,0,sizeof(null_strides));
-
-// Helper class implementing iteration over a strided velss
-template<class T>
-class ConstStridedIterator
-{
-  protected:
-    const T   *ptr;
-    const int *strides;
-  
-  public:
-    ConstStridedIterator (const T * p,const int str[Meq::Axis::MaxAxis])
-    { init(p,str); }
-  
-    ConstStridedIterator (const Meq::Vells &vells,const int str[Meq::Axis::MaxAxis])
-    { init(vells,str); }
-    
-    ConstStridedIterator (const T & value)
-    { init(value); }
-    
-    void init (const T * p,const int str[Meq::Axis::MaxAxis])
-    { ptr = p; strides = str; }
-  
-    void init (const Meq::Vells &vells,const int str[Meq::Axis::MaxAxis])
-    { ptr = vells.begin(Type2Type<T>()); strides = str; }
-    
-    // a trivial iterator always returning the same value
-    void init (const T &value)
-    { ptr = &value; strides = null_strides; }
-    
-    const T & operator * () const
-    { return *ptr; }
-    
-    // advances to next element in the specified number of dimensions
-    // (i.e. if ndim==3, then advances along dimensions 1,2 and 3)
-    void incr (int ndim=1)
-    { 
-      for( int i=0; i<ndim; i++ )
-        ptr += strides[i];
-    }
-};
-
-// Helper class implementing iteration over an N-dimensional shape
-class DimCounter 
-{
-  protected:
-    int   rank;
-    int   shape[Meq::Axis::MaxAxis];
-    int   counter[Meq::Axis::MaxAxis];
-  
-  public:
-      void init (const Meq::Vells::Shape &shape0)
-      // note that dimensions in 'shape' are reversed for convenicnece, 
-      // since the it's the last dimension of the Vells array that iterates
-      // fastest. The strides in computeStrides() above are also reversed in
-      // this manner
-      {
-        rank = shape0.size();
-        int j = rank-1; 
-        for( int i=0; i<rank; i++,j-- )
-          shape[i] = shape0[j];
-        memset(counter,0,sizeof(int)*rank); 
-      }
-      
-      DimCounter (const Meq::Vells &vells)
-      { init(vells.shape()); }
-      
-      DimCounter (const Meq::Vells::Shape &shape)
-      { init(shape); }
-  
-      // increments counter. Returns number of dimensions incremented
-      // (i.e. 1 most of the time, when only the first dimension is being
-      // incremented, 2 when the second one is incremented as well, etc.),
-      // or 0 when finished
-      int incr ()
-      {
-        int idim = 0;
-        while( ++counter[idim] >= shape[idim] )
-        {
-          counter[idim] = 0;
-          if( ++idim >= rank )
-            return 0;
-        }
-        return idim+1;
-      }
-};
 
 // -----------------------------------------------------------------------
 // Vells math implementation
@@ -824,13 +719,13 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_conj_lut[VELLS_LUT_SIZE] =
   { \
     TY y0 = y_init; \
     if( flagmask && x.hasDataFlags() ) { \
-      int st[2][Meq::Axis::MaxAxis]; \
+      Meq::Vells::Strides st[2]; \
       Meq::Vells::Shape shp; \
       const Meq::Vells & flags = x.dataFlags(); \
       Meq::Vells::computeStrides(shp,st,x.shape(),flags.shape(),#FUNCNAME); \
-      DimCounter counter(shp);  \
-      ConstStridedIterator<TX> ix(x.begin(Type2Type<TX>()),st[0]); \
-      ConstStridedIterator<FT> ifl(flags.begin(Type2Type<FT>()),st[1]); \
+      Meq::Vells::DimCounter counter(shp);  \
+      Meq::Vells::ConstStridedIterator<TX> ix(x.begin(Type2Type<TX>()),st[0]); \
+      Meq::Vells::ConstStridedIterator<FT> ifl(flags.begin(Type2Type<FT>()),st[1]); \
       nel=0; \
       for(;;) { \
         if( !((*ifl)&flagmask) ) \
@@ -959,16 +854,16 @@ Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SIZE] =
   template<class TY,class TA,class TB> \
   static void implement_binary_##FUNCNAME (Meq::Vells &y,\
                   const Meq::Vells &a,const Meq::Vells &b,\
-                  const int strides[2][Meq::Axis::MaxAxis]) \
+                  const Meq::Vells::Strides strides[2]) \
   { TY *py = y.getStorage(Type2Type<TY>()); \
     const TA *pa = a.getStorage(Type2Type<TA>()); \
     const TB *pb = b.getStorage(Type2Type<TB>()); \
     if( a.isScalar() && b.isScalar() ) \
       *py = FUNC(*pa,*pb); \
     else { \
-      DimCounter counter(y);  \
-      ConstStridedIterator<TA> ia(pa,strides[0]); \
-      ConstStridedIterator<TB> ib(pb,strides[1]); \
+      Meq::Vells::DimCounter counter(y);  \
+      Meq::Vells::ConstStridedIterator<TA> ia(pa,strides[0]); \
+      Meq::Vells::ConstStridedIterator<TB> ib(pb,strides[1]); \
        for(;;) { \
         *py = FUNC(*ia,*ib); \
         int ndim = counter.incr(); \
@@ -1052,7 +947,7 @@ DoForAllBinaryOperators(implementBinaryOperator,);
 // and for a scalar rhs
 #define implementBinaryFlagOperator(OPER,OPERNAME,dum) \
   Meq::Vells Meq::Vells::operator OPER (const Meq::Vells &right) const \
-  { int st[2][Axis::MaxAxis]; \
+  { Strides st[2]; \
     Vells result(*this,right,VF_FLAGTYPE,st,"operator "#OPER); \
     FT *py = result.begin<FT>(); \
     const FT *pa = begin<FT>(); \
@@ -1060,9 +955,9 @@ DoForAllBinaryOperators(implementBinaryOperator,);
     if( isScalar() && right.isScalar() ) \
       *py = (*pa) OPER (*pb); \
     else { \
-      DimCounter counter(result);  \
-      ConstStridedIterator<FT> ia(pa,st[0]); \
-      ConstStridedIterator<FT> ib(pb,st[1]); \
+      Meq::Vells::DimCounter counter(result);  \
+      Meq::Vells::ConstStridedIterator<FT> ia(pa,st[0]); \
+      Meq::Vells::ConstStridedIterator<FT> ib(pb,st[1]); \
       for(;;) { \
         *py = (*ia) OPER (*ib); \
         int ndim = counter.incr(); \
@@ -1096,14 +991,14 @@ DoForAllBinaryFlagOperators(implementBinaryFlagOperator,);
   template<class TOut,class TY,class TX> \
   static void implement_binary_##OPERNAME##_inplace (Meq::Vells &y,\
                   const Meq::Vells &x,\
-                  const int strides_x[Meq::Axis::MaxAxis]) \
+                  const Meq::Vells::Strides &strides_x) \
   { TOut *py = y.getStorage(Type2Type<TOut>()); \
     const TX *px = x.getStorage(Type2Type<TX>()); \
     if( y.isScalar() && x.isScalar() ) \
       *py OPER##= *px; \
     else { \
-      DimCounter counter(y);  \
-      ConstStridedIterator<TX> ix(px,strides_x); \
+      Meq::Vells::DimCounter counter(y);  \
+      Meq::Vells::ConstStridedIterator<TX> ix(px,strides_x); \
       for(;;) { \
         *py OPER##= *ix; \
         int ndim = counter.incr(); \
@@ -1130,12 +1025,12 @@ DoForAllInPlaceOperators(implementInPlaceOperator,);
 #define implementInPlaceFlagOperator(OPER,OPERNAME,dum) \
   Meq::Vells & Meq::Vells::operator OPER##= (const Meq::Vells &right) \
   { FailWhen(!isFlags() || !right.isFlags(),"=" #OPER " can only be applied to flags"); \
-    int strides[Axis::MaxAxis]; \
+    Meq::Vells::Strides strides; \
     if( canApplyInPlace(right,strides,#OPERNAME) ) \
     { \
       FT * py = this->begin<FT>(); \
-      DimCounter counter(*this);  \
-      ConstStridedIterator<FT> ix(right.begin<FT>(),strides); \
+      Meq::Vells::DimCounter counter(*this);  \
+      Meq::Vells::ConstStridedIterator<FT> ix(right.begin<FT>(),strides); \
       for(;;) { \
         *py OPER##= *ix; \
         int ndim = counter.incr(); \
@@ -1167,17 +1062,17 @@ DoForAllInPlaceFlagOperators(implementInPlaceFlagOperator,);
   static void implement_binary_##FUNCNAME (Meq::Vells &y,\
                   const Meq::Vells &a,const Meq::Vells &b, \
                   FT flagmask, \
-                  const int strides[4][Meq::Axis::MaxAxis] ) \
+                  const Meq::Vells::Strides strides[4]) \
   { TY *py = y.getStorage(Type2Type<TY>()); \
     const TA *pa = a.begin(Type2Type<TA>()); \
     const TB *pb = b.begin(Type2Type<TB>()); \
     const FT *fa = a.beginFlags(); \
     const FT *fb = b.beginFlags(); \
-    DimCounter counter(y);  \
-    ConstStridedIterator<TA> ia(pa,strides[0]); \
-    ConstStridedIterator<TB> ib(pb,strides[1]); \
-    ConstStridedIterator<FT> ifa(fa,strides[2]); \
-    ConstStridedIterator<FT> ifb(fb,strides[3]); \
+    Meq::Vells::DimCounter counter(y);  \
+    Meq::Vells::ConstStridedIterator<TA> ia(pa,strides[0]); \
+    Meq::Vells::ConstStridedIterator<TB> ib(pb,strides[1]); \
+    Meq::Vells::ConstStridedIterator<FT> ifa(fa,strides[2]); \
+    Meq::Vells::ConstStridedIterator<FT> ifb(fb,strides[3]); \
     for(;;) { \
       if( (*ifa)&flagmask ) \
         *py = (*ifb)&flagmask ? deflt : *ib; \

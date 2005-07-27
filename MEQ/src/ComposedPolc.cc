@@ -10,45 +10,71 @@ namespace Meq {
   static DMI::Container::Register reg(TpMeqComposedPolc,true);
 
 
-  ComposedPolc::ComposedPolc(vector<Funklet::Ref> funklets):Polc(),itsFunklets( funklets)
+  ComposedPolc::ComposedPolc(vector<Funklet::Ref> & funklets,double pert,double weight,DbId id):Polc(*funklets.begin()),nr_funklets_(funklets.size())
   {
-    std::sort(itsFunklets.begin(),itsFunklets.end(),compareDomain);
-    setDomain(0,0);
-    Domain newdom;
-    for(vector<Funklet::Ref>::iterator funkIt=itsFunklets.begin();funkIt!=itsFunklets.end();funkIt++)
-      newdom=newdom.envelope((*funkIt)->domain());
-    setDomain(newdom);
-    setCoeff(0);
-    (*this)[FClass]=objectType().toString();
+    
+    (*this)[AidClass].replace() = "MeqComposedPolc";
+    initFunklets(funklets);
   }
 
 
   ComposedPolc::ComposedPolc (const ComposedPolc &other,int flags,int depth) : 
-    Polc(other,flags,depth)
+    Polc(other,flags,depth),nr_funklets_(0)
   {
-      itsFunklets=vector<Funklet::Ref> ( other.itsFunklets);
-      setCoeff(0);
-      (*this)[FClass]=objectType().toString();
+    (*this)[AidClass].replace() = "MeqComposedPolc";
+  }
+
+  ComposedPolc::ComposedPolc (const DMI::Record &other,int flags,int depth) : 
+    Polc(other,flags,depth),nr_funklets_(0)
+  {
+    (*this)[AidClass].replace() = "MeqComposedPolc";
   }
   
   ComposedPolc::ComposedPolc (double pert,double weight,DbId id):
-    Polc(pert,weight,id),itsFunklets(0)
-   {    setCoeff(0);
-     (*this)[FClass]=objectType().toString();
-
+    Polc(pert,weight,id),nr_funklets_(0)
+   {
+    (*this)[AidClass].replace() = "MeqComposedPolc";
    }
 
   
-  void ComposedPolc::setFunklets(vector<Funklet::Ref> funklets)
+  void ComposedPolc::initFunklets(vector<Funklet::Ref> & funklets)
   {
-    setDomain(0,0);
-    itsFunklets=vector<Funklet::Ref> ( funklets);
-    std::sort(itsFunklets.begin(),itsFunklets.end(),compareDomain);
-    Domain newdom;
-    for(vector<Funklet::Ref>::iterator funkIt=itsFunklets.begin();funkIt!=itsFunklets.end();funkIt++)
-      newdom=newdom.envelope((*funkIt)->domain());
-    setDomain(newdom);
+    Thread::Mutex::Lock lock(mutex());
 
+    cdebug(2)<<"init funklets "<<funklets.size()<<endl;
+    for ( int axisi= 0; axisi<Axis::MaxAxis;axisi++   )
+      axisHasShape_[axisi]=0;
+
+    DMI::List::Ref funklist;
+    funklist <<= new  DMI::List();
+
+    std::sort(funklets.begin(),funklets.end(),compareDomain);
+    Domain::Ref domref;
+    Domain & newdom = domref<<= new Domain();
+    for(vector<Funklet::Ref>::iterator funkIt=funklets.begin();funkIt!=funklets.end();funkIt++)
+      {
+	//check on shape 
+	const LoShape fshape= (*funkIt)->getCoeffShape ();
+	  for(uint axisi= 0; axisi<fshape.size();axisi++){
+	    if(axisHasShape_[axisi]) continue;
+
+	    if(fshape[axisi]>1 ) { axisHasShape_[axisi]=1; continue;}
+	    //cehck if domain changes around this axis
+	    if(!newdom.isDefined (axisi)) continue;
+	    if(newdom.start(axisi)!= (*funkIt)->domain().start(axisi) ||
+	       newdom.end(axisi)!= (*funkIt)->domain().end(axisi))
+	      { axisHasShape_[axisi]=1; continue;}
+	}
+	newdom=newdom.envelope((*funkIt)->domain());
+	
+	//add to DMI List to show up in tree
+
+	funklist().addBack(*funkIt);
+	
+	
+      }
+    setDomain(newdom);
+    (*this)[FFunkletList].replace() = funklist; 
   }
 
 
@@ -57,173 +83,320 @@ namespace Meq {
                             const std::vector<int>    &spidIndex,
                             int makePerturbed) const
   {
-    cdebug(4)<<"evaluating ComposedPolc"<<endl;
-    if(itsFunklets.empty()) return;
-    // init shape of result
+
+    
+    //get funklets from list
+
+
+    const Field * fld = Record::findField(FFunkletList);
+    if(!fld ){
+      cdebug(2)<<"no funklet list found in record"<<endl;
+      return;
+    }
+    const DMI::List * funklistp =   fld->ref.ref_cast<DMI::List>() ;
+
+
+    int nr_funklets = funklistp->size();
+    int nr_parms = getNumParms(); 
+    int nr_spids = getNrSpids(); 
+
+    int nr_axis=2;//assume 2 for simplicity
+    
+    LoVec_double startgrid[2],endgrid[2],sizegrid[2],centergrid[2];
+    for(int i=0;i<nr_axis;i++){
+      startgrid[i].resize(cells.ncells(i));
+      endgrid[i].resize(cells.ncells(i));
+
+      startgrid[i]=cells.cellStart(i);
+      endgrid[i]=cells.cellEnd(i);
+
+    }
+    
+
+    //init vells with 0
     Vells::Shape res_shape;
     Vells::Shape part_shape;
     Axis::degenerateShape(res_shape,cells.rank());
     Axis::degenerateShape(part_shape,cells.rank());
-    int varying_axis=-1;//only aloow one varying axis for the moment
-    int partidx=0;
-    int nr_notvarying=0;
+
+
     for(int iaxis=0;iaxis<cells.rank();iaxis++)
-      part_shape[iaxis]=res_shape[iaxis]=cells.ncells(iaxis);
-    
-    // Create matrix for the main value and keep a pointer to its storage
-    double* value ;
-    vs.setValue(new Vells(double(0),res_shape,true));
-   
-    cout<<"value " << value<<endl;
-    //DMI::NumArray &value;
-    double lastend[2];
- 
-    Domain fulldomain(cells.domain());
-    //create vector with endpoint of each cell 
-    LoVec_double endgrid[2];
-    for( int i=0; i<2; i++ )
-      {
-	int iaxis = i;
-	if(cells.isDefined(iaxis)){
-	  endgrid[i].resize(cells.ncells(iaxis));
-	  endgrid[i] = cells.center(iaxis) + 0.5*cells.cellSize(iaxis);
-	}
-      }
-
-
-
-    vector<Funklet::Ref> funklets(itsFunklets);
-    for(vector<Funklet::Ref>::iterator funkIt=funklets.begin();funkIt!=funklets.end();funkIt++){
-      
-      int stopit=0;
-            
-      Domain partdom((*funkIt)->domain());
-      if(funkIt!=funklets.begin()){
-	for(int i=0;i<2;i++)
-	  {
-	    if(varying_axis<0) {if(partdom.end(i)>lastend[i]) {varying_axis=i; part_shape[i]=1;nr_notvarying=part_shape[abs(i-1)];}}
-	    else
-	      if(i!=varying_axis)
-		{
-		  if(partdom.end(i)<fulldomain.end(i) ||partdom.start(i)>fulldomain.start(i) )
-		    {
-		      cdebug(0)<<"couldnot fill complete domain from composed Polc, Polcs are changing in more than 1 axis"<<endl;
-		      stopit=1;
-		      break;
-		    }
-		}
-	  }
-	if(varying_axis>=0)
-	  {
-
-	    while(partdom.start(varying_axis)>=endgrid[varying_axis](partidx)) 
-	      {
-		partidx++;
-		if(partidx >=res_shape[varying_axis]) return;
- 		
-		//break;
-	      }
-	 
-
-	    if(partdom.end(varying_axis)<endgrid[varying_axis](partidx)) 
-	      {
-		cdebug(0)<<"some funklet from composed Polc does not fit, skipping"<<endl;
-		continue;
-	      }
-	  }
-      }
-      
-      if(stopit) break;
-      lastend[0]=partdom.end(0);
-      lastend[1]=partdom.end(1);
-     
-      //evaluate this funklet on its domain
-      VellSet partvs;
-      
-      (*funkIt)->evaluate(partvs,cells,0);
-      //make sure shape is correct
-      //for the moment just check and define j and jpartidx accordingly
-      
-
-      //partvs.setShape(res_shape);
-     
-      int VellsisConstant=0;
-      int partshape[2]={1,1};
-      if(partvs.hasShape()){
-	partshape[0] =  partvs.shape()[0];
-	partshape[1] =  partvs.shape()[1];
-      }
-      
-      if(partshape[0]<=1 && partshape[1]<=1)
-	VellsisConstant=1;
-      int j=0;
-      int jpartidx=0;
-      Vells partvells(partvs.getValue());
-      blitz::Array<double,2> parts ;
-      double constpart=0;
-      if(VellsisConstant)	// constant;
-	{
-	  if(partvells.isScalar())
-	    constpart = partvells.getScalar<double>();
-	  else
-	    constpart= partvells.getArray<double,2>()(0);
-	}
-      else 
-	{
-	  parts.resize(partvells.shape());
-	  parts= partvells.getArray<double,2>();
-
-	}
-      if(varying_axis<0){
-	//value = (partvs.getValue());
-	Vells fullvells = vs.getValue();
-	fullvells+= partvs.getValue();
-	value = vs.setValue(fullvells).realStorage();
+      if(axisHasShape_[iaxis])
+	res_shape[iaxis]=cells.ncells(iaxis);
+      else
+    	res_shape[iaxis]=1;
 	
 
+    double *value = vs.setValue(new Vells(double(0),res_shape,true)).realStorage();
 
-	//	  break;
+    double *pertValPtr[makePerturbed][nr_spids]; 
+   // Create a vells for each perturbed value.
+    // Keep a pointer to its storage
+    if(makePerturbed)
+      {
+	for(int ipert=0;ipert<makePerturbed;ipert++)
+	  for(int ispid=0;ispid<nr_spids;ispid++)
+	      {
+		pertValPtr[ipert][ispid] = 
+		vs.setPerturbedValue(ispid,new Vells(double(0),res_shape,true),ipert)
+		.realStorage();
+
+	      }	
+      }
+
+
+    //loop over funklets
+    int starti[2]={-1,-1};
+    int endi[2]={-1,-1};
+
+    for(int funknr=0;funknr<nr_funklets;funknr++){
+
+      const Funklet & partfunk = funklistp->as<Funklet>(funknr);
+
+      //get cells for this domain
+      int nrc[2]={0,0};
+      int isConstant=1;
+  
+      //if funklet is constant, we dont have to do all the work, just fill the fitting vells
+      double constpart=0;
+      double constpert[2];
+      if(partfunk.isConstant())
+	{
+	  constpart= partfunk.getCoeff0();
+	  if(makePerturbed)
+	    {
+	      double d = partfunk.getPerturbation(0);
+	      for(int ipert=0;ipert<makePerturbed;ipert++,d=-d )
+		constpert[ipert]=constpart+d;
+	    }
 	}
-      else
-	while(lastend[varying_axis]>=endgrid[varying_axis](partidx))
-	  {
-	    
-	    if(! VellsisConstant){
-	      if(partshape[varying_axis]==res_shape[varying_axis]) jpartidx=partidx;
-	      else jpartidx=0;
-	      for(int i= 0;i<nr_notvarying;i++)
+      else isConstant=0;
+
+      const Domain & polcdom(partfunk.domain());
+      for(int axisi=0;axisi<nr_axis;axisi++){
+	int maxk=std::min(res_shape[axisi],startgrid[axisi].size());
+	int k=0;
+	while(k<maxk  && polcdom.start(axisi)>startgrid[axisi](k)) k++;
+	starti[axisi] = k;
+	k++;
+	//	k=std::min(res_shape[axisi]-1,startgrid[axisi].size()-1);
+	while(k<maxk && !(polcdom.end(axisi)<endgrid[axisi](k))) k++;
+	endi[axisi] = k-1;
+	
+      }
+
+
+      part_shape[0]=nrc[0];
+      part_shape[1]=nrc[1];
+      VellSet partvs;
+      if(!isConstant)
+	{
+	  partfunk.evaluate(partvs,cells,makePerturbed);  
+	  if(partvs.isNull ()) continue;
+	}
+      int maxnx=1;
+      int maxny=1;  
+      if(!isConstant && partvs.hasShape()){
+	maxnx =  partvs.shape()[0];
+	maxny =  partvs.shape()[1];
+      }
+
+      blitz::Array<double,2>  parts;
+      blitz::Array<double,2> perts[2][nr_spids] ;
+      if(!isConstant)	// constant;
+	{
+	  const Vells & partvells = partvs.getValue();
+	  if(partvells.isScalar())
+	    {
+	      constpart = partvells.getScalar<double>();
+	      isConstant=1;//constant after all
+	    }
+	  else
+	    {
+	      parts.resize(partvells.shape());
+	      parts= partvells.getConstArray<double,2>();
+	  
+	    }
+
+	  if(makePerturbed){
+	    for(int ipert=0;ipert<makePerturbed;ipert++){
+	      if(partvells.isScalar())
 		{
-		  
-		  if(partshape[abs(varying_axis-1)]== nr_notvarying) j=i;
-		  else j=0;
-		  if(varying_axis==0){
-		    //		  value[partidx*nr_notvarying + i] =  partvs.getValue()[jpartidx][j];
-		    value[partidx*nr_notvarying + i] = parts(jpartidx,j);
-		  }
+		  constpert[ipert] = (partvs.getPerturbedValue(0,ipert)).getScalar<double>();
+		}
+	      else
+		{
+
+		  for(int ispid=0;ispid<nr_spids;ispid++){
+		    perts[ipert][ispid].resize(partvs.getPerturbedValue(ispid,ipert).shape());
+		    perts[ipert][ispid]=partvs.getPerturbedValue(ispid,ipert).getConstArray<double,2>();
+
+		  }		  
+		}
+	      
+	    }//ipert loop
+
+	  }//makeperturbed
+
+
+	}//not constant
+
+  
+      //now fill result in array..
+      int nx(0),ny(0);
+      for(int valx = starti[0];valx<=endi[0];valx++){
+	ny=0;
+	for(int valy = starti[1];valy<=endi[1];valy++){
+	  if(isConstant)
+	    value[valy + valx*res_shape[1]] = constpart ;
+	  else
+	    {
+	      value[valy + valx*res_shape[1]] = parts(nx,ny) ;
+	    }
+	  ny=std::min(ny+1,maxny-1);//put check on y shape b4 
+	}
+	nx=std::min(nx+1,maxnx-1);//put check on x shape b4 
+      }
+
+
+      //fill perturbed values
+      
+      if( makePerturbed )
+	{
+	  for( int ipert=0; ipert<makePerturbed; ipert++ )
+	    {
+	      nx=ny=0;
+	      for(int valx = starti[0];valx<=endi[0];valx++){
+		ny=0;
+		for(int valy = starti[1];valy<=endi[1];valy++){
+		  if(isConstant)
+		    pertValPtr[ipert][0][valx*res_shape[1]+valy]= constpert[ipert] ;
 		  else
 		    {
-		      //		  value[i*res_shape[varying_axis]+partidx] =  partvs.getValue()[j][jpartidx];
-		      value[i*res_shape[varying_axis]+partidx] =  parts(j,jpartidx);
-		      
+
+		      for(int ispid=0;ispid<nr_spids;ispid++)
+			{
+			  pertValPtr[ipert][ispid][valx*res_shape[1]+valy] = perts[ipert][ispid](nx,ny) ;
+			}
 		    }
+		  ny=std::min(ny+1,maxny-1);//put check on y shape b4 
+		}
+		nx=std::min(nx+1,maxnx-1);//put check on x shape b4 
 	      }
-	    }
-	    else //constant
-	      for(int i= 0;i<nr_notvarying;i++) {
-		if(varying_axis==0) value[partidx*nr_notvarying + i] = constpart;
-		else value[i*res_shape[varying_axis]+partidx] = constpart;
-	      }
-
 	      
-	    
-	    partidx++;
-	    if(partidx >=res_shape[varying_axis]) return;
-	  }
-      
 
-      
-    }//endloop over funklets
-    
+
+	    }//loop over perturbations
+	}//if makeperturbed
+
+
+
+    }//end loop over funklets
+
   }
 
+
+
+
+
+
+
+
+
+
+  void ComposedPolc::do_update(const double values[],const std::vector<int> &spidIndex)
+  {
+    Thread::Mutex::Lock lock(mutex());
+    const Field * fld = Record::findField(FFunkletList);
+    if(!fld ){
+      cdebug(2)<<"no funklet list found in record"<<endl;
+      return;
+    }
+    DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
+
+    int nrfunk=funklist.size();
+    int nr_spids = spidIndex.size();
+    int ifunk=0;
+     for(int funknr=0 ; funknr<nrfunk ; funknr++)
+      {
+
+	
+	Funklet::Ref partfunk = funklist.get(funknr);
+	double* coeff = static_cast<double*>((partfunk)().coeffWr().getDataPtr());
+  
+    
+	for( int i=0; i<nr_spids; i++ ) 
+	  {
+	    if( spidIndex[i] >= 0 ) 
+	      {
+		cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
+		coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
+	      }
+	  }
+	
+	funklist.replace(funknr,partfunk);
+	ifunk++;
+
+	
+      }//loop over funklets
+
+   
+  }
+
+
+  void ComposedPolc::changeSolveDomain(const Domain & solveDomain){
+    Thread::Mutex::Lock lock(mutex());
+    //transform cooeff of every Polc
+    const Field * fld = Record::findField(FFunkletList);
+    if(!fld ){
+      cdebug(2)<<"no funklet list found in record"<<endl;
+      return;
+    }
+    DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
+    
+    int nrfunk=funklist.size();
+    for(int funknr=0 ; funknr<nrfunk ; funknr++)
+      {
+      
+	
+	Funklet::Ref partfunk = funklist.get(funknr);
+      
+	partfunk().changeSolveDomain(solveDomain);
+
+	funklist.replace(funknr,partfunk);
+		
+      }//loop over funklets
+  };
+
+
+
+  void ComposedPolc::changeSolveDomain(const std::vector<double> & solveDomain){
+    Thread::Mutex::Lock lock(mutex());
+    //transform cooeff of every Polc
+    if(solveDomain.size()<2) return; //incorrect format
+    const Field * fld = Record::findField(FFunkletList);
+    if(!fld ){
+      cdebug(2)<<"no funklet list found in record"<<endl;
+      return;
+    }
+    DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
+    
+    int nrfunk=funklist.size();
+    for(int funknr=0 ; funknr<nrfunk ; funknr++)
+      {
+      
+	
+	Funklet::Ref partfunk = funklist.get(funknr);
+      
+	partfunk().changeSolveDomain(solveDomain);
+
+	funklist.replace(funknr,partfunk);
+		
+      }//loop over funklets
+  };
+
 }//namespace Meq
+
+      
+   
+     
