@@ -60,7 +60,7 @@ if __name__ == '__main__':
   define_forest(ns);
   
   # resolves nodes
-  ns.Resolve(True);
+  ns.Resolve();
   
 #  test_forest(None);
   

@@ -147,6 +147,6 @@ if __name__ == '__main__':
   ns = NodeScope();
   define_forest(ns);
   # resolves nodes
-  ns.Resolve(True);  # True == cleanup orphans
+  ns.Resolve();  # True == cleanup orphans
   
   print len(ns.AllNodes()),'nodes defined';
