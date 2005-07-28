@@ -4,9 +4,11 @@ import Timba.TDL.Settings
 
 import sys
 import weakref
+import gc
 import traceback
 import re
 import os.path
+import copy
 
 _dbg = utils.verbosity(0,name='tdl');
 _dprint = _dbg.dprint;
@@ -211,23 +213,26 @@ class _NodeDef (object):
     return _Meq.Divide(other,self);
     
 def _mergeQualifiers (qual0,kwqual0,qual,kwqual,uniq=False):
-  # merge unnamed qualifiers
+  """Merges qualifiers qual,kwqual into qual0,kwqual0.
+  If uniq=False, then the unnamed qualifier lists (qual0 and qual) are simply
+  concatenated.
+  If uniq=True, then the lists are merged (i.e. duplicates from qual are removed).
+  Note that keyword qualifiers are always merged.
+  """
+  # add/merge unnamed qualifiers
   if uniq:
     qual0.extend([ q for q in qual if q not in qual0 ]);
   else:
     qual0.extend(qual);
-  # merge keyword qualifiers
+  # always merge keyword qualifiers
   for kw,val in kwqual.iteritems():
-    val0 = kwqual0.get(kw,None);
-    if val0 is None:
-      kwqual0[kw] = val;
-    elif isinstance(val0,list):
-      if val not in val0:
-        val0.append(val);
-    else:
-      if val != val0:
-        kwqual0[kw] = [val0,val];
-    
+    val0 = kwqual0.get(kw,[]);
+    if not isinstance(val0,list):
+      kwqual0[kw] = val0 = [val0];
+    if not isinstance(val,list):
+      val = [val];
+    val0.extend([q for q in val if q not in val0]);
+    kwqual0[kw] = val0;
   
 class _NodeStub (object):
   """A NodeStub represents a node. Initially a stub is created with only
@@ -240,6 +245,15 @@ class _NodeStub (object):
   slots = ( "name","scope","basename","quals","kwquals",
             "classname","parents","children","stepchildren",
             "_initrec","_caller","_debuginfo" );
+  # The Parents class is used to manage a weakly-reffed dictionary of the node's parents
+  # We redefine it as a class to implement __copy__ and __depcopy__ (which otherwise
+  # crashes and burns on weakrefs)
+  class Parents (weakref.WeakValueDictionary):
+    def __copy__ (self):
+      return self.__class__(self);
+    def __deepcopy__ (self):
+      return self.__class__(self);
+  
   def __init__ (self,fqname,basename,scope,*quals,**kwquals):
     _dprint(5,'creating node stub',fqname,basename,scope._name,quals,kwquals);
     self.name = fqname;
@@ -248,7 +262,7 @@ class _NodeStub (object):
     self.quals = quals;
     self.kwquals = kwquals;
     self.classname = None;
-    self.parents = weakref.WeakValueDictionary();
+    self.parents = self.Parents();
     self._initrec = None;         # uninitialized node
     # figure out source location from where node was defined.
     self._caller = _identifyCaller()[:2];
@@ -267,7 +281,7 @@ class _NodeStub (object):
     try:
       # resolve argument to a node spec. This will throw an exception on error
       nodedef = _NodeDef.resolve(arg);
-      _dprint(4,self.name,'<<',nodedef);
+      _dprint(4,self.name,self.quals,self.kwquals,'<<',nodedef);
       # can't resolve? error
       if nodedef is None:
         raise TypeError,"can't bind node name (operator <<) with argument of type "+type(arg).__name__;
@@ -305,8 +319,7 @@ class _NodeStub (object):
         _dprint(5,'adding',self.name,'to repository with initrec',self._initrec);
         self.scope._repository[self.name] = self;
         self._initrec = initrec;
-      # return weakref to self (real ref stays in repository)
-      return weakref.proxy(self);
+      return self;
     # any error is reported to the scope object for accumulation, we remain
     # uninitialized and return ourselves
     except:
@@ -326,16 +339,35 @@ class _NodeStub (object):
     return self._initrec is not None;
   def initrec (self):
     return self._initrec;
-  def __call__ (self,*quals,**kwquals):
-    """Creates a node based on this one, with additional qualifiers. Returns a _NodeStub.""";
-    (q,kw) = (list(self.quals),self.kwquals.copy());
-    _mergeQualifiers(q,kw,quals,kwquals);
+  def _qualify (self,quals,kwquals,merge):
+    """Helper method for operator (), qadd() and qxfer() below.
+    Creates a node based on this one, with additional qualifiers. If merge=True,
+    merges the quals lists (i.e. skips non-unique items), otherwise appends lists.
+    Returns a _NodeStub.""";
+    (q,kw) = (list(self.quals),copy.deepcopy(self.kwquals));
+    _mergeQualifiers(q,kw,quals,kwquals,uniq=merge);
     _dprint(4,"creating requalified node",self.basename,q,kw);
     fqname = qualifyName(self.basename,*q,**kw);
     try: 
       return self.scope._repository[fqname];
     except KeyError:
       return _NodeStub(fqname,self.basename,self.scope,*q,**kw);
+  def __call__ (self,*quals,**kwquals):
+    """Creates a node based on this one, with additional qualifiers. Extend, not merge
+    is implied. Returns a _NodeStub.""";
+    return self._qualify(quals,kwquals,False);
+  def qadd (self,*nodes):
+    """Adds qualifiers of listed nodes to qualifiers of this one.""";
+    res = self;
+    for n in nodes:
+      res = res._qualify(n.quals,n.kwquals,False);
+    return res;
+  def qmerge (self,*nodes):
+    """Merges qualifiers of listed nodes into qualifiers of this one.""";
+    res = self;
+    for n in nodes:
+      res = res._qualify(n.quals,n.kwquals,True);
+    return res;
   # define implicit arithmetic
   def __add__ (self,other):
     return _Meq.Add(self,other);
@@ -412,28 +444,34 @@ class _NodeRepository (dict):
 
   def deleteOrphan (self,name):
     """recursively deletes orphaned branches""";
-    node = self.pop(name,None);
+    node = self.get(name,None);
     if not node:  # already deleted
-      return 0;
-    count = 1;
+      return True;
+    # unqualified name: delete from scope dictionary too
+    if not ( node.quals or node.kwquals ):
+      try: delattr(node.scope,node.name.split('::')[-1]);
+      except AttributeError: pass;
+    # get refcount of this node. True orphans will only have 2:
+    # ourselves, and the local 'node' symbol. 
+    refcount = len(gc.get_referrers(node));
+    if refcount > 2:
+      _dprint(3,"node",name,"has",refcount,"refs to it, leaving as root");
+      for r in gc.get_referrers(node):
+        print type(r);
+        try: print r.f_lineno;
+        except: pass;
+      return False;
     # get list of children names (don't wanna hold refs to them because
     # it interferes with the orphaning)
     children = map(lambda x:x[1].name,node.children);
-    del node;
+    _dprint(3,"deleting orphan node",name);
+    del self[name];
+    node = None;
     if children:
-      _dprint(3,"deleted orphan node",name,", checking children: ",children);
+      _dprint(3,"checking potentially orphaned children: ",children);
       for ch in children:
-        chnode = self.get(ch,None);
-        if chnode is None:
-          _dprint(3,"child ",ch,"already deleted");
-        elif chnode.parents:
-          _dprint(3,"child ",ch,"is not an orphan (yet)");
-        else:
-          del chnode;
-          count += self.deleteOrphan(ch);
-    else:
-      _dprint(3,"deleted orphan node",name);
-    return count;
+        self.deleteOrphan(ch);
+    return True;
     
   def rootmap (self):
     try: return self._roots;
@@ -450,8 +488,10 @@ class _NodeRepository (dict):
   def get_errors (self):
     return self._errors;
       
-  def resolve (self,rootnodes=None):
-    """resolves contents of repository. If a rootnodes NodeGroup is specified,
+  def resolve (self,cleanup_orphans):
+    """resolves contents of repository. 
+    If cleanup_orphans is True
+    If a rootnodes NodeGroup is specified,
     then all orphan nodes not in this group will be automatically deleted,
     while orphans within the group will be collected in self._roots.
     If rootnodes is None, then all orphans will be collected in self._roots and
@@ -464,11 +504,12 @@ class _NodeRepository (dict):
       if not node.initialized():
         uninit.append(name);
       else:
+        # no parents? add to roots or to suspected orphans
         if not node.parents:
-          if rootnodes is None or node in rootnodes:
-            self._roots[name] = node;
-          else:
+          if cleanup_orphans:
             orphans.append(name);
+          else:
+            self._roots[name] = node;
         for (i,ch) in node.children:
           if not ch.initialized():
             self.add_error(ChildError,"child %s = %s is not initialized" % (str(i),ch.name),*node._caller);
@@ -490,29 +531,31 @@ class _NodeRepository (dict):
           node._initrec.children = children;
         if node.stepchildren:
           node._initrec.step_children = map(lambda x:x[1].name,node.stepchildren);
+    node = None;  # otherwise orphan collection is confused
     # now check for accumulated errors
     if len(self._errors):
       _dprint(1,len(self._errors),"errors reported");
       raise CumulativeError,self._errors;
     _dprint(1,"found",len(uninit),"uninitialized nodes");
-    _dprint(1,"found",len(orphans),"orphan nodes");
-    _dprint(1,"found",len(self._roots),"root nodes");
+    _dprint(1,"found",len(orphans) or len(self._roots),"roots");
     if uninit:
       _dprint(3,"uninitialized:",uninit);
       for name in uninit:
         del self[name];
-    ndel = 0;
-    for o in orphans:
-      ndel += self.deleteOrphan(o);
+    # clean up potential orphans: if deleteOrphan() returns False, then node is
+    # not really an orphan, so we move it to the roots group instead
+    len0 = len(self);
+    if cleanup_orphans:
+      for o in orphans:
+        if not self.deleteOrphan(o):
+          self._roots[o] = self[o];
+      _dprint(1,len0 - len(self),"orphans were deleted,",len(self._roots),"roots remain");
     # print roots in debug mode
     if _dbg.verbose > 3:
       for node in self._roots.itervalues():
         _printNode(node);
     _dprint(2,"root nodes:",self._roots.keys());
     _dprint(1,len(self),"total nodes in repository");
-
-
-
 
 class NodeScope (object):
   def __init__ (self,name=None,parent=None,test=False,*quals,**kwquals):
@@ -535,7 +578,7 @@ class NodeScope (object):
     self._uniqname_counters = {};
     # predefined root group to be used by TDL scripts
     object.__setattr__(self,'ROOT',NodeGroup());
-      
+    
   def __getattr__ (self,name):
     try: node = self.__dict__[name];
     except KeyError: 
@@ -548,7 +591,6 @@ class NodeScope (object):
       _dprint(5,'inserting node stub',name,'into our attributes');
       self.__dict__[name] = node;
     return node;
-  __getitem__ = __getattr__;
   
   def __setattr__ (self,name,value):
     """you can directly assign a node definition to a scope. Names
@@ -557,6 +599,10 @@ class NodeScope (object):
     if name.startswith("_"):
       return object.__setattr__(self,name,value);
     self.__getattr__(name) << value;
+    
+  __getitem__ = __getattr__;
+  __setitem__ = __setattr__;
+  __contains__ = hasattr;
     
   def __lshift__ (self,arg):
     """<<ing a NodeDef into a scope creates a node with an auto-generated name""";
@@ -595,7 +641,7 @@ class NodeScope (object):
     node << _Meq.Constant(value=value);
     # add to map of constants 
     self._constants[value] = node;
-    return weakref.proxy(node);
+    return node;
     
   def Repository (self):
     """Returns the repository""";
@@ -605,12 +651,12 @@ class NodeScope (object):
     """Creates a subscope of this scope, with optional qualifiers""";
     return NodeScope(name,self,*quals,**kwquals);
     
-  def Resolve (self,rootnodes=None):
+  def Resolve (self,cleanup_orphans=False):
     """Resolves the node repository: checks tree, trims orphans, etc. Should be done as the final
     step of tree definition. If rootnodes is supplied (or if self.ROOT is populated), then root 
     nodes outside the specified group will be considered orphans and trimmed away.
     """;
-    self._repository.resolve(rootnodes or self.ROOT or None);
+    self._repository.resolve(cleanup_orphans);
     
   def AllNodes (self):
     """returns the complete node repository. A node repository is essentially
