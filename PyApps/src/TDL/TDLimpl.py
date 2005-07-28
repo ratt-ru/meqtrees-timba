@@ -251,7 +251,7 @@ class _NodeStub (object):
   class Parents (weakref.WeakValueDictionary):
     def __copy__ (self):
       return self.__class__(self);
-    def __deepcopy__ (self):
+    def __deepcopy__ (self,memo):
       return self.__class__(self);
   
   def __init__ (self,fqname,basename,scope,*quals,**kwquals):
@@ -267,6 +267,10 @@ class _NodeStub (object):
     # figure out source location from where node was defined.
     self._caller = _identifyCaller()[:2];
     self._debuginfo = "%s:%d" % (os.path.basename(self._caller[0]),self._caller[1]);
+  def __copy__ (self):
+    return self;
+  def __deepcopy__ (self,memo):
+    return self;
   def bind (self,arg,*args,**kwargs):
     """The bind() method is an alternative form of <<. If called with
     a str as the first argument, it is assumed to be a classname, and a 
