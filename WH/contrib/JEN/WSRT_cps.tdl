@@ -1,0 +1,132 @@
+# ../Timba/PyApps/test/WSRT_cps.tdl:  
+#   MeqForests for WSRT Central Point Source reduction
+
+# standard preamble
+from Timba.TDL import *
+from Timba.Meq import meq
+from numarray import *
+
+# WSRT related modules:
+from WSRT_jones import *
+from WSRT_coh import *
+# from WSRT_calibrators import *
+# Better: put the WSRT stuff in a sub-directory....
+# from WSRT.WSRT_jones import *
+# from WSRT.WSRT_coh import *
+
+
+
+
+#================================================================================
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+#================================================================================
+
+from JEN_forest_state import *
+
+JEN_forest_state_init('WSRT_cps')
+
+
+#================================================================================
+# The main routine:
+#================================================================================
+
+def define_forest (ns):
+  simul = 1                                # if T, use simulated uv-data
+  trace = 1                                # if T, trace execution
+  stations = range(0,5)
+  ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ]
+  print 'stations =',stations
+  print 'ifrs =',ifrs
+
+  # Default values for instrumental errors
+  phase = 0
+  ampl = 1
+  dang = 0
+  dell = 0
+
+  # Get a real or simulated cohset (for all ifrs):
+  if simul:
+    nsim = ns.Subscope('_')                         # prepend simulated nodes with _::
+ 
+    punit = 'QUV'                                            # simulated source
+    JJ = []                                                         # list of 2x2 Jones matrices
+    # phase = array([[0,-0.1],[0.1,0]])  
+    # ampl = array([[1,-0.1],[0.1,0]])  
+    JJ.append (WSRT_GJones (nsim, stations=stations, punit=punit, phase=phase, ampl=ampl, solvable=0, trace=trace))
+    dang = array([[0,0.01],[0.01,0]])  
+    dell = array([[0,0.01],[0.01,0]])  
+    # JJ.append (WSRT_DJones (nsim, stations=stations, punit=punit, dang=dang, dell=dell, solvable=0, trace=trace))
+    JJ_simul = JJ[0]
+    JJ_simul = WSRT_JJones (nsim, JJ)
+    cohset = coh_predict (nsim, source=punit, ifrs=ifrs, corrupt=JJ_simul, trace=trace)
+    JJ_predict = JJ_simul                                 # used in coh_correct below
+  else:
+    cohset = coh_spigots (ns, ifrs=ifrs, trace=trace)
+
+  # Operations on the cohset:
+  cohset = coh_visualize (ns, cohset, scope='rawdata', trace=trace)
+  
+  # Optional: insert a solver:
+  if 1:
+    JJ = []                                                         # list of 2x2 Jones matrices
+    # phase = array([[0,0.1],[0.1,0]])  
+    # ampl = array([[1,0.1],[0.1,0]])  
+    JJ.append (WSRT_GJones (ns, stations=stations, punit=punit, phase=phase, ampl=ampl, trace=trace))
+    dang = array([[0,0.01],[0.01,0]])  
+    dell = array([[0,0.01],[0.01,0]])  
+    # JJ.append (WSRT_DJones (ns, stations=stations, punit=punit, dang=dang, dell=dell, trace=trace))
+    JJ_predict = JJ[0]
+    JJ_predict = WSRT_JJones (ns, JJ)
+    predicted = coh_predict (ns, source=punit, ifrs=ifrs, corrupt=JJ_predict, trace=1)
+    coh_solver (ns, name='GJones', measured=cohset, predicted=predicted, trace=1) 
+
+  # Optional: correct
+  if 1: 
+    cohset = coh_correct (ns, cohset, joneset=JJ_predict, trace=trace)
+    cohset = coh_visualize (ns, cohset, scope='corrected', trace=trace)
+
+  # Finished:
+  if simul:
+    coh_simul_sink (ns, cohset, trace=trace)
+  else:
+    print
+
+
+#================================================================================
+# Test routine:
+#================================================================================
+
+def test_forest (mqs, parent):
+  """test_forest() is a standard TDL name. When a forest script is
+  loaded by, e.g., the browser, and the "test" option is set to true,
+  this method is automatically called after define_forest() to run a 
+  test on the forest. The 'mqs' argument is a meqserver proxy object.
+  """;
+  from Timba.Meq import meq
+
+  # run test on the forest
+  cells = meq.cells(meq.domain(0,1,0,1),num_freq=6,num_time=4);
+  request = meq.request(cells,eval_mode=0);
+  # mqs.meq('Debug.Set.Level',record(debug_level=100));
+  # mqs.meq('Node.Set.Breakpoint',record(name='solver:GJones:q=uvp',breakpoint=255));
+  mqs.meq('Node.Execute',record(name='simul_sink',request=request));
+
+  # Use the savefile from the forest state record
+  mqs.meq('Save.Forest',record(file_name=JEN_forest_savefile()+'.meqforest'));	
+
+
+
+#================================================================================
+# Test routine:
+#================================================================================
+# this is a useful thing to have at the bottom of the script, 
+# it allows us to check the tree for consistency
+# simply by running 'python script.tdl'
+
+if __name__ == '__main__':
+  ns = NodeScope()
+  define_forest(ns)
+  # resolves nodes
+  ns.Resolve()	
+  print len(ns.AllNodes()),'nodes defined';
