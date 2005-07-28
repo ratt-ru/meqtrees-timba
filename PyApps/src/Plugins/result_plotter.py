@@ -468,7 +468,10 @@ class ResultPlotter(GriddedPlugin):
         self.colorbar.hide()
         self._visu_plotter = QwtImageDisplay('spectra',parent=self.layout)
         QObject.connect(self._visu_plotter, PYSIGNAL('image_range'), self.colorbar.setRange) 
+        QObject.connect(self._visu_plotter, PYSIGNAL('max_image_range'), self.colorbar.setMaxRange) 
         QObject.connect(self._visu_plotter, PYSIGNAL('display_type'), self.colorbar.setDisplayType) 
+        QObject.connect(self._visu_plotter, PYSIGNAL('show_colorbar_display'), self.colorbar.showDisplay) 
+        QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._visu_plotter.setImageRange) 
 
         self.set_widgets(self.layout,self.dataitem.caption,icon=self.icon())
         self._wtop = self.layout;       
