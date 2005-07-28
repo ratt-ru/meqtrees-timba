@@ -73,7 +73,9 @@ display_image_instructions = \
 '''This plot basically shows the contents of one or two-dimensional arrays. Most decision making takes place behind the scenes, so to speak, as the system uses the dimensionality of the data and the source of the data to decide how the data will be displayed. However, once a display appears, you can interact with it in certain standardized ways.<br><br>
 Button 1 (Left): If you click the <b>left</b> mouse button on a location inside a two-dimensional array plot, the x and y coordinates of this location, and its value, will appear at the lower left hand corner of the display. This information is shown until you release the mouse button. If you click the left mouse button down and then drag it, a rectangular square will be seen. Then when you release the left mouse button, the plot will 'zoom in' on the area defined inside the rectangle.<br><br>
 Button 2 (Middle): If you click the <b>middle</b> mouse button on a location inside a <b>two-dimensional</b> array plot, then X and Y cross-sections centred on this location are overlaid on the display. A continuous black line marks the location of the X cross-section and the black dotted line shows the cross section values, which are tied to the right hand scale. The white lines show corresponding information for the Y cross section, whose values are tied to the top scale of the plot. You can remove the X,Y cross sections from the display by hitting the 'refresh' icon (the two arrows circling each other) in the upper left corner of the plot window.(NOTE: There is presently a bug here - if the plot panel is floated free of the browser, the refresh option does not work.) If the <b>Legends</b> display has been toggled to ON (see Button 3 below), then a sequence of push buttons will appear along the right hand edge of the display. Each of the push buttons is associated with one of the cross-section plots. Clicking on a push button will cause the corresponding plot to appear or disappear, depending on the current state.<br><br>
-Button 3 (Right):Click the <b>right</b> mouse button in a spectrum display window to get get a context menu with options for printing, resetting the zoom, selecting another image, or toggling a <b>Legends</b> display. If you click on the 'Disable zoomer ' icon  in a window where you had zoomed in on a selected region, then the original entire array is re-displayed. Vellsets or <b>visu</b> data sets may contain multiple arrays. Only one of these arrays can be displayed at any one time. If additional images are available for viewing, they will be listed in the context menu. If you move the right mouse button to the desired image name in the menu and then release the button, the requested image will now appear in the display. If you select the Print option from the menu, the standard Qt printer widget will appear. That widget will enable you print out a copy of your plot, or save the plot in Postscript format to a file. Note that at present one cannot print out the Colorbar display associated with a two-dimensional array plot. This will be worked on. If you make cross-section plots (see Button 2 above), by default a <b>Legends</b> display associating push buttons with these plots is not shown. You can toggle the display of these push buttons ON or OFF by selecting the Toggle Cross-Section Legend option from the context menu.'''
+Button 3 (Right):Click the <b>right</b> mouse button in a spectrum display window to get get a context menu with options for printing, resetting the zoom, selecting another image, or toggling a <b>Legends</b> display. If you click on the 'Disable zoomer ' icon  in a window where you had zoomed in on a selected region, then the original entire array is re-displayed. Vellsets or <b>visu</b> data sets may contain multiple arrays. Only one of these arrays can be displayed at any one time. If additional images are available for viewing, they will be listed in the context menu. If you move the right mouse button to the desired image name in the menu and then release the button, the requested image will now appear in the display. If you select the Print option from the menu, the standard Qt printer widget will appear. That widget will enable you print out a copy of your plot, or save the plot in Postscript format to a file. Note that at present one cannot print out the Colorbar display associated with a two-dimensional array plot. This will be worked on. If you make cross-section plots (see Button 2 above), by default a <b>Legends</b> display associating push buttons with these plots is not shown. You can toggle the display of these push buttons ON or OFF by selecting the Toggle Cross-Section Legend option from the context menu. If you are working with two-dimensional arrays, then additional options to toggle the ON or OFF display of a colorbar showing the range of intensities and to switch between GrayScale and Color representations of the pixels will be shown.<br><br>
+By default, colorbars are turned ON while Legends are turned OFF when a plot is first produced. <br><br> 
+You can obtain more information about the behavior of the colorbar by using the QWhatsThis facility associated with the colorbar.'''
 
 class QwtImageDisplay(QwtPlot):
 
@@ -89,9 +91,7 @@ class QwtImageDisplay(QwtPlot):
         self._mainwin = parent and parent.topLevelWidget();
 
 # set default display type to 'hippo'
-        self._display_type = "hippo"
-
-        self.emit(PYSIGNAL("display_type"),(self._display_type,))
+        self._display_type = None
 
         self._vells_plot = False
 	self._flags_array = None
@@ -124,8 +124,13 @@ class QwtImageDisplay(QwtPlot):
         self._active_perturb = None
         self.is_time_vector = None
         self.is_freq_vector = None
+        self.context_menu_done = None
         self._mhz = False
         self._khz = False
+        self.min = None
+        self.max = None
+        self.image_min = None
+        self.image_max = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -165,6 +170,8 @@ class QwtImageDisplay(QwtPlot):
         self.is_vector = False
         self.xpos = 0
         self.ypos = 0
+        self.toggle_color_bar = 1
+        self.toggle_gray_scale = 0
         QWhatsThis.add(self, display_image_instructions)
 
 
@@ -176,6 +183,7 @@ class QwtImageDisplay(QwtPlot):
         # skip if no main window
         if not self._mainwin:
           return;
+
 
         if self._menu is None:
           self._menu = QPopupMenu(self._mainwin);
@@ -288,6 +296,24 @@ class QwtImageDisplay(QwtPlot):
       if menuid == 300:
         self.toggleLegend()
         return
+      if menuid == 301:
+        if self.toggle_color_bar == 1:
+          self.toggle_color_bar = 0
+        else:
+          self.toggle_color_bar = 1
+        self.emit(PYSIGNAL("show_colorbar_display"),(self.toggle_color_bar,))
+        return
+      if menuid == 302:
+        if self.toggle_gray_scale == 1:
+          self.setDisplayType('hippo')
+        else:
+          self.setDisplayType('grayscale')
+        if self._vells_plot:
+          self.plotImage.setData(self.raw_image, self.vells_freq, self.vells_time)
+        else:
+          self.plotImage.setData(self.raw_image)
+        self.replot()
+        return
       self.active_image_index = menuid
       if self.is_combined_image:
         self.removeMarkers()
@@ -301,8 +327,13 @@ class QwtImageDisplay(QwtPlot):
         # skip if no main window
         if not self._mainwin:
           return;
-        self._menu = QPopupMenu(self._mainwin);
-        QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
+        if self.context_menu_done:
+          return;
+        if self._menu is None:
+          self._menu = QPopupMenu(self._mainwin);
+          QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
+          self.add_basic_menu_items()
+
         id = -1
         perturb_index = -1
 # are we dealing with Vellsets?
@@ -345,15 +376,14 @@ class QwtImageDisplay(QwtPlot):
             self._label = "toggle blink of flagged data for plane " + str(i) 
             toggle_id = 201
             self._menu.insertItem(self._label,toggle_id)
-
-# add stuff for printer, etc
-        self.add_basic_menu_items()
+        self.context_menu_done = True
     # end initVellsContextMenu()
 
     def unzoom(self):
         self.zooming = 0
         if len(self.zoomStack):
-          xmin, xmax, ymin, ymax = self.zoomStack.pop()
+          while len(self.zoomStack):
+            xmin, xmax, ymin, ymax = self.zoomStack.pop()
           self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
           self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
           self.refresh_marker_display()
@@ -374,6 +404,23 @@ class QwtImageDisplay(QwtPlot):
 
     # toggleLegend()
 
+    def setImageRange(self, min, max):
+        image_min = min * 1.0
+        image_max = max * 1.0
+        if image_min > image_max:
+          temp = image_max
+          image_max = image_min
+          image_min = temp
+        self.plotImage.setImageRange((image_min, image_max))
+        if self._vells_plot:
+          self.plotImage.setData(self.raw_image, self.vells_freq, self.vells_time)
+        else:
+          self.plotImage.setData(self.raw_image)
+        self.image_min = image_min
+        self.image_max = image_max
+        self.replot()
+    # setImageRange
+	
 
     def timerEvent_blink(self):
 # stop blinking     
@@ -409,8 +456,25 @@ class QwtImageDisplay(QwtPlot):
       if menuid == 300:
         self.toggleLegend()
         return
+      if menuid == 301:
+        if self.toggle_color_bar == 1:
+          self.toggle_color_bar = 0
+        else:
+          self.toggle_color_bar = 1
+        self.emit(PYSIGNAL("show_colorbar_display"),(self.toggle_color_bar,))
+        return
+      if menuid == 302:
+        if self.toggle_gray_scale == 1:
+          self.setDisplayType('hippo')
+        else:
+          self.setDisplayType('grayscale')
+        if self._vells_plot:
+          self.plotImage.setData(self.raw_image, self.vells_freq, self.vells_time)
+        else:
+          self.plotImage.setData(self.raw_image)
+        self.replot()
+        return
 
-	
 # toggle flags display	
       if menuid == 200:
         if self.flag_toggle == False:
@@ -842,6 +906,10 @@ class QwtImageDisplay(QwtPlot):
       self._display_type = display_type
       self.plotImage.setDisplayType(display_type)
       self.emit(PYSIGNAL("display_type"),(self._display_type,))
+      if display_type.find('grayscale') == -1:
+        self.toggle_gray_scale = 0
+      else:
+        self.toggle_gray_scale = 1
     # setDisplayType
 
     def display_image(self, image):
@@ -858,9 +926,15 @@ class QwtImageDisplay(QwtPlot):
             image_for_display[k+shape[0],j] = imag_array[k,j]
       else:
         image_for_display = image
+      if self.image_min is None:
+        self.image_min = image_for_display.min()
+      if self.image_max is None:
+        self.image_max = image_for_display.max()
       
       # emit range for the color bar
-      self.emit(PYSIGNAL("image_range"),(image_for_display.min(), image_for_display.max()))
+      self.emit(PYSIGNAL("image_range"),(self.image_min, self.image_max))
+      self.emit(PYSIGNAL("max_image_range"),(image_for_display.min(), image_for_display.max()))
+
       if self._vells_plot:
         self.plotImage.setData(image_for_display, self.vells_freq, self.vells_time)
       else:
@@ -917,7 +991,6 @@ class QwtImageDisplay(QwtPlot):
       self._title = None
       self._x_axis = None
       self._y_axis = None
-      self._display_type = None
       self._string_tag = None
       self._data_labels = None
       self._tag_plot_attrib={}
@@ -936,8 +1009,7 @@ class QwtImageDisplay(QwtPlot):
           if self._plot_type is None and plot_parms.has_key('plot_type'):
             self._plot_type = plot_parms.get('plot_type')
           if self._display_type is None and plot_parms.has_key('spectrum_color'):
-            self._display_type = plot_parms.get('spectrum_color')
-            self.emit(PYSIGNAL("display_type"),(self._display_type,))
+            self.setDisplayType(plot_parms.get('spectrum_color'))
           if self._attrib_parms.has_key('tag'):
             tag = self._attrib_parms.get('tag')
         else:
@@ -966,8 +1038,7 @@ class QwtImageDisplay(QwtPlot):
             if self._y_axis is None and plot_parms.has_key('y_axis'):
               self._y_axis = plot_parms.get('y_axis')
             if self._display_type is None and plot_parms.has_key('spectrum_color'):
-              self._display_type = plot_parms.get('spectrum_color')
-              self.emit(PYSIGNAL("display_type"),(self._display_type,))
+              self.setDisplayType(plot_parms.get('spectrum_color'))
           if self._attrib_parms.has_key('tag'):
             tag = self._attrib_parms.get('tag')
             if self._string_tag is None:
@@ -997,13 +1068,9 @@ class QwtImageDisplay(QwtPlot):
       if self._string_tag is None:
         self._string_tag = ''
       if self._display_type is None:
-        self._display_type = 'hippo'
-        self.emit(PYSIGNAL("display_type"),(self._display_type,))
+        self.setDisplayType('hippo')
       if self._plot_type is None:
         self._plot_type = 'spectra'
-
-# set the display color type in the low level QwtPlotImage class
-      self.setDisplayType(self._display_type)
 
       if visu_record.has_key('value'):
         self._data_values = visu_record['value']
@@ -1119,7 +1186,8 @@ class QwtImageDisplay(QwtPlot):
       if self._vells_rec.has_key("vellsets") and not self._solver_flag:
         self._vells_plot = True
         self.calc_vells_ranges()
-        self. initVellsContextMenu()
+        if self.context_menu_done is None:
+          self. initVellsContextMenu()
         _dprint(3, 'handling vellsets')
 
 
@@ -1273,6 +1341,14 @@ class QwtImageDisplay(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False:
+# make sure color bar is shown
+#       self.emit(PYSIGNAL("show_colorbar_display"),(1,)) 
+# make sure options relating to color bar are in context menu
+        toggle_id = 301
+        self._menu.setItemVisible(toggle_id, True)
+        toggle_id = 302
+        self._menu.setItemVisible(toggle_id, True)
+
         self.active_image = True
 
 # get mean and standard deviation of array
@@ -1354,6 +1430,15 @@ class QwtImageDisplay(QwtPlot):
           self.display_image(plot_array)
 
       if self.is_vector == True:
+
+# make sure color bar is hidden
+        self.emit(PYSIGNAL("show_colorbar_display"),(0,)) 
+# make sure options relating to color bar are not in context menu
+        toggle_id = 301
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = 302
+        self._menu.setItemVisible(toggle_id, False)
+
 # make sure we are autoscaling in case an image was previous
         self.setAxisAutoScale(QwtPlot.xBottom)
         self.setAxisAutoScale(QwtPlot.yLeft)
@@ -1533,6 +1618,10 @@ class QwtImageDisplay(QwtPlot):
     def add_basic_menu_items(self):
         toggle_id = 300
         self._menu.insertItem("Toggle Cross-Section Legend", toggle_id)
+        toggle_id = 301
+        self._menu.insertItem("Toggle ColorBar", toggle_id)
+        toggle_id = 302
+        self._menu.insertItem("Toggle Color/GrayScale Display", toggle_id)
         zoom = QAction(self);
         zoom.setIconSet(pixmaps.viewmag.iconset());
         zoom.setText("Disable zoomer");
