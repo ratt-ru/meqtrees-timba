@@ -26,7 +26,14 @@ def bytescale(data, limits, high=255, low=1):
     if limits[1] is None:
         limits[1] = data.max()
     scale = high *1.0 / (limits[1]-limits[0] or 1)
-    bytedata = ((data*1.0-limits[0])*scale + 0.4999).astype(UInt8) + asarray(low).astype(UInt8)
+    internal_data = data.copy()
+    temp1 = less_equal(data,limits[1])
+    temp2 = greater(data,limits[1])
+    internal_data = data * temp1 + temp2 * limits[1]
+    temp1 = greater_equal(internal_data,limits[0])
+    temp2 = less(internal_data,limits[0])
+    internal_data = internal_data * temp1 + temp2 * limits[0]
+    bytedata = ((internal_data*1.0-limits[0])*scale + 0.4999).astype(UInt8) + asarray(low).astype(UInt8)
     return bytedata
 
 class QwtPlotImage(QwtPlotMappedItem):
@@ -64,6 +71,11 @@ class QwtPlotImage(QwtPlotMappedItem):
     def getImageRange(self):
         return (self.cmin, self.cmax)
     # getImageRange
+
+    def setImageRange(self, limits):
+        self.cmin = limits[0]
+        self.cmax = limits[1]
+    # setImageRange
 
     def setImage(self, image):
 # turn image into a QImage	
