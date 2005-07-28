@@ -48,7 +48,11 @@ class ArrayPlotter(GriddedPlugin):
         self.colorbar.hide()
         self._plotter = QwtImageDisplay('spectra',parent=self.layout)
         QObject.connect(self._plotter, PYSIGNAL('image_range'), self.colorbar.setRange) 
+        QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar.setMaxRange) 
         QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar.setDisplayType) 
+        QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar.showDisplay)
+        QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._plotter.setImageRange)
+
       else:
         self._plotter = QwtImageDisplay('spectra',parent=self.wparent())
     else:
