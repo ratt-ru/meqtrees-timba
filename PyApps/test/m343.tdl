@@ -4,9 +4,12 @@ from Timba.Meq import meq
 
 # TDL.Settings.forest_state is a standard TDL name. 
 # This record is passed to Set.Forest.State. 
-#
-
 Settings.forest_state.cache_policy = 100;
+
+# If False (the default), orphan nodes not assigned to anything (such as a 
+# root group, e.g. ns.ROOT) will be deleted.
+# If True, orphan nodes are always assumed to be valid roots
+Settings.orpans_are_roots = False;
 
 # some global bits  
 STATIONS = range(1,15);
@@ -147,6 +150,6 @@ if __name__ == '__main__':
   ns = NodeScope();
   define_forest(ns);
   # resolves nodes
-  ns.Resolve();  # True == cleanup orphans
+  ns.Resolve();  
   
   print len(ns.AllNodes()),'nodes defined';

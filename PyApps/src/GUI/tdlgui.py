@@ -558,7 +558,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     try:
       ns = TDL.NodeScope();
       _tdlmod.define_forest(ns);
-      ns.Resolve();
+      cleanup = not getattr(Timba.TDL.Settings,'orphans_are_roots',False);
+      ns.Resolve(cleanup);
     except TDL.CumulativeError,value:
     # this exception gives us an error list directly
       errlist = value[0];

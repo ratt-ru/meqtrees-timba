@@ -192,7 +192,7 @@ class _NodeDef (object):
       return scope[basename](*quals,**kwquals) << self;
     else:
       basename = scope.MakeUniqueName(classname);
-      return scope[basename]() << self;
+      return scope[basename] << self;
     
   # define implicit arithmetic operators
   def __add__ (self,other):
@@ -422,15 +422,16 @@ class NodeGroup (dict):
     self.name = name;
   def __lshift__ (self,node):
     if not isinstance(node,_NodeStub):
-      nodedef = _NodeDef.resolve(node);
-      _dprint(4,self.name,'<<',nodedef);
-      # can't resolve? error
-      if nodedef is None:
-        raise TypeError,"can't use NodeGroup operator << with argument of type "+type(node).__name__;
-      # error NodeDef? raise it as a proper exception
-      if nodedef.error:
-        raise nodedef.error;
-      node = nodedef.autodefine(self);
+      raise TypeError,"can't use NodeGroup operator << with argument of type "+type(node).__name__;
+#       nodedef = _NodeDef.resolve(node);
+#       _dprint(4,self.name,'<<',nodedef);
+#       # can't resolve? error
+#       if nodedef is None:
+#         raise TypeError,"can't use NodeGroup operator << with argument of type "+type(node).__name__;
+#       # error NodeDef? raise it as a proper exception
+#       if nodedef.error:
+#         raise nodedef.error;
+#       node = nodedef.autodefine(self);
     dict.__setitem__(self,node.name,node);
     return node;
   def __contains__ (self,node):
@@ -459,15 +460,17 @@ class _NodeRepository (dict):
     # ourselves, and the local 'node' symbol. 
     refcount = len(gc.get_referrers(node));
     if refcount > 2:
-      _dprint(3,"node",name,"has",refcount,"refs to it, leaving as root");
-      for r in gc.get_referrers(node):
-        print type(r);
-        try: print r.f_lineno;
-        except: pass;
+      _dprint(3,"node",name,"has",refcount,"refs to it, skipping");
+      if _dbg.verbose > 4:
+        for r in gc.get_referrers(node):
+          _dprint(5,'referrer:',type(r),getattr(r,'__name__',''),getattr(r,'f_lineno',''));
+      if not node.parents:
+        _dprint(3,"node",name,"is now a true root");
+        self._roots[name] = node;
       return False;
     # get list of children names (don't wanna hold refs to them because
     # it interferes with the orphaning)
-    children = map(lambda x:x[1].name,node.children);
+    children = map(lambda x:x[1].name,node.children) + map(lambda x:x[1].name,node.stepchildren);
     _dprint(3,"deleting orphan node",name);
     del self[name];
     node = None;
@@ -526,16 +529,15 @@ class _NodeRepository (dict):
         node._initrec.defined_at = node._debuginfo;
         node._initrec.name = node.name;
         if node.children.is_dict:
-          children = dmi.record();
-          for (name,ch) in node.children:
-            children[name] = ch.name;
+          children = dmi.record([(lbl,ch.name) for (lbl,ch) in node.children]);
         else:  # children as list
-          children = map(lambda x:x[1].name,node.children);
+          children = [ ch.name for (lbl,ch) in node.children ];
         if children:
           node._initrec.children = children;
         if node.stepchildren:
-          node._initrec.step_children = map(lambda x:x[1].name,node.stepchildren);
-    node = None;  # otherwise orphan collection is confused
+          node._initrec.step_children = [ ch.name for (lbl,ch) in node.stepchildren ];
+        ch = None; # relinquish ref to node, otherwise orphan collection is confused
+    node = None;  # relinquish ref to node, otherwise orphan collection is confused
     # now check for accumulated errors
     if len(self._errors):
       _dprint(1,len(self._errors),"errors reported");
@@ -550,16 +552,16 @@ class _NodeRepository (dict):
     # not really an orphan, so we move it to the roots group instead
     len0 = len(self);
     if cleanup_orphans:
-      for o in orphans:
-        if not self.deleteOrphan(o):
-          self._roots[o] = self[o];
-      _dprint(1,len0 - len(self),"orphans were deleted,",len(self._roots),"roots remain");
+      map(self.deleteOrphan,orphans);
+    _dprint(1,len0 - len(self),"orphans were deleted,",len(self._roots),"roots remain");
     # print roots in debug mode
     if _dbg.verbose > 3:
       for node in self._roots.itervalues():
         _printNode(node);
     _dprint(2,"root nodes:",self._roots.keys());
     _dprint(1,len(self),"total nodes in repository");
+    if _dbg.verbose>4:
+      _dprint(5,"nodes remaining:",self.keys());
 
 class NodeScope (object):
   def __init__ (self,name=None,parent=None,test=False,*quals,**kwquals):
@@ -655,12 +657,12 @@ class NodeScope (object):
     """Creates a subscope of this scope, with optional qualifiers""";
     return NodeScope(name,self,*quals,**kwquals);
     
-  def Resolve (self,cleanup_orphans=False):
+  def Resolve (self):
     """Resolves the node repository: checks tree, trims orphans, etc. Should be done as the final
     step of tree definition. If rootnodes is supplied (or if self.ROOT is populated), then root 
     nodes outside the specified group will be considered orphans and trimmed away.
     """;
-    self._repository.resolve(cleanup_orphans);
+    self._repository.resolve(not Timba.TDL.Settings.orphans_are_roots);
     
   def AllNodes (self):
     """returns the complete node repository. A node repository is essentially

@@ -5,6 +5,9 @@ from Timba.TDL import *
 # This is a record passed to Set.Forest.State. 
 Settings.forest_state.cache_policy = 100;
 
+# Make sure our solver root node is not cleaned up
+Settings.orphans_are_roots = True;
+
 def define_forest (ns):
   """define_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, this method is automatically called to
@@ -12,13 +15,13 @@ def define_forest (ns):
   the forest is to be defined, usually this is simply the global scope.
   """;
   ns['solver'] << Meq.Solver(
-    num_iter=5,debug_level=10,solvable="x",
-    children = Meq.Condeq(
-      Meq.Parm([0,1]),
-      5 + (ns.x << Meq.Parm(0,node_groups='Parm')),
-      a=None
-    ),
-  );
+      num_iter=5,debug_level=10,solvable="x",
+      children = Meq.Condeq(
+        Meq.Parm([0,1]),
+        5 + (ns.x << Meq.Parm(0,node_groups='Parm')),
+        a=None
+      ),
+    );
 
 def test_forest (mqs,parent):
   """test_forest() is a standard TDL name. When a forest script is

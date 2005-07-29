@@ -12,6 +12,11 @@ from Timba.TDL import *
 # above, the record is available as Settings.forest_state
 Settings.forest_state.cache_policy = 100;
 
+# If False (the default), orphan nodes not assigned to anything (such as a 
+# root group, e.g. ns.ROOT) will be deleted.
+# If True, orphan nodes are always retained. This is what we want here.
+Settings.orphans_are_roots = True;
+
 
 def define_forest (ns):
   """define_forest() is a standard TDL name. When a forest script is
@@ -208,6 +213,34 @@ def define_forest (ns):
   ns << ns.e(a=1) + ns.f(a=2);   # creates 'add(e,f):a=1,2'
   ns << ns.e(a=1) + ns.f(b=1);   # creates 'add(e,f):a=1:b=1'
   
+  # Finally, a word on orphans and node groups. Remember the orphans_are_roots 
+  # setting above which we set to True. If we had set it to False, all 
+  # the nodes defined above would have been deleted afterwards as 
+  # "orphaned". A node (or a branch) is considered orphaned when the 
+  # following two conditions are met:
+  #   1. It has no parents (i.e. it is a root node)
+  #   2. The node stub is not referred to from anywhere else in Python
+  #     (i.e. it is not assigned to any variables or containers)
+  # Automatic orphan cleaning is handy if you want to create a bunch of
+  # subtrees in advance, and only leave behind the ones that are actually
+  # used. This means that you must explicitly hold refs to the true "root"
+  # nodes by, e.g., assigning them to a container that does not go out
+  # of scope when our define_forest() returns.
+  
+  # A NodeGroup provides a convenient container for this. It is, in fact, 
+  # nothing more than a dict that redefines operator << so that
+  #     group << node
+  # is equivalent to
+  #     group[node.name] = node;
+  # and also redefines the "in" operator so that saying 'node in group' is
+  # equivalent to 'node.name in group'.
+  # Every NodeScope object has a predefined "root" group available as
+  # ns.ROOT. So, all we need to do to mark nodes as true roots and not orphans
+  # is say:
+  ns.ROOT << ns.e(a=1);
+  # You can define a node and assigns it to roots in one statement, but
+  # take care with the parentheses (<< binds left to right)
+  ns.ROOT << ( ns << ns.e(a=1) + ns.f(b=1) );   # creates 'add(e,f):a=1:b=1'
   
   
 def test_forest (mqs,parent):
