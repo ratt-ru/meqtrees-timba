@@ -895,24 +895,26 @@ class QwtImageDisplay(QwtPlot):
             xmax = self.invTransform(QwtPlot.xBottom, xmax)
             ymin = self.invTransform(QwtPlot.yLeft, ymin)
             ymax = self.invTransform(QwtPlot.yLeft, ymax)
+            #print 'raw xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
+            if not self.is_vector:
 # if we have a vells plot, adjust bounds of image display to be an integer
 # number of pixels
-            if self._vells_plot:
-              if not self.freq_inc is None:
-                xmin = int((xmin + 0.5 * self.freq_inc) / self.freq_inc)
-                xmax = int((xmax + 0.5 * self.freq_inc) / self.freq_inc)
-                xmin = xmin * self.freq_inc
-                xmax = xmax * self.freq_inc
-              if not self.time_inc is None:
-                ymin = int((ymin + 0.5 * self.time_inc) / self.time_inc)
-                ymax = int((ymax + 0.5 * self.time_inc) / self.time_inc)
-                ymin = ymin * self.time_inc
-                ymax = ymax * self.time_inc
-            else:
-              ymax = int (ymax)
-              ymin = int (ymin + 0.5)
-              xmax = int (xmax + 0.5)
-              xmin = int (xmin)
+              if self._vells_plot:
+                if not self.freq_inc is None:
+                  xmin = int((xmin + 0.5 * self.freq_inc) / self.freq_inc)
+                  xmax = int((xmax + 0.5 * self.freq_inc) / self.freq_inc)
+                  xmin = xmin * self.freq_inc
+                  xmax = xmax * self.freq_inc
+                if not self.time_inc is None:
+                  ymin = int((ymin + 0.5 * self.time_inc) / self.time_inc)
+                  ymax = int((ymax + 0.5 * self.time_inc) / self.time_inc)
+                  ymin = ymin * self.time_inc
+                  ymax = ymax * self.time_inc
+              else:
+                  ymax = int (ymax)
+                  ymin = int (ymin + 0.5)
+                  xmax = int (xmax + 0.5)
+                  xmin = int (xmin)
             #print 'final xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
             if xmin == xmax or ymin == ymax:
                 return
@@ -1489,6 +1491,11 @@ class QwtImageDisplay(QwtPlot):
         self.setAxisAutoScale(QwtPlot.xBottom)
         self.setAxisAutoScale(QwtPlot.yLeft)
         self.setAxisAutoScale(QwtPlot.yRight)
+
+# make sure grid markings are on in case an image was previously displayed
+        self.enableGridX(True)
+        self.enableGridY(True)
+
 
         if not self._flags_array is None:
           self.flags_x_index = []
