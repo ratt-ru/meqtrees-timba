@@ -205,39 +205,40 @@ class QwtPlotImage(QwtPlotMappedItem):
         if self.image is None:
           return
 
-#        print 'in drawImage'
-#        print 'incoming x map ranges ',xMap.d1(), ' ', xMap.d2()
-#        print 'incoming y map ranges ',yMap.d1(), ' ', yMap.d2()
+#       print 'in drawImage'
+#       print 'incoming x map ranges ',xMap.d1(), ' ', xMap.d2()
+#       print 'incoming y map ranges ',yMap.d1(), ' ', yMap.d2()
         # calculate y1, y2
         y1 = y2 = self.image.height()
+#       print 'image height ', self.image.height()
 #        y1 = y2 = self.image.height() - 1
 #        print 'starting image height ', y1
         y1 *= (self.yMap.d2() - yMap.d2())
         y1 /= (self.yMap.d2() - self.yMap.d1())
-#        print 'float y1 ', y1
-        y1 = max(0, int(y1-0.5))
-#        y1 = max(0, (y1-0.5))
+#       y1 = max(0, int(y1-0.5))
+        y1 = max(0, (y1-0.5))
+#       print 'float y1 ', y1
+        y1 = int(y1 + 0.5)
         y2 *= (self.yMap.d2() - yMap.d1())
         y2 /= (self.yMap.d2() - self.yMap.d1())
-#        print 'float y2 ', y2
-        y2 = min(self.image.height(), int(y2+0.5))
-#        y2 = min(self.image.height(), (y2+0.5))
-#        print 'y1, y2 ', y1, ' ', y2
-        # calculate x1, x1
+#       print 'float y2 ', y2
+#       y2 = min(self.image.height(), int(y2+0.5))
+        y2 = min(self.image.height(), (y2+0.5))
+        y2 = int(y2)
+#       print 'int y1, y2 ', y1, ' ', y2
+        # calculate x1, x2 - these are OK
         x1 = x2 = self.image.width() 
-#        x1 = x2 = self.image.width() - 1
-#        print 'starting image width ', x1
+#       print 'starting image width ', x1
         x1 *= (xMap.d1() - self.xMap.d1())
         x1 /= (self.xMap.d2() - self.xMap.d1())
-#        print 'float x1 ', x1
-        x1 = max(0, int(x1-0.5))
-#        x1 = max(0, (x1-0.5))
+#       print 'float x1 ', x1
+#       x1 = max(0, int(x1-0.5))
+        x1 = max(0, int(x1))
         x2 *= (xMap.d2() - self.xMap.d1())
         x2 /= (self.xMap.d2() - self.xMap.d1())
-#        print 'float x2 ', x2
+#       print 'float x2 ', x2
         x2 = min(self.image.width(), int(x2+0.5))
-#        x2 = min(self.image.width(), (x2+0.5))
-#        print 'x1, x2 ', x1, ' ', x2
+#       print 'x1, x2 ', x1, ' ', x2
         # copy
 	image = None
 	if self._display_flags:
