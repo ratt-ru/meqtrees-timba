@@ -82,9 +82,9 @@ class HierBrowser (object):
   # seqs/dicts with <= items than this are treated as "short"
   ShortSeq       = 5;
   # maximum number of sequence items to show in expanded view
-  MaxExpSeq      = 20;
+  MaxExpSeq      = 1000;
   # max number of dictionary items to show in expanded view
-  MaxExpDict     = 100;
+  MaxExpDict     = 5000;
   
   class Item (QListViewItem):
     def __init__(self,parent,key,value,udi_key=None,udi=None,strfunc=None,
