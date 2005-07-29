@@ -723,6 +723,7 @@ class QwtImageDisplay(QwtPlot):
         _dprint(3, 'called replot in reportCoordinates ')
     # reportCoordinates()
 
+
     def refresh_marker_display(self):
       self.removeMarkers()
       if self.is_combined_image:
@@ -796,8 +797,18 @@ class QwtImageDisplay(QwtPlot):
               temp_array = asarray(xpos)
               self.y_arrayloc = resize(temp_array,shape[1])
               if self._vells_plot:
-                xpos = self.plotImage.xMap.limTransform(xpos)
-                ypos = self.plotImage.yMap.limTransform(ypos)
+                if not self.freq_inc is None:
+                  xpos = int(xpos / self.freq_inc)
+                else:
+# this inversion does not seem to work properly for scaled
+# (vellsets) data, so use the above if possible
+                  xpos = self.plotImage.xMap.limTransform(xpos)
+                if not self.time_inc is None:
+                  ypos = int(ypos / self.time_inc)
+                else:
+                  ypos = self.plotImage.yMap.limTransform(ypos)
+#               xpos = self.plotImage.xMap.limTransform(xpos)
+#               ypos = self.plotImage.yMap.limTransform(ypos)
               else:
                 xpos = int(xpos)
                 ypos = int(ypos)
@@ -884,11 +895,25 @@ class QwtImageDisplay(QwtPlot):
             xmax = self.invTransform(QwtPlot.xBottom, xmax)
             ymin = self.invTransform(QwtPlot.yLeft, ymin)
             ymax = self.invTransform(QwtPlot.yLeft, ymax)
-            if not self._vells_plot:
+# if we have a vells plot, adjust bounds of image display to be an integer
+# number of pixels
+            if self._vells_plot:
+              if not self.freq_inc is None:
+                xmin = int((xmin + 0.5 * self.freq_inc) / self.freq_inc)
+                xmax = int((xmax + 0.5 * self.freq_inc) / self.freq_inc)
+                xmin = xmin * self.freq_inc
+                xmax = xmax * self.freq_inc
+              if not self.time_inc is None:
+                ymin = int((ymin + 0.5 * self.time_inc) / self.time_inc)
+                ymax = int((ymax + 0.5 * self.time_inc) / self.time_inc)
+                ymin = ymin * self.time_inc
+                ymax = ymax * self.time_inc
+            else:
               ymax = int (ymax)
               ymin = int (ymin + 0.5)
               xmax = int (xmax + 0.5)
               xmin = int (xmin)
+            #print 'final xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
             if xmin == xmax or ymin == ymax:
                 return
             self.zoomStack.append(self.zoomState)
