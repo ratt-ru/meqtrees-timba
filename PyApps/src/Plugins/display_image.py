@@ -131,6 +131,8 @@ class QwtImageDisplay(QwtPlot):
         self.max = None
         self.image_min = None
         self.image_max = None
+        self.time_inc = None
+        self.freq_inc = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -636,8 +638,16 @@ class QwtImageDisplay(QwtPlot):
           result = temp_str
           temp_str = result + " y =%+.2g" % ypos
           result = temp_str
-          xpos = self.plotImage.xMap.limTransform(xpos)
-          ypos = self.plotImage.yMap.limTransform(ypos)
+          if not self.freq_inc is None:
+            xpos = int(xpos / self.freq_inc)
+          else:
+# this inversion does not seem to work properly for scaled
+# (vellsets) data, so use the above if possible
+            xpos = self.plotImage.xMap.limTransform(xpos)
+          if not self.time_inc is None:
+            ypos = int(ypos / self.time_inc)
+          else:
+            ypos = self.plotImage.yMap.limTransform(ypos)
         else:
           xpos = int(xpos)
 	  xpos1 = xpos
@@ -646,15 +656,15 @@ class QwtImageDisplay(QwtPlot):
 	      xpos1 = xpos1 % self.split_axis
           temp_str = result + "x =%+.2g" % xpos1
           result = temp_str
-          ypos = int(ypos)
 	  ypos1 = ypos
+          ypos = int(ypos1)
 	  if not self.y_marker_step is None:
 	    if ypos1 >  self.y_marker_step:
-	      marker_index = ypos1 / self.y_marker_step
-	      ypos1 = ypos1 % self.y_marker_step
+	      marker_index = int(ypos1 / self.y_marker_step)
+	      ypos1 = int(ypos1 % self.y_marker_step)
 	    else:
 	      marker_index = 0
-          temp_str = result + " y =%+.2g" % ypos1
+          temp_str = result + " y =%+.2g" % ypos
           result = temp_str
         if value is None:
           value = self.raw_image[xpos,ypos]
@@ -778,10 +788,10 @@ class QwtImageDisplay(QwtPlot):
             if self.active_image:
               xpos = e.pos().x()
               ypos = e.pos().y()
-              shape = self.raw_image.shape
               xpos = self.invTransform(QwtPlot.xBottom, xpos)
               ypos = self.invTransform(QwtPlot.yLeft, ypos)
               temp_array = asarray(ypos)
+              shape = self.raw_image.shape
               self.x_arrayloc = resize(temp_array,shape[0])
               temp_array = asarray(xpos)
               self.y_arrayloc = resize(temp_array,shape[1])
@@ -874,6 +884,11 @@ class QwtImageDisplay(QwtPlot):
             xmax = self.invTransform(QwtPlot.xBottom, xmax)
             ymin = self.invTransform(QwtPlot.yLeft, ymin)
             ymax = self.invTransform(QwtPlot.yLeft, ymax)
+            if not self._vells_plot:
+              ymax = int (ymax)
+              ymin = int (ymin + 0.5)
+              xmax = int (xmax + 0.5)
+              xmin = int (xmin)
             if xmin == xmax or ymin == ymax:
                 return
             self.zoomStack.append(self.zoomState)
@@ -886,7 +901,6 @@ class QwtImageDisplay(QwtPlot):
                 return
         elif Qt.MidButton == e.button():
           return
-
         self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
         self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
         self.replot()
@@ -1133,11 +1147,13 @@ class QwtImageDisplay(QwtPlot):
 # get grid parameters - will help decide if we are dealing with
 # time or frequency data for 1-D vells arrays
       try:
-        test_freq_shape = self._vells_rec.cells.grid.freq.shape
+        freq_shape = self._vells_rec.cells.grid.freq.shape
+        self.freq_inc = (self.vells_end_freq - self.vells_start_freq)/freq_shape[0]
       except:
         self.is_time_vector = True
       try:
-        test_time_shape = self._vells_rec.cells.grid.time.shape
+        time_shape = self._vells_rec.cells.grid.time.shape
+        self.time_inc = (self.vells_end_time - self.vells_start_time)/time_shape[0]
       except:
         self.is_freq_vector = True
 
