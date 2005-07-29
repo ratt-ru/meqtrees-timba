@@ -1169,7 +1169,7 @@ class QwtImageDisplay(QwtPlot):
       self.vells_freq = (self.vells_start_freq,self.vells_end_freq)
       self.vells_time = (self.vells_start_time,self.vells_end_time)
 
-# get grid parameters - will help decide if we are dealing with
+# get domain grid parameters - will help decide if we are dealing with
 # time or frequency data for 1-D vells arrays
       try:
         freq_shape = self._vells_rec.cells.grid.freq.shape
@@ -1382,6 +1382,11 @@ class QwtImageDisplay(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False:
+
+# don't use grid markings for 2-D 'image' arrays
+        self.enableGridX(False)
+        self.enableGridY(False)
+
 # make sure color bar is shown
 #       self.emit(PYSIGNAL("show_colorbar_display"),(1,)) 
 # make sure options relating to color bar are in context menu
