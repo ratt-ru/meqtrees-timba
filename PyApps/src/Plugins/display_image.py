@@ -652,7 +652,7 @@ class QwtImageDisplay(QwtPlot):
           xpos = int(xpos)
 	  xpos1 = xpos
 	  if not self.split_axis is None:
-	    if xpos1 >  self.split_axis:
+	    if xpos1 >=  self.split_axis:
 	      xpos1 = xpos1 % self.split_axis
           temp_str = result + "x =%+.2g" % xpos1
           result = temp_str
