@@ -124,15 +124,17 @@ class QwtImageDisplay(QwtPlot):
         self._active_perturb = None
         self.is_time_vector = None
         self.is_freq_vector = None
+        self.time_inc = None
+        self.freq_inc = None
         self.context_menu_done = None
         self._mhz = False
         self._khz = False
-        self.min = None
-        self.max = None
         self.image_min = None
         self.image_max = None
-        self.time_inc = None
-        self.freq_inc = None
+        self.xmin = None
+        self.xmax = None
+        self.ymin = None
+        self.ymax = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -310,10 +312,7 @@ class QwtImageDisplay(QwtPlot):
           self.setDisplayType('hippo')
         else:
           self.setDisplayType('grayscale')
-        if self._vells_plot:
-          self.plotImage.setData(self.raw_image, self.vells_freq, self.vells_time)
-        else:
-          self.plotImage.setData(self.raw_image)
+        self.testZoom()
         self.replot()
         return
       self.active_image_index = menuid
@@ -324,6 +323,15 @@ class QwtImageDisplay(QwtPlot):
         if self._combined_image_id == menuid:
 	  self.is_combined_image = True
       self.array_plot(self._plot_label[menuid], self._plot_dict[menuid], False)
+
+    def testZoom(self):
+       if self._vells_plot:
+         self.plotImage.setData(self.raw_image, self.vells_freq, self.vells_time)
+       else:
+         self.plotImage.setData(self.raw_image)
+       if not self.xmin is None and not self.xmax is None and not self.ymin is None and not self.ymax is None:
+         self.setAxisScale(QwtPlot.xBottom, self.xmin, self.xmax)
+         self.setAxisScale(QwtPlot.yLeft, self.ymin, self.ymax)
 
     def initVellsContextMenu (self):
         # skip if no main window
@@ -388,6 +396,10 @@ class QwtImageDisplay(QwtPlot):
             xmin, xmax, ymin, ymax = self.zoomStack.pop()
           self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
           self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+          self.xmin = None
+          self.xmax = None
+          self.ymin = None
+          self.ymax = None
           self.refresh_marker_display()
           self.replot()
           _dprint(3, 'called replot in unzoom')
@@ -414,10 +426,7 @@ class QwtImageDisplay(QwtPlot):
           image_max = image_min
           image_min = temp
         self.plotImage.setImageRange((image_min, image_max))
-        if self._vells_plot:
-          self.plotImage.setData(self.raw_image, self.vells_freq, self.vells_time)
-        else:
-          self.plotImage.setData(self.raw_image)
+        self.testZoom()
         self.image_min = image_min
         self.image_max = image_max
         self.replot()
@@ -470,10 +479,7 @@ class QwtImageDisplay(QwtPlot):
           self.setDisplayType('hippo')
         else:
           self.setDisplayType('grayscale')
-        if self._vells_plot:
-          self.plotImage.setData(self.raw_image, self.vells_freq, self.vells_time)
-        else:
-          self.plotImage.setData(self.raw_image)
+        self.testZoom()
         self.replot()
         return
 
@@ -930,6 +936,10 @@ class QwtImageDisplay(QwtPlot):
           return
         self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
         self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+        self.xmin = xmin
+        self.xmax = xmax
+        self.ymin = ymin
+        self.ymax = ymax
         self.replot()
         _dprint(2, 'called replot in onMouseReleased');
 
@@ -976,12 +986,9 @@ class QwtImageDisplay(QwtPlot):
       self.emit(PYSIGNAL("image_range"),(self.image_min, self.image_max))
       self.emit(PYSIGNAL("max_image_range"),(image_for_display.min(), image_for_display.max()))
 
-      if self._vells_plot:
-        self.plotImage.setData(image_for_display, self.vells_freq, self.vells_time)
-      else:
-        self.plotImage.setData(image_for_display)
-
       self.raw_image = image_for_display
+
+      self.testZoom()
 
       if self.is_combined_image:
          _dprint(2, 'display_image inserting markers')
