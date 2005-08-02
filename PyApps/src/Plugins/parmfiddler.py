@@ -893,6 +893,8 @@ class ParmFiddler (browsers.GriddedPlugin):
           solver.unsubscribe_state(self._callbacksolver);
 
   def cleanup (self):
+      browsers.GriddedPlugin.cleanup(self);
+      
       #unsubscribe
       
       self.unsubscribe_all();
