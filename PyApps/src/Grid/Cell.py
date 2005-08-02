@@ -271,11 +271,11 @@ class Cell (object):
     self.set_pinned(False);
     if delete_content:
       self._clear_content();
+      self.wtop().emit(PYSIGNAL("wiped()"),());
     else:
       self._content_widget = None;
     self._refresh_func = lambda:None;
     _dprint(5,id(self),': emitting wiped() signal');
-    self.wtop().emit(PYSIGNAL("wiped()"),());
     self.wtop().set_context_menu(None);
     QToolTip.remove(self._label);
     self.highlight(False);
@@ -296,8 +296,8 @@ class Cell (object):
     self.wtop().emit(PYSIGNAL("closed()"),());
     
   def release (self):
-    """same as wipe, except content widget is not deleted. Used
-    when content has been reparented."""
+    """same as wipe, except content widget is not deleted, and wiped()
+    signal is not sent. Used when content has been reparented."""
     self.wipe(delete_content=False);
 
   def disable (self,disable=True):

@@ -52,12 +52,21 @@ class _MeqGen (TDLimpl.ClassGen):
   def Solver (self,*childlist,**kw):
     solvables = kw.get('solvable',None);
     if solvables:
-      # convert to list if a single string is specified
-      if isinstance(solvables,str):
+      # convert to list if a singleton is specified
+      if not isinstance(solvables,(list,tuple)):
         solvables = (solvables,);
+      # build list of names. Each solvable may be specified by a string name,
+      # or by something with a "name" attribute
+      solvnames = [];
+      for s in solvables:
+        if not isinstance(s,str):
+          try: s = s.name;
+          except AttributeError: 
+            raise TypeError,"can't specify a solvable as something of type "+type(s).__name__;
+        solvnames.append(s);
       # create solvable command
       kw['solvable'] = dmi.record(
-        command_by_list=[dmi.record(name=solvables,state=dmi.record(solvable=True)),
+        command_by_list=[dmi.record(name=solvnames,state=dmi.record(solvable=True)),
                          dmi.record(state=dmi.record(solvable=False))]);
     return _NodeDef('Meq','Solver',*childlist,**kw);
     

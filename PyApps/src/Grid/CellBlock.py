@@ -58,6 +58,9 @@ class CellBlock (object):
     else:
       self._allocate_grid(**cellspec);
       
+  def __del__ (self):
+    _dprint(2,id(self));
+      
   def cleanup (self):
     """Cleanup method, currently empty."""; 
     _dprint(2,id(self));
@@ -97,13 +100,14 @@ class CellBlock (object):
       if len(widgets) != len(self._cells):
         raise ValueError,"len of widgets argument does not match cell layout";
     self._content = widgets;
+    self._icon = icon;
     if captions is None:
       self._captions = getattr(self._dataitem,'caption',self._dataitem.udi);
     else:
       self._captions = captions;
     _dprint(2,id(self),': set content',widgets);
     # initialize cells with contents
-    self._init_cells(self._cells,icon=icon,enable_viewers=enable_viewers);
+    self._init_cells(self._cells,enable_viewers=enable_viewers);
     
   def _allocate_grid (self,**kwds):
     """Allocates self._cells: a grid of cells from a workspace.
@@ -125,14 +129,14 @@ class CellBlock (object):
     # connect signal: float cells
     QObject.connect(leadcell.wtop(),PYSIGNAL("float()"),self.float_cells);
     
-  def _init_cells (self,cells,icon=None,enable_viewers=True):
+  def _init_cells (self,cells,enable_viewers=True):
     """initializes cells with captions and dataitem.""";
     cw = zip(cells,self._content);
     # init leader cell
-    cells[0].set_content(self._content[0],dataitem=self._dataitem,icon=icon,enable_viewers=enable_viewers);
+    cells[0].set_content(self._content[0],dataitem=self._dataitem,icon=self._icon,enable_viewers=enable_viewers);
     # init other cells as followers
     for (c,w) in cw[1:]:
-      c.set_content(w,leader=cells[0],icon=icon,enable_viewers=enable_viewers);
+      c.set_content(w,leader=cells[0],icon=self._icon,enable_viewers=enable_viewers);
     # setup cell captions
     if self._captions is None:
       cells[0].set_caption(self._dataitem.caption);
@@ -198,6 +202,7 @@ class CellBlock (object):
     # allocate float if one is not already created
     float_window = self._allocate_float();
     # store positions of content widgets within their parent cells
+    _dprint(2,'content is',self._content);
     self._content_pos = [ c.pos() for c in self._content ];
     # reparent all content widgets into the float cells, release grid cells
     _dprint(2,'float_cells',self._float_cells);
