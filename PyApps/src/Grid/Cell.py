@@ -142,7 +142,6 @@ class Cell (object):
     wtop.setDockWindowsMovable(False);
     wtop.hide();
     self.enable_viewers(not noviewer);
-    QObject.connect(wtop,PYSIGNAL("clicked()"),self.exclusive_highlight);
     # --- build toolbar
     self._toolbar = QToolBar("Panel tools",wtop,wtop);
     # icon button and popup menu    
@@ -192,12 +191,31 @@ class Cell (object):
     self._float_act.setVisible(False);
     # set resize policy
     wtop.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding));
+    # add currier for self.connect() below
+    self._currier = PersistentCurrier();
     
   def wtop (self):
     return self._wtop;
   def wcontent (self):
     try: return self._content_widget();
     except AttributeError: return None;
+  def connect (self,signal,receiver,*args,**kws):
+    """connects a signal from the cell's top-level widget to the receiver.
+    This is really a kludge to get around the fact that PyQt does not support
+    QObject.disconnect() properly, so there's no easy way to disconnect
+    all of an object's signals -- which we need to do when clearing a cell.
+    Hence, we provide our own connect/disconnect.
+    The syntax is similar to the standard utils.curry() call, except with 
+    an extra signal argument.
+    """;
+    # wrap the signal receiver in a curry -- since connect() holds weakrefs,
+    # all we need to do for a full disconnect is clear the currier.
+    cc = self._currier.curry(receiver,*args,**kws);
+    QObject.connect(self._wtop,signal,cc);
+    
+  def disconnect_all (self):
+    self._currier.clear();
+    
   def parent_page (self):
     return self._parent_page;
   def grid_position (self):
@@ -271,11 +289,11 @@ class Cell (object):
     self.set_pinned(False);
     if delete_content:
       self._clear_content();
+      _dprint(5,id(self),': emitting wiped() signal');
       self.wtop().emit(PYSIGNAL("wiped()"),());
     else:
       self._content_widget = None;
     self._refresh_func = lambda:None;
-    _dprint(5,id(self),': emitting wiped() signal');
     self.wtop().set_context_menu(None);
     QToolTip.remove(self._label);
     self.highlight(False);
@@ -286,6 +304,7 @@ class Cell (object):
     self._pin.setVisible(False);
     self._close.setVisible(False);
     self._float_act.setVisible(False);
+    self.disconnect_all();
 
   # close(): wipe, hide everything, and emit a closed signal
   def close (self):
@@ -399,6 +418,8 @@ class Cell (object):
     # check that widget is our child
     if widget.parent() is not self.wtop():
       raise ValueError,'content widget must be child of this Grid.Cell';
+    # connect a click on the titlebar to highlight ourselves 
+    self.connect(PYSIGNAL("clicked()"),self.exclusive_highlight);
     # init cell content
     self.enable_viewers(enable_viewers);
     self._wtop.hide();
@@ -466,9 +487,9 @@ class Cell (object):
       # enable cell as per leader
       self.enable(leader.is_enabled());
       # attach leader's signals
-      QObject.connect(leader.wtop(),PYSIGNAL("enable()"),self.enable);
-      QObject.connect(leader.wtop(),PYSIGNAL("highlight()"),self.highlight);
-      QObject.connect(leader.wtop(),PYSIGNAL("closed()"),self.close);
+      leader.connect(PYSIGNAL("enable()"),self.enable);
+      leader.connect(PYSIGNAL("highlight()"),self.highlight);
+      leader.connect(PYSIGNAL("closed()"),self.close);
     self._icon_act.setVisible(True);
     self._label.setEnabled(True);
     # disable cell if no data yet

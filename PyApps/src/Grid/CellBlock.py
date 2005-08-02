@@ -10,7 +10,6 @@ from Timba.Grid.Services import *
 from Timba.Grid.Debug import *
 from Timba import *
 
-import weakref
 import sets
 import re
 import gc
@@ -62,8 +61,12 @@ class CellBlock (object):
     _dprint(2,id(self));
       
   def cleanup (self):
-    """Cleanup method, currently empty."""; 
+    """Cleanup method.""";
     _dprint(2,id(self));
+    # release all refs and signals
+    self._dataitem = None;
+    self._currier.clear();
+    
     
   def wparent (self,offset=0):
     """Returns parent widget (i.e. cell workspaces) for viewers to attach 
@@ -124,10 +127,10 @@ class CellBlock (object):
     self._gridpos = leadcell.grid_position();
     _dprint(2,id(self),': allocated',len(self._cells),'cells at position',self._gridpos);
     # connect signal: remove dataitem when cells are closed
-    QObject.connect(leadcell.wtop(),PYSIGNAL("wiped()"),
+    leadcell.connect(PYSIGNAL("wiped()"),
       self._currier.xcurry(Timba.Grid.Services.removeDataItem,_args=(self._dataitem,),_argslice=slice(0)));
     # connect signal: float cells
-    QObject.connect(leadcell.wtop(),PYSIGNAL("float()"),self.float_cells);
+    leadcell.connect(PYSIGNAL("float()"),self.float_cells);
     
   def _init_cells (self,cells,enable_viewers=True):
     """initializes cells with captions and dataitem.""";
@@ -245,4 +248,7 @@ class CellBlock (object):
   def enable (self,enable=True):
     # enable leader cell (all follower cells will respond, see Grid.Cell)
     self._cells[0].enable(enable);
+    
+  def set_pinned (self,pinned=True):
+    self._cells[0].set_pinned(pinned);
     
