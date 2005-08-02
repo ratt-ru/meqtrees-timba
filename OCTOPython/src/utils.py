@@ -143,6 +143,8 @@ class PersistentCurrier (object):
     return self._add_curry(curry(func,*args,**kwds));
   def xcurry (self,func,*args,**kwds):
     return self._add_curry(xcurry(func,*args,**kwds));
+  def clear (self):
+    self._curries = [];
   
 
 class WeakInstanceMethod (object):
