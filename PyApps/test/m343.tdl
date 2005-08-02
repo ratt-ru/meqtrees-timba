@@ -9,7 +9,7 @@ Settings.forest_state.cache_policy = 100;
 # If False (the default), orphan nodes not assigned to anything (such as a 
 # root group, e.g. ns.ROOT) will be deleted.
 # If True, orphan nodes are always assumed to be valid roots
-Settings.orpans_are_roots = False;
+Settings.orphans_are_roots = False;
 
 # some global bits  
 STATIONS = range(1,15);
@@ -97,8 +97,8 @@ def define_forest (ns):
                             ns.dec0<<Meq.Parm);
   # array position
   ns.xyz0   = Meq.Composer(ns.x0<<Meq.Parm,
-                            ns.y0<<Meq.Parm,
-                            ns.z0<<Meq.Parm);
+                           ns.y0<<Meq.Parm,
+                           ns.z0<<Meq.Parm);
   
   # build source subtrees
   for src in SOURCES:
@@ -109,9 +109,9 @@ def define_forest (ns):
     # postions and uvws
     ns.uvw(sta) << Meq.UVW(
       radec=ns.radec0,xyz_0=ns.xyz0,
-      xyz = ns.xyz(sta) << Meq.Composer(x=ns.x(sta) << Meq.Parm,
-                                        y=ns.y(sta) << Meq.Parm,
-                                        z=ns.z(sta) << Meq.Parm)
+      xyz = ns.xyz(sta) << Meq.Composer(ns.x(sta) << Meq.Parm,
+                                        ns.y(sta) << Meq.Parm,
+                                        ns.z(sta) << Meq.Parm)
     );
     # per-source branches
     for src in SOURCES:

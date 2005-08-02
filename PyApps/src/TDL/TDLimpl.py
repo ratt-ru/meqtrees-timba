@@ -131,6 +131,7 @@ class _NodeDef (object):
           children = dict([(key,val) for (key,val) in kw.iteritems()
                             if isinstance(val,(_NodeDef,_NodeStub)) ]);
           map(kw.pop,children.iterkeys());
+      _dprint(3,"NodeDef",classname,"children are",children);
       self.children = self.ChildList(children);
       # now check for step_children:
       stepchildren = kw.pop('stepchildren',None);
@@ -532,6 +533,7 @@ class _NodeRepository (dict):
           children = dmi.record([(lbl,ch.name) for (lbl,ch) in node.children]);
         else:  # children as list
           children = [ ch.name for (lbl,ch) in node.children ];
+        _dprint(5,'node',node.name,'children are',children);
         if children:
           node._initrec.children = children;
         if node.stepchildren:

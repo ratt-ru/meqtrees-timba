@@ -158,24 +158,25 @@ class conv_error(TypeError):
 #
 class record (dict):
   "represents a record class with string keys";
-  def __init__ (self,_initdict_=None,_verbose_=0,**kwargs):
+  def __init__ (self,_initdict_=[],_verbose_=0,**kwargs):
     # initialize from init dictionary and from kwargs, checking for valid keys
-    for source in _initdict_,kwargs:
-      if isinstance(source,dict):
-        for key,value in source.iteritems():
-          try:
-            key = self.make_key(key);
-          except Exception,info:
-            if _verbose_>0: print "skipping %s=%s (%s)" % (key,value,info);
-            continue;
-          try:
-            value = self.make_value(value);
-          except Exception,info:
-            if _verbose_>0: print "skipping %s=%s (%s)" % (key,value,info);
-            continue;
-          dict.__setitem__(self,key,value);
-          if _verbose_>1: print "adding %s=%s" % (key,value);
-        if _verbose_>0: print "initialized",dict.__len__(self),"fields";
+    if isinstance(_initdict_,dict):
+      _initdict_ = _initdict_.iteritems();
+    for source in _initdict_,kwargs.iteritems():
+      for key,value in source:
+        try:
+          key = self.make_key(key);
+        except Exception,info:
+          if _verbose_>0: print "skipping %s=%s (%s)" % (key,value,info);
+          continue;
+        try:
+          value = self.make_value(value);
+        except Exception,info:
+          if _verbose_>0: print "skipping %s=%s (%s)" % (key,value,info);
+          continue;
+        dict.__setitem__(self,key,value);
+        if _verbose_>1: print "adding %s=%s" % (key,value);
+    if _verbose_>0: print "initialized",dict.__len__(self),"fields";
   def copy (self):
     rec = record();
     for (k,v) in self.iteritems():
