@@ -573,6 +573,7 @@ class meqserver_gui (app_proxy_gui):
   def closeEvent (self,event):
     if self._verify_quit():
       event.accept();
+      mainapp().quit();
     else:
       event.ignore();
     

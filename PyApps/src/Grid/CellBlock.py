@@ -184,7 +184,20 @@ class CellBlock (object):
         self._float_cells = self._float_grid.allocate_cells(nrow=self._nrow,ncol=self._ncol,
                             fixed_cells=True);
         float_window.setCentralWidget(self._float_grid.wtop());
+    # connect signal: remove dataitem when cells are closed
+    self._float_cells[0].connect(PYSIGNAL("wiped()"),self.close);
     return float_window;
+    
+  def close (self):
+    Timba.Grid.Services.removeDataItem(self._dataitem);
+    # destroy float, if any
+    try: float_window = self._float_window;
+    except AttributeError:
+      pass;
+    else:
+      float_window.hide();
+      float_window.reparent(QWidget());
+    self._float_grid = self._float_cells = self._float_window = None;
     
   def _unfloat (self):
     _dprint(1,'unfloating cells');
@@ -217,6 +230,9 @@ class CellBlock (object):
     self._init_cells(self._float_cells);
     # show float window 
     self._cells = self._float_cells;
+    # disable drops onto float
+    for c in self._float_cells:
+      c.wtop().setAcceptDrops(False);
     float_window.show();
     
   # hide the float window, thus causing the __unfloat() func above to be 
