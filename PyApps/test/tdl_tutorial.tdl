@@ -17,6 +17,20 @@ Settings.forest_state.cache_policy = 100;
 # If True, orphan nodes are always retained. This is what we want here.
 Settings.orphans_are_roots = True;
 
+# This is the recommended way to add diagnostic printing to your code.
+# The lines below set up a _verbosity context_ called "tutorial".
+# Then, you may run the browser (or your script) with the option, e.g., 
+# -dtutorial=3 to set the _verbosity level_ of this context.
+# Then, a call such as _dprint(2,"abc") and _dprintf(2,"a is %d",a)
+# prints its arguments only if the verbosity level is >= 2. 
+# Thus, running with no "-d" option at all will only print the _dprint(0,...) 
+# statements, etc.
+_dbg = utils.verbosity(0,name='tutorial'); 
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+# note that the current verbosity level is also available directly via
+# _dbg.verbose.
+
 
 def define_forest (ns):
   """define_forest() is a standard TDL name. When a forest script is
@@ -25,6 +39,13 @@ def define_forest (ns):
   the forest is to be defined, usually this is simply the global scope.
   """;
   # So, this is where we start defining our forest
+  
+  # A conditonal print, only printed if "-dtutorial=1" or higher is set
+  # on the command line
+  _dprint(1,"define_forest begins");
+  # note that you can also check the verbosity level directly:
+  if _dbg.verbose >= 1:
+    print "verbosity level is",_dbg.verbose;
   
   # A node can be defined as follows: 
   ns.a << Meq.Parm(cache_policy=10);
@@ -275,19 +296,8 @@ def tdl_job_test2 (mqs,parent):
 
 if __name__ == '__main__':
 #  from Timba.Meq import meqds 
-  
-  Timba.TDL._dbg.set_verbose(5);
-  
+  Timba.TDL._dbg.set_verbose(2);
   ns = NodeScope(test=True);
-
   define_forest(ns);
-  
   # resolves nodes
   ns.Resolve();
-  
-#  test_forest(None);
-  
-#  # feeds repository to back-end to create the forest
-#  MqsBackend.create_forest(ns.repository(),mqs);
-#
-#  test_forest(meqds.mqs());

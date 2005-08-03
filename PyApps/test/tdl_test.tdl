@@ -56,19 +56,8 @@ def tdl_job_test2 (mqs,parent):
 
 if __name__ == '__main__':
 #  from Timba.Meq import meqds 
-  
   Timba.TDL._dbg.set_verbose(5);
-  
   ns = NodeScope();
-
   define_forest(ns);
-  
   # resolves nodes
   ns.Resolve();
-  
-#  test_forest(None);
-  
-#  # feeds repository to back-end to create the forest
-#  MqsBackend.create_forest(ns.repository(),mqs);
-#
-#  test_forest(meqds.mqs());

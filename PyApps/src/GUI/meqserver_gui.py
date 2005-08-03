@@ -250,7 +250,7 @@ class meqserver_gui (app_proxy_gui):
     kernel_menu_id = menubar.insertItem("&MeqTimba",kernel_menu);
     kernel_menu_id = menubar.insertItem("&TDL",tdl_menu);
     bookmarks_menu_id = menubar.insertItem("&Bookmarks",bookmarks_menu);
-    debug_menu_id = menubar.insertItem("&Debugger",debug_menu);
+    debug_menu_id = menubar.insertItem("&Debug",debug_menu);
     window_menu_id = menubar.insertItem("&View",view_menu);
     menubar.insertSeparator();
     help_menu_id = menubar.insertItem("&Help",help_menu);
@@ -351,7 +351,7 @@ class meqserver_gui (app_proxy_gui):
     self.treebrowser._qa_dbg_enable.addTo(debug_menu);
     self.treebrowser._qa_dbg_tools.addTo(debug_menu);
     debug_menu.insertSeparator();
-    attach_gdb = QAction("Attach debugger to kernel",0,self);
+    attach_gdb = QAction("Attach binary debugger to kernel",0,self);
     attach_gdb.addTo(debug_menu);
     attach_gdb.setEnabled(False); # for now
     QObject.connect(attach_gdb,SIGNAL("activated()"),self._debug_kernel);

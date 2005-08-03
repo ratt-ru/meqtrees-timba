@@ -185,7 +185,7 @@ class CellBlock (object):
                             fixed_cells=True);
         float_window.setCentralWidget(self._float_grid.wtop());
     # connect signal: remove dataitem when cells are closed
-    self._float_cells[0].connect(PYSIGNAL("wiped()"),self.close);
+    self._float_cells[0].connect(PYSIGNAL("closed()"),self.close);
     return float_window;
     
   def close (self):
@@ -196,19 +196,22 @@ class CellBlock (object):
       pass;
     else:
       float_window.hide();
-      float_window.reparent(QWidget());
-    self._float_grid = self._float_cells = self._float_window = None;
+      float_window.reparent(QWidget(),QPoint(0,0));
+    self._dataitem = self._float_grid = self._float_cells = self._float_window = None;
     
   def _unfloat (self):
     _dprint(1,'unfloating cells');
-    # this allocates grid cells into self._cells
-    self._allocate_grid(newcell=True);
-    # move content widgets back into the grid
-    for (w,cell,pos,fcell) in zip(self._content,self._cells,self._content_pos,self._float_cells):
-      w.reparent(cell.wtop(),pos);
-      fcell.release();
-    # reinitialize grid cells
-    self._init_cells(self._cells);
+    # if dataitem is None, then we've closed the floating cell so we don't
+    # need to deallocate anything
+    if self._dataitem is not None:
+      # this allocates grid cells into self._cells
+      self._allocate_grid(newcell=True);
+      # move content widgets back into the grid
+      for (w,cell,pos,fcell) in zip(self._content,self._cells,self._content_pos,self._float_cells):
+        w.reparent(cell.wtop(),pos);
+        fcell.release();
+      # reinitialize grid cells
+      self._init_cells(self._cells);
   
   def float_cells (self,dum=None):
     """floats contents in separate window. dum argument is provided

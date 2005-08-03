@@ -963,7 +963,7 @@ def define_treebrowser_actions (tb):
   tb.add_action(qa_save,40,callback=tb.save_forest_dialog);
   tb.add_separator(50);
   # Enable debugger
-  dbg_enable = tb._qa_dbg_enable = QAction("Enable tree debugging",pixmaps.debugger.iconset(),"Enable &Debugger",Qt.Key_F5,parent,"",True);
+  dbg_enable = tb._qa_dbg_enable = QAction("Enable tree debugger",pixmaps.debugger.iconset(),"Enable tree &debugger",Qt.Key_F5,parent,"",True);
   QObject.connect(dbg_enable,SIGNAL("toggled(bool)"),tb._debug_enable_slot);
   QObject.connect(tb,PYSIGNAL("debug_enabled()"),dbg_enable.setOn);
   dbg_enable._is_enabled = lambda tb=tb: tb.is_connected;

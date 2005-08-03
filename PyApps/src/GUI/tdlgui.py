@@ -600,6 +600,9 @@ class TDLEditor (QFrame,PersistentCurrier):
     fst.tdl_source = record(**{os.path.basename(pathname):tdltext});
     mqs.meq('Set.Forest.State',record(state=fst));
     
+    # refresh the nodelist
+    meqds.request_nodelist();
+    
     # does the script define an explicit job list?
     joblist = getattr(_tdlmod,'tdl_job_list',[]);
     if not joblist:

@@ -112,6 +112,15 @@ class Cell (object):
       if item is not None:
         drag = QTextDrag(item.udi,self);
         drag.drag();
+        
+  class QActionMem (QAction):
+    def __init__ (self,*args):
+      QAction.__init__(self,*args);
+      self._action_widgets = [];
+    def addedTo (self,widget,container):
+      self._action_widgets.append(widget);
+    def action_widgets (self):
+      return self._action_widgets;
       
   def __init__ (self,parent,gridpos,page=None,fixed_cell=False,notitle=False,noviewer=False):
     """constructor. 
@@ -150,10 +159,12 @@ class Cell (object):
     self._icon_act.setToolTip("Displays panel menu");
     QObject.connect(self._icon_act,SIGNAL("activated()"),self.show_popup_menu);
     # refresh button
-    self._refresh = refresh = QAction(pixmaps.refresh.iconset(),"&Refresh contents",QKeySequence(),wtop);
+    self._refresh = refresh = self.QActionMem(pixmaps.refresh.iconset(),"&Refresh contents",QKeySequence(),wtop);
     refresh.setToolTip("refresh contents of this panel");
     refresh.addTo(self._toolbar);
     QObject.connect(refresh,SIGNAL("activated()"),self._dorefresh);
+    self._refresh_btn = self._refresh.action_widgets()[-1];
+    self._flashcolor = QColor("yellow");
     # stretchable label
     self._toolbar.addSeparator();
     self._label = self.DraggableCellLabel(self,"(empty)",self._toolbar);
@@ -282,17 +293,18 @@ class Cell (object):
       self._content_widget.reparent(dum, 0, QPoint())
       self._content_widget = None;
       
-  # wipe: deletes contents in preparation for inserting other content
-  def wipe (self,delete_content=True):
+  # wipe: deletes contents of cell, possibly in preparation for inserting 
+  # other content
+  def wipe (self,delete_content=True,close=False):
+    """if delete_content==True, content widget is reparented and destroyed,
+    and a wiped() signal is emitted. Otherwise, reference to content widget
+    is removed but the widget is left alone (this is used for reparenting the
+    widget into, e.g., a float window).
+    If close==True, a closed() signal is also emitted.
+    """;
     _dprint(5,id(self),': wiping cell');
     self._dataitem = self._udi = None;
     self.set_pinned(False);
-    if delete_content:
-      self._clear_content();
-      _dprint(5,id(self),': emitting wiped() signal');
-      self.wtop().emit(PYSIGNAL("wiped()"),());
-    else:
-      self._content_widget = None;
     self._refresh_func = lambda:None;
     self.wtop().set_context_menu(None);
     QToolTip.remove(self._label);
@@ -304,15 +316,22 @@ class Cell (object):
     self._pin.setVisible(False);
     self._close.setVisible(False);
     self._float_act.setVisible(False);
+    if delete_content:
+      self._clear_content();
+      _dprint(5,id(self),': emitting wiped() signal');
+      self.wtop().emit(PYSIGNAL("wiped()"),());
+    else:
+      self._content_widget = None;
+    if close:
+      _dprint(5,id(self),': emitting closed() signal');
+      self.wtop().emit(PYSIGNAL("closed()"),());
+    # this is the last step
     self.disconnect_all();
 
   # close(): wipe, hide everything, and emit a closed signal
   def close (self):
     _dprint(5,id(self),': clearing cell');
-    self.wipe();
-    # self._wtop.hide();
-    # self._toolbar.hide();
-    self.wtop().emit(PYSIGNAL("closed()"),());
+    self.wipe(close=True);
     
   def release (self):
     """same as wipe, except content widget is not deleted, and wiped()
@@ -521,14 +540,16 @@ class Cell (object):
     self.wtop().emit(PYSIGNAL("flash()"),(flash,));
     self.enable();
     if flash:
-      self._refresh.setIconSet(pixmaps.refresh_highlight.iconset());
-      QTimer.singleShot(500,self._unflash);
+      self._refresh_btn.setPaletteBackgroundColor(self._flashcolor);
+      # self._refresh.setIconSet(pixmaps.refresh_highlight.iconset());
+      QTimer.singleShot(300,self._unflash);
     else:
       self._unflash();
       
   def _unflash (self):
-    self._refresh.setIconSet(pixmaps.refresh.iconset());
-      
+    self._refresh_btn.unsetPalette();
+    # self._refresh.setIconSet(pixmaps.refresh.iconset());
+ 
   def _refit_size (self):
     """ugly kludge to get the layout system to do its stuff properly after
     viewer widget has been inserted.""";
