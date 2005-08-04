@@ -269,16 +269,39 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._error_count_label.setText('');
     self._errloc = []
     self.clear_message();
+    
+  def decompose_error (self,err):
+    """Given an exception object, returns a tuple of:
+          (error name,error message,filename,line,column)
+            filename is None if none
+            line and column will be 0 if not specified.
+       Assumes err.args follow the TDL convention of (message,filename,location)
+    """;
+    errtype = err.__class__.__name__;
+    errmsg,filename,line,column = '',None,0,0;
+    if err.args:
+      args = list(err.args);
+      errmsg = args.pop(0);
+      if args:
+        filename = args.pop(0);
+        if args:
+          loc = args.pop(0);
+          if isinstance(loc,int):
+            line,column = loc,0;
+          elif isinstance(loc,(list,tuple)) and len(loc) == 2:
+            line,column = loc;
+          else:
+            line = column = 0;
+    return (errtype,errmsg,filename,line,column);
+    
       
   def show_error_list (self,errlist):
     self.clear_error_list();
     self.emit(PYSIGNAL("hasErrors()"),(len(errlist),));
     if errlist:
-      for (errtype,errmsg,filename,location) in errlist:
-        if isinstance(location,int):
-          (line,column) = (location,0);
-        else:
-          (line,column) = location;
+      for err in errlist:
+        errtype,errmsg,filename,line,column = self.decompose_error(err);
+        # insert item
         index = self._errlist.count();
         self._errlist.insertItem('');
         if filename == self._real_filename:
@@ -539,11 +562,11 @@ class TDLEditor (QFrame,PersistentCurrier):
           offste = 0;
         else:
           msg = "syntax error at column %d" % (offset,);
-        self.show_error_list([('SyntaxError',msg,excvalue.filename,(excvalue.lineno,offset))]);
+        self.show_error_list([SyntaxError(msg,excvalue.filename,(excvalue.lineno,offset))]);
       else: # other error, try to find location via traceback
         stack = traceback.extract_tb(tb);
         (filename,line,funcname,text) = stack[-1];
-        self.show_error_list([(exctype.__name__,excvalue.args[0],filename,(line,0))]);
+        self.show_error_list([exctype(excvalue.args[0],filename,line)]);
       # self.show_message("""<b>Error importing <tt>%s</tt>:
       #  <i>%s (%s)</i></b>""" % (self._real_filename,excvalue,exctype.__name__),
       #  error=True,transient=True);
@@ -561,7 +584,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       ns.Resolve();
     except TDL.CumulativeError,value:
     # this exception gives us an error list directly
-      errlist = value[0];
+      errlist = value.args;
     except:
     # other exception; check if we also have an error list
       errlist = ns.GetErrors();
@@ -573,10 +596,10 @@ class TDLEditor (QFrame,PersistentCurrier):
       stack = traceback.extract_tb(tb);
       for (filename,line,funcname,text) in stack[-1::-1]:
         if filename == self._filename:
-          errlist.append((exctype.__name__,str(excvalue),filename,line));
+          errlist.append(exctype(str(excvalue),filename,line));
           break;
       else:
-        errlist.append((exctype.__name__,str(excvalue),stack[-1][0],stack[-1][1]));
+        errlist.append(exctype(str(excvalue),stack[-1][0],stack[-1][1]));
     # do we have an error list? show it
     if errlist:
       self.show_error_list(errlist);

@@ -15,8 +15,15 @@ _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
 class TDLError (RuntimeError):
-  """base class for TDL errors""";
-  pass;
+  """Base class for TDL errors. Note that TDL errors are always raised 
+  with 3 arguments:
+    message,filename,location
+  where location is either a line number, or a (line,column) tuple.
+  Exception handlers below ensure that any other errors get their location 
+  tagged onto their argument set.
+  """;
+  def __str__ (self):
+    return ':'.join([self.__class__.__name__]+list(map(str,self.args)));
 
 class NodeRedefinedError (TDLError):
   """this error is raised when a node is being redefined with a different 
@@ -39,17 +46,21 @@ class NodeDefError (TDLError):
   """this error is raised when a node is incorrectly defined""";
   pass;
 
-class CumulativeError (TDLError):
-  """this error is raised at Resolve() time when errors have been reported
-  but deferred.""";
-  pass;
-
-class ExtraInfoError (RuntimeError):
+class ExtraInfoError (TDLError):
   """this error is added after one of the "real" errors above to indicate
   additional information such as, e.g., "called from", "first defined here",
   etc.""";
   pass;
-  
+
+class CumulativeError (TDLError):
+  """this exception is raised at resolve time when errors have been reported
+  but deferred. Its args tuple is composed of exception objects.
+  """;
+  def __str__ (self):
+    s = '';
+    for n,err in enumerate(self.args):
+      s += '\n [%3d] %s' % (n+1,str(err));
+    return s;
 
 class _NodeDef (object):
   """this represents a node definition, as returned by a node class call""";
@@ -104,7 +115,7 @@ class _NodeDef (object):
       reslist._resolved = True;
       return reslist;
         
-  def __init__ (self,pkgname,classname,*childlist,**kw):
+  def __init__ (self,pkgname,classname='',*childlist,**kw):
     """Creates a _NodeDef object for a node of the given package/classname.
     Children are built up from either the argument list, or the 'children'
     keyword (if both are supplied, an error is thrown), or from keywords of
@@ -114,8 +125,8 @@ class _NodeDef (object):
     """;
     try:
       # an error def may be constructed with an exception opject
-      if isinstance(classname,Exception):
-        raise classname;
+      if isinstance(pkgname,Exception):
+        raise pkgname;
       # figure out children. May be specified as
       # (a) a 'children' keyword 
       # (b) an argument list (but not both a and b)
@@ -334,9 +345,9 @@ class _NodeStub (object):
       if _dbg.verbose > 0:
         traceback.print_exc();
       if len(args) == 3:
-        self.scope.Repository().add_error(exctype,*args);
+        self.scope.Repository().add_error(exctype(*args));
       else:
-        self.scope.Repository().add_error(exctype,args[0],*self._caller);
+        self.scope.Repository().add_error(exctype(args[0],*self._caller));
       return self;
   def __str__ (self):
     return "%s(%s)" % (self.name,self.classname);
@@ -486,12 +497,12 @@ class _NodeRepository (dict):
     except:
       raise TDLError,"Repository must be resolve()d to determine root nodes";
       
-  def add_error (self,errtype,errmsg,filename,line):
+  def add_error (self,err):
     if self._testing:
-      raise errtype,(errmsg,filename,line)
-    self._errors.append((errtype.__name__,errmsg,filename,line));
+      raise err;
+    self._errors.append(err);
     if len(self._errors) > 100:
-      raise CumulativeError,self._errors;
+      raise CumulativeError(*self._errors);
       
   def get_errors (self):
     return self._errors;
@@ -520,9 +531,9 @@ class _NodeRepository (dict):
             self._roots[name] = node;
         for (i,ch) in node.children:
           if not ch.initialized():
-            self.add_error(ChildError,"child %s = %s is not initialized" % (str(i),ch.name),*node._caller);
+            self.add_error(ChildError("child %s = %s is not initialized" % (str(i),ch.name),*node._caller));
             if node._caller != ch._caller:
-              self.add_error(ExtraInfoError,"     child referenced here",*ch._caller);
+              self.add_error(ExtraInfoError("     child referenced here",*ch._caller));
         # make copy of initrec if needed
         if hasattr(node._initrec,'name'):
           node._initrec = node._initrec.copy();
@@ -543,7 +554,7 @@ class _NodeRepository (dict):
     # now check for accumulated errors
     if len(self._errors):
       _dprint(1,len(self._errors),"errors reported");
-      raise CumulativeError,self._errors;
+      raise CumulativeError(*self._errors);
     _dprint(1,"found",len(uninit),"uninitialized nodes");
     _dprint(1,"found",len(orphans) or len(self._roots),"roots");
     if uninit:
