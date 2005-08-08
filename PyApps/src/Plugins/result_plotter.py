@@ -113,6 +113,8 @@ class ResultPlotter(GriddedPlugin):
     self.dataitem = dataitem
     self._attributes_checked = False
     self.first_spectrum_plot = True
+    self.layout_parent = None
+    self.layout = None
 
 # some intitial tests for extracting forest_state
     meqds_rec = meqds.get_forest_state()
@@ -462,19 +464,22 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.reset_data_collectors()
 
   def create_image_plotters(self):
-        self.layout = QHBox(self.wparent())
-        self.colorbar =  QwtColorBar(parent=self.layout)
+        self.layout_parent = QWidget(self.wparent())
+        self.layout = QGridLayout(self.layout_parent)
+        self.colorbar =  QwtColorBar(parent=self.layout_parent)
         self.colorbar.setRange(-1,1)
         self.colorbar.hide()
-        self._visu_plotter = QwtImageDisplay('spectra',parent=self.layout)
+        self._visu_plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
+        self.layout.addWidget(self.colorbar, 0, 0)
+        self.layout.addWidget(self._visu_plotter, 0, 1)
         QObject.connect(self._visu_plotter, PYSIGNAL('image_range'), self.colorbar.setRange) 
         QObject.connect(self._visu_plotter, PYSIGNAL('max_image_range'), self.colorbar.setMaxRange) 
         QObject.connect(self._visu_plotter, PYSIGNAL('display_type'), self.colorbar.setDisplayType) 
         QObject.connect(self._visu_plotter, PYSIGNAL('show_colorbar_display'), self.colorbar.showDisplay) 
         QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._visu_plotter.setImageRange) 
 
-        self.set_widgets(self.layout,self.dataitem.caption,icon=self.icon())
-        self._wtop = self.layout;       
+        self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
+        self._wtop = self.layout_parent;       
   # create_image_plotters
 
   def set_data (self,dataitem,default_open=None,**opts):
