@@ -29,6 +29,10 @@ def standard_deviation(incoming_array,complex_type):
     temp_array = incoming_array - incoming_mean
     abs_array = abs(temp_array)
 # get the conjugate of temp_array ...
+# note: we need to add a test if temp_array has a value 0+0j somewhere,
+# so do the following:
+    temp1 = less_equal(abs_array,0.0)
+    temp_array = temp_array + temp1
     temp_array_conj = (abs_array * abs_array) / temp_array
     temp_array = temp_array * temp_array_conj
     mean = temp_array.mean()
@@ -135,6 +139,7 @@ class QwtImageDisplay(QwtPlot):
         self.xmax = None
         self.ymin = None
         self.ymax = None
+        self.adjust_color_bar = True
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -312,7 +317,7 @@ class QwtImageDisplay(QwtPlot):
           self.setDisplayType('hippo')
         else:
           self.setDisplayType('grayscale')
-        self.testZoom()
+        self.defineData()
         self.replot()
         return
       self.active_image_index = menuid
@@ -324,7 +329,7 @@ class QwtImageDisplay(QwtPlot):
 	  self.is_combined_image = True
       self.array_plot(self._plot_label[menuid], self._plot_dict[menuid], False)
 
-    def testZoom(self):
+    def defineData(self):
        if self._vells_plot:
          self.plotImage.setData(self.raw_image, self.vells_freq, self.vells_time)
        else:
@@ -426,7 +431,7 @@ class QwtImageDisplay(QwtPlot):
           image_max = image_min
           image_min = temp
         self.plotImage.setImageRange((image_min, image_max))
-        self.testZoom()
+        self.defineData()
         self.image_min = image_min
         self.image_max = image_max
         self.replot()
@@ -479,7 +484,7 @@ class QwtImageDisplay(QwtPlot):
           self.setDisplayType('hippo')
         else:
           self.setDisplayType('grayscale')
-        self.testZoom()
+        self.defineData()
         self.replot()
         return
 
@@ -977,18 +982,23 @@ class QwtImageDisplay(QwtPlot):
             image_for_display[k+shape[0],j] = imag_array[k,j]
       else:
         image_for_display = image
-      if self.image_min is None:
+      if self.image_min is None or  self.adjust_color_bar:
         self.image_min = image_for_display.min()
-      if self.image_max is None:
+      if self.image_max is None or  self.adjust_color_bar:
         self.image_max = image_for_display.max()
+ 
+#     print 'image min and max ', self.image_min, ' ', self.image_max
+#     print 'image_for_display min and max ', image_for_display.min(), image_for_display.max()
       
       # emit range for the color bar
-      self.emit(PYSIGNAL("image_range"),(self.image_min, self.image_max))
-      self.emit(PYSIGNAL("max_image_range"),(image_for_display.min(), image_for_display.max()))
+      if self.adjust_color_bar:
+        self.emit(PYSIGNAL("image_range"),(self.image_min, self.image_max))
+        self.emit(PYSIGNAL("max_image_range"),(image_for_display.min(), image_for_display.max()))
+        self.adjust_color_bar = False
 
       self.raw_image = image_for_display
 
-      self.testZoom()
+      self.defineData()
 
       if self.is_combined_image:
          _dprint(2, 'display_image inserting markers')
@@ -1308,7 +1318,7 @@ class QwtImageDisplay(QwtPlot):
           key = " perturbed_value "
           self._label =  "plane " + str(self._active_plane) + key + str(self._active_perturb)
         if self._solver_flag:
-          self.array_plot(self._label, self._value_array, False)
+          self.array_plot(self._label, self._value_array, flip_axes=False)
         else:
           self.array_plot(self._label, self._value_array)
 
@@ -1316,6 +1326,10 @@ class QwtImageDisplay(QwtPlot):
 
     def handle_finished (self):
       print 'in handle_finished'
+
+    def reset_color_bar(self, reset_value=True):
+      self.adjust_color_bar = reset_value
+#     print 'self.adjust_color_bar = ', self.adjust_color_bar
 
     def array_plot (self, data_label, incoming_plot_array, flip_axes=True):
       """ figure out shape, rank etc of a spectrum array and
