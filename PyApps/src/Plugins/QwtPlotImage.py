@@ -81,15 +81,13 @@ class QwtPlotImage(QwtPlotMappedItem):
 # turn image into a QImage	
         limits = [self.cmin,self.cmax]
         byte_image = bytescale(image,limits)
-        byte_range = 1.0 * (byte_image.max() - byte_image.min())
-        byte_min = 1.0 * (byte_image.min())
         self.image = toQImage(byte_image).mirror(0, 1)
         self.flags_image = None
 
 # set color scale a la HippoDraw Scale
         if self.display_type == "hippo":
-          dv = byte_range
-          vmin = byte_min
+          dv = 255.0
+          vmin = 1.0
           for i in range(0, 256):
             r = 1.0
             g = 1.0
