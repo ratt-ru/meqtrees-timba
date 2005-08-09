@@ -1369,7 +1369,7 @@ class realvsimag_plotter(object):
               data_i.append(0.0)           
 # assign the real and imaginary data to this curve
           self.plot.setCurveData(key_plot, data_r, data_i)
-          _dprint(3, 'set data values in plot`')
+          _dprint(3, 'set data values in plot')
 
 # if we are plotting errors, we also need to assign these 
 # real/imaginary values to the appropriate QwtErrorPlotCurve objects
