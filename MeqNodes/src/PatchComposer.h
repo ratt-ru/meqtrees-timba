@@ -1,4 +1,4 @@
-//# PatchComposer.h: 
+//# PatchComposer.h: First version of the Node
 //#
 //# Copyright (C) 2002
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -58,6 +58,10 @@ public:
  protected:
 
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+
+ private:
+
+  double _max_baseline;
    
 };
 

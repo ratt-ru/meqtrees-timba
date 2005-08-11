@@ -1,4 +1,4 @@
-//# PatchComposer.cc: 
+//# PatchComposer.cc: First version of the Node
 //#
 //# Copyright (C) 2002
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -25,11 +25,17 @@
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 #include <MEQ/Vells.h>
+#include <casa/BasicMath/Math.h>
+#include <casa/BasicSL/Constants.h>
 
 namespace Meq {
   
   PatchComposer::PatchComposer()
+    :
+    _max_baseline(2700.0)
   {
+    Axis::addAxis("L");
+    Axis::addAxis("M");
   };
   
   PatchComposer::~PatchComposer()
@@ -41,7 +47,192 @@ namespace Meq {
 			  const std::vector<Result::Ref> &childres,
 			  const Request &request,bool newreq)
   {
-    resref = childres.at(0);
+    // Speed of light
+    const double c0 = casa::C::c;
+
+    // Get the Request Cells
+    const Cells& rcells = request.cells();
+    
+    if (rcells.isDefined(Axis::FREQ)) {
+
+      const int num_children = int(childres.size());
+      
+      // Attach the RA and Dec of the Phase Center to the first two planes
+      if (num_children > 0){
+	
+	resref = childres.at(0);
+	
+      };
+      
+      // Add the Sources into the Patch
+      if (num_children > 1){
+	
+	VellSet& vs2 = resref().setNewVellSet(2);
+	VellSet& vs3 = resref().setNewVellSet(3);
+	VellSet& vs4 = resref().setNewVellSet(4);
+	VellSet& vs5 = resref().setNewVellSet(5);
+	
+	double lmax(0.0),mmax(0.0);
+	double lc,mc,ra,dec,ra0,dec0, lf, mf;
+	Vells RAvells0, Decvells0;
+	Vells RAvells, Decvells;
+	Vells Ivells, Qvells, Uvells, Vvells;
+	double sI, sQ, sU, sV;
+
+	RAvells0 = childres.at(0)->vellSet(0).getValue();
+	Decvells0 = childres.at(0)->vellSet(1).getValue();
+	ra0 = RAvells0(0);
+	dec0 = Decvells0(0);
+
+	for (int src = 1; src<num_children; src++) {
+	  RAvells = childres.at(src)->vellSet(0).getValue();
+	  Decvells = childres.at(src)->vellSet(1).getValue();
+	  ra = RAvells(0);
+	  dec = Decvells(0);
+
+	  lc = casa::cos(dec) * casa::sin(ra0-ra);
+       	  mc = casa::cos(dec0) * casa::sin(dec) - 
+      	    casa::sin(dec0) * casa::cos(dec) * casa::cos(ra0-ra);
+
+       	  lmax = casa::max(lmax,casa::abs(lc));
+       	  mmax = casa::max(mmax,casa::abs(mc));
+
+	};
+
+	// Make a 3D Cells of Frequency, l' (freq dependent l), and m' (frequency dpendent m)
+	const double fmax = max(rcells.cellEnd(Axis::FREQ));
+	const double fmin = min(rcells.cellStart(Axis::FREQ));
+	const LoVec_double freq = rcells.center(Axis::FREQ);
+	const int nf = rcells.ncells(Axis::FREQ);
+
+	lmax *= fmax/c0;
+	mmax *= fmax/c0;
+
+	const double dl = 1 / _max_baseline / 2;
+	const double dm = dl;
+
+	int nl = 2*int(lmax/dl)+1;
+	int nm = 2*int(mmax/dm)+1;
+
+	lmax = nl*dl/2;
+	mmax = nm*dm/2;
+
+	Domain::Ref domain(new Domain());
+	domain().defineAxis(Axis::axis("L"),-lmax,lmax);
+	domain().defineAxis(Axis::axis("M"),-mmax,mmax);
+	domain().defineAxis(Axis::FREQ,fmin,fmax);
+
+	Cells::Ref cells(new Cells(*domain));
+	cells().setCells(Axis::FREQ,fmin,fmax,nf);
+	cells().setCells(Axis::axis("L"),-lmax,lmax,nl);
+	cells().setCells(Axis::axis("M"),-mmax,mmax,nm);
+
+	Vells::Shape shape;
+	Axis::degenerateShape(shape,cells->rank());
+	shape[Axis::axis("L")] = cells->ncells(Axis::axis("L"));
+	shape[Axis::axis("M")] = cells->ncells(Axis::axis("M"));
+	shape[Axis::FREQ] = cells->ncells(Axis::FREQ);
+
+	Vells& vells2 = vs2.setValue(new Vells(double(0.0),shape,false));
+	Vells& vells3 = vs3.setValue(new Vells(double(0.0),shape,false));
+	Vells& vells4 = vs4.setValue(new Vells(double(0.0),shape,false));
+	Vells& vells5 = vs5.setValue(new Vells(double(0.0),shape,false));
+
+	LoVec_double Ivec(nf), Qvec(nf), Uvec(nf), Vvec(nf);
+	int ni, nj;
+	blitz::Array<double,3> arrI = vells2.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+	blitz::Array<double,3> arrQ = vells3.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+	blitz::Array<double,3> arrU = vells4.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());	
+	blitz::Array<double,3> arrV = vells5.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+
+	for (int src = 1; src<num_children; src++) {
+
+	  RAvells = childres.at(src)->vellSet(0).getValue();
+	  Decvells = childres.at(src)->vellSet(1).getValue();
+	  Ivells = childres.at(src)->vellSet(2).getValue();
+	  Qvells = childres.at(src)->vellSet(3).getValue();
+	  Uvells = childres.at(src)->vellSet(4).getValue();
+	  Vvells = childres.at(src)->vellSet(5).getValue();
+
+	  if (Ivells.isScalar()){
+	    for (int j =0; j<nf; j++){
+	      Ivec(j) = Ivells(0);
+	    };
+	  } else {
+	    for (int j =0; j<nf; j++){
+	      Ivec(j) = Ivells(j);
+	    };
+	  };
+	  if (Qvells.isScalar()){
+	    for (int j =0; j<nf; j++){
+	      Qvec(j) = Qvells(0);
+	    };
+	  } else {
+	    for (int j =0; j<nf; j++){
+	      Qvec(j) = Qvells(j);
+	    };
+	  };
+	  if (Uvells.isScalar()){
+	    for (int j =0; j<nf; j++){
+	      Uvec(j) = Uvells(0);
+	    };
+	  } else {
+	    for (int j =0; j<nf; j++){
+	      Uvec(j) = Uvells(j);
+	    };
+	  };
+	  if (Vvells.isScalar()){
+	    for (int j =0; j<nf; j++){
+	      Vvec(j) = Vvells(0);
+	    };
+	  } else {
+	    for (int j =0; j<nf; j++){
+	      Vvec(j) = Vvells(j);
+	    };
+	  };
+
+	  ra = RAvells(0);
+	  dec = Decvells(0);
+
+	  lc = casa::cos(dec) * casa::sin(ra0-ra);
+       	  mc = casa::cos(dec0) * casa::sin(dec) - 
+      	    casa::sin(dec0) * casa::cos(dec) * casa::cos(ra0-ra);
+
+	  for (int j =0; j<nf; j++){
+
+	    lf = freq(j)*lc/c0;
+	    mf = freq(j)*mc/c0;
+
+	    sI = Ivec(j);
+	    sQ = Qvec(j);
+	    sU = Uvec(j);
+	    sV = Vvec(j);
+
+	    if (lf>0) {
+	      ni = (nl-1)/2 + 1 + int(lf/dl+0.5)-1;
+	    } else {
+	      ni = (nl-1)/2 + 1 + int(lf/dl-0.5)-1;
+	    };
+	    if (mf>0) {
+	      nj = (nm-1)/2 + 1 + int(mf/dm+0.5)-1;
+	    } else {
+	      nj = (nm-1)/2 + 1 + int(mf/dm-0.5)-1;
+	    };
+
+	    arrI(j,ni,nj) = sI;
+	    arrQ(j,ni,nj) = sQ;
+	    arrU(j,ni,nj) = sU;
+	    arrV(j,ni,nj) = sV;
+
+	  };
+
+	};
+
+	resref().setCells(*cells);
+	
+      };
+      
+    };
     
     return 0;
     
