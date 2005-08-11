@@ -42,7 +42,7 @@
 
 namespace Meq {
   
-  UVBrick::FFTBrick()
+  FFTBrick::FFTBrick()
     : 
     // Null-pointers to images
       _uvreal(0),
@@ -59,7 +59,7 @@ namespace Meq {
     Axis::addAxis("V");
   };
   
-  UVBrick::~FFTBrick()
+  FFTBrick::~FFTBrick()
   {
     //
     // Clear memory from the MeqUVbrick image objects
