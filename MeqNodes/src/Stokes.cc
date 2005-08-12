@@ -25,6 +25,10 @@
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 #include <MEQ/Vells.h>
+#include <MeqNodes/Add.h>
+#include <MeqNodes/ToComplex.h>
+
+using namespace Meq::VellsMath;
 
 namespace Meq {
   
@@ -39,8 +43,42 @@ namespace Meq {
 			  const std::vector<Result::Ref> &childres,
 			  const Request &request,bool newreq)
   {
+    const Result &tempres = childres.at(0);
+    const Cells& cells = childres.at(0)->cells();
 
-    resref = childres.at(0);
+    const VellSet &vsI = tempres.vellSet(0);
+    const VellSet &vsQ = tempres.vellSet(1);
+    const VellSet &vsU = tempres.vellSet(2);
+    const VellSet &vsV = tempres.vellSet(3);
+
+    const Vells::Shape &shape = vsI.shape();
+
+    const Vells &vellsI = vsI.getValue();
+    const Vells &vellsQ = vsQ.getValue();
+    const Vells &vellsU = vsU.getValue();
+    const Vells &vellsV = vsV.getValue();
+
+    Vells vellsc0 = Vells(double(0.0),shape,false);
+
+    // For now consider Linear Polarization
+    Vells vellsXX = tocomplex(vellsI + vellsQ,vellsc0);
+    Vells vellsXY = tocomplex(vellsU,vellsV);
+    Vells vellsYX = tocomplex(vellsU,-vellsV);
+    Vells vellsYY = tocomplex(vellsI-vellsQ,vellsc0);
+
+    resref <<= new Result(4);
+
+    VellSet& vs0 = resref().setNewVellSet(0);
+    VellSet& vs1 = resref().setNewVellSet(1);
+    VellSet& vs2 = resref().setNewVellSet(2);
+    VellSet& vs3 = resref().setNewVellSet(3);
+
+    vs0.setValue(vellsXX);
+    vs1.setValue(vellsXY);
+    vs2.setValue(vellsYX);
+    vs3.setValue(vellsYY);
+
+    resref().setCells(cells);
     
     return 0;
     
