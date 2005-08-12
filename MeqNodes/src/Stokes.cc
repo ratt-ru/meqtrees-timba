@@ -25,8 +25,8 @@
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 #include <MEQ/Vells.h>
-#include <MeqNodes/Add.h>
-#include <MeqNodes/ToComplex.h>
+//#include <MeqNodes/Add.h>
+//#include <MeqNodes/ToComplex.h>
 
 using namespace Meq::VellsMath;
 
@@ -61,10 +61,10 @@ namespace Meq {
     Vells vellsc0 = Vells(double(0.0),shape,false);
 
     // For now consider Linear Polarization
-    Vells vellsXX = tocomplex(vellsI + vellsQ,vellsc0);
-    Vells vellsXY = tocomplex(vellsU,vellsV);
-    Vells vellsYX = tocomplex(vellsU,-vellsV);
-    Vells vellsYY = tocomplex(vellsI-vellsQ,vellsc0);
+    Vells vellsXX = tocomplex((vellsI + vellsQ)/2,vellsc0);
+    Vells vellsXY = tocomplex(vellsU/2,vellsV/2);
+    Vells vellsYX = tocomplex(vellsU/2,-vellsV/2);
+    Vells vellsYY = tocomplex((vellsI-vellsQ)/2,vellsc0);
 
     resref <<= new Result(4);
 
