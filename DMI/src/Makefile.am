@@ -12,6 +12,7 @@ CountedRefBase.h		\
 CountedRefTarget.h		\
 DMI.h				\
 NumArray.h			\
+NumArrayFuncs.h			\
 Vec.h			\
 List.h			\
 Record.h			\
@@ -45,6 +46,14 @@ DynamicTypeManager.cc		\
 Container.cc		\
 Vec.cc			\
 NumArray.cc			\
+NumArrayFuncs.cc                \
+NumArrayFuncs2.cc               \
+NumArrayFuncs3.cc               \
+NumArrayFuncs4.cc               \
+NumArrayFuncs5.cc               \
+NumArrayFuncs6.cc               \
+NumArrayFuncs7.cc               \
+NumArrayFuncs8.cc               \
 List.cc			\
 Record.cc			\
 BOIO.cc \

@@ -21,6 +21,12 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.40  2005/08/15 12:41:58  smirnov
+//  Upped the max array rank to 16.
+//  Split up NumArray LUT-functions into 8 separate .cc files to speed up
+//  compilation, with the rank up to 16 all those methods really took ages
+//  to compile.
+//
 //  Revision 1.39  2005/05/20 13:35:53  smirnov
 //  %[ER: ]%
 //  Some speedups to HIIDs and Containers, cut down on memory allocs/reallocs
@@ -209,6 +215,7 @@
 #include <Common/Thread/Key.h>
 #include <DMI/DMI.h>
 #include <DMI/Container.h>
+#include <DMI/NumArrayFuncs.h>
 
 #ifdef HAVE_AIPSPP
 #include <casa/Arrays.h>
@@ -400,7 +407,7 @@ public:
     if( itsData.privatize() )
     {
       itsArrayData = itsData().cdata() + itsDataOffset;
-      assignDataReference(itsScaType,itsArray,itsArrayData,itsShape);
+      NumArrayFuncs::assignDataReference(itsScaType,itsArray,itsArrayData,itsShape);
     }
   }
   
@@ -419,9 +426,6 @@ public:
   
     //##ModelId=3DB949AF001C
   typedef CountedRef<NumArray> Ref;
-
-    //##ModelId=3E9BD91703A8
-  static const int NumTypes = Tpbool_int - Tpstring_int + 1;
 
 protected:
     //##ModelId=3DB949AE03DA
@@ -482,90 +486,6 @@ private:
             uint shape[];
   };
 
-  // OK, setup some circus hoops. Rank & type of NumArray is set at runtime,
-  // while for blitz arrays it's compile-time. So, for every blitz operation
-  // required in NumArray, we'll setup an N(ranks) x N(types) matrix of 
-  // function pointers, then use rank & type to call the appropriate function.
-  // This matrix is called the "method table".
-  
-  // Methods for the method table are naturally implemented via
-  // templates. Refer to NumArray.cc.
-  
-  // These are the actual method tables
-    //##ModelId=3E9BD9140364
-  typedef void * (*AllocatorWithData)(void*,void*,const LoShape &);
-    //##ModelId=3E9BD9140377
-  typedef void * (*AllocatorDefault)();
-  typedef void (*AllocatorPlacement)(void*);
-    //##ModelId=3E9BD914038B
-  typedef void (*AssignWithStride)(void*,void *,const LoShape &,const LoShape &);
-  typedef void (*AssignDataReference)(void*,void *,const LoShape &);
-    //##ModelId=3E9BD91403A0
-  typedef void (*Destructor)(void*);
-  
-    //##ModelId=3F5487DA00A7
-  typedef void (*ArrayCopier)(void*,const void*);
-  
-    //##ModelId=3F5487DA015B
-  typedef void (*ShapeOfArray)(LoShape &,const void*);
-  
-  static AllocatorWithData    allocatorWithData     [NumTypes][MaxLorrayRank];
-  static AllocatorDefault     allocatorDefault      [NumTypes][MaxLorrayRank];
-  static AllocatorPlacement   allocatorPlacement    [NumTypes][MaxLorrayRank];
-  static AssignWithStride     assignerWithStride    [NumTypes][MaxLorrayRank];
-  static AssignDataReference  assignerDataReference [NumTypes][MaxLorrayRank];
-  static Destructor           destructor            [NumTypes][MaxLorrayRank];
-  static Destructor           destructor_inplace    [NumTypes][MaxLorrayRank];
-    //##ModelId=3F5487DA023F
-  static ArrayCopier          copier                [NumTypes][MaxLorrayRank];
-    //##ModelId=3F5487DA0273
-  static ShapeOfArray         shapeOfArray          [NumTypes][MaxLorrayRank];
-  
-  // converts a type id into a numeric offset into the table above
-    //##ModelId=3E9BD9180129
-  static int typeIndex (TypeId tid)
-  { return Tpbool_int - tid.id(); }
-  // These methods do a lookup & call into each method table
-    //##ModelId=3E9BD918015A
-  static void * allocateArrayWithData (TypeId tid,void *where,void *data,const LoShape &shape )
-  {
-    return (*allocatorWithData[typeIndex(tid)][shape.size()-1])(where,data,shape);
-  }
-    //##ModelId=3E9BD91801EA
-  static void assignWithStride (TypeId tid,void *ptr,void *data,const LoShape &shape,const LoShape &stride )
-  {
-    (*assignerWithStride[typeIndex(tid)][shape.size()-1])(ptr,data,shape,stride);
-  }
-  static void assignDataReference (TypeId tid,void *ptr,void *data,const LoShape &shape)
-  {
-    (*assignerDataReference[typeIndex(tid)][shape.size()-1])(ptr,data,shape);
-  }
-    //##ModelId=3E9BD91802D8
-  static void * allocateArrayDefault (TypeId tid,int rank)
-  {
-    return (*allocatorDefault[typeIndex(tid)][rank-1])();
-  }
-    //##ModelId=3E9BD9180339
-  static void destroyArray (TypeId tid,int rank,void *ptr)
-  {
-    (*destructor[typeIndex(tid)][rank-1])(ptr);
-  }
-  static void destroyPlacementArray (TypeId tid,int rank,void *ptr)
-  {
-    (*destructor_inplace[typeIndex(tid)][rank-1])(ptr);
-  }
-  
-    //##ModelId=3F5487DB02E7
-  static void copyArray (TypeId tid,int rank,void *target,const void *source)
-  {
-    (*copier[typeIndex(tid)][rank-1])(target,source);
-  }
-  
-    //##ModelId=3F5487DC0121
-  static void getShapeOfArray (TypeId tid,int rank,LoShape &shape,const void *ptr)
-  {
-    (*shapeOfArray[typeIndex(tid)][rank-1])(shape,ptr);
-  }
 
   // Define the subarray object (for slicing into an array)
     //##ModelId=3E9BD91403B3

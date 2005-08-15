@@ -21,6 +21,12 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.44  2005/08/15 12:41:58  smirnov
+//  Upped the max array rank to 16.
+//  Split up NumArray LUT-functions into 8 separate .cc files to speed up
+//  compilation, with the rank up to 16 all those methods really took ages
+//  to compile.
+//
 //  Revision 1.43  2005/05/20 13:35:53  smirnov
 //  %[ER: ]%
 //  Some speedups to HIIDs and Containers, cut down on memory allocs/reallocs
@@ -72,142 +78,12 @@
 
 #define NC_SKIP_HOOKS 1
 #include "NumArray.h"
+#include "NumArrayFuncs.h"
 
 static DMI::Container::Register reg(TpDMINumArray,true);
 
-  // Methods for the method table are naturally implemented via
-  // templates. Refer to DMI::NumArray.cc to see how they are populated.
-  
-// templated method to allocate an empty Lorray(N,T)
-template<class T,int N>
-static void * newArrayDefault ()
-{ 
-  return new blitz::Array<T,N>; 
-}
+using namespace DMI::NumArrayFuncs;
 
-template<class T,int N>
-static void newArrayPlacement (void *where)
-{ 
-  new (where) blitz::Array<T,N>; 
-}
-
-// templated method to allocate a Lorray(N,T) of the given shape, using
-// pre-existing data
-template<class T,int N>
-static void * newArrayWithData (void *where,void *data,const LoShape & shape)
-{ 
-  return new (where) blitz::Array<T,N>(static_cast<T*>(data),shape,blitz::neverDeleteData); 
-} 
-
-// templated method to assign a ref to the data to an array
-template<class T,int N>
-static void referenceData (void *parr,void *data,const LoShape & shape)
-{ 
-  blitz::Array<T,N> tmp(static_cast<T*>(data),shape,blitz::neverDeleteData);
-  static_cast<blitz::Array<T,N>*>(parr)->reference(tmp);
-}
-
-// templated method to assign a ref to the data (using the given shape & stride)
-// to an array
-template<class T,int N>
-static void referenceDataWithStride (void *parr,void *data,const LoShape & shape,const LoShape &stride)
-{ 
-  blitz::Array<T,N> tmp(static_cast<T*>(data),shape,stride,blitz::neverDeleteData);
-  static_cast<blitz::Array<T,N>*>(parr)->reference(tmp);
-}
-
-// templated method to delete a Lorray(N,T) at the given address
-template<class T,int N>
-static void deleteArray (void *parr)
-{ 
-  delete static_cast<blitz::Array<T,N>*>(parr); 
-}
-// templated method to destroy a Lorray(N,T) at the given address without deallocing the memory
-template<class T,int N>
-static void deletePlacementArray (void *parr)
-{ 
-  typedef blitz::Array<T,N> ArrType;
-  static_cast<ArrType*>(parr)->~ArrType(); 
-}
-
-// templated method to copy one Lorray to another
-template<class T,int N>
-static void copyArrayImpl (void *target,const void *source)
-{ 
-  *static_cast<blitz::Array<T,N>*>(target) = 
-    *static_cast<const blitz::Array<T,N>*>(source); 
-}
-
-// templated method to copy return the shape of a Lorray
-template<class T,int N>
-static void returnShapeOfArray (LoShape &shape,const void *ptr)
-{ 
-  shape = static_cast<const blitz::Array<T,N>*>(ptr)->shape(); 
-}
-
-
-// populate the method tables via the DoForAll macros
-#define OneLine(T,arg) { DoForAllArrayRanks1(OneElement,T) }
-
-DMI::NumArray::AllocatorWithData DMI::NumArray::allocatorWithData[NumTypes][MaxLorrayRank] =
-{
-#define OneElement(N,T) &newArrayWithData<T,N>
-  DoForAllArrayTypes1(OneLine,)
-#undef OneElement
-};
-
-DMI::NumArray::AssignWithStride DMI::NumArray::assignerWithStride[NumTypes][MaxLorrayRank] =
-{
-#define OneElement(N,T) &referenceDataWithStride<T,N>
-  DoForAllArrayTypes1(OneLine,)
-#undef OneElement
-};
-
-DMI::NumArray::AssignDataReference DMI::NumArray::assignerDataReference[NumTypes][MaxLorrayRank] =
-{
-#define OneElement(N,T) &referenceData<T,N>
-  DoForAllArrayTypes1(OneLine,)
-#undef OneElement
-};
-
-DMI::NumArray::AllocatorDefault DMI::NumArray::allocatorDefault[NumTypes][MaxLorrayRank] =
-{
-#define OneElement(N,T) &newArrayDefault<T,N>
-  DoForAllArrayTypes1(OneLine,)
-#undef OneElement
-};
-
-DMI::NumArray::Destructor DMI::NumArray::destructor[NumTypes][MaxLorrayRank] =
-{
-#define OneElement(N,T) &deleteArray<T,N>
-  DoForAllArrayTypes1(OneLine,)
-#undef OneElement
-};
-  
-DMI::NumArray::Destructor DMI::NumArray::destructor_inplace[NumTypes][MaxLorrayRank] =
-{
-#define OneElement(N,T) &deletePlacementArray<T,N>
-  DoForAllArrayTypes1(OneLine,)
-#undef OneElement
-};
-
-//##ModelId=3F5487DA023F
-DMI::NumArray::ArrayCopier DMI::NumArray::copier[NumTypes][MaxLorrayRank] =
-{
-#define OneElement(N,T) &copyArrayImpl<T,N>
-  DoForAllArrayTypes1(OneLine,)
-#undef OneElement
-};
-
-//##ModelId=3F5487DA0273
-DMI::NumArray::ShapeOfArray DMI::NumArray::shapeOfArray[NumTypes][MaxLorrayRank] =
-{
-#define OneElement(N,T) &returnShapeOfArray<T,N>
-  DoForAllArrayTypes1(OneLine,)
-#undef OneElement
-};
-
-#undef OneLine  
 
 // initializes num std::string objects located at start
 static void initStringArray (void *start,int num)
