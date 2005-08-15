@@ -578,13 +578,20 @@ class _NodeRepository (dict):
 
 class NodeScope (object):
   def __init__ (self,name=None,parent=None,test=False,*quals,**kwquals):
+    # are we a subscope?
+    if parent:
+      if name is None:
+        raise ValueError,"subscope must have a name";
+      if parent._name:
+        name = parent._name + '::' + name;
+    # qualify name
     if name is None:
       if quals:
         raise ValueError,"scope name must be set if qualifiers are used";
       self._name = None;
     else:
       self._name = qualifyName(name,*quals,**kwquals);
-    # repository: only one parent repositorey is created
+    # repository: only one parent repository is created
     if parent is None:
       self._repository = _NodeRepository(test);
       self._constants = weakref.WeakValueDictionary();
@@ -597,6 +604,10 @@ class NodeScope (object):
     self._uniqname_counters = {};
     # predefined root group to be used by TDL scripts
     object.__setattr__(self,'ROOT',NodeGroup());
+    
+  def Subscope (self,name,*quals,**kwquals):
+    """Creates a subscope of this scope, with optional qualifiers""";
+    return NodeScope(name,self,False,*quals,**kwquals);
     
   def __getattr__ (self,name):
     try: node = self.__dict__[name];
@@ -665,10 +676,6 @@ class NodeScope (object):
   def Repository (self):
     """Returns the repository""";
     return self._repository;
-    
-  def Subscope (self,name,*quals,**kwquals):
-    """Creates a subscope of this scope, with optional qualifiers""";
-    return NodeScope(name,self,*quals,**kwquals);
     
   def Resolve (self):
     """Resolves the node repository: checks tree, trims orphans, etc. Should be done as the final
