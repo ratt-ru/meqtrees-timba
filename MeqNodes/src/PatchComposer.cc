@@ -36,6 +36,8 @@ namespace Meq {
   {
     Axis::addAxis("L");
     Axis::addAxis("M");
+    Axis::addAxis("U");
+    Axis::addAxis("V");
   };
   
   PatchComposer::~PatchComposer()
@@ -63,6 +65,8 @@ namespace Meq {
 	resref = childres.at(0);
 	
       };
+
+      // Check that we do not have to define a new result like: resref <<= new Result(6);
       
       // Add the Sources into the Patch
       if (num_children > 1){

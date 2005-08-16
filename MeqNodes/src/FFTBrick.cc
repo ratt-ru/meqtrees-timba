@@ -39,158 +39,155 @@
 #include <lattices/Lattices/Lattice.h>
 #include <casa/BasicMath/Math.h>
 #include <casa/BasicSL/Constants.h>
+#include <fftw3.h>
 
 namespace Meq {
   
+
   FFTBrick::FFTBrick()
-    : 
-    // Null-pointers to images
-      _uvreal(0),
-      _uvimag(0),
-      _patch(0),
-      // max baselines for WSRT in [m]
-      _umax(2700.0),
-      _vmax(2700.0),
-      _wmax(0.0),
-      // boolean for checking
-      _image_exists(false)
   {
-    Axis::addAxis("U");
-    Axis::addAxis("V");
+    // For now these axes are defined in the PatchComposer Node.
+    //Axis::addAxis("U");
+    //Axis::addAxis("V");
   };
   
   FFTBrick::~FFTBrick()
   {
-    //
-    // Clear memory from the MeqUVbrick image objects
-    //     
-    delete _uvreal;
-    delete _uvimag;
-    delete _patch;
   };
-  
   
   int FFTBrick::getResult (Result::Ref &resref,
 			  const std::vector<Result::Ref> &childres,
-			  const Request &request,bool newreq)
-  {
-    // Get the Request cells.
-    const Cells& rcells = request.cells();
+			  const Request &request,bool newreq){
+
+    Cells child_cells = childres.at(0)->cells();
     
-    if( rcells.isDefined(Axis::TIME) && rcells.isDefined(Axis::FREQ))
-      {
-	//
-	// Make sure we have a valid UV Image
-	//
-	if (!_image_exists) 
-	  {
-	    // UV image does not exist, so make one.
-	    makeUVImage(rcells,childres);
-	  } else {
-	  if (!checkValidity(rcells)) {	    
-	    // UV image does not satisfy the requirements, so make a new one.
-	    makeUVImage(rcells,childres);	    
-	  };
-	};  //end: if / then / else
+    if ( child_cells.isDefined(Axis::axis("L")) && child_cells.isDefined(Axis::axis("M")) ){
 
+      int nf = child_cells.ncells(Axis::FREQ);
+      const double fmin = min(child_cells.cellStart(Axis::FREQ));
+      const double fmax = max(child_cells.cellEnd(Axis::FREQ));
 
-	//
-	// We now have a valid UV Image and start creating a Result with Vells
-	//
+      const int nu = child_cells.ncells(Axis::axis("L"));
+      const double umax = 0.5/max(child_cells.cellSize(Axis::axis("L")));
+      const double umin = -umax;
 
+      const int nv = child_cells.ncells(Axis::axis("M"));
+      const double vmax = 0.5/max(child_cells.cellSize(Axis::axis("M")));
+      const double vmin = -vmax;
+	   
+      Domain::Ref domain(new Domain());
+      domain().defineAxis(Axis::FREQ,fmin,fmax);
+      domain().defineAxis(Axis::axis("U"),umin,umax);
+      domain().defineAxis(Axis::axis("V"),vmin,vmax);
+
+      Cells::Ref cells(new Cells(*domain));
+      cells().setCells(Axis::FREQ,fmin,fmax,nf);
+      cells().setCells(Axis::axis("U"),umin,umax,nu);
+      cells().setCells(Axis::axis("V"),vmin,vmax,nv);
+
+      resref <<= new Result(4);
+
+      VellSet& vs0 = resref().setNewVellSet(0);
+      VellSet& vs1 = resref().setNewVellSet(1);
+      VellSet& vs2 = resref().setNewVellSet(2);
+      VellSet& vs3 = resref().setNewVellSet(3);
+
+      Vells::Shape shape;
+      Axis::degenerateShape(shape,cells->rank());
+      shape[Axis::axis("U")] = cells->ncells(Axis::axis("U"));
+      shape[Axis::axis("V")] = cells->ncells(Axis::axis("V"));
+      shape[Axis::FREQ] = cells->ncells(Axis::FREQ);
+
+      Vells& vells0 = vs0.setValue(new Vells(dcomplex(0.0),shape,false));
+      Vells& vells1 = vs1.setValue(new Vells(dcomplex(0.0),shape,false));
+      Vells& vells2 = vs2.setValue(new Vells(dcomplex(0.0),shape,false));
+      Vells& vells3 = vs3.setValue(new Vells(dcomplex(0.0),shape,false));
+
+      blitz::Array<dcomplex,4> fft11 = vells0.as<dcomplex,6>()(LoRange::all(),LoRange::all(),0,0,LoRange::all(),LoRange::all());
+      blitz::Array<dcomplex,4> fft12 = vells1.as<dcomplex,6>()(LoRange::all(),LoRange::all(),0,0,LoRange::all(),LoRange::all());
+      blitz::Array<dcomplex,4> fft21 = vells2.as<dcomplex,6>()(LoRange::all(),LoRange::all(),0,0,LoRange::all(),LoRange::all());
+      blitz::Array<dcomplex,4> fft22 = vells3.as<dcomplex,6>()(LoRange::all(),LoRange::all(),0,0,LoRange::all(),LoRange::all());
+
+      fft11 = dcomplex(0.0);
+      fft12 = dcomplex(0.0);
+      fft21 = dcomplex(0.0);
+      fft22 = dcomplex(0.0);
+
+      // Fill the Vells with the FFT values.
+
+      int nt = child_cells.ncells(Axis::TIME);
+      if (nt==0) nt=1;
+
+      const Result &tempres = childres.at(0);
+
+      const VellSet &vs11 = tempres.vellSet(0);
+      const VellSet &vs12 = tempres.vellSet(1);
+      const VellSet &vs21 = tempres.vellSet(2);
+      const VellSet &vs22 = tempres.vellSet(3);
+
+      Vells vells11 = vs11.getValue();
+      Vells vells12 = vs12.getValue();
+      Vells vells21 = vs21.getValue();
+      Vells vells22 = vs22.getValue();
+
+      blitz::Array<dcomplex,2> arr11(nu,nv);
+      blitz::Array<dcomplex,2> arr12(nu,nv);
+      blitz::Array<dcomplex,2> arr21(nu,nv);
+      blitz::Array<dcomplex,2> arr22(nu,nv);
+
+      arr11 = dcomplex(0.0);
+      arr12 = dcomplex(0.0);
+      arr21 = dcomplex(0.0);
+      arr22 = dcomplex(0.0);
+
+      nt=1;
+      nf=1;
+
+      fftw_complex *in, *out;
+      fftw_plan p;
+
+      //      in = fftw_malloc(sizeof(fftw_complex) * nu * nv);
+      // out = fftw_malloc(sizeof(fftw_complex) * nu * nv); 
+
+      for (int i=0; i<nt; i++){
+      	for (int j=0; j<nf; j++){
+      	  
+      	  //arr11 = vells11.as<dcomplex,4>()(i,j,LoRange::all(),LoRange::all());
+	  //*arr1 = vells11.getDataPtr();
+	  arr12 = vells12.as<dcomplex,4>()(i,j,LoRange::all(),LoRange::all());
+	  arr21 = vells21.as<dcomplex,4>()(i,j,LoRange::all(),LoRange::all());
+	  arr22 = vells22.as<dcomplex,4>()(i,j,LoRange::all(),LoRange::all());
+	  
+	  in = static_cast<fftw_complex*>(const_cast<void*>(vells11.getConstDataPtr()));
+	  out = static_cast<fftw_complex*>(vells0.getDataPtr());
+
+	  p = fftw_plan_dft_2d(nu,nv,in,out,FFTW_FORWARD,FFTW_ESTIMATE);
+
+	  fftw_execute(p);
+
+      	  for (int k=0; k<nu; k++){
+      	    for (int l=0; l<nv; l++){
+
+      	      //fft11(i,j,k,l) = arr11(k,l);
+	      fft12(i,j,k,l) = arr12(k,l);
+	      fft21(i,j,k,l) = arr21(k,l);
+	      fft22(i,j,k,l) = arr22(k,l);
+      	      
+      	    };
+      	  };
+      	};
+      };
+
+      fftw_destroy_plan(p);
+      fftw_free(in);
+      fftw_free(out);
+
+      resref().setCells(*cells);
 	
-	//
-	// Make the Result
-	//
+      
 
-	// Make a Cells corresponding to the Image grid
-	casa::IPosition image_shape = _uvreal->shape();
-	
-	casa::CoordinateSystem cs = _uvreal->coordinates();
-	casa::Vector<casa::String> units(4,"lambda");
-	units(2) = "";
-	units(3) = "Hz";
-	cs.setWorldAxisUnits(units);
-	
-	casa::Vector<double> ref_pixel = cs.referencePixel();
-	casa::Vector<double> ref_value = cs.referenceValue();
-	casa::Vector<double> increment = cs.increment();
-
-	double umin;
-	double umax;
-
-	if (increment(0)>0) {
-	  umin = ref_value(0) - (ref_pixel(0)+1-0.5)*increment(0);
-	  umax = ref_value(0) + (image_shape(0)-ref_pixel(0)-1+0.5)*increment(0);
-	} else {
-	  umax = ref_value(0) - (ref_pixel(0)+1-0.5)*increment(0);
-	  umin = ref_value(0) + (image_shape(0)-ref_pixel(0)-1+0.5)*increment(0);
-	};
-
-	double vmin;
-	double vmax; 
-
-	if (increment(1)>0) {
-	  vmin = ref_value(1) - (ref_pixel(1)+1-0.5)*increment(1);
-	  vmax = ref_value(1) + (image_shape(1)-ref_pixel(1)-1+0.5)*increment(1);
-	} else {
-	  vmax = ref_value(1) - (ref_pixel(1)+1-0.5)*increment(1);
-	  vmin = ref_value(1) + (image_shape(1)-ref_pixel(1)-1+0.5)*increment(1);
-	};
-
-	double fmin;
-	double fmax;
-
-	if (increment(3)>0) {
-	  fmin = ref_value(3) - (ref_pixel(3)+1-0.5)*increment(3);
-	  fmax = ref_value(3) + (image_shape(3)-ref_pixel(3)-1+0.5)*increment(3);
-	} else {
-	  fmax = ref_value(3) - (ref_pixel(3)+1-0.5)*increment(3);
-	  fmin = ref_value(3) + (image_shape(3)-ref_pixel(3)-1+0.5)*increment(3);
-	};
-	
-	
-	Domain::Ref domain(new Domain());
-	domain().defineAxis(2,umin,umax);
-	domain().defineAxis(3,vmin,vmax);
-	domain().defineAxis(1,fmin,fmax);
-	Cells::Ref cells(new Cells(*domain));
-	cells().setCells(1,fmin,fmax,image_shape(3));
-	cells().setCells(2,umin,umax,image_shape(0));
-	cells().setCells(3,vmin,vmax,image_shape(1));
-
-	// Create Result object and attach to the Ref that was passed in.
-		
-	resref <<= new Result(4);
-
-	// Make the Vells
-	// Vells1: complex UVImage f
-	// Vells2: complex fu
-	// Vells3: complex fv
-	// Vells4: complex fuv
-
-	Vells::Shape shape;
-	Axis::degenerateShape(shape,cells->rank());
-	shape[Axis::axis("u")]    = cells->ncells(Axis::axis("u"));
-	shape[Axis::axis("freq")] = cells->ncells(Axis::FREQ);
-	shape[Axis::axis("v")]    = cells->ncells(Axis::axis("v"));
-
-	VellSet& vs1  = resref().setNewVellSet(0);  
-	Vells& vells1 = vs1.setValue(new Vells(dcomplex(0.0),shape,false));
-	VellSet& vs2  = resref().setNewVellSet(1);  
-	Vells& vells2 = vs2.setValue(new Vells(dcomplex(0.0),shape,false));
-	VellSet& vs3  = resref().setNewVellSet(2);  
-	Vells& vells3 = vs3.setValue(new Vells(dcomplex(0.0),shape,false));
-	VellSet& vs4  = resref().setNewVellSet(3);  
-	Vells& vells4 = vs4.setValue(new Vells(dcomplex(0.0),shape,false));
-
-	fillVells(vells1, vells2, vells3, vells4, cells);
-
-	// Attach Cells to the Result (after the Vells are created!)
-	resref().setCells(*cells);          
-
-      };  // end: if axis time and freq. 
-    
+    };  // end: if axis L and M. 
+	 
     return 0;
     
   };
@@ -198,359 +195,6 @@ namespace Meq {
   void FFTBrick::setStateImpl (DMI::Record::Ref& rec, bool initializing)
   {
     Node::setStateImpl(rec,initializing);
-  }
-
-
-  bool FFTBrick::checkValidity(const Cells &fcells)
-  {
-    // For now assume a equidistant grid in frequency for the Request Cells.
-    // In the future, this may be generalized, where we will have two options:
-    // 1) Fill the Vells frequency plane by frequency plane.
-    // 2) Interpolate in frequency.
-    // Right now we assume that the Request cells is equidistant and that the 
-    //  frequency planes of the image coincide with the Request Cells.
-
-    bool valid = false;
-
-    // Get the minimal and maximal freq. values from the Image
-
-    casa::IPosition image_shape = _uvreal->shape();
-    const int nf = fcells.ncells(Axis::FREQ);
-
-    if (nf==image_shape(3)){
-      // The number of frequency planes of the request equals that of the image
-      
-      casa::CoordinateSystem cs = _uvreal->coordinates();
-      casa::Vector<casa::String> units(4,"lambda");
-      units(2) = "";
-      units(3) = "Hz";
-      cs.setWorldAxisUnits(units);
-    
-      casa::Vector<double> ref_pixel = cs.referencePixel();
-      casa::Vector<double> ref_value = cs.referenceValue();
-      casa::Vector<double> increment = cs.increment();
-    
-      double fmin;
-      double fmax;
-      
-      if (increment(3)>0) {
-	fmin = ref_value(3) - (ref_pixel(3)+1-0.5)*increment(3);
-	fmax = ref_value(3) + (image_shape(3)-ref_pixel(3)-1+0.5)*increment(3);
-      } else {
-	fmax = ref_value(3) - (ref_pixel(3)+1-0.5)*increment(3);
-	fmin = ref_value(3) + (image_shape(3)-ref_pixel(3)-1+0.5)*increment(3);
-      };
-    
-      // Get the freq range from the Request Cells
-      const LoVec_double freq = fcells.center(Axis::FREQ); 
-      const LoVec_double freqsize = fcells.cellSize(Axis::FREQ);
-
-      // assumes increasing freq. range in cells. Change!
-      const double freq_max = max(freq)+0.5*freqsize(nf);
-      const double freq_min = min(freq)-0.5*freqsize(0);
-      
-      if ( (fabs(freq_min-fmin)<1e-6) && (fabs(freq_max-fmax)<1e-6) ){
-	// Request Cells and image have the same domain	
-	valid = true;
-      } else {
-	// Request Cells and image do not have the same domain
-	valid = false;
-      };;
-
-    } else {
-
-      // Not the same number of frequency planes in Request and Image
-      valid = false;
-
-    };
-    
-    // Temporarily always return 'valid = false' in order to be able to 
-    //  fiddle with the non-zero pixel position (determined by children).
-    //  This is to be removed in the future.
-
-    valid = false;
-    return valid;
-
-  };
-
-
-  void FFTBrick::makeUVImage(const Cells &fcells,const std::vector<Result::Ref> &fchildres )
-  {
-    // Make Patch Image, and its FFT (real & imag UVImages) for the correct 
-    // frequency planes (determined by fcells i.e. the Request Cells) 
-
-    // Clear the allocated memory of the MeqUVbrick image objects
-    delete _uvreal;
-    delete _uvimag;
-    delete _patch;
-
-    _image_exists = false;
-
-    const double c0 = casa::C::c;  // Speed of light
-
-    // nf = number of frequency channels, 
-    //      i.e. number of frequency planes of the image
-    const int nf = fcells.ncells(Axis::FREQ);
-
-    const LoVec_double freq = fcells.center(Axis::FREQ); 
-    const LoVec_double freqsize = fcells.cellSize(Axis::FREQ);
-    const LoVec_double lofr = fcells.cellStart(Axis::FREQ); 
-    const LoVec_double hifr = fcells.cellEnd(Axis::FREQ);
-    const double f1 = max(lofr);
-    const double f2 = max(hifr);
-    const double freq_max = casa::max(f1,f2);
-
-    // At the moment there is no LSM and, hence, no Patch Image.
-    // Therefore, a Patch Image is constructed. This image does match 
-    // the # freq. planes of the Request Cells. When a LSM is available 
-    // this is no longer automatically true.
-    //
-    // Based on the 3C343.1 / 3C343 field we define the following Patch 
-    //  Distance from edge to phase center: 0.00175 rad
-    //  Times 2 for square image (pos. & neg. axis)
-    //  Note: Resolving at 10 points per wavelength and considering a 
-    //   factor sqrt(2) (approx. 1.5) for diagonal propagation 
-    //   (is it best to have square cells?)
-    //   the Patch Image is 15 times larger than the source it contains. 
-    //   (since umax = 1 / delta_RA en du = 1 / RA_size) 
-    //
-    const double RA_size = 0.0173; // rad
-    const double Dec_size = 0.0177; //rad
-
-    const double delta_RA = 1.0 / (freq_max * 2 * _umax / c0 + 1/RA_size);
-    const double delta_Dec = 1.0 / (freq_max * 2 * _vmax / c0 + 1/Dec_size); 
-    
-    const int nRA = int( 2*RA_size / delta_RA )+1;
-    const int nDec = int( 2*Dec_size / delta_Dec)+1;
-    //const int nRA = 256;
-    //const int nDec = 256;
-    // Rounding off to upper value and number of gridpoints is number of intervals + 1, hence +2
-
-    // RA: nRa pixels, Dec: nDec pixels, Stokes: 1 pixels, Freq: nf pixels
-    casa::CoordinateSystem cs = casa::CoordinateUtil::defaultCoords4D();
-    casa::Vector<double> ref(4,0.0f);
-    casa::Vector<casa::String> units(4,"rad");
-    // Note: vectors, pixels are zero based in AIPS++, but 1 based in GLISH
-    ref(0) = int(nRA / 2.0 + 0.5)-1;
-    ref(1) = int(nDec / 2.0 + 0.5)-1;
-    ref(2) = 0;
-    ref(3) = 0;
-    cs.setReferencePixel(ref);
-    units(2) = "";
-    units(3) = "Hz";
-    cs.setWorldAxisUnits(units);
-    ref(0) = 4.356647609;
-    ref(1) = 1.092209195;
-    ref(2) = 4.6113;
-    ref(3) = freq(0);
-    cs.setReferenceValue(ref);
-    ref(0) = -delta_RA;
-    ref(1) = delta_Dec;
-    ref(2) = 1;
-    ref(3) = freqsize(0);
-    cs.setIncrement(ref);
-    // Note that AIPS++ Images have equidistant grid points.
-
-    _patch = new casa::PagedImage<float>(casa::IPosition(4,nRA,nDec,1,nf), cs, "temp.image");
-    
-    //
-    // No LSM yet, so fill Patch_Image manually
-    //
-    //_patch = new casa::PagedImage<float>("model3C343.image");
-    casa::IPosition image_shape = _patch->shape();
-    //cs = _patch->coordinates();
-    _patch->set(0.0f);
-
-    // phase center, just for relative positions now
-    ref(0) = 4.356647609; // rad
-    ref(1) = 1.092209195; // rad
-	
-    // Fill image per frequency plane
-    casa::IPosition position(image_shape.nelements());
-    casa::Vector<double> world(4,0.0); 
-    casa::Vector<double> pixel(4);
-    casa::Vector<bool> absio(4,true);
-    casa::Vector<casa::String> unitin(4, "pix");
-    unitin(0) = "rad";
-    unitin(1) = "rad";
-    const casa::Vector<casa::String> unitout(4,"pix");
-    casa::MDoppler::Types doppler;
-    casa::Double offset = 0.0;
-
-    for (int i = 0; i < nf; i++){
-      world(3) = i;
-
-      // 3C343.1    
-      
-      world(0) = ref(0);
-      world(1) = ref(1);
-    
-      // coordOut=pixel,coordIn=world, absIn=[T, T, T, T], unitsIn="rad rad pix pix", absOut=[T,T,T,T], unitsOut="pix pix pix pix"
-      cs.convert(pixel, world, absio, unitin, doppler, absio, unitout, doppler, offset, offset);
-      
-      // Beware: in this rounding off a pixel may lie just outside the image
-      position(0)=int(pixel(0)+0.5);
-      position(1)=int(pixel(1)+0.5);
-      position(2)=int(pixel(2)+0.5);
-      position(3)=int(pixel(3)+0.5);
-	
-      // _patch->putAt(4.6113, position);
-	
-      // 3C343
-
-      world(0) = ref(0); //+ 0.00175; // 4.339606069;
-      world(1) = ref(1); //+ 0.00175; // 1.095366651;    
-
-      // coordOut=pixel,coordIn=world, absIn=[T, T, T, T], unitsIn="rad rad pix pix", absOut=[T,T,T,T], unitsOut="pix pix pix pix"
-      cs.convert(pixel, world, absio, unitin, doppler, absio, unitout, doppler, offset, offset);
-	
-      Result::Ref resultRA = fchildres.at(0);
-      Result::Ref resultDec = fchildres.at(1);
-      VellSet vellsRA = resultRA->vellSet(0);
-      VellSet vellsDec = resultDec->vellSet(0);
-      Vells RAvells = vellsRA.getValue();
-      Vells Decvells = vellsDec.getValue();
-      blitz::Array<double,1> arrRA = RAvells.as<double,1>();
-      blitz::Array<double,1> arrDec = Decvells.as<double,1>();
-
-      // Beware: in this rounding off a pixel may lie just outside the image
-      if (arrRA(0)>0.0){
-	position(0)=int(nRA / 2.0 +arrRA(0) + 0.5)-1;// + int(arrRA(0)+0.5); // int(pixel(0)+0.5);
-      } else {
-	position(0)=int(nRA / 2.0 +arrRA(0) + 0.5)-1;// + int(arrRA(0)-0.5); // int(pixel(0)+0.5);
-      };
-      if (arrDec(0) > 0.0){
-	position(1)=int(nDec / 2.0 +arrDec(0)+ 0.5);// + int(arrDec(0)+0.5); // int(pixel(1)+0.5);
-      } else {
-	position(1)=int(nDec / 2.0 +arrDec(0)+ 0.5);// + int(arrDec(0)-0.5); // int(pixel(1)+0.5);
-      };
-      position(2)=int(pixel(2)+0.5);
-      position(3)=int(pixel(3)+0.5);
-    
-      //_patch->putAt(5.0025*(i+1), position);
-      _patch->putAt(1.0, position);
-
-    };
-	
-    //
-    // FFT the Patch Image
-    //
-    _uvreal = new casa::PagedImage<float>(image_shape, casa::CoordinateUtil::defaultCoords4D(), "fft_real.image");
-    _uvimag = new casa::PagedImage<float>(image_shape, casa::CoordinateUtil::defaultCoords4D(), "fft_imag.image");
-    
-    casa::ImageFFT fft;
-    fft.fftsky(*_patch);
-    
-    fft.getReal(*_uvreal);
-    fft.getImaginary(*_uvimag);
-   
-    _image_exists = true;
-
-  };
-
-  
-  void FFTBrick::fillVells(Vells &fvells1, Vells &fvells2, Vells &fvells3, Vells &fvells4, const Cells &fcells)
-  {
-    // nu = shape of U axis
-    // nv = shape of V axis
-    // nf = shape of FREQ axis
-    int nu = fcells.ncells(Axis::axis("u"));
-    int nv = fcells.ncells(Axis::axis("v"));
-    int nf = fcells.ncells(Axis::axis("freq"));
-
-    // Make an array, connected to the Vells, with which we fill the Vells.
-    blitz::Array<dcomplex,3> arr1 = fvells1.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-    blitz::Array<dcomplex,3> arr2 = fvells2.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-    blitz::Array<dcomplex,3> arr3 = fvells3.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-    blitz::Array<dcomplex,3> arr4 = fvells4.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-    // Note that the Vells are 4D (including time), whereas the corresponding 
-    //  Cells are 3D (without time).
-    // arr(k,i,j)
-    arr1 = dcomplex(0.0);
-    arr2 = dcomplex(0.0);
-    arr3 = dcomplex(0.0);
-    arr4 = dcomplex(0.0);
-
-    // For now fill Vells with image values.    
-    casa::IPosition image_shape = _uvreal->shape();
-    casa::IPosition position(image_shape.nelements());
-
-    position(2)=0;
-    for (int k = 0; k < nf; k++){
-      position(0)=0;
-      position(3)=k;
-      for (int i = 0; i < nu; i++){
-	position(1)=0;
-	for (int j = 0; j < nv; j++){
-	  
-	  arr1(k,i,j) = dcomplex( _uvreal->getAt(position),
-                                  _uvimag->getAt(position) );
-     
-	  position(1)+=1;
-	};
-	position(0)+=1;
-      };
-
-      // This could possibly be made optional by a Request parameter
-
-      for (int i = 1; i < nu-1; i++){
-	for (int j = 1; j < nv-1; j++){
-	  arr2(k,i,j) = (arr1(k,i+1,j) + arr1(k,i-1,j))/2.;
-	  arr3(k,i,j) = (arr1(k,i,j+1) + arr1(k,i,j-1))/2.;
-	  arr4(k,i,j) = (arr1(k,i+1,j+1) + arr1(k,i-1,j+1) +
-			 arr1(k,i+1,j-1) + arr1(k,i-1,j-1))/4.;
-	};
-      };
-
-      // Assume periodicity: value at '-1' equals 'nu-1' or 'nv-1'
-      //                     value at 'nu', 'nv' equals '0'
-      // Check this!
-
-      for (int i = 1; i < nu-1; i++){
-	  arr2(k,i,0) = (arr1(k,i+1,0) + arr1(k,i-1,0))/2.;
-	  arr3(k,i,0) = (arr1(k,i,1) + arr1(k,i,nv-1))/2.;
-	  arr4(k,i,0) = (arr1(k,i+1,1) + arr1(k,i-1,1) +
-			 arr1(k,i+1,nv-1) + arr1(k,i-1,nv-1))/4.;
-
-	  arr2(k,i,nv-1) = (arr1(k,i+1,nv-1) + arr1(k,i-1,nv-1))/2.;
-	  arr3(k,i,nv-1) = (arr1(k,i,0) + arr1(k,i,nv-2))/2.;
-	  arr4(k,i,nv-1) = (arr1(k,i+1,0) + arr1(k,i-1,0) +
-			 arr1(k,i+1,nv-2) + arr1(k,i-1,nv-2))/4.;
-      };
-
-      for (int j = 1; j < nv-1; j++){
-	arr2(k,0,j) = (arr1(k,1,j) + arr1(k,nu-1,j))/2.;
-	arr3(k,0,j) = (arr1(k,0,j+1) + arr1(k,0,j-1))/2.;
-	arr4(k,0,j) = (arr1(k,1,j+1) + arr1(k,nu-1,j+1) +
-		       arr1(k,1,j-1) + arr1(k,nu-1,j-1))/4.;
-
-	arr2(k,nu-1,j) = (arr1(k,0,j) + arr1(k,nu-1,j))/2.;
-	arr3(k,nu-1,j) = (arr1(k,nu-1,j+1) + arr1(k,nu-1,j-1))/2.;
-	arr4(k,nu-1,j) = (arr1(k,0,j+1) + arr1(k,nu-2,j+1) +
-		          arr1(k,0,j-1) + arr1(k,nu-2,j-1))/4.;
-      };
-
-      arr2(k,0,0) = (arr1(k,1,0) + arr1(k,nu-1,0))/2.;
-      arr3(k,0,0) = (arr1(k,0,1) + arr1(k,0,nv-1))/2.;
-      arr4(k,0,0) = (arr1(k,1,1) + arr1(k,nu-1,1) +
-		     arr1(k,1,nv-1) + arr1(k,nu-1,nv-1))/4.;
-
-      arr2(k,0,nv-1) = (arr1(k,1,nv-1) + arr1(k,nu-1,nv-1))/2.;
-      arr3(k,0,nv-1) = (arr1(k,0,0) + arr1(k,0,nv-2))/2.;
-      arr4(k,0,nv-1) = (arr1(k,1,0) + arr1(k,nu-1,0) +
-			arr1(k,1,nv-2) + arr1(k,nu-1,nv-2))/4.;
-
-      arr2(k,nu-1,0) = (arr1(k,0,0) + arr1(k,nu-2,0))/2.;
-      arr3(k,nu-1,0) = (arr1(k,nu-1,1) + arr1(k,nu-1,nv-1))/2.;
-      arr4(k,nu-1,0) = (arr1(k,0,1) + arr1(k,nu-2,1) +
-			arr1(k,0,nv-1) + arr1(k,nu-2,nv-1))/4.;
-
-      arr2(k,nu-1,nv-1) = (arr1(k,0,nv-1) + arr1(k,nu-2,nv-1))/2.;
-      arr3(k,nu-1,nv-1) = (arr1(k,nu-1,0) + arr1(k,nu-1,nv-2))/2.;
-      arr4(k,nu-1,nv-1) = (arr1(k,0,0) + arr1(k,nu-2,0) +
-			   arr1(k,0,nv-2) + arr1(k,nu-2,nv-2))/4.;
-
-    };
   };
   
 } // namespace Meq

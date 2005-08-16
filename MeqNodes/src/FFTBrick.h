@@ -58,27 +58,6 @@ public:
  protected:
 
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
-
- private:
-  
-  // It seems these images can only be global as pointers, since no default (or convenient) contructor is available for use in the UVBrick constructor.
-  // Maybe use TempImage object instead of PagedImage object.
-  casa::PagedImage<float>* _uvreal;
-  casa::PagedImage<float>* _uvimag;
-  casa::PagedImage<float>* _uvabs;
-  casa::PagedImage<float>* _patch;
-
-  double _umax;
-  double _vmax;
-  double _wmax;
-
-  bool _image_exists;
-
-  bool FFTBrick::checkValidity(const Cells &fcells);
-
-  void FFTBrick::makeUVImage(const Cells &fcells, const std::vector<Result::Ref> &fchildres);
-
-  void FFTBrick::fillVells(Vells &fvells1, Vells &fvells2, Vells &fvells3, Vells &fvells4, const Cells &fcells);
    
 };
 

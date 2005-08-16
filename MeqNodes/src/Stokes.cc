@@ -25,8 +25,6 @@
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 #include <MEQ/Vells.h>
-//#include <MeqNodes/Add.h>
-//#include <MeqNodes/ToComplex.h>
 
 using namespace Meq::VellsMath;
 

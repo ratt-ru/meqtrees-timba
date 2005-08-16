@@ -33,7 +33,7 @@ libmeqnodes_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) \
 check_PROGRAMS = 
 
 # this defines the name of the local defrec script
-DEFREC_MAP = $(srcdir)/defrecs_$(PACKAGE).g
+# DEFREC_MAP = $(srcdir)/defrecs_$(PACKAGE).g
 
 # this rule shouldn't require any changes
 MAKEDEFREC = $(lofar_sharedir)/../Timba/MEQ/src/makedefrecs.pl
@@ -45,7 +45,8 @@ $(DEFREC_MAP): $(DOCHDRS) $(MAKEDEFREC)
 glishdir = $(libexecdir)/glish/meq
 dist_glish_SCRIPTS = $(DEFREC_MAP) meptable.g
 
-defrecs: $(DEFREC_MAP)
+defrecs: 
+# $(DEFREC_MAP)
 
 all install: defrecs
 
