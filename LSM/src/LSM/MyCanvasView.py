@@ -181,7 +181,7 @@ class MyCanvasView(QCanvasView):
       punit=self.lsm.p_table[each_item.name]
       br=""
       if punit != None:
-       br="%5.3f"%punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index)
+       br="[%5.4f, %5.4f] %5.3f "%(punit.sp.getRA(),punit.sp.getDec(),punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index))
       br+="</li>"
       tmp_str+=br
     if found_anything != 0: # not empty
