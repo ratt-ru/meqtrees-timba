@@ -351,7 +351,7 @@ class MyCanvasView(QCanvasView):
    for sname in self.lsm.p_table.keys():
     punit=self.lsm.p_table[sname]
     self.p_tab[sname].updateColor(self.getColor(punit.getBrightness(type,f_index,t_index)))
- 
+    # FIXME: need to update size as well if pcrosses are displayed 
    self.canvas().update()  
 
    # update indicator
@@ -769,6 +769,15 @@ class PointSource:
  def updateColor(self,newcolor):
   # instead of just deleting them, 
   # recreate a whole new item
-  self.cross.hide()
-  self.cross.updateColor(newcolor)
-  self.cross.show()
+  if self.cview.display_point_sources=='cross':
+   self.cross.hide()
+   self.cross.updateColor(newcolor)
+   self.cross.show()
+  elif self.cview.display_point_sources=='point':
+   self.point.hide()
+   self.point.updateColor(newcolor)
+   self.point.show()
+  else:
+   self.pcross.hide()
+   self.pcross.updateColor(newcolor)
+   self.pcross.show()

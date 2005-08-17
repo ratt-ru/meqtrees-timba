@@ -145,7 +145,7 @@ class FTDialog(QDialog):
       self.textLabelT.setText(tmpval[0]+tmpval[1]+'s') 
 
     def accept(self):
-     self.parentWidget().cview.updateDisplay( self.parentWidget().cview.default_mode,self.sliderF.value(),self.sliderT.value())
+     self.parentWidget().cview.updateDisplay(self.parentWidget().cview.default_mode,self.sliderF.value(),self.sliderT.value())
      QDialog.accept(self)
 
     def reject(self):
