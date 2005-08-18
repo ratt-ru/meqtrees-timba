@@ -119,7 +119,7 @@ class SpH:
  # setting the meqtree root
  def setRoot(self,root):
   self.root=root
- # setting the meqserver proxy
+ # link back to the LSM
  def setLSM(self,lsm):
   self.lsm=lsm
 
@@ -239,6 +239,24 @@ class SpH:
    temp_str+="}"
    return temp_str
 
+ # clone this SpH without circular reference to the LSM
+ # and references to the MeqTree system for saving
+ def clone(self):
+  newsph=SpH(None)
+  newsph.root=None
+  #newsph.sI=self.sI
+  #newsph.sQ=self.sQ
+  #newsph.sU=self.sU
+  #newsph.sV=self.sV
+  #newsph.RA=self.RA
+  #newsph.Dec=self.Dec
+  # static value for debugging
+  newsph.static_RA=self.static_RA
+  newsph.static_Dec=self.static_Dec
+  return newsph
+
+
+ 
 ###############################################
 class TemTree:
  """Template tree object"""
@@ -321,7 +339,7 @@ class PUnit:
    temp_str="P-Unit: | Name="+str(self.name)
    temp_str+=", type="+str(self.type)
    temp_str+=",source_list="+str(self.s_list)
-   temp_str+=",catI="+str(self.cat1)
+   temp_str+=",cat="+str(self.cat)
    temp_str+=",Brightness="+str(self.getBrightness())
    temp_str+=",sp="+str(self.sp)
    temp_str+=",FOV="+str(self.FOV_distance)
@@ -329,6 +347,22 @@ class PUnit:
    return temp_str
 
 
+ # clone the PUnit without circular references to the LSM
+ # or references to MeqTree systems so that it can be saved
+ def clone(self):
+  newp=PUnit(self.name,None)
+  newp.type=self.type
+  newp.s_list=self.s_list
+  newp.cat=self.cat
+  newp.app_brightness=self.app_brightness
+  newp.sp=self.sp.clone()
+  newp.FOV_distance=self.FOV_distance
+  return newp
+ 
+ # set the LSM of this PUnit
+ def setLSM(self,lsm):
+  self.lsm=lsm
+  self.sp.setLSM(lsm)
 
 ###############################################
 class LSM:
@@ -399,6 +433,7 @@ class LSM:
 
   if kw.has_key('type'):
    if kw['type']=='point':
+    #FIXME: add POINT =0 PATCH=1 etc
     p.setType(0) # 0 - point source
   else:
    p.setType(1) # 1 - patch
@@ -407,7 +442,7 @@ class LSM:
   if kw.has_key('SP'):
    p.sp.setRoot(kw['SP'])
 
-#  # for the moment use static RA,Dec
+#  # FIXME for the moment use static RA,Dec
   if kw.has_key('RA'):
    p.sp.set_staticRA(kw['RA'])
   if kw.has_key('Dec'):
@@ -606,14 +641,34 @@ class LSM:
    punit.sp.updateValues(sname)
 
  # save to a file
+ # while saving, discard any existing vellsets because
+ # they can be recalculated. 
  def save(self,filename):
   try:
    f=open(filename,'wb') 
    p=pickle.Pickler(f)
-   p.dump(self)
+   # create a new LSM from this LSM,
+   # without reference to MeqServer or the forests
+   g=LSM()
+   g.s_table=self.s_table
+   g.m_table=self.m_table
+   g.tmpl_table=self.tmpl_table
+   g.__barr=self.__barr
+   # remove circular references to the old LSM
+   g.p_table={}
+   for sname in self.p_table.keys(): 
+    punit=self.p_table[sname]
+    g.p_table[sname]=punit.clone()
+    g.p_table[sname].setLSM(g)
+   g.mqs=None
+   g.obswin=None
+
+   p.dump(g)
    f.close()
-  except IOError:
+  except Error:
    print "file %s cannot be opened, save failed" % filename 
+  
+  # next step: save the MeqTrees
 
  # load from a file 
  def load(self,filename):
