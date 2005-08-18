@@ -144,8 +144,8 @@ class SpH:
    print "Cannot update values: (cell,mqs)",self.lsm.obswin,self.lsm.mqs
 
  # returns the value corresponding to the given (t,f) pair
- # and the quantity
- def getValue(self,freq_index,time_index):
+ # and the quantity 'A','I','Q','U','V','RA','Dec'
+ def getValue(self,type,freq_index,time_index):
   # range error check
   if (self.lsm.obswin.segments.freq.start_index > freq_index) or\
     (self.lsm.obswin.segments.freq.end_index < freq_index):
@@ -156,21 +156,76 @@ class SpH:
     print "Index error, Time %d" %time_index
     time_index=self.lsm.obswin.segments.time.start_index
 
-  # expect a vellset
-  try:
-   shape=self.sI.shape
-   if shape[0]==1:
-    # no time dependence
-    time_index=0
-   if shape[1]==1:
-    # no freq. dependence
-    freq_index=0
-   #print "Return ",self.sI.value[time_index][freq_index]
-   return self.sI.value[time_index][freq_index]
-  except:
-   # no set, just a scalar
-   #print "Scalar Return ",self.sI.value[0]
-   return self.sI.value[0]
+  if type=='A' or type=='I':
+   # expect a vellset
+   try:
+    shape=self.sI.shape
+    if shape[0]==1:
+     # no time dependence
+     time_index=0
+    if shape[1]==1:
+     # no freq. dependence
+     freq_index=0
+    #print "Return ",self.sI.value[time_index][freq_index]
+    return self.sI.value[time_index][freq_index]
+   except:
+    # no set, just a scalar
+    #print "Scalar Return ",self.sI.value[0]
+    return self.sI.value[0]
+  elif type=='Q':
+   # expect a vellset
+   try:
+    shape=self.sQ.shape
+    if shape[0]==1:
+     # no time dependence
+     time_index=0
+    if shape[1]==1:
+     # no freq. dependence
+     freq_index=0
+    #print "Return ",self.sI.value[time_index][freq_index]
+    return self.sQ.value[time_index][freq_index]
+   except:
+    # no set, just a scalar
+    #print "Scalar Return ",self.sI.value[0]
+    return self.sQ.value[0]
+  elif type=='U':
+   # expect a vellset
+   try:
+    shape=self.sU.shape
+    if shape[0]==1:
+     # no time dependence
+     time_index=0
+    if shape[1]==1:
+     # no freq. dependence
+     freq_index=0
+    #print "Return ",self.sI.value[time_index][freq_index]
+    return self.sU.value[time_index][freq_index]
+   except:
+    # no set, just a scalar
+    #print "Scalar Return ",self.sI.value[0]
+    return self.sU.value[0]
+  elif type=='V':
+   # expect a vellset
+   try:
+    shape=self.sV.shape
+    if shape[0]==1:
+     # no time dependence
+     time_index=0
+    if shape[1]==1:
+     # no freq. dependence
+     freq_index=0
+    #print "Return ",self.sI.value[time_index][freq_index]
+    return self.sV.value[time_index][freq_index]
+   except:
+    # no set, just a scalar
+    #print "Scalar Return ",self.sI.value[0]
+    return self.sV.value[0]
+  else:
+    print "Error request",type
+    return 0
+
+
+
 
  
  # Print
@@ -252,9 +307,8 @@ class PUnit:
  def getBrightness(self,type='A',f=0,t=0):
   if type=='A':
    return self.app_brightness
-  elif type=='I':
-   if self.sp.sI!=None:
-    return self.sp.getValue(f,t)
+  else:
+    return self.sp.getValue(type,f,t)
 
  # change FOV distance
  def setFOVDist(self,distance):
@@ -494,11 +548,11 @@ class LSM:
     return 0
    pname=self.__barr[0]
    return self.p_table[pname].getBrightness()
-  elif type=='I':
+  else:
    # select the max value
    tmp_max=0
    for pname in self.p_table.keys():
-    tmp_val=self.p_table[pname].sp.getValue(f,t)
+    tmp_val=self.p_table[pname].sp.getValue(type,f,t)
     if tmp_max < tmp_val:
      tmp_max=tmp_val
    return tmp_max
@@ -515,11 +569,11 @@ class LSM:
     return 0
    pname=self.__barr[len(self.__barr)-1]
    return self.p_table[pname].getBrightness()
-  elif type=='I':
+  else:
    # select the min value
    tmp_min=1000
    for pname in self.p_table.keys():
-    tmp_val=self.p_table[pname].sp.getValue(f,t)
+    tmp_val=self.p_table[pname].sp.getValue(type,f,t)
     if tmp_min > tmp_val:
      tmp_min=tmp_val
    return tmp_min

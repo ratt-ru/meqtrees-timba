@@ -350,8 +350,8 @@ class MyCanvasView(QCanvasView):
    # next update p-unit table (colours)
    for sname in self.lsm.p_table.keys():
     punit=self.lsm.p_table[sname]
-    self.p_tab[sname].updateColor(self.getColor(punit.getBrightness(type,f_index,t_index)))
-    # FIXME: need to update size as well if pcrosses are displayed 
+    # update size and colour both, if pcrosses are displayed 
+    self.p_tab[sname].updateDisplayProperties(self.getColor(punit.getBrightness(type,f_index,t_index)), punit.getBrightness(type,f_index,t_index))
    self.canvas().update()  
 
    # update indicator
@@ -423,6 +423,11 @@ class Circle(QCanvasEllipse):
 
   def rtti(self):
     return self.myRTTI
+
+  def updateColor(self,color):
+   self.color=color
+   self.setBrush(QBrush(self.color))
+
 
 ##################################################################
 class Cross(QCanvasPolygon):
@@ -710,6 +715,8 @@ class PointSource:
   punit=self.cview.lsm.p_table[self.name]
   # get coords 
   xys=self.cview.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
+  self.x=xys[0]
+  self.y=xys[1]
   self.cross=self.addCross(xys[0],xys[1],1,5,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())
   length=int(math.log(punit.getBrightness()/self.cview.min_brightness)/math.log( self.cview.max_brightness/self.cview.min_brightness)*10)
   self.pcross=self.addCross(xys[0],xys[1],1,length,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())
@@ -766,18 +773,24 @@ class PointSource:
    self.cross.hide()
 
 
- def updateColor(self,newcolor):
-  # instead of just deleting them, 
-  # recreate a whole new item
+ def updateDisplayProperties(self,newcolor,new_value):
+  self.circle.updateColor(newcolor)
+  self.cross.updateColor(newcolor)
+  # Neet to adjust the size of pcross as well
+  # instead of adjusting current pcross, recreate a new one
+  # self.pcross.updateColor(newcolor)
+  self.pcross.hide()
+  del self.pcross
+  if new_value==0 or\
+    self.cview.max_brightness==0:
+   length=0
+  else:
+   length=int(math.log(new_value/self.cview.min_brightness)/math.log(self.cview.max_brightness/self.cview.min_brightness)*10)
+  self.pcross=self.addCross(self.x,self.y,1,length,newcolor,self.name,new_value)
+ 
   if self.cview.display_point_sources=='cross':
-   self.cross.hide()
-   self.cross.updateColor(newcolor)
    self.cross.show()
   elif self.cview.display_point_sources=='point':
-   self.point.hide()
-   self.point.updateColor(newcolor)
-   self.point.show()
+   self.circle.show()
   else:
-   self.pcross.hide()
-   self.pcross.updateColor(newcolor)
    self.pcross.show()
