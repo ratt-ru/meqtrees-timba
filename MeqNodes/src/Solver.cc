@@ -380,13 +380,16 @@ int Solver::getResult (Result::Ref &resref,
     child_results_[i].detach();
   // ok, now we should have a spid map
   num_unknowns_ = 0;
-  const DMI::Record * pspid_map = tmpres[FSpidMap].as_po<DMI::Record>();
-  if( pspid_map )
+  if( tmpres.valid() )
   {
-    // insert a copy of spid map record into the solver result
-    solveResult[FSpidMap].replace() <<= pspid_map;
-    // populate our map from the record
-    populateSpidMap(*pspid_map,request.cells());
+    const DMI::Record * pspid_map = tmpres[FSpidMap].as_po<DMI::Record>();
+    if( pspid_map )
+    {
+      // insert a copy of spid map record into the solver result
+      solveResult[FSpidMap].replace() <<= pspid_map;
+      // populate our map from the record
+      populateSpidMap(*pspid_map,request.cells());
+    }
   }
   if( !num_unknowns_ )
   {
