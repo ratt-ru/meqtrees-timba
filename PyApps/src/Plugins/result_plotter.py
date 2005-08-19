@@ -22,6 +22,7 @@ from Timba.Plugins.display_image import *
 from Timba.Plugins.realvsimag import *
 from QwtPlotImage import *
 from QwtColorBar import *
+from ND_Controller import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='result_plotter');
@@ -115,18 +116,7 @@ class ResultPlotter(GriddedPlugin):
     self.first_spectrum_plot = True
     self.layout_parent = None
     self.layout = None
-
-# some intitial tests for extracting forest_state
-    meqds_rec = meqds.get_forest_state()
-#   print 'forest state record is ', meqds_rec
-#   print 'forest state record axes number, values ', len(meqds_rec.axis_map), ' ',meqds_rec.axis_map
-#   print 'first axis ', meqds_rec.axis_map[0].id
-#   print 'second axis ', meqds_rec.axis_map[1].id
-    try:
-     _dprint(3, 'third axis ', meqds_rec.axis_map[2].id)
-    except:
-     third_axis = 'third_axis ' + str(2)
-#     print 'third axis is:  ', third_axis 
+    self.ND_Controls = None
 
 # back to 'real' work
     if dataitem and dataitem.data is not None:
@@ -476,6 +466,7 @@ class ResultPlotter(GriddedPlugin):
         QObject.connect(self._visu_plotter, PYSIGNAL('max_image_range'), self.colorbar.setMaxRange) 
         QObject.connect(self._visu_plotter, PYSIGNAL('display_type'), self.colorbar.setDisplayType) 
         QObject.connect(self._visu_plotter, PYSIGNAL('show_colorbar_display'), self.colorbar.showDisplay) 
+        QObject.connect(self._visu_plotter, PYSIGNAL('vells_axes_labels'), self.set_ND_controls) 
         QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._visu_plotter.setImageRange) 
 
         self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
@@ -532,6 +523,17 @@ class ResultPlotter(GriddedPlugin):
     self.flash_refresh();
 
     _dprint(3, 'exiting set_data')
+
+  def set_ND_controls (self, shape, labels):
+    """ this function adds the extra GUI control buttons etc if we are
+        displaying data for a numarray of dimension 3 or greater """
+
+    self.ND_Controls = ND_Controller(shape, labels, self.layout_parent)
+    QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self._visu_plotter.setArraySelector)
+    QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self._visu_plotter.setSelectedAxes)
+    QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay) 
+    self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,1)
+    self.ND_Controls.show()
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass('MeqDataCollect'),ResultPlotter,priority=10)
