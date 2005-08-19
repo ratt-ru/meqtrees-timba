@@ -669,6 +669,9 @@ class LSM:
    print "file %s cannot be opened, save failed" % filename 
   
   # next step: save the MeqTrees
+  if self.mqs != None:
+   forest_filename=filename+'.forest'
+   self.mqs.meq('Save.Forest',meq.record(file_name=forest_filename));
 
  # load from a file 
  def load(self,filename):
@@ -685,6 +688,11 @@ class LSM:
    f.close()
   except IOError:
    print "file %s cannot be opened, load failed" % filename 
+  # next step: Load the MeqTrees if possible 
+  if self.mqs != None:
+   forest_filename=filename+'.forest'
+   self.mqs.meq('Load.Forest',meq.record(file_name=forest_filename),wait=True);
+
 
  # send a request to the LSM to give the p-units
  # with highest brightness, or p-unit with name ='name' etc.
