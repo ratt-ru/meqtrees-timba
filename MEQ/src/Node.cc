@@ -512,7 +512,8 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   // (1) An empty reqid never matches, hence it can be used to 
   //     always force a recalculation.
   // (2) A cached RES_VOLATILE code, or a service flag on current or
-  //      previous request requires an exact ID match.
+  //     previous request requires an exact ID match and a service flag 
+  //     match.
   // (3) Otherwise, do a masked compare using the cached result code
   cdebug(4)<<"checking cache: request "<<cache_.rqid<<", code "<<ssprintf("0x%x",cache_.rescode)<<endl;
 //   fprintf(flog,"%s: cache contains %s, code %x, request is %s\n",
@@ -520,7 +521,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
 //           cache_.rqid.toString().c_str(),cache_.rescode,req.id().toString().c_str());
   if( !req.id().empty() && !cache_.rqid.empty() &&
       ( ( cache_.rescode&RES_VOLATILE || req.serviceFlag() || cache_.service_flag )
-        ? req.id() == cache_.rqid
+        ? req.id() == cache_.rqid && req.serviceFlag() == cache_.service_flag
         : RqId::maskedCompare(req.id(),cache_.rqid,cache_.rescode) ) )
   {
     cdebug(4)<<"cache hit"<<endl;
@@ -1127,7 +1128,10 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     setExecState(CS_ES_REQUEST);
     int retcode = 0;
     // do we have a new request? Empty request id treated as always new
-    new_request_ = req0.id().empty() || ( req0.id() != current_reqid_ );
+    new_request_ = !current_request_.valid() ||
+                   req0.id().empty() || 
+                   ( req0.id() != current_reqid_ ) ||
+                   ( req0.serviceFlag() != current_request_->serviceFlag() );
     // update stats
     pcs_total_->req++;
     if( new_request_ )
