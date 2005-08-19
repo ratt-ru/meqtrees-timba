@@ -16,12 +16,15 @@ class LCDRange(QWidget):
         self.lcd = QLCDNumber(3, self, "lcd")
         self.lcd.setSegmentStyle(QLCDNumber.Filled)
         self.lcd.setPaletteBackgroundColor(Qt.red)
+        self.lcd.setMaximumWidth(200)
+        self.lcd.setMaximumHeight(50)
 
         self.slider = QSlider(Qt.Horizontal, self, "slider")
         self.slider.setTickmarks(QSlider.Below)
         self.slider.setTickInterval(10)
         self.slider.setRange(0, 99)
         self.slider.setValue(0)
+        self.slider.setMaximumWidth(200)
 
         self.connect(self.slider, SIGNAL("valueChanged(int)"), self.lcd, SLOT("display(int)"))
         self.connect(self.slider, SIGNAL("valueChanged(int)"), self, PYSIGNAL("valueChanged(int)"))
@@ -56,7 +59,6 @@ class LCDRange(QWidget):
         self.label.setText(s)
 
     def update(self, slider_value):
-#       print 'lcd slider value ', self.lcd_number, ' ',slider_value
         self.emit(PYSIGNAL("sliderValueChanged"), (self.lcd_number, slider_value))
         
         return self.slider.value()
@@ -68,7 +70,7 @@ So, for example, if we select a 5-d array for display, the last two dimensions (
 You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their labels displayed in green and their sliders will be displayed in red and are frozen. The other axes will have live sliders shown in green - you can move the sliders to change the array indices for these dimensions.'''
 
 class ND_Controller(QWidget):
-    def __init__(self, array_shape=1, parent=None, name=None):
+    def __init__(self, array_shape=1, axis_record=None, parent=None, name=None):
       QWidget.__init__(self, parent, name)
 
       QWhatsThis.add(self, controller_instructions)
@@ -82,51 +84,57 @@ class ND_Controller(QWidget):
 
 # add control buttons and LCD Displays
       self.buttons = []
+      self.button_number = []
       self.lcd_ranges = []
       row = 0
       col = 0
-      self.num_axes = len(array_shape)
-      self.active_axes = 0
-      for i in range(self.num_axes):
+      self.rank = 0
+      for i in range(len(array_shape)):
+        if array_shape[i] > 1:
+          self.rank = self.rank + 1
+      self.active_axes = {}
+      self.num_selectors = -1
+      for i in range(len(array_shape)):
+        if array_shape[i] > 1:
+          self.num_selectors = self.num_selectors + 1
 # add buttons
-        button_label = 'axis ' + str(i)
-        button = QPushButton(button_label, self);
-        self.buttons.append(button)
-        self.buttons[i].setToggleButton(True)
-        if i <= self.num_axes -3:
-          self.buttons[i].setOn(False)
-          self.buttons[i].setPaletteForegroundColor(Qt.red)
-        else:
-          self.buttons[i].setOn(True)
-          self.buttons[i].setPaletteForegroundColor(Qt.green)
-          self.active_axes = self.active_axes + 1
-        self.layout.addWidget(self.buttons[i], row, col)
-        self.buttonGroup.insert(self.buttons[i],i)
+          button_label = None
+          if not axis_record == None:
+            button_label = axis_record[i]
+          else:
+            button_label = 'axis ' + str(i)
+          button = QPushButton(button_label, self);
+          self.buttons.append(button)
+          self.button_number.append(i)
+          self.buttons[self.num_selectors].setToggleButton(True)
+          if self.num_selectors <= self.rank -3:
+            self.buttons[self.num_selectors].setOn(False)
+            self.buttons[self.num_selectors].setPaletteForegroundColor(Qt.red)
+          else:
+            self.buttons[self.num_selectors].setOn(True)
+            self.buttons[self.num_selectors].setPaletteForegroundColor(Qt.green)
+            self.active_axes[self.num_selectors] = True
+          self.layout.addWidget(self.buttons[self.num_selectors], row, col)
+          self.buttonGroup.insert(self.buttons[self.num_selectors],self.num_selectors)
 
 # add lcd ranges
-        col = col + 1;
-        self.lcd_ranges.append (LCDRange(i, self))
-        QObject.connect(self.lcd_ranges[i], PYSIGNAL("sliderValueChanged"),self.update)
-        self.layout.addWidget(self.lcd_ranges[i], row, col);
-        if i <= self.num_axes -3:
-          self.lcd_ranges[i].setLCDColor(Qt.green)
-        else:
-          self.lcd_ranges[i].setLCDColor(Qt.red)
-        self.lcd_ranges[i].setRange(0, array_shape[i]-1)
-        if col >= 3:
-          col = 0
-          row = row + 1
-        else:
-          col = col + 1
+          col = col + 1;
+          self.lcd_ranges.append (LCDRange(self.num_selectors, self))
+          QObject.connect(self.lcd_ranges[self.num_selectors], PYSIGNAL("sliderValueChanged"),self.update)
+          self.layout.addWidget(self.lcd_ranges[self.num_selectors], row, col);
+          if self.num_selectors <= self.rank -3:
+            self.lcd_ranges[self.num_selectors].setLCDColor(Qt.green)
+          else:
+            self.lcd_ranges[self.num_selectors].setLCDColor(Qt.red)
+          self.lcd_ranges[self.num_selectors].setRange(0, array_shape[i]-1)
+          if col >= 3:
+            col = 0
+            row = row + 1
+          else:
+            col = col + 1
 
-# add reset button
-#     self.reset_button = QPushButton('RESET', self);
-#     row = row + 1
-#     col = 0
-#     self.layout.addWidget(self.reset_button, row, col)
-#     QObject.connect(self.reset_button, SIGNAL("clicked()"),self.resetAxes)
-
-# lcd_ranges
+# add one to get number of active selector buttons
+      self.num_selectors = self.num_selectors + 1
 
     # __init__()
 
@@ -135,49 +143,49 @@ class ND_Controller(QWidget):
           self.show()
         else:
           self.hide()
-        self.replot()
     # showDisplay
 
     def defineAxes(self, button_id):
-        if self.active_axes == 2:
+        if not self.active_axes is None and len(self.active_axes) == 2:
           self.resetAxes()
           self.buttons[button_id].setOn(True)
         if self.buttons[button_id].isOn():
           self.buttons[button_id].setPaletteForegroundColor(Qt.green)
           self.lcd_ranges[button_id].setLCDColor(Qt.red)
-          self.active_axes = self.active_axes + 1
-          self.axes_list.append(button_id)
-          if self.active_axes == 2:
+          self.active_axes[button_id] = True
+          if len(self.active_axes) == 2:
             first_axis = None
             second_axis = None
-            for i in range(self.num_axes):
-              if self.buttons[i].isOn():
+            for i in range(self.num_selectors):
+              if self.active_axes.has_key(i):
                 if first_axis is None:
-                  first_axis = i
+                  first_axis = self.button_number[i]
                 else:
-                  second_axis = i
+                  second_axis = self.button_number[i]
+                self.lcd_ranges[i].setLCDColor(Qt.red)
               else:
                 self.lcd_ranges[i].setLCDColor(Qt.green)
               self.lcd_ranges[i].setValue(0)
             self.emit(PYSIGNAL("defineSelectedAxes"), (first_axis, second_axis))
         else:
+          if self.active_axes.has_key(button_id):
+            del self.active_axes[button_id]
           self.buttons[button_id].setPaletteForegroundColor(Qt.red)
-          self.lcd_ranges[button_id].setLCDColor(Qt.green)
+          self.lcd_ranges[button_id].setLCDColor(Qt.red)
     # defineAxes
 
     def resetAxes(self):
-        for i in range(self.num_axes):
+        for i in range(self.num_selectors):
           self.buttons[i].setOn(False)
           self.buttons[i].setPaletteForegroundColor(Qt.red)
           self.lcd_ranges[i].setLCDColor(Qt.red)
-          self.active_axes = 0
-          self.axes_list = []
+        self.active_axes = {}
     # resetAxes
 
     def update(self, lcd_number, slider_value):
-      if self.active_axes == 2:
+      if not self.active_axes.has_key(lcd_number):
         if not self.buttons[lcd_number].isOn():
-          self.emit(PYSIGNAL("sliderValueChanged"), (lcd_number, slider_value))
+          self.emit(PYSIGNAL("sliderValueChanged"), (self.button_number[lcd_number], slider_value))
         else:
           self.lcd_ranges[lcd_number].setValue(0)
       else:
