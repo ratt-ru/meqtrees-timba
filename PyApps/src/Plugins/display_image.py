@@ -115,6 +115,7 @@ class QwtImageDisplay(QwtPlot):
         self._plot_type = None
 	self._plot_dict_size = None
 	self.created_combined_image = False
+        self.dimensions_tested = False
 	self._combined_image_id = None
 	self.is_combined_image = False
         self.active_image_index = None
@@ -126,10 +127,8 @@ class QwtImageDisplay(QwtPlot):
         self.iteration_number = None
         self._active_plane = None
         self._active_perturb = None
-        self.is_time_vector = None
-        self.is_freq_vector = None
-        self.time_inc = None
-        self.freq_inc = None
+        self.first_axis_inc = None
+        self.second_axis_inc = None
         self.context_menu_done = None
         self._mhz = False
         self._khz = False
@@ -140,6 +139,7 @@ class QwtImageDisplay(QwtPlot):
         self.ymin = None
         self.ymax = None
         self.adjust_color_bar = True
+        self.array_selector = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -160,7 +160,10 @@ class QwtImageDisplay(QwtPlot):
         self.yCrossSection = None
         self.myXScale = None
         self.myYScale = None
+        self.flip_axes = False
         self.active_image = False
+        self.info_marker = None
+        self.source_marker = None
 
         self.plotImage = QwtPlotImage(self)
 
@@ -179,7 +182,9 @@ class QwtImageDisplay(QwtPlot):
         self.is_vector = False
         self.xpos = 0
         self.ypos = 0
+        self.toggle_array_rank = 1
         self.toggle_color_bar = 1
+        self.toggle_ND_Controller = 1
         self.toggle_gray_scale = 0
         QWhatsThis.add(self, display_image_instructions)
 
@@ -320,9 +325,18 @@ class QwtImageDisplay(QwtPlot):
         self.defineData()
         self.replot()
         return
+      if menuid == 303:
+        if self.toggle_ND_Controller == 1:
+          self.toggle_ND_Controller = 0
+        else:
+          self.toggle_ND_Controller = 1
+        self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+        return
       self.active_image_index = menuid
       if self.is_combined_image:
         self.removeMarkers()
+        self.info_marker = None
+        self.source_marker = None
       self.is_combined_image = False
       if not self._combined_image_id is None:
         if self._combined_image_id == menuid:
@@ -331,9 +345,15 @@ class QwtImageDisplay(QwtPlot):
 
     def defineData(self):
        if self._vells_plot:
-         self.plotImage.setData(self.raw_image, self.vells_freq, self.vells_time)
+         if self.flip_axes:
+           self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.second_axis_parm], self.vells_axis_parms[self.first_axis_parm])
+         else:
+           self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.first_axis_parm], self.vells_axis_parms[self.second_axis_parm])
        else:
          self.plotImage.setData(self.raw_image)
+
+# the following is used to make sure same image is kept on display if
+# colorbar intensity range is toggled or color/grayscale is toggled
        if not self.xmin is None and not self.xmax is None and not self.ymin is None and not self.ymax is None:
          self.setAxisScale(QwtPlot.xBottom, self.xmin, self.xmax)
          self.setAxisScale(QwtPlot.yLeft, self.ymin, self.ymax)
@@ -487,6 +507,13 @@ class QwtImageDisplay(QwtPlot):
         self.defineData()
         self.replot()
         return
+      if menuid == 303:
+        if self.toggle_ND_Controller == 1:
+          self.toggle_ND_Controller = 0
+        else:
+          self.toggle_ND_Controller = 1
+        self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+        return
 
 # toggle flags display	
       if menuid == 200:
@@ -528,7 +555,14 @@ class QwtImageDisplay(QwtPlot):
         self._active_perturb = None
 # get the shape tuple - useful if the Vells have been compressed down to
 # a constant
-      self._shape = self._vells_rec.vellsets[plane]["shape"]
+      try:
+        self._shape = self._vells_rec.vellsets[plane]["shape"]
+      except:
+        shape_list = []
+        for i in range(len(self.axis_labels)):
+          dimension = self.axis_shape[self.axis_labels[i]] 
+          shape_list.append(dimension)
+        self._shape = tuple(shape_list)
 # handle "value" first
       if perturb < 0 and self._vells_rec.vellsets[plane].has_key("value"):
         complex_type = False;
@@ -539,15 +573,19 @@ class QwtImageDisplay(QwtPlot):
           if self._vells_rec.vellsets[plane].value.type() == Complex64:
             complex_type = True;
           self._value_array = self._vells_rec.vellsets[plane].value
+          self.array_rank = self._value_array.rank
+          self.array_shape = self._value_array.shape
           _dprint(3, 'self._value_array ', self._value_array)
           array_shape = self._value_array.shape
           if len(array_shape) == 1 and array_shape[0] == 1:
             temp_value = self._value_array[0]
-            temp_array = numarray.asarray(temp_value)
-            self._value_array = numarray.resize(temp_array,self._shape)
+            temp_array = asarray(temp_value)
+            self._value_array = resize(temp_array,self._shape)
         except:
-          temp_array = numarray.asarray(self._vells_rec.vellsets[i].value)
-          self._value_array = numarray.resize(temp_array,self._shape)
+          temp_array = asarray(self._vells_rec.vellsets[i].value)
+          self._value_array = resize(temp_array,self._shape)
+          self.array_rank = self._value_array.rank
+          self.array_shape = self._value_array.shape
           if self._value_array.type() == Complex32:
             complex_type = True;
           if self._value_array.type() == Complex64:
@@ -568,7 +606,8 @@ class QwtImageDisplay(QwtPlot):
           if self._solver_flag:
             self.array_plot(self._label, self._value_array, False)
           else:
-            self.array_plot(self._label, self._value_array)
+            self.set_data_range(self._value_array)
+            self.plot_vells_array(self._value_array)
         else:
 #we have a real array
           _dprint(3,'handling real array')
@@ -578,8 +617,8 @@ class QwtImageDisplay(QwtPlot):
           if self._solver_flag:
             self.array_plot(self._label, self._value_array, False)
           else:
-            self.array_plot(self._label, self._value_array)
-
+            self.set_data_range(self._value_array)
+            self.plot_vells_array(self._value_array)
       else:
 # handle "perturbed_value"
         if self._vells_rec.vellsets[plane].has_key("perturbed_value"):
@@ -594,8 +633,8 @@ class QwtImageDisplay(QwtPlot):
               complex_type = True;
             perturbed_array_diff = self._vells_rec.vellsets[plane].perturbed_value[perturb]
           except:
-            temp_array = numarray.asarray(self._vells_rec.vellsets[plane].perturbed_value[perturb])
-            perturbed_array_diff = numarray.resize(temp_array,self._shape)
+            temp_array = asarray(self._vells_rec.vellsets[plane].perturbed_value[perturb])
+            perturbed_array_diff = resize(temp_array,self._shape)
             if perturbed_array_diff.type() == Complex32:
               complex_type = True;
             if perturbed_array_diff.type() == Complex64:
@@ -606,7 +645,8 @@ class QwtImageDisplay(QwtPlot):
           if self._solver_flag:
             self.array_plot(self._label, perturbed_array_diff, False)
           else:
-            self.array_plot(self._label, perturbed_array_diff)
+            self.set_data_range(perturbed_array_diff)
+            self.plot_vells_array(perturbed_array_diff)
         
     def printplot(self):
         try:
@@ -633,7 +673,7 @@ class QwtImageDisplay(QwtPlot):
         QwtPlot.drawCanvasItems(self, painter, rectangle, maps, filter)
 
 
-    def formatCoordinates(self, x, y, value = None):
+    def formatCoordinates(self, x, y):
         """Format mouse coordinates as real world plot coordinates.
         """
         result = ''
@@ -649,14 +689,14 @@ class QwtImageDisplay(QwtPlot):
           result = temp_str
           temp_str = result + " y =%+.2g" % ypos
           result = temp_str
-          if not self.freq_inc is None:
-            xpos = int(xpos / self.freq_inc)
+          if not self.first_axis_inc is None:
+            xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
           else:
 # this inversion does not seem to work properly for scaled
 # (vellsets) data, so use the above if possible
             xpos = self.plotImage.xMap.limTransform(xpos)
-          if not self.time_inc is None:
-            ypos = int(ypos / self.time_inc)
+          if not self.second_axis_inc is None:
+            ypos = int((ypos - self.vells_axis_parms[self.y_parm][0]) / self.second_axis_inc)
           else:
             ypos = self.plotImage.yMap.limTransform(ypos)
         else:
@@ -677,8 +717,7 @@ class QwtImageDisplay(QwtPlot):
 	      marker_index = 0
           temp_str = result + " y =%+.2g" % ypos
           result = temp_str
-        if value is None:
-          value = self.raw_image[xpos,ypos]
+        value = self.raw_image[xpos,ypos]
 	message = None
         temp_str = " value: %-.3g" % value
 	if not marker_index is None:
@@ -690,12 +729,14 @@ class QwtImageDisplay(QwtPlot):
         fn = self.fontInfo().family()
 
 # text marker giving source of point that was clicked
-        self.marker = self.insertMarker()
+        if not self.source_marker is None:
+          self.removeMarker(self.source_marker)
+        self.source_marker = self.insertMarker()
         ylb = self.axisScale(QwtPlot.yLeft).lBound()
         xlb = self.axisScale(QwtPlot.xBottom).lBound()
-        self.setMarkerPos(self.marker, xlb, ylb)
-        self.setMarkerLabelAlign(self.marker, Qt.AlignRight | Qt.AlignTop)
-        self.setMarkerLabel( self.marker, message,
+        self.setMarkerPos(self.source_marker, xlb, ylb)
+        self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
+        self.setMarkerLabel( self.source_marker, message,
           QFont(fn, 9, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
 
@@ -719,12 +760,14 @@ class QwtImageDisplay(QwtPlot):
         fn = self.fontInfo().family()
 
 # text marker giving source of point that was clicked
-        self.marker = self.insertMarker()
+        if not self.source_marker is None:
+          self.removeMarker(self.source_marker);
+        self.source_marker = self.insertMarker()
         ylb = self.axisScale(QwtPlot.yLeft).lBound()
         xlb = self.axisScale(QwtPlot.xBottom).lBound()
-        self.setMarkerPos(self.marker, xlb, ylb)
-        self.setMarkerLabelAlign(self.marker, Qt.AlignRight | Qt.AlignTop)
-        self.setMarkerLabel( self.marker, message,
+        self.setMarkerPos(self.source_marker, xlb, ylb)
+        self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
+        self.setMarkerLabel( self.source_marker, message,
           QFont(fn, 9, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
 
@@ -737,6 +780,8 @@ class QwtImageDisplay(QwtPlot):
 
     def refresh_marker_display(self):
       self.removeMarkers()
+      self.info_marker = None
+      self.source_marker = None
       if self.is_combined_image:
         self.insert_marker_lines()
       self.insert_array_info()
@@ -808,14 +853,14 @@ class QwtImageDisplay(QwtPlot):
               temp_array = asarray(xpos)
               self.y_arrayloc = resize(temp_array,shape[1])
               if self._vells_plot:
-                if not self.freq_inc is None:
-                  xpos = int(xpos / self.freq_inc)
+                if not self.first_axis_inc is None:
+                  xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
                 else:
 # this inversion does not seem to work properly for scaled
 # (vellsets) data, so use the above if possible
                   xpos = self.plotImage.xMap.limTransform(xpos)
-                if not self.time_inc is None:
-                  ypos = int(ypos / self.time_inc)
+                if not self.second_axis_inc is None:
+                  ypos = int((ypos - self.vells_axis_parms[self.y_parm][0]) / self.second_axis_inc)
                 else:
                   ypos = self.plotImage.yMap.limTransform(ypos)
 #               xpos = self.plotImage.xMap.limTransform(xpos)
@@ -858,16 +903,16 @@ class QwtImageDisplay(QwtPlot):
               self.setCurveXAxis(self.yCrossSection, QwtPlot.xTop)
 #              self.setAxisOptions(QwtPlot.xTop,QwtAutoScale.Inverted)
               if self._vells_plot:
-                delta_vells = self.vells_end_freq - self.vells_start_freq
+                delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
                 x_step = delta_vells / shape[0] 
-                start_freq = self.vells_start_freq + 0.5 * x_step
+                start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
                 for i in range(shape[0]):
-                  self.x_index[i] = start_freq + i * x_step
-                delta_vells = self.vells_end_time - self.vells_start_time
+                  self.x_index[i] = start_x + i * x_step
+                delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
                 y_step = delta_vells / shape[1] 
-                start_time = self.vells_start_time + 0.5 * y_step
+                start_y = self.vells_axis_parms[self.second_axis_parm][0] + 0.5 * y_step
                 for i in range(shape[1]):
-                  self.y_index[i] = start_time + i * y_step
+                  self.y_index[i] = start_y + i * y_step
               self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
               self.setCurveData(self.yCrossSection, self.y_array, self.y_index)
 
@@ -885,6 +930,8 @@ class QwtImageDisplay(QwtPlot):
               self.setCurveData(self.yCrossSectionLoc, self.y_arrayloc, self.y_index)
               if self.is_combined_image:
                 self.removeMarkers()
+                self.info_marker = None
+                self.source_marker = None
 	        self.insert_marker_lines()
               self.replot()
               _dprint(2, 'called replot in onMousePressed');
@@ -911,16 +958,16 @@ class QwtImageDisplay(QwtPlot):
 # if we have a vells plot, adjust bounds of image display to be an integer
 # number of pixels
               if self._vells_plot:
-                if not self.freq_inc is None:
-                  xmin = int((xmin + 0.5 * self.freq_inc) / self.freq_inc)
-                  xmax = int((xmax + 0.5 * self.freq_inc) / self.freq_inc)
-                  xmin = xmin * self.freq_inc
-                  xmax = xmax * self.freq_inc
-                if not self.time_inc is None:
-                  ymin = int((ymin + 0.5 * self.time_inc) / self.time_inc)
-                  ymax = int((ymax + 0.5 * self.time_inc) / self.time_inc)
-                  ymin = ymin * self.time_inc
-                  ymax = ymax * self.time_inc
+                if not self.first_axis_inc is None:
+                  xmin = int((xmin + 0.5 * self.first_axis_inc) / self.first_axis_inc)
+                  xmax = int((xmax + 0.5 * self.first_axis_inc) / self.first_axis_inc)
+                  xmin = xmin * self.first_axis_inc
+                  xmax = xmax * self.first_axis_inc
+                if not self.second_axis_inc is None:
+                  ymin = int((ymin + 0.5 * self.second_axis_inc) / self.second_axis_inc)
+                  ymax = int((ymax + 0.5 * self.second_axis_inc) / self.second_axis_inc)
+                  ymin = ymin * self.second_axis_inc
+                  ymax = ymax * self.second_axis_inc
               else:
                   ymax = int (ymax)
                   ymin = int (ymin + 0.5)
@@ -987,8 +1034,6 @@ class QwtImageDisplay(QwtPlot):
       if self.image_max is None or  self.adjust_color_bar:
         self.image_max = image_for_display.max()
  
-#     print 'image min and max ', self.image_min, ' ', self.image_max
-#     print 'image_for_display min and max ', image_for_display.min(), image_for_display.max()
       
       # emit range for the color bar
       if self.adjust_color_bar:
@@ -1003,6 +1048,8 @@ class QwtImageDisplay(QwtPlot):
       if self.is_combined_image:
          _dprint(2, 'display_image inserting markers')
          self.removeMarkers()
+         self.info_marker = None
+         self.source_marker = None
 	 self.insert_marker_lines()
       self.insert_array_info()
 
@@ -1028,6 +1075,8 @@ class QwtImageDisplay(QwtPlot):
         fn = self.fontInfo().family()
 
 # text marker giving mean and std deviation of array
+        if not self.info_marker is None:
+          self.removeMarker(self.info_marker)
         self.info_marker = self.insertMarker()
         ylb = self.axisScale(QwtPlot.yLeft).hBound()
         xlb = self.axisScale(QwtPlot.xBottom).hBound()
@@ -1118,7 +1167,7 @@ class QwtImageDisplay(QwtPlot):
 
       if visu_record.has_key('label'):
         self._data_labels = visu_record['label']
-        _dprint(2,'display_image: self._data_labels ', self._data_labels);
+        _dprint(2,'insert_array_info: self._data_labels ', self._data_labels);
       else:
         self._data_labels = ''
 
@@ -1147,11 +1196,15 @@ class QwtImageDisplay(QwtPlot):
           if self.active_image_index == self._combined_image_id:
 	    self.is_combined_image = True
             self.removeMarkers()
+            self.info_marker = None
+            self.source_marker = None
 	    self.insert_marker_lines()
         elif not self._combined_image_id is None:
           self.array_plot(self._plot_label[ self._combined_image_id], self._plot_dict[ self._combined_image_id],False)
 	  self.is_combined_image = True
           self.removeMarkers()
+          self.info_marker = None
+          self.source_marker = None
           self.insert_marker_lines()
 	else:
           if not self._plot_dict_size is None:
@@ -1167,41 +1220,51 @@ class QwtImageDisplay(QwtPlot):
     # end plot_data()
 
     def calc_vells_ranges(self):
-      """ get vells frequency and time ranges for use 
+      """ get vells data ranges for use 
           with other functions """
                                                                                 
-      self.vells_start_freq = self._vells_rec.cells.domain.freq[0] 
-      self.vells_end_freq  =  self._vells_rec.cells.domain.freq[1]
-#     self.vells_start_time = self._vells_rec.cells.domain.time[0] 
-#     self.vells_end_time  =  self._vells_rec.cells.domain.time[1]
-      self.vells_start_time = 0
-      self.vells_end_time  =  self._vells_rec.cells.domain.time[1] - self._vells_rec.cells.domain.time[0]
-      if self.vells_start_freq > 1.0e6:
-        self.vells_start_freq = self.vells_start_freq / 1.0e6
-        self.vells_end_freq = self.vells_end_freq / 1.0e6
-        self._mhz = True
-      elif self.vells_start_freq > 1.0e3:
-        self.vells_start_freq = self.vells_start_freq / 1.0e3
-        self.vells_end_freq = self.vells_end_freq / 1.0e3
-        self._khz = True
+      axis_map = self._vells_rec.cells.domain.get('axis_map',['time','freq'])
+      self.axis_labels = []
+      self.vells_axis_parms = {}
+      self.axis_shape = {}
+      self.num_actual_axes = 0
+      for i in range(len(axis_map)):
+        # convert from Hiid to string
+        self.axis_labels.append(str(axis_map[i]).lower())
+        current_label = self.axis_labels[i]
+        if self._vells_rec.cells.domain.has_key(current_label):
+          begin = self._vells_rec.cells.domain.get(current_label)[0]
+	  end = self._vells_rec.cells.domain.get(current_label)[1]
+          title = current_label
+          if current_label == 'time':
+            end = end - begin
+            begin = 0
+            title = 'Time(sec): (relative to start)'
+          if current_label == 'freq':
+            if begin >  1.0e6:
+              begin = begin / 1.0e6
+              end = end / 1.0e6
+              title = 'Frequency(MHz)'
+            elif begin >  1.0e3:
+              begin = begin / 1.0e3
+              end = end / 1.0e3
+              title = 'Frequency(KHz)'
+            else:
+              title = 'Frequency(Hz)'
+          self.vells_axis_parms[current_label] = (begin, end, title)
+        else:
+          self.vells_axis_parms[current_label] = (0, 0, current_label)
+        if self._vells_rec.cells.grid.has_key(current_label):
+          grid_array = self._vells_rec.cells.grid.get(current_label)
+          self.axis_shape[current_label] = grid_array.shape[0]
+          self.num_actual_axes = self.num_actual_axes + 1
+        else:
+          self.axis_shape[current_label] = 1
 
-      self.vells_freq = (self.vells_start_freq,self.vells_end_freq)
-      self.vells_time = (self.vells_start_time,self.vells_end_time)
+# set default axis parameters - needed in a simple 2-D plot
+      self.first_axis_parm = self.axis_labels[0]
+      self.second_axis_parm = self.axis_labels[1]
 
-# get domain grid parameters - will help decide if we are dealing with
-# time or frequency data for 1-D vells arrays
-      try:
-        freq_shape = self._vells_rec.cells.grid.freq.shape
-        self.freq_inc = (self.vells_end_freq - self.vells_start_freq)/freq_shape[0]
-      except:
-        self.is_time_vector = True
-      try:
-        time_shape = self._vells_rec.cells.grid.time.shape
-        self.time_inc = (self.vells_end_time - self.vells_start_time)/time_shape[0]
-      except:
-        self.is_freq_vector = True
-
-                                                                                
     def plot_vells_data (self, vells_record):
       """ process incoming vells data and attributes into the
           appropriate type of plot """
@@ -1246,8 +1309,8 @@ class QwtImageDisplay(QwtPlot):
       if self._vells_rec.has_key("vellsets") and not self._solver_flag:
         self._vells_plot = True
         self.calc_vells_ranges()
-        if self.context_menu_done is None:
-          self. initVellsContextMenu()
+#       if self.context_menu_done is None:
+#         self. initVellsContextMenu()
         _dprint(3, 'handling vellsets')
 
 
@@ -1303,7 +1366,14 @@ class QwtImageDisplay(QwtPlot):
               temp_array = asarray(self._vells_rec.vellsets[self._active_plane].value)
             else:
               temp_array = asarray(self._vells_rec.vellsets[self._active_plane].perturbed_value[self._active_perturb])
-            self._shape = self._vells_rec.vellsets[self._active_plane]["shape"]
+            try:
+              self._shape = self._vells_rec.vellsets[self._active_plane].shape
+            except:
+              shape_list = []
+              for i in range(len(self.axis_labels)):
+                dimension = self.axis_shape[self.axis_labels[i]] 
+                shape_list.append(dimension)
+              self._shape = tuple(shape_list)
             self._value_array = resize(temp_array,self._shape)
             if self._value_array.type() == Complex32:
               complex_type = True;
@@ -1320,9 +1390,103 @@ class QwtImageDisplay(QwtPlot):
         if self._solver_flag:
           self.array_plot(self._label, self._value_array, flip_axes=False)
         else:
-          self.array_plot(self._label, self._value_array)
+          if self._vells_plot:
+            if not self.dimensions_tested:
+              self.array_rank = self._value_array.rank
+              self.toggle_array_rank = self.array_rank
+              self.array_shape = self._value_array.shape
+              if self.array_rank > 2:
+                self.emit(PYSIGNAL("vells_axes_labels"),(self._value_array.shape, self.axis_labels))
+              self.dimensions_tested = True
+            if self.context_menu_done is None:
+               self.initVellsContextMenu()
+            self.set_data_range(self._value_array)
+            self.plot_vells_array(self._value_array)
 
     # end plot_vells_data()
+
+    def set_data_range(self, data_array):
+      if data_array.type() == Complex32 or data_array.type() == Complex64:
+        real_array = data_array.getreal()
+        imag_array = data_array.getimag()
+        real_min = real_array.min()
+        real_max = real_array.max()
+        imag_min = imag_array.min()
+        imag_max = imag_array.max()
+        if real_min < imag_min:
+          self.data_min = real_min
+        else:
+          self.data_min = imag_min
+        if real_max > imag_max:
+          self.data_max = real_max
+        else:
+          self.data_max = imag_max
+      else:
+        self.data_min = data_array.min()
+        self.data_max = data_array.max()
+
+      self.plotImage.setImageRange((self.data_min,self.data_max))
+      self.reset_color_bar(reset_value = False)
+
+      # just in case we have a uniform image
+      if self.data_min == self.data_max:
+        self.data_min = 0.9 * self.data_min
+        self.data_max = 1.1 * self.data_max
+        self.plotImage.setImageRange((self.data_min, self.data_max))
+      self.emit(PYSIGNAL("image_range"),(self.data_min, self.data_max))
+      self.emit(PYSIGNAL("max_image_range"),(self.data_min, self.data_max))
+
+    def setArraySelector (self,lcd_number, slider_value):
+      self.array_selector[lcd_number] = slider_value
+      self.array_tuple = tuple(self.array_selector)
+      self.array_plot('data', self._value_array[self.array_tuple])
+
+    def plot_vells_array (self, data_array):
+      if data_array.rank > 2:
+        second_axis = None
+        first_axis = None
+        for i in range(data_array.rank-1,-1,-1):
+          if data_array.shape[i] > 1:
+            if second_axis is None:
+              second_axis = i
+            else:
+              if first_axis is None:
+                first_axis = i
+        if not first_axis is None and not second_axis is None:
+          self.array_selector = []
+          for i in range(data_array.rank):
+            if i == first_axis:
+              axis_slice = slice(0,data_array.shape[first_axis])
+              self.array_selector.append(axis_slice)
+            elif i == second_axis:
+              axis_slice = slice(0,data_array.shape[second_axis])
+              self.array_selector.append(axis_slice)
+            else:
+              self.array_selector.append(0)
+          self.array_tuple = tuple(self.array_selector)
+          self.first_axis_parm = self.axis_labels[first_axis]
+          self.second_axis_parm = self.axis_labels[second_axis]
+          self.array_plot(self._label, data_array[self.array_tuple])
+      else:
+        self.array_plot(self._label, data_array)
+
+ 
+    def setSelectedAxes (self,first_axis, second_axis):
+      if self._vells_plot:
+        self.first_axis_parm = self.axis_labels[first_axis]
+        self.second_axis_parm = self.axis_labels[second_axis]
+      self.array_selector = []
+      for i in range(self.array_rank):
+        if i == first_axis:
+          axis_slice = slice(0,self.array_shape[first_axis])
+          self.array_selector.append(axis_slice)
+        elif i == second_axis:
+          axis_slice = slice(0,self.array_shape[second_axis])
+          self.array_selector.append(axis_slice)
+        else:
+          self.array_selector.append(0)
+      self.array_tuple = tuple(self.array_selector)
+      self.array_plot(self._label, self._value_array[self.array_tuple])
 
     def handle_finished (self):
       print 'in handle_finished'
@@ -1363,6 +1527,7 @@ class QwtImageDisplay(QwtPlot):
 # hack to get array display correct until forest.state
 # record is available
       plot_array = incoming_plot_array
+      self.flip_axes = flip_axes
       if flip_axes:
         axes = arange(incoming_plot_array.rank)[::-1]
         plot_array = transpose(incoming_plot_array, axes)
@@ -1372,29 +1537,19 @@ class QwtImageDisplay(QwtPlot):
 # different 'formal' ranks but really are the same 1-D vectors
 # I'm not sure that the following covers all bases, but we are getting close
       self.is_vector = False;
-      array_rank = 0
-      is_frequency = False
+      actual_array_rank = 0
+      is_first_axis = False
       num_elements = 1
       for i in range(len(plot_array.shape)):
         num_elements = num_elements * plot_array.shape[i]
         if plot_array.shape[i] > 1:
-          array_rank = array_rank + 1
-      if array_rank == 1:
+          actual_array_rank = actual_array_rank + 1
+      if actual_array_rank == 1:
         self.is_vector = True;
 # check if grid frequency/time layout gives extra info
-        if self._vells_plot:
-          if not self.is_freq_vector is None:
-            is_frequency = True
-          if not self.is_time_vector is None:
-            is_frequency = False
-          if self.is_time_vector is None and self.is_freq_vector is None:
-            if len(plot_array.shape) > 1:
-              if plot_array.shape[1] == 1:
-                is_frequency = True
-        else:
-          if len(plot_array.shape) > 1:
-            if plot_array.shape[1] == 1:
-              is_frequency = True
+        if len(plot_array.shape) > 1:
+          if plot_array.shape[1] == 1:
+            is_first_axis = True
 
 # test for real or complex
       complex_type = False;
@@ -1435,25 +1590,38 @@ class QwtImageDisplay(QwtPlot):
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if complex_type and self._display_type != "brentjens":
           if self._vells_plot:
+            my_x_parm = None
+            my_y_parm = None
+            if flip_axes:
+              my_x_parm = self.second_axis_parm
+              my_y_parm = self.first_axis_parm
+            else:
+              my_x_parm = self.first_axis_parm
+              my_y_parm = self.second_axis_parm
+            self.x_parm = my_x_parm
+            self.y_parm = my_y_parm
+            self.myXScale = ComplexScaleSeparate(self.vells_axis_parms[my_x_parm][0], self.vells_axis_parms[my_x_parm][1])
+            self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
+            self.split_axis = self.vells_axis_parms[my_x_parm][1] 
+            delta_vells = self.vells_axis_parms[my_x_parm][1] - self.vells_axis_parms[my_x_parm][0]
+            self.delta_vells = delta_vells
+            self.first_axis_inc = delta_vells / plot_array.shape[0] 
+            begin = self.vells_axis_parms[my_x_parm][0]
+	    end = self.vells_axis_parms[my_x_parm][0] + 2 * delta_vells
+            title = self.vells_axis_parms[my_x_parm][2]
+	    self.vells_axis_parms[my_x_parm] = (begin, end, title)
+            delta_vells = self.vells_axis_parms[my_y_parm][1] - self.vells_axis_parms[my_y_parm][0]
+            self.second_axis_inc = delta_vells / plot_array.shape[1] 
 	    if self._x_axis is None:
-              if self._mhz:
-                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(MHz): (real followed by imaginary)')
-              elif self._khz:
-                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(KHz): (real followed by imaginary)')
-              else:
-                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(Hz): (real followed by imaginary)')
+              title_addition = ': (real followed by imaginary)'
+              x_title = self.vells_axis_parms[my_x_parm][2] + title_addition
+              self.setAxisTitle(QwtPlot.xBottom, x_title)
 	    else:  
               self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
 	    if self._y_axis is None:
-              self.setAxisTitle(QwtPlot.yLeft, 'Time(sec): (relative to start)')
+                self.setAxisTitle(QwtPlot.yLeft, self.vells_axis_parms[my_y_parm][2])
 	    else:
               self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
-            self.myXScale = ComplexScaleSeparate(self.vells_start_freq,self.vells_end_freq)
-            self.delta_vells = self.vells_end_freq - self.vells_start_freq
-	    self.vells_end_freq = self.vells_start_freq + 2 * self.delta_vells
-	    self.vells_freq = (self.vells_start_freq,self.vells_end_freq)
-            self.split_axis = self.vells_start_freq  + self.delta_vells
-            self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
           else:
 	    if self._x_axis is None:
               self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
@@ -1474,17 +1642,27 @@ class QwtImageDisplay(QwtPlot):
 
         else:
           if self._vells_plot:
+            my_x_parm = None
+            my_y_parm = None
+            if flip_axes:
+              my_x_parm = self.second_axis_parm
+              my_y_parm = self.first_axis_parm
+            else:
+              my_x_parm = self.first_axis_parm
+              my_y_parm = self.second_axis_parm
+            self.x_parm = my_x_parm
+            self.y_parm = my_y_parm
+            delta_vells = self.vells_axis_parms[my_x_parm][1] - self.vells_axis_parms[my_x_parm][0]
+            self.delta_vells = delta_vells
+            self.first_axis_inc = delta_vells / plot_array.shape[0] 
+            delta_vells = self.vells_axis_parms[my_y_parm][1] - self.vells_axis_parms[my_y_parm][0]
+            self.second_axis_inc = delta_vells / plot_array.shape[1] 
 	    if self._x_axis is None:
-              if self._mhz:
-                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(MHz)')
-              elif self._khz:
-                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(KHz)')
-              else:
-                self.setAxisTitle(QwtPlot.xBottom, 'Frequency(Hz)')
+                self.setAxisTitle(QwtPlot.xBottom, self.vells_axis_parms[my_x_parm][2])
 	    else:  
               self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
 	    if self._y_axis is None:
-              self.setAxisTitle(QwtPlot.yLeft, 'Time(sec): (relative to start)')
+                self.setAxisTitle(QwtPlot.yLeft, self.vells_axis_parms[my_y_parm][2])
 	    else:
               self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
           else:
@@ -1517,34 +1695,33 @@ class QwtImageDisplay(QwtPlot):
         self.enableGridX(True)
         self.enableGridY(True)
 
-
         if not self._flags_array is None:
           self.flags_x_index = []
           self.flags_r_values = []
           self.flags_i_values = []
         self.active_image = False
         if self._vells_plot:
-          if is_frequency:
+          if is_first_axis:
             if self._mhz:
               self.setAxisTitle(QwtPlot.xBottom, 'Frequency(MHz)')
             elif self._khz:
               self.setAxisTitle(QwtPlot.xBottom, 'Frequency(KHz)')
             else:
               self.setAxisTitle(QwtPlot.xBottom, 'Frequency(Hz)')
-            delta_vells = self.vells_end_freq - self.vells_start_freq
+            delta_vells = self.vells_axis_parms[self.first_axis_parm][1] - self.vells_axis_parms[self.first_axis_parm][0]
             x_step = delta_vells / num_elements 
-            start_freq = self.vells_start_freq + 0.5 * x_step
+            start_x = self.vells_axis_parms[self.first_axis_parm][0] + 0.5 * x_step
             self.x_index = zeros(num_elements, Float32)
             for j in range(num_elements):
-              self.x_index[j] = start_freq + j * x_step
+              self.x_index[j] = start_x + j * x_step
           else:
             self.setAxisTitle(QwtPlot.xBottom, 'Time(sec): (relative to start)')
-            delta_vells = self.vells_end_time - self.vells_start_time
+            delta_vells = self.vells_axis_parms[self.second_axis_parm][1] - self.vells_axis_parms[self.second_axis_parm][0]
             x_step = delta_vells / num_elements 
-            start_time = self.vells_start_time + 0.5 * x_step
+            start_x = self.vells_axis_parms[self.second_axis_parm][0] + 0.5 * x_step
             self.x_index = zeros(num_elements, Float32)
             for j in range(num_elements):
-              self.x_index[j] = start_time + j * x_step
+              self.x_index[j] = start_x + j * x_step
         else:
 	  if self._x_axis is None:
             self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
@@ -1667,16 +1844,16 @@ class QwtImageDisplay(QwtPlot):
 
 # figure out type and rank of incoming array
       flag_is_vector = False;
-      array_rank = 0
+      actual_array_rank = 0
       for i in range(len(flag_array.shape)):
         if flag_array.shape[i] > 1:
-          array_rank = array_rank + 1
-      if array_rank == 1:
+          actual_array_rank = actual_array_rank + 1
+      if actual_array_rank == 1:
         flag_is_vector = True;
 
       n_rows = 1
       n_cols = 1
-      if array_rank == 1:
+      if actual_array_rank == 1:
         n_rows = flag_array.shape[0]
         if len(flag_array.shape) > 1:
           n_cols = flag_array.shape[1]
@@ -1696,6 +1873,9 @@ class QwtImageDisplay(QwtPlot):
         self._menu.insertItem("Toggle ColorBar", toggle_id)
         toggle_id = 302
         self._menu.insertItem("Toggle Color/GrayScale Display", toggle_id)
+        if self.toggle_array_rank > 2: 
+          toggle_id = 303
+          self._menu.insertItem("Toggle ND Controller", toggle_id)
         zoom = QAction(self);
         zoom.setIconSet(pixmaps.viewmag.iconset());
         zoom.setText("Disable zoomer");
@@ -1705,6 +1885,9 @@ class QwtImageDisplay(QwtPlot):
         printer.setText("Print plot");
         QObject.connect(printer,SIGNAL("activated()"),self.printplot);
         printer.addTo(self._menu);
+
+    def set_toggle_array_rank(self, toggle_array_rank):
+      self.toggle_array_rank = toggle_array_rank
 
     def start_test_timer(self, time, test_complex, display_type):
       self.test_complex = test_complex
