@@ -177,14 +177,18 @@ class QwtPlotImage(QwtPlotMappedItem):
         if xScale:
 #           self.xMap = QwtDiMap(0, shape[0], xScale[0], xScale[1])
             self.xMap = QwtDiMap(0, shape[0]-1, xScale[0], xScale[1])
-            self.plot.setAxisScale(QwtPlot.xBottom, *xScale)
+#           self.plot.setAxisScale(QwtPlot.xBottom, *xScale)
+            temp_scale = (xScale[0],xScale[1])
+            self.plot.setAxisScale(QwtPlot.xBottom, *temp_scale)
         else:
             self.xMap = QwtDiMap(0, shape[0], 0, shape[0] )
             self.plot.setAxisScale(QwtPlot.xBottom, 0, shape[0])
         if yScale:
 #           self.yMap = QwtDiMap(0, shape[1], yScale[0], yScale[1])
             self.yMap = QwtDiMap(0, shape[1]-1, yScale[0], yScale[1])
-            self.plot.setAxisScale(QwtPlot.yLeft, *yScale)
+#           self.plot.setAxisScale(QwtPlot.yLeft, *yScale)
+            temp_scale = (yScale[0],yScale[1])
+            self.plot.setAxisScale(QwtPlot.yLeft, *temp_scale)
         else:
             self.yMap = QwtDiMap(0, shape[1], 0, shape[1])
             self.plot.setAxisScale(QwtPlot.yLeft, 0, shape[1])
