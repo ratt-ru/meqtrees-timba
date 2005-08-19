@@ -8,7 +8,7 @@ Settings.forest_state.cache_policy = 100;
 # Make sure our solver root node is not cleaned up
 Settings.orphans_are_roots = True;
 
-def define_forest (ns):
+def _define_forest (ns):
   """define_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, this method is automatically called to
   define the forest. The 'ns' argument is a NodeScope object in which
@@ -23,7 +23,7 @@ def define_forest (ns):
       ),
     );
 
-def test_forest (mqs,parent):
+def _test_forest (mqs,parent):
   """test_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, and the "test" option is set to true,
   this method is automatically called after define_forest() to run a 
@@ -42,11 +42,11 @@ def test_forest (mqs,parent):
   a = mqs.meq('Node.Execute',record(name='solver',request=request),wait=True);
   print a;
 
-def tdl_job_test1 (mqs,parent):
+def _tdl_job_test1 (mqs,parent):
   """this is a test job. You can see it appear in the menu automatically."""
   pass;
 
-def tdl_job_test2 (mqs,parent):
+def _tdl_job_test2 (mqs,parent):
   """this is another test job. You can see it appear in the menu automatically."""
   pass;
 

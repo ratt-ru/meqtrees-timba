@@ -125,10 +125,10 @@ class meqserver (app_proxy):
     rec = record({'name':name,'nodeindex':nodeindex,'class':classname,'children':children});
     return self.meq('Get.Node.List',rec,wait=True);
   
-  def execute (self,node,req):
+  def execute (self,node,req,wait=True):
     rec = self.makenodespec(node);
     rec.request = req;
-    return self.meq('Node.Execute',rec,wait=True);
+    return self.meq('Node.Execute',rec,wait=wait);
   
   def _result_handler (self,msg):
     try:

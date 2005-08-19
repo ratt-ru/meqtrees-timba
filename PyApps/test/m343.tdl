@@ -86,7 +86,7 @@ def make_correction_tree (ns,st1,st2,visnode,src0):
     Meq.MatrixInvert22(Meq.ConjTranspose(ns.G(st1)))
   );
 
-def define_forest (ns):
+def _define_forest (ns):
   """define_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, this method is automatically called to
   define the forest. The 'ns' argument is a NodeScope object in which

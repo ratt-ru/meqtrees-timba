@@ -576,11 +576,24 @@ class TDLEditor (QFrame,PersistentCurrier):
     _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
     _dprint(1,'TDL run imported',_tdlmodlist);
     mqs = meqds.mqs();
+    # find define_forest func
     # module here, call functions
     errlist = [];
     try:
+      define_func = getattr(_tdlmod,'_define_forest',None);
+      if not callable(define_func):
+        define_func = getattr(_tdlmod,'define_forest',None);
+        if not callable(define_func):
+          self.show_error_list([TDL.TDLError("No _define_forest() function found",filename,0)]);
+          return None;
+        res = QMessageBox.warning(self,"Deprecated method",
+          """Your script contains a define_forest() method. This is deprecated
+          and will be disabled in the future. Please rename it to 
+          _define_forest(). 
+          """,
+          QMessageBox.Ok);
       ns = TDL.NodeScope();
-      _tdlmod.define_forest(ns);
+      define_func(ns);
       ns.Resolve();
     except TDL.CumulativeError,value:
     # this exception gives us an error list directly
@@ -632,10 +645,19 @@ class TDLEditor (QFrame,PersistentCurrier):
       joblist = []; 
       # try to build it from implicit function names
       for (name,func) in _tdlmod.__dict__.iteritems():
-        if name.startswith("tdl_job_") and callable(func):
+        if name.startswith("_tdl_job_") and callable(func):
           joblist.append(func);
     # does the script define a testing function?
-    testfunc = getattr(_tdlmod,'test_forest',None);
+    testfunc = getattr(_tdlmod,'_test_forest',None);
+    if not callable(testfunc):
+      testfunc = getattr(_tdlmod,'test_forest',None);
+      if callable(testfunc):
+        res = QMessageBox.warning(self,"Deprecated method",
+          """Your script contains a test_forest() method. This is deprecated
+          and will be disabled in the future. Please rename it to 
+          _test_forest(). 
+          """,
+          QMessageBox.Ok);
     if callable(testfunc):
       joblist.append(testfunc);
     
@@ -644,8 +666,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     if joblist:
       self._tb_jobs.show();
       for func in joblist:
-        name = re.sub("^tdl_job_","",func.__name__);
-        name = name.replace('_',' ' );
+        name = re.sub("^_tdl_job_","",func.__name__);
+        name = name.replace('_',' ');
         qa = QAction(pixmaps.gear.iconset(),name,0,self._jobmenu);
         qa.setToolTip(func.__doc__);
         qa._call = curry(func,mqs,self);

@@ -7,7 +7,7 @@ import tdl_error1
 # record is passed to Set.Forest.State. 
 Settings.forest_state.cache_policy = 100;
 
-def define_forest (ns):
+def _define_forest (ns):
   """
   This script is deliberately full of errors. We use it to test TDL error
   reporting.

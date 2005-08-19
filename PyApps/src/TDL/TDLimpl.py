@@ -356,7 +356,7 @@ class _NodeStub (object):
   def initrec (self):
     return self._initrec;
   def _qualify (self,quals,kwquals,merge):
-    """Helper method for operator (), qadd() and qxfer() below.
+    """Helper method for operator (), qadd() and qmerge() below.
     Creates a node based on this one, with additional qualifiers. If merge=True,
     merges the quals lists (i.e. skips non-unique items), otherwise appends lists.
     Returns a _NodeStub.""";
