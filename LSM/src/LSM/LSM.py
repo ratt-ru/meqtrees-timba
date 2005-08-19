@@ -127,9 +127,9 @@ class SpH:
  # the name of the p-unit is given by 'pname'
  def updateValues(self,pname):
   from Timba.Meq import meq
-  if (self.lsm!=None) and (self.lsm.obswin!=None) and (self.lsm.mqs!=None):
+  if (self.lsm!=None) and (self.lsm.cells!=None) and (self.lsm.mqs!=None):
    # create request object
-   my_request = meq.request(cells=self.lsm.obswin, eval_mode=0)
+   my_request = meq.request(cells=self.lsm.cells, eval_mode=0)
    my_args=meq.record(name=pname, request=my_request)
    my_result=self.lsm.mqs.meq('Node.execute', my_args,wait=True)
    #print my_result
@@ -141,20 +141,20 @@ class SpH:
    self.setU(my_result.result.vellsets[4])
    self.setV(my_result.result.vellsets[5])
   else:
-   print "Cannot update values: (cell,mqs)",self.lsm.obswin,self.lsm.mqs
+   print "Cannot update values: (cell,mqs)",self.lsm.cells,self.lsm.mqs
 
  # returns the value corresponding to the given (t,f) pair
  # and the quantity 'A','I','Q','U','V','RA','Dec'
  def getValue(self,type,freq_index,time_index):
   # range error check
-  if (self.lsm.obswin.segments.freq.start_index > freq_index) or\
-    (self.lsm.obswin.segments.freq.end_index < freq_index):
+  if (self.lsm.cells.segments.freq.start_index > freq_index) or\
+    (self.lsm.cells.segments.freq.end_index < freq_index):
     print "Index error, Frequency %d" %freq_index
-    freq_index=self.lsm.obswin.segments.freq.start_index
-  if (self.lsm.obswin.segments.time.start_index > time_index) or\
-    (self.lsm.obswin.segments.time.end_index < time_index):
+    freq_index=self.lsm.cells.segments.freq.start_index
+  if (self.lsm.cells.segments.time.start_index > time_index) or\
+    (self.lsm.cells.segments.time.end_index < time_index):
     print "Index error, Time %d" %time_index
-    time_index=self.lsm.obswin.segments.time.start_index
+    time_index=self.lsm.cells.segments.time.start_index
 
   if type=='A' or type=='I':
    # expect a vellset
@@ -386,7 +386,7 @@ class LSM:
   self.p_table={}
   self.mqs=None
   # the ObsWin, just a cell right now
-  self.obswin=None
+  self.cells=None
 
   self.__barr=[] 
 
@@ -509,19 +509,19 @@ class LSM:
 
  # set the Cells for the request
  def setCells(self,cells):
-  self.obswin=cells
+  self.cells=cells
 
  # get the range of ObsWin
  # [f0,f1,fstep,t0,t1,tstep]
  def getCellsRange(self):
   res={}
-  if self.obswin != None:
-   res['f0']=self.obswin.domain.freq[0]
-   res['f1']=self.obswin.domain.freq[1]
-   res['fstep']=self.obswin.segments.freq.end_index+1
-   res['t0']=self.obswin.domain.time[0]
-   res['t1']=self.obswin.domain.time[1]
-   res['tstep']=self.obswin.segments.time.end_index+1
+  if self.cells != None:
+   res['f0']=self.cells.domain.freq[0]
+   res['f1']=self.cells.domain.freq[1]
+   res['fstep']=self.cells.segments.freq.end_index+1
+   res['t0']=self.cells.domain.time[0]
+   res['t1']=self.cells.domain.time[1]
+   res['tstep']=self.cells.segments.time.end_index+1
 
   return res
 
@@ -618,19 +618,19 @@ class LSM:
 
  # return current frequency and time
  def getCurrentFreqTime(self,freq_index,time_index):
-  if self.obswin==None:
+  if self.cells==None:
    return [0,0]
-  if (self.obswin.segments.freq.start_index > freq_index) or\
-    (self.obswin.segments.freq.end_index < freq_index):
+  if (self.cells.segments.freq.start_index > freq_index) or\
+    (self.cells.segments.freq.end_index < freq_index):
     print "get Curr Index error, Frequency %d" %freq_index
-    freq_index=self.obswin.segments.freq.start_index
-  if (self.obswin.segments.time.start_index > time_index) or\
-    (self.obswin.segments.time.end_index < time_index):
+    freq_index=self.cells.segments.freq.start_index
+  if (self.cells.segments.time.start_index > time_index) or\
+    (self.cells.segments.time.end_index < time_index):
     print "get Curr Index error, Time %d" %time_index
-    time_index=self.obswin.segments.time.start_index
+    time_index=self.cells.segments.time.start_index
 
-  f=self.obswin.grid.freq[freq_index]
-  t=self.obswin.grid.time[time_index]
+  f=self.cells.grid.freq[freq_index]
+  t=self.cells.grid.time[time_index]
   return [f,t]
 
 
@@ -661,7 +661,7 @@ class LSM:
     g.p_table[sname]=punit.clone()
     g.p_table[sname].setLSM(g)
    g.mqs=None
-   g.obswin=None
+   g.cells=None
 
    p.dump(g)
    f.close()

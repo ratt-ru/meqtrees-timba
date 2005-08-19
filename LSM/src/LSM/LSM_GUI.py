@@ -473,13 +473,13 @@ class LSMWindow(QMainWindow):
      win.show()
 
     def viewNextMode(self):
-      win=FTDialog(self,f0=self.lsm.obswin.grid.freq[self.lsm.obswin.segments.freq.start_index],\
-       f1=self.lsm.obswin.grid.freq[self.lsm.obswin.segments.freq.end_index],\
-       fticks=self.lsm.obswin.segments.freq.end_index,\
+      win=FTDialog(self,f0=self.lsm.cells.grid.freq[self.lsm.cells.segments.freq.start_index],\
+       f1=self.lsm.cells.grid.freq[self.lsm.cells.segments.freq.end_index],\
+       fticks=self.lsm.cells.segments.freq.end_index,\
         f=self.cview.default_freq_index,\
-        t0=self.lsm.obswin.grid.time[self.lsm.obswin.segments.time.start_index],\
-       t1=self.lsm.obswin.grid.time[self.lsm.obswin.segments.time.end_index],\
-       tticks=self.lsm.obswin.segments.time.end_index,\
+        t0=self.lsm.cells.grid.time[self.lsm.cells.segments.time.start_index],\
+       t1=self.lsm.cells.grid.time[self.lsm.cells.segments.time.end_index],\
+       tticks=self.lsm.cells.segments.time.end_index,\
         t=self.cview.default_time_index)
       win.show()
 

@@ -8,7 +8,6 @@ from Timba.LSM.LSM import *
 from Timba.TDL import Settings
 from Timba.LSM.LSM_GUI import *
 # Meqtree stuff
-#from Timba.Contrib.JEN.JEN_lsm import *
 from Timba.Contrib.JEN.JEN_lsm  import *
 import re
 import math
