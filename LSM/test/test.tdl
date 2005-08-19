@@ -20,7 +20,7 @@ Settings.forest_state.cache_policy = 0
 lsm=LSM()
 
 ########################################################
-def define_forest(ns):
+def _define_forest(ns):
  global lsm
  # please change this according to your setup
  infile=open('/home/sarod/LOFAR/Timba/LSM/test/3C343_nvss.txt','r')
@@ -86,7 +86,7 @@ def define_forest(ns):
 
 ########################################################################
 
-def test_forest(mqs,parent):
+def _test_forest(mqs,parent):
  global lsm
  #display LSM within MeqBrowser
  #l.display()
