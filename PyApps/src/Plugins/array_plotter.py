@@ -3,6 +3,8 @@
 # modules that are imported
 from Timba.dmi import *
 from Timba import utils
+from Timba.Meq import meqds
+from Timba.Meq.meqds import mqs
 from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI import widgets
 from Timba.GUI.browsers import *
@@ -35,15 +37,16 @@ class ArrayPlotter(GriddedPlugin):
 # now create plotter and colorbar
 
 # first figure out the actual rank of the array we are plotting
-    self.rank = 0
+    self.actual_rank = 0
     self.array_shape = dataitem.data.shape
+    self.array_rank = dataitem.data.rank
     for i in range(len(self.array_shape)):
       if self.array_shape[i] > 1:
-        self.rank = self.rank + 1
+        self.actual_rank = self.actual_rank + 1
     self.layout_parent = None
     self.array_selector = None
     self.layout = None
-    if self.rank  > 1:
+    if self.actual_rank  > 1:
       self.layout_parent = QWidget(self.wparent())
       self.layout = QGridLayout(self.layout_parent)
       self.colorbar =  QwtColorBar(parent=self.layout_parent)
@@ -58,8 +61,10 @@ class ArrayPlotter(GriddedPlugin):
       QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar.showDisplay)
       QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._plotter.setImageRange)
 
-      if self.rank > 2:
+      if self.array_rank > 2:
+        self._plotter.set_toggle_array_rank(self.array_rank)
         self.set_ND_controls(dataitem.data)
+        self.set_data_range(dataitem.data)
 
     else:
       self._plotter = QwtImageDisplay('spectra',parent=self.wparent())
@@ -87,12 +92,12 @@ class ArrayPlotter(GriddedPlugin):
         handles new incoming data """
 
 # pass array to the plotter
-    if self.rank > 2:
+    if self.array_rank > 2:
       self.data = dataitem.data
       if self.array_selector is None:
         self.array_selector = []
-        for i in range(self.rank):
-          if i < self.rank-2:
+        for i in range(self.array_rank):
+          if i < self.array_rank-2 or self.array_shape[i] == 1:
             self.array_selector.append(0)
           else:
             axis_slice = slice(0,self.array_shape[i])
@@ -111,10 +116,16 @@ class ArrayPlotter(GriddedPlugin):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numarray of dimension 3 or greater """
 
-    self.ND_Controls = ND_Controller(self.array_shape, self.layout_parent) 
+    axis_record = None
+    self.ND_Controls = ND_Controller(self.array_shape, axis_record, self.layout_parent) 
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
-    self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,1,Qt.AlignCenter)
+    QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay)
+
+    self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,1)
+
+  def set_data_range(self, data_array):
+    """ figure out global minima and maxima of array to be plotted """
 
 # now figure out global min and max of the complete ND array
     if data_array.type() == Complex32 or data_array.type() == Complex64:
@@ -148,7 +159,7 @@ class ArrayPlotter(GriddedPlugin):
 
   def setSelectedAxes (self,first_axis, second_axis):
     self.array_selector = []
-    for i in range(self.rank):
+    for i in range(self.array_rank):
       if i == first_axis: 
         axis_slice = slice(0,self.array_shape[first_axis])
         self.array_selector.append(axis_slice)
