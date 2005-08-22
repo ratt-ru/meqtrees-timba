@@ -16,18 +16,14 @@ class LCDRange(QWidget):
         self.lcd = QLCDNumber(3, self, "lcd")
         self.lcd.setSegmentStyle(QLCDNumber.Filled)
         self.lcd.setPaletteBackgroundColor(Qt.red)
-        self.lcd.setMaximumWidth(200)
-        self.lcd.setMaximumHeight(50)
+        self.lcd.setMaximumHeight(40)
 
         self.slider = QSlider(Qt.Horizontal, self, "slider")
         self.slider.setTickmarks(QSlider.Below)
         self.slider.setTickInterval(10)
         self.slider.setRange(0, 99)
         self.slider.setValue(0)
-        self.slider.setMaximumWidth(200)
 
-        self.connect(self.slider, SIGNAL("valueChanged(int)"), self.lcd, SLOT("display(int)"))
-        self.connect(self.slider, SIGNAL("valueChanged(int)"), self, PYSIGNAL("valueChanged(int)"))
         self.connect(self.slider, SIGNAL("valueChanged(int)"), self.update)
 
 
@@ -59,6 +55,7 @@ class LCDRange(QWidget):
         self.label.setText(s)
 
     def update(self, slider_value):
+        self.lcd.display(slider_value)
         self.emit(PYSIGNAL("sliderValueChanged"), (self.lcd_number, slider_value))
         
         return self.slider.value()
