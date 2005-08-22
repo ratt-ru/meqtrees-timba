@@ -63,7 +63,7 @@ class ArrayPlotter(GriddedPlugin):
 
       if self.array_rank > 2:
         self._plotter.set_toggle_array_rank(self.array_rank)
-        self.set_ND_controls(dataitem.data)
+        self.set_ND_controls()
         self.set_data_range(dataitem.data)
 
     else:
@@ -112,12 +112,12 @@ class ArrayPlotter(GriddedPlugin):
     self.flash_refresh();
 
 # will need more set up parameters eventually
-  def set_ND_controls (self, data_array):
+  def set_ND_controls (self):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numarray of dimension 3 or greater """
 
-    axis_record = None
-    self.ND_Controls = ND_Controller(self.array_shape, axis_record, self.layout_parent) 
+    labels = None
+    self.ND_Controls = ND_Controller(self.array_shape, labels, self.layout_parent) 
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
     QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay)
