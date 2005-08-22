@@ -346,9 +346,23 @@ class QwtImageDisplay(QwtPlot):
     def defineData(self):
        if self._vells_plot:
          if self.flip_axes:
-           self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.second_axis_parm], self.vells_axis_parms[self.first_axis_parm])
+           if self.complex_type:
+             temp_x_axis_parms = self.vells_axis_parms[self.second_axis_parm]
+             begin = temp_x_axis_parms[0]
+             end = begin + 2.0 * self.delta_vells 
+             x_range = (begin, end)
+             self.plotImage.setData(self.raw_image, x_range, self.vells_axis_parms[self.first_axis_parm])
+           else:
+             self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.second_axis_parm], self.vells_axis_parms[self.first_axis_parm])
          else:
-           self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.first_axis_parm], self.vells_axis_parms[self.second_axis_parm])
+           if self.complex_type:
+             temp_x_axis_parms = self.vells_axis_parms[self.first_axis_parm]
+             begin = temp_x_axis_parms[0]
+             end = begin + 2.0 * self.delta_vells 
+             x_range = (begin, end)
+             self.plotImage.setData(self.raw_image, x_range, self.vells_axis_parms[self.second_axis_parm])
+           else:
+             self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.first_axis_parm], self.vells_axis_parms[self.second_axis_parm])
        else:
          self.plotImage.setData(self.raw_image)
 
@@ -568,10 +582,6 @@ class QwtImageDisplay(QwtPlot):
         complex_type = False;
 # test if we have a numarray
         try:
-          if self._vells_rec.vellsets[plane].value.type() == Complex32:
-            complex_type = True;
-          if self._vells_rec.vellsets[plane].value.type() == Complex64:
-            complex_type = True;
           self._value_array = self._vells_rec.vellsets[plane].value
           self.array_rank = self._value_array.rank
           self.array_shape = self._value_array.shape
@@ -586,59 +596,25 @@ class QwtImageDisplay(QwtPlot):
           self._value_array = resize(temp_array,self._shape)
           self.array_rank = self._value_array.rank
           self.array_shape = self._value_array.shape
-          if self._value_array.type() == Complex32:
-            complex_type = True;
-          if self._value_array.type() == Complex64:
-            complex_type = True;
 
         key = " value "
-        if complex_type:
-          _dprint(3,'handling complex array')
-#extract real component
-          self._value_real_array = self._value_array.getreal()
-          self._z_real_min = self._value_real_array.min()
-          self._z_real_max = self._value_real_array.max()
-#extract imaginary component
-          self._value_imag_array = self._value_array.getimag()
-          self._z_imag_min = self._value_imag_array.min()
-          self._z_imag_max = self._value_imag_array.max()
-          self._label = "plane " + str(plane) + key 
-          if self._solver_flag:
-            self.array_plot(self._label, self._value_array, False)
-          else:
-            self.set_data_range(self._value_array)
-            self.plot_vells_array(self._value_array)
+        self._label = "plane " + str(plane) + key 
+        if self._solver_flag:
+          self.array_plot(self._label, self._value_array, False)
         else:
-#we have a real array
-          _dprint(3,'handling real array')
-          self._label = "plane " + str(plane) + key 
-          self._z_real_min = self._value_array.min()
-          self._z_real_max = self._value_array.max()
-          if self._solver_flag:
-            self.array_plot(self._label, self._value_array, False)
-          else:
-            self.set_data_range(self._value_array)
-            self.plot_vells_array(self._value_array)
+          self.set_data_range(self._value_array)
+          self.plot_vells_array(self._value_array)
       else:
 # handle "perturbed_value"
         if self._vells_rec.vellsets[plane].has_key("perturbed_value"):
 # test if we have a numarray
-          complex_type = False;
           perturbed_array_diff = None
           self._active_perturb = perturb
           try:
-            if self._vells_rec.vellsets[plane].perturbed_value[perturb].type() == Complex32:
-              complex_type = True;
-            if self._vells_rec.vellsets[plane].perturbed_value[perturb].type() == Complex64:
-              complex_type = True;
             perturbed_array_diff = self._vells_rec.vellsets[plane].perturbed_value[perturb]
           except:
             temp_array = asarray(self._vells_rec.vellsets[plane].perturbed_value[perturb])
             perturbed_array_diff = resize(temp_array,self._shape)
-            if perturbed_array_diff.type() == Complex32:
-              complex_type = True;
-            if perturbed_array_diff.type() == Complex64:
-              complex_type = True;
 
           key = " perturbed_value "
           self._label =  "plane " + str(plane) + key + str(perturb)
@@ -904,6 +880,8 @@ class QwtImageDisplay(QwtPlot):
 #              self.setAxisOptions(QwtPlot.xTop,QwtAutoScale.Inverted)
               if self._vells_plot:
                 delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
+                if self.complex_type:
+                  delta_vells = 2.0 * delta_vells
                 x_step = delta_vells / shape[0] 
                 start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
                 for i in range(shape[0]):
@@ -1282,11 +1260,6 @@ class QwtImageDisplay(QwtPlot):
       if self._vells_rec.has_key("solver_result"):
         if self._vells_rec.solver_result.has_key("incremental_solutions"):
           self._solver_flag = True
-          complex_type = False;
-          if self._vells_rec.solver_result.incremental_solutions.type() == Complex32:
-            complex_type = True;
-          if self._vells_rec.solver_result.incremental_solutions.type() == Complex64:
-            complex_type = True;
           self._value_array = self._vells_rec.solver_result.incremental_solutions
           if self._vells_rec.solver_result.has_key("metrics"):
             metrics = self._vells_rec.solver_result.metrics
@@ -1309,8 +1282,6 @@ class QwtImageDisplay(QwtPlot):
       if self._vells_rec.has_key("vellsets") and not self._solver_flag:
         self._vells_plot = True
         self.calc_vells_ranges()
-#       if self.context_menu_done is None:
-#         self. initVellsContextMenu()
         _dprint(3, 'handling vellsets')
 
 
@@ -1341,7 +1312,6 @@ class QwtImageDisplay(QwtPlot):
 
 	
 # plot the appropriate plane / perturbed value
-        complex_type = False;
         if not self._active_perturb is None:
           self._value_array = self._vells_rec.vellsets[self._active_plane].perturbed_value[self._active_perturb]
         else:
@@ -1349,10 +1319,6 @@ class QwtImageDisplay(QwtPlot):
             self._value_array = self._vells_rec.vellsets[self._active_plane].value
 # test if we have a numarray
         try:
-            if self._value_array.type() == Complex32:
-              complex_type = True;
-            if self._value_array.type() == Complex64:
-              complex_type = True;
             _dprint(3, 'self._value_array ', self._value_array)
             array_shape = self._value_array.shape
             if len(array_shape) == 1 and array_shape[0] == 1:
@@ -1375,10 +1341,6 @@ class QwtImageDisplay(QwtPlot):
                 shape_list.append(dimension)
               self._shape = tuple(shape_list)
             self._value_array = resize(temp_array,self._shape)
-            if self._value_array.type() == Complex32:
-              complex_type = True;
-            if self._value_array.type() == Complex64:
-              complex_type = True;
 
         key = ""
         if self._active_perturb is None:
@@ -1557,6 +1519,7 @@ class QwtImageDisplay(QwtPlot):
         complex_type = True;
       if plot_array.type() == Complex64:
         complex_type = True;
+      self.complex_type = complex_type
 
 # test if we have a 2-D array
       if self.is_vector == False:
@@ -1606,10 +1569,6 @@ class QwtImageDisplay(QwtPlot):
             delta_vells = self.vells_axis_parms[my_x_parm][1] - self.vells_axis_parms[my_x_parm][0]
             self.delta_vells = delta_vells
             self.first_axis_inc = delta_vells / plot_array.shape[0] 
-            begin = self.vells_axis_parms[my_x_parm][0]
-	    end = self.vells_axis_parms[my_x_parm][0] + 2 * delta_vells
-            title = self.vells_axis_parms[my_x_parm][2]
-	    self.vells_axis_parms[my_x_parm] = (begin, end, title)
             delta_vells = self.vells_axis_parms[my_y_parm][1] - self.vells_axis_parms[my_y_parm][0]
             self.second_axis_inc = delta_vells / plot_array.shape[1] 
 	    if self._x_axis is None:
