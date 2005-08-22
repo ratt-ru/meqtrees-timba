@@ -1,6 +1,8 @@
-# ../Timba/PyApps/test/JEN_lsm.py:  
+# ../Timba/WH/contrib/JEN/JEN_lsm.py:  
 #   Temporary JEN version of Local Sky Model (LSM) object 
 
+print '\n',100*'*'
+print '** JEN_lsm.py    h30jul/h08aug2005'
 
 # standard preamble
 from Timba.TDL import *
@@ -258,7 +260,9 @@ if __name__ == '__main__':
     name = 'QU2'
     name = '3c147'
     name = 'RMtest'
-    lsm_NEWSTAR_source (ns, name=name, trace=1)
+    # NB: subscope can only be used when cumulative (simul!)
+    nsub = ns.Subscope('LSM', q=name)
+    lsm_NEWSTAR_source (nsub, name=name, trace=1)
 
   if 0:
     # print dir(meq)

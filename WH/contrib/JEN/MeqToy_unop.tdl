@@ -47,7 +47,7 @@ def test_forest (mqs, parent):
   cells = meq.cells(meq.domain(0,1,0,1),num_freq=6,num_time=4);
   request = meq.request(cells,eval_mode=0);
   mqs.meq('Node.Execute',record(name='root',request=request));
-  mqs.meq('Save.Forest',record(file_name='MeqToy_unop.forest'));
+  mqs.meq('Save.Forest',record(file_name='MeqToy_unop.meqforest'));
 
 
 

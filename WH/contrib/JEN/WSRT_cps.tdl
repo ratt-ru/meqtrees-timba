@@ -1,5 +1,8 @@
 # ../Timba/PyApps/test/WSRT_cps.tdl:  
-#   MeqForests for WSRT Central Point Source reduction
+#   MeqForests for WSRT Central Point Source (cps) reduction
+
+print '\n',100*'*'
+print '** WSRT_cps.tdl    h30jul/d17aug2005'
 
 # standard preamble
 from Timba.TDL import *
@@ -31,13 +34,16 @@ JEN_forest_state_init('WSRT_cps')
 # The main routine:
 #================================================================================
 
-def define_forest (ns):
-  simul = 1                                # if T, use simulated uv-data
-  trace = 1                                # if T, trace execution
+def _define_forest (ns):
+  simul = True                                # if True, use simulated uv-data
+  flag = False                                   # if True, add noise and flag
+  trace = True                                # if True, trace execution
+
   stations = range(0,5)
   ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ]
-  print 'stations =',stations
-  print 'ifrs =',ifrs
+
+  punit = 'QU'
+  punit = 'unpol'
 
   # Default values for instrumental errors
   phase = 0
@@ -46,14 +52,20 @@ def define_forest (ns):
   dell = 0
 
   # Get a real or simulated cohset (for all ifrs):
-  if simul:
-    nsim = ns.Subscope('_')                         # prepend simulated nodes with _::
+  if not simul:
+    cohset = coh_spigots (ns, ifrs=ifrs, trace=trace)
+
+  else:
+    nsim = ns.Subscope('_')                               # prepend simulated nodes with _::
+    punit_simul = punit                                         # simulated source
  
-    punit = 'QUV'                                            # simulated source
-    JJ = []                                                         # list of 2x2 Jones matrices
-    # phase = array([[0,-0.1],[0.1,0]])  
-    # ampl = array([[1,-0.1],[0.1,0]])  
-    JJ.append (WSRT_GJones (nsim, stations=stations, punit=punit, phase=phase, ampl=ampl, solvable=0, trace=trace))
+    JJ = []                                                                # list of 2x2 Jones matrices
+    phase = array([[0,-0.1],[0.1,0]])  
+    ampl = array([[1,-0.1],[0.1,0]])  
+    JJ.append (WSRT_GJones (nsim, stations=stations, punit=punit_simul, 
+                       phase=phase, ampl=ampl, 
+                       stddev_phase=0.2, stddev_ampl=0.3,
+                       solvable=0, trace=trace))
     dang = array([[0,0.01],[0.01,0]])  
     dell = array([[0,0.01],[0.01,0]])  
     # JJ.append (WSRT_DJones (nsim, stations=stations, punit=punit, dang=dang, dell=dell, solvable=0, trace=trace))
@@ -61,17 +73,18 @@ def define_forest (ns):
     JJ_simul = WSRT_JJones (nsim, JJ)
     cohset = coh_predict (nsim, source=punit, ifrs=ifrs, corrupt=JJ_simul, trace=trace)
     JJ_predict = JJ_simul                                 # used in coh_correct below
-  else:
-    cohset = coh_spigots (ns, ifrs=ifrs, trace=trace)
 
   # Operations on the cohset:
-  cohset = coh_visualize (ns, cohset, scope='rawdata', trace=trace)
+  if flag: cohset = coh_addnoise (ns, cohset, stddev=1, unop='Exp', trace=trace)
+  cohset = coh_visualise(ns, cohset, scope='rawdata', errorbars=False, trace=trace)
+  if flag: cohset = coh_insert_flagger (ns, cohset, scope='rawdata', sigma=1, unop='Abs', visu=True, trace=trace)
+
   
   # Optional: insert a solver:
   if 1:
-    JJ = []                                                         # list of 2x2 Jones matrices
-    # phase = array([[0,0.1],[0.1,0]])  
-    # ampl = array([[1,0.1],[0.1,0]])  
+    JJ = []                                               # list of 2x2 Jones matrices
+    # phase = array([[0,-0.1],[0.1,0]])  
+    # ampl = array([[1,-0.1],[0.1,0]])  
     JJ.append (WSRT_GJones (ns, stations=stations, punit=punit, phase=phase, ampl=ampl, trace=trace))
     dang = array([[0,0.01],[0.01,0]])  
     dell = array([[0,0.01],[0.01,0]])  
@@ -79,12 +92,17 @@ def define_forest (ns):
     JJ_predict = JJ[0]
     JJ_predict = WSRT_JJones (ns, JJ)
     predicted = coh_predict (ns, source=punit, ifrs=ifrs, corrupt=JJ_predict, trace=1)
-    coh_solver (ns, name='GJones', measured=cohset, predicted=predicted, trace=1) 
+
+    pgroup = 'Gphase'
+    pgroup = 'Gampl'
+    pgroup = 'GX'
+    pgroup = 'GJones'
+    coh_solver (ns, name=pgroup, measured=cohset, predicted=predicted, num_iter=10, trace=1) 
 
   # Optional: correct
   if 1: 
     cohset = coh_correct (ns, cohset, joneset=JJ_predict, trace=trace)
-    cohset = coh_visualize (ns, cohset, scope='corrected', trace=trace)
+    cohset = coh_visualise (ns, cohset, scope='corrected', trace=trace)
 
   # Finished:
   if simul:
@@ -92,12 +110,15 @@ def define_forest (ns):
   else:
     print
 
+  # Display the accumulated forest history (in forest state record)
+  JEN_forest_history(show=True)
+
 
 #================================================================================
 # Test routine:
 #================================================================================
 
-def test_forest (mqs, parent):
+def _test_forest (mqs, parent):
   """test_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, and the "test" option is set to true,
   this method is automatically called after define_forest() to run a 
