@@ -476,6 +476,7 @@ int Polc::makeSolvable (int spidIndex){
 
   if( ncoeff()<=4) return Funklet::makeSolvable(spidIndex) ;
   const LoShape shape =  getCoeffShape ();
+  if(shape.size()<=1) return Funklet::makeSolvable(spidIndex) ; //only 1 dimension
   int NX=shape[0];
   int NY=shape[1];
   int maxRank = std::max(NX,NY)-1;
@@ -483,7 +484,7 @@ int Polc::makeSolvable (int spidIndex){
   double* coeff = static_cast<double*>(coeffWr().getDataPtr());
   std::vector<bool> mask(NX*NY);
 
-  for(int xi=0;xi<NX;xi++)
+  for(int xi=0;xi<NX;xi++){
     for(int yi=0;yi<NY;yi++)
       {
 	if(xi+yi > maxRank){
@@ -493,6 +494,7 @@ int Polc::makeSolvable (int spidIndex){
 	else mask[xi*NY+yi]=true;
 	
       }
+  }
   return Funklet::makeSolvable(spidIndex,mask);
 
 }
