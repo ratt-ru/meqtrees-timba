@@ -524,11 +524,11 @@ class ResultPlotter(GriddedPlugin):
 
     _dprint(3, 'exiting set_data')
 
-  def set_ND_controls (self, shape, labels):
+  def set_ND_controls (self, shape, labels, parms):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numarray of dimension 3 or greater """
 
-    self.ND_Controls = ND_Controller(shape, labels, self.layout_parent)
+    self.ND_Controls = ND_Controller(shape, labels, parms, self.layout_parent)
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self._visu_plotter.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self._visu_plotter.setSelectedAxes)
     QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay) 
