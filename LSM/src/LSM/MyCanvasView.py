@@ -249,12 +249,20 @@ class MyCanvasView(QCanvasView):
     self.zwindow.hide()
     ilist = self.canvas().collisions(self.zwindow.getRect()) #QCanvasItemList ilist
     tmp_str=""
+    # create a list of point source names,
+    # if a patch is created
+    psource_list=[]
     for each_item in ilist:
      if each_item.rtti()==POINT_SOURCE_RTTI:
       tmp_str+=" "+each_item.name+"<br>"
+      psource_list.append(each_item.name)
     dialog=SDialog(self)
     dialog.setInfoText(tmp_str)
     dialog.show()
+
+    # create a patch
+    self.lsm.createPatch(psource_list) 
+
     self.canvas().update()
    return
 

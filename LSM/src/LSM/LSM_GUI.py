@@ -223,25 +223,29 @@ class LSMWindow(QMainWindow):
         row=0
         for sname in self.lsm.p_table.keys():
          punit=self.lsm.p_table[sname]
-         self.table2.setText(row,0,QString(punit.name))
-         self.table2.setText(row,1,QString(str(punit.getType())))
-         self.table2.setText(row,2,QString(str(punit.getSources())))
-         self.table2.setText(row,3,QString(str(punit.getCat())))
-         self.table2.setText(row,4,QString(str(punit.getBrightness())))
-         self.table2.setText(row,5,QString(str(punit.getFOVDist())))
-        # self.table2.setText(row,6,QString(str(punit.sp.getI())))
-        # self.table2.setText(row,7,QString(str(punit.sp.getQ())))
-        # self.table2.setText(row,8,QString(str(punit.sp.getU())))
-        # self.table2.setText(row,9,QString(str(punit.sp.getV())))
-        # self.table2.setText(row,10,QString(str(punit.sp.getRA())))
-        # self.table2.setText(row,11,QString(str(punit.sp.getDec())))
-         self.table2.setText(row,6,QString("MeqTree"))
-         self.table2.setText(row,7,QString("MeqTree"))
-         self.table2.setText(row,8,QString("MeqTree"))
-         self.table2.setText(row,9,QString("MeqTree"))
-         self.table2.setText(row,10,QString("MeqTree"))
-         self.table2.setText(row,11,QString("MeqTree"))
-         row+=1
+         if punit.getType()==POINT_TYPE:
+          self.table2.setText(row,0,QString(punit.name))
+          self.table2.setText(row,1,QString(str(punit.getType())))
+          self.table2.setText(row,2,QString(str(punit.getSources())))
+          self.table2.setText(row,3,QString(str(punit.getCat())))
+          self.table2.setText(row,4,QString(str(punit.getBrightness())))
+          self.table2.setText(row,5,QString(str(punit.getFOVDist())))
+         # self.table2.setText(row,6,QString(str(punit.sp.getI())))
+         # self.table2.setText(row,7,QString(str(punit.sp.getQ())))
+         # self.table2.setText(row,8,QString(str(punit.sp.getU())))
+         # self.table2.setText(row,9,QString(str(punit.sp.getV())))
+         # self.table2.setText(row,10,QString(str(punit.sp.getRA())))
+         # self.table2.setText(row,11,QString(str(punit.sp.getDec())))
+          self.table2.setText(row,6,QString("MeqTree"))
+          self.table2.setText(row,7,QString("MeqTree"))
+          self.table2.setText(row,8,QString("MeqTree"))
+          self.table2.setText(row,9,QString("MeqTree"))
+          self.table2.setText(row,10,QString("MeqTree"))
+          self.table2.setText(row,11,QString("MeqTree"))
+          row+=1
+         else:
+          print "Add patches to the table"
+
         for i in range(self.table2.numCols()):
          self.table2.adjustColumn(i)
         sourceLayout.addWidget(self.table2)

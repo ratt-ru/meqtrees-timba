@@ -5,6 +5,7 @@ import sys
 import pickle # for serialization and file io
 from Dummy import *
 
+from common_utils import *
 #############################################
 class Source:
  """Source object in source table
@@ -279,6 +280,10 @@ class PUnit:
    {Root, Cell, sI: sQ: sU: sV: RA: Dec: }
   FOV_distance: relative OBSWIN size
   lsm: LSM using this PUnit
+
+  _patch_name: if this PUnit is a point source, and belongs to a patch,
+     remember the name of the patch here. If this is a patch or a point
+     source that does not belong to a patch, this value is None.
   """
  # Constructor
  def __init__(self,name,lsm):
@@ -287,14 +292,16 @@ class PUnit:
     raise TypeError,"Name must be a string, not %s"  % type(name).__name__
   self.name=name
   self.lsm=lsm
-  self.type=0
+  self.type=POINT_TYPE
   self.s_list=[]
   self.cat=1
   self.app_brightness=1
   self.sp=SpH(self.lsm)
   self.FOV_distance=0
+
+  self._patch_name=None # FIXME: only temporary
  
- # change type (point: flag=0, patch: flag=1)
+ # change type (point: flag=POINT_TYPE, patch: flag=PATCH_TYPE)
  def setType(self,flag):
   self.type=flag
  # return type
@@ -385,9 +392,12 @@ class LSM:
   self.tmpl_table={}
   self.p_table={}
   self.mqs=None
-  # the ObsWin, just a cell right now
+  # the request domain, just a cell right now
   self.cells=None
-
+  # need to remember the forest
+  self.__ns=None
+  self.__patch_count=0
+ 
   self.__barr=[] 
 
  # Much more important method
@@ -431,12 +441,12 @@ class LSM:
   else:
    p.setBrightness(0)
 
-  if kw.has_key('type'):
-   if kw['type']=='point':
-    #FIXME: add POINT =0 PATCH=1 etc
-    p.setType(0) # 0 - point source
+  if kw.has_key('type') and \
+    kw['type']=='patch':
+    #add POINT =0 PATCH=1 etc
+    p.setType(PATCH_TYPE) # 1 - patch
   else:
-   p.setType(1) # 1 - patch
+    p.setType(POINT_TYPE) # 0 - point source
   
   # set the root of sixpack helper
   if kw.has_key('SP'):
@@ -691,7 +701,8 @@ class LSM:
   # next step: Load the MeqTrees if possible 
   if self.mqs != None:
    forest_filename=filename+'.forest'
-   self.mqs.meq('Load.Forest',meq.record(file_name=forest_filename),wait=True);
+   #self.mqs.meq('Load.Forest',meq.record(file_name=forest_filename),wait=True);
+   self.mqs.meq('Load.Forest',meq.record(file_name=forest_filename));
 
 
  # send a request to the LSM to give the p-units
@@ -718,3 +729,81 @@ class LSM:
      if self.p_table[pname].getCat()==kw['cat']:
        output.append(self.p_table[pname])
     return output
+
+
+ # from the given list of (point) source  names,
+ # create a patch, and add it to the PUnit table
+ def createPatch(self,slist):
+  # first browse the slist and 
+  # remove any sources already in a patch,
+  # also calculate min,max of (RA,Dec) to find the 
+  # phase center of the patch.
+  x_min=1e6
+  x_max=-1e6
+  y_min=1e6
+  y_max=-1e6
+  correct_slist=[]
+  for sname in slist:
+    # select only sources without a patch 
+    if (self.p_table.has_key(sname) and\
+       self.p_table[sname]._patch_name ==None):
+      correct_slist.append(sname)
+      # get min,max coords
+      ra=self.p_table[sname].sp.getRA() 
+      dec=self.p_table[sname].sp.getDec() 
+      if ra>x_max:
+       x_max=ra
+      if ra<x_min:
+       x_min=ra
+      if dec>y_max:
+       y_max=dec
+      if dec<y_min:
+       y_min=dec
+
+  print "Patch: [%f,%f]--[%f,%f]"%(x_min,y_min,x_max,y_max)
+  print correct_slist
+  
+  from Timba.Meq import meq
+  from Timba.TDL import *
+
+  print self.__ns
+  if self.__ns!=None and (len(correct_slist)> 0):
+   patch_name='patch'+str(self.__patch_count)
+   self.__patch_count=self.__patch_count+1
+   stringRA='RA0[q='+patch_name+']'
+   meq_polc=meq.polc((x_min+x_max)*0.5)
+   RA_root=self.__ns[stringRA]<<Meq.Parm(meq_polc)
+   stringDec='Dec0[q='+patch_name+']'
+   meq_polc=meq.polc((y_min+y_max)*0.5)
+   Dec_root=self.__ns[stringDec]<<Meq.Parm(meq_polc) 
+   # twopack for phase center
+   twoname='twopack['+patch_name+']'
+   tworoot=self.__ns[twoname]<<Meq.Composer(RA_root,Dec_root)
+  
+   child_list=[twoname]
+   # get the sixpack root of each source in slist
+   # and add it to patch composer
+   for sname in correct_slist:
+     child_list.append(sname)
+     self.p_table[sname]._patch_name=patch_name
+
+   patch_root=self.__ns[patch_name]<<Meq.PatchComposer(children=child_list)
+   #select_root=self.__ns['Select['+patch_name+']']<<Meq.Selector(children=patch_root,multi=True,index=[2,3,4,5])
+   #stokes_root=self.__ns['Stokes['+patch_name+']']<<Meq.Stokes(children=select_root)
+   #fft_root=self.__ns['FFT['+patch_name+']']<<Meq.FFTBrick(children=stokes_root)
+
+   self.__ns.Resolve()
+   print "Current forest has %d root nodes, of a total of %d nodes"% (len(self.__ns.RootNodes()),len(self.__ns.AllNodes()))
+
+   # try to run stuff
+   self.mqs.meq('Clear.Forest')
+   self.mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),self.__ns.AllNodes().itervalues())));
+   self.mqs.meq('Resolve.Batch',record(name=list(self.__ns.RootNodes().iterkeys())))
+
+   newp=PUnit(patch_name,self)
+   newp.setType(PATCH_TYPE)
+   self.p_table[patch_name]=newp
+ 
+ # set the current NodeScope
+ def setNodeScope(self,ns):
+  self.__ns=ns

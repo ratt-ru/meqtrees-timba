@@ -22,7 +22,9 @@ GUI_SELECT_START=4 # turn on by first mouse click, after SELECT_WINDOW
 # define constants for RTTI values of special canvasview objects
 POINT_SOURCE_RTTI=1001
 
-
+# PUnit types
+POINT_TYPE= 0
+PATCH_TYPE= 1
 
 
 ######## binary search
