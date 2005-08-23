@@ -9,20 +9,24 @@ import sys
 
 # the LCD Range class is directly adapted from the Qt/PyQt tutorial code examples
 class LCDRange(QWidget):
-    def __init__(self, lcd_number=1, parent=None, name=None):
+    def __init__(self, lcd_number=1, lcd_parms=None,parent=None, name=None):
         QWidget.__init__(self, parent, name)
 
         self.lcd_number = lcd_number
-        self.lcd = QLCDNumber(3, self, "lcd")
+        self.lcd = QLCDNumber(self, "lcd")
         self.lcd.setSegmentStyle(QLCDNumber.Filled)
         self.lcd.setPaletteBackgroundColor(Qt.red)
         self.lcd.setMaximumHeight(40)
+        self.lcd_parms=lcd_parms
 
         self.slider = QSlider(Qt.Horizontal, self, "slider")
         self.slider.setTickmarks(QSlider.Below)
         self.slider.setTickInterval(10)
         self.slider.setRange(0, 99)
-        self.slider.setValue(0)
+        self.maxVal = 99
+        self.active = False
+
+        self.resetValue()
 
         self.connect(self.slider, SIGNAL("valueChanged(int)"), self.update)
 
@@ -36,17 +40,26 @@ class LCDRange(QWidget):
     def value(self):
         return self.slider.value()
 
-    def setValue(self, value):
-        self.slider.setValue(value)
+    def resetValue(self):
+        if self.lcd_parms is None or not self.active:
+          temp_str = str(0)
+        else:
+          delta_vells = (self.lcd_parms[1] - self.lcd_parms[0]) / self.maxVal
+          index = self.lcd_parms[0] + 0.5 * delta_vells 
+          temp_str = str(index)
+        self.lcd.setNumDigits(len(temp_str))
+        self.lcd.display(temp_str)
+        self.slider.setValue(0)
 
-    def setRange(self, minVal, maxVal):
-        if minVal < 0 or minVal > maxVal:
-           raise ValueError, "LCDRange.setRange(): invalid range"
-
-        self.slider.setRange(minVal, maxVal)
+    def setRange(self, array_shape):
+        self.slider.setRange(0, array_shape-1)
+        self.maxVal = array_shape
 
     def setLCDColor(self, color):
         self.lcd.setPaletteBackgroundColor(color)
+
+    def setActive(self, active):
+        self.active = active
 
     def text(self):
         return self.label.text()
@@ -55,10 +68,22 @@ class LCDRange(QWidget):
         self.label.setText(s)
 
     def update(self, slider_value):
-        self.lcd.display(slider_value)
-        self.emit(PYSIGNAL("sliderValueChanged"), (self.lcd_number, slider_value))
+        if self.active:
+          if self.lcd_parms is None:
+            temp_str = str(slider_value)
+            self.lcd.setNumDigits(len(temp_str))
+            self.lcd.display(temp_str)
+          else:
+            delta_vells = (self.lcd_parms[1] - self.lcd_parms[0]) / self.maxVal
+            index = self.lcd_parms[0] + (slider_value + 0.5) * delta_vells 
+            temp_str = str(index)
+            self.lcd.setNumDigits(len(temp_str))
+            self.lcd.display(temp_str)
+          self.emit(PYSIGNAL("sliderValueChanged"), (self.lcd_number, slider_value))
         
-        return self.slider.value()
+          return self.slider.value()
+        else:
+          self.resetValue()
 
 
 controller_instructions = \
@@ -67,13 +92,15 @@ So, for example, if we select a 5-d array for display, the last two dimensions (
 You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their labels displayed in green and their sliders will be displayed in red and are frozen. The other axes will have live sliders shown in green - you can move the sliders to change the array indices for these dimensions.'''
 
 class ND_Controller(QWidget):
-    def __init__(self, array_shape=1, axis_record=None, parent=None, name=None):
+    def __init__(self, array_shape=1, axis_label=None, axis_parms = None, parent=None, name=None):
       QWidget.__init__(self, parent, name)
 
       QWhatsThis.add(self, controller_instructions)
 
 # create grid layout
       self.layout = QGridLayout(self)
+
+      self.axis_parms = axis_parms
 
 # create button group
       self.buttonGroup = QButtonGroup(self)
@@ -96,8 +123,8 @@ class ND_Controller(QWidget):
           self.num_selectors = self.num_selectors + 1
 # add buttons
           button_label = None
-          if not axis_record == None:
-            button_label = axis_record[i]
+          if not axis_label == None:
+            button_label = axis_label[i]
           else:
             button_label = 'axis ' + str(i)
           button = QPushButton(button_label, self);
@@ -116,14 +143,25 @@ class ND_Controller(QWidget):
 
 # add lcd ranges
           col = col + 1;
-          self.lcd_ranges.append (LCDRange(self.num_selectors, self))
+          if self.axis_parms is None:
+            parms = None
+            self.lcd_ranges.append (LCDRange(self.num_selectors, parms, self))
+          else:
+            if self.axis_parms.has_key(axis_label[i]):
+              parms = self.axis_parms[axis_label[i]]
+              self.lcd_ranges.append (LCDRange(self.num_selectors, parms, self))
+            else:
+              parms = None
+              self.lcd_ranges.append (LCDRange(self.num_selectors, parms, self))
+          self.lcd_ranges[self.num_selectors].setRange(array_shape[i])
           QObject.connect(self.lcd_ranges[self.num_selectors], PYSIGNAL("sliderValueChanged"),self.update)
           self.layout.addWidget(self.lcd_ranges[self.num_selectors], row, col);
           if self.num_selectors <= self.rank -3:
             self.lcd_ranges[self.num_selectors].setLCDColor(Qt.green)
+            self.lcd_ranges[self.num_selectors].setActive(True)
+            self.lcd_ranges[self.num_selectors].resetValue()
           else:
             self.lcd_ranges[self.num_selectors].setLCDColor(Qt.red)
-          self.lcd_ranges[self.num_selectors].setRange(0, array_shape[i]-1)
           if col >= 3:
             col = 0
             row = row + 1
@@ -160,9 +198,11 @@ class ND_Controller(QWidget):
                 else:
                   second_axis = self.button_number[i]
                 self.lcd_ranges[i].setLCDColor(Qt.red)
+                self.lcd_ranges[i].setActive(False)
               else:
                 self.lcd_ranges[i].setLCDColor(Qt.green)
-              self.lcd_ranges[i].setValue(0)
+                self.lcd_ranges[i].setActive(True)
+              self.lcd_ranges[i].resetValue()
             self.emit(PYSIGNAL("defineSelectedAxes"), (first_axis, second_axis))
         else:
           if self.active_axes.has_key(button_id):
@@ -176,6 +216,8 @@ class ND_Controller(QWidget):
           self.buttons[i].setOn(False)
           self.buttons[i].setPaletteForegroundColor(Qt.red)
           self.lcd_ranges[i].setLCDColor(Qt.red)
+          self.lcd_ranges[i].setActive(False)
+          self.lcd_ranges[i].resetValue()
         self.active_axes = {}
     # resetAxes
 
@@ -184,9 +226,9 @@ class ND_Controller(QWidget):
         if not self.buttons[lcd_number].isOn():
           self.emit(PYSIGNAL("sliderValueChanged"), (self.button_number[lcd_number], slider_value))
         else:
-          self.lcd_ranges[lcd_number].setValue(0)
+          self.lcd_ranges[lcd_number].resetValue()
       else:
-        self.lcd_ranges[lcd_number].setValue(0)
+        self.lcd_ranges[lcd_number].resetValue()
 
 # class ND_Controller
 
