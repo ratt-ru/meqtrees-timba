@@ -117,7 +117,8 @@ class ArrayPlotter(GriddedPlugin):
         displaying data for a numarray of dimension 3 or greater """
 
     labels = None
-    self.ND_Controls = ND_Controller(self.array_shape, labels, self.layout_parent) 
+    parms = None
+    self.ND_Controls = ND_Controller(self.array_shape, labels, parms, self.layout_parent) 
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
     QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay)
