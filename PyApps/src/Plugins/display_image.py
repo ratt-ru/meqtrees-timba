@@ -1234,7 +1234,10 @@ class QwtImageDisplay(QwtPlot):
           self.vells_axis_parms[current_label] = (0, 0, current_label)
         if self._vells_rec.cells.grid.has_key(current_label):
           grid_array = self._vells_rec.cells.grid.get(current_label)
-          self.axis_shape[current_label] = grid_array.shape[0]
+          try:
+            self.axis_shape[current_label] = grid_array.shape[0]
+          except:
+            self.axis_shape[current_label] = 1
           self.num_actual_axes = self.num_actual_axes + 1
         else:
           self.axis_shape[current_label] = 1
@@ -1358,7 +1361,7 @@ class QwtImageDisplay(QwtPlot):
               self.toggle_array_rank = self.array_rank
               self.array_shape = self._value_array.shape
               if self.array_rank > 2:
-                self.emit(PYSIGNAL("vells_axes_labels"),(self._value_array.shape, self.axis_labels))
+                self.emit(PYSIGNAL("vells_axes_labels"),(self._value_array.shape, self.axis_labels, self.vells_axis_parms))
               self.dimensions_tested = True
             if self.context_menu_done is None:
                self.initVellsContextMenu()
