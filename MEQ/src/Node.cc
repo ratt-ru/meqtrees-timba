@@ -193,10 +193,16 @@ bool Node::Cache::fromRecord (const Record &rec)
     clear();
     return false;
   }
-  FailWhen1(rec.size()!=3,"illegal cache record");
+  FailWhen1(rec.size()!=4,"illegal cache record");
   try
   {
-    result <<= rec[FResult].as_p<Result>();
+    const Result *res = rec[FResult].as_po<Result>();
+    if( !res )
+    {
+      res = rec[FFail].as_po<Result>();
+      FailWhen1(!res,"result or fail field missing");
+    }
+    result <<= res;
     rqid = rec[FRequestId].as<HIID>();
     rescode = rec[FResultCode].as<int>();
     service_flag = rec[FServiceFlag].as<bool>(false);

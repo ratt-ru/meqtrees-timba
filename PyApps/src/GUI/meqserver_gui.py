@@ -443,7 +443,7 @@ class meqserver_gui (app_proxy_gui):
     def __init__ (self,*args):
       QFileDialog.__init__(self,*args);
       self.setMode(QFileDialog.ExistingFile);
-      self.setFilters("TDL scripts (*.tdl);;Python scripts (*.py);;All files (*.*)");
+      self.setFilters("TDL scripts (*.tdl *.py);;All files (*.*)");
       self.setViewMode(QFileDialog.Detail);
       self._replace = QCheckBox("close all currently loaded scripts first",self);
       self._replace.setChecked(True);
