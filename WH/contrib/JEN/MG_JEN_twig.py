@@ -18,7 +18,7 @@ from Timba.Meq import meq
 import MG_JEN_template 
 import MG_JEN_forest_state
 
-import MG_JEN_autoper
+import MG_JEN_math
 
 from random import *
 from numarray import *
@@ -64,7 +64,7 @@ def _define_forest (ns):
    cc.append(MG_JEN_template.bundle(ns, bb, 'gaussnoise'))
 
    # Test/demo of importable function: .cloud()
-   bb = cloud (ns, n=3, name='pnt', qual='auto', stddev=1, mean=0, complex=True)
+   bb = cloud (ns, n=3, name='pnt', qual='auto', stddev=1, mean=complex(0))
    cc.append(MG_JEN_template.bundle(ns, bb, 'cloud'))
 
    # Finished: 
@@ -129,7 +129,7 @@ def freqtime (ns, qual='auto', combine='Add', unop=False):
     output = ns.freqtime(qual) << getattr(Meq,combine)(children=[freq, time])
 
     # Optional: Apply zero or more unary operations on the output:
-    output = MG_JEN_autoper.apply_unop (ns, unop, output) 
+    output = MG_JEN_math.unop (ns, unop, output) 
 
     # Finished:
     return output
@@ -202,7 +202,7 @@ def gaussnoise (ns, qual='auto', stddev=1, mean=0, complex=False, dims=[1], unop
 	output = output + mean
 
     # Optional: Apply zero or more unary operations on the output (e.g Exp):
-    output = MG_JEN_autoper.apply_unop (ns, unop, output) 
+    output = MG_JEN_math.unop (ns, unop, output) 
 
     return output
 
@@ -210,12 +210,30 @@ def gaussnoise (ns, qual='auto', stddev=1, mean=0, complex=False, dims=[1], unop
 #----------------------------------------------------------------------
 # Make a 'cloud' of points (cc) scattered (stddev) around a mean
 
-def cloud (ns, n=3, name='pnt', qual='auto', stddev=1, mean=0, complex=True):
+cloud_counter = 0                  # used for automatic qualifiers
+
+def cloud (ns, n=3, name='pnt', qual='auto', stddev=1, mean=complex(0)):
+
+    # If necessary, make an automatic qualifier:
+    if isinstance(qual, str) and qual=='auto':
+	global cloud_counter
+	cloud_counter += 1
+        qual = str(cloud_counter)
+
     cc = []
-    v = array([[1,.3,.1],[.3,.1,0.03]])
-    for i in range(n):
-        dflt = funklet(v, mean=mean, stddev=stddev)
-        cc.append(ns[name](i) << Meq.Parm (dflt, node_groups='Parm'))
+    v = array([[0,.3,.1],[.3,.1,0.03]])
+    if isinstance(mean, complex):
+        for i in range(n):
+            vreal = funklet(v, mean=mean.real, stddev=stddev)
+            vimag = funklet(v, mean=mean.imag, stddev=stddev)
+            real = ns[name](qual,i,'real') << Meq.Parm (vreal, node_groups='Parm')
+            imag = ns[name](qual,i,'imag') << Meq.Parm (vimag, node_groups='Parm')
+            cc.append(ns[name](qual,i) << Meq.ToComplex (real, imag))
+    else:
+        for i in range(n):
+            dflt = funklet(v, mean=mean, stddev=stddev)
+            cc.append(ns[name](qual,i) << Meq.Parm (dflt, node_groups='Parm'))
+        
     return cc
 
 

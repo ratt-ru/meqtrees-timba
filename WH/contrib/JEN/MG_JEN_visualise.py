@@ -11,16 +11,6 @@ script_name = 'MG_JEN_visualise.py'
 # Copyright: The MeqTree Foundation 
 
 #================================================================================
-# How to use this template:
-# - Copy it to a suitably named script file (e.g. MG_JEN_xyz.py)
-# - Fill in the correct script_name at the top
-# - Fill in the author and the short description
-# - Enable the MG_JEN_template. calls in the required functions
-# - Replace the importable functions with specific ones
-# - Make the specific _define_forest() function
-
-
-#================================================================================
 # Import of Python modules:
 
 from Timba.TDL import *
@@ -53,16 +43,33 @@ def _define_forest (ns):
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
 
-   # Make a 'cloud' of nodes scattered (stddev) around mean:
-   nodes = MG_JEN_twig.cloud (ns, n=3, name='pnt', qual='auto', stddev=1, mean=10, complex=True)
+   # Make 'clouds' of nodes scattered (stddev) around mean:
+   xx = MG_JEN_twig.cloud (ns, n=3, name='xx', qual='auto', stddev=1, mean=complex(10))
+   yy = MG_JEN_twig.cloud (ns, n=3, name='yy', qual='auto', stddev=1, mean=complex(0))
+   zz = MG_JEN_twig.cloud (ns, n=3, name='zz', qual='auto', stddev=1, mean=complex(0,-2))
  
-   nsub = ns.Subscope('sub1')
-   dc = dcoll(ns, nodes, scope='scope1', tag='tag1', errorbars=True)
+   # Make dataCollect nodes of type 'realvsimag' for the various clouds:
+   scope = 'scope1'
+   dd = []
+   dc = dcoll(ns, xx, scope=scope, tag='xx', color='red', errorbars=True)  
+   cc.append(dc['dcoll'])
+   dd.append(dc)
+
+   dc = dcoll(ns, yy, scope=scope, tag='yy', color='blue', errorbars=False)
+   cc.append(dc['dcoll']) 
+   dd.append(dc)
+ 
+   dc = dcoll(ns, zz, scope=scope, tag='zz', color='magenta', errorbars=True)
+   cc.append(dc['dcoll']) 
+   dd.append(dc)
+
+   # Concatenate the dataCollect nodes in dd:
+   dc = dconc(ns, dd, scope=scope)
    cc.append(dc['dcoll'])
  
-   nsub = ns.Subscope('sub2')
-   dc = dcoll(nsub, nodes, type='spectra') 
-   cc.append(dc['dcoll'])
+
+   # dc = dcoll(nsub, nodes, tscope='scope3', ype='spectra') 
+   # cc.append(dc['dcoll'])
 
    # Finished: 
    return MG_JEN_template.on_exit (ns, cc)
@@ -228,7 +235,7 @@ def dcoll (ns, node=[], **pp):
 # Concatenate the given dcolls (dicts, see above) into a dconc node
 #=========================================================================================
 
-def JEN_dconc (ns, dcoll, **pp):
+def dconc (ns, dcoll, **pp):
 
    # Supply default arguments:
    pp.setdefault('scope', '<scope>')    # 'scope (e.g. rawdata)'

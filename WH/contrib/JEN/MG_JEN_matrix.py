@@ -11,16 +11,6 @@ script_name = 'MG_JEN_matrix.py'
 # Copyright: The MeqTree Foundation 
 
 #================================================================================
-# How to use this template:
-# - Copy it to a suitably named script file (e.g. MG_JEN_xyz.py)
-# - Fill in the correct script_name at the top
-# - Fill in the author and the short description
-# - Enable the MG_JEN_template. calls in the required functions
-# - Replace the importable functions with specific ones
-# - Make the specific _define_forest() function
-
-
-#================================================================================
 # Import of Python modules:
 
 from Timba.TDL import *
@@ -31,7 +21,7 @@ import MG_JEN_forest_state
 # import MG_JEN_util
 
 # import MG_JEN_twig
-# import MG_JEN_autoper
+# import MG_JEN_math
 
 from numarray import *
 # from string import *

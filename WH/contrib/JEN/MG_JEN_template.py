@@ -18,7 +18,7 @@ script_name = 'MG_JEN_template.py'
 # - Enable the MG_JEN_template. calls in the required functions
 # - Replace the importable functions with specific ones
 # - Make the specific _define_forest() function
-
+# - Remove this 'how to' recipe
 
 #================================================================================
 # Import of Python modules:
@@ -31,7 +31,7 @@ import MG_JEN_forest_state
 # import MG_JEN_util
 
 # import MG_JEN_twig
-# import MG_JEN_autoper
+# import MG_JEN_math
 
 from numarray import *
 # from string import *
