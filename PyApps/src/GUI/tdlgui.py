@@ -559,7 +559,7 @@ class TDLEditor (QFrame,PersistentCurrier):
         offset = excvalue.offset;
         if offset is None:
           msg = "syntax error";
-          offste = 0;
+          offset = 0;
         else:
           msg = "syntax error at column %d" % (offset,);
         self.show_error_list([SyntaxError(msg,excvalue.filename,(excvalue.lineno,offset))]);
@@ -579,12 +579,13 @@ class TDLEditor (QFrame,PersistentCurrier):
     # find define_forest func
     # module here, call functions
     errlist = [];
+    ns = None;
     try:
       define_func = getattr(_tdlmod,'_define_forest',None);
       if not callable(define_func):
         define_func = getattr(_tdlmod,'define_forest',None);
         if not callable(define_func):
-          self.show_error_list([TDL.TDLError("No _define_forest() function found",filename,0)]);
+          self.show_error_list([TDL.TDLError("No _define_forest() function found",self._real_filename,0)]);
           return None;
         res = QMessageBox.warning(self,"Deprecated method",
           """Your script contains a define_forest() method. This is deprecated
@@ -600,7 +601,8 @@ class TDLEditor (QFrame,PersistentCurrier):
       errlist = value.args;
     except:
     # other exception; check if we also have an error list
-      errlist = ns.GetErrors();
+      if ns is not None:
+        errlist = ns.GetErrors();
       # look through traceback to figure out caller
       (exctype,excvalue,tb) = sys.exc_info();
       traceback.print_exc();
