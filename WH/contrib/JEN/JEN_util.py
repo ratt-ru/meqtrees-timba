@@ -46,24 +46,33 @@ def JEN_pp_noexec (pp={}, txt='JEN_util.JEN_pp_noexec(pp)', trace=0):
 # Append an log/error/warning message to the given dict/record
 
 def JEN_history_new (rr=0, *item, **pp):
-    #                 error=0, warning=0, show=0, 
-    #                 level=1, hkey='_history', htype='dict', trace=1):
     
     # Deal with input parameters (pp):
-    pp = record(JEN_pp (pp, 'WSRT_coh::coh_solver(ns, **pp)',
-                        _help=dict(error='if True, an error has occured',
-                                   warning='if True, issue a warning',
-                                   show='if True, show the accumulated history',
-                                   hkey='field-name in rr',
-                                   htype='if record, fill a record',
-                                   level='indentation level'),
-                        error=False, warning=False, show=False,
-                        level=1, hkey='_history', htype='dict')) 
-    if isinstance(rr, int): return JEN_pp_noexec(pp, trace=pp.trace)
+    if True:
+        pp.setdefault('error', False)           # if True, an error has occured
+        pp.setdefault('warning', False)         # if True, issue a warning
+        pp.setdefault('show', False)            # if True, show the accumulated history
+        pp.setdefault('level', 1)               # indentation level
+        pp.setdefault('hkey', '_history')       # field-name in rr
+        pp.setdefault('htype', 'dict')          # if record, fill a record
+        pp.setdefault('trace', True)            # if True, 
+        pp = record(pp)
+    else:
+        pp = record(JEN_pp (pp, 'WSRT_coh::coh_solver(ns, **pp)',
+                            _help=dict(error='if True, an error has occured',
+                                       warning='if True, issue a warning',
+                                       show='if True, show the accumulated history',
+                                       hkey='field-name in rr',
+                                       htype='if record, fill a record',
+                                       level='indentation level'),
+                            error=False, warning=False, show=False,
+                            level=1, hkey='_history', htype='dict')) 
+        if isinstance(rr, int): return JEN_pp_noexec(pp, trace=pp.trace)
     
+    print '\n pp =',pp
     print '*item =',type(item),len(item),item
     print 'str(item) =',str(item)
-    return
+    # return
     
     indent = pp.level*'..'
     if not isinstance(pp.hkey, str): pp.hkey = '_history'

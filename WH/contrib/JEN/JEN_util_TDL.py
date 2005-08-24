@@ -303,6 +303,7 @@ def JEN_wavelength (ns, unop=0, trace=0):
     if trace: JEN_display_subtree(wvl,'wvl', full=1)
     return wvl
 
+
 #----------------------------------------------------------------------
 # Helper function to apply zero or more unary operations
 # on the input node:
@@ -542,8 +543,11 @@ if __name__ == '__main__':
   if 0:
     JEN_unique([2,3,3,2,5,6], trace=1)
 
-  if 0:
+  if 1:
     print '\n** Test of new TDL unop functionality:'
+
+    # print dir(ns)
+    
     s1 = '1'
     s2 = '5'
     # s1 = 1
@@ -560,6 +564,7 @@ if __name__ == '__main__':
     ns12q = ns.ns12q(s1=s1, s2=s2, q=q) << Meq.Constant(-7)
     # ns2q = ns.ns2q(s2=s2, q=q) << Meq.Constant(-5)
 
+    print dir(ns1)
     print ns1
     print ns2
     print ns12
@@ -587,7 +592,13 @@ if __name__ == '__main__':
     rr = record(a=2, b=6, c='c')
     print 'rr =',rr
     print 'ns.xxx(**rr) << Meq.Sin(ns1) ->  ',ns.xxx(**rr) << Meq.Sin(ns1)
-    print 'ns(**rr) << Meq.Sin(ns1) ->  ',ns(**rr) << Meq.Sin(ns1)
+    # print 'ns(**rr) << Meq.Sin(ns1) ->  ',ns(**rr) << Meq.Sin(ns1)
+
+    print
+    print 'ns.xxx.qadd(ns1) << (ns12q * ns1) ->  ',ns.xxx.qadd(ns1) << (ns12q * ns1)
+    print 'ns.xxx.qmerge(ns1) << (ns12q * ns1) ->  ',ns.xxx.qmerge(ns1) << (ns12q * ns1)
+    print 'ns.xxx.qmerge(ns1,ns2) << (ns12q * ns1) ->  ',ns.xxx.qmerge(ns1,ns2) << (ns12q * ns1)
+    # print 'ns.xxx.qmerge([ns1,ns2]) << (ns12q * ns1) ->  ',ns.xxx.qmerge([ns1,ns2]) << (ns12q * ns1)
 
     print
 
@@ -600,7 +611,7 @@ if __name__ == '__main__':
       node = ns.NAME('a',5, c=4) << Meq.Selector(5, stepchildren=sc) 
       JEN_display_NodeStub (node, 'test')
 
-  if 1:
+  if 0:
       # yyy = ns.yyy << Meq.Selector(children=[1], stepchildren=[2])
       # xxx = ns.xxx << -2
       JEN_display_NodeScope(ns, 'test')
