@@ -41,12 +41,17 @@ class LCDRange(QWidget):
         return self.slider.value()
 
     def resetValue(self):
+        temp_str = None
         if self.lcd_parms is None or not self.active:
           temp_str = str(0)
         else:
           delta_vells = (self.lcd_parms[1] - self.lcd_parms[0]) / self.maxVal
           index = self.lcd_parms[0] + 0.5 * delta_vells 
-          temp_str = str(index)
+          dummy = str(index)
+          if len(dummy) > 10:
+            temp_str = dummy[:9]
+          else:
+            temp_str = dummy
         self.lcd.setNumDigits(len(temp_str))
         self.lcd.display(temp_str)
         self.slider.setValue(0)
@@ -69,16 +74,19 @@ class LCDRange(QWidget):
 
     def update(self, slider_value):
         if self.active:
+          temp_str = None
           if self.lcd_parms is None:
             temp_str = str(slider_value)
-            self.lcd.setNumDigits(len(temp_str))
-            self.lcd.display(temp_str)
           else:
             delta_vells = (self.lcd_parms[1] - self.lcd_parms[0]) / self.maxVal
             index = self.lcd_parms[0] + (slider_value + 0.5) * delta_vells 
-            temp_str = str(index)
-            self.lcd.setNumDigits(len(temp_str))
-            self.lcd.display(temp_str)
+            dummy = str(index)
+            if len(dummy) > 10:
+              temp_str = dummy[:9]
+            else:
+              temp_str = dummy
+          self.lcd.setNumDigits(len(temp_str))
+          self.lcd.display(temp_str)
           self.emit(PYSIGNAL("sliderValueChanged"), (self.lcd_number, slider_value))
         
           return self.slider.value()
