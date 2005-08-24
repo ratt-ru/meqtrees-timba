@@ -439,7 +439,6 @@ class realvsimag_plotter(object):
   def slotMousePressed(self, e):
     """ Mouse press processing instructions go here"""
 
-    print' in slotMousePressed'
     _dprint(2,' in slotMousePressed');
     _dprint(3,' slotMousePressed event:',e);
 # we use a middle mouse button pressed event to retrieve and display
