@@ -27,7 +27,7 @@ def _define_forest(ns):
  import os
  # The following line assumes your LOFAR source tree is at ${YOUR_HOME}/LOFAR
  # if this does not work, give the absolute path for the file name
- infile=open(os.path.expandvars('$HOME')+'/LOFAR/Timba/LSM/test/3C343_nvss.txt','r')
+ infile=open(os.path.expandvars('$HOME')+'/LOFAR/Timba/WH/data/LSM/3C343_nvss.txt','r')
  all=infile.readlines()
  infile.close()
 
