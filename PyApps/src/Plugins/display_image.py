@@ -4,13 +4,11 @@ import sys
 from qt import *
 from qwt import *
 from numarray import *
-#import numarray.nd_image
 from UVPAxis import *
 from printfilter import *
 from ComplexColorMap import *
 from ComplexScaleDraw import *
 from QwtPlotImage import *
-#from app_browsers import *
 from Timba.GUI.pixmaps import pixmaps
 import random
 
@@ -345,24 +343,14 @@ class QwtImageDisplay(QwtPlot):
 
     def defineData(self):
        if self._vells_plot:
-         if self.flip_axes:
-           if self.complex_type:
-             temp_x_axis_parms = self.vells_axis_parms[self.second_axis_parm]
-             begin = temp_x_axis_parms[0]
-             end = begin + 2.0 * self.delta_vells 
-             x_range = (begin, end)
-             self.plotImage.setData(self.raw_image, x_range, self.vells_axis_parms[self.first_axis_parm])
-           else:
-             self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.second_axis_parm], self.vells_axis_parms[self.first_axis_parm])
+         if self.complex_type:
+           temp_x_axis_parms = self.vells_axis_parms[self.x_parm]
+           begin = temp_x_axis_parms[0]
+           end = begin + 2.0 * self.delta_vells 
+           x_range = (begin, end)
+           self.plotImage.setData(self.raw_image, x_range, self.vells_axis_parms[self.y_parm])
          else:
-           if self.complex_type:
-             temp_x_axis_parms = self.vells_axis_parms[self.first_axis_parm]
-             begin = temp_x_axis_parms[0]
-             end = begin + 2.0 * self.delta_vells 
-             x_range = (begin, end)
-             self.plotImage.setData(self.raw_image, x_range, self.vells_axis_parms[self.second_axis_parm])
-           else:
-             self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.first_axis_parm], self.vells_axis_parms[self.second_axis_parm])
+           self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm])
        else:
          self.plotImage.setData(self.raw_image)
 
@@ -1556,32 +1544,27 @@ class QwtImageDisplay(QwtPlot):
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if complex_type and self._display_type != "brentjens":
           if self._vells_plot:
-            my_x_parm = None
-            my_y_parm = None
+            self.x_parm = self.first_axis_parm
+            self.y_parm = self.second_axis_parm
             if flip_axes:
-              my_x_parm = self.second_axis_parm
-              my_y_parm = self.first_axis_parm
-            else:
-              my_x_parm = self.first_axis_parm
-              my_y_parm = self.second_axis_parm
-            self.x_parm = my_x_parm
-            self.y_parm = my_y_parm
-            self.myXScale = ComplexScaleSeparate(self.vells_axis_parms[my_x_parm][0], self.vells_axis_parms[my_x_parm][1])
+              self.x_parm = self.second_axis_parm
+              self.y_parm = self.first_axis_parm
+            self.myXScale = ComplexScaleSeparate(self.vells_axis_parms[self.x_parm][0], self.vells_axis_parms[self.x_parm][1])
             self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
-            self.split_axis = self.vells_axis_parms[my_x_parm][1] 
-            delta_vells = self.vells_axis_parms[my_x_parm][1] - self.vells_axis_parms[my_x_parm][0]
+            self.split_axis = self.vells_axis_parms[self.x_parm][1] 
+            delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
             self.delta_vells = delta_vells
             self.first_axis_inc = delta_vells / plot_array.shape[0] 
-            delta_vells = self.vells_axis_parms[my_y_parm][1] - self.vells_axis_parms[my_y_parm][0]
+            delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
             self.second_axis_inc = delta_vells / plot_array.shape[1] 
 	    if self._x_axis is None:
               title_addition = ': (real followed by imaginary)'
-              x_title = self.vells_axis_parms[my_x_parm][2] + title_addition
+              x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
               self.setAxisTitle(QwtPlot.xBottom, x_title)
 	    else:  
               self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
 	    if self._y_axis is None:
-                self.setAxisTitle(QwtPlot.yLeft, self.vells_axis_parms[my_y_parm][2])
+                self.setAxisTitle(QwtPlot.yLeft, self.vells_axis_parms[self.y_parm][2])
 	    else:
               self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
           else:
@@ -1604,27 +1587,22 @@ class QwtImageDisplay(QwtPlot):
 
         else:
           if self._vells_plot:
-            my_x_parm = None
-            my_y_parm = None
+            self.x_parm = self.first_axis_parm
+            self.y_parm = self.second_axis_parm
             if flip_axes:
-              my_x_parm = self.second_axis_parm
-              my_y_parm = self.first_axis_parm
-            else:
-              my_x_parm = self.first_axis_parm
-              my_y_parm = self.second_axis_parm
-            self.x_parm = my_x_parm
-            self.y_parm = my_y_parm
-            delta_vells = self.vells_axis_parms[my_x_parm][1] - self.vells_axis_parms[my_x_parm][0]
+              self.x_parm = self.second_axis_parm
+              self.y_parm = self.first_axis_parm
+            delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
             self.delta_vells = delta_vells
             self.first_axis_inc = delta_vells / plot_array.shape[0] 
-            delta_vells = self.vells_axis_parms[my_y_parm][1] - self.vells_axis_parms[my_y_parm][0]
+            delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
             self.second_axis_inc = delta_vells / plot_array.shape[1] 
 	    if self._x_axis is None:
-                self.setAxisTitle(QwtPlot.xBottom, self.vells_axis_parms[my_x_parm][2])
+                self.setAxisTitle(QwtPlot.xBottom, self.vells_axis_parms[self.x_parm][2])
 	    else:  
               self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
 	    if self._y_axis is None:
-                self.setAxisTitle(QwtPlot.yLeft, self.vells_axis_parms[my_y_parm][2])
+                self.setAxisTitle(QwtPlot.yLeft, self.vells_axis_parms[self.y_parm][2])
 	    else:
               self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
           else:
