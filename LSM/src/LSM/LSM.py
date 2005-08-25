@@ -826,8 +826,8 @@ class LSM:
      child_list.append(sname)
      self.p_table[sname]._patch_name=patch_name
 
-   patch_root=self.__ns[patch_name]<<Meq.PatchComposer(children=child_list)
-   #patch_root=self.__ns[patch_name]<<Meq.Composer(children=child_list)
+   #patch_root=self.__ns[patch_name]<<Meq.PatchComposer(children=child_list)
+   patch_root=self.__ns[patch_name]<<Meq.Composer(children=child_list)
    #select_root=self.__ns['Select['+patch_name+']']<<Meq.Selector(children=patch_root,multi=True,index=[2,3,4,5])
    #stokes_root=self.__ns['Stokes['+patch_name+']']<<Meq.Stokes(children=select_root)
    #fft_root=self.__ns['FFT['+patch_name+']']<<Meq.FFTBrick(children=stokes_root)
