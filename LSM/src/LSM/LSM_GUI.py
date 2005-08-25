@@ -223,10 +223,20 @@ class LSMWindow(QMainWindow):
         row=0
         for sname in self.lsm.p_table.keys():
          punit=self.lsm.p_table[sname]
-         if punit.getType()==POINT_TYPE:
+         if punit._patch_name==None:
           self.table2.setText(row,0,QString(punit.name))
-          self.table2.setText(row,1,QString(str(punit.getType())))
-          self.table2.setText(row,2,QString(str(punit.getSources())))
+          mytype=punit.getType()
+          if mytype==POINT_TYPE:
+           self.table2.setText(row,1,self.tr("Point"))
+          else:
+           self.table2.setText(row,1,self.tr("Patch"))
+          # do not print all the source names in case of a patch
+          if mytype==POINT_TYPE:
+           self.table2.setText(row,2,QString(str(punit.getSources())))
+          else: #patch
+           srclist=punit.getSources()
+           self.table2.setText(row,2,QString(str(srclist[0])+"...."))
+
           self.table2.setText(row,3,QString(str(punit.getCat())))
           self.table2.setText(row,4,QString(str(punit.getBrightness())))
           self.table2.setText(row,5,QString(str(punit.getFOVDist())))
@@ -244,7 +254,7 @@ class LSMWindow(QMainWindow):
           self.table2.setText(row,11,QString("MeqTree"))
           row+=1
          else:
-          print "Add patches to the table"
+          print "This belongs to a patch"
 
         for i in range(self.table2.numCols()):
          self.table2.adjustColumn(i)

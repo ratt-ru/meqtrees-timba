@@ -128,7 +128,8 @@ class SpH:
  # the name of the p-unit is given by 'pname'
  def updateValues(self,pname):
   from Timba.Meq import meq
-  if (self.lsm!=None) and (self.lsm.cells!=None) and (self.lsm.mqs!=None):
+  if (self.lsm!=None) and (self.lsm.cells!=None) and\
+   (self.lsm.mqs!=None):
    # create request object
    my_request = meq.request(cells=self.lsm.cells, eval_mode=0)
    my_args=meq.record(name=pname, request=my_request)
@@ -340,6 +341,36 @@ class PUnit:
   self.FOV_distance=distance
  def getFOVDist(self):
   return self.FOV_distance
+
+
+ # it this PUnit is a patch, return the limits
+ # of its boundary
+ # [x_min,y_min,x_max,y_max]
+ def getLimits(self):
+  if self.type != PATCH_TYPE:
+    return [0,0,0,0]
+  else:
+   # traverse the source list 
+   x_min=1e6
+   y_min=1e6
+   x_max=-1e6
+   y_max=-1e6
+   for sname in self.s_list:
+    punit=self.lsm.p_table[sname]
+    if punit != None:
+     x=punit.sp.getRA()
+     y=punit.sp.getDec()
+     if x_min > x:
+      x_min=x
+     if x_max < x:
+      x_max=x
+     if y_min > y:
+      y_min=y
+     if y_max < y:
+      y_max=y
+   return [x_min,y_min,x_max,y_max]  
+  # will not get here  
+  return [0,0,0,0]
 
  # Print
  def __str__(self):
@@ -553,7 +584,13 @@ class LSM:
   return 3
  # return number of p-Units in the p-Unit table 
  def getPUnits(self):
-  return len(self.p_table)
+  # do not count points that belong to a PUnit
+  count=0
+  for pname in self.p_table.keys():
+   if self.p_table[pname]._patch_name ==None:
+    count+=1
+  return count 
+
  # return no of columes in p-Unit table
  def getPUnitColumns(self):
   return 12
@@ -566,16 +603,17 @@ class LSM:
 
   for p in self.p_table.keys():
    punit=self.p_table[p]
-   tmpval=punit.sp.getRA()
-   if tmpval > max_RA:
-    max_RA=tmpval
-   if tmpval <  min_RA:
-    min_RA=tmpval
-   tmpval=punit.sp.getDec()
-   if tmpval > max_Dec:
-    max_Dec=tmpval
-   if tmpval <  min_Dec:
-    min_Dec=tmpval
+   if punit.getType()==POINT_TYPE:
+    tmpval=punit.sp.getRA()
+    if tmpval > max_RA:
+     max_RA=tmpval
+    if tmpval <  min_RA:
+     min_RA=tmpval
+    tmpval=punit.sp.getDec()
+    if tmpval > max_Dec:
+     max_Dec=tmpval
+    if tmpval <  min_Dec:
+     min_Dec=tmpval
   result={}
   result['min_RA']=min_RA 
   result['max_RA']=max_RA 
@@ -648,6 +686,7 @@ class LSM:
  def updateCells(self):
   for sname in self.p_table.keys(): 
    punit=self.p_table[sname]
+   #if punit.getType()==POINT_TYPE:
    punit.sp.updateValues(sname)
 
  # save to a file
@@ -788,6 +827,7 @@ class LSM:
      self.p_table[sname]._patch_name=patch_name
 
    patch_root=self.__ns[patch_name]<<Meq.PatchComposer(children=child_list)
+   #patch_root=self.__ns[patch_name]<<Meq.Composer(children=child_list)
    #select_root=self.__ns['Select['+patch_name+']']<<Meq.Selector(children=patch_root,multi=True,index=[2,3,4,5])
    #stokes_root=self.__ns['Stokes['+patch_name+']']<<Meq.Stokes(children=select_root)
    #fft_root=self.__ns['FFT['+patch_name+']']<<Meq.FFTBrick(children=stokes_root)
@@ -795,14 +835,42 @@ class LSM:
    self.__ns.Resolve()
    print "Current forest has %d root nodes, of a total of %d nodes"% (len(self.__ns.RootNodes()),len(self.__ns.AllNodes()))
 
+   Timba.TDL._dbg.set_verbose(5);
    # try to run stuff
-   self.mqs.meq('Clear.Forest')
-   self.mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),self.__ns.AllNodes().itervalues())));
-   self.mqs.meq('Resolve.Batch',record(name=list(self.__ns.RootNodes().iterkeys())))
+   if self.mqs != None:
+     self.mqs.meq('Clear.Forest')
+     self.mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),self.__ns.AllNodes().itervalues())));
+     self.mqs.meq('Resolve.Batch',record(name=list(self.__ns.RootNodes().iterkeys())))
 
+     # is a forest state defined?
+     fst = getattr(Timba.TDL.Settings,'forest_state',record());
+     self.mqs.meq('Set.Forest.State',record(state=fst));
+
+   # create a new PUnit
    newp=PUnit(patch_name,self)
    newp.setType(PATCH_TYPE)
+   newp.sp.setRoot(patch_root)
+   # update vellsets
+   newp.sp.updateValues(patch_name)
+   #from Timba.Meq import meq
+   #ftdom=meq.domain(startfreq=1e6, endfreq=3e6, starttime=0,endtime=1)
+   #cc=meq.cells(domain=ftdom,num_freq=2, num_time=1)
+   #req=meq.request(cells=cc,eval_mode=0)
+   #args=meq.record(name=patch_name,request=req)
+   #aa=self.mqs.meq('Node.execute',args,wait=True)
+   for sname in correct_slist:
+     newp.addSource(sname)
+    # add new PUnit to table
    self.p_table[patch_name]=newp
+
+   Timba.TDL._dbg.set_verbose(0);
+   # return [patch name, x_min,y_min,x_max,y_max]
+   # for the plotting method
+   return [patch_name,x_min,y_min,x_max,y_max]
+
+  # if we get here, an error
+   return None
+
  
  # set the current NodeScope
  def setNodeScope(self,ns):

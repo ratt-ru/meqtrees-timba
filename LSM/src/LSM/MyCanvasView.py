@@ -95,10 +95,14 @@ class MyCanvasView(QCanvasView):
     # plot all p-units/sources
     for sname in self.lsm.p_table.keys():
      punit=self.lsm.p_table[sname]
-     xys=self.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
-     self.p_tab[sname]=PointSource(sname,self)
-     #self.addCircle(xys[0],xys[1],2,self.getColor(punit.getBrightness()),punit.name,punit.getBrightness())
-     #self.addCross(xys[0],xys[1],1,5,self.getColor(punit.getBrightness()),punit.name,punit.getBrightness())
+     if punit.getType()==POINT_TYPE:
+      xys=self.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
+      self.p_tab[sname]=PointSource(sname,self)
+     else:
+      # we have a patch
+      retval=punit.getLimits()
+      self.p_tab[sname]=Patch(sname,self,retval[0],retval[1],\
+                 retval[2],retval[3])
 
 
     ############ create axes/grid
@@ -261,7 +265,13 @@ class MyCanvasView(QCanvasView):
     dialog.show()
 
     # create a patch
-    self.lsm.createPatch(psource_list) 
+    retval=self.lsm.createPatch(psource_list)
+    if retval != None:
+     # successfully created patch
+     print "created patch %s"%retval[0]
+     # update the GUI
+     self.p_tab[retval[0]]=Patch(retval[0],self,retval[1],retval[2],\
+                 retval[3],retval[4])
 
     self.canvas().update()
    return
@@ -802,3 +812,42 @@ class PointSource:
    self.circle.show()
   else:
    self.pcross.show()
+
+################################################################
+#############################################################
+class Patch:
+ def __init__(self,name,parent,x_min,y_min,x_max,y_max):
+  self.name=name
+  self.cview=parent
+  self.x_min=x_min
+  self.x_max=x_max
+  self.y_min=y_min
+  self.y_max=y_max
+  # create a rectangle
+  xys=self.cview.globalToLocal(self.x_min,self.y_max)
+  topLeft=QPoint(xys[0],xys[1])
+  xys=self.cview.globalToLocal(self.x_max,self.y_min)
+  bottomRight=QPoint(xys[0],xys[1])
+  rectangle=QRect(topLeft,bottomRight)
+  self.rect=QCanvasRectangle(rectangle,self.cview.canvas())
+  self.rect.setPen(QPen(QColor(255,0,0)))
+  self.show()
+
+ def hide(self):
+  self.rect.hide()
+
+ def show(self):
+  self.rect.show()
+
+ def hideAll(self):
+  self.rect.hide()
+
+ def showAll(self):
+  self.rect.show()
+
+
+ def showType(self,flag):
+  self.show()
+
+ def updateDisplayProperties(self,newcolor,new_value):
+  pass
