@@ -9,6 +9,7 @@ from Timba.TDL import Settings
 from Timba.LSM.LSM_GUI import *
 # Meqtree stuff
 from Timba.Contrib.JEN.JEN_lsm  import *
+
 import re
 import math
 
@@ -23,7 +24,10 @@ lsm=LSM()
 def _define_forest(ns):
  global lsm
  # please change this according to your setup
- infile=open('/home/sarod/LOFAR/Timba/LSM/test/3C343_nvss.txt','r')
+ import os
+ # The following line assumes your LOFAR source tree is at ${YOUR_HOME}/LOFAR
+ # if this does not work, give the absolute path for the file name
+ infile=open(os.path.expandvars('$HOME')+'/LOFAR/Timba/LSM/test/3C343_nvss.txt','r')
  all=infile.readlines()
  infile.close()
 
