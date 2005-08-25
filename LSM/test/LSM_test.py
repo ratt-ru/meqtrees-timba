@@ -83,6 +83,8 @@ def _define_forest(ns):
  
  print "Inserted %d sources" % linecount 
 
+ #remember the current node scope
+ lsm.setNodeScope(ns)
 
 ########################################################################
 
