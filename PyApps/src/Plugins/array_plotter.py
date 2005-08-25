@@ -95,13 +95,26 @@ class ArrayPlotter(GriddedPlugin):
     if self.array_rank > 2:
       self.data = dataitem.data
       if self.array_selector is None:
-        self.array_selector = []
-        for i in range(self.array_rank):
-          if i < self.array_rank-2 or self.array_shape[i] == 1:
-            self.array_selector.append(0)
-          else:
-            axis_slice = slice(0,self.array_shape[i])
-            self.array_selector.append(axis_slice)
+        second_axis = None
+        first_axis = None
+        for i in range(self.array_rank-1,-1,-1):
+          if self.data.shape[i] > 1:
+            if second_axis is None:
+              second_axis = i
+            else:
+              if first_axis is None:
+                first_axis = i
+        if not first_axis is None and not second_axis is None:
+          self.array_selector = []
+          for i in range(self.array_rank):
+            if i == first_axis:
+              axis_slice = slice(0,self.data.shape[first_axis])
+              self.array_selector.append(axis_slice)
+            elif i == second_axis:
+              axis_slice = slice(0,self.data.shape[second_axis])
+              self.array_selector.append(axis_slice)
+            else:
+              self.array_selector.append(0)
       self.array_tuple = tuple(self.array_selector)
       self._plotter.array_plot('data', self.data[self.array_tuple])
     else:
