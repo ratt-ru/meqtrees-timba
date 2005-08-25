@@ -11,6 +11,8 @@ from Timba.LSM.LSM_GUI import *
 from Timba.Contrib.JEN.JEN_lsm  import *
 import re
 import math
+import os
+
 
 # to force caching put 100
 Settings.forest_state.cache_policy = 0
@@ -22,8 +24,9 @@ lsm=LSM()
 ########################################################
 def _define_forest(ns):
  global lsm
- # please change this according to your setup
- infile=open('/home/sarod/LOFAR/Timba/LSM/test/3C343_nvss.txt','r')
+ home_dir = os.environ['HOME']
+ infile_name = home_dir + '/LOFAR/Timba/LSM/test/3C343_nvss.txt'
+ infile=open(infile_name,'r')
  all=infile.readlines()
  infile.close()
 
