@@ -327,7 +327,8 @@ class MyCanvasView(QCanvasView):
    for sname in self.lsm.p_table.keys():
      punit=self.lsm.p_table[sname]
      #if punit.getBrightness()/self.max_brightness*500 <self.parent.slider1.value():
-     if math.log(punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index)/self.min_brightness)/math.log(self.max_brightness/self.min_brightness) <self.parent.sliderCut.value()/100.0:
+     if math.log(punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index)/self.min_brightness)/math.log(self.max_brightness/self.min_brightness) <self.parent.sliderCut.value()/100.0 and\
+      punit.getType()==POINT_TYPE:
       self.p_tab[sname].hide()
      else:
       self.p_tab[sname].show()
