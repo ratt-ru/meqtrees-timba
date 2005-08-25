@@ -15,14 +15,15 @@ script_name = 'MG_JEN_math.py'
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import MG_JEN_template 
-import MG_JEN_forest_state
-
-import MG_JEN_twig
-
 from numarray import *
 # from string import *
 # from copy import deepcopy
+
+from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
+from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
+
+# from Timba.Contrib.JEN import MG_JEN_util as MG_JEN_util
+# from Timba.Contrib.JEN import MG_JEN_funklet as MG_JEN_funklet
 
 
 
@@ -45,14 +46,14 @@ def _define_forest (ns):
    time = ns.time(-5, b=2) << Meq.Time()
    input = ns.freqtime << Meq.Add(freq, time)
  
-   # Test/demo of importable function: apply_unop()
-   unop = False
-   unop = 'Cos'
-   unop = ['Sin','Cos']
-   cc.append(unop (ns, unop, input))
+   # Test/demo of importable function: unop()
+   unops = False
+   unops = 'Cos'
+   unops = ['Sin','Cos']
+   cc.append(unop(ns, unops, input))
 
    # Finished: 
-   return MG_JEN_template.on_exit (ns, cc)
+   return MG_JEN_exec.on_exit (ns, cc)
 
 
 
@@ -68,14 +69,14 @@ MG_JEN_forest_state.init(script_name)
 # The 'mqs' argument is a meqserver proxy object.
 
 def _test_forest (mqs, parent):
-   return MG_JEN_template.execute_forest (mqs, parent)
+   return MG_JEN_exec.meqforest (mqs, parent)
 
 
 #--------------------------------------------------------------------------------
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-   MG_JEN_template.execute_without_mqs()
+   MG_JEN_exec.without_meqserver(script_name)
 
 
 

@@ -16,10 +16,10 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from numarray import *
-from copy import deepcopy
 from string import *
+from copy import deepcopy
 
-import MG_JEN_template
+# from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
 
 
 
@@ -33,23 +33,26 @@ import MG_JEN_template
 
 def _define_forest (ns):
 
+   # Generate a list (cc) of one or more node bundles (bb):
+   cc = []
+
    # Parameters:
    a = ns.a << Meq.Parm(array([[1,0.2],[-0.3,0.1]]))
    b = ns.b << Meq.Parm(array([[1,-0.2],[0.3,0.1]]))
-   sum = ns.sum << Meq.Add (a, b)
+   sum = ns << Meq.Add (a, b)
+   cc.append(sum)
 
-   # Make single bookmarks:
-   bm = bookmark (a)
+   # Make bookmark for a single nodes:
    bm = bookmark (b)
  
    # Make a named page with views of diferent nodes:
-   page_name = 'nodes'
+   page_name = 'sum=a+b'
    bookmark (a, page=page_name)
    bookmark (b, page=page_name)
    bookmark (sum, page=page_name)
  
    # Make a named page with multiple views of the same node:
-   page_name = 'sum'
+   page_name = 'views of sum'
    bookmark (sum, page=page_name)
    bookmark (sum, page=page_name, viewer='ParmFiddler')
    bookmark (sum, page=page_name, viewer='Record Browser')
@@ -63,30 +66,30 @@ def _define_forest (ns):
      warning(x=False, rr=rr)
      history(i)
 
-   return MG_JEN_template.on_exit (ns, sum)     # recommended
+   # Counter service (check in forest state record):
+   counter('key1', increment=True)
+   counter('key1', increment=True)
+   counter('key2', increment=True)
+
+   # Use of autoqual():
+   bb = []
+   for i in range(3):
+      bb.append(ns.autoqual(autoqual('auto', script_name)) << i)
+   cc.append(ns << Meq.Add(children=bb))
+
+
+   # Use a simple version of MG_JEN_exec.on_exit():
+   # Make a (single) root node for use in _test_forest():
+   global _test_root
+   _test_root = '_test_root'
+   root = ns[_test_root] << Meq.Add(children=cc)
+   return root    
    
-   
-
-
-#--------------------------------------------------------------------------------
-# Test routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
-
-def _test_forest (mqs, parent):
-   return MG_JEN_template.execute_forest (mqs, parent)
-
-#--------------------------------------------------------------------------------
-# Test routine to check the tree for consistency, in the absence of a browser
-
-if __name__ == '__main__':
-   MG_JEN_template.execute_without_mqs ()
-
-   
+ 
 
 
 #================================================================================
-# Importable function(s): The essence of a MeqGraft script.
-# To be imported into user scripts (see _def_forest() below) 
+# Optional: Importable function(s): To be imported into user scripts 
 #================================================================================
 
 
@@ -249,20 +252,16 @@ def bookpage (bm={}, name='page', trace=0):
 # Add the given named (kwitem) and unnamed (item) items to the forest_state
 
 def trace (*item, **kwitem):
-  field = '_trace'
-  return append (field, item, kwitem)
+  return append ('_trace', item, kwitem)
 
 def history (*item, **kwitem):
-  field = '_history'
-  return append (field, item, kwitem)
+  return append ('_history', item, kwitem)
 
 def error (*item, **kwitem):
-  field = '_ERROR'
-  return append (field, item, kwitem)
+  return append ('_ERROR', item, kwitem)
 
 def warning (*item, **kwitem):
-  field = '_WARNING'
-  return append (field, item, kwitem)
+  return append ('_WARNING', item, kwitem)
 
 def append (field, item, kwitem):
   Settings.forest_state.setdefault(field,record())
@@ -272,9 +271,77 @@ def append (field, item, kwitem):
   if len(item)>0: kwitem['unnamed'] = item
   rr[key] = kwitem
   Settings.forest_state[field] = rr
-  return rr
+  return rr[key]
 
-#****************************************************************************
+
+#---------------------------------------------------------------------------
+# Counter service (use by autoqual)
+# It can be inspected in the forest state record
+# NB: if increment=0  (i.e. not specified):
+#     - if key does not exist yet, initialise with 0
+#     - just return the current value
+
+def counter (key, increment=0, reset=False):
+   field = '_counter'
+   Settings.forest_state.setdefault(field,record())
+   rr = Settings.forest_state[field]
+   rr.setdefault(key, 0)
+   if reset: rr[key] = 0
+   rr[key] += increment
+   Settings.forest_state[field] = rr
+   return rr[key]
+
+# Generate an automatic qualifier by using the counter service 
+
+def autoqual (qual='auto', key='<MG_JEN_forest_state.autoqual>', **pp):
+   if isinstance(qual, str) and qual=='auto':
+      n = counter(key, increment=1)
+      qual = str(n)
+   return qual
+
+
+
+
+
+
+
+
+
+#********************************************************************************
+# Initialisation and testing routines
+# NB: this section should always be at the end of the script
+#********************************************************************************
+
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+init(script_name)
+
+#-------------------------------------------------------------------------
+# Meqforest execution routine (may be called from the browser):
+# The 'mqs' argument is a meqserver proxy object.
+
+def _test_forest (mqs, parent):
+   # Use a simple version of MG_JEN_exec.meqforest():
+   cells = meq.cells(meq.domain(0,1,0,1),num_freq=6,num_time=4);
+   request = meq.request(cells,eval_mode=0);
+   global _test_root
+   mqs.meq('Node.Execute',record(name=_test_root, request=request));
+   return
+
+#-------------------------------------------------------------------------
+# Test routine to check the tree for consistency in the absence of a server
+
+if __name__ == '__main__':
+   # Use a simple version of MG_JEN_exec.without_meqserver():
+   ns = NodeScope();
+   _define_forest(ns);
+   ns.Resolve();
+
+
+#********************************************************************************
+#********************************************************************************
 
 
 

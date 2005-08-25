@@ -12,26 +12,16 @@ script_name = 'MG_JEN_solve_ab.py'
 # Copyright: The MeqTree Foundation 
 
 #================================================================================
-# How to use this template:
-# - Copy it to a suitably named script file (e.g. MG_JEN_xyz.py)
-# - Fill in the correct script_name at the top
-# - Fill in the author and the short description
-# - Enable the MG_JEN_template. calls in the required functions
-# - Replace the importable functions with specific ones
-# - Make the specific _define_forest() function
-
-
-#================================================================================
 # Import of Python modules:
 
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import MG_JEN_template 
+import MG_JEN_exec 
 import MG_JEN_forest_state
 
 # import MG_JEN_twig
-# import MG_JEN_autoper
+# import MG_JEN_math
 
 from numarray import *
 # from string import *
@@ -73,7 +63,7 @@ def _define_forest (ns):
 	MG_JEN_forest_state.bookmark(solver, page=page_name, viewer='ParmFiddler')
 
 	# Finished: 
-	return MG_JEN_template.on_exit (ns, solver)
+	return MG_JEN_exec.on_exit (ns, solver)
 
 
 
@@ -89,14 +79,14 @@ MG_JEN_forest_state.init(script_name)
 # The 'mqs' argument is a meqserver proxy object.
 
 def _test_forest (mqs, parent):
-	return MG_JEN_template.execute_forest (mqs, parent)
+	return MG_JEN_exec.meqforest (mqs, parent)
 
 
 #--------------------------------------------------------------------------------
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-	MG_JEN_template.execute_without_mqs()
+	MG_JEN_exec.without_meqserver(script_name)
 
 
 

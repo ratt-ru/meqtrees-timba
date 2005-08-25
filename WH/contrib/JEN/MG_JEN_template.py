@@ -15,8 +15,7 @@ script_name = 'MG_JEN_template.py'
 # - Copy it to a suitably named script file (e.g. MG_JEN_xyz.py)
 # - Fill in the correct script_name at the top
 # - Fill in the author and the short description
-# - Enable the MG_JEN_template. calls in the required functions
-# - Replace the importable functions with specific ones
+# - Replace the example importable function with specific ones
 # - Make the specific _define_forest() function
 # - Remove this 'how to' recipe
 
@@ -26,27 +25,23 @@ script_name = 'MG_JEN_template.py'
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import MG_JEN_template 
-import MG_JEN_forest_state
-# import MG_JEN_util
-
-# import MG_JEN_twig
-# import MG_JEN_math
-
 from numarray import *
 # from string import *
 # from copy import deepcopy
 
+from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
+from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
+
+# from Timba.Contrib.JEN import MG_JEN_util as MG_JEN_util
+# from Timba.Contrib.JEN import MG_JEN_twig as MG_JEN_twig
+# from Timba.Contrib.JEN import MG_JEN_math as MG_JEN_math
+# from Timba.Contrib.JEN import MG_JEN_funklet as MG_JEN_funklet
 
 
 #================================================================================
-# Required functions:
-#================================================================================
-
-
-#--------------------------------------------------------------------------------
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
+#================================================================================
 
 def _define_forest (ns):
 
@@ -57,186 +52,76 @@ def _define_forest (ns):
    bb = []
    bb.append(importable_example (ns, arg1=1, arg2=2))
    bb.append(importable_example (ns, arg1=3, arg2=4))
-   cc.append(bundle(ns, bb, 'bundle_1'))
-   # cc.append(MG_JEN_template.bundle(ns, bb, 'bundle_1')
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'bundle_1'))
 
    bb = []
    bb.append(importable_example (ns, arg1=1, arg2=5))
    bb.append(importable_example (ns, arg1=1, arg2=6))
-   cc.append(bundle(ns, bb, 'bundle_2'))
-   # cc.append(MG_JEN_template.bundle(ns, bb, 'bundle_2')
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'bundle_2'))
 
    # Finished: 
-   return on_exit (ns, cc)            
-   # return MG_JEN_template.on_exit (ns, cc)
-
-
-
-#--------------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(script_name)
-
-
-#--------------------------------------------------------------------------------
-# Tree execution routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
-
-def _test_forest (mqs, parent):
-   return execute_forest (mqs, parent)
-   # return MG_JEN_template.execute_forest (mqs, parent)
-
-
-#--------------------------------------------------------------------------------
-# Test routine to check the tree for consistency in the absence of a server
-
-if __name__ == '__main__':
-   execute_without_mqs(script_name)
-   # MG_JEN_template.execute_without_mqs(script_name)
-
-
-
-
-
+   return MG_JEN_exec.on_exit (ns, cc)
 
 
 
 
 #================================================================================
-# Importable function(s): The essence of a MeqGraft (MG) script.
-# To be imported into user scripts. 
+# Optional: Importable function(s): To be imported into user scripts.
 #================================================================================
 
 #-------------------------------------------------------------------------------
 # Example:
 
-global_counter = 0                              # used for automatic qualifier
-
 def importable_example(ns, qual='auto', **pp):
 
-	# If necessary, make an automatic qualifier:
-	if isinstance(qual, str) and qual=='auto':
-		global global_counter
-		global_counter += 1
-		qual = str(global_counter)
+    # If necessary, make an automatic qualifier:
+    qual = MG_JEN_forest_state.autoqual('MG_JEN_template_example')
 
-	default = array([[1, pp['arg1']/10],[pp['arg2']/10,0.1]])
-	node = ns.dummy(qual) << Meq.Parm(default)
-	return node
+    default = array([[1, pp['arg1']/10],[pp['arg2']/10,0.1]])
+    node = ns.dummy(qual) << Meq.Parm(default)
+    return node
 
 
 
-#-------------------------------------------------------------------------------
-# Deal with the list (cc) of root nodes:
-# NB: This function may be imported from MG_JEN_template.py by other functions
-# NB: Remove this function when turning this template into a new MG script
-   
-def on_exit (ns, cc, name='_test_root'):
-	# Make a (single) root node for use in _test_forest():
-	global _test_root
-	_test_root = name
-	return bundle (ns, cc, name, show_parent=False)
-
-#-----------------------------------------------------------------------------
-# Bundle the given nodes by making them children of a new node:
-
-def bundle (ns, cc, name='bundle', show_parent=True):
-	if not isinstance(cc, list): cc = [cc]
-	if len(cc) == 1:
-		parent = ns[name] << Meq.Selector(cc[0])
-		# Make a page of bookmarks for the parent:
-		MG_JEN_forest_state.bookmark(parent, page=name) 
-		MG_JEN_forest_state.bookmark(parent, page=name, viewer='Record Browser')
-
-	else:
-		# Make a single parent node to tie the various results (cc) together:
-		parent = ns[name] << Meq.Add(children=cc)
-
-                # Make a bookpage for all the elements of cc:
-                for i in range(len(cc)):
-                   MG_JEN_forest_state.bookmark(cc[i], page=name)
-                if show_parent:
-                   MG_JEN_forest_state.bookmark(parent, page=name) 
-   
-	return parent
-   
-
-#-------------------------------------------------------------------------------- 
-# The function that does the work for _test_forest()
-# NB: This function may be imported from MG_JEN_template.py by other functions
-# NB: Remove this function when turning this template into a new MG script
-
-def execute_forest (mqs, parent, nfreq=20, ntime=19):
-
-	# Execute the forest with a 'suitable' request:
-	cells = meq.cells(meq.domain(0,1,0,1), num_freq=nfreq, num_time=ntime);
-	request = meq.request(cells,eval_mode=0);
-	global _test_root                                         # see on_exit()
-	mqs.meq('Node.Execute',record(name=_test_root, request=request));
-
-	# Save the meqforest in a file:
-	MG_JEN_forest_state.save(mqs)
-
-	return
 
 
-#-------------------------------------------------------------------------------- 
-# NB: This function may be imported from MG_JEN_template.py by other functions
-# NB: Remove this function when turning this template into a new MG script
 
-def execute_without_mqs(script_name='<script_name>'):
-	ns = NodeScope();
-	_define_forest(ns);
-	ns.Resolve();
-        display_nodescope(ns, script_name)
-	return 
+#********************************************************************************
+# Initialisation and testing routines
+# NB: this section should always be at the end of the script
+#********************************************************************************
 
-# Used by .execute_without_mqs(): 
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
 
-def display_nodescope (ns, txt='<txt>', trace=1):
-   print '\n*** display of NodeScope (',txt,'):'
-   print '** - ns.__class__ -> ',ns.__class__
-   print '** - ns.__repr__ -> ',ns.__repr__
-   # print '** - ns.__init__() -> ',ns.__init__()              # don't !!
-   print '** - ns.__str__ -> ',ns.__str__
-   print '** - ns.__new__ -> ',ns.__new__
-   print '** - ns.__hash__ -> ',ns.__hash__
-   # print '** - ns.__reduce__() -> ',ns.__reduce__()
-   # print '** - ns.__reduce_ex__() -> ',ns.__reduce_ex__()
-   print '** - ns._name -> ',ns._name
-   print '** - ns.name -> ',ns.name
-   print '** - ns._constants -> ',ns._constants
-   print '** - ns._roots -> ',ns._roots
-   print '** - ns.ROOT -> ',ns.ROOT
-   print '** - ns.__weakref__ -> ',ns.__weakref__
-   print '** - ns.__dict__ -> ',type(ns.__dict__),'[',len(ns.__dict__),']'
-   print '** - ns.__contains__ -> ',ns.__contains__
-   print '** - ns.GetErrors() -> ',ns.GetErrors()
-   # print '** - ns.MakeConstant(1) -> ',ns.MakeConstant(1)
-   print '** - ns.MakeUniqueName -> ',ns.MakeUniqueName
-   print '** - ns._uniqueName_counters -> ',ns._uniqueName_counters
-   print '** - ns.SubScope() -> ',ns.SubScope()
-   print '** - ns.Subscope -> ',ns.Subscope                   # takes 2 arguments
-   print '** - ns.Resolve() -> ',ns.Resolve()
-   print '**'
-   print '** - dir(ns) -> ',dir(ns)
-   
-   print '**'
-   # JEN_display (ns.AllNodes(),'ns.AllNodes()', full=1)
-   print '** - ns.AllNodes() : ',type(ns.AllNodes()),'[',len(ns.AllNodes()),']'
-   print '** - ns.Repository() : ',type(ns.Repository()),'[',len(ns.Repository()),']'
-   print '** - ns.RootNodes() : ',type(ns.RootNodes()),'[',len(ns.RootNodes()),']'
-   print '** - ns.RootNodes() -> ',ns.RootNodes()
-   # JEN_display (ns.RootNodes(),'ns.RootNodes()', full=1)
-   root = ns.RootNodes()
-   # for key in root.keys(): JEN_display_subtree (root[key],'root['+key+']', full=1)
-      
-   print '**'
-   print '** - ns.__doc__ -> ',ns.__doc__
-   print '*** End of NodeScope ()\n'
-   return
+MG_JEN_forest_state.init(script_name)
 
+#-------------------------------------------------------------------------
+# Meqforest execution routine (may be called from the browser):
+# The 'mqs' argument is a meqserver proxy object.
+# If not explicitly supplied, a default request will be used.
+
+def _test_forest (mqs, parent):
+   return MG_JEN_exec.meqforest (mqs, parent)
+
+#-------------------------------------------------------------------------
+# Test routine to check the tree for consistency in the absence of a server
+
+if __name__ == '__main__':
+    if True:
+        # This is the default:
+        MG_JEN_exec.without_meqserver(script_name)
+
+    else:
+       # This is the place for some specific tests during development.
+       print '\n**',script_name,':\n'
+       # ns = NodeScope()
+       # ............
+       # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
+       print '\n** end of',script_name,'\n'
+
+#********************************************************************************
 #********************************************************************************
 
 

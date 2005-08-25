@@ -1,7 +1,7 @@
-script_name = 'MG_JEN_template.py'
+script_name = 'MG_JEN_funklet.py'
 
 # Short description:
-# Template for the generation of MeqGraft scripts
+#   Demo and helper functions for the family of funklets
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
@@ -10,14 +10,6 @@ script_name = 'MG_JEN_template.py'
 
 # Copyright: The MeqTree Foundation 
 
-#================================================================================
-# How to use this template:
-# - Copy it to a suitably named script file (e.g. MG_JEN_xyz.py)
-# - Fill in the correct script_name at the top
-# - Fill in the author and the short description
-# - Replace the example importable function with specific ones
-# - Make the specific _define_forest() function
-# - Remove this 'how to' recipe
 
 #================================================================================
 # Import of Python modules:
@@ -25,17 +17,15 @@ script_name = 'MG_JEN_template.py'
 from Timba.TDL import *
 from Timba.Meq import meq
 
+from random import *
 from numarray import *
 # from string import *
-# from copy import deepcopy
+from copy import deepcopy
 
 from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
 
-# from Timba.Contrib.JEN import MG_JEN_util as MG_JEN_util
-# from Timba.Contrib.JEN import MG_JEN_twig as MG_JEN_twig
-# from Timba.Contrib.JEN import MG_JEN_math as MG_JEN_math
-# from Timba.Contrib.JEN import MG_JEN_funklet as MG_JEN_funklet
+
 
 
 #================================================================================
@@ -48,38 +38,77 @@ def _define_forest (ns):
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
 
-   # Test/demo of importable function:
-   bb = []
-   bb.append(importable_example (ns, arg1=1, arg2=2))
-   bb.append(importable_example (ns, arg1=3, arg2=4))
-   cc.append(MG_JEN_exec.bundle(ns, bb, 'bundle_1'))
-
-   bb = []
-   bb.append(importable_example (ns, arg1=1, arg2=5))
-   bb.append(importable_example (ns, arg1=1, arg2=6))
-   cc.append(MG_JEN_exec.bundle(ns, bb, 'bundle_2'))
-
+ 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, cc)
 
 
 
 
+
+
+
+
+
 #================================================================================
-# Optional: Importable function(s): To be imported into user scripts.
+# Importable function(s): The essence of a MeqGraft (MG) script.
+# To be imported into user scripts. 
 #================================================================================
 
-#-------------------------------------------------------------------------------
-# Example:
+#----------------------------------------------------------------------
+# Make a 'standard' freq-time polc 
 
-def importable_example(ns, qual='auto', **pp):
+def ft_polc (nfreq=2, ntime=3, c00=1): 
+   v = array([[c00,.3,.1],[.3,.1,0.03]])
+   polc = meq.polc(v)
+   return polc
 
-    # If necessary, make an automatic qualifier:
-    qual = MG_JEN_forest_state.autoqual('MG_JEN_template_example')
+#----------------------------------------------------------------------
+    
+   # v = array([[0,.3,.1],[.3,.1,0.03]])
+   # stddev = 1
+   # mean = complex(-1,-2)
+   # vreal = funklet(v, mean=mean.real, stddev=stddev)
+   # vimag = funklet(v, mean=mean.imag, stddev=stddev)
+   # real = ns[name](qual)(i,'real') << Meq.Parm (vreal, node_groups='Parm')
+   # imag = ns[name](qual)(i,'imag') << Meq.Parm (vimag, node_groups='Parm')
+   # cc.append(ns[name](qual)(i) << Meq.ToComplex (real, imag))
 
-    default = array([[1, pp['arg1']/10],[pp['arg2']/10,0.1]])
-    node = ns.dummy(qual) << Meq.Parm(default)
-    return node
+#----------------------------------------------------------------------
+   # mean = 2
+   # dflt = funklet(v, mean=mean, stddev=stddev)
+   # cc.append(ns[name](qual)(i) << Meq.Parm (dflt, node_groups='Parm'))
+
+
+#----------------------------------------------------------------------
+# Make sure that the funklet is a funklet.
+# Perturb the c00 coeff, if required
+
+# array([[1,.3,.1],[.3,.1,0.03]])
+
+def funklet (funkin, mean=0, stddev=0):
+    if isinstance(funkin, dmi_type('MeqFunklet')):
+        funklet = deepcopy(funkin)
+    elif isinstance(funkin,type(array(0))):
+        funklet = meq.polc(deepcopy(funkin))
+    else:
+        funklet = meq.polc(deepcopy(funkin))
+
+    if mean != 0 or stddev > 0:
+        if (funklet['coeff'].rank==0):
+            funklet['coeff'] += gauss(mean, stddev)
+        elif (funklet['coeff'].rank==1):
+            funklet['coeff'][0] += gauss(mean, stddev)
+        elif (funklet['coeff'].rank==2):
+            funklet['coeff'][0,0] += gauss(mean, stddev)
+        elif (funklet['coeff'].rank==3):
+            funklet['coeff'][0,0,0] += gauss(mean, stddev)
+        elif (funklet['coeff'].rank==4):
+            funklet['coeff'][0,0,0,0] += gauss(mean, stddev)
+        else:
+            print '\n** JEN_funklet error: rank =',funklet['coeff'].rank
+
+    return funklet
 
 
 
@@ -123,6 +152,7 @@ if __name__ == '__main__':
 
 #********************************************************************************
 #********************************************************************************
+
 
 
 

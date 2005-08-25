@@ -17,15 +17,17 @@ script_name = 'MG_JEN_solve_ab.py'
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import MG_JEN_template 
-import MG_JEN_forest_state
-
-# import MG_JEN_twig
-# import MG_JEN_math
-
 from numarray import *
 # from string import *
 # from copy import deepcopy
+
+from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
+from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
+
+# from Timba.Contrib.JEN import MG_JEN_util as MG_JEN_util
+# from Timba.Contrib.JEN import MG_JEN_twig as MG_JEN_twig
+# from Timba.Contrib.JEN import MG_JEN_math as MG_JEN_math
+# from Timba.Contrib.JEN import MG_JEN_funklet as MG_JEN_funklet
 
 
 
@@ -63,7 +65,7 @@ def _define_forest (ns):
 	MG_JEN_forest_state.bookmark(solver, page=page_name, viewer='ParmFiddler')
 
 	# Finished: 
-	return MG_JEN_template.on_exit (ns, solver)
+	return MG_JEN_exec.on_exit (ns, solver)
 
 
 
@@ -79,14 +81,14 @@ MG_JEN_forest_state.init(script_name)
 # The 'mqs' argument is a meqserver proxy object.
 
 def _test_forest (mqs, parent):
-	return MG_JEN_template.execute_forest (mqs, parent)
+	return MG_JEN_exec.meqforest (mqs, parent)
 
 
 #--------------------------------------------------------------------------------
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-	MG_JEN_template.execute_without_mqs()
+	MG_JEN_exec.without_meqserver(script_name)
 
 
 
