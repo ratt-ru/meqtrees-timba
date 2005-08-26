@@ -145,8 +145,43 @@ class SpH:
   else:
    print "Cannot update values: (cell,mqs)",self.lsm.cells,self.lsm.mqs
 
- # returns the value corresponding to the given (t,f) pair
+
+ # returns the size of the values corresponding to the given (t,f) pair
  # and the quantity 'A','I','Q','U','V','RA','Dec'
+ # returns [l,m] for lxm array size
+ def getValueSize(self,type,freq_index,time_index):
+  # range error check
+  if (self.lsm.cells.segments.freq.start_index > freq_index) or\
+    (self.lsm.cells.segments.freq.end_index < freq_index):
+    print "Index error, Frequency %d" %freq_index
+    freq_index=self.lsm.cells.segments.freq.start_index
+  if (self.lsm.cells.segments.time.start_index > time_index) or\
+    (self.lsm.cells.segments.time.end_index < time_index):
+    print "Index error, Time %d" %time_index
+    time_index=self.lsm.cells.segments.time.start_index
+  if type=='A' or type=='I':
+   # expect a vellset
+   try:
+    shape=self.sI.shape
+    if len(shape)==4:
+     l=shape[2]
+     m=shape[3]
+    else:
+     l=1
+     m=1
+    return [l,m]
+   except:
+    # no set, just a scalar
+    # print "Scalar Return "
+    return [1,1] 
+
+  # will not get here
+  return [1,1]
+
+ # returns the value(s) corresponding to the given (t,f) pair
+ # and the quantity 'A','I','Q','U','V','RA','Dec'
+ # note that in case of a patch, this would return a 2D
+ # array in l,m coordinates
  def getValue(self,type,freq_index,time_index):
   # range error check
   if (self.lsm.cells.segments.freq.start_index > freq_index) or\
@@ -635,9 +670,10 @@ class LSM:
    # select the max value
    tmp_max=0
    for pname in self.p_table.keys():
-    tmp_val=self.p_table[pname].sp.getValue(type,f,t)
-    if tmp_max < tmp_val:
-     tmp_max=tmp_val
+    if self.p_table[pname].getType()==POINT_TYPE:
+     tmp_val=self.p_table[pname].sp.getValue(type,f,t)
+     if tmp_max < tmp_val:
+      tmp_max=tmp_val
    return tmp_max
 
   # else
@@ -656,9 +692,10 @@ class LSM:
    # select the min value
    tmp_min=1000
    for pname in self.p_table.keys():
-    tmp_val=self.p_table[pname].sp.getValue(type,f,t)
-    if tmp_min > tmp_val:
-     tmp_min=tmp_val
+    if self.p_table[pname].getType()==POINT_TYPE:
+     tmp_val=self.p_table[pname].sp.getValue(type,f,t)
+     if tmp_min > tmp_val:
+      tmp_min=tmp_val
    return tmp_min
 
   # else

@@ -312,7 +312,12 @@ class MyCanvasView(QCanvasView):
    tmp_str=""
    for each_item in ilist:
      if each_item.rtti()==POINT_SOURCE_RTTI:
-      tmp_str+="["+each_item.name+"]"
+      tmp_str+=" "+each_item.name+" "
+      # see if it belongs to a patch
+      punit=self.lsm.p_table[each_item.name]
+      if punit._patch_name!=None:
+       tmp_str+="("+punit._patch_name+")"
+
    cr=QRect(self.contentsToViewport(self.worldMatrix().map(point)),QSize(len(tmp_str),2))
    return [cr,tmp_str]
 
@@ -369,8 +374,9 @@ class MyCanvasView(QCanvasView):
    # next update p-unit table (colours)
    for sname in self.lsm.p_table.keys():
     punit=self.lsm.p_table[sname]
-    # update size and colour both, if pcrosses are displayed 
-    self.p_tab[sname].updateDisplayProperties(self.getColor(punit.getBrightness(type,f_index,t_index)), punit.getBrightness(type,f_index,t_index))
+    if punit.getType()==POINT_TYPE:
+     # update size and colour both, if pcrosses are displayed 
+     self.p_tab[sname].updateDisplayProperties(self.getColor(punit.getBrightness(type,f_index,t_index)), punit.getBrightness(type,f_index,t_index))
    self.canvas().update()  
 
    # update indicator
@@ -825,13 +831,34 @@ class Patch:
   self.y_min=y_min
   self.y_max=y_max
   # create a rectangle
-  xys=self.cview.globalToLocal(self.x_min,self.y_max)
+  xys=self.cview.globalToLocal(self.x_max,self.y_max)
   topLeft=QPoint(xys[0],xys[1])
-  xys=self.cview.globalToLocal(self.x_max,self.y_min)
+  xys=self.cview.globalToLocal(self.x_min,self.y_min)
   bottomRight=QPoint(xys[0],xys[1])
   rectangle=QRect(topLeft,bottomRight)
   self.rect=QCanvasRectangle(rectangle,self.cview.canvas())
   self.rect.setPen(QPen(QColor(255,0,0)))
+  self.rect.setZ(0)
+
+  try:
+   # get vellsets if any
+   punit=self.cview.lsm.p_table[self.name]
+   lims=punit.sp.getValueSize(self.cview.default_mode,\
+    self.cview.default_freq_index,\
+    self.cview.default_time_index)
+ 
+   # the return type should be a numarray
+   byarr=punit.sp.getValue(self.cview.default_mode,\
+    self.cview.default_freq_index,\
+    self.cview.default_time_index)
+   # create an image
+   self.image=ImageItem(self.createArrayImage(byarr,lims[0],lims[1]),\
+           self.cview.canvas())
+   self.image.move(self.rect.x(),self.rect.y())
+   self.image.setZ(-1)
+  except:
+   self.image=None
+   pass
   self.show()
 
  def hide(self):
@@ -839,16 +866,104 @@ class Patch:
 
  def show(self):
   self.rect.show()
+  if self.image !=None:
+   self.image.show()
 
  def hideAll(self):
   self.rect.hide()
 
  def showAll(self):
   self.rect.show()
-
+  if self.image !=None:
+   self.image.show()
 
  def showType(self,flag):
   self.show()
 
  def updateDisplayProperties(self,newcolor,new_value):
-  pass
+  try:
+   punit=self.cview.lsm.p_table[self.name]
+   lims=punit.sp.getValueSize(self.cview.default_mode,\
+    self.cview.default_freq_index,\
+    self.cview.default_time_index)
+ 
+   # the return type should be a numarray
+   byarr=punit.sp.getValue(self.cview.default_mode,\
+    self.cview.default_freq_index,\
+    self.cview.default_time_index)
+   # create an image
+   self.image=ImageItem(self.createArrayImage(byarr,lims[0],lims[1]),\
+           self.cview.canvas())
+   self.image.move(self.rect.x(),self.rect.y())
+   self.image.setZ(-1)
+  except:
+   pass
+
+  # create an Image from the given numarray
+ # size x_dim by y_dim
+ def createArrayImage(self,narray,x_dim,y_dim):
+   # first find min,max values
+   import numarray
+   minval=narray.min()
+   maxval=narray.max()
+   print "array size is %d,%d with values %f,%f"%(x_dim,y_dim,minval,maxval)
+   # create an Image of the size of this array
+   # create image from this array, 32 bits depth, 2^24 colours
+   im=QImage(x_dim,y_dim,32)
+   # fill image with White
+   im.fill(qRgb(255,255,255))
+   # set pixel values for only non-zero elements
+   [nz_x,nz_y]=numarray.nonzero(narray)
+   for ci in range(len(nz_x)):
+     cl=self.getRGB(narray[nz_x[ci]][nz_y[ci]]-minval,maxval)
+     im.setPixel(nz_x[ci],nz_y[ci],cl)
+     print "value %f at %d,%d"%(narray[nz_x[ci]][nz_y[ci]],nz_x[ci],nz_y[ci])
+
+   # resize image to fit the rectangle
+   im2=im.smoothScale(self.rect.width(),self.rect.height())
+   print "created image size %d,%d",(im2.width(),im2.height())
+   return im2
+
+
+
+
+ # return a colour (RGB) according to brightness
+ def getRGB(self,z,max_brightness):
+  if max_brightness==0:
+    return qRgb(1,1,1) # no color : when Q,U,V is zero
+
+  cl=z/max_brightness # normalized in [0,1] 
+  if cl < 0.25:
+    return qRgb(0,int(cl*256*4),255)
+  elif cl < 0.5:
+    return qRgb(0,255,int((2-cl*4)*256))
+  elif cl < 0.75:
+    return qRgb(int((4*cl-2)*256),255,0)
+  else:
+    return qRgb(255,int((4-4*cl)*256),0)
+
+
+###############################################################
+class ImageItem(QCanvasRectangle):
+    def __init__(self,img,canvas):
+        QCanvasRectangle.__init__(self,canvas)
+        self.imageRTTI=984376
+        self.image=img
+        self.pixmap=QPixmap()
+        self.setSize(self.image.width(), self.image.height())
+        self.pixmap.convertFromImage(self.image, Qt.OrderedAlphaDither);
+
+    def rtti(self):
+        return self.imageRTTI
+
+    def hit(self,p):
+        ix = p.x()-self.x()
+        iy = p.y()-self.y()
+        if not self.image.valid( ix , iy ):
+            return False
+        self.pixel = self.image.pixel( ix, iy )
+        return  (qAlpha( self.pixel ) != 0)
+
+    def drawShape(self,p):
+        p.drawPixmap( self.x(), self.y(), self.pixmap )
+
