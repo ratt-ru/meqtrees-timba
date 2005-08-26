@@ -298,6 +298,6 @@ if __name__ == '__main__':
 #  from Timba.Meq import meqds 
   Timba.TDL._dbg.set_verbose(2);
   ns = NodeScope(test=True);
-  define_forest(ns);
+  _define_forest(ns);
   # resolves nodes
   ns.Resolve();
