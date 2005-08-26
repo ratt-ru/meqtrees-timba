@@ -916,7 +916,8 @@ class Patch:
    [nz_x,nz_y]=numarray.nonzero(narray)
    for ci in range(len(nz_x)):
      cl=self.getRGB(narray[nz_x[ci]][nz_y[ci]]-minval,maxval)
-     im.setPixel(nz_x[ci],nz_y[ci],cl)
+     # flip the image in the y direction
+     im.setPixel(nz_x[ci],y_dim-1-nz_y[ci],cl)
      print "value %f at %d,%d"%(narray[nz_x[ci]][nz_y[ci]],nz_x[ci],nz_y[ci])
 
    # resize image to fit the rectangle
