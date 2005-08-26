@@ -158,41 +158,57 @@ namespace Meq {
 	  Uvells = childres.at(src)->vellSet(4).getValue();
 	  Vvells = childres.at(src)->vellSet(5).getValue();
 
+		//The following part of code
+		//needs furthur checks
 	  if (Ivells.isScalar()){
-	    for (int j =0; j<nf; j++){
+	    for (int j =0; j<nf; j++)
 	      Ivec(j) = Ivells(0);
-	    };
 	  } else {
-	    for (int j =0; j<nf; j++){
+			if (Ivells.extent(0) <nf) {
+				//expect an 1xnf array
+	     for (int j =0; j<nf; j++)
+	      Ivec(j) = Ivells(0,j);
+			} else {
+				//expect an nfx1 array
+	     for (int j =0; j<nf; j++)
 	      Ivec(j) = Ivells(j);
-	    };
+      }
 	  };
 	  if (Qvells.isScalar()){
-	    for (int j =0; j<nf; j++){
+	    for (int j =0; j<nf; j++)
 	      Qvec(j) = Qvells(0);
-	    };
 	  } else {
-	    for (int j =0; j<nf; j++){
+			if (Qvells.extent(0) <nf) {
+	     for (int j =0; j<nf; j++)
+	      Qvec(j) = Qvells(0,j);
+			} else {
+	     for (int j =0; j<nf; j++)
 	      Qvec(j) = Qvells(j);
-	    };
+			}
 	  };
 	  if (Uvells.isScalar()){
-	    for (int j =0; j<nf; j++){
+	    for (int j =0; j<nf; j++)
 	      Uvec(j) = Uvells(0);
-	    };
 	  } else {
-	    for (int j =0; j<nf; j++){
+			if (Uvells.extent(0) <nf) {
+	     for (int j =0; j<nf; j++)
+	      Uvec(j) = Uvells(0,j);
+			} else {
+	     for (int j =0; j<nf; j++)
 	      Uvec(j) = Uvells(j);
-	    };
+			}
 	  };
 	  if (Vvells.isScalar()){
-	    for (int j =0; j<nf; j++){
+	    for (int j =0; j<nf; j++)
 	      Vvec(j) = Vvells(0);
-	    };
 	  } else {
-	    for (int j =0; j<nf; j++){
+			if (Vvells.extent(0) <nf) {
+	     for (int j =0; j<nf; j++)
+	      Vvec(j) = Vvells(0,j);
+			} else {
+	     for (int j =0; j<nf; j++)
 	      Vvec(j) = Vvells(j);
-	    };
+			}
 	  };
 
 	  ra = RAvells(0);
