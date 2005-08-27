@@ -468,6 +468,7 @@ class ResultPlotter(GriddedPlugin):
         QObject.connect(self._visu_plotter, PYSIGNAL('show_colorbar_display'), self.colorbar.showDisplay) 
         QObject.connect(self._visu_plotter, PYSIGNAL('vells_axes_labels'), self.set_ND_controls) 
         QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._visu_plotter.setImageRange) 
+        QObject.connect(self._visu_plotter, PYSIGNAL('do_print'), self.do_print) 
 
         self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
         self._wtop = self.layout_parent;       
@@ -534,6 +535,65 @@ class ResultPlotter(GriddedPlugin):
     QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay) 
     self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,1)
     self.ND_Controls.show()
+
+
+# The following 3 functions are adapted from the 'scicraft'
+# visualization package
+
+  def _get_qpainter(self, qprinter, hor_widgets, vert_widgets):
+        """Returns a qpainter using the given qprinter and geometry."""
+        qpainter = QPainter(qprinter)
+        metrics = QPaintDeviceMetrics(qpainter.device())
+        width = metrics.width()
+        height = (width / hor_widgets) * vert_widgets
+        qpainter.setClipRect(0, 0, width, height, qpainter.CoordPainter)
+        return qpainter
+
+  def _print_plots(self, qprinter, filter, hor_widgets, vert_widgets):
+        """Prints all plots with the given qprinter.
+        """
+        qpainter = self._get_qpainter(qprinter, hor_widgets, vert_widgets)
+        # get width and height for each plot 
+        metrics = QPaintDeviceMetrics(qpainter.device())
+        if metrics.width() > metrics.height():
+            # width of plots in x-direction is the largest (wrt. paintdevice)
+            width = metrics.width() / hor_widgets
+            height = width # quadratically sized plots
+        else:
+            # height of plots in x-direction is the largest (wrt. paintdevice)
+            height = metrics.height() / hor_widgets
+            width = height # quadratically sized plots
+
+        # print the plots to their designated slots in the qpainter
+        if hor_widgets > 1:
+          self.colorbar.printPlot(qpainter,
+            QRect(0, 0, 0.3 * width, height), filter)
+          self._visu_plotter.printPlot(qpainter,
+            QRect(0.4 * width, 0, 1.6 * width, height), filter)
+        else:
+          self._visu_plotter.printPlot(qpainter,
+            QRect(0, 0, width, height), filter)
+
+        qpainter.end()
+
+  def do_print(self, hor_widgets):
+        """Sends plots in this window to the printer.
+        """
+        try:
+            qprinter = QPrinter(QPrinter.HighResolution)
+        except AttributeError:
+            qprinter = QPrinter()
+        qprinter.setOrientation(QPrinter.Landscape)
+        qprinter.setColorMode(QPrinter.Color)
+        qprinter.setOutputToFile(True)
+        qprinter.setOutputFileName('image_plot.ps')
+        if qprinter.setup():
+            filter = PrintFilter()
+            if (QPrinter.GrayScale == qprinter.colorMode()):
+                filter.setOptions(QwtPlotPrintFilter.PrintAll
+                                  & ~QwtPlotPrintFilter.PrintCanvasBackground)
+            self._print_plots(qprinter, filter, hor_widgets, 1)
+
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass('MeqDataCollect'),ResultPlotter,priority=10)
