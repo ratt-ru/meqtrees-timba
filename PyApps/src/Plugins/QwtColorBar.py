@@ -5,7 +5,6 @@
 
 from Timba.GUI.pixmaps import pixmaps
 from QwtPlotImage import *
-from printfilter import *
 
 colorbar_instructions = \
 '''The colorbar displays the current range of intensities in the corresponding image display. You can interact with the colorbar to change the range of intensities displayed in the image.<br><br>

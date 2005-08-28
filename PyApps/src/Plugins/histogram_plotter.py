@@ -14,7 +14,7 @@ from qwt import *
 from numarray import *
 import numarray.nd_image
 
-from printfilter import *
+from plot_printer import *
 
 import random
 
