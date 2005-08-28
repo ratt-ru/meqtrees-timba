@@ -613,28 +613,7 @@ class QwtImageDisplay(QwtPlot):
             self.plot_vells_array(perturbed_array_diff)
         
     def printplot(self):
-      if self.is_vector:
-        # wierd - if I am just doing a 1-D array plot (not 1-D vells 
-        # plot), the emit signal seems not to be received by the 
-        # higher level array_plotter code, so for the moment we
-        # avoid emitting a signal for the i-D case and instead use
-        # the following
-        try:
-            printer = QPrinter(QPrinter.HighResolution)
-        except AttributeError:
-            printer = QPrinter()
-        printer.setOrientation(QPrinter.Landscape)
-        printer.setColorMode(QPrinter.Color)
-        printer.setOutputToFile(True)
-        printer.setOutputFileName('image_plot.ps')
-        if printer.setup():
-            filter = PrintFilter()
-            if (QPrinter.GrayScale == printer.colorMode()):
-                filter.setOptions(QwtPlotPrintFilter.PrintAll
-                                  & ~QwtPlotPrintFilter.PrintCanvasBackground)
-            self.printPlot(printer, filter)
-      else:
-        self.emit(PYSIGNAL("do_print"),(2,))
+      self.emit(PYSIGNAL("do_print"),(self.is_vector,))
     # printplot()
 
 
