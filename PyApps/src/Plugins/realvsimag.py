@@ -18,6 +18,8 @@ from math import sqrt
 
 # local python Error Bar class
 from ErrorBar import *
+
+from plot_printer import *
                                                                                 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='realvsimag');
@@ -55,36 +57,6 @@ def standard_deviation(incoming_array):
 
   return std_dev
 
-class PrintFilter(QwtPlotPrintFilter):
-    def __init__(self):
-        QwtPlotPrintFilter.__init__(self)
-
-    # __init___()
-    
-    def color(self, c, item, i):
-        if not (self.options() & QwtPlotPrintFilter.PrintCanvasBackground):
-            if item == QwtPlotPrintFilter.MajorGrid:
-                return Qt.darkGray
-            elif item == QwtPlotPrintFilter.MinorGrid:
-                return Qt.gray
-        if item == QwtPlotPrintFilter.Title:
-            return Qt.red
-        elif item == QwtPlotPrintFilter.AxisScale:
-            return Qt.green
-        elif item == QwtPlotPrintFilter.AxisTitle:
-            return Qt.blue
-        return c
-
-    # color()
-
-    def font(self, f, item, i):
-        result = QFont(f)
-        result.setPointSize(int(f.pointSize()*1.25))
-        return result
-
-    # font()
-
-# class PrintFilter
 
 realvsimag_instructions = \
 '''The <b>visu</b> realvsimag and error plots plot real vs imaginary values for data points within a MeqTree. These plots are constructed from <b>visu</b>
@@ -1701,7 +1673,7 @@ class realvsimag_plotter(object):
         printer.setOrientation(QPrinter.Landscape)
         printer.setColorMode(QPrinter.Color)
         printer.setOutputToFile(True)
-        printer.setOutputFileName('plot-%s.ps' % qVersion())
+        printer.setOutputFileName('realvsimag.ps')
         if printer.setup():
             filter = PrintFilter()
             if (QPrinter.GrayScale == printer.colorMode()):
