@@ -18,6 +18,7 @@ from qwt import *
 from QwtPlotImage import *
 from QwtColorBar import *
 from ND_Controller import *
+from plot_printer import *
 
 from vtk_qt_3d_display import *
 
@@ -45,6 +46,7 @@ class ArrayPlotter(GriddedPlugin):
         self.actual_rank = self.actual_rank + 1
     self.layout_parent = None
     self.array_selector = None
+    self.colorbar = None
     self.layout = None
     if self.actual_rank  > 1:
       self.layout_parent = QWidget(self.wparent())
@@ -69,7 +71,8 @@ class ArrayPlotter(GriddedPlugin):
     else:
       self._plotter = QwtImageDisplay('spectra',parent=self.wparent())
 
-    QObject.connect(self._plotter, PYSIGNAL('do_print'), self.do_print)
+    self.plotPrinter = plot_printer(self._plotter, self.colorbar)
+    QObject.connect(self._plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print)
     self._plotter.show()
     if self.layout_parent is None:
       self.set_widgets(self._plotter,dataitem.caption,icon=self.icon());
@@ -185,68 +188,6 @@ class ArrayPlotter(GriddedPlugin):
         self.array_selector.append(0)
     self.array_tuple = tuple(self.array_selector)
     self._plotter.array_plot('data', self.data[self.array_tuple])
-
-# The following 3 functions are adapted from the 'scicraft'
-# visualization package
-
-  def _get_qpainter(self, qprinter, hor_widgets, vert_widgets):
-        """Returns a qpainter using the given qprinter and geometry."""
-        qpainter = QPainter(qprinter)
-        metrics = QPaintDeviceMetrics(qpainter.device())
-        width = metrics.width()
-        height = (width / hor_widgets) * vert_widgets
-        qpainter.setClipRect(0, 0, width, height, qpainter.CoordPainter)
-        return qpainter
-
-  def _print_plots(self, qprinter, filter, hor_widgets, vert_widgets):
-        """Prints all plots with the given qprinter.
-        """
-        qpainter = self._get_qpainter(qprinter, hor_widgets, vert_widgets)
-        # get width and height for each plot 
-        metrics = QPaintDeviceMetrics(qpainter.device())
-        if hor_widgets > 1:
-          if metrics.width() > metrics.height():
-            # width of plots in x-direction is the largest (wrt. paintdevice)
-            width = metrics.width() / hor_widgets
-            height = width # quadratically sized plots
-          else:
-            # height of plots in x-direction is the largest (wrt. paintdevice)
-            height = metrics.height() / hor_widgets
-            width = height # quadratically sized plots
-          self.colorbar.printPlot(qpainter,
-            QRect(0, 0, 0.3 * width, height), filter)
-          self._plotter.printPlot(qpainter,
-            QRect(0.4 * width, 0, 1.6 * width, height), filter)
-        else:
-          width = metrics.width()
-          if metrics.width() > metrics.height():
-            width =  metrics.height()
-          height = width
-          self._plotter.printPlot(qpainter,
-            QRect(0, 0, width, height), filter)
-        qpainter.end()
-
-  def do_print(self, is_single):
-        """Sends plots in this window to the printer.
-        """
-        try:
-            qprinter = QPrinter(QPrinter.HighResolution)
-        except AttributeError:
-            qprinter = QPrinter()
-        qprinter.setOrientation(QPrinter.Landscape)
-        qprinter.setColorMode(QPrinter.Color)
-        qprinter.setOutputToFile(True)
-        qprinter.setOutputFileName('image_plot.ps')
-        if qprinter.setup():
-            filter = PrintFilter()
-            if (QPrinter.GrayScale == qprinter.colorMode()):
-                filter.setOptions(QwtPlotPrintFilter.PrintAll
-                                  & ~QwtPlotPrintFilter.PrintCanvasBackground)
-# we have two horizontal widgets - colorbar and the display area
-            hor_widgets = 2
-            if is_single:
-              hor_widgets = 1
-            self._print_plots(qprinter, filter, hor_widgets, 1)
 
 # leave use of VTK until later
 #   else:

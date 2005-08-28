@@ -5,7 +5,6 @@ from qt import *
 from qwt import *
 from numarray import *
 from UVPAxis import *
-from printfilter import *
 from ComplexColorMap import *
 from ComplexScaleDraw import *
 from QwtPlotImage import *
