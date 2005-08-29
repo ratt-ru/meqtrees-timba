@@ -1,7 +1,9 @@
 script_name = 'MG_JEN_template.py'
 
 # Short description:
-# Template for the generation of MeqGraft scripts
+#   Template for the generation of MeqGraft scripts
+
+# Keywords: ....
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
@@ -25,18 +27,17 @@ script_name = 'MG_JEN_template.py'
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import MG_JEN_exec 
-import MG_JEN_forest_state
-
-# import MG_JEN_util
-# import MG_JEN_twig
-# import MG_JEN_math
-# import MG_JEN_funklet
-
 from numarray import *
 # from string import *
 # from copy import deepcopy
 
+from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
+from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
+
+# from Timba.Contrib.JEN import MG_JEN_util as MG_JEN_util
+# from Timba.Contrib.JEN import MG_JEN_twig as MG_JEN_twig
+# from Timba.Contrib.JEN import MG_JEN_math as MG_JEN_math
+# from Timba.Contrib.JEN import MG_JEN_funklet as MG_JEN_funklet
 
 
 #================================================================================
@@ -92,11 +93,13 @@ def importable_example(ns, qual='auto', **pp):
 # NB: this section should always be at the end of the script
 #********************************************************************************
 
+#-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
 MG_JEN_forest_state.init(script_name)
 
+#-------------------------------------------------------------------------
 # Meqforest execution routine (may be called from the browser):
 # The 'mqs' argument is a meqserver proxy object.
 # If not explicitly supplied, a default request will be used.
@@ -104,6 +107,7 @@ MG_JEN_forest_state.init(script_name)
 def _test_forest (mqs, parent):
    return MG_JEN_exec.meqforest (mqs, parent)
 
+#-------------------------------------------------------------------------
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
@@ -113,11 +117,11 @@ if __name__ == '__main__':
 
     else:
        # This is the place for some specific tests during development.
-       print '\n**',script_name,':\n'
+       print '\n*******************\n** Local test of:',script_name,':\n'
        # ns = NodeScope()
        # ............
        # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
-       print '\n** end of',script_name,'\n'
+       print '\n** End of local test of:',script_name,'\n*******************\n'
 
 #********************************************************************************
 #********************************************************************************

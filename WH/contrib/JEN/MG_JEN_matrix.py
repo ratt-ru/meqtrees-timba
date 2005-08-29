@@ -23,10 +23,6 @@ from numarray import *
 from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
 
-# from Timba.Contrib.JEN import MG_JEN_util as MG_JEN_util
-# from Timba.Contrib.JEN import MG_JEN_twig as MG_JEN_twig
-# from Timba.Contrib.JEN import MG_JEN_math as MG_JEN_math
-# from Timba.Contrib.JEN import MG_JEN_funklet as MG_JEN_funklet
 
 
 
@@ -41,32 +37,32 @@ def _define_forest (ns):
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
 
-   # Test/demo of importable function: rotation_matrix()
+   # Test/demo of importable function: rotation()
    bb = []
    angle1 = ns.angle1('3c84', x=4, y=5) << Meq.Constant(3)
    # angle2 = ns.angle2(y=5) << Meq.Constant(-1)
    angle2 = -1
-   bb.append(rotation_matrix (ns, angle1))
-   bb.append(rotation_matrix (ns, [angle2]))
-   bb.append(rotation_matrix (ns, [angle1, angle2]))
+   bb.append(rotation (ns, angle1))
+   bb.append(rotation (ns, [angle2]))
+   bb.append(rotation (ns, [angle1, angle2]))
    cc.append(MG_JEN_exec.bundle(ns, bb, 'rotation'))
 
-   # Test/demo of importable function: ellipticity_matrix()
+   # Test/demo of importable function: ellipticity()
    bb = []
    angle1 = ns.angle1(x=4, y=5) << Meq.Constant(3)
    angle2 = ns.angle2(y=5) << Meq.Constant(-1)
-   bb.append(ellipticity_matrix (ns, angle1))
-   bb.append(ellipticity_matrix (ns, [angle2]))
-   bb.append(ellipticity_matrix (ns, [angle1, angle2]))
+   bb.append(ellipticity (ns, angle1))
+   bb.append(ellipticity (ns, [angle2]))
+   bb.append(ellipticity (ns, [angle1, angle2]))
    cc.append(MG_JEN_exec.bundle(ns, bb, 'ellipticity'))
    
-   # Test/demo of importable function: phase_matrix()
+   # Test/demo of importable function: phase()
    bb = []
    angle1 = ns.angle1(x=4, y=5) << Meq.Constant(3)
    angle2 = ns.angle2(y=5) << Meq.Constant(-1)
-   bb.append(phase_matrix (ns, angle1))
-   bb.append(phase_matrix (ns, [angle2]))
-   bb.append(phase_matrix (ns, [angle1, angle2]))
+   bb.append(phase (ns, angle1))
+   bb.append(phase (ns, [angle2]))
+   bb.append(phase (ns, [angle1, angle2]))
    cc.append(MG_JEN_exec.bundle(ns, bb, 'phase'))
 
 
@@ -88,7 +84,7 @@ def _define_forest (ns):
 #------------------------------------------------------------
 # Make a 2x2 rotation matrix
 
-def rotation_matrix (ns, angle=0, qual='auto'):
+def rotation (ns, angle=0, qual='auto', name='rotation_matrix'):
 
     qual = MG_JEN_forest_state.autoqual(qual, 'MG_JEN_matrix_rotation')
 
@@ -115,7 +111,7 @@ def rotation_matrix (ns, angle=0, qual='auto'):
         sin2 = (ns << Meq.Sin(a1))
         sin1 = (ns << Meq.Negate(sin2))
  
-    name = 'rotation_matrix'       
+    # Compose the 2x2 matrix:
     mat = (ns[name].qmerge(cos1, sin1, cos2, sin2)(qual) << Meq.Composer(
 		children=[cos1, sin1, cos2, sin2], dims=[2,2]))
 
@@ -125,9 +121,9 @@ def rotation_matrix (ns, angle=0, qual='auto'):
 #------------------------------------------------------------
 # Make a 2x2 ellipticity matrix
 
-def ellipticity_matrix (ns, angle=0, qual='auto'):
+def ellipticity (ns, angle=0, qual='auto', name='ellipticity_matrix'):
 
-    qual = MG_JEN_forest_state.autoqual(qual, 'MG_JEN_matrix_ellipt')
+    qual = MG_JEN_forest_state.autoqual(qual, 'MG_JEN_matrix_ellipticity')
 
     different_angles = 0
     if isinstance(angle, (list, tuple)):
@@ -156,7 +152,7 @@ def ellipticity_matrix (ns, angle=0, qual='auto'):
         isin2 = (ns << Meq.ToComplex(0, sin))
         isin1 = isin2
 
-    name = 'ellipticity_matrix'      
+    # Compose the 2x2 matrix:
     mat = (ns[name].qmerge(cos1,isin1, isin2, cos2)(qual) << Meq.Composer(
 	children=[cos1, isin1, isin2, cos2], dims=[2,2]))
 
@@ -165,7 +161,7 @@ def ellipticity_matrix (ns, angle=0, qual='auto'):
 #------------------------------------------------------------
 # Make a 2x2 phase matrix
 
-def phase_matrix (ns, angle=0, qual='auto'):
+def phase (ns, angle=0, qual='auto', name='phase_matrix'):
 
     qual = MG_JEN_forest_state.autoqual(qual, 'MG_JEN_matrix_phase')
 
@@ -188,7 +184,7 @@ def phase_matrix (ns, angle=0, qual='auto'):
         m11 = (ns << Meq.Polar(1, a1/2))
         m22 = (ns << Meq.Polar(1, ns << Meq.Negate(a1/2)))
 
-    name = 'phase_matrix'     
+    # Compose the 2x2 matrix:
     mat = (ns[name].qmerge(m11, m22)(qual) << Meq.Composer(
            children=[m11, 0, 0, m22], dims=[2,2]))
     return mat
@@ -219,7 +215,7 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-    if True:
+    if False:
         # This is the default:
         MG_JEN_exec.without_meqserver(script_name)
 
@@ -228,16 +224,16 @@ if __name__ == '__main__':
        print '\n**',script_name,':\n'
        ns = NodeScope()
        if 1:
-          rr = rotation_matrix (ns, angle=1)
-          MG_JEN_exec.display_subtree (rr, 'rotation_matrix', full=1)
+          rr = rotation (ns, angle=1)
+          MG_JEN_exec.display_subtree (rr, 'MG_JEN_matrix::rotation', full=1)
           
        if 1:
-          rr = ellipticity_matrix (ns, angle=1)
-          MG_JEN_exec.display_subtree (rr, 'ellipticity_matrix', full=1)
+          rr = ellipticity (ns, angle=1)
+          MG_JEN_exec.display_subtree (rr, 'MG_JEN_matrix::ellipticity', full=1)
           
        if 1:
-          rr = phase_matrix (ns, angle=1)
-          MG_JEN_exec.display_subtree (rr, 'phase_matrix', full=1)
+          rr = phase (ns, angle=1)
+          MG_JEN_exec.display_subtree (rr, 'MG_JEN_matrix::phase', full=1)
           
        print '\n** end of',script_name,'\n'
 

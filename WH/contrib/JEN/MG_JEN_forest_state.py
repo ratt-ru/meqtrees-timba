@@ -14,6 +14,8 @@ script_name = 'MG_JEN_forest_state.py'
 # Standard preamble
 from Timba.TDL import *
 from Timba.Meq import meq
+from Timba.Meq import meqds
+
 
 from numarray import *
 from string import *
@@ -259,27 +261,49 @@ def bookpage (bm={}, name='page', trace=0):
 # Add the given named (kwitem) and unnamed (item) items to the forest_state
 
 def trace (*item, **kwitem):
-  return append ('_trace', item, kwitem)
+   return append ('jen_trace', item, kwitem)
 
 def history (*item, **kwitem):
-  return append ('_history', item, kwitem)
+   return append ('jen_history', item, kwitem)
 
 def error (*item, **kwitem):
-  return append ('_ERROR', item, kwitem)
+   return append ('jen_ERROR', item, kwitem)
 
 def warning (*item, **kwitem):
-  return append ('_WARNING', item, kwitem)
+   return append ('jen_WARNING', item, kwitem)
 
 def append (field, item, kwitem):
-  Settings.forest_state.setdefault(field,record())
-  rr = Settings.forest_state[field]
-  key = str(len(rr))
-  kwitem = record(kwitem)
-  if len(item)>0: kwitem['unnamed'] = item
-  rr[key] = kwitem
-  Settings.forest_state[field] = rr
-  return rr[key]
+   level = kwitem.get('level',1)
+   indent = level*'..'
+   Settings.forest_state.setdefault(field,record())
+   rr = Settings.forest_state[field]
+   key = str(len(rr))
+   kwitem = record(kwitem)
+   if len(item)>0: kwitem['unnamed'] = indent+str(item)
+   rr[key] = kwitem
+   Settings.forest_state[field] = rr
+   return rr[key]
 
+#---------------------------------------------------------------------------
+# Functions for automatic testing
+# Append the test-result to the forest state record 
+
+def test_result (result, compare=False):
+  field = 'jen_test_result'
+  if compare:
+    # Compare the result with the earlier one
+    was = Settings.forest_state[field]
+    # .....
+    print script_name,'.test_result() compared'
+
+  else:
+    # Replace the stored test_result with the new one:
+    # print '.test_result(): result=',result
+    r = meqds.set_forest_state (field, result)
+    # print script_name,'.test_result() stored: ->',r
+    
+  return result
+  
 
 #---------------------------------------------------------------------------
 # Counter service (use by autoqual)
@@ -289,7 +313,7 @@ def append (field, item, kwitem):
 #     - just return the current value
 
 def counter (key, increment=0, reset=False):
-   field = '_counter'
+   field = 'jen_counter'
    Settings.forest_state.setdefault(field,record())
    rr = Settings.forest_state[field]
    rr.setdefault(key, 0)

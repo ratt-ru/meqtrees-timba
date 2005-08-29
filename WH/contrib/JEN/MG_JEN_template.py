@@ -1,7 +1,9 @@
 script_name = 'MG_JEN_template.py'
 
 # Short description:
-# Template for the generation of MeqGraft scripts
+#   Template for the generation of MeqGraft scripts
+
+# Keywords: ....
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
@@ -22,8 +24,19 @@ script_name = 'MG_JEN_template.py'
 #================================================================================
 # Import of Python modules:
 
-from Timba.TDL import *
+from Timba import utils
+_dbg = utils.verbosity(0, name='tutorial')
+_dprint = _dbg.dprint                    # use: _dprint(2, "abc")
+_dprintf = _dbg.dprintf                  # use: _dprintf(2, "a = %d", a)
+# run the script with: -dtutorial=3
+# level 0 is always printed
+
+from Timba import TDL
+from Timba.TDL import dmi_type, Meq
 from Timba.Meq import meq
+
+# from Timba.TDL import *
+# from Timba.Meq import meq
 
 from numarray import *
 # from string import *
@@ -97,30 +110,52 @@ def importable_example(ns, qual='auto', **pp):
 
 MG_JEN_forest_state.init(script_name)
 
+
+
 #-------------------------------------------------------------------------
 # Meqforest execution routine (may be called from the browser):
 # The 'mqs' argument is a meqserver proxy object.
-# If not explicitly supplied, a default request will be used.
 
 def _test_forest (mqs, parent):
+   # The following call shows the default settings explicity:
+   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False) 
+
+   # There are some predefined domains:
+   # return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')   # (100-110 MHz)
+   # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')    # (1350-1420 MHz)
+
+   # NB: It is also possible to give an explicit request, cells or domain
+   # NB: In addition, qualifying keywords will be used when sensible
+
+   # If not explicitly supplied, a default request will be used.
    return MG_JEN_exec.meqforest (mqs, parent)
+
+
 
 #-------------------------------------------------------------------------
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-    if True:
-        # This is the default:
-        MG_JEN_exec.without_meqserver(script_name)
+   print '\n*******************\n** Local test of:',script_name,':\n'
 
-    else:
-       # This is the place for some specific tests during development.
-       print '\n**',script_name,':\n'
-       # ns = NodeScope()
-       # ............
-       # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
-       print '\n** end of',script_name,'\n'
+   # Generic test:
+   MG_JEN_exec.without_meqserver(script_name)
 
+   # Various specific tests:
+   ns = TDL.NodeScope()
+
+   if 1:
+      # ............
+      # MG_JEN_exec.display_object (rr, 'rr', script_name)
+      # MG_JEN_exec.display_subtree (rr, script_name, full=1)
+
+   if 0:
+      # ............
+      # MG_JEN_exec.display_object (rr, 'rr', script_name)
+      # MG_JEN_exec.display_subtree (rr, script_name, full=1)
+
+   print '\n** End of local test of:',script_name,'\n*******************\n'
+       
 #********************************************************************************
 #********************************************************************************
 
