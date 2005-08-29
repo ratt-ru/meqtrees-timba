@@ -1375,10 +1375,10 @@ class QwtImageDisplay(QwtPlot):
       self.emit(PYSIGNAL("image_range"),(self.data_min, self.data_max))
       self.emit(PYSIGNAL("max_image_range"),(self.data_min, self.data_max))
 
-    def setArraySelector (self,lcd_number, slider_value):
+    def setArraySelector (self,lcd_number, slider_value, display_string):
       self.array_selector[lcd_number] = slider_value
       self.array_tuple = tuple(self.array_selector)
-      self.array_plot('data', self._value_array[self.array_tuple])
+      self.array_plot('data: '+ display_string, self._value_array[self.array_tuple])
 
     def plot_vells_array (self, data_array):
       if data_array.rank > 2:

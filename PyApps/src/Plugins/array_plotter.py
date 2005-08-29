@@ -170,10 +170,10 @@ class ArrayPlotter(GriddedPlugin):
     self._plotter.reset_color_bar(reset_value = False)
 
 
-  def setArraySelector (self,lcd_number, slider_value):
+  def setArraySelector (self,lcd_number, slider_value, display_string):
     self.array_selector[lcd_number] = slider_value
     self.array_tuple = tuple(self.array_selector)
-    self._plotter.array_plot('data', self.data[self.array_tuple])
+    self._plotter.array_plot('data: '+ display_string, self.data[self.array_tuple])
 
   def setSelectedAxes (self,first_axis, second_axis):
     self.array_selector = []

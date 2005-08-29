@@ -18,6 +18,7 @@ class LCDRange(QWidget):
         self.lcd.setPaletteBackgroundColor(Qt.red)
         self.lcd.setMaximumHeight(40)
         self.lcd_parms=lcd_parms
+        self.button_label = None
 
         self.slider = QSlider(Qt.Horizontal, self, "slider")
         self.slider.setTickmarks(QSlider.Below)
@@ -37,23 +38,26 @@ class LCDRange(QWidget):
         l.addWidget(self.lcd, 1)
         l.addWidget(self.slider)
 
+    def setLabel(self, label):
+        self.button_label = label
+
     def value(self):
         return self.slider.value()
 
     def resetValue(self):
-        temp_str = None
+        display_str = None
         if self.lcd_parms is None or not self.active:
-          temp_str = str(0)
+          display_str = str(0)
         else:
           delta_vells = (self.lcd_parms[1] - self.lcd_parms[0]) / self.maxVal
           index = self.lcd_parms[0] + 0.5 * delta_vells 
           dummy = str(index)
           if len(dummy) > 10:
-            temp_str = dummy[:9]
+            display_str = dummy[:9]
           else:
-            temp_str = dummy
-        self.lcd.setNumDigits(len(temp_str))
-        self.lcd.display(temp_str)
+            display_str = dummy
+        self.lcd.setNumDigits(len(display_str))
+        self.lcd.display(display_str)
         self.slider.setValue(0)
 
     def setRange(self, array_shape):
@@ -74,20 +78,22 @@ class LCDRange(QWidget):
 
     def update(self, slider_value):
         if self.active:
-          temp_str = None
+          display_str = None
           if self.lcd_parms is None:
-            temp_str = str(slider_value)
+            display_str = str(slider_value)
           else:
             delta_vells = (self.lcd_parms[1] - self.lcd_parms[0]) / self.maxVal
             index = self.lcd_parms[0] + (slider_value + 0.5) * delta_vells 
             dummy = str(index)
             if len(dummy) > 10:
-              temp_str = dummy[:9]
+              display_str = dummy[:9]
             else:
-              temp_str = dummy
-          self.lcd.setNumDigits(len(temp_str))
-          self.lcd.display(temp_str)
-          self.emit(PYSIGNAL("sliderValueChanged"), (self.lcd_number, slider_value))
+              display_str = dummy
+          self.lcd.setNumDigits(len(display_str))
+          self.lcd.display(display_str)
+          if not self.button_label is None:
+            display_str = self.button_label + ' ' + display_str
+          self.emit(PYSIGNAL("sliderValueChanged"), (self.lcd_number, slider_value, display_str))
         
           return self.slider.value()
         else:
@@ -153,14 +159,13 @@ class ND_Controller(QWidget):
           col = col + 1;
           if self.axis_parms is None:
             parms = None
-            self.lcd_ranges.append (LCDRange(self.num_selectors, parms, self))
           else:
             if self.axis_parms.has_key(axis_label[i]):
               parms = self.axis_parms[axis_label[i]]
-              self.lcd_ranges.append (LCDRange(self.num_selectors, parms, self))
             else:
               parms = None
-              self.lcd_ranges.append (LCDRange(self.num_selectors, parms, self))
+          self.lcd_ranges.append (LCDRange(self.num_selectors, parms, self))
+          self.lcd_ranges[self.num_selectors].setLabel(button_label)
           self.lcd_ranges[self.num_selectors].setRange(array_shape[i])
           QObject.connect(self.lcd_ranges[self.num_selectors], PYSIGNAL("sliderValueChanged"),self.update)
           self.layout.addWidget(self.lcd_ranges[self.num_selectors], row, col);
@@ -229,10 +234,10 @@ class ND_Controller(QWidget):
         self.active_axes = {}
     # resetAxes
 
-    def update(self, lcd_number, slider_value):
+    def update(self, lcd_number, slider_value, display_string):
       if not self.active_axes.has_key(lcd_number):
         if not self.buttons[lcd_number].isOn():
-          self.emit(PYSIGNAL("sliderValueChanged"), (self.button_number[lcd_number], slider_value))
+          self.emit(PYSIGNAL("sliderValueChanged"), (self.button_number[lcd_number], slider_value, display_string))
         else:
           self.lcd_ranges[lcd_number].resetValue()
       else:
