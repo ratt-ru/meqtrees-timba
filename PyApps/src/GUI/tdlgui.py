@@ -555,14 +555,14 @@ class TDLEditor (QFrame,PersistentCurrier):
       traceback.print_exc();
       _dprint(0,'exception',sys.exc_info(),'importing TDL file',self._real_filename);
       # syntax error in module: determine location
-      if exctype is SyntaxError:
+      if exctype is SyntaxError or exctype is IndentationError:
         offset = excvalue.offset;
+        msg = exctype.__name__;
         if offset is None:
-          msg = "syntax error";
           offset = 0;
         else:
-          msg = "syntax error at column %d" % (offset,);
-        self.show_error_list([SyntaxError(msg,excvalue.filename,(excvalue.lineno,offset))]);
+          msg += " at column %d" % (offset,);
+        self.show_error_list([exctype(msg,excvalue.filename,(excvalue.lineno,offset))]);
       else: # other error, try to find location via traceback
         stack = traceback.extract_tb(tb);
         (filename,line,funcname,text) = stack[-1];
