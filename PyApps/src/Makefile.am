@@ -47,7 +47,7 @@ dist_meq_SCRIPTS = Meq/__init__.py \
   Meq/meq.py Meq/meqds.py 
   
 dist_plugin_SCRIPTS = \
-  Plugins/ComplexColorMap.py   Plugins/__init__.py             Plugins/printfilter.py     \
+  Plugins/ComplexColorMap.py   Plugins/__init__.py             Plugins/plot_printer.py     \
   Plugins/ComplexDisplay.py    Plugins/array_plotter.py        Plugins/pyfits.py          \
   Plugins/ComplexScaleDraw.py  Plugins/display_image.py        Plugins/realvsimag.py      \
   Plugins/ErrorBar.py          Plugins/hippo_array_plotter.py  Plugins/result_plotter.py \
