@@ -69,9 +69,9 @@ class plot_printer:
         width = height # quadratically sized plots
       if not self.colorbar is None:
         self.colorbar.printPlot(qpainter,
-          QRect(0, 0, 0.3 * width, height), filter)
+          QRect(0, 0, 0.25 * width, height), filter)
       self.plotter.printPlot(qpainter,
-        QRect(0.4 * width, 0, 1.6 * width, height), filter)
+        QRect(0.35 * width, 0, 1.4 * width, height), filter)
     else:
       width = metrics.width()
       if metrics.width() > metrics.height():
@@ -102,3 +102,5 @@ class plot_printer:
         if is_single:
           hor_widgets = 1
         self._print_plots(qprinter, filter, hor_widgets, 1)
+
+# class plot_printer
