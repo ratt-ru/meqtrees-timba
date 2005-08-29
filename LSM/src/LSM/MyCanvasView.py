@@ -269,10 +269,13 @@ class MyCanvasView(QCanvasView):
     if retval != None:
      # successfully created patch
      print "created patch %s"%retval[0]
+     # remove these sources from PUnit table on main window
+     self.parent.removePUnitRows(psource_list)
      # update the GUI
      self.p_tab[retval[0]]=Patch(retval[0],self,retval[1],retval[2],\
                  retval[3],retval[4])
-
+     # update PUnit table on main window
+     self.parent.insertPUnitRow(retval[0])
     self.canvas().update()
    return
 
@@ -922,7 +925,7 @@ class Patch:
 
    # resize image to fit the rectangle
    im2=im.smoothScale(self.rect.width(),self.rect.height())
-   print "created image size %d,%d",(im2.width(),im2.height())
+   print "created image size %d,%d"%(im2.width(),im2.height())
    return im2
 
 

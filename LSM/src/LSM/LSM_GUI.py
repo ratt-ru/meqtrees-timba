@@ -221,6 +221,8 @@ class LSMWindow(QMainWindow):
         self.table2.horizontalHeader().setLabel(10,self.tr("RA"))
         self.table2.horizontalHeader().setLabel(11,self.tr("Dec"))
         row=0
+        # use a hash table to match row number to name
+        self.table2_names={}
         for sname in self.lsm.p_table.keys():
          punit=self.lsm.p_table[sname]
          if punit._patch_name==None:
@@ -252,6 +254,8 @@ class LSMWindow(QMainWindow):
           self.table2.setText(row,9,QString("MeqTree"))
           self.table2.setText(row,10,QString("MeqTree"))
           self.table2.setText(row,11,QString("MeqTree"))
+          # rememeber the name
+          self.table2_names[sname]=row
           row+=1
          else:
           print "This belongs to a patch"
@@ -499,6 +503,74 @@ class LSMWindow(QMainWindow):
 
     def viewSelectWindow(self):
       self.cview.zoom_status=GUI_SELECT_WINDOW
+
+    # remove rows from PUnit table (table2)
+    # with given name
+    def removePUnitRows(self,pname_list):
+        # create a list of row numbers corresponding
+        # to the given names
+        row_list=[]
+        for pname in pname_list:
+         if self.table2_names.has_key(pname):
+          row_list.append(self.table2_names[pname])
+        row_list.sort()
+ 
+        # remove these rows
+        if len(row_list)>0:
+         self.table2.removeRows(row_list)
+         # recreate name map
+         self.table2_names={} 
+         for ci in range(self.table2.numRows()):
+          self.table2_names[self.table2.text(ci,0).ascii()]=ci
+
+
+
+    # remove one row from PUnit table (table2)
+    # with given name
+    def removePUnitRow(self,pname):
+        if self.table2_names.has_key(pname):
+         self.table2.removeRow(self.table2_names[pname])
+         # recreate name map
+         self.table2_names={} 
+         for ci in range(self.table2.numRows()):
+           self.table2_names[self.table2.text(ci,0).ascii()]=ci
+
+    # insert row to PUnit table (table2)
+    # with given name
+    def insertPUnitRow(self,pname):
+        if self.table2_names.has_key(pname):
+          print "Key alreay exits"
+        else:
+         punit=self.lsm.p_table[pname]
+         if punit._patch_name==None:
+          row=self.table2.numRows()
+          self.table2.insertRows(row,1)
+          self.table2.setText(row,0,QString(punit.name))
+          mytype=punit.getType()
+          if mytype==POINT_TYPE:
+           self.table2.setText(row,1,self.tr("Point"))
+          else:
+           self.table2.setText(row,1,self.tr("Patch"))
+          # do not print all the source names in case of a patch
+          if mytype==POINT_TYPE:
+           self.table2.setText(row,2,QString(str(punit.getSources())))
+          else: #patch
+           srclist=punit.getSources()
+           self.table2.setText(row,2,QString(str(srclist[0])+"...."))
+
+          self.table2.setText(row,3,QString(str(punit.getCat())))
+          self.table2.setText(row,4,QString(str(punit.getBrightness())))
+          self.table2.setText(row,5,QString(str(punit.getFOVDist())))
+          self.table2.setText(row,6,QString("MeqTree"))
+          self.table2.setText(row,7,QString("MeqTree"))
+          self.table2.setText(row,8,QString("MeqTree"))
+          self.table2.setText(row,9,QString("MeqTree"))
+          self.table2.setText(row,10,QString("MeqTree"))
+          self.table2.setText(row,11,QString("MeqTree"))
+          # rememeber the name
+          self.table2_names[pname]=row
+
+
 
     def __tr(self,s,c = None):
         return qApp.translate("LSMWindow",s,c)
