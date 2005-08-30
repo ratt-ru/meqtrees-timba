@@ -19,10 +19,9 @@ from numarray import *
 # from string import *
 # from copy import deepcopy
 
-from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
-from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
-
-
+from Timba.Contrib.JEN import MG_JEN_exec
+from Timba.Contrib.JEN import MG_JEN_forest_state
+ 
 
 
 #================================================================================

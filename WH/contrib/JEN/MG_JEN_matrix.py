@@ -20,8 +20,9 @@ from numarray import *
 # from string import *
 # from copy import deepcopy
 
-from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
-from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
+from Timba.Contrib.JEN import MG_JEN_exec
+from Timba.Contrib.JEN import MG_JEN_forest_state
+
 
 
 
@@ -45,7 +46,7 @@ def _define_forest (ns):
    bb.append(rotation (ns, angle1))
    bb.append(rotation (ns, [angle2]))
    bb.append(rotation (ns, [angle1, angle2]))
-   cc.append(MG_JEN_exec.bundle(ns, bb, 'rotation'))
+   cc.append(MG_JEN_exec.bundle(ns, bb, '.rotation()'))
 
    # Test/demo of importable function: ellipticity()
    bb = []
@@ -54,7 +55,7 @@ def _define_forest (ns):
    bb.append(ellipticity (ns, angle1))
    bb.append(ellipticity (ns, [angle2]))
    bb.append(ellipticity (ns, [angle1, angle2]))
-   cc.append(MG_JEN_exec.bundle(ns, bb, 'ellipticity'))
+   cc.append(MG_JEN_exec.bundle(ns, bb, '.ellipticity()'))
    
    # Test/demo of importable function: phase()
    bb = []
@@ -63,7 +64,7 @@ def _define_forest (ns):
    bb.append(phase (ns, angle1))
    bb.append(phase (ns, [angle2]))
    bb.append(phase (ns, [angle1, angle2]))
-   cc.append(MG_JEN_exec.bundle(ns, bb, 'phase'))
+   cc.append(MG_JEN_exec.bundle(ns, bb, '.phase()'))
 
 
    # Finished: 

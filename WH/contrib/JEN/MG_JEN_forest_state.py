@@ -138,17 +138,22 @@ def init (script='<MG_JEN_xyz.py>', mode='MeqGraft'):
 #--------------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
-# NB: Only in this particular script this is done AFTER the function definition
 
 init(script_name)
 
 #------------------------------------------------------------------------------- 
-# Save the forest to a binary file
+# Save the forest to a binary file(s):
 
-def save (mqs, filename=False):
+def save_meqforest (mqs, filename=False, reference=False):
    if not isinstance(filename, str):
       filename = Settings.forest_state.savefile+'.meqforest'
-   mqs.meq('Save.Forest',record(file_name=filename));
+   mqs.meq('Save.Forest',record(file_name=filename))
+
+   # Optionally, store it in a reference-file, for auto-testing:
+   if reference:
+      filename = Settings.forest_state.savefile+'_reference.meqforest'
+      mqs.meq('Save.Forest',record(file_name=filename))
+      
    return filename
 
 
@@ -261,48 +266,40 @@ def bookpage (bm={}, name='page', trace=0):
 # Add the given named (kwitem) and unnamed (item) items to the forest_state
 
 def trace (*item, **kwitem):
-   return append ('jen_trace', item, kwitem)
+   return append ('trace', item, kwitem)
 
 def history (*item, **kwitem):
-   return append ('jen_history', item, kwitem)
+   return append ('history', item, kwitem)
 
 def error (*item, **kwitem):
-   return append ('jen_ERROR', item, kwitem)
+   return append ('ERROR', item, kwitem)
 
 def warning (*item, **kwitem):
-   return append ('jen_WARNING', item, kwitem)
+   return append ('WARNING', item, kwitem)
 
 def append (field, item, kwitem):
-   level = kwitem.get('level',1)
-   indent = level*'..'
-   Settings.forest_state.setdefault(field,record())
-   rr = Settings.forest_state[field]
-   key = str(len(rr))
-   kwitem = record(kwitem)
-   if len(item)>0: kwitem['unnamed'] = indent+str(item)
-   rr[key] = kwitem
-   Settings.forest_state[field] = rr
-   return rr[key]
+  Settings.forest_state.setdefault('jen',record())
+  Settings.forest_state['jen'].setdefault(field,record())
+  rr = Settings.forest_state['jen'][field]
+
+  level = kwitem.get('level',1)
+  indent = level*'..'
+  key = str(len(rr))
+  kwitem = record(kwitem)
+  if len(item)>0: kwitem['unnamed'] = indent+str(item)
+  rr[key] = kwitem
+
+  Settings.forest_state['jen'][field] = rr
+  return rr[key]
 
 #---------------------------------------------------------------------------
 # Functions for automatic testing
-# Append the test-result to the forest state record 
+# Attach the test-result to the forest state record 
 
-def test_result (result, compare=False):
-  field = 'jen_test_result'
-  if compare:
-    # Compare the result with the earlier one
-    was = Settings.forest_state[field]
-    # .....
-    print script_name,'.test_result() compared'
-
-  else:
-    # Replace the stored test_result with the new one:
-    # print '.test_result(): result=',result
-    r = meqds.set_forest_state (field, result)
-    # print script_name,'.test_result() stored: ->',r
-    
-  return result
+def attach_test_result (result):
+  field = '_test_result'
+  r = meqds.set_forest_state (field, result)
+  return r
   
 
 #---------------------------------------------------------------------------

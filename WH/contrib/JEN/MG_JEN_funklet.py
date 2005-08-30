@@ -206,7 +206,7 @@ def _test_forest (mqs, parent):
   # print 'run test_forest',script_name 
   # return MG_JEN_exec.meqforest (mqs, parent)
   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False) 
-  return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, domain='lofar')
+  return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')
 
 #-------------------------------------------------------------------------
 # Test routine to check the tree for consistency in the absence of a server

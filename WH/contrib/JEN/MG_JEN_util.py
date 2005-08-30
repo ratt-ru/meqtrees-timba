@@ -1,7 +1,7 @@
 script_name = 'MG_JEN_util.py'
 
 # Short description:
-#   A collection of useful utility functions 
+#   A collection of 'useful' utility functions 
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
@@ -10,14 +10,6 @@ script_name = 'MG_JEN_util.py'
 
 # Copyright: The MeqTree Foundation 
 
-#================================================================================
-# How to use this template:
-# - Copy it to a suitably named script file (e.g. MG_JEN_xyz.py)
-# - Fill in the correct script_name at the top
-# - Fill in the author and the short description
-# - Enable the MG_JEN_template. calls in the required functions
-# - Replace the importable functions with specific ones
-# - Make the specific _define_forest() function
 
 
 #================================================================================
@@ -30,12 +22,8 @@ from numarray import *
 # from string import *
 # from copy import deepcopy
 
-from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
-from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
-
-# from Timba.Contrib.JEN import MG_JEN_twig as MG_JEN_twig
-# from Timba.Contrib.JEN import MG_JEN_math as MG_JEN_math
-# from Timba.Contrib.JEN import MG_JEN_funklet as MG_JEN_funklet
+from Timba.Contrib.JEN import MG_JEN_exec
+# from Timba.Contrib.JEN import MG_JEN_forest_state
 
 
 
@@ -59,30 +47,6 @@ def _define_forest (ns):
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, cc)
-
-
-
-#--------------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(script_name)
-
-
-#--------------------------------------------------------------------------------
-# Tree execution routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
-
-def _test_forest (mqs, parent):
-   return MG_JEN_exec.meqforest (mqs, parent)
-
-
-#--------------------------------------------------------------------------------
-# Test routine to check the tree for consistency in the absence of a server
-
-if __name__ == '__main__':
-   MG_JEN_exec.without_meqserver(script_name)
-
 
 
 
@@ -193,7 +157,6 @@ def history (rr=0, *item, **pp):
     return rr
 
 
-
 #--------------------------------------------------------------------------------
 # Display the contents of a given class
 
@@ -209,80 +172,6 @@ def display_class (klass, txt='<txt>', trace=1):
     print '***** End of class\n'
     
 
-#--------------------------------------------------------------------------------
-# Display any Python object/variable (v):
-
-def display (v, name='<name>', txt='', full=0, indent=0):
-    if indent==0: print '\n** display of Python object:',name,': (',txt,'):'
-    print '**',indent*'.',name,':',
-    
-    if isinstance(v, (str, list, tuple, dict, record)):
-        # sizeable types (otherwise, len(v) gives an error):
-        vlen = len(v)
-        slen = '['+str(vlen)+']'
-
-        if isinstance(v, str):
-            print 'str',slen,
-            print '=',v
-      
-        elif isinstance(v, list):
-            print 'list',slen,
-            separate = False
-            types = {}
-            for i in range(vlen):
-                stype = str(type(v[i]))
-                types[stype] = 1
-                s1 = stype.split(' ')
-                if s1[0] == '<class': separate = True
-                if isinstance(v[i], (dict, record)): separate = True
-            if len(types) > 1: separate = True
-
-            if separate:
-                print ':'
-                for i in range(vlen): display (v[i], '['+str(i)+']', indent=indent+2)
-            elif vlen == 1:
-                print '=',[v[0]]
-            elif vlen < 5:
-                print '=',v
-            else:
-                print '=',[v[0],'...',v[vlen-1]]
-
-        elif isinstance(v, tuple):
-            print 'tuple',slen,
-            print '=',v
-          
-        elif isinstance(v, (dict, record)):
-            if isinstance(v, record):
-                print 'record',slen,':'
-            elif isinstance(v, dict):
-                print 'dict',slen,':'
-            keys = v.keys()
-            n = len(keys)
-            types = {}
-            for key in keys: types[str(type(v[key]))] = 1
-            if len(types) > 1:
-                for key in v.keys(): display (v[key], key, indent=indent+2)
-            elif n < 10:
-                for key in v.keys(): display (v[key], key, indent=indent+2)
-            elif full:
-                for key in v.keys(): display (v[key], key, indent=indent+2)
-            else:
-                for key in [keys[0]]: display (v[key], key, indent=indent+2)
-                if n > 20:
-                    print '**',(indent+2)*' ','.... (',n-2,'more fields of the same type )'
-                else:
-                    print '**',(indent+2)*' ','.... ( skipped keys:',keys[1:n-1],')'
-                for key in [keys[n-1]]: display (v[key], key, full=full, indent=indent+2) 
-        
-
-        else: 
-            print type(v),'=',v
-
-    else: 
-        # All other types:
-        print type(v),'=',v
-
-    if indent == 0: print
 
 
 #-----------------------------------------------------------------------
@@ -353,6 +242,66 @@ def unique (cc=[], trace=0):
 
 
 
+#********************************************************************************
+# Initialisation and testing routines
+# NB: this section should always be at the end of the script
+#********************************************************************************
+
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+# MG_JEN_forest_state.init(script_name)
+
+
+
+#-------------------------------------------------------------------------
+# Meqforest execution routine (may be called from the browser):
+# The 'mqs' argument is a meqserver proxy object.
+
+def _test_forest (mqs, parent):
+   # The following call shows the default settings explicity:
+   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False) 
+
+   # There are some predefined domains:
+   # return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')   # (100-110 MHz)
+   # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')    # (1350-1420 MHz)
+
+   # NB: It is also possible to give an explicit request, cells or domain
+   # NB: In addition, qualifying keywords will be used when sensible
+
+   # If not explicitly supplied, a default request will be used.
+   return MG_JEN_exec.meqforest (mqs, parent)
+
+
+
+#-------------------------------------------------------------------------
+# Test routine to check the tree for consistency in the absence of a server
+
+if __name__ == '__main__':
+   print '\n*******************\n** Local test of:',script_name,':\n'
+
+   # Generic test:
+   MG_JEN_exec.without_meqserver(script_name)
+
+   # Various specific tests:
+   ns = TDL.NodeScope()
+
+   if 1:
+      rr = 0
+      # ............
+      # MG_JEN_exec.display_object (rr, 'rr', script_name)
+      # MG_JEN_exec.display_subtree (rr, script_name, full=1)
+
+   if 0:
+      rr = 0
+      # ............
+      # MG_JEN_exec.display_object (rr, 'rr', script_name)
+      # MG_JEN_exec.display_subtree (rr, script_name, full=1)
+
+   print '\n** End of local test of:',script_name,'\n*******************\n'
+       
+#********************************************************************************
 #********************************************************************************
 
 

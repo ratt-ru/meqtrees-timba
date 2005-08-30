@@ -20,10 +20,11 @@ from numarray import *
 from string import *
 from copy import deepcopy
 
-from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
-from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
-from Timba.Contrib.JEN import MG_JEN_math as MG_JEN_math
-from Timba.Contrib.JEN import MG_JEN_funklet as MG_JEN_funklet
+from Timba.Contrib.JEN import MG_JEN_exec
+from Timba.Contrib.JEN import MG_JEN_forest_state
+from Timba.Contrib.JEN import MG_JEN_math
+from Timba.Contrib.JEN import MG_JEN_funklet
+
 
 
 
@@ -41,22 +42,24 @@ def _define_forest (ns):
    bb.append(freqtime (ns))
    bb.append(freqtime (ns, combine='ToComplex')) 
    bb.append(freqtime (ns, combine='Add', unop=['Cos','Sin']))  
-   cc.append(MG_JEN_exec.bundle(ns, bb, 'freqtime'))
+   cc.append(MG_JEN_exec.bundle(ns, bb, '.freqtime()'))
 
    # Test/demo of importable function: .wavelength()
    bb = []
    bb.append(wavelength (ns))
    bb.append(wavelength (ns, unop='Sqr'))
-   cc.append(MG_JEN_exec.bundle(ns, bb, 'wavelength'))
+   cc.append(MG_JEN_exec.bundle(ns, bb, '.wavelength()'))
 
    # Test/demo of importable function: .gaussnoise()
    dims = [1]
    dims = [2,2]
    bb = []
-   bb.append(gaussnoise (ns, stddev=1, mean=0, complex=True, dims=dims)) 
-   bb.append(gaussnoise (ns, stddev=1, mean=0, complex=True, dims=dims, unop='Exp'))
-   bb.append(gaussnoise (ns, stddev=1, mean=0, complex=True, dims=dims, unop=['Exp','Exp']))
-   cc.append(MG_JEN_exec.bundle(ns, bb, 'gaussnoise'))
+   bb.append(gaussnoise (ns)) 
+   bb.append(gaussnoise (ns, stddev=1, mean=-1, dims=dims)) 
+   bb.append(gaussnoise (ns, stddev=1, mean=complex(0), dims=dims)) 
+   bb.append(gaussnoise (ns, stddev=1, mean=complex(0), dims=dims, unop='Exp'))
+   bb.append(gaussnoise (ns, stddev=1, mean=complex(0), dims=dims, unop=['Exp','Exp']))
+   cc.append(MG_JEN_exec.bundle(ns, bb, '.gaussnoise()'))
 
    # Test/demo of importable function: .cloud()
    bb = cloud (ns, n=3, name='pnt', qual='auto', stddev=1, mean=complex(0))
@@ -113,8 +116,9 @@ def wavelength (ns, qual='auto', unop=0):
 
 #-------------------------------------------------------------------------------
 # Make a node with gaussian noise
+#   NB: complex if mean is complex
 
-def gaussnoise (ns, qual='auto', stddev=1, mean=0, complex=False, dims=[1], unop=False):
+def gaussnoise (ns, qual='auto', stddev=1, mean=0, dims=[1], unop=False):
     """makes gaussian noise"""
 
     # If necessary, make an automatic qualifier:
@@ -123,7 +127,7 @@ def gaussnoise (ns, qual='auto', stddev=1, mean=0, complex=False, dims=[1], unop
     # Determine the nr (nel) of tensor elements:
     if not isinstance(dims, (list, tuple)): dims = [dims]
     nel = sum(dims)
-    # print 'nel =',nel
+    print dims,'nel=',nel
 
     # NB: What about making/giving stddev as a MeqParm...?
 
@@ -133,24 +137,24 @@ def gaussnoise (ns, qual='auto', stddev=1, mean=0, complex=False, dims=[1], unop
     #     a separate set of values (would it, for the same request..........?)
     #     So a single GaussNoise would be sufficient (for all ifrs!)
     #     provided they would have the same stddev
-    cc = []
+
+    output = []
     for i in range(nel):
-	if complex:
+ 	if isinstance(mean, complex):
 		real = ns.real(qual)(i) << Meq.GaussNoise(stddev=stddev)
 		imag = ns.imag(qual)(i) << Meq.GaussNoise(stddev=stddev)
-		cc.append (ns.gaussnoise(qual)(i) << Meq.ToComplex(children=[real, imag]))
+		output.append (ns.gaussnoise(qual)(i) << Meq.ToComplex(children=[real, imag]))
 	else:
-		cc.append (ns.gaussnoise(qual)(i) << Meq.GaussNoise(stddev=stddev))
-
+		output.append (ns.gaussnoise(qual)(i) << Meq.GaussNoise(stddev=stddev))
+ 
     # Make into a tensor node, if necessary:
-    output = cc[0]
     if nel>1: 
-	output = ns.gaussnoise(qual) << Meq.Composer(children=cc, dims=dims)
+	output = ns.gaussnoise(qual) << Meq.Composer(children=output, dims=dims)
+    else:
+	output = output[0]
 
     # Optional: Add the specified mean:
-    if abs(mean)>0:
-	if not complex and isinstance(mean, complex): mean = mean.real
-	output = output + mean
+    if abs(mean)>0: output = ns << output + mean
 
     # Optional: Apply zero or more unary operations on the output (e.g Exp):
     output = MG_JEN_math.unop (ns, unop, output) 

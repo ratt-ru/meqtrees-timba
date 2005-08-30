@@ -13,16 +13,18 @@ script_name = 'MG_JEN_visualise.py'
 #================================================================================
 # Import of Python modules:
 
-from Timba.TDL import *
+from Timba import TDL
+from Timba.TDL import dmi_type, Meq, record, hiid
 from Timba.Meq import meq
+
 
 from numarray import *
 # from string import *
 from copy import deepcopy
 
-from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
-from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
-from Timba.Contrib.JEN import MG_JEN_twig as MG_JEN_twig
+from Timba.Contrib.JEN import MG_JEN_exec
+from Timba.Contrib.JEN import MG_JEN_forest_state
+from Timba.Contrib.JEN import MG_JEN_twig
 
 
 
@@ -46,56 +48,34 @@ def _define_forest (ns):
    zz = MG_JEN_twig.cloud (ns, n=3, name='zz', qual='auto', stddev=1, mean=complex(0,-2))
  
    # Make dataCollect nodes of type 'realvsimag' for the various clouds:
+   bb= [] 
    scope = 'scope1'
    dd = []
    dc = dcoll(ns, xx, scope=scope, tag='xx', color='red', errorbars=True)  
-   cc.append(dc['dcoll'])
+   bb.append(dc['dcoll'])
    dd.append(dc)
 
    dc = dcoll(ns, yy, scope=scope, tag='yy', color='blue', errorbars=False)
-   cc.append(dc['dcoll']) 
+   bb.append(dc['dcoll']) 
    dd.append(dc)
  
    dc = dcoll(ns, zz, scope=scope, tag='zz', color='magenta', errorbars=True)
-   cc.append(dc['dcoll']) 
+   bb.append(dc['dcoll']) 
    dd.append(dc)
 
    # Concatenate the dataCollect nodes in dd:
-   dc = dconc(ns, dd, scope=scope)
-   cc.append(dc['dcoll'])
+   dc = dconc(ns, dd, scope=scope) 
+   bb.append(dc['dcoll'])
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'realvsimag', show_parent=False))
  
-
-   # dc = dcoll(nsub, nodes, tscope='scope3', ype='spectra') 
-   # cc.append(dc['dcoll'])
+   # Test of type = spectra:
+   bb = []
+   dc = dcoll(ns, xx, scope='scope2', type='spectra') 
+   bb.append(dc['dcoll'])  
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'spectra', show_parent=False))
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, cc)
-
-
-
-#--------------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(script_name)
-
-
-#--------------------------------------------------------------------------------
-# Tree execution routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
-
-def _test_forest (mqs, parent):
-   return MG_JEN_exec.meqforest (mqs, parent)
-
-
-#--------------------------------------------------------------------------------
-# Test routine to check the tree for consistency in the absence of a server
-
-if __name__ == '__main__':
-   MG_JEN_exec.without_meqserver(script_name)
-
-
-
 
 
 
@@ -288,6 +268,102 @@ def dconc (ns, dcoll, **pp):
 
 
 
+#================================================================================
+# From: bugzilla-daemon@astron.nl
+# To: noordam@astron.nl
+# Subject: [Bug 238] dataConcat only uses the color of its FIRST child only
+# Date: Fri, 26 Aug 2005 03:28:25 +0200
+
+# http://lofar9.astron.nl/bugzilla/show_bug.cgi?id=238
+
+# ------- Additional Comments From Tony.Willis@nrc-cnrc.gc.ca  2005-08-26 03:28 -------
+# This is a feature not a bug!! I ran the current version of WSRT_cps.tdl as
+# checked into CVS and had a look at the DataConcat node 'dconc_rawdata_paral'. At
+# its top level we have the tag ('dconc', 'XX', 'YY'). The two lower levels have tags
+# "XX", and "YY" respectively. Since the higher level tag 'contains' the lower
+# level ones, the implication is that at the higher level we 'envelop' the lower
+# level ones and use 'common' attributes - the first ones found. Since the color
+# 'red' is first in the list, it is used everywhere. If you had used just the tag
+# 'dconc' at the parent level, you should have obtained plots with separate colors.
+
+# I believe that we agreed on the above behaviour, although my plotting_rules
+# text only says:
+
+# # A few parameters, such as the attrib.tag field, are amalgamated
+# as we go through the tree. 
+
+# So if you had top level tag 'dconc' at the lower level you would have e.g.
+# dconc+XX as the leaf tag. However since your top level tag ("dconc", XX", 'YY")
+# already contains XX there is nothing to amalgamate! (I suppose we are using
+# something vaguely equivalent to set theory here!)
+
+# I shall leave the bug open in case you wish to complain ...
+
+
+
+
+
+
+#********************************************************************************
+# Initialisation and testing routines
+# NB: this section should always be at the end of the script
+#********************************************************************************
+
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(script_name)
+
+
+
+#-------------------------------------------------------------------------
+# Meqforest execution routine (may be called from the browser):
+# The 'mqs' argument is a meqserver proxy object.
+
+def _test_forest (mqs, parent):
+   # The following call shows the default settings explicity:
+   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False) 
+
+   # There are some predefined domains:
+   # return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')   # (100-110 MHz)
+   # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')    # (1350-1420 MHz)
+
+   # NB: It is also possible to give an explicit request, cells or domain
+   # NB: In addition, qualifying keywords will be used when sensible
+
+   # If not explicitly supplied, a default request will be used.
+   return MG_JEN_exec.meqforest (mqs, parent)
+
+
+
+#-------------------------------------------------------------------------
+# Test routine to check the tree for consistency in the absence of a server
+
+if __name__ == '__main__':
+   print '\n*******************\n** Local test of:',script_name,':\n'
+
+   # Generic test:
+   MG_JEN_exec.without_meqserver(script_name)
+
+   # Various specific tests:
+   ns = TDL.NodeScope()
+
+   if 1:
+      rr = 0
+      # ............
+      # MG_JEN_exec.display_object (rr, 'rr', script_name)
+      # MG_JEN_exec.display_subtree (rr, script_name, full=1)
+
+   if 0:
+      rr = 0
+      # ............
+      # MG_JEN_exec.display_object (rr, 'rr', script_name)
+      # MG_JEN_exec.display_subtree (rr, script_name, full=1)
+
+   print '\n** End of local test of:',script_name,'\n*******************\n'
+       
+#********************************************************************************
 #********************************************************************************
 
 
