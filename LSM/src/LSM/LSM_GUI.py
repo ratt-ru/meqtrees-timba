@@ -320,6 +320,8 @@ class LSMWindow(QMainWindow):
         self.fileSaveAsAction = QAction(self,"fileSaveAsAction")
         self.filePrintAction = QAction(self,"filePrintAction")
         self.filePrintAction.setIconSet(QIconSet(self.image3))
+        self.filePrintEPSAction = QAction(self,"filePrintEPSAction")
+        self.filePrintEPSAction.setIconSet(QIconSet(self.image3))
         self.helpAboutAction = QAction(self,"helpAboutAction")
         self.viewZoom_WindowAction = QAction(self,"viewZoom_WindowAction")
         self.viewZoom_AllAction = QAction(self,"viewZoom_AllAction")
@@ -340,6 +342,7 @@ class LSMWindow(QMainWindow):
         self.fileSaveAsAction.addTo(self.fileMenu)
         self.fileMenu.insertSeparator()
         self.filePrintAction.addTo(self.fileMenu)
+        self.filePrintEPSAction.addTo(self.fileMenu)
         self.fileMenu.insertSeparator()
         self.fileMenu.insertItem('&Quit',qApp,SLOT('closeAllWindows()'),Qt.CTRL + Qt.Key_Q)
 
@@ -372,6 +375,7 @@ class LSMWindow(QMainWindow):
         self.connect(self.fileSaveAction,SIGNAL("activated()"),self.fileSave)
         self.connect(self.fileSaveAsAction,SIGNAL("activated()"),self.fileSaveAs)
         self.connect(self.filePrintAction,SIGNAL("activated()"),self.filePrint)
+        self.connect(self.filePrintEPSAction,SIGNAL("activated()"),self.filePrintEPS)
 
         self.connect(self.viewZoom_WindowAction,SIGNAL("activated()"),self.zoomStart)
         self.connect(self.viewZoom_AllAction,SIGNAL("activated()"),self.zoomAll)
@@ -400,6 +404,9 @@ class LSMWindow(QMainWindow):
         self.filePrintAction.setText(self.__tr("Print"))
         self.filePrintAction.setMenuText(self.__tr("&Print..."))
         self.filePrintAction.setAccel(self.__tr("Ctrl+P"))
+        self.filePrintEPSAction.setText(self.__tr("Print EPS"))
+        self.filePrintEPSAction.setMenuText(self.__tr("Print &EPS..."))
+        self.filePrintEPSAction.setAccel(self.__tr("Ctrl+E"))
         self.helpAboutAction.setText(self.__tr("About"))
         self.helpAboutAction.setMenuText(self.__tr("&About"))
         self.helpAboutAction.setAccel(QString.null)
@@ -463,6 +470,68 @@ class LSMWindow(QMainWindow):
         if  self.cview.printer.setup(self.cview):
             pp=QPainter(self.cview.printer)
             self.canvas.drawArea(QRect(0,0,self.canvas.width(),self.canvas.height()),pp,False)
+            pp.end()
+            if pp.isActive():
+              pp.flush()
+
+    # print to EPS
+    def filePrintEPS(self):
+      filename='./print.eps'
+      # write EPS
+      if not self.cview.printer:
+       self.cview.printer = QPrinter()
+      self.cview.printer.setColorMode(QPrinter.Color)
+      self.cview.printer.setOrientation(QPrinter.Portrait)
+      self.cview.printer.setOutputToFile(True)
+      self.cview.printer.setOutputFileName(filename)
+      self.cview.printer.setPageSize(QPrinter.A4)
+      if  self.cview.printer.setup(self.cview):
+       pp=QPainter(self.cview.printer)
+       self.canvas.drawArea(QRect(0,0,self.canvas.width(),self.canvas.height()),pp,False)
+       pp.end()
+       if pp.isActive():
+        pp.flush()
+       if self.cview.printer.outputToFile():
+         self.filePStoEPS(self.cview.printer.outputFileName().ascii())
+
+       self.filePStoEPS(filename)
+            
+    # convert a PS file to an EPS file by changing the 
+    # bounding box
+    def filePStoEPS(self,filename):
+     fn=QFile(filename)   
+     if not fn.open( IO_ReadOnly ):
+      print "Print EPS: file not readable"
+      return
+     ts = QTextStream( fn )
+     
+     fileContent=QString()
+     while not ts.atEnd():
+       fileContent.append(ts.read())
+    
+     fn.close()
+     rx=QRegExp("%%BoundingBox:\\s*(-?[\\d\\.]+)\\s*(-?[\\d\\.]+)\\s*(-?[\\d\\.]+)\\s*(-?[\\d\\.]+)")
+     pos = rx.search(fileContent)
+     left = rx.cap(1).toFloat()
+     top = rx.cap(4).toFloat()
+     # parsed [left,bottom] [right,top]
+     # replace  the margins
+     # note padding is arbitrary
+     padding=100 
+     newstr="%%BoundingBox: "+str(left[0])+" "+str(top[0]-(self.canvas.height()-padding))+" "+str(left[0]+self.canvas.width()-padding)+" "+str(top[0])
+     print "Writing "+newstr
+     fileContent.replace(pos,rx.cap(0).length(),QString(newstr))
+     #print "File modified",fileContent.ascii()
+
+     newfilename=filename
+     try:
+       f = open(newfilename,'w+')
+     except:
+      print "Print EPS: file not writable"
+      return
+
+     f.write(fileContent.ascii())
+     f.close()
 
 
     def zoomStart(self):
