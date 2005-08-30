@@ -8,7 +8,8 @@ from Timba.LSM.LSM import *
 from Timba.TDL import Settings
 from Timba.LSM.LSM_GUI import *
 # Meqtree stuff
-from Timba.Contrib.JEN.JEN_lsm  import *
+#from Timba.Contrib.JEN.JEN_lsm  import *
+from Timba.Contrib.JEN.MG_JEN_sixpack  import *
 
 import re
 import math
@@ -75,7 +76,9 @@ def _define_forest(ns):
    source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
    source_Dec*=math.pi/180.0
 
-   sixpack=lsm_NEWSTAR_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[random()],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
+   
+   #sixpack=lsm_NEWSTAR_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[random()],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
+   sixpack=newstar_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[random()],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
    iquv=sixpack['iquv']
    radec=sixpack['radec']
    # create SixPack trees using JEN code,
