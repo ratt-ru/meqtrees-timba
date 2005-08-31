@@ -121,6 +121,25 @@ inline string ObjStr (const PyObject *obj)
   return Debug::ssprintf("%s @%x",obj->ob_type->tp_name,(int)obj);
 }
 
+// getDMIType:
+// Helper templated function. Uses the dmi_typename() function to determine
+// the type of an object, returns its TypeId if found
+// Otherwise returns 0
+static TypeId getDMIType (PyObject *pyobj)
+{
+  // create object according to its DMI typestring
+  PyObjectRef args = Py_BuildValue("(Oi)",pyobj,1);
+  if( !args )
+    return 0;
+  PyObjectRef dmitypename = PyObject_CallObject(py_dmisyms.dmi_typename,*args);
+  if( !dmitypename )
+    return 0;
+  char *typestr = PyString_AsString(*dmitypename);
+  if( !typestr )
+    return 0;
+  return TypeId(typestr);
+}
+
 // createSubclass:
 // Helper templated function. If the DMI_TYPE_TAG attribute exists, it is 
 // interpreted as a type string, and an object of that type is created and 
@@ -132,22 +151,16 @@ static Base * createSubclass (PyObject *pyobj)
 {
   Base *pbase;
   // create object according to its DMI typestring
-  PyObjectRef args = Py_BuildValue("(Oi)",pyobj,1);
-  if( !args )
-    throwErrorOpt(Runtime,"failed to create dmi_typename() args tuple");
-  PyObjectRef dmitypename = PyObject_CallObject(py_dmisyms.dmi_typename,*args);
-  if( !dmitypename )
-    throwErrorOpt(Runtime,"failed to call dmi_typename()");
-  char *typestr = PyString_AsString(*dmitypename);
-  if( !typestr )
-    throwError(Value,"dmi_typename() did not return a string");
-  dprintf(4)("real object type is %s\n",typestr);
-  DMI::BObj * bo = DynamicTypeManager::construct(TypeId(typestr));
+  TypeId tid = getDMIType(pyobj);
+  if( tid == 0 )
+    throwErrorOpt(Runtime,"Python object is not in dmi type map");
+  dprintf(4)("real object type is %s\n",tid.toString().c_str());
+  DMI::BObj * bo = DynamicTypeManager::construct(tid);
   pbase = dynamic_cast<Base *>(bo);
   if( !pbase )
   {
     delete bo;
-    throwError(Type,string(typestr)+"is not a subclass of "+TpOfPtr(pbase).toString());
+    throwError(Type,tid.toString()+"is not a subclass of "+TpOfPtr(pbase).toString());
   }
   dprintf(5)("%s created at address %x\n",pbase->objectType().toString().c_str(),(int)pbase);
   return pbase;
@@ -301,6 +314,7 @@ int pyToArray (DMI::NumArray::Ref &arref,PyObject *pyobj)
 // 0 if unmappable type
 TypeId pyToDMI_Type (PyObject *obj)
 {
+  // first check for primitives
   if( obj == Py_None ) 
     return TpDMIObjRef;
   else if( PyInt_Check(obj) )
@@ -441,25 +455,37 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
           // for sequences of the same non-dynamic type, use a DMI::Vec
           // for all other sequences use a DMI::List
           // scan through list to determine item type
-          TypeId seqtype = 0;
+          TypeId seqtype = 0, seqbasetype;
           bool use_list = false;
           for( int i=0; i<len; i++ )
           {
             PyObjectRef item = PySequence_ITEM(obj,i);
-            TypeId type = pyToDMI_Type(*item);
-            // unsupported
-            if( !type )
+            // determine base content type based on Python type
+            TypeId basetype = pyToDMI_Type(*item);
+            if( !basetype )
             {
               string type = item->ob_type->tp_name;
               cdebug(3)<<objstr<<"type "<<type<<" not supported"<<endl;
               throwError(Type,"dmi: type "+type+" not supported");
             }
+            // actual type may be a subclass of basetype (e.g.
+            // base is DMI::Record, actual type is Meq::Result)
+            TypeId type = getDMIType(*item);
+            if( !type )
+              type = basetype;
             // set sequence type if not set
             if( !seqtype )
+            {
               seqtype = type;
+              seqbasetype = basetype;
+            }
             // dynamic types, or null objects (ObjRef), or mismatching types:
             // use a list instead
-            if( TypeInfo::isDynamic(type) || type == TpDMIObjRef || type != seqtype )
+            // OMS 29/08/2005: removed the isDynamic() condition; objects
+            // of the same type ought to go into a DMI::Vec. Not sure why it
+            // was there in the first place
+            if( type == TpDMIObjRef || type != seqtype )
+//            if( TypeInfo::isDynamic(type) || type == TpDMIObjRef || type != seqtype )
             {
               use_list = true;
               break;
@@ -495,7 +521,7 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
               cdebug(4)<<objstr<<"converting seq element "<<i<<endl;
               PyObjectRef item = PySequence_ITEM(obj,i);
               ObjRef dum;
-              pyToDMI(dum,*item,seqtype,pvec,i);  // this mode causes an insert into vector
+              pyToDMI(dum,*item,seqbasetype,pvec,i);  // this mode causes an insert into vector
             }
           }
           // check if we're actually an item in a DMI::Vec

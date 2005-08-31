@@ -56,12 +56,12 @@ class CountedRef : private CountedRefBase
       // Partial specialization: a ref to a superclass can only be converted to a 
       // subclass ref if it currently points to an object of that subclass
       template <class U>
-      const CountedRef<U> * compatible (Type2Type<U>,Int2Type<false>) const
+      const CountedRef<U> * pcompatible (Type2Type<U>,Int2Type<false>) const
       {
         STATIC_CHECK( SUPERSUBCLASS(T,U),Incompatible_CountedRef_types );
         FailWhen(target_ && !dynamic_cast<const U*>(target_),
                   "incompatible ref types");
-        return reinterpret_cast<CountedRef<U>*>(this);
+        return reinterpret_cast<const CountedRef<U>*>(this);
       }
       
   public:
