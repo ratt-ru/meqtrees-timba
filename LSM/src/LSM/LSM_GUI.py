@@ -465,6 +465,7 @@ class LSMWindow(QMainWindow):
 
 
     def filePrint(self):
+
         if not self.cview.printer:
             self.cview.printer = QPrinter()
         if  self.cview.printer.setup(self.cview):
@@ -473,6 +474,7 @@ class LSMWindow(QMainWindow):
             pp.end()
             if pp.isActive():
               pp.flush()
+
 
     # print to EPS
     def filePrintEPS(self):
@@ -489,27 +491,19 @@ class LSMWindow(QMainWindow):
        pp=QPainter(self.cview.printer)
        self.canvas.drawArea(QRect(0,0,self.canvas.width(),self.canvas.height()),pp,False)
        pp.end()
-       if pp.isActive():
+       while pp.isActive():
         pp.flush()
+
        if self.cview.printer.outputToFile():
          self.filePStoEPS(self.cview.printer.outputFileName().ascii())
-
-       self.filePStoEPS(filename)
             
     # convert a PS file to an EPS file by changing the 
     # bounding box
     def filePStoEPS(self,filename):
-     fn=QFile(filename)   
-     if not fn.open( IO_ReadOnly ):
-      print "Print EPS: file not readable"
-      return
-     ts = QTextStream( fn )
-     
-     fileContent=QString()
-     while not ts.atEnd():
-       fileContent.append(ts.read())
-    
+     fn=open(filename,"r")   
+     text=fn.read()
      fn.close()
+     fileContent=QString(text)
      rx=QRegExp("%%BoundingBox:\\s*(-?[\\d\\.]+)\\s*(-?[\\d\\.]+)\\s*(-?[\\d\\.]+)\\s*(-?[\\d\\.]+)")
      pos = rx.search(fileContent)
      left = rx.cap(1).toFloat()
@@ -529,7 +523,6 @@ class LSMWindow(QMainWindow):
      except:
       print "Print EPS: file not writable"
       return
-
      f.write(fileContent.ascii())
      f.close()
 
