@@ -31,11 +31,13 @@ _dprintf = _dbg.dprintf                  # use: _dprintf(2, "a = %d", a)
 # run the script with: -dtutorial=3
 # level 0 is always printed
 
-from Timba import TDL
-# from Timba.TDL import *                # old
-from Timba.TDL import dmi_type, Meq, record, hiid
-from Timba.Meq import meq
 
+from Timba.TDL import *
+# Possibly better, namespace-wise?
+#   from Timba import TDL
+#   from Timba.TDL import dmi_type, Meq, record, hiid
+
+from Timba.Meq import meq
 
 from numarray import *
 # from string import *
@@ -151,7 +153,8 @@ if __name__ == '__main__':
    MG_JEN_exec.without_meqserver(script_name)
 
    # Various specific tests:
-   ns = TDL.NodeScope()
+   # ns = TDL.NodeScope()          # if used: from Timba import TDL
+   ns = NodeScope()                # if used: from Timba.TDL import *
 
    if 1:
       rr = 0

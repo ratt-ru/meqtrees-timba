@@ -64,7 +64,7 @@ def _define_forest (ns):
    dd.append(dc)
 
    # Concatenate the dataCollect nodes in dd:
-   dc = dconc(ns, dd, scope=scope) 
+   dc = dconc(ns, dd, scope=scope, tag='combined') 
    bb.append(dc['dcoll'])
    cc.append(MG_JEN_exec.bundle(ns, bb, 'realvsimag', show_parent=False))
  
@@ -127,14 +127,15 @@ def dcoll (ns, node=[], **pp):
 
    # Make dataCollection node(s):
    # Initialise the plot attribute record (changed below):
-   scope_tag = 'dcoll_'+str(pp.scope)+'_'+str(pp.tag)
+   scope_tag = str(pp.scope)+'_'+str(pp.tag)
+   dcoll_name = 'dcoll_'+scope_tag
    if not isinstance(pp.title, str): pp.title = scope_tag
    attrib = record(plot=record(), tag=pp.tag)
    if pp.type == 'spectra':
       attrib['plot'] = record(type=pp.type, title=pp.title,
                               spectrum_color='hippo',
                               x_axis=pp.xlabel, y_axis=pp.ylabel)
-      dcoll['dcoll'] = ns[scope_tag] << Meq.DataCollect(children=dcoll['stripped'],
+      dcoll['dcoll'] = ns[dcoll_name] << Meq.DataCollect(children=dcoll['stripped'],
                                                         top_label=hiid('visu'),
                                                         attrib=attrib)
 
@@ -148,7 +149,7 @@ def dcoll (ns, node=[], **pp):
     
       if not pp.errorbars:
          # Indicate just the mean values of the child results:
-         dcoll['dcoll'] = ns[scope_tag] << Meq.DataCollect(children=dcoll['mean'],
+         dcoll['dcoll'] = ns[dcoll_name] << Meq.DataCollect(children=dcoll['mean'],
                                                            top_label=hiid('visu'),
                                                            attrib=attrib)
       else:
@@ -158,7 +159,7 @@ def dcoll (ns, node=[], **pp):
          attr = deepcopy(attrib)
          if not isinstance(attr.tag, list): attr.tag = [attr.tag]
          attr.tag.append('Mean')
-         dc_mean = ns[scope_tag+'_mean'] << Meq.DataCollect(children=dcoll['mean'],
+         dc_mean = ns[dcoll_name+'_mean'] << Meq.DataCollect(children=dcoll['mean'],
                                                             top_label=hiid('visu'),
                                                             attrib=attr)
          dcoll['dcoll_mean'] = dc_mean
@@ -167,7 +168,7 @@ def dcoll (ns, node=[], **pp):
          attr = deepcopy(attrib)
          if not isinstance(attr.tag, list): attr.tag = [attr.tag]
          attr.tag.append('StdDev')
-         dc_stddev = ns[scope_tag+'_stddev'] << Meq.DataCollect(children=dcoll['stddev'],
+         dc_stddev = ns[dcoll_name+'_stddev'] << Meq.DataCollect(children=dcoll['stddev'],
                                                                 top_label=hiid('visu'),
                                                                 attrib=attr)
          dcoll['dcoll_stddev'] = dc_stddev
@@ -179,7 +180,7 @@ def dcoll (ns, node=[], **pp):
          attr.plot.stddev_circle_style='DotLine'
          attr.plot.value_tag = 'Mean'
          attr.plot.error_tag = 'StdDev'
-         dcoll['dcoll'] = ns[scope_tag] << Meq.DataCollect(children=[dc_mean, dc_stddev],
+         dcoll['dcoll'] = ns[dcoll_name] << Meq.DataCollect(children=[dc_mean, dc_stddev],
                                                            top_label=hiid('visu'),
                                                            attrib=attr)
 
@@ -193,17 +194,13 @@ def dcoll (ns, node=[], **pp):
    elif isinstance(pp.bookmark, str):
       bm = MG_JEN_forest_state.bookmark (dconc['dcoll'], pp.bookmark)
       
-   # Progress message:
-   # if pp.trace:
-      # JEN_display_subtree (dcoll['dcoll'], 'dcoll', full=1)
-      # JEN_display(dcoll, 'dcoll', 'after JEN_dcoll()')
-
    # If an insert-node is specified, make the dconc node a step-child of a
    # MeqSelector node just before it, to issue requests:
    if not isinstance(pp.insert, bool):
       output = ns[scope_tag+'_branch'] << Meq.Selector(insert, step_children=dcoll['dcoll'])
       return output
-
+   
+   # Otherwise, return the dcoll record, with root node dcoll['dcoll']
    return dcoll
 
 
@@ -216,20 +213,21 @@ def dconc (ns, dcoll, **pp):
 
    # Supply default arguments:
    pp.setdefault('scope', '<scope>')    # 'scope (e.g. rawdata)'
-   pp.setdefault('tag', '<tag>')        # plot tag (e.g. allcorrs)
-   pp.setdefault('title',False )        # plot title
-   pp.setdefault('insert', False)       # if node given, insert dconc node
+   pp.setdefault('tag', '<tag>')            # plot tag (e.g. allcorrs)
+   pp.setdefault('title',False )             # plot title
+   pp.setdefault('insert', False)           # if node given, insert dconc node
    pp.setdefault('xlabel', '<xlabel>')  # x-axis label
    pp.setdefault('ylabel', '<ylabel>')  # y-axis label
-   pp.setdefault('bookmark', False)     # name of dcoll bookmark (False=none)
-   pp.setdefault('bookpage', False)     # name of bookpage to be used (False=none)
+   pp.setdefault('bookmark', False)       # name of dcoll bookmark (False=none)
+   pp.setdefault('bookpage', False)       # name of bookpage to be used (False=none)
    pp = record(pp)
 
 
    # Initialise the output dict:
    dconc = dict(input=pp, cc=[], attrib=None, dcoll=None)
 
-   scope_tag = 'dconc_'+str(pp.scope)+'_'+str(pp.tag)
+   scope_tag = str(pp.scope)+'_'+str(pp.tag)
+   dconc_name = 'dconc_'+scope_tag
    if not isinstance(pp.title, str): pp.title = scope_tag
    
    attrib = record(plot=record(), tag=['dconc'])
@@ -238,13 +236,14 @@ def dconc (ns, dcoll, **pp):
    # Collect the dcoll nodes in a list (cc):
    if not isinstance(dcoll, (list, tuple)): dcoll = [dcoll]
    for i in range(len(dcoll)):
-      dconc['cc'].append(dcoll[i]['dcoll'])     # 
-      attrib['tag'].append(dcoll[i]['tag'])     # concatenate the dcoll tags (unique?)
+      dconc['cc'].append(dcoll[i]['dcoll'])     #
+      # NB: See the discussion with AGW below....
+      # attrib['tag'].append(dcoll[i]['tag'])     # concatenate the dcoll tags (unique?)
     
    # Make concatenations (dconc) node:
-   dconc['dcoll'] = (ns[scope_tag] << Meq.DataCollect(children=dconc['cc'],
-                                                      top_label=hiid('visu'),
-                                                      attrib=attrib))
+   dconc['dcoll'] = ns[dconc_name] << Meq.DataCollect(children=dconc['cc'],
+                                                     top_label=hiid('visu'),
+                                                     attrib=attrib)
 
    # Optionally, make a bookmark for the dconc node:
    if isinstance(pp.bookpage, str):
@@ -252,18 +251,13 @@ def dconc (ns, dcoll, **pp):
    elif isinstance(pp.bookmark, str):
       bm = MG_JEN_forest_state.bookmark (dconc['dcoll'], pp.bookmark)
 
-
-   # Progress message:
-   # if pp.trace:
-      # JEN_display_subtree (dconc['dcoll'], 'dconc', full=1)
-      # JEN_display(dcoll, 'dconc', 'after JEN_dconc('+scope_tag,')')
-    
    # If an insert-node is specified, make the dconc node a step-child of a
    # MeqSelector node just before it, to issue requests:
    if not isinstance(pp.insert, bool):
-      output = ns[scope_tag+'_branch'] << Meq.Selector(insert, step_children=dconc['dcoll'])
+      output = ns[dconc_name+'_branch'] << Meq.Selector(insert, step_children=dconc['dcoll'])
       return output
 
+   # Otherwise, just return the dconc record:
    return dconc
 
 

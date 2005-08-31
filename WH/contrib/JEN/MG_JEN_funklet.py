@@ -14,8 +14,7 @@ script_name = 'MG_JEN_funklet.py'
 #================================================================================
 # Import of Python modules:
 
-from Timba import TDL
-from Timba.TDL import dmi_type, Meq
+from Timba.TDL import *
 from Timba.Meq import meq
 
 from random import *
@@ -47,7 +46,6 @@ def _define_forest (ns):
       bb.append(ns.polc_ft(i) << Meq.Parm(polc))
    cc.append(MG_JEN_exec.bundle(ns, bb, 'polc_ft()'))
 
-
    # Demo of importable function: polclog_SIF()
    bb = []
    bb.append(ns.polclog_SIF << Meq.Parm(polclog_SIF()))
@@ -55,6 +53,17 @@ def _define_forest (ns):
    bb.append(ns.polclog_SIF(I0=10) << Meq.Parm(polclog_SIF(I0=10)))
    bb.append(ns.polclog_SIF(I0='e') << Meq.Parm(polclog_SIF(I0=e)))
    cc.append(MG_JEN_exec.bundle(ns, bb, 'polclog_SIF()'))
+
+   # Demo of importable function: polclog_StokesI()
+   bb = []
+   bb.append(polclog_StokesI(ns))
+   bb.append(polclog_StokesI(ns, '10', I0=10))
+   bb.append(polclog_StokesI(ns, '3c147'))
+   bb.append(polclog_StokesI(ns, '3c295')) 
+   bb.append(polclog_StokesI(ns, '3c48')) 
+   bb.append(polclog_StokesI(ns, '3c268'))
+
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'polclog_StokesI()'))
 
 
    # Finished: 
@@ -115,20 +124,50 @@ def polc_ft (c00=1, nfreq=0, ntime=0, scale=1, mult=1/sqrt(10), stddev=0):
    return polc
 
 
-#----------------------------------------------------------------------
+# NB: The polcs generated with this function are given to MeqParms as default funklets.
+#     This is their ONLY use....
+#     However, the MeqParm default funklets are used if no other funklets are known.
+#     When used, their domains are ignored: It is assumed that their coeff are valid
+#     for the requested domain, which may be anything....
+#     So: It  might be reasonable to demand that MeqParms default funklets are c00 only!?
+#     However: If the requested domain is automatically scaled back to (0-1) (under what
+#              conditions?), the polc_ft() should be tested with requested domain (0-1)
+#     After all, it IS nice to be able to make a (t,f) variable MeqParm.......
+
+
+
+#======================================================================
 # Make a polclog for a freq-dependent spectral index:
+#======================================================================
+
+# regular polc (comparison): v(f,t) = c00 + c01.t + c10.f + c11.f.t + ....
+#
+# polclog:
+#            I(f) = I0(c0 + c1.x + c2.x^2 + c3.x^3 + .....)
+#            in which:  x = 10log(f/f0)
+#
+# if c2 and higher are zero:           
+#            I(f) = 10^(c0 + c1.10log(f/f0)) = (10^c0) * (f/f0)^c1
+#                 = I0 * (f/f0)^SI  (classical spectral index formula)
+#            in which: c0 = 10log(I0)  and c1 is the classical S.I. (usually ~0.7)   
+#
+# so:        I(f) = 10^SIF
+# NB: If polclog_SIF is to be used as multiplication factor for (Q,U,V),
+#     use: fmult = ns.fmult() << Meq.Parm(polclog(SI, I0=1.0), i.e. SIF[0] = 0.0)
 
 
-def polclog_SIF (SI=-0.7, I0=1.0):
-   SIF = [log(I0)/log(10)]                        # Make 10log(), because Python log() is e-log
+
+def polclog_SIF (I0=1.0, SI=-0.7, f0=1e6):
+   SIF = [log(I0)/log(10)]                               # SIF[0] = 10log(I0). (Python log() is e-log)
    # NB: what if I0 is polc???
    if not isinstance(SI, list): SI = [SI]
-   SIF.extend(SI)                                     # NB: SIF[1] = classical S.I.
+   SIF.extend(SI)                                             # NB: SIF[1] = classical S.I.
    SIF = array(SIF)
-   SIF = reshape(SIF, (1,len(SIF)))
-   polclog = meq.polclog(SIF)                 # NB: what is the default f0?? 1Hz!
+   SIF = reshape(SIF, (1,len(SIF)))               # freq coeff only....
+   polclog = meq.polclog(SIF)                        # NB: the default f0 = 1Hz!
+   polclog.axis_list = record(freq=f0)                # the default is f0=1Hz
+   print oneliner(polclog, 'polclog_SIF')
    return polclog
-
 
 #    if len(SI) == 1:
 #       print type(ns)
@@ -140,22 +179,80 @@ def polclog_SIF (SI=-0.7, I0=1.0):
 #       iquv[n6.I] = (ns[n6.I](q=pp['name']) << (parm['I0'] * fmult))
 
 
+#---------------------------------------------------------------------
+# Make a StokesI(q=source) node based on a polclog:
+
+def polclog_StokesI (ns, source=None, I0=1.0, SI=-0.7, f0=1e6): 
+   if not isinstance(source, str):
+	source = MG_JEN_forest_state.autoqual(source, 'MG_JEN_funklet_StokesI')
+
+   polclog = polclog_predefined(source, I0=I0, SI=SI, f0=f0)
+   SIF = ns.SIF(q=source) << Meq.Parm(polclog)
+   node = ns.StokesI(q=source) << Meq.Pow(10.0, SIF)
+   print '** polclog_StokesI(',source,') ->',node
+   return node
+
+#---------------------------------------------------------------------
+# Make a fmult(q=source) node based on a polclog:
+# This may be used to multiply StokesQ,U,V.....
+
+def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
+   if not isinstance(source, str):
+	source = MG_JEN_forest_state.autoqual(source, 'MG_JEN_funklet_fmult')
+   polclog = polclog_predefined(source, I0=1.0, SI=SI, f0=f0)
+   SIF = ns.SIF(q=source) << Meq.Parm(polclog)
+   node = ns.mult(q=source) << Meq.Pow(10.0, SIF)
+   # node = ns << Meq.Pow(10.0, SIF)               # <--- better?
+   print '** polclog_fmult(',source,') ->',node
+   return node
+   
+#---------------------------------------------------------------------
+# Predefined polclog definitions of selected sources:
+
+def polclog_predefined (source='<source>', SI=-0.7, I0=1.0, f0=1e6):
+
+   if source=='3c147':	
+      polclog = polclog_SIF (I0=10**1.766, SI=[0.447, -0.148], f0=1e6)
+   elif source =='3c48':	
+      polclog = polclog_SIF (I0=10**2.345, SI=[0.071, -0.138], f0=1e6)
+   elif source =='3c295':	
+      polclog = polclog_SIF (I0=10**1.485, SI=[0.759, -0.255], f0=1e6)
+      
+   elif source =='3c268':	
+      polclog = polclog_SIF (I0=10**1.48, SI=[0.292, -0.124], f0=1e6)
+      # Q_polclog = polclog_SIF (I0=2.735732, SI=[-0.923091, 0.073638], f0=1e6)
+      # U_polclog = polclog_SIF (I0=6.118902, SI=[-2.05799, 0.163173], f0=1e6)
+      #    pp['I0'] = 10**1.48
+      #    pp['SI'] = [0.292, -0.124]
+      #    pp['Q'] = [2.735732, -0.923091, 0.073638]
+      #    pp['U'] = [6.118902, -2.05799, 0.163173]
+      
+   else:
+      # If source not recognised, use the other arguments:
+      polclog = polclog_SIF (SI=SI, I0=I0, f0=f0)
+
+   print '** polclog_predefined(',source,') ->',polclog
+   return polclog
 
 
-#----------------------------------------------------------------------
+
+
+#======================================================================
 # Functions related to general funklets 
-#----------------------------------------------------------------------
+#======================================================================
 
 #----------------------------------------------------------------------
 # Turn the given funklet into a one-liner string: 
 
-def oneliner (funklet):
+def oneliner (funklet, txt=None):
    s = str(funklet)
+   if isinstance (txt, str): s = str(txt)+':'+s
    return s
 
 #----------------------------------------------------------------------
 # Make sure that the input (funkin) is a funklet.
 # Perturb the c00 coeff, if required
+# NB: Semi-obsolete (replace with polc_ft() above........
 
 def funklet (funkin, mean=0, stddev=0):
     if isinstance(funkin, dmi_type('MeqFunklet')):
@@ -203,10 +300,10 @@ MG_JEN_forest_state.init(script_name)
 # If not explicitly supplied, a default request will be used.
 
 def _test_forest (mqs, parent):
-  # print 'run test_forest',script_name 
   # return MG_JEN_exec.meqforest (mqs, parent)
-  # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False) 
-  return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')
+  # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False)
+  return MG_JEN_exec.meqforest (mqs, parent, nfreq=200, f1=1e6, f2=2e8, t1=-10, t2=10) 
+  # return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')
 
 #-------------------------------------------------------------------------
 # Test routine to check the tree for consistency in the absence of a server

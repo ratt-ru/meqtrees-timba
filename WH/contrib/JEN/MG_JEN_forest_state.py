@@ -14,8 +14,6 @@ script_name = 'MG_JEN_forest_state.py'
 # Standard preamble
 from Timba.TDL import *
 from Timba.Meq import meq
-from Timba.Meq import meqds
-
 
 from numarray import *
 from string import *
@@ -296,11 +294,11 @@ def append (field, item, kwitem):
 # Functions for automatic testing
 # Attach the test-result to the forest state record 
 
-def attach_test_result (result):
+def attach_test_result (mqs, result):
   field = '_test_result'
-  r = meqds.set_forest_state (field, result)
+  r = mqs.meq('Set.Forest.State',record(state=record(**{field:result})),wait=False);
   return r
-  
+
 
 #---------------------------------------------------------------------------
 # Counter service (use by autoqual)

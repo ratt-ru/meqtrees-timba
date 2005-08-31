@@ -134,8 +134,7 @@ def meqforest (mqs, parent, request=None, **pp):
    # mqs.meq('Clear.Breakpoints',record(name='solver:GJones:q=uvp',breakpoint=255))
 
    result = mqs.meq('Node.Execute',record(name=_test_root, request=request), wait=True)
-   # print 'result:',result
-   MG_JEN_forest_state.attach_test_result (result)
+   MG_JEN_forest_state.attach_test_result (mqs, result)
 
    # Save the meqforest in a file (and perhapes a reference file, for auto-testing):
    pp.setdefault('save', True)       
