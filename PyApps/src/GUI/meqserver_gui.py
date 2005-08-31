@@ -478,7 +478,7 @@ class meqserver_gui (app_proxy_gui):
       # show this file
       self.show_tdl_file(str(dialog.selectedFile()),run=run);
       
-  def show_tdl_file (self,pathname,pos=None,run=False):
+  def show_tdl_file (self,pathname,run=False,errlist=None,errnum=None):
     tab = self._tdl_tabs.get(pathname,None);
     if tab is None:
       _dprint(1,'No tab open, loading',pathname);
@@ -513,8 +513,8 @@ class meqserver_gui (app_proxy_gui):
     self.gw_panel.hide();
     self.maintab_panel.show();
     # ok, we have a working tab now
-    if pos:
-      tab.show_position(*pos);
+    # if pos:
+    #  tab.show_position(*pos);
     if run and tab.compile_content():
       self.tb_panel.show();
     self.splitter.refresh();

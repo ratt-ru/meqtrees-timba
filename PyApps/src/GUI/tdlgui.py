@@ -155,10 +155,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._message_transient = False;
 
     # add error list widget
-    self._errlist_box = QFrame(splitter);
-    eblo = QVBoxLayout(self._errlist_box);
+    self._werrlist_box = QFrame(splitter);
+    eblo = QVBoxLayout(self._werrlist_box);
     # error list header is a toolbar
-    errlist_hdr = QToolBar("TDL errors",mainwin,self._errlist_box);
+    errlist_hdr = QToolBar("TDL errors",mainwin,self._werrlist_box);
     eblo.addWidget(errlist_hdr);
     errsym = QLabel(errlist_hdr);
     errsym.setPixmap(pixmaps.red_round_cross.pm());
@@ -175,11 +175,22 @@ class TDLEditor (QFrame,PersistentCurrier):
     # run button
     self._qa_run.addTo(errlist_hdr);
     # error list itself
-    self._errlist = QListBox(self._errlist_box);
-    eblo.addWidget(self._errlist);
-    QObject.connect(self._errlist,SIGNAL("highlighted(int)"),self._highlight_error);
-    self._errlist_box.hide();
-    self._errloc = [];
+    # self._werrlist = QListBox(self._werrlist_box);
+    # QObject.connect(self._werrlist,SIGNAL("highlighted(int)"),self._highlight_error);
+    self._werrlist = QListView(self._werrlist_box);
+    QObject.connect(self._werrlist,SIGNAL("currentChanged(QListViewItem*)"),self._highlight_error_item);
+    self._werrlist.addColumn(''); 
+    self._werrlist.addColumn(''); 
+    self._werrlist.addColumn(''); 
+    # self._werrlist.setColumnAlignment(0,Qt.AlignRight);
+    self._werrlist.setRootIsDecorated(False);
+    self._werrlist.setAllColumnsShowFocus(True);
+    self._werrlist.header().hide();
+    
+    eblo.addWidget(self._werrlist);
+    self._werrlist_box.hide();
+    self._error_list = [];
+    self._error_at_line = {};
 
     # set filename
     self._filename = None;       # "official" path of file (None if new script not yet saved)
@@ -199,7 +210,7 @@ class TDLEditor (QFrame,PersistentCurrier):
   def _text_changed (self):
     self._clear_transients();
 #    self._qa_run.setVisible(True);
-  
+
   def _display_cursor_position (self,line,col):
     self._poslabel.setText("L:<b>%d</b> C:<b>%d</b>" % (line+1,col+1));
     self._poslabel.repaint();
@@ -253,7 +264,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._message_icon.setIconSet(iconset);
     self._message_box.show();
     self._message_transient = transient;
-    self._errlist_box.hide();
+    self._werrlist_box.hide();
     
   def messagebox ():
     return self._message_box;
@@ -262,14 +273,6 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._mblo.addWidget(widget);
     self._message_widgets.append(widget);
     
-  def clear_error_list (self):
-    self.emit(PYSIGNAL("hasErrors()"),(0,));
-    self._errlist.clear();
-    self._editor.markerDeleteAll();
-    self._error_count_label.setText('');
-    self._errloc = []
-    self.clear_message();
-    
   def decompose_error (self,err):
     """Given an exception object, returns a tuple of:
           (error name,error message,filename,line,column)
@@ -277,7 +280,7 @@ class TDLEditor (QFrame,PersistentCurrier):
             line and column will be 0 if not specified.
        Assumes err.args follow the TDL convention of (message,filename,location)
     """;
-    errtype = err.__class__.__name__;
+    errtype = err.__class__;
     errmsg,filename,line,column = '',None,0,0;
     if err.args:
       args = list(err.args);
@@ -294,32 +297,88 @@ class TDLEditor (QFrame,PersistentCurrier):
             line = column = 0;
     return (errtype,errmsg,filename,line,column);
     
+  def set_exc_list (self,exclist,signal=True):
+    """Converts a list of exceptions into an error list, using 
+    decompose_error above. Errlist should be a sequence of Exception
+    objects following the TDL error convention (see decompose_error() above).
+    """;
+    errlist = [];
+    for exc in exclist:
+      errtype,errmsg,filename,line,column = self.decompose_error(exc);
+      # msg = "%s (%s)" % (errmsg,errtype.__name__);
+      errlist.append( (errtype,errmsg,filename,line,column) );
+    self.set_error_list(errlist,signal=signal);
+    
+  def clear_error_list (self,signal=True):
+    if signal:
+      self.emit(PYSIGNAL("hasErrors()"),([],));
+    self._error_items = None;
+    self._werrlist.clear();
+    self._editor.markerDeleteAll();
+    self._error_count_label.setText('');
+    self._error_list = 0;
+    self._error_at_line = {};
+    self.clear_message();
+    
+  def get_error_list (self):
+    """returns the current error list."""
+    return self._error_list;
       
-  def show_error_list (self,errlist):
-    self.clear_error_list();
-    self.emit(PYSIGNAL("hasErrors()"),(len(errlist),));
+  def set_error_list (self,errlist,signal=True):
+    """Shows an error list. errlist should be a sequence of Exception
+    objects following the TDL error convention (see decompose_error() above).
+    """;
+    self.clear_error_list(signal=False);
+    if signal:
+      self.emit(PYSIGNAL("hasErrors()"),(errlist,));
+    self._error_list = errlist;
     if errlist:
-      for err in errlist:
-        errtype,errmsg,filename,line,column = self.decompose_error(err);
-        # insert item
-        index = self._errlist.count();
-        self._errlist.insertItem('');
-        if filename == self._real_filename:
-          self._errlist.changeItem("%d: %s (%s) [%d]" % (index+1,errmsg,errtype,line),index);
-          self._editor.markerAdd(line-1,self.ErrorMarker);
-          self._errloc.append((line-1,column));
+      self._error_items = [];
+      self._error_at_line = {};
+      previtem = self._werrlist;
+      nerr = 1;
+      for (index,(errtype,errmsg,filename,line,column)) in enumerate(errlist):
+        # effectively, this makes ExtraInfoError errors child items
+        # of the previous non-error item (previtem)
+        if errtype is TDL.ExtraInfoError:
+          item = QListViewItem(previtem,'');
         else:
-          self._errlist.changeItem("%d: %s (%s) [%s:%d]" % (index+1,errmsg,errtype,filename,line),index);
-          self._errloc.append((filename,line,column));
+          previtem = item = QListViewItem(self._werrlist,"%d:"%(nerr,));
+          nerr += 1;
+        item.setOpen(True);
+        self._error_items.append(item);
+        # set item content
+        item.setText(1,errmsg);
+        if filename == self._real_filename:
+          item._err_location = index,None,line,column;
+          item.setText(2,"[%d]" % (line,));
+          self._editor.markerAdd(line-1,self.ErrorMarker);
+          self._error_at_line.setdefault(line-1,item);
+        else:
+          item._err_location = index,filename,line,column;
+          item.setText(2,"[%s:%d]" % (filename,line));
       self._error_count_label.setText('<b>%d</b> errors'%(len(errlist)));
-      self._errlist_box.show();
-      self._errlist.setCurrentItem(0);
-      self._highlight_error(0);
+      self._werrlist_box.show();
+      self._show_error_item(self._error_items[0]);
+      # self._highlight_error(0);
       # disable run control until something gets modified
       # self._qa_run.setVisible(False);
     else:
-      self._errlist_box.hide();
+      self._werrlist_box.hide();
       self._qa_run.setVisible(True);
+      
+  def _highlight_error_item (self,item):
+    self._qa_prev_err.setEnabled(item is not self._error_items[0]);
+    self._qa_next_err.setEnabled(item is not self._error_items[-1]);
+    self._editor.markerDeleteAll(self.CurrentErrorMarker);
+    # does item contain a location attribute?
+    try: index,filename,line,column = item._err_location;
+    except AttributeError: return;
+    # indicate location
+    if filename is None:
+      self.show_position(line-1,column,mark_error=True);
+    else:
+      self.emit(PYSIGNAL("showError()"),(index,filename,line,column));
   
   def show_position (self,line,column=0,mark_error=False):
     """shows indicated position""";
@@ -332,34 +391,38 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._editor.markerAdd(line,self.CurrentErrorMarker);
       
   def _show_next_error (self):
-    ni = self._errlist.currentItem()+1;
-    if ni >= self._errlist.count():
-      ni = 0;
-    self._errlist.setCurrentItem(ni);
+    item = self._werrlist.currentItem();
+    if item:
+      item = item.itemBelow();
+    else:
+      item = self._error_items[0];
+    if item:
+      self._show_error_item(item);
     
   def _show_prev_error (self):
-    ni = self._errlist.currentItem()-1;
-    if ni < 0:
-      ni = self._errlist.count()-1;
-    self._errlist.setCurrentItem(ni);
+    item = self._werrlist.currentItem();
+    if item:
+      item = item.itemAbove();
+    else:
+      item = self._error_items[-1];
+    if item:
+      self._show_error_item(item);
+  
+  def _show_error_number (self,index):
+    self._show_error_item(self._error_items[index]);
+    
+  def _show_error_item (self,item):
+    _dprint(1,item);
+    self._werrlist.ensureItemVisible(item);
+    self._werrlist.setCurrentItem(item);
+    self._highlight_error_item(item);
       
-  def _highlight_error (self,number):
-    self._qa_prev_err.setEnabled(number>0);
-    self._qa_next_err.setEnabled(number<self._errlist.count()-1);
-    self._editor.markerDeleteAll(self.CurrentErrorMarker);
-    _dprint(1,number,len(self._errloc));
-    if number >= 0 and number < len(self._errloc):
-      loc = self._errloc[number];
-      if len(loc) == 2:
-        (line,column) = loc;
-        self.show_position(line,column,mark_error=True);
-        
   def _process_margin_click (self,margin,line,button):
-    _dprint(0,margin,line,button);
-    for (ierr,errline) in enumerate(self._errloc):
-      if errline == line:
-        self._errlist.setCurrentItem(ierr);
-        break;
+    _dprint(1,margin,line,button);
+    # look through current error widget to find relevant error
+    item = self._error_at_line.get(line,None);
+    if item:
+      self._show_error_item(item);
         
   def _save_file (self,filename=None,text=None,force=False,save_as=False):
     """Saves text. If force=False, checks modification times in case
@@ -562,11 +625,11 @@ class TDLEditor (QFrame,PersistentCurrier):
           offset = 0;
         else:
           msg += " at column %d" % (offset,);
-        self.show_error_list([exctype(msg,excvalue.filename,(excvalue.lineno,offset))]);
+        self.set_exc_list([exctype(msg,excvalue.filename,(excvalue.lineno,offset))]);
       else: # other error, try to find location via traceback
         stack = traceback.extract_tb(tb);
         (filename,line,funcname,text) = stack[-1];
-        self.show_error_list([exctype(excvalue.args[0],filename,line)]);
+        self.set_exc_list([exctype(excvalue.args[0],filename,line)]);
       # self.show_message("""<b>Error importing <tt>%s</tt>:
       #  <i>%s (%s)</i></b>""" % (self._real_filename,excvalue,exctype.__name__),
       #  error=True,transient=True);
@@ -576,11 +639,11 @@ class TDLEditor (QFrame,PersistentCurrier):
     _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
     _dprint(1,'TDL run imported',_tdlmodlist);
     mqs = meqds.mqs();
-    # find define_forest func
     # module here, call functions
     errlist = [];
     ns = None;
     try:
+      # find define_forest func
       define_func = getattr(_tdlmod,'_define_forest',None);
       if not callable(define_func):
         define_func = getattr(_tdlmod,'define_forest',None);
@@ -617,7 +680,7 @@ class TDLEditor (QFrame,PersistentCurrier):
         errlist.append(exctype(str(excvalue),stack[-1][0],stack[-1][1]));
     # do we have an error list? show it
     if errlist:
-      self.show_error_list(errlist);
+      self.set_exc_list(errlist);
       return None;
     num_nodes = len(ns.AllNodes());
     # no nodes? return
@@ -642,7 +705,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     meqds.request_nodelist();
     
     # does the script define an explicit job list?
-    joblist = getattr(_tdlmod,'tdl_job_list',[]);
+    joblist = getattr(_tdlmod,'_tdl_job_list',[]);
     if not joblist:
       joblist = []; 
       # try to build it from implicit function names
