@@ -38,8 +38,10 @@ class QwtColorBar(QwtPlot):
         self.y_scale = (self.min, self.max)
         self.plotImage.setData(self.bar_array, None, self.y_scale)
         # width limits - the following seem reasonable
-        self.setMinimumWidth(50)
-        self.setMaximumWidth(100)
+        # we don't want the bar to resize itself freely - it becomes too big!
+        self.setMinimumWidth(self.sizeHint().width())
+        self.setMaximumWidth(self.sizeHint().width() * 2)
+#       self.setMinimumHeight(self.sizeHint().height() / 2)
 
         self.zoomStack = []
         self.connect(self,
