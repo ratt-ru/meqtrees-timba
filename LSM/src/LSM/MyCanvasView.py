@@ -15,6 +15,7 @@ from SDialog import *
 
 from common_utils import *
 
+import numarray
 
 ##########################################################################
 
@@ -60,9 +61,9 @@ class MyCanvasView(QCanvasView):
     #    .    .         .  .
     #    |    +---------+  |
     #    +_____ d4_________+
-    self.d1=60
+    self.d1=60+20 # 20 for the axis label
     self.d3=30
-    self.d4=30
+    self.d4=30+20 # 20 for the axis label
     self.d2=30 # more pixels for the legend
 
     # limits in real coordinates
@@ -641,6 +642,18 @@ class Axes:
      ff.show()
      self.grid.append(ff)
 
+    # draw axes labels
+    self.ylabel=FontVertImage("Declination",self.cview.canvas())
+    xys=self.cview.globalToLocal(self.cview.x_max, self.cview.y_min)
+    self.ylabel.move(xys[0]-self.cview.d1,xys[1]-(self.cview.canvas().height()-self.cview.d3-self.cview.d4)/2-self.ylabel.height()/2)
+    self.ylabel.setZ(0)
+    self.ylabel.show()
+
+    self.xlabel=FontHorizImage("Right Ascention",self.cview.canvas())
+    self.xlabel.move(xys[0]+(self.cview.canvas().width()-self.cview.d1-self.cview.d2)/2-self.xlabel.width()/2,xys[1]+self.cview.d4-20)
+    #self.xlabel.move(xys[0],xys[1])
+    self.xlabel.setZ(0)
+    self.xlabel.show()
 
   # return tickmarks for the axis
   # returns [coordinate value, rad_value, hr, min, sec]
@@ -908,7 +921,6 @@ class Patch:
  # size x_dim by y_dim
  def createArrayImage(self,narray,x_dim,y_dim):
    # first find min,max values
-   import numarray
    minval=narray.min()
    maxval=narray.max()
    print "array size is %d,%d with values %f,%f"%(x_dim,y_dim,minval,maxval)
@@ -972,4 +984,66 @@ class ImageItem(QCanvasRectangle):
 
     def drawShape(self,p):
         p.drawPixmap( self.x(), self.y(), self.pixmap )
+
+#################################################################
+#produce text rotated by 90
+class FontVertImage(QCanvasRectangle):
+    def __init__(self,label,canvas):
+        QCanvasRectangle.__init__(self,canvas)
+        self.imageRTTI=984376
+        self.label=label
+        self.font=QFont( QApplication.font() )
+        self.font.setPointSize( 10 )
+        fm=QFontMetrics(self.font)
+        margin=20
+        # find width in pixels
+        char_width=fm.width(self.label)
+        char_height=fm.height()
+        self.pixmap=QPixmap(char_height,char_width+2*margin)
+        self.pixmap.fill(QColor(255,255,255))
+        painter=QPainter(self.pixmap)
+        m=QWMatrix() 
+        m.rotate(-90)
+        #m.scale(2,2)
+        painter.setWorldMatrix(m)
+        painter.setFont(self.font)
+        tmp_str=QString(self.label)
+        painter.drawText(-char_width-margin,15,QString(self.label))
+        painter.end()
+        self.setSize(self.pixmap.width(), self.pixmap.height())
+
+    def rtti(self):
+        return self.imageRTTI
+
+    def drawShape(self,p):
+        p.drawPixmap(self.x(),self.y(), self.pixmap )
+
+#################################################################
+#produce normal text 
+class FontHorizImage(QCanvasRectangle):
+    def __init__(self,label,canvas):
+        QCanvasRectangle.__init__(self,canvas)
+        self.imageRTTI=984376
+        self.label=label
+        self.font=QFont( QApplication.font() )
+        self.font.setPointSize( 10 )
+        fm=QFontMetrics(self.font)
+        margin=20
+        # find width in pixels
+        char_width=fm.width(self.label)
+        char_height=fm.height()
+        self.pixmap=QPixmap(char_width+2*margin, char_height)
+        self.pixmap.fill(QColor(255,255,255))
+        painter=QPainter(self.pixmap)
+        painter.setFont(self.font)
+        tmp_str=QString(self.label)
+        painter.drawText(margin,10,QString(self.label))
+        painter.end()
+        self.setSize(self.pixmap.width(), self.pixmap.height())
+
+    def rtti(self):
+        return self.imageRTTI
+
+    def drawShape(self,p):
+        p.drawPixmap(self.x(),self.y(), self.pixmap )
 
