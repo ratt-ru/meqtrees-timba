@@ -6,6 +6,10 @@ import pickle # for serialization and file io
 from Dummy import *
 
 from common_utils import *
+from Timba.Meq import meq
+from Timba.TDL import *
+
+
 #############################################
 class Source:
  """Source object in source table
@@ -839,9 +843,6 @@ class LSM:
   print "Patch: [%f,%f]--[%f,%f]"%(x_min,y_min,x_max,y_max)
   print correct_slist
   
-  from Timba.Meq import meq
-  from Timba.TDL import *
-
   print self.__ns
   if self.__ns!=None and (len(correct_slist)> 0):
    patch_name='patch'+str(self.__patch_count)
