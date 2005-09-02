@@ -185,12 +185,12 @@ class QwtImageDisplay(QwtPlot):
         self.toggle_gray_scale = 0
         QWhatsThis.add(self, display_image_instructions)
 
-# the following is a hack to solve layout problems encountered when this
-# widget is embedded in a QGridlayout, which in turn is embedded in the browser
-        self.setMinimumWidth(self.sizeHint().width() / 2)
-        self.setMinimumHeight(self.sizeHint().height() / 2)
+# Finally, over-ride default QWT Plot size policy of MinimumExpanding
+# Otherwise minimum size of plots is too large when embedded in a
+# QGridlayout
+        self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
-#        self.__init__
+#       self.__init__
 
     def initSpectrumContextMenu(self):
         """Initialize the spectra context menu
