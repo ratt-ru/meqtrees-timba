@@ -60,7 +60,7 @@ if test "$with_pvss" != "no"; then
 ##
   pvss_inclist=$pvss_prefix;
   if test "$pvss_prefix" = ""; then
-    pvss_inclist="$API_ROOT/include"
+    pvss_inclist="/opt/pvss/pvss2_v3.0/api/include"
   fi
   for bdir in $pvss_inclist
   do
