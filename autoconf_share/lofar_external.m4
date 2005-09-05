@@ -113,6 +113,7 @@ fi
 ##
 lfr_ext_name=]LOFAR_EXT_LIB[
 enable_external=no
+echo "\$lfr_option = $lfr_option"
 if test "$lfr_option" = "1"; then
   enable_external=yes
 fi
@@ -307,6 +308,9 @@ else
       fi
     done
   fi
+
+  echo "\$lfr_ext_inc = $lfr_ext_inc"
+  echo "\$lfr_ext_lib = $lfr_ext_lib"
 
   if test "$lfr_ext_inc" != "no"  -a  "$lfr_ext_lib" != "no" ; then
     EXTERNAL_CPPFLAGS=

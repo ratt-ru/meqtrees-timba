@@ -35,5 +35,5 @@ AC_DEFUN([lofar_BLITZ],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], [lfr_option=0], [lfr_option=$1])
-lofar_EXTERNAL(BLITZ,[$lfr_option],blitz/blitz.h,,,,"gnu3:-Wno-unused gnu3:-ftemplate-depth-30",,-lm)
+lofar_EXTERNAL(BLITZ,[$lfr_option],blitz/blitz.h,,/home/astron01/walther/src/blitz,,"gnu3:-Wno-unused gnu3:-ftemplate-depth-30",,-lm)
 ])
