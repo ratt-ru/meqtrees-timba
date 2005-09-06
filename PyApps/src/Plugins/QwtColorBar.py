@@ -37,9 +37,15 @@ class QwtColorBar(QwtPlot):
         self.y_scale = arange(2)
         self.y_scale = (self.min, self.max)
         self.plotImage.setData(self.bar_array, None, self.y_scale)
+
+# Over-ride default QWT Plot size policy of MinimumExpanding
+# Otherwise minimum size of plots is too large when embedded in a
+# QGridlayout
+        self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
+
         # width limits - the following seem reasonable
         # we don't want the bar to resize itself freely - it becomes too big!
-        self.setMinimumWidth(self.sizeHint().width())
+#       self.setMinimumWidth(self.sizeHint().width())
         self.setMaximumWidth(self.sizeHint().width() * 2)
 #       self.setMinimumHeight(self.sizeHint().height() / 2)
 
