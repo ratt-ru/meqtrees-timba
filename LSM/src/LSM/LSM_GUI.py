@@ -329,6 +329,7 @@ class LSMWindow(QMainWindow):
         self.view_selectAction = QAction(self,"view_selectAction")
         self.viewZoom_OptionsAction = QAction(self,"viewZoom_OptionsAction")
         self.view_nextAction= QAction(self,"view_nextAction")
+        self.view_patchAction= QAction(self,"view_patchAction")
 
 
 
@@ -357,6 +358,7 @@ class LSMWindow(QMainWindow):
         self.viewZoom_OptionsAction.addTo(self.viewMenu)
         self.viewMenu.insertSeparator()
         self.view_nextAction.addTo(self.viewMenu)
+        self.view_patchAction.addTo(self.viewMenu)
         self.MenuBar.insertItem(QString(""),self.viewMenu,2)
 
         self.MenuBar.insertSeparator(3)
@@ -383,6 +385,7 @@ class LSMWindow(QMainWindow):
         self.connect(self.viewZoom_OptionsAction,SIGNAL("activated()"),self.changeOptions)
         self.connect(self.view_nextAction,SIGNAL("activated()"),self.viewNextMode)
         self.connect(self.view_selectAction,SIGNAL("activated()"),self.viewSelectWindow)
+        self.connect(self.view_patchAction,SIGNAL("activated()"),self.viewCreatePatches)
 
         self.connect(self.helpAboutAction,SIGNAL("activated()"),self.helpAbout)
 
@@ -428,6 +431,10 @@ class LSMWindow(QMainWindow):
         self.view_nextAction.setText(self.__tr("Next"))
         self.view_nextAction.setMenuText(self.__tr("Next &Mode"))
         self.view_nextAction.setAccel(self.__tr("Ctrl+N"))
+        self.view_patchAction.setText(self.__tr("Create Patches"))
+        self.view_patchAction.setMenuText(self.__tr("Create &Patches"))
+        self.view_patchAction.setAccel(self.__tr("Ctrl+P"))
+
 
         if self.MenuBar.findItem(1):
             self.MenuBar.findItem(1).setText(self.__tr("&File"))
@@ -632,6 +639,8 @@ class LSMWindow(QMainWindow):
           # rememeber the name
           self.table2_names[pname]=row
 
+    def viewCreatePatches(self):
+      self.cview.createPatchesFromGrid()
 
 
     def __tr(self,s,c = None):

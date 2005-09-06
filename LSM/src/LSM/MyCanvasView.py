@@ -12,6 +12,7 @@ from qtcanvas import *
 
 from LSM import *
 from SDialog import *
+from PatchDialog import *
 
 from common_utils import *
 
@@ -38,6 +39,7 @@ class MyCanvasView(QCanvasView):
     self.default_freq_index=0
     self.default_time_index=0
     # display A, I, Q, U, V
+    # A : Apparent brightness
     self.default_mode='A'
 
     # display coordinates in Radians (rad) or degrees (deg)
@@ -261,22 +263,21 @@ class MyCanvasView(QCanvasView):
      if each_item.rtti()==POINT_SOURCE_RTTI:
       tmp_str+=" "+each_item.name+"<br>"
       psource_list.append(each_item.name)
-    dialog=SDialog(self)
+    dialog=PatchDialog(self)
     dialog.setInfoText(tmp_str)
-    dialog.show()
-
-    # create a patch
-    retval=self.lsm.createPatch(psource_list)
-    if retval != None:
-     # successfully created patch
-     print "created patch %s"%retval[0]
-     # remove these sources from PUnit table on main window
-     self.parent.removePUnitRows(psource_list)
-     # update the GUI
-     self.p_tab[retval[0]]=Patch(retval[0],self,retval[1],retval[2],\
+    if dialog.exec_loop() == QDialog.Accepted:
+     # create a patch
+     retval=self.lsm.createPatch(psource_list)
+     if retval != None:
+      # successfully created patch
+      print "created patch %s"%retval[0]
+      # remove these sources from PUnit table on main window
+      self.parent.removePUnitRows(psource_list)
+      # update the GUI
+      self.p_tab[retval[0]]=Patch(retval[0],self,retval[1],retval[2],\
                  retval[3],retval[4])
-     # update PUnit table on main window
-     self.parent.insertPUnitRow(retval[0])
+      # update PUnit table on main window
+      self.parent.insertPUnitRow(retval[0])
     self.canvas().update()
    return
 
@@ -420,6 +421,42 @@ class MyCanvasView(QCanvasView):
     self.zlabel.setText("<font color=\"blue\">"+headstr+"</font>")
 
 
+  # create patches from the grid, only if the grid is ON
+  def createPatchesFromGrid(self):
+   # create two arrays for x divisions
+   # and y divisions and send to the LSM to create 
+   # patches
+   if self.grid_on==1:
+    print "creating patches from grid"
+    stp=(self.x_max-self.x_min)/self.xdivs
+    x_array=[self.x_min]
+    for ii in range(self.xdivs):
+     x_array.append(self.x_min+(ii+1)*stp)
+    stp=(self.y_max-self.y_min)/self.ydivs
+    y_array=[self.y_min]
+    for ii in range(self.ydivs):
+     y_array.append(self.y_min+(ii+1)*stp)
+
+    retval_arr=self.lsm.createPatchesFromGrid(x_array,y_array)
+    print retval_arr
+    if retval_arr != None:
+      for retval in retval_arr:
+       if retval !=None:
+        # successfully created patch
+        print "created patch",retval
+        # get the sources of this patch
+        punit=self.lsm.getPUnit(retval[0])
+        psource_list=punit.getSources()
+        # remove these sources from PUnit table on main window
+        self.parent.removePUnitRows(psource_list)
+        # update the GUI
+        self.p_tab[retval[0]]=Patch(retval[0],self,retval[1],retval[2],\
+                 retval[3],retval[4])
+        # update PUnit table on main window
+        self.parent.insertPUnitRow(retval[0])
+      self.canvas().update()
+
+
   # save the canvas as a pixmap
   def getPixmap(self):
     pm=QPixmap(self.canvas().width(),self.canvas().height())
@@ -536,6 +573,10 @@ class ZWindow(QCanvasRectangle):
 
 ##########################################################
 class Axes:
+  """ canvas_view: QCanvasview object
+      bounds: dict with min_RA,max_RA,min_Dec,max_Dec values
+      x_ticks,y_ticks: number of division in x and y direction
+  """
   def __init__(self,canvas_view,bounds,x_ticks,y_ticks):
     self.cview=canvas_view
     # draw boundary

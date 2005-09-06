@@ -178,6 +178,48 @@ class SpH:
     # no set, just a scalar
     # print "Scalar Return "
     return [1,1] 
+  elif type=='Q':
+   try:
+    shape=self.sQ.shape
+    if len(shape)==4:
+     l=shape[2]
+     m=shape[3]
+    else:
+     l=1
+     m=1
+    return [l,m]
+   except:
+    # no set, just a scalar
+    # print "Scalar Return "
+    return [1,1] 
+  elif type=='U':
+   try:
+    shape=self.sU.shape
+    if len(shape)==4:
+     l=shape[2]
+     m=shape[3]
+    else:
+     l=1
+     m=1
+    return [l,m]
+   except:
+    # no set, just a scalar
+    # print "Scalar Return "
+    return [1,1] 
+  elif type=='V':
+   try:
+    shape=self.sV.shape
+    if len(shape)==4:
+     l=shape[2]
+     m=shape[3]
+    else:
+     l=1
+     m=1
+    return [l,m]
+   except:
+    # no set, just a scalar
+    # print "Scalar Return "
+    return [1,1] 
 
   # will not get here
   return [1,1]
@@ -621,6 +663,13 @@ class LSM:
  # return no of columes in source table
  def getSourceColumns(self):
   return 3
+ # return the named p-Unit from the p-Unit table 
+ def getPUnit(self,pname):
+  if self.p_table.has_key(pname):
+   return self.p_table[pname]
+  # else
+  return None 
+
  # return number of p-Units in the p-Unit table 
  def getPUnits(self):
   # do not count points that belong to a PUnit
@@ -811,9 +860,12 @@ class LSM:
     return output
 
 
- # from the given list of (point) source  names,
+ # from the given list of (point) source  names (slist),
  # create a patch, and add it to the PUnit table
- def createPatch(self,slist):
+ # if calling this in a batchwise manner, call this with
+ # resolve_forst=False and sync_kernel=False
+ # in all calls but the last one, to speed things up
+ def createPatch(self,slist,resolve_forest=True,sync_kernel=True):
   # first browse the slist and 
   # remove any sources already in a patch,
   # also calculate min,max of (RA,Dec) to find the 
@@ -840,10 +892,9 @@ class LSM:
       if dec<y_min:
        y_min=dec
 
-  print "Patch: [%f,%f]--[%f,%f]"%(x_min,y_min,x_max,y_max)
-  print correct_slist
-  
-  print self.__ns
+  #print "Patch: [%f,%f]--[%f,%f]"%(x_min,y_min,x_max,y_max)
+  #print correct_slist
+  #print self.__ns
   if self.__ns!=None and (len(correct_slist)> 0):
    patch_name='patch'+str(self.__patch_count)
    self.__patch_count=self.__patch_count+1
@@ -869,17 +920,17 @@ class LSM:
    #select_root=self.__ns['Select['+patch_name+']']<<Meq.Selector(children=patch_root,multi=True,index=[2,3,4,5])
    #stokes_root=self.__ns['Stokes['+patch_name+']']<<Meq.Stokes(children=select_root)
    #fft_root=self.__ns['FFT['+patch_name+']']<<Meq.FFTBrick(children=stokes_root)
-
-   self.__ns.Resolve()
-   print "Current forest has %d root nodes, of a total of %d nodes"% (len(self.__ns.RootNodes()),len(self.__ns.AllNodes()))
+   if self.__ns != None and resolve_forest==True:
+    self.__ns.Resolve()
+    #print "Current forest has %d root nodes, of a total of %d nodes"% (len(self.__ns.RootNodes()),len(self.__ns.AllNodes()))
 
    Timba.TDL._dbg.set_verbose(5);
    # try to run stuff
-   if self.mqs != None:
+   if self.mqs != None and resolve_forest==True and\
+      sync_kernel==True:
      self.mqs.meq('Clear.Forest')
      self.mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),self.__ns.AllNodes().itervalues())));
      self.mqs.meq('Resolve.Batch',record(name=list(self.__ns.RootNodes().iterkeys())))
-
      # is a forest state defined?
      fst = getattr(Timba.TDL.Settings,'forest_state',record());
      self.mqs.meq('Set.Forest.State',record(state=fst));
@@ -889,7 +940,8 @@ class LSM:
    newp.setType(PATCH_TYPE)
    newp.sp.setRoot(patch_root)
    # update vellsets
-   newp.sp.updateValues(patch_name)
+   if resolve_forest==True and sync_kernel==True:
+    newp.sp.updateValues(patch_name)
    #from Timba.Meq import meq
    #ftdom=meq.domain(startfreq=1e6, endfreq=3e6, starttime=0,endtime=1)
    #cc=meq.cells(domain=ftdom,num_freq=2, num_time=1)
@@ -908,6 +960,128 @@ class LSM:
 
   # if we get here, an error
    return None
+
+
+ # create patches from the grid, given by
+ # an x_arry and y_array of grid points
+ # note: x_array and y_array should be sorted in ascending order
+ def createPatchesFromGrid(self,x_array,y_array):
+  #from Timba.utils import verbosity
+  #_dbg = verbosity(0,name='LSM')
+  #_dprint = _dbg.dprint
+  #_dprint(3,"Creating patches for",x_array,y_array)
+
+  # encapsulate arrays with large bounds
+  # so we do not miss any points
+  x_array.insert(0,x_array[0]-1e6)
+  x_array.append(x_array[len(x_array)-1]+1e6)
+  y_array.insert(0,y_array[0]-1e6)
+  y_array.append(y_array[len(y_array)-1]+1e6)
+
+  #print x_array
+  #print y_array
+
+  # now for each point source in p-unit list
+  # if they are not already included in a patch
+  # and also if they satisfy the criteria for including
+  # in a patch, do a binary search and find correct grid position
+  
+  # set up bins to collect sorted sources
+  xbins={}
+  for ii in range(len(x_array)-1):
+   xbins[ii]=[]
+  ybins={}
+  for ii in range(len(y_array)-1):
+   ybins[ii]=[]
+
+  #print xbins
+  #print ybins
+  for sname in self.p_table.keys(): 
+    punit=self.p_table[sname]
+    if  punit.getType()==POINT_TYPE and\
+       punit._patch_name==None:
+      # get RA and Dec
+      xx=punit.sp.getRA()
+      yy=punit.sp.getDec()
+      k=bin_search(x_array,xx,0,len(x_array)-1)
+      xbins[k].append(sname)
+      k=bin_search(y_array,yy,0,len(y_array)-1)
+      ybins[k].append(sname)
+
+  #print xbins
+  #print ybins
+  # now create a reverse mapping hash table
+  # indexed by source name, such that the pair
+  # of indices [x_,y_] for each source (patch index)
+  # is given
+  p_id_x={}
+  p_id_y={}
+  # ignore bin indices 0 and the last_index
+  # bacause these fall out of the range
+  if len(xbins)>2:
+   for ii in range(len(xbins)-2):
+    ll=xbins[ii+1]
+    # traverse list
+    for sname in ll:
+      p_id_x[sname]=ii+1
+  if len(ybins)>2:
+   for ii in range(len(ybins)-2):
+    ll=ybins[ii+1]
+    # traverse list
+    for sname in ll:
+      p_id_y[sname]=ii+1
+
+  #print p_id_x
+  #print p_id_y
+
+  # now create the patches
+  patch_bins={}
+  for ii in range(len(xbins)-2):
+   for jj in range(len(ybins)-2):
+    patch_name="Patch#"+str(ii+1)+":"+str(jj+1)
+    patch_bins[patch_name]=[]
+ 
+  for sname in p_id_x.keys():
+    ii=p_id_x[sname]
+    if p_id_y.has_key(sname):
+     jj=p_id_y[sname]
+     patch_name="Patch#"+str(ii)+":"+str(jj)
+     patch_bins[patch_name].append(sname)
+
+  #print patch_bins
+  # now call single patch creation function
+  # remember return values from single patch creation
+  retval_arr=[]
+  new_punit_names=[]
+  for pname in patch_bins.keys():
+   retval=self.createPatch(patch_bins[pname],True,False)
+   if retval !=None:
+    retval_arr.append(retval)
+    # remember PUnit name to update its value
+    new_punit_names.append(retval[0])
+  # now resolve forest and sync kernel
+  self.__ns.Resolve()
+  print "Resolved local NodeScope"
+  print "Current forest has %d root nodes, of a total of %d nodes"% (len(self.__ns.RootNodes()),len(self.__ns.AllNodes()))
+  if self.mqs != None:
+     print "Sending request to kernel"
+     self.mqs.meq('Clear.Forest')
+     self.mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),self.__ns.AllNodes().itervalues())));
+     self.mqs.meq('Resolve.Batch',record(name=list(self.__ns.RootNodes().iterkeys())))
+     # is a forest state defined?
+     fst = getattr(Timba.TDL.Settings,'forest_state',record());
+     self.mqs.meq('Set.Forest.State',record(state=fst));
+     # update vellset values for all newly created PUnits
+     for pname in new_punit_names:
+      print "Updating Punit ",pname
+      punit=self.getPUnit(pname)
+      punit.sp.updateValues(pname)
+
+
+
+  return retval_arr
+
+
 
  
  # set the current NodeScope
