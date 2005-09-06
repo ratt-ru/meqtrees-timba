@@ -747,12 +747,16 @@ class TDLEditor (QFrame,PersistentCurrier):
       _dprint(0,'exception',sys.exc_info(),'in define_forest() of TDL file',self._real_filename);
       errline = None;
       stack = traceback.extract_tb(tb);
-      for (filename,line,funcname,text) in stack[-1::-1]:
-        if filename == self._filename:
-          errlist.append(exctype(str(excvalue),filename,line));
+      (filename,lineno,funcname,text) = stack[-1];
+      errlist.append(exctype(str(excvalue),filename,lineno));
+      # extract backtrace to error callers
+      for (filename,line,funcname,text) in stack[-2::-1]:
+        # cease backtrace when our own code is reached
+        if filename == our_filename:
           break;
-      else:
-        errlist.append(exctype(str(excvalue),stack[-1][0],stack[-1][1]));
+        # append additional errors, if available
+        if (filename,line) != (filename,lineno):
+          errlist.append(TDL.ExtraInfoError("called from here",filename,line));
     # do we have an error list? show it
     if errlist:
       self.set_exc_list(errlist);
