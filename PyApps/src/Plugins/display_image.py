@@ -9,6 +9,8 @@ from ComplexColorMap import *
 from ComplexScaleDraw import *
 from QwtPlotImage import *
 from Timba.GUI.pixmaps import pixmaps
+from guiplot2dnodesettings import *
+from tabdialog import *
 import random
 
 from Timba.utils import verbosity
@@ -105,15 +107,22 @@ class QwtImageDisplay(QwtPlot):
         self.x_array = None
         self.y_array = None
         self.x_index = None
-	self._x_axis = None
-	self._y_axis = None
-	self._title = None
+	self._x_title = None
+	self._y_title = None
+	self._window_title = None
+        self._x_auto_scale = True
+        self._y_auto_scale = True
+        self.axis_xmin = None
+        self.axis_xmax = None
+        self.axis_ymin = None
+        self.axis_ymax = None
 	self._menu = None
         self._plot_type = None
 	self._plot_dict_size = None
 	self.created_combined_image = False
         self.dimensions_tested = False
 	self._combined_image_id = None
+        self.colorbar_requested = False
 	self.is_combined_image = False
         self.active_image_index = None
         self.y_marker_step = None
@@ -141,14 +150,14 @@ class QwtImageDisplay(QwtPlot):
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
         self.plotLayout().setAlignCanvasToScales(1)
-        self.setTitle('QwtImageDisplay: demo')
+        self.setTitle('QwtImageDisplay')
 
         self.setlegend = 0
         self.setAutoLegend(self.setlegend)
         self.enableLegend(False)
         self.setLegendPos(Qwt.Right)
-        self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
-        self.setAxisTitle(QwtPlot.yLeft, 'value')
+        self.setAxisTitle(QwtPlot.xBottom, 'Array/Channel Number')
+        self.setAxisTitle(QwtPlot.yLeft, 'Array/Sequence Number')
         
         self.enableAxis(QwtPlot.yRight, False)
         self.enableAxis(QwtPlot.xTop, False)
@@ -161,6 +170,7 @@ class QwtImageDisplay(QwtPlot):
         self.active_image = False
         self.info_marker = None
         self.source_marker = None
+        self.array_tuple = None
 
         self.plotImage = QwtPlotImage(self)
 
@@ -191,6 +201,52 @@ class QwtImageDisplay(QwtPlot):
         self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
 #       self.__init__
+
+    def getPlotParms(self):
+        plot_parms = {}
+        plot_parms['window_title'] = self._window_title
+        plot_parms['x_title'] = self._x_title
+        plot_parms['y_title'] = self._y_title
+        plot_parms['x_auto_scale'] = self._x_auto_scale
+        plot_parms['y_auto_scale'] = self._y_auto_scale
+        plot_parms['axis_xmin'] = self.axis_xmin
+        plot_parms['axis_xmax'] = self.axis_xmax
+        plot_parms['axis_ymin'] = self.axis_ymin
+        plot_parms['axis_ymax'] = self.axis_ymax
+     
+        return plot_parms
+
+    def setPlotParms(self, plot_parms):
+#       print 'in setPlotParms with plot_parms ', plot_parms
+        self._window_title = plot_parms['window_title'] 
+        self._x_title = plot_parms['x_title']
+        self._y_title = plot_parms['y_title'] 
+
+        self.setTitle(self._window_title)
+        self.setAxisTitle(QwtPlot.xBottom, self._x_title)
+        self.setAxisTitle(QwtPlot.yLeft, self._y_title)
+
+        self._x_auto_scale = plot_parms['x_axis_auto_scale']
+        if self._x_auto_scale == '1':
+          self._x_auto_scale = True
+        else:
+          self._x_auto_scale = False
+        self._y_auto_scale = plot_parms['y_axis_auto_scale']
+        if self._y_auto_scale == '1':
+          self._y_auto_scale = True
+        else:
+          self._y_auto_scale = False
+        if not self._x_auto_scale: 
+          self.axis_xmin = plot_parms['x_axis_min']
+          self.axis_xmax = plot_parms['x_axis_max']
+#         self.setAxisScale(QwtPlot.xBottom, float(self.axis_xmin), float(self.axis_xmax))
+        if not self._y_auto_scale: 
+          self.axis_ymin = plot_parms['y_axis_min']
+          self.axis_ymax = plot_parms['y_axis_max']
+#         self.setAxisScale(QwtPlot.yLeft, float(self.axis_ymin), float(self.axis_ymax))
+        self.axis_ratio = plot_parms['ratio']
+        self.aspect_ratio = plot_parms['aspect_ratio']
+        self.replot()
 
     def initSpectrumContextMenu(self):
         """Initialize the spectra context menu
@@ -308,6 +364,9 @@ class QwtImageDisplay(QwtPlot):
       if menuid < 0:
         self.unzoom()
         return
+      if menuid == 299:
+        self.updatePlotParameters()
+        return
       if menuid == 300:
         self.toggleLegend()
         return
@@ -362,6 +421,12 @@ class QwtImageDisplay(QwtPlot):
        if not self.xmin is None and not self.xmax is None and not self.ymin is None and not self.ymax is None:
          self.setAxisScale(QwtPlot.xBottom, self.xmin, self.xmax)
          self.setAxisScale(QwtPlot.yLeft, self.ymin, self.ymax)
+         self._x_auto_scale = False
+         self._y_auto_scale = False
+         self.axis_xmin = self.xmin
+         self.axis_xmax = self.xmax
+         self.axis_ymin = self.ymin
+         self.axis_ymax = self.ymax
 
     def initVellsContextMenu (self):
         # skip if no main window
@@ -426,6 +491,12 @@ class QwtImageDisplay(QwtPlot):
             xmin, xmax, ymin, ymax = self.zoomStack.pop()
           self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
           self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+          self._x_auto_scale = False
+          self._y_auto_scale = False
+          self.axis_xmin = xmin
+          self.axis_xmax = xmax
+          self.axis_ymin = ymin
+          self.axis_ymax = ymax
           self.xmin = None
           self.xmax = None
           self.ymin = None
@@ -448,18 +519,21 @@ class QwtImageDisplay(QwtPlot):
 
     # toggleLegend()
 
+    def updatePlotParameters(self):
+      parms_interface = WidgetSettingsDialog(actual_parent=self, gui_parent=self)
+
     def setImageRange(self, min, max):
-        image_min = min * 1.0
-        image_max = max * 1.0
-        if image_min > image_max:
-          temp = image_max
-          image_max = image_min
-          image_min = temp
-        self.plotImage.setImageRange((image_min, image_max))
-        self.defineData()
-        self.image_min = image_min
-        self.image_max = image_max
-        self.replot()
+      image_min = min * 1.0
+      image_max = max * 1.0
+      if image_min > image_max:
+        temp = image_max
+        image_max = image_min
+        image_min = temp
+      self.plotImage.setImageRange((image_min, image_max))
+      self.defineData()
+      self.image_min = image_min
+      self.image_max = image_max
+      self.replot()
     # setImageRange
 	
 
@@ -493,6 +567,9 @@ class QwtImageDisplay(QwtPlot):
     def update_vells_display(self, menuid):
       if menuid < 0:
         self.unzoom()
+        return
+      if menuid == 299:
+        self.updatePlotParameters()
         return
       if menuid == 300:
         self.toggleLegend()
@@ -570,24 +647,8 @@ class QwtImageDisplay(QwtPlot):
         self._shape = tuple(shape_list)
 # handle "value" first
       if perturb < 0 and self._vells_rec.vellsets[plane].has_key("value"):
-        complex_type = False;
 # test if we have a numarray
-        try:
-          self._value_array = self._vells_rec.vellsets[plane].value
-          self.array_rank = self._value_array.rank
-          self.array_shape = self._value_array.shape
-          _dprint(3, 'self._value_array ', self._value_array)
-          array_shape = self._value_array.shape
-          if len(array_shape) == 1 and array_shape[0] == 1:
-            temp_value = self._value_array[0]
-            temp_array = asarray(temp_value)
-            self._value_array = resize(temp_array,self._shape)
-        except:
-          temp_array = asarray(self._vells_rec.vellsets[i].value)
-          self._value_array = resize(temp_array,self._shape)
-          self.array_rank = self._value_array.rank
-          self.array_shape = self._value_array.shape
-
+        self._value_array = self._vells_rec.vellsets[plane].value
         key = " value "
         self._label = "plane " + str(plane) + key 
         if self._solver_flag:
@@ -601,11 +662,7 @@ class QwtImageDisplay(QwtPlot):
 # test if we have a numarray
           perturbed_array_diff = None
           self._active_perturb = perturb
-          try:
-            perturbed_array_diff = self._vells_rec.vellsets[plane].perturbed_value[perturb]
-          except:
-            temp_array = asarray(self._vells_rec.vellsets[plane].perturbed_value[perturb])
-            perturbed_array_diff = resize(temp_array,self._shape)
+          perturbed_array_diff = self._vells_rec.vellsets[plane].perturbed_value[perturb]
 
           key = " perturbed_value "
           self._label =  "plane " + str(plane) + key + str(perturb)
@@ -944,21 +1001,27 @@ class QwtImageDisplay(QwtPlot):
           return
         self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
         self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+        self._x_auto_scale = False
+        self._y_auto_scale = False
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
         self.ymax = ymax
+        self.axis_xmin = xmin
+        self.axis_xmax = xmax
+        self.axis_ymin = ymin
+        self.axis_ymax = ymax
         self.replot()
         _dprint(2, 'called replot in onMouseReleased');
 
     # onMouseReleased()
 
     def toggleCurve(self, key):
-        curve = self.curve(key)
-        if curve:
-            curve.setEnabled(not curve.enabled())
-            self.replot()
-            _dprint(2, 'called replot in toggleCurve');
+      curve = self.curve(key)
+      if curve:
+        curve.setEnabled(not curve.enabled())
+        self.replot()
+        _dprint(2, 'called replot in toggleCurve');
     # toggleCurve()
 
     def setDisplayType(self, display_type):
@@ -1051,9 +1114,9 @@ class QwtImageDisplay(QwtPlot):
 
 # first find out what kind of plot we are making
       self._plot_type = None
-      self._title = None
-      self._x_axis = None
-      self._y_axis = None
+      self._window_title = None
+      self._x_title = None
+      self._y_title = None
       self._string_tag = None
       self._data_labels = None
       self._tag_plot_attrib={}
@@ -1093,13 +1156,13 @@ class QwtImageDisplay(QwtPlot):
               plot_parms = temp_parms
             if self._plot_type is None and plot_parms.has_key('plot_type'):
               self._plot_type = plot_parms.get('plot_type')
-            if self._title is None and plot_parms.has_key('title'):
-              self._title = plot_parms.get('title')
-              self.setTitle(self._title)
-            if self._x_axis is None and plot_parms.has_key('x_axis'):
-              self._x_axis = plot_parms.get('x_axis')
-            if self._y_axis is None and plot_parms.has_key('y_axis'):
-              self._y_axis = plot_parms.get('y_axis')
+            if self._window_title is None and plot_parms.has_key('title'):
+              self._window_title = plot_parms.get('title')
+              self.setTitle(self._window_title)
+            if self._x_title is None and plot_parms.has_key('x_axis'):
+              self._x_title = plot_parms.get('x_axis')
+            if self._y_title is None and plot_parms.has_key('y_axis'):
+              self._y_title = plot_parms.get('y_axis')
             if self._display_type is None and plot_parms.has_key('spectrum_color'):
               self.setDisplayType(plot_parms.get('spectrum_color'))
           if self._attrib_parms.has_key('tag'):
@@ -1183,11 +1246,13 @@ class QwtImageDisplay(QwtPlot):
       self.axis_labels = []
       self.vells_axis_parms = {}
       self.axis_shape = {}
-      self.num_actual_axes = 0
       for i in range(len(axis_map)):
         # convert from Hiid to string
         self.axis_labels.append(str(axis_map[i]).lower())
         current_label = self.axis_labels[i]
+        begin = 0
+        end = 0
+        title = current_label
         if self._vells_rec.cells.domain.has_key(current_label):
           begin = self._vells_rec.cells.domain.get(current_label)[0]
 	  end = self._vells_rec.cells.domain.get(current_label)[1]
@@ -1197,28 +1262,29 @@ class QwtImageDisplay(QwtPlot):
             begin = 0
             title = 'Time(sec): (relative to start)'
           if current_label == 'freq':
-            if begin >  1.0e6:
+            if end >  1.0e6:
               begin = begin / 1.0e6
               end = end / 1.0e6
               title = 'Frequency(MHz)'
-            elif begin >  1.0e3:
+            elif end >  1.0e3:
               begin = begin / 1.0e3
               end = end / 1.0e3
               title = 'Frequency(KHz)'
             else:
               title = 'Frequency(Hz)'
-          self.vells_axis_parms[current_label] = (begin, end, title)
-        else:
-          self.vells_axis_parms[current_label] = (0, 0, current_label)
         if self._vells_rec.cells.grid.has_key(current_label):
           grid_array = self._vells_rec.cells.grid.get(current_label)
           try:
             self.axis_shape[current_label] = grid_array.shape[0]
           except:
             self.axis_shape[current_label] = 1
-          self.num_actual_axes = self.num_actual_axes + 1
         else:
           self.axis_shape[current_label] = 1
+        self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label])
+      if not self.dimensions_tested:
+        if len(self.vells_axis_parms) > 2:
+          self.emit(PYSIGNAL("vells_axes_labels"),(self.axis_labels, self.vells_axis_parms))
+        self.dimensions_tested = True
 
 # set default axis parameters - needed in a simple 2-D plot
       self.first_axis_parm = self.axis_labels[0]
@@ -1230,7 +1296,6 @@ class QwtImageDisplay(QwtPlot):
 
       _dprint(2, 'in plot_vells_data');
       self.metrics_rank = None
-      self.iteration_number = None
       self._vells_rec = vells_record;
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
@@ -1251,12 +1316,12 @@ class QwtImageDisplay(QwtPlot):
                self.iteration_number[i] = i+1
           shape = self._value_array.shape
           if shape[1] > 1:
-            self._x_axis = 'Solvable Coeffs'
-            self._y_axis = 'Iteration Nr'
+            self._x_title = 'Solvable Coeffs'
+            self._y_title = 'Iteration Nr'
             self.array_plot("Solver Incremental Solutions", self._value_array, True)
           else:
-            self._y_axis = 'Value'
-            self._x_axis = 'Iteration Nr'
+            self._y_title = 'Value'
+            self._x_title = 'Iteration Nr'
             self.array_plot("Solver Incremental Solution", self._value_array, True)
 
 # are we dealing with Vellsets?
@@ -1289,7 +1354,11 @@ class QwtImageDisplay(QwtPlot):
             temp_array = asarray(self._vells_rec.vellsets[self._active_plane].flags)
             self._flags_array = resize(temp_array,self._shape)
 
-          self.setFlagsData(self._flags_array)
+          if self.array_tuple is None:
+            self.setFlagsData(self._flags_array)
+          else:
+            self.setFlagsData(self._flags_array[self.array_tuple])
+
 
 	
 # plot the appropriate plane / perturbed value
@@ -1298,31 +1367,6 @@ class QwtImageDisplay(QwtPlot):
         else:
           if self._vells_rec.vellsets[self._active_plane].has_key("value"):
             self._value_array = self._vells_rec.vellsets[self._active_plane].value
-# test if we have a numarray
-        try:
-            _dprint(3, 'self._value_array ', self._value_array)
-            array_shape = self._value_array.shape
-            if len(array_shape) == 1 and array_shape[0] == 1:
-              temp_value = self._value_array[0]
-              temp_array = asarray(temp_value)
-              self._value_array = resize(temp_array,self._shape)
-
-        except:
-            temp_array = None
-            if self._active_perturb is None:
-              temp_array = asarray(self._vells_rec.vellsets[self._active_plane].value)
-            else:
-              temp_array = asarray(self._vells_rec.vellsets[self._active_plane].perturbed_value[self._active_perturb])
-            try:
-              self._shape = self._vells_rec.vellsets[self._active_plane].shape
-            except:
-              shape_list = []
-              for i in range(len(self.axis_labels)):
-                dimension = self.axis_shape[self.axis_labels[i]] 
-                shape_list.append(dimension)
-              self._shape = tuple(shape_list)
-            self._value_array = resize(temp_array,self._shape)
-
         key = ""
         if self._active_perturb is None:
           key = " value "
@@ -1334,13 +1378,6 @@ class QwtImageDisplay(QwtPlot):
           self.array_plot(self._label, self._value_array, flip_axes=False)
         else:
           if self._vells_plot:
-            if not self.dimensions_tested:
-              self.array_rank = self._value_array.rank
-              self.toggle_array_rank = self.array_rank
-              self.array_shape = self._value_array.shape
-              if self.array_rank > 2:
-                self.emit(PYSIGNAL("vells_axes_labels"),(self._value_array.shape, self.axis_labels, self.vells_axis_parms))
-              self.dimensions_tested = True
             if self.context_menu_done is None:
                self.initVellsContextMenu()
             self.set_data_range(self._value_array)
@@ -1349,6 +1386,14 @@ class QwtImageDisplay(QwtPlot):
     # end plot_vells_data()
 
     def set_data_range(self, data_array):
+# make sure we're dealing with an array
+      try:
+        array_shape = data_array.shape
+      except:
+        temp_array = asarray(data_array)
+        shape = (1,1)
+        data_array = resize(temp_array,shape)
+
       if data_array.type() == Complex32 or data_array.type() == Complex64:
         real_array = data_array.getreal()
         imag_array = data_array.getimag()
@@ -1368,68 +1413,192 @@ class QwtImageDisplay(QwtPlot):
         self.data_min = data_array.min()
         self.data_max = data_array.max()
 
-      self.plotImage.setImageRange((self.data_min,self.data_max))
-      self.reset_color_bar(reset_value = False)
-
       # just in case we have a uniform image
       if self.data_min == self.data_max:
-        self.data_min = 0.9 * self.data_min
-        self.data_max = 1.1 * self.data_max
-        self.plotImage.setImageRange((self.data_min, self.data_max))
+        if self.data_min == 0 or self.data_min == 0.0:
+          self.data_min = -0.1
+          self.data_max = 0.1 
+        else:
+          self.data_min = 0.9 * self.data_min
+          self.data_max = 1.1 * self.data_max
+
+      self.plotImage.setImageRange((self.data_min,self.data_max))
+      self.reset_color_bar(reset_value = False)
       self.emit(PYSIGNAL("image_range"),(self.data_min, self.data_max))
       self.emit(PYSIGNAL("max_image_range"),(self.data_min, self.data_max))
 
     def setArraySelector (self,lcd_number, slider_value, display_string):
-      self.array_selector[lcd_number] = slider_value
-      self.array_tuple = tuple(self.array_selector)
-      self.array_plot('data: '+ display_string, self._value_array[self.array_tuple])
+      print 'in setArraySelector lcd_number, slider_value ', lcd_number, slider_value
+      if self.array_selector is None or len(self.array_selector) == 0:
+        if self._vells_plot:
+          plot_array = self.check_dimensions(self._value_array)
+          self.array_plot('data: '+ display_string, plot_array)
+        else:
+          self.array_plot('data: '+ display_string, self._value_array)
+          
+      else:
+        print 'array selector ', self.array_selector
+        self.array_selector[lcd_number] = slider_value
+        self.array_tuple = tuple(self.array_selector)
+        if self._vells_plot:
+          plot_array = self.check_dimensions(self._value_array[self.array_tuple])
+          self.array_plot('data: '+ display_string, plot_array)
+        else:
+          self.array_plot('data: '+ display_string, self._value_array[self.array_tuple])
 
     def plot_vells_array (self, data_array):
-      if data_array.rank > 2:
-        second_axis = None
-        first_axis = None
-        for i in range(data_array.rank-1,-1,-1):
-          if data_array.shape[i] > 1:
-            if second_axis is None:
-              second_axis = i
-            else:
-              if first_axis is None:
-                first_axis = i
-        if not first_axis is None and not second_axis is None:
+      self.array_shape = None
+      self.array_rank = data_array.rank
+      if data_array.rank > 2: 
+        self.array_shape =  data_array.shape
+        if self.array_selector is None or len(self.array_selector) == 0:
           self.array_selector = []
-          for i in range(data_array.rank):
-            if i == first_axis:
-              axis_slice = slice(0,data_array.shape[first_axis])
-              self.array_selector.append(axis_slice)
-            elif i == second_axis:
-              axis_slice = slice(0,data_array.shape[second_axis])
-              self.array_selector.append(axis_slice)
-            else:
-              self.array_selector.append(0)
-          self.array_tuple = tuple(self.array_selector)
-          self.first_axis_parm = self.axis_labels[first_axis]
-          self.second_axis_parm = self.axis_labels[second_axis]
-          self.array_plot(self._label, data_array[self.array_tuple])
+          self.first_axis = None
+          self.second_axis = None
+          for i in range(data_array.rank-1,-1,-1):
+            if data_array.shape[i] > 1:
+              if self.second_axis is None:
+                self.second_axis = i
+              else:
+                if self.first_axis is None:
+                  self.first_axis = i
+          if not self.first_axis is None and not self.second_axis is None:
+            for i in range(data_array.rank):
+              if i == self.first_axis:
+                axis_slice = slice(0,data_array.shape[self.first_axis])
+                self.array_selector.append(axis_slice)
+                first_plot_dimension = self.vells_axis_parms[self.axis_labels[i]][3]
+              elif i == self.second_axis:
+                axis_slice = slice(0,data_array.shape[self.second_axis])
+                self.array_selector.append(axis_slice)
+                second_plot_dimension = self.vells_axis_parms[self.axis_labels[i]][3]
+              else:
+                self.array_selector.append(0)
+            self.emit(PYSIGNAL("reset_axes_labels"),(self.axis_labels, self.vells_axis_parms))
+          else:
+            first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
+            second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
+        else:
+          first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
+          second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
+        print 'plot_vells_array: self.array_selector is ', self.array_selector
+        self.array_tuple = tuple(self.array_selector)
+        self.first_axis_parm = self.axis_labels[self.first_axis]
+        self.second_axis_parm = self.axis_labels[self.second_axis]
+        self.plot_vells_dimensions = (first_plot_dimension, second_plot_dimension)
+        plot_array = self.check_dimensions(data_array[self.array_tuple])
+        self.array_plot(self._label, plot_array)
+          
       else:
-        self.array_plot(self._label, data_array)
+        if len(self.axis_labels) > 2:
+          self.array_selector = None
+          self.second_axis = None
+          self.first_axis = None
+          first_plot_dimension = 1
+          second_plot_dimension = 1
+          for i in range(len(self.axis_labels)-1,-1,-1):
+           if self.vells_axis_parms[self.axis_labels[i]][3] > 1:
+             if self.second_axis is None:
+               self.second_axis = i
+               second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
+               self.second_axis_parm = self.axis_labels[self.second_axis]
+             else:
+               if self.first_axis is None:
+                 self.first_axis = i
+                 first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
+                 self.first_axis_parm = self.axis_labels[self.first_axis]
+        else:
+          first_plot_dimension = self.vells_axis_parms[self.axis_labels[0]][3]
+          second_plot_dimension = self.vells_axis_parms[self.axis_labels[1]][3]
+          self.first_axis_parm = self.axis_labels[0]
+          self.second_axis_parm = self.axis_labels[1]
+        self.plot_vells_dimensions = (first_plot_dimension, second_plot_dimension)
+        plot_array = self.check_dimensions(data_array)
+        self.array_plot(self._label, plot_array)
 
  
+    def check_dimensions(self,data_array):
+      try:
+        shape = data_array.shape
+      except:
+# we have a scalar - expand the scalar to fill the grid
+        temp_array = asarray(data_array)
+        new_array = resize(temp_array,self.plot_vells_dimensions)
+        return new_array
+      if len(shape) == 1:
+        if shape[0] == 1:
+# we essentially have a scalar
+          temp_array = asarray(data_array)
+          new_array = resize(temp_array,self.plot_vells_dimensions)
+          return new_array
+        else:
+# we can assume we have a conformant array along the first axis (I think)
+          temp_array = asarray(data_array)
+          new_array = resize(temp_array,self.plot_vells_dimensions)
+          for i in range(self.plot_vells_dimensions[0]):
+            for j in range(self.plot_vells_dimensions[1]):
+              new_array[i,j] = data_array[i,0]
+          return new_array
+# otherwise we had a 2-D shape
+      else:
+# simplest case: incoming array has dimensions of vell
+        if shape[0] == self.plot_vells_dimensions[0] and shape[1] ==  self.plot_vells_dimensions[1]:
+          return data_array
+        if shape[0] == 1 and shape[1] == 1:
+# we essentially have a scalar
+          temp_array = asarray(data_array)
+          new_array = resize(temp_array,self.plot_vells_dimensions)
+          return new_array
+# we need to expand the data to fill the vells dimension
+# easy if fastest changing index == shape of vector which will
+# be replicated
+        if shape[0] == 1 and shape[1] ==  self.plot_vells_dimensions[1]:
+          new_array = resize(data_array,self.plot_vells_dimensions)
+        else:
+# otherwise
+          temp_array = asarray(data_array[0,0])
+          new_array = resize(temp_array,self.plot_vells_dimensions)
+          for i in range(self.plot_vells_dimensions[0]):
+            for j in range(self.plot_vells_dimensions[1]):
+              new_array[i,j] = data_array[i,0]
+        return new_array
+
     def setSelectedAxes (self,first_axis, second_axis):
+      print 'in setSelectedAxes with axes ', first_axis, second_axis
       if self._vells_plot:
+        self.first_axis = first_axis
+        self.second_axis = second_axis
         self.first_axis_parm = self.axis_labels[first_axis]
         self.second_axis_parm = self.axis_labels[second_axis]
-      self.array_selector = []
-      for i in range(self.array_rank):
-        if i == first_axis:
-          axis_slice = slice(0,self.array_shape[first_axis])
-          self.array_selector.append(axis_slice)
-        elif i == second_axis:
-          axis_slice = slice(0,self.array_shape[second_axis])
-          self.array_selector.append(axis_slice)
+        first_plot_dimension = self.vells_axis_parms[self.axis_labels[first_axis]][3]
+        second_plot_dimension = self.vells_axis_parms[self.axis_labels[second_axis]][3]
+        self.plot_vells_dimensions = (first_plot_dimension, second_plot_dimension)
+      if not self.array_shape is None: 
+        self.array_selector = []
+        for i in range(len(self.array_shape)):
+          if i == first_axis:
+            axis_slice = slice(0,self.array_shape[first_axis])
+            self.array_selector.append(axis_slice)
+          elif i == second_axis:
+            axis_slice = slice(0,self.array_shape[second_axis])
+            self.array_selector.append(axis_slice)
+          else:
+            self.array_selector.append(0)
+        self.array_tuple = tuple(self.array_selector)
+        if self._vells_plot:
+          if self._value_array.rank > 2:
+            plot_array = self.check_dimensions(self._value_array[self.array_tuple])
+          else:
+            plot_array = self.check_dimensions(self._value_array)
+          self.array_plot(self._label, plot_array)
         else:
-          self.array_selector.append(0)
-      self.array_tuple = tuple(self.array_selector)
-      self.array_plot(self._label, self._value_array[self.array_tuple])
+          self.array_plot(self._label, self._value_array[self.array_tuple])
+      else:
+        if self._vells_plot:
+          plot_array = self.check_dimensions(self._value_array)
+          self.array_plot(self._label, plot_array)
+        else:
+          self.array_plot(self._label, self._value_array)
 
     def handle_finished (self):
       print 'in handle_finished'
@@ -1464,8 +1633,8 @@ class QwtImageDisplay(QwtPlot):
 
 
 # set title
-      if self._title is None:
-        self.setTitle(data_label)
+      self._window_title = data_label  
+      self.setTitle(self._window_title)
 
 # hack to get array display correct until forest.state
 # record is available
@@ -1494,6 +1663,7 @@ class QwtImageDisplay(QwtPlot):
           if plot_array.shape[1] == 1:
             is_first_axis = True
 
+
 # test for real or complex
       complex_type = False;
       if plot_array.type() == Complex32:
@@ -1504,6 +1674,9 @@ class QwtImageDisplay(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False:
+        if not self.colorbar_requested:
+          self.emit(PYSIGNAL("colorbar_needed"),(1,))
+          self.colorbar_requested = True
 
 # don't use grid markings for 2-D 'image' arrays
         self.enableGridX(False)
@@ -1547,25 +1720,18 @@ class QwtImageDisplay(QwtPlot):
             self.first_axis_inc = delta_vells / plot_array.shape[0] 
             delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
             self.second_axis_inc = delta_vells / plot_array.shape[1] 
-	    if self._x_axis is None:
-              title_addition = ': (real followed by imaginary)'
-              x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
-              self.setAxisTitle(QwtPlot.xBottom, x_title)
-	    else:  
-              self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
-	    if self._y_axis is None:
-                self.setAxisTitle(QwtPlot.yLeft, self.vells_axis_parms[self.y_parm][2])
-	    else:
-              self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
+            title_addition = ': (real followed by imaginary)'
+            self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
+            self.setAxisTitle(QwtPlot.xBottom, self._x_title)
+            self._y_title = self.vells_axis_parms[self.y_parm][2]
+            self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           else:
-	    if self._x_axis is None:
-              self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
-	    else:  
-              self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
-	    if self._y_axis is None:
-              self.setAxisTitle(QwtPlot.yLeft, 'sequence')
-	    else:
-              self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
+	    if self._x_title is None:
+              self._x_title = 'Array/Channel Number (real followed by imaginary)'
+            self.setAxisTitle(QwtPlot.xBottom, self._x_title)
+	    if self._y_title is None:
+              self._y_title = 'Array/Sequence Number'
+            self.setAxisTitle(QwtPlot.yLeft, self._y_title)
             self.myXScale = ComplexScaleDraw(plot_array.shape[0])
             self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
 	    self.split_axis = plot_array.shape[0]
@@ -1587,23 +1753,17 @@ class QwtImageDisplay(QwtPlot):
             self.first_axis_inc = delta_vells / plot_array.shape[0] 
             delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
             self.second_axis_inc = delta_vells / plot_array.shape[1] 
-	    if self._x_axis is None:
-                self.setAxisTitle(QwtPlot.xBottom, self.vells_axis_parms[self.x_parm][2])
-	    else:  
-              self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
-	    if self._y_axis is None:
-                self.setAxisTitle(QwtPlot.yLeft, self.vells_axis_parms[self.y_parm][2])
-	    else:
-              self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
+            self._x_title = self.vells_axis_parms[self.x_parm][2]
+            self.setAxisTitle(QwtPlot.xBottom, self._x_title)
+            self._y_title = self.vells_axis_parms[self.y_parm][2]
+            self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           else:
-	    if self._x_axis is None:
-              self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
-	    else:  
-              self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
-	    if self._y_axis is None:
-              self.setAxisTitle(QwtPlot.yLeft, 'sequence')
-	    else:
-              self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
+	    if self._x_title is None:
+              self._x_title = 'Array/Channel Number'
+            self.setAxisTitle(QwtPlot.xBottom, self._x_title)
+	    if self._y_title is None:
+              self._y_title = 'Array/Sequence Number'
+            self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           self.display_image(plot_array)
 
       if self.is_vector == True:
@@ -1619,6 +1779,8 @@ class QwtImageDisplay(QwtPlot):
 # make sure we are autoscaling in case an image was previous
         self.setAxisAutoScale(QwtPlot.xBottom)
         self.setAxisAutoScale(QwtPlot.yLeft)
+        self._x_auto_scale = True
+        self._y_auto_scale = True
         self.setAxisAutoScale(QwtPlot.yRight)
 
 # make sure grid markings are on in case an image was previously displayed
@@ -1653,10 +1815,9 @@ class QwtImageDisplay(QwtPlot):
             for j in range(num_elements):
               self.x_index[j] = start_x + j * x_step
         else:
-	  if self._x_axis is None:
-            self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
-	  else:  
-            self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
+	  if self._x_title is None:
+            self._x_title = 'Array/Channel Number'
+          self.setAxisTitle(QwtPlot.xBottom, self._x_title)
           self.x_index = arange(num_elements)
           self.x_index = self.x_index + 0.5
 # if we are plotting a single iteration solver solution
@@ -1797,6 +1958,8 @@ class QwtImageDisplay(QwtPlot):
     # setFlagData()
 
     def add_basic_menu_items(self):
+        toggle_id = 299
+        self._menu.insertItem("Modify Plot Parameters", toggle_id)
         toggle_id = 300
         self._menu.insertItem("Toggle Cross-Section Legend", toggle_id)
         toggle_id = 301
