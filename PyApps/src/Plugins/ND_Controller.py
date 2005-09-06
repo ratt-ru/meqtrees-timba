@@ -106,7 +106,7 @@ So, for example, if we select a 5-d array for display, the last two dimensions (
 You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their labels displayed in green and their sliders will be displayed in red and are frozen. The other axes will have live sliders shown in green - you can move the sliders to change the array indices for these dimensions.'''
 
 class ND_Controller(QWidget):
-    def __init__(self, array_shape=1, axis_label=None, axis_parms = None, parent=None, name=None):
+    def __init__(self, array_shape=None, axis_label=None, axis_parms = None, parent=None, name=None):
       QWidget.__init__(self, parent, name)
 
       QWhatsThis.add(self, controller_instructions)
@@ -127,6 +127,10 @@ class ND_Controller(QWidget):
       row = 0
       col = 0
       self.rank = 0
+      if array_shape is None:
+        array_shape = []
+        for i in range(len(axis_label)):
+          array_shape.append(axis_parms[axis_label[i]][3])
       for i in range(len(array_shape)):
         if array_shape[i] > 1:
           self.rank = self.rank + 1
@@ -193,9 +197,11 @@ class ND_Controller(QWidget):
           self.hide()
     # showDisplay
 
-    def defineAxes(self, button_id):
+    def defineAxes(self, button_id, do_on=False):
         if not self.active_axes is None and len(self.active_axes) == 2:
           self.resetAxes()
+          self.buttons[button_id].setOn(True)
+        if do_on:
           self.buttons[button_id].setOn(True)
         if self.buttons[button_id].isOn():
           self.buttons[button_id].setPaletteForegroundColor(Qt.green)
@@ -217,12 +223,18 @@ class ND_Controller(QWidget):
                 self.lcd_ranges[i].setActive(True)
               self.lcd_ranges[i].resetValue()
             self.emit(PYSIGNAL("defineSelectedAxes"), (first_axis, second_axis))
+            print 'emitted defineSelectedAxes signal'
         else:
           if self.active_axes.has_key(button_id):
             del self.active_axes[button_id]
           self.buttons[button_id].setPaletteForegroundColor(Qt.red)
           self.lcd_ranges[button_id].setLCDColor(Qt.red)
     # defineAxes
+
+    def redefineAxes(self):
+        self.defineAxes(self.num_selectors-1, True)
+        self.defineAxes(self.num_selectors-2, True)
+    # resetAxes
 
     def resetAxes(self):
         for i in range(self.num_selectors):
