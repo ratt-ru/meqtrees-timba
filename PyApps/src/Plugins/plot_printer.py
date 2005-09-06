@@ -35,7 +35,7 @@ class PrintFilter(QwtPlotPrintFilter):
 # class PrintFilter
 
 class plot_printer:
-  def __init__(self, plotter, colorbar):
+  def __init__(self, plotter, colorbar=None):
 
     self.plotter = plotter
     self.colorbar = colorbar
@@ -102,5 +102,8 @@ class plot_printer:
         if is_single:
           hor_widgets = 1
         self._print_plots(qprinter, filter, hor_widgets, 1)
+
+  def add_colorbar(self, colorbar):
+    self.colorbar = colorbar
 
 # class plot_printer
