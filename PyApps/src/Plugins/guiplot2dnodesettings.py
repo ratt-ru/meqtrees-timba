@@ -30,7 +30,7 @@ import sre
 import sys
 import types
 from dialog_window_config import *
-from tabdialog import *
+#from tabdialog import *
 
 
 connect = qt.QObject.connect

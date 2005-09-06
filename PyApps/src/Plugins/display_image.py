@@ -10,7 +10,7 @@ from ComplexScaleDraw import *
 from QwtPlotImage import *
 from Timba.GUI.pixmaps import pixmaps
 from guiplot2dnodesettings import *
-from tabdialog import *
+#from tabdialog import *
 import random
 
 from Timba.utils import verbosity
