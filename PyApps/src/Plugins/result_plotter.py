@@ -109,6 +109,7 @@ class ResultPlotter(GriddedPlugin):
     self._rec = None;
     self._hippo = None
     self._visu_plotter = None
+    self.colorbar = None
     self._window_controller = None
     self._plot_type = None
     self._wtop = None;
@@ -457,20 +458,14 @@ class ResultPlotter(GriddedPlugin):
   def create_image_plotters(self):
         self.layout_parent = QWidget(self.wparent())
         self.layout = QGridLayout(self.layout_parent)
-        self.colorbar =  QwtColorBar(parent=self.layout_parent)
-        self.colorbar.setRange(-1,1)
-        self.colorbar.hide()
         self._visu_plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
-        self.layout.addWidget(self.colorbar, 0, 0)
-        self.layout.addWidget(self._visu_plotter, 0, 1)
-        QObject.connect(self._visu_plotter, PYSIGNAL('image_range'), self.colorbar.setRange) 
-        QObject.connect(self._visu_plotter, PYSIGNAL('max_image_range'), self.colorbar.setMaxRange) 
-        QObject.connect(self._visu_plotter, PYSIGNAL('display_type'), self.colorbar.setDisplayType) 
-        QObject.connect(self._visu_plotter, PYSIGNAL('show_colorbar_display'), self.colorbar.showDisplay) 
-        QObject.connect(self._visu_plotter, PYSIGNAL('vells_axes_labels'), self.set_ND_controls) 
-        QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._visu_plotter.setImageRange) 
+#       self._visu_plotter.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
-        self.plotPrinter = plot_printer(self._visu_plotter, self.colorbar)
+        self.layout.addWidget(self._visu_plotter, 0, 1)
+        QObject.connect(self._visu_plotter, PYSIGNAL('vells_axes_labels'), self.set_ND_controls) 
+        QObject.connect(self._visu_plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
+
+        self.plotPrinter = plot_printer(self._visu_plotter)
         QObject.connect(self._visu_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
 
         self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
@@ -528,16 +523,31 @@ class ResultPlotter(GriddedPlugin):
 
     _dprint(3, 'exiting set_data')
 
-  def set_ND_controls (self, shape, labels, parms):
+  def set_ND_controls (self, labels, parms):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numarray of dimension 3 or greater """
 
+    shape = None
     self.ND_Controls = ND_Controller(shape, labels, parms, self.layout_parent)
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self._visu_plotter.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self._visu_plotter.setSelectedAxes)
     QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay) 
+    QObject.connect(self._visu_plotter, PYSIGNAL('reset_axes_labels'), self.ND_Controls.redefineAxes) 
     self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,1)
     self.ND_Controls.show()
+
+  def set_ColorBar (self):
+    """ this function adds a colorbar for 2 Ddisplays """
+    self.colorbar =  QwtColorBar(parent=self.layout_parent)
+    self.colorbar.setRange(-1,1)
+    self.layout.addWidget(self.colorbar, 0, 0)
+    QObject.connect(self._visu_plotter, PYSIGNAL('image_range'), self.colorbar.setRange) 
+    QObject.connect(self._visu_plotter, PYSIGNAL('max_image_range'), self.colorbar.setMaxRange) 
+    QObject.connect(self._visu_plotter, PYSIGNAL('display_type'), self.colorbar.setDisplayType) 
+    QObject.connect(self._visu_plotter, PYSIGNAL('show_colorbar_display'), self.colorbar.showDisplay) 
+    QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._visu_plotter.setImageRange) 
+    self.plotPrinter.add_colorbar(self.colorbar)
+    self.colorbar.show()
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass('MeqDataCollect'),ResultPlotter,priority=10)
