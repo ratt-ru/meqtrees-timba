@@ -71,16 +71,15 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_jobs.setPopup(self._jobmenu);
     self._tb_jobs.setPopupDelay(1);
     self._tb_jobs.hide();
-    #self._qa_jobs = QAction(pixmaps.gear.iconset(),"Predefined functions",0,self);
-    #self._qa_jobs.addTo(self._toolbar);
-    #self._qa_jobs.setVisible(False);
-    #QObject.connect(self._qa_jobs,SIGNAL("activated()"),self._show_jobs_menu);
+    
+    # save menu and button
     self._tb_save = QToolButton(self._toolbar);
     self._tb_save.setIconSet(pixmaps.file_save.iconset());
     QToolTip.add(self._tb_save,"Saves script. Click on the down-arrow for other options.");
     savemenu = QPopupMenu(self);
     self._tb_save.setPopup(savemenu);
     self._tb_save.setPopupDelay(0);
+    self._tb_save._modified_color = QColor("yellow");
     qa_save = QAction(pixmaps.file_save.iconset(),"&Save script",Qt.ALT+Qt.Key_S,self);
     QObject.connect(qa_save,SIGNAL("activated()"),self._save_file);
     QObject.connect(self._tb_save,SIGNAL("clicked()"),self._save_file);
@@ -91,9 +90,27 @@ class TDLEditor (QFrame,PersistentCurrier):
     qa_revert = self._qa_revert = QAction("Revert to saved",0,self);
     QObject.connect(qa_revert,SIGNAL("activated()"),self._revert_to_saved);
     qa_revert.addTo(savemenu);
-    self._qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.ALT+Qt.Key_R,self);
-    self._qa_run.addTo(self._toolbar);
-    QObject.connect(self._qa_run,SIGNAL("activated()"),self.compile_content);
+    
+    # run menu and button
+    self._tb_run = QToolButton(self._toolbar);
+    self._tb_run.setIconSet(pixmaps.blue_round_reload.iconset());
+    
+    self._tb_runmenu = QPopupMenu(self);
+    self._tb_run.setPopup(self._tb_runmenu);
+    self._tb_run.setPopupDelay(0);
+    self._qa_runmain = QAction(pixmaps.blue_round_reload.iconset(),
+                              "&Run main script",Qt.ALT+Qt.Key_R,self);
+    QObject.connect(self._qa_runmain,SIGNAL("activated()"),self._run_main_file);
+    QObject.connect(self._tb_run,SIGNAL("clicked()"),self._run_main_file);
+    self._qa_runmain.addTo(self._tb_runmenu);
+    qa_runthis_as = QAction(pixmaps.blue_round_reload.iconset(),"Run this script as main script...",0,self);
+    qa_runthis_as.setToolTip("Recompiles this script as a top-level TDL script");
+    QObject.connect(qa_runthis_as,SIGNAL("activated()"),self._run_as_main_file);
+    qa_runthis_as.addTo(self._tb_runmenu);
+    
+    # self._qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.ALT+Qt.Key_R,self);
+    # self._qa_run.addTo(self._toolbar);
+    # QObject.connect(self._qa_run,SIGNAL("activated()"),self.compile_content);
     self._toolbar.addSeparator();
     self._poslabel = QLabel(self._toolbar);
     width = self._poslabel.fontMetrics().width("L:999 C:999");
@@ -173,17 +190,20 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._qa_next_err.addTo(errlist_hdr);
     QObject.connect(self._qa_next_err,SIGNAL("activated()"),self._show_next_error);
     # run button
-    self._qa_run.addTo(errlist_hdr);
+    self._qa_runmain.addTo(errlist_hdr);
     # error list itself
     # self._werrlist = QListBox(self._werrlist_box);
     # QObject.connect(self._werrlist,SIGNAL("highlighted(int)"),self._highlight_error);
     self._werrlist = QListView(self._werrlist_box);
     QObject.connect(self._werrlist,SIGNAL("currentChanged(QListViewItem*)"),self._highlight_error_item);
+    QObject.connect(self._werrlist,SIGNAL("clicked(QListViewItem*)"),self._highlight_error_item);
+    QObject.connect(self._werrlist,SIGNAL("spacePressed(QListViewItem*)"),self._highlight_error_item);
+    QObject.connect(self._werrlist,SIGNAL("returnPressed(QListViewItem*)"),self._highlight_error_item);
     self._werrlist.addColumn(''); 
     self._werrlist.addColumn(''); 
     self._werrlist.addColumn(''); 
     # self._werrlist.setColumnAlignment(0,Qt.AlignRight);
-    self._werrlist.setRootIsDecorated(False);
+    self._werrlist.setRootIsDecorated(True);
     self._werrlist.setAllColumnsShowFocus(True);
     self._werrlist.header().hide();
     
@@ -194,6 +214,7 @@ class TDLEditor (QFrame,PersistentCurrier):
 
     # set filename
     self._filename = None;       # "official" path of file (None if new script not yet saved)
+    self._mainfile = None;       # if not None, then we're "slaved" to a main file (see below)
     self._real_filename = None;  # real name of disk file. This may be a temp file.
     self._file_disktime = None;  # modtime on disk when file was loaded
     self._basename = None;
@@ -201,6 +222,24 @@ class TDLEditor (QFrame,PersistentCurrier):
     
   def __del__ (self):
     self.has_focus(False);
+    
+  def get_filename (self):
+    return self._filename;
+  def get_mainfile (self):
+    return self._mainfile;
+    
+  def _run_main_file (self):
+    self.clear_error_list();
+    if self._mainfile and self._editor.isModified():
+      self._save_file();
+    self.emit(PYSIGNAL("compileFile()"),(self._mainfile or self._filename,));
+    
+  def _run_as_main_file (self):
+    self.clear_error_list();
+    self._set_mainfile(None);
+    self._text_modified(self._editor.isModified());   # to reset labels
+    self.emit(PYSIGNAL("fileChanged()"),());
+    self.emit(PYSIGNAL("compileFile()"),(self._filename,));
     
   def _clear_transients (self):
     """if message box contains a transient message, clears it""";
@@ -218,26 +257,30 @@ class TDLEditor (QFrame,PersistentCurrier):
   def _text_modified (self,mod):
     self._modified = mod;
     self.emit(PYSIGNAL("textModified()"),(bool(mod),));
-    self._tb_save.setShown(mod);
+    if mod:
+      self._tb_save.setPaletteBackgroundColor(self._tb_save._modified_color);
+    else:
+      self._tb_save.unsetPalette();
     if self._filename:
       label = '<b>' + self._basename + '</b>';
       QToolTip.add(self._pathlabel,self._filename);
     else:
       label = '';
       QToolTip.remove(self._pathlabel);
+    if self._mainfile:
+      label += ' (from <b>' + self._mainfile_base +'</b>)';
     if self._readonly:
-      label = '(r/o) ' + label;
+      label = '[r/o] ' + label;
     if mod:
       self._clear_transients();
-      self._qa_run.setVisible(True);
-      label = '(modified) ' + label;
+      label = '[mod] ' + label;
     self._pathlabel.setText(label);
     
 #   def _show_jobs_menu (self):
 #     if self._jobmenu:
 #       pos = self._toolbar.mapToGlobal(QPoint(0,self._toolbar.height()));
 #       self._jobmenu.popup(pos);
-    
+
   def clear_message (self):
     self._message_box.hide();
     self._message.setText('');
@@ -311,12 +354,12 @@ class TDLEditor (QFrame,PersistentCurrier):
     
   def clear_error_list (self,signal=True):
     if signal:
-      self.emit(PYSIGNAL("hasErrors()"),([],));
+      self.emit(PYSIGNAL("hasErrors()"),(0,));
     self._error_items = None;
     self._werrlist.clear();
     self._editor.markerDeleteAll();
     self._error_count_label.setText('');
-    self._error_list = 0;
+    self._error_list = [];
     self._error_at_line = {};
     self.clear_message();
     
@@ -324,19 +367,24 @@ class TDLEditor (QFrame,PersistentCurrier):
     """returns the current error list."""
     return self._error_list;
       
-  def set_error_list (self,errlist,signal=True):
+  def set_error_list (self,errlist,signal=True,show_item=True):
     """Shows an error list. errlist should be a sequence of Exception
     objects following the TDL error convention (see decompose_error() above).
     """;
+    _dprint(1,self._filename,"error list of",len(errlist),"entries",id(errlist));
+    _dprint(1,self._filename,"current list has",len(self._error_list),"entries",id(self._error_list));
+    # do nothing if already set
+    if self._error_list is errlist:
+      return;
     self.clear_error_list(signal=False);
-    if signal:
-      self.emit(PYSIGNAL("hasErrors()"),(errlist,));
     self._error_list = errlist;
+    _dprint(1,self._filename,"processing list");
     if errlist:
       self._error_items = [];
       self._error_at_line = {};
       previtem = self._werrlist;
       nerr = 1;
+      nhere = 0;
       for (index,(errtype,errmsg,filename,line,column)) in enumerate(errlist):
         # effectively, this makes ExtraInfoError errors child items
         # of the previous non-error item (previtem)
@@ -345,27 +393,34 @@ class TDLEditor (QFrame,PersistentCurrier):
         else:
           previtem = item = QListViewItem(self._werrlist,"%d:"%(nerr,));
           nerr += 1;
+          if filename == self._real_filename:
+            nhere += 1;
         item.setOpen(True);
         self._error_items.append(item);
         # set item content
         item.setText(1,errmsg);
         if filename == self._real_filename:
           item._err_location = index,None,line,column;
-          item.setText(2,"[%d]" % (line,));
+          item.setText(2,"[line %d]" % (line,));
           self._editor.markerAdd(line-1,self.ErrorMarker);
           self._error_at_line.setdefault(line-1,item);
         else:
           item._err_location = index,filename,line,column;
-          item.setText(2,"[%s:%d]" % (filename,line));
-      self._error_count_label.setText('<b>%d</b> errors'%(len(errlist)));
+          item.setText(2,"[line %d of %s]" % (line,filename));
+      if nhere == nerr-1:
+        self._error_count_label.setText('<b>%d</b> errors total'%(nhere,));
+      else:
+        self._error_count_label.setText('<b>%d</b> errors here, <b>%d</b> total'%(nhere,nerr-1,));
       self._werrlist_box.show();
-      self._show_error_item(self._error_items[0]);
+      if show_item:
+        self._show_error_item(self._error_items[0]);
+      if signal:
+        self.emit(PYSIGNAL("hasErrors()"),(nhere,));
       # self._highlight_error(0);
       # disable run control until something gets modified
       # self._qa_run.setVisible(False);
     else:
       self._werrlist_box.hide();
-      self._qa_run.setVisible(True);
       
   def _highlight_error_item (self,item):
     self._qa_prev_err.setEnabled(item is not self._error_items[0]);
@@ -408,7 +463,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     if item:
       self._show_error_item(item);
   
-  def _show_error_number (self,index):
+  def show_error_number (self,index):
     self._show_error_item(self._error_items[index]);
     
   def _show_error_item (self,item):
@@ -525,6 +580,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       return None;
       
   def compile_content (self):
+    _dprint(1,self._filename,"compiling");
     self.clear_message();
     self.clear_error_list();
     editor_text = str(self._editor.text());
@@ -603,6 +659,8 @@ class TDLEditor (QFrame,PersistentCurrier):
       try: del sys.modules[m];
       except KeyError: pass;
     reload(Timba.TDL.Settings);
+    # get our own filename from 
+    our_filename = traceback.extract_stack()[-1][0];
     # remember which modules are still imported
     prior_mods = sets.Set(sys.modules.keys());
     modname = '__tdlruntime';
@@ -616,19 +674,36 @@ class TDLEditor (QFrame,PersistentCurrier):
       _dprint(1,'TDL run imported',_tdlmodlist);
       (exctype,excvalue,tb) = sys.exc_info();
       traceback.print_exc();
+      stack = traceback.extract_tb(tb);
       _dprint(0,'exception',sys.exc_info(),'importing TDL file',self._real_filename);
-      # syntax error in module: determine location
-      if exctype is SyntaxError or exctype is IndentationError:
-        offset = excvalue.offset;
-        msg = exctype.__name__;
+      # syntax error in module: location is part of error object
+      if isinstance(excvalue,SyntaxError):
+        msg = getattr(excvalue,'msg',None);
+        offset = getattr(excvalue,'offset',None);
+        if msg is None:
+          msg = exctype.__name__;
+        else:
+          msg = exctype.__name__ + ': ' + msg;
         if offset is None:
           offset = 0;
         else:
           msg += " at column %d" % (offset,);
-        self.set_exc_list([exctype(msg,excvalue.filename,(excvalue.lineno,offset))]);
+        exclist = [ exctype(msg,excvalue.filename,(excvalue.lineno,offset)) ];
+        # extract backtrace to error callers
+        for (filename,line,funcname,text) in stack[-1::-1]:
+          # cease backtrace when our own code is reached
+          if filename == our_filename:
+            break;
+          # append additional errors, if available
+          if (filename,line) != (excvalue.filename,excvalue.lineno):
+            exclist.append(TDL.ExtraInfoError("called from here",filename,line));
+        self.set_exc_list(exclist);
       else: # other error, try to find location via traceback
-        stack = traceback.extract_tb(tb);
         (filename,line,funcname,text) = stack[-1];
+        # if first frame in stack is ourselves, replace by script name
+        if filename == our_filename:
+          filename = self._real_filename;
+          line = 1;
         self.set_exc_list([exctype(excvalue.args[0],filename,line)]);
       # self.show_message("""<b>Error importing <tt>%s</tt>:
       #  <i>%s (%s)</i></b>""" % (self._real_filename,excvalue,exctype.__name__),
@@ -648,7 +723,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       if not callable(define_func):
         define_func = getattr(_tdlmod,'define_forest',None);
         if not callable(define_func):
-          self.show_error_list([TDL.TDLError("No _define_forest() function found",self._real_filename,0)]);
+          self.set_error_list([TDL.TDLError("No _define_forest() function found",self._real_filename,0)]);
           return None;
         res = QMessageBox.warning(self,"Deprecated method",
           """Your script contains a define_forest() method. This is deprecated
@@ -767,8 +842,28 @@ class TDLEditor (QFrame,PersistentCurrier):
 #         """<p>Error running tests in <tt>%s</tt>:</p>
 #         <p><small><i>%s: %s</i><small></p>""" % (pathname,exctype.__name__,excvalue),
 #         QMessageBox.Ok);
+
+  def _set_mainfile (self,mainfile):
+    """adjusts GUI controls based on whether we are a mainfile or not""";
+    self._mainfile = mainfile;
+    self._mainfile_base = mainfile and os.path.basename(mainfile);
+    # if we have a mainfile, add extra options for the Run button
+    if mainfile:
+      self._tb_run.setPopup(self._tb_runmenu);
+      QToolTip.add(self._tb_run,"Saves this script and runs the main script "+self._mainfile_base+". Click on the down-arrow for other options.");
+      self._qa_runmain.setToolTip("Saves this script and runs the main script "+self._mainfile_base+".");
+      self._qa_runmain.setMenuText("Run "+self._mainfile_base);
+    else:
+      self._tb_run.setPopup(None);
+      QToolTip.add(self._tb_run,"Runs the script.");
     
-  def load_file (self,filename,text=None,readonly=False):
+  def load_file (self,filename,text=None,readonly=False,mainfile=None):
+    """loads editor content.
+    filename is filename. text is file contents, if none then file will be re-read.
+    readonly is True for readonly mode.
+    If mainfile is not None, then this editor is "slaved" to the mainfile. This is the
+    case for files included from other modules.
+    """
     self.clear_message();
     self.clear_error_list();
     if not os.access(filename,os.W_OK):
@@ -779,6 +874,9 @@ class TDLEditor (QFrame,PersistentCurrier):
       text = ff.read();
       ff.close();
     self._filename = self._real_filename = filename;
+    # sets as as the mainfile or as a submodule of a main file
+    self._set_mainfile(mainfile);
+    # set save icons, etc.
     self._qa_revert.setEnabled(bool(filename));
     self._basename = os.path.basename(filename);
     self._readonly = readonly;

@@ -459,15 +459,17 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       layout.addWidget(label);
       layout.addWidget(minbtn);
     def show (self):
+      if self.isHidden():
+        _dprint(1,'showing',self,self.parent());
+        self.emit(PYSIGNAL("visible()"),(True,));
+        self.emit(PYSIGNAL("shown()"),());
       QVBox.show(self);
-      _dprint(1,'showing',self,self.parent());
-      self.emit(PYSIGNAL("visible()"),(True,));
-      self.emit(PYSIGNAL("shown()"),());
     def hide (self):
+      if self.isShown():
+        _dprint(1,'hiding',self,self.parent());
+        self.emit(PYSIGNAL("visible()"),(False,));
+        self.emit(PYSIGNAL("hidden()"),());
       QVBox.hide(self);
-      _dprint(1,'hiding',self,self.parent());
-      self.emit(PYSIGNAL("visible()"),(False,));
-      self.emit(PYSIGNAL("hidden()"),());
     def setShown (self,shown):
       if shown: self.show();
       else:     self.hide();

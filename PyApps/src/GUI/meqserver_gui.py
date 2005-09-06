@@ -478,7 +478,7 @@ class meqserver_gui (app_proxy_gui):
       # show this file
       self.show_tdl_file(str(dialog.selectedFile()),run=run);
       
-  def show_tdl_file (self,pathname,run=False,errlist=None,errnum=None):
+  def show_tdl_file (self,pathname,run=False,mainfile=None):
     tab = self._tdl_tabs.get(pathname,None);
     if tab is None:
       _dprint(1,'No tab open, loading',pathname);
@@ -499,42 +499,86 @@ class meqserver_gui (app_proxy_gui):
       _dprint(1,'Creating editor tab for',pathname);
       # create editor tab with item
       tab = tdlgui.TDLEditor(self.maintab,close_button=True);
-      tab.load_file(pathname,text);
+      tab.load_file(pathname,text,mainfile=mainfile);
       label = os.path.basename(pathname);
+      if mainfile:
+        label = '(' + label + ')';
       self.add_tab(tab,label);
       self._tdl_tabs[pathname] = tab;
       QObject.connect(tab,PYSIGNAL("fileSaved()"),self.curry(self._tdltab_change,tab));
       QObject.connect(tab,PYSIGNAL("hasErrors()"),self.curry(self._tdltab_errors,tab));
       QObject.connect(tab,PYSIGNAL("textModified()"),self.curry(self._tdltab_modified,tab));
       QObject.connect(tab,PYSIGNAL("fileClosed()"),self.curry(self._tdltab_close,tab));
+      QObject.connect(tab,PYSIGNAL("showError()"),self.curry(self._tdltab_show_error,tab));
+      QObject.connect(tab,PYSIGNAL("compileFile()"),self._tdl_compile_file);
+      QObject.connect(tab,PYSIGNAL("fileChanged()"),self.curry(self._tdltab_reset_label,tab));
     else:
       _dprint(1,'we already have a tab for',pathname);
     self.show_tab(tab);
     self.gw_panel.hide();
     self.maintab_panel.show();
     # ok, we have a working tab now
-    # if pos:
-    #  tab.show_position(*pos);
+    # run if requested
     if run and tab.compile_content():
       self.tb_panel.show();
     self.splitter.refresh();
-#   def _set_tdl_pathname (self,pathname):
-#     self.rename_tab(self.tdledit,os.path.basename(pathname));
+    return tab;
+    
+  def _tdl_compile_file (self,filename):
+    tab = self._tdl_tabs.get(filename,None);
+    if tab is None:
+      _dprint(1,'No tab open, loading',pathname);
+      show_tdl_file(self,filename,run=True);
+    else:
+      self.show_tab(tab);
+      if tab.compile_content():
+        self.tb_panel.show();
+    
+  def _tdltab_reset_label (self,tab):
+    name = os.path.basename(tab.get_filename());
+    if tab.get_mainfile():
+      name = '(' + name + ')';
+    self.maintab.setTabLabel(tab,name);
 
   def _tdltab_change (self,tab,pathname):
     for (path,tab1) in self._tdl_tabs.iteritems():
       if tab is tab1:
         del self._tdl_tabs[path];
         self._tdl_tabs[pathname] = tab;
-        self.maintab.setTabLabel(tab,os.path.basename(pathname));
+        self._tdltab_reset_label(tab);
         return;
     raise ValueError,"tab not found in map";
+    
+  def _tdltab_show_error (self,tab,index,filename,line,column):
+    try:
+      if getattr(self,'_tdltab_show_error_lock',False):
+        return;
+      self._tdltab_show_error_lock = True;
+      if filename != tab.get_filename():
+        mainfile = tab.get_mainfile() or tab.get_filename();
+      else:
+        mainfile = None;
+      newtab = self.show_tdl_file(filename,mainfile=mainfile);
+      newtab.set_error_list(tab.get_error_list(),show_item=False);
+      newtab.show_error_number(index);
+    finally:
+      self._tdltab_show_error_lock = False;
   
   def _tdltab_errors (self,tab,nerr):
+    # nerr indicates the # of errors in that actual file
     if nerr:
       self.maintab.setTabIconSet(tab,pixmaps.red_round_cross.iconset());
     else:
       self.maintab.setTabIconSet(tab,QIconSet());
+    # get the full error list (which may include errors in other files) and
+    # propagate it to slaved tabs
+    errlist = tab.get_error_list();
+    _dprint(1,len(errlist),"errors in",tab.get_filename(),tab.get_mainfile());
+    if not tab.get_mainfile():
+      filename = tab.get_filename();
+      for tab1 in self._tdl_tabs.itervalues():
+        if tab1.get_mainfile() == filename:
+          tab1.set_error_list(errlist,show_item=False);
     
   def _tdltab_modified (self,tab,mod):
     if mod:

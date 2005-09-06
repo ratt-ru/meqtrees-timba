@@ -721,7 +721,7 @@ def _identifyCaller (depth=3,skip_internals=True):
   """Identifies source location from which function was called.
   Normal depth is 3, corresponding to the caller of the caller of
   _identifyCaller(), but if skip_internals=True, this will additionally 
-  skip over stack frames in TDLimpl.py itself.
+  skip over internal methods (which are supposed to start with __).
   Returns triplet of (filename,line,funcname).
   """;
   stack = traceback.extract_stack();

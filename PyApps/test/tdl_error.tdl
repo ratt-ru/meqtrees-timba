@@ -19,7 +19,7 @@ def _define_forest (ns):
         Meq.Parm([0,1]),
         5 + (ns.x << Meq.Parm(0,tiling=record(time=1),node_groups='Parm'))
       ),
-      ns.xx
+      ns.xx 
     ]
   );
   ns.z1 << Meq.Matrix22(0,1,2,3);
