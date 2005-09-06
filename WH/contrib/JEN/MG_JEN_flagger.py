@@ -46,6 +46,7 @@ def _define_forest (ns):
 
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
+   mm = []
 
    # Test: dims=[1]  (default)  
    nsub = ns.Subscope('d1')
@@ -54,6 +55,7 @@ def _define_forest (ns):
    node = flagger(nsub, bb[0])
    for child in node.children: bb.append(child[1]) 
    bb.append(node)
+   mm.append(node)
    cc.append(MG_JEN_exec.bundle(ns, bb, 'dims=1', show_parent=False))
 
   # Test: dims=[2,2] (default) 
@@ -63,9 +65,13 @@ def _define_forest (ns):
    node = flagger(nsub, bb[0], sigma=3)
    for child in node.children: bb.append(child[1])
    bb.append(node)
+   mm.append(node)
    cc.append(MG_JEN_exec.bundle(ns, bb, 'dims=[2,2]', show_parent=False))
 
-   # Finished: 
+   # Finally, merge the flags of the root-nodes of the above tests:
+   cc.append(ns.Mflag_overall << Meq.MergeFlags(children=mm))
+ 
+  # Finished: 
    return MG_JEN_exec.on_exit (ns, cc)
 
 
