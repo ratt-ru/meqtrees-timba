@@ -51,14 +51,18 @@ def _define_forest (ns):
    nsub = ns.Subscope('d1')
    bb = []
    bb.append(MG_JEN_twig.gaussnoise(ns, stddev=1.5, unop='Exp'))
-   bb.append(flagger(nsub, bb[0]))
+   node = flagger(nsub, bb[0])
+   for child in node.children: bb.append(child[1]) 
+   bb.append(node)
    cc.append(MG_JEN_exec.bundle(ns, bb, 'dims=1', show_parent=False))
 
   # Test: dims=[2,2] (default) 
    nsub = ns.Subscope('d22')
    bb = []
    bb.append(MG_JEN_twig.gaussnoise(ns, dims=[2,2], stddev=2, unop='Exp'))
-   bb.append(flagger(nsub, bb[0], sigma=3))
+   node = flagger(nsub, bb[0], sigma=3)
+   for child in node.children: bb.append(child[1])
+   bb.append(node)
    cc.append(MG_JEN_exec.bundle(ns, bb, 'dims=[2,2]', show_parent=False))
 
    # Finished: 
