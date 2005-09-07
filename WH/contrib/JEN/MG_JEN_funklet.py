@@ -68,7 +68,7 @@ def _define_forest (ns):
    bb.append(polclog_flux(ns, '3c286', stokes='Q'))
    bb.append(polclog_flux(ns, '3c286', stokes='U'))
    bb.append(polclog_flux(ns, '3c286', stokes='V'))
-   cc.append(MG_JEN_exec.bundle(ns, bb, 'polclog_flux()'))
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'polclog_flux_3c286()'))
 
 
 
