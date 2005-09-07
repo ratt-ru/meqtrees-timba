@@ -103,7 +103,7 @@ def _define_forest (ns):
 # This object (dict) is updated by, and passed between, various functions
 # in this module (and other modules that use this cohset):
 
-def init (name='<coh>', origin='WSRT_coh:', input={},
+def init (name='<coh>', origin='MG_JEN_cohset:', input={},
           ifrs=[], stations={}, polrep='linear',
           coh={}, punit='uvp'):
     """initialise/check a standard cohset object"""
@@ -111,7 +111,11 @@ def init (name='<coh>', origin='WSRT_coh:', input={},
                   origin=origin, punit=punit, polrep=polrep,
                   ifrs=ifrs, stations=stations, coh=coh,
                   parm={}, solver={},
+                  phase_centre=False,
                   input=input, dims=[2,2])
+
+    # NB: The phase_centre is a radec object (twopack: RA, Dec)
+    #     It represents the current phase centre (t,f) of the cohset
 
     # Polarisation representation
     if polrep == 'circular':

@@ -81,7 +81,7 @@ def _define_forest (ns):
    # Use of autoqual():
    bb = []
    for i in range(3):
-      bb.append(ns.autoqual(autoqual('auto', script_name)) << i)
+      bb.append(ns.autoqual(autoqual(script_name)) << i)
    cc.append(ns << Meq.Add(children=bb))
 
 
@@ -163,7 +163,7 @@ def save_meqforest (mqs, filename=False, reference=False):
 def bookmark (node=0, name=0, udi=0, viewer='Result Plotter',
               page=0, save=True, clear=0, trace=0):
   if clear: Settings.forest_state.bookmarks = [] 
-  if isinstance(node, int): return T                     # e.g. clear only
+  if isinstance(node, int): return True                     # e.g. clear only
 
   bm = record(viewer=viewer, publish=True)
   bm.udi = '/node/'+node.name
@@ -319,8 +319,13 @@ def counter (key, increment=0, reset=False):
 
 # Generate an automatic qualifier by using the counter service 
 
-def autoqual (qual='auto', key='<MG_JEN_forest_state.autoqual>', **pp):
+def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
+
    if isinstance(qual, str) and qual=='auto':
+      print '**',script_name,'autoqual(',key,'): obsolete call: qual=',qual,'->',None
+      qual = None
+
+   if qual==None:
       n = counter(key, increment=1)
       qual = str(n)
    return qual

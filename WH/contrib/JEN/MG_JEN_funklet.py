@@ -54,16 +54,22 @@ def _define_forest (ns):
    bb.append(ns.polclog_SIF(I0='e') << Meq.Parm(polclog_SIF(I0=e)))
    cc.append(MG_JEN_exec.bundle(ns, bb, 'polclog_SIF()'))
 
-   # Demo of importable function: polclog_StokesI()
+   # Demo of importable function: polclog_flux()
    bb = []
-   bb.append(polclog_StokesI(ns))
-   bb.append(polclog_StokesI(ns, '10', I0=10))
-   bb.append(polclog_StokesI(ns, '3c147'))
-   bb.append(polclog_StokesI(ns, '3c295')) 
-   bb.append(polclog_StokesI(ns, '3c48')) 
-   bb.append(polclog_StokesI(ns, '3c268'))
+   bb.append(polclog_flux(ns))
+   bb.append(polclog_flux(ns, '10', I0=10))
+   bb.append(polclog_flux(ns, '3c147'))
+   bb.append(polclog_flux(ns, '3c295')) 
+   bb.append(polclog_flux(ns, '3c48')) 
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'polclog_flux()'))
 
-   cc.append(MG_JEN_exec.bundle(ns, bb, 'polclog_StokesI()'))
+   bb = []
+   bb.append(polclog_flux(ns, '3c286'))
+   bb.append(polclog_flux(ns, '3c286', stokes='Q'))
+   bb.append(polclog_flux(ns, '3c286', stokes='U'))
+   bb.append(polclog_flux(ns, '3c286', stokes='V'))
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'polclog_flux()'))
+
 
 
    # Finished: 
@@ -182,46 +188,46 @@ def polclog_SIF (I0=1.0, SI=-0.7, f0=1e6):
 #---------------------------------------------------------------------
 # Make a StokesI(q=source) node based on a polclog:
 
-def polclog_StokesI (ns, source=None, I0=1.0, SI=-0.7, f0=1e6): 
-   if not isinstance(source, str):
-	source = MG_JEN_forest_state.autoqual(source, 'MG_JEN_funklet_StokesI')
+def polclog_flux (ns, source='auto', I0=1.0, SI=-0.7, f0=1e6, stokes='I'):
+   print
+   source = MG_JEN_forest_state.autoqual('MG_JEN_funklet_flux', qual=source)
 
-   polclog = polclog_predefined(source, I0=I0, SI=SI, f0=f0)
-   SIF = ns.SIF(q=source) << Meq.Parm(polclog)
-   node = ns.StokesI(q=source) << Meq.Pow(10.0, SIF)
-   print '** polclog_StokesI(',source,') ->',node
+   polclog = polclog_predefined(source, I0=I0, SI=SI, f0=f0, stokes=stokes)
+   SIF = ns['SIF_'+stokes](q=source) << Meq.Parm(polclog)
+   node = ns['Stokes'+stokes](q=source) << Meq.Pow(10.0, SIF)
+   print '** polclog_flux(',source,') ->',SIF,'->',node
    return node
 
 #---------------------------------------------------------------------
 # Make a fmult(q=source) node based on a polclog:
 # This may be used to multiply StokesQ,U,V.....
 
-def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
-   if not isinstance(source, str):
-	source = MG_JEN_forest_state.autoqual(source, 'MG_JEN_funklet_fmult')
-   polclog = polclog_predefined(source, I0=1.0, SI=SI, f0=f0)
+def polclog_fmult (ns, source='auto', SI=-0.7, f0=1e6):
+   source = MG_JEN_forest_state.autoqual('MG_JEN_funklet_fmult', qual=source)
+      
+   polclog = polclog_predefined(source, I0=1.0, SI=SI, f0=f0, stokes='I')
    SIF = ns.SIF(q=source) << Meq.Parm(polclog)
    node = ns.mult(q=source) << Meq.Pow(10.0, SIF)
    # node = ns << Meq.Pow(10.0, SIF)               # <--- better?
-   print '** polclog_fmult(',source,') ->',node
+   print '** polclog_fmult(',source,') ->',SIF,'->',node
    return node
    
 #---------------------------------------------------------------------
 # Predefined polclog definitions of selected sources:
 
-def polclog_predefined (source='<source>', SI=-0.7, I0=1.0, f0=1e6):
+def polclog_predefined (source='<source>', SI=-0.7, I0=1.0, f0=1e6, stokes='I'):
 
+   polclog = dict(I=1.0, Q=0.0, U=0.0, V=0.0)
    if source=='3c147':	
-      polclog = polclog_SIF (I0=10**1.766, SI=[0.447, -0.148], f0=1e6)
+      polclog['I'] = polclog_SIF (I0=10**1.766, SI=[0.447, -0.148], f0=1e6)
    elif source =='3c48':	
-      polclog = polclog_SIF (I0=10**2.345, SI=[0.071, -0.138], f0=1e6)
+      polclog['I'] = polclog_SIF (I0=10**2.345, SI=[0.071, -0.138], f0=1e6)
    elif source =='3c295':	
-      polclog = polclog_SIF (I0=10**1.485, SI=[0.759, -0.255], f0=1e6)
-      
-   elif source =='3c268':	
-      polclog = polclog_SIF (I0=10**1.48, SI=[0.292, -0.124], f0=1e6)
-      # Q_polclog = polclog_SIF (I0=2.735732, SI=[-0.923091, 0.073638], f0=1e6)
-      # U_polclog = polclog_SIF (I0=6.118902, SI=[-2.05799, 0.163173], f0=1e6)
+      polclog['I'] = polclog_SIF (I0=10**1.485, SI=[0.759, -0.255], f0=1e6)
+   elif source =='3c286':	
+      polclog['I'] = polclog_SIF (I0=10**1.48, SI=[0.292, -0.124], f0=1e6)
+      polclog['Q'] = polclog_SIF (I0=2.735732, SI=[-0.923091, 0.073638], f0=1e6)
+      polclog['U'] = polclog_SIF (I0=6.118902, SI=[-2.05799, 0.163173], f0=1e6)
       #    pp['I0'] = 10**1.48
       #    pp['SI'] = [0.292, -0.124]
       #    pp['Q'] = [2.735732, -0.923091, 0.073638]
@@ -229,10 +235,10 @@ def polclog_predefined (source='<source>', SI=-0.7, I0=1.0, f0=1e6):
       
    else:
       # If source not recognised, use the other arguments:
-      polclog = polclog_SIF (SI=SI, I0=I0, f0=f0)
+      polclog['I'] = polclog_SIF (SI=SI, I0=I0, f0=f0)
 
-   print '** polclog_predefined(',source,') ->',polclog
-   return polclog
+   print '** polclog_predefined(',source,stokes,') ->',polclog[stokes]
+   return polclog[stokes]
 
 
 
@@ -247,6 +253,7 @@ def polclog_predefined (source='<source>', SI=-0.7, I0=1.0, f0=1e6):
 def oneliner (funklet, txt=None):
    s = str(funklet)
    if isinstance (txt, str): s = str(txt)+':'+s
+   s = '** '+s
    return s
 
 #----------------------------------------------------------------------
@@ -316,26 +323,42 @@ if __name__ == '__main__':
     else:
        # This is the place for some specific tests during development.
        print '\n**',script_name,':\n'
-       ns = TDL.NodeScope()
+       ns = NodeScope()
 
        if 0:
           # polc = polc_ft(c00=2, nfreq=2, ntime=3)
           print oneliner(polc_ft())
-          print oneliner(polc_ft(c00=10, stddev=1))
-          print oneliner(polc_ft(nfreq=0, ntime=1))
-          print oneliner(polc_ft(nfreq=1, ntime=0))
-          print oneliner(polc_ft(nfreq=1, ntime=1))
-          print oneliner(polc_ft(nfreq=0, ntime=2))
-          print oneliner(polc_ft(nfreq=2, ntime=3))
-          print oneliner(polc_ft(nfreq=2, ntime=3, stddev=1))
+          print oneliner(polc_ft(c00=10, stddev=1), script_name)
+          print oneliner(polc_ft(nfreq=0, ntime=1), script_name)
+          print oneliner(polc_ft(nfreq=1, ntime=0), script_name)
+          print oneliner(polc_ft(nfreq=1, ntime=1), script_name)
+          print oneliner(polc_ft(nfreq=0, ntime=2), script_name)
+          print oneliner(polc_ft(nfreq=2, ntime=3), script_name)
+          print oneliner(polc_ft(nfreq=2, ntime=3, stddev=1), script_name)
 
        if 0:
           # polclog = polclog_SIF (SI=0, I0=1.0)
-          print oneliner(polclog_SIF())
-          print oneliner(polclog_SIF())
-          print oneliner(polclog_SIF(0))
-          print oneliner(polclog_SIF(I0=10))
-          print oneliner(polclog_SIF(I0=e))
+          print oneliner(polclog_SIF(), script_name)
+          print oneliner(polclog_SIF(), script_name)
+          print oneliner(polclog_SIF(0), script_name)
+          print oneliner(polclog_SIF(I0=10), script_name)
+          print oneliner(polclog_SIF(I0=e), script_name)
+
+       if 1:
+          print oneliner(polclog_flux(ns), script_name)
+          print oneliner(polclog_flux(ns), script_name)
+          print oneliner(polclog_flux(ns), script_name)
+
+       if 1:
+          print oneliner(polclog_flux(ns, '3c295'), script_name)
+          print oneliner(polclog_flux(ns, '3c48'), script_name)
+          print oneliner(polclog_flux(ns, '3c147'), script_name)
+          print oneliner(polclog_flux(ns, '3c147', stokes='Q'), script_name)
+
+       if 1:
+          print oneliner(polclog_flux(ns, '3c286'), script_name)
+          print oneliner(polclog_flux(ns, '3c286', stokes='Q'), script_name)
+          print oneliner(polclog_flux(ns, '3c286', stokes='U'), script_name)
 
        # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
        print '\n** end of',script_name,'\n'

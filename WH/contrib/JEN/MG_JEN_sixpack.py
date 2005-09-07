@@ -138,20 +138,8 @@ def newstar_source (ns=0, **pp):
       parm['I0'] = ns.I0(q=pp['name']) << Meq.Parm(pp['I0'])
       iquv[n6.I] = parm['I0']
    else:
-      if not isinstance(pp['SI'], list): pp['SI'] = [pp['SI']]
-      if len(pp['SI']) == 1:
-         parm['I0'] = ns.I0(q=pp['name']) << Meq.Parm(pp['I0'])
-         parm['SI'] = ns.SI(q=pp['name']) << Meq.Parm(pp['SI'])
-         freq = ns.freq << Meq.Freq()
-         fratio = ns.fratio(q=pp['name']) << (freq/pp['f0'])
-         fmult = ns.fmult(q=pp['name']) << Meq.Pow(fratio, parm['SI'])
-         iquv[n6.I] = ns[n6.I](q=pp['name']) << (parm['I0'] * fmult)
-      else:
-         polclog = MG_JEN_funklet.polclog_SIF(I0=pp['I0'], SI=pp['SI'])
-         parm['SIF'] = ns.SIF(q=pp['name']) << Meq.Parm(polclog)
-         iquv[n6.I] = ns[n6.I](q=pp['name']) << Meq.Selector(parm['SIF'])
-         # NB: fmult = 1.0, so Q,U,V are NOT corrected for SI....
-         #     possible solution: make fmult from SIF with SIF[0] = 10
+      iquv[n6.I] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'], I0=pp['I0'], SI=pp['SI'], stokes='I')
+      # fmult = ...??
 
    # Create Stokes V by converting Vpct and correcting for SI if necessary
    iquv[n6.V] = zero
@@ -188,6 +176,12 @@ def newstar_source (ns=0, **pp):
       # Create an intermediate QU = [Q,U]
       if pp['Qpct'] is None: pp['Qpct'] = 0.0
       if pp['Upct'] is None: pp['Upct'] = 0.0
+      if 0:
+         pass
+         # NB: Some sources have polclogs for their absolute polarised flux (e.g. 3c286):
+         # iquv['Q'] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'], stokes='Q')
+         # iquv['U'] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'], stokes='U')
+         # if not == 0.0, then ....
       parm['Qpct'] = ns.Qpct(q=pp['name']) << Meq.Parm(pp['Qpct'])
       parm['Upct'] = ns.Upct(q=pp['name']) << Meq.Parm(pp['Upct'])
       if isinstance(fmult, float):
@@ -314,8 +308,8 @@ if __name__ == '__main__':
    if 1:
       # sixpack = newstar_source (ns)
       # sixpack = newstar_source (ns, name='3c147')
-      # sixpack = newstar_source (ns, name='3c286')                    # <------ !!
-      sixpack = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
+      sixpack = newstar_source (ns, name='3c286')                    # <------ !!
+      # sixpack = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
       for key in sixpack['iquv'].keys():
          MG_JEN_exec.display_subtree (sixpack['iquv'][key], 'key', full=1)
 

@@ -62,7 +62,7 @@ def _define_forest (ns):
    cc.append(MG_JEN_exec.bundle(ns, bb, '.gaussnoise()'))
 
    # Test/demo of importable function: .cloud()
-   bb = cloud (ns, n=3, name='pnt', qual='auto', stddev=1, mean=complex(0))
+   bb = cloud (ns, n=3, name='pnt', stddev=1, mean=complex(0))
    cc.append(MG_JEN_exec.bundle(ns, bb, 'cloud'))
 
    # Finished: 
@@ -79,11 +79,11 @@ def _define_forest (ns):
 #-------------------------------------------------------------------------------
 # Make a node that varies with freq and time
 
-def freqtime (ns, qual='auto', combine='Add', unop=False):
+def freqtime (ns, qual=None, combine='Add', unop=False):
     """Make an input node that varies with freq and time:"""
  
     # If necessary, make an automatic qualifier:
-    qual = MG_JEN_forest_state.autoqual(qual, 'MG_JEN_twig_freqtime')
+    qual = MG_JEN_forest_state.autoqual('MG_JEN_twig_freqtime', qual=qual)
 
     # Make the basic freq-time nodes:
     freq = ns.time(qual) << Meq.Freq()
@@ -101,10 +101,10 @@ def freqtime (ns, qual='auto', combine='Add', unop=False):
 #----------------------------------------------------------------------
 # Calculate unop(wavelength):
 
-def wavelength (ns, qual='auto', unop=0):
+def wavelength (ns, qual=None, unop=0):
 
     # If necessary, make an automatic qualifier:
-    qual = MG_JEN_forest_state.autoqual(qual, 'MG_JEN_twig_wavelength')
+    qual = MG_JEN_forest_state.autoqual('MG_JEN_twig_wavelength', qual=qual)
 
     clight = 2.997925e8
     freq = ns.freq << Meq.Freq()
@@ -118,11 +118,11 @@ def wavelength (ns, qual='auto', unop=0):
 # Make a node with gaussian noise
 #   NB: complex if mean is complex
 
-def gaussnoise (ns, qual='auto', stddev=1, mean=0, dims=[1], unop=False):
+def gaussnoise (ns, qual=None, stddev=1, mean=0, dims=[1], unop=False):
     """makes gaussian noise"""
 
     # If necessary, make an automatic qualifier:
-    qual = MG_JEN_forest_state.autoqual(qual, 'MG_JEN_twig_gaussnoise')
+    qual = MG_JEN_forest_state.autoqual('MG_JEN_twig_gaussnoise', qual=qual)
 
     # Determine the nr (nel) of tensor elements:
     if not isinstance(dims, (list, tuple)): dims = [dims]
@@ -165,9 +165,9 @@ def gaussnoise (ns, qual='auto', stddev=1, mean=0, dims=[1], unop=False):
 #----------------------------------------------------------------------
 # Make a 'cloud' of points (cc) scattered (stddev) around a mean
 
-def cloud (ns, n=3, name='pnt', qual='auto', stddev=1, mean=complex(0)):
+def cloud (ns, n=3, name='pnt', qual=None, stddev=1, mean=complex(0)):
 
-    qual = MG_JEN_forest_state.autoqual(qual, 'MG_JEN_twig_cloud')
+    qual = MG_JEN_forest_state.autoqual('MG_JEN_twig_cloud', qual=qual)
 
     cc = []
     v = array([[0,.3,.1],[.3,.1,0.03]])
@@ -218,7 +218,7 @@ if __name__ == '__main__':
        # This is the place for some specific tests during development.
        print '\n*******************\n** Local test of:',script_name,':\n'
        ns = NodeScope()
-       freqtime (ns, qual='auto', combine='Add', unop=False)
+       freqtime (ns, qual=None, combine='Add', unop=False)
        # ............
        # MG_JEN_display_object (rr, 'rr', script_name)
        # MG_JEN_exec.display_subtree (rr, 'rr', full=1)

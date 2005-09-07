@@ -78,7 +78,28 @@ def _define_forest (ns):
    return MG_JEN_exec.on_exit (ns, cc)
 
 
+#================================================================================
+# Available styles (as used by AGW):
+#================================================================================
 
+#	if (type=='color') {
+#           ss := 'black';
+#	    ss := [ss,"red blue darkGreen magenta"];
+#	    ss := [ss,"darkGray darkMagenta darkRed darkYellow"];
+#	    ss := [ss,"darkBlue darkCyan gray"];
+#	    ss := [ss,"yellow lightGray cyan green"];
+#	    # ss := [ss,"none white"];
+#	} else if (type=='spectrum_color') {
+#	    ss := "hippo grayscale brentjens";
+#	} else if (type=='symbol') {
+#	    ss := "circle rectangle square ellipse";
+#	    ss := [ss, "xcross cross triangle diamond"];
+#	    # ss := [ss,"none"];
+#	} else if (type=='line_style') {
+#	    ss := "dots lines steps stick";
+#	    ss := [ss, "SolidLine DashLine DotLine DashDotLine DashDotDotLine"];
+#	    ss := [ss, "solidline dashline dotline dashdotline dashdotdotline"];
+#	    # ss := [ss,"none"];
 
 
 

@@ -64,14 +64,14 @@ def _define_forest (ns):
 
    # Test/demo of importable function: .example1()
    bb = []
-   bb.append(importable_example (ns, arg1=1, arg2=2))
-   bb.append(importable_example (ns, arg1=3, arg2=4))
+   bb.append(example1 (ns, arg1=1, arg2=2))
+   bb.append(example1 (ns, arg1=3, arg2=4))
    cc.append(MG_JEN_exec.bundle(ns, bb, '.example1()', show_parent=False))
 
    # Test/demo of importable function: .example2()
    bb = []
-   bb.append(importable_example (ns, arg1=1, arg2=5))
-   bb.append(importable_example (ns, arg1=1, arg2=6))
+   bb.append(example2 (ns, arg1=1, arg2=5))
+   bb.append(example2 (ns, arg1=1, arg2=6))
    cc.append(MG_JEN_exec.bundle(ns, bb, '.example2()', show_parent=True))
 
    # Finished: 

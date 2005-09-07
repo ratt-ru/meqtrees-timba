@@ -61,14 +61,17 @@ def _define_forest (ns):
 #================================================================================
 
 #-------------------------------------------------------------------------------
-# Recursive function to apply zero or more unary operations on the given node:
+# Function to apply zero or more unary operations on the given node:
 
-def unop (ns, unop=False, node=0):
-    if unop == None: return node
-    if isinstance(unop, bool): return node
-    if isinstance(unop, str): unop = [unop]
-    if not isinstance(unop, list): return node
-    for unop1 in unop:
+def unop (ns, unop=False, node=0, right2left=False):
+    if unop == None: return node                  # do nothing
+    if isinstance(unop, bool): return node        # do nothing
+    if isinstance(unop, str): unop = [unop]       # do nothing
+    if not isinstance(unop, list): return node    # do nothing
+    if len(unop)==0: return node                  # do nothing
+    unops = unop                         # avoid mutation of unop
+    if right2left: unops.reverse()       # perform in right2left order
+    for unop1 in unops:                  # order: left2right of unops vector
         if isinstance(unop1, str):
             node = ns << getattr(Meq, unop1)(node)
     return node

@@ -85,9 +85,10 @@ def _define_forest (ns):
 #------------------------------------------------------------
 # Make a 2x2 rotation matrix
 
-def rotation (ns, angle=0, qual='auto', name='rotation_matrix'):
+def rotation (ns, angle=0, qual=None, name='rotation_matrix'):
 
-    qual = MG_JEN_forest_state.autoqual(qual, 'MG_JEN_matrix_rotation')
+    # If no qual supplied, make a unique one:
+    qual = MG_JEN_forest_state.autoqual('MG_JEN_matrix_rotation', qual)
 
     different_angles = 0
     if isinstance(angle, (list, tuple)):
@@ -113,8 +114,8 @@ def rotation (ns, angle=0, qual='auto', name='rotation_matrix'):
         sin1 = (ns << Meq.Negate(sin2))
  
     # Compose the 2x2 matrix:
-    mat = (ns[name].qmerge(cos1, sin1, cos2, sin2)(qual) << Meq.Composer(
-		children=[cos1, sin1, cos2, sin2], dims=[2,2]))
+    mat = (ns[name].qmerge(cos1, sin1, sin2, cos2)(qual) << Meq.Composer(
+		children=[cos1, sin1, sin2, cos2], dims=[2,2]))
 
     return mat
 
@@ -122,9 +123,10 @@ def rotation (ns, angle=0, qual='auto', name='rotation_matrix'):
 #------------------------------------------------------------
 # Make a 2x2 ellipticity matrix
 
-def ellipticity (ns, angle=0, qual='auto', name='ellipticity_matrix'):
+def ellipticity (ns, angle=0, qual=None, name='ellipticity_matrix'):
 
-    qual = MG_JEN_forest_state.autoqual(qual, 'MG_JEN_matrix_ellipticity')
+    # If no qual supplied, make a unique one:
+    qual = MG_JEN_forest_state.autoqual('MG_JEN_matrix_ellipticity', qual)
 
     different_angles = 0
     if isinstance(angle, (list, tuple)):
@@ -162,9 +164,10 @@ def ellipticity (ns, angle=0, qual='auto', name='ellipticity_matrix'):
 #------------------------------------------------------------
 # Make a 2x2 phase matrix
 
-def phase (ns, angle=0, qual='auto', name='phase_matrix'):
+def phase (ns, angle=0, qual=None, name='phase_matrix'):
 
-    qual = MG_JEN_forest_state.autoqual(qual, 'MG_JEN_matrix_phase')
+    # If no qual supplied, make a unique one:
+    qual = MG_JEN_forest_state.autoqual('MG_JEN_matrix_phase', qual)
 
     different_angles = 0
     if isinstance(angle, (list, tuple)):
