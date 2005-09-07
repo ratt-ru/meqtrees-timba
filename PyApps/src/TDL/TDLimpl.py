@@ -339,8 +339,8 @@ class _NodeStub (object):
           _dprint(1,'new definition',initrec);
           for (f,val) in initrec.iteritems():
             _dprint(2,f,val,self._initrec[f],val == self._initrec[f]);
-          where = NodeRedefinedError("first defined here",self._deftb);
-          raise NodeRedefinedError("conflicting definition for node %s",next=where);
+          where = NodeRedefinedError("node %s first defined here"%(self.name,),tb=self._deftb);
+          raise NodeRedefinedError("conflicting definition for node %s"%(self.name,),next=where);
       else:
         try: self.classname = getattr(initrec,'class');
         except AttributeError: 
@@ -548,7 +548,7 @@ class _NodeRepository (dict):
     """;
     # determine error location
     tb = tb or getattr(err,'tb',None) or traceback.extract_stack();
-    _dprint(1,'error',err);
+    _dprint(1,'error',err,'tb',len(tb));
     _dprint(2,'traceback',tb);
     # trim TDLimpl etc. frames from top of stack
     while tb and os.path.dirname(tb[-1][0]) == _MODULE_DIRNAME:
@@ -558,7 +558,7 @@ class _NodeRepository (dict):
       setattr(err,'filename',tb[-1][0]);
       setattr(err,'lineno',tb[-1][1]);
     setattr(err,'tb',tb);
-    _dprint(1,'error:',err,err.filename,err.lineno);
+    _dprint(1,'error location resolved',err,err.filename,err.lineno);
     # in test mode, raise error immediately
     if self._testing:
       raise err;
