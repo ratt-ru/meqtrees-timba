@@ -152,6 +152,7 @@ class QwtImageDisplay(QwtPlot):
         self.plotLayout().setAlignCanvasToScales(1)
         self.setTitle('QwtImageDisplay')
 
+        self.zooming = 0
         self.setlegend = 0
         self.setAutoLegend(self.setlegend)
         self.enableLegend(False)
@@ -362,7 +363,10 @@ class QwtImageDisplay(QwtPlot):
 
     def update_spectrum_display(self, menuid):
       if menuid < 0:
-        self.unzoom()
+        self.zoom()
+        return
+      if menuid == 304:
+        self.reset_zoom()
         return
       if menuid == 299:
         self.updatePlotParameters()
@@ -484,8 +488,15 @@ class QwtImageDisplay(QwtPlot):
         self.context_menu_done = True
     # end initVellsContextMenu()
 
-    def unzoom(self):
+    def zoom(self):
+      if self.zooming == 0:
+        self.zooming = 1
+        self.zoom_button.setText("Disable zoomer");
+      else:
         self.zooming = 0
+        self.zoom_button.setText("Enable zoomer");
+
+    def reset_zoom(self):
         if len(self.zoomStack):
           while len(self.zoomStack):
             xmin, xmax, ymin, ymax = self.zoomStack.pop()
@@ -566,7 +577,10 @@ class QwtImageDisplay(QwtPlot):
 
     def update_vells_display(self, menuid):
       if menuid < 0:
-        self.unzoom()
+        self.zoom()
+        return
+      if menuid == 304:
+        self.reset_zoom()
         return
       if menuid == 299:
         self.updatePlotParameters()
@@ -835,13 +849,13 @@ class QwtImageDisplay(QwtPlot):
 
             else:
               self.formatCoordinates(e.pos().x(), e.pos().y())
-            self.xpos = e.pos().x()
-            self.ypos = e.pos().y()
-            self.enableOutline(1)
-            self.setOutlinePen(QPen(Qt.black))
-            self.setOutlineStyle(Qwt.Rect)
-            self.zooming = 1
-            if self.zoomStack == []:
+            if self.zooming == 1:
+              self.xpos = e.pos().x()
+              self.ypos = e.pos().y()
+              self.enableOutline(1)
+              self.setOutlinePen(QPen(Qt.black))
+              self.setOutlineStyle(Qwt.Rect)
+              if self.zoomStack == []:
                 self.zoomState = (
                     self.axisScale(QwtPlot.xBottom).lBound(),
                     self.axisScale(QwtPlot.xBottom).hBound(),
@@ -957,60 +971,65 @@ class QwtImageDisplay(QwtPlot):
     def onMouseReleased(self, e):
         if Qt.LeftButton == e.button():
             self.refresh_marker_display()
-            xmin = min(self.xpos, e.pos().x())
-            xmax = max(self.xpos, e.pos().x())
-            ymin = min(self.ypos, e.pos().y())
-            ymax = max(self.ypos, e.pos().y())
-            self.setOutlineStyle(Qwt.Cross)
-            xmin = self.invTransform(QwtPlot.xBottom, xmin)
-            xmax = self.invTransform(QwtPlot.xBottom, xmax)
-            ymin = self.invTransform(QwtPlot.yLeft, ymin)
-            ymax = self.invTransform(QwtPlot.yLeft, ymax)
+            if self.zooming == 1:
+              xmin = min(self.xpos, e.pos().x())
+              xmax = max(self.xpos, e.pos().x())
+              ymin = min(self.ypos, e.pos().y())
+              ymax = max(self.ypos, e.pos().y())
+              self.setOutlineStyle(Qwt.Cross)
+              xmin = self.invTransform(QwtPlot.xBottom, xmin)
+              xmax = self.invTransform(QwtPlot.xBottom, xmax)
+              ymin = self.invTransform(QwtPlot.yLeft, ymin)
+              ymax = self.invTransform(QwtPlot.yLeft, ymax)
             #print 'raw xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
-            if not self.is_vector:
+              if not self.is_vector:
 # if we have a vells plot, adjust bounds of image display to be an integer
 # number of pixels
-              if self._vells_plot:
-                if not self.first_axis_inc is None:
-                  xmin = int((xmin + 0.5 * self.first_axis_inc) / self.first_axis_inc)
-                  xmax = int((xmax + 0.5 * self.first_axis_inc) / self.first_axis_inc)
-                  xmin = xmin * self.first_axis_inc
-                  xmax = xmax * self.first_axis_inc
-                if not self.second_axis_inc is None:
-                  ymin = int((ymin + 0.5 * self.second_axis_inc) / self.second_axis_inc)
-                  ymax = int((ymax + 0.5 * self.second_axis_inc) / self.second_axis_inc)
-                  ymin = ymin * self.second_axis_inc
-                  ymax = ymax * self.second_axis_inc
-              else:
-                  ymax = int (ymax)
-                  ymin = int (ymin + 0.5)
-                  xmax = int (xmax + 0.5)
-                  xmin = int (xmin)
+                if self._vells_plot:
+                  if not self.first_axis_inc is None:
+                    xmin = int((xmin + 0.5 * self.first_axis_inc) / self.first_axis_inc)
+                    xmax = int((xmax + 0.5 * self.first_axis_inc) / self.first_axis_inc)
+                    xmin = xmin * self.first_axis_inc
+                    xmax = xmax * self.first_axis_inc
+                  if not self.second_axis_inc is None:
+                    ymin = int((ymin + 0.5 * self.second_axis_inc) / self.second_axis_inc)
+                    ymax = int((ymax + 0.5 * self.second_axis_inc) / self.second_axis_inc)
+                    ymin = ymin * self.second_axis_inc
+                    ymax = ymax * self.second_axis_inc
+                else:
+                    ymax = int (ymax)
+                    ymin = int (ymin + 0.5)
+                    xmax = int (xmax + 0.5)
+                    xmin = int (xmin)
             #print 'final xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
-            if xmin == xmax or ymin == ymax:
+              if xmin == xmax or ymin == ymax:
                 return
-            self.zoomStack.append(self.zoomState)
-            self.zoomState = (xmin, xmax, ymin, ymax)
-            self.enableOutline(0)
+              self.zoomStack.append(self.zoomState)
+              self.zoomState = (xmin, xmax, ymin, ymax)
+              self.enableOutline(0)
         elif Qt.RightButton == e.button():
-            if len(self.zoomStack):
-                xmin, xmax, ymin, ymax = self.zoomStack.pop()
-            else:
+            if self.zooming == 1:
+              if len(self.zoomStack):
+                 xmin, xmax, ymin, ymax = self.zoomStack.pop()
+              else:
                 return
+            else:
+              return
         elif Qt.MidButton == e.button():
           return
-        self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
-        self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
-        self._x_auto_scale = False
-        self._y_auto_scale = False
-        self.xmin = xmin
-        self.xmax = xmax
-        self.ymin = ymin
-        self.ymax = ymax
-        self.axis_xmin = xmin
-        self.axis_xmax = xmax
-        self.axis_ymin = ymin
-        self.axis_ymax = ymax
+        if self.zooming == 1:
+          self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+          self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+          self._x_auto_scale = False
+          self._y_auto_scale = False
+          self.xmin = xmin
+          self.xmax = xmax
+          self.ymin = ymin
+          self.ymax = ymax
+          self.axis_xmin = xmin
+          self.axis_xmax = xmax
+          self.axis_ymin = ymin
+          self.axis_ymax = ymax
         self.replot()
         _dprint(2, 'called replot in onMouseReleased');
 
@@ -1969,10 +1988,13 @@ class QwtImageDisplay(QwtPlot):
         if self.toggle_array_rank > 2: 
           toggle_id = 303
           self._menu.insertItem("Toggle ND Controller", toggle_id)
-        zoom = QAction(self);
-        zoom.setIconSet(pixmaps.viewmag.iconset());
-        zoom.setText("Disable zoomer");
-        zoom.addTo(self._menu);
+        self.zoom_button = QAction(self);
+        self.zoom_button.setIconSet(pixmaps.viewmag.iconset());
+        self.zoom_button.setText("Enable zoomer");
+        self.zoom_button.addTo(self._menu);
+        QObject.connect(self.zoom_button,SIGNAL("toggled(bool)"),self.zoom);
+        toggle_id = 304
+        self._menu.insertItem("Reset zoomer", toggle_id)
         printer = QAction(self);
         printer.setIconSet(pixmaps.fileprint.iconset());
         printer.setText("Print plot");
