@@ -971,6 +971,10 @@ class LSM:
   #_dprint = _dbg.dprint
   #_dprint(3,"Creating patches for",x_array,y_array)
 
+  # add a margin to last elements to include points on the boundary
+  x_array[len(x_array)-1]+=0.00001
+  y_array[len(y_array)-1]+=0.00001
+
   # encapsulate arrays with large bounds
   # so we do not miss any points
   x_array.insert(0,x_array[0]-1e6)
@@ -1054,6 +1058,8 @@ class LSM:
   retval_arr=[]
   new_punit_names=[]
   for pname in patch_bins.keys():
+   # note: we do not send anything to the kernel
+   # when we recreate the forest, that will be done later
    retval=self.createPatch(patch_bins[pname],True,False)
    if retval !=None:
     retval_arr.append(retval)
