@@ -307,9 +307,9 @@ MG_JEN_forest_state.init(script_name)
 # If not explicitly supplied, a default request will be used.
 
 def _test_forest (mqs, parent):
-  # return MG_JEN_exec.meqforest (mqs, parent)
+  return MG_JEN_exec.meqforest (mqs, parent)
   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False)
-  return MG_JEN_exec.meqforest (mqs, parent, nfreq=200, f1=1e6, f2=2e8, t1=-10, t2=10) 
+  # return MG_JEN_exec.meqforest (mqs, parent, nfreq=200, f1=1e6, f2=2e8, t1=-10, t2=10) 
   # return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')
 
 #-------------------------------------------------------------------------
