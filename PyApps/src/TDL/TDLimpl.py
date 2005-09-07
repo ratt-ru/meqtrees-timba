@@ -15,15 +15,35 @@ _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
 class TDLError (RuntimeError):
-  """Base class for TDL errors. Note that TDL errors are always raised 
-  with 3 arguments:
-    message,filename,location
-  where location is either a line number, or a (line,column) tuple.
-  Exception handlers below ensure that any other errors get their location 
-  tagged onto their argument set.
+  """Base class for TDL errors. 
+  In order to be processed properly, errors may be raised with one or 
+  two arguments. The first argument is an error message, the second 
+  (optional) is a another error object (the allows multiple errors to 
+  be chained together and raised as one value).
+  Optional attributes:
+    filename,lineno: indicates error location. 
+    offset:          optional error column.
+    tb: the exception traceback (as returned by traceback.extract_tb()).
+    next_error: chained error object
+  The Repository.add_error() method below automatically expands tracebacks
+  into lists of CalledFrom() error objects with appropriate filename,lineno
+  attributes. 
   """;
+  def __init__(self,message,next=None,tb=None,filename=None,lineno=None):
+    RuntimeError.__init__(self,message);
+    self.next_error = next;
+    self.tb = tb or traceback.extract_stack();
+    self.filename = filename;
+    self.lineno = lineno;
   def __str__ (self):
-    return ':'.join([self.__class__.__name__]+list(map(str,self.args)));
+    s = ':'.join([self.__class__.__name__]+list(map(str,self.args)));
+    if self.filename is not None:
+      s += "[%s:%d]" % (self.filename,self.lineno);
+    if self.tb is not None:
+      s += "[tb:%d]" % (len(self.tb),);
+    if self.next_error is not None:
+      s += '\n' + str(self.next_error);
+    return s;
 
 class NodeRedefinedError (TDLError):
   """this error is raised when a node is being redefined with a different 
@@ -46,10 +66,9 @@ class NodeDefError (TDLError):
   """this error is raised when a node is incorrectly defined""";
   pass;
 
-class ExtraInfoError (TDLError):
-  """this error is added after one of the "real" errors above to indicate
-  additional information such as, e.g., "called from", "first defined here",
-  etc.""";
+class CalledFrom (TDLError):
+  """one or more of these errors are added to error lists after one of the 
+  "real" errors above to indicate where the offending code was called from""";
   pass;
 
 class CumulativeError (TDLError):
@@ -162,10 +181,11 @@ class _NodeDef (object):
     except:
       # catch exceptions and produce an "error" def, to be reported later on
       self.children = self.initrec = None;
-      (exctype,excvalue) = sys.exc_info()[:2];
-      if len(excvalue.args) == 1:
-        excvalue = exctype(excvalue.args[0],*_identifyCaller()[:2]);
+      (exctype,excvalue,tb) = sys.exc_info();
       self.error = excvalue;
+      if not hasattr(self.error,'tb'):
+        setattr(self.error,'tb',traceback.extract_tb(tb));
+      _dprint(1,'init error def',self.error);
   
   def resolve (arg,recurse=5):
     """static method to resolve an argument to a _NodeDef object, or return None on error.
@@ -256,7 +276,7 @@ class _NodeStub (object):
   """;
   slots = ( "name","scope","basename","quals","kwquals",
             "classname","parents","children","stepchildren",
-            "_initrec","_caller","_debuginfo" );
+            "_initrec","_caller","_deftb","_debuginfo" );
   # The Parents class is used to manage a weakly-reffed dictionary of the node's parents
   # We redefine it as a class to implement __copy__ and __depcopy__ (which otherwise
   # crashes and burns on weakrefs)
@@ -277,6 +297,7 @@ class _NodeStub (object):
     self.parents = self.Parents();
     self._initrec = None;         # uninitialized node
     # figure out source location from where node was defined.
+    self._deftb = traceback.extract_stack();
     self._caller = _identifyCaller()[:2];
     self._debuginfo = "%s:%d" % (os.path.basename(self._caller[0]),self._caller[1]);
   def __copy__ (self):
@@ -311,16 +332,15 @@ class _NodeStub (object):
       # and child list
       initrec = nodedef.initrec;
       if self.initialized():
-        if self._initrec != initrec:
+        if initrec != self._initrec or \
+              children != self.children or \
+              stepchildren != self.stepchildren:
           _dprint(1,'old definition',self._initrec);
           _dprint(1,'new definition',initrec);
           for (f,val) in initrec.iteritems():
             _dprint(2,f,val,self._initrec[f],val == self._initrec[f]);
-          raise NodeRedefinedError,"node %s already defined with different settings at %s"%(self.name,self._debuginfo);
-        if children != self.children:
-          raise NodeRedefinedError,"node %s already defined with different children at %s"%(self.name,self._debuginfo);
-        if stepchildren != self.stepchildren:
-          raise NodeRedefinedError,"node %s already defined with different children at %s"%(self.name,self._debuginfo);
+          where = NodeRedefinedError("first defined here",self._deftb);
+          raise NodeRedefinedError("conflicting definition for node %s",next=where);
       else:
         try: self.classname = getattr(initrec,'class');
         except AttributeError: 
@@ -339,15 +359,12 @@ class _NodeStub (object):
     # any error is reported to the scope object for accumulation, we remain
     # uninitialized and return ourselves
     except:
-      (exctype,excvalue) = sys.exc_info()[:2];
-      args = excvalue.args;
-      _dprint(0,"caught",exctype,args);
+      (exctype,excvalue,tb) = sys.exc_info();
+      _dprint(0,"caught",exctype,excvalue);
       if _dbg.verbose > 0:
         traceback.print_exc();
-      if len(args) == 3:
-        self.scope.Repository().add_error(exctype(*args));
-      else:
-        self.scope.Repository().add_error(exctype(args[0],*self._caller));
+      tb = getattr(excvalue,'tb',None) or traceback.extract_tb(tb);
+      self.scope.Repository().add_error(excvalue,tb=tb);
       return self;
   def __str__ (self):
     return "%s(%s)" % (self.name,self.classname);
@@ -452,12 +469,26 @@ class NodeGroup (dict):
     try: return dict.__contains__(self,node.name);
     except AttributeError: return False;
 
-
+_MODULE_FILENAME = traceback.extract_stack()[-1][0];
+_MODULE_DIRNAME = os.path.dirname(_MODULE_FILENAME);
 
 class _NodeRepository (dict):
-  def __init__ (self,testing=False):
+  def __init__ (self,testing=False,caller_filename=None):
+    """initializes repository.
+    If testing=True, errors will be thrown immediately rather than accumulated.
+    caller_filename specifies the creator of the repository. This is used
+    in reporting error tracebacks -- they are only unrolled up to the caller
+    filename. If not specified, it is extracted from the stack.
+    """;
     self._errors = [];
     self._testing = testing;
+    # determine caller if not supplied
+    if not caller_filename:
+      for (filename,lineno,funcname,text) in traceback.extract_stack()[-2::-1]:
+        if filename != _MODULE_FILENAME:
+          caller_filename = filename;
+          break; 
+    self._caller_filename = caller_filename;
 
   def deleteOrphan (self,name):
     """recursively deletes orphaned branches""";
@@ -496,11 +527,54 @@ class _NodeRepository (dict):
     try: return self._roots;
     except:
       raise TDLError,"Repository must be resolve()d to determine root nodes";
-      
-  def add_error (self,err):
+  
+  def add_error (self,err,tb=None):
+    """adds an error object to internal error list. 
+    The object is augumented with location information (err.filename, err.lineno)
+    as follows:
+      * if err.filename and err.lineno exist, they are left as-is
+      * otherwise, filename and lineno is extracted from tb, err.tb or
+        traceback.extract_stack() (in that order) and placed into err.
+    Then, the traceback (tb or err.tb or traceback.extract_stack()) is 
+    processed, and all stack frames leading up to the error are added
+    to the list as CalledFrom() errors.
+    Note that the stack traceback is trimmed as follows:
+      * consecutive frames from the top of the stack that belong to files in
+        the same directory as ours
+      * frames from bottom up to and including our caller_filename (see above).
+    Hopefully, this leaves a stack list with only 'user code' frames in it.
+    Finally, if err.next_error is defined, add_error() is called on it
+    recursively.
+    """;
+    # determine error location
+    tb = tb or getattr(err,'tb',None) or traceback.extract_stack();
+    _dprint(1,'error',err);
+    _dprint(2,'traceback',tb);
+    # trim TDLimpl etc. frames from top of stack
+    while tb and os.path.dirname(tb[-1][0]) == _MODULE_DIRNAME:
+      tb.pop(-1);
+    # put error location into object
+    if tb and not ( getattr(err,'filename',None) and getattr(err,'lineno',None) is not None ):
+      setattr(err,'filename',tb[-1][0]);
+      setattr(err,'lineno',tb[-1][1]);
+    setattr(err,'tb',tb);
+    _dprint(1,'error:',err,err.filename,err.lineno);
+    # in test mode, raise error immediately
     if self._testing:
       raise err;
+    # add to list
     self._errors.append(err);
+    # add traceback
+    for (filename,lineno,funcname,text) in tb[-1::-1]:
+      if filename == self._caller_filename:
+        break;
+      if (filename,lineno) != (err.filename,err.lineno):
+        self._errors.append(CalledFrom("called from here",filename=filename,lineno=lineno));
+    # add chained error if appropriate
+    next = getattr(err,'next_error',None);
+    if next:
+      self.add_error(next);
+    # raise cumulative error if we get too many
     if len(self._errors) > 100:
       raise CumulativeError(*self._errors);
       
@@ -531,9 +605,9 @@ class _NodeRepository (dict):
             self._roots[name] = node;
         for (i,ch) in node.children:
           if not ch.initialized():
-            self.add_error(ChildError("child %s = %s is not initialized" % (str(i),ch.name),*node._caller));
+            self.add_error(ChildError("child %s = %s is not initialized" % (str(i),ch.name)),tb=node._deftb);
             if node._caller != ch._caller:
-              self.add_error(ExtraInfoError("     child referenced here",*ch._caller));
+              self.add_error(CalledFrom("child referenced here"),tb=ch._deftb);
         # make copy of initrec if needed
         if hasattr(node._initrec,'name'):
           node._initrec = node._initrec.copy();

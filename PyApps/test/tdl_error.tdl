@@ -12,7 +12,7 @@ def _define_forest (ns):
   This script is deliberately full of errors. We use it to test TDL error
   reporting.
   """;
-  tdl_error1.test();
+  # tdl_error1.test();
   ns['solver'] << Meq.Solver(
     num_iter=5,debug_level=10,solvable="x",
     children = [

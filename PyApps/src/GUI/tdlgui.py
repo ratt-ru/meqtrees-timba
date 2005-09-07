@@ -99,12 +99,12 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_run.setPopup(self._tb_runmenu);
     self._tb_run.setPopupDelay(0);
     self._qa_runmain = QAction(pixmaps.blue_round_reload.iconset(),
-                              "&Run main script",Qt.ALT+Qt.Key_R,self);
+                              "&Save & run main script",Qt.ALT+Qt.Key_R,self);
     QObject.connect(self._qa_runmain,SIGNAL("activated()"),self._run_main_file);
     QObject.connect(self._tb_run,SIGNAL("clicked()"),self._run_main_file);
     self._qa_runmain.addTo(self._tb_runmenu);
-    qa_runthis_as = QAction(pixmaps.blue_round_reload.iconset(),"Run this script as main script...",0,self);
-    qa_runthis_as.setToolTip("Recompiles this script as a top-level TDL script");
+    qa_runthis_as = QAction(pixmaps.blue_round_reload.iconset(),"Save & run this script as main script...",0,self);
+    qa_runthis_as.setToolTip("Saves and recompiles this script as a top-level TDL script");
     QObject.connect(qa_runthis_as,SIGNAL("activated()"),self._run_as_main_file);
     qa_runthis_as.addTo(self._tb_runmenu);
     
@@ -121,7 +121,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     if close_button:
       if not isinstance(close_button,QIconSet):
         close_button = pixmaps.remove.iconset();
-      self._qa_close = QAction(close_button,"&Close editor",Qt.ALT+Qt.Key_W,self);
+      self._qa_close = QAction(close_button,"&Close file",Qt.ALT+Qt.Key_W,self);
       QObject.connect(self._qa_close,SIGNAL("activated()"),self,PYSIGNAL("fileClosed()"));
       self._qa_close.addTo(self._toolbar);
     self._toolbar.setStretchableWidget(self._pathlabel);
@@ -215,7 +215,6 @@ class TDLEditor (QFrame,PersistentCurrier):
     # set filename
     self._filename = None;       # "official" path of file (None if new script not yet saved)
     self._mainfile = None;       # if not None, then we're "slaved" to a main file (see below)
-    self._real_filename = None;  # real name of disk file. This may be a temp file.
     self._file_disktime = None;  # modtime on disk when file was loaded
     self._basename = None;
     self._modified = False;
@@ -315,43 +314,7 @@ class TDLEditor (QFrame,PersistentCurrier):
   def add_message_widget (self,widget):
     self._mblo.addWidget(widget);
     self._message_widgets.append(widget);
-    
-  def decompose_error (self,err):
-    """Given an exception object, returns a tuple of:
-          (error name,error message,filename,line,column)
-            filename is None if none
-            line and column will be 0 if not specified.
-       Assumes err.args follow the TDL convention of (message,filename,location)
-    """;
-    errtype = err.__class__;
-    errmsg,filename,line,column = '',None,0,0;
-    if err.args:
-      args = list(err.args);
-      errmsg = args.pop(0);
-      if args:
-        filename = args.pop(0);
-        if args:
-          loc = args.pop(0);
-          if isinstance(loc,int):
-            line,column = loc,0;
-          elif isinstance(loc,(list,tuple)) and len(loc) == 2:
-            line,column = loc;
-          else:
-            line = column = 0;
-    return (errtype,errmsg,filename,line,column);
-    
-  def set_exc_list (self,exclist,signal=True):
-    """Converts a list of exceptions into an error list, using 
-    decompose_error above. Errlist should be a sequence of Exception
-    objects following the TDL error convention (see decompose_error() above).
-    """;
-    errlist = [];
-    for exc in exclist:
-      errtype,errmsg,filename,line,column = self.decompose_error(exc);
-      # msg = "%s (%s)" % (errmsg,errtype.__name__);
-      errlist.append( (errtype,errmsg,filename,line,column) );
-    self.set_error_list(errlist,signal=signal);
-    
+
   def clear_error_list (self,signal=True):
     if signal:
       self.emit(PYSIGNAL("hasErrors()"),(0,));
@@ -385,21 +348,25 @@ class TDLEditor (QFrame,PersistentCurrier):
       previtem = self._werrlist;
       nerr = 1;
       nhere = 0;
-      for (index,(errtype,errmsg,filename,line,column)) in enumerate(errlist):
-        # effectively, this makes ExtraInfoError errors child items
+      for index,err in enumerate(errlist):
+        errmsg = str(err.args[0]);
+        filename = err.filename;
+        line = getattr(err,'lineno',0);
+        column = getattr(err,'offset',0);
+        # effectively, this makes CalledFrom errors child items
         # of the previous non-error item (previtem)
-        if errtype is TDL.ExtraInfoError:
+        if isinstance(err,TDL.CalledFrom):
           item = QListViewItem(previtem,'');
         else:
           previtem = item = QListViewItem(self._werrlist,"%d:"%(nerr,));
           nerr += 1;
-          if filename == self._real_filename:
+          if filename == self._filename:
             nhere += 1;
         item.setOpen(True);
         self._error_items.append(item);
         # set item content
         item.setText(1,errmsg);
-        if filename == self._real_filename:
+        if filename == self._filename:
           item._err_location = index,None,line,column;
           item.setText(2,"[line %d]" % (line,));
           self._editor.markerAdd(line-1,self.ErrorMarker);
@@ -530,7 +497,7 @@ class TDLEditor (QFrame,PersistentCurrier):
         error=True,transient=True);
       return None;
     # saved successfully, update stuff
-    self._filename = self._real_filename = filename;
+    self._filename = filename;
     self._qa_revert.setEnabled(True);
     self._basename = os.path.basename(filename);
     self._file_disktime = _file_mod_time(filename);
@@ -563,94 +530,24 @@ class TDLEditor (QFrame,PersistentCurrier):
         return;
     self.load_file(self._filename);
         
-  def _write_to_tempfile (self,text,prefix='tmp',suffix='.py'):
-    """helper func for compile below: writes text to a temporary file.""";
-    try:
-      infile = tempfile.NamedTemporaryFile(prefix='tmp',suffix='.py');
-      infile.write(text);
-      infile.seek(0);
-      self._real_filename = infile.name;
-      return file(infile.name);
-    except IOError:
-      (exctype,excvalue,tb) = sys.exc_info();
-      _dprint(0,'exception',sys.exc_info(),'writing temp file',self._real_filename);
-      self.show_message("""<b>Error writing temporary file <tt>%s</tt>:
-        <i>%s (%s)</i></b>""" % (self._real_filename,excvalue,exctype.__name__),
-        error=True,transient=True);
-      return None;
-      
   def compile_content (self):
     _dprint(1,self._filename,"compiling");
     self.clear_message();
     self.clear_error_list();
-    editor_text = str(self._editor.text());
     # clear predefined functions
     self._tb_jobs.hide();
-    # dum = QObject();
-    # for qa in self._qa_jobs_list:
-    #  qa.reparent(dum);
-    # self._qa_jobs_list = [];
     dum = None;
     # The Python imp module expects text to reside in a disk file, which is
     # a pain in the ass for us if we're dealing with modified text or text
-    # entered on-the-fly. So, several scenarios:
-    # 1. We're working with a real filename
-    #   1a. our text is newer: save text to temp file and compile from there
-    #   1b. disk file modified since last load: display save/revert/cancel 
-    #       dialog and go to 1c, or cancel.
-    #   1c. nothing modified: load and compile text straight from disk file
-    # 2. We have no filename (new file not yet saved, or TDL text from, e.g.,
-    #   forest state):
-    #   Save text to temp file, compile from there.
-    # When using temp files, we'll retain the temp name in real_filename. We
-    # need it to match error locations returned by python.
-    if self._filename:  # real file
-      pathname = self._filename;
-      disktime = _file_mod_time(self._filename);
-      # check 1a first:
-      if disktime == self._file_disktime and self._editor.isModified():
-        infile = self._write_to_tempfile(editor_text,suffix=os.path.basename(pathname));
-        if infile is None:
-          return None;
-        tdltext = editor_text;
-      else: # 1b or 1c
-        # ok, read text from disk
-        try:
-          infile = file(pathname,'r');
-          tdltext = infile.read();
-          infile.seek(0);
-        except IOError:
-          (exctype,excvalue,tb) = sys.exc_info();
-          _dprint(0,'exception',sys.exc_info(),'reading disk file',pathname);
-          tdltext = None;
-        # has text changed? save or revert according to user choice
-        if tdltext != editor_text:
-          res = QMessageBox.warning(self,"TDL file changed",
-            """<p><tt>%s</tt> has been modified by another program. 
-            Would you like to overwrite the disk version, revert to the disk
-            version, or cancel the operation?"""
-            % (pathname,),
-            "Overwrite","Revert","Cancel",-1,2);
-          if res == 0:
-            infile.close();
-            if not self._save_file(text=editor_text,force=True):
-              return None;
-            # reopen the file for reading, this ought to always succeed
-            infile = file(pathname,'r');
-            tdltext = editor_text;
-          elif res == 1:
-            self.load_file(pathname,text=tdltext);
-          else:
-            return;
-    else:  # no file at all, have to save to temp file 
-      pathname = 'tmp.py';
-      infile = self._write_to_tempfile(editor_text);
-      if infile is None:
+    # entered on-the-fly. So, we save before proceeding
+    if not self._filename or self._editor.isModified():
+      if not self._save_file():
         return None;
-    # ok, the code above has presumably sorted out the file situation
-    # infile is now an open input file object, pathname is some (possibly fake) 
-    # name, self._real_filename is the real filename, and tdltext is the script 
-    # text
+    infile = file(self._filename,'r');
+    if infile is None:
+      return None;
+    tdltext = str(self._editor.text());
+    # infile is now an open input file object, and tdltext is the script 
     
     # flush all modules imported via previous TDL run
     global _tdlmodlist;
@@ -659,56 +556,26 @@ class TDLEditor (QFrame,PersistentCurrier):
       try: del sys.modules[m];
       except KeyError: pass;
     reload(Timba.TDL.Settings);
-    # get our own filename from 
-    our_filename = traceback.extract_stack()[-1][0];
-    # remember which modules are still imported
+    # initialize global nodescope (and repository)
+    ns = TDL.NodeScope();
+    # remember which modules are imported
     prior_mods = sets.Set(sys.modules.keys());
     modname = '__tdlruntime';
     try:
       imp.acquire_lock();
-      _tdlmod = imp.load_source(modname,self._real_filename,infile);
-    except: # other import errors
+      _tdlmod = imp.load_source(modname,self._filename,infile);
+    except: # catch any import errors
       imp.release_lock();
       infile.close();
       _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
       _dprint(1,'TDL run imported',_tdlmodlist);
       (exctype,excvalue,tb) = sys.exc_info();
-      traceback.print_exc();
-      stack = traceback.extract_tb(tb);
-      _dprint(0,'exception',sys.exc_info(),'importing TDL file',self._real_filename);
-      # syntax error in module: location is part of error object
-      if isinstance(excvalue,SyntaxError):
-        msg = getattr(excvalue,'msg',None);
-        offset = getattr(excvalue,'offset',None);
-        if msg is None:
-          msg = exctype.__name__;
-        else:
-          msg = exctype.__name__ + ': ' + msg;
-        if offset is None:
-          offset = 0;
-        else:
-          msg += " at column %d" % (offset,);
-        exclist = [ exctype(msg,excvalue.filename,(excvalue.lineno,offset)) ];
-        # extract backtrace to error callers
-        for (filename,line,funcname,text) in stack[-1::-1]:
-          # cease backtrace when our own code is reached
-          if filename == our_filename:
-            break;
-          # append additional errors, if available
-          if (filename,line) != (excvalue.filename,excvalue.lineno):
-            exclist.append(TDL.ExtraInfoError("called from here",filename,line));
-        self.set_exc_list(exclist);
-      else: # other error, try to find location via traceback
-        (filename,line,funcname,text) = stack[-1];
-        # if first frame in stack is ourselves, replace by script name
-        if filename == our_filename:
-          filename = self._real_filename;
-          line = 1;
-        self.set_exc_list([exctype(excvalue.args[0],filename,line)]);
-      # self.show_message("""<b>Error importing <tt>%s</tt>:
-      #  <i>%s (%s)</i></b>""" % (self._real_filename,excvalue,exctype.__name__),
-      #  error=True,transient=True);
+      _dprint(0,'exception',sys.exc_info(),'importing TDL file',self._filename);
+      # add error to list in nodecope
+      ns.Repository().add_error(excvalue,tb=traceback.extract_tb(tb));
+      self.set_error_list(ns.GetErrors());
       return None;
+    # import was successful
     imp.release_lock();
     infile.close();
     _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
@@ -716,14 +583,13 @@ class TDLEditor (QFrame,PersistentCurrier):
     mqs = meqds.mqs();
     # module here, call functions
     errlist = [];
-    ns = None;
     try:
       # find define_forest func
       define_func = getattr(_tdlmod,'_define_forest',None);
       if not callable(define_func):
         define_func = getattr(_tdlmod,'define_forest',None);
         if not callable(define_func):
-          self.set_error_list([TDL.TDLError("No _define_forest() function found",self._real_filename,0)]);
+          self.set_error_list([TDL.TDLError("No _define_forest() function found",filename=self._filename,lineno=1)]);
           return None;
         res = QMessageBox.warning(self,"Deprecated method",
           """Your script contains a define_forest() method. This is deprecated
@@ -731,35 +597,21 @@ class TDLEditor (QFrame,PersistentCurrier):
           _define_forest(). 
           """,
           QMessageBox.Ok);
-      ns = TDL.NodeScope();
       define_func(ns);
       ns.Resolve();
     except TDL.CumulativeError,value:
     # this exception gives us an error list directly
       errlist = value.args;
     except:
-    # other exception; check if we also have an error list
-      if ns is not None:
-        errlist = ns.GetErrors();
-      # look through traceback to figure out caller
+      # other exception: simply add to list
       (exctype,excvalue,tb) = sys.exc_info();
       traceback.print_exc();
-      _dprint(0,'exception',sys.exc_info(),'in define_forest() of TDL file',self._real_filename);
-      errline = None;
-      stack = traceback.extract_tb(tb);
-      (filename,lineno,funcname,text) = stack[-1];
-      errlist.append(exctype(str(excvalue),filename,lineno));
-      # extract backtrace to error callers
-      for (filename,line,funcname,text) in stack[-2::-1]:
-        # cease backtrace when our own code is reached
-        if filename == our_filename:
-          break;
-        # append additional errors, if available
-        if (filename,line) != (filename,lineno):
-          errlist.append(TDL.ExtraInfoError("called from here",filename,line));
+      _dprint(0,'exception',sys.exc_info(),'in define_forest() of TDL file',self._filename);
+      ns.Repository().add_error(excvalue,tb=traceback.extract_tb(tb))
     # do we have an error list? show it
+    errlist = ns.GetErrors();
     if errlist:
-      self.set_exc_list(errlist);
+      self.set_error_list(errlist);
       return None;
     num_nodes = len(ns.AllNodes());
     # no nodes? return
@@ -859,7 +711,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._qa_runmain.setMenuText("Run "+self._mainfile_base);
     else:
       self._tb_run.setPopup(None);
-      QToolTip.add(self._tb_run,"Runs the script.");
+      QToolTip.add(self._tb_run,"Saves and runs the script.");
     
   def load_file (self,filename,text=None,readonly=False,mainfile=None):
     """loads editor content.
@@ -877,7 +729,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       ff = file(filename);
       text = ff.read();
       ff.close();
-    self._filename = self._real_filename = filename;
+    self._filename = filename;
     # sets as as the mainfile or as a submodule of a main file
     self._set_mainfile(mainfile);
     # set save icons, etc.

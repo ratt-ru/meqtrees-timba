@@ -12,6 +12,8 @@ _dprintf = _dbg.dprintf;
 
 _NodeDef = TDLimpl._NodeDef;
 
+_MODULE_FILENAME = traceback.extract_stack()[-1][0];
+
 class _MeqGen (TDLimpl.ClassGen):
   """This class defines the standard 'Meq' class generator. Having a 
   specialized generator for the Meq classes (as opposed to using a generic 
