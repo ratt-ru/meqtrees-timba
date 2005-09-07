@@ -30,7 +30,7 @@ my_counter=0;
 def _define_forest (ns):
    global my_ns,my_root,my_counter;
 
-   # remembet this nodescope
+   # remember this nodescope
    my_ns=ns;
    # create one MeqParm Node,
    # automatically this becomes the only root node
