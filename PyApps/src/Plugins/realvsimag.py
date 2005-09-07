@@ -309,13 +309,15 @@ class realvsimag_plotter(object):
         menu_id = 299
         self._menu.insertItem("Modify Plot Parameters", menu_id)
         
-        zoom = QAction(self.plot);
-        zoom.setIconSet(pixmaps.viewmag.iconset());
-        zoom.setText("Enable zoomer");
-        zoom.setToggleAction(True);
+        self.zoom_button = QAction(self.plot);
+        self.zoom_button.setIconSet(pixmaps.viewmag.iconset());
+        self.zoom_button.setText("Enable zoomer");
+        self.zoom_button.setToggleAction(True);
         # zoom.setAccel() can set keyboard accelerator
-        QObject.connect(zoom,SIGNAL("toggled(bool)"),self.zoom);
-        zoom.addTo(self._menu);
+        QObject.connect(self.zoom_button,SIGNAL("toggled(bool)"),self.zoom);
+        self.zoom_button.addTo(self._menu);
+        menu_id = 300
+        self._menu.insertItem("Reset zoomer", menu_id)
         
         printer = QAction(self.plot);
         printer.setIconSet(pixmaps.fileprint.iconset());
@@ -425,6 +427,9 @@ class realvsimag_plotter(object):
 
     if menuid == 299:
       parms_interface = WidgetSettingsDialog(actual_parent=self, gui_parent=self.parent)
+      return
+    if menuid == 300:
+      self.reset_zoom()
       return
 	
 # toggle flags display	
@@ -1701,11 +1706,25 @@ class realvsimag_plotter(object):
 
   # timerEvent()
 
+  def reset_zoom(self):
+    self.zoomer.zoom(0)
+    self.plot.setAxisAutoScale(QwtPlot.xBottom)
+    self._x_auto_scale = True
+    self.axis_xmin = None
+    self.axis_xmax = None
+    self.plot.setAxisAutoScale(QwtPlot.yLeft)
+    self._y_auto_scale = True
+    self.axis_ymin = None
+    self.axis_ymax = None
+    self.clearZoomStack()
+
+
   def zoom(self,on):
         self.zoomer.setEnabled(on)
 # set fixed scales for realvsimag plot - zooming doesn't work well 
 # with autoscaling!!
         if on:
+          self.zoom_button.setText("Disable zoomer");
           lb = self.plot.axisScale(QwtPlot.yLeft).lBound()
           hb = self.plot.axisScale(QwtPlot.yLeft).hBound()
           self.plot.setAxisScale(QwtPlot.yLeft, lb, hb)
@@ -1722,17 +1741,9 @@ class realvsimag_plotter(object):
           self.picker.setRubberBand(QwtPicker.NoRubberBand)
           self.clearZoomStack()
         else:
-          self.zoomer.zoom(0)
+          self.zoom_button.setText("Enable zoomer");
           self.picker.setRubberBand(QwtPicker.CrossRubberBand)
-          self.plot.setAxisAutoScale(QwtPlot.xBottom)
-          self._x_auto_scale = True
-          self.axis_xmin = None
-          self.axis_xmax = None
-          self.plot.setAxisAutoScale(QwtPlot.yLeft)
-          self._y_auto_scale = True
-          self.axis_ymin = None
-          self.axis_ymax = None
-          self.plot.replot()
+#         self.plot.replot()
     # zoom()
 
 
