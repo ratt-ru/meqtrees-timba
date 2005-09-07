@@ -52,7 +52,7 @@ dist_plugin_SCRIPTS = \
   Plugins/ComplexScaleDraw.py  Plugins/display_image.py        Plugins/realvsimag.py      \
   Plugins/ErrorBar.py          Plugins/hippo_array_plotter.py  Plugins/result_plotter.py \
   Plugins/parm_plotter.py    Plugins/UVPAxis.py            Plugins/node_execute.py     \
-  Plugins/parmfiddler.py     Plugins/guiplot2dnodesettings.py      Plugins/dialog_window_config.*py
+  Plugins/parmfiddler.py     Plugins/guiplot2dnodesettings.py      Plugins/dialog_window_config.py
   
 dist_grid_SCRIPTS = Grid/__init__.py \
   Grid/Services.py Grid/Workspace.py Grid/Page.py \
