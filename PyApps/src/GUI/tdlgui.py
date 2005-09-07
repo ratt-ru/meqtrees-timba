@@ -629,7 +629,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     # is a forest state defined?
     fst = getattr(Timba.TDL.Settings,'forest_state',record());
     # add in source code
-    fst.tdl_source = record(**{os.path.basename(pathname):tdltext});
+    fst.tdl_source = record(**{os.path.basename(self._filename):tdltext});
     mqs.meq('Set.Forest.State',record(state=fst));
     
     # refresh the nodelist
