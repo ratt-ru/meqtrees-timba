@@ -121,7 +121,7 @@ def dmize_object (obj):
     # convert resulting list back into original sequence type
     return seqtype(outlist);
   # else expect object of supported type, returned as-is
-  for tp in _dmi_typename_map.iterkeys():
+  for tp in _dmi_typename_map.keys():
     if isinstance(obj,tp):
       return obj;
   raise TypeError,'dmi: type %s not supported'%type(obj);

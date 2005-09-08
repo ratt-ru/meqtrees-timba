@@ -112,18 +112,22 @@ DoForAllArrayTypes(Using_arrays,)
 #define Lorray4(t) Lorray4_##t
 #define Lorray5(t) Lorray5_##t
 
-const uint MaxLorrayRank = 16;
+    
+// if you change this also make sure you change the two macros below    
+const uint MaxLorrayRank = 10;
 
 // Define type iterator macros for arrays
 #define DoForAllArrayRanks(Do,arg) \
   Do(1,arg); Do(2,arg); Do(3,arg); Do(4,arg); Do(5,arg); \
-  Do(6,arg); Do(7,arg); Do(8,arg); Do(9,arg); Do(10,arg); Do(11,arg); \
-  Do(12,arg); Do(13,arg); Do(14,arg); Do(15,arg); Do(16,arg); 
+  Do(6,arg); Do(7,arg); Do(8,arg); Do(9,arg); Do(10,arg); 
+//  Do(11,arg); 
+//  Do(12,arg); Do(13,arg); Do(14,arg); Do(15,arg); Do(16,arg); 
 
 #define DoForAllArrayRanks1(Do,arg) \
   Do(1,arg), Do(2,arg), Do(3,arg), Do(4,arg), Do(5,arg), \
-  Do(6,arg), Do(7,arg), Do(8,arg), Do(9,arg), Do(10,arg), Do(11,arg), \
-  Do(12,arg), Do(13,arg), Do(14,arg), Do(15,arg), Do(16,arg) 
+  Do(6,arg), Do(7,arg), Do(8,arg), Do(9,arg), Do(10,arg)
+//  , Do(11,arg), 
+//  Do(12,arg), Do(13,arg), Do(14,arg), Do(15,arg), Do(16,arg) 
   
 //
 // Array shapes are expressed via the shape types:

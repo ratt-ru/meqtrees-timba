@@ -33,7 +33,7 @@ namespace Meq {
 
 using Debug::ssprintf;
     
-int Node::processRequestRider (Request::Ref &reqref) 
+int Node::processRequestRider (Result::Ref &resref,Request::Ref &reqref) 
 {
   // since processCommands() is allowed to modify the request
   // (thus invoking copy-on-write), hold on to the old request in this ref 
@@ -57,7 +57,7 @@ int Node::processRequestRider (Request::Ref &reqref)
         if( hlist.exists() )
         {
           cdebug(4)<<"    found "<<FCommandAll<<", calling processCommands()"<<endl;
-          retcode |= processCommands(hlist.as<DMI::Record>(),reqref);
+          retcode |= processCommands(resref,hlist.as<DMI::Record>(),reqref);
         }
       }
       // process command_by_list (pattern matching list)
@@ -94,7 +94,7 @@ int Node::processRequestRider (Request::Ref &reqref)
             if( matched )
             {
               cdebug(4)<<"        node matched, calling processCommands()"<<endl;
-              retcode |= processCommands(entry,reqref);
+              retcode |= processCommands(resref,entry,reqref);
             }
           }
           if( !matched ) {
@@ -108,7 +108,7 @@ int Node::processRequestRider (Request::Ref &reqref)
         if( hlist.exists() && hlist[nodeIndex()].exists() )
         {
           cdebug(4)<<"    found "<<FCommandByNodeIndex<<"["<<nodeIndex()<<"], calling processCommands()"<<endl;
-          retcode |= processCommands(hlist.as<DMI::Record>(),reqref);
+          retcode |= processCommands(resref,hlist.as<DMI::Record>(),reqref);
         }
       }
     }

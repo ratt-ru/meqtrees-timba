@@ -112,7 +112,7 @@ public:
                          const Request &req,bool newreq);
 
   // process parm-specific rider commands
-  virtual int processCommands (const DMI::Record &rec,Request::Ref &reqref);
+  virtual int processCommands (Result::Ref &resref,const DMI::Record &rec,Request::Ref &reqref);
 
   // Make the new value persistent (for the given domain).
     //##ModelId=3F86886F023C

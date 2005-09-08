@@ -58,12 +58,10 @@ int DataConcat::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &child_result,
                        const Request &, bool)
 {
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,child_result);
 // attaches new result to countedref (for returning to caller), and 
 // inits a local variable to point to it.
 // 0 means 0 VellSets in it
-	Result & result = resref <<= new Result(0);
+  Result & result = resref <<= new Result(0);
   
   // init top-level record 
   DMI::Record &toprec = result[top_label_] <<= new DMI::Record;
@@ -126,7 +124,7 @@ int DataConcat::getResult (Result::Ref &resref,
     }
   }
   
- 	return 0;
+  return 0;
 }
 
 } // namespace Meq

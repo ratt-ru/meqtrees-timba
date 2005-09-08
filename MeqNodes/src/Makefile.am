@@ -12,7 +12,7 @@ LOCALSRCS = \
     Abs.cc Fabs.cc Norm.cc Arg.cc Real.cc Imag.cc MergeFlags.cc ReqSeq.cc  \
     ReductionFunction.cc Min.cc Max.cc Mean.cc \
     Sum.cc Product.cc NElements.cc Transpose.cc \
-    Stripper.cc DataCollect.cc DataConcat.cc AzEl.cc \
+    Stripper.cc DataCollect.cc DataConcat.cc HistoryCollect.cc AzEl.cc \
     BlitzRandom.cc NoiseNode.cc RandomNoise.cc GaussNoise.cc ZeroFlagger.cc StdDev.cc \
     ParmTable.cc WSum.cc WMean.cc Negate.cc Invert.cc \
     MatrixMultiply.cc MatrixInvert22.cc UVBrick.cc UVInterpol.cc \
@@ -32,25 +32,9 @@ libmeqnodes_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) \
 
 check_PROGRAMS = 
 
-# this defines the name of the local defrec script
-# DEFREC_MAP = $(srcdir)/defrecs_$(PACKAGE).g
-
-# this rule shouldn't require any changes
-MAKEDEFREC = $(lofar_sharedir)/../Timba/MEQ/src/makedefrecs.pl
-$(DEFREC_MAP): $(DOCHDRS) $(MAKEDEFREC)
-	$(MAKEDEFREC) $@ $(addprefix $(srcdir)/,$(DOCHDRS))
-# ---------
-  
 # place scripts into libexec/glish/meq
 glishdir = $(libexecdir)/glish/meq
-dist_glish_SCRIPTS = $(DEFREC_MAP) meptable.g
-
-defrecs: 
-# $(DEFREC_MAP)
-
-all install: defrecs
-
-.PHONY: defrecs
+dist_glish_SCRIPTS = meptable.g
 
 # --- end generate defrec maps
 

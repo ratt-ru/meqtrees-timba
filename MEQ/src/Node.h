@@ -631,7 +631,10 @@ class Node : public DMI::BObj
     //## called to process request rider commands, if any. This is allowed
     //## to modify the request object, a ref is passed in to facilitate COW
     //## (since the request is normally received as read-only).
-    virtual int processCommands (const DMI::Record &rec,Request::Ref &reqref);
+    //## Node is allowed to return stuff from processCommands, to do this
+    //## it should attach a Result to resref (if not already attached)
+    //## and populate its rider with whatever it wants to return.
+    virtual int processCommands (Result::Ref &resref,const DMI::Record &rec,Request::Ref &reqref);
 
     //##ModelId=400E531702FD
     //##Documentation
@@ -900,7 +903,7 @@ class Node : public DMI::BObj
     //## processes the request rider, and calls processCommand() as appropriate.
     //## The request object may be modified; a ref is passed in to facilitate
     //## copy-on-write
-    int processRequestRider (Request::Ref &reqref);
+    int processRequestRider (Result::Ref &resref,Request::Ref &reqref);
   
     //------------------------- helper methods to manage children
     //##ModelId=400E531F0085

@@ -75,14 +75,12 @@ int DataCollect::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &child_result,
                        const Request &request, bool newreq)
 {
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,child_result);
 // attaches new result to countedref (for returning to caller), and 
 // inits a local variable to point to it.
 // 0 means 0 VellSets in it
-	Result & result = resref <<= new Result(0);
+  Result & result = resref <<= new Result(0);
 
-	DMI::Record &toprec = result[top_label_] <<= new DMI::Record;
+  DMI::Record &toprec = result[top_label_] <<= new DMI::Record;
 
   // put a copy of attributes into the subrecord
   if( attrib_.valid() )
@@ -94,11 +92,11 @@ int DataCollect::getResult (Result::Ref &resref,
 // Better to always use a list since we don't really know if a given 
 // child's Vells will be scalar or array -- easier to figure
 // this out on the python side
-	DMI::List &vallist = toprec[FValue] <<= new DMI::List;
+  DMI::List &vallist = toprec[FValue] <<= new DMI::List;
 
 // put stuff in list. Note that a child result may contain several vellsets,
 // so we just loop over them and collect everything into a flat list
-	for( int i=0; i<numChildren(); i++ ) 
+  for( int i=0; i<numChildren(); i++ ) 
   {
     const Result &chres = *child_result[i];
     // plot record in child result? (0 if none)
@@ -109,7 +107,7 @@ int DataCollect::getResult (Result::Ref &resref,
     int count = chplot ? 1 : 0;
     for( int j=0; j<chres.numVellSets(); j++ )
       if( !chres.vellSet(j).isFail() )
-  		  count++;
+        count++;
     // Determine how to insert. If only one thing to insert (i.e. 
     // one main value, or one plot record), insert directly into value
     // list, else insert a little sublist of stuff. If there's nothing
@@ -126,9 +124,9 @@ int DataCollect::getResult (Result::Ref &resref,
     // insert main values, if any
     for( int j=0; j<chres.numVellSets(); j++ )
       if( !chres.vellSet(j).isFail() )
-  		  plist->addBack(&(chres.vellSet(j).getValue()));
-	}
- 	return 0;
+        plist->addBack(&(chres.vellSet(j).getValue()));
+  }
+  return 0;
 }
 
 } // namespace Meq

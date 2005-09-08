@@ -931,7 +931,7 @@ class meqserver_gui (app_proxy_gui):
   def _update_forest_state (self,fst):
     self._have_forest_state = True;
     # update bookmarks if needed
-    bkrec = getattr(fst,'bookmarks',None);
+    bkrec = getattr(fst,'bookmarks',[]);
     if bkrec != self._bookmarks_rec:
       _dprint(1,"bookmarks changed in forest, reloading");
       self._bookmarks_rec = bkrec;

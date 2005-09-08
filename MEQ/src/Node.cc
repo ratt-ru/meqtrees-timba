@@ -1010,7 +1010,7 @@ int Node::resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int r
 }
 
 // process Node-specific commands
-int Node::processCommands (const DMI::Record &rec,Request::Ref &reqref)
+int Node::processCommands (Result::Ref &,const DMI::Record &rec,Request::Ref &reqref)
 {
   bool generate_symdeps = false;
   // process the Resolve.Children command: call resolve children
@@ -1176,13 +1176,14 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       {
         setExecState(CS_ES_COMMAND);
         stage = "processing rider";
-        retcode = processRequestRider(reqref);
+        retcode = processRequestRider(ref,reqref);
       }
     } // endif( new_request_ )
     // if node is deactivated, return an empty result at this point
     if( !getControlStatus(CS_ACTIVE) )
     {
-      ref <<= new Result(0);
+      if( !ref.valid() )
+        ref <<= new Result(0);
       cdebug(3)<<"  node deactivated, empty result. Cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
       int ret = cacheResult(ref,req0,retcode) | RES_UPDATED;
       setExecState(CS_ES_IDLE,control_status_|CS_RES_EMPTY);
@@ -1247,15 +1248,9 @@ int Node::execute (Result::Ref &ref,const Request &req0)
           timers_.total.stop();
           return retcode;
         }
-        // else we must have a valid Result object now, even if it's a fail.
-        // (in case of RES_FAIL, getResult() should have put a fail in there)
-        if( !ref.valid() )
-        {
-          NodeThrow1("must return a valid Result or else RES_WAIT");
-        }
         // Set Cells in the Result object as needed
         // (will do nothing when no variability)
-        if( !ref->hasCells() && rescells.valid() )
+        if( ref.valid() && !ref->hasCells() && rescells.valid() )
           ref().setCells(*rescells);
       }
       else // else spid discovery mode

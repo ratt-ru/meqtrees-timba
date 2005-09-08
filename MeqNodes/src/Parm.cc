@@ -670,10 +670,10 @@ const HIID
       }
   }
 
-  int Parm::processCommands (const DMI::Record &rec,Request::Ref &reqref)
+  int Parm::processCommands (Result::Ref &resref,const DMI::Record &rec,Request::Ref &reqref)
   {
     // process parent class's commands
-    int retcode = Node::processCommands(rec,reqref);
+    int retcode = Node::processCommands(resref,rec,reqref);
     bool saved  = false;
   
     // Is an Update.Values command specified? use it to update solve funklets
