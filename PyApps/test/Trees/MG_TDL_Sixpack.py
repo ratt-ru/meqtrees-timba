@@ -32,7 +32,7 @@ from Timba.Meq import meq
 from Timba.Trees import TDL_Sixpack
 
 
-
+from Timba.Contrib.JEN import MG_JEN_sixpack
 #================================================================================
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
@@ -44,7 +44,15 @@ my_sp=None
 
 def _define_forest (ns):
   global my_sp
-  my_sp=TDL_Sixpack.Sixpack(name='unique_source',label='my first sixpack',ns=ns, I0=10)
+  my_name='unique_name'
+  # use JEN code to generate custom subtrees for this sixpack
+  sixpack_stubs=MG_JEN_sixpack.newstar_source(ns, name=my_name,I0=10, SI=[0.1],f0=1e6,RA=0.0, Dec=0.0,trace=0)
+ 
+  iquv=sixpack_stubs['iquv']
+  radec=sixpack_stubs['radec']
+  my_sp=TDL_Sixpack.Sixpack(name=my_name,label='my first sixpack',\
+   ns=ns, RA=radec['RA'],Dec=radec['Dec'],StokesI=iquv['StokesI'],\
+   StokesQ=iquv['StokesQ'],StokesU=iquv['StokesU'],StokesV=iquv['StokesV'])
   my_sp.display()
   # the following should fail because we have not connected to a server
   my_sp.getVellsDimension('I',0,0)
