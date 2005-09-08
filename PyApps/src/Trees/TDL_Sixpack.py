@@ -203,7 +203,7 @@ class Sixpack(TDL_common.Super):
    my_cells=self.__cells
    my_mqs=self.__mqs
   else:
-   _dprint(0,"Cannot update Vells please setup your meqserver proxy befre you do this")
+   _dprint(0,"Cannot update Vells please setup your meqserver proxy before you do this")
    return
 
   # create request object
@@ -235,7 +235,7 @@ class Sixpack(TDL_common.Super):
   elif self.__cells!=None:
    my_cells=self.__cells
   else:
-   _dprint(0,"Cannot get Vells please setup your meqserver proxy befre you do this")
+   _dprint(0,"Cannot get Vells please setup your meqserver proxy before you do this")
    return None
 
 
@@ -319,7 +319,7 @@ class Sixpack(TDL_common.Super):
   elif self.__cells!=None:
    my_cells=self.__cells
   else:
-   _dprint(0,"Cannot get Vells, please setup your meqserver proxy befre you do this")
+   _dprint(0,"Cannot get Vells, please setup your meqserver proxy before you do this")
    return
 
 
@@ -442,8 +442,8 @@ class Sixpack(TDL_common.Super):
  def display(self,txt=None,full=False):
   s=TDL_common.Super.display(self,txt=txt,end=False)
   print s
+  print str(self) 
   TDL_common.Super.display_end(self)
- # print str(self) 
 
  # Print
  def __str__(self):
