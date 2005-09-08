@@ -130,6 +130,7 @@ class QwtImageDisplay(QwtPlot):
         self.real_flag_vector = None
         self.array_parms = None
         self.metrics_rank = None
+        self.toggles_not_set = True
         self.iteration_number = None
         self._active_plane = None
         self._active_perturb = None
@@ -194,6 +195,8 @@ class QwtImageDisplay(QwtPlot):
         self.toggle_color_bar = 1
         self.toggle_ND_Controller = 1
         self.toggle_gray_scale = 0
+        self._toggle_flag_label = None
+        self._toggle_blink_label = None
         QWhatsThis.add(self, display_image_instructions)
 
 # Finally, over-ride default QWT Plot size policy of MinimumExpanding
@@ -450,12 +453,14 @@ class QwtImageDisplay(QwtPlot):
         _dprint(3, 'number of planes ', number_of_planes)
         self._next_plot = {}
         self._perturb_menu = {}
+        flag_plane = -1
         for i in range(number_of_planes):
-          id = id + 1
-          if self._vells_rec.vellsets[i].has_key("value"):
-            self._label = "go to plane " + str(i) + " value" 
-            self._next_plot[id] = self._label
-            self._menu.insertItem(self._label,id)
+          if number_of_planes > 1:
+            id = id + 1
+            if self._vells_rec.vellsets[i].has_key("value"):
+              self._label = "go to plane " + str(i) + " value" 
+              self._next_plot[id] = self._label
+              self._menu.insertItem(self._label,id)
           if self._vells_rec.vellsets[i].has_key("perturbed_value"):
             try:
               number_of_perturbed_arrays = len(self._vells_rec.vellsets[i].perturbed_value)
@@ -478,13 +483,16 @@ class QwtImageDisplay(QwtPlot):
 #                               QMessageBox.NoButton,
 #                               QMessageBox.NoButton)
 #              mb_msg.exec_loop()
-          if self._vells_rec.vellsets[i].has_key("flags"):
-            self._label = "toggle flagged data for plane " + str(i) 
-	    toggle_id = 200
-            self._menu.insertItem(self._label,toggle_id)
-            self._label = "toggle blink of flagged data for plane " + str(i) 
-            toggle_id = 201
-            self._menu.insertItem(self._label,toggle_id)
+          if self.toggles_not_set and self._vells_rec.vellsets[i].has_key("flags"):
+            flag_plane = i
+            self.toggles_not_set = False
+        if flag_plane > -1:
+          self._toggle_flag_label = "toggle flagged data for plane " + str(flag_plane) 
+	  toggle_id = 200
+          self._menu.insertItem(self._toggle_flag_label,toggle_id)
+          self._toggle_blink_label = "toggle blink of flagged data for plane " + str(flag_plane)
+          toggle_id = 201
+          self._menu.insertItem(self._toggle_blink_label,toggle_id)
         self.context_menu_done = True
     # end initVellsContextMenu()
 
@@ -649,6 +657,32 @@ class QwtImageDisplay(QwtPlot):
         plane = int( id_string[plane_loc+12:plane_loc+14])
         self._active_plane = plane
         self._active_perturb = None
+# do we have flags for data	  
+        if self._vells_rec.vellsets[self._active_plane].has_key("flags"):
+# test if we have a numarray
+          try:
+            self._flags_array = self._vells_rec.vellsets[self._active_plane].flags
+            _dprint(3, 'self._flags_array ', self._flags_array)
+            array_shape = self._flags_array.shape
+            if len(array_shape) == 1 and array_shape[0] == 1:
+              temp_value = self._flags_array[0]
+              temp_array = asarray(temp_value)
+              self._flags_array = resize(temp_array,self._shape)
+          except:
+            temp_array = asarray(self._vells_rec.vellsets[self._active_plane].flags)
+            self._flags_array = resize(temp_array,self._shape)
+
+          if self.array_tuple is None:
+            self.setFlagsData(self._flags_array)
+          else:
+            self.setFlagsData(self._flags_array[self.array_tuple])
+
+          self._toggle_flag_label = "toggle flagged data for plane " + str(plane) 
+	  toggle_id = 200
+          self._menu.changeItem(toggle_id,self._toggle_flag_label)
+          self._toggle_blink_label = "toggle blink of flagged data for plane " + str(plane)
+          toggle_id = 201
+          self._menu.changeItem(toggle_id,self._toggle_blink_label)
 # get the shape tuple - useful if the Vells have been compressed down to
 # a constant
       try:
@@ -1353,8 +1387,8 @@ class QwtImageDisplay(QwtPlot):
 # how many VellSet planes (e.g. I, Q, U, V would each be a plane) are there?
         if self._active_plane is None:
           self._active_plane = 0
-        number_of_planes = len(self._vells_rec["vellsets"])
-        _dprint(3, 'number of planes ', number_of_planes)
+        self.number_of_planes = len(self._vells_rec["vellsets"])
+        _dprint(3, 'number of planes ', self.number_of_planes)
         if self._vells_rec.vellsets[self._active_plane].has_key("shape"):
           self._shape = self._vells_rec.vellsets[self._active_plane]["shape"]
 
@@ -1389,10 +1423,16 @@ class QwtImageDisplay(QwtPlot):
         key = ""
         if self._active_perturb is None:
           key = " value "
-          self._label =  "plane " + str(self._active_plane) + key 
+          if self.number_of_planes > 1:
+            self._label =  "plane " + str(self._active_plane) + key 
+          else:
+            self._label =  "plane " + key 
         else:
           key = " perturbed_value "
-          self._label =  "plane " + str(self._active_plane) + key + str(self._active_perturb)
+          if self.number_of_planes > 1:
+            self._label =  "plane " + str(self._active_plane) + key + str(self._active_perturb)
+          else:
+            self._label =  "plane " + key + str(self._active_perturb)
         if self._solver_flag:
           self.array_plot(self._label, self._value_array, flip_axes=False)
         else:
