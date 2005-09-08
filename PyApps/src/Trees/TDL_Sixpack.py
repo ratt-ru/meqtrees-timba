@@ -8,6 +8,9 @@ from Timba.LSM.LSM import *
 from Timba.Meq import meq
 from Timba.Trees import TDL_common
 
+from Timba import utils
+from Timba.TDL import *
+
 _dbg = utils.verbosity(0, name='Sixpack')
 _dprint = _dbg.dprint                    # use: _dprint(2, "abc")
 _dprintf = _dbg.dprintf   
@@ -55,6 +58,7 @@ class Sixpack(TDL_common.Super):
       """
 
    pp.setdefault('name',None)
+   pp.setdefault('label',None)
    pp.setdefault('ns',None)
    pp.setdefault('type','Sixpack')
    pp.setdefault('RA',0)
@@ -65,6 +69,7 @@ class Sixpack(TDL_common.Super):
    pp.setdefault('StokesV',0)
    TDL_common.Super.__init__(self, **pp)
    self.__name=pp['name']
+   self.__label=pp['label']
 
    #remember the nodescope
    self.__ns=pp['ns']
@@ -158,6 +163,8 @@ class Sixpack(TDL_common.Super):
  # link back to the LSM
  def setLSM(self,lsm):
   self.__lsm=lsm
+ def label(self):
+  return self.__name
 
  # create the trees
  def createTree(self,**kw): 
