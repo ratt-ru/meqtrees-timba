@@ -50,8 +50,10 @@ def makeDataItem (udi,data=None,viewer=None,publish=False,viewopts={}):
     if not nn[0]:
       name = int(nn[1]);     # use node index if no name given
     node = meqds.nodelist[name];
+    # enable publishing but do not ask for a state update -- this will
+    # be done by the item later
     if publish:
-      meqds.enable_node_publish(node,True);
+      meqds.enable_node_publish(node,True,get_state=False);
     if not trailer:
       return makeNodeDataItem(node,viewer,viewopts);
     else:

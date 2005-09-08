@@ -440,9 +440,9 @@ def request_nodelist ():
   """Sends a request to the kernel to return a nodelist.""";
   mqs().meq('Get.Node.List',NodeList.RequestRecord,wait=False);
 
-def enable_node_publish (node,enable=True):
+def enable_node_publish (node,enable=True,get_state=True):
   ni = nodeindex(node);
-  mqs().meq('Node.Publish.Results',record(nodeindex=ni,get_state=True,enable=enable),wait=False);
+  mqs().meq('Node.Publish.Results',record(nodeindex=ni,get_state=get_state,enable=enable),wait=False);
 
 def disable_node_publish (node,disable=True):
   return enable_node_publish(node,not disable);
@@ -451,10 +451,35 @@ def subscribe_node_state (node,callback):
   """Adds a subscriber to node state changes""";
   nodelist[nodeindex(node)].subscribe_state(callback);
 
+_holding_requests = None;
+
+def hold_node_state_requests ():
+  """starts holding node state requests. Requests will be accumulated in 
+  a set, to be all released at the same time later. This is basically an 
+  optimization for the case of repeated requests of the same node.
+  """;
+  global _holding_requests;
+  if _holding_requests is None:
+    _holding_requests = sets.Set();
+
+def resume_node_state_requests ():
+  """releases held requests.""";
+  global _holding_requests;
+  if _holding_requests is not None:
+    for ni in _holding_requests:
+      mqs().meq('Node.Get.State',record(nodeindex=ni),wait=False);
+    _holding_requests = None;
+
 def request_node_state (node):
+  """requests state update for given node.
+  If requests are being held (see functions above), adds to holding set""";
+  global _holding_requests;
   ni = nodeindex(node);
-  mqs().meq('Node.Get.State',record(nodeindex=ni),wait=False);
-  
+  if _holding_requests is None:
+    mqs().meq('Node.Get.State',record(nodeindex=ni),wait=False);
+  else:
+    _holding_requests.add(ni);
+
 def set_node_breakpoint (node,bp=BP_ALL,oneshot=False):
   mqs().meq('Node.Set.Breakpoint',\
     record(nodeindex=nodeindex(node),breakpoint=bp,single_shot=oneshot,get_state=True),wait=False);

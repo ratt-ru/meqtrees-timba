@@ -734,18 +734,25 @@ class meqserver_gui (app_proxy_gui):
     # preset page layout
     (nrow,ncol) = (0,0);
     errs = [];
-    for rec in pagemark.page:
-      udi = getattr(rec,'udi',None);
-      try:
-        item = meqgui.makeDataItem(rec.udi,viewer=rec.viewer,publish=pub);
-        Grid.addDataItem(item,position=(0,rec.pos[0],rec.pos[1]));
-        nrow = max(nrow,rec.pos[0]);
-        ncol = max(ncol,rec.pos[1]);
-      except:
-        (exctype,excvalue,tb) = sys.exc_info();
-        self.dprint(0,'exception',str(exctype),'while loading pagemark item',rec);
-        traceback.print_exc();
-        errs.append((udi,exctype.__name__,excvalue));
+    # to avoid repetitive state updates when displaying multiple views of the
+    # same item, ask meqds to hold node state requests
+    meqds.hold_node_state_requests();
+    try:
+      for rec in pagemark.page:
+        udi = getattr(rec,'udi',None);
+        try:
+          item = meqgui.makeDataItem(rec.udi,viewer=rec.viewer,publish=pub);
+          Grid.addDataItem(item,position=(0,rec.pos[0],rec.pos[1]));
+          nrow = max(nrow,rec.pos[0]);
+          ncol = max(ncol,rec.pos[1]);
+        except:
+          (exctype,excvalue,tb) = sys.exc_info();
+          self.dprint(0,'exception',str(exctype),'while loading pagemark item',rec);
+          traceback.print_exc();
+          errs.append((udi,exctype.__name__,excvalue));
+    finally:
+      # now release the node updates
+      meqds.resume_node_state_requests();
     _dprint(2,'setting layout',nrow+1,ncol+1);
     curpage.set_layout(nrow+1,ncol+1);
     # display errors, if any

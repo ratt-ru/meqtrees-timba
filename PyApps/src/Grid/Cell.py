@@ -437,6 +437,7 @@ class Cell (object):
     # check that widget is our child
     if widget.parent() is not self.wtop():
       raise ValueError,'content widget must be child of this Grid.Cell';
+    _dprint(3,id(self),': setting content');
     # connect a click on the titlebar to highlight ourselves 
     self.connect(PYSIGNAL("clicked()"),self.exclusive_highlight);
     # init cell content
@@ -553,7 +554,8 @@ class Cell (object):
   def _refit_size (self):
     """ugly kludge to get the layout system to do its stuff properly after
     viewer widget has been inserted.""";
-    topwidget = self.wtop().topLevelWidget();
-    sz = topwidget.size();
-    topwidget.resize(sz.width(),sz.height()+1);
-    topwidget.resize(sz);
+    #topwidget = self.wtop().topLevelWidget();
+    #sz = topwidget.size();
+    #topwidget.resize(sz.width(),sz.height()+1);
+    #topwidget.resize(sz);
+    pass;

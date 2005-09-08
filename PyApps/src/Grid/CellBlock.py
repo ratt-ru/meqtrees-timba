@@ -155,11 +155,11 @@ class CellBlock (object):
       QWidget.connect(w,PYSIGNAL("displayDataItem()"),self._display_sub_item);
     # ugly kludge to get the layout system to do its stuff properly after
     # viewer widget has been inserted.""";
-    topwidget = cells[0].wtop().topLevelWidget();
-    sz = topwidget.size();
-    topwidget.resize(sz.width(),sz.height()+1);
-    self._resize_back = curry(topwidget.resize,sz);
-    QTimer.singleShot(200,self._resize_back);
+#     topwidget = cells[0].wtop().topLevelWidget();
+#     sz = topwidget.size();
+#     topwidget.resize(sz.width(),sz.height()+1);
+#     self._resize_back = curry(topwidget.resize,sz);
+#     QTimer.singleShot(200,self._resize_back);
                       
   def _display_sub_item (self,dataitem,kwargs):
     Timba.Grid.Services.addDataItem(dataitem,gw=self._gw,avoid_pos=self._gridpos,**kwargs);
