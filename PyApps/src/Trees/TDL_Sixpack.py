@@ -5,7 +5,6 @@
 from Timba.LSM.LSM import *
 #from Timba.TDL import Settings
 #from Timba.LSM.LSM_GUI import *
-from Timba.Contrib.JEN import MG_JEN_sixpack
 from Timba.Meq import meq
 from Timba.Trees import TDL_common
 
@@ -46,20 +45,24 @@ class Sixpack(TDL_common.Super):
       name: unique name for the root of the subtree, 
            generally the name of the PUnit (None)
       ns: NodeScope object (None)
-      I0: Apparent Brightness (0)
-      SI: Spectral Index , needs to be an array ([1.0])
-      f0: Frequency (1e6)
-      RA: Right Ascention (0.0)
-      Dec: Declination (0.0)"""
+      # Node Stubs
+      RA: Right Ascention (0)
+      Dec: Declination (0)
+      StokesI: Stokes I
+      StokesQ: Stokes Q
+      StokesU: Stokes U
+      StokesV: Stokes V
+      """
 
    pp.setdefault('name',None)
    pp.setdefault('ns',None)
-   pp.setdefault('I0',0.0)
-   pp.setdefault('SI',[1.0])
-   pp.setdefault('f0',1e6)
-   pp.setdefault('RA',0.0)
-   pp.setdefault('Dec',0.0)
    pp.setdefault('type','Sixpack')
+   pp.setdefault('RA',0)
+   pp.setdefault('Dec',0)
+   pp.setdefault('StokesI',0)
+   pp.setdefault('StokesQ',0)
+   pp.setdefault('StokesU',0)
+   pp.setdefault('StokesV',0)
    TDL_common.Super.__init__(self, **pp)
    self.__name=pp['name']
 
@@ -67,9 +70,9 @@ class Sixpack(TDL_common.Super):
    self.__ns=pp['ns']
    # create trees using JEN code, if there is a node scope
    if self.__ns !=None:
-    tmp_sixpack=MG_JEN_sixpack.newstar_source(self.__ns,name=self.__name,I0=pp['I0'], SI=pp['SI'],f0=pp['f0'],RA=pp['RA'], Dec=pp['Dec'],trace=0)
-    self.__iquv=tmp_sixpack['iquv']
-    self.__radec=tmp_sixpack['radec']
+    self.__iquv={'StokesI':pp['StokesI'],'StokesQ':pp['StokesQ'],\
+                 'StokesU':pp['StokesU'],'StokesV':pp['StokesV']}
+    self.__radec={'RA':pp['RA'], 'Dec':pp['Dec']}
     # check whether we already have a node with given name
     if self.__ns[self.__name].initialized() !=True:
      self.__root=self.__ns[self.__name]<<Meq.Composer(self.__radec['RA'],self.__radec['Dec'],self.__iquv['StokesI'],self.__iquv['StokesQ'],self.__iquv['StokesU'],self.__iquv['StokesV'])
@@ -161,31 +164,34 @@ class Sixpack(TDL_common.Super):
   if kw.has_key('name'):
    self.__name=kw['name']
   if self.__ns!=None and self.__name !=None:
-   if kw.has_key['I0']:
-    I0_=kw['I0']
-   else:
-    I0=0.0
-   if kw.has_key['SI']:
-    SI_=kw['SI']
-   else:
-    SI_=[0]
-   if kw.has_key['f0']:
-    f0_=kw['f0']
-   else:
-    f0_=1e6
    if kw.has_key['RA']:
-    RA_=kw['RA']
+    RA=kw['RA']
    else:
-    RA_=0
+    RA=0
    if kw.has_key['Dec']:
-    Dec_=kw['Dec']
+    Dec=kw['Dec']
    else:
-    Dec_=0
-   tmp_sixpack=MG_JEN_sixpack.newstar_source(self.__ns,name=self.__name,I0=I0_, SI=SI_,f0=f0_,RA=RA_, Dec=Dec_,trace=0)
+    Dec=0
+   if kw.has_key['StokesI']:
+    sI=kw['StokesI']
+   else:
+    sI=0
+   if kw.has_key['StokesQ']:
+    sQ=kw['StokesQ']
+   else:
+    sQ=0
+   if kw.has_key['StokesU']:
+    sU=kw['StokesU']
+   else:
+    sU=0
+   if kw.has_key['StokesV']:
+    sV=kw['StokesV']
+   else:
+    sV=0
 
-   self.__iquv=tmp_sixpack['iquv']
-   self.__radec=tmp_sixpack['radec']
-   # check whether we already have a node with given name
+   self.__iquv={'StokesI':kw['sI'],'StokesQ':kw['sQ'],\
+                 'StokesU':kw['sU'],'StokesV':kw['sV']}
+   self.__radec={'RA':kw['RA'], 'Dec':kw['Dec']}
    if self.__ns[self.__name].initialized() !=True:
      self.__root=self.__ns[self.__name]<<Meq.Composer(self.__radec['RA'],self.__radec['Dec'],self.__iquv['StokesI'],self.__iquv['StokesQ'],self.__iquv['StokesU'],self.__iquv['StokesV'])
    else: # if this node has already being defined
