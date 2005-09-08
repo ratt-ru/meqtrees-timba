@@ -7,8 +7,13 @@ from Timba.LSM.LSM import *
 #from Timba.LSM.LSM_GUI import *
 from Timba.Contrib.JEN import MG_JEN_sixpack
 from Timba.Meq import meq
+from Timba.Trees import TDL_common
 
-class Sixpack:
+_dbg = utils.verbosity(0, name='Sixpack')
+_dprint = _dbg.dprint                    # use: _dprint(2, "abc")
+_dprintf = _dbg.dprintf   
+
+class Sixpack(TDL_common.Super):
  """Sixpack contains:
       __name: unique name to find the root of subtree
 
@@ -36,30 +41,43 @@ class Sixpack:
  __color=['R','G','B']
 
  # input for constructor: 
- # ns: NodeScope object
- # pname: unique name for the root of the subtree, 
- #    generally the name of the PUnit
- # I0_: Apparent Brightness
- # SI_: Spectral Index , needs to be an array
- # f0_: Frequency
- # RA_: Right Ascention
- # Dec_: Declination
- def __init__(self,pname=None,ns=None,I0_=0.0,SI_=[0.0],f0_=1e6,RA_=0.0,Dec_=0.0):
-   self.__name=pname 
-   self.__type='Sixpack'
+ def __init__(self,**pp):
+   """Possible input (and defalut values) for the constructor are:
+      name: unique name for the root of the subtree, 
+           generally the name of the PUnit (None)
+      ns: NodeScope object (None)
+      I0: Apparent Brightness (0)
+      SI: Spectral Index , needs to be an array ([1.0])
+      f0: Frequency (1e6)
+      RA: Right Ascention (0.0)
+      Dec: Declination (0.0)"""
+
+   pp.setdefault('name',None)
+   pp.setdefault('ns',None)
+   pp.setdefault('I0',0.0)
+   pp.setdefault('SI',[1.0])
+   pp.setdefault('f0',1e6)
+   pp.setdefault('RA',0.0)
+   pp.setdefault('Dec',0.0)
+   pp.setdefault('type','Sixpack')
+   TDL_common.Super.__init__(self, **pp)
+   self.__name=pp['name']
+
    #remember the nodescope
-   self.__ns=ns
+   self.__ns=pp['ns']
    # create trees using JEN code, if there is a node scope
    if self.__ns !=None:
-    tmp_sixpack=MG_JEN_sixpack.newstar_source(self.__ns,name=self.__name,I0=I0_, SI=SI_,f0=f0_,RA=RA_, Dec=Dec_,trace=0)
+    tmp_sixpack=MG_JEN_sixpack.newstar_source(self.__ns,name=self.__name,I0=pp['I0'], SI=pp['SI'],f0=pp['f0'],RA=pp['RA'], Dec=pp['Dec'],trace=0)
     self.__iquv=tmp_sixpack['iquv']
     self.__radec=tmp_sixpack['radec']
     # check whether we already have a node with given name
     if self.__ns[self.__name].initialized() !=True:
      self.__root=self.__ns[self.__name]<<Meq.Composer(self.__radec['RA'],self.__radec['Dec'],self.__iquv['StokesI'],self.__iquv['StokesQ'],self.__iquv['StokesU'],self.__iquv['StokesV'])
     else: # if this node has already being defined
-     print "Node already defined"
+     _dprint(0,"Node already defined")
      self.__root=None
+     #raise exception
+     raise Timba.TDL.TDLimpl.NodeRedefinedError
 
    else:
     self.__root=None
@@ -73,9 +91,7 @@ class Sixpack:
    self.__sV=None
    self.__RA=None
    self.__Dec=None
- 
    self.__lsm=None
-   
    self.__cells=None
 
  # traditional getter and setter methods
@@ -140,10 +156,6 @@ class Sixpack:
  def setLSM(self,lsm):
   self.__lsm=lsm
 
- # return type
- def type(self):
-  return self.__type
-
  # create the trees
  def createTree(self,**kw): 
   if kw.has_key('name'):
@@ -177,12 +189,12 @@ class Sixpack:
    if self.__ns[self.__name].initialized() !=True:
      self.__root=self.__ns[self.__name]<<Meq.Composer(self.__radec['RA'],self.__radec['Dec'],self.__iquv['StokesI'],self.__iquv['StokesQ'],self.__iquv['StokesU'],self.__iquv['StokesV'])
    else: # if this node has already being defined
-     print "Node already defined"
+     _dprint(0,"Node already defined")
      self.__root=None
 
- # update values according to the new cells, 
- # the name of the p-unit is given by 'pname'
- def updateValues(self,pname):
+ def updateVells(self,name=None):
+  """ update Vells according to the new cells, 
+      the name of the Sixpack can be given as 'name' """
   if (self.__lsm!=None) and (self.__lsm.cells!=None) and\
    (self.__lsm.mqs!=None):
    my_cells=self.__lsm.cells
@@ -191,19 +203,21 @@ class Sixpack:
    my_cells=self.__cells
    my_mqs=self.__mqs
   else:
-   print "Cannot update values: (cell,mqs)"
+   _dprint(0,"Cannot update Vells please setup your meqserver proxy befre you do this")
    return
 
   # create request object
   my_request = meq.request(cells=my_cells, eval_mode=0)
-  pname=self.__name
-  # if name==None, get name from root
-  if pname==None and self.__ns!=None:
-   pname=self.__root.name
-  my_args=meq.record(name=pname, request=my_request)
+  if self.__name ==None:
+   my_name=name
+  else:
+   my_name=self.__name
+  # if name is still None, get name from root
+  if my_name==None and self.__ns!=None:
+   my_name=self.__root.name
+  my_args=meq.record(name=my_name, request=my_request)
   my_result=my_mqs.meq('Node.execute', my_args,wait=True)
-  #print my_result
-  # update value
+  # update Vells 
   self.__setRA(my_result.result.vellsets[0])
   self.__setDec(my_result.result.vellsets[1])
   self.__setI(my_result.result.vellsets[2])
@@ -221,23 +235,65 @@ class Sixpack:
   elif self.__cells!=None:
    my_cells=self.__cells
   else:
-   print "Cannot update values: (cells,mqs)"
-   return
+   _dprint(0,"Cannot get Vells please setup your meqserver proxy befre you do this")
+   return None
 
 
   # range error check
   if (my_cells.segments.freq.start_index > freq_index) or\
     (my_cells.segments.freq.end_index < freq_index):
-    print "Index error, Frequency %d" %freq_index
+    _dprint(0,"Index error, Frequency %d",freq_index)
     freq_index=my_cells.segments.freq.start_index
   if (my_cells.segments.time.start_index > time_index) or\
     (my_cells.segments.time.end_index < time_index):
-    print "Index error, Time %d" %time_index
+    _dprint(0,"Index error, Time %d",time_index)
     time_index=my_cells.segments.time.start_index
   if type=='A' or type=='I':
    # expect a vellset
    try:
     shape=self.__sI.shape
+    if len(shape)==4:
+     l=shape[2]
+     m=shape[3]
+    else:
+     l=1
+     m=1
+    return [l,m]
+   except:
+    # no set, just a scalar
+    # print "Scalar Return "
+    return [1,1] 
+  elif type=='Q':
+   try:
+    shape=self.__sQ.shape
+    if len(shape)==4:
+     l=shape[2]
+     m=shape[3]
+    else:
+     l=1
+     m=1
+    return [l,m]
+   except:
+    # no set, just a scalar
+    # print "Scalar Return "
+    return [1,1] 
+  elif type=='U':
+   try:
+    shape=self.__sU.shape
+    if len(shape)==4:
+     l=shape[2]
+     m=shape[3]
+    else:
+     l=1
+     m=1
+    return [l,m]
+   except:
+    # no set, just a scalar
+    # print "Scalar Return "
+    return [1,1] 
+  elif type=='V':
+   try:
+    shape=self.__sV.shape
     if len(shape)==4:
      l=shape[2]
      m=shape[3]
@@ -263,18 +319,18 @@ class Sixpack:
   elif self.__cells!=None:
    my_cells=self.__cells
   else:
-   print "Cannot update values: (cell,mqs)"
+   _dprint(0,"Cannot get Vells, please setup your meqserver proxy befre you do this")
    return
 
 
   # range error check
   if (my_cells.segments.freq.start_index > freq_index) or\
     (my_cells.segments.freq.end_index < freq_index):
-    print "Index error, Frequency %d" %freq_index
+    _dprint(0,"Index error, Frequency %d",freq_index)
     freq_index=my_cells.segments.freq.start_index
   if (my_cells.segments.time.start_index > time_index) or\
     (my_cells.segments.time.end_index < time_index):
-    print "Index error, Time %d" %time_index
+    _dprint(0,"Index error, Time %d",time_index)
     time_index=my_cells.segments.time.start_index
 
   if type=='A' or type=='I':
@@ -342,7 +398,7 @@ class Sixpack:
     #print "Scalar Return ",self.sI.value[0]
     return self.__sV.value[0]
   else:
-    print "Error request",type
+    _dprint(0,"Error request %s",type)
     return 0
 
 
@@ -379,10 +435,15 @@ class Sixpack:
 
  # 
  def oneliner(self):
-  print "This is a Sixpack"
+  s=TDL_common.Super.oneliner(self)
+  s+="This is a Sixpack"
+  return s
 
- def display(self):
-  print str(self) 
+ def display(self,txt=None,full=False):
+  s=TDL_common.Super.display(self,txt=txt,end=False)
+  print s
+  TDL_common.Super.display_end(self)
+ # print str(self) 
 
  # Print
  def __str__(self):
