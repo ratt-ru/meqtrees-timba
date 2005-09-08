@@ -17,7 +17,7 @@ _dprintf = _dbg.dprintf
 
 class Sixpack(TDL_common.Super):
  """Sixpack contains:
-      __name: unique name to find the root of subtree
+      __label: unique name to find the root of subtree
 
       __ns: NodeScope object, to find the forest
       __mqs: MeqServer Proxy object to send requests
@@ -58,7 +58,6 @@ class Sixpack(TDL_common.Super):
       """
 
    pp.setdefault('label',None)
-   pp.setdefault('name',pp['label'])
    pp.setdefault('ns',None)
    pp.setdefault('type','Sixpack')
    pp.setdefault('RA',0)
@@ -68,7 +67,7 @@ class Sixpack(TDL_common.Super):
    pp.setdefault('StokesU',0)
    pp.setdefault('StokesV',0)
    TDL_common.Super.__init__(self, **pp)
-   self.__name=pp['name']
+   self.__label=pp['label']
 
    #remember the nodescope
    self.__ns=pp['ns']
@@ -78,8 +77,8 @@ class Sixpack(TDL_common.Super):
                  'StokesU':pp['StokesU'],'StokesV':pp['StokesV']}
     self.__radec={'RA':pp['RA'], 'Dec':pp['Dec']}
     # check whether we already have a node with given name
-    if self.__ns[self.__name].initialized() !=True:
-     self.__root=self.__ns[self.__name]<<Meq.Composer(self.__radec['RA'],self.__radec['Dec'],self.__iquv['StokesI'],self.__iquv['StokesQ'],self.__iquv['StokesU'],self.__iquv['StokesV'])
+    if self.__ns[self.__label].initialized() !=True:
+     self.__root=self.__ns[self.__label]<<Meq.Composer(self.__radec['RA'],self.__radec['Dec'],self.__iquv['StokesI'],self.__iquv['StokesQ'],self.__iquv['StokesU'],self.__iquv['StokesV'])
     else: # if this node has already being defined
      _dprint(0,"Node already defined")
      self.__root=None
@@ -166,8 +165,8 @@ class Sixpack(TDL_common.Super):
  # create the trees
  def createTree(self,**kw): 
   if kw.has_key('name'):
-   self.__name=kw['name']
-  if self.__ns!=None and self.__name !=None:
+   self.__label=kw['name']
+  if self.__ns!=None and self.__label !=None:
    if kw.has_key['RA']:
     RA=kw['RA']
    else:
@@ -196,8 +195,8 @@ class Sixpack(TDL_common.Super):
    self.__iquv={'StokesI':kw['sI'],'StokesQ':kw['sQ'],\
                  'StokesU':kw['sU'],'StokesV':kw['sV']}
    self.__radec={'RA':kw['RA'], 'Dec':kw['Dec']}
-   if self.__ns[self.__name].initialized() !=True:
-     self.__root=self.__ns[self.__name]<<Meq.Composer(self.__radec['RA'],self.__radec['Dec'],self.__iquv['StokesI'],self.__iquv['StokesQ'],self.__iquv['StokesU'],self.__iquv['StokesV'])
+   if self.__ns[self.__label].initialized() !=True:
+     self.__root=self.__ns[self.__label]<<Meq.Composer(self.__radec['RA'],self.__radec['Dec'],self.__iquv['StokesI'],self.__iquv['StokesQ'],self.__iquv['StokesU'],self.__iquv['StokesV'])
    else: # if this node has already being defined
      _dprint(0,"Node already defined")
      self.__root=None
@@ -218,10 +217,10 @@ class Sixpack(TDL_common.Super):
 
   # create request object
   my_request = meq.request(cells=my_cells, eval_mode=0)
-  if self.__name ==None:
+  if self.__label ==None:
    my_name=name
   else:
-   my_name=self.__name
+   my_name=self.__label
   # if name is still None, get name from root
   if my_name==None and self.__ns!=None:
    my_name=self.__root.name
@@ -415,7 +414,7 @@ class Sixpack(TDL_common.Super):
  # clone this Sixpack without circular reference to the LSM
  # and references to the MeqTree system for saving
  def clone(self):
-  newsph=Sixpack(self.__name)
+  newsph=Sixpack(self.__label)
   newsph.__root=None
   #newsph.sI=self.sI
   #newsph.sQ=self.sQ
