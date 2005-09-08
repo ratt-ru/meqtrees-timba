@@ -57,8 +57,8 @@ class Sixpack(TDL_common.Super):
       StokesV: Stokes V
       """
 
-   pp.setdefault('name',None)
    pp.setdefault('label',None)
+   pp.setdefault('name',pp['label'])
    pp.setdefault('ns',None)
    pp.setdefault('type','Sixpack')
    pp.setdefault('RA',0)
@@ -69,7 +69,6 @@ class Sixpack(TDL_common.Super):
    pp.setdefault('StokesV',0)
    TDL_common.Super.__init__(self, **pp)
    self.__name=pp['name']
-   self.__label=pp['label']
 
    #remember the nodescope
    self.__ns=pp['ns']
@@ -163,8 +162,6 @@ class Sixpack(TDL_common.Super):
  # link back to the LSM
  def setLSM(self,lsm):
   self.__lsm=lsm
- def label(self):
-  return self.__name
 
  # create the trees
  def createTree(self,**kw): 
