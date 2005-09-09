@@ -1,4 +1,4 @@
-script_name = 'MG_JEN_visualise.py'
+script_name = 'MG_JEN_dataCollect.py'
 
 # Short description:
 #   Some visualisation subtrees
@@ -38,14 +38,15 @@ from Timba.Contrib.JEN import MG_JEN_twig
 # To be used as example, for experimentation, and automatic testing.
 
 def _define_forest (ns):
+   MG_JEN_exec.on_entry (ns, script_name)
 
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
 
    # Make 'clouds' of nodes scattered (stddev) around mean:
-   xx = MG_JEN_twig.cloud (ns, n=3, name='xx', qual='auto', stddev=1, mean=complex(10))
-   yy = MG_JEN_twig.cloud (ns, n=3, name='yy', qual='auto', stddev=1, mean=complex(0))
-   zz = MG_JEN_twig.cloud (ns, n=3, name='zz', qual='auto', stddev=1, mean=complex(0,-2))
+   xx = MG_JEN_twig.cloud (ns, n=3, name='xx', qual=None, stddev=1, mean=complex(10))
+   yy = MG_JEN_twig.cloud (ns, n=3, name='yy', qual=None, stddev=1, mean=complex(0))
+   zz = MG_JEN_twig.cloud (ns, n=3, name='zz', qual=None, stddev=1, mean=complex(0,-2))
  
    # Make dataCollect nodes of type 'realvsimag' for the various clouds:
    bb= [] 
@@ -75,7 +76,7 @@ def _define_forest (ns):
    cc.append(MG_JEN_exec.bundle(ns, bb, 'spectra', show_parent=False))
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, cc)
+   return MG_JEN_exec.on_exit (ns, script_name, cc)
 
 
 #================================================================================
@@ -111,6 +112,8 @@ def _define_forest (ns):
 
 def dcoll (ns, node=[], **pp):
    """visualises the given node(s) and return a dcoll dict"""
+
+   unique = MG_JEN_forest_state.autoqual('MG_JEN_dataCollect::dcoll()')
 
    # Supply default arguments:
    pp.setdefault('scope', '<scope>')    # 'scope (e.g. rawdata)'
@@ -170,7 +173,7 @@ def dcoll (ns, node=[], **pp):
     
       if not pp.errorbars:
          # Indicate just the mean values of the child results:
-         dcoll['dcoll'] = ns[dcoll_name] << Meq.DataCollect(children=dcoll['mean'],
+         dcoll['dcoll'] = ns[dcoll_name](unique) << Meq.DataCollect(children=dcoll['mean'],
                                                            top_label=hiid('visu'),
                                                            attrib=attrib)
       else:
@@ -232,7 +235,9 @@ def dcoll (ns, node=[], **pp):
 
 def dconc (ns, dcoll, **pp):
 
-   # Supply default arguments:
+   unique = MG_JEN_forest_state.autoqual('MG_JEN_dataCollect::dconc()')
+ 
+  # Supply default arguments:
    pp.setdefault('scope', '<scope>')    # 'scope (e.g. rawdata)'
    pp.setdefault('tag', '<tag>')            # plot tag (e.g. allcorrs)
    pp.setdefault('title',False )             # plot title
@@ -262,7 +267,7 @@ def dconc (ns, dcoll, **pp):
       # attrib['tag'].append(dcoll[i]['tag'])     # concatenate the dcoll tags (unique?)
     
    # Make concatenations (dconc) node:
-   dconc['dcoll'] = ns[dconc_name] << Meq.DataCollect(children=dconc['cc'],
+   dconc['dcoll'] = ns[dconc_name](unique) << Meq.DataCollect(children=dconc['cc'],
                                                      top_label=hiid('visu'),
                                                      attrib=attrib)
 

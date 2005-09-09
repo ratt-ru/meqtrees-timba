@@ -37,6 +37,7 @@ from Timba.Contrib.JEN import MG_JEN_exec
 # To be used as example, for experimentation, and automatic testing.
 
 def _define_forest (ns):
+   MG_JEN_exec.on_entry (ns, script_name)
 
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
@@ -46,7 +47,7 @@ def _define_forest (ns):
    history (rr, show=True, trace=1)
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, cc)
+   return MG_JEN_exec.on_exit (ns, script_name, cc)
 
 
 
@@ -84,7 +85,7 @@ def inarg (pp={}, _funcall='<funcall>', _help={}, _prompt={}, **default):
         pp['trace'] = 0
         if pp.has_key('_help'): pp['_help']['trace'] = 'if >0, trace execution'
 
-    if pp['trace']: display(pp, 'pp', txt='exit of inarg()')
+    # if pp['trace']: display(pp, 'pp', txt='exit of inarg()')
     return pp
 
 #-----------------------------------------------------------------------------------------
@@ -92,7 +93,7 @@ def inarg (pp={}, _funcall='<funcall>', _help={}, _prompt={}, **default):
 # NB: After record(inarg()), _help etc have disappeared.....!
 
 def inarg_noexec (pp={}, txt='util.inarg_noexec(pp)', trace=0):
-    if trace: display(pp, 'pp', txt=txt)
+    # if trace: display(pp, 'pp', txt=txt)
     return pp
 
 

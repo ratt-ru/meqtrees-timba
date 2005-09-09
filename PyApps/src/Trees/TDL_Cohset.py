@@ -23,25 +23,23 @@ from Timba.Trees import TDL_common
 from Timba.Trees import TDL_Joneset
 
 
-#	if (type=='color') {
-#           ss := 'black';
-#	    ss := [ss,"red blue darkGreen magenta"];
-#	    ss := [ss,"darkGray darkMagenta darkRed darkYellow"];
-#	    ss := [ss,"darkBlue darkCyan gray"];
-#	    ss := [ss,"yellow lightGray cyan green"];
-#	    # ss := [ss,"none white"];
-#	} else if (type=='spectrum_color') {
-#	    ss := "hippo grayscale brentjens";
-#	} else if (type=='symbol') {
-#	    ss := "circle rectangle square ellipse";
-#	    ss := [ss, "xcross cross triangle diamond"];
-#	    # ss := [ss,"none"];
-#	} else if (type=='line_style') {
-#	    ss := "dots lines steps stick";
-#	    ss := [ss, "SolidLine DashLine DotLine DashDotLine DashDotDotLine"];
-#	    ss := [ss, "solidline dashline dotline dashdotline dashdotdotline"];
-#	    # ss := [ss,"none"];
+#**************************************************************************************
+# Some useful helper functions:
+#**************************************************************************************
 
+def stations2ifrs(stations=range(3)):
+    # Make a list of ifrs (station-pair tuples) from the given stations:
+    ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
+    return ifrs
+
+def ifrs2stations(ifrs=[(0,1)]):
+    # The reverse of stations2ifrs()
+    stations = []
+    for ii in ifrs:
+        for i in ii:
+            if not stations.__contains__(i): stations.append(i)
+    stations.sort()
+    return stations
 
 #**************************************************************************************
 # Class Cohset:
@@ -81,13 +79,15 @@ class Cohset (TDL_common.Super):
             key = str(station)
             self.__station_index[key] = station
 
-        self.__stations = {}
+
+        # This is the ONLY place where the self.__coh field-keys are determined
+        self.__stations = {}                     # integer tuples (s1,s2)
         self.__coh = {}
         for (st1,st2) in pp['ifrs']:
-            key = str(st1)+'_'+str(st2)
+            key = str(st1)+'_'+str(st2)          # NB: key should ALWAYS be string!!
             self.__stations[key] = (str(st1),str(st2))  
             self.__coh[key] = 'coh['+key+'] (placeholder for nodestub)'
-        self.__dims = [1]
+        self.__dims = [1]                        # shape of coh tensor nodes
 
         # Polarisation representation
         self.__polrep = pp['polrep']
@@ -144,7 +144,9 @@ class Cohset (TDL_common.Super):
     def paral(self): return self.__paral
     def phase_centre(self): return self.__phase_centre
 
-    def scope(self): return self.__scope
+    def scope(self, new=None):
+        if isinstance(new, str): self.__scope = new
+        return self.__scope
     def punit(self): return self.__punit
     def coh(self): return self.__coh
     def stations(self): return self.__stations
@@ -272,6 +274,7 @@ class Cohset (TDL_common.Super):
     def subtract(self, ns, Cohset=None):
         # Subtract the cohaerencies in the two cohsets.
         # NB: Check whether punit is the same for both?
+        self.scope('subtracted')
         return self.binop(ns, binop='Subtract', Cohset=Cohset)
 
 
@@ -279,6 +282,7 @@ class Cohset (TDL_common.Super):
         # Shift the phase centre from the current position to the position (RA, DEC)
         # of the given punit (sixpack?, twopack?, other?):
         self.__punit = punit
+        self.scope('shifted_to_'+punit)
         pass
 
 
@@ -295,6 +299,7 @@ class Cohset (TDL_common.Super):
                 ns << Meq.MatrixInvert22(ns << Meq.ConjTranspose(Joneset[s12[1]])))
             self.__coh[key] = coh 
         self.update_from_Joneset(Joneset)
+        self.scope('corrected')
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -309,10 +314,8 @@ class Cohset (TDL_common.Super):
                 Joneset[s12[0]],
                 self.__coh[key],
                 ns << Meq.ConjTranspose(Joneset[s12[1]]))
-            # print '\n** key=',key,s12,':',self.__coh[key],coh
-            # print '    ',s12[0],':',Joneset[s12[0]]
-            # print '    ',s12[1],':',Joneset[s12[1]]
             self.__coh[key] = coh
+        self.scope('corrupted')
         self.update_from_Joneset(Joneset)
         self.history(append=funcname+' -> '+self.oneliner())
         return True
@@ -384,6 +387,7 @@ class Cohset (TDL_common.Super):
             self.__coh[key] = coh
         # Adjust the coherence shape, if necessary:  
         if len(icorr)<4: self.__dims = [len(icorr)]            #...shape...??
+        self.scope('selected_corrs')
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -408,6 +412,7 @@ class Cohset (TDL_common.Super):
                                                                            input_column=pp['input_column'])
         self.__dims = [2,2]
         self.label('spigots')
+        self.scope('spigots')
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -434,6 +439,7 @@ class Cohset (TDL_common.Super):
                                                                            station_2_index=i2,
                                                                            corr_index=[0,1,2,3],
                                                                            output_col=pp['output_col'])
+        self.scope('sinks')
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -503,7 +509,7 @@ if __name__ == '__main__':
         for corr in cs.corrs(): print '-',corr, cs.plot_color()[corr],cs.plot_style()[corr]
         print
 
-    if 1:
+    if 0:
         coh0 = ns << Meq.Constant(array([[11,12],[21,22]]), dim=[2,2])
         MG_JEN_exec.display_subtree(coh0, 'coh0', full=True)
         print '\n** coh0=',coh0
@@ -526,7 +532,7 @@ if __name__ == '__main__':
         # cs1.select(ns, ['LR'])
         cs1.display('after .select()')
 
-    if 1:
+    if 0:
         keys = cs.keys()
         print 'cs.has_key(',keys[0],') ->',cs.has_key(keys[0])
         print 'cs.has_key(wrong) ->',cs.has_key('wrong')
@@ -556,7 +562,16 @@ if __name__ == '__main__':
             sink = cs.simul_sink(ns)
             MG_JEN_exec.display_subtree(sink, 'simul_sink', full=True, recurse=5)
 
-    if 1:
+    if 0:
+        stations = range(5)
+        stations = [0,4,7,2,8,-6,-7]
+        stations = ['A','G','k',4]
+        print 'stations =',stations
+        ifrs = stations2ifrs(stations)
+        print 'ifrs =',ifrs
+        print 'stations =',ifrs2stations(ifrs)
+
+    if 0:
         # Display the final result:
         k = 0 ; MG_JEN_exec.display_subtree(cs[k], 'cs['+str(k)+']', full=True, recurse=5)
         cs.display('final result')

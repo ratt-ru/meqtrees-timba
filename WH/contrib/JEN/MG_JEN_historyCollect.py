@@ -1,7 +1,7 @@
-script_name = 'MG_JEN_template.py'
+script_name = 'MG_JEN_historyCollect.py'
 
-# Short description (see also the full description below):
-#   Template for the generation of MeqGraft scripts
+# Short description:
+#   Functions related to MeqHistoryCollect nodes
 
 # Keywords: ....
 
@@ -10,23 +10,8 @@ script_name = 'MG_JEN_template.py'
 # History:
 # - 24 aug 2005: creation
 
-# Copyright: The MeqTree Foundation
+# Copyright: The MeqTree Foundation 
 
-# Full description (try to be complete, and upt-todate!):
-#
-#
-#
-#
-
-#================================================================================
-# How to use this template:
-# - Copy it to a suitably named script file (e.g. MG_JEN_xyz.py)
-# - Fill in the correct script_name at the top
-# - Fill in the author and the short description
-# - Replace the example importable function with specific ones
-# - Make the specific _define_forest() function
-# - Write lots of explanatory comments throughout
-# - Remove this 'how to' recipe
 
 #================================================================================
 # Import of Python modules:
@@ -50,33 +35,15 @@ from numarray import *
 # from string import *
 # from copy import deepcopy
 
-# Standard objects:
-# from Timba.Trees import TDL_Cohset
-# from Timba.Trees import TDL_Joneset
-# from Timba.Trees import TDL_Sixpack
-
-# Scripts needed to run a MG_JEN script: 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 
-# Other MG_JEN scripts (uncomment as necessary):
 # from Timba.Contrib.JEN import MG_JEN_util
-# from Timba.Contrib.JEN import MG_JEN_funklet
 # from Timba.Contrib.JEN import MG_JEN_twig
 # from Timba.Contrib.JEN import MG_JEN_math
-# from Timba.Contrib.JEN import MG_JEN_matrix
+# from Timba.Contrib.JEN import MG_JEN_funklet
 
-# from Timba.Contrib.JEN import MG_JEN_dataCollect
-# from Timba.Contrib.JEN import MG_JEN_historyCollect
 
-# from Timba.Contrib.JEN import MG_JEN_flagger
-# from Timba.Contrib.JEN import MG_JEN_solver
-
-# from Timba.Contrib.JEN import MG_JEN_sixpack
-# from Timba.Contrib.JEN import MG_JEN_Sixpack
-
-# from Timba.Contrib.JEN import MG_JEN_Joneset
-# from Timba.Contrib.JEN import MG_JEN_Cohset
 
 
 #================================================================================
@@ -85,20 +52,14 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 #================================================================================
 
 def _define_forest (ns):
-   # Perform some common functions, and return an empty list (cc=[]):
+   # Perform some common initial actions:
    cc = MG_JEN_exec.on_entry (ns, script_name)
 
-   # Test/demo of importable function: .example1()
-   bb = []
-   bb.append(example1 (ns, arg1=1, arg2=2))
-   bb.append(example1 (ns, arg1=3, arg2=4))
-   cc.append(MG_JEN_exec.bundle(ns, bb, '.example1()', show_parent=False))
-
-   # Test/demo of importable function: .example2()
-   bb = []
-   bb.append(example2 (ns, arg1=1, arg2=5))
-   bb.append(example2 (ns, arg1=1, arg2=6))
-   cc.append(MG_JEN_exec.bundle(ns, bb, '.example2()', show_parent=True))
+   ns.add << (ns.freq << Meq.Freq) + (ns.time << Meq.Time)
+   ns.history << Meq.HistoryCollect(ns.add,verbose=True,top_label=hiid('visu'))
+   ns.dc << Meq.DataCollect(ns.history,top_label=hiid('visu'))
+   ns.root << Meq.Add(ns.add,stepchildren=[ns.dc])
+   cc.append(ns.root)
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, script_name, cc)
@@ -106,32 +67,11 @@ def _define_forest (ns):
 
 
 
+
+
 #================================================================================
 # Optional: Importable function(s): To be imported into user scripts.
 #================================================================================
-
-#-------------------------------------------------------------------------------
-# Example:
-
-def example1(ns, qual=None, **pp):
-
-    # If necessary, make an automatic qualifier:
-    qual = MG_JEN_forest_state.autoqual('MG_JEN_template_example')
-
-    default = array([[1, pp['arg1']/10],[pp['arg2']/10,0.1]])
-    node = ns.dummy(qual) << Meq.Parm(default)
-    return node
-
-def example2(ns, qual=None, **pp):
-
-    # If necessary, make an automatic qualifier:
-    qual = MG_JEN_forest_state.autoqual('MG_JEN_template_example')
-
-    default = array([[1, pp['arg1']/100],[pp['arg2']/100,0.1]])
-    node = ns.dummy(qual) << Meq.Parm(default)
-    return node
-
-
 
 
 
@@ -167,26 +107,18 @@ MG_JEN_forest_state.init(script_name)
 
 def _test_forest (mqs, parent):
 
-   if True:
+   if False:
       # Execute once, with a default request:
       return MG_JEN_exec.meqforest (mqs, parent)
 
    else:
       # Alternative: Execute the forest for a sequence of requests:
       for x in range(10):
-         MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
+         MG_JEN_exec.meqforest (mqs, parent, nfreq=4, ntime=5,
                                 f1=x, f2=x+1, t1=x, t2=x+1,
-                                save=False, trace=False)
+                                save=False, trace=False) 
       MG_JEN_exec.save_meqforest(mqs) 
       return True
-
-#------------------------------------------------------------------------
-# Any function with name _tdl_job_xyz(mqs, parent) will show up under
-# the 'jobs' button in the browser, and can be executed from there.
-
-
-def _tdl_job_test1(mqs, parent):
-   pass
 
 
 

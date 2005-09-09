@@ -34,6 +34,7 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 #================================================================================
 
 def _define_forest (ns):
+   MG_JEN_exec.on_entry (ns, script_name)
 
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
@@ -68,7 +69,7 @@ def _define_forest (ns):
 
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, cc)
+   return MG_JEN_exec.on_exit (ns, script_name, cc)
 
 
 

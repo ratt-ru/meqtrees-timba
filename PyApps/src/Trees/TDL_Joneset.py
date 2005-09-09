@@ -119,9 +119,14 @@ class Joneset (TDL_common.Super):
       for skey in self.__solvegroup.keys():
         ok = True
         for key in self.__solvegroup[skey]:
-          if not self.__parmgroup.has_key(key): ok = False
+          if not self.__parmgroup.has_key(key):
+            ok = False
         if not ok: self.__solvegroup.__delitem__(skey)
       self.history ('.cleanup(): removed parmgroup(s): '+str(removed))
+      # Remove condeq_corrs that have no solvegroup counterpart:
+      for key in self.__condeq_corrs.keys():
+        if not self.__solvegroup.has_key(key):
+          self.__condeq_corrs.__delitem__(key)
       return True
 
     def node_groups(self, new=None):
@@ -133,7 +138,8 @@ class Joneset (TDL_common.Super):
       return self.__node_groups
 
     def append(self, key=None, node=None):
-        # Append a 2x2 jones matrix node to the internal jones set:
+        # Append a named (key) 2x2 jones matrix node to the internal jones set:
+        key = str(key)          # potential __getitem__() problems if key is integer!! 
         self.__jones[key] = node
         return self.len()
 
@@ -162,7 +168,9 @@ class Joneset (TDL_common.Super):
         return self.__MeqParm
 
     # Access functions:
-    def scope(self): return self.__scope
+    def scope(self, new=None):
+        if isinstance(new, str): self.__scope = new
+        return self.__scope
     def punit(self): return self.__punit
     def solvable(self): return self.__solvable
     def polrep(self): return self.__polrep

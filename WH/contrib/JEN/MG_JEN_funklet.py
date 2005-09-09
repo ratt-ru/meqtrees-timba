@@ -35,6 +35,7 @@ from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
 #================================================================================
 
 def _define_forest (ns):
+   MG_JEN_exec.on_entry (ns, script_name)
 
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
@@ -73,7 +74,7 @@ def _define_forest (ns):
 
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, cc)
+   return MG_JEN_exec.on_exit (ns, script_name, cc)
 
 
 
@@ -188,7 +189,7 @@ def polclog_SIF (I0=1.0, SI=-0.7, f0=1e6):
 #---------------------------------------------------------------------
 # Make a StokesI(q=source) node based on a polclog:
 
-def polclog_flux (ns, source='auto', I0=1.0, SI=-0.7, f0=1e6, stokes='I'):
+def polclog_flux (ns, source=None, I0=1.0, SI=-0.7, f0=1e6, stokes='I'):
    print
    source = MG_JEN_forest_state.autoqual('MG_JEN_funklet_flux', qual=source)
 
@@ -202,7 +203,7 @@ def polclog_flux (ns, source='auto', I0=1.0, SI=-0.7, f0=1e6, stokes='I'):
 # Make a fmult(q=source) node based on a polclog:
 # This may be used to multiply StokesQ,U,V.....
 
-def polclog_fmult (ns, source='auto', SI=-0.7, f0=1e6):
+def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
    source = MG_JEN_forest_state.autoqual('MG_JEN_funklet_fmult', qual=source)
       
    polclog = polclog_predefined(source, I0=1.0, SI=SI, f0=f0, stokes='I')

@@ -36,31 +36,35 @@ from Timba.Contrib.JEN import MG_JEN_funklet
 # To be used as example, for experimentation, and automatic testing.
 
 def _define_forest (ns):
+   MG_JEN_exec.on_entry (ns, script_name)
 
-	# Parameters:
-	dflt_a = 1
-	dflt_b = -1
-	dflt_a = array([1,.3])
-	dflt_b = array([-1,-.3])
-	dflt_a = array([[1,.3,.1],[.1,.2,.3]])
-	dflt_b = array([[-1,-.3,.1],[.1,.2,-.3]])
+   cc = []
 
-	# Make a solver with a single condeq, with children a and b:
-	a = ns.a << Meq.Parm(dflt_a, node_groups='Parm')
-	b = ns.b << Meq.Parm(dflt_b, node_groups='Parm')
-	condeq = ns << Meq.Condeq(a,b)
-	solver = ns << Meq.Solver(condeq, solvable=[a], num_iter=10, debug_level=10)
-
-	# Make a page of bookmarks for easy viewing:
-	page_name = 'solver'
-	MG_JEN_forest_state.bookmark(a, page=page_name)
-	MG_JEN_forest_state.bookmark(b, page=page_name)
-	MG_JEN_forest_state.bookmark(solver, page=page_name)
-	MG_JEN_forest_state.bookmark(condeq, page=page_name)
-	MG_JEN_forest_state.bookmark(solver, page=page_name, viewer='ParmFiddler')
-
-	# Finished: 
-	return MG_JEN_exec.on_exit (ns, solver)
+   # Parameters:
+   dflt_a = 1
+   dflt_b = -1
+   dflt_a = array([1,.3])
+   dflt_b = array([-1,-.3])
+   dflt_a = array([[1,.3,.1],[.1,.2,.3]])
+   dflt_b = array([[-1,-.3,.1],[.1,.2,-.3]])
+   
+   # Make a solver with a single condeq, with children a and b:
+   a = ns.a << Meq.Parm(dflt_a, node_groups='Parm')
+   b = ns.b << Meq.Parm(dflt_b, node_groups='Parm')
+   condeq = ns << Meq.Condeq(a,b)
+   solver = ns << Meq.Solver(condeq, solvable=[a], num_iter=10, debug_level=10)
+   cc.append(solver)
+   
+   # Make a page of bookmarks for easy viewing:
+   page_name = 'solver'
+   MG_JEN_forest_state.bookmark(a, page=page_name)
+   MG_JEN_forest_state.bookmark(b, page=page_name)
+   MG_JEN_forest_state.bookmark(solver, page=page_name)
+   MG_JEN_forest_state.bookmark(condeq, page=page_name)
+   MG_JEN_forest_state.bookmark(solver, page=page_name, viewer='ParmFiddler')
+   
+   # Finished: 
+   return MG_JEN_exec.on_exit (ns, script_name, cc)
 
 
 

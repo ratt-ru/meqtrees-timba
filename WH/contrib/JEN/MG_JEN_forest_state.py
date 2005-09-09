@@ -21,14 +21,13 @@ from copy import deepcopy
 
 
 
-
 #================================================================================
-# Required functions:
-#================================================================================
-
-#--------------------------------------------------------------------------------
-# Forest definition routine (may be executed from the browser):
+# Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
+#================================================================================
+
+# NB: Since this module is imported by MG_JEN_exec, it cannot use its
+#     standard functions. They have been emulated here. 
 
 def _define_forest (ns):
 
@@ -45,18 +44,22 @@ def _define_forest (ns):
    # bm = bookmark (..., viewer='Record Browser')           # <-----??
  
    # Make bookmark for a single node:
+   bm = bookmark (a)
    bm = bookmark (b)
+   bookfolder()
  
    # Make a named page with views of the same node:
-   page_name = 'b'
+   page_name = 'b+'
    bookmark (b, page=page_name)
    bookmark (b, udi='funklet/coeff', viewer='Record Browser', page=page_name)
+   bookfolder()
  
    # Make a named page with views of diferent nodes:
    page_name = 'sum=a+b'
    bookmark (a, page=page_name)
    bookmark (b, page=page_name)
    bookmark (sum, page=page_name)
+   # bookfolder()
  
    # Make a named page with multiple views of the same node:
    page_name = 'views of sum'
@@ -88,7 +91,7 @@ def _define_forest (ns):
    # Use a simple version of MG_JEN_exec.on_exit():
    # Make a (single) root node for use in _test_forest():
    global _test_root
-   _test_root = '_test_root'
+   _test_root = script_name
    root = ns[_test_root] << Meq.Add(children=cc)
    return root    
    
@@ -202,7 +205,6 @@ def bookmarks (clear=0, trace=0):
 # Add the given bookmark to the named page, and reconfigure it
 
 def bookpage (bm={}, name='page', trace=0):
-  # if trace: print '\n** MG_JEN_bookmark.bookpage(',bm,')'
   Settings.forest_state.setdefault('bookmarks',[])
   bms = Settings.forest_state.bookmarks
 
@@ -213,11 +215,11 @@ def bookpage (bm={}, name='page', trace=0):
   for i in range(len(bms)):
     if bms[i].has_key('page'):
       if bms[i].name == name:
-        found = 1                                # used below
-
+        found = True                                    # used below
+      
         # Automatic placement of the panel:
-        n = len(bms[i].page)                     # current length
-        if n==0: bmc.pos = [0,0]                 # superfluous
+        n = len(bms[i].page)                      # current length
+        if n==0: bmc.pos = [0,0]               # superfluous
 
         # 1st col:
         if n==1: bmc.pos = [1,0]
@@ -250,7 +252,7 @@ def bookpage (bm={}, name='page', trace=0):
         bms[i].page.append(bmc)
         if trace: print '- appended (',n,') to existing page:',bmc
 
-  # Make a new one, if not yet exists
+  # Make a new page, if it does not yet exists
   if not found:
     bmc.pos = [0,0]
     if trace: print '- created new bookpage:',bmc
@@ -258,6 +260,43 @@ def bookpage (bm={}, name='page', trace=0):
       
   Settings.forest_state.bookmarks = bms
   return bms
+
+
+#----------------------------------------------------------------------
+# Collect a number of bokkmarks/pages into a named folder:
+
+def bookfolder (name='bookfolder', item=None, trace=0):
+  if (trace): print '\n** .bookfolder(',name,'):'
+  Settings.forest_state.setdefault('bookmarks',[])
+  bms = Settings.forest_state.bookmarks
+
+  if item==None:              # if item=None, put ALL bookmarks in the folder
+     pass
+  elif not isinstance(item, (tuple, list)):
+     item = [item]                      # assume string...
+  elif len(item)==0:                # empty list
+     return []                             # ignore
+
+  folder = []
+  bmsnew = []
+  for i in range(len(bms)):
+     print '-',i,':',bms[i]
+     if item==None:
+       folder.append(bms[i])
+       if (trace): print 'append to folder:',bms[i]
+     elif item.__contains__(bms[i].name):
+       folder.append(bms[i]) 
+       if (trace): print 'append to folder:',bms[i]
+     else:
+       bmsnew.append(bms[i]) 
+       if (trace): print 'append to bmsnew:',bms[i]
+
+  if len(folder)>0: 
+	bmsnew.append(record(name=name, folder=folder)) 
+        if (trace): print 'append folder to bmsnew:',folder
+
+  Settings.forest_state.bookmarks = bmsnew
+  return folder
 
 
 #---------------------------------------------------------------------------

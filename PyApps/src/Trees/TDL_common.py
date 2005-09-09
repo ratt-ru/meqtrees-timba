@@ -49,7 +49,7 @@ class Super:
         self.__warnings = 0
 
         # Start the object history:
-        s = self.__origin+': Created '+self.type()+' object with label: '+self.label()
+        s = str(self.__origin)+': Created '+str(self.type())+' object with label: '+str(self.label())
         self.history(s, reset=True)
 
         # Deal with the extra constructor arguments (if any):
@@ -153,16 +153,17 @@ def _counter (key, increment=0, reset=False, trace=True):
     return _counters[key]
 
 
+#----------------------------------------------------------------
 # Some 'universal' plot styles:
 
 def plot_color(key=None):
-    rr = dict(XX='red', XY='magenta', YX='cyan', YY='blue')
+    rr = dict(XX='red', XY='magenta', YX='darkCyan', YY='blue')
     rr['RR'] = rr['XX']
     rr['RL'] = rr['XY']
     rr['LR'] = rr['YX']
     rr['LL'] = rr['YY']
     if key==None: return rr
-    if rr.has_key(key): return style[key]
+    if rr.has_key(key): return rr[key]
     return False
     
 def plot_style(key=None):
@@ -172,7 +173,7 @@ def plot_style(key=None):
     rr['LR'] = rr['YX']
     rr['LL'] = rr['YY']
     if key==None: return rr
-    if rr.has_key(key): return style[key]
+    if rr.has_key(key): return rr[key]
     return False
 
 def plot_size(key=None):
@@ -186,6 +187,25 @@ def plot_size(key=None):
     return False
 
 
+# Plot style information
+#	if (type=='color') {
+#           ss := 'black';
+#	    ss := [ss,"red blue darkGreen magenta"];
+#	    ss := [ss,"darkGray darkMagenta darkRed darkYellow"];
+#	    ss := [ss,"darkBlue darkCyan gray"];
+#	    ss := [ss,"yellow lightGray cyan green"];
+#	    # ss := [ss,"none white"];
+#	} else if (type=='spectrum_color') {
+#	    ss := "hippo grayscale brentjens";
+#	} else if (type=='symbol') {
+#	    ss := "circle rectangle square ellipse";
+#	    ss := [ss, "xcross cross triangle diamond"];
+#	    # ss := [ss,"none"];
+#	} else if (type=='line_style') {
+#	    ss := "dots lines steps stick";
+#	    ss := [ss, "SolidLine DashLine DotLine DashDotLine DashDotDotLine"];
+#	    ss := [ss, "solidline dashline dotline dashdotline dashdotdotline"];
+#	    # ss := [ss,"none"];
 
 
 

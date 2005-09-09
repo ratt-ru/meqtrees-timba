@@ -33,6 +33,7 @@ from Timba.Contrib.JEN import MG_JEN_funklet
 # To be used as example, for experimentation, and automatic testing.
 
 def _define_forest (ns):
+   MG_JEN_exec.on_entry (ns, script_name)
 
    # Generate a list (cc) of one or more root nodes:
    cc = []
@@ -66,7 +67,7 @@ def _define_forest (ns):
    cc.append(MG_JEN_exec.bundle(ns, bb, 'cloud'))
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, cc)
+   return MG_JEN_exec.on_exit (ns, script_name, cc)
 
 
 

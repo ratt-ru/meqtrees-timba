@@ -33,7 +33,7 @@ from Timba.Contrib.JEN import MG_JEN_funklet
 from Timba.Contrib.JEN import MG_JEN_matrix
 from Timba.Contrib.JEN import MG_JEN_math
 from Timba.Contrib.JEN import MG_JEN_twig
-from Timba.Contrib.JEN import MG_JEN_visualise
+from Timba.Contrib.JEN import MG_JEN_dataCollect
 
 
 #================================================================================
@@ -42,18 +42,20 @@ from Timba.Contrib.JEN import MG_JEN_visualise
 #================================================================================
 
 def _define_forest (ns):
+   MG_JEN_exec.on_entry (ns, script_name)
 
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
 
     # Make a sequence (jseq) of (jonesets of) 2x2 jones matrices:
    stations = range(0,3)
+   scope = script_name
    jseq = TDL_Joneset.Joneseq(label='JJones', origin='MG_JEN_Joneset') 
-   jseq.append(GJones (ns, stations=stations, stddev_ampl=0.1, stddev_phase=0.1)) 
-   jseq.append(BJones (ns, stations=stations, stddev_real=0.1, stddev_imag=0.1))
-   jseq.append(FJones (ns, stations=stations, RM=0.5))
-   jseq.append(DJones_WSRT (ns, stations=stations, PZD=0.8, stddev_dang=0.1, stddev_dell=0.1))
-   # jseq.append(DJones_WSRT (ns, stations=stations, coupled_XY_dang=False, coupled_XY_dell=False))
+   jseq.append(GJones (ns, stations=stations, scope=scope, stddev_ampl=0.1, stddev_phase=0.1)) 
+   jseq.append(BJones (ns, stations=stations, scope=scope, stddev_real=0.1, stddev_imag=0.1))
+   jseq.append(FJones (ns, stations=stations, scope=scope, RM=0.5))
+   jseq.append(DJones_WSRT (ns, stations=stations, scope=scope, PZD=0.8, stddev_dang=0.1, stddev_dell=0.1))
+   # jseq.append(DJones_WSRT (ns, stations=stations, scope=scope, coupled_XY_dang=False, coupled_XY_dell=False))
    jseq.display()
 
    # Visualise them individually:
@@ -70,7 +72,7 @@ def _define_forest (ns):
    dconc.append(dc)
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, cc)
+   return MG_JEN_exec.on_exit (ns, script_name, cc)
 
 
 
@@ -111,7 +113,8 @@ def visualise_Joneseq (ns, Joneseq, **pp):
     # return True
 
     # Make a concatenation of the various dcolls:
-    dconc = MG_JEN_visualise.dconc (ns, dconc, scope='<scope>', bookpage='Joneseq')
+    dconc = MG_JEN_dataCollect.dconc (ns, dconc, scope=Joneset.scope(),
+                                      bookpage='Joneseq')
 
     # Return a dcoll record (dataCollect node = dcond['dcoll'])
     return dconc
@@ -125,7 +128,6 @@ def visualise(ns, Joneset, **pp):
     """visualises the contents of the given Joneset"""
 
     # Input arguments:
-    pp.setdefault('scope', '<scope>')       # identifying name of this visualiser
     pp.setdefault('type', 'realvsimag')     # plot type (realvsimag or spectra)
     pp.setdefault('errorbars', False)       # if True, plot stddev as crosses around mean
     pp.setdefault('result', 'Joneset')      # result of this routine (Joneset or dcolls)
@@ -141,10 +143,10 @@ def visualise(ns, Joneset, **pp):
     for key in Joneset.parmgroup().keys():
        pgk = Joneset.parmgroup()[key]        # list of MeqParm node names
        if len(pgk)>0:  # ignore if empty 
-          dc = MG_JEN_visualise.dcoll (ns, pgk, scope=visu_scope, tag=key,
-                                       type=pp.type, errorbars=pp.errorbars,
-                                       color=Joneset.plot_color()[key],
-                                       style=Joneset.plot_style()[key])
+          dc = MG_JEN_dataCollect.dcoll (ns, pgk, scope=visu_scope, tag=key,
+                                         type=pp.type, errorbars=pp.errorbars,
+                                         color=Joneset.plot_color()[key],
+                                         style=Joneset.plot_style()[key])
           dcoll.append(dc)
 
 
@@ -165,7 +167,7 @@ def visualise(ns, Joneset, **pp):
        if key=='m12' or key=='m21':
            size = 7
            color = 'gray'
-       dc = MG_JEN_visualise.dcoll (ns, nodes[key],
+       dc = MG_JEN_dataCollect.dcoll (ns, nodes[key],
                                     scope=visu_scope, tag=key,
                                     type=pp.type,
                                     color=color, style=style, size=size,
@@ -174,8 +176,8 @@ def visualise(ns, Joneset, **pp):
 
  
     # Make a concatenation of the various dcolls:
-    dconc = MG_JEN_visualise.dconc (ns, dcoll, scope=visu_scope, bookpage=label)
-
+    dconc = MG_JEN_dataCollect.dconc (ns, dcoll, scope=visu_scope, bookpage=label)
+    
     # Return a dcoll record (dataCollect node = dcond['dcoll'])
     return dconc
 
@@ -243,6 +245,7 @@ def GJones (ns=0, label='GJones', **pp):
   funcname = 'MG_JEN_Joneset::GJones()'
 
   # Input parameters:
+  pp.setdefault('scope', '<scope>')    # scope of this Joneset
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
   pp.setdefault('polrep', 'linear')    # polarisation representation
@@ -255,8 +258,10 @@ def GJones (ns=0, label='GJones', **pp):
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
-  # Create a Joneset object, and register the parmgroups:
+  # Create a Joneset object
   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+
+  # Register the parmgroups:
   a1 = js.register('Gampl', ipol=1, color='red', corrs='paral1')
   a2 = js.register('Gampl', ipol=2, color='blue', corrs='paral2')
   p1 = js.register('Gphase', ipol=1, color='magenta', corrs='paral1')
@@ -322,6 +327,7 @@ def FJones (ns=0, label='FJones', **pp):
   funcname = 'MG_JEN_Joneset::FJones()'
 
   # Input parameters:
+  pp.setdefault('scope', '<scope>')    # scope of this Joneset
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
   pp.setdefault('polrep', 'linear')    # polarisation representation
@@ -330,8 +336,10 @@ def FJones (ns=0, label='FJones', **pp):
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
-  # Create a Joneset object, and register the parmgroups:
+  # Create a Joneset object:
   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+
+  # Register the parmgroups:
   RM = js.register('RM', color='black', corrs='cross')
   js.node_groups(label[0])
 
@@ -370,6 +378,7 @@ def BJones (ns=0, label='BJones', **pp):
   funcname = 'MG_JEN_Joneset::BJones()'
 
   # Input parameters:
+  pp.setdefault('scope', '<scope>')    # scope of this Joneset
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
   pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
@@ -381,8 +390,10 @@ def BJones (ns=0, label='BJones', **pp):
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
-  # Create a Joneset object, and register the parmgroups:
+  # Create a Joneset object:
   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+  
+  # Register the parmgroups:
   br1 = js.register('Breal', ipol=1, color='red', corrs='paral1')
   br2 = js.register('Breal', ipol=2, color='blue', corrs='paral2')
   bi1 = js.register('Bimag', ipol=1, color='magenta', corrs='paral1')
@@ -440,21 +451,24 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
   funcname = 'MG_JEN_Joneset::DJones_WSRT()'
 
   # Input parameters:
-  pp.setdefault('stations', [0])                  # range of station names/numbers
-  pp.setdefault('punit', 'uvp')                    # name of prediction-unit (source/patch)
-  pp.setdefault('solvable', True)                # if True, the parms are potentially solvable
+  pp.setdefault('scope', '<scope>')       # scope of this Joneset
+  pp.setdefault('stations', [0])          # range of station names/numbers
+  pp.setdefault('punit', 'uvp')           # name of prediction-unit (source/patch)
+  pp.setdefault('solvable', True)         # if True, the parms are potentially solvable
   pp.setdefault('coupled_XY_dang', True)  # if True, Xdang = Ydang per station
   pp.setdefault('coupled_XY_dell', True)  # if True, Xdell = -Ydell per station
-  pp.setdefault('dang', 0.0)                          # default funklet value
-  pp.setdefault('dell', 0.0)                          # default funklet value
-  pp.setdefault('PZD', 0.0)                            # default funklet value
-  pp.setdefault('stddev_dang', 0)               # scatter in default funklet c00 values
-  pp.setdefault('stddev_dell', 0)               # scatter in default funklet c00 values
+  pp.setdefault('dang', 0.0)              # default funklet value
+  pp.setdefault('dell', 0.0)              # default funklet value
+  pp.setdefault('PZD', 0.0)               # default funklet value
+  pp.setdefault('stddev_dang', 0)         # scatter in default funklet c00 values
+  pp.setdefault('stddev_dell', 0)         # scatter in default funklet c00 values
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
-  # Create a Joneset object, and register the parmgroups:
+  # Create a Joneset object:
   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+
+  # Register the parmgroups:
   dang = js.register('dang', color='green', corrs='cross')
   dell = js.register('dell', color='magenta', corrs='cross')
   dang1 = js.register('dang', ipol=1, color='green', corrs='cross')
@@ -588,24 +602,25 @@ if __name__ == '__main__':
   # This is the place for some specific tests during development.
   ns = NodeScope()
   stations = range(0,3)
+  scope = script_name
   ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
   JJ = []
 
   if 0:
-    # js = GJones (ns, stations=stations, solvable=True, polrep='circular', polar=True)
-    # js = BJones (ns, stations=stations, solvable=True, polrep='circular')
-    # js = FJones (ns, stations=stations, solvable=True, polrep='circular')
-    # js = FJones (ns, stations=stations, solvable=True, polrep='linear')
-    js = DJones_WSRT (ns, stations=stations, solvable=True, coupled_XY_dang=False, coupled_XY_dell=True)
+    # js = GJones (ns, stations=stations, scope=scope, solvable=True, polrep='circular', polar=True)
+    # js = BJones (ns, stations=stations, scope=scope, solvable=True, polrep='circular')
+    # js = FJones (ns, stations=stations, scope=scope, solvable=True, polrep='circular')
+    # js = FJones (ns, stations=stations, scope=scope, solvable=True, polrep='linear')
+    js = DJones_WSRT (ns, stations=stations, sscope=scope, olvable=True, coupled_XY_dang=False, coupled_XY_dell=True)
     js.display()     
     display_first_subtree (js, full=1)
 
   if 1:
-    # jseq = TDL_Joneset.Joneseq(label='JJones', origin='MG_JEN_Joneset')
+    # jseq = TDL_Joneset.Joneseq(origin='MG_JEN_Joneset')
     jseq = Joneseq()
-    jseq.append(GJones (ns, stations=stations))
-    jseq.append(BJones (ns, stations=stations))
-    jseq.append(FJones (ns, stations=stations))
+    jseq.append(GJones (ns, scope=scope, stations=stations))
+    jseq.append(BJones (ns, scope=scope, stations=stations))
+    jseq.append(FJones (ns, scope=scope, stations=stations))
     # jseq.append(DJones_WSRT (ns, stations=stations))
     jseq.display()
     js = jseq.make_Joneset(ns)

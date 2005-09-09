@@ -28,9 +28,8 @@ from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
 #================================================================================
 
 def _define_forest (ns):
-
-   # Generate a list (cc) of one or more node bundles (bb):
-   cc = []
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = on_entry (ns, script_name)            
 
    # Test/demo of importable function:
    bb = []
@@ -44,7 +43,9 @@ def _define_forest (ns):
    cc.append(bundle(ns, bb, 'bundle_2'))
 
    # Finished: 
-   return on_exit (ns, cc)            
+   return on_exit (ns, script_name, cc)            
+
+
 
 
 
@@ -58,8 +59,70 @@ def _define_forest (ns):
 # Optional: Importable function(s): To be imported into user scripts. 
 #================================================================================
 
+
 #-------------------------------------------------------------------------------
-# Example:
+# Function called upon entry of _define_forest()
+   
+def on_entry (ns, name='<script_name>', **pp):
+   # Return an empty list, to be filled with root nodes
+   cc = []
+   return cc
+
+
+#-------------------------------------------------------------------------------
+# Function called upon exit of _define_forest()
+# Deal with the list (cc) of root nodes:
+   
+def on_exit (ns, name='<script_name>', cc=[], **pp):
+   
+   pp.setdefault('make_bookmark', True)   # if False, inhibit bookmarks
+   
+   # Make a (single) root node for use in _test_forest():
+   global _test_root
+   _test_root = name
+   return bundle (ns, cc, name, show_parent=False, **pp)
+
+
+
+#-----------------------------------------------------------------------------
+# Bundle the given nodes by making them children of a new node:
+
+def bundle (ns, cc, name='bundle', **pp):
+   
+   pp.setdefault('make_bookmark', True)   # if False, inhibit bookmarks
+   pp.setdefault('show_parent', False)    # if True, make bookmark for parent too
+
+   if not isinstance(cc, list): cc = [cc]
+   if len(cc) == 0:
+      parent = ns[name] << -1.23456789
+      if pp['make_bookmark']:
+         # Make a page of bookmarks for the parent:
+         MG_JEN_forest_state.bookmark(parent, page=name, viewer='Record Browser')
+
+   elif len(cc) == 1:
+      parent = ns[name] << Meq.Selector(cc[0])
+      if pp['make_bookmark']:
+         # Make a page of bookmarks for the parent:
+         MG_JEN_forest_state.bookmark(parent, page=name) 
+         MG_JEN_forest_state.bookmark(parent, page=name, viewer='Record Browser')
+
+   else:
+      # Make a single parent node to tie the various results (cc) together:
+      print '\n** name =',name
+      print '** exec.bundle(): cc =',cc,'\n'
+      parent = ns[name] << Meq.Add(children=cc)
+      if pp['make_bookmark']:
+         # Make a bookpage for all the elements of cc:
+         for i in range(len(cc)):
+            MG_JEN_forest_state.bookmark(cc[i], page=name)
+         if pp['show_parent']:
+            MG_JEN_forest_state.bookmark(parent, page=name) 
+   
+   return parent
+   
+
+#-------------------------------------------------------------------------------
+# Used in _define_forest(), as a simpe example:
 
 def importable_example(ns, qual='auto', **pp):
 
@@ -69,46 +132,6 @@ def importable_example(ns, qual='auto', **pp):
    default = array([[1, pp['arg1']/10],[pp['arg2']/10,0.1]])
    node = ns << Meq.Parm(default)
    return node
-
-
-
-#-------------------------------------------------------------------------------
-# Deal with the list (cc) of root nodes:
-   
-def on_exit (ns, cc, name='_test_root'):
-	# Make a (single) root node for use in _test_forest():
-	global _test_root
-	_test_root = name
-	return bundle (ns, cc, name, show_parent=False)
-
-#-----------------------------------------------------------------------------
-# Bundle the given nodes by making them children of a new node:
-
-def bundle (ns, cc, name='bundle', show_parent=False):
-	if not isinstance(cc, list): cc = [cc]
-	if len(cc) == 0:
-		parent = ns[name] << -1.23456789
-		# Make a page of bookmarks for the parent:
-		MG_JEN_forest_state.bookmark(parent, page=name, viewer='Record Browser')
-
-	elif len(cc) == 1:
-		parent = ns[name] << Meq.Selector(cc[0])
-		# Make a page of bookmarks for the parent:
-		MG_JEN_forest_state.bookmark(parent, page=name) 
-		MG_JEN_forest_state.bookmark(parent, page=name, viewer='Record Browser')
-
-	else:
-		# Make a single parent node to tie the various results (cc) together:
-		parent = ns[name] << Meq.Add(children=cc)
-
-                # Make a bookpage for all the elements of cc:
-                for i in range(len(cc)):
-                   MG_JEN_forest_state.bookmark(cc[i], page=name)
-                if show_parent:
-                   MG_JEN_forest_state.bookmark(parent, page=name) 
-   
-	return parent
-   
 
 
 
@@ -122,7 +145,11 @@ def bundle (ns, cc, name='bundle', show_parent=False):
 #================================================================================
 
 def meqforest (mqs, parent, request=None, **pp):
+
+   from Timba.Meq import meq
+
    pp.setdefault('trace', False)
+   pp.setdefault('save', True)       
 
    # Execute the meqforest with the specified (or default) request:
    request = make_request(request, **pp)
@@ -136,13 +163,20 @@ def meqforest (mqs, parent, request=None, **pp):
    result = mqs.meq('Node.Execute',record(name=_test_root, request=request), wait=True)
    MG_JEN_forest_state.attach_test_result (mqs, result)
 
-   # Save the meqforest in a file (and perhapes a reference file, for auto-testing):
-   pp.setdefault('save', True)       
-   pp.setdefault('save_reference', True)       
-   if pp['save']:
-	   MG_JEN_forest_state.save_meqforest(mqs, reference=pp['save_reference'])
+   # Optionally, save the meqforest
+   if pp['save']: save_meqforest (mqs, **pp)
    
    return True
+
+#-------------------------------------------------------------------------------
+# Save the meqforest in a file (and perhapes a reference file, for auto-testing):
+
+def save_meqforest (mqs, **pp):
+   pp.setdefault('trace', False)
+   pp.setdefault('save_reference', True)       
+   MG_JEN_forest_state.save_meqforest(mqs, reference=pp['save_reference'])
+   return True
+
 
 
 #---------------------------------------------------------
@@ -175,6 +209,7 @@ def meqforest (mqs, parent, request=None, **pp):
 # private.mqsv.getnodelist := function (children=T) {
 #   return [class="", name="", nodeindex=[], children=[=]];
 # private.mqsv.execute := function (name=F, request=F) {
+
 
 
 #---------------------------------------------------------
@@ -253,13 +288,13 @@ def make_domain (domain=None, **pp):
 #================================================================================
 
 def without_meqserver(script_name='<script_name>'):
-	ns = NodeScope();
-	_define_forest(ns);
-	ns.Resolve();
-        global _test_root                                     # defined in .on_exit()
-        display_subtree (ns[_test_root], script_name)
-        display_nodescope(ns, script_name)
-	return 
+   ns = NodeScope();
+   _define_forest(ns);
+   ns.Resolve();
+   global _test_root                                     # defined in .on_exit()
+   display_subtree (ns[_test_root], script_name)
+   display_nodescope(ns, script_name)
+   return 
 
 
 

@@ -30,7 +30,7 @@ from Timba.Contrib.JEN import MG_JEN_Joneset
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_twig
-from Timba.Contrib.JEN import MG_JEN_visualise
+from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN import MG_JEN_flagger
 from Timba.Contrib.JEN import MG_JEN_sixpack
 
@@ -42,39 +42,57 @@ from Timba.Contrib.JEN import MG_JEN_sixpack
 #================================================================================
 
 def _define_forest (ns):
+   MG_JEN_exec.on_entry (ns, script_name)
 
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
 
-   stations = range(0,3)
-   ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
+   # Make the Cohset ifrs (and the Joneset stations):
+   ifrs = TDL_Cohset.stations2ifrs(range(0,3))
+   stations = TDL_Cohset.ifrs2stations(ifrs)
 
-   # Make a Cohset with predicted data:
-   nsim = ns.Subscope('_')
+   # Source/ptach to be used for simulation/selfcal:
    punit = 'unpol'
    # punit = '3c147'
    # punit = 'RMtest'
-   # source = 'QUV'
-   source = 'QU'
-   jseq = TDL_Joneset.Joneseq()
-   # jseq.append(MG_JEN_Joneset.GJones (nsim, stations=stations, stddev_ampl=0.1, stddev_phase=0.1))
-   # jseq.append(MG_JEN_Joneset.BJones (nsim, stations=stations, stddev_real=0.1, stddev_imag=0.1))
-   # jseq.append(MG_JEN_Joneset.FJones (nsim, stations=stations, RM=0.0))
-   jseq.append(MG_JEN_Joneset.DJones_WSRT (nsim, stations=stations, PZD=0.0, stddev_dang=0.0, stddev_dell=0.0))
-   dconc = MG_JEN_Joneset.visualise_Joneseq(ns, jseq)
-   cc.append(dconc['dcoll'])
-   js = jseq.make_Joneset(nsim)
-   Cohset = predict (nsim, punit=punit, ifrs=ifrs, Joneset=js)
+   # punit = 'QUV'
+   # punit = 'QU'
 
-   visualise (ns, Cohset, scope='simulated')
-   # addnoise (ns, Cohset)
-   # insert_flagger (ns, Cohset, scope='residual', unop=['Real','Imag'], visu=True)
+   # Make a Cohset for the specified ifrs, with simulated uv-data: 
+   jones = ['G']
+   Cohset = simulate(ns, ifrs, punit=punit, jones=jones)
+   visualise (ns, Cohset)
+
+   if False:
+       # Check by correcting with the corrupting JJones:
+       global simulated_JJones                               # see .simulate()
+       Cohset.correct(ns, simulated_JJones)
+       visualise (ns, Cohset)
+
+   if False:
+       insert_flagger (ns, Cohset, scope='residual', unop=['Real','Imag'], visu=True)
+       visualise (ns, Cohset)
+
+   if True:
+       # Insert a solver for a named group of MeqParms (e.g. 'GJones'):
+       # By default, it 'grafts' the solver upon the datastream of 'measured'.
+       # .solver() returns a Cohset that contains the relevant condeq nodes 
+       jones = ['G']
+       Joneset = JJones(ns, stations, jones=jones)
+       predicted = predict (ns, punit=punit, ifrs=ifrs, Joneset=Joneset)
+       sname = 'GJones'
+       # sname = ['DJones', 'GJones']
+       cs_condeq = insert_solver (ns, name=sname, measured=Cohset, predicted=predicted)
+       cs_condeq.display() 
+       Cohset.correct(ns, Joneset)
+       visualise (ns, Cohset)
+
 
    # Tie the trees for the different ifrs together in an artificial 'sink':
    cc.append(Cohset.simul_sink(ns))
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, cc)
+   return MG_JEN_exec.on_exit (ns, script_name, cc)
 
 
 
@@ -85,6 +103,92 @@ def _define_forest (ns):
 # Optional: Importable function(s): To be imported into user scripts.
 #================================================================================
 
+
+#--------------------------------------------------------------------------------
+# Produce a Cohset for the specified ifrs, with simulated uv-data: 
+
+def simulate(ns, ifrs, punit='unpol', jones=[], **pp):
+
+   pp.setdefault('stddev_ampl', 0.1) 
+   pp.setdefault('stddev_phase', 0.1) 
+   pp.setdefault('stddev_real', 0.1) 
+   pp.setdefault('stddev_imag', 0.1) 
+   pp.setdefault('stddev_dang', 0.01) 
+   pp.setdefault('stddev_dell', 0.01) 
+   pp.setdefault('RM', 0.1) 
+   pp.setdefault('PZD', 0.1)
+   pp.setdefault('stddev_noise', 0.0)
+   pp = record(pp)
+
+   # Recommended ways to mark nodes that contains simulated data: 
+   scope = 'simulated'           # mark the Cohset/Jonesets (visualisation)
+   nsim = ns.Subscope('_')       # prepend all simulation nodes with _:: 
+
+   # Optional: corrupt the uvdata with simulated jones matrices:
+   if len(jones)>0:
+       stations = TDL_Cohset.ifrs2stations(ifrs) 
+       jseq = TDL_Joneset.Joneseq()
+       for jones1 in jones:
+           if jones1=='G':
+               jseq.append(MG_JEN_Joneset.GJones (nsim, scope=scope, stations=stations,
+                                                  solvable=False,
+                                                  stddev_ampl=pp.stddev_ampl,
+                                                  stddev_phase=pp.stddev_phase))
+           elif jones1=='B':
+               jseq.append(MG_JEN_Joneset.BJones (nsim, scope=scope, stations=stations,
+                                                  solvable=False,
+                                                  stddev_real=pp.stddev_real,
+                                                  stddev_imag=pp.stddev_imag))
+           elif jones1=='F':
+               jseq.append(MG_JEN_Joneset.FJones (nsim, scope=scope, stations=stations,
+                                                  solvable=False, RM=pp.RM))
+           elif jones1=='D':
+               jseq.append(MG_JEN_Joneset.DJones_WSRT (nsim, scope=scope, stations=stations,
+                                                       solvable=False, PZD=pp.PZD,
+                                                       stddev_dang=pp.stddev_dang,
+                                                       stddev_dell=pp.stddev_dang))
+           else:
+               print '** jones not recognised:',jones1
+               
+       # Matrix-multiply the collected jones matrices in jseq to a 2x2 Joneset:
+       global simulated_JJones
+       simulated_JJones = jseq.make_Joneset(nsim)
+
+   # Make the Cohset with simulated/corrupted uvdata:
+   Cohset = predict (nsim, scope=scope, punit=punit, ifrs=ifrs, Joneset=simulated_JJones)
+
+   # Add some gaussian noise to the data
+   # (NB: More advanced noise may be added to the Cohset after this function)
+   if (pp.stddev_noise>0): addnoise (ns, Cohset, stddev=pp.stddev_noise)
+
+   return Cohset
+
+#--------------------------------------------------------------------------------------
+# Make a JJones Joneset from the specified sequence (list) of jones matrices:
+
+def JJones(ns, stations, jones=[], **pp):
+    pp.setdefault('scope', 'predicted') 
+    pp.setdefault('RM', 0.1) 
+    pp.setdefault('PZD', 0.1)
+    pp = record(pp)
+
+    jseq = TDL_Joneset.Joneseq()
+    for jones1 in jones:
+        if jones1=='G':
+            jseq.append(MG_JEN_Joneset.GJones (ns, scope=pp.scope, stations=stations))
+        elif jones1=='B':
+            jseq.append(MG_JEN_Joneset.BJones (ns, scope=pp.scope, stations=stations))
+        elif jones1=='F':
+            jseq.append(MG_JEN_Joneset.FJones (ns, scope=pp.scope, stations=stations,
+                                               RM=pp.RM))
+        elif jones1=='D':
+            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, scope=pp.scope, stations=stations,
+                                                    PZD=pp.PZD))
+        else:
+            print '** jones not recognised:',jones1
+               
+    # Matrix-multiply the collected jones matrices in jseq to a 2x2 Joneset:
+    return jseq.make_Joneset(ns)
 
     
 #======================================================================================
@@ -175,6 +279,7 @@ def predict (ns=0, Joneset=None, **pp):
     funcname = 'MG_JEN_Cohset.predict(): '
 
     # Input arguments:
+    pp.setdefault('scope', 'rawdata')
     pp.setdefault('ifrs', [(0,1)])
     pp.setdefault('punit', 'unpol')
     pp.setdefault('polrep', 'linear')
@@ -189,7 +294,7 @@ def predict (ns=0, Joneset=None, **pp):
     else:
        coh0 = sixpack2linear (ns, sixpack, name='nominal')
 
-    Cohset = TDL_Cohset.Cohset(label='predict', origin=funcname, **pp)
+    Cohset = TDL_Cohset.Cohset(label='predict', scops='predicted', origin=funcname, **pp)
     Cohset.nominal(ns, coh0)
     Cohset.display('.predict(): nominal')
 
@@ -223,7 +328,6 @@ def insert_flagger (ns, Cohset, **pp):
     funcname = 'MG_JEN_Cohset.insert_flagger(): '
 
     # Input arguments:
-    pp.setdefault('scope', 'rawdata')        # part of tag/name
     pp.setdefault('sigma', 5.0)              # flagged if exceeds sigma*stddev
     pp.setdefault('unop', 'Abs')             # unop used to make real data
     pp.setdefault('oper', 'GT')              # decision function (GT=Greater Than)
@@ -234,7 +338,7 @@ def insert_flagger (ns, Cohset, **pp):
     pp = record(pp)
 
     # Insert flaggers for all ifrs:
-    flagger_scope = 'flag_'+pp.scope
+    flagger_scope = 'flag_'+Cohset.scope()
     for key in Cohset.keys():
         s12 = Cohset.stations()[key]
         nsub = ns.Subscope(flagger_scope, s1=s12[0], s2=s12[1])
@@ -245,9 +349,10 @@ def insert_flagger (ns, Cohset, **pp):
 
     # Visualise the result, if required:
     if pp.visu:
-        visu_scope = 'flagged_'+pp.scope
+        visu_scope = 'flagged_'+Cohset.scope()
         visualise (ns, Cohset, scope=visu_scope, type='spectra')
 
+    Cohset.scope('flagged')
     Cohset.history(funcname+' -> '+Cohset.oneliner())
     MG_JEN_forest_state.history ('MG_JEN_Cohset::insert_flagger()')
     return True
@@ -258,8 +363,8 @@ def insert_flagger (ns, Cohset, **pp):
 # Insert a named solver 
 #======================================================================================
 
-def solver (ns, measured, predicted, **pp):
-    """create a named solver""" 
+def insert_solver (ns, measured, predicted, **pp):
+    """insert a named solver""" 
 
     funcname = 'MG_JEN_Cohset.solver(): '
 
@@ -340,7 +445,7 @@ def solver (ns, measured, predicted, **pp):
         sname = 'solver_'+sname
         measured[key] = ns.reqseq(sname, q=punit) << Meq.ReqSeq(children=cc,
                                                                 result_index=len(cc)-1)
-        return Cohset                  # not really needed....
+        return Cohset            # NB: This is the branch Cohset that contains the selected condeqs
 
     else:
         # Return the reqseq that needs requests:
@@ -357,9 +462,9 @@ def visualise(ns, Cohset, **pp):
     """visualises the 2x2 coherency matrices in Cohset"""
 
     funcname = 'MG_JEN_Cohset.visualise(): '
+    unique = MG_JEN_forest_state.autoqual('MG_JEN_Cohset::visualise()')
 
     # Input arguments:
-    pp.setdefault('scope', 'uvdata')        # identifying name of this visualiser
     pp.setdefault('type', 'realvsimag')     # plot type (realvsimag or spectra)
     pp.setdefault('errorbars', False)       # if True, plot stddev as crosses around mean
     pp.setdefault('graft', True)            # if True, graft the visu-nodes on the Cohset
@@ -367,7 +472,7 @@ def visualise(ns, Cohset, **pp):
 
     # Use a sub-scope where node-names are prepended with name
     # and may have other qualifiers: nsub = ns.subscope(name, '[qual_list]')
-    visu_scope = 'visu_'+pp.scope
+    visu_scope = 'visu_'+Cohset.scope()
   
     # Make separate lists of nodes per corr:
     corrs = Cohset.corrs()
@@ -381,16 +486,16 @@ def visualise(ns, Cohset, **pp):
         for icorr in range(len(corrs)):
             corr = corrs[icorr]
             nsub = ns.Subscope(visu_scope+'_'+corr, s1=s12[0], s2=s12[1])
-            selected = nsub.selector(icorr) << Meq.Selector (coh, index=icorr)
+            selected = nsub.selector(icorr)(unique) << Meq.Selector (coh, index=icorr)
             nodes[corr].append(selected)
 
     # Make dcolls per corr:
     dcoll = dict(allcorrs=[])
     for corr in corrs:
-        dc = MG_JEN_visualise.dcoll (ns, nodes[corr], scope=pp.scope, tag=corr,
-                                     type=pp.type, errorbars=pp.errorbars,
-                                     color=Cohset.plot_color()[corr],
-                                     style=Cohset.plot_style()[corr])
+        dc = MG_JEN_dataCollect.dcoll (ns, nodes[corr], scope=Cohset.scope(), tag=corr,
+                                       type=pp.type, errorbars=pp.errorbars,
+                                       color=Cohset.plot_color()[corr],
+                                       style=Cohset.plot_style()[corr])
         dcoll['allcorrs'].append(dc)
         if corr in ['XY','YX','RL','LR']:
             key = 'cross'
@@ -405,8 +510,8 @@ def visualise(ns, Cohset, **pp):
     dconc = {}
     sc = []
     for key in dcoll.keys():
-        dc = MG_JEN_visualise.dconc(ns, dcoll[key], scope=pp.scope, tag=key,
-                                    bookpage=key)
+        dc = MG_JEN_dataCollect.dconc(ns, dcoll[key], scope=Cohset.scope(),
+                                      tag=key, bookpage=key)
         dconc[key] = dc
         sc.append (dc['dcoll'])
 
@@ -484,7 +589,7 @@ if __name__ == '__main__':
        nsim = ns.Subscope('_')
        stations = range(0,3)
        ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
-       cs = TDL_Cohset.Cohset(label='test', ifrs=ifrs)
+       cs = TDL_Cohset.Cohset(label='test', scops=script_name, ifrs=ifrs)
        cs.display('initial')
        
        if 0:
@@ -517,7 +622,7 @@ if __name__ == '__main__':
            
            sname = 'DJones'
            # sname = ['DJones', 'GJones']
-           cs = solver (ns, name=sname, measured=measured, predicted=predicted) 
+           cs = insert_solver (ns, name=sname, measured=measured, predicted=predicted) 
            
        if 0:
            # sixpack = lsm_NEWSTAR_source (ns, name='QUV')

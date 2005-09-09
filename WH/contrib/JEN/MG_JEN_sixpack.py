@@ -35,36 +35,45 @@ from Timba.Contrib.JEN import MG_JEN_twig
 #================================================================================
 
 def _define_forest (ns):
+   MG_JEN_exec.on_entry (ns, script_name)
 
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
 
-  # Make a dict of named sixpacks for various sources:  
-   sixpack = {}
-   sixpack['default'] = newstar_source (ns)
-   sixpack['unpol'] = newstar_source (ns, name='unpol')
-   sixpack['3c147'] = newstar_source (ns, name='3c147')
-   sixpack['3c286'] = newstar_source (ns, name='3c286')                          # <------ !!
-   sixpack['QUV'] = newstar_source (ns, name='QUV')
-   nsub = ns.Subscope('sub') 
-   sixpack['QUV_RM_SI'] = newstar_source (nsub, name='QUV', RM=1, SI=-0.7)
- 
-  # Make 'bundles' of the 4 (I,Q,U,V) flux subtrees in each sixpack:
-   for skey in sixpack.keys():
-      bb = []
-      for key in sixpack[skey]['iquv'].keys():
-         bb.append(sixpack[skey]['iquv'][key])
-      cc.append(MG_JEN_exec.bundle(ns, bb, skey))
+   group = dict()
+   group['basic'] = ['unpol','Qonly','Uonly','Vonly']
+   group['combi'] = ['QU','QUV','QU2']
+   group['test'] = ['RMtest','SItest']
+   group['3c'] = ['3c147','3c48','3c286','3c295']
 
+   # sixpack['default'] = newstar_source (ns)
+   # sixpack['QUV_RM_SI'] = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
+
+   radec = []
+   for gkey in group.keys():
+      # Make a dict of named sixpacks for the sources in the group:  
+      sixpack = {}
+      ss = []
+      for predef in group[gkey]:
+         sixpack[predef] = newstar_source (ns, name=predef)
+
+         # For each sixpack, make a 'bundle' of the 4 (I,Q,U,V) flux subtrees:
+         for skey in sixpack.keys():
+            bb = []
+            for key in sixpack[skey]['iquv'].keys():
+               bb.append(sixpack[skey]['iquv'][key])
+         ss.append(MG_JEN_exec.bundle(ns, bb, skey))
+
+         for key in sixpack[predef]['radec'].keys():
+            radec.append(sixpack[predef]['radec'][key])
+      cc.append(MG_JEN_exec.bundle(ns, ss, gkey))
+      
+ 
    # Collect the 'loose' RA,DEC root nodes to a single root node (more tidy):
-   radec = [] 
-   for skey in sixpack.keys():
-      for key in sixpack[skey]['radec'].keys():
-         radec.append(sixpack[skey]['radec'][key])
    radec_root = ns.radec_root << Meq.Add (children=radec)
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, cc)
+   return MG_JEN_exec.on_exit (ns, script_name, cc)
 
 
 
@@ -77,6 +86,59 @@ def _define_forest (ns):
 #================================================================================
 # Optional: Importable function(s): To be imported into user scripts.
 #================================================================================
+
+#----------------------------------------------------------------------
+# Some sources are predefined: Modify parameters pp accordingly.
+
+def predefined (pp, trace=0):  
+
+  # Some sources are defined by their name:
+  # NB: It is assumed that none of their source parameters are explicitly specified!
+  if (pp['name']=='3c147'):
+    pp['I0'] = 10**1.766
+    pp['SI'] = [0.447, -0.184]
+  elif (pp['name']=='3c48'):
+    pp['I0'] = 10**2.345
+    pp['SI'] = [0.071, -0.138]
+  elif (pp['name']=='3c286'): 
+    pp['I0'] = 10**1.48
+    pp['SI'] = [0.292, -0.124]
+    pp['Q'] = [2.735732, -0.923091, 0.073638]
+    pp['U'] = [6.118902, -2.05799, 0.163173]
+  elif (pp['name']=='3c295'):
+    pp['I0'] = 10**1.485
+    pp['SI'] = [0.759, -0.255]
+  elif (pp['name']=='unpol'):
+    pp['I0'] = pp['I0']
+  elif (pp['name']=='Qonly'):
+    pp['Qpct'] = 10
+  elif (pp['name']=='Uonly'):
+    pp['Upct'] = -10
+  elif (pp['name']=='Vonly'):
+    pp['Vpct'] = 2                            
+  elif (pp['name']=='QU'):
+    pp['Qpct'] = 10
+    pp['Upct'] = -10
+  elif (pp['name']=='QUV'):
+    pp['Qpct'] = 10
+    pp['Upct'] = -10
+    pp['Vpct'] = 2
+  elif (pp['name']=='QU2'):
+    pp['I0'] = 2.0
+    pp['Qpct'] = 40
+    pp['Upct'] = -30
+  elif (pp['name']=='RMtest'):
+    pp['RM'] = 1.0
+    pp['Qpct'] = 10
+    pp['Upct'] = -10
+  elif (pp['name']=='SItest'):
+    pp['SI'] = -0.7
+  elif (pp['name']=='I0polc'):
+    pp['I0'] = array([[2,-.3,.1],[.3,-.1,0.03]]),
+
+  # if trace: print 'pp =',pp
+  return 
+
 
 
 #=======================================================================================
@@ -194,7 +256,7 @@ def newstar_source (ns=0, **pp):
 
       # Rotate QU by the RM matrix -> QURM
       parm['RM'] = ns.RM(q=pp['name']) << Meq.Parm(pp['RM'])
-      wvl2 = MG_JEN_twig.wavelength (ns, qual='auto', unop='Sqr')
+      wvl2 = MG_JEN_twig.wavelength (ns, qual=None, unop='Sqr')
       farot = ns.farot(q=pp['name']) << (parm['RM']*wvl2)
       rotmat = MG_JEN_matrix.rotation (ns, angle=farot)
       QURM = ns['QURM'](q=pp['name']) << Meq.MatrixMultiply(rotmat, QU)  
@@ -215,59 +277,6 @@ def newstar_source (ns=0, **pp):
 
 
 
-
-
-#----------------------------------------------------------------------
-# Some sources are predefined: Modify parameters pp accordingly.
-
-def predefined (pp, trace=0):  
-
-  # Some sources are defined by their name:
-  # NB: It is assumed that none of their source parameters are explicitly specified!
-  if (pp['name']=='3c147'):
-    pp['I0'] = 10**1.766
-    pp['SI'] = [0.447, -0.184]
-  elif (pp['name']=='3c48'):
-    pp['I0'] = 10**2.345
-    pp['SI'] = [0.071, -0.138]
-  elif (pp['name']=='3c286'): 
-    pp['I0'] = 10**1.48
-    pp['SI'] = [0.292, -0.124]
-    pp['Q'] = [2.735732, -0.923091, 0.073638]
-    pp['U'] = [6.118902, -2.05799, 0.163173]
-  elif (pp['name']=='3c295'):
-    pp['I0'] = 10**1.485
-    pp['SI'] = [0.759, -0.255]
-  elif (pp['name']=='unpol'):
-    pp['I0'] = pp['I0']
-  elif (pp['name']=='Qonly'):
-    pp['Qpct'] = 10
-  elif (pp['name']=='Uonly'):
-    pp['Upct'] = -10
-  elif (pp['name']=='Vonly'):
-    pp['Vpct'] = 2                            
-  elif (pp['name']=='QU'):
-    pp['Qpct'] = 10
-    pp['Upct'] = -10
-  elif (pp['name']=='QUV'):
-    pp['Qpct'] = 10
-    pp['Upct'] = -10
-    pp['Vpct'] = 2
-  elif (pp['name']=='QU2'):
-    pp['I0'] = 2.0
-    pp['Qpct'] = 40
-    pp['Upct'] = -30
-  elif (pp['name']=='RMtest'):
-    pp['RM'] = 1.0
-    pp['Qpct'] = 10
-    pp['Upct'] = -10
-  elif (pp['name']=='SItest'):
-    pp['SI'] = -0.7
-  elif (pp['name']=='I0polc'):
-    pp['I0'] = array([[2,-.3,.1],[.3,-.1,0.03]]),
-
-  # if trace: print 'pp =',pp
-  return 
 
 
 
@@ -292,6 +301,17 @@ MG_JEN_forest_state.init(script_name)
 # If not explicitly supplied, a default request will be used.
 
 def _test_forest (mqs, parent):
+   # The following call shows the default settings explicity:
+   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False) 
+
+   # There are some predefined domains:
+   return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')   # (100-110 MHz)
+   # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')    # (1350-1420 MHz)
+
+   # NB: It is also possible to give an explicit request, cells or domain
+   # NB: In addition, qualifying keywords will be used when sensible
+
+   # If not explicitly supplied, a default request will be used.
    return MG_JEN_exec.meqforest (mqs, parent)
 
 #-------------------------------------------------------------------------
