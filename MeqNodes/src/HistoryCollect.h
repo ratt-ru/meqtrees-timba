@@ -27,7 +27,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 
 #pragma types #Meq::HistoryCollect
-#pragma aid History Input Index List Max Size Verbose Get Error
+#pragma aid History Input Index List Max Size Verbose Get Error Clear
 
 namespace Meq {
 
@@ -68,6 +68,8 @@ protected:
   
   // temporary verbosity flag used when a Get.History command is issued 
   bool temp_verbose_;
+  // temporary clear-history flag used when a Clear.History command is issued 
+  bool temp_clear_;
   
 };
 

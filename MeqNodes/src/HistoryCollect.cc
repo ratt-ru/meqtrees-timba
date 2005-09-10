@@ -38,6 +38,7 @@ const HIID FLastError       = AidLast|AidError;
 const HIID FLastErrorResult = AidLast|AidError|AidResult;
 
 const HIID CmdGetHistory    = AidGet|AidHistory;
+const HIID CmdClearHistory    = AidClear|AidHistory;
 
 
 HistoryCollect::HistoryCollect()
@@ -87,6 +88,13 @@ int HistoryCollect::processCommands (Result::Ref &resref,const DMI::Record &rec,
     else
       fillResult(resref,state()[FHistoryList].as<DMI::List>());
   }
+  if( rec[CmdClearHistory].as<bool>(false) )
+  {
+    if( reqref->hasCells() )
+      temp_clear_ = true;
+    else
+      wstate()[FHistoryList].replace() <<= new DMI::List;
+  }
   return 0;
 }
 
@@ -125,7 +133,9 @@ int HistoryCollect::getResult (Result::Ref &resref,
     if( verbose_ || temp_verbose_ )
       fillResult(resref,list);
   }
-  temp_verbose_ = false;
+  if( temp_clear_ )
+    wstate()[FHistoryList].replace() <<= new DMI::List;
+  temp_verbose_ = temp_clear_ = false;
   return 0;
 }
 
