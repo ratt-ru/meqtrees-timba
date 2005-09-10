@@ -562,24 +562,21 @@ class TDLEditor (QFrame,PersistentCurrier):
     prior_mods = sets.Set(sys.modules.keys());
     modname = '__tdlruntime';
     try:
-      imp.acquire_lock();
-      _tdlmod = imp.load_source(modname,self._filename,infile);
+      try:
+        imp.acquire_lock();
+        _tdlmod = imp.load_source(modname,self._filename,infile);
+      finally:
+        imp.release_lock();
+        infile.close();
+        _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
+        _dprint(1,'TDL run imported',_tdlmodlist);
     except: # catch any import errors
-      imp.release_lock();
-      infile.close();
-      _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
-      _dprint(1,'TDL run imported',_tdlmodlist);
       (exctype,excvalue,tb) = sys.exc_info();
       _dprint(0,'exception',sys.exc_info(),'importing TDL file',self._filename);
       # add error to list in nodecope
       ns.Repository().add_error(excvalue,tb=traceback.extract_tb(tb));
       self.set_error_list(ns.GetErrors());
       return None;
-    # import was successful
-    imp.release_lock();
-    infile.close();
-    _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
-    _dprint(1,'TDL run imported',_tdlmodlist);
     mqs = meqds.mqs();
     # module here, call functions
     errlist = [];
