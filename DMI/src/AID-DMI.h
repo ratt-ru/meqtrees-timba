@@ -78,6 +78,16 @@ const int AidE_int = -1012;
 const DMI::AtomicID AidF(-1026);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 const int AidF_int = -1026;
 #endif
+#ifndef _defined_id_AidFilename
+#define _defined_id_AidFilename 1
+const DMI::AtomicID AidFilename(-1576);           // from /home/oms/LOFAR/Timba/DMI/src/Exception.h:30
+const int AidFilename_int = -1576;
+#endif
+#ifndef _defined_id_AidFunction
+#define _defined_id_AidFunction 1
+const DMI::AtomicID AidFunction(-1578);           // from /home/oms/LOFAR/Timba/DMI/src/Exception.h:30
+const int AidFunction_int = -1578;
+#endif
 #ifndef _defined_id_AidG
 #define _defined_id_AidG 1
 const DMI::AtomicID AidG(-1009);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
@@ -108,10 +118,20 @@ const int AidK_int = -1007;
 const DMI::AtomicID AidL(-1032);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 const int AidL_int = -1032;
 #endif
+#ifndef _defined_id_AidLineNo
+#define _defined_id_AidLineNo 1
+const DMI::AtomicID AidLineNo(-1577);             // from /home/oms/LOFAR/Timba/DMI/src/Exception.h:30
+const int AidLineNo_int = -1577;
+#endif
 #ifndef _defined_id_AidM
 #define _defined_id_AidM 1
 const DMI::AtomicID AidM(-1030);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 const int AidM_int = -1030;
+#endif
+#ifndef _defined_id_AidMessage
+#define _defined_id_AidMessage 1
+const DMI::AtomicID AidMessage(-1269);            // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:36
+const int AidMessage_int = -1269;
 #endif
 #ifndef _defined_id_AidN
 #define _defined_id_AidN 1

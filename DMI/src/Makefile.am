@@ -11,6 +11,7 @@ CountedRef.h			\
 CountedRefBase.h		\
 CountedRefTarget.h		\
 DMI.h				\
+Exception.h \
 NumArray.h			\
 NumArrayFuncs.h			\
 Vec.h			\
@@ -33,6 +34,7 @@ libdmi_la_SOURCES = $(DOCHDRS)	\
 AID-DMI-Registry.cc		\
 $(GLOBREG) \
 DMI.cc				\
+Exception.cc \
 Registry.cc \
 AtomicID.cc			\
 TypeInfo.cc			\
