@@ -223,7 +223,7 @@ class ND_Controller(QWidget):
                 self.lcd_ranges[i].setActive(True)
               self.lcd_ranges[i].resetValue()
             self.emit(PYSIGNAL("defineSelectedAxes"), (first_axis, second_axis))
-            print 'emitted defineSelectedAxes signal'
+#           print 'emitted defineSelectedAxes signal'
         else:
           if self.active_axes.has_key(button_id):
             del self.active_axes[button_id]

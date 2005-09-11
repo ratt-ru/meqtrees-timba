@@ -1487,7 +1487,7 @@ class QwtImageDisplay(QwtPlot):
       self.emit(PYSIGNAL("max_image_range"),(self.data_min, self.data_max))
 
     def setArraySelector (self,lcd_number, slider_value, display_string):
-      print 'in setArraySelector lcd_number, slider_value ', lcd_number, slider_value
+#     print 'in setArraySelector lcd_number, slider_value ', lcd_number, slider_value
       if self.array_selector is None or len(self.array_selector) == 0:
         if self._vells_plot:
           plot_array = self.check_dimensions(self._value_array)
@@ -1496,7 +1496,7 @@ class QwtImageDisplay(QwtPlot):
           self.array_plot('data: '+ display_string, self._value_array)
           
       else:
-        print 'array selector ', self.array_selector
+#       print 'array selector ', self.array_selector
         self.array_selector[lcd_number] = slider_value
         self.array_tuple = tuple(self.array_selector)
         if self._vells_plot:
@@ -1540,7 +1540,7 @@ class QwtImageDisplay(QwtPlot):
         else:
           first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
           second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
-        print 'plot_vells_array: self.array_selector is ', self.array_selector
+#       print 'plot_vells_array: self.array_selector is ', self.array_selector
         self.array_tuple = tuple(self.array_selector)
         self.first_axis_parm = self.axis_labels[self.first_axis]
         self.second_axis_parm = self.axis_labels[self.second_axis]
@@ -1623,7 +1623,7 @@ class QwtImageDisplay(QwtPlot):
         return new_array
 
     def setSelectedAxes (self,first_axis, second_axis):
-      print 'in setSelectedAxes with axes ', first_axis, second_axis
+#     print 'in setSelectedAxes with axes ', first_axis, second_axis
       if self._vells_plot:
         self.first_axis = first_axis
         self.second_axis = second_axis
