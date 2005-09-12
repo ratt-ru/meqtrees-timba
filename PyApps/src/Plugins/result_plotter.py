@@ -536,10 +536,11 @@ class ResultPlotter(GriddedPlugin):
     self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,1)
     self.ND_Controls.show()
 
-  def set_ColorBar (self):
+  def set_ColorBar (self, min, max):
     """ this function adds a colorbar for 2 Ddisplays """
+    #print' set_ColorBar parms = ', min, ' ', max
     self.colorbar =  QwtColorBar(parent=self.layout_parent)
-    self.colorbar.setRange(-1,1)
+    self.colorbar.setRange(min, max)
     self.layout.addWidget(self.colorbar, 0, 0)
     QObject.connect(self._visu_plotter, PYSIGNAL('image_range'), self.colorbar.setRange) 
     QObject.connect(self._visu_plotter, PYSIGNAL('max_image_range'), self.colorbar.setMaxRange) 
