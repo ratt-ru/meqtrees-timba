@@ -1110,12 +1110,43 @@ class QwtImageDisplay(QwtPlot):
         self.image_min = image_for_display.min()
       if self.image_max is None or  self.adjust_color_bar:
         self.image_max = image_for_display.max()
- 
+
+# have we requested a colorbar?
+      if not self.colorbar_requested:
+        #print 'emitting colorbar_needed signal'
+        self.emit(PYSIGNAL("colorbar_needed"),(image_for_display.min(),image_for_display.max()))
+        self.colorbar_requested = True
       
       # emit range for the color bar
       if self.adjust_color_bar:
-        self.emit(PYSIGNAL("image_range"),(self.image_min, self.image_max))
-        self.emit(PYSIGNAL("max_image_range"),(image_for_display.min(), image_for_display.max()))
+        # just in case we have a uniform image
+        # not yet sure if the following is the best test ...
+        if abs(image_for_display.max() - image_for_display.min()) < 0.00005:
+          if image_for_display.max() == 0 or image_for_display.min() == 0.0:
+            image_min = -0.1
+            image_max = 0.1 
+          else:
+            image_min = 0.9 * image_for_display.min()
+            image_max = 1.1 * image_for_display.max()
+          self.emit(PYSIGNAL("max_image_range"),(image_min, image_max))
+          #print 'display_image emitted max_image_range ', image_min, ' ', image_max
+        else:
+          self.emit(PYSIGNAL("max_image_range"),(image_for_display.min(), image_for_display.max()))
+          #print 'display_image emitted max_image_range ', image_for_display.min(), ' ', image_for_display.max()
+
+        if abs(self.image_max - self.image_min) < 0.00005:
+          if self.image_max == 0 or self.image_min == 0.0:
+            image_min = -0.1
+            image_max = 0.1 
+          else:
+            image_min = 0.9 * self.image_min
+            image_max = 1.1 * self.image_max
+          self.plotImage.setImageRange((image_min,image_max))
+          self.emit(PYSIGNAL("image_range"),(image_min, image_max))
+          #print 'display_image emitted image_range ', image_min, ' ', image_max
+        else:
+          self.emit(PYSIGNAL("image_range"),(self.image_min, self.image_max))
+          #print 'display_image emitted image_range ', self.image_min, ' ', self.image_max
         self.adjust_color_bar = False
 
       self.raw_image = image_for_display
@@ -1478,7 +1509,8 @@ class QwtImageDisplay(QwtPlot):
         self.data_max = data_array.max()
 
       # just in case we have a uniform image
-      if self.data_min == self.data_max:
+      # not yet sure if the following is the best test ...
+      if abs(self.data_max - self.data_min) < 0.00005:
         if self.data_min == 0 or self.data_min == 0.0:
           self.data_min = -0.1
           self.data_max = 0.1 
@@ -1486,13 +1518,21 @@ class QwtImageDisplay(QwtPlot):
           self.data_min = 0.9 * self.data_min
           self.data_max = 1.1 * self.data_max
 
+      #print 'set_data_range: image range being set to : ', self.data_min, ' ', self.data_max
       self.plotImage.setImageRange((self.data_min,self.data_max))
       self.reset_color_bar(reset_value = False)
-      self.emit(PYSIGNAL("image_range"),(self.data_min, self.data_max))
+# have we requested a colorbar?
+      if not self.colorbar_requested:
+        #print 'emitting colorbar_needed signal'
+        self.emit(PYSIGNAL("colorbar_needed"),(self.data_min, self.data_max))
+        self.colorbar_requested = True
+      
       self.emit(PYSIGNAL("max_image_range"),(self.data_min, self.data_max))
+      self.emit(PYSIGNAL("image_range"),(self.data_min, self.data_max))
+      #print 'set_data_range: should have emitted max_image_range and image_range signals of ', self.data_min, ' ', self.data_max
 
     def setArraySelector (self,lcd_number, slider_value, display_string):
-#     print 'in setArraySelector lcd_number, slider_value ', lcd_number, slider_value
+#     #print 'in setArraySelector lcd_number, slider_value ', lcd_number, slider_value
       if self.array_selector is None or len(self.array_selector) == 0:
         if self._vells_plot:
           plot_array = self.check_dimensions(self._value_array)
@@ -1501,7 +1541,7 @@ class QwtImageDisplay(QwtPlot):
           self.array_plot('data: '+ display_string, self._value_array)
           
       else:
-#       print 'array selector ', self.array_selector
+#       #print 'array selector ', self.array_selector
         self.array_selector[lcd_number] = slider_value
         self.array_tuple = tuple(self.array_selector)
         if self._vells_plot:
@@ -1738,9 +1778,6 @@ class QwtImageDisplay(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False:
-        if not self.colorbar_requested:
-          self.emit(PYSIGNAL("colorbar_needed"),(1,))
-          self.colorbar_requested = True
 
 # don't use grid markings for 2-D 'image' arrays
         self.enableGridX(False)
