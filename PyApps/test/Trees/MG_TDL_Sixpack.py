@@ -3,9 +3,6 @@ script_name = 'MG_TDL_Sixpack.py'
 # Short description:
 # Illustrates the use of Sixpack Objects 
 
-# Keywords: ....
-
-# Author: Sarod Yatawatta (SBY), Dwingeloo
 
 # History:
 # - 8 Sep 2005: creation
@@ -32,7 +29,6 @@ from Timba.Meq import meq
 from Timba.Trees import TDL_Sixpack
 
 
-from Timba.Contrib.JEN import MG_JEN_sixpack
 #================================================================================
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
@@ -44,23 +40,27 @@ my_sp=None
 
 def _define_forest (ns):
   global my_sp
-  my_name='unique_name'
-  # use JEN code to generate custom subtrees for this sixpack
-  sixpack_stubs=MG_JEN_sixpack.newstar_source(ns, name=my_name,I0=10, SI=[0.1],f0=1e6,RA=0.0, Dec=0.0,trace=0)
- 
-  iquv=sixpack_stubs['iquv']
-  radec=sixpack_stubs['radec']
-  my_sp=TDL_Sixpack.Sixpack(name=my_name,label='my first sixpack',\
-   ns=ns, RA=radec['RA'],Dec=radec['Dec'],StokesI=iquv['StokesI'],\
-   StokesQ=iquv['StokesQ'],StokesU=iquv['StokesU'],StokesV=iquv['StokesV'])
+  my_name='my_sixpack'
+  # create some node stubs for the sixpack
+  # first some parameters
+  ns.f<<Meq.Parm(meq.polclog([1,0.1,0.01]))
+  ns.t<<Meq.Parm(meq.polclog([0.01,0.1,1]))
+  # next the node stubs
+  stubI=ns['Istub']<<1.1*Meq.Sin(ns.f+ns.t)
+  stubQ=ns['Qstub']<<2.0*Meq.Cos(ns.f)
+  stubU=ns['Ustub']<<2.1*Meq.Sin(ns.f-2)
+  stubV=ns['Vstub']<<2.1*Meq.Cos(ns.f-2)
+  stubRA=ns['RAstub']<<2.1*Meq.Cos(ns.f-2)*Meq.Sin(ns.t)
+  stubDec=ns['Decstub']<<2.1*Meq.Cos(ns.f-2)*Meq.Sin(ns.t)
+
+  # now create the sixpack
+  my_sp=TDL_Sixpack.Sixpack(label=my_name,\
+   nodescope=ns, RA=stubRA,Dec=stubDec,sI=stubI,\
+   sQ=stubQ,sU=stubU,sV=stubV)
   my_sp.display()
-  # the following should fail because we have not connected to a server
-  my_sp.getVellsDimension('I',0,0)
-  my_sp.getVellsValue('I',0,0)
 
   # resolve the forest
   ns.Resolve()
-
 
 #================================================================================
 # Optional: Importable function(s): To be imported into user scripts.
@@ -83,10 +83,6 @@ def _define_forest (ns):
 
 def _test_forest (mqs, parent):
    global my_sp
-   # set the meqserver proxy
-   my_sp.setMQS(mqs)
-
-   
    # create cells
    f0 = 1200e6
    f1 = 1600e6
@@ -96,16 +92,11 @@ def _test_forest (mqs, parent):
    ntime = 2
    freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
    my_cells =meq.cells(domain=freqtime_domain, num_freq=nfreq,  num_time=ntime);
-   # set the cells 
-   my_sp.setCells(my_cells)
-   # query the MeqTrees using these cells
-   my_sp.updateVells()
-   # get some values
-   # 'I','Q','U','V' can be given
-   print my_sp.getVellsDimension('I',0,0)
-   print my_sp.getVellsValue('I',0,0)
-
    my_sp.display()
+   # send to kernel
+   request = meq.request(my_cells,eval_mode=1);
+   mqs.meq('Node.Execute',record(name=my_sp.label(),request=request));
+
 
 
 
