@@ -452,26 +452,23 @@ class QwtImageDisplay(QwtPlot):
         number_of_planes = len(self._vells_rec["vellsets"])
         _dprint(3, 'number of planes ', number_of_planes)
         self._next_plot = {}
-        self._perturb_menu = {}
         flag_plane = -1
         for i in range(number_of_planes):
-          if number_of_planes > 1:
-            id = id + 1
-            if self._vells_rec.vellsets[i].has_key("value"):
-              self._label = "go to plane " + str(i) + " value" 
-              self._next_plot[id] = self._label
-              self._menu.insertItem(self._label,id)
+          id = id + 1
+          if self._vells_rec.vellsets[i].has_key("value"):
+            menu_label = "go to plane " + str(i) + " value" 
+            self._next_plot[id] = menu_label
+            self._menu.insertItem(menu_label,id)
           if self._vells_rec.vellsets[i].has_key("perturbed_value"):
             try:
               number_of_perturbed_arrays = len(self._vells_rec.vellsets[i].perturbed_value)
               perturb_index  = perturb_index  + 1
-              self._perturb_menu[perturb_index] = QPopupMenu(self._mainwin);
               for j in range(number_of_perturbed_arrays):
                 id = id + 1
                 key = " perturbed_value "
-                self._label =  "   -> go to plane " + str(i) + key + str(j) 
-                self._next_plot[id] = self._label 
-                self._menu.insertItem(self._label,id)
+                menu_label =  "   -> go to plane " + str(i) + key + str(j) 
+                self._next_plot[id] = menu_label 
+                self._menu.insertItem(menu_label,id)
             except:
               _dprint(3, 'The perturbed values cannot be displayed.')
 # don't display message for the time being
@@ -493,6 +490,8 @@ class QwtImageDisplay(QwtPlot):
           self._toggle_blink_label = "toggle blink of flagged data for plane " + str(flag_plane)
           toggle_id = 201
           self._menu.insertItem(self._toggle_blink_label,toggle_id)
+        if perturb_index == -1 and number_of_planes == 1:
+            self._menu.removeItem(0)
         self.context_menu_done = True
     # end initVellsContextMenu()
 
@@ -698,7 +697,10 @@ class QwtImageDisplay(QwtPlot):
 # test if we have a numarray
         self._value_array = self._vells_rec.vellsets[plane].value
         key = " value "
-        self._label = "plane " + str(plane) + key 
+        if self.number_of_planes > 1:
+          self._label =  "plane " + str(plane) + key 
+        else:
+          self._label =  "plane " + key 
         if self._solver_flag:
           self.array_plot(self._label, self._value_array, False)
         else:
@@ -713,7 +715,10 @@ class QwtImageDisplay(QwtPlot):
           perturbed_array_diff = self._vells_rec.vellsets[plane].perturbed_value[perturb]
 
           key = " perturbed_value "
-          self._label =  "plane " + str(plane) + key + str(perturb)
+          if self.number_of_planes > 1:
+            self._label =  "plane " + str(plane) + key + str(perturb)
+          else:
+            self._label =  key + str(perturb)
           if self._solver_flag:
             self.array_plot(self._label, perturbed_array_diff, False)
           else:
@@ -1432,7 +1437,7 @@ class QwtImageDisplay(QwtPlot):
           if self.number_of_planes > 1:
             self._label =  "plane " + str(self._active_plane) + key + str(self._active_perturb)
           else:
-            self._label =  "plane " + key + str(self._active_perturb)
+            self._label =  key + str(self._active_perturb)
         if self._solver_flag:
           self.array_plot(self._label, self._value_array, flip_axes=False)
         else:
