@@ -1128,6 +1128,10 @@ class QwtImageDisplay(QwtPlot):
           else:
             image_min = 0.9 * image_for_display.min()
             image_max = 1.1 * image_for_display.max()
+          if image_min > image_max:
+            temp = image_min
+            image_min = image_max
+            image_max = temp
           self.emit(PYSIGNAL("max_image_range"),(image_min, image_max))
           #print 'display_image emitted max_image_range ', image_min, ' ', image_max
         else:
@@ -1141,6 +1145,10 @@ class QwtImageDisplay(QwtPlot):
           else:
             image_min = 0.9 * self.image_min
             image_max = 1.1 * self.image_max
+          if image_min > image_max:
+            temp = image_min
+            image_min = image_max
+            image_max = temp
           self.plotImage.setImageRange((image_min,image_max))
           self.emit(PYSIGNAL("image_range"),(image_min, image_max))
           #print 'display_image emitted image_range ', image_min, ' ', image_max
@@ -1517,6 +1525,10 @@ class QwtImageDisplay(QwtPlot):
         else:
           self.data_min = 0.9 * self.data_min
           self.data_max = 1.1 * self.data_max
+        if self.data_min > self.data_max:
+          temp = self.data_min
+          self.data_min = self.data_max
+          self.data_max = temp
 
       #print 'set_data_range: image range being set to : ', self.data_min, ' ', self.data_max
       self.plotImage.setImageRange((self.data_min,self.data_max))
