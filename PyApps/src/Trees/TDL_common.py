@@ -1,9 +1,12 @@
+script_name = 'TDL_common.py'
+last_changed = 'h10sep2005'
+
 # file: .../Timba/PyApps/src/Trees/TDL_common.py
 #
 # Author: J.E.Noordam
 #
 # Short description:
-#   Contains a common superclass to be inherited by TDL objects
+#   Contains a common superclass to be inherited by TDL objects like TDL_Cohset.py
 #   Also some other functions of common usefulness... 
 #
 # History:
@@ -71,6 +74,9 @@ class Super:
     def warnings(self): return self.__warnings
     def ok(self): return (self.__errors==0 and self.__warnings==0)
 
+    def __str__(self):
+        return self.oneliner()
+
     def oneliner(self):
         s = '*'
         s = s+' '+str(self.type())+':'
@@ -84,17 +90,22 @@ class Super:
     def display(self, txt=None, end=True):
         indent1 = 2*' '
         indent2 = 6*' '
-        print '\n**',self.type()+'.display(',txt,'):'
-        print indent1,self.oneliner()
-        print indent1,'* .ok() ->',self.ok(),': .errors() ->',self.errors(), ' .warnings() ->',self.warnings()
+        ss = []
+        ss.append('\n** '+self.type()+'.display('+str(txt)+'):')
+        ss.append(indent1+self.oneliner())
+        ss.append(indent1+'* .ok() -> '+str(self.ok())+': .errors() -> '+str(self.errors())+' .warnings() -> '+str(self.warnings()))
         hh = self.history()
-        print indent1,'* Object history (',len(hh),' entries):'
-        for i in range(len(hh)): print indent2,'*',i,':',hh[i]
-        # print indent1,'*'
-        if end: self.display_end()
+        ss.append(indent1+'* Object history ('+str(len(hh))+' entries):')
+        for i in range(len(hh)):
+                  ss.append(indent2+'* '+str(i)+': '+hh[i])
+        # ss.append(indent1+'*')
+        if end: ss = self.display_end(ss)
+        return ss
 
-    def display_end(self):
-        print '** end of',self.type()+'.display()\n'
+    def display_end(self, ss=[]):
+        ss.append('** end of '+self.type()+'.display()\n')
+        for s in ss: print s
+        return ss
 
 
     def copy(self, label=None):
@@ -167,7 +178,7 @@ def plot_color(key=None):
     return False
     
 def plot_style(key=None):
-    rr = dict(XX='dot', XY='dot', YX='dot', YY='dot')
+    rr = dict(XX='circle', XY='xcross', YX='xcross', YY='circle')
     rr['RR'] = rr['XX']
     rr['RL'] = rr['XY']
     rr['LR'] = rr['YX']
