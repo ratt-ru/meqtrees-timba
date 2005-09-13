@@ -301,3 +301,27 @@ AC_DEFUN([lofar_CHECK_SSTREAM],[
   fi
   echo "SSTREAM" >> pkgext;
 ])
+
+#
+# lofar_PROG_BSD_INSTALL
+#
+# If the install utility supports the BSD install option -C, 
+# define `HAVE_BSD_INSTALL'. 
+#
+AC_DEFUN([lofar_PROG_BSD_INSTALL],[
+  AC_PREREQ(2.13)
+  AC_REQUIRE([AC_PROG_INSTALL])
+  AC_MSG_CHECKING(whether ${INSTALL} supports -C option)
+  touch tmp$$
+  if ${INSTALL} -C tmp$$ /tmp 2>/dev/null; then
+    lofar_cv_have_bsd_install=yes
+  else
+    lofar_cv_have_bsd_install=no
+  fi
+  rm -f tmp$$ /tmp/tmp$$
+  AC_MSG_RESULT($lofar_cv_have_bsd_install)
+  if test "$lofar_cv_have_bsd_install" = yes; then
+    INSTALL="${INSTALL} -C"
+  fi
+])
+
