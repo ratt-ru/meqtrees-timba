@@ -137,10 +137,12 @@ namespace Meq {
 	shape[Axis::axis("M")] = cells->ncells(Axis::axis("M"));
 	shape[Axis::FREQ] = cells->ncells(Axis::FREQ);
 
-	Vells& vells2 = vs2.setValue(new Vells(double(0.0),shape,false));
-	Vells& vells3 = vs3.setValue(new Vells(double(0.0),shape,false));
-	Vells& vells4 = vs4.setValue(new Vells(double(0.0),shape,false));
-	Vells& vells5 = vs5.setValue(new Vells(double(0.0),shape,false));
+	//cout<<"Shape "<<shape<<endl;
+	//set the result to all 0, hence last argument 'true'
+	Vells& vells2 = vs2.setValue(new Vells(double(0.0),shape,true));
+	Vells& vells3 = vs3.setValue(new Vells(double(0.0),shape,true));
+	Vells& vells4 = vs4.setValue(new Vells(double(0.0),shape,true));
+	Vells& vells5 = vs5.setValue(new Vells(double(0.0),shape,true));
 
 	LoVec_double Ivec(nf), Qvec(nf), Uvec(nf), Vvec(nf);
 	int ni, nj;
@@ -148,6 +150,8 @@ namespace Meq {
 	blitz::Array<double,3> arrQ = vells3.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 	blitz::Array<double,3> arrU = vells4.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());	
 	blitz::Array<double,3> arrV = vells5.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+
+	//cout <<arrI<<arrQ<<arrU<<arrV<<endl;
 
 	for (int src = 1; src<num_children; src++) {
 
@@ -217,7 +221,12 @@ namespace Meq {
 	  lc = casa::cos(dec) * casa::sin(ra0-ra);
        	  mc = casa::cos(dec0) * casa::sin(dec) - 
       	    casa::sin(dec0) * casa::cos(dec) * casa::cos(ra0-ra);
-
+    //remember lower and upper bounds
+		//of arrays
+		blitz::TinyVector<int, 3> lbounds=arrI.lbound();
+		blitz::TinyVector<int, 3> ubounds=arrI.ubound();
+		// all other arrays have same dimensions
+		//std::cout<<"Bounds "<<arrI.lbound()<<arrI.ubound()<<endl;
 	  for (int j =0; j<nf; j++){
 
 	    lf = freq(j)*lc/c0;
@@ -239,10 +248,15 @@ namespace Meq {
 	      nj = (nm-1)/2 + 1 + int(mf/dm-0.5)-1;
 	    };
 
+			//std::cout<<"Line : ("<<j<<","<<ni<<","<<nj<<") "<<sI<<endl;
+			if ((j<=ubounds[0])&&(j>=lbounds[0])
+				&&(ni<=ubounds[1])&&(ni>=lbounds[1])
+				&&(nj<=ubounds[2])&&(nj>=lbounds[2])){
 	    arrI(j,ni,nj) = sI;
 	    arrQ(j,ni,nj) = sQ;
 	    arrU(j,ni,nj) = sU;
 	    arrV(j,ni,nj) = sV;
+			}
 
 	  };
 
