@@ -408,6 +408,7 @@ class QwtImageDisplay(QwtPlot):
       if not self._combined_image_id is None:
         if self._combined_image_id == menuid:
 	  self.is_combined_image = True
+          self.reset_color_bar(True)
       self.array_plot(self._plot_label[menuid], self._plot_dict[menuid], False)
 
     def defineData(self):
@@ -1132,9 +1133,11 @@ class QwtImageDisplay(QwtPlot):
             temp = image_min
             image_min = image_max
             image_max = temp
+          self.plotImage.setImageRange((image_min, image_max))
           self.emit(PYSIGNAL("max_image_range"),(image_min, image_max))
           #print 'display_image emitted max_image_range ', image_min, ' ', image_max
         else:
+          self.plotImage.setImageRange((image_for_display.min(), image_for_display.max()))
           self.emit(PYSIGNAL("max_image_range"),(image_for_display.min(), image_for_display.max()))
           #print 'display_image emitted max_image_range ', image_for_display.min(), ' ', image_for_display.max()
 
@@ -1153,6 +1156,7 @@ class QwtImageDisplay(QwtPlot):
           self.emit(PYSIGNAL("image_range"),(image_min, image_max))
           #print 'display_image emitted image_range ', image_min, ' ', image_max
         else:
+          self.plotImage.setImageRange((self.image_min,self.image_max))
           self.emit(PYSIGNAL("image_range"),(self.image_min, self.image_max))
           #print 'display_image emitted image_range ', self.image_min, ' ', self.image_max
         self.adjust_color_bar = False
@@ -1308,16 +1312,20 @@ class QwtImageDisplay(QwtPlot):
         self.initSpectrumContextMenu()
 # plot first instance of array
         if not self.active_image_index is None:
-          self.array_plot(self._plot_label[self.active_image_index], self._plot_dict[self.active_image_index],False)
           if self.active_image_index == self._combined_image_id:
+	    self.is_combined_image = True
+            self.reset_color_bar(True)
+          self.array_plot(self._plot_label[self.active_image_index], self._plot_dict[self.active_image_index],False)
+          if self.is_combined_image:
 	    self.is_combined_image = True
             self.removeMarkers()
             self.info_marker = None
             self.source_marker = None
 	    self.insert_marker_lines()
         elif not self._combined_image_id is None:
-          self.array_plot(self._plot_label[ self._combined_image_id], self._plot_dict[ self._combined_image_id],False)
 	  self.is_combined_image = True
+          self.reset_color_bar(True)
+          self.array_plot(self._plot_label[ self._combined_image_id], self._plot_dict[ self._combined_image_id],False)
           self.removeMarkers()
           self.info_marker = None
           self.source_marker = None
