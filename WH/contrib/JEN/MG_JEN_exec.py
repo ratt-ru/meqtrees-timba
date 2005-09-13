@@ -1,4 +1,5 @@
 script_name = 'MG_JEN_exec.py'
+last_changed = 'h10sep2005'
 
 # Short description:
 #   Functions used in execution of MeqGraft (MG) scripts
@@ -14,11 +15,11 @@ script_name = 'MG_JEN_exec.py'
 # Import of Python modules:
 
 from Timba.TDL import *
-from Timba.Meq import meq
+from Timba.Meq import meq              # required in MG_JEN_exec !!
 
 from copy import deepcopy
 
-from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
+from Timba.Contrib.JEN import MG_JEN_forest_state
 
 
 
@@ -108,8 +109,8 @@ def bundle (ns, cc, name='bundle', **pp):
 
    else:
       # Make a single parent node to tie the various results (cc) together:
-      print '\n** name =',name
-      print '** exec.bundle(): cc =',cc,'\n'
+      # print '\n** name =',name
+      # print '** exec.bundle(): cc =',cc,'\n'
       parent = ns[name] << Meq.Add(children=cc)
       if pp['make_bookmark']:
          # Make a bookpage for all the elements of cc:
@@ -287,15 +288,39 @@ def make_domain (domain=None, **pp):
 # Execute the script without a meqserver:
 #================================================================================
 
-def without_meqserver(script_name='<script_name>'):
+def without_meqserver(script_name='<script_name>', callback=None, **pp):
+
+   pp.setdefault('recurse', 5)
+   pp.setdefault('full', True)
+   pp = record(pp)
+
+   # Execute the tree definition function:
    ns = NodeScope();
-   _define_forest(ns);
+   # _define_forest(ns);
+   root = callback(ns)
    ns.Resolve();
-   global _test_root                                     # defined in .on_exit()
-   display_subtree (ns[_test_root], script_name)
-   display_nodescope(ns, script_name)
+
+   display_forest_state()
+
+   # Display the result at the specified recursion level:
+   display_subtree (root, script_name, full=pp['full'], recurse=pp['recurse'])
+
+   # Also display it at some of the lowset recursion levels:
+   if False:
+      for always in [2,1]:
+         if pp['full'] and always<pp['recurse']:
+            display_subtree (root, script_name, full=True, recurse=always)
+
+   # display_nodescope (ns, script_name)
    return 
 
+
+#--------------------------------------------------------------------------------
+
+def display_forest_state():
+   rr = Settings.forest_state
+   display_object (rr, 'forest_state')
+   
 
 
 #================================================================================
@@ -352,70 +377,111 @@ def display_nodescope (ns, txt='<txt>', trace=1):
 #----------------------------------------------------------------------------------
 # Recursively display the subtree underneath a NodeStub object (node):
 
-def display_subtree (node, txt='<txt>', level=0,
+def display_subtree (node, txt='<txt>', level=0, cindex=0,
                      recurse=1000, count={}, full=0):
+
+   # General:
    indent = level*'..'
+   indent1 = (level+1)*'..'
    total = '_total_count'
    klasses = '_classes'
+   inhibited = '_inhibited'
+
+   # Start (outer level):
    if level == 0:
-      initrec = deepcopy(node.initrec())
-      for field in ['name','class','defined_at']:
-          if initrec.has_key(field): initrec.__delitem__(field)
       print
       print '** TDL subtree (',txt,') ( recurse =',recurse,'):'
-      print level,indent,node,'  ',initrec
       if not full: print '   (use full=1 to display the subtree itself)'
-      key = str(node)
       count = {}
-      count[key] = 1
       count[total] = 1
+      count[inhibited] = 0
       count[klasses] = {}
-      count[klasses][node.classname] = 1
-      if recurse>0:
-         for j in range(len(node.stepchildren)):
-            print ' ',indent,'    .stepchildren[',j,']:',node.stepchildren[j][1]
-         for i in range(len(node.children)):
-            display_subtree (node.children[i], level=level+1,
-                             recurse=recurse-1, count=count, full=full)
-      print '** some subtree statistics:'
-      for klass in count[klasses].keys():
-         print '**   class:',klass,':',count[klasses][klass]
-      print '** total nr of nodes scanned:',count[total]
-      print
+      
+
+   # Display the node:
+   if full: print level,indent,cindex,':',node,
+   key = str(node)
+
+   if key in count.keys():
+      count[key] += 1
+      if full: print '      (see above)'
 
    else:
-      if full: print level,indent,node[0],':',node[1],
-      key = str(node[1])
-      if key in count.keys():
-         count[key] += 1
-         if full: print '      (see above)'
-      else:
-         count[key] = 1
-         count[total] += 1
-         klass = node[1].classname
-         if not count[klasses].has_key(klass): count[klasses][klass] = 0
-         count[klasses][klass] += 1
-         initrec = deepcopy(node[1].initrec())
-         if len(initrec.keys()) > 1:
-	    for field in ['name','class','defined_at']:
-	       if initrec.has_key(field): initrec.__delitem__(field)
-            if initrec.has_key('default_funklet'):
-               coeff = initrec.default_funklet.coeff
-               initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
-            if full: print '  ',initrec,
-         if recurse>0:
-            if full: print
-            for j in range(len(node[1].stepchildren)):
-               print ' ',indent,'    .stepchildren[',j,']:',node[1].stepchildren[j][1]
-               # display_subtree (node[1].stepchildren[j], level=level+1,
-               #                     recurse=recurse-1, count=count, full=full)
-            for i in range(len(node[1].children)):
-               display_subtree (node[1].children[i], level=level+1,
-                                recurse=recurse-1, count=count, full=full)
-          
-         else:
-            if full: print '      (further recursion inhibited)'
+      count[key] = 1
+      count[total] += 1
+      klass = node.classname
+      if not count[klasses].has_key(klass): count[klasses][klass] = 0
+      count[klasses][klass] += 1
+      initrec = deepcopy(node.initrec())
 
+      if len(initrec.keys()) > 1:
+         hide = ['name','class','defined_at','children','stepchildren','step_children']
+         for field in hide:
+            if initrec.has_key(field): initrec.__delitem__(field)
+         if initrec.has_key('default_funklet'):
+            coeff = initrec.default_funklet.coeff
+            initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
+         if full: print '  ',initrec,
+
+      if not recurse>0:
+         if full: print
+         inhibit = 0
+         for i in range(len(node.children)):
+            inhibit += 1
+            print ' ',indent,'      .children[',i,']:',node.children[i][1]
+         for i in range(len(node.stepchildren)):
+            inhibit += 1
+            print ' ',indent,'      .stepchildren[',-1-i,']:',node.stepchildren[i][1]
+         if inhibit>0:
+            print ' ',indent,'      (further recursion inhibited)'
+            count[inhibited] += inhibit
+
+      else:
+         if full: print
+         inhibit = 0
+
+         classname = None
+         c5 = None
+         for i in range(len(node.stepchildren)):
+            stepchild = node.stepchildren[i][1]
+            cindex = '('+str(i)+')'
+            if stepchild.classname == classname and stepchild.name[0:5]==c5:
+               inhibit += 1
+               print level+1,indent1,cindex,':',node.stepchildren[i][1],' (similar stepchild, not shown)'
+            else:
+               classname = stepchild.classname
+               c5 = stepchild.name[0:5]
+               display_subtree (stepchild, level=level+1, cindex=cindex,
+                                recurse=recurse-1, count=count, full=full)
+            count[inhibited] += inhibit
+
+         classname = None
+         c5 = None
+         for i in range(len(node.children)):
+            child = node.children[i][1]
+            cindex = str(i)
+            if child.classname == classname and child.name[0:5]==c5:
+               # print child.name,len(child.name),child.name[0:5]
+               inhibit += 1
+               print level+1,indent1,cindex,':',node.children[i][1],' (similar child, not shown)'
+            else:
+               classname = child.classname
+               c5 = child.name[0:5]
+               display_subtree (child, level=level+1, cindex=cindex,
+                                recurse=recurse-1, count=count, full=full)
+            count[inhibited] += inhibit
+          
+
+   # Finished (outer level):
+   if level==0:
+      print '** Some subtree statistics:'
+      for klass in count[klasses].keys():
+         print '**   class:',klass,':',count[klasses][klass]
+      print '** Total nr of nodes scanned:',count[total]
+      print '** Further recursion inhibited for',count[inhibited],'children and/or stepchildren'
+      print
+
+   return True
 
 
 #----------------------------------------------------------------------------------
@@ -532,10 +598,10 @@ if __name__ == '__main__':
    print '\n****************\n** Local test of:',script_name,':\n'
 
    # Generic test:
-   without_meqserver(script_name)
+   without_meqserver(script_name, callback=_define_forest, recurse=3)
    
    # Various local tests:
-   if 1:
+   if 0:
       domain = make_domain(trace=True)
       domain = make_domain('21cm', trace=True)
       domain = make_domain('lofar', trace=True)
@@ -543,13 +609,13 @@ if __name__ == '__main__':
       domain = make_domain(domain, trace=True)
       display_object (domain, 'domain', 'MG_JEN_exec')
       
-   if 1:
+   if 0:
       # cells = make_cells(trace=True)
       cells = make_cells(domain='lofar', f1=10, trace=True)
       cells = make_cells(cells, trace=True)
       display_object (cells, 'cells', 'MG_JEN_exec')
       
-   if 1:
+   if 0:
       # request = make_request(trace=True)
       request = make_request(domain='lofar', trace=True)
       request = make_request(request, trace=True)

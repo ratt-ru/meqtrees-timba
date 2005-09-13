@@ -1,5 +1,4 @@
-script_name = 'MG_JEN_sixpack.py'
-last_changed = 'h10sep2005'
+script_name = 'MG_JEN_Sixpack.py'
 
 # Short description:
 #   Generation of some LSM point-source sixpacks, for simulation 
@@ -10,6 +9,7 @@ last_changed = 'h10sep2005'
 
 # History:
 # - 28 aug 2005: creation
+# - 11 sep 2005: conversion to Sixpack objects
 
 # Copyright: The MeqTree Foundation 
 
@@ -22,6 +22,8 @@ from Timba.Meq import meq
 from numarray import *
 # from string import *
 # from copy import deepcopy
+
+from Timba.Trees import TDL_Sixpack
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
@@ -42,32 +44,25 @@ def _define_forest (ns):
    cc = []
 
    group = dict()
-   group['basic'] = ['unpol','Qonly','Uonly','Vonly']
-   group['combi'] = ['QU','QUV','QU2']
-   group['test'] = ['RMtest','SItest']
-   group['3c'] = ['3c147','3c48','3c286','3c295']
+   group['basic'] = ['unpol']
+   # ,'Qonly','Uonly','Vonly']
+   # group['combi'] = ['QU','QUV','QU2']
+   # group['test'] = ['RMtest','SItest']
+   # group['3c'] = ['3c147','3c48','3c286','3c295']
 
    # sixpack['default'] = newstar_source (ns)
    # sixpack['QUV_RM_SI'] = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
 
    radec = []
-   for gkey in group.keys():
-      # Make a dict of named sixpacks for the sources in the group:  
-      sixpack = {}
-      ss = []
-      for predef in group[gkey]:
-         sixpack[predef] = newstar_source (ns, name=predef)
-
-         # For each sixpack, make a 'bundle' of the 4 (I,Q,U,V) flux subtrees:
-         for skey in sixpack.keys():
-            bb = []
-            for key in sixpack[skey]['iquv'].keys():
-               bb.append(sixpack[skey]['iquv'][key])
-         ss.append(MG_JEN_exec.bundle(ns, bb, skey))
-
-         for key in sixpack[predef]['radec'].keys():
-            radec.append(sixpack[predef]['radec'][key])
-      cc.append(MG_JEN_exec.bundle(ns, ss, gkey))
+   # for key in group.keys():
+   ss = []
+   predef = 'predef'
+   key = 'key'
+   # for predef in group[key]:
+   Sixpack = newstar_source (ns, name=predef)
+         # ss.append(make_Sixpack_bundle(ns, Sixpack, radec)) 
+   make_Sixpack_bundle(ns, Sixpack, radec)
+   cc.append(MG_JEN_exec.bundle(ns, ss, key))
       
  
    # Collect the 'loose' RA,DEC root nodes to a single root node (more tidy):
@@ -76,11 +71,19 @@ def _define_forest (ns):
    # Finished: 
    return MG_JEN_exec.on_exit (ns, script_name, cc)
 
+#-------------------------------------------------------------------------
+# Helper function
 
-
-
-
-
+def make_Sixpack_bundle(ns, Sixpack, radec): 
+   Sixpack.display('make_Sixpack_bundle')
+   # Collect the 'loose' RA,DEC root nodes to a single root node (more tidy):
+   radec.extend(Sixpack['radec'].values())
+   # For each sixpack, make a 'bundle' of the 4 (I,Q,U,V) flux subtrees:
+   print 'iquv=',Sixpack['iquv'].values()
+   print 'label()=',Sixpack.label()
+   node = MG_JEN_exec.bundle(ns, Sixpack['iquv'].values(), Sixpack.label())
+   print 'node =',node
+   return node
 
 
 
@@ -140,27 +143,6 @@ def predefined (pp, trace=0):
   # if trace: print 'pp =',pp
   return 
 
-
-
-#=======================================================================================
-# Initialise a standard 'sixpack' object, which contains the 6 nodes that
-# represent the manifestations of a source/patch in the image.
-# This object (dict) is updated by, and passed between, various TDL functions 
-
-def init (name='cps', origin='MG_JEN_newstar::', input={},
-          iquv={}, radec={}, simul=0, trace=0):
-   """initialise/check a standard sixpack object"""
-   sixpack = dict(name=name, type='lsm_sixpack', origin=origin, 
-                  iquv=iquv, radec=radec, input=input, simul=simul)
-   # n6 = lsm_sixnames()
-   # if trace: JEN_display (sixpack, 'sixpack', sixpack['name'])
-   return sixpack
-
-
-# Centrally define the 6 standard names:
-
-def sixnames ():
-  return record(I='StokesI', Q='StokesQ', U='StokesU', V='StokesV', R='RA', D='Dec') 
 
 
 
@@ -257,7 +239,7 @@ def newstar_source (ns=0, **pp):
 
       # Rotate QU by the RM matrix -> QURM
       parm['RM'] = ns.RM(q=pp['name']) << Meq.Parm(pp['RM'])
-      wvl2 = MG_JEN_twig.wavelength (ns, qual=None, unop='Sqr')
+      wvl2 = MG_JEN_twig.wavelength (ns, qual='auto', unop='Sqr')
       farot = ns.farot(q=pp['name']) << (parm['RM']*wvl2)
       rotmat = MG_JEN_matrix.rotation (ns, angle=farot)
       QURM = ns['QURM'](q=pp['name']) << Meq.MatrixMultiply(rotmat, QU)  
@@ -272,10 +254,35 @@ def newstar_source (ns=0, **pp):
    radec[n6.R] = ns[n6.R](q=pp['name']) << Meq.Parm(pp['RA'])
    radec[n6.D] = ns[n6.D](q=pp['name']) << Meq.Parm(pp['Dec'])
 
-   # Finished: Make the sixpack and return it
-   sixpack = init (name=pp['name'], iquv=iquv, radec=radec)
+   # Finished: Make the Sixpack object and return it:
+   Sixpack = TDL_Sixpack.Sixpack (ns=ns, label=pp['name'],\
+                                  RA=radec[n6.R], Dec=radec[n6.D],\
+                                  StokesI=iquv[n6.I], StokesQ=iquv[n6.Q],\
+                                  StokesU=iquv[n6.U], StokesV=iquv[n6.V])
+   Sixpack.display('newstar') 
+   return Sixpack
+
+
+
+#=======================================================================================
+# Initialise a standard 'sixpack' object, which contains the 6 nodes that
+# represent the manifestations of a source/patch in the image.
+# This object (dict) is updated by, and passed between, various TDL functions 
+
+def init (name='cps', origin='MG_JEN_newstar::', input={},
+          iquv={}, radec={}, simul=0, trace=0):
+   """initialise/check a standard sixpack object"""
+   sixpack = dict(name=name, type='lsm_sixpack', origin=origin, 
+                  iquv=iquv, radec=radec, input=input, simul=simul)
+   # n6 = lsm_sixnames()
+   # if trace: JEN_display (sixpack, 'sixpack', sixpack['name'])
    return sixpack
 
+
+# Centrally define the 6 standard names:
+
+def sixnames ():
+  return record(I='StokesI', Q='StokesQ', U='StokesU', V='StokesV', R='RA', D='Dec') 
 
 
 

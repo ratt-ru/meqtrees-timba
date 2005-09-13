@@ -1,3 +1,6 @@
+script_name = 'TDL_Joneset.py'
+last_changed = 'h10sep2005'
+
 # file: .../Timba/PyApps/src/Trees/TDL_Joneset.py
 #
 # Author: J.E.Noordam
@@ -31,6 +34,7 @@ class Joneset (TDL_common.Super):
 
         # Input arguments:
         pp.setdefault('scope', '<jscope>')           # used in visualisation etc
+        pp.setdefault('jchar', None)                 # single-character identifier (e.g. 'G') 
         pp.setdefault('polrep', 'linear')
         pp.setdefault('punit', 'uvp')                # name of predict-unit (source/patch)
         pp.setdefault('solvable', True)              # if False, do not store parmgroup info
@@ -40,6 +44,10 @@ class Joneset (TDL_common.Super):
         self.__solvable = pp['solvable']
 
         TDL_common.Super.__init__(self, type='Joneset', **pp)
+
+        self.__jchar = pp['jchar']
+        if not isinstance(self.__jchar, str): self.__jchar = self.label()[0]
+        self.__jchar = self.__jchar[0]               # single character
 
         self.clear()
 
@@ -70,7 +78,7 @@ class Joneset (TDL_common.Super):
         self.__jones[key] = value
         return self.__jones[key]
 
-    def register(self, key=None, ipol=None, color=None, style='dot', size=10, corrs=None):
+    def register(self, key=None, ipol=None, color=None, style='circle', size=10, corrs=None):
         # Register a parameter group
         if isinstance(ipol, int): key = key+'_'+self.pols(ipol)     # append (X,Y,R,L) if requirec
         self.__parmgroup[key] = []
@@ -171,6 +179,7 @@ class Joneset (TDL_common.Super):
     def scope(self, new=None):
         if isinstance(new, str): self.__scope = new
         return self.__scope
+    def jchar(self): return self.__jchar
     def punit(self): return self.__punit
     def solvable(self): return self.__solvable
     def polrep(self): return self.__polrep
@@ -215,6 +224,8 @@ class Joneset (TDL_common.Super):
 
     def oneliner(self):
         s = TDL_common.Super.oneliner(self)
+        s = s+' ('+str(self.jchar())+')'
+        s = s+' punit='+str(self.punit())
         s = s+' '+str(self.pols())
         s = s+' '+str(self.node_groups())
         s = s+' solvable='+str(self.solvable())
@@ -223,41 +234,41 @@ class Joneset (TDL_common.Super):
         return s
 
     def display(self, txt=None, full=False):
-        TDL_common.Super.display (self, txt=txt, end=False)
+        ss = TDL_common.Super.display (self, txt=txt, end=False)
         indent1 = 2*' '
         indent2 = 6*' '
 
-        print indent1,'- Registered parmgroups:'
+        ss.append(indent1+' - Registered parmgroups:')
         for key in self.parmgroup().keys():
           pgk = self.parmgroup()[key]
           n = len(pgk)
           if full or n<3:
-            print indent2,'-',key,'(',n,'):',pgk
+            ss.append(indent2+' - '+key+' ( '+str(n)+' ): '+str(pgk))
           else:
-            print indent2,'-',key,'(',n,'):',pgk[0],'...',pgk[n-1]
+            ss.append(indent2+' - '+key+' ( '+str(n)+' ): '+pgk[0]+' ... '+pgk[n-1])
 
-        print indent1,'- solvegroups ( solvable =',self.solvable(),', node_groups =',self.node_groups(),'):'
+        ss.append(indent1+' - solvegroups ( solvable = '+str(self.solvable())+' , node_groups = '+str(self.node_groups())+' ):')
         for key in self.solvegroup().keys():
-            print indent2,'-',key,': parmgroups:',self.solvegroup()[key],', corrs:',self.condeq_corrs()[key]
+            ss.append(indent2+' - '+key+' : parmgroups: '+str(self.solvegroup()[key])+' , corrs: '+str(self.condeq_corrs()[key]))
 
-        print indent1,'- Station jones matrix nodes (',self.len(),'):'
+        ss.append(indent1+' - Station jones matrix nodes ( '+str(self.len())+' ):')
         if full or self.len()<15:
             for key in self.keys():
-                print indent2,'-',key,':',self.__jones[key]
+                ss.append(indent2+' - '+key+' : '+str(self.__jones[key]))
         else:
             keys = self.keys()
             n = len(keys)-1
-            print indent2,'- first:',keys[0],':',self.__jones[keys[0]]
-            print indent2,'  ....'
-            print indent2,'- last: ',keys[n],':',self.__jones[keys[n]]
-
-        TDL_common.Super.display_end (self)
+            ss.append(indent2+' - first: '+keys[0]+' : '+str(self.__jones[keys[0]]))
+            ss.append(indent2+'   ....')
+            ss.append(indent2+' - last:  '+keys[n]+' : '+str(self.__jones[keys[n]]))
+        return TDL_common.Super.display_end (self, ss)
 
 
     def update(self, Joneset=None):
         # Update the internal info from another Joneset object:
         # (used in Joneseq.make_Joneset())
         if Joneset==None: return False
+        self.__jchar += Joneset.jchar()
         self.__parmgroup.update(Joneset.parmgroup())
         self.__solvegroup.update(Joneset.solvegroup())
         self.__condeq_corrs.update(Joneset.condeq_corrs())
@@ -289,6 +300,7 @@ class Joneseq (TDL_common.Super):
         self.__scope = '<scope>'
         self.__sequence = []
         self.__polrep = '<polrep>'
+        self.__punit = '<punit>'
 
     def sequence(self): return self.__sequence
     def keys(self): return self.__sequence.keys()
@@ -296,20 +308,23 @@ class Joneseq (TDL_common.Super):
     def empty(self): return (len(self.__sequence)==0)
     def polrep(self): return self.__polrep
     def scope(self): return self.__scope
+    def punit(self): return self.__punit
 
     def oneliner(self):
         s = TDL_common.Super.oneliner(self)
+        s = s+' punit='+str(self.punit())
+        s = s+' polrep='+str(self.polrep())
         s = s+' len='+str(self.len())
         return s
 
     def display(self, txt=None, full=False):
-        TDL_common.Super.display (self, txt=txt, end=False)
+        ss = TDL_common.Super.display (self, txt=txt, end=False)
         indent1 = 2*' '
         indent2 = 6*' '
-        print indent1,'- Available Joneset sequence (.len() ->',self.len(),'):'
+        ss.append(indent1+' - Available Joneset sequence (.len() -> '+str(self.len())+' ):')
         for i in range(self.len()):
-            print indent2,'-',i,':',self.__sequence[i].oneliner()
-        TDL_common.Super.display_end (self)
+            ss.append(indent2+' - '+str(i)+' : '+self.__sequence[i].oneliner())
+        return TDL_common.Super.display_end (self, ss)
 
     def append(self, Joneset=None):
         # Append a Joneset object to the internal sequence, after some checks:
@@ -322,10 +337,14 @@ class Joneseq (TDL_common.Super):
         # The Jonesets in the sequence should be consistent with each other: 
         if self.empty():
             # Collect information from the first one:
+            self.__punit = Joneset.punit()
             self.__polrep = Joneset.polrep()
             self.__scope = Joneset.scope()
         else:
             # Compare with the info from the first one:
+            if not Joneset.punit()==self.punit():
+                self.history(error=funcname+'conflicting punit')
+                return False
             if not Joneset.polrep()==self.polrep():
                 self.history(error=funcname+'conflicting polrep')
                 return False
@@ -377,7 +396,9 @@ class Joneseq (TDL_common.Super):
             labels.append(js.label())           
             
         # Make new 2x2 jones matrices by matrix multiplication: 
-        newJoneset = Joneset(label=self.label())   # create a new Joneset
+        # Create a new Joneset
+        newJoneset = Joneset(label=self.label(), punit=self.punit(),
+                             polrep=self.polrep(), scope=self.scope())
         newJoneset.history('Matrix multiplication of: '+self.oneliner())
         for key in keys:
             newJoneset[key] = ns.JJones(**kwquals[key])(*quals[key]) << Meq.MatrixMultiply(children=cc[key])
@@ -385,7 +406,8 @@ class Joneseq (TDL_common.Super):
         newJoneset.history('input punits (should be the same!): '+str(punits))
 
         # Update the parmgroup info from Joneset to Joneset:
-        for js in self.sequence(): newJoneset.update(js)
+        for js in self.sequence():
+            newJoneset.update(js)
 
         return newJoneset
 
@@ -427,13 +449,14 @@ if __name__ == '__main__':
     js = Joneset(label='initial', polrep='circular')
     js.display('initial')
 
-    if 0:
+    if 1:
         print '** dir(js) ->',dir(js)
         print '** js.__doc__ ->',js.__doc__
+        print '** js.__str__() ->',js.__str__()
         print '** js.__module__ ->',js.__module__
         print
 
-    if 1:
+    if 0:
         js = Joneset(label='GJones', polrep='circular')
         p1 = js.register('Gphase', ipol=1, color='red', corrs=js.corrs_paral1())
         a2 = js.register('Gampl', ipol=2, color='blue', corrs=js.corrs_paral2())
@@ -481,13 +504,6 @@ if __name__ == '__main__':
         Gjones = MG_JEN_Joneset.GJones (ns, stations=stations)
         Bjones = MG_JEN_Joneset.BJones (ns, stations=stations)
 
-    if 1:
-        # Display the final result:
-        # k = 0 ; MG_JEN_exec.display_subtree(js[k], 'js['+str(k)+']', full=True, recurse=3)
-        js.display('final result')
-
-
-
     if 0:
         # Joneseq object:
         jseq = Joneseq(label='initial')
@@ -496,6 +512,13 @@ if __name__ == '__main__':
         jseq.append(js)
         jseq.append(js)
         jseq.display('filled')
+
+    if 1:
+        # Display the final result:
+        # k = 0 ; MG_JEN_exec.display_subtree(js[k], 'js['+str(k)+']', full=True, recurse=3)
+        js.display('final result')
+
+
 
 
 

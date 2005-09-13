@@ -1,4 +1,5 @@
 script_name = 'MG_JEN_funklet.py'
+last_changed = 'h10sep2005'
 
 # Short description:
 #   Demo and helper functions for the family of funklets
@@ -43,7 +44,7 @@ def _define_forest (ns):
    # Demo of importable function: polc_ft()
    bb = []
    for i in range(3):
-      polc = polc_ft(c00=i, nfreq=2, ntime=3, scale=1e-10, stddev=0.0)
+      polc = polc_ft(c00=i, fdeg=2, tdeg=3, scale=1e-10, stddev=0.0)
       bb.append(ns.polc_ft(i) << Meq.Parm(polc))
    cc.append(MG_JEN_exec.bundle(ns, bb, 'polc_ft()'))
 
@@ -91,7 +92,7 @@ def _define_forest (ns):
 
 #-------------------------------------------------------------------------------------
 # Make a 'standard' freq-time polc with the following features:
-# - nfreq and ntime give the polynomial degree in these dimensions
+# - fdeg and tdeg give the polynomial degree in these dimensions
 # - the constant coeff (c00) is specified explicitly
 # - the other coeff are generated with an algorithm:
 #   - first they are all set to the same value (=scale)
@@ -99,7 +100,7 @@ def _define_forest (ns):
 #   - their sign is alternated between -1 and 1
 # - If stddev>0, a 'proportional' random number is added to each coeff
 
-def polc_ft (c00=1, nfreq=0, ntime=0, scale=1, mult=1/sqrt(10), stddev=0): 
+def polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0): 
  
    # If the input is a polc (funklet) already, just return it ......??
    if isinstance(c00, dmi_type('MeqFunklet')):
@@ -108,13 +109,13 @@ def polc_ft (c00=1, nfreq=0, ntime=0, scale=1, mult=1/sqrt(10), stddev=0):
    # Create a coeff array with the correct dimensions.
    # All coeff have the same value (=scale), see also below
    scale = float(scale)
-   coeff = resize(array(scale), (nfreq+1,ntime+1))
+   coeff = resize(array(scale), (fdeg+1,tdeg+1))
 
    # Multiply each coeff with sign*mult**(i+j)
    # If mult<1, this makes the higher-order coeff smaller
    sign = 1.0
-   for i in range(nfreq+1):
-      for j in range(ntime+1):
+   for i in range(fdeg+1):
+      for j in range(tdeg+1):
          factor = mult**(i+j)                               # depends on polynomial degree                
          coeff[i,j] *= (sign*factor)                       # attenuate, and apply the sign
          if (i+j)==0: coeff[0,0] = c00                # override the constant coeff c00
@@ -262,7 +263,7 @@ def oneliner (funklet, txt=None):
 # Perturb the c00 coeff, if required
 # NB: Semi-obsolete (replace with polc_ft() above........
 
-def funklet (funkin, mean=0, stddev=0):
+def funklet_obsolete (funkin, mean=0, stddev=0):
     if isinstance(funkin, dmi_type('MeqFunklet')):
         funklet = deepcopy(funkin)
     elif isinstance(funkin,type(array(0))):
@@ -317,52 +318,49 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-    if False:
-        # This is the default:
-        MG_JEN_exec.without_meqserver(script_name)
+    print '\n**',script_name,':\n'
+    if 1:
+        MG_JEN_exec.without_meqserver(script_name, callback=_define_forest)
 
-    else:
-       # This is the place for some specific tests during development.
-       print '\n**',script_name,':\n'
-       ns = NodeScope()
+    ns = NodeScope()
 
-       if 0:
-          # polc = polc_ft(c00=2, nfreq=2, ntime=3)
-          print oneliner(polc_ft())
-          print oneliner(polc_ft(c00=10, stddev=1), script_name)
-          print oneliner(polc_ft(nfreq=0, ntime=1), script_name)
-          print oneliner(polc_ft(nfreq=1, ntime=0), script_name)
-          print oneliner(polc_ft(nfreq=1, ntime=1), script_name)
-          print oneliner(polc_ft(nfreq=0, ntime=2), script_name)
-          print oneliner(polc_ft(nfreq=2, ntime=3), script_name)
-          print oneliner(polc_ft(nfreq=2, ntime=3, stddev=1), script_name)
+    if 0:
+       # polc = polc_ft(c00=2, fdeg=2, tdeg=3)
+       print oneliner(polc_ft())
+       print oneliner(polc_ft(c00=10, stddev=1), script_name)
+       print oneliner(polc_ft(fdeg=0, tdeg=1), script_name)
+       print oneliner(polc_ft(fdeg=1, tdeg=0), script_name)
+       print oneliner(polc_ft(fdeg=1, tdeg=1), script_name)
+       print oneliner(polc_ft(fdeg=0, tdeg=2), script_name)
+       print oneliner(polc_ft(fdeg=2, tdeg=3), script_name)
+       print oneliner(polc_ft(fdeg=2, tdeg=3, stddev=1), script_name)
 
-       if 0:
-          # polclog = polclog_SIF (SI=0, I0=1.0)
-          print oneliner(polclog_SIF(), script_name)
-          print oneliner(polclog_SIF(), script_name)
-          print oneliner(polclog_SIF(0), script_name)
-          print oneliner(polclog_SIF(I0=10), script_name)
-          print oneliner(polclog_SIF(I0=e), script_name)
+    if 0:
+       # polclog = polclog_SIF (SI=0, I0=1.0)
+       print oneliner(polclog_SIF(), script_name)
+       print oneliner(polclog_SIF(), script_name)
+       print oneliner(polclog_SIF(0), script_name)
+       print oneliner(polclog_SIF(I0=10), script_name)
+       print oneliner(polclog_SIF(I0=e), script_name)
 
-       if 1:
-          print oneliner(polclog_flux(ns), script_name)
-          print oneliner(polclog_flux(ns), script_name)
-          print oneliner(polclog_flux(ns), script_name)
+    if 1:
+       print oneliner(polclog_flux(ns), script_name)
+       print oneliner(polclog_flux(ns), script_name)
+       print oneliner(polclog_flux(ns), script_name)
+       
+    if 1:
+       print oneliner(polclog_flux(ns, '3c295'), script_name)
+       print oneliner(polclog_flux(ns, '3c48'), script_name)
+       print oneliner(polclog_flux(ns, '3c147'), script_name)
+       print oneliner(polclog_flux(ns, '3c147', stokes='Q'), script_name)
 
-       if 1:
-          print oneliner(polclog_flux(ns, '3c295'), script_name)
-          print oneliner(polclog_flux(ns, '3c48'), script_name)
-          print oneliner(polclog_flux(ns, '3c147'), script_name)
-          print oneliner(polclog_flux(ns, '3c147', stokes='Q'), script_name)
+    if 1:
+       print oneliner(polclog_flux(ns, '3c286'), script_name)
+       print oneliner(polclog_flux(ns, '3c286', stokes='Q'), script_name)
+       print oneliner(polclog_flux(ns, '3c286', stokes='U'), script_name)
 
-       if 1:
-          print oneliner(polclog_flux(ns, '3c286'), script_name)
-          print oneliner(polclog_flux(ns, '3c286', stokes='Q'), script_name)
-          print oneliner(polclog_flux(ns, '3c286', stokes='U'), script_name)
-
-       # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
-       print '\n** end of',script_name,'\n'
+    # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
+    print '\n** end of',script_name,'\n'
 
 #********************************************************************************
 #********************************************************************************

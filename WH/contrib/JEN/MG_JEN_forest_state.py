@@ -105,8 +105,12 @@ def _define_forest (ns):
 
 def init (script='<MG_JEN_xyz.py>', mode='MeqGraft'):
 
-   # Reset the forest history record (retained otherwise...?)	 
-   Settings.forest_state.forest_history = record()
+   # Reset the forest history record (retained otherwise...?)
+   # Obsolete, replaced by .history(), which uses jen-record
+   # Settings.forest_state.forest_history = record()
+
+   # Reset the jen-record (see .trace(), .error() etc below)
+   Settings.forest_state['jen'] = record()
 
    # Reset the bookmarks (if not, the old ones are retained) 
    Settings.forest_state.bookmarks = []
@@ -122,25 +126,29 @@ def init (script='<MG_JEN_xyz.py>', mode='MeqGraft'):
       # Orphan nodes should be retained:
       Settings.orphans_are_roots = True
    
- 
-   # Some stuff related to MS (kludge!):
-   if False:
-      selection = record(channel_start_index=10,
-			 channel_end_index=50)
-      inputrec = record(ms_name='D1.MS',
-			data_column_name='DATA',
-			selection=selection,
-			tile_size=1)
-      outputrec = record(predict_column='MODEL_DATA')
-      Settings.forest_state.stream = record(input=inputrec, output=outputrec)
-	
+ 	
    return 
 
-#--------------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
 
-init(script_name)
+
+#------------------------------------------------------------------------------- 
+# Attach MS (stream) info to the forest state record
+
+def stream (**pp):
+   pp.setdefault('MS', 'D1.MS')       #
+   pp = record(pp)
+
+   selection = record(channel_start_index=10,
+                      channel_end_index=50)
+   inputrec = record(ms_name=pp['MS'],
+                     data_column_name='DATA',
+                     selection=selection,
+                     tile_size=1)
+   outputrec = record(predict_column='MODEL_DATA')
+   Settings.forest_state.stream = record(input=inputrec, output=outputrec)
+   return True
+
+
 
 #------------------------------------------------------------------------------- 
 # Save the forest to a binary file(s):
@@ -305,6 +313,13 @@ def bookfolder (name='bookfolder', item=None, trace=0):
 def trace (*item, **kwitem):
    return append ('trace', item, kwitem)
 
+# Special case: for the result (list) of object.display()
+
+def object(object, txt='<txt>'):
+  ss = object.display(txt)
+  trace(ss, key=object.label())
+  return True
+
 def history (*item, **kwitem):
    return append ('history', item, kwitem)
 
@@ -315,15 +330,25 @@ def warning (*item, **kwitem):
    return append ('WARNING', item, kwitem)
 
 def append (field, item, kwitem):
+  # Make a record of the named arguments:
+  kwitem = record(kwitem)
+
+  # Attach the list of unnamed items:
+  # print '** len(item):',len(item)
+  if len(item)>0:
+     key = kwitem.get('key','*item')
+     # kwitem.__delitem__('key')
+     kwitem[key] = item
+     if len(item)==1: kwitem[key] = item[0]
+  # print '** kwitem.keys():',kwitem.keys()
+
+  # Attach the kwitem record as a numbered field
   Settings.forest_state.setdefault('jen',record())
   Settings.forest_state['jen'].setdefault(field,record())
   rr = Settings.forest_state['jen'][field]
-
   level = kwitem.get('level',1)
   indent = level*'..'
   key = str(len(rr))
-  kwitem = record(kwitem)
-  if len(item)>0: kwitem['unnamed'] = indent+str(item)
   rr[key] = kwitem
 
   Settings.forest_state['jen'][field] = rr
@@ -356,19 +381,21 @@ def counter (key, increment=0, reset=False):
    Settings.forest_state[field] = rr
    return rr[key]
 
-# Generate an automatic qualifier by using the counter service 
+# Generate a unique qualifier by using the counter service 
 
-def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
-
+def uniqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
    if isinstance(qual, str) and qual=='auto':
-      print '**',script_name,'autoqual(',key,'): obsolete call: qual=',qual,'->',None
+      print '**',script_name,'uniqual(',key,'): obsolete call: qual=',qual,'->',None
       qual = None
-
    if qual==None:
-      n = counter(key, increment=1)
+      n = counter(key, increment=-1)          # note negative increment!
       qual = str(n)
    return qual
 
+# Old name (discouraged)
+
+def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
+   return uniqual (key=key, qual=qual, **pp)
 
 
 
@@ -387,6 +414,7 @@ def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
 # Just assign fields to: Settings.forest_state[key] = ...
 
 init(script_name)
+stream()
 
 #-------------------------------------------------------------------------
 # Meqforest execution routine (may be called from the browser):
@@ -404,11 +432,32 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-   # Use a simple version of MG_JEN_exec.without_meqserver():
-   ns = NodeScope();
-   _define_forest(ns);
-   ns.Resolve();
+   print '\n****************\n** Local test of:',script_name,':\n'
 
+   # Use a simple version of MG_JEN_exec.without_meqserver():
+   ns = NodeScope()
+   root = _define_forest(ns)
+   ns.Resolve()
+
+   from Timba.Contrib.JEN import MG_JEN_exec
+   MG_JEN_exec.display_subtree(root, script_name, full=1)
+
+   if 0:
+      from Timba.Trees import TDL_common
+      sp = TDL_common.Super()
+      ss = sp.display(script_name)
+      trace(ss, key=sp.label())
+      
+   if 1:
+      from Timba.Trees import TDL_Cohset
+      cs = TDL_Cohset.Cohset()
+      ss = cs.display(script_name)
+      trace(ss, key=cs.label())
+      
+   rr = Settings.forest_state
+   MG_JEN_exec.display_object(rr, 'forest_state', script_name)
+
+   print '\n** End of local test of:',script_name,'\n*************\n'
 
 #********************************************************************************
 #********************************************************************************

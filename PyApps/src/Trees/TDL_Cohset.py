@@ -1,3 +1,6 @@
+script_name = 'TDL_Cohset.py'
+last_changed = 'h10sep2005'
+
 # file: .../Timba/PyApps/src/Trees/TDL_Cohset.py
 #
 # Author: J.E.Noordam
@@ -180,30 +183,30 @@ class Cohset (TDL_common.Super):
         return s
 
     def display(self, txt=None, full=False):
-        s = TDL_common.Super.display(self, txt=txt, end=False)
+        ss = TDL_common.Super.display(self, txt=txt, end=False)
         indent1 = 2*' '
         indent2 = 6*' '
-        print indent1,'- phase_centre:   ',self.phase_centre()
-        print indent1,'- polrep:         ',self.polrep(),self.corrs(),' paral=',self.paral(),' cross=',self.cross()
-        print indent1,'- station_index:  ',self.station_index()
-        # print indent1,'- plot_color:     ',self.plot_color()
-        # print indent1,'- plot_style:     ',self.plot_style()
-        # print indent1,'- plot_size:      ',self.plot_size()
-        print indent1,'- Parmgroups:     ',self.parmgroup().keys()
-        print indent1,'- Solvegroups:    ',self.solvegroup().keys()
-        print indent1,'- Condeq_corrs:   ',self.condeq_corrs().keys()
-        print indent1,'- Available 2x2 cohaerency matrices (',self.len(),'):'
+        ss.append(indent1+' - phase_centre:    '+self.phase_centre())
+        ss.append(indent1+' - polrep:          '+self.polrep()+str(self.corrs())+' paral='+str(self.paral())+' cross='+str(self.cross()))
+        ss.append(indent1+' - station_index:   '+str(self.station_index()))
+        # ss.append(indent1+' - plot_color:      '+str(self.plot_color()))
+        # ss.append(indent1+' - plot_style:      '+str(self.plot_style()))
+        # ss.append(indent1+' - plot_size:       '+str(self.plot_size()))
+        ss.append(indent1+' - Parmgroups:      '+str(self.parmgroup().keys()))
+        ss.append(indent1+' - Solvegroups:     '+str(self.solvegroup().keys()))
+        ss.append(indent1+' - Condeq_corrs:    '+str(self.condeq_corrs().keys()))
+        ss.append(indent1+' - Available 2x2 cohaerency matrices ( '+str(self.len())+' ):')
         if full or self.len()<10:
             for key in self.__coh.keys():
                 s12 = self.__stations[key]
-                print indent2,'-',key,s12,':',self.__coh[key]
+                ss.append(indent2+' - '+key+str(s12)+' : '+str(self.__coh[key]))
         else:
             keys = self.__coh.keys()
             n = len(keys)-1
-            print indent2,'- first:',keys[0],':',self.__coh[keys[0]]
-            print indent2,'  ....'
-            print indent2,'- last: ',keys[n],':',self.__coh[keys[n]]
-        TDL_common.Super.display_end(self)
+            ss.append(indent2+' - first: '+keys[0]+' : '+str(self.__coh[keys[0]]))
+            ss.append(indent2+'   ....')
+            ss.append(indent2+' - last:  '+keys[n]+' : '+str(self.__coh[keys[n]]))
+        return TDL_common.Super.display_end(self, ss)
 
 
 
@@ -214,28 +217,30 @@ class Cohset (TDL_common.Super):
     def nominal(self, ns, coh0):
         # Make a record/dict of identical coherency matrices for all ifrs:
         funcname = '::nominal():'
-        unique = _counter(funcname, increment=1)
+        uniqual = _counter(funcname, increment=-1)
         for key in self.keys():
             s12 = self.__stations[key]
-            self.__coh[key] = ns.nominal(unique)(s1=s12[0], s2=s12[1]) << Meq.Selector(coh0)
+            self.__coh[key] = ns.nominal(uniqual)(s1=s12[0], s2=s12[1]) << Meq.Selector(coh0)
         self.__dims = [2,2]
         self.history(append=funcname+' -> '+self.oneliner())
 
 
-    def graft(self, ns, node, key='first', stepchild=True):
+    def graft(self, ns, node, key='last', stepchild=True):
         # Insert the specified node at the specified ifr
         # If stepchild=True, make the node(s) step-children of a MeqSelector
         # node that is inserted before the specified (key) coherency node:
         funcname = '::graft():'
         if not isinstance(node, (tuple, list)): node = [node]
-        key = self.keys()[0]
-        unique = _counter(funcname, increment=1)
+        keys = self.keys()
+        if key=='first': key = keys[0]                      # use the first ifr
+        if key=='last': key = keys[len(keys)-1]             # use the last ifr
+        uniqual = _counter(funcname, increment=-1)
         if stepchild:
-            self[key] = ns.step_graft.qmerge(self[key])(unique) << Meq.Selector(self[key], stepchildren=node)
+            self[key] = ns.step_graft.qmerge(self[key])(uniqual) << Meq.Selector(self[key], stepchildren=node)
         else:
             children = [self[key]]
             children.extend(node)
-            self[key] = ns.graft.qmerge(self[key])(unique) << Meq.Selector(*children)
+            self[key] = ns.graft.qmerge(self[key])(uniqual) << Meq.Selector(*children)
         self.history(funcname+' -> '+self.oneliner())
         return True
 
@@ -289,34 +294,38 @@ class Cohset (TDL_common.Super):
     def correct(self, ns, Joneset=None):
         # Correct the Cohset by matrix multiplication with the INVERSE of the given Joneset:
         funcname = '::correct():'
-        unique = _counter(funcname, increment=1)
+        uniqual = _counter(funcname, increment=-1)
         self.__punit = Joneset.punit()
+        scope = 'corrected_'+Joneset.jchar()
         for key in self.keys():
             s12 = self.__stations[key]
-            coh = ns.corrected(unique)(s1=s12[0], s2=s12[1], q=self.punit()) << Meq.MatrixMultiply(
+            coh = ns[scope](uniqual)(s1=s12[0], s2=s12[1], q=self.punit()) << Meq.MatrixMultiply(
                 Meq.MatrixInvert22(Joneset[s12[0]]),
                 self.__coh[key],
                 ns << Meq.MatrixInvert22(ns << Meq.ConjTranspose(Joneset[s12[1]])))
             self.__coh[key] = coh 
         self.update_from_Joneset(Joneset)
-        self.scope('corrected')
+        self.scope(scope)
+        self.history(append='corrected by: '+Joneset.oneliner())
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
     def corrupt(self, ns, Joneset=None):
         # Corrupt the Cohset by matrix multiplication with the given Joneset:
         funcname = '::corrupt():'
-        unique = _counter(funcname, increment=1)
+        uniqual = _counter(funcname, increment=-1)
         self.__punit = Joneset.punit()
+        scope = 'corrupted_'+Joneset.jchar()
         for key in self.keys():
             s12 = self.__stations[key]
-            coh = ns.corrupted(unique)(s1=s12[0], s2=s12[1], q=self.punit()) << Meq.MatrixMultiply(
+            coh = ns[scope](uniqual)(s1=s12[0], s2=s12[1], q=self.punit()) << Meq.MatrixMultiply(
                 Joneset[s12[0]],
                 self.__coh[key],
                 ns << Meq.ConjTranspose(Joneset[s12[1]]))
             self.__coh[key] = coh
-        self.scope('corrupted')
+        self.scope(scope)
         self.update_from_Joneset(Joneset)
+        self.history(append='corrupted by: '+Joneset.oneliner())
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -364,9 +373,9 @@ class Cohset (TDL_common.Super):
         return icorr
 
 
-    def select(self, ns, corrs=None):
+    def selcorr(self, ns, corrs=None):
         # Select a subset of the available corrs: 
-        funcname = '::select():'
+        funcname = '::selcorr():'
         if corrs==None: return False
         icorr = self.icorr(corrs)
         if len(icorr)==0: return False
@@ -376,18 +385,18 @@ class Cohset (TDL_common.Super):
         for i in icorr: newcorrs.append(self.__corrs[i])
         self.__corrs = newcorrs
         self.calc_derived()
-        print '** .select(',corrs,copy,') ->',self.corrs(),self.paral(),self.cross()
+        print '** .selcorr(',corrs,copy,') ->',self.corrs(),self.paral(),self.cross()
 
         # Make MeqSelector nodes that select the specified corrs:
-        unique = _counter(funcname, increment=1)
-        multi = (len(icorr)>1)
+        uniqual = _counter(funcname, increment=-1)
+        multi = (len(icorr)>1)       # Kludge, to tell MeqSelector that icorr is multiple... 
         for key in self.keys():
             s12 = self.__stations[key]
-            coh = ns.select(unique)(s1=s12[0], s2=s12[1]) << Meq.Selector(self.__coh[key], index=icorr, multi=multi)
+            coh = ns.selcorr(uniqual)(corrs)(s1=s12[0], s2=s12[1]) << Meq.Selector(self.__coh[key], index=icorr, multi=multi)
             self.__coh[key] = coh
         # Adjust the coherence shape, if necessary:  
         if len(icorr)<4: self.__dims = [len(icorr)]            #...shape...??
-        self.scope('selected_corrs')
+        self.scope('selcorr'+'_'+self.scope())
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -404,8 +413,8 @@ class Cohset (TDL_common.Super):
         # Make a record/dict of spigots that produce 2x2 coherency matrices:
         for key in self.keys():
             s12 = self.__stations[key]
-            i1 = self.station_index[s12[0]]              # integer
-            i2 = self.station_index[s12[1]]              # integer
+            i1 = self.station_index()[str(s12[0])]              # integer
+            i2 = self.station_index()[str(s12[1])]              # integer
             self.__coh[key] = ns.spigot(s1=s12[0],s2=s12[1]) << Meq.Spigot(station_1_index=i1,
                                                                            station_2_index=i2,
                                                                            flag_bit=pp['flag_bit'],
@@ -432,8 +441,8 @@ class Cohset (TDL_common.Super):
         # Make separate sinks for each ifr:
         for key in self.keys():
             s12 = self.__stations[key]
-            i1 = self.station_index[s12[0]]              # integer
-            i2 = self.station_index[s12[1]]              # integer
+            i1 = self.station_index()[str(s12[0])]              # integer
+            i2 = self.station_index()[str(s12[1])]              # integer
             self.__coh[key] = ns.MeqSink(s1=s12[0], s2=s12[1]) << Meq.Sink(self.__coh[key],
                                                                            station_1_index=i1,
                                                                            station_2_index=i2,
@@ -527,10 +536,10 @@ if __name__ == '__main__':
         cs1 = cs.copy()
         cs.display('after .copy()')
         cs1.display('after .copy()')
-        cs1.select(ns, ['RR','LL'])
-        # cs1.select(ns, ['LL','LR'])
-        # cs1.select(ns, ['LR'])
-        cs1.display('after .select()')
+        cs1.selcorr(ns, ['RR','LL'])
+        # cs1.selcorr(ns, ['LL','LR'])
+        # cs1.selcorr(ns, ['LR'])
+        cs1.display('after .selcorr()')
 
     if 0:
         keys = cs.keys()

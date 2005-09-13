@@ -1,8 +1,7 @@
-script_name = 'MG_JEN_historyCollect.py'
-last_changed = 'h10sep2005'
+script_name = 'MG_JEN_testall.py'
 
 # Short description:
-#   Functions related to MeqHistoryCollect nodes
+#   Script that tests all MG_JEN_*.py scripts 
 
 # Keywords: ....
 
@@ -38,13 +37,24 @@ from numarray import *
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
+from Timba.Contrib.JEN import MG_JEN_template
 
-# from Timba.Contrib.JEN import MG_JEN_util
-# from Timba.Contrib.JEN import MG_JEN_twig
-# from Timba.Contrib.JEN import MG_JEN_math
-# from Timba.Contrib.JEN import MG_JEN_funklet
+from Timba.Contrib.JEN import MG_JEN_funklet
+from Timba.Contrib.JEN import MG_JEN_util
 
+from Timba.Contrib.JEN import MG_JEN_twig
+from Timba.Contrib.JEN import MG_JEN_math
+from Timba.Contrib.JEN import MG_JEN_matrix
 
+from Timba.Contrib.JEN import MG_JEN_flagger
+from Timba.Contrib.JEN import MG_JEN_solver
+from Timba.Contrib.JEN import MG_JEN_dataCollect
+
+# from Timba.Contrib.JEN import MG_JEN_Sixpack
+from Timba.Contrib.JEN import MG_JEN_sixpack
+
+from Timba.Contrib.JEN import MG_JEN_Joneset
+from Timba.Contrib.JEN import MG_JEN_Cohset
 
 
 #================================================================================
@@ -53,29 +63,39 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 #================================================================================
 
 def _define_forest (ns):
-   # Perform some common initial actions, and return empty list cc:
-   cc = MG_JEN_exec.on_entry (ns, script_name)
+   MG_JEN_exec.on_entry (ns, script_name)
 
-   node = ns.freqtime << (ns.freq << Meq.Freq) + (ns.time << Meq.Time)
-   input = node
+   # Generate a list (cc) of root nodes:
+   cc = []
 
-   node = ns.stripper << Meq.Stripper(node)
-   node = ns.mean << Meq.Mean(node)
-   node = ns.hcoll << Meq.HistoryCollect(node, verbose=True,top_label=hiid('visu'))
+   global nseq                # used in test_module()
+   nseq = -1
 
-   attrib = record(plot=record(), tag='tag')
-   attrib['plot'] = record(type='spectra', title=script_name,
-                           spectrum_color='hippo',
-                           x_axis='xlabel', y_axis='ylabel')
-   node = ns.dcoll << Meq.DataCollect(node, attrib=attrib, top_label=hiid('visu'))
+   cc.append(test_module(ns, 'forest_state'))
+   cc.append(test_module(ns, 'exec'))
+   cc.append(test_module(ns, 'template'))
+   cc.append(test_module(ns, 'util'))
+   
+   cc.append(test_module(ns, 'funklet'))
+   
+   cc.append(test_module(ns, 'math'))
+   cc.append(test_module(ns, 'matrix'))
+   cc.append(test_module(ns, 'twig'))
+   
+   cc.append(test_module(ns, 'dataCollect'))
+   # cc.append(test_module(ns, 'historyCollect'))
+   
+   cc.append(test_module(ns, 'flagger'))
+   cc.append(test_module(ns, 'solver'))
+   
+   cc.append(test_module(ns, 'sixpack'))
+   # cc.append(test_module(ns, 'Sixpack'))
 
-   node = ns.root << Meq.Add(input,stepchildren=[node])
-   cc.append(node)
+   cc.append(test_module(ns, 'Joneset'))
+   cc.append(test_module(ns, 'Cohset'))
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
-
-
+   return MG_JEN_exec.on_exit (ns, script_name, cc, make_bookmark=False)
 
 
 
@@ -84,7 +104,13 @@ def _define_forest (ns):
 # Optional: Importable function(s): To be imported into user scripts.
 #================================================================================
 
-
+def test_module(ns, name):
+   global nseq
+   nseq += 1
+   nsub = ns.Subscope(str(nseq))
+   s = 'result = MG_JEN_'+name+'._define_forest(nsub)'
+   exec s
+   return result
 
 
 #********************************************************************************
@@ -104,32 +130,19 @@ MG_JEN_forest_state.init(script_name)
 # Meqforest execution routine (may be called from the browser):
 # The 'mqs' argument is a meqserver proxy object.
 
-# The function MG_JEN_exec.meqforest() can be used in various ways:
-# If not explicitly supplied, a default request will be used:
-#    return MG_JEN_exec.meqforest (mqs, parent)
-# It is also possible to give an explicit request, cells or domain
-# In addition, qualifying keywords will be used when sensible
-# The following call shows the default settings explicity:
-#    return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False) 
-# There are some predefined domains:
-#    return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')   # (100-110 MHz)
-#    return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')    # (1350-1420 MHz)
-
-
 def _test_forest (mqs, parent):
+   # The following call shows the default settings explicity:
+   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False) 
 
-   if False:
-      # Execute once, with a default request:
-      return MG_JEN_exec.meqforest (mqs, parent)
+   # There are some predefined domains:
+   # return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')   # (100-110 MHz)
+   # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')    # (1350-1420 MHz)
 
-   else:
-      # Alternative: Execute the forest for a sequence of requests:
-      for x in range(10):
-         MG_JEN_exec.meqforest (mqs, parent, nfreq=4, ntime=5,
-                                f1=x, f2=x+1, t1=x, t2=x+1,
-                                save=False, trace=False) 
-      MG_JEN_exec.save_meqforest(mqs) 
-      return True
+   # NB: It is also possible to give an explicit request, cells or domain
+   # NB: In addition, qualifying keywords will be used when sensible
+
+   # If not explicitly supplied, a default request will be used.
+   return MG_JEN_exec.meqforest (mqs, parent)
 
 
 
@@ -139,14 +152,18 @@ def _test_forest (mqs, parent):
 if __name__ == '__main__':
    print '\n*******************\n** Local test of:',script_name,':\n'
 
-   # Generic test:
-   MG_JEN_exec.without_meqserver(script_name, callback=_define_forest, recurse=10)
-
-   # Various specific tests:
-   # ns = TDL.NodeScope()          # if used: from Timba import TDL
-   ns = NodeScope()                # if used: from Timba.TDL import *
-
    if 1:
+      MG_JEN_exec.without_meqserver(script_name, callback=_define_forest, recurse=1)
+
+   ns = NodeScope()
+
+   if 0:
+      rr = 0
+      # ............
+      # MG_JEN_exec.display_object (rr, 'rr', script_name)
+      # MG_JEN_exec.display_subtree (rr, script_name, full=1)
+
+   if 0:
       rr = 0
       # ............
       # MG_JEN_exec.display_object (rr, 'rr', script_name)

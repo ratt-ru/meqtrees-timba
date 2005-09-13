@@ -79,12 +79,14 @@ class Super:
 
     def oneliner(self):
         s = '*'
-        s = s+' '+str(self.type())+':'
-        s = s+' '+str(self.label())
+        s += ' '+str(self.type())+':'
+        s += ' '+str(self.label())
         if self.ok():
-            s = s+' (ok)'
+            s += ' (ok)'
         else:
-            s = s+' ** NOT OK!! **'
+            s += ' ** NOT OK!! **'
+            s += ', errors='+str(self.errors())
+            s += ', warnings='+str(self.warnings())
         return s
 
     def display(self, txt=None, end=True):
