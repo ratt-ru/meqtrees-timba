@@ -6,6 +6,7 @@ from Timba.Meq import meq
 from Timba.Trees import TDL_common
 from Timba import utils
 from Timba.TDL import *
+import math
 
 _dbg = utils.verbosity(0, name='Sixpack')
 _dprint = _dbg.dprint                    # use: _dprint(2, "abc")
@@ -13,27 +14,39 @@ _dprintf = _dbg.dprintf
 
 class Sixpack(TDL_common.Super):
  """
- Sixpack(root=root,label=label) : gives only the root of the sbutree
- Sixpack(sI=sI,sQ=sQ,sU=sU,sV=sV,RA=RA,Dec=Dec,label=label): roots of 
-  the six subtrees but not composed
- Sixpack(sI=sI,sQ=sQ,sU=sU,sV=sV,RA=RA,Dec=Dec,nodescope=ns,label=label): 
-     node stubs, of the six subtrees, composed into one subtree as root
+ Constructors:
+  Sixpack(sI=sI,sQ=sQ,sU=sU,sV=sV,RA=RA,Dec=Dec,label=label): 
+   needs at least one node stub for the six subtrees but is not composed
+
+  Sixpack(sI=sI,sQ=sQ,sU=sU,sV=sV,RA=RA,Dec=Dec,nodescope=ns,label=label): 
+   needs at least one node stubs for the six subtrees, 
+   composed into one subtree as well.
+ 
+ Other methods:
  compose(nodescope=ns) : composes the six subtrees into one subtree
- compose(nodescope=ns,label=label): composes with the root node having
+ compose(nodescope=ns,label=label): composes with the sixpack root node having
     given label
  decompose() : decomposes the root into six subtrees
   in composed state, root !=None,
   in decomposed state, root ==None
- setI(sI): replaces the I subtreee
- setQ(sQ): replaces the Q subtreee
- setU(sU): replaces the U subtreee
- setV(sV): replaces the V subtreee
- setRA(RA): replaces the RA subtreee
- setDec(Dec): replaces the Dec subtreee
-  if sixpack is composed (root !=None), it is first decomposed
-  before this is done
- getI(),getQ(),getU(),getV(),getRA(),getDec(),getRoot()
-  returns the subtrees, or None
+ sixpack(nodescope=ns): if already composed, return the sixpack subtree,
+  else, first compose it using given nodescope and return it
+ iquv(nodescope=ns): compose the fourpack using the given nodescope 
+  and return it
+ radec(nodescope=ns): compose the twopack using the given nodescope and
+  return it
+
+ stokesI(new_stokesI):
+  if called without any input, returns the StokesI,
+  else, set StokesI node stub to the new value
+ stokesQ(new_stokesQ):
+ stokesU(new_stokesQ):
+ stokesV(new_stokesQ): same as above stokesI()
+
+ ra(new_RA): 
+ dec(new_Dec): same as above stokesI()
+
+ 
 
  Sixpack contains:
       __label: label of root node, if any
@@ -46,40 +59,47 @@ class Sixpack(TDL_common.Super):
       __RA:
       __Dec: six stubs for the six subtrees
       __root: Root of the Sixpack subtree
+      __iquv: root of fourpack subtree
+      __radec: root of radec subtree
  """
 
  def __init__(self,**pp):
    """Possible input (and defalut values) for the constructor are:
-      Sixpack(root=root) : gives only the root of the sbutree
-      Sixpack(sI=sI,sQ=sQ,sU=sU,sV=sV,RA=RA,Dec=Dec): roots of the six subtrees
-         but not composed
+      Sixpack(sI=sI,sQ=sQ,sU=sU,sV=sV,RA=RA,Dec=Dec,label=label): roots of 
+         the six subtrees but not composed
       Sixpack(sI=sI,sQ=sQ,sU=sU,sV=sV,RA=RA,Dec=Dec,nodescope=ns): roots of
-       the six subtrees, composed into one subtree as root
+       the six subtrees, composed into one subtree
    """
 
    pp.setdefault('label',None)
    pp.setdefault('nodescope',None)
    pp.setdefault('type','Sixpack')
-   pp.setdefault('RA',None)
-   pp.setdefault('Dec',None)
-   pp.setdefault('sI',None)
-   pp.setdefault('sQ',None)
-   pp.setdefault('sU',None)
-   pp.setdefault('sV',None)
-   pp.setdefault('root',None)
+   pp.setdefault('RA',0)
+   pp.setdefault('Dec',math.pi/2)
+   pp.setdefault('sI',0)
+   pp.setdefault('sQ',0)
+   pp.setdefault('sU',0)
+   pp.setdefault('sV',0)
    TDL_common.Super.__init__(self, **pp)
    self.__label=pp['label']
-   self.__root=pp['root']
    self.__sI=pp['sI']
    self.__sQ=pp['sQ']
    self.__sU=pp['sU']
    self.__sV=pp['sV']
    self.__RA=pp['RA']
    self.__Dec=pp['Dec']
+   # remember the given nodescope, if any
+   #self.__ns=pp['nodescope']
+   # do not accept root of sixpack as constructor input
+   self.__root=None
+   # root of 2pack and 4pack
+   self.__radec=None
+   self.__iquv=None
 
-   if  pp['RA'] !=None and pp['Dec']!=None and\
-     pp['sI'] !=None and pp['sQ'] !=None and\
-     pp['sU'] !=None and pp['sV'] !=None:
+   # at least one subtree should be given as input to the constructor
+   if  pp['RA'] !=0 or pp['Dec']!=math.pi/2 or\
+     pp['sI'] !=0 or pp['sQ'] !=0 or\
+     pp['sU'] !=0 or pp['sV'] !=0:
     # try to compose
     my_ns=pp['nodescope']
     my_name=pp['label']
@@ -90,47 +110,49 @@ class Sixpack(TDL_common.Super):
     elif my_ns !=None: # compose with defalut label
      self.__root=my_ns<<Meq.Composer(self.__RA,\
        self.__Dec,self.__sI,self.__sQ,self.__sU,self.__sV)
-   
- # traditional getter and setter methods
- # getter methods return the node stubs
- # setter methods should be followed by a compose() to create the 
- # subtree 
- def setI(self,I):
-  self.__sI=I
- def getI(self):
-  return self.__sI
- def setQ(self,Q):
-  self.__sQ=Q
- def getQ(self):
-  return self.__sQ
- def setU(self,U):
-  self.__sU=U
- def getU(self):
-  return self.__sU
- def setV(self,V):
-  self.__sV=V
- def getV(self):
-  return self.__sV
- def setRA(self,RA):
-  self.__RA=RA
- def getRA(self):
-  return self.__RA
- def setDec(self,Dec):
-  self.__Dec=Dec 
- def getDec(self):
-  return self.__Dec
- def setRoot(self,root):
-  self.__root=root
-  # set all node stubs to None
-  self.__sI=None
-  self.__sQ=None
-  self.__sU=None
-  self.__sV=None
-  self.__RA=None
-  self.__Dec=None
- def getRoot(self):
-  return self.__root
+   else: 
+    _dprint(1,"Warning: at least one subtree should be given to the constructor") 
 
+
+ # common methods to get/set an item from the Sixpack, if input is None,
+ # item is returned, else item is set to new value given as input.
+ def ra(self,val=None):
+  if val==None:
+   return self.__RA
+  else:
+   self.__RA=val
+
+ def dec(self,val=None):
+  if val==None:
+   return self.__Dec
+  else:
+   self.__Dec=val
+
+ def stokesI(self,val=None):
+  if val==None:
+   return self.__sI
+  else:
+   self.__sI=val
+
+ def stokesQ(self,val=None):
+  if val==None:
+   return self.__sQ
+  else:
+   self.__sQ=val
+
+ def stokesU(self,val=None):
+  if val==None:
+   return self.__sU
+  else:
+   self.__sU=val
+
+ def stokesV(self,val=None):
+  if val==None:
+   return self.__sV
+  else:
+   self.__sV=val
+
+ # decompose the sixpack into six node stubs
  def decompose(self):
   # get node stubs, make root=None
   if self.__root !=None:
@@ -145,18 +167,19 @@ class Sixpack(TDL_common.Super):
   else:
    _dprint(0,"Cannot decompose an empty subtree") 
 
+ # compose the sixpack from the six node stubs
  def compose(self,nodescope,label=None):
   if self.__root !=None:
    _dprint(1,"Warning: composing an already exsisting subtree")
   # try to compose
   my_ns=nodescope
   if label==None:
-   my_name=self.__label
+   my_name="sixpack(q="+self.__label+")"
   else:
-   my_name=label
-  if self.__sI!=None and self.__sQ!=None and\
-    self.__sU!=None and self.__sV !=None and\
-    self.__RA!=None and self.__Dec !=None:
+   my_name="sixpack(q="+label+")"
+  if self.__sI!=0 or self.__sQ!=0 or\
+    self.__sU!=0 or self.__sV !=0 or\
+    self.__RA!=0 or self.__Dec !=math.pi/2:
    if  my_ns!=None and my_name !=None:
     # compose with given label
      self.__root=my_ns[my_name]<<Meq.Composer(self.__RA,\
@@ -167,10 +190,63 @@ class Sixpack(TDL_common.Super):
   else:
    _dprint(0,"Cannot compose when the (IQUV)(RA,Dec) node stubs are empty") 
   
- # 
+ # return the sixpack from the six node stubs
+ def sixpack(self,nodescope=None):
+  if self.__root==None:
+   #first try to compose
+   self.compose(nodescope)
+  return self.__root
+
+ # return the 4pack from the six node stubs
+ def iquv(self,nodescope=None,label=None):
+  my_ns=nodescope
+  if label==None:
+   my_name="iquv(q="+self.__label+")"
+  else:
+   my_name="iquv(q="+label+")"
+  if self.__sI!=0 or self.__sQ!=0 or\
+    self.__sU!=0 or self.__sV !=0:
+   if  my_ns!=None and my_name !=None:
+    # compose with given label
+     self.__iquv=my_ns[my_name]<<Meq.Composer(self.__sI,self.__sQ,self.__sU,self.__sV)
+   elif my_ns !=None: # compose with defalut label
+     self.__iquv=my_ns<<Meq.Composer(self.__sI,self.__sQ,self.__sU,self.__sV)
+  else:
+   _dprint(0,"Cannot compose iquv when the (IQUV) node stubs are empty") 
+  # finally return
+  return self.__iquv
+
+ # return the 2pack from the six node stubs
+ def radec(self,nodescope=None,label=None):
+  my_ns=nodescope
+  if label==None:
+   my_name="radec(q="+self.__label+")"
+  else:
+   my_name="radec(q="+label+")"
+  if self.__RA!=0 or self.__Dec!=math.pi/2:
+   if  my_ns!=None and my_name !=None:
+    # compose with given label
+     self.__radec=my_ns[my_name]<<Meq.Composer(self.__RA,self.__Dec)
+   elif my_ns !=None: # compose with defalut label
+     self.__radec=my_ns<<Meq.Composer(self.__RA,self.__Dec)
+  else:
+   _dprint(0,"Cannot compose radec when the (RA,Dec) node stubs are empty") 
+ 
+  return self.__radec
+
+ # print a summary
  def oneliner(self):
   s=TDL_common.Super.oneliner(self)
-  s+="type '"+self.type()+"' label '"+self.label()+"'"
+  s+=" : {I="+str(self.__sI)
+  s+=",Q="+str(self.__sQ)
+  s+=",U="+str(self.__sU)
+  s+=",V="+str(self.__sV)
+  s+=",RA="+str(self.__RA)
+  s+=",Dec="+str(self.__Dec)
+  s+=",sixpack="+str(self.__root)
+  s+=",iquv="+str(self.__iquv)
+  s+=",radec="+str(self.__radec)
+  s+="}"
   if self.__root !=None:
    s+=" state 'composed'"
   else:
@@ -178,23 +254,13 @@ class Sixpack(TDL_common.Super):
   return s
 
  def display(self,txt=None,full=False):
-  s=TDL_common.Super.display(self,txt=txt,end=False)
-  print s
-  print str(self) 
-  TDL_common.Super.display_end(self)
+  ss=TDL_common.Super.display(self,txt=txt,end=False)
+  TDL_common.Super.display_end(self,ss)
+  return ss
 
- # Print
+ # generic string
  def __str__(self):
-   temp_str="Sixpack: {I="+str(self.getI())
-   temp_str+=",Q="+str(self.getQ())
-   temp_str+=",U="+str(self.getU())
-   temp_str+=",V="+str(self.getV())
-   temp_str+=",RA="+str(self.getRA())
-   temp_str+=",Dec="+str(self.getDec())
-   temp_str+=",Root="+str(self.getRoot())
-   temp_str+="}"
-   return temp_str
-
+  return self.oneliner()
 
 
 ################################################################
@@ -223,3 +289,18 @@ if __name__=='__main__':
   # resolve both node scopes
   ns.Resolve()
   ns1.Resolve()
+
+  # try to get some subtrees
+  iquv_tree=my_sp.iquv()
+  print iquv_tree
+  iquv_tree=my_sp.iquv(ns)
+  print iquv_tree
+  my_sp.display()
+
+  radec=my_sp.radec(ns1)
+  my_sp.display()
+  my_sp1=TDL_Sixpack.Sixpack(label='test1',\
+    sU=my_sp.stokesU())
+
+  my_sp1.display()
+
