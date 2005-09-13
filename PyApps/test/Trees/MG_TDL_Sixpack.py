@@ -22,10 +22,6 @@ _dprintf = _dbg.dprintf                  # use: _dprintf(2, "a = %d", a)
 from Timba.TDL import *
 from Timba.Meq import meq
 
-#from numarray import *
-# from string import *
-# from copy import deepcopy
-
 from Timba.Trees import TDL_Sixpack
 
 
@@ -55,8 +51,8 @@ def _define_forest (ns):
 
   # now create the sixpack
   my_sp=TDL_Sixpack.Sixpack(label=my_name,\
-   nodescope=ns, RA=stubRA,Dec=stubDec,sI=stubI,\
-   sQ=stubQ,sU=stubU,sV=stubV)
+   ns=ns, ra=stubRA,dec=stubDec,stokesI=stubI,\
+   stokesQ=stubQ,stokesU=stubU,stokesV=stubV)
   my_sp.display()
 
   # resolve the forest
@@ -95,7 +91,7 @@ def _test_forest (mqs, parent):
    my_sp.display()
    # send to kernel
    request = meq.request(my_cells,eval_mode=1);
-   mqs.meq('Node.Execute',record(name=my_sp.label(),request=request));
+   mqs.meq('Node.Execute',record(name='sixpack:q='+my_sp.label(),request=request));
 
 
 
