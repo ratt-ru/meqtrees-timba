@@ -178,6 +178,7 @@ class Sixpack(TDL_common.Super):
   else:
    _dprint(0,"Cannot compose when the  nodescope is None") 
 
+  return self.__sixpack
 
  # return the 4pack from the six node stubs
  def iquv(self,ns=None):
@@ -277,27 +278,31 @@ if __name__=='__main__':
   # decompose to get back the node stubs
   my_sp.decompose()
   my_sp.display()
-  # this should give an error
-  my_sp.decompose()
-  # create a new nodescope
-  ns1=NodeScope('1')
-  # compose node stubs in the new nodescope
+    # compose node stubs in the new nodescope
   my_sp.display()
   # resolve both node scopes
   ns.Resolve()
-  ns1.Resolve()
 
   # try to get some subtrees
   iquv_tree=my_sp.iquv()
+  my_sp.nodescope(ns)
   print iquv_tree
   iquv_tree=my_sp.iquv(ns)
   print iquv_tree
+  s_tree=my_sp.sixpack()
+  print s_tree
   my_sp.display()
 
+
+  my_sp.display()
+  # create a new nodescope
+  ns1=NodeScope('1')
   radec=my_sp.radec(ns1)
+  ns1.Resolve()
   my_sp.display()
   my_sp1=TDL_Sixpack.Sixpack(label='test1',\
     stokesU=my_sp.stokesU())
 
   my_sp1.display()
+  
 
