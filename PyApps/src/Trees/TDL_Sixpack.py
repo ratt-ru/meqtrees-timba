@@ -23,18 +23,15 @@ class Sixpack(TDL_common.Super):
    composed into one subtree as well.
  
  Other methods:
- compose(ns=ns) : composes the six subtrees into one subtree
- compose(ns=ns,label=label): composes with the sixpack root node having
-    given label
  decompose() : decomposes the root into six subtrees
-  in composed state, root !=None,
-  in decomposed state, root ==None
+  in composed state, sixpack !=None,
+  in decomposed state, sixpack ==None
  sixpack(ns=ns): if already composed, return the sixpack subtree,
   else, first compose it using given nodescope and return it
  iquv(ns=ns): compose the fourpack using the given nodescope 
-  and return it
+  and return it or return an already composed subtree
  radec(ns=ns): compose the twopack using the given nodescope and
-  return it
+  return it or return an already composed subtree
 
  stokesI(new_stokesI):
   if called without any input, returns the StokesI,
@@ -156,13 +153,15 @@ class Sixpack(TDL_common.Super):
    self.__sU=child_list[4][1]
    self.__sV=child_list[5][1]
    self.__sixpack=None
+   self.__iquv=None
+   self.__radec=None
   else:
    _dprint(0,"Cannot decompose an empty subtree") 
 
  # compose the sixpack from the six node stubs
- def compose(self,ns=None):
+ def sixpack(self,ns=None):
   if self.__sixpack !=None:
-   _dprint(1,"Warning: composing an already exsisting subtree")
+   return self.__sixpack
   # try to compose
   my_ns=ns
   if my_ns!=None:
@@ -178,18 +177,12 @@ class Sixpack(TDL_common.Super):
        self.__Dec,self.__sI,self.__sQ,self.__sU,self.__sV)
   else:
    _dprint(0,"Cannot compose when the  nodescope is None") 
-  
-
- # return the sixpack from the six node stubs
- def sixpack(self,ns=None):
-  if self.__sixpack==None:
-   # first try to compose
-   self.compose(nodescope,ns)
-  return self.__sixpack
 
 
  # return the 4pack from the six node stubs
  def iquv(self,ns=None):
+  if self.__iquv!=None:
+   return self.__iquv
   my_ns=ns
   if my_ns!=None:
    #update nodescope
@@ -209,6 +202,8 @@ class Sixpack(TDL_common.Super):
 
  # return the 2pack from the six node stubs
  def radec(self,ns=None):
+  if self.__radec!=None:
+   return self.__radec
   my_ns=ns
   if my_ns!=None:
    #update nodescope
@@ -243,20 +238,22 @@ class Sixpack(TDL_common.Super):
 
  def display(self,txt=None,full=False):
   ss=TDL_common.Super.display(self,txt=txt,end=False)
-  print "  StokesI (node stub)= "+str(self.__sI)
-  print "  StokesQ (node stub)= "+str(self.__sQ)
-  print "  StokesU (node stub)= "+str(self.__sU)
-  print "  StokesV (node stub)= "+str(self.__sV)
-  print "  RA      (node stub)= "+str(self.__RA)
-  print "  Dec     (node stub)= "+str(self.__Dec)
-  print "  sixpack (subtree)  = "+str(self.__sixpack)
-  print "  iquv    (subtree)  = "+str(self.__iquv)
-  print "  radec   (subtree)  = "+str(self.__radec)
-  print "  nodescope (nodescope)="+str(self.__ns)
+  ss.append(" ")
+  ss.append("  StokesI (node stub)= "+str(self.__sI))
+  ss.append("  StokesQ (node stub)= "+str(self.__sQ))
+  ss.append("  StokesU (node stub)= "+str(self.__sU))
+  ss.append("  StokesV (node stub)= "+str(self.__sV))
+  ss.append("  RA      (node stub)= "+str(self.__RA))
+  ss.append("  Dec     (node stub)= "+str(self.__Dec))
+  ss.append("  sixpack (subtree)  = "+str(self.__sixpack))
+  ss.append("  iquv    (subtree)  = "+str(self.__iquv))
+  ss.append("  radec   (subtree)  = "+str(self.__radec))
+  ss.append("  nodescope (nodescope)="+str(self.__ns))
   if self.__sixpack !=None:
-   print "  state is 'composed'"
+   ss.append("  state is 'composed'")
   else:
-   print "  state is 'decomposed'"
+   ss.append("  state is 'decomposed'")
+  ss.append(" ")
   TDL_common.Super.display_end(self,ss)
 
  # generic string
@@ -285,7 +282,6 @@ if __name__=='__main__':
   # create a new nodescope
   ns1=NodeScope('1')
   # compose node stubs in the new nodescope
-  my_sp.compose(ns1)
   my_sp.display()
   # resolve both node scopes
   ns.Resolve()
