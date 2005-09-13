@@ -11,6 +11,15 @@ last_changed = 'h10sep2005'
 
 # Copyright: The MeqTree Foundation 
 
+
+
+
+
+
+
+
+
+
 #================================================================================
 # Import of Python modules:
 
@@ -20,6 +29,21 @@ from Timba.Meq import meq              # required in MG_JEN_exec !!
 from copy import deepcopy
 
 from Timba.Contrib.JEN import MG_JEN_forest_state
+
+#--------------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(script_name)
+
+
+
+
+
+
+
+
+
 
 
 
@@ -575,12 +599,6 @@ def display_object (v, name='<name>', txt='', full=0, indent=0):
 # NB: this section should always be at the end of the script
 #********************************************************************************
 
-#--------------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-# NB: Inhibited, because this gives an error for this particular script
-
-MG_JEN_forest_state.init(script_name)
 
 
 #--------------------------------------------------------------------------------

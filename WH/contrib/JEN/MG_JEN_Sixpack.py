@@ -1,95 +1,138 @@
 script_name = 'MG_JEN_Sixpack.py'
+last_changed = 'h10sep2005'
 
-# Short description:
-#   Generation of some LSM point-source sixpacks, for simulation 
+# Short description (see also the full description below):
+#   A template for the generation of MeqGraft (MG) scripts
 
 # Keywords: ....
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
 # History:
-# - 28 aug 2005: creation
-# - 11 sep 2005: conversion to Sixpack objects
+# - 24 aug 2005: creation
 
-# Copyright: The MeqTree Foundation 
+# Copyright: The MeqTree Foundation
 
-#================================================================================
-# Import of Python modules:
+# Full description (try to be complete, and up-to-date!):
+
+
+   
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preample and initialisation **************************
+#********************************************************************************
+#********************************************************************************
+
 
 from Timba.TDL import *
-from Timba.Meq import meq
+# from Timba.Meq import meq
+
+from Timba import utils
+# _dbg = utils.verbosity(0, name='tutorial')
+# _dprint = _dbg.dprint                         # use: _dprint(2, "abc")
+# _dprintf = _dbg.dprintf                       # use: _dprintf(2, "a = %d", a)
+# run the script with: -dtutorial=3
+# level 0 is always printed
 
 from numarray import *
 # from string import *
 # from copy import deepcopy
 
-from Timba.Trees import TDL_Sixpack
-
+# Scripts needed to run a MG_JEN script: 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
+
+# Other MG_JEN scripts (uncomment as necessary):
+# NB: Also browse the list of other available scripts!
+
+from Timba.Trees import TDL_Sixpack
+
 from Timba.Contrib.JEN import MG_JEN_funklet
 from Timba.Contrib.JEN import MG_JEN_matrix
 from Timba.Contrib.JEN import MG_JEN_twig
 
 
-#================================================================================
+
+
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+# See MG_JEN_forest_state.py
+
+MG_JEN_forest_state.init(script_name)
+
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
-#================================================================================
+
 
 def _define_forest (ns):
-   MG_JEN_exec.on_entry (ns, script_name)
-
-   # Generate a list (cc) of one or more node bundles (bb):
-   cc = []
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, script_name)
 
    group = dict()
-   group['basic'] = ['unpol']
-   # ,'Qonly','Uonly','Vonly']
-   # group['combi'] = ['QU','QUV','QU2']
-   # group['test'] = ['RMtest','SItest']
-   # group['3c'] = ['3c147','3c48','3c286','3c295']
+   group['basic'] = ['unpol','Qonly','Uonly','Vonly']
+   group['combi'] = ['QU','QUV','QU2']
+   group['test'] = ['RMtest','SItest']
+   group['3c'] = ['3c147','3c48','3c286','3c295']
 
    # sixpack['default'] = newstar_source (ns)
    # sixpack['QUV_RM_SI'] = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
 
    radec = []
-   # for key in group.keys():
-   ss = []
-   predef = 'predef'
-   key = 'key'
-   # for predef in group[key]:
-   Sixpack = newstar_source (ns, name=predef)
-         # ss.append(make_Sixpack_bundle(ns, Sixpack, radec)) 
-   make_Sixpack_bundle(ns, Sixpack, radec)
-   cc.append(MG_JEN_exec.bundle(ns, ss, key))
-      
+   for key in group.keys():
+      ss = []
+      for predef in group[key]:
+         sixpack = newstar_source (ns, name=predef)
+         bb = []
+         bb.append(sixpack.stokesI())
+         bb.append(sixpack.stokesQ())
+         bb.append(sixpack.stokesU())
+         bb.append(sixpack.stokesV())
+         ss.append(MG_JEN_exec.bundle(ns, bb, predef))
+         radec.append(sixpack.ra())
+         radec.append(sixpack.dec())
+      cc.append(MG_JEN_exec.bundle(ns, ss, key))
+      MG_JEN_forest_state.bookfolder(key)
  
    # Collect the 'loose' RA,DEC root nodes to a single root node (more tidy):
    radec_root = ns.radec_root << Meq.Add (children=radec)
 
+
    # Finished: 
    return MG_JEN_exec.on_exit (ns, script_name, cc)
 
-#-------------------------------------------------------------------------
-# Helper function
-
-def make_Sixpack_bundle(ns, Sixpack, radec): 
-   Sixpack.display('make_Sixpack_bundle')
-   # Collect the 'loose' RA,DEC root nodes to a single root node (more tidy):
-   radec.extend(Sixpack['radec'].values())
-   # For each sixpack, make a 'bundle' of the 4 (I,Q,U,V) flux subtrees:
-   print 'iquv=',Sixpack['iquv'].values()
-   print 'label()=',Sixpack.label()
-   node = MG_JEN_exec.bundle(ns, Sixpack['iquv'].values(), Sixpack.label())
-   print 'node =',node
-   return node
 
 
 
-#================================================================================
-# Optional: Importable function(s): To be imported into user scripts.
-#================================================================================
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
+
+# Functions that may be imported into user scripts (very important!!).
+# This MG script should be used to test them thoroughly.
+
 
 #----------------------------------------------------------------------
 # Some sources are predefined: Modify parameters pp accordingly.
@@ -143,6 +186,14 @@ def predefined (pp, trace=0):
   # if trace: print 'pp =',pp
   return 
 
+
+
+
+
+# Centrally define the 6 standard names:
+
+def sixnames ():
+  return record(I='stokesI', Q='stokesQ', U='stokesU', V='stokesV', R='ra', D='dec') 
 
 
 
@@ -239,7 +290,7 @@ def newstar_source (ns=0, **pp):
 
       # Rotate QU by the RM matrix -> QURM
       parm['RM'] = ns.RM(q=pp['name']) << Meq.Parm(pp['RM'])
-      wvl2 = MG_JEN_twig.wavelength (ns, qual='auto', unop='Sqr')
+      wvl2 = MG_JEN_twig.wavelength (ns, qual=None, unop='Sqr')
       farot = ns.farot(q=pp['name']) << (parm['RM']*wvl2)
       rotmat = MG_JEN_matrix.rotation (ns, angle=farot)
       QURM = ns['QURM'](q=pp['name']) << Meq.MatrixMultiply(rotmat, QU)  
@@ -254,95 +305,109 @@ def newstar_source (ns=0, **pp):
    radec[n6.R] = ns[n6.R](q=pp['name']) << Meq.Parm(pp['RA'])
    radec[n6.D] = ns[n6.D](q=pp['name']) << Meq.Parm(pp['Dec'])
 
-   # Finished: Make the Sixpack object and return it:
-   Sixpack = TDL_Sixpack.Sixpack (ns=ns, label=pp['name'],\
-                                  RA=radec[n6.R], Dec=radec[n6.D],\
-                                  StokesI=iquv[n6.I], StokesQ=iquv[n6.Q],\
-                                  StokesU=iquv[n6.U], StokesV=iquv[n6.V])
-   Sixpack.display('newstar') 
-   return Sixpack
-
-
-
-#=======================================================================================
-# Initialise a standard 'sixpack' object, which contains the 6 nodes that
-# represent the manifestations of a source/patch in the image.
-# This object (dict) is updated by, and passed between, various TDL functions 
-
-def init (name='cps', origin='MG_JEN_newstar::', input={},
-          iquv={}, radec={}, simul=0, trace=0):
-   """initialise/check a standard sixpack object"""
-   sixpack = dict(name=name, type='lsm_sixpack', origin=origin, 
-                  iquv=iquv, radec=radec, input=input, simul=simul)
-   # n6 = lsm_sixnames()
-   # if trace: JEN_display (sixpack, 'sixpack', sixpack['name'])
+   # Finished: Make the sixpack and return it
+   sixpack = TDL_Sixpack.Sixpack(label=pp['name'],
+                                 stokesI=iquv[n6.I], 
+                                 stokesQ=iquv[n6.Q], 
+                                 stokesU=iquv[n6.U], 
+                                 stokesV=iquv[n6.V], 
+                                 ra=radec[n6.R], 
+                                 dec=radec[n6.D])
+   MG_JEN_forest_state.object(sixpack)
    return sixpack
 
 
-# Centrally define the 6 standard names:
-
-def sixnames ():
-  return record(I='StokesI', Q='StokesQ', U='StokesU', V='StokesV', R='RA', D='Dec') 
-
-
-
-
 
 
 
 
 
 #********************************************************************************
-# Initialisation and testing routines
-# NB: this section should always be at the end of the script
+#********************************************************************************
+#*****************  PART V: Forest execution routines ***************************
+#********************************************************************************
 #********************************************************************************
 
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
+# The function with the standard name _test_forest(), and any function
+# with name _tdl_job_xyz(m), will show up under the 'jobs' button in
+# the browser, and can be executed from there.  The 'mqs' argument is
+# a meqserver proxy object.
 
-MG_JEN_forest_state.init(script_name)
+# In the default function, the forest is executed once:
+# If not explicitly supplied, a default request will be used:
 
-#-------------------------------------------------------------------------
-# Meqforest execution routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
-# If not explicitly supplied, a default request will be used.
+def _tdl_job_default (mqs, parent):
+    return MG_JEN_exec.meqforest (mqs, parent)
 
 def _test_forest (mqs, parent):
-   # The following call shows the default settings explicity:
-   # return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False) 
+    return MG_JEN_exec.meqforest (mqs, parent)
 
-   # There are some predefined domains:
-   return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')   # (100-110 MHz)
-   # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')    # (1350-1420 MHz)
 
-   # NB: It is also possible to give an explicit request, cells or domain
-   # NB: In addition, qualifying keywords will be used when sensible
 
-   # If not explicitly supplied, a default request will be used.
-   return MG_JEN_exec.meqforest (mqs, parent)
+# The following call shows the default settings explicity:
+# NB: It is also possible to give an explicit request, cells or domain
+#     In addition, qualifying keywords will be used when sensible
 
-#-------------------------------------------------------------------------
-# Test routine to check the tree for consistency in the absence of a server
+def _tdl_job_custom(mqs, parent):
+   return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False) 
+
+# There are some predefined domains:
+
+def _tdl_job_lofar(mqs, parent):
+    return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')   # (100-110 MHz)
+
+def _tdl_job_21cm(mqs, parent):
+    return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')    # (1350-1420 MHz)
+
+# Execute the forest for a sequence of requests:
+
+def _tdl_job_sequence(mqs, parent):
+    for x in range(10):
+        MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
+                               f1=x, f2=x+1, t1=x, t2=x+1,
+                               save=False, trace=False)
+    MG_JEN_exec.save_meqforest(mqs) 
+    return True
+
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART VI: Standalone test routines *************************
+#********************************************************************************
+#********************************************************************************
+
+# These test routines do not require the meqbrowser, or even the meqserver.
+# Just run them by enabling the required one (if 1:), and invoking python:
+#      > python MG_JEN_Sixpack.py
 
 if __name__ == '__main__':
-   print '\n**',script_name,':\n'
-   
-   # This is the default:
-   MG_JEN_exec.without_meqserver(script_name)
+   print '\n*******************\n** Local test of:',script_name,':\n'
 
-   # This is the place for some specific tests during development.
+   # Generic test:
+   if 0:
+       MG_JEN_exec.without_meqserver(script_name, callback=_define_forest, recurse=3)
+
+   # Various specific tests:
    ns = NodeScope()
+
    if 1:
       # sixpack = newstar_source (ns)
       # sixpack = newstar_source (ns, name='3c147')
       sixpack = newstar_source (ns, name='3c286')                    # <------ !!
       # sixpack = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
-      for key in sixpack['iquv'].keys():
-         MG_JEN_exec.display_subtree (sixpack['iquv'][key], 'key', full=1)
+      sixpack.display()
+      sixpack.nodescope(ns)
+      MG_JEN_exec.display_subtree (sixpack.stokesI(), 'stokesI()', full=1)
+      MG_JEN_exec.display_subtree (sixpack.sixpack(), 'sixpack()', full=1)
+      MG_JEN_exec.display_subtree (sixpack.iquv(), 'iquv()', full=1)
+      MG_JEN_exec.display_subtree (sixpack.radec(), 'radec()', full=1)
 
-   print '\n** end of',script_name,'\n'
-
+   print '\n** End of local test of:',script_name,'\n*******************\n'
+       
 #********************************************************************************
 #********************************************************************************
 

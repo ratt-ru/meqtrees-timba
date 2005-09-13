@@ -174,14 +174,14 @@ def cloud (ns, n=3, name='pnt', qual=None, stddev=1, mean=complex(0)):
     v = array([[0,.3,.1],[.3,.1,0.03]])
     if isinstance(mean, complex):
         for i in range(n):
-            vreal = MG_JEN_funklet.funklet(v, mean=mean.real, stddev=stddev)
-            vimag = MG_JEN_funklet.funklet(v, mean=mean.imag, stddev=stddev)
+            vreal = MG_JEN_funklet.polc_ft(c00=mean.real, fdeg=3, tdeg=2, stddev=stddev)
+            vimag = MG_JEN_funklet.polc_ft(c00=mean.imag, fdeg=3, tdeg=2, stddev=stddev)
             real = ns[name](qual)(i,'real') << Meq.Parm (vreal, node_groups='Parm')
             imag = ns[name](qual)(i,'imag') << Meq.Parm (vimag, node_groups='Parm')
             cc.append(ns[name](qual)(i) << Meq.ToComplex (real, imag))
     else:
         for i in range(n):
-            dflt = MG_JEN_funklet.funklet(v, mean=mean, stddev=stddev)
+            dflt = MG_JEN_funklet.polc_ft(c00=mean, fdeg=3, tdeg=2, stddev=stddev)
             cc.append(ns[name](qual)(i) << Meq.Parm (dflt, node_groups='Parm'))
         
     return cc

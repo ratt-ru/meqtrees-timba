@@ -244,6 +244,11 @@ def example2(ns, qual=None, **pp):
 # In the default function, the forest is executed once:
 # If not explicitly supplied, a default request will be used:
 
+def _tdl_job_default (mqs, parent):
+    return MG_JEN_exec.meqforest (mqs, parent)
+
+# NB: The function _test_forest() is always put at the end of the menu:
+
 def _test_forest (mqs, parent):
     return MG_JEN_exec.meqforest (mqs, parent)
 
@@ -273,7 +278,9 @@ def _tdl_job_sequence(mqs, parent):
     return True
 
 
-
+# NB: One may determine the order of these functions in the menu
+#     by means of the following list. If empty, the menu will be empty.
+# _tdl_job_list = []
 
 
 

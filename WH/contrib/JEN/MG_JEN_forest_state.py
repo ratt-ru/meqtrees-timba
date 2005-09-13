@@ -52,14 +52,14 @@ def _define_forest (ns):
    page_name = 'b+'
    bookmark (b, page=page_name)
    bookmark (b, udi='funklet/coeff', viewer='Record Browser', page=page_name)
-   bookfolder()
+   bookfolder('ab')
  
    # Make a named page with views of diferent nodes:
    page_name = 'sum=a+b'
    bookmark (a, page=page_name)
    bookmark (b, page=page_name)
    bookmark (sum, page=page_name)
-   # bookfolder()
+   bookfolder('absum')
  
    # Make a named page with multiple views of the same node:
    page_name = 'views of sum'
@@ -67,6 +67,7 @@ def _define_forest (ns):
    bookmark (sum, page=page_name, viewer='ParmFiddler')
    bookmark (sum, page=page_name, viewer='Record Browser')
    bookmark (sum, page=page_name, viewer='Executor')
+   bookfolder('sum-views')
 
    # Append items to the forest state record:
    for i in [1,2]:
@@ -129,6 +130,8 @@ def init (script='<MG_JEN_xyz.py>', mode='MeqGraft'):
  	
    return 
 
+# Execute this function:
+init(script_name)
 
 
 #------------------------------------------------------------------------------- 
@@ -149,6 +152,9 @@ def stream (**pp):
    return True
 
 
+# Execute this function:
+stream()
+
 
 #------------------------------------------------------------------------------- 
 # Save the forest to a binary file(s):
@@ -167,8 +173,12 @@ def save_meqforest (mqs, filename=False, reference=False):
 
 
 
+#===============================================================================
+# Bookmark related functions:
+#===============================================================================
+
 #------------------------------------------------------------------------------- 
-# Create a bookmark:
+# Create a bookmark record (optionally, save in forest_state):
 
 
 def bookmark (node=0, name=0, udi=0, viewer='Result Plotter',
@@ -199,13 +209,12 @@ def bookmark (node=0, name=0, udi=0, viewer='Result Plotter',
 
 
 #----------------------------------------------------------------------
-# Access/display/clear the bookmarks:
+# Access/display/clear the current bookmarks:
 
 def bookmarks (clear=0, trace=0):
   if clear: Settings.forest_state.bookmarks = [] 
   Settings.forest_state.setdefault('bookmarks',[])
   bms = Settings.forest_state.bookmarks
-  # if trace: JEN_display(bms,'bms')
   return bms
 
 
@@ -271,27 +280,34 @@ def bookpage (bm={}, name='page', trace=0):
 
 
 #----------------------------------------------------------------------
-# Collect a number of bokkmarks/pages into a named folder:
+# Collect the specified (item) bookmarks/pages into a named folder:
+# If none specified, collect all the non-folder bookmarks.
 
 def bookfolder (name='bookfolder', item=None, trace=0):
   if (trace): print '\n** .bookfolder(',name,'):'
+
   Settings.forest_state.setdefault('bookmarks',[])
   bms = Settings.forest_state.bookmarks
 
-  if item==None:              # if item=None, put ALL bookmarks in the folder
+  if item==None:     # if item=None, put ALL non-folder bookmarks in the folder
      pass
   elif not isinstance(item, (tuple, list)):
-     item = [item]                      # assume string...
-  elif len(item)==0:                # empty list
+     item = [item]                         # assume string...
+  elif len(item)==0:                       # empty list
      return []                             # ignore
 
+  # Collect items for the folder, and attach the rest to bmsnew:
   folder = []
   bmsnew = []
   for i in range(len(bms)):
      print '-',i,':',bms[i]
-     if item==None:
-       folder.append(bms[i])
-       if (trace): print 'append to folder:',bms[i]
+     if item==None:                        # none specified
+       if (bms[i].has_key('folder')):     # already a folder:
+          bmsnew.append(bms[i]) 
+          if (trace): print 'append to bmsnew:',bms[i]
+       else:                      
+          folder.append(bms[i])
+          if (trace): print 'append to folder:',bms[i]
      elif item.__contains__(bms[i].name):
        folder.append(bms[i]) 
        if (trace): print 'append to folder:',bms[i]
@@ -299,15 +315,24 @@ def bookfolder (name='bookfolder', item=None, trace=0):
        bmsnew.append(bms[i]) 
        if (trace): print 'append to bmsnew:',bms[i]
 
+  # Make the new folder, and attach it to bmsnew:
   if len(folder)>0: 
 	bmsnew.append(record(name=name, folder=folder)) 
         if (trace): print 'append folder to bmsnew:',folder
 
   Settings.forest_state.bookmarks = bmsnew
+
   return folder
 
 
-#---------------------------------------------------------------------------
+
+
+
+#===========================================================================
+# Routines to attach information to the forest_state record:
+#===========================================================================
+
+#--------------------------------------------------------------------------
 # Add the given named (kwitem) and unnamed (item) items to the forest_state
 
 def trace (*item, **kwitem):
@@ -320,14 +345,22 @@ def object(object, txt='<txt>'):
   trace(ss, key=object.label())
   return True
 
+# Same for history items:
+
 def history (*item, **kwitem):
    return append ('history', item, kwitem)
+
+# Same for error messages:
 
 def error (*item, **kwitem):
    return append ('ERROR', item, kwitem)
 
+# Same for warning messages:
+
 def warning (*item, **kwitem):
    return append ('WARNING', item, kwitem)
+
+# Common routine that does the work:
 
 def append (field, item, kwitem):
   # Make a record of the named arguments:
@@ -405,16 +438,9 @@ def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
 
 
 #********************************************************************************
-# Initialisation and testing routines
-# NB: this section should always be at the end of the script
+# Testing routines
 #********************************************************************************
 
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-init(script_name)
-stream()
 
 #-------------------------------------------------------------------------
 # Meqforest execution routine (may be called from the browser):
@@ -428,19 +454,22 @@ def _test_forest (mqs, parent):
    mqs.meq('Node.Execute',record(name=_test_root, request=request));
    return
 
+
 #-------------------------------------------------------------------------
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
    print '\n****************\n** Local test of:',script_name,':\n'
 
+   # NB: Importing a module resets the forest_state record!!
+   from Timba.Contrib.JEN import MG_JEN_exec
+
    # Use a simple version of MG_JEN_exec.without_meqserver():
    ns = NodeScope()
    root = _define_forest(ns)
    ns.Resolve()
-
-   from Timba.Contrib.JEN import MG_JEN_exec
    MG_JEN_exec.display_subtree(root, script_name, full=1)
+   MG_JEN_exec.display_object(Settings.forest_state, 'forest_state', script_name)
 
    if 0:
       from Timba.Trees import TDL_common
@@ -448,15 +477,13 @@ if __name__ == '__main__':
       ss = sp.display(script_name)
       trace(ss, key=sp.label())
       
-   if 1:
+   if 0:
       from Timba.Trees import TDL_Cohset
       cs = TDL_Cohset.Cohset()
       ss = cs.display(script_name)
       trace(ss, key=cs.label())
       
-   rr = Settings.forest_state
-   MG_JEN_exec.display_object(rr, 'forest_state', script_name)
-
+   MG_JEN_exec.display_object(Settings.forest_state, 'forest_state', script_name)
    print '\n** End of local test of:',script_name,'\n*************\n'
 
 #********************************************************************************

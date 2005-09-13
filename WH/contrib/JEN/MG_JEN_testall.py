@@ -49,12 +49,14 @@ from Timba.Contrib.JEN import MG_JEN_matrix
 from Timba.Contrib.JEN import MG_JEN_flagger
 from Timba.Contrib.JEN import MG_JEN_solver
 from Timba.Contrib.JEN import MG_JEN_dataCollect
+from Timba.Contrib.JEN import MG_JEN_historyCollect
 
 # from Timba.Contrib.JEN import MG_JEN_Sixpack
 from Timba.Contrib.JEN import MG_JEN_sixpack
 
 from Timba.Contrib.JEN import MG_JEN_Joneset
 from Timba.Contrib.JEN import MG_JEN_Cohset
+from Timba.Contrib.JEN import MG_JEN_spigot2sink
 
 
 #================================================================================
@@ -83,7 +85,7 @@ def _define_forest (ns):
    cc.append(test_module(ns, 'twig'))
    
    cc.append(test_module(ns, 'dataCollect'))
-   # cc.append(test_module(ns, 'historyCollect'))
+   cc.append(test_module(ns, 'historyCollect'))
    
    cc.append(test_module(ns, 'flagger'))
    cc.append(test_module(ns, 'solver'))
@@ -93,6 +95,7 @@ def _define_forest (ns):
 
    cc.append(test_module(ns, 'Joneset'))
    cc.append(test_module(ns, 'Cohset'))
+   # cc.append(test_module(ns, 'spigot2sink'))
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, script_name, cc, make_bookmark=False)
@@ -105,11 +108,20 @@ def _define_forest (ns):
 #================================================================================
 
 def test_module(ns, name):
+
+   # To avoid nodename clashes, give each MG script a different subscope:
    global nseq
    nseq += 1
    nsub = ns.Subscope(str(nseq))
+
+   # Execute the function. The result is a root node:
    s = 'result = MG_JEN_'+name+'._define_forest(nsub)'
    exec s
+
+   # Collect all the non-folder bookmarks into a nemed folder bookmark:
+   MG_JEN_forest_state.bookfolder('MG_JEN_'+name)
+
+   # Return the resulting root node:
    return result
 
 

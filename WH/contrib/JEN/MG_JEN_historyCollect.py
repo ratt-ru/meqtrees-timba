@@ -67,10 +67,11 @@ def _define_forest (ns):
    attrib['plot'] = record(type='spectra', title=script_name,
                            spectrum_color='hippo',
                            x_axis='xlabel', y_axis='ylabel')
-   node = ns.dcoll << Meq.DataCollect(node, attrib=attrib, top_label=hiid('visu'))
-
-   node = ns.root << Meq.Add(input,stepchildren=[node])
-   cc.append(node)
+   sc = []
+   sc.append(ns.dcoll_stripper << Meq.DataCollect(ns.stripper, attrib=attrib, top_label=hiid('visu')))
+   sc.append(ns.dcoll_mean << Meq.DataCollect(ns.mean, attrib=attrib, top_label=hiid('visu')))
+   sc.append(ns.dcoll_hcoll << Meq.DataCollect(ns.hcoll, attrib=attrib, top_label=hiid('visu')))
+   cc.append(ns.root << Meq.Add(input,stepchildren=sc))
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, script_name, cc)
