@@ -32,7 +32,7 @@ class MyCanvasView(QCanvasView):
     self.xdivs=5
     self.ydivs=5
     self.grid_on=0
-    self.display_point_sources='cross' #cross,point,pcross
+    self.display_point_sources='pcross' #cross,point,pcross
 
     self.canvas().setDoubleBuffering(True) 
     self.viewport().setMouseTracking(1) 
