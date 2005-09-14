@@ -203,6 +203,13 @@ class realvsimag_plotter(object):
 # used for errors plot testing 
         self.gain = 1.0
 
+# legends
+        self.setlegend = 0
+        self.plot.setAutoLegend(self.setlegend)
+        self.plot.enableLegend(False)
+        self.plot.setLegendPos(Qwt.Right)
+
+
 # add on-line instructions
         QWhatsThis.add(self.plot, realvsimag_instructions)
 
@@ -318,6 +325,8 @@ class realvsimag_plotter(object):
         self.zoom_button.addTo(self._menu);
         menu_id = 300
         self._menu.insertItem("Reset zoomer", menu_id)
+        menu_id = 301
+        self._menu.insertItem("Toggle Legend", menu_id)
         
         printer = QAction(self.plot);
         printer.setIconSet(pixmaps.fileprint.iconset());
@@ -431,6 +440,9 @@ class realvsimag_plotter(object):
     if menuid == 300:
       self.reset_zoom()
       return
+    if menuid == 301:
+      self.toggleLegend()
+      return
 	
 # toggle flags display	
     if menuid == 200:
@@ -470,6 +482,19 @@ class realvsimag_plotter(object):
         self.flag_toggle = False
         self.remove_flags()
     self.plot.replot()
+
+  def toggleLegend(self):
+    if self.setlegend == 1:
+      self.setlegend = 0
+      self.plot.enableLegend(False)
+    else:
+      self.setlegend = 1
+      self.plot.enableLegend(True)
+    self.plot.setAutoLegend(self.setlegend)
+    self.plot.replot()
+
+    # toggleLegend()
+
 
   def slotMousePressed(self, e):
     """ Mouse press processing instructions go here"""
