@@ -239,21 +239,22 @@ class Sixpack(TDL_common.Super):
 
  def display(self,txt=None,full=False):
   ss=TDL_common.Super.display(self,txt=txt,end=False)
+  indent1=2*' '
   ss.append(" ")
-  ss.append("  StokesI (node stub)= "+str(self.__sI))
-  ss.append("  StokesQ (node stub)= "+str(self.__sQ))
-  ss.append("  StokesU (node stub)= "+str(self.__sU))
-  ss.append("  StokesV (node stub)= "+str(self.__sV))
-  ss.append("  RA      (node stub)= "+str(self.__RA))
-  ss.append("  Dec     (node stub)= "+str(self.__Dec))
-  ss.append("  sixpack (subtree)  = "+str(self.__sixpack))
-  ss.append("  iquv    (subtree)  = "+str(self.__iquv))
-  ss.append("  radec   (subtree)  = "+str(self.__radec))
-  ss.append("  nodescope (nodescope)="+str(self.__ns))
+  ss.append(indent1+"- stokesI (node stub)= "+str(self.__sI))
+  ss.append(indent1+"- stokesQ (node stub)= "+str(self.__sQ))
+  ss.append(indent1+"- stokesU (node stub)= "+str(self.__sU))
+  ss.append(indent1+"- stokesV (node stub)= "+str(self.__sV))
+  ss.append(indent1+"- ra      (node stub)= "+str(self.__RA))
+  ss.append(indent1+"- dec     (node stub)= "+str(self.__Dec))
+  ss.append(indent1+"- sixpack (subtree)  = "+str(self.__sixpack))
+  ss.append(indent1+"- iquv    (subtree)  = "+str(self.__iquv))
+  ss.append(indent1+"- radec   (subtree)  = "+str(self.__radec))
+  ss.append(indent1+"- nodescope (nodescope)="+str(self.__ns))
   if self.__sixpack !=None:
-   ss.append("  state is 'composed'")
+   ss.append(indent1+"- State is 'composed'")
   else:
-   ss.append("  state is 'decomposed'")
+   ss.append(indent1+"- State is 'decomposed'")
   ss.append(" ")
   TDL_common.Super.display_end(self,ss)
 
