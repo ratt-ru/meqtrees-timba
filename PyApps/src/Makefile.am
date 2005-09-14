@@ -29,6 +29,7 @@ guidir = $(pythondir)/Timba/GUI
 meqdir = $(pythondir)/Timba/Meq
 plugindir = $(pythondir)/Timba/Plugins
 glishdir = $(libexecdir)/glish/plugins
+treedir= $(pythondir)/Timba/Trees
 dist_bin_SCRIPTS = meqbrowser.py 
 
 dist_python_SCRIPTS = 
@@ -59,6 +60,9 @@ dist_grid_SCRIPTS = Grid/__init__.py \
   Grid/CellBlock.py Grid/Cell.py Grid/Debug.py
 
 dist_glish_SCRIPTS = Plugins/MSinfo.g
+
+dist_tree_SCRIPTS = Trees/__init__.py Trees/TDL_common.py\
+   Trees/TDL_Cohset.py Trees/TDL_Joneset.py Trees/TDL_Sixpack.py
 
 include $(lofar_sharedir)/Makefile.aids
 include $(lofar_sharedir)/Makefile.common
