@@ -340,7 +340,7 @@ class meqserver_gui (app_proxy_gui):
     autopublish.setOn(True);
     # bookmark manager
     bookmarks_menu.insertSeparator();
-    self._bookmarks = bookmarks.BookmarkFolder("main",self,menu=bookmarks_menu);
+    self._bookmarks = bookmarks.BookmarkFolder("main",self,menu=bookmarks_menu,gui_parent=self);
     # copy of current bookmark record
     self._bookmarks_rec = None;
     QObject.connect(self._bookmarks,PYSIGNAL("updated()"),self._save_bookmarks);

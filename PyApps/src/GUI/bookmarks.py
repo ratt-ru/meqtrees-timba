@@ -56,11 +56,12 @@ class Pagemark (QObject):
 class BookmarkFolder (QObject):
   iconset = pixmaps.bookmark_folder.iconset;
   enabled = True;
-  def __init__ (self,name,parent,menu=None,load=None):
+  def __init__ (self,name,parent,menu=None,load=None,gui_parent=None):
     QObject.__init__(self,parent);
     self.name = name;
+    self._gui_parent = gui_parent;
     self._bklist = [];
-    self._menu = menu or QPopupMenu(self);
+    self._menu = menu or QPopupMenu(gui_parent or parent);
     self._initial_menu_size = self._menu.count();
     if load is not None:
       self.load(load);
@@ -85,7 +86,7 @@ class BookmarkFolder (QObject):
       if hasattr(item,'page'):  # page bookmark
         self.addItem(Pagemark(name,item.page,self),quiet=True);
       elif hasattr(item,'folder'): # folder
-        self.addItem(BookmarkFolder(name,self,load=item.folder),quiet=True);
+        self.addItem(BookmarkFolder(name,self,load=item.folder,gui_parent=self._gui_parent),quiet=True);
       elif hasattr(item,'udi'): # bookmark
         self.addItem(Bookmark(name,item.udi,self,viewer=getattr(item,'viewer',None)),quiet=True);
       else:
