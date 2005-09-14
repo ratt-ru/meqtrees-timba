@@ -342,6 +342,10 @@ def trace (*item, **kwitem):
 
 def object(object, txt='<txt>'):
   ss = object.display(txt)
+  if ss==None:
+     ss = script_name+' '+object.type()+' '+object.label()+': '
+     ss += '.display() -> None (?)'
+     print '\n***',script_name,object.type(),object.label(),ss,'\n'
   trace(ss, key=object.label())
   return True
 

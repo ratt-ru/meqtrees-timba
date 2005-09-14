@@ -15,9 +15,21 @@ last_changed = 'h10sep2005'
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
 #    contains the root node of a subtree. For each operation on a Cohset, each ifr
 #    node is replaced by a new root node, which has the old one as one of its children.
-#    A one-line description of the operation is added to the Cohset history.
-#    Thus, a Cohset is used to build up a forest of parallel subtrees.
+#    Thus, a Cohset is used to build up a forest of parallel ifr subtrees,
+#    somewhat like a line of spiders that leave parallel strands of silk.
 #
+#    A one-line description of each operation is added to the Cohset history,
+#    which is attached to the forest state record (and can thus be inspected).
+#    Similarly, a summary of the state of the Cohset at various important points,
+#    and the contributing Joneset and Sixpack objects, are also attached to the
+#    forest state record
+#
+#    An important functions of the Cohset is the transfer of information about
+#    groups of solvable MeqParms from Joneset objects to a solver. This is done
+#    by means of named 'solvegroups', which contain lists of 'parmgroup' names.
+#    The latter contain lists of MeqParm node names, e.g. 'Gphase:s1=<s1>:s2=<s2>:q=3c84'.
+#    A solver is defined by a list of one or more solvegroups, and solves for its
+#    associated group of MeqParms. For an example, see MG_JEN_Cohset.py
 
 from Timba.TDL import *
 from copy import deepcopy
@@ -187,11 +199,14 @@ class Cohset (TDL_common.Super):
         indent1 = 2*' '
         indent2 = 6*' '
         ss.append(indent1+' - phase_centre:    '+self.phase_centre())
-        ss.append(indent1+' - polrep:          '+self.polrep()+str(self.corrs())+' paral='+str(self.paral())+' cross='+str(self.cross()))
+        polrep = self.polrep()+str(self.corrs())
+        polrep += ' paral='+str(self.paral())
+        polrep += ' cross='+str(self.cross())
+        ss.append(indent1+' - polrep:          '+polrep)
         ss.append(indent1+' - station_index:   '+str(self.station_index()))
-        # ss.append(indent1+' - plot_color:      '+str(self.plot_color()))
-        # ss.append(indent1+' - plot_style:      '+str(self.plot_style()))
-        # ss.append(indent1+' - plot_size:       '+str(self.plot_size()))
+        ss.append(indent1+' - plot_color:      '+str(self.plot_color()))
+        ss.append(indent1+' - plot_style:      '+str(self.plot_style()))
+        ss.append(indent1+' - plot_size:       '+str(self.plot_size()))
         ss.append(indent1+' - Parmgroups:      '+str(self.parmgroup().keys()))
         ss.append(indent1+' - Solvegroups:     '+str(self.solvegroup().keys()))
         ss.append(indent1+' - Condeq_corrs:    '+str(self.condeq_corrs().keys()))
@@ -334,14 +349,22 @@ class Cohset (TDL_common.Super):
         # Update the internal info from another Joneset object:
         # (see Joneseq.Joneset())
         if Joneset==None: return False
-        self.__parmgroup.update(Joneset.parmgroup())
-        self.__solvegroup.update(Joneset.solvegroup())
-        self.__condeq_corrs.update(Joneset.condeq_corrs())
-        self.__plot_color.update(Joneset.plot_color())
-        self.__plot_style.update(Joneset.plot_style())
-        self.__plot_size.update(Joneset.plot_size())
-        self.history(append='updated from: '+Joneset.oneliner())
+        if Joneset.solvable():
+            self.__parmgroup.update(Joneset.parmgroup())
+            self.__solvegroup.update(Joneset.solvegroup())
+            self.__condeq_corrs.update(Joneset.condeq_corrs())
+            self.__plot_color.update(Joneset.plot_color())
+            self.__plot_style.update(Joneset.plot_style())
+            self.__plot_size.update(Joneset.plot_size())
+            self.history(append='updated from (solvable): '+Joneset.oneliner())
+        else:
+            # A Joneset that is not solvable has no solvegroups.
+            # However, its parmgroups might interfere with parmgroups
+            # of the same name (e.g. Gphase) from solvable Jonesets.
+            # Therefore, its parm info should not be copied here.
+            self.history(append='updated from (not solvable): '+Joneset.oneliner())
         return True
+
 
     def update_from_Cohset(self, Cohset=None):
         # Update the internal info from another Cohset object:
@@ -419,6 +442,8 @@ class Cohset (TDL_common.Super):
                                                                            station_2_index=i2,
                                                                            flag_bit=pp['flag_bit'],
                                                                            input_column=pp['input_column'])
+            print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
+
         self.__dims = [2,2]
         self.label('spigots')
         self.scope('spigots')
@@ -436,7 +461,7 @@ class Cohset (TDL_common.Super):
 
         # Duplicate for all 4 children:
         oc = pp['output_col']
-        pp['output_col'] = [oc,oc,oc,oc] 
+        # pp['output_col'] = [oc,oc,oc,oc] 
 
         # Make separate sinks for each ifr:
         for key in self.keys():
@@ -448,6 +473,8 @@ class Cohset (TDL_common.Super):
                                                                            station_2_index=i2,
                                                                            corr_index=[0,1,2,3],
                                                                            output_col=pp['output_col'])
+            print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
+
         self.scope('sinks')
         self.history(append=funcname+' -> '+self.oneliner())
         return True
@@ -489,7 +516,7 @@ def _counter (key, increment=0, reset=False, trace=True):
 
 if __name__ == '__main__':
     from numarray import *
-    from Timba.Contrib.JEN import MG_JEN_Joneset
+    from Timba.Contrib.JEN import MG_JEN_Cohset
     from Timba.Contrib.JEN import MG_JEN_exec
     ns = NodeScope()
     nsim = ns.Subscope('_')
@@ -505,82 +532,17 @@ if __name__ == '__main__':
         print '** cs.__module__ ->',cs.__module__
         print
 
-    if 0:
-        # Access to coh etc
-        print
-        print 'cs.coh()[key]:'
-        for key in cs.keys(): print '-',key, cs.coh()[key]
-        print 'cs[key]:'
-        for key in cs.keys(): print '-',key, cs[key]
-        print 'item in cs:'
-        for item in cs: print '- item:',item
-        print
-        for corr in cs.corrs(): print '-',corr, cs.plot_color()[corr],cs.plot_style()[corr]
-        print
 
-    if 0:
-        coh0 = ns << Meq.Constant(array([[11,12],[21,22]]), dim=[2,2])
-        MG_JEN_exec.display_subtree(coh0, 'coh0', full=True)
-        print '\n** coh0=',coh0
-        print type(coh0),isinstance(coh0,type(ns<<0))
-        cs.nominal(ns, coh0)
-        cs.display('.nominal()')
-        print '** .nodenames() -> (',len(cs.nodenames()),'):',cs.nodenames()
-    
-    if 0:
-        if 0:
-            cs.icorr()
-            cs.icorr(['RR','LL'])
-            cs.icorr(['LR'])
-            cs.icorr(['XY'])
-        cs1 = cs.copy()
-        cs.display('after .copy()')
-        cs1.display('after .copy()')
-        cs1.selcorr(ns, ['RR','LL'])
-        # cs1.selcorr(ns, ['LL','LR'])
-        # cs1.selcorr(ns, ['LR'])
-        cs1.display('after .selcorr()')
-
-    if 0:
-        keys = cs.keys()
-        print 'cs.has_key(',keys[0],') ->',cs.has_key(keys[0])
-        print 'cs.has_key(wrong) ->',cs.has_key('wrong')
-
-    if 0:
-        js = MG_JEN_Joneset.GJones (ns, stations=stations)
-        cs.corrupt(ns, js)
-        if False:
-            js = MG_JEN_Joneset.BJones (ns, stations=stations)
-            cs.correct(ns, js)
-
-    if 0:
-        node = ns << 0.3
-        print dir(node)
-        cs.graft(ns, node, stepchild=False)
-        cs.display('after .insert()')
-
-    if 0:
-        cs.subtract(ns, cs)
-        cs.unop(ns, ['Cos','Sin'], right2left=True)
-        cs.unop(ns, ['Cos','Sin'])
-
-    if 0:
+    if 1:
         cs.spigots(ns)
+        cs.display('spigots')
         cs.sinks(ns)
         if 1:
             sink = cs.simul_sink(ns)
             MG_JEN_exec.display_subtree(sink, 'simul_sink', full=True, recurse=5)
 
-    if 0:
-        stations = range(5)
-        stations = [0,4,7,2,8,-6,-7]
-        stations = ['A','G','k',4]
-        print 'stations =',stations
-        ifrs = stations2ifrs(stations)
-        print 'ifrs =',ifrs
-        print 'stations =',ifrs2stations(ifrs)
 
-    if 0:
+    if 1:
         # Display the final result:
         k = 0 ; MG_JEN_exec.display_subtree(cs[k], 'cs['+str(k)+']', full=True, recurse=5)
         cs.display('final result')

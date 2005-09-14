@@ -133,8 +133,6 @@ def bundle (ns, cc, name='bundle', **pp):
 
    else:
       # Make a single parent node to tie the various results (cc) together:
-      # print '\n** name =',name
-      # print '** exec.bundle(): cc =',cc,'\n'
       parent = ns[name] << Meq.Add(children=cc)
       if pp['make_bookmark']:
          # Make a bookpage for all the elements of cc:

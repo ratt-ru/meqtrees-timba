@@ -26,14 +26,15 @@ from numarray import *
 
 from Timba.Trees import TDL_Cohset
 from Timba.Trees import TDL_Joneset
+# from Timba.Trees import TDL_Sixpack
 from Timba.Contrib.JEN import MG_JEN_Joneset
+from Timba.Contrib.JEN import MG_JEN_Sixpack
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_twig
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN import MG_JEN_flagger
-from Timba.Contrib.JEN import MG_JEN_sixpack
 
 
 
@@ -46,7 +47,7 @@ def _define_forest (ns):
    cc = MG_JEN_exec.on_entry (ns, script_name)
 
    # Make the Cohset ifrs (and the Joneset stations):
-   ifrs = TDL_Cohset.stations2ifrs(range(0,8))
+   ifrs = TDL_Cohset.stations2ifrs(range(0,5))
    stations = TDL_Cohset.ifrs2stations(ifrs)
 
    # Source/ptach to be used for simulation/selfcal:
@@ -217,46 +218,34 @@ def JJones(ns, stations, **pp):
     return Joneset
     
 #======================================================================================
-# Convert an (LSM) sixpack into visibilities for linearly polarised receptors:
+# Convert an (LSM) Sixpack into visibilities for linearly polarised receptors:
   
-def sixpack2linear (ns, sixpack, name='nominal'):
+def Sixpack2linear (ns, Sixpack, name='nominal'):
     # Make a 2x2 coherency matrix (coh0) by multiplication with the Stokes matrix:
-
-    funcname = 'MG_JEN_Cohset.sixpack2linear(): '
-
-    if isinstance(sixpack, str):
-        sixpack = MG_JEN_sixpack.newstar_source (ns, name=sixpack)
-    n6 = MG_JEN_sixpack.sixnames()
-    iquv = sixpack['iquv']
-    punit = sixpack['name']
+    funcname = 'MG_JEN_Cohset.Sixpack2linear(): '
+    punit = Sixpack.label()
     name = name+'_XYYX'
     coh0 = ns[name](q=punit) << Meq.Matrix22(
-        (ns['XX'](q=punit) << iquv[n6.I] + iquv[n6.Q]),
-        (ns['XY'](q=punit) << Meq.ToComplex( iquv[n6.U], iquv[n6.V])),
+        (ns['XX'](q=punit) << Sixpack.stokesI() + Sixpack.stokesQ()),
+        (ns['XY'](q=punit) << Meq.ToComplex( Sixpack.stokesU(), Sixpack.stokesV())),
         (ns['YX'](q=punit) << Meq.Conj( ns['XY'](q=punit) )),
-        (ns['YY'](q=punit) << iquv[n6.I] - iquv[n6.Q])
+        (ns['YY'](q=punit) << Sixpack.stokesI() - Sixpack.stokesQ())
         ) * 0.5
     return coh0
 
 #--------------------------------------------------------------------------------------
-# Convert an (LSM) sixpack into visibilities for circularly polarised receptors:
+# Convert an (LSM) Sixpack into visibilities for circularly polarised receptors:
 
-def sixpack2circular (ns, sixpack, name='nominal'):
+def Sixpack2circular (ns, Sixpack, name='nominal'):
     # Make a 2x2 coherency matrix (coh0) by multiplication with the Stokes matrix:
-
-    funcname = 'MG_JEN_Cohset.sixpack2circular(): '
-
-    if isinstance(sixpack, str):
-        sixpack = MG_JEN_sixpack.newstar_source (ns, name=sixpack)
-    n6 = MG_JEN_sixpack.sixnames()
-    iquv = sixpack['iquv']
-    punit = sixpack['name']
+    funcname = 'MG_JEN_Cohset.Sixpack2circular(): '
+    punit = Sixpack.label()
     name = name+'_RLLR'
     coh0 = ns[name](q=punit) << Meq.Matrix22(
-        (ns['RR'](q=punit) << iquv[n6.I] + iquv[n6.V]),
-        (ns['RL'](q=punit) << Meq.ToComplex( iquv[n6.Q], iquv[n6.U])),
+        (ns['RR'](q=punit) << Sixpack.stokesI() + Sixpack.stokesV()),
+        (ns['RL'](q=punit) << Meq.ToComplex( Sixpack.stokesQ(), Sixpack.stokesU())),
         (ns['LR'](q=punit) << Meq.Conj( ns['RL'](q=punit) )),
-        (ns['LL'](q=punit) << iquv[n6.I] - iquv[n6.V])
+        (ns['LL'](q=punit) << Sixpack.stokesI() - Sixpack.stokesV())
         ) * 0.5
     return coh0
 
@@ -311,29 +300,30 @@ def predict (ns=0, Joneset=None, **pp):
     pp = record(pp)
 
     # Get the 6 punit subtrees:
-    sixpack = MG_JEN_sixpack.newstar_source (ns, name=pp['punit'])
+    Sixpack = MG_JEN_Sixpack.newstar_source (ns, name=pp['punit'])
 
     # Make a 2x2 coherency matrix (coh0) by multiplication with the Stokes matrix:
     if pp['polrep']=='circular':
-       coh0 = sixpack2circular (ns, sixpack, name='nominal')
+       coh0 = Sixpack2circular (ns, Sixpack, name='nominal')
     else:
-       coh0 = sixpack2linear (ns, sixpack, name='nominal')
+       coh0 = Sixpack2linear (ns, Sixpack, name='nominal')
 
-    Cohset = TDL_Cohset.Cohset(label='predict', scops='predicted', origin=funcname, **pp)
+    # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
+    Cohset = TDL_Cohset.Cohset(label='predict', origin=funcname, **pp)
+
+    # Put the same node (coh0) with 'nominal' (i.e. uncorrupted) visibilities
+    # into all ifr-slots of the Cohset:
     Cohset.nominal(ns, coh0)
-    Cohset.display('.predict(): nominal')
 
-    # NB: The Sixpack object will have .oneliner() and .display():
-    for key in sixpack['iquv'].keys():
-       Cohset.history('sixpack: '+key+': '+str(sixpack['iquv'][key]))
-    for key in sixpack['radec'].keys():
-       Cohset.history('sixpack: '+key+': '+str(sixpack['radec'][key]))
-
-    # Corrupt with the given set of jones matrices:
+    # Optionally, corrupt the Cohset visibilities with the instrumental effects
+    # in the given Joneset of 2x2 station jones matrices:
     if not Joneset==None:
        Cohset.corrupt (ns, Joneset=Joneset)
        Cohset.display('.predict(): after corruption')
 
+    # Finished:
+    MG_JEN_forest_state.object(Sixpack, funcname)
+    Cohset.history(funcname+' using '+Sixpack.oneliner())
     Cohset.history(funcname+' -> '+Cohset.oneliner())
     MG_JEN_forest_state.history (funcname)
     MG_JEN_forest_state.object(Cohset, funcname)
@@ -638,7 +628,7 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of:',script_name,':\n'
 
     # This is the default:
-    if 1:
+    if 0:
         MG_JEN_exec.without_meqserver(script_name, callback=_define_forest, recurse=3)
 
     # This is the place for some specific tests during development.
@@ -684,10 +674,12 @@ if __name__ == '__main__':
         cs = insert_solver (ns, solvegroup=sgname, measured=measured, predicted=predicted) 
            
     if 0:
-        # sixpack = lsm_NEWSTAR_source (ns, name='QUV')
-        sixpack = 'unpol'
-        print sixpack2circular (ns, sixpack)
-        print sixpack2linear (ns, sixpack)
+        punit = 'unpol'
+        Sixpack = MG_JEN_Sixpack.newstar_source (ns, name=punit)
+        coh0 = Sixpack2circular (ns, Sixpack)
+        MG_JEN_exec.display_subtree (coh0, 'coh0', full=1)
+        coh0 = Sixpack2linear (ns, Sixpack)
+        MG_JEN_exec.display_subtree (coh0, 'coh0', full=1)
 
     if 0:
         display_first_subtree(cs)

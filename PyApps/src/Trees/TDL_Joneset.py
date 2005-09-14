@@ -64,8 +64,8 @@ class Joneset (TDL_common.Super):
         self.__solvegroup = dict()
         self.__condeq_corrs = dict()
         self.__plot_color = TDL_common.plot_color()
-        self.__plot_style = TDL_common.plot_color()
-        self.__plot_size = TDL_common.plot_color()
+        self.__plot_style = TDL_common.plot_style()
+        self.__plot_size = TDL_common.plot_size()
         self.__MeqParm = dict()
         self.__node_groups = ['Parm']
 
@@ -269,13 +269,22 @@ class Joneset (TDL_common.Super):
         # (used in Joneseq.make_Joneset())
         if Joneset==None: return False
         self.__jchar += Joneset.jchar()
-        self.__parmgroup.update(Joneset.parmgroup())
-        self.__solvegroup.update(Joneset.solvegroup())
-        self.__condeq_corrs.update(Joneset.condeq_corrs())
-        self.__plot_color.update(Joneset.plot_color())
-        self.__plot_style.update(Joneset.plot_style())
-        self.__plot_size.update(Joneset.plot_size())
-        self.history(append='updated from: '+Joneset.oneliner())
+        if not self.solvable():
+            self.history(append='updated (not solvable) from: '+Joneset.oneliner())
+        elif Joneset.solvable():
+            self.__parmgroup.update(Joneset.parmgroup())
+            self.__solvegroup.update(Joneset.solvegroup())
+            self.__condeq_corrs.update(Joneset.condeq_corrs())
+            self.__plot_color.update(Joneset.plot_color())
+            self.__plot_style.update(Joneset.plot_style())
+            self.__plot_size.update(Joneset.plot_size())
+            self.history(append='updated from (solvable): '+Joneset.oneliner())
+        else:
+            # A Joneset that is not solvable has no solvegroups.
+            # However, its parmgroups might interfere with parmgroups
+            # of the same name (e.g. Gphase) from solvable Jonesets.
+            # Therefore, its parm info should not be copied here.
+            self.history(append='updated from (not solvable): '+Joneset.oneliner())
         return True
 
 

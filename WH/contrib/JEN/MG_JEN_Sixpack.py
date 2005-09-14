@@ -91,22 +91,22 @@ def _define_forest (ns):
    group['test'] = ['RMtest','SItest']
    group['3c'] = ['3c147','3c48','3c286','3c295']
 
-   # sixpack['default'] = newstar_source (ns)
-   # sixpack['QUV_RM_SI'] = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
+   # Sixpack['default'] = newstar_source (ns)
+   # Sixpack['QUV_RM_SI'] = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
 
    radec = []
    for key in group.keys():
       ss = []
       for predef in group[key]:
-         sixpack = newstar_source (ns, name=predef)
+         Sixpack = newstar_source (ns, name=predef)
          bb = []
-         bb.append(sixpack.stokesI())
-         bb.append(sixpack.stokesQ())
-         bb.append(sixpack.stokesU())
-         bb.append(sixpack.stokesV())
+         bb.append(Sixpack.stokesI())
+         bb.append(Sixpack.stokesQ())
+         bb.append(Sixpack.stokesU())
+         bb.append(Sixpack.stokesV())
          ss.append(MG_JEN_exec.bundle(ns, bb, predef))
-         radec.append(sixpack.ra())
-         radec.append(sixpack.dec())
+         radec.append(Sixpack.ra())
+         radec.append(Sixpack.dec())
       cc.append(MG_JEN_exec.bundle(ns, ss, key))
       MG_JEN_forest_state.bookfolder(key)
  
@@ -199,7 +199,7 @@ def sixnames ():
 
 
 #---------------------------------------------------------------------------------------
-# Make sixpack of subtrees for sources with 'NEWSTAR' parametrization:
+# Make Sixpack of subtrees for sources with 'NEWSTAR' parametrization:
 
 def newstar_source (ns=0, **pp):
 
@@ -223,7 +223,7 @@ def newstar_source (ns=0, **pp):
    # Adjust parameters pp for some special cases:
    predefined (pp)  
    
-   # Make the sixpack of 6 standard subtree root-nodes: 
+   # Make the Sixpack of 6 standard subtree root-nodes: 
    n6 = sixnames()
    zero = ns.zero << Meq.Constant(0)
    
@@ -305,16 +305,16 @@ def newstar_source (ns=0, **pp):
    radec[n6.R] = ns[n6.R](q=pp['name']) << Meq.Parm(pp['RA'])
    radec[n6.D] = ns[n6.D](q=pp['name']) << Meq.Parm(pp['Dec'])
 
-   # Finished: Make the sixpack and return it
-   sixpack = TDL_Sixpack.Sixpack(label=pp['name'],
+   # Finished: Make the Sixpack and return it
+   Sixpack = TDL_Sixpack.Sixpack(label=pp['name'],
                                  stokesI=iquv[n6.I], 
                                  stokesQ=iquv[n6.Q], 
                                  stokesU=iquv[n6.U], 
                                  stokesV=iquv[n6.V], 
                                  ra=radec[n6.R], 
                                  dec=radec[n6.D])
-   MG_JEN_forest_state.object(sixpack)
-   return sixpack
+   MG_JEN_forest_state.object(Sixpack)
+   return Sixpack
 
 
 
@@ -395,16 +395,16 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    if 1:
-      # sixpack = newstar_source (ns)
-      # sixpack = newstar_source (ns, name='3c147')
-      sixpack = newstar_source (ns, name='3c286')                    # <------ !!
-      # sixpack = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
-      sixpack.display()
-      sixpack.nodescope(ns)
-      MG_JEN_exec.display_subtree (sixpack.stokesI(), 'stokesI()', full=1)
-      MG_JEN_exec.display_subtree (sixpack.sixpack(), 'sixpack()', full=1)
-      MG_JEN_exec.display_subtree (sixpack.iquv(), 'iquv()', full=1)
-      MG_JEN_exec.display_subtree (sixpack.radec(), 'radec()', full=1)
+      # Sixpack = newstar_source (ns)
+      # Sixpack = newstar_source (ns, name='3c147')
+      Sixpack = newstar_source (ns, name='3c286')                    # <------ !!
+      # Sixpack = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
+      Sixpack.display()
+      Sixpack.nodescope(ns)
+      MG_JEN_exec.display_subtree (Sixpack.stokesI(), 'stokesI()', full=1)
+      MG_JEN_exec.display_subtree (Sixpack.sixpack(), 'sixpack()', full=1)
+      MG_JEN_exec.display_subtree (Sixpack.iquv(), 'iquv()', full=1)
+      MG_JEN_exec.display_subtree (Sixpack.radec(), 'radec()', full=1)
 
    print '\n** End of local test of:',script_name,'\n*******************\n'
        

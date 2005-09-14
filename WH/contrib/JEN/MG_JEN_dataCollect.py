@@ -41,24 +41,58 @@ def _define_forest (ns):
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
 
+   style = dict(circle=0, rectangle=0, square=0, ellipse=0, xcross=0, cross=0, triangle=0, diamond=0)
+   color = dict(black=0, red=0, blue=0, darkGreen=0, magenta=0, 
+			darkGray=0, darkMagenta=0, darkRed=0, darkYellow=0, 
+			darkBlue=0, darkCyan=0, gray=0, yellow=0, lightGray=0, 
+			cyan=0, green=0, none=0, white=0)
+   skeys = style.keys()
+   ckeys = color.keys()
+
+   #---------------------------
+   # For each style, make a 'cloud' of nodes scattered (stddev) around a mean value:
+   bb= [] 
+   dd = []
+   scope = 'scope1'
+   n = len(skeys)
+   for i in range(n):
+      skey = skeys[i]
+      ckey = ckeys[i] 
+      angle = 2*pi*(float(i)/n)
+      mean = complex(cos(angle),sin(angle))
+      print i,n,(float(i)/n),':',ckey,skey,angle,'->',mean
+      style[skey] = MG_JEN_twig.cloud (ns, n=10, name=skey, qual=None, stddev=0.2, mean=mean)
+      dc = dcoll(ns, style[skey], scope=scope, tag=skey, color=ckey, style=skey, size=10, errorbars=False)
+      bb.append(dc['dcoll']) 
+      dd.append(dc)
+ 
+   # Concatenate the dataCollect nodes in dd:
+   dc = dconc(ns, dd, scope=scope, tag='combined') 
+   bb.append(dc['dcoll'])
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'styles', show_parent=False))
+
+
+
+   #---------------------------
+   # Make dataCollect nodes of type 'realvsimag' for the various clouds:
+   scope = 'scope2'
+   dd = []
+   bb= [] 
+
    # Make 'clouds' of nodes scattered (stddev) around mean:
    xx = MG_JEN_twig.cloud (ns, n=3, name='xx', qual=None, stddev=1, mean=complex(10))
    yy = MG_JEN_twig.cloud (ns, n=3, name='yy', qual=None, stddev=1, mean=complex(0))
    zz = MG_JEN_twig.cloud (ns, n=3, name='zz', qual=None, stddev=1, mean=complex(0,-2))
  
-   # Make dataCollect nodes of type 'realvsimag' for the various clouds:
-   bb= [] 
-   scope = 'scope1'
-   dd = []
    dc = dcoll(ns, xx, scope=scope, tag='xx', color='red', errorbars=True)  
    bb.append(dc['dcoll'])
    dd.append(dc)
 
-   dc = dcoll(ns, yy, scope=scope, tag='yy', color='blue', errorbars=False)
+   dc = dcoll(ns, yy, scope=scope, tag='yy', color='blue', style='xcross', size=20, errorbars=False)
    bb.append(dc['dcoll']) 
    dd.append(dc)
  
-   dc = dcoll(ns, zz, scope=scope, tag='zz', color='magenta', errorbars=True)
+   dc = dcoll(ns, zz, scope=scope, tag='zz', color='magenta', style='cross', errorbars=True)
    bb.append(dc['dcoll']) 
    dd.append(dc)
 
@@ -66,10 +100,14 @@ def _define_forest (ns):
    dc = dconc(ns, dd, scope=scope, tag='combined') 
    bb.append(dc['dcoll'])
    cc.append(MG_JEN_exec.bundle(ns, bb, 'realvsimag', show_parent=False))
- 
+
+
+
+   #---------------------------
    # Test of type = spectra:
    bb = []
-   dc = dcoll(ns, xx, scope='scope2', type='spectra') 
+   scope = 'scope3'
+   dc = dcoll(ns, xx, scope=scope, type='spectra') 
    bb.append(dc['dcoll'])  
    cc.append(MG_JEN_exec.bundle(ns, bb, 'spectra', show_parent=False))
 
@@ -80,6 +118,8 @@ def _define_forest (ns):
 #================================================================================
 # Available styles (as used by AGW):
 #================================================================================
+
+
 
 #	if (type=='color') {
 #           ss := 'black';
@@ -121,7 +161,7 @@ def dcoll (ns, node=[], **pp):
    pp.setdefault('xlabel', '<xlabel>')  # x-axis label
    pp.setdefault('ylabel', '<ylabel>')  # y-axis label
    pp.setdefault('color', 'red')        # plot color
-   pp.setdefault('style','dot' )        # plot style
+   pp.setdefault('style','circle')      # plot style (symbol)
    pp.setdefault('size', 10)            # plot size
    pp.setdefault('type', 'realvsimag')  # plot type (realvsimag or spectra)
    pp.setdefault('errorbars', False)    # if True, plot stddev as crosses around mean
@@ -165,9 +205,10 @@ def dcoll (ns, node=[], **pp):
       # Assume pp.type == 'realvsimag'
       attrib['plot'] = record(type=pp.type, title=pp.title,
                               color=pp.color,
-                              symbol='circle', symbol_size=pp.size,
-                              mean_circle=1, mean_circle_color=pp.color,
-                              mean_circle_style='DashLine', mean_arrow=1)
+                              symbol=pp.style,
+                              symbol_size=pp.size,
+                              mean_circle=True, mean_circle_color=pp.color,
+                              mean_circle_style='DashLine', mean_arrow=True)
     
     
       if not pp.errorbars:

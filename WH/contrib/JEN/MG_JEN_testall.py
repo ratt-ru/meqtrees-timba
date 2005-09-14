@@ -51,8 +51,7 @@ from Timba.Contrib.JEN import MG_JEN_solver
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN import MG_JEN_historyCollect
 
-# from Timba.Contrib.JEN import MG_JEN_Sixpack
-from Timba.Contrib.JEN import MG_JEN_sixpack
+from Timba.Contrib.JEN import MG_JEN_Sixpack
 
 from Timba.Contrib.JEN import MG_JEN_Joneset
 from Timba.Contrib.JEN import MG_JEN_Cohset
@@ -90,12 +89,11 @@ def _define_forest (ns):
    cc.append(test_module(ns, 'flagger'))
    cc.append(test_module(ns, 'solver'))
    
-   cc.append(test_module(ns, 'sixpack'))
-   # cc.append(test_module(ns, 'Sixpack'))
+   cc.append(test_module(ns, 'Sixpack'))
 
    cc.append(test_module(ns, 'Joneset'))
    cc.append(test_module(ns, 'Cohset'))
-   # cc.append(test_module(ns, 'spigot2sink'))
+   cc.append(test_module(ns, 'spigot2sink'))
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, script_name, cc, make_bookmark=False)

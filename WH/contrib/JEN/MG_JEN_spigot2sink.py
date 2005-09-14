@@ -24,16 +24,16 @@ from numarray import *
 # from copy import deepcopy
 
 from Timba.Trees import TDL_Cohset
-from Timba.Trees import TDL_Joneset
-from Timba.Contrib.JEN import MG_JEN_Joneset
+# from Timba.Trees import TDL_Joneset
+# from Timba.Contrib.JEN import MG_JEN_Joneset
 from Timba.Contrib.JEN import MG_JEN_Cohset
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
-from Timba.Contrib.JEN import MG_JEN_twig
-from Timba.Contrib.JEN import MG_JEN_dataCollect
+# from Timba.Contrib.JEN import MG_JEN_twig
+# from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN import MG_JEN_flagger
-from Timba.Contrib.JEN import MG_JEN_sixpack
+
 
 
 
@@ -55,13 +55,6 @@ def _define_forest (ns):
    Cohset = TDL_Cohset.Cohset(label=script_name, polrep='circular', stations=stations)
    Cohset.spigots(ns)
    Cohset.display('initial')
-
-   # Source/ptach to be used for simulation/selfcal:
-   punit = 'unpol'
-   # punit = '3c147'
-   # punit = 'RMtest'
-   # punit = 'QUV'
-   # punit = 'QU'
 
    MG_JEN_Cohset.visualise (ns, Cohset)
 

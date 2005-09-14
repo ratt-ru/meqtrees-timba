@@ -117,9 +117,7 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 # from Timba.Contrib.JEN import MG_JEN_flagger
 # from Timba.Contrib.JEN import MG_JEN_solver
 
-# from Timba.Contrib.JEN import MG_JEN_sixpack
 # from Timba.Contrib.JEN import MG_JEN_Sixpack
-
 # from Timba.Contrib.JEN import MG_JEN_Joneset
 # from Timba.Contrib.JEN import MG_JEN_Cohset
 
