@@ -64,10 +64,10 @@ class PatchGL(QGLWidget):
      for ck in range(contour_levels):
       clevel=self.arr.min()+ck*self.arr.max()/contour_levels
       # get color
-      color=ck/contour_levels
-      glColor3f(0.7*(1.0-color), 0.4, 1.0*color);
+      color=self.getColor(clevel)
+      glColor3f(color[0], color[1], color[2])
       self.plot_contour(hh,clevel)
-      print "Point %f,%f"%(ci*dx-xoff,cj*dy-yoff)
+      #print "Point %f,%f"%(ci*dx-xoff,cj*dy-yoff)
    glEnd()
    
 
@@ -98,6 +98,22 @@ class PatchGL(QGLWidget):
   # refresh
   #self.repaint()
   pass
+
+ # return a colour according to z, in OpenGL format
+ def getColor(self,z):
+   if self.arr.max()==0:
+     return (0,0,0) # no color : when Q,U,V is zero
+
+   cl=z/self.arr.max()# normalized in [0,1] 
+   if cl < 0.25:
+     return (0,cl*4.0,1.0)
+   elif cl < 0.5:
+     return (0,1.0,2.0-cl*4.0)
+   elif cl < 0.75:
+     return (4.0*cl-2.0,1.0,0)
+   else:
+     return (1.0,4.0-4.0*cl,0)
+
 
  # hh: _NodeNA object with the (x,y,z) data of 
  # points 0,1,2,3
