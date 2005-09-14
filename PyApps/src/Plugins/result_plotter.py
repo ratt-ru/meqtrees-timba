@@ -502,6 +502,13 @@ class ResultPlotter(GriddedPlugin):
 # are we dealing with Vellsets?
     if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
       Message = "No cells record for vellsets; scalar assumed. No plot can be made with the <b>result plotter</b>. Use the record browser to get further information about this vellset." 
+#     number_of_planes = len(self._rec["vellsets"])
+#     for i in range(number_of_planes):
+      if self._rec.vellsets[0].has_key("value"):
+        value = self._rec.vellsets[0].value
+        str_value = str(value)
+        Message = "No cells record - scalar is " + str_value
+
       cache_message = QLabel(Message,self.wparent())
       cache_message.setTextFormat(Qt.RichText)
       self._wtop = cache_message
