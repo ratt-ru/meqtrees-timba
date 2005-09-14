@@ -250,7 +250,7 @@ class Sixpack(TDL_common.Super):
   ss.append(indent1+"- sixpack (subtree)  = "+str(self.__sixpack))
   ss.append(indent1+"- iquv    (subtree)  = "+str(self.__iquv))
   ss.append(indent1+"- radec   (subtree)  = "+str(self.__radec))
-  ss.append(indent1+"- nodescope (nodescope)="+str(self.__ns))
+  ss.append(indent1+"- ns      (nodescope)= "+str(self.__ns))
   if self.__sixpack !=None:
    ss.append(indent1+"- State is 'composed'")
   else:
