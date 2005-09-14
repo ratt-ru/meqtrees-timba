@@ -366,6 +366,8 @@ class PUnit:
   _patch_name: if this PUnit is a point source, and belongs to a patch,
      remember the name of the patch here. If this is a patch or a point
      source that does not belong to a patch, this value is None.
+
+  __sixpack: store the sixpack object
   """
  # Constructor
  def __init__(self,name,lsm):
@@ -382,6 +384,8 @@ class PUnit:
   self.FOV_distance=0
 
   self._patch_name=None # FIXME: only temporary
+
+  self.__sixpack=None
  
  # change type (point: flag=POINT_TYPE, patch: flag=PATCH_TYPE)
  def setType(self,flag):
@@ -462,6 +466,7 @@ class PUnit:
    temp_str+=",Brightness="+str(self.getBrightness())
    temp_str+=",sp="+str(self.sp)
    temp_str+=",FOV="+str(self.FOV_distance)
+   temp_str+=",sixpack="+str(self.__sixpack)
    temp_str+=" |"
    return temp_str
 
@@ -482,6 +487,13 @@ class PUnit:
  def setLSM(self,lsm):
   self.lsm=lsm
   self.sp.setLSM(lsm)
+
+ # set the sixpack object
+ def setSP(self,sp):
+  self.__sixpack=sp
+ # return a sixpack object (TDL_Sixpack) for this PUnit
+ def getSP(self):
+  return self.__sixpack
 
 ###############################################
 class LSM:
@@ -561,14 +573,18 @@ class LSM:
     p.setType(POINT_TYPE) # 0 - point source
   
   # set the root of sixpack helper
-  if kw.has_key('SP'):
-   p.sp.setRoot(kw['SP'])
+  if kw.has_key('sp_root'):
+   p.sp.setRoot(kw['sp_root'])
+  # set the sixpack object
+  if kw.has_key('sixpack'):
+   p.setSP(kw['sixpack'])
+
 
 #  # FIXME for the moment use static RA,Dec
-  if kw.has_key('RA'):
-   p.sp.set_staticRA(kw['RA'])
-  if kw.has_key('Dec'):
-   p.sp.set_staticDec(kw['Dec'])
+  if kw.has_key('ra'):
+   p.sp.set_staticRA(kw['ra'])
+  if kw.has_key('dec'):
+   p.sp.set_staticDec(kw['dec'])
 
 
 

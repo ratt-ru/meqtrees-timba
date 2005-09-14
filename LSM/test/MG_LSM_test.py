@@ -30,7 +30,6 @@ from Timba.LSM.LSM_GUI import *
 
 from Timba.Contrib.JEN import MG_JEN_Sixpack
 
-
 from random import *
 # to force caching put 100
 Settings.forest_state.cache_policy = 0
@@ -95,13 +94,13 @@ def _define_forest (ns):
    source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
    source_Dec*=math.pi/180.0
 
-   sixpack=MG_JEN_Sixpack.newstar_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[random()],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
+   my_sixpack=MG_JEN_Sixpack.newstar_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[random()],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
    # directly create sixpack subtree using the object
-   SourceRoot=sixpack.sixpack(ns)
-   sixpack.display()
+   SourceRoot=my_sixpack.sixpack(ns)
+   my_sixpack.display()
    lsm.add_source(s,brightness=eval(v.group('col12')),
-          SP=SourceRoot,
-     RA=source_RA, Dec=source_Dec)
+     sp_root=SourceRoot, sixpack=my_sixpack,
+     ra=source_RA, dec=source_Dec)
  
  print "Inserted %d sources" % linecount 
  #remember node scope
