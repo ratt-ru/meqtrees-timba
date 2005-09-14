@@ -136,7 +136,7 @@ class SpH:
    (self.lsm.mqs!=None):
    # create request object
    my_request = meq.request(cells=self.lsm.cells, eval_mode=0)
-   my_args=meq.record(name=pname, request=my_request)
+   my_args=meq.record(name='sixpack:q='+pname, request=my_request)
    my_result=self.lsm.mqs.meq('Node.execute', my_args,wait=True)
    #print my_result
    # update value
@@ -912,10 +912,10 @@ class LSM:
    # get the sixpack root of each source in slist
    # and add it to patch composer
    for sname in correct_slist:
-     child_list.append(sname)
+     child_list.append('sixpack:q='+sname)
      self.p_table[sname]._patch_name=patch_name
 
-   patch_root=self.__ns[patch_name]<<Meq.PatchComposer(children=child_list)
+   patch_root=self.__ns['sixpack:q='+patch_name]<<Meq.PatchComposer(children=child_list)
    #patch_root=self.__ns[patch_name]<<Meq.Composer(children=child_list)
    #select_root=self.__ns['Select['+patch_name+']']<<Meq.Selector(children=patch_root,multi=True,index=[2,3,4,5])
    #stokes_root=self.__ns['Stokes['+patch_name+']']<<Meq.Stokes(children=select_root)

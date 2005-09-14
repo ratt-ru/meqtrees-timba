@@ -28,7 +28,7 @@ from Timba.Meq import meq
 from Timba.LSM.LSM import *
 from Timba.LSM.LSM_GUI import *
 
-from Timba.Contrib.JEN.MG_JEN_sixpack import *
+from Timba.Contrib.JEN import MG_JEN_Sixpack
 
 
 from random import *
@@ -95,12 +95,10 @@ def _define_forest (ns):
    source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
    source_Dec*=math.pi/180.0
 
-   sixpack=newstar_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[random()],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
-   iquv=sixpack['iquv']
-   radec=sixpack['radec']
-   # create SixPack trees using JEN code,
-   # note: only I,RA,Dec subtrees have non-zero value right now
-   SourceRoot=ns[s.name]<<Meq.Composer(radec['RA'],radec['Dec'],iquv['StokesI'],iquv['StokesQ'],iquv['StokesU'],iquv['StokesV'])
+   sixpack=MG_JEN_Sixpack.newstar_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[random()],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
+   # directly create sixpack subtree using the object
+   SourceRoot=sixpack.sixpack(ns)
+   sixpack.display()
    lsm.add_source(s,brightness=eval(v.group('col12')),
           SP=SourceRoot,
      RA=source_RA, Dec=source_Dec)
