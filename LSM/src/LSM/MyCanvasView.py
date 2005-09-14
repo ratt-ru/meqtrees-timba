@@ -13,6 +13,7 @@ from qtcanvas import *
 from LSM import *
 from SDialog import *
 from PatchDialog import *
+from PatchGLDialog import *
 
 from common_utils import *
 
@@ -179,6 +180,7 @@ class MyCanvasView(QCanvasView):
     headstr=headstr+tmpstr[0]+tmpstr[1]+"s)"
     tmp_str=headstr+"<ul>"
     found_anything=0
+    print ilist
     for each_item in ilist:
      if each_item.rtti()==POINT_SOURCE_RTTI:
       # set flag
@@ -196,9 +198,26 @@ class MyCanvasView(QCanvasView):
      dialog=SDialog(self)
      dialog.setInfoText(tmp_str)
      dialog.show()
-     #QMessageBox.information(None, headstr,
-     #       tmp_str 
-     #       ,"Dismiss")
+    else: # list is empty, no point sources, may be patches
+     # re-scan the list for patches 
+     for each_item in ilist:
+      if each_item.rtti()==PATCH_IMAGE_RTTI:
+       print "Found a Patch name %s"%each_item.parent.name
+       try:
+        # get vellsets if any
+        punit=self.lsm.p_table[each_item.parent.name]
+        lims=punit.sp.getValueSize(self.default_mode,\
+         self.default_freq_index,\
+         self.default_time_index)
+        # the return type should be a numarray
+        my_arr=punit.sp.getValue(self.default_mode,\
+         self.default_freq_index,\
+         self.default_time_index)
+        # create GL window
+        wn=PatchGLDialog(self,"Patch",1,0,my_arr,lims)
+        wn.show()
+       except:
+        pass
 
    if self.zoom_status==GUI_ZOOM_WINDOW:
     self.zoom_status=GUI_ZOOM_START
@@ -263,6 +282,9 @@ class MyCanvasView(QCanvasView):
      if each_item.rtti()==POINT_SOURCE_RTTI:
       tmp_str+=" "+each_item.name+"<br>"
       psource_list.append(each_item.name)
+    # if empty, do nothing
+    if len(psource_list)==0:
+     return
     dialog=PatchDialog(self)
     dialog.setInfoText(tmp_str)
     if dialog.exec_loop() == QDialog.Accepted:
@@ -912,9 +934,11 @@ class Patch:
     self.cview.default_time_index)
    # create an image
    self.image=ImageItem(self.createArrayImage(byarr,lims[0],lims[1]),\
-           self.cview.canvas())
+           self.cview.canvas(),self)
    self.image.move(self.rect.x(),self.rect.y())
    self.image.setZ(-1)
+   # change RTTI to a custom value
+   self.image.setRTTI(PATCH_IMAGE_RTTI)
   except:
    self.image=None
    pass
@@ -1004,13 +1028,17 @@ class Patch:
 
 ###############################################################
 class ImageItem(QCanvasRectangle):
-    def __init__(self,img,canvas):
+    def __init__(self,img,canvas,parent=None):
         QCanvasRectangle.__init__(self,canvas)
         self.imageRTTI=984376
         self.image=img
+        self.parent=parent
         self.pixmap=QPixmap()
         self.setSize(self.image.width(), self.image.height())
         self.pixmap.convertFromImage(self.image, Qt.OrderedAlphaDither);
+
+    def setRTTI(self,rtti):
+     self.imageRTTI=rtti
 
     def rtti(self):
         return self.imageRTTI
