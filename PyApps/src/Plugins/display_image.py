@@ -160,6 +160,10 @@ class QwtImageDisplay(QwtPlot):
         self.setLegendPos(Qwt.Right)
         self.setAxisTitle(QwtPlot.xBottom, 'Array/Channel Number')
         self.setAxisTitle(QwtPlot.yLeft, 'Array/Sequence Number')
+
+        # set default background to white
+        self.setCanvasBackground(Qt.white)
+
         
         self.enableAxis(QwtPlot.yRight, False)
         self.enableAxis(QwtPlot.xTop, False)

@@ -209,6 +209,9 @@ class realvsimag_plotter(object):
         self.plot.enableLegend(False)
         self.plot.setLegendPos(Qwt.Right)
 
+# set default background to white
+        self.plot.setCanvasBackground(Qt.white)
+
 
 # add on-line instructions
         QWhatsThis.add(self.plot, realvsimag_instructions)
