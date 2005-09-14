@@ -507,7 +507,7 @@ class ResultPlotter(GriddedPlugin):
       if self._rec.vellsets[0].has_key("value"):
         value = self._rec.vellsets[0].value
         str_value = str(value)
-        Message = "No cells record - scalar is " + str_value
+        Message = "No cells record - value is " + str_value
 
       cache_message = QLabel(Message,self.wparent())
       cache_message.setTextFormat(Qt.RichText)
