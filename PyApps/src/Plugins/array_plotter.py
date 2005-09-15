@@ -12,6 +12,12 @@ from Timba import Grid
 
 from Timba.Plugins.display_image import *
 
+from Timba.utils import verbosity
+_dbg = verbosity(0,name='array_plotter');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
+
 from numarray import *
 from qt import *
 from qwt import *
@@ -64,6 +70,8 @@ class ArrayPlotter(GriddedPlugin):
       QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._plotter.setImageRange)
 
       if self.array_rank > 2:
+        _dprint(3,' array_plotter: array has rank and shape: ', self.array_rank, ' ', self.array_shape)
+        _dprint(3,' array_plotter: so an ND Controller GUI is needed')
         self._plotter.set_toggle_array_rank(self.array_rank)
         self.set_ND_controls()
         self.set_data_range(dataitem.data)
