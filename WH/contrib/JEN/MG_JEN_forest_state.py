@@ -138,6 +138,7 @@ init(script_name)
 # Attach MS (stream) info to the forest state record
 
 def stream (**pp):
+
    pp.setdefault('MS', 'D1.MS')       #
    pp = record(pp)
 
@@ -151,6 +152,11 @@ def stream (**pp):
    Settings.forest_state.stream = record(input=inputrec, output=outputrec)
    return True
 
+def stream_inputrec():
+   return Settings.forest_state.stream.input
+
+def stream_outputrec():
+   return Settings.forest_state.stream.output
 
 # Execute this function:
 stream()

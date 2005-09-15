@@ -24,9 +24,24 @@ from numarray import *
 # from string import *
 from copy import deepcopy
 
-from Timba.Contrib.JEN import MG_JEN_exec as MG_JEN_exec
-from Timba.Contrib.JEN import MG_JEN_forest_state as MG_JEN_forest_state
+from Timba.Contrib.JEN import MG_JEN_exec
+from Timba.Contrib.JEN import MG_JEN_forest_state
 
+
+
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(script_name)
+
+
+# MXM: for 4D funklet....
+# Settings.forest_state.axis_map=record(id=hiid('time')),
+#                                record(id=hiid('freq')),
+#                                record(id=hiid('u')),
+#                                record(id=hiid('v')),
+#                                record(),record(),record(),record()
 
 
 
@@ -67,9 +82,9 @@ def _define_forest (ns):
 
    bb = []
    bb.append(polclog_flux(ns, '3c286'))
-   bb.append(polclog_flux(ns, '3c286', stokes='Q'))
-   bb.append(polclog_flux(ns, '3c286', stokes='U'))
-   bb.append(polclog_flux(ns, '3c286', stokes='V'))
+   bb.append(polclog_flux(ns, '3c286', stokes='stokesQ'))
+   bb.append(polclog_flux(ns, '3c286', stokes='stokesU'))
+   bb.append(polclog_flux(ns, '3c286', stokes='stokesV'))
    cc.append(MG_JEN_exec.bundle(ns, bb, 'polclog_flux_3c286()'))
 
 
@@ -190,13 +205,13 @@ def polclog_SIF (I0=1.0, SI=-0.7, f0=1e6):
 #---------------------------------------------------------------------
 # Make a StokesI(q=source) node based on a polclog:
 
-def polclog_flux (ns, source=None, I0=1.0, SI=-0.7, f0=1e6, stokes='I'):
+def polclog_flux (ns, source=None, I0=1.0, SI=-0.7, f0=1e6, stokes='stokesI'):
    print
    source = MG_JEN_forest_state.autoqual('MG_JEN_funklet_flux', qual=source)
 
    polclog = polclog_predefined(source, I0=I0, SI=SI, f0=f0, stokes=stokes)
    SIF = ns['SIF_'+stokes](q=source) << Meq.Parm(polclog)
-   node = ns['Stokes'+stokes](q=source) << Meq.Pow(10.0, SIF)
+   node = ns[stokes](q=source) << Meq.Pow(10.0, SIF)
    print '** polclog_flux(',source,') ->',SIF,'->',node
    return node
 
@@ -207,7 +222,7 @@ def polclog_flux (ns, source=None, I0=1.0, SI=-0.7, f0=1e6, stokes='I'):
 def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
    source = MG_JEN_forest_state.autoqual('MG_JEN_funklet_fmult', qual=source)
       
-   polclog = polclog_predefined(source, I0=1.0, SI=SI, f0=f0, stokes='I')
+   polclog = polclog_predefined(source, I0=1.0, SI=SI, f0=f0, stokes='stokesI')
    SIF = ns.SIF(q=source) << Meq.Parm(polclog)
    node = ns.mult(q=source) << Meq.Pow(10.0, SIF)
    # node = ns << Meq.Pow(10.0, SIF)               # <--- better?
@@ -217,19 +232,19 @@ def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
 #---------------------------------------------------------------------
 # Predefined polclog definitions of selected sources:
 
-def polclog_predefined (source='<source>', SI=-0.7, I0=1.0, f0=1e6, stokes='I'):
+def polclog_predefined (source='<source>', SI=-0.7, I0=1.0, f0=1e6, stokes='stokesI'):
 
-   polclog = dict(I=1.0, Q=0.0, U=0.0, V=0.0)
+   polclog = dict(stokesI=1.0, stokesQ=0.0, stokesU=0.0, stokesV=0.0)
    if source=='3c147':	
-      polclog['I'] = polclog_SIF (I0=10**1.766, SI=[0.447, -0.148], f0=1e6)
+      polclog['stokesI'] = polclog_SIF (I0=10**1.766, SI=[0.447, -0.148], f0=1e6)
    elif source =='3c48':	
-      polclog['I'] = polclog_SIF (I0=10**2.345, SI=[0.071, -0.138], f0=1e6)
+      polclog['stokesI'] = polclog_SIF (I0=10**2.345, SI=[0.071, -0.138], f0=1e6)
    elif source =='3c295':	
-      polclog['I'] = polclog_SIF (I0=10**1.485, SI=[0.759, -0.255], f0=1e6)
+      polclog['stokesI'] = polclog_SIF (I0=10**1.485, SI=[0.759, -0.255], f0=1e6)
    elif source =='3c286':	
-      polclog['I'] = polclog_SIF (I0=10**1.48, SI=[0.292, -0.124], f0=1e6)
-      polclog['Q'] = polclog_SIF (I0=2.735732, SI=[-0.923091, 0.073638], f0=1e6)
-      polclog['U'] = polclog_SIF (I0=6.118902, SI=[-2.05799, 0.163173], f0=1e6)
+      polclog['stokesI'] = polclog_SIF (I0=10**1.48, SI=[0.292, -0.124], f0=1e6)
+      polclog['stokesQ'] = polclog_SIF (I0=2.735732, SI=[-0.923091, 0.073638], f0=1e6)
+      polclog['stokesU'] = polclog_SIF (I0=6.118902, SI=[-2.05799, 0.163173], f0=1e6)
       #    pp['I0'] = 10**1.48
       #    pp['SI'] = [0.292, -0.124]
       #    pp['Q'] = [2.735732, -0.923091, 0.073638]
@@ -237,7 +252,7 @@ def polclog_predefined (source='<source>', SI=-0.7, I0=1.0, f0=1e6, stokes='I'):
       
    else:
       # If source not recognised, use the other arguments:
-      polclog['I'] = polclog_SIF (SI=SI, I0=I0, f0=f0)
+      polclog['stokesI'] = polclog_SIF (SI=SI, I0=I0, f0=f0)
 
    print '** polclog_predefined(',source,stokes,') ->',polclog[stokes]
    return polclog[stokes]
@@ -293,15 +308,10 @@ def funklet_obsolete (funkin, mean=0, stddev=0):
 
 
 #********************************************************************************
-# Initialisation and testing routines
+# Testing routines
 # NB: this section should always be at the end of the script
 #********************************************************************************
 
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(script_name)
 
 #-------------------------------------------------------------------------
 # Meqforest execution routine (may be called from the browser):
@@ -352,12 +362,12 @@ if __name__ == '__main__':
        print oneliner(polclog_flux(ns, '3c295'), script_name)
        print oneliner(polclog_flux(ns, '3c48'), script_name)
        print oneliner(polclog_flux(ns, '3c147'), script_name)
-       print oneliner(polclog_flux(ns, '3c147', stokes='Q'), script_name)
+       print oneliner(polclog_flux(ns, '3c147', stokes='stokesQ'), script_name)
 
     if 1:
        print oneliner(polclog_flux(ns, '3c286'), script_name)
-       print oneliner(polclog_flux(ns, '3c286', stokes='Q'), script_name)
-       print oneliner(polclog_flux(ns, '3c286', stokes='U'), script_name)
+       print oneliner(polclog_flux(ns, '3c286', stokes='stokesQ'), script_name)
+       print oneliner(polclog_flux(ns, '3c286', stokes='stokesU'), script_name)
 
     # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
     print '\n** end of',script_name,'\n'

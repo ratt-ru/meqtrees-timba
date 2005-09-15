@@ -173,6 +173,7 @@ def meqforest (mqs, parent, request=None, **pp):
 
    pp.setdefault('trace', False)
    pp.setdefault('save', True)       
+   pp.setdefault('wait', True)       
 
    # Execute the meqforest with the specified (or default) request:
    request = make_request(request, **pp)
@@ -183,13 +184,44 @@ def meqforest (mqs, parent, request=None, **pp):
    # Needed for the moment, until OMS has figured out the threading:
    # mqs.meq('Clear.Breakpoints',record(name='solver:GJones:q=uvp',breakpoint=255))
 
-   result = mqs.meq('Node.Execute',record(name=_test_root, request=request), wait=True)
+   result = mqs.meq('Node.Execute',record(name=_test_root, request=request), wait=pp['wait'])
    MG_JEN_forest_state.attach_test_result (mqs, result)
 
    # Optionally, save the meqforest
    if pp['save']: save_meqforest (mqs, **pp)
    
    return True
+
+#--------------------------------------------------------------------------------
+
+def spigot2sink (mqs, parent, **pp):
+
+   from Timba.Meq import meq
+
+   pp.setdefault('trace', False)
+   pp.setdefault('save', True)       
+   pp.setdefault('wait', True)       
+
+   # Attach the name of the Python file that reads the MS header
+   initrec = record()
+   initrec.python_init = 'read_msvis_header.py'
+   # initrec.python_init = 'Timba.Trees.read_msvis_header.py'
+
+   # Get the info specified earlier by MG_JEN_forest.state.stream():
+   inputrec = MG_JEN_forest.state.stream_inputrec()
+   outputrec = MG_JEN_forest.state.stream_outputrec()
+
+   # Start issuing a series of requests to the MeqSink(s):
+   mqs.init (initrec=F, input=inputrec, ouput=outputrec, wait=pp['wait'])
+
+   # mqsv.init (initrec=F, input=inputrec, ouput=F, 
+   #            update_gui=T, set_default=F, priority=5);
+
+   # Optionally, save the meqforest
+   if pp['save']: save_meqforest (mqs, **pp)
+   
+   return True
+
 
 #-------------------------------------------------------------------------------
 # Save the meqforest in a file (and perhapes a reference file, for auto-testing):
@@ -232,6 +264,42 @@ def save_meqforest (mqs, **pp):
 # private.mqsv.getnodelist := function (children=T) {
 #   return [class="", name="", nodeindex=[], children=[=]];
 # private.mqsv.execute := function (name=F, request=F) {
+
+
+
+
+
+
+	# NB: output_col tells the server what output columns to initialize 
+	#     in the TILES(!). This should match the output column of the Sink.
+	# The 'output' record configures the MS output agent. The three optional
+	# fields are:
+	#  - data_column:
+	#  - predict_column:
+	#  - residuals_column:
+	# The presence of one of these fields will cause the corresponding tile
+	# column to be mapped to the named MS column (e.g. 'DATA' or 'MODEL_DATA').
+	# New columns can be inserted, but this does not yet work (16 dec)
+
+	# Similarly, reading an MS is done by means of an input record:
+	# inputrec := [ms_name='test.ms', data_column_name='DATA', tile_size=10, selection=[=]];
+	#   - The data_column_name maps an MS column to the DATA column of the tile.
+	#   - tile_size determines the tile size, and therefore the domain size,
+	#     in # timeslots
+        #   - selection can be used to apply a selection to the MS. It can contain
+	#     the following fields:
+	#     - channel_start_index: first channel (1-based) 
+	#     - channel_end_index:   last channel (1-based)
+	#     - ddid_index:          DATA_DESCRIPTION_ID (default=1)
+	#     - field_index:         FIELD_ID (default=1)
+	#     - selection_string:    any TAQL string
+	# mqsv.init (initrec=F, input=inputrec, ouput=F, 
+	#            update_gui=T, set_default=F, priority=5);
+
+
+# initrec.python_init = 'read_msvis_header.py'
+
+
 
 
 

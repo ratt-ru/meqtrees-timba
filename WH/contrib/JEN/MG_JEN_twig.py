@@ -1,7 +1,7 @@
 script_name = 'MG_JEN_twig.py'
 
 # Short description:
-#   Various input subtrees (twigs)  
+#   Various convenience subtrees for simulated input (twigs)  
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
@@ -24,6 +24,13 @@ from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_math
 from Timba.Contrib.JEN import MG_JEN_funklet
+
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(script_name)
+
 
 
 
@@ -187,17 +194,26 @@ def cloud (ns, n=3, name='pnt', qual=None, stddev=1, mean=complex(0)):
     return cc
 
 
+# Make a ring of equidistant clouds on the unit circle in the complex plane: 
+
+def clouds_ring (ns, nc=5, nppc=10, name='pnt', qual=None, stddev=0.2):
+   cc = []
+   for i in range(n):
+      angle = 2*pi*(float(i)/n)
+      mean = complex(cos(angle),sin(angle))
+      print i,n,(float(i)/n),':',angle,'->',mean
+      cc.append(cloud (ns, n=nppc, name=name+str(i), qual=None, stddev=stddev, mean=mean))
+
+   return cc
+
+
+
 
 #********************************************************************************
-# Initialisation and testing routines
+# Testing routines
 # NB: this section should always be at the end of the script
 #********************************************************************************
 
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(script_name)
 
 #-------------------------------------------------------------------------
 # Meqforest execution routine (may be called from the browser):

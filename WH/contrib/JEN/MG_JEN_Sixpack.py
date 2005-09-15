@@ -190,11 +190,6 @@ def predefined (pp, trace=0):
 
 
 
-# Centrally define the 6 standard names:
-
-def sixnames ():
-  return record(I='stokesI', Q='stokesQ', U='stokesU', V='stokesV', R='ra', D='dec') 
-
 
 
 
@@ -224,7 +219,7 @@ def newstar_source (ns=0, **pp):
    predefined (pp)  
    
    # Make the Sixpack of 6 standard subtree root-nodes: 
-   n6 = sixnames()
+   n6 = record(I='stokesI', Q='stokesQ', U='stokesU', V='stokesV', R='ra', D='dec') 
    zero = ns.zero << Meq.Constant(0)
    
    iquv = {}
@@ -234,7 +229,8 @@ def newstar_source (ns=0, **pp):
       parm['I0'] = ns.I0(q=pp['name']) << Meq.Parm(pp['I0'])
       iquv[n6.I] = parm['I0']
    else:
-      iquv[n6.I] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'], I0=pp['I0'], SI=pp['SI'], stokes='I')
+      iquv[n6.I] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'],
+                                               I0=pp['I0'], SI=pp['SI'], stokes='stokesI')
       # fmult = ...??
 
    # Create Stokes V by converting Vpct and correcting for SI if necessary
@@ -275,8 +271,8 @@ def newstar_source (ns=0, **pp):
       if 0:
          pass
          # NB: Some sources have polclogs for their absolute polarised flux (e.g. 3c286):
-         # iquv['Q'] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'], stokes='Q')
-         # iquv['U'] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'], stokes='U')
+         # iquv['Q'] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'], stokes='stokesQ')
+         # iquv['U'] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'], stokes='stokesU')
          # if not == 0.0, then ....
       parm['Qpct'] = ns.Qpct(q=pp['name']) << Meq.Parm(pp['Qpct'])
       parm['Upct'] = ns.Upct(q=pp['name']) << Meq.Parm(pp['Upct'])

@@ -152,7 +152,7 @@ def _define_forest (ns):
    # Test/demo of importable function: .example1()
    bb = []
    bb.append(example1 (ns, arg1=1, arg2=2))
-   bb.append(example1 (ns, arg1=3, arg2=4))
+   bb.append(example1 (ns, arg1=-1, arg2=4))
    cc.append(MG_JEN_exec.bundle(ns, bb, '.example1()'))
 
    # Test/demo of importable function: .example2()
@@ -265,13 +265,18 @@ def _tdl_job_lofar(mqs, parent):
 def _tdl_job_21cm(mqs, parent):
     return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')    # (1350-1420 MHz)
 
+# Special version for (MS-controlled) stream control:
+
+def _tdl_job_spigot2sink(mqs, parent):
+    return MG_JEN_exec.spigot2sink (mqs, parent)
+
 # Execute the forest for a sequence of requests:
 
 def _tdl_job_sequence(mqs, parent):
-    for x in range(10):
+    for x in range(100):
         MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
                                f1=x, f2=x+1, t1=x, t2=x+1,
-                               save=False, trace=False)
+                               save=False, trace=False, wait=False)
     MG_JEN_exec.save_meqforest(mqs) 
     return True
 

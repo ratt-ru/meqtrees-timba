@@ -61,7 +61,7 @@ def _define_forest (ns):
       angle = 2*pi*(float(i)/n)
       mean = complex(cos(angle),sin(angle))
       print i,n,(float(i)/n),':',ckey,skey,angle,'->',mean
-      style[skey] = MG_JEN_twig.cloud (ns, n=10, name=skey, qual=None, stddev=0.2, mean=mean)
+      style[skey] = MG_JEN_twig.cloud (ns, n=30, name=skey, qual=None, stddev=0.2, mean=mean)
       dc = dcoll(ns, style[skey], scope=scope, tag=skey, color=ckey, style=skey, size=10, errorbars=False)
       bb.append(dc['dcoll']) 
       dd.append(dc)

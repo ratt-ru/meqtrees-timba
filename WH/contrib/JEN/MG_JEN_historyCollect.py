@@ -66,7 +66,7 @@ def _define_forest (ns):
    attrib = record(plot=record(), tag='tag')
    attrib['plot'] = record(type='spectra', title=script_name,
                            spectrum_color='hippo',
-                           x_axis='xlabel', y_axis='ylabel')
+                           x_axis='#', y_axis='hcoll')
    sc = []
    sc.append(ns.dcoll_stripper << Meq.DataCollect(ns.stripper, attrib=attrib, top_label=hiid('visu')))
    sc.append(ns.dcoll_mean << Meq.DataCollect(ns.mean, attrib=attrib, top_label=hiid('visu')))
