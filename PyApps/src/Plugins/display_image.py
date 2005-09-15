@@ -161,8 +161,9 @@ class QwtImageDisplay(QwtPlot):
         self.setAxisTitle(QwtPlot.xBottom, 'Array/Channel Number')
         self.setAxisTitle(QwtPlot.yLeft, 'Array/Sequence Number')
 
-        # set default background to white
-        self.setCanvasBackground(Qt.white)
+# set default background to  whatever QApplication sez it should be!
+        self.setCanvasBackground(QApplication.palette().active().base())
+
 
         
         self.enableAxis(QwtPlot.yRight, False)

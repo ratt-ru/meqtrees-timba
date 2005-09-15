@@ -76,6 +76,9 @@ class QwtHistogramPlotter(QwtPlot):
                      self.onMouseReleased)
       self.connect(self, SIGNAL("legendClicked(long)"), self.toggleCurve)
 
+# set default background to  whatever QApplication sez it should be!
+      self.setCanvasBackground(QApplication.palette().active().base())
+
       #create a context menu to over-ride the one from Oleg
       if self.mainwin:
         self.menu = QPopupMenu(self.mainwin);
