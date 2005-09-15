@@ -91,6 +91,7 @@ Dependency                       1300       ; from /home/oms/LOFAR/Timba/MEQ/src
 Deps                             1327       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:38
 Deriv                            1324       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
 Desc                             1152       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:33
+Description                      1581       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:42
 Destination                      1495       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:30
 DFT                              1423       ; from /home/oms/LOFAR/Timba/MeqNodes/src/PointSourceDFT.h:32
 Diameter                         1197       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
@@ -252,8 +253,7 @@ MeqAzEl                          1551       ; from /home/twillis/LOFAR/Timba/Meq
 MeqCeil                          1437       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
 #MeqCells                        1339       ; from /home/oms/LOFAR/Timba/MEQ/src/Cells.h:35
 MeqClient                        1544       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
-MeqCompiledFunklet               1579       ; from /home/mevius/exp_parm/LOFAR/Timba/MeqNodes/src/CompiledFunklet.h:18
-#MeqComposedPolc                 1552       ; from /home/mevius/LOFAR/Timba/MEQ/src/ComposedPolc.h:8
+#MeqComposedPolc                 1582       ; from /home/oms/LOFAR/Timba/MEQ/src/ComposedPolc.h:9
 MeqComposer                      1442       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Composer.h:30
 MeqCondeq                        1443       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:31
 MeqConj                          1394       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Conj.h:30
@@ -372,6 +372,7 @@ Normalized                       1334       ; from /home/oms/LOFAR/Timba/MEQ/src
 Notify                           1210       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
 Num                              1163       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 O                                1034       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+Object                           1579       ; from /home/oms/LOFAR/Timba/DMI/src/Exception.h:31
 Observatory                      1554       ; from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:33
 OctopussyMessage                 1049       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:29
 Offset                           1195       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
