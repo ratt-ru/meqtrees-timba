@@ -1,5 +1,6 @@
 #include "Gateways.h"
 #include "GatewayWP.h"
+#include <DMI/Exception.h>
 
 namespace Octopussy
 {
@@ -664,7 +665,8 @@ void GatewayWP::processIncoming()
           subs.unpack(msg.data(),msg.datasize());
           success = true;
         } catch( std::exception &exc ) {
-          lprintf(2,"warning: failed to unpack Subscribe message: %s\n",exc.what());
+          lprintf(2,"warning: failed to unpack Subscribe message: %s\n",
+              exceptionToString(exc).c_str());
         }
       }
       if( success )
@@ -760,7 +762,8 @@ void GatewayWP::processIncoming()
     }
     catch( std::exception &exc ) 
     {
-      lprintf(1,"error: processing init message: %s\n",exc.what());
+      lprintf(1,"error: processing init message: %s\n",
+          exceptionToString(exc).c_str());
       shutdown();
       return;
     }

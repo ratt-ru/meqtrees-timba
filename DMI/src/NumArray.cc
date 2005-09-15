@@ -21,6 +21,12 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.45  2005/09/15 11:46:44  smirnov
+//  Revised error reporting to allow hierarchical exceptions
+//
+//  Revision 1.44.2.1  2005/09/13 06:34:45  smirnov
+//  Revising the Exceptions mechanism to allow hierarchical exceptions to accumulate.
+//
 //  Revision 1.44  2005/08/15 12:41:58  smirnov
 //  Upped the max array rank to 16.
 //  Split up NumArray LUT-functions into 8 separate .cc files to speed up
@@ -781,15 +787,16 @@ string DMI::NumArray::sdebug ( int detail,const string &prefix,const char *name 
   string out;
   if( detail>=0 ) // basic detail
   {
-    Debug::appendf(out,"%s/%08x",name?name:"DMI::NumArray",(int)this);
+    out = name ? string(name) : objectType().toString();
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
+    out += ssprintf("/%08x",(int)this);
     if( !itsArrayValid )
-      out += "empty";
+      Debug::append(out,"empty");
     else
     {
-      out += itsType.toString() + " ";
+      Debug::append(out,itsType.toString() + " ");
       for( uint i=0; i<itsShape.size(); i++ )
         out += Debug::ssprintf("%c%d",(i?'x':' '),itsShape[i]);
     }

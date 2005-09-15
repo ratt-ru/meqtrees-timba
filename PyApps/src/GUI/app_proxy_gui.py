@@ -718,11 +718,45 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     try:
       report = False;
       msgtext = None; 
+      # see if event contains a message to be logged
       if isinstance(value,record):
+        # the value of 'content' will later determine whether a data object
+        # is logged along with the message. This will be the case if the 
+        # content is anything more complicated than a single string. In 
+        # all these cases we will reassign to content
+        content = None;
+        # if there's something else besides the message, add it as hierarchical
+        # content to the entry
+        if len(value) > 1:
+          content = value;
+        # look for fields of specific form ('message', 'error', etc.)
         for (field,cat) in MessageCategories.items():
-          if field in value:
-            self.log_message(value[field],content=value,category=cat);
-            break;
+          msg = value.get(field,None);
+          if msg is None:
+            continue;
+          # if msg is a sequence, reverse the order to form up message text
+          # if not, make sure it is treated as one anyway
+          if isinstance(msg,(list,tuple)):
+            content = content or msg;
+            msg = msg[-1::-1];
+          else:
+            msg = [msg];
+          text = [];
+          # now iterate to collect complete text
+          for m in msg:
+            # first form: message field is a string
+            if isinstance(m,str):
+              text.append(m);
+            # second form: message field is a record containing 'message' field
+            elif isinstance(m,record):
+              content = content or m;
+              try: text.append(m.message);
+              except: pass;
+          # have we collected any messages?
+          if text:
+            if len(text) > 3:
+              text = text[:3];
+            self.log_message(' / '.join(text),content=content,category=cat);
       # add to event log (if enabled)
       self.eventlog.add(str(ev),content=value,category=Logger.Event);
       # strip off index from end of event

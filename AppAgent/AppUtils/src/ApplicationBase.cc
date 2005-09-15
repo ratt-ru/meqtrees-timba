@@ -1,4 +1,5 @@
 #include <Common/Debug.h>    
+#include <DMI/Exception.h>    
 #include "ApplicationBase.h"
 #include "AID-AppUtils.h"
     
@@ -99,7 +100,7 @@ void ApplicationBase::do_run ()
   }
   catch( std::exception &exc )
   {
-    cdebug(0)<<"thread terminated with exception: "<<exc.what()<<endl; 
+    cdebug(0)<<"thread terminated with exception: "<<exceptionToString(exc); 
   }
   catch( ... )
   {

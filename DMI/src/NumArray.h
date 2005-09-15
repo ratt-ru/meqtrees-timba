@@ -21,6 +21,12 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.41  2005/09/15 11:46:44  smirnov
+//  Revised error reporting to allow hierarchical exceptions
+//
+//  Revision 1.40.2.1  2005/09/13 06:34:45  smirnov
+//  Revising the Exceptions mechanism to allow hierarchical exceptions to accumulate.
+//
 //  Revision 1.40  2005/08/15 12:41:58  smirnov
 //  Upped the max array rank to 16.
 //  Split up NumArray LUT-functions into 8 separate .cc files to speed up
@@ -421,7 +427,7 @@ public:
                  vector<bool> &keepAxes) const;
   
     //##ModelId=3F5487DB0110
-  string sdebug ( int detail = 1,const string &prefix = "",
+  string sdebug ( int detail = 0,const string &prefix = "",
                   const char *name = 0 ) const;
   
     //##ModelId=3DB949AF001C

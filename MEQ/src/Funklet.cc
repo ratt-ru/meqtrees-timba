@@ -145,7 +145,7 @@ void Funklet::validateContent (bool)
   }
   catch( std::exception &err )
   {
-    Throw(string("validate of Funklet record failed: ") + err.what());
+    ThrowMore(err,"validate of Funklet record failed");
   }
   catch( ... )
   {

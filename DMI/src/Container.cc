@@ -8,11 +8,13 @@
 #include <list>
 
 // define some handy macros for throwing standard exceptions 
+#define ConvErrorMessage(from,to) "can't convert "+(from)+" to "+(to)
+    
 #define ThrowConvError(from,to) \
-  ThrowExc(ConvError,"can't convert "+(from).toString()+" to "+(to).toString());
+  ThrowExc(ConvError,ConvErrorMessage((from).toString(),(to).toString()))
 
 #define ThrowConvError1(from,to,ptr) \
-  ThrowExc(ConvError,"can't convert "+(from).toString()+(ptr)+ " to "+(to).toString()+(ptr));
+  ThrowExc(ConvError,ConvErrorMessage((from).toString()+(ptr),(to).toString()+(ptr)));
 
 #define ThrowAssignError(from,to) \
   ThrowExc(ConvError,"can't assign "+(from).toString()+" to "+(to).toString());
@@ -33,9 +35,21 @@ int DMI::Container::Hook::_dum_int;
 //##ModelId=4017F623014A
 DMI::Container::ContentInfo DMI::Container::Hook::_dum_info;
 
+// inline function to convert IDs to strings of form ["id"] 
+static inline string idToString (const DMI::HIID &id)
+{
+  if( id.empty() )
+    return "[]";
+  return "[" + id.toString() + "]";
+}
+
+
 // common init code for constructors
 void DMI::Container::Hook::initialize (const DMI::Container *pnc,const HIID &id1,bool nonconst)
 {
+#if LOFAR_DEBUG
+  debug_info = "<" + pnc->sdebug(0) + ">" + idToString(id1);
+#endif
   nc = const_cast<DMI::Container *>(pnc);
   nclock0.relock(nc->mutex());
   nc_writable = nonconst;
@@ -45,7 +59,7 @@ void DMI::Container::Hook::initialize (const DMI::Container *pnc,const HIID &id1
   target.ptr = 0;
   // initialize via operator []. We don't initialize directly because
   // id may contain multiple subscripts (separated by slashes); hence let
-  // operator [] comlete the initialization
+  // operator [] complete the initialization
   operator [] (id1);
 }
 
@@ -129,6 +143,10 @@ const void * DMI::Container::Hook::resolveTarget (int flags,TypeId hint) const
 //##ModelId=4017F6250392
 bool DMI::Container::Hook::nextContainer (const HIID &next_id,bool nothrow) const
 {
+#if LOFAR_DEBUG
+  debug_info += idToString(next_id);
+#endif
+  
   // apply index so that we resolve the hook to a target
   resolveTarget();
   // check that we get back a valid ref to a container
@@ -479,7 +497,7 @@ const void * DMI::Container::Hook::get_address (ContentInfo &info,
     if( match )
     {
       if( target.size > 1 && !pointer )
-        ThrowExc(ConvError,"accessing array of "+target.obj_tid.toString()+" as a scalar");
+        ThrowExc(ConvError,ConvErrorMessage("array of "+target.obj_tid.toString(),"a scalar"));
       info = target;
       // set lock if asked to
       if( keeplock )
@@ -525,13 +543,16 @@ const DMI::BObj * DMI::Container::Hook::get_address_bo (ContentInfo &info,
     // for all BO-derived types, an Objref is expected
     if( target.tid != TpDMIObjRef )
     {
-      ThrowExc(ConvError,"can't access "+target.obj_tid.toString()+" as a dynamic object of the requested type");
+      if( info.tid )
+        ThrowExc(ConvError,ConvErrorMessage(target.obj_tid.toString(),info.tid.toString()))
+      else
+        ThrowExc(ConvError,ConvErrorMessage(target.obj_tid.toString(),"an object"));
     }
     const DMI::BObj *ptr = static_cast<const ObjRef *>(targ)->deref_p();
     if( (*can_convert)(ptr) )
     {
       if( target.size > 1 && !pointer )
-        ThrowExc(ConvError,"accessing array of "+target.obj_tid.toString()+" as a scalar");
+        ThrowExc(ConvError,"can't access array of "+target.obj_tid.toString()+"s as a scalar");
       info = target;
       // set lock if asked to
       if( keeplock )
@@ -551,7 +572,10 @@ const DMI::BObj * DMI::Container::Hook::get_address_bo (ContentInfo &info,
     }
   }
   // fail here
-  ThrowExc(ConvError,"can't access "+target.obj_tid.toString()+" as a dynamic object of the requested type");
+  if( info.tid )
+    ThrowExc(ConvError,ConvErrorMessage(target.obj_tid.toString(),info.tid.toString()))
+  else
+    ThrowExc(ConvError,ConvErrorMessage(target.obj_tid.toString(),"an object"));
 }
 
 
@@ -861,96 +885,33 @@ void * DMI::Container::Hook::assign_vector (TypeId tid,int size) const
 }
 
 //##ModelId=3DB934BC01D9
-string DMI::Container::Hook::sdebug ( int detail,const string &prefix,const char *name ) const
+string DMI::Container::Hook::sdebug (int detail,const string &prefix,const char *name) const
 {
   if( !name )
-    name = "Hook";
-  string out;
-  out = ssprintf("%s%s[%s]",name,addressed?"&":"",nc->sdebug(detail,prefix).c_str());
-  out += "["+pid->toString()+"]"; 
-  return out;  
+    name = "";
+  string out = name;
+  if( addressed )
+    out += "&";
+#if LOFAR_DEBUG
+  out += debug_info;
+#else
+  if( nc_writable || !(ncref0 || ncptr0) ) // case (a) or (d), empty chain (see comments in Container.h)
+  {
+    out += "<" + nc->sdebug(detail,prefix) +">";
+    out += idToString(*pid);
+  }
+  else
+  {
+    if( ncref0 ) // case (b)
+      out += "<" + (*ncref0)->sdebug(detail,prefix) + ">";
+    else if( ncptr0 ) // case (c)
+      out += "<" + ncptr0->sdebug(detail,prefix) + ">";
+    // now add chain
+    out += idToString(link0.id);
+    for( LinkChain::const_iterator iter = chain.begin(); iter != chain.end(); iter++ )
+      out += idToString(iter->id);
+  }
+#endif
+  return out;
 }
-
-// Assigns hook to hook
-// void DMI::Container::Hook::operator = (const DMI::Container::Hook &hook )
-// {
-//   ContentInfo info;
-//   const void *source;
-//   // resolve hook to target element
-//   if( hook.index >=0 || hook.id.size() )
-//   {
-//     source = hook.collapseIndex(info,0,0);
-//     FailWhen( !source,"uninitialized element");
-//   }
-//   else
-//   {
-//     // assign container as object
-//     // BUG: must check for writability here!
-//     assign_object(const_cast<DMI::BObj*>(hook.nc),hook.nc->objectType(),
-//                   DMI::READONLY);
-//     return;
-//   }
-//   // is it an objref? Assign a copy
-//   if( info.tid == TpDMIObjRef )
-//   {
-//     assign_objref(*static_cast<const ObjRef *>(source),DMI::COPYREF|DMI::PRESERVE_RW);
-//   }
-//   else 
-//   {
-//     // lookup type info
-//     const TypeInfo & ti = TypeInfo::find(info.tid);
-//     switch( ti.category )
-//     {
-//       case TypeInfo::NUMERIC:
-//       case TypeInfo::BINARY:  // numeric or binary -- assign scalar or vector
-//           if( info.size == 1 )
-//             put_scalar(source,info.tid,ti.size);
-//           else
-//           {
-//             void *target = prepare_vector(info.tid,info.size);
-//             memcpy(target,source,info.size*ti.size);
-//           }
-//           break;
-//           
-//       case TypeInfo::SPECIAL: // special type -- use TypeInfo's copy method
-//           if( info.size == 1 )
-//           {
-//             ContentInfo putinfo;
-//             void *target = prepare_put(putinfo,info.tid);
-//             (*ti.CopyMethod)(target,source);
-//           }
-//           else
-//           {
-//             char *target = static_cast<char*>(prepare_vector(info.tid,info.size));
-//             const char *src = static_cast<const char*>(source);
-//             for( int i=0; i<info.size; i++ )
-//             {
-//               (*ti.CopyMethod)(target,src);
-//               target += ti.size;
-//               src += ti.size;
-//             }
-//           }
-//           break;
-//           
-//       case TypeInfo::DYNAMIC: // dynamic object -- attach ref
-//           // cast away const is OK since we enforce the right set of flags
-//           assign_object(static_cast<DMI::BObj*>(const_cast<void*>(source)),
-//                         info.tid,info.writable?DMI::WRITE:DMI::READONLY);
-//           break;
-//           
-//       case TypeInfo::INTERMEDIATE:
-//           Throw("assignment of Arrays not supported yet");
-//           // special case for handling arrays
-// //           if( TypeInfo::isArray(info.tid) )
-// //           {
-// //             bool haveArray;
-// //             void *target = prepare_assign_array(haveArray,info.tid,
-// //             
-// //           }
-//           // else fall through to throw below
-//       default:
-//           Throw("don't know how to assign RHS of this expression");
-//     }
-//   }
-// }
 

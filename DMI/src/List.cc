@@ -352,12 +352,12 @@ string DMI::List::sdebug ( int detail,const string &prefix,const char *name ) co
   string out;
   if( detail>=0 ) // basic detail
   {
-    Debug::appendf(out,"%s/%08x",name?name:objectType().toString().c_str(),(int)this);
+    out = name ? string(name) : objectType().toString();
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    out += Debug::ssprintf("%d items",numItems());
-    out += " / refs "+CountedRefTarget::sdebug(-1);
+    out += ssprintf("/%08x %d items / %s refs",(int)this,numItems(),
+                    CountedRefTarget::sdebug(-1).c_str());
   }
   if( detail >= 2 || detail <= -2 )   // high detail
   {

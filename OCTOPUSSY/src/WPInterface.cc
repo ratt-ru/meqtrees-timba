@@ -1,7 +1,8 @@
 #include "OctopussyConfig.h"
 #include "Dispatcher.h"
 #include "WPInterface.h"
-    
+#include <DMI/Exception.h>
+        
 #include <stdarg.h>
 
 #ifdef USE_DEBUG
@@ -352,7 +353,8 @@ void * WPInterface::workerThread ()
   }
   catch( std::exception &exc )
   {
-    lprintf(0,AidLogFatal,"worker thread %d terminated with exception: %s",(int)Thread::self(),exc.what());
+    lprintf(0,AidLogFatal,"worker thread %d terminated with exception: %s",(int)Thread::self(),
+          exceptionToString(exc).c_str());
   }
   return 0;
 }
@@ -452,7 +454,8 @@ void WPInterface::do_init ()
       init(); 
     }
     catch(std::exception &exc) {
-      lprintf(0,AidLogFatal,"caught exception in init(): %s; shutting down",exc.what());
+      lprintf(0,AidLogFatal,"caught exception in init(): %s. Shutting down",
+            exceptionToString(exc).c_str());
       dsp()->detach(this,true);
     }
   }
@@ -489,7 +492,8 @@ bool WPInterface::do_start ()
       raiseNeedRepoll( start() );
     }
     catch(std::exception &exc) {
-      lprintf(0,AidLogFatal,"caught exception in start(): %s; shutting down",exc.what());
+      lprintf(0,AidLogFatal,"caught exception in start(): %s. Shutting down",
+          exceptionToString(exc).c_str());
       dsp()->detach(this,true);
       return false;
     }
@@ -542,7 +546,8 @@ void WPInterface::do_stop ()
       stop();
     }
     catch(std::exception &exc) {
-      lprintf(0,AidLogError,"caught exception in stop(): %s; ignoring",exc.what());
+      lprintf(0,AidLogError,"caught exception in stop(): %s. Ignoring",
+          exceptionToString(exc).c_str());
     }
   }
   else  
@@ -609,7 +614,8 @@ bool WPInterface::do_poll (ulong tick)
       setNeedRepoll( poll(tick) );
     }
     catch(std::exception &exc) {
-      lprintf(2,AidLogError,"caught exception in poll(): %s; ignoring",exc.what());
+      lprintf(2,AidLogError,"caught exception in poll(): %s. Ignoring",
+          exceptionToString(exc).c_str());
     }
   }
   else  
@@ -664,7 +670,8 @@ bool WPInterface::do_poll (ulong tick)
           res = timeout(to_id);
         }
         catch(std::exception &exc) {
-          lprintf(2,AidLogError,"caught exception in timeout(): %s; ignoring",exc.what());
+          lprintf(2,AidLogError,"caught exception in timeout(): %s. Ignoring",
+              exceptionToString(exc).c_str());
         }
       }
       else  
@@ -686,7 +693,8 @@ bool WPInterface::do_poll (ulong tick)
             res = input(fd,flags);
           }
           catch(std::exception &exc) {
-            lprintf(2,AidLogError,"caught exception in input(): %s; ignoring",exc.what());
+            lprintf(2,AidLogError,"caught exception in input(): %s. Ignoring",
+                exceptionToString(exc).c_str());
           }
         }
         else  
@@ -707,7 +715,8 @@ bool WPInterface::do_poll (ulong tick)
           res = signal(signum);
         }
         catch(std::exception &exc) {
-          lprintf(2,AidLogError,"caught exception in signal(): %s; ignoring",exc.what());
+          lprintf(2,AidLogError,"caught exception in signal(): %s. ignoring",
+              exceptionToString(exc).c_str());
         }
       }
       else  
@@ -742,7 +751,8 @@ bool WPInterface::do_poll (ulong tick)
         res = receive(mref2);
       }
       catch(std::exception &exc) {
-        lprintf(2,AidLogError,"caught exception in receive(): %s; ignoring message",exc.what());
+        lprintf(2,AidLogError,"caught exception in receive(): %s. Ignoring message",
+            exceptionToString(exc).c_str());
       }
     }
     else  

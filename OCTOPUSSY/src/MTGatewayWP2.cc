@@ -1,6 +1,7 @@
 #ifdef USE_THREADS
 
 #include "MTGatewayWP.h"
+#include <DMI/Exception.h>
 
 namespace Octopussy
 {
@@ -238,7 +239,8 @@ void * MTGatewayWP::readerThread ()
               }
               catch( std::exception &exc )
               {
-                lprintf(0,AidLogError,"Exception while unpacking message: %s",exc.what());
+                lprintf(0,AidLogError,"Exception while unpacking message: %s",
+                    exceptionToString(exc).c_str());
                 lprintf(0,AidLogError,"Message will be dropped");
               }
               catch( ... )
@@ -295,7 +297,8 @@ void * MTGatewayWP::readerThread ()
   }
   catch( std::exception &exc )
   {
-    lprintf(0,AidLogError,"Reader thread %d terminated with exception %s",(int)Thread::self(),exc.what());
+    lprintf(0,AidLogError,"Reader thread %d terminated with exception %s",(int)Thread::self(),
+        exceptionToString(exc).c_str());
     shutdown();
   }
 

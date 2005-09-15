@@ -346,7 +346,7 @@ void VellSet::validateContent (bool)
   {
 //    cerr<<"Failed VellSet: "<<sdebug(10)<<endl;
     clear();
-    Throw(string("Validate of Meq::VellSet record failed: ") + err.what());
+    ThrowMore(err,"Validate of Meq::VellSet record failed");
   }
   catch( ... )
   {
@@ -542,7 +542,7 @@ void VellSet::setPerturbedValue (int i,Vells::Ref &ref,int iset,int flags)
 }
 
 //##ModelId=400E53550393
-void VellSet::addFail (const DMI::Record *rec,int flags)
+void VellSet::addFail (const ObjRef &ref)
 {
   Thread::Mutex::Lock lock(mutex());
   clear();
@@ -563,23 +563,7 @@ void VellSet::addFail (const DMI::Record *rec,int flags)
     Record::add(FFail,fails = new DMI::List);
   }
   // add record to fail field
-  fails->addBack(rec,0);
-}
-
-//##ModelId=400E53550399
-void VellSet::addFail (const string &nodename,const string &classname,
-                      const string &origin,int origin_line,const string &msg)
-{
-  Thread::Mutex::Lock lock(mutex());
-  DMI::Record::Ref ref;
-  DMI::Record & rec = ref <<= new DMI::Record;
-  // populate the fail record
-  rec[FNodeName] = nodename;
-  rec[FClassName] = classname;
-  rec[FOrigin] = origin;
-  rec[FOriginLine] = origin_line;
-  rec[FMessage] = msg;
-  addFail(&rec);
+  fails->addBack(ref);
 }
 
 //##ModelId=400E535503A7
@@ -589,9 +573,9 @@ int VellSet::numFails () const
 }
   
 //##ModelId=400E535503A9
-const DMI::Record & VellSet::getFail (int i) const
+ObjRef VellSet::getFail (int i) const
 {
-  return (*this)[FFail][i].as<DMI::Record>();
+  return (*this)[FFail][i].ref();
 }
 
 //##ModelId=400E535503AE

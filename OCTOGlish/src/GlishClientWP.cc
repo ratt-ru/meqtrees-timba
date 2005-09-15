@@ -9,6 +9,7 @@
 #include <DMI/Vec.h>
 #include <DMI/NumArray.h>
 #include <DMI/Global-Registry.h>
+#include <DMI/Exception.h>
 
 #include "GlishClientWP.h"
 #include "GlishUtil.h"
@@ -157,7 +158,8 @@ casa::GlishValue GlishClientWP::handleEvent (GlishSysEvent &event)
     } // end try 
     catch ( std::exception &exc ) 
     {
-      dprintf(1)("exception processing glish event, ignoring: %s\n",exc.what());
+      dprintf(1)("exception processing glish event, ignoring: %s\n",
+          exceptionToString(exc).c_str());
       result = GlishArray(exc.what());
     }
     catch ( ... ) 

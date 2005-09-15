@@ -210,13 +210,16 @@ bool Node::Cache::fromRecord (const Record &rec)
   }
   catch( std::exception &exc )
   {
-    cdebug1(3)<<"error parsing cache record: "<<exc.what()<<endl;
+    cdebug1(3)<<"error parsing cache record: "<<exceptionToString(exc);
+    clear();
+    ThrowMore1(exc,"illegal cache record");
   }
   catch( ... )
   {
+    clear();
+    cdebug1(3)<<"unknown exception parsing cache record"<<endl;
+    Throw1("illegal cache record");
   }
-  clear();
-  Throw1("illegal cache record");
 }
 
 //##ModelId=400E531402D1
@@ -264,6 +267,13 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   
   // set the name
   rec[FName].get(myname_,initializing);
+  // get/set description
+  if( !rec[FNodeDescription].get(description_) && initializing )
+  {
+    description_ = myname_ + ':' + objectType().toString();
+    rec[FNodeDescription] = description_; 
+  }
+  
   // set the caching policy
   rec[FCachePolicy].get(cache_policy_,initializing);
   rec[FCacheNumActiveParents].get(pcparents_->nact,initializing);
@@ -362,7 +372,6 @@ void Node::setState (DMI::Record::Ref &rec)
   // makes the rules somewhat different:
   bool initializing = ( rec == staterec_ );
   cdebug(2)<<"setState(init="<<initializing<<"): "<<rec.sdebug(10)<<endl;
-  string fail;
   // setStateImpl() is allowed to throw exceptions if something goes wrong.
   // This may leave the node with an inconsistency between the state record
   // and internal state. To recover from this, we can call setStateImpl() with
@@ -380,32 +389,21 @@ void Node::setState (DMI::Record::Ref &rec)
   }
   catch( std::exception &exc )
   {
-    fail = string("setState() failed: ") + exc.what();
+    if( !initializing )
+      setStateImpl(staterec_,true);
+    ThrowMore(exc,"setState() failed");
   }
   catch( ... )
   {
-    fail = "setState() failed with unknown exception";
-  }
-  // has setStateImpl() failed?
-  if( fail.length() )
-  {
-    // reset the state by reinitializing with the state record (this is
-    // obviously pointless if we were initializing to begin with). Note
-    // that an exception from this call indicates that the node is well 
-    // & truly fscked (a good node should always be reinitializable), so
-    // we might as well re-throw itm, letting the caller deal with it.
     if( !initializing )
       setStateImpl(staterec_,true);
-    Throw(fail); // rethrow the fail
+    Throw("setState() failed with unknown exception");
   }
-  else // success
-  {
-    // success: merge record into state record
-    if( !initializing )
-      wstate().merge(rec,true);
-    // force a flush of upstream caches
-    flushUpstreamCache(true);
-  }
+  // success: merge record into state record
+  if( !initializing )
+    wstate().merge(rec,true);
+  // force a flush of upstream caches
+  flushUpstreamCache(true);
 }
 
 //##ModelId=400E53120082
@@ -995,7 +993,11 @@ int Node::resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int r
   }
   catch( std::exception &exc )
   {
-    Throw("failed to resolve node "+name()+": "+exc.what());
+    ThrowMore(exc,"failed to resolve node '"+name()+"'");
+  }
+  catch( ... )
+  {
+    Throw("failed to resolve node '"+name()+"'");
   }
   // init other stuff
   child_results_.resize(numChildren());
@@ -1283,22 +1285,30 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     timers_.total.stop();
     return ret;
   }
-  // catch any exceptions, return a single fail result
+  // catch any exceptions, form up a fail result
   catch( std::exception &exc )
   {
-    if( timers_.getresult.isRunning() )
-      timers_.getresult.stop();
-    if( timers_.children.isRunning() )
-      timers_.children.stop();
     ref <<= new Result(1);
     VellSet & res = ref().setNewVellSet(0);
-    MakeFailVellSet(res,string("exception in execute() while "+stage+": ")+exc.what());
-    int ret = cacheResult(ref,req0,RES_FAIL) | RES_UPDATED;
-    setExecState(CS_ES_IDLE,
-        (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
-    timers_.total.stop();
-    return ret;
+    MakeFailVellSetMore(res,exc,"exception in execute() while "+stage);
   }
+  catch( ... )
+  {
+    ref <<= new Result(1);
+    VellSet & res = ref().setNewVellSet(0);
+    MakeFailVellSet(res,"unknown exception in execute() while "+stage);
+  }
+  // clean up and return the fail
+  if( timers_.getresult.isRunning() )
+    timers_.getresult.stop();
+  if( timers_.children.isRunning() )
+    timers_.children.stop();
+    
+  int ret = cacheResult(ref,req0,RES_FAIL) | RES_UPDATED;
+  setExecState(CS_ES_IDLE,
+      (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
+  timers_.total.stop();
+  return ret;
 }
 
 void Node::setBreakpoint (int bpmask,bool oneshot)
@@ -1424,8 +1434,7 @@ string Node::sdebug (int detail, const string &prefix, const char *nm) const
   string out;
   if( detail >= 0 ) // basic detail
   {
-    string typestr = nm?nm:objectType().toString();
-    append(out,typestr + ":" + name() );
+    out = description_;
   }
   if( detail >= 1 || detail == -1 )
   {

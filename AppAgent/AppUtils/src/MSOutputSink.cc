@@ -23,6 +23,7 @@
 #include "MSOutputSink.h"
 
 #include <Common/BlitzToAips.h>
+#include <DMI/Exception.h>
 
 #include <tables/Tables/ArrColDesc.h>
 #include <tables/Tables/ArrayColumn.h>
@@ -123,7 +124,7 @@ void MSOutputSink::postEvent (const HIID &id, const ObjRef &data,AtomicID cat,co
   }
   catch( std::exception &exc )
   {
-    cdebug(1)<<"error handling event ["<<id<<"]: "<<exc.what()<<endl;
+    cdebug(1)<<"error handling event ["<<id<<"]: "<<exceptionToString(exc);
   }
   catch( ... )
   {

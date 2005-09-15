@@ -139,7 +139,7 @@ void Polc::validateContent (bool recursive)
   }
   catch( std::exception &err )
   {
-    Throw(string("validate of Polc record failed: ") + err.what());
+    ThrowMore(err,"validate of Polc record failed");
   }
   catch( ... )
   {

@@ -325,7 +325,7 @@ class Container : public BObj
         // declare inlined operator () to implicitly concatenate AtomicIDs (see CountedRef.h)
           declareParenthesesAliases(Container::Hook,const) 
           
-        // include all the wornderful accessor methods
+        // include all the accessor methods
           #ifndef NC_SKIP_HOOKS
           #include <DMI/NC-ConstHooks.h>
           #include <DMI/NC-Hooks.h>
@@ -333,9 +333,9 @@ class Container : public BObj
           
           // standard debug info
         //##ModelId=3DB934BC01D9
-          string sdebug (int detail = 1,const string &prefix = "",const char *name = "Hook") const;
+          string sdebug (int detail = 0,const string &prefix = "",const char *name = 0) const;
         //##ModelId=3DB934BE007D
-          const char *debug (int detail = 1,const string &prefix = "",const char *name = "Hook") const
+          const char *debug (int detail = 0,const string &prefix = "",const char *name = 0) const
           { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
           
       protected:
@@ -472,7 +472,9 @@ class Container : public BObj
           const void * get_address(ContentInfo &info,TypeId tid,bool must_write,
               bool pointer=false,bool must_exist=true,Thread::Mutex::Lock *keeplock=0) const;
           // Same method, but accesses the element as a BObj, and calls the
-          // can_convert function to determine if conversion can be done
+          // can_convert function to determine if conversion can be done.
+          // Info info.tid is non-0 on entry, then this is the expected object type
+          // (used for reporting conversion errors)
           const BObj * get_address_bo(ContentInfo &info,
               bool (*can_convert)(const BObj *),
               bool must_write,bool pointer=false,bool must_exist=true,Thread::Mutex::Lock *keeplock=0) const;
@@ -527,7 +529,11 @@ class Container : public BObj
 
         //##ModelId=3DB934CC02E9
           Hook & operator= (const Hook &right);
-
+          
+          #if LOFAR_DEBUG
+          // in debug mode, this string describes the hook
+          mutable std::string debug_info;
+          #endif
     };
 
     //##ModelId=3F549251022F
@@ -962,16 +968,6 @@ inline Container::Hook::Link::Link (const Container &nc,const HIID &id1)
   : lock(nc.mutex()),id(id1)
 {}
 
-// // This applies the current subscript to the hook without updating the target
-// //##ModelId=3DB934A30258
-// inline const void * Container::Hook::collapseIndex (ContentInfo &info,TypeId check_tid,int flags) const
-// {
-//   const void *ret = index<0 
-//       ? nc->get(id,info,check_tid,flags|autoprivatize)
-//       : nc->getn(index,info,check_tid,flags|autoprivatize);
-//   return ret;
-// }
-// 
 #ifndef NC_SKIP_HOOKS
   #include <DMI/NC-Hooks-Templ.h>
 #endif

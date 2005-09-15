@@ -182,7 +182,7 @@ class Vec : public Container
       
       // standard debug info method
     //##ModelId=3DB934730394
-      string sdebug ( int detail = 1,const string &prefix = "",
+      string sdebug ( int detail = 0,const string &prefix = "",
                       const char *name = 0 ) const;
 
       // helper function for making a type[num] string

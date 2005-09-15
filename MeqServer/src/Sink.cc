@@ -247,7 +247,7 @@ int Sink::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoR
   // grab a copy of the ref (since procPendingTile may overwrite tileref)
   VisCube::VTile::Ref ref(tileref,DMI::COPYREF);
   // process any pending tiles from previous deliver() call
-  std::string errstr;
+  DMI::ExceptionList errors;
   int resflag = 0;
   RequestId rqid;
   if( pending.request.valid() )
@@ -258,12 +258,13 @@ int Sink::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoR
   }
   catch( std::exception &exc )
   {
-    errstr = rqid.toString()  + ": " + exc.what();
+    errors.add(exc);
+    errors.add(MakeNodeException("request " + rqid.toString('.') + " failed"));
     resflag |= RES_FAIL;
   }
   catch( ... )
   {
-    errstr = rqid.toString()  + ": unknown exception";
+    errors.add(MakeNodeException("request " + rqid.toString('.') + " failed with unknown exception"));
     resflag |= RES_FAIL;
   }
   // if no asked to wait, make this tile pending
@@ -279,7 +280,7 @@ int Sink::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoR
   if( resflag&RES_FAIL )
   {
     st = CS_RES_FAIL;
-    wstate()[AidFail].replace() = errstr;
+    wstate()[AidFail].replace() = exceptionToObj(errors);
   }
   else
   {
@@ -288,6 +289,8 @@ int Sink::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoR
   }
   setExecState(CS_ES_IDLE,
     (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|st);
+  if( !errors.empty() )
+    throw errors;
   return resflag;
 }
 

@@ -402,17 +402,17 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
   }
   string out;
   // low detail
-  if( detail>=0 )
+  if( detail>=0 ) // basic detail
   {
-    Debug::appendf(out,"%s/%08x",name?name:"CRef",(int)this);
+    out += name ? name : "CountedRef";
+  }
+  if( detail >= 1 || detail == -1 )   // normal detail
+  {
+    Debug::appendf(out,"/%08x",(int)this);
     if( valid() )
-    {
       out += Debug::ssprintf(">%08x",(int)target_); 
-    }
     else
-    {
       out += ">-";
-    }
   }
   if( detail >= 1 || detail == -1 && valid() )   // normal detail
   {

@@ -301,23 +301,22 @@ protected:
   // All values and perturbations are cleared, and a Fail field is 
   // created if necessary.
 public:  
-    //##ModelId=400E53550393
-  void addFail (const DMI::Record *rec,int flags=0);
-    //##ModelId=400E53550399
-  void addFail (const string &nodename,const string &classname,
-                const string &origin,int origin_line,const string &msg);
-//#if defined(HAVE_PRETTY_FUNCTION)
-//# define MeqResult_FailLocation __PRETTY_FUNCTION__ "() " __FILE__ 
-//#elif defined(HAVE_FUNCTION)
-//# define MeqResult_FailLocation __FUNCTION__ "() " __FILE__ 
-//#else
-# define MeqResult_FailLocation __FILE__ 
-//#endif
+  void addFail (const ObjRef &ref);
   
-  // macro for automatically generating the correct fail location and adding
-  // a fail to the resultset
+    //##ModelId=400E53550393
+  void addFail (const std::exception &exc)
+  { addFail(exceptionToObj(exc)); }
+  
 #define MakeFailVellSet(res,msg) \
-    (res).addFail(name(),objectType().toString(),MeqResult_FailLocation,__LINE__,msg);
+  (res).addFail(MakeNodeException(msg))
+    
+#define MakeFailVellSetMore(res,exc,msg) { \
+  DMI::ExceptionList *pelist = dynamic_cast<DMI::ExceptionList *>(&(exc)); \
+  if( pelist ) \
+    (res).addFail(pelist->add(MakeNodeException(msg))); \
+  else \
+    (res).addFail(exc); \
+}
     
   // checks if this VellSet is a fail
     //##ModelId=400E535503A5
@@ -328,7 +327,7 @@ public:
   int numFails () const;
   // returns the i-th fail record
     //##ModelId=400E535503A9
-  const DMI::Record & getFail (int i=0) const;
+  ObjRef getFail (int i=0) const;
   
   // print VellSet to stream
     //##ModelId=400E535503AE

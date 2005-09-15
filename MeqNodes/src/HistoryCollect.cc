@@ -114,7 +114,7 @@ int HistoryCollect::getResult (Result::Ref &resref,
   }
   catch( std::exception &exc )
   {
-    wstate()[FLastError] = exc.what();
+    wstate()[FLastError] = exceptionToObj(exc);
     wstate()[FLastErrorResult].replace() = chres;
   }
   if( ref.valid() )

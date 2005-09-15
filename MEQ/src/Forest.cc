@@ -95,14 +95,14 @@ Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitiali
     if( !nodename.empty() && name_map.find(nodename) != name_map.end() )
       Throw("node '"+nodename+"' already exists");
     // attempt to create node
-    FailWhen(classname.empty(),nodename +": missing or invalid 'class' field in init record"); 
+    FailWhen(classname.empty(),"missing or invalid 'class' field in init record"); 
     DMI::BObj * pbp = DynamicTypeManager::construct(TypeId(classname));
-    FailWhen(!pbp,nodename +": "+classname+" construct failed");
+    FailWhen(!pbp,classname+" is not a known node class");
     pnode = dynamic_cast<Meq::Node*>(pbp);
     if( !pnode )
     {
       delete pbp;
-      Throw(nodename +": "+classname+" is not a Meq::Node descendant");
+      Throw("'"+classname+"' is not a node class");
     }
     noderef.attach(pnode,DMI::SHARED);
     if( reinitializing )
@@ -112,11 +112,11 @@ Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitiali
   }
   catch( std::exception &exc )
   {
-    Throw(nodename +": failed to init a "+classname+": "+exc.what()); 
+    ThrowMore(exc,"failed to init node '"+nodename +"' of class "+classname); 
   }
   catch(...)
   {
-    Throw(nodename +": failed to init a "+classname); 
+    Throw("failed to init node '"+nodename +"' of class "+classname); 
   }
   // check if node index is already set (i.e. via init record),
   if( node_index > 0 ) // node index already set (i.e. when reloading)
@@ -389,21 +389,13 @@ void Forest::setState (DMI::Record::Ref &rec,bool complete)
   }
   catch( std::exception &exc )
   {
-    fail = string("setState() failed: ") + exc.what();
+    setStateImpl(staterec_);
+    ThrowMore(exc,"Forest::setState() failed");
   }
   catch( ... )
   {
-    fail = "setState() failed with unknown exception";
-  }
-  // has setStateImpl() failed?
-  if( fail.length() )
-  {
-    // reset the state by reinitializing with the current record.
-    // that an exception from this call indicates that the forest is well 
-    // & truly fscked, sowe might as well re-throw it, 
-    // letting the caller deal with it.
     setStateImpl(staterec_);
-    Throw(fail); // rethrow the fail
+    Throw("Forest::setState() failed with unknown exception");
   }
   // success, merge or overwrite current state
   if( complete )

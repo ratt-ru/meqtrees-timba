@@ -89,7 +89,7 @@ int MatrixInvert22::getResult (Result::Ref &resref,
     if( vs.isFail() )
     { // collect fails from child vellset
       for( int ii=0; ii<vs.numFails(); ii++ )
-        fail_vs().addFail(&vs.getFail(ii));
+        fail_vs().addFail(vs.getFail(ii));
     }
     // continue if we have any fails -- gotta accumulate them all
     if( fail_vs->isFail() )

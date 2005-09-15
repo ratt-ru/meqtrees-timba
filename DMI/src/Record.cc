@@ -190,11 +190,6 @@ int DMI::Record::fromBlock (BlockSet& set)
         string msg = string("error unpacking: ") + exc.what();
         ref <<= new DMI::Vec(Tpstring,-1,&msg);
       }
-      catch( ... )
-      {
-        static string msg = "error unpacking: unkown exception";
-        ref <<= new DMI::Vec(Tpstring,-1,&msg);
-      }
       int nb = nb0 - set.size();
       FailWhen(nb!=bc,"block count mismatch in header");
       nref += nb;
@@ -382,11 +377,11 @@ string DMI::Record::sdebug ( int detail,const string &prefix,const char *name ) 
   string out;
   if( detail>=0 ) // basic detail
   {
-    Debug::appendf(out,"%s/%08x",name?name:objectType().toString().c_str(),(int)this);
+    out = name ? string(name) : objectType().toString();
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    out += Debug::ssprintf("%d fields",fields.size());
+    out += ssprintf("/%08x %d fields",(int)this,fields.size());
     out += " / refs "+CountedRefTarget::sdebug(-1);
   }
   if( detail >= 2 || detail <= -2 )   // high detail

@@ -54,6 +54,7 @@ template<class T,class ParamByRef,class Category> //
 const T & as_impl (const T &deflt,ParamByRef,Int2Type<true>,Category) const
 {
   ContentInfo info;
+  info.tid = typeIdOf(T);
   const T * ptr = reinterpret_cast<const T*>(
                       get_address_bo(info,can_convert<T>,false,false,false));
   return ptr ? *ptr : deflt;
@@ -85,6 +86,7 @@ template<class T,class Category> // first int2type: isScalar; second int2type: i
 const T & as_impl (Type2Type<T>,Int2Type<true>,Category) const
 {
   ContentInfo info;
+  info.tid = typeIdOf(T);
   return *reinterpret_cast<const T*>( get_address_bo(info,can_convert<T>,false,false,true) );
 }
 
@@ -186,6 +188,7 @@ template<class T>
 const T * as_p_impl (int &sz,bool must_exist,Type2Type<T>,Int2Type<true>) const
 {
   ContentInfo info;
+  info.tid = typeIdOf(T);
   const T * ptr = reinterpret_cast<const T*>(get_address_bo(info,can_convert<T>,false,true,must_exist)); 
   sz = info.size;
   return ptr;

@@ -39,7 +39,7 @@
 #pragma aid Add Clear Known Active Gen Dep Deps Symdep Symdeps Mask Masks
 #pragma aid Parm Value Resolution Domain Dataset Resolve Parent Init Id
 #pragma aid Link Or Create Control Status New Breakpoint Single Shot Step
-#pragma aid Cache Policy Stats All New Requests Parents Num Active
+#pragma aid Cache Policy Stats All New Requests Parents Num Active Description
 #pragma aid Profiling Stats Total Children Get Result Ticks Per Second CPU MHz
 
 namespace Meq 
@@ -476,7 +476,7 @@ class Node : public DMI::BObj
     //##ModelId=3F5F48180303
     //##Documentation
     //## Standard debug info method
-    virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
+    virtual string sdebug(int detail = 0, const string &prefix = "", const char *name = 0) const;
 
     //##ModelId=3F8433C1039E
     LocalDebugContext;
@@ -822,22 +822,25 @@ class Node : public DMI::BObj
     //## caches a resampled result for child ich
     void cacheRCR      (int ich,const Result::Ref::Copy &res);
     
-    //##ModelId=400E531E008F
-    //##Documentation
-    //## creates a message of the form "Node CLASS ('NAME'): MESSAGE"
-    string makeMessage (const string &msg) const
-      { return  "Node " + className() + "('" + name() + "'): " + msg; }
+    const string & description () const
+    { return description_; }
     
+    //##Documentation
+    //## MakeNodeException creates an exception with the given message,
+    //## and insert the node identifier 
+    #define MakeNodeExceptionOfType(exctype,msg) exctype(msg,description(),__HERE__)
+      
+    #define MakeNodeException(msg) MakeNodeExceptionOfType(LOFAR::Exception,msg)
+      
     //##Documentation
     //## NodeThrow can be used to throw an exception, with the message
     //## passed through makeMessage()
     #define NodeThrow(exc,msg) \
-      { THROW(exc,makeMessage(msg)); }
+      { throw MakeNodeExceptionOfType(exc,msg); }
     //##Documentation
     //## NodeThrow1 thows a FailWithoutCleanup exception, with the message
     //## passed through makeMessage()
-    #define NodeThrow1(msg) \
-      { THROW(FailWithoutCleanup,makeMessage(msg)); }
+    #define NodeThrow1(msg) NodeThrow(FailWithoutCleanup,msg)
 
     //##Documentation
     //## Helper method for init(). Checks that initrec field exists, throws a
@@ -971,6 +974,8 @@ class Node : public DMI::BObj
     
     //##ModelId=3F5F48040177
     string myname_;
+    
+    string description_;
     //##ModelId=400E530A0368
     int node_index_;
     //##ModelId=3F5F43930004

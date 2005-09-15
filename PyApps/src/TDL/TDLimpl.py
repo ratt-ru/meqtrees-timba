@@ -208,6 +208,8 @@ class _NodeDef (object):
   def autodefine (self,scope):
     """Auto-defines a stub from NodeDef. Name is generated
     automatically using classname, child names and child qualifiers."""
+    if self.error:
+      raise self.error;
     # for starters, we need to resolve all children to NodeStubs
     self.children = self.children.resolve(scope);
     classname = self._class.lower();
@@ -326,6 +328,7 @@ class _NodeStub (object):
       if nodedef.error:
         raise nodedef.error;
       # resolve list of children in the nodedef to a list of node stubs
+      # catch and re-raise exceptions to keep tracebacks small
       children = nodedef.children.resolve(self.scope);
       stepchildren = nodedef.stepchildren.resolve(self.scope);
       # are we already initialized? If yes, check for exact match of initrec
@@ -362,8 +365,8 @@ class _NodeStub (object):
       (exctype,excvalue,tb) = sys.exc_info();
       _dprint(0,"caught",exctype,excvalue);
       if _dbg.verbose > 0:
-        traceback.print_exc();
-      tb = getattr(excvalue,'tb',None) or traceback.extract_tb(tb);
+        traceback.print_exc(None);
+      tb = getattr(excvalue,'tb',None) or traceback.extract_tb(tb,None);
       self.scope.Repository().add_error(excvalue,tb=tb);
       return self;
   def __str__ (self):
@@ -554,9 +557,13 @@ class _NodeRepository (dict):
     while tb and os.path.dirname(tb[-1][0]) == _MODULE_DIRNAME:
       tb.pop(-1);
     # put error location into object
-    if tb and not ( getattr(err,'filename',None) and getattr(err,'lineno',None) is not None ):
-      setattr(err,'filename',tb[-1][0]);
-      setattr(err,'lineno',tb[-1][1]);
+    if not ( getattr(err,'filename',None) and getattr(err,'lineno',None) is not None ):
+      if tb:
+        setattr(err,'filename',tb[-1][0]);
+        setattr(err,'lineno',tb[-1][1]);
+      else:
+        setattr(err,'filename',None);
+        setattr(err,'lineno',None);
     setattr(err,'tb',tb);
     _dprint(1,'error location resolved',err,err.filename,err.lineno);
     # in test mode, raise error immediately
@@ -612,7 +619,7 @@ class _NodeRepository (dict):
         if hasattr(node._initrec,'name'):
           node._initrec = node._initrec.copy();
         # finalize the init-record by adding node name and children
-        node._initrec.defined_at = node._debuginfo;
+        node._initrec.node_description = ':'.join((name,node.classname,node._debuginfo));
         node._initrec.name = node.name;
         if node.children.is_dict:
           children = dmi.record([(lbl,ch.name) for (lbl,ch) in node.children]);

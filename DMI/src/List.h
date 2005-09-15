@@ -139,7 +139,7 @@ class List : public Container
 
       
             // debug info method
-      string sdebug ( int detail = 1,const string &prefix = "",
+      string sdebug ( int detail = 0,const string &prefix = "",
                       const char *name = 0 ) const;
 
   protected:

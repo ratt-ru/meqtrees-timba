@@ -175,7 +175,7 @@ int Function::getResult (Result::Ref &resref,
       if( child_vs[i]->isFail() )
       { // collect fails from child vellset
         for( int j=0; j<child_vs[i]->numFails(); j++ )
-          vellset.addFail(&child_vs[i]->getFail(j));
+          vellset.addFail(child_vs[i]->getFail(j));
       }
       else
       {
@@ -274,9 +274,11 @@ int Function::getResult (Result::Ref &resref,
       }
       catch( std::exception &x )
       {
-        MakeFailVellSet(vellset,
-            string("exception in Function::getResult: ")
-            + x.what());
+        MakeFailVellSetMore(vellset,x,"exception in Function::getResult");
+      }
+      catch( ... )
+      {
+        MakeFailVellSet(vellset,"uknown exception in Function::getResult");
       }
     } // endif( !vellset.isFail() )
     // count the # of fails

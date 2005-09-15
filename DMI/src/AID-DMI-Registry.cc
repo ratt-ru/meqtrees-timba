@@ -77,6 +77,8 @@ DMI::BObj * __construct_DMIRecord (int n) { return n>0 ? new DMI::Record [n] : n
         AtomicID::registerId(-1576,"Filename")+
         AtomicID::registerId(-1577,"LineNo")+
         AtomicID::registerId(-1578,"Function")+
+        AtomicID::registerId(-1579,"Object")+
+        AtomicID::registerId(-1085,"Type")+
         AtomicID::registerId(-1010,"DMINumArray")+
         TypeInfoReg::addToRegistry(-1010,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1010,__construct_DMINumArray)+

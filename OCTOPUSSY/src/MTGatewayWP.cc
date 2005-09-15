@@ -3,6 +3,7 @@
 #include "Gateways.h"
 #include "MTGatewayWP.h"
 #include <deque>
+#include <DMI/Exception.h>
 
 namespace Octopussy
 {
@@ -332,7 +333,8 @@ void MTGatewayWP::processIncoming (Message::Ref &ref)
           subs.unpack(msg.data(),msg.datasize());
           success = true;
         } catch( std::exception &exc ) {
-          lprintf(2,"warning: failed to unpack Subscribe message: %s\n",exc.what());
+          lprintf(2,"warning: failed to unpack Subscribe message: %s\n",
+              exceptionToString(exc).c_str());
         }
       }
       if( success )
@@ -426,7 +428,8 @@ void MTGatewayWP::processIncoming (Message::Ref &ref)
     }
     catch( std::exception &exc ) 
     {
-      lprintf(1,"error: processing init message: %s\n",exc.what());
+      lprintf(1,"error: processing init message: %s\n",
+          exceptionToString(exc).c_str());
       shutdown();
       return;
     }

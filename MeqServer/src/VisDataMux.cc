@@ -113,10 +113,13 @@ void Meq::VisDataMux::addNode (Node &check_node)
     did = formDataId(state[FStation1Index].as<int>(),
                      state[FStation2Index].as<int>());
   }
-  catch(...)
+  catch( std::exception &exc )
   {
-    Throw(node->objectType().toString()+
-          " state record is missing station and/or correlation identifiers");
+    ThrowMore1(exc,"state record is missing station and/or correlation identifiers");
+  }
+  catch( ... )
+  {
+    Throw1("state record is missing station and/or correlation identifiers");
   }
   // let the node know about its data id
   node->setDataId(did);
@@ -226,7 +229,7 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
   if( !header[VisVocabulary::FChannelFreq].get(channel_freqs) ||
       !header[VisVocabulary::FChannelWidth].get(channel_widths) )
   {
-    Throw("dataset header is missing frequency information");
+    Throw("header is missing frequency information");
   }
 //  // BUG BUG BUG! This assumes a regualr frequency spacing
 //  minfreq = min(channel_freqs) - channels_widths(0)/2;

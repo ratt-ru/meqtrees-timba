@@ -5,6 +5,7 @@
 #include <OCTOPUSSY/Message.h>
 #include <DMI/Record.h>
 #include <DMI/NumArray.h>
+#include <DMI/Exception.h>
 
 #include <exception>
     
@@ -196,7 +197,7 @@ namespace OctoPython
   //   when a Python exception has already been raised elsewhere.
   // Upon catching a PythonException, the caller may always assume that a
   // meaningful Python exception has been raised via a PyErr_ call.
-  class PythonException : public std::exception
+  class PythonException : public LOFAR::Exception
   {
     private:
       static std::string set (PyObject *errobj,const char *msg)
@@ -206,33 +207,29 @@ namespace OctoPython
         PyErr_SetString(errobj,msg);
         return errstr;
       }
-        
-      std::string message;
       
     public:
       PythonException(const std::string &msg)
-        : message(msg)
+        : LOFAR::Exception(msg)
       { // this should only be called when there's already a PyErr raised!
         Assert(PyErr_Occurred()); 
       }
         
       PythonException (PyObject *errobj,const char *msg)
-        : message(set(errobj,msg))
+        : LOFAR::Exception(set(errobj,msg))
       {}
   
       PythonException (PyObject *errobj,const std::exception &exc)
-        : message(set(errobj,exc.what()))
+        : LOFAR::Exception(set(errobj,exc.what()))
       {}
 
       PythonException (PyObject *errobj,const std::string &str)
-        : message(set(errobj,str.c_str()))
+        : LOFAR::Exception(set(errobj,str.c_str()))
       {}
       
       ~PythonException() throw()
       {}
       
-      virtual const char* what() const throw()
-      { return message.c_str(); }
   };
 
   // throwError() macro
@@ -273,10 +270,8 @@ namespace OctoPython
   // of type OctoPython to be raised.
   // All exceptions result in a return statement with retval.
   #define catchStandardErrors(retval) \
-    catch ( OctoPython::PythonException &exc ) \
-      { cdebug(2)<<"caught python exc: "<<exc.what()<<endl; return retval; } \
     catch ( std::exception &exc ) \
-      { cdebug(2)<<"caught "<<exc.what()<<endl; returnError(retval,OctoPython,exc); } \
+      { cdebug(2)<<"caught exception: "<<exceptionToString(exc); returnError(retval,OctoPython,exc); } \
     catch ( ... )  \
       { cdebug(2)<<"caught unknown exception\n";  returnError(retval,OctoPython,"uknown exception"); }
 

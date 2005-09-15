@@ -131,9 +131,10 @@ To disable this warning use -Wno-deprecated.
 // Debug(level) is True if the debugging level of the current context
 // is >= the specified level.
 //
-#if !defined(LOFAR_DEBUG)
+#if !LOFAR_DEBUG
 #undef DISABLE_DEBUG_OUTPUT 
 #define DISABLE_DEBUG_OUTPUT 1
+#undef ENABLE_DBGASSERT
 #endif
 
 #ifdef DISABLE_DEBUG_OUTPUT
@@ -301,8 +302,8 @@ inline LOFAR::string sdebug (int=0) { return ""; };
 // CodeStatus to add on filename, line, current debugging context, and 
 // possible object debug status. 
 const char exception_message[] = "\n==================================== EXCEPTION ================================\n";
-#define ThrowExc(exc,msg)  { cdebug(1)<<exception_message<<SourceFileLine<<" "<<CodeStatus(msg)<<std::endl; throw(exc(CodeStatus_nf(msg),__HERE__)); }
-#define ThrowExc1(exc,msg)  { cdebug1(1)<<exception_message<<SourceFileLine<<" "<<CodeStatus1(msg)<<std::endl; throw(exc(CodeStatus_nf1(msg),__HERE__)); }
+#define ThrowExc(exc,msg)  { cdebug(1)<<exception_message<<SourceFileLine<<" "<<CodeStatus(msg)<<std::endl; throw(exc(msg,sdebug(),__HERE__)); }
+#define ThrowExc1(exc,msg)  { cdebug1(1)<<exception_message<<SourceFileLine<<" "<<CodeStatus1(msg)<<std::endl; throw(exc(msg,__HERE__)); }
 
 // Retain old Throw/Throw1 for compatibility. Throws LOFAR::Exception.
 #define Throw(msg)  ThrowExc(LOFAR::Exception,msg)

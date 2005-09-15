@@ -1,6 +1,7 @@
 #include "AppControlAgent.h"
 #include "AppEventSink.h"
-
+#include <DMI/Exception.h>
+    
 namespace AppAgent
 {    
         
@@ -83,8 +84,8 @@ bool AppControlAgent::init (const DMI::Record &data)
   {
     cdebug(1)<<"init() failed\n";
     if( rethrow_ )
-      throw(exc);
-    setErrorState(exc.what());
+      ThrowMore(exc,"init() failed");
+    setErrorState(exceptionToString(exc));
     return false;
   }
 }
@@ -136,8 +137,8 @@ int AppControlAgent::start (DMI::Record::Ref &initrec)
   {
     cdebug(1)<<"start() failed\n";
     if( rethrow_ )
-      throw(exc);
-    setErrorState(exc.what());
+      ThrowMore(exc,"start() failed");
+    setErrorState(exceptionToString(exc));
   }
   
   return state();
@@ -300,7 +301,7 @@ int AppControlAgent::getCommand (HIID &id,DMI::Record::Ref &data, int wait)
       }
       catch( std::exception &exc )
       {
-        postCommandError(exc.what(),id,data,source);
+        postCommandError(exceptionToString(exc),id,data,source);
       }
       catch( ... )
       {
@@ -408,7 +409,7 @@ void AppControlAgent::postStatus (const HIID &field,const HIID &rqid,const HIID 
     catch( std::exception &exc )
     {
       rec[FValue] = "error accessing field \"" + field.toString() + 
-                    string("\":") + exc.what(); 
+                    string("\":") + exceptionToString(exc); 
     }
   }
   rec[FRequestId] = rqid;

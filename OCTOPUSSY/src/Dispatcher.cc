@@ -5,7 +5,8 @@
 #include "OctopussyConfig.h"
 #include "WPInterface.h"
 #include "Dispatcher.h"
-
+#include <DMI/Exception.h>
+    
 namespace Octopussy
 {
 
@@ -1098,7 +1099,7 @@ void * Dispatcher::eventThread ()
   }
   catch( std::exception &exc )
   {
-    cerr<<"Dipatcher event thread terminated with exception "<<exc.what()<<endl;
+    cerr<<"Dispatcher event thread terminated with exception "<<exceptionToString(exc)<<endl;
   }
   return 0;
 }
@@ -1133,7 +1134,7 @@ void * Dispatcher::pollThread ()
   }
   catch( std::exception & exc )
   {
-    cerr<<"Dipatcher poll thread terminated with exception "<<exc.what()<<endl;
+    cerr<<"Dipatcher poll thread terminated with exception "<<exceptionToString(exc)<<endl;
   }
   return 0;
 }

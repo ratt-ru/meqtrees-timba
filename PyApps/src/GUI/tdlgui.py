@@ -366,7 +366,9 @@ class TDLEditor (QFrame,PersistentCurrier):
         self._error_items.append(item);
         # set item content
         item.setText(1,errmsg);
-        if filename == self._filename:
+        if filename is None:
+          item.setText(2,"[<internal TDL error, see console for more info>]");
+        elif filename == self._filename:
           item._err_location = index,None,line,column;
           item.setText(2,"[line %d]" % (line,));
           self._editor.markerAdd(line-1,self.ErrorMarker);

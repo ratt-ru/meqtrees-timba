@@ -336,9 +336,9 @@ int Spigot::getResult (Result::Ref &resref,
         resref <<= new Result(1);
         VellSet &vs = resref().setNewVellSet(0);
         MakeFailVellSet(vs,
-            Debug::ssprintf("spigot: request out of sequence: got rqid %s, expecting %s (depmask is %X)",
-                          req.id().toString().c_str(),
-                          next.rqid.toString().c_str(),
+            Debug::ssprintf("spigot: request out of sequence: request id %s, expecting %s (depmask is %X)",
+                          req.id().toString('.').c_str(),
+                          next.rqid.toString('.').c_str(),
                           getDependMask()));
         return RES_FAIL;
       }

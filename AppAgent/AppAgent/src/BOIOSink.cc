@@ -1,4 +1,5 @@
 #include "BOIOSink.h"
+#include <DMI/Exception.h>
 
 namespace AppAgent
 {    
@@ -87,7 +88,7 @@ int BOIOSink::refillStream()
     }
     catch( std::exception &exc )
     {
-      cdebug(2)<<"error getting event from BOIO: "<<exc.what()<<endl;
+      cdebug(2)<<"error getting event from BOIO: "<<exceptionToString(exc)<<endl;
       // go back for another event
     }
   }

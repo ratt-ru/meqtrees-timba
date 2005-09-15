@@ -190,13 +190,13 @@ class BlockSet
       // If class name is not specified, a default one is inserted.
       // It is sometimes useful to have a virtual sdebug(). 
     //##ModelId=3DB9344A009F
-      string sdebug ( int detail = 1,const string &prefix = "",
+      string sdebug ( int detail = 0,const string &prefix = "",
                       const char *name = 0 ) const;
       // The debug() method is an alternative interface to sdebug(),
       // which copies the string to a static buffer (see Debug.h), and returns 
       // a const char *. Thus debug()s can't be nested, while sdebug()s can.
     //##ModelId=3DB9344B0164
-      const char * debug ( int detail = 1,const string &prefix = "",
+      const char * debug ( int detail = 0,const string &prefix = "",
                            const char *name = 0 ) const
       { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
       

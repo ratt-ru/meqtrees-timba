@@ -74,7 +74,7 @@ int CompoundFunction::checkChildResults (Result::Ref &resref,
         if( chvs.isFail() )
         {
           for( int j=0; j<chvs.numFails(); j++ )
-            vsfail().addFail(&chvs.getFail(j));
+            vsfail().addFail(chvs.getFail(j));
         }
       }
     }

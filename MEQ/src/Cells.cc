@@ -448,7 +448,7 @@ void Cells::validateContent (bool)
   }
   catch( std::exception &err )
   {
-    Throw(string("validate of Cells record failed: ") + err.what());
+    ThrowMore(err,"validate of Cells record failed");
   }
   catch( ... )
   {

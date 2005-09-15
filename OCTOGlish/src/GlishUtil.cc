@@ -16,6 +16,7 @@
 #include <DMI/AIPSPP-Hooks.h>
 #include <DMI/Global-Registry.h>
 #include <DMI/ContainerIter.h>
+#include <DMI/Exception.h>
 #include <Common/BlitzToAips.h>
 
 #include "AID-OCTOGlish.h"
@@ -151,7 +152,7 @@ GlishRecord GlishUtil::recToGlish (const DMI::Record &rec)
     // catch all exceptions and convert them to "fail" fields
     catch( std::exception &exc )
     {
-      glrec.add(name,makeFailField(exc.what()));
+      glrec.add(name,makeFailField(exceptionToString(exc)));
     }
     catch( ... )
     {
@@ -565,7 +566,7 @@ ObjRef GlishUtil::glishValueToObject (const casa::GlishValue &val,bool adjustInd
         catch( std::exception &exc )
         {
           dprintf(2)("warning: ignoring field [%d] (got exception: %s)\n",
-              i,exc.what());
+              i,exceptionToString(exc).c_str());
         }
         catch( ... )
         {
@@ -592,7 +593,7 @@ ObjRef GlishUtil::glishValueToObject (const casa::GlishValue &val,bool adjustInd
         catch( std::exception &exc )
         {
           dprintf(2)("warning: ignoring field [%d] (got exception: %s)\n",
-              i,exc.what());
+              i,exceptionToString(exc).c_str());
         }
         catch( ... )
         {
@@ -655,7 +656,7 @@ ObjRef GlishUtil::glishValueToObject (const casa::GlishValue &val,bool adjustInd
         catch( std::exception &exc )
         {
           dprintf(2)("warning: ignoring field %s[%d] (got exception: %s)\n",
-              field_name.c_str(),i,exc.what());
+              field_name.c_str(),i,exceptionToString(exc).c_str());
         }
         catch( ... )
         {

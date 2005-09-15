@@ -106,6 +106,8 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     // posts a message or error event (with type==AidError) to the control agent
     void postMessage (const std::string &msg,const HIID &type = AidMessage,AtomicID category = AidNormal);
     
+    void postError (const std::exception &exc,AtomicID category = AidNormal);
+    
     //##ModelId=3F5F195E0156
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
 

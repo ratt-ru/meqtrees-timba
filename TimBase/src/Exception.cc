@@ -25,9 +25,17 @@
 
 namespace LOFAR {
   
-  Exception::Exception(const std::string& text, const std::string& file,
+  Exception::Exception(const std::string& text, 
+                       const std::string& file,
 		       int line, const std::string& func) :
     itsText(text), itsFile(file), itsLine(line), itsFunction(func)
+  {
+  }  
+  
+  Exception::Exception(const std::string& text, 
+                       const std::string& object,const std::string& file,
+		       int line, const std::string& func) :
+    itsText(text), itsObject(object), itsFile(file), itsLine(line), itsFunction(func)
   {
   }  
   
@@ -38,11 +46,14 @@ namespace LOFAR {
   const std::string Exception::message() const
   {
     std::ostringstream oss;
-
-    oss << "[" << type() << ": " << text() << "]\n"
-	<< "in function " << (function().empty() ? "??" : function()) << "\n"
-	<< "(" << (file().empty() ? "??" : file()) << ":" << line() << ")\n";
-
+    oss << "[" << type() << ": " << text() << "]";
+    if( !object().empty() )
+      oss << "(@" << object() << ")";
+    if( !function().empty() )
+      oss << "(@" << function() << ")";
+    if( !file().empty() )
+      oss << "(" << file() << ":" << line() << ")";
+    oss << "\n";
     return oss.str();
   }
   

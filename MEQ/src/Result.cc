@@ -187,7 +187,7 @@ void Result::validateContent (bool)
   }
   catch( std::exception &err )
   {
-    Throw(string("validate of Result record failed: ") + err.what());
+    ThrowMore(err,"validate of Result record failed");
   }
   catch( ... )
   {

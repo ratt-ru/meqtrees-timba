@@ -41,8 +41,13 @@ namespace LOFAR {
   class Exception : public std::exception
   {
   public:
-    Exception(const std::string& text, const std::string& file="",
-	      int line=0, const std::string& func="");
+    Exception(const std::string& text,
+              const std::string& file="",int line=0,
+              const std::string& func="");
+  
+    Exception(const std::string& text,const std::string &object,
+              const std::string& file="",int line=0,
+              const std::string& func="");
 
     virtual ~Exception() throw();
 
@@ -59,6 +64,11 @@ namespace LOFAR {
     // Return the user-supplied text
     const std::string& text() const {
       return itsText;
+    }
+    
+    // Return the object state
+    const std::string& object() const {
+      return itsObject;
     }
 
     // Return the name of the file where the exception occurred.
@@ -78,10 +88,11 @@ namespace LOFAR {
 
     // Return exception type, user-supplied text, function name,
     // filename, and line number as a formatted string.
-    const std::string message() const;
+    virtual const std::string message() const;
     
   private:
     std::string itsText;
+    std::string itsObject;
     std::string itsFile;
     int         itsLine;
     std::string itsFunction;
@@ -89,7 +100,13 @@ namespace LOFAR {
   };
 
   // Put the exception message into an ostream.
-  inline std::ostream& operator<<(std::ostream& os, const Exception& ex)
+  inline std::ostream& operator << (std::ostream& os, const std::exception& ex)
+  {
+    return os << ex.what();
+  }
+  
+  // Put the exception message into an ostream.
+  inline std::ostream& operator << (std::ostream& os, const Exception& ex)
   {
     return os << ex.message();
   }
@@ -125,6 +142,10 @@ public: \
   excp( const std::string& text, const std::string& file="", \
 	int line=0, const std::string& function="" ) : \
     super(text, file, line, function) {} \
+  excp( const std::string& text, const std::string& object, \
+        const std::string& file="", \
+	int line=0, const std::string& function="" ) : \
+    super(text, object, file, line, function) {} \
   virtual const std::string& type( void ) const \
   { \
     static const std::string itsType(#excp); \

@@ -28,7 +28,7 @@
 
 #include <list>
 
-#pragma aids Message Filename LineNo Function 
+#pragma aids Message Filename LineNo Function Object Type
     
 namespace DMI
 {
@@ -44,6 +44,20 @@ namespace DMI
       class Elem : public LOFAR::Exception
       {
         public:
+            Elem(const std::string& text,
+                 const std::string& file="",int line=0,
+                 const std::string& func="")
+            : Exception(text,file,line,func),
+              type_("Exception")
+            {}
+        
+            Elem(const std::string& text,const std::string &object,
+                 const std::string& file="",int line=0,
+                 const std::string& func="")
+            : Exception(text,object,file,line,func),
+              type_("Exception")
+            {}
+            
             Elem (const Exception &exc)
             : Exception(exc),
               type_(exc.type())
@@ -59,11 +73,10 @@ namespace DMI
 
             virtual const std::string & type() const 
             { return type_; }
-
+            
         private:
             std::string type_;
       };
-        
         
       ExceptionList ();
     
@@ -93,21 +106,26 @@ namespace DMI
       
       virtual const char* what() const throw();
       
-      // adds an exception to the list
-      void add (const std::exception &exc)
-      {
-        const LOFAR::Exception *le = dynamic_cast<const LOFAR::Exception *>(&exc);
-        if( le )
-          list_.push_back(Elem(*le));
-        else
-          list_.push_back(Elem(exc));
-      }
+      virtual const std::string message() const;
       
       // adds an exception to the list
-      void add (const Exception &exc)
+      ExceptionList & add (const std::exception &exc);
+      
+      // adds a LOFAR exception to the list
+      ExceptionList & add (const Exception &exc)
       { 
         list_.push_back(Elem(exc)); 
+        return *this;
       }
+      
+      int size () const
+      { return list_.size(); }
+      
+      bool empty () const
+      { return list_.empty(); }
+      
+      void clear ()
+      { list_.clear(); }
       
       // creates list of exception records
       ObjRef makeList () const;
@@ -120,6 +138,38 @@ namespace DMI
   };
   
   ObjRef exceptionToObj (const std::exception &exc);
+  
+  std::string exceptionToString (const std::exception &exc);
+  
+// ThrowMoreExcObj(exc0,exc)
+// Given a previous exception (exc0) and a new exception (exc), throws
+// an ExceptionList containing both. If exc0 is already an exception list,
+// the new exception is added on, and the list is rethrown
+#define ThrowMoreExcObj(exc0,exc) { \
+  DMI::ExceptionList *pelist = dynamic_cast<DMI::ExceptionList *>(&(exc0)); \
+  if( pelist ) \
+    throw pelist->add(exc); \
+  DMI::ExceptionList elist(exc0); \
+  throw elist.add(exc); \
+}
+  
+// ThrowMoreExc(exc0,msg,exctype)
+// Forms a new exception of type exctype from given message, and calls the
+// previous macro to add it to previous exception and rethrow
+#define ThrowMoreExc(exc0,msg,exctype) \
+  ThrowMoreExcObj(exc0,exctype(msg,sdebug(),__HERE__));
+// ThrowMoreExc1(exc0,msg,exctype)
+// version to be called in context when sdebug() is not available (i.e. not
+// from within a standand object)
+#define ThrowMoreExc1(exc0,msg,exctype) \
+  ThrowMoreExcObj(exc0,exctype(msg,__HERE__));
+
+// ThrowMore(exc0,msg)
+// Like ThrowMoreExc(), but throws a LOFAR::Exception
+#define ThrowMore(exc,msg) ThrowMoreExc(exc,msg,LOFAR::Exception)
+#define ThrowMore1(exc,msg) ThrowMoreExc1(exc,msg,LOFAR::Exception)
+
+
 };
 
 #endif

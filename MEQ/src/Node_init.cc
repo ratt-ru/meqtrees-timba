@@ -103,7 +103,7 @@ void Node::addChild (const HIID &id,Node::Ref &childnode)
     // look for id within child labels
     vector<HIID>::const_iterator lbl;
     lbl = std::find(child_labels_.begin(),child_labels_.end(),id);
-    FailWhen(lbl == child_labels_.end(),id.toString() + ": unknown child label");
+    FailWhen(lbl == child_labels_.end(),"'"+id.toString() + "': unknown child label");
     ich = lbl - child_labels_.begin();
   }
   // attach ref to child if specified (will stay unresolved otherwise)
@@ -159,7 +159,11 @@ void Node::processChildSpec (DMI::Container &children,const HIID &chid,const HII
       }
       catch( std::exception &exc )
       {
-        Throw("Failed to create "+which+" node "+id.toString()+": "+exc.what());
+        ThrowMore(exc,"failed to create "+which+" node "+id.toString());
+      }
+      catch( ... )
+      {
+        Throw("failed to create "+which+" node "+id.toString());
       }
     }
   }
@@ -281,9 +285,13 @@ void Node::resolveChildren (bool recursive)
         children_[i].attach(childnode,DMI::SHARED);
         wstate()[FChildren][label] = childnode.nodeIndex();
       }
+      catch( std::exception &exc )
+      {
+        ThrowMore(exc,Debug::ssprintf("failed to resolve child %d ('%s')",i,name.c_str()));
+      }
       catch( ... )
       {
-        Throw(Debug::ssprintf("failed to resolve child %d:%s",i,name.c_str()));
+        Throw(Debug::ssprintf("failed to resolve child %d ('%s')",i,name.c_str()));
       }
     }
     // recursively call resolve on the children
@@ -308,9 +316,13 @@ void Node::resolveChildren (bool recursive)
         stepchildren_[i].attach(childnode,DMI::SHARED);
         wstate()[FStepChildren][i] = childnode.nodeIndex();
       }
+      catch( std::exception &exc )
+      {
+        ThrowMore(exc,Debug::ssprintf("failed to resolve stepchild %d ('%s')",i,name.c_str()));
+      }
       catch( ... )
       {
-        Throw(Debug::ssprintf("failed to resolve stepchild %d:%s",i,name.c_str()));
+        Throw(Debug::ssprintf("failed to resolve stepchild %d ('%s')",i,name.c_str()));
       }
     }
     // recursively call resolve on the children
@@ -338,7 +350,7 @@ void Node::init (DMI::Record::Ref &initrec, Forest* frst)
   if( rec[FClass].exists() )
   {
     FailWhen(strlowercase(rec[FClass].as<string>()) != strlowercase(objectType().toString()),
-      "node class does not match initrec.class. This is not supposed to happen!");
+      "node class does not match initrec.class. This is clearly impossible, please try an alternative universe!");
   }
   else
     rec[FClass] = objectType().toString();

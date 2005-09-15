@@ -3,6 +3,7 @@
 
 #include <Common/Debug.h>
 #include <DMI/DMI.h>
+#include <DMI/Exception.h>
     
 namespace DebugMeq
 {
@@ -18,8 +19,41 @@ namespace Meq
   //## getResult(), processCommands() and setStateImpl() when something goes 
   //## wrong. The type of the exception indicates whether any cleanup is 
   //## required.
-  EXCEPTION_CLASS(FailWithCleanup,LOFAR::Exception)
-  EXCEPTION_CLASS(FailWithoutCleanup,LOFAR::Exception)
+  
+  class FailWithCleanup : public ExceptionList
+  {
+    public:
+      FailWithCleanup(const std::string& text,
+                      const std::string& file="",int line=0,
+                      const std::string& func="")
+      : ExceptionList(Elem(text,file,line,func))
+      {}
+
+      FailWithCleanup(const std::string& text,const std::string &object,
+                      const std::string& file="",int line=0,
+                      const std::string& func="")
+      : ExceptionList(Elem(text,object,file,line,func))
+      {}
+        
+  };
+  
+  class FailWithoutCleanup : public ExceptionList
+  {
+    public:
+      FailWithoutCleanup(const std::string& text,
+                         const std::string& file="",int line=0,
+                         const std::string& func="")
+      : ExceptionList(Elem(text,file,line,func))
+      {}
+
+      FailWithoutCleanup(const std::string& text,const std::string &object,
+           const std::string& file="",int line=0,
+           const std::string& func="")
+      : ExceptionList(Elem(text,object,file,line,func))
+      {}
+        
+  };
+  
       
 }
 

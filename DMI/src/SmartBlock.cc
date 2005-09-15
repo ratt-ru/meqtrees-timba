@@ -135,11 +135,13 @@ CountedRefTarget * SmartBlock::clone (int flags, int depth) const
 string SmartBlock::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   string out;
-  if( detail >= 0 )
-    Debug::appendf(out,"%s/%08x",name?name:"SmartBlk",(int)this);
-  // normal detail 
-  if( detail >= 1 || detail == -1 )
+  if( detail>=0 ) // basic detail
   {
+    out = name ? name : "SmartBlock";
+  }
+  if( detail >= 1 || detail == -1 )   // normal detail
+  {
+    out += Debug::ssprintf("/%08x",(int)this);
     if( size()>10000 )
       Debug::appendf(out,"%c%08x:%dK",delete_block?'D':'-',(int)data(),size()/1024);
     else

@@ -51,6 +51,7 @@ namespace Meq
     FRider           = AidRider,
     FNodeName        = AidNode|AidName,
     FNodeState       = AidNode|AidState,
+    FNodeDescription = AidNode|AidDescription,
     FClass           = AidClass,
     FClassName       = AidClass|AidName,
     FResult          = AidResult,

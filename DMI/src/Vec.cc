@@ -839,12 +839,13 @@ string DMI::Vec::sdebug ( int detail,const string &prefix,const char *name ) con
   string out;
   if( detail>=0 ) // basic detail
   {
-    appendf(out,"%s/%08x",name?name:objectType().toString().c_str(),(int)this);
+    out = name ? string(name) : objectType().toString();
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
+    out += ssprintf("/%08x",(int)this);
     if( !type() )
-      append(out,"empty");
+      appendf(out,"empty");
     else
       appendf(out,"%s:%d",type().toString().c_str(),mysize());
     append(out,"/",CountedRefTarget::sdebug(-1));

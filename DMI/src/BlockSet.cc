@@ -89,8 +89,14 @@ int BlockSet::flushToCursor ()
 string BlockSet::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   string out;
-  if( detail >= 0 )
-    Debug::appendf(out,"%s@%8p #:%d",name?name:"BlockSet",this,size());
+  if( detail>=0 ) // basic detail
+  {
+    out += name ? name : "BlockSet";
+  }
+  if( detail >= 1 || detail == -1 )   // normal detail
+  {
+    Debug::appendf(out,"@%8p #:%d",this,size());
+  }
   // normal detail -- add short ref list
   if( ( detail == 1 || detail == -1 ) && size() )
   {

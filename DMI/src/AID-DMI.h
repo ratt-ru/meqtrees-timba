@@ -143,6 +143,11 @@ const int AidN_int = -1028;
 const DMI::AtomicID AidO(-1034);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 const int AidO_int = -1034;
 #endif
+#ifndef _defined_id_AidObject
+#define _defined_id_AidObject 1
+const DMI::AtomicID AidObject(-1579);             // from /home/oms/LOFAR/Timba/DMI/src/Exception.h:31
+const int AidObject_int = -1579;
+#endif
 #ifndef _defined_id_AidP
 #define _defined_id_AidP 1
 const DMI::AtomicID AidP(-1033);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
@@ -167,6 +172,11 @@ const int AidS_int = -1015;
 #define _defined_id_AidT 1
 const DMI::AtomicID AidT(-1011);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 const int AidT_int = -1011;
+#endif
+#ifndef _defined_id_AidType
+#define _defined_id_AidType 1
+const DMI::AtomicID AidType(-1085);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
+const int AidType_int = -1085;
 #endif
 #ifndef _defined_id_AidU
 #define _defined_id_AidU 1

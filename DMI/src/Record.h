@@ -235,7 +235,7 @@ class Record : public Container
 
       // debug info method
     //##ModelId=3DB9348501B1
-      string sdebug ( int detail = 1,const string &prefix = "",
+      string sdebug ( int detail = 0,const string &prefix = "",
                       const char *name = 0 ) const;
       
     //##ModelId=3DB9343B029A

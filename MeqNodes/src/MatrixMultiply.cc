@@ -303,9 +303,9 @@ int MatrixMultiply::getResult (Result::Ref &resref,
             if( vsa.isFail() || vsb.isFail() )
             { // collect fails from child vellset
               for( int ii=0; ii<vsa.numFails(); ii++ )
-                vellset.addFail(&vsa.getFail(ii));
+                vellset.addFail(vsa.getFail(ii));
               for( int ii=0; ii<vsb.numFails(); ii++ )
-                vellset.addFail(&vsb.getFail(ii));
+                vellset.addFail(vsb.getFail(ii));
             }
             // continue if we have any fails -- gotta accumulate them all
             if( vellset.isFail() )

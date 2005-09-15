@@ -110,6 +110,30 @@ MeqServer::MeqServer()
   debug_next_node = 0;
 }
 
+static string makeNodeLabel (const string &name,int)
+{
+  return ssprintf("node '%s'",name.c_str());
+}
+
+static string makeNodeLabel (const Meq::Node &node)
+{
+  return ssprintf("node '%s'",node.name().c_str());
+}
+
+static string makeNodeMessage (const Meq::Node &node,const string &msg)
+{
+  return makeNodeLabel(node) + ": " + msg;
+}
+
+static string makeNodeMessage (const string &msg1,const Meq::Node &node,const string &msg2 = string())
+{
+  string str = msg1 + " " + makeNodeLabel(node);
+  if( !msg2.empty() )
+    str += " " + msg2;
+  return str;
+}
+
+
 //##ModelId=3F6196800325
 Node & MeqServer::resolveNode (bool &getstate,const DMI::Record &rec)
 {
@@ -161,8 +185,7 @@ void MeqServer::createNode (DMI::Record::Ref &out,DMI::Record::Ref &initrec)
   out[AidNodeIndex] = nodeindex;
   out[AidName] = name;
   out[AidClass] = classname;
-  out[AidMessage] = ssprintf("created node %d:%s of class %s",
-                        nodeindex,name.c_str(),classname.c_str());
+  out[AidMessage] = makeNodeMessage("created",node,"of class "+classname);
   out[FForestChanged] = true;
 }
 
@@ -185,7 +208,7 @@ void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
     }
     catch( std::exception &exc )
     {
-      postMessage(exc.what(),AidError);
+      postError(exc);
     }
   }
   // form a response message
@@ -209,7 +232,7 @@ void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
   cdebug(2)<<"deleting node "<<name<<"("<<nodeindex<<")\n";
   // remove from forest
   forest.remove(nodeindex);
-  out[AidMessage] = ssprintf("node %d (%s): deleted",nodeindex,name.c_str());
+  out[AidMessage] = "deleted " + makeNodeLabel(name,nodeindex);;
   // fill optional responce fields
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
   out[FForestChanged] = true;
@@ -255,8 +278,7 @@ void MeqServer::resolve (DMI::Record::Ref &out,DMI::Record::Ref &in)
   cdebug(2)<<"resolve for node "<<node.name()<<endl;
   node.resolve(0,false,rec,0);
   cdebug(3)<<"resolve complete"<<endl;
-  out[AidMessage] = ssprintf("node %d (%s): resolve complete",
-      node.nodeIndex(),node.name().c_str());
+  out[AidMessage] = makeNodeMessage(node,"resolve complete");
   if( getstate )
     out[FNodeState] <<= node.syncState();
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
@@ -333,8 +355,10 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
     out[AidResult|AidCode] = flags;
     if( resref.valid() )
       out[AidResult] <<= resref;
-    out[AidMessage] = ssprintf("node %d (%s): execute() returns %x",
-        node.nodeIndex(),node.name().c_str(),flags);
+    if( flags&Node::RES_FAIL )
+      out[AidError] = makeNodeMessage(node,ssprintf("execute() failed, return code %x",flags));
+    else
+      out[AidMessage] = makeNodeMessage(node,ssprintf("execute() returns code %x",flags));
     if( getstate )
       out[FNodeState] <<= node.syncState();
     fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
@@ -359,8 +383,7 @@ void MeqServer::nodeClearCache (DMI::Record::Ref &out,DMI::Record::Ref &in)
   bool recursive = (*rec)[FRecursive].as<bool>(false);
   cdebug(2)<<"nodeClearCache for node "<<node.name()<<", recursive: "<<recursive<<endl;
   node.clearCache(recursive);
-  out[AidMessage] = ssprintf("node %d (%s): cache cleared%s",
-      node.nodeIndex(),node.name().c_str(),recursive?" recursively":"");
+  out[AidMessage] = makeNodeMessage(node,recursive?"cache cleared recursively":"cache cleared");
   if( getstate )
     out[FNodeState] <<= node.syncState();
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
@@ -486,15 +509,13 @@ void MeqServer::publishResults (DMI::Record::Ref &out,DMI::Record::Ref &in)
   {
     cdebug(2)<<"publishResults: enabling for node "<<node.name()<<endl;
     node.addResultSubscriber(EventSlot(evid,this));
-    out[AidMessage] = ssprintf("node %d (%s): publishing results",
-        node.nodeIndex(),node.name().c_str());
+    out[AidMessage] = makeNodeMessage(node,"publishing snapshots");
   }
   else
   {
     cdebug(2)<<"publishResults: disabling for node "<<node.name()<<endl;
     node.removeResultSubscriber(EventSlot(evid,this));
-    out[AidMessage] = ssprintf("node %d (%s): no longer publishing results",
-        node.nodeIndex(),node.name().c_str());
+    out[AidMessage] = makeNodeMessage(node,"not publishing snapshots");
   }
   if( getstate )
     out[FNodeState] <<= node.syncState();
@@ -507,7 +528,7 @@ void MeqServer::disablePublishResults (DMI::Record::Ref &out,DMI::Record::Ref &i
   for( int i=0; i<=forest.maxNodeIndex(); i++ )
     if( forest.valid(i) )
       forest.get(i).removeResultSubscriber(this);
-  out[AidMessage] = "nodes no longer publishing results";
+  out[AidMessage] = "snapshots disabled on all nodes";
   out[FDisabledAllPublishing] = true;
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
@@ -523,10 +544,10 @@ void MeqServer::nodeSetBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in)
   node.setBreakpoint(bpmask,oneshot);
   if( getstate )
     out[FNodeState] <<= node.syncState();
-  out[AidMessage] = Debug::ssprintf("node %s: set %sbreakpoint %X; "
-        "new bp mask is %X",
-        node.name().c_str(),oneshot?"one-shot":"",
-        bpmask,node.getBreakpoints(oneshot));
+  out[AidMessage] = makeNodeMessage(node,ssprintf("set %sbreakpoint %X; "
+                                    "new bp mask is %X",
+                                    oneshot?"one-shot ":"",
+                                    bpmask,node.getBreakpoints(oneshot)));
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
@@ -541,8 +562,8 @@ void MeqServer::nodeClearBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in)
   node.clearBreakpoint(bpmask,oneshot);
   if( getstate )
     out[FNodeState] <<= node.syncState();
-  out[AidMessage] = Debug::ssprintf("node %s: clearing breakpoint %X; "
-        "new bp mask is %X",node.name().c_str(),bpmask,node.getBreakpoints(oneshot));
+  out[AidMessage] = makeNodeMessage(node,ssprintf("clearing breakpoint %X; "
+        "new bp mask is %X",bpmask,node.getBreakpoints(oneshot)));
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
@@ -612,6 +633,13 @@ int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef &evdata,vo
   cdebug(4)<<"received event "<<evid.id()<<endl;
   control().postEvent(evid.id(),evdata);
   return 1;
+}
+
+void MeqServer::postError (const std::exception &exc,AtomicID category)
+{
+  DMI::Record::Ref out(new DMI::Record);
+  out[AidError] = exceptionToObj(exc);
+  control().postEvent(AidError,out,category);
 }
 
 void MeqServer::postMessage (const std::string &msg,const HIID &type,AtomicID category)
@@ -695,7 +723,7 @@ void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
   DMI::Record::Ref ref;
   DMI::Record &rec = ref <<= new DMI::Record;
   fillForestStatus(rec);
-  rec[AidMessage] = "stopped at " + node.name() + ":" + node.getStrExecState();
+  rec[AidMessage] = makeNodeMessage("stopped at ",node,":" + node.getStrExecState());
   control().postEvent(EvDebugStop,ref);
   int old_state = control().state();
   control().setState(AppState_Debug);
@@ -770,7 +798,7 @@ void MeqServer::processCommands ()
     }
     catch( std::exception &exc )
     {
-      (retval <<= new DMI::Record)[AidError] = exc.what();
+      (retval <<= new DMI::Record)[AidError] = exceptionToObj(exc);
     }
     catch( ... )
     {
@@ -801,13 +829,13 @@ void MeqServer::run ()
   verifySetup(true);
   DMI::Record::Ref initrec;
   HIID output_event;
-  string doing_what,error_str;
-  bool have_error;
+  string doing_what;
   bool python_init = false;
+  DMI::ExceptionList errors;
   // keep running as long as start() on the control agent succeeds
   while( control().start(initrec) == AppState::RUNNING )
   {
-    have_error = false;
+    errors.clear();
     try
     {
       // [re]initialize i/o agents with record returned by control
@@ -836,17 +864,15 @@ void MeqServer::run ()
       }
     }
     catch( std::exception &exc )
-    { have_error = true; error_str = exc.what(); }
+    { errors.add(exc); }
     catch( ... )
-    { have_error = true; error_str = "unknown exception"; }
+    { errors.add(LOFAR::Exception("unknown exception",__HERE__)); }
     // in case of error, generate event and go back to start
-    if( have_error )
+    if( !errors.empty() )
     {
-      error_str = "error " + doing_what + ": " + error_str;
-      cdebug(1)<<error_str<<", waiting for reinitialization"<<endl;
-      DMI::Record::Ref retval(DMI::ANONWR);
-      retval[AidError] = error_str;
-      control().postEvent(output_event,retval);
+      errors.add(LOFAR::Exception("error " + doing_what,__HERE__));
+      cdebug(1)<<errors<<", waiting for reinitialization"<<endl;
+      postError(errors);
       continue;
     }
     
@@ -885,14 +911,14 @@ void MeqServer::run ()
       { 
         string output_message;
         HIID output_event;
-        have_error = false;
+        errors.clear();
         int retcode = 0;
         try
         {
           // process data event
           if( instat == DATA )
           {
-            doing_what = "processing input DATA event";
+            doing_what = "processing data event "+id.toString('.');
             VisCube::VTile::Ref tileref = ref.ref_cast<VisCube::VTile>();
             cdebug(4)<<"received tile "<<tileref->tileId()<<endl;
             if( !reading_data )
@@ -909,7 +935,7 @@ void MeqServer::run ()
           }
           else if( instat == FOOTER )
           {
-            doing_what = "processing input FOOTER event";
+            doing_what = "processing footer event "+id.toString('.');
             cdebug(2)<<"received footer"<<endl;
             reading_data = false;
             eventrec <<= new DMI::Record;
@@ -928,7 +954,7 @@ void MeqServer::run ()
           }
           else if( instat == HEADER )
           {
-            doing_what = "processing input HEADER event";
+            doing_what = "processing header event "+id.toString('.');
             cdebug(2)<<"received header"<<endl;
             reading_data = false;
             header = ref;
@@ -954,28 +980,27 @@ void MeqServer::run ()
           if( retcode&Node::RES_FAIL && !tile_failed)
           {
             tile_failed = true;
-            Throw("tree returns fail during stream processing, please check the tree caches for more information");
+            Throw("one or more nodes has returned a FAIL. Check node caches for more information");
           }
           else
             tile_failed = false;
         }
         catch( std::exception &exc )
         {
-          have_error = true;
-          error_str = exc.what();
-          cdebug(2)<<"error while " + doing_what + ": "<<exc.what()<<endl;
+          errors.add(exc);
+          errors.add(LOFAR::Exception("error "+doing_what,__HERE__));
+          cdebug(2)<<errors;
         }
         catch( ... )
         {
-          have_error = true;
-          error_str = "unknown exception";
-          cdebug(2)<<"unknown error while " + doing_what<<endl;
+          errors.add(LOFAR::Exception("unknown exception "+doing_what,__HERE__));
+          cdebug(2)<<errors;
         }
         // in case of error, generate event
-        if( have_error )
+        if( !errors.empty() )
         {
           DMI::Record::Ref retval(DMI::ANONWR);
-          retval[AidError] = error_str;
+          retval[AidError] = exceptionToObj(errors);
           retval[AidData|AidId] = id;
           control().postEvent(DataProcessingError,retval);
         }

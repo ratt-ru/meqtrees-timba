@@ -126,7 +126,7 @@ void Domain::validateContent (bool)
   {
     std::cout<<"failed Domain record: "<<sdebug(10)<<endl;
     cdebug(1)<<"failed Domain record: "<<sdebug(10)<<endl;
-    Throw(string("validate of Domain record failed: ") + err.what());
+    ThrowMore(err,"validate of Domain record failed");
   }
   catch( ... )
   {

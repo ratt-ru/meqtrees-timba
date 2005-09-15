@@ -15,6 +15,7 @@ template<class T>
 T * as_wp_impl (int &sz,bool pointer,bool must_exist,Type2Type<T>,Int2Type<true>) const
 {
   ContentInfo info;
+  info.tid = typeIdOf(T);
   const T * ptr = reinterpret_cast<const T*>(
                     get_address_bo(info,can_convert<T>,true,pointer,must_exist));
   sz = info.size;

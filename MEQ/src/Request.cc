@@ -119,7 +119,7 @@ void Request::validateContent (bool)
   catch( std::exception &err )
   {
     cerr<<"Failed request: "<<sdebug(10);
-    Throw(string("validate of Request record failed: ") + err.what());
+    ThrowMore(err,"validate of Request record failed");
   }
   catch( ... )
   {

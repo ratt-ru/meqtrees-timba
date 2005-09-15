@@ -225,7 +225,8 @@ int pyToRecord (DMI::Record::Ref &rec,PyObject *pyobj)
     }
     // catch various failures and ignore them
     catch( std::exception &exc )
-    { cdebug(4)<<objstr<<"skipping key " <<keystr<<" ("<<ikey<<"): failed to convert value: "<<exc.what()<<endl; }
+    { cdebug(4)<<objstr<<"skipping key " <<keystr<<" ("<<ikey<<"): failed to convert value: "<<
+          exceptionToString(exc); }
     catch( ... )
     { cdebug(4)<<objstr<<"skipping key " <<keystr<<" ("<<ikey<<"): failed to convert value: unknown exception\n"; }
   }

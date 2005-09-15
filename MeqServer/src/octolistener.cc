@@ -3,6 +3,7 @@
 #include <OCTOPUSSY/GWClientWP.h>
 #include <OCTOPUSSY/ListenerWP.h>
 #include <DMI/Global-Registry.h>
+#include <DMI/Exceptions.h>
 #include <sys/types.h>
 #include <unistd.h>    
 
@@ -34,7 +35,7 @@ int main (int argc,const char *argv[])
   }
   catch( std::exception &err ) 
   {
-    cerr<<"\nCaught exception:\n"<<err.what()<<endl;
+    cerr<<"\nCaught exception: "<<exceptionToString(err);
     return 1;
   }
   cerr<<"Exiting normally\n";
