@@ -536,9 +536,9 @@ class LSM:
     **kw=variable list of keyword arguments such as
      brightness=10
      type='point' / 'patch'
-     SP='Root of Sixpack'
-     RA=100
-     Dec=100
+     sixpack='Sixpack object, in a composed state'
+     ra=100
+     dec=100
   """ 
   # Source names have to be unique
   if self.s_table.has_key(s.name):
@@ -572,12 +572,12 @@ class LSM:
   else:
     p.setType(POINT_TYPE) # 0 - point source
   
-  # set the root of sixpack helper
-  if kw.has_key('sp_root'):
-   p.sp.setRoot(kw['sp_root'])
   # set the sixpack object
   if kw.has_key('sixpack'):
    p.setSP(kw['sixpack'])
+   # set the root
+   my_sixpack=p.getSP()
+   p.sp.setRoot(my_sixpack.sixpack())
 
 
 #  # FIXME for the moment use static RA,Dec

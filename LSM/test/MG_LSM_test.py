@@ -95,11 +95,11 @@ def _define_forest (ns):
    source_Dec*=math.pi/180.0
 
    my_sixpack=MG_JEN_Sixpack.newstar_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[random()],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
-   # directly create sixpack subtree using the object
+   # first compose the sixpack before giving it to the LSM
    SourceRoot=my_sixpack.sixpack(ns)
    my_sixpack.display()
    lsm.add_source(s,brightness=eval(v.group('col12')),
-     sp_root=SourceRoot, sixpack=my_sixpack,
+     sixpack=my_sixpack,
      ra=source_RA, dec=source_Dec)
  
  print "Inserted %d sources" % linecount 
@@ -155,7 +155,17 @@ def _test_forest (mqs, parent):
  # display results
  lsm.display()
 
-   
+
+##############################################################
+#### test routine to query the LSM and get some Sixpacks from   
+#### PUnits
+def _tdl_job_query_punits(mqs, parent):
+ global lsm
+ # obtain the punit list of the 3 brightest ones
+ plist=lsm.queryLSM(count=3)
+ for pu in plist:
+  my_sp=pu.getSP()
+  my_sp.display()
 
 #####################################################################
 #-------------------------------------------------------------------------
