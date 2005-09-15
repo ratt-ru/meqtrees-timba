@@ -479,6 +479,7 @@ class ResultPlotter(GriddedPlugin):
         necessary preprocssing forwards the data to one of
         the functions which does the actual plotting """
 
+    _dprint(3, '** in result_plotter:set_data callback')
     self._rec = dataitem.data;
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
@@ -534,6 +535,7 @@ class ResultPlotter(GriddedPlugin):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numarray of dimension 3 or greater """
 
+    _dprint(3, 'in result_plotter:set_ND_controls so we must have caught a vells_axes_labels signal')
     shape = None
     self.ND_Controls = ND_Controller(shape, labels, parms, self.layout_parent)
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self._visu_plotter.setArraySelector)
