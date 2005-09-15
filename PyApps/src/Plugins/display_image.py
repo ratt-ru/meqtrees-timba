@@ -1355,6 +1355,7 @@ class QwtImageDisplay(QwtPlot):
       self.axis_labels = []
       self.vells_axis_parms = {}
       self.axis_shape = {}
+      num_possible_ND_axes = 0
       for i in range(len(axis_map)):
         # convert from Hiid to string
         self.axis_labels.append(str(axis_map[i]).lower())
@@ -1385,13 +1386,14 @@ class QwtImageDisplay(QwtPlot):
           grid_array = self._vells_rec.cells.grid.get(current_label)
           try:
             self.axis_shape[current_label] = grid_array.shape[0]
+            num_possible_ND_axes = num_possible_ND_axes + 1
           except:
             self.axis_shape[current_label] = 1
         else:
           self.axis_shape[current_label] = 1
         self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label])
       if not self.dimensions_tested:
-        if len(self.vells_axis_parms) > 2:
+        if len(self.vells_axis_parms) > 2 and num_possible_ND_axes > 2:
           self.emit(PYSIGNAL("vells_axes_labels"),(self.axis_labels, self.vells_axis_parms))
         self.dimensions_tested = True
 
