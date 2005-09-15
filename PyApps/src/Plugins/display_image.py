@@ -146,6 +146,7 @@ class QwtImageDisplay(QwtPlot):
         self.ymin = None
         self.ymax = None
         self.adjust_color_bar = True
+        self.do_calc_vells_range = True
         self.array_selector = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
@@ -1352,6 +1353,7 @@ class QwtImageDisplay(QwtPlot):
       """ get vells data ranges for use 
           with other functions """
                                                                                 
+      self.do_calc_vells_range = False
       axis_map = self._vells_rec.cells.domain.get('axis_map',['time','freq'])
       self.axis_labels = []
       self.vells_axis_parms = {}
@@ -1385,22 +1387,37 @@ class QwtImageDisplay(QwtPlot):
               title = 'Frequency(Hz)'
         if self._vells_rec.cells.grid.has_key(current_label):
           grid_array = self._vells_rec.cells.grid.get(current_label)
+          _dprint(3, 'in calc_vells_ranges: examining cells.grid for label ', current_label)
+          _dprint(3, 'in calc_vells_ranges: grid_array is ', grid_array)
           try:
             self.axis_shape[current_label] = grid_array.shape[0]
+            _dprint(3, 'in calc_vells_ranges: grid_array shape is ', grid_array.shape)
             num_possible_ND_axes = num_possible_ND_axes + 1
+            _dprint(3, 'in calc_vells_ranges: incrementing ND axes to ', num_possible_ND_axes)
           except:
             self.axis_shape[current_label] = 1
         else:
           self.axis_shape[current_label] = 1
         self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label])
+
+      # do we request a ND GUI?
       if not self.dimensions_tested:
         if len(self.vells_axis_parms) > 2 and num_possible_ND_axes > 2:
+          _dprint(3, '** in calc_vells_ranges:')
+          _dprint(3, 'I think I need a ND GUI as number of valid plot axes is ',num_possible_ND_axes)
+          _dprint(3, 'length of self.vells_axis_parms is ', len(self.vells_axis_parms))
+          _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
+          _dprint(3, 'I am emitting a vells_axes_labels signal which will cause the ND GUI to be constructed')
+          # emitting the following signal will cause the ND Controller GUI  
+          # to be constructed 
           self.emit(PYSIGNAL("vells_axes_labels"),(self.axis_labels, self.vells_axis_parms))
         self.dimensions_tested = True
 
 # set default axis parameters - needed in a simple 2-D plot
       self.first_axis_parm = self.axis_labels[0]
       self.second_axis_parm = self.axis_labels[1]
+
+    # calc-vells_ranges
 
     def plot_vells_data (self, vells_record):
       """ process incoming vells data and attributes into the
@@ -1439,7 +1456,8 @@ class QwtImageDisplay(QwtPlot):
 # are we dealing with Vellsets?
       if self._vells_rec.has_key("vellsets") and not self._solver_flag:
         self._vells_plot = True
-        self.calc_vells_ranges()
+        if self.do_calc_vells_range:
+          self.calc_vells_ranges()
         _dprint(3, 'handling vellsets')
 
 
