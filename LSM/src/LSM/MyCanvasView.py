@@ -665,7 +665,7 @@ class Axes:
     self.yax=[]
     self.yax_text=[]
     self.yax_degtext=[]
-    ll=self.getTicks(bounds['min_Dec'],bounds['max_Dec'],y_ticks,'%1.4f')
+    ll=self.getTicks(bounds['min_Dec'],bounds['max_Dec'],y_ticks,'%1.4f','y')
     for tck in ll:
      yval=tck[0]
      xstr=tck[1]
