@@ -1,4 +1,4 @@
-//# Parm.h: Parameter with polynomial coefficients
+//# Parm.h: (solvable) Parameter
 //#
 //# Copyright (C) 2002
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -27,14 +27,9 @@
 #include <MEQ/Node.h>
 #include <MEQ/Vells.h>
 #include <MEQ/Funklet.h>
-#include <MEQ/Polc.h>
-#include <MEQ/PolcLog.h>
+#include <MeqNodes/CompiledFunklet.h>
 #include <MeqNodes/ParmTable.h>
 #include <Common/lofar_vector.h>
-
-#include <MeqNodes/TID-MeqNodes.h>
-
-#include <scimath/Fitting/LSQaips.h>
 
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Parm
@@ -70,141 +65,107 @@
 //defrec end
 
 namespace Meq {
-
-
-// This class contains the coefficients of a 2-dim polynomial.
-// The order in time and frequency must be given.
-// The nr of coefficients is (1+order(time)) * (1+order(freq)).
-// The coefficients are numbered 0..N with the time as the most rapidly
-// varying axis.
-
-//##ModelId=3F86886E01BD
-class Parm: public Node
-{
-public:
-  // The default constructor.
-  // The object should be filled by the init method.
+  // This class contains the coeff of any funklet, either solvable or unsolvable.
+  class Parm: public Node
+  {
+  public:
+    // The default constructor.
+    // The object should be filled by the init method.
     //##ModelId=3F86886F021B
-  Parm();
-
-  // Create a parameter with the given name and default value.
-  // The default value is used if no suitable value can be found.
-  // The ParmTable can be null meaning that the parameter is temporary.
-    //##ModelId=3F86886F0242
-  Parm (const string& name, ParmTable* table,
-	      const Funklet::Ref::Xfer & defaultValue = Funklet::Ref() );
-
-    //##ModelId=3F86886F021E
-  virtual ~Parm();
-
-  //##ModelId=400E53510330
-  virtual TypeId objectType() const
-  { return TpMeqParm; }
-
-    //##ModelId=3F86886F022C
-  bool isSolvable() const
-  { return solvable_; }
-
-  // Get the requested result of the parameter.
-    //##ModelId=3F86886F022E
-  virtual int getResult (Result::Ref &resref, 
-                         const std::vector<Result::Ref> &childres,
-                         const Request &req,bool newreq);
-
-  // process parm-specific rider commands
-  virtual int processCommands (Result::Ref &resref,const DMI::Record &rec,Request::Ref &reqref);
-
-  // Make the new value persistent (for the given domain).
-    //##ModelId=3F86886F023C
-  virtual void save();
-
-    //##ModelId=400E53520391
-  //## Standard debug info method
-  virtual string sdebug (int detail = 1, const string& prefix = "",
-			 const char* name = 0) const;
+    Parm();
+    
+    // Create a parameter with the given name and default value.
+    // The default value is used if no suitable value can be found.
+    // The ParmTable can be null meaning that the parameter is temporary.
   
-  LocalDebugContext;
+    Parm (const string& name, ParmTable* table,
+	  const Funklet::Ref::Xfer & defaultValue = Funklet::Ref() );
+    
+    virtual ~Parm();
+    
+    virtual TypeId objectType() const
+    { return TpMeqParm; }
+    
+    bool isSolvable() const
+    { return solvable_; }
 
-protected:
-  virtual void resetDependMasks ();
-  Funklet * initTiledFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells);
+    // Get the requested result of the parameter.
+    virtual int getResult (Result::Ref &resref, 
+			   const std::vector<Result::Ref> &childres,
+			   const Request &req,bool newreq);
 
-  // checks if current funklet can be reused
-  Funklet * initFunklet (const Request &request,bool solve);
+    // process parm-specific rider commands
+    virtual int processCommands (Result::Ref &resref,const DMI::Record &rec,Request::Ref &reqref);
+    
+    // Make the new value persistent (for the given domain).
+    virtual void save();
+
+    //## Standard debug info method
+    virtual string sdebug (int detail = 1, const string& prefix = "",
+			   const char* name = 0) const;
+
+  
+
+    LocalDebugContext;
+
+  protected:
+    virtual void resetDependMasks ();
+    Funklet * initTiledFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells);
+
+    // checks if current funklet can be reused
+    Funklet * initFunklet (const Request &request,bool solve);
     //##ModelId=400E5353019E
-  // finds new funklets in table or uses the default
-  Funklet * findRelevantFunklet (Funklet::Ref &funkletref,const Domain &domain);
+    // finds new funklets in table or uses the default
+    Funklet * findRelevantFunklet (Funklet::Ref &funkletref,const Domain &domain);
   
-  // Initialize the funklet for the given solve domain. First
-  int Parm::initSolvable (Funklet &funklet,const Request &request);
+    // Initialize the funklet for the given solve domain. First
+    int Parm::initSolvable (Funklet &funklet,const Request &request);
 
     //##ModelId=400E5353033A
-  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+    virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
   
   
-  virtual int discoverSpids (Result::Ref &resref, 
-                             const std::vector<Result::Ref> &childres,
-                             const Request &req);
+    virtual int discoverSpids (Result::Ref &resref, 
+			       const std::vector<Result::Ref> &childres,
+			       const Request &req);
   
-private:
+  private:
     
     //##ModelId=3F86886F0216
-  bool solvable_;
-  bool auto_save_;
-  bool tiled_;//true for tiled solvables
-  int tiling_[Axis::MaxAxis]; //vector containing tilesizes per axis (<= 0 means no tiling)
+    bool solvable_;
+    bool auto_save_;
+    bool tiled_;//true for tiled solvables
+    int tiling_[Axis::MaxAxis]; //vector containing tilesizes per axis (<= 0 means no tiling)
 
     //##ModelId=3F86886F0213
-  string name_;
+    string name_;
   
     //##ModelId=400E535000A3
-  ParmTable * parmtable_;
+    ParmTable * parmtable_;
   
-  //##ModelId=400E535000B2
-  //##Documentation
-  //## default funklet (used if no table or no matching funklets in the table)
-  Funklet::Ref   default_funklet_;
+    //##ModelId=400E535000B2
+    //##Documentation
+    //## default funklet (used if no table or no matching funklets in the table)
+    Funklet::Ref   default_funklet_;
+    Funklet::Ref its_funklet_; //keep a ref to the funklet 
   
-  //##Documentation
-  //## ID of current domain
-  HIID        domain_id_;
+    HIID        domain_id_;
   
-  int         domain_depend_mask_;
-  int         solve_depend_mask_;
-  std::vector<HIID> domain_symdeps_;
-  std::vector<HIID> solve_symdeps_;
-  std::vector<double> solve_domain_; //solve domain, default = [0,1]
+    int         domain_depend_mask_;
+    int         solve_depend_mask_;
+    std::vector<HIID> domain_symdeps_;
+    std::vector<HIID> solve_symdeps_;
+    std::vector<double> solve_domain_; //solve domain, default = [0,1]
 
   
-  bool        integrated_;
+    bool        integrated_;
 
-
-  //stuff for snippet_solver
-
-  Domain LPDomain;  //domain for which the longpolc is valid.same domain for each spid
-  vector<double> LPAxis; //Vector with values (=mean) of the axis along which longPolc is solved
-  int LPnr_equations; // nr of equations ,same for each spid
-  bool auto_solve_;//flag, if true snippet-solver is on
-  int solve_axis_; // the axis for which we do the snippet solution, if not given, determined from the change in domain.
-  int solve_rank_; // the order which we do the snippet solution, default = 3
-  double solve_offset_; //offset for 'time' axis..to keep numbers a bit low..
-
-
-  vector<casa::LSQaips>   itsSolver;//the solver per spid  
+    //some functions
+    void GetTiledDomains(Domain::Ref & domain, const Cells& cells,vector<Domain::Ref> & domainV);
   
-  //some functions
-  void GetTiledDomains(Domain::Ref & domain, const Cells& cells,vector<Domain::Ref> & domainV);
-  
-  Funklet * PredictFromLongPolc(Funklet::Ref &funkletref,const Domain & rdom);
-  int UpdateLPDomain(const Domain &rdom);
-  int UpdateLongPolc(int old_domain,Funklet *rpolc);
-  void SaveLongPolc();
-  void InitLongPolc(const Polc &rpolc);
-  Funklet::DbId LPDbId;//rownr in meptable for longpolc
-
-};
 
 
-} // namespace Meq
+  };
+}// namespace Meq
 
 #endif

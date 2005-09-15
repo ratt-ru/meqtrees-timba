@@ -32,7 +32,7 @@
 #pragma aid Dependency Resolution Depend Mask Resample Integrated Dims
 #pragma aid Cells Domain Freq Time Calc Deriv Vells VellSets Flags Weights
 #pragma aid Shape Grid Cell Size Segments Start End Steps Axis Axes Offset
-#pragma aid NodeIndex Table Name Default Index Num Cache Code Funklet Funklets
+#pragma aid NodeIndex Table Name Default Index Num Cache Code Funklet Funklets Function
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cell Results Fail Origin Line Message Contagious  Normalized
 #pragma aid Solvable Config Groups All By List Polc Polcs Scale Matrix
@@ -103,6 +103,7 @@ namespace Meq
 //    FInfDomain       = AidInf|AidDomain,
     FDbId            = AidDbId|AidIndex, 
     FFunkletList     = AidFunklet|AidList,
+    FFunction        = AidFunction,
     
     // VellSet fields
     FShape           = AidShape,

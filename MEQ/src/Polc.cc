@@ -147,53 +147,6 @@ void Polc::validateContent (bool recursive)
   }
 }
 
-void Polc::setCoeff (const DMI::NumArray &arr)
-{
-  Thread::Mutex::Lock lock(mutex());
-  FailWhen(rank()!=arr.rank(),"Meq::Polc: coeff rank mismatch");
-  FailWhen(arr.elementType()!=Tpdouble,"Meq::Polc: coeff array must be of type double");
-  ObjRef ref(new DMI::NumArray(arr));
-  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
-}
-
-void Polc::setCoeff (double c00)
-{
-  Thread::Mutex::Lock lock(mutex());
-  FailWhen(rank()!=0,"Meq::Polc: coeff rank mismatch");
-  LoVec_double coeff(1);
-  coeff = c00;
-  ObjRef ref(new DMI::NumArray(coeff));
-  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
-}
-
-void Polc::setCoeff (const LoVec_double & coeff)
-{
-  Thread::Mutex::Lock lock(mutex());
-  if( !rank() )
-    init(1,defaultPolcAxes,defaultPolcOffset,defaultPolcScale);
-  else {
-    FailWhen(rank()!=1,"Meq::Polc: coeff rank mismatch");
-  }
-  ObjRef ref(new DMI::NumArray(coeff));
-  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
-}
-
-void Polc::setCoeff (const LoMat_double & coeff)
-{
-  Thread::Mutex::Lock lock(mutex());
-  if( !rank() )
-    init(2,defaultPolcAxes,defaultPolcOffset,defaultPolcScale);
-  else {
-    FailWhen(rank()!=2,"Meq::Polc: coeff rank mismatch");
-  }
-  ObjRef ref(new DMI::NumArray(coeff));
-  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
-  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
-}
-
 
 void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     const std::vector<double> &perts,

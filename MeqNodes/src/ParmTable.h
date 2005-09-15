@@ -55,7 +55,7 @@ public:
   // Note that the requested domain may contain multiple funklets.
   // Returns # of funklets in vector
     //##ModelId=3F86886F02BD
-  int getFunklets (vector<Funklet::Ref> &funklets,const string& parmName, const Domain& domain, const bool auto_solve_ = false);
+  int getFunklets (vector<Funklet::Ref> &funklets,const string& parmName, const Domain& domain);
 
   // Get the initial coefficients for the given funklet.
   // Returns the # of coefficients (0 for none)
@@ -66,12 +66,12 @@ public:
   // Returns the DbId of the funklet.
   // If domain_is_key, checks that domain is unique
     //##ModelId=3F86886F02C8
-  Funklet::DbId putCoeff (const string& parmName, const Funklet& funklet, int LPId=-1,bool domain_is_key=false);
+  Funklet::DbId putCoeff (const string& parmName, const Funklet& funklet,bool domain_is_key=false);
   
   // Put the coefficients for the given funklet and domain.
   // If a new DbId is allocated, stores it in the funklet.
   // If domain_is_key, checks that domain is unique.
-  void putCoeff1 (const string& parmName,Funklet& funklet, int LPId=-1, bool domain_is_key=false);
+  void putCoeff1 (const string& parmName,Funklet& funklet, bool domain_is_key=false);
 
   // Return point sources for the given source numbers.
   // An empty sourceNr vector means all sources.

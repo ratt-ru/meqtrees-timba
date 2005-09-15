@@ -36,7 +36,6 @@ using namespace DMI;
 
 static DMI::Container::Register reg(TpMeqFunklet,true);
 
-const int defaultFunkletRank = 2;
 
 const int    defaultFunkletAxes[defaultFunkletRank]   = {0,1};
 const double defaultFunkletOffset[defaultFunkletRank] = {0,0};
@@ -82,13 +81,18 @@ Funklet::Funklet (const Funklet &other,int flags,int depth)
   weight_(other.weight_),
   id_(other.id_)
 {
-// no need to validate content outside the domain, because other funklet will be 
+  //  cdebug(0)<<"creating funklet from other "<<other.objectType()<<endl;
+  //  cdebug(0)<<"rank = "<<rank()<<endl;
+// no need to validate content outside the domain and coeff, because other funklet will be 
 // valid anyway
   Field * fld = Record::findField(FDomain);
   if( fld )
     domain_ = fld->ref;
   else
     domain_ <<= new Domain;
+  Field *cfld = Record::findField(FCoeff);
+
+  pcoeff_ = cfld ? &( cfld->ref.ref_cast<DMI::NumArray>() ) : 0;
 }
 
 void Funklet::validateContent (bool)    
@@ -105,9 +109,17 @@ void Funklet::validateContent (bool)
       domain_ <<= new Domain;
     // get various others
     axes_       = (*this)[FAxisIndex].as_vector(default_axes);
+    if(!Record::hasField(FAxisIndex))
+      (*this)[FAxisIndex].replace()=axes_;
     offsets_    = (*this)[FOffset].as_vector(default_offset);
+    if(!Record::hasField(FOffset))
+      (*this)[FOffset].replace()=offsets_;
     scales_     = (*this)[FScale].as_vector(default_scale);
+    if(!Record::hasField(FScale))
+      (*this)[FScale].replace()=scales_;
     Assert(axes_.size() == uint(rank()) && offsets_.size() == uint(rank()) && scales_.size() == uint(rank()) );
+    //?? rank() is  defined as axes_.size(), no need to check really....
+
     pertValue_  = (*this)[FPerturbation].as<double>(defaultFunkletPerturbation);
     weight_     = (*this)[FWeight].as<double>(defaultFunkletWeight);
     id_         = (*this)[FDbId].as<int>(-1);
@@ -122,7 +134,7 @@ void Funklet::validateContent (bool)
 	  //convert to double
 
 	}
-      FailWhen((*pcoeff_)->elementType()!=Tpdouble,"Meq::Polc: coeff array must be of type double");
+      FailWhen((*pcoeff_)->elementType()!=Tpdouble,"Meq::Funklet: coeff array must be of type double");
      
 
     }
@@ -147,6 +159,7 @@ void Funklet::init (int rnk,const int iaxis[],
                     const double scale[],
                     double pert,double weight,DbId id)
 {
+  //  cdebug(0)<<"init funklet with rank "<<rnk<<endl;
   Thread::Mutex::Lock lock(mutex());
   // this ensures a rank match: first time 'round, set the rank
   if( axes_.empty() )
@@ -175,6 +188,7 @@ void Funklet::init (int rnk,const int iaxis[],
   (*this)[FWeight] = weight_ = weight;
   (*this)[FDbId] = id_ = id;
 }
+
 
 void Funklet::setDomain (const Domain * domain,int flags)
 {
@@ -284,6 +298,58 @@ void Funklet::clearSolvable()
   parm_perts_.clear();
 }
 
+
+void Funklet::setCoeff (const DMI::NumArray &arr)
+{
+  Thread::Mutex::Lock lock(mutex());
+  //  FailWhen(rank()!=arr.rank(),"Meq::Funklet: coeff rank mismatch");
+  FailWhen(arr.elementType()!=Tpdouble,"Meq::Funklet: coeff array must be of type double");
+  ObjRef ref(new DMI::NumArray(arr));
+  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
+  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+}
+
+void Funklet::setCoeff (double c00)
+{
+  Thread::Mutex::Lock lock(mutex());
+  //  FailWhen(rank()!=0,"Meq::Funklet: coeff rank mismatch");
+  LoVec_double coeff(1);
+  coeff = c00;
+  ObjRef ref(new DMI::NumArray(coeff));
+  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
+  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+}
+
+void Funklet::setCoeff (const LoVec_double & coeff)
+{
+  Thread::Mutex::Lock lock(mutex());
+  if( !rank() )
+    init(1,defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale);
+  //  else {
+  //    FailWhen(rank()!=1,"Meq::Funklet: coeff rank mismatch");
+  //  }
+  ObjRef ref(new DMI::NumArray(coeff));
+  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
+  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+}
+
+void Funklet::setCoeff (const LoMat_double & coeff)
+{
+  Thread::Mutex::Lock lock(mutex());
+  if( !rank() )
+    init(2,defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale);
+  //  else {
+  //    FailWhen(rank()!=2,"Meq::Funklet: coeff rank mismatch");
+  //  }
+  ObjRef ref(new DMI::NumArray(coeff));
+  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
+  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+}
+
+
+
+
+
 void Funklet::evaluate (VellSet &vs,const Cells &cells,int makePerturbed) const
 {
   Thread::Mutex::Lock lock(mutex());
@@ -311,20 +377,62 @@ void Funklet::evaluate (VellSet &vs,const Cells &cells,int makePerturbed) const
   do_evaluate(vs,cells,parm_perts_,spidInx_,makePerturbed);
 }
 
-void Funklet::update (const double values[])
-{
-  do_update(values,spidInx_);
-}
-
 // shortcut to standard evaluate()
 void Funklet::evaluate (VellSet &vs,const Request &request) const
 {
   evaluate(vs,request.cells(),request.evalMode());
 }
 
+
+  void Funklet::evaluate (VellSet &vs,const Cells &cells,const std::vector<Result::Ref> & childres,int makePerturbed) const
+{
+  Thread::Mutex::Lock lock(mutex());
+  PERFPROFILE(__PRETTY_FUNCTION__);
+  // sets spids and perturbations in output vellset
+
+
+  if( spids_.empty() ) // no active solvable spids? Force no perturbations then
+    makePerturbed = 0;
+  else if( makePerturbed )
+  {
+    Assert(makePerturbed==1 || makePerturbed==2);
+    vs.setNumPertSets(makePerturbed);
+    vs.setSpids(spids_);
+
+    cdebug(4)<<"nr spids in Funklet "<<spids_.size()<<endl;
+    
+    vs.setPerturbations(spid_perts_);
+    // since we can't just do unary-minus on an std::vector, do ugly loop:
+    if( makePerturbed==2 )
+      for( uint i=0; i<spid_perts_.size(); i++ )
+        vs.setPerturbation(i,-spid_perts_[i],1);
+  }
+  // call do_evaluate() to do the real work
+  do_evaluate(vs,cells,parm_perts_,spidInx_,childres,makePerturbed);
+}
+
+// shortcut to standard evaluate()
+  void Funklet::evaluate (VellSet &vs,const Request &request,const std::vector<Result::Ref> & childres) const
+{
+  evaluate(vs,request.cells(),childres,request.evalMode());
+}
+void Funklet::update (const double values[])
+{
+  do_update(values,spidInx_);
+}
+
 void Funklet::do_evaluate (VellSet &,const Cells &,
                            const std::vector<double> &,
                            const std::vector<int>    &,
+                           int) const
+{ 
+  Throw("do_evaluate() not implemented by Funklet subclass"); 
+}
+
+void Funklet::do_evaluate (VellSet &,const Cells &,
+                           const std::vector<double> &,
+                           const std::vector<int>    &,
+			   const std::vector<Result::Ref> &,
                            int) const
 { 
   Throw("do_evaluate() not implemented by Funklet subclass"); 

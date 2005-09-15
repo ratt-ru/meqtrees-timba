@@ -25,11 +25,13 @@
 
 //# Includes
 #include <MEQ/Domain.h>
+#include <MEQ/Result.h>
 #include <DMI/NumArray.h>
 #include <DMI/List.h>
 #include <MEQ/MeqVocabulary.h>
 
 #include <MEQ/TID-Meq.h>
+
 #pragma aidgroup Meq
 #pragma type #Meq::Funklet
 
@@ -40,6 +42,12 @@ class VellSet;
 
 const double defaultFunkletPerturbation = 1e-6;
 const double defaultFunkletWeight = 1;
+const int defaultFunkletRank = 2;
+
+extern const int    defaultFunkletAxes[defaultFunkletRank];
+extern const double defaultFunkletOffset[defaultFunkletRank];
+extern const double defaultFunkletScale[defaultFunkletRank];
+
 
 static double logfac(int n)
 {
@@ -60,9 +68,6 @@ static double noverm(int n, int m)
 
 }
 
-
-
-//##ModelId=3F86886E01F6
 class Funklet : public DMI::Record
 {
 public:
@@ -82,10 +87,12 @@ public:
            double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
            DbId id=-1);
   
+  Funklet (const Funklet &other,int flags=0,int depth=0);
   // sets all of a funklet's attributes in one go
   void init (int naxis,const int iaxis[],const double offset[],const double scale[],
              double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
              DbId id=-1);
+
 
   //------------------ standard member access ---------------------------------------------
   // Set the domain to which this funklet applies.
@@ -151,13 +158,6 @@ public:
     return scales_[i]; 
   }
 
-  // returns scale of axis_function (overwritten by PolcLog)
-  virtual LoVec_double getLScaleVector () const {
-    LoVec_double axis_scales(1);
-    return  axis_scales;
-
- }
-  
   // get/set the base perturbation.
   double getPerturbation(int ipert=0) const
   { DbgAssert(ipert==0 || ipert==1); return ipert ? -pertValue_ : pertValue_ ; }
@@ -192,6 +192,10 @@ public:
   void evaluate (VellSet &,const Cells &,int makePerturb=0) const;
    // shortcut to above taking a Request
   void evaluate (VellSet &,const Request &) const;
+  // evaluate funket on given cells, in case parm has children that (partially) define the grid 
+  void evaluate (VellSet &,const Cells &, const std::vector<Result::Ref> & childres,int makePerturb=0) const;
+  // shortcut to evaluate funket on given cells, in case parm has children that (partially) define the grid 
+  void evaluate (VellSet &,const Request &, const std::vector<Result::Ref> & childres) const;
   
   // Make the funklet non-solvable.
   void clearSolvable();
@@ -268,10 +272,10 @@ public:
   { return coeff().getConstArray<double,2>(); }
 
   //various virtual acces functions for coeefs
-  virtual void setCoeff (double c00){}
-  virtual void setCoeff (const LoVec_double & coeff){}
-  virtual void setCoeff (const LoMat_double & coeff){}
-  virtual void setCoeff (const DMI::NumArray & coeff){}
+  virtual void setCoeff (double c00);
+  virtual void setCoeff (const LoVec_double & coeff);
+  virtual void setCoeff (const LoMat_double & coeff);
+  virtual void setCoeff (const DMI::NumArray & coeff);
   // Get number of coefficients.
     //##ModelId=3F86886F036F
   int ncoeff() const
@@ -297,6 +301,14 @@ public:
   virtual void changeSolveDomain(const Domain & solveDomain){};
   virtual void changeSolveDomain(const std::vector<double> & solveDomain){};
 
+
+  //reimplement in FuncTest (CompiledFunklet) since browser doesnt know about aips++ contaminated classes
+  virtual Funklet * getState() {
+    return this;
+  }
+
+
+
 protected:
   Record::protectField;  
   Record::unprotectField;  
@@ -318,9 +330,18 @@ protected:
   // exist if makeSolvable() with a mask was used) have an index of -1.
   // makePerturbed argument is 0 for no perturbations, 1 for single, 2 for double. 
   // For double-perts, a perturbation value of -perts should be used.
+  //Two versions are available, if childres is specified, the grid is already defined by he parms children
+
+
   virtual void do_evaluate (VellSet &vs,const Cells &cells,
                             const std::vector<double> &perts,
                             const std::vector<int>    &spidIndex,
+                            int makePerturbed) const;
+
+  virtual void do_evaluate (VellSet &vs,const Cells &cells,
+                            const std::vector<double> &perts,
+                            const std::vector<int>    &spidIndex,
+			    const std::vector<Result::Ref> & childres,
                             int makePerturbed) const;
                             
   // Update the solvable parameters with the new values. Called by public update(). 
@@ -340,11 +361,11 @@ protected:
 
   //------------------ other protected methods -----------------------------------------------
   Funklet (const DMI::Record &other,int flags=0,int depth=0);
-  Funklet (const Funklet &other,int flags=0,int depth=0);
   DMI::NumArray::Ref * pcoeff_;
   virtual void transformCoeff(const std::vector<double> & newoffsets,const std::vector<double> & newscales)
   {}
 
+  
 
 private:
   //------------------ data members ----------------------------------------------------------
@@ -381,5 +402,4 @@ private:
 };
 
 } // namespace Meq
-
 #endif

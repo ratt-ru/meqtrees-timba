@@ -63,7 +63,6 @@ const String ColFreqScale     = "FREQSCALE";
 const String ColTimeScale     = "TIMESCALE";
 const String ColPerturbation  = "PERT";
 const String ColWeight        = "WEIGHT";
-const String ColLongPolcId    = "LONGPOLCID";
 const String ColFunkletType   = "FUNKLETTYPE";
 const String ColLScale        = "LSCALE";
 
@@ -148,7 +147,7 @@ ParmTable::~ParmTable()
 
 //##ModelId=3F86886F02BD
 int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
-			    const string& parmName,const Domain& domain, const bool auto_solve_ )
+			    const string& parmName,const Domain& domain )
 {
 
   //check if table is still existing, needed if table is deleted in between to tests..
@@ -211,9 +210,6 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
 			  axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
       funklet().setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
       
-      if(auto_solve_)
-	//reset Dbid, to keep all information
-	funklet().setDbId(-1);
       funklets[i] =funklet;
             
     }
@@ -270,15 +266,15 @@ int ParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName)
   return 0;
 }
                                     
-void ParmTable::putCoeff1 (const string & parmName,Funklet &funklet, int LPId,
+void ParmTable::putCoeff1 (const string & parmName,Funklet &funklet, 
                            bool domain_is_key)
 {
-  funklet.setDbId(putCoeff(parmName,funklet,LPId,domain_is_key));
+  funklet.setDbId(putCoeff(parmName,funklet,domain_is_key));
 }
     
     
 //##ModelId=3F86886F02C8
-Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funklet, int LPId,
+Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funklet,
                                 bool domain_is_key)
 {
 
@@ -299,14 +295,6 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   ScalarColumn<double> tsCol (itsTable, ColTimeScale);
   ScalarColumn<double> diffCol (itsTable, ColPerturbation);
   ScalarColumn<double> weightCol (itsTable, ColWeight);
-  if(!itsTable.actualTableDesc().isColumn(ColLongPolcId)){
-    cdebug(2)<<"longpolcid column not existing, creating"<<endl;
-    ScalarColumnDesc<int> newlongpolcidCol(ColLongPolcId); 
-    newlongpolcidCol.setDefault (-1);
-    itsTable.addColumn(newlongpolcidCol);
-    
-  }
-  ScalarColumn<int> longpolcidCol(itsTable, ColLongPolcId);
   if(!itsTable.actualTableDesc().isColumn(ColFunkletType)){
     cdebug(2)<<"funklettype column not existing, creating"<<endl;
     ScalarColumnDesc<String> newfunklettypeCol(ColFunkletType); 
@@ -399,7 +387,6 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   tsCol.put   (rownr, polc.getScale(Axis::TIME));
   diffCol.put (rownr, polc.getPerturbation());
   weightCol.put(rownr, polc.getWeight());
-  longpolcidCol.put(rownr,LPId);
   funklettypeCol.put(rownr,polc.objectType().toString());
 
   if(polc.objectType()==TpMeqPolcLog){
@@ -409,8 +396,9 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
       itsTable.addColumn(newlscaleCol);
     
     }
+    PolcLog polclog(polc);
     ArrayColumn<Double> lscaleCol(itsTable, ColLScale);
-    LoVec_double logscales = polc.getLScaleVector();
+    LoVec_double logscales = polclog.getLScaleVector();
     lscaleCol.put(rownr,toParmVector(logscales));
   }
   return rownr;
@@ -484,7 +472,6 @@ void ParmTable::createTable (const String& tableName)
   tdesc.addColumn (ScalarColumnDesc<Double>(ColTimeScale));
   tdesc.addColumn (ScalarColumnDesc<Double>(ColPerturbation));
   tdesc.addColumn (ScalarColumnDesc<Double>(ColWeight));
-  tdesc.addColumn (ScalarColumnDesc<Int>(ColLongPolcId));
   tdesc.addColumn (ScalarColumnDesc<String>(ColFunkletType));
   tdesc.addColumn (ArrayColumnDesc<Double>(ColLScale,1));
   SetupNewTable newtab(tableName, tdesc, Table::New);

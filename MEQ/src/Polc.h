@@ -84,14 +84,6 @@ public:
   Polc (const DMI::Record &other,int flags=0,int depth=0);
   Polc (const Polc &other,int flags=0,int depth=0);
   
-  //------------------ various member access methods --------------------------------------
-    //##ModelId=3F86886F0373
-  void setCoeff (double c00);
-  void setCoeff (const LoVec_double & coeff);
-  void setCoeff (const LoMat_double & coeff);
-  void setCoeff (const DMI::NumArray & coeff);
-  
-  
   
   //------------------ implement public Funklet interface ---------------------------------
   // returns the number of parameters describing this funklet
