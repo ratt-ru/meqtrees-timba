@@ -389,8 +389,12 @@ class ResultPlotter(GriddedPlugin):
         if node.has_key('value'):
           self.tree_traversal(node['value'], node['label'], attribute_list)
       else:
-        _dprint(3, 'tree: leaf node has label(s) ', node['label'])
-        _dprint(3, 'tree: leaf node has incoming label ', label)
+        try:
+          _dprint(3, 'tree: leaf node has label(s) ', node['label'])
+          _dprint(3, 'tree: leaf node has incoming label ', label)
+        except:
+          _dprint(3, 'node label field expected, not found, so am exiting')
+          return
         if is_root and node.has_key('attrib') and len(node['attrib']) > 0:
           if not self._attributes_checked:
             self.check_attributes(node['attrib'])
