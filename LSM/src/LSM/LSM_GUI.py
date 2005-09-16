@@ -265,6 +265,11 @@ class LSMWindow(QMainWindow):
         sourceLayout.addWidget(self.table2)
         self.table2.setSorting(0)
         self.table2.setReadOnly(1)
+        ### now some signals
+        self.connect( self.table2, SIGNAL("clicked( int, int, int,const QPoint&)"),
+           self.putable_getcell)
+
+
 ####### Tab 3 ############################
         self.imageTab= QWidget(self.tabWidget,"imageTab")
         sourceLayout=QVBoxLayout(self.imageTab)
@@ -389,6 +394,11 @@ class LSMWindow(QMainWindow):
 
         self.connect(self.helpAboutAction,SIGNAL("activated()"),self.helpAbout)
 
+    # event handelr fro PUnit table
+    def putable_getcell(self,cellx,celly,button,point):
+     print cellx,celly
+     print button
+     print point
 
     def languageChange(self):
         self.setCaption(self.__tr("LSMWindow"))

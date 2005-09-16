@@ -200,10 +200,29 @@ class MyCanvasView(QCanvasView):
      dialog.show()
     else: # list is empty, no point sources, may be patches
      # re-scan the list for patches 
+     found_anything=0
+     tmp_str=""
      for each_item in ilist:
       if each_item.rtti()==PATCH_IMAGE_RTTI:
        print "Found a Patch name %s"%each_item.parent.name
-       try:
+       print each_item.image
+       found_anything=1
+       mimes=QMimeSourceFactory()
+       patch_img=each_item.image.scale(100,100,QImage.ScaleMin)
+       patch_img.invertPixels()
+       mimes.setImage("img"+each_item.parent.name,patch_img)
+       tmp_str+="<ul>"+each_item.parent.name+"</ul><br/>"
+       tmp_str+="Image: <img source=\"img"+each_item.parent.name+"\" alt=\"image\""
+       tmp_str+=" title=\"Image Title\" border=\"1\" style=\"width: 262px; height: 300px;\"/>"
+       tmp_str+="<br/><br/>"
+       print tmp_str
+     if found_anything !=0: 
+      dialog=SDialog(self)
+      dialog.textEdit.setMimeSourceFactory(mimes)
+      dialog.setInfoText(tmp_str)
+      dialog.setTitle("Patch Info")
+      dialog.show()
+     """try:
         # get vellsets if any
         punit=self.lsm.p_table[each_item.parent.name]
         lims=punit.sp.getValueSize(self.default_mode,\
@@ -214,10 +233,11 @@ class MyCanvasView(QCanvasView):
          self.default_freq_index,\
          self.default_time_index)
         # create GL window
-        wn=PatchGLDialog(self,"Patch",1,0,my_arr,lims)
-        wn.show()
+        #wn=PatchGLDialog(self,"Patch",1,0,my_arr,lims)
+        #wn.show()
        except:
         pass
+     """
 
    if self.zoom_status==GUI_ZOOM_WINDOW:
     self.zoom_status=GUI_ZOOM_START

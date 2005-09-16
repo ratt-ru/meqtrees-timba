@@ -34,6 +34,9 @@ class SDialog(QDialog):
     def setInfoText(self,text):
         self.textEdit.setText(self.__tr(text))
 
+    def setTitle(self,text):
+        self.setCaption(self.__tr(text))
+
     def languageChange(self):
         self.setCaption(self.__tr("Source Info"))
         self.textEdit.setText(self.__tr("Source is <u>Foo</u> <tt>Bar </tt>kdlkfjs lsdk <h1>name</h1> name"))
@@ -47,6 +50,7 @@ class SDialog(QDialog):
 def main(args):
   app=QApplication(args)
   win=SDialog(None)
+  win.setTitle("Testing...")
   win.show()
   app.connect(app,SIGNAL("lastWindowClosed()"),
                app,SLOT("quit()"))
