@@ -254,6 +254,7 @@ bool MSInputSink::init (const DMI::Record &params)
   header[FTileFormat] <<= tileformat_.copy(); 
 
   tiles_.clear();
+  chunk_num_ = 0;
   
   setState(HEADER);
 
@@ -346,7 +347,7 @@ int MSInputSink::refillStream ()
           {
             tiles_[ifr] <<= ptile = new VTile(tileformat_,tilesize_);
             // set tile ID
-            ptile->setTileId(ant1col(i),ant2col(i),vdsid_);
+            ptile->setTileId(ant1col(i),ant2col(i),chunk_num_,vdsid_);
             // init all row flags to missing
             ptile->wrowflag() = FlagMissing;
           }
@@ -376,6 +377,7 @@ int MSInputSink::refillStream ()
       }
       dprintf(2)("chunk yielded %d tiles\n",nout);
     }
+    chunk_num_++;
     return AppEvent::SUCCESS;
   }
   // catch AIPS++ errors, but not our own exceptions -- these can only be

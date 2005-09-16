@@ -148,6 +148,11 @@ class MSInputSink : public FileSink
       // count of timeslots already returned
     //##ModelId=3DFDFC060354
       int current_timeslot_;
+      
+      // current MS chunk number. A chunk contains N timeslots (i.e. all
+      // the per-ifr tiles for a particular time tile)
+      int chunk_num_;
+      
       // iterator
     //##ModelId=3DF9FECD01EE
       casa::TableIterator tableiter_;

@@ -338,10 +338,10 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //##ModelId=3DF9FDD4016A
     //##Documentation
     //## Sets the ID of this tile, forming it from two antenna indices,
-    //## plus the VDSID. See also ColumnarTableTile::tileId().
-      void setTileId (int ant1,int ant2,const VDSID &vdsid)
+    //## a sequence number, plus the VDSID. See also ColumnarTableTile::tileId().
+      void setTileId (int ant1,int ant2,int seq,const VDSID &vdsid)
       { 
-        ColumnarTableTile::setTileId(vdsid|ant1|ant2); 
+        ColumnarTableTile::setTileId(vdsid|ant1|ant2|seq); 
       }
     //##ModelId=3DF9FDD4029A
     //##Documentation
@@ -356,6 +356,11 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
       int antenna2 () const
       {
         return tileId().size()>VDSID::Length()+1 ? tileId()[VDSID::Length()+1].id() : -1;
+      }
+      
+      int seqNumber () const
+      {
+        return tileId().size()>VDSID::Length()+2 ? tileId()[VDSID::Length()+2].id() : -1;
       }
     //##ModelId=3DF9FDD40328
     //##Documentation
