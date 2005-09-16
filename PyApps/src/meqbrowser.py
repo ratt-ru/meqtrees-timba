@@ -30,6 +30,7 @@ importPlugin('vtk_qt_3d_display');
 importPlugin('array_plotter');
 importPlugin('histogram_plotter');
 importPlugin('result_plotter');
+importPlugin('history_plotter');
 importPlugin('parm_plotter');
 importPlugin('parmfiddler');
 importPlugin('stream_control');
