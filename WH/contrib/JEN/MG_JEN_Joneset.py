@@ -124,7 +124,7 @@ def adjust_for_telescope(pp, origin='<origin>'):
 #--------------------------------------------------------------------------------
 
 def GJones (ns=0, label='GJones', **pp):
-  """defines diagonal GJones matrices for complex(ampl,phase) parms""";
+  """defines diagonal GJones matrices for complex(Gampl,Gphase) parms""";
   funcname = 'MG_JEN_Joneset::GJones()'
 
   # Input parameters:
@@ -132,12 +132,17 @@ def GJones (ns=0, label='GJones', **pp):
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
   pp.setdefault('polrep', 'linear')    # polarisation representation
+  pp.setdefault('scale', 1.0)          # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)      # if False, do not store parmgroup info
-  pp.setdefault('ampl', 1.0)           # default funklet value
-  pp.setdefault('phase', 0.0)          # default funklet value
+  pp.setdefault('Gampl', 0.3)          # default funklet value
+  pp.setdefault('Gphase', 0.0)         # default funklet value
   pp.setdefault('polar', False)        # if True, use MeqPolar, otherwise MeqToComplex
-  pp.setdefault('stddev_ampl', 0)      # scatter in default funklet c00 values
-  pp.setdefault('stddev_phase', 0)     # scatter in default funklet c00 values
+  pp.setdefault('stddev_Gampl', 0)     # scatter in default funklet c00 values
+  pp.setdefault('stddev_Gphase', 0)    # scatter in default funklet c00 values
+  pp.setdefault('fdeg_Gampl', 0)       # degree of default freq polynomial         
+  pp.setdefault('fdeg_Gphase', 0)      # degree of default freq polynomial          
+  pp.setdefault('tdeg_Gampl', 0)       # degree of default time polynomial         
+  pp.setdefault('tdeg_Gphase', 0)      # degree of default time polynomial       
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
@@ -165,16 +170,24 @@ def GJones (ns=0, label='GJones', **pp):
     # Define station MeqParms (in ss), and do some book-keeping:  
     js.MeqParm(reset=True)
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.ampl, stddev=pp.stddev_ampl) 
+    default = MG_JEN_funklet.polc_ft (c00=pp.Gampl, stddev=pp.stddev_Gampl,
+                                      fdeg=pp.fdeg_Gampl, tdeg=pp.tdeg_Gampl,
+                                      scale=pp.scale) 
     js.define_MeqParm(ns, a1, station=skey, default=default)
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.ampl, stddev=pp.stddev_ampl) 
+    default = MG_JEN_funklet.polc_ft (c00=pp.Gampl, stddev=pp.stddev_Gampl, 
+                                      fdeg=pp.fdeg_Gampl, tdeg=pp.tdeg_Gampl,
+                                      scale=pp.scale) 
     js.define_MeqParm(ns, a2, station=skey, default=default)
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.phase, stddev=pp.stddev_phase) 
+    default = MG_JEN_funklet.polc_ft (c00=pp.Gphase, stddev=pp.stddev_Gphase, 
+                                      fdeg=pp.fdeg_Gphase, tdeg=pp.tdeg_Gphase,
+                                      scale=pp.scale) 
     js.define_MeqParm(ns, p1, station=skey, default=default)
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.phase, stddev=pp.stddev_phase) 
+    default = MG_JEN_funklet.polc_ft (c00=pp.Gphase, stddev=pp.stddev_Gphase, 
+                                      fdeg=pp.fdeg_Gphase, tdeg=pp.tdeg_Gphase,
+                                      scale=pp.scale) 
     js.define_MeqParm(ns, p2, station=skey, default=default)
 
     ss = js.MeqParm(update=True)
@@ -274,14 +287,17 @@ def BJones (ns=0, label='BJones', **pp):
   pp.setdefault('scope', '<scope>')    # scope of this Joneset
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
+  pp.setdefault('scale', 1.0)          # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
-  pp.setdefault('polar', False)        # if True, use MeqPolar, otherwise MeqToComplex
-  pp.setdefault('real', 1.0)           # default funklet value
-  pp.setdefault('imag', 0.0)           # default funklet value
-  pp.setdefault('stddev_real', 0)      # scatter in default funklet c00 values
-  pp.setdefault('stddev_imag', 0)      # scatter in default funklet c00 values
-  pp.setdefault('fdeg', 3)             # degree of default freq polynomial              # <---- !!
-  pp.setdefault('tdeg', 0)             # degree of default time polynomial              # <---- !!
+  # pp.setdefault('Bpolar', False)        # if True, use MeqPolar, otherwise MeqToComplex
+  pp.setdefault('Breal', 1.0)          # default funklet value
+  pp.setdefault('Bimag', 0.0)          # default funklet value
+  pp.setdefault('stddev_Breal', 0)     # scatter in default funklet c00 values
+  pp.setdefault('stddev_Bimag', 0)     # scatter in default funklet c00 values
+  pp.setdefault('fdeg_Breal', 3)       # degree of default freq polynomial              # <---- !!
+  pp.setdefault('fdeg_Bimag', 3)       # degree of default freq polynomial              # <---- !!
+  pp.setdefault('tdeg_Breal', 0)       # degree of default time polynomial              # <---- !!
+  pp.setdefault('tdeg_Bimag', 0)       # degree of default time polynomial              # <---- !!
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
@@ -309,22 +325,26 @@ def BJones (ns=0, label='BJones', **pp):
     # Define station MeqParms (in ss), and do some book-keeping:  
     js.MeqParm(reset=True)
 
-    # polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0) 
+    # Example: polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0) 
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.real, stddev=pp.stddev_real,
-                                      fdeg=pp['fdeg'], tdeg=pp['tdeg']) 
+    default = MG_JEN_funklet.polc_ft (c00=pp.Breal, stddev=pp.stddev_Breal, 
+                                      fdeg=pp.fdeg_Breal, tdeg=pp.tdeg_Breal, 
+                                      scale=pp.scale) 
     js.define_MeqParm(ns, br1, station=skey, default=default)
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.real, stddev=pp.stddev_real, 
-                                      fdeg=pp['fdeg'], tdeg=pp['tdeg']) 
+    default = MG_JEN_funklet.polc_ft (c00=pp.Breal, stddev=pp.stddev_Breal,
+                                      fdeg=pp.fdeg_Breal, tdeg=pp.tdeg_Breal, 
+                                      scale=pp.scale) 
     js.define_MeqParm(ns, br2, station=skey, default=default)
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.imag, stddev=pp.stddev_imag, 
-                                      fdeg=pp['fdeg'], tdeg=pp['tdeg']) 
+    default = MG_JEN_funklet.polc_ft (c00=pp.Bimag, stddev=pp.stddev_Bimag, 
+                                      fdeg=pp.fdeg_Bimag, tdeg=pp.tdeg_Bimag, 
+                                      scale=pp.scale) 
     js.define_MeqParm(ns, bi1, station=skey, default=default)
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.imag, stddev=pp.stddev_imag, 
-                                      fdeg=pp['fdeg'], tdeg=pp['tdeg']) 
+    default = MG_JEN_funklet.polc_ft (c00=pp.Bimag, stddev=pp.stddev_Bimag, 
+                                      fdeg=pp.fdeg_Bimag, tdeg=pp.tdeg_Bimag, 
+                                      scale=pp.scale) 
     js.define_MeqParm(ns, bi2, station=skey, default=default)
 
     ss = js.MeqParm(update=True)
@@ -358,6 +378,7 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
   pp.setdefault('scope', '<scope>')       # scope of this Joneset
   pp.setdefault('stations', [0])          # range of station names/numbers
   pp.setdefault('punit', 'uvp')           # name of prediction-unit (source/patch)
+  pp.setdefault('scale', 1.0)             # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)         # if True, the parms are potentially solvable
   pp.setdefault('coupled_XY_dang', True)  # if True, Xdang = Ydang per station
   pp.setdefault('coupled_XY_dell', True)  # if True, Xdell = -Ydell per station
@@ -366,6 +387,10 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
   pp.setdefault('PZD', 0.0)               # default funklet value
   pp.setdefault('stddev_dang', 0)         # scatter in default funklet c00 values
   pp.setdefault('stddev_dell', 0)         # scatter in default funklet c00 values
+  pp.setdefault('fdeg_dang', 0)           # degree of default freq polynomial
+  pp.setdefault('fdeg_dell', 0)           # degree of default freq polynomial
+  pp.setdefault('tdeg_dang', 0)           # degree of default time polynomial
+  pp.setdefault('tdeg_dell', 0)           # degree of default time polynomial
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
@@ -418,14 +443,17 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
     # Dipole angle errors may be coupled (dang(X)=dang(Y)) or not:
     matname = 'DJones_dang_matrix'
     if pp.coupled_XY_dang:
-       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang) 
+       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.scale,
+                                         fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
        js.define_MeqParm(ns, dang, station=skey, default=default)
        ss = js.MeqParm(update=True, reset=True)
        rmat = MG_JEN_matrix.rotation (ns, angle=ss[dang], qual=qual, name=matname)
     else: 
-       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang) 
+       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.scale,
+                                         fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
        js.define_MeqParm(ns, dang1, station=skey, default=default)
-       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang) 
+       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.scale, 
+                                         fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
        js.define_MeqParm(ns, dang2, station=skey, default=default)
        ss = js.MeqParm(update=True, reset=True)
        rmat = MG_JEN_matrix.rotation (ns, angle=[ss[dang1],ss[dang2]], qual=qual, name=matname)
@@ -434,14 +462,17 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
     # Dipole ellipticities may be coupled (dell(X)=-dell(Y)) or not:
     matname = 'DJones_dell_matrix'
     if pp.coupled_XY_dell:
-       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell) 
+       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.scale,
+                                         fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
        js.define_MeqParm(ns, dell, station=skey, default=default)
        ss = js.MeqParm(update=True, reset=True)
        emat = MG_JEN_matrix.ellipticity (ns, angle=ss[dell], qual=qual, name=matname)
     else:
-       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell) 
+       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.scale, 
+                                         fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
        js.define_MeqParm(ns, dell1, station=skey, default=default)
-       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell) 
+       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.scale, 
+                                         fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
        js.define_MeqParm(ns, dell2, station=skey, default=default)
        ss = js.MeqParm(update=True, reset=True)
        emat = MG_JEN_matrix.ellipticity (ns, angle=[ss[dell1],ss[dell2]], qual=qual, name=matname)

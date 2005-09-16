@@ -124,21 +124,21 @@ def polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0):
    # Create a coeff array with the correct dimensions.
    # All coeff have the same value (=scale), see also below
    scale = float(scale)
-   coeff = resize(array(scale), (fdeg+1,tdeg+1))
+   coeff = resize(array(scale), (tdeg+1,fdeg+1))
 
    # Multiply each coeff with sign*mult**(i+j)
    # If mult<1, this makes the higher-order coeff smaller
    sign = 1.0
-   for i in range(fdeg+1):
-      for j in range(tdeg+1):
+   for i in range(tdeg+1):
+      for j in range(fdeg+1):
          factor = mult**(i+j)                               # depends on polynomial degree                
-         coeff[i,j] *= (sign*factor)                       # attenuate, and apply the sign
-         if (i+j)==0: coeff[0,0] = c00                # override the constant coeff c00
+         coeff[i,j] *= (sign*factor)                        # attenuate, and apply the sign
+         if (i+j)==0: coeff[0,0] = c00                      # override the constant coeff c00
          if stddev > 0:
             # Optional: Add some gaussian scatter to the coeff value
             # NB: If stddev=0, the coeff values are fully predictable!
-            coeff[i,j] += gauss(0.0, stddev*factor)   # add 'proportional' scatter,    
-         sign *=-1                                                 # negate the sign for the next coeff                                 
+            coeff[i,j] += gauss(0.0, stddev*factor)         # add 'proportional' scatter,    
+         sign *=-1                                          # negate the sign for the next coeff                                 
 
   # NB: Should we set the lower-right triangle coeff to zero?  
 

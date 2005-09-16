@@ -442,7 +442,7 @@ class Cohset (TDL_common.Super):
                                                                            station_2_index=i2,
                                                                            flag_bit=pp['flag_bit'],
                                                                            input_column=pp['input_column'])
-            print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
+            # print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
 
         self.__dims = [2,2]
         self.label('spigots')
@@ -459,10 +459,6 @@ class Cohset (TDL_common.Super):
         pp.setdefault('output_col', 'RESIDUALS')        # name of MS output column (NONE means inhibited)
         pp = record(pp)
 
-        # Duplicate for all 4 children:
-        oc = pp['output_col']
-        # pp['output_col'] = [oc,oc,oc,oc] 
-
         # Make separate sinks for each ifr:
         for key in self.keys():
             s12 = self.__stations[key]
@@ -473,7 +469,7 @@ class Cohset (TDL_common.Super):
                                                                            station_2_index=i2,
                                                                            corr_index=[0,1,2,3],
                                                                            output_col=pp['output_col'])
-            print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
+            # print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
 
         self.scope('sinks')
         self.history(append=funcname+' -> '+self.oneliner())

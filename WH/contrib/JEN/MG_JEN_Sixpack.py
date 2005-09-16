@@ -156,7 +156,11 @@ def predefined (pp, trace=0):
     pp['I0'] = 10**1.485
     pp['SI'] = [0.759, -0.255]
   elif (pp['name']=='unpol'):
-    pp['I0'] = pp['I0']
+    pp['I0'] = 1.0
+  elif (pp['name']=='unpol2'):
+    pp['I0'] = 2.0
+  elif (pp['name']=='unpol10'):
+    pp['I0'] = 10.0
   elif (pp['name']=='Qonly'):
     pp['Qpct'] = 10
   elif (pp['name']=='Uonly'):

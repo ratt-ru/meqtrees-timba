@@ -36,6 +36,11 @@ from Timba.Contrib.JEN import MG_JEN_twig
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN import MG_JEN_flagger
 
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(script_name)
 
 
 #================================================================================
@@ -50,54 +55,60 @@ def _define_forest (ns):
    ifrs = TDL_Cohset.stations2ifrs(range(0,5))
    stations = TDL_Cohset.ifrs2stations(ifrs)
 
-   # Source/ptach to be used for simulation/selfcal:
+   # Source/patch to be used for simulation/selfcal:
    punit = 'unpol'
+   # punit = 'unpol2'
    # punit = '3c147'
    # punit = 'RMtest'
    # punit = 'QUV'
-   punit = 'QU'
+   # punit = 'QU'
    # punit =  'SItest'
 
    # Make a Cohset for the specified ifrs, with simulated uv-data: 
    jones = ['G']
-   jones = ['D']
-   jones = ['G','D']  
+   # jones = ['D']
+   # jones = ['G','D']
+   jones  = ['B']  
    Cohset = simulate(ns, ifrs, punit=punit, jones=jones)
    visualise (ns, Cohset)
+   visualise (ns, Cohset, type='spectra')
 
    if False:
        # Check by correcting with the corrupting JJones:
        global simulated_JJones                               # see .simulate()
        Cohset.correct(ns, simulated_JJones)
        visualise (ns, Cohset)
+       visualise (ns, Cohset, type='spectra')
 
    if False:
        insert_flagger (ns, Cohset, scope='residual', unop=['Real','Imag'], visu=True)
        visualise (ns, Cohset)
+       visualise (ns, Cohset, type='spectra')
 
    if True:
        # Insert a solver for a named group of MeqParms (e.g. 'GJones'):
-       # By default, it 'grafts' the solver upon the datastream of 'measured'.
-       # .solver() returns a Cohset that contains the relevant condeq nodes 
-       # jones = ['G']
+       jones = ['G']
        # punit = 'QUV'
+       punit = 'unpol10'
        Joneset = JJones(ns, stations, punit=punit, jones=jones)
        predicted = predict (ns, punit=punit, ifrs=ifrs, Joneset=Joneset)
        sgname = 'GJones'
        # sgname = 'DJones'
-       sgname = ['DJones', 'GJones']
-       insert_solver (ns, solvegroup=sgname, measured=Cohset, predicted=predicted, num_iter=10)
-       Cohset.correct(ns, Joneset)
+       # sgname = ['DJones', 'GJones']
+       insert_solver (ns, solvegroup=sgname, measured=Cohset, predicted=predicted, 
+                                correct=Joneset, num_iter=10)
        visualise (ns, Cohset)
+       visualise (ns, Cohset, type='spectra')
  
    if False:
        # Insert another solver for a different group of MeqParms (e.g. 'DJones'):
        # NB: Concatenating solvers this way causes problems...
        DJoneset = JJones(ns, stations, punit=punit, jones=['D'])
        Dpredicted = predict (ns, punit=punit, ifrs=ifrs, Joneset=DJoneset)
-       insert_solver (ns, solvegroup='DJones', measured=Cohset, predicted=Dpredicted, num_iter=10)
-       Cohset.correct(ns, DJoneset)
-       visualise (ns, Cohset)
+       insert_solver (ns, solvegroup='DJones', measured=Cohset, predicted=Dpredicted, 
+                               correct = DJoneset, num_iter=10)
+       visualise (ns, Cohset) 
+       visualise (ns, Cohset, type='spectra')
 
 
    # Tie the trees for the different ifrs together in an artificial 'sink':
@@ -124,12 +135,28 @@ def simulate(ns, ifrs, **pp):
 
    pp.setdefault('jones', [])
    pp.setdefault('punit', 'unpol')
-   pp.setdefault('stddev_ampl', 0.1) 
-   pp.setdefault('stddev_phase', 0.1) 
-   pp.setdefault('stddev_real', 0.1) 
-   pp.setdefault('stddev_imag', 0.1) 
+
+   pp.setdefault('stddev_Gampl', 0.1) 
+   pp.setdefault('stddev_Gphase', 0.1) 
+   pp.setdefault('fdeg_Gampl', 1) 
+   pp.setdefault('fdeg_Gphase', 1) 
+   pp.setdefault('tdeg_Gampl', 0) 
+   pp.setdefault('tdeg_Gphase', 0) 
+
+   pp.setdefault('stddev_Breal', 0.1) 
+   pp.setdefault('stddev_Bimag', 0.1) 
+   pp.setdefault('fdeg_Breal', 3) 
+   pp.setdefault('fdeg_Bimag', 3) 
+   pp.setdefault('tdeg_Breal', 0) 
+   pp.setdefault('tdeg_Bimag', 0) 
+
    pp.setdefault('stddev_dang', 0.01) 
    pp.setdefault('stddev_dell', 0.01) 
+   pp.setdefault('fdeg_dang', 1) 
+   pp.setdefault('fdeg_dell', 1) 
+   pp.setdefault('tdeg_dang', 0) 
+   pp.setdefault('tdeg_dell', 0) 
+
    pp.setdefault('RM', 0.1) 
    pp.setdefault('PZD', 0.2)
    pp.setdefault('stddev_noise', 0.0)
@@ -148,21 +175,24 @@ def simulate(ns, ifrs, **pp):
            if jones=='G':
                jseq.append(MG_JEN_Joneset.GJones (nsim, scope=scope, stations=stations, punit=pp.punit, 
                                                   solvable=False,
-                                                  stddev_ampl=pp.stddev_ampl,
-                                                  stddev_phase=pp.stddev_phase))
+                                                  fdeg_Gampl=pp.fdeg_Gampl, fdeg_Gphase=pp.fdeg_Gphase,
+                                                  tdeg_Gampl=pp.tdeg_Gampl, tdeg_Gphase=pp.tdeg_Gphase,
+                                                  stddev_Gampl=pp.stddev_Gampl, stddev_Gphase=pp.stddev_Gphase))
            elif jones=='B':
                jseq.append(MG_JEN_Joneset.BJones (nsim, scope=scope, stations=stations, punit=pp.punit, 
                                                   solvable=False,
-                                                  stddev_real=pp.stddev_real,
-                                                  stddev_imag=pp.stddev_imag))
+                                                  fdeg_Breal=pp.fdeg_Breal, fdeg_Bimag=pp.fdeg_Bimag,
+                                                  tdeg_Breal=pp.tdeg_Breal, tdeg_Bimag=pp.tdeg_Bimag,
+                                                  stddev_Breal=pp.stddev_Breal, stddev_Bimag=pp.stddev_Bimag))
            elif jones=='F':
                jseq.append(MG_JEN_Joneset.FJones (nsim, scope=scope, stations=stations, punit=pp.punit, 
                                                   solvable=False, RM=pp.RM))
            elif jones=='D':
                jseq.append(MG_JEN_Joneset.DJones_WSRT (nsim, scope=scope, stations=stations, punit=pp.punit, 
                                                        solvable=False, PZD=pp.PZD,
-                                                       stddev_dang=pp.stddev_dang,
-                                                       stddev_dell=pp.stddev_dang))
+                                                       fdeg_dang=pp.fdeg_dang, fdeg_dell=pp.fdeg_dell,
+                                                       tdeg_dang=pp.tdeg_dang, tdeg_dell=pp.tdeg_dell,
+                                                       stddev_dang=pp.stddev_dang, stddev_dell=pp.stddev_dang))
            else:
                print '** jones not recognised:',jones,'from:',pp.jones
                
@@ -191,6 +221,22 @@ def JJones(ns, stations, **pp):
     pp.setdefault('jones', []) 
     pp.setdefault('scope', 'predicted') 
     pp.setdefault('punit', 'uvp')
+
+    pp.setdefault('fdeg_Gampl', 1) 
+    pp.setdefault('fdeg_Gphase', 1) 
+    pp.setdefault('tdeg_Gampl', 0) 
+    pp.setdefault('tdeg_Gphase', 0) 
+    
+    pp.setdefault('fdeg_Breal', 3) 
+    pp.setdefault('fdeg_Bimag', 3) 
+    pp.setdefault('tdeg_Breal', 0) 
+    pp.setdefault('tdeg_Bimag', 0) 
+    
+    pp.setdefault('fdeg_dang', 1) 
+    pp.setdefault('fdeg_dell', 1) 
+    pp.setdefault('tdeg_dang', 0) 
+    pp.setdefault('tdeg_dell', 0) 
+
     pp.setdefault('RM', 0.1) 
     pp.setdefault('PZD', 0.1)
     pp = record(pp)
@@ -199,15 +245,23 @@ def JJones(ns, stations, **pp):
     if not isinstance(pp.jones, (list,tuple)): pp.jones = [pp.jones]
     for jones in pp.jones:
         if jones=='G':
-            jseq.append(MG_JEN_Joneset.GJones (ns, scope=pp.scope, punit=pp.punit, stations=stations))
+            jseq.append(MG_JEN_Joneset.GJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
+                                               fdeg_Gampl=pp.fdeg_Gampl, fdeg_Gphase=pp.fdeg_Gphase,
+                                               tdeg_Gampl=pp.tdeg_Gampl, tdeg_Gphase=pp.tdeg_Gphase,
+                                               scale=0))
         elif jones=='B':
-            jseq.append(MG_JEN_Joneset.BJones (ns, scope=pp.scope, punit=pp.punit, stations=stations))
+            jseq.append(MG_JEN_Joneset.BJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
+                                               fdeg_Breal=pp.fdeg_Breal, fdeg_Bimag=pp.fdeg_Bimag,
+                                               tdeg_Breal=pp.tdeg_Breal, tdeg_Bimag=pp.tdeg_Bimag,
+                                               scale=0))
         elif jones=='F':
             jseq.append(MG_JEN_Joneset.FJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
-                                               RM=pp.RM))
+                                               scale=0, RM=pp.RM))
         elif jones=='D':
             jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, scope=pp.scope, punit=pp.punit, stations=stations,
-                                                    PZD=pp.PZD))
+                                                    fdeg_dang=pp.fdeg_dang, fdeg_dell=pp.fdeg_dell,
+                                                    tdeg_dang=pp.tdeg_dang, tdeg_dell=pp.tdeg_dell,
+                                                    scale=0, PZD=pp.PZD))
         else:
             print '** jones not recognised:',jones,'from:',pp.jones
                
@@ -380,7 +434,7 @@ def insert_flagger (ns, Cohset, **pp):
 # Insert a solver for the specified solvegroup(s):
 #======================================================================================
 
-def insert_solver (ns, measured, predicted, **pp):
+def insert_solver (ns, measured, predicted, correct=None, **pp):
     """insert a named solver""" 
 
     funcname = 'MG_JEN_Cohset.solver(): '
@@ -470,8 +524,15 @@ def insert_solver (ns, measured, predicted, **pp):
     MG_JEN_forest_state.history (funcname)
     MG_JEN_forest_state.object(Pohset, funcname)
 
+    # Optional: Correct the measured data with the given Joneset (correct).
+    # This is the Joneset that has been affected by the solver.
+    # NB: This correction should be inserted BEFORE the solver reqseq (see below),
+    #         because otherwise it messes up the correction of the insertion ifr
+    #         (one of the input Jones matrices is called before the solver....)
+    if not correct==None:
+	measured.correct(ns, correct)     # assume that correct is a Joneset
+
     # Tie the solver and its associated dcolls with the MeqReqseq node:
-    # OPtionally, graft the solver subtree on the stream of the measured Cohset   
     key = measured.keys()[0]
     cc = [solver]                                     # start a list of reqseq children (solver is first)
     for dkey in dconc_condeq.keys():  
@@ -480,10 +541,10 @@ def insert_solver (ns, measured, predicted, **pp):
     if pp.graft: 
 	cc.append(measured[key])        # measured Cohset (main data-stream) should be LAST!
 	result_index = len(cc)-1             # the reqseq should return the result of the main data stream
-
     solver_name = 'solver_'+solver_name
     reqseq  = ns.reqseq(solver_name, q=punit) << Meq.ReqSeq(children=cc, result_index=result_index)
-    key = measured.keys()[0]
+ 
+    # Optional, insert (graft) the solver reqseq on the main data stream (measured):
     if pp.graft: 
 	key = measured.keys()[0]         # the key of the first ifr
 	measured[key] = reqseq            # insert the reqseq in the stream of one ifr only
@@ -539,15 +600,16 @@ def visualise(ns, Cohset, **pp):
                                        type=pp.type, errorbars=pp.errorbars,
                                        color=Cohset.plot_color()[corr],
                                        style=Cohset.plot_style()[corr])
-        dcoll['allcorrs'].append(dc)
+        dcoll['allcorrs'].append(dc)                     # 
         if corr in ['XY','YX','RL','LR']:
             key = 'crosscorr'
             if not dcoll.has_key(key): dcoll[key] = []
             dcoll[key].append(dc)
-        if corr in ['XX','YY','RR','LL']:
+        if True and corr in ['XX','YY','RR','LL']:
             key = 'paralcorr'
             if not dcoll.has_key(key): dcoll[key] = []
             dcoll[key].append(dc)
+
 
     # Make concatenations of dcolls:
     dconc = {}
@@ -558,6 +620,8 @@ def visualise(ns, Cohset, **pp):
                                       tag=key, bookpage=key)
         dconc[key] = dc
         sc.append (dc['dcoll'])
+        MG_JEN_forest_state.bookmark (dc['dcoll'], page=dcoll_scope)
+      
 
     MG_JEN_forest_state.history (funcname)
   
@@ -607,11 +671,6 @@ def display_first_subtree (Cohset=0, recurse=3):
 # NB: this section should always be at the end of the script
 #********************************************************************************
 
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(script_name)
 
 #-------------------------------------------------------------------------
 # Meqforest execution routine (may be called from the browser):
@@ -620,6 +679,19 @@ MG_JEN_forest_state.init(script_name)
 
 def _test_forest (mqs, parent):
    return MG_JEN_exec.meqforest (mqs, parent)
+
+
+# Execute the forest for a sequence of requests:
+
+def _tdl_job_sequence(mqs, parent):
+    for x in range(10):
+        MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
+                               f1=x, f2=x+1, t1=x, t2=x+1,
+                               save=False, trace=False, wait=False)
+    MG_JEN_exec.save_meqforest(mqs) 
+    return True
+
+
 
 #-------------------------------------------------------------------------
 # Test routine to check the tree for consistency in the absence of a server

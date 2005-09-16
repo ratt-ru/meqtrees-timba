@@ -23,6 +23,7 @@ from copy import deepcopy
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_twig
+from Timba.Contrib.JEN import MG_JEN_funklet
 
 
 
@@ -106,11 +107,23 @@ def _define_forest (ns):
    #---------------------------
    # Test of type = spectra:
    bb = []
+   dd = []
    scope = 'scope3'
-   dc = dcoll(ns, xx, scope=scope, type='spectra') 
-   bb.append(dc['dcoll'])  
+   n = 3
+   for i in range(n):
+      for j in range(i+1,n+1):
+         default = MG_JEN_funklet.polc_ft(c00=1+(i+j)/10, fdeg=2, tdeg=1, stddev=0.01)
+         node = ns.parm(i=i,j=j) << Meq.Parm(default)
+         dc = dcoll(ns, node, scope=scope, type='spectra') 
+         dd.append(dc)
+         
+   # Concatenate the dataCollect nodes in dd:
+   dc = dconc(ns, dd, scope=scope, tag='spectra') 
+   bb.append(dc['dcoll'])
    cc.append(MG_JEN_exec.bundle(ns, bb, 'spectra', show_parent=False))
 
+
+   #----------------------------------
    # Finished: 
    return MG_JEN_exec.on_exit (ns, script_name, cc)
 
@@ -194,6 +207,8 @@ def dcoll (ns, node=[], **pp):
    if not isinstance(pp.title, str): pp.title = scope_tag
    attrib = record(plot=record(), tag=pp.tag)
    if pp.type == 'spectra':
+      pp.xlabel = 'freq channel nr (real/imag)'
+      pp.ylabel = 'ifr'
       attrib['plot'] = record(type=pp.type, title=pp.title,
                               spectrum_color='hippo',
                               x_axis=pp.xlabel, y_axis=pp.ylabel)
