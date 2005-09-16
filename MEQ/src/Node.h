@@ -279,6 +279,9 @@ class Node : public DMI::BObj
     const string & name() const
     { return myname_; }
     
+    const string & description () const
+    { return description_; }
+    
     //##ModelId=400E5311029C
     int nodeIndex() const 
     { return node_index_; }
@@ -821,9 +824,6 @@ class Node : public DMI::BObj
     //##Documentation
     //## caches a resampled result for child ich
     void cacheRCR      (int ich,const Result::Ref::Copy &res);
-    
-    const string & description () const
-    { return description_; }
     
     //##Documentation
     //## MakeNodeException creates an exception with the given message,

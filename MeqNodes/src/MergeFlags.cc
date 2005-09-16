@@ -70,7 +70,7 @@ int MergeFlags::getResult (Result::Ref &resref,
     {
       const VellSet &vs = resref->vellSet(i);
       if( vs.hasDataFlags() )
-        Vells::mergeFlags(flags,vs.dataFlags(),flagmask_[1]);
+        Vells::mergeFlags(flags,vs.dataFlags(),flagmask_[0]);
     }
     // got any flags at all? reattach them
     if( flags.valid() )

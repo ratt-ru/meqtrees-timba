@@ -62,9 +62,12 @@ void Function::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     {
       int flag = fm.front();
       if( flag == -1 )        // [-1] means full mask (i.e. disable masking completely)
-        flagmask_.clear();    //      this is indicated by clearing the vector
+        flagmask_.assign(numChildren(),VellsFullFlagMask);  
       else if( flag == 0 )    // [0] means no flags on output
+      {
+        flagmask_.assign(numChildren(),0);  
         enable_flags_ = false;
+      }
       else                    // [M] same mask for all elements
         flagmask_.assign(numChildren(),flag);
     }
@@ -74,6 +77,11 @@ void Function::setStateImpl (DMI::Record::Ref &rec,bool initializing)
         NodeThrow1("size of "+FFlagMask.toString()+" vector does not match number of children");
       flagmask_ = fm;
     }
+  }
+  else if( initializing )
+  {
+    flagmask_.assign(numChildren(),VellsFullFlagMask);
+    rec[FFlagMask] = flagmask_;
   }
 }
 
