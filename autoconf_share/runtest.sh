@@ -31,7 +31,7 @@ fi
 if test $# -eq 2; then
   MAXTIME=$2
 else
-  MAXTIME=3600  # 3600 seconds == 1 hour
+  MAXTIME=300  # 300 seconds == 5 minutes
 fi
 
 if test $# -eq 3; then
