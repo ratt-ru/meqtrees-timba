@@ -920,6 +920,7 @@ void MeqServer::run ()
           {
             doing_what = "processing data event "+id.toString('.');
             VisCube::VTile::Ref tileref = ref.ref_cast<VisCube::VTile>();
+            doing_what = "processing tile "+tileref->tileId().toString('.');
             cdebug(4)<<"received tile "<<tileref->tileId()<<endl;
             if( !reading_data )
             {
@@ -935,7 +936,7 @@ void MeqServer::run ()
           }
           else if( instat == FOOTER )
           {
-            doing_what = "processing footer event "+id.toString('.');
+            doing_what = "processing footer "+id.toString('.');
             cdebug(2)<<"received footer"<<endl;
             reading_data = false;
             eventrec <<= new DMI::Record;
@@ -954,7 +955,7 @@ void MeqServer::run ()
           }
           else if( instat == HEADER )
           {
-            doing_what = "processing header event "+id.toString('.');
+            doing_what = "processing header "+id.toString('.');
             cdebug(2)<<"received header"<<endl;
             reading_data = false;
             header = ref;
@@ -977,6 +978,8 @@ void MeqServer::run ()
           if( !output_event.empty() )
             postDataEvent(output_event,output_message,eventrec);
           // throw exception any time we go from success to fail
+          // (this shouldn't normally happen since VisDataMux throws exception
+          // lists on any error)
           if( retcode&Node::RES_FAIL && !tile_failed)
           {
             tile_failed = true;

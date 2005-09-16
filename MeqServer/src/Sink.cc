@@ -113,131 +113,161 @@ int Sink::deliverHeader (const VisCube::VTile::Format &outformat)
 
 int Sink::procPendingTile (VisCube::VTile::Ref &tileref)
 {
-  if( !pending.tile.valid() ) // no tile pending?
-    return 0;
-  // this will invalidate the pending refs
-  tileref = pending.tile;
-  Request::Ref reqref  = pending.request;
-  if( forest().debugLevel()>1 )
-    wstate()[FNewRequest].replace() = reqref.copy();
-  setExecState(CS_ES_REQUEST);
-  cdebug(3)<<"procPendingTile: processing tile "<<tileref->tileId()<<" of "
-            <<tileref->ntime()<<" timeslots"<<endl;
-  // get results from all child nodes 
-  Result::Ref resref;
-  setExecState(CS_ES_POLLING);
-  cdebug(5)<<"calling execute() on child "<<endl;
-  int resflag = getChild(0).execute(resref,*reqref);
-  FailWhen(resflag&RES_WAIT,"Meq::Sink received a WAIT result code. This "
-      "is usually the result of an incorrectly constructed tree and/or missing "
-      "data");
-  if( resflag == RES_FAIL )
+  int resflag = 0;
+  DMI::ExceptionList errors;
+  HIID rqid;
+  try
   {
-    cdebug(3)<<"child result is FAIL, ignoring"<<endl;
-    setExecState(CS_ES_IDLE,
-            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
-    return RES_FAIL;
-  }
-  if( output_col<0 )
-  {
-    cdebug(3)<<"output disabled, skipping"<<endl;
-    setExecState(CS_ES_IDLE,
-            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_EMPTY);
-    return resflag;
-  }
-  setExecState(CS_ES_EVALUATING);
-  Thread::Mutex::Lock lock(resref->mutex());
-  int nvs = resref->numVellSets();
-  cdebug(3)<<"child returns "<<nvs<<" vellsets, resflag "<<resflag<<endl;
-  // store resulting Vells into the tile
-  // loop over vellsets and get a tf-plane from each
-  VisCube::VTile *ptile = 0; 
-  const VisCube::VTile::Format *pformat = 0;
-  void *coldata = 0; 
-  TypeId coltype;
-  LoShape colshape; 
-  int ncorr = tileref->ncorr();
-  for( int ivs = 0; ivs < nvs; ivs++ )
-  {
-    int icorr = mapOutputCorr(ivs);
-    if( icorr<0 )
+    if( !pending.tile.valid() ) // no tile pending?
+      return 0;
+    // this will invalidate the pending refs
+    tileref = pending.tile;
+    HIID tile_id = tileref->tileId();
+    Request::Ref reqref  = pending.request;
+    rqid = reqref->id();
+    if( forest().debugLevel()>1 )
+      wstate()[FNewRequest].replace() = reqref.copy();
+    setExecState(CS_ES_REQUEST);
+    cdebug(3)<<"procPendingTile: processing tile "<<tile_id<<" of "
+              <<tileref->ntime()<<" timeslots"<<endl;
+    // get results from all child nodes 
+    Result::Ref resref;
+    setExecState(CS_ES_POLLING);
+    cdebug(5)<<"calling execute() on child "<<endl;
+    int resflag = getChild(0).execute(resref,*reqref);
+    FailWhen(resflag&RES_WAIT,"received a WAIT result code. This "
+              "not currently possible in this universe!");
+    if( resflag == RES_FAIL )
     {
-      cdebug(3)<<"vellset "<<ivs<<" output disabled, skipping"<<endl;
+      cdebug(3)<<"child result is FAIL, ignoring"<<endl;
+      setExecState(CS_ES_IDLE,
+              (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
+      return RES_FAIL;
     }
-    else if( icorr >= ncorr )
+    if( output_col<0 )
     {
-      cdebug(3)<<"child "<<ivs<<" correlation not available, skipping"<<endl;
+      cdebug(3)<<"output disabled, skipping"<<endl;
+      setExecState(CS_ES_IDLE,
+              (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_EMPTY);
+      return resflag;
     }
-    else // OK, write it
+    setExecState(CS_ES_EVALUATING);
+    Thread::Mutex::Lock lock(resref->mutex());
+    int nvs = resref->numVellSets();
+    cdebug(3)<<"child returns "<<nvs<<" vellsets, resflag "<<resflag<<endl;
+    // store resulting Vells into the tile
+    // loop over vellsets and get a tf-plane from each
+    VisCube::VTile *ptile = 0; 
+    const VisCube::VTile::Format *pformat = 0;
+    void *coldata = 0; 
+    TypeId coltype;
+    LoShape colshape; 
+    int ncorr = tileref->ncorr();
+    for( int ivs = 0; ivs < nvs; ivs++ )
     {
-      if( !ptile )
+      int icorr = mapOutputCorr(ivs);
+      if( icorr<0 )
       {
-        ptile = tileref.dewr_p(); // COW here
-        pformat = &(ptile->format());
-        // add output column to tile as needed
-        if( !pformat->defined(output_col) )
+        cdebug(3)<<"vellset "<<ivs<<" output disabled, skipping"<<endl;
+      }
+      else if( icorr >= ncorr )
+      {
+        cdebug(3)<<"child "<<ivs<<" correlation not available, skipping"<<endl;
+      }
+      else // OK, write it
+      {
+        if( !ptile )
         {
-          pformat = output_format.deref_p();
-          FailWhen(!pformat->defined(output_col),"sink output column not defined "
-                  "in common tile output format.");
-          cdebug(3)<<"adding output column to tile"<<endl;
-          ptile->changeFormat(output_format);
+          ptile = tileref.dewr_p(); // COW here
+          pformat = &(ptile->format());
+          // add output column to tile as needed
+          if( !pformat->defined(output_col) )
+          {
+            pformat = output_format.deref_p();
+            FailWhen(!pformat->defined(output_col),"sink output column not defined "
+                    "in common tile output format");
+            cdebug(3)<<"adding output column to tile"<<endl;
+            ptile->changeFormat(output_format);
+          }
+          coldata  = ptile->wcolumn(output_col);
+          coltype  = pformat->type(output_col);
+          colshape = pformat->shape(output_col);
+          colshape.push_back(ptile->nrow()); // add third dimension to column shape
         }
-        coldata  = ptile->wcolumn(output_col);
-        coltype  = pformat->type(output_col);
-        colshape = pformat->shape(output_col);
-        colshape.push_back(ptile->nrow()); // add third dimension to column shape
-      }
-      // get the values out, and copy them to tile column
-      const Vells &vells = resref->vellSet(ivs).getValue();
-      FailWhen(vells.rank()>2,"illegal Vells rank");
-      if( vells.isReal() ) // real values
-      {
-        FailWhen(coltype!=Tpdouble,"type mismatch: double Vells, "+coltype.toString()+" column");
-        fillTileColumn(static_cast<double*>(coldata),colshape,pending.range,
-                        vells.getConstArray<double,2>(),icorr);
-      }
-      else  // complex values
-      {
-        FailWhen(coltype!=Tpfcomplex,"type mismatch: complex Vells, "+coltype.toString()+" column");
-        fillTileColumn(static_cast<fcomplex*>(coldata),colshape,pending.range,
-                      vells.getConstArray<dcomplex,2>(),icorr);
-      }
-      // write flags, if specified by flag mask and present in vells
-      if( flag_mask && vells.hasDataFlags() )
-      {
-        Vells realflags;
-        const Vells & dataflags = vells.dataFlags();
-        // if same shape, then write directly
-        if( vells.shape() == dataflags.shape() )
-          realflags = dataflags & flag_mask;
-        // else flags may have a "collapsed" shape, then:
-        // create a flag vells of the same shape as the data, and fill it
-        // with the flag mask, then AND with flags and let Vells math do
-        // the expansion
-        else if( dataflags.isCompatible(vells.shape()) )
-          realflags = Vells(vells.shape(),flag_mask,true) & dataflags;
-        else
+        // get the values out, and copy them to tile column
+        const Vells &vells = resref->vellSet(ivs).getValue();
+        FailWhen(vells.rank()>2,"illegal Vells rank");
+        if( vells.isReal() ) // real values
         {
-          cdebug(2)<<"shape of dataflags not compatible with data, omitting flags"<<endl;
+          FailWhen(coltype!=Tpdouble,"type mismatch: double Vells, "+coltype.toString()+" column");
+          fillTileColumn(static_cast<double*>(coldata),colshape,pending.range,
+                          vells.getConstArray<double,2>(),icorr);
         }
-        Vells::Traits<VellsFlagType,2>::Array fl = 
-            realflags.getConstArray<VellsFlagType,2>();
-        // flip into freq-time order
-        fl.transposeSelf(blitz::secondDim,blitz::firstDim);
-        LoMat_int tileflags = ptile->wflags()(icorr,LoRange::all(),pending.range);
-        // if flag bit is set, use a where-expression, else simply copy
-        if( flag_bit )
-          tileflags = where(fl,flag_bit,0);
-        else
-          tileflags = fl;
+        else  // complex values
+        {
+          FailWhen(coltype!=Tpfcomplex,"type mismatch: complex Vells, "+coltype.toString()+" column");
+          fillTileColumn(static_cast<fcomplex*>(coldata),colshape,pending.range,
+                        vells.getConstArray<dcomplex,2>(),icorr);
+        }
+        // write flags, if specified by flag mask and present in vells
+        if( flag_mask && vells.hasDataFlags() )
+        {
+          Vells realflags;
+          const Vells & dataflags = vells.dataFlags();
+          // if same shape, then write directly
+          if( vells.shape() == dataflags.shape() )
+            realflags = dataflags & flag_mask;
+          // else flags may have a "collapsed" shape, then:
+          // create a flag vells of the same shape as the data, and fill it
+          // with the flag mask, then AND with flags and let Vells math do
+          // the expansion
+          else if( dataflags.isCompatible(vells.shape()) )
+            realflags = Vells(vells.shape(),flag_mask,true) & dataflags;
+          else
+          {
+            cdebug(2)<<"shape of dataflags not compatible with data, omitting flags"<<endl;
+          }
+          Vells::Traits<VellsFlagType,2>::Array fl = 
+              realflags.getConstArray<VellsFlagType,2>();
+          // flip into freq-time order
+          fl.transposeSelf(blitz::secondDim,blitz::firstDim);
+          LoMat_int tileflags = ptile->wflags()(icorr,LoRange::all(),pending.range);
+          // if flag bit is set, use a where-expression, else simply copy
+          if( flag_bit )
+            tileflags = where(fl,flag_bit,0);
+          else
+            tileflags = fl;
+        }
+        resflag |= RES_UPDATED;
       }
-      resflag |= RES_UPDATED;
     }
+    lock.release();
   }
-  lock.release();
+  catch( std::exception &exc )
+  {
+    errors.add(exc);
+    errors.add(MakeNodeException("error processing pending tile" + 
+          (rqid.empty() ? string() : " (request "+rqid.toString('.')+")")));
+  }
+  catch( ... )
+  {
+    errors.add(MakeNodeException("uknown exception processing pending tile" + 
+          (rqid.empty() ? string() : " (request "+rqid.toString('.')+")")));
+  }
+  // throw errors if accumulated
+  if( !errors.empty() )
+  {
+    // add fail rescord to state
+    wstate()[AidFail].replace() = exceptionToObj(errors);
+    setExecState(CS_ES_IDLE,
+      (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
+    throw errors;
+  }
+  // if previous status was a fail, remove fail record from state
+  if( getControlStatus()&CS_RES_MASK == CS_RES_FAIL )
+    wstate()[AidFail].remove();
   setExecState(CS_ES_IDLE,
-            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_OK);
+    (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_NONE);
   return resflag;
 }
 
@@ -259,13 +289,6 @@ int Sink::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoR
   catch( std::exception &exc )
   {
     errors.add(exc);
-    errors.add(MakeNodeException("request " + rqid.toString('.') + " failed"));
-    resflag |= RES_FAIL;
-  }
-  catch( ... )
-  {
-    errors.add(MakeNodeException("request " + rqid.toString('.') + " failed with unknown exception"));
-    resflag |= RES_FAIL;
   }
   // if no asked to wait, make this tile pending
   if( !(resflag&RES_WAIT) )
@@ -275,20 +298,7 @@ int Sink::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoR
     pending.tile  = ref;
     pending.range = range;
   }
-  // set execution state
-  int st = CS_RES_NONE;
-  if( resflag&RES_FAIL )
-  {
-    st = CS_RES_FAIL;
-    wstate()[AidFail].replace() = exceptionToObj(errors);
-  }
-  else
-  {
-    if( getControlStatus()&CS_RES_MASK == CS_RES_FAIL )
-      wstate()[AidFail].remove();
-  }
-  setExecState(CS_ES_IDLE,
-    (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|st);
+  // rethrow errors
   if( !errors.empty() )
     throw errors;
   return resflag;

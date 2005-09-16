@@ -249,6 +249,7 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
                         out_format_->shape(VisCube::VTile::DATA));
     }
   }
+  DMI::ExceptionList errors;
   // notify all handlers of header
   int result_flag = 0;
   for( uint i=0; i<handlers_.size(); i++ )
@@ -256,11 +257,29 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
     VisHandlerList & hlist = handlers_[i];
     VisHandlerList::iterator iter = hlist.begin();
     for( ; iter != hlist.end(); iter++ )
-      result_flag |= (*iter)->deliverHeader(*out_format_);
+    {
+      try
+      {
+        result_flag |= (*iter)->deliverHeader(*out_format_);
+      }
+      catch( std::exception &exc )
+      {
+        errors.add(exc);
+        result_flag |= Node::RES_FAIL;
+      }
+      catch( ... )
+      {
+        errors.add(LOFAR::Exception("unknown exception",(*iter)->description(),__HERE__));
+        result_flag |= Node::RES_FAIL;
+      }
+    }
   }
   // cache the header
   cached_header_.attach(header);
   writing_data_ = false;
+  // throw errors if any
+  if( !errors.empty() )
+    throw errors;
   return result_flag;
 }
 
@@ -298,27 +317,43 @@ int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
     Request &req = reqref <<= new Request(cellref.deref_p(),0,rqid_);
     cdebug(3)<<"have handler, generated request id="<<rqid_<<endl;
 
-    //    forest_.assignRequestId(req);
+    DMI::ExceptionList errors;
     // deliver to all known handlers
     VisHandlerList::iterator iter = hlist.begin();
     for( ; iter != hlist.end(); iter++ )
     {
-      VisCube::VTile::Ref ref(tileref,DMI::COPYREF);
-      int code = (*iter)->deliverTile(req,ref,range);
-      result_flag |= code;
-      // if an output tile is returned, dump it out
-      if( code&Node::RES_UPDATED )
+      try
       {
-        cdebug(3)<<"handler returns updated tile "<<tileref->tileId()<<", posting to output\n";
-        writing_data_ = true;
-        if( cached_header_.valid() )
+        VisCube::VTile::Ref ref(tileref,DMI::COPYREF);
+        int code = (*iter)->deliverTile(req,ref,range);
+        result_flag |= code;
+        // if an output tile is returned, dump it out
+        if( code&Node::RES_UPDATED )
         {
-          output().put(HEADER,cached_header_);
-          cached_header_.detach();
+          cdebug(3)<<"handler returns updated tile "<<tileref->tileId()<<", posting to output\n";
+          writing_data_ = true;
+          if( cached_header_.valid() )
+          {
+            output().put(HEADER,cached_header_);
+            cached_header_.detach();
+          }
+          output().put(DATA,ref);
         }
-        output().put(DATA,ref);
+      }
+      catch( std::exception &exc )
+      {
+        errors.add(exc);
+        result_flag |= Node::RES_FAIL;
+      }
+      catch( ... )
+      {
+        errors.add(LOFAR::Exception("unknown exception",(*iter)->description(),__HERE__));
+        result_flag |= Node::RES_FAIL;
       }
     }
+    // throw errors if any
+    if( !errors.empty() )
+      throw errors;
   }
   return result_flag;
 }
@@ -327,29 +362,45 @@ int Meq::VisDataMux::deliverFooter (const DMI::Record &footer)
 {
   cdebug(2)<<"delivering footer to all handlers"<<endl;
   int result_flag = 0;
+  DMI::ExceptionList errors;
   for( uint i=0; i<handlers_.size(); i++ )
   {
     VisHandlerList & hlist = handlers_[i];
     VisHandlerList::iterator iter = hlist.begin();
     for( ; iter != hlist.end(); iter++ )
     {
-      VisCube::VTile::Ref tileref;
-      int code = (*iter)->deliverFooter(tileref);
-      if( code&Node::RES_UPDATED )
+      try
       {
-        cdebug(2)<<"handler returns updated tile "<<tileref->tileId()<<", posting to output\n";
-        writing_data_ = true;
-        if( cached_header_.valid() )
+        VisCube::VTile::Ref tileref;
+        int code = (*iter)->deliverFooter(tileref);
+        if( code&Node::RES_UPDATED )
         {
-          output().put(HEADER,cached_header_);
-          cached_header_.detach();
+          cdebug(2)<<"handler returns updated tile "<<tileref->tileId()<<", posting to output\n";
+          writing_data_ = true;
+          if( cached_header_.valid() )
+          {
+            output().put(HEADER,cached_header_);
+            cached_header_.detach();
+          }
+          output().put(DATA,tileref);
         }
-        output().put(DATA,tileref);
+        result_flag |= code;
       }
-      result_flag |= code;
+      catch( std::exception &exc )
+      {
+        errors.add(exc);
+        result_flag |= Node::RES_FAIL;
+      }
+      catch( ... )
+      {
+        errors.add(LOFAR::Exception("unknown exception",(*iter)->description(),__HERE__));
+        result_flag |= Node::RES_FAIL;
+      }
     }
   }
   if( writing_data_ )
     output().put(FOOTER,ObjRef(footer));
+  if( !errors.empty() )
+    throw errors;
   return result_flag;
 }
