@@ -6,7 +6,7 @@ LOCALSRCS = \
   Axis.cc Domain.cc	Cells.cc Request.cc RequestId.cc \
   Vells.cc VellSet.cc Result.cc Funklet.cc Polc.cc ComposedPolc.cc PolcLog.cc \
   Node.cc Function.cc CompoundFunction.cc \
-  EventGenerator.cc Forest.cc 
+  EventGenerator.cc Forest.cc
 
 ## removed for now, as it needs to be re-worked for the new Vells
 ## structure

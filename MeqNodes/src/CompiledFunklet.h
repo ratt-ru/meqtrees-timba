@@ -108,8 +108,9 @@ class CompiledFunklet: public Funklet{
     FailWhen(!itsFunction.setFunction(funcstring),std::string(itsFunction.errorMessage()));
     Npar = itsFunction.nparameters();
     Ndim = itsFunction.ndim();
+    itsDerFunction.setFunction(funcstring);
     int dim=0;
-    for(int i=0;i<Ndim;i++) {
+    for(uint i=0;i<Ndim;i++) {
       depend_[i]=0;
       if(dependsOn(i))
 	{
@@ -130,10 +131,10 @@ class CompiledFunklet: public Funklet{
    
     const double* coeffData = static_cast<const double *>(coeff().getConstDataPtr());
     
-    for(int i=0;i< Npar;i++){
+    for(uint i=0;i< Npar;i++){
       //	  cdebug(0)<<"setting par "<<i<<" :"<<coeffData[i]<<endl;
-      itsFunction[i]=casa::AutoDiff<casa::Double>(coeffData[i],  Npar,i);
-      //  itsFunction[i]=coeffData[i];
+      itsDerFunction[i]=casa::AutoDiff<casa::Double>(coeffData[i],  Npar,i);
+      itsFunction[i]=coeffData[i];
     }
 	
   }
@@ -155,7 +156,10 @@ class CompiledFunklet: public Funklet{
   virtual void do_update (const double values[],const std::vector<int> &spidIndex);
   private:
 
-  casa::CompiledFunction<casa::AutoDiff<casa::Double> > itsFunction;
+  //autodiff is only calculated if the parm is solvable
+  casa::CompiledFunction<casa::AutoDiff<casa::Double> > itsDerFunction;
+  //otherwise use this one, initialize both
+  casa::CompiledFunction<casa::Double> itsFunction;
   // casa::CompiledFunction<casa::Double> itsFunction;
   uint Npar,Ndim,realDim;
   uint depend_[Axis::MaxAxis];

@@ -369,6 +369,7 @@ namespace Meq {
     
     if(pfunklet->objectType()!=TpMeqCompiledFunklet && pfunklet->hasField(FFunction))
       {
+	cdebug(4)<<"function found in state, creating new compiled funklet"<<endl;
 	its_funklet_<<=new CompiledFunklet(*pfunklet);
 	pfunklet = its_funklet_.dewr_p();
       }
@@ -573,6 +574,7 @@ namespace Meq {
 	
 	if(pfunklet->objectType()!=TpMeqCompiledFunklet  && pfunklet->hasField(FFunction))
 	  {
+	    cdebug(4)<<"function found in state, creating new compiled funklet"<<endl;
 	    its_funklet_<<= new CompiledFunklet(*pfunklet);
 	    
 	  }

@@ -99,10 +99,6 @@ Polc::Polc (const DMI::Record &other,int flags,int depth)
 Polc::Polc (const Polc &other,int flags,int depth)
   : Funklet(other,flags,depth)
 {
-// no need to validate content outside the coeff, eveything else handled by funklet copy
-  Field * fld = Record::findField(FCoeff);
-
-  pcoeff_ = fld ? &( fld->ref.ref_cast<DMI::NumArray>() ) : 0;
 }
 
 void Polc::validateContent (bool recursive)    
@@ -290,7 +286,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
   int ncy = cshape[1];
   // Evaluate the expression (as double).
   const double* coeffData = static_cast<const double *>(coeff().getConstDataPtr());
-  double* pertValPtr[MaxNumPerts][100];
+  double* pertValPtr[MaxNumPerts][spidIndex.size()];
   for( int ipert=0; ipert<makePerturbed; ipert++ )
   {
     // Create a vells for each perturbed value.
@@ -352,6 +348,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
           powx *= valx;
         }
       }
+      cdebug(4)<<"value  "<<i<<","<<j<<" ("<<valx<<","<<valy<<") : "<<total<<endl;
       *value++ = total;
     } // endfor(i) over cells
   } // endfor(j) over cells

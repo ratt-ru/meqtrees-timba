@@ -40,14 +40,12 @@ CompiledFunklet::CompiledFunklet (const DMI::Record &other,int flags,int depth)
  }
 
 CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int depth)
-  : Funklet(other,flags,depth)
+  : Funklet(other,flags,depth),
+    itsDerFunction(other.itsDerFunction),
+    itsFunction(other.itsFunction)
   {
-    if(hasField(FFunction)){
-      string fstr;
-      (*this)[FFunction].get(fstr,0);
-      
-      setFunction(fstr);
-    }
+    
+
     itsState<<=new Funklet(*this);
   }
 
@@ -60,30 +58,33 @@ CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int dep
   void CompiledFunklet::fill_values(double *value, double * pertValPtr[],double *xval,const Vells::Shape & res_shape ,const int dimN, const LoVec_double grid[],const std::vector<double> &perts, const std::vector<int> &spidIndex, const int makePerturbed, int &pos) const
 {
    
-
+  casa::AutoDiff<casa::Double> thederval;
     for(int i=0;i<res_shape[dimN];i++){
       xval[dimN]=grid[dimN](i);
       if(dimN<Ndim-1){
 	fill_values(value,pertValPtr,xval,res_shape,dimN+1,grid,perts,spidIndex,makePerturbed,pos);
       }
       else{//the real filling
-	const casa::AutoDiff<casa::Double> theval = itsFunction(xval);
-	//set x0,x1 for function
-	value[pos] = theval.value();
-	cdebug(4)<<"evaluating at"<<xval[0]<<","<<xval[1]<<" : "<<theval.value()<<" pos : "<<pos<<endl;
 	if( makePerturbed ) 
 	  {
+	    thederval = itsDerFunction(xval);
+	    value[pos] = thederval.value();
 	    for( uint ispid=0; ispid<spidIndex.size(); ispid++) 
 	      if( spidIndex[ispid] >= 0 ){
 		int d=1;
 		//fill perturbed
-		double deriv=theval.derivatives()[ispid];
+		double deriv=thederval.derivatives()[ispid];
 		for( int ipert=0; ipert<makePerturbed; ipert++ ,d=-d)
 		  {
 		    //	      cdebug(0)<<"der "<<ispid<<" : "<<deriv<<endl;
-		    ((pertValPtr[ipert*spidIndex.size()+ispid][pos])) = d*deriv*perts[ispid]+ theval.value();
+		    ((pertValPtr[ipert*spidIndex.size()+ispid][pos])) = d*deriv*perts[ispid]+ thederval.value();
 		  }
 	      }
+	  }
+	else
+	  {//not solvable use simple function instead
+	    value[pos] = itsFunction(xval);
+	    
 	  }
 	pos++;
       }
@@ -105,21 +106,25 @@ void CompiledFunklet::do_evaluate (VellSet &vs,const Cells &cells,
   LoVec_double grid[ndim];
   if(ndim==0){
     //constant 
-    const casa::AutoDiff<casa::Double> theval = itsFunction();
-    vs.setValue(new Vells(theval.value(),false));
     if( makePerturbed )
       {
+	const casa::AutoDiff<casa::Double> thederval = itsDerFunction();
+	vs.setValue(new Vells(thederval.value(),false));
 	for( uint ispid=0; ispid<spidIndex.size(); ispid++) 
 	  if( spidIndex[ispid] >= 0 ){
 	    int d=1;
 	    //fill perturbed
-	    double deriv=theval.derivatives()[ispid];
+	    double deriv=thederval.derivatives()[ispid];
 	    for( int ipert=0; ipert<makePerturbed; ipert++ ,d=-d)
 	      {
-		double dp = d*deriv*perts[ispid]+ theval.value();
+		double dp = d*deriv*perts[ispid]+ thederval.value();
 		vs.setPerturbedValue(ispid,new Vells(dp,false),ipert);
 	      }
 	  }
+      }
+    else
+      {
+	vs.setValue(new Vells(itsFunction(),false));
       }
     return;
   }
