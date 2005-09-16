@@ -11,7 +11,7 @@ namespace Octopussy
 
 //  using namespace LOFAR;
   
-  Dispatcher &  init     (bool start_gateways=true);
+  Dispatcher &  init     (bool start_gateways=true,bool start_logger=false);
   void          start    ();
   void          pollLoop ();
   void          stop     ();

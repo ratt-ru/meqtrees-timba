@@ -24,11 +24,12 @@ bool isRunning ()
   return pdsp != 0;
 }
 
-Dispatcher &  init     (bool start_gateways)
+Dispatcher &  init     (bool start_gateways,bool start_logger)
 {
   FailWhen( pdsp,"OCTOPUSSY already initialized" );
   pdsp = new Dispatcher;
-  pdsp->attach(new LoggerWP(10,Message::LOCAL),DMI::ANON);
+  if( start_logger )
+    pdsp->attach(new LoggerWP(10,Message::LOCAL),DMI::ANON);
   if( start_gateways )
     initGateways(*pdsp);
   return *pdsp;
