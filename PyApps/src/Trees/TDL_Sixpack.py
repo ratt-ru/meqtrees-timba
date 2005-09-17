@@ -97,8 +97,8 @@ class Sixpack(TDL_common.Super):
    # try to compose
    my_ns=pp['ns']
    my_name=pp['label']
-   print my_ns
-   print my_name
+   #print my_ns
+   #print my_name
    if  my_ns!=None and my_name !=None:
      # compose with given label
      self.__sixpack=my_ns.sixpack(q=my_name)<<Meq.Composer(self.__RA,\
@@ -264,7 +264,7 @@ class Sixpack(TDL_common.Super):
 
 
 ################################################################
-if __name__=='__main__':
+"""if __name__=='__main__':
   ns=NodeScope()
   from Timba.Contrib.JEN import MG_JEN_sixpack
   from Timba.Trees import TDL_Sixpack 
@@ -305,5 +305,5 @@ if __name__=='__main__':
     stokesU=my_sp.stokesU())
 
   my_sp1.display()
-  
+""" 
 
