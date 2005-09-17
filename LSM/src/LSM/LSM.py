@@ -891,11 +891,14 @@ class LSM:
   y_min=1e6
   y_max=-1e6
   correct_slist=[]
+  sum_brightness=0
   for sname in slist:
     # select only sources without a patch 
     if (self.p_table.has_key(sname) and\
        self.p_table[sname]._patch_name ==None):
       correct_slist.append(sname)
+      # remove this source from sorted patch list
+      self.__barr.remove(sname)
       # get min,max coords
       ra=self.p_table[sname].sp.getRA() 
       dec=self.p_table[sname].sp.getDec() 
@@ -907,6 +910,8 @@ class LSM:
        y_max=dec
       if dec<y_min:
        y_min=dec
+      # get apparent brightness of this source
+      sum_brightness+=self.p_table[sname].getBrightness()
 
   #print "Patch: [%f,%f]--[%f,%f]"%(x_min,y_min,x_max,y_max)
   #print correct_slist
@@ -914,14 +919,14 @@ class LSM:
   if self.__ns!=None and (len(correct_slist)> 0):
    patch_name='patch'+str(self.__patch_count)
    self.__patch_count=self.__patch_count+1
-   stringRA='RA0[q='+patch_name+']'
+   stringRA='ra0:q='+patch_name
    meq_polc=meq.polc((x_min+x_max)*0.5)
    RA_root=self.__ns[stringRA]<<Meq.Parm(meq_polc)
-   stringDec='Dec0[q='+patch_name+']'
+   stringDec='dec0:q='+patch_name
    meq_polc=meq.polc((y_min+y_max)*0.5)
    Dec_root=self.__ns[stringDec]<<Meq.Parm(meq_polc) 
    # twopack for phase center
-   twoname='twopack['+patch_name+']'
+   twoname='radec:q='+patch_name
    tworoot=self.__ns[twoname]<<Meq.Composer(RA_root,Dec_root)
   
    child_list=[twoname]
@@ -955,6 +960,7 @@ class LSM:
    newp=PUnit(patch_name,self)
    newp.setType(PATCH_TYPE)
    newp.sp.setRoot(patch_root)
+   newp.setBrightness(sum_brightness)
    # update vellsets
    if resolve_forest==True and sync_kernel==True:
     newp.sp.updateValues(patch_name)
@@ -966,8 +972,16 @@ class LSM:
    #aa=self.mqs.meq('Node.execute',args,wait=True)
    for sname in correct_slist:
      newp.addSource(sname)
-    # add new PUnit to table
-   self.p_table[patch_name]=newp
+
+   # this PUnit is a Patch, so the traditional TDL_Sixpack
+   # object does not apply here. However, we will create a dummy 
+   # sixpack object.
+
+   newp.setSP(PSixpack(root=patch_root))
+   # add new PUnit to table
+   self.insertPUnit(newp)
+   print self.__barr
+   #self.p_table[patch_name]=newp
 
    Timba.TDL._dbg.set_verbose(0);
    # return [patch name, x_min,y_min,x_max,y_max]
@@ -1109,3 +1123,15 @@ class LSM:
  # set the current NodeScope
  def setNodeScope(self,ns):
   self.__ns=ns
+
+
+
+
+#################################################################
+from Timba.Trees import TDL_Sixpack
+
+class PSixpack(TDL_Sixpack.Sixpack):
+  def __init__(self,**pp):
+   pp.setdefault('root',None)
+   TDL_Sixpack.Sixpack.__init__(self,**pp)
+   self.__sixpack=pp['root']
