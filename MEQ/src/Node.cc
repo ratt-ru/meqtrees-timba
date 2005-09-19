@@ -466,15 +466,22 @@ void Node::setCurrentRequest (const Request &req)
   current_reqid_ = req.id();
 }
 
-void Node::flushUpstreamCache (bool force,bool quiet)
+void Node::flushUpstreamCache (bool,bool quiet)
 {
-  if( force || getExecState() == CS_ES_IDLE )
-  {
+// OMS 19/09/05: do not check 'force' or exec state flag but rather 
+// always flush. The old checks again caused problems where a ReqSeq
+// was present.
+  
+//  if( force || getExecState() == CS_ES_IDLE )
+//  {
     clearCache(false,quiet);
     for( int i=0; i<numParents(); i++ )
+    {
+      Node & par = getParent(i);
       if( !isStepParent(i) )
         getParent(i).flushUpstreamCache(false,quiet);
-  }
+    }
+//  }
 }
 
 //##ModelId=400E531300C8
