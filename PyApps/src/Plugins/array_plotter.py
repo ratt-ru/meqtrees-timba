@@ -40,6 +40,7 @@ class ArrayPlotter(GriddedPlugin):
 
   def __init__(self,gw,dataitem,cellspec={},**opts):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
+    _dprint(3,'** array_plotter: starting init')
 
 # now create plotter and colorbar
 
