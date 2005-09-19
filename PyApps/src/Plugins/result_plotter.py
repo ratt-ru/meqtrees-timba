@@ -394,6 +394,14 @@ class ResultPlotter(GriddedPlugin):
           _dprint(3, 'tree: leaf node has incoming label ', label)
         except:
           _dprint(3, 'node label field expected, not found, so am exiting')
+          Message = "Failure of result_plotter tree-traversal.\n Result_plotter does not yet work with MeqHistoryCollect nodes."
+          mb = QMessageBox("result_plotter.py",
+                     Message,
+                     QMessageBox.Warning,
+                     QMessageBox.Ok | QMessageBox.Default,
+                     QMessageBox.NoButton,
+                     QMessageBox.NoButton)
+          mb.exec_loop()
           return
         if is_root and node.has_key('attrib') and len(node['attrib']) > 0:
           if not self._attributes_checked:
@@ -522,12 +530,14 @@ class ResultPlotter(GriddedPlugin):
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       if self._visu_plotter is None:
         self.create_image_plotters()
+        _dprint(3, 'passed create_image_plotters')
       self._visu_plotter.plot_vells_data(self._rec)
 # otherwise we are dealing with a set of visualization data
     else:
       if self._rec.has_key("visu"):
 # do plotting of visualization data
         self.display_visu_data()
+        _dprint(3, 'passed display_visu_data')
 
 # enable & highlight the cell
     self.enable();
