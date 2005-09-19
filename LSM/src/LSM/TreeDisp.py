@@ -104,8 +104,8 @@ class TreeDisp(QDialog):
 
     def languageChange(self):
         self.setCaption(self.__tr("TreeDisp"))
-        self.lv.header().setLabel(0,self.__tr("Tree"))
-        self.lv.header().setLabel(1,self.__tr("Node Type"))
+        self.lv.header().setLabel(0,self.__tr("node"))
+        self.lv.header().setLabel(1,self.__tr("class"))
         self.lv.clear()
         """item_2 = QListViewItem(self.lv,None)
         item_2.setOpen(1)
@@ -145,9 +145,9 @@ class TreeDisp(QDialog):
      if clist!=None:
       for ci,nstub in clist:
        citem=QListViewItem(parent,None)
-       citem.setText(0,self.__tr(nstub.name))
+       citem.setText(0,self.__tr(str(ci)+":"+nstub.name))
        citem.setText(1,self.__tr(nstub.classname))
-       citem.setPixmap(0,self.image1)
+       #citem.setPixmap(0,self.image1)
        self.plotTree(nstub,citem)
       
     def __tr(self,s,c = None):
