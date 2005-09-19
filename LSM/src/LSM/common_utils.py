@@ -29,6 +29,24 @@ POINT_TYPE= 0
 PATCH_TYPE= 1
 
 
+# default depths  for various items on the canvas
+IMAGE_DEPTH=-1
+
+
+# column indices for PUnit table
+PCOL_NAME=0
+PCOL_TYPE=1
+PCOL_SLIST=2
+PCOL_CAT=3
+PCOL_BRIGHT=4
+PCOL_FOV=5
+PCOL_I=6
+PCOL_Q=7
+PCOL_U=8
+PCOL_V=9
+PCOL_RA=10
+PCOL_DEC=11
+
 ######## binary search
 def bin_search(xarr,x,i_start,i_end):
   # xarr: [-inf,...,+inf] array so x must be within, also xarr 

@@ -732,7 +732,7 @@ class Axes:
     self.ylabel.setZ(0)
     self.ylabel.show()
 
-    self.xlabel=FontHorizImage("Right Ascention",self.cview.canvas())
+    self.xlabel=FontHorizImage("Right Ascension",self.cview.canvas())
     self.xlabel.move(xys[0]+(self.cview.canvas().width()-self.cview.d1-self.cview.d2)/2-self.xlabel.width()/2,xys[1]+self.cview.d4-20)
     #self.xlabel.move(xys[0],xys[1])
     self.xlabel.setZ(0)

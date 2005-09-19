@@ -859,21 +859,21 @@ class LSM:
   # name='name': gives p unit matching name='name'
   # cat=1,2,.. : gives p units of given category
   
-  output=[]
+  outlist=[]
   if kw.has_key('name'):
-   output.append(self.p_table(kw['name']))
-   return output
+   outlist.append(self.p_table[kw['name']])
+   return outlist
   
   if kw.has_key('count'):
    for i in range(min(kw['count'],len(self.__barr))): 
-    output.append(self.p_table[self.__barr[i]])
-   return output
+    outlist.append(self.p_table[self.__barr[i]])
+   return outlist
 
   if kw.has_key('cat'):
     for pname in self.p_table.keys():
      if self.p_table[pname].getCat()==kw['cat']:
-       output.append(self.p_table[pname])
-    return output
+       outlist.append(self.p_table[pname])
+    return outlist
 
 
  # from the given list of (point) source  names (slist),

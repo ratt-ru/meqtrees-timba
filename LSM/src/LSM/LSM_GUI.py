@@ -16,6 +16,7 @@ from common_utils import *
 from OptionsDialog import *
 from FTDialog import *
 from MyCanvasView import *
+from TreeDisp import *
 
 image0_data = \
     "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d" \
@@ -208,52 +209,52 @@ class LSMWindow(QMainWindow):
         self.table2.setNumCols(self.lsm.getPUnitColumns())
         self.tabWidget.insertTab(self.punitTab,QString.fromLatin1(""))
 
-        self.table2.horizontalHeader().setLabel(0,self.tr("PUnit Name"))
-        self.table2.horizontalHeader().setLabel(1,self.tr("Type"))
-        self.table2.horizontalHeader().setLabel(2,self.tr("Source List"))
-        self.table2.horizontalHeader().setLabel(3,self.tr("Category"))
-        self.table2.horizontalHeader().setLabel(4,self.tr("Brightness"))
-        self.table2.horizontalHeader().setLabel(5,self.tr("FOV Distance"))
-        self.table2.horizontalHeader().setLabel(6,self.tr("I"))
-        self.table2.horizontalHeader().setLabel(7,self.tr("Q"))
-        self.table2.horizontalHeader().setLabel(8,self.tr("U"))
-        self.table2.horizontalHeader().setLabel(9,self.tr("V"))
-        self.table2.horizontalHeader().setLabel(10,self.tr("RA"))
-        self.table2.horizontalHeader().setLabel(11,self.tr("Dec"))
+        self.table2.horizontalHeader().setLabel(PCOL_NAME,self.tr("PUnit Name"))
+        self.table2.horizontalHeader().setLabel(PCOL_TYPE,self.tr("Type"))
+        self.table2.horizontalHeader().setLabel(PCOL_SLIST,self.tr("Source List"))
+        self.table2.horizontalHeader().setLabel(PCOL_CAT,self.tr("Category"))
+        self.table2.horizontalHeader().setLabel(PCOL_BRIGHT,self.tr("Brightness"))
+        self.table2.horizontalHeader().setLabel(PCOL_FOV,self.tr("FOV Distance"))
+        self.table2.horizontalHeader().setLabel(PCOL_I,self.tr("I"))
+        self.table2.horizontalHeader().setLabel(PCOL_Q,self.tr("Q"))
+        self.table2.horizontalHeader().setLabel(PCOL_U,self.tr("U"))
+        self.table2.horizontalHeader().setLabel(PCOL_V,self.tr("V"))
+        self.table2.horizontalHeader().setLabel(PCOL_RA,self.tr("RA"))
+        self.table2.horizontalHeader().setLabel(PCOL_DEC,self.tr("Dec"))
         row=0
         # use a hash table to match row number to name
         self.table2_names={}
         for sname in self.lsm.p_table.keys():
          punit=self.lsm.p_table[sname]
          if punit._patch_name==None:
-          self.table2.setText(row,0,QString(punit.name))
+          self.table2.setText(row,PCOL_NAME,QString(punit.name))
           mytype=punit.getType()
           if mytype==POINT_TYPE:
-           self.table2.setText(row,1,self.tr("Point"))
+           self.table2.setText(row,PCOL_TYPE,self.tr("Point"))
           else:
-           self.table2.setText(row,1,self.tr("Patch"))
+           self.table2.setText(row,PCOL_TYPE,self.tr("Patch"))
           # do not print all the source names in case of a patch
           if mytype==POINT_TYPE:
-           self.table2.setText(row,2,QString(str(punit.getSources())))
+           self.table2.setText(row,PCOL_SLIST,QString(str(punit.getSources())))
           else: #patch
            srclist=punit.getSources()
-           self.table2.setText(row,2,QString(str(srclist[0])+"...."))
+           self.table2.setText(row,PCOL_SLIST,QString(str(srclist[0])+"...."))
 
-          self.table2.setText(row,3,QString(str(punit.getCat())))
-          self.table2.setText(row,4,QString(str(punit.getBrightness())))
-          self.table2.setText(row,5,QString(str(punit.getFOVDist())))
+          self.table2.setText(row,PCOL_CAT,QString(str(punit.getCat())))
+          self.table2.setText(row,PCOL_BRIGHT,QString(str(punit.getBrightness())))
+          self.table2.setText(row,PCOL_FOV,QString(str(punit.getFOVDist())))
          # self.table2.setText(row,6,QString(str(punit.sp.getI())))
          # self.table2.setText(row,7,QString(str(punit.sp.getQ())))
          # self.table2.setText(row,8,QString(str(punit.sp.getU())))
          # self.table2.setText(row,9,QString(str(punit.sp.getV())))
          # self.table2.setText(row,10,QString(str(punit.sp.getRA())))
          # self.table2.setText(row,11,QString(str(punit.sp.getDec())))
-          self.table2.setText(row,6,QString("MeqTree"))
-          self.table2.setText(row,7,QString("MeqTree"))
-          self.table2.setText(row,8,QString("MeqTree"))
-          self.table2.setText(row,9,QString("MeqTree"))
-          self.table2.setText(row,10,QString("MeqTree"))
-          self.table2.setText(row,11,QString("MeqTree"))
+          self.table2.setText(row,PCOL_I,QString("MeqTree"))
+          self.table2.setText(row,PCOL_Q,QString("MeqTree"))
+          self.table2.setText(row,PCOL_U,QString("MeqTree"))
+          self.table2.setText(row,PCOL_V,QString("MeqTree"))
+          self.table2.setText(row,PCOL_RA,QString("MeqTree"))
+          self.table2.setText(row,PCOL_DEC,QString("MeqTree"))
           # rememeber the name
           self.table2_names[sname]=row
           row+=1
@@ -399,6 +400,51 @@ class LSMWindow(QMainWindow):
      print cellx,celly
      print button
      print point
+     if (celly==PCOL_I):
+      puname=self.table2.text(cellx,PCOL_NAME).ascii()
+      # get I node stub corresponding to this punit
+      plist=self.lsm.queryLSM(name=puname)
+      sp=plist[0].getSP()
+      win=TreeDisp(self,puname,0,0,sp.stokesI())
+      win.setTitle(puname)
+      win.show()
+     elif (celly==PCOL_Q):
+      puname=self.table2.text(cellx,PCOL_NAME).ascii()
+      plist=self.lsm.queryLSM(name=puname)
+      sp=plist[0].getSP()
+      win=TreeDisp(self,puname,0,0,sp.stokesQ())
+      win.setTitle(puname)
+      win.show()
+     elif (celly==PCOL_U):
+      puname=self.table2.text(cellx,PCOL_NAME).ascii()
+      plist=self.lsm.queryLSM(name=puname)
+      sp=plist[0].getSP()
+      win=TreeDisp(self,puname,0,0,sp.stokesU())
+      win.setTitle(puname)
+      win.show()
+     elif (celly==PCOL_V):
+      puname=self.table2.text(cellx,PCOL_NAME).ascii()
+      plist=self.lsm.queryLSM(name=puname)
+      sp=plist[0].getSP()
+      win=TreeDisp(self,puname,0,0,sp.stokesV())
+      win.setTitle(puname)
+      win.show()
+     elif (celly==PCOL_RA):
+      puname=self.table2.text(cellx,PCOL_NAME).ascii()
+      plist=self.lsm.queryLSM(name=puname)
+      sp=plist[0].getSP()
+      win=TreeDisp(self,puname,0,0,sp.ra())
+      win.setTitle(puname)
+      win.show()
+     elif (celly==PCOL_DEC):
+      puname=self.table2.text(cellx,PCOL_NAME).ascii()
+      plist=self.lsm.queryLSM(name=puname)
+      sp=plist[0].getSP()
+      win=TreeDisp(self,puname,0,0,sp.dec())
+      win.setTitle(puname)
+      win.show()
+ 
+ 
 
     def languageChange(self):
         self.setCaption(self.__tr("LSMWindow"))
