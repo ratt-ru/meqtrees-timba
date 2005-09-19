@@ -26,25 +26,30 @@ class PointSource:
 
 
 
-def forest_global_constants(ns, num_ant):
-    ns.ra0   = Meq.Constant(0.0)
-    ns.dec0  = Meq.Constant(0.0)
+def forest_measurement_set_info(ns, num_ant):
+    ns.ra0   = Meq.Parm(0.0)
+    ns.dec0  = Meq.Parm(0.0)
     ns.radec0= Meq.Composer(ns.ra0, ns.dec0)
-    
-    ns.x0   = Meq.Constant(0.0)
-    ns.y0   = Meq.Constant(0.0)
-    ns.z0   = Meq.Constant(0.0)
 
+    ns.x0   << ns.x(1)
+    ns.y0   << ns.y(1)
+    ns.z0   << ns.z(1)
+    ns.xyz0 << Meq.Composer(ns.x0, ns.y0,ns.z0)
+    
     for i in range(num_ant):
         station= str(i+1)
         
-        ns['x.'+station] = Meq.Constant(0.0)
-        ns['y.'+station] = Meq.Constant(0.0)
-        ns['z.'+station] = Meq.Constant(0.0)
-
-        ns['xyz.'+str(station)]=Meq.Composer(ns['x.'+station],
-                                             ns['y.'+station],
-                                             ns['z.'+station])
+        ns.x(station) << Meq.Parm(0.0)
+        ns.y(station) << Meq.Parm(0.0)
+        ns.z(station) << Meq.Parm(0.0)
+        
+        ns.xyz(station)  << Meq.Composer(ns.x(station),
+                                         ns.y(station),
+                                         ns.z(station))
+        ns.uvw(station) << Meq.UWV(radec= ns.radec0,
+                                   xyz_0= ns.xyz0,
+                                   xyz  = ns.xyz(station))
+        pass
     pass
 
 
@@ -111,7 +116,7 @@ def _define_forest(ns):
 
     source_model=create_initial_source_model(source_mep_tablename)
 
-    forest_global_constants(ns, 16)
+    forest_measurement_set_info(ns, 16)
     for source in source_model:
         forest_source_subtrees(ns, source)
     pass
