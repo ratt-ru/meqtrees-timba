@@ -36,6 +36,15 @@ from Timba.Contrib.JEN import MG_JEN_math
 from Timba.Contrib.JEN import MG_JEN_twig
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(script_name)
+
+
+
+
 
 #================================================================================
 # Tree definition routine (may be executed from the browser):
@@ -52,10 +61,13 @@ def _define_forest (ns):
    stations = range(0,3)
    scope = script_name
    jseq = TDL_Joneset.Joneseq(label='JJones', origin='MG_JEN_Joneset') 
-   jseq.append(GJones (ns, stations=stations, scope=scope, stddev_ampl=0.1, stddev_phase=0.1)) 
-   jseq.append(BJones (ns, stations=stations, scope=scope, stddev_real=0.1, stddev_imag=0.1))
+   jseq.append(GJones (ns, stations=stations, scope=scope,
+                       scale=1.0, stddev_Gampl=0.1, stddev_Gphase=0.1)) 
+   jseq.append(BJones (ns, stations=stations, scope=scope,
+                       scale=1.0, stddev_Breal=0.1, stddev_Bimag=0.1))
    jseq.append(FJones (ns, stations=stations, scope=scope, RM=0.5))
-   jseq.append(DJones_WSRT (ns, stations=stations, scope=scope, PZD=0.8, stddev_dang=0.1, stddev_dell=0.1))
+   jseq.append(DJones_WSRT (ns, stations=stations, scope=scope, PZD=0.8, 
+                            scale=1.0, stddev_dang=0.1, stddev_dell=0.1))
    # jseq.append(DJones_WSRT (ns, stations=stations, scope=scope, coupled_XY_dang=False, coupled_XY_dell=False))
    jseq.display()
 
@@ -69,8 +81,14 @@ def _define_forest (ns):
    # Matrix multiply to produce the resulting Jones joneset:
    js = jseq.make_Joneset(ns)
    dc = visualise(ns, js)
-   cc.append(dc['dcoll'])
    dconc.append(dc)
+   cc.append(dc['dcoll'])
+
+   # Visualise separately per parmgroup:
+   for pg in js.parmgroup().keys():
+       dc = visualise(ns, js, parmgroup=pg)
+       dconc.append(dc)
+       cc.append(dc['dcoll'])
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, script_name, cc)
@@ -132,11 +150,11 @@ def GJones (ns=0, label='GJones', **pp):
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
   pp.setdefault('polrep', 'linear')    # polarisation representation
-  pp.setdefault('scale', 1.0)          # scale of polc_ft non-c00 coeff
+  pp.setdefault('Gscale', 0.0)          # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)      # if False, do not store parmgroup info
   pp.setdefault('Gampl', 0.3)          # default funklet value
   pp.setdefault('Gphase', 0.0)         # default funklet value
-  pp.setdefault('polar', False)        # if True, use MeqPolar, otherwise MeqToComplex
+  pp.setdefault('Gpolar', False)        # if True, use MeqPolar, otherwise MeqToComplex
   pp.setdefault('stddev_Gampl', 0)     # scatter in default funklet c00 values
   pp.setdefault('stddev_Gphase', 0)    # scatter in default funklet c00 values
   pp.setdefault('fdeg_Gampl', 0)       # degree of default freq polynomial         
@@ -150,10 +168,10 @@ def GJones (ns=0, label='GJones', **pp):
   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
   # Register the parmgroups:
-  a1 = js.register('Gampl', ipol=1, color='red', corrs='paral1')
-  a2 = js.register('Gampl', ipol=2, color='blue', corrs='paral2')
-  p1 = js.register('Gphase', ipol=1, color='magenta', corrs='paral1')
-  p2 = js.register('Gphase', ipol=2, color='cyan', corrs='paral2')
+  a1 = js.register('Gampl', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
+  a2 = js.register('Gampl', ipol=2, color='blue', style='diamond', size=10, corrs='paral2')
+  p1 = js.register('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral1')
+  p2 = js.register('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral2')
 
   # MeqParm node_groups: add 'G' to default 'Parm':
   js.node_groups(label[0])
@@ -172,28 +190,28 @@ def GJones (ns=0, label='GJones', **pp):
 
     default = MG_JEN_funklet.polc_ft (c00=pp.Gampl, stddev=pp.stddev_Gampl,
                                       fdeg=pp.fdeg_Gampl, tdeg=pp.tdeg_Gampl,
-                                      scale=pp.scale) 
+                                      scale=pp.Gscale) 
     js.define_MeqParm(ns, a1, station=skey, default=default)
 
     default = MG_JEN_funklet.polc_ft (c00=pp.Gampl, stddev=pp.stddev_Gampl, 
                                       fdeg=pp.fdeg_Gampl, tdeg=pp.tdeg_Gampl,
-                                      scale=pp.scale) 
+                                      scale=pp.Gscale) 
     js.define_MeqParm(ns, a2, station=skey, default=default)
 
     default = MG_JEN_funklet.polc_ft (c00=pp.Gphase, stddev=pp.stddev_Gphase, 
                                       fdeg=pp.fdeg_Gphase, tdeg=pp.tdeg_Gphase,
-                                      scale=pp.scale) 
+                                      scale=pp.Gscale) 
     js.define_MeqParm(ns, p1, station=skey, default=default)
 
     default = MG_JEN_funklet.polc_ft (c00=pp.Gphase, stddev=pp.stddev_Gphase, 
                                       fdeg=pp.fdeg_Gphase, tdeg=pp.tdeg_Gphase,
-                                      scale=pp.scale) 
+                                      scale=pp.Gscale) 
     js.define_MeqParm(ns, p2, station=skey, default=default)
 
     ss = js.MeqParm(update=True)
 
     # Make the 2x2 Jones matrix:
-    if pp.polar:
+    if pp.Gpolar:
       stub = ns[label](s=skey, q=pp.punit) << Meq.Matrix22 (
         ns[label+'_11'](s=skey, q=pp.punit) << Meq.Polar( ss[a1], ss[p1]),
         0,0,
@@ -231,6 +249,7 @@ def FJones (ns=0, label='FJones', **pp):
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
   pp.setdefault('polrep', 'linear')    # polarisation representation
+  pp.setdefault('Fscale', 0.0)         # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
   pp.setdefault('RM', 0.0)             # default funklet value
   pp = record(pp)
@@ -240,7 +259,7 @@ def FJones (ns=0, label='FJones', **pp):
   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
   # Register the parmgroups:
-  RM = js.register('RM', color='black', corrs='cross')
+  RM = js.register('RM', color='red', style='circle', size=10, corrs='cross')
 
   # MeqParm node_groups: add 'F' to default 'Parm':
   js.node_groups(label[0])
@@ -287,7 +306,7 @@ def BJones (ns=0, label='BJones', **pp):
   pp.setdefault('scope', '<scope>')    # scope of this Joneset
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
-  pp.setdefault('scale', 1.0)          # scale of polc_ft non-c00 coeff
+  pp.setdefault('Bscale', 0.0)          # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
   # pp.setdefault('Bpolar', False)        # if True, use MeqPolar, otherwise MeqToComplex
   pp.setdefault('Breal', 1.0)          # default funklet value
@@ -305,10 +324,10 @@ def BJones (ns=0, label='BJones', **pp):
   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
   
   # Register the parmgroups:
-  br1 = js.register('Breal', ipol=1, color='red', corrs='paral1')
-  br2 = js.register('Breal', ipol=2, color='blue', corrs='paral2')
-  bi1 = js.register('Bimag', ipol=1, color='magenta', corrs='paral1')
-  bi2 = js.register('Bimag', ipol=2, color='cyan', corrs='paral2')
+  br1 = js.register('Breal', ipol=1, color='red', style='square', size=7, corrs='paral1')
+  br2 = js.register('Breal', ipol=2, color='blue', style='square', size=7, corrs='paral2')
+  bi1 = js.register('Bimag', ipol=1, color='magenta', style='square', size=7, corrs='paral1')
+  bi2 = js.register('Bimag', ipol=2, color='cyan', style='square', size=7, corrs='paral2')
 
   # MeqParm node_groups: add 'B' to default 'Parm':
   js.node_groups(label[0])
@@ -329,22 +348,22 @@ def BJones (ns=0, label='BJones', **pp):
 
     default = MG_JEN_funklet.polc_ft (c00=pp.Breal, stddev=pp.stddev_Breal, 
                                       fdeg=pp.fdeg_Breal, tdeg=pp.tdeg_Breal, 
-                                      scale=pp.scale) 
+                                      scale=pp.Bscale) 
     js.define_MeqParm(ns, br1, station=skey, default=default)
 
     default = MG_JEN_funklet.polc_ft (c00=pp.Breal, stddev=pp.stddev_Breal,
                                       fdeg=pp.fdeg_Breal, tdeg=pp.tdeg_Breal, 
-                                      scale=pp.scale) 
+                                      scale=pp.Bscale) 
     js.define_MeqParm(ns, br2, station=skey, default=default)
 
     default = MG_JEN_funklet.polc_ft (c00=pp.Bimag, stddev=pp.stddev_Bimag, 
                                       fdeg=pp.fdeg_Bimag, tdeg=pp.tdeg_Bimag, 
-                                      scale=pp.scale) 
+                                      scale=pp.Bscale) 
     js.define_MeqParm(ns, bi1, station=skey, default=default)
 
     default = MG_JEN_funklet.polc_ft (c00=pp.Bimag, stddev=pp.stddev_Bimag, 
                                       fdeg=pp.fdeg_Bimag, tdeg=pp.tdeg_Bimag, 
-                                      scale=pp.scale) 
+                                      scale=pp.Bscale) 
     js.define_MeqParm(ns, bi2, station=skey, default=default)
 
     ss = js.MeqParm(update=True)
@@ -378,7 +397,7 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
   pp.setdefault('scope', '<scope>')       # scope of this Joneset
   pp.setdefault('stations', [0])          # range of station names/numbers
   pp.setdefault('punit', 'uvp')           # name of prediction-unit (source/patch)
-  pp.setdefault('scale', 1.0)             # scale of polc_ft non-c00 coeff
+  pp.setdefault('Dscale', 0.0)             # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)         # if True, the parms are potentially solvable
   pp.setdefault('coupled_XY_dang', True)  # if True, Xdang = Ydang per station
   pp.setdefault('coupled_XY_dell', True)  # if True, Xdell = -Ydell per station
@@ -398,13 +417,13 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
   # Register the parmgroups:
-  dang = js.register('dang', color='green', corrs='cross')
-  dell = js.register('dell', color='magenta', corrs='cross')
-  dang1 = js.register('dang', ipol=1, color='green', corrs='cross')
-  dang2 = js.register('dang', ipol=2, color='black', corrs='cross')
-  dell1 = js.register('dell', ipol=1, color='magenta', corrs='cross')
-  dell2 = js.register('dell', ipol=2, color='yellow', corrs='cross')
-  pzd = js.register('PZD', color='black', corrs='cross')
+  dang = js.register('dang', color='green', style='triangle', size=7, corrs='cross')
+  dell = js.register('dell', color='magenta', style='triangle', size=7, corrs='cross')
+  dang1 = js.register('dang', ipol=1, color='green', style='triangle', size=7, corrs='cross')
+  dang2 = js.register('dang', ipol=2, color='black', style='triangle', size=7, corrs='cross')
+  dell1 = js.register('dell', ipol=1, color='magenta', style='triangle', size=7, corrs='cross')
+  dell2 = js.register('dell', ipol=2, color='yellow', style='triangle', size=7, corrs='cross')
+  pzd = js.register('PZD', color='blue', style='circle', size=10, corrs='cross')
 
   # MeqParm node_groups: add 'D' to default 'Parm':
   js.node_groups(label[0])
@@ -443,16 +462,16 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
     # Dipole angle errors may be coupled (dang(X)=dang(Y)) or not:
     matname = 'DJones_dang_matrix'
     if pp.coupled_XY_dang:
-       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.scale,
+       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.Dscale,
                                          fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
        js.define_MeqParm(ns, dang, station=skey, default=default)
        ss = js.MeqParm(update=True, reset=True)
        rmat = MG_JEN_matrix.rotation (ns, angle=ss[dang], qual=qual, name=matname)
     else: 
-       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.scale,
+       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.Dscale,
                                          fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
        js.define_MeqParm(ns, dang1, station=skey, default=default)
-       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.scale, 
+       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.Dscale, 
                                          fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
        js.define_MeqParm(ns, dang2, station=skey, default=default)
        ss = js.MeqParm(update=True, reset=True)
@@ -462,16 +481,16 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
     # Dipole ellipticities may be coupled (dell(X)=-dell(Y)) or not:
     matname = 'DJones_dell_matrix'
     if pp.coupled_XY_dell:
-       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.scale,
+       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.Dscale,
                                          fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
        js.define_MeqParm(ns, dell, station=skey, default=default)
        ss = js.MeqParm(update=True, reset=True)
        emat = MG_JEN_matrix.ellipticity (ns, angle=ss[dell], qual=qual, name=matname)
     else:
-       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.scale, 
+       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.Dscale, 
                                          fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
        js.define_MeqParm(ns, dell1, station=skey, default=default)
-       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.scale, 
+       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.Dscale, 
                                          fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
        js.define_MeqParm(ns, dell2, station=skey, default=default)
        ss = js.MeqParm(update=True, reset=True)
@@ -522,57 +541,65 @@ def visualise_Joneseq (ns, Joneseq, **pp):
 
 
 #======================================================================================
-# Visualise the contents of the given Joneset object:
+# Visualise the contents (parmgroups) of the given Joneset object:
+# If a 'compare' Joneset is given, subtract its MeqParms from the corresponding
+# MeqParms (parmgroups) 
 
-def visualise(ns, Joneset, **pp):
+def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
     """visualises the contents of the given Joneset"""
 
     # Input arguments:
-    pp.setdefault('type', 'realvsimag')     # plot type (realvsimag or spectra)
-    pp.setdefault('errorbars', False)       # if True, plot stddev as crosses around mean
-    pp.setdefault('result', 'Joneset')      # result of this routine (Joneset or dcolls)
+    pp.setdefault('type', 'realvsimag')         # plot type (realvsimag or spectra)
+    pp.setdefault('errorbars', False)           # if True, plot stddev as crosses around mean
+    pp.setdefault('show_mxel', True)            # if True, show Joneset matrix elements too  
+    pp.setdefault('result', 'Joneset')          # result of this routine (Joneset or dcolls)
     pp = record(pp)
 
     # Use a sub-scope where node-names are prepended with name
     # and may have other qualifiers: nsub = ns.subscope(name, '[qual_list]')
-    label = Joneset.label()                 # e.g. GJones
+    label = Joneset.label()                     # e.g. GJones
     visu_scope = 'visu_'+Joneset.scope()+'_'+label
   
-    # Make dcolls per parm group:
+    # Make dcolls per (specified) parm group:
     dcoll = []
+    if not isinstance(parmgroup, str):
+        parmgroup = Joneset.parmgroup().keys()
     for key in Joneset.parmgroup().keys():
-       pgk = Joneset.parmgroup()[key]        # list of MeqParm node names
-       if len(pgk)>0:  # ignore if empty 
-          dc = MG_JEN_dataCollect.dcoll (ns, pgk, scope=visu_scope, tag=key,
-                                         type=pp.type, errorbars=pp.errorbars,
-                                         color=Joneset.plot_color()[key],
-                                         style=Joneset.plot_style()[key])
-          dcoll.append(dc)
+        if parmgroup.__contains__(key):         # only if specified 
+            pgk = Joneset.parmgroup()[key]      # list of MeqParm node names
+            if len(pgk)>0:                      # ignore if empty 
+                dc = MG_JEN_dataCollect.dcoll (ns, pgk, scope=visu_scope, tag=key,
+                                               type=pp.type, errorbars=pp.errorbars,
+                                               color=Joneset.plot_color()[key],
+                                               style=Joneset.plot_style()[key])
+                dcoll.append(dc)
 
 
-    # Make dcolls per matrix element:
-    melname = ['m11', 'm12', 'm21', 'm22']
-    nodes = dict(m11=[], m12=[], m21=[], m22=[])
-    for key in Joneset.keys():
-       jk = Joneset[key]                        # 2x2 jones matrix node (key=station)
-       for i in range(len(melname)):
-          nsub = ns.Subscope(visu_scope+'_'+melname[i], s=key)
-          selected = nsub.selector(i) << Meq.Selector (jk, index=i)
-          nodes[melname[i]].append(selected)    # nodes per matrix element (e.g. m22)
+    # Optional: Also make dcolls per matrix element:
+    if pp.show_mxel:
+        melname = ['m11', 'm12', 'm21', 'm22']
+        nodes = dict(m11=[], m12=[], m21=[], m22=[])
+        for key in Joneset.keys():
+            jk = Joneset[key]                        # 2x2 jones matrix node (key=station)
+            for i in range(len(melname)):
+                nsub = ns.Subscope(visu_scope+'_'+melname[i], s=key)
+                selected = nsub.selector(i) << Meq.Selector (jk, index=i)
+                nodes[melname[i]].append(selected)    # nodes per matrix element (e.g. m22)
        
-    for key in nodes.keys():
-       size = 10
-       color = 'darkGray'
-       style = 'cross'
-       if key=='m12' or key=='m21':
-           size = 7
-           color = 'gray'
-       dc = MG_JEN_dataCollect.dcoll (ns, nodes[key],
-                                    scope=visu_scope, tag=key,
-                                    type=pp.type,
-                                    color=color, style=style, size=size,
-                                    errorbars=pp.errorbars)
-       dcoll.append(dc)
+        for key in nodes.keys():
+            size = 10
+            color = 'darkGray'
+            style = 'cross'                          # symbol: +
+            if key=='m12' or key=='m21':             # cross corrs
+                style = 'xcross'                     # symbol: x
+                size = 7
+                color = 'gray'
+                dc = MG_JEN_dataCollect.dcoll (ns, nodes[key],
+                                               scope=visu_scope, tag=key,
+                                               type=pp.type,
+                                               color=color, style=style, size=size,
+                                               errorbars=pp.errorbars)
+                dcoll.append(dc)
 
  
     # Make a concatenation of the various dcolls:
@@ -636,15 +663,9 @@ def display_first_subtree (joneset, full=1):
 
 
 #********************************************************************************
-# Initialisation and testing routines
+# Testing routines
 # NB: this section should always be at the end of the script
 #********************************************************************************
-
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(script_name)
 
 #-------------------------------------------------------------------------
 # Meqforest execution routine (may be called from the browser):
@@ -653,6 +674,8 @@ MG_JEN_forest_state.init(script_name)
 
 def _test_forest (mqs, parent):
    return MG_JEN_exec.meqforest (mqs, parent)
+
+
 
 #-------------------------------------------------------------------------
 # Test routine to check the tree for consistency in the absence of a server
@@ -674,7 +697,7 @@ if __name__ == '__main__':
     js = BJones (ns, stations=stations, scope=scope, solvable=True, polrep='circular')
     # js = FJones (ns, stations=stations, scope=scope, solvable=True, polrep='circular')
     # js = FJones (ns, stations=stations, scope=scope, solvable=True, polrep='linear')
-    # js = DJones_WSRT (ns, stations=stations, sscope=scope, olvable=True, coupled_XY_dang=False, coupled_XY_dell=True)
+    # js = DJones_WSRT (ns, stations=stations, scope=scope, solvable=True, coupled_XY_dang=False, coupled_XY_dell=True)
     js.display()     
     display_first_subtree (js, full=1)
 

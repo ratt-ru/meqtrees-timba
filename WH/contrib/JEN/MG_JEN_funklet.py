@@ -115,7 +115,8 @@ def _define_forest (ns):
 #   - their sign is alternated between -1 and 1
 # - If stddev>0, a 'proportional' random number is added to each coeff
 
-def polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0): 
+def polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0):
+   """This is the doc-string"""
  
    # If the input is a polc (funklet) already, just return it ......??
    if isinstance(c00, dmi_type('MeqFunklet')):

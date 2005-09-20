@@ -121,6 +121,11 @@ def init (script='<MG_JEN_xyz.py>', mode='MeqGraft'):
    if isinstance(s1, (list, tuple)): s1 = s1[0]
    Settings.forest_state.savefile = s1
 
+   # Initialise the (MS-related) stream control records:
+   # See also MG_JEN_exec.py
+   stream = record(initrec=record(), inputinit=record(), outputinit=record())
+   Settings.forest_state.stream = stream
+
    if mode == 'MeqGraft':
       # Cache all node results:
       Settings.forest_state.cache_policy = 100
@@ -134,32 +139,6 @@ def init (script='<MG_JEN_xyz.py>', mode='MeqGraft'):
 init(script_name)
 
 
-#------------------------------------------------------------------------------- 
-# Attach MS (stream) info to the forest state record
-
-def stream (**pp):
-
-   pp.setdefault('MS', 'D1.MS')       #
-   pp = record(pp)
-
-   selection = record(channel_start_index=10,
-                      channel_end_index=50)
-   inputrec = record(ms_name=pp['MS'],
-                     data_column_name='DATA',
-                     selection=selection,
-                     tile_size=1)
-   outputrec = record(predict_column='MODEL_DATA')
-   Settings.forest_state.stream = record(input=inputrec, output=outputrec)
-   return True
-
-def stream_inputrec():
-   return Settings.forest_state.stream.input
-
-def stream_outputrec():
-   return Settings.forest_state.stream.output
-
-# Execute this function:
-stream()
 
 
 #------------------------------------------------------------------------------- 

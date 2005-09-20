@@ -240,22 +240,23 @@ class Cohset (TDL_common.Super):
         self.history(append=funcname+' -> '+self.oneliner())
 
 
-    def graft(self, ns, node, key='last', stepchild=True):
-        # Insert the specified node at the specified ifr
+    def graft(self, ns, node, key='all', stepchild=True):
+        # Insert the specified node at the specified ifrs
         # If stepchild=True, make the node(s) step-children of a MeqSelector
         # node that is inserted before the specified (key) coherency node:
         funcname = '::graft():'
         if not isinstance(node, (tuple, list)): node = [node]
         keys = self.keys()
-        if key=='first': key = keys[0]                      # use the first ifr
-        if key=='last': key = keys[len(keys)-1]             # use the last ifr
+        if key=='first': keys = keys[0]                     # use the first ifr only
+        if key=='last': keys = keys[len(keys)-1]            # use the last ifr only
         uniqual = _counter(funcname, increment=-1)
-        if stepchild:
-            self[key] = ns.step_graft.qmerge(self[key])(uniqual) << Meq.Selector(self[key], stepchildren=node)
-        else:
-            children = [self[key]]
-            children.extend(node)
-            self[key] = ns.graft.qmerge(self[key])(uniqual) << Meq.Selector(*children)
+        for key in keys:
+            if stepchild:
+                self[key] = ns.step_graft.qmerge(self[key])(uniqual) << Meq.Selector(self[key], stepchildren=node)
+            else:
+                children = [self[key]]
+                children.extend(node)
+                self[key] = ns.graft.qmerge(self[key])(uniqual) << Meq.Selector(*children)
         self.history(funcname+' -> '+self.oneliner())
         return True
 

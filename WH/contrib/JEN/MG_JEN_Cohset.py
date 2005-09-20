@@ -248,20 +248,20 @@ def JJones(ns, stations, **pp):
             jseq.append(MG_JEN_Joneset.GJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
                                                fdeg_Gampl=pp.fdeg_Gampl, fdeg_Gphase=pp.fdeg_Gphase,
                                                tdeg_Gampl=pp.tdeg_Gampl, tdeg_Gphase=pp.tdeg_Gphase,
-                                               scale=0))
+                                               Gscale=0))
         elif jones=='B':
             jseq.append(MG_JEN_Joneset.BJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
                                                fdeg_Breal=pp.fdeg_Breal, fdeg_Bimag=pp.fdeg_Bimag,
                                                tdeg_Breal=pp.tdeg_Breal, tdeg_Bimag=pp.tdeg_Bimag,
-                                               scale=0))
+                                               Bscale=0))
         elif jones=='F':
             jseq.append(MG_JEN_Joneset.FJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
-                                               scale=0, RM=pp.RM))
+                                               Fscale=0, RM=pp.RM))
         elif jones=='D':
             jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, scope=pp.scope, punit=pp.punit, stations=stations,
                                                     fdeg_dang=pp.fdeg_dang, fdeg_dell=pp.fdeg_dell,
                                                     tdeg_dang=pp.tdeg_dang, tdeg_dell=pp.tdeg_dell,
-                                                    scale=0, PZD=pp.PZD))
+                                                    Dscale=0, PZD=pp.PZD))
         else:
             print '** jones not recognised:',jones,'from:',pp.jones
                
@@ -434,7 +434,17 @@ def insert_flagger (ns, Cohset, **pp):
 # Insert a solver for the specified solvegroup(s):
 #======================================================================================
 
-def insert_solver (ns, measured, predicted, correct=None, **pp):
+# - The 'measured' Cohset is assumed to be the main data stream.
+# - The 'predicted' Cohset contains corrupted model visibilities.
+# - The (optional) 'correct' Joneset contains the instrumental model
+#   that is affected by this solver. If suppliedt, the measured data
+#   will be corrected with the estimated values BEFORE the reqseq graft.
+# - The (optional) 'compare' Joneset contains the simulated instrumental
+#   values. If supplied they will be subtracted from the estimated values
+#   when visualised. 
+
+
+def insert_solver (ns, measured, predicted, correct=None, compare=None, **pp):
     """insert a named solver""" 
 
     funcname = 'MG_JEN_Cohset.solver(): '
@@ -443,6 +453,7 @@ def insert_solver (ns, measured, predicted, correct=None, **pp):
     pp.setdefault('solvegroup', [])        # list of solvegroup(s) to be solved for
     pp.setdefault('num_iter', 20)          # number of iterations
     pp.setdefault('debug_level', 10)       # solver debug_level
+    pp.setdefault('visu', True)            # if True, include visualisation
     pp.setdefault('graft', True)           # if True, graft the solver on the Cohset stream
     pp = record(pp)
 
@@ -504,9 +515,13 @@ def insert_solver (ns, measured, predicted, correct=None, **pp):
         cc.append(condeq)
     Pohset.display('after defining condeqs')
 
-    # Visualise the condeqs:
-    Pohset.scope('condeq_'+solver_name)
-    dconc_condeq = visualise (ns, Pohset, errorbars=True, graft=False)
+    # Visualise the condeqs, if required:
+    dconc_condeq = dict()
+    if pp.visu:
+       Pohset.scope('condeq_'+solver_name)
+       dconc_condeq = visualise (ns, Pohset, errorbars=True, graft=False)
+       # NB: What about visualising MeqParms (solvegroups)?
+       #     Possibly compared with their simulated values...
   
     # Make the solver node:
     solver = ns.solver(solver_name, q=punit) << Meq.Solver(children=cc,
@@ -530,26 +545,27 @@ def insert_solver (ns, measured, predicted, correct=None, **pp):
     #         because otherwise it messes up the correction of the insertion ifr
     #         (one of the input Jones matrices is called before the solver....)
     if not correct==None:
-	measured.correct(ns, correct)     # assume that correct is a Joneset
+	measured.correct(ns, correct)          # assume that correct is a Joneset
 
-    # Tie the solver and its associated dcolls with the MeqReqseq node:
-    key = measured.keys()[0]
-    cc = [solver]                                     # start a list of reqseq children (solver is first)
-    for dkey in dconc_condeq.keys():  
-		cc.append(dconc_condeq[dkey]['dcoll']) 
-    result_index = 0 
-    if pp.graft: 
-	cc.append(measured[key])        # measured Cohset (main data-stream) should be LAST!
-	result_index = len(cc)-1             # the reqseq should return the result of the main data stream
-    solver_name = 'solver_'+solver_name
-    reqseq  = ns.reqseq(solver_name, q=punit) << Meq.ReqSeq(children=cc, result_index=result_index)
+
+    # Tie the solver and its associated dcoll(s) with a MeqReqseq node.
+    # If pp.graft==True such a reqseq node is inserted in each ifr data-stream
+    keys = measured.keys()                     # main data stream
+    solver_name = 'solver_'+solver_name        # used in reqseq name
+    for key in keys:
+       cc = [solver]                           # start a list of reqseq children (solver is first)
+       for dkey in dconc_condeq.keys(): cc.append(dconc_condeq[dkey]['dcoll']) 
+       result_index = 0 
+       if pp.graft: 
+          cc.append(measured[key])             # measured Cohset (main data-stream) should be LAST!
+          result_index = len(cc)-1             # the reqseq should return the result of the main data stream
+       reqseq = ns.reqseq.qmerge(measured[key])(solver_name, q=punit) << Meq.ReqSeq(children=cc, result_index=result_index)
  
-    # Optional, insert (graft) the solver reqseq on the main data stream (measured):
-    if pp.graft: 
-	key = measured.keys()[0]         # the key of the first ifr
-	measured[key] = reqseq            # insert the reqseq in the stream of one ifr only
+       # Optional, insert (graft) a solver reqseq on the main data stream (measured):
+       if pp.graft: measured[key] = reqseq     # the original measured[key] is a child of reqseq
 
-    # The resulting reqseq may be ignored by the calling function if graft=True: 
+    # Return the last reqseq node, which may be used to pass requests to.
+    # However, this is not necessary if pp.graft==True, so this reqseq may be ignored. 
     return reqseq
 
 
@@ -592,35 +608,50 @@ def visualise(ns, Cohset, **pp):
             selected = nsub.selector(icorr)(uniqual) << Meq.Selector (coh, index=icorr)
             nodes[corr].append(selected)
 
-    # Make dcolls per corr:
-    dcoll = dict(allcorrs=[])
+    # Make dcolls per corr, and collect groups of corrs:
+    dcoll = dict()
     for corr in corrs:
         dc = MG_JEN_dataCollect.dcoll (ns, nodes[corr], 
 	                               scope=dcoll_scope, tag=corr,
                                        type=pp.type, errorbars=pp.errorbars,
                                        color=Cohset.plot_color()[corr],
                                        style=Cohset.plot_style()[corr])
-        dcoll['allcorrs'].append(dc)                     # 
-        if corr in ['XY','YX','RL','LR']:
-            key = 'crosscorr'
-            if not dcoll.has_key(key): dcoll[key] = []
-            dcoll[key].append(dc)
-        if True and corr in ['XX','YY','RR','LL']:
-            key = 'paralcorr'
-            if not dcoll.has_key(key): dcoll[key] = []
-            dcoll[key].append(dc)
+        if pp.type=='spectra':
+           dcoll[corr] = dc
+        elif pp.type=='realvsimag':
+           key = 'allcorrs'
+           dcoll.setdefault(key,[])
+           dcoll[key].append(dc)
+           if corr in ['XY','YX','RL','LR']:
+              key = 'crosscorr'
+              dcoll.setdefault(key,[])
+              dcoll[key].append(dc)
+           if True and corr in ['XX','YY','RR','LL']:
+              key = 'paralcorr'
+              dcoll.setdefault(key,[])
+              dcoll[key].append(dc)
 
-
-    # Make concatenations of dcolls:
-    dconc = {}
+    # Make the final dcolls:
+    dconc = dict()
     sc = []
     for key in dcoll.keys():
-        dc = MG_JEN_dataCollect.dconc(ns, dcoll[key], 
-                                      scope=dcoll_scope,
-                                      tag=key, bookpage=key)
-        dconc[key] = dc
-        sc.append (dc['dcoll'])
-        MG_JEN_forest_state.bookmark (dc['dcoll'], page=dcoll_scope)
+       bookpage = None
+       if pp.type=='spectra':
+          # Since spectra plots are crowded, make separate plots for the 4 corrs.
+          # key = corr
+          dc = dcoll[key]
+          bookpage = dcoll_scope+'_spectra'
+       elif pp.type=='realvsimag':
+          # For realvsimag plots it is better to plot multiple corrs in the same plot.
+          # key = allcorrs, [paralcorr], [crosscorr]
+          # bookpage = dcoll_scope
+          dc = MG_JEN_dataCollect.dconc(ns, dcoll[key], 
+                                        scope=dcoll_scope,
+                                        tag=key, bookpage=key)
+       dconc[key] = dc                               # atach to output record
+       sc.append (dc['dcoll'])                       # step-child for graft below
+       if isinstance(bookpage, str):
+          MG_JEN_forest_state.bookmark (dc['dcoll'], page=bookpage)
       
 
     MG_JEN_forest_state.history (funcname)

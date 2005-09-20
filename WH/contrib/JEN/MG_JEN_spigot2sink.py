@@ -42,6 +42,9 @@ from Timba.Contrib.JEN import MG_JEN_flagger
 MG_JEN_forest_state.init(script_name)
 
 
+
+
+
 #================================================================================
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
@@ -50,23 +53,26 @@ MG_JEN_forest_state.init(script_name)
 def _define_forest (ns): 
    cc = MG_JEN_exec.on_entry (ns, script_name)
 
+   visu = False
+
    # Attach data-stream info to the forest_state record:
-   MG_JEN_forest_state.stream(MS='D1.MS')
+   # MG_JEN_forest_state.stream(MS='D1.MS')
 
    # Make the Cohset ifrs (and the Joneset stations):
-   ifrs = TDL_Cohset.stations2ifrs(range(3,7))
+   ifrs = TDL_Cohset.stations2ifrs(range(4))
    stations = TDL_Cohset.ifrs2stations(ifrs)
 
    Cohset = TDL_Cohset.Cohset(label=script_name, polrep='linear', stations=stations)
    Cohset.spigots(ns)
    Cohset.display('initial')
 
-   MG_JEN_Cohset.visualise (ns, Cohset)
-   MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
+   if visu:
+	MG_JEN_Cohset.visualise (ns, Cohset)
+	MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
 
    if False:
        MG_JEN_Cohset.insert_flagger (ns, Cohset, scope='residual', unop=['Real','Imag'], visu=True)
-       MG_JEN_Cohset.visualise (ns, Cohset)
+       if visu: MG_JEN_Cohset.visualise (ns, Cohset)
 
    # Source/patch to be used for selfcal:
    punit = 'unpol'
@@ -82,7 +88,7 @@ def _define_forest (ns):
        jones = ['D']
        jones = ['G','D']  
        jones = ['B']
-       jones = ['G']
+       # jones = ['G']
        Joneset = MG_JEN_Cohset.JJones(ns, stations, punit=punit, jones=jones,
                                                                 fdeg_Gampl=0, tdeg_Gampl=0,
                                                                 fdeg_Gphase=0, tdeg_Gphase=0)
@@ -92,23 +98,22 @@ def _define_forest (ns):
        # solvegroup = 'DJones'
        solvegroup = ['DJones', 'GJones']
        solvegroup = 'BJones'
-       solvegroup = 'GJones'
+       # solvegroup = 'GJones'
        MG_JEN_Cohset.insert_solver (ns, solvegroup=solvegroup,
                                     measured=Cohset, predicted=predicted, 
-                                    correct=Joneset, num_iter=10)
+                                    correct=Joneset, num_iter=10, visu=visu)
        # NB: The data are corrected with the the improved Joneset:
-
-       MG_JEN_Cohset.visualise (ns, Cohset)
-       MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
+       if visu:
+	MG_JEN_Cohset.visualise (ns, Cohset)
+	MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
 
 
    Cohset.sinks(ns)
    for sink in Cohset: cc.append(sink)
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
-
-
+   return MG_JEN_exec.on_exit (ns, script_name, cc,
+                               create_ms_interface_nodes=True)
 
 
 
@@ -141,8 +146,6 @@ def _define_forest (ns):
 # If not explicitly supplied, a default request will be used.
 
 def _test_forest (mqs, parent):
-   # from Timba.TDL import *
-   from Timba.Meq import meq
    
    # Timba.TDL.Settings.forest_state is a standard TDL name. 
    # This is a record passed to Set.Forest.State. 
@@ -151,31 +154,14 @@ def _test_forest (mqs, parent):
    # Make sure our solver root node is not cleaned up
    Settings.orphans_are_roots = True;
 
+   # Modify the stream_control record, if required:
+   MG_JEN_exec.stream_inputinit('ms_name', 'D1.MS')
+   MG_JEN_exec.stream_selection('channel_start_index', 10)
+   MG_JEN_exec.stream_selection('channel_end_index', 50)
 
-   inputrec = dmi.record();
-   inputrec.sink_type = 'ms_in';
-   inputrec.ms_name = 'D1.MS';
-   inputrec.data_column_name = 'DATA';
-   inputrec.tile_size = 1;
-
-   inputrec.selection = dmi.record();
-   # inputrec.selection.channel_start_index = 0;
-   # inputrec.selection.channel_end_index = -1;
-   inputrec.selection.channel_start_index = 10;
-   inputrec.selection.channel_end_index = 50;
-   
-   outputrec = dmi.record();
-   outputrec.sink_type = 'ms_out';
-   outputrec.predict_column_name = 'PREDICT';
-   outputrec.residuals_column_name = 'RESIDUALS';
-   
-   initrec = dmi.record()
-   initrec.output_col = 'RESIDUALS'
-   # initrec.python_init = 'read_msvis_header.py'
-   
-   mqs.init(initrec, inputinit=inputrec, outputinit=outputrec);
-
-
+   # Start the sequence of requests issued by MeqSink:
+   MG_JEN_exec.spigot2sink(mqs, parent)
+   return True
 
 
 

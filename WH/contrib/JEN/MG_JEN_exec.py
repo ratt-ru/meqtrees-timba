@@ -94,13 +94,53 @@ def on_entry (ns, name='<script_name>', **pp):
    return cc
 
 
+
+
+
+
+#-------------------------------------------------------------------------------
+# Create a small subtree of nodes that are expected by the function
+# that reads information from the MS:
+
+def create_ms_interface_nodes(ns):
+   cc = []
+
+   # Field (pointing) centre:
+   cc.append(ns.ra0 << 0.0)
+   cc.append(ns.dec0 << 1.0)
+
+   # Antenna positions:
+   nant = 14
+   coords = ('x','y','z')
+   for iant in range(nant):
+      sn = str(iant+1)
+      for (j,label) in enumerate(coords):
+         cc.append(ns[label+'.'+sn] << 0.0)
+
+   # Array reference position (x,y,z):
+   for (j,label) in enumerate(coords):
+      cc.append(ns[label+'0'] << 0.0)
+
+   # Tie them all together by a single root node.
+   # This is to avoid clutter of the list of root-nodes in the browser,
+   # in the case where they are not connected to the tree for some reason.
+   root = ns.ms_interface_nodes << Meq.Add(*cc)
+
+   return root
+
+
 #-------------------------------------------------------------------------------
 # Function called upon exit of _define_forest()
 # Deal with the list (cc) of root nodes:
    
 def on_exit (ns, name='<script_name>', cc=[], **pp):
    
-   pp.setdefault('make_bookmark', True)   # if False, inhibit bookmarks
+   pp.setdefault('make_bookmark', True)                # if False, inhibit bookmarks
+   pp.setdefault('create_ms_interface_nodes', False)   # see below
+
+   # OPtionally, create the standard nodes expected by the MS
+   if pp['create_ms_interface_nodes']:
+      create_ms_interface_nodes(ns)
    
    # Make a (single) root node for use in _test_forest():
    global _test_root
@@ -161,6 +201,107 @@ def importable_example(ns, qual='auto', **pp):
 
 
 
+
+
+
+
+
+#================================================================================
+#================================================================================
+#================================================================================
+# Execute the tree under (MS) stream_control:
+#================================================================================
+
+def spigot2sink (mqs, parent, **pp):
+
+   from Timba.Meq import meq
+
+   pp.setdefault('trace', False)
+   pp.setdefault('save', True)       
+   pp.setdefault('wait', False)       
+
+   # Get the stream control record from forest_state record:
+   ss = stream_control()
+   mqs.init(ss.initrec, inputinit=ss.inputinit, outputinit=ss.outputinit);
+
+   # Optionally, save the meqforest
+   if pp['save']: save_meqforest (mqs, **pp)
+   
+   return True
+
+
+#------------------------------------------------------------------------------- 
+# Get/set/display the stream_control record in the forest state record:
+# The latter serves as the (only) memory of this info.
+# This approach guarantees that the forest_state record is always up-to-date.
+
+def stream_initrec(key=None, value=None):
+   ss = Settings.forest_state.stream_control.initrec
+   s1 = stream_field(ss, key=key, value=value)
+   Settings.forest_state.stream_control.initrec = ss
+   return s1
+
+def stream_inputinit(key=None, value=None):
+   ss = Settings.forest_state.stream_control.inputinit
+   s1 = stream_field(ss, key=key, value=value)
+   Settings.forest_state.stream_control.inputinit = ss
+   return s1
+
+def stream_selection(key=None, value=None):
+   ss = Settings.forest_state.stream_control.inputinit.selection
+   s1 = stream_field(ss, key=key, value=value)
+   Settings.forest_state.stream_control.inputinit.selection = ss
+   return s1
+
+def stream_outputinit(key=None, value=None):
+   ss = Settings.forest_state.stream_control.outputinit
+   s1 = stream_field(ss, key=key, value=value)
+   Settings.forest_state.stream_control.outputinit = ss
+   return s1
+
+def stream_field(ss, key=None, value=None):
+   if isinstance(key, str):
+      if not value==None:
+         ss[key] = value
+         return ss[key]
+      if ss.has_key(key): return ss[key]
+   return ss
+
+# Access to stream_control record as a whole:
+
+def stream_control(value=None, display=False, init=False):
+   if not value==None:
+      Settings.forest_state.stream_control = value
+
+   if init:
+      ss = record(initrec=record(), inputinit=record(), outputinit=record())
+
+      ss.inputinit.sink_type = 'ms_in';
+      ss.inputinit.data_column_name = 'DATA';
+      ss.inputinit.tile_size = 1;
+      ss.inputinit.python_init = 'read_msvis_header.py'
+      
+      ss.inputinit.selection = record();
+      ss.inputinit.selection.channel_start_index = 0;
+      ss.inputinit.selection.channel_end_index = -1;
+      
+      ss.outputinit.sink_type = 'ms_out';
+      ss.outputinit.predict_column_name = 'PREDICT';
+      ss.outputinit.residuals_column_name = 'RESIDUALS';
+      
+      ss.initrec.output_col = 'RESIDUALS'
+   
+      Settings.forest_state.stream_control = ss
+
+   if display:
+      ss = Settings.forest_state.stream_control
+      display_object(ss, 'stream_control')
+   return Settings.forest_state.stream_control
+
+stream_control(init=True)
+
+
+
 #================================================================================
 #================================================================================
 #================================================================================
@@ -186,36 +327,6 @@ def meqforest (mqs, parent, request=None, **pp):
 
    result = mqs.meq('Node.Execute',record(name=_test_root, request=request), wait=pp['wait'])
    MG_JEN_forest_state.attach_test_result (mqs, result)
-
-   # Optionally, save the meqforest
-   if pp['save']: save_meqforest (mqs, **pp)
-   
-   return True
-
-#--------------------------------------------------------------------------------
-
-def spigot2sink (mqs, parent, **pp):
-
-   from Timba.Meq import meq
-
-   pp.setdefault('trace', False)
-   pp.setdefault('save', True)       
-   pp.setdefault('wait', True)       
-
-   # Attach the name of the Python file that reads the MS header
-   initrec = record()
-   initrec.python_init = 'read_msvis_header.py'
-   # initrec.python_init = 'Timba.Trees.read_msvis_header.py'
-
-   # Get the info specified earlier by MG_JEN_forest.state.stream():
-   inputrec = MG_JEN_forest.state.stream_inputrec()
-   outputrec = MG_JEN_forest.state.stream_outputrec()
-
-   # Start issuing a series of requests to the MeqSink(s):
-   mqs.init (initrec=F, input=inputrec, ouput=outputrec, wait=pp['wait'])
-
-   # mqsv.init (initrec=F, input=inputrec, ouput=F, 
-   #            update_gui=T, set_default=F, priority=5);
 
    # Optionally, save the meqforest
    if pp['save']: save_meqforest (mqs, **pp)
@@ -367,6 +478,9 @@ def make_domain (domain=None, **pp):
       if pp['trace']: print s,'pp =',pp
    if pp['trace']: print s,'-> domain =',domain
    return domain
+
+
+
 
 
 
@@ -682,7 +796,8 @@ if __name__ == '__main__':
    print '\n****************\n** Local test of:',script_name,':\n'
 
    # Generic test:
-   without_meqserver(script_name, callback=_define_forest, recurse=3)
+   if 0:
+      without_meqserver(script_name, callback=_define_forest, recurse=3)
    
    # Various local tests:
    if 0:
@@ -704,6 +819,15 @@ if __name__ == '__main__':
       request = make_request(domain='lofar', trace=True)
       request = make_request(request, trace=True)
       display_object (request, 'request', 'MG_JEN_exec')
+
+   if 1:
+      print '\n** initrec:',stream_initrec()
+      print '\n** inputinit:',stream_inputinit()
+      print '\n** selection:',stream_selection()
+      print 'channel_start_index:',stream_selection('channel_start_index')
+      print 'channel_start_index:',stream_selection('channel_start_index', 10)
+      print 'channel_start_index:',stream_selection('channel_start_index')
+      print '\n** outputinit:',stream_outputinit()
 
    print '\n** End of local test of:',script_name,'\n*************\n'
 

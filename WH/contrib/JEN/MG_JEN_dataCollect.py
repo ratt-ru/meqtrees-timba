@@ -42,11 +42,8 @@ def _define_forest (ns):
    # Generate a list (cc) of one or more node bundles (bb):
    cc = []
 
-   style = dict(circle=0, rectangle=0, square=0, ellipse=0, xcross=0, cross=0, triangle=0, diamond=0)
-   color = dict(black=0, red=0, blue=0, darkGreen=0, magenta=0, 
-			darkGray=0, darkMagenta=0, darkRed=0, darkYellow=0, 
-			darkBlue=0, darkCyan=0, gray=0, yellow=0, lightGray=0, 
-			cyan=0, green=0, none=0, white=0)
+   style = plot_dict('styles')
+   color = plot_dict('colors')
    skeys = style.keys()
    ckeys = color.keys()
 
@@ -110,12 +107,13 @@ def _define_forest (ns):
    dd = []
    scope = 'scope3'
    n = 3
-   for i in range(n):
-      for j in range(i+1,n+1):
-         default = MG_JEN_funklet.polc_ft(c00=1+(i+j)/10, fdeg=2, tdeg=1, stddev=0.01)
-         node = ns.parm(i=i,j=j) << Meq.Parm(default)
-         dc = dcoll(ns, node, scope=scope, type='spectra') 
-         dd.append(dc)
+   for corr in ['XX','XY','YX','YY']:
+      for i in range(n):
+         for j in range(i+1,n+1):
+            default = MG_JEN_funklet.polc_ft(c00=1+(i+j)/10, fdeg=2, tdeg=1, stddev=0.01)
+            node = ns.parm(i=i,j=j) << Meq.Parm(default)
+            dc = dcoll(ns, node, scope=scope, tag=corr, type='spectra') 
+            dd.append(dc)
          
    # Concatenate the dataCollect nodes in dd:
    dc = dconc(ns, dd, scope=scope, tag='spectra') 
@@ -128,36 +126,70 @@ def _define_forest (ns):
    return MG_JEN_exec.on_exit (ns, script_name, cc)
 
 
-#================================================================================
-# Available styles (as used by AGW):
-#================================================================================
-
-
-
-#	if (type=='color') {
-#           ss := 'black';
-#	    ss := [ss,"red blue darkGreen magenta"];
-#	    ss := [ss,"darkGray darkMagenta darkRed darkYellow"];
-#	    ss := [ss,"darkBlue darkCyan gray"];
-#	    ss := [ss,"yellow lightGray cyan green"];
-#	    # ss := [ss,"none white"];
-#	} else if (type=='spectrum_color') {
-#	    ss := "hippo grayscale brentjens";
-#	} else if (type=='symbol') {
-#	    ss := "circle rectangle square ellipse";
-#	    ss := [ss, "xcross cross triangle diamond"];
-#	    # ss := [ss,"none"];
-#	} else if (type=='line_style') {
-#	    ss := "dots lines steps stick";
-#	    ss := [ss, "SolidLine DashLine DotLine DashDotLine DashDotDotLine"];
-#	    ss := [ss, "solidline dashline dotline dashdotline dashdotdotline"];
-#	    # ss := [ss,"none"];
-
-
 
 #================================================================================
 # Importable function(s): The essence of a MeqGraft (MG) script.
 # To be imported into user scripts. 
+#================================================================================
+
+
+# Qt plot colors:
+
+def plot_colors(select='bright', n=-1):
+   ss_bright = ['red', 'blue', 'darkGreen', 'magenta', 
+                'darkRed', 'darkBlue', 'darkCyan',
+                'darkGray', 'darkMagenta',
+                'black', 'darkYellow']
+   ss_faint =  ['gray', 'yellow', 'lightGray', 
+                'cyan', 'green', 'none', 'white']
+   ss = ss_bright
+   if select=='faint': ss = ss_faint
+   if select=='all':
+      ss = ss_bright
+      ss.extend(ss_faint)
+   if isinstance(n, int) and n>0:
+      while len(ss)<n: ss.extend(ss)
+      ss = ss[0:n]
+   return ss
+
+# Qt symbol plot styles:
+
+def plot_styles():
+   ss = ['circle', 'rectangle', 'square', 'ellipse',
+         'xcross', 'cross', 'triangle', 'diamond']
+   return ss
+
+# Qt line-styles:
+
+def plot_line_styles ():
+   ss = ['SolidLine','DashLine','DotLine','DashDotLine','DashDotDotLine',
+         'solidline','dashline','dotline','dashdotline','dashdotdotline',
+         'none','dots','lines','steps','stick']
+   return ss
+
+# Qt symbol spectral color schemes:
+
+def plot_spectrum_color():
+   ss = ['hippo','grayscale','brentjens']
+   return ss
+
+# Make a dict in which each field is named for a plot_style/color/ etc
+# The field values are zero. They can be used to store nodestubs etc.
+
+def plot_dict(mode='styles'):
+   ss = []
+   if mode=='styles': ss = plot_styles()
+   if mode=='colors': ss = plot_colors()
+   if mode=='line_styles': ss = plot_line_styles()
+   if mode=='spectrum_color': ss = plot_spectrum_color()
+   ds = dict()
+   for key in ss: ds[key] = 0
+   return ds
+
+
+
+#================================================================================
+# dataCollect node: 
 #================================================================================
 
 
@@ -170,7 +202,7 @@ def dcoll (ns, node=[], **pp):
    pp.setdefault('scope', '<scope>')    # 'scope (e.g. rawdata)'
    pp.setdefault('tag', '<tag>')        # plot tag (e.g. allcorrs)
    pp.setdefault('title',False )        # plot title
-   pp.setdefault('insert', False)       # if node given, insert dconc node
+   pp.setdefault('graft', False)       # if node given, graft dconc node
    pp.setdefault('xlabel', '<xlabel>')  # x-axis label
    pp.setdefault('ylabel', '<ylabel>')  # y-axis label
    pp.setdefault('color', 'red')        # plot color
@@ -273,10 +305,10 @@ def dcoll (ns, node=[], **pp):
    elif isinstance(pp.bookmark, str):
       bm = MG_JEN_forest_state.bookmark (dconc['dcoll'], pp.bookmark)
       
-   # If an insert-node is specified, make the dconc node a step-child of a
+   # If an graft-node is specified, make the dconc node a step-child of a
    # MeqSelector node just before it, to issue requests:
-   if not isinstance(pp.insert, bool):
-      output = ns[scope_tag+'_branch'](uniqual) << Meq.Selector(insert, stepchildren=dcoll['dcoll'])
+   if not isinstance(pp.graft, bool):
+      output = ns[scope_tag+'_graft'](uniqual) << Meq.Selector(graft, stepchildren=dcoll['dcoll'])
       return output
    
    # Otherwise, return the dcoll record, with root node dcoll['dcoll']
@@ -296,7 +328,7 @@ def dconc (ns, dcoll, **pp):
    pp.setdefault('scope', '<scope>')      # 'scope (e.g. rawdata)'
    pp.setdefault('tag', '<tag>')          # plot tag (e.g. allcorrs)
    pp.setdefault('title',False )          # plot title
-   pp.setdefault('insert', False)         # if node given, insert dconc node
+   pp.setdefault('graft', False)          # if node given, graft dconc node
    pp.setdefault('xlabel', '<xlabel>')    # x-axis label
    pp.setdefault('ylabel', '<ylabel>')    # y-axis label
    pp.setdefault('bookmark', False)       # name of dcoll bookmark (False=none)
@@ -332,10 +364,10 @@ def dconc (ns, dcoll, **pp):
    elif isinstance(pp.bookmark, str):
       bm = MG_JEN_forest_state.bookmark (dconc['dcoll'], pp.bookmark)
 
-   # If an insert-node is specified, make the dconc node a step-child of a
+   # If a graft-node is specified, make the dconc node a step-child of a
    # MeqSelector node just before it, to issue requests:
-   if not isinstance(pp.insert, bool):
-      output = ns[dconc_name+'_branch'](uniqual) << Meq.Selector(insert, stepchildren=dconc['dcoll'])
+   if not isinstance(pp.graft, bool):
+      output = ns[dconc_name+'_graft'](uniqual) << Meq.Selector(graft, stepchildren=dconc['dcoll'])
       return output
 
    # Otherwise, just return the dconc record:
@@ -574,10 +606,22 @@ def _test_forest (mqs, parent):
 if __name__ == '__main__':
    print '\n*******************\n** Local test of:',script_name,':\n'
 
-   if 1:
+   if 0:
       MG_JEN_exec.without_meqserver(script_name, callback=_define_forest)
 
    ns = NodeScope()
+
+   if 0:
+      print '\n',plot_colors()
+      print '\n',plot_styles()
+      print '\n',plot_line_styles()
+      print '\n',plot_spectrum_color()
+      print '\n',plot_dict('colors')
+      print '\n 3:', plot_colors(n=3)
+      print '\n 33:', len(plot_colors(n=33)),plot_colors(n=33)
+      print '\n',plot_colors('faint')
+      print '\n',plot_colors('all')
+      print
 
    if 0:
       rr = 0
