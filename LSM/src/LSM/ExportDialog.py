@@ -10,12 +10,14 @@ import sys
 from common_utils import *
 
 class ExportDialog(QDialog):
-    def __init__(self,parent = None,name = None,modal = 0,fl = 0):
+    def __init__(self,parent = None,name = None,modal = 0,fl = 0,main_window=None):
         QDialog.__init__(self,parent,name,modal,fl)
 
         if not name:
             self.setName("ExportDialog")
         self.export_flag=EXPORT_IMG_EPS
+    
+        self.main=main_window
 
         FormLayout = QVBoxLayout(self,11,6,"FormLayout")
 #######################################
@@ -219,12 +221,15 @@ class ExportDialog(QDialog):
      if self.export_flag==EXPORT_IMG_EPS:
       if not s.endsWith(".eps"):
        s.append(".eps")
+      self.main.filePrintEPS(s.ascii())
      elif self.export_flag==EXPORT_IMG_PNG:
       if not s.endsWith(".png"):
        s.append(".png")
+      self.main.fileExportImage(s.ascii(),"PNG")
      elif self.export_flag==EXPORT_IMG_BMP:
       if not s.endsWith(".bmp"):
        s.append(".bmp")
+      self.main.fileExportImage(s.ascii(),"BMP")
      elif self.export_flag==EXPORT_PT_EPS:
       if not s.endsWith(".eps"):
        s.append(".eps")
@@ -244,7 +249,6 @@ class ExportDialog(QDialog):
       if not s.endsWith(".txt"):
        s.append(".txt")
  
-     print s
 
     def reject(self):
      print "reject options"

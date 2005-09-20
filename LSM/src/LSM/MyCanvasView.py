@@ -503,7 +503,7 @@ class MyCanvasView(QCanvasView):
   def getPixmap(self):
     pm=QPixmap(self.canvas().width(),self.canvas().height())
     pn=QPainter(pm)
-    self.canvas().drawArea(self.canvas().rect(),pm)
+    self.canvas().drawArea(self.canvas().rect(),pn)
     return pm
   # return label as a pixmap
   def createLabel(self,label):

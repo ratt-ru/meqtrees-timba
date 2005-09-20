@@ -543,7 +543,7 @@ class LSMWindow(QMainWindow):
               pp.flush()
 
     def fileExport(self):
-     win=ExportDialog(self,"Export Dialog",1,0)
+     win=ExportDialog(self,"Export Dialog",1,0,self)
      #win.setTitle("Testing...")
      win.show()
 
@@ -596,6 +596,12 @@ class LSMWindow(QMainWindow):
      f.write(fileContent.ascii())
      f.close()
 
+    def fileExportImage(self,filename='./image',filetype="PNG"):
+      pm=QPixmap(self.canvas.width(),self.canvas.height())
+      pn=QPainter(pm)
+      self.canvas.drawArea(self.canvas.rect(),pn)
+      pm.save(filename,filetype)
+      pn.end()
 
     def zoomStart(self):
        self.cview.zoom_status=GUI_ZOOM_WINDOW
