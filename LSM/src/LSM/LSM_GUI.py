@@ -17,6 +17,7 @@ from OptionsDialog import *
 from FTDialog import *
 from MyCanvasView import *
 from TreeDisp import *
+from ExportDialog import *
 
 image0_data = \
     "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d" \
@@ -336,8 +337,7 @@ class LSMWindow(QMainWindow):
         self.fileSaveAsAction = QAction(self,"fileSaveAsAction")
         self.filePrintAction = QAction(self,"filePrintAction")
         self.filePrintAction.setIconSet(QIconSet(self.image3))
-        self.filePrintEPSAction = QAction(self,"filePrintEPSAction")
-        self.filePrintEPSAction.setIconSet(QIconSet(self.image3))
+        self.fileExportAction = QAction(self,"fileExportAction")
         self.helpAboutAction = QAction(self,"helpAboutAction")
         self.viewZoom_WindowAction = QAction(self,"viewZoom_WindowAction")
         self.viewZoom_AllAction = QAction(self,"viewZoom_AllAction")
@@ -358,8 +358,8 @@ class LSMWindow(QMainWindow):
         self.fileSaveAction.addTo(self.fileMenu)
         self.fileSaveAsAction.addTo(self.fileMenu)
         self.fileMenu.insertSeparator()
+        self.fileExportAction.addTo(self.fileMenu)
         self.filePrintAction.addTo(self.fileMenu)
-        self.filePrintEPSAction.addTo(self.fileMenu)
         self.fileMenu.insertSeparator()
         self.fileMenu.insertItem('&Quit',qApp,SLOT('closeAllWindows()'),Qt.CTRL + Qt.Key_Q)
 
@@ -397,7 +397,7 @@ class LSMWindow(QMainWindow):
         self.connect(self.fileSaveAction,SIGNAL("activated()"),self.fileSave)
         self.connect(self.fileSaveAsAction,SIGNAL("activated()"),self.fileSaveAs)
         self.connect(self.filePrintAction,SIGNAL("activated()"),self.filePrint)
-        self.connect(self.filePrintEPSAction,SIGNAL("activated()"),self.filePrintEPS)
+        self.connect(self.fileExportAction,SIGNAL("activated()"),self.fileExport)
 
         self.connect(self.viewZoom_WindowAction,SIGNAL("activated()"),self.zoomStart)
         self.connect(self.viewZoom_AllAction,SIGNAL("activated()"),self.zoomAll)
@@ -463,9 +463,10 @@ class LSMWindow(QMainWindow):
         self.filePrintAction.setText(self.__tr("Print"))
         self.filePrintAction.setMenuText(self.__tr("&Print..."))
         self.filePrintAction.setAccel(self.__tr("Ctrl+P"))
-        self.filePrintEPSAction.setText(self.__tr("Print EPS"))
-        self.filePrintEPSAction.setMenuText(self.__tr("Print &EPS..."))
-        self.filePrintEPSAction.setAccel(self.__tr("Ctrl+E"))
+        self.fileExportAction.setText(self.__tr("Export"))
+        self.fileExportAction.setMenuText(self.__tr("&Export..."))
+        self.fileExportAction.setAccel(self.__tr("Ctrl+E"))
+
         self.helpAboutAction.setText(self.__tr("About"))
         self.helpAboutAction.setMenuText(self.__tr("&About"))
         self.helpAboutAction.setAccel(QString.null)
@@ -532,7 +533,6 @@ class LSMWindow(QMainWindow):
 
 
     def filePrint(self):
-
         if not self.cview.printer:
             self.cview.printer = QPrinter()
         if  self.cview.printer.setup(self.cview):
@@ -542,10 +542,13 @@ class LSMWindow(QMainWindow):
             if pp.isActive():
               pp.flush()
 
+    def fileExport(self):
+     win=ExportDialog(self,"Export Dialog",1,0)
+     #win.setTitle("Testing...")
+     win.show()
 
     # print to EPS
-    def filePrintEPS(self):
-      filename='./print.eps'
+    def filePrintEPS(self,filename='./print.eps'):
       # write EPS
       if not self.cview.printer:
        self.cview.printer = QPrinter()
