@@ -1,5 +1,4 @@
-script_name = 'MG_JEN_template.py'
-last_changed = 'h10sep2005'
+# script_name = 'MG_JEN_template.py'
 
 # Short description (see also the full description below):
 #   A template for the generation of MeqGraft (MG) scripts
@@ -53,7 +52,7 @@ last_changed = 'h10sep2005'
 #      MG_<authorinitials>_<function>.py
 # - Put it into your Water Hole directory:
 #      /Timba/WH/contrib/<author initials>/
-# - Fill in the correct script_name (and other info) at the top
+# - Fill in the correct script_name (and other info) at the top of part II
 # - Fill in the author and the short (one-line) description
 # - Replace the full description with a specific one
 # - Replace the example importable function with specific ones
@@ -79,6 +78,8 @@ last_changed = 'h10sep2005'
 #********************************************************************************
 #********************************************************************************
 
+script_name = 'MG_JEN_template.py'
+last_changed = 'h10sep2005'
 
 from Timba.TDL import *
 # from Timba.Meq import meq
@@ -255,7 +256,8 @@ def _test_forest (mqs, parent):
 #     In addition, qualifying keywords will be used when sensible
 
 def _tdl_job_custom(mqs, parent):
-   return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19, f1=0, f2=1, t1=0, t2=1, trace=False) 
+   return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
+                                 f1=0, f2=1, t1=0, t2=1, trace=False) 
 
 # There are some predefined domains:
 
