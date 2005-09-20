@@ -201,6 +201,7 @@ def _define_forest (ns):
 # Example:
 
 def example1(ns, qual=None, **pp):
+    """This is the doc-string of .example1()"""
 
     pp.setdefault('arg1', 1)
     pp.setdefault('arg2', 2)
@@ -214,6 +215,7 @@ def example1(ns, qual=None, **pp):
     return node
 
 def example2(ns, qual=None, **pp):
+    """This is the doc-string of .example2()"""
 
     pp.setdefault('arg1', 1)
     pp.setdefault('arg2', 2)
