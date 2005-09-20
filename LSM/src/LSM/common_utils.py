@@ -47,6 +47,19 @@ PCOL_V=9
 PCOL_RA=10
 PCOL_DEC=11
 
+# options for file export
+EXPORT_NONE=0
+EXPORT_IMG_EPS=101
+EXPORT_IMG_PNG=102
+EXPORT_IMG_BMP=103
+EXPORT_PT_EPS=201
+EXPORT_PT_TEX=202
+EXPORT_PT_TXT=203
+EXPORT_ST_EPS=301
+EXPORT_ST_TEX=302
+EXPORT_ST_TXT=303
+
+
 ######## binary search
 def bin_search(xarr,x,i_start,i_end):
   # xarr: [-inf,...,+inf] array so x must be within, also xarr 

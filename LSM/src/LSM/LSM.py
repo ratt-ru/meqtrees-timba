@@ -8,7 +8,7 @@ from Dummy import *
 from common_utils import *
 from Timba.Meq import meq
 from Timba.TDL import *
-
+from Timba.Trees import TDL_Sixpack
 
 #############################################
 class Source:
@@ -977,10 +977,10 @@ class LSM:
    # object does not apply here. However, we will create a dummy 
    # sixpack object.
 
-   newp.setSP(PSixpack(root=patch_root))
+   newp.setSP(TDL_Sixpack.Sixpack(root=patch_root,label=patch_name))
    # add new PUnit to table
    self.insertPUnit(newp)
-   print self.__barr
+   #print self.__barr
    #self.p_table[patch_name]=newp
 
    Timba.TDL._dbg.set_verbose(0);
@@ -1118,20 +1118,8 @@ class LSM:
   return retval_arr
 
 
-
- 
  # set the current NodeScope
  def setNodeScope(self,ns):
   self.__ns=ns
 
-
-
-
-#################################################################
-from Timba.Trees import TDL_Sixpack
-
-class PSixpack(TDL_Sixpack.Sixpack):
-  def __init__(self,**pp):
-   pp.setdefault('root',None)
-   TDL_Sixpack.Sixpack.__init__(self,**pp)
-   self.__sixpack=pp['root']
+#########################################################################

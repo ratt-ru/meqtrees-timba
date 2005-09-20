@@ -123,6 +123,7 @@ class TreeDisp(QDialog):
         item.setText(0,self.__tr(self.root.name))
         item.setText(1,self.__tr(self.root.classname))
         item.setPixmap(0,self.image0)
+        item.setOpen(1)
         self.plotTree(self.root,item)
         self.pushButton.setText(self.__tr("OK"))
 

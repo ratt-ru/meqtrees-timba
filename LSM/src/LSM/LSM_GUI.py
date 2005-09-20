@@ -249,12 +249,22 @@ class LSMWindow(QMainWindow):
          # self.table2.setText(row,9,QString(str(punit.sp.getV())))
          # self.table2.setText(row,10,QString(str(punit.sp.getRA())))
          # self.table2.setText(row,11,QString(str(punit.sp.getDec())))
-          self.table2.setText(row,PCOL_I,QString("MeqTree"))
-          self.table2.setText(row,PCOL_Q,QString("MeqTree"))
-          self.table2.setText(row,PCOL_U,QString("MeqTree"))
-          self.table2.setText(row,PCOL_V,QString("MeqTree"))
-          self.table2.setText(row,PCOL_RA,QString("MeqTree"))
-          self.table2.setText(row,PCOL_DEC,QString("MeqTree"))
+
+          if mytype==POINT_TYPE:
+           self.table2.setText(row,PCOL_I,QString("MeqTree"))
+           self.table2.setText(row,PCOL_Q,QString("MeqTree"))
+           self.table2.setText(row,PCOL_U,QString("MeqTree"))
+           self.table2.setText(row,PCOL_V,QString("MeqTree"))
+           self.table2.setText(row,PCOL_RA,QString("MeqTree"))
+           self.table2.setText(row,PCOL_DEC,QString("MeqTree"))
+          else: # patch
+           self.table2.setText(row,PCOL_I,QString("N/A"))
+           self.table2.setText(row,PCOL_Q,QString("N/A"))
+           self.table2.setText(row,PCOL_U,QString("N/A"))
+           self.table2.setText(row,PCOL_V,QString("N/A"))
+           self.table2.setText(row,PCOL_RA,QString("N/A"))
+           self.table2.setText(row,PCOL_DEC,QString("N/A"))
+
           # rememeber the name
           self.table2_names[sname]=row
           row+=1
@@ -359,19 +369,23 @@ class LSMWindow(QMainWindow):
         self.viewZoom_WindowAction.addTo(self.viewMenu)
         self.viewZoom_AllAction.addTo(self.viewMenu)
         self.viewZoom_CancelAction.addTo(self.viewMenu)
-        self.view_selectAction.addTo(self.viewMenu)
         self.viewMenu.insertSeparator()
         self.viewZoom_OptionsAction.addTo(self.viewMenu)
         self.viewMenu.insertSeparator()
         self.view_nextAction.addTo(self.viewMenu)
-        self.view_patchAction.addTo(self.viewMenu)
         self.MenuBar.insertItem(QString(""),self.viewMenu,2)
 
-        self.MenuBar.insertSeparator(3)
+
+        self.editMenu = QPopupMenu(self)
+        self.view_selectAction.addTo(self.editMenu)
+        self.view_patchAction.addTo(self.editMenu)
+        self.MenuBar.insertItem(QString(""),self.editMenu,3)
+
+        self.MenuBar.insertSeparator(4)
 
         self.helpMenu = QPopupMenu(self)
         self.helpAboutAction.addTo(self.helpMenu)
-        self.MenuBar.insertItem(QString(""),self.helpMenu,4)
+        self.MenuBar.insertItem(QString(""),self.helpMenu,5)
 
 
         self.languageChange()
@@ -400,49 +414,35 @@ class LSMWindow(QMainWindow):
      print cellx,celly
      print button
      print point
-     if (celly==PCOL_I):
-      puname=self.table2.text(cellx,PCOL_NAME).ascii()
-      # get I node stub corresponding to this punit
-      plist=self.lsm.queryLSM(name=puname)
-      sp=plist[0].getSP()
-      win=TreeDisp(self,puname,0,0,sp.stokesI())
-      win.setTitle(puname)
-      win.show()
-     elif (celly==PCOL_Q):
-      puname=self.table2.text(cellx,PCOL_NAME).ascii()
-      plist=self.lsm.queryLSM(name=puname)
-      sp=plist[0].getSP()
-      win=TreeDisp(self,puname,0,0,sp.stokesQ())
-      win.setTitle(puname)
-      win.show()
-     elif (celly==PCOL_U):
-      puname=self.table2.text(cellx,PCOL_NAME).ascii()
-      plist=self.lsm.queryLSM(name=puname)
-      sp=plist[0].getSP()
-      win=TreeDisp(self,puname,0,0,sp.stokesU())
-      win.setTitle(puname)
-      win.show()
-     elif (celly==PCOL_V):
-      puname=self.table2.text(cellx,PCOL_NAME).ascii()
-      plist=self.lsm.queryLSM(name=puname)
-      sp=plist[0].getSP()
-      win=TreeDisp(self,puname,0,0,sp.stokesV())
-      win.setTitle(puname)
-      win.show()
-     elif (celly==PCOL_RA):
-      puname=self.table2.text(cellx,PCOL_NAME).ascii()
-      plist=self.lsm.queryLSM(name=puname)
-      sp=plist[0].getSP()
-      win=TreeDisp(self,puname,0,0,sp.ra())
-      win.setTitle(puname)
-      win.show()
-     elif (celly==PCOL_DEC):
-      puname=self.table2.text(cellx,PCOL_NAME).ascii()
-      plist=self.lsm.queryLSM(name=puname)
-      sp=plist[0].getSP()
-      win=TreeDisp(self,puname,0,0,sp.dec())
-      win.setTitle(puname)
-      win.show()
+     puname=self.table2.text(cellx,PCOL_NAME).ascii()
+     plist=self.lsm.queryLSM(name=puname)
+     punit=plist[0]
+     sp=plist[0].getSP()
+     win=None
+     if punit.getType()==POINT_TYPE: 
+      if (celly==PCOL_I):
+       # get I node stub corresponding to this punit
+       win=TreeDisp(self,puname,0,0,sp.stokesI())
+      elif (celly==PCOL_Q):
+       win=TreeDisp(self,puname,0,0,sp.stokesQ())
+      elif (celly==PCOL_U):
+       win=TreeDisp(self,puname,0,0,sp.stokesU())
+      elif (celly==PCOL_V):
+       win=TreeDisp(self,puname,0,0,sp.stokesV())
+      elif (celly==PCOL_RA):
+       win=TreeDisp(self,puname,0,0,sp.ra())
+      elif (celly==PCOL_DEC):
+       win=TreeDisp(self,puname,0,0,sp.dec())
+      elif (celly==PCOL_SLIST):
+       win=TreeDisp(self,puname,0,0,sp.sixpack())
+     else: # this is a patch
+      if (celly==PCOL_SLIST) or (celly==PCOL_I) or\
+        (celly==PCOL_Q) or (celly==PCOL_U) or (celly==PCOL_V) or\
+        (celly==PCOL_RA) or (celly==PCOL_DEC):
+       win=TreeDisp(self,puname,0,0,sp.root())
+     if win!=None:
+       win.setTitle(puname)
+       win.show()
  
  
 
@@ -481,23 +481,27 @@ class LSMWindow(QMainWindow):
         self.viewZoom_OptionsAction.setText(self.__tr("Change Options for Plotting"))
         self.viewZoom_OptionsAction.setMenuText(self.__tr("Change &Options"))
         self.viewZoom_OptionsAction.setAccel(self.__tr("Ctrl+O"))
-        self.view_selectAction.setText(self.__tr("Select"))
-        self.view_selectAction.setMenuText(self.__tr("Select &Window"))
-        self.view_selectAction.setAccel(self.__tr("Ctrl+W"))
         self.view_nextAction.setText(self.__tr("Next"))
         self.view_nextAction.setMenuText(self.__tr("Next &Mode"))
         self.view_nextAction.setAccel(self.__tr("Ctrl+N"))
+
         self.view_patchAction.setText(self.__tr("Create Patches"))
-        self.view_patchAction.setMenuText(self.__tr("Create &Patches"))
-        self.view_patchAction.setAccel(self.__tr("Ctrl+P"))
+        self.view_patchAction.setMenuText(self.__tr("Create Patches (&Grid)"))
+        self.view_patchAction.setAccel(self.__tr("Ctrl+G"))
+        self.view_selectAction.setText(self.__tr("Create Patches"))
+        self.view_selectAction.setMenuText(self.__tr("Create Patches (&Window)"))
+        self.view_selectAction.setAccel(self.__tr("Ctrl+W"))
 
 
         if self.MenuBar.findItem(1):
             self.MenuBar.findItem(1).setText(self.__tr("&File"))
         if self.MenuBar.findItem(2):
             self.MenuBar.findItem(2).setText(self.__tr("&View"))
-        if self.MenuBar.findItem(4):
-            self.MenuBar.findItem(4).setText(self.__tr("&Help"))
+        if self.MenuBar.findItem(3):
+            self.MenuBar.findItem(3).setText(self.__tr("&Edit"))
+        if self.MenuBar.findItem(5):
+            self.MenuBar.findItem(5).setText(self.__tr("&Help"))
+
 
 
 
