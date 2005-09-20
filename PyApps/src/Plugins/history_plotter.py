@@ -187,8 +187,8 @@ class HistoryPlotter(GriddedPlugin):
   def create_plot_array(self,history_list):
 # first try to figure out what we have ...
 #     print 'incoming list is ', history_list
-#     for i in range(len(history_list)):
-#       print 'i value ', i, ' ', history_list[i]
+      for i in range(len(history_list)):
+        _dprint(3, 'i array is ', i, ' ', history_list[i])
       data_array = history_list[0]
 #     print 'data array ', data_array
 # test stuff
@@ -196,17 +196,24 @@ class HistoryPlotter(GriddedPlugin):
 #     dimensions = (len(history_list),1)
 #     data_array = resize(temp_array,dimensions)
 
+      shape = None
       try:
         shape = data_array.shape
-#       print 'has shape ', shape
+        _dprint(3, 'array has shape ', shape)
       
       except:
+        _dprint(3, 'shape function call fails here' )
+        try:
+          shape = data_array[0].shape
+          _dprint(3, 'array has shape ', shape)
 # we have a scalar - expand the scalar to fill the plot array
-        temp_array = asarray(data_array)
-        plot_array = resize(temp_array,len(history_list))
-        for i in range(len(history_list)):
-          plot_array[i] = history_list[i][0]
-        return plot_array
+        except:
+          temp_array = asarray(data_array)
+          plot_array = resize(temp_array,len(history_list))
+          for i in range(len(history_list)):
+            plot_array[i] = history_list[i][0]
+          return plot_array
+      _dprint(3, '** we should be here ')
       if len(shape) == 1:
         if shape[0] == 1:
 # again, we essentially have a scalar
@@ -217,15 +224,18 @@ class HistoryPlotter(GriddedPlugin):
           return plot_array
         else:
 # we can assume we have a conformant array along the first axis (I think)
+          _dprint(3, 'we should be here ')
           temp_array = asarray(data_array)
           dimensions = (len(history_list), shape[0])
           plot_array = resize(temp_array,dimensions)
           for i in range(len(history_list)):
+            _dprint(3, 'array is ', history_list[i])
             for j in range(shape[0]):
               plot_array[i,j] = history_list[i][j]
           return plot_array
 # otherwise we had a 2-D or greater shape
       else:
+        _dprint(3, '*** we should be here ')
         if len(shape) == 2 and shape[0] == 1 and shape[1] == 1:
 # we essentially have a scalar yet again
           temp_array = asarray(data_array)
@@ -237,19 +247,27 @@ class HistoryPlotter(GriddedPlugin):
 # easy if fastest changing index == shape of vector which will
 # be replicated
         if len(shape) == 2 and shape[0] == 1 and shape[1]  > 1:
+          _dprint(3, '**** we should be here ')
 	  dimensions = (len(history_list), shape[1])
-          plot_array = resize(data_array,dimensions)
+          _dprint(3, '**** dimensions are ', dimensions)
+          temp_array = asarray(data_array[0][0])
+          plot_array = resize(temp_array,dimensions)
           for i in range(len(history_list)):
             for j in range(shape[1]):
-              plot_array[i,j] = i * j
-#             plot_array[i,j] = history_list[i][0][j]
+#             plot_array[i,j] = i * j
+              plot_array[i,j] = history_list[i][0][j]
+          _dprint(3, '**** we should be after for with array ',plot_array)
+          _dprint(3, '**** we should be after for with array shape ',plot_array.shape)
+          return plot_array
         if len(shape) == 2 and shape[0] > 1 and shape[1] == 1:
 	  dimensions = (len(history_list), shape[0])
           plot_array = resize(data_array,dimensions)
           for i in range(len(history_list)):
+            _dprint(3, 'array is ', history_list[i])
             for j in range(shape[0]):
-              plot_array[i,j] = i * j
-#             plot_array[i,j] = history_list[i][j][0]
+#             plot_array[i,j] = i * j
+              plot_array[i,j] = history_list[i][j][0]
+          return plot_array
         else:
 # otherwise
           new_shape = []
@@ -262,7 +280,7 @@ class HistoryPlotter(GriddedPlugin):
           for i in range(len(history_list)):
 #           print 'i value ', i, ' ', history_list[i]
             plot_array[i] = history_list[i]
-        return plot_array
+          return plot_array
 
   def setArraySelector (self,lcd_number, slider_value, display_string):
     self.array_selector[lcd_number] = slider_value
@@ -352,7 +370,7 @@ class HistoryPlotter(GriddedPlugin):
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
       try: self._rec = self._rec.cache.result; # look for cache.result record
       except:
-        Message = "No result record was found in the cache, so no plot can be made with the <b>result plotter</b>! You may wish to select another type of display."
+        Message = "No result record was found in the cache, so no plot can be made with the <b>history plotter</b>! You may wish to select another type of display."
         cache_message = QLabel(Message,self.wparent())
         cache_message.setTextFormat(Qt.RichText)
         self._wtop = cache_message
