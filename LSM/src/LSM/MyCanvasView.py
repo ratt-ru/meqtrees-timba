@@ -291,7 +291,7 @@ class MyCanvasView(QCanvasView):
     self.canvas().update()
 
    if self.zoom_status==GUI_SELECT_START:
-    self.zoom_status=GUI_SELECT_WINDOW
+    self.zoom_status=GUI_ZOOM_NONE
     self.zwindow.hide()
     ilist = self.canvas().collisions(self.zwindow.getRect()) #QCanvasItemList ilist
     tmp_str=""
