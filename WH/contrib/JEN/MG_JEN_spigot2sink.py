@@ -53,7 +53,7 @@ MG_JEN_forest_state.init(script_name)
 def _define_forest (ns): 
    cc = MG_JEN_exec.on_entry (ns, script_name)
 
-   visu = False
+   visu = True
 
    # Attach data-stream info to the forest_state record:
    # MG_JEN_forest_state.stream(MS='D1.MS')
