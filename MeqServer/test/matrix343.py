@@ -117,14 +117,14 @@ def forest_source_subtrees(ns, source):
 
 
 
+
+
+
 def forest_station_patch_jones(ns, station, patch_name, mep_table_name):
     """
     Station is a 1-based integer. patch_name refers to a collection of sources
     """
     
-    ns.dft(station,source.name) << Meq.VisPhaseShift(
-                                         lmn=ns.lmn_minus1(source.name),
-                                         uvw=ns.uvw(station))
     for i in range(1,3):
         for j in range(1,3):
             elem      = str(i)+str(j)
@@ -149,7 +149,61 @@ def forest_station_patch_jones(ns, station, patch_name, mep_table_name):
                                              ns.J(station, patch_name, '12'),
                                              ns.J(station, patch_name, '21'),
                                              ns.J(station, patch_name, '22'))
+    ns.ctJ(station, patch_name) << Meq.ConjTranspose(ns.J(station,patch_name))
     return ns.J(station, patch_name)
+
+
+
+
+
+
+
+
+
+
+
+
+
+def forest_station_jones(ns, station, mep_table_name):
+    """
+    Station is a 1-based integer. patch_name refers to a collection of sources
+    """
+    
+    for i in range(1,3):
+        for j in range(1,3):
+            elem      = str(i)+str(j)
+            if i != j:
+                gain_polc  = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
+                phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
+            else:
+                gain_polc  = create_polc_ft(degree_f=0, degree_t=1, c00=1.0)
+                phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
+                pass
+            ns.GA(station, elem) << Meq.Parm(gain_polc,
+                                             table=mep_table_name)
+            ns.GP(station, elem) << Meq.Parm(phase_polc,
+                                             table=mep_table_name)
+            ns.G(station, elem) << Meq.Polar(
+                    ns.GA(station, elem),
+                    ns.GP(station, elem))
+            pass # for j ...
+        pass     # for i ...
+    
+    ns.G(station) << Meq.Matrix22(ns.G(station, '11'),
+                                  ns.G(station, '12'),
+                                  ns.G(station, '21'),
+                                  ns.G(station, '22'))
+    ns.ctG(station) << Meq.ConjTranspose(ns.G(station))
+    return ns.G(station)
+
+
+
+
+
+
+
+
+
 
 
 
@@ -168,39 +222,74 @@ def forest_clean_patch_predict_trees(ns, patch_name, source_list, station_list):
     # Create source visibilities per baseline and add to 
     # obtain total visibility due to this patch
 
-    for ant1 in range(1,len(station_list)+1):
-        for ant2 in range(ant1+1, len(station_list)+1):
+    for ant1 in range(len(station_list)):
+        for ant2 in range(ant1+1, len(station_list)):
             clean_visibility_list = []
             for source in source_list:
-                ns.clean_visibility(ant1, ant2, source.name) << \
+                ns.clean_visibility(station_list[ant1], station_list[ant2], source.name) << \
                      Meq.MatrixMultiply(ns.dft(station_list[ant1], source.name),
                                     ns.conjdft(station_list[ant2], source.name),
                                     ns.coherency(source.name))
-                clean_visibility_list.append(ns.clean_visibility(ant1, ant2, source.name))
+                clean_visibility_list.append(ns.clean_visibility(station_list[ant1], station_list[ant2], source.name))
                 pass # for source
-            ns.clean_visibility(ant1, ant2, patch_name) << Meq.Sum(children=clean_visibility_list)
+            ns.clean_visibility(station_list[ant1], station_list[ant2], patch_name) << Meq.Sum(children=clean_visibility_list)
             pass # for ant2
         pass     # for ant1
     pass
 
 
 
+
+
+
+
+
+
+def forest_baseline_predict_tree(ns, ant1, ant2, patch_names):
+    corrupted_patch_vis_list = []
+    for patch_name in patch_names:
+        ns.corrupted_patch_vis(ant1,ant2,patch_name) << \
+                Meq.Multiply(ns.J(ant1,patch_name), 
+                             ns.clean_visibility(ant1,ant2, patch_name),
+                             ns.ctJ(ant1, patch_name))
+        corrupted_patch_vis_list.append(ns.corrupted_patch_vis(ant1,ant2,patch_name))        
+        pass
+    ns.corrupted_vis(ant1, ant2) << Meq.Sum(children=corrupted_patch_vis_list)    
+    pass
+
+
+
+
 def _define_forest(ns):
-    mep_table_name = '3C343.mep'
+    mep_table_name      = '3C343.mep'
     source_mep_tablename= 'sourcemodel.mep'
+    station_list        = range(1, 14+1)
 
-    source_model=create_initial_source_model(source_mep_tablename)
+    source_model      = create_initial_source_model(source_mep_tablename)
     patch_source_lists= {'centre':[source_model[0]], 'edge':[source_model[1]]}
-    print patch_source_lists
 
-    forest_measurement_set_info(ns, 16)
+    forest_measurement_set_info(ns, len(station_list))
+
     for source in source_model:
         forest_source_subtrees(ns, source)
         pass
-    for (name, list) in patch_source_lists.iteritems():
-        forest_clean_patch_predict_trees(ns, name, list, range(1,15))
+        
+    for station in station_list:
+        forest_station_jones(ns, station, mep_table_name)
         pass
         
+    for (name, list) in patch_source_lists.iteritems():
+        forest_clean_patch_predict_trees(ns, name, list, station_list)
+        for station in station_list:
+            forest_station_patch_jones(ns, station, name, mep_table_name)
+            pass
+        pass
+    for ant1 in station_list:
+        for ant2 in range(ant1+1, len(station_list)+1):
+            forest_baseline_predict_tree(ns, ant1, ant2,
+                                         patch_source_lists.keys())
+            pass
+        pass
     pass
 
 
