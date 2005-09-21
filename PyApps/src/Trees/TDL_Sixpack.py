@@ -12,7 +12,7 @@ _dbg = utils.verbosity(0, name='Sixpack')
 _dprint = _dbg.dprint                    # use: _dprint(2, "abc")
 _dprintf = _dbg.dprintf   
 
-class Sixpack(TDL_common.Super):
+class Sixpack_Point(TDL_common.Super):
  """
  Constructors:
   Sixpack(stokesI=sI,stokesQ=sQ,stokesU=sU,stokesV=sV,ra=RA,dec=Dec,label=label): 
@@ -45,7 +45,7 @@ class Sixpack(TDL_common.Super):
 
  
 
- Sixpack contains:
+ Sixpack_Point contains:
       __label: label of root node, if any
 
       node stubs
@@ -264,46 +264,284 @@ class Sixpack(TDL_common.Super):
 
 
 ################################################################
-"""if __name__=='__main__':
+class Sixpack_Patch(TDL_common.Super):
+ """
+ Constructors:
+  Sixpack(root=root,label=label): 
+   the above two are mandetory, only in a patch the 'root' input argument
+   should be given. Note that by default both are set to None. 
+ 
+ Other methods:
+ root() : return the root 
+
+ Sixpack_Patch contains:
+      __label: label of root node, if any
+      __root: root of subtree
+ """
+
+ def __init__(self,**pp):
+   """Possible input (and defalut values) for the constructor are:
+      Sixpack(stokesI=sI,stokesQ=sQ,stokesU=sU,stokesV=sV,ra=RA,dec=Dec,label=label): roots of 
+         the six subtrees but not composed
+      Sixpack(stokesI=sI,stokesQ=sQ,stokesU=sU,stokesV=sV,ra=RA,dec=Dec,ns=ns): roots of
+       the six subtrees, composed into one subtree
+   """
+
+   pp.setdefault('label',None)
+   pp.setdefault('root',None)
+   pp.setdefault('type','Sixpack')
+   TDL_common.Super.__init__(self, **pp)
+   self.__label=pp['label']
+   self.__root=pp['root']
+
+ def root(self):
+  return self.__root
+
+ # print a summary
+ def oneliner(self):
+  s=TDL_common.Super.oneliner(self)
+  s+=":{ "
+  s+=" root= "+str(self.__root)
+  s+=" }"
+  print s
+  return s
+
+ def display(self,txt=None,full=False):
+  ss=TDL_common.Super.display(self,txt=txt,end=False)
+  indent1=2*' '
+  ss.append(indent1+"- root (node stub)= "+str(self.__root))
+  return TDL_common.Super.display_end(self,ss)
+
+ # generic string
+ def __str__(self):
+  return self.oneliner()
+
+#######################################################################
+class Sixpack:
+ """
+ Constructors:
+  Sixpack(stokesI=sI,stokesQ=sQ,stokesU=sU,stokesV=sV,ra=RA,dec=Dec,label=label): 
+   by default, stokesI=1.0 and dec=pi/2 and all other node stubs are zero
+
+  Sixpack(stokesI=sI,stokesQ=sQ,stokesU=sU,stokesV=sV,ra=RA,dec=Dec,ns=ns,label=label): 
+   by default, stokesI=1.0 and dec=pi/2 and all other node stubs are zero,
+   composed into one subtree as well.
+ 
+ Other methods:
+ decompose() : decomposes the root into six subtrees
+  in composed state, sixpack !=None,
+  in decomposed state, sixpack ==None
+ sixpack(ns=ns): if already composed, return the sixpack subtree,
+  else, first compose it using given nodescope and return it
+ iquv(ns=ns): compose the fourpack using the given nodescope 
+  and return it or return an already composed subtree
+ radec(ns=ns): compose the twopack using the given nodescope and
+  return it or return an already composed subtree
+
+ stokesI(new_stokesI):
+  if called without any input, returns the StokesI,
+  else, set StokesI node stub to the new value
+ stokesQ(new_stokesQ):
+ stokesU(new_stokesQ):
+ stokesV(new_stokesQ): same as above stokesI()
+
+ ra(new_RA): 
+ dec(new_Dec): same as above stokesI()
+
+ 
+
+ Sixpack_Point contains:
+      __label: label of root node, if any
+
+      node stubs
+      __sI:
+      __sQ:
+      __sU:
+      __sV:
+      __RA:
+      __Dec: six stubs for the six subtrees
+      __sixpack: Root of the Sixpack subtree
+      __iquv: root of fourpack subtree
+      __radec: root of radec subtree
+ """
+ """
+ Constructors:
+  Sixpack(root=root,label=label): 
+   the above two are mandetory, only in a patch the 'root' input argument
+   should be given. Note that by default both are set to None. 
+ 
+ Other methods:
+ root() : return the root 
+
+ Sixpack_Patch contains:
+      __label: label of root node, if any
+      __root: root of subtree
+ """
+ def __init__(self,**pp):
+   """
+    Depending on the input, this can be a Sixpack_Point or Sixpack_Patch
+   """
+   pp.setdefault('root',None)
+   if pp['root']!=None: # create a Sixpack_Patch
+    print "Create Patch"
+    self.__obj=Sixpack_Patch(**pp)
+    self.__point=False
+   else:
+    print "Create Point"
+    self.__obj=Sixpack_Point(**pp)
+    self.__point=True
+  
+
+ def ra(self,val=None):
+  if self.__point:
+   return self.__obj.ra(val)
+  else:
+   return None
+
+ def dec(self,val=None):
+  if self.__point:
+   return self.__obj.dec(val)
+  else:
+   return None
+
+ def stokesI(self,val=None):
+  if self.__point:
+   return self.__obj.stokesI(val)
+  else:
+   return None
+
+ def stokesQ(self,val=None):
+  if self.__point:
+   return self.__obj.stokesQ(val)
+  else:
+   return None
+
+ def stokesU(self,val=None):
+  if self.__point:
+   return self.__obj.stokesU(val)
+  else:
+   return None
+
+ def stokesV(self,val=None):
+  if self.__point:
+   return self.__obj.stokesV(val)
+  else:
+   return None
+
+ def nodescope(self,val=None):
+  if self.__point:
+   return self.__obj.nodescope(val)
+  else:
+   return None
+
+ # decompose the sixpack into six node stubs
+ def decompose(self):
+  if self.__point:
+   self.__obj.decompose()
+  else:
+   return 
+
+ # compose the sixpack from the six node stubs
+ def sixpack(self,ns=None):
+  if self.__point:
+   return self.__obj.sixpack(ns)
+  else:
+   return None
+
+ # return the 4pack from the six node stubs
+ def iquv(self,ns=None):
+  if self.__point:
+   return self.__obj.iquv(ns)
+  else:
+   return None
+
+ # return the 2pack from the six node stubs
+ def radec(self,ns=None):
+  if self.__point:
+   return self.__obj.radec(ns)
+  else:
+   return None
+
+
+ # print a summary
+ def oneliner(self):
+  return self.__obj.oneliner()
+
+ def display(self,txt=None,full=False):
+  return self.__obj.display(txt,full)
+
+ # generic string
+ def __str__(self):
+  return self.oneliner()
+
+ # the following method is only valid for a patch
+ def root(self):
+  if not self.__point:
+   return self.__obj.root()
+  else:
+   return None
+
+ # the following method is only valid for a patch
+ def label(self,*nkw,**kw):
+  return self.__obj.label(*nkw,**kw)
+
+ def type(self,*nkw,**kw): 
+  return self.__obj.type(*nkw,**kw)
+
+ # the following method is used to see if this object is a patch or a point source
+ def ispoint(self):
+  return self.__point
+
+
+
+#######################################################################
+if __name__=='__main__':
   ns=NodeScope()
-  from Timba.Contrib.JEN import MG_JEN_sixpack
   from Timba.Trees import TDL_Sixpack 
-  my_name='foo'
-  sixpack_stubs=MG_JEN_sixpack.newstar_source(ns, name=my_name,I0=10, SI=[0.1],f0=1e6,RA=0.0, Dec=0.0,trace=0)
-  iquv=sixpack_stubs['iquv']
-  radec=sixpack_stubs['radec']
-  my_sp=TDL_Sixpack.Sixpack(label='test',ns=ns,
-    ra=radec['RA'],dec=radec['Dec'],stokesI=iquv['StokesI'],stokesQ=iquv['StokesQ'],\
-    stokesU=iquv['StokesU'],stokesV=iquv['StokesV'])
+  my_name='my_sixpack'
+  # create some node stubs for the sixpack
+  # first some parameters
+  ns.f<<Meq.Parm(meq.polclog([1,0.1,0.01]))
+  ns.t<<Meq.Parm(meq.polclog([0.01,0.1,1]))
+  # next the node stubs
+  stubI=ns['Istub']<<1.1*Meq.Sin(ns.f+ns.t)
+  stubQ=ns['Qstub']<<2.0*Meq.Cos(ns.f)
+  stubU=ns['Ustub']<<2.1*Meq.Sin(ns.f-2)
+  stubV=ns['Vstub']<<2.1*Meq.Cos(ns.f-2)
+  stubRA=ns['RAstub']<<2.1*Meq.Cos(ns.f-2)*Meq.Sin(ns.t)
+  stubDec=ns['Decstub']<<2.1*Meq.Cos(ns.f-2)*Meq.Sin(ns.t)
+
+  # now create the sixpack
+  my_sp=TDL_Sixpack.Sixpack(label=my_name,\
+   ns=ns, ra=stubRA,dec=stubDec,stokesI=stubI,\
+   stokesQ=stubQ,stokesU=stubU,stokesV=stubV)
   my_sp.display()
-  # decompose to get back the node stubs
-  my_sp.decompose()
-  my_sp.display()
-    # compose node stubs in the new nodescope
-  my_sp.display()
-  # resolve both node scopes
+
+
+  my_name='patch0'
+  stubR=ns[my_name]<<1.1*Meq.Sin(ns.f+ns.t)+2.0*Meq.Cos(ns.f)-2.1*Meq.Sin(ns.f-2)
+ 
+  my_sp_patch=TDL_Sixpack.Sixpack(label=my_name,root=stubR)
+
+  # resolve the forest
   ns.Resolve()
-
-  # try to get some subtrees
-  iquv_tree=my_sp.iquv()
-  my_sp.nodescope(ns)
-  print iquv_tree
-  iquv_tree=my_sp.iquv(ns)
-  print iquv_tree
-  s_tree=my_sp.sixpack()
-  print s_tree
+  print "========================= Point "
+  print dir(my_sp)
   my_sp.display()
-
-
-  my_sp.display()
-  # create a new nodescope
-  ns1=NodeScope('1')
-  radec=my_sp.radec(ns1)
-  ns1.Resolve()
-  my_sp.display()
-  my_sp1=TDL_Sixpack.Sixpack(label='test1',\
-    stokesU=my_sp.stokesU())
-
-  my_sp1.display()
-""" 
+  my_sp.decompose()
+  print my_sp.stokesI()
+  print my_sp.stokesQ()
+  print my_sp.stokesU()
+  print my_sp.stokesV()
+  print my_sp.root()
+  print my_sp.type()
+  print "========================= Patch"
+  print dir(my_sp_patch)
+  my_sp_patch.display()
+  my_sp_patch.decompose()
+  print my_sp_patch.stokesI()
+  print my_sp_patch.stokesQ()
+  print my_sp_patch.stokesU()
+  print my_sp_patch.stokesV()
+  print my_sp_patch.root()
 
