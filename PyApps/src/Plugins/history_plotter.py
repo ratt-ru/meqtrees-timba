@@ -199,7 +199,7 @@ class HistoryPlotter(GriddedPlugin):
       shape = None
       try:
         shape = data_array.shape
-        _dprint(3, 'array has shape ', shape)
+        _dprint(3, 'this array has shape ', shape)
       
       except:
         _dprint(3, 'shape function call fails here' )
@@ -208,6 +208,7 @@ class HistoryPlotter(GriddedPlugin):
           _dprint(3, 'array has shape ', shape)
 # we have a scalar - expand the scalar to fill the plot array
         except:
+          _dprint(3, 'I think I have a scalar')
           temp_array = asarray(data_array)
           plot_array = resize(temp_array,len(history_list))
           for i in range(len(history_list)):
@@ -265,7 +266,6 @@ class HistoryPlotter(GriddedPlugin):
           for i in range(len(history_list)):
             _dprint(3, 'array is ', history_list[i])
             for j in range(shape[0]):
-#             plot_array[i,j] = i * j
               plot_array[i,j] = history_list[i][j][0]
           return plot_array
         else:
