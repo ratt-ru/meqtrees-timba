@@ -257,7 +257,7 @@ int Forest::getNodeList (DMI::Record &list,int content)
 {
   int num = num_valid_nodes;
   // create lists (arrays) for all known content
-  DMI::Vec *lni=0,*lname=0,*lclass=0,*lstate=0;
+  DMI::Vec *lni=0,*lname=0,*lclass=0,*lstate=0,*lprof=0,*lcache=0;
   DMI::List *lchildren=0,*lstepchildren=0;
   if( content&NL_NODEINDEX )
     list[AidNodeIndex] <<= lni = new DMI::Vec(Tpint,num);
@@ -272,6 +272,11 @@ int Forest::getNodeList (DMI::Record &list,int content)
   }
   if( content&NL_CONTROL_STATUS )
     list[FControlStatus] <<= lstate = new DMI::Vec(Tpint,num);
+  if( content&NL_PROFILING_STATS )
+  {
+    list[FProfilingStats] <<= lprof = new DMI::Vec(TpDMIRecord,num);
+    list[FCacheStats] <<= lcache = new DMI::Vec(TpDMIRecord,num);
+  }
   if( num )
   {
     // fill them up
@@ -280,7 +285,8 @@ int Forest::getNodeList (DMI::Record &list,int content)
       if( nodes[i].valid() )
       {
         FailWhen(i0>num,"forest inconsistency: too many valid nodes");
-        const Node &node = *nodes[i];
+        Node &node = nodes[i]();
+        const DMI::Record &nodestate = node.syncState();
         if( lni )
           (*lni)[i0] = i;
         if( lname )
@@ -291,8 +297,13 @@ int Forest::getNodeList (DMI::Record &list,int content)
           (*lstate)[i0] = node.getControlStatus();
         if( lchildren )
         {
-          lchildren->addBack(node.state()[FChildren].ref(true));
-          lstepchildren->addBack(node.state()[FStepChildren].ref(true));
+          lchildren->addBack(nodestate[FChildren].ref(true));
+          lstepchildren->addBack(nodestate[FStepChildren].ref(true));
+        }
+        if( lprof )
+        {
+          (*lprof)[i0] = nodestate[FProfilingStats].ref(true);
+          (*lcache)[i0] = nodestate[FCacheStats].ref(true);
         }
         i0++;
       }

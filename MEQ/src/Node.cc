@@ -432,7 +432,7 @@ void Node::fillProfilingStats (ProfilingStats *st,const LOFAR::NSTimer &timer)
   const double scale = 1e-3/LOFAR::NSTimer::cpuSpeedInMHz();
   st->total    = timer.totalTime()*scale;
   st->count    = timer.shotCount();
-  st->average  = timer.faverageTime()*scale;
+  st->average  = timer.shotCount() ? timer.faverageTime()*scale : 0;
 }
 
 const DMI::Record & Node::syncState()
