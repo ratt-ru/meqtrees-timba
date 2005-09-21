@@ -2,6 +2,8 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from Timba.Trees import TDL_Joneset
 from numarray import *
+from copy import deepcopy
+
 
 class PointSource:
     name = ''
@@ -26,10 +28,17 @@ class PointSource:
 
 
 
+
+
+
 def create_polc_ft(degree_f=0, degree_t=0, c00=0.0):
     polc = meq.polc(zeros((degree_f+1, degree_t+1))*0.0) 
     polc.coeff[0,0] = c00
     return polc
+
+
+
+
 
 
 
@@ -60,6 +69,10 @@ def forest_measurement_set_info(ns, num_ant):
 
 
 
+
+
+
+
 def create_initial_source_model(tablename=''):
     source_model = []
     src_3C343_1 = PointSource(name='3C343_1',
@@ -75,6 +88,10 @@ def create_initial_source_model(tablename=''):
     source_model.append(src_3C343_1)
     source_model.append(src_3C343)
     return source_model
+
+
+
+
 
 
 
@@ -245,18 +262,71 @@ def forest_clean_patch_predict_trees(ns, patch_name, source_list, station_list):
 
 
 
-def forest_baseline_predict_tree(ns, ant1, ant2, patch_names):
-    corrupted_patch_vis_list = []
-    for patch_name in patch_names:
-        ns.corrupted_patch_vis(ant1,ant2,patch_name) << \
-                Meq.Multiply(ns.J(ant1,patch_name), 
-                             ns.clean_visibility(ant1,ant2, patch_name),
-                             ns.ctJ(ant1, patch_name))
-        corrupted_patch_vis_list.append(ns.corrupted_patch_vis(ant1,ant2,patch_name))        
+def forest_baseline_predict_trees(ns, interferometer_list, patch_names):
+    for (ant1, ant2) in interferometer_list:
+        corrupted_patch_vis_list = []
+        for patch_name in patch_names:
+            ns.corrupted_patch_vis(ant1,ant2,patch_name) << \
+                    Meq.Multiply(ns.J(ant1,patch_name), 
+                                 ns.clean_visibility(ant1,ant2, patch_name),
+                                 ns.ctJ(ant1, patch_name))
+            corrupted_patch_vis_list.append(ns.corrupted_patch_vis(ant1,ant2,patch_name))        
+            pass
+        ns.predict(ant1, ant2) << Meq.Sum(children=deepcopy(corrupted_patch_vis_list))    
         pass
-    ns.corrupted_vis(ant1, ant2) << Meq.Sum(children=corrupted_patch_vis_list)    
     pass
 
+
+
+
+
+
+
+def forest_baseline_correct_trees(ns, interferometer_list, patch_name):
+    for (ant1, ant2) in interferometer_list:
+        ns.subtract(ant1, ant2) << (ns.spigot(ant1,ant2) - \
+                                    ns.predict(ant1, ant2))
+        ns.corrected(ant1,ant2) << \
+                Meq.Multiply(Meq.MatrixInvert22(ns.J(ant1,patch_name)), 
+                             ns.subtract(ant1,ant2),
+                             Meq.MatrixInvert22(ns.ctJ(ant1, patch_name)))
+        pass
+    pass
+
+
+
+
+
+
+
+def forest_solver(ns, interferometer_list, input_column='DATA'):
+    ce_list = []
+    for (ant1,ant2) in interferometer_list:
+        ns.spigot(ant1, ant2) << Meq.Spigot(station_1_index=ant1,
+                                            station_2_index=ant2,
+                                            flag_bit=4,
+                                            input_column=input_column)
+        ns.ce(ant1, ant2) << Meq.Condeq(ns.spigot(ant1, ant2),
+                                        ns.predict(ant1, ant2))
+        ce_list.append(ns.ce(ant1, ant2))
+        pass
+    ns.solver << Meq.Solver(num_iter=6,
+                            debug_level=10,
+                            children=ce_list)    
+    pass
+
+
+
+def forest_create_sink_sequence(ns, interferometer_list, input_column='DATA'):
+    for (ant1, ant2) in interferometer_list:
+        ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1,
+                                       station_2_index=ant2,
+                                       flag_bit=4,
+                                       input_column=input_column,
+                                       children=[Meq.ReqSeq(ns.solver,
+                                                 ns.corrected(ant1, ant2))])
+        pass
+    pass
 
 
 
@@ -264,6 +334,7 @@ def _define_forest(ns):
     mep_table_name      = '3C343.mep'
     source_mep_tablename= 'sourcemodel.mep'
     station_list        = range(1, 14+1)
+    interferometer_list = [(ant1, ant2) for ant1 in station_list for ant2 in station_list if ant1 < ant2]
 
     source_model      = create_initial_source_model(source_mep_tablename)
     patch_source_lists= {'centre':[source_model[0]], 'edge':[source_model[1]]}
@@ -284,12 +355,12 @@ def _define_forest(ns):
             forest_station_patch_jones(ns, station, name, mep_table_name)
             pass
         pass
-    for ant1 in station_list:
-        for ant2 in range(ant1+1, len(station_list)+1):
-            forest_baseline_predict_tree(ns, ant1, ant2,
-                                         patch_source_lists.keys())
-            pass
-        pass
+
+    forest_baseline_predict_trees(ns, interferometer_list,
+                                  patch_source_lists.keys())
+    forest_solver(ns, interferometer_list)
+    forest_baseline_correct_trees(ns, interferometer_list, 'centre')
+    forest_create_sink_sequence(ns, interferometer_list)
     pass
 
 
