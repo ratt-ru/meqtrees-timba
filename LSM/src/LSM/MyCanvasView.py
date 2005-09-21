@@ -180,7 +180,7 @@ class MyCanvasView(QCanvasView):
     headstr=headstr+tmpstr[0]+tmpstr[1]+"s)</font><br/>Sources:<br/>"
     tmp_str=headstr+"<ul>"
     found_anything=0
-    print ilist
+    #print ilist
     for each_item in ilist:
      if each_item.rtti()==POINT_SOURCE_RTTI:
       # set flag
@@ -210,7 +210,7 @@ class MyCanvasView(QCanvasView):
      for each_item in ilist:
       if each_item.rtti()==PATCH_IMAGE_RTTI:
        #print "Found a Patch name %s"%each_item.parent.name
-       print each_item.image
+       #print each_item.image
        found_anything=1
        mimes=QMimeSourceFactory()
        patch_img=each_item.image.scale(100,100,QImage.ScaleMin)

@@ -236,6 +236,7 @@ class ExportDialog(QDialog):
      elif self.export_flag==EXPORT_PT_TEX:
       if not s.endsWith(".tex"):
        s.append(".tex")
+      self.main.exportPUTableTEX(s.ascii())
      elif self.export_flag==EXPORT_PT_TXT:
       if not s.endsWith(".txt"):
        s.append(".txt")
@@ -245,6 +246,7 @@ class ExportDialog(QDialog):
      elif self.export_flag==EXPORT_ST_TEX:
       if not s.endsWith(".tex"):
        s.append(".tex")
+      self.main.exportSTableTEX(s.ascii())
      elif self.export_flag==EXPORT_ST_TXT:
       if not s.endsWith(".txt"):
        s.append(".txt")
@@ -260,14 +262,14 @@ class ExportDialog(QDialog):
         self.imageButton.setText(self.__tr("Export Image"))
         self.ptableButton.setText(self.__tr("Export PUnit Table"))
         self.stableButton.setText(self.__tr("Export Source Table"))
-        self.imageBG.setTitle(self.__tr("Export Image as"))
+        self.imageBG.setTitle(self.__tr("Export Image as:"))
         self.imEPSButton.setText(self.__tr("Export Image as EPS Image"))
         self.imPNGButton.setText(self.__tr("Export Image as PNG Image"))
         self.imBMPButton.setText(self.__tr("Export Image as BMP Image"))
-        self.ptableBG.setTitle(self.__tr("Export PUnit Table as"))
+        self.ptableBG.setTitle(self.__tr("Export PUnit Table as:"))
         self.ptEPSButton.setText(self.__tr("Export PUnit Table as EPS File"))
         self.ptTEXButton.setText(self.__tr("Export PUnit Table as LaTex Source"))
-        self.stableBG.setTitle(self.__tr("Export Source Table as"))
+        self.stableBG.setTitle(self.__tr("Export Source Table as:"))
         self.stEPSButton.setText(self.__tr("Export Source Table as EPS File"))
         self.stTEXButton.setText(self.__tr("Export Source Table as LaTex Source"))
         self.buttonHelp.setText(self.__tr("&Help"))
