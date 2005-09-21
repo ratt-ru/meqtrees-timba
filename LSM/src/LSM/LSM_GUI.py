@@ -618,11 +618,14 @@ class LSMWindow(QMainWindow):
       self.cview.zoom_status=GUI_ZOOM_NONE
  
     def helpAbout(self):
-        QMessageBox.information(None, "LSM Browser",
-            "<h3>LSM Browser</h3><hr>"
-            "<p>$Date$"
-            ".</p>"
-            ,"Dismiss")
+      tmp_str="<font color=\"blue\">LSM Browser</font><br/>"
+      tmp_str+="<p>For more information please visit Timba MeqWiki Page at<br/>"
+      tmp_str+="<span style=\"font-style: italic;\">http://lofar9.astron.nl/meqwiki/</span><br>"
+      tmp_str+="</p>"
+      dialog=SDialog(self)
+      dialog.setInfoText(tmp_str)
+      dialog.setTitle("Help")
+      dialog.show()
 
     def changeOptions(self):
      win=OptionsDialog(self)

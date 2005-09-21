@@ -175,9 +175,9 @@ class MyCanvasView(QCanvasView):
     ilist = self.canvas().collisions(point) #QCanvasItemList ilist
     head=self.lsm.getCurrentFreqTime(self.default_freq_index,self.default_time_index)
     tmpstr=stdForm(head[0],'%3.4f')
-    headstr="At ("+tmpstr[0]+tmpstr[1]+"Hz, "
+    headstr="<font color=\"blue\">("+tmpstr[0]+tmpstr[1]+"Hz, "
     tmpstr=stdForm(head[1],'%3.4f')
-    headstr=headstr+tmpstr[0]+tmpstr[1]+"s)"
+    headstr=headstr+tmpstr[0]+tmpstr[1]+"s)</font><br/>Sources:<br/>"
     tmp_str=headstr+"<ul>"
     found_anything=0
     print ilist
@@ -185,14 +185,19 @@ class MyCanvasView(QCanvasView):
      if each_item.rtti()==POINT_SOURCE_RTTI:
       # set flag
       found_anything=1
-      tmp_str=tmp_str+"<li>"+each_item.name+" "
+      tmp_str=tmp_str+"<li>Label : "+each_item.name+" "
       # print brightness value as well
       punit=self.lsm.p_table[each_item.name]
       br=""
       if punit != None:
-       br="[%5.4f, %5.4f] %5.3f "%(punit.sp.getRA(),punit.sp.getDec(),punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index))
-      br+="</li>"
+       br="At [%5.4f, %5.4f]<br/>App. Brightness: %5.3f "%(punit.sp.getRA(),punit.sp.getDec(),punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index))
       tmp_str+=br
+      if punit._patch_name !=None:
+       tmp_str+="<br/>patch <font color=\"blue\">"+punit._patch_name+"</font></li>"
+      else:
+       tmp_str+="</li>"
+ 
+
     if found_anything != 0: # not empty
      tmp_str=tmp_str+"</ul>"
      dialog=SDialog(self)
@@ -204,18 +209,18 @@ class MyCanvasView(QCanvasView):
      tmp_str=""
      for each_item in ilist:
       if each_item.rtti()==PATCH_IMAGE_RTTI:
-       print "Found a Patch name %s"%each_item.parent.name
+       #print "Found a Patch name %s"%each_item.parent.name
        print each_item.image
        found_anything=1
        mimes=QMimeSourceFactory()
        patch_img=each_item.image.scale(100,100,QImage.ScaleMin)
        patch_img.invertPixels()
        mimes.setImage("img"+each_item.parent.name,patch_img)
-       tmp_str+="<ul>"+each_item.parent.name+"</ul><br/>"
+       tmp_str+="<p><u>"+each_item.parent.name+"</u><br/>"
        tmp_str+="Image: <img source=\"img"+each_item.parent.name+"\" alt=\"image\""
        tmp_str+=" title=\"Image Title\" border=\"1\" style=\"width: 262px; height: 300px;\"/>"
-       tmp_str+="<br/><br/>"
-       print tmp_str
+       tmp_str+="<br/><br/></p>"
+       #print tmp_str
      if found_anything !=0: 
       dialog=SDialog(self)
       dialog.textEdit.setMimeSourceFactory(mimes)
