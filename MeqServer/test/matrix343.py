@@ -1,5 +1,6 @@
 from Timba.TDL import *
 from Timba.Meq import meq
+from Timba.Trees import TDL_Joneset
 from numarray import *
 
 class PointSource:
@@ -25,16 +26,18 @@ class PointSource:
 
 
 
+def create_polc_ft(degree_f=0, degree_t=0, c00=0.0):
+    polc = meq.polc(zeros((degree_f+1, degree_t+1))*0.0) 
+    polc.coeff[0,0] = c00
+    return polc
+
+
 
 def forest_measurement_set_info(ns, num_ant):
     ns.ra0   = Meq.Parm(0.0)
     ns.dec0  = Meq.Parm(0.0)
     ns.radec0= Meq.Composer(ns.ra0, ns.dec0)
 
-    ns.x0   << ns.x(1)
-    ns.y0   << ns.y(1)
-    ns.z0   << ns.z(1)
-    ns.xyz0 << Meq.Composer(ns.x0, ns.y0,ns.z0)
     
     for i in range(num_ant):
         station= str(i+1)
@@ -42,11 +45,14 @@ def forest_measurement_set_info(ns, num_ant):
         ns.x(station) << Meq.Parm(0.0)
         ns.y(station) << Meq.Parm(0.0)
         ns.z(station) << Meq.Parm(0.0)
+        if i == 0:
+            ns.xyz0 << Meq.Composer(ns.x(1), ns.y(1),ns.z(1))
+            pass
         
         ns.xyz(station)  << Meq.Composer(ns.x(station),
                                          ns.y(station),
                                          ns.z(station))
-        ns.uvw(station) << Meq.UWV(radec= ns.radec0,
+        ns.uvw(station) << Meq.UVW(radec= ns.radec0,
                                    xyz_0= ns.xyz0,
                                    xyz  = ns.xyz(station))
         pass
@@ -81,8 +87,8 @@ def forest_source_subtrees(ns, source):
     
     for (i,stokes) in enumerate(STOKES):
         if(source.IQUV[i] != None):
-            IQUVpolcs[i] = meq.polc(zeros(source.IQUVorder[i]+1)*0.0)
-            IQUVpolcs[i].coeff[0] = source.IQUV[i]
+            IQUVpolcs[i] = create_polc_ft(degree_f=source.IQUVorder[i], 
+                                          c00= source.IQUV[i])
             pass
         ns.stokes(stokes, source.name) << Meq.Parm(IQUVpolcs[i],
                                                   table=source.table)
@@ -110,15 +116,91 @@ def forest_source_subtrees(ns, source):
 
 
 
+
+def forest_station_patch_jones(ns, station, patch_name, mep_table_name):
+    """
+    Station is a 1-based integer. patch_name refers to a collection of sources
+    """
+    
+    ns.dft(station,source.name) << Meq.VisPhaseShift(
+                                         lmn=ns.lmn_minus1(source.name),
+                                         uvw=ns.uvw(station))
+    for i in range(1,3):
+        for j in range(1,3):
+            elem      = str(i)+str(j)
+            if i != j:
+                gain_polc  = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
+                phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
+            else:
+                gain_polc  = create_polc_ft(degree_f=0, degree_t=1, c00=1.0)
+                phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
+                pass
+            ns.JA(station, patch_name, elem) << Meq.Parm(gain_polc,
+                                                          table=mep_table_name)
+            ns.JP(station, patch_name, elem) << Meq.Parm(phase_polc,
+                                                          table=mep_table_name)
+            ns.J(station, patch_name, elem) << Meq.Polar(
+                    ns.JA(station, patch_name, elem),
+                    ns.JP(station, patch_name, elem))
+            pass # for j ...
+        pass     # for i ...
+    
+    ns.J(station,patch_name) << Meq.Matrix22(ns.J(station, patch_name, '11'),
+                                             ns.J(station, patch_name, '12'),
+                                             ns.J(station, patch_name, '21'),
+                                             ns.J(station, patch_name, '22'))
+    return ns.J(station, patch_name)
+
+
+
+def forest_clean_patch_predict_trees(ns, patch_name, source_list, station_list):
+    
+    # create station-source dfts
+    for source in source_list:
+        for station in station_list:
+            ns.dft(station, source.name) << Meq.VisPhaseShift(
+                                                 lmn=ns.lmn_minus1(source.name),
+                                                 uvw=ns.uvw(station))
+            ns.conjdft(station, source.name) << Meq.Conj(ns.dft(station, source.name))
+            pass # for station
+        pass #for source
+    
+    # Create source visibilities per baseline and add to 
+    # obtain total visibility due to this patch
+
+    for ant1 in range(1,len(station_list)+1):
+        for ant2 in range(ant1+1, len(station_list)+1):
+            clean_visibility_list = []
+            for source in source_list:
+                ns.clean_visibility(ant1, ant2, source.name) << \
+                     Meq.MatrixMultiply(ns.dft(station_list[ant1], source.name),
+                                    ns.conjdft(station_list[ant2], source.name),
+                                    ns.coherency(source.name))
+                clean_visibility_list.append(ns.clean_visibility(ant1, ant2, source.name))
+                pass # for source
+            ns.clean_visibility(ant1, ant2, patch_name) << Meq.Sum(children=clean_visibility_list)
+            pass # for ant2
+        pass     # for ant1
+    pass
+
+
+
 def _define_forest(ns):
     mep_table_name = '3C343.mep'
     source_mep_tablename= 'sourcemodel.mep'
 
     source_model=create_initial_source_model(source_mep_tablename)
+    patch_source_lists= {'centre':[source_model[0]], 'edge':[source_model[1]]}
+    print patch_source_lists
 
     forest_measurement_set_info(ns, 16)
     for source in source_model:
         forest_source_subtrees(ns, source)
+        pass
+    for (name, list) in patch_source_lists.iteritems():
+        forest_clean_patch_predict_trees(ns, name, list, range(1,15))
+        pass
+        
     pass
 
 
