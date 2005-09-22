@@ -106,7 +106,7 @@ fi
 
 # Find all packages used to get correct build order.
 if [ -f $pgkname/$pkgname.spec.in ]; then
-  if [ -f lofarconf.in  -o  -f lofarconf.in.private ]; then
+  if [ -f $pkgname/lofarconf.in  -o  -f $pkgname/lofarconf.in.private ]; then
     echo "error: lofarconf.in cannot be used with a .spec.in"
     exit 1
   fi
@@ -133,7 +133,7 @@ if [ -f $pgkname/$pkgname.spec.in ]; then
     $0 $nm "$tag" $checkout "$cvscomm" "$updq"  ||  exit 1
   done
 elif [ -f $pkgname/configure.in ]; then
-  if [ -f lofarconf.in  -o  -f lofarconf.in.private ]; then
+  if [ -f $pkgname/lofarconf.in  -o  -f $pkgname/lofarconf.in.private ]; then
     echo "error: lofarconf.in cannot be used with a configure.in"
     exit 1
   fi
