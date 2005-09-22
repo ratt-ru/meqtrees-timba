@@ -93,15 +93,15 @@ int CompoundFunction::checkChildResults (Result::Ref &resref,
 void CompoundFunction::evalFlags (vector<Vells::Ref> &flagrefs,const vector<const VellSet *> &pvs,const Cells *)
 {
   Vells::Ref out;
-  if( flagmask_.empty() )
+  /*if( flagmask_.empty() )
     flagmask_.resize(pvs.size());
   else
   {
     Assert(flagmask_.size() == pvs.size());
-  }
+  }*/
   for( uint i=0; i<pvs.size(); i++ )
     if( pvs[i] && !pvs[i]->isNull() && pvs[i]->hasDataFlags() )
-      Vells::mergeFlags(out,pvs[i]->dataFlags(),flagmask_[i]);
+      Vells::mergeFlags(out,pvs[i]->dataFlags(), VellsFullFlagMask);
   // merge flags into all outputs
   if( out.valid() )
     for( uint i=0; i<flagrefs.size(); i++ )
