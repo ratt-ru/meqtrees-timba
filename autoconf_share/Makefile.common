@@ -28,17 +28,19 @@ DISTCLEANFILES=\
       lofar_config.h\
       .doxygenrc
 
-if MAKE_RPMS
-rpm: dist @RPM_TARGET@
-.PHONY: rpm
+# The following is not possible yet as long as not all configure.in files
+# define the MAKE_RPMS variable.
+##if MAKE_RPMS
+##rpm: dist @RPM_TARGET@
+##.PHONY: rpm
 
-$(RPM_TARGET): $(DISTFILES)
-	${MAKE} dist
-	-mkdir -p $(RPM_DIR)/SRPMS
-	-mkdir -p `dirname $(RPM_TARGET)`
-	$(RPM_PROG) $(RPM_ARGS) $(RPM_TARBALL)
-	@echo Congratulations, $(RPM_TARGET) "(and friends)" should now exist.
-endif
+##$(RPM_TARGET): $(DISTFILES)
+##	${MAKE} dist
+##	-mkdir -p $(RPM_DIR)/SRPMS
+##	-mkdir -p `dirname $(RPM_TARGET)`
+##	$(RPM_PROG) $(RPM_ARGS) $(RPM_TARBALL)
+##	@echo Congratulations, $(RPM_TARGET) "(and friends)" should now exist.
+##endif
 
 
 # Only preprocess the file.
