@@ -18,6 +18,27 @@ clean-generic:
 	-rm -rf docxxhtml
 #CLEANFILES += tca.* .inslog* *.cc *.h $(top_builddir)/pure_cache docxxhtml/* *.log docxx_hdrs.names
 
+DISTCLEANFILES=\
+      pkgext\
+      pkgextcppflags\
+      pkgextcxxflags\
+      pkgextobjs\
+      lofar_config.old-h\
+      lofar_config.h-pkg\
+      lofar_config.h\
+      .doxygenrc
+
+if MAKE_RPMS
+rpm: dist @RPM_TARGET@
+.PHONY: rpm
+
+$(RPM_TARGET): $(DISTFILES)
+	${MAKE} dist
+	-mkdir -p $(RPM_DIR)/SRPMS
+	-mkdir -p `dirname $(RPM_TARGET)`
+	$(RPM_PROG) $(RPM_ARGS) $(RPM_TARBALL)
+	@echo Congratulations, $(RPM_TARGET) "(and friends)" should now exist.
+endif
 
 
 # Only preprocess the file.
