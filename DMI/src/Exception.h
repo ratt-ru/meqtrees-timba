@@ -32,6 +32,8 @@
     
 namespace DMI
 {
+  class Record;
+  class List;
   
   // ExceptionList is used to accumulate list of exceptions.
   //
@@ -46,16 +48,18 @@ namespace DMI
         public:
             Elem(const std::string& text,
                  const std::string& file="",int line=0,
-                 const std::string& func="")
+                 const std::string& func="",
+                 const std::string& type="Exception")
             : Exception(text,file,line,func),
-              type_("Exception")
+              type_(type)
             {}
         
             Elem(const std::string& text,const std::string &object,
                  const std::string& file="",int line=0,
-                 const std::string& func="")
+                 const std::string& func="",
+                 const std::string& type="Exception")
             : Exception(text,object,file,line,func),
-              type_("Exception")
+              type_(type)
             {}
             
             Elem (const Exception &exc)
@@ -67,6 +71,13 @@ namespace DMI
             : Exception(exc.what()),
               type_("std")
             {}
+            
+            // Constructs from a fail-record. A fail-record should be 
+            // similar to what is produced by exceptionToObj(), and can
+            // contain the following fields (all optional):
+            //   Message,Object,Filename,Function,Type  (strings)
+            //   LineNo (int)
+            Elem (const DMI::Record &rec);
             
             virtual ~Elem () throw()
             {}
@@ -118,6 +129,14 @@ namespace DMI
         return *this;
       }
       
+      // adds an object to the list. Object should be an exception record
+      // or list (such as one produced by exceptionToObj()), otherwise an 
+      // "unknown exception" is added.
+      ExceptionList & add (const ObjRef &obj);
+      
+      // adds a list of fail-objects to the list. 
+      ExceptionList & add (const DMI::List &list);
+      
       int size () const
       { return list_.size(); }
       
@@ -136,7 +155,8 @@ namespace DMI
       mutable std::string what_;
     
   };
-  
+
+  // converts exception (or list) to object (list or record) depending on type
   ObjRef exceptionToObj (const std::exception &exc);
   
   std::string exceptionToString (const std::exception &exc);

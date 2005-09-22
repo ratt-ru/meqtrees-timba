@@ -7,6 +7,16 @@
 namespace DMI
 {
   
+ExceptionList::Elem::Elem (const DMI::Record &rec)
+: Exception(rec[AidMessage].as<string>("unknown error"),
+            rec[AidObject].as<string>(""),
+            rec[AidFilename].as<string>(""),
+            rec[AidLineNo].as<int>(0),
+            rec[AidFunction].as<string>("")),
+  type_(    rec[AidType].as<string>("Exception"))
+{
+}
+
 ExceptionList::ExceptionList ()
 : Exception("ExceptionList")
 {
@@ -59,7 +69,34 @@ ExceptionList & ExceptionList::add (const std::exception &exc)
     list_.push_back(Elem(exc));
   return *this;
 }
-  
+
+ExceptionList & ExceptionList::add (const ObjRef &ref)
+{
+  if( !ref.valid() )
+    return *this;
+  const BObj &obj = *ref;
+  // a record? treat as fail-record
+  const DMI::Record *prec = dynamic_cast<const DMI::Record *>(&obj);
+  if( prec )
+  {
+    list_.push_back(Elem(*prec)); 
+    return *this;
+  }
+  // a list? treat as list of fail-records
+  const DMI::List *plist = dynamic_cast<const DMI::List *>(&obj);
+  if( plist )
+    return add(*plist);
+  list_.push_back(Elem("unknown error")); 
+  return *this;
+}
+
+ExceptionList & ExceptionList::add (const DMI::List &list)
+{
+  for( int i=0; i<list.size(); i++ )
+    add(list.get(i));
+  return *this;
+}
+
 ObjRef exceptionToObj (const LOFAR::Exception &exc)
 {
   DMI::Record * prec = new DMI::Record;
