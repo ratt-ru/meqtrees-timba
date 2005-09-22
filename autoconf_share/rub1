@@ -105,7 +105,38 @@ if [ $notfound != 0  -a  $checkout = 1 ]; then
 fi
 
 # Find all packages used to get correct build order.
-if [ -f $pkgname/configure.in ]; then
+if [ -f $pgkname/$pkgname.spec.in ]; then
+  if [ -f lofarconf.in  -o  -f lofarconf.in.private ]; then
+    echo "error: lofarconf.in cannot be used with a .spec.in"
+    exit 1
+  fi
+  # Add (leaf) package to the file to get correct build order.
+  echo "$pkgname $pkgtag" >> allpkg.tmp
+  # Do it recursively for packages used by this package.
+  # Find them by looking at the Requires tag in the .spec.in file.
+  pkgs=`egrep -i " *requires:" $pkgname/$pkgname.spec.in | sed -e 's/ *requires: *//ig'`
+  # < and > is not supported yet.
+  pkg1=`echo $pkgs | sed 's/>/ /g' | sed 's/</ /g'`
+  if [ "$pkg1" != "$pkgs" ]; then
+    echo "warning: rub only supports == in the rpm 'Requires' tag"
+  fi
+  # Normalize the string.
+  pkgs=`echo $pkg1 | sed 's/ *== */=/g' | sed 's/ //g' | sed 's/,/ /g'`
+  for pkg in $pkgs
+  do
+    # Extract package name and tag.
+    # Before = is the package name.
+    nm=`echo $pkg | sed -e "s/=.*//"`
+    # Possible part after = is the tag.
+    tag=`echo $pkg | awk -F= '{ print $2 }'`
+    # Check out the package.
+    $0 $nm "$tag" $checkout "$cvscomm" "$updq"  ||  exit 1
+  done
+elif [ -f $pkgname/configure.in ]; then
+  if [ -f lofarconf.in  -o  -f lofarconf.in.private ]; then
+    echo "error: lofarconf.in cannot be used with a configure.in"
+    exit 1
+  fi
   # Add (leaf) package to the file to get correct build order.
   echo "$pkgname $pkgtag" >> allpkg.tmp
   if [ $recur != 0 ]; then
@@ -129,10 +160,8 @@ else
   pkgs=
   if [ -f $pkgname/lofarconf.in.private ]; then
     pkgs=`sed -e s/#.*$//g $pkgname/lofarconf.in.private`
-  else
-    if [ -f $pkgname/lofarconf.in ]; then
-      pkgs=`sed -e s/#.*$//g $pkgname/lofarconf.in`
-    fi
+  elif [ -f $pkgname/lofarconf.in ]; then
+    pkgs=`sed -e s/#.*$//g $pkgname/lofarconf.in`
   fi
   if [ "$pkgs" != "" ]; then
     for pkg in $pkgs
