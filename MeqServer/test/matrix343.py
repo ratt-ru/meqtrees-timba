@@ -4,6 +4,9 @@ from Timba.Trees import TDL_Joneset
 from numarray import *
 from copy import deepcopy
 
+#from Timba import dmi
+#import meqserver
+
 
 class PointSource:
     name = ''
@@ -32,20 +35,33 @@ class PointSource:
 
 
 def create_polc_ft(degree_f=0, degree_t=0, c00=0.0):
-    polc = meq.polc(zeros((degree_f+1, degree_t+1))*0.0) 
+    polc = meq.polc(zeros((degree_t+1, degree_f+1))*0.0) 
     polc.coeff[0,0] = c00
     return polc
 
 
+def set_MAB_node_state (mqs, node, fields_record):
+    """helper function to set the state of a node specified by name or
+    nodeindex""";
+    rec = record(state=fields_record);
+    if isinstance(node,str):
+        rec.name = node;
+    elif isinstance(node,int):
+        rec.nodeindex = node;
+    else:
+        raise TypeError,'illegal node argumnent';
+# pass command to kernel
+    mqs.meq('Node.Set.State',rec);
+    pass
 
 
 
 
 
 def forest_measurement_set_info(ns, num_ant):
-    ns.ra0   = Meq.Parm(0.0)
-    ns.dec0  = Meq.Parm(0.0)
-    ns.radec0= Meq.Composer(ns.ra0, ns.dec0)
+    ns.ra0    << Meq.Parm(0.0, node_groups='Parm')
+    ns.dec0   << Meq.Parm(0.0, node_groups='Parm')
+    ns.radec0 << Meq.Composer(ns.ra0, ns.dec0)
 
     
     for i in range(num_ant):
@@ -108,7 +124,8 @@ def forest_source_subtrees(ns, source):
                                           c00= source.IQUV[i])
             pass
         ns.stokes(stokes, source.name) << Meq.Parm(IQUVpolcs[i],
-                                                  table=source.table)
+                                                  table=source.table,
+                                                  node_groups='Parm')
         pass    
 
     ns.xx(source.name) << (ns.stokes("I",source.name)+ns.stokes("Q",source.name))*0.5
@@ -116,8 +133,8 @@ def forest_source_subtrees(ns, source):
     ns.xy(source.name) << Meq.Conj(ns.yx(source.name))
     ns.yy(source.name) << (ns.stokes("I",source.name)-ns.stokes("Q",source.name))*0.5
 
-    ra    = ns.ra   (source.name) << Meq.Parm(source.ra)
-    dec   = ns.dec  (source.name) << Meq.Parm(source.dec)
+    ra    = ns.ra   (source.name) << Meq.Parm(source.ra, node_groups='Parm')
+    dec   = ns.dec  (source.name) << Meq.Parm(source.dec, node_groups='Parm')
     radec = ns.radec(source.name) << Meq.Composer(ra, dec)
     lmn   = ns.lmn  (source.name) << Meq.LMN(radec_0 = ns.radec0, radec = radec)
     n     = ns.n    (source.name) << Meq.Selector(lmn, index=2)
@@ -153,9 +170,11 @@ def forest_station_patch_jones(ns, station, patch_name, mep_table_name):
                 phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
                 pass
             ns.JA(station, patch_name, elem) << Meq.Parm(gain_polc,
-                                                          table=mep_table_name)
+                                                          table=mep_table_name,
+                                                          node_groups='Parm')
             ns.JP(station, patch_name, elem) << Meq.Parm(phase_polc,
-                                                          table=mep_table_name)
+                                                          table=mep_table_name,
+                                                          node_groups='Parm')
             ns.J(station, patch_name, elem) << Meq.Polar(
                     ns.JA(station, patch_name, elem),
                     ns.JP(station, patch_name, elem))
@@ -197,9 +216,11 @@ def forest_station_jones(ns, station, mep_table_name):
                 phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
                 pass
             ns.GA(station, elem) << Meq.Parm(gain_polc,
-                                             table=mep_table_name)
+                                             table=mep_table_name,
+                                             node_groups='Parm')
             ns.GP(station, elem) << Meq.Parm(phase_polc,
-                                             table=mep_table_name)
+                                             table=mep_table_name,
+                                             node_groups='Parm')
             ns.G(station, elem) << Meq.Polar(
                     ns.GA(station, elem),
                     ns.GP(station, elem))
@@ -375,7 +396,7 @@ def create_inputrec(msname, tile_size=1500):
     inputrec.selection = record(channel_start_index=25,\
                                 channel_end_index=40,\
                                 selection_string='')
-    inputrec.python_init = 'read_msvis_header.py'
+    inputrec.python_init = 'MAB_read_msvis_header.py'
     
     return inputrec
 
@@ -390,11 +411,15 @@ def create_outputrec(output_column='CORRECTED_DATA'):
     return outputrec
 
 
-def create_solver_defaults(num_iter=6):
+def create_solver_defaults(num_iter=6, solvable=[]):
     solver_defaults=record()
     solver_defaults.num_iter     = num_iter
     solver_defaults.save_funklets= True
     solver_defaults.last_update  = True
+#See example in TDL/MeqClasses.py
+    solver_defaults.solvable     = record(command_by_list=(record(name=solvable,
+                                         state=record(solvable=True)),
+                                         record(state=record(solvable=False))))
     return solver_defaults
 
 
@@ -406,17 +431,28 @@ def _test_forest(mqs, parent):
 
 def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname)
+    inputrec        = create_inputrec(msname, tile_size=1500)
     outputrec       = create_outputrec()
-    solver_defaults = create_solver_defaults()
 
+    source_list = create_initial_source_model()
 
     print inputrec
     print outputrec
-    print solver_defaults
 
+    solvables = []
+    for source in source_list:
+        solvables.append('stokes:I:'+source.name)
+        solvables.append('stokes:Q:'+source.name)
+        pass
+    print solvables
+
+    solver_defaults = create_solver_defaults(solvable=solvables)
+    print solver_defaults
+    set_MAB_node_state(mqs, 'solver', solver_defaults)
     mqs.init(record(mandate_regular_grid=False),\
-                    input=inputrec, output=outputrec)
+                    inputinit=inputrec, outputinit=outputrec)
+
+    
     pass
 
 
