@@ -166,7 +166,7 @@ init(MG.script_name)
 #------------------------------------------------------------------------------- 
 # Save the forest to a binary file(s):
 
-def save_meqforest (mqs, filename=False, save_reference=False):
+def save_meqforest (mqs, filename=False, save_reference=False, **pp):
    """Save the current meqforest, using the filename in the forest_state record.
    If save_reference=True, also save the result for later testing."""
    

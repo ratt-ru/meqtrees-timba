@@ -39,8 +39,10 @@ from Timba.Meq import meq              # required in MG_JEN_exec !!
 MG = record(script_name='MG_JEN_exec.py', last_changed='h22sep2005')
 
 from copy import deepcopy       
+import os       
 
 from Timba.Contrib.JEN import MG_JEN_forest_state
+
 
 #--------------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
@@ -129,7 +131,7 @@ def on_exit (ns, MG, cc=[], **pp):
    """Function called upon exit of _define_forest()"""
    
    pp.setdefault('make_bookmark', True)                # if False, inhibit bookmarks
-   pp.setdefault('create_ms_interface_nodes', False)   # see below
+   pp.setdefault('create_ms_interface_nodes', True)   # see below
 
    # Check the MG-record:
    MG = check_MG(MG)
@@ -364,7 +366,8 @@ def stream_control(value=None, display=False, init=False):
       ss.inputinit.sink_type = 'ms_in';
       ss.inputinit.data_column_name = 'DATA';
       ss.inputinit.tile_size = 1;
-      ss.inputinit.python_init = 'read_msvis_header.py'
+      path = os.environ['HOME']+'/LOFAR/Timba/WH/contrib/JEN/'
+      ss.inputinit.python_init = path+'read_msvis_header.py'
       
       ss.inputinit.selection = record();
       ss.inputinit.selection.channel_start_index = 0;
