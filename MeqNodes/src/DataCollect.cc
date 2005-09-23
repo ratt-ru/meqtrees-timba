@@ -34,7 +34,7 @@ const HIID FLabel    = AidLabel;
 
 
 DataCollect::DataCollect()
-  : Node(-1,0,1), // at least 1 child must be present
+  : Node(-2), // at least 1 child must be present
     top_label_(AidPlot|AidData)
 //    group_label_(AidData),
 //    item_label_(AidData)

@@ -28,7 +28,7 @@ namespace Meq
 
 //##ModelId=400E530A0105
 MatrixMultiply::MatrixMultiply()
- : Function(-1,0,1)
+ : Function(-2) // at least 1 child expected
 {}
 
 //##ModelId=400E530A0106

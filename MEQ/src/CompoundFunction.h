@@ -32,7 +32,7 @@ class CompoundFunction : public Function
 {
 public:
     //##ModelId=3F86886E03C5
-  CompoundFunction (int nchildren=-1,const HIID *labels = 0,int nmandatory=0);
+  CompoundFunction (int nchildren=-1,const HIID *labels = 0,int nmandatory=-1);
 
     //##ModelId=3F86886E03D1
   virtual ~CompoundFunction();

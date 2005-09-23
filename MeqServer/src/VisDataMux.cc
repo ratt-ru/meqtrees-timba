@@ -27,21 +27,26 @@
 #include <MEQ/Cells.h>
 #include <MEQ/Request.h>
 #include <AppAgent/AppControlAgent.h>
+#include <MeqServer/Spigot.h>
+#include <MeqServer/Sink.h>
 
 using namespace AppAgent;
 using namespace AppControlAgentVocabulary;
 using namespace VisVocabulary;
 using namespace VisAgent;
 
-const HIID Meq::VisDataMux::EventCreate = AidCreate;
-const HIID Meq::VisDataMux::EventDelete = AidDelete; 
+const HIID child_labels[] = { AidStart,AidPre,AidPost };
+
+InitDebugContext(Meq::VisDataMux,"VisDataMux");
     
 //##ModelId=3F9FF71B006A
-Meq::VisDataMux::VisDataMux (Meq::Forest &frst)
-    : forest_(frst)
+Meq::VisDataMux::VisDataMux ()
+  : Node(-4,child_labels,0)  // 3 labeled children, more possible, 0 mandatory
 {
+  force_regular_grid = true;
   // use reasonable default
   handlers_.resize(VisVocabulary::ifrNumber(30,30)+1);
+  sinks_.resize(VisVocabulary::ifrNumber(30,30)+1);
   // init request id for dataset=1
   // frst.incrRequestId(rqid_,FDataset);
 }
@@ -50,10 +55,12 @@ void Meq::VisDataMux::clear ()
 {
   for( uint i=0; i<handlers_.size(); i++ )
     handlers_[i].clear();  
+  for( uint i=0; i<sinks_.size(); i++ )
+    sinks_[i].clear();  
 }
 
 //##ModelId=3FA1016000B0
-void Meq::VisDataMux::init (const DMI::Record &rec,
+void Meq::VisDataMux::attachAgents (
                 VisAgent::InputAgent  & inp,
                 VisAgent::OutputAgent & outp,
                 AppControlAgent & ctrl)
@@ -61,112 +68,350 @@ void Meq::VisDataMux::init (const DMI::Record &rec,
   input_ = &inp;
   output_ = &outp;
   control_ = &ctrl;
-  
-  out_columns_.clear();
-  out_colnames_.clear();
-  // setup output column indices
-  if( rec[FOutputColumn].exists() )
-  {
-    out_colnames_ = rec[FOutputColumn];
-    out_columns_.resize(out_colnames_.size());
-    const VisCube::VTile::NameToIndexMap &colmap = VisCube::VTile::getNameToIndexMap();
-    for( uint i=0; i<out_colnames_.size(); i++ )
-    {
-      VisCube::VTile::NameToIndexMap::const_iterator iter = 
-          colmap.find(out_colnames_[i] = struppercase(out_colnames_[i]));
-      FailWhen(iter==colmap.end(),"unknown output column "+out_colnames_[i]);
-      out_columns_[i] = iter->second;
-      cdebug(2)<<"indicated output column: "<<out_colnames_[i]<<endl;
-    }
-  }
-  force_regular_grid = rec[FMandateRegularGrid].as<bool>(false);
+//   force_regular_grid = rec[FMandateRegularGrid].as<bool>(false);
 }
 
-int Meq::VisDataMux::receiveEvent (const EventIdentifier &evid,const ObjRef &,void *ptr)
+void Meq::VisDataMux::attachSpigot (Meq::Spigot &spigot)
 {
-  if( evid.id() == EventCreate )
-    addNode( *static_cast<Node*>(ptr) );
-  else if( evid.id() == EventDelete )
-  {
-    if( ptr )
-      removeNode( *static_cast<Node*>(ptr) );
-    else // null ptr means all nodes
-      handlers_.clear();
-  }
-  // ignore all other events
-  return 0;
-}
-
-//##ModelId=3F716E98002E
-void Meq::VisDataMux::addNode (Node &check_node)
-{
-  // return if the node is not a VisHandlerNode
-  VisHandlerNode *node = dynamic_cast<VisHandlerNode*>(&check_node);
-  if( !node )
-    return;
-  cdebug(2)<<"node is a visdata handler, adding to data mux\n";
-  // form data ID from state record
-  const DMI::Record &state = node->state();
-  int did;
-  try
-  {
-    did = formDataId(state[FStation1Index].as<int>(),
-                     state[FStation2Index].as<int>());
-  }
-  catch( std::exception &exc )
-  {
-    ThrowMore1(exc,"state record is missing station and/or correlation identifiers");
-  }
-  catch( ... )
-  {
-    Throw1("state record is missing station and/or correlation identifiers");
-  }
-  // let the node know about its data id
-  node->setDataId(did);
-  // add list of handlers for this data id (if necessary)
+  // get data ID from spigot
+  int did = spigot.dataId();
   if( did >= int(handlers_.size()) )
     handlers_.resize(did+100);
-  // add node to list of handlers
-  VisHandlerList &hlist = handlers_[did];
-  VisHandlerList::const_iterator iter = hlist.begin();
-  // ... though not if it's already there on the list
-  for( ; iter != hlist.end(); iter++ )
-    if( *iter == node )
-      return;
-  hlist.push_back(node); 
+  cdebug(2)<<"attaching spigot for did "<<did<<endl;
+  // add spigot to list of handlers for this data id
+  handlers_[did].insert(&spigot);
+}
+
+void Meq::VisDataMux::attachSink (Meq::Sink &sink)
+{
+  // get data ID from sink
+  int did = sink.dataId();
+  if( did >= int(handlers_.size()) )
+    handlers_.resize(did+100);
+  if( did >= int(sinks_.size()) )
+    sinks_.resize(did+100);
+  cdebug(2)<<"attaching sink for did "<<did<<endl;
+  // get sink output column
+  output_columns_.insert(sink.getOutputColumn());
+  // add sink to list of handlers for this data id
+  handlers_[did].insert(&sink);
+  sinks_[did].insert(&sink);
+  // add sink to children
+  Node::Ref sinkref(sink,DMI::SHARED);
+  addChild(sinkref);
 }
 
 //##ModelId=3F716EAA0106
-void Meq::VisDataMux::removeNode (Node &check_node)
+void Meq::VisDataMux::detachSpigot (Meq::Spigot &spigot)
 {
-  // return if the node is not a VisHandlerNode
-  VisHandlerNode *node = dynamic_cast<VisHandlerNode*>(&check_node);
-  if( !node )
-    return;
-  cdebug(2)<<"node is a visdata handler, removing from spigot mux\n";
-  int did = node->dataId();
-  if( did < 0 )
+  handlers_[spigot.dataId()].erase(&spigot);
+}
+
+void Meq::VisDataMux::detachSink (Meq::Sink &sink)
+{
+  handlers_[sink.dataId()].erase(&sink);
+  sinks_[sink.dataId()].erase(&sink);
+}
+
+// define standard catch clauses to be re-used below on multiple occasions
+// first form simply adds exception to error list
+#define CatchExceptions(doing_what) \
+      catch( std::exception &exc ) \
+      { \
+        errors.add(exc); \
+        result_flag |= Node::RES_FAIL; \
+      } \
+      catch( ... ) \
+      { \
+        errors.add(MakeNodeException(string("error ")+(doing_what))); \
+        result_flag |= Node::RES_FAIL; \
+      } \
+      
+// second form does the same, plus tags on another error message
+#define CatchExceptionsMore(doing_what) \
+      catch( std::exception &exc ) \
+      { \
+        errors.add(exc); \
+        errors.add(MakeNodeException(string("error ")+(doing_what))); \
+        result_flag |= Node::RES_FAIL; \
+      } \
+      catch( ... ) \
+      { \
+        errors.add(MakeNodeException(string("uknown error ")+(doing_what))); \
+        result_flag |= Node::RES_FAIL; \
+      } \
+
+//##ModelId=3F98DAE6024A
+int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
+{
+  // check header for number of stations, use a reasonable default
+  cdebug(3)<<"got header: "<<header.sdebug(DebugLevel)<<endl;
+  int nstations = header[FNumStations].as<int>(-1);
+  if( nstations>0 )
   {
-    cdebug(2)<<"no data ID in node: not attached to this spigot mux?\n";
-    return;
+    cdebug(2)<<"header indicates "<<nstations<<" stations\n";
   }
-  // erase from handler list
-  VisHandlerList &hlist = handlers_[did];
-  VisHandlerList::iterator iter = hlist.begin();
-  for( ; iter != hlist.end(); iter++ )
-    if( *iter == node )
+  else
+  {
+    nstations = 30;
+    cdebug(2)<<"no NumStations parameter in header, assuming 30\n";
+  }
+  // reset request ID
+  forest().incrRequestId(rqid_,FDataset);
+  RqId::setSubId(rqid_,forest().getDependMask(FDomain),0);
+  current_seqnr_ = -1;
+  int maxdid = formDataId(nstations-1,nstations-1) + 1;
+  have_tile_.assign(maxdid,false);
+  // forest().resetForNewDataSet();
+  handlers_.resize(maxdid);
+  sinks_.resize(maxdid);
+  
+  // get frequencies 
+  if( !header[VisVocabulary::FChannelFreq].get(channel_freqs) ||
+      !header[VisVocabulary::FChannelWidth].get(channel_widths) )
+  {
+    Throw("header is missing frequency information");
+  }
+//  // BUG BUG BUG! This assumes a regualr frequency spacing
+//  minfreq = min(channel_freqs) - channels_widths(0)/2;
+//  maxfreq = max(channel_freqs) + channels_widths(0)/2;
+  
+  //make sure all output columns are present in output tile format
+  VisCube::VTile::Format::Ref out_format_;
+  out_format_ <<= header[FTileFormat].as_p<VisCube::VTile::Format>();
+  for( ColumnSet::const_iterator iter = output_columns_.begin();
+      iter != output_columns_.end(); iter++ )
+  {
+    std::string colname = VisCube::VTile::getIndexToNameMap()[*iter];
+    if( out_format_->defined(*iter) )
     {
-      hlist.erase(iter);
-      break;
+      cdebug(3)<<"output column "<<colname<<" already present in tile format"<<endl;
     }
+    else
+    {
+      cdebug(2)<<"adding output column "<<colname<<" to tile format\n";
+      out_format_().add(*iter,out_format_->type(VisCube::VTile::DATA),
+                        out_format_->shape(VisCube::VTile::DATA));
+    }
+  }
+  DMI::ExceptionList errors;
+  // notify all handlers of header
+  int result_flag = 0;
+  for( uint i=0; i<handlers_.size(); i++ )
+  {
+    HandlerSet & hlist = handlers_[i];
+    HandlerSet::iterator iter = hlist.begin();
+    for( ; iter != hlist.end(); iter++ )
+    {
+      try
+      {
+        result_flag |= (*iter)->deliverHeader(header,*out_format_);
+      }
+      CatchExceptionsMore("delivering header to '"+(*iter)->name()+"'");
+    }
+  }
+  // cache the header
+  cached_header_.attach(header);
+  writing_data_ = false;
+  // throw errors if any
+  if( !errors.empty() )
+    throw errors;
+  return result_flag;
 }
 
-//##ModelId=3F992F280174
-int Meq::VisDataMux::formDataId (int sta1,int sta2)
+//##ModelId=3F950ACA0160
+int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
 {
-  return VisVocabulary::ifrNumber(sta1,sta2);
+  int result_flag = 0;
+  DMI::ExceptionList errors;
+  // get handler for this tile
+  int did = formDataId(tileref->antenna1(),tileref->antenna2());
+  if( did > int(handlers_.size()) )
+  {
+    cdebug(4)<<"no handlers for did "<<did<<", skipping tile "<<tileref->sdebug(DebugLevel-2)<<endl;
+    return 0;
+  }
+  // see if tile represents a new snippet (i.e. new sequence number)
+  int seqnr = tileref->seqNumber();
+  cdebug(4)<<"got tile did "<<did<<" seq "<<seqnr<<", "<<tileref->sdebug(DebugLevel-2)<<endl;
+  if( seqnr != current_seqnr_ )
+  {
+    // previous snippet complete, so poll all handlers
+    if( current_seqnr_ >= 0 )
+    {
+      try { result_flag |= endSnippet(); }
+      CatchExceptions("ending snippet "+rqid_.toString('.'));
+    }
+    current_seqnr_ = seqnr;
+    // notify start of new snippet
+    try { result_flag |= startSnippet(*tileref); }
+    CatchExceptions("starting snippet "+rqid_.toString('.'));
+  }
+  have_tile_[did] = true;
+  // deliver tile to all handlers
+  HandlerSet & hlist = handlers_[did];
+  HandlerSet::iterator iter = hlist.begin();
+  for( ; iter != hlist.end(); iter++ )
+  {
+    cdebug(4)<<"delivering to "<<(*iter)->name()<<endl;
+    try { result_flag |= (*iter)->deliverTile(*current_req_,tileref,current_range_); }
+    CatchExceptionsMore("delivering tile "+tileref->tileId().toString('.')+" to '"+(*iter)->name()+"'");
+  }
+  // throw errors if any
+  if( !errors.empty() )
+    throw errors;
+  return result_flag;
 }
 
+int Meq::VisDataMux::deliverFooter (const DMI::Record &footer)
+{
+  DMI::ExceptionList errors;
+  int result_flag = 0;
+  if( current_seqnr_ >= 0 )
+  {
+    try { result_flag |= endSnippet(); }
+    CatchExceptions("ending snippet "+rqid_.toString('.'));
+  }
+  cdebug(2)<<"delivering footer to all handlers"<<endl;
+  for( uint i=0; i<handlers_.size(); i++ )
+  {
+    HandlerSet & hlist = handlers_[i];
+    HandlerSet::iterator iter = hlist.begin();
+    for( ; iter != hlist.end(); iter++ )
+    {
+      try { result_flag |= (*iter)->deliverFooter(footer); }
+      CatchExceptionsMore("delivering footer to '"+(*iter)->name()+"'");
+    }
+  }
+  if( !errors.empty() )
+    throw errors;
+  return result_flag;
+}
+
+int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
+{
+  int result_flag = 0;
+  DMI::ExceptionList errors;
+  try
+  {
+    // Generate new Request id
+    RqId::incrSubId(rqid_,forest().getDependMask(FDomain));
+    // Generate Cells object from tile
+    Cells::Ref cellref;
+    Cells &cells = cellref <<= new Cells;
+    fillCells(cells,current_range_,tile);
+    // Generate new Request with these Cells
+    Request &req = current_req_ <<= new Request(cells,0,rqid_);
+    cdebug(3)<<"start of snippet, generated request id="<<rqid_<<endl;
+    // reset have-tile flags
+    have_tile_.assign(handlers_.size(),false);
+    // if we have a pre-processing child, poll it now
+    if( isChildValid(0) )
+    {
+      Result::Ref res;
+      result_flag = getChild(0).execute(res,req);
+      if( result_flag&RES_FAIL )
+      {
+        res->addToExceptionList(errors);
+        errors.add(MakeNodeException(
+            "error starting snippet "+rqid_.toString('.')+": "+
+            "child '"+getChild(0).name()+"' returns a FAIL"));
+      }
+    }
+  }
+  CatchExceptionsMore("starting snippet "+rqid_.toString('.'));
+  if( !errors.empty() )
+    throw errors;
+  return result_flag;
+}
+
+int Meq::VisDataMux::endSnippet ()
+{
+  DMI::ExceptionList errors;
+  int result_flag = 0;
+  cdebug(3)<<"end of snippet"<<endl;
+  // poll pre-processing child
+  if( isChildValid(1) )
+  {
+    Result::Ref res;
+    try 
+    { 
+      int retcode = getChild(1).execute(res,*current_req_); 
+      result_flag |= retcode;
+      if( retcode&RES_FAIL )
+      {
+        res->addToExceptionList(errors);
+        errors.add(MakeNodeException(
+            "error pre-processing snippet "+rqid_.toString('.')+": "+
+            "child '"+getChild(1).name()+"' returns a FAIL"));
+      }
+    }
+    CatchExceptionsMore("pre-processing snippet "+rqid_.toString('.'));
+  }
+  int nerr0 = errors.size();
+  // poll all sinks for which a tile was assigned
+  for( uint i=0; i<sinks_.size(); i++ )
+    if( have_tile_[i] )
+    {
+      SinkSet & hlist = sinks_[i];
+      SinkSet::iterator iter = hlist.begin();
+      for( ; iter != hlist.end(); iter++ )
+      {
+        Result::Ref res;
+        try 
+        { 
+          int retcode = (*iter)->execute(res,*current_req_);
+          result_flag |= retcode;
+          if( retcode&RES_FAIL )
+          {
+            res->addToExceptionList(errors);
+            errors.add(MakeNodeException("sink '"+(*iter)->name()+"' returns a FAIL"));
+          }
+          else // if sink returns a Tile field in the result, dump tile to output
+          {
+            const VisCube::VTile *ptile = res[AidTile].as_po<VisCube::VTile>();
+            if( ptile )
+            {
+              cdebug(2)<<"handler returns updated tile "<<ptile->tileId()<<", posting to output\n";
+              writing_data_ = true;
+              if( cached_header_.valid() )
+              {
+                output().put(HEADER,cached_header_);
+                cached_header_.detach();
+              }
+              output().put(DATA,ObjRef(ptile));
+            }
+          }
+        }
+        CatchExceptions("error processing snippet "+rqid_.toString('.'));
+      }
+    }
+  if( errors.size() > nerr0 )
+    errors.add(MakeNodeException("error processing snippet "+rqid_.toString('.')));
+  // poll post-processing child
+  if( isChildValid(2) )
+  {
+    Result::Ref res;
+    try 
+    {
+      int retcode = getChild(2).execute(res,*current_req_); 
+      result_flag |= retcode; 
+      if( retcode&RES_FAIL )
+      {
+        res->addToExceptionList(errors);
+        errors.add(MakeNodeException(
+            "error post-processing snippet "+rqid_.toString('.')+": "+
+            "child '"+getChild(2).name()+"' returns a FAIL"));
+      }
+    }
+    CatchExceptionsMore("post-processing snippet "+rqid_.toString('.'));
+  }
+  // throw errors if any
+  if( !errors.empty() )
+    throw errors;
+  return result_flag;
+}
+  
 void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTile &tile)
 {    
   // figure out range of valid rows
@@ -197,7 +442,6 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTil
   cells.recomputeSegments(Axis::FREQ);
   cells.recomputeSegments(Axis::TIME);
   cells.recomputeDomain();
-  cdebug1(5)<<"cells: "<<cells;
   if( force_regular_grid )
   {
     FailWhen(cells.numSegments(Axis::TIME)>1 || cells.numSegments(Axis::FREQ)>1,
@@ -205,202 +449,3 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTil
   }
 }
 
-//##ModelId=3F98DAE6024A
-int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
-{
-  // check header for number of stations, use a reasonable default
-  cdebug(3)<<"got header: "<<header.sdebug(DebugLevel)<<endl;
-  int nstations = header[FNumStations].as<int>(-1);
-  if( nstations>0 )
-  {
-    cdebug(2)<<"header indicates "<<nstations<<" stations\n";
-  }
-  else
-  {
-    nstations = 30;
-    cdebug(2)<<"no NumStations parameter in header, assuming 30\n";
-  }
-  // reset request ID
-  forest_.incrRequestId(rqid_,FDataset);
-  RqId::setSubId(rqid_,forest_.getDependMask(FDomain),0);
-  // forest_.resetForNewDataSet();
-  handlers_.resize(VisVocabulary::ifrNumber(nstations,nstations)+1);
-  // get frequencies 
-  if( !header[VisVocabulary::FChannelFreq].get(channel_freqs) ||
-      !header[VisVocabulary::FChannelWidth].get(channel_widths) )
-  {
-    Throw("header is missing frequency information");
-  }
-//  // BUG BUG BUG! This assumes a regualr frequency spacing
-//  minfreq = min(channel_freqs) - channels_widths(0)/2;
-//  maxfreq = max(channel_freqs) + channels_widths(0)/2;
-  // init output tile format
-  out_format_ <<= header[FTileFormat].as_p<VisCube::VTile::Format>();
-  for( uint i=0; i<out_columns_.size(); i++ )
-  {
-    if( out_format_->defined(out_columns_[i]) )
-    {
-      cdebug(3)<<"output column "<<out_colnames_[i]<<" already present in tile format"<<endl;
-    }
-    else
-    {
-      cdebug(2)<<"adding output column "<<out_colnames_[i]<<" to tile format\n";
-      out_format_().add(out_columns_[i],out_format_->type(VisCube::VTile::DATA),
-                        out_format_->shape(VisCube::VTile::DATA));
-    }
-  }
-  DMI::ExceptionList errors;
-  // notify all handlers of header
-  int result_flag = 0;
-  for( uint i=0; i<handlers_.size(); i++ )
-  {
-    VisHandlerList & hlist = handlers_[i];
-    VisHandlerList::iterator iter = hlist.begin();
-    for( ; iter != hlist.end(); iter++ )
-    {
-      try
-      {
-        result_flag |= (*iter)->deliverHeader(*out_format_);
-      }
-      catch( std::exception &exc )
-      {
-        errors.add(exc);
-        result_flag |= Node::RES_FAIL;
-      }
-      catch( ... )
-      {
-        errors.add(LOFAR::Exception("unknown exception",(*iter)->description(),__HERE__));
-        result_flag |= Node::RES_FAIL;
-      }
-    }
-  }
-  // cache the header
-  cached_header_.attach(header);
-  writing_data_ = false;
-  // throw errors if any
-  if( !errors.empty() )
-    throw errors;
-  return result_flag;
-}
-
-//##ModelId=3F950ACA0160
-int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
-{
-  int result_flag = 0;
-  int did = formDataId(tileref->antenna1(),tileref->antenna2());
-  if( did > int(handlers_.size()) )
-  {
-    cdebug(4)<<"no handlers for did "<<did<<", skipping tile "<<tileref->sdebug(DebugLevel-2)<<endl;
-    return 0;
-  }
-  VisHandlerList &hlist = handlers_[did];
-  if( hlist.empty() )
-  {
-    cdebug(4)<<"no handlers for did "<<did<<", skipping tile "<<tileref->sdebug(DebugLevel-2)<<endl;
-    return 0;
-  }
-  else
-  {
-    cdebug(3)<<"have handlers for did "<<did<<", got tile "<<tileref->sdebug(DebugLevel-1)<<endl;
-    // For now, generate the request right here.
-    Cells::Ref cellref;
-    Cells &cells = cellref <<= new Cells;
-    LoRange range;
-    fillCells(cells,range,*tileref);
-    // update request id as appropriate
-    if( !prev_cells_.valid() || cells != *prev_cells_ )
-    {
-      RqId::incrSubId(rqid_,forest_.getDependMask(FDomain));
-      prev_cells_.attach(cells);
-    }
-    Request::Ref reqref;
-    Request &req = reqref <<= new Request(cellref.deref_p(),0,rqid_);
-    cdebug(3)<<"have handler, generated request id="<<rqid_<<endl;
-
-    DMI::ExceptionList errors;
-    // deliver to all known handlers
-    VisHandlerList::iterator iter = hlist.begin();
-    for( ; iter != hlist.end(); iter++ )
-    {
-      try
-      {
-        VisCube::VTile::Ref ref(tileref,DMI::COPYREF);
-        int code = (*iter)->deliverTile(req,ref,range);
-        result_flag |= code;
-        // if an output tile is returned, dump it out
-        if( code&Node::RES_UPDATED )
-        {
-          cdebug(3)<<"handler returns updated tile "<<tileref->tileId()<<", posting to output\n";
-          writing_data_ = true;
-          if( cached_header_.valid() )
-          {
-            output().put(HEADER,cached_header_);
-            cached_header_.detach();
-          }
-          output().put(DATA,ref);
-        }
-      }
-      catch( std::exception &exc )
-      {
-        errors.add(exc);
-        result_flag |= Node::RES_FAIL;
-      }
-      catch( ... )
-      {
-        errors.add(LOFAR::Exception("unknown exception",(*iter)->description(),__HERE__));
-        result_flag |= Node::RES_FAIL;
-      }
-    }
-    // throw errors if any
-    if( !errors.empty() )
-      throw errors;
-  }
-  return result_flag;
-}
-
-int Meq::VisDataMux::deliverFooter (const DMI::Record &footer)
-{
-  cdebug(2)<<"delivering footer to all handlers"<<endl;
-  int result_flag = 0;
-  DMI::ExceptionList errors;
-  for( uint i=0; i<handlers_.size(); i++ )
-  {
-    VisHandlerList & hlist = handlers_[i];
-    VisHandlerList::iterator iter = hlist.begin();
-    for( ; iter != hlist.end(); iter++ )
-    {
-      try
-      {
-        VisCube::VTile::Ref tileref;
-        int code = (*iter)->deliverFooter(tileref);
-        if( code&Node::RES_UPDATED )
-        {
-          cdebug(2)<<"handler returns updated tile "<<tileref->tileId()<<", posting to output\n";
-          writing_data_ = true;
-          if( cached_header_.valid() )
-          {
-            output().put(HEADER,cached_header_);
-            cached_header_.detach();
-          }
-          output().put(DATA,tileref);
-        }
-        result_flag |= code;
-      }
-      catch( std::exception &exc )
-      {
-        errors.add(exc);
-        result_flag |= Node::RES_FAIL;
-      }
-      catch( ... )
-      {
-        errors.add(LOFAR::Exception("unknown exception",(*iter)->description(),__HERE__));
-        result_flag |= Node::RES_FAIL;
-      }
-    }
-  }
-  if( writing_data_ )
-    output().put(FOOTER,ObjRef(footer));
-  if( !errors.empty() )
-    throw errors;
-  return result_flag;
-}

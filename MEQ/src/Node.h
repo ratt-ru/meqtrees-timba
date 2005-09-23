@@ -240,14 +240,14 @@ class Node : public DMI::BObj
 
     //##ModelId=3F5F43E000A0
     //##Documentation
-    //## Child labels may be specified in constructror as a C array of HIIDs.
-    //## If labels==0, no labels are defined.
-    //## If nchildren>=0, specifies that an exact number of children is expected.
-    //## If nmandatory>0, spefifies that at least nmandatory children are 
-    //##    expected; note that if labels are supplied, then the first 
-    //##    nmand labels are considered the mandatory ones, and the rest are
-    //##    optional
-    Node (int nchildren=-1,const HIID *labels = 0,int nmandatory=0);
+    //## If nchildren>=0, specifies that exactly N=nch children is 
+    //## expected. 
+    //## If nchildren<0, specifies that at least N=-(nch+1) children are 
+    //## expected.
+    //## If labels are supplied, this must be an array of N HIIDs.
+    //## If nmandatory>=0, then only the first nmand children are 
+    //## considered mandatory, the rest may be missing
+    Node (int nchildren=-1,const HIID *labels=0,int nmandatory=-1);
         
     //##ModelId=3F5F44A401BC
     virtual ~Node();
@@ -269,7 +269,7 @@ class Node : public DMI::BObj
     int resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int rsid);
         
     //##ModelId=3F83FAC80375
-    void resolveChildren (bool recursive=true);
+    virtual void resolveChildren ();
     
     //##ModelId=400E531101C8
     // relinks children after a node has been reinitialized from its state record
@@ -369,7 +369,12 @@ class Node : public DMI::BObj
     
     int numParents () const
     { return parents_.size(); }
-    
+
+    // returns true if specified child is valid
+    // (may be false for nodes with optional children)
+    bool isChildValid (uint i) const
+    { return i<children_.size() && children_[i].valid(); }
+        
     //##ModelId=3F85710E011F
     //## return child by number
     Node & getChild (int i)
@@ -393,6 +398,7 @@ class Node : public DMI::BObj
       FailWhen(!stepchildren_[i].valid(),"unresolved stepchild");
       return stepchildren_[i].deref();
     }
+    
     //## return parent by number
     Node & getParent (int i)
     { return parents_[i].ref.dewr(); }
@@ -411,6 +417,13 @@ class Node : public DMI::BObj
     int getChildNumber (const HIID &id);
     
     const std::string & childName (int i) const;
+    
+    // adds a child or stepchild on-the-fly at the end of the current child list
+    void addChild     (Node::Ref &childnode)
+    { addChild(AtomicID(numChildren()),childnode); }
+    
+    void addStepChild (Node::Ref &childnode)
+    { addStepChild(numStepChildren(),childnode); }
     
     const std::vector<HIID> & getNodeGroups () const
     { return node_groups_; }
@@ -913,18 +926,18 @@ class Node : public DMI::BObj
     void initChildren (int nch);
     void initStepChildren (int nch);
     void allocChildSupport (int nch);
-    //##ModelId=3F8433C20193
     // adds a child or stepchild. A child may be specified by index or label
     // (if labels are defined); stepchildren always use indices.
     // Ref is transferred.
-    void addChild (const HIID &id,Node::Ref &childnode);
+    void addChild     (const HIID &id,Node::Ref &childnode);
     void addStepChild (int n,Node::Ref &childnode);
+    //##ModelId=3F8433C20193
     //##ModelId=3F9505E50010
     // processes a single [step]child specification. 'child' specifies the child.
     // (this can be a true HIID only if not a stepchild, and child_labels_ are specified;
     // otherwise it's an single-element index) . 'id' is the actual field
     // in 'children' that contains the child specification.
-    void processChildSpec (DMI::Container &children,const HIID &chid,const HIID &id,bool stepchild);
+    bool processChildSpec (DMI::Container &children,const HIID &chid,const HIID &id,bool stepchild);
     
     // Looks into record, gets out the FChildren or FStepChildren field, and 
     // processes it as a list of [step]children
@@ -961,13 +974,10 @@ class Node : public DMI::BObj
     ChildrenMap child_map_;
     //##ModelId=400E530A016A
     //##Documentation
-    //## specified in constructor. If non-0, node must have that fixed number
-    //## of children
-    int check_nchildren_;
-    //##Documentation
-    //## specified in constructor. If non-0, node must have no less than 
-    //## that number of children
-    int check_nmandatory_;
+    //## specified in constructor. If >=0, node must have at least min and
+    //## at most max children. 
+    int check_min_children_;
+    int check_max_children_;
     
     //##ModelId=3F5F4363030D
     DMI::Record::Ref staterec_;

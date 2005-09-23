@@ -30,7 +30,7 @@ namespace Meq {
 
 //##ModelId=400E53050042
 Composer::Composer()
-  : Node(-1,0,1), // at least 1 child must be present
+  : Node(-2,0), // at least 1 child must be present
     contagious_fail(false)
 {
   // we can only compose results with the same cells

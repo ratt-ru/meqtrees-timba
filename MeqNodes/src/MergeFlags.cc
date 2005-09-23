@@ -26,7 +26,7 @@ namespace Meq {
 
 //##ModelId=400E5355029C
 MergeFlags::MergeFlags()
-  : Function(-1,0,1)
+  : Function(-2)
 {}
 
 //##ModelId=400E5355029D

@@ -11,6 +11,8 @@ import new
 import sets
 import re
 import time
+import copy
+import math
 from qt import *
 
 _dbg = verbosity(0,name='meqds');
@@ -91,7 +93,7 @@ CS_RES_map = {  CS_RES_NONE:     ('-','valid result'),
                 CS_RES_FAIL:     ('!','fail result returned')   };
  
 # this class defines and manages a node list
-class NodeList (object):
+class NodeList (QObject):
   NodeAttrs = ('name','class','children','step_children','control_status');
   RequestRecord = record(**dict.fromkeys(NodeAttrs,True));
   RequestRecord.nodeindex=True;
@@ -99,8 +101,8 @@ class NodeList (object):
   RequestRecord.get_forest_state  = True;
   
   class Node (QObject):
-    def __init__ (self,ni):
-      QObject.__init__(self);
+    def __init__ (self,ni,parent=None):
+      QObject.__init__(self,parent,"meqds.Node");
       self.nodeindex = ni;
       self.name = None;
       self.classname = None;
@@ -111,6 +113,19 @@ class NodeList (object):
       self.breakpoint = 0;
       self.control_status = 0;
       self.control_status_string = '';
+      self.profiling_stats = self.cache_stats = 0;
+    def child_label_format (self):
+      try: format = self._child_label_format;
+      except AttributeError:
+        if self.children:
+          if isinstance(self.children[0][0],int):
+            format = '%%0%dd: %%s' % (math.floor(math.log10(len(self.children)))+1,);
+          else:
+            format = '%s: %s';
+        else:
+          format = '';
+        self._child_label_format = format;
+      return format;
     def is_active (self):
       return bool(self.control_status&CS_ACTIVE);
     def is_publishing (self):
@@ -165,7 +180,8 @@ class NodeList (object):
       QObject.disconnect(self,PYSIGNAL("state()"),callback);
 
   # init node list
-  def __init__ (self,meqnl=None):
+  def __init__ (self,meqnl=None,parent=None):
+    QObject.__init__(self,parent,"meqds.NodeList");
     if meqnl:
       self.load_meqlist(meqnl);
       
@@ -185,6 +201,14 @@ class NodeList (object):
     iter_children = iter(meqnl.children);
     iter_step_children = iter(meqnl.step_children);
     iter_cstate   = iter(meqnl.control_status);
+    # profiling into is optional
+    if hasattr(meqnl,'profiling_stats'):
+      self._has_profiling = True;
+      iter_prof   = iter(meqnl.profiling_stats);
+      iter_cache  = iter(meqnl.cache_stats);
+    else:
+      iter_prof = iter_cache = None;
+      self._has_profiling = False;
     self._nimap = {};
     self._namemap = {};
     self._classmap = {};
@@ -193,7 +217,7 @@ class NodeList (object):
     if meqnl.nodeindex != (0,):
       for ni in meqnl.nodeindex:
         # insert node into list (or use old one: may have been inserted below)
-        node = self._nimap.setdefault(ni,self.Node(ni));
+        node = self._nimap.setdefault(ni,self.Node(ni,self));
         node.name      = iter_name.next();
         node.classname = iter_class.next();
         node.update_status(iter_cstate.next());
@@ -211,18 +235,29 @@ class NodeList (object):
           node.step_children = ();
         else:
           node.step_children = step_children;
+        # set profiling stats, form them into 2D arrays for easier accounting
+        if iter_prof is not None:
+          ps = iter_prof.next();
+          try: node.profiling_stats = array([ps.total[0:2],ps.children[0:2],ps.get_result[0:2]]);
+          except KeyError: node.profiling_stats = sys.exc_info();
+          cs = iter_cache.next();
+          try: node.cache_stats = array([cs.all_requests,cs.new_requests]);
+          except KeyError: node.cache_stats = sys.exc_info();
         # for all children, init node entry in list (if necessary), and
         # add to parent list
         for (i,ch_ni) in node.children:
-          self._nimap.setdefault(ch_ni,self.Node(ch_ni)).parents.append(ni);
+          if ch_ni > 0: # ignore missing children
+            self._nimap.setdefault(ch_ni,self.Node(ch_ni)).parents.append(ni);
         for ch_ni in node.step_children:
           self._nimap.setdefault(ch_ni,self.Node(ch_ni)).parents.append(ni);
         # add to name map
         self._namemap[node.name] = node;
         # add to class map
         self._classmap.setdefault(node.classname,[]).append(node);
-      # compose list of root (i.e. parentless) nodes
+    # compose list of root (i.e. parentless) nodes
     self._rootnodes = [ node for node in self._nimap.itervalues() if not node.parents ];
+    # emit signal
+    self.emit(PYSIGNAL("loaded()"),(meqnl,));
     
 #  __init__ = busyCursorMethod(__init__);
   # return list of root nodes
@@ -235,6 +270,8 @@ class NodeList (object):
     return self._nimap.iteritems();
   def iternodes (self):
     return self._nimap.itervalues();
+  def has_profiling (self):
+    return self._has_profiling;
   # mapping methods
   def __len__ (self):
     try: return len(self._nimap);
@@ -436,9 +473,19 @@ def set_forest_state (field,value):
 # --- Node state management
 # ----------------------------------------------------------------------
 
-def request_nodelist ():
+def request_nodelist (profiling_stats=False):
   """Sends a request to the kernel to return a nodelist.""";
-  mqs().meq('Get.Node.List',NodeList.RequestRecord,wait=False);
+  rec = NodeList.RequestRecord;
+  if profiling_stats:
+    rec = copy.copy(rec);
+    rec.profiling_stats = True;
+  mqs().meq('Get.Node.List',rec,wait=False);
+  
+def subscribe_nodelist (callback):
+  QObject.connect(nodelist,PYSIGNAL("loaded()"),callback);
+
+def ubsubscribe_nodelist (callback):
+  QObject.disconnect(nodelist,PYSIGNAL("loaded()"),callback);
 
 def enable_node_publish (node,enable=True,get_state=True):
   ni = nodeindex(node);

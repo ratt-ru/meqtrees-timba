@@ -4,6 +4,8 @@
     #include <DMI/TypeInfo.h>
     #include <DMI/DynamicTypeManager.h>
     #include <DMI/Packer.h>
+#include "VisDataMux.h"
+DMI::BObj * __construct_MeqVisDataMux (int n) { return n>0 ? new Meq::VisDataMux [n] : new Meq::VisDataMux; }
 #include "Sink.h"
 DMI::BObj * __construct_MeqSink (int n) { return n>0 ? new Meq::Sink [n] : new Meq::Sink; }
 #include "Spigot.h"
@@ -79,10 +81,16 @@ DMI::BObj * __construct_MeqSpigot (int n) { return n>0 ? new Meq::Spigot [n] : n
         AtomicID::registerId(-1565,"Script")+
         AtomicID::registerId(-1224,"File")+
         AtomicID::registerId(-1162,"Source")+
+        AtomicID::registerId(-1585,"MeqVisDataMux")+
+        TypeInfoReg::addToRegistry(-1585,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1585,__construct_MeqVisDataMux)+
         AtomicID::registerId(-1131,"Station")+
         AtomicID::registerId(-1061,"Index")+
         AtomicID::registerId(-1232,"Tile")+
         AtomicID::registerId(-1261,"Format")+
+        AtomicID::registerId(-1106,"Start")+
+        AtomicID::registerId(-1584,"Pre")+
+        AtomicID::registerId(-1231,"Post")+
         AtomicID::registerId(-1487,"VisHandlerNode")+
         AtomicID::registerId(-1163,"Num")+
         AtomicID::registerId(-1202,"Antenna")+

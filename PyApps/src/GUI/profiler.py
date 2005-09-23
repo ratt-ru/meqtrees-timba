@@ -131,8 +131,7 @@ class Profiler (PersistentCurrier):
       self._appgui.log_message("profiling stats collected");
       # create base items
       treeview = StickyListViewItem(self._listview,"Tree View",key=10);
-      roots = [ node.nodeindex for node in meqds.nodelist.rootnodes() ];
-      roots = zip([None]*len(roots),roots); # create [(label,ni)] list
+      roots = [ (node.name,node.nodeindex) for node in meqds.nodelist.rootnodes() ];
       treeview._generate_items = self.curry(self._generate_node_items,roots);
       treeview.setExpandable(True);
 
@@ -191,40 +190,38 @@ class Profiler (PersistentCurrier):
   def _generate_node_items (self,nodelist,parent_item):
     for label,ni in nodelist:
       # get node object and stats
-      try: node = meqds.nodelist[ni];
-      except KeyError: 
-        _dprint(1,"lost node",label,ni);
-        continue;
-      try: se = self._stats[ni];
-      except KeyError: 
-        _dprint(1,"lost node stats",label,ni);
-        continue;
-      # create name using node name prefixed by label
-      if label is not None:
-        name = str(label) + ': ' + node.name; 
-      else:
-        name = node.name;
-      # create item
-      item = self.StatItem(parent_item,name,node.classname,se);
-      # add children to item as needed
-      childlist = [];
-      if node.children:
-        # format string for enumerating children -- need to use sufficient digits
-        chform = '%%0%dd: %%s' % (math.floor(math.log10(len(node.children)))+1,);
-        for (key,ni) in node.children:
+      if ni > 0:
+        try: node = meqds.nodelist[ni];
+        except KeyError: 
+          _dprint(1,"lost node",label,ni);
+          continue;
+        try: se = self._stats[ni];
+        except KeyError: 
+          _dprint(1,"lost node stats",label,ni);
+          continue;
+        # create item
+        item = self.StatItem(parent_item,label,node.classname,se);
+        # add children to item as needed
+        childlist = [];
+        if node.children:
+          # format string for enumerating children -- need to use sufficient digits
+          chform = '%%0%dd: %%s' % (math.floor(math.log10(len(node.children)))+1,);
+          for (key,ni) in node.children:
+            if ni > 0:
+              childname = meqds.nodelist[ni].name;
+            else:
+              childname = '<none>';
+            childlabel = node.child_label_format() % (key,childname);
+            childlist.append((childlabel,ni));
+        for ni in node.step_children:
           childnode = meqds.nodelist[ni];
-          if isinstance(key,int):
-            childlabel = chform % (key,childnode.name);
-          else:
-            childlabel = ': '.join((key,childnode.name));
-          childlist.append((childlabel,ni));
-      for ni in node.step_children:
-        childnode = meqds.nodelist[ni];
-        childlist.append(("(" + childnode.name +")",ni));
-      # do we have a childlist now?
-      if childlist:
-        item.setExpandable(True);
-        item._generate_items = self.curry(self._generate_node_items,childlist);
+          childlist.append(("(" + childnode.name +")",ni));
+        # do we have a childlist now?
+        if childlist:
+          item.setExpandable(True);
+          item._generate_items = self.curry(self._generate_node_items,childlist);
+      else: # missing child
+        item = self.StatItem(parent_item,label,'',self.StatEntry(''));
       
   def _expand_item (self,item):
     # populate item when first

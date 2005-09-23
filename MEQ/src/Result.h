@@ -249,6 +249,12 @@ public:
   // returns the number of fails in the set
     //##ModelId=400E535501D4
   int numFails () const;
+  
+  // adds fails to ExceptionList
+  DMI::ExceptionList & addToExceptionList (DMI::ExceptionList &) const;
+  
+  DMI::ExceptionList makeExceptionList () const
+  { DMI::ExceptionList list; return addToExceptionList(list); }
 
   // dumps result to stream
     //##ModelId=3F868870014C

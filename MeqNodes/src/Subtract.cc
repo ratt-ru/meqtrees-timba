@@ -27,7 +27,7 @@ namespace Meq {
 
 //##ModelId=400E5355029C
 Subtract::Subtract()
- : Function(-1,0,1)
+ : Function(-2) // at least one child expected
 {}
 
 //##ModelId=400E5355029D

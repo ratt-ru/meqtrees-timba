@@ -74,8 +74,6 @@ void Forest::clear ()
   nodes.resize(1);
   name_map.clear();
   num_valid_nodes = 0;
-  if( evgen_delete.active() )
-    evgen_delete.generateEvent(ObjRef(),0); // null ptr means all nodes deleted
 }
 
 //##ModelId=3F5F572601B2
@@ -137,9 +135,6 @@ Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitiali
   num_valid_nodes++;
   if( !nodename.empty() )
     name_map[nodename] = node_index;
-  // post event
-  if( evgen_create.active() )
-    evgen_create.generateEvent(ObjRef(pnode->state()),pnode);
   return *pnode;
 }
 
@@ -151,9 +146,6 @@ int Forest::remove (int node_index)
   Node::Ref &ref = nodes[node_index];
   FailWhen(!ref.valid(),"invalid node index");
   string name = ref->name();
-  // generate delete event
-  if( evgen_delete.active() )
-    evgen_delete.generateEvent(ObjRef(),ref.dewr_p());
   // detach the node & shrink repository if needed
   ref.detach();
   if( node_index == int(nodes.size())-1 )
@@ -310,18 +302,6 @@ int Forest::getNodeList (DMI::Record &list,int content)
     FailWhen(i0<num,"forest inconsistency: too few valid nodes found");
   }
   return num;
-}
-
-EventGenerator & Forest::getEventGenerator (const HIID &evtype)
-{
-  if( evtype == AidCreate )
-    return evgen_create;
-  else if( evtype == AidDelete )
-    return evgen_delete;
-  else
-  {
-    Throw("unknown event type: "+evtype.toString());
-  }
 }
 
 void Forest::fillSymDeps (DMI::Record &rec,const SymdepMap &map)

@@ -5,46 +5,40 @@
 #include <AppAgent/InputAgent.h>
 #include <AppAgent/OutputAgent.h>
 #include <MeqServer/VisHandlerNode.h>
-#include <DMI/Events.h>
+#include <MeqServer/TID-MeqServer.h>
 #include <vector>
     
-#pragma aid Station Index Tile Format Create Delete
+#pragma types #Meq::VisDataMux
+#pragma aid Station Index Tile Format Start Pre Post
 
 namespace Meq 
 {
+
+class Spigot;
+class Sink;
   
-const HIID VisDataMux_EventCreate = AidCreate;
-const HIID VisDataMux_EventDelete = AidDelete;
-   
 //##ModelId=3F98DAE503DA
-class VisDataMux : public EventRecepient
+class VisDataMux : public Node
 {
   public:
-    static const HIID EventCreate;
-    static const HIID EventDelete; 
-  
     //##ModelId=3F9FF71B006A
-    VisDataMux (Meq::Forest &frst);
+    VisDataMux ();
     
-    virtual ~VisDataMux () 
-    { clear(); }
-    
-    void clear ();
+    virtual TypeId objectType() const
+    { return TpMeqVisDataMux; }
       
     //##ModelId=3FA1016000B0
-    void init (const DMI::Record &rec,
-                AppAgent::VisAgent::InputAgent  & inp,
-                AppAgent::VisAgent::OutputAgent & outp,
-                AppAgent::AppControlAgent       & ctrl);
+    void attachAgents ( AppAgent::VisAgent::InputAgent  & inp,
+                        AppAgent::VisAgent::OutputAgent & outp,
+                        AppAgent::AppControlAgent       & ctrl);
+
+    void attachSpigot (Spigot &spigot);
+    void attachSink   (Sink &sink);
+    void detachSpigot (Spigot &spigot);
+    void detachSink   (Sink &sink);
     
-    // this receives node create/delete events
-    virtual int receiveEvent (const EventIdentifier &evid,const ObjRef &evdata,void *);
-    
-    //##ModelId=3F98DAE6024C
-    void addNode (Node &node);
-  
-    //##ModelId=3F98DAE6024F
-    void removeNode (Node &node);
+    // clears all handlers
+    void clear ();
     
     //##ModelId=3F98DAE6024A
     //##Documentation
@@ -72,32 +66,35 @@ class VisDataMux : public EventRecepient
     AppAgent::VisAgent::OutputAgent & output()    { return *output_; }
         
     //##ModelId=3F98DAE60246
-    ImportDebugContext(VisHandlerNode);
+    LocalDebugContext;
     
   private:
-    //##ModelId=3F9FF71B00AE
-    VisDataMux ();
     //##ModelId=3F9FF71B00C7
     VisDataMux (const VisDataMux &);
+  
+    int startSnippet (const VisCube::VTile &tile);
+    int endSnippet   ();
     
     //##ModelId=3F992F280174
-    static int formDataId (int sta1,int sta2);
-  
+    static int formDataId (int sta1,int sta2)
+    { return VisVocabulary::ifrNumber(sta1,sta2); }
+
     //##ModelId=3F99305003E3
-    typedef std::list<VisHandlerNode *> VisHandlerList;
-    //##ModelId=3F98DAE60247
-    std::vector<VisHandlerList> handlers_;
+    typedef std::set<VisHandlerNode *> HandlerSet;
+    typedef std::set<VisHandlerNode *> SinkSet;
     
-    //##ModelId=3F9FF71B004E
-    Meq::Forest & forest_;
- 
+    //##ModelId=3F98DAE60247
+    // set of all handlers for each data ID (==IFR)
+    std::vector<HandlerSet> handlers_;
+    // set of sinks for each data ID (==IFR)
+    std::vector<SinkSet> sinks_;
+    // set of flags: do we have a tile for this data ID (==IFR)
+    std::vector<bool> have_tile_;
+    
     //  list of columns to be added to output tiles
     //##ModelId=3FAA52A6008E
-    std::vector<int>     out_columns_;
-    //##ModelId=3FAA52A6014F
-    std::vector<string>  out_colnames_;
-    //##ModelId=3FAA52A6018C
-    VisCube::VTile::Format::Ref out_format_;
+    typedef std::set<int> ColumnSet;
+    ColumnSet output_columns_;
     
     // header is cached; it is dumped to output only if some tiles are being
     // written
@@ -109,13 +106,11 @@ class VisDataMux : public EventRecepient
     LoVec_double channel_widths;  
     // flag: require a fully regular cells (single-segment)
     bool force_regular_grid;
-    //##ModelId=400E5B6D0151
-//    double minfreq;
-    //##ModelId=400E5B6D0177
-//    double maxfreq;
     
     RequestId rqid_;
-    Cells::Ref prev_cells_;
+    Request::Ref current_req_;
+    int current_seqnr_;
+    LoRange current_range_;
     
     AppAgent::AppControlAgent       * control_;
     AppAgent::VisAgent::InputAgent  * input_;

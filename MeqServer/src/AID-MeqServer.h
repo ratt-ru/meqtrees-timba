@@ -253,6 +253,11 @@ const int AidMeqSink_int = -1481;
 const DMI::AtomicID AidMeqSpigot(-1468);          // from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:9
 const int AidMeqSpigot_int = -1468;
 #endif
+#ifndef _defined_id_AidMeqVisDataMux
+#define _defined_id_AidMeqVisDataMux 1
+const DMI::AtomicID AidMeqVisDataMux(-1585);      // from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:10
+const int AidMeqVisDataMux_int = -1585;
+#endif
 #ifndef _defined_id_AidMessage
 #define _defined_id_AidMessage 1
 const DMI::AtomicID AidMessage(-1269);            // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:36
@@ -287,6 +292,16 @@ const int AidNum_int = -1163;
 #define _defined_id_AidOutput 1
 const DMI::AtomicID AidOutput(-1241);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/VisAgentVocabulary.h:10
 const int AidOutput_int = -1241;
+#endif
+#ifndef _defined_id_AidPost
+#define _defined_id_AidPost 1
+const DMI::AtomicID AidPost(-1231);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:12
+const int AidPost_int = -1231;
+#endif
+#ifndef _defined_id_AidPre
+#define _defined_id_AidPre 1
+const DMI::AtomicID AidPre(-1584);                // from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:10
+const int AidPre_int = -1584;
 #endif
 #ifndef _defined_id_AidProcessing
 #define _defined_id_AidProcessing 1
@@ -407,6 +422,11 @@ const int AidSpigot_int = -1485;
 #define _defined_id_AidStack 1
 const DMI::AtomicID AidStack(-1466);              // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:17
 const int AidStack_int = -1466;
+#endif
+#ifndef _defined_id_AidStart
+#define _defined_id_AidStart 1
+const DMI::AtomicID AidStart(-1106);              // from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:21
+const int AidStart_int = -1106;
 #endif
 #ifndef _defined_id_AidState
 #define _defined_id_AidState 1

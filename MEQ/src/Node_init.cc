@@ -25,14 +25,26 @@ void Node::allocChildSupport (int nch)
 void Node::initChildren (int nch)
 {
   // check against expected number
-  FailWhen( nch < check_nmandatory_,
-            ssprintf("%d children specified, at least %d expected",
-            nch,check_nmandatory_) );
-  if( check_nchildren_ >= 0 && !check_nmandatory_ )
+  if( check_min_children_ == check_max_children_ )
   {
-    FailWhen( nch != check_nchildren_,
-              ssprintf("%d children specified, %d expected",nch,check_nchildren_) );
+    FailWhen(check_max_children_>=0 && nch != check_max_children_,
+            ssprintf("%d children specified, %d expected",
+            nch,check_max_children_ ));
   }
+  else 
+  { 
+    FailWhen( check_min_children_>=0 && nch < check_min_children_,
+              ssprintf("%d children specified, at least %d expected",
+              nch,check_min_children_ ));
+    FailWhen( check_max_children_>=0 && nch > check_max_children_,
+              ssprintf("%d children specified, at most %d expected",
+              nch,check_max_children_ ));
+  }
+  // if initializing fewer children than we have labels, adjust nch upwards,
+  // so that we have "missing" children for any unfilled labels
+  if( nch < int(child_labels_.size()) )
+    nch = child_labels_.size();
+  
   allocChildSupport(nch);
   // form the children name/index fields
   if( nch )
@@ -40,8 +52,14 @@ void Node::initChildren (int nch)
     DMI::Container *p1,*p2;
     if( !child_labels_.empty() ) // children are labelled: use records
     {
-      wstate()[FChildren] <<= new DMI::Record;
-      wstate()[FChildrenNames] <<= new DMI::Record;
+      DMI::Record *chrec,*namerec;
+      wstate()[FChildren] <<= chrec = new DMI::Record;
+      wstate()[FChildrenNames] <<= namerec = new DMI::Record;
+      for( uint i=0 ;i<child_labels_.size(); i++ )
+      {
+        (*chrec)[child_labels_[i]] = -1;
+        (*namerec)[child_labels_[i]] = "";
+      }
     }
     else // children are unlabelled: use fields
     {
@@ -96,7 +114,14 @@ void Node::addChild (const HIID &id,Node::Ref &childnode)
   if( id.length() == 1 && id[0].id() >= 0 )
   {
     ich = id[0].id();
-    FailWhen(ich<0 || ich>=numChildren(),"child number "+id.toString()+" is out of range");
+    FailWhen(ich<0 || ich>numChildren(),"child number "+id.toString()+" is out of range");
+    if( ich == numChildren() )
+    {
+      if( !ich )
+        initChildren(1);
+      else
+        allocChildSupport(ich+1); // vecs in state record will take care of themselves
+    }
   }
   else // non-numeric: look in in child labels
   {
@@ -106,7 +131,6 @@ void Node::addChild (const HIID &id,Node::Ref &childnode)
     FailWhen(lbl == child_labels_.end(),"'"+id.toString() + "': unknown child label");
     ich = lbl - child_labels_.begin();
   }
-  // attach ref to child if specified (will stay unresolved otherwise)
   wstate()[FChildrenNames][getChildLabel(ich)] = childnode->name();
   wstate()[FChildren][getChildLabel(ich)] = childnode->nodeIndex();
   children_[ich].xfer(childnode,DMI::SHARED);
@@ -115,8 +139,15 @@ void Node::addChild (const HIID &id,Node::Ref &childnode)
 
 void Node::addStepChild (int n,Node::Ref &childnode)
 {
-  FailWhen(n<0 || n>=numStepChildren(),"stepchild number is out of range");
-  // attach ref to child if specified (will stay unresolved otherwise)
+  FailWhen(n<0 || n>numStepChildren(),"stepchild number is out of range");
+  // adding stepchild on-the-fly?
+  if( n == numStepChildren() )
+  {
+    if( !n )
+      initStepChildren(1);
+    else
+      stepchildren_.resize(n+1); // vecs in state record will take care of themselves
+  }
   wstate()[FStepChildrenNames][n] = childnode->name();
   wstate()[FStepChildren][n] = childnode->nodeIndex();
   stepchildren_[n].xfer(childnode,DMI::SHARED);
@@ -124,15 +155,21 @@ void Node::addStepChild (int n,Node::Ref &childnode)
 }
 
 //##ModelId=3F9505E50010
-void Node::processChildSpec (DMI::Container &children,const HIID &chid,const HIID &id,bool stepchild)
+bool Node::processChildSpec (DMI::Container &children,const HIID &chid,const HIID &id,bool stepchild)
 {
   const string which = stepchild ? "stepchild" : "child";
+  DMI::Container::Hook ch_hook(children,id);
+  TypeId spec_type = ch_hook.type();
+  // child specified by missing ref (i.e. None): no child
+  if( ch_hook.isRef() && !(ch_hook.ref(true).valid()) )
+  {
+    return false;
+  }
   // child specified by init-record: create recursively
-  TypeId spec_type = children[id].type();
-  if( spec_type == TpDMIRecord )
+  else if( spec_type == TpDMIRecord )
   {
     cdebug(4)<<"  "<<which<<" "<<id<<" specified by init record"<<endl;
-    DMI::Record::Ref child_initrec = children[id].ref();
+    DMI::Record::Ref child_initrec = ch_hook.ref();
     // check if named child already exists
     string name = child_initrec[FName].as<string>("");
     int index = -1;
@@ -175,28 +212,29 @@ void Node::processChildSpec (DMI::Container &children,const HIID &chid,const HII
     // child specified by name -- look it up in the forest
     if( spec_type == Tpstring )
     {
-      const string & name = children[id].as<string>();
-      if( name.length() ) // skip if empty string
+      const string & name = ch_hook.as<string>();
+      if( name.empty() )
+        return false;
+      int index = forest_->findIndex(name);
+      if( index >= 0 )
       {
-        int index = forest_->findIndex(name);
-        if( index >= 0 )
-        {
-          Node::Ref childref(forest_->get(index),DMI::SHARED);
-          cdebug(2)<<"  "<<which<<" "<<id<<"="<<name<<" resolves to node "<<index<<endl;
-          stepchild ? addStepChild(chid[0],childref) : addChild(chid,childref);
-        }
-        else
-        { // defer until later if not found
-          cdebug(2)<<"  "<<which<<" "<<id<<"="<<name<<" currently unresolved"<<endl;
-          // add to child names so that we remember the name at least 
-          wstate()[stepchild?FStepChildrenNames:FChildrenNames][chid] = name;
-        }
+        Node::Ref childref(forest_->get(index),DMI::SHARED);
+        cdebug(2)<<"  "<<which<<" "<<id<<"="<<name<<" resolves to node "<<index<<endl;
+        stepchild ? addStepChild(chid[0],childref) : addChild(chid,childref);
+      }
+      else
+      { // defer until later if not found
+        cdebug(2)<<"  "<<which<<" "<<id<<"="<<name<<" currently unresolved"<<endl;
+        // add to child names so that we remember the name at least 
+        wstate()[stepchild?FStepChildrenNames:FChildrenNames][chid] = name;
       }
     }
     // child specified by index -- just get & attach it directly
     else if( spec_type == Tpint )
     {
-      int index = children[id];
+      int index = ch_hook.as<int>();
+      if( !index )
+        return false;
       Node::Ref childref(forest_->get(index),DMI::SHARED);
       cdebug(2)<<"  "<<which<<" "<<id<<"="<<index<<endl;
       stepchild ? addStepChild(chid[0],childref) : addChild(chid,childref);
@@ -205,6 +243,7 @@ void Node::processChildSpec (DMI::Container &children,const HIID &chid,const HII
       Throw("illegal specification for "+which+" "+id.toString()+" (type "+
             spec_type.toString()+")");
   }
+  return true;
 }
 
 void Node::setupChildren (DMI::Record &initrec,bool stepchildren)
@@ -259,15 +298,25 @@ void Node::setupChildren (DMI::Record &initrec,bool stepchildren)
 //##ModelId=400E531101C8
 void Node::relinkChildren ()
 {
+  const DMI::Record &st = state();
   for( int i=0; i<numChildren(); i++ )
-    children_[i].attach(forest().get(state()[FChildren][getChildLabel(i)]),DMI::SHARED);
+  {
+    HIID label = getChildLabel(i);
+    int nodeindex = st[FChildren][label];
+    if( nodeindex >= 0 )
+      children_[i].attach(forest().get(nodeindex),DMI::SHARED);
+    else
+    {
+      FailWhen(i<check_min_children_,"mandatory child "+label.toString()+" missing");
+    }
+  }
   for( int i=0; i<numStepChildren(); i++ )
     stepchildren_[i].attach(forest().get(state()[FStepChildren][i]),DMI::SHARED);
   checkChildren();
 }
 
 //##ModelId=3F83FAC80375
-void Node::resolveChildren (bool recursive)
+void Node::resolveChildren ()
 {
   cdebug(2)<<"resolving children\n";
   for( int i=0; i<numChildren(); i++ )
@@ -276,27 +325,21 @@ void Node::resolveChildren (bool recursive)
     {
       HIID label = getChildLabel(i);
       string name = state()[FChildrenNames][label].as<string>();
-      cdebug(3)<<"resolving child "<<i<<":"<<name<<endl;
-      // findNode() will throw an exception if the node is not found,
-      // which is exactly what we want
-      try
+      if( name.empty() )
       {
-        Node &childnode = forest_->findNode(name);
+        FailWhen(i<check_min_children_,"mandatory child "+label.toString()+" missing");
+        wstate()[FChildren][label] = -1;
+      }
+      else
+      {
+        cdebug(3)<<"resolving child "<<i<<":"<<name<<endl;
+        int nodeindex = forest_->findIndex(name);
+        FailWhen(nodeindex<0,"failed to resolve child "+label.toString()+": node '"+name+"' not found");
+        Node &childnode = forest_->get(nodeindex);
         children_[i].attach(childnode,DMI::SHARED);
-        wstate()[FChildren][label] = childnode.nodeIndex();
-      }
-      catch( std::exception &exc )
-      {
-        ThrowMore(exc,Debug::ssprintf("failed to resolve child %d ('%s')",i,name.c_str()));
-      }
-      catch( ... )
-      {
-        Throw(Debug::ssprintf("failed to resolve child %d ('%s')",i,name.c_str()));
+        wstate()[FChildren][label] = nodeindex;
       }
     }
-    // recursively call resolve on the children
-    if( recursive )
-      children_[i]().resolveChildren();
   }
   // check children for consistency
   checkChildren();
@@ -325,9 +368,6 @@ void Node::resolveChildren (bool recursive)
         Throw(Debug::ssprintf("failed to resolve stepchild %d ('%s')",i,name.c_str()));
       }
     }
-    // recursively call resolve on the children
-    if( recursive )
-      stepchildren_[i]().resolveChildren();
   }
 }
 
@@ -367,19 +407,34 @@ void Node::init (DMI::Record::Ref &initrec, Forest* frst)
   // setup children
   cdebug(2)<<"initializing node children"<<endl;
   setupChildren(rec,false);
-  // if a mandatory number of children (NM) is requested, make sure
-  // that the first NM children are set
-  if( check_nmandatory_ )
+  // if a minimum number of children is expected, make sure that that 
+  // number of children is actually supplied
+  if( check_min_children_>=0 )
   {
-    FailWhen(numChildren()<check_nmandatory_,"too few children specified");
-    for( int i=0; i<check_nmandatory_; i++ )
+    FailWhen(numChildren()<check_min_children_,"too few children specified");
+    for( int i=0; i<check_min_children_; i++ )
       if( !children_[i].valid() && 
-          state()[FChildrenNames][child_map_[getChildLabel(i)]].as<string>().empty() )
+          state()[FChildrenNames][getChildLabel(i)].as<string>("").empty() )
       {
         Throw("mandatory child "+getChildLabel(i).toString()+" not specified" );
       }
   }
-  cdebug(2)<<"initialized with "<<numChildren()<<" children"<<endl;
+  // if no children were supplied but we do have labels, init empty arrays for 
+  // them anyway
+  if( !numChildren() )
+  {
+    cdebug(2)<<"initialized with no children"<<endl;
+    if( !child_labels_.empty() )
+    {
+      cdebug(2)<<"labels supplied, initializing empty arrays"<<endl;
+      initChildren(0);
+    }
+  }
+  else
+  {
+    cdebug(2)<<"initialized with "<<numChildren()<<" children"<<endl;
+  }
+  // initialize stepchildren
   cdebug(2)<<"initializing node step children"<<endl;
   setupChildren(rec,true);
   cdebug(2)<<"initialized with "<<numStepChildren()<<" stepchildren"<<endl;

@@ -39,8 +39,6 @@ using Debug::ssprintf;
 //##ModelId=3F5F43E000A0
 Node::Node (int nchildren,const HIID *labels,int nmandatory)
     : control_status_(CS_ACTIVE),
-      check_nchildren_(nchildren),
-      check_nmandatory_(nmandatory),
       depend_mask_(0),
 //      symdep_masks_(defaultSymdepMasks()),
       node_groups_(1,FAll),
@@ -48,19 +46,29 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
       disable_auto_resample_(false),
       propagate_child_fails_(true)
 {
-  Assert(nchildren>=0 || !labels);
-  Assert(nchildren<0 || nchildren>=nmandatory);
+  // figure out # of children
+  if( nchildren<0 )               // negative: specifies N or more
+  {
+    check_max_children_ = -1;
+    check_min_children_ = nchildren = -(nchildren+1);
+  }
+  else // positive: specifies exactly N
+  {
+    check_max_children_ = check_min_children_ = nchildren;
+  }
+  // nmandatory: specifies at least N
+  if( nmandatory>=0 )
+  {
+    Assert(nmandatory<=nchildren);
+    check_min_children_ = nmandatory;
+  }
+  // if labels are supplied, then nchildren must be set
   if( labels )   // copy labels
   {
+    Assert(nchildren>0);
     child_labels_.resize(nchildren);
     for( int i=0; i<nchildren; i++ )
       child_labels_[i] = labels[i];
-    // if nmandatory is specified, then check that and not children count
-    if( nmandatory )
-    {
-      check_nchildren_ = -1;
-      check_nmandatory_ = nmandatory;
-    }
   }
   // else child_labels_ stays empty to indicate no labels -- this is checked below
   
@@ -885,24 +893,29 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   child_fails_.resize(0);
   for( int i=0; i<numChildren(); i++ )
   {
-    int childcode = child_retcodes_[i] = getChild(i).execute(child_results[i],req);
-    cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
-    retcode |= childcode;
-    if( !(childcode&RES_WAIT) )
+    if( isChildValid(i) )
     {
-      const Result * pchildres = child_results[i].deref_p();
-//       // cache it in verbose mode
-//       if( chres )
-//         chres[i] <<= pchildres;
-      if( childcode&RES_FAIL )
+      int childcode = child_retcodes_[i] = getChild(i).execute(child_results[i],req);
+      cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
+      retcode |= childcode;
+      if( !(childcode&RES_WAIT) )
       {
-        child_fails_.push_back(pchildres);
-        nfails += pchildres->numFails();
+        const Result * pchildres = child_results[i].deref_p();
+  //       // cache it in verbose mode
+  //       if( chres )
+  //         chres[i] <<= pchildres;
+        if( childcode&RES_FAIL )
+        {
+          child_fails_.push_back(pchildres);
+          nfails += pchildres->numFails();
+        }
       }
+      // if child is updated, clear resampled result cache
+      if( childcode&RES_UPDATED )
+        clearRCRCache(i);
     }
-    // if child is updated, clear resampled result cache
-    if( childcode&RES_UPDATED )
-      clearRCRCache(i);
+    else // missing child marked simply by FAIL code
+      child_retcodes_[i] = RES_FAIL;
   }
   // now poll stepchildren (their results are always ignored)
   pollStepChildren(req);
@@ -957,7 +970,7 @@ int Node::resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int r
     cdebug(3)<<"resolving node, rpid="<<rpid<<endl;
     wstate()[FResolveParentId] = node_resolve_id_ = rpid;
     // resolve children
-    resolveChildren(false);
+    resolveChildren();
     // process depmasks 
     if( !known_symdeps_.empty() )
     {
@@ -1012,9 +1025,10 @@ int Node::resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int r
   stepchild_retcodes_.resize(numStepChildren());
   // pass recursively onto children
   for( int i=0; i<numChildren(); i++ )
-    children_[i]().resolve(this,false,depmasks,rpid);
+    if( isChildValid(i) )
+      getChild(i).resolve(this,false,depmasks,rpid);
   for( int i=0; i<numStepChildren(); i++ )
-    stepchildren_[i]().resolve(this,true,depmasks,rpid);
+    getStepChild(i).resolve(this,true,depmasks,rpid);
   return 0;
 }
 
@@ -1028,7 +1042,7 @@ int Node::processCommands (Result::Ref &,const DMI::Record &rec,Request::Ref &re
   if( rec[FResolveChildren].as<bool>(false) )
   {
     cdebug(4)<<"processCommands("<<FResolveChildren<<")\n";
-    resolveChildren(false);
+    resolveChildren();
   }
   // process the "State" command: change node state
   ObjRef stateref = rec[FState].ref(true);

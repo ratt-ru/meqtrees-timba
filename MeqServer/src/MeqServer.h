@@ -115,6 +115,12 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     LocalDebugContext;
 
   private:
+    // internal method called when creating or deleting a node
+    void nodeCreated (Node &node);
+    void nodeDeleted (Node &node);
+    // creates datamux node and attaches sinks/spigots as needed
+    void resolveDataMux ();
+      
     //##ModelId=3F6196800325
     Node & resolveNode (bool &getstate,const DMI::Record &rec);
 
@@ -138,7 +144,9 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     //##ModelId=3F61920F0193
     CommandMap command_map;
     //##ModelId=3F9CE0D3027D
-    VisDataMux data_mux;
+    // pointer to data mux node, if we have one
+    VisDataMux *pmux_;
+    bool mux_needed_;
     
     typedef struct {
       Node *       node;

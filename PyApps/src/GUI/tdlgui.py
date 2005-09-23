@@ -5,6 +5,7 @@ from Timba.utils import *
 from Timba import Grid 
 from Timba.GUI import browsers
 from Timba.GUI.pixmaps import pixmaps
+from Timba.GUI import app_proxy_gui
 from Timba.Meq import meqds
 from Timba import TDL
 import Timba.TDL.Settings
@@ -49,18 +50,18 @@ class TDLEditor (QFrame,PersistentCurrier):
     splitter.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     splitter.setChildrenCollapsible(False);
     
+    # figure out our app_gui parent
+    self._appgui = app_proxy_gui.appgui(parent);
+    
     # create an editor box
     editor_box = QFrame(splitter);
     lo = QVBoxLayout(editor_box);
+    
     # find main window to associate our toolbar with
-    mainwin = self.parent();
-    while mainwin and not isinstance(mainwin,QMainWindow):
-      mainwin = mainwin.parent();
-    self._toolbar = QToolBar("TDL tools",mainwin,editor_box);
+    self._toolbar = QToolBar("TDL tools",self._appgui,editor_box);
     lo.addWidget(self._toolbar);
     
     #### populate toolbar
-    
     self._tb_jobs = QToolButton(self._toolbar);
     self._tb_jobs.setIconSet(pixmaps.gear.iconset());
     self._tb_jobs.setTextLabel("Jobs");
@@ -175,7 +176,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._werrlist_box = QFrame(splitter);
     eblo = QVBoxLayout(self._werrlist_box);
     # error list header is a toolbar
-    errlist_hdr = QToolBar("TDL errors",mainwin,self._werrlist_box);
+    errlist_hdr = QToolBar("TDL errors",self._appgui,self._werrlist_box);
     eblo.addWidget(errlist_hdr);
     errsym = QLabel(errlist_hdr);
     errsym.setPixmap(pixmaps.red_round_cross.pm());
@@ -550,7 +551,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       return None;
     tdltext = str(self._editor.text());
     # infile is now an open input file object, and tdltext is the script 
-    
+
     # flush all modules imported via previous TDL run
     global _tdlmodlist;
     _dprint(1,'clearing out TDL-imported modules',_tdlmodlist);
@@ -630,10 +631,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     # add in source code
     fst.tdl_source = record(**{os.path.basename(self._filename):tdltext});
     mqs.meq('Set.Forest.State',record(state=fst));
-    
+
     # refresh the nodelist
     meqds.request_nodelist();
-    
+
     # does the script define an explicit job list?
     joblist = getattr(_tdlmod,'_tdl_job_list',[]);
     if not joblist:
@@ -655,7 +656,7 @@ class TDLEditor (QFrame,PersistentCurrier):
           QMessageBox.Ok);
     if callable(testfunc):
       joblist.append(testfunc);
-    
+
     # create list of job actions
     self._jobmenu.clear();
     if joblist:
@@ -668,7 +669,7 @@ class TDLEditor (QFrame,PersistentCurrier):
         qa._call = curry(func,mqs,self);
         QObject.connect(qa,SIGNAL("activated()"),qa._call);
         qa.addTo(self._jobmenu);
-    
+
     # no, show status and return
 #    if not callable(testfunc):
     msg = """Script executed successfully. %d node definitions 
@@ -678,6 +679,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       msg += " %d predefined function(s) available." % (len(joblist),);
     self.show_message(msg,transient=True);
     return True;
+    
 #     # yes, offer to run the test
 #     if QMessageBox.information(self,"TDL script executed",
 #          """<p>Executed TDL script <tt>%s</tt>.</p>

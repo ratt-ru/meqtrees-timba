@@ -27,8 +27,8 @@
 namespace Meq {    
 
 //##ModelId=400E53550241
-ReductionFunction::ReductionFunction (int nchildren,int nmandatory)
-: Function(nchildren,0,nmandatory),
+ReductionFunction::ReductionFunction (int nchildren)
+: Function(nchildren),
   flagmask_(VellsFullFlagMask)
 {}
 

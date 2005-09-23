@@ -46,6 +46,25 @@ namespace Meq { class Spigot; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqVisDataMux
+#define _defined_id_TpMeqVisDataMux 1
+const DMI::TypeId TpMeqVisDataMux(-1585);         // from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:10
+const int TpMeqVisDataMux_int = -1585;
+namespace Meq { class VisDataMux; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::VisDataMux> : public TypeTraits<Meq::VisDataMux>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqVisDataMux_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::VisDataMux & ContainerReturnType;
+                typedef const Meq::VisDataMux & ContainerParamType;
+              };
+            };
+#endif
 
 
 #endif

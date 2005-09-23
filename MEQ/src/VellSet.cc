@@ -556,14 +556,24 @@ void VellSet::addFail (const ObjRef &ref)
     Record::removeField(FiPerturbations(i),true,0);
     Record::removeField(FiPerturbations(i),true,0);
   }
-  // get address of fail field (hook will create it as necessary)
+  // plist!=0 if fail is a list (otherwise treat it as a single fail-record)
+  const DMI::List *plist = dynamic_cast<const DMI::List *>(ref.deref_p());
+  // do we have a fail field already?
   DMI::List *fails = (*this)[FFail].as_wpo<DMI::List>();
   if( !fails  )
   {
+    if( plist ) // directly put list in if we have one
+    {
+      Record::add(FFail,plist);
+      return;
+    }
     Record::add(FFail,fails = new DMI::List);
   }
-  // add record to fail field
-  fails->addBack(ref);
+  // we have an existing fail field -- append or merge
+  if( plist )
+    fails->append(*plist);
+  else  
+    fails->addBack(ref);
 }
 
 //##ModelId=400E535503A7
@@ -576,6 +586,15 @@ int VellSet::numFails () const
 ObjRef VellSet::getFail (int i) const
 {
   return (*this)[FFail][i].ref();
+}
+
+DMI::ExceptionList & VellSet::addToExceptionList (DMI::ExceptionList &list) const
+{
+  // get address of fail field (hook will create it as necessary)
+  const DMI::List *fails = (*this)[FFail].as_po<DMI::List>();
+  if( fails )
+    list.add(*fails);
+  return list;
 }
 
 //##ModelId=400E535503AE

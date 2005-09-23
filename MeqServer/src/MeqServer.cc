@@ -10,6 +10,8 @@
 #include <DMI/BOIO.h>
 #include <DMI/List.h>
 #include <MeqServer/MeqPython.h>
+#include <MeqServer/Sink.h>
+#include <MeqServer/Spigot.h>
 
 #include <linux/unistd.h>
     
@@ -69,7 +71,7 @@ const int AppState_Debug   = -( AidDebug.id() );
   
 //##ModelId=3F5F195E0140
 MeqServer::MeqServer()
-    : data_mux(forest)
+    : pmux_(0),mux_needed_(false)
 {
   if( mqs_ )
     Throw1("A singleton MeqServer has already been created");
@@ -178,6 +180,7 @@ void MeqServer::createNode (DMI::Record::Ref &out,DMI::Record::Ref &initrec)
   cdebug(2)<<endl;
   int nodeindex;
   Node & node = forest.create(nodeindex,initrec);
+  nodeCreated(node);
   // form a response message
   const string & name = node.name();
   string classname = node.className();
@@ -204,7 +207,8 @@ void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
     int nodeindex;
     try
     {
-      forest.create(nodeindex,recref);
+      Node & node = forest.create(nodeindex,recref);
+      nodeCreated(node);
     }
     catch( std::exception &exc )
     {
@@ -227,12 +231,14 @@ void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
     nodeindex = forest.findIndex(name);
     FailWhen( nodeindex<0,"node '"+name+"' not found");
   }
-  const Node::Ref &noderef = forest.getRef(nodeindex);
-  string name = noderef->name();
+  Node &node = forest.get(nodeindex);
+  string name = node.name();
   cdebug(2)<<"deleting node "<<name<<"("<<nodeindex<<")\n";
   // remove from forest
+  nodeDeleted(node);
   forest.remove(nodeindex);
-  out[AidMessage] = "deleted " + makeNodeLabel(name,nodeindex);;
+  // do not use node below: ref no longer valid
+  out[AidMessage] = "deleted " + makeNodeLabel(name,nodeindex);
   // fill optional responce fields
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
   out[FForestChanged] = true;
@@ -274,6 +280,7 @@ void MeqServer::resolve (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   DMI::Record::Ref rec = in;
   bool getstate;
+  resolveDataMux();
   Node & node = resolveNode(getstate,*rec);
   cdebug(2)<<"resolve for node "<<node.name()<<endl;
   node.resolve(0,false,rec,0);
@@ -289,6 +296,7 @@ void MeqServer::resolveBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
   const DMI::Vec & names = in[AidName].as<DMI::Vec>();
   int nn = names.size(Tpstring);
   postMessage(ssprintf("resolving %d nodes, please wait",nn));
+  resolveDataMux();
   cdebug(2)<<"batch-resolve of "<<nn<<" nodes\n";
   for( int i=0; i<nn; i++ )
   {
@@ -309,7 +317,8 @@ void MeqServer::getNodeList (DMI::Record::Ref &out,DMI::Record::Ref &in)
     ( in[AidName].as<bool>(true) ? Forest::NL_NAME : 0 ) | 
     ( in[AidClass].as<bool>(true) ? Forest::NL_CLASS : 0 ) | 
     ( in[AidChildren].as<bool>(false) ? Forest::NL_CHILDREN : 0 ) |
-    ( in[FControlStatus].as<bool>(false) ? Forest::NL_CONTROL_STATUS : 0 );
+    ( in[FControlStatus].as<bool>(false) ? Forest::NL_CONTROL_STATUS : 0 ) |
+    ( in[FProfilingStats].as<bool>(false) ? Forest::NL_PROFILING_STATS : 0 );
   int count = forest.getNodeList(list,content);
   cdebug(2)<<"getNodeList: got list of "<<count<<" nodes"<<endl;
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
@@ -429,6 +438,7 @@ void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
   cdebug(1)<<"loading forest from file "<<filename<<endl;
   postMessage(ssprintf("loading forest from file %s, please wait",filename.c_str()));
   forest.clear();
+  pmux_ = 0;
   int nloaded = 0;
   DMI::Record::Ref ref;
   std::string fmessage;
@@ -465,6 +475,9 @@ void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
     int nodeindex;
     // create the node, while
     Node & node = forest.create(nodeindex,ref,true);
+    VisDataMux *pmux = dynamic_cast<VisDataMux*>(&node);
+    if( pmux )
+      (pmux_=pmux)->attachAgents(input(),output(),control());
     cdebug(3)<<"loaded node "<<node.name()<<endl;
     nloaded++;
   }
@@ -489,6 +502,8 @@ void MeqServer::clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
     Throw1("can't execute Clear.Forest while debugging");
   cdebug(1)<<"clearing forest: deleting all nodes"<<endl;
   forest.clear();
+  pmux_ = 0;
+  mux_needed_ = false;
 // ****
 // **** added this to relinquish parm tables --- really ought to go away
   ParmTable::closeTables();
@@ -497,6 +512,78 @@ void MeqServer::clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
   out[FForestChanged] = true;
 }
+
+void MeqServer::nodeCreated (Node &node)
+{
+  // is the user explicitly creating a VisDataMux node?
+  VisDataMux * pmux = dynamic_cast<VisDataMux*>(&node);
+  if( pmux )
+  {
+    FailWhen1(pmux_,"VisDataMux node already created, can't have more than one");
+    (pmux_=pmux)->attachAgents(input(),output(),control());
+    return; 
+  }
+  // is it a Spigot or a Sink? we need a mux then
+  if( dynamic_cast<Spigot*>(&node) || dynamic_cast<Sink*>(&node) )
+    mux_needed_ = true;
+}
+
+void MeqServer::nodeDeleted (Node &node)
+{
+  if( pmux_ )
+  {
+    if( &(node) == pmux_ )
+      pmux_ = 0;
+    else
+    {
+      Spigot * pspig = dynamic_cast<Spigot*>(&node);
+      if( pspig )
+        pmux_->detachSpigot(*pspig);
+      else
+      {
+        Sink * psink = dynamic_cast<Sink*>(&node);
+        if( psink )
+          pmux_->detachSink(*psink);
+      }
+    }
+  }  
+}
+
+// if a VisDataMux is required but hasn't been explicitly created,
+// create one in here
+void MeqServer::resolveDataMux ()
+{
+  if( !mux_needed_ )
+    return;
+  // create mux if not present
+  if( !pmux_ )
+  {
+    cdebug(1)<<"implicitly creating a VisDataMux node"<<endl;
+    DMI::Record::Ref initrec(DMI::ANONWR),dum(DMI::ANONWR);
+    initrec[AidName]  = "VisDataMux";
+    initrec[AidClass] = "MeqVisDataMux";
+    int nodeindex;
+    pmux_ = &(dynamic_cast<VisDataMux&>(forest.create(nodeindex,initrec)));
+    pmux_->resolve(0,false,dum,0);
+    pmux_->attachAgents(input(),output(),control());
+  }
+  // attach sinks and spigots
+  for( int i=0; i<forest.maxNodeIndex(); i++ )
+    if( forest.valid(i) )
+    {
+      Node & node = forest.get(i);
+      Spigot * pspig = dynamic_cast<Spigot*>(&node);
+      if( pspig )
+        pmux_->attachSpigot(*pspig);
+      else
+      {
+        Sink * psink = dynamic_cast<Sink*>(&node);
+        if( psink )
+          pmux_->attachSink(*psink);
+      }
+    }
+}
+
 
 void MeqServer::publishResults (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
@@ -822,8 +909,6 @@ void MeqServer::run ()
 {
   // connect forest events to data_mux slots (so that the mux can register
   // i/o nodes)
-  forest.addSubscriber(AidCreate,EventSlot(VisDataMux::EventCreate,&data_mux));
-  forest.addSubscriber(AidDelete,EventSlot(VisDataMux::EventDelete,&data_mux));
   forest.setDebuggingCallbacks(mqs_reportNodeStatus,mqs_processBreakpoint);
   
   verifySetup(true);
@@ -883,8 +968,6 @@ void MeqServer::run ()
       forest.setState(tmp,false);
     }
         
-    // init the data mux
-    data_mux.init(*initrec,input(),output(),control());
     // get params from control record
     int ntiles = 0;
     DMI::Record::Ref header;
@@ -932,7 +1015,7 @@ void MeqServer::run ()
             if( !(ntiles%100) )
               control().setStatus(StNumTiles,ntiles);
             // deliver tile to data mux
-            retcode = data_mux.deliverTile(tileref);
+            retcode = pmux_->deliverTile(tileref);
           }
           else if( instat == FOOTER )
           {
@@ -944,7 +1027,7 @@ void MeqServer::run ()
               eventrec[AidHeader] <<= header.copy();
             if( ref.valid() )
               eventrec[AidFooter] <<= ref.copy();
-            retcode = data_mux.deliverFooter(*(ref.ref_cast<DMI::Record>()));
+            retcode = pmux_->deliverFooter(*(ref.ref_cast<DMI::Record>()));
             output_event = DataSetFooter;
             output_message = ssprintf("received footer for dataset %s, %d tiles written",
                 id.toString('.').c_str(),ntiles);
@@ -963,7 +1046,7 @@ void MeqServer::run ()
               MeqPython::processVisHeader(this,*header);
             eventrec <<= new DMI::Record;
             eventrec[AidHeader] <<= header.copy();
-            retcode = data_mux.deliverHeader(*header);
+            retcode = pmux_->deliverHeader(*header);
             output_event = DataSetHeader;
             output_message = "received header for dataset "+id.toString('.');
             if( !datatype.empty() )
@@ -1013,11 +1096,9 @@ void MeqServer::run ()
     // go back up for another start() call
   }
   forest.clear();
-  data_mux.clear();
+  pmux_ = 0;
   cdebug(1)<<"exiting with control state "<<control().stateString()<<endl;
   control().close();
-  forest.removeSubscriber(AidCreate,&data_mux);
-  forest.removeSubscriber(AidDelete,&data_mux);
 }
 
 //##ModelId=3F5F195E0156

@@ -24,7 +24,6 @@
 
 #include <MEQ/Node.h>
 #include <MEQ/Request.h>
-#include <MEQ/EventGenerator.h>
 #include <MEQ/MeqVocabulary.h>
 #include <DMI/HashMap.h>
 #include <vector>
@@ -149,17 +148,6 @@ class Forest
     void enableProfiling (bool enable) 
     { profiling_enabled_ = enable; }
     
-    // manage subscriptions to various events
-    // "Create" and "Delete" are the only ones known for now
-    void addSubscriber    (const HIID &evtype,const EventSlot &slot)
-    { getEventGenerator(evtype).addSlot(slot); }
-    
-    void removeSubscriber (const HIID &evtype,const EventSlot &slot)
-    { getEventGenerator(evtype).removeSlot(slot); }
-    
-    void removeSubscriber (const HIID &evtype,const EventRecepient *recpt)
-    { getEventGenerator(evtype).removeSlot(recpt); }
-    
     // these methods are used by nodes to notify of their control state, 
     // trip breakpoints, etc.
     void newControlStatus (Node &node,int oldst,int newst)
@@ -274,11 +262,6 @@ class Forest
     
     // is profiling enabled?
     bool profiling_enabled_;
-    
-    EventGenerator evgen_create;
-    EventGenerator evgen_delete;
-    
-    EventGenerator & getEventGenerator (const HIID &evtype);
 };
 
 } // namespace Meq

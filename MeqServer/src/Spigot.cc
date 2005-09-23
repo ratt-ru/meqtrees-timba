@@ -105,10 +105,9 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
 {
   Assert(Axis::TIME==0 && Axis::FREQ==1);
   const VisCube::VTile &tile = *tileref;
-  const HIID &rqid = req.id();
-  cdebug(3)<<"deliver: tile "<<tile.tileId()<<", rqid "<<rqid<<",row rowrange "<<rowrange<<endl;
+  cdebug(3)<<"deliver: tile "<<tile.tileId()<<", rqid "<<req.id()<<",row rowrange "<<rowrange<<endl;
   // already waiting for such a request? Do nothing for now
-  if( currentRequestId() == rqid )
+  if( currentRequestId() == req.id() )
   {
     cdebug(2)<<"deliver: already at rqid but notify not implemented, doing nothing"<<endl;
     Throw("Spigot: deliver() called after getResult() for the same request ID. "
@@ -272,12 +271,12 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
         cdebug(2)<<"column "<<colname_<<" is not a cube, ignoring flags"<<endl;
       }
     }
-      
+    // copy cells to result
     result.setCells(req.cells());
-    
+      
     // add to queue
     res_queue_.push_back(ResQueueItem());
-    res_queue_.back().rqid = rqid;
+    res_queue_.back().rqid = req.id();
     res_queue_.back().res = next_res;
     cdebug(3)<<res_queue_.size()<<" results in queue"<<endl;
     
@@ -347,7 +346,6 @@ int Spigot::getResult (Result::Ref &resref,
     }
     // return result and dequeue
     resref.copy(pnext->res);
-    resref().setCells(req.cells());
     // update state record
     if( forest().debugLevel() > 1 )
       fillDebugState();

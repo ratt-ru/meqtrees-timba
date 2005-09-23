@@ -41,19 +41,20 @@ class VisHandlerNode : public Node
 {
   public:
     //##ModelId=3F98DAE60319
-    VisHandlerNode (int nchildren=-1,const HIID *labels = 0,int nmandatory=0);
+    VisHandlerNode (int nchildren=-1,const HIID *labels=0);
       
     //##ModelId=3F98DAE60327
     int dataId () const;
     
-    //##ModelId=3F98DAE60336
-    void setDataId (int id);
+    const HIID & ifrId () const;
     
     //##Documentation
     //## Alerts node that a vistile stream is starting.
     //## The desired output format (with any extra columns added in) is
     //## is passed in here.
-    virtual int deliverHeader (const VisCube::VTile::Format &) { return 0; };
+    virtual int deliverHeader (const DMI::Record &,
+                               const VisCube::VTile::Format &)
+    { return 0; }
 
     //##ModelId=3F98DAE60344
     //##Documentation
@@ -76,7 +77,7 @@ class VisHandlerNode : public Node
     //## bit flags:
     //##    RES_WAIT    must wait (please call again)
     //##    RES_UPDATED last tile was updated, output tile is attached to tileref
-    virtual int deliverFooter (VisCube::VTile::Ref &) { return 0; };
+    virtual int deliverFooter (const DMI::Record &) { return 0; };
     
     //##ModelId=3F98DAE602DA
     LocalDebugContext;
@@ -89,6 +90,8 @@ class VisHandlerNode : public Node
   private:
     //##ModelId=3F98DAE602F6
     int data_id;
+  
+    HIID ifr_id;
 };
 
 //##ModelId=3F98DAE60327

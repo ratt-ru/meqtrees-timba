@@ -299,6 +299,14 @@ int Result::numFails () const
   return count;
 }
 
+DMI::ExceptionList & Result::addToExceptionList (DMI::ExceptionList &list) const
+{
+  for( int i=0; i<numVellSets(); i++ )
+    if( vellSet(i).isFail() )
+      vellSet(i).addToExceptionList(list);
+  return list;
+}
+
 void Result::integrate (const Cells *pcells,bool reverse)
 {
   Thread::Mutex::Lock lock(mutex());

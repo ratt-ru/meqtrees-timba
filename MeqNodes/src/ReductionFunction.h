@@ -32,7 +32,7 @@ namespace Meq {
 class ReductionFunction : public Function
 {
 public:
-  ReductionFunction (int nchildren=-1,int nmandatory=1);
+  ReductionFunction (int nchildren=-1);
 
   // child flags normally swallowed up
   virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const VellSet*>&)

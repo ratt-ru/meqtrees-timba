@@ -329,6 +329,12 @@ public:
     //##ModelId=400E535503A9
   ObjRef getFail (int i=0) const;
   
+  // adds fails to ExceptionList
+  DMI::ExceptionList & addToExceptionList (DMI::ExceptionList &) const;
+  
+  DMI::ExceptionList makeExceptionList () const
+  { DMI::ExceptionList list; return addToExceptionList(list); }
+  
   // print VellSet to stream
     //##ModelId=400E535503AE
   void show (std::ostream&) const;

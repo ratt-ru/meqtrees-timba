@@ -186,6 +186,7 @@ class Logger(HierBrowser):
     # define get_drag_item methods for the listview
     self.wlistview().get_drag_item = self.get_drag_item;
     self.wlistview().get_drag_item = self.get_drag_item;
+    self.wlistview().header().hide();
     
   def event_count (self):
     return self._event_count;
@@ -417,7 +418,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       self.startTimer(poll_app);
       
     self.dprint(2,"init complete");\
-    
+  
   class PanelizedWindow (QVBox):
     BackgroundMode = Qt.PaletteBackground;
     def __init__ (self,parent,name,shortname,icon,*args):
@@ -524,7 +525,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.maintab_panel = self.PanelizedWindow(splitter,"Tabbed Tools","Tabs",pixmaps.tabs.iconset());
     self.maintab = maintab = QTabWidget(self.maintab_panel);
     self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._change_current_page);
-    maintab.setTabPosition(QTabWidget.Bottom);
+    maintab.setTabPosition(QTabWidget.Top);
     splitter.setResizeMode(self.maintab_panel,QSplitter.KeepSize);
     _dprint(0,self.maintab_panel.parent());
     
@@ -550,6 +551,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     QObject.connect(self,PYSIGNAL("isConnected()"),self.eventlog.connected);
     
     self.eventtab = QTabWidget(self.maintab);
+    self.eventtab.setTabPosition(QTabWidget.Bottom);
     self.add_tab(self.eventtab,"Events");
     
     #------ event window tab bar
@@ -837,8 +839,10 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       self._reset_maintab_label(logger);
       
   # resets tab label to default values
-  def _reset_maintab_label (self,tabwin):
-    self.maintab.changeTab(tabwin,tabwin._default_iconset,tabwin._default_label);
+  def _reset_maintab_label (self,tabwin,iconset=None,label=None):
+    if iconset is None:
+      iconset = tabwin._default_iconset;
+    self.maintab.changeTab(tabwin,iconset,label or tabwin._default_label);
     
   def log_message(self,msg,content=None,category=Logger.Normal):
     self.msglog.add(msg,content=content,category=category);
@@ -853,8 +857,31 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       try:
         MainApp.exec_loop(); 
       except KeyboardInterrupt: pass;
-        
   await_gui_exit = staticmethod(await_gui_exit);  
+  
+  class OverrideCursor (object):
+    """When created, calls QApplication.setOverrideCursor() to change the app
+    cursor. When destroyed, calls QApplication.restoreOverrideCursor() to
+    restore the cursor. Handy to use as follows:
+      tmp = OverrideCursor(Qt.WaitCursor);
+      # do lenghty job
+      # when 'tmp' goes out of scope, normal cursor automatically restored
+    """
+    def __init__ (self,cursor):
+      QApplication.setOverrideCursor(QCursor(cursor));
+    def __del__ (self):
+      QApplication.restoreOverrideCursor();
+      
+  def override_cursor (cursor):
+    """shortcut to create an override-cursor object""";
+    return app_proxy_gui.OverrideCursor(cursor);
+  override_cursor = staticmethod(override_cursor);
+    
+  def wait_cursor ():
+    """shortcut to create an hourglass override-cursor""";
+    return app_proxy_gui.OverrideCursor(Qt.WaitCursor);
+  wait_cursor = staticmethod(wait_cursor);
+  
 
 MessageCategories = record( error   = Logger.Error,
                             message = Logger.Normal,
@@ -905,6 +932,13 @@ class MainAppClass (QApplication):
     ev = QCustomEvent(self.EvType_Callable);
     ev.setData((func,args,kwargs));
     self.postEvent(self,ev);
+    
+def appgui (widget):
+  """finds app_proxy_gui parent of given widget, or None if none""";
+  appgui = widget;
+  while appgui and not isinstance(appgui,app_proxy_gui):
+    appgui = appgui.parent();
+  return appgui;
 
 def mainapp ():
   """Creates if needed, and returns the MainApp object."""
@@ -914,7 +948,8 @@ def mainapp ():
   return MainApp;
 
 _splash_screen = None;
-  
+
+
 def set_splash_screen (pm,message=None):
   mainapp();
   global _splash_screen;

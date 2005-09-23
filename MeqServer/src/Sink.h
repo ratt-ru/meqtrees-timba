@@ -50,11 +50,15 @@ class Sink : public VisHandlerNode
   public:
     Sink ();  
 
-    virtual int deliverHeader (const VisCube::VTile::Format &outformat);
-    //##ModelId=3F98DAE6021E
-    virtual int deliverTile   (const Request &req,VisCube::VTile::Ref &tileref,const LoRange &);
+    virtual int deliverHeader (const DMI::Record &,
+                               const VisCube::VTile::Format &);
     
-    virtual int deliverFooter (VisCube::VTile::Ref &tileref);
+    virtual int deliverTile   (const Request &,VisCube::VTile::Ref &,const LoRange &);
+    
+    virtual int deliverFooter (const DMI::Record &);
+    
+    int getOutputColumn () const
+    { return output_col; }
     
     //##ModelId=3F98DAE60222
     virtual TypeId objectType() const
@@ -72,12 +76,10 @@ class Sink : public VisHandlerNode
     virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
   private:
-    // pending tile stored here
-    struct {
-      Request::Ref  request;
-      VisCube::VTile::Ref  tile;
-      LoRange       range;
-    } pending;
+    // current tile stored here
+    VisCube::VTile::Ref cur_tile;
+    LoRange cur_range;
+    RequestId cur_rqid;
     
     VisCube::VTile::Format::Ref output_format;
       

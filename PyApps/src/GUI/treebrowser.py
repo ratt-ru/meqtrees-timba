@@ -26,26 +26,26 @@ class AppState (object):
   Debug      = -hiid('debug').get(0);
   Execute    = -hiid('execute').get(0);
   
-class TreeBrowser (QObject):
+class StickyListViewItem (QListViewItem):
+  """This is a QListViewItem that ignores sorting, 'sticking' to one
+  place in the listview.
+  Each such item is created with a 'key' argument that determines its 
+  placement in the listview, regardless of sort column or order. Items 
+  with keys>0 are placed after regular items, items with keys<0 are 
+  placed before regular items.
+  """;
+  def __init__(self,*args,**kw):
+    QListViewItem.__init__(self,*args);
+    self._key = kw.get('key',1);
+  def compare (self,other,col,ascending):
+    try: val = cmp(self._key,other._key);
+    except AttributeError:  # other item not keyed
+      val = self._key;
+    if ascending:
+      return val;
+    return -val;
 
-  class StickyListViewItem (QListViewItem):
-    """This is a QListViewItem that ignores sorting, 'sticking' to one
-    place in the listview.
-    Each such item is created with a 'key' argument that determines its 
-    placement in the listview, regardless of sort column or order. Items 
-    with keys>0 are placed after regular items, items with keys<0 are 
-    placed before regular items.
-    """;
-    def __init__(self,*args,**kw):
-      QListViewItem.__init__(self,*args);
-      self._key = kw.get('key',1);
-    def compare (self,other,col,ascending):
-      try: val = cmp(self._key,other._key);
-      except AttributeError:  # other item not keyed
-        val = self._key;
-      if ascending:
-        return val;
-      return -val;
+class TreeBrowser (QObject):
 
   class NodeItem (QListViewItem):
     def __init__(self,tb,node,name,parent,after,stepchild=False):
@@ -55,7 +55,7 @@ class TreeBrowser (QObject):
       self.setText(tb.icolumn("class"),str(node.classname));
       self.setText(tb.icolumn("index"),str(node.nodeindex));
       self.setDragEnabled(True);
-      if node.children:
+      if node.children or node.step_children:
         self.setExpandable(True);
       # external state
       self.tb = weakref_proxy(tb);      # self.tb returns treebrowser
@@ -208,14 +208,15 @@ class TreeBrowser (QObject):
       i1 = self;
       # format string for enumerating children -- need to use sufficient digits
       chform = '%%0%dd: %%s' % (math.floor(math.log10(len(self.node.children)))+1,);
-      # generates entires for each child
+      # generate items for each child
       for (key,ni) in self.node.children:
-        node = meqds.nodelist[ni];
-        if isinstance(key,int):
-          name = chform % (key,node.name);
-        else:
-          name = ': '.join((key,node.name));
-        i1 = self.__class__(self.tb,node,name,self,i1);
+        if ni > 0:
+          node = meqds.nodelist[ni];
+          name = self.node.child_label_format() % (key,node.name);
+          i1 = self.__class__(self.tb,node,name,self,i1);
+        else:  # missing child, generate dummy item with <none> in it
+          name = self.node.child_label_format() % (key,'<none>');
+          i1 = QListViewItem(self,i1,name);
       for ni in self.node.step_children:
         node = meqds.nodelist[ni];
         name = "(" + node.name +")";
@@ -437,7 +438,7 @@ class TreeBrowser (QObject):
     self.is_loaded = True;
     self._update_all_controls();
     # add forest state and bookmarks
-    self._fst_item = self.StickyListViewItem(self._nlv,"Forest state",key=5);
+    self._fst_item = StickyListViewItem(self._nlv,"Forest state",key=5);
     self._fst_item.setPixmap(0,pixmaps.view_tree.pm());
     self._fst_item._udi = '/forest';
     self._fst_item.setDragEnabled(True);
@@ -447,29 +448,29 @@ class TreeBrowser (QObject):
     # middle-click: new view
     self._fst_item._item_event_handler[('click',4)] = xcurry(self._view_forest_state,newcell=True);
     
-    # self._bkmark_item = self.StickyListViewItem(self._nlv,"Bookmarks",key=60);
+    # self._bkmark_item = StickyListViewItem(self._nlv,"Bookmarks",key=60);
     # self._bkmark_item.setPixmap(0,pixmaps.bookmark.pm());
     # add nodelist views
     nodelist = meqds.nodelist;
     self._recent_item = None;
-    all_item  = self.StickyListViewItem(self._nlv,"All nodes (%d)"%len(nodelist),key=10);
+    all_item  = StickyListViewItem(self._nlv,"All nodes (%d)"%len(nodelist),key=10);
     all_item._no_auto_open = True;
     all_item._iter_nodes = nodelist.iternodes();
     all_item.setExpandable(True);
     rootnodes = nodelist.rootnodes();
     rootitem  = self._nlv_rootitem = \
-      self.StickyListViewItem(self._nlv,all_item,"Root nodes (%d)"%len(rootnodes),key=30);
+      StickyListViewItem(self._nlv,all_item,"Root nodes (%d)"%len(rootnodes),key=30);
     rootitem._iter_nodes = iter(rootnodes);
     rootitem.setExpandable(True);
     classes = nodelist.classes();
     cls_item  = item = \
-      self.StickyListViewItem(self._nlv,rootitem,"By class (%d)"%len(classes),key=20);
+      StickyListViewItem(self._nlv,rootitem,"By class (%d)"%len(classes),key=20);
     cls_item._no_auto_open = True;
     for (cls,nodes) in classes.iteritems():
       if len(nodes) == 1:
         item = self.NodeItem(self,nodes[0],nodes[0].name,cls_item,item);
       else:
-        item = QListViewItem(cls_item,item,"(%d)"%len(nodes));
+        item = QListViewItem(cls_item,item,"%s (%d)"%(cls,len(nodes)));
         item.setText(self.icolumn("class"),cls);
         item.setExpandable(True);
         item._iter_nodes = iter(nodes);

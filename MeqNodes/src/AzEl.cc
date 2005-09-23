@@ -49,7 +49,7 @@ InitDebugContext(AzEl,"MeqAzEl");
 
 
 AzEl::AzEl()
-: Function(2,child_labels,2)
+: Function(2,child_labels)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);

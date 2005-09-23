@@ -38,7 +38,7 @@ const HIID FSequenceDependMask = AidSequence|AidDepend|AidMask;
 
 //##ModelId=400E5355029C
 ReqSeq::ReqSeq()
-: Node(-1,0,1), // at least one child required
+: Node(-2), // at least one child required
   which_result_(0),
   cells_only_(false)
 {

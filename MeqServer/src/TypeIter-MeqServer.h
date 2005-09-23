@@ -18,6 +18,7 @@
         
 
 #define DoForAllDynamicTypes_MeqServer(Do,arg,separator) \
+        Do(Meq::VisDataMux,arg) separator \
         Do(Meq::Sink,arg) separator \
         Do(Meq::Spigot,arg)
 

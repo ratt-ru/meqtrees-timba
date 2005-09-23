@@ -77,8 +77,7 @@ class Spigot : public VisHandlerNode
   public:
     Spigot ();
   
-    //##ModelId=3F98DAE6023B
-    virtual int deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoRange &);
+    virtual int deliverTile (const Request &req,VisCube::VTile::Ref &,const LoRange &);
     
     //##ModelId=3F98DAE6023E
     virtual TypeId objectType() const

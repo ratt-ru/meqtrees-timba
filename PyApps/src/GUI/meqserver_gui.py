@@ -7,6 +7,7 @@ from Timba.Meq import meqds
 from Timba.GUI.browsers import *
 from Timba.GUI import treebrowser
 from Timba.GUI import tdlgui
+from Timba.GUI import profiler
 from Timba.GUI.procstatuswidget import *
 from Timba.GUI import meqgui 
 from Timba.GUI import bookmarks 
@@ -206,6 +207,15 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self.resultlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QObject.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
     
+    # add Profiler tab
+    self.profiler = profiler.Profiler(self,"tree profiler");
+    self.profiler.wtop()._busy_iconset  = pixmaps.clock.iconset();
+    self.profiler.wtop()._busy_label    = "Snapshots";
+    self.add_tab(self.profiler.wtop(),"Profiler");
+    self.show_tab(self.profiler.wtop(),False);
+    QObject.connect(self.profiler.wtop(),PYSIGNAL("collecting()"),self._show_profiler_busy);
+    QObject.connect(self.profiler.wtop(),PYSIGNAL("collected()"),self._show_profiler);
+    
     # create main toolbar
     self.maintoolbar = QToolBar(self,"Panels");
     self.qa_viewpanels = QActionGroup(self);
@@ -310,6 +320,8 @@ class meqserver_gui (app_proxy_gui):
     # optional tab views
     self.resultlog.wtop()._show_qaction.addTo(view_menu);
     self.eventtab._show_qaction.addTo(view_menu);
+    self.profiler.wtop()._show_qaction.addTo(view_menu);
+    
     self.show_tab(self.eventtab,False);
 #    self.tdledit._show_qaction.addTo(view_menu);
 #    self.show_tab(self.tdledit,False);
@@ -350,6 +362,14 @@ class meqserver_gui (app_proxy_gui):
     # --- Debug menu
     self.treebrowser._qa_dbg_enable.addTo(debug_menu);
     self.treebrowser._qa_dbg_tools.addTo(debug_menu);
+    
+    debug_menu.insertSeparator();
+    collect_prof = QAction("Collect profiling stats",0,self);
+    collect_prof.addTo(debug_menu);
+    collect_prof.setEnabled(False); 
+    QObject.connect(collect_prof,SIGNAL("activated()"),self.profiler.collect_stats);
+    QObject.connect(self,PYSIGNAL("isConnected()"),collect_prof.setEnabled);
+    
     debug_menu.insertSeparator();
     attach_gdb = QAction("Attach binary debugger to kernel",0,self);
     attach_gdb.addTo(debug_menu);
@@ -399,6 +419,15 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self._autoreq_timer,SIGNAL("timeout()"),self._auto_update_request);
     # tdl tabs
     self._tdl_tabs = {};
+    
+  def _show_profiler (self):
+    self._reset_maintab_label(self.profiler.wtop());
+    self.show_tab(self.profiler.wtop(),switch=True);
+    
+  def _show_profiler_busy (self):
+    self.show_tab(self.profiler.wtop(),switch=False);
+    self._reset_maintab_label(self.profiler.wtop(),iconset=pixmaps.clock.iconset());
+    QApplication.flush();
     
   def _debug_kernel (self):
     pid = self.app.app_addr[2];    
@@ -519,8 +548,13 @@ class meqserver_gui (app_proxy_gui):
     self.maintab_panel.show();
     # ok, we have a working tab now
     # run if requested
-    if run and tab.compile_content():
-      self.tb_panel.show();
+    if run:
+      tmp = self.wait_cursor();
+      self.log_message("compiling TDL script "+os.path.basename(pathname));
+      QApplication.flush();
+      if tab.compile_content():
+        self.tb_panel.show();
+      tmp = None;
     self.splitter.refresh();
     return tab;
     
@@ -531,8 +565,12 @@ class meqserver_gui (app_proxy_gui):
       show_tdl_file(self,filename,run=True);
     else:
       self.show_tab(tab);
+      tmp = self.wait_cursor();
+      self.log_message("compiling TDL script "+os.path.basename(filename));
+      QApplication.flush();
       if tab.compile_content():
         self.tb_panel.show();
+      tmp = None;
     
   def _tdltab_reset_label (self,tab):
     name = os.path.basename(tab.get_filename());
@@ -906,6 +944,7 @@ class meqserver_gui (app_proxy_gui):
     if not meqds.nodelist.is_valid_meqnodelist(meqnl):
       _dprint(2,"got nodelist but it is not valid, ignoring");
       return;
+    tmp = self.wait_cursor();
     self._have_nodelist = True;
     meqds.nodelist.load(meqnl);
     _dprintf(2,"loaded %d nodes into nodelist\n",len(meqds.nodelist));

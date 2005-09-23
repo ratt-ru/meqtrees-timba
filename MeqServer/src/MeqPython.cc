@@ -95,6 +95,7 @@ static PyMethodDef MeqMethods[] = {
 // -----------------------------------------------------------------------
 void runFile (MeqServer *pm,const string &filename)
 {
+  destroyMeqPython();
   initMeqPython(pm);
   FILE *fp = fopen(filename.c_str(),"r");
   FailWhen(!fp,"can't open file: "+filename);
@@ -196,6 +197,7 @@ void destroyMeqPython ()
 {
   if( python_initialized )
   {
+    header_handlers.clear();
     Py_Finalize();
     python_initialized = false;
   }
