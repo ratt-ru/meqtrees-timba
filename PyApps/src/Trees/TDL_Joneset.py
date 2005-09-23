@@ -1,25 +1,28 @@
-script_name = 'TDL_Joneset.py'
-last_changed = 'h10sep2005'
-
-# file: .../Timba/PyApps/src/Trees/TDL_Joneset.py
+# TDL_Joneset.py
 #
 # Author: J.E.Noordam
 #
 # Short description:
-#    A Joneset encapsulates 2x2 instrumental jones matrices for a specific set of stations.
+#    A Joneset object encapsulates 2x2 instrumental jones matrices for a set of stations.
 #
 # History:
 #    - 02 sep 2005: creation
 #    - 10 sep 2005: more or less stable
 #
-# Remarks:
+# Full description:
 #
 
+
+
+#=================================================================================
+# Preamble:
+#=================================================================================
+
 from Timba.TDL import *
-from Timba.Meq import meq
 from copy import deepcopy
 
 from Timba.Trees import TDL_common
+
 
 
 
@@ -29,6 +32,7 @@ from Timba.Trees import TDL_common
 
 
 class Joneset (TDL_common.Super):
+    """A Joneset object encapsulates 2x2 instrumental jones matrices for a set of stations"""
 
     def __init__(self, **pp):
 

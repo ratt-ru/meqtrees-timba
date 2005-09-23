@@ -1,5 +1,4 @@
-script_name = 'TDL_common.py'
-last_changed = 'h10sep2005'
+# TDL_common.py
 
 # file: .../Timba/PyApps/src/Trees/TDL_common.py
 #
@@ -15,6 +14,11 @@ last_changed = 'h10sep2005'
 #
 # Remarks:
 #
+
+
+#***************************************************************************************
+# Preamble
+#***************************************************************************************
 
 from Timba.TDL import *
 from copy import deepcopy
@@ -33,6 +37,7 @@ _dprintf = _dbg.dprintf                  # use: _dprintf(2, "a = %d", a)
 #***************************************************************************************
 
 class Super:
+    """Common services for TDL objects like TDL_Cohset, TDL_Joneset, TDL_Sixpack"""
 
     def __init__(self, **pp):
 

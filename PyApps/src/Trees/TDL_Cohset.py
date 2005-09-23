@@ -1,17 +1,14 @@
-script_name = 'TDL_Cohset.py'
-last_changed = 'h10sep2005'
-
-# file: .../Timba/PyApps/src/Trees/TDL_Cohset.py
+# TDL_Cohset.py
 #
 # Author: J.E.Noordam
 #
 # Short description:
-#    A Cohset encapsulates a set of 2x2 cohaerency matrices for a specific set of ifrs.
+#    A Cohset object encapsulates a set of 2x2 cohaerency matrices for a set of ifrs.
 #
 # History:
 #    - 02 sep 2005: creation
 #
-# Remarks:
+# Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
 #    contains the root node of a subtree. For each operation on a Cohset, each ifr
 #    node is replaced by a new root node, which has the old one as one of its children.
@@ -31,6 +28,12 @@ last_changed = 'h10sep2005'
 #    A solver is defined by a list of one or more solvegroups, and solves for its
 #    associated group of MeqParms. For an example, see MG_JEN_Cohset.py
 
+
+
+#=================================================================================
+# Preamble:
+#=================================================================================
+
 from Timba.TDL import *
 from copy import deepcopy
 
@@ -38,17 +41,18 @@ from Timba.Trees import TDL_common
 from Timba.Trees import TDL_Joneset
 
 
+
 #**************************************************************************************
 # Some useful helper functions:
 #**************************************************************************************
 
 def stations2ifrs(stations=range(3)):
-    # Make a list of ifrs (station-pair tuples) from the given stations:
+    """Make a list of ifrs (station-pair tuples) from the given stations"""
     ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
     return ifrs
 
 def ifrs2stations(ifrs=[(0,1)]):
-    # The reverse of stations2ifrs()
+    """The reverse of stations2ifrs()"""
     stations = []
     for ii in ifrs:
         for i in ii:
@@ -56,12 +60,15 @@ def ifrs2stations(ifrs=[(0,1)]):
     stations.sort()
     return stations
 
+
+
 #**************************************************************************************
 # Class Cohset:
 #**************************************************************************************
 
 class Cohset (TDL_common.Super):
-
+    """A Cohset object encapsulates a set of 2x2 cohaerency matrices for a set of ifrs"""
+    
     def __init__(self, **pp):
         
         pp.setdefault('scope', '<cscope>')
