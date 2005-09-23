@@ -115,7 +115,7 @@ def _define_forest (ns):
        # solvegroup = 'GJones'
        MG_JEN_Cohset.insert_solver (ns, solvegroup=solvegroup,
                                     measured=Cohset, predicted=predicted, 
-                                    correct=Joneset, num_iter=10, visu=visu)
+                                    correct=Joneset, num_iter=3, visu=visu)
        # NB: The data are corrected with the the improved Joneset:
        if visu:
 	MG_JEN_Cohset.visualise (ns, Cohset)
