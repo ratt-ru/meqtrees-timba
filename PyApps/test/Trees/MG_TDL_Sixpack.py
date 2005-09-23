@@ -18,7 +18,7 @@ _dprintf = _dbg.dprintf                  # use: _dprintf(2, "a = %d", a)
 # run the script with: -dTDL_Sixpack=3
 # level 0 is always printed
 
-
+# Added by JEN
 from Timba.TDL import *
 from Timba.Meq import meq
 
@@ -36,7 +36,7 @@ my_sp=None
 
 def _define_forest (ns):
   global my_sp
-  my_name='my_sixpack'
+  my_name='my_source'
   # create some node stubs for the sixpack
   # first some parameters
   ns.f<<Meq.Parm(meq.polclog([1,0.1,0.01]))
