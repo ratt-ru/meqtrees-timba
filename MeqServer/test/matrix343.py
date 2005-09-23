@@ -55,21 +55,24 @@ def set_MAB_node_state (mqs, node, fields_record):
     pass
 
 
+def publish_node_state(mqs, nodename):
+    mqs.meq('Node.Publish.results', record(name=nodename))
+    pass
 
 
 
 def forest_measurement_set_info(ns, num_ant):
-    ns.ra0    << Meq.Parm(0.0, node_groups='Parm')
-    ns.dec0   << Meq.Parm(0.0, node_groups='Parm')
+    ns.ra0    << Meq.Constant(0.0)
+    ns.dec0   << Meq.Constant(0.0)
     ns.radec0 << Meq.Composer(ns.ra0, ns.dec0)
 
     
     for i in range(num_ant):
         station= str(i+1)
         
-        ns.x(station) << Meq.Parm(0.0)
-        ns.y(station) << Meq.Parm(0.0)
-        ns.z(station) << Meq.Parm(0.0)
+        ns.x(station) << Meq.Constant(0.0)
+        ns.y(station) << Meq.Constant(0.0)
+        ns.z(station) << Meq.Constant(0.0)
         if i == 0:
             ns.xyz0 << Meq.Composer(ns.x(1), ns.y(1),ns.z(1))
             pass
@@ -133,8 +136,10 @@ def forest_source_subtrees(ns, source):
     ns.xy(source.name) << Meq.Conj(ns.yx(source.name))
     ns.yy(source.name) << (ns.stokes("I",source.name)-ns.stokes("Q",source.name))*0.5
 
-    ra    = ns.ra   (source.name) << Meq.Parm(source.ra, node_groups='Parm')
-    dec   = ns.dec  (source.name) << Meq.Parm(source.dec, node_groups='Parm')
+    ra    = ns.ra   (source.name) << Meq.Parm(source.ra, table=source.table,
+                                              node_groups='Parm')
+    dec   = ns.dec  (source.name) << Meq.Parm(source.dec, table=source.table,
+                                              node_groups='Parm')
     radec = ns.radec(source.name) << Meq.Composer(ra, dec)
     lmn   = ns.lmn  (source.name) << Meq.LMN(radec_0 = ns.radec0, radec = radec)
     n     = ns.n    (source.name) << Meq.Selector(lmn, index=2)
@@ -266,11 +271,11 @@ def forest_clean_patch_predict_trees(ns, patch_name, source_list, station_list):
             for source in source_list:
                 ns.clean_visibility(station_list[ant1], station_list[ant2], source.name) << \
                      Meq.MatrixMultiply(ns.dft(station_list[ant1], source.name),
-                                    ns.conjdft(station_list[ant2], source.name),
-                                    ns.coherency(source.name))
+                                  ns.conjdft(station_list[ant2], source.name),
+                                  ns.coherency(source.name))
                 clean_visibility_list.append(ns.clean_visibility(station_list[ant1], station_list[ant2], source.name))
                 pass # for source
-            ns.clean_visibility(station_list[ant1], station_list[ant2], patch_name) << Meq.Sum(children=clean_visibility_list)
+            ns.clean_visibility(station_list[ant1], station_list[ant2], patch_name) << Meq.Add(children=clean_visibility_list)
             pass # for ant2
         pass     # for ant1
     pass
@@ -288,12 +293,12 @@ def forest_baseline_predict_trees(ns, interferometer_list, patch_names):
         corrupted_patch_vis_list = []
         for patch_name in patch_names:
             ns.corrupted_patch_vis(ant1,ant2,patch_name) << \
-                    Meq.Multiply(ns.J(ant1,patch_name), 
+                    Meq.MatrixMultiply(ns.J(ant1,patch_name), 
                                  ns.clean_visibility(ant1,ant2, patch_name),
                                  ns.ctJ(ant1, patch_name))
             corrupted_patch_vis_list.append(ns.corrupted_patch_vis(ant1,ant2,patch_name))        
             pass
-        ns.predict(ant1, ant2) << Meq.Sum(children=deepcopy(corrupted_patch_vis_list))    
+        ns.predict(ant1, ant2) << Meq.Add(children=deepcopy(corrupted_patch_vis_list))    
         pass
     pass
 
@@ -393,9 +398,9 @@ def create_inputrec(msname, tile_size=1500):
     inputrec.ms_name          = msname
     inputrec.data_column_name = 'DATA'
     inputrec.tile_size        = tile_size
-    inputrec.selection = record(channel_start_index=25,\
-                                channel_end_index=40,\
-                                selection_string='')
+    inputrec.selection = record(channel_start_index=30, #25,
+                                channel_end_index=35, #40,
+                                selection_string='')#'TIME_CENTROID < 4472040000')
     inputrec.python_init = 'MAB_read_msvis_header.py'
     
     return inputrec
@@ -445,7 +450,10 @@ def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
         solvables.append('stokes:Q:'+source.name)
         pass
     print solvables
-
+    for s in solvables:
+        publish_node_state(mqs, s)
+        pass
+    
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)

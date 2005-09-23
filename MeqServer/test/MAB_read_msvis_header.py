@@ -6,6 +6,7 @@ import meqserver
 def setState (node,**fields):
   """helper function to set the state of a node specified by name or
   nodeindex""";
+  print "SetState called on node ", node,' and with arguments ', fields
   rec = dmi.record(state=dmi.record(fields));
   if isinstance(node,str):
     rec.name = node;
@@ -14,7 +15,7 @@ def setState (node,**fields):
   else:
     raise TypeError,'illegal node argumnent';
   # pass command to kernel
-  meqserver.mqexec('Node.Set.State',rec);
+  meqserver.mqexec('Node.Set.State',rec);#mqexec
 
 def processVisHeader (hdr):
   """handler for the visheader""";
