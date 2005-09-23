@@ -58,8 +58,10 @@ namespace Meq {
     FFunklet         = AidFunklet,
     FDefaultFunklet  = AidDefault|AidFunklet,
     FSolveDomain = AidSolve|AidDomain,
+    FUsePrevious = AidUse|AidPrevious,
     FTileSize = AidTile|AidSize,
     FTiling = AidTiling;
+    
 
 
   Parm::Parm()
@@ -67,6 +69,7 @@ namespace Meq {
       solvable_ (false),
       auto_save_(false),
       tiled_ (false),
+      _use_previous(true),
       parmtable_(0),
       domain_depend_mask_(0),
       solve_depend_mask_(0),
@@ -89,6 +92,7 @@ namespace Meq {
       solvable_  (false),
       auto_save_ (false),
       tiled_ (false),
+      _use_previous(true),
       name_      (name),
       parmtable_ (table),
       default_funklet_(defaultValue),
@@ -148,18 +152,30 @@ namespace Meq {
 	  }
 	if( !funkletref.valid() )
 	  {
-	    const Funklet *deffunklet = state()[FDefaultFunklet].as_po<Funklet>();
-	    //	    FailWhen(!deffunklet,"no funklets found and no default_funklet specified");
-	    if(!deffunklet) {
-	      cdebug(3)<<"no funklets found, try reusing old one "<<endl;
-	      FailWhen(!its_funklet_.valid(),"no funklets found,no default_funklet and no funklet specified");
-	      funkletref <<= its_funklet_;
-	      //reset dbid
-	      funkletref(). setDbId (-1);
-	    }
+
+	    //use previous funklet, unless user really wants default??
+	    if(_use_previous && its_funklet_.valid())
+	      {
+
+		funkletref <<= its_funklet_;
+		//reset dbid
+		funkletref(). setDbId (-1);
+
+	      }
 	    else{
-	      funkletref <<= deffunklet;
-	      cdebug(3)<<"no funklets found, using default value from state record, type "<<funkletref().objectType()<<endl;
+	      const Funklet *deffunklet = state()[FDefaultFunklet].as_po<Funklet>();
+	      //	    FailWhen(!deffunklet,"no funklets found and no default_funklet specified");
+	      if(!deffunklet) {
+		cdebug(3)<<"no funklets found, try reusing old one "<<endl;
+		FailWhen(!its_funklet_.valid(),"no funklets found,no default_funklet and no funklet specified");
+		funkletref <<= its_funklet_;
+		//reset dbid
+		funkletref(). setDbId (-1);
+	      }
+	      else{
+		funkletref <<= deffunklet;
+		cdebug(3)<<"no funklets found, using default value from state record, type "<<funkletref().objectType()<<endl;
+	      }
 	    }
 	  }
 	funkletref().clearSolvable();
@@ -530,6 +546,7 @@ namespace Meq {
       name_ = name();
     rec[FParmName].get(name_,initializing);
     rec[FAutoSave].get(auto_save_,initializing);
+    rec[FUsePrevious].get(_use_previous,initializing);
     rec[FSolvable].get(solvable_,initializing);
     rec[FIntegrated].get(integrated_,initializing);
     

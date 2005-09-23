@@ -127,6 +127,8 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1332,"Save")+
         AtomicID::registerId(-1353,"Clear")+
         AtomicID::registerId(-1102,"Invert")+
+        AtomicID::registerId(-1587,"Use")+
+        AtomicID::registerId(-1586,"Previous")+
         AtomicID::registerId(-1363,"Metrics")+
         AtomicID::registerId(-1304,"Rank")+
         AtomicID::registerId(-1281,"Fit")+

@@ -623,6 +623,11 @@ const int AidPolcs_int = -1308;
 const DMI::AtomicID AidPolicy(-1529);             // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:41
 const int AidPolicy_int = -1529;
 #endif
+#ifndef _defined_id_AidPrevious
+#define _defined_id_AidPrevious 1
+const DMI::AtomicID AidPrevious(-1586);           // from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
+const int AidPrevious_int = -1586;
+#endif
 #ifndef _defined_id_AidProfiling
 #define _defined_id_AidProfiling 1
 const DMI::AtomicID AidProfiling(-1536);          // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:42
@@ -872,6 +877,11 @@ const int AidU_int = -1006;
 #define _defined_id_AidUpdate 1
 const DMI::AtomicID AidUpdate(-1229);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
 const int AidUpdate_int = -1229;
+#endif
+#ifndef _defined_id_AidUse
+#define _defined_id_AidUse 1
+const DMI::AtomicID AidUse(-1587);                // from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
+const int AidUse_int = -1587;
 #endif
 #ifndef _defined_id_AidUseSVD
 #define _defined_id_AidUseSVD 1

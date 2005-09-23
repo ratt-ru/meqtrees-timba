@@ -67,17 +67,27 @@ CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int dep
       else{//the real filling
 	if( makePerturbed ) 
 	  {
+	    
 	    thederval = itsDerFunction(xval);
 	    value[pos] = thederval.value();
+	    
+// 	    //profiling check
+// 	    casa::CompiledFunction<casa::Double> theFunction(itsFunction);
+// 	    value[pos] = theFunction(xval);
 	    for( uint ispid=0; ispid<spidIndex.size(); ispid++) 
 	      if( spidIndex[ispid] >= 0 ){
 		int d=1;
 		//fill perturbed
 		double deriv=thederval.derivatives()[ispid];
+		
 		for( int ipert=0; ipert<makePerturbed; ipert++ ,d=-d)
 		  {
 		    //	      cdebug(0)<<"der "<<ispid<<" : "<<deriv<<endl;
 		    ((pertValPtr[ipert*spidIndex.size()+ispid][pos])) = d*deriv*perts[ispid]+ thederval.value();
+// 		    theFunction.parameters()[ispid]+=d*perts[ispid];
+// 		    ((pertValPtr[ipert*spidIndex.size()+ispid][pos])) = theFunction(xval);
+// 		    theFunction.parameters()[ispid]-=d*perts[ispid];
+		
 		  }
 	      }
 	  }

@@ -136,6 +136,7 @@ namespace Meq {
     bool auto_save_;
     bool tiled_;//true for tiled solvables
     int tiling_[Axis::MaxAxis]; //vector containing tilesizes per axis (<= 0 means no tiling)
+    bool _use_previous;// if available use previous funklet,  instead of default_funklet
 
     //##ModelId=3F86886F0213
     string name_;
