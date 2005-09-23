@@ -127,7 +127,7 @@ def forest_source_subtrees(ns, source):
                                           c00= source.IQUV[i])
             pass
         ns.stokes(stokes, source.name) << Meq.Parm(IQUVpolcs[i],
-                                                  table=source.table,
+                                                  table_name=source.table,
                                                   node_groups='Parm')
         pass    
 
@@ -136,9 +136,9 @@ def forest_source_subtrees(ns, source):
     ns.xy(source.name) << Meq.Conj(ns.yx(source.name))
     ns.yy(source.name) << (ns.stokes("I",source.name)-ns.stokes("Q",source.name))*0.5
 
-    ra    = ns.ra   (source.name) << Meq.Parm(source.ra, table=source.table,
+    ra    = ns.ra   (source.name) << Meq.Parm(source.ra, table_name=source.table,
                                               node_groups='Parm')
-    dec   = ns.dec  (source.name) << Meq.Parm(source.dec, table=source.table,
+    dec   = ns.dec  (source.name) << Meq.Parm(source.dec, table_name=source.table,
                                               node_groups='Parm')
     radec = ns.radec(source.name) << Meq.Composer(ra, dec)
     lmn   = ns.lmn  (source.name) << Meq.LMN(radec_0 = ns.radec0, radec = radec)
@@ -175,10 +175,10 @@ def forest_station_patch_jones(ns, station, patch_name, mep_table_name):
                 phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
                 pass
             ns.JA(station, patch_name, elem) << Meq.Parm(gain_polc,
-                                                          table=mep_table_name,
+                                                          table_name=mep_table_name,
                                                           node_groups='Parm')
             ns.JP(station, patch_name, elem) << Meq.Parm(phase_polc,
-                                                          table=mep_table_name,
+                                                          table_name=mep_table_name,
                                                           node_groups='Parm')
             ns.J(station, patch_name, elem) << Meq.Polar(
                     ns.JA(station, patch_name, elem),
@@ -221,10 +221,10 @@ def forest_station_jones(ns, station, mep_table_name):
                 phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
                 pass
             ns.GA(station, elem) << Meq.Parm(gain_polc,
-                                             table=mep_table_name,
+                                             table_name=mep_table_name,
                                              node_groups='Parm')
             ns.GP(station, elem) << Meq.Parm(phase_polc,
-                                             table=mep_table_name,
+                                             table_name=mep_table_name,
                                              node_groups='Parm')
             ns.G(station, elem) << Meq.Polar(
                     ns.GA(station, elem),
@@ -478,8 +478,8 @@ def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
 
 
 
-Settings.forest_state.cache_policy = 100;
-Settings.orphans_are_roots = True;
+Settings.forest_state.cache_policy = 100
+Settings.orphans_are_roots = True
 
 if __name__ == '__main__':
 
