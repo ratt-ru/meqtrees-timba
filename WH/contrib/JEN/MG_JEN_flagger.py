@@ -1,4 +1,4 @@
-script_name = 'MG_JEN_flagger.py'
+# MG_JEN_flagger.py
 
 # Short description:
 #   Flagging subtrees
@@ -12,20 +12,19 @@ script_name = 'MG_JEN_flagger.py'
 
 # Copyright: The MeqTree Foundation 
 
-#================================================================================
-# How to use this template:
-# - Copy it to a suitably named script file (e.g. MG_JEN_xyz.py)
-# - Fill in the correct script_name at the top
-# - Fill in the author and the short description
-# - Replace the example importable function with specific ones
-# - Make the specific _define_forest() function
-# - Remove this 'how to' recipe
 
-#================================================================================
-# Import of Python modules:
+
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preample and initialisation **************************
+#********************************************************************************
+#********************************************************************************
 
 from Timba.TDL import *
-from Timba.Meq import meq
+
+MG = record(script_name='MG_JEN_flagger.py', last_changed = 'h22sep2005')
 
 from numarray import *
 # from string import *
@@ -37,16 +36,25 @@ from Timba.Contrib.JEN import MG_JEN_math
 from Timba.Contrib.JEN import MG_JEN_twig
 
 
-#================================================================================
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
-#================================================================================
+
 
 def _define_forest (ns):
-   MG_JEN_exec.on_entry (ns, script_name)
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
 
-   # Generate a list (cc) of one or more node bundles (bb):
-   cc = []
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
+
    mm = []
 
    # Test: dims=[1]  (default)  
@@ -72,16 +80,22 @@ def _define_forest (ns):
    # Finally, merge the flags of the root-nodes of the above tests:
    cc.append(ns.Mflag_overall << Meq.MergeFlags(children=mm))
  
-  # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
+   # Finished: 
+   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
 
-#================================================================================
-# Optional: Importable function(s): To be imported into user scripts.
-#================================================================================
 
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
 
 #======================================================================================
 # Generic flagger subtree:
@@ -149,7 +163,7 @@ def flagger (ns, input, **pp):
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(script_name)
+MG_JEN_forest_state.init(MG.script_name)
 
 #-------------------------------------------------------------------------
 # Meqforest execution routine (may be called from the browser):
@@ -163,20 +177,20 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-   print '\n*******************\n** Local test of:',script_name,':\n'
+   print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
-   # This is the default:
-   MG_JEN_exec.without_meqserver(script_name)
-
-   # This is the place for some specific tests during development.
-   ns = NodeScope()
    if 1:
+      MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest)
+
+   ns = NodeScope()
+
+   if 0:
       input = ns << 0
       rr = flagger (ns, input)
       MG_JEN_exec.display_subtree (rr, 'rr', full=1)
 
       
-   print '\n** End of local test of:',script_name,'\n*******************\n'
+   print '\n** End of local test of:',MG.script_name,'\n*******************\n'
 
 #********************************************************************************
 #********************************************************************************

@@ -1,8 +1,7 @@
-script_name = 'MG_JEN_exec.py'
-last_changed = 'h10sep2005'
+# MG_JEN_exec.py
 
 # Short description:
-#   Functions used in execution of MeqGraft (MG) scripts
+#   Convenience functions used in execution of MeqGraft (MG) scripts
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
@@ -11,6 +10,16 @@ last_changed = 'h10sep2005'
 
 # Copyright: The MeqTree Foundation 
 
+# Full description:
+#
+# This MG script contains convenience functions that are called by all
+# MG_JEN_xyz.py scripts. They are not necessary for MG scripts, but they
+# keep them small, and easy to upgrade with common services.
+# It is a regular MG script in the sense that it has the usual functions
+# to define a demonstration forest, and to execute it.
+#
+
+
 
 
 
@@ -21,12 +30,15 @@ last_changed = 'h10sep2005'
 
 
 #================================================================================
-# Import of Python modules:
+# Preamble
+#================================================================================
 
 from Timba.TDL import *
 from Timba.Meq import meq              # required in MG_JEN_exec !!
 
-from copy import deepcopy
+MG = record(script_name='MG_JEN_exec.py', last_changed='h22sep2005')
+
+from copy import deepcopy       
 
 from Timba.Contrib.JEN import MG_JEN_forest_state
 
@@ -34,7 +46,7 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(script_name)
+MG_JEN_forest_state.init(MG.script_name)
 
 
 
@@ -47,14 +59,22 @@ MG_JEN_forest_state.init(script_name)
 
 
 
-#================================================================================
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
-#================================================================================
+
 
 def _define_forest (ns):
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
    # Perform some common functions, and return an empty list (cc=[]):
-   cc = on_entry (ns, script_name)            
+   cc = on_entry (ns, MG)
+
 
    # Test/demo of importable function:
    bb = []
@@ -68,7 +88,7 @@ def _define_forest (ns):
    cc.append(bundle(ns, bb, 'bundle_2'))
 
    # Finished: 
-   return on_exit (ns, script_name, cc)            
+   return on_exit (ns, MG, cc)
 
 
 
@@ -79,64 +99,40 @@ def _define_forest (ns):
 
 
 
-
-#================================================================================
-# Optional: Importable function(s): To be imported into user scripts. 
-#================================================================================
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
 
 
 #-------------------------------------------------------------------------------
 # Function called upon entry of _define_forest()
    
-def on_entry (ns, name='<script_name>', **pp):
+def on_entry (ns, MG, **pp):
+   """Function called upon entry of _define_forest()"""
+
+   # Check the MG-record:
+   MG = check_MG(MG)
+
    # Return an empty list, to be filled with root nodes
    cc = []
    return cc
 
 
 
-
-
-
-#-------------------------------------------------------------------------------
-# Create a small subtree of nodes that are expected by the function
-# that reads information from the MS:
-
-def create_ms_interface_nodes(ns):
-   cc = []
-
-   # Field (pointing) centre:
-   cc.append(ns.ra0 << 0.0)
-   cc.append(ns.dec0 << 1.0)
-
-   # Antenna positions:
-   nant = 14
-   coords = ('x','y','z')
-   for iant in range(nant):
-      sn = str(iant+1)
-      for (j,label) in enumerate(coords):
-         cc.append(ns[label+'.'+sn] << 0.0)
-
-   # Array reference position (x,y,z):
-   for (j,label) in enumerate(coords):
-      cc.append(ns[label+'0'] << 0.0)
-
-   # Tie them all together by a single root node.
-   # This is to avoid clutter of the list of root-nodes in the browser,
-   # in the case where they are not connected to the tree for some reason.
-   root = ns.ms_interface_nodes << Meq.Add(*cc)
-
-   return root
-
-
 #-------------------------------------------------------------------------------
 # Function called upon exit of _define_forest()
 # Deal with the list (cc) of root nodes:
    
-def on_exit (ns, name='<script_name>', cc=[], **pp):
+def on_exit (ns, MG, cc=[], **pp):
+   """Function called upon exit of _define_forest()"""
    
    pp.setdefault('make_bookmark', True)                # if False, inhibit bookmarks
    pp.setdefault('create_ms_interface_nodes', False)   # see below
+
+   # Check the MG-record:
+   MG = check_MG(MG)
 
    # OPtionally, create the standard nodes expected by the MS
    if pp['create_ms_interface_nodes']:
@@ -144,8 +140,9 @@ def on_exit (ns, name='<script_name>', cc=[], **pp):
    
    # Make a (single) root node for use in _test_forest():
    global _test_root
-   _test_root = name
-   return bundle (ns, cc, name, show_parent=False, **pp)
+   _test_root = MG.script_name
+   root = bundle (ns, cc, _test_root, show_parent=False, **pp)
+   return root
 
 
 
@@ -153,6 +150,7 @@ def on_exit (ns, name='<script_name>', cc=[], **pp):
 # Bundle the given nodes by making them children of a new node:
 
 def bundle (ns, cc, name='bundle', **pp):
+   """Bundles the given nodes (cc) by making them children of a new node"""
    
    pp.setdefault('make_bookmark', True)   # if False, inhibit bookmarks
    pp.setdefault('show_parent', False)    # if True, make bookmark for parent too
@@ -183,14 +181,92 @@ def bundle (ns, cc, name='bundle', **pp):
    
    return parent
    
+#-------------------------------------------------------------------------------
+# Helper function:
+
+def check_MG(MG=None):
+   """Make sure that MG is a record with some expected fields.
+   It contains information about an MG script, which may be used in
+   messages etc by the common services of this MG_JEN_exec module."""
+   if MG==None: MG = record(script_name='<script_name>')
+   if isinstance(MG, str): MG = record(script_name=MG)    # deal with legacy code
+   MG = record(MG)
+   return MG
+
+#-------------------------------------------------------------------------------
+# Helper function:
+
+def noexec(pp=None, MG=None, help=None):
+   """Function that returns a somewhat organised record of the
+   specified record (pp) of function input arguments,
+   and its associated information (e.g. help)"""
+
+   # Make sure that pp is a record
+   if pp==None: pp = record()
+   pp = record(pp)
+
+   # Make sure of the help record, and attach it to pp:
+   if help==None: help = record()
+   help = record(help)
+   for key in pp.keys():
+      if not help.has_key(key):
+         help[key] = '.. no help available for argument: '+key
+   pp['_help'] = help
+
+   # Check the MG-record, and attach it to pp:
+   MG = check_MG(MG)
+   pp['_MG'] = MG
+
+   display_object(pp,'pp', 'MG_JEN_exec.noexec()')
+   return pp
+   
+
+#-------------------------------------------------------------------------------
+# Create a small subtree of nodes that are expected by the function
+# that reads information from the MS:
+
+def create_ms_interface_nodes(ns):
+   """Create a small subtree of nodes with reserved names, that are expected by
+   the function that reads information from the MS"""
+   cc = []
+
+   # Field (pointing) centre:
+   cc.append(ns.ra0 << 0.0)
+   cc.append(ns.dec0 << 1.0)
+
+   # Antenna positions:
+   nant = 14
+   coords = ('x','y','z')
+   for iant in range(nant):
+      sn = str(iant+1)
+      for (j,label) in enumerate(coords):
+         cc.append(ns[label+'.'+sn] << 0.0)
+
+   # Array reference position (x,y,z):
+   for (j,label) in enumerate(coords):
+      cc.append(ns[label+'0'] << 0.0)
+
+   # Tie them all together by a single root node.
+   # This is to avoid clutter of the list of root-nodes in the browser,
+   # in the case where they are not connected to the tree for some reason.
+   root = ns.ms_interface_nodes << Meq.Add(*cc)
+
+   return root
+
 
 #-------------------------------------------------------------------------------
 # Used in _define_forest(), as a simpe example:
 
-def importable_example(ns, qual='auto', **pp):
+def importable_example(ns=None, **pp):
+   """Example importable function"""
 
-   # If necessary, make an automatic qualifier:
-   qual = MG_JEN_forest_state.autoqual('MG_JEN_exec_example')
+   # Deal with input arguments:
+   pp.setdefault('arg1', 1)
+   pp.setdefault('arg2', 2)
+   pp = record(pp)
+   # If called without arguments (), an organised pp-record is returned.
+   help = dict(arg1='help for arg1')
+   if ns==None: return noexec(pp, MG, help=help)
 
    default = array([[1, pp['arg1']/10],[pp['arg2']/10,0.1]])
    node = ns << Meq.Parm(default)
@@ -213,19 +289,21 @@ def importable_example(ns, qual='auto', **pp):
 #================================================================================
 
 def spigot2sink (mqs, parent, **pp):
+   """Execute the tree under MS stream_control()"""
 
    from Timba.Meq import meq
 
+   pp.setdefault('wait', False)       
    pp.setdefault('trace', False)
    pp.setdefault('save', True)       
-   pp.setdefault('wait', False)       
+   pp.setdefault('save_reference', False)       
 
    # Get the stream control record from forest_state record:
    ss = stream_control()
    mqs.init(ss.initrec, inputinit=ss.inputinit, outputinit=ss.outputinit);
 
    # Optionally, save the meqforest
-   if pp['save']: save_meqforest (mqs, **pp)
+   if pp['save']: MG_JEN_forest_state.save_meqforest(mqs, **pp)
    
    return True
 
@@ -236,30 +314,35 @@ def spigot2sink (mqs, parent, **pp):
 # This approach guarantees that the forest_state record is always up-to-date.
 
 def stream_initrec(key=None, value=None):
+   """Get/set fields of the initrec stream_control record"""
    ss = Settings.forest_state.stream_control.initrec
    s1 = stream_field(ss, key=key, value=value)
    Settings.forest_state.stream_control.initrec = ss
    return s1
 
 def stream_inputinit(key=None, value=None):
+   """Get/set fields of the inputinit stream_control record"""
    ss = Settings.forest_state.stream_control.inputinit
    s1 = stream_field(ss, key=key, value=value)
    Settings.forest_state.stream_control.inputinit = ss
    return s1
 
 def stream_selection(key=None, value=None):
+   """Get/set fields of the inputinit.selection stream_control record"""
    ss = Settings.forest_state.stream_control.inputinit.selection
    s1 = stream_field(ss, key=key, value=value)
    Settings.forest_state.stream_control.inputinit.selection = ss
    return s1
 
 def stream_outputinit(key=None, value=None):
+   """Get/set fields of the outputinit stream_control record"""
    ss = Settings.forest_state.stream_control.outputinit
    s1 = stream_field(ss, key=key, value=value)
    Settings.forest_state.stream_control.outputinit = ss
    return s1
 
 def stream_field(ss, key=None, value=None):
+   """Common helper function for stream_xyz()"""
    if isinstance(key, str):
       if not value==None:
          ss[key] = value
@@ -270,6 +353,8 @@ def stream_field(ss, key=None, value=None):
 # Access to stream_control record as a whole:
 
 def stream_control(value=None, display=False, init=False):
+   """Access to the stream_control record in the forest_state record
+   If init==True, initialise it with default settings."""
    if not value==None:
       Settings.forest_state.stream_control = value
 
@@ -309,12 +394,15 @@ stream_control(init=True)
 #================================================================================
 
 def meqforest (mqs, parent, request=None, **pp):
+   """The function that does the actual work for the _test_forest()
+   functions in the various MG_JEN_ scripts."""
 
    from Timba.Meq import meq
 
    pp.setdefault('trace', False)
    pp.setdefault('save', True)       
    pp.setdefault('wait', True)       
+   pp.setdefault('save_reference', True)       
 
    # Execute the meqforest with the specified (or default) request:
    request = make_request(request, **pp)
@@ -329,18 +417,8 @@ def meqforest (mqs, parent, request=None, **pp):
    MG_JEN_forest_state.attach_test_result (mqs, result)
 
    # Optionally, save the meqforest
-   if pp['save']: save_meqforest (mqs, **pp)
+   if pp['save']: MG_JEN_forest_state.save_meqforest(mqs, **pp)
    
-   return True
-
-
-#-------------------------------------------------------------------------------
-# Save the meqforest in a file (and perhapes a reference file, for auto-testing):
-
-def save_meqforest (mqs, **pp):
-   pp.setdefault('trace', False)
-   pp.setdefault('save_reference', True)       
-   MG_JEN_forest_state.save_meqforest(mqs, reference=pp['save_reference'])
    return True
 
 
@@ -418,6 +496,7 @@ def save_meqforest (mqs, **pp):
 # Helper function to make sure of a request:
 
 def make_request (request=None, **pp):
+   """Helper function to make sure of a request"""
    pp.setdefault('trace', False)
    s = '** make_request('+str(type(request))+'):'
    if request==None:
@@ -441,6 +520,7 @@ def make_request (request=None, **pp):
 # Helper function to make sure of a cells:
 
 def make_cells (cells=None, **pp):
+   """Helper function to make sure of a cells"""
    pp.setdefault('trace', False)
    s = '** make_cells('+str(type(cells))+'):'
    if cells==None:
@@ -459,6 +539,7 @@ def make_cells (cells=None, **pp):
 # Helper function to make sure of a domain:
 
 def make_domain (domain=None, **pp):
+   """Helper function to make sure of a domain"""
    pp.setdefault('trace', False)
    s = '** make_domain('+str(type(domain))+'):'
    if domain==None: domain = 'default'
@@ -492,7 +573,10 @@ def make_domain (domain=None, **pp):
 # Execute the script without a meqserver:
 #================================================================================
 
-def without_meqserver(script_name='<script_name>', callback=None, **pp):
+def without_meqserver(MG=None, callback=None, **pp):
+   """Execute the MG script without a meqserver"""
+   # Check the MG-record:
+   MG = check_MG(MG)
 
    pp.setdefault('recurse', 5)
    pp.setdefault('full', True)
@@ -507,21 +591,22 @@ def without_meqserver(script_name='<script_name>', callback=None, **pp):
    display_forest_state()
 
    # Display the result at the specified recursion level:
-   display_subtree (root, script_name, full=pp['full'], recurse=pp['recurse'])
+   display_subtree (root, MG.script_name, full=pp['full'], recurse=pp['recurse'])
 
    # Also display it at some of the lowset recursion levels:
    if False:
       for always in [2,1]:
          if pp['full'] and always<pp['recurse']:
-            display_subtree (root, script_name, full=True, recurse=always)
+            display_subtree (root, MG.script_name, full=True, recurse=always)
 
-   # display_nodescope (ns, script_name)
+   # display_nodescope (ns, MG.script_name)
    return 
 
 
 #--------------------------------------------------------------------------------
 
 def display_forest_state():
+   """Display the current forest state record"""
    rr = Settings.forest_state
    display_object (rr, 'forest_state')
    
@@ -534,6 +619,7 @@ def display_forest_state():
 #--------------------------------------------------------------------------------
 
 def display_nodescope (ns, txt='<txt>', trace=1):
+   """Display the given nodescope in an organised way"""
    print '\n*** display of NodeScope (',txt,'):'
    print '** - ns.__class__ -> ',ns.__class__
    print '** - ns.__repr__ -> ',ns.__repr__
@@ -583,6 +669,7 @@ def display_nodescope (ns, txt='<txt>', trace=1):
 
 def display_subtree (node, txt='<txt>', level=0, cindex=0,
                      recurse=1000, count={}, full=0):
+   """Recursively display the subtree starting at the given node"""
 
    # General:
    indent = level*'..'
@@ -692,6 +779,8 @@ def display_subtree (node, txt='<txt>', level=0, cindex=0,
 # Display any Python object(v):
 
 def display_object (v, name='<name>', txt='', full=0, indent=0):
+    """Display the given Python object"""
+   
     if indent==0: print '\n** display of Python object:',name,': (',txt,'):'
     print '**',indent*'.',name,':',
     
@@ -775,8 +864,7 @@ def display_object (v, name='<name>', txt='', full=0, indent=0):
 
 
 #********************************************************************************
-# Initialisation and testing routines
-# NB: this section should always be at the end of the script
+# Testing routines
 #********************************************************************************
 
 
@@ -786,6 +874,7 @@ def display_object (v, name='<name>', txt='', full=0, indent=0):
 # The 'mqs' argument is a meqserver proxy object.
 
 def _test_forest (mqs, parent):
+   """Standard tree execution routine"""
    return meqforest (mqs, parent)
 
 
@@ -793,11 +882,11 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-   print '\n****************\n** Local test of:',script_name,':\n'
+   print '\n****************\n** Local test of:',MG.script_name,':\n'
 
    # Generic test:
    if 0:
-      without_meqserver(script_name, callback=_define_forest, recurse=3)
+      without_meqserver(MG, callback=_define_forest, recurse=3)
    
    # Various local tests:
    if 0:
@@ -820,7 +909,7 @@ if __name__ == '__main__':
       request = make_request(request, trace=True)
       display_object (request, 'request', 'MG_JEN_exec')
 
-   if 1:
+   if 0:
       print '\n** initrec:',stream_initrec()
       print '\n** inputinit:',stream_inputinit()
       print '\n** selection:',stream_selection()
@@ -829,7 +918,10 @@ if __name__ == '__main__':
       print 'channel_start_index:',stream_selection('channel_start_index')
       print '\n** outputinit:',stream_outputinit()
 
-   print '\n** End of local test of:',script_name,'\n*************\n'
+   if 1:
+      pp = importable_example()
+
+   print '\n** End of local test of:',MG.script_name,'\n*************\n'
 
 
 #********************************************************************************

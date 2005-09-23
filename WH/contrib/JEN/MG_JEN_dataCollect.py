@@ -1,5 +1,4 @@
-script_name = 'MG_JEN_dataCollect.py'
-last_changed = 'h10sep2005'
+# MG_JEN_dataCollect.py
 
 # Short description:
 #   Some visualisation subtrees
@@ -11,10 +10,18 @@ last_changed = 'h10sep2005'
 
 # Copyright: The MeqTree Foundation 
 
-#================================================================================
-# Import of Python modules:
+
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preample and initialisation **************************
+#********************************************************************************
+#********************************************************************************
 
 from Timba.TDL import *
+
+MG = record(script_name='MG_JEN_dataCollect.py', last_changed = 'h22sep2005')
 
 from numarray import *
 # from string import *
@@ -27,20 +34,23 @@ from Timba.Contrib.JEN import MG_JEN_funklet
 
 
 
-#================================================================================
-# Required functions:
-#================================================================================
 
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
 
-#--------------------------------------------------------------------------------
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
 
-def _define_forest (ns):
-   MG_JEN_exec.on_entry (ns, script_name)
 
-   # Generate a list (cc) of one or more node bundles (bb):
-   cc = []
+def _define_forest (ns):
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
+
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
 
    style = plot_dict('styles')
    color = plot_dict('colors')
@@ -111,7 +121,7 @@ def _define_forest (ns):
       for i in range(n):
          for j in range(i+1,n+1):
             default = MG_JEN_funklet.polc_ft(c00=1+(i+j)/10, fdeg=2, tdeg=1, stddev=0.01)
-            node = ns.parm(i=i,j=j) << Meq.Parm(default)
+            node = ns.parm(i=i,j=j)(corr) << Meq.Parm(default)
             dc = dcoll(ns, node, scope=scope, tag=corr, type='spectra') 
             dd.append(dc)
          
@@ -121,16 +131,23 @@ def _define_forest (ns):
    cc.append(MG_JEN_exec.bundle(ns, bb, 'spectra', show_parent=False))
 
 
-   #----------------------------------
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
+   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
-#================================================================================
-# Importable function(s): The essence of a MeqGraft (MG) script.
-# To be imported into user scripts. 
-#================================================================================
+
+
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
 
 
 # Qt plot colors:
@@ -576,7 +593,7 @@ def dconc (ns, dcoll, **pp):
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(script_name)
+MG_JEN_forest_state.init(MG.script_name)
 
 
 
@@ -604,10 +621,10 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-   print '\n*******************\n** Local test of:',script_name,':\n'
+   print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
-   if 0:
-      MG_JEN_exec.without_meqserver(script_name, callback=_define_forest)
+   if 1:
+      MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest)
 
    ns = NodeScope()
 
@@ -626,10 +643,10 @@ if __name__ == '__main__':
    if 0:
       rr = 0
       # ............
-      # MG_JEN_exec.display_object (rr, 'rr', script_name)
-      # MG_JEN_exec.display_subtree (rr, script_name, full=1)
+      # MG_JEN_exec.display_object (rr, 'rr', MG.script_name)
+      # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
 
-   print '\n** End of local test of:',script_name,'\n*******************\n'
+   print '\n** End of local test of:',MG.script_name,'\n*******************\n'
        
 #********************************************************************************
 #********************************************************************************

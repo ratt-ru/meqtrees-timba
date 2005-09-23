@@ -1,5 +1,4 @@
-script_name = 'MG_JEN_Cohset.py'
-last_changed = 'h10sep2005'
+# MG_JEN_Cohset.py
 
 # Short description:
 #   Functions dealing with sets (all ifrs) of 2x2 cohaerency matrices 
@@ -14,15 +13,18 @@ last_changed = 'h10sep2005'
 
 # Copyright: The MeqTree Foundation 
 
-#================================================================================
-# Import of Python modules:
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preample and initialisation **************************
+#********************************************************************************
+#********************************************************************************
 
 from Timba.TDL import *
-from Timba.Meq import meq
+# from Timba.Meq import meq
+
+MG = record(script_name='MG_JEN_Cohset.py', last_changed = 'h22sep2005')
 
 from numarray import *
-# from string import *
-# from copy import deepcopy
 
 from Timba.Trees import TDL_Cohset
 from Timba.Trees import TDL_Joneset
@@ -32,6 +34,7 @@ from Timba.Contrib.JEN import MG_JEN_Sixpack
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
+
 from Timba.Contrib.JEN import MG_JEN_twig
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN import MG_JEN_flagger
@@ -40,16 +43,27 @@ from Timba.Contrib.JEN import MG_JEN_flagger
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(script_name)
+MG_JEN_forest_state.init(MG.script_name)
 
 
-#================================================================================
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
-#================================================================================
 
-def _define_forest (ns): 
-   cc = MG_JEN_exec.on_entry (ns, script_name)
+
+def _define_forest (ns):
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
+
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
 
    # Make the Cohset ifrs (and the Joneset stations):
    ifrs = TDL_Cohset.stations2ifrs(range(0,5))
@@ -115,17 +129,21 @@ def _define_forest (ns):
    cc.append(Cohset.simul_sink(ns))
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
+   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
 
 
 
-#================================================================================
-# Optional: Importable function(s): To be imported into user scripts.
-#================================================================================
 
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
 
 #--------------------------------------------------------------------------------
 # Produce a Cohset for the specified ifrs, with simulated uv-data: 
@@ -728,18 +746,18 @@ def _tdl_job_sequence(mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-    print '\n*******************\n** Local test of:',script_name,':\n'
+    print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
     # This is the default:
-    if 0:
-        MG_JEN_exec.without_meqserver(script_name, callback=_define_forest, recurse=3)
+    if 1:
+        MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=3)
 
     # This is the place for some specific tests during development.
     ns = NodeScope()
     nsim = ns.Subscope('_')
     stations = range(0,3)
     ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
-    cs = TDL_Cohset.Cohset(label='test', scops=script_name, ifrs=ifrs)
+    cs = TDL_Cohset.Cohset(label='test', scops=MG.script_name, ifrs=ifrs)
 
     if 0:   
         cs.display('initial')
@@ -790,7 +808,7 @@ if __name__ == '__main__':
 
     # ............
     # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
-    print '\n** End of local test of:',script_name,'\n*******************\n'
+    print '\n** End of local test of:',MG.script_name,'\n*******************\n'
 
 #********************************************************************************
 #********************************************************************************

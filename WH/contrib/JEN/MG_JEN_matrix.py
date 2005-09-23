@@ -1,4 +1,4 @@
-script_name = 'MG_JEN_matrix.py'
+# MG_JEN_matrix.py
 
 # Short description:
 #   Some useful matrix subtrees 
@@ -10,34 +10,49 @@ script_name = 'MG_JEN_matrix.py'
 
 # Copyright: The MeqTree Foundation 
 
-#================================================================================
-# Import of Python modules:
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preample and initialisation **************************
+#********************************************************************************
+#********************************************************************************
 
 from Timba.TDL import *
-from Timba.Meq import meq
+
+MG = record(script_name='MG_JEN_matrix.py', last_changed = 'h22sep2005')
 
 from numarray import *
-# from string import *
-# from copy import deepcopy
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 
 
+#--------------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(MG.script_name)
 
 
 
 
-#================================================================================
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
-#================================================================================
+
 
 def _define_forest (ns):
-   MG_JEN_exec.on_entry (ns, script_name)
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
 
-   # Generate a list (cc) of one or more node bundles (bb):
-   cc = []
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
 
    # Test/demo of importable function: rotation()
    bb = []
@@ -69,7 +84,7 @@ def _define_forest (ns):
 
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
+   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
@@ -77,11 +92,14 @@ def _define_forest (ns):
 
 
 
-#================================================================================
-# OPtional: Importable function(s): To be imported into user scripts. 
-#================================================================================
 
 
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
 
 #------------------------------------------------------------
 # Make a 2x2 rotation matrix
@@ -199,14 +217,8 @@ def phase (ns, angle=0, qual=None, name='phase_matrix'):
 
 
 #********************************************************************************
-# Initialisation and test routines
+# Test routines
 #********************************************************************************
-
-#--------------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(script_name)
 
 
 #--------------------------------------------------------------------------------
@@ -220,27 +232,27 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-    if False:
-        # This is the default:
-        MG_JEN_exec.without_meqserver(script_name)
+    print '\n**',MG.script_name,':\n'
 
-    else:
-       # This is the place for some specific tests during development.
-       print '\n**',script_name,':\n'
-       ns = NodeScope()
-       if 1:
-          rr = rotation (ns, angle=1)
-          MG_JEN_exec.display_subtree (rr, 'MG_JEN_matrix::rotation', full=1)
+    if 1:
+        # This is the default:
+        MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest)
+
+    ns = NodeScope()
+
+    if 0:
+       rr = rotation (ns, angle=1)
+       MG_JEN_exec.display_subtree (rr, 'MG_JEN_matrix::rotation', full=1)
           
-       if 1:
-          rr = ellipticity (ns, angle=1)
-          MG_JEN_exec.display_subtree (rr, 'MG_JEN_matrix::ellipticity', full=1)
+    if 1:
+       rr = ellipticity (ns, angle=1)
+       MG_JEN_exec.display_subtree (rr, 'MG_JEN_matrix::ellipticity', full=1)
           
-       if 1:
-          rr = phase (ns, angle=1)
-          MG_JEN_exec.display_subtree (rr, 'MG_JEN_matrix::phase', full=1)
+    if 1:
+       rr = phase (ns, angle=1)
+       MG_JEN_exec.display_subtree (rr, 'MG_JEN_matrix::phase', full=1)
           
-       print '\n** end of',script_name,'\n'
+    print '\n** end of',MG.script_name,'\n'
 
 #********************************************************************************
 

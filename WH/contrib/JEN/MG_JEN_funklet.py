@@ -1,5 +1,4 @@
-script_name = 'MG_JEN_funklet.py'
-last_changed = 'h10sep2005'
+# MG_JEN_funklet.py
 
 # Short description:
 #   Demo and helper functions for the family of funklets
@@ -12,11 +11,16 @@ last_changed = 'h10sep2005'
 # Copyright: The MeqTree Foundation 
 
 
-#================================================================================
-# Import of Python modules:
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preample and initialisation **************************
+#********************************************************************************
+#********************************************************************************
 
 from Timba.TDL import *
 from Timba.Meq import meq
+
+MG = record(script_name='MG_JEN_funklet.py', last_changed = 'h22sep2005')
 
 from random import *
 from math import *
@@ -33,7 +37,7 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(script_name)
+MG_JEN_forest_state.init(MG.script_name)
 
 
 # MXM: for 4D funklet....
@@ -45,16 +49,25 @@ MG_JEN_forest_state.init(script_name)
 
 
 
-#================================================================================
+
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
-#================================================================================
+
 
 def _define_forest (ns):
-   MG_JEN_exec.on_entry (ns, script_name)
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
 
-   # Generate a list (cc) of one or more node bundles (bb):
-   cc = []
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
 
    # Demo of importable function: polc_ft()
    bb = []
@@ -90,7 +103,7 @@ def _define_forest (ns):
 
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
+   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
@@ -100,10 +113,13 @@ def _define_forest (ns):
 
 
 
-#================================================================================
-# Importable function(s): The essence of a MeqGraft (MG) script.
-# To be imported into user scripts. 
-#================================================================================
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
+
 
 #-------------------------------------------------------------------------------------
 # Make a 'standard' freq-time polc with the following features:
@@ -115,8 +131,7 @@ def _define_forest (ns):
 #   - their sign is alternated between -1 and 1
 # - If stddev>0, a 'proportional' random number is added to each coeff
 
-def polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0):
-   """This is the doc-string"""
+def polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0): 
  
    # If the input is a polc (funklet) already, just return it ......??
    if isinstance(c00, dmi_type('MeqFunklet')):
@@ -329,49 +344,49 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-    print '\n**',script_name,':\n'
+    print '\n**',MG.script_name,':\n'
     if 1:
-        MG_JEN_exec.without_meqserver(script_name, callback=_define_forest)
+        MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest)
 
     ns = NodeScope()
 
     if 0:
        # polc = polc_ft(c00=2, fdeg=2, tdeg=3)
        print oneliner(polc_ft())
-       print oneliner(polc_ft(c00=10, stddev=1), script_name)
-       print oneliner(polc_ft(fdeg=0, tdeg=1), script_name)
-       print oneliner(polc_ft(fdeg=1, tdeg=0), script_name)
-       print oneliner(polc_ft(fdeg=1, tdeg=1), script_name)
-       print oneliner(polc_ft(fdeg=0, tdeg=2), script_name)
-       print oneliner(polc_ft(fdeg=2, tdeg=3), script_name)
-       print oneliner(polc_ft(fdeg=2, tdeg=3, stddev=1), script_name)
+       print oneliner(polc_ft(c00=10, stddev=1), MG.script_name)
+       print oneliner(polc_ft(fdeg=0, tdeg=1), MG.script_name)
+       print oneliner(polc_ft(fdeg=1, tdeg=0), MG.script_name)
+       print oneliner(polc_ft(fdeg=1, tdeg=1), MG.script_name)
+       print oneliner(polc_ft(fdeg=0, tdeg=2), MG.script_name)
+       print oneliner(polc_ft(fdeg=2, tdeg=3), MG.script_name)
+       print oneliner(polc_ft(fdeg=2, tdeg=3, stddev=1), MG.script_name)
 
     if 0:
        # polclog = polclog_SIF (SI=0, I0=1.0)
-       print oneliner(polclog_SIF(), script_name)
-       print oneliner(polclog_SIF(), script_name)
-       print oneliner(polclog_SIF(0), script_name)
-       print oneliner(polclog_SIF(I0=10), script_name)
-       print oneliner(polclog_SIF(I0=e), script_name)
+       print oneliner(polclog_SIF(), MG.script_name)
+       print oneliner(polclog_SIF(), MG.script_name)
+       print oneliner(polclog_SIF(0), MG.script_name)
+       print oneliner(polclog_SIF(I0=10), MG.script_name)
+       print oneliner(polclog_SIF(I0=e), MG.script_name)
 
     if 1:
-       print oneliner(polclog_flux(ns), script_name)
-       print oneliner(polclog_flux(ns), script_name)
-       print oneliner(polclog_flux(ns), script_name)
+       print oneliner(polclog_flux(ns), MG.script_name)
+       print oneliner(polclog_flux(ns), MG.script_name)
+       print oneliner(polclog_flux(ns), MG.script_name)
        
     if 1:
-       print oneliner(polclog_flux(ns, '3c295'), script_name)
-       print oneliner(polclog_flux(ns, '3c48'), script_name)
-       print oneliner(polclog_flux(ns, '3c147'), script_name)
-       print oneliner(polclog_flux(ns, '3c147', stokes='stokesQ'), script_name)
+       print oneliner(polclog_flux(ns, '3c295'), MG.script_name)
+       print oneliner(polclog_flux(ns, '3c48'), MG.script_name)
+       print oneliner(polclog_flux(ns, '3c147'), MG.script_name)
+       print oneliner(polclog_flux(ns, '3c147', stokes='stokesQ'), MG.script_name)
 
     if 1:
-       print oneliner(polclog_flux(ns, '3c286'), script_name)
-       print oneliner(polclog_flux(ns, '3c286', stokes='stokesQ'), script_name)
-       print oneliner(polclog_flux(ns, '3c286', stokes='stokesU'), script_name)
+       print oneliner(polclog_flux(ns, '3c286'), MG.script_name)
+       print oneliner(polclog_flux(ns, '3c286', stokes='stokesQ'), MG.script_name)
+       print oneliner(polclog_flux(ns, '3c286', stokes='stokesU'), MG.script_name)
 
     # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
-    print '\n** end of',script_name,'\n'
+    print '\n** end of',MG.script_name,'\n'
 
 #********************************************************************************
 #********************************************************************************

@@ -1,4 +1,4 @@
-script_name = 'MG_JEN_forest_state.py'
+# MG_JEN_forest_state.py
 
 # Short description:
 # Some functions to deal with the forest state record
@@ -11,27 +11,37 @@ script_name = 'MG_JEN_forest_state.py'
 # Copyright: The MeqTree Foundation 
 
 
-# Standard preamble
-from Timba.TDL import *
-from Timba.Meq import meq
+#================================================================================
+# Preamble
+#================================================================================
 
-from numarray import *
+from Timba.TDL import *
+# from Timba.Meq import meq
+
+MG = record(script_name='MG_JEN_forest_state.py', last_changed='h22sep2005')
+
+# from numarray import *
 from string import *
 from copy import deepcopy
 
 
 
-#================================================================================
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
-#================================================================================
 
-# NB: Since this module is imported by MG_JEN_exec, it cannot use its
-#     standard functions. They have been emulated here. 
 
 def _define_forest (ns):
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
 
-   # Generate a list (cc) of one or more node bundles (bb):
+   # Make an empty list:
    cc = []
 
    # Parameters:
@@ -82,29 +92,41 @@ def _define_forest (ns):
    counter('key1', increment=True)
    counter('key2', increment=True)
 
-   # Use of autoqual():
+   # Use of uniqual():
    bb = []
    for i in range(3):
-      bb.append(ns.autoqual(autoqual(script_name)) << i)
+      bb.append(ns.uniqual(uniqual(MG.script_name)) << i)
    cc.append(ns << Meq.Add(children=bb))
 
 
    # Use a simple version of MG_JEN_exec.on_exit():
    # Make a (single) root node for use in _test_forest():
    global _test_root
-   _test_root = script_name
+   _test_root = MG.script_name
    root = ns[_test_root] << Meq.Add(children=cc)
    return root    
    
  
 
 
-#================================================================================
-# Optional: Importable function(s): To be imported into user scripts 
-#================================================================================
+
+
+
+
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
 
 
 def init (script='<MG_JEN_xyz.py>', mode='MeqGraft'):
+   """Initialise the forest_state record (called by all MG_JEN_ scripts)"""
 
    # Reset the forest history record (retained otherwise...?)
    # Obsolete, replaced by .history(), which uses jen-record
@@ -136,7 +158,7 @@ def init (script='<MG_JEN_xyz.py>', mode='MeqGraft'):
    return 
 
 # Execute this function:
-init(script_name)
+init(MG.script_name)
 
 
 
@@ -144,15 +166,17 @@ init(script_name)
 #------------------------------------------------------------------------------- 
 # Save the forest to a binary file(s):
 
-def save_meqforest (mqs, filename=False, reference=False):
+def save_meqforest (mqs, filename=False, save_reference=False):
+   """Save the current meqforest, using the filename in the forest_state record.
+   If save_reference=True, also save the result for later testing."""
+   
    if not isinstance(filename, str):
       filename = Settings.forest_state.savefile+'.meqforest'
    mqs.meq('Save.Forest',record(file_name=filename))
 
    # Optionally, store it in a reference-file, for auto-testing:
-   if reference:
-      filename = Settings.forest_state.savefile+'_reference.meqforest'
-      mqs.meq('Save.Forest',record(file_name=filename))
+   if save_reference:
+      mqs.meq('Save.Forest',record(file_name=filename+'_reference'))
       
    return filename
 
@@ -168,6 +192,8 @@ def save_meqforest (mqs, filename=False, reference=False):
 
 def bookmark (node=0, name=0, udi=0, viewer='Result Plotter',
               page=0, save=True, clear=0, trace=0):
+  """Create a forest_state bookmark for the given node""" 
+   
   if clear: Settings.forest_state.bookmarks = [] 
   if isinstance(node, int): return True                     # e.g. clear only
 
@@ -197,6 +223,7 @@ def bookmark (node=0, name=0, udi=0, viewer='Result Plotter',
 # Access/display/clear the current bookmarks:
 
 def bookmarks (clear=0, trace=0):
+  """Access function to the current forest_state bookbark record"""
   if clear: Settings.forest_state.bookmarks = [] 
   Settings.forest_state.setdefault('bookmarks',[])
   bms = Settings.forest_state.bookmarks
@@ -207,6 +234,8 @@ def bookmarks (clear=0, trace=0):
 # Add the given bookmark to the named page, and reconfigure it
 
 def bookpage (bm={}, name='page', trace=0):
+  """Add the given bookmark (record) to the specified bppkpage"""
+  
   Settings.forest_state.setdefault('bookmarks',[])
   bms = Settings.forest_state.bookmarks
 
@@ -269,6 +298,8 @@ def bookpage (bm={}, name='page', trace=0):
 # If none specified, collect all the non-folder bookmarks.
 
 def bookfolder (name='bookfolder', item=None, trace=0):
+  """Collect the specified bookmarks/pages into a bookmark folder"""
+  
   if (trace): print '\n** .bookfolder(',name,'):'
 
   Settings.forest_state.setdefault('bookmarks',[])
@@ -321,37 +352,43 @@ def bookfolder (name='bookfolder', item=None, trace=0):
 # Add the given named (kwitem) and unnamed (item) items to the forest_state
 
 def trace (*item, **kwitem):
+   """Add the named and unnammed items to the forest_state trace"""
    return append ('trace', item, kwitem)
 
 # Special case: for the result (list) of object.display()
 
 def object(object, txt='<txt>'):
+  """Special case of trace(), where the input is a Python object"""
   ss = object.display(txt)
   if ss==None:
-     ss = script_name+' '+object.type()+' '+object.label()+': '
+     ss = MG.script_name+' '+object.type()+' '+object.label()+': '
      ss += '.display() -> None (?)'
-     print '\n***',script_name,object.type(),object.label(),ss,'\n'
+     print '\n***',MG.script_name,object.type(),object.label(),ss,'\n'
   trace(ss, key=object.label())
   return True
 
 # Same for history items:
 
 def history (*item, **kwitem):
+   """Add the named and unnammed items to the forest_state history"""
    return append ('history', item, kwitem)
 
 # Same for error messages:
 
 def error (*item, **kwitem):
+   """Add the named and unnammed items to the forest_state errors"""
    return append ('ERROR', item, kwitem)
 
 # Same for warning messages:
 
 def warning (*item, **kwitem):
+   """Add the named and unnammed items to the forest_state warnings"""
    return append ('WARNING', item, kwitem)
 
 # Common routine that does the work:
 
 def append (field, item, kwitem):
+  """Common helper function for trace/object/history/error/warning"""
   # Make a record of the named arguments:
   kwitem = record(kwitem)
 
@@ -381,19 +418,21 @@ def append (field, item, kwitem):
 # Attach the test-result to the forest state record 
 
 def attach_test_result (mqs, result):
+  """Attach the test result to the forest state record"""
   field = '_test_result'
   r = mqs.meq('Set.Forest.State',record(state=record(**{field:result})),wait=False);
   return r
 
 
 #---------------------------------------------------------------------------
-# Counter service (use by autoqual)
+# Counter service (use by uniqual)
 # It can be inspected in the forest state record
 # NB: if increment=0  (i.e. not specified):
 #     - if key does not exist yet, initialise with 0
 #     - just return the current value
 
 def counter (key, increment=0, reset=False):
+   """Convenience function to for named counters"""
    field = 'jen_counter'
    Settings.forest_state.setdefault(field,record())
    rr = Settings.forest_state[field]
@@ -405,9 +444,13 @@ def counter (key, increment=0, reset=False):
 
 # Generate a unique qualifier by using the counter service 
 
-def uniqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
+def uniqual (key='<MG_JEN_forest_state.uniqual>', qual=None, **pp):
+   """Helper function to generate unique qualifiers for node categories.
+   Every time it is called, it decrements an internal counter for the
+   specified key, and returns its new value. This can be used in node names"""
+   
    if isinstance(qual, str) and qual=='auto':
-      print '**',script_name,'uniqual(',key,'): obsolete call: qual=',qual,'->',None
+      print '**',MG.script_name,'uniqual(',key,'): obsolete call: qual=',qual,'->',None
       qual = None
    if qual==None:
       n = counter(key, increment=-1)          # note negative increment!
@@ -417,6 +460,7 @@ def uniqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
 # Old name (discouraged)
 
 def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
+   """Obsolete version of uniqual()"""
    return uniqual (key=key, qual=qual, **pp)
 
 
@@ -436,6 +480,7 @@ def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
 # The 'mqs' argument is a meqserver proxy object.
 
 def _test_forest (mqs, parent):
+   """Meqforest execution routine"""
    # Use a simple version of MG_JEN_exec.meqforest():
    cells = meq.cells(meq.domain(0,1,0,1),num_freq=6,num_time=4);
    request = meq.request(cells,eval_mode=0);
@@ -448,7 +493,7 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-   print '\n****************\n** Local test of:',script_name,':\n'
+   print '\n****************\n** Local test of:',MG.script_name,':\n'
 
    # NB: Importing a module resets the forest_state record!!
    from Timba.Contrib.JEN import MG_JEN_exec
@@ -457,23 +502,27 @@ if __name__ == '__main__':
    ns = NodeScope()
    root = _define_forest(ns)
    ns.Resolve()
-   MG_JEN_exec.display_subtree(root, script_name, full=1)
-   MG_JEN_exec.display_object(Settings.forest_state, 'forest_state', script_name)
+   MG_JEN_exec.display_subtree(root, MG.script_name, full=1)
+   MG_JEN_exec.display_object(Settings.forest_state, 'forest_state', MG.script_name)
 
    if 0:
       from Timba.Trees import TDL_common
       sp = TDL_common.Super()
-      ss = sp.display(script_name)
+      ss = sp.display(MG.script_name)
       trace(ss, key=sp.label())
       
    if 0:
       from Timba.Trees import TDL_Cohset
       cs = TDL_Cohset.Cohset()
-      ss = cs.display(script_name)
+      ss = cs.display(MG.script_name)
       trace(ss, key=cs.label())
+
+   MG_JEN_exec.display_object(Settings.forest_state, 'forest_state', MG.script_name)
+
+   if 0:
+      print dir(__name__)
       
-   MG_JEN_exec.display_object(Settings.forest_state, 'forest_state', script_name)
-   print '\n** End of local test of:',script_name,'\n*************\n'
+   print '\n** End of local test of:',MG.script_name,'\n*************\n'
 
 #********************************************************************************
 #********************************************************************************

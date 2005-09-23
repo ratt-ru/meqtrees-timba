@@ -1,5 +1,4 @@
-script_name = 'MG_JEN_spigot2sink.py'
-last_changed = 'h10sep2005'
+# MG_JEN_spigot2sink.py
 
 # Short description:
 #   Simple demo of actually dealing with uvdata from an MS 
@@ -11,27 +10,33 @@ last_changed = 'h10sep2005'
 # History:
 # - 10 sep 2005: creation
 
-# Copyright: The MeqTree Foundation 
+# Copyright: The MeqTree Foundation
 
-#================================================================================
-# Import of Python modules:
+# Full description:
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preample and initialisation **************************
+#********************************************************************************
+#********************************************************************************
 
 from Timba.TDL import *
-from Timba.Meq import meq
+
+MG = record(script_name='MG_JEN_spigot2sink.py', last_changed = 'h22sep2005')
+
+# from Timba.Meq import meq
 
 from numarray import *
 # from string import *
 # from copy import deepcopy
 
 from Timba.Trees import TDL_Cohset
-# from Timba.Trees import TDL_Joneset
-# from Timba.Contrib.JEN import MG_JEN_Joneset
 from Timba.Contrib.JEN import MG_JEN_Cohset
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
-# from Timba.Contrib.JEN import MG_JEN_twig
-# from Timba.Contrib.JEN import MG_JEN_dataCollect
+
 from Timba.Contrib.JEN import MG_JEN_flagger
 
 
@@ -39,19 +44,28 @@ from Timba.Contrib.JEN import MG_JEN_flagger
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(script_name)
+MG_JEN_forest_state.init(MG.script_name)
 
 
 
 
 
-#================================================================================
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
-#================================================================================
 
-def _define_forest (ns): 
-   cc = MG_JEN_exec.on_entry (ns, script_name)
+
+def _define_forest (ns):
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
 
    visu = True
 
@@ -62,7 +76,7 @@ def _define_forest (ns):
    ifrs = TDL_Cohset.stations2ifrs(range(4))
    stations = TDL_Cohset.ifrs2stations(ifrs)
 
-   Cohset = TDL_Cohset.Cohset(label=script_name, polrep='linear', stations=stations)
+   Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', stations=stations)
    Cohset.spigots(ns)
    Cohset.display('initial')
 
@@ -111,17 +125,23 @@ def _define_forest (ns):
    Cohset.sinks(ns)
    for sink in Cohset: cc.append(sink)
 
+
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc,
-                               create_ms_interface_nodes=True)
+   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
 
-#================================================================================
-# Optional: Importable function(s): To be imported into user scripts.
-#================================================================================
 
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
 
 
 
@@ -170,18 +190,18 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-    print '\n*******************\n** Local test of:',script_name,':\n'
+    print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
     # This is the default:
     if 1:
-        MG_JEN_exec.without_meqserver(script_name, callback=_define_forest, recurse=3)
+        MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=3)
 
     # This is the place for some specific tests during development.
     ns = NodeScope()
     nsim = ns.Subscope('_')
     stations = range(0,3)
     ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
-    cs = TDL_Cohset.Cohset(label='test', scops=script_name, ifrs=ifrs)
+    cs = TDL_Cohset.Cohset(label='test', scops=MG.script_name, ifrs=ifrs)
 
     if 0:   
         cs.display('initial')
@@ -193,7 +213,7 @@ if __name__ == '__main__':
 
     # ............
     # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
-    print '\n** End of local test of:',script_name,'\n*******************\n'
+    print '\n** End of local test of:',MG.script_name,'\n*******************\n'
 
 #********************************************************************************
 #********************************************************************************

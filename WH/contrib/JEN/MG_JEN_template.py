@@ -1,6 +1,6 @@
-# script_name = 'MG_JEN_template.py'
+# MG_JEN_template.py
 
-# Short description (see also the full description below):
+# Short description:
 #   A template for the generation of MeqGraft (MG) scripts
 
 # Keywords: ....
@@ -12,7 +12,7 @@
 
 # Copyright: The MeqTree Foundation
 
-# Full description (try to be complete, and up-to-date!):
+# Full description:
 
 # MG (from MeqGraft) scripts (modules, really) are multi-purpose
 # MeqTree building blocks.  Their importable functions may be
@@ -50,18 +50,20 @@
 # How to use this template:
 # - Copy it to a script file with a name like this:
 #      MG_<authorinitials>_<function>.py
-# - Put it into your Water Hole directory:
+# - Put it into your Water Hole sub-directory:
 #      /Timba/WH/contrib/<author initials>/
-# - Fill in the correct script_name (and other info) at the top of part II
+# - Fill in the correct script_name (and other info) at the top of part I and II
 # - Fill in the author and the short (one-line) description
 # - Replace the full description with a specific one
 # - Replace the example importable function with specific ones
 # - Make the specific _define_forest() function. Try to make this
 #   a complete test and demonstration of all its importable functions.
-# - Write lots of explanatory comments throughout
+# - Write lots of explanatory comments throughout, preferably in the
+#   form of Python 'doc-strings' at the start of each function.
 # - Test everything thoroughly, without and with the browser.
 # - Make it known to your MG_XYZ_testall.py script (see MG_JEN_testall.py)
-# - Check it in via CVS
+# - Check it in via CVS. After that, it is available to all,
+#   and visible to the MG catalog and testing systems
 
 # Of course, it is also possible, and often preferrable to just copy a
 # working script from someone else, and cannibalise it.
@@ -78,11 +80,10 @@
 #********************************************************************************
 #********************************************************************************
 
-script_name = 'MG_JEN_template.py'
-last_changed = 'h10sep2005'
-
 from Timba.TDL import *
 # from Timba.Meq import meq
+
+MG = record(script_name='MG_JEN_template.py', last_changed = 'h22sep2005')
 
 from Timba import utils
 _dbg = utils.verbosity(0, name='tutorial')
@@ -91,7 +92,7 @@ _dprintf = _dbg.dprintf                       # use: _dprintf(2, "a = %d", a)
 # run the script with: -dtutorial=3
 # level 0 is always printed
 
-from numarray import *
+# from numarray import *
 # from string import *
 # from copy import deepcopy
 
@@ -99,37 +100,12 @@ from numarray import *
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 
-# Other MG_JEN scripts (uncomment as necessary):
-# NB: Also browse the list of other available scripts!
-
-# from Timba.Trees import TDL_Cohset
-# from Timba.Trees import TDL_Joneset
-# from Timba.Trees import TDL_Sixpack
-
-# from Timba.Contrib.JEN import MG_JEN_util
-# from Timba.Contrib.JEN import MG_JEN_funklet
-# from Timba.Contrib.JEN import MG_JEN_twig
-# from Timba.Contrib.JEN import MG_JEN_math
-# from Timba.Contrib.JEN import MG_JEN_matrix
-
-# from Timba.Contrib.JEN import MG_JEN_dataCollect
-# from Timba.Contrib.JEN import MG_JEN_historyCollect
-
-# from Timba.Contrib.JEN import MG_JEN_flagger
-# from Timba.Contrib.JEN import MG_JEN_solver
-
-# from Timba.Contrib.JEN import MG_JEN_Sixpack
-# from Timba.Contrib.JEN import MG_JEN_Joneset
-# from Timba.Contrib.JEN import MG_JEN_Cohset
-
-
 
 #-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
-# See MG_JEN_forest_state.py
 
-MG_JEN_forest_state.init(script_name)
+MG_JEN_forest_state.init(MG.script_name)
 
 
 
@@ -147,8 +123,10 @@ MG_JEN_forest_state.init(script_name)
 
 
 def _define_forest (ns):
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
    # Perform some common functions, and return an empty list (cc=[]):
-   cc = MG_JEN_exec.on_entry (ns, script_name)
+   cc = MG_JEN_exec.on_entry (ns, MG)
 
    # Test/demo of importable function: .example1()
    bb = []
@@ -163,7 +141,7 @@ def _define_forest (ns):
    cc.append(MG_JEN_exec.bundle(ns, bb, '.example2()'))
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
+   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 # NB: See MG_JEN_exec.py to see which services its functions provide
@@ -172,8 +150,8 @@ def _define_forest (ns):
 # nodes are appended to the list cc. Groups of experiments may be
 # bundled The function .on_ext() ties the nodes in cc together by
 # making them the children of a single root node, with the specified
-# name (default is <script_name>). The latter is executed by the
-# function _test_forest() and its relatives (see below).
+# name (default is MG.script_name). The latter is executed by the
+# function _test_forest() and its _tdl_job_ relatives (see below).
 
 # Groups of experiments may be bundled with the .bundle() function in
 # exactly the same way (indeed, .on_exit() uses .bundle()). The bundle
@@ -193,33 +171,41 @@ def _define_forest (ns):
 #********************************************************************************
 #********************************************************************************
 
-# Functions that may be imported into user scripts (very important!!).
-# This MG script should be used to test them thoroughly.
-
 
 #-------------------------------------------------------------------------------
 # Example:
 
-def example1(ns, qual=None, **pp):
-    """This is the doc-string of .example1()"""
+def example1(ns=None, **pp):
+    """Importable function .example1() just creates a MeqParm
+    with a freq/time dependent default funklet"""
 
+    # Deal with input arguments:
     pp.setdefault('arg1', 1)
     pp.setdefault('arg2', 2)
     pp = record(pp)
+    # If called without arguments (), the function returns pp+:
+    help = dict()
+    help['arg1'] = 'help for arg1'
+    help['arg2'] = 'help for arg2'
+    if ns==None: return MG_JEN_exec.noexec(pp, MG, help=help)
 
     # If necessary, make an automatic qualifier (unique number):
-    qual = MG_JEN_forest_state.autoqual('MG_JEN_template_example1')
+    unique = MG_JEN_forest_state.uniqual('MG_JEN_template_example1')
 
     default = array([[1, pp['arg1']/10],[pp['arg2']/10,0.1]])
-    node = ns.dummy(qual) << Meq.Parm(default)
+    node = ns.dummy(unique) << Meq.Parm(default)
     return node
 
-def example2(ns, qual=None, **pp):
-    """This is the doc-string of .example2()"""
 
+def example2(ns=None, **pp):
+    """This is the doc-string of importable function .example2()"""
+
+    # Deal with input arguments:
     pp.setdefault('arg1', 1)
     pp.setdefault('arg2', 2)
     pp = record(pp)
+    # If called without arguments (), the function returns pp+:
+    if ns==None: return MG_JEN_exec.noexec(pp, MG)
 
     default = array([[1, pp['arg1']/100],[pp['arg2']/100,0.1]])
     node = ns.dummy << Meq.Parm(default)
@@ -241,16 +227,14 @@ def example2(ns, qual=None, **pp):
 # with name _tdl_job_xyz(m), will show up under the 'jobs' button in
 # the browser, and can be executed from there.  The 'mqs' argument is
 # a meqserver proxy object.
-
-# In the default function, the forest is executed once:
-# If not explicitly supplied, a default request will be used:
-
-def _tdl_job_default (mqs, parent):
-    return MG_JEN_exec.meqforest (mqs, parent)
-
 # NB: The function _test_forest() is always put at the end of the menu:
 
 def _test_forest (mqs, parent):
+    """Execute the forest with a default domain"""
+    return MG_JEN_exec.meqforest (mqs, parent)
+
+def _tdl_job_default (mqs, parent):
+    """Execute the forest with a default domain"""
     return MG_JEN_exec.meqforest (mqs, parent)
 
 # The following call shows the default settings explicity:
@@ -258,31 +242,36 @@ def _test_forest (mqs, parent):
 #     In addition, qualifying keywords will be used when sensible
 
 def _tdl_job_custom(mqs, parent):
+   """Execute the forest with a customised domain"""
    return MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
                                  f1=0, f2=1, t1=0, t2=1, trace=False) 
 
 # There are some predefined domains:
 
 def _tdl_job_lofar(mqs, parent):
-    return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')   # (100-110 MHz)
+    """Execute the forest with a LOFAR domain (100-110 MHz)"""
+    return MG_JEN_exec.meqforest (mqs, parent, domain='lofar') 
 
 def _tdl_job_21cm(mqs, parent):
-    return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')    # (1350-1420 MHz)
+    """Execute the forest with a 21cm domain (1350-1420 MHz)"""
+    return MG_JEN_exec.meqforest (mqs, parent, domain='21cm') 
 
 # Special version for (MS-controlled) stream control:
 
 def _tdl_job_spigot2sink(mqs, parent):
+    """Execute the forest under MS stream_control"""
     return MG_JEN_exec.spigot2sink (mqs, parent)
 
 # Execute the forest for a sequence of requests:
 
 def _tdl_job_sequence(mqs, parent):
-    for x in range(100):
-        MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
-                               f1=x, f2=x+1, t1=x, t2=x+1,
-                               save=False, trace=False, wait=False)
-    MG_JEN_exec.save_meqforest(mqs) 
-    return True
+   """Execute the forest for a sequence of requests with changing domains"""
+   for x in range(100):
+      MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
+                             f1=x, f2=x+1, t1=x, t2=x+1,
+                             save=False, trace=False, wait=False)
+   MG_JEN_forest_state.save_meqforest(mqs) 
+   return True
 
 
 # NB: One may determine the order of these functions in the menu
@@ -304,11 +293,11 @@ def _tdl_job_sequence(mqs, parent):
 #      > python MG_JEN_template.py
 
 if __name__ == '__main__':
-   print '\n*******************\n** Local test of:',script_name,':\n'
+   print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
    # Generic test:
    if 1:
-       MG_JEN_exec.without_meqserver(script_name, callback=_define_forest, recurse=3)
+       MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=3)
 
    # Various specific tests:
    ns = NodeScope()
@@ -316,10 +305,15 @@ if __name__ == '__main__':
    if 0:
       rr = 0
       # ............
-      # MG_JEN_exec.display_object (rr, 'rr', script_name)
-      # MG_JEN_exec.display_subtree (rr, script_name, full=1)
+      # MG_JEN_exec.display_object (rr, 'rr', MG.script_name)
+      # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
 
-   print '\n** End of local test of:',script_name,'\n*******************\n'
+   if 1:
+      example1()
+      print example1.__doc__
+      print __doc__
+
+   print '\n** End of local test of:',MG.script_name,'\n*******************\n'
        
 #********************************************************************************
 #********************************************************************************

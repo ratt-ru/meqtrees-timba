@@ -1,4 +1,4 @@
-script_name = 'MG_JEN_testall.py'
+# MG_JEN_testall.py
 
 # Short description:
 #   Script that tests all MG_JEN_*.py scripts 
@@ -13,27 +13,19 @@ script_name = 'MG_JEN_testall.py'
 # Copyright: The MeqTree Foundation 
 
 
-#================================================================================
-# Import of Python modules:
-
-from Timba import utils
-_dbg = utils.verbosity(0, name='tutorial')
-_dprint = _dbg.dprint                    # use: _dprint(2, "abc")
-_dprintf = _dbg.dprintf                  # use: _dprintf(2, "a = %d", a)
-# run the script with: -dtutorial=3
-# level 0 is always printed
-
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preample and initialisation **************************
+#********************************************************************************
+#********************************************************************************
 
 from Timba.TDL import *
-# Possibly better, namespace-wise?
-#   from Timba import TDL
-#   from Timba.TDL import dmi_type, Meq, record, hiid
 
-from Timba.Meq import meq
+MG = record(script_name='MG_JEN_testall.py', last_changed = 'h22sep2005')
+
+# from Timba.Meq import meq
 
 from numarray import *
-# from string import *
-# from copy import deepcopy
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
@@ -58,16 +50,31 @@ from Timba.Contrib.JEN import MG_JEN_Cohset
 from Timba.Contrib.JEN import MG_JEN_spigot2sink
 
 
-#================================================================================
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(MG.script_name)
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
-#================================================================================
+
 
 def _define_forest (ns):
-   MG_JEN_exec.on_entry (ns, script_name)
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
 
-   # Generate a list (cc) of root nodes:
-   cc = []
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
 
    global nseq                # used in test_module()
    nseq = -1
@@ -96,14 +103,22 @@ def _define_forest (ns):
    cc.append(test_module(ns, 'spigot2sink'))
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc, make_bookmark=False)
+   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
 
-#================================================================================
-# Optional: Importable function(s): To be imported into user scripts.
-#================================================================================
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
+
 
 def test_module(ns, name):
 
@@ -127,12 +142,6 @@ def test_module(ns, name):
 # Initialisation and testing routines
 # NB: this section should always be at the end of the script
 #********************************************************************************
-
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(script_name)
 
 
 
@@ -160,26 +169,26 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-   print '\n*******************\n** Local test of:',script_name,':\n'
+   print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
    if 1:
-      MG_JEN_exec.without_meqserver(script_name, callback=_define_forest, recurse=1)
+      MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=1)
 
    ns = NodeScope()
 
    if 0:
       rr = 0
       # ............
-      # MG_JEN_exec.display_object (rr, 'rr', script_name)
-      # MG_JEN_exec.display_subtree (rr, script_name, full=1)
+      # MG_JEN_exec.display_object (rr, 'rr', MG.script_name)
+      # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
 
    if 0:
       rr = 0
       # ............
-      # MG_JEN_exec.display_object (rr, 'rr', script_name)
-      # MG_JEN_exec.display_subtree (rr, script_name, full=1)
+      # MG_JEN_exec.display_object (rr, 'rr', MG.script_name)
+      # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
 
-   print '\n** End of local test of:',script_name,'\n*******************\n'
+   print '\n** End of local test of:',MG.script_name,'\n*******************\n'
        
 #********************************************************************************
 #********************************************************************************

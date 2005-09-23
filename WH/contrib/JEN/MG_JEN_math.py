@@ -1,4 +1,4 @@
-script_name = 'MG_JEN_math.py'
+# MG_JEN_math.py
 
 # Short description:
 #   Helper functions for easy generation of (math) expression subtrees
@@ -11,9 +11,17 @@ script_name = 'MG_JEN_math.py'
 # Copyright: The MeqTree Foundation 
 
 
-# Import Python modules:
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preample and initialisation **************************
+#********************************************************************************
+#********************************************************************************
+
 from Timba.TDL import *
-from Timba.Meq import meq
+
+MG = record(script_name='MG_JEN_math.py', last_changed = 'h22sep2005')
+
+# from Timba.Meq import meq
 
 from numarray import *
 # from string import *
@@ -22,17 +30,33 @@ from numarray import *
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
  
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(MG.script_name)
 
 
-#================================================================================
+
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
 
-def _define_forest (ns):
-   MG_JEN_exec.on_entry (ns, script_name)
 
-   # Generate a list (cc) of one or more root nodes:
-   cc = []
+def _define_forest (ns):
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
+
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
+
 
    # Make some (f,t) variable input node:
    freq = ns.freq(a=1, b=2) << Meq.Freq()
@@ -45,8 +69,9 @@ def _define_forest (ns):
    unops = ['Sin','Cos']
    cc.append(unop(ns, unops, input))
 
+
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
+   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
@@ -57,9 +82,12 @@ def _define_forest (ns):
 
 
 
-#================================================================================
-# Optional: Importable function(s): To be imported into user scripts. 
-#================================================================================
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
+
 
 #-------------------------------------------------------------------------------
 # Function to apply zero or more unary operations on the given node:
@@ -86,15 +114,9 @@ def unop (ns, unop=False, node=0, right2left=False):
 
 
 #********************************************************************************
-# Initialisation and testing routines
+# Testing routines
 # NB: this section should always be at the end of the script
 #********************************************************************************
-
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(script_name)
 
 #-------------------------------------------------------------------------
 # Meqforest execution routine (may be called from the browser):
@@ -108,18 +130,19 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-    if False:
-        # This is the default:
-        MG_JEN_exec.without_meqserver(script_name)
+    print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
-    else:
-       # This is the place for some specific tests during development.
-       print '\n*******************\n** Local test of:',script_name,':\n'
-       ns = NodeScope()
+    if 1:
+        MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest)
+
+    ns = NodeScope()
+
+    if 0:
        node = ns << 0
        node = unop (ns, unop=['Cos','Sin'], node=node)
        MG_JEN_exec.display_subtree (node, 'unop', full=1)
-       print '\n** End of local test of:',script_name,'\n*******************\n'
+
+    print '\n** End of local test of:',MG.script_name,'\n*******************\n'
 
 #********************************************************************************
 #********************************************************************************

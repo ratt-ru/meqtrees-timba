@@ -1,7 +1,7 @@
-script_name = 'MG_JEN_twig.py'
+# MG_JEN_twig.py
 
 # Short description:
-#   Various convenience subtrees for simulated input (twigs)  
+#   Various convenience subtrees (twigs) for simulated input 
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
@@ -11,9 +11,15 @@ script_name = 'MG_JEN_twig.py'
 # Copyright: The MeqTree Foundation 
 
 
-# Import Python modules:
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preample and initialisation **************************
+#********************************************************************************
+#********************************************************************************
+
 from Timba.TDL import *
-from Timba.Meq import meq
+
+MG = record(script_name='MG_JEN_twig.py', last_changed = 'h22sep2005')
 
 from random import *
 from numarray import *
@@ -29,21 +35,27 @@ from Timba.Contrib.JEN import MG_JEN_funklet
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(script_name)
+MG_JEN_forest_state.init(MG.script_name)
 
 
 
 
 
-#================================================================================
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
 
-def _define_forest (ns):
-   MG_JEN_exec.on_entry (ns, script_name)
 
-   # Generate a list (cc) of one or more root nodes:
-   cc = []
+def _define_forest (ns):
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
 
    # Test/demo of importable function: .freqtime()
    bb = []
@@ -74,15 +86,23 @@ def _define_forest (ns):
    cc.append(MG_JEN_exec.bundle(ns, bb, 'cloud'))
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
+   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
 
 
-#================================================================================
-# Optional: Importable function(s): To be imported into user scripts. 
-#================================================================================
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
+
 
 #-------------------------------------------------------------------------------
 # Make a node that varies with freq and time
@@ -227,19 +247,19 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-    if False:
-        # This is the default:
-        MG_JEN_exec.without_meqserver(script_name)
+   print '\n*******************\n** Local test of:',MG.script_name,':\n'
+   if 1:
+        MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest)
 
-    else:
-       # This is the place for some specific tests during development.
-       print '\n*******************\n** Local test of:',script_name,':\n'
+   if 1:
        ns = NodeScope()
        freqtime (ns, qual=None, combine='Add', unop=False)
-       # ............
-       # MG_JEN_display_object (rr, 'rr', script_name)
-       # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
-       print '\n** End of local test of:',script_name,'\n*******************\n'
+
+   # ............
+   # MG_JEN_display_object (rr, 'rr', MG.script_name)
+   # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
+
+   print '\n** End of local test of:',MG.script_name,'\n*******************\n'
 
 #********************************************************************************
 #********************************************************************************

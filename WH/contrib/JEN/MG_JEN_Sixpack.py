@@ -1,5 +1,4 @@
-script_name = 'MG_JEN_Sixpack.py'
-last_changed = 'h10sep2005'
+# MG_JEN_Sixpack.py
 
 # Short description (see also the full description below):
 #   A template for the generation of MeqGraft (MG) scripts
@@ -28,9 +27,9 @@ last_changed = 'h10sep2005'
 #********************************************************************************
 #********************************************************************************
 
-
 from Timba.TDL import *
-# from Timba.Meq import meq
+
+MG = record(script_name='MG_JEN_Sixpack.py', last_changed = 'h22sep2005')
 
 from Timba import utils
 # _dbg = utils.verbosity(0, name='tutorial')
@@ -64,7 +63,7 @@ from Timba.Contrib.JEN import MG_JEN_twig
 # Just assign fields to: Settings.forest_state[key] = ...
 # See MG_JEN_forest_state.py
 
-MG_JEN_forest_state.init(script_name)
+MG_JEN_forest_state.init(MG.script_name)
 
 
 
@@ -82,8 +81,11 @@ MG_JEN_forest_state.init(script_name)
 
 
 def _define_forest (ns):
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
+
    # Perform some common functions, and return an empty list (cc=[]):
-   cc = MG_JEN_exec.on_entry (ns, script_name)
+   cc = MG_JEN_exec.on_entry (ns, MG)
 
    group = dict()
    group['basic'] = ['unpol','Qonly','Uonly','Vonly']
@@ -115,7 +117,15 @@ def _define_forest (ns):
 
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
+   return MG_JEN_exec.on_exit (ns, MG, cc)
+
+
+
+
+
+
+
+
 
 
 
@@ -129,10 +139,6 @@ def _define_forest (ns):
 #******************** PART IV: Optional: Importable functions *******************
 #********************************************************************************
 #********************************************************************************
-
-# Functions that may be imported into user scripts (very important!!).
-# This MG script should be used to test them thoroughly.
-
 
 #----------------------------------------------------------------------
 # Some sources are predefined: Modify parameters pp accordingly.
@@ -385,11 +391,11 @@ def _tdl_job_sequence(mqs, parent):
 #      > python MG_JEN_Sixpack.py
 
 if __name__ == '__main__':
-   print '\n*******************\n** Local test of:',script_name,':\n'
+   print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
    # Generic test:
    if 0:
-       MG_JEN_exec.without_meqserver(script_name, callback=_define_forest, recurse=3)
+       MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=3)
 
    # Various specific tests:
    ns = NodeScope()
@@ -406,7 +412,7 @@ if __name__ == '__main__':
       MG_JEN_exec.display_subtree (Sixpack.iquv(), 'iquv()', full=1)
       MG_JEN_exec.display_subtree (Sixpack.radec(), 'radec()', full=1)
 
-   print '\n** End of local test of:',script_name,'\n*******************\n'
+   print '\n** End of local test of:',MG.script_name,'\n*******************\n'
        
 #********************************************************************************
 #********************************************************************************

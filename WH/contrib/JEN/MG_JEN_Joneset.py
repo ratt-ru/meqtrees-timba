@@ -1,5 +1,4 @@
-script_name = 'MG_JEN_Joneset.py'
-last_changed = 'h10sep2005'
+# MG_JEN_Joneset.py
 
 # Short description:
 #   Functions dealing with a set (joneset) of 2x2 station Jones matrices
@@ -16,15 +15,20 @@ last_changed = 'h10sep2005'
 # Copyright: The MeqTree Foundation 
 
 
-#================================================================================
-# Import of Python modules:
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preample and initialisation **************************
+#********************************************************************************
+#********************************************************************************
 
 from Timba.TDL import *
-from Timba.Meq import meq
+# from Timba.Meq import meq
+
+MG = record(script_name='MG_JEN_Joneset.py', last_changed = 'h22sep2005')
 
 from numarray import *
-# from string import *
-# from copy import deepcopy
 
 from Timba.Trees import TDL_Joneset
 
@@ -40,26 +44,33 @@ from Timba.Contrib.JEN import MG_JEN_dataCollect
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(script_name)
+MG_JEN_forest_state.init(MG.script_name)
 
 
 
 
 
-#================================================================================
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
-#================================================================================
+
 
 def _define_forest (ns):
-   MG_JEN_exec.on_entry (ns, script_name)
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
 
-   # Generate a list (cc) of one or more node bundles (bb):
-   cc = []
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
+
 
     # Make a sequence (jseq) of (jonesets of) 2x2 jones matrices:
    stations = range(0,3)
-   scope = script_name
+   scope = MG.script_name
    jseq = TDL_Joneset.Joneseq(label='JJones', origin='MG_JEN_Joneset') 
    jseq.append(GJones (ns, stations=stations, scope=scope,
                        scale=1.0, stddev_Gampl=0.1, stddev_Gphase=0.1)) 
@@ -91,17 +102,22 @@ def _define_forest (ns):
        cc.append(dc['dcoll'])
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, script_name, cc)
+   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
 
-#================================================================================
-# Optional: Importable function(s): To be imported into user scripts.
-#================================================================================
 
 
 
+
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
 
 
 #--------------------------------------------------------------------------------
@@ -681,15 +697,15 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-  print '\n*******************\n** Local test of:',script_name,':\n'
+  print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
   # This is the default:
   if 0:
-      MG_JEN_exec.without_meqserver(script_name, callback=_define_forest)
+      MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest)
 
   ns = NodeScope()
   stations = range(0,3)
-  scope = script_name
+  scope = MG.script_name
   ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
 
   if 0:
@@ -720,7 +736,7 @@ if __name__ == '__main__':
     MG_JEN_exec.display_subtree (dconc, 'dconc', full=1)
 
 
-  print '\n** End of local test of:',script_name,'\n*******************\n'
+  print '\n** End of local test of:',MG.script_name,'\n*******************\n'
 
 #********************************************************************************
 #********************************************************************************
