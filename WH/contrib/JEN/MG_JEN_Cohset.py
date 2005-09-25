@@ -240,6 +240,8 @@ def JJones(ns, stations, **pp):
     pp.setdefault('scope', 'predicted') 
     pp.setdefault('punit', 'uvp')
 
+    pp.setdefault('parmtable', None)
+
     pp.setdefault('fdeg_Gampl', 1) 
     pp.setdefault('fdeg_Gphase', 1) 
     pp.setdefault('tdeg_Gampl', 0) 
@@ -259,24 +261,31 @@ def JJones(ns, stations, **pp):
     pp.setdefault('PZD', 0.1)
     pp = record(pp)
 
+    # Temporary (until None-bug is solved)
+    if not pp.has_key('parmtable'): pp.parmtable = None
+
     jseq = TDL_Joneset.Joneseq()
     if not isinstance(pp.jones, (list,tuple)): pp.jones = [pp.jones]
     for jones in pp.jones:
         if jones=='G':
             jseq.append(MG_JEN_Joneset.GJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
+                                               parmtable=pp.parmtable,
                                                fdeg_Gampl=pp.fdeg_Gampl, fdeg_Gphase=pp.fdeg_Gphase,
                                                tdeg_Gampl=pp.tdeg_Gampl, tdeg_Gphase=pp.tdeg_Gphase,
                                                Gscale=0))
         elif jones=='B':
             jseq.append(MG_JEN_Joneset.BJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
+                                               parmtable=pp.parmtable,
                                                fdeg_Breal=pp.fdeg_Breal, fdeg_Bimag=pp.fdeg_Bimag,
                                                tdeg_Breal=pp.tdeg_Breal, tdeg_Bimag=pp.tdeg_Bimag,
                                                Bscale=0))
         elif jones=='F':
             jseq.append(MG_JEN_Joneset.FJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
+                                               parmtable=pp.parmtable,
                                                Fscale=0, RM=pp.RM))
         elif jones=='D':
             jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, scope=pp.scope, punit=pp.punit, stations=stations,
+                                                    parmtable=pp.parmtable,
                                                     fdeg_dang=pp.fdeg_dang, fdeg_dell=pp.fdeg_dell,
                                                     tdeg_dang=pp.tdeg_dang, tdeg_dell=pp.tdeg_dell,
                                                     Dscale=0, PZD=pp.PZD))
@@ -469,7 +478,7 @@ def insert_solver (ns, measured, predicted, correct=None, compare=None, **pp):
 
     # Input arguments:
     pp.setdefault('solvegroup', [])        # list of solvegroup(s) to be solved for
-    pp.setdefault('num_iter', 20)          # number of iterations
+    pp.setdefault('num_iter', 2)           # number of iterations
     pp.setdefault('debug_level', 10)       # solver debug_level
     pp.setdefault('visu', True)            # if True, include visualisation
     pp.setdefault('graft', True)           # if True, graft the solver on the Cohset stream
@@ -661,18 +670,17 @@ def visualise(ns, Cohset, **pp):
           # Since spectra plots are crowded, make separate plots for the 4 corrs.
           # key = corr
           dc = dcoll[key]
-          bookpage = dcoll_scope+'_spectra'
+          MG_JEN_forest_state.bookmark (dc['dcoll'], page=key)
+          MG_JEN_forest_state.bookmark (dc['dcoll'], page=dcoll_scope+'_spectra')
        elif pp.type=='realvsimag':
           # For realvsimag plots it is better to plot multiple corrs in the same plot.
           # key = allcorrs, [paralcorr], [crosscorr]
-          # bookpage = dcoll_scope
           dc = MG_JEN_dataCollect.dconc(ns, dcoll[key], 
                                         scope=dcoll_scope,
                                         tag=key, bookpage=key)
+          # MG_JEN_forest_state.bookmark (dc['dcoll'], page=dcoll_scope)
        dconc[key] = dc                               # atach to output record
        sc.append (dc['dcoll'])                       # step-child for graft below
-       if isinstance(bookpage, str):
-          MG_JEN_forest_state.bookmark (dc['dcoll'], page=bookpage)
       
 
     MG_JEN_forest_state.history (funcname)

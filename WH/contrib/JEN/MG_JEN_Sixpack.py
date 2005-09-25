@@ -223,7 +223,7 @@ def newstar_source (ns=0, **pp):
    pp.setdefault('pa', 0.0)            # position angle (rad), elliptic gaussian
    pp.setdefault('RA', 0.0)            # Right Ascension (rad, J2000)
    pp.setdefault('Dec', 1.0)           # Declination (rad, J2000)
-   pp = record(pp)
+   # pp = record(pp)
   
    # Adjust parameters pp for some special cases:
    predefined (pp)  

@@ -56,7 +56,31 @@ MG_JEN_forest_state.init(MG.script_name)
 #********************************************************************************
 #********************************************************************************
 
-# Tree definition routine (may be executed from the browser):
+# Tree definition routine (may be executed from the browser):#======================================================================================
+# Visualise the contents of the given Joneseq object:
+
+def visualise_Joneseq (ns, Joneseq, **pp):
+    """visualises the contents of the given Joneseq"""
+
+    dconc = []
+    for js in Joneseq:
+      dc = visualise(ns, js, **pp)
+      print '****',js.label(),dc
+      dconc.append(dc)
+    js = Joneseq.make_Joneset(ns)
+    dc = visualise(ns, js, **pp)
+    print '****',dc
+    dconc.append(dc)
+    # return True
+
+    # Make a concatenation of the various dcolls:
+    dconc = MG_JEN_dataCollect.dconc (ns, dconc, scope=Joneset.scope(),
+                                      bookpage='Joneseq')
+
+    # Return a dcoll record (dataCollect node = dcond['dcoll'])
+    return dconc
+
+
 # To be used as example, for experimentation, and automatic testing.
 
 
@@ -83,23 +107,18 @@ def _define_forest (ns):
    jseq.display()
 
    # Visualise them individually:
-   dconc = []
    for js in jseq:
-     dc = visualise(ns, js)
-     cc.append(dc['dcoll'])
-     dconc.append(dc)
+     cc.extend(visualise(ns, js))
 
    # Matrix multiply to produce the resulting Jones joneset:
    js = jseq.make_Joneset(ns)
-   dc = visualise(ns, js)
-   dconc.append(dc)
-   cc.append(dc['dcoll'])
+   cc.extend(visualise(ns, js))
 
    # Visualise separately per parmgroup:
    for pg in js.parmgroup().keys():
-       dc = visualise(ns, js, parmgroup=pg)
-       dconc.append(dc)
-       cc.append(dc['dcoll'])
+       cc.extend(visualise(ns, js, parmgroup=pg))
+
+   MG_JEN_exec.display_object(cc, 'cc', txt=MG.script_name)
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, MG, cc)
@@ -416,9 +435,9 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
   pp.setdefault('scope', '<scope>')       # scope of this Joneset
   pp.setdefault('stations', [0])          # range of station names/numbers
   pp.setdefault('punit', 'uvp')           # name of prediction-unit (source/patch)
-  pp.setdefault('Dscale', 0.0)             # scale of polc_ft non-c00 coeff
+  pp.setdefault('Dscale', 0.0)            # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)         # if True, the parms are potentially solvable
-  pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
+  pp.setdefault('parmtable', None)        # name of the MeqParm table (AIPS++)
   pp.setdefault('coupled_XY_dang', True)  # if True, Xdang = Ydang per station
   pp.setdefault('coupled_XY_dell', True)  # if True, Xdell = -Ydell per station
   pp.setdefault('dang', 0.0)              # default funklet value
@@ -534,31 +553,6 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
 #======================================================================================
 
 
-#======================================================================================
-# Visualise the contents of the given Joneseq object:
-
-def visualise_Joneseq (ns, Joneseq, **pp):
-    """visualises the contents of the given Joneseq"""
-
-    dconc = []
-    for js in Joneseq:
-      dc = visualise(ns, js, **pp)
-      print '****',js.label(),dc
-      dconc.append(dc)
-    js = Joneseq.make_Joneset(ns)
-    dc = visualise(ns, js, **pp)
-    print '****',dc
-    dconc.append(dc)
-    # return True
-
-    # Make a concatenation of the various dcolls:
-    dconc = MG_JEN_dataCollect.dconc (ns, dconc, scope=Joneset.scope(),
-                                      bookpage='Joneseq')
-
-    # Return a dcoll record (dataCollect node = dcond['dcoll'])
-    return dconc
-
-
 
 #======================================================================================
 # Visualise the contents (parmgroups) of the given Joneset object:
@@ -572,7 +566,7 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
     pp.setdefault('type', 'realvsimag')         # plot type (realvsimag or spectra)
     pp.setdefault('errorbars', False)           # if True, plot stddev as crosses around mean
     pp.setdefault('show_mxel', True)            # if True, show Joneset matrix elements too  
-    pp.setdefault('result', 'Joneset')          # result of this routine (Joneset or dcolls)
+    pp.setdefault('result', 'dcoll')            # result of this routine ([dcoll] or dconc)
     pp = record(pp)
 
     # Use a sub-scope where node-names are prepended with name
@@ -581,7 +575,7 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
     visu_scope = 'visu_'+Joneset.scope()+'_'+label
   
     # Make dcolls per (specified) parm group:
-    dcoll = []
+    dcoll = []                                  # list of dcoll records
     if not isinstance(parmgroup, str):
         parmgroup = Joneset.parmgroup().keys()
     for key in Joneset.parmgroup().keys():
@@ -621,14 +615,21 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
                                                errorbars=pp.errorbars)
                 dcoll.append(dc)
 
- 
     # Make a concatenation of the various dcolls:
     dconc = MG_JEN_dataCollect.dconc (ns, dcoll, scope=visu_scope, bookpage=label)
+
+    if pp['result']=='dconc':
+       # Return a dconc record (dataCollect node = dconc['dcoll'])
+       return dconc
+
+    else:
+       # Default: Return a list of one dataCollect node:
+       # (This is consistent with MG_JEN_Cohset.visualise()...)
+       return [dconc['dcoll']]
     
-    # Return a dcoll record (dataCollect node = dcond['dcoll'])
-    return dconc
 
-
+#---------------------------------------------------------------------------------
+# AGW:
 #	if (type=='color') {
 #           ss := 'black';
 #	    ss := [ss,"red blue darkGreen magenta"];
@@ -648,6 +649,33 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
 #	    ss := [ss, "solidline dashline dotline dashdotline dashdotdotline"];
 #	    # ss := [ss,"none"];
 
+
+#======================================================================================
+# Visualise the contents of the given Joneseq object:
+
+def visualise_Joneseq (ns, Joneseq, **pp):
+    """visualises the contents of the given Joneseq"""
+
+    pp.setdefault('result', 'dconc')
+    pp['result'] = 'dconc'
+
+    dconc = []
+    for js in Joneseq:
+      dc = visualise(ns, js, **pp)
+      print '****',js.label(),dc
+      dconc.append(dc)
+    js = Joneseq.make_Joneset(ns)
+    dc = visualise(ns, js, **pp)  
+    print '****',dc
+    dconc.append(dc)
+    # return True
+
+    # Make a concatenation of the various dcolls:
+    dconc = MG_JEN_dataCollect.dconc (ns, dconc, scope=Joneset.scope(),
+                                      bookpage='Joneseq')
+
+    # Return a dcoll record (dataCollect node = dcond['dcoll'])
+    return dconc
 
 
 

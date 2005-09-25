@@ -68,14 +68,11 @@ def _define_forest (ns):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
    visu = True         # If True, insert visualisers at various points
-   graft = False        # If True, graft the solver reqseq in the data-stream
+   graft = True        # If True, graft the solver reqseq in the data-stream
                        # (otherwise, attach it as the 'pre' child to MeqVisDataMux)
 
    # Start a list of dcoll children for MeqVisDataMux optional child 'post':
    dcoll = []
-
-   # Attach data-stream info to the forest_state record:
-   # MG_JEN_forest_state.stream(MS='D1.MS')
 
    # Make the Cohset ifrs (and the Joneset stations):
    ifrs = TDL_Cohset.stations2ifrs(range(4))
