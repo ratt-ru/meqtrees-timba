@@ -7,6 +7,7 @@
 #
 # History:
 #    - 02 sep 2005: creation
+#    - 23 sep 2005: added MeqVisDataMux to sink()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -458,6 +459,7 @@ class Cohset (TDL_common.Super):
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
+#------------------------------------------------------------------------------------
 
     def sinks (self, ns, **pp):
         """attaches the coherency matrices to MeqSink nodes""" 
@@ -465,7 +467,12 @@ class Cohset (TDL_common.Super):
 
         # Input arguments:
         pp.setdefault('output_col', 'RESIDUALS')        # name of MS output column (NONE means inhibited)
-        pp = record(pp)
+        pp.setdefault('start', None)                    # optional child of MeqVisDataMux
+        pp.setdefault('pre', None)                      # optional child of MeqVisDataMux
+        pp.setdefault('post', None)                     # optional child of MeqVisDataMux
+        # pp = record(pp)                  # ...record(pp) drops the None fields....!
+        print funcname,' pp=\n',pp,'\n'
+        print 'pp[post] =',type(pp['post'])
 
         # Make separate sinks for each ifr:
         for key in self.keys():
@@ -479,10 +486,27 @@ class Cohset (TDL_common.Super):
                                                                            output_col=pp['output_col'])
             # print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
 
+        # Explicitly create a MeqVisDataMux node that issues requests to MeqSinks
+        # (NB: If omitted, it is created implicitly by the system)
+        # It has three optional children:
+        # - child 'start' gets a request before the spigots are filled
+        # - child 'pre' gets a request before the MeqSinks
+        #   (may be used to attach a MeqSolver, or its MeqReqSeq)
+        # - child 'post' gets a request after the MeqSinks have returned a result 
+        #   (may be used to attach all MeqDataCollect nodes)
+        if True:
+            if isinstance(pp['post'], (list,tuple)):
+                pp['post'] = ns.postVisDataMux << Meq.ReqSeq(children=pp['post'])
+                # pp['post'] = ns.postVisDataMux << Meq.Add(children=pp['post'])
+            root = ns.VisDataMux << Meq.VisDataMux(start=pp['start'],
+                                                   pre=pp['pre'], post=pp['post'])
+        
+
         self.scope('sinks')
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
+#------------------------------------------------------------------------------------
 
     def simul_sink (self, ns):
         """makes a common root node for all entries in Cohset""" 

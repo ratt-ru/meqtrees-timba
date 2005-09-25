@@ -8,6 +8,7 @@
 # History:
 #    - 02 sep 2005: creation
 #    - 10 sep 2005: more or less stable
+#    - 23 sep 2005: MeqParm: use_previous==True, self.parmtable
 #
 # Full description:
 #
@@ -42,10 +43,12 @@ class Joneset (TDL_common.Super):
         pp.setdefault('polrep', 'linear')
         pp.setdefault('punit', 'uvp')                # name of predict-unit (source/patch)
         pp.setdefault('solvable', True)              # if False, do not store parmgroup info
+        pp.setdefault('parmtable', None)             # name of MeqParm table (AIPS++)
 
         self.__scope = pp['scope']
         self.__punit = pp['punit']
         self.__solvable = pp['solvable']
+        self.__parmtable = pp['parmtable']
 
         TDL_common.Super.__init__(self, type='Joneset', **pp)
 
@@ -155,12 +158,22 @@ class Joneset (TDL_common.Super):
         self.__jones[key] = node
         return self.len()
 
-    def define_MeqParm(self, ns=0, key=None, station=None, default=0, node_groups='Parm'):
+    def define_MeqParm(self, ns=0, key=None, station=None, default=0,
+                       node_groups='Parm', use_previous=True):
         # Convenience function to create a MeqParm node
+        # NB: If use_previous==True, the MeqParm will use its current funklet (if any)
+        #     as starting point for the next snippet solution, unless a suitable funklet
+        #     was found in the MeqParm table. If False, it will use the default funklet first.
         if station==None:
-          node = ns[key](q=self.punit()) << Meq.Parm(default, node_groups=self.node_groups())
+          node = ns[key](q=self.punit()) << Meq.Parm(default,
+                                                     node_groups=self.node_groups(),
+                                                     table_name=self.parmtable(),
+                                                     use_previous=use_previous)
         else:
-          node = ns[key](s=station, q=self.punit()) << Meq.Parm(default, node_groups=self.node_groups())
+          node = ns[key](s=station, q=self.punit()) << Meq.Parm(default,
+                                                                node_groups=self.node_groups(),
+                                                                table_name=self.parmtable(),
+                                                                use_previous=use_previous)
         # Put the node into the internal MeqParm buffer for later use:
         self.__MeqParm[key] = node
         return node
@@ -186,6 +199,9 @@ class Joneset (TDL_common.Super):
     def jchar(self): return self.__jchar
     def punit(self): return self.__punit
     def solvable(self): return self.__solvable
+    def parmtable(self, new=None):
+        if isinstance(new, str): self.__parmtable = new
+        return self.__parmtable
     def polrep(self): return self.__polrep
     def pols(self, ipol=None):
         if ipol==None: return self.__pols
@@ -233,6 +249,7 @@ class Joneset (TDL_common.Super):
         s = s+' '+str(self.pols())
         s = s+' '+str(self.node_groups())
         s = s+' solvable='+str(self.solvable())
+        s = s+' parmtable='+str(self.parmtable())
         s = s+' len='+str(self.len())
         s = s+' ('+str(self.nodenames('first'))+',...)'
         return s
@@ -462,12 +479,15 @@ if __name__ == '__main__':
     js = Joneset(label='initial', polrep='circular')
     js.display('initial')
 
-    if 1:
+    if 0:
         print '** dir(js) ->',dir(js)
         print '** js.__doc__ ->',js.__doc__
         print '** js.__str__() ->',js.__str__()
         print '** js.__module__ ->',js.__module__
         print
+
+    if 0:
+        js.parmtable('xxx')
 
     if 0:
         js = Joneset(label='GJones', polrep='circular')
