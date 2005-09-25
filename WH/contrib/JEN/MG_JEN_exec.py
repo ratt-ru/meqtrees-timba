@@ -298,7 +298,6 @@ def spigot2sink (mqs, parent, **pp):
    pp.setdefault('wait', False)       
    pp.setdefault('trace', False)
    pp.setdefault('save', True)       
-   pp.setdefault('save_reference', False)       
 
    # Get the stream control record from forest_state record:
    ss = stream_control()
@@ -366,8 +365,10 @@ def stream_control(value=None, display=False, init=False):
       ss.inputinit.sink_type = 'ms_in';
       ss.inputinit.data_column_name = 'DATA';
       ss.inputinit.tile_size = 1;
-      path = os.environ['HOME']+'/LOFAR/Timba/WH/contrib/JEN/'
-      ss.inputinit.python_init = path+'read_msvis_header.py'
+      if False:
+         print '\n** .python_int: Inhibited until bug has been resolved....\n'
+         path = os.environ['HOME']+'/LOFAR/Timba/WH/contrib/JEN/'
+         ss.inputinit.python_init = path+'read_msvis_header.py'
       
       ss.inputinit.selection = record();
       ss.inputinit.selection.channel_start_index = 0;
@@ -397,6 +398,11 @@ stream_control(init=True)
 #================================================================================
 
 def meqforest (mqs, parent, request=None, **pp):
+   """Obsolete name for .execute()"""
+   return execute (mqs, parent, request, **pp)
+
+
+def execute (mqs, parent, request=None, **pp):
    """The function that does the actual work for the _test_forest()
    functions in the various MG_JEN_ scripts."""
 
@@ -405,7 +411,6 @@ def meqforest (mqs, parent, request=None, **pp):
    pp.setdefault('trace', False)
    pp.setdefault('save', True)       
    pp.setdefault('wait', True)       
-   pp.setdefault('save_reference', True)       
 
    # Execute the meqforest with the specified (or default) request:
    request = make_request(request, **pp)

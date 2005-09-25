@@ -16,17 +16,21 @@ def setState (node,**fields):
     raise TypeError,'illegal node argumnent'
   # pass command to kernel
   meqserver.mqexec('Node.Set.State',rec)
-  print '\n** read_msvis_header::setState():\n    ',rec,'\n'
 
+  if False:
+    print '\n** read_msvis_header::setState():\n    ',rec,'\n'
+
+  return True
 
 
 def processVisHeader (hdr):
   """handler for the visheader"""
 
-  print '\n** read_msvis_header::processVisHeader():'
-  for key in hdr.keys():
-    print '-',key,':',hdr[key]                    # see result below
-  print
+  if False:
+    print '\n** read_msvis_header::processVisHeader():'
+    for key in hdr.keys():
+      print '-',key,':',hdr[key]                    # see result below
+    print
     
   # phase center
   (ra0,dec0) = hdr.phase_ref
@@ -49,6 +53,10 @@ def processVisHeader (hdr):
   # array reference position
   for (j,label) in enumerate(coords):
     setState(label+'0',value=pos[j,0])
+
+  return True
+
+
 
 # register the handler with meqserver
 meqserver.add_header_handler(processVisHeader)

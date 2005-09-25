@@ -67,7 +67,12 @@ def _define_forest (ns):
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
-   visu = True
+   visu = True         # If True, insert visualisers at various points
+   graft = False        # If True, graft the solver reqseq in the data-stream
+                       # (otherwise, attach it as the 'pre' child to MeqVisDataMux)
+
+   # Start a list of dcoll children for MeqVisDataMux optional child 'post':
+   dcoll = []
 
    # Attach data-stream info to the forest_state record:
    # MG_JEN_forest_state.stream(MS='D1.MS')
@@ -78,15 +83,17 @@ def _define_forest (ns):
 
    Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', stations=stations)
    Cohset.spigots(ns)
-   Cohset.display('initial')
+   # Cohset.display('initial')
 
    if visu:
-	MG_JEN_Cohset.visualise (ns, Cohset)
-	MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
+	dcoll.extend(MG_JEN_Cohset.visualise (ns, Cohset, graft=graft))
+	dcoll.extend(MG_JEN_Cohset.visualise (ns, Cohset, type='spectra', graft=graft))
 
    if False:
-       MG_JEN_Cohset.insert_flagger (ns, Cohset, scope='residual', unop=['Real','Imag'], visu=True)
-       if visu: MG_JEN_Cohset.visualise (ns, Cohset)
+       MG_JEN_Cohset.insert_flagger (ns, Cohset, scope='residual',
+                                     unop=['Real','Imag'], visu=False)
+       if visu:
+          dcoll.extend(MG_JEN_Cohset.visualise (ns, Cohset, graft=graft))
 
    # Source/patch to be used for selfcal:
    punit = 'unpol'
@@ -104,8 +111,10 @@ def _define_forest (ns):
        jones = ['B']
        # jones = ['G']
        Joneset = MG_JEN_Cohset.JJones(ns, stations, punit=punit, jones=jones,
-                                                                fdeg_Gampl=0, tdeg_Gampl=0,
-                                                                fdeg_Gphase=0, tdeg_Gphase=0)
+                                      fdeg_Breal=3, tdeg_Breal=0,
+                                      fdeg_Bimag=3, tdeg_Bimag=0,
+                                      fdeg_Gampl=0, tdeg_Gampl=0,
+                                      fdeg_Gphase=0, tdeg_Gphase=0)
        predicted = MG_JEN_Cohset.predict (ns, punit=punit, ifrs=ifrs, Joneset=Joneset)
 
        # Then specify the solvegroup of MeqParms to be solved for: 
@@ -113,16 +122,22 @@ def _define_forest (ns):
        solvegroup = ['DJones', 'GJones']
        solvegroup = 'BJones'
        # solvegroup = 'GJones'
-       MG_JEN_Cohset.insert_solver (ns, solvegroup=solvegroup,
-                                    measured=Cohset, predicted=predicted, 
-                                    correct=Joneset, num_iter=3, visu=visu)
+       reqseq = MG_JEN_Cohset.insert_solver (ns, solvegroup=solvegroup, graft=graft,
+                                             measured=Cohset, predicted=predicted, 
+                                             correct=Joneset, num_iter=3, visu=visu)
        # NB: The data are corrected with the the improved Joneset:
+       # NB: If graft=False, the reqseq should be the MeqVisDataMux optional child 'pre'.
        if visu:
-	MG_JEN_Cohset.visualise (ns, Cohset)
-	MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
+          dcoll.extend(MG_JEN_Cohset.visualise (ns, Cohset, graft=graft))
+          dcoll.extend(MG_JEN_Cohset.visualise (ns, Cohset, type='spectra', graft=graft))
 
-
-   Cohset.sinks(ns)
+   if graft:
+       Cohset.sinks(ns)
+   else:
+       # MG_JEN_exec.display_object(reqseq,'pre')
+       # MG_JEN_exec.display_object(dcoll,'post')
+       Cohset.sinks(ns, pre=reqseq, post=dcoll)
+       
    for sink in Cohset: cc.append(sink)
 
 
@@ -155,15 +170,11 @@ def _define_forest (ns):
 
 
 #********************************************************************************
-# Initialisation and testing routines
-# NB: this section should always be at the end of the script
+#********************************************************************************
+#*****************  PART V: Forest execution routines ***************************
+#********************************************************************************
 #********************************************************************************
 
-
-#-------------------------------------------------------------------------
-# Meqforest execution routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
-# If not explicitly supplied, a default request will be used.
 
 def _test_forest (mqs, parent):
    
@@ -186,17 +197,19 @@ def _test_forest (mqs, parent):
 
 
 
-#-------------------------------------------------------------------------
-# Test routine to check the tree for consistency in the absence of a server
+#********************************************************************************
+#********************************************************************************
+#******************** PART VI: Standalone test routines *************************
+#********************************************************************************
+#********************************************************************************
+
 
 if __name__ == '__main__':
     print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
-    # This is the default:
     if 1:
         MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=3)
 
-    # This is the place for some specific tests during development.
     ns = NodeScope()
     nsim = ns.Subscope('_')
     stations = range(0,3)
@@ -206,14 +219,13 @@ if __name__ == '__main__':
     if 0:   
         cs.display('initial')
        
-
     if 0:
         display_first_subtree(cs)
         cs.display('final result')
 
-    # ............
     # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
     print '\n** End of local test of:',MG.script_name,'\n*******************\n'
+
 
 #********************************************************************************
 #********************************************************************************

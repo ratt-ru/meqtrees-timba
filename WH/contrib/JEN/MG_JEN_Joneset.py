@@ -165,12 +165,13 @@ def GJones (ns=0, label='GJones', **pp):
   pp.setdefault('scope', '<scope>')    # scope of this Joneset
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
+  pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
   pp.setdefault('polrep', 'linear')    # polarisation representation
-  pp.setdefault('Gscale', 0.0)          # scale of polc_ft non-c00 coeff
+  pp.setdefault('Gscale', 0.0)         # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)      # if False, do not store parmgroup info
   pp.setdefault('Gampl', 0.3)          # default funklet value
   pp.setdefault('Gphase', 0.0)         # default funklet value
-  pp.setdefault('Gpolar', False)        # if True, use MeqPolar, otherwise MeqToComplex
+  pp.setdefault('Gpolar', False)       # if True, use MeqPolar, otherwise MeqToComplex
   pp.setdefault('stddev_Gampl', 0)     # scatter in default funklet c00 values
   pp.setdefault('stddev_Gphase', 0)    # scatter in default funklet c00 values
   pp.setdefault('fdeg_Gampl', 0)       # degree of default freq polynomial         
@@ -267,6 +268,7 @@ def FJones (ns=0, label='FJones', **pp):
   pp.setdefault('polrep', 'linear')    # polarisation representation
   pp.setdefault('Fscale', 0.0)         # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
+  pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
   pp.setdefault('RM', 0.0)             # default funklet value
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
@@ -324,6 +326,7 @@ def BJones (ns=0, label='BJones', **pp):
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
   pp.setdefault('Bscale', 0.0)          # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
+  pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
   # pp.setdefault('Bpolar', False)        # if True, use MeqPolar, otherwise MeqToComplex
   pp.setdefault('Breal', 1.0)          # default funklet value
   pp.setdefault('Bimag', 0.0)          # default funklet value
@@ -415,6 +418,7 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
   pp.setdefault('punit', 'uvp')           # name of prediction-unit (source/patch)
   pp.setdefault('Dscale', 0.0)             # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)         # if True, the parms are potentially solvable
+  pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
   pp.setdefault('coupled_XY_dang', True)  # if True, Xdang = Ydang per station
   pp.setdefault('coupled_XY_dell', True)  # if True, Xdell = -Ydell per station
   pp.setdefault('dang', 0.0)              # default funklet value

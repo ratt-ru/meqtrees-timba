@@ -534,18 +534,20 @@ def insert_solver (ns, measured, predicted, correct=None, compare=None, **pp):
     Pohset.display('after defining condeqs')
 
     # Visualise the condeqs, if required:
-    dconc_condeq = dict()
+    dc_condeq = []
     if pp.visu:
        Pohset.scope('condeq_'+solver_name)
-       dconc_condeq = visualise (ns, Pohset, errorbars=True, graft=False)
+       dc_condeq = visualise (ns, Pohset, errorbars=True, graft=False)
        # NB: What about visualising MeqParms (solvegroups)?
        #     Possibly compared with their simulated values...
   
     # Make the solver node:
     solver = ns.solver(solver_name, q=punit) << Meq.Solver(children=cc,
-                                                     solvable=solvable,
-                                                     num_iter=pp.num_iter,
-                                                     debug_level=pp.debug_level)
+                                                           solvable=solvable,
+                                                           num_iter=pp.num_iter,
+                                                           last_update=True,
+                                                           save_funklets=True,
+                                                           debug_level=pp.debug_level)
 
     # Make a bookmark for the solver plot:
     MG_JEN_forest_state.bookmark (solver, name=('solver: '+solver_name),
@@ -571,12 +573,13 @@ def insert_solver (ns, measured, predicted, correct=None, compare=None, **pp):
     keys = measured.keys()                     # main data stream
     solver_name = 'solver_'+solver_name        # used in reqseq name
     for key in keys:
-       cc = [solver]                           # start a list of reqseq children (solver is first)
-       for dkey in dconc_condeq.keys(): cc.append(dconc_condeq[dkey]['dcoll']) 
+       cc = [solver]                                      # start a list of reqseq children (solver is first)
+       cc.extend(dc_condeq)                    # extend the list with the condeq dataCollect node(s) 
        result_index = 0 
        if pp.graft: 
-          cc.append(measured[key])             # measured Cohset (main data-stream) should be LAST!
-          result_index = len(cc)-1             # the reqseq should return the result of the main data stream
+          cc.append(measured[key])           # measured Cohset (main data-stream) should be LAST!
+          result_index = len(cc)-1                # the reqseq should return the result of the main data stream
+       # MG_JEN_exec.display_object(cc,'cc', txt=key)
        reqseq = ns.reqseq.qmerge(measured[key])(solver_name, q=punit) << Meq.ReqSeq(children=cc, result_index=result_index)
  
        # Optional, insert (graft) a solver reqseq on the main data stream (measured):
@@ -676,15 +679,18 @@ def visualise(ns, Cohset, **pp):
   
     if pp.graft:
         # Make the dcoll nodes step-children of a MeqSelector
-        # node that is inserted before one of the coherency nodes:
+        # node that is inserted in the coherency stream(s):
         Cohset.graft(ns, sc, stepchild=True)
-        return True
+        # Return an empty list to be consistent with the alternative below
+        return []
 
     else:
-        # Return a dict of named dconc nodes that need requests:
+        # Return a list of dataCollect nodes that need requests:
         # Do NOT modify the input Cohset
         Cohset.history(funcname+' -> '+'dconc '+str(len(dconc)))
-        return dconc
+        cc = []
+        for key in dconc.keys(): cc.append(dconc[key]['dcoll'])
+        return cc
 
 
 

@@ -166,16 +166,21 @@ init(MG.script_name)
 #------------------------------------------------------------------------------- 
 # Save the forest to a binary file(s):
 
-def save_meqforest (mqs, filename=False, save_reference=False, **pp):
+def save_meqforest (mqs, **pp):
    """Save the current meqforest, using the filename in the forest_state record.
    If save_reference=True, also save the result for later testing."""
-   
+
+   pp.setdefault('filename', False)       
+   pp.setdefault('save_reference', False)
+   pp = record(pp)
+
+   filename = pp['filename']
    if not isinstance(filename, str):
       filename = Settings.forest_state.savefile+'.meqforest'
    mqs.meq('Save.Forest',record(file_name=filename))
 
    # Optionally, store it in a reference-file, for auto-testing:
-   if save_reference:
+   if pp['save_reference']:
       mqs.meq('Save.Forest',record(file_name=filename+'_reference'))
       
    return filename
