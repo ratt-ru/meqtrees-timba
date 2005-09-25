@@ -9,6 +9,11 @@ namespace Meq
 {
   class MeqServer;
 }
+
+namespace VisCube
+{
+  class VTile;
+}
         
 namespace MeqPython
 {
@@ -25,14 +30,13 @@ namespace MeqPython
   // Destroys Python interpreter if it was running
   void destroyMeqPython ();
   
-  // runs a python script from file
-  void runFile      (MeqServer *pm,const string &filename);
-  
-  // imports a python module
-  void importModule (MeqServer *pm,const string &name);
+  // calls init-record handler, if one is set up
+  void processInitRecord (const DMI::Record &initrec);
   
   // calls visibility header handlers, if any are set up
-  void processVisHeader (MeqServer *pm,const DMI::Record &hdr);
+  void processVisHeader (const DMI::Record &hdr);
+  void processVisTile   (const VisCube::VTile &tile);
+  void processVisFooter (const DMI::Record &hdr);
   
   // -----------------------------------------------------------------------
   // Various internal declarations

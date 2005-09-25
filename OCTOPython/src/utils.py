@@ -33,11 +33,15 @@ class verbosity:
           a name must be specified.""";
       self.verbosity_name = name = self.__class__.__name__;
     # look for argv to override debug levels
-    patt = re.compile('-d'+name+'=(.*)$');
-    for arg in sys.argv[1:]:
-      try: 
-        self.verbose = int(patt.match(arg).group(1));
-      except: pass;
+    # NB: sys.argv doesn't always exist -- e.g., when embedding Python
+    # it doesn't seem to be present.  Hence the check.
+    argv = getattr(sys,'argv',None);
+    if argv:
+      patt = re.compile('-d'+name+'=(.*)$');
+      for arg in argv[1:]:
+        try: 
+          self.verbose = int(patt.match(arg).group(1));
+        except: pass;
     # add name to map
     self._verbosities[name] = self;
     print "Registered verbose context:",name,"=",self.verbose;

@@ -910,6 +910,8 @@ void MeqServer::run ()
   // connect forest events to data_mux slots (so that the mux can register
   // i/o nodes)
   forest.setDebuggingCallbacks(mqs_reportNodeStatus,mqs_processBreakpoint);
+  // init Python interface
+  MeqPython::initMeqPython(this);
   
   verifySetup(true);
   DMI::Record::Ref initrec;
@@ -932,12 +934,12 @@ void MeqServer::run ()
         if( !input().init(*initrec) )
           Throw("init failed");
         // see if python needs to be initialized
-        string pyscr = initrec[input().initfield()][AidPython|AidInit].as<string>("");
-        if( !pyscr.empty() )
-        {
-          MeqPython::runFile(this,pyscr);
-          python_init = true;
-        }
+        // string pyscr = initrec[input().initfield()][AidPython|AidInit].as<string>("");
+        //        if( !pyscr.empty() )
+        //        {
+        //          MeqPython::runFile(this,pyscr);
+        //          python_init = true;
+        //        }
       }
       if( initrec[output().initfield()].exists() )
       {
@@ -960,7 +962,15 @@ void MeqServer::run ()
       postError(errors);
       continue;
     }
-    
+    // init Python side
+    try
+    {
+      MeqPython::processInitRecord(*initrec);
+    }
+    catch( std::exception &exc )
+    {
+      postError(exc);
+    }    
     // put init record into forest state
     {
       DMI::Record::Ref tmp(DMI::ANONWR);
@@ -1014,20 +1024,31 @@ void MeqServer::run ()
             ntiles++;
             if( !(ntiles%100) )
               control().setStatus(StNumTiles,ntiles);
+            // deliver tile to Python
+            try  { MeqPython::processVisTile(*tileref); }
+            catch( std::exception &exc ) { errors.add(exc); }
             // deliver tile to data mux
-            retcode = pmux_->deliverTile(tileref);
+            if( pmux_ )
+              retcode = pmux_->deliverTile(tileref);
           }
           else if( instat == FOOTER )
           {
             doing_what = "processing footer "+id.toString('.');
             cdebug(2)<<"received footer"<<endl;
             reading_data = false;
+            const DMI::Record &footer = *(ref.ref_cast<DMI::Record>());
+            // deliver footer to Python
+            try  { MeqPython::processVisFooter(footer); }
+            catch( std::exception &exc ) { errors.add(exc); }
+            // deliver footer to mux
+            if( pmux_ )
+              retcode = pmux_->deliverFooter(footer);
+            // generate footer report
             eventrec <<= new DMI::Record;
             if( header.valid() )
               eventrec[AidHeader] <<= header.copy();
             if( ref.valid() )
               eventrec[AidFooter] <<= ref.copy();
-            retcode = pmux_->deliverFooter(*(ref.ref_cast<DMI::Record>()));
             output_event = DataSetFooter;
             output_message = ssprintf("received footer for dataset %s, %d tiles written",
                 id.toString('.').c_str(),ntiles);
@@ -1042,11 +1063,15 @@ void MeqServer::run ()
             cdebug(2)<<"received header"<<endl;
             reading_data = false;
             header = ref;
-            if( python_init )
-              MeqPython::processVisHeader(this,*header);
+            // deliver header to Python
+            try  { MeqPython::processVisHeader(*header); }
+            catch( std::exception &exc ) { errors.add(exc); }
+            // deliver header to mux
+            if( pmux_ )
+              retcode = pmux_->deliverHeader(*header);
+            // generate header report
             eventrec <<= new DMI::Record;
             eventrec[AidHeader] <<= header.copy();
-            retcode = pmux_->deliverHeader(*header);
             output_event = DataSetHeader;
             output_message = "received header for dataset "+id.toString('.');
             if( !datatype.empty() )
@@ -1099,6 +1124,7 @@ void MeqServer::run ()
   pmux_ = 0;
   cdebug(1)<<"exiting with control state "<<control().stateString()<<endl;
   control().close();
+  MeqPython::destroyMeqPython();
 }
 
 //##ModelId=3F5F195E0156

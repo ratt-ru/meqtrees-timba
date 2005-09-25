@@ -11,14 +11,14 @@ namespace MeqPython
   
 using namespace OctoPython;
 
-PyObject * PyExc_MeqServerError;
-
 static bool meq_initialized = false;
-static bool python_initialized = false;
 static MeqServer *pmqs = 0;
 
-typedef std::list<PyObjectRef> HandlerList; 
-static HandlerList header_handlers;
+static PyObject 
+      *process_init_record,
+      *process_vis_header,
+      *process_vis_tile,
+      *process_vis_footer;
   
 extern "C" 
 {
@@ -33,7 +33,7 @@ static PyObject * mqexec (PyObject *, PyObject *args)
   if( !PyArg_ParseTuple(args, "s|O", &command,&cmdrec) )
     return NULL;
   if( !pmqs )
-    returnError(NULL,MeqServer,"meqserver not initialized");
+    returnError(NULL,OctoPython,"meqserver not initialized");
   // catch all exceptions below
   try 
   {
@@ -50,76 +50,47 @@ static PyObject * mqexec (PyObject *, PyObject *args)
 }
 
 // -----------------------------------------------------------------------
-// add_header_handler ()
-// -----------------------------------------------------------------------
-static PyObject * add_header_handler (PyObject *, PyObject *args)
-{
-  PyObject *handler = 0;
-  if( !PyArg_ParseTuple(args, "O", &handler) )
-  if( !PyCallable_Check(handler) )
-    returnError(NULL,MeqServer,"meqserver.set_header_handler(): handler not callable");
-  header_handlers.push_back(handler);
-  returnNone;
-}
-
-// -----------------------------------------------------------------------
-// clear_header_handlers ()
-// -----------------------------------------------------------------------
-static PyObject * clear_header_handlers (PyObject *, PyObject *args)
-{
-  if( !PyArg_ParseTuple(args,"") )
-    return NULL;
-  header_handlers.clear();
-  returnNone;
-}
-
-// -----------------------------------------------------------------------
 // Module initialization
 // -----------------------------------------------------------------------
 static PyMethodDef MeqMethods[] = {
     { "mqexec", mqexec, METH_VARARGS, 
              "issues a MeqServer command" },
-    { "add_header_handler", add_header_handler, METH_VARARGS, 
-             "sets up a handler for visibility headers" },
-    { "clear_header_handlers", clear_header_handlers, METH_VARARGS, 
-             "removes all handlers for visibility headers" },
     { NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
 
 } // extern "C"
 
+
 // -----------------------------------------------------------------------
-// runFile
-// runs a python script
+// callPyFunc
+// helper method to call a python function
 // -----------------------------------------------------------------------
-void runFile (MeqServer *pm,const string &filename)
+static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
 {
-  destroyMeqPython();
-  initMeqPython(pm);
-  FILE *fp = fopen(filename.c_str(),"r");
-  FailWhen(!fp,"can't open file: "+filename);
-  PyRun_SimpleFile(fp,filename.c_str());
-  fclose(fp);
-  if( PyErr_Occurred() )
-  {
+  PyObjectRef pyarg = pyFromDMI(arg);
+  FailWhen(!pyarg,"failed to convert argument to python");
+  PyErr_Clear();
+  PyObjectRef allargs = Py_BuildValue("(O)",*pyarg);
+  FailWhen(!allargs,"failed to build args tuple");
+  PyObjectRef val = PyObject_CallObject(func,*allargs);
+  if( !val )
     PyErr_Print();
-    Throw("error running python script "+filename);
-  }
+  return val;
 }
 
 // -----------------------------------------------------------------------
-// importModule
-// imports a Python module
+// processInitRecord
+// processes a visibility header by calling a handler, if set
 // -----------------------------------------------------------------------
-void importModule (MeqServer *pm,const string &name)
+void processInitRecord (const DMI::Record &rec)
 {
-  initMeqPython(pm);
-  PyObject * mod = PyImport_ImportModule(const_cast<char*>(name.c_str()));
-  if( !mod )
+  if( process_init_record )
   {
-    PyErr_Print();
-    Throw("import of python module "+name+" failed");
+    cdebug(1)<<"calling init_record handler"<<endl;
+    PyObjectRef res = callPyFunc(process_init_record,rec);
+    if( !res )
+      Throw("Python meqserver: visheader handler failed");
   }
 }
 
@@ -127,21 +98,45 @@ void importModule (MeqServer *pm,const string &name)
 // processVisHeader
 // processes a visibility header by calling a handler, if set
 // -----------------------------------------------------------------------
-void processVisHeader (MeqServer *pm,const DMI::Record &headrec)
+void processVisHeader (const DMI::Record &rec)
 {
-  initMeqPython(pm);
-  if( header_handlers.empty() )
-    return;
-  PyObjectRef pyheadrec = pyFromDMI(headrec);
-  FailWhen(!pyheadrec,"failed to convert VisHeader to python");
-  PyObjectRef args = Py_BuildValue("(O)",*pyheadrec);
-  FailWhen(!args,"failed to build args tuple");
-  for( HandlerList::iterator iter = header_handlers.begin();
-       iter != header_handlers.end(); iter++ )
+  if( process_vis_header )
   {
-    PyObjectRef val = PyObject_CallObject(**iter,*args);
-    if( !val )
-      PyErr_Print();
+    cdebug(1)<<"calling vis_header handler"<<endl;
+    PyObjectRef res = callPyFunc(process_vis_header,rec);
+    if( !res )
+      Throw("Python meqserver: visheader handler failed");
+  }
+}
+
+// -----------------------------------------------------------------------
+// processVisTile
+// processes a visibility tile by calling a handler, if set
+// -----------------------------------------------------------------------
+void processVisTile (const VisCube::VTile &)
+{
+//// disable for now, since VisTiles have no python representation
+//   if( process_vis_tile )
+//   {
+//     cdebug(1)<<"calling vis_tile handler"<<endl;
+//     PyObjectRef res = callPyFunc(process_vis_tile,tile);
+//     if( !res )
+//       Throw("Python meqserver: vistile handler failed");
+//   }
+}
+
+// -----------------------------------------------------------------------
+// processVisFooter
+// processes a visibility footer by calling a handler, if set
+// -----------------------------------------------------------------------
+void processVisFooter (const DMI::Record &rec)
+{
+  if( process_vis_footer )
+  {
+    cdebug(1)<<"calling vis_header handler"<<endl;
+    PyObjectRef res = callPyFunc(process_vis_footer,rec);
+    if( !res )
+      Throw("Python meqserver: visfooter handler failed");
   }
 }
 
@@ -156,38 +151,53 @@ void initMeqPython (MeqServer *mq)
     return;
   meq_initialized = true;
   // init Python
-  if( !python_initialized )
-  {
-    Py_Initialize();
-    python_initialized = true;
-  }
-  // import the octopython module to init everything
-  PyObject * timbamod = PyImport_ImportModule("Timba");
-  if( !timbamod )
-  {
-    Throw("Python meqserver: import of Timba module failed");
-  }
-  PyObject * octomod = PyImport_ImportModule("Timba.octopython");
-  if( !octomod )
-  {
-    Throw("Python meqserver: import of octopython module failed");
-  }
-  
+  Py_Initialize();
   // register ourselves as a module
-  PyObject *module = Py_InitModule3("meqserver", MeqMethods,
+  PyObject *module = Py_InitModule3("meqserver_interface", MeqMethods,
             "interface to the MeqServer object");
   if( !module )
   {
-    Throw("Python meqserver: module init failed");
+    PyErr_Print();
+    Throw("Python meqserver: meqserver_interface module init failed");
   }
   
-  PyExc_MeqServerError = PyErr_NewException("meqserver.MeqServer", NULL, NULL);
-  Py_INCREF(PyExc_MeqServerError);
-  PyModule_AddObject(module,"MeqServerError",PyExc_OctoPythonError);
+  // import the octopython module to init everything
+  PyObject * kernelmod = PyImport_ImportModule("Timba.meqkernel");
+  if( !kernelmod )
+  {
+    PyErr_Print();
+    Throw("Python meqserver: import of Timba.meqkernel module failed");
+  }
+  // get optional handlers
+  process_init_record = PyObject_GetAttrString(kernelmod,"process_init");
+  PyErr_Clear();
+  cdebug(1)<<"init handler is "<<process_init_record<<endl;
+  process_vis_header = PyObject_GetAttrString(kernelmod,"process_vis_header");
+  PyErr_Clear();
+  process_vis_tile   = PyObject_GetAttrString(kernelmod,"process_vis_tile");
+  PyErr_Clear();
+  process_vis_footer = PyObject_GetAttrString(kernelmod,"process_vis_footer");
+  PyErr_Clear();
+  cdebug(1)<<"vis handlers are "<<process_vis_header<<" "
+      <<process_vis_tile<<" "<<process_vis_footer<<endl;
+  
+  // set verbosity level
+  PyObject *setverbose = PyObject_GetAttrString(kernelmod,"set_verbose");
+  PyErr_Clear();
+  if( setverbose )
+  {
+    PyObjectRef val = PyObject_CallFunction(setverbose,"(i)",int(DebugLevel));
+    if( PyErr_Occurred() )
+      PyErr_Print();
+  }
   
   // drop out on error
   if( PyErr_Occurred() )
+  {
+    cdebug(1)<<"python error, report follows"<<endl;
+    PyErr_Print();
     Throw("Python meqserver: module init failed");
+  }
 }
 
 // -----------------------------------------------------------------------
@@ -195,11 +205,10 @@ void initMeqPython (MeqServer *mq)
 // -----------------------------------------------------------------------
 void destroyMeqPython ()
 {
-  if( python_initialized )
+  if( meq_initialized )
   {
-    header_handlers.clear();
     Py_Finalize();
-    python_initialized = false;
+    meq_initialized = false;
   }
 }
 
