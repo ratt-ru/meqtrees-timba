@@ -672,6 +672,8 @@ def visualise(ns, Cohset, **pp):
           dc = dcoll[key]
           MG_JEN_forest_state.bookmark (dc['dcoll'], page=key)
           MG_JEN_forest_state.bookmark (dc['dcoll'], page=dcoll_scope+'_spectra')
+          MG_JEN_forest_state.bookmark (dc['dcoll'], page=Cohset.scope())
+
        elif pp.type=='realvsimag':
           # For realvsimag plots it is better to plot multiple corrs in the same plot.
           # key = allcorrs, [paralcorr], [crosscorr]
@@ -679,6 +681,8 @@ def visualise(ns, Cohset, **pp):
                                         scope=dcoll_scope,
                                         tag=key, bookpage=key)
           # MG_JEN_forest_state.bookmark (dc['dcoll'], page=dcoll_scope)
+          MG_JEN_forest_state.bookmark (dc['dcoll'], page=Cohset.scope())
+
        dconc[key] = dc                               # atach to output record
        sc.append (dc['dcoll'])                       # step-child for graft below
       

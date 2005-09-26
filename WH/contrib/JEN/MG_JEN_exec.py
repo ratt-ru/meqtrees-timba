@@ -301,9 +301,11 @@ def spigot2sink (mqs, parent, **pp):
 
    # Get the stream control record from forest_state record:
    ss = stream_control()
-   mqs.init(ss.initrec, inputinit=ss.inputinit, outputinit=ss.outputinit);
+   mqs.init(ss.initrec, inputinit=ss.inputinit, outputinit=ss.outputinit)
 
    # Optionally, save the meqforest
+   # NB: If save=True, the meqforest is saved to a file for EVERY tile....!!
+   #     This might be connected to the wait=False policy....
    if pp['save']: MG_JEN_forest_state.save_meqforest(mqs, **pp)
    
    return True
