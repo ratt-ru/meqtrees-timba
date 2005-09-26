@@ -93,13 +93,13 @@ class Profiler (PersistentCurrier):
     
   class StatEntry (object):
     __slots__ = ( "name","ps","cs","count" );
-    def __init__ (self,name,ps=None,cs=None):
+    def __init__ (self,name,ps=None,cs=None,count=1):
       self.name = name;
       if ps is None:
         ps = numarray.zeros((3,2));
       if cs is None:
         cs = numarray.zeros((2,6));
-      self.ps,self.cs,self.count = ps,cs,1;
+      self.ps,self.cs,self.count = ps,cs,count;
     def __iadd__ (self,other):
       self.ps = self.ps + other.ps;
       self.cs = self.cs + other.cs;
@@ -177,7 +177,7 @@ class Profiler (PersistentCurrier):
       key = keyfunc(se);
       try: sums[key] += se;
       except KeyError:
-        sums[key] = newentry = self.StatEntry(str(key));
+        sums[key] = newentry = self.StatEntry(str(key),count=0);
         newentry += se;
     return sums;
     
