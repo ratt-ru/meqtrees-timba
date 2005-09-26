@@ -12,6 +12,7 @@ namespace Meq {
 
   ComposedPolc::ComposedPolc(vector<Funklet::Ref> & funklets,double pert,double weight,DbId id):Polc(*funklets.begin()),nr_funklets_(funklets.size())
   {
+    //   cdebug(0)<<"creating composed polc"<<endl;
     
     (*this)[AidClass].replace() = "MeqComposedPolc";
     initFunklets(funklets);
@@ -19,20 +20,24 @@ namespace Meq {
 
 
   ComposedPolc::ComposedPolc (const ComposedPolc &other,int flags,int depth) : 
-    Polc(other,flags,depth),nr_funklets_(0)
+    Polc(other,flags,depth),nr_funklets_(other.nr_funklets_)
   {
+    for(int i=0;i<Axis::MaxAxis;i++)
+      axisHasShape_[i]=other.axisHasShape_[i];
     (*this)[AidClass].replace() = "MeqComposedPolc";
   }
 
   ComposedPolc::ComposedPolc (const DMI::Record &other,int flags,int depth) : 
     Polc(other,flags,depth),nr_funklets_(0)
   {
+
     (*this)[AidClass].replace() = "MeqComposedPolc";
   }
   
   ComposedPolc::ComposedPolc (double pert,double weight,DbId id):
     Polc(pert,weight,id),nr_funklets_(0)
    {
+   
     (*this)[AidClass].replace() = "MeqComposedPolc";
    }
 
@@ -100,12 +105,15 @@ namespace Meq {
     int nr_parms = getNumParms(); 
     int nr_spids = getNrSpids(); 
 
-    int nr_axis=2;//assume 2 for simplicity
+    int nr_axis=cells.rank();//assume 2 for simplicity
     
     LoVec_double startgrid[2],endgrid[2],sizegrid[2],centergrid[2];
     for(int i=0;i<nr_axis;i++){
       startgrid[i].resize(cells.ncells(i));
       endgrid[i].resize(cells.ncells(i));
+      centergrid[i].resize(cells.ncells(i));
+
+      centergrid[i] = ( cells.center(i));
 
       startgrid[i]=cells.cellStart(i);
       endgrid[i]=cells.cellEnd(i);
@@ -115,9 +123,7 @@ namespace Meq {
 
     //init vells with 0
     Vells::Shape res_shape;
-    Vells::Shape part_shape;
     Axis::degenerateShape(res_shape,cells.rank());
-    Axis::degenerateShape(part_shape,cells.rank());
 
 
     for(int iaxis=0;iaxis<cells.rank();iaxis++)
@@ -126,7 +132,7 @@ namespace Meq {
       else
     	res_shape[iaxis]=1;
 	
-
+    cdebug(3)<<"evalauating ells with res_Shape : "<<res_shape<<endl;
     double *value = vs.setValue(new Vells(double(0),res_shape,true)).realStorage();
 
     double *pertValPtr[makePerturbed][nr_spids]; 
@@ -150,11 +156,11 @@ namespace Meq {
     int endi[2]={-1,-1};
 
     for(int funknr=0;funknr<nr_funklets;funknr++){
+      cdebug(3)<<"evalauating funklet : "<<funknr<<endl;
 
       const Funklet & partfunk = funklistp->as<Funklet>(funknr);
 
       //get cells for this domain
-      int nrc[2]={0,0};
       int isConstant=1;
   
       //if funklet is constant, we dont have to do all the work, just fill the fitting vells
@@ -176,18 +182,20 @@ namespace Meq {
       for(int axisi=0;axisi<nr_axis;axisi++){
 	int maxk=std::min(res_shape[axisi],startgrid[axisi].size());
 	int k=0;
-	while(k<maxk  && polcdom.start(axisi)>startgrid[axisi](k)) k++;
-	starti[axisi] = k;
-	k++;
-	//	k=std::min(res_shape[axisi]-1,startgrid[axisi].size()-1);
-	while(k<maxk && !(polcdom.end(axisi)<endgrid[axisi](k))) k++;
-	endi[axisi] = k-1;
+	while(k<maxk  && centergrid[axisi](k)<polcdom.start(axisi)) k++;
 	
+	starti[axisi] = k;
+	k=std::min(res_shape[axisi]-1,startgrid[axisi].size()-1);
+	while(k>0 && (centergrid[axisi](k)>polcdom.end(axisi))) k--;
+	endi[axisi] = k;
+	cdebug(3)<<"axis : "<<axisi<<" begin : "<<starti[axisi]<<" end : "<<endi[axisi]<<endl;
+	if(endi[axisi]<starti[axisi]) break;
       }
+      //      if(endi[0]<starti[0]) continue;/
+      //     if(nr_axis>1 && (endi[1]<starti[1])) continue;
 
+	
 
-      part_shape[0]=nrc[0];
-      part_shape[1]=nrc[1];
       VellSet partvs;
       if(!isConstant)
 	{
@@ -200,6 +208,7 @@ namespace Meq {
 	maxnx =  partvs.shape()[0];
 	maxny =  partvs.shape()[1];
       }
+      cdebug(3)<<"got partvs with shape "<< partvs.shape()<<endl;
 
       blitz::Array<double,2>  parts;
       blitz::Array<double,2> perts[2][nr_spids] ;
@@ -251,6 +260,9 @@ namespace Meq {
 	    value[valy + valx*res_shape[1]] = constpart ;
 	  else
 	    {
+	      cdebug(3)<<"nx "<<nx<<" ny "<<ny<<" val "<<valx*res_shape[1]+valy<<endl;
+	      cdebug(3)<<parts(nx,ny)<<endl;
+
 	      value[valy + valx*res_shape[1]] = parts(nx,ny) ;
 	    }
 	  ny=std::min(ny+1,maxny-1);//put check on y shape b4 
