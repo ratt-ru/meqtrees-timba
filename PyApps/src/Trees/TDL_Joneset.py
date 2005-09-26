@@ -49,6 +49,7 @@ class Joneset (TDL_common.Super):
         self.__punit = pp['punit']
         self.__solvable = pp['solvable']
         self.__parmtable = pp['parmtable']
+        self.check_parmtable_extension()
 
         TDL_common.Super.__init__(self, type='Joneset', **pp)
 
@@ -199,13 +200,22 @@ class Joneset (TDL_common.Super):
     def jchar(self): return self.__jchar
     def punit(self): return self.__punit
     def solvable(self): return self.__solvable
-    def parmtable(self, new=None):
-        if isinstance(new, str): self.__parmtable = new
-        return self.__parmtable
     def polrep(self): return self.__polrep
     def pols(self, ipol=None):
         if ipol==None: return self.__pols
         return self.__pols[ipol-1]
+
+    def parmtable(self, new=None):
+        if isinstance(new, str):
+            self.__parmtable = new
+            self.check_parmtable_extension()
+        return self.__parmtable
+    def check_parmtable_extension(self):
+        if isinstance(self.__parmtable, str):
+            ss = self.__parmtable.split('.')
+            if len(ss)==1: self.__parmtable += '.mep'
+            return self.__parmtable.split('.')[1]
+        return True
 
     def condeq_corrs(self): return self.__condeq_corrs
     def corrs_paral(self):
@@ -545,6 +555,10 @@ if __name__ == '__main__':
         jseq.append(js)
         jseq.append(js)
         jseq.display('filled')
+
+    if 1:
+        print js.parmtable('cal_BJones')
+        print js.check_parmtable_extension()
 
     if 1:
         # Display the final result:
