@@ -160,7 +160,7 @@ class Joneset (TDL_common.Super):
         return self.len()
 
     def define_MeqParm(self, ns=0, key=None, station=None, default=0,
-                       node_groups='Parm', use_previous=True):
+                       node_groups='Parm', use_previous=True, tile_size=1):
         # Convenience function to create a MeqParm node
         # NB: If use_previous==True, the MeqParm will use its current funklet (if any)
         #     as starting point for the next snippet solution, unless a suitable funklet
@@ -168,13 +168,15 @@ class Joneset (TDL_common.Super):
         if station==None:
           node = ns[key](q=self.punit()) << Meq.Parm(default,
                                                      node_groups=self.node_groups(),
-                                                     table_name=self.parmtable(),
-                                                     use_previous=use_previous)
+                                                     use_previous=use_previous,
+                                                     tiling=record(time=tile_size),
+                                                     table_name=self.parmtable())
         else:
           node = ns[key](s=station, q=self.punit()) << Meq.Parm(default,
                                                                 node_groups=self.node_groups(),
-                                                                table_name=self.parmtable(),
-                                                                use_previous=use_previous)
+                                                                use_previous=use_previous,
+                                                                tiling=record(time=tile_size),
+                                                                table_name=self.parmtable())
         # Put the node into the internal MeqParm buffer for later use:
         self.__MeqParm[key] = node
         return node

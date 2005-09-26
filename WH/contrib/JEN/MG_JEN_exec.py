@@ -367,7 +367,7 @@ def stream_control(value=None, display=False, init=False):
       ss.inputinit.sink_type = 'ms_in';
       ss.inputinit.data_column_name = 'DATA';
       ss.inputinit.tile_size = 1;
-      if False:
+      if True:
          print '\n** .python_int: Inhibited until bug has been resolved....\n'
          path = os.environ['HOME']+'/LOFAR/Timba/WH/contrib/JEN/'
          ss.inputinit.python_init = path+'read_msvis_header.py'

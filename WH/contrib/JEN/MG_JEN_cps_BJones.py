@@ -60,19 +60,21 @@ MG_JEN_forest_state.init(MG.script_name)
 
 # The following parameters may be edited to change operation:
 
-cps_parm = dict(ms_name='D1.MS',
+cps_ctrl = dict(ms_name='D1.MS',
                 stations=range(7),                   # specify the (subset of) stations to be used
                 data_column_name='DATA',
-                tile_size=1,
+                tile_size=8,                              # input tile-size
                 channel_start_index=10,
                 channel_end_index=50,          # -10 should indicate 10 from the end
                 output_col='RESIDUALS',
                 punit='unpol',                        # name of calibrator source
-                parmtable='cal_BJones',     # name of MeqParm table
+                parmtable='cps_BJones',        # name of MeqParm table
                 fdeg_Breal=3,                          # degree of freq polynomial
                 fdeg_Bimag=3,
                 tdeg_Breal=0,                          # degree of time polynomial
                 tdeg_Bimag=0,
+                tile_size_Breal=1,                   # used in tiled solutions
+                tile_size_Bimag=1,                   # used in tiled solutions
                 num_iter=3,                             # number of solver iterations per snippet
                 flag_before=False,                   # If True, insert a flagger before solving
                 flag_after=False,                      # If True, insert a flagger after solving
@@ -99,41 +101,44 @@ def _define_forest (ns):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
    # The control parameters are specified above:
-   global cps_parm
+   global cps_ctrl
 
    # Make spigots for a specific set of ifrs:
-   ifrs = TDL_Cohset.stations2ifrs(cps_parm['stations'])
+   ifrs = TDL_Cohset.stations2ifrs(cps_ctrl['stations'])
    stations = TDL_Cohset.ifrs2stations(ifrs)
    Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', stations=stations)
    # Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', ifrs=ifrs)
    Cohset.spigots(ns)
 
-   if cps_parm['visu_rawdata']:
+   if cps_ctrl['visu_rawdata']:
 	MG_JEN_Cohset.visualise (ns, Cohset)
 	MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
 
-   if cps_parm['flag_before']:
+   if cps_ctrl['flag_before']:
        MG_JEN_Cohset.insert_flagger (ns, Cohset, scope='residual',
                                      unop=['Real','Imag'], visu=False)
-       if cps_parm['visu_rawdata']: MG_JEN_Cohset.visualise (ns, Cohset)
+       if cps_ctrl['visu_rawdata']: MG_JEN_Cohset.visualise (ns, Cohset)
 
    # Make predicted data with a punit (see above) and corrupting Jones matrices
-   Joneset = MG_JEN_Cohset.JJones(ns, stations, punit=cps_parm['punit'], jones=['B'],
-                                  fdeg_Breal=cps_parm['fdeg_Breal'],
-                                  fdeg_Bimag=cps_parm['fdeg_Bimag'],
-                                  tdeg_Breal=cps_parm['tdeg_Breal'],
-                                  tdeg_Bimag=cps_parm['tdeg_Bimag'],
-                                  parmtable=cps_parm['parmtable'])
-   predicted = MG_JEN_Cohset.predict (ns, punit=cps_parm['punit'], ifrs=ifrs, Joneset=Joneset)
+   Joneset = MG_JEN_Cohset.JJones(ns, stations, punit=cps_ctrl['punit'], jones=['B'],
+                                  fdeg_Breal=cps_ctrl['fdeg_Breal'],
+                                  fdeg_Bimag=cps_ctrl['fdeg_Bimag'],
+                                  tdeg_Breal=cps_ctrl['tdeg_Breal'],
+                                  tdeg_Bimag=cps_ctrl['tdeg_Bimag'],
+                                  tile_size_Breal=cps_ctrl['tile_size_Breal'],
+                                  tile_size_Bimag=cps_ctrl['tile_size_Bimag'],
+                                  parmtable=cps_ctrl['parmtable'])
+   predicted = MG_JEN_Cohset.predict (ns, punit=cps_ctrl['punit'], ifrs=ifrs, Joneset=Joneset)
 
-   # Insert a solver for a named solvegroup of MeqParms:
+   # Insert a solver for a named solvegroup of MeqParms.
+   # After solving, the uv-data are corrected with the the improved Joneset. 
    reqseq = MG_JEN_Cohset.insert_solver (ns, solvegroup='BJones', 
                                          measured=Cohset, predicted=predicted, 
                                          correct=Joneset, 
-					 num_iter=cps_parm['num_iter'], 
-                                         visu=cps_parm['visu_solver'])
-   # NB: The data are corrected with the the improved Joneset:
-   if cps_parm['visu_corrected']:
+					 num_iter=cps_ctrl['num_iter'], 
+                                         visu=cps_ctrl['visu_solver'])
+
+   if cps_ctrl['visu_corrected']:
       MG_JEN_Cohset.visualise (ns, Cohset)
       MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
 
@@ -141,6 +146,9 @@ def _define_forest (ns):
    # Make MeqSinks
    Cohset.sinks(ns)
    for sink in Cohset: cc.append(sink)
+
+   # Attach the cps control parameters to the forest state:
+   Settings.forest_state.cps_ctrl = record(cps_ctrl)
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, MG, cc)
@@ -183,15 +191,15 @@ def _test_forest (mqs, parent):
    Settings.orphans_are_roots = True;
 
    # Modify the stream_control record, if required:
-   global cps_parm                             # specified above
+   global cps_ctrl                             # specified above
    for key in ['ms_name','data_column_name','tile_size']:
-      MG_JEN_exec.stream_inputinit(key, cps_parm[key])
+      MG_JEN_exec.stream_inputinit(key, cps_ctrl[key])
    for key in ['channel_start_index','channel_end_index']:
-      MG_JEN_exec.stream_selection(key, cps_parm[key])
+      MG_JEN_exec.stream_selection(key, cps_ctrl[key])
    for key in []:
-      MG_JEN_exec.stream_outputinit(key, cps_parm[key])
+      MG_JEN_exec.stream_outputinit(key, cps_ctrl[key])
    for key in ['output_col']:
-      MG_JEN_exec.stream_initrec(key, cps_parm[key])
+      MG_JEN_exec.stream_initrec(key, cps_ctrl[key])
 
    # Start the sequence of requests issued by MeqSink:
    # NB: If save=True, the meqforest is saved to a file for EVERY tile....!!

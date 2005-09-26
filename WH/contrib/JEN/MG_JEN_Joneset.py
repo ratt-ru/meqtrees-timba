@@ -197,6 +197,8 @@ def GJones (ns=0, label='GJones', **pp):
   pp.setdefault('fdeg_Gphase', 0)      # degree of default freq polynomial          
   pp.setdefault('tdeg_Gampl', 0)       # degree of default time polynomial         
   pp.setdefault('tdeg_Gphase', 0)      # degree of default time polynomial       
+  pp.setdefault('tile_size_Gampl', 1)  # used in tiled solutions         
+  pp.setdefault('tile_size_Gphase', 1) # used in tiled solutions         
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
@@ -224,25 +226,19 @@ def GJones (ns=0, label='GJones', **pp):
     # Define station MeqParms (in ss), and do some book-keeping:  
     js.MeqParm(reset=True)
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.Gampl, stddev=pp.stddev_Gampl,
-                                      fdeg=pp.fdeg_Gampl, tdeg=pp.tdeg_Gampl,
-                                      scale=pp.Gscale) 
-    js.define_MeqParm(ns, a1, station=skey, default=default)
+    for Gampl in [a1,a2]:
+       default = MG_JEN_funklet.polc_ft (c00=pp.Gampl, stddev=pp.stddev_Gampl,
+                                         fdeg=pp.fdeg_Gampl, tdeg=pp.tdeg_Gampl,
+                                         scale=pp.Gscale) 
+       js.define_MeqParm (ns, Gampl, station=skey, default=default,
+                          tile_size=pp.tile_size_Gampl)
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.Gampl, stddev=pp.stddev_Gampl, 
-                                      fdeg=pp.fdeg_Gampl, tdeg=pp.tdeg_Gampl,
-                                      scale=pp.Gscale) 
-    js.define_MeqParm(ns, a2, station=skey, default=default)
-
-    default = MG_JEN_funklet.polc_ft (c00=pp.Gphase, stddev=pp.stddev_Gphase, 
-                                      fdeg=pp.fdeg_Gphase, tdeg=pp.tdeg_Gphase,
-                                      scale=pp.Gscale) 
-    js.define_MeqParm(ns, p1, station=skey, default=default)
-
-    default = MG_JEN_funklet.polc_ft (c00=pp.Gphase, stddev=pp.stddev_Gphase, 
-                                      fdeg=pp.fdeg_Gphase, tdeg=pp.tdeg_Gphase,
-                                      scale=pp.Gscale) 
-    js.define_MeqParm(ns, p2, station=skey, default=default)
+    for Gphase in [p1,p2]:
+       default = MG_JEN_funklet.polc_ft (c00=pp.Gphase, stddev=pp.stddev_Gphase, 
+                                         fdeg=pp.fdeg_Gphase, tdeg=pp.tdeg_Gphase,
+                                         scale=pp.Gscale) 
+       js.define_MeqParm (ns, Gphase, station=skey, default=default,
+                          tile_size=pp.tile_size_Gphase)
 
     ss = js.MeqParm(update=True)
 
@@ -289,6 +285,9 @@ def FJones (ns=0, label='FJones', **pp):
   pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
   pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
   pp.setdefault('RM', 0.0)             # default funklet value
+  pp.setdefault('tile_size_RM', 1)     # used in tiled solutions         
+  pp.setdefault('fdeg_RM', 0)          # degree of default freq polynomial          
+  pp.setdefault('tdeg_RM', 0)          # degree of default time polynomial         
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
@@ -355,6 +354,8 @@ def BJones (ns=0, label='BJones', **pp):
   pp.setdefault('fdeg_Bimag', 3)       # degree of default freq polynomial              # <---- !!
   pp.setdefault('tdeg_Breal', 0)       # degree of default time polynomial              # <---- !!
   pp.setdefault('tdeg_Bimag', 0)       # degree of default time polynomial              # <---- !!
+  pp.setdefault('tile_size_Breal', 1)  # used in tiled solutions         
+  pp.setdefault('tile_size_Bimag', 1)  # used in tiled solutions         
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
@@ -384,25 +385,19 @@ def BJones (ns=0, label='BJones', **pp):
 
     # Example: polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0) 
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.Breal, stddev=pp.stddev_Breal, 
-                                      fdeg=pp.fdeg_Breal, tdeg=pp.tdeg_Breal, 
-                                      scale=pp.Bscale) 
-    js.define_MeqParm(ns, br1, station=skey, default=default)
+    for Breal in [br1,br2]:
+       default = MG_JEN_funklet.polc_ft (c00=pp.Breal, stddev=pp.stddev_Breal, 
+                                         fdeg=pp.fdeg_Breal, tdeg=pp.tdeg_Breal, 
+                                         scale=pp.Bscale) 
+       js.define_MeqParm (ns, Breal, station=skey, default=default,
+                          tile_size=pp.tile_size_Breal)
 
-    default = MG_JEN_funklet.polc_ft (c00=pp.Breal, stddev=pp.stddev_Breal,
-                                      fdeg=pp.fdeg_Breal, tdeg=pp.tdeg_Breal, 
-                                      scale=pp.Bscale) 
-    js.define_MeqParm(ns, br2, station=skey, default=default)
-
-    default = MG_JEN_funklet.polc_ft (c00=pp.Bimag, stddev=pp.stddev_Bimag, 
-                                      fdeg=pp.fdeg_Bimag, tdeg=pp.tdeg_Bimag, 
-                                      scale=pp.Bscale) 
-    js.define_MeqParm(ns, bi1, station=skey, default=default)
-
-    default = MG_JEN_funklet.polc_ft (c00=pp.Bimag, stddev=pp.stddev_Bimag, 
-                                      fdeg=pp.fdeg_Bimag, tdeg=pp.tdeg_Bimag, 
-                                      scale=pp.Bscale) 
-    js.define_MeqParm(ns, bi2, station=skey, default=default)
+    for Bimag in [bi1,bi2]:
+       default = MG_JEN_funklet.polc_ft (c00=pp.Bimag, stddev=pp.stddev_Bimag, 
+                                         fdeg=pp.fdeg_Bimag, tdeg=pp.tdeg_Bimag, 
+                                         scale=pp.Bscale) 
+       js.define_MeqParm (ns, Bimag, station=skey, default=default,
+                          tile_size=pp.tile_size_Bimag)
 
     ss = js.MeqParm(update=True)
 
@@ -449,6 +444,8 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
   pp.setdefault('fdeg_dell', 0)           # degree of default freq polynomial
   pp.setdefault('tdeg_dang', 0)           # degree of default time polynomial
   pp.setdefault('tdeg_dell', 0)           # degree of default time polynomial
+  pp.setdefault('tile_size_dang', 1)      # used in tiled solutions         
+  pp.setdefault('tile_size_dell', 1)      # used in tiled solutions         
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
@@ -503,16 +500,16 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
     if pp.coupled_XY_dang:
        default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.Dscale,
                                          fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
-       js.define_MeqParm(ns, dang, station=skey, default=default)
+       js.define_MeqParm (ns, dang, station=skey, default=default,
+                          tile_size=pp.tile_size_dang)
        ss = js.MeqParm(update=True, reset=True)
        rmat = MG_JEN_matrix.rotation (ns, angle=ss[dang], qual=qual, name=matname)
     else: 
-       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.Dscale,
-                                         fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
-       js.define_MeqParm(ns, dang1, station=skey, default=default)
-       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.Dscale, 
-                                         fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
-       js.define_MeqParm(ns, dang2, station=skey, default=default)
+       for dang in [dang1,dang2]:
+          default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.Dscale,
+                                            fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
+          js.define_MeqParm (ns, dang, station=skey, default=default,
+                             tile_size=pp.tile_size_dang)
        ss = js.MeqParm(update=True, reset=True)
        rmat = MG_JEN_matrix.rotation (ns, angle=[ss[dang1],ss[dang2]], qual=qual, name=matname)
 
@@ -522,16 +519,16 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
     if pp.coupled_XY_dell:
        default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.Dscale,
                                          fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
-       js.define_MeqParm(ns, dell, station=skey, default=default)
+       js.define_MeqParm (ns, dell, station=skey, default=default,
+                          tile_size=pp.tile_size_dell)
        ss = js.MeqParm(update=True, reset=True)
        emat = MG_JEN_matrix.ellipticity (ns, angle=ss[dell], qual=qual, name=matname)
     else:
-       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.Dscale, 
-                                         fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
-       js.define_MeqParm(ns, dell1, station=skey, default=default)
-       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.Dscale, 
-                                         fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
-       js.define_MeqParm(ns, dell2, station=skey, default=default)
+       for dell in [dell1,dell2]:
+          default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.Dscale, 
+                                            fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
+          js.define_MeqParm (ns, dell, station=skey, default=default,
+                             tile_size=pp.tile_size_dell)
        ss = js.MeqParm(update=True, reset=True)
        emat = MG_JEN_matrix.ellipticity (ns, angle=[ss[dell1],ss[dell2]], qual=qual, name=matname)
 
