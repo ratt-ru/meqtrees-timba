@@ -328,7 +328,6 @@ class _NodeStub (object):
       if nodedef.error:
         raise nodedef.error;
       # resolve list of children in the nodedef to a list of node stubs
-      # catch and re-raise exceptions to keep tracebacks small
       children = nodedef.children.resolve(self.scope);
       stepchildren = nodedef.stepchildren.resolve(self.scope);
       # are we already initialized? If yes, check for exact match of initrec
@@ -404,6 +403,38 @@ class _NodeStub (object):
     for n in nodes:
       res = res._qualify(n.quals,n.kwquals,True);
     return res;
+  # add_children(...,label=...)    adds children to node    
+  def add_children (self,*args,**kw):
+    """adds children to node. Node stub must have been already initialized."""
+    if not self.initialized():
+      raise UninitializedNode,"node %s not initialized"%(self.name,);
+    if args:
+      if kw:
+        raise TypeError,"can't specify children both by list and keyword";
+      children = _NodeDef.ChildList(args).resolve(self.scope);
+      for num,node in children:
+        self.children.append((len(self.children),node));
+    elif kw:
+      children = _NodeDef.ChildList(kw).resolve(self.scope);
+      self.children.extend(list(children.iteritems()));
+    else:
+      return self;
+    for num,child in children:
+      child.parents[self.name] = self;
+    return self;
+  # add_stepchildren(...)    adds stepchildren to node    
+  def add_stepchildren (self,*args):
+    """adds stepchildren to node. Node stub must have been already initialized."""
+    if not self.initialized():
+      raise UninitializedNode,"node %s not initialized"%(self.name,);
+    stepchildren = _NodeDef.ChildList(args).resolve(self.scope);
+    # add to stepchildren list
+    for num,node in stepchildren:
+      self.stepchildren.append((len(self.stepchildren),node));
+    # add ourselves to parent list
+    for num,child in stepchildren:
+      child.parents[self.name] = self;
+    return self;
   # define implicit arithmetic
   def __add__ (self,other):
     return _Meq.Add(self,other);
