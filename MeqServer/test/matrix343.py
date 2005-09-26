@@ -298,7 +298,10 @@ def forest_baseline_predict_trees(ns, interferometer_list, patch_names):
                                  ns.ctJ(ant1, patch_name))
             corrupted_patch_vis_list.append(ns.corrupted_patch_vis(ant1,ant2,patch_name))        
             pass
-        ns.predict(ant1, ant2) << Meq.Add(children=deepcopy(corrupted_patch_vis_list))    
+        ns.predict_patches(ant1, ant2) << Meq.Add(children=deepcopy(corrupted_patch_vis_list))    
+        ns.predict(ant1, ant2) << Meq.MatrixMultiply(ns.G(ant1),
+                                                     ns.predict_patches(ant1, ant2),
+                                                     ns.ctG(ant2))   
         pass
     pass
 
@@ -314,7 +317,9 @@ def forest_baseline_correct_trees(ns, interferometer_list, patch_name):
                                     ns.predict(ant1, ant2))
         ns.corrected(ant1,ant2) << \
                 Meq.MatrixMultiply(Meq.MatrixInvert22(ns.J(ant1,patch_name)), 
+                                   Meq.MatrixInvert22(ns.G(ant1)),
                                    ns.subtract(ant1,ant2),
+                                   Meq.MatrixInvert22(ns.ctG(ant2)),
                                    Meq.MatrixInvert22(ns.ctJ(ant2, patch_name)))
         pass
     pass
@@ -400,7 +405,7 @@ def create_inputrec(msname, tile_size=1500):
     inputrec.tile_size        = tile_size
     inputrec.selection = record(channel_start_index=25,
                                 channel_end_index=40,
-                                selection_string='')#'TIME_CENTROID < 4472040000')
+                                selection_string='')#'TIME_CENTROID < 4472026000')
     inputrec.python_init = 'MAB_read_msvis_header.py'
     
     return inputrec
@@ -468,9 +473,61 @@ def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
 
 
 def _tdl_job_phase_solution_with_given_fluxes(mqs, parent):
+    msname          = '3C343.MS'
+    inputrec        = create_inputrec(msname, tile_size=1)
+    outputrec       = create_outputrec()
+
+    source_list  = create_initial_source_model()
+    station_list = range(1,15)
+    patch_list   = ['centre', 'edge']
+    print inputrec
+    print outputrec
+
+    solvables = []
+    for station in station_list[1:]:
+        solvables.append('GP:'+str(station)+':11')
+        solvables.append('GP:'+str(station)+':22')
+        pass
+    print solvables
+    
+    publish_node_state(mqs, 'GP:9:11')
+    
+    solver_defaults = create_solver_defaults(num_iter=4,solvable=solvables)
+    print solver_defaults
+    set_MAB_node_state(mqs, 'solver', solver_defaults)
+    mqs.init(record(mandate_regular_grid=False),\
+                    inputinit=inputrec, outputinit=outputrec)
+
     pass
 
 def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
+    msname          = '3C343.MS'
+    inputrec        = create_inputrec(msname, tile_size=30)
+    outputrec       = create_outputrec()
+
+    source_list  = create_initial_source_model()
+    station_list = range(1,15)
+    patch_list   = ['centre', 'edge']
+    print inputrec
+    print outputrec
+
+    solvables = []
+    for station in station_list[1:]:
+        for patch_name in patch_list:
+            solvables.append('JA:'+str(station)+':'+patch_name+':11')
+            solvables.append('JA:'+str(station)+':'+patch_name+':22')
+            pass
+        pass
+    print solvables
+    
+    publish_node_state(mqs, 'JA:9:centre:11')
+    
+    solver_defaults = create_solver_defaults(num_iter=4,solvable=solvables)
+    print solver_defaults
+    set_MAB_node_state(mqs, 'solver', solver_defaults)
+    mqs.init(record(mandate_regular_grid=False),\
+                    inputinit=inputrec, outputinit=outputrec)
+
     pass
 
 
