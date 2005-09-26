@@ -1,12 +1,21 @@
 #!/usr/bin/python
-
 # standard python interface module for meqserver
+
+import sys
+# sys.argv is not present when embedding a Python interpreter, but some
+# packages (i.e. numarray) seem to fall over when it is not found. So we
+# inject it
+if not hasattr(sys,'argv'):
+  setattr(sys,'argv',['meqkernel']);
+
+# now import the rest
 from Timba import dmi
 from Timba import utils
 import meqserver_interface
 import sys
 import imp
 import os.path
+
 
 _dbg = utils.verbosity(0,name='meqkernel');
 _dprint = _dbg.dprint;
