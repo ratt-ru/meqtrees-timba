@@ -313,9 +313,9 @@ def forest_baseline_correct_trees(ns, interferometer_list, patch_name):
         ns.subtract(ant1, ant2) << (ns.spigot(ant1,ant2) - \
                                     ns.predict(ant1, ant2))
         ns.corrected(ant1,ant2) << \
-                Meq.Multiply(Meq.MatrixInvert22(ns.J(ant1,patch_name)), 
-                             ns.subtract(ant1,ant2),
-                             Meq.MatrixInvert22(ns.ctJ(ant1, patch_name)))
+                Meq.MatrixMultiply(Meq.MatrixInvert22(ns.J(ant1,patch_name)), 
+                                   ns.subtract(ant1,ant2),
+                                   Meq.MatrixInvert22(ns.ctJ(ant2, patch_name)))
         pass
     pass
 
@@ -343,12 +343,12 @@ def forest_solver(ns, interferometer_list, input_column='DATA'):
 
 
 
-def forest_create_sink_sequence(ns, interferometer_list, input_column='DATA'):
+def forest_create_sink_sequence(ns, interferometer_list, output_column='PREDICT'):
     for (ant1, ant2) in interferometer_list:
-        ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1,
+        ns.ROOT << ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1,
                                        station_2_index=ant2,
                                        flag_bit=4,
-                                       input_column=input_column,
+                                       output_col=output_column,
                                        children=[Meq.ReqSeq(ns.solver,
                                                  ns.corrected(ant1, ant2))])
         pass
@@ -398,8 +398,8 @@ def create_inputrec(msname, tile_size=1500):
     inputrec.ms_name          = msname
     inputrec.data_column_name = 'DATA'
     inputrec.tile_size        = tile_size
-    inputrec.selection = record(channel_start_index=30, #25,
-                                channel_end_index=35, #40,
+    inputrec.selection = record(channel_start_index=25,
+                                channel_end_index=40,
                                 selection_string='')#'TIME_CENTROID < 4472040000')
     inputrec.python_init = 'MAB_read_msvis_header.py'
     
@@ -478,8 +478,8 @@ def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
 
 
 
-Settings.forest_state.cache_policy = 100
-Settings.orphans_are_roots = True
+Settings.forest_state.cache_policy = 0 #100
+Settings.orphans_are_roots = False
 
 if __name__ == '__main__':
 
