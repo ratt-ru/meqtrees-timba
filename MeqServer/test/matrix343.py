@@ -176,10 +176,12 @@ def forest_station_patch_jones(ns, station, patch_name, mep_table_name):
                 pass
             ns.JA(station, patch_name, elem) << Meq.Parm(gain_polc,
                                                           table_name=mep_table_name,
-                                                          node_groups='Parm')
+                                                          node_groups='Parm',
+                                                          tiling=record(time=20))
             ns.JP(station, patch_name, elem) << Meq.Parm(phase_polc,
                                                           table_name=mep_table_name,
-                                                          node_groups='Parm')
+                                                          node_groups='Parm',
+                                                          tiling=record(time=1))
             ns.J(station, patch_name, elem) << Meq.Polar(
                     ns.JA(station, patch_name, elem),
                     ns.JP(station, patch_name, elem))
@@ -222,10 +224,12 @@ def forest_station_jones(ns, station, mep_table_name):
                 pass
             ns.GA(station, elem) << Meq.Parm(gain_polc,
                                              table_name=mep_table_name,
-                                             node_groups='Parm')
+                                             node_groups='Parm',
+                                             tiling=record(time=20))
             ns.GP(station, elem) << Meq.Parm(phase_polc,
                                              table_name=mep_table_name,
-                                             node_groups='Parm')
+                                             node_groups='Parm',
+                                             tiling=record(time=1))
             ns.G(station, elem) << Meq.Polar(
                     ns.GA(station, elem),
                     ns.GP(station, elem))
@@ -472,9 +476,13 @@ def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
 
 
 
+
+#   PHASES    PHASES     PHASES
+
+
 def _tdl_job_phase_solution_with_given_fluxes(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=1)
+    inputrec        = create_inputrec(msname, tile_size=25)
     outputrec       = create_outputrec()
 
     source_list  = create_initial_source_model()
@@ -500,9 +508,20 @@ def _tdl_job_phase_solution_with_given_fluxes(mqs, parent):
 
     pass
 
+
+
+
+
+
+
+
+
+
+#   GAINS     GAINS      GAINS    
+
 def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=30)
+    inputrec        = create_inputrec(msname, tile_size=20)
     outputrec       = create_outputrec()
 
     source_list  = create_initial_source_model()
