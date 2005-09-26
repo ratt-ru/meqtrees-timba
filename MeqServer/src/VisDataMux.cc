@@ -43,7 +43,7 @@ InitDebugContext(Meq::VisDataMux,"VisDataMux");
 Meq::VisDataMux::VisDataMux ()
   : Node(-4,child_labels,0)  // 3 labeled children, more possible, 0 mandatory
 {
-  force_regular_grid = true;
+  force_regular_grid = false;
   // use reasonable default
   handlers_.resize(VisVocabulary::ifrNumber(30,30)+1);
   sinks_.resize(VisVocabulary::ifrNumber(30,30)+1);
