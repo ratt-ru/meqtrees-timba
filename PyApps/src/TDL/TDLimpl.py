@@ -404,21 +404,14 @@ class _NodeStub (object):
       res = res._qualify(n.quals,n.kwquals,True);
     return res;
   # add_children(...,label=...)    adds children to node    
-  def add_children (self,*args,**kw):
+  def add_children (self,*args):
     """adds children to node. Node stub must have been already initialized."""
     if not self.initialized():
       raise UninitializedNode,"node %s not initialized"%(self.name,);
-    if args:
-      if kw:
-        raise TypeError,"can't specify children both by list and keyword";
-      children = _NodeDef.ChildList(args).resolve(self.scope);
-      for num,node in children:
-        self.children.append((len(self.children),node));
-    elif kw:
-      children = _NodeDef.ChildList(kw).resolve(self.scope);
-      self.children.extend(list(children.iteritems()));
-    else:
-      return self;
+    children = _NodeDef.ChildList(args).resolve(self.scope);
+    for num,node in children:
+      self.children.append((len(self.children),node));
+    # add ourselves to parent list
     for num,child in children:
       child.parents[self.name] = self;
     return self;

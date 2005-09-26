@@ -174,6 +174,11 @@ def _define_forest (ns):
   # specifies an initrec field, initrec.radec0=0. So, you can use implicit
   # constant nodes for regular children, but not for labelled ones.
   
+  # finally, both children and stepchildren may be added to a node "after the fact":
+  ns.phasecen.add_stepchildren(Meq.Parm(0),Meq.Parm(1));
+  ns.sum << Meq.Add;
+  ns.sum.add_children(Meq.Parm(0),Meq.Parm(1),Meq.Parm(2));
+  
   # More examples of automatic node names.
   # Now here's another interesting subtree:
   ns.d3 << (ns.d4 << Meq.Parm(1)) * Meq.Parm + 5;
