@@ -33,7 +33,7 @@
 # executable directly.
 #
 # assay redirects the output of program or .run file to a temporary file
-# and compare it with a corresponding .out file (if there) using diff.
+# and compare it with a corresponding .stdout file (if there) using diff.
 # Parts of the output can be skipped using special markers (>>> and <<<).
 # If the out files are different, it tries to find out if they match
 # by comparing numbers with the given precision (e.g. 1e-5) using:
@@ -80,7 +80,7 @@
 #  if [ $STATUS ]
 #  then
 #    # Do a difference of all output files.
-#    mdiff *.out $sdir/BASELINE
+#    mdiff *.stdout $sdir/BASELINE
 #    STATUS=$?
 #  fi
 #  # Remove the files created.
@@ -88,10 +88,10 @@
 #  then
 #    \rm -f  *.coef
 #  fi
-#  # Remove .out files only if succesfully ended.
+#  # Remove .stdout files only if succesfully ended.
 #  if [ $STATUS ]
 #  then
-#    \rm -f *.out*
+#    \rm -f *.stdout*
 #  fi
 #  exit $STATUS
 ##########################################################
@@ -189,7 +189,7 @@
 # Execute the command.
   if eval "$COMMAND" > ${PROG}_tmp.out
   then
-     if [ -f $PROG.out ]
+     if [ -f $PROG.stdout ]
      then
         CAT=cat
      else
@@ -214,7 +214,7 @@
      exit
   fi
 
-  echo "Comparing output with $PROG.out ..."
+  echo "Comparing output with $PROG.stdout ..."
 # Strip out demarked text.
 # inline parts enclosed by >>> && <<<
   sed -e 's/>>>.*<<<//' ${PROG}_tmp.out > ${PROG}_tmp.out2
@@ -222,7 +222,7 @@
   sed -e '/^>>>/,/^<<</d' ${PROG}_tmp.out2 > ${PROG}_tmp.out
 
 # Compare with the expected output.
-  $CAT $PROG.out | sed -e 's/>>>.*<<<//' | sed -e '/^>>>/,/^<<</d' > ${PROG}_tmp_orig.out
+  $CAT $PROG.stdout | sed -e 's/>>>.*<<<//' | sed -e '/^>>>/,/^<<</d' > ${PROG}_tmp_orig.out
   if diff ${PROG}_tmp.out ${PROG}_tmp_orig.out
   then
      echo "PASS (output verified): $PROG"

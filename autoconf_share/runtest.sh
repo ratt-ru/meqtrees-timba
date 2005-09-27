@@ -57,6 +57,9 @@ if [ "$srcdir" = "" ]; then
   srcdir=$lfr_share_dir/../`echo $findvars | awk '{print $5}'`/$basenm
 fi
 
+# Make directory writable (needed for make distcheck).
+chmod +w .
+
 # Initialize AIPS++ if used.
 if test "$AIPSPP" != ""; then
     aipsroot=`dirname $AIPSPP`
@@ -76,9 +79,13 @@ if test -f "$srcdir/$1.in"; then
     \cp $srcdir/$1.in  .
 fi
 \cp $srcdir/$1.in_* . > /dev/null 2>&1
+if test -f "$srcdir/$1.stdout"; then
+    \rm -f $1.stdout
+    \cp $srcdir/$1.stdout .
+fi
 if test -f "$srcdir/$1.out"; then
-    \rm -f $1.out
-    \cp $srcdir/$1.out .
+    \rm -f $1.stdout
+    \cp $srcdir/$1.out $1.stdout
 fi
 if test -f "$srcdir/$1.run"; then
     \rm -f $1.run
@@ -99,3 +106,8 @@ fi
 LOFAR_PKGSRCDIR=$srcdir
 export LOFAR_PKGSRCDIR
 $lfr_share_dir/assay $1 $MAXTIME $PREC
+STS=$?
+
+# Cleanup (mainly for make distcheck).
+\rm -f *.stdout *.run *.in *.log_prop *.in_*
+exit $STS
