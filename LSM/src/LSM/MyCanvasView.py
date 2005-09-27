@@ -156,9 +156,9 @@ class MyCanvasView(QCanvasView):
      self.ylabel.setText("<font color=\"blue\">"+str(y_val)+"</font>")
     else: # degrees
      tmpval=radToRA(xys[0])
-     self.xlabel.setText("<font color=\"blue\">"+str(tmpval[0])+"<sup>o</sup>"+str(tmpval[1])+"<sup>o</sup>"+str(tmpval[2])+"<sup>'</sup>""</font>")
+     self.xlabel.setText("<font color=\"blue\">"+str(tmpval[0])+"<sup>o</sup>"+str(tmpval[1])+"<sup>'</sup>"+str(tmpval[2])+"<sup>''</sup>""</font>")
      tmpval=radToDec(xys[1])
-     self.ylabel.setText("<font color=\"blue\">"+str(tmpval[0])+"<sup>o</sup>"+str(tmpval[1])+"<sup>o</sup>"+str(tmpval[2])+"<sup>'</sup>""</font>")
+     self.ylabel.setText("<font color=\"blue\">"+str(tmpval[0])+"<sup>o</sup>"+str(tmpval[1])+"<sup>'</sup>"+str(tmpval[2])+"<sup>''</sup>""</font>")
 
     # move zoom window
     if self.zoom_status==GUI_ZOOM_START or\
@@ -650,7 +650,7 @@ class Axes:
     for tck in ll:
      xval=tck[0]
      xstr=tck[1]
-     degstr=tck[2]+" "+tck[3]+" "+tck[4]
+     degstr=tck[2]+":"+tck[3]+":"+tck[4]
      # draw line
      ff=QCanvasLine(self.cview.canvas())
      xys=self.cview.globalToLocal(xval,self.cview.y_min)
@@ -694,7 +694,7 @@ class Axes:
     for tck in ll:
      yval=tck[0]
      xstr=tck[1]
-     degstr=tck[2]+" "+tck[3]+" "+tck[4]
+     degstr=tck[2]+"."+tck[3]+"."+tck[4]
      # draw line
      ff=QCanvasLine(self.cview.canvas())
      xys=self.cview.globalToLocal(self.cview.x_max,yval)

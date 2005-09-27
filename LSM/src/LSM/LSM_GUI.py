@@ -340,6 +340,8 @@ class LSMWindow(QMainWindow):
         self.fileExportAction = QAction(self,"fileExportAction")
         self.helpAboutAction = QAction(self,"helpAboutAction")
         self.viewZoom_WindowAction = QAction(self,"viewZoom_WindowAction")
+        self.viewZoom_MoreAction = QAction(self,"viewZoom_MoreAction")
+        self.viewZoom_LessAction = QAction(self,"viewZoom_LessAction")
         self.viewZoom_AllAction = QAction(self,"viewZoom_AllAction")
         self.viewZoom_CancelAction = QAction(self,"viewZoom_CancelAction")
         self.view_selectAction = QAction(self,"view_selectAction")
@@ -367,6 +369,8 @@ class LSMWindow(QMainWindow):
 
         self.viewMenu = QPopupMenu(self)
         self.viewZoom_WindowAction.addTo(self.viewMenu)
+        self.viewZoom_MoreAction.addTo(self.viewMenu)
+        self.viewZoom_LessAction.addTo(self.viewMenu)
         self.viewZoom_AllAction.addTo(self.viewMenu)
         self.viewZoom_CancelAction.addTo(self.viewMenu)
         self.viewMenu.insertSeparator()
@@ -400,6 +404,8 @@ class LSMWindow(QMainWindow):
         self.connect(self.fileExportAction,SIGNAL("activated()"),self.fileExport)
 
         self.connect(self.viewZoom_WindowAction,SIGNAL("activated()"),self.zoomStart)
+        self.connect(self.viewZoom_MoreAction,SIGNAL("activated()"),self.zoomIn)
+        self.connect(self.viewZoom_LessAction,SIGNAL("activated()"),self.zoomOut)
         self.connect(self.viewZoom_AllAction,SIGNAL("activated()"),self.zoomAll)
         self.connect(self.viewZoom_CancelAction,SIGNAL("activated()"),self.zoomCancel)
         self.connect(self.viewZoom_OptionsAction,SIGNAL("activated()"),self.changeOptions)
@@ -509,6 +515,14 @@ class LSMWindow(QMainWindow):
         self.viewZoom_WindowAction.setText(self.__tr("Zoom Window"))
         self.viewZoom_WindowAction.setMenuText(self.__tr("&Zoom Window"))
         self.viewZoom_WindowAction.setAccel(self.__tr("Ctrl+Z"))
+        self.viewZoom_MoreAction.setText(self.__tr("Zoom In"))
+        self.viewZoom_MoreAction.setMenuText(self.__tr("Zoom &In"))
+        self.viewZoom_MoreAction.setAccel(self.__tr("Ctrl+I"))
+        self.viewZoom_LessAction.setText(self.__tr("Zoom Out"))
+        self.viewZoom_LessAction.setMenuText(self.__tr("Zoom O&ut"))
+        self.viewZoom_LessAction.setAccel(self.__tr("Ctrl+U"))
+
+
         self.viewZoom_AllAction.setText(self.__tr("Zoom All"))
         self.viewZoom_AllAction.setMenuText(self.__tr("Zoom &All"))
         self.viewZoom_AllAction.setAccel(self.__tr("Ctrl+A"))
@@ -641,6 +655,17 @@ class LSMWindow(QMainWindow):
 
     def zoomStart(self):
        self.cview.zoom_status=GUI_ZOOM_WINDOW
+
+    def zoomIn(self):
+       m = self.cview.worldMatrix()
+       m.scale( 2.0, 2.0 )
+       self.cview.setWorldMatrix( m )
+
+    def zoomOut(self):
+       m = self.cview.worldMatrix()
+       m.scale( 0.5, 0.5 )
+       self.cview.setWorldMatrix( m )
+
 
     def zoomAll(self):
        # no Zooming if image tab is not seen
