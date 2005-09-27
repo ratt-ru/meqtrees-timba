@@ -20,6 +20,7 @@ class OptionsDialog(QDialog):
         # remember what has changed
         self.axes_changed=0
         self.turn_gridon=-1
+        self.turn_legendon=-1
         self.display_source_type=-1
         self.coord_radians=-1
         self.plot_z_type=-1 # 0:brightness, 1,2,3,4,=IQUV
@@ -200,7 +201,10 @@ class OptionsDialog(QDialog):
         displaytabLayout.addWidget(self.legendBG)
 
        
-        self.legend_OFF.setChecked(1)
+        if self.parentWidget().cview.legend_on==0:
+         self.legend_OFF.setChecked(1)
+        else:
+         self.legend_ON.setChecked(1)
         self.connect(self.legendBG, SIGNAL("clicked(int)"), self.legendBGradioClick)
         ###############################
 
@@ -561,6 +565,12 @@ class OptionsDialog(QDialog):
 
     def legendBGradioClick(self,id):
      print "legend BG button %d clicked" %id
+     if id==0:
+      self.turn_legendon=1
+     else:
+      self.turn_legendon=0
+
+
 
 
     def plotBGradioClick(self,id):
@@ -774,6 +784,11 @@ class OptionsDialog(QDialog):
       elif self.plot_z_type==4: 
        self.parentWidget().cview.updateDisplay('V')
 
+     if  self.turn_legendon!=-1:
+      if  self.turn_legendon==1:
+       self.parentWidget().cview.showLegend(1)
+      else:
+       self.parentWidget().cview.showLegend(0)
 
      self.parentWidget().canvas.update()
 

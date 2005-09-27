@@ -32,6 +32,7 @@ class MyCanvasView(QCanvasView):
     self.xdivs=5
     self.ydivs=5
     self.grid_on=0
+    self.legend_on=0
     self.display_point_sources='pcross' #cross,point,pcross
 
     self.canvas().setDoubleBuffering(True) 
@@ -67,7 +68,7 @@ class MyCanvasView(QCanvasView):
     self.d1=60+20 # 20 for the axis label
     self.d3=30
     self.d4=30+20 # 20 for the axis label
-    self.d2=30 # more pixels for the legend
+    self.d2=5 # more pixels for the legend
 
     # limits in real coordinates
     self.x_min=bounds['min_RA']
@@ -114,7 +115,7 @@ class MyCanvasView(QCanvasView):
     self.axes.gridOff()
 
     ############ create legend
-
+    self.legend=None
 
     ############ create zoom-window
     self.zwindow=ZWindow(self.canvas())
@@ -503,6 +504,36 @@ class MyCanvasView(QCanvasView):
         self.parent.insertPUnitRow(retval[0])
       self.canvas().update()
 
+  def showLegend(self,flag):
+   """if flag==1, show legend, else hide legend"""
+   # get dimensions needed
+   [char_w,char_h]=self.getTextDims("%4.3f")
+   if flag==1 and self.legend_on==0:
+    self.canvas().resize(self.canvas().width()+30+char_w,self.canvas().height())
+    # get limits from the boundary of main plot
+    qp=self.axes.rect.rect()
+    print qp.right(),qp.bottom(),qp.top()
+    #rr=QCanvasRectangle(qp.right()+self.d2+5,qp.top(),24,qp.bottom()-qp.top(),self.canvas())
+    self.legend=Legend(qp.right()+self.d2+5,qp.top(),24,qp.bottom()-qp.top(),\
+        self.canvas(),self,"%4.3f")
+    self.legend.show()
+    self.legend_on=1
+   elif flag==0 and self.legend_on==1:
+    self.canvas().resize(self.canvas().width()-30-char_w,self.canvas().height())
+    self.legend_on=0
+    if self.legend !=None:
+     self.legend.hide()
+     self.legend=None
+
+  # give the text width,height in pixels using the default font
+  def getTextDims(self,format):
+    myfont=self.axes.axfont
+    fm=QFontMetrics(myfont)
+    # find width in pixels
+    label=QString(format%0.0)
+    char_width=fm.width(label)
+    char_height=fm.height()
+    return (char_width,char_height)
 
   # save the canvas as a pixmap
   def getPixmap(self):
@@ -1141,3 +1172,73 @@ class FontHorizImage(QCanvasRectangle):
     def drawShape(self,p):
         p.drawPixmap(self.x(),self.y(), self.pixmap )
 
+
+##################################################################
+# class to draw legend colourbar
+class Legend:
+    def __init__(self,left,top,width,height,canvas,cview,format="%4.3f"):
+       self.cview=cview
+       self.rect=QCanvasRectangle(left,top,width,height,canvas)
+       # fill this with coloured rectangles
+       self.ncolors=10
+       # height of each rectangle
+       h=height/self.ncolors
+       zheight=(self.cview.max_brightness-self.cview.min_brightness)/float(self.ncolors)
+       self.rts=[]
+       self.txt=[]
+       for ci in range(1,self.ncolors):
+         y=top+height-h*ci
+         rt=QCanvasRectangle(left,y,width,h,canvas)
+         zlevel=zheight*ci+self.cview.min_brightness
+         rt.setBrush(QBrush(self.cview.getColor(zlevel)))
+         self.rts.append(rt)
+         # ad label
+         dt=QCanvasText(canvas)
+         dt.setText(format%zlevel)
+         dt.setFont(self.cview.axes.axfont)
+         dt.move(left+width,y-3)
+         dt.setZ(0)
+         self.txt.append(dt)
+
+ 
+       # the last rectangle
+       h=y-top
+       y=top
+       rt=QCanvasRectangle(left,y,width,h,canvas)
+       rt.setBrush(QBrush(self.cview.getColor(zheight*(ci+1)+self.cview.min_brightness)))
+       self.rts.append(rt)
+       dt=QCanvasText(canvas)
+       dt.setText(format%zlevel)
+       dt.setFont(self.cview.axes.axfont)
+       dt.move(left+width,y-3)
+       dt.setZ(0)
+       self.txt.append(dt)
+
+       # last, text at zero level
+       zlevel=self.cview.min_brightness
+       dt=QCanvasText(canvas)
+       dt.setText(format%zlevel)
+       y=top+height
+       dt.setFont(self.cview.axes.axfont)
+       dt.move(left+width,y-3)
+       dt.setZ(0)
+       self.txt.append(dt)
+
+
+
+
+    def show(self):
+      for cr in self.rts:
+         cr.show()
+      self.rect.show()
+      for cr in self.txt:
+         cr.show()
+
+
+    def hide(self):
+      for cr in self.rts:
+         cr.hide()
+      self.rect.hide()
+      for cr in self.txt:
+         cr.hide()
+ 

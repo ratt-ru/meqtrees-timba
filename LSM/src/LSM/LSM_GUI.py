@@ -633,7 +633,8 @@ class LSMWindow(QMainWindow):
      # note padding is arbitrary
      padding=100 
      newstr="%%BoundingBox: "+str(left[0])+" "+str(top[0]-(self.canvas.height()-padding))+" "+str(left[0]+self.canvas.width()-padding)+" "+str(top[0])
-     print "Writing "+newstr
+     #print "Writing "+newstr
+     # FIXME: need to check if canvas is scaled (zoomed)
      fileContent.replace(pos,rx.cap(0).length(),QString(newstr))
      #print "File modified",fileContent.ascii()
 
