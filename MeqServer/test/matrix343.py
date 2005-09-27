@@ -337,10 +337,10 @@ def forest_baseline_correct_trees(ns, interferometer_list, patch_name):
 def forest_solver(ns, interferometer_list, input_column='DATA'):
     ce_list = []
     for (ant1,ant2) in interferometer_list:
-        ns.spigot(ant1, ant2) << Meq.Spigot(station_1_index=ant1,
-                                            station_2_index=ant2,
+        ns.spigot(ant1, ant2) << Meq.Spigot(station_1_index=ant1-1,
+                                            station_2_index=ant2-1,
                                             flag_bit=4,
-                                            input_column=input_column)
+                                            input_col=input_column)
         ns.ce(ant1, ant2) << Meq.Condeq(ns.spigot(ant1, ant2),
                                         ns.predict(ant1, ant2))
         ce_list.append(ns.ce(ant1, ant2))
@@ -354,12 +354,16 @@ def forest_solver(ns, interferometer_list, input_column='DATA'):
 
 def forest_create_sink_sequence(ns, interferometer_list, output_column='PREDICT'):
     for (ant1, ant2) in interferometer_list:
-        ns.ROOT << ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1,
-                                       station_2_index=ant2,
+        ns.ROOT << ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1-1,
+                                       station_2_index=ant2-1,
                                        flag_bit=4,
+                                       corr_index=[0,1,2,3],
+                                       flag_mask=-1,
                                        output_col=output_column,
                                        children=[Meq.ReqSeq(ns.solver,
-                                                 ns.corrected(ant1, ant2))])
+                                                 ns.corrected(ant1, ant2),
+                                                 result_index=1)]
+                                       )
         pass
     pass
 
@@ -407,8 +411,8 @@ def create_inputrec(msname, tile_size=1500):
     inputrec.ms_name          = msname
     inputrec.data_column_name = 'DATA'
     inputrec.tile_size        = tile_size
-    inputrec.selection = record(channel_start_index=25,
-                                channel_end_index=40,
+    inputrec.selection = record(channel_start_index=30,#25,
+                                channel_end_index=33,#40,
                                 selection_string='')#'TIME_CENTROID < 4472026000')
     inputrec.python_init = 'MAB_read_msvis_header.py'
     
@@ -482,7 +486,7 @@ def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
 
 def _tdl_job_phase_solution_with_given_fluxes(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=25)
+    inputrec        = create_inputrec(msname, tile_size=10)
     outputrec       = create_outputrec()
 
     source_list  = create_initial_source_model()
@@ -521,7 +525,7 @@ def _tdl_job_phase_solution_with_given_fluxes(mqs, parent):
 
 def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=20)
+    inputrec        = create_inputrec(msname, tile_size=60)
     outputrec       = create_outputrec()
 
     source_list  = create_initial_source_model()
@@ -554,7 +558,7 @@ def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
 
 
 
-Settings.forest_state.cache_policy = 0 #100
+Settings.forest_state.cache_policy = 100
 Settings.orphans_are_roots = False
 
 if __name__ == '__main__':
