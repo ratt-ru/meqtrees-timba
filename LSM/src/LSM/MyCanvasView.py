@@ -1205,7 +1205,8 @@ class Legend:
        h=y-top
        y=top
        rt=QCanvasRectangle(left,y,width,h,canvas)
-       rt.setBrush(QBrush(self.cview.getColor(zheight*(ci+1)+self.cview.min_brightness)))
+       zlevel=zheight*(ci+1)+self.cview.min_brightness
+       rt.setBrush(QBrush(self.cview.getColor(zlevel)))
        self.rts.append(rt)
        dt=QCanvasText(canvas)
        dt.setText(format%zlevel)
