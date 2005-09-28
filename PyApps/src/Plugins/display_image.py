@@ -168,6 +168,7 @@ class QwtImageDisplay(QwtPlot):
         self.setlegend = 0
         self.setAutoLegend(self.setlegend)
         self.enableLegend(False)
+        self.setLegendFont(font)
         self.setLegendPos(Qwt.Right)
         self.setAxisTitle(QwtPlot.xBottom, 'Array/Channel Number')
         self.setAxisTitle(QwtPlot.yLeft, 'Array/Sequence Number')
@@ -818,7 +819,7 @@ class QwtImageDisplay(QwtPlot):
         self.setMarkerPos(self.source_marker, xlb, ylb)
         self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
         self.setMarkerLabel( self.source_marker, message,
-          QFont(fn, 9, QFont.Bold, False),
+          QFont(fn, 7, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
 
 # insert array info if available
@@ -849,7 +850,7 @@ class QwtImageDisplay(QwtPlot):
         self.setMarkerPos(self.source_marker, xlb, ylb)
         self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
         self.setMarkerLabel( self.source_marker, message,
-          QFont(fn, 9, QFont.Bold, False),
+          QFont(fn, 7, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
 
 # insert array info if available
@@ -1219,7 +1220,7 @@ class QwtImageDisplay(QwtPlot):
         self.setMarkerPos(self.info_marker, xlb, ylb)
         self.setMarkerLabelAlign(self.info_marker, Qt.AlignLeft | Qt.AlignBottom)
         self.setMarkerLabel( self.info_marker, self.array_parms,
-          QFont(fn, 9, QFont.Bold, False),
+          QFont(fn, 7, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
     # insert_array_info()
 

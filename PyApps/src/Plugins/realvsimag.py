@@ -616,7 +616,7 @@ class realvsimag_plotter(object):
           self.plot.setMarkerPos(self.marker, xlb, ylb)
           self.plot.setMarkerLabelAlign(self.marker, Qt.AlignRight | Qt.AlignTop)
           self.plot.setMarkerLabel( self.marker, message,
-            QFont(fn, 9, QFont.Bold, False),
+            QFont(fn, 7, QFont.Bold, False),
             Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
 # We have inserted the marker, so replot.
           self.plot.replot()
@@ -651,7 +651,7 @@ class realvsimag_plotter(object):
       self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
       fn = self.plot.fontInfo().family()
       self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
-        QFont(fn, 9, QFont.Bold, False),
+        QFont(fn, 7, QFont.Bold, False),
         Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
     self.plot.replot()
   # timerEvent_marker()
@@ -1523,7 +1523,8 @@ class realvsimag_plotter(object):
          self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
          fn = self.plot.fontInfo().family()
          self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
-           QFont(fn, 9, QFont.Bold, False),
+#          QFont(fn, 9, QFont.Bold, False),
+           QFont(fn, 7, QFont.Bold, False),
            Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
          self.plot.replot()
 
