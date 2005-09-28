@@ -8,6 +8,8 @@ from qt import *
 from Timba.Meq import meq
 import sys
 
+from SDialog import *
+
 class OptionsDialog(QDialog):
     def __init__(self,parent = None,name = "Change Options",modal = 1,fl = 0):
         QDialog.__init__(self,parent,name,modal,fl)
@@ -280,7 +282,7 @@ class OptionsDialog(QDialog):
 
         # get range from LSM
         self.rng=self.parentWidget().lsm.getCellsRange()
-        print "got ",self.rng
+        #print "got ",self.rng
 
         ################# Box 1
         self.FrangeBG=QGroupBox(self.cellTab,"FrangeBG")
@@ -501,12 +503,12 @@ class OptionsDialog(QDialog):
 
     ####################### Callbacks
     def markerBGradioClick(self,id):
-     print "marker BG button %d clicked" %id
+     #print "marker BG button %d clicked" %id
      self.coord_radians=id
 
 
     def gridBGradioClick(self,id):
-     print "grid BG button %d clicked" %id
+     #print "grid BG button %d clicked" %id
      if id==0:
       self.turn_gridon=1
      else:
@@ -516,16 +518,16 @@ class OptionsDialog(QDialog):
      if newText.length()>0:
       try:
        fval=float(newText.ascii())
-       print "Line edit xspace text: %f" % fval
+       #print "Line edit xspace text: %f" % fval
       except (TypeError,ValueError):
        print "invalid number "+unicode(newText)
 
     def lineEditXticks(self,newText):
-     print "Line edit xticks text: " + unicode(newText)
+     #print "Line edit xticks text: " + unicode(newText)
      if newText.length()>0:
       try:
        intval=int(newText.ascii())
-       print "intval =",intval
+       #print "intval =",intval
        if intval>0:
         self.lineEdit_xticks.setText(str(intval))
         tempstr='%9.7f'%((self.parentWidget().cview.x_max-self.parentWidget().cview.x_min)/intval)
@@ -534,19 +536,20 @@ class OptionsDialog(QDialog):
        else:
         raise TypeError
       except (TypeError,ValueError):
-       print "invalid number "+unicode(newText)
+       #print "invalid number "+unicode(newText)
        self.lineEdit_xticks.setText(str(self.parentWidget().cview.xdivs))
 
     def lineEditYspace(self,newText):
-     print "Line edit yspace text: " + unicode(newText)
+     #print "Line edit yspace text: " + unicode(newText)
+     pass
 #     self.lineEdit_yticks.setText(newText)
 
     def lineEditYticks(self,newText):
-     print "Line edit yticks text: " + unicode(newText)
+     #print "Line edit yticks text: " + unicode(newText)
      if newText.length()>0:
       try:
        intval=int(newText.ascii())
-       print "intval =",intval
+       #print "intval =",intval
        if intval>0:
         self.lineEdit_yticks.setText(str(intval))
         tempstr='%9.7f'%((self.parentWidget().cview.y_max-self.parentWidget().cview.y_min)/intval)
@@ -555,17 +558,17 @@ class OptionsDialog(QDialog):
        else:
         raise TypeError
       except (TypeError,ValueError):
-       print "invalid number "+unicode(newText)
+       #print "invalid number "+unicode(newText)
        self.lineEdit_yticks.setText(str(self.parentWidget().cview.ydivs))
 
 
 
     def sourceBGradioClick(self,id):
      self.display_source_type=id
-     print "source BG button %d clicked" %id
+     #print "source BG button %d clicked" %id
 
     def legendBGradioClick(self,id):
-     print "legend BG button %d clicked" %id
+     #print "legend BG button %d clicked" %id
      if id==0:
       self.turn_legendon=1
      else:
@@ -576,21 +579,22 @@ class OptionsDialog(QDialog):
 
     def plotBGradioClick(self,id):
      self.plot_z_type=id
-     print "plot BG button %d clicked" %id
+     #print "plot BG button %d clicked" %id
 
     def scaleBGradioClick(self,id):
-     print "scale BG button %d clicked" %id
+     #print "scale BG button %d clicked" %id
+     pass
 
 
     def lineEditF0(self,newText):
-     print "Line edit F0 text: " + unicode(newText)
+     #print "Line edit F0 text: " + unicode(newText)
      if newText.length()>0:
       try:
        fval=float(newText.ascii())
        self.cell_has_changed=1
-       print "Line edit F0 text: %f" % fval
+       #print "Line edit F0 text: %f" % fval
       except (TypeError,ValueError):
-       print "invalid number "+unicode(newText)
+       #print "invalid number "+unicode(newText)
        if len(self.rng)>0:
          tmpstr='%3.2e'%self.rng['f0']
        else:
@@ -600,14 +604,14 @@ class OptionsDialog(QDialog):
 
 
     def lineEditF1(self,newText):
-     print "Line edit F1 text: " + unicode(newText)
+     #print "Line edit F1 text: " + unicode(newText)
      if newText.length()>0:
       try:
        fval=float(newText.ascii())
        self.cell_has_changed=1
-       print "Line edit F1 text: %f" % fval
+       #print "Line edit F1 text: %f" % fval
       except (TypeError,ValueError):
-       print "invalid number "+unicode(newText)
+       #print "invalid number "+unicode(newText)
        if len(self.rng)>0:
          tmpstr='%3.2e'%self.rng['f1']
        else:
@@ -616,14 +620,14 @@ class OptionsDialog(QDialog):
 
 
     def lineEditFsep(self,newText):
-     print "Line edit Fsep text: " + unicode(newText)
+     #print "Line edit Fsep text: " + unicode(newText)
      if newText.length()>0:
       try:
        intval=int(newText.ascii())
        self.cell_has_changed=1
-       print "Line edit Fsep text: %d" % intval
+       #print "Line edit Fsep text: %d" % intval
       except (TypeError,ValueError):
-       print "invalid number "+unicode(newText)
+       #print "invalid number "+unicode(newText)
        if len(self.rng)>0:
          tmpstr='%d'%self.rng['fstep']
        else:
@@ -632,14 +636,14 @@ class OptionsDialog(QDialog):
 
 
     def lineEditT0(self,newText):
-     print "Line edit T0 text: " + unicode(newText)
+     #print "Line edit T0 text: " + unicode(newText)
      if newText.length()>0:
       try:
        fval=float(newText.ascii())
        self.cell_has_changed=1
-       print "Line edit T0 text: %f" % fval
+       #print "Line edit T0 text: %f" % fval
       except (TypeError,ValueError):
-       print "invalid number "+unicode(newText)
+       #print "invalid number "+unicode(newText)
        if len(self.rng)>0:
          tmpstr='%3.2e'%self.rng['t0']
        else:
@@ -648,14 +652,14 @@ class OptionsDialog(QDialog):
 
 
     def lineEditT1(self,newText):
-     print "Line edit T1 text: " + unicode(newText)
+     #print "Line edit T1 text: " + unicode(newText)
      if newText.length()>0:
       try:
        fval=float(newText.ascii())
        self.cell_has_changed=1
-       print "Line edit T1 text: %f" % fval
+       #print "Line edit T1 text: %f" % fval
       except (TypeError,ValueError):
-       print "invalid number "+unicode(newText)
+       #print "invalid number "+unicode(newText)
        if len(self.rng)>0:
          tmpstr='%3.2e'%self.rng['t1']
        else:
@@ -664,14 +668,14 @@ class OptionsDialog(QDialog):
 
 
     def lineEditTsep(self,newText):
-     print "Line edit Tsep text: " + unicode(newText)
+     #print "Line edit Tsep text: " + unicode(newText)
      if newText.length()>0:
       try:
        intval=int(newText.ascii())
        self.cell_has_changed=1
-       print "Line edit Tsep text: %d" % intval
+       #print "Line edit Tsep text: %d" % intval
       except (TypeError,ValueError):
-       print "invalid number "+unicode(newText)
+       #print "invalid number "+unicode(newText)
        if len(self.rng)>0:
          tmpstr='%d'%self.rng['tstep']
        else:
@@ -682,14 +686,13 @@ class OptionsDialog(QDialog):
 
 
     def accept(self):
-     print "accept options"
      if self.axes_changed==1:
       xticks=int(self.lineEdit_xticks.text().ascii())
       yticks=int(self.lineEdit_yticks.text().ascii())
       self.parentWidget().cview.updateAxes(xticks,yticks)
 
      if self.turn_gridon!= -1:
-      print "Grid ON %d"%self.turn_gridon
+      #print "Grid ON %d"%self.turn_gridon
       self.parentWidget().cview.grid_on=self.turn_gridon
       if self.turn_gridon==1:
        self.parentWidget().cview.axes.gridOn()
@@ -697,7 +700,7 @@ class OptionsDialog(QDialog):
        self.parentWidget().cview.axes.gridOff()
 
      if self.display_source_type != -1:
-      print "Source type change %d"%self.display_source_type
+      #print "Source type change %d"%self.display_source_type
       if self.display_source_type==0:
         self.parentWidget().cview.showPointSources(0)
       elif self.display_source_type==1:
@@ -706,7 +709,7 @@ class OptionsDialog(QDialog):
         self.parentWidget().cview.showPointSources(2)
 
      if self.coord_radians != -1:
-      print "Coordinate change %d"%self.coord_radians
+      #print "Coordinate change %d"%self.coord_radians
       if self.coord_radians==0:
        self.parentWidget().cview.default_coords='rad'
        self.parentWidget().cview.axes.switchCoords('rad')
@@ -764,7 +767,7 @@ class OptionsDialog(QDialog):
         tsep=self.rng['tstep']
        else:
         tsep=2
-      print "New cell (%f,%f) %d, (%f,%f) %d"% (f0,f1,fsep,t0,t1,tsep)
+      #print "New cell (%f,%f) %d, (%f,%f) %d"% (f0,f1,fsep,t0,t1,tsep)
       freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
       cells =meq.cells(domain=freqtime_domain, num_freq=fsep,  num_time=tsep);
       self.parentWidget().lsm.setCells(cells)
@@ -796,13 +799,47 @@ class OptionsDialog(QDialog):
      QDialog.accept(self)
 
     def reject(self):
-     print "reject options"
      QDialog.reject(self)
 
 
     def help(self):
-     print "Not yet implemented"
-     pass
+      tmp_str="""<div style="text-align: left;"><span style="font-weight: bold;">Options
+               Are:</span><br>
+               <ol>
+               <li><u>Axes</u><br>
+               <ul>
+               <li>Change grid markings (Radians or Degrees)</li>
+               <li>Change grid spacings: X and Y axes</li>
+               <li>Show/Hide grid (when creating patches, the grid must be ON)</li>
+               <li>Change the font used for axes</li>
+               </li>
+               </ul>
+               </li>
+               <li><u>Display</u><br>
+               <ul>
+               <li>Select how to plot sources (points, crosses etc.)</li>
+               <li>Colour bar or a Legend?</li>
+               </ul>
+               </li>
+               <li><u>Z axis</u><br>
+               <ul>
+               <li>What to display (Brightness, Stokes IQUV)
+               </li>
+               <li>Scale to use in plotting and colours</li>
+               </ul>
+               </li>
+               <li><u>Cells</u><br>
+               <ul>
+               <li>Change the Frequency and Time grid on which to visualise the LSM</li>
+               </ul>
+               </li>
+               </ol>
+               </div>
+               """
+      dialog=SDialog(self)
+      dialog.setInfoText(tmp_str)
+      dialog.setTitle("Help")
+      dialog.show()
 
 def main(args):
   app=QApplication(args)

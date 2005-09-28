@@ -516,7 +516,7 @@ class MyCanvasView(QCanvasView):
   def showLegend(self,flag):
    """if flag==1, show legend, else hide legend"""
    # get dimensions needed
-   [char_w,char_h]=self.getTextDims("%4.3f")
+   [char_w,char_h]=self.getTextDims("%8.3f")
    if flag==1:
     self.canvas().resize(self.canvas().width()+30+char_w,self.canvas().height())
     # get limits from the boundary of main plot
@@ -524,7 +524,7 @@ class MyCanvasView(QCanvasView):
     print qp.right(),qp.bottom(),qp.top()
     #rr=QCanvasRectangle(qp.right()+self.d2+5,qp.top(),24,qp.bottom()-qp.top(),self.canvas())
     self.legend=Legend(qp.right()+self.d2+5,qp.top(),24,qp.bottom()-qp.top(),\
-        self.canvas(),self,"%4.3f")
+        self.canvas(),self,"%8.3f")
     self.legend.show()
     self.legend_on=1
    elif flag==0 and self.legend_on==1:
@@ -1190,7 +1190,7 @@ class FontHorizImage(QCanvasRectangle):
 ##################################################################
 # class to draw legend colourbar
 class Legend:
-    def __init__(self,left,top,width,height,canvas,cview,format="%4.3f"):
+    def __init__(self,left,top,width,height,canvas,cview,format="%8.3f"):
        self.cview=cview
        self.canvas=canvas
        self.rect=QCanvasRectangle(left,top,width,height,canvas)
