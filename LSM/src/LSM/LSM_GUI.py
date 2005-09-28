@@ -18,6 +18,7 @@ from FTDialog import *
 from MyCanvasView import *
 from TreeDisp import *
 from ExportDialog import *
+from PatchOptionsDialog import *
 
 image0_data = \
     "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d" \
@@ -369,10 +370,11 @@ class LSMWindow(QMainWindow):
 
         self.viewMenu = QPopupMenu(self)
         self.viewZoom_WindowAction.addTo(self.viewMenu)
-        self.viewZoom_MoreAction.addTo(self.viewMenu)
-        self.viewZoom_LessAction.addTo(self.viewMenu)
         self.viewZoom_AllAction.addTo(self.viewMenu)
         self.viewZoom_CancelAction.addTo(self.viewMenu)
+        self.viewMenu.insertSeparator()
+        self.viewZoom_MoreAction.addTo(self.viewMenu)
+        self.viewZoom_LessAction.addTo(self.viewMenu)
         self.viewMenu.insertSeparator()
         self.viewZoom_OptionsAction.addTo(self.viewMenu)
         self.viewMenu.insertSeparator()
@@ -784,7 +786,8 @@ class LSMWindow(QMainWindow):
           self.table2_names[pname]=row
 
     def viewCreatePatches(self):
-      self.cview.createPatchesFromGrid()
+      dialog=PatchOptionsDialog(self,"Patch Options",1,0,self.cview,self.lsm)
+      dialog.show()
 
 
     def __tr(self,s,c = None):

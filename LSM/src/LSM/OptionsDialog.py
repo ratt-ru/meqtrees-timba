@@ -519,6 +519,7 @@ class OptionsDialog(QDialog):
        print "Line edit xspace text: %f" % fval
       except (TypeError,ValueError):
        print "invalid number "+unicode(newText)
+
     def lineEditXticks(self,newText):
      print "Line edit xticks text: " + unicode(newText)
      if newText.length()>0:

@@ -995,7 +995,8 @@ class LSM:
  # create patches from the grid, given by
  # an x_arry and y_array of grid points
  # note: x_array and y_array should be sorted in ascending order
- def createPatchesFromGrid(self,x_array,y_array):
+ def createPatchesFromGrid(self,x_array,y_array,min_bright=0.0,max_bright=10.0,\
+           min_sources=10):
   #from Timba.utils import verbosity
   #_dbg = verbosity(0,name='LSM')
   #_dprint = _dbg.dprint
@@ -1032,8 +1033,10 @@ class LSM:
   #print ybins
   for sname in self.p_table.keys(): 
     punit=self.p_table[sname]
+    pb=punit.getBrightness('A')
     if  punit.getType()==POINT_TYPE and\
-       punit._patch_name==None:
+       punit._patch_name==None and\
+       (pb<=max_bright) and (pb>=min_bright):
       # get RA and Dec
       xx=punit.sp.getRA()
       yy=punit.sp.getDec()
@@ -1090,17 +1093,21 @@ class LSM:
   for pname in patch_bins.keys():
    # note: we do not send anything to the kernel
    # when we recreate the forest, that will be done later
-   retval=self.createPatch(patch_bins[pname],True,False)
+   if len(patch_bins[pname]) >= min_sources:
+    retval=self.createPatch(patch_bins[pname],True,False)
+   else:
+    retval=None
+
    if retval !=None:
     retval_arr.append(retval)
     # remember PUnit name to update its value
     new_punit_names.append(retval[0])
   # now resolve forest and sync kernel
   self.__ns.Resolve()
-  print "Resolved local NodeScope"
-  print "Current forest has %d root nodes, of a total of %d nodes"% (len(self.__ns.RootNodes()),len(self.__ns.AllNodes()))
+  #print "Resolved local NodeScope"
+  #print "Current forest has %d root nodes, of a total of %d nodes"% (len(self.__ns.RootNodes()),len(self.__ns.AllNodes()))
   if self.mqs != None:
-     print "Sending request to kernel"
+     #print "Sending request to kernel"
      self.mqs.meq('Clear.Forest')
      self.mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),self.__ns.AllNodes().itervalues())));
      self.mqs.meq('Resolve.Batch',record(name=list(self.__ns.RootNodes().iterkeys())))

@@ -479,12 +479,12 @@ class MyCanvasView(QCanvasView):
 
 
   # create patches from the grid, only if the grid is ON
-  def createPatchesFromGrid(self):
+  def createPatchesFromGrid(self,min_bright=0.0,max_bright=10.0,min_sources=1):
    # create two arrays for x divisions
    # and y divisions and send to the LSM to create 
    # patches
    if self.grid_on==1:
-    print "creating patches from grid"
+    #print "creating patches from grid"
     stp=(self.x_max-self.x_min)/self.xdivs
     x_array=[self.x_min]
     for ii in range(self.xdivs):
@@ -494,13 +494,13 @@ class MyCanvasView(QCanvasView):
     for ii in range(self.ydivs):
      y_array.append(self.y_min+(ii+1)*stp)
 
-    retval_arr=self.lsm.createPatchesFromGrid(x_array,y_array)
-    print retval_arr
+    retval_arr=self.lsm.createPatchesFromGrid(x_array,y_array,min_bright,max_bright,min_sources)
+    #print retval_arr
     if retval_arr != None:
       for retval in retval_arr:
        if retval !=None:
         # successfully created patch
-        print "created patch",retval
+        #print "created patch",retval
         # get the sources of this patch
         punit=self.lsm.getPUnit(retval[0])
         psource_list=punit.getSources()
@@ -1058,7 +1058,7 @@ class Patch:
    # first find min,max values
    minval=narray.min()
    maxval=narray.max()
-   print "array size is %d,%d with values %f,%f"%(x_dim,y_dim,minval,maxval)
+   #print "array size is %d,%d with values %f,%f"%(x_dim,y_dim,minval,maxval)
    # create an Image of the size of this array
    # create image from this array, 32 bits depth, 2^24 colours
    im=QImage(x_dim,y_dim,32)
@@ -1070,11 +1070,11 @@ class Patch:
      cl=self.getRGB(narray[nz_x[ci]][nz_y[ci]]-minval,maxval)
      # flip the image in the y direction
      im.setPixel(nz_x[ci],y_dim-1-nz_y[ci],cl)
-     print "value %f at %d,%d"%(narray[nz_x[ci]][nz_y[ci]],nz_x[ci],nz_y[ci])
+     #print "value %f at %d,%d"%(narray[nz_x[ci]][nz_y[ci]],nz_x[ci],nz_y[ci])
 
    # resize image to fit the rectangle
    im2=im.smoothScale(self.rect.width(),self.rect.height())
-   print "created image size %d,%d"%(im2.width(),im2.height())
+   #print "created image size %d,%d"%(im2.width(),im2.height())
    return im2
 
 
