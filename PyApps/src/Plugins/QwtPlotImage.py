@@ -49,7 +49,6 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.image = None
         self.cmax = None
         self.cmin = None
-
     # __init__()
     
     def setDisplayType(self, display_type):

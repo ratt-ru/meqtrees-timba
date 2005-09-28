@@ -90,7 +90,17 @@ class QwtImageDisplay(QwtPlot):
 
     def __init__(self, plot_key=None, parent=None):
         QwtPlot.__init__(self, plot_key, parent)
-
+        # create copy of standard application font..
+        font = QFont(QApplication.font());
+        fi = QFontInfo(font);
+        # and scale it down to 50%
+        font.setPointSize(fi.pointSize()*0.5);
+        # apply font to QwtPlot
+        self.setTitleFont(font);
+        for axis in range(0,4):
+          self.setAxisFont(axis,font);
+          self.setAxisTitleFont(axis,font);
+          
         self._mainwin = parent and parent.topLevelWidget();
 
 # set default display type to 'hippo'

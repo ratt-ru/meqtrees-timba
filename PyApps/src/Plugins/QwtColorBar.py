@@ -16,6 +16,16 @@ class QwtColorBar(QwtPlot):
     def __init__(self, plot_key=None, parent=None):
         QwtPlot.__init__(self, plot_key, parent)
         self._mainwin = parent and parent.topLevelWidget()
+        # create copy of standard application font..
+        font = QFont(QApplication.font());
+        fi = QFontInfo(font);
+        # and scale it down to 50%
+        font.setPointSize(fi.pointSize()*0.5);
+        # apply font to QwtPlot
+        self.setTitleFont(font);
+        for axis in range(0,4):
+          self.setAxisFont(axis,font);
+          self.setAxisTitleFont(axis,font);
 
 	# make a QwtPlot widget
         self.plotLayout().setMargin(0)
@@ -46,7 +56,7 @@ class QwtColorBar(QwtPlot):
         # width limits - the following seem reasonable
         # we don't want the bar to resize itself freely - it becomes too big!
 #       self.setMinimumWidth(self.sizeHint().width())
-        self.setMaximumWidth(self.sizeHint().width() * 2)
+        self.setMaximumWidth(self.sizeHint().width() * 1.2)
 #       self.setMinimumHeight(self.sizeHint().height() / 2)
 
         self.zoomStack = []

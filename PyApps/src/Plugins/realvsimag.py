@@ -131,6 +131,18 @@ class realvsimag_plotter(object):
         
         # Initialize a QwPlot central widget
         self.plot = QwtPlot('', parent)
+        
+        # create copy of standard application font..
+        font = QFont(QApplication.font());
+        fi = QFontInfo(font);
+        # and scale it down to 50%
+        font.setPointSize(fi.pointSize()*0.5);
+        # apply font to QwtPlot
+        self.plot.setTitleFont(font);
+        for axis in range(0,4):
+          self.plot.setAxisFont(axis,font);
+          self.plot.setAxisTitleFont(axis,font);
+        
         self.plot.plotLayout().setCanvasMargin(0)
 
 # over-ride default QwtPlot sizePolicy
