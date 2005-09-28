@@ -47,6 +47,8 @@ class MyCanvasView(QCanvasView):
     # display coordinates in Radians (rad) or degrees (deg)
     self.default_coords='rad' 
 
+    self.font=QFont(QApplication.font())
+    self.font.setPointSize(10)
     # get boundaries (using ObsWin  ?)
     # 1. create Cell using ObsWin, 2. send request to meqserver, 
     # 3. scan the result set to determine boundaries of
@@ -65,7 +67,10 @@ class MyCanvasView(QCanvasView):
     #    .    .         .  .
     #    |    +---------+  |
     #    +_____ d4_________+
-    self.d1=60+20 # 20 for the axis label
+
+    [char_w,char_h]=self.getTextDims("%8.3f")
+    print char_w
+    self.d1=char_w+15+20 # 20 for the axis label
     self.d3=30
     self.d4=30+20 # 20 for the axis label
     self.d2=5 # more pixels for the legend
@@ -318,7 +323,7 @@ class MyCanvasView(QCanvasView):
      retval=self.lsm.createPatch(psource_list)
      if retval != None:
       # successfully created patch
-      print "created patch %s"%retval[0]
+      #print "created patch %s"%retval[0]
       # remove these sources from PUnit table on main window
       self.parent.removePUnitRows(psource_list)
       # update the GUI
@@ -416,14 +421,14 @@ class MyCanvasView(QCanvasView):
    self.default_freq_index=f_index
    self.default_time_index=t_index
    self.default_mode=type
-   print "Update display ",type
+   #print "Update display ",type
    # first, set min,max limits for
    # brightness
-   print "Current limits [%f,%f]"%(self.max_brightness,self.min_brightness)
+   #print "Current limits [%f,%f]"%(self.max_brightness,self.min_brightness)
    self.max_brightness=self.lsm.getMaxBrightness(type,f_index,t_index)
    self.min_brightness=self.lsm.getMinBrightness(type,f_index,t_index)
    
-   print "Updated limits [%f,%f]"%(self.max_brightness,self.min_brightness)
+   #print "Updated limits [%f,%f]"%(self.max_brightness,self.min_brightness)
    # next update p-unit table (colours)
    for sname in self.lsm.p_table.keys():
     punit=self.lsm.p_table[sname]
@@ -433,7 +438,6 @@ class MyCanvasView(QCanvasView):
     else: #PATCH_TYPE
      self.p_tab[sname].updateDisplayProperties()
 
-   self.canvas().update()  
    # update indicator
    head=self.lsm.getCurrentFreqTime(self.default_freq_index,self.default_time_index)
    tmpval=stdForm(head[0],'%3.4f')
@@ -442,7 +446,12 @@ class MyCanvasView(QCanvasView):
    headstr=headstr+tmpval[0]+tmpval[1]+"s)"
    #headstr="f=%5.4f GHz,t=%5.4f s"%(head[0]/1.0e9,head[1])
    self.zlabel.setText("<font color=\"blue\">"+headstr+"</font>")
+   # update legend
+   if self.legend!=None:
+    self.legend.hide()
+    self.showLegend(1)
 
+   self.canvas().update()  
 
   def showPointSources(self,flag):
     # flag:0==circle(point),1==cross
@@ -508,7 +517,7 @@ class MyCanvasView(QCanvasView):
    """if flag==1, show legend, else hide legend"""
    # get dimensions needed
    [char_w,char_h]=self.getTextDims("%4.3f")
-   if flag==1 and self.legend_on==0:
+   if flag==1:
     self.canvas().resize(self.canvas().width()+30+char_w,self.canvas().height())
     # get limits from the boundary of main plot
     qp=self.axes.rect.rect()
@@ -527,13 +536,25 @@ class MyCanvasView(QCanvasView):
 
   # give the text width,height in pixels using the default font
   def getTextDims(self,format):
-    myfont=self.axes.axfont
+    myfont=self.font
     fm=QFontMetrics(myfont)
     # find width in pixels
     label=QString(format%0.0)
     char_width=fm.width(label)
     char_height=fm.height()
     return (char_width,char_height)
+
+  #select new font
+  def chooseFont( self ) :
+   ok = 0
+   oldfont = QFont( self.font )
+   newfont, ok = QFontDialog.getFont(oldfont,self)
+   if ok:
+    self.font=newfont
+    self.axes.updateFont(newfont)
+    if self.legend !=None:
+     self.legend.updateFont(newfont)
+
 
   # save the canvas as a pixmap
   def getPixmap(self):
@@ -667,8 +688,8 @@ class Axes:
     self.grid=[]
 
     # font for axes ticks
-    self.axfont=QFont( QApplication.font() )
-    self.axfont.setPointSize( 10 )
+    self.axfont=QFont(canvas_view.font)
+    #self.axfont.setPointSize(10)
     #self.axfont.setWeight( QFont.Bold )
     #self.axfont.setUnderline( True )
 
@@ -843,13 +864,6 @@ class Axes:
     for i in range(len(self.yax_text)):
      self.yax_text[i].setFont( self.axfont )
      self.yax_degtext[i].setFont( self.axfont )
-
-  def chooseFont( self ) :
-   ok = 0
-   oldfont = QFont( self.axfont )
-   newfont, ok = QFontDialog.getFont(oldfont,self.cview)
-   if ok:
-    self.updateFont(newfont)
 
   # display coords either in radians (rad) or in degrees (deg)
   def switchCoords(self,coords='rad'):
@@ -1178,7 +1192,14 @@ class FontHorizImage(QCanvasRectangle):
 class Legend:
     def __init__(self,left,top,width,height,canvas,cview,format="%4.3f"):
        self.cview=cview
+       self.canvas=canvas
        self.rect=QCanvasRectangle(left,top,width,height,canvas)
+       self.top=top
+       self.left=left
+       self.width=width
+       self.height=height
+       self.format=format
+   
        # fill this with coloured rectangles
        self.ncolors=10
        # height of each rectangle
@@ -1243,3 +1264,52 @@ class Legend:
       for cr in self.txt:
          cr.hide()
  
+
+    def update(self):
+       # height of each rectangle
+       h=self.height/self.ncolors
+       zheight=(self.cview.max_brightness-self.cview.min_brightness)/float(self.ncolors)
+       self.rts=[]
+       self.txt=[]
+       for ci in range(1,self.ncolors):
+         y=self.top+self.height-h*ci
+         rt=QCanvasRectangle(self.left,y,self.width,h,self.canvas)
+         zlevel=zheight*ci+self.cview.min_brightness
+         rt.setBrush(QBrush(self.cview.getColor(zlevel)))
+         self.rts.append(rt)
+         # ad label
+         dt=QCanvasText(self.canvas)
+         dt.setText(self.format%zlevel)
+         dt.setFont(self.cview.axes.axfont)
+         dt.move(self.left+self.width,y-3)
+         dt.setZ(0)
+         self.txt.append(dt)
+
+ 
+       # the last rectangle
+       h=y-self.top
+       y=self.top
+       rt=QCanvasRectangle(self.left,y,self.width,h,self.canvas)
+       zlevel=zheight*(ci+1)+self.cview.min_brightness
+       rt.setBrush(QBrush(self.cview.getColor(zlevel)))
+       self.rts.append(rt)
+       dt=QCanvasText(self.canvas)
+       dt.setText(self.format%zlevel)
+       dt.setFont(self.cview.axes.axfont)
+       dt.move(self.left+self.width,y-3)
+       dt.setZ(0)
+       self.txt.append(dt)
+
+       # last, text at zero level
+       zlevel=self.cview.min_brightness
+       dt=QCanvasText(self.canvas)
+       dt.setText(self.format%zlevel)
+       y=self.top+self.height
+       dt.setFont(self.cview.axes.axfont)
+       dt.move(self.left+self.width,y-3)
+       dt.setZ(0)
+       self.txt.append(dt)
+
+    def updateFont(self,newfont):
+     for i in range(len(self.txt)):
+      self.txt[i].setFont(newfont)

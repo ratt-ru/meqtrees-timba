@@ -148,7 +148,7 @@ class OptionsDialog(QDialog):
         self.fontButton= QPushButton(self.fontBG,"fontToolButton")
         fontBGLayout.addWidget(self.fontButton)
  
-        self.connect( self.fontButton, SIGNAL("clicked()"), self.parentWidget().cview.axes.chooseFont)
+        self.connect( self.fontButton, SIGNAL("clicked()"), self.parentWidget().cview.chooseFont)
 
         axistabLayout.addWidget(self.fontBG)
         ####################################
