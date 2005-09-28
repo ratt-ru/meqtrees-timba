@@ -36,7 +36,7 @@ class QwtColorBar(QwtPlot):
         self.enableAxis(QwtPlot.xBottom, False)
         self.enableGridX(False)
         self.enableGridY(False)
-        self.setAxisLabelRotation(QwtPlot.yLeft,270);
+#       self.setAxisLabelRotation(QwtPlot.yLeft,270);
 #	self.setAxisTitle(QwtPlot.yLeft, 'range')
         # default color bar
         self.plotImage = QwtPlotImage(self)
