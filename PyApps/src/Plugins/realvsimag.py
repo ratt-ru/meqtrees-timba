@@ -797,7 +797,7 @@ class realvsimag_plotter(object):
         self.plot_mean_circles = self._plot_parms.get('mean_circle', False)
         self.plot_stddev_circles = self._plot_parms.get('stddev_circle', False)
         self.plot_mean_arrows = self._plot_parms.get('mean_arrow', False)
-        self.plot_symbol_size = self._plot_parms.get('symbol_size', 10)
+        self.plot_symbol_size = self._plot_parms.get('symbol_size', 5)
         self.plot_symbol = self._plot_parms.get('symbol', 'circle')
         self.plot_line_style = self._plot_parms.get('line_style', 'dots')
         self._plot_color = self._plot_parms.get('color', 'blue')
@@ -1022,7 +1022,7 @@ class realvsimag_plotter(object):
 # set sensible defaults for various parameters if
 # they were not specified anywhere 
       if self.plot_symbol_size is None:
-        self.plot_symbol_size = 10
+        self.plot_symbol_size = 5
       if self.plot_symbol is None:
         self.plot_symbol = 'circle'
       if self.plot_line_style is None:
@@ -1317,7 +1317,7 @@ class realvsimag_plotter(object):
           plot_symbol = self.symbol_table[self.plot_symbol]
           _dprint(3, 'self.plot_symbol_size ', self.plot_symbol_size)
           plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
-                     QPen(self._plot_color), QSize(self.plot_symbol_size, self.plot_symbol_size)))
+                     QPen(self._plot_color, 2), QSize(self.plot_symbol_size, self.plot_symbol_size)))
 
 # set up to plot circles if plot_mean_circles or plot_stddev_circles flags
 # were set and we have xy data
