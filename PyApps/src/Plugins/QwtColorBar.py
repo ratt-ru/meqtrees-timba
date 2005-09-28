@@ -36,6 +36,7 @@ class QwtColorBar(QwtPlot):
         self.enableAxis(QwtPlot.xBottom, False)
         self.enableGridX(False)
         self.enableGridY(False)
+        self.setAxisLabelRotation(QwtPlot.yLeft,270);
 #	self.setAxisTitle(QwtPlot.yLeft, 'range')
         # default color bar
         self.plotImage = QwtPlotImage(self)
@@ -56,7 +57,7 @@ class QwtColorBar(QwtPlot):
         # width limits - the following seem reasonable
         # we don't want the bar to resize itself freely - it becomes too big!
 #       self.setMinimumWidth(self.sizeHint().width())
-        self.setMaximumWidth(self.sizeHint().width() * 1.2)
+        self.setMaximumWidth(self.sizeHint().width() * 1.5)
 #       self.setMinimumHeight(self.sizeHint().height() / 2)
 
         self.zoomStack = []
