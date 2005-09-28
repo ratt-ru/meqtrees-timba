@@ -34,6 +34,9 @@ namespace Meq {
     :
     _max_baseline(2700.0)
   {
+    // Only l and m axes are used in this node
+    // For now it is more convenient to always define all axes here, so that we always know which axes hold which array dimension
+    // This must be generalized (here and in FFTBrick node)
     Axis::addAxis("L");
     Axis::addAxis("M");
     Axis::addAxis("U");
@@ -58,24 +61,33 @@ namespace Meq {
     if (rcells.isDefined(Axis::FREQ)) {
 
       const int num_children = int(childres.size());
+
+      // When there are no children, nothing is done
+      // Is this ok?
+
+      // Check that we do not have to define a new result like: resref <<= new Result(6);
       
+      // The first child should always be a two-pack of the Phase Center
+      // Does this need any checking? Do we want to generalize this?
       // Attach the RA and Dec of the Phase Center to the first two planes
       if (num_children > 0){
 	
 	resref = childres.at(0);
 	
       };
-
-      // Check that we do not have to define a new result like: resref <<= new Result(6);
       
+      // When there is more than one child, we assume that those additional children are Point Source sixpacks.
+      // Does this need any checking? Generalization?
       // Add the Sources into the Patch
       if (num_children > 1){
 	
+	// Extend the already created two planes of the Phase Center with 4 more planes for the Stokes values
 	VellSet& vs2 = resref().setNewVellSet(2);
 	VellSet& vs3 = resref().setNewVellSet(3);
 	VellSet& vs4 = resref().setNewVellSet(4);
 	VellSet& vs5 = resref().setNewVellSet(5);
 	
+	// Create the grid (Domain, Cells, Shape) in frequency dependend l' and m' coordinates
 	double lmax(0.0),mmax(0.0);
 	double lc,mc,ra,dec,ra0,dec0, lf, mf;
 	Vells RAvells0, Decvells0;
@@ -115,8 +127,9 @@ namespace Meq {
 	const double dl = 1 / _max_baseline / 2;
 	const double dm = dl;
 
-	int nl = 2*int(lmax/dl)+1;
-	int nm = 2*int(mmax/dm)+1;
+	// Make sure all sources are actually falling INSIDE the grid
+	int nl = 2*int(lmax/dl)+3;
+	int nm = 2*int(mmax/dm)+3;
 
 	lmax = nl*dl/2;
 	mmax = nm*dm/2;
@@ -137,8 +150,10 @@ namespace Meq {
 	shape[Axis::axis("M")] = cells->ncells(Axis::axis("M"));
 	shape[Axis::FREQ] = cells->ncells(Axis::FREQ);
 
-	//cout<<"Shape "<<shape<<endl;
-	//set the result to all 0, hence last argument 'true'
+
+	// Now start filling the Stokes planes
+	// set the result to all 0, hence last argument 'true'
+	// SBY: need to reset memeory to 0 before calculations are done
 	Vells& vells2 = vs2.setValue(new Vells(double(0.0),shape,true));
 	Vells& vells3 = vs3.setValue(new Vells(double(0.0),shape,true));
 	Vells& vells4 = vs4.setValue(new Vells(double(0.0),shape,true));
@@ -151,9 +166,8 @@ namespace Meq {
 	blitz::Array<double,3> arrU = vells4.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());	
 	blitz::Array<double,3> arrV = vells5.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
-	//cout <<arrI<<arrQ<<arrU<<arrV<<endl;
-
 	for (int src = 1; src<num_children; src++) {
+	  // For every Point Source sixpack child, put source on nearest pixel position
 
 	  RAvells = childres.at(src)->vellSet(0).getValue();
 	  Decvells = childres.at(src)->vellSet(1).getValue();
@@ -162,57 +176,45 @@ namespace Meq {
 	  Uvells = childres.at(src)->vellSet(4).getValue();
 	  Vvells = childres.at(src)->vellSet(5).getValue();
 
-		//The following part of code
-		//needs furthur checks
+	  // The following part of code needs further checks
+	  // SBY: sometimes we get vectors of dimension [1xnf], instead of vectors [nfx1]. So need to check this
 	  if (Ivells.isScalar()){
-	    for (int j =0; j<nf; j++)
-	      Ivec(j) = Ivells(0);
+	    for (int j =0; j<nf; j++) Ivec(j) = Ivells(0);
 	  } else {
-			if (Ivells.extent(0) <nf) {
-				//expect an 1xnf array
-	     for (int j =0; j<nf; j++)
-	      Ivec(j) = Ivells(0,j);
-			} else {
-				//expect an nfx1 array
-	     for (int j =0; j<nf; j++)
-	      Ivec(j) = Ivells(j);
-      }
+	    if (Ivells.extent(0) <nf) {
+	      //expect an 1xnf array
+	      for (int j =0; j<nf; j++) Ivec(j) = Ivells(0,j);
+	    } else {
+	      //expect an nfx1 array
+	      for (int j =0; j<nf; j++) Ivec(j) = Ivells(j);
+	    }
 	  };
 	  if (Qvells.isScalar()){
-	    for (int j =0; j<nf; j++)
-	      Qvec(j) = Qvells(0);
+	    for (int j =0; j<nf; j++) Qvec(j) = Qvells(0);
 	  } else {
-			if (Qvells.extent(0) <nf) {
-	     for (int j =0; j<nf; j++)
-	      Qvec(j) = Qvells(0,j);
-			} else {
-	     for (int j =0; j<nf; j++)
-	      Qvec(j) = Qvells(j);
-			}
+	    if (Qvells.extent(0) <nf) {
+	      for (int j =0; j<nf; j++) Qvec(j) = Qvells(0,j);
+	    } else {
+	      for (int j =0; j<nf; j++) Qvec(j) = Qvells(j);
+	    }
 	  };
 	  if (Uvells.isScalar()){
-	    for (int j =0; j<nf; j++)
-	      Uvec(j) = Uvells(0);
+	    for (int j =0; j<nf; j++) Uvec(j) = Uvells(0);
 	  } else {
-			if (Uvells.extent(0) <nf) {
-	     for (int j =0; j<nf; j++)
-	      Uvec(j) = Uvells(0,j);
-			} else {
-	     for (int j =0; j<nf; j++)
-	      Uvec(j) = Uvells(j);
-			}
+	    if (Uvells.extent(0) <nf) {
+	      for (int j =0; j<nf; j++) Uvec(j) = Uvells(0,j);
+	    } else {
+	      for (int j =0; j<nf; j++) Uvec(j) = Uvells(j);
+	    }
 	  };
 	  if (Vvells.isScalar()){
-	    for (int j =0; j<nf; j++)
-	      Vvec(j) = Vvells(0);
+	    for (int j =0; j<nf; j++) Vvec(j) = Vvells(0);
 	  } else {
-			if (Vvells.extent(0) <nf) {
-	     for (int j =0; j<nf; j++)
-	      Vvec(j) = Vvells(0,j);
-			} else {
-	     for (int j =0; j<nf; j++)
-	      Vvec(j) = Vvells(j);
-			}
+	    if (Vvells.extent(0) <nf) {
+	      for (int j =0; j<nf; j++) Vvec(j) = Vvells(0,j);
+	    } else {
+	      for (int j =0; j<nf; j++) Vvec(j) = Vvells(j);
+	    }
 	  };
 
 	  ra = RAvells(0);
@@ -221,12 +223,14 @@ namespace Meq {
 	  lc = casa::cos(dec) * casa::sin(ra0-ra);
        	  mc = casa::cos(dec0) * casa::sin(dec) - 
       	    casa::sin(dec0) * casa::cos(dec) * casa::cos(ra0-ra);
-    //remember lower and upper bounds
-		//of arrays
-		blitz::TinyVector<int, 3> lbounds=arrI.lbound();
-		blitz::TinyVector<int, 3> ubounds=arrI.ubound();
-		// all other arrays have same dimensions
-		//std::cout<<"Bounds "<<arrI.lbound()<<arrI.ubound()<<endl;
+    
+	  // RJN: For now we neglect this. It has been fixed by making the grid somewhat larger
+	  // SBY: remember lower and upper bounds of arrays
+	  //blitz::TinyVector<int, 3> lbounds=arrI.lbound();
+	  //blitz::TinyVector<int, 3> ubounds=arrI.ubound();
+	  //// all other arrays have same dimensions
+	  ////std::cout<<"Bounds "<<arrI.lbound()<<arrI.ubound()<<endl;
+	  
 	  for (int j =0; j<nf; j++){
 
 	    lf = freq(j)*lc/c0;
@@ -237,6 +241,7 @@ namespace Meq {
 	    sU = Uvec(j);
 	    sV = Vvec(j);
 
+	    // Round off position to nearest pixel position
 	    if (lf>0) {
 	      ni = (nl-1)/2 + 1 + int(lf/dl+0.5)-1;
 	    } else {
@@ -248,15 +253,15 @@ namespace Meq {
 	      nj = (nm-1)/2 + 1 + int(mf/dm-0.5)-1;
 	    };
 
-			//std::cout<<"Line : ("<<j<<","<<ni<<","<<nj<<") "<<sI<<endl;
-			if ((j<=ubounds[0])&&(j>=lbounds[0])
-				&&(ni<=ubounds[1])&&(ni>=lbounds[1])
-				&&(nj<=ubounds[2])&&(nj>=lbounds[2])){
+	    // This is also neglected for now (see above)
+	    //if ((j<=ubounds[0])&&(j>=lbounds[0])
+	    //	&&(ni<=ubounds[1])&&(ni>=lbounds[1])
+	    //	&&(nj<=ubounds[2])&&(nj>=lbounds[2])){
 	    arrI(j,ni,nj) = sI;
 	    arrQ(j,ni,nj) = sQ;
 	    arrU(j,ni,nj) = sU;
 	    arrV(j,ni,nj) = sV;
-			}
+	    // }
 
 	  };
 
