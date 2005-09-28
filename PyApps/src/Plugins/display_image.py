@@ -966,7 +966,7 @@ class QwtImageDisplay(QwtPlot):
                 self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
                 plot_curve=self.curve(self.xCrossSection)
                 plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, 
-                   QBrush(Qt.black), QPen(Qt.black), QSize(10,10)))
+                   QBrush(Qt.black), QPen(Qt.black), QSize(5,5)))
               self.enableAxis(QwtPlot.yRight)
               self.setAxisTitle(QwtPlot.yRight, 'x cross-section value')
               self.setCurveYAxis(self.xCrossSection, QwtPlot.yRight)
@@ -977,7 +977,7 @@ class QwtImageDisplay(QwtPlot):
                 self.setCurvePen(self.yCrossSection, QPen(Qt.white, 2))
                 plot_curve=self.curve(self.yCrossSection)
                 plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, 
-                   QBrush(Qt.white), QPen(Qt.white), QSize(10,10)))
+                   QBrush(Qt.white), QPen(Qt.white), QSize(5,5)))
               self.enableAxis(QwtPlot.xTop)
               self.setAxisTitle(QwtPlot.xTop, 'y cross-section value')
               self.setCurveYAxis(self.yCrossSection, QwtPlot.yLeft)
@@ -993,7 +993,7 @@ class QwtImageDisplay(QwtPlot):
                   self.x_index[i] = start_x + i * x_step
                 delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
                 y_step = delta_vells / shape[1] 
-                start_y = self.vells_axis_parms[self.second_axis_parm][0] + 0.5 * y_step
+                start_y = self.vells_axis_parms[self.y_parm][0] + 0.5 * y_step
                 for i in range(shape[1]):
                   self.y_index[i] = start_y + i * y_step
               self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
@@ -1427,6 +1427,8 @@ class QwtImageDisplay(QwtPlot):
       self.first_axis_parm = self.axis_labels[0]
       self.second_axis_parm = self.axis_labels[1]
 
+      _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
+
     # calc-vells_ranges
 
     def plot_vells_data (self, vells_record):
@@ -1466,8 +1468,8 @@ class QwtImageDisplay(QwtPlot):
 # are we dealing with Vellsets?
       if self._vells_rec.has_key("vellsets") and not self._solver_flag:
         self._vells_plot = True
-        if self.do_calc_vells_range:
-          self.calc_vells_ranges()
+#       if self.do_calc_vells_range:
+        self.calc_vells_ranges()
         _dprint(3, 'handling vellsets')
 
 
@@ -2009,10 +2011,10 @@ class QwtImageDisplay(QwtPlot):
           self.setCurveYAxis(self.yCrossSection, QwtPlot.yRight)
           plot_curve=self.curve(self.xCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
-                     QPen(Qt.red), QSize(10,10)))
+                     QPen(Qt.red), QSize(5,5)))
           plot_curve=self.curve(self.yCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
-                     QPen(Qt.green), QSize(10,10)))
+                     QPen(Qt.green), QSize(5,5)))
           self.x_array =  flattened_array.getreal()
           self.y_array =  flattened_array.getimag()
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
@@ -2056,7 +2058,7 @@ class QwtImageDisplay(QwtPlot):
           self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
           plot_curve=self.curve(self.xCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
-                     QPen(Qt.red), QSize(10,10)))
+                     QPen(Qt.red), QSize(5,5)))
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
           if not self.dummy_xCrossSection is None:
             self.removeCurve(self.dummy_xCrossSection)
