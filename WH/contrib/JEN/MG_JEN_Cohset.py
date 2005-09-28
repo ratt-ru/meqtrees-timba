@@ -268,27 +268,13 @@ def JJones(ns, stations, **pp):
     if not isinstance(pp.jones, (list,tuple)): pp.jones = [pp.jones]
     for jones in pp.jones:
         if jones=='G':
-            jseq.append(MG_JEN_Joneset.GJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
-                                               parmtable=pp.parmtable,
-                                               fdeg_Gampl=pp.fdeg_Gampl, fdeg_Gphase=pp.fdeg_Gphase,
-                                               tdeg_Gampl=pp.tdeg_Gampl, tdeg_Gphase=pp.tdeg_Gphase,
-                                               Gscale=0))
+            jseq.append(MG_JEN_Joneset.GJones (ns, stations=stations, Gscale=0, **pp))
         elif jones=='B':
-            jseq.append(MG_JEN_Joneset.BJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
-                                               parmtable=pp.parmtable,
-                                               fdeg_Breal=pp.fdeg_Breal, fdeg_Bimag=pp.fdeg_Bimag,
-                                               tdeg_Breal=pp.tdeg_Breal, tdeg_Bimag=pp.tdeg_Bimag,
-                                               Bscale=0))
+            jseq.append(MG_JEN_Joneset.BJones (ns, stations=stations, Bscale=0, **pp))
         elif jones=='F':
-            jseq.append(MG_JEN_Joneset.FJones (ns, scope=pp.scope, punit=pp.punit, stations=stations,
-                                               parmtable=pp.parmtable,
-                                               Fscale=0, RM=pp.RM))
+            jseq.append(MG_JEN_Joneset.FJones (ns, stations=stations, Fscale=0, **pp)) 
         elif jones=='D':
-            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, scope=pp.scope, punit=pp.punit, stations=stations,
-                                                    parmtable=pp.parmtable,
-                                                    fdeg_dang=pp.fdeg_dang, fdeg_dell=pp.fdeg_dell,
-                                                    tdeg_dang=pp.tdeg_dang, tdeg_dell=pp.tdeg_dell,
-                                                    Dscale=0, PZD=pp.PZD))
+            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, stations=stations, Dscale=0, **pp))
         else:
             print '** jones not recognised:',jones,'from:',pp.jones
                
@@ -523,7 +509,11 @@ def insert_solver (ns, measured, predicted, correct=None, compare=None, **pp):
         solvegroup = Pohset.solvegroup()[sgname]
         corrs.extend(Pohset.condeq_corrs()[sgname])
         for key in solvegroup:
-            solvable.extend(Pohset.parmgroup()[key])
+            pgnames = Pohset.parmgroup()[key]     # list of parmgroup node-names
+            solvable.extend(pgnames)              # list of solvable node-names
+            # Temporary: show the first solvable MeqParm of each parmgroup on the allcorrs page:
+            MG_JEN_forest_state.bookmark (ns[pgnames[0]], page='allcorrs')
+
 
     # Make new Cohset objects with the relevant corrs only:
     Pohset.selcorr(ns, corrs)
@@ -574,7 +564,7 @@ def insert_solver (ns, measured, predicted, correct=None, compare=None, **pp):
     #         because otherwise it messes up the correction of the insertion ifr
     #         (one of the input Jones matrices is called before the solver....)
     if not correct==None:
-	measured.correct(ns, correct)          # assume that correct is a Joneset
+	measured.correct(ns, correct)          # assume that 'correct' is a Joneset
 
 
     # Tie the solver and its associated dcoll(s) with a MeqReqseq node.
@@ -582,12 +572,12 @@ def insert_solver (ns, measured, predicted, correct=None, compare=None, **pp):
     keys = measured.keys()                     # main data stream
     solver_name = 'solver_'+solver_name        # used in reqseq name
     for key in keys:
-       cc = [solver]                                      # start a list of reqseq children (solver is first)
+       cc = [solver]                           # start a list of reqseq children (solver is first)
        cc.extend(dc_condeq)                    # extend the list with the condeq dataCollect node(s) 
        result_index = 0 
        if pp.graft: 
-          cc.append(measured[key])           # measured Cohset (main data-stream) should be LAST!
-          result_index = len(cc)-1                # the reqseq should return the result of the main data stream
+          cc.append(measured[key])             # measured Cohset (main data-stream) should be LAST!
+          result_index = len(cc)-1             # the reqseq should return the result of the main data stream
        # MG_JEN_exec.display_object(cc,'cc', txt=key)
        reqseq = ns.reqseq.qmerge(measured[key])(solver_name, q=punit) << Meq.ReqSeq(children=cc, result_index=result_index)
  
@@ -692,7 +682,8 @@ def visualise(ns, Cohset, **pp):
     if pp.graft:
         # Make the dcoll nodes step-children of a MeqSelector
         # node that is inserted in the coherency stream(s):
-        Cohset.graft(ns, sc, stepchild=True)
+        Cohset.graft(ns, sc, stepchild=True)         # old version
+        # Cohset.graft(ns, sc, stepchild=False)        # use a (synchronising) reqseq
         # Return an empty list to be consistent with the alternative below
         return []
 

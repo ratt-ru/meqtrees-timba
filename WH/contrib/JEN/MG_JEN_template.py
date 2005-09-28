@@ -76,21 +76,12 @@
 
 #********************************************************************************
 #********************************************************************************
-#**************** PART II: Preample and initialisation **************************
+#**************** PART II: Preamble and initialisation **************************
 #********************************************************************************
 #********************************************************************************
 
 from Timba.TDL import *
 # from Timba.Meq import meq
-
-MG = record(script_name='MG_JEN_template.py', last_changed = 'h22sep2005')
-
-from Timba import utils
-_dbg = utils.verbosity(0, name='tutorial')
-_dprint = _dbg.dprint                         # use: _dprint(2, "abc")
-_dprintf = _dbg.dprintf                       # use: _dprintf(2, "a = %d", a)
-# run the script with: -dtutorial=3
-# level 0 is always printed
 
 # from numarray import *
 # from string import *
@@ -102,10 +93,18 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 
 
 #-------------------------------------------------------------------------
+# Script control record (may be edited here):
+
+MG = record(script_name='MG_JEN_template.py',
+            last_changed='h27sep2005',
+            trace=False)                       # If True, produce progress messages  
+
+
+#-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(MG.script_name)
+MG_JEN_forest_state.init(MG)
 
 
 
@@ -260,7 +259,7 @@ def _tdl_job_21cm(mqs, parent):
 
 def _tdl_job_spigot2sink(mqs, parent):
     """Execute the forest under MS stream_control"""
-    return MG_JEN_exec.spigot2sink (mqs, parent)
+    return MG_JEN_exec.spigot2sink (mqs, parent, ctrl=MG.stream_control)
 
 # Execute the forest for a sequence of requests:
 

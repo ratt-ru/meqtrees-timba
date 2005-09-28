@@ -36,7 +36,12 @@
 from Timba.TDL import *
 from Timba.Meq import meq              # required in MG_JEN_exec !!
 
-MG = record(script_name='MG_JEN_exec.py', last_changed='h22sep2005')
+from Timba import utils
+_dbg = utils.verbosity(0, name='tutorial')
+_dprint = _dbg.dprint                         # use: _dprint(2, "abc")
+_dprintf = _dbg.dprintf                       # use: _dprintf(2, "a = %d", a)
+# run the script with: -dtutorial=3
+# level 0 is always printed
 
 from copy import deepcopy       
 import os       
@@ -44,11 +49,21 @@ import os
 from Timba.Contrib.JEN import MG_JEN_forest_state
 
 
+
+
+#--------------------------------------------------------------------------------
+# Script control record (may be edited here):
+
+MG = record(script_name='MG_JEN_exec.py',
+            last_changed='h22sep2005',
+            trace=False)
+
+
 #--------------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(MG.script_name)
+MG_JEN_forest_state.init(MG)
 
 
 
@@ -117,6 +132,12 @@ def on_entry (ns, MG, **pp):
    # Check the MG-record:
    MG = check_MG(MG)
 
+   # Transfer certain ctrl fields to the MG_JEN_stream_control record:
+   stream_control (MG.stream_control)
+
+   # Attach the script control field (MG) to the forest state record:
+   Settings.forest_state.MG_JEN_script_ctrl = MG
+   
    # Return an empty list, to be filled with root nodes
    cc = []
    return cc
@@ -193,6 +214,7 @@ def check_MG(MG=None):
    if MG==None: MG = record(script_name='<script_name>')
    if isinstance(MG, str): MG = record(script_name=MG)    # deal with legacy code
    MG = record(MG)
+   MG.setdefault('stream_control',record()) 
    return MG
 
 #-------------------------------------------------------------------------------
@@ -290,7 +312,7 @@ def importable_example(ns=None, **pp):
 # Execute the tree under (MS) stream_control:
 #================================================================================
 
-def spigot2sink (mqs, parent, **pp):
+def spigot2sink (mqs, parent, ctrl={}, **pp):
    """Execute the tree under MS stream_control()"""
 
    from Timba.Meq import meq
@@ -298,6 +320,9 @@ def spigot2sink (mqs, parent, **pp):
    pp.setdefault('wait', False)       
    pp.setdefault('trace', False)
    pp.setdefault('save', True)       
+
+   # Transfer certain ctrl fields to the MG_JEN_stream_control record:
+   stream_control (ctrl)
 
    # Get the stream control record from forest_state record:
    ss = stream_control()
@@ -311,55 +336,14 @@ def spigot2sink (mqs, parent, **pp):
    return True
 
 
-#------------------------------------------------------------------------------- 
-# Get/set/display the stream_control record in the forest state record:
-# The latter serves as the (only) memory of this info.
-# This approach guarantees that the forest_state record is always up-to-date.
+#-------------------------------------------------------------------------
+# Access to MG_JEN_stream_control record (kept in the forest state record):
 
-def stream_initrec(key=None, value=None):
-   """Get/set fields of the initrec stream_control record"""
-   ss = Settings.forest_state.stream_control.initrec
-   s1 = stream_field(ss, key=key, value=value)
-   Settings.forest_state.stream_control.initrec = ss
-   return s1
-
-def stream_inputinit(key=None, value=None):
-   """Get/set fields of the inputinit stream_control record"""
-   ss = Settings.forest_state.stream_control.inputinit
-   s1 = stream_field(ss, key=key, value=value)
-   Settings.forest_state.stream_control.inputinit = ss
-   return s1
-
-def stream_selection(key=None, value=None):
-   """Get/set fields of the inputinit.selection stream_control record"""
-   ss = Settings.forest_state.stream_control.inputinit.selection
-   s1 = stream_field(ss, key=key, value=value)
-   Settings.forest_state.stream_control.inputinit.selection = ss
-   return s1
-
-def stream_outputinit(key=None, value=None):
-   """Get/set fields of the outputinit stream_control record"""
-   ss = Settings.forest_state.stream_control.outputinit
-   s1 = stream_field(ss, key=key, value=value)
-   Settings.forest_state.stream_control.outputinit = ss
-   return s1
-
-def stream_field(ss, key=None, value=None):
-   """Common helper function for stream_xyz()"""
-   if isinstance(key, str):
-      if not value==None:
-         ss[key] = value
-         return ss[key]
-      if ss.has_key(key): return ss[key]
-   return ss
-
-# Access to stream_control record as a whole:
-
-def stream_control(value=None, display=False, init=False):
-   """Access to the stream_control record in the forest_state record
+def stream_control (ctrl=None, display=False, init=False):
+   """Access to the MG_JEN_stream_control record in the forest_state record
    If init==True, initialise it with default settings."""
-   if not value==None:
-      Settings.forest_state.stream_control = value
+
+   field = 'MG_JEN_stream_control'     # field name in forest state record
 
    if init:
       ss = record(initrec=record(), inputinit=record(), outputinit=record())
@@ -368,9 +352,10 @@ def stream_control(value=None, display=False, init=False):
       ss.inputinit.data_column_name = 'DATA';
       ss.inputinit.tile_size = 1;
       if True:
-         print '\n** .python_int: Inhibited until bug has been resolved....\n'
-         path = os.environ['HOME']+'/LOFAR/Timba/WH/contrib/JEN/'
-         ss.inputinit.python_init = path+'read_msvis_header.py'
+         # path = os.environ['HOME']+'/LOFAR/Timba/WH/contrib/JEN/'
+         path = os.environ['HOME']+'/LOFAR/Timba/PyApps/src/Trees/'
+         ss.inputinit.python_init = path+'read_MS_auxinfo.py'
+         # ss.inputinit.python_init = path+'read_msvis_header.py'
       
       ss.inputinit.selection = record();
       ss.inputinit.selection.channel_start_index = 0;
@@ -382,14 +367,31 @@ def stream_control(value=None, display=False, init=False):
       
       ss.initrec.output_col = 'RESIDUALS'
    
-      Settings.forest_state.stream_control = ss
+      Settings.forest_state[field] = ss
+
+
+   # Modify the MG_JEN_stream_control record, if required:
+   if not ctrl==None:
+      ss = Settings.forest_state[field]
+      for key in ['ms_name','data_column_name','tile_size']:
+         if ctrl.has_key(key): ss.inputinit[key] = ctrl[key]
+      for key in ['channel_start_index','channel_end_index']:
+         if ctrl.has_key(key): ss.inputinit.selection[key] = ctrl[key]
+      for key in []:
+         if ctrl.has_key(key): ss.outputinit[key] = ctrl[key]
+      for key in ['output_col']:
+         if ctrl.has_key(key): ss.initrec[key] = ctrl[key]
+      Settings.forest_state[field] = ss
+
 
    if display:
-      ss = Settings.forest_state.stream_control
-      display_object(ss, 'stream_control')
-   return Settings.forest_state.stream_control
+      ss = Settings.forest_state[field]
+      display_object(ss, field)
+   return Settings.forest_state[field]
 
 stream_control(init=True)
+
+
 
 
 
@@ -874,28 +876,34 @@ def display_object (v, name='<name>', txt='', full=0, indent=0):
 
 
 #********************************************************************************
-# Testing routines
+#********************************************************************************
+#*****************  PART V: Forest execution routines ***************************
+#********************************************************************************
 #********************************************************************************
 
-
-
-#--------------------------------------------------------------------------------
-# Tree execution routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
 
 def _test_forest (mqs, parent):
    """Standard tree execution routine"""
    return meqforest (mqs, parent)
 
 
-#--------------------------------------------------------------------------------
-# Test routine to check the tree for consistency in the absence of a server
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART VI: Standalone test routines *************************
+#********************************************************************************
+#********************************************************************************
+
+# These test routines do not require the meqbrowser, or even the meqserver.
+# Just run them by enabling the required one (if 1:), and invoking python:
+#      > python MG_JEN_template.py
+
 
 if __name__ == '__main__':
    print '\n****************\n** Local test of:',MG.script_name,':\n'
 
    # Generic test:
-   if 0:
+   if 1:
       without_meqserver(MG, callback=_define_forest, recurse=3)
    
    # Various local tests:
@@ -920,19 +928,17 @@ if __name__ == '__main__':
       display_object (request, 'request', 'MG_JEN_exec')
 
    if 0:
-      print '\n** initrec:',stream_initrec()
-      print '\n** inputinit:',stream_inputinit()
-      print '\n** selection:',stream_selection()
-      print 'channel_start_index:',stream_selection('channel_start_index')
-      print 'channel_start_index:',stream_selection('channel_start_index', 10)
-      print 'channel_start_index:',stream_selection('channel_start_index')
-      print '\n** outputinit:',stream_outputinit()
-
-   if 1:
       pp = importable_example()
 
-   print '\n** End of local test of:',MG.script_name,'\n*************\n'
+   if 1:
+      MG.ms_name = '...DD....MS'
+      MG.channel_start_index = -111
+      MG.output_col = '<initrec>'
+      MG.predict_column_name = 'PREDICT'
+      stream_control(MG, display=True)
 
+   display_forest_state()
+   print '\n** End of local test of:',MG.script_name,'\n*************\n'
 
 #********************************************************************************
 

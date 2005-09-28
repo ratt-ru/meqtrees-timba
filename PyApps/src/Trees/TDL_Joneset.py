@@ -159,24 +159,24 @@ class Joneset (TDL_common.Super):
         self.__jones[key] = node
         return self.len()
 
-    def define_MeqParm(self, ns=0, key=None, station=None, default=0,
-                       node_groups='Parm', use_previous=True, tile_size=1):
+    def define_MeqParm(self, ns, key=None, station=None, default=0,
+                       node_groups='Parm', use_previous=True, tile_size=0):
         # Convenience function to create a MeqParm node
         # NB: If use_previous==True, the MeqParm will use its current funklet (if any)
         #     as starting point for the next snippet solution, unless a suitable funklet
         #     was found in the MeqParm table. If False, it will use the default funklet first.
-        if station==None:
-          node = ns[key](q=self.punit()) << Meq.Parm(default,
-                                                     node_groups=self.node_groups(),
-                                                     use_previous=use_previous,
-                                                     tiling=record(time=tile_size),
-                                                     table_name=self.parmtable())
+        if tile_size:                         # catches zero and None
+            tiling = record(time=tile_size)
         else:
-          node = ns[key](s=station, q=self.punit()) << Meq.Parm(default,
-                                                                node_groups=self.node_groups(),
-                                                                use_previous=use_previous,
-                                                                tiling=record(time=tile_size),
-                                                                table_name=self.parmtable())
+            tiling = record()
+        quals = dict(q=self.punit());
+        if station is not None:
+            quals['s'] = station;
+        node = ns[key](**quals) << Meq.Parm(default,
+                                            node_groups=self.node_groups(),
+                                            use_previous=use_previous,
+                                            tiling=tiling,
+                                            table_name=self.parmtable())
         # Put the node into the internal MeqParm buffer for later use:
         self.__MeqParm[key] = node
         return node

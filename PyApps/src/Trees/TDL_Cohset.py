@@ -134,8 +134,10 @@ class Cohset (TDL_common.Super):
         # Calculate derived values from primary ones
         self.calc_derived()
 
+
+
     def calc_derived(self):
-        # Calculate derived values from primary ones
+        """Calculate derived values from primary ones"""
         self.__paral = []
         self.__cross = []
         for corr in self.__corrs:
@@ -144,11 +146,12 @@ class Cohset (TDL_common.Super):
         return True
 
     def __getitem__(self, key):
-        # This allows indexing by key and by index nr:
+        """Get a Cohset item by key or by index nr"""
         if isinstance(key, int): key = self.__coh.keys()[key]
         return self.__coh[key]
 
     def __setitem__(self, key, value):
+        """Replace the named (key) item with value (usually a node)"""
         self.__coh[key] = value
         return self.__coh[key]
 
@@ -156,32 +159,64 @@ class Cohset (TDL_common.Super):
     def plot_color(self): return self.__plot_color
     def plot_style(self): return self.__plot_style
     def plot_size(self): return self.__plot_size
-    def parmgroup(self): return self.__parmgroup
-    def solvegroup(self): return self.__solvegroup
+
+    def parmgroup(self):
+        """Return a list of available MeqParm group names"""
+        return self.__parmgroup
+    def solvegroup(self):
+        """Return a dict of named solvegroups"""
+        return self.__solvegroup
     def condeq_corrs(self): return self.__condeq_corrs
 
     # Access to instance attribites:
-    def polrep(self): return self.__polrep
-    def corrs(self): return self.__corrs
-    def cross(self): return self.__cross
-    def paral(self): return self.__paral
-    def phase_centre(self): return self.__phase_centre
+    def polrep(self):
+        """The Cohset polarisation representation (linear/circular)"""
+        return self.__polrep
+    def corrs(self):
+        """Return a list of correlation names (XX, RL etc)"""
+        return self.__corrs
+    def cross(self):
+        """Return a list of cross-correlation names (XY, RL, etc)"""
+        return self.__cross
+    def paral(self):
+        """Return a list of parallel correlation names (XX, LL, etc)"""
+        return self.__paral
+    def phase_centre(self):
+        """Return the current Cohset phase-centre (RA, DEC)"""
+        return self.__phase_centre
 
     def scope(self, new=None):
         if isinstance(new, str): self.__scope = new
         return self.__scope
-    def punit(self): return self.__punit
-    def coh(self): return self.__coh
-    def stations(self): return self.__stations
-    def station_index(self): return self.__station_index
+    def punit(self):
+        """Return the predict-unit (source/patch) name"""
+        return self.__punit
+    def coh(self):
+        """Access to the Cohset itself"""
+        return self.__coh
+    def stations(self):
+        """Return a list of available stations"""
+        return self.__stations
+    def station_index(self):
+        """Return a list of station indices (used in spigots/sinks)"""
+        return self.__station_index
 
     # Some derived values:
-    def keys(self): return self.__coh.keys()
-    def has_key(self, key): return self.keys().__contains__(key)
-    def len(self): return len(self.__coh)
-    def dims(self): return self.__dims
+    def keys(self):
+        """Return a list of keys to the Cohset items"""
+        return self.__coh.keys()
+    def has_key(self, key):
+        """Check whether there is an item with the given key"""
+        return self.keys().__contains__(key)
+    def len(self):
+        """Return the nr of Cohset items"""
+        return len(self.__coh)
+    def dims(self):
+        """Return the dimensions of the Cohset matrices (usually [2,2])""" 
+        return self.__dims
 
     def nodenames(self, select='all'):
+        """Return a list of the names of the current nodes in the Cohset"""
         nn = []
         for key in self.keys():
             if isinstance(self.__coh[key], str):
@@ -194,6 +229,7 @@ class Cohset (TDL_common.Super):
         return nn
 
     def oneliner(self):
+        """Return a one-line summary of the Cohset"""
         s = TDL_common.Super.oneliner(self)
         s = s+' punit='+str(self.punit())
         s = s+' dims='+str(self.dims())
@@ -203,6 +239,7 @@ class Cohset (TDL_common.Super):
         return s
 
     def display(self, txt=None, full=False):
+        """Display (print) the contents of the Cohset"""
         ss = TDL_common.Super.display(self, txt=txt, end=False)
         indent1 = 2*' '
         indent2 = 6*' '
@@ -238,7 +275,7 @@ class Cohset (TDL_common.Super):
     #--------------------------------------------------------------
 
     def nominal(self, ns, coh0):
-        # Make a record/dict of identical coherency matrices for all ifrs:
+        """Make a record/dict of identical coherency matrices for all ifrs"""
         funcname = '::nominal():'
         uniqual = _counter(funcname, increment=-1)
         for key in self.keys():
@@ -249,9 +286,9 @@ class Cohset (TDL_common.Super):
 
 
     def graft(self, ns, node, key='all', stepchild=True):
-        # Insert the specified node at the specified ifrs
-        # If stepchild=True, make the node(s) step-children of a MeqSelector
-        # node that is inserted before the specified (key) coherency node:
+        """Insert the specified node at the specified ifrs
+        If stepchild=True, make the node(s) step-children of a MeqSelector
+        node that is inserted before the specified (key) coherency node"""
         funcname = '::graft():'
         if not isinstance(node, (tuple, list)): node = [node]
         keys = self.keys()
@@ -260,18 +297,21 @@ class Cohset (TDL_common.Super):
         uniqual = _counter(funcname, increment=-1)
         for key in keys:
             if stepchild:
-                self[key] = ns.step_graft.qmerge(self[key])(uniqual) << Meq.Selector(self[key], stepchildren=node)
+                self[key] = ns.graft_stepchild.qmerge(self[key])(uniqual) << Meq.Selector(self[key], stepchildren=node)
             else:
-                children = [self[key]]
-                children.extend(node)
-                self[key] = ns.graft.qmerge(self[key])(uniqual) << Meq.Selector(*children)
+                # The use of a reqseq synchronises the ifr-streams...!
+                children = [node]                           # first the grafted node (e.g. dcoll)
+	        print 'children (node)=',len(children),'\n',children
+                children.extend(self[key])                  # then the main stream (result_index)
+	        print 'children (all)=',len(children),'\n',children
+                # self[key] = ns.graft_reqseq.qmerge(self[key])(uniqual) << Meq.ReqSeq(*children, result_index=1)
         self.history(funcname+' -> '+self.oneliner())
         return True
 
         
 
     def unop(self, ns, unop=None, right2left=False):
-        # Perform the specified (sequence of) unary operations (in place)
+        """Perform the specified (sequence of) unary operations (in place)"""
         funcname = '::unop('+str(unop)+'):'
         if Cohset == None: return False
         if unop == None: return False
@@ -290,7 +330,7 @@ class Cohset (TDL_common.Super):
 
 
     def binop(self, ns, binop='Subtract', Cohset=None):
-        # Perform the specified binary operation on two Cohsets (in place)
+        """Perform the specified binary operation on two Cohsets (in place)"""
         if Cohset == None: return False
         funcname = '::binop('+str(binop)+','+Cohset.label()+'):'
         if not isinstance(binop, str): return False
@@ -301,22 +341,22 @@ class Cohset (TDL_common.Super):
 
 
     def subtract(self, ns, Cohset=None):
-        # Subtract the cohaerencies in the two cohsets.
+        """Subtract the cohaerencies in the two cohsets"""
         # NB: Check whether punit is the same for both?
         self.scope('subtracted')
         return self.binop(ns, binop='Subtract', Cohset=Cohset)
 
 
     def shift_phase_centre(self, ns, punit=None):
-        # Shift the phase centre from the current position to the position (RA, DEC)
-        # of the given punit (sixpack?, twopack?, other?):
+        """Shift the phase centre from the current position to the position (RA, DEC)
+        of the given punit (sixpack?, twopack?, other?)"""
         self.__punit = punit
         self.scope('shifted_to_'+punit)
         pass
 
 
     def correct(self, ns, Joneset=None):
-        # Correct the Cohset by matrix multiplication with the INVERSE of the given Joneset:
+        """Correct the Cohset by matrix multiplication with the INVERSE of the given Joneset"""
         funcname = '::correct():'
         uniqual = _counter(funcname, increment=-1)
         self.__punit = Joneset.punit()
@@ -335,7 +375,7 @@ class Cohset (TDL_common.Super):
         return True
 
     def corrupt(self, ns, Joneset=None):
-        # Corrupt the Cohset by matrix multiplication with the given Joneset:
+        """Corrupt the Cohset by matrix multiplication with the given Joneset"""
         funcname = '::corrupt():'
         uniqual = _counter(funcname, increment=-1)
         self.__punit = Joneset.punit()
@@ -355,7 +395,7 @@ class Cohset (TDL_common.Super):
 
 
     def update_from_Joneset(self, Joneset=None):
-        # Update the internal info from another Joneset object:
+        """Update the internal info from another Joneset object"""
         # (see Joneseq.Joneset())
         if Joneset==None: return False
         if Joneset.solvable():
@@ -376,7 +416,7 @@ class Cohset (TDL_common.Super):
 
 
     def update_from_Cohset(self, Cohset=None):
-        # Update the internal info from another Cohset object:
+        """Update the internal info from another Cohset object"""
         if Cohset==None: return False
         self.__parmgroup.update(Cohset.parmgroup())
         self.__solvegroup.update(Cohset.solvegroup())
@@ -389,7 +429,7 @@ class Cohset (TDL_common.Super):
 
 
     def icorr(self, corrs='all'):
-        # Get the index nrs (in self.__corr) of the specified corrs:
+        """Get the index nrs (in self.__corr) of the specified corrs"""
         if isinstance(corrs, str) and corrs=='all': corrs = self.corrs()
         if not isinstance(corrs, (tuple,list)): corrs = [corrs]
         icorr = []
@@ -406,7 +446,7 @@ class Cohset (TDL_common.Super):
 
 
     def selcorr(self, ns, corrs=None):
-        # Select a subset of the available corrs: 
+        """Select a subset of the available corrs""" 
         funcname = '::selcorr():'
         if corrs==None: return False
         icorr = self.icorr(corrs)
@@ -436,6 +476,7 @@ class Cohset (TDL_common.Super):
 #======================================================================================
 
     def spigots (self, ns=0, **pp):
+        """Fill the Cohset with spigot nodes for all its ifrs"""
         funcname = '::spigots():'
         # Input arguments:
         pp.setdefault('flag_bit', 4)                     # .....
@@ -462,7 +503,7 @@ class Cohset (TDL_common.Super):
 #------------------------------------------------------------------------------------
 
     def sinks (self, ns, **pp):
-        """attaches the coherency matrices to MeqSink nodes""" 
+        """Attaches the Cohset coherency matrices to MeqSink nodes""" 
         funcname = '::sinks():'
 
         # Input arguments:

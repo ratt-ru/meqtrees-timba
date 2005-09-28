@@ -1,7 +1,7 @@
 # MG_JEN_forest_state.py
 
 # Short description:
-# Some functions to deal with the forest state record
+#   Some functions to deal with the forest state record
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
@@ -11,18 +11,26 @@
 # Copyright: The MeqTree Foundation 
 
 
-#================================================================================
-# Preamble
-#================================================================================
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preamble and initialisation **************************
+#********************************************************************************
+#********************************************************************************
+
 
 from Timba.TDL import *
 # from Timba.Meq import meq
 
-MG = record(script_name='MG_JEN_forest_state.py', last_changed='h22sep2005')
-
 # from numarray import *
 from string import *
 from copy import deepcopy
+
+#------------------------------------------------------------------
+# Script control record (may be edited here):
+
+MG = record(script_name='MG_JEN_forest_state.py',
+            last_changed='h27sep2005')
+
 
 
 
@@ -125,28 +133,22 @@ def _define_forest (ns):
 #********************************************************************************
 
 
-def init (script='<MG_JEN_xyz.py>', mode='MeqGraft'):
+def init (MG, mode='MeqGraft'):
    """Initialise the forest_state record (called by all MG_JEN_ scripts)"""
 
-   # Reset the forest history record (retained otherwise...?)
-   # Obsolete, replaced by .history(), which uses jen-record
-   # Settings.forest_state.forest_history = record()
+   # Deal with some legacy:
+   if isinstance(MG, str): MG = record(script_name=MG)
 
    # Reset the jen-record (see .trace(), .error() etc below)
-   Settings.forest_state['jen'] = record()
+   Settings.forest_state['MG_JEN'] = record()
 
    # Reset the bookmarks (if not, the old ones are retained) 
    Settings.forest_state.bookmarks = []
      
    # The default name for the .meqforest save file:
-   s1 = split(script,'.')
+   s1 = split(MG['script_name'],'.')
    if isinstance(s1, (list, tuple)): s1 = s1[0]
    Settings.forest_state.savefile = s1
-
-   # Initialise the (MS-related) stream control records:
-   # See also MG_JEN_exec.py
-   stream = record(initrec=record(), inputinit=record(), outputinit=record())
-   Settings.forest_state.stream = stream
 
    if mode == 'MeqGraft':
       # Cache all node results:
@@ -154,11 +156,11 @@ def init (script='<MG_JEN_xyz.py>', mode='MeqGraft'):
       # Orphan nodes should be retained:
       Settings.orphans_are_roots = True
    
- 	
    return 
 
+
 # Execute this function:
-init(MG.script_name)
+init(MG)
 
 
 
@@ -407,15 +409,16 @@ def append (field, item, kwitem):
   # print '** kwitem.keys():',kwitem.keys()
 
   # Attach the kwitem record as a numbered field
-  Settings.forest_state.setdefault('jen',record())
-  Settings.forest_state['jen'].setdefault(field,record())
-  rr = Settings.forest_state['jen'][field]
+  jenfield = 'MG_JEN'
+  Settings.forest_state.setdefault(jenfield,record())
+  Settings.forest_state[jenfield].setdefault(field,record())
+  rr = Settings.forest_state[jenfield][field]
   level = kwitem.get('level',1)
   indent = level*'..'
   key = str(len(rr))
   rr[key] = kwitem
 
-  Settings.forest_state['jen'][field] = rr
+  Settings.forest_state[jenfield][field] = rr
   return rr[key]
 
 #---------------------------------------------------------------------------
@@ -438,7 +441,7 @@ def attach_test_result (mqs, result):
 
 def counter (key, increment=0, reset=False):
    """Convenience function to for named counters"""
-   field = 'jen_counter'
+   field = 'MG_JEN_counter'
    Settings.forest_state.setdefault(field,record())
    rr = Settings.forest_state[field]
    rr.setdefault(key, 0)
@@ -476,13 +479,11 @@ def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
 
 
 #********************************************************************************
-# Testing routines
+#********************************************************************************
+#*****************  PART V: Forest execution routines ***************************
+#********************************************************************************
 #********************************************************************************
 
-
-#-------------------------------------------------------------------------
-# Meqforest execution routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
 
 def _test_forest (mqs, parent):
    """Meqforest execution routine"""
@@ -494,8 +495,16 @@ def _test_forest (mqs, parent):
    return
 
 
-#-------------------------------------------------------------------------
-# Test routine to check the tree for consistency in the absence of a server
+#********************************************************************************
+#********************************************************************************
+#******************** PART VI: Standalone test routines *************************
+#********************************************************************************
+#********************************************************************************
+
+# These test routines do not require the meqbrowser, or even the meqserver.
+# Just run them by enabling the required one (if 1:), and invoking python:
+#      > python MG_JEN_template.py
+
 
 if __name__ == '__main__':
    print '\n****************\n** Local test of:',MG.script_name,':\n'

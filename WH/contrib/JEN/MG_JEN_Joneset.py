@@ -197,8 +197,8 @@ def GJones (ns=0, label='GJones', **pp):
   pp.setdefault('fdeg_Gphase', 0)      # degree of default freq polynomial          
   pp.setdefault('tdeg_Gampl', 0)       # degree of default time polynomial         
   pp.setdefault('tdeg_Gphase', 0)      # degree of default time polynomial       
-  pp.setdefault('tile_size_Gampl', 1)  # used in tiled solutions         
-  pp.setdefault('tile_size_Gphase', 1) # used in tiled solutions         
+  pp.setdefault('tile_size_Gampl', 0)  # used in tiled solutions         
+  pp.setdefault('tile_size_Gphase', 0) # used in tiled solutions         
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
@@ -354,8 +354,8 @@ def BJones (ns=0, label='BJones', **pp):
   pp.setdefault('fdeg_Bimag', 3)       # degree of default freq polynomial              # <---- !!
   pp.setdefault('tdeg_Breal', 0)       # degree of default time polynomial              # <---- !!
   pp.setdefault('tdeg_Bimag', 0)       # degree of default time polynomial              # <---- !!
-  pp.setdefault('tile_size_Breal', 1)  # used in tiled solutions         
-  pp.setdefault('tile_size_Bimag', 1)  # used in tiled solutions         
+  pp.setdefault('tile_size_Breal', 0)  # used in tiled solutions         
+  pp.setdefault('tile_size_Bimag', 0)  # used in tiled solutions         
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 
@@ -444,8 +444,8 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
   pp.setdefault('fdeg_dell', 0)           # degree of default freq polynomial
   pp.setdefault('tdeg_dang', 0)           # degree of default time polynomial
   pp.setdefault('tdeg_dell', 0)           # degree of default time polynomial
-  pp.setdefault('tile_size_dang', 1)      # used in tiled solutions         
-  pp.setdefault('tile_size_dell', 1)      # used in tiled solutions         
+  pp.setdefault('tile_size_dang', 0)      # used in tiled solutions         
+  pp.setdefault('tile_size_dell', 0)      # used in tiled solutions         
   pp = record(pp)
   adjust_for_telescope(pp, origin=funcname)
 

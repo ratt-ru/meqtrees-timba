@@ -1,7 +1,7 @@
-# MG_JEN_cps_BJones.py
+# MG_JEN_cps_GDJones.py
 
 # Short description:
-#   Bandpass calibration on a Central Point Source (cps) 
+#   Gain/leakage calibration on a Central Point Source (cps) 
 
 # Keywords: ....
 
@@ -49,19 +49,26 @@ from Timba.Contrib.JEN import MG_JEN_flagger
    # punit =  'SItest'
 
 
-MG = record(script_name='MG_JEN_cps_BJones.py',
+MG = record(script_name='MG_JEN_cps_GDJones.py',
             last_changed = 'd28sep2005',
             punit='unpol',                        # name of calibrator source
             stations=range(4),                   # specify the (subset of) stations to be used
-            parmtable=None,        # name of MeqParm table
-
-            fdeg_Breal=3,                          # degree of freq polynomial
-            fdeg_Bimag=3,
-            tdeg_Breal=1,                          # degree of time polynomial
-            tdeg_Bimag=1,
-            tile_size_Breal=None,                   # used in tiled solutions
-            tile_size_Bimag=None,                   # used in tiled solutions
-
+            parmtable=None,                      # name of MeqParm table
+ 
+            fdeg_Gampl=2,                          # degree of freq polynomial
+            fdeg_Gphase=2,
+            tdeg_Gampl=1,                          # degree of time polynomial
+            tdeg_Gphase=1,
+            tile_size_Gampl=None,                   # used in tiled solutions
+            tile_size_Gphase=None,                   # used in tiled solutions
+ 
+            fdeg_dang=2,                          # degree of freq polynomial
+            fdeg_dell=2,
+            tdeg_dang=1,                          # degree of time polynomial
+            tdeg_dell=1,
+            tile_size_dang=None,                   # used in tiled solutions
+            tile_size_dell=None,                   # used in tiled solutions
+ 
             num_iter=10,                             # number of solver iterations per snippet
             flag_before=False,                   # If True, insert a flagger before solving
             flag_after=False,                      # If True, insert a flagger after solving
@@ -125,12 +132,12 @@ def _define_forest (ns):
        if MG['visu_rawdata']: MG_JEN_Cohset.visualise (ns, Cohset)
 
    # Make predicted data with a punit (see above) and corrupting Jones matrices
-   Joneset = MG_JEN_Cohset.JJones(ns, jones=['B'], **MG)
+   Joneset = MG_JEN_Cohset.JJones(ns, jones=['G','D'], **MG)
    predicted = MG_JEN_Cohset.predict (ns, punit=MG['punit'], ifrs=ifrs, Joneset=Joneset)
 
    # Insert a solver for a named solvegroup of MeqParms.
    # After solving, the uv-data are corrected with the the improved Joneset. 
-   reqseq = MG_JEN_Cohset.insert_solver (ns, solvegroup='BJones', 
+   reqseq = MG_JEN_Cohset.insert_solver (ns, solvegroup=['GJones','DJones'], 
                                          measured=Cohset, predicted=predicted, 
                                          correct=Joneset, 
 					 num_iter=MG['num_iter'], 
