@@ -151,6 +151,7 @@ class QwtImageDisplay(QwtPlot):
         self._khz = False
         self.image_min = None
         self.image_max = None
+        self.image_shape = None
         self.xmin = None
         self.xmax = None
         self.ymin = None
@@ -396,6 +397,17 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = 305
         self.show_x_sections = False
         self._menu.setItemVisible(toggle_id, False)
+# add solver metrics info back in?
+        if not self.metrics_rank is None:
+          self.metrics_plot = self.insertCurve('metrics')
+          self.setCurvePen(self.metrics_plot, QPen(Qt.black, 2))
+          self.setCurveStyle(self.metrics_plot,Qt.SolidLine)
+          self.setCurveYAxis(self.metrics_plot, QwtPlot.yLeft)
+          self.setCurveXAxis(self.metrics_plot, QwtPlot.xBottom)
+          plot_curve=self.curve(self.metrics_plot)
+          plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
+                     QPen(Qt.black), QSize(10,10)))
+          self.setCurveData(self.metrics_plot, self.metrics_rank, self.iteration_number)
         self.replot()
 
     def update_spectrum_display(self, menuid):
@@ -1213,6 +1225,12 @@ class QwtImageDisplay(QwtPlot):
         self.adjust_color_bar = False
 
       self.raw_image = image_for_display
+      if self.image_shape is None:
+        self.image_shape = self.raw_image.shape 
+      else:
+        if not self.image_shape == self.raw_image.shape:
+          self.delete_cross_sections()
+          self.image_shape = self.raw_image.shape 
 
       self.defineData()
 
