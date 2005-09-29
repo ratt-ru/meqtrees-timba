@@ -185,6 +185,7 @@ class ArrayPlotter(GriddedPlugin):
     self._plotter.array_plot('data: '+ display_string, self.data[self.array_tuple])
 
   def setSelectedAxes (self,first_axis, second_axis):
+    self._plotter.delete_cross_sections()
     self.array_selector = []
     for i in range(self.array_rank):
       if i == first_axis: 

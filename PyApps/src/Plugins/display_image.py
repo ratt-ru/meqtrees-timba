@@ -383,19 +383,20 @@ class QwtImageDisplay(QwtPlot):
       self._plot_dict[self._combined_image_id] = temp_array
 
     def delete_cross_sections(self):
+      if self.show_x_sections:
 # delete any previous curves
-      self.removeCurves()
-      self.xCrossSection = None
-      self.yCrossSection = None
-      self.enableAxis(QwtPlot.yRight, False)
-      self.enableAxis(QwtPlot.xTop, False)
-      self.xCrossSectionLoc = None
-      self.yCrossSectionLoc = None
-      self.dummy_xCrossSection = None
-      toggle_id = 305
-      self.show_x_sections = False
-      self._menu.setItemVisible(toggle_id, False)
-      self.replot()
+        self.removeCurves()
+        self.xCrossSection = None
+        self.yCrossSection = None
+        self.enableAxis(QwtPlot.yRight, False)
+        self.enableAxis(QwtPlot.xTop, False)
+        self.xCrossSectionLoc = None
+        self.yCrossSectionLoc = None
+        self.dummy_xCrossSection = None
+        toggle_id = 305
+        self.show_x_sections = False
+        self._menu.setItemVisible(toggle_id, False)
+        self.replot()
 
     def update_spectrum_display(self, menuid):
       if menuid < 0:
@@ -1761,7 +1762,7 @@ class QwtImageDisplay(QwtPlot):
         return new_array
 
     def setSelectedAxes (self,first_axis, second_axis):
-#     print 'in setSelectedAxes with axes ', first_axis, second_axis
+      self.delete_cross_sections()
       if self._vells_plot:
         self.first_axis = first_axis
         self.second_axis = second_axis
