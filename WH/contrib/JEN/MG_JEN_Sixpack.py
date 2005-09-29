@@ -223,6 +223,7 @@ def newstar_source (ns=0, **pp):
    pp.setdefault('pa', 0.0)            # position angle (rad), elliptic gaussian
    pp.setdefault('RA', 0.0)            # Right Ascension (rad, J2000)
    pp.setdefault('Dec', 1.0)           # Declination (rad, J2000)
+   pp.setdefault('fsr_trace', True)    # if True, attach to forest state record
    # pp = record(pp)
   
    # Adjust parameters pp for some special cases:
@@ -319,7 +320,7 @@ def newstar_source (ns=0, **pp):
                                  stokesV=iquv[n6.V], 
                                  ra=radec[n6.R], 
                                  dec=radec[n6.D])
-   MG_JEN_forest_state.object(Sixpack)
+   if pp['fsr_trace']: MG_JEN_forest_state.object(Sixpack)
    return Sixpack
 
 

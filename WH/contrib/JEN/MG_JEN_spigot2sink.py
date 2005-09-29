@@ -22,9 +22,6 @@
 #********************************************************************************
 
 from Timba.TDL import *
-
-MG = record(script_name='MG_JEN_spigot2sink.py', last_changed = 'h22sep2005')
-
 # from Timba.Meq import meq
 
 from numarray import *
@@ -40,11 +37,62 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_flagger
 
 
+
+#-------------------------------------------------------------------------
+# MG control record (may be edited here)
+
+   # Some alternatives:
+   # punit = 'unpol'
+   # punit = '3c147'
+   # punit = 'RMtest'
+   # punit = 'QUV'
+   # punit = 'QU'
+   # punit =  'SItest'
+
+
+MG = MG_JEN_exec.MG_init('MG_JEN_spigot2sink.py',
+                         last_changed = 'd28sep2005',
+                         punit='unpol',                        # name of calibrator source
+                         stations=range(4),                   # specify the (subset of) stations to be used
+                         parmtable=None,                      # name of MeqParm table
+                         
+                         fdeg_Gampl=2,                          # degree of freq polynomial
+                         fdeg_Gphase='fdeg_Gampl',
+                         tdeg_Gampl=1,                          # degree of time polynomial
+                         tdeg_Gphase='tdeg_Gampl',
+                         tile_size_Gampl=None,                   # used in tiled solutions
+                         tile_size_Gphase='tile_size_Gampl',
+                         
+                         fdeg_dang=2,                          # degree of freq polynomial
+                         fdeg_dell='fdeg_dang',
+                         tdeg_dang=1,                          # degree of time polynomial
+                         tdeg_dell='tdeg_dang',
+                         tile_size_dang=None,                   # used in tiled solutions
+                         tile_size_dell='tile_size_dang',
+                         
+                         num_iter=10,                             # number of solver iterations per snippet
+                         flag_before=False,                   # If True, insert a flagger before solving
+                         flag_after=False,                      # If True, insert a flagger after solving
+                         visu_rawdata=False,               # If True, insert built-in view(s) 
+                         visu_solver=False,                    # If True, insert built-in view(s) 
+                         visu_corrected=True,                # If True, insert built-in view(s)
+                         trace=False)                              # If True, produce progress messages  
+
+MG.stream_control = record(ms_name='D1.MS',
+                           data_column_name='DATA',
+                           tile_size=10,                              # input tile-size
+                           channel_start_index=10,
+                           channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
+                           output_col='RESIDUALS')
+
+MG = MG_JEN_exec.MG_check(MG)
+
 #-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(MG.script_name)
+MG_JEN_forest_state.init(MG)
+
 
 
 
@@ -67,7 +115,6 @@ def _define_forest (ns):
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
-   visu = True         # If True, insert visualisers at various points
    graft = True        # If True, graft the solver reqseq in the data-stream
                        # (otherwise, attach it as the 'pre' child to MeqVisDataMux)
 
@@ -75,30 +122,21 @@ def _define_forest (ns):
    dcoll = []
 
    # Make the Cohset ifrs (and the Joneset stations):
-   ifrs = TDL_Cohset.stations2ifrs(range(4))
+   ifrs = TDL_Cohset.stations2ifrs(MG['stations'])
    stations = TDL_Cohset.ifrs2stations(ifrs)
 
    Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', stations=stations)
    Cohset.spigots(ns)
-   # Cohset.display('initial')
 
-   if visu:
+   if MG['visu_rawdata']:
 	dcoll.extend(MG_JEN_Cohset.visualise (ns, Cohset, graft=graft))
 	dcoll.extend(MG_JEN_Cohset.visualise (ns, Cohset, type='spectra', graft=graft))
 
-   if False:
+   if MG['flag_before']:
        MG_JEN_Cohset.insert_flagger (ns, Cohset, scope='residual',
                                      unop=['Real','Imag'], visu=False)
-       if visu:
+       if MG['visu_rawdata']:
           dcoll.extend(MG_JEN_Cohset.visualise (ns, Cohset, graft=graft))
-
-   # Source/patch to be used for selfcal:
-   punit = 'unpol'
-   # punit = '3c147'
-   # punit = 'RMtest'
-   # punit = 'QUV'
-   # punit = 'QU'
-   # punit =  'SItest'
 
    if True:
        # Insert a solver for a named group of MeqParms (e.g. 'GJones'):
@@ -107,12 +145,8 @@ def _define_forest (ns):
        jones = ['G','D']  
        jones = ['B']
        # jones = ['G']
-       Joneset = MG_JEN_Cohset.JJones(ns, stations, punit=punit, jones=jones,
-                                      fdeg_Breal=3, tdeg_Breal=0,
-                                      fdeg_Bimag=3, tdeg_Bimag=0,
-                                      fdeg_Gampl=0, tdeg_Gampl=0,
-                                      fdeg_Gphase=0, tdeg_Gphase=0)
-       predicted = MG_JEN_Cohset.predict (ns, punit=punit, ifrs=ifrs, Joneset=Joneset)
+       Joneset = MG_JEN_Cohset.JJones(ns, jones=jones, **MG)
+       predicted = MG_JEN_Cohset.predict (ns, punit=MG['punit'], ifrs=ifrs, Joneset=Joneset)
 
        # Then specify the solvegroup of MeqParms to be solved for: 
        # solvegroup = 'DJones'
@@ -121,10 +155,11 @@ def _define_forest (ns):
        # solvegroup = 'GJones'
        reqseq = MG_JEN_Cohset.insert_solver (ns, solvegroup=solvegroup, graft=graft,
                                              measured=Cohset, predicted=predicted, 
-                                             correct=Joneset, num_iter=3, visu=visu)
+                                             correct=Joneset, num_iter=MG['num_iter'],
+                                             visu=MG['visu_solver'])
        # NB: The data are corrected with the the improved Joneset:
        # NB: If graft=False, the reqseq should be the MeqVisDataMux optional child 'pre'.
-       if visu:
+       if MG['visu_corrected']:
           dcoll.extend(MG_JEN_Cohset.visualise (ns, Cohset, graft=graft))
           dcoll.extend(MG_JEN_Cohset.visualise (ns, Cohset, type='spectra', graft=graft))
 
@@ -182,13 +217,8 @@ def _test_forest (mqs, parent):
    # Make sure our solver root node is not cleaned up
    Settings.orphans_are_roots = True;
 
-   # Modify the stream_control record, if required:
-   MG_JEN_exec.stream_inputinit('ms_name', 'D1.MS')
-   MG_JEN_exec.stream_selection('channel_start_index', 10)
-   MG_JEN_exec.stream_selection('channel_end_index', 50)
-
    # Start the sequence of requests issued by MeqSink:
-   MG_JEN_exec.spigot2sink(mqs, parent)
+   MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG.stream_control)
    return True
 
 

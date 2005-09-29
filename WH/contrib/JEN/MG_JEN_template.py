@@ -95,9 +95,12 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
 
-MG = record(script_name='MG_JEN_template.py',
-            last_changed='h27sep2005',
+MG = MG_JEN_exec.MG_init('MG_JEN_template.py',
+            last_changed='h29sep2005',
             trace=False)                       # If True, produce progress messages  
+
+# Check the MG record, and replace any referenced values
+MG = MG_JEN_exec.MG_check(MG)
 
 
 #-------------------------------------------------------------------------
@@ -301,17 +304,14 @@ if __name__ == '__main__':
    # Various specific tests:
    ns = NodeScope()
 
-   if 0:
-      rr = 0
-      # ............
-      # MG_JEN_exec.display_object (rr, 'rr', MG.script_name)
-      # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
-
    if 1:
       example1()
       print example1.__doc__
       print __doc__
 
+    if 1:
+       MG_JEN_exec.display_object (MG, 'MG', MG.script_name)
+       # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
    print '\n** End of local test of:',MG.script_name,'\n*******************\n'
        
 #********************************************************************************

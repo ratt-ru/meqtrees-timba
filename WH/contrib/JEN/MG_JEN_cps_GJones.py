@@ -49,26 +49,26 @@ from Timba.Contrib.JEN import MG_JEN_flagger
    # punit =  'SItest'
 
 
-MG = record(script_name='MG_JEN_cps_GJones.py',
-            last_changed = 'd28sep2005',
-            punit='unpol',                        # name of calibrator source
-            stations=range(4),                   # specify the (subset of) stations to be used
-            parmtable=None,                      # name of MeqParm table
-
-            fdeg_Gampl=2,                          # degree of freq polynomial
-            fdeg_Gphase=2,
-            tdeg_Gampl=1,                          # degree of time polynomial
-            tdeg_Gphase=1,
-            tile_size_Gampl=None,                   # used in tiled solutions
-            tile_size_Gphase=None,                   # used in tiled solutions
-
-            num_iter=10,                             # number of solver iterations per snippet
-            flag_before=False,                   # If True, insert a flagger before solving
-            flag_after=False,                      # If True, insert a flagger after solving
-            visu_rawdata=False,               # If True, insert built-in view(s) 
-            visu_solver=False,                    # If True, insert built-in view(s) 
-            visu_corrected=True,                # If True, insert built-in view(s)
-            trace=False)                              # If True, produce progress messages  
+MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
+                         last_changed = 'd28sep2005',
+                         punit='unpol',                        # name of calibrator source
+                         stations=range(4),                   # specify the (subset of) stations to be used
+                         parmtable=None,                      # name of MeqParm table
+                         
+                         fdeg_Gampl=2,                          # degree of freq polynomial
+                         fdeg_Gphase='fdeg_Gampl',
+                         tdeg_Gampl=1,                          # degree of time polynomial
+                         tdeg_Gphase='tdeg_Gampl',
+                         tile_size_Gampl=None,                   # used in tiled solutions
+                         tile_size_Gphase='tile_size_Gampl',
+                          
+                         num_iter=10,                             # number of solver iterations per snippet
+                         flag_before=False,                   # If True, insert a flagger before solving
+                         flag_after=False,                      # If True, insert a flagger after solving
+                         visu_rawdata=False,               # If True, insert built-in view(s) 
+                         visu_solver=False,                    # If True, insert built-in view(s) 
+                         visu_corrected=True,                # If True, insert built-in view(s)
+                         trace=False)                              # If True, produce progress messages  
 
 MG.stream_control = record(ms_name='D1.MS',
                            data_column_name='DATA',
@@ -76,6 +76,9 @@ MG.stream_control = record(ms_name='D1.MS',
                            channel_start_index=10,
                            channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
                            output_col='RESIDUALS')
+
+MG = MG_JEN_exec.MG_check(MG)
+
 
 #-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.

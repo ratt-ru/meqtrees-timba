@@ -52,11 +52,58 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 
 
 #--------------------------------------------------------------------------------
+# The following functions belong in the 'importable' section, but they have
+# to be defined before they are used in this module:
+
+def MG_init(script_name, **pp):
+   """Initialise a MG script control record"""
+   MG = record(script_name=script_name, **pp)
+   # MG.setdefault('stream_control',record())
+   return MG
+
+#-------------------------------------------------------------------------------
+# Helper function:
+
+def MG_check(MG):
+   """Make sure that MG is a record with some expected fields"""
+   if isinstance(MG, str):
+      MG = record(script_name=MG)          # deal with legacy code
+   if True:
+      replace_reference(MG)
+   return MG
+
+# Helper function that replaces 'referenced' values with actual ones:
+
+def replace_reference(rr, level=1):
+   """If the value of a field in the given record (rr) is a field name
+   in the same record, replace it with the value of the referenced field"""
+   if level>10: return False               # escape from eternal loop (error!)
+   count = 0
+   prefix = str(level)+':'+(level*'.')
+   for key in rr.keys():                   # for all fields
+      value = rr[key]                      # field value
+      if isinstance(value, str):           # if field value is a string
+         # print prefix,'- key =',key,value
+         if not value==key:                # ignore self-reference
+            if rr.has_key(value):          # if field value is the name of another field
+               count += 1                  # count the number of replacements
+               # print prefix,'-',count,': replace_reference(): rr[',key,'] =',value,'->',rr[value]
+               rr[key] = rr[value]         # replace with the value of the referenced field
+   if count>0: replace_reference(rr, level=level+1)       # repeat if necessary
+   return count
+
+
+
+#--------------------------------------------------------------------------------
 # Script control record (may be edited here):
 
-MG = record(script_name='MG_JEN_exec.py',
-            last_changed='h22sep2005',
-            trace=False)
+MG = MG_init('MG_JEN_exec.py',
+             last_changed='h22sep2005',
+             aa='referenced value',
+             bb='aa',
+             cc='bb',
+             trace=False)
+MG = MG_check(MG)
 
 
 #--------------------------------------------------------------------------------
@@ -91,6 +138,7 @@ def _define_forest (ns):
    of the subject of this MG script, and its importable functions"""
    # Perform some common functions, and return an empty list (cc=[]):
    cc = on_entry (ns, MG)
+   display_object (MG, 'MG', 'after on_entry()')
 
 
    # Test/demo of importable function:
@@ -130,10 +178,10 @@ def on_entry (ns, MG, **pp):
    """Function called upon entry of _define_forest()"""
 
    # Check the MG-record:
-   MG = check_MG(MG)
+   MG = MG_check(MG)
 
    # Transfer certain ctrl fields to the MG_JEN_stream_control record:
-   stream_control (MG.stream_control)
+   if MG.has_key('stream_control'): stream_control (MG.stream_control)
 
    # Attach the script control field (MG) to the forest state record:
    Settings.forest_state.MG_JEN_script_ctrl = MG
@@ -154,10 +202,7 @@ def on_exit (ns, MG, cc=[], **pp):
    pp.setdefault('make_bookmark', True)                # if False, inhibit bookmarks
    pp.setdefault('create_ms_interface_nodes', True)   # see below
 
-   # Check the MG-record:
-   MG = check_MG(MG)
-
-   # OPtionally, create the standard nodes expected by the MS
+   # Optionally, create the standard nodes expected by the MS
    if pp['create_ms_interface_nodes']:
       create_ms_interface_nodes(ns)
    
@@ -204,18 +249,6 @@ def bundle (ns, cc, name='bundle', **pp):
    
    return parent
    
-#-------------------------------------------------------------------------------
-# Helper function:
-
-def check_MG(MG=None):
-   """Make sure that MG is a record with some expected fields.
-   It contains information about an MG script, which may be used in
-   messages etc by the common services of this MG_JEN_exec module."""
-   if MG==None: MG = record(script_name='<script_name>')
-   if isinstance(MG, str): MG = record(script_name=MG)    # deal with legacy code
-   MG = record(MG)
-   MG.setdefault('stream_control',record()) 
-   return MG
 
 #-------------------------------------------------------------------------------
 # Helper function:
@@ -238,7 +271,7 @@ def noexec(pp=None, MG=None, help=None):
    pp['_help'] = help
 
    # Check the MG-record, and attach it to pp:
-   MG = check_MG(MG)
+   MG = MG_check(MG)
    pp['_MG'] = MG
 
    display_object(pp,'pp', 'MG_JEN_exec.noexec()')
@@ -409,6 +442,8 @@ def meqforest (mqs, parent, request=None, **pp):
 def execute (mqs, parent, request=None, **pp):
    """The function that does the actual work for the _test_forest()
    functions in the various MG_JEN_ scripts."""
+
+   display_object (MG, 'MG', 'inside .execute()')
 
    from Timba.Meq import meq
 
@@ -588,7 +623,7 @@ def make_domain (domain=None, **pp):
 def without_meqserver(MG=None, callback=None, **pp):
    """Execute the MG script without a meqserver"""
    # Check the MG-record:
-   MG = check_MG(MG)
+   MG = MG_check(MG)
 
    pp.setdefault('recurse', 5)
    pp.setdefault('full', True)
@@ -599,6 +634,8 @@ def without_meqserver(MG=None, callback=None, **pp):
    # _define_forest(ns);
    root = callback(ns)
    ns.Resolve();
+
+   display_object (MG, 'MG', 'after callback(_define_forest())')
 
    display_forest_state()
 
@@ -866,6 +903,7 @@ def display_object (v, name='<name>', txt='', full=0, indent=0):
 
 
 
+# display_object (MG, 'MG', 'intial')
 
 
 
@@ -930,14 +968,21 @@ if __name__ == '__main__':
    if 0:
       pp = importable_example()
 
-   if 1:
+   if 0:
       MG.ms_name = '...DD....MS'
       MG.channel_start_index = -111
       MG.output_col = '<initrec>'
       MG.predict_column_name = 'PREDICT'
       stream_control(MG, display=True)
 
-   display_forest_state()
+   if 0:
+      rr = record(aa='bb', bb=6, ee='cc', cc='aa', dd='cc')
+      display_object (rr, 'rr', 'before')
+      replace_reference(rr)
+      display_object (rr, 'rr', 'after')
+      
+   if 1:
+      display_forest_state()
    print '\n** End of local test of:',MG.script_name,'\n*************\n'
 
 #********************************************************************************

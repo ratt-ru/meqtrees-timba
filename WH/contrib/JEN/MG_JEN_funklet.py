@@ -205,7 +205,7 @@ def polclog_SIF (I0=1.0, SI=-0.7, f0=1e6):
    SIF = reshape(SIF, (1,len(SIF)))               # freq coeff only....
    polclog = meq.polclog(SIF)                        # NB: the default f0 = 1Hz!
    polclog.axis_list = record(freq=f0)                # the default is f0=1Hz
-   print oneliner(polclog, 'polclog_SIF')
+   # print oneliner(polclog, 'polclog_SIF')
    return polclog
 
 #    if len(SI) == 1:
@@ -222,13 +222,13 @@ def polclog_SIF (I0=1.0, SI=-0.7, f0=1e6):
 # Make a StokesI(q=source) node based on a polclog:
 
 def polclog_flux (ns, source=None, I0=1.0, SI=-0.7, f0=1e6, stokes='stokesI'):
-   print
+   # print
    source = MG_JEN_forest_state.autoqual('MG_JEN_funklet_flux', qual=source)
 
    polclog = polclog_predefined(source, I0=I0, SI=SI, f0=f0, stokes=stokes)
    SIF = ns['SIF_'+stokes](q=source) << Meq.Parm(polclog)
    node = ns[stokes](q=source) << Meq.Pow(10.0, SIF)
-   print '** polclog_flux(',source,') ->',SIF,'->',node
+   # print '** polclog_flux(',source,') ->',SIF,'->',node
    return node
 
 #---------------------------------------------------------------------
@@ -242,7 +242,7 @@ def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
    SIF = ns.SIF(q=source) << Meq.Parm(polclog)
    node = ns.mult(q=source) << Meq.Pow(10.0, SIF)
    # node = ns << Meq.Pow(10.0, SIF)               # <--- better?
-   print '** polclog_fmult(',source,') ->',SIF,'->',node
+   # print '** polclog_fmult(',source,') ->',SIF,'->',node
    return node
    
 #---------------------------------------------------------------------
