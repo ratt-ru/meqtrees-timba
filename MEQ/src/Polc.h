@@ -37,7 +37,7 @@
 namespace Meq 
 { 
 
-const int    MaxPolcRank = 2;
+const int    MaxPolcRank = 8;
 const double defaultPolcPerturbation = defaultFunkletPerturbation;
 const double defaultPolcWeight = defaultFunkletWeight;
 extern const int    defaultPolcAxes[MaxPolcRank];

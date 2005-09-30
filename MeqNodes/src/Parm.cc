@@ -123,10 +123,10 @@ namespace Meq {
 	cdebug(3)<<n<<" funklets found in MEP table"<<endl;
 	if( n>1 )
 	  {
-	    cdebug(4)<<"discarding mutliple funklets as only one is currently suported, unless ? "<<(!isSolvable()||tiled_)<< "= true "<<endl;
+	    cdebug(3)<<"discarding multiple funklets as only one is currently suported, unless ? "<<(!isSolvable()||tiled_)<< "= true "<<endl;
 	    if(tiled_ || !isSolvable() ){
 	      funkletref <<=new ComposedPolc(funklets);
-	      cdebug(4)<<"composed funklet found? "<<funkletref-> objectType()<<endl;
+	      cdebug(3)<<"composed funklet found? "<<funkletref-> objectType()<<endl;
 	      funkletref().setDomain(domain);
 	      return funkletref.dewr_p();
 	    }
@@ -332,7 +332,8 @@ namespace Meq {
     //parm should keep a reference to the funklet object, snce it doesnt have to be equal to the wstate...
     //    Funklet * pfunklet = wstate()[FFunklet].as_wpo<Funklet>();
     Funklet * pfunklet(0);
-    if(its_funklet_.valid())
+    cdebug(3)<<" getting old funklet"<<endl;
+   if(its_funklet_.valid())
 
       pfunklet= its_funklet_.dewr_p();
     // see if this can be reused
@@ -348,7 +349,7 @@ namespace Meq {
 	  }
 	
 	// (b) no domain in funklet (i.e. effectively infinite domain of applicability)
-	if( ! tiled_ && !pfunklet->hasDomain() )
+	if( ! tiled_ && (pfunklet->objectType()!=TpMeqComposedPolc) && !pfunklet->hasDomain() )
 	  { 
 	    cdebug(3)<<"current funklet has infinite domain, re-using"<<endl;
 	    wstate()[FDomainId] = domain_id_ = rq_dom_id;
@@ -356,7 +357,7 @@ namespace Meq {
 	    return pfunklet;
 	  }
 	// (c) funklet domain is a superset of the requested domain
-	if(!tiled_ && pfunklet->domain().supersetOfProj(domain) )
+	if(!tiled_ && (pfunklet->objectType()!=TpMeqComposedPolc) &&  pfunklet->domain().supersetOfProj(domain) )
 	  {
 	    cdebug(3)<<"current funklet defined for superset of requested domain, re-using"<<pfunklet->getDbId()<<endl;
 	    wstate()[FDomainId] = domain_id_ = rq_dom_id;
@@ -374,7 +375,7 @@ namespace Meq {
 	cdebug(4)<<"tiling funklet, "<<endl;
 	Funklet *newfunklet = initTiledFunklet(funkref,domain,cells);
 	newfunklet->setDomain(domain);
-	its_funklet_<<=funkref;
+	its_funklet_<<=newfunklet;
 	wstate()[FFunklet].replace() = newfunklet->getState();
 	wstate()[FDomainId] = domain_id_ = rq_dom_id;
 	wstate()[FDomain].replace() <<= &domain;
@@ -407,7 +408,7 @@ namespace Meq {
   {
     // init solvable funklet for this request
     Funklet * pfunklet = initFunklet(request,True);
-    cdebug(2)<<"init funklet "<<pfunklet->objectType()<<" "<<pfunklet->isSolvable()<<endl;
+    cdebug(3)<<"init funklet "<<pfunklet->objectType()<<" "<<pfunklet->isSolvable()<<endl;
     if( !pfunklet->isSolvable() )
       {	
 	initSolvable(*pfunklet,request);

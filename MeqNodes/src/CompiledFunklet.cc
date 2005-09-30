@@ -42,7 +42,7 @@ CompiledFunklet::CompiledFunklet (const DMI::Record &other,int flags,int depth)
 CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int depth)
   : Funklet(other,flags,depth),
     itsDerFunction(other.itsDerFunction),
-    itsFunction(other.itsFunction)
+    itsFunction(other.itsFunction),Npar(other.Npar),Ndim(other.Ndim)
   {
     
 

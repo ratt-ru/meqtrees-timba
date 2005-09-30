@@ -21,6 +21,7 @@
 //# $Id$
 
 #include <MeqNodes/ParmTable.h>
+#include <MeqNodes/CompiledFunklet.h>
 #include <MEQ/Meq.h>
 #include <MEQ/Domain.h>
 #include <MEQ/Polc.h>
@@ -89,10 +90,9 @@ Vector<double> toParmVector (const LoVec_double &values)
 LoVec_double fromParmVector (const Array<double>& values)
 {
   Assert (values.ndim() == 1);
-  LoVec_double mat(values.data(),
-                   LoVecShape(values.shape()[0]),
-                   blitz::duplicateData);
-  return mat;
+  LoVec_double matrix(LoVecShape(values.shape()[0]));
+  B2A::copyArray(matrix,values);
+  return matrix;
 }
 
 
@@ -110,13 +110,15 @@ Matrix<double> toParmMatrix (const LoMat_double &values)
 
 }
 
-LoMat_double fromParmMatrix (const Array<double>& values)
+LoMat_double fromParmMatrix (const Matrix<double>& values)
 {
   Assert (values.ndim() == 2);
-  LoMat_double mat(values.data(),
-                   LoMatShape(values.shape()[0], values.shape()[1]),
-                   blitz::duplicateData);
-  return mat;
+  //  LoMat_double matrix(values.data(),
+  //                 LoMatShape(values.shape()[0], values.shape()[1]),
+  //                 blitz::duplicateData);
+  LoMat_double matrix(LoMatShape(values.shape()[0], values.shape()[1]));
+  B2A::copyArray(matrix,values);
+  return matrix;
 }
 
 //##ModelId=3F86886F02B7
@@ -205,9 +207,18 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
 	funklet<<= new PolcLog(fromParmMatrix(valCol(i)),
 			     axis,offset,scale,diffCol(i),weightCol(i),rowNums(i),scale_vector);
       }
-      else
-	funklet<<= new Polc(fromParmMatrix(valCol(i)),
-			  axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
+      else{
+	if (!ftypeCol.isNull() && (ftypeCol(i)=="MeqPolc"||ftypeCol(i)=="Polc")){
+	  funklet<<= new Polc(fromParmMatrix(valCol(i)),
+			      axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
+	}
+	else
+	  {
+	    funklet<<= new CompiledFunklet(fromParmMatrix(valCol(i)),defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale
+					   ,diffCol(i),weightCol(i),rowNums(i),ftypeCol(i));
+	  }
+
+      }
       funklet().setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
       
       funklets[i] =funklet;
@@ -280,7 +291,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
 
   Thread::Mutex::Lock lock(theirMutex);
   // for now, only Polcs are supported
-  FailWhen(funklet.objectType() != TpMeqPolc && funklet.objectType() != TpMeqPolcLog ,"ParmTable currently only supports Meq::Polc(Log) funklets");  
+  //  FailWhen(funklet.objectType() != TpMeqPolc && funklet.objectType() != TpMeqPolcLog ,"ParmTable currently only supports Meq::Polc(Log) funklets");  
   itsTable.reopenRW();
   TableLocker locker(itsTable, FileLocker::Write);
   ScalarColumn<String> namCol (itsTable, ColName);
@@ -304,10 +315,11 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   }
   ScalarColumn<String> funklettypeCol(itsTable, ColFunkletType);
   const Domain& domain = funklet.domain();
-  const Polc & polc = dynamic_cast<const Polc&>(funklet);
+  //  const Polc & polc = dynamic_cast<const Polc&>(funklet);
+  const Funklet & polc = dynamic_cast<const Funklet&>(funklet);
 
   // for the moment, only Time-Freq variable polcs are supported
-  Assert(polc.rank()==2);
+  Assert(polc.rank()>=2);
   Assert(polc.getAxis(0)==Axis::TIME);
   Assert(polc.getAxis(1)==Axis::FREQ);
   LoMat_double values;
@@ -387,7 +399,12 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   tsCol.put   (rownr, polc.getScale(Axis::TIME));
   diffCol.put (rownr, polc.getPerturbation());
   weightCol.put(rownr, polc.getWeight());
-  funklettypeCol.put(rownr,polc.objectType().toString());
+  if(polc.objectType()==TpMeqCompiledFunklet){
+    funklettypeCol.put(rownr,polc.getFunction());
+
+  }
+  else
+    funklettypeCol.put(rownr,polc.objectType().toString());
 
   if(polc.objectType()==TpMeqPolcLog){
     if(!itsTable.actualTableDesc().isColumn(ColLScale)){

@@ -48,14 +48,21 @@ class CompiledFunklet: public Funklet{
 		    const double offset[] = defaultFunkletOffset,
 		    const double scale[]  = defaultFunkletScale,
 		    double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
-		    DbId id=-1) 
+			   DbId id=-1,string fstr  = "p0") 
   {
-    setCoeff(coeff);
+    //   setCoeff(coeff);
+    //set by hand since setcoeff calls init too early
+    ObjRef ref(new DMI::NumArray(coeff));
+    Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
+    pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
     if(hasField(FFunction)){
-      string fstr;
       (*this)[FFunction].get(fstr,0);
-      setFunction(fstr);
     }
+    else
+      (*this)[FFunction] = fstr;
+
+    setFunction(fstr);
+    
     init(Ndim,iaxis,offset,scale,pert,weight,id);
     itsState<<=new Funklet(*this);
   }
@@ -65,15 +72,23 @@ class CompiledFunklet: public Funklet{
 		    const double offset[] = defaultFunkletOffset,
 		    const double scale[]  = defaultFunkletScale,
 		    double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
-		    DbId id=-1) 
+		    DbId id=-1,string fstr  = "p0") 
   {
-    setCoeff(coeff);
+    //    setCoeff(coeff);
+    //set by hand since setcoeff calls init before we know about Ndim
+    ObjRef ref(new DMI::NumArray(coeff));
+    Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
+    pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
     if(hasField(FFunction)){
-      string fstr;
       (*this)[FFunction].get(fstr,0);
-      setFunction(fstr);
     }
+    else
+      (*this)[FFunction] = fstr;
+
+    setFunction(fstr);
+  
     init(Ndim,iaxis,offset,scale,pert,weight,id);
+   
     itsState<<=new Funklet(*this);
   }
  
@@ -83,7 +98,7 @@ class CompiledFunklet: public Funklet{
 		     const double offset[] = defaultFunkletOffset,
 		     const double scale[]  = defaultFunkletScale,
 		     double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
-		     DbId id=-1) 
+		     DbId id=-1,string fstr  = "p0") 
   {
     ObjRef ref(pcoeff);
     FailWhen(pcoeff->elementType() != Tpdouble,"can't create Meq::CompiledFunklet from this array: not double");
@@ -92,18 +107,22 @@ class CompiledFunklet: public Funklet{
     Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
     pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
     if(hasField(FFunction)){
-      string fstr;
       (*this)[FFunction].get(fstr,0);
-	
-      setFunction(fstr);
     }
+    else
+      (*this)[FFunction] = fstr;
+
+    setFunction(fstr);
+    
+    
+
     init(Ndim,iaxis,offset,scale,pert,weight,id);
     itsState<<=new Funklet(*this);
   }
 
   ~CompiledFunklet(){}
 
-  void setFunction(casa::String funcstring){
+  void setFunction(string funcstring){
     //check if this is a valid string
     FailWhen(!itsFunction.setFunction(funcstring),std::string(itsFunction.errorMessage()));
     Npar = itsFunction.nparameters();
@@ -139,6 +158,11 @@ class CompiledFunklet: public Funklet{
 	
   }
 
+
+  virtual string getFunction() const{
+
+    return string(itsFunction.getText());
+  }
 
   virtual Funklet * getState(){
     return itsState.dewr_p();

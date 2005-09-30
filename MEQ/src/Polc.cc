@@ -36,9 +36,12 @@ namespace Meq {
 
 static DMI::Container::Register reg(TpMeqPolc,true);
 
-const int    defaultPolcAxes[MaxPolcRank]       = {0,1};
-const double defaultPolcOffset[MaxPolcRank]     = {0,0};
-const double defaultPolcScale[MaxPolcRank]      = {1,1};
+// const int    defaultPolcAxes[MaxPolcRank]       = {0,1};
+// const double defaultPolcOffset[MaxPolcRank]     = {0,0};
+// const double defaultPolcScale[MaxPolcRank]      = {1,1};
+  const int    defaultPolcAxes[MaxPolcRank]       = {0,1,2,3,4,5,6,7};
+  const double defaultPolcOffset[MaxPolcRank]     = {0,0,0,0,0,0,0,0};
+  const double defaultPolcScale[MaxPolcRank]      = {1,1,1,1,1,1,1,1};
 
 static std::vector<int> default_axes(defaultPolcAxes,defaultPolcAxes+MaxPolcRank);
 static std::vector<double> default_offset(defaultPolcOffset,defaultPolcOffset+MaxPolcRank);

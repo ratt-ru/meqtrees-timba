@@ -42,7 +42,7 @@ class VellSet;
 
 const double defaultFunkletPerturbation = 1e-6;
 const double defaultFunkletWeight = 1;
-const int defaultFunkletRank = 2;
+const int defaultFunkletRank = 8;
 
 extern const int    defaultFunkletAxes[defaultFunkletRank];
 extern const double defaultFunkletOffset[defaultFunkletRank];
@@ -271,7 +271,7 @@ public:
   const LoMat_double & getCoeff2 () const
   { return coeff().getConstArray<double,2>(); }
 
-  //various virtual acces functions for coeefs
+  //various virtual access functions for coeefs
   virtual void setCoeff (double c00);
   virtual void setCoeff (const LoVec_double & coeff);
   virtual void setCoeff (const LoMat_double & coeff);
@@ -303,11 +303,18 @@ public:
 
 
   //reimplement in FuncTest (CompiledFunklet) since browser doesnt know about aips++ contaminated classes
-  virtual Funklet * getState() {
+  virtual Funklet *getState() {
     return this;
   }
 
+  virtual string getFunction() const{
+    //reset in CompiledFunklet, default is just the string of the type
+    return objectType().toString();
+  }
 
+  virtual void setFunction(string funcstring){
+    //reset in CompiledFunklet, default is just the string of the type
+   }
 
 protected:
   Record::protectField;  
@@ -365,7 +372,6 @@ protected:
   virtual void transformCoeff(const std::vector<double> & newoffsets,const std::vector<double> & newscales)
   {}
 
-  
 
 private:
   //------------------ data members ----------------------------------------------------------

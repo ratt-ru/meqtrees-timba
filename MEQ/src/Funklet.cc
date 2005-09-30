@@ -37,9 +37,12 @@ using namespace DMI;
 static DMI::Container::Register reg(TpMeqFunklet,true);
 
 
-const int    defaultFunkletAxes[defaultFunkletRank]   = {0,1};
-const double defaultFunkletOffset[defaultFunkletRank] = {0,0};
-const double defaultFunkletScale[defaultFunkletRank]  = {1,1};
+  const int    defaultFunkletAxes[defaultFunkletRank]   = {0,1,2,3,4,5,6,7};
+  const double defaultFunkletOffset[defaultFunkletRank] = {0,0,0,0,0,0,0,0};
+  const double defaultFunkletScale[defaultFunkletRank]  = {1,1,1,1,1,1,1,1};
+//   const int    defaultFunkletAxes[defaultFunkletRank]   = {0,1};
+//   const double defaultFunkletOffset[defaultFunkletRank] = {0,0};
+//   const double defaultFunkletScale[defaultFunkletRank]  = {1,1};
 
 static std::vector<int> default_axes(defaultFunkletAxes,defaultFunkletAxes+defaultFunkletRank);
 static std::vector<double> default_offset(defaultFunkletOffset,defaultFunkletOffset+defaultFunkletRank);
@@ -159,7 +162,6 @@ void Funklet::init (int rnk,const int iaxis[],
                     const double scale[],
                     double pert,double weight,DbId id)
 {
-  //  cdebug(0)<<"init funklet with rank "<<rnk<<endl;
   Thread::Mutex::Lock lock(mutex());
   // this ensures a rank match: first time 'round, set the rank
   if( axes_.empty() )
