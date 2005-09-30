@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+#
+# Stream controller - will be plugged in into the browser
+# -------------------------------------------------------
+#
+
 import Timba
 from Timba.dmi import *
 from Timba.Meq import meqds
@@ -21,16 +26,44 @@ _dbg = verbosity(0,name='StreamCtrl');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+#======================================================================
+# Some helper functions to show the contents of the stream record.
+#
+
+def showfields(obj, pre=''):
+  flds = obj.field_names();
+  for f in flds:
+    a = str(type(obj[f]));
+    if a == "<class 'Timba.dmi.record'>":
+      print pre, f;
+      showfields(obj[f], pre+'  ');
+    else:
+      print pre, f, '=', obj[f];
+
+def showStream(stream):
+    print '***************************** Got stream record:';
+    print 'STREAM contains:\n';
+    showfields(stream);
+    print '*****************************';
+
+#======================================================================
+
 def mkInput():
-  inp = record();
+  inp = Timba.dmi.record();
   inp.tile_size = 1;
-  sel = record();
-  sel.channel_start_index=0;
-  sel.channel_end_index=-1;
-  inp.selection = sel;
+  inp.selection = Timba.dmi.record();
+  inp.selection.channel_start_index=0;
+  inp.selection.channel_end_index=-1;
   inp.ms_name = '';
-  inp.date_column_name = 'DATA';
+  inp.sink_type = 'ms_in';
+  inp.data_column_name = 'DATA';
   return inp;
+
+def mkOutput():
+  outp = Timba.dmi.record();
+  outp.predict_column_name = '';
+  outp.sink_type = 'ms_out';
+  return outp;
 
 #
 # Class StreamData
@@ -38,12 +71,12 @@ def mkInput():
 #   Data from the input and output record for a spigot to sink tree
 # Duties
 #   - Contain the data mentioned above
-#   - Update the fileds in its parents - method=updateGui
+#   - Update the fields in its parents - method=updateGui
 #
 class StreamData:
   def __init__(self, parent):
     self.parent = parent;
-    self.cwd = ''            # Directory for pre-loaded MS 
+    self.cwd = os.getcwd();  # Directory for pre-loaded MS 
     self.NChan = -1;         # Number of channels in the Measurement Set (MS)
     self.Ch0 = 0;            # First channel of the data in the tree, user selected
     self.Ch1 = -1;           # Last channel of the data in the tree, user selected
@@ -59,13 +92,11 @@ class StreamData:
 
 #
 # Load the data from the input stream to the object.
+# check if a field exists in forest_state.stream, and if so, load it
+# in a local storage.
 #
-  def loadData(self, fst):
-    self.cwd = fst.cwd;
-    InData = fst.stream
-    if not hasattr(InData, 'input'):
-       InData.input = mkInput();
-       return;
+  def loadData(self, strrec):
+    InData = strrec
     self.Ch0 = InData.input.selection.channel_start_index;
     if self.Ch0 == -1:
       print 'ERROR Ch0 == -1'
@@ -78,7 +109,7 @@ class StreamData:
     self.TileSize = InData.input.tile_size;
 
     self.DataFrom = str(InData.input.data_column_name);
-    self.DataTo = str(InData.output.predict_column);
+    self.DataTo = str(InData.output.predict_column_name);
 
 #
 # Set the current MS.
@@ -104,7 +135,7 @@ class StreamData:
     self.parent.ColInfo.setText(self.ColInfo());
 
 #
-# Copy my contents to the ourput stream
+# Copy my contents to the output stream
 #
   def copy(self, OutData):
     OutData.input.selection.channel_start_index = self.Ch0;
@@ -553,39 +584,52 @@ class StreamController (browsers.GriddedPlugin):
   def wtop(self):
     return self._wtop;
 
-#
+#----------------------------------------------------------------------
 # Update the stream info - this will be called from outside
 #
   def update_forest_state (self,fst):
-    # once we've received data, we ignore all further updates
+
+# 
+# once we've received data, we ignore all further updates
+#
     if self._streamrec: 
       return;
 
-    # try to extract record from the forest state
-    try: self._streamrec = fst.stream;
-    except AttributeError: pass;
+#
+# try to extract record from the forest state
+#
+    try:
+      self._streamrec = fst.stream;
+    except AttributeError:
+      pass;
 
-    # if we haven't found anything, return and wait for another update
+#
+# if we haven't found anything, return and wait for another update
+#
     if not self._streamrec:
       return;
 
-    # ok, we've got data. Fill in and enable GUI accordingly
+#
+# Ok, we've got data - check if the necessary fields are present
+#
+
+    if not hasattr(self._streamrec, 'input'):
+       fst.stream.input = mkInput();
+    if not hasattr(self._streamrec, 'output'):
+       fst.stream.output = mkOutput();
+    if not hasattr(self._streamrec, 'output_col'):
+       fst.output_col = 'PREDICT';
+
     self.wtop().setEnabled(True);
-    print '***************************** Got stream record:';
-    print self._streamrec;
-    print '*****************************';
+
+    showStream(self._streamrec);
 
 #
 # Load values in Data object, update gui
 #
-    self.StrData.loadData(fst);
+    self.StrData.loadData(self._streamrec);
 #    self.StrData.show();
     self.StrData.updateGui();
-
-#
-# update values in GUI
-#
-#    self.NTiles.setText(str(self._streamrec.input.tile_size));
 
 #
 # Select an MS, update GUI
@@ -647,20 +691,7 @@ class StreamController (browsers.GriddedPlugin):
       self.StrData.copy(self._streamrec);
 
       self._streamrec.input.tile_size = int(str(self.NTiles.text()));
-#      s1 = str(self.Station1.text());
-#      s2 = str(self.Station2.text());
-#      if (s1 != '') and (s2 != ''):
-#        selStr = 'ANTENNA1 in ' + s1 + ' && ANTENNA2 in ' + s2;
-#        self._streamrec.input.selection.selection_string = selStr;
-#      else:
       self._streamrec.input.selection.selection_string = '';
-
-#      DataFrom = str(self.DataFrom.text());
-#      if DataFrom != self.currDataFrom:
-#	self._streamrec.input.data_column_name = DataFrom;
-#      DataTo = str(self.DataTo.text());
-#      if DataTo != self.currDataTo:
-#	self._streamrec.output_col = DataFrom;
 
       mqs().init(self._streamrec);
 #
