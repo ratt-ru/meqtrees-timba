@@ -36,8 +36,8 @@ class QwtColorBar(QwtPlot):
         self.enableAxis(QwtPlot.xBottom, False)
         self.enableGridX(False)
         self.enableGridY(False)
-#       self.setAxisLabelRotation(QwtPlot.yLeft,270);
-#	self.setAxisTitle(QwtPlot.yLeft, 'range')
+        self.setAxisLabelRotation(QwtPlot.yLeft,270)
+        self.setAxisLabelAlignment(QwtPlot.yLeft, Qt.AlignTop)
         # default color bar
         self.plotImage = QwtPlotImage(self)
         self.min = 0.0
