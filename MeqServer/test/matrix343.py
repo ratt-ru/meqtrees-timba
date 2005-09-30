@@ -92,7 +92,7 @@ def forest_measurement_set_info(ns, num_ant):
 
 
 
-def create_initial_source_model(tablename=''):
+def create_initial_source_model(tablename='', extra_sources_filename=''):
     source_model = []
     src_3C343_1 = PointSource(name='3C343_1',
                               I=1.0, Q=0.0, U=0.0, V=0.0,
@@ -106,7 +106,32 @@ def create_initial_source_model(tablename=''):
                             table=tablename)
     source_model.append(src_3C343_1)
     source_model.append(src_3C343)
-    return source_model
+    extra_sources=[]
+    extra_sources_filename=''
+    if extra_sources_filename != '':
+        infile = open(extra_sources_filename, 'r')
+        lines = infile.readlines()
+        infile.close()
+        for index,line in enumerate(lines):
+            splitup = line.split()
+            csplitup = len(splitup)
+            if csplitup > 2:
+                ra  = float(splitup[0])
+                dec = float(splitup[1])
+                I   = float(splitup[2])
+                pass
+            Q = 0.0
+            U = 0.0
+            V = 0.0
+            src = PointSource(name='extra_'+str(index),
+                              ra=ra, dec=dec,
+                              I=I,Q=Q,U=U,V=V,
+                              Iorder=3, Qorder=3, Uorder=3,Vorder=0,
+                              table=tablename)
+            extra_sources.append(deepcopy(src))
+            pass
+        pass
+    return source_model,extra_sources
 
 
 
@@ -299,7 +324,7 @@ def forest_baseline_predict_trees(ns, interferometer_list, patch_names):
             ns.corrupted_patch_vis(ant1,ant2,patch_name) << \
                     Meq.MatrixMultiply(ns.J(ant1,patch_name), 
                                  ns.clean_visibility(ant1,ant2, patch_name),
-                                 ns.ctJ(ant1, patch_name))
+                                 ns.ctJ(ant2, patch_name))
             corrupted_patch_vis_list.append(ns.corrupted_patch_vis(ant1,ant2,patch_name))        
             pass
         ns.predict_patches(ant1, ant2) << Meq.Add(children=deepcopy(corrupted_patch_vis_list))    
@@ -375,12 +400,17 @@ def _define_forest(ns):
     station_list        = range(1, 14+1)
     interferometer_list = [(ant1, ant2) for ant1 in station_list for ant2 in station_list if ant1 < ant2]
 
-    source_model      = create_initial_source_model(source_mep_tablename)
-    patch_source_lists= {'centre':[source_model[0]], 'edge':[source_model[1]]}
+    source_model,extra_sources = create_initial_source_model(tablename=source_mep_tablename,extra_sources_filename='extra_sources.txt')
+    
+# Ehrm... brute force. The "right" way of doing this is to
+# assign the extra sources to patches depending on their proximity
+# to the patch centre    
+    patch_source_lists= {'centre':[source_model[0]]+extra_sources,
+                         'edge':[source_model[1]]}
 
     forest_measurement_set_info(ns, len(station_list))
 
-    for source in source_model:
+    for source in source_model+extra_sources:
         forest_source_subtrees(ns, source)
         pass
         
@@ -411,8 +441,8 @@ def create_inputrec(msname, tile_size=1500):
     inputrec.ms_name          = msname
     inputrec.data_column_name = 'DATA'
     inputrec.tile_size        = tile_size
-    inputrec.selection = record(channel_start_index=30,#25,
-                                channel_end_index=33,#40,
+    inputrec.selection = record(channel_start_index=25,
+                                channel_end_index=40,
                                 selection_string='')#'TIME_CENTROID < 4472026000')
     inputrec.python_init = 'MAB_read_msvis_header.py'
     
@@ -429,9 +459,10 @@ def create_outputrec(output_column='CORRECTED_DATA'):
     return outputrec
 
 
-def create_solver_defaults(num_iter=6, solvable=[]):
+def create_solver_defaults(num_iter=20, epsilon=1e-5, solvable=[]):
     solver_defaults=record()
     solver_defaults.num_iter     = num_iter
+    solver_defaults.epsilon      = epsilon
     solver_defaults.save_funklets= True
     solver_defaults.last_update  = True
 #See example in TDL/MeqClasses.py
@@ -452,13 +483,13 @@ def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
     inputrec        = create_inputrec(msname, tile_size=1500)
     outputrec       = create_outputrec()
 
-    source_list = create_initial_source_model()
+    source_list,extra_sources = create_initial_source_model(extra_sources_filename='extra_sources.txt')
 
     print inputrec
     print outputrec
 
     solvables = []
-    for source in source_list:
+    for source in source_list+extra_sources:
         solvables.append('stokes:I:'+source.name)
         solvables.append('stokes:Q:'+source.name)
         pass
@@ -489,7 +520,6 @@ def _tdl_job_phase_solution_with_given_fluxes(mqs, parent):
     inputrec        = create_inputrec(msname, tile_size=10)
     outputrec       = create_outputrec()
 
-    source_list  = create_initial_source_model()
     station_list = range(1,15)
     patch_list   = ['centre', 'edge']
     print inputrec
@@ -504,7 +534,7 @@ def _tdl_job_phase_solution_with_given_fluxes(mqs, parent):
     
     publish_node_state(mqs, 'GP:9:11')
     
-    solver_defaults = create_solver_defaults(num_iter=4,solvable=solvables)
+    solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
     mqs.init(record(mandate_regular_grid=False),\
@@ -545,7 +575,7 @@ def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
     
     publish_node_state(mqs, 'JA:9:centre:11')
     
-    solver_defaults = create_solver_defaults(num_iter=4,solvable=solvables)
+    solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
     mqs.init(record(mandate_regular_grid=False),\
@@ -558,7 +588,7 @@ def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
 
 
 
-Settings.forest_state.cache_policy = 100
+Settings.forest_state.cache_policy = 0 #100
 Settings.orphans_are_roots = False
 
 if __name__ == '__main__':
