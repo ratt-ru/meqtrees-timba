@@ -550,6 +550,11 @@ class ResultPlotter(GriddedPlugin):
         displaying data for a numarray of dimension 3 or greater """
 
     _dprint(3, 'in result_plotter:set_ND_controls so we must have caught a vells_axes_labels signal')
+ 
+# make sure we can toggle ND controller by telling plotter 
+# that array rank is at least 3
+    self._visu_plotter.set_toggle_array_rank(3)
+
     shape = None
     self.ND_Controls = ND_Controller(shape, labels, parms, self.layout_parent)
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self._visu_plotter.setArraySelector)
