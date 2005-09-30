@@ -56,6 +56,8 @@ const HIID FIterationSymdeps = AidIteration|AidSymdeps;
 const HIID FIterationDependMask = AidIteration|AidDepend|AidMask;
 
 const HIID FDebugLevel = AidDebug|AidLevel;
+const HIID FIterations = AidIterations;
+const HIID FConverged  = AidConverged;
 
 #if LOFAR_DEBUG
 const int DefaultDebugLevel = 100;
@@ -97,6 +99,12 @@ TypeId Solver::objectType() const
   return TpMeqSolver;
 }
 
+
+
+
+
+
+
 // do nothing here -- we'll do it manually in getResult()
 //##ModelId=400E5355026B
 int Solver::pollChildren (std::vector<Result::Ref> &chres,
@@ -112,6 +120,16 @@ int Solver::pollChildren (std::vector<Result::Ref> &chres,
   else
     return Node::pollChildren(chres,resref,request);
 }
+
+
+
+
+
+
+
+
+
+
 
 int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
 {
@@ -160,6 +178,18 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
   return num_unknowns_;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
 // This is a helper function for fillEquations(). Note that this function 
 // encapsulates the only difference in the code between the double
 // and the complex case. This allows us to have a single templated 
@@ -182,6 +212,18 @@ inline void Solver::fillEqVectors (int npert,int uk_index[],
   solver_.makeNorm(npert,uk_index,&deriv_real_[0],1.,diff);
   num_equations_++;
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Specialization for complex case: each value produces two equations
 template<>
@@ -209,6 +251,15 @@ inline void Solver::fillEqVectors (int npert,int uk_index[],
   solver_.makeNorm(npert,uk_index,&deriv_imag_[0],1.,diff.imag());
   num_equations_++;
 }
+
+
+
+
+
+
+
+
+
 
 template<typename T>
 void Solver::fillEquations (const VellSet &vs)
@@ -321,6 +372,18 @@ void Solver::fillEquations (const VellSet &vs)
 }        
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 // Get the result for the given request.
 //##ModelId=400E53550270
 int Solver::getResult (Result::Ref &resref, 
@@ -420,8 +483,9 @@ int Solver::getResult (Result::Ref &resref,
   // OK, now create the "real" request object. This will be modified from 
   // iteration to iteration, so we keep it attached to reqref and rely on COW
   reqref <<= new Request(request.cells(),eval_mode);
-  int step;
-  for( step=0; step < max_num_iter_; step++ ) 
+  int  step;
+  bool converged=false;
+  for( step=0; step < max_num_iter_ && !converged; step++ ) 
   {
     // increment the solve-dependent parts of the request ID
     rqid = next_rqid;
@@ -462,21 +526,26 @@ int Solver::getResult (Result::Ref &resref,
         else
           fillEquations<dcomplex>(vs);
       }
-    } // end of loop over children
+    } // end of while loop over children
     FailWhen(!num_equations_,"no equations were generated");
     cdebug(4)<<"accumulated "<<num_equations_<<" equations\n";
     // Solve the equation.
     DMI::Record * pSolRec = new DMI::Record;
     metricsList.addBack(pSolRec);
     DMI::Record * pDebug = 0;
-    if( pDebugList )
+    if( pDebugList ){
       pDebugList->addBack(pDebug = new DMI::Record);
-    solve(solution,reqref,*pSolRec,pDebug,do_save_funklets_ && step == max_num_iter_-1);
+    }
+
+    // ****   CALL SOLVE AND CHECK CONVERGENCE  ****
+    double fit = solve(solution,reqref,*pSolRec,pDebug,do_save_funklets_ && step == max_num_iter_-1);
+    converged = ((abs(fit) < min_epsilon_) && fit < 0.0);
+    
     // copy solutions vector to allSolutions row
     incr_solutions(step,LoRange::all()) = B2A::refAipsToBlitz<double,1>(solution);
-  }
+  } // end of FOR loop over solver iterations
   // send up one final update if needed
-  if( do_last_update_ && step == max_num_iter_ )
+  if( do_last_update_ && (step == max_num_iter_ || converged))
   {
     // reqref will have already been populated with updates by solve() above.
     // However, we want to clear out the cells to avoid re-evaluation, so
@@ -492,6 +561,8 @@ int Solver::getResult (Result::Ref &resref,
     Node::pollChildren(child_results_, resref, lastreq);
     ParmTable::unlockTables();
   }
+  solveResult[FConverged] = converged;
+  solveResult[FIterations]= step;
   // if we broke out of the loop because of some other criterion, we need
   // to crop the incremental solutions matrix to [0:step-1,*]
   if( step < max_num_iter_ )
@@ -505,6 +576,14 @@ int Solver::getResult (Result::Ref &resref,
   }
   return 0;
 }
+
+
+
+
+
+
+
+
 
 
 // helper function to copy a triangular matrix (from solver object)
@@ -523,9 +602,20 @@ static DMI::NumArray::Ref triMatrix (T *tridata,int n)
   return out;
 }
 
+
+
+
+
+
+
+
+
+
+
+
 //====================>>>  Solver::solve  <<<====================
 
-void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
+double Solver::solve (Vector<double>& solution,Request::Ref &reqref,
                     DMI::Record& solRec,DMI::Record * pDebugRec,
                     bool saveFunklets)
 {
@@ -616,7 +706,18 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   // make sure the request rider is validated
   reqref().validateRider();
   ParmTable::unlockTables();
+  return fit;
 }
+
+
+
+
+
+
+
+
+
+
 
 //##ModelId=400E53550267
 void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)

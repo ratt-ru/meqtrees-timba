@@ -31,7 +31,7 @@
 
 #pragma types #Meq::Solver
 
-#pragma aid Solve Result Incremental Solutions Tile Size
+#pragma aid Solve Result Incremental Solutions Tile Size Iterations Converged
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -134,7 +134,12 @@ private:
   //## <br> If it is not the last iteration, the solution is put in the
   //## given request, so a next iteration can first update the parms.
   //## debugRec is pointer to debug record, 0 for no debugging
-  void solve (casa::Vector<double>& solution,Request::Ref &reqref,
+  //## <br> Returns the "fit" parameter of the solve. That is, the normalized
+  //## difference between the previouos and the current chi-squared
+  //## if this abs(value) is of the order of 10^-5, the fit should be 
+  //## considered "converged". This threshold is user-defined in the initrec
+  //## via the "epsilon" parameter.
+  double solve (casa::Vector<double>& solution,Request::Ref &reqref,
 	            DMI::Record& solRec,DMI::Record *debugRec,
               bool saveFunklets);
   
