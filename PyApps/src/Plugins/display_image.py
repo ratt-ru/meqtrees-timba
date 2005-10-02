@@ -1486,7 +1486,7 @@ class QwtImageDisplay(QwtPlot):
 
     # calc-vells_ranges
 
-    def plot_vells_data (self, vells_record):
+    def plot_vells_data (self, vells_record,label=''):
       """ process incoming vells data and attributes into the
           appropriate type of plot """
 
@@ -1566,17 +1566,17 @@ class QwtImageDisplay(QwtPlot):
             self._value_array = self._vells_rec.vellsets[self._active_plane].value
         key = ""
         if self._active_perturb is None:
-          key = " value "
+          key = " main value "
           if self.number_of_planes > 1:
-            self._label =  "plane " + str(self._active_plane) + key 
+            self._label =  label + " plane " + str(self._active_plane) + key 
           else:
-            self._label =  "plane " + key 
+            self._label =  label + key 
         else:
           key = " perturbed_value "
           if self.number_of_planes > 1:
-            self._label =  "plane " + str(self._active_plane) + key + str(self._active_perturb)
+            self._label =  label + "plane " + str(self._active_plane) + key + str(self._active_perturb)
           else:
-            self._label =  key + str(self._active_perturb)
+            self._label =  label + key + str(self._active_perturb)
         if self._solver_flag:
           self.array_plot(self._label, self._value_array, flip_axes=False)
         else:

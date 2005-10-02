@@ -498,11 +498,15 @@ class ResultPlotter(GriddedPlugin):
     if isinstance(self._rec, bool):
       return
 
+    label = '';  # extra label, filled in if possible
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
+      # try to put request ID in label
+      try: label = "rq " + str(self._rec.cache.request_id);
+      except: pass;
       try: self._rec = self._rec.cache.result; # look for cache.result record
       except:
-        Message = "No result record was found in the cache, so no plot can be made with the <b>result plotter</b>! You may wish to select another type of display."
+        Message = "No result record was found in the cache, so no plot can be made with the <b>Result Plotter</b>! You may wish to select another type of display."
         cache_message = QLabel(Message,self.wparent())
         cache_message.setTextFormat(Qt.RichText)
         self._wtop = cache_message
@@ -514,13 +518,13 @@ class ResultPlotter(GriddedPlugin):
 
 # are we dealing with Vellsets?
     if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
-      Message = "No cells record for vellsets; scalar assumed. No plot can be made with the <b>result plotter</b>. Use the record browser to get further information about this vellset." 
+      Message = "No cells record for vellsets; scalar assumed. No plot can be made with the <b>Result Plotter</b>. Use the record browser to get further information about this vellset." 
 #     number_of_planes = len(self._rec["vellsets"])
 #     for i in range(number_of_planes):
       if self._rec.vellsets[0].has_key("value"):
         value = self._rec.vellsets[0].value
-        str_value = str(value)
-        Message = "No cells record - value is " + str_value
+        str_value = str(value[0])
+        Message = "Scalar value <b>" + str_value + "</b>";
 
       cache_message = QLabel(Message,self.wparent())
       cache_message.setTextFormat(Qt.RichText)
@@ -531,7 +535,7 @@ class ResultPlotter(GriddedPlugin):
       if self._visu_plotter is None:
         self.create_image_plotters()
         _dprint(3, 'passed create_image_plotters')
-      self._visu_plotter.plot_vells_data(self._rec)
+      self._visu_plotter.plot_vells_data(self._rec,label=label)
 # otherwise we are dealing with a set of visualization data
     else:
       if self._rec.has_key("visu"):
