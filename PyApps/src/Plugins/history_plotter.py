@@ -144,6 +144,12 @@ class HistoryPlotter(GriddedPlugin):
       _dprint(3, 'plot_array rank and shape ', self._plot_array.rank, ' ', self._plot_array.shape)
       if self._plotter is None:
         self.create_image_plotters()
+      else:
+        if self._plot_array.rank >= 2:
+         self.array_selector = None
+         self.ND_Controls = None
+         self.set_ND_controls()
+
       if self._plot_array.rank >= 2:
         self.set_data_range(self._plot_array)
       if self._plot_array.rank > 2:
