@@ -70,6 +70,10 @@ DISTCLEANFILES=\
 	$(QT_DIR)/bin/moc $< -o $@
 
 
+# Rule to build all test programs.
+alltest: $(check_PROGRAMS)
+
+
 # Rules for building documentation using doxygen or doc++.
 # Default output directory is docxxhtml.
 DOCDIR := docxxhtml
