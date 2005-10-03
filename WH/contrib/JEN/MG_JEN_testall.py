@@ -21,8 +21,6 @@
 
 from Timba.TDL import *
 
-MG = record(script_name='MG_JEN_testall.py', last_changed = 'h22sep2005')
-
 # from Timba.Meq import meq
 
 from numarray import *
@@ -48,6 +46,12 @@ from Timba.Contrib.JEN import MG_JEN_Sixpack
 from Timba.Contrib.JEN import MG_JEN_Joneset
 from Timba.Contrib.JEN import MG_JEN_Cohset
 from Timba.Contrib.JEN import MG_JEN_spigot2sink
+
+
+#-------------------------------------------------------------------------
+
+MG = MG_JEN_exec.MG_init('MG_JEN_testall.py',
+                         last_changed = 'h22sep2005')
 
 
 #-------------------------------------------------------------------------
@@ -82,7 +86,7 @@ def _define_forest (ns):
    cc.append(test_module(ns, 'forest_state'))
    cc.append(test_module(ns, 'exec'))
    cc.append(test_module(ns, 'template'))
-   cc.append(test_module(ns, 'util'))
+   # cc.append(test_module(ns, 'util'))
    
    cc.append(test_module(ns, 'funklet'))
    
@@ -97,10 +101,15 @@ def _define_forest (ns):
    cc.append(test_module(ns, 'solver'))
    
    cc.append(test_module(ns, 'Sixpack'))
+   cc.append(test_module(ns, 'lsm'))
 
    cc.append(test_module(ns, 'Joneset'))
    cc.append(test_module(ns, 'Cohset'))
+
    cc.append(test_module(ns, 'spigot2sink'))
+   cc.append(test_module(ns, 'cps_BJones'))
+   cc.append(test_module(ns, 'cps_GJones'))
+   cc.append(test_module(ns, 'cps_GDJones'))
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, MG, cc)
@@ -138,16 +147,14 @@ def test_module(ns, name):
    return result
 
 
+
+
 #********************************************************************************
-# Initialisation and testing routines
-# NB: this section should always be at the end of the script
+#********************************************************************************
+#*****************  PART V: Forest execution routines ***************************
+#********************************************************************************
 #********************************************************************************
 
-
-
-#-------------------------------------------------------------------------
-# Meqforest execution routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
 
 def _test_forest (mqs, parent):
    # The following call shows the default settings explicity:
@@ -165,29 +172,23 @@ def _test_forest (mqs, parent):
 
 
 
-#-------------------------------------------------------------------------
-# Test routine to check the tree for consistency in the absence of a server
+#********************************************************************************
+#********************************************************************************
+#******************** PART VI: Standalone test routines *************************
+#********************************************************************************
+#********************************************************************************
 
 if __name__ == '__main__':
    print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
-   if 1:
+   if 0:
       MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=1)
 
    ns = NodeScope()
 
-   if 0:
-      rr = 0
-      # ............
-      # MG_JEN_exec.display_object (rr, 'rr', MG.script_name)
-      # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
-
-   if 0:
-      rr = 0
-      # ............
-      # MG_JEN_exec.display_object (rr, 'rr', MG.script_name)
-      # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
-
+   if 1:
+       MG_JEN_exec.display_object (MG, 'MG', MG.script_name)
+       # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
    print '\n** End of local test of:',MG.script_name,'\n*******************\n'
        
 #********************************************************************************

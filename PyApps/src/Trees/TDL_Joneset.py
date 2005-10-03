@@ -154,21 +154,19 @@ class Joneset (TDL_common.Super):
       return self.__node_groups
 
     def append(self, key=None, node=None):
-        # Append a named (key) 2x2 jones matrix node to the internal jones set:
+        """Append a named (key) 2x2 jones matrix node to the internal jones set"""
         key = str(key)          # potential __getitem__() problems if key is integer!! 
         self.__jones[key] = node
         return self.len()
 
     def define_MeqParm(self, ns, key=None, station=None, default=0,
-                       node_groups='Parm', use_previous=True, tile_size=0):
-        # Convenience function to create a MeqParm node
+                       node_groups='Parm', use_previous=True, tile_size=None):
+        """Convenience function to create a MeqParm node"""
         # NB: If use_previous==True, the MeqParm will use its current funklet (if any)
         #     as starting point for the next snippet solution, unless a suitable funklet
         #     was found in the MeqParm table. If False, it will use the default funklet first.
-        if tile_size:                         # catches zero and None
-            tiling = record(time=tile_size)
-        else:
-            tiling = record()
+        tiling = record()
+        if tile_size: tiling.time = tile_size
         quals = dict(q=self.punit());
         if station is not None:
             quals['s'] = station;

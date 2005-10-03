@@ -228,6 +228,16 @@ class Cohset (TDL_common.Super):
         if select=='last': return nn[len(nn)-1]
         return nn
 
+    def nodes(self, select='all'):
+        """Return a list of the current nodes in the Cohset"""
+        nn = []
+        for key in self.keys():
+            nn.append(self.__coh[key])
+        if len(nn)==0: return '<empty>'
+        if select=='first': return nn[0]
+        if select=='last': return nn[len(nn)-1]
+        return nn
+
     def oneliner(self):
         """Return a one-line summary of the Cohset"""
         s = TDL_common.Super.oneliner(self)
@@ -285,26 +295,41 @@ class Cohset (TDL_common.Super):
         self.history(append=funcname+' -> '+self.oneliner())
 
 
-    def graft(self, ns, node, key='all', stepchild=True):
-        """Insert the specified node at the specified ifrs
+
+
+    def graft(self, ns, node, name=None, key='all', stepchild=False):
+        """Graft the specified node(s) onto the streams of the specified ifr(s).
+        By default, this is done by means of a MeqReqSeq, which obly uses the result
+        of its LAST (main-stream) child. This synchronises the ifr-streams if the
+        same node (e.g. a solver or a dcoll) is grafted on all ifr-streams.
         If stepchild=True, make the node(s) step-children of a MeqSelector
         node that is inserted before the specified (key) coherency node"""
         funcname = '::graft():'
-        if not isinstance(node, (tuple, list)): node = [node]
+        gg = deepcopy(node)                                 # necessary....??
+        if not isinstance(gg, (tuple, list)): gg = [gg]
         keys = self.keys()
         if key=='first': keys = keys[0]                     # use the first ifr only
         if key=='last': keys = keys[len(keys)-1]            # use the last ifr only
         uniqual = _counter(funcname, increment=-1)
+        if stepchild:
+            gname = 'graft_stepchild'
+        else:
+            gname = 'graft_reqseq'
+        if isinstance(name, str): gname += '_'+name
+        self.history(funcname+' '+gname+': len(gg)='+str(len(gg)))
+        
+        # NB: Consider new options: add_children(...) or add_stepchildren(...)
+        #     See also PyApps/test/tdl_tutorial.py
+
         for key in keys:
             if stepchild:
-                self[key] = ns.graft_stepchild.qmerge(self[key])(uniqual) << Meq.Selector(self[key], stepchildren=node)
+                self[key] = ns[gname].qmerge(self[key])(uniqual) << Meq.Selector(self[key], stepchildren=gg)
             else:
-                # The use of a reqseq synchronises the ifr-streams...!
-                children = [node]                           # first the grafted node (e.g. dcoll)
-	        print 'children (node)=',len(children),'\n',children
-                children.extend(self[key])                  # then the main stream (result_index)
-	        print 'children (all)=',len(children),'\n',children
-                # self[key] = ns.graft_reqseq.qmerge(self[key])(uniqual) << Meq.ReqSeq(*children, result_index=1)
+                children = deepcopy(gg)                     # first the grafted node(s) (e.g. dcoll)
+                children.append(self[key])                  # the main stream node is last (result_index)
+                rix = len(children)-1                       # use only the result of the last (main stream) child
+                self[key] = ns[gname].qmerge(self[key])(uniqual) << Meq.ReqSeq(children=children, result_index=rix)
+
         self.history(funcname+' -> '+self.oneliner())
         return True
 
@@ -605,11 +630,19 @@ if __name__ == '__main__':
     if 1:
         cs.spigots(ns)
         cs.display('spigots')
+
+    if 1:
+        zero = ns.zero << 0.0
+        minus = ns.minus << -1
+        cs.graft(ns, [zero, minus], name='test', key='all', stepchild=False)
+        cs.display('graft')
+
+    if 0:
         cs.sinks(ns)
         if 1:
             sink = cs.simul_sink(ns)
             MG_JEN_exec.display_subtree(sink, 'simul_sink', full=True, recurse=5)
-
+        
 
     if 1:
         # Display the final result:

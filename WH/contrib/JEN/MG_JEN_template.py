@@ -96,8 +96,28 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 # Script control record (may be edited here):
 
 MG = MG_JEN_exec.MG_init('MG_JEN_template.py',
-            last_changed='h29sep2005',
-            trace=False)                       # If True, produce progress messages  
+                         last_changed='h02oct2005',
+                         aa=13,
+                         bb='aa',                 # replace with value of referenced field  
+                         trace=False)             # If True, produce progress messages  
+
+MG.test1 = record(a11=1,
+                  a12=2,
+                  a21=-1,
+                  a22=4)
+
+MG.test2 = record(a11=1.1,
+                  a12=-2,
+                  a21='a11',            # replace with value of referenced field 
+                  a22=0.5,
+                  up='../aa')           # replace with value of field from one level up     
+
+MG.stream_control = record(ms_name='D1.MS',
+                           data_column_name='DATA',
+                           tile_size=10,                  # input tile-size
+                           channel_start_index=10,
+                           channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
+                           output_col='RESIDUALS')
 
 # Check the MG record, and replace any referenced values
 MG = MG_JEN_exec.MG_check(MG)
@@ -132,14 +152,14 @@ def _define_forest (ns):
 
    # Test/demo of importable function: .example1()
    bb = []
-   bb.append(example1 (ns, arg1=1, arg2=2))
-   bb.append(example1 (ns, arg1=-1, arg2=4))
+   bb.append(example1 (ns, arg1=MG.test1.a11, arg2=MG.test1.a12))
+   bb.append(example1 (ns, arg1=MG.test1.a21, arg2=MG.test1.a22))
    cc.append(MG_JEN_exec.bundle(ns, bb, '.example1()'))
 
    # Test/demo of importable function: .example2()
    bb = []
-   bb.append(example2 (ns, arg1=1, arg2=5))
-   bb.append(example2 (ns, arg1=1, arg2=6))
+   bb.append(example1 (ns, arg1=MG.test2.a11, arg2=MG.test2.a12))
+   bb.append(example1 (ns, arg1=MG.test2.a21, arg2=MG.test2.a22))
    cc.append(MG_JEN_exec.bundle(ns, bb, '.example2()'))
 
    # Finished: 
@@ -309,7 +329,19 @@ if __name__ == '__main__':
       print example1.__doc__
       print __doc__
 
-    if 1:
+   if 1:
+      print 'dict()==dict:',isinstance(dict(), dict)
+      print 'record()==dict:',isinstance(record(), dict)
+      print 'None==False:',None==False
+      print '0==False:',0==False
+      if None: print 'None:'
+      if not None: print 'not None:'
+      if 0: print '0:'
+      if not 0: print 'not 0:'
+      if 'a': print 'a:'
+      if dict(): print 'dict():'
+
+   if 1:
        MG_JEN_exec.display_object (MG, 'MG', MG.script_name)
        # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
    print '\n** End of local test of:',MG.script_name,'\n*******************\n'

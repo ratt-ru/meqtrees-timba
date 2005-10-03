@@ -67,28 +67,37 @@ def MG_init(script_name, **pp):
 def MG_check(MG):
    """Make sure that MG is a record with some expected fields"""
    if isinstance(MG, str):
-      MG = record(script_name=MG)          # deal with legacy code
+      MG = record(script_name=MG)            # deal with legacy code
    if True:
       replace_reference(MG)
    return MG
 
 # Helper function that replaces 'referenced' values with actual ones:
 
-def replace_reference(rr, level=1):
+def replace_reference(rr, up=None, level=1):
    """If the value of a field in the given record (rr) is a field name
    in the same record, replace it with the value of the referenced field"""
-   if level>10: return False               # escape from eternal loop (error!)
+   if level>10: return False                 # escape from eternal loop (error!)
    count = 0
    prefix = str(level)+':'+(level*'.')
-   for key in rr.keys():                   # for all fields
-      value = rr[key]                      # field value
-      if isinstance(value, str):           # if field value is a string
-         # print prefix,'- key =',key,value
-         if not value==key:                # ignore self-reference
-            if rr.has_key(value):          # if field value is the name of another field
-               count += 1                  # count the number of replacements
-               # print prefix,'-',count,': replace_reference(): rr[',key,'] =',value,'->',rr[value]
-               rr[key] = rr[value]         # replace with the value of the referenced field
+   for key in rr.keys():                     # for all fields
+      value = rr[key]                        # field value
+      if isinstance(value, dict):            # if field value is dict: recurse
+         replace_reference(rr[key], up=rr, level=level+1)
+      elif isinstance(value, str):           # if field value is a string
+         if value[:3]=='../':                # if upward reference
+            if isinstance(up, dict):         # if 'parent' record given      
+               upfield = value.split('/')[1] # 
+               for upkey in up.keys():       # search for upfield in parent record
+                  count += 1                 # count the number of replacements
+                  # print prefix,'-',count,'replace_with_upward: rr[',key,'] =',value,'->',up[upkey]
+                  if upkey==upfield: rr[key] = up[upkey]  # replace if found
+         else:
+            if not value==key:                # ignore self-reference
+               if rr.has_key(value):          # if field value is the name of another field
+                  count += 1                  # count the number of replacements
+                  # print prefix,'-',count,': replace_reference(): rr[',key,'] =',value,'->',rr[value]
+                  rr[key] = rr[value]         # replace with the value of the referenced field
    if count>0: replace_reference(rr, level=level+1)       # repeat if necessary
    return count
 

@@ -348,9 +348,70 @@ def addnoise (ns, Cohset, **pp):
 
 
 
+#======================================================================================
+# Make spigots and sinks (plus some common services)
+#======================================================================================
 
 
+def make_spigots(ns, Cohset, **pp):
+    funcname = 'MG_JEN_Cohset.make_spigots(): '
 
+    # Input parameters:
+    pp.setdefault('visu', False)
+    pp.setdefault('flag', False)
+    pp = record(pp)
+
+    # Make MeqSinks
+    Cohset.spigots(ns)
+    spigots = Cohset.nodes()
+    
+    # Append the initial (spigot) Cohset to the forest state object:
+    MG_JEN_forest_state.object(Cohset, funcname)
+
+    # Optional: visualise the spigot (input) data:
+    if pp.visu:
+	visualise (ns, Cohset)
+	visualise (ns, Cohset, type='spectra')
+        
+    # Optional: flag the spigot (input) data:
+    if pp.flag:
+       insert_flagger (ns, Cohset, scope='spigots',
+                       unop=['Real','Imag'], visu=False)
+       if pp.visu: visualise (ns, Cohset)
+
+    # Return a list of spigot nodes:
+    return spigots
+
+
+#--------------------------------------------------------------------------
+
+def make_sinks(ns, Cohset, **pp):
+    funcname = 'MG_JEN_Cohset.make_sinks(): '
+
+    # Input parameters:
+    pp.setdefault('visu', False)
+    pp.setdefault('flag', False)
+    pp = record(pp)
+
+    # Optional: flag the sink (output) data:
+    if pp.flag:
+       insert_flagger (ns, Cohset, scope='sinks',
+                       unop=['Real','Imag'], visu=False)
+
+    # Optional: visualise the sink (output) data:
+    if pp.visu:
+	visualise (ns, Cohset)
+	visualise (ns, Cohset, type='spectra')
+
+    # Make MeqSinks
+    Cohset.sinks(ns)
+    sinks = Cohset.nodes()
+    
+    # Append the final Cohset to the forest state object:
+    MG_JEN_forest_state.object(Cohset, funcname)
+    
+    # Return a list of sink nodes:
+    return sinks
 
 
 
@@ -457,7 +518,7 @@ def insert_flagger (ns, Cohset, **pp):
 #   when visualised. 
 
 
-def insert_solver (ns, measured, predicted, correct=None, compare=None, **pp):
+def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare=None, **pp):
     """insert a named solver""" 
 
     funcname = 'MG_JEN_Cohset.solver(): '
@@ -566,28 +627,24 @@ def insert_solver (ns, measured, predicted, correct=None, compare=None, **pp):
     if not correct==None:
 	measured.correct(ns, correct)          # assume that 'correct' is a Joneset
 
+    # Optional: subtract the given Cohset from the measured (corrected?) data:
+    # NB: The interaction between correct and subtract requires a little thought...
+    # NB: Use predicted for subtract/correct...?
+    if not subtract==None:
+	measured.subtract(ns, subtract)        # assume that 'subtract' is a Cohset
 
-    # Tie the solver and its associated dcoll(s) with a MeqReqseq node.
-    # If pp.graft==True such a reqseq node is inserted in each ifr data-stream
-    keys = measured.keys()                     # main data stream
+
+    # Graft the solver and its dcoll nodes onto all measured ifr-streams
+    # by attaching them to a reqseq:
     solver_name = 'solver_'+solver_name        # used in reqseq name
-    for key in keys:
-       cc = [solver]                           # start a list of reqseq children (solver is first)
-       cc.extend(dc_condeq)                    # extend the list with the condeq dataCollect node(s) 
-       result_index = 0 
-       if pp.graft: 
-          cc.append(measured[key])             # measured Cohset (main data-stream) should be LAST!
-          result_index = len(cc)-1             # the reqseq should return the result of the main data stream
-       # MG_JEN_exec.display_object(cc,'cc', txt=key)
-       reqseq = ns.reqseq.qmerge(measured[key])(solver_name, q=punit) << Meq.ReqSeq(children=cc, result_index=result_index)
- 
-       # Optional, insert (graft) a solver reqseq on the main data stream (measured):
-       if pp.graft: measured[key] = reqseq     # the original measured[key] is a child of reqseq
+    cc = [solver]                          # start a list of reqseq children (solver is first)
+    cc.extend(dc_condeq)                   # extend the list with the condeq dataCollect node(s) 
+    measured.graft(ns, cc, name=solver_name)
+    MG_JEN_forest_state.object(measured, funcname)
 
-    # Return the last reqseq node, which may be used to pass requests to.
-    # However, this is not necessary if pp.graft==True, so this reqseq may be ignored. 
-    return reqseq
-
+    # Finished
+    return True
+    
 
 
 
@@ -680,10 +737,10 @@ def visualise(ns, Cohset, **pp):
     MG_JEN_forest_state.history (funcname)
   
     if pp.graft:
-        # Make the dcoll nodes step-children of a MeqSelector
-        # node that is inserted in the coherency stream(s):
-        Cohset.graft(ns, sc, stepchild=True)         # old version
-        # Cohset.graft(ns, sc, stepchild=False)        # use a (synchronising) reqseq
+        # Make the dcoll nodes children of a (synchronising) MeqReqSeq node
+        # that is inserted into the coherency stream(s):
+        Cohset.graft(ns, sc, name=visu_scope+'_'+pp.type) 
+        MG_JEN_forest_state.object(Cohset, funcname+'_'+visu_scope+'_'+pp.type)
         # Return an empty list to be consistent with the alternative below
         return []
 

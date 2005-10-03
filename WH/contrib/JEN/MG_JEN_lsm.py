@@ -80,7 +80,6 @@ def _define_forest (ns):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
    global lsm
-   lsm = lsm_343(ns)
 
    # obtain the punit list of the 3 brightest ones
    plist = lsm.queryLSM(count=3)
@@ -110,8 +109,9 @@ def _define_forest (ns):
 def lsm_343(ns):
    """Make a lsm from 3C343_nvss.txt"""
    
-   # Create Empty LSM - global
-   lsm=LSM()
+   global lsm
+   lsm = LSM()
+
    home_dir = os.environ['HOME']
    infile_name = home_dir + '/LOFAR/Timba/LSM/test/3C343_nvss.txt'
    infile=open(infile_name,'r')
@@ -176,10 +176,10 @@ def lsm_343(ns):
          lsm.add_source(s,brightness=eval(v.group('col12')),
                         sixpack=my_sixpack,
                         ra=source_RA, dec=source_Dec)
- 
+
+   # Finished:
    print "Inserted %d sources" % linecount 
-   # remember node scope
-   lsm.setNodeScope(ns)
+   lsm.setNodeScope(ns)                       # remember node scope....(?)
    return lsm
 
 
@@ -213,6 +213,27 @@ def _tdl_job_display (mqs, parent):
    lsm.display()
 
 
+def _tdl_job_lsm_343 (mqs, parent):
+   """Create an lsm for NVSS 3c343"""
+   global lsm
+   ns = NodeScope()
+   lsm = lsm_343(ns)
+   lsm.display()
+
+def _tdl_job_lsm_query (mqs, parent):
+   """Read the 3 brightest punits from the lsm"""
+   global lsm
+   plist = lsm.queryLSM(count=3)
+   for pu in plist:
+      my_sp = pu.getSP()
+      my_sp.display()
+
+
+# Temporary: Create a default lsm:
+lsm = LSM() 
+# ns = NodeScope()
+# lsm = lsm_343(ns)
+# lsm.display()
 
 
 

@@ -70,11 +70,11 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GDJones.py',
                          tile_size_dell='tile_size_dang',
                          
                          num_iter=10,                             # number of solver iterations per snippet
-                         flag_before=False,                   # If True, insert a flagger before solving
-                         flag_after=False,                      # If True, insert a flagger after solving
-                         visu_rawdata=False,               # If True, insert built-in view(s) 
+                         flag_spigots=False,                   # If True, insert a flagger before solving
+                         flag_sinks=False,                      # If True, insert a flagger after solving
+                         visu_spigots=False,               # If True, insert built-in view(s) 
                          visu_solver=False,                    # If True, insert built-in view(s) 
-                         visu_corrected=True,                # If True, insert built-in view(s)
+                         visu_sinks=True,                # If True, insert built-in view(s)
                          trace=False)                              # If True, produce progress messages  
 
 MG.stream_control = record(ms_name='D1.MS',
@@ -114,24 +114,14 @@ def _define_forest (ns):
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
-   # The control parameters are specified above:
-   global MG
-
    # Make spigots for a specific set of ifrs:
    ifrs = TDL_Cohset.stations2ifrs(MG['stations'])
    stations = TDL_Cohset.ifrs2stations(ifrs)
    Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', stations=stations)
-   # Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', ifrs=ifrs)
-   Cohset.spigots(ns)
 
-   if MG['visu_rawdata']:
-	MG_JEN_Cohset.visualise (ns, Cohset)
-	MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
-
-   if MG['flag_before']:
-       MG_JEN_Cohset.insert_flagger (ns, Cohset, scope='residual',
-                                     unop=['Real','Imag'], visu=False)
-       if MG['visu_rawdata']: MG_JEN_Cohset.visualise (ns, Cohset)
+   # Make MeqSpigot nodes that read the MS:
+   MG_JEN_Cohset.make_spigots(ns, Cohset, visu=MG['visu_spigots'],
+                              flag=MG['flag_spigots'])
 
    # Make predicted data with a punit (see above) and corrupting Jones matrices
    Joneset = MG_JEN_Cohset.JJones(ns, jones=['G','D'], **MG)
@@ -139,20 +129,16 @@ def _define_forest (ns):
 
    # Insert a solver for a named solvegroup of MeqParms.
    # After solving, the uv-data are corrected with the the improved Joneset. 
-   reqseq = MG_JEN_Cohset.insert_solver (ns, solvegroup=['GJones','DJones'], 
-                                         measured=Cohset, predicted=predicted, 
-                                         correct=Joneset, 
-					 num_iter=MG['num_iter'], 
-                                         visu=MG['visu_solver'])
+   MG_JEN_Cohset.insert_solver (ns, solvegroup=['GJones','DJones'], 
+                                measured=Cohset, predicted=predicted, 
+                                correct=Joneset, 
+                                num_iter=MG['num_iter'], 
+                                visu=MG['visu_solver'])
 
-   if MG['visu_corrected']:
-      MG_JEN_Cohset.visualise (ns, Cohset)
-      MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
-
-
-   # Make MeqSinks
-   Cohset.sinks(ns)
-   for sink in Cohset: cc.append(sink)
+  # Make MeqSink nodes that write the MS:
+   sinks = MG_JEN_Cohset.make_sinks(ns, Cohset, flag=MG['flag_sinks'],
+                                    visu=MG['visu_sinks'])
+   cc.extend(sinks)
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, MG, cc)

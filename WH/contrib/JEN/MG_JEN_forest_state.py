@@ -29,7 +29,7 @@ from copy import deepcopy
 # Script control record (may be edited here):
 
 MG = record(script_name='MG_JEN_forest_state.py',
-            last_changed='h27sep2005')
+            last_changed='h03oct2005')
 
 
 
@@ -197,12 +197,12 @@ def save_meqforest (mqs, **pp):
 # Create a bookmark record (optionally, save in forest_state):
 
 
-def bookmark (node=0, name=0, udi=0, viewer='Result Plotter',
+def bookmark (node=None, name=None, udi=0, viewer='Result Plotter',
               page=0, save=True, clear=0, trace=0):
   """Create a forest_state bookmark for the given node""" 
    
   if clear: Settings.forest_state.bookmarks = [] 
-  if isinstance(node, int): return True                     # e.g. clear only
+  if not node: return True                               # e.g. clear only
 
   bm = record(viewer=viewer, publish=True)
   bm.udi = '/node/'+node.name
@@ -241,7 +241,7 @@ def bookmarks (clear=0, trace=0):
 # Add the given bookmark to the named page, and reconfigure it
 
 def bookpage (bm={}, name='page', trace=0):
-  """Add the given bookmark (record) to the specified bppkpage"""
+  """Add the given bookmark (record) to the specified bookpage"""
   
   Settings.forest_state.setdefault('bookmarks',[])
   bms = Settings.forest_state.bookmarks
