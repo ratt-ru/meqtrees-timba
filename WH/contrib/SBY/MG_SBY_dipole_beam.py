@@ -10,7 +10,7 @@ script_name = 'MG_SBY_dipole_beam.py'
 # Full description:
 # Implement a horizontal or a vertical dipole far field radiation
 # pattern using MeqTrees. The height 'h' above the ground can be changed.
-# There are two importable functions that can generated a MeqParm node
+# There are two importable functions that can generate a MeqParm node
 # with a compiled funklet to model a horizontal and a vertical dipole. They
 # are called  '_create_dipole_beam_h()' and '_create_dipole_beam_v()', 
 # respectively.
