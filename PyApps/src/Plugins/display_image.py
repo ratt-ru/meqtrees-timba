@@ -166,6 +166,7 @@ class QwtImageDisplay(QwtPlot):
         self.plotLayout().setAlignCanvasToScales(1)
         self.setTitle('QwtImageDisplay')
 
+        self.label = ''
         self.zooming = 0
         self.setlegend = 0
         self.setAutoLegend(self.setlegend)
@@ -1280,13 +1281,14 @@ class QwtImageDisplay(QwtPlot):
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
     # insert_array_info()
 
-    def plot_data(self, visu_record, attribute_list=None):
+    def plot_data(self, visu_record, attribute_list=None, label=''):
       """ process incoming data and attributes into the
           appropriate type of plot """
       _dprint(2, 'in plot data');
 #      _dprint(2, 'visu_record ', visu_record)
 
 # first find out what kind of plot we are making
+      self.label = label
       self._plot_type = None
       self._window_title = None
       self._x_title = None
@@ -1332,7 +1334,7 @@ class QwtImageDisplay(QwtPlot):
               self._plot_type = plot_parms.get('plot_type')
             if self._window_title is None and plot_parms.has_key('title'):
               self._window_title = plot_parms.get('title')
-              self.setTitle(self._window_title)
+              self.setTitle(self.label+self._window_title)
             if self._x_title is None and plot_parms.has_key('x_axis'):
               self._x_title = plot_parms.get('x_axis')
             if self._y_title is None and plot_parms.has_key('y_axis'):
@@ -1853,7 +1855,7 @@ class QwtImageDisplay(QwtPlot):
 
 # set title
       self._window_title = data_label  
-      self.setTitle(self._window_title)
+      self.setTitle(self.label+self._window_title)
 
 # hack to get array display correct until forest.state
 # record is available

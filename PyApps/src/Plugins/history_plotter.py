@@ -112,6 +112,7 @@ class HistoryPlotter(GriddedPlugin):
     self._plot_type = None
     self.array_selector = None
     self._wtop = None;
+    self.label = '';
     self.dataitem = dataitem
     self._attributes_checked = False
     self.first_spectrum_plot = True
@@ -175,9 +176,9 @@ class HistoryPlotter(GriddedPlugin):
               else:
                 self.array_selector.append(0)
         self.array_tuple = tuple(self.array_selector)
-        self._plotter.array_plot('data', self._plot_array[self.array_tuple])
+        self._plotter.array_plot(self.label +'data', self._plot_array[self.array_tuple])
       else:
-        self._plotter.array_plot('data', self._plot_array)
+        self._plotter.array_plot(self.label+ 'data', self._plot_array)
 
     else:
       Message = "MeqHistoryCollect node lacks a value field."
@@ -330,7 +331,7 @@ class HistoryPlotter(GriddedPlugin):
   def setArraySelector (self,lcd_number, slider_value, display_string):
     self.array_selector[lcd_number] = slider_value
     self.array_tuple = tuple(self.array_selector)
-    self._plotter.array_plot('data ', self._plot_array[self.array_tuple])
+    self._plotter.array_plot(self.label + 'data ', self._plot_array[self.array_tuple])
 
   def setSelectedAxes (self,first_axis, second_axis):
     self.array_selector = []
@@ -344,7 +345,7 @@ class HistoryPlotter(GriddedPlugin):
       else:
         self.array_selector.append(0)
     self.array_tuple = tuple(self.array_selector)
-    self._plotter.array_plot('data', self._plot_array[self.array_tuple])
+    self._plotter.array_plot(self.label+ 'data', self._plot_array[self.array_tuple])
 
   def set_data_range(self, data_array):
     """ figure out global minima and maxima of array to be plotted """
@@ -412,7 +413,11 @@ class HistoryPlotter(GriddedPlugin):
     if isinstance(self._rec, bool):
       return
 
+    self.label = '';  # extra label, filled in if possible
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
+#     try to put request ID ^Sin label
+      try: self.label = "rq " + str(self._rec.cache.request_id);
+      except: pass;
       try: self._rec = self._rec.cache.result; # look for cache.result record
       except:
         Message = "No result record was found in the cache, so no plot can be made with the <b>history plotter</b>! You may wish to select another type of display."
