@@ -187,7 +187,6 @@ class QwtImageDisplay(QwtPlot):
         self.yCrossSection = None
         self.myXScale = None
         self.myYScale = None
-        self.flip_axes = False
         self.active_image = False
         self.info_marker = None
         self.source_marker = None
@@ -710,6 +709,7 @@ class QwtImageDisplay(QwtPlot):
         self._active_plane = plane
         self._active_perturb = None
 # do we have flags for data	  
+	self._flags_array = None
         if self._vells_rec.vellsets[self._active_plane].has_key("flags"):
 # test if we have a numarray
           try:
@@ -1168,6 +1168,8 @@ class QwtImageDisplay(QwtPlot):
           for j in range(shape[1]):
             image_for_display[k,j] = real_array[k,j]
             image_for_display[k+shape[0],j] = imag_array[k,j]
+
+
       else:
         image_for_display = image
       if self.image_min is None or  self.adjust_color_bar:
@@ -1537,6 +1539,7 @@ class QwtImageDisplay(QwtPlot):
           self._shape = self._vells_rec.vellsets[self._active_plane]["shape"]
 
 # do we have flags for data	  
+	self._flags_array = None
         if self._vells_rec.vellsets[self._active_plane].has_key("flags"):
 # test if we have a numarray
           try:
@@ -1855,7 +1858,7 @@ class QwtImageDisplay(QwtPlot):
 # hack to get array display correct until forest.state
 # record is available
       plot_array = incoming_plot_array
-      self.flip_axes = flip_axes
+      axes = None
       if flip_axes:
         axes = arange(incoming_plot_array.rank)[::-1]
         plot_array = transpose(incoming_plot_array, axes)
@@ -1890,6 +1893,24 @@ class QwtImageDisplay(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False:
+
+# if there are flags associated with this array, we need to copy flags for complex array
+        flag_array = None
+        if self.complex_type and not self._flags_array is None:
+          if self.array_tuple is None:
+            temp_array = self._flags_array
+          else:
+            temp_array= self._flags_array[self.array_tuple]
+          if flip_axes:
+            flipped_temp_array = transpose(temp_array, axes)
+            temp_array = flipped_temp_array
+          flag_shape = temp_array.shape
+          flag_array = zeros((2*flag_shape[0],flag_shape[1]), temp_array.type())
+          for k in range(flag_shape[0]):
+            for j in range(flag_shape[1]):
+              flag_array[k,j] = temp_array[k,j]
+              flag_array[k+flag_shape[0],j] = temp_array[k,j]
+          self.setFlagsData(flag_array, False)
 
 # don't use grid markings for 2-D 'image' arrays
         self.enableGridX(False)
@@ -2168,7 +2189,7 @@ class QwtImageDisplay(QwtPlot):
         num_elements = n_rows*n_cols
         self._flags_array = reshape(flag_array,(num_elements,))
 
-    # setFlagData()
+    # setFlagsData()
 
     def add_basic_menu_items(self):
         toggle_id = 299
