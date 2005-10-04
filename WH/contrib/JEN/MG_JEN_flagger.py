@@ -24,8 +24,6 @@
 
 from Timba.TDL import *
 
-MG = record(script_name='MG_JEN_flagger.py', last_changed = 'h22sep2005')
-
 from numarray import *
 # from string import *
 from copy import deepcopy
@@ -34,6 +32,38 @@ from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_math
 from Timba.Contrib.JEN import MG_JEN_twig
+
+#-------------------------------------------------------------------------
+# Script control record (may be edited here):
+
+MG = MG_JEN_exec.MG_init('MG_JEN_flagger.py',
+                         last_changed='h04oct2005',
+                         aa=13,
+                         bb='aa',                 # replace with value of referenced field  
+                         trace=False)             # If True, produce progress messages  
+
+MG.test1 = record(stddev=1,
+                  unop='Exp')
+
+MG.testcx = record(stddev=1,
+                  unop='Exp',
+                  sigma=3)
+
+MG.test22 = record(stddev=2,
+                   unop='Exp',
+                   sigma=3)
+
+
+# Check the MG record, and replace any referenced values
+MG = MG_JEN_exec.MG_check(MG)
+
+
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(MG)
+
 
 
 
@@ -57,21 +87,39 @@ def _define_forest (ns):
 
    mm = []
 
-   # Test: dims=[1]  (default)  
+   # Test1: dims=[1]   
    nsub = ns.Subscope('d1')
    bb = []
-   bb.append(MG_JEN_twig.gaussnoise(ns, stddev=1.5, unop='Exp'))
+   bb.append(MG_JEN_twig.gaussnoise(ns, stddev=MG.test1['stddev'],
+                                    unop=MG.test1['unop']))
    node = flagger(nsub, bb[0])
    for child in node.children: bb.append(child[1]) 
    bb.append(node)
    mm.append(node)
    cc.append(MG_JEN_exec.bundle(ns, bb, 'dims=1', show_parent=False))
 
-  # Test: dims=[2,2] (default) 
+
+   if True:
+      # Testcx: complex dims=[1]   
+      nsub = ns.Subscope('cxd1')
+      bb = []
+      bb.append(MG_JEN_twig.gaussnoise(ns, mean=complex(0),
+                                       stddev=MG.testcx['stddev'],
+                                       unop=MG.testcx['unop']))
+      node = flagger(nsub, bb[0], sigma=MG.testcx['sigma'])
+      for child in node.children: bb.append(child[1]) 
+      bb.append(node)
+      mm.append(node)
+      cc.append(MG_JEN_exec.bundle(ns, bb, 'cx_dims=1', show_parent=False))
+
+
+   # Test22: dims=[2,2] 
    nsub = ns.Subscope('d22')
    bb = []
-   bb.append(MG_JEN_twig.gaussnoise(ns, dims=[2,2], stddev=2, unop='Exp'))
-   node = flagger(nsub, bb[0], sigma=3)
+   bb.append(MG_JEN_twig.gaussnoise(ns, dims=[2,2],
+                                    stddev=MG.test22['stddev'],
+                                    unop=MG.test22['unop']))
+   node = flagger(nsub, bb[0], sigma=MG.test22['sigma'])
    for child in node.children: bb.append(child[1])
    bb.append(node)
    mm.append(node)
@@ -152,29 +200,24 @@ def flagger (ns, input, **pp):
 
 
 
-
-
 #********************************************************************************
-# Initialisation and testing routines
-# NB: this section should always be at the end of the script
+#********************************************************************************
+#*****************  PART V: Forest execution routines ***************************
+#********************************************************************************
 #********************************************************************************
 
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(MG.script_name)
-
-#-------------------------------------------------------------------------
-# Meqforest execution routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
-# If not explicitly supplied, a default request will be used.
 
 def _test_forest (mqs, parent):
    return MG_JEN_exec.meqforest (mqs, parent)
 
-#-------------------------------------------------------------------------
-# Test routine to check the tree for consistency in the absence of a server
+
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART VI: Standalone test routines *************************
+#********************************************************************************
+#********************************************************************************
 
 if __name__ == '__main__':
    print '\n*******************\n** Local test of:',MG.script_name,':\n'
@@ -190,6 +233,9 @@ if __name__ == '__main__':
       MG_JEN_exec.display_subtree (rr, 'rr', full=1)
 
       
+   if 1:
+       MG_JEN_exec.display_object (MG, 'MG', MG.script_name)
+       # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
    print '\n** End of local test of:',MG.script_name,'\n*******************\n'
 
 #********************************************************************************
