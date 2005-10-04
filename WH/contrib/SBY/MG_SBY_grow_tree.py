@@ -24,6 +24,8 @@ my_ns=None;
 my_root=None;
 ##### a counter user to generate unique names
 my_counter=0;
+##### global MQS object
+my_mqs=None;
 
 #=====================================================================
 #=====================================================================
@@ -47,8 +49,10 @@ def _define_forest (ns):
 ### Test forest,
 #### Each time you run this, your tree will grow by one node
 def _test_forest (mqs, parent):
-   global my_ns,my_root,my_counter;
+   global my_ns,my_root,my_counter,my_mqs;
 
+   # remember the MQS object
+   my_mqs=mqs;
    # create a new MeqAdd node and make it the root of the existing 
    # subtree
    my_new_root=my_ns['Node#'+str(my_counter)]<<Meq.Add(children='Node#'+str(my_counter-1));
@@ -65,6 +69,36 @@ def _test_forest (mqs, parent):
    mqs.meq('Set.Forest.State',record(state=fst));
 
 
+###################################################################
+####### Illustrates the use of importable function _update_forest()
+def _tdl_job_dynamic_update(mqs,parent):
+  # note we do not use the default argumets given
+  global my_ns, my_mqs
+  global my_counter,my_root
+  # do somthing with the current forest
+  my_new_root=my_ns['Node#'+str(my_counter)]<<Meq.Add(children='Node#'+str(my_counter-1));
+  my_root=my_new_root;
+  my_counter+=1;
+
+  # call the importable function 
+  _update_forest(my_ns,my_mqs)
+
+
+#########################################################################
+###### importable function
+def _update_forest(ns,mqs):
+   """Dynamically grow trees. Needs mqs and nodescope
+     objects"""
+   # send the new tree to the kernel
+   ns.Resolve();
+   # kernel will recreate the forest
+   mqs.meq('Clear.Forest');
+   mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),ns.AllNodes().itervalues())));
+   mqs.meq('Resolve.Batch',record(name=list(ns.RootNodes().iterkeys())))
+   fst = getattr(Timba.TDL.Settings,'forest_state',record());
+   mqs.meq('Set.Forest.State',record(state=fst));
+
+ 
 #=====================================================================
 #=====================================================================
 if __name__ == '__main__':
