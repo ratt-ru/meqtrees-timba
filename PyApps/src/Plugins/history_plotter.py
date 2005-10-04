@@ -116,6 +116,7 @@ class HistoryPlotter(GriddedPlugin):
     self.dataitem = dataitem
     self._attributes_checked = False
     self.first_spectrum_plot = True
+    self.displayed_invalid = False
     self.layout_parent = None
     self.layout = None
     self.ND_Controls = None
@@ -142,7 +143,11 @@ class HistoryPlotter(GriddedPlugin):
 #   _dprint(3, 'analyzing incoming record keys', self._rec.visu.keys())
     if self._rec.visu.has_key('value'):
       self._plot_array = self.create_plot_array(self._rec.visu['value'])
-      _dprint(3, 'plot_array rank and shape ', self._plot_array.rank, ' ', self._plot_array.shape)
+      try:
+        _dprint(3, 'plot_array rank and shape ', self._plot_array.rank, ' ', self._plot_array.shape)
+      except: pass;
+      if self._plot_array is None:
+        return
       if self._plotter is None:
         self.create_image_plotters()
       else:
@@ -192,14 +197,16 @@ class HistoryPlotter(GriddedPlugin):
       return
 
   def invalid_array_sequence(self):
-      Message = "Invalid Sequence of Data - Inconsistent Array Lengths"
-      mb = QMessageBox("history_plotter.py",
+      if not self.displayed_invalid:
+        Message = "Invalid Sequence of Data - Inconsistent Array Lengths"
+        mb = QMessageBox("history_plotter.py",
                      Message,
                      QMessageBox.Warning,
                      QMessageBox.Ok | QMessageBox.Default,
                      QMessageBox.NoButton,
                      QMessageBox.NoButton)
-      mb.exec_loop()
+        mb.exec_loop()
+        self.displayed_invalid = True
 
   def create_plot_array(self,history_list):
 # first try to figure out what we have ...
