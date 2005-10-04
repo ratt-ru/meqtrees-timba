@@ -122,28 +122,29 @@ def _test_forest (mqs,parent):
 # Importable function(s): The essence of a MeqGraft (MG) script.
 # To be imported into user scripts. 
 #================================================================================
-def _create_dipole_beam_v(tfpoly=['1','1','1','1','1'],coeff=[[1],[1],[1],[1],[1]],h=0.25,x='x2',y='x3'):
+def _create_dipole_beam_v(tfpoly=['1','1','1','1'],coeff=[[1],[1],[1],[1]],h=0.25,x='x2',y='x3'):
   """ Create Vertical Dipole beam:
       The theoretical (power) beam shape is:
-      z=(cos(pi/2*cos(x))/sin(x)*sin(2*pi*h*sin(y)))^2;
+      z=(sin(y)*cos(2*pi*h*cos(y)))^2;
       where x:azimuth angle
             y:elevation angle (both radians)
             h: dipole height from ground
       we create a voltage beam, using square root of power as the r.m.s.
       voltage, and add polynomials for time,freq as given by {TF}
-      z=(cos(pi/2{TF0}cos({TF1}x))/sin({TF2}x)*sin(2*pi*h*{TF3}sin({TF4}y)))
-      so we need 5 polynomials, which must be given as tfpoly array.
+      z=({TF0}*sin({TF1}y)*cos(2*pi*h*{TF2}cos({TF3}y)))^2
+      so we need 4 polynomials, which must be given as tfpoly array.
       The coefficients for these polynomials should be given by coeff array.
       x,y should be given as polynomials of x2 and x3 respectively.
   """
-  if len(tfpoly)<5:
-   print "Invalid No. of Polynomials, should be 5"
+  if len(tfpoly)<4:
+   print "Invalid No. of Polynomials, should be 4"
    return None
 
   h_str=str(h)
   pi=str(math.pi)
   # voltage beam, so do not take ^2
-  beamshape='abs(cos('+pi+'/2*('+tfpoly[0]+')*cos(('+tfpoly[1]+')*('+x+')))/sin(('+tfpoly[2]+')*('+x+'))*sin(2*'+pi+'*'+h_str+'*('+tfpoly[3]+')*sin(('+tfpoly[4]+')*('+y+'))))'
+  #beamshape='abs(cos('+pi+'/2*('+tfpoly[0]+')*cos(('+tfpoly[1]+')*('+x+')))/sin(('+tfpoly[2]+')*('+x+'))*sin(2*'+pi+'*'+h_str+'*('+tfpoly[3]+')*sin(('+tfpoly[4]+')*('+y+'))))'
+  beamshape='abs(('+tfpoly[0]+')*sin(('+tfpoly[1]+')*('+y+'))*cos(2.0*'+pi+'*'+h_str+'*('+tfpoly[2]+')*cos(('+tfpoly[3]+')*('+y+'))))'
   polc = meq.polc(coeff=coeff,subclass=meq._funklet_type)
   print beamshape
   print coeff
@@ -156,13 +157,13 @@ def _create_dipole_beam_v(tfpoly=['1','1','1','1','1'],coeff=[[1],[1],[1],[1],[1
 def _create_dipole_beam_h(tfpoly=['1','1','1','1'],coeff=[[1],[1],[1],[1]],h=0.25,x='x2',y='x3'):
   """ Create Horizontal Dipole beam:
       The theoretical (power) beam shape is:
-      z=(1-sin(x)^2 sin(y)^2)*sin(2*pi*h*sin(y)))^2;
+      z=(1-sin(x)^2 sin(y)^2)*sin(2*pi*h*cos(y)))^2;
       where x:azimuth angle (phi)
             y:elevation angle (theta) (both in radians)
             h: dipole height from ground
       we create a voltage beam, using square root of power as the r.m.s.
       voltage, and add polynomials for time,freq as given by {TF}
-      z=(1-sin({TF0}x)^2 sin({TF1}y)^2)*sin(2*pi*h*{TF2}sin({TF3}y))^2
+      z=(1-sin({TF0}x)^2 sin({TF1}y)^2)*sin(2*pi*h*{TF2}cos({TF3}y))^2
       so we need 4 polynomials, which must be given as tfpoly array.
       The coefficients for these polynomials should be given by coeff array.
       x,y should be given as polynomials of x2 and x3 respectively.
@@ -174,7 +175,7 @@ def _create_dipole_beam_h(tfpoly=['1','1','1','1'],coeff=[[1],[1],[1],[1]],h=0.2
   h_str=str(h)
   pi=str(math.pi)
   # voltage beam, so do not take ^2
-  beamshape='(1-(sin(('+tfpoly[0]+')*('+x+'))*sin(('+tfpoly[1]+')*('+y+')))^2)*(sin(2*'+pi+'*'+h_str+'*('+tfpoly[2]+')*cos(('+tfpoly[3]+')*('+y+'))))^2'
+  beamshape='sqrt((1-(sin(('+tfpoly[0]+')*('+x+'))*sin(('+tfpoly[1]+')*('+y+')))^2)*(sin(2*'+pi+'*'+h_str+'*('+tfpoly[2]+')*cos(('+tfpoly[3]+')*('+y+'))))^2)'
   polc = meq.polc(coeff=coeff,subclass=meq._funklet_type)
   print beamshape
   print coeff
