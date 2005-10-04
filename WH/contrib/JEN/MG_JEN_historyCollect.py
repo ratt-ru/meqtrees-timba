@@ -65,7 +65,7 @@ def _define_forest (ns):
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
-   node = ns.freqtime << (ns.freq << Meq.Freq) + (ns.time << Meq.Time)
+   node = ns.freqtime << (ns << Meq.Freq) + (ns << Meq.Time)*(ns << Meq.Time)
    input = node
 
    node = ns.stripper << Meq.Stripper(node)
