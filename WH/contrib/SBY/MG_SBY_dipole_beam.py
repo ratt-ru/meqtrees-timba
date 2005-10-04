@@ -42,10 +42,11 @@ MG = MG_JEN_exec.MG_init('MG_SBY_dipole_beam.py',
                          last_changed='$Date$',
                          trace=False) # If True, produce progress messages  
 MG.parm = record(h=0.25, # dipole height from ground plane, in wavelengths
-               ntime=5, # no. of grid points in time
-               nfreq=5, # no. of grid points in frequency
+               ntime=5, # no. of grid points in time [0,1]
+               nfreq=5, # no. of grid points in frequency [0,1]
                nphi=40, # no. of grid points in azimuth [0,2*pi]
-               ntheta=40, # no. of grid points in elevation [0,pi/2]
+               ntheta=40, # no. of grid points in declination [0,pi/2]
+                          # measured from the zenith
                debug_level=10)    # debug level
 
 ##########################################################################
