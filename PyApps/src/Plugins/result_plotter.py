@@ -318,7 +318,7 @@ class ResultPlotter(GriddedPlugin):
       self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
 
 # now do the plotting
-    self._visu_plotter.plot_data(leaf, attrib_list)
+    self._visu_plotter.plot_data(leaf, attrib_list, label=self.label)
 
 # if we have spectra, we need to repeat display first time in
 # order to get combined image - a bit of a hack ... This is necessitated
@@ -326,7 +326,7 @@ class ResultPlotter(GriddedPlugin):
 # assumption that the first batch of data would be sent twice
 # (as is the case if one just does an 'array_plot') 
     if self.first_spectrum_plot and self._plot_type == 'spectra':
-      self._visu_plotter.plot_data(leaf, attrib_list)
+      self._visu_plotter.plot_data(leaf, attrib_list, label=self.label)
       self.first_spectrum_plot = False
   # do_leafwork
 
@@ -498,11 +498,11 @@ class ResultPlotter(GriddedPlugin):
     if isinstance(self._rec, bool):
       return
 
-    label = '';  # extra label, filled in if possible
+    self.label = '';  # extra label, filled in if possible
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
       # try to put request ID in label
-      try: label = "rq " + str(self._rec.cache.request_id);
+      try: self.label = "rq " + str(self._rec.cache.request_id);
       except: pass;
       try: self._rec = self._rec.cache.result; # look for cache.result record
       except:
@@ -535,7 +535,7 @@ class ResultPlotter(GriddedPlugin):
       if self._visu_plotter is None:
         self.create_image_plotters()
         _dprint(3, 'passed create_image_plotters')
-      self._visu_plotter.plot_vells_data(self._rec,label=label)
+      self._visu_plotter.plot_vells_data(self._rec,label=self.label)
 # otherwise we are dealing with a set of visualization data
     else:
       if self._rec.has_key("visu"):
