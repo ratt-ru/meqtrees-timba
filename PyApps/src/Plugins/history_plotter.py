@@ -198,14 +198,18 @@ class HistoryPlotter(GriddedPlugin):
 
   def invalid_array_sequence(self):
       if not self.displayed_invalid:
-        Message = "Invalid Sequence of Data - Inconsistent Array Lengths"
-        mb = QMessageBox("history_plotter.py",
-                     Message,
-                     QMessageBox.Warning,
-                     QMessageBox.Ok | QMessageBox.Default,
-                     QMessageBox.NoButton,
-                     QMessageBox.NoButton)
-        mb.exec_loop()
+        Message = "Invalid Sequence of Data - Inconsistent Array Lengths!"
+#       mb = QMessageBox("history_plotter.py",
+#                    Message,
+#                    QMessageBox.Warning,
+#                    QMessageBox.Ok | QMessageBox.Default,
+#                    QMessageBox.NoButton,
+#                    QMessageBox.NoButton)
+#       mb.exec_loop()
+        cache_message = QLabel(Message,self.wparent())
+        cache_message.setTextFormat(Qt.RichText)
+        self._wtop = cache_message
+        self.set_widgets(cache_message)
         self.displayed_invalid = True
 
   def create_plot_array(self,history_list):
