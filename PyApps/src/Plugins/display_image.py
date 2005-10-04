@@ -1893,9 +1893,7 @@ class QwtImageDisplay(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False:
-
 # if there are flags associated with this array, we need to copy flags for complex array
-        flag_array = None
         if self.complex_type and not self._flags_array is None:
           if self.array_tuple is None:
             temp_array = self._flags_array
@@ -1910,7 +1908,10 @@ class QwtImageDisplay(QwtPlot):
             for j in range(flag_shape[1]):
               flag_array[k,j] = temp_array[k,j]
               flag_array[k+flag_shape[0],j] = temp_array[k,j]
-          self.setFlagsData(flag_array, False)
+          flags_flip = True
+          if flip_axes:
+            flags_flip = False
+          self.setFlagsData(flag_array, flags_flip)
 
 # don't use grid markings for 2-D 'image' arrays
         self.enableGridX(False)
