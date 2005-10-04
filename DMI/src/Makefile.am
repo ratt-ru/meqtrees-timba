@@ -68,7 +68,7 @@ TypeIterMacros.h
 CXXFLAGS += -D_GNU_SOURCE 
 
 include $(lofar_sharedir)/Makefile.aids
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common
 
 # rule for generating the global AID registry
 MAKEGLOBREG	= $(srcdir)/makeglobreg.pl

@@ -26,6 +26,6 @@ glishdir = $(libexecdir)/glish
 dist_glish_SCRIPTS = dmitypes.g octopussy.g
   
 include $(lofar_sharedir)/Makefile.aids
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common
 
 AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL

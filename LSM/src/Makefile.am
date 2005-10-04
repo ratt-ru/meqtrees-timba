@@ -14,4 +14,4 @@ dist_lsm_SCRIPTS = LSM/__init__.py \
   
 
 include $(lofar_sharedir)/Makefile.aids
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common

@@ -30,4 +30,4 @@ dist_timba_SCRIPTS = __init__.py \
   octopussy.py qt_threading.py
 
 include $(lofar_sharedir)/Makefile.aids
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common

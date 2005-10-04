@@ -12,7 +12,7 @@ libmeqgen_la_SOURCES 	= $(AUTOGEN_NODES) \
 
 AIDHDRS = $(addsuffix .h,$(basename $(AUTOGEN_NODES)))
 
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
 AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL

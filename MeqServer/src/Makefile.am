@@ -54,7 +54,7 @@ glishdir = $(libexecdir)/glish/meq
 dist_glish_SCRIPTS = $(DEFREC_MAP) meqserver.g defrecs.g \
   meptools.g msuvw_to_mep.g fitpolcs_mqs.g fitpolcs_wlc.g 
 
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
 

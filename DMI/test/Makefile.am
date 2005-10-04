@@ -46,6 +46,6 @@ aids:
 	$(MAPBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(AID_DIR)/*.h
 
 
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common
 
 AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL

@@ -21,7 +21,7 @@ libappagent_la_SOURCES = \
   OctoEventMultiplexer.cc \
   DataStreamMap.cc InputAgent.cc OutputAgent.cc
 
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
 AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL

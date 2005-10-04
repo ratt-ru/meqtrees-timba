@@ -11,7 +11,7 @@ libapputils_la_SOURCES = AID-AppUtils-Registry.cc \
 glishdir = $(libexecdir)/glish/appagent
 dist_glish_SCRIPTS = app_proxy.g app_defaults.g
 
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
 AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL

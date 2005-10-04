@@ -28,7 +28,7 @@ octolistener_LDADD		= liboctopussy.la
 octolistener_DEPENDENCIES	= liboctopussy.la $(LOFAR_DEPEND)
   
   
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
 

@@ -66,4 +66,4 @@ dist_tree_SCRIPTS = Trees/__init__.py Trees/TDL_common.py\
    Trees/TDL_Cohset.py Trees/TDL_Joneset.py Trees/TDL_Sixpack.py
 
 include $(lofar_sharedir)/Makefile.aids
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common

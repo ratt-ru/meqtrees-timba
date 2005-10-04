@@ -67,4 +67,4 @@ AM_YFLAGS		= -d -p KeyParse
 AM_LFLAGS		= -PKeyTokenize
 LEX_OUTPUT_ROOT		= lex.KeyTokenize
 
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common

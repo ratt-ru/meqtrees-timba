@@ -21,7 +21,7 @@ libviscube_la_SOURCES = \
   VCube.cc \
   VCubeSet.cc
   
-include $(lofar_sharedir)/Makefile.common
+include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
 
