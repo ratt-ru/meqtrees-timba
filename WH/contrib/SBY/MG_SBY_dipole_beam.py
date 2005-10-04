@@ -61,14 +61,7 @@ def _define_forest (ns):
   ns.dummy<<Meq.Parm([[0,1],[1,0]],node_groups='Parm');
 
   # creation of a compiled funklet - using MXM code
-
-  # use the following pair for a vertical dipole
-  #par=['p0+p1*x0+p2*x1+p3*x0*x1','p4+p5*x0+p6*x1+p7*x0*x1',\
-  #     'p8+p9*x0+p10*x1+p11*x0*x1','p12+p13*x0+p14*x1+p15*x0*x1',\
-  #      'p16+p17*x0+p18*x1+p19*x0*x1']
-  #coeff=[[1,0,0,0],[1,0,0,0],[1,0,0,0],[1,0,0,0],[1,0,0,0]]
-
-  # use to following pair for a horizontal dipole
+  # polynomials in t,f
   par=['p0+p1*x0+p2*x1+p3*x0*x1','p4+p5*x0+p6*x1+p7*x0*x1',\
        'p8+p9*x0+p10*x1+p11*x0*x1','p12+p13*x0+p14*x1+p15*x0*x1']
   # polynomial coefficients
