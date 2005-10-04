@@ -26,7 +26,8 @@ DISTCLEANFILES=\
       lofar_config.old-h\
       lofar_config.h-pkg\
       lofar_config.h\
-      .doxygenrc
+      .doxygenrc 
+CONFIG_CLEAN_FILES = $(DISTCLEANFILES)
 
 # The following is not possible yet as long as not all configure.in files
 # define the MAKE_RPMS variable.
