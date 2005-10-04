@@ -145,7 +145,7 @@ class HistoryPlotter(GriddedPlugin):
       if self._plotter is None:
         self.create_image_plotters()
       else:
-        if self._plot_array.rank >= 2:
+        if self._plot_array.rank > 2:
          self.array_selector = None
          self.ND_Controls = None
          self.set_ND_controls()
@@ -190,103 +190,142 @@ class HistoryPlotter(GriddedPlugin):
       mb.exec_loop()
       return
 
+  def invalid_array_sequence(self):
+      Message = "Invalid Sequence of Data - Inconsistent Array Lengths"
+      mb = QMessageBox("history_plotter.py",
+                     Message,
+                     QMessageBox.Warning,
+                     QMessageBox.Ok | QMessageBox.Default,
+                     QMessageBox.NoButton,
+                     QMessageBox.NoButton)
+      mb.exec_loop()
+
   def create_plot_array(self,history_list):
 # first try to figure out what we have ...
 #     print 'incoming list is ', history_list
-      for i in range(len(history_list)):
-        _dprint(3, 'i array is ', i, ' ', history_list[i])
-      data_array = history_list[0]
-#     print 'data array ', data_array
-# test stuff
-#     temp_array = asarray(data_array)
-#     dimensions = (len(history_list),1)
-#     data_array = resize(temp_array,dimensions)
-
-      shape = None
-      try:
-        shape = data_array.shape
-        _dprint(3, 'this array has shape ', shape)
-      
-      except:
-        _dprint(3, 'shape function call fails here' )
+      plot_array = None
+      list_length = len(history_list)
+      for i in range(list_length):
+        data_array = history_list[i]
+        _dprint(3, 'iteration ', i, 'data_array ', data_array)
+        shape = None
         try:
-          shape = data_array[0].shape
-          _dprint(3, 'array has shape ', shape)
-# we have a scalar - expand the scalar to fill the plot array
+          shape = data_array.shape
+          _dprint(3, 'this array has shape ', shape)
+      
         except:
-          _dprint(3, 'I think I have a scalar')
-          temp_array = asarray(data_array)
-          plot_array = resize(temp_array,len(history_list))
-          for i in range(len(history_list)):
-            plot_array[i] = history_list[i][0]
-          return plot_array
-      _dprint(3, '** we should be here ')
-      if len(shape) == 1:
-        if shape[0] == 1:
-# again, we essentially have a scalar
-          temp_array = asarray(data_array)
-          plot_array = resize(temp_array,len(history_list))
-          for i in range(len(history_list)):
-            plot_array[i] = history_list[i][0]
-          return plot_array
-        else:
+          _dprint(3, 'shape function call fails here' )
+          try:
+            shape = data_array[0].shape
+            _dprint(3, 'array has shape ', shape)
+# we have a scalar - expand the scalar to fill the plot array
+          except:
+            _dprint(3, 'I think I have a scalar')
+            if plot_array is None:
+              temp_array = asarray(data_array)
+              plot_array = resize(temp_array,list_length)
+            try:
+              plot_array[i] = data_array[0]
+            except:
+              self.invalid_array_sequence()
+              return
+            continue
+        if len(shape) == 1:
+          if shape[0] == 1:
+            _dprint(3, 'I think I have a scalar')
+ # again, we essentially have a scalar
+            if plot_array is None:
+              temp_array = asarray(data_array)
+              plot_array = resize(temp_array,list_length)
+            try:
+              plot_array[i] = data_array[0]
+            except:
+              self.invalid_array_sequence()
+              return
+            continue
+          else:
 # we can assume we have a conformant array along the first axis (I think)
-          _dprint(3, 'we should be here ')
-          temp_array = asarray(data_array)
-          dimensions = (len(history_list), shape[0])
-          plot_array = resize(temp_array,dimensions)
-          for i in range(len(history_list)):
-            _dprint(3, 'array is ', history_list[i])
-            for j in range(shape[0]):
-              plot_array[i,j] = history_list[i][j]
-          return plot_array
+            _dprint(3, 'we should be here ')
+            if plot_array is None:
+              temp_array = asarray(data_array)
+              dimensions = (list_length, shape[0])
+              plot_array = resize(temp_array,dimensions)
+            try:
+              for j in range(shape[0]):
+                plot_array[i,j] = data_array[j]
+            except:
+              self.invalid_array_sequence()
+              return
+            continue
 # otherwise we had a 2-D or greater shape
-      else:
-        _dprint(3, '*** we should be here ')
-        if len(shape) == 2 and shape[0] == 1 and shape[1] == 1:
+        else:
+          _dprint(3, '*** we should be here ')
+          _dprint(3, 'array has shape ', shape)
+          if len(shape) == 2 and shape[0] == 1 and shape[1] == 1:
+            _dprint(3, '**** we should be here ')
 # we essentially have a scalar yet again
-          temp_array = asarray(data_array)
-          plot_array = resize(temp_array,len(history_list))
-          for i in range(len(history_list)):
-            plot_array[i] = history_list[i][0]
-          return plot_array
+            if plot_array is None:
+              temp_array = asarray(data_array)
+              plot_array = resize(temp_array,list_length)
+            try:
+              plot_array[i] = data_array[0,0]
+            except:
+              self.invalid_array_sequence()
+              return
+            continue
 # we need to expand the data to fill the vells dimension
 # easy if fastest changing index == shape of vector which will
 # be replicated
-        if len(shape) == 2 and shape[0] == 1 and shape[1]  > 1:
-          _dprint(3, '**** we should be here ')
-	  dimensions = (len(history_list), shape[1])
-          _dprint(3, '**** dimensions are ', dimensions)
-          temp_array = asarray(data_array[0][0])
-          plot_array = resize(temp_array,dimensions)
-          for i in range(len(history_list)):
-            for j in range(shape[1]):
-#             plot_array[i,j] = i * j
-              plot_array[i,j] = history_list[i][0][j]
-          _dprint(3, '**** we should be after for with array ',plot_array)
-          _dprint(3, '**** we should be after for with array shape ',plot_array.shape)
-          return plot_array
-        if len(shape) == 2 and shape[0] > 1 and shape[1] == 1:
-	  dimensions = (len(history_list), shape[0])
-          plot_array = resize(data_array,dimensions)
-          for i in range(len(history_list)):
+          if len(shape) == 2 and shape[0] == 1 and shape[1]  > 1:
+            _dprint(3, '***** we should be here ')
+            if plot_array is None:
+	      dimensions = (list_length, shape[1])
+              _dprint(3, '**** dimensions are ', dimensions)
+              temp_array = asarray(data_array[0][0])
+              plot_array = resize(temp_array,dimensions)
+            try:
+              for j in range(shape[1]):
+                plot_array[i,j] = history_list[i][0][j]
+            except:
+              self.invalid_array_sequence()
+              return
+            continue
+          if len(shape) == 2 and shape[0] > 1 and shape[1] == 1:
+            if plot_array is None:
+	      dimensions = (list_length, shape[0])
+              plot_array = resize(data_array,dimensions)
             _dprint(3, 'array is ', history_list[i])
-            for j in range(shape[0]):
-              plot_array[i,j] = history_list[i][j][0]
-          return plot_array
-        else:
+            try:
+              for j in range(shape[0]):
+                plot_array[i,j] = data_array[j][0]
+            except:
+              self.invalid_array_sequence()
+              return
+            continue
+          else:
 # otherwise
-          new_shape = []
-          new_shape.append(len(history_list))
-          for i in range(len(shape)):
-            new_shape.append(shape[i])
-          dimensions = tuple(new_shape)
-          temp_array = asarray(data_array[0,0])
-          plot_array = resize(temp_array,dimensions)
-          for i in range(len(history_list)):
-#           print 'i value ', i, ' ', history_list[i]
-            plot_array[i] = history_list[i]
-          return plot_array
+            _dprint(3, '****** we should be here at last possibility ')
+            if plot_array is None:
+              new_shape = []
+              new_shape.append(list_length)
+              for i in range(len(shape)):
+                new_shape.append(shape[i])
+              dimensions = tuple(new_shape)
+              temp_array = asarray(data_array[0,0])
+              plot_array = resize(temp_array,dimensions)
+              _dprint(3, '****** plot_array has shape ', plot_array.shape)
+              _dprint(3, '****** data_array has shape ', data_array.shape)
+            try:
+              if list_length > 1:
+                plot_array[i] = data_array
+              else:
+                plot_array = None
+                plot_array = data_array
+            except:
+              self.invalid_array_sequence()
+              return
+            continue
+      return plot_array
 
   def setArraySelector (self,lcd_number, slider_value, display_string):
     self.array_selector[lcd_number] = slider_value
@@ -399,6 +438,7 @@ class HistoryPlotter(GriddedPlugin):
 
     labels = None
     parms = None
+    _dprint(3, 'plot_array shape ', self._plot_array.shape)
     self.ND_Controls = ND_Controller(self._plot_array.shape, labels, parms, self.layout_parent)
     QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
