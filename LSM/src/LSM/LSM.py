@@ -1128,5 +1128,17 @@ class LSM:
  # set the current NodeScope
  def setNodeScope(self,ns):
   self.__ns=ns
+  # create a single root not to accomodate all subtrees
+  # in the PUnit table
+  child_list=[]
+  for pname in self.p_table.keys():
+   punit=self.getPUnit(pname)
+   if punit.sp!=None:
+    child_list.append('sixpack:q='+pname)
+  # create a common root
+  if len(child_list)!=0:
+   self.__ns['lsmroot']<<Meq.Composer(children=child_list)
+
+
 
 #########################################################################
