@@ -26,23 +26,22 @@ DISTCLEANFILES=\
       lofar_config.old-h\
       lofar_config.h-pkg\
       lofar_config.h\
-      .doxygenrc 
-CONFIG_CLEAN_FILES = $(DISTCLEANFILES)
+      .doxygenrc \
+      *.spec
 
-# The following is not possible yet as long as not all configure.in files
-# define the MAKE_RPMS variable.
-##if MAKE_RPMS
-##rpm: dist @RPM_TARGET@
-##.PHONY: rpm
-
-##$(RPM_TARGET): $(DISTFILES)
-##	${MAKE} dist
-##	-mkdir -p $(RPM_DIR)/SRPMS
-##	-mkdir -p `dirname $(RPM_TARGET)`
-##	$(RPM_PROG) $(RPM_ARGS) $(RPM_TARBALL)
-##	@echo Congratulations, $(RPM_TARGET) "(and friends)" should now exist.
-##endif
-
+# Make the rpm if possible.
+if MAKE_RPMS
+rpm: dist @RPM_TARGET@
+$(RPM_TARGET): $(DISTFILES)
+	${MAKE} dist
+	-mkdir -p $(RPM_DIR)/SRPMS
+	-mkdir -p `dirname $(RPM_TARGET)`
+	$(RPM_PROG) $(RPM_ARGS) $(RPM_TARBALL)
+	@echo Congratulations, $(RPM_TARGET) "(and friends)" should now exist.
+endif
+# Put the phony target outside the if, otherwise automake gives
+# warnings if a .PHONY is also defined in the Makefile.am.
+.PHONY: rpm
 
 # Only preprocess the file.
 %.i: %.cc

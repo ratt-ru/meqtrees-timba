@@ -27,6 +27,30 @@
 #    lofar_CHECK_LONG_LONG
 #
 
+# lofar_GENERAL([rpm_release])
+#   The rpm_release defaults to 1 (which is usually okay).
+#   Only if the same version is repackaged, the release should be incremented.
+#
+# Execute the general macros.
+#
+AC_DEFUN([lofar_GENERAL],dnl
+[dnl
+ifelse($1, [], [RPM_RELEASE=1], [RPM_RELEASE=$1])
+AC_DEFINE([RPM_RELEASE], $RPM_RELEASE, [Define RPM release nr])dnl
+AC_SUBST(RPM_RELEASE)
+AM_RPM_INIT([])
+dnl Enable or disable the rpm making rules in Makefile.am
+AM_CONDITIONAL(MAKE_RPMS, test x$make_rpms = xtrue)
+lofar_CHECK_LONG_LONG([])
+lofar_DEBUG_OPTIMIZE([])
+lofar_CHECK_PRETTY_FUNCTION([])
+lofar_QATOOLS([])
+lofar_DOCXX([])
+lofar_LOG4CPLUS([])
+dnl
+])
+
+
 # lofar_DEBUG_OPTIMIZE
 #
 # Set debugging or optimisation flags for CC and CXX

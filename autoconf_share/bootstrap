@@ -38,6 +38,7 @@ if [ "$1" != "autoconf_share" ]; then
 fi
 \rm -f lofarconf
 ln -s $1/lofarconf lofarconf
+ln -sf $1/Makefile.common Makefile.common
 
 # Bootstrap recursively if a file lofarconf.in exists.
 # Get subdirectories from that file.
@@ -77,7 +78,7 @@ fi
 # Initialize auto tools if configure.in exists.
 if [ -r configure.in ]; then
   set -x
-  aclocal -I $1 \
+  aclocal -I ./autoconf_share \
   && libtoolize --force --copy \
   && autoheader \
   && automake --foreign --add-missing --copy \
