@@ -50,7 +50,7 @@ AC_FUNC_VPRINTF
 dnl
 dnl Check for LOFAR specific things
 dnl
-lofar_DEBUG_OPTIMIZE
+lofar_GENERAL
 lofar_AIPSPP(1)
 
 dnl

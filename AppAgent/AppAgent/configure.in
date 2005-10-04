@@ -50,10 +50,8 @@ AC_FUNC_VPRINTF
 dnl
 dnl Check for LOFAR specific things
 dnl
-lofar_DEBUG_OPTIMIZE
+lofar_GENERAL
 lofar_BLITZ(1)
-lofar_QATOOLS
-lofar_DOCXX
 lofar_PACKAGE(Timba/OCTOPUSSY)
 lofar_PACKAGE(Timba/VisCube)
 
