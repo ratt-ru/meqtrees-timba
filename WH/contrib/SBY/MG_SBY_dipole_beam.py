@@ -65,7 +65,10 @@ def _define_forest (ns):
   par=['p0+p1*x0+p2*x1+p3*x0*x1','p4+p5*x0+p6*x1+p7*x0*x1',\
        'p8+p9*x0+p10*x1+p11*x0*x1','p12+p13*x0+p14*x1+p15*x0*x1']
   # polynomial coefficients
-  coeff=[[1,0,0,0],[1,0,0,0],[1,0,0,0],[1,0,0,0]]
+  #coeff=[[1,0,0,0],[1,0,0,0],[1,0,0,0],[1,0,0,0]]
+  # choose this to see some time variation
+  coeff=[[1,0.1,0,0],[1,0.2,0,0],[1,0.10,0,0],[1,0.30,0,0]]
+
 
   # value of pi
   pi=str(math.pi)
