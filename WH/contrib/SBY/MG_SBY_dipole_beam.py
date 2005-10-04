@@ -1,6 +1,4 @@
 script_name = 'MG_SBY_dipole_beam.py'
-last_changed = '04oct2005'
-
 # Short description:
 #   using MXM's compiled funklet to model a linear dipole
 #   on top of ground plane.
@@ -44,6 +42,10 @@ MG = MG_JEN_exec.MG_init('MG_SBY_dipole_beam.py',
                          last_changed='$Date$',
                          trace=False) # If True, produce progress messages  
 MG.parm = record(h=0.25, # dipole height from ground plane, in wavelengths
+               ntime=5, # no. of grid points in time
+               nfreq=5, # no. of grid points in frequency
+               nphi=40, # no. of grid points in azimuth [0,2*pi]
+               ntheta=40, # no. of grid points in elevation [0,pi/2]
                debug_level=10)    # debug level
 
 ##########################################################################
@@ -112,7 +114,7 @@ def _test_forest (mqs,parent):
   MG_MXM_functional._dummy(mqs,parent);
   
 
-  request = MG_MXM_functional._make_request(Ndim=4,dom_range=[[0.,1.],[0.,1.],[0.,math.pi*2.0],[0.,math.pi/2.0]],nr_cells=[5,5,40,40]);
+  request = MG_MXM_functional._make_request(Ndim=4,dom_range=[[0.,1.],[0.,1.],[0.,math.pi*2.0],[0.,math.pi/2.0]],nr_cells=[MG.parm['ntime'],MG.parm['nfreq'],MG.parm['nphi'],MG.parm['ntheta']]);
   a = mqs.meq('Node.Execute',record(name='z',request=request),wait=True);
 
 
