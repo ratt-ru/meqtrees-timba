@@ -503,9 +503,12 @@ class QwtImageDisplay(QwtPlot):
         _dprint(3, 'number of planes ', number_of_planes)
         self._next_plot = {}
         flag_plane = -1
+        initial_plane = None
         for i in range(number_of_planes):
           id = id + 1
           if self._vells_rec.vellsets[i].has_key("value"):
+            if initial_plane is None:
+              initial_plane = i
             menu_label = "go to plane " + str(i) + " value" 
             self._next_plot[id] = menu_label
             self._menu.insertItem(menu_label,id)
@@ -537,9 +540,21 @@ class QwtImageDisplay(QwtPlot):
           self._toggle_flag_label = "toggle flagged data for plane " + str(flag_plane) 
 	  toggle_id = 200
           self._menu.insertItem(self._toggle_flag_label,toggle_id)
+          if flag_plane == initial_plane:
+            self._menu.setItemEnabled(toggle_id, True)
+            self._menu.setItemVisible(toggle_id, True)
+          else:
+            self._menu.setItemEnabled(toggle_id, False)
+            self._menu.setItemVisible(toggle_id, False)
           self._toggle_blink_label = "toggle blink of flagged data for plane " + str(flag_plane)
           toggle_id = 201
           self._menu.insertItem(self._toggle_blink_label,toggle_id)
+          if flag_plane == initial_plane:
+            self._menu.setItemEnabled(toggle_id, True)
+            self._menu.setItemVisible(toggle_id, True)
+          else:
+            self._menu.setItemEnabled(toggle_id, False)
+            self._menu.setItemVisible(toggle_id, False)
         if perturb_index == -1 and number_of_planes == 1:
             self._menu.removeItem(0)
         self.context_menu_done = True
@@ -613,7 +628,8 @@ class QwtImageDisplay(QwtPlot):
         if self.real_flag_vector is None:
           self.plotImage.setDisplayFlag(self.flag_toggle)
         else:
-          self.curve(self.real_flag_vector).setEnabled(self.flag_toggle)
+          if not self.real_flag_vector is None:
+            self.curve(self.real_flag_vector).setEnabled(self.flag_toggle)
           if not self.imag_flag_vector is None:
             self.curve(self.imag_flag_vector).setEnabled(self.flag_toggle)
         self.replot()
@@ -733,9 +749,29 @@ class QwtImageDisplay(QwtPlot):
           self._toggle_flag_label = "toggle flagged data for plane " + str(plane) 
 	  toggle_id = 200
           self._menu.changeItem(toggle_id,self._toggle_flag_label)
+          self._menu.setItemEnabled(toggle_id, True)
+          self._menu.setItemVisible(toggle_id, True)
           self._toggle_blink_label = "toggle blink of flagged data for plane " + str(plane)
           toggle_id = 201
           self._menu.changeItem(toggle_id,self._toggle_blink_label)
+          self._menu.setItemEnabled(toggle_id, True)
+          self._menu.setItemVisible(toggle_id, True)
+        else:
+	  toggle_id = 200
+          self._menu.setItemEnabled(toggle_id, False)
+          self._menu.setItemVisible(toggle_id, False)
+          self.flag_toggle = False
+          if not self.real_flag_vector is None:
+            self.removeCurve(self.real_flag_vector)
+            self.real_flag_vector = None
+          if not self.imag_flag_vector is None:
+            self.removeCurve(self.imag_flag_vector)
+            self.imag_flag_vector = None
+          toggle_id = 201
+          self._menu.setItemEnabled(toggle_id, False)
+          self._menu.setItemVisible(toggle_id, False)
+          self.flag_blink = False
+       
 # get the shape tuple - useful if the Vells have been compressed down to
 # a constant
       try:
