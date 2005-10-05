@@ -15,7 +15,7 @@ script_name = 'MG_SBY_dipole_beam.py'
 # are called  '_create_dipole_beam_h()' and '_create_dipole_beam_v()', 
 # respectively.
 # Reference:
-#  Balanis C.A., "Antenna Theory", 1997
+#  Balanis C.A., "Antenna Theory (2nd Ed)", Wiley 1997 pp. 170 and pp. 179
 
 # standard preamble
 from Timba.TDL import *
