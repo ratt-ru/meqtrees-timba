@@ -42,6 +42,9 @@ MG = MG_JEN_exec.MG_init('MG_SBY_dipole_beam.py',
                          last_changed='$Date$',
                          trace=False) # If True, produce progress messages  
 MG.parm = record(h=0.25, # dipole height from ground plane, in wavelengths
+                         # note that this varies with freq. in order to 
+                         # model this variation, use the t,f polynomial
+                         # given below
                ntime=5, # no. of grid points in time [0,1]
                nfreq=5, # no. of grid points in frequency [0,1]
                nphi=40, # no. of grid points in azimuth [0,2*pi]
@@ -68,7 +71,9 @@ def _define_forest (ns):
   # polynomial coefficients
   #coeff=[[1,0,0,0],[1,0,0,0],[1,0,0,0],[1,0,0,0]]
   # choose this to see some time variation
-  coeff=[[1,0.1,0,0],[1,0.2,0,0],[1,0.10,0,0],[1,0.30,0,0]]
+  # the third polynomial should model variation of dipole height
+  # with freqency                        \/ -- this models height
+  coeff=[[1,0.1,0,0],[1,0.2,0,0],[1,0.10,0.5,0],[1,0.30,0,0]]
 
 
   # value of pi
