@@ -1478,16 +1478,18 @@ class QwtImageDisplay(QwtPlot):
           if current_label == 'time':
             end = end - begin
             begin = 0
-            title = 'Time(sec): (relative to start)'
+            title = 'Relative Time(sec)'
           if current_label == 'freq':
             if end >  1.0e6:
               begin = begin / 1.0e6
               end = end / 1.0e6
               title = 'Frequency(MHz)'
+              self._mhz = True
             elif end >  1.0e3:
               begin = begin / 1.0e3
               end = end / 1.0e3
               title = 'Frequency(KHz)'
+              self._khz = True
             else:
               title = 'Frequency(Hz)'
         if self._vells_rec.cells.grid.has_key(current_label):
@@ -1872,6 +1874,8 @@ class QwtImageDisplay(QwtPlot):
       self.removeCurves()
       self.xCrossSection = None
       self.yCrossSection = None
+      self.enableAxis(QwtPlot.yLeft, False)
+      self.enableAxis(QwtPlot.xBottom, False)
       self.enableAxis(QwtPlot.yRight, False)
       self.enableAxis(QwtPlot.xTop, False)
       self.xCrossSectionLoc = None
@@ -1907,7 +1911,7 @@ class QwtImageDisplay(QwtPlot):
 # I'm not sure that the following covers all bases, but we are getting close
       self.is_vector = False;
       actual_array_rank = 0
-      is_first_axis = False
+      second_is_first_axis = False
       num_elements = 1
       for i in range(len(plot_array.shape)):
         num_elements = num_elements * plot_array.shape[i]
@@ -1917,8 +1921,8 @@ class QwtImageDisplay(QwtPlot):
         self.is_vector = True;
 # check if grid frequency/time layout gives extra info
         if len(plot_array.shape) > 1:
-          if plot_array.shape[1] == 1:
-            is_first_axis = True
+          if flip_axes and plot_array.shape[1] == 1:
+            second_is_first_axis = True
 
 
 # test for real or complex
@@ -1931,6 +1935,8 @@ class QwtImageDisplay(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False:
+        self.enableAxis(QwtPlot.yLeft)
+        self.enableAxis(QwtPlot.xBottom)
 # if there are flags associated with this array, we need to copy flags for complex array
         if self.complex_type and not self._flags_array is None:
           if self.array_tuple is None:
@@ -1999,11 +2005,9 @@ class QwtImageDisplay(QwtPlot):
             self._y_title = self.vells_axis_parms[self.y_parm][2]
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           else:
-	    if self._x_title is None:
-              self._x_title = 'Array/Channel Number (real followed by imaginary)'
+            self._x_title = 'Array/Channel Number (real followed by imaginary)'
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
-	    if self._y_title is None:
-              self._y_title = 'Array/Sequence Number'
+            self._y_title = 'Array/Sequence Number'
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
             self.myXScale = ComplexScaleDraw(plot_array.shape[0])
             self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
@@ -2031,11 +2035,9 @@ class QwtImageDisplay(QwtPlot):
             self._y_title = self.vells_axis_parms[self.y_parm][2]
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           else:
-	    if self._x_title is None:
-              self._x_title = 'Array/Channel Number'
+            self._x_title = 'Array/Channel Number'
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
-	    if self._y_title is None:
-              self._y_title = 'Array/Sequence Number'
+            self._y_title = 'Array/Sequence Number'
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           self.display_image(plot_array)
 
@@ -2051,10 +2053,13 @@ class QwtImageDisplay(QwtPlot):
 
 # make sure we are autoscaling in case an image was previous
         self.setAxisAutoScale(QwtPlot.xBottom)
+        self.setAxisAutoScale(QwtPlot.xTop)
         self.setAxisAutoScale(QwtPlot.yLeft)
+        self.setAxisAutoScale(QwtPlot.yRight)
+#       self.setAxisScaleDraw(QwtPlot.xBottom, None)
+#       self.setAxisScaleDraw(QwtPlot.yLeft, None)
         self._x_auto_scale = True
         self._y_auto_scale = True
-        self.setAxisAutoScale(QwtPlot.yRight)
 
 # make sure grid markings are on in case an image was previously displayed
         self.enableGridX(True)
@@ -2065,31 +2070,24 @@ class QwtImageDisplay(QwtPlot):
           self.flags_r_values = []
           self.flags_i_values = []
         self.active_image = False
+
+
         if self._vells_plot:
-          if is_first_axis:
-            if self._mhz:
-              self.setAxisTitle(QwtPlot.xBottom, 'Frequency(MHz)')
-            elif self._khz:
-              self.setAxisTitle(QwtPlot.xBottom, 'Frequency(KHz)')
-            else:
-              self.setAxisTitle(QwtPlot.xBottom, 'Frequency(Hz)')
-            delta_vells = self.vells_axis_parms[self.first_axis_parm][1] - self.vells_axis_parms[self.first_axis_parm][0]
-            x_step = delta_vells / num_elements 
-            start_x = self.vells_axis_parms[self.first_axis_parm][0] + 0.5 * x_step
-            self.x_index = zeros(num_elements, Float32)
-            for j in range(num_elements):
-              self.x_index[j] = start_x + j * x_step
-          else:
-            self.setAxisTitle(QwtPlot.xBottom, 'Time(sec): (relative to start)')
-            delta_vells = self.vells_axis_parms[self.second_axis_parm][1] - self.vells_axis_parms[self.second_axis_parm][0]
-            x_step = delta_vells / num_elements 
-            start_x = self.vells_axis_parms[self.second_axis_parm][0] + 0.5 * x_step
-            self.x_index = zeros(num_elements, Float32)
-            for j in range(num_elements):
-              self.x_index[j] = start_x + j * x_step
+          self.x_parm = self.first_axis_parm
+          self.y_parm = self.second_axis_parm
+          if flip_axes:
+            self.x_parm = self.second_axis_parm
+            self.y_parm = self.first_axis_parm
+          delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
+          x_step = delta_vells / num_elements 
+          start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
+          self.x_index = zeros(num_elements, Float32)
+          for j in range(num_elements):
+            self.x_index[j] = start_x + j * x_step
+          self._x_title = self.vells_axis_parms[self.x_parm][2]
+          self.setAxisTitle(QwtPlot.xBottom, self._x_title)
         else:
-	  if self._x_title is None:
-            self._x_title = 'Array/Channel Number'
+          self._x_title = 'Array/Channel Number'
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
           self.x_index = arange(num_elements)
           self.x_index = self.x_index + 0.5
@@ -2116,6 +2114,9 @@ class QwtImageDisplay(QwtPlot):
 # we have a complex vector
         if complex_type:
           self.enableAxis(QwtPlot.yRight)
+          self.enableAxis(QwtPlot.yLeft)
+          self.enableAxis(QwtPlot.xBottom)
+          self.enableAxis(QwtPlot.xTop)
           self.setAxisTitle(QwtPlot.yLeft, 'Value: real (black line / red dots)')
           self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (blue line / green dots)')
           self.xCrossSection = self.insertCurve('xCrossSection')
@@ -2162,6 +2163,8 @@ class QwtImageDisplay(QwtPlot):
             self.curve(self.imag_flag_vector).setEnabled(False)
 
         else:
+          self.enableAxis(QwtPlot.yLeft)
+          self.enableAxis(QwtPlot.xBottom)
           self.setAxisTitle(QwtPlot.yLeft, 'Value')
           self.enableAxis(QwtPlot.yRight, False)
           self.x_array = zeros(num_elements, Float32)
@@ -2283,12 +2286,12 @@ class QwtImageDisplay(QwtPlot):
         for i in range(shape[0]):
           vector_array[i,0] = a[i,0]
         if self.index % 2 == 0:
-          _dprint(2, 'plotting array');
+          _dprint(2, 'plotting complex vector');
+          self.array_plot('test_vector_complex', vector_array)
+        else:
+          _dprint(2, 'plotting complex array');
           self.array_plot('test_image_complex',a)
           self.test_complex = False
-        else:
-          _dprint(2, 'plotting vector');
-          self.array_plot('test_vector_complex', vector_array)
       else:
         vector_array = zeros((30,1), Float32)
         m = fromfunction(dist, (30,20))
@@ -2299,12 +2302,12 @@ class QwtImageDisplay(QwtPlot):
         for i in range(shape[0]):
           vector_array[i,0] = m[i,0]
         if self.index % 2 == 0:
-          _dprint(2, 'plotting vector');
+          _dprint(2, 'plotting real array');
+          self.array_plot('test_image',m)
+        else:
+          _dprint(2, 'plotting real vector');
           self.array_plot('test_vector', vector_array)
           self.test_complex = True
-        else:
-          _dprint(2, 'plotting array');
-          self.array_plot('test_image',m)
 
       self.index = self.index + 1
     # timerEvent()
@@ -2315,7 +2318,7 @@ def make():
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
-    demo.start_test_timer(5000, False, "brentjens")
+    demo.start_test_timer(5000, True, "hippo")
 
 # or
 # uncomment the following three lines
