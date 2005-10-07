@@ -134,6 +134,7 @@ class QwtImageDisplay(QwtPlot):
 	self._combined_image_id = None
         self.colorbar_requested = False
 	self.is_combined_image = False
+        self.image_flag_array = None
         self.active_image_index = None
         self.y_marker_step = None
         self.imag_flag_vector = None
@@ -147,8 +148,6 @@ class QwtImageDisplay(QwtPlot):
         self.first_axis_inc = None
         self.second_axis_inc = None
         self.context_menu_done = None
-        self._mhz = False
-        self._khz = False
         self.image_min = None
         self.image_max = None
         self.image_shape = None
@@ -304,15 +303,10 @@ class QwtImageDisplay(QwtPlot):
             plot_label = 'spectra:' + combined_display_label
 	  plot_label_not_found = True
 
-
-# use hack below instead
-#          plot_array = self._data_values[i].copy()
-
 # hack to get array display correct until forest.state
 # record is available
           axes = arange(self._data_values[i].rank)[::-1]
           plot_array = transpose(self._data_values[i], axes)
-
 
 	  for j in range(len(self._plot_label)):
 	    if self._plot_label[j] == plot_label:
@@ -461,6 +455,17 @@ class QwtImageDisplay(QwtPlot):
       self.array_plot(self._plot_label[menuid], self._plot_dict[menuid], False)
 
     def defineData(self):
+
+       self.flagged_image = None
+       self.flagged_image_max = None
+       self.flagged_image_min = None
+       if not self.image_flag_array is None:
+         self.flagged_image = self.raw_image - self.image_flag_array * self.raw_image
+         self.flagged_image_max = self.flagged_image.max()
+         self.flagged_image_min = self.flagged_image.min()
+         self.plotImage.setFlaggedImageRange((self.flagged_image_min, self.flagged_image_max))
+         self.emit(PYSIGNAL("image_range"),(self.flagged_image_min, self.flagged_image_max))
+
        if self._vells_plot:
          if self.complex_type:
            temp_x_axis_parms = self.vells_axis_parms[self.x_parm]
@@ -472,7 +477,6 @@ class QwtImageDisplay(QwtPlot):
            self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm])
        else:
          self.plotImage.setData(self.raw_image)
-
 # the following is used to make sure same image is kept on display if
 # colorbar intensity range is toggled or color/grayscale is toggled
        if not self.xmin is None and not self.xmax is None and not self.ymin is None and not self.ymax is None:
@@ -1484,12 +1488,10 @@ class QwtImageDisplay(QwtPlot):
               begin = begin / 1.0e6
               end = end / 1.0e6
               title = 'Frequency(MHz)'
-              self._mhz = True
             elif end >  1.0e3:
               begin = begin / 1.0e3
               end = end / 1.0e3
               title = 'Frequency(KHz)'
-              self._khz = True
             else:
               title = 'Frequency(Hz)'
         if self._vells_rec.cells.grid.has_key(current_label):
@@ -1580,6 +1582,7 @@ class QwtImageDisplay(QwtPlot):
 
 # do we have flags for data	  
 	self._flags_array = None
+        self.image_flag_array = None
         if self._vells_rec.vellsets[self._active_plane].has_key("flags"):
 # test if we have a numarray
           try:
@@ -1911,7 +1914,6 @@ class QwtImageDisplay(QwtPlot):
 # I'm not sure that the following covers all bases, but we are getting close
       self.is_vector = False;
       actual_array_rank = 0
-      second_is_first_axis = False
       num_elements = 1
       for i in range(len(plot_array.shape)):
         num_elements = num_elements * plot_array.shape[i]
@@ -1919,11 +1921,6 @@ class QwtImageDisplay(QwtPlot):
           actual_array_rank = actual_array_rank + 1
       if actual_array_rank == 1:
         self.is_vector = True;
-# check if grid frequency/time layout gives extra info
-        if len(plot_array.shape) > 1:
-          if flip_axes and plot_array.shape[1] == 1:
-            second_is_first_axis = True
-
 
 # test for real or complex
       complex_type = False;
@@ -2043,6 +2040,8 @@ class QwtImageDisplay(QwtPlot):
 
       if self.is_vector == True:
 
+# remove any markers
+        self.removeMarkers()
 # make sure color bar is hidden
         self.emit(PYSIGNAL("show_colorbar_display"),(0,)) 
 # make sure options relating to color bar are not in context menu
@@ -2056,8 +2055,8 @@ class QwtImageDisplay(QwtPlot):
         self.setAxisAutoScale(QwtPlot.xTop)
         self.setAxisAutoScale(QwtPlot.yLeft)
         self.setAxisAutoScale(QwtPlot.yRight)
-#       self.setAxisScaleDraw(QwtPlot.xBottom, None)
-#       self.setAxisScaleDraw(QwtPlot.yLeft, None)
+        self.setAxisScaleDraw(QwtPlot.xBottom, QwtScaleDraw())
+        self.setAxisScaleDraw(QwtPlot.yLeft, QwtScaleDraw())
         self._x_auto_scale = True
         self._y_auto_scale = True
 
@@ -2116,7 +2115,6 @@ class QwtImageDisplay(QwtPlot):
           self.enableAxis(QwtPlot.yRight)
           self.enableAxis(QwtPlot.yLeft)
           self.enableAxis(QwtPlot.xBottom)
-          self.enableAxis(QwtPlot.xTop)
           self.setAxisTitle(QwtPlot.yLeft, 'Value: real (black line / red dots)')
           self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (blue line / green dots)')
           self.xCrossSection = self.insertCurve('xCrossSection')
@@ -2133,6 +2131,9 @@ class QwtImageDisplay(QwtPlot):
                      QPen(Qt.green), QSize(5,5)))
           self.x_array =  flattened_array.getreal()
           self.y_array =  flattened_array.getimag()
+          _dprint(3, 'plotting complex array with x values ', self.x_index)
+          _dprint(3, 'plotting complex array with real values ', self.x_array)
+          _dprint(3, 'plotting complex array with imag values ', self.y_array)
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
           self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
           if not self.dummy_xCrossSection is None:
@@ -2195,6 +2196,7 @@ class QwtImageDisplay(QwtPlot):
 
 # do the replot
         self.replot()
+        self.replot()
         _dprint(2, 'called replot in array_plot');
     # array_plot()
 
@@ -2227,6 +2229,7 @@ class QwtImageDisplay(QwtPlot):
 
       if flag_is_vector == False:
         self.plotImage.setFlagsArray(flag_array)
+        self.image_flag_array = flag_array
       else:
         num_elements = n_rows*n_cols
         self._flags_array = reshape(flag_array,(num_elements,))
@@ -2286,10 +2289,10 @@ class QwtImageDisplay(QwtPlot):
         for i in range(shape[0]):
           vector_array[i,0] = a[i,0]
         if self.index % 2 == 0:
-          _dprint(2, 'plotting complex vector');
+          _dprint(2, 'plotting complex vector with shape ',vector_array.shape);
           self.array_plot('test_vector_complex', vector_array)
         else:
-          _dprint(2, 'plotting complex array');
+          _dprint(2, 'plotting complex array with shape ',a.shape);
           self.array_plot('test_image_complex',a)
           self.test_complex = False
       else:
@@ -2302,10 +2305,10 @@ class QwtImageDisplay(QwtPlot):
         for i in range(shape[0]):
           vector_array[i,0] = m[i,0]
         if self.index % 2 == 0:
-          _dprint(2, 'plotting real array');
+          _dprint(2, 'plotting real array with shape ',m.shape);
           self.array_plot('test_image',m)
         else:
-          _dprint(2, 'plotting real vector');
+          _dprint(2, 'plotting real vector with shape ', vector_array.shape);
           self.array_plot('test_vector', vector_array)
           self.test_complex = True
 
