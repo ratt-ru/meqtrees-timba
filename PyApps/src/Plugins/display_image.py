@@ -477,8 +477,9 @@ class QwtImageDisplay(QwtPlot):
              self.flagged_image_min = self.flagged_image_max
              self.flagged_image_max = temp
 
-         self.plotImage.setFlaggedImageRange((self.flagged_image_min, self.flagged_image_max))
-         self.emit(PYSIGNAL("image_range"),(self.flagged_image_min, self.flagged_image_max))
+# not yet ready for prime time here ...
+#        self.plotImage.setFlaggedImageRange((self.flagged_image_min, self.flagged_image_max))
+#        self.emit(PYSIGNAL("image_range"),(self.flagged_image_min, self.flagged_image_max))
 
        if self._vells_plot:
          if self.complex_type:
