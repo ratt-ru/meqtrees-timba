@@ -76,6 +76,12 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.cmax = limits[1]
     # setImageRange
 
+    def setFlaggedImageRange(self, limits):
+      print 'flagged limits are ', limits[0], limits[1]
+      self.cmin = limits[0]
+      self.cmax = limits[1]
+    # setImageRange
+
     def setImage(self, image):
 # turn image into a QImage	
         limits = [self.cmin,self.cmax]
