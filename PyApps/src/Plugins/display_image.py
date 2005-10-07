@@ -463,6 +463,20 @@ class QwtImageDisplay(QwtPlot):
          self.flagged_image = self.raw_image - self.image_flag_array * self.raw_image
          self.flagged_image_max = self.flagged_image.max()
          self.flagged_image_min = self.flagged_image.min()
+      # just in case we have a uniform image
+      # not yet sure if the following is the best test ...
+         if abs(self.flagged_image_max - self.flagged_image_min) < 0.00005:
+           if self.flagged_image_max == 0 or self.flagged_image_min == 0.0:
+             self.flagged_image_min = -0.1
+             self.flagged_image_max = 0.1 
+           else:
+             self.flagged_image_min = 0.9 * self.flagged_image_min
+             self.flagged_image_max = 1.1 * self.flagged_image_max
+           if self.flagged_image_min > self.flagged_image_max:
+             temp = self.flagged_image_min
+             self.flagged_image_min = self.flagged_image_max
+             self.flagged_image_max = temp
+
          self.plotImage.setFlaggedImageRange((self.flagged_image_min, self.flagged_image_max))
          self.emit(PYSIGNAL("image_range"),(self.flagged_image_min, self.flagged_image_max))
 
@@ -1228,6 +1242,7 @@ class QwtImageDisplay(QwtPlot):
       if self.adjust_color_bar:
         # just in case we have a uniform image
         # not yet sure if the following is the best test ...
+        _dprint(3, 'max and min for display ', image_for_display.max(), ' ', image_for_display.min())
         if abs(image_for_display.max() - image_for_display.min()) < 0.00005:
           if image_for_display.max() == 0 or image_for_display.min() == 0.0:
             image_min = -0.1
