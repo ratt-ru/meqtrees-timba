@@ -25,7 +25,7 @@ fi
 find $rootdir -name configure.in > tmp.fil
 egrep '^lofar_' `cat tmp.fil` | \
 sed -e 's%.*/LOFAR/%LOFAR/%' -e 's/,.*//' -e 's/).*//' -e 's%/configure.in:lofar_% %' | \
-egrep -v ' (INIT|DEBUG|QATOOLS|DOCXX|CHECK_PRETTY|CHECK_LONG_LONG)' | \
+egrep -v ' GENERAL$' | fgrep -v ' GENERAL(' | \
 sed -e 's% PACKAGE(% LOFAR/%' -e 's% INTERNAL(% LOFAR/%' -e 's% EXTERNAL(% %' -e s'%(.*%%' | \
 sort > finddep.uses
 # Make a reversed copy to get the 'used by' relation.
