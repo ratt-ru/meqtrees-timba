@@ -128,7 +128,8 @@ if [ -f $pgkname/$pkgname.spec.in ]; then
     # Before = is the package name.
     nm=`echo $pkg | sed -e "s/=.*//"`
     # Possible part after = is the tag.
-    tag=`echo $pkg | awk -F= '{ print $2 }'`
+    # Replace a . in the tag by _.
+    tag=`echo $pkg | awk -F= '{ print $2 }' | sed -e 's/\./_'`
     # Check out the package.
     $0 $nm "$tag" $checkout "$cvscomm" "$updq"  ||  exit 1
   done
