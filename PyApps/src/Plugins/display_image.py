@@ -159,6 +159,7 @@ class QwtImageDisplay(QwtPlot):
         self.do_calc_vells_range = True
         self.array_selector = None
         self.show_x_sections = False
+        self.flag_range = False
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -478,8 +479,13 @@ class QwtImageDisplay(QwtPlot):
              self.flagged_image_max = temp
 
 # not yet ready for prime time here ...
-#        self.plotImage.setFlaggedImageRange((self.flagged_image_min, self.flagged_image_max))
-#        self.emit(PYSIGNAL("image_range"),(self.flagged_image_min, self.flagged_image_max))
+         if self.flag_range:
+           _dprint(3, 'self.flag_range ', self.flag_range)
+           self.plotImage.setFlaggedImageRange((self.flagged_image_min, self.flagged_image_max))
+           self.emit(PYSIGNAL("image_range"),(self.flagged_image_min, self.flagged_image_max))
+           self.emit(PYSIGNAL("max_image_range"),(self.flagged_image_min, self.flagged_image_max))
+           _dprint(3, 'emitted signals about image range')
+#          self.setImageRange(self.flagged_image_min, self.flagged_image_max)
 
        if self._vells_plot:
          if self.complex_type:
@@ -574,6 +580,15 @@ class QwtImageDisplay(QwtPlot):
           else:
             self._menu.setItemEnabled(toggle_id, False)
             self._menu.setItemVisible(toggle_id, False)
+          self._toggle_range_label = "Adjust display range to that of flagged image for plane " + str(flag_plane)
+          toggle_id = 202
+          self._menu.insertItem(self._toggle_range_label,toggle_id)
+          if flag_plane == initial_plane:
+            self._menu.setItemEnabled(toggle_id, True)
+            self._menu.setItemVisible(toggle_id, True)
+          else:
+            self._menu.setItemEnabled(toggle_id, False)
+            self._menu.setItemVisible(toggle_id, False)
         if perturb_index == -1 and number_of_planes == 1:
             self._menu.removeItem(0)
         self.context_menu_done = True
@@ -625,6 +640,7 @@ class QwtImageDisplay(QwtPlot):
       parms_interface = WidgetSettingsDialog(actual_parent=self, gui_parent=self)
 
     def setImageRange(self, min, max):
+      _dprint(3, 'received request for min and max of ', min, ' ', max)
       image_min = min * 1.0
       image_max = max * 1.0
       if image_min > image_max:
@@ -732,6 +748,13 @@ class QwtImageDisplay(QwtPlot):
           self.flag_blink = False
 	return
 
+      if menuid == 202:
+        if self.flag_range == False:
+          self.flag_range = True
+        else:
+          self.flag_range = False
+	return
+
       id_string = self._next_plot[menuid]
       perturb = -1
       plane = 0
@@ -775,6 +798,11 @@ class QwtImageDisplay(QwtPlot):
           self._menu.changeItem(toggle_id,self._toggle_blink_label)
           self._menu.setItemEnabled(toggle_id, True)
           self._menu.setItemVisible(toggle_id, True)
+          self._toggle_range_label = "Adjust display range to that of flagged image for plane " + str(flag_plane)
+          toggle_id = 202
+          self._menu.changeItem(toggle_id,self._toggle_range_label)
+          self._menu.setItemEnabled(toggle_id, True)
+          self._menu.setItemVisible(toggle_id, True)
         else:
 	  toggle_id = 200
           self._menu.setItemEnabled(toggle_id, False)
@@ -787,6 +815,9 @@ class QwtImageDisplay(QwtPlot):
             self.removeCurve(self.imag_flag_vector)
             self.imag_flag_vector = None
           toggle_id = 201
+          self._menu.setItemEnabled(toggle_id, False)
+          self._menu.setItemVisible(toggle_id, False)
+          toggle_id = 202
           self._menu.setItemEnabled(toggle_id, False)
           self._menu.setItemVisible(toggle_id, False)
           self.flag_blink = False
@@ -1257,11 +1288,9 @@ class QwtImageDisplay(QwtPlot):
             image_max = temp
           self.plotImage.setImageRange((image_min, image_max))
           self.emit(PYSIGNAL("max_image_range"),(image_min, image_max))
-          #print 'display_image emitted max_image_range ', image_min, ' ', image_max
         else:
           self.plotImage.setImageRange((image_for_display.min(), image_for_display.max()))
           self.emit(PYSIGNAL("max_image_range"),(image_for_display.min(), image_for_display.max()))
-          #print 'display_image emitted max_image_range ', image_for_display.min(), ' ', image_for_display.max()
 
         if abs(self.image_max - self.image_min) < 0.00005:
           if self.image_max == 0 or self.image_min == 0.0:
