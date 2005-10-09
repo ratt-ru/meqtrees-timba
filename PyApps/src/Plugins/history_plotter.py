@@ -426,7 +426,7 @@ class HistoryPlotter(GriddedPlugin):
 
     self.label = '';  # extra label, filled in if possible
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
-#     try to put request ID ^Sin label
+#   try to put request ID ^Sin label
       try: self.label = "rq " + str(self._rec.cache.request_id);
       except: pass;
       try: self._rec = self._rec.cache.result; # look for cache.result record
@@ -441,6 +441,13 @@ class HistoryPlotter(GriddedPlugin):
     if self._rec.has_key("visu"):
 # do plotting of visualization data
       self.display_visu_data()
+    else:
+      Message = "Result record does not contain visu key, so no plot can be made with the <b>history plotter</b>! You may wish to select another type of display."
+      cache_message = QLabel(Message,self.wparent())
+      cache_message.setTextFormat(Qt.RichText)
+      self._wtop = cache_message
+      self.set_widgets(cache_message)
+      return
 
 # enable & highlight the cell
     self.enable();
