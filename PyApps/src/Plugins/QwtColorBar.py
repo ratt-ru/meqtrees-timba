@@ -90,6 +90,10 @@ class QwtColorBar(QwtPlot):
     def setRange(self, min, max):
         self.min = min * 1.0
         self.max = max * 1.0
+        if self.min > self.max:
+            temp = self.max
+            self.max = self.min
+            self.min = temp
         if self.image_min is None:
           self.image_min = self.min
         if self.image_max is None:
