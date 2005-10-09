@@ -204,6 +204,8 @@ class Cell (object):
     wtop.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding));
     # add currier for self.connect() below
     self._currier = PersistentCurrier();
+    # clear menus
+    self._menu = self._font_menu = self._viewers_menu = None;
     
   def wtop (self):
     return self._wtop;
