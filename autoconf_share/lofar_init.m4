@@ -378,4 +378,6 @@ AC_CHECK_FILE([$lfr_find], [lfr_var=yes], [lfr_var=no])
 # If the system is big-endian WORDS_BIGENDIAN will be defined. 
   AC_C_BIGENDIAN
 
+# Initially RPM builds are not possible.
+  AM_CONDITIONAL(MAKE_RPMS, test xfalse = xtrue)
 ])
