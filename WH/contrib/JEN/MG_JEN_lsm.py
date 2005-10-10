@@ -42,7 +42,7 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.LSM.LSM import *
 from Timba.LSM.LSM_GUI import *
 from Timba.Contrib.JEN import MG_JEN_Sixpack
-
+from Timba.Contrib.SBY import MG_SBY_grow_tree
 
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
@@ -61,6 +61,9 @@ MG = MG_JEN_exec.MG_check(MG)
 
 MG_JEN_forest_state.init(MG)
 
+# NB: Using False here does not work, because it regards EVERYTHING
+#        as an orphan, and deletes it.....!?
+# Settings.orphans_are_roots = True
 
 
 
@@ -72,23 +75,46 @@ MG_JEN_forest_state.init(MG)
 #********************************************************************************
 #********************************************************************************
 
+# The following non-standard setup (kludge) is make it possible
+# to rebuild the forest after defining patches in the lsm. 
 
 def _define_forest (ns):
-   """Definition of a MeqForest for demonstration/testing/experimentation
-   of the subject of this MG script, and its importable functions"""
-   # Perform some common functions, and return an empty list (cc=[]):
-   cc = MG_JEN_exec.on_entry (ns, MG)
+   """Dummy function, just to define global nodescope my_ns"""
+   global my_ns
+   my_ns = ns
+   # Create a single node to get the 'Jobs' button on the browser (!?) 
+   root = ns.root << (my_ns << 0) + (my_ns << 1) 
+   return True
 
+#----------------------------------------------------------------
+# This function is started from the browser 'jobs' button
+
+def _tdl_job_define_forest (mqs, parent):
+   """Kludge version of stanrard _define_forest()"""
+   global my_ns
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (my_ns, MG)
+
+   # Assume that the lsm object has been created separately,
+   # e.g. via one of the _tdl_jobs below.
    global lsm
 
-   # obtain the punit list of the 3 brightest ones
-   plist = lsm.queryLSM(count=3)
-   for pu in plist:
-      my_sp = pu.getSP()
-      my_sp.display()
+   # Obtain the list of the brightest punits
+   plist = lsm.queryLSM(count=2)
+   for punit in plist: 
+      sp = punit.getSP()            # get_Sixpack()
+      sp.display()
+      if sp.ispoint():              # point source (Sixpack object)
+	node = sp.iquv()
+      else:	                    # patch (not a Sixpack object!)
+        node = sp.root()
+      cc.append(node)
 
    # Finished: 
-   return MG_JEN_exec.on_exit (ns, MG, cc)
+   MG_JEN_exec.on_exit (my_ns, MG, cc)
+   MG_SBY_grow_tree._update_forest(my_ns,mqs)
+   return MG_JEN_exec.meqforest (mqs, parent)
+   # return True
 
 
 
@@ -109,7 +135,7 @@ def _define_forest (ns):
 def lsm_343(ns):
    """Make a lsm from 3C343_nvss.txt"""
    
-   global lsm
+   # global lsm
    lsm = LSM()
 
    home_dir = os.environ['HOME']
@@ -179,7 +205,7 @@ def lsm_343(ns):
 
    # Finished:
    print "Inserted %d sources" % linecount 
-   lsm.setNodeScope(ns)                       # remember node scope....(?)
+   lsm.setNodeScope(ns)                       # remember node scope....(!)
    return lsm
 
 
@@ -216,8 +242,10 @@ def _tdl_job_display (mqs, parent):
 def _tdl_job_lsm_343 (mqs, parent):
    """Create an lsm for NVSS 3c343"""
    global lsm
-   ns = NodeScope()
-   lsm = lsm_343(ns)
+   # ns = NodeScope()
+   global my_ns
+   lsm = lsm_343(my_ns)
+   # MG_SBY_grow_tree._update_forest(my_ns,mqs)
    lsm.display()
 
 def _tdl_job_lsm_query (mqs, parent):
@@ -227,6 +255,13 @@ def _tdl_job_lsm_query (mqs, parent):
    for pu in plist:
       my_sp = pu.getSP()
       my_sp.display()
+
+def _tdl_job_dirdir (mqs, parent):
+   """Show the contents(dir) of lsm and punit"""
+   global lsm
+   print '\n** dir(lsm):\n',dir(lsm)
+   plist = lsm.queryLSM(count=1)
+   print '\n** dir(punit):\n',dir(plist[0])
 
 
 # Temporary: Create a default lsm:

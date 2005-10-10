@@ -70,10 +70,11 @@ MG = MG_JEN_exec.MG_init('MG_JEN_spigot2sink.py',
                          tile_size_dang=None,                   # used in tiled solutions
                          tile_size_dell='tile_size_dang',
                          
-                         num_iter=10,                             # number of solver iterations per snippet
-                         flag_spigots=True,                   # If True, insert a flagger before solving
+                         num_iter=20,                             # (max) number of solver iterations per snippet
+                         epsilon=1e-4,                            # iteration stop criterion (policy-free)
+                         flag_spigots=False,                   # If True, insert a flagger before solving
                          flag_sinks=False,                      # If True, insert a flagger after solving
-                         visu_spigots=False,               # If True, insert built-in view(s) 
+                         visu_spigots=True,               # If True, insert built-in view(s) 
                          visu_solver=False,                    # If True, insert built-in view(s) 
                          visu_sinks=False,                # If True, insert built-in view(s)
                          trace=False)                              # If True, produce progress messages  
@@ -132,8 +133,9 @@ def _define_forest (ns):
        jones = ['G','D']  
        jones = ['B']
        # jones = ['G']
-       Joneset = MG_JEN_Cohset.JJones(ns, jones=jones, **MG)
-       predicted = MG_JEN_Cohset.predict (ns, punit=MG['punit'], ifrs=ifrs, Joneset=Joneset)
+       Sixpack = MG_JEN_Cohset.punit2Sixpack (ns, MG['punit'])
+       Joneset = MG_JEN_Cohset.JJones (ns, jones=jones, Sixpack=Sixpack, **MG)
+       predicted = MG_JEN_Cohset.predict (ns, ifrs=ifrs, Sixpack=Sixpack, Joneset=Joneset)
 
        # Then specify the solvegroup of MeqParms to be solved for: 
        # solvegroup = 'DJones'
@@ -143,8 +145,8 @@ def _define_forest (ns):
        # NB: The data are corrected with the the improved Joneset
        MG_JEN_Cohset.insert_solver (ns, solvegroup=solvegroup, 
                                     measured=Cohset, predicted=predicted, 
-                                    correct=Joneset, num_iter=MG['num_iter'],
-                                    visu=MG['visu_solver'])
+                                    correct=Joneset,
+                                    visu=MG['visu_solver'], **MG)
 
    # Make MeqSink nodes that write the MS:
    sinks = MG_JEN_Cohset.make_sinks(ns, Cohset, flag=MG['flag_sinks'],

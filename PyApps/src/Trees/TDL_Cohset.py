@@ -39,6 +39,7 @@ from Timba.TDL import *
 from copy import deepcopy
 
 from Timba.Trees import TDL_common
+from Timba.Trees import TDL_radio_conventions
 from Timba.Trees import TDL_Joneset
 
 
@@ -72,7 +73,7 @@ class Cohset (TDL_common.Super):
     
     def __init__(self, **pp):
         
-        pp.setdefault('scope', '<cscope>')
+        pp.setdefault('scope', '<scope>')
         pp.setdefault('punit', 'uvp')             # prediction unit (source/patch)
         pp.setdefault('stations', range(0,3))
         pp.setdefault('ifrs', None)
@@ -99,17 +100,20 @@ class Cohset (TDL_common.Super):
         # The station_indexes are integers, used in spigot/sink:
         self.__station_index = {}
         for station in pp['stations']:
-            key = str(station)
-            self.__station_index[key] = station
+            key = TDL_radio_conventions.station_key(station)
+            self.__station_index[key] = TDL_radio_conventions.station_index(station)
 
 
         # This is the ONLY place where the self.__coh field-keys are determined
         self.__stations = {}                     # integer tuples (s1,s2)
         self.__coh = {}
         for (st1,st2) in pp['ifrs']:
-            key = str(st1)+'_'+str(st2)          # NB: key should ALWAYS be string!!
-            self.__stations[key] = (str(st1),str(st2))  
+            key = TDL_radio_conventions.ifr_key(st1,st2)
+            skey1 = TDL_radio_conventions.station_key(st1)
+            skey2 = TDL_radio_conventions.station_key(st2)
+            self.__stations[key] = (skey1,skey2)  
             self.__coh[key] = 'coh['+key+'] (placeholder for nodestub)'
+            print key,self.__coh[key]
         self.__dims = [1]                        # shape of coh tensor nodes
 
         # Polarisation representation
@@ -127,9 +131,9 @@ class Cohset (TDL_common.Super):
         self.__condeq_corrs = dict()
 
         # Plot information (standard, but extended from Jonesets):
-        self.__plot_color = TDL_common.plot_color()
-        self.__plot_style = TDL_common.plot_style()
-        self.__plot_size = TDL_common.plot_size()
+        self.__plot_color = TDL_radio_conventions.plot_color()
+        self.__plot_style = TDL_radio_conventions.plot_style()
+        self.__plot_size = TDL_radio_conventions.plot_size()
 
         # Calculate derived values from primary ones
         self.calc_derived()
@@ -241,10 +245,15 @@ class Cohset (TDL_common.Super):
     def oneliner(self):
         """Return a one-line summary of the Cohset"""
         s = TDL_common.Super.oneliner(self)
-        s = s+' punit='+str(self.punit())
-        s = s+' dims='+str(self.dims())
+        # s = s+' scope='+str(self.scope())
+        # s = s+' punit='+str(self.punit())
+        # s = s+' dims='+str(self.dims())
+        s = s+' '+str(self.scope())
+        s = s+' '+str(self.dims())
+        s = s+' '+str(self.punit())
         s = s+' '+str(self.corrs())
-        s = s+' len='+str(self.len())
+        # s = s+' len='+str(self.len())
+        s = s+' ['+str(self.len())+']'
         s = s+' ('+str(self.nodenames('first'))+',...)'
         return s
 
@@ -284,8 +293,20 @@ class Cohset (TDL_common.Super):
     # Methods that generate new nodes (and thus require nodescope):
     #--------------------------------------------------------------
 
+    def zero(self, ns):
+        """Make zero coherency matrices for all ifrs"""
+        funcname = '::zero():'
+        cz = complex(0)
+        zz = array([cz,cz,cz,cz])
+        for key in self.keys():
+            s12 = self.__stations[key]
+            self.__coh[key] = ns.cxzero22(s1=s12[0], s2=s12[1]) << Meq.Constant(zz, dims=[2,2])
+        self.__dims = [2,2]
+        self.history(append=funcname+' -> '+self.oneliner())
+
+
     def nominal(self, ns, coh0):
-        """Make a record/dict of identical coherency matrices for all ifrs"""
+        """Make identical coherency matrices (coh0) for all ifrs"""
         funcname = '::nominal():'
         uniqual = _counter(funcname, increment=-1)
         for key in self.keys():
@@ -293,8 +314,6 @@ class Cohset (TDL_common.Super):
             self.__coh[key] = ns.nominal(uniqual)(s1=s12[0], s2=s12[1]) << Meq.Selector(coh0)
         self.__dims = [2,2]
         self.history(append=funcname+' -> '+self.oneliner())
-
-
 
 
     def graft(self, ns, node, name=None, key='all', stepchild=False):
@@ -366,10 +385,30 @@ class Cohset (TDL_common.Super):
 
 
     def subtract(self, ns, Cohset=None):
-        """Subtract the cohaerencies in the two cohsets"""
+        """Subtract the cohaerencies of the given Cohset from the corresponding internal ones"""
         # NB: Check whether punit is the same for both?
+        funcname = '::subtract():'
         self.scope('subtracted')
         return self.binop(ns, binop='Subtract', Cohset=Cohset)
+
+
+    def add(self, ns, Cohset=[]):
+        """Add the cohaerencies of the given (list of) Cohset(s) to the corresponding internal cohaerencies"""
+        funcname = '::add():'
+        if not isinstance(Cohset, (tuple,list)): Cohset = [Cohset]
+        if len(Cohset)==0: return True
+        uniqual = _counter(funcname, increment=-1)
+        for key in self.keys():
+            cc = []
+            for cs in Cohset:
+                cc.append(cs[key])
+            print key,cc
+            self.__coh[key] = ns.cohsum.qmerge(self.__coh[key])(uniqual) << Meq.Add(children=cc)
+        for cs in Cohset:
+            self.history(append=funcname+'....'+cs.oneliner())
+        self.scope('added')
+        self.history(append=funcname+' -> '+self.oneliner())
+        return True
 
 
     def shift_phase_centre(self, ns, punit=None):
@@ -561,9 +600,10 @@ class Cohset (TDL_common.Super):
         # - child 'post' gets a request after the MeqSinks have returned a result 
         #   (may be used to attach all MeqDataCollect nodes)
         if True:
-            if isinstance(pp['post'], (list,tuple)):
-                pp['post'] = ns.postVisDataMux << Meq.ReqSeq(children=pp['post'])
-                # pp['post'] = ns.postVisDataMux << Meq.Add(children=pp['post'])
+            for key in ['start','pre','post']:
+                if isinstance(pp[key], (list,tuple)):
+                    pp[key] = ns[key+'_VisDataMux'] << Meq.ReqSeq(children=pp[key])
+                    # pp[key] = ns[key+'_VisDataMux'] << Meq.Add(children=pp[key])
             root = ns.VisDataMux << Meq.VisDataMux(start=pp['start'],
                                                    pre=pp['pre'], post=pp['post'])
         
@@ -609,16 +649,21 @@ def _counter (key, increment=0, reset=False, trace=True):
 #========================================================================
 
 if __name__ == '__main__':
+    print '\n*******************\n** Local test of: TDL_Cohset.py:\n'
     from numarray import *
     from Timba.Contrib.JEN import MG_JEN_Cohset
     from Timba.Contrib.JEN import MG_JEN_exec
     ns = NodeScope()
     nsim = ns.Subscope('_')
     
-    stations = range(3)
+    stations = range(4)
     ifrs = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ]
     cs = Cohset(label='initial', polrep='circular', stations=stations)
     cs.display('initial')
+
+    if 1:
+        cs.zero(ns)
+        cs.display('zero')
 
     if 0:
         print '** dir(cs) ->',dir(cs)
@@ -627,27 +672,33 @@ if __name__ == '__main__':
         print
 
 
-    if 1:
+    if 0:
         cs.spigots(ns)
         cs.display('spigots')
 
-    if 1:
+    if 0:
         zero = ns.zero << 0.0
         minus = ns.minus << -1
         cs.graft(ns, [zero, minus], name='test', key='all', stepchild=False)
         cs.display('graft')
 
     if 0:
+        cs1 = Cohset(label='other', polrep='circular', stations=stations)
+        cs1.zero(ns)
+        cc = [cs1,cs1,cs1]
+        cs.add(ns, cc)
+        
+    if 0:
         cs.sinks(ns)
         if 1:
             sink = cs.simul_sink(ns)
             MG_JEN_exec.display_subtree(sink, 'simul_sink', full=True, recurse=5)
         
-
     if 1:
         # Display the final result:
         k = 0 ; MG_JEN_exec.display_subtree(cs[k], 'cs['+str(k)+']', full=True, recurse=5)
         cs.display('final result')
+    print '\n*******************\n** End of local test of: TDL_Cohset.py:\n'
 
 
 

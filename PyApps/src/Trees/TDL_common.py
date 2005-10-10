@@ -61,14 +61,15 @@ class Super:
         self.history(s, reset=True)
 
         # Deal with the extra constructor arguments (if any):
+        for key in pp.keys():
+            v = pp[key]
+            if isinstance(v, Timba.TDL.TDLimpl._NodeStub):
+                pp[key] = '<nodestub>'
         self.history('inarg = '+str(pp))
-        s = s+' inarg = '+str(pp)
-        # print '\n**',s,'\n'
 
         return None
 
     def __del__(self):
-        # print '** Goodbye',self.type().self.name()
         pass
 
     def label(self, new=None):
@@ -171,59 +172,6 @@ def _counter (key, increment=0, reset=False, trace=True):
     return _counters[key]
 
 
-#----------------------------------------------------------------
-# Some 'universal' plot styles:
-
-def plot_color(key=None):
-    rr = dict(XX='red', XY='magenta', YX='darkCyan', YY='blue')
-    rr['RR'] = rr['XX']
-    rr['RL'] = rr['XY']
-    rr['LR'] = rr['YX']
-    rr['LL'] = rr['YY']
-    if key==None: return rr
-    if rr.has_key(key): return rr[key]
-    return False
-    
-def plot_style(key=None):
-    rr = dict(XX='circle', XY='xcross', YX='xcross', YY='circle')
-    rr['RR'] = rr['XX']
-    rr['RL'] = rr['XY']
-    rr['LR'] = rr['YX']
-    rr['LL'] = rr['YY']
-    if key==None: return rr
-    if rr.has_key(key): return rr[key]
-    return False
-
-def plot_size(key=None):
-    rr = dict(XX=10, XY=7, YX=7, YY=10)
-    rr['RR'] = rr['XX']
-    rr['RL'] = rr['XY']
-    rr['LR'] = rr['YX']
-    rr['LL'] = rr['YY']
-    if key==None: return rr
-    if rr.has_key(key): return rr[key]
-    return False
-
-
-# Plot style information
-#	if (type=='color') {
-#           ss := 'black';
-#	    ss := [ss,"red blue darkGreen magenta"];
-#	    ss := [ss,"darkGray darkMagenta darkRed darkYellow"];
-#	    ss := [ss,"darkBlue darkCyan gray"];
-#	    ss := [ss,"yellow lightGray cyan green"];
-#	    # ss := [ss,"none white"];
-#	} else if (type=='spectrum_color') {
-#	    ss := "hippo grayscale brentjens";
-#	} else if (type=='symbol') {
-#	    ss := "circle rectangle square ellipse";
-#	    ss := [ss, "xcross cross triangle diamond"];
-#	    # ss := [ss,"none"];
-#	} else if (type=='line_style') {
-#	    ss := "dots lines steps stick";
-#	    ss := [ss, "SolidLine DashLine DotLine DashDotLine DashDotDotLine"];
-#	    ss := [ss, "solidline dashline dotline dashdotline dashdotdotline"];
-#	    # ss := [ss,"none"];
 
 
 
@@ -252,7 +200,18 @@ if __name__ == '__main__':
         sup1 = sup.copy()
         sup1.display('copied')
 
+    if 1:
+        node = ns << 0
+        print node
+        print 'type(node) =',type(node)
+        print 'type(type(node)) =',type(type(node))
+        print type(node)==Timba.TDL.TDLimpl._NodeStub
+        print isinstance(node, Timba.TDL.TDLimpl._NodeStub)
 
+        print 'type(ns) =',type(ns)
+        print type(ns)==Timba.TDL.TDLimpl.NodeScope
+        print isinstance(ns, Timba.TDL.TDLimpl.NodeScope)
+      
     if 0:
         # Display the final result:
         # k = 0 ; MG_JEN_exec.display_subtree(sup[k], 'sup['+str(k)+']', full=True, recurse=3)

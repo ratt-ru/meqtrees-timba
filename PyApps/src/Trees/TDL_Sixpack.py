@@ -93,6 +93,10 @@ class Sixpack_Point(TDL_common.Super):
    self.__radec=None
    self.__iquv=None
 
+   # 2 types of 2x2 cohaerency matrices
+   self.__coh22_linear = None
+   self.__coh22_circular = None
+
    # at least one subtree should be given as input to the constructor
    # try to compose
    my_ns=pp['ns']
@@ -250,6 +254,8 @@ class Sixpack_Point(TDL_common.Super):
   ss.append(indent1+"- sixpack (subtree)  = "+str(self.__sixpack))
   ss.append(indent1+"- iquv    (subtree)  = "+str(self.__iquv))
   ss.append(indent1+"- radec   (subtree)  = "+str(self.__radec))
+  ss.append(indent1+"- linear  (subtree)  = "+str(self.__coh22_linear))
+  ss.append(indent1+"- circular(subtree)  = "+str(self.__coh22_circular))
   ss.append(indent1+"- ns      (nodescope)= "+str(self.__ns))
   if self.__sixpack !=None:
    ss.append(indent1+"- State is 'composed'")
@@ -261,6 +267,21 @@ class Sixpack_Point(TDL_common.Super):
  # generic string
  def __str__(self):
   return self.oneliner()
+
+#----------------------------------------------------------------------
+# Function dealing with conversion to a 2x2 cohaerency matrix
+# JEN, 10 oct 2005
+
+ def coh22(self, ns, polrep='linear', name='nominal'):
+     """Make a 2x2 nominal cohaerency matrix of the specified polarisation representation"""
+     if polrep=='circular':
+         if not self.__coh22_circular:
+             self.__coh22_circular = Sixpack2circular (ns, self, name=name)
+         return self.__coh22_circular
+     else:
+         if not self.__coh22_linear:
+             self.__coh22_linear = Sixpack2linear (ns, self, name=name)
+         return self.__coh22_linear
 
 
 ################################################################
@@ -315,6 +336,19 @@ class Sixpack_Patch(TDL_common.Super):
  # generic string
  def __str__(self):
   return self.oneliner()
+
+
+#----------------------------------------------------------------------
+# Function dealing with conversion to a 2x2 cohaerency matrix
+# JEN, 10 oct 2005
+# NB: For a patch, this function requires a little thought (ubvricks etc)....
+#     Requires more children (size of uv-plane etc)
+
+ def coh22(self, ns, polrep='linear', name='nominal'):
+     """Make a 2x2 nominal cohaerency matrix of the specified polarisation representation"""
+     return 'not supported yet'
+
+
 
 #######################################################################
 class Sixpack:
@@ -490,7 +524,46 @@ class Sixpack:
 
  # the following method is used to see if this object is a patch or a point source
  def ispoint(self):
-  return self.__point
+     return self.__point
+
+#----------------------------------------------------------------------
+# Function dealing with conversion to a 2x2 cohaerency matrix
+# JEN, 10 oct 2005
+
+ def coh22(self, ns, polrep='linear', name='nominal'):
+     """Make a 2x2 nominal cohaerency matrix of the specified polarisation representation"""
+     return self.__obj.coh22(ns, polrep=polrep, name=name)
+
+
+#######################################################################
+# Convert an (LSM) Sixpack into visibilities for linearly polarised receptors:
+  
+def Sixpack2linear (ns, Sixpack, name='nominal'):
+    """Make a 2x2 coherency matrix (coh22) by multiplication with the Stokes matrix"""
+    punit = Sixpack.label()
+    name = name+'_XYYX'
+    coh22 = ns[name](q=punit) << Meq.Matrix22(
+        (ns['XX'](q=punit) << Sixpack.stokesI() + Sixpack.stokesQ()),
+        (ns['XY'](q=punit) << Meq.ToComplex( Sixpack.stokesU(), Sixpack.stokesV())),
+        (ns['YX'](q=punit) << Meq.Conj( ns['XY'](q=punit) )),
+        (ns['YY'](q=punit) << Sixpack.stokesI() - Sixpack.stokesQ())
+        ) * 0.5
+    return coh22
+
+#--------------------------------------------------------------------------------------
+# Convert an (LSM) Sixpack into visibilities for circularly polarised receptors:
+
+def Sixpack2circular (ns, Sixpack, name='nominal'):
+    """Make a 2x2 coherency matrix (coh22) by multiplication with the Stokes matrix"""
+    punit = Sixpack.label()
+    name = name+'_RLLR'
+    coh22 = ns[name](q=punit) << Meq.Matrix22(
+        (ns['RR'](q=punit) << Sixpack.stokesI() + Sixpack.stokesV()),
+        (ns['RL'](q=punit) << Meq.ToComplex( Sixpack.stokesQ(), Sixpack.stokesU())),
+        (ns['LR'](q=punit) << Meq.Conj( ns['RL'](q=punit) )),
+        (ns['LL'](q=punit) << Sixpack.stokesI() - Sixpack.stokesV())
+        ) * 0.5
+    return coh22
 
 
 
@@ -517,7 +590,12 @@ if __name__=='__main__':
    stokesQ=stubQ,stokesU=stubU,stokesV=stubV)
   my_sp.display()
 
-
+  # Conversion to 2x2  cohaerency matrix
+  print my_sp.coh22(ns)
+  print my_sp.coh22(ns)
+  print my_sp.coh22(ns, 'circular')
+  print
+  
   my_name='patch0'
   stubR=ns[my_name]<<1.1*Meq.Sin(ns.f+ns.t)+2.0*Meq.Cos(ns.f)-2.1*Meq.Sin(ns.f-2)
  

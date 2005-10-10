@@ -222,7 +222,7 @@ def _test_forest (mqs, parent):
 if __name__ == '__main__':
    print '\n*******************\n** Local test of:',MG.script_name,':\n'
 
-   if 1:
+   if 0:
       MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest)
 
    ns = NodeScope()
@@ -232,7 +232,6 @@ if __name__ == '__main__':
       rr = flagger (ns, input)
       MG_JEN_exec.display_subtree (rr, 'rr', full=1)
 
-      
    if 1:
        MG_JEN_exec.display_object (MG, 'MG', MG.script_name)
        # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)

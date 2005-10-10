@@ -21,6 +21,8 @@
 from Timba.TDL import *
 # from Timba.Meq import meq
 
+from Timba.Trees import create_MS_interface_nodes
+
 # from numarray import *
 from string import *
 from copy import deepcopy
@@ -472,11 +474,56 @@ def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
    return uniqual (key=key, qual=qual, **pp)
 
 
+#-------------------------------------------------------------------------------
+# Get/create the record of NAMES of the standard nodes that are expected by
+# the function Timba.Trees/read_MS_auxinfo.py.
+# This record is kept in the forest state record (where else?) 
+#-------------------------------------------------------------------------------
 
+def MS_interface_nodes(ns=None):
+  """Get/create the standard MS interface nodes"""
 
+  field = 'MS_interface_nodes'
+  Settings.forest_state.setdefault(field,False)
 
+  # Create if necessary (and if nodescope (ns) supplied):
+  rr = Settings.forest_state[field]
+  if isinstance(rr,bool) and ns:           
+    rr = create_MS_interface_nodes.create_MS_interface_nodes(ns)
+    Settings.forest_state[field] = rr
 
+  # Return the current:
+  return Settings.forest_state[field]
 
+#---------------------------------------------------------
+# Display them:
+
+def display_MS_interface_nodes(ns=None, rr=None, level=1):
+   if level==1:
+      rr = MS_interface_nodes(ns)
+      print '\n*** Start of MS_interface_nodes:'
+   for key in rr.keys():
+      v = rr[key]
+      if isinstance(v, str):
+         print '_',level,key,v,':',ns[v]
+      else:
+         display_MS_interface_nodes(ns, v, level=level+1)
+   if level==1:
+      print '*** End of MS_interface_nodes ***\n'
+   return True
+
+#---------------------------------------------------------
+# Make a page of bookmarks for its dcoll nodes:
+# The show the array layout, etc
+
+def bookpage_MS_interface_nodes(ns):
+   rr = MS_interface_nodes(ns)
+   cc = []
+   for key in rr.dcoll.keys():
+      cc.append(ns[rr.dcoll[key]])
+      bookmark(ns[rr.dcoll[key]], page='array_configuration')
+   # Return a list of dcoll nodes (to be made step-children)
+   return cc
 
 #********************************************************************************
 #********************************************************************************
@@ -531,7 +578,12 @@ if __name__ == '__main__':
       ss = cs.display(MG.script_name)
       trace(ss, key=cs.label())
 
-   MG_JEN_exec.display_object(Settings.forest_state, 'forest_state', MG.script_name)
+   if 1:
+      # rr = MS_interface_nodes(ns)
+      display_MS_interface_nodes(ns)
+
+   if 0:
+      MG_JEN_exec.display_object(Settings.forest_state, 'forest_state', MG.script_name)
 
    if 0:
       print dir(__name__)

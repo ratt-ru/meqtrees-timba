@@ -47,7 +47,7 @@ MG.ab = record(parmtable=None,                      # name of AIPS++ MeqParm tab
 
                num_iter=10,                         # nr of solver iterations
                epsilon=1e-4,                        # controls automatic nr of iterations
-               debug_level=10)                      # solver debug level
+               debug_level=20)                      # solver debug level
 
 
 # Check the MG record, and replace any referenced values
@@ -141,6 +141,12 @@ def _define_forest (ns):
 # gewoonte die settings aan de solver door te geven vlak VOOR ik mqs.init() 
 # aanroep, zodat ik onafhankelijk van de _define_forest() routine de solver 
 # settings in de _tdl_job_x() kan zetten.) 
+
+# epsilon = (chisq(n)-chisq(n-1)) / (chisq(n)+chisq(n-1))
+
+# - epsilon<0 means that chisq is getting smaller, so we are moving in
+#   the right direction
+# - abs(epsilon) will go to zero as we approach convergence
 
 # >From now on the solver stops iterating when
 #  * iteration == num_iter

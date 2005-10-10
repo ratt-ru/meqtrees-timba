@@ -77,13 +77,15 @@ def _define_forest (ns):
    # punit = 'QUV'
    # punit = 'QU'
    # punit =  'SItest'
+   # Get the 6 punit subtrees:
+   Sixpack = MG_JEN_Sixpack.newstar_source (ns, name=punit)
 
    # Make a Cohset for the specified ifrs, with simulated uv-data: 
    jones = ['G']
    # jones = ['D']
    # jones = ['G','D']
    jones  = ['B']  
-   Cohset = simulate(ns, ifrs, punit=punit, jones=jones)
+   Cohset = simulate(ns, ifrs, Sixpack=Sixpack, jones=jones)
    visualise (ns, Cohset)
    visualise (ns, Cohset, type='spectra')
 
@@ -104,8 +106,8 @@ def _define_forest (ns):
        jones = ['G']
        # punit = 'QUV'
        punit = 'unpol10'
-       Joneset = JJones(ns, stations, punit=punit, jones=jones)
-       predicted = predict (ns, punit=punit, ifrs=ifrs, Joneset=Joneset)
+       Joneset = JJones(ns, stations, Sixpack=Sixpack, jones=jones)
+       predicted = predict (ns, Sixpack=Sixpack, ifrs=ifrs, Joneset=Joneset)
        sgname = 'GJones'
        # sgname = 'DJones'
        # sgname = ['DJones', 'GJones']
@@ -117,8 +119,8 @@ def _define_forest (ns):
    if False:
        # Insert another solver for a different group of MeqParms (e.g. 'DJones'):
        # NB: Concatenating solvers this way causes problems...
-       DJoneset = JJones(ns, stations, punit=punit, jones=['D'])
-       Dpredicted = predict (ns, punit=punit, ifrs=ifrs, Joneset=DJoneset)
+       DJoneset = JJones(ns, stations, Sixpack=Sixpack, jones=['D'])
+       Dpredicted = predict (ns, Sixpack=Sixpack, ifrs=ifrs, Joneset=DJoneset)
        insert_solver (ns, solvegroup='DJones', measured=Cohset, predicted=Dpredicted, 
                                correct = DJoneset, num_iter=10)
        visualise (ns, Cohset) 
@@ -148,11 +150,10 @@ def _define_forest (ns):
 #--------------------------------------------------------------------------------
 # Produce a Cohset for the specified ifrs, with simulated uv-data: 
 
-def simulate(ns, ifrs, **pp):
+def simulate(ns, ifrs, Sixpack, **pp):
    funcname = 'MG_JEN_Cohset.simulate(): '
 
    pp.setdefault('jones', [])
-   pp.setdefault('punit', 'unpol')
 
    pp.setdefault('stddev_Gampl', 0.1) 
    pp.setdefault('stddev_Gphase', 0.1) 
@@ -191,22 +192,24 @@ def simulate(ns, ifrs, **pp):
        jseq = TDL_Joneset.Joneseq()
        for jones in pp.jones:
            if jones=='G':
-               jseq.append(MG_JEN_Joneset.GJones (nsim, scope=scope, stations=stations, punit=pp.punit, 
+               jseq.append(MG_JEN_Joneset.GJones (nsim, scope=scope, stations=stations, Sixpack=Sixpack, 
                                                   solvable=False,
                                                   fdeg_Gampl=pp.fdeg_Gampl, fdeg_Gphase=pp.fdeg_Gphase,
                                                   tdeg_Gampl=pp.tdeg_Gampl, tdeg_Gphase=pp.tdeg_Gphase,
                                                   stddev_Gampl=pp.stddev_Gampl, stddev_Gphase=pp.stddev_Gphase))
            elif jones=='B':
-               jseq.append(MG_JEN_Joneset.BJones (nsim, scope=scope, stations=stations, punit=pp.punit, 
+               jseq.append(MG_JEN_Joneset.BJones (nsim, scope=scope, stations=stations, Sixpack=Sixpack, 
                                                   solvable=False,
                                                   fdeg_Breal=pp.fdeg_Breal, fdeg_Bimag=pp.fdeg_Bimag,
                                                   tdeg_Breal=pp.tdeg_Breal, tdeg_Bimag=pp.tdeg_Bimag,
                                                   stddev_Breal=pp.stddev_Breal, stddev_Bimag=pp.stddev_Bimag))
            elif jones=='F':
-               jseq.append(MG_JEN_Joneset.FJones (nsim, scope=scope, stations=stations, punit=pp.punit, 
+               jseq.append(MG_JEN_Joneset.FJones (nsim, scope=scope, stations=stations, Sixpack=Sixpack, 
                                                   solvable=False, RM=pp.RM))
+           elif jones=='K':
+               jseq.append(MG_JEN_Joneset.KJones (nsim, scope=scope, stations=stations, Sixpack=Sixpack)) 
            elif jones=='D':
-               jseq.append(MG_JEN_Joneset.DJones_WSRT (nsim, scope=scope, stations=stations, punit=pp.punit, 
+               jseq.append(MG_JEN_Joneset.DJones_WSRT (nsim, scope=scope, stations=stations, Sixpack=Sixpack, 
                                                        solvable=False, PZD=pp.PZD,
                                                        fdeg_dang=pp.fdeg_dang, fdeg_dell=pp.fdeg_dell,
                                                        tdeg_dang=pp.tdeg_dang, tdeg_dell=pp.tdeg_dell,
@@ -221,7 +224,7 @@ def simulate(ns, ifrs, **pp):
        MG_JEN_forest_state.object(simulated_JJones, funcname)
 
    # Make the Cohset with simulated/corrupted uvdata:
-   Cohset = predict (nsim, scope=scope, punit=pp.punit, ifrs=ifrs, Joneset=simulated_JJones)
+   Cohset = predict (nsim, scope=scope, Sixpack=Sixpack, ifrs=ifrs, Joneset=simulated_JJones)
 
    # Add some gaussian noise to the data
    # (NB: More advanced noise may be added to the Cohset after this function)
@@ -233,12 +236,11 @@ def simulate(ns, ifrs, **pp):
 #--------------------------------------------------------------------------------------
 # Make a JJones Joneset from the specified sequence (list) of jones matrices:
 
-def JJones(ns, stations, **pp):
+def JJones(ns, stations, Sixpack, **pp):
     funcname = 'MG_JEN_Cohset.JJones(): '
 
     pp.setdefault('jones', []) 
     pp.setdefault('scope', 'predicted') 
-    pp.setdefault('punit', 'uvp')
 
     pp.setdefault('parmtable', None)
 
@@ -268,13 +270,15 @@ def JJones(ns, stations, **pp):
     if not isinstance(pp.jones, (list,tuple)): pp.jones = [pp.jones]
     for jones in pp.jones:
         if jones=='G':
-            jseq.append(MG_JEN_Joneset.GJones (ns, stations=stations, Gscale=0, **pp))
+            jseq.append(MG_JEN_Joneset.GJones (ns, stations=stations, Sixpack=Sixpack, Gscale=0, **pp))
         elif jones=='B':
-            jseq.append(MG_JEN_Joneset.BJones (ns, stations=stations, Bscale=0, **pp))
+            jseq.append(MG_JEN_Joneset.BJones (ns, stations=stations, Sixpack=Sixpack, Bscale=0, **pp))
         elif jones=='F':
-            jseq.append(MG_JEN_Joneset.FJones (ns, stations=stations, Fscale=0, **pp)) 
+            jseq.append(MG_JEN_Joneset.FJones (ns, stations=stations, Sixpack=Sixpack, Fscale=0, **pp)) 
+        elif jones=='K':
+            jseq.append(MG_JEN_Joneset.KJones (ns, stations=stations, Sixpack=Sixpack, Fscale=0, **pp)) 
         elif jones=='D':
-            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, stations=stations, Dscale=0, **pp))
+            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, stations=stations, Sixpack=Sixpack, Dscale=0, **pp))
         else:
             print '** jones not recognised:',jones,'from:',pp.jones
                
@@ -284,38 +288,6 @@ def JJones(ns, stations, **pp):
     MG_JEN_forest_state.object(Joneset, funcname)
     return Joneset
     
-#======================================================================================
-# Convert an (LSM) Sixpack into visibilities for linearly polarised receptors:
-  
-def Sixpack2linear (ns, Sixpack, name='nominal'):
-    # Make a 2x2 coherency matrix (coh0) by multiplication with the Stokes matrix:
-    funcname = 'MG_JEN_Cohset.Sixpack2linear(): '
-    punit = Sixpack.label()
-    name = name+'_XYYX'
-    coh0 = ns[name](q=punit) << Meq.Matrix22(
-        (ns['XX'](q=punit) << Sixpack.stokesI() + Sixpack.stokesQ()),
-        (ns['XY'](q=punit) << Meq.ToComplex( Sixpack.stokesU(), Sixpack.stokesV())),
-        (ns['YX'](q=punit) << Meq.Conj( ns['XY'](q=punit) )),
-        (ns['YY'](q=punit) << Sixpack.stokesI() - Sixpack.stokesQ())
-        ) * 0.5
-    return coh0
-
-#--------------------------------------------------------------------------------------
-# Convert an (LSM) Sixpack into visibilities for circularly polarised receptors:
-
-def Sixpack2circular (ns, Sixpack, name='nominal'):
-    # Make a 2x2 coherency matrix (coh0) by multiplication with the Stokes matrix:
-    funcname = 'MG_JEN_Cohset.Sixpack2circular(): '
-    punit = Sixpack.label()
-    name = name+'_RLLR'
-    coh0 = ns[name](q=punit) << Meq.Matrix22(
-        (ns['RR'](q=punit) << Sixpack.stokesI() + Sixpack.stokesV()),
-        (ns['RL'](q=punit) << Meq.ToComplex( Sixpack.stokesQ(), Sixpack.stokesU())),
-        (ns['LR'](q=punit) << Meq.Conj( ns['RL'](q=punit) )),
-        (ns['LL'](q=punit) << Sixpack.stokesI() - Sixpack.stokesV())
-        ) * 0.5
-    return coh0
-
 
 
 #======================================================================================
@@ -403,8 +375,14 @@ def make_sinks(ns, Cohset, **pp):
 	visualise (ns, Cohset)
 	visualise (ns, Cohset, type='spectra')
 
+    # Attach some dataCollect nodes to the VisDataMux:
+    rr = MG_JEN_forest_state.MS_interface_nodes(ns)
+    bb = []
+    for key in rr.dcoll.keys():
+        bb.append(rr.dcoll[key])
+
     # Make MeqSinks
-    Cohset.sinks(ns)
+    Cohset.sinks(ns, start=bb)
     sinks = Cohset.nodes()
     
     # Append the final Cohset to the forest state object:
@@ -417,24 +395,17 @@ def make_sinks(ns, Cohset, **pp):
 
 #======================================================================================
 
-def predict (ns=0, Joneset=None, **pp):
+def predict (ns=0, Sixpack=None, Joneset=None, **pp):
     funcname = 'MG_JEN_Cohset.predict(): '
 
     # Input arguments:
     pp.setdefault('scope', 'rawdata')
     pp.setdefault('ifrs', [(0,1)])
-    pp.setdefault('punit', 'unpol')
     pp.setdefault('polrep', 'linear')
     pp = record(pp)
 
-    # Get the 6 punit subtrees:
-    Sixpack = MG_JEN_Sixpack.newstar_source (ns, name=pp['punit'])
-
     # Make a 2x2 coherency matrix (coh0) by multiplication with the Stokes matrix:
-    if pp['polrep']=='circular':
-       coh0 = Sixpack2circular (ns, Sixpack, name='nominal')
-    else:
-       coh0 = Sixpack2linear (ns, Sixpack, name='nominal')
+    coh0 = Sixpack.coh22(ns, pp['polrep'])
 
     # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
     Cohset = TDL_Cohset.Cohset(label='predict', origin=funcname, **pp)
@@ -525,10 +496,10 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
 
     # Input arguments:
     pp.setdefault('solvegroup', [])        # list of solvegroup(s) to be solved for
-    pp.setdefault('num_iter', 2)           # number of iterations
+    pp.setdefault('num_iter', 20)          # max number of iterations
+    pp.setdefault('epsilon', 1e-4)         # iteration control criterion
     pp.setdefault('debug_level', 10)       # solver debug_level
     pp.setdefault('visu', True)            # if True, include visualisation
-    pp.setdefault('graft', True)           # if True, graft the solver on the Cohset stream
     pp = record(pp)
 
     # The solver name must correspond to one or more of the
@@ -553,12 +524,17 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     Pohset.history(funcname+' measured: '+measured.oneliner())
     Pohset.history(funcname+' predicted: '+predicted.oneliner())
 
-    # Merge the parm/solver info from BOTH input Pohsets:
-    # (the measured side may also have solvable parameters)
-    # NB: This causes the parms from 'predicted' to be overridden by those from 'measured'....... 
-    # Pohset.update_from_Cohset(measured)
+    # Redundancy calibration:
+    if False:
+        # Get a record with the names of MS interface nodes
+        # Supply a nodescope (ns) in case it does not exist yet
+        rr = MG_JEN_forest_state.MS_interface_nodes(ns)
+        # Since
+        # Use rr.redun.pairs to get ifr keys to select ifrs from Mohset
 
     # Collect a list of names of solvable MeParms for the solver:
+    # The measured side may also have solvable parameters:
+    # Pohset.update_from_Cohset(measured)
     corrs = []
     solvable = []
     for sgname in pp.solvegroup:
@@ -605,6 +581,7 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     solver = ns.solver(solver_name, q=punit) << Meq.Solver(children=cc,
                                                            solvable=solvable,
                                                            num_iter=pp.num_iter,
+                                                           epsilon=pp.epsilon,
                                                            last_update=True,
                                                            save_funklets=True,
                                                            debug_level=pp.debug_level)
@@ -769,7 +746,11 @@ def display_first_subtree (Cohset=0, recurse=3):
     return
 
 
+# Make a Sixpack from a punit string
 
+def punit2Sixpack(ns, punit='uvp'):
+    Sixpack = MG_JEN_Sixpack.newstar_source (ns, name=punit)
+    return Sixpack
 
 
 
@@ -836,38 +817,32 @@ if __name__ == '__main__':
         punit = 'unpol'
         # punit = '3c147'
         # punit = 'RMtest'
+        Sixpack = punit2Sixpack(ns, punit)
         jseq = TDL_Joneset.Joneseq()
         jseq.append(MG_JEN_Joneset.GJones (ns, stations=stations))
         js = jseq.make_Joneset(ns)
-        cs = predict (ns, punit=punit, ifrs=ifrs, Joneset=js)
+        cs = predict (ns, Sixpack=Sixpack, ifrs=ifrs, Joneset=js)
         visualise (ns, cs)
         addnoise (ns, cs)
         insert_flagger (ns, cs, scope='residual', unop=['Real','Imag'], visu=True)
 
-    if 0:
+    if 1:
         punit = 'unpol'
         # punit = '3c147'
         # punit = 'RMtest'
+        Sixpack = punit2Sixpack(ns, punit)
         Joneset = MG_JEN_Joneset.GJones (nsim, stations=stations, solvable=1)
-        measured = predict (nsim, punit=punit, ifrs=ifrs, Joneset=Joneset)
+        measured = predict (nsim, Sixpack=Sixpack, ifrs=ifrs, Joneset=Joneset)
         # measured.select(ns, corrs=['XX','YY'])
         
         Joneset = MG_JEN_Joneset.DJones_WSRT (ns, stations=stations)
-        predicted = predict (ns, punit=punit, ifrs=ifrs, Joneset=Joneset)
+        predicted = predict (ns, Sixpack=Sixpack, ifrs=ifrs, Joneset=Joneset)
         cs = predicted
         
         sgname = 'DJones'
         # sgname = ['DJones', 'GJones']
-        cs = insert_solver (ns, solvegroup=sgname, measured=measured, predicted=predicted) 
+        insert_solver (ns, solvegroup=sgname, measured=measured, predicted=predicted) 
            
-    if 0:
-        punit = 'unpol'
-        Sixpack = MG_JEN_Sixpack.newstar_source (ns, name=punit)
-        coh0 = Sixpack2circular (ns, Sixpack)
-        MG_JEN_exec.display_subtree (coh0, 'coh0', full=1)
-        coh0 = Sixpack2linear (ns, Sixpack)
-        MG_JEN_exec.display_subtree (coh0, 'coh0', full=1)
-
     if 0:
         display_first_subtree(cs)
         cs.display('final result')

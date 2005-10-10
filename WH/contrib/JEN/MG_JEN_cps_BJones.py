@@ -62,7 +62,8 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_BJones.py',
                          tile_size_Breal=None,                   # used in tiled solutions
                          tile_size_Bimag='tile_size_Breal', 
                          
-                         num_iter=10,                             # number of solver iterations per snippet
+                         num_iter=20,                             # (max) number of solver iterations per snippet
+                         epsilon=1e-4,                            # iteration stop criterion (policy-free)
                          flag_spigots=False,                   # If True, insert a flagger before solving
                          flag_sinks=False,                      # If True, insert a flagger after solving
                          visu_spigots=True,                     # If True, insert built-in view(s) 
@@ -117,16 +118,16 @@ def _define_forest (ns):
                               flag=MG['flag_spigots'])
 
    # Make predicted data with a punit (see above) and corrupting Jones matrices
-   Joneset = MG_JEN_Cohset.JJones(ns, jones=['B'], **MG)
-   predicted = MG_JEN_Cohset.predict (ns, punit=MG['punit'], ifrs=ifrs, Joneset=Joneset)
+   Sixpack = MG_JEN_Cohset.punit2Sixpack (ns, punit=MG['punit'])
+   Joneset = MG_JEN_Cohset.JJones(ns, jones=['B'], Sixpack=Sixpack, **MG)
+   predicted = MG_JEN_Cohset.predict (ns, ifrs=ifrs, Sixpack=Sixpack, Joneset=Joneset)
 
    # Insert a solver for a named solvegroup of MeqParms.
    # After solving, the uv-data are corrected with the the improved Joneset. 
    MG_JEN_Cohset.insert_solver (ns, solvegroup='BJones', 
                                 measured=Cohset, predicted=predicted, 
                                 correct=Joneset, 
-                                num_iter=MG['num_iter'], 
-                                visu=MG['visu_solver'])
+                                visu=MG['visu_solver'], **MG)
 
    # Make MeqSink nodes that write the MS:
    sinks = MG_JEN_Cohset.make_sinks(ns, Cohset, flag=MG['flag_sinks'],

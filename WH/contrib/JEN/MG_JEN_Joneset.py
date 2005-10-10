@@ -26,11 +26,10 @@
 from Timba.TDL import *
 # from Timba.Meq import meq
 
-MG = record(script_name='MG_JEN_Joneset.py', last_changed = 'h22sep2005')
-
 from numarray import *
 
 from Timba.Trees import TDL_Joneset
+from Timba.Trees import TDL_radio_conventions
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
@@ -39,12 +38,27 @@ from Timba.Contrib.JEN import MG_JEN_matrix
 from Timba.Contrib.JEN import MG_JEN_math
 from Timba.Contrib.JEN import MG_JEN_twig
 from Timba.Contrib.JEN import MG_JEN_dataCollect
+from Timba.Contrib.JEN import MG_JEN_Sixpack
+
+
+#-------------------------------------------------------------------------
+# Script control record (may be edited here):
+
+MG = MG_JEN_exec.MG_init('MG_JEN_Joneset.py',
+                         last_changed='h05oct2005',
+                         trace=False)             # If True, produce progress messages  
+
+
+# Check the MG record, and replace any referenced values
+MG = MG_JEN_exec.MG_check(MG)
+
+
 
 #-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(MG.script_name)
+MG_JEN_forest_state.init(MG)
 
 
 
@@ -55,33 +69,6 @@ MG_JEN_forest_state.init(MG.script_name)
 #**************** PART III: Required test/demo function *************************
 #********************************************************************************
 #********************************************************************************
-
-# Tree definition routine (may be executed from the browser):#======================================================================================
-# Visualise the contents of the given Joneseq object:
-
-def visualise_Joneseq (ns, Joneseq, **pp):
-    """visualises the contents of the given Joneseq"""
-
-    dconc = []
-    for js in Joneseq:
-      dc = visualise(ns, js, **pp)
-      print '****',js.label(),dc
-      dconc.append(dc)
-    js = Joneseq.make_Joneset(ns)
-    dc = visualise(ns, js, **pp)
-    print '****',dc
-    dconc.append(dc)
-    # return True
-
-    # Make a concatenation of the various dcolls:
-    dconc = MG_JEN_dataCollect.dconc (ns, dconc, scope=Joneset.scope(),
-                                      bookpage='Joneseq')
-
-    # Return a dcoll record (dataCollect node = dcond['dcoll'])
-    return dconc
-
-
-# To be used as example, for experimentation, and automatic testing.
 
 
 def _define_forest (ns):
@@ -138,6 +125,30 @@ def _define_forest (ns):
 #********************************************************************************
 #********************************************************************************
 
+#======================================================================================
+# Visualise the contents of the given Joneseq object:
+
+def visualise_Joneseq (ns, Joneseq, **pp):
+    """visualises the contents of the given Joneseq"""
+
+    dconc = []
+    for js in Joneseq:
+      dc = visualise(ns, js, **pp)
+      print '****',js.label(),dc
+      dconc.append(dc)
+    js = Joneseq.make_Joneset(ns)
+    dc = visualise(ns, js, **pp)
+    print '****',dc
+    dconc.append(dc)
+    # return True
+
+    # Make a concatenation of the various dcolls:
+    dconc = MG_JEN_dataCollect.dconc (ns, dconc, scope=Joneset.scope(),
+                                      bookpage='Joneseq')
+
+    # Return a dcoll record (dataCollect node = dcond['dcoll'])
+    return dconc
+
 
 #--------------------------------------------------------------------------------
 # Adjust the input arguments (pp) for telescope (dangerous?):
@@ -173,10 +184,58 @@ def adjust_for_telescope(pp, origin='<origin>'):
 
 
 #--------------------------------------------------------------------------------
+# KJones: diagonal 2x2 matrix for DFT Fourier kernel
+#--------------------------------------------------------------------------------
+
+def KJones (ns=0, label='KJones', Sixpack=None, **pp):
+  """defines diagonal KJones matrices for DFT Fourier kernel""";
+  funcname = 'MG_JEN_Joneset::KJones()'
+
+  # Input parameters:
+  pp.setdefault('scope', '<scope>')    # scope of this Joneset
+  pp.setdefault('stations', [0])       # range of station names/numbers
+  pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
+  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
+  pp['punit'] = Sixpack.label()
+  pp.setdefault('solvable', False)     # if False, do not store parmgroup info
+  pp = record(pp)
+  adjust_for_telescope(pp, origin=funcname)
+
+  # Create a Joneset object
+  js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+
+  # Get a record with the names of MS interface nodes
+  # Supply a nodescope (ns) in case it does not exist yet
+  rr = MG_JEN_forest_state.MS_interface_nodes(ns)
+
+  # Calculate punit (l,m,n) from input Sixpack:
+  radec = Sixpack.radec()
+  lmn   = ns.lmn  (q=pp.punit) << Meq.LMN(radec_0=ns[rr.radec0], radec=radec)
+  n     = ns.n    (q=pp.punit) << Meq.Selector(lmn, index=2)
+  lmn1  = ns.lmn_minus1(q=pp.punit) << Meq.Paster(lmn, n-1, index=2)
+  sqrtn = ns << Meq.Sqrt(n)
+
+  # The 2x2 KJones matrix is diagonal, with identical elements (Kmel) 
+  for station in pp.stations:
+    skey = TDL_radio_conventions.station_key(station)
+    Kmel = ns.dft(s=skey, q=pp.punit) << Meq.VisPhaseShift(lmn=lmn1,
+                                                           uvw=ns[rr.uvw[skey]])/sqrtn
+    stub = ns[label](s=skey, q=pp.punit) << Meq.Matrix22 (Kmel,0,0,Kmel)
+    js.append(skey, stub)
+
+
+  # Finished:
+  js.cleanup()
+  MG_JEN_forest_state.object(js, funcname)
+  return js
+
+
+
+#--------------------------------------------------------------------------------
 # GJones: diagonal 2x2 matrix for complex gains per polarization
 #--------------------------------------------------------------------------------
 
-def GJones (ns=0, label='GJones', **pp):
+def GJones (ns=0, label='GJones', Sixpack=None, **pp):
   """defines diagonal GJones matrices for complex(Gampl,Gphase) parms""";
   funcname = 'MG_JEN_Joneset::GJones()'
 
@@ -184,6 +243,8 @@ def GJones (ns=0, label='GJones', **pp):
   pp.setdefault('scope', '<scope>')    # scope of this Joneset
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
+  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
+  pp['punit'] = Sixpack.label()
   pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
   pp.setdefault('polrep', 'linear')    # polarisation representation
   pp.setdefault('Gscale', 0.0)         # scale of polc_ft non-c00 coeff
@@ -222,7 +283,7 @@ def GJones (ns=0, label='GJones', **pp):
   js.define_solvegroup('Gphase', [p1, p2])
 
   for station in pp.stations:
-    skey = str(station)                 # station key, e.g. 's2'
+    skey = TDL_radio_conventions.station_key(station)        
     # Define station MeqParms (in ss), and do some book-keeping:  
     js.MeqParm(reset=True)
 
@@ -272,7 +333,7 @@ def GJones (ns=0, label='GJones', **pp):
 # FJones: 2x2 matrix for ionospheric Faraday rotation (NOT ion.phase!)
 #--------------------------------------------------------------------------------
 
-def FJones (ns=0, label='FJones', **pp):
+def FJones (ns=0, label='FJones', Sixpack=None, **pp):
   """defines diagonal FJones Faraday rotation matrices""";
   funcname = 'MG_JEN_Joneset::FJones()'
 
@@ -280,6 +341,8 @@ def FJones (ns=0, label='FJones', **pp):
   pp.setdefault('scope', '<scope>')    # scope of this Joneset
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
+  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
+  pp['punit'] = Sixpack.label()
   pp.setdefault('polrep', 'linear')    # polarisation representation
   pp.setdefault('Fscale', 0.0)         # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
@@ -320,7 +383,7 @@ def FJones (ns=0, label='FJones', **pp):
 
   # For the moment, assume that FJones is the same for all stations:
   for station in pp.stations:
-     skey = str(station)
+     skey = TDL_radio_conventions.station_key(station)
      js.append(skey, stub)
 
   # Finished:
@@ -334,7 +397,7 @@ def FJones (ns=0, label='FJones', **pp):
 # BJones: diagonal 2x2 matrix for complex bandpass per polarization
 #--------------------------------------------------------------------------------
 
-def BJones (ns=0, label='BJones', **pp):
+def BJones (ns=0, label='BJones', Sixpack=None, **pp):
   """defines diagonal BJones bandpass matrices""";
   funcname = 'MG_JEN_Joneset::BJones()'
 
@@ -342,6 +405,8 @@ def BJones (ns=0, label='BJones', **pp):
   pp.setdefault('scope', '<scope>')    # scope of this Joneset
   pp.setdefault('stations', [0])       # range of station names/numbers
   pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
+  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
+  pp['punit'] = Sixpack.label()
   pp.setdefault('Bscale', 0.0)          # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
   pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
@@ -379,7 +444,7 @@ def BJones (ns=0, label='BJones', **pp):
   js.define_solvegroup('Bimag', [bi1, bi2])
 
   for station in pp.stations:
-    skey = str(station)                 # station key, e.g. 's2'
+    skey = TDL_radio_conventions.station_key(station)      
     # Define station MeqParms (in ss), and do some book-keeping:  
     js.MeqParm(reset=True)
 
@@ -422,14 +487,17 @@ def BJones (ns=0, label='BJones', **pp):
 # DJones: 2x2 matrix for polarization leakage
 #--------------------------------------------------------------------------------
 
-def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
+def DJones_WSRT (ns=0, label='DJones_WSRT', Sixpack=None, **pp):
   """defines 2x2 DJones_WSRT (polarisation leakage) matrices""";
   funcname = 'MG_JEN_Joneset::DJones_WSRT()'
+
 
   # Input parameters:
   pp.setdefault('scope', '<scope>')       # scope of this Joneset
   pp.setdefault('stations', [0])          # range of station names/numbers
-  pp.setdefault('punit', 'uvp')           # name of prediction-unit (source/patch)
+  pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
+  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
+  pp['punit'] = Sixpack.label()
   pp.setdefault('Dscale', 0.0)            # scale of polc_ft non-c00 coeff
   pp.setdefault('solvable', True)         # if True, the parms are potentially solvable
   pp.setdefault('parmtable', None)        # name of the MeqParm table (AIPS++)
@@ -490,7 +558,7 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', **pp):
   jones = {}
   ss = {}
   for station in pp.stations:
-    skey = str(station)                 # station key, e.g. 's2'
+    skey = TDL_radio_conventions.station_key(station)  
     # Define station MeqParms (in ss), and do some book-keeping:  
     js.MeqParm(reset=True)
     qual = None
@@ -697,6 +765,12 @@ def display_first_subtree (joneset, full=1):
   MG_JEN_exec.display_subtree(jones, txt, full=full)
 
 
+# Make a Sixpack from a punit string
+
+def punit2Sixpack(ns, punit='uvp'):
+  Sixpack = MG_JEN_Sixpack.newstar_source (ns, name=punit)
+  return Sixpack
+
 
 
 
@@ -734,8 +808,14 @@ if __name__ == '__main__':
 
   ns = NodeScope()
   stations = range(0,3)
-  scope = MG.script_name
   ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
+  scope = MG.script_name
+
+  if 1:
+    Sixpack = punit2Sixpack(ns, punit='uvp')
+    js = KJones (ns, stations=stations, scope=scope, Sixpack=Sixpack)
+    js.display()     
+    display_first_subtree (js, full=1)
 
   if 0:
     # js = GJones (ns, stations=stations, scope=scope, solvable=True, polrep='circular', polar=True)
@@ -746,7 +826,7 @@ if __name__ == '__main__':
     js.display()     
     display_first_subtree (js, full=1)
 
-  if 1:
+  if 0:
     # jseq = TDL_Joneset.Joneseq(origin='MG_JEN_Joneset')
     jseq = Joneseq()
     jseq.append(GJones (ns, scope=scope, stations=stations))
@@ -765,6 +845,9 @@ if __name__ == '__main__':
     MG_JEN_exec.display_subtree (dconc, 'dconc', full=1)
 
 
+  if 1:
+    MG_JEN_exec.display_object (MG, 'MG', MG.script_name)
+    # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
   print '\n** End of local test of:',MG.script_name,'\n*******************\n'
 
 #********************************************************************************

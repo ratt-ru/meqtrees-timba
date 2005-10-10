@@ -23,6 +23,7 @@ from Timba.TDL import *
 from copy import deepcopy
 
 from Timba.Trees import TDL_common
+from Timba.Trees import TDL_radio_conventions
 
 
 
@@ -71,9 +72,9 @@ class Joneset (TDL_common.Super):
         self.__parmgroup = dict()
         self.__solvegroup = dict()
         self.__condeq_corrs = dict()
-        self.__plot_color = TDL_common.plot_color()
-        self.__plot_style = TDL_common.plot_style()
-        self.__plot_size = TDL_common.plot_size()
+        self.__plot_color = TDL_radio_conventions.plot_color()
+        self.__plot_style = TDL_radio_conventions.plot_style()
+        self.__plot_size = TDL_radio_conventions.plot_size()
         self.__MeqParm = dict()
         self.__node_groups = ['Parm']
 
@@ -480,6 +481,7 @@ def _counter (key, increment=0, reset=False, trace=True):
 #========================================================================
 
 if __name__ == '__main__':
+    print '\n*******************\n** Local test of: TDL_Joneset.py:\n'
     from numarray import *
     from Timba.Contrib.JEN import MG_JEN_exec
     ns = NodeScope()
@@ -556,7 +558,7 @@ if __name__ == '__main__':
         jseq.append(js)
         jseq.display('filled')
 
-    if 1:
+    if 0:
         print js.parmtable('cal_BJones')
         print js.check_parmtable_extension()
 
@@ -565,6 +567,7 @@ if __name__ == '__main__':
         # k = 0 ; MG_JEN_exec.display_subtree(js[k], 'js['+str(k)+']', full=True, recurse=3)
         js.display('final result')
 
+    print '\n*******************\n** End of local test of: TDL_Joneset.py:\n'
 
 
 

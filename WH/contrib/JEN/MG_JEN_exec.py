@@ -34,14 +34,16 @@
 #================================================================================
 
 from Timba.TDL import *
-from Timba.Meq import meq              # required in MG_JEN_exec !!
+from Timba.Meq import meq                     # required in MG_JEN_exec !!
 
+# The following bit still requires a bit of thought.....
 from Timba import utils
 _dbg = utils.verbosity(0, name='tutorial')
 _dprint = _dbg.dprint                         # use: _dprint(2, "abc")
 _dprintf = _dbg.dprintf                       # use: _dprintf(2, "a = %d", a)
 # run the script with: -dtutorial=3
 # level 0 is always printed
+
 
 from copy import deepcopy       
 import os       
@@ -182,9 +184,16 @@ def _define_forest (ns):
 
 #-------------------------------------------------------------------------------
 # Function called upon entry of _define_forest()
-   
+
+entry_counter = 0
+
 def on_entry (ns, MG, **pp):
    """Function called upon entry of _define_forest()"""
+
+   pp.setdefault('create_ms_interface_nodes', True)   # see below
+
+   global entry_counter
+   entry_counter += 1
 
    # Check the MG-record:
    MG = MG_check(MG)
@@ -194,6 +203,13 @@ def on_entry (ns, MG, **pp):
 
    # Attach the script control field (MG) to the forest state record:
    Settings.forest_state.MG_JEN_script_ctrl = MG
+
+   # Optionally, create the standard nodes expected by the MS
+   # They are attached to the forest_state record, to be used by
+   # other subtree-generating functions like MG_JEN_Joneset.KJones()
+   if pp['create_ms_interface_nodes']:
+      if entry_counter==1:
+         MG_JEN_forest_state.MS_interface_nodes(ns)
    
    # Return an empty list, to be filled with root nodes
    cc = []
@@ -204,29 +220,37 @@ def on_entry (ns, MG, **pp):
 #-------------------------------------------------------------------------------
 # Function called upon exit of _define_forest()
 # Deal with the list (cc) of root nodes:
+
+exit_counter = 0
    
 def on_exit (ns, MG, cc=[], **pp):
    """Function called upon exit of _define_forest()"""
+
+   global exit_counter
+   exit_counter += 1
    
    pp.setdefault('make_bookmark', True)                # if False, inhibit bookmarks
-   pp.setdefault('create_ms_interface_nodes', True)   # see below
 
-   # Optionally, create the standard nodes expected by the MS
-   if pp['create_ms_interface_nodes']:
-      create_ms_interface_nodes(ns)
-   
+   # Make a page of bookmarks
+   bb = []
+   if exit_counter==1:
+      bb = MG_JEN_forest_state.bookpage_MS_interface_nodes(ns)
+
    # Make a (single) root node for use in _test_forest():
    global _test_root
    _test_root = MG.script_name
-   root = bundle (ns, cc, _test_root, show_parent=False, **pp)
+   if exit_counter>1:
+      _test_root += '_'+str(exit_counter)
+
+   root = bundle (ns, cc, _test_root, bb=bb, show_parent=False, **pp)
    return root
 
 
 
-#-----------------------------------------------------------------------------
+#===============================================================================
 # Bundle the given nodes by making them children of a new node:
 
-def bundle (ns, cc, name='bundle', **pp):
+def bundle (ns, cc, name='bundle', bb=[], **pp):
    """Bundles the given nodes (cc) by making them children of a new node"""
    
    pp.setdefault('make_bookmark', True)   # if False, inhibit bookmarks
@@ -248,7 +272,11 @@ def bundle (ns, cc, name='bundle', **pp):
 
    else:
       # Make a single parent node to tie the various results (cc) together:
-      parent = ns[name] << Meq.Add(children=cc)
+      if len(bb)==0:
+         parent = ns[name] << Meq.Add(children=cc)
+      else:
+         parent = ns[name] << Meq.Add(children=cc, stepchildren=bb)
+         
       if pp['make_bookmark']:
          # Make a bookpage for all the elements of cc:
          for i in range(len(cc)):
@@ -259,7 +287,7 @@ def bundle (ns, cc, name='bundle', **pp):
    return parent
    
 
-#-------------------------------------------------------------------------------
+#===============================================================================
 # Helper function:
 
 def noexec(pp=None, MG=None, help=None):
@@ -287,40 +315,10 @@ def noexec(pp=None, MG=None, help=None):
    return pp
    
 
-#-------------------------------------------------------------------------------
-# Create a small subtree of nodes that are expected by the function
-# that reads information from the MS:
-
-def create_ms_interface_nodes(ns):
-   """Create a small subtree of nodes with reserved names, that are expected by
-   the function that reads information from the MS"""
-   cc = []
-
-   # Field (pointing) centre:
-   cc.append(ns.ra0 << 0.0)
-   cc.append(ns.dec0 << 1.0)
-
-   # Antenna positions:
-   nant = 14
-   coords = ('x','y','z')
-   for iant in range(nant):
-      sn = str(iant+1)
-      for (j,label) in enumerate(coords):
-         cc.append(ns[label+'.'+sn] << 0.0)
-
-   # Array reference position (x,y,z):
-   for (j,label) in enumerate(coords):
-      cc.append(ns[label+'0'] << 0.0)
-
-   # Tie them all together by a single root node.
-   # This is to avoid clutter of the list of root-nodes in the browser,
-   # in the case where they are not connected to the tree for some reason.
-   root = ns.ms_interface_nodes << Meq.Add(*cc)
-
-   return root
 
 
-#-------------------------------------------------------------------------------
+
+#===============================================================================
 # Used in _define_forest(), as a simpe example:
 
 def importable_example(ns=None, **pp):
@@ -348,8 +346,6 @@ def importable_example(ns=None, **pp):
 
 
 
-#================================================================================
-#================================================================================
 #================================================================================
 # Execute the tree under (MS) stream_control:
 #================================================================================
@@ -437,8 +433,7 @@ stream_control(init=True)
 
 
 
-#================================================================================
-#================================================================================
+
 #================================================================================
 # The function that does the work for _test_forest()
 #================================================================================
@@ -452,7 +447,7 @@ def execute (mqs, parent, request=None, **pp):
    """The function that does the actual work for the _test_forest()
    functions in the various MG_JEN_ scripts."""
 
-   display_object (MG, 'MG', 'inside .execute()')
+   display_object (MG, 'MG', 'inside MG_JEN_exec.execute()')
 
    from Timba.Meq import meq
 
@@ -542,14 +537,13 @@ def execute (mqs, parent, request=None, **pp):
 	#            update_gui=T, set_default=F, priority=5);
 
 
-# initrec.python_init = 'read_msvis_header.py'
 
 
 
 
-
-#---------------------------------------------------------
-# Helper function to make sure of a request:
+#================================================================================
+# Request generation functions:
+#================================================================================
 
 def make_request (request=None, **pp):
    """Helper function to make sure of a request"""
@@ -661,6 +655,11 @@ def without_meqserver(MG=None, callback=None, **pp):
    return 
 
 
+
+#================================================================================
+# Some useful display functions:
+#================================================================================
+
 #--------------------------------------------------------------------------------
 
 def display_forest_state():
@@ -668,11 +667,6 @@ def display_forest_state():
    rr = Settings.forest_state
    display_object (rr, 'forest_state')
    
-
-
-#================================================================================
-# Some useful display functions:
-#================================================================================
 
 #--------------------------------------------------------------------------------
 
@@ -836,7 +830,7 @@ def display_subtree (node, txt='<txt>', level=0, cindex=0,
 #----------------------------------------------------------------------------------
 # Display any Python object(v):
 
-def display_object (v, name='<name>', txt='', full=0, indent=0):
+def display_object (v, name='<name>', txt='', full=False, indent=0):
     """Display the given Python object"""
    
     if indent==0: print '\n** display of Python object:',name,': (',txt,'):'
@@ -865,10 +859,10 @@ def display_object (v, name='<name>', txt='', full=0, indent=0):
 
             if separate:
                 print ':'
-                for i in range(vlen): display_object (v[i], '['+str(i)+']', indent=indent+2)
+                for i in range(vlen): display_object (v[i], '['+str(i)+']', full=full, indent=indent+2)
             elif vlen == 1:
                 print '=',[v[0]]
-            elif vlen < 5:
+            elif full or vlen < 5:
                 print '=',v
             else:
                 print '=',[v[0],'...',v[vlen-1]]
@@ -887,13 +881,11 @@ def display_object (v, name='<name>', txt='', full=0, indent=0):
             types = {}
             for key in keys: types[str(type(v[key]))] = 1
             if len(types) > 1:
-                for key in v.keys(): display_object (v[key], key, indent=indent+2)
-            elif n < 10:
-                for key in v.keys(): display_object (v[key], key, indent=indent+2)
-            elif full:
-                for key in v.keys(): display_object (v[key], key, indent=indent+2)
+                for key in v.keys(): display_object (v[key], key, full=full, indent=indent+2)
+            elif full or n<10:
+                for key in v.keys(): display_object (v[key], key, full=full, indent=indent+2)
             else:
-                for key in [keys[0]]: display_object (v[key], key, indent=indent+2)
+                for key in [keys[0]]: display_object (v[key], key, full=full, indent=indent+2)
                 if n > 20:
                     print '**',(indent+2)*' ','.... (',n-2,'more fields of the same type )'
                 else:
@@ -911,8 +903,6 @@ def display_object (v, name='<name>', txt='', full=0, indent=0):
     if indent == 0: print
 
 
-
-# display_object (MG, 'MG', 'intial')
 
 
 
