@@ -580,7 +580,7 @@ class QwtImageDisplay(QwtPlot):
           else:
             self._menu.setItemEnabled(toggle_id, False)
             self._menu.setItemVisible(toggle_id, False)
-          self._toggle_range_label = "Adjust display range to that of flagged image for plane " + str(flag_plane)
+          self._toggle_range_label = "Toggle display range to that of flagged image for plane " + str(flag_plane)
           toggle_id = 202
           self._menu.insertItem(self._toggle_range_label,toggle_id)
           if flag_plane == initial_plane:
@@ -798,7 +798,7 @@ class QwtImageDisplay(QwtPlot):
           self._menu.changeItem(toggle_id,self._toggle_blink_label)
           self._menu.setItemEnabled(toggle_id, True)
           self._menu.setItemVisible(toggle_id, True)
-          self._toggle_range_label = "Adjust display range to that of flagged image for plane " + str(flag_plane)
+          self._toggle_range_label = "Toggle display range to that of flagged image for plane " + str(flag_plane)
           toggle_id = 202
           self._menu.changeItem(toggle_id,self._toggle_range_label)
           self._menu.setItemEnabled(toggle_id, True)
