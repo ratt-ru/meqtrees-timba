@@ -488,7 +488,7 @@ class meqserver_gui (app_proxy_gui):
     try: dialog = self._run_tdl_dialog;
     except AttributeError:
       self._run_tdl_dialog = dialog = self.LoadTDLDialog(self,"load tdl dialog",True);
-      dialog.resize(800,dialog.height());
+      dialog.resize(800,500);
     else:
       dialog.rereadDir();
     dialog.set_replace_visible(bool(self._tdl_tabs));

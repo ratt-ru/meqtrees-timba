@@ -493,7 +493,7 @@ def enable_node_publish (node,enable=True,get_state=True):
 
 def disable_node_publish (node,disable=True):
   return enable_node_publish(node,not disable);
-
+  
 def subscribe_node_state (node,callback):
   """Adds a subscriber to node state changes""";
   nodelist[nodeindex(node)].subscribe_state(callback);

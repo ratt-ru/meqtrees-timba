@@ -619,12 +619,18 @@ class TDLEditor (QFrame,PersistentCurrier):
       self.show_message("Script executed successfully, but no nodes were defined.",
               transient=True);
       return None;
+    # make list of publishing nodes 
+    allnodes = ns.AllNodes();
+    pub_nodes = [ node.name for node in meqds.nodelist.iternodes() 
+                  if node.is_publishing() and node.name in allnodes ];
     # try to run stuff
     mqs.meq('Clear.Forest');
-    mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),ns.AllNodes().itervalues())));
+    mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
     mqs.meq('Resolve.Batch',record(name=list(ns.RootNodes().iterkeys())));
-
-    ### NB: presume this was successful for now
+    # restore publishing nodes
+    for name in pub_nodes: 
+      mqs.meq('Node.Publish.Results',record(name=name,enable=True),wait=False);
+    ### NB: presume this all was successful for now
 
     # is a forest state defined?
     fst = getattr(Timba.TDL.Settings,'forest_state',record());
