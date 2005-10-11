@@ -7,6 +7,16 @@ from copy import deepcopy
 #from Timba import dmi
 #import meqserver
 
+# bookmark
+Settings.forest_state = record(bookmarks=[
+  record(name='Phase solutions',page=[
+    record(viewer="Result Plotter",udi="/node/GP:2:11",pos=(0,0)),
+    record(viewer="Result Plotter",udi="/node/GP:11:11",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
+  ]) \
+]);
+
 
 class PointSource:
     name = ''
