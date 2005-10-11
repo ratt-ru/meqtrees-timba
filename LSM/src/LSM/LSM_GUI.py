@@ -559,20 +559,21 @@ class LSMWindow(QMainWindow):
 
 
     def fileOpen(self):
-        s=QFileDialog.getOpenFileName(".","*.*",self,"Open File","Choose LSM File to Load")
+        s=QFileDialog.getOpenFileName(".","*.lsm",self,"Open File","Choose LSM File to Load")
         #ry:
         self.lsm.load(s.ascii())
         #except Exception:
-        print "file %s is not a valid LSM file" % s.ascii()
+        #print "file %s is not a valid LSM file" % s.ascii()
 
     def fileSave(self):
         if self.savefile==None:
-         s=QFileDialog.getSaveFileName(".","*.*",self,"Save File","Choose File Name to Save LSM")
+         s=QFileDialog.getSaveFileName(".","*.lsm",self,"Save File","Choose File Name to Save LSM")
+        if s!=None:
+         if not s.endsWith(".lsm"):
+           s.append(".lsm")
          self.savefile=s.ascii()
-        try:
          self.lsm.save(self.savefile)
-        except Exception:
-         print "Error saving to file %s" % self.savefile
+         #print "Error saving to file %s" % self.savefile
 
 
     def fileSaveAs(self):

@@ -481,6 +481,9 @@ class PUnit:
   newp.app_brightness=self.app_brightness
   newp.sp=self.sp.clone()
   newp.FOV_distance=self.FOV_distance
+  newp._patch_name=self._patch_name# FIXME: only temporary
+  #newp.__sixpack=self.__sixpack
+  newp.__sixpack=None
   return newp
  
  # set the LSM of this PUnit
@@ -820,7 +823,7 @@ class LSM:
 
    p.dump(g)
    f.close()
-  except Error:
+  except IOError:
    print "file %s cannot be opened, save failed" % filename 
   
   # next step: save the MeqTrees
