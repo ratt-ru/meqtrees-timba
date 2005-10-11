@@ -171,9 +171,9 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
     // increment count of unknowns
     num_unknowns_ += spi.nuk;
     // add unknown's indices to map for this nodeindex
-    IndexSet &iset = parm_uks_[rec[FNodeIndex].as<int>()];
-    for( int i = spi.uk_index; i<num_unknowns_; i++ )
-      iset.insert(i);
+    ParmUkInfo & pui = parm_uks_[rec[FNodeIndex].as<int>()];
+    pui.spidset[spid] = std::pair<int,int>(spi.uk_index,spi.uk_index+spi.nuk);
+    pui.nuk += spi.nuk;
   }
   return num_unknowns_;
 }
@@ -690,15 +690,19 @@ double Solver::solve (Vector<double>& solution,Request::Ref &reqref,
     int nodeindex = iparm->first;
     // create command record for this parm
     DMI::Record & cmdrec = grouprec[nodeindex] <<= new DMI::Record;
-    const IndexSet & idxset = iparm->second;
+    const ParmUkInfo & pui = iparm->second;
     // create vector of updates and get pointer to its data
-    DMI::NumArray &arr = cmdrec[FUpdateValues] <<= new DMI::NumArray(Tpdouble,LoShape(idxset.size()));
+    DMI::NumArray &arr = cmdrec[FUpdateValues] <<= new DMI::NumArray(Tpdouble,LoShape(pui.nuk));
     double *pupd = static_cast<double*>(arr.getDataPtr());
     int j=0;
     // fill updates for this node's spids, by fetching them from the solution 
-    // vector one by one via the index set
-    for( IndexSet::const_iterator ii = idxset.begin(); ii != idxset.end(); ii++ )
-      pupd[j++] = solution(*ii);
+    // vector via the spid set indices
+    for( SpidSet::const_iterator ii = pui.spidset.begin(); ii != pui.spidset.end(); ii++ )
+    {
+      const std::pair<int,int> & uks = ii->second;
+      for( int iu = uks.first; iu < uks.second; iu++ )
+        pupd[j++] = solution(iu);
+    }
     // add save command if requested
     if( saveFunklets )
       cmdrec[FSaveFunklets] = true;

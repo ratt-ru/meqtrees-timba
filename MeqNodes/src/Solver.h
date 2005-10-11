@@ -192,9 +192,22 @@ private:
   
   SpidMap spids_;
   
-  // in addition, we need a map from nodeindices to their associated unknowns
-  typedef std::set<int> IndexSet;
-  typedef std::map<int,IndexSet> ParmUkMap;
+  // in addition, we need a map from nodeindices to their associated unknownss.
+  // Since map guaranteees ordering by key, this ensures that we fill spids
+  // in the right order. 
+  // SpidSet maps spids to (uk0,uk0+nuk) pairs (essentially duplicating part
+  // of SpidMap above).
+  typedef std::map<SpidType,std::pair<int,int> > SpidSet;
+  // this maps a parm (by nodeindex) to its SpidSet
+  class ParmUkInfo
+  {
+    public:
+      SpidSet spidset;
+      int nuk;
+      ParmUkInfo () 
+      : nuk(0) {}
+  };
+  typedef std::map<int,ParmUkInfo> ParmUkMap;
   
   ParmUkMap parm_uks_;
   
