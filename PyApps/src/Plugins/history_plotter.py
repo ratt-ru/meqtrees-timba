@@ -484,7 +484,6 @@ class HistoryPlotter(GriddedPlugin):
     self.plotPrinter.add_colorbar(self.colorbar)
     self.colorbar.show()
 
-Grid.Services.registerViewer(dmi_type('MeqResult',record),HistoryPlotter,priority=10)
+Grid.Services.registerViewer(dmi_type('MeqResult',record),HistoryPlotter,priority=40)
 Grid.Services.registerViewer(meqds.NodeClass('MeqHistoryCollect'),HistoryPlotter,priority=10)
-Grid.Services.registerViewer(meqds.NodeClass(),HistoryPlotter,priority=22)
 
