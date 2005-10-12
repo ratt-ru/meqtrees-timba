@@ -1263,6 +1263,7 @@ class LSM:
    node_dict[name]={'name':name, 'classname':classname, 'initrec':{},\
         'children':[]}  
    ir=root.initrec()
+   print ir
    myrec=node_dict[name]
    myrec['initrec']=self.rec_parse(ir)
    #print node_dict[name]
@@ -1288,7 +1289,10 @@ class LSM:
   #print 'My Rec==',myrec
   #print 'Init Rec==',irec
   myclass=myrec.pop('classname')
-  fstr="ns['"+myname+"']<<Meq."+myclass.lstrip('Meq')+'(children='+str(chlist)+','
+  if len(chlist)>0:
+   fstr="ns['"+myname+"']<<Meq."+myclass.lstrip('Meq')+'(children='+str(chlist)+','
+  else:
+   fstr="ns['"+myname+"']<<Meq."+myclass.lstrip('Meq')+'('
   irec_str=""
   # Remove JUNK! from initrecord()
   # remove class field
@@ -1313,11 +1317,12 @@ class LSM:
    else:
     if (kname=='default_funklet'):
      if krec.has_key('coeff_isarray'):
-      irec_str=irec_str+" "+kname+"=default_funklet_value,"
+      irec_str=irec_str+" "+"meq.polclog(default_funklet_value.tolist()),"
       # deserialize the value
       default_funklet_value=pickle.loads(krec['coeff_isarray'])
+      print dir(default_funklet_value)
      elif krec.has_key('coeff_isscalar'):
-      irec_str=irec_str+" "+kname+"=default_funklet_value,"
+      irec_str=irec_str+" "+"default_funklet_value,"
       # deserialize the value
       default_funklet_value=krec['coeff_isscalar']
      print default_funklet_value
@@ -1325,8 +1330,8 @@ class LSM:
 
   total_str=fstr+irec_str+')'
   # MeqParm is special
-  if myclass.lstrip('Meq')=='Parm':
-   total_str="ns['"+myname+"']<<Meq.Parm(default_funklet_value)"
+  #if myclass.lstrip('Meq')=='Parm':
+  # total_str="ns['"+myname+"']<<Meq.Parm(default_funklet_value)"
   print "Total=",total_str
   exec total_str in globals(),locals()
   return ns[myname]
