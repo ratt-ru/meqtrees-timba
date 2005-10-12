@@ -90,11 +90,12 @@ class StreamData:
     self.MS = '';            # Name of the MS
     self.DataFrom = '';      # Column to read from
     self.DataTo = '';        # Column to write to
-    self.Ant1 = -1;           # One of the antennas of the interferometer for
+    self.Ant1 = -1;          # One of the antennas of the interferometer for
                              # which datee is selected.
-    self.Ant2 = -1;           # Other antenna
+    self.Ant2 = -1;          # Other antenna
     self.TileSize = 1;       # Number of tiles in a data chunk
     self.MaxTSize = -1;      # Maximum tilesize for the current MS
+    self.TaQLStr = '';       # TaQL string
 
 #----------------------------------------------------------------------
 # Load the data from the input stream to the object.
@@ -138,6 +139,7 @@ class StreamData:
     self.parent.TileInfo.setText(self.TileInfo());
     self.parent.ColInfo.setText(self.ColInfo());
     self.parent.IntferInfo.setText(self.IntferInfo());
+    self.parent.TaQL.setText(self.TaQLStr);
 
 #
 # Copy my contents to the output stream
@@ -422,6 +424,58 @@ class IntferSelect(QDialog):
     self.Ant2.setText(str(self.StrData.Ant2));
     self.GUI.addWidget(self.ChVal);
 
+    self.AntArray = QVBox(self.UserIn);
+    tmp = QHBox(self.AntArray);
+    QLabel(' ', tmp);
+    for i in range(1,11):
+      QLabel(str(i), tmp);
+    QLabel('A', tmp);
+    QLabel('B', tmp);
+    QLabel('C', tmp);
+    QLabel('D', tmp);
+    QLabel('W', tmp);
+    self.GUI.addWidget(tmp);
+
+    for j in range(1,11):
+      tmp = QHBox(self.AntArray);
+      self.ant = [];
+      if j < 10:
+        s = ' '+str(j);
+      else:
+        s = str(j);
+      QLabel(s, tmp);
+      for i in range(1,16):
+        self.ant.append(QCheckBox('', tmp));
+      self.GUI.addWidget(tmp);
+    tmp = QHBox(self.AntArray);
+    QLabel('A', tmp);
+    for i in range(1,16):
+     self.ant.append(QCheckBox('', tmp));
+    self.GUI.addWidget(tmp);
+    tmp = QHBox(self.AntArray);
+    QLabel('B', tmp);
+    for i in range(1,16):
+     self.ant.append(QCheckBox('', tmp));
+    self.GUI.addWidget(tmp);
+    tmp = QHBox(self.AntArray);
+    QLabel('C', tmp);
+    for i in range(1,16):
+     self.ant.append(QCheckBox('', tmp));
+    self.GUI.addWidget(tmp);
+    tmp = QHBox(self.AntArray);
+    QLabel('D', tmp);
+    for i in range(1,16):
+     self.ant.append(QCheckBox('', tmp));
+    self.GUI.addWidget(tmp);
+    tmp = QHBox(self.AntArray);
+    QLabel('W', tmp);
+    for i in range(1,16):
+     self.ant.append(QCheckBox('', tmp));
+    self.GUI.addWidget(tmp);
+    
+
+    self.GUI.addWidget(self.AntArray);
+
     self.Buttons = QHBox(self);
     self.GUI.addWidget(self.Buttons);
     run = QPushButton('OK', self.Buttons);
@@ -436,6 +490,11 @@ class IntferSelect(QDialog):
   def runOK(self):
     self.StrData.Ant1 = int(str(self.Ant1.text()));
     self.StrData.Ant2 = int(str(self.Ant2.text()));
+    if self.StrData.Ant1 != -1:
+      selstr = 'ANTENNA1 == ' + str(self.StrData.Ant1);
+      selstr = selstr + ' && ';
+      selstr = selstr + ' ANTENNA2 == ' + str(self.StrData.Ant2);
+    self.StrData.TaQLStr = selstr;
     self.StrData.updateGui();
     self.close()
 
@@ -494,23 +553,18 @@ class MSinfoWnd(QDialog):
     self.parent.StrData.MaxTSize = mts;
     self.parent.StrData.updateGui();
 
-#
+#======================================================================
 # MAIN class
 #
 class StreamController (browsers.GriddedPlugin):
   viewer_name = "DataStream Controller";
   _icon = pixmaps.spigot;
 
-## no need for this method, since we're not really a viewer as such
-#  def is_viewable (data):
-#    return isinstance(data,_request_type) or \
-#      isinstance(getattr(data,'request',None),_request_type);
-#  is_viewable = staticmethod(is_viewable);
-
   def __init__(self,gw,dataitem,cellspec={},**opts):
     _dprint(3,"init");
     browsers.GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     _dprint(3,"started with",dataitem.udi);
+
     self._wtop = QVBox(self.wparent());
 
 #
@@ -576,6 +630,13 @@ class StreamController (browsers.GriddedPlugin):
     self.ColInfo = QLabel(msg, self.ColBox);
     ColSel = QPushButton('Select', self.ColBox);
     QObject.connect(ColSel, SIGNAL("clicked()"), self._ColSet);
+
+#
+# TaQL box
+#
+    self.TaQLBox = QHBox(self.UserIn);
+    QLabel('TaQL string', self.TaQLBox);
+    self.TaQL = QLineEdit(self.TaQLBox);
 
 #
 # Put empty label to create a right-margin
@@ -743,13 +804,7 @@ class StreamController (browsers.GriddedPlugin):
       self.StrData.copy(self._streamrec);
 
       self._streamrec.input.tile_size = int(str(self.NTiles.text()));
-      if self.StrData.Ant1 != -1:
-        selstr = 'ANTENNA1 == ' + str(self.StrData.Ant1);
-        selstr = selstr + ' && ';
-        selstr = selstr + ' ANTENNA2 == ' + str(self.StrData.Ant2);
-        self._streamrec.input.selection.selection_string = selstr;
-      else:
-        self._streamrec.input.selection.selection_string = '';
+      self._streamrec.input.selection.selection_string = self.StrData.TaQLStr;
 
       mqs().init(self._streamrec);
 #
