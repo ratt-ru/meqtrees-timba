@@ -223,7 +223,7 @@ def on_entry (ns, MG, **pp):
 
 exit_counter = 0
    
-def on_exit (ns, MG, cc=[], **pp):
+def on_exit (ns, MG, cc=[], stepchildren=[], **pp):
    """Function called upon exit of _define_forest()"""
 
    global exit_counter
@@ -257,7 +257,7 @@ def bundle (ns, cc, name='bundle', stepchildren=[], **pp):
 
    if not isinstance(cc, list): cc = [cc]
    if len(cc) == 0:
-      parent = ns[name] << -1.23456789
+      parent = ns[name] << Meq.Selector(-1.23456789)
 
       if pp['make_bookmark']:
          # Make a page of bookmarks for the parent:
