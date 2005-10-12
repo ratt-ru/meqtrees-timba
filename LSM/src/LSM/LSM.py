@@ -479,11 +479,28 @@ class PUnit:
   newp.s_list=self.s_list
   newp.cat=self.cat
   newp.app_brightness=self.app_brightness
+  # sixpack helper
   newp.sp=self.sp.clone()
+  # instead of the Sixpack Object, we store the 
+  # root node namse of the IQUV,Ra,Dec subtrees
+  if self.__sixpack!=None:
+   newp.__sixpack={}
+   if self.__sixpack.ispoint():
+    newp.__sixpack['I']=self.__sixpack.stokesI().name
+    newp.__sixpack['Q']=self.__sixpack.stokesQ().name
+    newp.__sixpack['U']=self.__sixpack.stokesQ().name
+    newp.__sixpack['V']=self.__sixpack.stokesV().name
+    newp.__sixpack['ra']=self.__sixpack.ra().name
+    newp.__sixpack['dec']=self.__sixpack.dec().name
+    newp.__sixpack['label']=self.__sixpack.label()
+    newp.__sixpack['pointroot']=self.__sixpack.sixpack().name
+   else:
+    newp.__sixpack['patchroot']=self.__sixpack.root().name
+    newp.__sixpack['label']=self.__sixpack.label()
+  else:
+   newp.__sixpack=None
   newp.FOV_distance=self.FOV_distance
-  newp._patch_name=self._patch_name# FIXME: only temporary
-  #newp.__sixpack=self.__sixpack
-  newp.__sixpack=None
+  newp._patch_name=self._patch_name
   return newp
  
  # set the LSM of this PUnit
@@ -523,9 +540,12 @@ class LSM:
   self.cells=None
   # need to remember the forest
   self.__ns=None
+  # counter to give unique names to patches
   self.__patch_count=0
  
   self.__barr=[] 
+  # root of all subtrees
+  self.__root=None
 
  # Much more important method
  # Inserts a source to source table
@@ -820,7 +840,16 @@ class LSM:
     g.p_table[sname].setLSM(g)
    g.mqs=None
    g.cells=None
+   g.__patch_count=self.__patch_count
 
+
+   # serialize the root
+   if self.__root!=None:
+    gdict={}
+    self.traverse(self.__root,gdict)
+    g.__root=pickle.dumps(gdict)
+   else:
+    g.__root=None
    p.dump(g)
    f.close()
   except IOError:
@@ -832,7 +861,7 @@ class LSM:
    self.mqs.meq('Save.Forest',meq.record(file_name=forest_filename));
 
  # load from a file 
- def load(self,filename):
+ def load(self,filename,ns=None):
   try:
    f=open(filename,'rb') 
    p=pickle.Unpickler(f)
@@ -841,8 +870,45 @@ class LSM:
    self.s_table=tmpl.s_table
    self.m_table=tmpl.m_table
    self.tmpl_table=tmpl.tmpl_table
-   self.p_table=tmpl.p_table
    self.__barr=tmpl.__barr
+
+   self.__patch_count=tmpl.__patch_count
+   if tmpl.__root!=None:
+    if ns==None:
+     ns=NodeScope()
+    self.__ns=ns
+    my_dict=pickle.loads(tmpl.__root)
+    self.__root=self.reconstruct(my_dict,ns)
+   else:
+     self.__root=None
+
+   self.p_table=tmpl.p_table
+   # reconstruct PUnits and Sixpacks if possible
+   for sname in self.p_table.keys(): 
+    punit=self.p_table[sname]
+    punit.setLSM(self)
+    # now create the sixpack
+    tmp_dict=punit.getSP()
+    print tmp_dict
+    if tmp_dict.has_key('patchroot'):
+     my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
+      ns=self.__ns, root=self.__ns[tmp_dict['patchroot']])
+    else: 
+     # NOTE: do not give the nodescope because then it tries to
+     # compose, but the tree is already composed
+     my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
+       ra=self.__ns[tmp_dict['ra']],\
+       dec=self.__ns[tmp_dict['dec']],stokesI=self.__ns[tmp_dict['I']],\
+       stokesQ=self.__ns[tmp_dict['Q']],stokesU=self.__ns[tmp_dict['U']],\
+      stokesV=self.__ns[tmp_dict['V']])
+     # set the root node
+     my_sp=my_sp.clone(sixpack=self.__ns[tmp_dict['pointroot']],ns=self.__ns)
+
+    punit.setSP(my_sp)
+    # set the root
+    punit.sp.setRoot(my_sp.sixpack())
+
+
    f.close()
   except IOError:
    print "file %s cannot be opened, load failed" % filename 
@@ -940,6 +1006,10 @@ class LSM:
      self.p_table[sname]._patch_name=patch_name
 
    patch_root=self.__ns['sixpack:q='+patch_name]<<Meq.PatchComposer(children=child_list)
+
+   # add this to our root
+   self.addToTree(patch_root)
+
    #patch_root=self.__ns[patch_name]<<Meq.Composer(children=child_list)
    #select_root=self.__ns['Select['+patch_name+']']<<Meq.Selector(children=patch_root,multi=True,index=[2,3,4,5])
    #stokes_root=self.__ns['Stokes['+patch_name+']']<<Meq.Stokes(children=select_root)
@@ -948,7 +1018,7 @@ class LSM:
     self.__ns.Resolve()
     #print "Current forest has %d root nodes, of a total of %d nodes"% (len(self.__ns.RootNodes()),len(self.__ns.AllNodes()))
 
-   Timba.TDL._dbg.set_verbose(5);
+   #Timba.TDL._dbg.set_verbose(5);
    # try to run stuff
    if self.mqs != None and resolve_forest==True and\
       sync_kernel==True:
@@ -986,7 +1056,7 @@ class LSM:
    #print self.__barr
    #self.p_table[patch_name]=newp
 
-   Timba.TDL._dbg.set_verbose(0);
+   #Timba.TDL._dbg.set_verbose(0);
    # return [patch name, x_min,y_min,x_max,y_max]
    # for the plotting method
    return [patch_name,x_min,y_min,x_max,y_max]
@@ -1140,8 +1210,113 @@ class LSM:
     child_list.append('sixpack:q='+pname)
   # create a common root
   if len(child_list)!=0:
-   self.__ns['lsmroot']<<Meq.Composer(children=child_list)
+   self.__root=self.__ns['lsmroot']<<Meq.Composer(children=child_list)
 
+
+ # add a child node (subtree) to the root node
+ def addToTree(self,child):
+  if(self.__root!=None):
+   self.__root.add_children(child)
+
+
+ # the following methods are used to 
+ # serialize trees by brute force. In fact,
+ # no serialization is done, but only the essence required
+ # to recreate the whole tree is stored as (recursive) dictionaries.
+ def rec_parse(self,myrec):
+  """ recursively parse init record 
+      and construct a dictionary
+  """
+  #print myrec
+  my_keys=myrec.keys()
+  new_dict={}
+  for kk in my_keys:
+   if isinstance(myrec[kk],meq.record):
+     new_dict[kk]=self.rec_parse(myrec[kk])
+   elif isinstance(myrec[kk],numarray.numarraycore.NumArray): # meq.array
+     #print myrec[kk].__class__
+     if (myrec[kk].size()>1):
+      new_dict[kk]=myrec[kk].tolist()
+     else: # size 1 array
+      new_dict[kk]=myrec[kk]
+   else:
+     new_dict[kk]=myrec[kk]
+  return new_dict
+
+ def traverse(self,root,node_dict):
+  chlist=root.children
+  name=root.name
+  classname=root.classname
+  if not node_dict.has_key(name):
+   node_dict[name]={'name':name, 'classname':classname, 'initrec':{},\
+        'children':[]}  
+   ir=root.initrec()
+   myrec=node_dict[name]
+   myrec['initrec']=self.rec_parse(ir)
+   #print node_dict[name]
+   # if any children, traverse
+   for idx,ch in chlist:
+    self.traverse(ch,node_dict)
+    myrec['children'].append(ch.name)
+
+ def create_node_stub(self,mydict,stubs,ns,myname):
+  myrec=mydict[myname]
+  # first, if this node has any children
+  # and if they have not being created,
+  # create them
+  chlist=myrec['children']
+  stublist=[]
+  for ch in chlist:
+   if not stubs.has_key(ch):
+    stubs[ch]=self.create_node_stub(mydict,stubs,ns,ch)
+   stublist.append(stubs[ch])
+  # now we have created the child list
+  # now deal with initrec()
+  irec=myrec['initrec']
+  print 'My Rec==',myrec
+  print 'Init Rec==',irec
+  myclass=myrec.pop('classname')
+  fstr="ns['"+myname+"']<<Meq."+myclass.lstrip('Meq')+'(children='+str(chlist)+','
+  irec_str=""
+  # Remove JUNK! from initrecord()
+  # remove class field
+  if irec.has_key('class'):
+   irec.pop('class')
+  # remove node_desctiption
+  if irec.has_key('node_description'):
+   irec.pop('node_description')
+  # remove name
+  if irec.has_key('name'):
+   irec.pop('name')
+  # remove children
+  if irec.has_key('children'):
+   irec.pop('children')
+
+
+
+  for kname in irec.keys():
+   krec=irec[kname]
+   if not isinstance(krec,dict):
+    irec_str=irec_str+" "+kname+"="+str(krec)+','
+   else:
+    if (kname=='default_funklet'):
+     print krec['coeff']
+     irec_str=irec_str+" "+kname+"=meq.array("+str(krec['coeff'])+'),'
+
+  total_str=fstr+irec_str+')'
+  print "Total=",total_str
+  exec total_str in globals(),locals()
+  return ns[myname]
+     
+ 
+ # the basic assumption with the following method is 
+ # the forest has no circular references
+ def reconstruct(self,my_dict,ns):
+  # temp dictionary to store created node stubs
+  nodestub_dict={}
+  for sname in my_dict.keys():
+   if not nodestub_dict.has_key(sname):
+     nodestub_dict[sname]=self.create_node_stub(my_dict,nodestub_dict,ns,sname)
 
 
 #########################################################################
