@@ -224,7 +224,8 @@ def dcoll (ns, node=[], **pp):
    pp.setdefault('ylabel', '<ylabel>')  # y-axis label
    pp.setdefault('color', 'red')        # plot color
    pp.setdefault('style','circle')      # plot style (symbol)
-   pp.setdefault('size', 10)            # plot size
+   pp.setdefault('size', 10)            # plot size (symbol)
+   pp.setdefault('pen', 1)              # plot pen width (...not yet implemented...)
    pp.setdefault('type', 'realvsimag')  # plot type (realvsimag or spectra)
    pp.setdefault('errorbars', False)    # if True, plot stddev as crosses around mean
    pp.setdefault('bookmark', False)     # name of dcoll bookmark (False=none)

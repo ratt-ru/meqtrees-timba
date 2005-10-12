@@ -70,7 +70,12 @@ def _define_forest (ns):
 
    node = ns.stripper << Meq.Stripper(node)
    # node = ns.mean << Meq.Mean(node)
-   node = ns.hcoll << Meq.HistoryCollect(node, verbose=True,top_label=hiid('visu'))
+
+   # Any field from the result can be collected, default is: 
+   input_index = hiid('VellSets/0/Value')          
+   node = ns.hcoll << Meq.HistoryCollect(node, verbose=True,
+                                         input_index=input_index,
+                                         top_label=hiid('visu'))
 
    MG_JEN_forest_state.bookmark(node, viewer='History Plotter', page='hcoll')
    MG_JEN_forest_state.bookmark(node, viewer='Record Browser', page='hcoll')
@@ -85,7 +90,6 @@ def _define_forest (ns):
    # sc.append(ns.dcoll_mean << Meq.DataCollect(ns.mean, attrib=attrib, top_label=top_label))
    sc.append(ns.dcoll_hcoll << Meq.DataCollect(ns.hcoll, attrib=attrib, top_label=top_label))
    cc.append(ns.root << Meq.Add(input,stepchildren=sc))
-
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, MG, cc)

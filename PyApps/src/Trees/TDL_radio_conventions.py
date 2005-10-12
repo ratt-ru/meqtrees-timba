@@ -38,7 +38,17 @@ def plot_style(key=None):
     return False
 
 def plot_size(key=None):
-    rr = dict(XX=10, XY=7, YX=7, YY=10)
+    rr = dict(XX=8, XY=8, YX=8, YY=8)
+    rr['RR'] = rr['XX']
+    rr['RL'] = rr['XY']
+    rr['LR'] = rr['YX']
+    rr['LL'] = rr['YY']
+    if key==None: return rr
+    if rr.has_key(key): return rr[key]
+    return False
+
+def plot_pen(key=None):
+    rr = dict(XX=2, XY=2, YX=2, YY=2)
     rr['RR'] = rr['XX']
     rr['RL'] = rr['XY']
     rr['LR'] = rr['YX']

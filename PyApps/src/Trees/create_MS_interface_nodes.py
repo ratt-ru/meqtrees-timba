@@ -32,7 +32,7 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
    # Station positions:
    pkeys = ['xpos','ypos','zpos']
    vrefpos = record(xpos=0, ypos=0, zpos=0)          # reference pos value
-   dcoll = record(xpos=[], ypos=[], zpos=[], xvsy=[])
+   dcoll = record(xpos=[], ypos=[], zpos=[], dz_pos=[], xvsy=[])
 
    rr.sep9A = sep9A                                  # separation (m) between 9 and A(10)
    rr.stations = stations
@@ -90,10 +90,16 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
          dcoll[pkey].append(node)                    # collect for dcoll nodes
 
       # Make 'complex' node for plotting (relative) x vs y:
-      pkey = 'xvsy'                                  # dx vs dy
-      name = pkey+':s='+skey
+      key = 'xvsy'                                   # dx vs dy
+      name = key+':s='+skey
       node = ns[name] << Meq.ToComplex(dxyz['xpos'],dxyz['ypos'])
-      dcoll[pkey].append(node)                       # collect for dcoll nodes
+      dcoll[key].append(node)                        # collect for dcoll nodes
+
+      # Make 'complex' node for plotting (relative) z:
+      key = 'dz_pos'                                 # dz
+      name = key+':s='+skey
+      node = ns[name] << Meq.ToComplex(0.0,dxyz['zpos'])
+      dcoll[key].append(node)                        # collect for dcoll nodes
 
       # Tensor node of 3 station position coordinates:
       name = 'xyz:s='+skey
@@ -127,7 +133,8 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
    dcoll.ruvw = []
 
    dcoll.uvsv = []
-   dcoll.wcoord = []
+   dcoll.uvsw = []
+   # dcoll.wcoord = []
 
    for s1 in stations:
       skey1 = TDL_radio_conventions.station_key(s1)
@@ -176,15 +183,22 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
             root.append(node)
             dcoll.ruvw.append(node)
 
-            # Make 'complex' node for plotting u vs v:
+            # Extract the individual (u,v,w) nodes for plotting:
             ucoord = ns['ucoord:s1='+skey1+':s2='+skey2] << Meq.Selector(duvw, index=0)
             vcoord = ns['vcoord:s1='+skey1+':s2='+skey2] << Meq.Selector(duvw, index=1)
+            wcoord = ns['wcoord:s1='+skey1+':s2='+skey2] << Meq.Selector(duvw, index=2)
+
+            # Make 'complex' node for plotting u vs v:
             node = ns['uvsv:s1='+skey1+':s2='+skey2] << Meq.ToComplex (ucoord, vcoord)
             dcoll.uvsv.append(node)                         # collect for dcoll nodes
 
-            # Plot the w-coord separately:
-            node = ns['wcoord:s1='+skey1+':s2='+skey2] << Meq.Selector(duvw, index=2)
-            dcoll.wcoord.append(node)                       # collect for dcoll nodes
+            # Make 'complex' node for plotting u vs w:
+            node = ns['uvsw:s1='+skey1+':s2='+skey2] << Meq.ToComplex (ucoord, wcoord)
+            dcoll.uvsw.append(node)                         # collect for dcoll nodes
+
+            # Plot the w-coord separately (along the imaginary axis):
+            # node = ns['w_plot:s1='+skey1+':s2='+skey2] << Meq.ToComplex (0.0, wcoord)
+            # dcoll.wcoord.append(node)                       # collect for dcoll nodes
 
 
    #--------------------------------------------------------------------------------
@@ -229,22 +243,42 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
    # Make dataCollect nodes from children collected in dcoll-record:
    #--------------------------------------------------------------------------------
 
-   # ------------- Station z-position (relative):
-   key ='zpos'
+   color_xyz = 'blue'
+   color_uv = 'red'
+   color_uw = 'magenta'
+   color_rxyz = 'green'
+   color_ruvw = 'darkGreen'
+
+
+   # ------------- Station xpos vs ypos (fake complex):
+   key = 'xvsy'
    attrib = record(plot=record(), tag=key)
-   attrib['plot'] = record(type='realvsimag', title=' array configuration',
-                           x_axis=key+' (relative)', y_axis='...')
+   attrib['plot'] = record(type='realvsimag', title=' array configuration (x vs y)',
+                           color=color_xyz,
+                           x_axis='xpos (N-S, relative)',
+                           y_axis='ypos (E-W, relative)')
    name = 'dcoll_MS_'+key
    node = ns[name] << Meq.DataCollect(children=dcoll[key], attrib=attrib,
                                       top_label=hiid('visu'))
    rr.dcoll[key] = node.name
 
 
-   # ------------- Station xpos vs ypos (fake complex):
-   key = 'xvsy'
+   # ------------- Station relative z-position (fake complex):
+   key ='dz_pos'
    attrib = record(plot=record(), tag=key)
-   attrib['plot'] = record(type='realvsimag', title=' array configuration',
-                               x_axis='xpos (relative)', y_axis='ypos (relative)')
+   attrib['plot'] = record(type='realvsimag', title=' station z_pos (relative)',
+                           color=color_xyz, y_axis=key+' (relative)', x_axis='...')
+   name = 'dcoll_MS_'+key
+   node = ns[name] << Meq.DataCollect(children=dcoll[key], attrib=attrib,
+                                      top_label=hiid('visu'))
+   rr.dcoll[key] = node.name
+
+
+   # ------------- Baseline lengths (xyz):
+   key = 'rxyz'
+   attrib = record(plot=record(), tag=key)
+   attrib['plot'] = record(type='realvsimag', title=' baseline length (m)',
+                           color=color_rxyz, x_axis=key, y_axis='...')
    name = 'dcoll_MS_'+key
    node = ns[name] << Meq.DataCollect(children=dcoll[key], attrib=attrib,
                                       top_label=hiid('visu'))
@@ -255,37 +289,45 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
    key = 'uvsv'
    attrib = record(plot=record(), tag=key)
    attrib['plot'] = record(type='realvsimag', title=' (snapshot) uv-coverage',
-                           x_axis='ucoord', y_axis='vcoord')
+                           color=color_uv, x_axis='u_coord', y_axis='v_coord')
    name = 'dcoll_MS_'+key
    node = ns[name] << Meq.DataCollect(children=dcoll[key], attrib=attrib,
                                       top_label=hiid('visu'))
    rr.dcoll[key] = node.name
 
 
-   # ------------- Ifr w-coord:
-   key = 'wcoord'
+   # ------------- Ifr ucoord vs vcoord (fake complex):
+   key = 'uvsw'
    attrib = record(plot=record(), tag=key)
-   attrib['plot'] = record(type='realvsimag', title=' ifr w-coordinate',
-                           x_axis='wcoord', y_axis='...')
+   attrib['plot'] = record(type='realvsimag', title=' u vs w',
+                           color=color_uw, x_axis='u_coord', y_axis='w_coord')
    name = 'dcoll_MS_'+key
    node = ns[name] << Meq.DataCollect(children=dcoll[key], attrib=attrib,
                                       top_label=hiid('visu'))
    rr.dcoll[key] = node.name
 
 
-   # ------------- Baseline lengths (xyz and uvw):
-   for key in ['rxyz','ruvw']:
+   # ------------- Ifr w-coord (fake complex):
+   if False:
+      key = 'wcoord'
       attrib = record(plot=record(), tag=key)
-      attrib['plot'] = record(type='realvsimag', title=' baseline length',
-                              x_axis=key, y_axis='...')
-      if key=='rxyz': attrib.plot.title += ' (m)'
-      if key=='ruvw': attrib.plot.title += ' (wavelength)'
+      attrib['plot'] = record(type='realvsimag', title=' w-coordinates',
+                              color=color_uvw, x_axis='...', y_axis='w_coord')
       name = 'dcoll_MS_'+key
-      node = ns[name] << Meq.DataCollect(children=dcoll[key],
-                                         top_label=hiid('visu'),
-                                         attrib=attrib)
+      node = ns[name] << Meq.DataCollect(children=dcoll[key], attrib=attrib,
+                                         top_label=hiid('visu'))
       rr.dcoll[key] = node.name
 
+
+   # ------------- Baseline lengths (uvw):
+   key = 'ruvw'
+   attrib = record(plot=record(), tag=key)
+   attrib['plot'] = record(type='realvsimag', title=' baseline length (wvl)',
+                           color=color_ruvw, x_axis=key, y_axis='...')
+   name = 'dcoll_MS_'+key
+   node = ns[name] << Meq.DataCollect(children=dcoll[key], attrib=attrib,
+                                      top_label=hiid('visu'))
+   rr.dcoll[key] = node.name
 
 
    #--------------------------------------------------------------------------------

@@ -134,6 +134,7 @@ class Cohset (TDL_common.Super):
         self.__plot_color = TDL_radio_conventions.plot_color()
         self.__plot_style = TDL_radio_conventions.plot_style()
         self.__plot_size = TDL_radio_conventions.plot_size()
+        self.__plot_pen = TDL_radio_conventions.plot_pen()
 
         # Calculate derived values from primary ones
         self.calc_derived()
@@ -163,6 +164,7 @@ class Cohset (TDL_common.Super):
     def plot_color(self): return self.__plot_color
     def plot_style(self): return self.__plot_style
     def plot_size(self): return self.__plot_size
+    def plot_pen(self): return self.__plot_pen
 
     def parmgroup(self):
         """Return a list of available MeqParm group names"""
@@ -271,6 +273,7 @@ class Cohset (TDL_common.Super):
         ss.append(indent1+' - plot_color:      '+str(self.plot_color()))
         ss.append(indent1+' - plot_style:      '+str(self.plot_style()))
         ss.append(indent1+' - plot_size:       '+str(self.plot_size()))
+        ss.append(indent1+' - plot_pen:        '+str(self.plot_pen()))
         ss.append(indent1+' - Parmgroups:      '+str(self.parmgroup().keys()))
         ss.append(indent1+' - Solvegroups:     '+str(self.solvegroup().keys()))
         ss.append(indent1+' - Condeq_corrs:    '+str(self.condeq_corrs().keys()))
@@ -296,22 +299,33 @@ class Cohset (TDL_common.Super):
     def zero(self, ns):
         """Make zero coherency matrices for all ifrs"""
         funcname = '::zero():'
-        cz = complex(0)
-        zz = array([cz,cz,cz,cz])
+        c0 = complex(0)
+        zz = array([c0,c0,c0,c0])
         for key in self.keys():
             s12 = self.__stations[key]
             self.__coh[key] = ns.cxzero22(s1=s12[0], s2=s12[1]) << Meq.Constant(zz, dims=[2,2])
         self.__dims = [2,2]
         self.history(append=funcname+' -> '+self.oneliner())
 
+    def unity(self, ns):
+        """Make unit coherency matrices for all ifrs"""
+        funcname = '::unity():'
+        c0 = complex(0.0)
+        c1 = complex(1.0)
+        zz = array([c1,c0,c0,c1])
+        for key in self.keys():
+            s12 = self.__stations[key]
+            self.__coh[key] = ns.cxunity22(s1=s12[0], s2=s12[1]) << Meq.Constant(zz, dims=[2,2])
+        self.__dims = [2,2]
+        self.history(append=funcname+' -> '+self.oneliner())
 
-    def nominal(self, ns, coh0):
-        """Make identical coherency matrices (coh0) for all ifrs"""
-        funcname = '::nominal():'
+    def uniform(self, ns, coh22):
+        """Uniform coherency matrices (coh22) for all ifrs(qual)"""
+        funcname = '::uniform():'
         uniqual = _counter(funcname, increment=-1)
         for key in self.keys():
             s12 = self.__stations[key]
-            self.__coh[key] = ns.nominal(uniqual)(s1=s12[0], s2=s12[1]) << Meq.Selector(coh0)
+            self.__coh[key] = ns.uniform(uniqual)(s1=s12[0], s2=s12[1]) << Meq.Selector(coh22)
         self.__dims = [2,2]
         self.history(append=funcname+' -> '+self.oneliner())
 
@@ -392,21 +406,34 @@ class Cohset (TDL_common.Super):
         return self.binop(ns, binop='Subtract', Cohset=Cohset)
 
 
-    def add(self, ns, Cohset=[]):
-        """Add the cohaerencies of the given (list of) Cohset(s) to the corresponding internal cohaerencies"""
+    def add(self, ns, Cohset=[], exclude_itself=False):
+        """Add the cohaerencies of the given (list of) Cohset(s)"""
         funcname = '::add():'
         if not isinstance(Cohset, (tuple,list)): Cohset = [Cohset]
-        if len(Cohset)==0: return True
+        if len(Cohset)==0: return True                 # no change
+
+        # Modify the internal cohaerencies:
         uniqual = _counter(funcname, increment=-1)
         for key in self.keys():
-            cc = []
-            for cs in Cohset:
-                cc.append(cs[key])
-            print key,cc
-            self.__coh[key] = ns.cohsum.qmerge(self.__coh[key])(uniqual) << Meq.Add(children=cc)
+            cc = [self.__coh[key]]                     # include itself (default)
+            if exclude_itself: cc = []                 # exclude itself
+            for cs in Cohset: cc.append(cs[key])       # collect corresponding (key) nodes
+            if len(cc)==1:
+                self.__coh[key] = cc[0][key]           # just use the first
+            else:
+                self.__coh[key] = ns.cohsum.qmerge(self.__coh[key])(uniqual) << Meq.Add(children=cc)
+
+        # Reporting and book-keeping
+        n = len(Cohset)
+        if exclude_itself:
+            self.scope('cohsum')
+            self.label('cohsum')                
+            self.history(append=funcname+' replace by sum of '+str(n)+' Cohsets:')
+        else:
+            self.scope('added')
+            self.history(append=funcname+' add '+str(n)+' Cohset(s) to itself:')
         for cs in Cohset:
-            self.history(append=funcname+'....'+cs.oneliner())
-        self.scope('added')
+            self.history(append=funcname+' ...... '+cs.oneliner())
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -661,7 +688,7 @@ if __name__ == '__main__':
     cs = Cohset(label='initial', polrep='circular', stations=stations)
     cs.display('initial')
 
-    if 1:
+    if 0:
         cs.zero(ns)
         cs.display('zero')
 
@@ -682,11 +709,15 @@ if __name__ == '__main__':
         cs.graft(ns, [zero, minus], name='test', key='all', stepchild=False)
         cs.display('graft')
 
-    if 0:
+    if 1:
+        cs.zero(ns)
         cs1 = Cohset(label='other', polrep='circular', stations=stations)
-        cs1.zero(ns)
+        cs1.unity(ns)
         cc = [cs1,cs1,cs1]
         cs.add(ns, cc)
+        cs.display('exclude_itself=False')
+        cs.add(ns, cc, exclude_itself=True)
+        cs.display('exclude_itself=True')
         
     if 0:
         cs.sinks(ns)
@@ -694,7 +725,7 @@ if __name__ == '__main__':
             sink = cs.simul_sink(ns)
             MG_JEN_exec.display_subtree(sink, 'simul_sink', full=True, recurse=5)
         
-    if 1:
+    if 0:
         # Display the final result:
         k = 0 ; MG_JEN_exec.display_subtree(cs[k], 'cs['+str(k)+']', full=True, recurse=5)
         cs.display('final result')

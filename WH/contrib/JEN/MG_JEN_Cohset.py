@@ -412,7 +412,7 @@ def predict (ns=0, Sixpack=None, Joneset=None, **pp):
 
     # Put the same node (coh0) with 'nominal' (i.e. uncorrupted) visibilities
     # into all ifr-slots of the Cohset:
-    Cohset.nominal(ns, coh0)
+    Cohset.uniform(ns, coh0)
 
     # Optionally, corrupt the Cohset visibilities with the instrumental effects
     # in the given Joneset of 2x2 station jones matrices:
@@ -586,6 +586,19 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
                                                            save_funklets=True,
                                                            debug_level=pp.debug_level)
 
+    # Make historyCollect nodes for the solver metrics 
+    hcoll_nodes = []
+    input_index = hiid('VellSets/0/Value')          
+    hcoll_name = 'hcoll_'+solver_name
+    hcoll = ns[hcoll_name] << Meq.HistoryCollect(solver, verbose=True,
+                                                 input_index=input_index,
+                                                 top_label=hiid('visu'))
+    hcoll_nodes.append(hcoll)
+    pagename = 'hcoll_solver'
+    MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
+    MG_JEN_forest_state.bookmark(hcoll, viewer='Record Browser', page=pagename)
+
+
     # Make a bookmark for the solver plot:
     MG_JEN_forest_state.bookmark (solver, name=('solver: '+solver_name),
                                   udi='cache/result', viewer='Result Plotter',
@@ -614,8 +627,9 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     # Graft the solver and its dcoll nodes onto all measured ifr-streams
     # by attaching them to a reqseq:
     solver_name = 'solver_'+solver_name        # used in reqseq name
-    cc = [solver]                          # start a list of reqseq children (solver is first)
-    cc.extend(dc_condeq)                   # extend the list with the condeq dataCollect node(s) 
+    cc = [solver]                              # start a list of reqseq children (solver is first)
+    cc.extend(hcoll)                           # extend with historyCollect nodes
+    cc.extend(dc_condeq)                       # extend the list with the condeq dataCollect node(s) 
     measured.graft(ns, cc, name=solver_name)
     MG_JEN_forest_state.object(measured, funcname)
 
@@ -669,7 +683,9 @@ def visualise(ns, Cohset, **pp):
 	                               scope=dcoll_scope, tag=corr,
                                        type=pp.type, errorbars=pp.errorbars,
                                        color=Cohset.plot_color()[corr],
-                                       style=Cohset.plot_style()[corr])
+                                       style=Cohset.plot_style()[corr],
+                                       size=Cohset.plot_size()[corr],
+                                       pen=Cohset.plot_pen()[corr])
         if pp.type=='spectra':
            dcoll[corr] = dc
         elif pp.type=='realvsimag':

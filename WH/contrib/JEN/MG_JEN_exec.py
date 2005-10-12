@@ -231,26 +231,25 @@ def on_exit (ns, MG, cc=[], **pp):
    
    pp.setdefault('make_bookmark', True)                # if False, inhibit bookmarks
 
-   # Make a page of bookmarks
-   bb = []
-   if exit_counter==1:
-      bb = MG_JEN_forest_state.bookpage_MS_interface_nodes(ns)
-
    # Make a (single) root node for use in _test_forest():
    global _test_root
    _test_root = MG.script_name
    if exit_counter>1:
       _test_root += '_'+str(exit_counter)
 
-   root = bundle (ns, cc, _test_root, bb=bb, show_parent=False, **pp)
-   return root
+   # Make a page of bookmarks
+   bb = []
+   if True or exit_counter==1:
+      bb = MG_JEN_forest_state.bookpage_MS_interface_nodes(ns)
 
+   root = bundle (ns, cc, _test_root, stepchildren=bb, show_parent=False, **pp)
+   return root
 
 
 #===============================================================================
 # Bundle the given nodes by making them children of a new node:
 
-def bundle (ns, cc, name='bundle', bb=[], **pp):
+def bundle (ns, cc, name='bundle', stepchildren=[], **pp):
    """Bundles the given nodes (cc) by making them children of a new node"""
    
    pp.setdefault('make_bookmark', True)   # if False, inhibit bookmarks
@@ -259,12 +258,14 @@ def bundle (ns, cc, name='bundle', bb=[], **pp):
    if not isinstance(cc, list): cc = [cc]
    if len(cc) == 0:
       parent = ns[name] << -1.23456789
+
       if pp['make_bookmark']:
          # Make a page of bookmarks for the parent:
          MG_JEN_forest_state.bookmark(parent, page=name, viewer='Record Browser')
 
    elif len(cc) == 1:
       parent = ns[name] << Meq.Selector(cc[0])
+         
       if pp['make_bookmark']:
          # Make a page of bookmarks for the parent:
          MG_JEN_forest_state.bookmark(parent, page=name) 
@@ -272,10 +273,7 @@ def bundle (ns, cc, name='bundle', bb=[], **pp):
 
    else:
       # Make a single parent node to tie the various results (cc) together:
-      if len(bb)==0:
-         parent = ns[name] << Meq.Add(children=cc)
-      else:
-         parent = ns[name] << Meq.Add(children=cc, stepchildren=bb)
+      parent = ns[name] << Meq.Add(children=cc)
          
       if pp['make_bookmark']:
          # Make a bookpage for all the elements of cc:
@@ -283,9 +281,17 @@ def bundle (ns, cc, name='bundle', bb=[], **pp):
             MG_JEN_forest_state.bookmark(cc[i], page=name)
          if pp['show_parent']:
             MG_JEN_forest_state.bookmark(parent, page=name) 
-   
+
+   # If any stepchildren are specified, attach them to the parent node:
+   if len(stepchildren)>0: ns[name].add_stepchildren(*stepchildren)
    return parent
    
+
+#-------------------------------------------------------------------------------
+# OMS: I have added add_children(...) and add_stepchildren(...) methods to the 
+# NodeStub class. Their usage is pretty much intuitive, but you can also 
+# see PyApps/test/tdl_tutorial.py for an example (search for 'add_child').
+
 
 #===============================================================================
 # Helper function:
