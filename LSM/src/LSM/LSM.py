@@ -1059,6 +1059,8 @@ class LSM:
    #self.p_table[patch_name]=newp
 
    #Timba.TDL._dbg.set_verbose(0);
+   # save the lsm
+   self.save('lsm_current.lsm')
    # return [patch name, x_min,y_min,x_max,y_max]
    # for the plotting method
    return [patch_name,x_min,y_min,x_max,y_max]
@@ -1239,11 +1241,14 @@ class LSM:
    if isinstance(myrec[kk],meq.record):
      new_dict[kk]=self.rec_parse(myrec[kk])
    elif isinstance(myrec[kk],numarray.numarraycore.NumArray): # meq.array
+     # just serialize the value
+     new_dict[kk]=pickle.dumps(myrec[kk])
      #print myrec[kk].__class__
-     if (myrec[kk].size()>1):
-      new_dict[kk]=myrec[kk].tolist()
-     else: # size 1 array
-      new_dict[kk]=myrec[kk]
+     #print pickle.dumps(myrec[kk])
+     #if (myrec[kk].size()>1):
+     # new_dict[kk]=myrec[kk].tolist()
+     #else: # size 1 array
+     # new_dict[kk]=myrec[kk]
    else:
      new_dict[kk]=myrec[kk]
   return new_dict
@@ -1306,10 +1311,17 @@ class LSM:
    else:
     if (kname=='default_funklet'):
      #print krec['coeff']
-     irec_str=irec_str+" "+kname+"=meq.array("+str(krec['coeff'])+'),'
+     #irec_str=irec_str+" "+kname+"=meq.array("+str(krec['coeff'])+'),'
+     irec_str=irec_str+" "+kname+"=meq.array(default_funklet_value),"
+     # deserialize the value
+     default_funklet_value=pickle.loads(krec['coeff'])
+     print default_funklet_value
 
   total_str=fstr+irec_str+')'
-  #print "Total=",total_str
+  # MeqParm is special
+  if myclass.lstrip('Meq')=='Parm':
+   total_str="ns['"+myname+"']<<Meq.Parm(default_funklet_value)"
+  print "Total=",total_str
   exec total_str in globals(),locals()
   return ns[myname]
      
