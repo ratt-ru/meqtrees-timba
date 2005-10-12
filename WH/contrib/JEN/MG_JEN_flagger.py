@@ -189,6 +189,21 @@ def flagger (ns, input, **pp):
    
    # Optional: merge the flags of multiple tensor elements of input/output:
    if pp.merge: output = ns.Mflag << Meq.MergeFlags(output)
+
+   # Make historyCollect nodes for the solver metrics 
+   if True:
+      hcoll_nodes = []
+      # input_index = hiid('VellSets/0/Value')       # The default (not relelant for solver)
+      input_index = hiid('VellSets/0/Flags')       # The default (not relelant for solver)
+      pagename = 'hcoll_flags'
+      hcoll_name = 'hcoll_flagger'
+      hcoll = ns[hcoll_name] << Meq.HistoryCollect(output, verbose=True,
+                                                   input_index=input_index,
+                                                   top_label=hiid('visu'))
+      hcoll_nodes.append(hcoll)
+      MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
+      output = ns.reqseq << Meq.ReqSeq (children=[hcoll,output], result_index=1)
+      
    
    return output
 
