@@ -283,6 +283,18 @@ class Sixpack_Point(TDL_common.Super):
              self.__coh22_linear = Sixpack2linear (ns, self, name=name)
          return self.__coh22_linear
 
+ def clone(self,**pp):
+     """workaround to recreate a saved Sixpack object by using the 7 node
+        stubs, I,Q,U,V,Ra,Dec and the __sixpack. First we use 
+        the default constructor and call this method. We need this because
+        we do not have a constructor that can give the sixpack root.
+     """
+     pp.setdefault('sixpack',None)
+     pp.setdefault('ns',None)
+     # replace the root node stubs
+     self.__sixpack=pp['sixpack']
+     self.__ns=pp['ns']
+     return self
 
 ################################################################
 class Sixpack_Patch(TDL_common.Super):
@@ -348,7 +360,14 @@ class Sixpack_Patch(TDL_common.Super):
      """Make a 2x2 nominal cohaerency matrix of the specified polarisation representation"""
      return 'not supported yet'
 
-
+ def clone(self,**pp):
+     """workaround to recreate a saved Sixpack object by using the 7 node
+        stubs, I,Q,U,V,Ra,Dec and the __sixpack. We need this because
+        we do not have a constructor that can give all of these.
+        This does nothing because this is a patch
+     """
+     return self
+ 
 
 #######################################################################
 class Sixpack:
@@ -525,6 +544,9 @@ class Sixpack:
  # the following method is used to see if this object is a patch or a point source
  def ispoint(self):
      return self.__point
+
+ def clone(self,**kw):
+   return self.__obj.clone(**kw)
 
 #----------------------------------------------------------------------
 # Function dealing with conversion to a 2x2 cohaerency matrix
