@@ -1,7 +1,7 @@
 include 'table.g';
 
 
-flag_column_abs := function(msname, column_name, threshold)
+flag_column_abs := function(msname, column_name, threshold, erase=F)
 {
     t := table(msname, readonly=F);
 
@@ -20,10 +20,13 @@ flag_column_abs := function(msname, column_name, threshold)
         }
 
         dcol := t.getcol(column_name, start, nrows);
-        flagcol := t.getcol('FLAG', start,nrows);
         
         absdcol := dcol*conj(dcol);
-        fcol := flagcol | absdcol >= limit;
+        fcol := absdcol >= limit;
+        if(!erase){
+            flagcol := t.getcol('FLAG', start,nrows);
+            fcol |:= flagcol;
+        }
         fplane := fcol[1,,] | fcol[2,,] |fcol[3,,] | fcol[4,,];
         fcol[1,,] := fplane;
         fcol[2,,] := fplane;
