@@ -485,6 +485,7 @@ class PUnit:
   # root node namse of the IQUV,Ra,Dec subtrees
   if self.__sixpack!=None:
    newp.__sixpack={}
+   #print self.__sixpack
    if self.__sixpack.ispoint():
     newp.__sixpack['I']=self.__sixpack.stokesI().name
     newp.__sixpack['Q']=self.__sixpack.stokesQ().name
@@ -879,6 +880,7 @@ class LSM:
     self.__ns=ns
     my_dict=pickle.loads(tmpl.__root)
     self.__root=self.reconstruct(my_dict,ns)
+    self.__ns.Resolve()
    else:
      self.__root=None
 
@@ -889,7 +891,7 @@ class LSM:
     punit.setLSM(self)
     # now create the sixpack
     tmp_dict=punit.getSP()
-    print tmp_dict
+    #print tmp_dict
     if tmp_dict.has_key('patchroot'):
      my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
       ns=self.__ns, root=self.__ns[tmp_dict['patchroot']])
@@ -1218,6 +1220,9 @@ class LSM:
   if(self.__root!=None):
    self.__root.add_children(child)
 
+ # return the current NodeScope
+ def getNodeScope(self,ns):
+  return self.__ns
 
  # the following methods are used to 
  # serialize trees by brute force. In fact,
@@ -1273,8 +1278,8 @@ class LSM:
   # now we have created the child list
   # now deal with initrec()
   irec=myrec['initrec']
-  print 'My Rec==',myrec
-  print 'Init Rec==',irec
+  #print 'My Rec==',myrec
+  #print 'Init Rec==',irec
   myclass=myrec.pop('classname')
   fstr="ns['"+myname+"']<<Meq."+myclass.lstrip('Meq')+'(children='+str(chlist)+','
   irec_str=""
@@ -1300,11 +1305,11 @@ class LSM:
     irec_str=irec_str+" "+kname+"="+str(krec)+','
    else:
     if (kname=='default_funklet'):
-     print krec['coeff']
+     #print krec['coeff']
      irec_str=irec_str+" "+kname+"=meq.array("+str(krec['coeff'])+'),'
 
   total_str=fstr+irec_str+')'
-  print "Total=",total_str
+  #print "Total=",total_str
   exec total_str in globals(),locals()
   return ns[myname]
      
