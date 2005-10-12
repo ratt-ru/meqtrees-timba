@@ -633,7 +633,7 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     # by attaching them to a reqseq:
     solver_name = 'solver_'+solver_name        # used in reqseq name
     cc = [solver]                              # start a list of reqseq children (solver is first)
-    cc.extend(hcoll)                           # extend with historyCollect nodes
+    cc.extend(hcoll_nodes)                     # extend with historyCollect nodes
     cc.extend(dc_condeq)                       # extend the list with the condeq dataCollect node(s) 
     measured.graft(ns, cc, name=solver_name)
     MG_JEN_forest_state.object(measured, funcname)
