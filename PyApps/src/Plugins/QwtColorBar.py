@@ -19,8 +19,8 @@ class QwtColorBar(QwtPlot):
         # create copy of standard application font..
         font = QFont(QApplication.font());
         fi = QFontInfo(font);
-        # and scale it down to 50%
-        font.setPointSize(fi.pointSize()*0.5);
+        # and scale it down to 70%
+        font.setPointSize(fi.pointSize()*0.7);
         # apply font to QwtPlot
         self.setTitleFont(font);
         for axis in range(0,4):
