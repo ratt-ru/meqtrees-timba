@@ -7,6 +7,9 @@
 #  $Usage:  - is loaded by OLT.g
 #          
 #  $Log$
+#  Revision 1.2  2005/10/12 11:57:05  assendorp
+#  Changed IFFreq format
+#
 #  Revision 1.1  2005/06/08 12:14:19  assendorp
 #  Added to CVS
 #
@@ -1119,22 +1122,22 @@ showinforec := function(MS = 'help')
   print '----------------------------------------------------------------------';
   if (is_string(MS)) print 'INFO on MS=', MS;
   
-  nl := '\n                    ';
+  nl := ' ';
   names := field_names(r.infRec);
   for (i in [1:len(r.infRec)]){
     if (_mustShow(names[i])){
       if (split(r.infRec[i])[1] != '>>'){
-	v := r.infRec[i];
-	if (len(v) > 1){
-	  msg0 := as_string(v[1]);
-	  for (j in [2:len(v)]){
-	    msg0 := spaste(msg0, nl, as_string(v[j]));
-	  }
-	  msg := sprintf("%17s = %s\n",  names[i], msg0);
-	} else {
-	  msg := sprintf("%17s = %s\n",  names[i], as_string(r.infRec[i]));
-	}
-	print msg;
+        v := r.infRec[i];
+        if (len(v) > 1){
+          msg0 := as_string(v[1]);
+          for (j in [2:len(v)]){
+            msg0 := spaste(msg0, nl, as_string(v[j]));
+          }
+          msg := sprintf("%17s = %s\n",  names[i], msg0);
+        } else {
+          msg := sprintf("%17s = %s\n",  names[i], as_string(r.infRec[i]));
+        }
+        print msg;
       }
     }
   }
