@@ -439,8 +439,10 @@ int Solver::getResult (Result::Ref &resref,
   Result::Ref tmpres;
   Node::discoverSpids(tmpres,child_results_,req);
   // discard child results
-  for( uint i=0; i<child_results_.size(); i++ )
+  for( uint i=0; i<child_results_.size(); i++ ){
     child_results_[i].detach();
+  }
+  // ****   ALL SPIDS DISCOVERED   ***
   // ok, now we should have a spid map
   num_unknowns_ = 0;
   if( tmpres.valid() )
