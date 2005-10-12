@@ -593,15 +593,18 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
 
     # Make historyCollect nodes for the solver metrics 
     hcoll_nodes = []
-    input_index = hiid('VellSets/0/Value')          
-    hcoll_name = 'hcoll_'+solver_name
-    hcoll = ns[hcoll_name] << Meq.HistoryCollect(solver, verbose=True,
-                                                 input_index=input_index,
-                                                 top_label=hiid('visu'))
-    hcoll_nodes.append(hcoll)
-    pagename = 'hcoll_solver'
-    MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
-    MG_JEN_forest_state.bookmark(hcoll, viewer='Record Browser', page=pagename)
+    input_index = hiid('VellSets/0/Value')       # The default (not relelant for solver)
+    metrics = ['fit','rank','mu','stddev']
+    metrics = ['rank','mu']
+    pagename = 'hcoll_metrics_'+solver_name
+    for metric in metrics:
+         input_index = hiid('solver_result/metrics/0/'+metric)          
+         hcoll_name = 'hcoll_'+metric+'_'+solver_name
+         hcoll = ns[hcoll_name] << Meq.HistoryCollect(solver, verbose=True,
+                                                      input_index=input_index,
+                                                      top_label=hiid('visu'))
+         hcoll_nodes.append(hcoll)
+         MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
 
 
     # Make a bookmark for the solver plot:
