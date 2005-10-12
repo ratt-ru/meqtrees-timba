@@ -541,7 +541,7 @@ int Solver::getResult (Result::Ref &resref,
 
     // ****   CALL SOLVE AND CHECK CONVERGENCE  ****
     double fit = solve(solution,reqref,*pSolRec,pDebug,do_save_funklets_ && step == max_num_iter_-1);
-    converged = ((abs(fit) < min_epsilon_) && fit < 0.0);
+    converged = ((abs(fit) <= min_epsilon_) && fit <= 0.0);
     
     // copy solutions vector to allSolutions row
     incr_solutions(step,LoRange::all()) = B2A::refAipsToBlitz<double,1>(solution);
@@ -557,6 +557,7 @@ int Solver::getResult (Result::Ref &resref,
     lastreq.setId(next_rqid);
     // note that this is not a service request, since it doesn't imply 
     // any state changes
+    lastreq[FConverged] = converged;
     lastreq.copyRider(*reqref);
     lastreq.setNextId(request.nextId());
     ParmTable::lockTables();

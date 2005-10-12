@@ -58,43 +58,30 @@ CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int dep
   void CompiledFunklet::fill_values(double *value, double * pertValPtr[],double *xval,const Vells::Shape & res_shape ,const int dimN, const LoVec_double grid[],const std::vector<double> &perts, const std::vector<int> &spidIndex, const int makePerturbed, int &pos) const
 {
    
-  casa::AutoDiff<casa::Double> thederval;
     for(int i=0;i<res_shape[dimN];i++){
       xval[dimN]=grid[dimN](i);
       if(dimN<Ndim-1){
 	fill_values(value,pertValPtr,xval,res_shape,dimN+1,grid,perts,spidIndex,makePerturbed,pos);
       }
       else{//the real filling
+	value[pos] = itsFunction(xval);
 	if( makePerturbed ) 
 	  {
 	    
-	    thederval = itsDerFunction(xval);
-	    value[pos] = thederval.value();
-	    
-// 	    //profiling check
-// 	    casa::CompiledFunction<casa::Double> theFunction(itsFunction);
-// 	    value[pos] = theFunction(xval);
+	    const casa::Vector<casa::Double> deriv=itsDerFunction(xval).derivatives();
+
+
 	    for( uint ispid=0; ispid<spidIndex.size(); ispid++) 
 	      if( spidIndex[ispid] >= 0 ){
 		int d=1;
 		//fill perturbed
-		double deriv=thederval.derivatives()[ispid];
 		
 		for( int ipert=0; ipert<makePerturbed; ipert++ ,d=-d)
 		  {
 		    //	      cdebug(0)<<"der "<<ispid<<" : "<<deriv<<endl;
-		    ((pertValPtr[ipert*spidIndex.size()+ispid][pos])) = d*deriv*perts[ispid]+ thederval.value();
-// 		    theFunction.parameters()[ispid]+=d*perts[ispid];
-// 		    ((pertValPtr[ipert*spidIndex.size()+ispid][pos])) = theFunction(xval);
-// 		    theFunction.parameters()[ispid]-=d*perts[ispid];
-		
+		    ((pertValPtr[ipert*spidIndex.size()+ispid][pos])) = d*deriv[ispid]*perts[ispid]+ value[pos];
 		  }
 	      }
-	  }
-	else
-	  {//not solvable use simple function instead
-	    value[pos] = itsFunction(xval);
-	    
 	  }
 	pos++;
       }

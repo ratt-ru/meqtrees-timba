@@ -50,6 +50,7 @@ static std::vector<double> default_scale(defaultPolcScale,defaultPolcScale+MaxPo
 Polc::Polc(double pert,double weight,DbId id)
   : Funklet(pert,weight,id)
 {
+    (*this)[FClass]=objectType().toString();
  
 }
 
@@ -57,6 +58,7 @@ Polc::Polc(double pert,double weight,DbId id)
 Polc::Polc(double c00,double pert,double weight,DbId id)
   : Funklet(pert,weight,id)
 {
+  (*this)[FClass]=objectType().toString();
   setCoeff(c00);
 }
 
@@ -65,6 +67,7 @@ Polc::Polc(const LoVec_double &coeff,
            double pert,double weight,DbId id)
   : Funklet(1,&iaxis,&x0,&xsc,pert,weight,id)
 {
+  (*this)[FClass]=objectType().toString();
   setCoeff(coeff);
 }
 
@@ -73,6 +76,7 @@ Polc::Polc(const LoMat_double &coeff,
            double pert,double weight,DbId id)
   : Funklet(2,iaxis,offset,scale,pert,weight,id)
 {
+  (*this)[FClass]=objectType().toString();
   setCoeff(coeff);
 }
 
@@ -80,6 +84,8 @@ Polc::Polc(DMI::NumArray *pcoeff,
            const int iaxis[],const double offset[],const double scale[],
            double pert,double weight,DbId id)
 {
+  (*this)[FClass]=objectType().toString();
+
   ObjRef ref(pcoeff);
   FailWhen(pcoeff->elementType() != Tpdouble,"can't create Meq::Polc from this array: not double");
   FailWhen(pcoeff->rank()>MaxPolcRank,"can't create Meq::Polc from this array: rank too high");
@@ -96,12 +102,15 @@ Polc::Polc(DMI::NumArray *pcoeff,
 Polc::Polc (const DMI::Record &other,int flags,int depth)
   : Funklet(other,flags,depth)
 {
+  (*this)[FClass]=objectType().toString();
   validateContent(false); // not recursive
 }
 
 Polc::Polc (const Polc &other,int flags,int depth)
   : Funklet(other,flags,depth)
 {
+  (*this)[FClass]=objectType().toString();
+    
 }
 
 void Polc::validateContent (bool recursive)    
@@ -426,7 +435,6 @@ void Polc::changeSolveDomain(const Domain & solveDomain){
 int Polc::makeSolvable (int spidIndex){
   Thread::Mutex::Lock lock(mutex());
 
-
   if( ncoeff()<=4) return Funklet::makeSolvable(spidIndex) ;
   const LoShape shape =  getCoeffShape ();
   if(shape.size()<=1) return Funklet::makeSolvable(spidIndex) ; //only 1 dimension
@@ -440,6 +448,7 @@ int Polc::makeSolvable (int spidIndex){
   for(int xi=0;xi<NX;xi++){
     for(int yi=0;yi<NY;yi++)
       {
+
 	if(xi+yi > maxRank){
 	  coeff[xi*NY+yi]=0.;
 	  mask[xi*NY+yi]=false;

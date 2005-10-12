@@ -28,6 +28,7 @@
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 #include <MEQ/MeqVocabulary.h>
+#include <MeqNodes/AID-MeqNodes.h>
 #include <Common/Debug.h>
 #include <Common/Lorrays.h>
 #include <casa/BasicMath/Math.h>
@@ -60,7 +61,9 @@ namespace Meq {
     FSolveDomain = AidSolve|AidDomain,
     FUsePrevious = AidUse|AidPrevious,
     FTileSize = AidTile|AidSize,
-    FTiling = AidTiling;
+    FTiling = AidTiling,
+    FConverged  = AidConverged;
+
     
 
 
@@ -70,6 +73,7 @@ namespace Meq {
       auto_save_(false),
       tiled_ (false),
       _use_previous(true),
+      converged_(false),
       parmtable_(0),
       domain_depend_mask_(0),
       solve_depend_mask_(0),
@@ -93,6 +97,7 @@ namespace Meq {
       auto_save_ (false),
       tiled_ (false),
       _use_previous(true),
+      converged_(false),
       name_      (name),
       parmtable_ (table),
       default_funklet_(defaultValue),
@@ -154,7 +159,7 @@ namespace Meq {
 	  {
 
 	    //use previous funklet, unless user really wants default??
-	    if(_use_previous && its_funklet_.valid())
+	    if(_use_previous && converged_ && its_funklet_.valid())
 	      {
 
 		funkletref <<= its_funklet_;
@@ -436,6 +441,7 @@ namespace Meq {
     DMI::Record &map = ref()[FSpidMap] <<= new DMI::Record; 
     for( uint i=0; i<spids.size(); i++ ){
       map[spids[i]] = defrec; 
+      cdebug(2)<<"spid "<<i<<" = "<<spids[i]<<endl;
     }
     return domain_depend_mask_|solve_depend_mask_;
   }
@@ -548,6 +554,7 @@ namespace Meq {
     rec[FParmName].get(name_,initializing);
     rec[FAutoSave].get(auto_save_,initializing);
     rec[FUsePrevious].get(_use_previous,initializing);
+    rec[FConverged].get(converged_,initializing);
     rec[FSolvable].get(solvable_,initializing);
     rec[FIntegrated].get(integrated_,initializing);
     
@@ -670,6 +677,9 @@ namespace Meq {
     int retcode = Node::processCommands(resref,rec,reqref);
     bool saved  = false;
   
+    reqref[FConverged].get(converged_,0);
+    wstate()[FConverged].replace()=converged_;
+
     // Is an Update.Values command specified? use it to update solve funklets
     DMI::Record::Hook hset(rec,FUpdateValues);
     if( hset.exists() )
