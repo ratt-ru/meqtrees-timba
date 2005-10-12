@@ -1315,13 +1315,13 @@ class LSM:
      irec_str=irec_str+" "+kname+"=meq.array(default_funklet_value),"
      # deserialize the value
      default_funklet_value=pickle.loads(krec['coeff'])
-     print default_funklet_value
+     #print default_funklet_value
 
   total_str=fstr+irec_str+')'
   # MeqParm is special
   if myclass.lstrip('Meq')=='Parm':
    total_str="ns['"+myname+"']<<Meq.Parm(default_funklet_value)"
-  print "Total=",total_str
+  #print "Total=",total_str
   exec total_str in globals(),locals()
   return ns[myname]
      
