@@ -32,7 +32,7 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
    # Station positions:
    pkeys = ['xpos','ypos','zpos']
    vrefpos = record(xpos=0, ypos=0, zpos=0)          # reference pos value
-   dcoll = record(xpos=[], ypos=[], zpos=[], dz_pos=[], xvsy=[])
+   dcoll = record(xpos=[], ypos=[], zpos=[], xvsy=[], zvsy=[])
 
    rr.sep9A = sep9A                                  # separation (m) between 9 and A(10)
    rr.stations = stations
@@ -43,6 +43,7 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
    node_uvw = dict()
    xyz0 = dict()
    first = True
+   zoffset = 0.001                      
    for station in stations:
       skey = TDL_radio_conventions.station_key(station)
       rr.station_keys.append(skey)                   # list of station keys
@@ -53,7 +54,10 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
       for pkey in pkeys:
           name = pkey+':s='+skey
           value = 0.0                                # dummy position (m) 
-          if pkey=='ypos':
+          if pkey=='zpos':                           # non-zero, but small (mm) 
+             zoffset *= -1                           # toggle sign
+             value = zoffset*station
+          if pkey=='ypos':             
              value = -(station*144)                  # 1D E-W array (WSRT-like)
              sep09 = 9*144                           # separation (m) between 0 and 9
              if station==10: value = -(sep09 + rr.sep9A)   
@@ -92,13 +96,13 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
       # Make 'complex' node for plotting (relative) x vs y:
       key = 'xvsy'                                   # dx vs dy
       name = key+':s='+skey
-      node = ns[name] << Meq.ToComplex(dxyz['xpos'],dxyz['ypos'])
+      node = ns[name] << Meq.ToComplex(dxyz['ypos'],dxyz['xpos'])
       dcoll[key].append(node)                        # collect for dcoll nodes
 
-      # Make 'complex' node for plotting (relative) z:
-      key = 'dz_pos'                                 # dz
+      # Make 'complex' node for plotting (relative) z vs y:
+      key = 'zvsy'                                   # dx vs dy
       name = key+':s='+skey
-      node = ns[name] << Meq.ToComplex(0.0,dxyz['zpos'])
+      node = ns[name] << Meq.ToComplex(dxyz['ypos'],dxyz['zpos'])
       dcoll[key].append(node)                        # collect for dcoll nodes
 
       # Tensor node of 3 station position coordinates:
@@ -255,19 +259,20 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
    attrib = record(plot=record(), tag=key)
    attrib['plot'] = record(type='realvsimag', title=' array configuration (x vs y)',
                            color=color_xyz,
-                           x_axis='xpos (N-S, relative)',
-                           y_axis='ypos (E-W, relative)')
+                           y_axis='xpos (N-S, relative)',
+                           x_axis='ypos (E-W, relative)')
    name = 'dcoll_MS_'+key
    node = ns[name] << Meq.DataCollect(children=dcoll[key], attrib=attrib,
                                       top_label=hiid('visu'))
    rr.dcoll[key] = node.name
 
-
-   # ------------- Station relative z-position (fake complex):
-   key ='dz_pos'
+   # ------------- Station zpos vs ypos (fake complex):
+   key = 'zvsy'
    attrib = record(plot=record(), tag=key)
-   attrib['plot'] = record(type='realvsimag', title=' station z_pos (relative)',
-                           color=color_xyz, y_axis=key+' (relative)', x_axis='...')
+   attrib['plot'] = record(type='realvsimag', title=' array configuration (z vs y)',
+                           color=color_xyz,
+                           y_axis='zpos (relative)',
+                           x_axis='ypos (E-W, relative)')
    name = 'dcoll_MS_'+key
    node = ns[name] << Meq.DataCollect(children=dcoll[key], attrib=attrib,
                                       top_label=hiid('visu'))
@@ -296,7 +301,7 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
    rr.dcoll[key] = node.name
 
 
-   # ------------- Ifr ucoord vs vcoord (fake complex):
+   # ------------- Ifr ucoord vs wcoord (fake complex):
    key = 'uvsw'
    attrib = record(plot=record(), tag=key)
    attrib['plot'] = record(type='realvsimag', title=' u vs w',
@@ -305,18 +310,6 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
    node = ns[name] << Meq.DataCollect(children=dcoll[key], attrib=attrib,
                                       top_label=hiid('visu'))
    rr.dcoll[key] = node.name
-
-
-   # ------------- Ifr w-coord (fake complex):
-   if False:
-      key = 'wcoord'
-      attrib = record(plot=record(), tag=key)
-      attrib['plot'] = record(type='realvsimag', title=' w-coordinates',
-                              color=color_uvw, x_axis='...', y_axis='w_coord')
-      name = 'dcoll_MS_'+key
-      node = ns[name] << Meq.DataCollect(children=dcoll[key], attrib=attrib,
-                                         top_label=hiid('visu'))
-      rr.dcoll[key] = node.name
 
 
    # ------------- Baseline lengths (uvw):

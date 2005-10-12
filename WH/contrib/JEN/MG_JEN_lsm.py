@@ -44,14 +44,14 @@ from Timba.LSM.LSM_GUI import *
 from Timba.Contrib.JEN import MG_JEN_Sixpack
 from Timba.Contrib.SBY import MG_SBY_grow_tree
 
-from Timba.Contrib.JEN import MG_JEN_Cohset
 
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
 
 MG = MG_JEN_exec.MG_init('MG_JEN_lsm.py',
-                         last_changed='h29sep2005',
-                         lsm='lsm_current.lsm',          # the lsm to be used  
+                         last_changed='h12oct2005',
+                         lsm='lsm_current.lsm',                # specific lsm to be loaded         
+                         lsm_current='lsm_current.lsm',        # default (current) lsm  
                          trace=False)        
 
 # Check the MG record, and replace any referenced values
@@ -86,36 +86,9 @@ def _define_forest (ns):
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)  
 
-   # Exit here if only a lsm is required (tdl_343)
-   # return MG_JEN_exec.on_exit (ns, MG, cc)
-
    # Load the specified lsm into the global lsm object:
    global lsm
-   lsm.load(MG['lsm'],ns)  
-   return MG_JEN_exec.on_exit (ns, MG, cc)
-
-   # Make an empty vector of Cohsets:
-   cs = []
-
-   # Obtain the Sixpacks of the brightest punits.
-   # Turn the point-sources in Cohsets with DFT KJonesets
-   plist = lsm.queryLSM(count=2)
-   for punit in plist: 
-      sp = punit.getSP()            # get_Sixpack()
-      sp.display()
-      if sp.ispoint():                # point source (Sixpack object)
-         # node = sp.iquv()
-         # node = sp.coh22(ns) 
-         cs.append(MG_JEN_Cohset.simulate(ns, ifrs, Sixpack=sp, jones=['K']))
-      else:	                    # patch (not a Sixpack object!)
-         node = sp.root()
-      cc.append(node)
-
-   # Add the point-source Cohsets together, doing the DFT:
-   cs[0].add(ns, cs, exclude_itself=True)
-
-   # Tie the trees for the different ifrs together in an artificial 'sink':
-   cc.append(cs[0].simul_sink(ns))
+   # lsm.load(MG['lsm'],ns)  
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, MG, cc)
@@ -207,7 +180,7 @@ def lsm_343(ns):
    print "Inserted %d sources" % linecount 
    lsm.setNodeScope(ns)                       # remember node scope....(!)
    lsm.save('3c343.lsm')
-   lsm.save('lsm_current.lsm')
+   lsm.save(MG['lsm_current'])                        # 
    return lsm
 
 
