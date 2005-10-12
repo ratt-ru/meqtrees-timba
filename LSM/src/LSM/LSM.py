@@ -1234,7 +1234,7 @@ class LSM:
   """ recursively parse init record 
       and construct a dictionary
   """
-  #print myrec
+  print myrec
   my_keys=myrec.keys()
   new_dict={}
   for kk in my_keys:
@@ -1242,13 +1242,15 @@ class LSM:
      new_dict[kk]=self.rec_parse(myrec[kk])
    elif isinstance(myrec[kk],numarray.numarraycore.NumArray): # meq.array
      # just serialize the value
-     new_dict[kk]=pickle.dumps(myrec[kk])
+     #new_dict[kk+'_isarray']=pickle.dumps(myrec[kk])
      #print myrec[kk].__class__
      #print pickle.dumps(myrec[kk])
-     #if (myrec[kk].size()>1):
+     if (myrec[kk].size()>1):
+      new_dict[kk+'_isarray']=pickle.dumps(myrec[kk])
      # new_dict[kk]=myrec[kk].tolist()
-     #else: # size 1 array
-     # new_dict[kk]=myrec[kk]
+     else: # size 1 array
+      new_dict[kk+'_isscalar']=myrec[kk]
+     print new_dict
    else:
      new_dict[kk]=myrec[kk]
   return new_dict
@@ -1310,18 +1312,22 @@ class LSM:
     irec_str=irec_str+" "+kname+"="+str(krec)+','
    else:
     if (kname=='default_funklet'):
-     #print krec['coeff']
-     #irec_str=irec_str+" "+kname+"=meq.array("+str(krec['coeff'])+'),'
-     irec_str=irec_str+" "+kname+"=meq.array(default_funklet_value),"
-     # deserialize the value
-     default_funklet_value=pickle.loads(krec['coeff'])
-     #print default_funklet_value
+     if krec.has_key('coeff_isarray'):
+      irec_str=irec_str+" "+kname+"=default_funklet_value,"
+      # deserialize the value
+      default_funklet_value=pickle.loads(krec['coeff_isarray'])
+     elif krec.has_key('coeff_isscalar'):
+      irec_str=irec_str+" "+kname+"=default_funklet_value,"
+      # deserialize the value
+      default_funklet_value=krec['coeff_isscalar']
+     print default_funklet_value
+
 
   total_str=fstr+irec_str+')'
   # MeqParm is special
   if myclass.lstrip('Meq')=='Parm':
    total_str="ns['"+myname+"']<<Meq.Parm(default_funklet_value)"
-  #print "Total=",total_str
+  print "Total=",total_str
   exec total_str in globals(),locals()
   return ns[myname]
      
