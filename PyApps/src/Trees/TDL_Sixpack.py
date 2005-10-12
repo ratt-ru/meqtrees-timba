@@ -436,11 +436,11 @@ class Sixpack:
    """
    pp.setdefault('root',None)
    if pp['root']!=None: # create a Sixpack_Patch
-    print "Create Patch"
+    #print "Create Patch"
     self.__obj=Sixpack_Patch(**pp)
     self.__point=False
    else:
-    print "Create Point"
+    #print "Create Point"
     self.__obj=Sixpack_Point(**pp)
     self.__point=True
   
