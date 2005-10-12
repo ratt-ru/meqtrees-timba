@@ -206,14 +206,19 @@ def simulate(ns, ifrs, Sixpack, **pp):
            elif jones=='F':
                jseq.append(MG_JEN_Joneset.FJones (nsim, scope=scope, stations=stations, Sixpack=Sixpack, 
                                                   solvable=False, RM=pp.RM))
-           elif jones=='K':
-               jseq.append(MG_JEN_Joneset.KJones (nsim, scope=scope, stations=stations, Sixpack=Sixpack)) 
            elif jones=='D':
                jseq.append(MG_JEN_Joneset.DJones_WSRT (nsim, scope=scope, stations=stations, Sixpack=Sixpack, 
                                                        solvable=False, PZD=pp.PZD,
                                                        fdeg_dang=pp.fdeg_dang, fdeg_dell=pp.fdeg_dell,
                                                        tdeg_dang=pp.tdeg_dang, tdeg_dell=pp.tdeg_dell,
                                                        stddev_dang=pp.stddev_dang, stddev_dell=pp.stddev_dang))
+           elif jones=='K':
+               # NB: Note that we are NOT using nodescope nsim here, because the array coordinate
+               #     nodes (for uvw) have predefined names). This probably means that we cannot
+               #     solve for station positions until we have addressed this problem....
+               #     In any case, KJones does not produce any solvegroups....
+               jseq.append(MG_JEN_Joneset.KJones (ns, scope=scope, stations=stations, Sixpack=Sixpack)) 
+
            else:
                print '** jones not recognised:',jones,'from:',pp.jones
                

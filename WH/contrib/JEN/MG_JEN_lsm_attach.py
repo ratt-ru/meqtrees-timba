@@ -45,13 +45,16 @@ from Timba.Contrib.JEN import MG_JEN_Sixpack
 from Timba.Contrib.SBY import MG_SBY_grow_tree
 
 from Timba.Contrib.JEN import MG_JEN_Cohset
+from Timba.Trees import TDL_Cohset
+
 
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
 
 MG = MG_JEN_exec.MG_init('MG_JEN_lsm_attach.py',
                          last_changed='h29sep2005',
-                         lsm_current='lsm_current.lsm',       
+                         lsm_current='lsm_current.lsm', 
+                         stations=range(2),      
                          trace=False)        
 
 # Check the MG record, and replace any referenced values
@@ -88,10 +91,14 @@ def _define_forest (ns):
 
    # Load the specified lsm into the global lsm object:
    global lsm
-   lsm.load(MG['lsm_current'],ns)  
+   lsm.load(MG['lsm_current'],ns) 
+   # lsm.display() 
 
    # Make an empty vector of Cohsets:
    cs = []
+ 
+   ifrs = TDL_Cohset.stations2ifrs(MG['stations'])
+   # stations = TDL_Cohset.ifrs2stations(ifrs)
 
    # Obtain the Sixpacks of the brightest punits.
    # Turn the point-sources in Cohsets with DFT KJonesets
@@ -105,7 +112,7 @@ def _define_forest (ns):
          cs.append(MG_JEN_Cohset.simulate(ns, ifrs, Sixpack=sp, jones=['K']))
       else:	                    # patch (not a Sixpack object!)
          node = sp.root()
-      cc.append(node)
+         cc.append(node)
 
    # Add the point-source Cohsets together, doing the DFT:
    cs[0].add(ns, cs, exclude_itself=True)
