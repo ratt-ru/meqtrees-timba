@@ -546,7 +546,8 @@ class Sixpack:
      return self.__point
 
  def clone(self,**kw):
-   return self.__obj.clone(**kw)
+   self.__obj.clone(**kw)
+   return self
 
 #----------------------------------------------------------------------
 # Function dealing with conversion to a 2x2 cohaerency matrix
