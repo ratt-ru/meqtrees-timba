@@ -847,7 +847,7 @@ class LSM:
    # serialize the root
    if self.__root!=None:
     gdict={}
-    self.traverse(self.__root,gdict)
+    traverse(self.__root,gdict)
     g.__root=pickle.dumps(gdict)
    else:
     g.__root=None
@@ -879,7 +879,7 @@ class LSM:
      ns=NodeScope()
     self.__ns=ns
     my_dict=pickle.loads(tmpl.__root)
-    self.__root=self.reconstruct(my_dict,ns)
+    self.__root=reconstruct(my_dict,ns)
     self.__ns.Resolve()
    else:
      self.__root=None
@@ -1225,126 +1225,6 @@ class LSM:
  # return the current NodeScope
  def getNodeScope(self,ns):
   return self.__ns
-
- # the following methods are used to 
- # serialize trees by brute force. In fact,
- # no serialization is done, but only the essence required
- # to recreate the whole tree is stored as (recursive) dictionaries.
- def rec_parse(self,myrec):
-  """ recursively parse init record 
-      and construct a dictionary
-  """
-  print myrec
-  my_keys=myrec.keys()
-  new_dict={}
-  for kk in my_keys:
-   if isinstance(myrec[kk],meq.record):
-     new_dict[kk]=self.rec_parse(myrec[kk])
-   elif isinstance(myrec[kk],numarray.numarraycore.NumArray): # meq.array
-     # just serialize the value
-     #new_dict[kk+'_isarray']=pickle.dumps(myrec[kk])
-     #print myrec[kk].__class__
-     #print pickle.dumps(myrec[kk])
-     if (myrec[kk].size()>1):
-      new_dict[kk+'_isarray']=pickle.dumps(myrec[kk])
-     # new_dict[kk]=myrec[kk].tolist()
-     else: # size 1 array
-      new_dict[kk+'_isscalar']=myrec[kk]
-     print new_dict
-   else:
-     new_dict[kk]=myrec[kk]
-  return new_dict
-
- def traverse(self,root,node_dict):
-  chlist=root.children
-  name=root.name
-  classname=root.classname
-  if not node_dict.has_key(name):
-   node_dict[name]={'name':name, 'classname':classname, 'initrec':{},\
-        'children':[]}  
-   ir=root.initrec()
-   print ir
-   myrec=node_dict[name]
-   myrec['initrec']=self.rec_parse(ir)
-   #print node_dict[name]
-   # if any children, traverse
-   for idx,ch in chlist:
-    self.traverse(ch,node_dict)
-    myrec['children'].append(ch.name)
-
- def create_node_stub(self,mydict,stubs,ns,myname):
-  myrec=mydict[myname]
-  # first, if this node has any children
-  # and if they have not being created,
-  # create them
-  chlist=myrec['children']
-  stublist=[]
-  for ch in chlist:
-   if not stubs.has_key(ch):
-    stubs[ch]=self.create_node_stub(mydict,stubs,ns,ch)
-   stublist.append(stubs[ch])
-  # now we have created the child list
-  # now deal with initrec()
-  irec=myrec['initrec']
-  #print 'My Rec==',myrec
-  #print 'Init Rec==',irec
-  myclass=myrec.pop('classname')
-  if len(chlist)>0:
-   fstr="ns['"+myname+"']<<Meq."+myclass.lstrip('Meq')+'(children='+str(chlist)+','
-  else:
-   fstr="ns['"+myname+"']<<Meq."+myclass.lstrip('Meq')+'('
-  irec_str=""
-  # Remove JUNK! from initrecord()
-  # remove class field
-  if irec.has_key('class'):
-   irec.pop('class')
-  # remove node_desctiption
-  if irec.has_key('node_description'):
-   irec.pop('node_description')
-  # remove name
-  if irec.has_key('name'):
-   irec.pop('name')
-  # remove children
-  if irec.has_key('children'):
-   irec.pop('children')
-
-
-
-  for kname in irec.keys():
-   krec=irec[kname]
-   if not isinstance(krec,dict):
-    irec_str=irec_str+" "+kname+"="+str(krec)+','
-   else:
-    if (kname=='default_funklet'):
-     if krec.has_key('coeff_isarray'):
-      irec_str=irec_str+" "+"meq.polclog(default_funklet_value.tolist()),"
-      # deserialize the value
-      default_funklet_value=pickle.loads(krec['coeff_isarray'])
-      print dir(default_funklet_value)
-     elif krec.has_key('coeff_isscalar'):
-      irec_str=irec_str+" "+"default_funklet_value,"
-      # deserialize the value
-      default_funklet_value=krec['coeff_isscalar']
-     print default_funklet_value
-
-
-  total_str=fstr+irec_str+')'
-  # MeqParm is special
-  #if myclass.lstrip('Meq')=='Parm':
-  # total_str="ns['"+myname+"']<<Meq.Parm(default_funklet_value)"
-  print "Total=",total_str
-  exec total_str in globals(),locals()
-  return ns[myname]
-     
- 
- # the basic assumption with the following method is 
- # the forest has no circular references
- def reconstruct(self,my_dict,ns):
-  # temp dictionary to store created node stubs
-  nodestub_dict={}
-  for sname in my_dict.keys():
-   if not nodestub_dict.has_key(sname):
-     nodestub_dict[sname]=self.create_node_stub(my_dict,nodestub_dict,ns,sname)
 
 
 #########################################################################
