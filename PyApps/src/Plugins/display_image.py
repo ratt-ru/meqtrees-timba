@@ -1952,6 +1952,7 @@ class QwtImageDisplay(QwtPlot):
       if flip_axes:
         axes = arange(incoming_plot_array.rank)[::-1]
         plot_array = transpose(incoming_plot_array, axes)
+        _dprint(3, 'transposed plot array ', plot_array, ' has shape ', plot_array.shape)
 
 # figure out type and rank of incoming array
 # for vectors, this is a pain as e.g. (8,) and (8,1) have
@@ -2084,6 +2085,7 @@ class QwtImageDisplay(QwtPlot):
           self.display_image(plot_array)
 
       if self.is_vector == True:
+        _dprint(3, ' we are plotting a vector')
 
 # remove any markers
         self.removeMarkers()
@@ -2117,11 +2119,16 @@ class QwtImageDisplay(QwtPlot):
 
 
         if self._vells_plot:
+# we have a vector so figure out which axis we are plotting
           self.x_parm = self.first_axis_parm
           self.y_parm = self.second_axis_parm
           if flip_axes:
             self.x_parm = self.second_axis_parm
             self.y_parm = self.first_axis_parm
+# now do a check in case we have selected the wrong plot axis
+          if self.vells_axis_parms[self.x_parm][3] == 1 and self.vells_axis_parms[self.y_parm][3] > 1:
+            self.x_parm = self.first_axis_parm
+            self.y_parm = self.second_axis_parm
           delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
           x_step = delta_vells / num_elements 
           start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
@@ -2240,7 +2247,6 @@ class QwtImageDisplay(QwtPlot):
             self.curve(self.real_flag_vector).setEnabled(False)
 
 # do the replot
-        self.replot()
         self.replot()
         _dprint(2, 'called replot in array_plot');
     # array_plot()
