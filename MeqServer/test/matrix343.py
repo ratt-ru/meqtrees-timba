@@ -206,13 +206,13 @@ def forest_station_patch_jones(ns, station, patch_name, mep_table_name):
                 gain_polc  = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
                 phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
             else:
-                gain_polc  = create_polc_ft(degree_f=0, degree_t=1, c00=1.0)
+                gain_polc  = create_polc_ft(degree_f=1, degree_t=2, c00=1.0)
                 phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
                 pass
             ns.JA(station, patch_name, elem) << Meq.Parm(gain_polc,
                                                           table_name=mep_table_name,
                                                           node_groups='Parm',
-                                                          tiling=record(time=20))
+                                                          tiling=record(time=100))
             ns.JP(station, patch_name, elem) << Meq.Parm(phase_polc,
                                                           table_name=mep_table_name,
                                                           node_groups='Parm',
@@ -469,7 +469,7 @@ def create_outputrec(output_column='CORRECTED_DATA'):
     return outputrec
 
 
-def create_solver_defaults(num_iter=20, epsilon=1e-5, solvable=[]):
+def create_solver_defaults(num_iter=30, epsilon=1e-4, solvable=[]):
     solver_defaults=record()
     solver_defaults.num_iter     = num_iter
     solver_defaults.epsilon      = epsilon
@@ -508,6 +508,8 @@ def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
         publish_node_state(mqs, s)
         pass
     
+    publish_node_state(mqs, 'solver')
+
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
@@ -543,6 +545,7 @@ def _tdl_job_phase_solution_with_given_fluxes(mqs, parent):
     print solvables
     
     publish_node_state(mqs, 'GP:9:11')
+    publish_node_state(mqs, 'solver')
     
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
@@ -565,7 +568,7 @@ def _tdl_job_phase_solution_with_given_fluxes(mqs, parent):
 
 def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=60)
+    inputrec        = create_inputrec(msname, tile_size=100)
     outputrec       = create_outputrec()
 
     source_list  = create_initial_source_model()
@@ -584,6 +587,7 @@ def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
     print solvables
     
     publish_node_state(mqs, 'JA:9:centre:11')
+    publish_node_state(mqs, 'solver')
     
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
@@ -592,6 +596,40 @@ def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
                     inputinit=inputrec, outputinit=outputrec)
 
     pass
+
+
+
+
+
+def _tdl_job_phase_solution_with_given_fluxes_edge(mqs, parent):
+    msname          = '3C343.MS'
+    inputrec        = create_inputrec(msname, tile_size=10)
+    outputrec       = create_outputrec()
+
+    source_list  = create_initial_source_model()
+    station_list = range(1,15)
+    patch_list   = ['centre', 'edge']
+    print inputrec
+    print outputrec
+
+    solvables = []
+    for station in station_list[1:]:
+        solvables.append('JP:'+str(station)+':'+patch_list[1]+':11')
+        solvables.append('JP:'+str(station)+':'+patch_list[1]+':22')
+        pass
+    print solvables
+    
+    publish_node_state(mqs, 'JP:9:edge:11')
+    publish_node_state(mqs, 'solver')
+    
+    solver_defaults = create_solver_defaults(solvable=solvables)
+    print solver_defaults
+    set_MAB_node_state(mqs, 'solver', solver_defaults)
+    mqs.init(record(mandate_regular_grid=False),\
+                    inputinit=inputrec, outputinit=outputrec)
+
+    pass
+
 
 
 
