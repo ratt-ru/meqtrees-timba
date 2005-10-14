@@ -16,7 +16,7 @@ import Timba.GUI.app_proxy_gui
 from Timba import Grid
 from numarray import *
 from Timba.Meq import meq
-from time import sleep
+from time import sleep, time
 from qt import *
 from string import *
 from operator import isNumberType
@@ -581,12 +581,12 @@ class MSinfoWnd(QDialog):
 #
   def setMS(self, MS):
     self.lblMS.setText('TEST - Info on: '+ MS);
-    syscmd = 'glish -l MSinfo.g ' + MS + ' > MSinfo.txt';
-#    print 'DEBUG - ', syscmd;
+    tmpfile = '/tmp/' + os.getenv('USER')+str(int(time()))+'.txt';
+    print 'RxA:', tmpfile;
+    syscmd = 'glish -l MSinfo.g ' + MS + ' > ' + tmpfile;
     try: os.system(syscmd);
     except: pass;
     p = open('MSinfo.txt');
-#    print 'DEBUG - ', p;
     rtnval = 'Not Found';
     cnt = 0;
     inData = False;
@@ -614,6 +614,7 @@ class MSinfoWnd(QDialog):
     mts = nrows / ifbands / 105;
     self.parent.StrData.MaxTSize = mts;
     self.parent.StrData.updateGui();
+    os.remove(tmpfile);
 
 #======================================================================
 # MAIN class
@@ -763,6 +764,7 @@ class StreamController (browsers.GriddedPlugin):
     if not self._streamrec:
       meqds.subscribe_forest_state(self.update_forest_state);
       meqds.request_forest_state();
+      self.update_forest_state(meqds.get_forest_state());
     
   def wtop(self):
     return self._wtop;
@@ -770,7 +772,7 @@ class StreamController (browsers.GriddedPlugin):
 #----------------------------------------------------------------------
 # Update the stream info - this will be called from outside
 #
-  def update_forest_state (self,fst):
+  def update_forest_state (self, fst):
 
 # 
 # once we've received data, we ignore all further updates
