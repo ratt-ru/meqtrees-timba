@@ -6,7 +6,7 @@
 \paperID{P173}
 
 \title{Implementing Arbitrary Measurement Equations With The MeqTree Module}
-\titlemark{mplementing Arbitrary MEs With MeqTrees}
+\titlemark{Implementing Arbitrary MEs With MeqTrees}
 
 \author{O.M. Smirnov \& J.E. Noordam}
 \affil{ASTRON, P.O. Box 2, 7990AA Dwingeloo, The Netherlands}
@@ -36,60 +36,54 @@
 % "radio" as the minor keyword.  The colon is used to introduce another
 % level into the index.
 
-\keywords{  }
+\keywords{astronomy: radio, calibration, selfcal, MeqTrees, interferometry,
+polarimetry}
 
 \begin{abstract}           
 
-A Measurement Equation is a mathematical model of an instrument (e.g. a radio
-telescope) and the observed object(s). It can be used to predict  the data
+A Measurement Equation (ME) is a mathematical model of an instrument (e.g. a
+radio telescope) and the observed object(s). It can be used to predict  the data
 measured with the instrument. In general, calibration of an observation (e.g.
 selfcal in radio astronomy) involves solving for parameters of an ME in some
-shape or form. Most calibration packages implicitly or explicitly implement some
-specific form of the ME. By sheer necessity, this involves making some
-simplifying assumptions about the instrument and the observation. As new
-instruments come on-line (WSRT LFFEs, LOFAR, etc.) we find ourselves pushing the
-limits of these assumptions.
-
-The MeqTree module provides a flexible system to implement Measurement Equations
-of arbitrary structure and complexity, and to solve for arbitrary subsets of
-their parameters. The presentation will demonstrate how the use of a more
-complex ME gives better results than using the ones that are implicit in
-existing radio astronomy reduction packages.
+shape or form, by comparing observed and predicted data. Most calibration
+packages implicitly or explicitly implement some specific form of the ME. By
+sheer necessity, this involves making some simplifying assumptions about the
+instrument and the observation. As new instruments come on-line (WSRT LFFEs,
+LOFAR, etc.) we find ourselves pushing the limits of these assumptions. The
+MeqTree module provides a flexible system to implement MEs of arbitrary
+structure and complexity, and to solve for arbitrary subsets of their
+parameters. 
 
 \end{abstract}
 
 \section{Introduction}
 
-A Measurement Equation (ME) predicts the data measured with a particular
-instrument. It is a mathematical model of the instrument (e.g. a radio
-telescope) and the observed object(s). 
-
-MEs play a crucial role in the calibration of interferometric observations,
-since these always require model fitting in some shape or form. The traditional
-selfcal algorithm used in radioastronomy is a good example. In its simplest
-formulation, it models the sky by a single point source, and the instrument by a
-single gain/phase term per each antenna. Despite the apparent simplicity of this
-model, it has served radioastronomers in good stead for over two decades!
+Measurement Equations (MEs) play a crucial role in the calibration of
+interferometric observations, since those always require model fitting in some
+shape or form. The traditional selfcal algorithm used in radioastronomy is a
+good example. In its simplest formulation, it models the sky by a single point
+source, and the instrument by a single gain/phase term per each antenna. Despite
+the apparent simplicity of this model, it has served radioastronomers in good
+stead for over two decades.
 
 In its closed form, the ME of an interferometer has been formulated by Hamaker
-et al. (??). For practical calibration purposes, the ME has to be restated using
-a limited number of parameters. Calibration with an ME then follows the
+et al. (1996). For practical calibration purposes, the ME has to be restated
+using a limited number of parameters. Calibration with an ME then follows the
 classical model-fitting loop: initialize parameters from apriori guesses -- use
 the ME to predict observables -- compare to data -- adjust parameters -- repeat
 to a (hopefully) satisfactory fit.
 
-Thus, all existing calibration packages implicitly or explicitly implement an ME
-in some simplified and {\em fixed} form. However, a fixed ME makes it very hard
-if not impossible to calibrate for effects that are unaccounted for by the
-software author. Even older instruments can push the envelope of existing
-packages, but new instruments such as LOFAR and SKA make the situation worse by
-magnitudes. These instruments require very sophisticated models with many ME
-parameters which current packages are simply not equipped to handle. Moreover,
-at the moment we can only guess which computationally tractable formulations of
-the ME will actually work, and we can expect to continue experimenting with
-different MEs as these instruments come on-line.
-
-Clearly, what is needed is a {\em toolkit} for constructing and fitting MEs. 
+All existing calibration packages implicitly or explicitly implement an ME in
+some simplified and {\em fixed} form. However, a fixed ME makes it very hard or
+impossible to calibrate for effects that are unaccounted for by the software
+author. Even older instruments can push the envelope of existing packages, but
+new instruments such as LOFAR and SKA make the situation worse by magnitudes.
+These instruments require sophisticated models with many ME parameters which
+current packages are simply not equipped to provide. Moreover, at the moment we
+can only guess which computationally tractable formulations of the ME will
+actually work, and we can expect to continue experimenting with different MEs as
+these instruments come on-line. Clearly, what is needed is a {\em toolkit} for
+constructing and fitting MEs. 
 
 \section{The MeqTree Concept}
 
@@ -100,7 +94,7 @@ expression, and as such can be represented by a tree.
 \subsection{Constructing MEs}
 
 MeqTrees are constructed out of {\em MeqNodes}.\footnote{Technically speaking,
-MeqTrees implement {\em directed acyclic graphs} since multiple parent nodes are
+MeqTrees are {\em directed acyclic graphs}, since multiple parent nodes are
 allowed. We retain the term ``trees'' for historical and aesthetic reasons.}
 Nodes receive {\em MeqRequests} from their parents and pass them on to their
 children, get {\em MeqResults} in return, perform some operation on them, and
@@ -112,11 +106,11 @@ optional perturbed values.}
 A typical MeqNode represents some mathematical operation on the results of its
 children. MeqTrees provide a large collection of node classes for most
 mathematical operations, and new node classes may be added by writing a (usually
-simple) C++ class. And important feature of MeqTrees is that tensor values and
-tensor operations are represented in an elegant and economical way, which is a
-natural way to deal with polarization (Hamaker et al. ??)
+simple) C++ class. An vital feature of MeqTrees is that tensor values and tensor
+operations are represented in an elegant and economical way, providing a 
+natural way to deal with polarization (Hamaker 2000).
 
-Thus, we can build a tree representing some any function or model or ME, and
+Thus, we can build a tree representing any function or model or ME, and
 evaluate that model simply by giving a request to the root node of the tree, and
 waiting for a result to come back. And, of course, trees can be strung together
 to arbitrary levels of complexity. Which is why MeqTrees allow us to implement
@@ -165,9 +159,9 @@ normally talk in terms of slices such as that in Figure 1.
 
 MeqTrees allow one to solve for arbitrary parameters of an ME, with arbitrary
 variation over the problem domain (e.g., representing parameters as polynomials
-of frequency and time). Basically, {\em if you can write it down as an
-expression, you can solve for it using MeqTrees.} (Of course, the data needs to
-provide enough constraints to solve for the given parameters...)
+of frequency and time). Thus, {\em if you can write it down as an expression,
+you can solve for it using MeqTrees.}\footnote{Of course, the data needs to
+provide enough constraints to solve for the given parameters...}
 
 \section{The MeqTree Module}
 
@@ -256,21 +250,23 @@ into the WSRT to provide an interesting example of a heterogenous interferometer
 array.
 
 MeqTrees will play an integral role in LOFAR calibration. The LOFAR {\em Local
-Sky Model} (LSM; see Smirnov \& Noordam 2004, and Nijboer et al.\ this volume)
-will use MeqTrees to represent sky sources; we see this as the only way to get a
-handle on the complex low-frequency sky seen by LOFAR. The ionosphere also plays
-a critical role in low-frequency observations and will require some sort of
-more or less sophisticated model (Noordam MIM ??), here again MeqTrees are
-expected to play a vital role.
+Sky Model} (LSM; Smirnov \& Noordam 2003, Nijboer et al.\ this volume) will use
+MeqTrees to represent sky sources; we see this as the only way to get a handle
+on the complex low-frequency sky seen by LOFAR. The ionosphere also plays a
+critical role in low-frequency observations and will require some sort of more
+or less sophisticated
+model\footnote{http://www.skatelescope.org/pages/news/SKA\_WFI2005/MIM\%20may\%202005.ppt},
+here again MeqTrees are expected to play a vital role.
 
 \begin{references}
 
 \reference Brentjens 343??
-\reference Hamaker, MS
-\reference Mevius MeqParm
-\reference Nijboer LSM
-\reference Smirnov \& Noordam LSM
-\reference Noordam MIM
+\reference Hamaker, J.P., Bregman, J.D., Sault, R.J.\ 1996, \aaps, 117, 137
+\reference Hamaker, J.P.\ 2000, \aaps, 143, 515
+\reference Mevius, M. 2006, \adassxv, \paperref{P78}
+\reference Nijboer, R.J., Noordam, J.E. \& Yatawatta, S.\ 2006, \adassxv,
+\paperref{P57}
+\reference Smirnov, O.M. \& Noordam, J.E.\ 2003, \adassxiii, 18
 
 \end{references}
 
