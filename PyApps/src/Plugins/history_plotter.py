@@ -320,8 +320,8 @@ class HistoryPlotter(GriddedPlugin):
             if plot_array is None:
               new_shape = []
               new_shape.append(list_length)
-              for i in range(len(shape)):
-                new_shape.append(shape[i])
+              for j in range(len(shape)):
+                new_shape.append(shape[j])
               dimensions = tuple(new_shape)
               temp_array = asarray(data_array[0,0])
               plot_array = resize(temp_array,dimensions)
@@ -330,6 +330,7 @@ class HistoryPlotter(GriddedPlugin):
             try:
               if list_length > 1:
                 plot_array[i] = data_array
+                _dprint(3, '****** i plot_array[i] ', i, ' ', plot_array[i])
               else:
                 plot_array = None
                 plot_array = data_array
