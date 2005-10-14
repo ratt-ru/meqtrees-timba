@@ -32,7 +32,7 @@ _dprintf = _dbg.dprintf;
 
 # The HistoryPlotter plots the contents of a MeqHistoryCollect node
 class HistoryPlotter(GriddedPlugin):
-  """ a class to visualize the history of some parameter. It can be
+  """ a class to plot the history of some parameter. It can be
       a scalar or an array """
 
   _icon = pixmaps.bars3d
@@ -43,7 +43,7 @@ class HistoryPlotter(GriddedPlugin):
 
 # the following global tables replicate similar tables found in the
 # realvsimag plotter. The idea is that the system first checks the
-# contents of 'visu' plot records against these tables here 
+# contents of 'history' plot records against these tables here 
 # during tree traversal. Otherwise every leaf node would issue
 # warnings about the same unacceptable parameters - which would
 # really irritate the user. The 'check_attributes' function defined
@@ -134,15 +134,15 @@ class HistoryPlotter(GriddedPlugin):
   def wtop (self):
     return self._wtop;
 
-  def display_visu_data (self):
-    """ extract 'value' data from incoming visu data record and
+  def display_history_data (self):
+    """ extract 'value' data from incoming history data record and
       create a plotter object to plot the data 
     """
     _dprint(3, ' ')
-#   _dprint(3, 'analyzing incoming record ', self._rec.visu)
-#   _dprint(3, 'analyzing incoming record keys', self._rec.visu.keys())
-    if self._rec.visu.has_key('value'):
-      self._plot_array = self.create_plot_array(self._rec.visu['value'])
+#   _dprint(3, 'analyzing incoming record ', self._rec.history)
+#   _dprint(3, 'analyzing incoming record keys', self._rec.history.keys())
+    if self._rec.history.has_key('value'):
+      self._plot_array = self.create_plot_array(self._rec.history['value'])
       try:
         _dprint(3, 'plot_array rank and shape ', self._plot_array.rank, ' ', self._plot_array.shape)
       except: pass;
@@ -414,7 +414,7 @@ class HistoryPlotter(GriddedPlugin):
   def set_data (self,dataitem,default_open=None,**opts):
     """ this callback receives data from the meqbrowser, when the
         user has requested a plot. It decides whether the data is
-        from a visu data record, and  after any
+        from a history data record, and  after any
         necessary preprocssing forwards the data to one of
         the functions which does the actual plotting """
 
@@ -438,11 +438,11 @@ class HistoryPlotter(GriddedPlugin):
         self.set_widgets(cache_message)
         return
 
-    if self._rec.has_key("visu"):
+    if self._rec.has_key("history"):
 # do plotting of visualization data
-      self.display_visu_data()
+      self.display_history_data()
     else:
-      Message = "Result record does not contain visu key, so no plot can be made with the <b>history plotter</b>! You may wish to select another type of display."
+      Message = "Result record does not contain history key, so no plot can be made with the <b>history plotter</b>! You may wish to select another type of display."
       cache_message = QLabel(Message,self.wparent())
       cache_message.setTextFormat(Qt.RichText)
       self._wtop = cache_message
