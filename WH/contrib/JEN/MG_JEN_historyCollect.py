@@ -71,12 +71,8 @@ def _define_forest (ns):
    node = ns.stripper << Meq.Stripper(node)
    # node = ns.mean << Meq.Mean(node)
 
-   # Any field from the result can be collected, default is: 
-   input_index = hiid('VellSets/0/Value')          
-   node = ns.hcoll << Meq.HistoryCollect(node, verbose=True,
-                                         input_index=input_index,
-                                         top_label=hiid('visu'))
-
+   # Any field from the result can be collected:
+   insert_hcoll (ns, node)
    MG_JEN_forest_state.bookmark(node, viewer='History Plotter', page='hcoll')
    MG_JEN_forest_state.bookmark(node, viewer='Record Browser', page='hcoll')
 
@@ -88,7 +84,7 @@ def _define_forest (ns):
    top_label = hiid('visu')
    sc.append(ns.dcoll_stripper << Meq.DataCollect(ns.stripper, attrib=attrib, top_label=top_label))
    # sc.append(ns.dcoll_mean << Meq.DataCollect(ns.mean, attrib=attrib, top_label=top_label))
-   sc.append(ns.dcoll_hcoll << Meq.DataCollect(ns.hcoll, attrib=attrib, top_label=top_label))
+   # sc.append(ns.dcoll_hcoll << Meq.DataCollect(ns.hcoll, attrib=attrib, top_label=top_label))
    cc.append(ns.root << Meq.Add(input,stepchildren=sc))
 
    # Finished: 
@@ -106,8 +102,63 @@ def _define_forest (ns):
 #********************************************************************************
 #********************************************************************************
 
+# Special version of insert_hcoll() for collecting flags:
+
+def insert_hcoll_flags (ns, node, **pp):
+   pp.setdefault('input_index', 'VellSets/0/Flags')
+   pp['input_index'] = 'VellSets/0/Flags'
+   return insert_hcoll (ns, node, **pp)
 
 
+#------------------------------------------------------------------------------
+# Insert hcoll node to collect history information from the given result field
+# from the given node.
+
+def insert_hcoll(ns, node, **pp):
+
+   pp.setdefault('input_index', 'VellSets/0/Value')     # this is the default
+   pp.setdefault('page', None)
+
+   uniqual = MG_JEN_forest_state.uniqual('MG_JEN_historyCollect::insert()')
+
+   if isinstance(pp['input_index'], str): pp['input_index'] = hiid(pp['input_index'])
+
+   name = 'hcoll_'+node.name
+   hcoll = ns[name](uniqual) << Meq.HistoryCollect(node, verbose=True,
+                                                         input_index=pp['input_index'],
+                                                         top_label=hiid('visu'))
+                                                         # top_label=hiid('history'))
+   if isinstance(pp['page'], str):
+      MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pp['page'])
+
+   node = ns.reqseq_hcoll(uniqual) << Meq.ReqSeq (children=[hcoll,node], result_index=1)
+   return node
+
+#------------------------------------------------------------------------------
+# Remarks:
+#------------------------------------------------------------------------------
+
+# -) From some emails between OMS and AGW, it appeared that top_label should be
+#     'history' rather than 'visu'. However, if I do that, the history plotter
+#     refuses to make a plot because it cannot find a visu field in the result!!
+#     So, what should I do here?
+
+# -) The input_index allows the specification of the field from which info is to
+#    be collected. Its syntax is still a bit primitive:
+#    - What if the result hase more 'planes' than one (0), but I do not know in
+#      advance hoe many?
+#    - The solver metrics produce a record with fit,rank,mu etc for each iteration.
+#      There does not seem to be a way to extract the vector of all mu-values for
+#      all iterations (the nr of which may vary from snippet to snippet!)
+#      So we need some kind of transpose of the metrics result, and AGW should be
+#      able to absorb sequences of vectors of different length...!
+
+# -) For flags, the first result in the history sequence is not plotted correctly.
+#    It does not show any flags, while it does have them (use record browser)
+
+
+# -) The next step is to pull out data anf flags, and concatenate
+#         with a dataCollect for AGW to handle....     
 
 
 
@@ -140,7 +191,7 @@ def _tdl_job_2D_freqtime (mqs, parent):
       MG_JEN_exec.meqforest (mqs, parent, nfreq=MG['nfreq'], ntime=MG['ntime'],
                              f1=x, f2=x+1, t1=x, t2=x+1,
                              save=False, trace=False) 
-   MG_JEN_exec.save_meqforest(mqs) 
+   MG_JEN_forest_state.save_meqforest(mqs) 
    return True
 
 #--------------------------------------------------------
@@ -152,7 +203,8 @@ def _tdl_job_1D_freq (mqs, parent):
       x += 1
       MG_JEN_exec.meqforest (mqs, parent, nfreq=MG['nfreq'], ntime=1,
                              f1=x, f2=x+1, t1=x, t2=x+1,
-                             save=False, trace=False) 
+                             save=False, trace=False)
+   MG_JEN_forest_state.save_meqforest(mqs) 
    return True
 
 #--------------------------------------------------------
@@ -164,7 +216,8 @@ def _tdl_job_1D_time (mqs, parent):
       x += 1
       MG_JEN_exec.meqforest (mqs, parent, nfreq=1, ntime=MG['ntime'],
                              f1=x, f2=x+1, t1=x, t2=x+1,
-                             save=False, trace=False) 
+                             save=False, trace=False)
+   MG_JEN_forest_state.save_meqforest(mqs)  
    return True
 
 #--------------------------------------------------------
@@ -176,7 +229,8 @@ def _tdl_job_scalar (mqs, parent):
       x += 1
       MG_JEN_exec.meqforest (mqs, parent, nfreq=1, ntime=1,
                              f1=x, f2=x+1, t1=x, t2=x+1,
-                             save=False, trace=False) 
+                             save=False, trace=False)
+   MG_JEN_forest_state.save_meqforest(mqs)  
    return True
 
 

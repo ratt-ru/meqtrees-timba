@@ -190,7 +190,7 @@ entry_counter = 0
 def on_entry (ns, MG, **pp):
    """Function called upon entry of _define_forest()"""
 
-   pp.setdefault('create_ms_interface_nodes', True)   # see below
+   pp.setdefault('create_ms_interface_nodes', False)   # see below
 
    global entry_counter
    entry_counter += 1

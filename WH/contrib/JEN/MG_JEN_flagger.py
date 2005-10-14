@@ -32,6 +32,7 @@ from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_math
 from Timba.Contrib.JEN import MG_JEN_twig
+from Timba.Contrib.JEN import MG_JEN_historyCollect
 
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
@@ -158,6 +159,7 @@ def flagger (ns, input, **pp):
    pp.setdefault('oper', 'GT')          # do flag if OPER zero
    pp.setdefault('flag_bit', 1)         # flag_bit to be affected
    pp.setdefault('merge', True)         # if True, merge the flags of tensor input
+   pp.setdefault('hcoll', True)         # if True, insert a historyCollect node
    pp = record(pp)
    
    # Work on a stripped version, without derivatives, to save memory:
@@ -191,19 +193,9 @@ def flagger (ns, input, **pp):
    if pp.merge: output = ns.Mflag << Meq.MergeFlags(output)
 
    # Make historyCollect nodes for the solver metrics 
-   if True:
-      hcoll_nodes = []
-      # input_index = hiid('VellSets/0/Value')       # The default (not relelant for solver)
-      input_index = hiid('VellSets/0/Flags')       # The default (not relelant for solver)
-      pagename = 'hcoll_flags'
-      hcoll_name = 'hcoll_flagger'
-      hcoll = ns[hcoll_name] << Meq.HistoryCollect(output, verbose=True,
-                                                   input_index=input_index,
-                                                   top_label=hiid('visu'))
-      hcoll_nodes.append(hcoll)
-      MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
-      output = ns.reqseq << Meq.ReqSeq (children=[hcoll,output], result_index=1)
-      
+   if pp.hcoll:
+      output = MG_JEN_historyCollect.insert_hcoll_flags(ns, output,
+                                                        page='hcoll_flags')
    
    return output
 
@@ -225,6 +217,18 @@ def flagger (ns, input, **pp):
 def _test_forest (mqs, parent):
    return MG_JEN_exec.meqforest (mqs, parent)
 
+
+
+# Execute the forest for a sequence of requests:
+
+def _tdl_job_sequence(mqs, parent):
+   """Execute the forest for a sequence of requests with changing domains"""
+   for x in range(10):
+      MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
+                             f1=x, f2=x+1, t1=x, t2=x+1,
+                             save=False, trace=False, wait=False)
+   MG_JEN_forest_state.save_meqforest(mqs) 
+   return True
 
 
 

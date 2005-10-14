@@ -152,8 +152,9 @@ def _define_forest (ns):
 
 def _test_forest (mqs, parent):
     """Execute the forest with a default domain"""
-    # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm',nfreq=10, ntime=5)
-    return MG_JEN_exec.meqforest (mqs, parent)
+    return MG_JEN_exec.meqforest (mqs, parent, domain='21cm',
+                               nfreq=100, ntime=100, t1=0, t2=100)
+    # return MG_JEN_exec.meqforest (mqs, parent)
 
 
 

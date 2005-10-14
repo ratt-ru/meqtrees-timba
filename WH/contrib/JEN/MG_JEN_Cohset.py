@@ -602,7 +602,7 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
          hcoll_name = 'hcoll_'+metric+'_'+solver_name
          hcoll = ns[hcoll_name] << Meq.HistoryCollect(solver, verbose=True,
                                                       input_index=input_index,
-                                                      top_label=hiid('visu'))
+                                                      top_label=hiid('history'))
          hcoll_nodes.append(hcoll)
          MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
 
