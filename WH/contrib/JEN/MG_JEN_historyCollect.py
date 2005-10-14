@@ -126,8 +126,8 @@ def insert_hcoll(ns, node, **pp):
    name = 'hcoll_'+node.name
    hcoll = ns[name](uniqual) << Meq.HistoryCollect(node, verbose=True,
                                                          input_index=pp['input_index'],
-                                                         top_label=hiid('visu'))
-                                                         # top_label=hiid('history'))
+                                                         # top_label=hiid('visu'))
+                                                         top_label=hiid('history'))
    if isinstance(pp['page'], str):
       MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pp['page'])
 
