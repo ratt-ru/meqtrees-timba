@@ -58,6 +58,10 @@ public:
  protected:
 
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+
+ private:
+
+  double _uvppw;
    
 };
 
