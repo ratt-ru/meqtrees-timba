@@ -69,7 +69,7 @@ public:
 
 protected:
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
-    
+	
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
