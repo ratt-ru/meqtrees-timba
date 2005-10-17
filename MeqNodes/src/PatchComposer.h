@@ -62,6 +62,7 @@ public:
  private:
 
   double _max_baseline;
+  double _uvppw;
    
 };
 

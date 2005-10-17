@@ -32,7 +32,8 @@ namespace Meq {
   
   PatchComposer::PatchComposer()
     :
-    _max_baseline(2700.0)
+    _max_baseline(2700.0),
+    _uvppw(1.0)
   {
     // Only l and m axes are used in this node
     // For now it is more convenient to always define all axes here, so that we always know which axes hold which array dimension
@@ -124,7 +125,7 @@ namespace Meq {
 	lmax *= fmax/c0;
 	mmax *= fmax/c0;
 
-	const double dl = 1 / _max_baseline / 2;
+	const double dl = 1 / (2*_max_baseline +1./_uvppw/lmax);
 	const double dm = dl;
 
 	// Make sure all sources are actually falling INSIDE the grid
