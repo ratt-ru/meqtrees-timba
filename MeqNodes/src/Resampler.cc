@@ -44,6 +44,12 @@ resample(blitz::Array<T,2> A,blitz::Array<double,1> xax,blitz::Array<double,1> y
 			double xstart, double xend, double ystart, double yend);
 template<typename T> static void
 bcubic_coeff(T *yy, T *dyy1, T *dyy2, T *dyy12, double d1, double d2, blitz::Array<T,2> c);
+//1 D cubic spline interpolation
+//ripped from numerical recipes
+template<class T> static void
+spline(blitz::Array<double,1> x, blitz::Array<T,1> y, int n, blitz::Array<T,1> y2);
+template<class T> static void
+splint(blitz::Array<double,1> xax,double xstart, double xend, blitz::Array<T,1> yax, int n, blitz::Array<double,1> xaxs, int ns, blitz::Array<T,1> y);
 
 
 const HIID FFlagDensity = AidFlag|AidDensity;
@@ -78,15 +84,19 @@ int Resampler::getResult (Result::Ref &resref,
 {
   Assert(childres.size()==1);
   const Result &chres = *(childres.front());
+	if (!chres.hasCells()) {
+	 //bail out
+   resref=childres[0];
+	 return 0;
+	}
   const Cells &incells = chres.cells();
 	blitz::Array<double,1> xax=incells.center(0);
 	blitz::Array<double,1> yax=incells.center(1);
 
 	int nx=xax.extent(0);
 	int ny=yax.extent(0);
-	//handle 1D case : bail out
-	//also if we have any fails
-	if ((nx==1)||(ny==1) ||(childres[0]->numFails()>0) || (flag_density<=0)) {
+	//bail out if we have any fails
+	if (((nx==1)&&(ny==1)) ||(childres[0]->numFails()>0) || (flag_density<=0)) {
    resref=childres[0];
 	 return 0;
 	}
@@ -94,13 +104,13 @@ int Resampler::getResult (Result::Ref &resref,
 	int nx1=(int)((double)nx*flag_density);
 	int ny1=(int)((double)ny*flag_density);
 	//sanity check
-	if (nx1<=1) nx1=2;
-	if (ny1<=1) ny1=2;
+	if (nx1<1) nx1=1;
+	if (ny1<1) ny1=1;
 #ifdef VERBOSE
 	cout<<"new size "<<nx1<<" x "<<ny1<<" "<<flag_density<<endl;
 #endif
-  const Cells *outcells1 = new Cells(request.cells().domain(),nx1,ny1);
-  const Cells outcells = *outcells1;
+  Cells::Ref outcells1; //<<= new Cells(request.cells().domain(),nx1,ny1);
+  Cells &outcells = outcells1<<=new Cells(request.cells().domain(),nx1,ny1);
   int nvs = chres.numVellSets();
   Result & result = resref <<= new Result(nvs,chres.isIntegrated());
 	//result.setCells(outcells);
@@ -120,38 +130,140 @@ int Resampler::getResult (Result::Ref &resref,
   for( int ivs=0; ivs<nvs; ivs++ )
   {
     VellSet::Ref ref;
-		VellSet &vs= ref<<= new VellSet(outcells.shape());
+		//VellSet &vs= ref<<= new VellSet(outcells.shape());
 		Vells invl=chres.vellSet(ivs).getValue();
+	  VellSet invs=chres.vellSet(ivs);
+	  VellSet &vs= ref<<= new VellSet(invs.numSpids(),invs.numPertSets());
 		if (invl.isReal()) {
 		 blitz::Array<double,2> A=invl.as<double,2>()(LoRange::all(),LoRange::all());
-		 blitz::Array<double,2> B(xaxs.extent(0),yaxs.extent(0));
-		 int flag=resample(A,xax,yax,B,xaxs,yaxs,xstart,xend,ystart,yend);
-		 Vells outvl=vs.setValue(new Vells(B));
-		 cout<<"Finished Sampling "<<flag<<endl;
+#ifdef VERBOSE
 		 cout<<A<<endl;
+#endif
+		 //decide here if we have only 1D vells
+		 //if so, only do 1D resampling in time or frequency
+		 int nx_real=A.extent(blitz::firstDim);
+		 int ny_real=A.extent(blitz::secondDim);
+		 //if we have a scalar, do nothing
+		 if (nx_real==1 && ny_real==1) {
+			 //just copy original data
+#ifdef VERBOSE
+			 cout<<"Case 1"<<endl;
+#endif
+       vs.setValue(new Vells(A));
+		 } else if (nx_real==1) {
+			/* no time dependence */
+#ifdef VERBOSE
+			cout<<"Case 2"<<endl;
+#endif
+			blitz::Array<double,1> B(ny1);
+			blitz::Array<double,1> AA=A(1,LoRange::all());
+      splint(yax,ystart,yend,AA,ny,yaxs,ny1,B);
+			blitz::Array<double,2> BB(B.data(), blitz::shape(1,ny1),blitz::deleteDataWhenDone);   
+		  Vells outvl=vs.setValue(new Vells(BB));
+#ifdef VERBOSE
 		 cout<<B<<endl;
+#endif
+		 } else if (ny_real==1) {
+      /* no frequency dependence */
+#ifdef VERBOSE
+			cout<<"Case 3"<<endl;
+#endif
+			blitz::Array<double,1> B(nx1);
+			blitz::Array<double,1> AA=A(LoRange::all(),1);
+      splint(xax,xstart,xend,AA,nx,xaxs,nx1,B);
+			//blitz::Array<double,2> BB=B.transpose(nx1,1);
+			blitz::Array<double,2> BB(B.data(), blitz::shape(nx1,1),blitz::deleteDataWhenDone);   
+		  Vells outvl=vs.setValue(new Vells(BB));
+			//vs.setShape(nx1,1);
+			//vs.verifyShape(true);
+#ifdef VERBOSE
+		 cout<<B<<endl;
+#endif
+		 } else {
+		  /* else we are here */
+#ifdef VERBOSE
+			cout<<"Case 4"<<endl;
+#endif
+		  blitz::Array<double,2> B(xaxs.extent(0),yaxs.extent(0));
+		  int flag=resample(A,xax,yax,B,xaxs,yaxs,xstart,xend,ystart,yend);
+		  Vells outvl=vs.setValue(new Vells(B));
+#ifdef VERBOSE
+		 cout<<B<<endl;
+		 cout<<"Finished Sampling "<<flag<<endl;
+#endif
+		 }
 		 cout.flush();
 		} else {// Complex 
+#ifdef VERBOSE
 		 cout<<"Complex Data"<<endl;
+#endif
 		 blitz::Array<dcomplex,2> A=invl.as<dcomplex,2>()(LoRange::all(),LoRange::all());
+#ifdef VERBOSE
+		 cout<<A<<endl;
+#endif
+		 //decide here if we have only 1D vells
+		 //if so, only do 1D resampling in time or frequency
+		 int nx_real=A.extent(blitz::firstDim);
+		 int ny_real=A.extent(blitz::secondDim);
+		 //if we have a scalar, do nothing
+		 if (nx_real==1 && ny_real==1) {
+			 //just copy original data
+#ifdef VERBOSE
+			 cout<<"Case 1"<<endl;
+#endif
+       vs.setValue(new Vells(A));
+		 } else if (nx_real==1) {
+			/* no time dependence */
+#ifdef VERBOSE
+			cout<<"Case 2"<<endl;
+#endif
+			blitz::Array<dcomplex,1> B(ny1);
+			blitz::Array<dcomplex,1> AA=A(1,LoRange::all());
+      splint(yax,ystart,yend,AA,ny,yaxs,ny1,B);
+			blitz::Array<dcomplex,2> BB(B.data(), blitz::shape(1,ny1),blitz::deleteDataWhenDone);   
+		  Vells outvl=vs.setValue(new Vells(BB));
+#ifdef VERBOSE
+		 cout<<B<<endl;
+#endif
+		 } else if (ny_real==1) {
+      /* no frequency dependence */
+#ifdef VERBOSE
+			cout<<"Case 3"<<endl;
+#endif
+			blitz::Array<dcomplex,1> B(nx1);
+			blitz::Array<dcomplex,1> AA=A(LoRange::all(),1);
+      splint(xax,xstart,xend,AA,nx,xaxs,nx1,B);
+			//blitz::Array<double,2> BB=B.transpose(nx1,1);
+			blitz::Array<dcomplex,2> BB(B.data(), blitz::shape(nx1,1),blitz::deleteDataWhenDone);   
+		  Vells outvl=vs.setValue(new Vells(BB));
+			//vs.setShape(nx1,1);
+			//vs.verifyShape(true);
+#ifdef VERBOSE
+		 cout<<B<<endl;
+#endif
+		 } else {
+		  /* else we are here */
+#ifdef VERBOSE
+			cout<<"Case 4"<<endl;
+#endif
+
 		 blitz::Array<dcomplex,2> B(xaxs.extent(0),yaxs.extent(0));
 		 blitz::Array<double,2> A1=A.extractComponent(double(),0,2);
 		 blitz::Array<double,2> B1=B.extractComponent(double(),0,2);
 		 int flag=resample(A1,xax,yax,B1,xaxs,yaxs,xstart,xend,ystart,yend);
 		 blitz::Array<double,2> A2=A.extractComponent(double(),1,2);
 		 blitz::Array<double,2> B2=B.extractComponent(double(),1,2);
-		 flag=resample(A2,xax,yax,B2,xaxs,yaxs,xstart,xend,ystart,yend);
+		 flag+=resample(A2,xax,yax,B2,xaxs,yaxs,xstart,xend,ystart,yend);
 
 		 Vells outvl=vs.setValue(new Vells(B));
-		 cout<<"Finished Sampling "<<flag<<endl;
 #ifdef VERBOSE
+		 cout<<"Finished Sampling "<<flag<<endl;
 		 cout<<A<<endl;
 		 cout<<B<<endl;
 		 cout.flush();
 #endif
+		 }
 		}
-
-
     result.setVellSet(ivs,ref);
   }
 
@@ -640,5 +752,86 @@ resample(blitz::Array<T,2> A,blitz::Array<double,1> xax,blitz::Array<double,1> y
 
 	return 0; // no error
 }
+
+//1 D cubic spline interpolation
+//ripped from numerical recipes
+template<class T> static void
+spline(blitz::Array<double,1> x, blitz::Array<T,1> y, int n, blitz::Array<T,1> y2) {
+	/* x,y,y2: n x 1 arrays
+	 * input: x,y: ordinate and abcissa arrays
+	 * output: y2: array of second derivatives of the function
+	 * at the first and last points, natural boundary conditions
+	 * are assumed
+	 */
+	 T p,sig;
+
+	 blitz::Array<T,1> u(n);
+
+	 //natural boundary conditions, so 
+	 y2(0)=u(0)=0;
+	 for (int i=1; i<n-1;i++) {
+			sig=(x(i)-x(i-1))/(x(i+1)-x(i-1));
+			p=sig*y2(i-1)+2.0;
+			y2(i)=(sig-1.0)/p;
+			u(i)=(y(i+1)-y(i))/(x(i+1)-x(i))-(y(i)-y(i-1))/(x(i)-x(i-1));
+			u(i)=(6.0*u(i)/(x(i+1)-x(i-1))-sig*u(i-1))/p;
+	 }
+
+	 y2(n-1)=0;
+
+	 for(int i=n-2;i>=0;i--) {
+			y2(i)=y2(i)*y2(i+1)+u(i);
+	 }
+}
+
+template<class T> static void
+splint(blitz::Array<double,1> xax,double xstart, double xend, blitz::Array<T,1> yax, int n, blitz::Array<double,1> xaxs, int ns, blitz::Array<T,1> y) {
+	assert(n>=2);
+	//calculate second derivatives
+  blitz::Array<T,1> y2(n);
+  spline(xax, yax, n, y2);
+
+	double h;
+	T a,b;
+	// bin sorting
+  blitz::Array<double,1> tempx(n+2);
+	tempx(blitz::Range(1,n))=xax;
+	tempx(0)=xstart;
+	tempx(n+1)=xend;
+	//store indices
+	blitz::Array<int,1> xindex(ns);
+	for (int i=0; i<ns;i++)  {
+			xindex(i)=bin_search(tempx,xaxs(i),0,n+1);
+	}
+#ifdef VERBOSE
+	cout<<"index "<<xindex<<endl;
+#endif
+	//now find ranges for interpolation and extrapolation
+  int x_l_limit=0;
+	while((xindex(x_l_limit)<1) && (x_l_limit<ns-1))
+				x_l_limit++;
+	int x_u_limit=ns-1;
+	while((xindex(x_u_limit)>n-1) && (x_u_limit>0))
+		    x_u_limit--;
+ 
+	cout<<"Limits : interp["<<x_l_limit<<","<<x_u_limit<<"]"<<endl;
+	cout<<"extrap : [0,"<<x_l_limit-1<<"],["<<x_u_limit+1<<","<<ns-1<<"]"<<endl;
+	for (int i=x_l_limit; i<=x_u_limit;i++) {
+      h=xax(xindex(i))-xax(xindex(i)-1);
+			if (h==0) h=0.1;
+			a=(xax(xindex(i))-xaxs(i))/h;
+			b=(xaxs(i)-xax(xindex(i)-1))/h;
+			y(i)=a*yax(xindex(i)-1)+b*yax(xindex(i))
+						+((a*a*a-a)*y2(xindex(i)-1)+(b*b*b-b)*y2(xindex(i)))*(h*h)/6.0;
+	}
+	//Extrapolation : Linear
+	for (int i=0;i<x_l_limit; i++) {
+		y(i)=yax(0)+(xaxs(i)-xaxs(0))/(xax(1)-xax(0))*(yax(1)-yax(0));
+	}
+	for (int i=x_u_limit+1;i<ns; i++) {
+		y(i)=yax(n-2)+(xaxs(i)-xaxs(n-2))/(xax(n-1)-xax(n-2))*(yax(n-1)-yax(n-2));
+	}
+}
+
 
 } // namespace Meq
