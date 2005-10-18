@@ -238,11 +238,12 @@ def on_exit (ns, MG, cc=[], stepchildren=[], **pp):
       _test_root += '_'+str(exit_counter)
 
    # Make a page of bookmarks
-   bb = []
    if True or exit_counter==1:
-      bb = MG_JEN_forest_state.bookpage_MS_interface_nodes(ns)
+      # stepchildren.extend(MG_JEN_forest_state.bookpage_MS_interface_nodes(ns))
+      pass
 
-   root = bundle (ns, cc, _test_root, stepchildren=bb, show_parent=False, **pp)
+   root = bundle (ns, cc, _test_root, stepchildren=stepchildren,
+                  show_parent=False, **pp)
    return root
 
 
