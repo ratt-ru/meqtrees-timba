@@ -95,9 +95,12 @@ class Super:
             s += ', warnings='+str(self.warnings())
         return s
 
+    def display_indent1(self): return 2*' '
+    def display_indent2(self): return 6*' '
+
     def display(self, txt=None, end=True):
-        indent1 = 2*' '
-        indent2 = 6*' '
+        indent1 = self.display_indent1()
+        indent2 = self.display_indent2()
         ss = []
         ss.append('\n** '+self.type()+'.display('+str(txt)+'):')
         ss.append(indent1+self.oneliner())
@@ -170,9 +173,6 @@ def _counter (key, increment=0, reset=False, trace=True):
     _counters[key] += increment
     if trace: print '** Super: _counters(',key,') =',_counters[key]
     return _counters[key]
-
-
-
 
 
 #========================================================================
