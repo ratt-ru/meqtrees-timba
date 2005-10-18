@@ -7,6 +7,7 @@
 #
 # History:
 #    - 16 oct 2005: creation
+#    - 18 oct 2005: move Dipole to TDL_Dipole.py
 #
 # Full description:
 # Various classes:
@@ -15,16 +16,15 @@
 # - .pos0()
 
 # Single-antenna objects:
-# - Dipole(Antenna)
 # - Array(Antenna)
 
-# Colocated dual-pol arrays of two antennas
-# - DiDipole(Array)
-# - WSRT_dish(DiDipole)
-# - LOFAR_LBA(DiDipole)
-# - LOFAR_HBA(DiDipole)
+# Dual-pol arrays of two co-located antennas
+# - Feed(Array)
+# - WSRT_dish(Feed)
+# - LOFAR_LBA(Feed)
+# - LOFAR_HBA(Feed)
 
-# Special case: three colocated antannas:
+# Special case: three co-located antennas:
 # - TriDipole(Array)
 
 # Arrays of various types:
@@ -44,6 +44,7 @@
 from Timba.TDL import *
 # from copy import deepcopy
 from numarray import *
+import math                         # for create_dipole_beam()
 
 from Timba.Trees import TDL_common
 # from Timba.Trees import TDL_radio_conventions
@@ -67,22 +68,33 @@ class Antenna (TDL_common.Super):
     def __init__(self, **pp):
         
         pp.setdefault('type', 'Antenna')
+        pp.setdefault('label', pp['type'])
+
         pp.setdefault('pos0', array([0.0,0.0,0.0]))
         pp.setdefault('size', array([1.0,1.0,0.0]))
+        pp.setdefault('polarisation', 'linear')
         pp.setdefault('azimuth', 0.0)
         pp.setdefault('tilt', 0.0)
         pp.setdefault('groundplane', True)
+
         pp.setdefault('plot_color', 'red')
         pp.setdefault('plot_style', 'circle')
         pp.setdefault('plot_size', 10)
         pp.setdefault('plot_pen', 2)
-        if isinstance(pp['pos0'], (tuple,list)): pp['pos0'] = array(pp['pos0'])
-        if isinstance(pp['size'], (tuple,list)): pp['size'] = array(pp['size'])
+
+        # Some checks:
+        for key in ['pos0','size']:
+            if isinstance(pp[key], (tuple,list)): pp[key] = array(pp[key])
+        key = 'polarisation'
+        pols = ['linear','circular','X','Y','Z','R','L',]
+        if not isinstance(pp[key], str): pp[key] = pols[0]
+        if not pols.__contains__(pp[key]): pp[key] = pols[0]
         
         TDL_common.Super.__init__(self, **pp)
 
         self.__pos0 = pp['pos0']
         self.__size = pp['size']
+        self.__polarisation = pp['polarisation']
         self.__azimuth = pp['azimuth']
         self.__tilt = pp['tilt']
         self.__groundplane = pp['groundplane']
@@ -114,10 +126,16 @@ class Antenna (TDL_common.Super):
         """Return the radius of its envelope (m)""" 
         return self.__radius
     
+    def polarisation(self, new=None):
+        """Return the polarisation of the antenna""" 
+        if isinstance(new, str): self.__polarisation = new
+        return self.__polarisation
+    
     def azimuth(self, new=None):
         """Get/set the orientation angle in xy-plane (rad)""" 
         if new: self.__azimuth = new
         return self.__azimuth
+
     def tilt(self, new=None):
         """Get/set the orientation angle w.r.t the z-axis (rad)""" 
         if new: self.__tilt = new
@@ -139,19 +157,26 @@ class Antenna (TDL_common.Super):
         ss = TDL_common.Super.display(self, txt=txt, end=False)
         indent1 = TDL_common.Super.display_indent1(self)
         indent2 = TDL_common.Super.display_indent2(self)
+        ss.append(indent1+' - polarisation:  '+str(self.polarisation()))
         sor = 'azimuth='+str(self.azimuth())
         sor += ', tilt='+str(self.tilt())
         ss.append(indent1+' - orientation:   '+sor+' (rad)')
-        ss.append(indent1+' - env. radius:   '+str(self.radius())+' (m)')
+        ss.append(indent1+' - envel. radius: '+str(self.radius())+' (m)')
         splot = str(self.plot_color())+' '+str(self.plot_style())
         splot += ' (size='+str(self.plot_size())+', pen='+str(self.plot_pen())+')'
         ss.append(indent1+' - plotting:      '+splot)
-        ss.append(indent1+' - leaf_xx:       '+str(self.leaf_xx()))
-        ss.append(indent1+' - leaf_yy:       '+str(self.leaf_yy()))
-        ss.append(indent1+' - leaf_zz:       '+str(self.leaf_zz()))
-        ss.append(indent1+' - dcoll_xy:      '+str(self.dcoll_xy()))
-        ss.append(indent1+' - subtree_sensit:'+str(self.subtree_sensit()))
-        ss.append(indent1+' - subtree_beam:  '+str(self.subtree_beam()))
+        if self.leaf_xx():
+            ss.append(indent1+' - leaf_xx:       '+str(self.leaf_xx()))
+        if self.leaf_yy():
+            ss.append(indent1+' - leaf_yy:       '+str(self.leaf_yy()))
+        if self.leaf_zz():
+            ss.append(indent1+' - leaf_zz:       '+str(self.leaf_zz()))
+        if self.dcoll_xy():
+            ss.append(indent1+' - dcoll_xy:      '+str(self.dcoll_xy()))
+        if self.subtree_sensit():
+            ss.append(indent1+' - subtree_sensit:'+str(self.subtree_sensit()))
+        if self.subtree_beam():
+            ss.append(indent1+' - subtree_beam:  '+str(self.subtree_beam()))
         if end: return TDL_common.Super.display_end(self, ss)
         return ss
 
@@ -195,12 +220,13 @@ class Antenna (TDL_common.Super):
             uniqual = _counter ('dcoll_xy()', increment=True)
             name = 'dcoll_xy_'+self.type()+'_'+self.label()
             self.__dcoll_xy = ns[name](uniqual) << Meq.DataCollect(xy, attrib=attrib,
-                                                                      top_label=hiid('visu'))
+                                                                   top_label=hiid('visu'))
         return self.__dcoll_xy
 
 
-    def subtree_sensit(self, ns=None):
+    def subtree_sensit(self, ns=None, new=None, **pp):
         """Return a subtree for Antenna sensitivity calculation"""
+        if new: self.__subtree_sensit = new
         if ns and not self.__subtree_sensit:
             uniqual = _counter ('subtree_sensit()', increment=True)
             name = 'Antenna_sensitivity'
@@ -208,77 +234,26 @@ class Antenna (TDL_common.Super):
             self.__subtree_sensit = node
         return self.__subtree_sensit
 
-    def subtree_beam(self, ns=None):
+    def subtree_beam(self, ns=None, new=None, **pp):
         """Return a subtree for Antenna beam calculation"""
+        if new: self.__subtree_beam = new
         if ns and not self.__subtree_beam:
             self.__subtree_beam = None
         return self.__subtree_beam
 
+
+#**************************************************************************************
+
+# def plot_styles():
+#   ss = ['circle', 'rectangle', 'square', 'ellipse',
+#         'xcross', 'cross', 'triangle', 'diamond']
 
 
 #**************************************************************************************
 # Class Dipole: (example of single-element Antenna)
 #**************************************************************************************
 
-class Dipole (Antenna):
-    """A Dipole object represents an (array of) antenna element(s)"""
-    
-    def __init__(self, **pp):
-        
-        pp.setdefault('length', 1.0)     # dipole length
-        pp.setdefault('height', 0.5)     # dipole height above groundplane
-        pp.setdefault('plot_color', 'blue')
-        pp.setdefault('plot_style', 'cross')
-
-        Antenna.__init__(self, type='Dipole', **pp)
-
-        self.__length = pp['length']
-        self.__height = pp['height']
-        self.Dipole_calc_derived()
-
-    def Dipole_calc_derived(self):
-        Antenna.calc_derived(self)
-        self.__subtree_sensit = None
-        self.__subtree_beam = None
-        return True
-
-    def length(self): return self.__length
-    def height(self): return self.__height
-
-    def oneliner(self):
-        """Return a one-line summary of the Dipole"""
-        s = Antenna.oneliner(self)
-        s = s+' length='+str(self.length())
-        s = s+' height='+str(self.height())
-        return s
-
-    def display(self, txt=None, full=False, end=True):
-        """Display (print) the contents of the Dipole"""
-        ss = Antenna.display(self, txt=txt, end=False)
-        indent1 = Antenna.display_indent1(self)
-        indent2 = Antenna.display_indent2(self)
-        if end: Antenna.display_end(self, ss)
-        return ss
-
-    # Re-implementation of Antenna method:
-    def subtree_sensit(self, ns=None):
-        """Return a subtree for Dipole sensitivity calculation"""
-        if ns and not self.__subtree_sensit:
-            uniqual = _counter ('subtree_sensit()', increment=True)
-            name = 'Dipole_sensitivity'
-            node = ns[name](uniqual) << 1.0 
-            self.__subtree_sensit = node
-        return self.__subtree_sensit
-
-    # Re-implementation of Antenna method:
-    def subtree_beam(self, ns=None):
-        """Return a subtree for Dipole beam calculation"""
-        if ns and not self.__subtree_beam:
-            self.__subtree_beam = None
-        return self.__subtree_beam
-
-
-
+# See TDL_Dipole.py
 
 
 #**************************************************************************************
@@ -292,6 +267,12 @@ class Array (Antenna):
     def __init__(self, **pp):
         
         pp.setdefault('type', 'Array')
+        pp.setdefault('polarisation', 'linear')
+
+        key = 'polarisation'
+        pols = ['linear','circular']
+        if not isinstance(pp[key], str): pp[key] = pols[0]
+        if not pols.__contains__(pp[key]): pp[key] = pols[0]
 
         Antenna.__init__(self, **pp)
 
@@ -313,8 +294,6 @@ class Array (Antenna):
     def Array_calc_derived(self):
         """Calculate derived values from primary ones"""
         Antenna.calc_derived(self)
-        self.__subtree_sensit = None
-        self.__subtree_beam = None
         wpos0 = array([0.0,0.0,0.0])
         wtot = 0.0
         self.__xx = []
@@ -328,6 +307,11 @@ class Array (Antenna):
             self.__xx.append(pos0[0])            # list of x-positions
             self.__yy.append(pos0[1])
             self.__zz.append(pos0[2])
+            pol = self.__antel[k].polarisation()
+            if ['X','Y','Z','linear'].__contains__(pol):
+                self.polarisation('linear')
+            elif ['R','L','circular'].__contains__(pol):
+                self.polarisation('circular')
         if wtot>0:
             wpos0 /= wtot                        # normalise
             self.pos0(new=wpos0)                 # array centre position
@@ -340,7 +324,7 @@ class Array (Antenna):
             for j in range(2):
                 y = float(j)
                 label = 'antel_'+str(self.nantel())
-                antel = Dipole(label=label, pos0=[x,y,0.0])
+                antel = Antenna(label=label, pos0=[x,y,0.0])
                 self.new_element(antel, wgt=1.0, calc_derived=False)
         self.Array_calc_derived()
         return True
@@ -401,24 +385,25 @@ class Array (Antenna):
     def wgt(self): return self.__wgt
 
     # Re-implementation of Antenna method:
-    def subtree_sensit(self, ns=None):
+    def subtree_sensit(self, ns=None, **pp):
         """Return a subtree for Array sensitivity calculation"""
-        if ns and not self.__subtree_sensit:
+        if ns and not Antenna.subtree_sensit(self):
             uniqual = _counter ('subtree_sensit()', increment=True)
             name = 'Array_sensitivity'
             cc = []
             for k in range(self.nantel()):
-                cc.append(self.antel()[k].subtree_sensit(ns))
+                cc.append(self.antel()[k].subtree_sensit(ns, **pp))
             node = ns[name](uniqual) << Meq.Add(children=cc) 
-            self.__subtree_sensit = node
-        return self.__subtree_sensit
+            Antenna.subtree_sensit(self, new=node)
+        return Antenna.subtree_sensit(self)
+
 
     # Re-implementation of Antenna method:
-    def subtree_beam(self, ns=None):
+    def subtree_beam(self, ns=None, **pp):
         """Return a subtree for Array beam calculation"""
-        if ns and not self.__subtree_beam:
-            self.__subtree_beam = None
-        return self.__subtree_beam
+        if ns and not Antenna.subtree_beam(self):
+            Antenna.subtree_beam(self, new=None)
+        return Antenna.subtree_beam(self)
 
 
 
@@ -470,12 +455,55 @@ class Station (Array):
             for j in range(self.__ny):
                 y = float(j*self.__dy)
                 name = 'antel_'+str(i)+str(j)
-                antel = Dipole(label=name, pos0=array([x,y,0.0]))
+                antel = Antenna(label=name, pos0=array([x,y,0.0]))
                 Array.new_element(self, antel, wgt=1.0, calc_derived=False)
         Array.Array_calc_derived(self)
         return True
 
-         
+
+
+#**************************************************************************************
+# Class Feed:
+#**************************************************************************************
+
+class Feed (Array):
+    """A Feed object is an Array of two colocated receptors (rcp).
+    It is an Antenna object itself"""
+    
+    def __init__(self, rcp1, rcp2, **pp):
+
+        pp.setdefault('plot_color', 'blue')
+        pp.setdefault('plot_style', 'cross')
+
+        Array.__init__(self, type='Feed', **pp)
+
+        Array.clear(self)
+        Array.new_element(self, rcp1, wgt=1.0, calc_derived=False)
+        Array.new_element(self, rcp2, wgt=1.0, calc_derived=False)
+        Array.Array_calc_derived(self)
+
+
+#**************************************************************************************
+# Class TriDipole:
+#**************************************************************************************
+
+class TriDipole (Array):
+    """A TriDipole object is an Array of two colocated receptors (rcp).
+    It is an Antenna object itself"""
+    
+    def __init__(self, rcp1, rcp2, rcp3, **pp):
+
+        pp.setdefault('plot_color', 'blue')
+        pp.setdefault('plot_style', 'triangle')
+
+        Array.__init__(self, type='TriDipole', **pp)
+
+        Array.clear(self)
+        Array.new_element(self, rcp1, wgt=1.0, calc_derived=False)
+        Array.new_element(self, rcp2, wgt=1.0, calc_derived=False)
+        Array.new_element(self, rcp3, wgt=1.0, calc_derived=False)
+        Array.Array_calc_derived(self)
+
       
 
 
@@ -490,7 +518,7 @@ class Station (Array):
 
 _counters = {}
 
-def _counter (key, increment=0, reset=False, trace=True):
+def _counter (key, increment=0, reset=False, trace=False):
     global _counters
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0
@@ -513,46 +541,30 @@ if __name__ == '__main__':
     ns = NodeScope()
     
     if 0:
-        ant = Antenna(label='initial')
-        print dir(ant)
-        ant.display('initial')
-        dcoll = ant.dcoll_xy(ns)
-        MG_JEN_exec.display_subtree(dcoll, 'Antenna.dcoll_xy()', full=True, recurse=5)
-        sensit = ant.subtree_sensit(ns)
-        MG_JEN_exec.display_subtree(sensit, 'Antenna.subtree_sensit()', full=True, recurse=5)
-        ant.display('final')
+        obj = Antenna(label='initial')
 
     if 0:
-        dip = Dipole(label='initial')
-        print dir(dip)
-        dip.display('initial')
-        dcoll = dip.dcoll_xy(ns)
-        MG_JEN_exec.display_subtree(dcoll, 'Dipole.dcoll_xy()', full=True, recurse=5)
-        dip.display('final')
+        obj = Array(label='initial')
+        obj.testarr()
 
     if 1:
-        arr = Array(label='initial')
-        print dir(arr)
-        arr.testarr()
-        arr.display('initial')
-        dcoll = arr.dcoll_xy(ns)
-        MG_JEN_exec.display_subtree(dcoll, 'Array.dcoll_xy()', full=True, recurse=5)
-        sensit = arr.subtree_sensit(ns)
-        MG_JEN_exec.display_subtree(sensit, 'Array.subtree_sensit()', full=True, recurse=5)
-        arr.display('final')
+        obj = Station(label='initial')
 
-    if 0:
-        stat = Station(label='initial')
-        print dir(stat)
-        stat.display('initial')
-        dcoll = stat.dcoll_xy(ns)
-        MG_JEN_exec.display_subtree(dcoll, 'Station.dcoll_xy()', full=True, recurse=5)
-        stat.display('final')
+    if 1:
+        print dir(obj)
+        obj.display('initial')
+        if 1:
+            dcoll = obj.dcoll_xy(ns)
+            MG_JEN_exec.display_subtree(dcoll, 'dcoll_xy()', full=True, recurse=5)
+        if 1:
+            sensit = obj.subtree_sensit(ns)
+            MG_JEN_exec.display_subtree(sensit, 'subtree_sensit()', full=True, recurse=5)
+        obj.display('final')
 
     if 0:
         # Display the final result:
         # MG_JEN_exec.display_subtree(cs[k], 'cs['+str(k)+']', full=True, recurse=5)
-        ant.display('final result')
+        obj.display('final result')
     print '\n*******************\n** End of local test of: TDL_Antenna.py:\n'
 
 

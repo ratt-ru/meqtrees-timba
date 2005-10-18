@@ -17,6 +17,7 @@
 #=================================================================================
 
 from Timba.TDL import *
+from Timba.Meq import meq                     # required for _create_beam()
 # from copy import deepcopy
 from numarray import *
 import math                         # for create_dipole_beam()
@@ -84,8 +85,12 @@ class Dipole (TDL_Antenna.Antenna):
         return ss
 
     # Re-implementation of TDL_Antenna.Antenna method:
-    def subtree_sensit(self, ns=None):
+    def subtree_sensit(self, ns=None, *pp):
         """Return a subtree for Dipole sensitivity calculation"""
+
+        pp.setdefault('bandwidth', 1e4)     # bandwidth in Hz
+        pp.setdefault('interval', 10)       # integration time (sec)
+
         if ns and not TDL_Antenna.Antenna.subtree_sensit(self):
             uniqual = _counter ('subtree_sensit()', increment=True)
             name = 'Dipole_sensitivity'
@@ -95,97 +100,61 @@ class Dipole (TDL_Antenna.Antenna):
 
 
     # Re-implementation of TDL_Antenna.Antenna method:
-    def subtree_beam(self, ns=None):
+    def subtree_beam(self, ns=None, **pp):
         """Return a subtree for Dipole beam calculation"""
+        pp.setdefault('height', 0.25)     # wavelengths above groundplane
         if ns and not TDL_Antenna.Antenna.subtree_beam(self):
-            TDL_Antenna.Antenna.subtree_beam(self, new=None)
+            pol = self.polarisation()
+            node = _create_dipole_beam(ns, pol=pol, height=pp['height'])
+            TDL_Antenna.Antenna.subtree_beam(self, new=node)
         return TDL_Antenna.Antenna.subtree_beam(self)
 
 
 #---------------------------------------------------------------------------
-def _define_forest (ns):
+def _create_dipole_beam(ns, pol='X', height=0.25):
   """ We create two horizontal dipoles, perpendicular to one another
       and multiply their Voltage (not Power) beam shapes. The voltage
       beam is taken to be the positive square root of the power beam.
   """;
 
+  # dipole height from ground plane in wavelengths
+  # make dipole height above ground=lambda/4 to get peak at top
+  
+
   # creation of a compiled funklet - using MXM code
   # polynomials in t,f
+
   par=['p0+p1*x0+p2*x1+p3*x0*x1','p4+p5*x0+p6*x1+p7*x0*x1',\
        'p8+p9*x0+p10*x1+p11*x0*x1','p12+p13*x0+p14*x1+p15*x0*x1']
+
   # polynomial coefficients
   #coeff=[[1,0,0,0],[1,0,0,0],[1,0,0,0],[1,0,0,0]]
   # choose this to see some time variation
   # the third polynomial should model variation of dipole height
   # with freqency                        \/ -- this models height
+
   coeff=[[1,0.1,0,0],[1,0.2,0,0],[1,0.10,0.5,0],[1,0.30,0,0]]
 
 
-  # value of pi
+  # value of pi (string)
   pi=str(math.pi)
-
-  # dipole height from ground plane in wavelengths
-  # make dipole height above ground=lambda/4 to get peak at top
-  h=MG.parm['h']
 
   print par
   print coeff
 
-  # create XX beam
-  x_node=_create_dipole_beam_h(par,coeff,h)
-  ns.x<<x_node
-  # create bookmark for easy viewing
-  MG_JEN_forest_state.bookmark(ns.x, page='main beam (XX)', viewer='Result Plotter')
-  MG_JEN_forest_state.bookmark(ns.x, page='All beams', viewer='Result Plotter')
-
-  # create YY beam
-  y_node=_create_dipole_beam_h(par,coeff,h,'x2-'+pi+'/2')
-  ns.y<<y_node
-  # create bookmark for easy viewing
-  MG_JEN_forest_state.bookmark(ns.y, page='cross beam (YY)', viewer='Result Plotter')
-  MG_JEN_forest_state.bookmark(ns.y, page='All beams', viewer='Result Plotter')
+  uniqual = _counter ('_create_dipole_beam()', increment=True)
+  name = 'beam_Dipole_'+pol
+  if pol=='Y':
+      # create voltage beam for Y dipole:
+      root = ns[name](uniqual) << _create_dipole_beam_h(par,coeff,height,'x2-'+pi+'/2')
+  else:
+      # create voltage beam for X dipole:
+      root = ns[name](uniqual) << _create_dipole_beam_h(par,coeff, height)
 
   # create product beam as root
-  ns.z<<Meq.Multiply(ns.x,ns.y)
-  # create bookmark for easy viewing
-  MG_JEN_forest_state.bookmark(ns.z, page='product beam', viewer='Result Plotter')
-  MG_JEN_forest_state.bookmark(ns.z, page='All beams', viewer='Result Plotter')
+  # root = ns.z << Meq.Multiply(ns.x,ns.y)
 
-  ns.Resolve()
-
-
-
-#------------------------------------------------------------------------------------------------
-def _create_dipole_beam_v(tfpoly=['1','1','1','1'],coeff=[[1],[1],[1],[1]],h=0.25,x='x2',y='x3'):
-  """ Create Vertical Dipole beam:
-      The theoretical (power) beam shape is:
-      z=(sin(y)*cos(2*pi*h*cos(y)))^2;
-      where x:azimuth angle
-            y:elevation angle (both radians)
-            h: dipole height from ground
-      we create a voltage beam, using square root of power as the r.m.s.
-      voltage, and add polynomials for time,freq as given by {TF}
-      z=({TF0}*sin({TF1}y)*cos(2*pi*h*{TF2}cos({TF3}y)))^2
-      so we need 4 polynomials, which must be given as tfpoly array.
-      The coefficients for these polynomials should be given by coeff array.
-      x,y should be given as polynomials of x2 and x3 respectively.
-  """
-  if len(tfpoly)<4:
-   print "Invalid No. of Polynomials, should be 4"
-   return None
-
-  h_str=str(h)
-  pi=str(math.pi)
-  # voltage beam, so do not take ^2
-  #beamshape='abs(cos('+pi+'/2*('+tfpoly[0]+')*cos(('+tfpoly[1]+')*('+x+')))/sin(('+tfpoly[2]+')*('+x+'))*sin(2*'+pi+'*'+h_str+'*('+tfpoly[3]+')*sin(('+tfpoly[4]+')*('+y+'))))'
-  beamshape='abs(('+tfpoly[0]+')*sin(('+tfpoly[1]+')*('+y+'))*cos(2.0*'+pi+'*'+h_str+'*('+tfpoly[2]+')*cos(('+tfpoly[3]+')*('+y+'))))'
-  polc = meq.polc(coeff=coeff,subclass=meq._funklet_type)
-  print beamshape
-  print coeff
-  polc.function = beamshape;
-
-  root=Meq.Parm(polc,node_groups='Parm')
-
+  # ns.Resolve()
   return root
 
 
@@ -217,11 +186,47 @@ def _create_dipole_beam_h(tfpoly=['1','1','1','1'],coeff=[[1],[1],[1],[1]],h=0.2
   print coeff
   polc.function = beamshape;
 
-  root=Meq.Parm(polc,node_groups='Parm')
+  root = Meq.Parm(polc,node_groups='Parm')
 
   return root
 
       
+
+
+#------------------------------------------------------------------------------------------------
+def _create_dipole_beam_v(tfpoly=['1','1','1','1'],coeff=[[1],[1],[1],[1]],h=0.25,x='x2',y='x3'):
+  """ Create Vertical Dipole beam:
+      The theoretical (power) beam shape is:
+      z=(sin(y)*cos(2*pi*h*cos(y)))^2;
+      where x:azimuth angle
+            y:elevation angle (both radians)
+            h: dipole height from ground
+      we create a voltage beam, using square root of power as the r.m.s.
+      voltage, and add polynomials for time,freq as given by {TF}
+      z=({TF0}*sin({TF1}y)*cos(2*pi*h*{TF2}cos({TF3}y)))^2
+      so we need 4 polynomials, which must be given as tfpoly array.
+      The coefficients for these polynomials should be given by coeff array.
+      x,y should be given as polynomials of x2 and x3 respectively.
+  """
+  if len(tfpoly)<4:
+   print "Invalid No. of Polynomials, should be 4"
+   return None
+
+  h_str=str(h)
+  pi=str(math.pi)
+  # voltage beam, so do not take ^2
+  #beamshape='abs(cos('+pi+'/2*('+tfpoly[0]+')*cos(('+tfpoly[1]+')*('+x+')))/sin(('+tfpoly[2]+')*('+x+'))*sin(2*'+pi+'*'+h_str+'*('+tfpoly[3]+')*sin(('+tfpoly[4]+')*('+y+'))))'
+  beamshape='abs(('+tfpoly[0]+')*sin(('+tfpoly[1]+')*('+y+'))*cos(2.0*'+pi+'*'+h_str+'*('+tfpoly[2]+')*cos(('+tfpoly[3]+')*('+y+'))))'
+  polc = meq.polc(coeff=coeff,subclass=meq._funklet_type)
+  print beamshape
+  print coeff
+  polc.function = beamshape;
+
+  root = Meq.Parm(polc,node_groups='Parm')
+
+  return root
+
+
 
 
 
