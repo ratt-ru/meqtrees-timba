@@ -19,8 +19,6 @@
 
 from Timba.TDL import *
 
-MG = record(script_name='MG_JEN_twig.py', last_changed = 'h22sep2005')
-
 from random import *
 from numarray import *
 from string import *
@@ -30,6 +28,34 @@ from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_math
 from Timba.Contrib.JEN import MG_JEN_funklet
+
+from Timba.Contrib.MXM import MG_MXM_functional
+
+from Timba.Trees import TDL_Leaf
+
+
+#-------------------------------------------------------------------------
+# Script control record (may be edited here):
+
+MG = MG_JEN_exec.MG_init('MG_JEN_twig.py',
+                         last_changed='h19oct2005',
+                         trace=False)             # If True, produce progress messages  
+
+MG.parm = record(height=0.25, # dipole height from ground plane, in wavelengths
+                              # note that this varies with freq. in order to 
+                              # model this variation, use the t,f polynomial
+                              # given below
+                 ntime=5,     # no. of grid points in time [0,1]
+                 nfreq=5,     # no. of grid points in frequency [0,1]
+                 nphi=40,     # no. of grid points in azimuth [0,2*pi]
+                 ntheta=40,   # no. of grid points in declination [0,pi/2]
+                              # measured from the zenith
+                 debug_level=10)    # debug level
+
+# Check the MG record, and replace any referenced values
+MG = MG_JEN_exec.MG_check(MG)
+
+
 
 #-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
@@ -56,6 +82,37 @@ def _define_forest (ns):
    of the subject of this MG script, and its importable functions"""
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)
+
+   if True:
+      # add Azimuth and Elevation axes as the 3rd and 4th axes
+      MG_MXM_functional._add_axes_to_forest_state(['A','E']);
+      # create the dummy node (needed for the funklet)
+      ns.dummy<<Meq.Parm([[0,1],[1,0]],node_groups='Parm');
+
+
+   # Test/demo of leaves in TDL_Leaf.py
+   bb = []
+   bb.append(TDL_Leaf.MeqFreq(ns))
+   bb.append(TDL_Leaf.MeqWavelength(ns))
+   bb.append(TDL_Leaf.MeqTime(ns))
+   bb.append(TDL_Leaf.MeqFreqTime(ns))
+   bb.append(TDL_Leaf.MeqTimeFreq(ns))
+   bb.append(TDL_Leaf.MeqFreqTimeComplex(ns))
+   bb.append(TDL_Leaf.MeqTimeFreqComplex(ns))
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'TDL_Leaf_Freq_Time'))
+
+   # Test/demo of leaves in TDL_Leaf.py
+   bb = []
+   for combine in ['Add','Subtract','Multiply','Divide']:
+      bb.append(TDL_Leaf.MeqFreqTime(ns, combine=combine))
+      bb.append(TDL_Leaf.MeqTimeFreq(ns, combine=combine))
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'TDL_Leaf_FreqTime'))
+
+   # Test/demo of leaves in TDL_Leaf.py
+   bb = []
+   bb.append(TDL_Leaf.MeqAzimuth(ns))
+   bb.append(TDL_Leaf.MeqElevation(ns))
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'TDL_Leaf_AzEl'))
 
    # Test/demo of importable function: .freqtime()
    bb = []
@@ -229,22 +286,38 @@ def clouds_ring (ns, nc=5, nppc=10, name='pnt', qual=None, stddev=0.2):
 
 
 
+
 #********************************************************************************
-# Testing routines
-# NB: this section should always be at the end of the script
+#********************************************************************************
+#*****************  PART V: Forest execution routines ***************************
+#********************************************************************************
 #********************************************************************************
 
-
-#-------------------------------------------------------------------------
-# Meqforest execution routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
-# If not explicitly supplied, a default request will be used.
 
 def _test_forest (mqs, parent):
    return MG_JEN_exec.meqforest (mqs, parent)
 
-#-------------------------------------------------------------------------
-# Test routine to check the tree for consistency in the absence of a server
+def _tdl_job_4D_request (mqs,parent):
+   """ evaluate beam pattern for the upper hemisphere
+   for this create a grid in azimuth(phi) [0,2*pi], pi/2-elevation(theta) [0,pi/2]
+   """;
+   # run dummy first, to make python know about the extra axes (some magic)
+   MG_MXM_functional._dummy(mqs,parent);
+  
+   request = MG_MXM_functional._make_request(Ndim=4,dom_range=[[0.,1.],[0.,1.],[0.,math.pi*2.0],[0.,math.pi/2.0]],nr_cells=[MG.parm['ntime'],MG.parm['nfreq'],MG.parm['nphi'],MG.parm['ntheta']]);
+   return MG_JEN_exec.meqforest (mqs, parent, request=request)
+   # a = mqs.meq('Node.Execute',record(name='z',request=request),wait=True);
+   # return True
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#******************** PART VI: Standalone test routines *************************
+#********************************************************************************
+#********************************************************************************
+
 
 if __name__ == '__main__':
    print '\n*******************\n** Local test of:',MG.script_name,':\n'

@@ -36,6 +36,12 @@ def MeqFreq(ns, name='MeqFreq'):
     uniqual = _counter (name, increment=True)
     return ns[name](uniqual) << Meq.Freq()
 
+def MeqWavelength(ns, name='MeqWavelength'):
+    uniqual = _counter (name, increment=True)
+    freq = MeqFreq(ns)                          # Hz
+    clight = 2.9979250e8                        # m/s
+    return ns[name](uniqual) << Meq.Divide(clight, freq)
+
 def MeqTime(ns, name='MeqTime'):
     uniqual = _counter (name, increment=True)
     return ns[name](uniqual) << Meq.Time()
@@ -118,11 +124,17 @@ if __name__ == '__main__':
 
     if 1:
         cc.append(MeqFreq(ns))
+        cc.append(MeqWavelength(ns))
         cc.append(MeqTime(ns))
         cc.append(MeqFreqTime(ns))
         cc.append(MeqTimeFreq(ns))
         cc.append(MeqFreqTimeComplex(ns))
         cc.append(MeqTimeFreqComplex(ns))
+
+    if 1:
+        cc.append(MeqFreqTime(ns, 'Subtract'))
+        cc.append(MeqFreqTime(ns, 'Divide'))
+        cc.append(MeqFreqTime(ns, 'Multiply'))
 
     if 1:
         cc.append(MeqAzimuth(ns))

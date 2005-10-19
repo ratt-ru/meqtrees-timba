@@ -106,26 +106,27 @@ def _define_forest (ns):
       node = obj.subtree_Tsky(ns)
       cc.append(node)
       MG_JEN_forest_state.bookmark(node, page='sensit')
-   _experiment(ns, obj, 'Antenna', cc)
+   _experiment(ns, obj, cc)
    
-   obj = TDL_Dipole.Dipole()
-   _experiment(ns, obj, 'Dipole', cc, sensit=True, beam=True)
-
    dip1 = TDL_Dipole.Dipole(polarisation='X')
    dip2 = TDL_Dipole.Dipole(polarisation='Y')
-   obj = TDL_Antenna.Feed(dip1, dip2)
-   _experiment(ns, obj, 'Feed', cc)
-
    dip3 = TDL_Dipole.Dipole(polarisation='Z')
+
+   _experiment(ns, dip1, cc, sensit=True, beam=True)
+   _experiment(ns, dip2, cc, sensit=True, beam=True)
+
+   obj = TDL_Antenna.Feed(dip1, dip2)
+   _experiment(ns, obj, cc)
+
    obj = TDL_Antenna.TriDipole(dip1, dip2, dip3)
-   _experiment(ns, obj, 'TriDipole', cc)
+   _experiment(ns, obj, cc)
 
    obj = TDL_Antenna.Array()
    obj.testarr()
-   _experiment(ns, obj, 'Array', cc)
+   _experiment(ns, obj, cc)
    
    obj = TDL_Antenna.Station()
-   _experiment(ns, obj, 'Station', cc)
+   _experiment(ns, obj, cc)
 
 
   # Finished: 
@@ -134,7 +135,7 @@ def _define_forest (ns):
 
 
 #----------------------------------------------------------------------------
-def _experiment(ns, obj, tname, cc=[], dcoll=True, sensit=False, beam=False):
+def _experiment(ns, obj, cc=[], dcoll=True, sensit=False, beam=False):
 
     if dcoll:
         node = obj.dcoll_xy(ns)

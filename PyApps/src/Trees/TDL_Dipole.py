@@ -96,16 +96,22 @@ class Dipole (TDL_Antenna.Antenna):
 
         if ns and not TDL_Antenna.Antenna.subtree_sensit(self):
             uniqual = _counter ('subtree_sensit()', increment=True)
-            omega = ns['omega_sterad_'+self.type()] << 4.0
+            omega = ns['omega_sterad_'+self.type()](uniqual) << 4.0
             wvl = self.subtree_wvl(ns)
             k_Boltzmann = 1.4*1e-23         # J/Hz.K
             k_Jy = k_Boltzmann/1e-26        # Jy/Hz.K
             k2_Jy = 2*k_Jy                  # convenience
-            Aeff = ns['Aeff_'+self.type()] << Meq.Sqr(wvl)/omega
+            Aeff = ns['Aeff_'+self.type()](uniqual) << Meq.Sqr(wvl)/omega
             Tsky = self.subtree_Tsky(ns)
-            Tsys = ns['Tsys_'+self.type()] << Tsky + pp['Trec']
+            Tsys = ns['Tsys_'+self.type()](uniqual) << Tsky + pp['Trec']
+            name = 'bandwidth_'+self.type()
+            if True:
+                bw = ns[name](uniqual) << Meq.Parm(pp['bandwidth'])
+                name = 'interval_'+self.type()
+                dt = ns[name](uniqual) << Meq.Parm(pp['interval'])
+                SqrtBt = ns << Meq.Sqrt((ns << Meq.Multiply(bw,dt)))
             name = 'sensitivity_'+self.type()
-            Srcp = ns[name](uniqual) << k2_Jy * Tsys / Aeff
+            Srcp = ns[name](uniqual) << k2_Jy * Tsys / (Aeff * SqrtBt)
             TDL_Antenna.Antenna.subtree_sensit(self, new=Srcp)
         return TDL_Antenna.Antenna.subtree_sensit(self)
 
