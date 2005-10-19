@@ -10,9 +10,9 @@
 
 # Full description:
 # This script tests the Meq.Resampler node. Unlike Meq.ModRes node,
-# the resampler resamples the Result obtained from the child node.
+# the Resampler resamples the Result obtained from the child node.
 # Each Resampler can have only one child node. The resampler can work in
-# both directions, i.e. downsampling and upsampling. The amout of resampling
+# both directions, i.e. downsampling and upsampling. The amount of resampling
 # can be given when the node is created using the init record. In order 
 # to calculate its performance, this script downsamples and then upsamples
 # the same result to get a result at original resolution. It then calculates
@@ -57,7 +57,8 @@ def _define_forest (ns):
   rootzc=ns.rootzc<<Meq.Resampler(n3,flag_density=0.1)
   root_complex=ns.rooti<<Meq.Composer(rootxc,rootyc,rootzc)
 
-   
+  # in order to calculate error, upsample and substract
+  # from original result 
   rootxe=ns.xe<<(Meq.Resampler(rootxc,flag_density=10.0)-n1)
   rootye=ns.ye<<(Meq.Resampler(rootyc,flag_density=10.0)-n2)
   rootze=ns.ze<<(Meq.Resampler(rootzc,flag_density=10.0)-n3)
