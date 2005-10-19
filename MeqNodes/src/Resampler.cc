@@ -73,7 +73,8 @@ void Resampler::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   rec[FFlagBit].get(flag_bit,initializing);
   rec[FFlagDensity].get(flag_density,initializing);
 #ifdef VERBOSE
-	cout<<"Initializing "<<flag_density<<endl;
+	cout<<"Initializing flag_density: "<<flag_density<<endl;
+	cout<<"Initializing flag_bit: "<<flag_bit<<endl;
 #endif
 }
 
@@ -84,8 +85,9 @@ int Resampler::getResult (Result::Ref &resref,
 {
   Assert(childres.size()==1);
   const Result &chres = *(childres.front());
-	if (!chres.hasCells()) {
-	 //bail out
+	if (!chres.hasCells() || (flag_bit !=0)) {
+	 //bail out: do nothing
+	 //if flag_bit!=0, no change in result
    resref=childres[0];
 	 return 0;
 	}
@@ -169,7 +171,7 @@ int Resampler::getResult (Result::Ref &resref,
 			cout<<"Case 3"<<endl;
 #endif
 			blitz::Array<double,1> B(nx1);
-			blitz::Array<double,1> AA=A(LoRange::all(),1);
+			blitz::Array<double,1> AA=A(LoRange::all(),1);//I get invalid read from this
       splint(xax,xstart,xend,AA,nx,xaxs,nx1,B);
 			//blitz::Array<double,2> BB=B.transpose(nx1,1);
 			blitz::Array<double,2> BB(B.data(), blitz::shape(nx1,1),blitz::deleteDataWhenDone);   
@@ -773,6 +775,7 @@ spline(blitz::Array<double,1> x, blitz::Array<T,1> y, int n, blitz::Array<T,1> y
 			sig=(x(i)-x(i-1))/(x(i+1)-x(i-1));
 			p=sig*y2(i-1)+2.0;
 			y2(i)=(sig-1.0)/p;
+			//cout<<"DEBUG "<<i<<" of "<<n<<endl;
 			u(i)=(y(i+1)-y(i))/(x(i+1)-x(i))-(y(i)-y(i-1))/(x(i)-x(i-1));
 			u(i)=(6.0*u(i)/(x(i+1)-x(i-1))-sig*u(i-1))/p;
 	 }
@@ -831,6 +834,39 @@ splint(blitz::Array<double,1> xax,double xstart, double xend, blitz::Array<T,1> 
 	for (int i=x_u_limit+1;i<ns; i++) {
 		y(i)=yax(n-2)+(xaxs(i)-xaxs(n-2))/(xax(n-1)-xax(n-2))*(yax(n-1)-yax(n-2));
 	}
+}
+
+///// poll children
+int Resampler::pollChildren (std::vector<Result::Ref> &chres,
+                          Result::Ref &resref,const Request &request)
+{
+   if ((flag_bit !=0) && request.hasCells()) {
+		//modify request cells
+	  //if flag_bit!=0, change the request 
+		 Request::Ref newreq(request);
+  const Cells &incells = request.cells();
+
+	int nx=incells.center(0).extent(0);
+	int ny=incells.center(1).extent(0);
+	//determine the resampling to be done
+	int nx1=(int)((double)nx*flag_density);
+	int ny1=(int)((double)ny*flag_density);
+	//sanity check
+	if (nx1<1) nx1=1;
+	if (ny1<1) ny1=1;
+#ifdef VERBOSE
+	cout<<"Resampling Request new size "<<nx1<<" x "<<ny1<<" "<<flag_density<<endl;
+#endif
+  Cells::Ref outcells1; 
+ 	Cells &outcells = outcells1<<=new Cells(request.cells().domain(),nx1,ny1);
+  newreq().setCells(outcells);
+     return Node::pollChildren(chres,resref,newreq);
+		} else {
+		//do nothing
+     return Node::pollChildren(chres,resref,request);
+		}
+	// will not get here
+	return 0;
 }
 
 

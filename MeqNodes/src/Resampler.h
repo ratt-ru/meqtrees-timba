@@ -73,6 +73,11 @@ protected:
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
+
+	virtual int pollChildren (std::vector<Result::Ref> &child_results,
+	   Result::Ref &resref,const Request &req);
+
+
   
 private:
   int flag_mask;
