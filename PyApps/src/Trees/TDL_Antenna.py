@@ -111,6 +111,9 @@ class Antenna (TDL_common.Super):
         self.__dcoll_xy = None
         self.__subtree_sensit = None
         self.__subtree_beam = None
+        self.__subtree_freq = None
+        self.__subtree_wvl = None
+        self.__subtree_Tsky = None
         r2 = 0.0
         for i in range(len(self.__size)):
             r2 += (self.__size[i] * self.__size[i])
@@ -177,6 +180,10 @@ class Antenna (TDL_common.Super):
             ss.append(indent1+' - subtree_sensit:'+str(self.subtree_sensit()))
         if self.subtree_beam():
             ss.append(indent1+' - subtree_beam:  '+str(self.subtree_beam()))
+        if self.subtree_Tsky():
+            ss.append(indent1+' - subtree_freq:  '+str(self.subtree_freq()))
+            ss.append(indent1+' - subtree_wvl:   '+str(self.subtree_wvl()))
+            ss.append(indent1+' - subtree_Tsky:  '+str(self.subtree_Tsky()))
         if end: return TDL_common.Super.display_end(self, ss)
         return ss
 
@@ -241,6 +248,35 @@ class Antenna (TDL_common.Super):
             self.__subtree_beam = None
         return self.__subtree_beam
 
+
+    def subtree_freq (self, ns=None):
+        """Return a subtree for the freq (Hz)"""
+        if ns and not self.__subtree_freq:
+            uniqual = _counter ('subtree_freq()', increment=True)
+            name = 'freq_'+self.type()
+            self.__subtree_freq = ns[name](uniqual) << Meq.Freq()          
+            print '** freq:',self.__subtree_freq
+        return self.__subtree_freq
+
+    def subtree_wvl (self, ns=None):
+        """Return a subtree for the wavelength (m)"""
+        if ns and not self.__subtree_wvl:
+            uniqual = _counter ('subtree_wvl()', increment=True)
+            name = 'wvl_'+self.type()
+            self.__subtree_wvl = ns[name](uniqual) << 3e8/self.subtree_freq(ns)
+            print '** wvl:',self.__subtree_wvl
+        return self.__subtree_wvl
+
+    def subtree_Tsky (self, ns=None, **pp):
+        """Return a subtree for the sky tenperature (K)"""
+        pp.setdefault('Tsky_index',-2.6)              # Tsky spectral index  
+        if ns and not self.__subtree_Tsky:
+            uniqual = _counter ('subtree_Tsky()', increment=True)
+            name = 'Tsky('+str(pp['Tsky_index'])+')'
+            wvl = self.subtree_wvl(ns)
+            self.__subtree_Tsky = ns[name](uniqual) << Meq.Pow(wvl, -pp['Tsky_index']) * 50
+        return self.__subtree_Tsky
+    
 
 #**************************************************************************************
 
@@ -530,7 +566,6 @@ def _counter (key, increment=0, reset=False, trace=False):
 
 
 
-
 #========================================================================
 # Test routine:
 #========================================================================
@@ -540,25 +575,28 @@ if __name__ == '__main__':
     from Timba.Contrib.JEN import MG_JEN_exec
     ns = NodeScope()
     
-    if 0:
+    if 1:
         obj = Antenna(label='initial')
 
     if 0:
         obj = Array(label='initial')
         obj.testarr()
 
-    if 1:
+    if 0:
         obj = Station(label='initial')
 
     if 1:
         print dir(obj)
         obj.display('initial')
-        if 1:
+        if 0:
             dcoll = obj.dcoll_xy(ns)
             MG_JEN_exec.display_subtree(dcoll, 'dcoll_xy()', full=True, recurse=5)
-        if 1:
+        if 0:
             sensit = obj.subtree_sensit(ns)
             MG_JEN_exec.display_subtree(sensit, 'subtree_sensit()', full=True, recurse=5)
+        if 1:
+            Tsky = obj.subtree_Tsky(ns)
+            MG_JEN_exec.display_subtree(Tsky, 'subtree_Tsky()', full=True, recurse=5)
         obj.display('final')
 
     if 0:

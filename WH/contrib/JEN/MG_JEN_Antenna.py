@@ -96,28 +96,37 @@ def _define_forest (ns):
       # create the dummy node (needed for the funklet)
       ns.dummy<<Meq.Parm([[0,1],[1,0]],node_groups='Parm');
 
+
+
+   # Various antennas:
    
-      obj = TDL_Antenna.Antenna()
-      _experiment(ns, obj, 'Antenna', cc)
+   obj = TDL_Antenna.Antenna()
+   if True:
+      # Make a bookmark for the sky temperature:
+      node = obj.subtree_Tsky(ns)
+      cc.append(node)
+      MG_JEN_forest_state.bookmark(node, page='sensit')
+   _experiment(ns, obj, 'Antenna', cc)
+   
+   obj = TDL_Dipole.Dipole()
+   _experiment(ns, obj, 'Dipole', cc, sensit=True, beam=True)
 
-      obj = TDL_Dipole.Dipole()
-      _experiment(ns, obj, 'Dipole', cc, beam=True)
+   dip1 = TDL_Dipole.Dipole(polarisation='X')
+   dip2 = TDL_Dipole.Dipole(polarisation='Y')
+   obj = TDL_Antenna.Feed(dip1, dip2)
+   _experiment(ns, obj, 'Feed', cc)
 
-      dip1 = TDL_Dipole.Dipole(polarisation='X')
-      dip2 = TDL_Dipole.Dipole(polarisation='Y')
-      obj = TDL_Antenna.Feed(dip1, dip2)
-      _experiment(ns, obj, 'Feed', cc)
+   dip3 = TDL_Dipole.Dipole(polarisation='Z')
+   obj = TDL_Antenna.TriDipole(dip1, dip2, dip3)
+   _experiment(ns, obj, 'TriDipole', cc)
 
-      dip3 = TDL_Dipole.Dipole(polarisation='Z')
-      obj = TDL_Antenna.TriDipole(dip1, dip2, dip3)
-      _experiment(ns, obj, 'TriDipole', cc)
+   obj = TDL_Antenna.Array()
+   obj.testarr()
+   _experiment(ns, obj, 'Array', cc)
+   
+   obj = TDL_Antenna.Station()
+   _experiment(ns, obj, 'Station', cc)
 
-      obj = TDL_Antenna.Array()
-      obj.testarr()
-      _experiment(ns, obj, 'Array', cc)
-
-      obj = TDL_Antenna.Station()
-      _experiment(ns, obj, 'Station', cc)
 
   # Finished: 
    return MG_JEN_exec.on_exit (ns, MG, cc, make_bookmark=False)

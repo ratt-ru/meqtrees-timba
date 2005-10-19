@@ -84,19 +84,31 @@ class Dipole (TDL_Antenna.Antenna):
         if end: TDL_Antenna.Antenna.display_end(self, ss)
         return ss
 
+
+
     # Re-implementation of TDL_Antenna.Antenna method:
-    def subtree_sensit(self, ns=None, *pp):
+    def subtree_sensit(self, ns=None, **pp):
         """Return a subtree for Dipole sensitivity calculation"""
 
         pp.setdefault('bandwidth', 1e4)     # bandwidth in Hz
         pp.setdefault('interval', 10)       # integration time (sec)
+        pp.setdefault('Trec', 75)           # receiver Temp (K)
 
         if ns and not TDL_Antenna.Antenna.subtree_sensit(self):
             uniqual = _counter ('subtree_sensit()', increment=True)
-            name = 'Dipole_sensitivity'
-            node = ns[name](uniqual) << 1.0 
-            TDL_Antenna.Antenna.subtree_sensit(self, new=node)
+            omega = ns['omega_sterad_'+self.type()] << 4.0
+            wvl = self.subtree_wvl(ns)
+            k_Boltzmann = 1.4*1e-23         # J/Hz.K
+            k_Jy = k_Boltzmann/1e-26        # Jy/Hz.K
+            k2_Jy = 2*k_Jy                  # convenience
+            Aeff = ns['Aeff_'+self.type()] << Meq.Sqr(wvl)/omega
+            Tsky = self.subtree_Tsky(ns)
+            Tsys = ns['Tsys_'+self.type()] << Tsky + pp['Trec']
+            name = 'sensitivity_'+self.type()
+            Srcp = ns[name](uniqual) << k2_Jy * Tsys / Aeff
+            TDL_Antenna.Antenna.subtree_sensit(self, new=Srcp)
         return TDL_Antenna.Antenna.subtree_sensit(self)
+
 
 
     # Re-implementation of TDL_Antenna.Antenna method:
@@ -261,10 +273,10 @@ if __name__ == '__main__':
     from Timba.Contrib.JEN import MG_JEN_exec
     ns = NodeScope()
     
-    if 0:
+    if 1:
         obj = Dipole(label='initial')
 
-    if 1:
+    if 0:
         dip1 = Dipole(label='dip1', polarisation='X')
         dip2 = Dipole(label='dip2', polarisation='Y')
         obj = TDL_Antenna.Feed(dip1, dip2, label='initial')
@@ -284,12 +296,15 @@ if __name__ == '__main__':
     if 1:
         print dir(obj)
         obj.display('initial')
-        if 1:
+        if 0:
             dcoll = obj.dcoll_xy(ns)
             MG_JEN_exec.display_subtree(dcoll, 'dcoll_xy()', full=True, recurse=5)
-        if 1:
+        if 0:
             sensit = obj.subtree_sensit(ns)
             MG_JEN_exec.display_subtree(sensit, 'subtree_sensit()', full=True, recurse=5)
+        if 1:
+            Tsky = obj.subtree_Tsky(ns)
+            MG_JEN_exec.display_subtree(Tsky, 'subtree_Tsky()', full=True, recurse=5)
         obj.display('final')
 
     if 0:
