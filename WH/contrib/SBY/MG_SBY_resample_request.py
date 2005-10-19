@@ -1,5 +1,5 @@
 # Short description:
-# demo of the resampler node
+# demo of the resampler node, especially when downsampling
 
 # History:
 # Mon Oct 17 11:26:00 CEST 2005: creation
@@ -9,14 +9,36 @@
 
 
 # Full description:
-# This script tests the Meq.Resampler node. Unlike Meq.ModRes node,
-# the Resampler resamples the Result obtained from the child node.
+# This script tests the Meq.Resampler node.
+# The Resampler node can act in 2 distinct ways:
+#
+# 1) Resample the result obtained from its child node
+# 2) Resample the request before passing it to the child node
+#
+# The above two ways of acting are mutually exclusive. The way to
+# change its behaviour is by changing the variable 'flag_bit' in 
+# the init record of the Resampler node. 
+#
+# You can make the Resampler node to act in the way of (1) if you make
+#   flag_bit=0 
+# and  this is the default behaviour. If you make 'flag_bit' take any other
+# value, it will act as (2).
+
 # Each Resampler can have only one child node. The resampler can work in
 # both directions, i.e. downsampling and upsampling. The amount of resampling
-# can be given when the node is created using the init record. In order 
-# to calculate its performance, this script downsamples and then upsamples
-# the same result to get a result at original resolution. It then calculates
-# the error by substracting the original result by the resampled result.
+# can be given when the node is created using the init record. The variable
+# you need to change in this case is 'flag_density'. If you make 
+#   flag_density < 1,   
+# it will downsample. If you make 
+#   flag_density >1, it will upsample.
+
+# Note that flag_density cannot be negative.
+
+#
+# In order to calculate its performance, this script downsamples the Result
+# in one node and  downsamples the Request in another. Ideally, both should
+# produce the same output. We can see the error of downsampling by 
+# substracting the two.
 
 
 # Import of Python modules:
@@ -31,7 +53,8 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 #=====================================================================
 #=====================================================================
 def _define_forest (ns):
-  ns.x<<Meq.Parm(meq.array([[1,0.2,0.01],[-0.3,0.1,0.21]])) #2D
+  # 2D resampling
+  ns.x<<Meq.Parm(meq.array([[1,0.2,0.01],[-0.3,0.1,0.21]]))
   ns.y<<Meq.Parm(meq.array([[1,0.2,0.01],[-0.3,0.1,0.21]]))
   nxr=ns['nodex']<<0.01*ns.x
   nxi=ns['nodexi']<<-0.01*ns.x
@@ -44,11 +67,16 @@ def _define_forest (ns):
   # if flag_density>=1. upsampling
   # if it is <1, downsampling
   # if it is 0 or negitive, no sampling
+
+  # if flag_bit ==0, resample the request
+  # if flag_bit !=0, resample the result
   rootxc=ns.rootxc<<Meq.Resampler(n1,flag_density=0.1,flag_bit=1)
   rootxd=ns.rootxd<<Meq.Resampler(n2,flag_density=0.1,flag_bit=0)
-  root1=ns.root1<<(rootxc-rootxd)
+  root1=ns['2D_Error']<<(rootxc-rootxd)
 
-  ns.a<<Meq.Parm(meq.array([1,20,0.01])) #2D
+
+  # 1D resampling
+  ns.a<<Meq.Parm(meq.array([1,20,0.01]))
   ns.b<<Meq.Parm(meq.array([1,20,0.01]))
   nar=ns['nodea']<<0.01*ns.a
   nai=ns['nodeai']<<-0.01*ns.a
@@ -58,18 +86,14 @@ def _define_forest (ns):
 
   n3=ns['n3']<<Meq.ToComplex(nar,nai)
   n4=ns['n4']<<Meq.ToComplex(nbr,nbi)
-  # if flag_density>=1. upsampling
-  # if it is <1, downsampling
-  # if it is 0 or negitive, no sampling
   rootac=ns.rootac<<Meq.Resampler(n3,flag_density=0.1,flag_bit=1)
   rootbd=ns.rootbd<<Meq.Resampler(n4,flag_density=0.1,flag_bit=0)
-  root2=ns.root2<<(rootac-rootbd)
+  root2=ns['1D_Error']<<(rootac-rootbd)
 
   ns.Resolve()
 
-  #MG_JEN_forest_state.bookmark(n1,page="Complex Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(root1,page="Complex Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(root2,page="Complex Resampling",viewer="Result Plotter");
+  MG_JEN_forest_state.bookmark(root1,page="Error",viewer="Result Plotter");
+  MG_JEN_forest_state.bookmark(root2,page="Error",viewer="Result Plotter");
 
 #=====================================================================
 #=====================================================================
@@ -84,11 +108,8 @@ def _test_forest (mqs, parent):
  freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
  cells =meq.cells(domain=freqtime_domain, num_freq=nfreq,  num_time=ntime);
  request = meq.request(cells,eval_mode=1);
- b = mqs.meq('Node.Execute',record(name='root1',request=request),wait=True);
- b = mqs.meq('Node.Execute',record(name='root2',request=request),wait=True);
- #print "Real result=",b;
- #b = mqs.meq('Node.Execute',record(name='n1',request=request),wait=True);
- #print "Complex result=",b;
+ b = mqs.meq('Node.Execute',record(name='1D_Error',request=request),wait=True);
+ b = mqs.meq('Node.Execute',record(name='2D_Error',request=request),wait=True);
   
 
 #=====================================================================
