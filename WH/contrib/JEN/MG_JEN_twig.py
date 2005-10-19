@@ -84,11 +84,10 @@ def _define_forest (ns):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
    if True:
-      # add Azimuth and Elevation axes as the 3rd and 4th axes
-      MG_MXM_functional._add_axes_to_forest_state(['A','E']);
-      # create the dummy node (needed for the funklet)
-      ns.dummy<<Meq.Parm([[0,1],[1,0]],node_groups='Parm');
-
+       # add Azimuth and Elevation axes as the 3rd and 4th axes
+       MG_MXM_functional._add_axes_to_forest_state(['A','E'])
+       # create the dummy node (needed for the funklet)
+       dummy = ns.dummy << Meq.Parm([[0,1],[1,0]],node_groups='Parm')
 
    # Test/demo of leaves in TDL_Leaf.py
    bb = []
@@ -302,12 +301,18 @@ def _tdl_job_4D_request (mqs,parent):
    for this create a grid in azimuth(phi) [0,2*pi], pi/2-elevation(theta) [0,pi/2]
    """;
    # run dummy first, to make python know about the extra axes (some magic)
-   MG_MXM_functional._dummy(mqs,parent);
-  
-   request = MG_MXM_functional._make_request(Ndim=4,dom_range=[[0.,1.],[0.,1.],[0.,math.pi*2.0],[0.,math.pi/2.0]],nr_cells=[MG.parm['ntime'],MG.parm['nfreq'],MG.parm['nphi'],MG.parm['ntheta']]);
+   MG_MXM_functional._dummy(mqs, parent);
+
+   time_range = [0.,1.]
+   freq_range = [0.,1.]
+   az_range = [0.,math.pi*2.0]
+   el_range = [0.,math.pi/2.0]
+   dom_range = [time_range, freq_range, az_range, el_range]
+   nr_cells = [MG.parm['ntime'],MG.parm['nfreq'],MG.parm['nphi'],MG.parm['ntheta']]
+   request = MG_MXM_functional._make_request(Ndim=4, dom_range=dom_range,
+                                             nr_cells=nr_cells)
+
    return MG_JEN_exec.meqforest (mqs, parent, request=request)
-   # a = mqs.meq('Node.Execute',record(name='z',request=request),wait=True);
-   # return True
 
 
 

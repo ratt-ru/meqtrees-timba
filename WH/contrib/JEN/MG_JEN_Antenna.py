@@ -179,20 +179,29 @@ def _experiment(ns, obj, cc=[], dcoll=True, sensit=False, beam=False):
 
 def _test_forest (mqs, parent):
     """Execute the forest with a default domain"""
-    return MG_JEN_exec.meqforest (mqs, parent)
-
+    return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')
+    # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')
+    # return MG_JEN_exec.meqforest (mqs, parent)
 
 def _tdl_job_4D_request (mqs,parent):
    """ evaluate beam pattern for the upper hemisphere
    for this create a grid in azimuth(phi) [0,2*pi], pi/2-elevation(theta) [0,pi/2]
    """;
    # run dummy first, to make python know about the extra axes (some magic)
-   MG_MXM_functional._dummy(mqs,parent);
-  
-   request = MG_MXM_functional._make_request(Ndim=4,dom_range=[[0.,1.],[0.,1.],[0.,math.pi*2.0],[0.,math.pi/2.0]],nr_cells=[MG.parm['ntime'],MG.parm['nfreq'],MG.parm['nphi'],MG.parm['ntheta']]);
+   MG_MXM_functional._dummy(mqs, parent);
+
+   time_range = [0.,1.]
+   freq_range = [0.,1.]
+   freq_range = [100e6,200e6]                # 100-200 MHz
+   az_range = [0.,math.pi*2.0]
+   el_range = [0.,math.pi/2.0]
+   dom_range = [time_range, freq_range, az_range, el_range]
+   nr_cells = [MG.parm['ntime'],MG.parm['nfreq'],MG.parm['nphi'],MG.parm['ntheta']]
+   request = MG_MXM_functional._make_request(Ndim=4, dom_range=dom_range,
+                                             nr_cells=nr_cells)
+
    return MG_JEN_exec.meqforest (mqs, parent, request=request)
-   # a = mqs.meq('Node.Execute',record(name='z',request=request),wait=True);
-   # return True
+
 
 
 #********************************************************************************

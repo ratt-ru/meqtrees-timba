@@ -72,19 +72,34 @@ def MeqTimeFreq(ns, combine='Add', name='MeqTimeFreq'):
 # Leaves built on multi-dimensional funklets (dicey!) 
 #**************************************************************************************
 
-def MeqAzimuth(ns, name='MeqAzimuth'):
+def MeqAzimuth(ns, name='MeqAzimuth', axis='x2'):
+    return MeqFunklet(ns, name, axis)
+
+def MeqElevation(ns, name='MeqElevation', axis='x3'):
+    return MeqFunklet(ns, name, axis)
+
+def MeqL(ns, name='MeqL', axis='x2'):
+    return MeqFunklet(ns, name, axis)
+
+def MeqM(ns, name='MeqM', axis='x3'):
+    return MeqFunklet(ns, name, axis)
+
+def MeqU(ns, name='MeqU', axis='x2'):
+    return MeqFunklet(ns, name, axis)
+
+def MeqV(ns, name='MeqV', axis='x3'):
+    return MeqFunklet(ns, name, axis)
+
+def MeqW(ns, name='MeqW', axis='x4'):
+    return MeqFunklet(ns, name, axis)
+
+# Common function (can also be used stand-alone):
+
+def MeqFunklet(ns, name='<name>', axis='<xi>'):
     uniqual = _counter (name, increment=True)
     funklet = meq.polc(coeff=[1.0], subclass=meq._funklet_type)
-    funklet.function = 'p0*x2'
+    funklet.function = 'p0*'+axis
     return ns[name](uniqual) << Meq.Parm(funklet, node_groups='Parm')
-
-def MeqElevation(ns, name='MeqElevation'):
-    uniqual = _counter (name, increment=True)
-    funklet = meq.polc(coeff=[1.0], subclass=meq._funklet_type)
-    funklet.function = 'p0*x3'
-    return ns[name](uniqual) << Meq.Parm(funklet, node_groups='Parm')
-
-
 
 
 

@@ -47,6 +47,7 @@ from numarray import *
 import math                         # for create_dipole_beam()
 
 from Timba.Trees import TDL_common
+from Timba.Trees import TDL_Leaf
 # from Timba.Trees import TDL_radio_conventions
 
 
@@ -252,19 +253,13 @@ class Antenna (TDL_common.Super):
     def subtree_freq (self, ns=None):
         """Return a subtree for the freq (Hz)"""
         if ns and not self.__subtree_freq:
-            uniqual = _counter ('subtree_freq()', increment=True)
-            name = 'freq_'+self.type()
-            self.__subtree_freq = ns[name](uniqual) << Meq.Freq()          
-            print '** freq:',self.__subtree_freq
+            self.__subtree_freq = TDL_Leaf.MeqFreq(ns)          
         return self.__subtree_freq
 
     def subtree_wvl (self, ns=None):
         """Return a subtree for the wavelength (m)"""
         if ns and not self.__subtree_wvl:
-            uniqual = _counter ('subtree_wvl()', increment=True)
-            name = 'wvl_'+self.type()
-            self.__subtree_wvl = ns[name](uniqual) << 3e8/self.subtree_freq(ns)
-            print '** wvl:',self.__subtree_wvl
+            self.__subtree_wvl = TDL_Leaf.MeqWavelength(ns)          
         return self.__subtree_wvl
 
     def subtree_Tsky (self, ns=None, **pp):

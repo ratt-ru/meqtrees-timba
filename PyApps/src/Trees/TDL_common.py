@@ -76,6 +76,7 @@ class Super:
         if isinstance(new, str): self.__label = new
         return self.__label
     def type(self): return self.__type
+    def tlabel(self): return self.__type+':'+self.__label
     def errors(self): return self.__errors
     def warnings(self): return self.__warnings
     def ok(self): return (self.__errors==0 and self.__warnings==0)

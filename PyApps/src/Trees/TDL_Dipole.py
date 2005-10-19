@@ -24,6 +24,7 @@ import math                         # for create_dipole_beam()
 
 from Timba.Trees import TDL_common
 from Timba.Trees import TDL_Antenna
+from Timba.Trees import TDL_Leaf
 # from Timba.Trees import TDL_radio_conventions
 
 
@@ -90,27 +91,37 @@ class Dipole (TDL_Antenna.Antenna):
     def subtree_sensit(self, ns=None, **pp):
         """Return a subtree for Dipole sensitivity calculation"""
 
-        pp.setdefault('bandwidth', 1e4)     # bandwidth in Hz
-        pp.setdefault('interval', 10)       # integration time (sec)
-        pp.setdefault('Trec', 75)           # receiver Temp (K)
+        pp.setdefault('bandwidth', 1e4)       # bandwidth in Hz
+        pp.setdefault('interval', 10)         # integration time (sec)
+        pp.setdefault('Trec', 75)             # receiver Temp (K)
+        pp.setdefault('groundplane', True)    # conducting/reflecting
+
+        # NB: The sensitivity does NOT depend on dipole length,
+        #     as long as it is short w.r.t. the wavelength
+        # NB: What about the height above the groundplane?
 
         if ns and not TDL_Antenna.Antenna.subtree_sensit(self):
             uniqual = _counter ('subtree_sensit()', increment=True)
-            omega = ns['omega_sterad_'+self.type()](uniqual) << 4.0
+            omega = 4.0*3.14                  # isotropic radiator
+            omega = 4.0                       # use for LOFAR, with separation lambda/2...?
+            if pp['groundplane']: omega = 3.0 # above reflecting groundplane
+            omega = ns['omega_sterad_'+self.tlabel()](uniqual) << omega
             wvl = self.subtree_wvl(ns)
-            k_Boltzmann = 1.4*1e-23         # J/Hz.K
-            k_Jy = k_Boltzmann/1e-26        # Jy/Hz.K
-            k2_Jy = 2*k_Jy                  # convenience
-            Aeff = ns['Aeff_'+self.type()](uniqual) << Meq.Sqr(wvl)/omega
+            k_Boltzmann = 1.4*1e-23           # J/Hz.K
+            k_Jy = k_Boltzmann/1e-26          # Jy/Hz.K
+            k2_Jy = 2*k_Jy                    # 
+            Aeff = ns['Aeff_m2_'+self.tlabel()](uniqual) << Meq.Sqr(wvl)/omega
             Tsky = self.subtree_Tsky(ns)
-            Tsys = ns['Tsys_'+self.type()](uniqual) << Tsky + pp['Trec']
-            name = 'bandwidth_'+self.type()
+            Tsys = ns['Tsys_K_'+self.tlabel()](uniqual) << Tsky + pp['Trec']
             if True:
+                name = 'bw_Hz'+self.tlabel()
                 bw = ns[name](uniqual) << Meq.Parm(pp['bandwidth'])
-                name = 'interval_'+self.type()
+                name = 'dt_sec_'+self.tlabel()
                 dt = ns[name](uniqual) << Meq.Parm(pp['interval'])
-                SqrtBt = ns << Meq.Sqrt((ns << Meq.Multiply(bw,dt)))
-            name = 'sensitivity_'+self.type()
+                name = 'sqrt(Bt)_'+self.tlabel()
+                # NB: The factor 2.0 comes from full polarisation.....?
+                SqrtBt = ns << Meq.Sqrt((ns << Meq.Multiply(2.0,bw,dt)))
+            name = 'sensit_Jy_'+self.tlabel()
             Srcp = ns[name](uniqual) << k2_Jy * Tsys / (Aeff * SqrtBt)
             TDL_Antenna.Antenna.subtree_sensit(self, new=Srcp)
         return TDL_Antenna.Antenna.subtree_sensit(self)
@@ -305,10 +316,10 @@ if __name__ == '__main__':
         if 0:
             dcoll = obj.dcoll_xy(ns)
             MG_JEN_exec.display_subtree(dcoll, 'dcoll_xy()', full=True, recurse=5)
-        if 0:
+        if 1:
             sensit = obj.subtree_sensit(ns)
             MG_JEN_exec.display_subtree(sensit, 'subtree_sensit()', full=True, recurse=5)
-        if 1:
+        if 0:
             Tsky = obj.subtree_Tsky(ns)
             MG_JEN_exec.display_subtree(Tsky, 'subtree_Tsky()', full=True, recurse=5)
         obj.display('final')
