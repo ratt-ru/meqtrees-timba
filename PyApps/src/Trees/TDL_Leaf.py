@@ -74,14 +74,14 @@ def MeqTimeFreq(ns, combine='Add', name='MeqTimeFreq'):
 
 def MeqAzimuth(ns, name='MeqAzimuth'):
     uniqual = _counter (name, increment=True)
-    funklet = meq.polc(coeff=1.0, subclass=meq._funklet_type)
-    funklet.function = 'x2'
+    funklet = meq.polc(coeff=[1.0], subclass=meq._funklet_type)
+    funklet.function = 'p0*x2'
     return ns[name](uniqual) << Meq.Parm(funklet, node_groups='Parm')
 
 def MeqElevation(ns, name='MeqElevation'):
     uniqual = _counter (name, increment=True)
-    funklet = meq.polc(coeff=1.0, subclass=meq._funklet_type)
-    funklet.function = 'x3'
+    funklet = meq.polc(coeff=[1.0], subclass=meq._funklet_type)
+    funklet.function = 'p0*x3'
     return ns[name](uniqual) << Meq.Parm(funklet, node_groups='Parm')
 
 
