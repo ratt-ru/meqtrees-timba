@@ -132,6 +132,7 @@ Execute                          1479       ; from /home/oms/LOFAR/Timba/MeqServ
 Exit                             1230       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
 Exposure                         1159       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 F                                1026       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+Factor                           1593       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:33
 Fail                             1248       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
 FailConnect                      1052       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
 Fatal                            1062       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
@@ -290,6 +291,7 @@ MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/
 #MeqMean                         1416       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Mean.h:29
 #MeqMergeFlags                   1441       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MergeFlags.h:31
 #MeqMin                          1392       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Min.h:29
+#MeqModRes                       1592       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:32
 #MeqMultiply                     1391       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Multiply.h:30
 #MeqNegate                       1506       ; from /home/assendorp/LOFAR/Timba/MeqNodes/src/Negate.h:29
 #MeqNElements                    1500       ; from /home/oms/LOFAR/Timba/MeqNodes/src/NElements.h:29
