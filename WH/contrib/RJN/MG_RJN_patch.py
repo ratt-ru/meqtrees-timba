@@ -28,7 +28,9 @@ def _define_forest(ns):
  import math
     
  # please change this according to your setup
- infile=open('/home/rnijboer/LOFAR/Timba/WH/contrib/RJN/test_sources.txt','r')
+ home_dir = os.environ['HOME']
+ infile_name = home_dir + '/LOFAR/Timba/WH/contrib/RJN/test_sources.txt'
+ infile=open(infile_name,'r')
  #infile=open('3C343_nvss_small.txt','r')  
  all=infile.readlines()
  infile.close()
