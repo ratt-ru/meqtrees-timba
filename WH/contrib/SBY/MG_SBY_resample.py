@@ -95,7 +95,7 @@ def _define_forest (ns):
   # if flag_bit !=0, resample the result
   rootxc=ns.rootxc<<Meq.Resampler(n1,flag_bit=1,num_cells=my_num_cells)
   rootxd=ns.rootxd<<Meq.Resampler(n2,flag_bit=0,num_cells=my_num_cells)
-  root1=ns['2D_Error']<<(rootxc-rootxd)
+  root1=ns['2D_Error']<<(rootxc-rootxd)/Meq.Max(Meq.Abs(rootxc))
 
 
   # 1D resampling
@@ -111,7 +111,7 @@ def _define_forest (ns):
   n4=ns['n4']<<Meq.ToComplex(nbr,nbi)
   rootac=ns.rootac<<Meq.Resampler(n3,flag_bit=1,num_cells=my_num_cells)
   rootbd=ns.rootbd<<Meq.Resampler(n4,flag_bit=0,num_cells=my_num_cells)
-  root2=ns['1D_Error']<<(rootac-rootbd)
+  root2=ns['1D_Error']<<(rootac-rootbd)/Meq.Max(Meq.Abs(rootac))
 
 
   MG_JEN_forest_state.bookmark(root1,page="DownSampling or UpSampling Error",viewer="Result Plotter");
@@ -148,9 +148,9 @@ def _define_forest (ns):
   # in order to calculate error, upsample and substract
   # from original result 
   my_shape_up=MG.parm['my_request_shape']
-  rootxe=ns.xe<<(Meq.Resampler(rootxc,num_cells=my_shape_up)-n1)
-  rootye=ns.ye<<(Meq.Resampler(rootyc,num_cells=my_shape_up)-n2)
-  rootze=ns.ze<<(Meq.Resampler(rootzc,num_cells=my_shape_up)-n3)
+  rootxe=ns.xe<<(Meq.Resampler(rootxc,num_cells=my_shape_up)-n1)/Meq.Max(Meq.Abs(n1))
+  rootye=ns.ye<<(Meq.Resampler(rootyc,num_cells=my_shape_up)-n2)/Meq.Max(Meq.Abs(n2))
+  rootze=ns.ze<<(Meq.Resampler(rootzc,num_cells=my_shape_up)-n3)/Meq.Max(Meq.Abs(n3))
   root_error=ns.ddroote<<Meq.Composer(rootxe,rootye,rootze)
   ns.Resolve()
 
