@@ -68,6 +68,8 @@ MG = MG_JEN_exec.MG_init(script_name,
 MG.parm = record(my_resample_shape=[10,10],
                # this is the final shape of the cells we want [time,freq]
                # try giving it weird values like [1,10] or [10,1] or [1,1] etc...
+               # Also do no forget that if you downsample a LOT, you might
+               # get Aliasing, that has nothing to do with the resampling error.
                 my_request_shape=[50,50],
                # this is the shape of the request sent to the server
                 my_downsample_shape=[5,5], # shape of downsampling
