@@ -29,7 +29,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Resampler 
-#pragma aid Integrate Flag Density
+#pragma aid Integrate Flag Density Factor Num Cells
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -47,6 +47,9 @@
 //field: flag_density 0.5
 //  Critical ratio of flagged/total pixels for integration. If this ratio
 //  is exceeded, the integrated pixel is flagged.
+//field: num_cells []
+//  If this is given, changes the number of cells along each axis. Must be 
+//  a vector of 2 values (time,freq) or a single value.
 //defrec end
 
 namespace Meq {    
@@ -82,9 +85,35 @@ protected:
 private:
   int flag_mask;
   
-  int flag_bit;
+  int flag_bit; //which way to resample, (0): result, (1):request
   
   float flag_density;
+
+  //number of cells of the resampling
+  int nx_; //no. of cells in the first axis
+	int ny_; //no. of cells in the second axis
+
+  int do_resample_;//flag to remember if to actually resample
+
+int 
+bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end);
+template<typename T> T
+bicubic_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,1> yax,double x,double y,blitz::Array<T,2> A);
+template<typename T> T
+bilinear_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,1> yax,double x,double y,blitz::Array<T,2> A);
+template<typename T> int 
+resample(blitz::Array<T,2> A,blitz::Array<double,1> xax,blitz::Array<double,1> yax,
+			blitz::Array<T,2> B,blitz::Array<double,1> xaxs,blitz::Array<double,1> yaxs, 
+			double xstart, double xend, double ystart, double yend);
+template<typename T> void
+bcubic_coeff(T *yy, T *dyy1, T *dyy2, T *dyy12, double d1, double d2, blitz::Array<T,2> c);
+//1 D cubic spline interpolation
+//ripped from numerical recipes
+template<class T> void
+spline(blitz::Array<double,1> x, blitz::Array<T,1> y, int n, blitz::Array<T,1> y2);
+template<class T> void
+splint(blitz::Array<double,1> xax,double xstart, double xend, blitz::Array<T,1> yax, int n, blitz::Array<double,1> xaxs, int ns, blitz::Array<T,1> y);
+
 
 };
 

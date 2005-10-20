@@ -32,33 +32,17 @@
 namespace Meq {
 
 //#define VERBOSE 
-static int 
-bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end);
-template<typename T> static T
-bicubic_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,1> yax,double x,double y,blitz::Array<T,2> A);
-template<typename T> static T
-bilinear_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,1> yax,double x,double y,blitz::Array<T,2> A);
-template<typename T> static int 
-resample(blitz::Array<T,2> A,blitz::Array<double,1> xax,blitz::Array<double,1> yax,
-			blitz::Array<T,2> B,blitz::Array<double,1> xaxs,blitz::Array<double,1> yaxs, 
-			double xstart, double xend, double ystart, double yend);
-template<typename T> static void
-bcubic_coeff(T *yy, T *dyy1, T *dyy2, T *dyy12, double d1, double d2, blitz::Array<T,2> c);
-//1 D cubic spline interpolation
-//ripped from numerical recipes
-template<class T> static void
-spline(blitz::Array<double,1> x, blitz::Array<T,1> y, int n, blitz::Array<T,1> y2);
-template<class T> static void
-splint(blitz::Array<double,1> xax,double xstart, double xend, blitz::Array<T,1> yax, int n, blitz::Array<double,1> xaxs, int ns, blitz::Array<T,1> y);
-
 
 const HIID FFlagDensity = AidFlag|AidDensity;
 
+const HIID FNumCells =AidNum|AidCells;
+const HIID FFactor=AidFactor;
 
 //##ModelId=400E5355029C
 Resampler::Resampler()
 : Node(1), // 1 child expected
-  flag_mask(-1),flag_bit(0),flag_density(0.5)
+  flag_mask(-1),flag_bit(0),flag_density(0.5),
+	nx_(0),ny_(0),do_resample_(0)
 {}
 
 //##ModelId=400E5355029D
@@ -72,8 +56,23 @@ void Resampler::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   rec[FFlagMask].get(flag_mask,initializing);
   rec[FFlagBit].get(flag_bit,initializing);
   rec[FFlagDensity].get(flag_density,initializing);
+
+	std::vector<int> numcells;
+	if (rec[FNumCells].get_vector(numcells)) {
 #ifdef VERBOSE
-	cout<<"Initializing flag_density: "<<flag_density<<endl;
+			cout<<"Initializing "<<numcells.size()<<" Cells ";
+			for (int i=0;i<numcells.size();i++) cout<<numcells[i]<<", ";
+			cout<<endl;
+#endif
+			if (numcells.size()>0) {
+					do_resample_=1;
+					nx_=numcells[0];
+			}
+			if (numcells.size()>1) 
+					ny_=numcells[1];
+	}
+#ifdef VERBOSE
+	cout<<"Initializing do_resample: "<<do_resample_<<endl;
 	cout<<"Initializing flag_bit: "<<flag_bit<<endl;
 #endif
 }
@@ -85,7 +84,7 @@ int Resampler::getResult (Result::Ref &resref,
 {
   Assert(childres.size()==1);
   const Result &chres = *(childres.front());
-	if (!chres.hasCells() || (flag_bit !=0)) {
+	if (!do_resample_ || !chres.hasCells() || (flag_bit !=0)) {
 	 //bail out: do nothing
 	 //if flag_bit!=0, no change in result
    resref=childres[0];
@@ -103,8 +102,8 @@ int Resampler::getResult (Result::Ref &resref,
 	 return 0;
 	}
 	//determine the resampling to be done
-	int nx1=(int)((double)nx*flag_density);
-	int ny1=(int)((double)ny*flag_density);
+	int nx1=nx_;//(int)((double)nx*flag_density);
+	int ny1=ny_;//(int)((double)ny*flag_density);
 	//sanity check
 	if (nx1<1) nx1=1;
 	if (ny1<1) ny1=1;
@@ -274,6 +273,38 @@ int Resampler::getResult (Result::Ref &resref,
   return 0;
 }
 
+///// poll children
+int Resampler::pollChildren (std::vector<Result::Ref> &chres,
+                          Result::Ref &resref,const Request &request)
+{
+   if ( do_resample_ && (flag_bit !=0) && request.hasCells()) {
+		//modify request cells
+	  //if flag_bit!=0, change the request 
+		 Request::Ref newreq(request);
+  const Cells &incells = request.cells();
+
+	int nx=incells.center(0).extent(0);
+	int ny=incells.center(1).extent(0);
+	//determine the resampling to be done
+	int nx1=nx_;//(int)((double)nx*flag_density);
+	int ny1=ny_;//(int)((double)ny*flag_density);
+	//sanity check
+	if (nx1<1) nx1=1;
+	if (ny1<1) ny1=1;
+#ifdef VERBOSE
+	cout<<"Resampling Request new size "<<nx1<<" x "<<ny1<<" "<<flag_density<<endl;
+#endif
+  Cells::Ref outcells1; 
+ 	Cells &outcells = outcells1<<=new Cells(request.cells().domain(),nx1,ny1);
+  newreq().setCells(outcells);
+     return Node::pollChildren(chres,resref,newreq);
+		} else {
+		//do nothing
+     return Node::pollChildren(chres,resref,request);
+		}
+	// will not get here
+	return 0;
+}
 /*** old code 
 int Resampler::getResult (Result::Ref &resref, 
                            const std::vector<Result::Ref> &childres,
@@ -308,8 +339,8 @@ int Resampler::getResult (Result::Ref &resref,
 ****/
 
 //binary search
-static int
-bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end) {
+int
+ Resampler::bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end) {
 	/*
 	 * xarr: array of sorted values, make sure x is within the range 
 	 * x: value to search
@@ -357,8 +388,8 @@ bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end) {
 }
 
 //bicubic interpolation
-template<typename T> static T
-bicubic_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,1> yax,double x,double y,blitz::Array<T,2> A) {
+template<typename T> T
+ Resampler::bicubic_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,1> yax,double x,double y,blitz::Array<T,2> A) {
  /*
 	* we have a 4 by 4 grid
 	*   q+2   .      .     .     .
@@ -420,8 +451,8 @@ bicubic_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,1
 	return ans;
 }
 //helper function to calculate the coefficients
-template<typename T> static void
-bcubic_coeff(T *yy, T *dyy1, T *dyy2, T *dyy12, double d1, double d2, blitz::Array<T ,2> c) {
+template<typename T> void
+ Resampler::bcubic_coeff(T *yy, T *dyy1, T *dyy2, T *dyy12, double d1, double d2, blitz::Array<T ,2> c) {
 	/* yy, dyy1, dyy2, dyy12 are 4x1 arrays of
 	 * function value, 1st derivarives, cross derivatives at grid points
 	 * d1 = size in x direction
@@ -466,8 +497,8 @@ bcubic_coeff(T *yy, T *dyy1, T *dyy2, T *dyy12, double d1, double d2, blitz::Arr
 }
 
 //bilinear interpolation
-template<typename T> static T
-bilinear_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,1> yax,double x,double y,blitz::Array<T,2> A) {
+template<typename T> T
+ Resampler::bilinear_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,1> yax,double x,double y,blitz::Array<T,2> A) {
  /*
 	* we have a 2 by 2 grid
 	*   q+1   .     .
@@ -485,8 +516,8 @@ bilinear_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,
 }
 
 //resampling routine
-template<typename T> static int 
-resample(blitz::Array<T,2> A,blitz::Array<double,1> xax,blitz::Array<double,1> yax,
+template<typename T> int 
+ Resampler::resample(blitz::Array<T,2> A,blitz::Array<double,1> xax,blitz::Array<double,1> yax,
 			blitz::Array<T,2> B,blitz::Array<double,1> xaxs,blitz::Array<double,1> yaxs, 
 			double xstart, double xend, double ystart, double yend) {
  /*
@@ -757,8 +788,8 @@ resample(blitz::Array<T,2> A,blitz::Array<double,1> xax,blitz::Array<double,1> y
 
 //1 D cubic spline interpolation
 //ripped from numerical recipes
-template<class T> static void
-spline(blitz::Array<double,1> x, blitz::Array<T,1> y, int n, blitz::Array<T,1> y2) {
+template<class T> void
+ Resampler::spline(blitz::Array<double,1> x, blitz::Array<T,1> y, int n, blitz::Array<T,1> y2) {
 	/* x,y,y2: n x 1 arrays
 	 * input: x,y: ordinate and abcissa arrays
 	 * output: y2: array of second derivatives of the function
@@ -787,8 +818,8 @@ spline(blitz::Array<double,1> x, blitz::Array<T,1> y, int n, blitz::Array<T,1> y
 	 }
 }
 
-template<class T> static void
-splint(blitz::Array<double,1> xax,double xstart, double xend, blitz::Array<T,1> yax, int n, blitz::Array<double,1> xaxs, int ns, blitz::Array<T,1> y) {
+template<class T> void
+ Resampler::splint(blitz::Array<double,1> xax,double xstart, double xend, blitz::Array<T,1> yax, int n, blitz::Array<double,1> xaxs, int ns, blitz::Array<T,1> y) {
 	assert(n>=2);
 	//calculate second derivatives
   blitz::Array<T,1> y2(n);
@@ -836,38 +867,7 @@ splint(blitz::Array<double,1> xax,double xstart, double xend, blitz::Array<T,1> 
 	}
 }
 
-///// poll children
-int Resampler::pollChildren (std::vector<Result::Ref> &chres,
-                          Result::Ref &resref,const Request &request)
-{
-   if ((flag_bit !=0) && request.hasCells()) {
-		//modify request cells
-	  //if flag_bit!=0, change the request 
-		 Request::Ref newreq(request);
-  const Cells &incells = request.cells();
 
-	int nx=incells.center(0).extent(0);
-	int ny=incells.center(1).extent(0);
-	//determine the resampling to be done
-	int nx1=(int)((double)nx*flag_density);
-	int ny1=(int)((double)ny*flag_density);
-	//sanity check
-	if (nx1<1) nx1=1;
-	if (ny1<1) ny1=1;
-#ifdef VERBOSE
-	cout<<"Resampling Request new size "<<nx1<<" x "<<ny1<<" "<<flag_density<<endl;
-#endif
-  Cells::Ref outcells1; 
- 	Cells &outcells = outcells1<<=new Cells(request.cells().domain(),nx1,ny1);
-  newreq().setCells(outcells);
-     return Node::pollChildren(chres,resref,newreq);
-		} else {
-		//do nothing
-     return Node::pollChildren(chres,resref,request);
-		}
-	// will not get here
-	return 0;
-}
 
 
 } // namespace Meq

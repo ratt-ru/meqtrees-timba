@@ -78,6 +78,11 @@ const int AidEQ_int = -1444;
 const DMI::AtomicID AidError(-1056);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 const int AidError_int = -1056;
 #endif
+#ifndef _defined_id_AidFactor
+#define _defined_id_AidFactor 1
+const DMI::AtomicID AidFactor(-1593);             // from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:33
+const int AidFactor_int = -1593;
+#endif
 #ifndef _defined_id_AidFlag
 #define _defined_id_AidFlag 1
 const DMI::AtomicID AidFlag(-1134);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
@@ -587,6 +592,11 @@ const int AidMulti_int = -1518;
 #define _defined_id_AidNE 1
 const DMI::AtomicID AidNE(-1381);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 const int AidNE_int = -1381;
+#endif
+#ifndef _defined_id_AidNum
+#define _defined_id_AidNum 1
+const DMI::AtomicID AidNum(-1163);                // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
+const int AidNum_int = -1163;
 #endif
 #ifndef _defined_id_AidObservatory
 #define _defined_id_AidObservatory 1

@@ -473,6 +473,8 @@ DMI::BObj * __construct_MeqResampler (int n) { return n>0 ? new Meq::Resampler [
         DynamicTypeManager::addToRegistry(-1591,__construct_MeqResampler)+
         AtomicID::registerId(-1150,"Integrate")+
         AtomicID::registerId(-1590,"Density")+
+        AtomicID::registerId(-1593,"Factor")+
+        AtomicID::registerId(-1163,"Num")+
     0;
     return res;
   }
