@@ -123,7 +123,7 @@ def _define_forest (ns):
 
    obj = TDL_Antenna.Array()
    obj.testarr()
-   _experiment(ns, obj, cc)
+   _experiment(ns, obj, cc, sensit=True, beam=True)
    
    obj = TDL_Antenna.Station()
    _experiment(ns, obj, cc)
@@ -195,7 +195,7 @@ def _tdl_job_4D_request (mqs,parent):
    freq_range = [100e6,200e6]                # 100-200 MHz
    az_range = [0.,math.pi*2.0]
    el_range = [0.,math.pi/2.0]
-   dom_range = [time_range, freq_range, az_range, el_range]
+   dom_range = [freq_range, time_range, az_range, el_range]
    nr_cells = [MG.parm['ntime'],MG.parm['nfreq'],MG.parm['nphi'],MG.parm['ntheta']]
    request = MG_MXM_functional._make_request(Ndim=4, dom_range=dom_range,
                                              nr_cells=nr_cells)

@@ -76,6 +76,7 @@ MG.stream_control = record(ms_name='D1.MS',
                            tile_size=10,                              # input tile-size
                            channel_start_index=10,
                            channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
+                           # corr_index=[0,1,2,3],
                            output_col='RESIDUALS')
 
 MG = MG_JEN_exec.MG_check(MG)

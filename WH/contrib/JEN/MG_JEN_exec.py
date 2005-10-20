@@ -364,7 +364,7 @@ def spigot2sink (mqs, parent, ctrl={}, **pp):
 
    pp.setdefault('wait', False)       
    pp.setdefault('trace', False)
-   pp.setdefault('save', True)       
+   pp.setdefault('save', False)       
 
    # Transfer certain ctrl fields to the MG_JEN_stream_control record:
    stream_control (ctrl)
@@ -459,7 +459,7 @@ def execute (mqs, parent, request=None, **pp):
    from Timba.Meq import meq
 
    pp.setdefault('trace', False)
-   pp.setdefault('save', True)       
+   pp.setdefault('save', False)       
    pp.setdefault('wait', True)       
 
    # Execute the meqforest with the specified (or default) request:
