@@ -3,7 +3,7 @@
 ########
 ## This script needs to be run in the MeqBrowser,
 
-from RJN_sixpack import * 
+from Timba.Contrib.RJN import RJN_sixpack
 
 import re
 import math
@@ -12,6 +12,8 @@ import random
 # for Bookmarks
 
 from Timba.Contrib.JEN import MG_JEN_forest_state
+from Timba.TDL import * 
+from Timba.Meq import meq
 
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
@@ -26,7 +28,7 @@ def _define_forest(ns):
  import math
     
  # please change this according to your setup
- infile=open('test_sources.txt','r')
+ infile=open('/home/rnijboer/LOFAR/Timba/WH/contrib/RJN/test_sources.txt','r')
  #infile=open('3C343_nvss_small.txt','r')  
  all=infile.readlines()
  infile.close()
@@ -69,8 +71,8 @@ def _define_forest(ns):
  pc_name = 'Phase Center';
  twoname = 'twopack['+pc_name+']';
 
- RA_root = make_RA(pc_name,RA_0,ns);
- Dec_root = make_Dec(pc_name,Dec_0,ns);
+ RA_root = RJN_sixpack.make_RA(pc_name,RA_0,ns);
+ Dec_root = RJN_sixpack.make_Dec(pc_name,Dec_0,ns);
  tworoot = ns[twoname] << Meq.Composer(RA_root,Dec_root);
  
  child_rec = [twoname];
@@ -107,7 +109,7 @@ def _define_forest(ns):
    uin = 2.0;
    vin = 0.0;
 
-   sixroot = make_sixpack(srcname=sname,RA=source_RA,Dec=source_Dec,ISIF0=sisif,Qpct=qin,Upct=uin,Vpct=vin,ns=ns)
+   sixroot = RJN_sixpack.make_sixpack(srcname=sname,RA=source_RA,Dec=source_Dec,ISIF0=sisif,Qpct=qin,Upct=uin,Vpct=vin,ns=ns)
 
    sixname = 'sixpack[q='+sname+']';
    child_rec.append(sixname);
@@ -126,7 +128,7 @@ def _define_forest(ns):
  uin = 1.0;
  vin = 1.0;
 
- sixroot = make_sixpack(srcname=sname,RA=source_RA,Dec=source_Dec,ISIF0=sisif,Qpct=qin,Upct=uin,Vpct=vin,ns=ns)
+ sixroot = RJN_sixpack.make_sixpack(srcname=sname,RA=source_RA,Dec=source_Dec,ISIF0=sisif,Qpct=qin,Upct=uin,Vpct=vin,ns=ns)
 
  sixname = 'sixpack[q='+sname+']';
  child_rec.append(sixname);
@@ -251,8 +253,8 @@ def _test_forest(mqs,parent):
  f1 = 1300.001e6
  t0 = 0.0
  t1 = 86400.0
- nfreq = 2
- ntime = 1000
+ nfreq = 1
+ ntime = 10
  
  # create cell
  freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
