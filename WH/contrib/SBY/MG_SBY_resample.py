@@ -114,8 +114,8 @@ def _define_forest (ns):
   root2=ns['1D_Error']<<(rootac-rootbd)
 
 
-  MG_JEN_forest_state.bookmark(root1,page="DownSampling Error",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(root2,page="DownSampling Error",viewer="Result Plotter");
+  MG_JEN_forest_state.bookmark(root1,page="DownSampling or UpSampling Error",viewer="Result Plotter");
+  MG_JEN_forest_state.bookmark(root2,page="DownSampling or UpSampling Error",viewer="Result Plotter");
 
   # Downsample/Upsample error ###############################
   ns.ddx<<Meq.Parm(meq.array([[1,0.2,0.01],[-0.3,0.1,0.21]])) #2D
@@ -167,7 +167,7 @@ def _define_forest (ns):
   MG_JEN_forest_state.bookmark(n3,page="Complex Resampling",viewer="Result Plotter");
   MG_JEN_forest_state.bookmark(rootzc,page="Complex Resampling",viewer="Result Plotter");
  
-  MG_JEN_forest_state.bookmark(root_error,page="DownSample/UpSample Errors",viewer="Result Plotter");
+  MG_JEN_forest_state.bookmark(root_error,page="DownSampled and UpSampled Errors",viewer="Result Plotter");
 
 #=====================================================================
 #=====================================================================
