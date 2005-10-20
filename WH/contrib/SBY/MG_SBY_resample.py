@@ -65,12 +65,12 @@ from Timba.Contrib.JEN import MG_JEN_exec
 MG = MG_JEN_exec.MG_init(script_name,
                          last_changed='$Date$',
                          trace=False) # If True, produce progress messages  
-MG.parm = record(my_resample_shape=[10,10],
-               # this is the final shape of the cells we want
+MG.parm = record(my_resample_shape=[100,100],
+               # this is the final shape of the cells we want [time,freq]
                # try giving it weird values like [1,10] or [10,1] or [1,1] etc...
-                my_request_shape=[50,50],
+                my_request_shape=[10,10],
                # this is the shape of the request sent to the server
-                my_downsample_shape=[5,5], # shape of downsampling
+                my_downsample_shape=[12,5], # shape of downsampling
 )   
 
 #=====================================================================
@@ -178,8 +178,8 @@ def _test_forest (mqs, parent):
  t1 = 1.0
  
  my_shape_request=MG.parm['my_request_shape']
- nfreq =my_shape_request[0] 
- ntime =my_shape_request[1]
+ nfreq =my_shape_request[1] 
+ ntime =my_shape_request[0]
  # create cells
  freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
  cells =meq.cells(domain=freqtime_domain, num_freq=nfreq,  num_time=ntime);
