@@ -65,12 +65,12 @@ from Timba.Contrib.JEN import MG_JEN_exec
 MG = MG_JEN_exec.MG_init(script_name,
                          last_changed='$Date$',
                          trace=False) # If True, produce progress messages  
-MG.parm = record(my_resample_shape=[100,100],
+MG.parm = record(my_resample_shape=[10,10],
                # this is the final shape of the cells we want [time,freq]
                # try giving it weird values like [1,10] or [10,1] or [1,1] etc...
-                my_request_shape=[10,10],
+                my_request_shape=[50,50],
                # this is the shape of the request sent to the server
-                my_downsample_shape=[12,5], # shape of downsampling
+                my_downsample_shape=[5,5], # shape of downsampling
 )   
 
 #=====================================================================
