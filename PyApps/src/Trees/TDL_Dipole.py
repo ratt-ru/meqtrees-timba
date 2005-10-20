@@ -106,7 +106,7 @@ class Dipole (TDL_Antenna.Antenna):
             omega = 4.0                       # use for LOFAR, with separation lambda/2...?
             if pp['groundplane']: omega = 3.0 # above reflecting groundplane
             omega = ns['omega_sterad_'+self.tlabel()](uniqual) << omega
-            wvl = self.subtree_wvl(ns)
+            wvl = TDL_Leaf.MeqWavelength(ns)
             k_Boltzmann = 1.4*1e-23           # J/Hz.K
             k_Jy = k_Boltzmann/1e-26          # Jy/Hz.K
             k2_Jy = 2*k_Jy                    # 
@@ -133,14 +133,15 @@ class Dipole (TDL_Antenna.Antenna):
         """Return a subtree for Dipole beam calculation"""
         pp.setdefault('height', 0.25)     # wavelengths above groundplane
         if ns and not TDL_Antenna.Antenna.subtree_beam(self):
-            pol = self.polarisation()
-            node = _create_dipole_beam(ns, pol=pol, height=pp['height'])
+            node = _create_dipole_beam(ns, pol=self.polarisation(),
+                                       tlabel=self.tlabel(),
+                                       height=pp['height'])
             TDL_Antenna.Antenna.subtree_beam(self, new=node)
         return TDL_Antenna.Antenna.subtree_beam(self)
 
 
 #---------------------------------------------------------------------------
-def _create_dipole_beam(ns, pol='X', height=0.25):
+def _create_dipole_beam(ns, pol='X', tlabel='tlabel', height=0.25):
   """ We create two horizontal dipoles, perpendicular to one another
       and multiply their Voltage (not Power) beam shapes. The voltage
       beam is taken to be the positive square root of the power beam.
@@ -157,12 +158,13 @@ def _create_dipole_beam(ns, pol='X', height=0.25):
        'p8+p9*x0+p10*x1+p11*x0*x1','p12+p13*x0+p14*x1+p15*x0*x1']
 
   # polynomial coefficients
-  #coeff=[[1,0,0,0],[1,0,0,0],[1,0,0,0],[1,0,0,0]]
+  coeff=[[1,0,0,0],[1,0,0,0],[1,0,0,0],[1,0,0,0]]
+
   # choose this to see some time variation
   # the third polynomial should model variation of dipole height
   # with freqency                        \/ -- this models height
 
-  coeff=[[1,0.1,0,0],[1,0.2,0,0],[1,0.10,0.5,0],[1,0.30,0,0]]
+  # coeff=[[1,0.1,0,0],[1,0.2,0,0],[1,0.10,0.5,0],[1,0.30,0,0]]
 
 
   # value of pi (string)
@@ -172,13 +174,14 @@ def _create_dipole_beam(ns, pol='X', height=0.25):
   print coeff
 
   uniqual = _counter ('_create_dipole_beam()', increment=True)
-  name = 'beam_Dipole_'+pol
+  name = 'beam_'+tlabel+'_'+pol
   if pol=='Y':
       # create voltage beam for Y dipole:
-      root = ns[name](uniqual) << _create_dipole_beam_h(par,coeff,height,'x2-'+pi+'/2')
+      root = ns[name](uniqual) << _create_dipole_beam_h(par, coeff, h=height,
+                                                        x='x2-'+pi+'/2')
   else:
       # create voltage beam for X dipole:
-      root = ns[name](uniqual) << _create_dipole_beam_h(par,coeff, height)
+      root = ns[name](uniqual) << _create_dipole_beam_h(par, coeff, h=height)
 
   # create product beam as root
   # root = ns.z << Meq.Multiply(ns.x,ns.y)

@@ -112,8 +112,6 @@ class Antenna (TDL_common.Super):
         self.__dcoll_xy = None
         self.__subtree_sensit = None
         self.__subtree_beam = None
-        self.__subtree_freq = None
-        self.__subtree_wvl = None
         self.__subtree_Tsky = None
         r2 = 0.0
         for i in range(len(self.__size)):
@@ -182,8 +180,6 @@ class Antenna (TDL_common.Super):
         if self.subtree_beam():
             ss.append(indent1+' - subtree_beam:  '+str(self.subtree_beam()))
         if self.subtree_Tsky():
-            ss.append(indent1+' - subtree_freq:  '+str(self.subtree_freq()))
-            ss.append(indent1+' - subtree_wvl:   '+str(self.subtree_wvl()))
             ss.append(indent1+' - subtree_Tsky:  '+str(self.subtree_Tsky()))
         if end: return TDL_common.Super.display_end(self, ss)
         return ss
@@ -246,21 +242,10 @@ class Antenna (TDL_common.Super):
         """Return a subtree for Antenna beam calculation"""
         if new: self.__subtree_beam = new
         if ns and not self.__subtree_beam:
-            self.__subtree_beam = None
+            uniqual = _counter ('subtree_beam()', increment=True)
+            name = 'Antenna_beam'
+            self.__subtree_beam = ns[name](uniqual) << 1.0
         return self.__subtree_beam
-
-
-    def subtree_freq (self, ns=None):
-        """Return a subtree for the freq (Hz)"""
-        if ns and not self.__subtree_freq:
-            self.__subtree_freq = TDL_Leaf.MeqFreq(ns)          
-        return self.__subtree_freq
-
-    def subtree_wvl (self, ns=None):
-        """Return a subtree for the wavelength (m)"""
-        if ns and not self.__subtree_wvl:
-            self.__subtree_wvl = TDL_Leaf.MeqWavelength(ns)          
-        return self.__subtree_wvl
 
     def subtree_Tsky (self, ns=None, **pp):
         """Return a subtree for the sky tenperature (K)"""
@@ -268,7 +253,7 @@ class Antenna (TDL_common.Super):
         if ns and not self.__subtree_Tsky:
             uniqual = _counter ('subtree_Tsky()', increment=True)
             name = 'Tsky('+str(pp['Tsky_index'])+')'
-            wvl = self.subtree_wvl(ns)
+            wvl = TDL_Leaf.MeqWavelength(ns)
             self.__subtree_Tsky = ns[name](uniqual) << Meq.Pow(wvl, -pp['Tsky_index']) * 50
         return self.__subtree_Tsky
     
@@ -433,7 +418,17 @@ class Array (Antenna):
     def subtree_beam(self, ns=None, **pp):
         """Return a subtree for Array beam calculation"""
         if ns and not Antenna.subtree_beam(self):
-            Antenna.subtree_beam(self, new=None)
+            uniqual = _counter ('subtree_beam()', increment=True)
+            # az = TDL_Leaf.MeqAzimuth(ns)
+            cosel = ns.cosel(uniqual) << Meq.Cos(TDL_Leaf.MeqElevation(ns))
+            pi2 = TDL_Leaf.pi2(ns)
+            wvlinv = TDL_Leaf.MeqInverseWavelength(ns)
+            q1 = ns.q1(uniqual) << Meq.Multiply(cosel, wvlinv, pi2)   # 2pi*cos(el)/wvl
+            q2 = ns.q2(uniqual) << Meq.Multiply(q1, self.leaf_yy(ns)) # yy = tensor node
+            bf_wgt = ns.bf_wgts(uniqual) << Meq.Cos(q2)               # beam-former weights
+            name = 'beam_'+self.tlabel()
+            node = ns[name] << Meq.Add(bf_wgt)                        # add all array elements
+            Antenna.subtree_beam(self, new=node)
         return Antenna.subtree_beam(self)
 
 
@@ -570,10 +565,10 @@ if __name__ == '__main__':
     from Timba.Contrib.JEN import MG_JEN_exec
     ns = NodeScope()
     
-    if 1:
+    if 0:
         obj = Antenna(label='initial')
 
-    if 0:
+    if 1:
         obj = Array(label='initial')
         obj.testarr()
 
@@ -590,6 +585,9 @@ if __name__ == '__main__':
             sensit = obj.subtree_sensit(ns)
             MG_JEN_exec.display_subtree(sensit, 'subtree_sensit()', full=True, recurse=5)
         if 1:
+            beam = obj.subtree_beam(ns)
+            MG_JEN_exec.display_subtree(beam, 'subtree_beam()', full=True, recurse=5)
+        if 0:
             Tsky = obj.subtree_Tsky(ns)
             MG_JEN_exec.display_subtree(Tsky, 'subtree_Tsky()', full=True, recurse=5)
         obj.display('final')

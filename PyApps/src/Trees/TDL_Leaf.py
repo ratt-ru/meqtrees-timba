@@ -39,8 +39,12 @@ def MeqFreq(ns, name='MeqFreq'):
 def MeqWavelength(ns, name='MeqWavelength'):
     uniqual = _counter (name, increment=True)
     freq = MeqFreq(ns)                          # Hz
-    clight = 2.9979250e8                        # m/s
-    return ns[name](uniqual) << Meq.Divide(clight, freq)
+    return ns[name](uniqual) << Meq.Divide(c_light(ns), freq)
+
+def MeqInverseWavelength(ns, name='MeqInverseWavelength'):
+    uniqual = _counter (name, increment=True)
+    freq = MeqFreq(ns)                          # Hz
+    return ns[name](uniqual) << Meq.Divide(freq, c_light(ns))
 
 def MeqTime(ns, name='MeqTime'):
     uniqual = _counter (name, increment=True)
@@ -102,6 +106,26 @@ def MeqFunklet(ns, name='<name>', axis='<xi>'):
     return ns[name](uniqual) << Meq.Parm(funklet, node_groups='Parm')
 
 
+#**************************************************************************************
+# Constants:
+#**************************************************************************************
+
+
+def pi(ns): return MeqConstant(ns, 'pi', 3.14159265358979)
+def pi2(ns): return MeqConstant(ns, 'pi2', 6.28318530717958)
+def e_ln(ns): return MeqConstant(ns, 'e_ln', 2.71828182845904)
+def sqr2(ns): return MeqConstant(ns, 'sqr2', 1.41421356237309)
+
+def c_light(ns): return MeqConstant(ns, 'c_light_m/s', 2.9979250e8)
+def e_charge(ns): return MeqConstant(ns, 'e_charge_C', 1.6021917e-19)
+def h_Planck(ns): return MeqConstant(ns, 'h_Planck_Js', 6.626196e-34)
+def k_Boltzmann(ns): return MeqConstant(ns, 'k_Boltzmann_J/K', 1.380622e-23)
+def G_gravity(ns): return MeqConstant(ns, 'G_gravity_Nm2/kg2', 6.6732e-11)
+
+def MeqConstant(ns, name='constant', value=-1.0):
+    uniqual = _counter (name, increment=True)
+    return ns[name](uniqual) << Meq.Constant(value)
+    
 
 
 

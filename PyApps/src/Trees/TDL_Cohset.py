@@ -119,6 +119,7 @@ class Cohset (TDL_common.Super):
         # Polarisation representation
         self.__polrep = pp['polrep']
         self.__corrs = ['XX', 'XY', 'YX', 'YY']
+        self.__corr_index = [0,1,2,3]            # used in spigot/sink 
         if self.__polrep == 'circular':
             self.__corrs = ['RR', 'RL', 'LR', 'LL']
 
@@ -181,6 +182,9 @@ class Cohset (TDL_common.Super):
     def corrs(self):
         """Return a list of correlation names (XX, RL etc)"""
         return self.__corrs
+    def corr_index(self):
+        """Return a list of correlation indices for spigot/sink"""
+        return self.__corr_index
     def cross(self):
         """Return a list of cross-correlation names (XY, RL, etc)"""
         return self.__cross
@@ -571,8 +575,15 @@ class Cohset (TDL_common.Super):
         funcname = '::spigots():'
         # Input arguments:
         pp.setdefault('flag_bit', 4)                     # .....
+        pp.setdefault('corr_index', [0,1,2,3])           # .........??
         pp.setdefault('input_column', 'DATA')            # .....
         pp = record(pp)
+
+        corr_index = pp['corr_index']
+        # For XX/YY only, use:
+        # corr_index = [0,-1,-1,3]
+        # Still returns a 2x2 tensor node, but with complex zeroes for -1 (?)
+        # See wiki-pages...
         
         # Make a record/dict of spigots that produce 2x2 coherency matrices:
         for key in self.keys():
@@ -581,6 +592,7 @@ class Cohset (TDL_common.Super):
             i2 = self.station_index()[str(s12[1])]              # integer
             self.__coh[key] = ns.spigot(s1=s12[0],s2=s12[1]) << Meq.Spigot(station_1_index=i1,
                                                                            station_2_index=i2,
+                                                                           corr_index=corr_index,
                                                                            flag_bit=pp['flag_bit'],
                                                                            input_column=pp['input_column'])
             # print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
@@ -606,6 +618,9 @@ class Cohset (TDL_common.Super):
         print funcname,' pp=\n',pp,'\n'
         print 'pp[post] =',type(pp['post'])
 
+        corr_index = self.corr_index()
+        corr_index = [0,1,2,3]
+
         # Make separate sinks for each ifr:
         for key in self.keys():
             s12 = self.__stations[key]
@@ -614,7 +629,7 @@ class Cohset (TDL_common.Super):
             self.__coh[key] = ns.MeqSink(s1=s12[0], s2=s12[1]) << Meq.Sink(self.__coh[key],
                                                                            station_1_index=i1,
                                                                            station_2_index=i2,
-                                                                           corr_index=[0,1,2,3],
+                                                                           corr_index=corr_index,
                                                                            output_col=pp['output_col'])
             # print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
 
