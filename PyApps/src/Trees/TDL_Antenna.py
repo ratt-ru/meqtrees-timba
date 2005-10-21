@@ -336,9 +336,9 @@ class Array (Antenna):
     def testarr(self):
         """Generate a test-array"""
         for i in range(2):
-            x = float(i)
+            x = float(i+1)
             for j in range(2):
-                y = float(j)
+                y = float(j+1)
                 label = 'antel_'+str(self.nantel())
                 antel = Antenna(label=label, pos0=[x,y,0.0])
                 self.new_element(antel, wgt=1.0, calc_derived=False)
@@ -419,20 +419,30 @@ class Array (Antenna):
         """Return a subtree for Array beam calculation"""
         if ns and not Antenna.subtree_beam(self):
             uniqual = _counter ('subtree_beam()', increment=True)
-            # az = TDL_Leaf.MeqAzimuth(ns)
-            cosel = ns.cosel(uniqual) << Meq.Cos(TDL_Leaf.MeqElevation(ns))
+            az = TDL_Leaf.MeqAzimuth(ns)
+            el = TDL_Leaf.MeqElevation(ns)
+            xcosaz = ns.xcosaz(uniqual) << Meq.Multiply(Meq.Cos(az),self.leaf_xx(ns))
+            ysinaz = ns.ysinaz(uniqual) << Meq.Multiply(Meq.Sin(az),self.leaf_yy(ns))
+            xyaz = ns << Meq.Add(xcosaz, ysinaz)
+            cosel = ns << Meq.Cos(el)
             pi2 = TDL_Leaf.pi2(ns)
             wvlinv = TDL_Leaf.MeqInverseWavelength(ns)
-            q1 = ns.q1(uniqual) << Meq.Multiply(cosel, wvlinv, pi2)   # 2pi*cos(el)/wvl
-            q2 = ns.q2(uniqual) << Meq.Multiply(q1, self.leaf_yy(ns)) # yy = tensor node
-            bf_wgt = ns.bf_wgts(uniqual) << Meq.Cos(q2)               # beam-former weights
+            delay = ns.delay(uniqual) << Meq.Multiply(cosel, wvlinv, pi2, xyaz)   # 2pi*cos(el)*xyaz/wvl
+            bf_wgts = ns.bf_wgts(uniqual) << Meq.Cos(delay)            # beam-former weights
             name = 'beam_'+self.tlabel()
-            node = ns[name] << Meq.Add(bf_wgt)                        # add all array elements
+            # add all array elements
+            # node = ns[name](uniqual) << Meq.Add(bf_wgts)                      # SHOULD work?
+            # node = ns[name](uniqual) << Meq.MatrixMultiply(bf_wgts, 1.0)      # does not work
+            cc = []
+            for i in range(self.nantel()):
+                cname = 'bf_wgt_'+str(i)
+                cc.append(ns[cname](uniqual) << Meq.Selector(bf_wgts, index=i))
+            node = ns[name](uniqual) << Meq.Add(children=cc)          # elaborate, but works
             Antenna.subtree_beam(self, new=node)
         return Antenna.subtree_beam(self)
 
 
-
+ 
 
 
 

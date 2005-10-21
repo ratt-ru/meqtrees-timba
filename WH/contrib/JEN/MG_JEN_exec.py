@@ -274,7 +274,7 @@ def bundle (ns, cc, name='bundle', stepchildren=[], **pp):
 
    else:
       # Make a single parent node to tie the various results (cc) together:
-      parent = ns[name] << Meq.Add(children=cc)
+      parent = ns[name] << Meq.Composer(children=cc)
          
       if pp['make_bookmark']:
          # Make a bookpage for all the elements of cc:
