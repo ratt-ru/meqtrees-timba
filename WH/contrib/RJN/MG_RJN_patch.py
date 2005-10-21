@@ -3,35 +3,55 @@
 ########
 ## This script needs to be run in the MeqBrowser,
 
+# The script compares resut from the UVBrick / UVInterpolate with that of the DFT node.
+# There is a solver node that solves for the source position in the DFT node
+# The CondEq node compares the Result form the UVInterpolate and the DFT nodes
+# BEWARE: the PatchComposer node has the source positions in frequency DEPENDENT l'  and m' coordinates,
+#                  and the sources are put on the nearest pixel.
+#                  the DFT node has the source positions in frequency INDEPENDENT l and m coordinates.
+#                  For this reason the Solver will not be able to accurately solve for the DFT source position.
+
+# In the define_forest function the Tree is defined, including the position of the (only) source and the baseline 
+#      under consideration.
+# In the test_forest function the Frequency / Time domain is defined
+
+# Get the Sixpack definition from RJN. 
 from Timba.Contrib.RJN import RJN_sixpack
 
+# Get some Python modules
 import re
 import math
 import random
 
-# for Bookmarks
-
+# for Bookmarks get JEN's forest state script
 from Timba.Contrib.JEN import MG_JEN_forest_state
+
+# Get TDL and Meq for the Kernel
 from Timba.TDL import * 
 from Timba.Meq import meq
 
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
 
-# List of source names
+# List of source names, initiated to be empty
 srcnames = []
 
 
 ########################################################
 def _define_forest(ns):
+ # srcnames is global: to be used inside _define_forest, _test_forest, and outside of them
  global srcnames   
+ # we need pi=3.1415...
  import math
     
+ # Read the sources from a text file
+ # The test_sources file contains only sources with zero flux strength. In this way a Patch of 
+ #    certain extent is obtained. Later a non-zero flux source is added.
+ #
  # please change this according to your setup
  home_dir = os.environ['HOME']
  infile_name = home_dir + '/LOFAR/Timba/WH/contrib/RJN/test_sources.txt'
  infile=open(infile_name,'r')
- #infile=open('3C343_nvss_small.txt','r')  
  all=infile.readlines()
  infile.close()
 
@@ -66,6 +86,10 @@ def _define_forest(ns):
    \S+
    \s*$""",re.VERBOSE)
 
+
+ # Construction of a Phase Center Two-Pack (RA, DEC)
+ # For now this is done manually
+ #
  # RA and Dec coordinates of the Patch Phase Center
  RA_0 = 4.35664870004
  Dec_0 = 1.09220644132
@@ -84,7 +108,7 @@ def _define_forest(ns):
  linecount=0
  random.seed(0)
 
- # read each source and insert to LSM
+ # read each source and add a Sixpack to the child_rec
  for eachline in all:
   v=pp.search(eachline)
   if v!=None:
@@ -93,6 +117,7 @@ def _define_forest(ns):
    sname=v.group('col2')
    srcnames.append(sname)
    
+   # Go from RA and Dec to radians
    source_RA=float(v.group('col3'))+(float(v.group('col5'))/60.0+float(v.group('col4')))/60.0
    source_RA*=math.pi/12.0
    source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
@@ -101,6 +126,8 @@ def _define_forest(ns):
    #sisif = math.log10( eval(v.group('col12')) )
    sisif = eval(v.group('col12')) 
    
+   # Definition of Q%, U%, V%
+   # However, since I=0.0 for all sources in test_sources.txt, this has no effect: Q,U,V are all zero.
    #qin = random.uniform(-0.2,0.2)
    #uin = random.uniform(-0.2,0.2)
    #vin = random.uniform(-0.01,0.01)
@@ -116,13 +143,16 @@ def _define_forest(ns):
    sixname = 'sixpack[q='+sname+']';
    child_rec.append(sixname);
 
+   # Determine the size of the grid. Hence, determine larges l and m values. 
    lc = math.cos(source_Dec)*math.sin(RA_0-source_RA)
    lm = math.cos(Dec_0)*math.sin(source_Dec) - math.sin(Dec_0)*math.cos(source_Dec)*math.cos(RA_0-source_RA)
    
    lmax = max(lmax,abs(lc))
    mmax = max(mmax,abs(lm))
  
- sname = 'sixpack[q=testsource]';
+ # Add one non-zero source (q=testsource) to the Patch
+ # I=Q=U=V=1.0
+ sname = 'testsource';
  source_RA = RA_0 + 0.0*0.0000183944088323;
  source_Dec = Dec_0 + 2*0.0000183944088323;
  sisif = 1.0;
@@ -138,24 +168,35 @@ def _define_forest(ns):
  print "Inserted %d sources" % linecount 
  print "maximum l and m out of Phase Center", lmax, mmax
 
+ # At this point the Phase Center and all sources are combined into a "source list": child_rec.
+
+ # For the UVW coordinates define X0,Y0,Z0, and delta 
+ # (see UVBrick document and Thompson, Moran, and Swenson)
  X0 = 0.0;   # m
  Y0 = 2000.0; #m
  Z0 = 0.0;   #m
 
  delta  = math.pi/2;
 
- #PatchComposer (SixPack)
+ # Create the SixPack for the Patch Image
+ # PatchComposer (SixPack)
  patch_root = ns['Patch['+pc_name+']'] << Meq.PatchComposer(children=child_rec);
 
+ # Select the 4 Stokes planes
  #Selector (FourPack)
  select_root = ns['Select['+pc_name+']']<<Meq.Selector(children=patch_root,multi=True,index=[2,3,4,5]);
 
+ # Go from 4 Stokes planes to 4 Correlation planes
  #Stokes
  stokes_root = ns['Stokes['+pc_name+']'] << Meq.Stokes(children=select_root);
 
+ # FFT the 4 correlations
  #FFTBrick
  fft_root = ns['FFT['+pc_name+']']<<Meq.FFTBrick(children=stokes_root);
 
+ # Now we can start interpolating the UV-plane.
+ # For this we need a UVW coordinate Node
+ #
  # X0, Y0, Z0
  x0_root = ns['X0']<<Meq.Constant(X0);
  y0_root = ns['Y0']<<Meq.Constant(Y0);
@@ -197,10 +238,18 @@ def _define_forest(ns):
  #uvw
  uvw_root = ns['UVW']<<Meq.Composer(children=[u_root,v_root,w_root]);
 
+ # The actual Interpolation
+ #  Method = 1: Bi-Cubic Hermite Interpolation (most accurate)
+ #  Method = 2: 4th order polynomial interpolation
+ #  Method = 3: Bi-linear interpolation
+ #
+ # If (Additional_Info = True) the UV interpolation tracks are plotted on the UV plane
+ #
  #UVInterpol
- interpol_root = ns['UVInterpol['+pc_name+']']<<Meq.UVInterpol(Method=3,children=[fft_root,uvw_root],additional_info=True);
- #interpol2_root = ns['UVInterpol2['+pc_name+']']<<Meq.UVInterpol(Method=1,children=[fft_root,uvw_root],additional_info=True);
-
+ interpol_root = ns['UVInterpol['+pc_name+']']<<Meq.UVInterpol(Method=1,children=[fft_root,uvw_root],additional_info=True);
+ 
+ # Now create the DFT node, to which we will compare the UVInterpol result.
+ #
  #RA,Dec,RA_0,Dec_0
  ra_array = array([source_RA/0.001]);
  dec_array=array([source_Dec/0.001]);
@@ -225,17 +274,24 @@ def _define_forest(ns):
  #dft_root = ns['DFT']<<Meq.Multiply(children=[Meq.Constant(-1.0),Meq.VisPhaseShift(lmn=lmn_root,uvw=uvw_root)]);
  dft_root = ns['DFT']<<Meq.VisPhaseShift(lmn=lmn_root,uvw=uvw_root);
 
+ # Compare the XX result between UVInterpol and DFT
+ #
  # Condeq
+ #
+ # Select XX result plane from UVInterpol node
  select2_root = ns['Select2']<<Meq.Selector(children=interpol_root,multi=True,index=[0]);
 
  cond_root = ns['Condeq'] << Meq.Condeq(children=[select2_root,dft_root]);
  #cond_root = ns['Condeq'] << Meq.Condeq(children=[interpol_root,interpol2_root]);
 
+ # Solve for the RA and / or Dec position of the source in the DFT branch
  # Solver
- solvables = ["nDec"];
+ solvables = [];
+ solvables.append('nRA');
+ solvables.append('nDec');
  solver_root = ns['Solver']<<Meq.Solver(children=[cond_root],num_iter=100,debug_level=20,solvable=solvables);
 
- # Bookmarks
+ # Define Bookmarks
  MG_JEN_forest_state.bookmark(cond_root,page="CondEq",viewer="Result Plotter");
  MG_JEN_forest_state.bookmark(select2_root,page="FT-Result",viewer="Result Plotter");
  MG_JEN_forest_state.bookmark(dft_root,page="FT-Result",viewer="Result Plotter");
@@ -246,42 +302,29 @@ def _define_forest(ns):
 ########################################################################
 
 def _test_forest(mqs,parent):
+ # srcnames is global: to be used inside _define_forest, _test_forest, and outside of them
  global srcnames   
-
- # create a cell
+ 
+ # Not sure why this is repeated here
  from Timba.Meq import meq
 
- f0 = 1300e6
- f1 = 1300.001e6
+ # Create the Request Cells
+ f0 = 1300.0e6
+ f1 = 1400.0e6
  t0 = 0.0
  t1 = 86400.0
  nfreq = 1
- ntime = 10
+ ntime = 1000
  
  # create cell
  freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
  cells =meq.cells(domain=freqtime_domain, num_freq=nfreq,  num_time=ntime);
 
+ # create request
  request1 = meq.request(cells=cells, eval_mode=0 );
 
- #twoname = 'twopack[Phase Center]';
- #args=record(name=twoname, request=request1);
- #mqs.meq('Node.execute', args, wait=False);
-
- #for sname in srcnames:
-
-   #sixname = 'sixpack[q='+sname+']';
-   # print  sname,  sixname   
-   #args=record(name=sixname, request=request1);
-   #mqs.meq('Node.execute', args, wait=False);
-  
- # Tony: execute the Patch[Phase Center] node, instead of the one I use  
- #args=record(name='Patch[Phase Center]', request=request1);
- #args=record(name='FFT[Phase Center]', request=request1);
- #args=record(name='UVInterpol[Phase Center]', request=request1);
+ # And execute the Tree ...
  args=record(name='Solver', request=request1);
-
-
  mqs.meq('Node.execute', args, wait=False);
    
 
