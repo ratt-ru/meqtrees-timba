@@ -1674,7 +1674,9 @@ class QwtImageDisplay(QwtPlot):
           if self._vells_plot:
             if self.context_menu_done is None:
                self.initVellsContextMenu()
+            _dprint(3, 'calling set_data_range with array ', self._value_array)
             self.set_data_range(self._value_array)
+            _dprint(3, 'calling plot_vells_array with array ', self._value_array)
             self.plot_vells_array(self._value_array)
 
     # end plot_vells_data()
@@ -1788,7 +1790,6 @@ class QwtImageDisplay(QwtPlot):
         else:
           first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
           second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
-#       print 'plot_vells_array: self.array_selector is ', self.array_selector
         self.array_tuple = tuple(self.array_selector)
         self.first_axis_parm = self.axis_labels[self.first_axis]
         self.second_axis_parm = self.axis_labels[self.second_axis]
@@ -1797,36 +1798,52 @@ class QwtImageDisplay(QwtPlot):
         self.array_plot(self._label, plot_array)
           
       else:
+        _dprint(3, 'self.axis_labels ',self.axis_labels)
         if len(self.axis_labels) > 2:
           self.array_selector = None
           self.second_axis = None
           self.first_axis = None
           first_plot_dimension = 1
           second_plot_dimension = 1
-          for i in range(len(self.axis_labels)-1,-1,-1):
+#          for i in range(len(self.axis_labels)-1,-1,-1):
+          for i in range(len(self.axis_labels)):
            if self.vells_axis_parms[self.axis_labels[i]][3] > 1:
-             if self.second_axis is None:
-               self.second_axis = i
-               second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
-               self.second_axis_parm = self.axis_labels[self.second_axis]
+             _dprint(3, 'self.vells_axis_parms[self.axis_labels[i]][3] ', self.vells_axis_parms[self.axis_labels[i]][3])
+             if self.first_axis is None:
+               self.first_axis = i
+               first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
+               self.first_axis_parm = self.axis_labels[self.first_axis]
              else:
-               if self.first_axis is None:
-                 self.first_axis = i
-                 first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
-                 self.first_axis_parm = self.axis_labels[self.first_axis]
+               if self.second_axis is None:
+                 self.second_axis = i
+                 second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
+                 self.second_axis_parm = self.axis_labels[self.second_axis]
+# the following is probably needed for the case where we have a 1xN array
+          if data_array.rank == 2: 
+            self.array_shape =  data_array.shape
+            if self.array_shape[1] == first_plot_dimension:
+              second_plot_dimension = first_plot_dimension
+              first_plot_dimension = 1
+              self.second_axis_parm = self.first_axis_parm
+              self.first_axis_parm = self.axis_labels[0]
         else:
           first_plot_dimension = self.vells_axis_parms[self.axis_labels[0]][3]
           second_plot_dimension = self.vells_axis_parms[self.axis_labels[1]][3]
           self.first_axis_parm = self.axis_labels[0]
           self.second_axis_parm = self.axis_labels[1]
         self.plot_vells_dimensions = (first_plot_dimension, second_plot_dimension)
+        _dprint(3,'self.first_axis ', self.first_axis)
+        _dprint(3,'self.second_axis ', self.second_axis)
+        _dprint(3,'calling check_dimensions with array ', data_array)
         plot_array = self.check_dimensions(data_array)
         self.array_plot(self._label, plot_array)
 
  
     def check_dimensions(self,data_array):
+      _dprint(3,'self.plot_vells_dimensions ', self.plot_vells_dimensions)
       try:
         shape = data_array.shape
+        _dprint(3,'data_array shape is ', shape)
       except:
 # we have a scalar - expand the scalar to fill the grid
         temp_array = asarray(data_array)
@@ -2148,6 +2165,7 @@ class QwtImageDisplay(QwtPlot):
           if not self.metrics_rank is None:
             self.x_index = self.x_index + 0.5
         flattened_array = reshape(plot_array,(num_elements,))
+        _dprint(3, 'plotting flattened array ', flattened_array)
         if not self._flags_array is None:
           if complex_type:
             x_array =  flattened_array.getreal()
@@ -2378,6 +2396,7 @@ def make():
 # uncomment the following three lines
 #   import pyfits
 #   image = pyfits.open('./3C236.FITS')
+#   image = pyfits.open('./WN30080H.fits')
 #   demo.array_plot('3C236', image[0].data)
 
     return demo
