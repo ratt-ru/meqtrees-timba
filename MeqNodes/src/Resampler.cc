@@ -296,6 +296,7 @@ int Resampler::pollChildren (std::vector<Result::Ref> &chres,
 #endif
   Cells::Ref outcells1; 
  	Cells &outcells = outcells1<<=new Cells(request.cells().domain(),nx1,ny1);
+	//FIXME: can cache the current cells
   newreq().setCells(outcells);
      return Node::pollChildren(chres,resref,newreq);
 		} else {
@@ -842,29 +843,51 @@ template<class T> void
 #endif
 	//now find ranges for interpolation and extrapolation
   int x_l_limit=0;
-	while((xindex(x_l_limit)<1) && (x_l_limit<ns-1))
+	while((xindex(x_l_limit)<2) && (x_l_limit<ns-1))
 				x_l_limit++;
 	int x_u_limit=ns-1;
-	while((xindex(x_u_limit)>n-1) && (x_u_limit>0))
+	while((xindex(x_u_limit)>n-2) && (x_u_limit>0))
 		    x_u_limit--;
- 
-	cout<<"Limits : interp["<<x_l_limit<<","<<x_u_limit<<"]"<<endl;
-	cout<<"extrap : [0,"<<x_l_limit-1<<"],["<<x_u_limit+1<<","<<ns-1<<"]"<<endl;
-	for (int i=x_l_limit; i<=x_u_limit;i++) {
+  int x_ll_limit=0;
+	while((xindex(x_ll_limit)<1) && (x_ll_limit<ns-1))
+				x_ll_limit++;
+	int x_uu_limit=ns-1;
+	while((xindex(x_uu_limit)>n-1) && (x_uu_limit>0))
+		    x_uu_limit--;
+
+	cout<<"Limits : cubic interp["<<x_l_limit<<","<<x_u_limit<<"]"<<endl;
+	cout<<"Limits : linear interp["<<x_ll_limit<<","<<x_l_limit-1<<"]"<<endl;
+	cout<<"Limits : linear interp["<<x_u_limit+1<<","<<x_uu_limit<<"]"<<endl;
+	cout<<"extrap : [0,"<<x_ll_limit-1<<"],["<<x_uu_limit+1<<","<<ns-1<<"]"<<endl;
+	//Extrapolation : Linear
+	for (int i=0;i<x_ll_limit; i++) {
+		y(i)=yax(0)+(xaxs(i)-xax(0))/(xax(1)-xax(0))*(yax(1)-yax(0));
+	}
+	//Interpolation : Linear
+	for (int i=x_ll_limit;i<x_l_limit; i++) {
+		y(i)=yax(xindex(i)-1)+(xaxs(i)-xax(xindex(i)-1))/(xax(xindex(i))-xax(xindex(i)-1))*(yax(xindex(i))-yax(xindex(i)-1));
+	}
+	//Interpolation : Cubic
+	for (int i=x_l_limit;i<=x_u_limit; i++) {
       h=xax(xindex(i))-xax(xindex(i)-1);
 			if (h==0) h=0.1;
 			a=(xax(xindex(i))-xaxs(i))/h;
 			b=(xaxs(i)-xax(xindex(i)-1))/h;
 			y(i)=a*yax(xindex(i)-1)+b*yax(xindex(i))
 						+((a*a*a-a)*y2(xindex(i)-1)+(b*b*b-b)*y2(xindex(i)))*(h*h)/6.0;
+     //FIXME: no need to calculate all second derivatives	
+		//y(i)=yax(xindex(i)-1)+(xaxs(i)-xax(xindex(i)-1))/(xax(xindex(i))-xax(xindex(i)-1))*(yax(xindex(i))-yax(xindex(i)-1));
+	}
+	//Interpolation : Linear
+	for (int i=x_u_limit+1;i<=x_uu_limit; i++) {
+		y(i)=yax(xindex(i)-1)+(xaxs(i)-xax(xindex(i)-1))/(xax(xindex(i))-xax(xindex(i)-1))*(yax(xindex(i))-yax(xindex(i)-1));
 	}
 	//Extrapolation : Linear
-	for (int i=0;i<x_l_limit; i++) {
-		y(i)=yax(0)+(xaxs(i)-xaxs(0))/(xax(1)-xax(0))*(yax(1)-yax(0));
+	for (int i=x_uu_limit+1;i<ns; i++) {
+		y(i)=yax(n-2)+(xaxs(i)-xax(n-2))/(xax(n-1)-xax(n-2))*(yax(n-1)-yax(n-2));
 	}
-	for (int i=x_u_limit+1;i<ns; i++) {
-		y(i)=yax(n-2)+(xaxs(i)-xaxs(n-2))/(xax(n-1)-xax(n-2))*(yax(n-1)-yax(n-2));
-	}
+
+
 }
 
 
