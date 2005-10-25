@@ -153,7 +153,7 @@ def _define_forest(ns):
  # Add one non-zero source (q=testsource) to the Patch
  # I=Q=U=V=1.0
  sname = 'testsource';
- source_RA = RA_0 + 0.0*0.0000183944088323;
+ source_RA = RA_0 + 4*0.0000183944088323;
  source_Dec = Dec_0 + 2*0.0000183944088323;
  sisif = 1.0;
  qin = 1.0;
@@ -264,9 +264,29 @@ def _define_forest(ns):
  RA0_root = ns['RA0']<<Meq.Constant(RA_0);
  Dec0_root = ns['Dec0']<<Meq.Constant(Dec_0);
 
+ #Projection
+ cdec_root=ns['Cos(Dec)']<<Meq.Cos(children=Dec_root);
+ sdec_root=ns['Sin(Dec)']<<Meq.Sin(children=Dec_root);
+ cdec0_root=ns['Cos(Dec0)']<<Meq.Cos(children=Dec0_root);
+ sdec0_root=ns['Sin(Dec0)']<<Meq.Sin(children=Dec0_root);
+ RARA0_root=ns['RA0-RA']<<Meq.Subtract(children=[RA0_root,RA_root]);
+ crara_root=ns['Cos(RA0-RA)']<<Meq.Cos(children=RARA0_root);
+ srara_root=ns['Sin(RA0-RA)']<<Meq.Sin(children=RARA0_root);
+
+ m1_root=ns['M1']<<Meq.Multiply(children=(cdec0_root,sdec_root));
+ m2_root=ns['m2']<<Meq.Multiply(children=(sdec0_root,cdec_root,crara_root));
+
+ #Alternative
+ l_array = array([0.0]);
+ m_array=array([0.0]);
+ l_polc=meq.polc(coeff=l_array);
+ m_polc=meq.polc(coeff=m_array);
+ #l_root = ns['L']<<Meq.Parm(l_polc,node_groups='Parm',pert=1e-8);
+ #m_root = ns['M']<<Meq.Parm(m_polc,node_groups='Parm');
+
  #LMN
- l_root = ns['L']<<Meq.Subtract(children=[RA_root,RA0_root]);
- m_root = ns['M']<<Meq.Subtract(children=[Dec_root,Dec0_root]);
+ l_root = ns['L']<<Meq.Multiply(children=(cdec_root,srara_root));
+ m_root = ns['M']<<Meq.Subtract(children=[m1_root,m2_root]);
  n_root = ns['N']<<Meq.Constant(0.0);
  lmn_root = ns['LMN']<<Meq.Composer(children=[l_root, m_root, n_root]);
 
@@ -289,6 +309,8 @@ def _define_forest(ns):
  solvables = [];
  solvables.append('nRA');
  solvables.append('nDec');
+ #solvables.append('L');
+ #solvables.append('M');
  solver_root = ns['Solver']<<Meq.Solver(children=[cond_root],num_iter=100,debug_level=20,solvable=solvables);
 
  # Define Bookmarks
@@ -309,8 +331,8 @@ def _test_forest(mqs,parent):
  from Timba.Meq import meq
 
  # Create the Request Cells
- f0 = 1300.0e6
- f1 = 1400.0e6
+ f0 = 1349.999e6
+ f1 = 1350.0010e6
  t0 = 0.0
  t1 = 86400.0
  nfreq = 1
