@@ -33,7 +33,7 @@ namespace Meq {
   PatchComposer::PatchComposer()
     :
     _max_baseline(2700.0),
-    _uvppw(1.0)
+    _uvppw(2.0)
   {
     // Only l and m axes are used in this node
     // For now it is more convenient to always define all axes here, so that we always know which axes hold which array dimension

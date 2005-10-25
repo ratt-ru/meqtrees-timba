@@ -42,13 +42,12 @@
 #include <complex.h>
 #include <fftw3.h>
 
-
 namespace Meq {
   
 
   FFTBrick::FFTBrick()
     :
-    _uvppw(1.0)
+    _uvppw(2.0)
   {
     // For now these axes are defined in the PatchComposer Node.
     //Axis::addAxis("U");
@@ -70,30 +69,12 @@ namespace Meq {
 
       // Construct the Result Cells from the Child Cells
       int nf = child_cells.ncells(Axis::FREQ);
-      const double fmin = min(child_cells.cellStart(Axis::FREQ));
-      const double fmax = max(child_cells.cellEnd(Axis::FREQ));
 
       const int nl = child_cells.ncells(Axis::axis("L"));
       const int nu = int(_uvppw*nl)+1;
-      const double umax = 0.5/max(child_cells.cellSize(Axis::axis("L")));
-      const double umin = -umax;
 
       const int nm = child_cells.ncells(Axis::axis("M"));
       const int nv = int(_uvppw*nm)+1;
-      const double vmax = 0.5/max(child_cells.cellSize(Axis::axis("M")));
-      const double vmin = -vmax;
-	   
-      // For now, use the L & M axes instead of U & V (Visualisation)
-      Domain::Ref domain(new Domain());
-      domain().defineAxis(Axis::FREQ,fmin,fmax);
-      domain().defineAxis(Axis::axis("L"),umin,umax);
-      domain().defineAxis(Axis::axis("M"),vmin,vmax);
-
-      // For now, use the L & M axes instead of U & V (Visualisation)
-      Cells::Ref cells(new Cells(*domain));
-      cells().setCells(Axis::FREQ,fmin,fmax,nf);
-      cells().setCells(Axis::axis("L"),umin,umax,nu);
-      cells().setCells(Axis::axis("M"),vmin,vmax,nv);
 
       // Make a new Result: 4 Stokes planes x 4 Interpolation planes
       resref <<= new Result(16);
@@ -119,11 +100,13 @@ namespace Meq {
       VellSet& vs3uv = resref().setNewVellSet(15);
 
       // For now, use the L & M axes instead of U & V (Visualisation)
+      int size = std::max(Axis::axis("L"),Axis::axis("M"))+1;
+
       Vells::Shape shape;
-      Axis::degenerateShape(shape,cells->rank());
-      shape[Axis::axis("L")] = cells->ncells(Axis::axis("L"));
-      shape[Axis::axis("M")] = cells->ncells(Axis::axis("M"));
-      shape[Axis::FREQ] = cells->ncells(Axis::FREQ);
+      Axis::degenerateShape(shape,size);
+      shape[Axis::axis("L")] = nu;
+      shape[Axis::axis("M")] = nv;
+      shape[Axis::FREQ] = nf;
 
       // change 'false' into 'true' to actually fill the vells
       Vells& vells0 = vs0.setValue(new Vells(dcomplex(0.0),shape,true));
@@ -564,6 +547,44 @@ namespace Meq {
 			   fft3(k,0,nv-2) + fft3(k,nu-2,nv-2))/4.;
 
       };
+
+      const double fmin = min(child_cells.cellStart(Axis::FREQ));
+      const double fmax = max(child_cells.cellEnd(Axis::FREQ));
+
+      const double dl = max(child_cells.cellSize(Axis::axis("L")));
+      const double dm = max(child_cells.cellSize(Axis::axis("M")));
+
+      const double lmax = max(child_cells.center(Axis::axis("L")));
+      //const double du = 0.5 / lmax / _uvppw;
+      const double du = 1.0 / dl / (nu-1);
+
+      const double mmax = max(child_cells.center(Axis::axis("M")));
+      //const double dv = 0.5 / mmax / _uvppw;
+      const double dv = 1.0 / dm / (nv-1);
+
+      //const double umax = 0.5/max(child_cells.cellSize(Axis::axis("L")));
+      //const double umin = -umax;
+
+      //const double vmax = 0.5/max(child_cells.cellSize(Axis::axis("M")));
+      //const double vmin = -vmax;
+
+      const double umax = (nu-nu1-1+0.5)*du;
+      const double umin = -(nu1+0.5)*du;
+
+      const double vmax = (nv-nv1-1+0.5)*dv;
+      const double vmin = -(nv1+0.5)*dv;
+
+      // For now, use the L & M axes instead of U & V (Visualisation)
+      Domain::Ref domain(new Domain());
+      domain().defineAxis(Axis::FREQ,fmin,fmax);
+      domain().defineAxis(Axis::axis("L"),umin,umax);
+      domain().defineAxis(Axis::axis("M"),vmin,vmax);
+
+      // For now, use the L & M axes instead of U & V (Visualisation)
+      Cells::Ref cells(new Cells(*domain));
+      cells().setCells(Axis::FREQ,fmin,fmax,nf);
+      cells().setCells(Axis::axis("L"),umin,umax,nu);
+      cells().setCells(Axis::axis("M"),vmin,vmax,nv);
 
       // Set the Cells to the Result
       resref().setCells(*cells);

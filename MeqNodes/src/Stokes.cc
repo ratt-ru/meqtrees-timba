@@ -41,6 +41,16 @@ namespace Meq {
 			  const std::vector<Result::Ref> &childres,
 			  const Request &request,bool newreq)
   {
+
+    // Combine the four (real) planes of the child result into four new (complex) planes:
+    // plane 0 = (plane 0 + plane 1)/2
+    // plane 1 = (plane 2 + I * plane 3)/2
+    // plane 2 = (plane 2 - I * plane 3)/2
+    // plane 3 = (plane 0 - plane 1)/2
+    //
+    // To do: 1) what if certain planes do not exist
+    //        2) this is linear polarization, what for circular polarization?
+
     const Result &tempres = childres.at(0);
     const Cells& cells = childres.at(0)->cells();
 
@@ -56,7 +66,7 @@ namespace Meq {
     const Vells &vellsU = vsU.getValue();
     const Vells &vellsV = vsV.getValue();
 
-    Vells vellsc0 = Vells(double(0.0),shape,false);
+    Vells vellsc0 = Vells(double(0.0),shape,true);
 
     // For now consider Linear Polarization
     Vells vellsXX = tocomplex((vellsI + vellsQ)/2,vellsc0);
