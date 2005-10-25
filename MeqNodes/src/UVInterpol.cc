@@ -88,11 +88,11 @@ namespace Meq {
 	int nt = tfshape[Axis::TIME] = rcells.ncells(Axis::TIME);
 	int nf = tfshape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
 	    
-	// Make a new Vells
-	Vells & vells0 = vs0.setValue(new Vells(dcomplex(0),tfshape,false));
-	Vells & vells1 = vs1.setValue(new Vells(dcomplex(0),tfshape,false));
-	Vells & vells2 = vs2.setValue(new Vells(dcomplex(0),tfshape,false));
-	Vells & vells3 = vs3.setValue(new Vells(dcomplex(0),tfshape,false));
+	// Make a new Vells and fill with zeros
+	Vells & vells0 = vs0.setValue(new Vells(dcomplex(0),tfshape,true));
+	Vells & vells1 = vs1.setValue(new Vells(dcomplex(0),tfshape,true));
+	Vells & vells2 = vs2.setValue(new Vells(dcomplex(0),tfshape,true));
+	Vells & vells3 = vs3.setValue(new Vells(dcomplex(0),tfshape,true));
 	    
 	// Fill the Vells (this is were the interpolation takes place)
 	fillVells(childres,vells0,vells1,vells2,vells3,rcells);	
