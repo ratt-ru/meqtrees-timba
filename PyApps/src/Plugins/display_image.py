@@ -1832,9 +1832,6 @@ class QwtImageDisplay(QwtPlot):
           self.first_axis_parm = self.axis_labels[0]
           self.second_axis_parm = self.axis_labels[1]
         self.plot_vells_dimensions = (first_plot_dimension, second_plot_dimension)
-        _dprint(3,'self.first_axis ', self.first_axis)
-        _dprint(3,'self.second_axis ', self.second_axis)
-        _dprint(3,'calling check_dimensions with array ', data_array)
         plot_array = self.check_dimensions(data_array)
         self.array_plot(self._label, plot_array)
 
