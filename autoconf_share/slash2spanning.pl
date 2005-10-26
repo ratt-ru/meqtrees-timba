@@ -35,6 +35,23 @@ if ($arguments == 1)
   # The argument represents the name of the file to process.
   $filename = $ARGV[0];
 
+  # Get current directory.
+  $cwd = `pwd`;
+  chop($cwd);
+  $cwd =~ s|/$||;
+  # Append file name to it (which may contain a path as well).
+  $filnm = $cwd . "/" . $filename;
+  # Get the name of the package.
+  $pkgnm = $filnm;
+  $pkgnm =~ s%/include/.*%%;
+  $pkgnm =~ s%/src/.*%%;
+  $parentnm = $pkgnm;
+  $pkgnm =~ s%.*/%%;
+  $parentnm =~ s%/[^/]+$%%;
+  $parentnm =~ s%.*/%%;
+  # Get the name of the file from LOFAR on.
+  $filnm =~ s%.*/LOFAR/%LOFAR/%;
+
   # Open the file.
   $status = open(FILEHANDLE, $filename);
 
@@ -75,6 +92,10 @@ sub change_comment_style
 
   foreach $line (@_)
   {
+    # Replace the various placeholders.
+    $line =~ s/%pkgname%/$pkgnm/;
+    $line =~ s/%parentpkgname%/$parentnm/;
+    $line =~ s/%filename%/$filnm/;
     $newstate = $NON_COMMENT_BLOCK;
     # slash-slash-hash is blanked if not at beginning of file..
     if ($keephash == 0  &&  $line =~ /^\s*\/\/\#/)
