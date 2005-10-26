@@ -138,8 +138,8 @@ class SpH:
    my_request = meq.request(cells=self.lsm.cells, eval_mode=0)
    my_args=meq.record(name='sixpack:q='+pname, request=my_request)
    my_result=self.lsm.mqs.meq('Node.execute', my_args,wait=True)
-   #print my_result
-   # update value
+   # update values only if no 'Fail has happened'
+   # if you try to create patches with 1 source, it will fail
    self.setRA(my_result.result.vellsets[0])
    self.setDec(my_result.result.vellsets[1])
    self.setI(my_result.result.vellsets[2])
