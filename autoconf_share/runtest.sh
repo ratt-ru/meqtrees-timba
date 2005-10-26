@@ -51,8 +51,8 @@ LOFAR_BUILDVAR=`echo $findvars | awk '{print $2}'`
 export LOFAR_BUILDVAR
 
 # Set source directory if not defined.
+curwd=`pwd`
 if [ "$srcdir" = "" ]; then
-  curwd=`pwd`
   basenm=`basename $curwd`
   srcdir=$lfr_share_dir/../`echo $findvars | awk '{print $5}'`/$basenm
 fi
@@ -60,7 +60,15 @@ fi
 # Make directory writable (needed for make distcheck).
 chmod +w .
 
-# Initialize AIPS++ if used.
+# Initialize LOFAR (if needed).
+# Note that if LOFARROOT is already set, it won't be changed because the
+# Tools/src directory does not have a bin directory.
+lofarinitdir=`pwd | sed -e 's%/LOFAR/.*%/LOFAR/LCS/Tools/src%'`
+cd $lofarinitdir
+. lofarinit.sh
+cd $curwd
+
+# Initialize AIPS++.
 if test "$AIPSPP" != ""; then
     aipsroot=`dirname $AIPSPP`
     . $aipsroot/aipsinit.sh
