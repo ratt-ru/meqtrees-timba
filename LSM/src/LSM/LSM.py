@@ -763,7 +763,7 @@ class LSM:
    # select the max value
    tmp_max=0
    for pname in self.p_table.keys():
-    if self.p_table[pname].getType()==POINT_TYPE:
+     #if self.p_table[pname].getType()==POINT_TYPE:
      tmp_val=self.p_table[pname].sp.getValue(type,f,t)
      if tmp_max < tmp_val:
       tmp_max=tmp_val
@@ -777,15 +777,26 @@ class LSM:
  # f=freq_index, t=time_index
  def getMinBrightness(self,type='A',f=0,t=0):
   if type=='A':
-   if len(self.__barr)==0:
-    return 0
-   pname=self.__barr[len(self.__barr)-1]
-   return self.p_table[pname].getBrightness()
+   #if len(self.__barr)==0:
+   # return 0
+   #pname=self.__barr[len(self.__barr)-1]
+   #return self.p_table[pname].getBrightness()
+   # the Min value of brightness is not necessarily the 
+   # last element in __barr because sources in patches
+   # are removed from the __barr. Hence we need to do a 
+   # scan of all punits
+   tmp_min=1e6 # FIXME: a very large value
+   for pname in self.p_table.keys():
+     #if self.p_table[pname].getType()==POINT_TYPE:
+     tmp_val=self.p_table[pname].getBrightness()
+     if tmp_min > tmp_val:
+      tmp_min=tmp_val
+   return tmp_min
   else:
    # select the min value
-   tmp_min=1000
+   tmp_min=1e6
    for pname in self.p_table.keys():
-    if self.p_table[pname].getType()==POINT_TYPE:
+     #if self.p_table[pname].getType()==POINT_TYPE:
      tmp_val=self.p_table[pname].sp.getValue(type,f,t)
      if tmp_min > tmp_val:
       tmp_min=tmp_val
