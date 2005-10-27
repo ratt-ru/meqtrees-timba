@@ -715,7 +715,9 @@ class LSM:
   # do not count points that belong to a PUnit
   count=0
   for pname in self.p_table.keys():
-   if self.p_table[pname]._patch_name ==None:
+   pu=self.p_table[pname]
+   if (pu.getType()==POINT_TYPE and pu._patch_name==None) or\
+     pu.getType()==PATCH_TYPE:
     count+=1
   return count 
 
@@ -953,8 +955,11 @@ class LSM:
 
   if kw.has_key('cat'):
     for pname in self.p_table.keys():
-     if self.p_table[pname].getCat()==kw['cat']:
-       outlist.append(self.p_table[pname])
+     pu=self.p_table[pname]
+     if pu.getCat()==kw['cat'] and\
+      ((pu.getType()==POINT_TYPE and pu._patch_name==None) or\
+       pu.getType()==PATCH_TYPE):
+       outlist.append(pu)
     return outlist
 
 
