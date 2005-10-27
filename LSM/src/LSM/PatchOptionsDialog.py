@@ -9,15 +9,14 @@ class PatchOptionsDialog(QDialog):
         if not name:
             self.setName("PatchOptionsDialog")
 
+        self.minS=2 # there should be at least 2 sources for a patch
         if lsm!=None:
          self.minBval=lsm.getMinBrightness('A')
          self.maxBval=lsm.getMaxBrightness('A')
-         self.minS=1
          self.maxS=len(lsm.s_table)
         else:
          self.minBval=0.0
          self.maxBval=10.0
-         self.minS=1
          self.maxS=100
    
         self.cview=canvas_view

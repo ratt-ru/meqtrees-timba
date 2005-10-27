@@ -763,7 +763,7 @@ class LSM:
    # select the max value
    tmp_max=0
    for pname in self.p_table.keys():
-     #if self.p_table[pname].getType()==POINT_TYPE:
+    if self.p_table[pname].getType()==POINT_TYPE:
      tmp_val=self.p_table[pname].sp.getValue(type,f,t)
      if tmp_max < tmp_val:
       tmp_max=tmp_val
@@ -787,7 +787,7 @@ class LSM:
    # scan of all punits
    tmp_min=1e6 # FIXME: a very large value
    for pname in self.p_table.keys():
-     #if self.p_table[pname].getType()==POINT_TYPE:
+    if self.p_table[pname].getType()==POINT_TYPE:
      tmp_val=self.p_table[pname].getBrightness()
      if tmp_min > tmp_val:
       tmp_min=tmp_val
@@ -796,7 +796,7 @@ class LSM:
    # select the min value
    tmp_min=1e6
    for pname in self.p_table.keys():
-     #if self.p_table[pname].getType()==POINT_TYPE:
+    if self.p_table[pname].getType()==POINT_TYPE:
      tmp_val=self.p_table[pname].sp.getValue(type,f,t)
      if tmp_min > tmp_val:
       tmp_min=tmp_val
@@ -1181,7 +1181,9 @@ class LSM:
   for pname in patch_bins.keys():
    # note: we do not send anything to the kernel
    # when we recreate the forest, that will be done later
-   if len(patch_bins[pname]) >= min_sources:
+   # note: create patches with at least two sources in it
+   if len(patch_bins[pname]) >= min_sources and\
+      len(patch_bins[pname]) >= 2: 
     retval=self.createPatch(patch_bins[pname],True,False)
    else:
     retval=None
