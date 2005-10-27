@@ -4,4 +4,7 @@ gnu3.compiler.aipspp.var: --with-aipspp=/home/astron01/lofar/ext_libs/casa/prod/
 gnu.compiler.conf: CXX="$CCACHE /usr/bin/g++"
 gnu.compiler.aipspp.var: --with-aipspp=/home/astron01/lofar/ext_libs/casa/prod/linux_gnu
 
-lofar_root.var:		 --with-lofar-default=weekly --with-dtl=/opt/dtl-3.6.6 --with-log4cplus=/opt/log4cplus --with-bdb=/opt/db-4.3.28 --with-boost=/opt/boost --with-odbc=/opt/unixODBC
+icc9.compiler.aipspp.var: --with-aipspp=/home/astron01/lofar/ext_libs/casa/prod/linux_gnu
+icc9.compiler.conf: CXX="$CCACHE /opt/intel/cc/9.0/bin/icc" --with-cppflags="-cxxlib-gcc" --with-ldflags="-cxxlib-gcc -Xlinker -rpath -Xlinker /opt/intel/cc/9.0/lib -Kc++"
+
+lofar_root.var:		 --with-lofar-default=weekly --with-dtl=/home/astron01/lofar/usr --with-log4cplus=/opt/log4cplus --with-bdb=/opt/db-4.3.28 --with-boost=/opt/boost --with-odbc=/home/astron01/lofar/usr
