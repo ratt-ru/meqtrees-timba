@@ -1,0 +1,56 @@
+autoconf_share: Version 2.3, date: 2005/09/02
+=============================================
+
+
+The following Enhancement Requests have been implemented
+--------------------------------------------------------
+
+ER  70 : autoconf_share         : Track external dependencies 
+
+         rub now does an install by  default when doing a build.
+         Extra m4 macros for RPM support were added.
+         Minor changes in variant files.
+
+ER 127 : autoconf_share         : Add rules for BG/L compiler
+
+         Removed suppression of compiler warnings.
+
+
+
+autoconf_share: Version 2.2, date: 2005/06/16
+=============================================
+
+
+The following Enhancement Requests have been implemented
+--------------------------------------------------------
+
+ER  70 : autoconf_share         : Track external dependencies 
+
+         Several improvements to rub. E.g., rub can now do a system build
+         exactly like the "old" global Makefile. Added a couple of switches.
+         Added extensive online help.
+
+ER 220 : Build environment      : Compile on 64 bit machine 
+
+         Variants files for two Itanium systems have been added
+
+ER 236 : LOFAR SW development   : preparations for Package documentation
+
+         The `dot' utility is now used by default for Doxygen, producing much
+         nicer diagrams.
+
+ER 248 : Build environment      : Support SSE instructions 
+
+         Use SSE2 instructions whenever possible.
+
+ER 252 : Build environment      : Add 'limit exec' to runtest.sh 
+
+         Added a `limit exec' functionality to assay and
+         runtest.sh. Implemented limitexec.sh, a "poor man's" LimitExec, that
+         will be used as a fallback. Currently, .run are not started under
+         `limit exec' supervision.
+
+ER 275 : Build environment      : XLC variants 
+
+         Added support for Blue Gene cross compiler.
+
