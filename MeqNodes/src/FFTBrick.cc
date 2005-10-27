@@ -548,25 +548,17 @@ namespace Meq {
 
       };
 
+      // Construction of the uv-grid
+      // Valid for both even and odd number of grid points
+
       const double fmin = min(child_cells.cellStart(Axis::FREQ));
       const double fmax = max(child_cells.cellEnd(Axis::FREQ));
 
       const double dl = max(child_cells.cellSize(Axis::axis("L")));
       const double dm = max(child_cells.cellSize(Axis::axis("M")));
-
-      const double lmax = max(child_cells.center(Axis::axis("L")));
-      //const double du = 0.5 / lmax / _uvppw;
-      const double du = 1.0 / dl / (nu-1);
-
-      const double mmax = max(child_cells.center(Axis::axis("M")));
-      //const double dv = 0.5 / mmax / _uvppw;
-      const double dv = 1.0 / dm / (nv-1);
-
-      //const double umax = 0.5/max(child_cells.cellSize(Axis::axis("L")));
-      //const double umin = -umax;
-
-      //const double vmax = 0.5/max(child_cells.cellSize(Axis::axis("M")));
-      //const double vmin = -vmax;
+      
+      const double du = 1.0 / dl / nu;
+      const double dv = 1.0 / dm / nv;
 
       const double umax = (nu-nu1-1+0.5)*du;
       const double umin = -(nu1+0.5)*du;

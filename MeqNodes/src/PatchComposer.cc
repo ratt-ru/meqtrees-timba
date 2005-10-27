@@ -126,7 +126,7 @@ namespace Meq {
 	mmax *= fmax/c0;
 
 	const double dl = 1 / (2*_max_baseline +1./_uvppw/lmax);
-	const double dm = dl;
+	const double dm = 1 / (2*_max_baseline +1./_uvppw/mmax);
 
 	// Make sure all sources are actually falling INSIDE the grid
 	int nl = 2*int(lmax/dl)+3;
