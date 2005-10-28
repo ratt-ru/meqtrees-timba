@@ -68,6 +68,7 @@ Continue                         1474       ; from /home/oms/LOFAR/Timba/MeqServ
 Control                          1142       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 Conv                             1133       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:33
 Converged                        1589       ; from /home/brentjens/LOFAR/Timba/MeqNodes/src/Solver.h:34
+Coord                            1596       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Beam.h:32
 Corr                             1188       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
 Count                            1099       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
 CoVar                            1299       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
@@ -254,6 +255,7 @@ Meas                             1184       ; from /home/oms/LOFAR/Timba/VisCube
 #MeqAsin                         1399       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Asin.h:29
 #MeqAtan                         1428       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Atan.h:29
 #MeqAzEl                         1551       ; from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:31
+#MeqBeam                         1594       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Beam.h:31
 #MeqCeil                         1437       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
 MeqCells                         1339       ; from /home/oms/LOFAR/Timba/MEQ/src/Cells.h:35
 MeqClient                        1544       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
@@ -291,7 +293,7 @@ MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/
 #MeqMean                         1416       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Mean.h:29
 #MeqMergeFlags                   1441       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MergeFlags.h:31
 #MeqMin                          1392       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Min.h:29
-#MeqModRes                       1592       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:32
+MeqModRes                        1592       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:32
 #MeqMultiply                     1391       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Multiply.h:30
 #MeqNegate                       1506       ; from /home/assendorp/LOFAR/Timba/MeqNodes/src/Negate.h:29
 #MeqNElements                    1500       ; from /home/oms/LOFAR/Timba/MeqNodes/src/NElements.h:29
@@ -576,6 +578,7 @@ V                                1014       ; from /home/oms/LOFAR/Timba/DMI/src
 Value                            1233       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
 Values                           1296       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:31
 VDSID                            1151       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:36
+Vector                           1595       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Beam.h:32
 Vells                            1352       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
 VellSet                          1365       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:30
 VellSets                         1280       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
