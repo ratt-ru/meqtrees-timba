@@ -753,6 +753,27 @@ class QwtImageDisplay(QwtPlot):
           self.flag_range = True
         else:
           self.flag_range = False
+          image_min = None
+          image_max = None
+          if abs(self.raw_image.max() - self.raw_image.min()) < 0.00005:
+            if self.raw_image.max() == 0 or self.raw_image.min() == 0.0:
+              image_min = -0.1
+              image_max = 0.1 
+            else:
+              image_min = 0.9 * self.raw_image.min()
+              image_max = 1.1 * self.raw_image.max()
+            if image_min > image_max:
+              temp = image_min
+              image_min = image_max
+              image_max = temp
+          else:
+            image_min = self.raw_image.min()
+            image_max = self.raw_image.max()
+          self.plotImage.setImageRange((image_min,image_max))
+          self.emit(PYSIGNAL("image_range"),(image_min, image_max))
+          self.emit(PYSIGNAL("max_image_range"),(image_min, image_max))
+        self.defineData()
+        self.replot()
 	return
 
       id_string = self._next_plot[menuid]
@@ -1674,9 +1695,9 @@ class QwtImageDisplay(QwtPlot):
           if self._vells_plot:
             if self.context_menu_done is None:
                self.initVellsContextMenu()
-            _dprint(3, 'calling set_data_range with array ', self._value_array)
+#           _dprint(3, 'calling set_data_range with array ', self._value_array)
             self.set_data_range(self._value_array)
-            _dprint(3, 'calling plot_vells_array with array ', self._value_array)
+#           _dprint(3, 'calling plot_vells_array with array ', self._value_array)
             self.plot_vells_array(self._value_array)
 
     # end plot_vells_data()
@@ -1966,7 +1987,7 @@ class QwtImageDisplay(QwtPlot):
       if flip_axes:
         axes = arange(incoming_plot_array.rank)[::-1]
         plot_array = transpose(incoming_plot_array, axes)
-        _dprint(3, 'transposed plot array ', plot_array, ' has shape ', plot_array.shape)
+#       _dprint(3, 'transposed plot array ', plot_array, ' has shape ', plot_array.shape)
 
 # figure out type and rank of incoming array
 # for vectors, this is a pain as e.g. (8,) and (8,1) have
