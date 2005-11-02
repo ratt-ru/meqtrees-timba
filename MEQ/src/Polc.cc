@@ -182,37 +182,47 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
       FailWhen(!cells.isDefined(iaxis),
             "Meq::Polc: axis " + Axis::axisId(iaxis).toString() + 
             " is not defined in Cells");
-      //faster to multiply could be done init of course...
-      //apply axis function here
-      // if(_function_axis[i])
-      LoVec_double tempgrid = ( cells.center(iaxis));
-      int k=0;
-      while(tempgrid(k)< domain().start(i) && k < tempgrid.size()){k++;}
-      int firstk=k;
-      k=tempgrid.size()-1;
-      while(tempgrid(k)>domain().end(i) && k > 0){k--;}
-      int lastk=k;
-      //reduce grid, such that it fits on domain of this funklet
-
-      if(lastk<firstk) return;
-
-
-      grid[i].resize(lastk-firstk+1);
-      if(firstk==0 && lastk==(tempgrid.size()-1))
+      if(cells.domain().start(i)<domain().start(i) ||cells.domain().end(i)>domain().end(i) )
 	{
-	  grid[i]=tempgrid;
+	  LoVec_double tempgrid = ( cells.center(iaxis));
+	  int k=0;
+	  while(tempgrid(k)< domain().start(i) && k < tempgrid.size()){k++;}
+	  int firstk=k;
+	  k=tempgrid.size()-1;
+	  while(tempgrid(k)>domain().end(i) && k > 0){k--;}
+	  int lastk=k;
+	  //reduce grid, such that it fits on domain of this funklet
+	  if(lastk<firstk) return;
+	  
+
+	  grid[i].resize(lastk-firstk+1);
+	  if(firstk==0 && lastk==(tempgrid.size()-1))
+	    {
+	      grid[i]=tempgrid;
+	    }
+	  else{
+	    for(k=firstk;k<=lastk;k++){
+	      grid[i](k-firstk)=tempgrid(k);
+	    }
+	  }
 	}
-      else{
-	for(k=firstk;k<=lastk;k++){
-	  grid[i](k-firstk)=tempgrid(k);
+      else
+	{
+	  grid[i].resize(cells.ncells(iaxis));
+	  grid[i] = cells.center(iaxis);
 	}
-      }
+      //apply axis function here
       axis_function(iaxis,grid[i]);
 
+      //faster to multiply could be done init of course...
       double one_over_scale=(getScale(i) ? 1./getScale(i) : 1.);
+      
+
+
 
       grid[i] = ( grid[i] - getOffset(i) )*one_over_scale;
-      cdebug(2)<<"calculating polc on grid["<<i<<"]"<<grid[i]<<endl;
+
+      cdebug(4)<<"calculating polc on grid "<<i<<" : "<<grid[i]<<endl;
       res_shape[iaxis] = std::max(grid[i].size(),1);
     }
   }

@@ -159,7 +159,7 @@ namespace Meq {
 	  {
 
 	    //use previous funklet, unless user really wants default??
-	    if(_use_previous && converged_ && its_funklet_.valid())
+	    if( _use_previous && converged_ && its_funklet_.valid()&& (its_funklet_->objectType()!=TpMeqComposedPolc))
 	      {
 
 		funkletref <<= its_funklet_;
@@ -172,7 +172,7 @@ namespace Meq {
 	      //	    FailWhen(!deffunklet,"no funklets found and no default_funklet specified");
 	      if(!deffunklet) {
 		cdebug(3)<<"no funklets found, try reusing old one "<<endl;
-		FailWhen(!its_funklet_.valid(),"no funklets found,no default_funklet and no funklet specified");
+		FailWhen(!its_funklet_.valid()|| (its_funklet_->objectType()==TpMeqComposedPolc),"no funklets found,no default_funklet and no funklet specified");
 		funkletref <<= its_funklet_;
 		//reset dbid
 		funkletref(). setDbId (-1);

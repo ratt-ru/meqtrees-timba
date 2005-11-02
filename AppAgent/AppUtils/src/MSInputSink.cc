@@ -117,7 +117,7 @@ void MSInputSink::fillHeader (DMI::Record &hdr,const DMI::Record &select)
           "illegal channel selection");
     IPosition ip0(1,channels_[0]),ip1(1,channels_[1]);
     Array<Double> ch_freq1 = ch_freq(ip0,ip1);
-    Array<Double> ch_width1 = ch_width(ip0,ip1);
+    Array<Double> ch_width1 = abs(ch_width(ip0,ip1));
     // if frequencies are in decreasing order, freq axis needs to be flipped
     if( ch_freq1(IPosition(1,0)) > ch_freq1(IPosition(1,channels_[1]-channels_[0])) )
     {
