@@ -677,9 +677,11 @@ namespace Meq {
     int retcode = Node::processCommands(resref,rec,reqref);
     bool saved  = false;
   
-    reqref[FConverged].get(converged_,0);
-    wstate()[FConverged].replace()=converged_;
-
+    if(reqref->hasField(FConverged))
+      {
+	reqref[FConverged].get(converged_);
+	wstate()[FConverged].replace()=converged_;
+      }
     // Is an Update.Values command specified? use it to update solve funklets
     DMI::Record::Hook hset(rec,FUpdateValues);
     if( hset.exists() )
