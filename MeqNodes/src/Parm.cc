@@ -138,7 +138,13 @@ namespace Meq {
 	  }
 	if( n )
 	  {
+	    //get the one with best fitting domain....
 	    funkletref <<= funklets.front();
+	    
+	    //reset dbid if funklet domain not matching 
+	    if(funkletref().domain().start(0)<domain.start(0) || funkletref().domain().start(1)<domain.start(1) ||
+	       funkletref().domain().end(0)>domain.end(0) || funkletref().domain().end(1)>domain.end(1))
+	      funkletref(). setDbId (-1);
 	    funkletref().setDomain(domain);
 	    return funkletref.dewr_p();
 	  }
@@ -365,6 +371,7 @@ namespace Meq {
 	if(!tiled_ && (pfunklet->objectType()!=TpMeqComposedPolc) &&  pfunklet->domain().supersetOfProj(domain) )
 	  {
 	    cdebug(3)<<"current funklet defined for superset of requested domain, re-using"<<pfunklet->getDbId()<<endl;
+	    pfunklet->setDbId(-1);
 	    wstate()[FDomainId] = domain_id_ = rq_dom_id;
 	    wstate()[FDomain].replace() <<= &domain;
 	    return pfunklet;
@@ -676,11 +683,11 @@ namespace Meq {
     // process parent class's commands
     int retcode = Node::processCommands(resref,rec,reqref);
     bool saved  = false;
-  
-    if(reqref->hasField(FConverged))
+    
+    if(rec[FConverged].as<bool>(false))
       {
-	reqref[FConverged].get(converged_);
-	wstate()[FConverged].replace()=converged_;
+	converged_=true;
+	wstate()[FConverged]=converged_;
       }
     // Is an Update.Values command specified? use it to update solve funklets
     DMI::Record::Hook hset(rec,FUpdateValues);

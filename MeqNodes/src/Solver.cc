@@ -540,7 +540,12 @@ int Solver::getResult (Result::Ref &resref,
     }
 
     // ****   CALL SOLVE AND CHECK CONVERGENCE  ****
-    double fit = solve(solution,reqref,*pSolRec,pDebug,do_save_funklets_ && step == max_num_iter_-1);
+    //    double fit = solve(solution,reqref,*pSolRec,pDebug,do_save_funklets_ && step == max_num_iter_-1);
+    
+    //always add save_funklets command, let parm decide (only save if converged)
+    double fit = solve(solution,reqref,*pSolRec,pDebug,do_save_funklets_);
+    
+
     converged = ((abs(fit) <= min_epsilon_) && fit <= 0.0);
     
     // copy solutions vector to allSolutions row
@@ -557,7 +562,6 @@ int Solver::getResult (Result::Ref &resref,
     lastreq.setId(next_rqid);
     // note that this is not a service request, since it doesn't imply 
     // any state changes
-    lastreq[FConverged] = converged;
     lastreq.copyRider(*reqref);
     lastreq.setNextId(request.nextId());
     ParmTable::lockTables();
@@ -680,6 +684,10 @@ double Solver::solve (Vector<double>& solution,Request::Ref &reqref,
     dbg["$prec"] = prec;
     dbg["$nonlin"] = nonlin;
   }
+
+
+  //check if converged;
+  bool converged = ((abs(fit) <= min_epsilon_) && fit <= 0.0);
   
   // Put the solution in the rider:
   //    [FRider][<parm_group>][CommandByNodeIndex][<parmid>]
@@ -707,8 +715,10 @@ double Solver::solve (Vector<double>& solution,Request::Ref &reqref,
         pupd[j++] = solution(iu);
     }
     // add save command if requested
-    if( saveFunklets )
+    if( saveFunklets  && converged)
       cmdrec[FSaveFunklets] = true;
+    cmdrec[FConverged] = converged;
+
   }
   // make sure the request rider is validated
   reqref().validateRider();
