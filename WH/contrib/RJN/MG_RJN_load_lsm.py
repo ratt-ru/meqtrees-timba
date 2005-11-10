@@ -15,6 +15,8 @@ script_name = 'MG_RJN_load_lsm.py'
 #================================================================================
 # Import of Python modules:
 
+from random import *
+
 from Timba import utils
 _dbg = utils.verbosity(0, name='LSM_load')
 _dprint = _dbg.dprint                    # use: _dprint(2, "abc")
@@ -29,9 +31,12 @@ from Timba.Meq import meq
 from Timba.LSM.LSM import *
 from Timba.LSM.LSM_GUI import *
 
-from Timba.Contrib.RJN import RJN_sixpack_343
+from Timba.Trees import TDL_Cohset
+from Timba.Trees import TDL_radio_conventions
 
-from random import *
+from Timba.Contrib.RJN import RJN_sixpack_343
+from Timba.Contrib.JEN import MG_JEN_forest_state
+
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
 
@@ -44,32 +49,87 @@ lsm=LSM()
 #================================================================================
 
 def _define_forest (ns):
- global lsm
- 
- # Load a predefined LSM
- lsm.load('3c343_c.lsm',ns);
+    global lsm
 
- # Get all Cat. 1 P-Units
- plist = lsm.queryLSM(cat=1);
+    # Load a predefined LSM
+    lsm.load('3c343_b.lsm',ns);
 
- print lsm.getPUnits()
- print len(plist)
+    # Get all Cat. 1 P-Units
+    plist = lsm.queryLSM(cat=1);
 
- child_list = [];
+    print lsm.getPUnits()
+    print len(plist)
 
- for punit in plist:
-   if (punit._patch_name == None):
-     print 'Gotcha!', punit.name
-     if (punit.type == 0) :
-       print 'Point', punit.name, punit.type
-       sixpack_name = 'sixpack:q='+punit.name
-       child_list.append(sixpack_name)
-     else:
-       print 'Patch', punit.name, punit.type
-       sixpack_name = 'sixpack:q='+punit.name
-       child_list.append(sixpack_name)
+    stations = range(2);
+    ifrs = TDL_Cohset.stations2ifrs(stations);
+    rr = MG_JEN_forest_state.MS_interface_nodes(ns);
 
- predict_root = ns['predict']<<Meq.Add(children=child_list);
+    # Phase center of the observation
+    RA_0 = 4.35664870004;
+    Dec_0 = 1.09220644132;
+    pc_name = 'Phase Center';
+    RA_root = RJN_sixpack_343.make_RA(pc_name,RA_0,ns);
+    Dec_root = RJN_sixpack_343.make_Dec(pc_name,Dec_0,ns);
+    ns.radec0(pc_name) << Meq.Composer(RA_root,Dec_root);
+
+    child_list = [];
+
+    for ifr in ifrs:
+        for punit in plist:
+           print 'Gotcha!', punit.name
+           if (punit.type == 0) :
+              # Point Source
+              print 'Point', punit.name, punit.type
+              sixpack_name = 'sixpack:q='+punit.name
+              
+              # LMN
+              ra = punit.sp.getRA;
+              dec = punit.sp.getDec;
+              radec = ns.radec(q=punit.name) << Meq.Composer(ra,dec);
+              lmn = ns.lmn(q=punit.name) << Meq.LMN(radec_0=ns.radec0(pc_name), radec=radec);
+              n = ns.n(q=punit.name) << Meq.Selector(lmn,index=2);
+              lmn1 = ns.lmn_minus1(q=punit.name) << Meq.Paster(lmn,n-1, index=2);
+              sqrtn = ns << Meq.Sqrt(n);
+
+              # Construct Point like predict
+              ns.StokesI(q=punit.name) << Meq.Selector(sixpack_name, multi=True,index=[2]);
+              ns.StokesQ(q=punit.name) << Meq.Selector(sixpack_name, multi=True,index=[3]);
+              ns.StokesU(q=punit.name) << Meq.Selector(sixpack_name, multi=True,index=[4]);
+              ns.StokesV(q=punit.name) << Meq.Selector(sixpack_name, multi=True,index=[5]);
+              
+              XX = ns.xx(q=punit.name) << (ns.StokesI(q=punit.name)+ns.StokesQ(q=punit.name))*0.5;
+              YX = ns.yx(q=punit.name) << Meq.ToComplex (ns.StokesU(q=punit.name),
+                                                                                                        ns.StokesV(q=punit.name))*0.5;
+              XY = ns.xy(q=punit.name) << Meq.Conj(YX);
+              YY = ns.yy(q=punit.name) << (ns.StokesI(q=punit.name)-ns.StokesQ(q=punit.name))*0.5;
+              corr = ns.Corr(q=punit.name)<<Meq.Composer(XX,XY,YX,YY);
+
+              # KJones
+              skey1 = TDL_radio_conventions.station_key(ifr[0]);
+              KJones1 = ns.KJones(s=skey1,q=punit.name) << Meq.VisPhaseShift(lmn=lmn1, 
+                                           uvw=ns[rr.uvw[skey1]])/sqrtn;
+              skey2 = TDL_radio_conventions.station_key(ifr[1]);
+              KJones2a = ns.KJones(s=skey2,q=punit.name) << Meq.VisPhaseShift(lmn=lmn1, 
+                                           uvw=ns[rr.uvw[skey2]])/sqrtn;
+              KJones2 = ns.Kconj(s=skey2,q=punit.name)<<Meq.Conj(KJones2a);
+              dft = ns.DFT(s1=skey1,s2=skey2,q=punit.name)<<Meq.Multiply(corr,KJones1,KJones2);
+
+              child_list.append(dft)
+
+           else:
+              # Patch Source
+              print 'Patch', punit.name, punit.type
+              sixpack_name = 'sixpack:q='+punit.name
+              
+
+              # Construct UVInterpol tree
+
+              #child_list.append(sixpack_name)
+
+           pass # for punit
+        pass # for ifr
+
+    predict_root = ns['predict']<<Meq.Add(children=child_list);
 
 ########################################################################
 
@@ -100,23 +160,23 @@ def _test_forest (mqs, parent):
  #display LSM within MeqBrowser
  #l.display()
  # set the MQS proxy of LSM
- lsm.setMQS(mqs)
+ #lsm.setMQS(mqs)
 
  
 
  f0 = 1200e6
  f1 = 1600e6
  t0 = 0.0
- t1 = 1.0
- nfreq = 1
- ntime = 1
+ t1 = 3600.0
+ nfreq = 10
+ ntime = 10
  # create cells
  freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
  cells =meq.cells(domain=freqtime_domain, num_freq=nfreq,  num_time=ntime);
  # set the cells to LSM
- lsm.setCells(cells)
+ #lsm.setCells(cells)
  # query the MeqTrees using these cells
- lsm.updateCells()
+ #lsm.updateCells()
  # display results
  #lsm.display()
 
