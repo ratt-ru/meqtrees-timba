@@ -1829,20 +1829,25 @@ class QwtImageDisplay(QwtPlot):
 #          for i in range(len(self.axis_labels)-1,-1,-1):
           for i in range(len(self.axis_labels)):
            if self.vells_axis_parms[self.axis_labels[i]][3] > 1:
+             _dprint(3, 'self.vells_axis_parms[self.axis_labels[i]] ', self.vells_axis_parms[self.axis_labels[i]])
              _dprint(3, 'self.vells_axis_parms[self.axis_labels[i]][3] ', self.vells_axis_parms[self.axis_labels[i]][3])
              if self.first_axis is None:
                self.first_axis = i
                first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
                self.first_axis_parm = self.axis_labels[self.first_axis]
+               _dprint(3, 'first_plot_dimension ',  first_plot_dimension)
+               _dprint(3, 'self.first_axis_parm ',  self.first_axis_parm)
              else:
                if self.second_axis is None:
                  self.second_axis = i
                  second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
                  self.second_axis_parm = self.axis_labels[self.second_axis]
-# the following is probably needed for the case where we have a 1xN array
+                 _dprint(3, 'second_plot_dimension ',  second_plot_dimension)
+                 _dprint(3, ' self.second_axis_parm ',  self.second_axis_parm)
           if data_array.rank == 2: 
             self.array_shape =  data_array.shape
-            if self.array_shape[1] == first_plot_dimension:
+# the following is probably needed for the case where we have a 1xN array
+            if self.array_shape[0] == 1 and self.array_shape[1] == first_plot_dimension:
               second_plot_dimension = first_plot_dimension
               first_plot_dimension = 1
               self.second_axis_parm = self.first_axis_parm
