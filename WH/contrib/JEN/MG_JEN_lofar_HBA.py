@@ -1,14 +1,14 @@
-# MG_JEN_Antenna.py
+# MG_JEN_lofar_HBA.py
 
 # Short description:
-#   Functions for testing TDL_Antenna objects 
+#   Functions for simulating lofar HBA properties
 
 # Keywords: ....
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
 # History:
-# - 16 oct 2005: creation
+# - 29 oct 2005: creation
 
 # Copyright: The MeqTree Foundation
 
@@ -39,15 +39,17 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 
 from Timba.Contrib.MXM import MG_MXM_functional
 
+from Timba.Contrib.JEN import MG_JEN_Antenna
 from Timba.Trees import TDL_Antenna
 from Timba.Trees import TDL_Dipole
+from Timba.Trees import TDL_lofar_HBA
 
 
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
 
-MG = MG_JEN_exec.MG_init('MG_JEN_Antenna.py',
-                         last_changed='h17oct2005',
+MG = MG_JEN_exec.MG_init('MG_JEN_lofar_HBA.py',
+                         last_changed='h29oct2005',
                          trace=False)             # If True, produce progress messages  
 
 MG.parm = record(height=0.25, # dipole height from ground plane, in wavelengths
@@ -55,16 +57,10 @@ MG.parm = record(height=0.25, # dipole height from ground plane, in wavelengths
                               # model this variation, use the t,f polynomial
                               # given below
                  ntime=1,     # no. of grid points in time [0,1]
-                 nfreq=5,     # no. of grid points in frequency [0,1]
-                 naz=50,     # no. of grid points in azimuth [0,2*pi]
-                 nel=50,     # no. of grid points in elevation [0,pi/2]
+                 nfreq=3,     # no. of grid points in frequency [0,1]
+                 naz=50,      # no. of grid points in azimuth [0,2*pi]
+                 nel=50,      # no. of grid points in elevation [0,pi/2]
                  debug_level=10)    # debug level
-
-MG.Array = record(nx=2,       # no. of Array antenna elements in x-direction
-                  ny=2,      # no. of Array antenna elements in y-direction
-                  dx=5,       # separatuin (m) in x-direction
-                  dy=7,       # separatuin (m) in y-direction
-                  Feed='hdip')  # type of antenna element (Feed)
 
 # Check the MG record, and replace any referenced values
 MG = MG_JEN_exec.MG_check(MG)
@@ -72,9 +68,12 @@ MG = MG_JEN_exec.MG_check(MG)
 
 #-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
+# Just assign fields to: Settings.forest_state[key] = ....
 MG_JEN_forest_state.init(MG)
+
+# Minimise the caching in view of the 4D funklet size
+# (except the nodes that have explicit cache_policy set)
+Settings.forest_state.cache_policy = 0
 
 
 
@@ -101,97 +100,45 @@ def _define_forest (ns):
       ns.dummy<<Meq.Parm([[0,1],[1,0]],node_groups='Parm');
 
 
-
-   # Various antennas:
+   if False:
+      obj = TDL_lofar_HBA.LOFAR_HBA_rack(ns)
+      MG_JEN_Antenna._experiment(ns, obj, cc, sensit=True, vbeam=True)
 
    if False:
-      obj = TDL_Antenna.Antenna()
-      if False:
-         # Make a bookmark for the sky temperature:
-         node = obj.subtree_Tsky(ns)
+      rack1 = TDL_lofar_HBA.LOFAR_HBA_rack(label='rack1', pos0=[6,0,0])
+      rack2 = TDL_lofar_HBA.LOFAR_HBA_rack(label='rack2')
+      rack2.rotate_xy(0.2, recurse=5)
+      MG_JEN_Antenna._experiment(ns, rack1, cc, sensit=True, vbeam=True)
+      MG_JEN_Antenna._experiment(ns, rack2, cc, sensit=True, vbeam=True)
+      diff = rack1.subtree_diff_voltage_beam(ns, rack2)
+      for node in diff:
+         node.initrec().cache_policy = 100
          cc.append(node)
-         MG_JEN_forest_state.bookmark(node, page='Tsky')
-      _experiment(ns, obj, cc)
-   
+         MG_JEN_forest_state.bookmark(node, page='diff_rack_rack')
+
    if True:
-      dip_X = TDL_Dipole.HorizontalDipole(label='dip_X', azimuth=0)
-      dip_Y = TDL_Dipole.HorizontalDipole(label='dip_Y', azimuth=pi/2)
-      _experiment(ns, dip_X, cc, sensit=True, vbeam=True)
-      _experiment(ns, dip_Y, cc, sensit=True, vbeam=True)
-      obj = TDL_Antenna.Feed(dip_X, dip_Y)
-      _experiment(ns, obj, cc, sensit=True, vbeam=True)
+      obj = TDL_lofar_HBA.LOFAR_HBA_station()
+      MG_JEN_Antenna._experiment(ns, obj, cc, sensit=True, vbeam=True)
 
    if False:
-      obj = TDL_Antenna.Feed()
-      _experiment(ns, obj, cc, sensit=True, vbeam=True)
+      station1 = TDL_lofar_HBA.LOFAR_HBA_station(label='station1', pos0=[20,0,0])
+      station2 = TDL_lofar_HBA.LOFAR_HBA_station(label='station2')
+      station2.rotate_xy(0.2, recurse=5)
+      MG_JEN_Antenna._experiment(ns, station1, cc, sensit=False, vbeam=True)
+      MG_JEN_Antenna._experiment(ns, station2, cc, sensit=False, vbeam=True)
+      if True: 
+	diff = station1.subtree_diff_voltage_beam(ns, station2)
+        for node in diff:
+           node.initrec().cache_policy = 100
+           cc.append(node)
+           MG_JEN_forest_state.bookmark(node, page='diff_station_station')
 
 
-   if False:
-      obj = TDL_Antenna.Array()
-      for i in range(MG.Array['nx']):
-         x = float(i+1)*MG.Array['dx']
-         for j in range(MG.Array['ny']):
-            y = float(j+1)*MG.Array['dy']
-            label = 'antel_'+str(obj.nantel())
-	    print label,x,y
-            if False:
-               antel = TDL_Antenna.Feed(label=label, pos0=[x,y,0.0])
-            else:
-               antel = TDL_Antenna.Feed(dip_X.copy(), dip_Y.copy(), label=label, pos0=[x,y,0.0])
-            obj.new_element(antel, wgt=1.0, calc_derived=False)
-      obj.Array_calc_derived()
-      obj.pos0([1,2,3])
-      obj.rotate_xy(0.1, recurse=1)
-      _experiment(ns, obj, cc, sensit=False, vbeam=False)
-   
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, MG, cc, make_bookmark=False)
 
 
-
-#----------------------------------------------------------------------------
-# Helper function:
-#----------------------------------------------------------------------------
-
-def _experiment(ns, obj, cc=[], dcoll=True, sensit=False,
-                vbeam=False, pbeam=False):
-
-   if True:
-      obj.display('MG_JEN_Antenna._experiment()')
-      # MG_JEN_exec.display_subtree(obj, full=True, recurse=5)
-
-   if dcoll:
-      node = obj.dcoll_xy(ns)
-      node = obj.dcoll_xy(ns)
-      node = obj.dcoll_xy(ns)
-      node = obj.dcoll_xy(ns)
-      cc.append(node)
-      MG_JEN_forest_state.bookmark(node, page='config')
-
-   if sensit:
-      node = obj.subtree_sensit(ns)
-      cc.append(node)
-      MG_JEN_forest_state.bookmark(node, page='sensitivity')
-
-   if vbeam:
-      bb = obj.subtree_voltage_beam(ns)
-      bb = obj.subtree_voltage_beam(ns)
-      bb = obj.subtree_voltage_beam(ns)
-      for node in bb:
-         cc.append(node)
-         MG_JEN_forest_state.bookmark(node, page='voltage_beam')
-      node = obj.subtree_voltage_diff(ns)
-      cc.append(node)
-      MG_JEN_forest_state.bookmark(node, page='voltage_diff')
-
-   if pbeam:
-      bb = obj.subtree_power_beam(ns)
-      for node in bb:
-         cc.append(node)
-         MG_JEN_forest_state.bookmark(node, page='power_beam')
-
-   return True
 
 
 
@@ -203,7 +150,7 @@ def _experiment(ns, obj, cc=[], dcoll=True, sensit=False,
 
 
    
-# NB: Put TDL_lofar_HBA.py classes here?
+
 
 
 

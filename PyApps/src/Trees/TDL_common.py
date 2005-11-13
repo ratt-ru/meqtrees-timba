@@ -122,9 +122,9 @@ class Super:
 
     def copy(self, label=None):
         # Return a (re-labelled) 'deep' copy of this jonesset: 
-        new = deepcopy(self)                                    # copy() is not enough...
+        new = deepcopy(self)                                       # copy() is not enough...
         if label==None: label = '('+self.label()+')'               # Enclose old label in ()
-        new.label(label)                                          # re-label (always)
+        new.label(label)                                           # re-label (always)
         self.history(append='copied to '+self.type()+': '+new.label())
         new.history(append='copied from '+self.type()+': '+self.label()+' -> '+new.label(),
                     reset=False, indent=True)

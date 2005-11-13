@@ -73,8 +73,8 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GDJones.py',
                          epsilon=1e-4,                            # iteration stop criterion (policy-free)
                          flag_spigots=False,                   # If True, insert a flagger before solving
                          flag_sinks=False,                      # If True, insert a flagger after solving
-                         visu_spigots=False,               # If True, insert built-in view(s) 
-                         visu_solver=False,                    # If True, insert built-in view(s) 
+                         visu_spigots=True,               # If True, insert built-in view(s) 
+                         visu_solver=True,                    # If True, insert built-in view(s) 
                          visu_sinks=True,                # If True, insert built-in view(s)
                          trace=False)                              # If True, produce progress messages  
 

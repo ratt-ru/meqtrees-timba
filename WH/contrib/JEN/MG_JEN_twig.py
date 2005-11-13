@@ -111,6 +111,8 @@ def _define_forest (ns):
    bb = []
    bb.append(TDL_Leaf.MeqAzimuth(ns))
    bb.append(TDL_Leaf.MeqElevation(ns))
+   bb.append(TDL_Leaf.MeqAzimuth(ns, ref=0.5))
+   bb.append(TDL_Leaf.MeqElevation(ns, ref=1))
    cc.append(MG_JEN_exec.bundle(ns, bb, 'TDL_Leaf_AzEl'))
 
    # Test/demo of importable function: .freqtime()

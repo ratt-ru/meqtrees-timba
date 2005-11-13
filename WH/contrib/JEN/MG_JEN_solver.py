@@ -40,12 +40,12 @@ MG = MG_JEN_exec.MG_init('MG_JEN_solver.py',
 
 MG.ab = record(parmtable=None,                      # name of AIPS++ MeqParm table
                use_previous=True,                   # if True, start with previous solution
-               time_tile_size=4,                    # used in tiled solutions
-               freq_tile_size=10,                 # used in tiled solutions
+               time_tile_size=None,                    # used in tiled solutions
+               freq_tile_size=None,                 # used in tiled solutions
                dflt_a = array([[1,.3,.1],[.1,.2,.3]]),
                dflt_b = array([[-1,-.3,.1],[.1,.2,-.3]]),
 
-               num_iter=10,                         # nr of solver iterations
+               num_iter=20,                         # nr of solver iterations
                epsilon=1e-4,                        # controls automatic nr of iterations
                debug_level=20)                      # solver debug level
 

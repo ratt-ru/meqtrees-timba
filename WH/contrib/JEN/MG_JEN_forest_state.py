@@ -342,8 +342,8 @@ def bookfolder (name='bookfolder', item=None, trace=0):
 
   # Make the new folder, and attach it to bmsnew:
   if len(folder)>0: 
-	bmsnew.append(record(name=name, folder=folder)) 
-        if (trace): print 'append folder to bmsnew:',folder
+     bmsnew.append(record(name=name, folder=folder)) 
+     if (trace): print 'append folder to bmsnew:',folder
 
   Settings.forest_state.bookmarks = bmsnew
 
