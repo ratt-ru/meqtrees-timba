@@ -1341,21 +1341,21 @@ Requirement: smooth in all dimensionos.
 
 \begin_inset Float figure
 wide false
-collapsed true
+collapsed false
 
 \layout Standard
 \align left 
 
 \begin_inset Graphics
 	filename HBA_station_config.png
-	width 40col%
+	width 50col%
 
 \end_inset 
 
 
 \begin_inset Graphics
 	filename HBA_vbeam_150HMz.png
-	width 40col%
+	width 50col%
 
 \end_inset 
 
@@ -1365,14 +1365,14 @@ collapsed true
 
 \begin_inset Graphics
 	filename HBA_vbeam_diff_150MHz.png
-	width 40col%
+	width 50col%
 
 \end_inset 
 
 
 \begin_inset Graphics
 	filename station-station.png
-	width 40col%
+	width 50col%
 
 \end_inset 
 
@@ -1657,14 +1657,14 @@ collapsed false
 
 \begin_inset Graphics
 	filename PSS5_basic_tree.eps
-	width 30col%
+	width 50col%
 
 \end_inset 
 
 
 \begin_inset Graphics
 	filename PSS5_solving_tree.eps
-	width 30col%
+	width 50col%
 
 \end_inset 
 
