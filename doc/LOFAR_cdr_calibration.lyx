@@ -160,11 +160,8 @@ collapsed false
 \align center 
 
 \begin_inset Graphics
-
-\end_inset 
-
-
-\begin_inset Graphics
+	filename success.eps
+	width 60col%
 
 \end_inset 
 
@@ -642,7 +639,7 @@ collapsed false
 
 
 \begin_inset Graphics
-	filename MeqTree_blob_diagram.obs
+	filename MeqTree_blob_diagram.eps
 
 \end_inset 
 
@@ -790,13 +787,14 @@ A particular MeqSolver is normally created for a specific set of MeqParms.
 
 \begin_inset Float figure
 wide false
-collapsed true
+collapsed false
 
 \layout Standard
 \align center 
 
 \begin_inset Graphics
 	filename parmsol_snippets.eps
+	width 100col%
 
 \end_inset 
 
