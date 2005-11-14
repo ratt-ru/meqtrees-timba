@@ -666,14 +666,14 @@ In the following, specific aspects of the calibration system will be treated
 
 \begin_inset Float figure
 wide false
-collapsed true
+collapsed false
 
 \layout Standard
 \align center 
 
 \begin_inset Graphics
 	filename MeqTree_blob_diagram.eps
-	width 70col%
+	width 90col%
 
 \end_inset 
 
@@ -1445,6 +1445,11 @@ q,time), and postulates a smooth phase function, e.g.
  in the field.
  If the ionosphere is relatively quiet, MIM will have fewer parameters than
  the number of LOFAR stations, so one calibrator will be sufficient.
+ This situation can be detected by checking whether the selfcal phases (red
+ dots) and the MIM phase screen (dashed red line) actually coincide.
+ If that is not the case, more terms should be added to the MIM function.
+ The selfcal solution of other calibrator sources (blue, green) should also
+ be consitent with the corresponding MIM function.
  See section 
 \begin_inset LatexCommand \ref{sec:Ionosphere-(MIM)}
 
@@ -1721,51 +1726,75 @@ Targeted programs will be started in the coming months.
 \layout Bibliography
 \bibitem {key-2}
 
-Peeling the Visibility Onion (JEN)
+Peeling the Visibility Onion (JEN 200)
 \layout Bibliography
 \bibitem {key-7}
 
-MeqTree system (OMS)
+Description of MeqTree system (OMS)
 \layout Bibliography
 \bibitem {key-3}
 
-PSS5 (JEN)
+Description of PSS5 (JEN, 2004)
 \layout Bibliography
 \bibitem {key-8}
 
-LSM functional decsription (JEN, RJN)
+Local Sky Model (LSM) functional decsription (JEN, RJN, 2005)
 \layout Bibliography
 \bibitem {key-10}
 
-uvbrick implementation (RJN)
+uvbrick implementation (RJN, 2005)
 \layout Bibliography
 \bibitem {key-11}
 
-Bhatnagar, Cornwell and Golap (...)
+Applying image-plane effects (Bhatnagar, Cornwell and Golap, 2003)
 \layout Bibliography
 \bibitem {key-9}
 
-MeqParm functional description (JEN, MXM)
+MeqParm functional description (JEN, MXM 2005)
+\layout Bibliography
+\bibitem {key-19}
+
+A Minimum Ionosphere Model (JEN 2005)
 \layout Bibliography
 \bibitem {key-4}
 
-MIM (JEN, Anderson)
+Verification of Minimum Ionospheric Model (MIM) (Anderson, JEN, 2005)
 \layout Bibliography
 \bibitem {key-5}
 
-GSM (OMS)
+Thoughts on the Global Sky Model (GSM) (OMS, 2002)
 \layout Bibliography
 \bibitem {key-12}
 
-BSR effect (JEN)
+Description of the Bandpass Sawtooth Ripple (BSR) effect (JEN, 2003)
 \layout Bibliography
 \bibitem {key-6}
 
-ADASS posters (various)
+ADASS posters (various, SBY, MXM, RJN, OMS, JEN, 2002-5)
 \layout Bibliography
 \bibitem {key-13}
 
-Brian Jeffs and Bas van der Tol (...)
+Analysis of the peeling algorithm (Jeffs, van der Tol, 2005)
+\layout Bibliography
+\bibitem {key-14}
+
+Operation 343 (Brentjens, 2005)
+\layout Bibliography
+\bibitem {key-15}
+
+Using peeling in Miriad (Oosterloo, 2005)
+\layout Bibliography
+\bibitem {key-16}
+
+The MeqTree module (JEN, URSI New Delhi 2005)
+\layout Bibliography
+\bibitem {key-17}
+
+LOFAR Calibration (JEN, SPIE Glasgow 2004)
+\layout Bibliography
+\bibitem {key-18}
+
+Modelling the LAR primary beam (Willis, 2005) 
 \layout Standard
 
 
@@ -1836,6 +1865,15 @@ It is important to note that AIPS++ has been very successful in several
 \end_inset 
 
 , and try to understand why others have blossomed.
+\layout Standard
+
+Our role models are highly successful packages like MatLab, Python and Linux.
+ They have all managed to get their users to produce shareable modules around
+ a robust kernel.
+ The nevessary conditions are that the kernel (and the contribited modules)
+ offer functionality that users really want, that the kernel interfaces
+ are simple and stable, and that the kernel is perceived to be 'fast enough'.
+ 
 \layout Standard
 
 The composition of the MeqTree team reflects the strategy of involving a
@@ -1910,7 +1948,7 @@ Even though this document is about the LOFAR calibration strategy, and not
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
 \align center 
@@ -2013,10 +2051,6 @@ status Collapsed
 
 \backslash 
 begin{verbatim}
-\layout Standard
-
-\layout Standard
-
 \end_inset 
 
 
@@ -2025,25 +2059,13 @@ begin{verbatim}
 ns = nodescope()
 \layout Standard
 
-p1 = ns.parm1 
-\backslash 
-<
-\backslash 
-< Meq.Parm(array([1,0,0],[0,0,0]))
+p1 = ns.parm1 << Meq.Parm(array([1,0,0],[0,0,0]))
 \layout Standard
 
-c1 = ns.const1 
-\backslash 
-<
-\backslash 
-< Meq.Constant(complex(-1,3))
+c1 = ns.const1 << Meq.Constant(complex(-1,3))
 \layout Standard
 
-root = ns.sum 
-\backslash 
-<
-\backslash 
-< Meq.Add(p1, c1)
+root = ns.sum << Meq.Add(p1, c1)
 \layout Standard
 
 
@@ -2251,35 +2273,82 @@ Since the LOFAR calibration system necessarily contains a few innovations,
  
 \layout Itemize
 
-domain/cells/snippet:
+domain/cells/snippet: A domain is a rectangular area in N-dim space, usually
+ freq-time.
+ In a request, a domain is sub-divided into cells, for which values are
+ required.
+ A snippet is a smallish domain, e.g.
+ in the order of minute in time.
 \layout Itemize
 
-funklet:
+funklet/polc: An N-dimensional array of coefficients of smooth functions,
+ e.g.
+ polynomials.
+ Different functions are possible in different dimensions.
+ M.E.
+ parameter (MeqParm) values are in the form of funklets, and the coefficients
+ are the unknowns that are being solved for.
+ A polc is a special kind of funklet, with only polynomials, usually freq-time.
 \layout Itemize
 
-imaging:
+imaging: Transforming uv-data into an image (i.e.
+ we do not subscribe to the custom of including selfcal and deconvolution
+ in imaging) 
 \layout Itemize
 
-leaf (node):
+leaf (node): A node without children, e.g.
+ a MeqParm or a MeqConstant or a MeqSpigot (data interface).
+ A leaf has access to its own information to satisfy a request for values.
 \layout Itemize
 
-(meq)node:
+(meq)node: A C++ object that can be connected to other nodes to make a MeqTree.
 \layout Itemize
 
-request/result/vellset:
+patch/facet: A patch is a smallish area on the sky, which is used by the
+ LSM for source prediction.
+ A facet is a sub-division of the FOV, used to reduce the effect of imaging
+ errors by image-plane effects.
+ 
 \layout Itemize
 
-residual uv-data/image:
+request/result/vellset: A request contains a domain, subdivided in cells.
+ When passed to a node, the latter returns result that contains a vellset
+ with values for the requested cells.
+ Requests and results may also contain other information.
 \layout Itemize
 
-solver/condeq:
+residual uv-data/image: Because of image-plane effects, all known sources
+ should be subtracted from the uv-data.
+ The resulting residual uv-data are then transformed into (facet) residual
+ images, for further analysis.
 \layout Itemize
 
-spigot/sink:
+solver/condeq: A solver collects condition equations from its condeq children,
+ and accumulates them into a solution matrix.
+ It inverts te matrix, and feeds the incremental results back up the tree
+ to the (solvable) MeqParms, whose values are then updated.
+ Condeq nodes construct condition equations from the difference between
+ their two children (which represent measured and predicted values), and
+ dervatives w.r.t.
+ the (coeff of the) solvable MeqParms.
+ 
 \layout Itemize
 
-tree/forest:
+spigot/sink/s2s: Data interface nodes.
+ A MeqSpigot reads uv-data for a particular ifr from a column of the MS,
+ at full (f,t) resolution.
+ A MeqSink writes it back into a column.
+ During data-reduction, requests are generated by the MeqSinks.
+ An s2s tree represents a single ifr, from spigot to sink.
+\layout Itemize
+
+tree/forest: A MeqTree has a single root node.
+ A group MeqTrees is called a MeqForest
+\layout Itemize
+
+Timba: Derived from 'timber'.
+ Unofficial alternative name for MeqTree.
 \layout Standard
 
-To be completed
+....to be completed....
 \the_end
