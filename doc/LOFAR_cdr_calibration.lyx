@@ -63,19 +63,19 @@ the art of completely subtracting the many foreground sources from a LOFAR
  The LOFAR calibration challenges can be summarized as follows:
 \layout Itemize
 
-Pathological ionosphere.
+Pathological ionosphere (up to 1 rad change per 10 s, variable over FOV).
 \layout Itemize
 
-Very crowded fields (confusion, processing).
+Very crowded fields (causes confusion, expensive processing).
 \layout Itemize
 
-Very bright sources (dynamic range).
+Very bright sources (requires very high dynamic range).
 \layout Itemize
 
-Variable (f,t) station beamshapes.
+Variable (f,t) station beamshapes (expensive processing).
 \layout Itemize
 
-Instrumental polarisation (X/Y voltage beams)
+Instrumental polarisation (different X/Y voltage beams)
 \layout Itemize
 
 High station beam sidelobes (all-sky imaging)
@@ -85,10 +85,10 @@ New types of instrumental effects (e.g.
  BSR)
 \layout Itemize
 
-Variable PSF over the residual images.
+Variable PSF over the residual images (difficult to deconvolve).
 \layout Itemize
 
-Huge data volume.
+Huge data volume (allows minimal operations per data-point).
 \layout Standard
 
 Calibrating LOFAR will not be easy, and will require a lot of processing
@@ -126,9 +126,9 @@ ons of bright sources from the uv-data one by one, in decreasing order of
  while it will be difficult to deconvolve the rest from the residual images.
 \layout Standard
 
-In the positive side, there appears to be enough information available,
- in the form of bright calibrator sources, to solve the LOFAR calibration
- problem in principle
+On the positive side, there is enough information available, in the form
+ of bright calibrator sources, to solve the LOFAR calibration problem in
+ principle
 \begin_inset Foot
 collapsed true
 
@@ -142,6 +142,12 @@ The situation is different in optical interferometry through the athmosphere,
 \end_inset 
 
 , at least for a significant part of the time.
+ See fig 
+\begin_inset LatexCommand \ref{cap:The-calibratability-of}
+
+\end_inset 
+
+.
  Unfortunately, this will require significant processing per data-point,
  which will be a continuing challenge.
 
@@ -154,7 +160,7 @@ The situation is different in optical interferometry through the athmosphere,
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
 \align center 
@@ -190,13 +196,13 @@ ing LOFAR project, the detection of the EoR signature.
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
 \align center 
 
 \begin_inset Graphics
-	filename lofar_sensit.ps
+	filename lofar_calib.ps
 	width 100col%
 
 \end_inset 
@@ -206,7 +212,36 @@ collapsed false
 
 
 \emph on 
-Sufficient information.
+
+\begin_inset LatexCommand \label{cap:The-calibratability-of}
+
+\end_inset 
+
+The calibratability of LOFAR is determined by the availability of bright
+ calibrator sources.
+ The presence of enough information to solve for the M.E.
+ parameters guarantees that LOFAR can be calibrated in principle, even if
+ the precise calibration algorithm is not yet known.
+\layout Standard
+
+
+\emph on 
+In these plots, which were made for the LOFAR PDR several years ago, the
+ number of calibrators is sufficient if the vertical 'tail' hangs down.
+ For the given instrumental parameters, this is always the case for point
+ sources (solid lines), except for 10 s integration time at 80 MHz.
+ For extended sources (dashed lines), the situations is less favorable,
+ especially for longer baselines.
+ This caused some concern at the time.
+ But our thinking has evolved, and we now feel that the idea of solving
+ for independent ionospheric phase screens per station, and our estimate
+ of the necassary number of calibrators, was rather too severe.
+ The Minimum Ionospheric Model (MIM, see section 
+\begin_inset LatexCommand \ref{sec:Ionosphere-(MIM)}
+
+\end_inset 
+
+) requires very much fewer sources.
 \end_inset 
 
 
@@ -220,7 +255,9 @@ Sufficient information.
 Development strategy
 \layout Standard
 
-The LOFAR Project has chosen for a development path with two separate teams.
+On the basis of experience with other large astronomical software projects
+ elsewhere, the LOFAR Project has chosen for a calibration development strategy
+ with two separate teams.
  This report is from the development team, which has the task to produce
  a 
 \emph on 
@@ -251,20 +288,20 @@ To develop and prototype new processing concepts (e.g.
  peeling, LSM, uv-bricks)
 \layout Enumerate
 
-To think of corner-cutting alternatives (e.g.
+To consider alternative methods where possible, and the trade-off function
+ for cutting corners (e.g.
  source subtraction by filtering).
 \layout Standard
 
 The vehicle chosen to realise these ambitious goals is the MeqTree module,
  which allows the rapid implementation of an arbitrary M.E., and is able to
  solve for (arbitrary subsets of) its many parameters.
- The reader is assumed to be familiar with its basic features (cite ...).
  
 \layout Standard
 
 For the immediate future, a sequence of WSRT observations has been selected
  in consultation with active astronomers, to exercise the various aspects
- of the system:
+ of the working prototype:
 \layout Itemize
 
 WSRT central point source (cps) calibration, including bandpass and polarisation.
@@ -309,38 +346,9 @@ Reduction of WSRT observations that include the experimental LOFAR/WHAT
  the field.
  It exrecises the solving for individual station beamshapes (which includes
  pointing errors).
-\layout Section
-
-
-\begin_inset LatexCommand \label{sec:Interfaces-with-other}
-
-\end_inset 
-
-Interfaces with other parties
-\layout Subsection
-
-LOFAR deliverables
 \layout Standard
 
-Residual images, GSM, MeqParm tables, metadata, events...
-\layout Subsection
-
-Interface with key science projects
-\layout Standard
-
-EOR, Transients, Pulsars, Surveys
-\layout Subsection
-
-Requirements imposed by calibration
-\layout Standard
-
-Smoothness in all dimensions (t,f,l,m).
- Ionosphere.
- Bandpass shape.
- Pointing and tracking (jump every 10 min reluctan tly allowed)
-\layout Subsection
-
-Consultation with the LOFAR BBS development team
+See also the appendix.
 \layout Section
 
 
@@ -355,8 +363,8 @@ As stated before, calibration can be equated with the subtraction of foreground
  sources.
  Because of image-plane effects, they must be subtracted from the uv-data
  as much as possible.
- Unfortunately, in order to maintain the FOV, this must be done at full
- (f,t) resolution, which is expensive.
+ Unfortunately, in order to preserve the field size, subtraction must be
+ done at full (f,t) resolution, which is expensive.
  We distinguish three categories of sources:
 \layout Enumerate
 
@@ -364,8 +372,8 @@ As stated before, calibration can be equated with the subtraction of foreground
 \series bold 
 Cat I sources
 \series default 
- are the 20-50 sources that are so bright that they have to be subtracted
- individually.
+ are the 20-50 sources per FOV that are so bright that they have to be subtracte
+d individually.
  They are used for self-calibration, to estimate instrumental errors 
 \emph on 
 in their specific direction
@@ -389,10 +397,24 @@ in their specific direction
 \series bold 
 Cat II sources
 \series default 
- are the remainder of the sources in the Local Sky Model (LSM).
- They are predicted and subtracted in groups (patches), which are smallish
- regions in the sky.
+ are the rest of the sources in the Local Sky Model (LSM).
+ They are predicted and subtracted in 
+\emph on 
+patches
+\emph default 
+, which are smallish regions in the sky.
  Cat II sources are NOT used for selfcal.
+ They are identified and updated in residual images (see sections 
+\begin_inset LatexCommand \ref{sec:Local-Sky-Model}
+
+\end_inset 
+
+ and 
+\begin_inset LatexCommand \ref{sec:Analysis-of-residual}
+
+\end_inset 
+
+).
 \layout Enumerate
 
 
@@ -402,7 +424,19 @@ Cat III sources
  are too faint to be in the LSM, and therefore cannot be subtracted from
  the uv-data.
  They have to be dealt with in the image-plane somehow.
- For this reason, residual images are made in smallish facets...
+ For this reason, residual images must be made in the form of multiple smallish
+ facets (see sections 
+\begin_inset LatexCommand \ref{sec:Facet-residual-imaging}
+
+\end_inset 
+
+ and 
+\begin_inset LatexCommand \ref{sec:Analysis-of-residual}
+
+\end_inset 
+
+).
+ 
 \layout Standard
 
 The dividing lines between the various source categories are fluid.
@@ -441,11 +475,10 @@ Very importantly, it turns out to be possible (and relatively cheap) to
 
 Obviously, sources can only be subtracted properly if the source parameters
  are known accurately.
- The parameters of Cat I sources may be estimated and improved as part of
- the selfcal process, even if they are extended.
- The parameters of Cat II sources may be estimated and improved by checking
- residual images for any residuals at the position where LSM sources have
- been subtracted.
+ The parameters of Cat I sources may be estimated as part of the selfcal
+ process, even if the sources are extended.
+ The parameters of Cat II sources may be estimated by checking residual
+ images for any residuals at the position where LSM sources have been subtracted.
 \layout Section
 
 
@@ -633,13 +666,14 @@ In the following, specific aspects of the calibration system will be treated
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
-
+\align center 
 
 \begin_inset Graphics
 	filename MeqTree_blob_diagram.eps
+	width 70col%
 
 \end_inset 
 
@@ -653,9 +687,13 @@ collapsed false
 
 \end_inset 
 
-The MeqTree blob diagram shows the major components of the MeqTree system.
+The blob diagram shows the major components of the working prototype.
  Note the reuse of AIPS++ modules (MS, tables, images, FFT, fitting, functionals
 , measures, etc).
+ Roughly speaking, the MeqTree kernel replaces the AIPS++ Calibrater module,
+ and part of its Imager module.
+ The members of the development team each work in their own area, so that
+ they can be self-propelled without getting in each others way.
  
 \end_inset 
 
@@ -671,7 +709,16 @@ Solving for M.E.
  parameters (MeqParms)
 \layout Standard
 
-The available values of an M.E.
+Arguably the most important function of the calibration system is solving
+ for M.E.
+ parameters.
+ These are implemented as MeqParm nodes, which have no children, but have
+ access to information that allows them to return values for any requested
+ domain.
+ 
+\layout Standard
+
+The values for an M.E.
  parameter (MeqParm) are stored in a MeqParm table, in the form of zero
  or more 
 \emph on 
@@ -758,7 +805,7 @@ tiled solutions
 \emph default 
 , where a domain has a relatively large number of cells, but separate solutions
  are made for different tiles (sub-domains).
- This can be sgeneralised in the sense that different parameters are solved
+ This can be generalised in the sense that different parameters are solved
  for different tiles, using the same domain.
  However, if the tiles are one cell wide, the solution matrix is block-diagonal,
  which allows more efficient inversion.
@@ -766,7 +813,7 @@ tiled solutions
 
 Even if separate snippet solutions are made for a particular MeqParm, it
  is often desirable to build in some inertia, i.e.
- to make maximum use of its continuity in time.
+ to make maximum use of its assumed continuity in time.
  This can be done in several ways.
  First of all, the solution funklets in the MeqParm table may be smoothed,
  i.e.
@@ -787,7 +834,7 @@ A particular MeqSolver is normally created for a specific set of MeqParms.
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
 \align center 
@@ -808,7 +855,13 @@ collapsed false
 
 \end_inset 
 
-Solving for Meqparm values.
+Schematic overview of (some aspects of) solving for Meqparm values (see
+ also section 
+\begin_inset LatexCommand \ref{sec:Solving-for-M.E.parameters}
+
+\end_inset 
+
+).
  
 \end_inset 
 
@@ -821,6 +874,18 @@ Solving for Meqparm values.
 \end_inset 
 
 Global Sky Model (GSM)
+\layout Standard
+
+This is a big subject, but somewhat peripheral to this discussion.
+ Things to be considered in the future are its relation to the Virtual Observato
+ry (VO), and the inclusion of LSM concepts of obswin, obsres, funklets and
+ trees (see section 
+\begin_inset LatexCommand \ref{cap:The-Local-Sky}
+
+\end_inset 
+
+).
+ 
 \layout Section
 
 
@@ -933,14 +998,14 @@ collapsed true
 
 \begin_inset Graphics
 	filename cdr_LSM.eps
-	width 30col%
+	width 50col%
 
 \end_inset 
 
 
 \begin_inset Graphics
 	filename lsm_image.png
-	width 30col%
+	width 50col%
 
 \end_inset 
 
@@ -950,14 +1015,14 @@ collapsed true
 
 \begin_inset Graphics
 	filename lsm_punit_table.png
-	width 30col%
+	width 50col%
 
 \end_inset 
 
 
 \begin_inset Graphics
 	filename lsm_source_table1.png
-	width 30col%
+	width 50col%
 
 \end_inset 
 
@@ -1053,7 +1118,7 @@ on!), they must go through a number of optimisation iterations.
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
 \align center 
@@ -1098,14 +1163,59 @@ A very important feature is that image-plane effects (which are different
 \end_inset 
 
 Peeling
-\layout Section
+\layout Standard
 
-
-\begin_inset LatexCommand \label{sec:Facet-residual-imaging}
+See fig 
+\begin_inset LatexCommand \ref{cap:Peeling}
 
 \end_inset 
 
-Facet residual imaging
+.
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename cdr_peeling.eps
+	width 100col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:Peeling}
+
+\end_inset 
+
+Peeling is a technique in which sources/patches are treated one by one,
+ while the phase centre is shifted to their position.
+ This can be shown to have considerable advantages on processing efficiency.
+ (In fact, the classic selfcal approach is probably prohibitive).
+ For selfcal, peeling is necessarily done in order of decreasing brightness
+ of Cat I sources.
+ In its simplest form, it is assumed that the brightest source is the only
+ source in the field, so one may solve for its very own M.E.
+ parameters, and subtract it with the highest possible accuracy.
+ Unfortunately, the selfcal solution will be influenced by 'contamination'
+ caused by the fainter sources.
+ Although is always possible to take these into account, this is expensive.
+ One of the most important problems facing us is how to minimise peeling
+ contamination as cheaply as possible.
+ Obviously, contamination is not an issue in source/patch subtraction.
+ 
+\end_inset 
+
+
 \layout Section
 
 
@@ -1116,12 +1226,80 @@ Facet residual imaging
 Analysis of residual images
 \layout Standard
 
-Update of LSM Cat II source parameters, identification of Cat III sources
- for inclusion into the LSM, deconvolution with variable PSF, BSR effects
- etc, interface with key science projects
+Even after subtracting a large number of Cat I and Cat II sources from the
+ uv-data, the uv-residuals will still contain an even larger number of Cat
+ III sources, which are too faint to be identified for inclusion in the
+ LSM.
+ These must be dealt with in residual images.
+ Since it is only possible to correct uv-data for a single point in the
+ sky, only know the PSF for that point (usually the centre of a image) will
+ be known, and have an optimal shape for deconvolution.
+ Towards the edge of the image, the PSF will be increasingly distorted by
+ image-plane effects like residual ionospheric errors.
+ Since we know these errors(t,f,u,v), it is possible in principle to calculate
+ the PSF for any point in the image, but that is probably(?) prohibitive.
+ It seems better to minimise the distortions by sub-dividing the FOV into
+ smaller facets, and to make separate residual images for each.
 \layout Standard
 
-BSR, facet/patch edges, etc
+The procedure is as follows: First the optimal facet size is estimated from
+ the 'seriousness' of the estimated image-plane effects.
+ Then, of each facet, the uv-data are corrected for the facet centre, and
+ the phase centre is shifted to that position.
+ Then the uv-data are integrated in freq and time, to limit the field-of-view
+ to the facet size.
+ Then they are transformed a a facet residual image, to be analysed (see
+ section 
+\begin_inset LatexCommand \ref{sec:Analysis-of-residual}
+
+\end_inset 
+
+), and stitched together into larger images again.
+ 
+\layout Subsection
+
+Update of LSM source parameters
+\layout Standard
+
+First of all, the 4D residual images (RA, DEC, freq, stokes) should be inspected
+ at the position where LSM sources have been subtracted.
+ Any deviation from noise is used to updata the parameters of that source
+ in the LSM.
+ This is done by solving for these parameters, using its the MeqTree in
+ the LSM that defines the relation between its parameters and its manifestation
+ (I,Q,U,V) in the image.
+ Thus, it is a task for the LSM object (see section 
+\begin_inset LatexCommand \ref{cap:The-Local-Sky}
+
+\end_inset 
+
+).
+\layout Standard
+
+Note that the source residuals may not only be caused by inaccurate source
+ parameters, but also by residual instrumental errors.
+ Obviously, the LSM is not able to solve for those.
+ They will disappear when going through the entire selfcal loop again, using
+ the updated source parameters.
+\layout Subsection
+
+Dealing with Cat III sources 
+\layout Standard
+
+As more and more data is accumulated (some LOFAR observations will integrate
+ on the same field for hundreds of hours), the noise level in the residual
+ images will decrease.
+ This makes it possible to detect more and more Cat III sources, and include
+ them into the LSM (thereby making them Cat II sources).
+ This implies that they get their own MeqTree, of course.
+ For compact sources, it is probably sufficient to assume that they are
+ point sources, and use their peak value in the image as a first estimate
+ of its parameters.
+\layout Standard
+
+What remains are the extended Cat III sources, which will often be the sources
+ we are most interested in.
+ They will require som sort of deconvolution with a variable PSF...
 \layout Subsection
 
 Some novel imaging artefacts
@@ -1223,6 +1401,60 @@ Finally, there might be more areas where a MIM approach can offer a (very)
  Essentially, we should look at areas where we are not interested in the
  internal structure of a disturbance, but only in its phaenomenological
  effect on the observations.
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename ionos_blanket.gif
+	width 50col%
+
+\end_inset 
+
+
+\begin_inset Graphics
+	filename ionos_fit.gif
+	width 50col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:Minimum-Ionosperic-Model}
+
+\end_inset 
+
+The Minimum Ionosperic Model (MIM) only deals with the effect on the data,
+ i.e.
+ it totally ignores the physics or any internal structure of the ionospheric
+ blanket.
+ MIM just assumes that the ionosphere is smooth in all dimensions (az,el,x,y,fre
+q,time), and postulates a smooth phase function, e.g.
+ a low-order polynomial.
+ Its parameters ae estimated from selfcal on a bright calibrator source
+ in the field.
+ If the ionosphere is relatively quiet, MIM will have fewer parameters than
+ the number of LOFAR stations, so one calibrator will be sufficient.
+ See section 
+\begin_inset LatexCommand \ref{sec:Ionosphere-(MIM)}
+
+\end_inset 
+
+ for more details.
+ 
+\end_inset 
+
+
 \layout Section
 
 
@@ -1329,9 +1561,24 @@ Voltage beams are complex.
  between sidelobes).
 \layout Standard
 
-Requirement: smooth in all dimensionos.
- HBA beamformer coefficients are allowed to jump every 10 minutes, but not
- more often.
+Summarising, the LOFAR station voltage beam shapes are will present us with
+ a host of interesting new problems.
+ A simulation tool has been developed with MeqTrees (see fig 
+\begin_inset LatexCommand \ref{cap:Simulation-of-LOFAR}
+
+\end_inset 
+
+) to help analyse them, and to help make decisions about station antenna
+ configurations.
+ The resulting MeqTrees can be directly grafted into the LOFAR M.E.
+\layout Standard
+
+
+\emph on 
+In the meantime, calibration continues to require that the beamshape parameters
+ are smooth in all dimensions.
+ This means that HBA beamformer coefficients are allowed to jump every 10
+ minutes, but not more often.
  Adaptive beamforming is discouraged, but should be done in such a way that
  the coefficients are changed 'sufficiently' smoothly.
 \layout Standard
@@ -1339,7 +1586,7 @@ Requirement: smooth in all dimensionos.
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
 \align left 
@@ -1405,21 +1652,6 @@ Simulation of LOFAR HBA station beams, using MeqTrees.
 
 \layout Section
 
-Performance issues
-\layout Standard
-
-Strictly, a working prototype should not be unduly concerned with performance,
- since its concepts are supposed to be re-implemented in a stream-lined
- way.
- However,......
- 
-\layout Standard
-
-Source subtraction (full-resolution), nr of parameters (calculation of derivativ
-es!), minimum nr of operations per uv-data point.
- Not really the business of the prototype, but important nevertheless.
-\layout Section
-
 Simulations
 \layout Standard
 
@@ -1472,19 +1704,19 @@ Problems that need special attention in the near future:
 Cat II sources in station beam sidelobes
 \layout Itemize
 
-Cat I sources in station beam sidelobes
+MIM validation 
 \layout Itemize
 
-MIM
+Minimisation of peeling contamination
 \layout Itemize
 
-etc
+Application of image-plane effects to extended sources
 \layout Itemize
 
 etc
 \layout Standard
 
-Targeted problems will be started in the coming months.
+Targeted programs will be started in the coming months.
  
 \layout Bibliography
 \bibitem {key-2}
@@ -1530,6 +1762,10 @@ BSR effect (JEN)
 \bibitem {key-6}
 
 ADASS posters (various)
+\layout Bibliography
+\bibitem {key-13}
+
+Brian Jeffs and Bas van der Tol (...)
 \layout Standard
 
 
@@ -1635,6 +1871,32 @@ on, demonstration and testing.
  and the core development team.
  The first example of this 'elite inner circle' is Tony Willis, who uses
  MeqTrees to simulate the CLAR primary beam.
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Interfaces-with-other}
+
+\end_inset 
+
+Interfaces with other parties
+\layout Subsection
+
+Interface with key science projects
+\layout Standard
+
+EOR, Transients, Pulsars, Surveys
+\layout Subsection
+
+Requirements imposed by calibration
+\layout Standard
+
+Smoothness in all dimensions (t,f,l,m).
+ Ionosphere.
+ Bandpass shape.
+ Pointing and tracking (jump every 10 min reluctan tly allowed)
+\layout Subsection
+
+Consultation with the LOFAR BBS development team
 \layout Section
 
 MeqTrees
