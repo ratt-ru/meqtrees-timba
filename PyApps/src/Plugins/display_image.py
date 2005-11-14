@@ -328,6 +328,7 @@ class QwtImageDisplay(QwtPlot):
 	    self._plot_dict[self._signal_id] = plot_array
             self._plot_dict_size = len(self._plot_dict)
 	    self._plot_label[self._signal_id] = plot_label
+            _dprint(3,' inserting plot label ', plot_label)
             self._combined_label_dict[self._signal_id] = combined_display_label
 # otherwise create or update the combined image
 	  else:
@@ -339,6 +340,7 @@ class QwtImageDisplay(QwtPlot):
 
     def create_combined_array(self):
 # create combined array from contents of plot_dict
+      _dprint(3,' creating combined array')
       shape = self._plot_dict[0].shape
       self.y_marker_step = shape[1]
       self.num_y_markers = self._plot_dict_size 
@@ -2118,9 +2120,11 @@ class QwtImageDisplay(QwtPlot):
             self._y_title = self.vells_axis_parms[self.y_parm][2]
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           else:
-            self._x_title = 'Array/Channel Number'
+            if self._x_title is None:
+              self._x_title = 'Array/Channel Number'
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
-            self._y_title = 'Array/Sequence Number'
+            if self._y_title is None:
+              self._y_title = 'Array/Sequence Number'
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           self.display_image(plot_array)
 
