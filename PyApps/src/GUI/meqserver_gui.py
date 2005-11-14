@@ -416,6 +416,7 @@ class meqserver_gui (app_proxy_gui):
     self._have_nodelist = False;
     self._have_forest_state = False;
     self._autoreq_timer = QTimer(self);
+    self._autoreq_sent = False;
     QObject.connect(self._autoreq_timer,SIGNAL("timeout()"),self._auto_update_request);
     # tdl tabs
     self._tdl_tabs = {};
@@ -834,6 +835,7 @@ class meqserver_gui (app_proxy_gui):
   def _disconnected_event (self,ev,value):  
     app_proxy_gui._disconnected_event(self,ev,value);
     self._autoreq_timer.stop();
+    self._autoreq_sent = False;
     self._wstat.hide();
     self._wstat.emit(PYSIGNAL("shown()"),(False,));
     self.treebrowser.connected(False);  
@@ -904,10 +906,14 @@ class meqserver_gui (app_proxy_gui):
           self._autoreq_timer.stop();
         elif self.app.state == treebrowser.AppState.Idle or self.app.state == treebrowser.AppState.Debug:
           self._autoreq_timer.start(800);
+	  self._autoreq_sent = False;
           
   def _auto_update_request (self):
     if self._connected and \
           self.app.state == treebrowser.AppState.Idle or self.app.state == treebrowser.AppState.Debug:
+      if self._autoreq_sent:  # refuse to send additional requests
+        return;
+      self._autoreq_sent = True;
       if not self._have_nodelist:
         meqds.request_nodelist();
       if not self._have_forest_state:
