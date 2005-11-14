@@ -14,7 +14,7 @@ Button 2 (Right):Clicking the <b>right</b> mouse button in the colorbar window w
 class QwtColorBar(QwtPlot):
 
     def __init__(self, plot_key=None, parent=None):
-        QwtPlot.__init__(self, plot_key, parent)
+        QwtPlot.__init__(self, parent)
         self._mainwin = parent and parent.topLevelWidget()
         # create copy of standard application font..
         font = QFont(QApplication.font());

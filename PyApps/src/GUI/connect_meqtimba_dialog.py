@@ -27,7 +27,7 @@ class ConnectMeqKernel(QDialog):
         lo_title = QHBoxLayout(None,0,6,"lo_title")
 
         self.title_icon = QLabel(LayoutWidget,"title_icon")
-        self.title_icon.setSizePolicy(QSizePolicy(0,0,0,0,self.title_icon.sizePolicy().hasHeightForWidth()))
+        self.title_icon.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed,self.title_icon.sizePolicy().hasHeightForWidth()))
         self.title_icon.setPixmap(self.image0)
         self.title_icon.setAlignment(QLabel.AlignCenter)
         lo_title.addWidget(self.title_icon)
@@ -116,14 +116,14 @@ class ConnectMeqKernel(QDialog):
         lo_mainbtn.addItem(lo_mainbtn_space)
 
         self.btn_ok = QPushButton(LayoutWidget,"btn_ok")
-        self.btn_ok.setSizePolicy(QSizePolicy(0,0,1,0,self.btn_ok.sizePolicy().hasHeightForWidth()))
+        self.btn_ok.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed,1,0,self.btn_ok.sizePolicy().hasHeightForWidth()))
         self.btn_ok.setMinimumSize(QSize(60,0))
         self.btn_ok.setAutoDefault(1)
         self.btn_ok.setDefault(1)
         lo_mainbtn.addWidget(self.btn_ok)
 
         self.btn_cancel = QPushButton(LayoutWidget,"btn_cancel")
-        self.btn_cancel.setSizePolicy(QSizePolicy(0,0,1,0,self.btn_cancel.sizePolicy().hasHeightForWidth()))
+        self.btn_cancel.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed,1,0,self.btn_cancel.sizePolicy().hasHeightForWidth()))
         self.btn_cancel.setMinimumSize(QSize(60,0))
         self.btn_cancel.setAutoDefault(1)
         lo_mainbtn.addWidget(self.btn_cancel)

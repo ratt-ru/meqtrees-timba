@@ -702,7 +702,9 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
   MessageEventType = QEvent.User+1;
   def _relay_event (self,event,value):
     self.dprint(5,'_relay_event:',event,value);
-    QApplication.postEvent(self,QCustomEvent(self.MessageEventType,(event,value)));
+    ev = QCustomEvent(self.MessageEventType);
+    ev.setData((event,value));
+    QApplication.postEvent(self,ev);
     self.dprint(5,'_relay_event: event posted');
     
 ##### event handler for timer messages
