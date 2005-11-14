@@ -89,7 +89,7 @@ class QwtImageDisplay(QwtPlot):
         }
 
     def __init__(self, plot_key=None, parent=None):
-        QwtPlot.__init__(self, plot_key, parent)
+        QwtPlot.__init__(self, parent)
         # create copy of standard application font..
         font = QFont(QApplication.font());
         fi = QFontInfo(font);
