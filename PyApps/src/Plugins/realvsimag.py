@@ -130,7 +130,7 @@ class realvsimag_plotter(object):
         self.plot_key = plot_key
         
         # Initialize a QwPlot central widget
-        self.plot = QwtPlot('', parent)
+        self.plot = QwtPlot(parent)
         
         # create copy of standard application font..
         font = QFont(QApplication.font());
