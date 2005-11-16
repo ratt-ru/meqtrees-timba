@@ -671,7 +671,8 @@ class TDLEditor (QFrame,PersistentCurrier):
         name = re.sub("^_tdl_job_","",func.__name__);
         name = name.replace('_',' ');
         qa = QAction(pixmaps.gear.iconset(),name,0,self._jobmenu);
-        qa.setToolTip(func.__doc__);
+        if func.__doc__:
+          qa.setToolTip(func.__doc__);
         qa._call = curry(func,mqs,self);
         QObject.connect(qa,SIGNAL("activated()"),qa._call);
         qa.addTo(self._jobmenu);
