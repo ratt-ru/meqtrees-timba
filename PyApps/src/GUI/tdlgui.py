@@ -624,7 +624,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     pub_nodes = [ node.name for node in meqds.nodelist.iternodes() 
                   if node.is_publishing() and node.name in allnodes ];
     # try to run stuff
-    mqs.meq('Clear.Forest');
+    meqds.clear_forest();
     mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
     mqs.meq('Resolve.Batch',record(name=list(ns.RootNodes().iterkeys())));
     # restore publishing nodes

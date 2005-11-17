@@ -14,6 +14,7 @@ import time
 import copy
 import math
 from qt import *
+import traceback
 
 _dbg = verbosity(0,name='meqds');
 _dprint = _dbg.dprint;
@@ -182,6 +183,7 @@ class NodeList (QObject):
   # init node list
   def __init__ (self,meqnl=None,parent=None):
     QObject.__init__(self,parent,"meqds.NodeList");
+    self.serial = 0;
     if meqnl:
       self.load_meqlist(meqnl);
       
@@ -193,6 +195,7 @@ class NodeList (QObject):
   def load (self,meqnl):
     if not self.is_valid_meqnodelist(meqnl):
       raise ValueError,"not a valid meqnodelist";
+    self.serial = getattr(meqnl,'forest_serial',0);
     # check that all list fields are correct
     num = len(meqnl.nodeindex);
     # form sequence of iterators
@@ -473,13 +476,22 @@ def set_forest_state (field,value):
 # --- Node state management
 # ----------------------------------------------------------------------
 
+def clear_forest ():
+  mqs().meq('Clear.Forest',record(),wait=False);
+  nodelist.clear();
+  nodelist.emit(PYSIGNAL("cleared()"),());
+
 def request_nodelist (profiling_stats=False):
   """Sends a request to the kernel to return a nodelist.""";
   rec = NodeList.RequestRecord;
+  rec.forest_serial = nodelist.serial;
   if profiling_stats:
     rec = copy.copy(rec);
     rec.profiling_stats = True;
+  nodelist.emit(PYSIGNAL("requested()"),());
   mqs().meq('Get.Node.List',rec,wait=False);
+  _dprint(2,"nodelist requested",rec);
+  # traceback.print_stack();
   
 def subscribe_nodelist (callback):
   QObject.connect(nodelist,PYSIGNAL("loaded()"),callback);

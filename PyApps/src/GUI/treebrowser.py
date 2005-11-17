@@ -406,6 +406,10 @@ class TreeBrowser (QObject):
         action.addTo(self._toolbar);
         action.setEnabled(False);
         have_sep = False;
+    # ---------------------- connect to meqds forest list
+    QObject.connect(meqds.nodelist,PYSIGNAL("cleared()"),self.clear);
+    QObject.connect(meqds.nodelist,PYSIGNAL("loaded()"),self.update_nodelist);
+    QObject.connect(meqds.nodelist,PYSIGNAL("requested()"),self._requested_nodelist);
 
     # ---------------------- other internal state
     self._column_map = {};
@@ -475,7 +479,15 @@ class TreeBrowser (QObject):
         item.setExpandable(True);
         item._iter_nodes = iter(nodes);
       item._no_auto_open = True;
+    # emit signal
+    self.emit(PYSIGNAL("forestLoaded()"),());
       
+  def _requested_nodelist (self):
+    _dprint(2,"nodelist requested");
+    if not self.is_loaded:
+      self._nlv.clear()
+      item = QListViewItem(self._nlv,"updating, please wait...");
+     
   def clear (self):
     _dprint(2,"clearing tree browser");
     self.is_loaded = False;
@@ -877,6 +889,7 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     if dialog.exec_loop() == QDialog.Accepted:
       fname = str(dialog.selectedFile());
       rec = record(file_name=fname,get_forest_status=True);
+      meqds.clear_forest();
       mqs().meq('Load.Forest',rec,wait=False);
       self._request_nodelist();
       
