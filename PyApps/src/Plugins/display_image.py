@@ -343,6 +343,7 @@ class QwtImageDisplay(QwtPlot):
       _dprint(3,' creating combined array')
       shape = self._plot_dict[0].shape
       self.y_marker_step = shape[1]
+      _dprint(3,' self.y_marker_step ', self.y_marker_step)
       self.num_y_markers = self._plot_dict_size 
       temp_array = zeros((shape[0],self._plot_dict_size* shape[1]), self._plot_dict[0].type())
       self.marker_labels = []
@@ -367,6 +368,7 @@ class QwtImageDisplay(QwtPlot):
 # create combined array from contents of plot_dict
       shape = self._plot_dict[0].shape
       self.y_marker_step = shape[1]
+      _dprint(3,' self.y_marker_step ', self.y_marker_step)
       temp_array = zeros((shape[0], data_dict_size* shape[1]), self._plot_dict[0].type())
       self.marker_labels = []
       for l in range(data_dict_size ):
@@ -936,13 +938,14 @@ class QwtImageDisplay(QwtPlot):
           result = temp_str
 	  ypos1 = ypos
           ypos = int(ypos1)
+          ypos2 = ypos
 	  if not self.y_marker_step is None:
 	    if ypos1 >  self.y_marker_step:
 	      marker_index = int(ypos1 / self.y_marker_step)
-	      ypos1 = int(ypos1 % self.y_marker_step)
+	      ypos2 = int(ypos1 % self.y_marker_step)
 	    else:
 	      marker_index = 0
-          temp_str = result + " y =%+.2g" % ypos
+          temp_str = result + " y =%+.2g" % ypos2
           result = temp_str
         value = self.raw_image[xpos,ypos]
 	message = None
@@ -1176,18 +1179,34 @@ class QwtImageDisplay(QwtPlot):
 
 
     def calculate_cross_sections(self):
+        _dprint(3, 'calculating cross-sections')
         shape = self.raw_image.shape
+        _dprint(3, 'shape is ', shape)
         self.x_array = zeros(shape[0], Float32)
         self.x_index = arange(shape[0])
         self.x_index = self.x_index + 0.5
-        for i in range(shape[0]):
-          self.x_array[i] = self.raw_image[i,self.xsect_ypos]
+#       if shape[1] < self.xsect_ypos:
+#         self.xsect_ypos = int(shape[1] / 2)
+        _dprint(3, 'self.xsect_ypos is ', self.xsect_ypos)
+        try:
+          for i in range(shape[0]):
+            self.x_array[i] = self.raw_image[i,self.xsect_ypos]
+        except:
+          self.delete_cross_sections()
+          return
         self.setAxisAutoScale(QwtPlot.yRight)
         self.y_array = zeros(shape[1], Float32)
         self.y_index = arange(shape[1])
         self.y_index = self.y_index + 0.5
-        for i in range(shape[1]):
-          self.y_array[i] = self.raw_image[self.xsect_xpos,i]
+#       if shape[0] < self.xsect_xpos:
+#         self.xsect_xpos = int(shape[0] / 2)
+        _dprint(3, 'self.xsect_xpos is ', self.xsect_xpos)
+        try:
+          for i in range(shape[1]):
+            self.y_array[i] = self.raw_image[self.xsect_xpos,i]
+        except:
+          self.delete_cross_sections()
+          return
         self.setAxisAutoScale(QwtPlot.xTop)
         if self.xCrossSection is None:
           self.xCrossSection = self.insertCurve('xCrossSection')
@@ -1340,7 +1359,7 @@ class QwtImageDisplay(QwtPlot):
         self.image_shape = self.raw_image.shape 
       else:
         if not self.image_shape == self.raw_image.shape:
-          self.delete_cross_sections()
+#         self.delete_cross_sections()
           self.image_shape = self.raw_image.shape 
 
       self.defineData()
@@ -2071,6 +2090,7 @@ class QwtImageDisplay(QwtPlot):
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if complex_type and self._display_type != "brentjens":
           if self._vells_plot:
+            _dprint(3, 'complex type: self._vells_plot ', self._vells_plot)
             self.x_parm = self.first_axis_parm
             self.y_parm = self.second_axis_parm
             if flip_axes:
@@ -2097,7 +2117,9 @@ class QwtImageDisplay(QwtPlot):
             self.myXScale = ComplexScaleDraw(plot_array.shape[0])
             self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
 	    self.split_axis = plot_array.shape[0]
+            _dprint(3,'testing self.y_marker_step ', self.y_marker_step)
 	    if not self.y_marker_step is None:
+              _dprint(3, 'creating split Y scale for Y axis')
               self.myYScale = ComplexScaleDraw(self.y_marker_step)
               self.setAxisScaleDraw(QwtPlot.yLeft, self.myYScale)
 
@@ -2105,6 +2127,7 @@ class QwtImageDisplay(QwtPlot):
 
         else:
           if self._vells_plot:
+            _dprint(3, 'not complex type: self._vells_plot ', self._vells_plot)
             self.x_parm = self.first_axis_parm
             self.y_parm = self.second_axis_parm
             if flip_axes:
@@ -2126,6 +2149,10 @@ class QwtImageDisplay(QwtPlot):
             if self._y_title is None:
               self._y_title = 'Array/Sequence Number'
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
+	    if not self.y_marker_step is None:
+              _dprint(3, 'creating split Y scale for Y axis ', self.y_marker_step)
+              self.myYScale = ComplexScaleDraw(self.y_marker_step)
+              self.setAxisScaleDraw(QwtPlot.yLeft, self.myYScale)
           self.display_image(plot_array)
 
       if self.is_vector == True:
