@@ -31,7 +31,7 @@
 #pragma aidgroup AppUtils
 #pragma aid MS 
 
-#pragma aid DDID VDSID Selection Tile String Column Size Format 
+#pragma aid DDID VDSID Selection Tile String Column Size Format Increment
 #pragma aid Vis Input Output Params Start End Write Flags Flag Mask
 #pragma aid Time Data Predict Residuals Column Name Message Type
 #pragma aid Throw Error Domain start string Original Shape Flip Clear
@@ -59,6 +59,7 @@ namespace MSVisAgent
        FCwd               = AidCwd,
        FChannelStartIndex = AidChannel|Aidstart|AidIndex,
        FChannelEndIndex   = AidChannel|AidEnd|AidIndex,
+       FChannelIncrement  = AidChannel|AidIncrement,
        FSelectionString   = AidSelection|Aidstring,
        FDataColumnName    = AidData|AidColumn|AidName,
        FTileSize          = AidTile|AidSize,

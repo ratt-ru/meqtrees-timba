@@ -16,7 +16,7 @@
 #pragma aid Publish Results Enable Disable Event Id Silent Idle Stream 
 #pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
 #pragma aid Get Forest Status Stack Running Changed All Disabled Publishing
-#pragma aid Python Init TDL Script File Source
+#pragma aid Python Init TDL Script File Source Serial
     
 namespace Meq
 {
@@ -136,6 +136,14 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
       
     //##ModelId=3F5F218F02BD
     Forest forest;
+    
+    int forest_serial;
+    int incrementForestSerial ()
+    { 
+      if( ++forest_serial < 1 )
+        forest_serial = 1;
+      return forest_serial;
+    }
   
     //##ModelId=3F61920F0158
     typedef void (MeqServer::*PtrCommandMethod)(DMI::Record::Ref &out,DMI::Record::Ref &in);

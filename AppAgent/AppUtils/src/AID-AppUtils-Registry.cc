@@ -41,6 +41,7 @@
         AtomicID::registerId(-1258,"Column")+
         AtomicID::registerId(-1255,"Size")+
         AtomicID::registerId(-1261,"Format")+
+        AtomicID::registerId(-1598,"Increment")+
         AtomicID::registerId(-1240,"Vis")+
         AtomicID::registerId(-1277,"Params")+
         AtomicID::registerId(-1106,"Start")+

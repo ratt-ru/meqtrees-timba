@@ -383,6 +383,11 @@ const int AidSave_int = -1332;
 const DMI::AtomicID AidScript(-1565);             // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
 const int AidScript_int = -1565;
 #endif
+#ifndef _defined_id_AidSerial
+#define _defined_id_AidSerial 1
+const DMI::AtomicID AidSerial(-1597);             // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
+const int AidSerial_int = -1597;
+#endif
 #ifndef _defined_id_AidSet
 #define _defined_id_AidSet 1
 const DMI::AtomicID AidSet(-1272);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10

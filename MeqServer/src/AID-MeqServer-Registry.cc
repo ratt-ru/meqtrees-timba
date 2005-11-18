@@ -81,6 +81,7 @@ DMI::BObj * __construct_MeqSpigot (int n) { return n>0 ? new Meq::Spigot [n] : n
         AtomicID::registerId(-1565,"Script")+
         AtomicID::registerId(-1224,"File")+
         AtomicID::registerId(-1162,"Source")+
+        AtomicID::registerId(-1597,"Serial")+
         AtomicID::registerId(-1585,"MeqVisDataMux")+
         TypeInfoReg::addToRegistry(-1585,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1585,__construct_MeqVisDataMux)+

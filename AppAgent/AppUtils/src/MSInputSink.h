@@ -58,6 +58,7 @@ using namespace VisVocabulary;
 //##       +--[FFieldIndex]        (int)     selects field  
 //##       +--[FChannelStartIndex] (int)     starting channel (default: 0)
 //##       +--[FChannelEndIndex]   (int)     ending channel (default: last chan.)
+//##       +--[FChannelIncrement]  (int)     channel increment step (default: 1)
 //##       +--[FSelectionString] (string)    additional TaQL selection applied 
 //##                                           to MS
 class MSInputSink : public FileSink
@@ -127,7 +128,9 @@ class MSInputSink : public FileSink
       
       // channel subset
     //##ModelId=3DF9FECD01C8
-      int channels_[2];
+      int channels_[2];         // integer channel indices
+      // channel increment
+      int channel_incr_;
       // various counts
     //##ModelId=3DF9FECD01D0
       int num_channels_;

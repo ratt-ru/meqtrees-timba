@@ -112,14 +112,22 @@ void MSInputSink::fillHeader (DMI::Record &hdr,const DMI::Record &select)
     if( channels_[0]<0 )
       channels_[0] = 0; 
     if( channels_[1]<0 )
-      channels_[1] = num_channels_-1; 
-    FailWhen(channels_[1] < channels_[0] || channels_[1]>=num_channels_,
-          "illegal channel selection");
-    IPosition ip0(1,channels_[0]),ip1(1,channels_[1]);
-    Array<Double> ch_freq1 = ch_freq(ip0,ip1);
-    Array<Double> ch_width1 = abs(ch_width(ip0,ip1));
+      channels_[1] = num_channels_+channels_[1]; 
+    if( channels_[0] > num_channels_ )
+      channels_[0] = num_channels_-1;
+    if( channels_[1] > num_channels_ )
+      channels_[1] = num_channels_-1;
+    if( channels_[1] < channels_[0] )
+    {
+      int dum = channels_[1]; channels_[1] = channels_[0]; channels_[0] = dum; 
+    }
+    IPosition ip0(1,channels_[0]),ip1(1,channels_[1]),iinc(1,channel_incr_);
+    Array<Double> ch_freq1 = ch_freq(ip0,ip1,iinc);
+    Array<Double> ch_width1 = abs(ch_width(ip0,ip1,iinc));
+    // recompute # channels since an increment may have been applied
+    num_channels_ = ch_freq1.nelements();
     // if frequencies are in decreasing order, freq axis needs to be flipped
-    if( ch_freq1(IPosition(1,0)) > ch_freq1(IPosition(1,channels_[1]-channels_[0])) )
+    if( ch_freq1(IPosition(1,0)) > ch_freq1(IPosition(1,num_channels_-1)) )
     {
       dprintf(2)("reversing frequency channel\n");
       hdr[FFlipFreq] = flip_freq_ = true;
@@ -169,6 +177,7 @@ void MSInputSink::openMS (DMI::Record &header,const DMI::Record &select)
   // Get range of channels (default values: all channles)
   channels_[0] = select[FChannelStartIndex].as<int>(0);
   channels_[1] = select[FChannelEndIndex].as<int>(-1);
+  channel_incr_ = select[FChannelIncrement].as<int>(1);
   
   // fill header from MS
   fillHeader(header,select);
@@ -198,6 +207,7 @@ void MSInputSink::openMS (DMI::Record &header,const DMI::Record &select)
   
   header[FChannelStartIndex] = channels_[0];
   header[FChannelEndIndex]   = channels_[1];
+  header[FChannelIncrement]  = channel_incr_;
   
   // get and apply selection string
   String where = select[FSelectionString].as<string>("");
@@ -250,7 +260,7 @@ bool MSInputSink::init (const DMI::Record &params)
 
   // init common tile format and place it into header
   tileformat_ <<= new VTile::Format;
-  VTile::makeDefaultFormat(tileformat_,num_corrs_,channels_[1]-channels_[0]+1);
+  VTile::makeDefaultFormat(tileformat_,num_corrs_,num_channels_);
   header[FTileFormat] <<= tileformat_.copy(); 
 
   tiles_.clear();
@@ -302,7 +312,7 @@ int MSInputSink::refillStream ()
         return AppEvent::SUCCESS;
       }
       const LoRange ALL = LoRange::all();
-      const LoRange CHANS = LoRange(channels_[0],channels_[1]);
+      const LoRange CHANS = LoRange(channels_[0],channels_[1],channel_incr_);
     // fill cache with next time interval
       if( tiles_.empty() )
         tiles_.resize(num_ifrs_);

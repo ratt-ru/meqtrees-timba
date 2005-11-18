@@ -715,7 +715,7 @@ PyObject * pyFromRecord (const DMI::Record &dr)
     else
     {
       cdebug(4)<<"pyFromRecord: "<<iter.id()<<" contains a None"<<endl;
-      PyDict_SetItemString(*pyrec,const_cast<char*>(idstr.c_str()),*PyObjectRef(Py_None,true));    
+      PyDict_SetItemString(*pyrec,const_cast<char*>(idstr.c_str()),Py_None);
     }
   }
   cdebug(3)<<"pyFromRecord: converted "<<PyDict_Size(*pyrec)<<" fields\n";
@@ -911,7 +911,7 @@ PyObject * pyConvError (const string &msg)
   if( !args )
     throwErrorOpt(Runtime,"failed to build args tuple");
   PyErr_Clear();
-  PyObjectRef converr = PyObject_Call(py_dmisyms.conv_error,*args,NULL);
+  PyObjectRef converr(PyObject_Call(py_dmisyms.conv_error,*args,NULL),true);
   if( !converr )
     throwErrorOpt(Runtime,"failed to create a conv_error instance");
   return ~converr;

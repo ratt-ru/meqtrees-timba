@@ -98,6 +98,11 @@ const int AidFormat_int = -1261;
 const DMI::AtomicID AidHeader(-1201);             // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
 const int AidHeader_int = -1201;
 #endif
+#ifndef _defined_id_AidIncrement
+#define _defined_id_AidIncrement 1
+const DMI::AtomicID AidIncrement(-1598);          // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
+const int AidIncrement_int = -1598;
+#endif
 #ifndef _defined_id_AidInit
 #define _defined_id_AidInit 1
 const DMI::AtomicID AidInit(-1038);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MTGatewayWP.h:16

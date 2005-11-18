@@ -47,9 +47,12 @@ const HIID FGetState = AidGet|AidState;
 // and Set.Forest.State, which returns the full status anyway)
 const HIID FGetForestStatus = AidGet|AidForest|AidStatus;
 
-// this field is set to True in the output record of a command
+// this field is set to the new serial number in the output record of a command
 // whenever the forest itself has changed (i.e. nodes created or deleted, etc.)
 const HIID FForestChanged = AidForest|AidChanged;
+// The forest serial number is also returned from Get.Node.List; and can
+// also be supplied back to it to cause a no-op
+const HIID FForestSerial = AidForest|AidSerial;
 
 // this field is set to True in the output record of a command when 
 // publishing is disabled for all nodes.
@@ -71,7 +74,7 @@ const int AppState_Debug   = -( AidDebug.id() );
   
 //##ModelId=3F5F195E0140
 MeqServer::MeqServer()
-    : pmux_(0),mux_needed_(false)
+    : forest_serial(1),pmux_(0),mux_needed_(false)
 {
   if( mqs_ )
     Throw1("A singleton MeqServer has already been created");
@@ -189,7 +192,7 @@ void MeqServer::createNode (DMI::Record::Ref &out,DMI::Record::Ref &initrec)
   out[AidName] = name;
   out[AidClass] = classname;
   out[AidMessage] = makeNodeMessage("created",node,"of class "+classname);
-  out[FForestChanged] = true;
+  out[FForestChanged] = incrementForestSerial();
 }
 
 void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
@@ -217,7 +220,7 @@ void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
   }
   // form a response message
   out[AidMessage] = ssprintf("created %d nodes",nn);
-  out[FForestChanged] = true;
+  out[FForestChanged] = incrementForestSerial();
 }
 
 void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
@@ -241,7 +244,7 @@ void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
   out[AidMessage] = "deleted " + makeNodeLabel(name,nodeindex);
   // fill optional responce fields
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-  out[FForestChanged] = true;
+  out[FForestChanged] = incrementForestSerial();
 }
 
 void MeqServer::nodeGetState (DMI::Record::Ref &out,DMI::Record::Ref &in)
@@ -312,15 +315,20 @@ void MeqServer::getNodeList (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   cdebug(2)<<"getNodeList: building list"<<endl;
   DMI::Record &list = out <<= new DMI::Record;
-  int content = 
-    ( in[AidNodeIndex].as<bool>(true) ? Forest::NL_NODEINDEX : 0 ) | 
-    ( in[AidName].as<bool>(true) ? Forest::NL_NAME : 0 ) | 
-    ( in[AidClass].as<bool>(true) ? Forest::NL_CLASS : 0 ) | 
-    ( in[AidChildren].as<bool>(false) ? Forest::NL_CHILDREN : 0 ) |
-    ( in[FControlStatus].as<bool>(false) ? Forest::NL_CONTROL_STATUS : 0 ) |
-    ( in[FProfilingStats].as<bool>(false) ? Forest::NL_PROFILING_STATS : 0 );
-  int count = forest.getNodeList(list,content);
-  cdebug(2)<<"getNodeList: got list of "<<count<<" nodes"<<endl;
+  int serial = in[FForestSerial].as<int>(0);
+  if( !serial || serial != forest_serial )
+  {
+    int content = 
+      ( in[AidNodeIndex].as<bool>(true) ? Forest::NL_NODEINDEX : 0 ) | 
+      ( in[AidName].as<bool>(true) ? Forest::NL_NAME : 0 ) | 
+      ( in[AidClass].as<bool>(true) ? Forest::NL_CLASS : 0 ) | 
+      ( in[AidChildren].as<bool>(false) ? Forest::NL_CHILDREN : 0 ) |
+      ( in[FControlStatus].as<bool>(false) ? Forest::NL_CONTROL_STATUS : 0 ) |
+      ( in[FProfilingStats].as<bool>(false) ? Forest::NL_PROFILING_STATS : 0 );
+    int count = forest.getNodeList(list,content);
+    cdebug(2)<<"getNodeList: got list of "<<count<<" nodes"<<endl;
+    out[FForestSerial] = forest_serial;
+  }
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
@@ -492,7 +500,7 @@ void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
     }
   out[AidMessage] = ssprintf(fmessage.c_str(),nloaded,filename.c_str());
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-  out[FForestChanged] = true;
+  out[FForestChanged] = incrementForestSerial();
 }
 
 //##ModelId=400E5B6C0324
@@ -510,7 +518,7 @@ void MeqServer::clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
 // ****
   out[AidMessage] = "all nodes deleted";
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-  out[FForestChanged] = true;
+  out[FForestChanged] = incrementForestSerial();
 }
 
 void MeqServer::nodeCreated (Node &node)

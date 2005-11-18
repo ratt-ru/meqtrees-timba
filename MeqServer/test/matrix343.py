@@ -14,6 +14,13 @@ Settings.forest_state = record(bookmarks=[
     record(viewer="Result Plotter",udi="/node/GP:11:11",pos=(0,1)),
     record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
     record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
+  ]),
+  record(name='Flux solutions',page=[
+    record(viewer="Result Plotter",udi="/node/stokes:I:3C343",pos=(0,0)),
+    record(viewer="Result Plotter",udi="/node/stokes:I:3C343_1",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343",pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343_1",pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/solver",pos=(2,0)),
   ]) \
 ]);
 

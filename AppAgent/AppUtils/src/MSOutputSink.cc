@@ -171,11 +171,14 @@ void MSOutputSink::doPutHeader (const DMI::Record &header)
   ms_ = MeasurementSet(msname_,TableLock(TableLock::AutoNoReadLocking),Table::Update);
   // get range of channels from header and setup slicer
   int chan0 = header[FChannelStartIndex].as<int>(),
-      chan1 = header[FChannelEndIndex].as<int>();
+      chan1 = header[FChannelEndIndex].as<int>(),
+      chan_incr_ = header[FChannelIncrement].as<int>(1);
   int ncorr = header[FCorr].size(Tpstring);
   flip_freq_ = header[FFlipFreq].as<bool>(false);
-  column_slicer_ = Slicer(IPosition(2,0,chan0),IPosition(2,ncorr-1,chan1),
-                   Slicer::endIsLast);
+  column_slicer_ = Slicer(IPosition(2,0,chan0),
+                          IPosition(2,ncorr-1,chan1),
+                          IPosition(2,1,chan_incr_),
+                          Slicer::endIsLast);
   IPosition origshape = LoShape(header[FOriginalDataShape].as_vector<int>());
   null_cell_.resize(origshape);
   null_cell_.set(0);
