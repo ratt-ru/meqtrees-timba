@@ -337,9 +337,11 @@ namespace Meq {
   {
     const Domain &domain = request.cells().domain();
     const Cells &cells = request.cells();
+    
     HIID rq_dom_id = RqId::maskSubId(request.id(),domain_depend_mask_); 
+    HIID newrid = RqId::maskSubId(request.id(),~solve_depend_mask_); 
     // do we have a current funklet set up?
-
+    
     //parm should keep a reference to the funklet object, snce it doesnt have to be equal to the wstate...
     //    Funklet * pfunklet = wstate()[FFunklet].as_wpo<Funklet>();
     Funklet * pfunklet(0);
@@ -353,7 +355,10 @@ namespace Meq {
       {
 	// (a) domain ID of request matches that of funklet: can reuse
 	//     (a null domain ID in the request precludes this)
-	if( !rq_dom_id.empty() && rq_dom_id == domain_id_ )
+
+	//MM: changed...only reuse the funklet if nothing but the iteration_id changed
+	//	if( !rq_dom_id.empty() && rq_dom_id == domain_id_ )
+	if( !newrid.empty() && newrid == rqid_ )
 	  {
 	    cdebug(3)<<"current funklet domain ID matches, re-using"<<endl;
 	    return pfunklet;
@@ -365,6 +370,7 @@ namespace Meq {
 	    cdebug(3)<<"current funklet has infinite domain, re-using"<<endl;
 	    wstate()[FDomainId] = domain_id_ = rq_dom_id;
 	    wstate()[FDomain].replace() <<= &domain;
+	    rqid_=newrid;
 	    return pfunklet;
 	  }
 	// (c) funklet domain is a superset of the requested domain
@@ -374,6 +380,7 @@ namespace Meq {
 	    pfunklet->setDbId(-1);
 	    wstate()[FDomainId] = domain_id_ = rq_dom_id;
 	    wstate()[FDomain].replace() <<= &domain;
+	    rqid_=newrid;
 	    return pfunklet;
 	  }
       }
@@ -391,6 +398,7 @@ namespace Meq {
 	wstate()[FFunklet].replace() = newfunklet->getState();
 	wstate()[FDomainId] = domain_id_ = rq_dom_id;
 	wstate()[FDomain].replace() <<= &domain;
+	rqid_=newrid;
 	cdebug(2)<<"found relevant funklet,after tiling type "<<newfunklet->objectType()<<endl;
 	return newfunklet;
       }
@@ -408,6 +416,7 @@ namespace Meq {
     wstate()[FFunklet].replace() = pfunklet->getState();
     wstate()[FDomainId] = domain_id_ = rq_dom_id;
     wstate()[FDomain].replace() <<= &domain;
+    rqid_=newrid;
     return pfunklet;
   }
 
@@ -626,6 +635,7 @@ namespace Meq {
 	  {
 	    wstate()[FDomain].remove(); 
 	    wstate()[FDomainId] = domain_id_ = HIID();
+	    rqid_=HIID();
 	  }
       }
     // get domain IDs, if specified
@@ -745,6 +755,7 @@ namespace Meq {
 	wstate()[FDomain].remove();
 	wstate()[FDomainId].remove();
 	domain_id_ = HIID();
+	rqid_ = HIID();
 	//    retcode |= RES_NO_CACHE;
       }
 

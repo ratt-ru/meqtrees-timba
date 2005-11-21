@@ -151,7 +151,7 @@ namespace Meq {
     Funklet::Ref   default_funklet_;
     Funklet::Ref its_funklet_; //keep a ref to the funklet 
   
-    HIID        domain_id_;
+    HIID        domain_id_,rqid_;
   
     int         domain_depend_mask_;
     int         solve_depend_mask_;
