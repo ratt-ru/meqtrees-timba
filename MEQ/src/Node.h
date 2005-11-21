@@ -913,6 +913,15 @@ class Node : public DMI::BObj
     
     // cache policy setting
     int cache_policy_;
+    
+    // profiling timers
+    struct
+    {
+      LOFAR::NSTimer total;
+      LOFAR::NSTimer children;
+      LOFAR::NSTimer getresult;
+    } timers_;
+    
      
   private:
     //##Documentation
@@ -1157,14 +1166,6 @@ class Node : public DMI::BObj
     ProfilingStats * pprof_total_;
     ProfilingStats * pprof_children_;
     ProfilingStats * pprof_getresult_;
-    
-    // timers
-    struct
-    {
-      LOFAR::NSTimer total;
-      LOFAR::NSTimer children;
-      LOFAR::NSTimer getresult;
-    } timers_;
     
     static int checking_level_;
 };

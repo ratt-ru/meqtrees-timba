@@ -431,7 +431,9 @@ int Solver::getResult (Result::Ref &resref,
   reqref().validateRider();
   // send up request to figure out spids. We can poll syncronously since there's
   // nothing for us to do until all children have returned
+  timers_.getresult.stop();
   int retcode = Node::pollChildren(child_results_,resref,*reqref);
+  timers_.getresult.start();
   if( retcode&(RES_FAIL|RES_WAIT) )
     return retcode;
   // Node's standard discoverSpids() implementation merges all child spids together
@@ -497,6 +499,7 @@ int Solver::getResult (Result::Ref &resref,
     reqref().setNextId(next_rqid);
     num_equations_ = 0;
     // start async child poll
+    timers_.getresult.stop();
     startAsyncPoll(*reqref);
     int rescode;
     Result::Ref child_res;
@@ -523,12 +526,15 @@ int Solver::getResult (Result::Ref &resref,
         // ignore failed or null vellsets
         if( vs.isFail() || vs.isNull() )
           continue;
+        timers_.getresult.start();
         if( vs.getValue().isReal() )
           fillEquations<double>(vs);
         else
           fillEquations<dcomplex>(vs);
+        timers_.getresult.stop();
       }
     } // end of while loop over children
+    timers_.getresult.start();
     FailWhen(!num_equations_,"no equations were generated");
     cdebug(4)<<"accumulated "<<num_equations_<<" equations\n";
     // Solve the equation.
