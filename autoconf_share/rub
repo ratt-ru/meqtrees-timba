@@ -342,7 +342,7 @@ if [ "$verstype" == "" ]; then
     verstype="tag"
   fi
 elif [ "$cvstag" != "" ]; then
-  "Error: no -release option can be given if a specific -r tag is given"
+  "Error: no -release option can be given if a specific -r tag is used"
   exit 1
 fi
 
@@ -355,7 +355,7 @@ do
   case "$1" in
   -v*)
     if [ "$cvstag" != "" ]; then
-      echo "Error: -v cannot be used if -r is also given"
+      echo "Error: -v cannot be used if a specific -r tag is used"
       exit 1
     fi
     # -v gives the package version.
@@ -429,7 +429,7 @@ if [ $update != 0 ]; then
     echo "Checkout of LOFAR/bootstrap"
     (cd .. && $cvscomm checkout LOFAR/bootstrap) >> rub.log 2>&1
   fi
-  $pgmpath/rub1 autoconf_share 2 h "" "$cvstag" "$update" "$recur" "$cvscomm" "$updq" || exit 1
+  $pgmpath/rub1 autoconf_share 2 h "" "" "$update" "$recur" "$cvscomm" "$updq" || exit 1
 fi
 \rm -f allpkg.tmp
 touch allpkg.tmp

@@ -141,9 +141,7 @@ fi
 
 # Checkout/update if needed.
 rtag=
-if [ "$cvstag" != "" ]; then
-  rtag=$cvstag
-elif [ "$getvers" != "" ]; then
+if [ "$getvers" != "" ]; then
   rtag="-r$getvers"
   tagstr=", cvstag $getvers"
 fi
