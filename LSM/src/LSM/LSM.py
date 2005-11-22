@@ -979,6 +979,10 @@ class LSM:
   y_max=-1e6
   correct_slist=[]
   sum_brightness=0
+  # calculate moments in fulx (app_brightness) to
+  # determine the phase center
+  sum_x_phi=0
+  sum_y_phi=0
   for sname in slist:
     # select only sources without a patch 
     if (self.p_table.has_key(sname) and\
@@ -998,19 +1002,33 @@ class LSM:
       if dec<y_min:
        y_min=dec
       # get apparent brightness of this source
-      sum_brightness+=self.p_table[sname].getBrightness()
+      br=self.p_table[sname].getBrightness()
+      sum_brightness+=br
+      # calculate moments
+      sum_x_phi+=ra*br
+      sum_y_phi+=dec*br
 
   #print "Patch: [%f,%f]--[%f,%f]"%(x_min,y_min,x_max,y_max)
   #print correct_slist
   #print self.__ns
+
+  # calculate RA,Dec of phase center
+  ra_0=(x_min+x_max)*0.5
+  dec_0=(y_min+y_max)*0.5
+  # using moments
+  ra_0=sum_x_phi/sum_brightness
+  dec_0=sum_y_phi/sum_brightness
+  #print sum_x_phi,sum_x_phi/sum_brightness
+  #print sum_y_phi,sum_y_phi/sum_brightness
+  #print ra_0,dec_0
   if self.__ns!=None and (len(correct_slist)> 0):
    patch_name='patch'+str(self.__patch_count)
    self.__patch_count=self.__patch_count+1
    stringRA='ra0:q='+patch_name
-   meq_polc=meq.polc((x_min+x_max)*0.5)
+   meq_polc=meq.polc(ra_0)
    RA_root=self.__ns[stringRA]<<Meq.Parm(meq_polc)
    stringDec='dec0:q='+patch_name
-   meq_polc=meq.polc((y_min+y_max)*0.5)
+   meq_polc=meq.polc(dec_0)
    Dec_root=self.__ns[stringDec]<<Meq.Parm(meq_polc) 
    # twopack for phase center
    twoname='radec:q='+patch_name
@@ -1051,8 +1069,8 @@ class LSM:
    newp=PUnit(patch_name,self)
    newp.setType(PATCH_TYPE)
    newp.sp.setRoot(patch_root)
-   newp.sp.set_staticRA((x_min+x_max)*0.5)
-   newp.sp.set_staticDec((y_min+y_max)*0.5)
+   newp.sp.set_staticRA(ra_0)
+   newp.sp.set_staticDec(dec_0)
    newp.setBrightness(sum_brightness)
    # update vellsets
    if resolve_forest==True and sync_kernel==True:
