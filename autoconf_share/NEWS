@@ -1,3 +1,34 @@
+autoconf_share: Version 2.4, date: 2005/11/16
+=============================================
+
+In preparation of making packages distributable as rpm package, changes were
+made to the build environment which are not backward compatible. In short,
+this means that new package releases will require at least version 2.4 of this
+package.
+
+
+The following BugIDs have been resolved
+---------------------------------------
+
+# 271 : Add / Remove packages to weekly builds 
+        All doxygen related .doc files were renamed to .dox
+
+# 322 : Replace API_ROOT in lofar_pvss.m4 with /opt/pvss/pvss2_v3... 
+        Since PVSS will always be installed in the same directory (/opt/pvss/)
+        and the usage of env. var. is discouraged, it is recommended to use a
+        hard coded path (/opt/pvss/pvss2_v3.0/api/include) in the
+        lofar_pvss.m4 in autoconf_share instead of the used API_ROOT env.
+
+# 352 : Add check for support of "install -C" 
+        Added the macro lofar_PROG_BSD_INSTALL which checks whether the
+        command line option -C is supported or not. If it is supported, then
+        it is added to the definition of the environment variable INSTALL.
+
+# 421 : make testprograms without executing 
+        Added rule alltest to make all test programs
+
+        
+
 autoconf_share: Version 2.3, date: 2005/09/02
 =============================================
 
