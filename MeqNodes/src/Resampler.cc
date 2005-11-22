@@ -37,11 +37,12 @@ const HIID FFlagDensity = AidFlag|AidDensity;
 
 const HIID FNumCells =AidNum|AidCells;
 const HIID FFactor=AidFactor;
+const HIID FDownsampleInterpolate = AidDownsample|AidInterpolate;
 
 //##ModelId=400E5355029C
 Resampler::Resampler()
 : Node(1), // 1 child expected
-  flag_mask(-1),flag_bit(0),flag_density(0.5),
+  flag_mask(-1),flag_bit(0),downsample_interpolate(false),flag_density(0.5),
 	nx_(0),ny_(0),do_resample_(0)
 {}
 
@@ -56,6 +57,7 @@ void Resampler::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   rec[FFlagMask].get(flag_mask,initializing);
   rec[FFlagBit].get(flag_bit,initializing);
   rec[FFlagDensity].get(flag_density,initializing);
+  rec[FDownsampleInterpolate].get(downsample_interpolate,initializing);
 
 	std::vector<int> numcells;
 	if (rec[FNumCells].get_vector(numcells)) {

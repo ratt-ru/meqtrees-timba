@@ -29,7 +29,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Resampler 
-#pragma aid Integrate Flag Density Factor Num Cells
+#pragma aid Integrate Flag Density Factor Num Cells Downsample Interpolate
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -44,6 +44,8 @@
 //field: flag_bit 0
 //  Flag bit(s) used to indicate flagged integrated results. If 0, then 
 //  flag_mask&input_flags is used.
+//field: downsample_interpolate False
+//  False (default) to integrate, True to interpolate 
 //field: flag_density 0.5
 //  Critical ratio of flagged/total pixels for integration. If this ratio
 //  is exceeded, the integrated pixel is flagged.
@@ -86,6 +88,8 @@ private:
   int flag_mask;
   
   int flag_bit; //which way to resample, (0): result, (1):request
+  
+  bool downsample_interpolate;
   
   float flag_density;
 
