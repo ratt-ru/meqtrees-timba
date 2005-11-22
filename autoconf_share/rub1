@@ -235,7 +235,7 @@ else
     for pkg in $pkgs
     do
       # Check out the package.
-      $0 $pkgname/$pkg 0 "$verstype" "" "$checkout" "$recur" "$cvscomm" "$updq"  ||  exit 1
+      $0 $pkgname/$pkg 0 "$verstype" "" "$cvstag" $checkout $recur "$cvscomm" "$updq"  ||  exit 1
     done
   fi
 fi
