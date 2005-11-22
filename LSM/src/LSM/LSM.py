@@ -1051,6 +1051,8 @@ class LSM:
    newp=PUnit(patch_name,self)
    newp.setType(PATCH_TYPE)
    newp.sp.setRoot(patch_root)
+   newp.sp.set_staticRA((x_min+x_max)*0.5)
+   newp.sp.set_staticDec((y_min+y_max)*0.5)
    newp.setBrightness(sum_brightness)
    # update vellsets
    if resolve_forest==True and sync_kernel==True:
