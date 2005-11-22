@@ -30,15 +30,24 @@ DISTCLEANFILES=\
       *.spec
 
 # Make the rpm if possible.
-if MAKE_RPMS
-rpm: dist @RPM_TARGET@
-$(RPM_TARGET): $(DISTFILES)
+# Note:
+# MAKE_RPMS is set by lofar_init and possibly overwritten by lofar_general.
+# Older package releases include Makefile.common from $lofar_sharedir
+# with the effect that the include is handled by make.
+# Newer releases (as of 1-11-2005) include Makefile.common from $top_srcdir
+# with the effect that the include is handled by automake.
+# To be compatible with older releases, it was decided that the MAKE_RPMS
+# should be handled by make, hence the blank before endif. Otherwise
+# automake complains about an endif without an if.
+ ifeq "$(MAKE_RPMS)" "true"
+   rpm: dist @RPM_TARGET@
+   $(RPM_TARGET): $(DISTFILES)
 	${MAKE} dist
 	-mkdir -p $(RPM_DIR)/SRPMS
 	-mkdir -p `dirname $(RPM_TARGET)`
 	$(RPM_PROG) $(RPM_ARGS) $(RPM_TARBALL)
 	@echo Congratulations, $(RPM_TARGET) "(and friends)" should now exist.
-endif
+ endif
 # Put the phony target outside the if, otherwise automake gives
 # warnings if a .PHONY is also defined in the Makefile.am.
 .PHONY: rpm

@@ -40,7 +40,10 @@ AC_DEFINE([RPM_RELEASE], $RPM_RELEASE, [Define RPM release nr])dnl
 AC_SUBST(RPM_RELEASE)
 AM_RPM_INIT([])
 dnl Enable or disable the rpm making rules in Makefile.am
-AM_CONDITIONAL(MAKE_RPMS, test x$make_rpms = xtrue)
+dnl AM_CONDITIONAL(MAKE_RPMS, test x$make_rpms = xtrue)
+MAKE_RPMS=$make_rpms
+AC_SUBST(MAKE_RPMS)
+
 lofar_CHECK_LONG_LONG([])
 lofar_DEBUG_OPTIMIZE([])
 lofar_CHECK_PRETTY_FUNCTION([])

@@ -379,5 +379,7 @@ AC_CHECK_FILE([$lfr_find], [lfr_var=yes], [lfr_var=no])
   AC_C_BIGENDIAN
 
 # Initially RPM builds are not possible.
-  AM_CONDITIONAL(MAKE_RPMS, test xfalse = xtrue)
+  MAKE_RPMS=false
+  AC_SUBST(MAKE_RPMS)
+#  AM_CONDITIONAL(MAKE_RPMS, test xfalse = xtrue)
 ])
