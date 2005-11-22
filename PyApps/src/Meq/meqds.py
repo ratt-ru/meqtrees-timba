@@ -484,10 +484,12 @@ def clear_forest ():
 def request_nodelist (profiling_stats=False):
   """Sends a request to the kernel to return a nodelist.""";
   rec = NodeList.RequestRecord;
-  rec.forest_serial = nodelist.serial;
   if profiling_stats:
+    rec.forest_serial = 0;
     rec = copy.copy(rec);
     rec.profiling_stats = True;
+  else:
+    rec.forest_serial = nodelist.serial;
   nodelist.emit(PYSIGNAL("requested()"),());
   mqs().meq('Get.Node.List',rec,wait=False);
   _dprint(2,"nodelist requested",rec);
