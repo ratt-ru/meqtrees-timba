@@ -34,84 +34,13 @@
 # to bootstrap, configure and build all those packages (in the correct order).
 #
 # The command has to be run from the LOFAR directory in the user's tree.
-#
 
-if test "$1" = ""  -o  "$1" = "-h"  -o  "$1" = "--help"; then
-#if [ "$1" = "-h" ]; then
-  echo ''
-  echo 'Checkout/update LOFAR packages and the packages they depend on.'
-  echo 'It uses the configure.in files to find the package versions used.'
-  echo 'An error is given if multiple versions of the same package are used.'
-  echo 'If -build is given, the packages are configured, cleaned, built,'
-  echo ' checked and/or installed for the given variant(s).'
-  echo ''
-  echo 'Run as:'
-  echo ' rub [-cvs cvs-command] [-update] [-updq string] [-r<cvstag>]'
-  echo '     [-conf] [-confopt string]'
-  echo '     [-[dist]clean] [-make] [-check] [-install] [-system]'
-  echo '     [-recur[sive]] [-build variants]]'
-  echo '     package1 [...]'
-  echo ''
-  echo '  -cvs cvs-command  is an optional cvs command making it possible to'
-  echo '                    specify (for example) the root.'
-  echo '                    It defaults to cvs.'
-  echo '  -update           checkout/update the source tree (is default).'
-  echo '                    -noupdate prevents it.'
-  echo '  -updq string      is a string containing qualifiers for the cvs update'
-  echo '                    command (default is empty)'
-  echo '  -r<cvstag>        cvs tag of the package(s) to be updated/checked out'
-  echo '  -conf             do bootstrap and configure before build.'
-  echo '                    Default is -noconf.'
-  echo '  -confopt string   configure options.'
-  echo '  -clean            indicates that all build/<variant> directories'
-  echo '                    will be cleaned in order to start a clean build.'
-  echo '                    Default is -noclean.'
-  echo '  -distclean        indicates that all build/<variant> directories'
-  echo '                    will be fully cleaned in order to start a clean build.'
-  echo '                    The difference with -clean is that the appropriate'
-  echo '                    makefiles and .la files will also be removed.'
-  echo '                    It forces -conf.'
-  echo '                    Default is -nodistclean.'
-  echo '  -make             do a make (compile/link).'
-  echo '                    -nomake is more useful; it skips doing make and'
-  echo '                    implies -noclean and -noinstall.'
-  echo '                    Default is -make.'
-  echo '  -check            indicates that a make check should be done.'
-  echo '                    Default is -nocheck.'
-  echo '  -install          indicates that a make install should be done.'
-  echo '                    Default is -install if -build is given.'
-  echo '                    Otherwise -noinstall.'
-  echo '  -system           Do system build for given variants (using buildsys).'
-  echo '                    Options like -make, -conf, etc. are ignored.'
-  echo '                    Default is -nosystem.'
-  echo '  -recur            Do everything recursively, thus also for all'
-  echo '                    packages used by the given packages.'
-  echo '                    Default = -recur.'
-  echo '  -newest           Always use newest package version, thus do not use'
-  echo '                    the package version from LOFAR_INTERNAL macros.'
-  echo '                    Default = -nonewest.'
-  echo '  -build variants   gives the variants to do (e.g. gnu3_debug)'
-  echo '                    Separate multiple variants by whitespace and'
-  echo '                    enclose in quotes.'
-  echo '                    -build implies -make.'
-  echo '  package1          is the name of the package to update/checkout and'
-  echo '                    optionally build.'
-  echo '                    Multiple packages can be given separated by whitespace.'
-  echo ''
-  echo 'All options can be undone by preceeding them with no (e.g. -nobuild).'
-  echo 'If an option is given multiple times, only the last value takes effect.'
-  echo ''
-  echo 'For example:'
-  echo ' rub -cvs "cvs -d :pserver:user@cvs.astron.nl:/cvs/cvsroot" CEP/CPA/PSS3/BBS'
-  echo ''
-  exit 0
-fi
 
 # Find the path used to start the script.
 pgmpath=`dirname $0`
 pgmpath=`cd $pgmpath > /dev/null 2>&1  &&  pwd`
 
-# Handle possible options.
+# Set default options.
 cvsdefault=cvs
 cvscomm=$cvsdefault
 updq=
@@ -124,14 +53,26 @@ clean=0
 distclean=0
 check=0
 install=2
+distcheck=0
+rpm=0
 update=1
 system=0
 recur=1
-newest=0
-while [ 1 = 1 ]
+verstype=
+pkgfound=0
+help=0
+if [ $# = 0 ]; then
+  help=1
+fi
+
+# Handle possible options.
+while [ $# != 0 ]
 do
   # Special cvs command?
-  if [ "$1" = "-cvs" ]; then
+  if [ "$1" = "-h"  -o  "$1" = "-help"  -o  "$1" = "--help" ]; then
+    help=1
+    break
+  elif [ "$1" = "-cvs" ]; then
     shift
     cvscomm="$1"
     shift
@@ -230,26 +171,51 @@ do
   elif [ "$1" = -noinstall ]; then
     shift
     install=0
+  elif [ "$1" = -distcheck ]; then
+    shift
+    distcheck=1
+  elif [ "$1" = -nodistcheck ]; then
+    shift
+    distcheck=0
+  elif [ "$1" = -rpm ]; then
+    shift
+    rpm=1
+  elif [ "$1" = -norpm ]; then
+    shift
+    rpm=0
   elif [ "$1" = -system ]; then
     shift
     system=1
   elif [ "$1" = -nosystem ]; then
     shift
     system=0
-  elif [ "$1" = -newest ]; then
-    shift
-    newest=1
-  elif [ "$1" = -nonewest ]; then
-    shift
-    newest=0
   elif test "$1" = -recur  -o  "$1" = -recursive; then
     shift
     recur=1
   elif test "$1" = -norecur  -o  "$1" = -norecursive; then
     shift
     recur=0
+  elif test "$1" = "-release=max"; then
+    shift
+    verstype=m
+  elif test "$1" = "-release=exact"; then
+    shift
+    verstype=e
+  elif test "$1" = "-release=latest"; then
+    shift
+    verstype=l
+  elif test "$1" = "-release=trunk"; then
+    shift
+    verstype=t
+  elif test "$1" = "-norelease"; then
+    shift
+    verstype=
   else
     case "$1" in
+    -release=*)
+      echo "$1 is invalid; valid options are max,exact,latest,trunk"
+      exit 1
+      ;;
     -r*)
       cvstag=`echo $1 | sed -e 's/-r//'`
       shift
@@ -259,6 +225,8 @@ do
       exit 1
       ;;
     *)
+      # A package name has been found, so stop parsing options.
+      pkgfound=1
       break
       ;;
     esac
@@ -269,24 +237,184 @@ if [ $distclean = 1 ]; then
   conf=1
 fi
 
-# Check if variants are given if other options needing build are given.
-# Otherwise clear the variants.
-if test $install = 1  -o  $clean != 0  -o  $check = 1  -o  conf = 1; then
+if [ $help = 1 ]; then
+  echo ''
+  echo 'rub stands for recursive update and build.'
+  echo 'It check outs/updates LOFAR packages and the packages they depend on.'
+  echo 'It uses the .spec.in or configure.in files to find out if specific'
+  echo 'package versions are to be used.'
+  echo 'If -build is given, the packages are configured, cleaned, built,'
+  echo ' checked, installed, distchecked, and/or rpm-ed for the given variant(s).'
+  echo ''
+  echo 'Run as:'
+  echo ' rub [-cvs cvs-command] [-update] [-updq string] [-r<cvstag>]'
+  echo '     [-recur[sive]] [-release=option] [-build variants]]'
+  echo '     [-system] [-conf] [-confopt string]'
+  echo '     [-[dist]clean] [-make] [-check] [-install] [-distcheck] [-rpm]'
+  echo '     package1 [-v<version>] [...]'
+  echo ''
+  echo '  -cvs cvs-command  is an optional cvs command making it possible to'
+  echo '                    specify (for example) the root.'
+  echo '                    It defaults to cvs.'
+  echo '  -update           checkout/update the source tree (is default).'
+  echo '                    -noupdate prevents it.'
+  echo '  -updq string      is a string containing qualifiers for the cvs update'
+  echo '                    command (default is empty)'
+  echo '  -r<cvstag>        cvs tag of the given package(s) to be updated/checked out'
+  echo '                    If given, the tag will be used for all packages.'
+  echo '  -recur            Do everything recursively, thus also for all'
+  echo '                    packages used by the given packages.'
+  echo '                    default is -recur.'
+  echo '  -release=option   defines which CVS release to check out depending on'
+  echo '                    the version given in the LOFAR_INTERNAL macros in'
+  echo '                    configure.in or the Requires line in PKG.spec.in.'
+  echo '                    exact   Use the versions as given and check if they'
+  echo '                            match if a package is used from multiple packages.'
+  echo '                    max     Use the maximum package version given if'
+  echo '                            used from multiple packages.'
+  echo '                    latest  Use latest package release version in CVS.'
+  echo '                    no      Always use the trunk head for all packages.'
+  echo '                    Default = -release=max.'
+  echo '  -build variants   gives the variants to do (e.g. gnu3_debug)'
+  echo '                    Separate multiple variants by whitespace and'
+  echo '                    enclose in quotes.'
+  echo '                    -build implies -make.'
+  echo '  -system           Do system build for given variants (using buildsys).'
+  echo '                    Options like -make, -conf, etc. are ignored.'
+  echo '                    Default is -nosystem.'
+  echo '  -conf             do bootstrap and configure before build.'
+  echo '                    Default is -noconf.'
+  echo '  -confopt string   configure options.'
+  echo '  -clean            indicates that all build/<variant> directories'
+  echo '                    will be cleaned in order to start a clean build.'
+  echo '                    Default is -noclean.'
+  echo '  -distclean        indicates that all build/<variant> directories'
+  echo '                    will be fully cleaned in order to start a clean build.'
+  echo '                    The difference with -clean is that the appropriate'
+  echo '                    makefiles and .la files will also be removed.'
+  echo '                    It forces -conf.'
+  echo '                    Default is -nodistclean.'
+  echo '  -make             do a make (compile/link).'
+  echo '                    -nomake is more useful; it skips doing make and'
+  echo '                    implies -noclean and -noinstall.'
+  echo '                    Default is -make.'
+  echo '  -check            indicates that a make check should be done.'
+  echo '                    Default is -nocheck.'
+  echo '  -install          indicates that a make install should be done.'
+  echo '                    Default is -install if -build is given.'
+  echo '                    Otherwise -noinstall.'
+  echo '  -distcheck        indicates that a make distcheck should be done.'
+  echo '                    Default is -nodistcheck.'
+  echo '  -rpm              indicates that a make rpm should be done.'
+  echo '                    Default is -norpm.'
+  echo '  package1          is the name of the package to update/checkout and'
+  echo '                    optionally build.'
+  echo '                    Multiple packages can be given separated by whitespace.'
+  echo '                    Each package can be followed by -v<version>, where'
+  echo '                    <version> gives the version of the package to be'
+  echo '                    checked out/updated.'
+  echo '                    -v is ignored if -r is given.'
+  echo ''
+  echo 'All options can be undone by preceeding them with no (e.g. -nobuild).'
+  echo 'If an option is given multiple times, only the last value takes effect.'
+  echo ''
+  echo 'For example:'
+  echo ' rub -cvs "cvs -d :pserver:user@cvs.astron.nl:/cvs/cvsroot" CEP/CPA/PSS3/BBS'
+  echo ''
+  exit 0
+fi
+
+# Check the consistency of the options.
+if [ $pkgfound != 1 ]; then
+  echo "Error: no package given"
+  echo "  Use 'rub -h' to get a description"
+  exit 1
+fi
+if test $install = 1  -o  $clean != 0  -o  $check = 1  -o  $conf = 1  -o  $distcheck = 1  -o  $rpm = 1; then
   if [ "$variants" = "" ]; then
-    echo "rub: -build variants are needed with -conf, -(dist)clean, -check and -install"
+    echo "Error: -build variant is needed with -conf,-(dist)clean,-check,-install,-distcheck,-rpm"
     exit 1
   fi
+fi
+if [ "$verstype" == "" ]; then
+  verstype=m
+  if [ "$cvstag" != "" ]; then
+    verstype="tag"
+  fi
+elif [ "$cvstag" != "" ]; then
+  "Error: no -release option can be given if a specific -r tag is given"
+  exit 1
+fi
+
+# Get and check the package names and versions.
+pkg=
+vers=
+PKGS=
+while [ $# != 0 ]
+do
+  case "$1" in
+  -v*)
+    if [ "$cvstag" != "" ]; then
+      echo "Error: -v cannot be used if -r is also given"
+      exit 1
+    fi
+    # -v gives the package version.
+    if [ "$pkg" = "" ]; then
+      echo "Error: option $1 is not given right after a package name"
+      exit 1
+    fi
+    vers=`echo $1 | sed -e 's/-v//'`
+    shift
+    if [ "$vers" = "" ]; then
+      # -v and version are separated by whitespace.
+      vers=$1
+      shift
+    fi
+    case "$vers" in
+    -*)
+      echo "Error: package version cannot start with -"
+      exit 1
+      ;;
+    *)
+      if [ "$vers" = "" ]; then
+        echo "Error: no package version given after -v"
+        exit 1
+      fi
+      ;;
+    esac
+    # Substitute . by _ on the version.
+    vers=`echo $vers | sed -e 's/\./_/g'`
+    PKGS="$PKGS $pkg#-v$vers"
+    pkg=
+    ;;
+  -*)
+    echo "Error: only the -v option can be given after a package name"
+    exit 1
+    ;;
+  *)
+    # A package name is given.
+    if [ "$pkg" != "" ]; then
+      PKGS="$PKGS $pkg#-v"
+    fi
+    if [ "$1" = "" ]; then
+      echo "Error: empty package name given"
+      exit 1
+    fi
+    pkg=$1
+    shift
+    ;;
+  esac
+done
+# Add the possibly last package.
+if [ "$pkg" != "" ]; then
+  PKGS="$PKGS $pkg#-v"
 fi
 
 # Check if in correct directory.
 curwd=`pwd`
 curwdl=`basename $curwd`
 if [ "$curwdl" != "LOFAR" ]; then
-  echo "rub should be run from the LOFAR directory in the code tree"
-  exit 1
-fi
-if [ "$1" = "" ]; then
-  echo "Run as:  rub <package> <optional cvs-command>"
+  echo "Error: rub should be run from the LOFAR directory in the code tree"
   exit 1
 fi
 \rm -f allpkg.tmp rub.log
@@ -301,15 +429,17 @@ if [ $update != 0 ]; then
     echo "Checkout of LOFAR/bootstrap"
     (cd .. && $cvscomm checkout LOFAR/bootstrap) >> rub.log 2>&1
   fi
-  $pgmpath/rub1 autoconf_share 0 "" "$update" "$recur" "$cvscomm" "$updq" || exit 1
+  $pgmpath/rub1 autoconf_share 2 h "" "$cvstag" "$update" "$recur" "$cvscomm" "$updq" || exit 1
 fi
 \rm -f allpkg.tmp
 touch allpkg.tmp
 
 # Update the packages and optionally all packages they need.
-for PKG in $*
+for PKG in $PKGS
 do
-  $pgmpath/rub1 $PKG "$newest" "$cvstag" "$update" "$recur" "$cvscomm" "$updq" || exit 1
+  pkg=`echo $PKG | sed -e 's%#-v.*%%'`
+  vers=`echo $PKG | sed -e 's%.*#-v%%'`
+  $pgmpath/rub1 $pkg 1 "$verstype" "$vers" "$cvstag" "$update" "$recur" "$cvscomm" "$updq" || exit 1
 done
 
 # Convert allpkg.tmp to lofarconf.in.private
@@ -319,21 +449,42 @@ if [ -f lofarconf.in.private ]; then
 fi
 \rm -f lofarconf.in.private
 touch lofarconf.in.private
+PKGS=
 while [ 1 = 1 ]
 do
-  pkg=`tail -1 allpkg.tmp | awk '{ print $1 }'`
+  pkgvers=`tail -1 allpkg.tmp`
+  pkg=`echo $pkgvers | awk '{ print $1 }'`
+  vers=`echo $pkgvers | awk '{ print $2 }'`
   if [ "$pkg" = "" ]; then
     break;
   fi
   grep -v "^$pkg " allpkg.tmp > allpkg.tmp1
   mv allpkg.tmp1 allpkg.tmp
-  echo "$pkg" >> lofarconf.in.private
+  echo "$pkg $vers" >> lofarconf.in.private
+  PKGS="$PKGS $pkg$vers"
 done
 \rm -f allpkg.tmp
-echo "Created lofarconf.in.private containing all these packages"
-pkgs=`cat lofarconf.in.private`
 
+# Now check out/update the full package.
 if [ $update != 0 ]; then
+  for PKG in $PKGS
+  do
+    pkg=`echo $PKG | sed -e 's%#-v.*%%'`
+    vers=`echo $PKG | sed -e 's%.*#-v%%'`
+    rtag=
+    tagstr=
+    if [ "$vers" != "" ]; then
+      rtag=-r$vers
+      tagstr=", cvstag $vers"
+    fi
+    echo "Full update of package $pkg$tagstr"
+    echo "(cd $pkg  &&  $cvscomm update -dAP $rtag $updq)" >> rub.log 2>&1
+    (cd $pkg  &&  $cvscomm update $rtag $updq) >> rub.log 2>&1
+    status=$?
+    if [ $status != 0 ]; then
+      echo "Exiting; update/checkout returned with an error status ..."
+    fi
+  done
   echo "See rub.log for the cvs update/checkout details"
   egrep "^C " rub.log > greplog.tmp 2>&1
   if [ $? = 0 ]; then
@@ -346,6 +497,9 @@ if [ $update != 0 ]; then
   fi
   \rm -f greplog.tmp
 fi
+
+echo "Created lofarconf.in.private containing all these packages"
+pkgs=`sed -e s/#.*$//g lofarconf.in.private`
 
 if [ "$variants" = "" ]; then
   echo "No build to be done"
@@ -390,6 +544,14 @@ fi
 if [ $install = 1 ]; then
   postmake="$postmake && make install "
   echo "Packages will be installed"
+fi
+if [ $distcheck = 1 ]; then
+  postmake="$postmake && make distcheck "
+  echo "Packages will be distcheck-ed"
+fi
+if [ $rpm = 1 ]; then
+  postmake="$postmake && make rpm "
+  echo "Packages will be rpm-ed"
 fi
 
 # Build all variants.

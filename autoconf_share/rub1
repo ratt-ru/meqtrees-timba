@@ -27,10 +27,16 @@
 # See rub for more details.
 #
 # Use as:
-#   rub1 package newest cvstag checkout recur cvscomm updq
+#   rub1 package verstype version cvstag checkout recur cvscomm updq
 #
 #     package     name of package to checkout/update
-#     newest      1 = always use newest package version; implies cvstag=""
+#     conftype    0 = configure.in must be present
+#                 1 = lofarconf.in or configure.in must be present
+#                     (is used for super-package like LCS)
+#                 2 = configure.in nor lofarconf.in needs to be present
+#                     (is used for autoconf_share)
+#     verstype    version type (e, m, l, t, tag)
+#     version     version of package to check out
 #     cvstag      tag of package to checkout/update (blank = no tag)
 #     checkout    1 = do actual checkout/update if not done yet
 #                 0 = do not checkout/update, but only write used
@@ -41,68 +47,135 @@
 #     updq        cvs update qualifiers (e.g. -dAP)
 
 
-# Get package name and tag.
-pkgname="$1"
-newest="$2"
-pkgtag="$3"
-if [ "$newest" = 1 ]; then
-  pkgtag=""
-fi
+# Get package name (without trailing /), version, etc.
+pkgname=`echo "$1" | sed -e 's%/$%%'`
+conftype="$2"
+verstype="$3"
+getvers="$4"
+curvers=""
+cvstag="$5"
 # Does an actual checkout/update need to be done.
-checkout="$4"
+checkout="$6"
 # Does it need to be done recursively?
-recur="$5"
+recur="$7"
 # Get cvs command (defaults to cvs).
-cvscomm="$6"
+cvscomm="$8"
 if [ "$cvscomm" = "" ]; then
   cvscomm="cvs"
 fi
 # Get cvs update flags.
-updq="$7"
+updq="$9"
 
-# See if this package was already updated.
-grep "^$pkgname " allpkg.tmp > /dev/null 2>&1
-notfound=$?
-# If found, check if tag matches (only if checkout/update needs to be done).
-if [ $notfound = 0  -a  $checkout = 1  -a  "$pkgtag" != "" ]; then
-  tmptag=`grep "^$pkgname [^ ]" allpkg.tmp | head -1 | sed -e 's/.* //'`
-  if [ "$tmptag" != "$pkgtag"  -a  "$tmptag" != "" ]; then
-    echo "Error: package $pkgname is used with different tags ($pkgtag and $tmptag)"
-    exit 1
+# See if this package was already updated. Take the last line.
+pkgline=`grep "^$pkgname " allpkg.tmp | tail -1`
+if [ "$pkgline" = "" ]; then
+  # Not done yet, so find the version.
+  if [ $checkout = 0 ]; then
+    # Check if a lofarconf.in or configure.in is present
+    if [ $conftype = 0 ]; then
+      if [ ! -r lofarconf.in  -o  ! -r configure.in ]; then
+        echo "Error: no configure.in file found for package $pkgname"
+        exit 1
+      fi
+    elif [ $conftype = 1 ]; then
+      if [ ! -r lofarconf.in  -o  ! -r configure.in ]; then
+        echo "Error: no configure.in or lofarconf.in file found for package $pkgname"
+        exit 1
+      fi
+    fi
+  # Files can be updated or checked out.
+  # Find out which version is needed.
+  elif [ "$cvstag" != "" ]; then
+    getvers=$cvstag
+  elif [ $verstype = t ]; then
+    getvers=
+  elif [ $verstype = l ]; then
+    # Find the highest released version.
+    # Check out the package if not existing yet.
+    if [ -d $pkgname ]; then
+      (cd ..  &&  $cvscomm checkout -l LOFAR/$pkgname) >> rub.log 2>&1
+    fi
+    # Remove the part '-release-branch' leaving the CVS tag name.
+    getvers=`cvs log $pkgname/configure.in 2>&1 | grep release-branch | head -1 | sed -e 's/[ \t]*\(.*\)-release-branch.*/\1/'`
+  fi
+
+# The package was already updated.
+# If a specific version was given, handle it.
+elif [ "$cvstag" != "" ]; then
+  getvers=$cvstag
+else
+  # Check wanted version and possibly already checked out version.
+  # verstypes t and l are already handled when the package was retrieved
+  # for the first time.
+  curvers=`echo $pkgline | sed -e s'/.*#-v//'`
+  if [ "$getvers" = "" ]; then
+    # No specific version given; use current one.
+    getvers="$curvers"
+  else
+    # Check if current and wanted version need to match.
+    if [ $verstype = e ]; then
+      # Exact match is needed.
+      if [ "$getvers" != "$curvers" ]; then
+        echo "Error: package $pkgname is used with different versions ($getvers and $curvers)"
+        exit 1
+      fi
+    elif [ $verstype = m ]; then
+      # Use the maximum of the two versions.
+      if [ "$curvers" != "" ]; then
+	if [ "$curvers" != "$getvers" ]; then
+	  echo "warning: version $curvers and $getvers needed of package $pkgname; using highest"
+          # Compare the versions by removing the package name from the tags.
+          # Find maximum version.
+          v1=`echo $getvers | sed -e 's/.*-\([0-9_]\)$/\1/'`
+          v2=`echo $curvers | sed -e 's/.*-\([0-9_]\)$/\1/'`
+          res=`echo "$v1 $v2" | awk '{ la1=split($1,a1,"_"); la2=split($2,a2,"_"); if (la1<la2) la1=la2; res=$1; for (i=1; i<=la1; i++) {if (a1[i]>a2[i]) {break;} else if (a1[i]<a2[i]) { res=$2; break;}} print res; }'`
+          if [ "$res" = "$v2" ]; then
+	    # Current version is the highest, so no need to update.
+            getvers=$curvers
+          fi
+        fi    
+      fi
+    fi
   fi
 fi
 
 # Checkout/update if needed.
 rtag=
-if [ "$pkgtag" != "" ]; then
-  rtag="-r$pkgtag"
-  tagstr=", cvstag $pkgtag"
+if [ "$cvstag" != "" ]; then
+  rtag=$cvstag
+elif [ "$getvers" != "" ]; then
+  rtag="-r$getvers"
+  tagstr=", cvstag $getvers"
 fi
-if [ $notfound != 0  -a  $checkout = 1 ]; then
-  if [ -d $pkgname ]; then
-    echo "Update of package $pkgname$tagstr"
-    echo "(cd $pkgname  &&  $cvscomm update $rtag $updq)" >> rub.log 2>&1
-    (cd $pkgname  &&  $cvscomm update $rtag $updq) >> rub.log 2>&1
-    status=$?
-  else
-    echo "Checkout of package $pkgname$tagstr"
-    echo "(cd ..  &&  $cvscomm checkout $rtag LOFAR/$pkgname)" >> rub.log 2>&1
-    (cd ..  &&  $cvscomm checkout $rtag LOFAR/$pkgname) >> rub.log 2>&1
-    status=$?
-  fi
-  if [ $status != 0 ]; then
-    echo "Exiting; update/checkout returned with an error status ..."
-    egrep "^C " rub.log > greplog.tmp 2>&1
-    if [ $? = 0 ]; then
-      echo "There seem to be UPDATE CONFLICTS"
-      cat greplog.tmp
-      \rm -f greplog.tmp
+if [ "$pkgline" = ""  -o  "$getvers" != "$curvers" ]; then
+  if [ $checkout = 1 ]; then
+    if [ -d $pkgname ]; then
+      echo "Toplevel update of package $pkgname$tagstr"
+      echo "(cd $pkgname  &&  $cvscomm update -lA $rtag $updq)" >> rub.log 2>&1
+      (cd $pkgname  &&  $cvscomm update -l $rtag $updq) >> rub.log 2>&1
+      status=$?
     else
-      tail -2 rub.log
+      echo "Toplevel checkout of package $pkgname$tagstr"
+      echo "(cd ..  &&  $cvscomm checkout -l $rtag LOFAR/$pkgname)" >> rub.log 2>&1
+      (cd ..  &&  $cvscomm checkout -l $rtag LOFAR/$pkgname) >> rub.log 2>&1
+      status=$?
     fi
-    exit 1
+    if [ $status != 0 ]; then
+      echo "Exiting; update/checkout returned with an error status ..."
+      egrep "^C " rub.log > greplog.tmp 2>&1
+      if [ $? = 0 ]; then
+        echo "There seem to be UPDATE CONFLICTS"
+        cat greplog.tmp
+        \rm -f greplog.tmp
+      else
+        tail -2 rub.log
+      fi
+      exit 1
+    fi
   fi
 fi
+# Add (leaf) package to the file to get correct build order.
+echo "$pkgname #-v$getvers" >> allpkg.tmp
 
 # Find all packages used to get correct build order.
 if [ -f $pgkname/$pkgname.spec.in ]; then
@@ -110,13 +183,11 @@ if [ -f $pgkname/$pkgname.spec.in ]; then
     echo "error: lofarconf.in cannot be used with a .spec.in"
     exit 1
   fi
-  # Add (leaf) package to the file to get correct build order.
-  echo "$pkgname $pkgtag" >> allpkg.tmp
   # Do it recursively for packages used by this package.
   # Find them by looking at the Requires tag in the .spec.in file.
   pkgs=`egrep -i " *requires:" $pkgname/$pkgname.spec.in | sed -e 's/ *requires: *//ig'`
-  # < and > is not supported yet.
-  pkg1=`echo $pkgs | sed 's/>/ /g' | sed 's/</ /g'`
+  # < and > are not supported.
+  pkg1=`echo $pkgs | sed 's/>/=/g' | sed 's/</=/g'`
   if [ "$pkg1" != "$pkgs" ]; then
     echo "warning: rub only supports == in the rpm 'Requires' tag"
   fi
@@ -124,22 +195,20 @@ if [ -f $pgkname/$pkgname.spec.in ]; then
   pkgs=`echo $pkg1 | sed 's/ *== */=/g' | sed 's/ //g' | sed 's/,/ /g'`
   for pkg in $pkgs
   do
-    # Extract package name and tag.
+    # Extract package name and version.
     # Before = is the package name.
     nm=`echo $pkg | sed -e "s/=.*//"`
-    # Possible part after = is the tag.
-    # Replace a . in the tag by _.
-    tag=`echo $pkg | awk -F= '{ print $2 }' | sed -e 's/\./_'`
+    # Possible part after = is the version.
+    # Replace a . in the version by _.
+    vers=`echo $pkg | awk -F= '{ print $2 }' | sed -e 's/\./_/g'`
     # Check out the package.
-    $0 $nm "$tag" $checkout "$cvscomm" "$updq"  ||  exit 1
+    $0 $nm 0 "$verstype" "$vers" "$cvstag" $checkout $recur "$cvscomm" "$updq"  ||  exit 1
   done
 elif [ -f $pkgname/configure.in ]; then
   if [ -f $pkgname/lofarconf.in  -o  -f $pkgname/lofarconf.in.private ]; then
     echo "error: lofarconf.in cannot be used with a configure.in"
     exit 1
   fi
-  # Add (leaf) package to the file to get correct build order.
-  echo "$pkgname $pkgtag" >> allpkg.tmp
   if [ $recur != 0 ]; then
     # Do it recursively for packages used by this package.
     # Find them by looking in the configure.in file.
@@ -150,10 +219,10 @@ elif [ -f $pkgname/configure.in ]; then
       nma=`echo $pkg | sed -e "s/.*lofar_\(PACKAGE\)\|\(INTERNAL\)//" -e "s/ //g" -e "s/.*(//" -e "s/).*//"`
       # First name is the package.
       nm=`echo $nma | sed -e "s/,.*//"`
-      # Possible third name is the tag.
-      tag=`echo $nma | awk -F, '{ print $3 }'`
+      # Possible third name is the version. Replace possible . by _.
+      vers=`echo $nma | awk -F, '{ print $3 }' | sed -e 's/\./_/g'`
       # Check out the package.
-      $0 $nm "$newest" "$tag" "$checkout" "$recur" "$cvscomm" "$updq"  ||  exit 1
+      $0 $nm 0 "$verstype" "$vers" "$cvstag" $checkout $recur "$cvscomm" "$updq"  ||  exit 1
     done
   fi
 else
@@ -168,7 +237,7 @@ else
     for pkg in $pkgs
     do
       # Check out the package.
-      $0 $pkgname/$pkg "$newest" "" "$checkout" "$recur" "$cvscomm" "$updq"  ||  exit 1
+      $0 $pkgname/$pkg 0 "$verstype" "" "$checkout" "$recur" "$cvscomm" "$updq"  ||  exit 1
     done
   fi
 fi
