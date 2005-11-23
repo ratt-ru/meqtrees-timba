@@ -548,6 +548,11 @@ class LSM:
   # root of all subtrees
   self.__root=None
 
+  # how to create phase center of patches
+  # 'G': geometric center, 'C': centroid  (weighted)
+  self.default_patch_center='C'
+
+
  # Much more important method
  # Inserts a source to source table
  def add_source(self,s, **kw):
@@ -855,6 +860,7 @@ class LSM:
    g.mqs=None
    g.cells=None
    g.__patch_count=self.__patch_count
+   g.default_patch_center=self.default_patch_center
 
 
    # serialize the root
@@ -887,6 +893,8 @@ class LSM:
    self.__barr=tmpl.__barr
 
    self.__patch_count=tmpl.__patch_count
+   self.default_patch_center=tmpl.default_patch_center
+
    if tmpl.__root!=None:
     if ns==None:
      ns=NodeScope()
@@ -1013,11 +1021,13 @@ class LSM:
   #print self.__ns
 
   # calculate RA,Dec of phase center
-  ra_0=(x_min+x_max)*0.5
-  dec_0=(y_min+y_max)*0.5
-  # using moments
-  ra_0=sum_x_phi/sum_brightness
-  dec_0=sum_y_phi/sum_brightness
+  if self.default_patch_center=='G':
+   ra_0=(x_min+x_max)*0.5
+   dec_0=(y_min+y_max)*0.5
+  else: # 'C'
+   # using moments
+   ra_0=sum_x_phi/sum_brightness
+   dec_0=sum_y_phi/sum_brightness
   #print sum_x_phi,sum_x_phi/sum_brightness
   #print sum_y_phi,sum_y_phi/sum_brightness
   #print ra_0,dec_0

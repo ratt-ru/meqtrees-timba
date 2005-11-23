@@ -28,6 +28,7 @@ class OptionsDialog(QDialog):
         self.plot_z_type=-1 # 0:brightness, 1,2,3,4,=IQUV
 
         self.cell_has_changed=0
+        self.patch_center=-1# 0: geometric, 1: centroid 
 ################# Tab 1
         self.axisTab=QWidget(self.tabWidget,"axisTab")
 
@@ -403,7 +404,35 @@ class OptionsDialog(QDialog):
  
 
         self.tabWidget.insertTab(self.cellTab,QString.fromLatin1(""))
+################### Tab 5
+        self.patchTab=QWidget(self.tabWidget,"patchTab")
+        patchtabLayout=QVBoxLayout(self.patchTab,11,6,"patchtabLayout")
+  
+        ######## Group 1
+        self.patchBG=QButtonGroup(self.patchTab,"patchBG")
+        self.patchBG.setColumnLayout(0,Qt.Vertical)
+        self.patchBG.layout().setSpacing(6)
+        self.patchBG.layout().setMargin(6)
+        bgLayout=QVBoxLayout(self.patchBG.layout())
+        bgLayout.setAlignment(Qt.AlignCenter)
 
+        layoutbgV=QVBoxLayout(None,0,6,"layoutbgV")
+        self.patch_geom=QRadioButton(self.patchBG,"geom")
+        layoutbgV.addWidget(self.patch_geom)
+        self.patch_centroid=QRadioButton(self.patchBG,"centroid")
+        layoutbgV.addWidget(self.patch_centroid)
+        bgLayout.addLayout(layoutbgV)
+        patchtabLayout.addWidget(self.patchBG)
+
+        if self.parentWidget().cview.lsm.default_patch_center=='G':
+         self.patch_geom.setChecked(1)
+        elif self.parentWidget().cview.lsm.default_patch_center=='C':
+         self.patch_centroid.setChecked(1)
+
+
+        self.connect(self.patchBG, SIGNAL("clicked(int)"), self.patchBGradioClick)
+
+        self.tabWidget.insertTab(self.patchTab,QString.fromLatin1(""))
 ############## end of Tabs
         LayoutWidget.addWidget(self.tabWidget)
 
@@ -489,6 +518,11 @@ class OptionsDialog(QDialog):
         self.textLabel_t1.setText(self.__tr("End"))
         self.textLabel_tsep.setText(self.__tr("Step"))
 
+
+        self.tabWidget.changeTab(self.patchTab,self.__tr("Patches"))
+        self.patchBG.setTitle(self.__tr("Phase Center"))
+        self.patch_geom.setText(self.__tr("Geometric"))
+        self.patch_centroid.setText(self.__tr("Weighted"))
 
         self.buttonHelp.setText(self.__tr("&Help"))
         self.buttonHelp.setAccel(self.__tr("F1"))
@@ -682,6 +716,10 @@ class OptionsDialog(QDialog):
          tmpstr='0'
        self.lineEdit_tsep.setText(tmpstr)
 
+    def patchBGradioClick(self,id):
+     self.patch_center=id
+     #print "plot BG button %d clicked" %id
+
 
 
 
@@ -793,6 +831,12 @@ class OptionsDialog(QDialog):
        self.parentWidget().cview.showLegend(1)
       else:
        self.parentWidget().cview.showLegend(0)
+
+     if self.patch_center!=-1:
+      if self.patch_center==0:
+        self.parentWidget().cview.lsm.default_patch_center='G'
+      else: 
+        self.parentWidget().cview.lsm.default_patch_center='C'
 
      self.parentWidget().canvas.update()
 
