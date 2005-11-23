@@ -2,45 +2,99 @@
 
 from ConfigParser import *
 import os
+import sys
 
-_system_files = [ "/usr/local/Timba/%s.conf","/usr/Timba/%s.conf" ];
-_user_file = os.environ['HOME']+"/.%s.conf";
+_system_files = [ 
+  "/usr/local/Timba/timba.conf",
+  "/usr/Timba/timba.conf",
+  "/etc/timba.conf" ];
 
-class Config (object):
-  def __init__ (self,name,section="DEFAULT"):
+_user_file = os.environ['HOME']+"/.timba.conf";
+
+class DualConfigParser (object):
+  """A dual config parser taking into account both system-wide files
+  and user defaults. Any changes are stored in the user defaults."""
+  def __init__ (self,section):
     self.defsection = section;
     self.syscp = ConfigParser();
-    self.syscp.read([ ff%name for ff in _system_files]);
+    self.syscp.read(_system_files);
     self.usercp = ConfigParser();
-    self.usercp.read([_user_file%name]);
+    self.usercp.read([_user_file]);
+    if not self.syscp.has_section(section):
+      self.syscp.add_section(section);
+    if not self.usercp.has_section(section):
+      self.usercp.add_section(section);
     
-  def _get (self,method,option,default=None,section=None,save=True):
+  def _get (self,method,option,default=None,section=None):
     section = section or self.defsection;
     # try user defaults
     try:
       return getattr(self.usercp,method)(section,option);
     except (NoSectionError,NoOptionError):
-      pass; 
+      error = sys.exc_info()[1]; 
     # try systemwide
     try:
       return getattr(self.syscp,method)(section,option);
     except (NoSectionError,NoOptionError):
       if default is not None:
-        try: self.usercp.add_section(section);
-        except DuplicateSectionError: pass;
-        self.usercp.set(section,option,default);
-        if save:
-          self.usercp.write(file(_user_file,"w"));
+        self.syscp.set(section,option,str(default));
         return default;
       # no default, so re-raise the error 
-      raise;
+      raise error;
+      
+  def has_option (self,option,section=None):
+    section = section or self.defsection;
+    return self.syscp.has_option(section,option) or \
+      self.usercp.has_option(section,option);
+  
+  def get (self,option,default=None,section=None):
+    return self._get('get',option,default,section);
+  def getint (self,option,default=None,section=None):
+    return self._get('getint',option,default,section);
+  def getfloat (self,option,default=None,section=None):
+    return self._get('getfloat',option,default,section=None);
+  def getbool (self,option,default=None,section=None):
+    return self._get('getboolean',option,default,section);
   
   def set (self,option,value,section=None,save=True):
     section = section or self.defsection;
-    # try user defaults
+    value = str(value);
+    # try to get option first, and do nothing if no change
+    try:
+      if self.get(option,section=section) == value:
+        return;
+    except (NoSectionError,NoOptionError):
+      pass;
+    # save to user section
     try:
       self.usercp.add_section(section);
     except DuplicateSectionError: pass;
-    self.usercp.set(section,option,default);
+    self.usercp.set(section,option,value);
     if save:
       self.usercp.write(file(_user_file,"w"));
+      
+Config = None; 
+      
+def init (name):
+  global Config;
+  Config = DualConfigParser(name);
+
+if __name__ == '__main__':
+  conf = Config('test');
+  print 'test1:',conf.get('test1',1);
+  print 'test2:',conf.getint('test2',2);
+  print 'test3:',conf.getfloat('test3',3.0);
+  try:
+    print 'test4:',conf.get('test4');
+  except:
+    print 'test4:',sys.exc_info();
+  try:
+    print 'test5:',conf.get('test5');
+  except:
+    print 'test5:',sys.exc_info();
+  conf.set('test6','abc');
+  conf.set('test7',1);
+  conf.set('test8',1.0);
+  conf.set('test9',True);
+  print 'has test1:',conf.has_option('test1');
+  print 'has test4:',conf.has_option('test4');

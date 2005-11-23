@@ -188,6 +188,9 @@ class ConnectMeqKernel(QDialog):
         pass;
       QDialog.accept(self);
       
+    def set_default_args (self,args):
+      self.start_args.setText(args);
+    
     def set_default_path (self,path):
       self._default_path = path;
       self.start_pathname.setText(path);

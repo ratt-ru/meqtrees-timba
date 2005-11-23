@@ -6,6 +6,9 @@ import sys
 # command line (this has to go first, as other modules being imported
 # may depend on app_defaults settings)
 from Timba.Apps import app_defaults
+from Timba.Apps import config
+
+config.init('meqbrowser');
 
 from Timba import qt_threading
 from Timba import octopussy
@@ -14,6 +17,7 @@ from Timba.Apps import meqserver
 #from Timba.GUI import app_proxy_gui
 #from Timba.GUI.pixmaps import pixmaps
 #app_proxy_gui.set_splash_screen(pixmaps.trees_splash.pm,"Starting MeqTimba Brower");
+
 
 def importPlugin (name):
   name = 'Timba.Plugins.'+name;

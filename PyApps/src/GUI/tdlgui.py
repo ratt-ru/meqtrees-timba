@@ -34,6 +34,12 @@ def _file_mod_time (path):
     return os.stat(path).st_mtime; 
   except IOError:
     return None;
+    
+# flag: sync to external editor
+_external_sync = True;
+def set_external_sync (value):
+  global _external_sync;
+  _external_sync = value;
 
 class TDLEditor (QFrame,PersistentCurrier):
   ErrorMarker = 0;
@@ -448,28 +454,34 @@ class TDLEditor (QFrame,PersistentCurrier):
     item = self._error_at_line.get(line,None);
     if item:
       self._show_error_item(item);
-        
-  def _save_file (self,filename=None,text=None,force=False,save_as=False):
+      
+  def _save_file (self,filename=None,text=None,force=False,sync=False,save_as=False):
     """Saves text. If force=False, checks modification times in case
-    the file has been modified by another program, otherwise saves
-    unconditionally. If no filename is known, asks for one.
+    the file has been modified by another program. If sync=True,
+    always loads the disk version, if False, asks the user what to do
+    via a dialog.
+    If force=True, saves unconditionally. 
+    If no filename is known, asks for one. 
     Returns True if file was successfully saved, else None.""";
     filename = filename or self._filename;
     if filename and not save_as:
       if not force:
         filetime = _file_mod_time(filename);
         if filetime and filetime != self._file_disktime:
-          res = QMessageBox.warning(self,"TDL file changed",
-            """<p><tt>%s</tt> has been modified by another program. 
-            Would you like to overwrite the disk version, revert to the disk
-            version, or cancel the operation?"""
-            % (filename,),
-            "Overwrite","Revert","Cancel",-1,2);
+          if sync:
+            res = 1;
+          else:
+            res = QMessageBox.warning(self,"TDL file changed",
+              """<p><tt>%s</tt> has been modified by another program. 
+              Would you like to overwrite the disk version, revert to the disk
+              version, or cancel the operation?"""
+              % (filename,),
+              "Overwrite","Revert","Cancel",-1,2);
           if res == 2:
             return None;
           elif res == 1:
             self.load_file(filename);
-            return None;
+            return True;
           # else fall through to save
     else: # no filename, ask for one
       try: dialog = self._save_as_dialog;
@@ -489,9 +501,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     if text is None:
       text = str(self._editor.text());
     try:
-      outfile = file(filename,"w");
-      outfile.write(text);
-      outfile.close();
+      outfile = file(filename,"w").write(text);
     except IOError:
       (exctype,excvalue,tb) = sys.exc_info();
       _dprint(0,'exception',sys.exc_info(),'saving TDL file',filename);
@@ -543,9 +553,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     # The Python imp module expects text to reside in a disk file, which is
     # a pain in the ass for us if we're dealing with modified text or text
     # entered on-the-fly. So, we save before proceeding
-    if not self._filename or self._editor.isModified():
-      if not self._save_file():
-        return None;
+    if not self._save_file(sync=_external_sync):
+      return None;
     infile = file(self._filename,'r');
     if infile is None:
       return None;

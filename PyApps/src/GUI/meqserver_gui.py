@@ -13,6 +13,7 @@ from Timba.GUI import meqgui
 from Timba.GUI import bookmarks 
 from Timba.GUI import connect_meqtimba_dialog 
 from Timba.GUI import widgets 
+from Timba.Apps.config import Config
 from Timba import Grid
 from Timba import TDL
 
@@ -290,13 +291,16 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self,PYSIGNAL("isConnected()"),self._connect_dialog.setHidden);
     QObject.connect(connect,SIGNAL("activated()"),self._connect_dialog.show);
     QObject.connect(self._connect_dialog,PYSIGNAL("startKernel()"),self._start_kernel);
-    # --- find default path to kernel binary
-    binname = "meqserver";
-    for dirname in os.environ['PATH'].split(':'):
-      filename = os.path.join(dirname,binname);
-      if os.path.isfile(filename) and os.access(filename,os.X_OK):
-        self._connect_dialog.set_default_path(filename);
-        break;
+    # --- find path to kernel binary if not configured
+    self._default_meqserver_path = Config.get('meqserver-path','meqserver');
+    if self._default_meqserver_path.find('/') < 0: # need to search $PATH
+      for dirname in os.environ['PATH'].split(':'):
+        filename = os.path.join(dirname,self._default_meqserver_path);
+        if os.path.isfile(filename) and os.access(filename,os.X_OK):
+          self._default_meqserver_path = filename;
+          break;
+    self._connect_dialog.set_default_path(self._default_meqserver_path);
+    self._connect_dialog.set_default_args(Config.get('meqserver-args',''));
     self._connect_dialog.show();
     
     # --- TDL menu
@@ -307,7 +311,14 @@ class meqserver_gui (app_proxy_gui):
     runtdl.addTo(tdl_menu);
     QObject.connect(self,PYSIGNAL("isConnected()"),runtdl.setEnabled);
     QObject.connect(runtdl,SIGNAL("activated()"),self._run_tdl_script);
-    tdl_menu.insertSeparator();
+    syncedit = QAction("Sync to external editor",0,self);
+    syncedit.addTo(tdl_menu);
+    syncedit.setToggleAction(True);
+    sync = Config.getbool('tdl-sync-to-external-editor',True);
+    syncedit.setOn(sync);
+    tdlgui.set_external_sync(sync);
+    QObject.connect(syncedit,SIGNAL("toggled(bool)"),self.curry(Config.set,'tdl-sync-to-external-editor'));
+    QObject.connect(syncedit,SIGNAL("toggled(bool)"),tdlgui.set_external_sync);
     
     # --- View menu
     self.qa_viewpanels.addTo(view_menu);
@@ -349,7 +360,8 @@ class meqserver_gui (app_proxy_gui):
     addbkmark.setEnabled(False);
     addpagemark.setEnabled(False);
     autopublish.setToggleAction(True);
-    autopublish.setOn(True);
+    autopublish.setOn(Config.getbool('autopublish-bookmarks',True));
+    QObject.connect(autopublish,SIGNAL("toggled(bool)"),self.curry(Config.set,'autopublish-bookmarks'));
     # bookmark manager
     bookmarks_menu.insertSeparator();
     self._bookmarks = bookmarks.BookmarkFolder("main",self,menu=bookmarks_menu,gui_parent=self);
@@ -447,17 +459,25 @@ class meqserver_gui (app_proxy_gui):
   def _debug_kernel (self):
     pid = self.app.app_addr[2];    
     pathname = self._kernel_pathname or ( "/proc/%d/exe"%(pid,) );
-    cmd = "ddd %s %d" % (pathname,pid);
+    cmd0 = Config.get("debugger-command","ddd %f %p");
+    cmd0 = cmd0.replace('%p',str(pid)).replace('%f',pathname);
     prompt = "Debugger command:";
-    (cmd,ok) = QInputDialog.getText("Attaching debugger to kernel",prompt,QLineEdit.Normal,cmd);
+    (cmd,ok) = QInputDialog.getText("Attaching debugger to kernel",prompt,QLineEdit.Normal,cmd0);
     if ok:
       cmd = str(cmd);
-      args = cmd.split(' ');
+      # see if command has changed, write to config if so
+      if cmd != cmd0:
+        Config.set('debugger-command',cmd.replace(pathname,'%f').replace(str(pid),'%p'));
+      args = cmd.split(' '); 
       self.log_message("running \""+cmd+"\"");
       os.spawnvp(os.P_NOWAIT,args[0],args);
     
   def _start_kernel (self,pathname,args):
     _dprint(0,pathname,args);
+    if pathname != self._default_meqserver_path:
+      self._default_meqserver_path = pathname;
+      Config.set('meqserver-path',pathname);
+    Config.set('meqserver-args',args);
     if not os.path.isfile(pathname) or not os.access(pathname,os.X_OK):
       self.log_message("can't start kernel %s: not an executable file" % (pathname,), \
         category=Logger.Error);
