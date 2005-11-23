@@ -339,7 +339,7 @@ namespace Meq {
     const Cells &cells = request.cells();
     
     HIID rq_dom_id = RqId::maskSubId(request.id(),domain_depend_mask_); 
-    HIID newrid = RqId::maskSubId(request.id(),~solve_depend_mask_); 
+    HIID newrid = RqId::maskSubId(request.id(),forest().getDependMask(FDomain)|forest().getDependMask(FDataset));
     // do we have a current funklet set up?
     
     //parm should keep a reference to the funklet object, snce it doesnt have to be equal to the wstate...
@@ -356,7 +356,7 @@ namespace Meq {
 	// (a) domain ID of request matches that of funklet: can reuse
 	//     (a null domain ID in the request precludes this)
 
-	//MM: changed...only reuse the funklet if nothing but the iteration_id changed
+	//MM: changed.. reuse the funklet if domain or dataset changes 
 	//	if( !rq_dom_id.empty() && rq_dom_id == domain_id_ )
 	if( !newrid.empty() && newrid == rqid_ )
 	  {
