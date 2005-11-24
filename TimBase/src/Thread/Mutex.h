@@ -51,6 +51,16 @@ namespace LOFAR
       typedef enum { TRY=1 } MutexOptions;
 
       //##ModelId=3D1049B40396
+      static inline int pthread_mutex_kind (const pthread_mutex_t &mutex)
+      {
+// sadly, I can find no portable API to get the mutex 'kind' out, and the structures
+// seem to differ on different platforms
+#ifdef __x86_64__
+        return mutex.__data.__kind;
+#else
+        return mutex.__m_kind;
+#endif
+      }
 
       class Lock 
       {
@@ -211,16 +221,16 @@ namespace LOFAR
       pmutex = const_cast<pthread_mutex_t *>(&mtx);
       if( options == TRY )
       {
-        dprintf(3)("init: try-locking mutex @%08X\n",(int)pmutex);
+        dprintf(3)("init: try-locking mutex %p\n",(void*)pmutex);
         if( pthread_mutex_trylock(pmutex) < 0 )
           pmutex = 0;
       }
       else
       {
-        dprintf(3)("init: locking mutex @%08X\n",(int)pmutex);
+        dprintf(3)("init: locking mutex %p\n",(void*)pmutex);
         pthread_mutex_lock(pmutex);
       }
-      dprintf(3)("init: locked mutex @%08X\n",(int)pmutex);
+      dprintf(3)("init: locked mutex %p\n",(void*)pmutex);
     }
 
     //##ModelId=D5165FA7FEED
@@ -244,7 +254,7 @@ namespace LOFAR
     //##ModelId=E2FBE0C8FEED
     inline int Mutex::Lock::release ()
     {
-      dprintf(3)("release: unlocking mutex @%08X\n",(int)pmutex);
+      dprintf(3)("release: unlocking mutex %p\n",(void*)pmutex);
       int ret = pmutex ? pthread_mutex_unlock(pmutex) : 0;
       pmutex = 0;
       return ret; 
@@ -253,7 +263,7 @@ namespace LOFAR
     //##ModelId=D8B60901FEED
     inline void Mutex::Lock::release_without_unlock ()
     {
-      dprintf(3)("release: relasing w/o unlock mutex @%08X\n",(int)pmutex);
+      dprintf(3)("release: relasing w/o unlock mutex %p\n",(void*)pmutex);
       pmutex = 0;
     }
 
@@ -264,7 +274,7 @@ namespace LOFAR
       init(mutex.mutex,options);
       if( old )
       {
-        dprintf(3)("relock: unlocking old mutex @%08X\n",(int)old);
+        dprintf(3)("relock: unlocking old mutex %p\n",(void*)old);
         pthread_mutex_unlock(old);
       }
       return 0;
@@ -288,7 +298,7 @@ namespace LOFAR
     //##ModelId=3D10B976039C
     inline Mutex::Mutex (const Mutex &right)
     {
-      init(right.mutex.__m_kind);
+      init(pthread_mutex_kind(right.mutex));
     }
 
 
@@ -303,23 +313,23 @@ namespace LOFAR
     {
       pthread_mutexattr_t attr = { kind  };
       pthread_mutex_init(&mutex,&attr); 
-      dprintf(3)("initialized mutex %08x kind %d\n",(int)&mutex,kind);
+      dprintf(3)("initialized mutex %p kind %d\n",(void*)&mutex,kind);
     }
 
     //##ModelId=3D10BC47035F
     inline Mutex & Mutex::operator = (const Mutex &right)
     {
       pthread_mutex_destroy(&mutex);
-      init(right.mutex.__m_kind);
+      init(pthread_mutex_kind(right.mutex));
       return *this;
     }
 
     //##ModelId=D4F415F7FEED
     inline int Mutex::lock () const
     {
-      dprintf(3)("%d: locking mutex %08x\n",(int)self().id(),(int)&mutex);
+      dprintf(3)("%d: locking mutex %p\n",(int)self().id(),(void*)&mutex);
       int ret = pthread_mutex_lock(&mutex); 
-      dprintf(3)("%d: locked mutex %08x: %d\n",(int)self().id(),(int)&mutex,ret);
+      dprintf(3)("%d: locked mutex %p: %d\n",(int)self().id(),(void*)&mutex,ret);
       return ret;
     }
 
@@ -327,7 +337,7 @@ namespace LOFAR
     inline int Mutex::unlock () const
     {
       int ret = pthread_mutex_unlock(&mutex); 
-      dprintf(3)("%d: unlocked mutex %08x: %d\n",(int)self().id(),(int)&mutex,ret);
+      dprintf(3)("%d: unlocked mutex %p: %d\n",(int)self().id(),(void*)&mutex,ret);
       return ret;
     }
 
