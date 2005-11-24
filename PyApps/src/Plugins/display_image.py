@@ -2098,7 +2098,7 @@ class QwtImageDisplay(QwtPlot):
       self.complex_type = complex_type
 
 # add possibility to flip between real/imag and ampl/phase
-      if not self.complex_switch_set:
+      if complex_type and not self.complex_switch_set:
         toggle_id = 306
         self._menu.insertItem("Toggle real/imag or ampl/phase Display", toggle_id)
         self.complex_switch_set = True
