@@ -452,15 +452,24 @@ class QwtImageDisplay(QwtPlot):
       if menuid == 306:
         if self.ampl_phase:
           self.ampl_phase = False
-          self._x_title = 'Array/Channel Number (real followed by imaginary)'
+          if self.is_vector:
+            self._x_title = 'Array/Channel Number '
+          else:
+            self._x_title = 'Array/Channel Number (real followed by imaginary)'
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
         else:
           self.ampl_phase = True
-          self._x_title = 'Array/Channel Number (amplitude followed by phase)'
+          if self.is_vector:
+            self._x_title = 'Array/Channel Number '
+          else:
+            self._x_title = 'Array/Channel Number (amplitude followed by phase)'
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
         _dprint(3, 'calling display_image')
-        self.adjust_color_bar = True
-        self.display_image(self.complex_image)
+        if self.is_vector:
+          self.array_plot(self._window_title, self.complex_image, False)
+        else:
+          self.adjust_color_bar = True
+          self.display_image(self.complex_image)
         return
       self.active_image_index = menuid
       if self.is_combined_image:
@@ -743,15 +752,24 @@ class QwtImageDisplay(QwtPlot):
       if menuid == 306:
         if self.ampl_phase:
           self.ampl_phase = False
-          self._x_title = 'Array/Channel Number (real followed by imaginary)'
+          if self.is_vector:
+            self._x_title = 'Array/Channel Number '
+          else:
+            self._x_title = 'Array/Channel Number (real followed by imaginary)'
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
         else:
           self.ampl_phase = True
-          self._x_title = 'Array/Channel Number (amplitude followed by phase)'
+          if self.is_vector:
+            self._x_title = 'Array/Channel Number '
+          else:
+            self._x_title = 'Array/Channel Number (amplitude followed by phase)'
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
         _dprint(3, 'calling display_image')
-        self.display_image(self.complex_image)
-        self.replot()
+        if self.is_vector:
+          self.array_plot(self._window_title, self.complex_image, False)
+        else:
+          self.adjust_color_bar = True
+          self.display_image(self.complex_image)
         return
 
 # toggle flags display	
@@ -2080,8 +2098,6 @@ class QwtImageDisplay(QwtPlot):
       self.complex_type = complex_type
 
 # add possibility to flip between real/imag and ampl/phase
-      if self.complex_type: 
-        self.complex_image = plot_array
       if not self.complex_switch_set:
         toggle_id = 306
         self._menu.insertItem("Toggle real/imag or ampl/phase Display", toggle_id)
@@ -2089,6 +2105,8 @@ class QwtImageDisplay(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False:
+        if self.complex_type: 
+          self.complex_image = plot_array
         self.enableAxis(QwtPlot.yLeft)
         self.enableAxis(QwtPlot.xBottom)
 # if there are flags associated with this array, we need to copy flags for complex array
@@ -2213,6 +2231,8 @@ class QwtImageDisplay(QwtPlot):
 
       if self.is_vector == True:
         _dprint(3, ' we are plotting a vector')
+        if self.complex_type: 
+          self.complex_image = plot_array
 
 # remove any markers
         self.removeMarkers()
@@ -2295,8 +2315,12 @@ class QwtImageDisplay(QwtPlot):
           self.enableAxis(QwtPlot.yRight)
           self.enableAxis(QwtPlot.yLeft)
           self.enableAxis(QwtPlot.xBottom)
-          self.setAxisTitle(QwtPlot.yLeft, 'Value: real (black line / red dots)')
-          self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (blue line / green dots)')
+          if self.ampl_phase:
+            self.setAxisTitle(QwtPlot.yLeft, 'Value: Amplitude (black line / red dots)')
+            self.setAxisTitle(QwtPlot.yRight, 'Value: Phase (blue line / green dots)')
+          else:
+            self.setAxisTitle(QwtPlot.yLeft, 'Value: real (black line / red dots)')
+            self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (blue line / green dots)')
           self.xCrossSection = self.insertCurve('xCrossSection')
           self.yCrossSection = self.insertCurve('yCrossSection')
           self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
@@ -2311,6 +2335,12 @@ class QwtImageDisplay(QwtPlot):
                      QPen(Qt.green), QSize(5,5)))
           self.x_array =  flattened_array.getreal()
           self.y_array =  flattened_array.getimag()
+          if self.ampl_phase:
+            abs_array = fabs(flattened_array)
+            phase_array = arctan2(self.y_array,self.x_array)
+            self.x_array = abs_array
+            self.y_array = phase_array
+
           _dprint(3, 'plotting complex array with x values ', self.x_index)
           _dprint(3, 'plotting complex array with real values ', self.x_array)
           _dprint(3, 'plotting complex array with imag values ', self.y_array)
