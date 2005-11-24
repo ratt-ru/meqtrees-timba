@@ -143,6 +143,8 @@ class QwtImageDisplay(QwtPlot):
         self.metrics_rank = None
         self.toggles_not_set = True
         self.iteration_number = None
+        self.ampl_phase = False
+        self.complex_switch_set = False
         self._active_plane = None
         self._active_perturb = None
         self.first_axis_inc = None
@@ -447,6 +449,19 @@ class QwtImageDisplay(QwtPlot):
           self.toggle_ND_Controller = 1
         self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
         return
+      if menuid == 306:
+        if self.ampl_phase:
+          self.ampl_phase = False
+          self._x_title = 'Array/Channel Number (real followed by imaginary)'
+          self.setAxisTitle(QwtPlot.xBottom, self._x_title)
+        else:
+          self.ampl_phase = True
+          self._x_title = 'Array/Channel Number (amplitude followed by phase)'
+          self.setAxisTitle(QwtPlot.xBottom, self._x_title)
+        _dprint(3, 'calling display_image')
+        self.adjust_color_bar = True
+        self.display_image(self.complex_image)
+        return
       self.active_image_index = menuid
       if self.is_combined_image:
         self.removeMarkers()
@@ -724,6 +739,19 @@ class QwtImageDisplay(QwtPlot):
         else:
           self.toggle_ND_Controller = 1
         self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+        return
+      if menuid == 306:
+        if self.ampl_phase:
+          self.ampl_phase = False
+          self._x_title = 'Array/Channel Number (real followed by imaginary)'
+          self.setAxisTitle(QwtPlot.xBottom, self._x_title)
+        else:
+          self.ampl_phase = True
+          self._x_title = 'Array/Channel Number (amplitude followed by phase)'
+          self.setAxisTitle(QwtPlot.xBottom, self._x_title)
+        _dprint(3, 'calling display_image')
+        self.display_image(self.complex_image)
+        self.replot()
         return
 
 # toggle flags display	
@@ -1291,6 +1319,12 @@ class QwtImageDisplay(QwtPlot):
 # if incoming array is complex, create array of reals followed by imaginaries
         real_array =  image.getreal()
         imag_array =  image.getimag()
+        if self.ampl_phase:
+          abs_array = fabs(image)
+#         phase_array = arctan2(imag_array,real_array)/math.pi*180.0
+          phase_array = arctan2(imag_array,real_array)
+          real_array = abs_array
+          imag_array = phase_array
         shape = real_array.shape
         image_for_display = zeros((2*shape[0],shape[1]), Float32)
         for k in range(shape[0]):
@@ -1801,8 +1835,10 @@ class QwtImageDisplay(QwtPlot):
       self.array_shape = None
       self.array_rank = data_array.rank
       if data_array.rank > 2: 
+        _dprint(3, 'data_array.rank ', data_array.rank)
         self.array_shape =  data_array.shape
         if self.array_selector is None or len(self.array_selector) == 0:
+          _dprint(3, ' selecting array ')
           self.array_selector = []
           self.first_axis = None
           self.second_axis = None
@@ -1814,6 +1850,7 @@ class QwtImageDisplay(QwtPlot):
                 if self.first_axis is None:
                   self.first_axis = i
           if not self.first_axis is None and not self.second_axis is None:
+            _dprint(3, 'trying to find plot dimensions')
             for i in range(data_array.rank):
               if i == self.first_axis:
                 axis_slice = slice(0,data_array.shape[self.first_axis])
@@ -1827,6 +1864,10 @@ class QwtImageDisplay(QwtPlot):
                 self.array_selector.append(0)
             self.emit(PYSIGNAL("reset_axes_labels"),(self.axis_labels, self.vells_axis_parms))
           else:
+            if self.first_axis is None:
+              if not self.second_axis is None:
+                self.first_axis = self.second_axis - 1
+            _dprint(3, 'extracting plot dimensions')
             first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
             second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
         else:
@@ -2026,6 +2067,7 @@ class QwtImageDisplay(QwtPlot):
         num_elements = num_elements * plot_array.shape[i]
         if plot_array.shape[i] > 1:
           actual_array_rank = actual_array_rank + 1
+      _dprint(3, 'actual array rank ', actual_array_rank)
       if actual_array_rank == 1:
         self.is_vector = True;
 
@@ -2036,6 +2078,14 @@ class QwtImageDisplay(QwtPlot):
       if plot_array.type() == Complex64:
         complex_type = True;
       self.complex_type = complex_type
+
+# add possibility to flip between real/imag and ampl/phase
+      if self.complex_type: 
+        self.complex_image = plot_array
+      if not self.complex_switch_set:
+        toggle_id = 306
+        self._menu.insertItem("Toggle real/imag or ampl/phase Display", toggle_id)
+        self.complex_switch_set = True
 
 # test if we have a 2-D array
       if self.is_vector == False:
@@ -2104,13 +2154,19 @@ class QwtImageDisplay(QwtPlot):
             self.first_axis_inc = delta_vells / plot_array.shape[0] 
             delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
             self.second_axis_inc = delta_vells / plot_array.shape[1] 
-            title_addition = ': (real followed by imaginary)'
+            if self.ampl_phase:
+              title_addition = ': (amplitude followed by phase)'
+            else:
+              title_addition = ': (real followed by imaginary)'
             self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             self._y_title = self.vells_axis_parms[self.y_parm][2]
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           else:
-            self._x_title = 'Array/Channel Number (real followed by imaginary)'
+            if self.ampl_phase:
+              self._x_title = 'Array/Channel Number (amplitude followed by phase)'
+            else:
+              self._x_title = 'Array/Channel Number (real followed by imaginary)'
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             self._y_title = 'Array/Sequence Number'
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
