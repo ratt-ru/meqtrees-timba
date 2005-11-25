@@ -11,11 +11,16 @@ NB: Just temporary: To be converted into Bugzilla items....!
    - dissimilar station (WHAT) 
  - JEN: TDL_Joneset.py:
    - dissimilar station (WHAT): no impact?
+   - more transparent or default... (MXM)...?
+   - Use scalar default values (0,1)
+   - Allow later specification of shape (also via Joneset?)
+   - Allow ND funklets......!
 
  - MXM/JEN/SBY: Tools for funklet creation.....
  - SBY/OMS: Domain dimensions.....
 
-
+ - MXM: MeqParm default value discussion
+   - separate default values from solve-shape      <----- !! 
 
  - SBY: LSM files for WSRT calibrator fields
 
@@ -31,11 +36,19 @@ NB: Just temporary: To be converted into Bugzilla items....!
  - MXM/WNB: Experiment with AIPS++ fitting improvements
  - AGW/JEN: Use LM parameter in 'debug' field of result
 
+ - JEN: TDL_Antenna.py
+   - Multiplication of voltage beams (rather than subtract)
+
+ - JEN: TDL_common.py
+   - Add a profiler of some kind (Why is Antenna tree definition so slow?)
+
  - JEN: TDL_result.py (object that dissects a result...)
 
  - JEN: TDL_display_subtree.py (from MG_JEN_exec.py)
  - JEN: TDL_display_nodescope.py (from MG_JEN_exec.py)
  - JEN: TDL_display_record.py (from MG_JEN_exec.py)
+
+ - JEN: TDL_parameter_set.py (a record of function parameters)
 
 
 
