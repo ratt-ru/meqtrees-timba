@@ -8,6 +8,7 @@
 # History:
 #    - 02 sep 2005: creation
 #    - 23 sep 2005: added MeqVisDataMux to sink()
+#    - 25 nov 2005: corr_index argument for .spigots()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -74,10 +75,11 @@ class Cohset (TDL_common.Super):
     def __init__(self, **pp):
         
         pp.setdefault('scope', '<scope>')
-        pp.setdefault('punit', 'uvp')             # prediction unit (source/patch)
+        pp.setdefault('punit', 'uvp')                   # prediction unit (source/patch)
         pp.setdefault('stations', range(0,3))
         pp.setdefault('ifrs', None)
         pp.setdefault('polrep', 'linear')
+        pp.setdefault('corr_index', [0,1,2,3])          # default: all 4 corrs
         pp.setdefault('phase_centre', '<radec>')
 
         self.__punit = pp['punit']
@@ -116,12 +118,13 @@ class Cohset (TDL_common.Super):
             print key,self.__coh[key]
         self.__dims = [1]                        # shape of coh tensor nodes
 
-        # Polarisation representation
+        # Polarisation representation and available correlations:
+        # A Cohset ALWAYS has 2x2 coherency matrices, but some of the elements may be invalid.
+        # The latter is recognised by a negative value of the corresponding element(s)
+        #   of the 4-element (2x2?) vector self.__corr_index
+        # See also self.calc_derived() below
         self.__polrep = pp['polrep']
-        self.__corrs = ['XX', 'XY', 'YX', 'YY']
-        self.__corr_index = [0,1,2,3]            # used in spigot/sink 
-        if self.__polrep == 'circular':
-            self.__corrs = ['RR', 'RL', 'LR', 'LL']
+        self.__corr_index = pp['corr_index']     # e.g. [0,1,2,3] 
 
         # The Cohset contains the position (RA, Dec) of the current phase centre:
         self.__phase_centre = pp['phase_centre']
@@ -144,12 +147,34 @@ class Cohset (TDL_common.Super):
 
     def calc_derived(self):
         """Calculate derived values from primary ones"""
+
+        # NB: polrep and corr_index apply to ALL ifrs. This is OK for the moment,
+        #     but we should look ahead to Cohsets for dissimilar stations, where
+        #     each ifr should have its own description (can of worms....)
+
+        self.__corrs = []
+        for i in range(len(self.__corr_index)):
+            icorr = self.__corr_index[i]
+            if icorr<0:
+                pass                                 # ignore....
+            elif self.__polrep == 'circular':
+                if i==0: self.__corrs.append('RR')
+                if i==1: self.__corrs.append('RL')
+                if i==2: self.__corrs.append('LR')
+                if i==3: self.__corrs.append('LL')
+            else:
+                if i==0: self.__corrs.append('XX')
+                if i==1: self.__corrs.append('XY')
+                if i==2: self.__corrs.append('YX')
+                if i==3: self.__corrs.append('YY')
+                
         self.__paral = []
         self.__cross = []
         for corr in self.__corrs:
             if ['XX','YY','RR','LL'].__contains__(corr): self.__paral.append(corr)
             if ['XY','YX','RL','LR'].__contains__(corr): self.__cross.append(corr)
         return True
+
 
     def __getitem__(self, key):
         """Get a Cohset item by key or by index nr"""
@@ -524,7 +549,8 @@ class Cohset (TDL_common.Super):
 
 
     def icorr(self, corrs='all'):
-        """Get the index nrs (in self.__corr) of the specified corrs"""
+        """Get the list index nrs (in self.__corr) of the specified corr names.
+        NB: These numbers are NOT related to the result of self.corr_index()"""
         if isinstance(corrs, str) and corrs=='all': corrs = self.corrs()
         if not isinstance(corrs, (tuple,list)): corrs = [corrs]
         icorr = []
@@ -540,27 +566,27 @@ class Cohset (TDL_common.Super):
         return icorr
 
 
-    def selcorr(self, ns, corrs=None):
+    def selcorr_obsolete(self, ns, corrs=None):
         """Select a subset of the available corrs""" 
         funcname = '::selcorr():'
         if corrs==None: return False
         icorr = self.icorr(corrs)
-        if len(icorr)==0: return False
+        multi = (len(icorr)>1)       # Kludge, to tell MeqSelector that icorr is multiple... 
+        if len(icorr)==0:
+            return False
 
         # Adjust the corrs info vectors:
-        newcorrs = []
-        for i in icorr: newcorrs.append(self.__corrs[i])
-        self.__corrs = newcorrs
-        self.calc_derived()
-        print '** .selcorr(',corrs,copy,') ->',self.corrs(),self.paral(),self.cross()
+        self.__corr_index = icorr
+        self.calc_derived()       
+        print '** .selcorr(',corrs,icorr,') ->',self.corrs(),self.paral(),self.cross()
 
         # Make MeqSelector nodes that select the specified corrs:
         uniqual = _counter(funcname, increment=-1)
-        multi = (len(icorr)>1)       # Kludge, to tell MeqSelector that icorr is multiple... 
         for key in self.keys():
             s12 = self.__stations[key]
             coh = ns.selcorr(uniqual)(corrs)(s1=s12[0], s2=s12[1]) << Meq.Selector(self.__coh[key], index=icorr, multi=multi)
             self.__coh[key] = coh
+
         # Adjust the coherence shape, if necessary:  
         if len(icorr)<4: self.__dims = [len(icorr)]            #...shape...??
         self.scope('selcorr'+'_'+self.scope())
@@ -573,17 +599,24 @@ class Cohset (TDL_common.Super):
     def spigots (self, ns=0, **pp):
         """Fill the Cohset with spigot nodes for all its ifrs"""
         funcname = '::spigots():'
+
         # Input arguments:
         pp.setdefault('flag_bit', 4)                     # .....
-        pp.setdefault('corr_index', [0,1,2,3])           # .........??
+        pp.setdefault('corr_index', [0,1,2,3])           # default: all 4 corr
         pp.setdefault('input_column', 'DATA')            # .....
         pp = record(pp)
 
-        corr_index = pp['corr_index']
+        # Deal with available/wanted correlations:
         # For XX/YY only, use:
-        # corr_index = [0,-1,-1,3]
-        # Still returns a 2x2 tensor node, but with complex zeroes for -1 (?)
-        # See wiki-pages...
+        # - If only XX/YY available: pp['corr_index'] = [0,-1,-1,1]
+        # - If all 4 corr available: pp['corr_index'] = [0,-1,-1,3]
+        # - etc
+        # Still returns a 2x2 tensor node, but with empty results {} for missing corrs
+        # Empty results {} are interpreted as zeroes, e.g. in matrix multiplication.
+        # NB: after that, the results ar no longer empty, so that cannot be used
+        #   detecting missing corrs!! Use the Cohset field: ....
+        # NB: Empty results are ignored by condeqs etc
+        # See also the wiki-pages...
         
         # Make a record/dict of spigots that produce 2x2 coherency matrices:
         for key in self.keys():
@@ -592,14 +625,19 @@ class Cohset (TDL_common.Super):
             i2 = self.station_index()[str(s12[1])]              # integer
             self.__coh[key] = ns.spigot(s1=s12[0],s2=s12[1]) << Meq.Spigot(station_1_index=i1,
                                                                            station_2_index=i2,
-                                                                           corr_index=corr_index,
+                                                                           corr_index=pp['corr_index'],
                                                                            flag_bit=pp['flag_bit'],
                                                                            input_column=pp['input_column'])
             # print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
 
+        # Update Cohset control fields:
+        self.__corr_index = pp['corr_index']                    # used throughout!
         self.__dims = [2,2]
+        self.calc_derived()
+
         self.label('spigots')
         self.scope('spigots')
+        self.history(append=funcname+' inarg = '+str(pp))
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -614,12 +652,13 @@ class Cohset (TDL_common.Super):
         pp.setdefault('start', None)                    # optional child of MeqVisDataMux
         pp.setdefault('pre', None)                      # optional child of MeqVisDataMux
         pp.setdefault('post', None)                     # optional child of MeqVisDataMux
-        # pp = record(pp)                  # ...record(pp) drops the None fields....!
+        # pp = record(pp)                  # ...record(pp) drops the None fields....!  Seem OK now...
         print funcname,' pp=\n',pp,'\n'
         print 'pp[post] =',type(pp['post'])
 
-        corr_index = self.corr_index()
-        corr_index = [0,1,2,3]
+        # Mapping to MS correlations (see self.spigots() above)
+        # corr_index = [0,1,2,3]                        # default
+        corr_index = self.corr_index()                  # defined in self.spigots()
 
         # Make separate sinks for each ifr:
         for key in self.keys():
@@ -651,6 +690,8 @@ class Cohset (TDL_common.Super):
         
 
         self.scope('sinks')
+        self.history(append=funcname+' inarg = '+str(pp))
+        self.history(append=funcname+' corr_index = '+str(corr_index))
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -700,7 +741,9 @@ if __name__ == '__main__':
     
     stations = range(4)
     ifrs = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ]
-    cs = Cohset(label='initial', polrep='circular', stations=stations)
+    polrep = 'linear'
+    # polrep = 'circular'
+    cs = Cohset(label='initial', polrep=polrep, stations=stations)
     cs.display('initial')
 
     if 0:
@@ -715,8 +758,20 @@ if __name__ == '__main__':
 
 
     if 0:
-        cs.spigots(ns)
+        corr_index = [0,1,2,3]         # all 4 available (default)
+        # corr_index = [-1,1,2,-1]       # all 4 available, but only XY/XY wanted
+        # corr_index = [0,-1,-1,1]       # only XX/YY available
+        corr_index = [0,-1,-1,3]       # all 4 available, but only XX/YY wanted
+        cs.spigots(ns, corr_index=corr_index)
         cs.display('spigots')
+        # cs.sinks(ns)
+
+
+    if 0:
+        cs.icorr()
+        cs.icorr('XX')
+        cs.icorr(['XX','YY'])
+        cs.icorr(['XY','YX'])
 
     if 0:
         zero = ns.zero << 0.0
@@ -724,7 +779,7 @@ if __name__ == '__main__':
         cs.graft(ns, [zero, minus], name='test', key='all', stepchild=False)
         cs.display('graft')
 
-    if 1:
+    if 0:
         cs.zero(ns)
         cs1 = Cohset(label='other', polrep='circular', stations=stations)
         cs1.unity(ns)
@@ -736,9 +791,15 @@ if __name__ == '__main__':
         
     if 0:
         cs.sinks(ns)
-        if 1:
-            sink = cs.simul_sink(ns)
-            MG_JEN_exec.display_subtree(sink, 'simul_sink', full=True, recurse=5)
+        sink = cs.simul_sink(ns)
+        MG_JEN_exec.display_subtree(sink, 'simul_sink', full=True, recurse=5)
+
+    if 0:
+        dd = dict(aa=1, bb=2, cc=None, dd=5)
+        print 'dd =',dd
+        pp = record(dd)
+        print 'pp =',pp
+        
         
     if 0:
         # Display the final result:

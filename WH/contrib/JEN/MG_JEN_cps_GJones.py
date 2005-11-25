@@ -1,4 +1,5 @@
 # MG_JEN_cps_GJones.py
+# textsje
 
 # Short description:
 #   Complex gain calibration on a Central Point Source (cps) 
@@ -9,6 +10,7 @@
 
 # History:
 # - 25 sep 2005: creation
+# - 25 nov 2005: allow XX/YY only
 
 # Copyright: The MeqTree Foundation
 
@@ -53,8 +55,13 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
                          last_changed = 'd28sep2005',
                          punit='unpol',                        # name of calibrator source
                          stations=range(4),                   # specify the (subset of) stations to be used
+                         # corr_index = [0,1,2,3],              # correlations to be used
+                         # corr_index = [0,-1,-1,1],          # only XX/YY available
+                         corr_index = [0,-1,-1,3],          # all available, but use only XX/YY
                          parmtable=None,                      # name of MeqParm table
                          
+                         insert_solver=True,                   # if True, insert a solver
+
                          fdeg_Gampl=2,                          # degree of freq polynomial
                          fdeg_Gphase='fdeg_Gampl',
                          tdeg_Gampl=1,                          # degree of time polynomial
@@ -115,20 +122,23 @@ def _define_forest (ns):
    Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', stations=stations)
 
    # Make MeqSpigot nodes that read the MS:
-   MG_JEN_Cohset.make_spigots(ns, Cohset, visu=MG['visu_spigots'],
+   MG_JEN_Cohset.make_spigots(ns, Cohset,
+                              corr_index=MG['corr_index'],
+                              visu=MG['visu_spigots'],
                               flag=MG['flag_spigots'])
 
-   # Make predicted data with a punit (see above) and corrupting Jones matrices
-   Sixpack = MG_JEN_Cohset.punit2Sixpack (ns, punit=MG['punit'])
-   Joneset = MG_JEN_Cohset.JJones(ns, jones=['G'], Sixpack=Sixpack, **MG)
-   predicted = MG_JEN_Cohset.predict (ns, ifrs=ifrs, Sixpack=Sixpack, Joneset=Joneset)
-
-   # Insert a solver for a named solvegroup of MeqParms.
-   # After solving, the uv-data are corrected with the the improved Joneset. 
-   MG_JEN_Cohset.insert_solver (ns, solvegroup='GJones', 
-                                measured=Cohset, predicted=predicted, 
-                                correct=Joneset, 
-                                visu=MG['visu_solver'], **MG)
+   if MG['insert_solver']:
+      # Make predicted data with a punit (see above) and corrupting Jones matrices
+      Sixpack = MG_JEN_Cohset.punit2Sixpack (ns, punit=MG['punit'])
+      Joneset = MG_JEN_Cohset.JJones(ns, jones=['G'], Sixpack=Sixpack, **MG)
+      predicted = MG_JEN_Cohset.predict (ns, ifrs=ifrs, Sixpack=Sixpack, Joneset=Joneset)
+      
+      # Insert a solver for a named solvegroup of MeqParms.
+      # After solving, the uv-data are corrected with the the improved Joneset. 
+      MG_JEN_Cohset.insert_solver (ns, solvegroup='GJones', 
+                                   measured=Cohset, predicted=predicted, 
+                                   correct=Joneset, 
+                                   visu=MG['visu_solver'], **MG)
 
   # Make MeqSink nodes that write the MS:
    sinks = MG_JEN_Cohset.make_sinks(ns, Cohset, flag=MG['flag_sinks'],

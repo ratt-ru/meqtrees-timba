@@ -10,6 +10,7 @@
 # History:
 # - 24 aug 2005: creation
 # - 05 sep 2005: adapted to Cohset/Joneset objects
+# - 25 nov 2005: corr_index argument to .make_spigots()
 
 # Copyright: The MeqTree Foundation 
 
@@ -334,12 +335,13 @@ def make_spigots(ns, Cohset, **pp):
     funcname = 'MG_JEN_Cohset.make_spigots(): '
 
     # Input parameters:
+    pp.setdefault('corr_index', [0,1,2,3])
     pp.setdefault('visu', False)
     pp.setdefault('flag', False)
     pp = record(pp)
 
     # Make MeqSinks
-    Cohset.spigots(ns)
+    Cohset.spigots(ns, corr_index=pp['corr_index'])
     spigots = Cohset.nodes()
     
     # Append the initial (spigot) Cohset to the forest state object:
@@ -370,6 +372,7 @@ def make_sinks(ns, Cohset, **pp):
     pp.setdefault('flag', False)
     pp = record(pp)
 
+
     # Optional: flag the sink (output) data:
     if pp.flag:
        insert_flagger (ns, Cohset, scope='sinks',
@@ -377,14 +380,16 @@ def make_sinks(ns, Cohset, **pp):
 
     # Optional: visualise the sink (output) data:
     if pp.visu:
-	visualise (ns, Cohset)
-	visualise (ns, Cohset, type='spectra')
+       # Change the scope (name) for visualisation:
+       Cohset.scope('sinks')
+       visualise (ns, Cohset)
+       visualise (ns, Cohset, type='spectra')
 
     # Attach some dataCollect nodes to the VisDataMux:
     rr = MG_JEN_forest_state.MS_interface_nodes(ns)
     bb = []
     for key in rr.dcoll.keys():
-        bb.append(rr.dcoll[key])
+       bb.append(rr.dcoll[key])
 
     # Make MeqSinks
     Cohset.sinks(ns, start=bb)
@@ -558,10 +563,12 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
 
 
     # Make new Cohset objects with the relevant corrs only:
-    Pohset.selcorr(ns, corrs)
-    Mohset.selcorr(ns, corrs)
+    # Pohset.selcorr(ns, corrs)
+    # Mohset.selcorr(ns, corrs)
   
     # Make condeq nodes (use Pohset from here onwards):
+    icorr = Pohset.icorr(corrs)                   # corr selection indices
+    multi = (len(icorr)>1)            # Kludge, to tell MeqSelector that icorr is multiple... 
     cc = []
     punit = predicted.punit()
     for key in Pohset.keys():
@@ -569,7 +576,13 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
             print '\n** key not recognised in measured Cohset:',key
             return
         s12 = Pohset.stations()[key]
-        condeq = ns.condeq(solver_name)(s1=s12[0],s2=s12[1],q=punit) << Meq.Condeq(Mohset[key], Pohset[key])
+        Poh = ns.predicted(solver_name)(corrs)(s1=s12[0], s2=s12[1], q=punit) << Meq.Selector(Pohset[key],
+                                                                                              index=icorr,
+                                                                                              multi=multi)
+        Moh = ns.measured(solver_name)(corrs)(s1=s12[0], s2=s12[1], q=punit) << Meq.Selector(Mohset[key],
+                                                                                             index=icorr,
+                                                                                             multi=multi)
+        condeq = ns.condeq(solver_name)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Mohset[key], Pohset[key])
         Pohset[key] = condeq
         cc.append(condeq)
     Pohset.display('after defining condeqs')
@@ -591,20 +604,21 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
                                                            save_funklets=True,
                                                            debug_level=pp.debug_level)
 
-    # Make historyCollect nodes for the solver metrics 
+    # Make historyCollect nodes for the solver metrics
     hcoll_nodes = []
-    input_index = hiid('VellSets/0/Value')       # The default (not relelant for solver)
-    metrics = ['fit','rank','mu','stddev']
-    metrics = ['rank','mu']
-    pagename = 'hcoll_metrics_'+solver_name
-    for metric in metrics:
-         input_index = hiid('solver_result/metrics/0/'+metric)          
-         hcoll_name = 'hcoll_'+metric+'_'+solver_name
-         hcoll = ns[hcoll_name] << Meq.HistoryCollect(solver, verbose=True,
-                                                      input_index=input_index,
-                                                      top_label=hiid('history'))
-         hcoll_nodes.append(hcoll)
-         MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
+    if False:
+       input_index = hiid('VellSets/0/Value')       # The default (not relelant for solver)
+       metrics = ['fit','rank','mu','stddev']
+       metrics = ['rank','mu']
+       pagename = 'hcoll_metrics_'+solver_name
+       for metric in metrics:
+          input_index = hiid('solver_result/metrics/0/'+metric)          
+          hcoll_name = 'hcoll_'+metric+'_'+solver_name
+          hcoll = ns[hcoll_name] << Meq.HistoryCollect(solver, verbose=True,
+                                                       input_index=input_index,
+                                                       top_label=hiid('history'))
+          hcoll_nodes.append(hcoll)
+          MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
 
 
     # Make a bookmark for the solver plot:
@@ -681,7 +695,13 @@ def visualise(ns, Cohset, **pp):
         for icorr in range(len(corrs)):
             corr = corrs[icorr]
             nsub = ns.Subscope(visu_scope+'_'+corr, s1=s12[0], s2=s12[1])
-            selected = nsub.selector(icorr)(uniqual) << Meq.Selector (coh, index=icorr)
+            # This should be a TDL_Cohset method...
+            isel = 0
+            if corr=='XX': isel = 0
+            if corr=='XY': isel = 1
+            if corr=='YX': isel = 2
+            if corr=='YY': isel = 3
+            selected = nsub.selector(isel)(uniqual) << Meq.Selector (coh, index=isel)
             nodes[corr].append(selected)
 
     # Make dcolls per corr, and collect groups of corrs:
