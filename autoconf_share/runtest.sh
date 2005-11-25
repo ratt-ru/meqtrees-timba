@@ -90,8 +90,7 @@ fi
 if test -f "$srcdir/$1.stdout"; then
     \rm -f $1.stdout
     \cp $srcdir/$1.stdout .
-fi
-if test -f "$srcdir/$1.out"; then
+elif test -f "$srcdir/$1.out"; then
     \rm -f $1.stdout
     \cp $srcdir/$1.out $1.stdout
 fi
