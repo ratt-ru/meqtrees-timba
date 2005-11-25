@@ -1,0 +1,42 @@
+file: ../doc/JEN/MQT/tobedone.txt
+                                      last changed:   d25nov
+
+NB: Just temporary: To be converted into Bugzilla items....!
+
+ - JEN: TDL_Cohset.py: 
+   - arrange for proper treatment of XX/YY only (etc)
+   - selfcal for WHAT with WSRT XY/YX (14 only)
+
+ - JEN: MG_JEN_Joneset.py:
+   - dissimilar station (WHAT) 
+ - JEN: TDL_Joneset.py:
+   - dissimilar station (WHAT): no impact?
+
+ - MXM/JEN/SBY: Tools for funklet creation.....
+ - SBY/OMS: Domain dimensions.....
+
+
+
+ - SBY: LSM files for WSRT calibrator fields
+
+ - SvdT: Webpage for script/object inspection
+ - SvdT/OMS: Testing (3 levels)
+
+ - JEN/SBY/GVD: WSRT/WHAT reduction
+
+ - OMS/MXM: Sink 'tiling' in freq direction too...
+ -      Has repercussions for MeqParm tables...
+ - MXM/JEN: MeqParm functional/final description
+
+ - MXM/WNB: Experiment with AIPS++ fitting improvements
+ - AGW/JEN: Use LM parameter in 'debug' field of result
+
+ - JEN: TDL_result.py (object that dissects a result...)
+
+ - JEN: TDL_display_subtree.py (from MG_JEN_exec.py)
+ - JEN: TDL_display_nodescope.py (from MG_JEN_exec.py)
+ - JEN: TDL_display_record.py (from MG_JEN_exec.py)
+
+
+
+                      ================================
