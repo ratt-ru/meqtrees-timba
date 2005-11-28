@@ -52,7 +52,7 @@ from Timba.Contrib.JEN import MG_JEN_flagger
 
 
 MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
-                         last_changed = 'd28sep2005',
+                         last_changed = 'd26nov2005',
                          punit='unpol',                        # name of calibrator source
                          stations=range(4),                   # specify the (subset of) stations to be used
                          # MS_corr_index = [0,1,2,3],              # correlations to be used
@@ -61,6 +61,10 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
                          parmtable=None,                      # name of MeqParm table
                          
                          insert_solver=True,                   # if True, insert a solver
+                         num_iter=20,                             # (max) number of solver iterations per snippet
+                         epsilon=1e-4,                            # iteration stop criterion (policy-free)
+                         subtract_cps=True,                   # if True, subtract the cps
+                         correct_data=False,                   # if True, correct the uv-data
 
                          fdeg_Gampl=2,                          # degree of freq polynomial
                          fdeg_Gphase='fdeg_Gampl',
@@ -69,8 +73,6 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
                          tile_size_Gampl=None,                   # used in tiled solutions
                          tile_size_Gphase='tile_size_Gampl',
                           
-                         num_iter=20,                             # (max) number of solver iterations per snippet
-                         epsilon=1e-4,                            # iteration stop criterion (policy-free)
                          flag_spigots=False,                   # If True, insert a flagger before solving
                          flag_sinks=False,                      # If True, insert a flagger after solving
                          visu_spigots=True,               # If True, insert built-in view(s) 
@@ -122,10 +124,8 @@ def _define_forest (ns):
    Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', stations=stations)
 
    # Make MeqSpigot nodes that read the MS:
-   MG_JEN_Cohset.make_spigots(ns, Cohset,
-                              MS_corr_index=MG['MS_corr_index'],
-                              visu=MG['visu_spigots'],
-                              flag=MG['flag_spigots'])
+   MG_JEN_Cohset.make_spigots(ns, Cohset, MS_corr_index=MG['MS_corr_index'],
+                              visu=MG['visu_spigots'], flag=MG['flag_spigots'])
 
    if MG['insert_solver']:
       # Make predicted data with a punit (see above) and corrupting Jones matrices
@@ -134,10 +134,14 @@ def _define_forest (ns):
       predicted = MG_JEN_Cohset.predict (ns, ifrs=ifrs, Sixpack=Sixpack, Joneset=Joneset)
       
       # Insert a solver for a named solvegroup of MeqParms.
+      subtract = None
+      if MG['subtract_cps']: subtract = predicted
       # After solving, the uv-data are corrected with the the improved Joneset. 
+      correct = None
+      if MG['correct_data']: correct = Joneset
       MG_JEN_Cohset.insert_solver (ns, solvegroup='GJones', 
-                                   measured=Cohset, predicted=predicted, 
-                                   correct=Joneset, 
+                                   measured=Cohset, predicted=predicted,
+                                   subtract=subtract, correct=correct, 
                                    visu=MG['visu_solver'], **MG)
 
   # Make MeqSink nodes that write the MS:

@@ -94,9 +94,8 @@ def _define_forest (ns):
       MG_JEN_forest_state.bookmark (solver, udi='cache/result')
       # MG_JEN_forest_state.bookmark (solver, udi='cache/result', viewer='Result Plotter')
 
-      # Make a vector of hcoll nodes, and attach them to cc:
-      hcoll_nodes = make_hcoll_solver_metrics (ns, solver)
-      cc.extend(hcoll_nodes)
+      # Make a tensor node of hcoll nodes, and attach them to cc:
+      cc.append(make_hcoll_solver_metrics (ns, solver))
 
 
    #---------------------------------------------------------------------------
@@ -116,8 +115,11 @@ def _define_forest (ns):
 #********************************************************************************
 
 
-def make_hcoll_solver_metrics (ns, solver):
+def make_hcoll_solver_metrics (ns, solver, **pp):
    """Make a vector historyCollect nodes for solver metrics"""
+
+   pp.setdefault('name', 'solver')
+   pp.setdefault('debug', True)
    
    # Make a qualifying integer to avoid node name clashes:
    uniqual = MG_JEN_forest_state.uniqual(MG.script_name+'::make_hcoll_solver_metrics()')
@@ -125,31 +127,32 @@ def make_hcoll_solver_metrics (ns, solver):
 
    # Make hcoll nodes for 'traditional' solver metrics:
    metrics = ['fit','rank','mu','stddev']
-   pagename = 'hcoll_solver_metrics'
+   pagename = 'hcoll_'+pp['name']+'_metrics'
    for metric in metrics:
       input_index = hiid('solver_result/metrics/0/'+metric)          
-      hcoll_name = 'hcoll_solver_metric_'+metric
+      hcoll_name = 'hcoll_'+pp['name']+'_metric_'+metric
       hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
                                                             input_index=input_index,
                                                             top_label=hiid('history'))
       hcoll_nodes.append(hcoll)
       MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
 
-   if True: 
+   if pp['debug']: 
       # Optional: make hcoll nodes for 'debug' solver metrics:
       debug = ['nonlin','seq','sol','prec','known','er','piv','neq']
-      pagename = 'hcoll_solver_debug'
+      pagename = 'hcoll_'+pp['name']+'_debug'
       for metric in debug:
          input_index = hiid('solver_result/debug/0/'+metric)          
-         hcoll_name = 'hcoll_solver_debug_'+metric
+         hcoll_name = 'hcoll_'+pp['name']+'_debug_'+metric
          hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
                                                                input_index=input_index,
                                                                top_label=hiid('history'))
          hcoll_nodes.append(hcoll)
          MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
 
-   # Return a vector of historyCollect nodes:
-   return hcoll_nodes
+   # Return a tensor node of historyCollect nodes:
+   root = ns.hcolls_solver_metrics(uniqual) << Meq.Composer(children=hcoll_nodes)
+   return root
 
 
 
