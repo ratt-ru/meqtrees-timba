@@ -79,7 +79,7 @@ class Cohset (TDL_common.Super):
         pp.setdefault('stations', range(0,3))
         pp.setdefault('ifrs', None)
         pp.setdefault('polrep', 'linear')
-        pp.setdefault('corr_index', [0,1,2,3])          # default: all 4 corrs
+        pp.setdefault('MS_corr_index', [0,1,2,3])          # default: all 4 corrs
         pp.setdefault('phase_centre', '<radec>')
 
         self.__punit = pp['punit']
@@ -121,10 +121,11 @@ class Cohset (TDL_common.Super):
         # Polarisation representation and available correlations:
         # A Cohset ALWAYS has 2x2 coherency matrices, but some of the elements may be invalid.
         # The latter is recognised by a negative value of the corresponding element(s)
-        #   of the 4-element (2x2?) vector self.__corr_index
-        # See also self.calc_derived() below
+        #   of the 4-element (2x2?) vector self.__MS_corr_index
+        # See also self._corrs_derived() below
         self.__polrep = pp['polrep']
-        self.__corr_index = pp['corr_index']     # e.g. [0,1,2,3] 
+        self.__MS_corr_index = pp['MS_corr_index']     # e.g. [0,1,2,3] 
+        self._corrs_derived()                          # derived from MS_corr_index
 
         # The Cohset contains the position (RA, Dec) of the current phase centre:
         self.__phase_centre = pp['phase_centre']
@@ -140,40 +141,99 @@ class Cohset (TDL_common.Super):
         self.__plot_size = TDL_radio_conventions.plot_size()
         self.__plot_pen = TDL_radio_conventions.plot_pen()
 
-        # Calculate derived values from primary ones
-        self.calc_derived()
 
 
+    #----------------------------------------------------------------------------
+    # start of corrs-related functions
+    #----------------------------------------------------------------------------
 
-    def calc_derived(self):
-        """Calculate derived values from primary ones"""
+    def polrep(self):
+        """The Cohset polarisation representation (linear/circular)"""
+        return self.__polrep
+    def MS_corr_index(self):
+        """Return a list of 4 indices for the different correlations (XX etc).
+        These are used by spigots and sinks to access corrs in the MS.
+        Each index refers to the corr position in the MS storage array.
+        A negative index means that the corr is not available in the MS"""
+        return self.__MS_corr_index
 
-        # NB: polrep and corr_index apply to ALL ifrs. This is OK for the moment,
+
+    def _corrs_derived(self):
+        """Calculate corrs-related quantities from polrep and MS_corr_index"""
+
+        # NB: polrep and MS_corr_index apply to ALL ifrs. This is OK for the moment,
         #     but we should look ahead to Cohsets for dissimilar stations, where
         #     each ifr should have its own description (can of worms....)
 
-        self.__corrs = []
-        for i in range(len(self.__corr_index)):
-            icorr = self.__corr_index[i]
-            if icorr<0:
+        self.__corrnames = ['XX','XY','YX','YY']
+        if self.__polrep == 'circular':
+            self.__corrnames = ['RR','RL','LR','LL']
+            
+        self.__corrs = []                            # list of AVAILABLE corrs
+        for i in range(len(self.__MS_corr_index)):
+            icorr = self.__MS_corr_index[i]
+            if icorr<0:                              # not available
                 pass                                 # ignore....
             elif self.__polrep == 'circular':
                 if i==0: self.__corrs.append('RR')
                 if i==1: self.__corrs.append('RL')
                 if i==2: self.__corrs.append('LR')
                 if i==3: self.__corrs.append('LL')
-            else:
+            else:                                    # assume linear....
+                self.__polrep == 'linear'            # just in case...
                 if i==0: self.__corrs.append('XX')
                 if i==1: self.__corrs.append('XY')
                 if i==2: self.__corrs.append('YX')
                 if i==3: self.__corrs.append('YY')
                 
-        self.__paral = []
-        self.__cross = []
+        self.__paral = []                            # list of AVAILABLE 'parallel' corrs
+        self.__cross = []                            # list of AVAILABLE cross-corrs
         for corr in self.__corrs:
             if ['XX','YY','RR','LL'].__contains__(corr): self.__paral.append(corr)
             if ['XY','YX','RL','LR'].__contains__(corr): self.__cross.append(corr)
         return True
+
+    def corrs(self):
+        """Return a list of AVAILABLE correlation names (XX, RL etc)"""
+        return self.__corrs
+    def corrnames(self):
+        """Return a list of polrep-related correlation names"""
+        return self.__corrnames
+    def cross(self):
+        """Return a list of AVAILABLE cross-correlation names (XY, RL, etc)"""
+        return self.__cross
+    def paral(self):
+        """Return a list of AVAILABLE parallel correlation names (XX, LL, etc)"""
+        return self.__paral
+
+
+    def corr_index(self, corrs='*'):
+        """Get the index nrs of the AVAILABLE specified corr names."""
+        corrsin = corrs                           # used for message only
+        if isinstance(corrs, str):
+            if corrs=='*': corrs = self.corrs()
+            if corrs=='paral': corrs = self.paral()
+            if corrs=='cross': corrs = self.cross()
+        if not isinstance(corrs, (tuple,list)): corrs = [corrs]
+
+        corrnames = self.corrnames()              # 4 corr names
+        available = self.corrs()                  # 0-4 available corrs
+        selected = []                             # selected corrs
+        icorr = []
+        for corr in corrs:
+            if not available.__contains__(corr):
+                print '**** corr',corr,'not available in:',available
+                # return []                                          # escape...?
+            else:
+                index = corrnames.index(corr)     # index in 4-vector!
+                icorr.append(index)
+                selected.append(corr)
+        # print '** Cohset.corr_index(',corrsin,'):',corrs,'->',icorr,' (from',available,'select',selected,')'
+        return icorr
+
+    #----------------------------------------------------------------------------
+    # end of corrs-related functions
+    #----------------------------------------------------------------------------
 
 
     def __getitem__(self, key):
@@ -186,7 +246,6 @@ class Cohset (TDL_common.Super):
         self.__coh[key] = value
         return self.__coh[key]
 
-    # Access to class attribites:
     def plot_color(self): return self.__plot_color
     def plot_style(self): return self.__plot_style
     def plot_size(self): return self.__plot_size
@@ -200,22 +259,6 @@ class Cohset (TDL_common.Super):
         return self.__solvegroup
     def condeq_corrs(self): return self.__condeq_corrs
 
-    # Access to instance attribites:
-    def polrep(self):
-        """The Cohset polarisation representation (linear/circular)"""
-        return self.__polrep
-    def corrs(self):
-        """Return a list of correlation names (XX, RL etc)"""
-        return self.__corrs
-    def corr_index(self):
-        """Return a list of correlation indices for spigot/sink"""
-        return self.__corr_index
-    def cross(self):
-        """Return a list of cross-correlation names (XY, RL, etc)"""
-        return self.__cross
-    def paral(self):
-        """Return a list of parallel correlation names (XX, LL, etc)"""
-        return self.__paral
     def phase_centre(self):
         """Return the current Cohset phase-centre (RA, DEC)"""
         return self.__phase_centre
@@ -236,13 +279,15 @@ class Cohset (TDL_common.Super):
         """Return a list of station indices (used in spigots/sinks)"""
         return self.__station_index
 
-    # Some derived values:
     def keys(self):
         """Return a list of keys to the Cohset items"""
         return self.__coh.keys()
-    def has_key(self, key):
+    def has_key(self, key, warning=None):
         """Check whether there is an item with the given key"""
-        return self.keys().__contains__(key)
+        result = self.keys().__contains__(key)
+        if not result and warning:
+            print str(warning),': key not recognised:',key
+        return result
     def len(self):
         """Return the nr of Cohset items"""
         return len(self.__coh)
@@ -250,7 +295,7 @@ class Cohset (TDL_common.Super):
         """Return the dimensions of the Cohset matrices (usually [2,2])""" 
         return self.__dims
 
-    def nodenames(self, select='all'):
+    def nodenames(self, select='*'):
         """Return a list of the names of the current nodes in the Cohset"""
         nn = []
         for key in self.keys():
@@ -263,16 +308,6 @@ class Cohset (TDL_common.Super):
         if select=='last': return nn[len(nn)-1]
         return nn
 
-    def nodes(self, select='all'):
-        """Return a list of the current nodes in the Cohset"""
-        nn = []
-        for key in self.keys():
-            nn.append(self.__coh[key])
-        if len(nn)==0: return '<empty>'
-        if select=='first': return nn[0]
-        if select=='last': return nn[len(nn)-1]
-        return nn
-
     def oneliner(self):
         """Return a one-line summary of the Cohset"""
         s = TDL_common.Super.oneliner(self)
@@ -280,7 +315,7 @@ class Cohset (TDL_common.Super):
         # s = s+' punit='+str(self.punit())
         # s = s+' dims='+str(self.dims())
         s = s+' '+str(self.scope())
-        s = s+' '+str(self.dims())
+        # s = s+' '+str(self.dims())
         s = s+' '+str(self.punit())
         s = s+' '+str(self.corrs())
         # s = s+' len='+str(self.len())
@@ -294,10 +329,13 @@ class Cohset (TDL_common.Super):
         indent1 = 2*' '
         indent2 = 6*' '
         ss.append(indent1+' - phase_centre:    '+self.phase_centre())
-        polrep = self.polrep()+str(self.corrs())
-        polrep += ' paral='+str(self.paral())
-        polrep += ' cross='+str(self.cross())
+        polrep = self.polrep()+'  '+str(self.corrnames())
+        polrep += '   (MS_corr_index='+str(self.MS_corr_index())+')'
         ss.append(indent1+' - polrep:          '+polrep)
+        corrs = str(self.corrs())
+        corrs += '   paral='+str(self.paral())
+        corrs += '   cross='+str(self.cross())
+        ss.append(indent1+' - available corrs: '+corrs)
         ss.append(indent1+' - station_index:   '+str(self.station_index()))
         ss.append(indent1+' - plot_color:      '+str(self.plot_color()))
         ss.append(indent1+' - plot_style:      '+str(self.plot_style()))
@@ -324,6 +362,50 @@ class Cohset (TDL_common.Super):
     #--------------------------------------------------------------
     # Methods that generate new nodes (and thus require nodescope):
     #--------------------------------------------------------------
+
+    def nodes(self, select='*'):
+        """Return a list of the current cohearency nodes in the Cohset"""
+        # Used in MG_JEN_Cohset.spigots() and .sinks()
+        # Consider merging with self.coh() below
+        nn = []
+        for key in self.keys():
+            nn.append(self.__coh[key])
+        if len(nn)==0: return '<empty>'
+        if select=='first': return nn[0]
+        if select=='last': return nn[len(nn)-1]
+        return nn
+
+    def coh (self, key=None, corrs='*', ns=None, name=None):
+        """Get a named (key) cohearency node (tensor), optionally for selected corrs""" 
+        funcname = '::coh():'
+
+        # Unfinished: Return list of cohs, e.g. key='*'
+        # See also self.nodes() above....
+        if False:
+            keys = key
+            if isinstance(keys, str):
+                if keys=='*': keys = self.keys()
+            is not isinstance(keys, (list, tuple)): keys = [keys]
+            
+        # Check the specified key(s) (name):
+        if not self.has_key(key, warning=funcname): return False
+
+        # Check the specified corr selection:
+        if isinstance(corrs, str):
+            if corrs=='*': return self.__coh[key]  # no selection needed
+        icorr = self.corr_index(corrs)
+        if len(icorr)==4: return self.__coh[key]     # no selection needed
+        if len(icorr)==0: return False               # none specified/available (error)
+
+        # Make MeqSelector nodes that select the specified corrs:
+        multi = (len(icorr)>1)                       # Kludge, to tell MeqSelector that icorr is multiple... 
+        uniqual = _counter(funcname, increment=-1)
+        s12 = self.__stations[key]
+        if not isinstance(name, str):
+            name = 'selcorr_'+self.scope()             
+        coh = ns[name](uniqual)(corrs)(s1=s12[0], s2=s12[1]) << Meq.Selector(self.__coh[key],
+                                                                             index=icorr, multi=multi)
+        return coh                                   # return the node
 
     def zero(self, ns):
         """Make zero coherency matrices for all ifrs"""
@@ -359,7 +441,7 @@ class Cohset (TDL_common.Super):
         self.history(append=funcname+' -> '+self.oneliner())
 
 
-    def graft(self, ns, node, name=None, key='all', stepchild=False):
+    def graft(self, ns, node, name=None, key='*', stepchild=False):
         """Graft the specified node(s) onto the streams of the specified ifr(s).
         By default, this is done by means of a MeqReqSeq, which obly uses the result
         of its LAST (main-stream) child. This synchronises the ifr-streams if the
@@ -548,51 +630,6 @@ class Cohset (TDL_common.Super):
         return True
 
 
-    def icorr(self, corrs='all'):
-        """Get the list index nrs (in self.__corr) of the specified corr names.
-        NB: These numbers are NOT related to the result of self.corr_index()"""
-        if isinstance(corrs, str) and corrs=='all': corrs = self.corrs()
-        if not isinstance(corrs, (tuple,list)): corrs = [corrs]
-        icorr = []
-        newcorrs = []
-        oldcorrs = self.corrs()
-        for corr in corrs:
-            if oldcorrs.__contains__(corr):
-                icorr.append(oldcorrs.index(corr))
-                newcorrs.append(corr)
-            else:
-                print '** corr not recognised:',corr
-        print '** .icorr(',corrs,'):->',icorr,' (',oldcorrs,'->',newcorrs,')'
-        return icorr
-
-
-    def selcorr_obsolete(self, ns, corrs=None):
-        """Select a subset of the available corrs""" 
-        funcname = '::selcorr():'
-        if corrs==None: return False
-        icorr = self.icorr(corrs)
-        multi = (len(icorr)>1)       # Kludge, to tell MeqSelector that icorr is multiple... 
-        if len(icorr)==0:
-            return False
-
-        # Adjust the corrs info vectors:
-        self.__corr_index = icorr
-        self.calc_derived()       
-        print '** .selcorr(',corrs,icorr,') ->',self.corrs(),self.paral(),self.cross()
-
-        # Make MeqSelector nodes that select the specified corrs:
-        uniqual = _counter(funcname, increment=-1)
-        for key in self.keys():
-            s12 = self.__stations[key]
-            coh = ns.selcorr(uniqual)(corrs)(s1=s12[0], s2=s12[1]) << Meq.Selector(self.__coh[key], index=icorr, multi=multi)
-            self.__coh[key] = coh
-
-        # Adjust the coherence shape, if necessary:  
-        if len(icorr)<4: self.__dims = [len(icorr)]            #...shape...??
-        self.scope('selcorr'+'_'+self.scope())
-        self.history(append=funcname+' -> '+self.oneliner())
-        return True
-
 
 #======================================================================================
 
@@ -602,14 +639,14 @@ class Cohset (TDL_common.Super):
 
         # Input arguments:
         pp.setdefault('flag_bit', 4)                     # .....
-        pp.setdefault('corr_index', [0,1,2,3])           # default: all 4 corr
+        pp.setdefault('MS_corr_index', [0,1,2,3])           # default: all 4 corr
         pp.setdefault('input_column', 'DATA')            # .....
         pp = record(pp)
 
         # Deal with available/wanted correlations:
         # For XX/YY only, use:
-        # - If only XX/YY available: pp['corr_index'] = [0,-1,-1,1]
-        # - If all 4 corr available: pp['corr_index'] = [0,-1,-1,3]
+        # - If only XX/YY available: pp['MS_corr_index'] = [0,-1,-1,1]
+        # - If all 4 corr available: pp['MS_corr_index'] = [0,-1,-1,3]
         # - etc
         # Still returns a 2x2 tensor node, but with empty results {} for missing corrs
         # Empty results {} are interpreted as zeroes, e.g. in matrix multiplication.
@@ -625,18 +662,18 @@ class Cohset (TDL_common.Super):
             i2 = self.station_index()[str(s12[1])]              # integer
             self.__coh[key] = ns.spigot(s1=s12[0],s2=s12[1]) << Meq.Spigot(station_1_index=i1,
                                                                            station_2_index=i2,
-                                                                           corr_index=pp['corr_index'],
+                                                                           corr_index=pp['MS_corr_index'],
                                                                            flag_bit=pp['flag_bit'],
                                                                            input_column=pp['input_column'])
             # print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
 
         # Update Cohset control fields:
-        self.__corr_index = pp['corr_index']                    # used throughout!
-        self.__dims = [2,2]
-        self.calc_derived()
+        self.__MS_corr_index = pp['MS_corr_index']              # 
+        self.__dims = [2,2]                                     # 
+        self._corrs_derived()                                   # derived from MS_corr_index
 
-        self.label('spigots')
-        self.scope('spigots')
+        self.label('spigot')
+        self.scope('spigot')
         self.history(append=funcname+' inarg = '+str(pp))
         self.history(append=funcname+' -> '+self.oneliner())
         return True
@@ -657,8 +694,8 @@ class Cohset (TDL_common.Super):
         print 'pp[post] =',type(pp['post'])
 
         # Mapping to MS correlations (see self.spigots() above)
-        # corr_index = [0,1,2,3]                        # default
-        corr_index = self.corr_index()                  # defined in self.spigots()
+        # MS_corr_index = [0,1,2,3]                        # default
+        MS_corr_index = self.MS_corr_index()                  # defined in self.spigots()
 
         # Make separate sinks for each ifr:
         for key in self.keys():
@@ -668,7 +705,7 @@ class Cohset (TDL_common.Super):
             self.__coh[key] = ns.MeqSink(s1=s12[0], s2=s12[1]) << Meq.Sink(self.__coh[key],
                                                                            station_1_index=i1,
                                                                            station_2_index=i2,
-                                                                           corr_index=corr_index,
+                                                                           corr_index=MS_corr_index,
                                                                            output_col=pp['output_col'])
             # print funcname, key,s12,i1,i2,i1+i2,self.__coh[key]
 
@@ -689,9 +726,9 @@ class Cohset (TDL_common.Super):
                                                    pre=pp['pre'], post=pp['post'])
         
 
-        self.scope('sinks')
+        self.scope('sink')
         self.history(append=funcname+' inarg = '+str(pp))
-        self.history(append=funcname+' corr_index = '+str(corr_index))
+        self.history(append=funcname+' MS_corr_index = '+str(MS_corr_index))
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -714,7 +751,7 @@ class Cohset (TDL_common.Super):
 
 _counters = {}
 
-def _counter (key, increment=0, reset=False, trace=True):
+def _counter (key, increment=0, reset=False, trace=False):
     global _counters
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0
@@ -757,26 +794,46 @@ if __name__ == '__main__':
         print
 
 
-    if 0:
-        corr_index = [0,1,2,3]         # all 4 available (default)
-        # corr_index = [-1,1,2,-1]       # all 4 available, but only XY/XY wanted
-        # corr_index = [0,-1,-1,1]       # only XX/YY available
-        corr_index = [0,-1,-1,3]       # all 4 available, but only XX/YY wanted
-        cs.spigots(ns, corr_index=corr_index)
+    if 1:
+        MS_corr_index = [0,1,2,3]         # all 4 available (default)
+        # MS_corr_index = [-1,1,2,-1]       # all 4 available, but only XY/XY wanted
+        MS_corr_index = [0,-1,-1,1]       # only XX/YY available
+        # MS_corr_index = [0,-1,-1,3]       # all 4 available, but only XX/YY wanted
+        cs.spigots(ns, MS_corr_index=MS_corr_index)
         cs.display('spigots')
-        # cs.sinks(ns)
 
 
     if 0:
-        cs.icorr()
-        cs.icorr('XX')
-        cs.icorr(['XX','YY'])
-        cs.icorr(['XY','YX'])
+        print '\n** cs.corr_index():'
+        cs.corr_index()
+        cs.corr_index('*')
+        cs.corr_index('paral')
+        cs.corr_index('cross')
+        cs.corr_index('XX')
+        cs.corr_index('XY')
+        cs.corr_index('YX')
+        cs.corr_index('YY')
+        cs.corr_index(['XX','YY'])
+        cs.corr_index(['XY','YX'])
+        cs.corr_index('RL')
+        cs.corr_index(['XX','RL'])
+        print
+
+    if 1:
+        corrs = '*'
+        corrs = ['XX','YY']
+        # corrs = ['XY','YX']
+        print '\n** cs.coh(key, corrs):'
+        for key in cs.keys():
+            coh = cs.coh(key, corrs=corrs, ns=ns)
+            print '- cs.coh(',key, corrs,') ->',coh
+        MG_JEN_exec.display_subtree(coh, 'last coh', full=True, recurse=5)
+        print
 
     if 0:
         zero = ns.zero << 0.0
         minus = ns.minus << -1
-        cs.graft(ns, [zero, minus], name='test', key='all', stepchild=False)
+        cs.graft(ns, [zero, minus], name='test', key='*', stepchild=False)
         cs.display('graft')
 
     if 0:

@@ -10,7 +10,7 @@
 # History:
 # - 24 aug 2005: creation
 # - 05 sep 2005: adapted to Cohset/Joneset objects
-# - 25 nov 2005: corr_index argument to .make_spigots()
+# - 25 nov 2005: MS_corr_index argument to .make_spigots()
 
 # Copyright: The MeqTree Foundation 
 
@@ -335,13 +335,13 @@ def make_spigots(ns, Cohset, **pp):
     funcname = 'MG_JEN_Cohset.make_spigots(): '
 
     # Input parameters:
-    pp.setdefault('corr_index', [0,1,2,3])
+    pp.setdefault('MS_corr_index', [0,1,2,3])
     pp.setdefault('visu', False)
     pp.setdefault('flag', False)
     pp = record(pp)
 
     # Make MeqSinks
-    Cohset.spigots(ns, corr_index=pp['corr_index'])
+    Cohset.spigots(ns, MS_corr_index=pp['MS_corr_index'])
     spigots = Cohset.nodes()
     
     # Append the initial (spigot) Cohset to the forest state object:
@@ -567,22 +567,16 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     # Mohset.selcorr(ns, corrs)
   
     # Make condeq nodes (use Pohset from here onwards):
-    icorr = Pohset.icorr(corrs)                   # corr selection indices
-    multi = (len(icorr)>1)            # Kludge, to tell MeqSelector that icorr is multiple... 
     cc = []
     punit = predicted.punit()
     for key in Pohset.keys():
         if not measured.has_key(key):
             print '\n** key not recognised in measured Cohset:',key
             return
+        Poh = Pohset.coh (key, corrs=corrs, ns=ns, name='predicted')
+        Moh = Mohset.coh (key, corrs=corrs, ns=ns, name='measured')
         s12 = Pohset.stations()[key]
-        Poh = ns.predicted(solver_name)(corrs)(s1=s12[0], s2=s12[1], q=punit) << Meq.Selector(Pohset[key],
-                                                                                              index=icorr,
-                                                                                              multi=multi)
-        Moh = ns.measured(solver_name)(corrs)(s1=s12[0], s2=s12[1], q=punit) << Meq.Selector(Mohset[key],
-                                                                                             index=icorr,
-                                                                                             multi=multi)
-        condeq = ns.condeq(solver_name)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Mohset[key], Pohset[key])
+        condeq = ns.condeq(solver_name)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Moh, Poh)
         Pohset[key] = condeq
         cc.append(condeq)
     Pohset.display('after defining condeqs')
@@ -683,30 +677,17 @@ def visualise(ns, Cohset, **pp):
     # The dataCollect nodes are visible, and should show the punit:
     dcoll_scope = Cohset.scope()+'_'+Cohset.punit()
   
-    # Make separate lists of nodes per corr:
-    corrs = Cohset.corrs()
+    # Make separate lists of nodes per (available) corr:
     nodes = {}
-    for corr in corrs:
+    for corr in Cohset.corrs():
         nodes[corr] = []
+        for key in Cohset.keys():
+           node = Cohset.coh(key, corrs=corr, ns=ns, name='visu')
+           nodes[corr].append(node)
 
-    for key in Cohset.keys():
-        s12 = Cohset.stations()[key]
-        coh = Cohset[key]
-        for icorr in range(len(corrs)):
-            corr = corrs[icorr]
-            nsub = ns.Subscope(visu_scope+'_'+corr, s1=s12[0], s2=s12[1])
-            # This should be a TDL_Cohset method...
-            isel = 0
-            if corr=='XX': isel = 0
-            if corr=='XY': isel = 1
-            if corr=='YX': isel = 2
-            if corr=='YY': isel = 3
-            selected = nsub.selector(isel)(uniqual) << Meq.Selector (coh, index=isel)
-            nodes[corr].append(selected)
-
-    # Make dcolls per corr, and collect groups of corrs:
+    # Make dcolls per (available) corr, and collect groups of corrs:
     dcoll = dict()
-    for corr in corrs:
+    for corr in Cohset.corrs():
         dc = MG_JEN_dataCollect.dcoll (ns, nodes[corr], 
 	                               scope=dcoll_scope, tag=corr,
                                        type=pp.type, errorbars=pp.errorbars,
