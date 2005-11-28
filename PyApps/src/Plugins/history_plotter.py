@@ -214,7 +214,7 @@ class HistoryPlotter(GriddedPlugin):
 
   def create_plot_array(self,history_list):
 # first try to figure out what we have ...
-      _dprint(3, 'incoming list/array is ', history_list)
+      _dprint(3, 'history_plotter: incoming list/array is ', history_list)
       plot_array = None
       list_length = len(history_list)
       for i in range(list_length):
