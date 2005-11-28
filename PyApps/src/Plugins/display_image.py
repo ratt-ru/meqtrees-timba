@@ -2285,7 +2285,7 @@ class QwtImageDisplay(QwtPlot):
           self._x_title = self.vells_axis_parms[self.x_parm][2]
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
         else:
-          self._x_title = 'Array/Channel Number'
+          self._x_title = 'Array/Channel/Sequence Number'
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
           self.x_index = arange(num_elements)
           self.x_index = self.x_index + 0.5
