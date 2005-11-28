@@ -198,7 +198,7 @@ class HistoryPlotter(GriddedPlugin):
 
   def invalid_array_sequence(self):
       if not self.displayed_invalid:
-        Message = "Invalid Sequence of Data - Inconsistent Array Lengths!"
+        Message = "Plot not made: Sequence of Data has Varying Array Sizes!"
 #       mb = QMessageBox("history_plotter.py",
 #                    Message,
 #                    QMessageBox.Warning,
