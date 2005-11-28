@@ -237,7 +237,7 @@ class HistoryPlotter(GriddedPlugin):
               temp_array = asarray(data_array)
               plot_array = resize(temp_array,list_length)
             try:
-              plot_array[i] = data_array[0]
+              plot_array[i] = data_array
             except:
               self.invalid_array_sequence()
               return
