@@ -172,8 +172,6 @@ if [ "$pkgline" = ""  -o  "$getvers" != "$curvers" ]; then
     fi
   fi
 fi
-# Add (leaf) package to the file to get correct build order.
-echo "$pkgname #-v$getvers" >> allpkg.tmp
 
 # Find all packages used to get correct build order.
 if [ -f $pgkname/$pkgname.spec.in ]; then
@@ -181,6 +179,8 @@ if [ -f $pgkname/$pkgname.spec.in ]; then
     echo "error: lofarconf.in cannot be used with a .spec.in"
     exit 1
   fi
+  # Add (leaf) package to the file to get correct build order.
+  echo "$pkgname #-v$getvers" >> allpkg.tmp
   # Do it recursively for packages used by this package.
   # Find them by looking at the Requires tag in the .spec.in file.
   pkgs=`egrep -i " *requires:" $pkgname/$pkgname.spec.in | sed -e 's/ *requires: *//ig'`
@@ -207,6 +207,8 @@ elif [ -f $pkgname/configure.in ]; then
     echo "error: lofarconf.in cannot be used with a configure.in"
     exit 1
   fi
+  # Add (leaf) package to the file to get correct build order.
+  echo "$pkgname #-v$getvers" >> allpkg.tmp
   if [ $recur != 0 ]; then
     # Do it recursively for packages used by this package.
     # Find them by looking in the configure.in file.
@@ -225,17 +227,22 @@ elif [ -f $pkgname/configure.in ]; then
   fi
 else
   # Do it for all packages in a possible lofarconf.in.
-  pkgs=
+  fnam=
   if [ -f $pkgname/lofarconf.in.private ]; then
-    pkgs=`sed -e s/#.*$//g $pkgname/lofarconf.in.private`
+    fnam='lofarconf.in.private'
   elif [ -f $pkgname/lofarconf.in ]; then
-    pkgs=`sed -e s/#.*$//g $pkgname/lofarconf.in`
+    fnam='lofarconf.in'
   fi
-  if [ "$pkgs" != "" ]; then
-    for pkg in $pkgs
+  if [ "$fnam" != "" ]; then
+    # Get the packages out of the lofarconf.in file. They can optionally be
+    # followed by a version as #-vversion. Remove other comments.
+    pkgs=`awk '{print $1 $2;}' $pkgname/$fnam | sed -e 's/^ *#.*//' -e 's/#$//' -e 's/#-$//' -e 's/#[^-].*$//' -e 's/#-[^v].*//'`
+    for PKG in $pkgs
     do
+      pkg=`echo $PKG | sed -e 's%#-v.*%%'`
+      vers=`echo $PKG | sed -e 's%.*#-v%%'`
       # Check out the package.
-      $0 $pkgname/$pkg 0 "$verstype" "" "$cvstag" $checkout $recur "$cvscomm" "$updq"  ||  exit 1
+      $0 $pkgname/$pkg 0 "$verstype" "$vers" "$cvstag" $checkout $recur "$cvscomm" "$updq"  ||  exit 1
     done
   fi
 fi

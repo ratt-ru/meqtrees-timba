@@ -45,6 +45,7 @@ cvsdefault=cvs
 cvscomm=$cvsdefault
 updq=
 cvstag=
+jobsopt=
 variants=
 buildmake=1
 conf=0
@@ -52,6 +53,7 @@ confopt=
 clean=0
 distclean=0
 check=0
+checktool=
 install=2
 distcheck=0
 rpm=0
@@ -101,6 +103,14 @@ do
   elif [ "$1" = -nor ]; then
     shift
     cvstag=
+  # parallel make option?
+  elif [ "$1" = -j ]; then
+    shift
+    jobsopt="-j$1"
+    shift
+  elif [ "$1" = -noj ]; then
+    shift
+    jobsopt=
   # Which variants to build after the checkout/update?
   elif [ "$1" = -build ]; then
     shift
@@ -165,6 +175,13 @@ do
   elif [ "$1" = -nocheck ]; then
     shift
     check=0
+  elif [ "$1" = -checktool ]; then
+    shift
+    checktool="$1"
+    shift
+  elif [ "$1" = -nocheck ]; then
+    shift
+    checktool=
   elif [ "$1" = -install ]; then
     shift
     install=1
@@ -204,7 +221,7 @@ do
   elif test "$1" = "-release=latest"; then
     shift
     verstype=l
-  elif test "$1" = "-release=trunk"; then
+  elif test "$1" = "-release=main"; then
     shift
     verstype=t
   elif test "$1" = "-norelease"; then
@@ -213,11 +230,15 @@ do
   else
     case "$1" in
     -release=*)
-      echo "$1 is invalid; valid options are max,exact,latest,trunk"
+      echo "$1 is invalid; valid options are max,exact,latest,main"
       exit 1
       ;;
     -r*)
       cvstag=`echo $1 | sed -e 's/-r//'`
+      shift
+      ;;
+    -j*)
+      jobsopt='-j'`echo $1 | sed -e 's/-j//'`
       shift
       ;;
     -*)
@@ -249,7 +270,7 @@ if [ $help = 1 ]; then
   echo 'Run as:'
   echo ' rub [-cvs cvs-command] [-update] [-updq string] [-r<cvstag>]'
   echo '     [-recur[sive]] [-release=option] [-build variants]]'
-  echo '     [-system] [-conf] [-confopt string]'
+  echo '     [-system] [-conf] [-confopt string]' [-j<option>]
   echo '     [-[dist]clean] [-make] [-check] [-install] [-distcheck] [-rpm]'
   echo '     package1 [-v<version>] [...]'
   echo ''
@@ -273,7 +294,7 @@ if [ $help = 1 ]; then
   echo '                    max     Use the maximum package version given if'
   echo '                            used from multiple packages.'
   echo '                    latest  Use latest package release version in CVS.'
-  echo '                    no      Always use the trunk head for all packages.'
+  echo '                    main    Always use the MAIN for all packages.'
   echo '                    Default = -release=max.'
   echo '  -build variants   gives the variants to do (e.g. gnu3_debug)'
   echo '                    Separate multiple variants by whitespace and'
@@ -285,6 +306,7 @@ if [ $help = 1 ]; then
   echo '  -conf             do bootstrap and configure before build.'
   echo '                    Default is -noconf.'
   echo '  -confopt string   configure options.'
+  echo '  -j<option>        Option for a parallel make. Default is -noj.'
   echo '  -clean            indicates that all build/<variant> directories'
   echo '                    will be cleaned in order to start a clean build.'
   echo '                    Default is -noclean.'
@@ -300,6 +322,9 @@ if [ $help = 1 ]; then
   echo '                    Default is -make.'
   echo '  -check            indicates that a make check should be done.'
   echo '                    Default is -nocheck.'
+  echo '  -checktool string Optional checking tool to use with make check.'
+  echo '                    E.g. "valgrind --tool=memcheck --num-callers=50 \'
+  echo '                                   --leak-check=yes --track-fds=yes"'
   echo '  -install          indicates that a make install should be done.'
   echo '                    Default is -install if -build is given.'
   echo '                    Otherwise -noinstall.'
@@ -534,12 +559,17 @@ elif [ $clean = 2 ]; then
   echo "Packages will be distcleaned"
 fi
 if [ $buildmake = 1 ]; then
-  mainmake="date && make "
+  mainmake="date && make $jobsopt "
   echo "Packages will be built"
 fi
 if [ $check = 1 ]; then
-  postmake="&& make check "
-  echo "Packages will be checked"
+  if [ "$checktool" = "" ]; then
+    postmake="&& make check "
+    echo "Packages will be checked"
+  else
+    postmake="&& make CHECKTOOL='$checktool' check "
+    echo "Packages will be checked with '$checktool'"
+  fi
 fi
 if [ $install = 1 ]; then
   postmake="$postmake && make install "
