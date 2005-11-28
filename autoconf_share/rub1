@@ -73,12 +73,12 @@ if [ "$pkgline" = "" ]; then
   if [ $checkout = 0 ]; then
     # Check if a lofarconf.in or configure.in is present
     if [ $conftype = 0 ]; then
-      if [ ! -r lofarconf.in  -o  ! -r configure.in ]; then
+      if [ ! -f $pkgname/configure.in ]; then
         echo "Error: no configure.in file found for package $pkgname"
         exit 1
       fi
     elif [ $conftype = 1 ]; then
-      if [ ! -r lofarconf.in  -o  ! -r configure.in ]; then
+      if [ ! -f $pkgname/lofarconf.in  -a  ! -f $pkgname/configure.in ]; then
         echo "Error: no configure.in or lofarconf.in file found for package $pkgname"
         exit 1
       fi
@@ -242,7 +242,7 @@ else
       pkg=`echo $PKG | sed -e 's%#-v.*%%'`
       vers=`echo $PKG | sed -e 's%.*#-v%%'`
       # Check out the package.
-      $0 $pkgname/$pkg 0 "$verstype" "$vers" "$cvstag" $checkout $recur "$cvscomm" "$updq"  ||  exit 1
+      $0 $pkgname/$pkg 1 "$verstype" "$vers" "$cvstag" $checkout $recur "$cvscomm" "$updq"  ||  exit 1
     done
   fi
 fi
