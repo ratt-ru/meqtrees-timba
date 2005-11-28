@@ -20,7 +20,20 @@ NB: Just temporary: To be converted into Bugzilla items....!
  - SBY/OMS: Domain dimensions.....
 
  - MXM: MeqParm default value discussion
-   - separate default values from solve-shape      <----- !! 
+   - separate default values from solve-shape      <----- !!
+   - JEN proposal:
+     - The scheme should be internally consistent: NO MORE KLUDGES!!
+     - allow SCALAR default value only (default = 0.0)
+       (only a scalar does not need a validity domain)
+     - set the solve-shape when setting the MeqParm solvable
+       - done by the Solver, using the rider
+       - specify when creating the solver? how?
+         - can only specify nr of coeff in each dimension,
+           but NOT their values since that would require a validity domain,
+           which we do not know. So the initial values should be zero?
+           In that case, what about continuity?
+       - change (dynamically?) afterwards?
+       - NB: Can a MeqParm have funklets with different nrs of dimensions...?  
 
  - SBY: LSM files for WSRT calibrator fields
 
