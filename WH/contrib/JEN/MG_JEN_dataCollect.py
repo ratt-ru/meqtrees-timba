@@ -7,6 +7,7 @@
 
 # History:
 # - 24 aug 2005: creation
+# - 26 nov 2005: modify 'all' -> '*'
 
 # Copyright: The MeqTree Foundation 
 
@@ -161,7 +162,7 @@ def plot_colors(select='bright', n=-1):
                 'cyan', 'green', 'none', 'white']
    ss = ss_bright
    if select=='faint': ss = ss_faint
-   if select=='all':
+   if select=='*':
       ss = ss_bright
       ss.extend(ss_faint)
    if isinstance(n, int) and n>0:
@@ -638,7 +639,7 @@ if __name__ == '__main__':
       print '\n 3:', plot_colors(n=3)
       print '\n 33:', len(plot_colors(n=33)),plot_colors(n=33)
       print '\n',plot_colors('faint')
-      print '\n',plot_colors('all')
+      print '\n',plot_colors('*')
       print
 
    if 0:

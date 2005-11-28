@@ -381,11 +381,11 @@ class Cohset (TDL_common.Super):
 
         # Unfinished: Return list of cohs, e.g. key='*'
         # See also self.nodes() above....
-        if False:
-            keys = key
-            if isinstance(keys, str):
-                if keys=='*': keys = self.keys()
-            is not isinstance(keys, (list, tuple)): keys = [keys]
+        # if False:
+            # keys = key
+            # if isinstance(keys, str):
+                # if keys=='*': keys = self.keys()
+            # if not isinstance(keys, (list, tuple)): keys = [keys]
             
         # Check the specified key(s) (name):
         if not self.has_key(key, warning=funcname): return False

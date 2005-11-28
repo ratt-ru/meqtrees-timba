@@ -112,8 +112,18 @@ def _define_forest (ns):
        sgname = 'GJones'
        # sgname = 'DJones'
        # sgname = ['DJones', 'GJones']
+
+       # Either correct the Cohset data, or subtract (or both?)
+       if True:
+           correct = Joneset
+           subtract = None
+       else:
+           correct = None
+           subtract = predicted
+
        insert_solver (ns, solvegroup=sgname, measured=Cohset, predicted=predicted, 
-                                correct=Joneset, num_iter=10)
+                      correct=correct, subtract=subtract, num_iter=10)
+           
        visualise (ns, Cohset)
        visualise (ns, Cohset, type='spectra')
  
@@ -492,8 +502,11 @@ def insert_flagger (ns, Cohset, **pp):
 # - The 'measured' Cohset is assumed to be the main data stream.
 # - The 'predicted' Cohset contains corrupted model visibilities.
 # - The (optional) 'correct' Joneset contains the instrumental model
-#   that is affected by this solver. If suppliedt, the measured data
+#   that is affected by this solver. If supplied, the measured data
 #   will be corrected with the estimated values BEFORE the reqseq graft.
+# - The (optional) 'subtract' Cohset contains predicted visibilities
+#   e.g. for a particular source/patch. If supplied, they will be
+#   subtracted from the measured data BEFORE the reqseq graft.
 # - The (optional) 'compare' Joneset contains the simulated instrumental
 #   values. If supplied they will be subtracted from the estimated values
 #   when visualised. 
@@ -510,6 +523,7 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     pp.setdefault('epsilon', 1e-4)         # iteration control criterion
     pp.setdefault('debug_level', 10)       # solver debug_level
     pp.setdefault('visu', True)            # if True, include visualisation
+    pp.setdefault('history', True)         # if True, include history collection of metrics 
     pp = record(pp)
 
     # The solver name must correspond to one or more of the
@@ -521,7 +535,9 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     for i in range(len(pp.solvegroup)):
         if i>0: solver_name = solver_name+pp.solvegroup[i]
 
-    # Use copies of the input Cohsets (corr selection etc): 
+    # Use copies of the input Cohsets:
+    # - We need a Pohset copy, since it gets modified with condeq nodes.
+    # - We need a Mohset copy, since the measured data may be corrected first.
     Pohset = predicted.copy(label='predicted('+str(pp.solvegroup)+')')
     Pohset.label('solver_'+solver_name)
     Mohset = measured.copy(label='measured('+str(pp.solvegroup)+')')
@@ -534,7 +550,7 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     Pohset.history(funcname+' measured: '+measured.oneliner())
     Pohset.history(funcname+' predicted: '+predicted.oneliner())
 
-    # Redundancy calibration:
+    # For redundancy calibration, we need station positions:
     if False:
         # Get a record with the names of MS interface nodes
         # Supply a nodescope (ns) in case it does not exist yet
@@ -573,8 +589,11 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
         if not measured.has_key(key):
             print '\n** key not recognised in measured Cohset:',key
             return
+
+        # Poh/Moh are coherency nodes (tensors), with only the specified 1-4 corrs:
         Poh = Pohset.coh (key, corrs=corrs, ns=ns, name='predicted')
         Moh = Mohset.coh (key, corrs=corrs, ns=ns, name='measured')
+        
         s12 = Pohset.stations()[key]
         condeq = ns.condeq(solver_name)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Moh, Poh)
         Pohset[key] = condeq
@@ -597,17 +616,21 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
                                                            last_update=True,
                                                            save_funklets=True,
                                                            debug_level=pp.debug_level)
+    # Make a bookmark for the solver plot:
+    MG_JEN_forest_state.bookmark (solver, name=('solver: '+solver_name),
+                                  # page=0, save=1, clear=0,
+                                  udi='cache/result', viewer='Result Plotter')
 
     # Make historyCollect nodes for the solver metrics
     hcoll_nodes = []
-    if False:
+    if pp.history:
        input_index = hiid('VellSets/0/Value')       # The default (not relelant for solver)
        metrics = ['fit','rank','mu','stddev']
        metrics = ['rank','mu']
        pagename = 'hcoll_metrics_'+solver_name
        for metric in metrics:
           input_index = hiid('solver_result/metrics/0/'+metric)          
-          hcoll_name = 'hcoll_'+metric+'_'+solver_name
+          hcoll_name = 'hcoll_'+solver_name+'_metric_'+metric
           hcoll = ns[hcoll_name] << Meq.HistoryCollect(solver, verbose=True,
                                                        input_index=input_index,
                                                        top_label=hiid('history'))
@@ -615,12 +638,7 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
           MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
 
 
-    # Make a bookmark for the solver plot:
-    MG_JEN_forest_state.bookmark (solver, name=('solver: '+solver_name),
-                                  udi='cache/result', viewer='Result Plotter',
-                                  page=0, save=1, clear=0)
-
-    # Add to the Pohset history:
+    # Add to the Pohset history (why not to measured?):
     Pohset.history(funcname+' -> '+Pohset.oneliner())
     MG_JEN_forest_state.history (funcname)
     MG_JEN_forest_state.object(Pohset, funcname)
@@ -635,7 +653,7 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
 
     # Optional: subtract the given Cohset from the measured (corrected?) data:
     # NB: The interaction between correct and subtract requires a little thought...
-    # NB: Use predicted for subtract/correct...?
+    # NB: Use predicted for subtract/correct...? (ONLY if not resampling....)
     if not subtract==None:
 	measured.subtract(ns, subtract)        # assume that 'subtract' is a Cohset
 

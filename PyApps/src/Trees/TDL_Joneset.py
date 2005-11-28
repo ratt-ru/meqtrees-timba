@@ -94,7 +94,7 @@ class Joneset (TDL_common.Super):
         self.__plot_color[key] = color
         self.__plot_style[key] = style
         self.__plot_size[key] = size
-        if corrs=='all': corrs = self.corrs_all()
+        if corrs=='*': corrs = self.corrs_all()
         if corrs=='paral': corrs = self.corrs_paral()
         if corrs=='paral1': corrs = self.corrs_paral1()
         if corrs=='paral2': corrs = self.corrs_paral2()
@@ -240,7 +240,7 @@ class Joneset (TDL_common.Super):
     def plot_style(self): return self.__plot_style
     def plot_size(self): return self.__plot_size
             
-    def nodenames(self, select='all'):
+    def nodenames(self, select='*'):
         # Return the names of the jones matrix node names:
         nn = []
         for key in self.keys():
@@ -523,7 +523,7 @@ if __name__ == '__main__':
 
         js.define_solvegroup('p1_a2', [p1, a2])
         js.define_solvegroup('a1_a2', [a1, a2])
-        js.define_solvegroup('all', js.parmgroup().keys())
+        js.define_solvegroup('ALL', js.parmgroup().keys())
 
     if 0:
         # Access to jones etc

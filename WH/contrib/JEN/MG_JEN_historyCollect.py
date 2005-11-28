@@ -10,6 +10,7 @@
 # History:
 # - 24 aug 2005: creation
 # - 03 oct 2005: tdl_jobs for different dimensions
+# - 26 nov 2005: cleanup and simplification
 
 # Copyright: The MeqTree Foundation 
 
@@ -32,7 +33,7 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 # Script control record (may be edited here):
 
 MG = MG_JEN_exec.MG_init('MG_JEN_historyCollect.py',
-                         last_changed='h02oct2005',
+                         last_changed='d26nov2005',
                          nfreq=5,                    # used in requests
                          ntime=8,                   # used in requests
                          trace=False)             # If True, produce progress messages  
@@ -65,28 +66,40 @@ def _define_forest (ns):
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
-   node = ns.freqtime << (ns << Meq.Freq) + (ns << Meq.Time)*(ns << Meq.Time)
-   input = node
+   # Make an input node to collect results from:
+   freqtime = ns.freqtime << (ns << Meq.Freq) + (ns << Meq.Time)*(ns << Meq.Time)
 
-   node = ns.stripper << Meq.Stripper(node)
-   # node = ns.mean << Meq.Mean(node)
 
+   #---------------------------------------------------------------------------
+   # Experiment 1: Just a hcoll
    # Any field from the result can be collected:
-   insert_hcoll (ns, node)
-   MG_JEN_forest_state.bookmark(node, viewer='History Plotter', page='hcoll')
-   MG_JEN_forest_state.bookmark(node, viewer='Record Browser', page='hcoll')
+   input_index = 'VellSets/0/Value'                         # this is the default
+   reqseq = insert_hcoll (ns, freqtime, input_index=input_index, page='insert_hcoll')
+   cc.append(reqseq)
 
-   attrib = record(plot=record(), tag='tag')
-   attrib['plot'] = record(type='spectra', title=MG.script_name,
-                           spectrum_color='hippo',
-                           x_axis='#', y_axis='hcoll')
-   sc = []
-   top_label = hiid('visu')
-   sc.append(ns.dcoll_stripper << Meq.DataCollect(ns.stripper, attrib=attrib, top_label=top_label))
-   # sc.append(ns.dcoll_mean << Meq.DataCollect(ns.mean, attrib=attrib, top_label=top_label))
-   # sc.append(ns.dcoll_hcoll << Meq.DataCollect(ns.hcoll, attrib=attrib, top_label=top_label))
-   cc.append(ns.root << Meq.Add(input,stepchildren=sc))
+   #---------------------------------------------------------------------------
+   # Experiment 2: hcoll(s) for solver metrics and 'debug' values:
+   if True:
+      # Make a simple solver that tries to make parm equal to freqtime: 
+      parm = ns.parm << Meq.Parm(0, node_groups='Parm')
+      condeq = ns.condeq << Meq.Condeq(freqtime, parm)
+      solver = ns.solver << Meq.Solver(condeq,
+                                       solvable=parm,
+                                       num_iter=10,
+                                       # epsilon=1e-4,
+                                       # last_update=True,
+                                       # save_funklets=True,
+                                       debug_level=10)
+      # Make a bookmark for the solver plot:
+      MG_JEN_forest_state.bookmark (solver, udi='cache/result')
+      # MG_JEN_forest_state.bookmark (solver, udi='cache/result', viewer='Result Plotter')
 
+      # Make a vector of hcoll nodes, and attach them to cc:
+      hcoll_nodes = make_hcoll_solver_metrics (ns, solver)
+      cc.extend(hcoll_nodes)
+
+
+   #---------------------------------------------------------------------------
    # Finished: 
    return MG_JEN_exec.on_exit (ns, MG, cc)
 
@@ -102,12 +115,42 @@ def _define_forest (ns):
 #********************************************************************************
 #********************************************************************************
 
-# Special version of insert_hcoll() for collecting flags:
 
-def insert_hcoll_flags (ns, node, **pp):
-   pp.setdefault('input_index', 'VellSets/0/Flags')
-   pp['input_index'] = 'VellSets/0/Flags'
-   return insert_hcoll (ns, node, **pp)
+def make_hcoll_solver_metrics (ns, solver):
+   """Make a vector historyCollect nodes for solver metrics"""
+   
+   # Make a qualifying integer to avoid node name clashes:
+   uniqual = MG_JEN_forest_state.uniqual(MG.script_name+'::make_hcoll_solver_metrics()')
+   hcoll_nodes = []
+
+   # Make hcoll nodes for 'traditional' solver metrics:
+   metrics = ['fit','rank','mu','stddev']
+   pagename = 'hcoll_solver_metrics'
+   for metric in metrics:
+      input_index = hiid('solver_result/metrics/0/'+metric)          
+      hcoll_name = 'hcoll_solver_metric_'+metric
+      hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
+                                                            input_index=input_index,
+                                                            top_label=hiid('history'))
+      hcoll_nodes.append(hcoll)
+      MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
+
+   if True: 
+      # Optional: make hcoll nodes for 'debug' solver metrics:
+      debug = ['nonlin','seq','sol','prec','known','er','piv','neq']
+      pagename = 'hcoll_solver_debug'
+      for metric in debug:
+         input_index = hiid('solver_result/debug/0/'+metric)          
+         hcoll_name = 'hcoll_solver_debug_'+metric
+         hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
+                                                               input_index=input_index,
+                                                               top_label=hiid('history'))
+         hcoll_nodes.append(hcoll)
+         MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
+
+   # Return a vector of historyCollect nodes:
+   return hcoll_nodes
+
 
 
 #------------------------------------------------------------------------------
@@ -115,24 +158,53 @@ def insert_hcoll_flags (ns, node, **pp):
 # from the given node.
 
 def insert_hcoll(ns, node, **pp):
+   """Make (and insert) a historyCollect node for the (given field of the) given node"""
 
    pp.setdefault('input_index', 'VellSets/0/Value')     # this is the default
+   pp.setdefault('strip', True)                         
+   pp.setdefault('mean', False)                         
    pp.setdefault('page', None)
+   pp.setdefault('graft', True)
 
-   uniqual = MG_JEN_forest_state.uniqual('MG_JEN_historyCollect::insert()')
+   # Make a qualifying integer to avoid node name clashes:
+   uniqual = MG_JEN_forest_state.uniqual(MG.script_name+'::insert_hcoll()')
 
-   if isinstance(pp['input_index'], str): pp['input_index'] = hiid(pp['input_index'])
+   # Perform some (optional) operations on the hcoll_input node
+   hcoll_input = node
+   if pp['strip']:
+      hcoll_input = ns.stripper_hcoll(uniqual) << Meq.Stripper(hcoll_input)
+   if pp['mean']:
+      hcoll_input = ns.mean_hcoll(uniqual) << Meq.Mean(hcoll_input)
 
+   # Make the historyCollect node itself:
    name = 'hcoll_'+node.name
-   hcoll = ns[name](uniqual) << Meq.HistoryCollect(node, verbose=True,
-                                                         input_index=pp['input_index'],
-                                                         # top_label=hiid('visu'))
-                                                         top_label=hiid('history'))
+   if isinstance(pp['input_index'], str): pp['input_index'] = hiid(pp['input_index'])
+   hcoll = ns[name](uniqual) << Meq.HistoryCollect(hcoll_input, verbose=True,
+                                                   input_index=pp['input_index'],
+                                                   # top_label=hiid('visu'))
+                                                   top_label=hiid('history'))
+   # Make a bookmark for the hcoll, if required:
    if isinstance(pp['page'], str):
       MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pp['page'])
 
-   node = ns.reqseq_hcoll(uniqual) << Meq.ReqSeq (children=[hcoll,node], result_index=1)
-   return node
+   # Optionally, make a reqseq node to issue requests to hcoll,
+   # while passing on the result of the original node
+   output = hcoll
+   if pp['graft']:
+      output = ns.reqseq_hcoll(uniqual) << Meq.ReqSeq (children=[hcoll,node], result_index=1)
+   return output
+
+
+#------------------------------------------------------------------------------
+# Special version of insert_hcoll() for collecting flags:
+
+def insert_hcoll_flags (ns, node, **pp):
+   """Special version of .insert_hcoll() for collecting flags"""
+   pp.setdefault('input_index', 'VellSets/0/Flags')
+   pp['input_index'] = 'VellSets/0/Flags'
+   return insert_hcoll (ns, node, **pp)
+
+
 
 #------------------------------------------------------------------------------
 # Remarks:
