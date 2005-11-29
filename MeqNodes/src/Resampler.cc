@@ -146,7 +146,8 @@ ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
 
 	//if out cells are smaller than in cells
 	//it will be taken to be idential for the moment
-  identical_=(nx_>=nxs)||(ny_>=nys);	
+  identical_=(nx_>nxs)||(ny_>nys) 
+					||((nx_==nxs)&&(ny_==nys));	
   cout<<"Itentical "<<identical_<<endl;
   // array of indices
 	xindex_.resize(nxs);
