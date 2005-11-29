@@ -150,7 +150,7 @@ if [ "$pkgline" = ""  -o  "$getvers" != "$curvers" ]; then
     if [ -d $pkgname ]; then
       echo "Toplevel update of package $pkgname$tagstr"
       echo "(cd $pkgname  &&  $cvscomm update -lA $rtag $updq)" >> rub.log 2>&1
-      (cd $pkgname  &&  $cvscomm update -l $rtag $updq) >> rub.log 2>&1
+      (cd $pkgname  &&  $cvscomm update -lA $rtag $updq) >> rub.log 2>&1
       status=$?
     else
       echo "Toplevel checkout of package $pkgname$tagstr"
