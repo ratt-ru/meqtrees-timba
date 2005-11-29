@@ -115,7 +115,7 @@ private:
   template<class T> int  
         ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, int nys, 
 				blitz::Array<T,2> A,  blitz::Array<T,2> B,  
-				blitz::Array<VellsFlagType,2> F, bool has_flags);
+			VellsFlagType *Fp, bool has_flags);
 };
 
 } // namespace Meq

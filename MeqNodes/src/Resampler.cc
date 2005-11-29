@@ -256,11 +256,16 @@ int ResampleMachine::apply(VellSet &out, const VellSet &in)
         while(yindex_(yhigh)==ny_ && yhigh>=0) yhigh--;				
         cout<<"Limits ["<<xlow<<","<<xhigh<<"]["<<ylow<<","<<yhigh<<"]"<<endl; 
 
+				VellsFlagType *F=0;
 				//check for flags
-				blitz::Array<VellsFlagType,2> F;
-			  if( invl.hasDataFlags() ) {
-          Vells flvl=invl.dataFlags();
-					F=flvl.as<VellsFlagType,2>()(LoRange::all(),LoRange::all());
+				if (invl.hasDataFlags() ) {
+        Vells &flvl=const_cast<Vells &>(invl.dataFlags());
+
+				blitz::Array<VellsFlagType,2> FF=flvl.as<VellsFlagType,2>()(LoRange::all(),LoRange::all()); 
+				cout <<"Flags 1"<<FF<<endl;
+				//F=const_cast<VellsFlagType*>(flvl.beginFlags());
+				F= const_cast<VellsFlagType*>(FF.data());
+				cout <<"Flags "<<F<<endl;
 				}
 
 				if (invl.isReal()) {
@@ -339,7 +344,7 @@ int  ResampleMachine::bin_search(blitz::Array<double,1> xarr,double x,int i_star
 template<class T> int  
 ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, int nys, 
 				blitz::Array<T,2> A,  blitz::Array<T,2> B,  
-				blitz::Array<VellsFlagType,2> F, bool has_flags) {
+				VellsFlagType *Fp, bool has_flags) {
 				double tmp;
 			  if( !has_flags ) {
 				for (int i=0;i<xlow;i++) {
@@ -415,6 +420,11 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
 				 }
 				}
 				}else{
+         //get Flags
+				 blitz::Array<VellsFlagType,2> F(const_cast<VellsFlagType*>(Fp),blitz::shape(B.extent(0),B.extent(1)),blitz::neverDeleteData);
+				 cout <<"Flags "<<F<<endl;
+
+
 				for (int i=0;i<xlow;i++) {
 				 for (int j=0;j<ylow;j++) {
              if (!F(i,j)) {
@@ -506,11 +516,17 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
 				 }
 				}
 				}
-
-        A/=cell_weight_; 
 				cout<<" A "<<A<<endl;
 				cout<<" Weight "<<cell_weight_<<endl;
 
+       cout<<" size "<<nx_<<","<<ny_<<endl;
+				for (int i=0; i<nx_; i++) {
+				 for (int j=0; j<ny_; j++) {
+          if(cell_weight_(i,j)!=0)
+           A(i,j)/=cell_weight_(i,j);
+				 }
+				}
+        //A/=cell_weight_; 
 				return 0;
 }
 } // namespace Meq
