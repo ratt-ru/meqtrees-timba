@@ -240,7 +240,10 @@ else
     for PKG in $pkgs
     do
       pkg=`echo $PKG | sed -e 's%#-v.*%%'`
-      vers=`echo $PKG | sed -e 's%.*#-v%%'`
+      vers=
+      if [ "$pkg" != "$PKG" ]; then
+        vers=`echo $PKG | sed -e 's%.*#-v%%'`
+      fi
       # Check out the package.
       $0 $pkgname/$pkg 1 "$verstype" "$vers" "$cvstag" $checkout $recur "$cvscomm" "$updq"  ||  exit 1
     done
