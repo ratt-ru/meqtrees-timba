@@ -271,7 +271,8 @@ class LSMWindow(QMainWindow):
           self.table2_names[sname]=row
           row+=1
          else:
-          print "This belongs to a patch"
+          #print "This belongs to a patch"
+          pass
 
         for i in range(self.table2.numCols()):
          self.table2.adjustColumn(i)

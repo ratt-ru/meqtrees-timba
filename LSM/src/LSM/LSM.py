@@ -9,6 +9,7 @@ from common_utils import *
 from Timba.Meq import meq
 from Timba.TDL import *
 from Timba.Trees import TDL_Sixpack
+from Timba.Meq import meq
 
 #############################################
 class Source:
@@ -131,12 +132,21 @@ class SpH:
  # update values according to the new cell, 
  # the name of the p-unit is given by 'pname'
  def updateValues(self,pname):
-  from Timba.Meq import meq
   if (self.lsm!=None) and (self.lsm.cells!=None) and\
    (self.lsm.mqs!=None):
    # create request object
    my_request = meq.request(cells=self.lsm.cells, eval_mode=0)
-   my_args=meq.record(name='sixpack:q='+pname, request=my_request)
+   # get the correct name from the sixpack object
+   punit=self.lsm.getPUnit(pname)
+   psixpack=punit.getSP()
+   my_name=''
+   if psixpack!=None and psixpack.ispoint():
+    my_name=psixpack.sixpack().name
+   elif psixpack!=None: # patch
+    my_name=psixpack.root().name
+   elif punit.sp!=None:
+    my_name='sixpack:q='+pname
+   my_args=meq.record(name=my_name, request=my_request)
    my_result=self.lsm.mqs.meq('Node.execute', my_args,wait=True)
    # update values only if no 'Fail has happened'
    # if you try to create patches with 1 source, it will fail
@@ -1044,13 +1054,21 @@ class LSM:
    twoname='radec:q='+patch_name
    tworoot=self.__ns[twoname]<<Meq.Composer(RA_root,Dec_root)
   
-   child_list=[twoname]
+   child_list=[tworoot.name]
    # get the sixpack root of each source in slist
    # and add it to patch composer
    for sname in correct_slist:
-     child_list.append('sixpack:q='+sname)
-     self.p_table[sname]._patch_name=patch_name
+     punit=self.getPUnit(sname)
+     psixpack=punit.getSP()
+     my_name=''
+     if psixpack!=None:
+      my_name=psixpack.sixpack().name
+     elif punit.sp!=None:
+      my_name='sixpack:q='+pname
 
+     child_list.append(my_name)
+     self.p_table[sname]._patch_name=patch_name
+   #print child_list
    patch_root=self.__ns['sixpack:q='+patch_name]<<Meq.PatchComposer(children=child_list)
 
    # add this to our root
@@ -1082,9 +1100,9 @@ class LSM:
    newp.sp.set_staticRA(ra_0)
    newp.sp.set_staticDec(dec_0)
    newp.setBrightness(sum_brightness)
+
+
    # update vellsets
-   if resolve_forest==True and sync_kernel==True:
-    newp.sp.updateValues(patch_name)
    #from Timba.Meq import meq
    #ftdom=meq.domain(startfreq=1e6, endfreq=3e6, starttime=0,endtime=1)
    #cc=meq.cells(domain=ftdom,num_freq=2, num_time=1)
@@ -1098,11 +1116,15 @@ class LSM:
    # object does not apply here. However, we will create a dummy 
    # sixpack object.
 
-   newp.setSP(TDL_Sixpack.Sixpack(root=patch_root,label=patch_name))
+   newp.setSP(TDL_Sixpack.Sixpack(root=patch_root,label=patch_root.name))
+
    # add new PUnit to table
    self.insertPUnit(newp)
    #print self.__barr
    #self.p_table[patch_name]=newp
+
+   if resolve_forest==True and sync_kernel==True:
+    newp.sp.updateValues(patch_name)
 
    #Timba.TDL._dbg.set_verbose(0);
    # save the lsm
@@ -1252,17 +1274,27 @@ class LSM:
 
  # set the current NodeScope
  def setNodeScope(self,ns):
+  #print dir(ns)
+  #print ns._name
   self.__ns=ns
   # create a single root not to accomodate all subtrees
   # in the PUnit table
   child_list=[]
   for pname in self.p_table.keys():
    punit=self.getPUnit(pname)
-   if punit.sp!=None:
+   psixpack=punit.getSP()
+   if psixpack!=None:
+    child_list.append(psixpack.sixpack().name)
+   elif punit.sp!=None:
     child_list.append('sixpack:q='+pname)
+  #print child_list
   # create a common root
   if len(child_list)!=0:
-   self.__root=self.__ns['lsmroot']<<Meq.Composer(children=child_list)
+   prefix=ns._name# true if ns is a sub scope
+   if prefix!=None: 
+    self.__root=self.__ns[ns._name+' lsmroot']<<Meq.Composer(children=child_list)
+   else: 
+    self.__root=self.__ns['lsmroot']<<Meq.Composer(children=child_list)
 
 
  # add a child node (subtree) to the root node
