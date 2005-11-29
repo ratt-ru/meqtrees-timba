@@ -37,13 +37,9 @@ const HIID FCacheRequestId = AidCache|AidRequest|AidId;
 
 //##ModelId=400E5355029C
 ModRes::ModRes()
-: Node(1), // 1 child expected
-  has_ops(false)
+: Node(1) // 1 child expected
 {
   // our own result depends on domain & resolution
-  const HIID symdeps[] = { FDomain,FResolution };
-  setActiveSymDeps(symdeps,2);
-  setGenSymDeps(FResolution,RQIDM_RESOLUTION);
 }
 
 //##ModelId=400E5355029D
@@ -53,110 +49,63 @@ ModRes::~ModRes()
 void ModRes::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
-  bool new_ops = false;
-  // check for resampling factor
-  if( rec[FFactor].get_vector(factor) )
-  {
-    new_ops = true;
-    // if a single element, resize and assign to entire vector
-    if( factor.size() == 1 )
-    {
-      factor.resize(DOMAIN_NAXES);
-      factor.assign(DOMAIN_NAXES,factor.front());
-    }
-    else if( factor.size() != DOMAIN_NAXES )
-    {
-      NodeThrow(FailWithCleanup,"illegal "+FFactor.toString()+" field");
-    }
-  }
-  // check for direct cell number
-  if( rec[FNumCells].get_vector(numcells) )
-  {
-    new_ops = true;
-    // if a single element, resize and assign to entire vector
-    if( numcells.size() == 1 )
-    {
-      numcells.resize(DOMAIN_NAXES);
-      numcells.assign(DOMAIN_NAXES,numcells.front());
-    }
-    else if( numcells.size() != DOMAIN_NAXES )
-    {
-      NodeThrow(FailWithCleanup,"illegal "+FNumCells.toString()+" field");
-    }
-  }
-  // if new ops were specified, recompute the ops array
-  if( new_ops )
-  {
-    // clear the cached cells
-    cache_cells_.detach();
-    wstate()[FCacheCells].remove();
-    wstate()[FCacheRequestId].remove();
-    has_ops = false;
-    // precompute new Cells constructor arguments
-    for( int i=0; i<DOMAIN_NAXES; i++ )
-    {
-      if( !numcells.empty() && numcells[i] )
-      {
-        cells_op[i]  = Cells::SET_NCELLS; 
-        cells_arg[i] = numcells[i];
-        has_ops = true;
-      }
-      else if( !factor.empty() && factor[i]<1 )
-      {
-        cells_op[i]  = Cells::INTEGRATE; 
-        cells_arg[i] = -factor[i];
-        has_ops = true;
-      }
-      else if( !factor.empty() && factor[i]>1 )
-      {
-        cells_op[i]  = Cells::UPSAMPLE; 
-        cells_arg[i] = factor[i];
-        has_ops = true;
-      }
-      else
-        cells_arg[i] = Cells::NONE;
-    }
-  }
+	std::vector<int> numcells;
+	if (rec[FNumCells].get_vector(numcells)) {
+#ifdef VERBOSE
+		cout<<"Initializing "<<numcells.size()<<" Cells ";
+		for (int i=0;i<numcells.size();i++) cout<<numcells[i]<<", ";
+		cout<<endl;
+#endif
+		if (numcells.size()>0) {
+		do_resample_=1;
+		nx_=numcells[0];
+		}
+		if (numcells.size()>1)
+		ny_=numcells[1];
+	}
 }
 
-int ModRes::pollChildren (std::vector<Result::Ref> &child_results,
+int ModRes::pollChildren (std::vector<Result::Ref> &chres,
                           Result::Ref &resref,
-                          const Request &req)
+                          const Request &request)
 {
-  // no cells in request, or no operations configured? Pass everything 
-  // on to standard method
-  if( !req.hasCells() || !has_ops )
-    return Node::pollChildren(child_results,resref,req);
-  // create new request as copy of current one
-  Request::Ref newref;
-  Request &newreq = newref <<= new Request(req);
-  // see if we already have a cached cells for this operation
-  if( cache_cells_.valid() && maskedCompare(req.id(),cache_rqid_,getDependMask()) )
-  {
-    newreq.setCells(*cache_cells_);
-  }
-  else
-  {
-    // create & cache new cells based on original cells and current 
-    // operations array
-    const Cells *cells = new Cells(req.cells(),cells_op,cells_arg);
-    wstate()[FCacheCells].replace() <<= cells;
-    wstate()[FCacheRequestId] = cache_rqid_ = req.id();
-    cache_cells_ <<= cells;
-    newreq.setCells(cells);
-  }
-  // increment the resolution-ID in the request
-  newreq.setId(incrSubId(req.id(),getGenSymDepMask()));
-  // call standard method with the new request
-  return Node::pollChildren(child_results,resref,newreq);
+   if ( do_resample_ && request.hasCells()) {
+		//modify request cells
+	  //if flag_bit!=0, change the request 
+		 Request::Ref newreq(request);
+  const Cells &incells = request.cells();
+
+	int nx=incells.center(0).extent(0);
+	int ny=incells.center(1).extent(0);
+	//determine the resampling to be done
+	int nx1=nx_;//(int)((double)nx*flag_density);
+	int ny1=ny_;//(int)((double)ny*flag_density);
+	//sanity check
+	if (nx1<1) nx1=1;
+	if (ny1<1) ny1=1;
+#ifdef VERBOSE
+	cout<<"Resampling Request new size "<<nx1<<" x "<<ny1<<" "<<flag_density<<endl;
+#endif
+  Cells::Ref outcells1; 
+ 	Cells &outcells = outcells1<<=new Cells(request.cells().domain(),nx1,ny1);
+	//FIXME: can cache the current cells
+  newreq().setCells(outcells);
+     return Node::pollChildren(chres,resref,newreq);
+		} else {
+		//do nothing
+     return Node::pollChildren(chres,resref,request);
+		}
+	// will not get here
+	return 0;
+
 } 
 
 int ModRes::getResult (Result::Ref &resref, 
                        const std::vector<Result::Ref> &childres,
-                       const Request &,bool)
+                       const Request &request,bool)
 {
   Assert(childres.size()==1);
-  resref.xfer(childres[0]);
+  resref=childres[0];
   return 0;
 }
 

@@ -29,7 +29,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Resampler 
-#pragma aid Integrate Flag Density Factor Num Cells Downsample Interpolate
+#pragma aid Integrate Flag Density
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -44,14 +44,9 @@
 //field: flag_bit 0
 //  Flag bit(s) used to indicate flagged integrated results. If 0, then 
 //  flag_mask&input_flags is used.
-//field: downsample_interpolate False
-//  False (default) to integrate, True to interpolate 
 //field: flag_density 0.5
 //  Critical ratio of flagged/total pixels for integration. If this ratio
 //  is exceeded, the integrated pixel is flagged.
-//field: num_cells []
-//  If this is given, changes the number of cells along each axis. Must be 
-//  a vector of 2 values (time,freq) or a single value.
 //defrec end
 
 namespace Meq {    
@@ -74,53 +69,54 @@ public:
 
 protected:
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
-	
+    
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
-
-	virtual int pollChildren (std::vector<Result::Ref> &child_results,
-	   Result::Ref &resref,const Request &req);
-
-
   
 private:
   int flag_mask;
   
-  int flag_bit; //which way to resample, (0): result, (1):request
-  
-  bool downsample_interpolate;
+  int flag_bit;
   
   float flag_density;
 
-  //number of cells of the resampling
-  int nx_; //no. of cells in the first axis
-	int ny_; //no. of cells in the second axis
-
-  int do_resample_;//flag to remember if to actually resample
-
-int 
-bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end);
-template<typename T> T
-bicubic_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,1> yax,double x,double y,blitz::Array<T,2> A);
-template<typename T> T
-bilinear_interpolate(int p,int q,blitz::Array<double,1> xax,blitz::Array<double,1> yax,double x,double y,blitz::Array<T,2> A);
-template<typename T> int 
-resample(blitz::Array<T,2> A,blitz::Array<double,1> xax,blitz::Array<double,1> yax,
-			blitz::Array<T,2> B,blitz::Array<double,1> xaxs,blitz::Array<double,1> yaxs, 
-			double xstart, double xend, double ystart, double yend);
-template<typename T> void
-bcubic_coeff(T *yy, T *dyy1, T *dyy2, T *dyy12, double d1, double d2, blitz::Array<T,2> c);
-//1 D cubic spline interpolation
-//ripped from numerical recipes
-template<class T> void
-spline(blitz::Array<double,1> x, blitz::Array<T,1> y, int n, blitz::Array<T,1> y2);
-template<class T> void
-splint(blitz::Array<double,1> xax,double xstart, double xend, blitz::Array<T,1> yax, int n, blitz::Array<double,1> xaxs, int ns, blitz::Array<T,1> y);
-
-
 };
 
+
+// put the code here
+class ResampleMachine 
+{
+public:
+   ResampleMachine(const Cells &in, const Cells &out);
+
+   ~ResampleMachine();
+
+	 bool isIdentical() const
+	 { return identical_; }
+
+	 void setFlagPolicy(int flag_mask, int flag_bit, float flag_density)
+	 { flag_mask_= flag_mask; flag_bit_=flag_bit; flag_density_=flag_density; }
+
+	 int apply(VellSet &out, const VellSet &in);
+
+private:
+	 int flag_mask_;
+	 int flag_bit_;
+	 float flag_density_;
+	 bool identical_;
+
+	 blitz::Array<int,1> xindex_,yindex_; //indices of the old cells
+	 int nx_,ny_; // size of the resampled (new) cells
+	 blitz::Array<blitz::TinyVector<double,2>,1> xweights_,yweights_;
+	 blitz::Array<double,2> cell_weight_;
+
+	 int  ResampleMachine::bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end); 
+  template<class T> int  
+        ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, int nys, 
+				blitz::Array<T,2> A,  blitz::Array<T,2> B,  
+				blitz::Array<VellsFlagType,2> F, bool has_flags);
+};
 
 } // namespace Meq
 

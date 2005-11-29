@@ -36,18 +36,8 @@
 // init-record for the class 
 
 //defrec begin MeqModRes
-//  ***UPDATE THIS***
 //  Changes the resolution of a parent's Request before passing it on to the
 //  child. Returns child result as is. Expects exactly one child.
-//field: factor []
-//  If specified, changes the resolution by a fixed resampling factor. 
-//  Must be a vector of 2 values (frequency axis, time axis), or a single 
-//  value (for both axes). A value <-1 corresponds to integrating by -factor; a 
-//  value of >1 corresponds to upsampling by factor. A value of 0/1 leaves the 
-//  resolution along that axis unchanged.
-//  Currently, only integer refactorings are supported, so the node will fail
-//  if factor<-1 (i.e. integration) is not an integer factor of the original
-//  request's resolution.
 //field: num_cells []
 //  If specified, changes the number of cells along each axis. 
 //  Must be a vector of 2 values (frequency axis, time axis), or a single 
@@ -72,11 +62,9 @@ public:
     //##ModelId=400E5355029D
   virtual ~ModRes();
 
-  //##ModelId=400E5355029F
-  virtual TypeId objectType() const
-  { return TpMeqModRes; }
-  
-  
+	virtual TypeId objectType() const
+	{ return TpMeqModRes; }
+
 
 protected:
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
@@ -91,17 +79,19 @@ protected:
   
 private:
   // operations specified via state are cached here
-  std::vector<int> factor;
-  std::vector<int> numcells;
+  //std::vector<int> factor;
+  //std::vector<int> numcells;
 
   // the operations are then re-mapped into Cells constructor
   // arguments, which are stored here
-  int cells_op[Axis::MaxAxis];
-  int cells_arg[Axis::MaxAxis];
-  bool has_ops;
+  //int cells_op[Axis::MaxAxis];
+  //int cells_arg[Axis::MaxAxis];
+  //bool has_ops;
 
   Cells::Ref cache_cells_;
   RequestId  cache_rqid_;
+	int nx_,ny_;
+	int do_resample_;
 };
 
 
