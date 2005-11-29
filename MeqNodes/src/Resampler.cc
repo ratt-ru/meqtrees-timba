@@ -31,6 +31,7 @@
 
 namespace Meq {
 
+//#define DEBUG
 const HIID FFlagDensity = AidFlag|AidDensity;
 
 //##ModelId=400E5355029C
@@ -117,13 +118,13 @@ ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
 	//array of values to be searched
   blitz::Array<double,1> xaxs=in.center(0);
   blitz::Array<double,1> yaxs=in.center(1);
-
+#ifdef DEBUG
 	cout<<"Out X "<<xax<<endl;
 	cout<<"Out Y "<<yax<<endl;
 	//array of values to be searched
 	cout<<"In X "<<xaxs<<endl;
 	cout<<"In Y "<<yaxs<<endl;
-
+#endif
 	nx_=xax.extent(0);
 	ny_=yax.extent(0);
 
@@ -134,21 +135,25 @@ ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
 	tempx(blitz::Range(1,nx_))=xax;
 	tempx(0)=xstart;
 	tempx(nx_+1)=xend;
+#ifdef DEBUG
 	cout<<"In X "<<tempx<<endl;
-
+#endif
 
 	blitz::Array<double,1> tempy(ny_+2);
 	tempy(blitz::Range(1,ny_))=yax;
 	tempy(0)=ystart;
 	tempy(ny_+1)=yend;
 
+#ifdef DEBUG
 	cout<<"In Y "<<tempy<<endl;
-
+#endif
 	//if out cells are smaller than in cells
 	//it will be taken to be idential for the moment
   identical_=(nx_>nxs)||(ny_>nys) 
 					||((nx_==nxs)&&(ny_==nys));	
+#ifdef DEBUG
   cout<<"Itentical "<<identical_<<endl;
+#endif
   // array of indices
 	xindex_.resize(nxs);
 	yindex_.resize(nys);
@@ -159,9 +164,10 @@ ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
 	for (int i=0; i<nys;i++)
 	  yindex_(i)=bin_search(tempy,yaxs(i),0,ny_+1);
 
+#ifdef DEBUG
 	cout<<"X index "<<xindex_<<endl;
 	cout<<"Y index "<<yindex_<<endl;
-
+#endif
 	//now calculate the weights
 	//each old cell is smaller than new cells. So there are 2 cases to consider
 	// --|  /.....\  |-- old cell completely within new cell
@@ -200,7 +206,10 @@ ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
 						 }
 		 }
 	}
+
+#ifdef DEBUG
 	cout<<"X weights"<<xweights_<<endl;
+#endif
 	yweights_.resize(nys);  
 	for (int i=0; i<nys; i++) {
      if(yindex_(i)==0) {
@@ -225,8 +234,10 @@ ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
 						 }
 		 }
 	}
-	cout<<"Y weights"<<yweights_<<endl;
 
+#ifdef DEBUG
+	cout<<"Y weights"<<yweights_<<endl;
+#endif
 	//resize the array to store cumulative flags+weights
 	cell_weight_.resize(nx_,ny_);
 	//make it zero
@@ -254,7 +265,9 @@ int ResampleMachine::apply(VellSet &out, const VellSet &in)
         while(yindex_(ylow)==0 && ylow <nys) ylow++;				
         int yhigh=nys-1;
         while(yindex_(yhigh)==ny_ && yhigh>=0) yhigh--;				
+#ifdef DEBUG
         cout<<"Limits ["<<xlow<<","<<xhigh<<"]["<<ylow<<","<<yhigh<<"]"<<endl; 
+#endif
 
 				VellsFlagType *F=0;
 				//check for flags
@@ -262,32 +275,60 @@ int ResampleMachine::apply(VellSet &out, const VellSet &in)
         Vells &flvl=const_cast<Vells &>(invl.dataFlags());
 
 				blitz::Array<VellsFlagType,2> FF=flvl.as<VellsFlagType,2>()(LoRange::all(),LoRange::all()); 
+
+#ifdef DEBUG
 				cout <<"Flags 1"<<FF<<endl;
+#endif
 				//F=const_cast<VellsFlagType*>(flvl.beginFlags());
 				F= const_cast<VellsFlagType*>(FF.data());
+
+#ifdef DEBUG
 				cout <<"Flags "<<F<<endl;
+#endif
 				}
 
 				if (invl.isReal()) {
 				 blitz::Array<double,2> B=invl.as<double,2>()(LoRange::all(),LoRange::all()); 
          blitz::Array<double,2> A(nx_,ny_);
 				 A=0;
+#ifdef DEBUG
 				 cout<<" A "<<A<<endl;
 				 cout<<" B "<<B<<endl;
+#endif
+				if (!invl.hasDataFlags() ) {
          do_resample(xlow, xhigh, nxs, ylow, yhigh, nys, 
-				  A,  B,  F, invl.hasDataFlags());
+				  A,  B);
 				  out.setValue(new Vells(A));
-
+				}else {
+         //allocate memory for flags
+				blitz::Array<VellsFlagType,2> Aflag(nx_,ny_); 
+				 Aflag=0;
+         do_resample(xlow, xhigh, nxs, ylow, yhigh, nys, 
+				  A,  B,  F, invl.hasDataFlags(), Aflag);
+				  out.setValue(new Vells(A));
+					out.setDataFlags(new Vells(Aflag));
+				}
 				}else{
 				 blitz::Array<dcomplex,2> Bc=invl.as<dcomplex,2>()(LoRange::all(),LoRange::all()); 
          blitz::Array<dcomplex,2> Ac(nx_,ny_);
 				 Ac = 0;
-				 cout<<"Extent "<<invl.extent(0)<<" "<<invl.extent(1)<<endl;
+
+#ifdef DEBUG
 				 cout<<" Ac "<<Ac<<endl;
 				 cout<<" Bc "<<Bc<<endl;
+#endif
+				if (!invl.hasDataFlags() ) {
          do_resample(xlow, xhigh, nxs, ylow, yhigh, nys, 
-				  Ac,  Bc,  F, invl.hasDataFlags());
+				  Ac,  Bc);
 				  out.setValue(new Vells(Ac));
+				}else{
+				 blitz::Array<VellsFlagType,2> Aflag(nx_,ny_); 
+				 Aflag=0;
+         do_resample(xlow, xhigh, nxs, ylow, yhigh, nys, 
+				  Ac,  Bc,  F, invl.hasDataFlags(),Aflag);
+				  out.setValue(new Vells(Ac));
+					out.setDataFlags(new Vells(Aflag));
+				}
 				}
 
 				return 0;
@@ -341,12 +382,11 @@ int  ResampleMachine::bin_search(blitz::Array<double,1> xarr,double x,int i_star
   return -3;
 }
 
+
 template<class T> int  
 ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, int nys, 
-				blitz::Array<T,2> A,  blitz::Array<T,2> B,  
-				VellsFlagType *Fp, bool has_flags) {
+				blitz::Array<T,2> A,  blitz::Array<T,2> B ){
 				double tmp;
-			  if( !has_flags ) {
 				for (int i=0;i<xlow;i++) {
 				 for (int j=0;j<ylow;j++) {
              tmp=xweights_[1](i)*yweights_[1](j);
@@ -419,107 +459,134 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
              A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
 				 }
 				}
-				}else{
-         //get Flags
-				 blitz::Array<VellsFlagType,2> F(const_cast<VellsFlagType*>(Fp),blitz::shape(B.extent(0),B.extent(1)),blitz::neverDeleteData);
-				 cout <<"Flags "<<F<<endl;
 
-
-				for (int i=0;i<xlow;i++) {
-				 for (int j=0;j<ylow;j++) {
-             if (!F(i,j)) {
-             tmp=xweights_[1](i)*yweights_[1](j);
-             cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-						 }
-				 }
-				 for (int j=ylow;j<=yhigh;j++) {
-             if (!F(i,j)) {
-             tmp=xweights_[1](i)*yweights_[0](j);
-             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[1](j);
-             cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-						 }
-				 }
-				 for (int j=yhigh+1;j<nys;j++) {
-             if (!F(i,j)) {
-						tmp=xweights_[1](i)*yweights_[0](j);
-            cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-						 }
-				 }
-				}
-				for (int i=xlow;i<=xhigh;i++) {
-				 for (int j=0;j<ylow;j++) {
-             if (!F(i,j)) {
-						tmp=xweights_[0](i)*yweights_[1](j);
-            cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-						tmp=xweights_[1](i)*yweights_[1](j);
-            cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-						 }
-				 }
-				 for (int j=ylow;j<=yhigh;j++) {
-             if (!F(i,j)) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[0](i)*yweights_[1](j);
-             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[0](j);
-             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[1](j);
-             cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-						 }
-				 }
-				 for (int j=yhigh+1;j<nys;j++) {
-             if (!F(i,j)) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[0](j);
-             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-						 }
-				 }
-				}
-				for (int i=xhigh+1;i<nxs;i++) {
-				 for (int j=0;j<ylow;j++) {
-             if (!F(i,j)) {
-						 tmp=xweights_[0](i)*yweights_[1](j);
-             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-						 }
-				 }
-				 for (int j=ylow;j<=yhigh;j++) {
-             if (!F(i,j)) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[0](i)*yweights_[1](j);
-             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-						 }
-				 }
-				 for (int j=yhigh+1;j<nys;j++) {
-             if (!F(i,j)) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-						 }
-				 }
-				}
-				}
+#ifdef DEBUG
 				cout<<" A "<<A<<endl;
 				cout<<" Weight "<<cell_weight_<<endl;
 
        cout<<" size "<<nx_<<","<<ny_<<endl;
+#endif
+				for (int i=0; i<nx_; i++) {
+				 for (int j=0; j<ny_; j++) {
+          if(cell_weight_(i,j)!=0)
+           A(i,j)/=cell_weight_(i,j);
+				 }
+				}
+				return 0;
+}
+
+template<class T> int  
+ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, int nys, 
+				blitz::Array<T,2> A,  blitz::Array<T,2> B,  
+			  VellsFlagType *Fp, bool has_flags, 
+				blitz::Array<VellsFlagType,2> Aflag) {
+				double tmp;
+         //get Flags
+				 blitz::Array<VellsFlagType,2> F(const_cast<VellsFlagType*>(Fp),blitz::shape(B.extent(0),B.extent(1)),blitz::neverDeleteData);
+
+#ifdef DEBUG
+				 cout <<"Flags "<<F<<endl;
+#endif
+				for (int i=0;i<xlow;i++) {
+				 for (int j=0;j<ylow;j++) {
+             if (!F(i,j)) {
+             tmp=xweights_[1](i)*yweights_[1](j);
+             cell_weight_(xindex_(i), yindex_(j))+=tmp;
+             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
+						 }
+				 }
+				 for (int j=ylow;j<=yhigh;j++) {
+             if (!F(i,j)) {
+             tmp=xweights_[1](i)*yweights_[0](j);
+             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
+             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
+						 tmp=xweights_[1](i)*yweights_[1](j);
+             cell_weight_(xindex_(i), yindex_(j))+=tmp;
+             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
+						 }
+				 }
+				 for (int j=yhigh+1;j<nys;j++) {
+             if (!F(i,j)) {
+						tmp=xweights_[1](i)*yweights_[0](j);
+            cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
+             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
+						 }
+				 }
+				}
+				for (int i=xlow;i<=xhigh;i++) {
+				 for (int j=0;j<ylow;j++) {
+             if (!F(i,j)) {
+						tmp=xweights_[0](i)*yweights_[1](j);
+            cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
+             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
+						tmp=xweights_[1](i)*yweights_[1](j);
+            cell_weight_(xindex_(i), yindex_(j))+=tmp;
+             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
+						 }
+				 }
+				 for (int j=ylow;j<=yhigh;j++) {
+             if (!F(i,j)) {
+						 tmp=xweights_[0](i)*yweights_[0](j);
+             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
+             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
+						 tmp=xweights_[0](i)*yweights_[1](j);
+             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
+             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
+						 tmp=xweights_[1](i)*yweights_[0](j);
+             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
+             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
+						 tmp=xweights_[1](i)*yweights_[1](j);
+             cell_weight_(xindex_(i), yindex_(j))+=tmp;
+             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
+						 }else{
+										 Aflag(xindex_(i)-1, yindex_(j)-1)++;
+						 }
+
+				 }
+				 for (int j=yhigh+1;j<nys;j++) {
+             if (!F(i,j)) {
+						 tmp=xweights_[0](i)*yweights_[0](j);
+             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
+             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
+						 tmp=xweights_[1](i)*yweights_[0](j);
+             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
+             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
+						 }
+				 }
+				}
+				for (int i=xhigh+1;i<nxs;i++) {
+				 for (int j=0;j<ylow;j++) {
+             if (!F(i,j)) {
+						 tmp=xweights_[0](i)*yweights_[1](j);
+             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
+             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
+						 }
+				 }
+				 for (int j=ylow;j<=yhigh;j++) {
+             if (!F(i,j)) {
+						 tmp=xweights_[0](i)*yweights_[0](j);
+             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
+             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
+						 tmp=xweights_[0](i)*yweights_[1](j);
+             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
+             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
+						 }
+				 }
+				 for (int j=yhigh+1;j<nys;j++) {
+             if (!F(i,j)) {
+						 tmp=xweights_[0](i)*yweights_[0](j);
+             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
+             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
+						 }
+				 }
+				}
+
+#ifdef DEBUG
+				cout<<" A "<<A<<endl;
+				cout<<" Weight "<<cell_weight_<<endl;
+
+       cout<<" size "<<nx_<<","<<ny_<<endl;
+#endif
 				for (int i=0; i<nx_; i++) {
 				 for (int j=0; j<ny_; j++) {
           if(cell_weight_(i,j)!=0)

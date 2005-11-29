@@ -113,9 +113,15 @@ private:
 
 	 int  ResampleMachine::bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end); 
   template<class T> int  
-        ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, int nys, 
+   ResampleMachine::do_resample(int xlow, int xhigh, int nxs, 
+	      int ylow, int yhigh, int nys, 
+				blitz::Array<T,2> A,  blitz::Array<T,2> B ); 
+  template<class T> int  
+   ResampleMachine::do_resample(int xlow, int xhigh, int nxs, 
+	      int ylow, int yhigh, int nys, 
 				blitz::Array<T,2> A,  blitz::Array<T,2> B,  
-			VellsFlagType *Fp, bool has_flags);
+			  VellsFlagType *Fp, bool has_flags, blitz::Array<VellsFlagType,2> Aflag);
+
 };
 
 } // namespace Meq
