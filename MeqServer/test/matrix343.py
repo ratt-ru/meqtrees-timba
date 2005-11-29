@@ -344,10 +344,11 @@ def forest_baseline_predict_trees(ns, interferometer_list, patch_names):
                                  ns.ctJ(ant2, patch_name))
             corrupted_patch_vis_list.append(ns.corrupted_patch_vis(ant1,ant2,patch_name))        
             pass
-        ns.predict_patches(ant1, ant2) << Meq.Add(children=deepcopy(corrupted_patch_vis_list))    
-        ns.predict(ant1, ant2) << Meq.MatrixMultiply(ns.G(ant1),
-                                                     ns.predict_patches(ant1, ant2),
-                                                     ns.ctG(ant2))   
+        ns.predict(ant1, ant2) << Meq.Add(children=deepcopy(corrupted_patch_vis_list))    
+#        ns.predict_patches(ant1, ant2) << Meq.Add(children=deepcopy(corrupted_patch_vis_list))    
+#        ns.predict(ant1, ant2) << Meq.MatrixMultiply(ns.G(ant1),
+#                                                     ns.predict_patches(ant1, ant2),
+#                                                     ns.ctG(ant2))   
         pass
     pass
 
@@ -362,10 +363,8 @@ def forest_baseline_correct_trees(ns, interferometer_list, patch_name):
         ns.subtract(ant1, ant2) << (ns.spigot(ant1,ant2) - \
                                     ns.predict(ant1, ant2))
         ns.corrected(ant1,ant2) << \
-                Meq.MatrixMultiply(Meq.MatrixInvert22(ns.J(ant1,patch_name)), 
-                                   Meq.MatrixInvert22(ns.G(ant1)),
-                                   ns.subtract(ant1,ant2),
-                                   Meq.MatrixInvert22(ns.ctG(ant2)),
+                Meq.MatrixMultiply(Meq.MatrixInvert22(ns.J(ant1,patch_name)), #                               Meq.MatrixInvert22(ns.G(ant1)),
+                                   ns.subtract(ant1,ant2), #                               Meq.MatrixInvert22(ns.ctG(ant2)),
                                    Meq.MatrixInvert22(ns.ctJ(ant2, patch_name)))
         pass
     pass
@@ -374,10 +373,38 @@ def forest_baseline_correct_trees(ns, interferometer_list, patch_name):
 
 
 
+def forest_sum_of_phases(ns, station_list, patch_name, coeff):
+    phase_list = []
+    for station in station_list:
+        phase_list.append("JP:"+str(station)+":"+patch_name+":"+coeff)
+        pass
+    ns.SumOfPhases(patch_name, coeff)  << Meq.Add(children=phase_list)  
+    ns.ce("Phases", patch_name, coeff) << Meq.Condeq(0.0, ns.SumOfPhases(patch_name, coeff))    
+    pass
 
 
-def forest_solver(ns, interferometer_list, input_column='DATA'):
+
+
+
+def get_WSRT_reduntant_baselines():
+    redundant=[[[11,12], [13,14]]]
+    print redundant[0]
+    for sep in range(1,10):
+        r=[]
+        for s in range(1,11-sep):
+            r.append([s,s+sep])
+            pass
+        print r
+        redundant.append(r)
+        pass
+    return redundant
+
+
+
+
+def forest_solver(ns, interferometer_list, station_list, patch_list, input_column='DATA'):
     ce_list = []
+    # Measurements
     for (ant1,ant2) in interferometer_list:
         ns.spigot(ant1, ant2) << Meq.Spigot(station_1_index=ant1-1,
                                             station_2_index=ant2-1,
@@ -387,6 +414,17 @@ def forest_solver(ns, interferometer_list, input_column='DATA'):
                                         ns.predict(ant1, ant2))
         ce_list.append(ns.ce(ant1, ant2))
         pass
+    # Constraints
+    # Phase constraints
+    for patch in patch_list:
+        forest_sum_of_phases(ns, station_list, patch, "11");
+        forest_sum_of_phases(ns, station_list, patch, "22");
+        ce_list.append(ns.ce("Phases", patch, "11"));
+        ce_list.append(ns.ce("Phases", patch, "22"));
+        pass
+
+        # Redundancy constraints: to be added
+    
     ns.solver << Meq.Solver(num_iter=6,
                             debug_level=10,
                             children=ce_list)    
@@ -444,7 +482,7 @@ def _define_forest(ns):
 
     forest_baseline_predict_trees(ns, interferometer_list,
                                   patch_source_lists.keys())
-    forest_solver(ns, interferometer_list)
+    forest_solver(ns, interferometer_list, station_list, patch_source_lists.keys())
     forest_baseline_correct_trees(ns, interferometer_list, 'centre')
     forest_create_sink_sequence(ns, interferometer_list)
     pass
@@ -460,6 +498,7 @@ def create_inputrec(msname, tile_size=1500):
     inputrec.tile_size        = tile_size
     inputrec.selection = record(channel_start_index=25,
                                 channel_end_index=40,
+                                channel_increment=1,
                                 selection_string='')#'TIME_CENTROID < 4472026000')
     inputrec.python_init = 'MAB_read_msvis_header.py'
     
@@ -534,9 +573,9 @@ def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
 #   PHASES    PHASES     PHASES
 
 
-def _tdl_job_phase_solution_with_given_fluxes(mqs, parent):
+def _tdl_job_phase_solution_with_given_fluxes_all(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=10)
+    inputrec        = create_inputrec(msname, tile_size=5)
     outputrec       = create_outputrec()
 
     station_list = range(1,15)
@@ -545,13 +584,16 @@ def _tdl_job_phase_solution_with_given_fluxes(mqs, parent):
     print outputrec
 
     solvables = []
-    for station in station_list[1:]:
-        solvables.append('GP:'+str(station)+':11')
-        solvables.append('GP:'+str(station)+':22')
-        pass
+    for station in station_list:
+        for patch in patch_list:
+            solvables.append('JP:'+str(station)+':'+patch+':11')
+            solvables.append('JP:'+str(station)+':'+patch+':22')
+            pass
+        pass    
     print solvables
     
-    publish_node_state(mqs, 'GP:9:11')
+    publish_node_state(mqs, 'JP:9:centre:11')
+    publish_node_state(mqs, 'JP:9:edge:11')
     publish_node_state(mqs, 'solver')
     
     solver_defaults = create_solver_defaults(solvable=solvables)
@@ -585,7 +627,7 @@ def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
     print outputrec
 
     solvables = []
-    for station in station_list[1:]:
+    for station in station_list:
         for patch_name in patch_list:
             solvables.append('JA:'+str(station)+':'+patch_name+':11')
             solvables.append('JA:'+str(station)+':'+patch_name+':22')
@@ -620,7 +662,7 @@ def _tdl_job_phase_solution_with_given_fluxes_edge(mqs, parent):
     print outputrec
 
     solvables = []
-    for station in station_list[1:]:
+    for station in station_list:
         solvables.append('JP:'+str(station)+':'+patch_list[1]+':11')
         solvables.append('JP:'+str(station)+':'+patch_list[1]+':22')
         pass
@@ -637,6 +679,36 @@ def _tdl_job_phase_solution_with_given_fluxes_edge(mqs, parent):
 
     pass
 
+
+
+def _tdl_job_phase_solution_with_given_fluxes_centre(mqs, parent):
+    msname          = '3C343.MS'
+    inputrec        = create_inputrec(msname, tile_size=10)
+    outputrec       = create_outputrec()
+
+    source_list  = create_initial_source_model()
+    station_list = range(1,15)
+    patch_list   = ['centre', 'edge']
+    print inputrec
+    print outputrec
+
+    solvables = []
+    for station in station_list[1:]:
+        solvables.append('JP:'+str(station)+':'+patch_list[0]+':11')
+        solvables.append('JP:'+str(station)+':'+patch_list[0]+':22')
+        pass
+    print solvables
+    
+    publish_node_state(mqs, 'JP:9:centre:11')
+    publish_node_state(mqs, 'solver')
+    
+    solver_defaults = create_solver_defaults(solvable=solvables)
+    print solver_defaults
+    set_MAB_node_state(mqs, 'solver', solver_defaults)
+    mqs.init(record(mandate_regular_grid=False),\
+                    inputinit=inputrec, outputinit=outputrec)
+
+    pass
 
 
 
