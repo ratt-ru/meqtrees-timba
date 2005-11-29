@@ -258,8 +258,8 @@ int ResampleMachine::apply(VellSet &out, const VellSet &in)
 
 				//check for flags
 				blitz::Array<VellsFlagType,2> F;
-			  if( in.hasDataFlags() ) {
-          Vells flvl=in.dataFlags();
+			  if( invl.hasDataFlags() ) {
+          Vells flvl=invl.dataFlags();
 					F=flvl.as<VellsFlagType,2>()(LoRange::all(),LoRange::all());
 				}
 
@@ -270,7 +270,7 @@ int ResampleMachine::apply(VellSet &out, const VellSet &in)
 				 cout<<" A "<<A<<endl;
 				 cout<<" B "<<B<<endl;
          do_resample(xlow, xhigh, nxs, ylow, yhigh, nys, 
-				  A,  B,  F, in.hasDataFlags());
+				  A,  B,  F, invl.hasDataFlags());
 				  out.setValue(new Vells(A));
 
 				}else{
@@ -281,7 +281,7 @@ int ResampleMachine::apply(VellSet &out, const VellSet &in)
 				 cout<<" Ac "<<Ac<<endl;
 				 cout<<" Bc "<<Bc<<endl;
          do_resample(xlow, xhigh, nxs, ylow, yhigh, nys, 
-				  Ac,  Bc,  F, in.hasDataFlags());
+				  Ac,  Bc,  F, invl.hasDataFlags());
 				  out.setValue(new Vells(Ac));
 				}
 
