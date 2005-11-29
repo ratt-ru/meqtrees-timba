@@ -144,8 +144,10 @@ ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
 
 	cout<<"In Y "<<tempy<<endl;
 
-  identical_=(nx_==nxs)&&(ny_==nys);	
-
+	//if out cells are smaller than in cells
+	//it will be taken to be idential for the moment
+  identical_=(nx_>=nxs)||(ny_>=nys);	
+  cout<<"Itentical "<<identical_<<endl;
   // array of indices
 	xindex_.resize(nxs);
 	yindex_.resize(nys);
