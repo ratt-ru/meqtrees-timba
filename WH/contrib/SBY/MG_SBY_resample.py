@@ -1,202 +1,115 @@
-script_name = 'MG_SBY_resample.py'
+# MG_JEN_template.py
 
 # Short description:
-# Demo of the resampler node
+#   A template for the generation of MeqGraft (MG) scripts
+
+# Keywords: ....
+
+# Author: Jan Noordam (JEN), Dwingeloo
 
 # History:
-# Mon Oct 17 11:26:00 CEST 2005: creation
-# $Date$
+# - 24 aug 2005: creation
 
-# Copyright: The MeqTree Foundation 
-
+# Copyright: The MeqTree Foundation
 
 # Full description:
-# This script tests the Meq.Resampler node.
-# The Resampler node can act in 2 distinct ways:
-#
-# 1) Resample the result obtained from its child node
-# 2) Resample the request before passing it to the child node
-#
-# The above two ways of acting are mutually exclusive. The way to
-# change its behaviour is by changing the variable 'flag_bit' in 
-# the init record of the Resampler node. 
-#
-# You can make the Resampler node to act in the way of (1) if you make
-#   flag_bit=0 
-# and  this is the default behaviour. If you make 'flag_bit' take any other
-# value, it will act as (2).
 
-# Each Resampler can have only one child node. The resampler can work in
-# both directions, i.e. downsampling and upsampling. The amount of resampling
-# can be given when the node is created using the init record. The variable
-# you need to change in this case is 'num_cells'. This is an array giving
-# the dimensions you would like the result to be. For instance, if your
-# original Request/Result had a cell of size [50,50] and if you give 
-#   num_cells=[10,5],
-# it will downsample. On the other hand, if you give
-#   num_cells=[100,100],
-# it will upsample. There are various wierd ways of giving the shape
-# of num_cells, (go ahead! try giving values like [1,1], [100,1] or [1,100])
-# 
-# Note that in case of an error, the result will fall back to [1,1] and if
-# you try to resample a scalar, you should get a [1,1] result.
+#********************************************************************************
+#********************************************************************************
+#**************** PART II: Preamble and initialisation **************************
+#********************************************************************************
+#********************************************************************************
 
-# In order to calculate its performance, this script downsamples the Result
-# in one node and  downsamples the Request in another. Ideally, both should
-# produce the same output. We can see the error of downsampling by 
-# substracting the two.
-# This script also downsamples and then upsamples the same result to get 
-# a result at original resolution to calculate error.
-
-# Import of Python modules:
 from Timba.TDL import *
 from Timba.Meq import meq
 Settings.forest_state.cache_policy = 100;
+
 Settings.orphans_are_roots = True;
+# from numarray import *
+# from string import *
+# from copy import deepcopy
 
-# for bookmarks
-from Timba.Contrib.JEN import MG_JEN_forest_state
+# Scripts needed to run a MG_JEN script: 
 
-from Timba.Contrib.JEN import MG_JEN_exec
 
-##########################################################################
+#-------------------------------------------------------------------------
 # Script control record (may be edited here):
 
-MG = MG_JEN_exec.MG_init(script_name,
-                         last_changed='$Date$',
-                         trace=False) # If True, produce progress messages  
-MG.parm = record(my_resample_shape=[10,10],
-               # this is the final shape of the cells we want [time,freq]
-               # try giving it weird values like [1,10] or [10,1] or [1,1] etc...
-               # Also do no forget that if you downsample a LOT, you might
-               # get Aliasing, that has nothing to do with the resampling error.
-                my_request_shape=[50,50],
-               # this is the shape of the request sent to the server
-                my_downsample_shape=[5,5], # shape of downsampling
-)   
 
-#=====================================================================
-#=====================================================================
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
+# Tree definition routine (may be executed from the browser):
+# To be used as example, for experimentation, and automatic testing.
+
+
 def _define_forest (ns):
-  # this is the final shape of the cells we want
-  # try giving it weird values like [1,10] or [10,1] or [1,1] etc...
-  my_num_cells=MG.parm['my_resample_shape']
-  # 2D resampling
-  ns.x<<Meq.Parm(meq.array([[1,0.2,0.01],[-0.3,0.1,0.21]]))
-  ns.y<<Meq.Parm(meq.array([[1,0.2,0.01],[-0.3,0.1,0.21]]))
-  nxr=ns['nodex']<<0.01*ns.x
-  nxi=ns['nodexi']<<-0.01*ns.x
-
-  nyr=ns['nodey']<<0.01*ns.y
-  nyi=ns['nodeyi']<<-0.01*ns.y
-
-  n1=ns['n1']<<Meq.ToComplex(nxr,nxi)
-  n2=ns['n2']<<Meq.ToComplex(nyr,nyi)
-
-  # if flag_bit ==0, resample the request
-  # if flag_bit !=0, resample the result
-  rootxc=ns.rootxc<<Meq.Resampler(n1,flag_bit=1,num_cells=my_num_cells)
-  rootxd=ns.rootxd<<Meq.Resampler(n2,flag_bit=0,num_cells=my_num_cells)
-  root1=ns['2D_Error']<<(rootxc-rootxd)/Meq.Max(Meq.Abs(rootxc))
+   ns.r<<Meq.Parm(meq.array([[1,0.1,0.01],[-0.01,0.01,0.021]]))
+   ns.i<<Meq.Parm(meq.array([[-1,0.1,-0.01],[0.01,0.01,-0.021]]))
+   ns.x<<Meq.ToComplex(ns.r,ns.i)
+   ns.y<<Meq.ModRes(children=ns.x,num_cells=[11,12])
+   ns.z<<Meq.Resampler(children=ns.y,flag_mask=3,flag_bit=4,flag_density=0.1)
 
 
-  # 1D resampling
-  ns.a<<Meq.Parm(meq.array([1,20,0.01]))
-  ns.b<<Meq.Parm(meq.array([1,20,0.01]))
-  nar=ns['nodea']<<0.01*ns.a
-  nai=ns['nodeai']<<-0.01*ns.a
-
-  nbr=ns['nodeb']<<0.01*ns.b
-  nbi=ns['nodebi']<<-0.01*ns.b
-
-  n3=ns['n3']<<Meq.ToComplex(nar,nai)
-  n4=ns['n4']<<Meq.ToComplex(nbr,nbi)
-  rootac=ns.rootac<<Meq.Resampler(n3,flag_bit=1,num_cells=my_num_cells)
-  rootbd=ns.rootbd<<Meq.Resampler(n4,flag_bit=0,num_cells=my_num_cells)
-  root2=ns['1D_Error']<<(rootac-rootbd)/Meq.Max(Meq.Abs(rootac))
 
 
-  MG_JEN_forest_state.bookmark(root1,page="DownSampling or UpSampling Error",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(root2,page="DownSampling or UpSampling Error",viewer="Result Plotter");
 
-  # Downsample/Upsample error ###############################
-  ns.ddx<<Meq.Parm(meq.array([[1,0.2,0.01],[-0.3,0.1,0.21]])) #2D
-  ns.ddy<<Meq.Parm(meq.array([1,20,-0.01])) # 1D
-  ns.ddz<<Meq.Parm(0) # constant
-  nxr=ns['ddnodex']<<0.01*ns.ddx
-  nyr=ns['ddnodey']<<0.1*ns.ddy
-  nzr=ns['ddnodez']<<0.01*ns.ddz
-  nxi=ns['ddnodexi']<<-0.01*ns.ddx
-  nyi=ns['ddnodeyi']<<-0.01*ns.ddy*ns.ddy
-  nzi=ns['ddnodezi']<<-0.01*ns.ddz
 
-  n1=ns['ddcom1']<<Meq.ToComplex(nxr,nxi)
-  n2=ns['ddcom2']<<Meq.ToComplex(nyr,nyi)
-  n3=ns['ddcom3']<<Meq.ToComplex(nzr,nzi)
-  # First downsample to [5,5]
-  # and then upsample again to [50,50] which will
-  # be the resolution used in the request.
-  my_shape_down=MG.parm['my_downsample_shape']
-  rootx=ns.ddrootx<<Meq.Resampler(nxr,num_cells=my_shape_down)
-  rooty=ns.ddrooty<<Meq.Resampler(nyr,num_cells=my_shape_down)
-  rootz=ns.ddrootz<<Meq.Resampler(nzr,num_cells=my_shape_down)
-  root_real=ns.ddrootr<<Meq.Composer(rootx,rooty,rootz)
 
-  rootxc=ns.ddrootxc<<Meq.Resampler(n1,num_cells=my_shape_down)
-  rootyc=ns.ddrootyc<<Meq.Resampler(n2,num_cells=my_shape_down)
-  rootzc=ns.ddrootzc<<Meq.Resampler(n3,num_cells=my_shape_down)
-  root_complex=ns.ddrooti<<Meq.Composer(rootxc,rootyc,rootzc)
+#********************************************************************************
+#********************************************************************************
+#******************** PART IV: Optional: Importable functions *******************
+#********************************************************************************
+#********************************************************************************
 
-  # in order to calculate error, upsample and substract
-  # from original result 
-  my_shape_up=MG.parm['my_request_shape']
-  rootxe=ns.xe<<(Meq.Resampler(rootxc,num_cells=my_shape_up)-n1)/Meq.Max(Meq.Abs(n1))
-  rootye=ns.ye<<(Meq.Resampler(rootyc,num_cells=my_shape_up)-n2)/Meq.Max(Meq.Abs(n2))
-  rootze=ns.ze<<(Meq.Resampler(rootzc,num_cells=my_shape_up)-n3)/Meq.Max(Meq.Abs(n3))
-  root_error=ns.ddroote<<Meq.Composer(rootxe,rootye,rootze)
-  ns.Resolve()
 
-  MG_JEN_forest_state.bookmark(nxr,page="Real Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(rootx,page="Real Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(nyr,page="Real Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(rooty,page="Real Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(nzr,page="Real Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(rootz,page="Real Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(n1,page="Complex Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(rootxc,page="Complex Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(n2,page="Complex Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(rootyc,page="Complex Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(n3,page="Complex Resampling",viewer="Result Plotter");
-  MG_JEN_forest_state.bookmark(rootzc,page="Complex Resampling",viewer="Result Plotter");
- 
-  MG_JEN_forest_state.bookmark(root_error,page="DownSampled and UpSampled Errors",viewer="Result Plotter");
 
-#=====================================================================
-#=====================================================================
+
+
+
+#********************************************************************************
+#********************************************************************************
+#*****************  PART V: Forest execution routines ***************************
+#********************************************************************************
+#********************************************************************************
+
+# The function with the standard name _test_forest(), and any function
+# with name _tdl_job_xyz(m), will show up under the 'jobs' button in
+# the browser, and can be executed from there.  The 'mqs' argument is
+# a meqserver proxy object.
+# NB: The function _test_forest() is always put at the end of the menu:
+
 def _test_forest (mqs, parent):
+
  f0 = 1200
  f1 = 1600
- t0 = 0.0
- t1 = 1.0
- 
- my_shape_request=MG.parm['my_request_shape']
- nfreq =my_shape_request[1] 
- ntime =my_shape_request[0]
- # create cells
+ t0 = 1.0
+ t1 = 10.0
+ nfreq =5
+ ntime =5
+
  freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
  cells =meq.cells(domain=freqtime_domain, num_freq=nfreq,  num_time=ntime);
  request = meq.request(cells,eval_mode=1);
- b = mqs.meq('Node.Execute',record(name='1D_Error',request=request),wait=True);
- b = mqs.meq('Node.Execute',record(name='2D_Error',request=request),wait=True);
- b = mqs.meq('Node.Execute',record(name='ddrootr',request=request),wait=True);
- b = mqs.meq('Node.Execute',record(name='ddrooti',request=request),wait=True);
- b = mqs.meq('Node.Execute',record(name='ddroote',request=request),wait=True);
- #print "Complex result=",b;
+ b = mqs.meq('Node.Execute',record(name='z',request=request),wait=True);
+ print b
  
 
-#=====================================================================
-#=====================================================================
+#********************************************************************************
+#********************************************************************************
+#******************** PART VI: Standalone test routines *************************
+#********************************************************************************
+#********************************************************************************
+
+# These test routines do not require the meqbrowser, or even the meqserver.
+# Just run them by enabling the required one (if 1:), and invoking python:
+#      > python MG_JEN_template.py
+
 if __name__ == '__main__':
-  ns=NodeScope()
-  _define_forest(ns);
-  ns.Resolve()
+  pass
+
+
+
