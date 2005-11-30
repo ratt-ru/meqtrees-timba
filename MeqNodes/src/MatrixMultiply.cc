@@ -57,6 +57,12 @@ void MatrixMultiply::scalarMultiply (Result::Ref &res,
   // for consistency, refuse to have anything to do with >2 rank tensors
   FailWhen(tensor.tensorRank()>2,ssprintf(
                     "child %d: illegal tensor rank",tensor_ich));
+  // empty result: treat as null
+  if( !scalar.numVellSets() )
+  {
+    (res <<= new Result(1,integrated)).setNewVellSet(0);
+    return;
+  }
   const VellSet & sca_vs = scalar.vellSet(0);
   // check for some quick shortcuts
   // fail scalar: return it

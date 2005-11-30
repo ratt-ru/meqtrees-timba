@@ -349,15 +349,16 @@ int Spigot::getResult (Result::Ref &resref,
     // update state record
     if( forest().debugLevel() > 1 )
       fillDebugState();
-    return 0;
   }
   else // no result at all, return empty result (="missing data")
   // NB: original plan was to return a WAIT here; however, the way a VisDataMux
   // works, the request is not issued until the next snippet arrives at the 
   // input, hence a WAIT situation is impossible for the time being
   {
-    return 0;
+    (resref <<= new Result(1)).setNewVellSet(0);
   }
+  return 0;
 }
+
 
 }

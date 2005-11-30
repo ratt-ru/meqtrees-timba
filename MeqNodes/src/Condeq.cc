@@ -120,10 +120,16 @@ int Condeq::getResult (Result::Ref &resref,
     // of pointers to main value
     vector<const Vells*> values(nrch);
     int npertsets;
+    bool have_nulls = false;
     for( int i=0; i<nrch; i++ )
     {
       const Result &chres = *child_result[i];
       const VellSet &vs = chres.vellSet(chres.tensorRank()>0 ? iplane : 0);
+      if( vs.isNull() )
+      {
+        have_nulls = true;
+        break;
+      }
       child_vs[i] = &vs;
       // merge in flags, if any
       if( vs.hasDataFlags() )
@@ -131,7 +137,13 @@ int Condeq::getResult (Result::Ref &resref,
           flagref() |= vs.dataFlags();
         else
           flagref.attach(vs.dataFlags());
-      values[i] = &( vs.getValue() );
+      values[i] = vs.isNull() ? 0 : &( vs.getValue() );
+    }
+    // null vellsert on any child produces null output
+    if( have_nulls )
+    {
+      result.setNewVellSet(iplane);
+      continue;
     }
     // Find all spids from the children.
     vector<int> spids = Function::findSpids(npertsets,child_vs);

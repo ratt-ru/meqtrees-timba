@@ -94,6 +94,9 @@ class Sink : public VisHandlerNode
     void fillTileColumn (T *coldata,const LoShape &colshape,
                          const LoRange &rowrange,
                          const blitz::Array<U,2> &arr,int icorr);
+    template<class T>
+    void zeroTileColumn (T *coldata,const LoShape &colshape,
+                         const LoRange &rowrange,int icorr);
       
     //##ModelId=3F98DAE60211
     string output_colname;
