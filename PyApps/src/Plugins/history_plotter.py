@@ -183,6 +183,12 @@ class HistoryPlotter(GriddedPlugin):
         self.array_tuple = tuple(self.array_selector)
         self._plotter.array_plot(self.label +'data', self._plot_array[self.array_tuple])
       else:
+        if self._plot_array.rank == 2:
+          self._plotter.set_yaxis_title('Sequence Number')
+          self._plotter.set_xaxis_title('Array Values')
+        if self._plot_array.rank == 1:
+          self._plotter.set_yaxis_title('Values')
+          self._plotter.set_xaxis_title('Sequence Number')
         self._plotter.array_plot(self.label+ 'data', self._plot_array)
 
     else:
