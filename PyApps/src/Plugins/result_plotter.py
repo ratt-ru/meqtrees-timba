@@ -143,7 +143,7 @@ class ResultPlotter(GriddedPlugin):
        if plot_parms.has_key('color'):
          plot_color = plot_parms.get('color')
          if not self.color_table.has_key(plot_color):
-           Message = plot_color + " is not a valid color.\n Using blue by default"
+           Message = str(plot_color) + " is not a valid color.\n Using blue by default"
            plot_parms['color'] = "blue"
            mb_color = QMessageBox("realvsimag.py",
                       Message,
@@ -155,7 +155,7 @@ class ResultPlotter(GriddedPlugin):
        if plot_parms.has_key('mean_circle_color'):
          plot_color = plot_parms.get('mean_circle_color')
          if not self.color_table.has_key(plot_color):
-           Message = plot_color + " is not a valid color.\n Using blue by default"
+           Message = str(plot_color) + " is not a valid color.\n Using blue by default"
            plot_parms['mean_circle_color'] = "blue"
            mb_color = QMessageBox("realvsimag.py",
                       Message,
@@ -167,7 +167,7 @@ class ResultPlotter(GriddedPlugin):
        if plot_parms.has_key('stddev_circle_color'):
          plot_color = plot_parms.get('stddev_circle_color')
          if not self.color_table.has_key(plot_color):
-           Message = plot_color + " is not a valid color.\n Using blue by default"
+           Message = str(plot_color) + " is not a valid color.\n Using blue by default"
            plot_parms['stddev_circle_color'] = "blue"
            mb_color = QMessageBox("realvsimag.py",
                       Message,
@@ -179,7 +179,7 @@ class ResultPlotter(GriddedPlugin):
        if plot_parms.has_key('line_style'):
          plot_line_style = plot_parms.get('line_style')
          if not self.line_style_table.has_key(plot_line_style):
-           Message = plot_line_style + " is not a valid line style.\n Using dots by default"
+           Message = str(plot_line_style) + " is not a valid line style.\n Using dots by default"
            plot_parms['line_style'] = "dots"
            mb_style = QMessageBox("realvsimag.py",
                       Message,
@@ -191,7 +191,7 @@ class ResultPlotter(GriddedPlugin):
        if plot_parms.has_key('mean_circle_style'):
          plot_line_style = plot_parms.get('mean_circle_style')
          if not self.line_style_table.has_key(plot_line_style):
-           Message = plot_line_style + " is not a valid line style for mean circles.\n Using lines by default"
+           Message = str(plot_line_style) + " is not a valid line style for mean circles.\n Using lines by default"
            plot_parms['mean_circle_style'] = "lines"
            mb_style = QMessageBox("realvsimag.py",
                       Message,
@@ -203,7 +203,7 @@ class ResultPlotter(GriddedPlugin):
        if plot_parms.has_key('stddev_circle_style'):
          plot_line_style = plot_parms.get('stddev_circle_style')
          if not self.line_style_table.has_key(plot_line_style):
-           Message = plot_line_style + " is not a valid line style for stddev circles.\n Using DotLine by default"
+           Message = str(plot_line_style) + " is not a valid line style for stddev circles.\n Using DotLine by default"
            plot_parms['stddev_circle_style'] = "DotLine"
            mb_style = QMessageBox("realvsimag.py",
                       Message,
@@ -215,7 +215,7 @@ class ResultPlotter(GriddedPlugin):
        if plot_parms.has_key('symbol'):
          plot_symbol = plot_parms.get('symbol')
          if not self.symbol_table.has_key(plot_symbol):
-           Message = plot_symbol + " is not a valid symbol.\n Using circle by default"
+           Message = str(plot_symbol) + " is not a valid symbol.\n Using circle by default"
            plot_parms['symbol'] = "circle"
            mb_symbol = QMessageBox("realvsimag.py",
                       Message,
