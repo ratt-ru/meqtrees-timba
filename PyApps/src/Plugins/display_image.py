@@ -88,6 +88,20 @@ class QwtImageDisplay(QwtPlot):
         'brentjens': 'brentjens',
         }
 
+    menu_table = {
+        'toggle flagged data for plane ': 200,
+        'toggle blink of flagged data for plane ': 201,
+        'Toggle display range to that of flagged image for plane ': 202,
+        'Modify Plot Parameters': 299,
+        'Toggle Cross-Section Legend': 300,
+        'Toggle ColorBar': 301,
+        'Toggle Color/GrayScale Display': 302,
+        'Toggle ND Controller': 303, 
+        'Reset zoomer': 304,
+        'Delete X-Section Display': 305,
+        'Toggle real/imag or ampl/phase Display': 306,
+        }
+
     def __init__(self, plot_key=None, parent=None):
         QwtPlot.__init__(self, parent)
         # create copy of standard application font..
@@ -411,45 +425,45 @@ class QwtImageDisplay(QwtPlot):
           self.setCurveData(self.metrics_plot, self.metrics_rank, self.iteration_number)
         self.replot()
 
-    def update_spectrum_display(self, menuid):
+    def handle_basic_menu_id(self, menuid):
       if menuid < 0:
         self.zoom()
-        return
-      if menuid == 304:
+        return True
+      if menuid == self.menu_table['Reset zoomer']:
         self.reset_zoom()
-        return
-      if menuid == 305:
+        return True
+      if menuid == self.menu_table['Delete X-Section Display']:
         self.delete_cross_sections()
-        return
-      if menuid == 299:
+        return True
+      if menuid == self.menu_table['Modify Plot Parameters']:
         self.updatePlotParameters()
-        return
-      if menuid == 300:
+        return True
+      if menuid == self.menu_table['Toggle Cross-Section Legend']:
         self.toggleLegend()
-        return
-      if menuid == 301:
+        return True
+      if menuid == self.menu_table['Toggle ColorBar']:
         if self.toggle_color_bar == 1:
           self.toggle_color_bar = 0
         else:
           self.toggle_color_bar = 1
         self.emit(PYSIGNAL("show_colorbar_display"),(self.toggle_color_bar,))
-        return
-      if menuid == 302:
+        return True
+      if menuid == self.menu_table['Toggle Color/GrayScale Display']:
         if self.toggle_gray_scale == 1:
           self.setDisplayType('hippo')
         else:
           self.setDisplayType('grayscale')
         self.defineData()
         self.replot()
-        return
-      if menuid == 303:
+        return True
+      if menuid == self.menu_table['Toggle ND Controller']:
         if self.toggle_ND_Controller == 1:
           self.toggle_ND_Controller = 0
         else:
           self.toggle_ND_Controller = 1
         self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
-        return
-      if menuid == 306:
+        return True
+      if menuid == self.menu_table['Toggle real/imag or ampl/phase Display']:
         if self.ampl_phase:
           self.ampl_phase = False
           if self.is_vector:
@@ -470,7 +484,15 @@ class QwtImageDisplay(QwtPlot):
         else:
           self.adjust_color_bar = True
           self.display_image(self.complex_image)
+        return True
+
+# if we get here ...
+      return False
+
+    def update_spectrum_display(self, menuid):
+      if self.handle_basic_menu_id(menuid):
         return
+
       self.active_image_index = menuid
       if self.is_combined_image:
         self.removeMarkers()
@@ -591,7 +613,7 @@ class QwtImageDisplay(QwtPlot):
             self.toggles_not_set = False
         if flag_plane > -1:
           self._toggle_flag_label = "toggle flagged data for plane " + str(flag_plane) 
-	  toggle_id = 200
+	  toggle_id = self.menu_table['toggle flagged data for plane ']
           self._menu.insertItem(self._toggle_flag_label,toggle_id)
           if flag_plane == initial_plane:
             self._menu.setItemEnabled(toggle_id, True)
@@ -600,7 +622,7 @@ class QwtImageDisplay(QwtPlot):
             self._menu.setItemEnabled(toggle_id, False)
             self._menu.setItemVisible(toggle_id, False)
           self._toggle_blink_label = "toggle blink of flagged data for plane " + str(flag_plane)
-          toggle_id = 201
+          toggle_id = self.menu_table['toggle blink of flagged data for plane ']
           self._menu.insertItem(self._toggle_blink_label,toggle_id)
           if flag_plane == initial_plane:
             self._menu.setItemEnabled(toggle_id, True)
@@ -609,7 +631,7 @@ class QwtImageDisplay(QwtPlot):
             self._menu.setItemEnabled(toggle_id, False)
             self._menu.setItemVisible(toggle_id, False)
           self._toggle_range_label = "Toggle display range to that of flagged image for plane " + str(flag_plane)
-          toggle_id = 202
+          toggle_id = self.menu_table['Toggle display range to that of flagged image for plane ']
           self._menu.insertItem(self._toggle_range_label,toggle_id)
           if flag_plane == initial_plane:
             self._menu.setItemEnabled(toggle_id, True)
@@ -712,68 +734,11 @@ class QwtImageDisplay(QwtPlot):
         _dprint(3, 'called replot in timerEvent_blink')
 
     def update_vells_display(self, menuid):
-      if menuid < 0:
-        self.zoom()
-        return
-      if menuid == 304:
-        self.reset_zoom()
-        return
-      if menuid == 305:
-        self.delete_cross_sections()
-        return
-      if menuid == 299:
-        self.updatePlotParameters()
-        return
-      if menuid == 300:
-        self.toggleLegend()
-        return
-      if menuid == 301:
-        if self.toggle_color_bar == 1:
-          self.toggle_color_bar = 0
-        else:
-          self.toggle_color_bar = 1
-        self.emit(PYSIGNAL("show_colorbar_display"),(self.toggle_color_bar,))
-        return
-      if menuid == 302:
-        if self.toggle_gray_scale == 1:
-          self.setDisplayType('hippo')
-        else:
-          self.setDisplayType('grayscale')
-        self.defineData()
-        self.replot()
-        return
-      if menuid == 303:
-        if self.toggle_ND_Controller == 1:
-          self.toggle_ND_Controller = 0
-        else:
-          self.toggle_ND_Controller = 1
-        self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
-        return
-      if menuid == 306:
-        if self.ampl_phase:
-          self.ampl_phase = False
-          if self.is_vector:
-            self._x_title = 'Array/Channel Number '
-          else:
-            self._x_title = 'Array/Channel Number (real followed by imaginary)'
-          self.setAxisTitle(QwtPlot.xBottom, self._x_title)
-        else:
-          self.ampl_phase = True
-          if self.is_vector:
-            self._x_title = 'Array/Channel Number '
-          else:
-            self._x_title = 'Array/Channel Number (amplitude followed by phase)'
-          self.setAxisTitle(QwtPlot.xBottom, self._x_title)
-        _dprint(3, 'calling display_image')
-        if self.is_vector:
-          self.array_plot(self._window_title, self.complex_image, False)
-        else:
-          self.adjust_color_bar = True
-          self.display_image(self.complex_image)
+      if self.handle_basic_menu_id(menuid):
         return
 
 # toggle flags display	
-      if menuid == 200:
+      if menuid == self.menu_table['toggle flagged data for plane ']:
         if self.flag_toggle == False:
           self.flag_toggle = True
         else:
@@ -788,7 +753,7 @@ class QwtImageDisplay(QwtPlot):
         _dprint(3, 'called replot in update_vells_display')
 	return
 
-      if menuid == 201:
+      if menuid == self.menu_table['toggle blink of flagged data for plane ']:
         if self.flag_blink == False:
           self.flag_blink = True
 	  self.timer = QTimer(self)
@@ -798,7 +763,7 @@ class QwtImageDisplay(QwtPlot):
           self.flag_blink = False
 	return
 
-      if menuid == 202:
+      if menuid == self.menu_table['Toggle display range to that of flagged image for plane ']:
         if self.flag_range == False:
           self.flag_range = True
         else:
@@ -860,22 +825,22 @@ class QwtImageDisplay(QwtPlot):
             self.setFlagsData(self._flags_array[self.array_tuple])
 
           self._toggle_flag_label = "toggle flagged data for plane " + str(plane) 
-	  toggle_id = 200
+	  toggle_id = self.menu_table['toggle flagged data for plane ']
           self._menu.changeItem(toggle_id,self._toggle_flag_label)
           self._menu.setItemEnabled(toggle_id, True)
           self._menu.setItemVisible(toggle_id, True)
           self._toggle_blink_label = "toggle blink of flagged data for plane " + str(plane)
-          toggle_id = 201
+          toggle_id = self.menu_table['toggle blink of flagged data for plane ']
           self._menu.changeItem(toggle_id,self._toggle_blink_label)
           self._menu.setItemEnabled(toggle_id, True)
           self._menu.setItemVisible(toggle_id, True)
           self._toggle_range_label = "Toggle display range to that of flagged image for plane " + str(flag_plane)
-          toggle_id = 202
+          toggle_id = self.menu_tabel['Toggle display range to that of flagged image for plane ']
           self._menu.changeItem(toggle_id,self._toggle_range_label)
           self._menu.setItemEnabled(toggle_id, True)
           self._menu.setItemVisible(toggle_id, True)
         else:
-	  toggle_id = 200
+	  toggle_id = self.menu_table['toggle flagged data for plane ']
           self._menu.setItemEnabled(toggle_id, False)
           self._menu.setItemVisible(toggle_id, False)
           self.flag_toggle = False
@@ -885,10 +850,10 @@ class QwtImageDisplay(QwtPlot):
           if not self.imag_flag_vector is None:
             self.removeCurve(self.imag_flag_vector)
             self.imag_flag_vector = None
-          toggle_id = 201
+          toggle_id = self.menu_table['toggle blink of flagged data for plane ']
           self._menu.setItemEnabled(toggle_id, False)
           self._menu.setItemVisible(toggle_id, False)
-          toggle_id = 202
+          toggle_id = self.menu_tabel['Toggle display range to that of flagged image for plane ']
           self._menu.setItemEnabled(toggle_id, False)
           self._menu.setItemVisible(toggle_id, False)
           self.flag_blink = False
@@ -2034,6 +1999,14 @@ class QwtImageDisplay(QwtPlot):
       self.adjust_color_bar = reset_value
 #     print 'self.adjust_color_bar = ', self.adjust_color_bar
 
+    def set_xaxis_title(self, title=''):
+      self._x_title = title
+      self.setAxisTitle(QwtPlot.xBottom, self._x_title)
+
+    def set_yaxis_title(self, title=''):
+      self._y_title = title
+      self.setAxisTitle(QwtPlot.yLeft, self._y_title)
+
     def array_plot (self, data_label, incoming_plot_array, flip_axes=True):
       """ figure out shape, rank etc of a spectrum array and
           plot it  """
@@ -2285,7 +2258,8 @@ class QwtImageDisplay(QwtPlot):
           self._x_title = self.vells_axis_parms[self.x_parm][2]
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
         else:
-          self._x_title = 'Array/Channel/Sequence Number'
+          if self._x_title is None:
+            self._x_title = 'Array/Channel/Sequence Number'
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
           self.x_index = arange(num_elements)
           self.x_index = self.x_index + 0.5
@@ -2446,25 +2420,25 @@ class QwtImageDisplay(QwtPlot):
     # setFlagsData()
 
     def add_basic_menu_items(self):
-        toggle_id = 299
+        toggle_id = self.menu_table['Modify Plot Parameters']
         self._menu.insertItem("Modify Plot Parameters", toggle_id)
-        toggle_id = 300
+        toggle_id = self.menu_table['Toggle Cross-Section Legend']
         self._menu.insertItem("Toggle Cross-Section Legend", toggle_id)
-        toggle_id = 301
+        toggle_id = self.menu_table['Toggle ColorBar']
         self._menu.insertItem("Toggle ColorBar", toggle_id)
-        toggle_id = 302
+        toggle_id = self.menu_table['Toggle Color/GrayScale Display']
         self._menu.insertItem("Toggle Color/GrayScale Display", toggle_id)
         if self.toggle_array_rank > 2: 
-          toggle_id = 303
+          toggle_id = self.menu_table['Toggle ND Controller']
           self._menu.insertItem("Toggle ND Controller", toggle_id)
         self.zoom_button = QAction(self);
         self.zoom_button.setIconSet(pixmaps.viewmag.iconset());
         self.zoom_button.setText("Enable zoomer");
         self.zoom_button.addTo(self._menu);
         QObject.connect(self.zoom_button,SIGNAL("toggled(bool)"),self.zoom);
-        toggle_id = 304
+        toggle_id = self.menu_table['Reset zoomer']
         self._menu.insertItem("Reset zoomer", toggle_id)
-        toggle_id = 305
+        toggle_id = self.menu_table['Delete X-Section Display']
         self._menu.insertItem("Delete X-Section Display", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
         printer = QAction(self);
