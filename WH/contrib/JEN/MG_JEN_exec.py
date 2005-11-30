@@ -196,7 +196,9 @@ def on_entry (ns, MG, **pp):
    entry_counter += 1
 
    # Check the MG-record:
+   # display_object (MG, name='MG', txt='.on_entry(): before MG_check()', full=True)
    MG = MG_check(MG)
+   display_object (MG, name='MG', txt='.on_entry(): after MG_check()', full=True)
 
    # Transfer certain ctrl fields to the MG_JEN_stream_control record:
    if MG.has_key('stream_control'): stream_control (MG.stream_control)

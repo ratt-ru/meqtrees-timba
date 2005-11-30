@@ -9,6 +9,7 @@
 #    - 02 sep 2005: creation
 #    - 10 sep 2005: more or less stable
 #    - 23 sep 2005: MeqParm: use_previous==True, self.parmtable
+#    - 30 nov 2005: added comment to MeqParm() tile_size
 #
 # Full description:
 #
@@ -166,10 +167,19 @@ class Joneset (TDL_common.Super):
         # NB: If use_previous==True, the MeqParm will use its current funklet (if any)
         #     as starting point for the next snippet solution, unless a suitable funklet
         #     was found in the MeqParm table. If False, it will use the default funklet first.
+
+        # If tile_size is specified (i.e. nonzero and not None), assume an integer.
+        # This specifies the size (nr of cells) of the solution-tile in the time-direction.
+        # This means that separate solutions are made for these tiles, which tile the domain.
+        # Tiled solutions are efficient, because they reduce the node overhead
+        # For the moment, only time-tiling is enabled...
+
         tiling = record()
-        if tile_size: tiling.time = tile_size
+        if tile_size:
+            tiling.time = tile_size
+
         quals = dict(q=self.punit());
-        if station is not None:
+        if station:
             quals['s'] = station;
         node = ns[key](**quals) << Meq.Parm(default,
                                             node_groups=self.node_groups(),

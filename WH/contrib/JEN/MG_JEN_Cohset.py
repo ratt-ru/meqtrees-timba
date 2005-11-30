@@ -519,6 +519,8 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     funcname = 'MG_JEN_Cohset.solver(): '
 
     # Input arguments:
+    # pp.setdefault('num_cells', [1,5])      # if defined, ModRes argument [ntime,nfreq]
+    pp.setdefault('num_cells', None)      # if defined, ModRes argument [ntime,nfreq]
     pp.setdefault('solvegroup', [])        # list of solvegroup(s) to be solved for
     pp.setdefault('num_iter', 20)          # max number of iterations
     pp.setdefault('epsilon', 1e-4)         # iteration control criterion
@@ -543,6 +545,12 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     Pohset.label('solver_'+solver_name)
     Mohset = measured.copy(label='measured('+str(pp.solvegroup)+')')
     Mohset.label('solver_'+solver_name)
+
+    # Insert a ReSampler node as counterpart to the ModRes node below.
+    # This node resamples the full-resolution (f,t) measured uv-data onto
+    # the smaller number of cells of the request from the condeq.
+    if pp.num_cells:
+        Mohset.ReSampler(ns, flag_mask=3, flag_bit=4, flag_density=0.1)
 
     # From here on, only the Pohset copy will be modified,
     # until it contains the MeqCondeq nodes for the solver.
@@ -601,11 +609,12 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
         cc.append(condeq)
     Pohset.display('after defining condeqs')
 
+
     # Visualise the condeqs, if required:
-    dc_condeq = []
+    dcoll_condeq = []
     if pp.visu:
        Pohset.scope('condeq_'+solver_name)
-       dc_condeq = visualise (ns, Pohset, errorbars=True, graft=False)
+       dcoll_condeq = visualise (ns, Pohset, errorbars=True, graft=False)
        # NB: What about visualising MeqParms (solvegroups)?
        #     Possibly compared with their simulated values...
   
@@ -619,7 +628,6 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
                                                            debug_level=pp.debug_level)
     # Make a bookmark for the solver plot:
     MG_JEN_forest_state.bookmark (solver, name=('solver: '+solver_name),
-                                  # page=0, save=1, clear=0,
                                   udi='cache/result', viewer='Result Plotter')
 
     # Make historyCollect nodes for the solver metrics
@@ -629,7 +637,23 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
         hc = MG_JEN_historyCollect.make_hcoll_solver_metrics (ns, solver, name=solver_name)
         hcoll_nodes.append(hc)
 
+    # Make a solver subtree with the solver and its associated hcoll/dcoll nodes:
+    # This is necessary in order to give them all the same resampled request (see below)
+    subtree_name = 'solver_subtree_'+solver_name        # used in reqseq name
+    cc = [solver]                              # start a list of reqseq children (solver is first)
+    cc.extend(hcoll_nodes)                     # extend with historyCollect nodes
+    cc.extend(dcoll_condeq)                       # extend the list with the condeq dataCollect node(s) 
+    solver_subtree = ns[subtree_name](q=punit) << Meq.ReqSeq(children=cc, result_index=0)
 
+
+    # Insert a ModRes node to change (reduce) the number of request cells:
+    # NB: This node must be BEFORE the hcoll/dcoll nodes, since these also
+    #     require the low-resolution request, of course....
+    if pp.num_cells:
+        num_cells = pp['num_cells']                            # [ntime, nfreq]
+        solver_subtree = ns.modres(solver_name, q=punit) << Meq.ModRes(solver_subtree,
+                                                                       num_cells=num_cells)
+        
     # Add to the Pohset history (why not to measured?):
     Pohset.history(funcname+' -> '+Pohset.oneliner())
     MG_JEN_forest_state.history (funcname)
@@ -649,14 +673,8 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     if not subtract==None:
 	measured.subtract(ns, subtract)        # assume that 'subtract' is a Cohset
 
-
-    # Graft the solver and its dcoll nodes onto all measured ifr-streams
-    # by attaching them to a reqseq:
-    solver_name = 'solver_'+solver_name        # used in reqseq name
-    cc = [solver]                              # start a list of reqseq children (solver is first)
-    cc.extend(hcoll_nodes)                     # extend with historyCollect nodes
-    cc.extend(dc_condeq)                       # extend the list with the condeq dataCollect node(s) 
-    measured.graft(ns, cc, name=solver_name)
+    # Graft the solver subtree onto all measured ifr-streams via reqseqs:
+    measured.graft(ns, solver_subtree, name='solver_'+solver_name)
     MG_JEN_forest_state.object(measured, funcname)
 
     # Finished

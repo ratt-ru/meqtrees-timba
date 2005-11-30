@@ -9,6 +9,7 @@
 #    - 02 sep 2005: creation
 #    - 23 sep 2005: added MeqVisDataMux to sink()
 #    - 25 nov 2005: corr_index argument for .spigots()
+#    - 29 nov 2005: added method: ReSampler()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -596,6 +597,30 @@ class Cohset (TDL_common.Super):
         return True
 
 
+    def ReSampler (self, ns, **pp):
+        """Insert a ReSampler node that ignores the result cells of its child,
+        but resamples them onto the cells of the request domain"""
+        funcname = '::ReSampler():'
+        pp.setdefault('flag_bit', 4)                     # .....
+        pp.setdefault('flag_mask', 3)                    # .....
+        pp.setdefault('flag_density', 0.1)               # .....
+        pp = record(pp)
+        uniqual = _counter(funcname, increment=-1)
+        scope = 'ReSampled'
+        for key in self.keys():
+            s12 = self.__stations[key]
+            coh = ns[scope](uniqual)(s1=s12[0], s2=s12[1], q=self.punit()) << Meq.ReSampler(
+                self.__coh[key],
+                flag_mask=pp['flag_mask'],
+                flag_bit=pp['flag_bit'],
+                flag_density=pp['flag_density'])
+            self.__coh[key] = coh
+        self.scope(scope)
+        self.history(append=funcname+' inarg = '+str(pp))
+        self.history(append=funcname+' -> '+self.oneliner())
+        return True
+
+
     def update_from_Joneset(self, Joneset=None):
         """Update the internal info from another Joneset object"""
         # (see Joneseq.Joneset())
@@ -797,11 +822,13 @@ if __name__ == '__main__':
     if 1:
         MS_corr_index = [0,1,2,3]         # all 4 available (default)
         # MS_corr_index = [-1,1,2,-1]       # all 4 available, but only XY/XY wanted
-        MS_corr_index = [0,-1,-1,1]       # only XX/YY available
+        # MS_corr_index = [0,-1,-1,1]       # only XX/YY available
         # MS_corr_index = [0,-1,-1,3]       # all 4 available, but only XX/YY wanted
         cs.spigots(ns, MS_corr_index=MS_corr_index)
         cs.display('spigots')
 
+    if 1:
+        cs.ReSampler(ns)
 
     if 0:
         print '\n** cs.corr_index():'
@@ -819,7 +846,7 @@ if __name__ == '__main__':
         cs.corr_index(['XX','RL'])
         print
 
-    if 1:
+    if 0:
         corrs = '*'
         corrs = ['XX','YY']
         # corrs = ['XY','YX']
@@ -858,7 +885,7 @@ if __name__ == '__main__':
         print 'pp =',pp
         
         
-    if 0:
+    if 1:
         # Display the final result:
         k = 0 ; MG_JEN_exec.display_subtree(cs[k], 'cs['+str(k)+']', full=True, recurse=5)
         cs.display('final result')

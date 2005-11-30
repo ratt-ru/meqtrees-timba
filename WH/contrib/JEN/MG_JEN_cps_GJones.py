@@ -1,5 +1,4 @@
 # MG_JEN_cps_GJones.py
-# textsje
 
 # Short description:
 #   Complex gain calibration on a Central Point Source (cps) 
@@ -55,12 +54,13 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
                          last_changed = 'd26nov2005',
                          punit='unpol',                        # name of calibrator source
                          stations=range(4),                   # specify the (subset of) stations to be used
-                         # MS_corr_index = [0,1,2,3],              # correlations to be used
+                         MS_corr_index = [0,1,2,3],              # correlations to be used
                          # MS_corr_index = [0,-1,-1,1],          # only XX/YY available
-                         MS_corr_index = [0,-1,-1,3],          # all available, but use only XX/YY
+                         # MS_corr_index = [0,-1,-1,3],          # all available, but use only XX/YY
                          parmtable=None,                      # name of MeqParm table
                          
                          insert_solver=True,                   # if True, insert a solver
+                         num_cells=[2,2],                       # resampling (None=ignore)
                          num_iter=20,                             # (max) number of solver iterations per snippet
                          epsilon=1e-4,                            # iteration stop criterion (policy-free)
                          subtract_cps=True,                   # if True, subtract the cps
