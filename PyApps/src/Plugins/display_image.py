@@ -409,7 +409,7 @@ class QwtImageDisplay(QwtPlot):
         self.xCrossSectionLoc = None
         self.yCrossSectionLoc = None
         self.dummy_xCrossSection = None
-        toggle_id = 305
+        toggle_id = self.menu_table['Delete X-Section Display']
         self.show_x_sections = False
         self._menu.setItemVisible(toggle_id, False)
 # add solver metrics info back in?
@@ -1275,7 +1275,7 @@ class QwtImageDisplay(QwtPlot):
           self.source_marker = None
           self.insert_marker_lines()
         self.show_x_sections = True
-        toggle_id = 305
+        toggle_id = self.menu_table['Delete X-Section Display']
         self._menu.setItemVisible(toggle_id, True)
 
     def toggleCurve(self, key):
@@ -2072,7 +2072,7 @@ class QwtImageDisplay(QwtPlot):
 
 # add possibility to flip between real/imag and ampl/phase
       if complex_type and not self.complex_switch_set:
-        toggle_id = 306
+        toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
         self._menu.insertItem("Toggle real/imag or ampl/phase Display", toggle_id)
         self.complex_switch_set = True
 
@@ -2109,9 +2109,9 @@ class QwtImageDisplay(QwtPlot):
 # make sure color bar is shown
 #       self.emit(PYSIGNAL("show_colorbar_display"),(1,)) 
 # make sure options relating to color bar are in context menu
-        toggle_id = 301
+        toggle_id = self.menu_table['Toggle ColorBar']
         self._menu.setItemVisible(toggle_id, True)
-        toggle_id = 302
+        toggle_id = self.menu_table['Toggle Color/GrayScale Display']
         self._menu.setItemVisible(toggle_id, True)
 
         self.active_image = True
@@ -2212,9 +2212,9 @@ class QwtImageDisplay(QwtPlot):
 # make sure color bar is hidden
         self.emit(PYSIGNAL("show_colorbar_display"),(0,)) 
 # make sure options relating to color bar are not in context menu
-        toggle_id = 301
+        toggle_id = self.menu_table['Toggle ColorBar']
         self._menu.setItemVisible(toggle_id, False)
-        toggle_id = 302
+        toggle_id = self.menu_table['Toggle Color/GrayScale Display']
         self._menu.setItemVisible(toggle_id, False)
 
 # make sure we are autoscaling in case an image was previous
