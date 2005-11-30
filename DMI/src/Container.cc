@@ -172,7 +172,7 @@ bool DMI::Container::Hook::nextContainer (const HIID &next_id,bool nothrow) cons
                 target.obj_tid.toString()+", but not a valid ref");
   }
   DMI::Container *newnc = const_cast<DMI::Container *>(ref.deref_p());
-  bool new_writable = nc_writable && ref.isDirectlyWritable();
+//  bool new_writable = nc_writable && ref.isDirectlyWritable();
   // figure out which chain scenario we're dealing with here --
   // see comments in Container.h, next to the chain member declaration.
   // (1) current container is non-const

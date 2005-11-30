@@ -14,7 +14,7 @@ SmartBlock::SmartBlock()
 SmartBlock::SmartBlock (void* data, size_t size, int flags)
   : block(0),datasize(0),shmid(0),delete_block(false)
 {
-  dprintf(2)("constructor(data=%x,size=%d,fl=%x)\n",(int)data,size,flags);
+  dprintf(2)("constructor(data=%p,size=%d,fl=%x)\n",data,size,flags);
   init(data,size,flags,0);
 }
 
@@ -72,7 +72,7 @@ SmartBlock & SmartBlock::operator=(const SmartBlock &right)
 
 
 //##ModelId=3BFE37C3022B
-void SmartBlock::init (void* data, size_t size, int flags, int shm_flags)
+void SmartBlock::init (void* data, size_t size, int flags, int /*shm_flags*/)
 {
   if( block || datasize || shmid )
     destroy();
@@ -124,7 +124,7 @@ void SmartBlock::destroy ()
 }
 
 //##ModelId=3BFE23B501F4
-CountedRefTarget * SmartBlock::clone (int flags, int depth) const
+CountedRefTarget * SmartBlock::clone (int flags, int) const
 {
   dprintf1(2)("%s: cloning\n",debug());
   return new SmartBlock(*this,flags|DMI::CLONE);
@@ -141,11 +141,11 @@ string SmartBlock::sdebug ( int detail,const string &prefix,const char *name ) c
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    out += Debug::ssprintf("/%08x",(int)this);
+    out += Debug::ssprintf("/%p",(void*)this);
     if( size()>10000 )
-      Debug::appendf(out,"%c%08x:%dK",delete_block?'D':'-',(int)data(),size()/1024);
+      Debug::appendf(out,"%c%p:%dK",delete_block?'D':'-',data(),size()/1024);
     else
-      Debug::appendf(out,"%c%08x:%db",delete_block?'D':'-',(int)data(),size());
+      Debug::appendf(out,"%c%p:%db",delete_block?'D':'-',data(),size());
     if( isShMem() )
       Debug::appendf(out,"shmid:%x",getShmid());
     Debug::append(out,CountedRefTarget::sdebug(-1));

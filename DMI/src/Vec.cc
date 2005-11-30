@@ -88,7 +88,7 @@ DMI::Vec & DMI::Vec::init (TypeId tid, int num, const void *data,TypeId realtype
   // NB: shared memory flags ought to be passed into the SmartBlock
   //
   Thread::Mutex::Lock _nclock(mutex());
-  dprintf(2)("init(%s,%d,%x)\n",tid.toString().c_str(),num,(int)data);
+  dprintf(2)("init(%s,%d,%p)\n",tid.toString().c_str(),num,(void*)data);
   // if null type, then reset the field to uninit state
   if( !tid )
   {
@@ -418,7 +418,7 @@ int DMI::Vec::toBlock (BlockSet &set) const
     return 1;
   }
   dprintf1(2)("%s: toBlock\n",debug());
-  int npushed = 1,tmp; // 1 header block as a minimum
+  int npushed = 1; // 1 header block as a minimum
   // we may be forming a header block on-the-fly below,
   // so push out a placeholder ref here, and attach header to it later
   BlockRef & href_placeholder = set.pushNew();
@@ -843,7 +843,7 @@ string DMI::Vec::sdebug ( int detail,const string &prefix,const char *name ) con
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    out += ssprintf("/%08x",(int)this);
+    out += ssprintf("/%p",(void*)this);
     if( !type() )
       appendf(out,"empty");
     else

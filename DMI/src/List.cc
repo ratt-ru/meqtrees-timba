@@ -356,7 +356,7 @@ string DMI::List::sdebug ( int detail,const string &prefix,const char *name ) co
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    out += ssprintf("/%08x %d items / %s refs",(int)this,numItems(),
+    out += ssprintf("/%p %d items / %s refs",(void*)this,numItems(),
                     CountedRefTarget::sdebug(-1).c_str());
   }
   if( detail >= 2 || detail <= -2 )   // high detail

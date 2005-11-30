@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.46  2005/11/30 13:44:24  smirnov
+//  Fixed bug with treatment of literal HIIDs.
+//  Fixes for 64-bit copatibility.
+//
 //  Revision 1.45  2005/09/15 11:46:44  smirnov
 //  Revised error reporting to allow hierarchical exceptions
 //
@@ -791,7 +795,7 @@ string DMI::NumArray::sdebug ( int detail,const string &prefix,const char *name 
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    out += ssprintf("/%08x",(int)this);
+    out += ssprintf("/%p",(void*)this);
     if( !itsArrayValid )
       Debug::append(out,"empty");
     else

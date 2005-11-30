@@ -220,7 +220,7 @@ class HIID : public HIID_Base
     //##ModelId=3DB9348C0305
       void addString (const string &,const string &sep_set = "._",bool allow_literals=false);
       // creates literal id from string
-      void makeLiteral (const string &str);
+      void makeLiteral (const string &str,int ipos=0);
 };
 
 // stream operator

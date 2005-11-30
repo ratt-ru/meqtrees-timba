@@ -408,9 +408,9 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    Debug::appendf(out,"/%08x",(int)this);
+    Debug::appendf(out,"/%p",(void*)this);
     if( valid() )
-      out += Debug::ssprintf(">%08x",(int)target_); 
+      out += Debug::ssprintf(">%p",(void*)target_); 
     else
       out += ">-";
   }
@@ -456,7 +456,7 @@ void CountedRefBase::print (std::ostream &str) const
 {
   if( valid() )
   {
-    str<<"CRef->@"<<std::hex<<int(target_)<<std::dec<<":";
+    str<<"CRef->@"<<std::hex<<((void*)target_)<<std::dec<<":";
     target_->print(str);
   }
   else

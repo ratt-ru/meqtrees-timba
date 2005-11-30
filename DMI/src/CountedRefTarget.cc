@@ -47,7 +47,7 @@ CountedRefTarget::CountedRefTarget()
 }
 
 //##ModelId=3DB934660053
-CountedRefTarget::CountedRefTarget(const CountedRefTarget &right)
+CountedRefTarget::CountedRefTarget(const CountedRefTarget &)
   : anon_(false)
 {
 #ifdef COUNTEDREF_LINKED_LIST
@@ -110,7 +110,7 @@ string CountedRefTarget::sdebug ( int detail,const string &prefix,const char *na
   string out;
   threadLock;
   if( detail >= 0 )
-    Debug::appendf(out,"%s/%08x",name?name:"CRefTarg",(int)this);
+    Debug::appendf(out,"%s/%p",name?name:"CRefTarg",(const void*)this);
   // normal detail 
   if( detail >= 1 || detail == -1 )
   {

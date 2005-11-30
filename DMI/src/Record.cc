@@ -381,7 +381,7 @@ string DMI::Record::sdebug ( int detail,const string &prefix,const char *name ) 
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    out += ssprintf("/%08x %d fields",(int)this,fields.size());
+    out += ssprintf("/%p %d fields",(void*)this,fields.size());
     out += " / refs "+CountedRefTarget::sdebug(-1);
   }
   if( detail >= 2 || detail <= -2 )   // high detail
