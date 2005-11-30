@@ -7,6 +7,7 @@
 
 # History:
 # - 22 aug 2005: creation
+# - 30 nov 2005: args ra0=0.0, dec0=1.0 to .create_MS_interface_nodes()
 
 # Copyright: The MeqTree Foundation 
 
@@ -480,7 +481,7 @@ def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
 # This record is kept in the forest state record (where else?) 
 #-------------------------------------------------------------------------------
 
-def MS_interface_nodes(ns=None):
+def MS_interface_nodes(ns=None, ra0=0.0, dec0=0.0):
   """Get/create the standard MS interface nodes"""
 
   field = 'MS_interface_nodes'
@@ -489,7 +490,7 @@ def MS_interface_nodes(ns=None):
   # Create if necessary (and if nodescope (ns) supplied):
   rr = Settings.forest_state[field]
   if isinstance(rr,bool) and ns:           
-    rr = create_MS_interface_nodes.create_MS_interface_nodes(ns)
+    rr = create_MS_interface_nodes.create_MS_interface_nodes(ns, ra0=ra0, dec0=dec0)
     Settings.forest_state[field] = rr
 
   # Return the current:

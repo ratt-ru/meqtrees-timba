@@ -9,7 +9,7 @@ from math import *
 # Create a small subtree of nodes that are expected by the function
 # that reads information from the MS:
 
-def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
+def create_MS_interface_nodes(ns, stations=range(14), sep9A=36, ra0=0.0, dec0=1.0):
    """Create a small subtree of nodes with reserved names, that are expected by
    the function that reads information from the MS"""
 
@@ -22,8 +22,8 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36):
 
    #--------------------------------------------------------------------------------
    # Tensor node with 2 observation phase centre coords:
-   ra0 = ns.ra0 << Meq.Constant(0.0)
-   dec0 = ns.dec0 << Meq.Constant(0.0)
+   ra0 = ns.ra0 << Meq.Constant(ra0)
+   dec0 = ns.dec0 << Meq.Constant(dec0)
    node = ns.radec0 << Meq.Composer(ra0, dec0)
    root.append(node)
    rr.radec0 = node.name 

@@ -22,6 +22,7 @@
 #********************************************************************************
 
 from Timba.TDL import *
+from Timba.Meq import meq
 
 from numarray import *
 
@@ -81,7 +82,12 @@ def _define_forest (ns):
    # Experiment 2: hcoll(s) for solver metrics and 'debug' values:
    if True:
       # Make a simple solver that tries to make parm equal to freqtime: 
-      parm = ns.parm << Meq.Parm(0, node_groups='Parm')
+      default = 0
+      default = meq.polc(array([[0.0,0],[0,0]]))
+      default = meq.polc(array([[0.0,0,0],[0,0,0]]))
+      default = meq.polc(array([[0.0,0],[0,0],[0,0]]))
+      default = meq.polc(array([[0.0,0,0],[0,0,0],[0,0,0]]))
+      parm = ns.parm << Meq.Parm(default, node_groups='Parm')
       condeq = ns.condeq << Meq.Condeq(freqtime, parm)
       solver = ns.solver << Meq.Solver(condeq,
                                        solvable=parm,
