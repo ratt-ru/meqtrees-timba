@@ -493,7 +493,10 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
              tmp=xweights_[1](i)*yweights_[1](j);
              cell_weight_(xindex_(i), yindex_(j))+=tmp;
              A(xindex_(i), yindex_(j))+=tmp*B(i,j);
+						 }else{
+										 Aflag(xindex_(i), yindex_(j))++;
 						 }
+
 				 }
 				 for (int j=ylow;j<=yhigh;j++) {
              if (!F(i,j)) {
@@ -503,14 +506,21 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
 						 tmp=xweights_[1](i)*yweights_[1](j);
              cell_weight_(xindex_(i), yindex_(j))+=tmp;
              A(xindex_(i), yindex_(j))+=tmp*B(i,j);
+						 }else{
+										 Aflag(xindex_(i), yindex_(j)-1)++;
+										 Aflag(xindex_(i), yindex_(j))++;
 						 }
+
 				 }
 				 for (int j=yhigh+1;j<nys;j++) {
              if (!F(i,j)) {
 						tmp=xweights_[1](i)*yweights_[0](j);
             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
              A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
+						 }else{
+										 Aflag(xindex_(i), yindex_(j)-1)++;
 						 }
+
 				 }
 				}
 				for (int i=xlow;i<=xhigh;i++) {
@@ -522,7 +532,11 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
 						tmp=xweights_[1](i)*yweights_[1](j);
             cell_weight_(xindex_(i), yindex_(j))+=tmp;
              A(xindex_(i), yindex_(j))+=tmp*B(i,j);
+						 }else{
+										 Aflag(xindex_(i)-1, yindex_(j))++;
+										 Aflag(xindex_(i), yindex_(j))++;
 						 }
+
 				 }
 				 for (int j=ylow;j<=yhigh;j++) {
              if (!F(i,j)) {
@@ -538,8 +552,11 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
 						 tmp=xweights_[1](i)*yweights_[1](j);
              cell_weight_(xindex_(i), yindex_(j))+=tmp;
              A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-						 }else{
+						 }else{ //
 										 Aflag(xindex_(i)-1, yindex_(j)-1)++;
+										 Aflag(xindex_(i)-1, yindex_(j))++;
+										 Aflag(xindex_(i), yindex_(j)-1)++;
+										 Aflag(xindex_(i), yindex_(j))++;
 						 }
 
 				 }
@@ -551,7 +568,11 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
 						 tmp=xweights_[1](i)*yweights_[0](j);
              cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
              A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
+						 }else{
+										 Aflag(xindex_(i)-1, yindex_(j)-1)++;
+										 Aflag(xindex_(i), yindex_(j)-1)++;
 						 }
+
 				 }
 				}
 				for (int i=xhigh+1;i<nxs;i++) {
@@ -560,7 +581,10 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
 						 tmp=xweights_[0](i)*yweights_[1](j);
              cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
              A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
+						 }else{
+										 Aflag(xindex_(i)-1, yindex_(j))++;
 						 }
+
 				 }
 				 for (int j=ylow;j<=yhigh;j++) {
              if (!F(i,j)) {
@@ -570,14 +594,21 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
 						 tmp=xweights_[0](i)*yweights_[1](j);
              cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
              A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
+						 }else{
+										 Aflag(xindex_(i)-1, yindex_(j)-1)++;
+										 Aflag(xindex_(i)-1, yindex_(j))++;
 						 }
+
 				 }
 				 for (int j=yhigh+1;j<nys;j++) {
              if (!F(i,j)) {
 						 tmp=xweights_[0](i)*yweights_[0](j);
              cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
              A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
+						 }else{
+										 Aflag(xindex_(i)-1, yindex_(j)-1)++;
 						 }
+
 				 }
 				}
 
