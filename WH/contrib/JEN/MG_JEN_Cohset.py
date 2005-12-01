@@ -584,7 +584,8 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
             pgnames = Pohset.parmgroup()[key]     # list of parmgroup node-names
             solvable.extend(pgnames)              # list of solvable node-names
             # Temporary: show the first solvable MeqParm of each parmgroup on the allcorrs page:
-            MG_JEN_forest_state.bookmark (ns[pgnames[0]], page='allcorrs')
+            if pp.visu:
+                MG_JEN_forest_state.bookmark (ns[pgnames[0]], page='allcorrs')
 
 
     # Make new Cohset objects with the relevant corrs only:
@@ -632,7 +633,7 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
 
     # Make historyCollect nodes for the solver metrics
     hcoll_nodes = []
-    if pp.history:
+    if pp.history and pp.visu:
         # Make a tensor node of solver metrics/debug hcoll nodes:
         hc = MG_JEN_historyCollect.make_hcoll_solver_metrics (ns, solver, name=solver_name)
         hcoll_nodes.append(hc)
@@ -651,8 +652,8 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     #     require the low-resolution request, of course....
     if pp.num_cells:
         num_cells = pp['num_cells']                            # [ntime, nfreq]
-        solver_subtree = ns.modres(solver_name, q=punit) << Meq.ModRes(solver_subtree,
-                                                                       num_cells=num_cells)
+        solver_subtree = ns.modres_solver(solver_name, q=punit) << Meq.ModRes(solver_subtree,
+                                                                              num_cells=num_cells)
         
     # Add to the Pohset history (why not to measured?):
     Pohset.history(funcname+' -> '+Pohset.oneliner())
