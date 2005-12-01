@@ -803,13 +803,14 @@ class Node : public DMI::BObj
     //## sets the current request
     void setCurrentRequest (const Request &req);
 
-    //## If node is currently executing and force=false, does nothing.
-    //## Otherwise, clears cache and recursively calls parents to do the same
-    //## (with force=false, to avoid already active parents, since these
-    //## will have a recalculated cache anyway).
-    //## This is meant to be used by child nodes to flush their caches
-    //## when their state changes.
-    void flushUpstreamCache (bool force=true,bool quiet=false);
+    //## marks the current cache (if any) of the node with 
+    //## Forest::getStateDependMask(). If node is already dependent on
+    //## state, does nothing. Otherwise, recursively does same to parents.
+    //## This is called from setState() to make sure that parents of the 
+    //## current node update themselves properly when receiving a request
+    //## with a different state id (which is usually incremented by the
+    //## request sequencer)
+    void markStateDependency ();
     
     //##ModelId=400E531A021A
     //##Documentation
@@ -1099,6 +1100,7 @@ class Node : public DMI::BObj
             result.detach();
           is_valid = false;
           recref_.detach();
+          rescode = 0;
         }
         // is cache valid?
         bool valid () const

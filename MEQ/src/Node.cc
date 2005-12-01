@@ -410,8 +410,8 @@ void Node::setState (DMI::Record::Ref &rec)
   // success: merge record into state record
   if( !initializing )
     wstate().merge(rec,true);
-  // force a flush of upstream caches
-  flushUpstreamCache(true);
+  // make sure nodes upstream get themselves a state dependency
+  markStateDependency();
 }
 
 //##ModelId=400E53120082
@@ -474,22 +474,15 @@ void Node::setCurrentRequest (const Request &req)
   current_reqid_ = req.id();
 }
 
-void Node::flushUpstreamCache (bool,bool quiet)
+void Node::markStateDependency ()
 {
-// OMS 19/09/05: do not check 'force' or exec state flag but rather 
-// always flush. The old checks again caused problems where a ReqSeq
-// was present.
-  
-//  if( force || getExecState() == CS_ES_IDLE )
-//  {
-    clearCache(false,quiet);
-    for( int i=0; i<numParents(); i++ )
-    {
-      Node & par = getParent(i);
-      if( !isStepParent(i) )
-        getParent(i).flushUpstreamCache(false,quiet);
-    }
-//  }
+  // do nothing if we are already dependent on state, parents will know anyway
+  if( cache_.rescode & forest().getStateDependMask() )
+    return;
+  cache_.rescode |= forest().getStateDependMask();
+  // notify parents
+  for( int i=0; i<numParents(); i++ )
+    getParent(i).markStateDependency();
 }
 
 //##ModelId=400E531300C8

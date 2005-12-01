@@ -44,7 +44,7 @@ ReqSeq::ReqSeq()
 {
   disableAutoResample();
   // init default seq symdeps 
-  seq_symdeps_.assign(1,AidSequence);
+  seq_symdeps_.assign(1,AidState);
   setKnownSymDeps(seq_symdeps_);
 }
 

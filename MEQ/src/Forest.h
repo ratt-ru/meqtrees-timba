@@ -134,6 +134,9 @@ class Forest
       return iter->second;
     }
     
+    int getStateDependMask () const
+    { return depmask_state_; }
+    
     // returns or sets the default cache policy
     int cachePolicy () const
     { return cache_policy_; }
@@ -253,6 +256,8 @@ class Forest
     SymdepMap symdep_counts;
     
     SymdepMap known_symdeps;
+    
+    int depmask_state_;
     
     // helper function to convert SymdepMap to Record
     void fillSymDeps (DMI::Record &rec,const SymdepMap &map);
