@@ -28,7 +28,11 @@ namespace DMI
 {
   
 // for literal HIIDs, this is used as a marker in the first element.
-const int LITERAL_MARKER = 0x7FFFFFFF;
+const int LITERAL_MARKER      = 0x7FFF0000;
+const int LITERAL_MASK        = 0xFFFF0000;
+const int LITERAL_LENGTH_MASK = 0x0000FFFF;
+const int LITERAL_RATIO       = sizeof(AtomicID)/sizeof(char);
+
 
 //##ModelId=3DB934880197
 HIID::HIID (const void* block, int sz)
@@ -181,35 +185,28 @@ string HIID::toString (char separator,bool mark_lit) const
 //     return s;
 //   }
   
-  bool sep = true,literal = false;
+  bool sep = true;
   string result;
   for( const_iterator iter = begin(); iter != end(); iter++ )
   {
-    if( literal )
+    if( (iter->id()&LITERAL_MASK) == LITERAL_MARKER ) // process literal string
     {
-      const uint ratio = sizeof(AtomicID)/sizeof(char);
-      string substr(reinterpret_cast<const char*>(&(*iter)),ratio); 
-      result += substr; 
-      if( substr.length() < ratio )
-        literal = false;
+      int len = iter->id()&LITERAL_LENGTH_MASK;
+      int size = (len+LITERAL_RATIO-1)/LITERAL_RATIO;
+      iter++;
+      if( mark_lit )
+        result += "$";
+      result += string(reinterpret_cast<const char*>(&(*iter)),len);
+      iter += size-1; // skip over the aids forming the literal string
+      sep = false;
     }
     else
     {
-      if( *iter == LITERAL_MARKER ) // process literal string
-      {
-        literal = true;
-        sep = false;
-        if( mark_lit )
-          result += "$";
-      }
-      else
-      {
-        bool newsep = ( *iter == AidSlash || *iter == AidRange );
-        if( !sep && !newsep )
-          result += separator;
-        result += (*iter).toString();
-        sep = newsep;
-      }
+      bool newsep = ( *iter == AidSlash || *iter == AidRange );
+      if( !sep && !newsep )
+        result += separator;
+      result += (*iter).toString();
+      sep = newsep;
     }
   }
   return result;
@@ -290,16 +287,16 @@ void HIID::makeLiteral (const string &str,int ipos)
   const int ratio = sizeof(AtomicID)/sizeof(char);
   // work out size to hold literal string
   uint len = str.length();
-  uint size = len/ratio + 1; // used to be: ((len%ratio)!=0), but now we always ensure a zero pad
+  uint size = (len+LITERAL_RATIO-1)/LITERAL_RATIO; // used to be: ((len%ratio)!=0), but now we always ensure a zero pad
   uint bufsize = size*ratio;
   resize(ipos+size+1);
   // mark [0] as literal, and copy string starting from [1]
-  (*this)[ipos] = LITERAL_MARKER;
+  (*this)[ipos] = LITERAL_MARKER|len;
   char *buf = reinterpret_cast<char*>(&(*this)[ipos+1]);
   str.copy(buf,string::npos);
   // pad with nulls, since buf may be bigger
   if( bufsize-len )
-    memset(buf+len,0,bufsize-len);
+    memset(buf+len,0xFF,bufsize-len);
 }
     
 //##ModelId=3DB9348C0305
