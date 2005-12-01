@@ -191,6 +191,8 @@ string HIID::toString (char separator,bool mark_lit) const
   {
     if( (iter->id()&LITERAL_MASK) == LITERAL_MARKER ) // process literal string
     {
+      if( !sep )
+        result += separator;
       int len = iter->id()&LITERAL_LENGTH_MASK;
       int size = (len+LITERAL_RATIO-1)/LITERAL_RATIO;
       iter++;
