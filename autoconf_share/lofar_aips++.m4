@@ -51,11 +51,18 @@ AC_ARG_WITH(pgplot,
 	[  --with-pgplot[=PFX]         enable use of PGPLOT if needed by AIPS++],
 	[with_pgplot="$withval"],
 	[with_pgplot=""])
+AC_ARG_WITH(wcs,
+	[  --with-wcs[=PFX]            specific path for WCS if needed by AIPS++],
+	[with_wcs="$withval"],
+	[with_wcs=""])
 [
 
 
 if test "$with_pgplot" = ""; then
     with_pgplot=no;
+fi
+if test "$with_wcs" = ""; then
+    with_wcs=yes;
 fi
 
 # the path where the libraries can be found
@@ -166,13 +173,25 @@ else
       *)      arch=UNKNOWN;;
     esac
 
-    AIPSPP_CPPFLAGS="-I$AIP -DAIPS_$arch -DAIPS_NO_TEMPLATE_SRC"
+
+    # Define the CPP flags.
+    AIPSPP_CPPFLAGS="-I$AIP"
+    if [ "$with_wcs" != "no" ]; then
+      if [ "$with_wcs" = "yes" ]; then
+        with_wcs=`echo $AIP | sed -e 's%/include.*%/casa/wcslib%'`
+      fi
+      ]AC_CHECK_FILE([$with_wcs/wcs.h],
+            [lfr_wcs=yes], [lfr_wcs=no])[
+      if test $lfr_wcs = no; then
+        ]AC_MSG_ERROR([WCS directory not found])[
+      fi
+      AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -I$with_wcs"
+    fi      
+    AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_$arch -DAIPS_NO_TEMPLATE_SRC"
     if test "$lofar_compiler" = "kcc"; then
       AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_KAICC"
     fi
     AIPSPP_LDFLAGS="-L$ALP/lib -Wl,-rpath,$ALP/lib"
-    # For one reason or another -ltrial -laips links in a lot of rubbish
-    # (like MiriadImage). Therefore do -laips first.
     AIPSPP_LIBS="$ALP/lib/version.o $lfr_aipslibs"
 
     if test "$with_pgplot" != "no"; then
