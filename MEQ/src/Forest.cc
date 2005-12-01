@@ -48,9 +48,9 @@ Forest::Forest ()
   // init default symdep set
   known_symdeps[AidIteration]   = 0x01;
   known_symdeps[AidState]       = depmask_state_ = 0x02;
-  known_symdeps[AidDomain]      = 0x04;
   known_symdeps[AidResolution]  = 0x04; 
-  known_symdeps[AidDataset]     = 0x08;
+  known_symdeps[AidDomain]      = 0x08;
+  known_symdeps[AidDataset]     = 0x10;
   symdep_map = known_symdeps;
   // resize repository to 1 initially, so that index #0 is never used
   nodes.reserve(RepositoryChunkSize);

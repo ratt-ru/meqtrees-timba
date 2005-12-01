@@ -163,8 +163,6 @@ namespace Meq
     FStdDev          = AidStdDev,
     FChi             = AidChi,
 
-    FResolutionDependMask = AidResolution|AidDepend|AidMask,
-    
     FContagiousFail  = AidContagious|AidFail,
     
     FIndex           = AidIndex;
