@@ -52,7 +52,7 @@ AC_ARG_WITH(pgplot,
 	[with_pgplot="$withval"],
 	[with_pgplot=""])
 AC_ARG_WITH(wcs,
-	[  --with-wcs[=PFX]            specific path for WCS if needed by AIPS++],
+	[  --with-wcs[=PFX]            specific path for wcslib if needed by AIPS++],
 	[with_wcs="$withval"],
 	[with_wcs=""])
 [
@@ -178,9 +178,9 @@ else
     AIPSPP_CPPFLAGS="-I$AIP"
     if [ "$with_wcs" != "no" ]; then
       if [ "$with_wcs" = "yes" ]; then
-        with_wcs=`echo $AIP | sed -e 's%/include.*%/casa/wcslib%'`
+        with_wcs=`echo $AIP | sed -e 's%/include.*%/casa%'`
       fi
-      ]AC_CHECK_FILE([$with_wcs/wcs.h],
+      ]AC_CHECK_FILE([$with_wcs/wcslib/wcs.h],
             [lfr_wcs=yes], [lfr_wcs=no])[
       if test $lfr_wcs = no; then
         ]AC_MSG_ERROR([WCS directory not found])[
