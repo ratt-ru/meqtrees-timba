@@ -22,6 +22,24 @@
 ## 6) The implementation is not optimized. However, checks for memory leaks have 
 ##  been done.
 
+## Here is the copy of the bug report
+## support resolution drivers (i.e., three auto-resampling modes: integrate,
+## upsample, or follow resolution of specific child)
+#
+## - generalize resampling code to support arbitrary dimensionality
+#
+## - compute Result cells based on resolution
+#
+## - possibly revise getResult() to take a Cells argument
+##
+##
+##
+##- implement linear resampling in the upsampler, and look into the possibility of
+## other algorithms
+##
+## - look for external libraries for this, perhaps?
+
+
 #********************************************************************************
 #********************************************************************************
 #**************** PART II: Preamble and initialisation **************************
