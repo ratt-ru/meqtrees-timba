@@ -60,7 +60,7 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
                          parmtable=None,                      # name of MeqParm table
                          
                          insert_solver=True,                   # if True, insert a solver
-                         num_cells=[2,2],                       # resampling (None=ignore)
+                         # num_cells=[2,2],                       # resampling (None=ignore)
                          num_iter=20,                             # (max) number of solver iterations per snippet
                          epsilon=1e-4,                            # iteration stop criterion (policy-free)
                          subtract_cps=True,                   # if True, subtract the cps
@@ -70,19 +70,20 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
                          fdeg_Gphase='fdeg_Gampl',
                          tdeg_Gampl=1,                          # degree of time polynomial
                          tdeg_Gphase='tdeg_Gampl',
-                         tile_size_Gampl=None,                   # used in tiled solutions
+                         # tile_size_Gampl=None,                   # used in tiled solutions
+                         tile_size_Gampl=4,                   # used in tiled solutions
                          tile_size_Gphase='tile_size_Gampl',
                           
                          flag_spigots=False,                   # If True, insert a flagger before solving
                          flag_sinks=False,                      # If True, insert a flagger after solving
-                         visu_spigots=False,               # If True, insert built-in view(s) 
-                         visu_solver=False,                    # If True, insert built-in view(s) 
+                         visu_spigots=True,               # If True, insert built-in view(s) 
+                         visu_solver=True,                    # If True, insert built-in view(s) 
                          visu_sinks=True,                # If True, insert built-in view(s)
                          trace=False)                              # If True, produce progress messages  
 
 MG.stream_control = record(ms_name='D1.MS',
                            data_column_name='DATA',
-                           tile_size=5,                              # input tile-size
+                           tile_size=4,                              # input tile-size (nr of time-slots)
                            channel_start_index=10,
                            channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
                            output_col='RESIDUALS')

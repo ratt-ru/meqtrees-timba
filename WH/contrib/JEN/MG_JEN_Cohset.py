@@ -630,6 +630,9 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     # Make a bookmark for the solver plot:
     MG_JEN_forest_state.bookmark (solver, name=('solver: '+solver_name),
                                   udi='cache/result', viewer='Result Plotter')
+    if pp.visu:
+        MG_JEN_forest_state.bookmark (solver, page='allcorrs',
+                                      udi='cache/result', viewer='Result Plotter')
 
     # Make historyCollect nodes for the solver metrics
     hcoll_nodes = []
