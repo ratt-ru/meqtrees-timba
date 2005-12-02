@@ -1,18 +1,26 @@
-# MG_JEN_template.py
+# MG_SBY_resample.py
 
 # Short description:
 #   A template for the generation of MeqGraft (MG) scripts
 
 # Keywords: ....
 
-# Author: Jan Noordam (JEN), Dwingeloo
-
-# History:
-# - 24 aug 2005: creation
 
 # Copyright: The MeqTree Foundation
 
 # Full description:
+
+#############
+## What the Resampler can and cannot do so far ....
+## 
+## 1) It can downsample to non exact cell sizes.
+## 2) Special cases : exact cell sizes and one dimensional cells are not handled      with special code, but the general method should work for these cases.
+## 3) Oversampling does not work
+## 4) Flagged cells are not averaged. However, the flagged cell are counted and
+##   added to the flag count of the output cell.
+## 5) The flag mask, bit, density parameters does not work yet.
+## 6) The implementation is not optimized. However, checks for memory leaks have 
+##  been done.
 
 #********************************************************************************
 #********************************************************************************
