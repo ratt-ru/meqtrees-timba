@@ -29,6 +29,7 @@ class OptionsDialog(QDialog):
 
         self.cell_has_changed=0
         self.patch_center=-1# 0: geometric, 1: centroid 
+        self.patch_method=-1# 0,1
 ################# Tab 1
         self.axisTab=QWidget(self.tabWidget,"axisTab")
 
@@ -429,8 +430,30 @@ class OptionsDialog(QDialog):
         elif self.parentWidget().cview.lsm.default_patch_center=='C':
          self.patch_centroid.setChecked(1)
 
+        ######## Group 2
+        self.patchMBG=QButtonGroup(self.patchTab,"patchMBG")
+        self.patchMBG.setColumnLayout(0,Qt.Vertical)
+        self.patchMBG.layout().setSpacing(6)
+        self.patchMBG.layout().setMargin(6)
+        bgLayout=QVBoxLayout(self.patchMBG.layout())
+        bgLayout.setAlignment(Qt.AlignCenter)
 
-        self.connect(self.patchBG, SIGNAL("clicked(int)"), self.patchBGradioClick)
+        layoutbgV=QVBoxLayout(None,0,6,"layoutbgV")
+        self.patch_method1=QRadioButton(self.patchMBG,"method1")
+        layoutbgV.addWidget(self.patch_method1)
+        self.patch_method2=QRadioButton(self.patchMBG,"method2")
+        layoutbgV.addWidget(self.patch_method2)
+        bgLayout.addLayout(layoutbgV)
+        patchtabLayout.addWidget(self.patchMBG)
+
+        if self.parentWidget().cview.lsm.default_patch_method==1:
+         self.patch_method1.setChecked(1)
+        elif self.parentWidget().cview.lsm.default_patch_method==2:
+         self.patch_method2.setChecked(1)
+
+
+        self.connect(self.patchMBG, SIGNAL("clicked(int)"), self.patchMBGradioClick)
+        ##########################################
 
         self.tabWidget.insertTab(self.patchTab,QString.fromLatin1(""))
 ############## end of Tabs
@@ -523,6 +546,9 @@ class OptionsDialog(QDialog):
         self.patchBG.setTitle(self.__tr("Phase Center"))
         self.patch_geom.setText(self.__tr("Geometric"))
         self.patch_centroid.setText(self.__tr("Weighted"))
+        self.patchMBG.setTitle(self.__tr("Method"))
+        self.patch_method1.setText(self.__tr("One"))
+        self.patch_method2.setText(self.__tr("Two"))
 
         self.buttonHelp.setText(self.__tr("&Help"))
         self.buttonHelp.setAccel(self.__tr("F1"))
@@ -720,7 +746,8 @@ class OptionsDialog(QDialog):
      self.patch_center=id
      #print "plot BG button %d clicked" %id
 
-
+    def patchMBGradioClick(self,id):
+     self.patch_method=id
 
 
     def accept(self):
@@ -837,6 +864,10 @@ class OptionsDialog(QDialog):
         self.parentWidget().cview.lsm.default_patch_center='G'
       else: 
         self.parentWidget().cview.lsm.default_patch_center='C'
+
+     if self.patch_method!=-1:
+        self.parentWidget().cview.lsm.default_patch_method=self.patch_method+1
+
 
      self.parentWidget().canvas.update()
 

@@ -561,6 +561,8 @@ class LSM:
   # how to create phase center of patches
   # 'G': geometric center, 'C': centroid  (weighted)
   self.default_patch_center='C'
+  # patch creation methods 1,2,
+  self.default_patch_method=1
 
 
  # Much more important method
@@ -871,6 +873,7 @@ class LSM:
    g.cells=None
    g.__patch_count=self.__patch_count
    g.default_patch_center=self.default_patch_center
+   g.default_patch_method=self.default_patch_method
 
 
    # serialize the root
@@ -904,6 +907,7 @@ class LSM:
 
    self.__patch_count=tmpl.__patch_count
    self.default_patch_center=tmpl.default_patch_center
+   self.default_patch_method=tmpl.default_patch_method
 
    if tmpl.__root!=None:
     if ns==None:
@@ -1069,7 +1073,7 @@ class LSM:
      child_list.append(my_name)
      self.p_table[sname]._patch_name=patch_name
    #print child_list
-   patch_root=self.__ns['sixpack:q='+patch_name]<<Meq.PatchComposer(children=child_list)
+   patch_root=self.__ns['sixpack:q='+patch_name]<<Meq.PatchComposer(method=self.default_patch_method,children=child_list)
 
    # add this to our root
    self.addToTree(patch_root)
