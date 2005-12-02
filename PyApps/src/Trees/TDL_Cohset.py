@@ -450,27 +450,40 @@ class Cohset (TDL_common.Super):
         If stepchild=True, make the node(s) step-children of a MeqSelector
         node that is inserted before the specified (key) coherency node"""
         funcname = '::graft():'
-        gg = deepcopy(node)                                 # necessary....??
-        if not isinstance(gg, (tuple, list)): gg = [gg]
-        keys = self.keys()
-        if key=='first': keys = keys[0]                     # use the first ifr only
-        if key=='last': keys = keys[len(keys)-1]            # use the last ifr only
+
+        # Names and qualifiers:
         uniqual = _counter(funcname, increment=-1)
         if stepchild:
             gname = 'graft_stepchild'
         else:
             gname = 'graft_reqseq'
         if isinstance(name, str): gname += '_'+name
+
+        # Deal with the input node(s) that are to be grafted on:
+        # Make a deepcopy to avoid the risk of modifying the input node.
+        gg = deepcopy(node)                                 # necessary....??
+        if not isinstance(gg, (tuple, list)): gg = [gg]
         self.history(funcname+' '+gname+': len(gg)='+str(len(gg)))
+        if False:
+            # To improve tree readability, bundle the input nodes...
+            # NB: This assumes that the order is not important
+            if len(gg)>1:
+                gg = [ns[gname+'_bundle'](uniqual) << Meq.Composer(children=gg)]
+
         
         # NB: Consider new options: add_children(...) or add_stepchildren(...)
         #     See also PyApps/test/tdl_tutorial.py
 
+        # OK, graft onto all ifr-branches:
+        keys = self.keys()
+        if key=='first': keys = keys[0]                     # use the first ifr only
+        if key=='last': keys = keys[len(keys)-1]            # use the last ifr only
         for key in keys:
             if stepchild:
                 self[key] = ns[gname].qmerge(self[key])(uniqual) << Meq.Selector(self[key], stepchildren=gg)
             else:
-                children = deepcopy(gg)                     # first the grafted node(s) (e.g. dcoll)
+                # children = gg                               # first the grafted node(s) (e.g. dcoll)
+                children = deepcopy(gg)                     # NECESSARY (for some reason I do not understand)
                 children.append(self[key])                  # the main stream node is last (result_index)
                 rix = len(children)-1                       # use only the result of the last (main stream) child
                 self[key] = ns[gname].qmerge(self[key])(uniqual) << Meq.ReqSeq(children=children, result_index=rix)
@@ -569,7 +582,7 @@ class Cohset (TDL_common.Super):
             coh = ns[scope](uniqual)(s1=s12[0], s2=s12[1], q=self.punit()) << Meq.MatrixMultiply(
                 Meq.MatrixInvert22(Joneset[s12[0]]),
                 self.__coh[key],
-                ns << Meq.MatrixInvert22(ns << Meq.ConjTranspose(Joneset[s12[1]])))
+                ns << Meq.MatrixInvert22(ns << Meq.ConjTranspose(Joneset[s12[1]]))) 
             self.__coh[key] = coh 
         self.update_from_Joneset(Joneset)
         self.scope(scope)
@@ -588,7 +601,7 @@ class Cohset (TDL_common.Super):
             coh = ns[scope](uniqual)(s1=s12[0], s2=s12[1], q=self.punit()) << Meq.MatrixMultiply(
                 Joneset[s12[0]],
                 self.__coh[key],
-                ns << Meq.ConjTranspose(Joneset[s12[1]]))
+                ns << Meq.ConjTranspose(Joneset[s12[1]]))   
             self.__coh[key] = coh
         self.scope(scope)
         self.update_from_Joneset(Joneset)

@@ -657,6 +657,12 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
         num_cells = pp['num_cells']                            # [ntime, nfreq]
         solver_subtree = ns.modres_solver(solver_name, q=punit) << Meq.ModRes(solver_subtree,
                                                                               num_cells=num_cells)
+
+    # Optional: subtract the given Cohset from the measured (corrected?) data:
+    # NB: The interaction between correct and subtract requires a little thought...
+    # NB: Use predicted for subtract/correct...? (ONLY if not resampling....)
+    if subtract:
+	measured.subtract(ns, subtract)        # assume that 'subtract' is a Cohset
         
     # Add to the Pohset history (why not to measured?):
     Pohset.history(funcname+' -> '+Pohset.oneliner())
@@ -668,14 +674,9 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     # NB: This correction should be inserted BEFORE the solver reqseq (see below),
     #         because otherwise it messes up the correction of the insertion ifr
     #         (one of the input Jones matrices is called before the solver....)
-    if not correct==None:
+    if correct:
 	measured.correct(ns, correct)          # assume that 'correct' is a Joneset
 
-    # Optional: subtract the given Cohset from the measured (corrected?) data:
-    # NB: The interaction between correct and subtract requires a little thought...
-    # NB: Use predicted for subtract/correct...? (ONLY if not resampling....)
-    if not subtract==None:
-	measured.subtract(ns, subtract)        # assume that 'subtract' is a Cohset
 
     # Graft the solver subtree onto all measured ifr-streams via reqseqs:
     measured.graft(ns, solver_subtree, name='solver_'+solver_name)

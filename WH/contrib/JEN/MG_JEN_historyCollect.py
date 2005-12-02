@@ -145,7 +145,8 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
 
    if pp['debug']: 
       # Optional: make hcoll nodes for 'debug' solver metrics:
-      debug = ['nonlin','seq','sol','prec','known','er','piv','neq']
+      # debug = ['nonlin','seq','sol','prec','known','er','piv','neq']
+      debug = ['nonlin','sol','prec','er']
       pagename = 'hcoll_'+pp['name']+'_debug'
       for metric in debug:
          input_index = hiid('solver_result/debug/0/'+metric)          

@@ -34,13 +34,96 @@ NB: Just temporary: To be converted into Bugzilla items....!
            In that case, what about continuity?
        - change (dynamically?) afterwards?
        - NB: Can a MeqParm have funklets with different nrs of dimensions...?  
+   - MXM: Treat polcs as different from funklets, i.e. funklets are NOT
+          a generalisation of polcs....!?
+
+ - MXM/JEN: MeqParm/solver modes
+   - ALWAYS return values, arbitrary request
+     - interpolations scheme
+     - more efficient if successive/cotiguous domains?
+     - mix of funklets with different dimensions?
+     - also used for finding initial value for solving?
+   - snippet-by-snippet solution
+     - Always tiled solution (tile_size=1)?
+     - MeqParm intelligence (growing domain)
+       - Prediction of next value (convergence)
+       - rejection of 'bad' solutions
+       - more efficient table use (fewer polcs)
+       - no extra cost if accumulating solution matrix
+       - how to decide when to start new polc? overlap?
+     - Smoothing of table polcs/funklets afterwards
+       - simpler (more versatile?) scheme than above
+       - has to be done in any case (edge discontinuities)
+       - better rejection of 'bad' solutions (more info)
+       - use last value as prediction for the next (almost as good)
+
+ - MXM/JEN: BJones (Abell963)
+   - solve for BJones on the central source, dt = 1 hr
+     - takes care of slowly time-variable BJones
+     - contamination from the other sources?
+   - correct the uv-data for this BJones
+   - solve for GJones on the central source, dt = 1 min
+     - rapid gain variations, w.r.t. slow BJones
+   - subtract the (corrupted) central source 
+   - correct the uv-data for this GJones
+   - then what?
+     - position-dependent GJones 
+       - extended source: requires uvbrick
+     - position-dependent BJones? (very diffifult)
+
+ - MXM/JEN: separate solvers
+   - BJones/GJones: use Gpol1, GPol2 separately?
+   - automatic?
+   - reqseq structure?
+
+
+ - Resampling:
+   - improvement in speed?
+   - degradation of the solution quality?
+   - clashes with tiled solutions?
+   - dynamic re-specification?
 
  - SBY: LSM files for WSRT calibrator fields
+   - LSM node naming for (saved) LSM's
+   - multiple versions of the same LSM in same tree (RJN)?
+
+ - create_MS_interface_nodes()
+   - split off the uv-coordinate nodes spec
+   - need different set for different directions
+     - but ONLY if the uv-data phase-centre has been shifted...?
+     - MAB: For point sources, the uvw-coord for the pointing centre
+       are correct. But for extended sources, things are different...
+   - create a default set for the MS pointing centre (q=uvp?)
+
+ - JEN: MG_JEN_peeling.py
+   - correct the data for uv-plane effects (if available) first
+     - GJones, BJones, DJones
+   - solve for instrumental errors in the direction of peeling sources
+     RELATIVE to uv-plane effects (also good diagnostic!)
+   - Advantages:
+     - uv-data are fit to make a reasonable map from
+     - relative errors are sensitive diagnostic
+     - convergence is quicker (start closer to solution)
+     - just subtract (mildly corrupted) sources
+     - no further uv-data correction needed   
+
 
  - SvdT: Webpage for script/object inspection
- - SvdT/OMS: Testing (3 levels)
+ - SvdT/OMS/MAB: Automatic module testing (3 levels)
 
  - JEN/SBY/GVD: WSRT/WHAT reduction
+   - MG_JEN_Joneset: station-by-station specification
+   - 4 WHAT tiles in fixed time-pattern
+     - treat them as the same one 
+       - position errors absorbed in phases
+     - read in together (tile_size=4), and then...?
+     - have 4 different trees, and switch between them (how?)
+   - step either the WHAT or WSRT around the source (corr.coeff)
+     - can we get/assume the RA,DEC pattern?
+     - solving for WSRT/WHAT beams
+     - visualising beamshapes
+     - predicting projected dipole orthogonality
+
 
  - OMS/MXM: Sink 'tiling' in freq direction too...
  -      Has repercussions for MeqParm tables...

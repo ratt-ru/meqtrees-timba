@@ -9,6 +9,7 @@
 
 # History:
 # - 25 sep 2005: creation
+# - 02 dec 2005: subtract etc
 
 # Copyright: The MeqTree Foundation
 
@@ -53,8 +54,18 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_BJones.py',
                          last_changed = 'd28sep2005',
                          punit='unpol',                        # name of calibrator source
                          stations=range(4),                   # specify the (subset of) stations to be used
+                         MS_corr_index = [0,1,2,3],              # correlations to be used
+                         # MS_corr_index = [0,-1,-1,1],          # only XX/YY available
+                         # MS_corr_index = [0,-1,-1,3],          # all available, but use only XX/YY
                          parmtable=None,                        # name of MeqParm table
                          
+                         insert_solver=True,                   # if True, insert a solver
+                         # num_cells=[2,2],                       # resampling (None=ignore)
+                         num_iter=20,                             # (max) number of solver iterations per snippet
+                         epsilon=1e-4,                            # iteration stop criterion (policy-free)
+                         subtract_cps=True,                   # if True, subtract the cps
+                         correct_data=False,                   # if True, correct the uv-data
+
                          fdeg_Breal=3,                          # degree of freq polynomial
                          fdeg_Bimag='fdeg_Breal',
                          tdeg_Breal=1,                          # degree of time polynomial
@@ -62,12 +73,10 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_BJones.py',
                          tile_size_Breal=None,                   # used in tiled solutions
                          tile_size_Bimag='tile_size_Breal', 
                          
-                         num_iter=20,                             # (max) number of solver iterations per snippet
-                         epsilon=1e-4,                            # iteration stop criterion (policy-free)
                          flag_spigots=False,                   # If True, insert a flagger before solving
                          flag_sinks=False,                      # If True, insert a flagger after solving
                          visu_spigots=True,                     # If True, insert built-in view(s) 
-                         visu_solver=False,                    # If True, insert built-in view(s) 
+                         visu_solver=True,                    # If True, insert built-in view(s) 
                          visu_sinks=True,                          # If True, insert built-in view(s)
                          trace=False)                              # If True, produce progress messages  
 
@@ -76,7 +85,6 @@ MG.stream_control = record(ms_name='D1.MS',
                            tile_size=10,                              # input tile-size
                            channel_start_index=10,
                            channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
-                           # corr_index=[0,1,2,3],
                            output_col='RESIDUALS')
 
 MG = MG_JEN_exec.MG_check(MG)
@@ -115,20 +123,27 @@ def _define_forest (ns):
    Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', stations=stations)
 
    # Make MeqSpigot nodes that read the MS:
-   MG_JEN_Cohset.make_spigots(ns, Cohset, visu=MG['visu_spigots'],
-                              flag=MG['flag_spigots'])
+   MG_JEN_Cohset.make_spigots(ns, Cohset, MS_corr_index=MG['MS_corr_index'],
+                              visu=MG['visu_spigots'], flag=MG['flag_spigots'])
 
-   # Make predicted data with a punit (see above) and corrupting Jones matrices
-   Sixpack = MG_JEN_Cohset.punit2Sixpack (ns, punit=MG['punit'])
-   Joneset = MG_JEN_Cohset.JJones(ns, jones=['B'], Sixpack=Sixpack, **MG)
-   predicted = MG_JEN_Cohset.predict (ns, ifrs=ifrs, Sixpack=Sixpack, Joneset=Joneset)
+   if MG['insert_solver']:
+      # Make predicted data with a punit (see above) and corrupting Jones matrices
+      Sixpack = MG_JEN_Cohset.punit2Sixpack (ns, punit=MG['punit'])
+      Joneset = MG_JEN_Cohset.JJones(ns, jones=['B'], Sixpack=Sixpack, **MG)
+      predicted = MG_JEN_Cohset.predict (ns, ifrs=ifrs, Sixpack=Sixpack, Joneset=Joneset)
 
-   # Insert a solver for a named solvegroup of MeqParms.
-   # After solving, the uv-data are corrected with the the improved Joneset. 
-   MG_JEN_Cohset.insert_solver (ns, solvegroup='BJones', 
-                                measured=Cohset, predicted=predicted, 
-                                correct=Joneset, 
-                                visu=MG['visu_solver'], **MG)
+      # Insert a solver for a named solvegroup of MeqParms.
+      # After solving, the predicted (punit) uv-model may be subtracted: 
+      subtract = None
+      if MG['subtract_cps']: subtract = predicted
+      # After solving, the uv-data are corrected with the the improved Joneset. 
+      correct = None
+      if MG['correct_data']: correct = Joneset
+
+      MG_JEN_Cohset.insert_solver (ns, solvegroup='BJones', 
+                                   measured=Cohset, predicted=predicted, 
+                                   subtract=subtract, correct=correct, 
+                                   visu=MG['visu_solver'], **MG)
 
    # Make MeqSink nodes that write the MS:
    sinks = MG_JEN_Cohset.make_sinks(ns, Cohset, flag=MG['flag_sinks'],

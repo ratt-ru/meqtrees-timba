@@ -53,13 +53,13 @@ from Timba.Contrib.JEN import MG_JEN_flagger
 MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
                          last_changed = 'd26nov2005',
                          punit='unpol',                        # name of calibrator source
-                         stations=range(4),                   # specify the (subset of) stations to be used
+                         stations=range(14),                   # specify the (subset of) stations to be used
                          MS_corr_index = [0,1,2,3],              # correlations to be used
                          # MS_corr_index = [0,-1,-1,1],          # only XX/YY available
                          # MS_corr_index = [0,-1,-1,3],          # all available, but use only XX/YY
                          parmtable=None,                      # name of MeqParm table
                          
-                         insert_solver=True,                   # if True, insert a solver
+                         insert_solver=True,                   # if True, insert a GJones solver
                          # num_cells=[2,2],                       # resampling (None=ignore)
                          num_iter=20,                             # (max) number of solver iterations per snippet
                          epsilon=1e-4,                            # iteration stop criterion (policy-free)
@@ -70,8 +70,8 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
                          fdeg_Gphase='fdeg_Gampl',
                          tdeg_Gampl=1,                          # degree of time polynomial
                          tdeg_Gphase='tdeg_Gampl',
-                         # tile_size_Gampl=None,                   # used in tiled solutions
-                         tile_size_Gampl=4,                   # used in tiled solutions
+                         tile_size_Gampl=None,                   # used in tiled solutions
+                         # tile_size_Gampl=4,                   # used in tiled solutions
                          tile_size_Gphase='tile_size_Gampl',
                           
                          flag_spigots=False,                   # If True, insert a flagger before solving
@@ -83,7 +83,7 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
 
 MG.stream_control = record(ms_name='D1.MS',
                            data_column_name='DATA',
-                           tile_size=4,                              # input tile-size (nr of time-slots)
+                           tile_size=50,                              # input tile-size (nr of time-slots)
                            channel_start_index=10,
                            channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
                            output_col='RESIDUALS')
@@ -135,11 +135,13 @@ def _define_forest (ns):
       predicted = MG_JEN_Cohset.predict (ns, ifrs=ifrs, Sixpack=Sixpack, Joneset=Joneset)
       
       # Insert a solver for a named solvegroup of MeqParms.
+      # After solving, the predicted (punit) uv-model may be subtracted: 
       subtract = None
       if MG['subtract_cps']: subtract = predicted
       # After solving, the uv-data are corrected with the the improved Joneset. 
       correct = None
       if MG['correct_data']: correct = Joneset
+
       MG_JEN_Cohset.insert_solver (ns, solvegroup='GJones', 
                                    measured=Cohset, predicted=predicted,
                                    subtract=subtract, correct=correct, 
