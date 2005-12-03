@@ -3,7 +3,6 @@
 #include <DMI/AID-DMI.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
-#include <MeqGen/AID-MeqGen.h>
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
 #include <MeqNodes/ParmTable.h>
@@ -27,8 +26,7 @@ namespace Meq
   
 static int dum =  aidRegistry_MeqServer() + 
                   aidRegistry_Meq() + 
-                  aidRegistry_MeqNodes() + 
-                  aidRegistry_MeqGen();
+                  aidRegistry_MeqNodes();
 
 const HIID DataProcessingError = AidData|AidProcessing|AidError;
   

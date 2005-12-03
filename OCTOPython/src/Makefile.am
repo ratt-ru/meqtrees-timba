@@ -10,7 +10,7 @@ octopython_la_SOURCES = \
 octopython_la_LDFLAGS = -module
 
 liboctopython.la:
-	ln -s octopython.la liboctopython.la
+	@ln -s octopython.la liboctopython.la
 
 # octopython_la_LIBADD = 
 

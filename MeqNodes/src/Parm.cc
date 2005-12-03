@@ -44,9 +44,9 @@ namespace Meq {
 
   InitDebugContext(Parm,"MeqParm");
 
-  const HIID symdeps_all[]     = { FDomain,FResolution,FIteration };
+  const HIID symdeps_all[]     = { FDomain,FResolution,FState,FIteration };
   const HIID symdeps_domain[]  = { FDomain,FResolution };
-  const HIID symdeps_solve[]   = { FIteration };
+  const HIID symdeps_solve[]   = { FIteration,FState };
   const HIID symdeps_default[] = { };
 
   const HIID
@@ -510,10 +510,11 @@ namespace Meq {
     // If we have a single constant funklet, and are not integrated, then there's no 
     // dependency on domain. Otherwise, add domain mask
     //MM: Changed since even a constant MeqParm can depend on domain (eg. if its coeff in the meptable depend onthe domain)  
-    
+    // OMS: changed again: even without a parmtable as we iterate over successive
+    // snippets, we don't want the previous solution to be cached anywhere
     //   if( !pfunklet->isConstant() || integrated_ )
-    if( !pfunklet->isConstant() || integrated_ || parmtable_)
-      depend |= domain_depend_mask_;
+    //    if( !pfunklet->isConstant() || integrated_ || parmtable_)
+    depend |= domain_depend_mask_;
 
     // set cells in result as needed
     result.setCells(request.cells());

@@ -623,7 +623,11 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
         pcs_new_->longcached++;
     }
     // update the rest
-    cache_.set(ref,req,retcode&~RES_UPDATED);
+    // note that we retain the state dependency bit if it is already set -- this
+    // is because any state-updated child of ours updates this bit UP the tree, 
+    // so this may have already been set for us.
+    cache_.set(ref,req,retcode&~RES_UPDATED|(cache_.rescode&forest().getStateDependMask()));
+//    cache_.set(ref,req,retcode&~RES_UPDATED);
     cdebug(3)<<"caching result "<<req.id()<<" with code "<<ssprintf("0x%x",retcode&~RES_UPDATED)<<endl;
     // control status set directly (not via setControlStatus call) because
     // caller (execute(), presumably) is going to update status anyway
@@ -1168,6 +1172,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
         timers_.total.stop();
         return retcode;
     }
+    cache_.rescode = 0;
     // clear out the RETCACHE flag and the result state, since we
     // have no result for now
     control_status_ &= ~(CS_RETCACHE|CS_RES_MASK);
