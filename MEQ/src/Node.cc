@@ -626,8 +626,9 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
     // note that we retain the state dependency bit if it is already set -- this
     // is because any state-updated child of ours updates this bit UP the tree, 
     // so this may have already been set for us.
-    cache_.set(ref,req,retcode&~RES_UPDATED|(cache_.rescode&forest().getStateDependMask()));
-//    cache_.set(ref,req,retcode&~RES_UPDATED);
+    // OMS: 04/12 no no this plays hell with Jan's reqseqs. Reverting
+//    cache_.set(ref,req,retcode&~RES_UPDATED|(cache_.rescode&forest().getStateDependMask()));
+    cache_.set(ref,req,retcode&~RES_UPDATED);
     cdebug(3)<<"caching result "<<req.id()<<" with code "<<ssprintf("0x%x",retcode&~RES_UPDATED)<<endl;
     // control status set directly (not via setControlStatus call) because
     // caller (execute(), presumably) is going to update status anyway
