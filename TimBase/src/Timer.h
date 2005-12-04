@@ -49,6 +49,8 @@ namespace LOFAR {
         void                   stop  ();
         void                   reset ();
         
+        void                   add (const NSTimer &other);
+        
         std::ostream           &print(std::ostream &);
         
         bool                   isRunning () const
@@ -145,6 +147,13 @@ namespace LOFAR {
 
     ++ count;
   }
+  
+  inline void NSTimer::add (const NSTimer &other)
+  {
+    total_time += other.total_time;
+    count += other.count;
+  }
+  
 }  // end namespace LOFAR
 
 
