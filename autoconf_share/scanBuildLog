@@ -170,15 +170,17 @@ def extendPackageArray(packageArray,allBuildablePackages):
   #
   newPackageArray=[]
   for pck in packageArray:
-    for line in allBuildablePackages:
-      if line.find(pck) > -1:
-        newPackageArray.append(line)
+    if pck != "":
+      for line in allBuildablePackages:
+        if line.find(pck) > -1 and line != "":
+          newPackageArray.append(line)
   return newPackageArray
 
 def usage():
-  print "usage: "+sys.argv[0]+" [-h] -n [-d arg] [-f arg] [-s arg] [-t arg]"
+  print "usage: "+sys.argv[0]+" [-h] [-n] [-b] [-d arg] [-f arg] [-s arg] [-t arg]"
   print "args:  -h,--help       - print usage"
   print "       -n,--nocopy     - Do not copy thisWeek to lastWeek"
+  print "       -b,--debug      - additional debug output"
   print "       -d,--directory  - LOFAR base directory"
   print "       -f,--filebase   - basename from logfiles. E.g. week441"
   print "       -t,--testserver - give an alternative testserver(usr@www.server.nl)"
@@ -192,15 +194,18 @@ def main(argv):
   lofarServer ="lofar@lofar0.nfra.nl"
   serverDir = "/usr/local/httpd/htdocs"
   noCopy=0
+  debug=0
   try:
-    opts, args = getopt.getopt(argv, "d:f:hns:t:",
-                               ["directory=","help","filebase=",
-                                "testserver=","serverdir=","nocopy"])
+    opts, args = getopt.getopt(argv, "d:f:hnbs:t:",
+                               ["directory=","filebase=","help","nocopy"
+                                ,"debug","serverdir=","testdir="])
   except getopt.GetoptError:
     usage()
   for opt, arg in opts:
     if opt in ("-h", "--help"):
       usage()
+    elif opt in ("-b", "--debug"):
+      debug=1
     elif opt in ("-n", "--nocopy"):
       noCopy = 1
     elif opt in ("-f", "--filebase"):
@@ -293,6 +298,11 @@ def main(argv):
     package=str.replace(head,lofarDir+'/','')
     allBuildablePackages.append(package)
 
+  if debug==1:
+    print "All Packages: "
+    for line in allBuildablePackages:
+      print line
+  
   files=find(fileBase+'*.log',os.curdir)
   if len(files)<1:
     print "Sorry, can't find any files starting with "+fileBase
@@ -303,7 +313,7 @@ def main(argv):
 
     #
     # keep last found build start
-   #
+    #
     keepLastFoundBuildArray=[]
 
     try:
@@ -335,13 +345,20 @@ def main(argv):
           start,end=matchPackage.span()
           pckArray = re.split(' *',re.sub('(PACKAGES *= *)|(packages *= *)'
                                           ,'',re.sub('"','',aLine[start:end],2)))
-
+        if debug==1:
+          print "packages found in Packages array: "
+          for line in pckArray:
+            print line
         #
-        # because a PACKAGE in the PACAKAGES line can also say that
+        # because a PACKAGE in the PACKAGES line can also say that
         # ALL the Subdirectories UNDER this PACKAGE can be build we must
         # extend this array with those packages before we can continue
         #
         pckArray=extendPackageArray(pckArray,allBuildablePackages)
+        if debug==1:
+          print "packages after extend: "
+          for line in pckArray:
+            print line
 
         #
         # search for VARIANTS keyword in the same line (Old Makefile way)
@@ -352,6 +369,11 @@ def main(argv):
           for variant in re.split(' *',re.sub('(VARIANTS *= *)|(variants *= *)',
                                               '',re.sub('"','',aLine[start:end],2))):
             variantPackageArray.append([variant,pckArray])
+
+        if debug==1:
+           print "variants found in Variantsline : "
+           for line in variantPackageArray:
+             print line
 
       #
       # search for Variants keyword in other lines (rub way of building)
@@ -366,6 +388,11 @@ def main(argv):
           for variant in re.split(' *',re.sub('(VARIANTS *= *)|(variants *= *)',
                                               '',re.sub('"','',aLine[start:end],2))):
             variantPackageArray.append([variant,pckArray])
+
+        if debug==1:
+          print "variants found in Variantsline : "
+          for line in variantPackageArray:
+            print line
 
       #
       # Find CONFIGURING start
@@ -540,7 +567,7 @@ def main(argv):
     file.close()
 
   #
-  # loop over all opened files and close everything
+  # loop over all opened files and close everythingLOFAR -f lofar17-week5
   #
   for fileName in usedFiles:
   
