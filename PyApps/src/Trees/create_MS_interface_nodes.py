@@ -100,7 +100,7 @@ def create_MS_interface_nodes(ns, stations=range(14), sep9A=36, ra0=0.0, dec0=1.
       dcoll[key].append(node)                        # collect for dcoll nodes
 
       # Make 'complex' node for plotting (relative) z vs y:
-      key = 'zvsy'                                   # dx vs dy
+      key = 'zvsy'                                   # dz vs dy
       name = key+':s='+skey
       node = ns[name] << Meq.ToComplex(dxyz['ypos'],dxyz['zpos'])
       dcoll[key].append(node)                        # collect for dcoll nodes

@@ -10,6 +10,7 @@
 #    - 10 sep 2005: more or less stable
 #    - 23 sep 2005: MeqParm: use_previous==True, self.parmtable
 #    - 30 nov 2005: added comment to MeqParm() tile_size
+#    - 03 dec 2005: replaced MG_JEN_exec with TDL_display
 #
 # Full description:
 #
@@ -493,7 +494,8 @@ def _counter (key, increment=0, reset=False, trace=True):
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: TDL_Joneset.py:\n'
     from numarray import *
-    from Timba.Contrib.JEN import MG_JEN_exec
+    from Timba.Trees import TDL_display
+    # from Timba.Trees import JEN_record
     ns = NodeScope()
     nsim = ns.Subscope('_')
     
@@ -548,10 +550,10 @@ if __name__ == '__main__':
 
     if 0:
         jones0 = ns << Meq.Constant(array([[11,12],[21,22]]), dim=[2,2])
-        MG_JEN_exec.display_subtree(jones0, 'jones0', full=True)
+        TDL_display.subtree(jones0, 'jones0', full=True)
         print '\n** jones0=',jones0
         print type(jones0),isinstance(jones0,type(ns<<0))
-        js.nominal(ns, jones0)
+        js.nominal(ns, jones0)                   # <--- no longer exists....
         js.display('.nominal()')
         print '** .nodenames() -> (',len(js.nodenames()),'):',js.nodenames()
     
@@ -574,7 +576,7 @@ if __name__ == '__main__':
 
     if 1:
         # Display the final result:
-        # k = 0 ; MG_JEN_exec.display_subtree(js[k], 'js['+str(k)+']', full=True, recurse=3)
+        k = 0 ; TDL_display.subtree(js[k], 'js['+str(k)+']', full=True, recurse=3)
         js.display('final result')
 
     print '\n*******************\n** End of local test of: TDL_Joneset.py:\n'

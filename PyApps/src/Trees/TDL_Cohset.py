@@ -10,6 +10,7 @@
 #    - 23 sep 2005: added MeqVisDataMux to sink()
 #    - 25 nov 2005: corr_index argument for .spigots()
 #    - 29 nov 2005: added method: ReSampler()
+#    - 03 dec 2005: replaced MG_JEN_exec with TDL_display
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -810,7 +811,8 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: TDL_Cohset.py:\n'
     from numarray import *
     from Timba.Contrib.JEN import MG_JEN_Cohset
-    from Timba.Contrib.JEN import MG_JEN_exec
+    from Timba.Trees import TDL_display
+    # from Timba.Trees import JEN_record
     ns = NodeScope()
     nsim = ns.Subscope('_')
     
@@ -867,7 +869,7 @@ if __name__ == '__main__':
         for key in cs.keys():
             coh = cs.coh(key, corrs=corrs, ns=ns)
             print '- cs.coh(',key, corrs,') ->',coh
-        MG_JEN_exec.display_subtree(coh, 'last coh', full=True, recurse=5)
+        TDL_display.subtree(coh, 'last coh', full=True, recurse=5)
         print
 
     if 0:
@@ -889,7 +891,7 @@ if __name__ == '__main__':
     if 0:
         cs.sinks(ns)
         sink = cs.simul_sink(ns)
-        MG_JEN_exec.display_subtree(sink, 'simul_sink', full=True, recurse=5)
+        TDL_display.subtree(sink, 'simul_sink', full=True, recurse=5)
 
     if 0:
         dd = dict(aa=1, bb=2, cc=None, dd=5)
@@ -900,7 +902,7 @@ if __name__ == '__main__':
         
     if 1:
         # Display the final result:
-        k = 0 ; MG_JEN_exec.display_subtree(cs[k], 'cs['+str(k)+']', full=True, recurse=5)
+        k = 0 ; TDL_display.subtree(cs[k], 'cs['+str(k)+']', full=True, recurse=5)
         cs.display('final result')
     print '\n*******************\n** End of local test of: TDL_Cohset.py:\n'
 

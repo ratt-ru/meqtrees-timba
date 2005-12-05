@@ -2,9 +2,17 @@
 
 # file: ../Timba/PyApps/src/Trees/read_MS_auxinfo.py
 # Reads the OMS dmi header from the MS
-# It should perhaps be in another 'official' MeqTree directory...
+# It is read automatically by the MeqKernel when the MS is opened.
+# The file name is conveyed to the kernel via (see MG_JEN_exec.py):
+
+#    path = os.environ['HOME']+'/LOFAR/Timba/PyApps/src/Trees/'
+#    inputinit.python_init = path+'read_MS_auxinfo.py'
+
+# NB: This should perhaps be in another 'official' MeqTree directory...
+
 # Derived from OMS: ../Timba/MeqServer/test/read_msvis_header.py
 # To be turned into a WSRT-specific version: read_WSRT_auxinfo.py
+
 
 from Timba.meqkernel import set_state
 from Timba.Trees import TDL_radio_conventions

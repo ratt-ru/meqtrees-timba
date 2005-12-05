@@ -7,6 +7,7 @@
 #
 # History:
 #    - 18 oct 2005: creation
+#    - 03 dec 2005: TDL_display.py
 #
 # Full description:
 #
@@ -439,7 +440,8 @@ def _counter (key, increment=0, reset=False, trace=False):
 
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: TDL_Dipole.py:\n'
-    from Timba.Contrib.JEN import MG_JEN_exec
+    from Timba.Trees import TDL_display
+    from Timba.Trees import JEN_record
     ns = NodeScope()
     
     if 0:
@@ -484,7 +486,7 @@ if __name__ == '__main__':
         if 1: cc.extend(obj.subtree_voltage_beam(ns))
         if 0: cc.extend(obj.subtree_power_beam(ns))
         root = ns.root << Meq.Composer(children=cc)
-        MG_JEN_exec.display_subtree(root, 'TDL_Dipole root', full=True, recurse=5)
+        TDL_display.subtree(root, 'TDL_Dipole root', full=True, recurse=5)
         obj.display('final')
 
     if 0:

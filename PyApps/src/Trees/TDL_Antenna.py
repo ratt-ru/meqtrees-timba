@@ -8,6 +8,7 @@
 # History:
 #    - 16 oct 2005: creation
 #    - 18 oct 2005: move Dipole to TDL_Dipole.py
+#    - 03 dec 2005: TDL_display.py
 #
 # Full description:
 # Various classes:
@@ -232,7 +233,8 @@ class Antenna (TDL_common.Super):
         if self.subtree_voltage_beam():
             ss.append(indent1+'    - voltage_beam(s):')
             bb = self.subtree_voltage_beam()
-            for vb in bb: ss.append(indent1+'                 << '+str(vb))
+            for vb in bb:
+                ss.append(indent1+'                 << '+str(vb))
         if self.subtree_voltage_diff():
             ss.append(indent1+'    - vb_diff:   << '+str(self.subtree_voltage_diff()))
         if self.subtree_Tsky():
@@ -891,7 +893,8 @@ def _counter (key, increment=0, reset=False, trace=False):
 
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: TDL_Antenna.py:\n'
-    from Timba.Contrib.JEN import MG_JEN_exec
+    from Timba.Trees import TDL_display
+    # from Timba.Trees import JEN_record
     ns = NodeScope()
     
     if 0:
@@ -945,7 +948,7 @@ if __name__ == '__main__':
             bb = obj.subtree_power_beam(ns)
             for vb in bb: cc.append(vb)
         root = ns.root << Meq.Composer(children=cc)
-        MG_JEN_exec.display_subtree(root, 'TDL_Antenna: root', full=True, recurse=5)
+        TDL_display.subtree(root, 'TDL_Antenna: root', full=True, recurse=5)
         obj.display('final')
 
     if 0:
