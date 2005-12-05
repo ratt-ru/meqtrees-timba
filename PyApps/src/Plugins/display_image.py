@@ -8,6 +8,7 @@ from UVPAxis import *
 from ComplexColorMap import *
 from ComplexScaleDraw import *
 from QwtPlotImage import *
+from SpectrumData import *
 from Timba.GUI.pixmaps import pixmaps
 from guiplot2dnodesettings import *
 #from tabdialog import *
@@ -102,6 +103,9 @@ class QwtImageDisplay(QwtPlot):
         'Toggle real/imag or ampl/phase Display': 306,
         }
 
+    _start_spectrum_menu_id = 0
+    _start_vells_menu_id = 0
+
     def __init__(self, plot_key=None, parent=None):
         QwtPlot.__init__(self, parent)
         # create copy of standard application font..
@@ -141,6 +145,7 @@ class QwtImageDisplay(QwtPlot):
         self.axis_ymin = None
         self.axis_ymax = None
 	self._menu = None
+        self._spectrum_data = None
         self._plot_type = None
 	self._plot_dict_size = None
 	self.created_combined_image = False
@@ -294,109 +299,17 @@ class QwtImageDisplay(QwtPlot):
         if not self._mainwin:
           return;
 
-
         if self._menu is None:
           self._menu = QPopupMenu(self._mainwin);
           self.add_basic_menu_items()
           QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_spectrum_display);
-          self._signal_id = -1
-          self._plot_dict = {}
-          self._plot_label = {}
-          self._combined_label_dict = {}
+          self.spectrum_menu_items = 0
 
-        num_plot_arrays = len(self._data_values)
-        _dprint(2,' number of arrays to plot ', num_plot_arrays)
-        for i in range(num_plot_arrays):
-          data_label = ''
-	  plot_label = ''
-          combined_display_label = ''
-          if isinstance(self._data_labels, tuple):
-            data_label = 'go to ' + self._string_tag  +  " " +self._data_labels[i] + ' ?'
-            combined_display_label = self._string_tag  +  " " + self._data_labels[i]
-            plot_label = 'spectra:' + combined_display_label
-          else:
-            data_label = 'go to ' + self._string_tag  +  " " +self._data_labels +' ?'
-            combined_display_label = self._string_tag  +  " " + self._data_labels
-            plot_label = 'spectra:' + combined_display_label
-	  plot_label_not_found = True
-
-# hack to get array display correct until forest.state
-# record is available
-          axes = arange(self._data_values[i].rank)[::-1]
-          plot_array = transpose(self._data_values[i], axes)
-
-	  for j in range(len(self._plot_label)):
-	    if self._plot_label[j] == plot_label:
-	      plot_label_not_found =False
-# if we are finding repeat plot labels, then we have cycled
-# through the plot tree at least once, and we have
-# the maximum size of the plot_dict
-              self._plot_dict_size = len(self._plot_dict)
-              _dprint(2,' plot_dict_size: ', self._plot_dict_size)
-	      self._plot_dict[j] = plot_array
-	      break
-
-# if no plot label found, then add array into plot_dict and
-# update selection menu
-          if plot_label_not_found:
-            self._signal_id = self._signal_id + 1
-            self._menu.insertItem(data_label,self._signal_id)
-	    self._plot_dict[self._signal_id] = plot_array
-            self._plot_dict_size = len(self._plot_dict)
-	    self._plot_label[self._signal_id] = plot_label
-            _dprint(3,' inserting plot label ', plot_label)
-            self._combined_label_dict[self._signal_id] = combined_display_label
-# otherwise create or update the combined image
-	  else:
-	    if self._plot_dict_size > 1 and not self.created_combined_image:
-	      self.create_combined_array()
-	    else: 
-	      if self.created_combined_image:
-	        self.update_combined_array()
-
-    def create_combined_array(self):
-# create combined array from contents of plot_dict
-      _dprint(3,' creating combined array')
-      shape = self._plot_dict[0].shape
-      self.y_marker_step = shape[1]
-      _dprint(3,' self.y_marker_step ', self.y_marker_step)
-      self.num_y_markers = self._plot_dict_size 
-      temp_array = zeros((shape[0],self._plot_dict_size* shape[1]), self._plot_dict[0].type())
-      self.marker_labels = []
-      for l in range(self._plot_dict_size ):
-#        dummy_array =  self._plot_dict[l].copy()
-        dummy_array =  self._plot_dict[l]
-        for k in range(shape[0]):
-          for j in range(shape[1]):
-            j_index = l * shape[1] + j
-            temp_array[k,j_index] = dummy_array[k,j]
-        self.marker_labels.append(self._combined_label_dict[l])
-      self.created_combined_image = True
-      self._signal_id = self._signal_id + 1
-      self._combined_image_id = self._signal_id
-      self._menu.insertItem('go to combined image',self._signal_id)
-      self._plot_dict[self._signal_id] = temp_array
-      self._plot_label[self._signal_id] = 'spectra: combined image'
-
-    def update_combined_array(self):
-# remember that the size of the plot_dict includes the combined array    
-      data_dict_size = self._plot_dict_size - 1
-# create combined array from contents of plot_dict
-      shape = self._plot_dict[0].shape
-      self.y_marker_step = shape[1]
-      _dprint(3,' self.y_marker_step ', self.y_marker_step)
-      temp_array = zeros((shape[0], data_dict_size* shape[1]), self._plot_dict[0].type())
-      self.marker_labels = []
-      for l in range(data_dict_size ):
-        dummy_array =  self._plot_dict[l]
-        shape_array = dummy_array.shape
-        for k in range(shape_array[0]):
-          for j in range(shape_array[1]):
-            j_index = l * shape[1] + j
-            if j_index <data_dict_size* shape[1]:
-              temp_array[k,j_index] = dummy_array[k,j]
-        self.marker_labels.append(self._combined_label_dict[l])
-      self._plot_dict[self._combined_image_id] = temp_array
+        if self.spectrum_menu_items > 0:
+         menu_id = self._start_spectrum_menu_id
+         for i in range(self.spectrum_menu_items):
+           self._menu.removeItem(menu_id)
+           menu_id = menu_id + 1
 
     def delete_cross_sections(self):
       if self.show_x_sections:
@@ -493,17 +406,23 @@ class QwtImageDisplay(QwtPlot):
       if self.handle_basic_menu_id(menuid):
         return
 
-      self.active_image_index = menuid
       if self.is_combined_image:
         self.removeMarkers()
         self.info_marker = None
         self.source_marker = None
-      self.is_combined_image = False
-      if not self._combined_image_id is None:
-        if self._combined_image_id == menuid:
-	  self.is_combined_image = True
-          self.reset_color_bar(True)
-      self.array_plot(self._plot_label[menuid], self._plot_dict[menuid], False)
+        self.is_combined_image = False
+
+      self.active_image_index = menuid
+      self._spectrum_data.setActivePlot(self.active_image_index)
+      plot_label = self._spectrum_data.getPlotLabel()
+      plot_data = self._spectrum_data.getActivePlotArray()
+      if plot_label == 'spectra: combined image':
+        self.removeMarkers()
+        self.info_marker = None
+        self.source_marker = None
+        self.is_combined_image = True
+        self.reset_color_bar(True)
+      self.array_plot(plot_label, plot_data, False)
 
     def defineData(self):
 
@@ -1526,38 +1445,45 @@ class QwtImageDisplay(QwtPlot):
 
 # extract and define labels for this data item
      # now generate  particular plot type
-      if  self._plot_type == 'spectra':
+      if self._plot_type == 'spectra':
+        self.num_y_markers = 0
+        self.y_marker_step = 0
 # ensure that menu for display is updated if required
         self.initSpectrumContextMenu()
-# plot first instance of array
-        if not self.active_image_index is None:
-          if self.active_image_index == self._combined_image_id:
+        if self._spectrum_data is None:
+          self._spectrum_data = SpectrumData(self._data_labels, self._string_tag)
+
+# store the data
+        self._spectrum_data.StoreSpectrumData(self._data_values)
+
+# test and update the context menu
+        plot_menus = self._spectrum_data.getMenuLabels()
+        self.spectrum_menu_items = len(plot_menus)
+        menu_id = self._start_spectrum_menu_id
+        for i in range(self.spectrum_menu_items):
+          self._menu.insertItem(plot_menus[i], menu_id)
+          menu_id = menu_id + 1
+
+        if self.spectrum_menu_items > 1: 
+           marker_parms = self._spectrum_data.getMarkerParms()
+           self.num_y_markers = marker_parms[0]
+           self.y_marker_step = marker_parms[1]
+           self.marker_labels = self._spectrum_data.getMarkerLabels()
+
+# plot active instance of array
+        if self.active_image_index is None:
+          self.active_image_index = self.spectrum_menu_items - 1
+          self._spectrum_data.setActivePlot(self.active_image_index)
+        plot_label = self._spectrum_data.getPlotLabel()
+        plot_data = self._spectrum_data.getActivePlotArray()
+        self.array_plot(plot_label, plot_data, False)
+        if plot_label == 'spectra: combined image':
 	    self.is_combined_image = True
             self.reset_color_bar(True)
-          self.array_plot(self._plot_label[self.active_image_index], self._plot_dict[self.active_image_index],False)
-          if self.is_combined_image:
-	    self.is_combined_image = True
             self.removeMarkers()
             self.info_marker = None
             self.source_marker = None
 	    self.insert_marker_lines()
-        elif not self._combined_image_id is None:
-	  self.is_combined_image = True
-          self.reset_color_bar(True)
-          self.array_plot(self._plot_label[ self._combined_image_id], self._plot_dict[ self._combined_image_id],False)
-          self.removeMarkers()
-          self.info_marker = None
-          self.source_marker = None
-          self.insert_marker_lines()
-	else:
-          if not self._plot_dict_size is None:
-            data_label = ''
-            if isinstance(self._data_labels, tuple):
-              data_label = 'spectra:' + self._string_tag +  " " +self._data_labels[0]
-            else:
-              data_label = 'spectra:' + self._string_tag +  " " +self._data_labels
-            _dprint(3, 'plotting array with label ', data_label)
-            self.array_plot(data_label, self._data_values[0])
       _dprint(2, 'exiting plot_data');
 
     # end plot_data()
