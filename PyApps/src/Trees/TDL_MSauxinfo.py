@@ -38,8 +38,8 @@ from Timba.Trees import TDL_radio_conventions
 # Class MS: (example of single-element Antenna)
 #**************************************************************************************
 
-class MS (TDL_common.Super):
-    """An MS object contains auxiliary (i.e. non-data) MS info"""
+class MSauxinfo (TDL_common.Super):
+    """An MSauxinfo object contains auxiliary (i.e. non-data) MS info"""
     
     def __init__(self, **pp):
         
@@ -88,19 +88,27 @@ class MS (TDL_common.Super):
         if True:
             ss.append(indent1+'* individual axis positions (3x'+str(len(self.__nodes_xpos))+'):')
             skey = skeys[len(skeys)-1]
-            ss.append(indent2+'- __nodes_xpos['+skey+'] -> '+str(self.__nodes_xpos[skey]))
-            ss.append(indent2+'- __nodes_ypos['+skey+'] -> '+str(self.__nodes_ypos[skey]))
-            ss.append(indent2+'- __nodes_zpos['+skey+'] -> '+str(self.__nodes_zpos[skey]))
+            ss.append(indent2+'- __nodes_xpos['+skey+'] = '+str(self.__nodes_xpos[skey]))
+            ss.append(indent2+'- __nodes_ypos['+skey+'] = '+str(self.__nodes_ypos[skey]))
+            ss.append(indent2+'- __nodes_zpos['+skey+'] = '+str(self.__nodes_zpos[skey]))
         if len(self.__nodes_dxpos)>0:
             ss.append(indent1+'* relative positions (3x'+str(len(self.__nodes_dxpos))+'):')
             skey = skeys[len(skeys)-1]
-            ss.append(indent2+'- __nodes_dxpos['+skey+'] -> '+str(self.__nodes_dxpos[skey]))
-            ss.append(indent2+'- __nodes_dypos['+skey+'] -> '+str(self.__nodes_dypos[skey]))
-            ss.append(indent2+'- __nodes_dzpos['+skey+'] -> '+str(self.__nodes_dzpos[skey]))
-        if self.__dcoll_xvsy:
-            ss.append(indent1+'* .dcoll_xvsy() -> '+str(self.__dcoll_xvsy))
-        if self.__dcoll_zvsy:
-            ss.append(indent1+'* .dcoll_zvsy() -> '+str(self.__dcoll_zvsy))
+            ss.append(indent2+'- __nodes_dxpos['+skey+'] = '+str(self.__nodes_dxpos[skey]))
+            ss.append(indent2+'- __nodes_dypos['+skey+'] = '+str(self.__nodes_dypos[skey]))
+            ss.append(indent2+'- __nodes_dzpos['+skey+'] = '+str(self.__nodes_dzpos[skey]))
+        if len(self.__nodes_station_uvw)>0:
+            ss.append(indent1+'* __nodes_station_uvw  ('+str(len(self.__nodes_station_uvw))+')')
+        if len(self.__nodes_uvw)>0:
+            ss.append(indent1+'* __nodes_uvw  ('+str(len(self.__nodes_uvw))+')')
+            ss.append(indent2+'- __nodes_ucoord  ('+str(len(self.__nodes_ucoord))+')')
+            ss.append(indent2+'- __nodes_vcoord  ('+str(len(self.__nodes_vcoord))+')')
+            ss.append(indent2+'- __nodes_wcoord  ('+str(len(self.__nodes_wcoord))+')')
+        ss.append(indent1+'* __root_MSauxinfo = '+str(self.__root_MSauxinfo))
+        ss.append(indent1+'* .dcoll_xvsy() -> '+str(self.__dcoll_xvsy))
+        ss.append(indent1+'* .dcoll_zvsy() -> '+str(self.__dcoll_zvsy))
+        ss.append(indent1+'* .dcoll_uvsv() -> '+str(self.__dcoll_uvsv))
+        ss.append(indent1+'* .dcoll_uvsw() -> '+str(self.__dcoll_uvsw))
         
         if end: TDL_common.Super.display_end(self, ss)
         return ss
@@ -108,6 +116,8 @@ class MS (TDL_common.Super):
     def clear(self):
         """Clear the MSauxinfo interface object"""
         self.__MSname = 'undefined'
+        self.__root_MSauxinfo = None
+        self.__root_nodes = dict()
         self.__node_radec0 = None
         self.__node_ra0 = None
         self.__node_dec0 = None
@@ -119,16 +129,29 @@ class MS (TDL_common.Super):
         # self.__station_name = []
         self.__xyzpos_keys = ['xpos','ypos','zpos']        # part of expected names
         self.__station_keys = []
+        self.__s12 = dict()                                # ifr tuples (skey1,skey2)
+
         self.__xyz = dict()
         self.__nodes_xyz = dict()
+
         self.__nodes_xpos = dict()
         self.__nodes_ypos = dict()
         self.__nodes_zpos = dict()
+
         self.__nodes_dxpos = dict()
         self.__nodes_dypos = dict()
         self.__nodes_dzpos = dict()
+
+        self.__nodes_station_uvw = dict()
+        self.__nodes_uvw = dict()
+        self.__nodes_ucoord = dict()
+        self.__nodes_vcoord = dict()
+        self.__nodes_wcoord = dict()
+
         self.__dcoll_xvsy = None
         self.__dcoll_zvsy = None
+        self.__dcoll_uvsv = None
+        self.__dcoll_uvsw = None
         # self.__refpos = record()
         return True
 
@@ -141,7 +164,7 @@ class MS (TDL_common.Super):
         return self.__nodes_xyz[key]                       # one
 
 
-    def station_config_default(self, stations=range(15)):
+    def station_config_default(self, stations=range(14)):
         """Create a a default station configuration"""
         # NB: Stations might also be a list of names.....
         self.clear_config()
@@ -165,18 +188,27 @@ class MS (TDL_common.Super):
         self.__node_ra0 = ns.ra0 << Meq.Constant(0.0)
         self.__node_dec0 = ns.dec0 << Meq.Constant(1.0)
         self.__node_radec0 = ns.radec0 << Meq.Composer(self.__node_ra0,self.__node_dec0)
+        # Attach them to a single root node (to avoid meqbrowser clutter)
+        self.__root_nodes['radec0'] = ns.MSauxinfo_radec0 << Meq.Composer(self.__node_radec0)
         return True
 
     def create_nodes(self, ns):
         """Create all nodes expected by read_MS_auxinfo(hdr)"""
-        self.create_radec_nodes(ns)
-        self.create_xyz_nodes(ns)
-        return True
+        if not self.__root_MSauxinfo:                      # do once only...
+            self.create_radec_nodes(ns)
+            self.create_xyz_nodes(ns)
+            # Attach them to a single root node (to avoid meqbrowser clutter)
+            cc = []
+            for key in self.__root_nodes.keys():
+                cc.append(self.__root_nodes[key])
+            self.__root_MSauxinfo = ns.MSauxinfo << Meq.Composer(children=cc)
+        return self.__root_MSauxinfo
 
-    def create_xyz_nodes(self, ns, parm=True):
+    def create_xyz_nodes(self, ns, parm=False):
         """Create the (x,y,z) nodes expected by read_MS_auxinfo(hdr)
         and bundle them into xyz-nodes (input for MeqUVW nodes)"""
         if len(self.__nodes_xyz)>0: return True            # Do once only....
+        cc = []
         for skey in self.station_keys():
             xyz = []
             for pkey in self.__xyzpos_keys:
@@ -185,7 +217,10 @@ class MS (TDL_common.Super):
                 if pkey=='zpos': v = self.__xyz[skey][2]
                 # Create node expected by read_MS_auxinfo(hdr):
                 name = pkey+':s='+skey                     # expected node name 
+                parm = False                               # inhibit this option..........!!
                 if parm:
+                    # NB: This does not work, because read_MS_auxinfo(hdr)
+                    #     does not update the state of a MeqParm......!!
                     node = ns[name] << Meq.Parm(v)         # solve for station pos...
                 else:
                     node = ns[name] << Meq.Constant(v)     # constant station pos
@@ -193,10 +228,35 @@ class MS (TDL_common.Super):
                 if pkey=='ypos': self.__nodes_ypos[skey] = node
                 if pkey=='zpos': self.__nodes_zpos[skey] = node
                 xyz.append(node)
+                cc.append(node)
             # Make xyz 'tensor' nodes per station: 
             name = 'xyzpos:s='+skey                        # expected node name 
             self.__nodes_xyz[skey] = ns[skey] << Meq.Composer(children=xyz)
+            cc.append(self.__nodes_xyz[skey])              #
+        # Attach them to a single root node (to avoid meqbrowser clutter)
+        self.__root_nodes['xyz'] = ns.MSauxinfo_xyz << Meq.Composer(children=cc)
         return True
+
+
+    def make_station_uvw_nodes(self, ns):
+        """Make station-based MeqUVW nodes related to (ra0,dec0)"""
+        if len(self.__nodes_station_uvw)>0: return True    # Do once only....
+        first = True
+        cc = []
+        for skey in self.station_keys():
+            if first:
+                xyz0 = self.__nodes_xyz[skey]              # reference position
+                first = False
+            # Tensor node of 3 STATION uvw coordinates:
+            name = 'uvw:s='+skey+':q=radec0'
+            self.__nodes_station_uvw[skey] = ns[name] << Meq.UVW(radec=self.__node_radec0,
+                                                                 xyz_0=xyz0,
+                                                                 xyz=self.__nodes_xyz[skey])
+            cc.append(self.__nodes_station_uvw[skey])      #
+        # Attach them to a single root node (to avoid meqbrowser clutter)
+        self.__root_nodes['station_uvw'] = ns.MSauxinfo_uvw << Meq.Composer(children=cc)
+        return True
+
 
 
 
@@ -221,13 +281,43 @@ class MS (TDL_common.Super):
         return True
 
 
+    def make_uvw_nodes(self, ns):
+        """Make nodes with ifr-based uvw, for plotting"""
+        if len(self.__nodes_uvw)>0: return True          # do only once
+        self.make_station_uvw_nodes(ns)                  # just in case
+        skeys = self.station_keys()
+        for i in range(len(skeys)):
+            for j in range(len(skeys)):
+                if j>i:
+                    ikey = skeys[i]+'_'+skeys[j]          # ifr key ....??
+                    self.__s12[ikey] = (skeys[i],skeys[j])
+
+                    # Tensor node with 3 (u,v,w) coordinates:
+                    name = 'uvw'+':s1='+skeys[i]+':s2='+skeys[j]
+                    node = ns[name] << Meq.Subtract(self.__nodes_station_uvw[skeys[i]],
+                                                    self.__nodes_station_uvw[skeys[j]])
+                    self.__nodes_uvw[ikey] = node
+
+                    # Make separate nodes, for plotting:
+                    name = 'ucoord'+':s1='+skeys[i]+':s2='+skeys[j]
+                    self.__nodes_ucoord[ikey] = ns[name] << Meq.Selector(node, index=0)
+                    name = 'vcoord'+':s1='+skeys[i]+':s2='+skeys[j]
+                    self.__nodes_vcoord[ikey] = ns[name] << Meq.Selector(node, index=1)
+                    name = 'wcoord'+':s1='+skeys[i]+':s2='+skeys[j]
+                    self.__nodes_wcoord[ikey] = ns[name] << Meq.Selector(node, index=2)
+        return True
+
+
     def dcoll(self, ns):
         """Make a list of all dataCollect nodes"""
         dcoll = []
         dcoll.append(self.dcoll_xvsy(ns))
         dcoll.append(self.dcoll_zvsy(ns))
+        dcoll.append(self.dcoll_uvsv(ns))
+        dcoll.append(self.dcoll_uvsw(ns))
         return dcoll
     
+
     def dcoll_xvsy(self, ns):
         """Make dataCollect node for plotting (relative) x vs y"""
         if not self.__dcoll_xvsy: 
@@ -243,8 +333,8 @@ class MS (TDL_common.Super):
             attrib['plot'] = record(type='realvsimag',
                                     title=' array configuration (x vs y)',
                                     color=self.__color_xyz,
-                                    y_axis='xpos (N-S, relative)',
-                                    x_axis='ypos (E-W, relative)')
+                                    y_axis='xpos (N-S, relative) (m)',
+                                    x_axis='ypos (E-W, relative) (m)')
             name = 'dcoll_'+key
             node = ns[name] << Meq.DataCollect(children=cc, attrib=attrib,
                                                top_label=hiid('visu'))
@@ -267,13 +357,61 @@ class MS (TDL_common.Super):
             attrib['plot'] = record(type='realvsimag',
                                     title=' array configuration (z vs y)',
                                     color=self.__color_xyz,
-                                    y_axis='zpos (relative)',
-                                    x_axis='ypos (E-W, relative)')
+                                    y_axis='zpos (relative) (m)',
+                                    x_axis='ypos (E-W, relative) (m)')
             name = 'dcoll_'+key
             node = ns[name] << Meq.DataCollect(children=cc, attrib=attrib,
                                                top_label=hiid('visu'))
             self.__dcoll_zvsy = node
         return self.__dcoll_zvsy
+
+
+    def dcoll_uvsv(self, ns):
+        """Make dataCollect node for plotting u vs w"""
+        if not self.__dcoll_uvsv: 
+            self.make_uvw_nodes(ns)                        # just in case
+            key = 'uvsv'                                   # dz vs dy
+            cc = []
+            for ikey in self.__s12.keys():
+                s12 = self.__s12[ikey]
+                name = key+':s1='+s12[0]+':s2='+s12[1]
+                node = ns[name] << Meq.ToComplex(self.__nodes_vcoord[ikey],
+                                                 self.__nodes_ucoord[ikey])
+                cc.append(node)
+
+            attrib = record(plot=record(), tag=key)
+            attrib['plot'] = record(type='realvsimag', title=' (snapshot) uv-coverage',
+                                    color=self.__color_uv,
+                                    x_axis='u_coord (m)', y_axis='v_coord (m)')
+            name = 'dcoll_'+key
+            node = ns[name] << Meq.DataCollect(children=cc, attrib=attrib,
+                                               top_label=hiid('visu'))
+            self.__dcoll_uvsv = node
+        return self.__dcoll_uvsv
+
+
+    def dcoll_uvsw(self, ns):
+        """Make dataCollect node for plotting u vs w"""
+        if not self.__dcoll_uvsw: 
+            self.make_uvw_nodes(ns)                        # just in case
+            key = 'uvsw'                                   # dz vs dy
+            cc = []
+            for ikey in self.__s12.keys():
+                s12 = self.__s12[ikey]
+                name = key+':s1='+s12[0]+':s2='+s12[1]
+                node = ns[name] << Meq.ToComplex(self.__nodes_wcoord[ikey],
+                                                 self.__nodes_ucoord[ikey])
+                cc.append(node)
+
+            attrib = record(plot=record(), tag=key)
+            attrib['plot'] = record(type='realvsimag', title=' u vs w',
+                                    color=self.__color_uv,
+                                    x_axis='u_coord (m)', y_axis='w_coord (m)')
+            name = 'dcoll_'+key
+            node = ns[name] << Meq.DataCollect(children=cc, attrib=attrib,
+                                               top_label=hiid('visu'))
+            self.__dcoll_uvsw = node
+        return self.__dcoll_uvsw
 
 
 
@@ -325,7 +463,7 @@ if __name__ == '__main__':
     ns = NodeScope()
     
     if 1:
-        obj = MS(label='initial')
+        obj = MSauxinfo(label='initial')
 
     if 1:
         obj.station_config_default()
@@ -333,6 +471,12 @@ if __name__ == '__main__':
 
     if 0:
         obj.make_dpos_nodes(ns)
+
+    if 0:
+        obj.make_station_uvw_nodes(ns)
+        obj.make_uvw_nodes(ns)
+        obj.dcoll_uvsv(ns)
+        obj.dcoll_uvsw(ns)
 
     if 0:
         obj.dcoll_xvsy(ns)

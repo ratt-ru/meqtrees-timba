@@ -724,13 +724,13 @@ class Cohset (TDL_common.Super):
         funcname = '::sinks():'
 
         # Input arguments:
-        pp.setdefault('output_col', 'RESIDUALS')        # name of MS output column (NONE means inhibited)
+        pp.setdefault('output_col', 'PREDICT')          # name of MS output column (NONE means inhibited)
         pp.setdefault('start', None)                    # optional child of MeqVisDataMux
         pp.setdefault('pre', None)                      # optional child of MeqVisDataMux
         pp.setdefault('post', None)                     # optional child of MeqVisDataMux
         # pp = record(pp)                  # ...record(pp) drops the None fields....!  Seem OK now...
-        print funcname,' pp=\n',pp,'\n'
-        print 'pp[post] =',type(pp['post'])
+        # print funcname,' pp=\n',pp,'\n'
+        # print 'pp[post] =',type(pp['post'])
 
         # Mapping to MS correlations (see self.spigots() above)
         # MS_corr_index = [0,1,2,3]                        # default

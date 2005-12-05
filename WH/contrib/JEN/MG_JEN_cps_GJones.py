@@ -58,6 +58,8 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
                          # MS_corr_index = [0,-1,-1,1],          # only XX/YY available
                          # MS_corr_index = [0,-1,-1,3],          # all available, but use only XX/YY
                          parmtable=None,                      # name of MeqParm table
+                         # output_col='RESIDUALS',
+                         output_col='PREDICT',
                          
                          insert_solver=True,                   # if True, insert a GJones solver
                          # num_cells=[2,2],                       # resampling (None=ignore)
@@ -86,7 +88,8 @@ MG.stream_control = record(ms_name='D1.MS',
                            tile_size=50,                              # input tile-size (nr of time-slots)
                            channel_start_index=10,
                            channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
-                           output_col='RESIDUALS')
+                           # output_col='RESIDUALS')
+                           predict_column='CORRECTED_DATA')
 
 MG = MG_JEN_exec.MG_check(MG)
 
@@ -147,9 +150,9 @@ def _define_forest (ns):
                                    subtract=subtract, correct=correct, 
                                    visu=MG['visu_solver'], **MG)
 
-  # Make MeqSink nodes that write the MS:
-   sinks = MG_JEN_Cohset.make_sinks(ns, Cohset, flag=MG['flag_sinks'],
-                                    visu=MG['visu_sinks'])
+   # Make MeqSink nodes that write the MS:
+   sinks = MG_JEN_Cohset.make_sinks(ns, Cohset,  output_col=MG['output_col'],
+                                    flag=MG['flag_sinks'], visu=MG['visu_sinks'])
    cc.extend(sinks)
 
    # Finished: 

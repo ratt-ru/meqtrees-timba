@@ -11,6 +11,7 @@
 # - 24 aug 2005: creation
 # - 05 sep 2005: adapted to Cohset/Joneset objects
 # - 25 nov 2005: MS_corr_index argument to .make_spigots()
+# - 05 dec 2005: included TDL_MSauxinfo services
 
 # Copyright: The MeqTree Foundation 
 
@@ -29,6 +30,7 @@ from numarray import *
 
 from Timba.Trees import TDL_Cohset
 from Timba.Trees import TDL_Joneset
+from Timba.Trees import TDL_MSauxinfo
 # from Timba.Trees import TDL_Sixpack
 from Timba.Contrib.JEN import MG_JEN_Joneset
 from Timba.Contrib.JEN import MG_JEN_Sixpack
@@ -47,7 +49,10 @@ from Timba.Contrib.JEN import MG_JEN_flagger
 
 MG_JEN_forest_state.init(MG.script_name)
 
-
+# This object contains auxiliary MS info (nodes), which are used
+# at various points in this module:
+MSauxinfo = TDL_MSauxinfo.MSauxinfo(label=MG.script_name)
+MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
 
 
 #********************************************************************************
@@ -103,7 +108,7 @@ def _define_forest (ns):
        visualise (ns, Cohset)
        visualise (ns, Cohset, type='spectra')
 
-   if True:
+   if False:
        # Insert a solver for a named group of MeqParms (e.g. 'GJones'):
        jones = ['G']
        # punit = 'QUV'
@@ -354,7 +359,11 @@ def make_spigots(ns, Cohset, **pp):
     # Make MeqSinks
     Cohset.spigots(ns, MS_corr_index=pp['MS_corr_index'])
     spigots = Cohset.nodes()
-    
+
+    # Create the nodes expected by read_MS_auxinfo.py 
+    global MSauxinfo
+    MSauxinfo.create_nodes(ns)
+
     # Append the initial (spigot) Cohset to the forest state object:
     MG_JEN_forest_state.object(Cohset, funcname)
 
@@ -381,29 +390,45 @@ def make_sinks(ns, Cohset, **pp):
     # Input parameters:
     pp.setdefault('visu', False)
     pp.setdefault('flag', False)
-    pp = record(pp)
+    pp.setdefault('output_col', 'PREDICT')
+    pp.setdefault('MSauxinfo', None)
+    # pp = record(pp)          # do not use record, because of MSauxinfo = object
 
+    # Change the scope (name) for visualisation etc:
+    Cohset.scope('sinks')
 
     # Optional: flag the sink (output) data:
-    if pp.flag:
+    if pp['flag']:
        insert_flagger (ns, Cohset, scope='sinks',
                        unop=['Real','Imag'], visu=False)
 
     # Optional: visualise the sink (output) data:
-    if pp.visu:
-       # Change the scope (name) for visualisation:
-       Cohset.scope('sinks')
+    if pp['visu']:
        visualise (ns, Cohset)
        visualise (ns, Cohset, type='spectra')
 
     # Attach some dataCollect nodes to the VisDataMux:
-    rr = MG_JEN_forest_state.MS_interface_nodes(ns)
     bb = []
-    for key in rr.dcoll.keys():
-       bb.append(rr.dcoll[key])
+    if True:
+        global MSauxinfo
+        dcoll = MSauxinfo.dcoll(ns)
+        for i in range(len(dcoll)):
+            MG_JEN_forest_state.bookmark(dcoll[i], page='make_sinks_array_config')
+        bb.extend(dcoll)
+    elif pp['MSauxinfo']:
+        # msai = MG_JEN_forest_state.MSauxinfo(ns)
+        msai = pp['MSauxinfo']
+        dcoll = msai.dcoll(ns)
+        for i in range(len(dcoll)):
+            MG_JEN_forest_state.bookmark(dcoll[i], page='make_sinks_array_config')
+        bb.extend(dcoll)
+    else:
+        rr = MG_JEN_forest_state.MS_interface_nodes(ns)
+        for key in rr.dcoll.keys():
+            bb.append(rr.dcoll[key])
 
     # Make MeqSinks
-    Cohset.sinks(ns, start=bb)
+    Cohset.sinks(ns, start=bb, output_col=pp['output_col'])
     sinks = Cohset.nodes()
     
     # Append the final Cohset to the forest state object:

@@ -424,7 +424,7 @@ def stream_control (ctrl=None, display=False, init=False):
          if ctrl.has_key(key): ss.inputinit[key] = ctrl[key]
       for key in ['channel_start_index','channel_end_index']:
          if ctrl.has_key(key): ss.inputinit.selection[key] = ctrl[key]
-      for key in []:
+      for key in ['predict_column']:
          if ctrl.has_key(key): ss.outputinit[key] = ctrl[key]
       for key in ['output_col']:
          if ctrl.has_key(key): ss.initrec[key] = ctrl[key]

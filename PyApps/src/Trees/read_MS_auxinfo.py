@@ -21,7 +21,7 @@ from Timba.Trees import TDL_radio_conventions
 def process_vis_header (hdr):
   """handler for the standard MS visheader""";
 
-  trace = False
+  trace = True
   if trace: print '\n** process_vis_header():'
 
   # phase center

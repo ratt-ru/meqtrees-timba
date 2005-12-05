@@ -55,6 +55,8 @@ MG = MG_JEN_exec.MG_init('MG_JEN_spigot2sink.py',
                          punit='unpol',                        # name of calibrator source
                          stations=range(4),                   # specify the (subset of) stations to be used
                          parmtable=None,                      # name of MeqParm table
+                         # output_col='RESIDUALS',
+                         output_col='PREDICT',
                          
                          fdeg_Gampl=2,                          # degree of freq polynomial
                          fdeg_Gphase='fdeg_Gampl',
@@ -84,7 +86,8 @@ MG.stream_control = record(ms_name='D1.MS',
                            tile_size=10,                              # input tile-size
                            channel_start_index=10,
                            channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
-                           output_col='RESIDUALS')
+                           # output_col='RESIDUALS')
+                           predict_column='CORRECTED_DATA')
 
 MG = MG_JEN_exec.MG_check(MG)
 
@@ -149,8 +152,8 @@ def _define_forest (ns):
                                     visu=MG['visu_solver'], **MG)
 
    # Make MeqSink nodes that write the MS:
-   sinks = MG_JEN_Cohset.make_sinks(ns, Cohset, flag=MG['flag_sinks'],
-                                    visu=MG['visu_sinks'])
+   sinks = MG_JEN_Cohset.make_sinks(ns, Cohset,  output_col=MG['output_col'],
+                                    flag=MG['flag_sinks'], visu=MG['visu_sinks'])
    cc.extend(sinks)
 
    # Finished: 
