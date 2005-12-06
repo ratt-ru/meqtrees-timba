@@ -344,7 +344,7 @@ def forest_baseline_predict_trees(ns, interferometer_list, patch_names):
                                  ns.ctJ(ant2, patch_name))
             corrupted_patch_vis_list.append(ns.corrupted_patch_vis(ant1,ant2,patch_name))        
             pass
-        ns.predict(ant1, ant2) << Meq.Add(children=deepcopy(corrupted_patch_vis_list))    
+        ns.predict(ant1, ant2) << Meq.Add(cache_num_active_parents=1,children=deepcopy(corrupted_patch_vis_list))    
 #        ns.predict_patches(ant1, ant2) << Meq.Add(children=deepcopy(corrupted_patch_vis_list))    
 #        ns.predict(ant1, ant2) << Meq.MatrixMultiply(ns.G(ant1),
 #                                                     ns.predict_patches(ant1, ant2),
@@ -715,7 +715,7 @@ def _tdl_job_phase_solution_with_given_fluxes_centre(mqs, parent):
 
 
 
-Settings.forest_state.cache_policy = 0 #100
+Settings.forest_state.cache_policy = 1 #100
 Settings.orphans_are_roots = False
 
 if __name__ == '__main__':
