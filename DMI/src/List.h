@@ -171,6 +171,17 @@ class List : public Container
       ItemList::iterator applyIndex (int n,bool inserting);
       
       ItemList items;
+      
+  public:
+      typedef ItemList::const_iterator const_iterator;
+      typedef ItemList::iterator iterator;
+      
+      // a List iterator simply iterates over refs in the list.
+      // *iter will be an ObjRef
+      const_iterator begin () const { return items.begin(); }
+      const_iterator end () const   { return items.end(); }
+      iterator begin ()             { return items.begin(); }
+      iterator end ()               { return items.end(); }
 };
 
 inline void List::insert (int n,ObjRef &ref,int flags)
