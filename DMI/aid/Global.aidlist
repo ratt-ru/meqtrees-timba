@@ -137,6 +137,7 @@ F                                1026       ; from /home/oms/LOFAR/Timba/DMI/src
 Factor                           1593       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:33
 Fail                             1248       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
 FailConnect                      1052       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
+Fails                            1605       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45
 Fatal                            1062       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 fcomplex                         46         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:108
 Feed                             1196       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:31
@@ -443,6 +444,7 @@ Processing                       1484       ; from /home/oms/LOFAR/Timba/MeqServ
 Product                          1146       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:35
 Profile                          1433       ; from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 Profiling                        1536       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:42
+Propagate                        1606       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45
 Proper                           1168       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
 Publish                          1060       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MsgAddress.h:9
 Publishing                       1509       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:17
