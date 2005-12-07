@@ -366,6 +366,7 @@ Motion                           1167       ; from /home/oms/LOFAR/Timba/VisCube
 Mount                            1155       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
 MS                               1128       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 MsgLog                           1043       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WorkProcess.h:30
+MT                               1604       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45
 Mu                               1362       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 Multi                            1518       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:33
 N                                1028       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
@@ -425,6 +426,7 @@ Polc                             1298       ; from /home/oms/LOFAR/Timba/MEQ/src
 Polcs                            1308       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
 Policy                           1529       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:41
 Poll                             1602       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45
+Polling                          1603       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45
 Poly                             1144       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:33
 Pong                             1098       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:10
 Port                             1081       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
