@@ -423,6 +423,7 @@ def make_sinks(ns, Cohset, **inarg):
 
     # Input arguments:
     pp = JEN_inarg.extract(inarg, 'MG_JEN_Cohset.make_sinks()')
+    pp.setdefault('visu_array_config', True)
     pp.setdefault('visu', False)
     pp.setdefault('flag', False)
     pp.setdefault('output_col', 'PREDICT')
@@ -449,7 +450,7 @@ def make_sinks(ns, Cohset, **inarg):
        global MSauxinfo
        dcoll = MSauxinfo.dcoll(ns)
        for i in range(len(dcoll)):
-          MG_JEN_forest_state.bookmark(dcoll[i], page='make_sinks_array_config')
+          MG_JEN_forest_state.bookmark(dcoll[i], page='MSauxinfo_array_config')
        bb.extend(dcoll)
 
     # Make MeqSinks

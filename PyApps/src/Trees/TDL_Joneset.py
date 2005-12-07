@@ -11,6 +11,7 @@
 #    - 23 sep 2005: MeqParm: use_previous==True, self.parmtable
 #    - 30 nov 2005: added comment to MeqParm() tile_size
 #    - 03 dec 2005: replaced MG_JEN_exec with TDL_display
+#    - 07 dec 2005: introduced self.__constrain (needs more thought)
 #
 # Full description:
 #
@@ -78,6 +79,7 @@ class Joneset (TDL_common.Super):
         self.__plot_style = TDL_radio_conventions.plot_style()
         self.__plot_size = TDL_radio_conventions.plot_size()
         self.__MeqParm = dict()
+        self.__constrain = dict()
         self.__node_groups = ['Parm']
 
     def __getitem__(self, key):
@@ -163,7 +165,8 @@ class Joneset (TDL_common.Super):
         return self.len()
 
     def define_MeqParm(self, ns, key=None, station=None, default=0,
-                       node_groups='Parm', use_previous=True, tile_size=None):
+                       node_groups='Parm', constrain=False,
+                       use_previous=True, tile_size=None):
         """Convenience function to create a MeqParm node"""
         # NB: If use_previous==True, the MeqParm will use its current funklet (if any)
         #     as starting point for the next snippet solution, unless a suitable funklet
@@ -187,23 +190,32 @@ class Joneset (TDL_common.Super):
                                             use_previous=use_previous,
                                             tiling=tiling,
                                             table_name=self.parmtable())
+
         # Put the node into the internal MeqParm buffer for later use:
+        # See .MeqParm() below
         self.__MeqParm[key] = node
+        self.__constrain[key] = constrain    # governs solution constraints.....
         return node
+
 
     def MeqParm(self, update=False, reset=False):
         if update:
-          # Append the accumulated MeqParm node names to their respective parmgroups:
+            # Append the accumulated MeqParm node names to their respective parmgroups:
             for key in self.__MeqParm.keys():
-              nodename = self.__MeqParm[key].name
-              self.__parmgroup[key].append(nodename)
+                if not self.__constrain[key]:
+                    # If constrain=True, leave the MeqParm out of the parmgroup
+                    # It will then NOT be included into the solvable MeqParms
+                    nodename = self.__MeqParm[key].name
+                    self.__parmgroup[key].append(nodename)
         if reset:
-          # Reset the MeqParm buffer:
-          ss = self.__MeqParm
-          self.__MeqParm = dict()
-          # Always return self.__MeqParm as it was before reset:
-          return ss
+            # Always return self.__MeqParm as it was BEFORE reset:
+            ss = self.__MeqParm                # return value
+            # Reset the MeqParm buffer and related:
+            self.__MeqParm = dict()
+            self.__constrain = dict()
+            return ss
         return self.__MeqParm
+
 
     # Access functions:
     def scope(self, new=None):

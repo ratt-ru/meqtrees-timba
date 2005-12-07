@@ -18,6 +18,7 @@
 
 from Timba.TDL import *
 from Timba.Trees import JEN_record
+from copy import deepcopy
 
 #----------------------------------------------------------------------------
 
@@ -50,17 +51,20 @@ def extract(inarg, funcname='<funcname>', trace=True):
 
    if not isinstance(inarg, dict):
       # Difficult to imagine how this could happen....
-      print '-- inarg not dict'
+      if trace: print '-- inarg not dict'
       return inarg
+
    elif inarg.has_key('getinarg'):
       # Called as .func(getinarg=True): -> .noexec(pp)
       # NB: inarg may contain other keyword arguments too...
-      print '-- inarg has key getinarg'
+      if trace: print '-- inarg has key getinarg'
       pp = inarg
+
    elif inarg.has_key('inarg'):
       # Called like func(inarg=inarg), extract the actual inarg record:
       s1 = '** JEN_inarg.extract(): '
       if not is_inarg(inarg['inarg']):
+         print s1,'inarg is not a valid inarg: ',type(inarg)
          return False
       elif not inarg['inarg'].has_key(funcname):
          # Trying to run the function with the wrong inarg
@@ -72,13 +76,29 @@ def extract(inarg, funcname='<funcname>', trace=True):
          # should result in an error:
          print s1,'inarg[',funcname,'] is not a record/dict, but:',type(inarg['inarg'][funcname])
          return False
+
       else:
-         # OK, detach the bare argument record for this function:
+         # The main dish: inarg contains a record of argument values for the relevant
+         # function. Detach it from inarg as a bare record pp:
          pp = inarg['inarg'][funcname]
+
+         # Now deal with any EXTRA keyword arguments in inarg, which may have been
+         # supplied as:     func(inarg=inarg, aa=10, bb=-13)
+         # If recgnised, these OVERRIDE the values of the relevant pp fields.
+         # NB: Any extra arguments that are not fields in pp are ignored, and lost!
+         for key in inarg.keys():
+            if pp.has_key(key):
+               was = pp[key]
+               pp[key] = inarg[key]
+               if trace: print s1,'overridden pp[',key,']: ',was,'->',pp[key]
+            else:
+               # if trace: print s1,'ignored extra field inarg[',key,'] =',inarg[key]
+               pass
+
    else:
       # Assume that the function has been called 'traditionally'
       pp = inarg
-      print '-- inarg traditional'
+      if trace: print '-- inarg traditional'
 
 
    # Attach some control information to pp (if necessary):
@@ -89,6 +109,36 @@ def extract(inarg, funcname='<funcname>', trace=True):
       
    if trace: JEN_record.display_object(pp,'pp','<- .extract(inarg)')
    return pp
+
+
+#----------------------------------------------------------------------------
+
+def replace_reference(rr, up=None, level=1):
+   """If the value of a field in the given record (rr) is a field name
+   in the same record, replace it with the value of the referenced field"""
+   if level>10: return False                 # escape from eternal loop (error!)
+   count = 0
+   prefix = str(level)+':'+(level*'.')
+   for key in rr.keys():                     # for all fields
+      value = rr[key]                        # field value
+      if isinstance(value, dict):            # if field value is dict: recurse
+         replace_reference(rr[key], up=rr, level=level+1)
+      elif isinstance(value, str):           # if field value is a string
+         if value[:3]=='../':                # if upward reference
+            if isinstance(up, dict):         # if 'parent' record given      
+               upfield = value.split('/')[1] # 
+               for upkey in up.keys():       # search for upfield in parent record
+                  count += 1                 # count the number of replacements
+                  # print prefix,'-',count,'replace_with_upward: rr[',key,'] =',value,'->',up[upkey]
+                  if upkey==upfield: rr[key] = up[upkey]  # replace if found
+         else:
+            if not value==key:                # ignore self-reference
+               if rr.has_key(value):          # if field value is the name of another field
+                  count += 1                  # count the number of replacements
+                  # print prefix,'-',count,': replace_reference(): rr[',key,'] =',value,'->',rr[value]
+                  rr[key] = rr[value]         # replace with the value of the referenced field
+   if count>0: replace_reference(rr, level=level+1)       # repeat if necessary
+   return count
 
 
 #----------------------------------------------------------------------------
@@ -164,7 +214,7 @@ def warning(inarg, txt, trace=True):
    
 #----------------------------------------------------------------------------
 
-def check(pp, strip=False, trace=True):
+def check(pp, strip=True, trace=True):
    """Optional function to check an parameter record pp"""
    if not isinstance(pp, dict): return False
    ok = True
@@ -192,6 +242,20 @@ def check(pp, strip=False, trace=True):
 
    # Return the outcome (True/False) of the check:
    return ok
+
+#----------------------------------------------------------------------------
+
+def strip(rr, level=0, trace=True):
+   """Strip off all JEN_inarg_ctrl records from record rr"""
+   if not isinstance(rr, dict): return rr
+   qq = deepcopy(rr)
+   # Remove the ctrl record if present:
+   if qq.has_key('JEN_inarg_ctrl'): qq.__delitem__('JEN_inarg_ctrl')
+   # Recurse:
+   for key in qq.keys():
+      if isinstance(qq[key], dict):
+         qq[key] = strip(qq[key], level=level+1, trace=trace)
+   return qq
 
 #----------------------------------------------------------------------------
 
@@ -224,17 +288,19 @@ def funcname(rr, trace=False):
 
 #----------------------------------------------------------------------------
 
-def attach(inarg, multi=None, trace=True):
-   """Attach the inarg record to a multi-inarg record"""
-   if not is_inarg(inarg): return inarg                   # ......??
-   if not isinstance(multi, dict): multi = dict() 
+def attach(inarg, rr=None, trace=True):
+   """Attach the inarg record to a (inarg or pp) record rr"""
+   if not isinstance(inarg, dict):
+      print '** JEN_inarg.attach(): inarg not a record, but:',type(inarg)
+      return False 
+   if not isinstance(rr, dict): rr = dict() 
    funcname = inarg.keys()[0]
-   if multi.has_key(funcname):
-      print 'multi: duplicate funcname:',funcname
+   if rr.has_key(funcname):
+      print '** JEN_inarg.attach(): rr duplicate funcname:',funcname
    else:
-      multi[funcname] = inarg[funcname]
-   if trace: display(multi,'.attach()')
-   return multi
+      rr[funcname] = inarg[funcname]
+   if trace: JEN_record.display_object(rr,'rr','JEN_inarg.attach()')
+   return rr
 
 
 #********************************************************************************
@@ -258,9 +324,14 @@ if __name__ == '__main__':
       # Extract a bare argument record pp from inarg
       pp = extract(inarg, 'JEN_inarg::test1()')
 
-      # Specify the function arguments, with default values
+      # Specify the function arguments, with default values:
       pp.setdefault('aa', 45)
       pp.setdefault('bb', -19)
+      pp.setdefault('nested', True)
+      if pp['nested']:
+         # It is possible to include the default inarg records from other
+         # functions that are used in the function body below:
+         attach(test2(getinarg=True),pp)
 
       # .test(getinarg=True) -> an inarg record with default values
       if pp.has_key('getinarg'): return noexec(pp)
@@ -271,6 +342,10 @@ if __name__ == '__main__':
 
       # Execute the function body, using pp:
       result = pp
+      if pp['nested']:
+         # The inarg record for test2 is part of pp (see above):
+         result2 = test2(inarg=pp)
+         pp['result2'] = result2
       JEN_record.display_object(result,'result','.test1()')
       return result
 
@@ -287,7 +362,7 @@ if __name__ == '__main__':
       JEN_record.display_object(result,'result','.test2()')
       return result
 
-   if 1:
+   if 0:
       # Test: Call the test function in various ways:
       inarg = test1(getinarg=True)
       if 0:
@@ -296,7 +371,7 @@ if __name__ == '__main__':
          modify(inarg, aa='aa')
          # modify(inarg, aa='aaaa', cc='cc')
          display(inarg, 'after .modify()')
-      result = test1(inarg=inarg)
+      result = test1(inarg=inarg, bb='override', qq='ignored', nested=False)
       
 
    if 0:
@@ -318,6 +393,13 @@ if __name__ == '__main__':
       result1 = test1(inarg=False)
 
    if 1:
+      rr = test1(getinarg=True)
+      JEN_record.display_object(rr,'rr','before .strip(rr)')
+      qq = strip(rr)
+      JEN_record.display_object(qq,'qq','after .strip(rr)')
+      JEN_record.display_object(rr,'rr','after .strip(rr)')
+
+   if 0:
       rr = test1(getinarg=True)
       display(rr,'rr <- .test1(getinarg=True)')
       cc = ctrl(rr, trace=True)

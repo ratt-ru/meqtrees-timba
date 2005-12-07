@@ -53,7 +53,7 @@ from Timba.Contrib.JEN import MG_JEN_flagger
 MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
                          last_changed = 'd26nov2005',
                          punit='unpol',                        # name of calibrator source
-                         stations=range(14),                   # specify the (subset of) stations to be used
+                         stations=range(4),                   # specify the (subset of) stations to be used
                          MS_corr_index = [0,1,2,3],              # correlations to be used
                          # MS_corr_index = [0,-1,-1,1],          # only XX/YY available
                          # MS_corr_index = [0,-1,-1,3],          # all available, but use only XX/YY
@@ -85,7 +85,7 @@ MG = MG_JEN_exec.MG_init('MG_JEN_cps_GJones.py',
 
 MG.stream_control = record(ms_name='D1.MS',
                            data_column_name='DATA',
-                           tile_size=50,                              # input tile-size (nr of time-slots)
+                           tile_size=10,                              # input tile-size (nr of time-slots)
                            channel_start_index=10,
                            channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
                            # output_col='RESIDUALS')

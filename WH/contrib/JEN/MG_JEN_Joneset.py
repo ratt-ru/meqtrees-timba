@@ -11,6 +11,7 @@
 # - 24 aug 2005: creation
 # - 31 aug 2005: added .visualise()
 # - 05 sep 2005: adapted to Joneset object
+# - 07 dec 2005: introduced define_MeqParm() argument 'constrain'
 
 # Copyright: The MeqTree Foundation 
 
@@ -251,6 +252,7 @@ def GJones (ns=0, label='GJones', Sixpack=None, **pp):
   pp.setdefault('solvable', True)      # if False, do not store parmgroup info
   pp.setdefault('Gampl', 0.3)          # default funklet value
   pp.setdefault('Gphase', 0.0)         # default funklet value
+  pp.setdefault('Gphase_constrain', True)   # if True, constrain 1st station phase
   pp.setdefault('Gpolar', False)       # if True, use MeqPolar, otherwise MeqToComplex
   pp.setdefault('stddev_Gampl', 0)     # scatter in default funklet c00 values
   pp.setdefault('stddev_Gphase', 0)    # scatter in default funklet c00 values
@@ -282,6 +284,7 @@ def GJones (ns=0, label='GJones', Sixpack=None, **pp):
   js.define_solvegroup('Gampl', [a1, a2])
   js.define_solvegroup('Gphase', [p1, p2])
 
+  first_station = True
   for station in pp.stations:
     skey = TDL_radio_conventions.station_key(station)        
     # Define station MeqParms (in ss), and do some book-keeping:  
@@ -298,10 +301,15 @@ def GJones (ns=0, label='GJones', Sixpack=None, **pp):
        default = MG_JEN_funklet.polc_ft (c00=pp.Gphase, stddev=pp.stddev_Gphase, 
                                          fdeg=pp.fdeg_Gphase, tdeg=pp.tdeg_Gphase,
                                          scale=pp.Gscale) 
+       constrain = False
+       if pp['Gphase_constrain']: 
+          if first_station: constrain = True
        js.define_MeqParm (ns, Gphase, station=skey, default=default,
+                          constrain=constrain,
                           tile_size=pp.tile_size_Gphase)
 
     ss = js.MeqParm(update=True)
+    first_station = False
 
     # Make the 2x2 Jones matrix:
     if pp.Gpolar:
@@ -413,6 +421,8 @@ def BJones (ns=0, label='BJones', Sixpack=None, **pp):
   # pp.setdefault('Bpolar', False)        # if True, use MeqPolar, otherwise MeqToComplex
   pp.setdefault('Breal', 1.0)          # default funklet value
   pp.setdefault('Bimag', 0.0)          # default funklet value
+  pp.setdefault('Breal_constrain', False)   # if True, constrain 1st station phase
+  pp.setdefault('Bimag_constrain', True)   # if True, constrain 1st station phase
   pp.setdefault('stddev_Breal', 0)     # scatter in default funklet c00 values
   pp.setdefault('stddev_Bimag', 0)     # scatter in default funklet c00 values
   pp.setdefault('fdeg_Breal', 3)       # degree of default freq polynomial              # <---- !!
@@ -443,6 +453,7 @@ def BJones (ns=0, label='BJones', Sixpack=None, **pp):
   js.define_solvegroup('Breal', [br1, br2])
   js.define_solvegroup('Bimag', [bi1, bi2])
 
+  first_station = True
   for station in pp.stations:
     skey = TDL_radio_conventions.station_key(station)      
     # Define station MeqParms (in ss), and do some book-keeping:  
@@ -454,17 +465,26 @@ def BJones (ns=0, label='BJones', Sixpack=None, **pp):
        default = MG_JEN_funklet.polc_ft (c00=pp.Breal, stddev=pp.stddev_Breal, 
                                          fdeg=pp.fdeg_Breal, tdeg=pp.tdeg_Breal, 
                                          scale=pp.Bscale) 
+       constrain = False
+       if pp['Breal_constrain']: 
+          if first_station: constrain = True
        js.define_MeqParm (ns, Breal, station=skey, default=default,
+                          constrain=constrain,
                           tile_size=pp.tile_size_Breal)
 
     for Bimag in [bi1,bi2]:
        default = MG_JEN_funklet.polc_ft (c00=pp.Bimag, stddev=pp.stddev_Bimag, 
                                          fdeg=pp.fdeg_Bimag, tdeg=pp.tdeg_Bimag, 
                                          scale=pp.Bscale) 
+       constrain = False
+       if pp['Bimag_constrain']: 
+          if first_station: constrain = True
        js.define_MeqParm (ns, Bimag, station=skey, default=default,
+                          constrain=constrain,
                           tile_size=pp.tile_size_Bimag)
 
     ss = js.MeqParm(update=True)
+    first_station = False
 
     # Make the 2x2 Jones matrix
     stub = ns[label](s=skey, q=pp.punit) << Meq.Matrix22 (
