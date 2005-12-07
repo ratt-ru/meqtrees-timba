@@ -49,10 +49,13 @@ def extract(inarg, funcname='<funcname>', trace=True):
    # if trace: display(inarg,'.extract() input inarg')
 
    if not isinstance(inarg, dict):
-      # Assume that the mother function is called by other means
+      # Difficult to imagine how this could happen....
+      print '-- inarg not dict'
       return inarg
    elif inarg.has_key('getinarg'):
       # Called as .func(getinarg=True): -> .noexec(pp)
+      # NB: inarg may contain other keyword arguments too...
+      print '-- inarg has key getinarg'
       pp = inarg
    elif inarg.has_key('inarg'):
       # Called like func(inarg=inarg), extract the actual inarg record:
@@ -72,6 +75,10 @@ def extract(inarg, funcname='<funcname>', trace=True):
       else:
          # OK, detach the bare argument record for this function:
          pp = inarg['inarg'][funcname]
+   else:
+      # Assume that the function has been called 'traditionally'
+      pp = inarg
+      print '-- inarg traditional'
 
 
    # Attach some control information to pp (if necessary):
@@ -188,10 +195,31 @@ def check(pp, strip=False, trace=True):
 
 #----------------------------------------------------------------------------
 
-def funcname(inarg):
-   """Get the funcname from the inarg"""
-   if not is_inarg(inarg): return False
-   return inarg.keys()[0]
+def ctrl(rr, level=0, trace=False):
+   """Get the JEN_inarg_ctrl record from inarg or pp (if any)"""
+   if not isinstance(rr, dict):
+      return False
+   elif rr.has_key('JEN_inarg_ctrl'):
+      cc = rr['JEN_inarg_ctrl']
+      if trace: JEN_record.display_object(cc,'JEN_inarg_ctrl','<- .ctrl(rr,'+str(level)+')')
+      return cc
+   else:
+      for key in rr.keys():
+         if isinstance(rr[key],dict):
+            cc = ctrl(rr[key], level=level+1, trace=trace)
+            if isinstance(cc, dict): return cc
+   return False
+
+#----------------------------------------------------------------------------
+
+def funcname(rr, trace=False):
+   """Get the funcname from the inarg or pp"""
+   cc = ctrl(rr)
+   if isinstance(cc, dict):
+      fname = cc['funcname']
+      if trace: JEN_record.display_object(fname,'funcname','<- .funcname(rr)')
+      return fname
+   return False
 
 
 #----------------------------------------------------------------------------
@@ -238,6 +266,7 @@ if __name__ == '__main__':
       if pp.has_key('getinarg'): return noexec(pp)
 
       # Optional: check and strip:
+      fname = funcname(pp)
       if not check(pp): return False
 
       # Execute the function body, using pp:
@@ -247,18 +276,21 @@ if __name__ == '__main__':
 
    def test2(**inarg):
       """Another test function"""
+
       pp = extract(inarg, 'JEN_inarg::test2()')
       pp.setdefault('ff', 145)
       pp.setdefault('bb', -119)
       if pp.has_key('getinarg'): return noexec(pp)
+      if not check(pp): return False
+
       result = pp
       JEN_record.display_object(result,'result','.test2()')
       return result
 
-   if 0:
+   if 1:
       # Test: Call the test function in various ways:
       inarg = test1(getinarg=True)
-      if 1:
+      if 0:
          # modify()
          # modify(inarg)
          modify(inarg, aa='aa')
@@ -267,7 +299,7 @@ if __name__ == '__main__':
       result = test1(inarg=inarg)
       
 
-   if 1:
+   if 0:
       # Test: Combine the inarg records of multiple functions:
       inarg1 = test1(getinarg=True)
       inarg2 = test2(getinarg=True)
@@ -278,6 +310,20 @@ if __name__ == '__main__':
       result1 = test1(inarg=inarg)
       result2 = test2(inarg=inarg)
       result2 = test2(inarg=inarg1)
+
+   if 0:
+      result1 = test1(aa=6, xx=7)
+
+   if 0:
+      result1 = test1(inarg=False)
+
+   if 1:
+      rr = test1(getinarg=True)
+      display(rr,'rr <- .test1(getinarg=True)')
+      cc = ctrl(rr, trace=True)
+      print cc
+      fname = funcname(rr, trace=True)
+      print fname
 
 
    if 0:

@@ -12,6 +12,7 @@
 # - 05 sep 2005: adapted to Cohset/Joneset objects
 # - 25 nov 2005: MS_corr_index argument to .make_spigots()
 # - 05 dec 2005: included TDL_MSauxinfo services
+# - 07 dec 2005: converted to JEN_inarg
 
 # Copyright: The MeqTree Foundation 
 
@@ -24,10 +25,9 @@
 from Timba.TDL import *
 # from Timba.Meq import meq
 
-MG = record(script_name='MG_JEN_Cohset.py', last_changed = 'h22sep2005')
-
 from numarray import *
 
+from Timba.Trees import JEN_inarg
 from Timba.Trees import TDL_Cohset
 from Timba.Trees import TDL_Joneset
 from Timba.Trees import TDL_MSauxinfo
@@ -43,16 +43,31 @@ from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN import MG_JEN_historyCollect
 from Timba.Contrib.JEN import MG_JEN_flagger
 
+
+#-------------------------------------------------------------------------
+# MG control record (may be edited here)
+
+MG = MG_JEN_exec.MG_init('MG_JEN_Cohset.py', last_changed = 'd07dec2005')
+
+
+
 #-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
 MG_JEN_forest_state.init(MG.script_name)
 
-# This object contains auxiliary MS info (nodes), which are used
-# at various points in this module:
+
+#-------------------------------------------------------------------------
+# The MSauxinfo object contains auxiliary MS info (nodes):
+# It is used at various points in this module, e.g. make_sinks()
+
 MSauxinfo = TDL_MSauxinfo.MSauxinfo(label=MG.script_name)
 MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
+
+
+
+
 
 
 #********************************************************************************
@@ -346,15 +361,26 @@ def addnoise (ns, Cohset, **pp):
 # Make spigots and sinks (plus some common services)
 #======================================================================================
 
+# inarg = MG_JEN_Cohset.make_spigots(getinarg=True)
+# JEN_inarg.modify(inarg,
+#                 # MS_corr_index=[0,-1,-1,1],       # only XX/YY available
+#                 # MS_corr_index=[0,-1,-1,3],       # all available, use only XX/YY
+#                 MS_corr_index=[0,1,2,3],           # all corrs available, use all
+#                 flag=False,                        # if True, flag the input data
+#                 visu=False)                        # if True, visualise the input data
+# JEN_inarg.attach(inarg, MG)
+                 
 
-def make_spigots(ns, Cohset, **pp):
-    funcname = 'MG_JEN_Cohset.make_spigots(): '
+def make_spigots(ns=None, Cohset=None, **inarg):
 
-    # Input parameters:
+    # Input arguments:
+    pp = JEN_inarg.extract(inarg, 'MG_JEN_Cohset.make_spigots()')
     pp.setdefault('MS_corr_index', [0,1,2,3])
     pp.setdefault('visu', False)
     pp.setdefault('flag', False)
-    pp = record(pp)
+    if pp.has_key('getinarg'): return JEN_inarg.noexec(pp)
+    funcname = JEN_inarg.funcname(pp)
+    if not JEN_inarg.check(pp): return False
 
     # Make MeqSinks
     Cohset.spigots(ns, MS_corr_index=pp['MS_corr_index'])
@@ -368,15 +394,15 @@ def make_spigots(ns, Cohset, **pp):
     MG_JEN_forest_state.object(Cohset, funcname)
 
     # Optional: visualise the spigot (input) data:
-    if pp.visu:
+    if pp['visu']:
 	visualise (ns, Cohset)
 	visualise (ns, Cohset, type='spectra')
         
     # Optional: flag the spigot (input) data:
-    if pp.flag:
+    if pp['flag']:
        insert_flagger (ns, Cohset, scope='spigots',
                        unop=['Real','Imag'], visu=False)
-       if pp.visu: visualise (ns, Cohset)
+       if pp['visu']: visualise (ns, Cohset)
 
     # Return a list of spigot nodes:
     return spigots
@@ -384,15 +410,25 @@ def make_spigots(ns, Cohset, **pp):
 
 #--------------------------------------------------------------------------
 
-def make_sinks(ns, Cohset, **pp):
-    funcname = 'MG_JEN_Cohset.make_sinks(): '
+# inarg = MG_JEN_Cohset.make_sinks(getinarg=True)
+# JEN_inarg.modify(inarg,
+#                 output_col='PREDICT'               # logical (tile) output column
+#                 visu_array_config=False,           # if True, visualise the array config
+#                 flag=False,                        # if True, flag the input data
+#                 visu=False)                        # if True, visualise the input data
+# JEN_inarg.attach(inarg, MG)
+                 
 
-    # Input parameters:
+def make_sinks(ns, Cohset, **inarg):
+
+    # Input arguments:
+    pp = JEN_inarg.extract(inarg, 'MG_JEN_Cohset.make_sinks()')
     pp.setdefault('visu', False)
     pp.setdefault('flag', False)
     pp.setdefault('output_col', 'PREDICT')
-    pp.setdefault('MSauxinfo', None)
-    # pp = record(pp)          # do not use record, because of MSauxinfo = object
+    if pp.has_key('getinarg'): return JEN_inarg.noexec(pp)
+    funcname = JEN_inarg.funcname(pp)
+    if not JEN_inarg.check(pp): return False
 
     # Change the scope (name) for visualisation etc:
     Cohset.scope('sinks')
@@ -407,25 +443,14 @@ def make_sinks(ns, Cohset, **pp):
        visualise (ns, Cohset)
        visualise (ns, Cohset, type='spectra')
 
-    # Attach some dataCollect nodes to the VisDataMux:
+    # Attach array visualisation nodes:
     bb = []
-    if True:
-        global MSauxinfo
-        dcoll = MSauxinfo.dcoll(ns)
-        for i in range(len(dcoll)):
-            MG_JEN_forest_state.bookmark(dcoll[i], page='make_sinks_array_config')
-        bb.extend(dcoll)
-    elif pp['MSauxinfo']:
-        # msai = MG_JEN_forest_state.MSauxinfo(ns)
-        msai = pp['MSauxinfo']
-        dcoll = msai.dcoll(ns)
-        for i in range(len(dcoll)):
-            MG_JEN_forest_state.bookmark(dcoll[i], page='make_sinks_array_config')
-        bb.extend(dcoll)
-    else:
-        rr = MG_JEN_forest_state.MS_interface_nodes(ns)
-        for key in rr.dcoll.keys():
-            bb.append(rr.dcoll[key])
+    if pp['visu_array_config']:
+       global MSauxinfo
+       dcoll = MSauxinfo.dcoll(ns)
+       for i in range(len(dcoll)):
+          MG_JEN_forest_state.bookmark(dcoll[i], page='make_sinks_array_config')
+       bb.extend(dcoll)
 
     # Make MeqSinks
     Cohset.sinks(ns, start=bb, output_col=pp['output_col'])
