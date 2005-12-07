@@ -88,9 +88,13 @@ class QwtColorBar(QwtPlot):
     # __init__()
 
     def setRange(self, min, max):
-        if min == max:
-          min = min - 0.1
-          max = max + 0.1
+        if abs(max - min) < 0.00005:
+          if max == 0.0 or min == 0.0:
+            min = -0.1
+            max = 0.1
+          else:
+            min = 0.9 * min
+            max = 1.1 * max
         self.min = min * 1.0
         self.max = max * 1.0
         if self.min > self.max:
@@ -111,9 +115,13 @@ class QwtColorBar(QwtPlot):
     # set Range()
 
     def setMaxRange(self, min, max):
-        if min == max:
-          min = min - 0.1
-          max = max + 0.1
+        if abs(max - min) < 0.00005:
+          if max == 0.0 or min == 0.0:
+            min = -0.1
+            max = 0.1
+          else:
+            min = 0.9 * min
+            max = 1.1 * max
         self.image_min = min * 1.0
         self.image_max = max * 1.0
     # set Range()
