@@ -305,11 +305,11 @@ class QwtImageDisplay(QwtPlot):
           QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_spectrum_display);
           self.spectrum_menu_items = 0
 
-        if self.spectrum_menu_items > 0:
-         menu_id = self._start_spectrum_menu_id
-         for i in range(self.spectrum_menu_items):
-           self._menu.removeItem(menu_id)
-           menu_id = menu_id + 1
+        if self.spectrum_menu_items > 1:
+          menu_id = self._start_spectrum_menu_id
+          for i in range(self.spectrum_menu_items):
+            self._menu.removeItem(menu_id)
+            menu_id = menu_id + 1
 
     def delete_cross_sections(self):
       if self.show_x_sections:
@@ -1447,7 +1447,7 @@ class QwtImageDisplay(QwtPlot):
      # now generate  particular plot type
       if self._plot_type == 'spectra':
         self.num_y_markers = 0
-        self.y_marker_step = 0
+        self.y_marker_step = None
 # ensure that menu for display is updated if required
         self.initSpectrumContextMenu()
         if self._spectrum_data is None:
@@ -1459,12 +1459,13 @@ class QwtImageDisplay(QwtPlot):
 # test and update the context menu
         plot_menus = self._spectrum_data.getMenuLabels()
         self.spectrum_menu_items = len(plot_menus)
-        menu_id = self._start_spectrum_menu_id
-        for i in range(self.spectrum_menu_items):
-          self._menu.insertItem(plot_menus[i], menu_id)
-          menu_id = menu_id + 1
-
         if self.spectrum_menu_items > 1: 
+          menu_id = self._start_spectrum_menu_id
+          for i in range(self.spectrum_menu_items):
+            self._menu.insertItem(plot_menus[i], menu_id)
+            menu_id = menu_id + 1
+
+        if self.spectrum_menu_items > 2: 
            marker_parms = self._spectrum_data.getMarkerParms()
            self.num_y_markers = marker_parms[0]
            self.y_marker_step = marker_parms[1]
