@@ -9,6 +9,7 @@ from ComplexColorMap import *
 from ComplexScaleDraw import *
 from QwtPlotImage import *
 from SpectrumData import *
+from VellsData import *
 from Timba.GUI.pixmaps import pixmaps
 from guiplot2dnodesettings import *
 #from tabdialog import *
@@ -108,6 +109,7 @@ class QwtImageDisplay(QwtPlot):
 
     def __init__(self, plot_key=None, parent=None):
         QwtPlot.__init__(self, parent)
+        self.parent = parent
         # create copy of standard application font..
         font = QFont(QApplication.font());
         fi = QFontInfo(font);
@@ -145,7 +147,9 @@ class QwtImageDisplay(QwtPlot):
         self.axis_ymin = None
         self.axis_ymax = None
 	self._menu = None
+        self.num_possible_ND_axes = None
         self._spectrum_data = None
+        self._vells_data = None
         self._plot_type = None
 	self._plot_dict_size = None
 	self.created_combined_image = False
@@ -164,11 +168,9 @@ class QwtImageDisplay(QwtPlot):
         self.iteration_number = None
         self.ampl_phase = False
         self.complex_switch_set = False
-        self._active_plane = None
         self._active_perturb = None
         self.first_axis_inc = None
         self.second_axis_inc = None
-        self.context_menu_done = None
         self.image_min = None
         self.image_max = None
         self.image_shape = None
@@ -188,6 +190,7 @@ class QwtImageDisplay(QwtPlot):
         self.setTitle('QwtImageDisplay')
 
         self.label = ''
+        self.vells_menu_items = 0
         self.zooming = 0
         self.setlegend = 0
         self.setAutoLegend(self.setlegend)
@@ -229,6 +232,7 @@ class QwtImageDisplay(QwtPlot):
         self.connect(self, SIGNAL("legendClicked(long)"), self.toggleCurve)
         self.index = 1
         self.is_vector = False
+        self.old_plot_data_rank = -1
         self.xpos = 0
         self.ypos = 0
         self.toggle_array_rank = 1
@@ -261,7 +265,6 @@ class QwtImageDisplay(QwtPlot):
         return plot_parms
 
     def setPlotParms(self, plot_parms):
-#       print 'in setPlotParms with plot_parms ', plot_parms
         self._window_title = plot_parms['window_title'] 
         self._x_title = plot_parms['x_title']
         self._y_title = plot_parms['y_title'] 
@@ -306,10 +309,10 @@ class QwtImageDisplay(QwtPlot):
           self.spectrum_menu_items = 0
 
         if self.spectrum_menu_items > 1:
-          menu_id = self._start_spectrum_menu_id
-          for i in range(self.spectrum_menu_items):
-            self._menu.removeItem(menu_id)
-            menu_id = menu_id + 1
+         menu_id = self._start_spectrum_menu_id
+         for i in range(self.spectrum_menu_items):
+           self._menu.removeItem(menu_id)
+           menu_id = menu_id + 1
 
     def delete_cross_sections(self):
       if self.show_x_sections:
@@ -402,6 +405,63 @@ class QwtImageDisplay(QwtPlot):
 # if we get here ...
       return False
 
+    def handle_flag_toggles(self, menuid):
+# toggle flags display	
+      if menuid == self.menu_table['toggle flagged data for plane ']:
+        if self.flag_toggle == False:
+          self.flag_toggle = True
+        else:
+          self.flag_toggle = False
+        if self.real_flag_vector is None:
+          self.plotImage.setDisplayFlag(self.flag_toggle)
+        else:
+          self.curve(self.real_flag_vector).setEnabled(self.flag_toggle)
+          if not self.imag_flag_vector is None:
+            self.curve(self.imag_flag_vector).setEnabled(self.flag_toggle)
+        self.replot()
+	return True
+
+      if menuid == self.menu_table['toggle blink of flagged data for plane ']:
+        if self.flag_blink == False:
+          self.flag_blink = True
+	  self.timer = QTimer(self)
+          self.timer.connect(self.timer, SIGNAL('timeout()'), self.timerEvent_blink)
+          self.timer.start(2000)
+        else:
+          self.flag_blink = False
+	return True
+
+      if menuid == self.menu_table['Toggle display range to that of flagged image for plane ']:
+        if self.flag_range == False:
+          self.flag_range = True
+        else:
+          self.flag_range = False
+          image_min = None
+          image_max = None
+          if abs(self.raw_image.max() - self.raw_image.min()) < 0.00005:
+            if self.raw_image.max() == 0 or self.raw_image.min() == 0.0:
+              image_min = -0.1
+              image_max = 0.1 
+            else:
+              image_min = 0.9 * self.raw_image.min()
+              image_max = 1.1 * self.raw_image.max()
+            if image_min > image_max:
+              temp = image_min
+              image_min = image_max
+              image_max = temp
+          else:
+            image_min = self.raw_image.min()
+            image_max = self.raw_image.max()
+          self.plotImage.setImageRange((image_min,image_max))
+          self.emit(PYSIGNAL("image_range"),(image_min, image_max))
+          self.emit(PYSIGNAL("max_image_range"),(image_min, image_max))
+        self.defineData()
+        self.replot()
+	return True
+
+# if we get here ...
+      return False
+
     def update_spectrum_display(self, menuid):
       if self.handle_basic_menu_id(menuid):
         return
@@ -479,88 +539,50 @@ class QwtImageDisplay(QwtPlot):
          self.axis_ymin = self.ymin
          self.axis_ymax = self.ymax
 
+    def set_flag_toggles(self, flag_plane=None, flag_setting=False):
+# add flag toggling for vells but make hidden by default
+          self._toggle_flag_label = "toggle flagged data for plane "
+	  toggle_id = self.menu_table[self._toggle_flag_label]
+          if flag_plane is None:
+            self._menu.insertItem(self._toggle_flag_label,toggle_id)
+          else:
+            self._menu.changeItem(toggle_id,self._toggle_flag_label+str(flag_plane))
+          self._menu.setItemEnabled(toggle_id, flag_setting)
+          self._menu.setItemVisible(toggle_id, flag_setting)
+
+          self._toggle_blink_label = "toggle blink of flagged data for plane "
+          toggle_id = self.menu_table[self._toggle_blink_label]
+          if flag_plane is None:
+            self._menu.insertItem(self._toggle_blink_label,toggle_id)
+          else:
+            self._menu.changeItem(toggle_id,self._toggle_blink_label+str(flag_plane))
+          self._menu.setItemEnabled(toggle_id, flag_setting)
+          self._menu.setItemVisible(toggle_id, flag_setting)
+
+          self._toggle_range_label = "Toggle display range to that of flagged image for plane "
+          toggle_id = self.menu_table[self._toggle_range_label]
+          if flag_plane is None:
+            self._menu.insertItem(self._toggle_range_label,toggle_id)
+          else:
+            self._menu.changeItem(toggle_id, self._toggle_range_label+str(flag_plane))
+          self._menu.setItemEnabled(toggle_id, flag_setting)
+          self._menu.setItemVisible(toggle_id, flag_setting)
+
     def initVellsContextMenu (self):
         # skip if no main window
         if not self._mainwin:
-          return;
-        if self.context_menu_done:
           return;
         if self._menu is None:
           self._menu = QPopupMenu(self._mainwin);
           QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
           self.add_basic_menu_items()
+          self.set_flag_toggles()
 
-        id = -1
-        perturb_index = -1
-# are we dealing with Vellsets?
-        number_of_planes = len(self._vells_rec["vellsets"])
-        _dprint(3, 'number of planes ', number_of_planes)
-        self._next_plot = {}
-        flag_plane = -1
-        initial_plane = None
-        for i in range(number_of_planes):
-          id = id + 1
-          if self._vells_rec.vellsets[i].has_key("value"):
-            if initial_plane is None:
-              initial_plane = i
-            menu_label = "go to plane " + str(i) + " value" 
-            self._next_plot[id] = menu_label
-            self._menu.insertItem(menu_label,id)
-          if self._vells_rec.vellsets[i].has_key("perturbed_value"):
-            try:
-              number_of_perturbed_arrays = len(self._vells_rec.vellsets[i].perturbed_value)
-              perturb_index  = perturb_index  + 1
-              for j in range(number_of_perturbed_arrays):
-                id = id + 1
-                key = " perturbed_value "
-                menu_label =  "   -> go to plane " + str(i) + key + str(j) 
-                self._next_plot[id] = menu_label 
-                self._menu.insertItem(menu_label,id)
-            except:
-              _dprint(3, 'The perturbed values cannot be displayed.')
-# don't display message for the time being
-#              Message =  'It would appear that there is a problem with perturbed values.\nThey cannot be displayed.'
-#              mb_msg = QMessageBox("display_image.py",
-#                               Message,
-#                               QMessageBox.Warning,
-#                               QMessageBox.Ok | QMessageBox.Default,
-#                               QMessageBox.NoButton,
-#                               QMessageBox.NoButton)
-#              mb_msg.exec_loop()
-          if self.toggles_not_set and self._vells_rec.vellsets[i].has_key("flags"):
-            flag_plane = i
-            self.toggles_not_set = False
-        if flag_plane > -1:
-          self._toggle_flag_label = "toggle flagged data for plane " + str(flag_plane) 
-	  toggle_id = self.menu_table['toggle flagged data for plane ']
-          self._menu.insertItem(self._toggle_flag_label,toggle_id)
-          if flag_plane == initial_plane:
-            self._menu.setItemEnabled(toggle_id, True)
-            self._menu.setItemVisible(toggle_id, True)
-          else:
-            self._menu.setItemEnabled(toggle_id, False)
-            self._menu.setItemVisible(toggle_id, False)
-          self._toggle_blink_label = "toggle blink of flagged data for plane " + str(flag_plane)
-          toggle_id = self.menu_table['toggle blink of flagged data for plane ']
-          self._menu.insertItem(self._toggle_blink_label,toggle_id)
-          if flag_plane == initial_plane:
-            self._menu.setItemEnabled(toggle_id, True)
-            self._menu.setItemVisible(toggle_id, True)
-          else:
-            self._menu.setItemEnabled(toggle_id, False)
-            self._menu.setItemVisible(toggle_id, False)
-          self._toggle_range_label = "Toggle display range to that of flagged image for plane " + str(flag_plane)
-          toggle_id = self.menu_table['Toggle display range to that of flagged image for plane ']
-          self._menu.insertItem(self._toggle_range_label,toggle_id)
-          if flag_plane == initial_plane:
-            self._menu.setItemEnabled(toggle_id, True)
-            self._menu.setItemVisible(toggle_id, True)
-          else:
-            self._menu.setItemEnabled(toggle_id, False)
-            self._menu.setItemVisible(toggle_id, False)
-        if perturb_index == -1 and number_of_planes == 1:
-            self._menu.removeItem(0)
-        self.context_menu_done = True
+        if self.vells_menu_items > 0:
+         menu_id = self._start_vells_menu_id
+         for i in range(self.vells_menu_items):
+           self._menu.removeItem(menu_id)
+           menu_id = menu_id + 1
     # end initVellsContextMenu()
 
     def zoom(self):
@@ -656,170 +678,24 @@ class QwtImageDisplay(QwtPlot):
       if self.handle_basic_menu_id(menuid):
         return
 
-# toggle flags display	
-      if menuid == self.menu_table['toggle flagged data for plane ']:
-        if self.flag_toggle == False:
-          self.flag_toggle = True
-        else:
-          self.flag_toggle = False
-        if self.real_flag_vector is None:
-          self.plotImage.setDisplayFlag(self.flag_toggle)
-        else:
-          self.curve(self.real_flag_vector).setEnabled(self.flag_toggle)
-          if not self.imag_flag_vector is None:
-            self.curve(self.imag_flag_vector).setEnabled(self.flag_toggle)
-        self.replot()
-        _dprint(3, 'called replot in update_vells_display')
-	return
+# are we toggling something with flags?
+      if self.handle_flag_toggles(menuid):
+        return
 
-      if menuid == self.menu_table['toggle blink of flagged data for plane ']:
-        if self.flag_blink == False:
-          self.flag_blink = True
-	  self.timer = QTimer(self)
-          self.timer.connect(self.timer, SIGNAL('timeout()'), self.timerEvent_blink)
-          self.timer.start(2000)
-        else:
-          self.flag_blink = False
-	return
+# toggle get vells parameters	
+      self._vells_data.unravelMenuId(menuid)
+      plot_label = self._vells_data.getPlotLabel()
+      plot_data = self._vells_data.getActiveData()
+      if plot_data.rank != self.old_plot_data_rank:
+        self.old_plot_data_rank = plot_data.rank
+        print ' plot array has rank ', plot_data.rank
+        # get initial axis parameters
+        axis_parms =  self._vells_data.getActiveAxisParms()
+        self.first_axis_parm = axis_parms[0]
+        self.second_axis_parm = axis_parms[1]
+      self.reset_color_bar(True)
+      self.plot_vells_array(plot_data, plot_label)
 
-      if menuid == self.menu_table['Toggle display range to that of flagged image for plane ']:
-        if self.flag_range == False:
-          self.flag_range = True
-        else:
-          self.flag_range = False
-          image_min = None
-          image_max = None
-          if abs(self.raw_image.max() - self.raw_image.min()) < 0.00005:
-            if self.raw_image.max() == 0 or self.raw_image.min() == 0.0:
-              image_min = -0.1
-              image_max = 0.1 
-            else:
-              image_min = 0.9 * self.raw_image.min()
-              image_max = 1.1 * self.raw_image.max()
-            if image_min > image_max:
-              temp = image_min
-              image_min = image_max
-              image_max = temp
-          else:
-            image_min = self.raw_image.min()
-            image_max = self.raw_image.max()
-          self.plotImage.setImageRange((image_min,image_max))
-          self.emit(PYSIGNAL("image_range"),(image_min, image_max))
-          self.emit(PYSIGNAL("max_image_range"),(image_min, image_max))
-        self.defineData()
-        self.replot()
-	return
-
-      id_string = self._next_plot[menuid]
-      perturb = -1
-      plane = 0
-      perturb_loc = id_string.find("perturbed_value")
-      str_len = len(id_string)
-      if perturb_loc >= 0:
-        perturb = int(id_string[perturb_loc+15:str_len])
-      plane_loc = id_string.find("go to plane")
-      if plane_loc >= 0:
-        plane = int( id_string[plane_loc+12:plane_loc+14])
-        self._active_plane = plane
-        self._active_perturb = None
-# do we have flags for data	  
-	self._flags_array = None
-        if self._vells_rec.vellsets[self._active_plane].has_key("flags"):
-# test if we have a numarray
-          try:
-            self._flags_array = self._vells_rec.vellsets[self._active_plane].flags
-            _dprint(3, 'self._flags_array ', self._flags_array)
-            array_shape = self._flags_array.shape
-            if len(array_shape) == 1 and array_shape[0] == 1:
-              temp_value = self._flags_array[0]
-              temp_array = asarray(temp_value)
-              self._flags_array = resize(temp_array,self._shape)
-          except:
-            temp_array = asarray(self._vells_rec.vellsets[self._active_plane].flags)
-            self._flags_array = resize(temp_array,self._shape)
-
-          if self.array_tuple is None:
-            self.setFlagsData(self._flags_array)
-          else:
-            self.setFlagsData(self._flags_array[self.array_tuple])
-
-          self._toggle_flag_label = "toggle flagged data for plane " + str(plane) 
-	  toggle_id = self.menu_table['toggle flagged data for plane ']
-          self._menu.changeItem(toggle_id,self._toggle_flag_label)
-          self._menu.setItemEnabled(toggle_id, True)
-          self._menu.setItemVisible(toggle_id, True)
-          self._toggle_blink_label = "toggle blink of flagged data for plane " + str(plane)
-          toggle_id = self.menu_table['toggle blink of flagged data for plane ']
-          self._menu.changeItem(toggle_id,self._toggle_blink_label)
-          self._menu.setItemEnabled(toggle_id, True)
-          self._menu.setItemVisible(toggle_id, True)
-          self._toggle_range_label = "Toggle display range to that of flagged image for plane " + str(flag_plane)
-          toggle_id = self.menu_table['Toggle display range to that of flagged image for plane ']
-          self._menu.changeItem(toggle_id,self._toggle_range_label)
-          self._menu.setItemEnabled(toggle_id, True)
-          self._menu.setItemVisible(toggle_id, True)
-        else:
-	  toggle_id = self.menu_table['toggle flagged data for plane ']
-          self._menu.setItemEnabled(toggle_id, False)
-          self._menu.setItemVisible(toggle_id, False)
-          self.flag_toggle = False
-          if not self.real_flag_vector is None:
-            self.removeCurve(self.real_flag_vector)
-            self.real_flag_vector = None
-          if not self.imag_flag_vector is None:
-            self.removeCurve(self.imag_flag_vector)
-            self.imag_flag_vector = None
-          toggle_id = self.menu_table['toggle blink of flagged data for plane ']
-          self._menu.setItemEnabled(toggle_id, False)
-          self._menu.setItemVisible(toggle_id, False)
-          toggle_id = self.menu_table['Toggle display range to that of flagged image for plane ']
-          self._menu.setItemEnabled(toggle_id, False)
-          self._menu.setItemVisible(toggle_id, False)
-          self.flag_blink = False
-       
-# get the shape tuple - useful if the Vells have been compressed down to
-# a constant
-      try:
-        self._shape = self._vells_rec.vellsets[plane]["shape"]
-      except:
-        shape_list = []
-        for i in range(len(self.axis_labels)):
-          dimension = self.axis_shape[self.axis_labels[i]] 
-          shape_list.append(dimension)
-        self._shape = tuple(shape_list)
-# handle "value" first
-      if perturb < 0 and self._vells_rec.vellsets[plane].has_key("value"):
-# test if we have a numarray
-        self._value_array = self._vells_rec.vellsets[plane].value
-        key = " value "
-        if self.number_of_planes > 1:
-          self._label =  "plane " + str(plane) + key 
-        else:
-          self._label =  "plane " + key 
-        if self._solver_flag:
-          self.array_plot(self._label, self._value_array, False)
-        else:
-          self.set_data_range(self._value_array)
-          self.plot_vells_array(self._value_array)
-      else:
-# handle "perturbed_value"
-        if self._vells_rec.vellsets[plane].has_key("perturbed_value"):
-# test if we have a numarray
-          perturbed_array_diff = None
-          self._active_perturb = perturb
-          perturbed_array_diff = self._vells_rec.vellsets[plane].perturbed_value[perturb]
-
-          key = " perturbed_value "
-          if self.number_of_planes > 1:
-            self._label =  "plane " + str(plane) + key + str(perturb)
-          else:
-            self._label =  key + str(perturb)
-          if self._solver_flag:
-            self.array_plot(self._label, perturbed_array_diff, False)
-          else:
-            self.set_data_range(perturbed_array_diff)
-            self.plot_vells_array(perturbed_array_diff)
-        
     def printplot(self):
       self.emit(PYSIGNAL("do_print"),(self.is_vector,))
     # printplot()
@@ -1216,6 +1092,7 @@ class QwtImageDisplay(QwtPlot):
     # setDisplayType
 
     def display_image(self, image):
+      _dprint(3, 'self.adjust_color_bar ', self.adjust_color_bar)
       image_for_display = None
       if image.type() == Complex32 or image.type() == Complex64:
 # if incoming array is complex, create array of reals followed by imaginaries
@@ -1241,10 +1118,13 @@ class QwtImageDisplay(QwtPlot):
         self.image_min = image_for_display.min()
       if self.image_max is None or  self.adjust_color_bar:
         self.image_max = image_for_display.max()
+      _dprint(3, 'max and min for display ', image_for_display.max(), ' ', image_for_display.min())
+      if abs(image_for_display.max() - image_for_display.min()) < 0.00005:
+        self.adjust_color_bar = True
 
 # have we requested a colorbar?
       if not self.colorbar_requested:
-        #print 'emitting colorbar_needed signal'
+        _dprint(3, 'emitting colorbar_needed signal')
         self.emit(PYSIGNAL("colorbar_needed"),(image_for_display.min(),image_for_display.max()))
         self.colorbar_requested = True
       
@@ -1478,6 +1358,7 @@ class QwtImageDisplay(QwtPlot):
         plot_label = self._spectrum_data.getPlotLabel()
         plot_data = self._spectrum_data.getActivePlotArray()
         self.array_plot(plot_label, plot_data, False)
+
         if plot_label == 'spectra: combined image':
 	    self.is_combined_image = True
             self.reset_color_bar(True)
@@ -1489,84 +1370,13 @@ class QwtImageDisplay(QwtPlot):
 
     # end plot_data()
 
-    def calc_vells_ranges(self):
-      """ get vells data ranges for use 
-          with other functions """
-                                                                                
-      self.do_calc_vells_range = False
-      axis_map = self._vells_rec.cells.domain.get('axis_map',['time','freq'])
-      self.axis_labels = []
-      self.vells_axis_parms = {}
-      self.axis_shape = {}
-      num_possible_ND_axes = 0
-      for i in range(len(axis_map)):
-        # convert from Hiid to string
-        self.axis_labels.append(str(axis_map[i]).lower())
-        current_label = self.axis_labels[i]
-        begin = 0
-        end = 0
-        title = current_label
-        if self._vells_rec.cells.domain.has_key(current_label):
-          begin = self._vells_rec.cells.domain.get(current_label)[0]
-	  end = self._vells_rec.cells.domain.get(current_label)[1]
-          title = current_label
-          if current_label == 'time':
-            end = end - begin
-            begin = 0
-            title = 'Relative Time(sec)'
-          if current_label == 'freq':
-            if end >  1.0e6:
-              begin = begin / 1.0e6
-              end = end / 1.0e6
-              title = 'Frequency(MHz)'
-            elif end >  1.0e3:
-              begin = begin / 1.0e3
-              end = end / 1.0e3
-              title = 'Frequency(KHz)'
-            else:
-              title = 'Frequency(Hz)'
-        if self._vells_rec.cells.grid.has_key(current_label):
-          grid_array = self._vells_rec.cells.grid.get(current_label)
-          _dprint(3, 'in calc_vells_ranges: examining cells.grid for label ', current_label)
-          _dprint(3, 'in calc_vells_ranges: grid_array is ', grid_array)
-          try:
-            self.axis_shape[current_label] = grid_array.shape[0]
-            _dprint(3, 'in calc_vells_ranges: grid_array shape is ', grid_array.shape)
-            num_possible_ND_axes = num_possible_ND_axes + 1
-            _dprint(3, 'in calc_vells_ranges: incrementing ND axes to ', num_possible_ND_axes)
-          except:
-            self.axis_shape[current_label] = 1
-        else:
-          self.axis_shape[current_label] = 1
-        self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label])
-
-      # do we request a ND GUI?
-      if not self.dimensions_tested:
-        if len(self.vells_axis_parms) > 2 and num_possible_ND_axes > 2:
-          _dprint(3, '** in calc_vells_ranges:')
-          _dprint(3, 'I think I need a ND GUI as number of valid plot axes is ',num_possible_ND_axes)
-          _dprint(3, 'length of self.vells_axis_parms is ', len(self.vells_axis_parms))
-          _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
-          _dprint(3, 'I am emitting a vells_axes_labels signal which will cause the ND GUI to be constructed')
-          # emitting the following signal will cause the ND Controller GUI  
-          # to be constructed 
-          self.emit(PYSIGNAL("vells_axes_labels"),(self.axis_labels, self.vells_axis_parms))
-        self.dimensions_tested = True
-
-# set default axis parameters - needed in a simple 2-D plot
-      self.first_axis_parm = self.axis_labels[0]
-      self.second_axis_parm = self.axis_labels[1]
-
-      _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
-
-    # calc-vells_ranges
-
     def plot_vells_data (self, vells_record,label=''):
       """ process incoming vells data and attributes into the
           appropriate type of plot """
 
-      _dprint(2, 'in plot_vells_data');
+      _dprint(3, 'in plot_vells_data');
       self.metrics_rank = None
+      self._label = label
       self._vells_rec = vells_record;
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
@@ -1586,6 +1396,7 @@ class QwtImageDisplay(QwtPlot):
                self.metrics_rank[i] = metrics[i].rank
                self.iteration_number[i] = i+1
           shape = self._value_array.shape
+          self.set_data_range(self._value_array)
           if shape[1] > 1:
             self._x_title = 'Solvable Coeffs'
             self._y_title = 'Iteration Nr'
@@ -1594,30 +1405,46 @@ class QwtImageDisplay(QwtPlot):
             self._y_title = 'Value'
             self._x_title = 'Iteration Nr'
             self.array_plot("Solver Incremental Solution", self._value_array, True)
+        return
 
 # are we dealing with Vellsets?
       if self._vells_rec.has_key("vellsets") and not self._solver_flag:
         self._vells_plot = True
-#       if self.do_calc_vells_range:
-        self.calc_vells_ranges()
+        self.initVellsContextMenu()
         _dprint(3, 'handling vellsets')
+        
+        if self._vells_data is None:
+          self._vells_data = VellsData()
+# store the data
+        self._vells_data.StoreVellsData(self._vells_rec)
+        if self.num_possible_ND_axes is None:
+          vells_data_parms = self._vells_data.getVellsDataParms()
+          self.vells_axis_parms = vells_data_parms[0]
+          self.axis_labels = vells_data_parms[1]
+          self.num_possible_ND_axes = vells_data_parms[2]
+          if len(self.vells_axis_parms) > 2 and self.num_possible_ND_axes > 2:
+          # emitting the following signal will cause the ND Controller GUI  
+          # to be constructed 
+            self.emit(PYSIGNAL("vells_axes_labels"),(self.axis_labels, self.vells_axis_parms))
+          # get initial axis parameters
+          axis_parms =  self._vells_data.getActiveAxisParms()
+          self.first_axis_parm = axis_parms[0]
+          self.second_axis_parm = axis_parms[1]
 
-
-# how many VellSet planes (e.g. I, Q, U, V would each be a plane) are there?
-        if self._active_plane is None:
-          self._active_plane = 0
-        self.number_of_planes = len(self._vells_rec["vellsets"])
-        _dprint(3, 'number of planes ', self.number_of_planes)
-        if self._vells_rec.vellsets[self._active_plane].has_key("shape"):
-          self._shape = self._vells_rec.vellsets[self._active_plane]["shape"]
+        self.number_of_planes = self._vells_data.getNumPlanes()
+        self._shape =  self._vells_data.getActiveData().shape
 
 # do we have flags for data	  
 	self._flags_array = None
         self.image_flag_array = None
-        if self._vells_rec.vellsets[self._active_plane].has_key("flags"):
+        if self._vells_data.activePlaneHasFlags():
+# add toggling for flags?
+          flag_plane = self._vells_data.getActivePlane()
+          self.set_flag_toggles(flag_plane, True)
+
 # test if we have a numarray
           try:
-            self._flags_array = self._vells_rec.vellsets[self._active_plane].flags
+            self._flags_array = self._vells_data.getActiveFlagData()
             _dprint(3, 'self._flags_array ', self._flags_array)
             array_shape = self._flags_array.shape
             if len(array_shape) == 1 and array_shape[0] == 1:
@@ -1625,7 +1452,7 @@ class QwtImageDisplay(QwtPlot):
               temp_array = asarray(temp_value)
               self._flags_array = resize(temp_array,self._shape)
           except:
-            temp_array = asarray(self._vells_rec.vellsets[self._active_plane].flags)
+            temp_array = asarray(self._vells_data.getActiveFlagData())
             self._flags_array = resize(temp_array,self._shape)
 
           if self.array_tuple is None:
@@ -1633,37 +1460,26 @@ class QwtImageDisplay(QwtPlot):
           else:
             self.setFlagsData(self._flags_array[self.array_tuple])
 
+# test and update the context menu
+        menu_labels = self._vells_data.getMenuLabels()
+        self.vells_menu_items = len(menu_labels)
+        if self.vells_menu_items > 1:
+          menu_id = self._start_vells_menu_id
+          for i in range(self.vells_menu_items):
+            self._menu.insertItem(menu_labels[i], menu_id)
+            menu_id = menu_id + 1
 
-	
 # plot the appropriate plane / perturbed value
-        if not self._active_perturb is None:
-          self._value_array = self._vells_rec.vellsets[self._active_plane].perturbed_value[self._active_perturb]
-        else:
-          if self._vells_rec.vellsets[self._active_plane].has_key("value"):
-            self._value_array = self._vells_rec.vellsets[self._active_plane].value
-        key = ""
-        if self._active_perturb is None:
-          key = " main value "
-          if self.number_of_planes > 1:
-            self._label =  label + " plane " + str(self._active_plane) + key 
-          else:
-            self._label =  label + key 
-        else:
-          key = " perturbed_value "
-          if self.number_of_planes > 1:
-            self._label =  label + "plane " + str(self._active_plane) + key + str(self._active_perturb)
-          else:
-            self._label =  label + key + str(self._active_perturb)
-        if self._solver_flag:
-          self.array_plot(self._label, self._value_array, flip_axes=False)
-        else:
-          if self._vells_plot:
-            if self.context_menu_done is None:
-               self.initVellsContextMenu()
-#           _dprint(3, 'calling set_data_range with array ', self._value_array)
-            self.set_data_range(self._value_array)
-#           _dprint(3, 'calling plot_vells_array with array ', self._value_array)
-            self.plot_vells_array(self._value_array)
+        plot_data = self._vells_data.getActiveData()
+        if plot_data.rank != self.old_plot_data_rank:
+          self.old_plot_data_rank = plot_data.rank
+          # get initial axis parameters
+          axis_parms =  self._vells_data.getActiveAxisParms()
+          self.first_axis_parm = axis_parms[0]
+          self.second_axis_parm = axis_parms[1]
+        plot_label = self._vells_data.getPlotLabel()
+        self.set_data_range(plot_data)
+        self.plot_vells_array(plot_data, plot_label)
 
     # end plot_vells_data()
 
@@ -1697,6 +1513,8 @@ class QwtImageDisplay(QwtPlot):
 
       # just in case we have a uniform image
       # not yet sure if the following is the best test ...
+      _dprint(3, 'self.data_max ', self.data_max)
+      _dprint(3, 'self.data_min ', self.data_min)
       if abs(self.data_max - self.data_min) < 0.00005:
         if self.data_min == 0 or self.data_min == 0.0:
           self.data_min = -0.1
@@ -1714,7 +1532,7 @@ class QwtImageDisplay(QwtPlot):
       self.reset_color_bar(reset_value = False)
 # have we requested a colorbar?
       if not self.colorbar_requested:
-        #print 'emitting colorbar_needed signal'
+        _dprint(3, 'emitting colorbar_needed signal')
         self.emit(PYSIGNAL("colorbar_needed"),(self.data_min, self.data_max))
         self.colorbar_requested = True
       
@@ -1724,200 +1542,70 @@ class QwtImageDisplay(QwtPlot):
 
     def setArraySelector (self,lcd_number, slider_value, display_string):
 #     #print 'in setArraySelector lcd_number, slider_value ', lcd_number, slider_value
-      if self.array_selector is None or len(self.array_selector) == 0:
-        if self._vells_plot:
-          plot_array = self.check_dimensions(self._value_array)
-          self.array_plot('data: '+ display_string, plot_array)
-        else:
-          self.array_plot('data: '+ display_string, self._value_array)
-          
-      else:
-#       #print 'array selector ', self.array_selector
-        self.array_selector[lcd_number] = slider_value
-        self.array_tuple = tuple(self.array_selector)
-        if self._vells_plot:
-          plot_array = self.check_dimensions(self._value_array[self.array_tuple])
-          self.array_plot('data: '+ display_string, plot_array)
-        else:
-          self.array_plot('data: '+ display_string, self._value_array[self.array_tuple])
+      self._vells_data.updateArraySelector(lcd_number,slider_value)
+      if self._vells_plot:
+        plot_array = self._vells_data.getActiveData()
+        self.array_plot('data: '+ display_string, plot_array)
 
-    def plot_vells_array (self, data_array):
-      self.array_shape = None
-      self.array_rank = data_array.rank
-      if data_array.rank > 2: 
-        _dprint(3, 'data_array.rank ', data_array.rank)
-        self.array_shape =  data_array.shape
-        if self.array_selector is None or len(self.array_selector) == 0:
-          _dprint(3, ' selecting array ')
-          self.array_selector = []
-          self.first_axis = None
-          self.second_axis = None
-          for i in range(data_array.rank-1,-1,-1):
-            if data_array.shape[i] > 1:
-              if self.second_axis is None:
-                self.second_axis = i
-              else:
-                if self.first_axis is None:
-                  self.first_axis = i
-          if not self.first_axis is None and not self.second_axis is None:
-            _dprint(3, 'trying to find plot dimensions')
-            for i in range(data_array.rank):
-              if i == self.first_axis:
-                axis_slice = slice(0,data_array.shape[self.first_axis])
-                self.array_selector.append(axis_slice)
-                first_plot_dimension = self.vells_axis_parms[self.axis_labels[i]][3]
-              elif i == self.second_axis:
-                axis_slice = slice(0,data_array.shape[self.second_axis])
-                self.array_selector.append(axis_slice)
-                second_plot_dimension = self.vells_axis_parms[self.axis_labels[i]][3]
-              else:
-                self.array_selector.append(0)
-            self.emit(PYSIGNAL("reset_axes_labels"),(self.axis_labels, self.vells_axis_parms))
-          else:
-            if self.first_axis is None:
-              if not self.second_axis is None:
-                self.first_axis = self.second_axis - 1
-            _dprint(3, 'extracting plot dimensions')
-            first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
-            second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
-        else:
-          first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
-          second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
-        self.array_tuple = tuple(self.array_selector)
-        self.first_axis_parm = self.axis_labels[self.first_axis]
-        self.second_axis_parm = self.axis_labels[self.second_axis]
-        self.plot_vells_dimensions = (first_plot_dimension, second_plot_dimension)
-        plot_array = self.check_dimensions(data_array[self.array_tuple])
-        self.array_plot(self._label, plot_array)
-          
-      else:
-        _dprint(3, 'self.axis_labels ',self.axis_labels)
-        if len(self.axis_labels) > 2:
-          self.array_selector = None
-          self.second_axis = None
-          self.first_axis = None
-          first_plot_dimension = 1
-          second_plot_dimension = 1
-#          for i in range(len(self.axis_labels)-1,-1,-1):
-          for i in range(len(self.axis_labels)):
-           if self.vells_axis_parms[self.axis_labels[i]][3] > 1:
-             _dprint(3, 'self.vells_axis_parms[self.axis_labels[i]] ', self.vells_axis_parms[self.axis_labels[i]])
-             _dprint(3, 'self.vells_axis_parms[self.axis_labels[i]][3] ', self.vells_axis_parms[self.axis_labels[i]][3])
-             if self.first_axis is None:
-               self.first_axis = i
-               first_plot_dimension = self.vells_axis_parms[self.axis_labels[self.first_axis]][3]
-               self.first_axis_parm = self.axis_labels[self.first_axis]
-               _dprint(3, 'first_plot_dimension ',  first_plot_dimension)
-               _dprint(3, 'self.first_axis_parm ',  self.first_axis_parm)
-             else:
-               if self.second_axis is None:
-                 self.second_axis = i
-                 second_plot_dimension = self.vells_axis_parms[self.axis_labels[self.second_axis]][3]
-                 self.second_axis_parm = self.axis_labels[self.second_axis]
-                 _dprint(3, 'second_plot_dimension ',  second_plot_dimension)
-                 _dprint(3, ' self.second_axis_parm ',  self.second_axis_parm)
-          if data_array.rank == 2: 
-            self.array_shape =  data_array.shape
-# the following is probably needed for the case where we have a 1xN array
-            if self.array_shape[0] == 1 and self.array_shape[1] == first_plot_dimension:
-              second_plot_dimension = first_plot_dimension
-              first_plot_dimension = 1
-              self.second_axis_parm = self.first_axis_parm
-              self.first_axis_parm = self.axis_labels[0]
-        else:
-          first_plot_dimension = self.vells_axis_parms[self.axis_labels[0]][3]
-          second_plot_dimension = self.vells_axis_parms[self.axis_labels[1]][3]
-          self.first_axis_parm = self.axis_labels[0]
-          self.second_axis_parm = self.axis_labels[1]
-        self.plot_vells_dimensions = (first_plot_dimension, second_plot_dimension)
-        plot_array = self.check_dimensions(data_array)
-        self.array_plot(self._label, plot_array)
+    def plot_vells_array (self, data_array, data_label=" "):
 
- 
-    def check_dimensions(self,data_array):
-      _dprint(3,'self.plot_vells_dimensions ', self.plot_vells_dimensions)
+# do we have a scalar?
+      is_scalar = False
+      scalar_data = 0.0
       try:
         shape = data_array.shape
         _dprint(3,'data_array shape is ', shape)
       except:
-# we have a scalar - expand the scalar to fill the grid
-        temp_array = asarray(data_array)
-        new_array = resize(temp_array,self.plot_vells_dimensions)
-        return new_array
-      if len(shape) == 1:
+        is_scalar = True
+        scalar_data = data_array
+      if not is_scalar and len(shape) == 1:
         if shape[0] == 1:
-# we essentially have a scalar
-          temp_array = asarray(data_array)
-          new_array = resize(temp_array,self.plot_vells_dimensions)
-          return new_array
-        else:
-# we can assume we have a conformant array along the first axis (I think)
-          temp_array = asarray(data_array)
-          new_array = resize(temp_array,self.plot_vells_dimensions)
-          for i in range(self.plot_vells_dimensions[0]):
-            for j in range(self.plot_vells_dimensions[1]):
-              new_array[i,j] = data_array[i,0]
-          return new_array
-# otherwise we had a 2-D shape
-      else:
-# simplest case: incoming array has dimensions of vell
-        if shape[0] == self.plot_vells_dimensions[0] and shape[1] ==  self.plot_vells_dimensions[1]:
-          return data_array
-        if shape[0] == 1 and shape[1] == 1:
-# we essentially have a scalar
-          temp_array = asarray(data_array)
-          new_array = resize(temp_array,self.plot_vells_dimensions)
-          return new_array
-# we need to expand the data to fill the vells dimension
-# easy if fastest changing index == shape of vector which will
-# be replicated
-        if shape[0] == 1 and shape[1] ==  self.plot_vells_dimensions[1]:
-          new_array = resize(data_array,self.plot_vells_dimensions)
-        else:
-# otherwise
-          temp_array = asarray(data_array[0,0])
-          new_array = resize(temp_array,self.plot_vells_dimensions)
-          for i in range(self.plot_vells_dimensions[0]):
-            for j in range(self.plot_vells_dimensions[1]):
-              new_array[i,j] = data_array[i,0]
-        return new_array
+          is_scalar = True
+          scalar_data = data_array[0]
+      if is_scalar:
+        Message = data_label + ' is a scalar\n with value: ' + str(scalar_data)
+        _dprint(3,' scalar message ', Message)
+#         mb_color = QMessageBox("display_image.py",
+#                    Message,
+#                    QMessageBox.Information,
+#                    QMessageBox.Ok | QMessageBox.Default,
+#                    QMessageBox.NoButton,
+#                    QMessageBox.NoButton)
+#         mb_color.exec_loop()
 
+#         message = QLabel(Message,self)
+#         message.setTextFormat(Qt.RichText)
+#         self.set_widgets(message)
+      
+# text marker giving source of point that was clicked
+        if not self.source_marker is None:
+          self.removeMarker(self.source_marker)
+        self.source_marker = self.insertMarker()
+        ylb = self.axisScale(QwtPlot.yLeft).lBound()
+        xlb = self.axisScale(QwtPlot.xBottom).lBound()
+        self.setMarkerPos(self.source_marker, xlb, ylb)
+        self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
+        fn = self.fontInfo().family()
+        self.setMarkerLabel( self.source_marker, Message,
+          QFont(fn, 10, QFont.Bold, False),
+          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+        self.replot()
+          
+      else:
+        if not self.source_marker is None:
+          self.removeMarker(self.source_marker)
+        self.source_marker  = None
+        self.array_plot(data_label, data_array)
+ 
     def setSelectedAxes (self,first_axis, second_axis):
       self.delete_cross_sections()
       if self._vells_plot:
-        self.first_axis = first_axis
-        self.second_axis = second_axis
-        self.first_axis_parm = self.axis_labels[first_axis]
-        self.second_axis_parm = self.axis_labels[second_axis]
-        first_plot_dimension = self.vells_axis_parms[self.axis_labels[first_axis]][3]
-        second_plot_dimension = self.vells_axis_parms[self.axis_labels[second_axis]][3]
-        self.plot_vells_dimensions = (first_plot_dimension, second_plot_dimension)
-      if not self.array_shape is None: 
-        self.array_selector = []
-        for i in range(len(self.array_shape)):
-          if i == first_axis:
-            axis_slice = slice(0,self.array_shape[first_axis])
-            self.array_selector.append(axis_slice)
-          elif i == second_axis:
-            axis_slice = slice(0,self.array_shape[second_axis])
-            self.array_selector.append(axis_slice)
-          else:
-            self.array_selector.append(0)
-        self.array_tuple = tuple(self.array_selector)
-        if self._vells_plot:
-          if self._value_array.rank > 2:
-            plot_array = self.check_dimensions(self._value_array[self.array_tuple])
-          else:
-            plot_array = self.check_dimensions(self._value_array)
-          self.array_plot(self._label, plot_array)
-        else:
-          self.array_plot(self._label, self._value_array[self.array_tuple])
-      else:
-        if self._vells_plot:
-          plot_array = self.check_dimensions(self._value_array)
-          self.array_plot(self._label, plot_array)
-        else:
-          self.array_plot(self._label, self._value_array)
+        self._vells_data.setSelectedAxes(first_axis, second_axis)
+        axis_parms = self._vells_data.getActiveAxisParms()
+        self.first_axis_parm = axis_parms[0]
+        self.second_axis_parm = axis_parms[1]
+        plot_array = self._vells_data.getActiveData()
+        self.array_plot(" ", plot_array)
 
     def handle_finished (self):
       print 'in handle_finished'
@@ -1998,7 +1686,7 @@ class QwtImageDisplay(QwtPlot):
       self.complex_type = complex_type
 
 # add possibility to flip between real/imag and ampl/phase
-      if complex_type and not self.complex_switch_set:
+      if self.complex_type and not self.complex_switch_set:
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
         self._menu.insertItem("Toggle real/imag or ampl/phase Display", toggle_id)
         self.complex_switch_set = True
@@ -2033,8 +1721,6 @@ class QwtImageDisplay(QwtPlot):
         self.enableGridX(False)
         self.enableGridY(False)
 
-# make sure color bar is shown
-#       self.emit(PYSIGNAL("show_colorbar_display"),(1,)) 
 # make sure options relating to color bar are in context menu
         toggle_id = self.menu_table['Toggle ColorBar']
         self._menu.setItemVisible(toggle_id, True)
@@ -2045,7 +1731,7 @@ class QwtImageDisplay(QwtPlot):
 
 # get mean and standard deviation of array
         temp_str = ""
-        if complex_type:
+        if self.complex_type:
           if plot_array.mean().imag < 0:
             temp_str = "m: %-.3g %-.3gj" % (plot_array.mean().real,plot_array.mean().imag)
           else:
@@ -2056,7 +1742,7 @@ class QwtImageDisplay(QwtPlot):
         self.array_parms = temp_str + " " + temp_str1
 
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
-        if complex_type and self._display_type != "brentjens":
+        if self.complex_type and self._display_type != "brentjens":
           if self._vells_plot:
             _dprint(3, 'complex type: self._vells_plot ', self._vells_plot)
             self.x_parm = self.first_axis_parm
@@ -2173,9 +1859,11 @@ class QwtImageDisplay(QwtPlot):
             self.x_parm = self.second_axis_parm
             self.y_parm = self.first_axis_parm
 # now do a check in case we have selected the wrong plot axis
-          if self.vells_axis_parms[self.x_parm][3] == 1 and self.vells_axis_parms[self.y_parm][3] > 1:
-            self.x_parm = self.first_axis_parm
-            self.y_parm = self.second_axis_parm
+          if  self.x_parm is None:
+            self.x_parm = self.y_parm
+#         if self.vells_axis_parms[self.x_parm][3] == 1 and self.vells_axis_parms[self.y_parm][3] > 1:
+#           self.x_parm = self.first_axis_parm
+#           self.y_parm = self.second_axis_parm
           delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
           x_step = delta_vells / num_elements 
           start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
