@@ -115,7 +115,6 @@ class ResultPlotter(GriddedPlugin):
     self._wtop = None;
     self.dataitem = dataitem
     self._attributes_checked = False
-    self.first_spectrum_plot = True
     self.layout_parent = None
     self.layout = None
     self.ND_Controls = None
@@ -320,14 +319,6 @@ class ResultPlotter(GriddedPlugin):
 # now do the plotting
     self._visu_plotter.plot_data(leaf, attrib_list, label=self.label)
 
-# if we have spectra, we need to repeat display first time in
-# order to get combined image - a bit of a hack ... This is necessitated
-# by the fact that logic in the display_imge code is based on the
-# assumption that the first batch of data would be sent twice
-# (as is the case if one just does an 'array_plot') 
-    if self.first_spectrum_plot and self._plot_type == 'spectra':
-      self._visu_plotter.plot_data(leaf, attrib_list, label=self.label)
-      self.first_spectrum_plot = False
   # do_leafwork
 
   def tree_traversal (self, node, label=None, attribute_list=None):
@@ -501,7 +492,7 @@ class ResultPlotter(GriddedPlugin):
     self.label = '';  # extra label, filled in if possible
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
-      # try to put request ID in label
+      # try to put request ID in label
       try: self.label = "rq " + str(self._rec.cache.request_id);
       except: pass;
       try: self._rec = self._rec.cache.result; # look for cache.result record
@@ -519,12 +510,10 @@ class ResultPlotter(GriddedPlugin):
 # are we dealing with Vellsets?
     if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
       Message = "No cells record for vellsets; scalar assumed. No plot can be made with the <b>Result Plotter</b>. Use the record browser to get further information about this vellset." 
-#     number_of_planes = len(self._rec["vellsets"])
-#     for i in range(number_of_planes):
       if self._rec.vellsets[0].has_key("value"):
         value = self._rec.vellsets[0].value
         str_value = str(value[0])
-        Message = "Scalar value <b>" + str_value + "</b>";
+        Message = "This vellset has scalar value: <b>" + str_value + "</b>";
 
       cache_message = QLabel(Message,self.wparent())
       cache_message.setTextFormat(Qt.RichText)
