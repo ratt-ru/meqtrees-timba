@@ -4,7 +4,7 @@ import sys
 from numarray import *
 
 from Timba.utils import verbosity
-_dbg = verbosity(0,name='vells_data');
+_dbg = verbosity(0,name='VellsData');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
@@ -20,13 +20,15 @@ class VellsData:
      self._plot_labels = {}
      self._menu_labels = {}
      self.do_calc_vells_range = True
-     self.array_selector = None
+     self.array_selector = []
      self.array_tuple = None
      self.data_max = None
      self.data_min = None
      self.first_axis_parm = None
      self.second_axis_parm = None
      self.initialSelection = False
+     self.rank = -1
+     self.shape = (-1,)
 
 #    self.__init__
 
@@ -68,7 +70,7 @@ class VellsData:
         if vells_rec.cells.grid.has_key(current_label):
           grid_array = vells_rec.cells.grid.get(current_label)
           _dprint(3, 'in calc_vells_ranges: examining cells.grid for label ', current_label)
-          _dprint(3, 'in calc_vells_ranges: grid_array is ', grid_array)
+#         _dprint(3, 'in calc_vells_ranges: grid_array is ', grid_array)
           try:
             self.axis_shape[current_label] = grid_array.shape[0]
             _dprint(3, 'in calc_vells_ranges: grid_array shape is ', grid_array.shape)
@@ -89,6 +91,7 @@ class VellsData:
         _dprint(3, 'I am emitting a vells_axes_labels signal which will cause the ND GUI to be constructed')
 
       _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
+      _dprint(3, 'self.axis_labels is ', self.axis_labels)
 
     # calc-vells_ranges
 
@@ -112,8 +115,10 @@ class VellsData:
        if vells_rec.vellsets[i].has_key("value"):
          menu_label = "go to plane " + str(i) + " value" 
          id = id + 1
+#        _dprint(3, 'menu label ', menu_label)
          self._menu_labels[id] = menu_label
          self._plot_vells_dict[menu_label] = vells_rec.vellsets[i].value
+#        _dprint(3, 'self._plot_vells_dict[menu_label] ', self._plot_vells_dict[menu_label])
          tag = " main value "
          self._plot_labels[menu_label] = " plane " + str(i) + tag
        
@@ -148,7 +153,12 @@ class VellsData:
 
 # initialize axis selection ?
      if not self.initialSelection:
-       self.setInitialSelectedAxes()
+       tag = self._menu_labels[0]
+       data = self._plot_vells_dict[tag]
+       rank = data.rank
+       shape = data.shape
+       self.setInitialSelectedAxes(rank,shape)
+       _dprint(3, 'called setInitialSelectedAxes')
    # end StoreVellsData
 
    def getNumPlanes(self):
@@ -204,9 +214,15 @@ class VellsData:
        key =  "   -> go to plane " + str(self._active_plane) + tag + str(self._active_perturb) 
      else:
        key = "go to plane " + str(self._active_plane) + " value" 
+     rank = self._plot_vells_dict[key].rank
+     shape = self._plot_vells_dict[key].shape
+     if rank != self.rank or shape != self.shape:
+       self.setInitialSelectedAxes (rank, shape)
      if self.array_tuple is None:
        return self._plot_vells_dict[key]
      else:
+       _dprint(3, 'self.array_tuple ',  self.array_tuple)
+       _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] has rank ',  self._plot_vells_dict[key][self.array_tuple].rank)
        return self._plot_vells_dict[key][self.array_tuple]
 
    def getPlotData(self):
@@ -241,46 +257,63 @@ class VellsData:
 
    def unsetSelectedAxes (self):
      self.array_tuple = None
-     self.array_selector = None
+     self.array_selector = []
  
    def updateArraySelector (self,lcd_number, slider_value):
-    if not self.array_selector is None:
+    if len(self.array_selector) > 0:
       self.array_selector[lcd_number] = slider_value
       self.array_tuple = tuple(self.array_selector)
 
-   def setInitialSelectedAxes (self):
-     self.array_selector = None
+   def setInitialSelectedAxes (self, rank, shape):
+     self.array_selector = []
      self.array_tuple = None
      first_axis = None
      second_axis = None
+     self.first_axis_parm = None
+     self.second_axis_parm = None
      try:
-       rank = self.getActiveData().rank
-       shape = self.getActiveData().shape
+       if rank == self.rank and self.shape == shape:
+         return
+       else:
+         self.rank = rank
+         self.shape = shape
+       _dprint(3, 'rank ', rank)
+       _dprint(3, 'shape ', shape)
+       _dprint(3, 'self.axis_labels ', self.axis_labels)
        for i in range(rank):
+         _dprint(3, 'testing axes for shape[i] ', i, ' ', shape[i])
          if shape[i] > 1 and first_axis is None:
+#          _dprint(3, 'finding first axis for shape[i] ', shape[i])
            first_axis = i
+           self.first_axis_parm = self.axis_labels[i]
+#          _dprint(3, 'setting self.first_axis_parm ', self.first_axis_parm)
            axis_slice = slice(0,shape[first_axis])
            if rank > 2:
              self.array_selector.append(axis_slice)
-           self.first_axis_parm = self.axis_labels[i]
          elif shape[i] > 1 and second_axis is None:
+#          _dprint(3, 'finding second axis for shape[i] ', shape[i])
            second_axis = i
+           self.second_axis_parm = self.axis_labels[i]
+#          _dprint(3, 'setting self.second_axis_parm ', self.second_axis_parm)
            axis_slice = slice(0,shape[second_axis])
            if rank > 2:
              self.array_selector.append(axis_slice)
-           self.second_axis_parm = self.axis_labels[i]
          else:
            if rank > 2:
              self.array_selector.append(0)
        if rank > 2:
          self.array_tuple = tuple(self.array_selector)
+         _dprint(3, 'array selector tuple ', self.array_tuple)
      except:
-       self.array_selector = None
+       _dprint(3, 'got an exception')
+       self.array_selector = []
        self.array_tuple = None
      self.initialSelection = True
+     _dprint(3, 'self.first_axis_parm ', self.first_axis_parm)
+     _dprint(3, 'self.second_axis_parm ', self.second_axis_parm)
 
    def setSelectedAxes (self,first_axis, second_axis):
-     self.array_selector = None
+     self.array_selector = []
      self.array_tuple = None
      try:
        rank = self.getActiveData().rank
@@ -301,7 +334,7 @@ class VellsData:
              self.array_selector.append(0)
          self.array_tuple = tuple(self.array_selector)
      except:
-       self.array_selector = None
+       self.array_selector = []
        self.array_tuple = None
 
    def getDataRange(self):
