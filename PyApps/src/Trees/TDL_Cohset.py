@@ -11,6 +11,7 @@
 #    - 25 nov 2005: corr_index argument for .spigots()
 #    - 29 nov 2005: added method: ReSampler()
 #    - 03 dec 2005: replaced MG_JEN_exec with TDL_display
+#    - 09 dec 2005: added method: coll()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -136,6 +137,9 @@ class Cohset (TDL_common.Super):
         self.__parmgroup = dict()
         self.__solvegroup = dict()
         self.__condeq_corrs = dict()
+
+        # The Cohset collects data/historyCollect nodes:
+        self.__coll = []
 
         # Plot information (standard, but extended from Jonesets):
         self.__plot_color = TDL_radio_conventions.plot_color()
@@ -271,9 +275,6 @@ class Cohset (TDL_common.Super):
     def punit(self):
         """Return the predict-unit (source/patch) name"""
         return self.__punit
-    def coh(self):
-        """Access to the Cohset itself"""
-        return self.__coh
     def stations(self):
         """Return a list of available stations"""
         return self.__stations
@@ -357,8 +358,21 @@ class Cohset (TDL_common.Super):
             ss.append(indent2+' - first: '+keys[0]+' : '+str(self.__coh[keys[0]]))
             ss.append(indent2+'   ....')
             ss.append(indent2+' - last:  '+keys[n]+' : '+str(self.__coh[keys[n]]))
+        ss.append(indent1+' - Collected dcoll/hcoll nodes ( '+str(len(self.__coll))+' ):')
+        for coll in self.coll():
+            ss.append(indent2+' - '+str(coll))       
         return TDL_common.Super.display_end(self, ss)
 
+
+    def coll(self, new=None, clear=False):
+        """Interaction with collected hcoll/dcoll nodes"""
+        if clear: self.__coll = []  # clear the collection
+        if new:                     # add new item(s) to the collection
+            if isinstance(new, (tuple, list)):
+                self.__coll.extend(new)
+            else:
+                self.__coll.append(new)
+        return self.__coll          # Return a list of the current collection
 
 
     #--------------------------------------------------------------
@@ -759,8 +773,9 @@ class Cohset (TDL_common.Super):
         if True:
             for key in ['start','pre','post']:
                 if isinstance(pp[key], (list,tuple)):
-                    pp[key] = ns[key+'_VisDataMux'] << Meq.ReqSeq(children=pp[key])
-                    # pp[key] = ns[key+'_VisDataMux'] << Meq.Add(children=pp[key])
+                    if len(pp[key])>0:
+                        pp[key] = ns[key+'_VisDataMux'] << Meq.ReqSeq(children=pp[key])
+                        # pp[key] = ns[key+'_VisDataMux'] << Meq.Add(children=pp[key])
             root = ns.VisDataMux << Meq.VisDataMux(start=pp['start'],
                                                    pre=pp['pre'], post=pp['post'])
         
@@ -842,7 +857,12 @@ if __name__ == '__main__':
         cs.spigots(ns, MS_corr_index=MS_corr_index)
         cs.display('spigots')
 
-    if 1:
+    if 0:
+        coll = cs.coll(ns << Meq.DataCollect())
+        coll = cs.coll(ns << Meq.HistoryCollect())
+        cs.coll(clear=True)
+
+    if 0:
         cs.ReSampler(ns)
 
     if 0:

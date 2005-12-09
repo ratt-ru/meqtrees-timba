@@ -368,19 +368,18 @@ def addnoise (ns, Cohset, **pp):
 #                 MS_corr_index=[0,1,2,3],           # all corrs available, use all
 #                 flag=False,                        # if True, flag the input data
 #                 visu=False)                        # if True, visualise the input data
-# JEN_inarg.attach(inarg, MG)
+# JEN_inarg.attach(MG, inarg)
                  
 
 def make_spigots(ns=None, Cohset=None, **inarg):
 
     # Input arguments:
-    pp = JEN_inarg.extract(inarg, 'MG_JEN_Cohset.make_spigots()')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset.make_spigots()')
     pp.setdefault('MS_corr_index', [0,1,2,3])
     pp.setdefault('visu', False)
     pp.setdefault('flag', False)
-    if pp.has_key('getinarg'): return JEN_inarg.noexec(pp)
+    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
     funcname = JEN_inarg.funcname(pp)
-    if not JEN_inarg.check(pp): return False
 
     # Make MeqSinks
     Cohset.spigots(ns, MS_corr_index=pp['MS_corr_index'])
@@ -416,20 +415,19 @@ def make_spigots(ns=None, Cohset=None, **inarg):
 #                 visu_array_config=False,           # if True, visualise the array config
 #                 flag=False,                        # if True, flag the input data
 #                 visu=False)                        # if True, visualise the input data
-# JEN_inarg.attach(inarg, MG)
+# JEN_inarg.attach(MG, inarg)
                  
 
 def make_sinks(ns, Cohset, **inarg):
 
     # Input arguments:
-    pp = JEN_inarg.extract(inarg, 'MG_JEN_Cohset.make_sinks()')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset.make_sinks()')
     pp.setdefault('visu_array_config', True)
     pp.setdefault('visu', False)
     pp.setdefault('flag', False)
     pp.setdefault('output_col', 'PREDICT')
-    if pp.has_key('getinarg'): return JEN_inarg.noexec(pp)
+    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
     funcname = JEN_inarg.funcname(pp)
-    if not JEN_inarg.check(pp): return False
 
     # Change the scope (name) for visualisation etc:
     Cohset.scope('sinks')
@@ -445,16 +443,20 @@ def make_sinks(ns, Cohset, **inarg):
        visualise (ns, Cohset, type='spectra')
 
     # Attach array visualisation nodes:
-    bb = []
+    start = []
     if pp['visu_array_config']:
        global MSauxinfo
        dcoll = MSauxinfo.dcoll(ns)
        for i in range(len(dcoll)):
           MG_JEN_forest_state.bookmark(dcoll[i], page='MSauxinfo_array_config')
-       bb.extend(dcoll)
+       start.extend(dcoll)
+
+    # Attach any collected hcoll/dcoll nodes:
+    post = Cohset.coll()               
+    Cohset.coll(clear=True)
 
     # Make MeqSinks
-    Cohset.sinks(ns, start=bb, output_col=pp['output_col'])
+    Cohset.sinks(ns, start=start, post=post, output_col=pp['output_col'])
     sinks = Cohset.nodes()
     
     # Append the final Cohset to the forest state object:
@@ -590,7 +592,7 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
         if i>0: solver_name = solver_name+pp.solvegroup[i]
 
     # Use copies of the input Cohsets:
-    # - We need a Pohset copy, since it gets modified with condeq nodes.
+    # - We need a Pohset copy, since it gets modified with condeq nodes (not true!).
     # - We need a Mohset copy, since the measured data may be corrected first.
     Pohset = predicted.copy(label='predicted('+str(pp.solvegroup)+')')
     Pohset.label('solver_'+solver_name)
@@ -606,9 +608,9 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     # From here on, only the Pohset copy will be modified,
     # until it contains the MeqCondeq nodes for the solver.
     # It will be attached to the state_forest, for later inspection.
-    Pohset.history(funcname+' input: '+str(pp))
-    Pohset.history(funcname+' measured: '+measured.oneliner())
-    Pohset.history(funcname+' predicted: '+predicted.oneliner())
+    # Pohset.history(funcname+' input: '+str(pp))
+    # Pohset.history(funcname+' measured: '+measured.oneliner())
+    # Pohset.history(funcname+' predicted: '+predicted.oneliner())
 
     # For redundancy calibration, we need station positions:
     if False:
@@ -638,10 +640,6 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
             if pp.visu:
                 MG_JEN_forest_state.bookmark (ns[pgnames[0]], page='allcorrs')
 
-
-    # Make new Cohset objects with the relevant corrs only:
-    # Pohset.selcorr(ns, corrs)
-    # Mohset.selcorr(ns, corrs)
   
     # Make condeq nodes (use Pohset from here onwards):
     cc = []
@@ -650,15 +648,22 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
         if not measured.has_key(key):
             print '\n** key not recognised in measured Cohset:',key
             return
-
-        # Poh/Moh are coherency nodes (tensors), with only the specified 1-4 corrs:
-        Poh = Pohset.coh (key, corrs=corrs, ns=ns, name='predicted')
-        Moh = Mohset.coh (key, corrs=corrs, ns=ns, name='measured')
-        
         s12 = Pohset.stations()[key]
-        condeq = ns.condeq(solver_name)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Moh, Poh)
-        Pohset[key] = condeq
-        cc.append(condeq)
+
+        # Poh4/Moh4 are coherency nodes (tensors), with all 4 corrs:
+        Poh4 = Pohset.coh (key, ns=ns, name='predicted')
+        Moh4 = Mohset.coh (key, ns=ns, name='measured')
+        condeq = ns.condeq(solver_name)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Moh4, Poh4)
+        Pohset[key] = condeq                   # Pohset is used for visualisation below
+        
+        if len(corrs)<4:
+           # Poh/Moh are coherency nodes (tensors), with only the specified corrs:
+           Poh = Pohset.coh (key, corrs=corrs, ns=ns, name='predicted')
+           Moh = Mohset.coh (key, corrs=corrs, ns=ns, name='measured')
+           condeq = ns.condeq(solver_name,corrs)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Moh, Poh)
+
+        cc.append(condeq)                      # condeq children for the solver
+
     Pohset.display('after defining condeqs')
 
 
@@ -705,9 +710,16 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     # NB: This node must be BEFORE the hcoll/dcoll nodes, since these also
     #     require the low-resolution request, of course....
     if pp.num_cells:
-        num_cells = pp['num_cells']                            # [ntime, nfreq]
-        solver_subtree = ns.modres_solver(solver_name, q=punit) << Meq.ModRes(solver_subtree,
+       num_cells = pp['num_cells']                            # [ntime, nfreq]
+       solver_subtree = ns.modres_solver(solver_name, q=punit) << Meq.ModRes(solver_subtree,
                                                                               num_cells=num_cells)
+    # Attach any collected full-resolution hcoll/dcoll nodes:
+    coll = measured.coll()               
+    if len(coll)>0:
+       cc = [solver_subtree]
+       cc.extend(coll)
+       measured.coll(clear=True)
+       solver_subtree = ns.fullres(solver_name, q=punit) << Meq.ReqSeq(children=cc, result_index=0)
 
     # Optional: subtract the given Cohset from the measured (corrected?) data:
     # NB: The interaction between correct and subtract requires a little thought...
@@ -716,9 +728,8 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
 	measured.subtract(ns, subtract)        # assume that 'subtract' is a Cohset
         
     # Add to the Pohset history (why not to measured?):
-    Pohset.history(funcname+' -> '+Pohset.oneliner())
-    MG_JEN_forest_state.history (funcname)
-    MG_JEN_forest_state.object(Pohset, funcname)
+    # Pohset.history(funcname+' -> '+Pohset.oneliner())
+    # MG_JEN_forest_state.object(Pohset, funcname)
 
     # Optional: Correct the measured data with the given Joneset (correct).
     # This is the Joneset that has been affected by the solver.
@@ -728,12 +739,12 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     if correct:
 	measured.correct(ns, correct)          # assume that 'correct' is a Joneset
 
-
     # Graft the solver subtree onto all measured ifr-streams via reqseqs:
     measured.graft(ns, solver_subtree, name='solver_'+solver_name)
     MG_JEN_forest_state.object(measured, funcname)
 
     # Finished
+    MG_JEN_forest_state.history (funcname)
     return True
     
 
@@ -751,7 +762,7 @@ def visualise(ns, Cohset, **pp):
     # Input arguments:
     pp.setdefault('type', 'realvsimag')     # plot type (realvsimag or spectra)
     pp.setdefault('errorbars', False)       # if True, plot stddev as crosses around mean
-    pp.setdefault('graft', True)            # if True, graft the visu-nodes on the Cohset
+    pp.setdefault('graft', False)           # if True, graft the visu-nodes on the Cohset
     pp = record(pp)
 
     # Use a sub-scope where node-names are prepended with name
@@ -835,7 +846,9 @@ def visualise(ns, Cohset, **pp):
         # Do NOT modify the input Cohset
         Cohset.history(funcname+' -> '+'dconc '+str(len(dconc)))
         cc = []
-        for key in dconc.keys(): cc.append(dconc[key]['dcoll'])
+        for key in dconc.keys():
+           cc.append(dconc[key]['dcoll'])
+        Cohset.coll(cc)                              # collect in Cohset
         return cc
 
 
