@@ -27,6 +27,8 @@
 #ifdef USE_THREADS
 #include <pthread.h>
 #include <signal.h>
+#include <map>
+#include <vector>
 #endif
 
 namespace LOFAR
@@ -80,8 +82,7 @@ namespace LOFAR
       { id_ = id; return *this; }
         
       // Joins a thread
-      int join (void * &value = dummy_pvoid)
-      { return pthread_join(id_,&value);  }
+      int join (void * &value = dummy_pvoid);
       // Cancels a thread
       int cancel ()
       { return pthread_cancel(id_); }
@@ -95,6 +96,9 @@ namespace LOFAR
       //##ModelId=98935E61FEED
       static ThrID self ()
       { return ThrID(pthread_self()); }
+      
+      // map management
+      
     };
   
 
@@ -144,7 +148,11 @@ namespace LOFAR
   
     inline Attributes detached ()
     { return Attributes(Attributes::DETACHED); }
-  
+
+    // maps thread IDs to thread numbers and back
+    extern std::map<ThrID,int> thread_map_;
+    extern std::vector<ThrID> thread_list_;
+      
     // -----------------------------------------------------------------------
     // Thread functions
     // -----------------------------------------------------------------------
@@ -154,15 +162,18 @@ namespace LOFAR
     { 
       return ThrID::self(); 
     }
+    
+    inline ThrID getThreadID (int num)
+    { return thread_list_[num]; }
+    
+    inline int getThreadNum (ThrID id)
+    { return thread_map_[id]; }
 
     // Thread::create() creates a thred
     ThrID create (void * (*start)(void*),void *arg=0,const Attributes &attr = Attributes::Null());
-  
+    
     // Exits a thread
-    inline void exit (void *value=0)
-    { 
-      pthread_exit(value); 
-    }
+    void exit (void *value=0);
   
     // Sets the sigmask for a thread
     inline int signalMask (int how,const sigset_t *newmask,sigset_t *oldmask = 0)
