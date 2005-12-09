@@ -592,7 +592,7 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
         if i>0: solver_name = solver_name+pp.solvegroup[i]
 
     # Use copies of the input Cohsets:
-    # - We need a Pohset copy, since it gets modified with condeq nodes (not true!).
+    # - We need a Pohset copy, since it gets modified with condeq nodes.
     # - We need a Mohset copy, since the measured data may be corrected first.
     Pohset = predicted.copy(label='predicted('+str(pp.solvegroup)+')')
     Pohset.label('solver_'+solver_name)
@@ -653,17 +653,18 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
         # Poh4/Moh4 are coherency nodes (tensors), with all 4 corrs:
         Poh4 = Pohset.coh (key, ns=ns, name='predicted')
         Moh4 = Mohset.coh (key, ns=ns, name='measured')
-        condeq = ns.condeq(solver_name)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Moh4, Poh4)
-        Pohset[key] = condeq                   # Pohset is used for visualisation below
+        condeq4 = ns.condeq(solver_name)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Moh4, Poh4)
         
         if len(corrs)<4:
-           # Poh/Moh are coherency nodes (tensors), with only the specified corrs:
-           Poh = Pohset.coh (key, corrs=corrs, ns=ns, name='predicted')
-           Moh = Mohset.coh (key, corrs=corrs, ns=ns, name='measured')
-           condeq = ns.condeq(solver_name,corrs)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Moh, Poh)
+            # Poh/Moh are coherency nodes (tensors), with only the specified corrs:
+            Poh = Pohset.coh (key, corrs=corrs, ns=ns, name='predicted')
+            Moh = Mohset.coh (key, corrs=corrs, ns=ns, name='measured')
+            condeq = ns.condeq(solver_name,corrs)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Moh, Poh)
+            cc.append(condeq)                       # condeq children for the solver
+        else:
+            cc.append(condeq4)                      # condeq children for the solver
 
-        cc.append(condeq)                      # condeq children for the solver
-
+        Pohset[key] = condeq4                  # Pohset is used for visualisation below
     Pohset.display('after defining condeqs')
 
 

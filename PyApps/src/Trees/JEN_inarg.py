@@ -304,11 +304,8 @@ def inarg2pp(inarg, funcname='<funcname>', trace=False):
       pp = inarg
       if trace: print '-- inarg traditional'
 
-   # Attach some control information to pp (if necessary):
-   if not pp.has_key('JEN_inarg_ctrl'):
-      pp['JEN_inarg_ctrl'] = dict(funcname=funcname)
-   elif not isinstance(pp['JEN_inarg_ctrl'], dict):
-      pp['JEN_inarg_ctrl'] = dict(funcname=funcname)
+   # Attach ctrl record to pp (if necessary):
+   attach_ctrl(pp, funcname)
 
    # Replace referenced values (if any):
    replace_reference(pp, trace=trace)
@@ -316,6 +313,17 @@ def inarg2pp(inarg, funcname='<funcname>', trace=False):
    if trace: display(pp,'pp <- .inarg2pp(inarg)', full=True)
    return pp
 
+
+#----------------------------------------------------------------------------
+
+def attach_ctrl(rr, funcname='<funcname>'):
+   """Make sure that rr has a valid JEN_inarg_ctrl record"""
+   if not rr.has_key('JEN_inarg_ctrl'):
+      rr['JEN_inarg_ctrl'] = dict(funcname=funcname)
+   elif not isinstance(rr['JEN_inarg_ctrl'], dict):
+      rr['JEN_inarg_ctrl'] = dict(funcname=funcname)
+   return True
+   
 
 #----------------------------------------------------------------------------
 
@@ -431,29 +439,33 @@ def nest(pp=None, inarg=None, trace=False):
 
 #----------------------------------------------------------------------------
 
-def result(rr=None, pp=None, attach=None, name=None, trace=True):
+def result(rr=None, pp=None, attach=None, trace=True):
    """Attach things to the result record (rr)"""
    if not isinstance(rr, dict):
       rr = dict()
+
+   # Attach the internal argument record (pp):
+   # NB: This should be done first: rr = result(pp=pp)
    if isinstance(pp, dict):
-      if not isinstance(name, str):
-         key = funcname(pp)
-         if not isinstance(key, str): key='?funcname?'
-      rr['funcname'] = key
-      key = 'inarg(pp) for function: '+key
-      rr[key] = pp
+      key = funcname(pp)
+
+      # Make sure that rr has a JEN_inarg_ctrl record
+      # NB: This allows the use of .ERROR(), .is_ok() etc
+      attach_ctrl(rr, key)
+
+      # Attach:
+      rr['inarg(pp) for function: '+key] = pp
+
+   # Attach a sub-result (anything) to rr:
    if isinstance(attach, dict):
-      if not isinstance(name, str):
-         key = funcname(attach)
-         if not isinstance(key, str): key='?funcname?'
-      key = 'result of function: '+key
-      rr[key] = attach
+      key = funcname(attach)
+      if not isinstance(key, str): key='?funcname?'
+      rr['result of function: '+key] = attach
+
    if trace:
-      fname = '?funcname?'
-      if rr.has_key('funcname'):
-         fname = rr['funcname']
+      fname = funcname(rr)
       name = 'result of function: '+fname
-      display(rr, 'JEN_inarg.result()', name=name, full=False)
+      display(rr, 'JEN_inarg.result()', name=name, full=True)
    return rr
 
 
@@ -495,11 +507,16 @@ if __name__ == '__main__':
       if getinarg(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
 
       # Execute the function body, using pp:
+      # Initialise a result record (rr) with the argument record pp
       rr = result(pp=pp)
       if pp['nested']:
          # The inarg record for test2 is part of pp (see above):
          rr = result(rr, attach=test2(inarg=pp))
-         pass
+      cc = ctrl(rr)
+      print 'ctrl =',cc
+      message(rr, 'message')
+      ERROR(rr, 'message')
+      WARNING(rr, 'message')
       return rr
 
 
@@ -513,15 +530,16 @@ if __name__ == '__main__':
       pp.setdefault('trace', False)
       if getinarg(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
 
+      # Initialise a result record (rr) with the argument record pp
       rr = result(pp=pp)
       return rr
 
    #---------------------------------------------------------------------------
 
-   if 1:
+   if 0:
       # Test of basic operation:
       inarg = test1(getinarg=True, trace=True)
-      if 1:
+      if 0:
          # modify(trace=True)
          # modify(inarg, trace=True)
          # modify(inarg, aa='aa', trace=True)
@@ -559,7 +577,7 @@ if __name__ == '__main__':
       cc = ctrl(inarg, 'funcname', 45, trace=True)
       print 'cc =',cc
 
-   if 0:
+   if 1:
       # Test of .message():
       inarg = test1(getinarg=True)
       ERROR(inarg,'error 1', trace=True)

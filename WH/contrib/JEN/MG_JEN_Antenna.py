@@ -54,8 +54,8 @@ MG.parm = record(height=0.25, # dipole height from ground plane, in wavelengths
                               # note that this varies with freq. in order to 
                               # model this variation, use the t,f polynomial
                               # given below
-                 ntime=1,     # no. of grid points in time [0,1]
-                 nfreq=5,     # no. of grid points in frequency [0,1]
+                 ntime=5,     # no. of grid points in time [0,1]
+                 nfreq=10,     # no. of grid points in frequency [0,1]
                  naz=50,     # no. of grid points in azimuth [0,2*pi]
                  nel=50,     # no. of grid points in elevation [0,pi/2]
                  debug_level=10)    # debug level

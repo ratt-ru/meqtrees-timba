@@ -11,7 +11,8 @@
 #    - 25 nov 2005: corr_index argument for .spigots()
 #    - 29 nov 2005: added method: ReSampler()
 #    - 03 dec 2005: replaced MG_JEN_exec with TDL_display
-#    - 09 dec 2005: added method: coll()
+#    - 08 dec 2005: added method: coll()
+#    - 09 dec 2005: added methods: cohs(), Condeq(), DataCollect()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -391,37 +392,53 @@ class Cohset (TDL_common.Super):
         if select=='last': return nn[len(nn)-1]
         return nn
 
-    def coh (self, key=None, corrs='*', ns=None, name=None):
+    def coh (self, key=None, corrs='*', ns=None, name=None, uniqual=None):
         """Get a named (key) cohearency node (tensor), optionally for selected corrs""" 
         funcname = '::coh():'
 
-        # Unfinished: Return list of cohs, e.g. key='*'
-        # See also self.nodes() above....
-        # if False:
-            # keys = key
-            # if isinstance(keys, str):
-                # if keys=='*': keys = self.keys()
-            # if not isinstance(keys, (list, tuple)): keys = [keys]
-            
         # Check the specified key(s) (name):
         if not self.has_key(key, warning=funcname): return False
 
         # Check the specified corr selection:
         if isinstance(corrs, str):
-            if corrs=='*': return self.__coh[key]  # no selection needed
+            if corrs=='*': return self.__coh[key]    # no selection needed
         icorr = self.corr_index(corrs)
         if len(icorr)==4: return self.__coh[key]     # no selection needed
         if len(icorr)==0: return False               # none specified/available (error)
 
         # Make MeqSelector nodes that select the specified corrs:
         multi = (len(icorr)>1)                       # Kludge, to tell MeqSelector that icorr is multiple... 
-        uniqual = _counter(funcname, increment=-1)
+        if not uniqual: uniqual = _counter(funcname, increment=-1)
         s12 = self.__stations[key]
         if not isinstance(name, str):
             name = 'selcorr_'+self.scope()             
         coh = ns[name](uniqual)(corrs)(s1=s12[0], s2=s12[1]) << Meq.Selector(self.__coh[key],
                                                                              index=icorr, multi=multi)
         return coh                                   # return the node
+
+    def cohs (self, key='*', corrs='*', ns=None, name=None):
+        """Get a [vector/list] of cohearency nodes, optionally for selected corrs""" 
+        funcname = '::cohs():'
+
+        # Deal with the specified ifr (key) selection:
+        keys = self.keys()
+
+        # To be finished......:
+        # if isinstance(keys, str):
+        #     if keys=='*': keys = self.keys()
+        # if not isinstance(keys, (list, tuple)): keys = [keys]
+        # NB: See also self.nodes() above....
+
+        # Make a unique qualifier (and pass it to self.coh())
+        uniqual = _counter(funcname, increment=-1)
+
+        # Make the vector/list (cohs) of coh nodes:
+        cohs = []
+        for key in keys:
+            coh = self.coh(key, corrs=corrs, ns=ns, uniqual=uniqual, name=name)
+            cohs.append(coh)
+        return cohs
+
 
     def zero(self, ns):
         """Make zero coherency matrices for all ifrs"""
@@ -624,31 +641,6 @@ class Cohset (TDL_common.Super):
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
-
-    def ReSampler (self, ns, **pp):
-        """Insert a ReSampler node that ignores the result cells of its child,
-        but resamples them onto the cells of the request domain"""
-        funcname = '::ReSampler():'
-        pp.setdefault('flag_bit', 4)                     # .....
-        pp.setdefault('flag_mask', 3)                    # .....
-        pp.setdefault('flag_density', 0.1)               # .....
-        pp = record(pp)
-        uniqual = _counter(funcname, increment=-1)
-        scope = 'ReSampled'
-        for key in self.keys():
-            s12 = self.__stations[key]
-            coh = ns[scope](uniqual)(s1=s12[0], s2=s12[1], q=self.punit()) << Meq.ReSampler(
-                self.__coh[key],
-                flag_mask=pp['flag_mask'],
-                flag_bit=pp['flag_bit'],
-                flag_density=pp['flag_density'])
-            self.__coh[key] = coh
-        self.scope(scope)
-        self.history(append=funcname+' inarg = '+str(pp))
-        self.history(append=funcname+' -> '+self.oneliner())
-        return True
-
-
     def update_from_Joneset(self, Joneset=None):
         """Update the internal info from another Joneset object"""
         # (see Joneseq.Joneset())
@@ -682,6 +674,46 @@ class Cohset (TDL_common.Super):
         self.history(append='updated from: '+Cohset.oneliner())
         return True
 
+    def ReSampler (self, ns, **pp):
+        """Insert a ReSampler node that ignores the result cells of its child,
+        but resamples them onto the cells of the request domain"""
+        funcname = '::ReSampler():'
+        pp.setdefault('flag_bit', 4)                     # .....
+        pp.setdefault('flag_mask', 3)                    # .....
+        pp.setdefault('flag_density', 0.1)               # .....
+        pp = record(pp)
+        uniqual = _counter(funcname, increment=-1)
+        scope = 'ReSampled'
+        for key in self.keys():
+            s12 = self.__stations[key]
+            coh = ns[scope](uniqual)(s1=s12[0], s2=s12[1], q=self.punit()) << Meq.ReSampler(
+                self.__coh[key],
+                flag_mask=pp['flag_mask'],
+                flag_bit=pp['flag_bit'],
+                flag_density=pp['flag_density'])
+            self.__coh[key] = coh
+        self.scope(scope)
+        self.history(append=funcname+' inarg = '+str(pp))
+        self.history(append=funcname+' -> '+self.oneliner())
+        return True
+
+
+    def Condeq (self, ns, Cohset=None, **pp):
+        """Make (2x2) MeqCondeq nodes, using Cohset as the other input"""
+        funcname = '::Condeq():'
+        uniqual = _counter(funcname, increment=-1)
+        scope = 'Condeq'
+        for key in self.keys():
+            s12 = self.__stations[key]
+            coh = ns[scope](uniqual)(s1=s12[0], s2=s12[1], q=self.punit()) << Meq.Condeq(
+                self.__coh[key], Cohset[key])
+            self.__coh[key] = coh
+        self.scope(scope)
+        self.history(append=funcname+' -> '+self.oneliner())
+        return True
+
+
+#    - 09 dec 2005: added methods: cohs(), Condeqs(), DataCollect()
 
 
 #======================================================================================
@@ -866,6 +898,24 @@ if __name__ == '__main__':
         cs.ReSampler(ns)
 
     if 0:
+        cs1 = Cohset(label='measured', polrep=polrep, stations=stations)
+        cs1.zero(ns)
+        cs.Condeq(ns, cs1)
+
+    if 1:
+        corrs = '*'
+        corrs = 'XX'
+        corrs = 'YX'
+        corrs = ['XX','YY']
+        name = None
+        name = 'NAME'
+        cc = cs.cohs (key='*', corrs=corrs, ns=ns, name=name)
+        print '\n** .cohs(',corrs,') ->',type(cc),len(cc),':'
+        for i in range(len(cc)):
+            print '- cc[',i,']=',cc[i]
+        print
+
+    if 0:
         print '\n** cs.corr_index():'
         cs.corr_index()
         cs.corr_index('*')
@@ -920,7 +970,7 @@ if __name__ == '__main__':
         print 'pp =',pp
         
         
-    if 1:
+    if 0:
         # Display the final result:
         k = 0 ; TDL_display.subtree(cs[k], 'cs['+str(k)+']', full=True, recurse=5)
         cs.display('final result')
