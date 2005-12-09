@@ -1,5 +1,5 @@
-file: ../doc/JEN/MQT/tobedone.txt
-                                      last changed:   d25nov
+file: ../WH/contrib/JEN/tobedone.txt
+                                      last changed:   d09dec
 
 NB: Just temporary: To be converted into Bugzilla items....!
 
