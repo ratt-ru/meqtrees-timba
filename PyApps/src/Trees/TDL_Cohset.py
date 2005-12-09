@@ -367,13 +367,18 @@ class Cohset (TDL_common.Super):
 
     def coll(self, new=None, clear=False):
         """Interaction with collected hcoll/dcoll nodes"""
-        if clear: self.__coll = []  # clear the collection
-        if new:                     # add new item(s) to the collection
-            if isinstance(new, (tuple, list)):
+        if new:                                 # add new item(s) to the collection
+            if clear:
+                self.__coll = []                # clear the collection BEFORE adding new item(s)
+                clear = False                   # do not clear afterwards, of course
+            if isinstance(new, (tuple, list)):  # assume list of hcoll/dcoll nodes
                 self.__coll.extend(new)
-            else:
+            else:                               # assume single hcoll/dcoll node
                 self.__coll.append(new)
-        return self.__coll          # Return a list of the current collection
+        # Prepare the return value:
+        cc = self.__coll                        # copy the existing collection BEFORE clearing
+        if clear: self.__coll = []              # clear the collection, if required
+        return cc                               # Return a list (as it was before clearing)
 
 
     #--------------------------------------------------------------
@@ -661,7 +666,6 @@ class Cohset (TDL_common.Super):
             self.history(append='updated from (not solvable): '+Joneset.oneliner())
         return True
 
-
     def update_from_Cohset(self, Cohset=None):
         """Update the internal info from another Cohset object"""
         if Cohset==None: return False
@@ -673,6 +677,40 @@ class Cohset (TDL_common.Super):
         self.__plot_size.update(Cohset.plot_size())
         self.history(append='updated from: '+Cohset.oneliner())
         return True
+
+
+
+    def solvecorrs(self, solvegroup=None):
+        """Collect a list of names of corrs to be used for solving"""
+        corrs = []
+        for sgname in solvegroup:
+            if not self.solvegroup().has_key(sgname):
+                print '\n** solvegroup name not recognised:',sgname
+                print '     choose from:',self.solvegroup().keys()
+                print
+                return
+            corrs.extend(self.condeq_corrs()[sgname])
+        return corrs
+
+    def solveparms(self, solvegroup=None):
+        """Collect a list of names of solvable MeqParms"""
+        parms = []
+        for sgname in solvegroup:
+            if not self.solvegroup().has_key(sgname):
+                print '\n** solvegroup name not recognised:',sgname
+                print '     choose from:',self.solvegroup().keys()
+                print
+                return
+            solvegroup = self.solvegroup()[sgname]
+            for key in solvegroup:
+                pgnames = self.parmgroup()[key]     # list of parmgroup node-names
+                parms.extend(pgnames)              # list of solvable node-names
+        return parms
+
+
+
+
+
 
     def ReSampler (self, ns, **pp):
         """Insert a ReSampler node that ignores the result cells of its child,
@@ -703,9 +741,10 @@ class Cohset (TDL_common.Super):
         funcname = '::Condeq():'
         uniqual = _counter(funcname, increment=-1)
         scope = 'Condeq'
+        punit = self.punit()
         for key in self.keys():
             s12 = self.__stations[key]
-            coh = ns[scope](uniqual)(s1=s12[0], s2=s12[1], q=self.punit()) << Meq.Condeq(
+            coh = ns[scope](uniqual)(s1=s12[0], s2=s12[1], q=punit) << Meq.Condeq(
                 self.__coh[key], Cohset[key])
             self.__coh[key] = coh
         self.scope(scope)

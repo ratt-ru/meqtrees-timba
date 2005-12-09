@@ -13,6 +13,7 @@
 # - 25 nov 2005: MS_corr_index argument to .make_spigots()
 # - 05 dec 2005: included TDL_MSauxinfo services
 # - 07 dec 2005: converted to JEN_inarg
+# - 09 dec 2005: introduced Cohset.Condeq(), .coh()
 
 # Copyright: The MeqTree Foundation 
 
@@ -47,7 +48,7 @@ from Timba.Contrib.JEN import MG_JEN_flagger
 #-------------------------------------------------------------------------
 # MG control record (may be edited here)
 
-MG = MG_JEN_exec.MG_init('MG_JEN_Cohset.py', last_changed = 'd07dec2005')
+MG = MG_JEN_exec.MG_init('MG_JEN_Cohset.py', last_changed = 'd09dec2005')
 
 
 
@@ -64,7 +65,6 @@ MG_JEN_forest_state.init(MG.script_name)
 
 MSauxinfo = TDL_MSauxinfo.MSauxinfo(label=MG.script_name)
 MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
-
 
 
 
@@ -452,8 +452,7 @@ def make_sinks(ns, Cohset, **inarg):
        start.extend(dcoll)
 
     # Attach any collected hcoll/dcoll nodes:
-    post = Cohset.coll()               
-    Cohset.coll(clear=True)
+    post = Cohset.coll(clear=True)               
 
     # Make MeqSinks
     Cohset.sinks(ns, start=start, post=post, output_col=pp['output_col'])
@@ -490,7 +489,7 @@ def predict (ns=0, Sixpack=None, Joneset=None, **pp):
 
     # Optionally, corrupt the Cohset visibilities with the instrumental effects
     # in the given Joneset of 2x2 station jones matrices:
-    if not Joneset==None:
+    if Joneset:
        Cohset.corrupt (ns, Joneset=Joneset)
        Cohset.display('.predict(): after corruption')
 
@@ -511,12 +510,22 @@ def predict (ns=0, Sixpack=None, Joneset=None, **pp):
 # Insert a flagger:
 #======================================================================================
 
+# inarg = MG_JEN_Cohset.insert_flagger(getinarg=True)
+# JEN_inarg.modify(inarg,
+#              sigma=5.0,              # flagged if exceeds sigma*stddev
+#              unop='Abs',             # unop used to make real data
+#              oper='GT',              # decision function (GT=Greater Than)
+#              flag_bit=1,             # affected flag-bit
+#              merge=True,             # if True, merge the flags of 4 corrs
+#              compare=False,          # ....
+#              visu=False)             # if True, visualise the result
+# JEN_inarg.attach(MG, inarg)
+
 def insert_flagger (ns, Cohset, **pp):
     """insert a flagger for the coherency matrices in Cohset""" 
 
-    funcname = 'MG_JEN_Cohset.insert_flagger(): '
-
     # Input arguments:
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_flagger()')
     pp.setdefault('sigma', 5.0)              # flagged if exceeds sigma*stddev
     pp.setdefault('unop', 'Abs')             # unop used to make real data
     pp.setdefault('oper', 'GT')              # decision function (GT=Greater Than)
@@ -524,7 +533,8 @@ def insert_flagger (ns, Cohset, **pp):
     pp.setdefault('merge', True)             # if True, merge the flags of 4 corrs
     pp.setdefault('visu', False)             # if True, visualise the result
     pp.setdefault('compare', False)          # ....
-    pp = record(pp)
+    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+    funcname = JEN_inarg.funcname(pp)
 
     # Insert flaggers for all ifrs:
     flagger_scope = 'flag_'+Cohset.scope()
@@ -532,12 +542,12 @@ def insert_flagger (ns, Cohset, **pp):
         s12 = Cohset.stations()[key]
         nsub = ns.Subscope(flagger_scope, s1=s12[0], s2=s12[1])
         coh = MG_JEN_flagger.flagger (nsub, Cohset[key],
-                                      sigma=pp.sigma, unop=pp.unop, oper=pp.oper,
-                                      flag_bit=pp.flag_bit, merge=pp.merge)
+                                      sigma=pp['sigma'], unop=pp['unop'], oper=pp['oper'],
+                                      flag_bit=pp['flag_bit'], merge=pp['merge'])
         Cohset[key] = coh
 
     # Visualise the result, if required:
-    if pp.visu:
+    if pp['visu']:
         visu_scope = 'flagged_'+Cohset.scope()
         visualise (ns, Cohset, scope=visu_scope, type='spectra')
 
@@ -565,52 +575,63 @@ def insert_flagger (ns, Cohset, **pp):
 #   values. If supplied they will be subtracted from the estimated values
 #   when visualised. 
 
+# inarg = MG_JEN_Cohset.insert_solver(getinarg=True)
+# JEN_inarg.modify(inarg,
+#    num_cells=None,       # if defined, ModRes argument [ntime,nfreq]
+#    solvegroup=[],        # list of solvegroup(s) to be solved for
+#    num_iter=20,          # max number of iterations
+#    epsilon=1e-4,         # iteration control criterion
+#    debug_level=10,       # solver debug_level
+#    visu=True,            # if True, include visualisation
+#    history=True)         # if True, include history collection of metrics 
+# JEN_inarg.attach(MG, inarg)
+                 
 
-def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare=None, **pp):
+def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare=None, **inarg):
     """insert a named solver""" 
 
-    funcname = 'MG_JEN_Cohset.solver(): '
-
     # Input arguments:
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_solver()')
     # pp.setdefault('num_cells', [1,5])      # if defined, ModRes argument [ntime,nfreq]
-    pp.setdefault('num_cells', None)      # if defined, ModRes argument [ntime,nfreq]
+    pp.setdefault('num_cells', None)       # if defined, ModRes argument [ntime,nfreq]
     pp.setdefault('solvegroup', [])        # list of solvegroup(s) to be solved for
     pp.setdefault('num_iter', 20)          # max number of iterations
     pp.setdefault('epsilon', 1e-4)         # iteration control criterion
     pp.setdefault('debug_level', 10)       # solver debug_level
     pp.setdefault('visu', True)            # if True, include visualisation
     pp.setdefault('history', True)         # if True, include history collection of metrics 
-    pp = record(pp)
+    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+    funcname = JEN_inarg.funcname(pp)
 
     # The solver name must correspond to one or more of the
     # predefined solvegroups of parms in the input Cohset(s).
     # These are collected from the Jonesets upstream.
     # The solver_name is just a concatenation of such solvegroup names:
-    if isinstance(pp.solvegroup, str): pp.solvegroup = [pp.solvegroup]
-    solver_name = pp.solvegroup[0]
-    for i in range(len(pp.solvegroup)):
-        if i>0: solver_name = solver_name+pp.solvegroup[i]
+    if isinstance(pp['solvegroup'], str): pp['solvegroup'] = [pp['solvegroup']]
+    solver_name = pp['solvegroup'][0]
+    for i in range(len(pp['solvegroup'])):
+        if i>0: solver_name = solver_name+pp['solvegroup'][i]
 
     # Use copies of the input Cohsets:
     # - We need a Pohset copy, since it gets modified with condeq nodes.
     # - We need a Mohset copy, since the measured data may be corrected first.
-    Pohset = predicted.copy(label='predicted('+str(pp.solvegroup)+')')
+    Pohset = predicted.copy(label='predicted('+str(pp['solvegroup'])+')')
     Pohset.label('solver_'+solver_name)
-    Mohset = measured.copy(label='measured('+str(pp.solvegroup)+')')
+    Mohset = measured.copy(label='measured('+str(pp['solvegroup'])+')')
     Mohset.label('solver_'+solver_name)
 
     # Insert a ReSampler node as counterpart to the ModRes node below.
     # This node resamples the full-resolution (f,t) measured uv-data onto
     # the smaller number of cells of the request from the condeq.
-    if pp.num_cells:
+    if pp['num_cells']:
         Mohset.ReSampler(ns, flag_mask=3, flag_bit=4, flag_density=0.1)
 
     # From here on, only the Pohset copy will be modified,
     # until it contains the MeqCondeq nodes for the solver.
     # It will be attached to the state_forest, for later inspection.
-    # Pohset.history(funcname+' input: '+str(pp))
-    # Pohset.history(funcname+' measured: '+measured.oneliner())
-    # Pohset.history(funcname+' predicted: '+predicted.oneliner())
+    Pohset.history(funcname+' input: '+str(pp))
+    Pohset.history(funcname+' measured: '+measured.oneliner())
+    Pohset.history(funcname+' predicted: '+predicted.oneliner())
 
     # For redundancy calibration, we need station positions:
     if False:
@@ -620,89 +641,61 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
         # Since
         # Use rr.redun.pairs to get ifr keys to select ifrs from Mohset
 
-    # Collect a list of names of solvable MeParms for the solver:
-    # The measured side may also have solvable parameters:
-    # Pohset.update_from_Cohset(measured)
-    corrs = []
-    solvable = []
-    for sgname in pp.solvegroup:
-        if not Pohset.solvegroup().has_key(sgname):
-            print '\n** solvegroup name not recognised:',sgname
-            print '     choose from:',Pohset.solvegroup().keys()
-            print
-            return
-        solvegroup = Pohset.solvegroup()[sgname]
-        corrs.extend(Pohset.condeq_corrs()[sgname])
-        for key in solvegroup:
-            pgnames = Pohset.parmgroup()[key]     # list of parmgroup node-names
-            solvable.extend(pgnames)              # list of solvable node-names
-            # Temporary: show the first solvable MeqParm of each parmgroup on the allcorrs page:
-            if pp.visu:
-                MG_JEN_forest_state.bookmark (ns[pgnames[0]], page='allcorrs')
-
+    # Collect a list of names of solvable MeqParms for the solver:
+    # NB: The measured side may also have solvable parameters:
+    #     first use:  Pohset.update_from_Cohset(measured)
+    corrs = Pohset.solvecorrs(pp['solvegroup'])
+    solvable = Pohset.solveparms(pp['solvegroup'])
+    # Temporary: show the first solvable MeqParm of each parmgroup on the allcorrs page:
+    if pp['visu']:
+        MG_JEN_forest_state.bookmark (ns[solvable[0]], page='allcorrs')
   
     # Make condeq nodes (use Pohset from here onwards):
-    cc = []
-    punit = predicted.punit()
-    for key in Pohset.keys():
-        if not measured.has_key(key):
-            print '\n** key not recognised in measured Cohset:',key
-            return
-        s12 = Pohset.stations()[key]
-
-        # Poh4/Moh4 are coherency nodes (tensors), with all 4 corrs:
-        Poh4 = Pohset.coh (key, ns=ns, name='predicted')
-        Moh4 = Mohset.coh (key, ns=ns, name='measured')
-        condeq4 = ns.condeq(solver_name)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Moh4, Poh4)
-        
-        if len(corrs)<4:
-            # Poh/Moh are coherency nodes (tensors), with only the specified corrs:
-            Poh = Pohset.coh (key, corrs=corrs, ns=ns, name='predicted')
-            Moh = Mohset.coh (key, corrs=corrs, ns=ns, name='measured')
-            condeq = ns.condeq(solver_name,corrs)(s1=s12[0],s2=s12[1], q=punit) << Meq.Condeq(Moh, Poh)
-            cc.append(condeq)                       # condeq children for the solver
-        else:
-            cc.append(condeq4)                      # condeq children for the solver
-
-        Pohset[key] = condeq4                  # Pohset is used for visualisation below
+    solver_condeqs = []
+    Pohset.Condeq(ns, Mohset)
     Pohset.display('after defining condeqs')
+    solver_condeqs = Pohset.cohs(corrs=corrs, ns=ns)  
 
-
-    # Visualise the condeqs, if required:
+    # Visualise the condeqs (at solver resoltion), if required:
     dcoll_condeq = []
-    if pp.visu:
+    if pp['visu']:
        Pohset.scope('condeq_'+solver_name)
        dcoll_condeq = visualise (ns, Pohset, errorbars=True, graft=False)
        # NB: What about visualising MeqParms (solvegroups)?
        #     Possibly compared with their simulated values...
   
+    # Obtain the current list of (full-resolution) hcoll/dcoll nodes, and clear: 
+    coll_before = measured.coll(clear=True)
+
     # Make the solver node:
-    solver = ns.solver(solver_name, q=punit) << Meq.Solver(children=cc,
+    punit = Pohset.punit()
+    solver = ns.solver(solver_name, q=punit) << Meq.Solver(children=solver_condeqs,
                                                            solvable=solvable,
-                                                           num_iter=pp.num_iter,
-                                                           epsilon=pp.epsilon,
+                                                           num_iter=pp['num_iter'],
+                                                           epsilon=pp['epsilon'],
                                                            last_update=True,
                                                            save_funklets=True,
-                                                           debug_level=pp.debug_level)
+                                                           debug_level=pp['debug_level'])
     # Make a bookmark for the solver plot:
     MG_JEN_forest_state.bookmark (solver, name=('solver: '+solver_name),
                                   udi='cache/result', viewer='Result Plotter')
-    if pp.visu:
+    if pp['visu']:
         MG_JEN_forest_state.bookmark (solver, page='allcorrs',
                                       udi='cache/result', viewer='Result Plotter')
 
     # Make historyCollect nodes for the solver metrics
     hcoll_nodes = []
-    if pp.history and pp.visu:
+    if pp['history'] and pp['visu']:
         # Make a tensor node of solver metrics/debug hcoll nodes:
         hc = MG_JEN_historyCollect.make_hcoll_solver_metrics (ns, solver, name=solver_name)
         hcoll_nodes.append(hc)
 
     # Make a solver subtree with the solver and its associated hcoll/dcoll nodes:
+    # The latter are at solver resolution, which may be lower (resampling)
     # This is necessary in order to give them all the same resampled request (see below)
-    subtree_name = 'solver_subtree_'+solver_name        # used in reqseq name
-    cc = [solver]                              # start a list of reqseq children (solver is first)
-    cc.extend(hcoll_nodes)                     # extend with historyCollect nodes
+    subtree_name = 'solver_subtree_'+solver_name  # used in reqseq name
+    cc = [solver]                                 # start a list of reqseq children (solver is first)
+    cc.extend(hcoll_nodes)                        # extend with historyCollect nodes
     cc.extend(dcoll_condeq)                       # extend the list with the condeq dataCollect node(s) 
     solver_subtree = ns[subtree_name](q=punit) << Meq.ReqSeq(children=cc, result_index=0)
 
@@ -710,41 +703,41 @@ def insert_solver (ns, measured, predicted, correct=None, subtract=None, compare
     # Insert a ModRes node to change (reduce) the number of request cells:
     # NB: This node must be BEFORE the hcoll/dcoll nodes, since these also
     #     require the low-resolution request, of course....
-    if pp.num_cells:
-       num_cells = pp['num_cells']                            # [ntime, nfreq]
+    if pp['num_cells']:
+       num_cells = pp['num_cells']                # [ntime, nfreq]
        solver_subtree = ns.modres_solver(solver_name, q=punit) << Meq.ModRes(solver_subtree,
                                                                               num_cells=num_cells)
-    # Attach any collected full-resolution hcoll/dcoll nodes:
-    coll = measured.coll()               
-    if len(coll)>0:
-       cc = [solver_subtree]
-       cc.extend(coll)
-       measured.coll(clear=True)
-       solver_subtree = ns.fullres(solver_name, q=punit) << Meq.ReqSeq(children=cc, result_index=0)
-
     # Optional: subtract the given Cohset from the measured (corrected?) data:
     # NB: The interaction between correct and subtract requires a little thought...
     # NB: Use predicted for subtract/correct...? (ONLY if not resampling....)
     if subtract:
-	measured.subtract(ns, subtract)        # assume that 'subtract' is a Cohset
+	measured.subtract(ns, subtract)           # assume that 'subtract' is a Cohset
+        if pp['visu']: visualise (ns, measured, errorbars=True, graft=False)
         
-    # Add to the Pohset history (why not to measured?):
-    # Pohset.history(funcname+' -> '+Pohset.oneliner())
-    # MG_JEN_forest_state.object(Pohset, funcname)
-
     # Optional: Correct the measured data with the given Joneset (correct).
     # This is the Joneset that has been affected by the solver.
     # NB: This correction should be inserted BEFORE the solver reqseq (see below),
     #         because otherwise it messes up the correction of the insertion ifr
     #         (one of the input Jones matrices is called before the solver....)
     if correct:
-	measured.correct(ns, correct)          # assume that 'correct' is a Joneset
+	measured.correct(ns, correct)             # assume that 'correct' is a Joneset
+        if pp['visu']: visualise (ns, measured, errorbars=True, graft=False)
 
-    # Graft the solver subtree onto all measured ifr-streams via reqseqs:
+    # Attach any collected full-resolution hcoll/dcoll nodes:
+    coll_after = measured.coll(clear=True)               
+    if (len(coll_before)+len(coll_after))>0:
+        cc = coll_before                          # hcoll/dcoll nodes BEFORE the solver
+        cc.append(solver_subtree)                 # the solver subtree itself
+        cc.extend(coll_after)                     # hcoll/dcoll nodes AFTER the solver
+        solver_subtree = ns.fullres(solver_name, q=punit) << Meq.ReqSeq(children=cc)
+
+    # Graft the solver_subtree onto all measured ifr-streams via reqseqs:
     measured.graft(ns, solver_subtree, name='solver_'+solver_name)
-    MG_JEN_forest_state.object(measured, funcname)
 
-    # Finished
+    # Finished: do some book-keeping:
+    Pohset.history(funcname+' -> '+Pohset.oneliner())
+    MG_JEN_forest_state.object(Mohset, funcname)
+    MG_JEN_forest_state.object(Pohset, funcname)
     MG_JEN_forest_state.history (funcname)
     return True
     
@@ -758,13 +751,13 @@ def visualise(ns, Cohset, **pp):
     """visualises the 2x2 coherency matrices in Cohset"""
 
     funcname = 'MG_JEN_Cohset.visualise(): '
-    uniqual = MG_JEN_forest_state.uniqual('MG_JEN_Cohset::visualise()')
 
     # Input arguments:
     pp.setdefault('type', 'realvsimag')     # plot type (realvsimag or spectra)
     pp.setdefault('errorbars', False)       # if True, plot stddev as crosses around mean
     pp.setdefault('graft', False)           # if True, graft the visu-nodes on the Cohset
-    pp = record(pp)
+    pp['graft'] = False                              # disabled permanently....?
+    # pp = record(pp)
 
     # Use a sub-scope where node-names are prepended with name
     # and may have other qualifiers: nsub = ns.subscope(name, '[qual_list]')
@@ -776,42 +769,39 @@ def visualise(ns, Cohset, **pp):
     # Make separate lists of nodes per (available) corr:
     nodes = {}
     for corr in Cohset.corrs():
-        nodes[corr] = []
-        for key in Cohset.keys():
-           node = Cohset.coh(key, corrs=corr, ns=ns, name='visu')
-           nodes[corr].append(node)
+        nodes[corr] = Cohset.cohs(corrs=corr, ns=ns, name='visu')
 
     # Make dcolls per (available) corr, and collect groups of corrs:
     dcoll = dict()
     for corr in Cohset.corrs():
         dc = MG_JEN_dataCollect.dcoll (ns, nodes[corr], 
 	                               scope=dcoll_scope, tag=corr,
-                                       type=pp.type, errorbars=pp.errorbars,
+                                       type=pp['type'], errorbars=pp['errorbars'],
                                        color=Cohset.plot_color()[corr],
                                        style=Cohset.plot_style()[corr],
                                        size=Cohset.plot_size()[corr],
                                        pen=Cohset.plot_pen()[corr])
-        if pp.type=='spectra':
-           dcoll[corr] = dc
-        elif pp.type=='realvsimag':
-           key = 'allcorrs'
-           dcoll.setdefault(key,[])
-           dcoll[key].append(dc)
-           if corr in ['XY','YX','RL','LR']:
-              key = 'crosscorr'
-              dcoll.setdefault(key,[])
-              dcoll[key].append(dc)
-           if True and corr in ['XX','YY','RR','LL']:
-              key = 'paralcorr'
-              dcoll.setdefault(key,[])
-              dcoll[key].append(dc)
+        if pp['type']=='spectra':
+            dcoll[corr] = dc
+        elif pp['type']=='realvsimag':
+            key = 'allcorrs'
+            dcoll.setdefault(key,[])
+            dcoll[key].append(dc)
+            if corr in ['XY','YX','RL','LR']:
+                key = 'crosscorr'
+                dcoll.setdefault(key,[])
+                dcoll[key].append(dc)
+            if True and corr in ['XX','YY','RR','LL']:
+                key = 'paralcorr'
+                dcoll.setdefault(key,[])
+                dcoll[key].append(dc)
 
     # Make the final dcolls:
     dconc = dict()
     sc = []
     for key in dcoll.keys():
        bookpage = None
-       if pp.type=='spectra':
+       if pp['type']=='spectra':
           # Since spectra plots are crowded, make separate plots for the 4 corrs.
           # key = corr
           dc = dcoll[key]
@@ -819,7 +809,7 @@ def visualise(ns, Cohset, **pp):
           MG_JEN_forest_state.bookmark (dc['dcoll'], page=dcoll_scope+'_spectra')
           MG_JEN_forest_state.bookmark (dc['dcoll'], page=Cohset.scope())
 
-       elif pp.type=='realvsimag':
+       elif pp['type']=='realvsimag':
           # For realvsimag plots it is better to plot multiple corrs in the same plot.
           # key = allcorrs, [paralcorr], [crosscorr]
           dc = MG_JEN_dataCollect.dconc(ns, dcoll[key], 
@@ -834,11 +824,11 @@ def visualise(ns, Cohset, **pp):
 
     MG_JEN_forest_state.history (funcname)
   
-    if pp.graft:
+    if pp['graft']:
         # Make the dcoll nodes children of a (synchronising) MeqReqSeq node
         # that is inserted into the coherency stream(s):
-        Cohset.graft(ns, sc, name=visu_scope+'_'+pp.type) 
-        MG_JEN_forest_state.object(Cohset, funcname+'_'+visu_scope+'_'+pp.type)
+        Cohset.graft(ns, sc, name=visu_scope+'_'+pp['type']) 
+        MG_JEN_forest_state.object(Cohset, funcname+'_'+visu_scope+'_'+pp['type'])
         # Return an empty list to be consistent with the alternative below
         return []
 

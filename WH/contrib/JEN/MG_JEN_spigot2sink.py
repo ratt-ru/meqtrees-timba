@@ -67,8 +67,8 @@ MG = MG_JEN_exec.MG_init('MG_JEN_spigot2sink.py',
                          # num_cells=[10,10],                       # resampling [ntime, nfreq] (None=ignore)
                          num_iter=20,                             # (max) number of solver iterations per snippet
                          epsilon=1e-4,                            # iteration stop criterion (policy-free)
-                         subtract_cps=False,                   # if True, subtract the cps
-                         correct_data=True,                   # if True, correct the uv-data
+                         subtract_cps=True,                   # if True, subtract the cps
+                         correct_data=False,                   # if True, correct the uv-data
 
                          fdeg_Gampl=2,                          # degree of freq polynomial
                          fdeg_Gphase='fdeg_Gampl',

@@ -92,7 +92,7 @@ def is_inarg(rr, origin='...', level=0, trace=False):
 def is_ok(rr, level=0, trace=False):
    """Generic test whether rr (pp or inarg) is ok"""
    if not isinstance(rr, dict): return False
-   if not is_inarg(rr, 'is_ok()'): return False
+   ### if not is_inarg(rr, 'is_ok()'): return False        # <------!!
    for key in rr.keys():
       if key=='JEN_inarg_ctrl':
          if not isinstance(rr[key], dict): return False
