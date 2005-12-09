@@ -181,7 +181,7 @@ class HistoryPlotter(GriddedPlugin):
               else:
                 self.array_selector.append(0)
         self.array_tuple = tuple(self.array_selector)
-        self._plotter.array_plot(self.label +'data', self._plot_array[self.array_tuple])
+        self._plotter.array_plot(self.label +' data', self._plot_array[self.array_tuple])
       else:
         if self._plot_array.rank == 2:
           self._plotter.set_yaxis_title('Sequence Number')
@@ -189,7 +189,7 @@ class HistoryPlotter(GriddedPlugin):
         if self._plot_array.rank == 1:
           self._plotter.set_yaxis_title('Values')
           self._plotter.set_xaxis_title('Sequence Number')
-        self._plotter.array_plot(self.label+ 'data', self._plot_array)
+        self._plotter.array_plot(self.label+ ' data', self._plot_array)
 
     else:
       Message = "MeqHistoryCollect node lacks a value field."
@@ -349,7 +349,7 @@ class HistoryPlotter(GriddedPlugin):
   def setArraySelector (self,lcd_number, slider_value, display_string):
     self.array_selector[lcd_number] = slider_value
     self.array_tuple = tuple(self.array_selector)
-    self._plotter.array_plot(self.label + 'data ', self._plot_array[self.array_tuple])
+    self._plotter.array_plot(self.label + ' data ', self._plot_array[self.array_tuple])
 
   def setSelectedAxes (self,first_axis, second_axis):
     self.array_selector = []
@@ -363,7 +363,7 @@ class HistoryPlotter(GriddedPlugin):
       else:
         self.array_selector.append(0)
     self.array_tuple = tuple(self.array_selector)
-    self._plotter.array_plot(self.label+ 'data', self._plot_array[self.array_tuple])
+    self._plotter.array_plot(self.label+ ' data', self._plot_array[self.array_tuple])
 
   def set_data_range(self, data_array):
     """ figure out global minima and maxima of array to be plotted """
