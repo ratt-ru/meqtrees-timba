@@ -11,7 +11,8 @@ _dprintf = _dbg.dprintf;
 class VellsData:
    """ A class for handling and extracting Vells data for display """
 
-   def __init__(self):
+   def __init__(self, rq_label=''):
+     self.rq_label = rq_label
      self._active_plane = 0
      self._active_perturb = None
 
@@ -113,29 +114,39 @@ class VellsData:
 # store data
      for i in range(self._number_of_planes):
        if vells_rec.vellsets[i].has_key("value"):
-         menu_label = "go to plane " + str(i) + " value" 
+         menu_label = "go to [" + str(i) + "] value" 
          id = id + 1
 #        _dprint(3, 'menu label ', menu_label)
          self._menu_labels[id] = menu_label
          self._plot_vells_dict[menu_label] = vells_rec.vellsets[i].value
 #        _dprint(3, 'self._plot_vells_dict[menu_label] ', self._plot_vells_dict[menu_label])
-         tag = " main value "
-         self._plot_labels[menu_label] = " plane " + str(i) + tag
+         tag = "] main value "
+         if len(self.rq_label) > 0:
+           plot_string = "[" + str(i) + tag + " " + self.rq_label
+         else:
+           plot_string = "[" + str(i) + tag 
+         self._plot_labels[menu_label] = plot_string
        
        if vells_rec.vellsets[i].has_key("perturbed_value"):
          try:
            number_of_perturbed_arrays = len(vells_rec.vellsets[i].perturbed_value)
-           tag = " perturbed value "
+           tag = "] perturbed value "
            for j in range(number_of_perturbed_arrays):
-             menu_label =  "   -> go to plane " + str(i) + tag + str(j) 
+             menu_label =  "   -> go to [" + str(i) + tag + str(j) 
              id = id + 1
              self._menu_labels[id] = menu_label
              self._plot_vells_dict[menu_label] = vells_rec.vellsets[i].perturbed_value[j]
              if self._number_of_planes > 1:
-               self._plot_labels[menu_label] = " plane " + str(i) + tag + str(j)
+               initial_plot_str = "[" + str(i) + tag + str(j)
              else:
-               self._plot_labels[menu_label] = tag + str(j)
+               initial_plot_str = tag[2:len(tag)] + str(j)
        
+             if len(self.rq_label) > 0:
+               plot_string = initial_plot_str + " " + self.rq_label
+             else:
+               plot_string = initial_plot_str
+             self._plot_labels[menu_label] = plot_string
+
          except:
            _dprint(3, 'The perturbed values cannot be displayed.')
 # don't display message for the time being
@@ -184,9 +195,6 @@ class VellsData:
      else:
        return self._plot_flags_dict[key][self.array_tuple]
 
-   def getActivePlaneData(self):
-     return self._plot_vells_dict["go to plane " + str(self._active_plane) + " value"] 
-
    def getActivePlane(self):
      return self._active_plane
 
@@ -196,24 +204,24 @@ class VellsData:
    def getPlotLabel(self):
      key = ""
      if not self._active_perturb is None:
-       tag = " perturbed value "
-       key =  "   -> go to plane " + str(self._active_plane) + tag + str(self._active_perturb) 
+       tag = "] perturbed value "
+       key =  "   -> go to [" + str(self._active_plane) + tag + str(self._active_perturb) 
      else:
-       key = "go to plane " + str(self._active_plane) + " value" 
+       key = "go to [" + str(self._active_plane) + "] value" 
      return self._plot_labels[key]
 
    def getActivePerturbData(self):
-     tag = " perturbed value "
-     key =  "   -> go to plane " + str(self._active_plane) + tag + str(self._active_perturb) 
+     tag = "] perturbed value "
+     key =  "   -> go to [" + str(self._active_plane) + tag + str(self._active_perturb) 
      return self._plot_vells_dict[key]
 
    def getActiveData(self):
      key = ""
      if not self._active_perturb is None:
-       tag = " perturbed value "
-       key =  "   -> go to plane " + str(self._active_plane) + tag + str(self._active_perturb) 
+       tag = "] perturbed value "
+       key =  "   -> go to [" + str(self._active_plane) + tag + str(self._active_perturb) 
      else:
-       key = "go to plane " + str(self._active_plane) + " value" 
+       key = "go to [" + str(self._active_plane) + "] value" 
      rank = self._plot_vells_dict[key].rank
      shape = self._plot_vells_dict[key].shape
      if rank != self.rank or shape != self.shape:
@@ -254,9 +262,16 @@ class VellsData:
       str_len = len(id_string)
       if perturb_loc >= 0:
         self._active_perturb = int(id_string[perturb_loc+15:str_len])
-      plane_loc = id_string.find("go to plane")
+      
+      plane_loc = id_string.find("go to [")
       if plane_loc >= 0:
-        self._active_plane = int( id_string[plane_loc+12:plane_loc+14])
+        active_plane_string = id_string[plane_loc+7:plane_loc+9]
+        closing_bracket =   active_plane_string.find("]")
+        if closing_bracket >= 0:
+          request_plane_string = active_plane_string[:len(active_plane_string)-1]
+        else:
+          request_plane_string = active_plane_string
+        self._active_plane = int(request_plane_string)
 
    def unsetSelectedAxes (self):
      self.array_tuple = None
