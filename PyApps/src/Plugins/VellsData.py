@@ -231,6 +231,9 @@ class VellsData:
    def getActivePlot(self):
      return self._active_plane
 
+   def getActiveDataRank(self):
+     return self.rank
+
    def setActivePlane(self, active_plane=0):
      self._active_plane = active_plane
 
@@ -280,29 +283,27 @@ class VellsData:
        _dprint(3, 'rank ', rank)
        _dprint(3, 'shape ', shape)
        _dprint(3, 'self.axis_labels ', self.axis_labels)
-       for i in range(rank):
+       for i in range(rank-1,-1,-1):
          _dprint(3, 'testing axes for shape[i] ', i, ' ', shape[i])
-         if shape[i] > 1 and first_axis is None:
-#          _dprint(3, 'finding first axis for shape[i] ', shape[i])
-           first_axis = i
-           self.first_axis_parm = self.axis_labels[i]
-#          _dprint(3, 'setting self.first_axis_parm ', self.first_axis_parm)
-           axis_slice = slice(0,shape[first_axis])
-           if rank > 2:
-             self.array_selector.append(axis_slice)
-         elif shape[i] > 1 and second_axis is None:
-#          _dprint(3, 'finding second axis for shape[i] ', shape[i])
+         if shape[i] > 1 and second_axis is None:
            second_axis = i
            self.second_axis_parm = self.axis_labels[i]
-#          _dprint(3, 'setting self.second_axis_parm ', self.second_axis_parm)
-           axis_slice = slice(0,shape[second_axis])
-           if rank > 2:
-             self.array_selector.append(axis_slice)
-         else:
-           if rank > 2:
-             self.array_selector.append(0)
+         else: 
+           if shape[i] > 1 and first_axis is None:
+             first_axis = i
+             self.first_axis_parm = self.axis_labels[i]
        if rank > 2:
-         self.array_tuple = tuple(self.array_selector)
+         if not first_axis is None and not second_axis is None:
+           for i in range(rank):
+             if i == first_axis:            
+               axis_slice = slice(0,shape[first_axis])
+               self.array_selector.append(axis_slice)
+             elif i == second_axis:            
+               axis_slice = slice(0,shape[second_axis])
+               self.array_selector.append(axis_slice)
+             else:
+               self.array_selector.append(0)
+           self.array_tuple = tuple(self.array_selector)
          _dprint(3, 'array selector tuple ', self.array_tuple)
      except:
        _dprint(3, 'got an exception')
