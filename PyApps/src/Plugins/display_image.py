@@ -233,11 +233,13 @@ class QwtImageDisplay(QwtPlot):
         self.index = 1
         self.is_vector = False
         self.old_plot_data_rank = -1
+        self.raw_data_rank = 0
         self.xpos = 0
         self.ypos = 0
         self.toggle_array_rank = 1
         self.toggle_color_bar = 1
         self.toggle_ND_Controller = 1
+        self.hidden_ND_Controller = False
         self.toggle_gray_scale = 0
         self._toggle_flag_label = None
         self._toggle_blink_label = None
@@ -686,9 +688,11 @@ class QwtImageDisplay(QwtPlot):
       self._vells_data.unravelMenuId(menuid)
       plot_label = self._vells_data.getPlotLabel()
       plot_data = self._vells_data.getActiveData()
-      if plot_data.rank != self.old_plot_data_rank:
+      raw_data_rank = self._vells_data.getActiveDataRank()
+      if self.raw_data_rank != raw_data_rank:
+#     if plot_data.rank != self.old_plot_data_rank:
         self.old_plot_data_rank = plot_data.rank
-        print ' plot array has rank ', plot_data.rank
+        self.raw_data_rank = raw_data_rank
         # get initial axis parameters
         axis_parms =  self._vells_data.getActiveAxisParms()
         self.first_axis_parm = axis_parms[0]
@@ -1409,9 +1413,9 @@ class QwtImageDisplay(QwtPlot):
 
 # are we dealing with Vellsets?
       if self._vells_rec.has_key("vellsets") and not self._solver_flag:
-        self._vells_plot = True
-        self.initVellsContextMenu()
         _dprint(3, 'handling vellsets')
+        self._vells_plot = True
+#       self.initVellsContextMenu()
         
         if self._vells_data is None:
           self._vells_data = VellsData()
@@ -1423,6 +1427,7 @@ class QwtImageDisplay(QwtPlot):
           self.axis_labels = vells_data_parms[1]
           self.num_possible_ND_axes = vells_data_parms[2]
           if len(self.vells_axis_parms) > 2 and self.num_possible_ND_axes > 2:
+            self.toggle_array_rank = self.num_possible_ND_axes
           # emitting the following signal will cause the ND Controller GUI  
           # to be constructed 
             self.emit(PYSIGNAL("vells_axes_labels"),(self.axis_labels, self.vells_axis_parms))
@@ -1431,8 +1436,11 @@ class QwtImageDisplay(QwtPlot):
           self.first_axis_parm = axis_parms[0]
           self.second_axis_parm = axis_parms[1]
 
+        self.initVellsContextMenu()
+
         self.number_of_planes = self._vells_data.getNumPlanes()
         self._shape =  self._vells_data.getActiveData().shape
+        self.raw_data_rank = self._vells_data.getActiveDataRank()
 
 # do we have flags for data	  
 	self._flags_array = None
@@ -1589,9 +1597,24 @@ class QwtImageDisplay(QwtPlot):
         self.setMarkerLabel( self.source_marker, Message,
           QFont(fn, 10, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+        if self.toggle_array_rank > 2: 
+          self.toggle_ND_Controller = 0
+          self.hidden_ND_Controller = True
+          toggle_id = self.menu_table['Toggle ND Controller']
+          self._menu.setItemVisible(toggle_id, False)
+          self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
         self.replot()
           
       else:
+        if self.hidden_ND_Controller and self.toggle_array_rank > 2: 
+          if self.raw_data_rank > 2:
+            self.hidden_ND_Controller = False
+            self.toggle_ND_Controller = 1
+            toggle_id = self.menu_table['Toggle ND Controller']
+            self._menu.setItemVisible(toggle_id, True)
+          else:
+            self.toggle_ND_Controller = 0
+          self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
         if not self.source_marker is None:
           self.removeMarker(self.source_marker)
         self.source_marker  = None
@@ -1859,8 +1882,8 @@ class QwtImageDisplay(QwtPlot):
             self.x_parm = self.second_axis_parm
             self.y_parm = self.first_axis_parm
 # now do a check in case we have selected the wrong plot axis
-          if  self.x_parm is None:
-            self.x_parm = self.y_parm
+          if  self.y_parm is None:
+            self.y_parm = self.x_parm
 #         if self.vells_axis_parms[self.x_parm][3] == 1 and self.vells_axis_parms[self.y_parm][3] > 1:
 #           self.x_parm = self.first_axis_parm
 #           self.y_parm = self.second_axis_parm
