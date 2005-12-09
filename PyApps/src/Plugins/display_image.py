@@ -1108,12 +1108,18 @@ class QwtImageDisplay(QwtPlot):
           phase_array = arctan2(imag_array,real_array)
           real_array = abs_array
           imag_array = phase_array
-        shape = real_array.shape
-        image_for_display = zeros((2*shape[0],shape[1]), Float32)
-        for k in range(shape[0]):
-          for j in range(shape[1]):
-            image_for_display[k,j] = real_array[k,j]
-            image_for_display[k+shape[0],j] = imag_array[k,j]
+#       shape = real_array.shape
+#       image_for_display = zeros((2*shape[0],shape[1]), Float32)
+#       for k in range(shape[0]):
+#         for j in range(shape[1]):
+#           image_for_display[k,j] = real_array[k,j]
+#           image_for_display[k+shape[0],j] = imag_array[k,j]
+
+        (nx,ny) = real_array.shape
+        image_for_display = array(shape=(nx*2,ny),type=real_array.type());
+        image_for_display[:nx,:] = real_array
+        image_for_display[nx:,:] = imag_array
+
 
 
       else:
@@ -1380,6 +1386,7 @@ class QwtImageDisplay(QwtPlot):
 
       _dprint(3, 'in plot_vells_data');
       self.metrics_rank = None
+      self.rq_label = label
       self._label = label
       self._vells_rec = vells_record;
 # if we are single stepping through requests, Oleg may reset the
@@ -1418,7 +1425,7 @@ class QwtImageDisplay(QwtPlot):
 #       self.initVellsContextMenu()
         
         if self._vells_data is None:
-          self._vells_data = VellsData()
+          self._vells_data = VellsData(self.rq_label)
 # store the data
         self._vells_data.StoreVellsData(self._vells_rec)
         if self.num_possible_ND_axes is None:
@@ -1729,12 +1736,17 @@ class QwtImageDisplay(QwtPlot):
           if flip_axes:
             flipped_temp_array = transpose(temp_array, axes)
             temp_array = flipped_temp_array
-          flag_shape = temp_array.shape
+#         flag_shape = temp_array.shape
           flag_array = zeros((2*flag_shape[0],flag_shape[1]), temp_array.type())
-          for k in range(flag_shape[0]):
-            for j in range(flag_shape[1]):
-              flag_array[k,j] = temp_array[k,j]
-              flag_array[k+flag_shape[0],j] = temp_array[k,j]
+#         for k in range(flag_shape[0]):
+#           for j in range(flag_shape[1]):
+#             flag_array[k,j] = temp_array[k,j]
+#             flag_array[k+flag_shape[0],j] = temp_array[k,j]
+          (nx,ny) = temp_array.shape
+          flag_array = array(shape=(nx*2,ny),type=temp_array.type())
+          flag_array[:nx,:] = temp_array
+          flag_array[nx:,:] = temp_array
+
           flags_flip = True
           if flip_axes:
             flags_flip = False
