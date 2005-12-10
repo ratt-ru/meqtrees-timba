@@ -492,6 +492,7 @@ class ResultPlotter(GriddedPlugin):
     self.label = '';  # extra label, filled in if possible
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
+      _dprint(3, 'trying to extract dims ')
       try:
         print self._rec.dims
       except: 
