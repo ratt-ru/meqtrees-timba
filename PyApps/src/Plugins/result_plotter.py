@@ -492,6 +492,14 @@ class ResultPlotter(GriddedPlugin):
     self.label = '';  # extra label, filled in if possible
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
+      try:
+        print self._rec.dims
+      except: 
+        _dprint(3, 'no self._rec.dims ')
+      try:
+        print self._rec.cache.dims
+      except: 
+        _dprint(3, 'no self._rec.cache.dims ')
       # try to put request ID in label
       try: self.label = "rq " + str(self._rec.cache.request_id);
       except: pass;
@@ -508,6 +516,8 @@ class ResultPlotter(GriddedPlugin):
 # menu to switch to a different viewer)
 
 # are we dealing with Vellsets?
+    if self._rec.has_key("dims"):
+      print 'low dims field exists ', self._rec.dims
     if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
       Message = "No cells record for vellsets; scalar assumed. No plot can be made with the <b>Result Plotter</b>. Use the record browser to get further information about this vellset." 
       if self._rec.vellsets[0].has_key("value"):
