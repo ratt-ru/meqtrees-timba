@@ -1099,13 +1099,17 @@ class QwtImageDisplay(QwtPlot):
       _dprint(3, 'self.adjust_color_bar ', self.adjust_color_bar)
       image_for_display = None
       if image.type() == Complex32 or image.type() == Complex64:
+        _dprint(3, 'image type ', image.type())
 # if incoming array is complex, create array of reals followed by imaginaries
         real_array =  image.getreal()
         imag_array =  image.getimag()
         if self.ampl_phase:
-          abs_array = fabs(image)
+          abs_array = abs(image)
+          _dprint(3, 'abs array type ', abs_array.type())
+          _dprint(3, 'abs array ', abs_array)
 #         phase_array = arctan2(imag_array,real_array)/math.pi*180.0
           phase_array = arctan2(imag_array,real_array)
+          _dprint(3, 'phase array type ', phase_array.type())
           real_array = abs_array
           imag_array = phase_array
 #       shape = real_array.shape
@@ -1116,11 +1120,11 @@ class QwtImageDisplay(QwtPlot):
 #           image_for_display[k+shape[0],j] = imag_array[k,j]
 
         (nx,ny) = real_array.shape
+        _dprint(3, 'real array type ', real_array.type())
+        _dprint(3, 'imag array type ', imag_array.type())
         image_for_display = array(shape=(nx*2,ny),type=real_array.type());
         image_for_display[:nx,:] = real_array
         image_for_display[nx:,:] = imag_array
-
-
 
       else:
         image_for_display = image
@@ -1232,6 +1236,14 @@ class QwtImageDisplay(QwtPlot):
         self.setMarkerLabel( self.info_marker, self.array_parms,
           QFont(fn, 7, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
+
+# draw dividing line for complex array
+      if self.complex_type:  
+          self.complex_marker = self.insertLineMarker('', QwtPlot.xBottom)
+          self.setMarkerLinePen(self.complex_marker, QPen(Qt.black, 2, Qt.SolidLine))
+          self.setMarkerXPos(self.complex_marker, self.complex_divider)
+
+
     # insert_array_info()
 
     def plot_data(self, visu_record, attribute_list=None, label=''):
@@ -1725,6 +1737,7 @@ class QwtImageDisplay(QwtPlot):
       if self.is_vector == False:
         if self.complex_type: 
           self.complex_image = plot_array
+          self.complex_divider = plot_array.shape[0]
         self.enableAxis(QwtPlot.yLeft)
         self.enableAxis(QwtPlot.xBottom)
 # if there are flags associated with this array, we need to copy flags for complex array
@@ -1786,6 +1799,8 @@ class QwtImageDisplay(QwtPlot):
               self.x_parm = self.second_axis_parm
               self.y_parm = self.first_axis_parm
             self.myXScale = ComplexScaleSeparate(self.vells_axis_parms[self.x_parm][0], self.vells_axis_parms[self.x_parm][1])
+            self.complex_divider = self.vells_axis_parms[self.x_parm][1]
+
             self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
             self.split_axis = self.vells_axis_parms[self.x_parm][1] 
             delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
@@ -1960,7 +1975,7 @@ class QwtImageDisplay(QwtPlot):
           self.x_array =  flattened_array.getreal()
           self.y_array =  flattened_array.getimag()
           if self.ampl_phase:
-            abs_array = fabs(flattened_array)
+            abs_array = abs(flattened_array)
             phase_array = arctan2(self.y_array,self.x_array)
             self.x_array = abs_array
             self.y_array = phase_array
