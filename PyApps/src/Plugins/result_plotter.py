@@ -517,7 +517,7 @@ class ResultPlotter(GriddedPlugin):
 
 # are we dealing with Vellsets?
     if self._rec.has_key("dims"):
-      print 'low dims field exists ', self._rec.dims
+      _dprint(3, '*** dims field exists ', self._rec.dims)
     if self._rec.has_key("vellsets") and not self._rec.has_key("cells"):
       Message = "No cells record for vellsets; scalar assumed. No plot can be made with the <b>Result Plotter</b>. Use the record browser to get further information about this vellset." 
       if self._rec.vellsets[0].has_key("value"):
