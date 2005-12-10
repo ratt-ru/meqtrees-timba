@@ -1401,9 +1401,9 @@ class QwtImageDisplay(QwtPlot):
       """ process incoming vells data and attributes into the
           appropriate type of plot """
 
-      _dprint(3, 'in plot_vells_data');
       self.metrics_rank = None
       self.rq_label = label
+      _dprint(3, 'in plot_vells_data self.rq_label = ', self.rq_label);
       self._label = label
       self._vells_rec = vells_record;
 # if we are single stepping through requests, Oleg may reset the
@@ -1442,9 +1442,9 @@ class QwtImageDisplay(QwtPlot):
 #       self.initVellsContextMenu()
         
         if self._vells_data is None:
-          self._vells_data = VellsData(self.rq_label)
+          self._vells_data = VellsData()
 # store the data
-        self._vells_data.StoreVellsData(self._vells_rec)
+        self._vells_data.StoreVellsData(self._vells_rec,self.rq_label)
         if self.num_possible_ND_axes is None:
           vells_data_parms = self._vells_data.getVellsDataParms()
           self.vells_axis_parms = vells_data_parms[0]
