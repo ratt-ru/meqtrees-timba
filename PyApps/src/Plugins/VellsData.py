@@ -11,8 +11,7 @@ _dprintf = _dbg.dprintf;
 class VellsData:
    """ A class for handling and extracting Vells data for display """
 
-   def __init__(self, rq_label=''):
-     self.rq_label = rq_label
+   def __init__(self):
      self._active_plane = 0
      self._active_perturb = None
 
@@ -99,11 +98,13 @@ class VellsData:
    def getVellsDataParms(self):
      return [self.vells_axis_parms, self.axis_labels, self.num_possible_ND_axes]
 
-   def StoreVellsData(self, vells_rec):
+   def StoreVellsData(self, vells_rec, rq_label = ''):
      self._plot_vells_dict = {}
      self._plot_flags_dict = {}
      self._plot_labels = {}
      self._menu_labels = {}
+     self.rq_label = rq_label
+     _dprint(3,' self.rq_label = ', self.rq_label)
      if self.do_calc_vells_range:
        self.calc_vells_ranges(vells_rec)
 
