@@ -840,6 +840,12 @@ class QwtImageDisplay(QwtPlot):
         self.setMarkerLinePen(mY, QPen(Qt.white, 2, Qt.DashDotLine))
         y = y + self.y_marker_step
         self.setMarkerYPos(mY, y)
+
+# draw dividing line for complex array
+      if self.complex_type:  
+          self.complex_marker = self.insertLineMarker('', QwtPlot.xBottom)
+          self.setMarkerLinePen(self.complex_marker, QPen(Qt.black, 2, Qt.SolidLine))
+          self.setMarkerXPos(self.complex_marker, self.complex_divider)
     
     def onMouseMoved(self, e):
        if self.is_vector:
