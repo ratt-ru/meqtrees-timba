@@ -1220,6 +1220,12 @@ class QwtImageDisplay(QwtPlot):
     # display_image()
 
     def insert_array_info(self):
+# draw dividing line for complex array
+      if self.complex_type:  
+          self.complex_marker = self.insertLineMarker('', QwtPlot.xBottom)
+          self.setMarkerLinePen(self.complex_marker, QPen(Qt.black, 2, Qt.SolidLine))
+          self.setMarkerXPos(self.complex_marker, self.complex_divider)
+
 # insert mean and standard deviation
       if not self.array_parms is None:
 # alias
@@ -1236,13 +1242,6 @@ class QwtImageDisplay(QwtPlot):
         self.setMarkerLabel( self.info_marker, self.array_parms,
           QFont(fn, 7, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
-
-# draw dividing line for complex array
-      if self.complex_type:  
-          self.complex_marker = self.insertLineMarker('', QwtPlot.xBottom)
-          self.setMarkerLinePen(self.complex_marker, QPen(Qt.black, 2, Qt.SolidLine))
-          self.setMarkerXPos(self.complex_marker, self.complex_divider)
-
 
     # insert_array_info()
 
