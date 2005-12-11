@@ -20,6 +20,7 @@ AppControlAgent::AppControlAgent (const HIID &initf)
     : AppEventAgentBase(initf),state_(AppState::STOPPED)
 {
   status_ref_ <<= pstatus_ = new DMI::Record;
+  auto_exit_ = paused_ = false;
 }
 
 //##ModelId=3E394E4F02D2
@@ -27,6 +28,7 @@ AppControlAgent::AppControlAgent (AppEventSink & sink, const HIID & initf,int fl
     : AppEventAgentBase(sink,initf,flags),state_(AppState::STOPPED)
 {
   status_ref_ <<= pstatus_ = new DMI::Record;
+  auto_exit_ = paused_ = false;
 }
 
 //##ModelId=3E50FA3702B9
@@ -34,6 +36,7 @@ AppControlAgent::AppControlAgent (AppEventSink *sink, const HIID &initf,int flag
     : AppEventAgentBase(sink,initf,flags),state_(AppState::STOPPED)
 {
   status_ref_ <<= pstatus_ = new DMI::Record;
+  auto_exit_ = paused_ = false;
 }
 
 bool AppControlAgent::preinit (DMI::Record::Ref &initrec)
