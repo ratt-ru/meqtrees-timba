@@ -394,12 +394,6 @@ void CountedRefBase::privatizeOther (const CountedRefBase& other, int flags, int
 //##ModelId=3DB934620030
 string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name ) const
 {
-  static int nesting=0;
-  if( nesting++>1000 )
-  {
-    cerr<<"Too many nested CountedRefBase::sdebug() calls";
-    abort();
-  }
   string out;
   // low detail
   if( detail>=0 ) // basic detail
@@ -447,7 +441,6 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
       out += "->" + target_->sdebug(abs(detail)-1,prefix+"  ");
     }
   }
-  nesting--;
   return out;
 }
 

@@ -829,12 +829,6 @@ string DMI::Vec::sdebug ( int detail,const string &prefix,const char *name ) con
   using Debug::appendf;
   using Debug::ssprintf;
   
-  static int nesting=0;
-  if( nesting++>1000 )
-  {
-    cerr<<"Too many nested DMI::Vec::sdebug() calls";
-    abort();
-  }
   Thread::Mutex::Lock _nclock(mutex());
   string out;
   if( detail>=0 ) // basic detail
@@ -889,7 +883,6 @@ string DMI::Vec::sdebug ( int detail,const string &prefix,const char *name ) con
       }
     }
   }
-  nesting--;
   return out;
 }
 

@@ -367,13 +367,7 @@ int DMI::Record::size (TypeId tid) const
 //##ModelId=3DB9348501B1
 string DMI::Record::sdebug ( int detail,const string &prefix,const char *name ) const
 {
-  static int nesting=0;
   Thread::Mutex::Lock _nclock(mutex());
-  if( nesting++>1000 )
-  {
-    cerr<<"Too many nested DMI::Record::sdebug() calls";
-    abort();
-  }
   string out;
   if( detail>=0 ) // basic detail
   {
@@ -409,6 +403,5 @@ string DMI::Record::sdebug ( int detail,const string &prefix,const char *name ) 
       out += out1;
     }
   }
-  nesting--;
   return out;
 }

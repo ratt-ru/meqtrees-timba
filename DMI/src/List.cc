@@ -342,13 +342,7 @@ int DMI::List::size (TypeId tid) const
 
 string DMI::List::sdebug ( int detail,const string &prefix,const char *name ) const
 {
-  static int nesting=0;
   Thread::Mutex::Lock _nclock(mutex());
-  if( nesting++>1000 )
-  {
-    cerr<<"Too many nested DMI::List::sdebug() calls";
-    abort();
-  }
   string out;
   if( detail>=0 ) // basic detail
   {
@@ -384,6 +378,5 @@ string DMI::List::sdebug ( int detail,const string &prefix,const char *name ) co
       out += out1;
     }
   }
-  nesting--;
   return out;
 }
