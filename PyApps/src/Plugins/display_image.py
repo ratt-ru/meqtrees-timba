@@ -366,14 +366,16 @@ class QwtImageDisplay(QwtPlot):
           self.toggle_color_bar = 0
         else:
           self.toggle_color_bar = 1
-        self.emit(PYSIGNAL("show_colorbar_display"),(self.toggle_color_bar,))
+        self.emit(PYSIGNAL("show_colorbar_display"),(self.toggle_color_bar,0))
+        if self.complex_type:
+          self.emit(PYSIGNAL("show_colorbar_display"),(self.toggle_color_bar,1))
         return True
       if menuid == self.menu_table['Toggle Color/GrayScale Display']:
         if self.toggle_gray_scale == 1:
           self.setDisplayType('hippo')
         else:
           self.setDisplayType('grayscale')
-        self.defineData()
+        self.plotImage.updateImage(self.raw_image)
         self.replot()
         return True
       if menuid == self.menu_table['Toggle ND Controller']:
@@ -451,14 +453,22 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle display range to that of flagged image for plane ']:
         if self.flag_range == False:
           self.flag_range = True
+          self.plotImage.setFlaggedImageRange()
+          self.plotImage.updateImage(self.raw_image)
+          flag_image_limits = self.plotImage.getRealImageRange()
+          self.emit(PYSIGNAL("max_image_range"),(flag_image_limits, 0) )
+          if self.complex_type:
+            flag_image_limits = self.plotImage.getImagImageRange()
+            self.emit(PYSIGNAL("max_image_range"),(flag_image_limits, 1) )
         else:
           self.flag_range = False
-          image_min = self.raw_image.min()
-          image_max = self.raw_image.max()
-          self.plotImage.setImageRange((image_min,image_max))
-          self.emit(PYSIGNAL("image_range"),(image_min, image_max))
-          self.emit(PYSIGNAL("max_image_range"),(image_min, image_max))
-        self.defineData()
+          self.plotImage.setImageRange(self.raw_image)
+          self.plotImage.updateImage(self.raw_image)
+          image_limits = self.plotImage.getRealImageRange()
+          self.emit(PYSIGNAL("max_image_range"),(image_limits, 0) )
+          if self.complex_type:
+            image_limits = self.plotImage.getImagImageRange()
+            self.emit(PYSIGNAL("max_image_range"),(image_limits, 1) )
         self.replot()
 	return True
 
@@ -486,42 +496,6 @@ class QwtImageDisplay(QwtPlot):
         self.is_combined_image = True
         self.reset_color_bar(True)
       self.array_plot(plot_label, plot_data, False)
-
-    def defineData(self):
-
-       self.flagged_image = None
-       if not self.image_flag_array is None:
-         self.flagged_image = self.raw_image - self.image_flag_array * self.raw_image
-# not yet ready for prime time here ...
-         if self.flag_range:
-           _dprint(3, 'self.flag_range ', self.flag_range)
-           self.plotImage.setFlaggedImageRange(self.flagged_image)
-           flag_image_range = self.plotImage.getImageRange()
-           self.emit(PYSIGNAL("max_image_range"),flag_image_range)
-           _dprint(3, 'emitted signals about image range')
-
-       if self._vells_plot:
-         if self.complex_type:
-           temp_x_axis_parms = self.vells_axis_parms[self.x_parm]
-           begin = temp_x_axis_parms[0]
-           end = begin + 2.0 * self.delta_vells 
-           x_range = (begin, end)
-           self.plotImage.setData(self.raw_image, x_range, self.vells_axis_parms[self.y_parm])
-         else:
-           self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm])
-       else:
-         self.plotImage.setData(self.raw_image)
-# the following is used to make sure same image is kept on display if
-# colorbar intensity range is toggled or color/grayscale is toggled
-       if not self.xmin is None and not self.xmax is None and not self.ymin is None and not self.ymax is None:
-         self.setAxisScale(QwtPlot.xBottom, self.xmin, self.xmax)
-         self.setAxisScale(QwtPlot.yLeft, self.ymin, self.ymax)
-         self._x_auto_scale = False
-         self._y_auto_scale = False
-         self.axis_xmin = self.xmin
-         self.axis_xmax = self.xmax
-         self.axis_ymin = self.ymin
-         self.axis_ymax = self.ymax
 
     def set_flag_toggles(self, flag_plane=None, flag_setting=False):
 # add flag toggling for vells but make hidden by default
@@ -620,7 +594,7 @@ class QwtImageDisplay(QwtPlot):
         self.plotImage.defineImageRange((min, max), True)
       else:
         self.plotImage.defineImageRange((min, max), False)
-      self.defineData()
+      self.plotImage.updateImage(self.raw_image)
       self.replot()
     # setImageRange
 	
@@ -1106,7 +1080,29 @@ class QwtImageDisplay(QwtPlot):
         if not self.image_shape == image.shape:
           self.image_shape = image.shape 
 
-      self.defineData()
+      if self._vells_plot:
+        if self.complex_type:
+          temp_x_axis_parms = self.vells_axis_parms[self.x_parm]
+          begin = temp_x_axis_parms[0]
+          end = begin + 2.0 * self.delta_vells 
+          x_range = (begin, end)
+          self.plotImage.setData(self.raw_image, x_range, self.vells_axis_parms[self.y_parm])
+        else:
+          self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm])
+      else:
+        self.plotImage.setData(self.raw_image)
+
+# the following is used to make sure same image is kept on display if
+# colorbar intensity range is toggled or color/grayscale is toggled
+      if not self.xmin is None and not self.xmax is None and not self.ymin is None and not self.ymax is None:
+        self.setAxisScale(QwtPlot.xBottom, self.xmin, self.xmax)
+        self.setAxisScale(QwtPlot.yLeft, self.ymin, self.ymax)
+        self._x_auto_scale = False
+        self._y_auto_scale = False
+        self.axis_xmin = self.xmin
+        self.axis_xmax = self.xmax
+        self.axis_ymin = self.ymin
+        self.axis_ymax = self.ymax
 
       if self.is_combined_image:
          _dprint(2, 'display_image inserting markers')
@@ -1705,7 +1701,9 @@ class QwtImageDisplay(QwtPlot):
 # remove any markers
         self.removeMarkers()
 # make sure color bar is hidden
-        self.emit(PYSIGNAL("show_colorbar_display"),(0,)) 
+        self.emit(PYSIGNAL("show_colorbar_display"),(0,0)) 
+        if self.complex_type:
+          self.emit(PYSIGNAL("show_colorbar_display"),(0,1)) 
 # make sure options relating to color bar are not in context menu
         toggle_id = self.menu_table['Toggle ColorBar']
         self._menu.setItemVisible(toggle_id, False)
