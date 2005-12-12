@@ -464,7 +464,7 @@ class ResultPlotter(GriddedPlugin):
         self._visu_plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
 #       self._visu_plotter.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
-        self.layout.addWidget(self._visu_plotter, 0, 2)
+        self.layout.addWidget(self._visu_plotter, 0, 1)
         QObject.connect(self._visu_plotter, PYSIGNAL('vells_axes_labels'), self.set_ND_controls) 
         QObject.connect(self._visu_plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
 
@@ -577,15 +577,16 @@ class ResultPlotter(GriddedPlugin):
     for i in range(2):
       self.colorbar[i] =  QwtColorBar(colorbar_number= i, parent=self.layout_parent)
       self.colorbar[i].setMaxRange((-1, 1))
-      self.layout.addWidget(self.colorbar[i], 0, i)
       QObject.connect(self._visu_plotter, PYSIGNAL('image_range'), self.colorbar[i].setRange) 
       QObject.connect(self._visu_plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
       QObject.connect(self._visu_plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
       QObject.connect(self._visu_plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay) 
       QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._visu_plotter.setImageRange) 
       if i == 0:
+        self.layout.addWidget(self.colorbar[i], 0, i)
         self.colorbar[i].show()
       else:
+        self.layout.addWidget(self.colorbar[i], 0, 2)
         self.colorbar[i].hide()
     self.plotPrinter.add_colorbar(self.colorbar)
 

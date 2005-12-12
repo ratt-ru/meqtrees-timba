@@ -412,7 +412,7 @@ class HistoryPlotter(GriddedPlugin):
     self._plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
     _dprint(3,'self._plotter = ', self._plotter)
 
-    self.layout.addWidget(self._plotter, 0, 2)
+    self.layout.addWidget(self._plotter, 0, 1)
     QObject.connect(self._plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
 
     self.plotPrinter = plot_printer(self._plotter)
@@ -451,15 +451,16 @@ class HistoryPlotter(GriddedPlugin):
     for i in range(2):
       self.colorbar[i] =  QwtColorBar(colorbar_number=i, parent=self.layout_parent)
       self.colorbar[i].setRange(-1, 1)
-      self.layout.addWidget(self.colorbar[i], 0, i)
       QObject.connect(self._plotter, PYSIGNAL('image_range'), self.colorbar[i].setRange) 
       QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
       QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
       QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay) 
       QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._plotter.setImageRange) 
       if i == 0:
+        self.layout.addWidget(self.colorbar[i], 0, i)
         self.colorbar[i].show()
       else:
+        self.layout.addWidget(self.colorbar[i], 0, 2)
         self.colorbar[i].hide()
     self.plotPrinter.add_colorbar(self.colorbar)
 

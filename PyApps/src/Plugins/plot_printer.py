@@ -72,9 +72,9 @@ class plot_printer:
           QRect(0, 0, 0.12 * width, height), filter)
         if is_complex:
           self.colorbar[1].printPlot(qpainter,
-            QRect(0.16* width, 0, 0.12 * width, height), filter)
+            QRect(1.6* width, 0, 0.12 * width, height), filter)
       self.plotter.printPlot(qpainter,
-        QRect(0.35 * width, 0, 1.4 * width, height), filter)
+        QRect(0.16 * width, 0, 1.4 * width, height), filter)
     else:
       width = metrics.width()
       if metrics.width() > metrics.height():

@@ -59,16 +59,19 @@ class ArrayPlotter(GriddedPlugin):
       self.layout_parent = QWidget(self.wparent())
       self.layout = QGridLayout(self.layout_parent)
       self._plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
-      self.layout.addWidget(self._plotter, 0, 2)
+      self.layout.addWidget(self._plotter, 0, 1)
       if dataitem.data.type() == Complex32 or dataitem.data.type() == Complex64:
         num_colorbars = 2
       else:
         num_colorbars = 1
       for i in range(num_colorbars):
         self.colorbar[i] =  QwtColorBar(colorbar_number=i,parent=self.layout_parent)
+        if i == 0:
+          self.layout.addWidget(self.colorbar[i], 0, i)
+        else:
+          self.layout.addWidget(self.colorbar[i], 0, 2)
         self.colorbar[i].setRange(-1,1,colorbar_number=i)
         self.colorbar[i].hide()
-        self.layout.addWidget(self.colorbar[i], 0, i)
         QObject.connect(self._plotter, PYSIGNAL('image_range'), self.colorbar[i].setRange) 
         QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
         QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
