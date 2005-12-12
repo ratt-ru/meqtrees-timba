@@ -186,6 +186,8 @@ class NodeList (QObject):
     self.serial = 0;
     if meqnl:
       self.load_meqlist(meqnl);
+    else:
+      self.clear();
       
   def clear (self):
     self._nimap = self._namemap = self._classmap = {};
