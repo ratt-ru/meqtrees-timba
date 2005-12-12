@@ -134,13 +134,55 @@ class HistoryPlotter(GriddedPlugin):
   def wtop (self):
     return self._wtop;
 
+  def set_data (self,dataitem,default_open=None,**opts):
+    """ this callback receives data from the meqbrowser, when the
+        user has requested a plot. It decides whether the data is
+        from a history data record, and  after any
+        necessary preprocssing forwards the data to one of
+        the functions which does the actual plotting """
+
+    self._rec = dataitem.data;
+# if we are single stepping through requests, Oleg may reset the
+# cache, so check for a non-data record situation
+    if isinstance(self._rec, bool):
+      return
+
+    self.label = '';  # extra label, filled in if possible
+    if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
+#   try to put request ID ^Sin label
+      try: self.label = "rq " + str(self._rec.cache.request_id);
+      except: pass;
+      try: self._rec = self._rec.cache.result; # look for cache.result record
+      except:
+        Message = "No result record was found in the cache, so no plot can be made with the <b>history plotter</b>! You may wish to select another type of display."
+        cache_message = QLabel(Message,self.wparent())
+        cache_message.setTextFormat(Qt.RichText)
+        self._wtop = cache_message
+        self.set_widgets(cache_message)
+        return
+
+    if self._rec.has_key("history"):
+# do plotting of visualization data
+      self.display_history_data()
+    else:
+      Message = "Result record does not contain history key, so no plot can be made with the <b>history plotter</b>! You may wish to select another type of display."
+      cache_message = QLabel(Message,self.wparent())
+      cache_message.setTextFormat(Qt.RichText)
+      self._wtop = cache_message
+      self.set_widgets(cache_message)
+      return
+
+# enable & highlight the cell
+    self.enable();
+    self.flash_refresh();
+
+    _dprint(3, 'exiting set_data')
+
   def display_history_data (self):
     """ extract 'value' data from incoming history data record and
       create a plotter object to plot the data 
     """
     _dprint(3, ' ')
-#   _dprint(3, 'analyzing incoming record ', self._rec.history)
-#   _dprint(3, 'analyzing incoming record keys', self._rec.history.keys())
     if self._rec.history.has_key('value'):
       self._plot_array = self.create_plot_array(self._rec.history['value'])
       try:
@@ -156,8 +198,6 @@ class HistoryPlotter(GriddedPlugin):
          self.ND_Controls = None
          self.set_ND_controls()
 
-      if self._plot_array.rank >= 2:
-        self.set_data_range(self._plot_array)
       if self._plot_array.rank > 2:
         if self.array_selector is None:
           second_axis = None
@@ -365,36 +405,6 @@ class HistoryPlotter(GriddedPlugin):
     self.array_tuple = tuple(self.array_selector)
     self._plotter.array_plot(self.label+ ' data', self._plot_array[self.array_tuple])
 
-  def set_data_range(self, data_array):
-    """ figure out global minima and maxima of array to be plotted """
-# now figure out global min and max of the complete ND array
-    if data_array.type() == Complex32 or data_array.type() == Complex64:
-      real_array = data_array.getreal()
-      imag_array = data_array.getimag()
-      real_min = real_array.min()
-      real_max = real_array.max()
-      imag_min = imag_array.min()
-      imag_max = imag_array.max()
-      if real_min < imag_min:
-        self.data_min = real_min
-      else:
-        self.data_min = imag_min
-      if real_max > imag_max:
-        self.data_max = real_max
-      else:
-        self.data_max = imag_max
-    else:
-      self.data_min = data_array.min()
-      self.data_max = data_array.max()
-#   print 'data min and max ', self.data_min, ' ', self.data_max
-    if self.colorbar is None:
-      self.set_ColorBar(self.data_min,self.data_max)
-
-    self.colorbar.setRange(self.data_min,self.data_max)
-    self.colorbar.setMaxRange(self.data_min,self.data_max)
-    self._plotter.plotImage.setImageRange((self.data_min,self.data_max))
-    self._plotter.reset_color_bar(reset_value = False)
-
   def create_image_plotters(self):
     _dprint(3,'starting create_image_plotters')
     self.layout_parent = QWidget(self.wparent())
@@ -402,8 +412,8 @@ class HistoryPlotter(GriddedPlugin):
     self._plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
     _dprint(3,'self._plotter = ', self._plotter)
 
-    self.layout.addWidget(self._plotter, 0, 1)
-#   QObject.connect(self._plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
+    self.layout.addWidget(self._plotter, 0, 2)
+    QObject.connect(self._plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
 
     self.plotPrinter = plot_printer(self._plotter)
     QObject.connect(self._plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
@@ -418,49 +428,6 @@ class HistoryPlotter(GriddedPlugin):
       self.set_ND_controls()
   # create_image_plotters
 
-  def set_data (self,dataitem,default_open=None,**opts):
-    """ this callback receives data from the meqbrowser, when the
-        user has requested a plot. It decides whether the data is
-        from a history data record, and  after any
-        necessary preprocssing forwards the data to one of
-        the functions which does the actual plotting """
-
-    self._rec = dataitem.data;
-# if we are single stepping through requests, Oleg may reset the
-# cache, so check for a non-data record situation
-    if isinstance(self._rec, bool):
-      return
-
-    self.label = '';  # extra label, filled in if possible
-    if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
-#   try to put request ID ^Sin label
-      try: self.label = "rq " + str(self._rec.cache.request_id);
-      except: pass;
-      try: self._rec = self._rec.cache.result; # look for cache.result record
-      except:
-        Message = "No result record was found in the cache, so no plot can be made with the <b>history plotter</b>! You may wish to select another type of display."
-        cache_message = QLabel(Message,self.wparent())
-        cache_message.setTextFormat(Qt.RichText)
-        self._wtop = cache_message
-        self.set_widgets(cache_message)
-        return
-
-    if self._rec.has_key("history"):
-# do plotting of visualization data
-      self.display_history_data()
-    else:
-      Message = "Result record does not contain history key, so no plot can be made with the <b>history plotter</b>! You may wish to select another type of display."
-      cache_message = QLabel(Message,self.wparent())
-      cache_message.setTextFormat(Qt.RichText)
-      self._wtop = cache_message
-      self.set_widgets(cache_message)
-      return
-
-# enable & highlight the cell
-    self.enable();
-    self.flash_refresh();
-
-    _dprint(3, 'exiting set_data')
 
   def set_ND_controls (self):
     """ this function adds the extra GUI control buttons etc if we are
@@ -474,22 +441,27 @@ class HistoryPlotter(GriddedPlugin):
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
     QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay) 
     QObject.connect(self._plotter, PYSIGNAL('reset_axes_labels'), self.ND_Controls.redefineAxes) 
-    self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,1)
+    self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
     self.ND_Controls.show()
 
-  def set_ColorBar (self, min, max):
+  def set_ColorBar (self):
     """ this function adds a colorbar for 2 Ddisplays """
     _dprint(3,' set_ColorBar parms = ', min, ' ', max)
-    self.colorbar =  QwtColorBar(parent=self.layout_parent)
-    self.colorbar.setRange(min, max)
-    self.layout.addWidget(self.colorbar, 0, 0)
-#   QObject.connect(self._plotter, PYSIGNAL('image_range'), self.colorbar.setRange) 
-#   QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar.setMaxRange) 
-    QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar.setDisplayType) 
-    QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar.showDisplay) 
-    QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._plotter.setImageRange) 
+    self.colorbar = {}
+    for i in range(2):
+      self.colorbar[i] =  QwtColorBar(colorbar_number=i, parent=self.layout_parent)
+      self.colorbar[i].setRange(-1, 1)
+      self.layout.addWidget(self.colorbar[i], 0, i)
+      QObject.connect(self._plotter, PYSIGNAL('image_range'), self.colorbar[i].setRange) 
+      QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
+      QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
+      QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay) 
+      QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._plotter.setImageRange) 
+      if i == 0:
+        self.colorbar[i].show()
+      else:
+        self.colorbar[i].hide()
     self.plotPrinter.add_colorbar(self.colorbar)
-    self.colorbar.show()
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),HistoryPlotter,priority=40)
 Grid.Services.registerViewer(meqds.NodeClass('MeqHistoryCollect'),HistoryPlotter,priority=10)

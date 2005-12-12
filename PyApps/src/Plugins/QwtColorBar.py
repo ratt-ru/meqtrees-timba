@@ -13,9 +13,10 @@ Button 2 (Right):Clicking the <b>right</b> mouse button in the colorbar window w
 
 class QwtColorBar(QwtPlot):
 
-    def __init__(self, plot_key=None, parent=None):
+    def __init__(self, colorbar_number=0, plot_key=None, parent=None):
         QwtPlot.__init__(self, parent)
         self._mainwin = parent and parent.topLevelWidget()
+        self.colorbar_number = colorbar_number
         # create copy of standard application font..
         font = QFont(QApplication.font());
         fi = QFontInfo(font);
@@ -56,9 +57,7 @@ class QwtColorBar(QwtPlot):
 
         # width limits - the following seem reasonable
         # we don't want the bar to resize itself freely - it becomes too big!
-#       self.setMinimumWidth(self.sizeHint().width())
         self.setMaximumWidth(self.sizeHint().width() * 1.5)
-#       self.setMinimumHeight(self.sizeHint().height() / 2)
 
         self.zoomStack = []
         self.connect(self,
@@ -87,7 +86,12 @@ class QwtColorBar(QwtPlot):
         self.replot()
     # __init__()
 
-    def setRange(self, min, max):
+    def setRange(self, min, max,colorbar_number=0):
+      if colorbar_number == self.colorbar_number:
+        if min > max:
+          temp = max
+          max = min
+          min = temp
         if abs(max - min) < 0.00005:
           if max == 0.0 or min == 0.0:
             min = -0.1
@@ -97,14 +101,7 @@ class QwtColorBar(QwtPlot):
             max = 1.1 * max
         self.min = min * 1.0
         self.max = max * 1.0
-        if self.min > self.max:
-            temp = self.max
-            self.max = self.min
-            self.min = temp
-        if self.image_min is None:
-          self.image_min = self.min
-        if self.image_max is None:
-          self.image_max = self.max
+        self.emit(PYSIGNAL("set_image_range"),(self.min, self.max, self.colorbar_number))
         self.delta = (self.max - self.min) / 256.0
         for i in range (256):
           self.bar_array[0,i] = self.min + i * self.delta
@@ -114,7 +111,14 @@ class QwtColorBar(QwtPlot):
         self.replot()
     # set Range()
 
-    def setMaxRange(self, min, max):
+    def setMaxRange(self, limits, colorbar_number=0):
+      if colorbar_number == self.colorbar_number:
+        min = limits[0]
+        max = limits[1]
+        if min > max:
+            temp = max
+            max = min
+            min = temp
         if abs(max - min) < 0.00005:
           if max == 0.0 or min == 0.0:
             min = -0.1
@@ -124,6 +128,15 @@ class QwtColorBar(QwtPlot):
             max = 1.1 * max
         self.image_min = min * 1.0
         self.image_max = max * 1.0
+        self.min = self.image_min
+        self.max = self.image_max
+        self.delta = (self.max - self.min) / 256.0
+        for i in range (256):
+          self.bar_array[0,i] = self.min + i * self.delta
+        self.y_scale = (self.min, self.max)
+        self.plotImage.setData(self.bar_array, None, self.y_scale)
+        self.show()
+        self.replot()
     # set Range()
 
     def showDisplay(self, show_self):
@@ -144,8 +157,8 @@ class QwtColorBar(QwtPlot):
             temp = self.image_max
             self.image_max = self.image_min
             self.image_min = temp
-          self.setRange(self.image_min, self.image_max)
-          self.emit(PYSIGNAL("set_image_range"),(self.image_min, self.image_max))
+          self.setRange(self.image_min, self.image_max, self.colorbar_number)
+#         self.emit(PYSIGNAL("set_image_range"),(self.image_min, self.image_max, self.colorbar_number))
         else:
           return
 
@@ -219,9 +232,8 @@ class QwtColorBar(QwtPlot):
           temp = ymax
           ymax = ymin
           ymin = temp
-        self.setRange(ymin, ymax)
-        self.emit(PYSIGNAL("set_image_range"),(ymin, ymax))
-
+        self.setRange(ymin, ymax, self.colorbar_number)
+#       self.emit(PYSIGNAL("set_image_range"),(ymin, ymax, self.colorbar_number))
 
         self.replot()
     # onMouseReleased()

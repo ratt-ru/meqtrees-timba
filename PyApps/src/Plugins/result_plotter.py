@@ -464,7 +464,7 @@ class ResultPlotter(GriddedPlugin):
         self._visu_plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
 #       self._visu_plotter.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
-        self.layout.addWidget(self._visu_plotter, 0, 1)
+        self.layout.addWidget(self._visu_plotter, 0, 2)
         QObject.connect(self._visu_plotter, PYSIGNAL('vells_axes_labels'), self.set_ND_controls) 
         QObject.connect(self._visu_plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
 
@@ -565,22 +565,29 @@ class ResultPlotter(GriddedPlugin):
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self._visu_plotter.setSelectedAxes)
     QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay) 
     QObject.connect(self._visu_plotter, PYSIGNAL('reset_axes_labels'), self.ND_Controls.redefineAxes) 
-    self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,1)
+    self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
     self.ND_Controls.show()
 
-  def set_ColorBar (self, min, max):
+  def set_ColorBar (self):
     """ this function adds a colorbar for 2 Ddisplays """
     #print' set_ColorBar parms = ', min, ' ', max
-    self.colorbar =  QwtColorBar(parent=self.layout_parent)
-    self.colorbar.setRange(min, max)
-    self.layout.addWidget(self.colorbar, 0, 0)
-    QObject.connect(self._visu_plotter, PYSIGNAL('image_range'), self.colorbar.setRange) 
-    QObject.connect(self._visu_plotter, PYSIGNAL('max_image_range'), self.colorbar.setMaxRange) 
-    QObject.connect(self._visu_plotter, PYSIGNAL('display_type'), self.colorbar.setDisplayType) 
-    QObject.connect(self._visu_plotter, PYSIGNAL('show_colorbar_display'), self.colorbar.showDisplay) 
-    QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._visu_plotter.setImageRange) 
+
+    # create two color bars in case we are displaying complex arrays
+    self.colorbar = {}
+    for i in range(2):
+      self.colorbar[i] =  QwtColorBar(colorbar_number= i, parent=self.layout_parent)
+      self.colorbar[i].setMaxRange((-1, 1))
+      self.layout.addWidget(self.colorbar[i], 0, i)
+      QObject.connect(self._visu_plotter, PYSIGNAL('image_range'), self.colorbar[i].setRange) 
+      QObject.connect(self._visu_plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
+      QObject.connect(self._visu_plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
+      QObject.connect(self._visu_plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay) 
+      QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._visu_plotter.setImageRange) 
+      if i == 0:
+        self.colorbar[i].show()
+      else:
+        self.colorbar[i].hide()
     self.plotPrinter.add_colorbar(self.colorbar)
-    self.colorbar.show()
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass('MeqDataCollect'),ResultPlotter,priority=10)

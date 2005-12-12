@@ -52,7 +52,7 @@ class plot_printer:
     qpainter.setClipRect(0, 0, width, height, qpainter.CoordPainter)
     return qpainter
 
-  def _print_plots(self, qprinter, filter, hor_widgets, vert_widgets):
+  def _print_plots(self, qprinter, filter, hor_widgets, vert_widgets, is_complex):
     """Prints all plots with the given qprinter.
     """
     qpainter = self._get_qpainter(qprinter, hor_widgets, vert_widgets)
@@ -68,8 +68,11 @@ class plot_printer:
         height = metrics.height() / hor_widgets
         width = height # quadratically sized plots
       if not self.colorbar is None:
-        self.colorbar.printPlot(qpainter,
-          QRect(0, 0, 0.25 * width, height), filter)
+        self.colorbar[0].printPlot(qpainter,
+          QRect(0, 0, 0.12 * width, height), filter)
+        if is_complex:
+          self.colorbar[1].printPlot(qpainter,
+            QRect(0.16* width, 0, 0.12 * width, height), filter)
       self.plotter.printPlot(qpainter,
         QRect(0.35 * width, 0, 1.4 * width, height), filter)
     else:
@@ -81,7 +84,7 @@ class plot_printer:
         QRect(0, 0, width, height), filter)
     qpainter.end()
 
-  def do_print(self, is_single):
+  def do_print(self, is_single, is_complex):
     """Sends plots in this window to the printer.
     """
     try:
@@ -97,11 +100,11 @@ class plot_printer:
         if (QPrinter.GrayScale == qprinter.colorMode()):
             filter.setOptions(QwtPlotPrintFilter.PrintAll
                   & ~QwtPlotPrintFilter.PrintCanvasBackground)
-# we have two horizontal widgets - colorbar and the display area
+# we have 'two' horizontal widgets - colorbar(s) and the display area
         hor_widgets = 2
         if is_single:
           hor_widgets = 1
-        self._print_plots(qprinter, filter, hor_widgets, 1)
+        self._print_plots(qprinter, filter, hor_widgets, 1, is_complex)
 
   def add_colorbar(self, colorbar):
     self.colorbar = colorbar

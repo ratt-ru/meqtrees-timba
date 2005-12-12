@@ -53,29 +53,33 @@ class ArrayPlotter(GriddedPlugin):
         self.actual_rank = self.actual_rank + 1
     self.layout_parent = None
     self.array_selector = None
-    self.colorbar = None
+    self.colorbar = {}
     self.layout = None
     if self.actual_rank  > 1:
       self.layout_parent = QWidget(self.wparent())
       self.layout = QGridLayout(self.layout_parent)
-      self.colorbar =  QwtColorBar(parent=self.layout_parent)
-      self.colorbar.setRange(-1,1)
-      self.colorbar.hide()
       self._plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
-      self.layout.addWidget(self.colorbar, 0, 0)
-      self.layout.addWidget(self._plotter, 0, 1)
-      QObject.connect(self._plotter, PYSIGNAL('image_range'), self.colorbar.setRange) 
-      QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar.setMaxRange) 
-      QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar.setDisplayType) 
-      QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar.showDisplay)
-      QObject.connect(self.colorbar, PYSIGNAL('set_image_range'), self._plotter.setImageRange)
+      self.layout.addWidget(self._plotter, 0, 2)
+      if dataitem.data.type() == Complex32 or dataitem.data.type() == Complex64:
+        num_colorbars = 2
+      else:
+        num_colorbars = 1
+      for i in range(num_colorbars):
+        self.colorbar[i] =  QwtColorBar(colorbar_number=i,parent=self.layout_parent)
+        self.colorbar[i].setRange(-1,1,colorbar_number=i)
+        self.colorbar[i].hide()
+        self.layout.addWidget(self.colorbar[i], 0, i)
+        QObject.connect(self._plotter, PYSIGNAL('image_range'), self.colorbar[i].setRange) 
+        QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
+        QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
+        QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay)
+        QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._plotter.setImageRange)
 
       if self.array_rank > 2:
         _dprint(3,' array_plotter: array has rank and shape: ', self.array_rank, ' ', self.array_shape)
         _dprint(3,' array_plotter: so an ND Controller GUI is needed')
         self._plotter.set_toggle_array_rank(self.array_rank)
         self.set_ND_controls()
-        self.set_data_range(dataitem.data)
 
     else:
       self._plotter = QwtImageDisplay('spectra',parent=self.wparent())
@@ -149,35 +153,7 @@ class ArrayPlotter(GriddedPlugin):
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
     QObject.connect(self._plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay)
 
-    self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,1)
-
-  def set_data_range(self, data_array):
-    """ figure out global minima and maxima of array to be plotted """
-
-# now figure out global min and max of the complete ND array
-    if data_array.type() == Complex32 or data_array.type() == Complex64:
-      real_array = data_array.getreal()
-      imag_array = data_array.getimag()
-      real_min = real_array.min()
-      real_max = real_array.max()
-      imag_min = imag_array.min()
-      imag_max = imag_array.max()
-      if real_min < imag_min:
-        self.data_min = real_min
-      else:
-        self.data_min = imag_min
-      if real_max > imag_max:
-        self.data_max = real_max
-      else:
-        self.data_max = imag_max
-    else:
-      self.data_min = data_array.min()
-      self.data_max = data_array.max()
-    self.colorbar.setRange(self.data_min,self.data_max)
-    self.colorbar.setMaxRange(self.data_min,self.data_max)
-    self._plotter.plotImage.setImageRange((self.data_min,self.data_max))
-    self._plotter.reset_color_bar(reset_value = False)
-
+    self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
 
   def setArraySelector (self,lcd_number, slider_value, display_string):
     self.array_selector[lcd_number] = slider_value

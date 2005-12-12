@@ -47,45 +47,161 @@ class QwtPlotImage(QwtPlotMappedItem):
 	self._flags_array = None
 	self._display_flags = False
         self.image = None
-        self.cmax = None
-        self.cmin = None
+        self.r_cmax = None
+        self.r_cmin = None
+        self.i_cmax = None
+        self.i_cmin = None
+        self.complex = False
+        self.ampl_phase = False
     # __init__()
     
     def setDisplayType(self, display_type):
-        self.display_type = display_type
-#       _dprint(2,'display type set to ', self.display_type);
-        if self.display_type == "brentjens" and self.ValueAxis == None:
-          self.ValueAxis =  UVPAxis()
-          self.ComplexColorMap = ComplexColorMap(256)
+      self.display_type = display_type
+#     _dprint(2,'display type set to ', self.display_type);
+      if self.display_type == "brentjens" and self.ValueAxis == None:
+        self.ValueAxis =  UVPAxis()
+        self.ComplexColorMap = ComplexColorMap(256)
     # setDisplayType
 
     def setFlagsArray(self, flags_array):
-        self._flags_array = flags_array
+      self._flags_array = flags_array
+      
+#     if self.complex:
+#       (nx,ny) = flags_array.shape
+#       self._flags_array = array(shape=(nx*2,ny),type=flags_array.type());
+#       self._flags_array[:nx,:] = flags_array
+#       self._flags_array[nx:,:] = flags_array
+#     else:
+#       self._flags_array = flags_array
     # setFlagsArray
 
     def setDisplayFlag(self, display_flags):
         self._display_flags = display_flags
     # setDisplayFlag
 
-    def getImageRange(self):
-        return (self.cmin, self.cmax)
-    # getImageRange
+    def getRealImageRange(self):
+        return (self.r_cmin, self.r_cmax)
+    # getRealImageRange
 
-    def setImageRange(self, limits):
-        self.cmin = limits[0]
-        self.cmax = limits[1]
+    def getImagImageRange(self):
+        return (self.i_cmin, self.i_cmax)
+    # getRealImageRange
+    
+    def defineImageRange(self, limits, real=True):
+       min = limits[0]
+       max = limits[1]
+       if min > max:
+         temp = max
+         max = min
+         min = temp
+       if abs(max - min) < 0.00005:
+         if max == 0.0 or min == 0.0:
+           min = -0.1
+           max = 0.1
+         else:
+           min = 0.9 * min
+           max = 1.1 * max
+       if real:
+         self.r_cmin = min
+         self.r_cmax = max
+       else:
+         self.i_cmin = min
+         self.i_cmax = max
+
+    def setImageRange(self, image):
+      if image.type() == Complex32 or image.type() == Complex64:
+        self.complex = True
+        imag_array =  image.getimag()
+        real_array =  image.getreal()
+        min = real_array.min()
+        max = real_array.max()
+        if min > max:
+          temp = max
+          max = min
+          min = temp
+        if abs(max - min) < 0.00005:
+          if max == 0.0 or min == 0.0:
+            min = -0.1
+            max = 0.1
+          else:
+            min = 0.9 * min
+            max = 1.1 * max
+        self.r_cmin = min
+        self.r_cmax = max
+
+        min = imag_array.min()
+        max = imag_array.max()
+        if min > max:
+          temp = max
+          max = min
+          min = temp
+        if abs(max - min) < 0.00005:
+          if max == 0.0 or min == 0.0:
+            min = -0.1
+            max = 0.1
+          else:
+            min = 0.9 * min
+            max = 1.1 * max
+        self.i_cmin = min
+        self.i_cmax = max
+      else:
+        self.complex = False
+        min = image.min()
+        max = image.max()
+        if min > max:
+          temp = max
+          max = min
+          min = temp
+        if abs(max - min) < 0.00005:
+          if max == 0.0 or min == 0.0:
+            min = -0.1
+            max = 0.1
+          else:
+            min = 0.9 * min
+            max = 1.1 * max
+        self.r_cmin = min
+        self.r_cmax = max
     # setImageRange
 
-    def setFlaggedImageRange(self, limits):
-      self.cmin = limits[0]
-      self.cmax = limits[1]
-    # setImageRange
+    def updateImage(self, image):
+        self.setImage(image)
+        self.raw_image = image
+
+    def setFlaggedImageRange(self):
+      if self.raw_image.type() == Complex32 or image.type() == Complex64:
+        (nx,ny) = self.raw_image.shape
+        real_array =  self.raw_image.getreal()
+        imag_array =  self.raw_image.getimag()
+        real_flagged_array = real_array - self.flag_array * real_array
+        imag_flagged_array = imag_array - self.flag_array * imag_array
+        flagged_image = array(shape=(nx,ny),type=image.type())
+        flagged_image.setreal(self.real_flagged_array)
+        flagged_image.setimag(self.imag_flagged_array)
+        self.setImageRange(flagged_image)
+      else:
+        flagged_image = self.raw_image - self.flag_array * self.raw_image
+      self.setImageRange(flagged_image)
+    # setFlaggedImageRange
 
     def setImage(self, image):
+        if image.type() == Complex32 or image.type() == Complex64:
+          self.complex = True
+          real_array =  image.getreal()
+          imag_array =  image.getimag()
+          limits = [self.r_cmin,self.r_cmax]
+          byte_image = bytescale(real_array,limits)
+          (nx,ny) = real_array.shape
+          image_for_display = array(shape=(nx*2,ny),type=byte_image.type());
+          image_for_display[:nx,:] = byte_image
+          limits = [self.i_cmin,self.i_cmax]
+          byte_image = bytescale(imag_array,limits)
+          image_for_display[nx:,:] = byte_image
+        else:
+          limits = [self.r_cmin,self.r_cmax]
+          image_for_display = bytescale(image,limits)
+        
 # turn image into a QImage	
-        limits = [self.cmin,self.cmax]
-        byte_image = bytescale(image,limits)
-        self.image = toQImage(byte_image).mirror(0, 1)
+        self.image = toQImage(image_for_display).mirror(0, 1)
         self.flags_image = None
 
 # set color scale a la HippoDraw Scale
@@ -138,6 +254,8 @@ class QwtPlotImage(QwtPlotMappedItem):
 	      mirror_col = n_cols-1-i
 	      if self._flags_array[j][i] > 0:
  	        self.flags_image.setPixel(j,mirror_col,0)
+                if self.complex:
+ 	          self.flags_image.setPixel(j+n_rows,mirror_col,0)
 # display flag image pixels in black 
           self.flags_image.setColor(0, qRgb(0, 0, 0))
 
@@ -176,17 +294,22 @@ class QwtPlotImage(QwtPlotMappedItem):
               _dprint(2, "*************************************");
         self.image.mirror(0,1)
 
-    def setData(self, xyzs, xScale = None, yScale = None):
-        shape = xyzs.shape
+    def setData(self, data_array, xScale = None, yScale = None):
+        self.complex = False
+        shape = data_array.shape
+        shape0 = shape[0]
+        if data_array.type() == Complex32 or data_array.type() == Complex64:
+          self.complex = True
+          shape0 = 2 * shape[0]
         if xScale:
-#           self.xMap = QwtDiMap(0, shape[0], xScale[0], xScale[1])
-            self.xMap = QwtDiMap(0, shape[0]-1, xScale[0], xScale[1])
+#           self.xMap = QwtDiMap(0, shape0, xScale[0], xScale[1])
+            self.xMap = QwtDiMap(0, shape0 - 1, xScale[0], xScale[1])
 #           self.plot.setAxisScale(QwtPlot.xBottom, *xScale)
             temp_scale = (xScale[0],xScale[1])
             self.plot.setAxisScale(QwtPlot.xBottom, *temp_scale)
         else:
-            self.xMap = QwtDiMap(0, shape[0], 0, shape[0] )
-            self.plot.setAxisScale(QwtPlot.xBottom, 0, shape[0])
+            self.xMap = QwtDiMap(0, shape0, 0, shape0 )
+            self.plot.setAxisScale(QwtPlot.xBottom, 0, shape0)
         if yScale:
 #           self.yMap = QwtDiMap(0, shape[1], yScale[0], yScale[1])
             self.yMap = QwtDiMap(0, shape[1]-1, yScale[0], yScale[1])
@@ -197,9 +320,10 @@ class QwtPlotImage(QwtPlotMappedItem):
             self.yMap = QwtDiMap(0, shape[1], 0, shape[1])
             self.plot.setAxisScale(QwtPlot.yLeft, 0, shape[1])
         if self.display_type == "brentjens":
-          self.setBrentjensImage(xyzs)
+          self.setBrentjensImage(data_array)
         else:
-          self.setImage(xyzs)
+          self.setImage(data_array)
+        self.raw_image = data_array
     # setData()    
 
     def drawImage(self, painter, xMap, yMap):

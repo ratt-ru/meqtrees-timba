@@ -167,6 +167,7 @@ class QwtImageDisplay(QwtPlot):
         self.toggles_not_set = True
         self.iteration_number = None
         self.ampl_phase = False
+        self.first_ampl_flip = True
         self.complex_switch_set = False
         self._active_perturb = None
         self.first_axis_inc = None
@@ -236,6 +237,7 @@ class QwtImageDisplay(QwtPlot):
         self.raw_data_rank = 0
         self.xpos = 0
         self.ypos = 0
+        self.complex_type = False
         self.toggle_array_rank = 1
         self.toggle_color_bar = 1
         self.toggle_ND_Controller = 1
@@ -400,8 +402,21 @@ class QwtImageDisplay(QwtPlot):
         if self.is_vector:
           self.array_plot(self._window_title, self.complex_image, False)
         else:
+          if self.ampl_phase:
+            dummy_image = self.complex_image.copy()
+            real_array = dummy_image.getreal()
+            imag_array = dummy_image.getimag()
+            abs_array = abs(dummy_image)
+            phase_array = arctan2(imag_array,real_array)
+            real_array = abs_array
+            imag_array = phase_array
+            dummy_image.setreal(real_array)
+            dummy_image.setimag(imag_array)
+            self.adjust_color_bar = True
+            self.display_image(dummy_image)
+          else:
+            self.display_image(self.complex_image)
           self.adjust_color_bar = True
-          self.display_image(self.complex_image)
         return True
 
 # if we get here ...
@@ -438,22 +453,8 @@ class QwtImageDisplay(QwtPlot):
           self.flag_range = True
         else:
           self.flag_range = False
-          image_min = None
-          image_max = None
-          if abs(self.raw_image.max() - self.raw_image.min()) < 0.00005:
-            if self.raw_image.max() == 0 or self.raw_image.min() == 0.0:
-              image_min = -0.1
-              image_max = 0.1 
-            else:
-              image_min = 0.9 * self.raw_image.min()
-              image_max = 1.1 * self.raw_image.max()
-            if image_min > image_max:
-              temp = image_min
-              image_min = image_max
-              image_max = temp
-          else:
-            image_min = self.raw_image.min()
-            image_max = self.raw_image.max()
+          image_min = self.raw_image.min()
+          image_max = self.raw_image.max()
           self.plotImage.setImageRange((image_min,image_max))
           self.emit(PYSIGNAL("image_range"),(image_min, image_max))
           self.emit(PYSIGNAL("max_image_range"),(image_min, image_max))
@@ -489,34 +490,15 @@ class QwtImageDisplay(QwtPlot):
     def defineData(self):
 
        self.flagged_image = None
-       self.flagged_image_max = None
-       self.flagged_image_min = None
        if not self.image_flag_array is None:
          self.flagged_image = self.raw_image - self.image_flag_array * self.raw_image
-         self.flagged_image_max = self.flagged_image.max()
-         self.flagged_image_min = self.flagged_image.min()
-      # just in case we have a uniform image
-      # not yet sure if the following is the best test ...
-         if abs(self.flagged_image_max - self.flagged_image_min) < 0.00005:
-           if self.flagged_image_max == 0 or self.flagged_image_min == 0.0:
-             self.flagged_image_min = -0.1
-             self.flagged_image_max = 0.1 
-           else:
-             self.flagged_image_min = 0.9 * self.flagged_image_min
-             self.flagged_image_max = 1.1 * self.flagged_image_max
-           if self.flagged_image_min > self.flagged_image_max:
-             temp = self.flagged_image_min
-             self.flagged_image_min = self.flagged_image_max
-             self.flagged_image_max = temp
-
 # not yet ready for prime time here ...
          if self.flag_range:
            _dprint(3, 'self.flag_range ', self.flag_range)
-           self.plotImage.setFlaggedImageRange((self.flagged_image_min, self.flagged_image_max))
-           self.emit(PYSIGNAL("image_range"),(self.flagged_image_min, self.flagged_image_max))
-           self.emit(PYSIGNAL("max_image_range"),(self.flagged_image_min, self.flagged_image_max))
+           self.plotImage.setFlaggedImageRange(self.flagged_image)
+           flag_image_range = self.plotImage.getImageRange()
+           self.emit(PYSIGNAL("max_image_range"),flag_image_range)
            _dprint(3, 'emitted signals about image range')
-#          self.setImageRange(self.flagged_image_min, self.flagged_image_max)
 
        if self._vells_plot:
          if self.complex_type:
@@ -632,18 +614,13 @@ class QwtImageDisplay(QwtPlot):
     def updatePlotParameters(self):
       parms_interface = WidgetSettingsDialog(actual_parent=self, gui_parent=self)
 
-    def setImageRange(self, min, max):
+    def setImageRange(self, min, max, colorbar=0):
       _dprint(3, 'received request for min and max of ', min, ' ', max)
-      image_min = min * 1.0
-      image_max = max * 1.0
-      if image_min > image_max:
-        temp = image_max
-        image_max = image_min
-        image_min = temp
-      self.plotImage.setImageRange((image_min, image_max))
+      if colorbar == 0:
+        self.plotImage.defineImageRange((min, max), True)
+      else:
+        self.plotImage.defineImageRange((min, max), False)
       self.defineData()
-      self.image_min = image_min
-      self.image_max = image_max
       self.replot()
     # setImageRange
 	
@@ -690,7 +667,6 @@ class QwtImageDisplay(QwtPlot):
       plot_data = self._vells_data.getActiveData()
       raw_data_rank = self._vells_data.getActiveDataRank()
       if self.raw_data_rank != raw_data_rank:
-#     if plot_data.rank != self.old_plot_data_rank:
         self.old_plot_data_rank = plot_data.rank
         self.raw_data_rank = raw_data_rank
         # get initial axis parameters
@@ -701,7 +677,7 @@ class QwtImageDisplay(QwtPlot):
       self.plot_vells_array(plot_data, plot_label)
 
     def printplot(self):
-      self.emit(PYSIGNAL("do_print"),(self.is_vector,))
+      self.emit(PYSIGNAL("do_print"),(self.is_vector,self.complex_type))
     # printplot()
 
 
@@ -757,7 +733,7 @@ class QwtImageDisplay(QwtPlot):
 	      marker_index = 0
           temp_str = result + " y =%+.2g" % ypos2
           result = temp_str
-        value = self.raw_image[xpos,ypos]
+        value = self.raw_array[xpos,ypos]
 	message = None
         temp_str = " value: %-.3g" % value
 	if not marker_index is None:
@@ -894,7 +870,7 @@ class QwtImageDisplay(QwtPlot):
               xpos = self.invTransform(QwtPlot.xBottom, xpos)
               ypos = self.invTransform(QwtPlot.yLeft, ypos)
               temp_array = asarray(ypos)
-              shape = self.raw_image.shape
+              shape = self.raw_array.shape
               self.x_arrayloc = resize(temp_array,shape[0])
               temp_array = asarray(xpos)
               self.y_arrayloc = resize(temp_array,shape[1])
@@ -996,17 +972,15 @@ class QwtImageDisplay(QwtPlot):
 
     def calculate_cross_sections(self):
         _dprint(3, 'calculating cross-sections')
-        shape = self.raw_image.shape
+        shape = self.raw_array.shape
         _dprint(3, 'shape is ', shape)
         self.x_array = zeros(shape[0], Float32)
         self.x_index = arange(shape[0])
         self.x_index = self.x_index + 0.5
-#       if shape[1] < self.xsect_ypos:
-#         self.xsect_ypos = int(shape[1] / 2)
         _dprint(3, 'self.xsect_ypos is ', self.xsect_ypos)
         try:
           for i in range(shape[0]):
-            self.x_array[i] = self.raw_image[i,self.xsect_ypos]
+            self.x_array[i] = self.raw_array[i,self.xsect_ypos]
         except:
           self.delete_cross_sections()
           return
@@ -1014,12 +988,10 @@ class QwtImageDisplay(QwtPlot):
         self.y_array = zeros(shape[1], Float32)
         self.y_index = arange(shape[1])
         self.y_index = self.y_index + 0.5
-#       if shape[0] < self.xsect_xpos:
-#         self.xsect_xpos = int(shape[0] / 2)
         _dprint(3, 'self.xsect_xpos is ', self.xsect_xpos)
         try:
           for i in range(shape[1]):
-            self.y_array[i] = self.raw_image[self.xsect_xpos,i]
+            self.y_array[i] = self.raw_array[self.xsect_xpos,i]
         except:
           self.delete_cross_sections()
           return
@@ -1102,101 +1074,37 @@ class QwtImageDisplay(QwtPlot):
     # setDisplayType
 
     def display_image(self, image):
-      _dprint(3, 'self.adjust_color_bar ', self.adjust_color_bar)
-      image_for_display = None
-      if image.type() == Complex32 or image.type() == Complex64:
-        _dprint(3, 'image type ', image.type())
-# if incoming array is complex, create array of reals followed by imaginaries
+      if self.complex_type:
+        (nx,ny) = image.shape
         real_array =  image.getreal()
-        imag_array =  image.getimag()
-        if self.ampl_phase:
-          abs_array = abs(image)
-          _dprint(3, 'abs array type ', abs_array.type())
-          _dprint(3, 'abs array ', abs_array)
-#         phase_array = arctan2(imag_array,real_array)/math.pi*180.0
-          phase_array = arctan2(imag_array,real_array)
-          _dprint(3, 'phase array type ', phase_array.type())
-          real_array = abs_array
-          imag_array = phase_array
-#       shape = real_array.shape
-#       image_for_display = zeros((2*shape[0],shape[1]), Float32)
-#       for k in range(shape[0]):
-#         for j in range(shape[1]):
-#           image_for_display[k,j] = real_array[k,j]
-#           image_for_display[k+shape[0],j] = imag_array[k,j]
-
-        (nx,ny) = real_array.shape
-        _dprint(3, 'real array type ', real_array.type())
-        _dprint(3, 'imag array type ', imag_array.type())
-        image_for_display = array(shape=(nx*2,ny),type=real_array.type());
-        image_for_display[:nx,:] = real_array
-        image_for_display[nx:,:] = imag_array
-
+        self.raw_array = array(shape=(nx*2,ny),type=real_array.type());
+        self.raw_array[:nx,:] = real_array
+        self.raw_array[nx:,:] = image.getimag()
       else:
-        image_for_display = image
-      if self.image_min is None or  self.adjust_color_bar:
-        self.image_min = image_for_display.min()
-      if self.image_max is None or  self.adjust_color_bar:
-        self.image_max = image_for_display.max()
-      _dprint(3, 'max and min for display ', image_for_display.max(), ' ', image_for_display.min())
-      if abs(image_for_display.max() - image_for_display.min()) < 0.00005:
-        self.adjust_color_bar = True
+        self.raw_array = image
+      self.raw_image = image
 
-# have we requested a colorbar?
+      _dprint(3, 'self.adjust_color_bar ', self.adjust_color_bar)
       if not self.colorbar_requested:
         _dprint(3, 'emitting colorbar_needed signal')
-        self.emit(PYSIGNAL("colorbar_needed"),(image_for_display.min(),image_for_display.max()))
+        self.emit(PYSIGNAL("colorbar_needed"), (1,))
         self.colorbar_requested = True
       
       # emit range for the color bar
       if self.adjust_color_bar:
-        # just in case we have a uniform image
-        # not yet sure if the following is the best test ...
-        _dprint(3, 'max and min for display ', image_for_display.max(), ' ', image_for_display.min())
-        if abs(image_for_display.max() - image_for_display.min()) < 0.00005:
-          if image_for_display.max() == 0 or image_for_display.min() == 0.0:
-            image_min = -0.1
-            image_max = 0.1 
-          else:
-            image_min = 0.9 * image_for_display.min()
-            image_max = 1.1 * image_for_display.max()
-          if image_min > image_max:
-            temp = image_min
-            image_min = image_max
-            image_max = temp
-          self.plotImage.setImageRange((image_min, image_max))
-          self.emit(PYSIGNAL("max_image_range"),(image_min, image_max))
-        else:
-          self.plotImage.setImageRange((image_for_display.min(), image_for_display.max()))
-          self.emit(PYSIGNAL("max_image_range"),(image_for_display.min(), image_for_display.max()))
-
-        if abs(self.image_max - self.image_min) < 0.00005:
-          if self.image_max == 0 or self.image_min == 0.0:
-            image_min = -0.1
-            image_max = 0.1 
-          else:
-            image_min = 0.9 * self.image_min
-            image_max = 1.1 * self.image_max
-          if image_min > image_max:
-            temp = image_min
-            image_min = image_max
-            image_max = temp
-          self.plotImage.setImageRange((image_min,image_max))
-          self.emit(PYSIGNAL("image_range"),(image_min, image_max))
-          #print 'display_image emitted image_range ', image_min, ' ', image_max
-        else:
-          self.plotImage.setImageRange((self.image_min,self.image_max))
-          self.emit(PYSIGNAL("image_range"),(self.image_min, self.image_max))
-          #print 'display_image emitted image_range ', self.image_min, ' ', self.image_max
+        self.plotImage.setImageRange(image)
+        image_limits = self.plotImage.getRealImageRange()
+        self.emit(PYSIGNAL("max_image_range"),(image_limits, 0) )
+        if self.complex_type:
+          image_limits = self.plotImage.getImagImageRange()
+          self.emit(PYSIGNAL("max_image_range"),(image_limits, 1) )
         self.adjust_color_bar = False
 
-      self.raw_image = image_for_display
       if self.image_shape is None:
-        self.image_shape = self.raw_image.shape 
+        self.image_shape = image.shape 
       else:
-        if not self.image_shape == self.raw_image.shape:
-#         self.delete_cross_sections()
-          self.image_shape = self.raw_image.shape 
+        if not self.image_shape == image.shape:
+          self.image_shape = image.shape 
 
       self.defineData()
 
@@ -1424,7 +1332,6 @@ class QwtImageDisplay(QwtPlot):
                self.metrics_rank[i] = metrics[i].rank
                self.iteration_number[i] = i+1
           shape = self._value_array.shape
-          self.set_data_range(self._value_array)
           if shape[1] > 1:
             self._x_title = 'Solvable Coeffs'
             self._y_title = 'Iteration Nr'
@@ -1510,67 +1417,9 @@ class QwtImageDisplay(QwtPlot):
           self.first_axis_parm = axis_parms[0]
           self.second_axis_parm = axis_parms[1]
         plot_label = self._vells_data.getPlotLabel()
-        self.set_data_range(plot_data)
         self.plot_vells_array(plot_data, plot_label)
 
     # end plot_vells_data()
-
-    def set_data_range(self, data_array):
-# make sure we're dealing with an array
-      try:
-        array_shape = data_array.shape
-      except:
-        temp_array = asarray(data_array)
-        shape = (1,1)
-        data_array = resize(temp_array,shape)
-
-      if data_array.type() == Complex32 or data_array.type() == Complex64:
-        real_array = data_array.getreal()
-        imag_array = data_array.getimag()
-        real_min = real_array.min()
-        real_max = real_array.max()
-        imag_min = imag_array.min()
-        imag_max = imag_array.max()
-        if real_min < imag_min:
-          self.data_min = real_min
-        else:
-          self.data_min = imag_min
-        if real_max > imag_max:
-          self.data_max = real_max
-        else:
-          self.data_max = imag_max
-      else:
-        self.data_min = data_array.min()
-        self.data_max = data_array.max()
-
-      # just in case we have a uniform image
-      # not yet sure if the following is the best test ...
-      _dprint(3, 'self.data_max ', self.data_max)
-      _dprint(3, 'self.data_min ', self.data_min)
-      if abs(self.data_max - self.data_min) < 0.00005:
-        if self.data_min == 0 or self.data_min == 0.0:
-          self.data_min = -0.1
-          self.data_max = 0.1 
-        else:
-          self.data_min = 0.9 * self.data_min
-          self.data_max = 1.1 * self.data_max
-        if self.data_min > self.data_max:
-          temp = self.data_min
-          self.data_min = self.data_max
-          self.data_max = temp
-
-      #print 'set_data_range: image range being set to : ', self.data_min, ' ', self.data_max
-      self.plotImage.setImageRange((self.data_min,self.data_max))
-      self.reset_color_bar(reset_value = False)
-# have we requested a colorbar?
-      if not self.colorbar_requested:
-        _dprint(3, 'emitting colorbar_needed signal')
-        self.emit(PYSIGNAL("colorbar_needed"),(self.data_min, self.data_max))
-        self.colorbar_requested = True
-      
-      self.emit(PYSIGNAL("max_image_range"),(self.data_min, self.data_max))
-      self.emit(PYSIGNAL("image_range"),(self.data_min, self.data_max))
-      #print 'set_data_range: should have emitted max_image_range and image_range signals of ', self.data_min, ' ', self.data_max
 
     def setArraySelector (self,lcd_number, slider_value, display_string):
 #     #print 'in setArraySelector lcd_number, slider_value ', lcd_number, slider_value
@@ -1725,6 +1574,7 @@ class QwtImageDisplay(QwtPlot):
         self.is_vector = True;
 
 # test for real or complex
+      self.complex_type = False
       complex_type = False;
       if plot_array.type() == Complex32:
         complex_type = True;
@@ -1736,6 +1586,7 @@ class QwtImageDisplay(QwtPlot):
       if self.complex_type and not self.complex_switch_set:
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
         self._menu.insertItem("Toggle real/imag or ampl/phase Display", toggle_id)
+        self.first_ampl_flip = True
         self.complex_switch_set = True
 
 # test if we have a 2-D array
@@ -1745,30 +1596,6 @@ class QwtImageDisplay(QwtPlot):
           self.complex_divider = plot_array.shape[0]
         self.enableAxis(QwtPlot.yLeft)
         self.enableAxis(QwtPlot.xBottom)
-# if there are flags associated with this array, we need to copy flags for complex array
-        if self.complex_type and not self._flags_array is None:
-          if self.array_tuple is None:
-            temp_array = self._flags_array
-          else:
-            temp_array= self._flags_array[self.array_tuple]
-          if flip_axes:
-            flipped_temp_array = transpose(temp_array, axes)
-            temp_array = flipped_temp_array
-#         flag_shape = temp_array.shape
-          flag_array = zeros((2*flag_shape[0],flag_shape[1]), temp_array.type())
-#         for k in range(flag_shape[0]):
-#           for j in range(flag_shape[1]):
-#             flag_array[k,j] = temp_array[k,j]
-#             flag_array[k+flag_shape[0],j] = temp_array[k,j]
-          (nx,ny) = temp_array.shape
-          flag_array = array(shape=(nx*2,ny),type=temp_array.type())
-          flag_array[:nx,:] = temp_array
-          flag_array[nx:,:] = temp_array
-
-          flags_flip = True
-          if flip_axes:
-            flags_flip = False
-          self.setFlagsData(flag_array, flags_flip)
 
 # don't use grid markings for 2-D 'image' arrays
         self.enableGridX(False)
