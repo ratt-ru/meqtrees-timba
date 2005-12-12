@@ -139,7 +139,8 @@ class QwtColorBar(QwtPlot):
         self.replot()
     # set Range()
 
-    def showDisplay(self, show_self):
+    def showDisplay(self, show_self, colorbar_number=0):
+      if colorbar_number == self.colorbar_number:
         if show_self > 0:
           self.show()
         else:
