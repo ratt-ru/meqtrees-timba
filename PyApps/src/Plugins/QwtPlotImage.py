@@ -66,15 +66,6 @@ class QwtPlotImage(QwtPlotMappedItem):
     def setFlagsArray(self, flags_array):
       self._flags_array = flags_array
       
-#     if self.complex:
-#       (nx,ny) = flags_array.shape
-#       self._flags_array = array(shape=(nx*2,ny),type=flags_array.type());
-#       self._flags_array[:nx,:] = flags_array
-#       self._flags_array[nx:,:] = flags_array
-#     else:
-#       self._flags_array = flags_array
-    # setFlagsArray
-
     def setDisplayFlag(self, display_flags):
         self._display_flags = display_flags
     # setDisplayFlag
@@ -168,18 +159,17 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.raw_image = image
 
     def setFlaggedImageRange(self):
-      if self.raw_image.type() == Complex32 or image.type() == Complex64:
+      if self.raw_image.type() == Complex32 or self.raw_image.type() == Complex64:
         (nx,ny) = self.raw_image.shape
         real_array =  self.raw_image.getreal()
         imag_array =  self.raw_image.getimag()
-        real_flagged_array = real_array - self.flag_array * real_array
-        imag_flagged_array = imag_array - self.flag_array * imag_array
-        flagged_image = array(shape=(nx,ny),type=image.type())
-        flagged_image.setreal(self.real_flagged_array)
-        flagged_image.setimag(self.imag_flagged_array)
-        self.setImageRange(flagged_image)
+        real_flagged_array = real_array - self._flags_array * real_array
+        imag_flagged_array = imag_array - self._flags_array * imag_array
+        flagged_image = array(shape=(nx,ny),type=self.raw_image.type())
+        flagged_image.setreal(real_flagged_array)
+        flagged_image.setimag(imag_flagged_array)
       else:
-        flagged_image = self.raw_image - self.flag_array * self.raw_image
+        flagged_image = self.raw_image - self._flags_array * self.raw_image
       self.setImageRange(flagged_image)
     # setFlaggedImageRange
 
