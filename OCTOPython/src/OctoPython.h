@@ -97,6 +97,7 @@ namespace OctoPython
   // If a Python error has been raised, this error is copied into the
   // object and cleared.
   // Will throw a C++ exception if things go really wrong.
+  // Returns _NEW REFERENCE_ to Python object. 
   PyObject * pyConvError (const string &msg);
   
   
@@ -138,6 +139,10 @@ namespace OctoPython
       ~PyObjectRef ()
       { Py_XDECREF(pobj); }
 
+      // detach -- detaches object
+      void detach ()
+      { Py_XDECREF(pobj); pobj = 0; }
+      
       // Ref is true if pointer is valid
       operator bool () const          { return pobj!=0; }
       bool operator ! () const        { return pobj==0; }

@@ -901,6 +901,7 @@ PyObject * pyFromDMI (const DMI::BObj &obj,int err_policy)
 // -----------------------------------------------------------------------
 // pyConvError
 // Create a conv_error description
+// Returns NEW REFERENCE
 // -----------------------------------------------------------------------
 PyObject * pyConvError (const string &msg)
 {
