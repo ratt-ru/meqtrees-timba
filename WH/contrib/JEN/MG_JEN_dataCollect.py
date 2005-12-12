@@ -131,6 +131,28 @@ def _define_forest (ns):
    bb.append(dc['dcoll'])
    cc.append(MG_JEN_exec.bundle(ns, bb, 'spectra', show_parent=False))
 
+   #---------------------------
+   # Test of type = spectra (complex):
+   bb = []
+   dd = []
+   scope = 'scope4'
+   n = 3
+   for corr in ['XX','XY','YX','YY']:
+      for i in range(n):
+         for j in range(i+1,n+1):
+            default = MG_JEN_funklet.polc_ft(c00=1+(i+j)/10, fdeg=2, tdeg=1, stddev=0.01)
+            real = ns.real(i=i,j=j)(corr) << Meq.Parm(default)
+            default = MG_JEN_funklet.polc_ft(c00=-0.1-(i-j)/10, fdeg=0, tdeg=0, stddev=0.01)
+            imag = ns.imag(i=i,j=j)(corr) << Meq.Parm(default)
+            node = ns.cx_parm(i=i,j=j)(corr) << Meq.ToComplex(real, imag)
+            dc = dcoll(ns, node, scope=scope, tag=corr, type='spectra') 
+            dd.append(dc)
+         
+   # Concatenate the dataCollect nodes in dd:
+   dc = dconc(ns, dd, scope=scope, tag='cx_spectra') 
+   bb.append(dc['dcoll'])
+   cc.append(MG_JEN_exec.bundle(ns, bb, 'cx_spectra', show_parent=False))
+
 
    # Finished: 
    return MG_JEN_exec.on_exit (ns, MG, cc)
