@@ -151,10 +151,6 @@ class QwtImageDisplay(QwtPlot):
         self._spectrum_data = None
         self._vells_data = None
         self._plot_type = None
-	self._plot_dict_size = None
-	self.created_combined_image = False
-        self.dimensions_tested = False
-	self._combined_image_id = None
         self.colorbar_requested = False
 	self.is_combined_image = False
         self.image_flag_array = None
@@ -164,23 +160,18 @@ class QwtImageDisplay(QwtPlot):
         self.real_flag_vector = None
         self.array_parms = None
         self.metrics_rank = None
-        self.toggles_not_set = True
         self.iteration_number = None
         self.ampl_phase = False
-        self.first_ampl_flip = True
         self.complex_switch_set = False
         self._active_perturb = None
         self.first_axis_inc = None
         self.second_axis_inc = None
-        self.image_min = None
-        self.image_max = None
         self.image_shape = None
         self.xmin = None
         self.xmax = None
         self.ymin = None
         self.ymax = None
         self.adjust_color_bar = True
-        self.do_calc_vells_range = True
         self.array_selector = None
         self.show_x_sections = False
         self.flag_range = False
@@ -414,9 +405,10 @@ class QwtImageDisplay(QwtPlot):
             imag_array = phase_array
             dummy_image.setreal(real_array)
             dummy_image.setimag(imag_array)
-            self.adjust_color_bar = True
+            self.plotImage.setImageRange(dummy_image)
             self.display_image(dummy_image)
           else:
+            self.plotImage.setImageRange(self.complex_image)
             self.display_image(self.complex_image)
           self.adjust_color_bar = True
         return True
@@ -1533,6 +1525,8 @@ class QwtImageDisplay(QwtPlot):
       self.myYScale = None
       self.split_axis = None
       self.array_parms = None
+      self.adjust_color_bar = True
+        
 
 # pop up menu for printing
       if self._menu is None:
@@ -1582,7 +1576,6 @@ class QwtImageDisplay(QwtPlot):
       if self.complex_type and not self.complex_switch_set:
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
         self._menu.insertItem("Toggle real/imag or ampl/phase Display", toggle_id)
-        self.first_ampl_flip = True
         self.complex_switch_set = True
 
 # test if we have a 2-D array
