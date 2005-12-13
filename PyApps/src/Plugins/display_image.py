@@ -166,6 +166,8 @@ class QwtImageDisplay(QwtPlot):
         self._active_perturb = None
         self.first_axis_inc = None
         self.second_axis_inc = None
+        self.x_arrayloc = None
+        self.y_arrayloc = None
         self.image_shape = None
         self.xmin = None
         self.xmax = None
@@ -315,11 +317,14 @@ class QwtImageDisplay(QwtPlot):
         self.removeCurves()
         self.xCrossSection = None
         self.yCrossSection = None
+        self.x_arrayloc = None
+        self.y_arrayloc = None
         self.enableAxis(QwtPlot.yRight, False)
         self.enableAxis(QwtPlot.xTop, False)
         self.xCrossSectionLoc = None
         self.yCrossSectionLoc = None
         self.dummy_xCrossSection = None
+	self.refresh_marker_display()
         toggle_id = self.menu_table['Delete X-Section Display']
         self.show_x_sections = False
         self._menu.setItemVisible(toggle_id, False)
@@ -766,6 +771,7 @@ class QwtImageDisplay(QwtPlot):
       self.source_marker = None
       if self.is_combined_image:
         self.insert_marker_lines()
+# draw dividing line for complex array
       self.insert_array_info()
       self.replot()
       _dprint(3, 'called replot in refresh_marker_display ')
@@ -783,17 +789,10 @@ class QwtImageDisplay(QwtPlot):
         y = y + self.y_marker_step
         self.setMarkerYPos(mY, y)
 
-# draw dividing line for complex array
-      if self.complex_type:  
-          self.complex_marker = self.insertLineMarker('', QwtPlot.xBottom)
-          self.setMarkerLinePen(self.complex_marker, QPen(Qt.black, 2, Qt.SolidLine))
-          self.setMarkerXPos(self.complex_marker, self.complex_divider)
-    
     def onMouseMoved(self, e):
        if self.is_vector:
           return
 
-    # onMouseMoved()
 
     def onMousePressed(self, e):
         if Qt.LeftButton == e.button():
@@ -837,9 +836,8 @@ class QwtImageDisplay(QwtPlot):
               ypos = self.invTransform(QwtPlot.yLeft, ypos)
               temp_array = asarray(ypos)
               shape = self.raw_array.shape
-              self.x_arrayloc = resize(temp_array,shape[0])
-              temp_array = asarray(xpos)
-              self.y_arrayloc = resize(temp_array,shape[1])
+              self.x_arrayloc = ypos
+              self.y_arrayloc = xpos
               if self._vells_plot:
                 if not self.first_axis_inc is None:
                   xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
@@ -1000,23 +998,7 @@ class QwtImageDisplay(QwtPlot):
         self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
         self.setCurveData(self.yCrossSection, self.y_array, self.y_index)
 
-# put in a line where cross sections are selected
-        if self.xCrossSectionLoc is None:
-          self.xCrossSectionLoc = self.insertCurve('xCrossSectionLocation')
-          self.setCurvePen(self.xCrossSectionLoc, QPen(Qt.black, 2))
-          self.setCurveYAxis(self.xCrossSectionLoc, QwtPlot.yLeft)
-        self.setCurveData(self.xCrossSectionLoc, self.x_index, self.x_arrayloc)
-        if self.yCrossSectionLoc is None:
-          self.yCrossSectionLoc = self.insertCurve('yCrossSectionLocation')
-          self.setCurvePen(self.yCrossSectionLoc, QPen(Qt.white, 2))
-          self.setCurveYAxis(self.yCrossSectionLoc, QwtPlot.yLeft)
-          self.setCurveXAxis(self.yCrossSectionLoc, QwtPlot.xBottom)
-        self.setCurveData(self.yCrossSectionLoc, self.y_arrayloc, self.y_index)
-        if self.is_combined_image:
-          self.removeMarkers()
-          self.info_marker = None
-          self.source_marker = None
-          self.insert_marker_lines()
+        self.refresh_marker_display()
         self.show_x_sections = True
         toggle_id = self.menu_table['Delete X-Section Display']
         self._menu.setItemVisible(toggle_id, True)
@@ -1127,6 +1109,17 @@ class QwtImageDisplay(QwtPlot):
           self.complex_marker = self.insertLineMarker('', QwtPlot.xBottom)
           self.setMarkerLinePen(self.complex_marker, QPen(Qt.black, 2, Qt.SolidLine))
           self.setMarkerXPos(self.complex_marker, self.complex_divider)
+
+# put in a line where cross sections are selected
+      if not self.x_arrayloc is None:
+          self.x_sect_marker = self.insertLineMarker('', QwtPlot.yLeft)
+          self.setMarkerLinePen(self.x_sect_marker, QPen(Qt.black, 3, Qt.SolidLine))
+          self.setMarkerYPos(self.x_sect_marker, self.x_arrayloc)
+
+      if not self.y_arrayloc is None:
+          self.y_sect_marker = self.insertLineMarker('', QwtPlot.xBottom)
+          self.setMarkerLinePen(self.y_sect_marker, QPen(Qt.white, 3, Qt.SolidLine))
+          self.setMarkerXPos(self.y_sect_marker, self.y_arrayloc)
 
 # insert mean and standard deviation
       if not self.array_parms is None:
@@ -1285,10 +1278,7 @@ class QwtImageDisplay(QwtPlot):
         if plot_label == 'spectra: combined image':
 	    self.is_combined_image = True
             self.reset_color_bar(True)
-            self.removeMarkers()
-            self.info_marker = None
-            self.source_marker = None
-	    self.insert_marker_lines()
+            self.refresh_marker_display()
       _dprint(2, 'exiting plot_data');
 
     # end plot_data()
