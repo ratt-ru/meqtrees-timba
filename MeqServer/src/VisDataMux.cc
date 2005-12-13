@@ -46,17 +46,25 @@ Meq::VisDataMux::VisDataMux ()
   force_regular_grid = false;
   // use reasonable default
   handlers_.resize(VisVocabulary::ifrNumber(30,30)+1);
-  sinks_.resize(VisVocabulary::ifrNumber(30,30)+1);
+  child_indices_.resize(VisVocabulary::ifrNumber(30,30)+1);
   // init request id for dataset=1
   // frst.incrRequestId(rqid_,FDataset);
+  enableMultiThreadedPolling();
+}
+
+void Meq::VisDataMux::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+  Node::setStateImpl(rec,initializing);
+  // disable first three children since we execute them manually
+  child_disabled_[0] = child_disabled_[1] = child_disabled_[2] = true;
 }
 
 void Meq::VisDataMux::clear ()
 {
   for( uint i=0; i<handlers_.size(); i++ )
     handlers_[i].clear();  
-  for( uint i=0; i<sinks_.size(); i++ )
-    sinks_[i].clear();  
+  for( uint i=0; i<child_indices_.size(); i++ )
+    child_indices_[i].clear();  
 }
 
 //##ModelId=3FA1016000B0
@@ -88,29 +96,18 @@ void Meq::VisDataMux::attachSink (Meq::Sink &sink)
   int did = sink.dataId();
   if( did >= int(handlers_.size()) )
     handlers_.resize(did+100);
-  if( did >= int(sinks_.size()) )
-    sinks_.resize(did+100);
+  if( did >= int(child_indices_.size()) )
+    child_indices_.resize(did+100);
   cdebug(2)<<"attaching sink for did "<<did<<endl;
   // get sink output column
   output_columns_.insert(sink.getOutputColumn());
   // add sink to list of handlers for this data id
   handlers_[did].insert(&sink);
-  sinks_[did].insert(&sink);
-  // add sink to children
+  // add index of child to list of children for this data id
+  child_indices_[did].insert(numChildren()); 
+  // attach as child
   Node::Ref sinkref(sink,DMI::SHARED);
   addChild(sinkref);
-}
-
-//##ModelId=3F716EAA0106
-void Meq::VisDataMux::detachSpigot (Meq::Spigot &spigot)
-{
-  handlers_[spigot.dataId()].erase(&spigot);
-}
-
-void Meq::VisDataMux::detachSink (Meq::Sink &sink)
-{
-  handlers_[sink.dataId()].erase(&sink);
-  sinks_[sink.dataId()].erase(&sink);
 }
 
 // define standard catch clauses to be re-used below on multiple occasions
@@ -164,7 +161,7 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
   have_tile_.assign(maxdid,false);
   // forest().resetForNewDataSet();
   handlers_.resize(maxdid);
-  sinks_.resize(maxdid);
+  child_indices_.resize(maxdid);
   
   // get frequencies 
   if( !header[VisVocabulary::FChannelFreq].get(channel_freqs) ||
@@ -349,43 +346,53 @@ int Meq::VisDataMux::endSnippet ()
     CatchExceptionsMore("pre-processing snippet "+rqid_.toString('.'));
   }
   int nerr0 = errors.size();
-  // poll all sinks for which a tile was assigned
-  for( uint i=0; i<sinks_.size(); i++ )
+  // ok, now we want to asyncronously poll all sinks that have a tile 
+  // assigned. First, disable all children
+  for( int i=0; i<numChildren(); i++ )
+    child_disabled_[i] = true;
+  // now, enable sinks with tiles
+  for( uint i=0; i<child_indices_.size(); i++ )
     if( have_tile_[i] )
     {
-      SinkSet & hlist = sinks_[i];
-      SinkSet::iterator iter = hlist.begin();
-      for( ; iter != hlist.end(); iter++ )
+      const IndexSet & ilist = child_indices_[i];
+      for( IndexSet::const_iterator iter = ilist.begin(); iter != ilist.end(); iter++ )
+        child_disabled_[*iter] = false;
+    }
+  // now do the poll
+  startAsyncPoll(*current_req_);
+  while( true )
+  {
+    try
+    {
+      int retcode;
+      Result::Ref res;
+      int ichild = awaitChildResult(retcode,res,*current_req_);
+      if( ichild < 0 )  // break out if finished
+        break;
+      result_flag |= retcode;
+      if( retcode&RES_FAIL )
       {
-        Result::Ref res;
-        try 
-        { 
-          int retcode = (*iter)->execute(res,*current_req_);
-          result_flag |= retcode;
-          if( retcode&RES_FAIL )
+        res->addToExceptionList(errors);
+        errors.add(MakeNodeException("child '"+getChild(ichild).name()+"' returns a FAIL"));
+      }
+      else // if child returns a Tile field in the result, dump tile to output
+      {
+        const VisCube::VTile *ptile = res[AidTile].as_po<VisCube::VTile>();
+        if( ptile )
+        {
+          cdebug(2)<<"handler returns updated tile "<<ptile->tileId()<<", posting to output\n";
+          writing_data_ = true;
+          if( cached_header_.valid() )
           {
-            res->addToExceptionList(errors);
-            errors.add(MakeNodeException("sink '"+(*iter)->name()+"' returns a FAIL"));
+            output().put(HEADER,cached_header_);
+            cached_header_.detach();
           }
-          else // if sink returns a Tile field in the result, dump tile to output
-          {
-            const VisCube::VTile *ptile = res[AidTile].as_po<VisCube::VTile>();
-            if( ptile )
-            {
-              cdebug(2)<<"handler returns updated tile "<<ptile->tileId()<<", posting to output\n";
-              writing_data_ = true;
-              if( cached_header_.valid() )
-              {
-                output().put(HEADER,cached_header_);
-                cached_header_.detach();
-              }
-              output().put(DATA,ObjRef(ptile));
-            }
-          }
+          output().put(DATA,ObjRef(ptile));
         }
-        CatchExceptions("error processing snippet "+rqid_.toString('.'));
       }
     }
+    CatchExceptions("error processing snippet "+rqid_.toString('.'));
+  }
   if( errors.size() > nerr0 )
     errors.add(MakeNodeException("error processing snippet "+rqid_.toString('.')));
   // poll post-processing child

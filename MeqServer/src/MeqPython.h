@@ -38,6 +38,9 @@ namespace MeqPython
   void processVisTile   (const VisCube::VTile &tile);
   void processVisFooter (const DMI::Record &hdr);
   
+  // testing function -- converts object to python object, then discards
+  void testConversion   (const BObj &obj);
+  
   // -----------------------------------------------------------------------
   // Various internal declarations
   // -----------------------------------------------------------------------

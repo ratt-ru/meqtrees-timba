@@ -80,8 +80,7 @@ void ModRes::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   rec[FResolutionId].get(res_index_,initializing);
 }
 
-int ModRes::pollChildren (std::vector<Result::Ref> &chres,
-                          Result::Ref &resref,
+int ModRes::pollChildren (Result::Ref &resref,
                           const Request &request)
 {
   if( do_resample_ && request.hasCells()) 
@@ -113,10 +112,10 @@ int ModRes::pollChildren (std::vector<Result::Ref> &chres,
     else
       RqId::incrSubId(newid,res_depmask_);
     newreq().setId(newid);
-    return Node::pollChildren(chres,resref,newreq);
+    return Node::pollChildren(resref,newreq);
   } else {
     //do nothing
-    return Node::pollChildren(chres,resref,request);
+    return Node::pollChildren(resref,request);
   }
   // will not get here
   return 0;

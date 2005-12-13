@@ -80,6 +80,17 @@ static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
 }
 
 // -----------------------------------------------------------------------
+// testConversion
+// testing method to find bugs in the conversion layer -- converts BObj
+// to python object, then throws away the python object
+// -----------------------------------------------------------------------
+void testConversion (const BObj &arg)
+{
+  PyObjectRef pyarg = pyFromDMI(arg);
+  pyarg.detach();
+}
+
+// -----------------------------------------------------------------------
 // processInitRecord
 // processes a visibility header by calling a handler, if set
 // -----------------------------------------------------------------------

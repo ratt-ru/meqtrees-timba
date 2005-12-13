@@ -13,6 +13,15 @@
 #include <MeqServer/Spigot.h>
 
 #include <linux/unistd.h>
+
+// TEST_PYTHON_CONVERSION: if defined, will test objects for 
+// convertability to Python (see below)
+// only useful for debugging really
+#if LOFAR_DEBUG
+//  #define TEST_PYTHON_CONVERSION 1
+#else
+  #undef TEST_PYTHON_CONVERSION
+#endif
     
 using Debug::ssprintf;
 using namespace AppAgent;
@@ -540,19 +549,7 @@ void MeqServer::nodeDeleted (Node &node)
   {
     if( &(node) == pmux_ )
       pmux_ = 0;
-    else
-    {
-      Spigot * pspig = dynamic_cast<Spigot*>(&node);
-      if( pspig )
-        pmux_->detachSpigot(*pspig);
-      else
-      {
-        Sink * psink = dynamic_cast<Sink*>(&node);
-        if( psink )
-          pmux_->detachSink(*psink);
-      }
-    }
-  }  
+  }
 }
 
 // if a VisDataMux is required but hasn't been explicitly created,
@@ -724,6 +721,9 @@ void MeqServer::debugUntilNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
 int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef &evdata,void *) 
 {
   cdebug(4)<<"received event "<<evid.id()<<endl;
+#ifdef TEST_PYTHON_CONVERSION
+  MeqPython::testConversion(*evdata);
+#endif
   control().postEvent(evid.id(),evdata);
   return 1;
 }

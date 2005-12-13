@@ -84,6 +84,8 @@ Solver::Solver()
   setKnownSymDeps(symdeps,4);
   const HIID symdeps1[] = { FDomain,FResolution,FDataset };
   setActiveSymDeps(symdeps1,3);
+  // enable multithreading
+  enableMultiThreadedPolling();
 }
 
 //##ModelId=400E53550261
@@ -107,8 +109,7 @@ TypeId Solver::objectType() const
 
 // do nothing here -- we'll do it manually in getResult()
 //##ModelId=400E5355026B
-int Solver::pollChildren (std::vector<Result::Ref> &chres,
-                          Result::Ref &resref,const Request &request)
+int Solver::pollChildren (Result::Ref &resref,const Request &request)
 {
   // a request that has cells in it is a solve request -- do not pass it to the
   // children, as we'll be doing our own polling in getResult() below
@@ -118,7 +119,7 @@ int Solver::pollChildren (std::vector<Result::Ref> &chres,
   // passed on to the children as is. (This request will never make it to our
   // getResult())
   else
-    return Node::pollChildren(chres,resref,request);
+    return Node::pollChildren(resref,request);
 }
 
 
@@ -209,6 +210,7 @@ inline void Solver::fillEqVectors (int npert,int uk_index[],
     ::Debug::getDebugStream()<<" -> "<<diff<<endl;
   }
   // add equation to solver
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   solver_.makeNorm(npert,uk_index,&deriv_real_[0],1.,diff);
   num_equations_++;
 }
@@ -246,6 +248,7 @@ inline void Solver::fillEqVectors (int npert,int uk_index[],
     ::Debug::getDebugStream()<<" -> "<<diff<<endl;
   }
   // add equation to solver
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   solver_.makeNorm(npert,uk_index,&deriv_real_[0],1.,diff.real());
   num_equations_++;
   solver_.makeNorm(npert,uk_index,&deriv_imag_[0],1.,diff.imag());
@@ -432,7 +435,7 @@ int Solver::getResult (Result::Ref &resref,
   // send up request to figure out spids. We can poll syncronously since there's
   // nothing for us to do until all children have returned
   timers_.getresult.stop();
-  int retcode = Node::pollChildren(child_results_,resref,*reqref);
+  int retcode = Node::pollChildren(resref,*reqref);
   timers_.getresult.start();
   if( retcode&(RES_FAIL|RES_WAIT) )
     return retcode;
@@ -464,7 +467,10 @@ int Solver::getResult (Result::Ref &resref,
     Throw("spid discovery did not return any solvable parameters");
   }
   num_spids_ = spids_.size();
+  {
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   solver_.set(num_unknowns_);
+  }
   cdebug(2)<<"solver initialized for "<<num_unknowns_<<" unknowns\n";
   
   // resize temporaries used in fillEquations()
@@ -500,6 +506,7 @@ int Solver::getResult (Result::Ref &resref,
     num_equations_ = 0;
     // start async child poll
     timers_.getresult.stop();
+    setExecState(CS_ES_POLLING);
     startAsyncPoll(*reqref);
     int rescode;
     Result::Ref child_res;
@@ -509,7 +516,6 @@ int Solver::getResult (Result::Ref &resref,
     {
       // tell child to hold cache if it doesn't depend on iteration
       getChild(cur_child_).holdCache(!(rescode&iter_depmask_));
-//    setExecState(CS_ES_EVALUATING);
       // has the child failed? 
       if( rescode&RES_FAIL )
       {
@@ -534,6 +540,7 @@ int Solver::getResult (Result::Ref &resref,
         timers_.getresult.stop();
       }
     } // end of while loop over children
+    setExecState(CS_ES_EVALUATING);
     timers_.getresult.start();
     FailWhen(!num_equations_,"no equations were generated");
     cdebug(4)<<"accumulated "<<num_equations_<<" equations\n";
@@ -571,7 +578,9 @@ int Solver::getResult (Result::Ref &resref,
     lastreq.copyRider(*reqref);
     lastreq.setNextId(request.nextId());
     ParmTable::lockTables();
-    Node::pollChildren(child_results_, resref, lastreq);
+    timers_.getresult.stop();
+    Node::pollChildren(resref, lastreq);
+    timers_.getresult.start();
     ParmTable::unlockTables();
   }
   solveResult[FConverged] = converged;
@@ -645,6 +654,7 @@ double Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   // Make a copy of the solver for the actual solve.
   // This is needed because the solver does in-place transformations.
   ////  FitLSQ solver = solver_;
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   bool solFlag = solver_.solveLoop (fit, rank, solution, use_svd_);
 
   // {

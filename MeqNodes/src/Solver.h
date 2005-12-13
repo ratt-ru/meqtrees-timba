@@ -93,9 +93,7 @@ protected:
     //##ModelId=400E5355026B
   //##Documentation
   //## override this, since we poll children ourselves
-  virtual int pollChildren (std::vector<Result::Ref> &child_results,
-                            Result::Ref &resref,
-                            const Request &req);
+  virtual int pollChildren (Result::Ref &resref,const Request &req);
   
     //##ModelId=400E53550270
   //##Documentation

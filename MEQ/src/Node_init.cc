@@ -17,6 +17,14 @@ void Node::allocChildSupport (int nch)
   child_retcodes_.resize(nch);
   child_fails_.reserve(nch);
   rcr_cache_.resize(nch);
+  // init default poll order
+  child_poll_order_.resize(nch);
+  child_disabled_.resize(nch);
+  for( int i=0; i<nch; i++ )
+  {
+    child_poll_order_[i] = i;
+    child_disabled_[i] = false;
+  }
 }
 
 // this initializes the children-related state fields, called from init()
@@ -308,6 +316,7 @@ void Node::relinkChildren ()
     else
     {
       FailWhen(i<check_min_children_,"mandatory child "+label.toString()+" missing");
+      child_disabled_[i] = true;
     }
   }
   for( int i=0; i<numStepChildren(); i++ )
@@ -329,6 +338,7 @@ void Node::resolveChildren ()
       {
         FailWhen(i<check_min_children_,"mandatory child "+label.toString()+" missing");
         wstate()[FChildren][label] = -1;
+        child_disabled_[i] = true;
       }
       else
       {

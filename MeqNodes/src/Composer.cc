@@ -30,8 +30,7 @@ namespace Meq {
 
 //##ModelId=400E53050042
 Composer::Composer()
-  : Node(-2,0), // at least 1 child must be present
-    contagious_fail(false)
+  : Node(-2,0) // at least 1 child must be present
 {
   // we can only compose results with the same cells
   setAutoResample(RESAMPLE_FAIL);
@@ -52,7 +51,6 @@ Composer::~Composer()
 void Composer::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
-  rec[FContagiousFail].get(contagious_fail,initializing);
   DMI::Record::Hook hdims(rec,FDims);
   if( hdims.type() == Tpbool && !hdims.as<bool>() )
     dims_.clear();
@@ -68,64 +66,40 @@ int Composer::getResult (Result::Ref &resref,
   // count # of output planes, and # of fails among them
   int nres = 0, nfails = 0;
   for( uint i=0; i<childres.size(); i++ )
-  {
     nres += childres[i]->numVellSets();
-    nfails += childres[i]->numFails();
-  }
-  // if fail is contagious, generate a fully failed result
-  if( nfails && contagious_fail )
+  // check that integrated property matches
+  bool integrated = childres[0]->isIntegrated();
+  for( int i=1; i<numChildren(); i++ )
   {
-    Result &result = resref <<= new Result(nfails);
-    int ires = 0;
-    for( uint i=0; i<childres.size(); i++ )
-    {
-      const Result &chres = *childres[i];
-      for( int j=0; j<chres.numVellSets(); j++ )
-      {
-        const VellSet &vs = chres.vellSet(j);
-        if( vs.isFail() )
-          result.setVellSet(ires++,&vs);
-      }
-    }
-    return RES_FAIL;
+    FailWhen( childres[i]->isIntegrated() != integrated,
+        "'integrated' property of child results is not uniform");
   }
-  // otherwise, compose normal result
+  // compose the result
+  Result *presult;
+  if( dims_.empty() )
+    resref <<= presult = new Result(nres,integrated);
   else
   {
-    // check that integrated property matches
-    bool integrated = childres[0]->isIntegrated();
-    for( int i=1; i<numChildren(); i++ )
-    {
-      FailWhen( childres[i]->isIntegrated() != integrated,
-          "'integrated' property of child results is not uniform");
-    }
-    // compose the result
-    Result *presult;
-    if( dims_.empty() )
-      resref <<= presult = new Result(nres,integrated);
-    else
-    {
-      resref <<= presult = new Result(dims_,integrated);
-      FailWhen(presult->numVellSets()!=nres,
-               "number of child results does not match tensor dimensions");
-    }
-    int ires=0;
-    const Cells *pcells = 0;
-    for( int i=0; i<numChildren(); i++ )
-    {
-      const Result &chres = *childres[i];
-      for( int j=0; j<chres.numVellSets(); j++ )
-      {
-        VellSet::Ref ref = chres.vellSetRef(j);
-        presult->setVellSet(ires++,ref);
-      }
-      if( !pcells && chres.hasCells() )
-        pcells = &( chres.cells() );
-    }
-    // apply cells as needed
-    if( pcells )
-      presult->setCells(pcells);
+    resref <<= presult = new Result(dims_,integrated);
+    FailWhen(presult->numVellSets()!=nres,
+             "number of child results does not match tensor dimensions");
   }
+  int ires=0;
+  const Cells *pcells = 0;
+  for( int i=0; i<numChildren(); i++ )
+  {
+    const Result &chres = *childres[i];
+    for( int j=0; j<chres.numVellSets(); j++ )
+    {
+      VellSet::Ref ref = chres.vellSetRef(j);
+      presult->setVellSet(ires++,ref);
+    }
+    if( !pcells && chres.hasCells() )
+      pcells = &( chres.cells() );
+  }
+  // apply cells as needed
+  if( pcells )
+    presult->setCells(pcells);
   // we do not introduce any dependencies
   return 0;
 }

@@ -23,6 +23,7 @@
 #define MEQ_NODE_H_HEADER_INCLUDED_E5514413
     
 #include <Common/Stopwatch.h>
+#include <Common/Thread/Condition.h>
 #include <DMI/Record.h>
 #include <MEQ/EventGenerator.h>
 #include <MEQ/Result.h>
@@ -41,7 +42,8 @@
 #pragma aid Link Or Create Control Status New Breakpoint Single Shot Step
 #pragma aid Cache Policy Stats All New Requests Parents Num Active Description
 #pragma aid Profiling Stats Total Children Get Result Ticks Per Second CPU MHz
-
+#pragma aid Poll Polling Order MT Propagate Child Fails
+    
 namespace Meq 
 { 
 using namespace DMI;
@@ -62,6 +64,11 @@ const HIID FControlStatus = AidControl|AidStatus;
 const HIID FNewRequest    = AidNew|AidRequest;
 const HIID FBreakpoint    = AidBreakpoint;
 const HIID FBreakpointSingleShot = AidBreakpoint|AidSingle|AidShot;
+
+const HIID FPropagateChildFails = AidPropagate|AidChild|AidFails;
+
+const HIID FChildPollOrder = AidChild|AidPoll|AidOrder;
+const HIID FMTPolling      = AidMT|AidPolling;
 
 // cache stored here 
 const HIID FCache     = AidCache; // top level subrecord
@@ -111,6 +118,12 @@ const HIID FAddDepMask = AidAdd|AidDep|AidMask;
 // the All group
 const HIID FAll = AidAll;
 
+namespace MTPool 
+{
+  class WorkOrder; 
+  class Brigade; 
+}
+
 //##ModelId=3F5F436202FE
 class Node : public DMI::BObj
 {
@@ -141,7 +154,7 @@ class Node : public DMI::BObj
       RES_WAIT         = 0x10<<RQIDM_NBITS,    
       // Result is a complete fail (i.e. not a mix of failed and OK VellSets,
       // just a complete fail)
-      RES_FAIL         = 0x80<<RQIDM_NBITS    
+      RES_FAIL         = 0x80<<RQIDM_NBITS
     } ResultAttributes;
     
     //##Documentation
@@ -226,6 +239,7 @@ class Node : public DMI::BObj
       CACHE_NEVER      = -10,    // nothing is cached at all
       CACHE_MINIMAL    = -1,     // cache held until all parents get result
       CACHE_DEFAULT    =  0,     // use global (forest default) policy
+      // note that a forest default of 0 actually corresponds to CACHE_SMART
       CACHE_SMART      =  1,     // smart caching based on next-request hints, 
                                  // conservative (when in doubt, don't cache)
       CACHE_SMART_AGR  =  10,    // smart caching based on next-request hints
@@ -325,6 +339,9 @@ class Node : public DMI::BObj
     //##ModelId=3F6726C4039D
     int execute (Result::Ref &resref, const Request &);
     
+    bool isExecuting () const
+    { return executing_; }
+    
     //##ModelId=3F9919B00313
     const HIID & currentRequestId () const
     { return current_reqid_; }
@@ -360,6 +377,19 @@ class Node : public DMI::BObj
     Forest & forest ()
     { return *forest_; }
 
+    // condition variable used to signal when Node::execute() is returning
+    // Also used as a mutex to protect the executing_ flag.
+    Thread::Condition & execCond ()
+    { return mt.exec_cond_; };
+    
+    // returns true if Node should poll its children in multithreaded mode
+    bool multithreaded () const
+#ifdef DISABLE_NODE_MT
+    { return false; }
+#else
+    { return mt.enabled_; }
+#endif
+
     //##ModelId=3F85710E002E
     int numChildren () const
     { return children_.size(); }
@@ -376,7 +406,10 @@ class Node : public DMI::BObj
     { return i<children_.size() && children_[i].valid(); }
         
     //##ModelId=3F85710E011F
-    //## return child by number
+    //## return child name. Can also be called before a resolve().
+    string getChildName (int i) const;
+    
+    //## return child by number. May be invalid before a resolve()
     Node & getChild (int i)
     {
       FailWhen(!children_[i].valid(),"unresolved child");
@@ -496,6 +529,15 @@ class Node : public DMI::BObj
 
     //##ModelId=3F8433C1039E
     LocalDebugContext;
+    
+    // multithreading-related stuff
+    // checks if poll can be done in mt mode, returns brigade
+    MTPool::Brigade * mt_checkBrigadeAvailability (Thread::Mutex::Lock &lock);
+    
+    // callbacks to deliver child results in MT mode
+    void mt_receiveAsyncChildResult (int ichild,MTPool::WorkOrder &res);
+    void mt_receiveSyncChildResult  (int ichild,MTPool::WorkOrder &res);
+    void mt_receiveStepchildResult  (int ichild,MTPool::WorkOrder &res);
 
 
     //##Documentation
@@ -595,6 +637,16 @@ class Node : public DMI::BObj
     void disableFailPropagation ()
     { propagate_child_fails_ = false; }
     
+    // called to enable/disable multithreaded polling on a node
+    // (must be enabled in forest first)
+    void enableMultiThreadedPolling (bool enable=true);
+    
+    // called (usually from setStateImpl()) to set a non-default child
+    // poll order. order must contain valid names of child nodes.
+    // The number of elements in order may be fewer than numChildren(),
+    // in which case the unspecifed children will be automatically added
+    // at the end of the list
+    void setChildPollOrder (const std::vector<string> &order);
     
     //##Documentation
     //## Helper function to poll a node's set of stepchildren. 
@@ -655,7 +707,8 @@ class Node : public DMI::BObj
     //##ModelId=400E531702FD
     //##Documentation
     //## Called from execute() to collect the child results for a given request.
-    //## Child_results vector is pre-sized to the number of children.
+    //## Stores results in this->child_results_, which should have been 
+    //## pre-sized to the number of children..
     //## The method is expected to pass the request on to the children,  
     //## collect their results in the vector, and return the accumulated
     //## result code. If RES_FAIL is returned, then resref should point
@@ -670,8 +723,7 @@ class Node : public DMI::BObj
     //## send request to children, wait for all children to return a result.
     //## Nodes should only reimplement this if they prefer to poll children 
     //## themselves (i.e. the Solver). 
-    virtual int pollChildren (std::vector<Result::Ref> &child_results,
-                              Result::Ref &resref,
+    virtual int pollChildren (Result::Ref &resref,
                               const Request &req);
                               
     //## Helper function for asynchronous polling:
@@ -904,16 +956,36 @@ class Node : public DMI::BObj
     //## control_status word
     int control_status_;
     
+    //## order in which children are polled, default order_[i] == i but
+    //## can be overridden by the child_poll_order state field.
+    std::vector<int> child_poll_order_;
+    //## polling of individual children may be disabled via this vector
+    std::vector<bool> child_disabled_;
     //## vector of child results, filled in during execute()
     std::vector<Result::Ref> child_results_;
     //## vector of child return codes, filled in by pollChildren()
     std::vector<int> child_retcodes_;
+    //## cumulative return code
+    int child_cumul_retcode_;
     //## vector of stepchild return codes, filled in by pollStepChildren()
     std::vector<int> stepchild_retcodes_;
+    //## temporary vector of fail results from children, collected in pollChildren()
     std::vector<const Result *> child_fails_;
+    //## total number of fail vellsets from children
+    int num_child_fails_;
+    
+    //## flag: child fails automatically propagated
+    bool propagate_child_fails_;
     
     // cache policy setting
     int cache_policy_;
+    
+    // flag: cache should be made explicitly dependent on "State". This
+    // flag is "dropped" on us from child nodes when their state changes, and is
+    // primarily meant as a kludge against the Solver-ReqSeq conundrum.
+    // Nodes clear this flag in execute(), and set it via markStateDependency().
+    // The Solver clears this flag explicitly.
+    bool has_state_dep_;
     
     // profiling timers
     struct
@@ -922,6 +994,22 @@ class Node : public DMI::BObj
       LOFAR::NSTimer children;
       LOFAR::NSTimer getresult;
     } timers_;
+    
+    // convenience class: construct from timer to start timer,
+    // destroy to stop timer
+    class TimerStart 
+    {
+      public:
+        TimerStart (LOFAR::NSTimer &tm)
+          : timer_(tm)
+        { timer_.start(); }
+      
+        ~TimerStart ()
+        { timer_.stop(); }
+      
+      private:
+        LOFAR::NSTimer & timer_;
+    };
     
      
   private:
@@ -952,6 +1040,51 @@ class Node : public DMI::BObj
     // Looks into record, gets out the FChildren or FStepChildren field, and 
     // processes it as a list of [step]children
     void setupChildren (DMI::Record &init,bool stepchildren);
+    
+    // in async multithread polling mode, this structure is used to hold the child results
+    typedef struct
+    {
+      int ichild;
+      int retcode;
+      Result::Ref resref;
+    } MT_ChildResult;
+    
+    // data members for multithreaded support
+    struct NodeMT
+    {
+      Thread::Condition exec_cond_;
+      bool enabled_;       // true if MT is enabled
+      int numchildren_;    // number of children to poll in mt mode
+      int child_retcount_; // number of children that have returned a result
+      // for async polling -- return queue of results
+      std::vector<MT_ChildResult> child_retqueue_;  
+      // condition variable used to signal arrival of child results
+      Thread::Condition child_poll_cond_;
+      // current mt brigade -- null if not an mt poll
+      MTPool::Brigade * cur_brigade_; 
+      // old mt brigade -- if 0, we used to be orphaned
+      MTPool::Brigade * old_brigade_; 
+      // true if we need to rejoin old brigade on exit
+      bool rejoin_old_;   
+    } mt;
+    // this flag is set inside Node::execute() to prevent reentrancy
+    bool executing_;
+    
+    // helper function to cleanup upon exit from execute() (stops timers,
+    // clears flags, etc.) Retcode is passed as-is, making this a handy
+    // wrapper around the return value
+    int exitExecute (int retcode)
+    {
+#ifdef DISABLE_NODE_MT
+      executing_ = false;
+#else
+      Thread::Mutex::Lock lock(execCond());
+      executing_ = false;
+      execCond().signal();
+#endif
+      timers_.total.stop();
+      return retcode;
+    }
     
     //##ModelId=3F8433ED0337
     //##Documentation
@@ -1058,10 +1191,6 @@ class Node : public DMI::BObj
     //## flag: auto-resampling for child results is not available
     bool disable_auto_resample_;
     
-    //## flag: child fails automatically propagated
-    bool propagate_child_fails_;
-    
-   
     //##Documentation
     //## cache of resampled child results
     std::vector<Result::Ref> rcr_cache_;
@@ -1100,7 +1229,6 @@ class Node : public DMI::BObj
             result.detach();
           is_valid = false;
           recref_.detach();
-          rescode = 0;
         }
         // is cache valid?
         bool valid () const
@@ -1119,11 +1247,14 @@ class Node : public DMI::BObj
         bool        service_flag;
         bool        is_valid;
         
+        // cache mutex held during cache ops
+        Thread::Mutex mutex;
       private:
         DMI::Record::Ref recref_;
     };
     
     Cache cache_;
+    
     // flag: release cache when all parents allow it
     bool parents_release_cache_;
     

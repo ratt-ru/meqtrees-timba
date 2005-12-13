@@ -24,6 +24,7 @@
 #include "Forest.h"
 #include "ResampleMachine.h"
 #include "MeqVocabulary.h"
+#include "MTPool.h"
 #include <DMI/BlockSet.h>
 #include <DMI/Record.h>
 #include <DMI/Vec.h>
@@ -36,16 +37,21 @@ InitDebugContext(Node,"MeqNode");
 
 using Debug::ssprintf;
 
+Thread::Mutex aipspp_mutex;  // declared in Meq.h, gotta define it somewhere...
+
 //##ModelId=3F5F43E000A0
 Node::Node (int nchildren,const HIID *labels,int nmandatory)
     : control_status_(CS_ACTIVE),
+      propagate_child_fails_(true),
       depend_mask_(0),
 //      symdep_masks_(defaultSymdepMasks()),
       node_groups_(1,FAll),
       auto_resample_(RESAMPLE_NONE),
-      disable_auto_resample_(false),
-      propagate_child_fails_(true)
+      disable_auto_resample_(false)
 {
+  mt.enabled_ = false; // multithreading disabled by default
+  mt.cur_brigade_ = 0;
+  executing_ = false;
   // figure out # of children
   if( nchildren<0 )               // negative: specifies N or more
   {
@@ -71,9 +77,13 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
       child_labels_[i] = labels[i];
   }
   // else child_labels_ stays empty to indicate no labels -- this is checked below
-  
+
+  // other init
   breakpoints_ = breakpoints_ss_ = 0;
   cache_policy_ = 0;
+  cache_.is_valid = false;
+  cache_.rescode = 0;
+  has_state_dep_ = false;
   // init cache stats
   {
     DMI::Record &rec = cache_stats_ <<= new DMI::Record;
@@ -186,10 +196,10 @@ const DMI::Record & Node::Cache::record ()
       rec.add(FResult,result);
     else
       rec.add(FFail,result);
-    rec[FRequestId] = rqid;    
-    rec[FResultCode] = rescode;
-    rec[FServiceFlag] = service_flag;
   }
+  rec[FRequestId] = rqid;    
+  rec[FResultCode] = rescode;
+  rec[FServiceFlag] = service_flag;
   return rec;
 }
 
@@ -201,16 +211,16 @@ bool Node::Cache::fromRecord (const Record &rec)
     clear();
     return false;
   }
-  FailWhen1(rec.size()!=4,"illegal cache record");
+  FailWhen1(rec.size()<3 || rec.size()>4,"illegal cache record");
   try
   {
     const Result *res = rec[FResult].as_po<Result>();
     if( !res )
-    {
       res = rec[FFail].as_po<Result>();
-      FailWhen1(!res,"result or fail field missing");
-    }
-    result <<= res;
+    if( res )
+      result <<= res;
+    else
+      result.detach();
     rqid = rec[FRequestId].as<HIID>();
     rescode = rec[FResultCode].as<int>();
     service_flag = rec[FServiceFlag].as<bool>(false);
@@ -256,6 +266,7 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   const DMI::Record * pcache = rec[FCache].as_po<DMI::Record>();
   if( pcache )
   {
+    // Thread::Mutex::Lock lock(cache_.mutex);
     if( cache_.fromRecord(*pcache) )
       control_status_ |= CS_CACHED;
     else
@@ -315,35 +326,6 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     cdebug(2)<<"active_symdeps set via state\n";
     resetDependMasks();
   }
-// 18/04/05 OMS: phasing this out, ModRes will need to be rewritten a-la Solver
-//   // get generated symdeps, if any are specified
-//   DMI::Record::Hook genhook(rec,FGenSymDep);
-//   if( genhook.exists() )
-//   {
-//     try 
-//     {
-//       const DMI::Record &deps = genhook.as<DMI::Record>();
-//       std::map<HIID,int>::iterator iter = gen_symdep_masks_.begin();
-//       gen_symdep_fullmask_ = 0;
-//       for( ; iter != gen_symdep_masks_.end(); iter++ )
-//         gen_symdep_fullmask_ |= iter->second = deps[iter->first].as<int>();
-//     } 
-//     catch( std::exception & )
-//     {
-//       NodeThrow(FailWithCleanup,
-//           "incorrect or incomplete "+FGenSymDep.toString()+" state field");
-//     }
-//   }
-//   // else place them into data record
-//   else if( initializing && !gen_symdep_masks_.empty() )
-//   {
-//     DMI::Record &deps = genhook <<= new DMI::Record;
-//     std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
-//     for( ; iter != gen_symdep_masks_.end(); iter++ )
-//       deps[iter->first] = iter->second;
-//   }
-//   // get generated symdep group, if specified
-//   rec[FGenSymDepGroup].get(gen_symdep_group_,initializing && !gen_symdep_masks_.empty());
   
   // now set the dependency mask if specified; this will override
   // possible modifications made above
@@ -358,17 +340,31 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     for( uint i=0; i<ngr.size(); i++ )
       node_groups_[i+1] = ngr[i];
   }
+//   // set auto-resample mode
+//   int ars = auto_resample_;
+//   if( rec[FAutoResample].get(ars,initializing) )
+//   {
+//     if( disable_auto_resample_ && ars != RESAMPLE_NONE )
+//     {
+//       NodeThrow(FailWithCleanup,"can't use auto-resampling with this node");
+//     }
+//     auto_resample_ = ars;
+//   }
+
+  rec[FPropagateChildFails].get(propagate_child_fails_,initializing);
   
-  // set auto-resample mode
-  int ars = auto_resample_;
-  if( rec[FAutoResample].get(ars,initializing) )
+  // set child poll order
+  std::vector<string> cpo;
+  if( rec[FChildPollOrder].get_vector(cpo) )
+    setChildPollOrder(cpo);
+  
+  // enable multithreading
+  if( MTPool::Brigade::numBrigades() )
   {
-    if( disable_auto_resample_ && ars != RESAMPLE_NONE )
-    {
-      NodeThrow(FailWithCleanup,"can't use auto-resampling with this node");
-    }
-    auto_resample_ = ars;
-  }
+    bool mtpoll = mt.enabled_;
+    rec[FMTPolling].get(mtpoll,initializing);
+    enableMultiThreadedPolling(mtpoll);
+  } 
 }
 
 //##ModelId=3F5F445A00AC
@@ -420,6 +416,17 @@ void Node::setNodeIndex (int nodeindex)
   wstate()[FNodeIndex] = node_index_ = nodeindex;
 }
 
+string Node::getChildName (int i) const
+{
+  if( children_[i].valid() )
+      return children_[i]->name();
+  else
+  {
+    HIID label = getChildLabel(i);
+    return state()[FChildrenNames][label].as<string>();
+  }
+}
+
 //##ModelId=3F85710E028E
 Node & Node::getChild (const HIID &id)
 {
@@ -454,13 +461,16 @@ const DMI::Record & Node::syncState()
   fillProfilingStats(pprof_total_,timers_.total);
   fillProfilingStats(pprof_children_,timers_.children);
   fillProfilingStats(pprof_getresult_,timers_.getresult);
-  st.replace(FCache,cache_.record());
-  st.replace(FCacheStats,cache_stats_);
+  {
+    // Thread::Mutex::Lock lock(cache_.mutex);
+    st.replace(FCache,cache_.record());
+    st.replace(FCacheStats,cache_stats_);
+    if( cache_.valid() )
+      control_status_ |= CS_CACHED;
+    else
+      control_status_ &= ~CS_CACHED;
+  }
   st[FRequestId]       = current_reqid_;
-  if( cache_.valid() )
-    control_status_ |= CS_CACHED;
-  else
-    control_status_ &= ~CS_CACHED;
   st[FControlStatus]   = control_status_; 
   st[FBreakpointSingleShot] = breakpoints_ss_;
   st[FBreakpoint] = breakpoints_;
@@ -477,9 +487,9 @@ void Node::setCurrentRequest (const Request &req)
 void Node::markStateDependency ()
 {
   // do nothing if we are already dependent on state, parents will know anyway
-  if( cache_.rescode & forest().getStateDependMask() )
+  if( has_state_dep_ )
     return;
-  cache_.rescode |= forest().getStateDependMask();
+  has_state_dep_ = true;
   // notify parents
   for( int i=0; i<numParents(); i++ )
     getParent(i).markStateDependency();
@@ -488,6 +498,7 @@ void Node::markStateDependency ()
 //##ModelId=400E531300C8
 void Node::clearCache (bool recursive,bool quiet)
 {
+  // Thread::Mutex::Lock lock(cache_.mutex);
   cache_.clear();
   // clearRCRCache();
   if( control_status_ & CS_CACHED )
@@ -512,6 +523,7 @@ void Node::clearCache (bool recursive,bool quiet)
 //##ModelId=400E531A021A
 bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
 {
+  // Thread::Mutex::Lock lock(cache_.mutex);
   // no cache -- return false
   if( !cache_.valid() )
   {
@@ -520,6 +532,8 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
       pcs_new_->none++;
     return false;
   }
+  if( has_state_dep_ )
+    cache_.rescode |= forest().getStateDependMask();
   // Check that cached result is applicable:
   // (1) An empty reqid never matches, hence it can be used to 
   //     always force a recalculation.
@@ -568,6 +582,8 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
 //##ModelId=400E531C0200
 int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
 {
+  // Thread::Mutex::Lock lock(cache_.mutex);
+  has_state_dep_ = false;
   // clear the parent stats
   int npar = pcparents_->nact ? pcparents_->nact : pcparents_->npar ; 
   pcparents_->nhint = pcparents_->nhold = 0;
@@ -670,6 +686,7 @@ void Node::holdChildCaches (bool hold,int diffmask)
 // called by parent node to ask us to hold cache, or to allow release of cache
 void Node::holdCache (bool hold)
 {
+  // Thread::Mutex::Lock lock(cache_.mutex);
   pcparents_->nhint++;
   if( hold )
     pcparents_->nhold++;
@@ -678,7 +695,7 @@ void Node::holdCache (bool hold)
   // have all parents checked in, and has noone asked for a hold (in smart mode)?
   if( actual_cache_policy_ < CACHE_ALWAYS &&
       pcparents_->nhint >= ( pcparents_->nact ? pcparents_->nact : pcparents_->npar ) &&
-      ( actual_cache_policy_ < CACHE_SMART || !pcparents_->nhold ) )
+      ( actual_cache_policy_ <= CACHE_MINIMAL || !pcparents_->nhold ) )
   {
     cdebug(3)<<"clearing cache\n";
     clearCache(false,false);
@@ -836,117 +853,6 @@ void Node::resampleChildren (Cells::Ref &rescells,std::vector<Result::Ref> &chil
     clearRCRCache();
 }
 
-int Node::pollStepChildren (const Request &req)
-{
-  int retcode = 0;
-  for( int i=0; i<numStepChildren(); i++ )
-  {
-    Result::Ref dum;
-    int childcode = stepchild_retcodes_[i] = getStepChild(i).execute(dum,req);
-    cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
-    retcode |= childcode;
-  }
-  return retcode;
-}
-
-int Node::startAsyncPoll (const Request &)
-{
-  setExecState(CS_ES_POLLING);
-  async_poll_child_ = 0;
-  return numChildren();
-}
-
-int Node::awaitChildResult (int &rescode,Result::Ref &resref,const Request &req)
-{
-  // out of children? return -1
-  if( async_poll_child_ >= numChildren() )
-    return -1;
-  // poll current child
-  int ichild = async_poll_child_;
-  timers_.children.start();
-  rescode = getChild(ichild).execute(resref,req);
-  // last child? poll all stepchildren
-  if( ++async_poll_child_ >= numChildren() )
-    pollStepChildren(req);
-  timers_.children.stop();
-  return ichild;
-}
-
-//##ModelId=400E531702FD
-int Node::pollChildren (std::vector<Result::Ref> &child_results,
-                        Result::Ref &resref,
-                        const Request &req)
-{
-//   // in verbose mode, child results will also be stuck into the state record
-//   DMI::Vec *chres = 0;
-//   if( forest().verbosity()>1 )
-//     wstate()[FChildResults] <<= chres = new DMI::Vec(TpMeqResult,numChildren());
-//   
-  setExecState(CS_ES_POLLING);
-  bool cache_result = false;
-  int retcode = 0;
-  cdebug(3)<<"  calling execute() on "<<numChildren()<<" child nodes"<<endl;
-  int nfails = 0;
-  timers_.children.start();
-  child_fails_.resize(0);
-  for( int i=0; i<numChildren(); i++ )
-  {
-    if( isChildValid(i) )
-    {
-      int childcode = child_retcodes_[i] = getChild(i).execute(child_results[i],req);
-      cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
-      retcode |= childcode;
-      if( !(childcode&RES_WAIT) )
-      {
-        const Result * pchildres = child_results[i].deref_p();
-  //       // cache it in verbose mode
-  //       if( chres )
-  //         chres[i] <<= pchildres;
-        if( childcode&RES_FAIL )
-        {
-          child_fails_.push_back(pchildres);
-          nfails += pchildres->numFails();
-        }
-      }
-      // if child is updated, clear resampled result cache
-      if( childcode&RES_UPDATED )
-        clearRCRCache(i);
-    }
-    else // missing child marked simply by FAIL code
-      child_retcodes_[i] = RES_FAIL;
-  }
-  // now poll stepchildren (their results are always ignored)
-  pollStepChildren(req);
-  timers_.children.stop();
-  // if any child has completely failed, return a Result containing all of the fails 
-  if( !child_fails_.empty() )
-  {
-    if( propagate_child_fails_ )
-    {
-      cdebug(3)<<"  got RES_FAIL from children ("<<nfails<<"), returning fail-result"<<endl;
-      Result &result = resref <<= new Result(nfails);
-      int ires = 0;
-      for( uint i=0; i<child_fails_.size(); i++ )
-      {
-        const Result &childres = *(child_fails_[i]);
-        for( int j=0; j<childres.numVellSets(); j++ )
-        {
-          const VellSet &vs = childres.vellSet(j);
-          if( vs.isFail() )
-            result.setVellSet(ires++,&vs);
-        }
-      }
-    }
-    else
-    {
-      cdebug(3)<<"  ignoring RES_FAIL from children since fail propagation is off"<<endl;
-      retcode &= ~RES_FAIL;
-    }
-  }
-  cdebug(3)<<"  cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
-  return retcode;
-} 
-
 int Node::resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int rpid)
 {
   try
@@ -1103,8 +1009,7 @@ int Node::processCommands (Result::Ref &,const DMI::Record &rec,Request::Ref &re
   return RES_VOLATILE;
 }
 
-int Node::discoverSpids (Result::Ref &ref,
-                         const std::vector<Result::Ref> &child_results,
+int Node::discoverSpids (Result::Ref &ref,const std::vector<Result::Ref> &child_results,
                          const Request &)
 {
   Result *presult = 0;
@@ -1138,11 +1043,28 @@ int Node::discoverSpids (Result::Ref &ref,
 //##ModelId=3F6726C4039D
 int Node::execute (Result::Ref &ref,const Request &req0)
 {
-  if( control_status_&CS_STOP_BREAKPOINT || getExecState() != CS_ES_IDLE )
+  // check for re-entrancy
+#ifdef DISABLE_NODE_MT
+  if( executing_  )
   {
     Throw("can't re-enter Node::execute(). Are you trying to reexecute a node "
           "that is stopped at a breakpoint, or its parent?");
   }
+#else
+  Thread::Mutex::Lock lock(execCond());
+  // if node is executing, then wait for it to finish, and meanwhile
+  // mark our thread as blocked
+  if( executing_ )
+  {
+    MTPool::Brigade::markThreadAsBlocked(*this);
+    while( executing_ )
+      execCond().wait();
+    MTPool::Brigade::markThreadAsUnblocked(*this);
+  }
+  executing_ = true;
+  lock.release();
+#endif
+  
   cdebug(3)<<"execute, request ID "<<req0.id()<<": "<<req0.sdebug(DebugLevel-1,"    ")<<endl;
   FailWhen(node_resolve_id_<0,"execute() called before resolve()");
   // this indicates the current stage (for exception handler)
@@ -1163,17 +1085,16 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     pcs_total_->req++;
     if( new_request_ )
       pcs_new_->req++;
-    // check the cache, return on match (method will clear on mismatch)
+    // check the cache, return on match (cache will be cleared on mismatch)
     stage = "checking cache";
     if( getCachedResult(retcode,ref,req0) )
     {
         cdebug(3)<<"  cache hit, returning cached code "<<ssprintf("0x%x",retcode)<<" and result:"<<endl<<
                    "    "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
         setExecState(CS_ES_IDLE,control_status_|CS_RETCACHE);
-        timers_.total.stop();
-        return retcode;
+        return exitExecute(retcode);
     }
-    cache_.rescode = 0;
+    has_state_dep_ = false;
     // clear out the RETCACHE flag and the result state, since we
     // have no result for now
     control_status_ &= ~(CS_RETCACHE|CS_RES_MASK);
@@ -1188,8 +1109,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       {
         cdebug(3)<<"  node not ready for new request, returning RES_WAIT"<<endl;
         setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
-        timers_.total.stop();
-        return RES_WAIT;
+        return exitExecute(RES_WAIT);
       }
       // set this request as current
       setCurrentRequest(req0);
@@ -1209,8 +1129,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       cdebug(3)<<"  node deactivated, empty result. Cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
       int ret = cacheResult(ref,req0,retcode) | RES_UPDATED;
       setExecState(CS_ES_IDLE,control_status_|CS_RES_EMPTY);
-      timers_.total.stop();
-      return ret;
+      return exitExecute(ret);
     }
     // in case processRequestRider modified the request, work with the new
     // request object from now on
@@ -1228,21 +1147,19 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     if( numChildren() )
     {
       stage = "polling children";
-      retcode |= pollChildren(child_results_,ref,req);
+      retcode |= pollChildren(ref,req);
       // a WAIT from any child is returned immediately w/o a result
       if( retcode&RES_WAIT )
       {
         setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
-        timers_.total.stop();
-        return retcode;
+        return exitExecute(retcode);
       }
       // if failed, then cache & return the fail
       if( retcode&RES_FAIL )
       {
         int ret = cacheResult(ref,req0,retcode) | RES_UPDATED;
         setExecState(CS_ES_IDLE,control_status_|CS_RES_FAIL);
-        timers_.total.stop();
-        return ret;
+        return exitExecute(ret);
       }
       // if request has cells, then resample children (will do nothing if disabled)
       resampleChildren(rescells,child_results_);
@@ -1267,8 +1184,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
         if( code&RES_WAIT )
         {
           setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
-          timers_.total.stop();
-          return retcode;
+          return exitExecute(retcode);
         }
         // Set Cells in the Result object as needed
         // (will do nothing when no variability)
@@ -1302,8 +1218,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     // cache & return accumulated return code
     int ret = cacheResult(ref,req0,retcode) | RES_UPDATED;
     setExecState(CS_ES_IDLE,control_status_|result_status);
-    timers_.total.stop();
-    return ret;
+    return exitExecute(ret);
   }
   // catch any exceptions, form up a fail result
   catch( std::exception &exc )
@@ -1327,8 +1242,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
   int ret = cacheResult(ref,req0,RES_FAIL) | RES_UPDATED;
   setExecState(CS_ES_IDLE,
       (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
-  timers_.total.stop();
-  return ret;
+  return exitExecute(ret);
 }
 
 void Node::setBreakpoint (int bpmask,bool oneshot)

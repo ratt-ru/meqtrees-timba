@@ -101,6 +101,7 @@ int UVW::getResult (Result::Ref &resref,
   const Cells& cells = request.cells();
   // Allocate a 3-plane result for U, V, and W
   Result &result = resref <<= new Result(3);
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   // Get RA and DEC of phase center (as J2000).
   MVDirection phaseRef(vra.getScalar<double>(),vdec.getScalar<double>());
   // Set output shape

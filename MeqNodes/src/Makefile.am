@@ -9,19 +9,18 @@ LOCALSRCS = \
     LMN.cc Log.cc Cosh.cc Sinh.cc Tan.cc Tanh.cc VisPhaseShift.cc Condeq.cc \
     Solver.cc Ceil.cc Floor.cc Atan.cc \
     Pow2.cc Pow3.cc Pow4.cc Pow5.cc Pow6.cc Pow7.cc Pow8.cc \
-    Abs.cc Fabs.cc Norm.cc Arg.cc Real.cc Imag.cc MergeFlags.cc ReqSeq.cc  \
+    Abs.cc Fabs.cc Norm.cc Arg.cc Real.cc Imag.cc \
+    MergeFlags.cc ReqSeq.cc ReqMux.cc \
     ReductionFunction.cc Min.cc Max.cc Mean.cc \
     Sum.cc Product.cc NElements.cc Transpose.cc \
     Stripper.cc DataCollect.cc DataConcat.cc HistoryCollect.cc AzEl.cc \
     BlitzRandom.cc NoiseNode.cc RandomNoise.cc GaussNoise.cc ZeroFlagger.cc StdDev.cc \
-    ParmTable.cc WSum.cc WMean.cc Negate.cc Invert.cc \
+    WSum.cc WMean.cc Negate.cc Invert.cc \
     MatrixMultiply.cc MatrixInvert22.cc UVBrick.cc UVInterpol.cc \
-    Stokes.cc PatchComposer.cc FFTBrick.cc CompiledFunklet.cc Resampler.cc\
-    ModRes.cc
+    Stokes.cc PatchComposer.cc FFTBrick.cc \
+    Resampler.cc ModRes.cc \
+    CompiledFunklet.cc ParmTable.cc 
 
-## commented out for now:    
-## ModRes.cc Resampler.cc ZeroFlagger.cc 
-## Atan2.cc Nelements.cc Posdiff.cc Sum.cc Product.cc
 
 DOCHDRS		= $(LOCALHDRS) \
             $(addsuffix .h,$(basename $(LOCALSRCS))) 

@@ -134,7 +134,10 @@ private:
     //##ModelId=3F95060D031A
   static std::map<string, ParmTable*> theirTables;
   
-  static Thread::Mutex   theirMutex;
+  // use the global AIPS++ mutex for table ops.
+  static Thread::Mutex & theirMutex ()
+  { return aipspp_mutex; }
+  
 };
 
 

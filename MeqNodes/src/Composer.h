@@ -38,11 +38,6 @@
 //field: dims F
 //  If specified, a vector of tensor dimensions to compose a tensor
 //  result.
-//field: contagious_fail F
-//  If true, then a fail in any child result causes the composer to generate
-//  a complete fail -- i.e., a result composed entirely of fails.
-//  If false (default), then fail vellsets from children are collected and 
-//  passed along with valid vellsets.
 //defrec end
 
 namespace Meq {    
@@ -74,8 +69,6 @@ class Composer : public Node
                            const Request &req,bool newreq);
   
   private:
-    //##ModelId=400E53050040
-    bool contagious_fail;
   
     Result::Dims dims_; // tensor dimensions
 };

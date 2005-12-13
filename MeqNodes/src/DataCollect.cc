@@ -41,6 +41,7 @@ DataCollect::DataCollect()
 {
   attrib_ <<= new DMI::Record;
   disableFailPropagation();
+  enableMultiThreadedPolling();
 }
 
 DataCollect::~DataCollect()

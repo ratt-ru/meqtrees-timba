@@ -52,11 +52,9 @@ void WSum::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 //##ModelId=400E531702FD
 //needs to be implemented, do not send request to children with weight 0
 
-int WSum::pollChildren (std::vector<Result::Ref> &child_results,
-                        Result::Ref &resref,
-                        const Request &req)
+int WSum::pollChildren (Result::Ref &resref,const Request &req)
 {
-  return Node::pollChildren(child_results,resref,req);
+  return Node::pollChildren(resref,req);
 }
 
 

@@ -58,6 +58,7 @@ CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int dep
   void CompiledFunklet::fill_values(double *value, double * pertValPtr[],double *xval,const Vells::Shape & res_shape ,const int dimN, const LoVec_double grid[],const std::vector<double> &perts, const std::vector<int> &spidIndex, const int makePerturbed, int &pos) const
 {
    
+    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     for(int i=0;i<res_shape[dimN];i++){
       xval[dimN]=grid[dimN](i);
       if(dimN<Ndim-1){
@@ -98,6 +99,7 @@ void CompiledFunklet::do_evaluate (VellSet &vs,const Cells &cells,
   // init shape of result
   Vells::Shape res_shape;
   Axis::degenerateShape(res_shape,cells.rank());
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   int ndim = itsFunction.ndim();
 
   LoVec_double grid[ndim];

@@ -34,8 +34,6 @@ class VisDataMux : public Node
 
     void attachSpigot (Spigot &spigot);
     void attachSink   (Sink &sink);
-    void detachSpigot (Spigot &spigot);
-    void detachSink   (Sink &sink);
     
     // clears all handlers
     void clear ();
@@ -68,6 +66,9 @@ class VisDataMux : public Node
     //##ModelId=3F98DAE60246
     LocalDebugContext;
     
+  protected:
+    void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+    
   private:
     //##ModelId=3F9FF71B00C7
     VisDataMux (const VisDataMux &);
@@ -81,13 +82,13 @@ class VisDataMux : public Node
 
     //##ModelId=3F99305003E3
     typedef std::set<VisHandlerNode *> HandlerSet;
-    typedef std::set<VisHandlerNode *> SinkSet;
+    typedef std::set<int> IndexSet;
     
     //##ModelId=3F98DAE60247
     // set of all handlers for each data ID (==IFR)
     std::vector<HandlerSet> handlers_;
-    // set of sinks for each data ID (==IFR)
-    std::vector<SinkSet> sinks_;
+    // set of children numbers for each data ID (==IFR)
+    std::vector<IndexSet> child_indices_;
     // set of flags: do we have a tile for this data ID (==IFR)
     std::vector<bool> have_tile_;
     

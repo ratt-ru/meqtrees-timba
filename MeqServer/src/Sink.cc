@@ -80,9 +80,9 @@ int Sink::getResult (Result::Ref &resref,
   const Result &result = *resref;
   int nvs = result.numVellSets();
   cdebug(3)<<"child returns "<<nvs<<" vellsets"<<endl;
-  // any fails in result automatically thrown on
+  // any fails in result automatically passed up
   if( result.numFails() )
-    throw result.makeExceptionList();
+    return RES_FAIL;
   // store resulting Vells into the tile
   // loop over vellsets and get a tf-plane from each
   VisCube::VTile *ptile = 0; 

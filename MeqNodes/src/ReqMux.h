@@ -29,30 +29,15 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::ReqMux 
-#pragma aid Integrate Oper Upsample Integrate Freq Time Pass Wait
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
 
 //defrec begin MeqReqMux
-//  Resamples the Vells in its child's Result to the Cells of the parent's
-//  Request. Current version ignores cell centers, sizes, domains, etc.,
-//  and goes for a simple integrate/expand by an integer factor.
-//field: integrate F
-//  If true, then Vells are treated as integral values over a cell (i.e.,
-//  when downsampling, values are integrated; when upsampling, values are 
-//  divided). If false, then Vells are treated as samples at cell center 
-//  (i.e., when downsampling, values are averaged; when upsampling, values 
-//  are duplicated).
-//field: flag_mask -1
-//  Flag mask applied to child's result. -1 for all flags, 0 to ignore 
-//  flags. Flagged values are ignored during integration.
-//field: flag_bit 0
-//  Flag bit(s) used to indicate flagged integrated results. If 0, then 
-//  flag_mask&input_flags is used.
-//field: flag_density 0.5
-//  Critical ration of flagged/total pixels for integration. If this ratio
-//  is exceeded, the integrated pixel is flagged.
+//  Forwards its request to all children. Returns the result
+//  of one designated child.
+//field: result_index 1
+//  Which child's result to return.
 //defrec end
 
 namespace Meq {    
@@ -74,38 +59,20 @@ public:
 
 protected:
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
-    
-  virtual int pollChildren (std::vector<Result::Ref> &child_results,
-                            Result::Ref &resref,
-                            const Request &req);
 
-  virtual int getResult (Result::Ref &resref, 
+  virtual int  pollChildren (Result::Ref &resref,const Request &req);
+    
+  virtual int  getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
   
+  virtual int  discoverSpids (Result::Ref &resref, 
+                             const std::vector<Result::Ref> &childres,
+                             const Request &req);
+  
 private:
-  // the OpSpec class specifies an operation that is applied to
-  // every request
-  class OpSpec
-  {
-    public:
-      int   integrate[2];
-      int   upsample[2];
-      bool  resample;
-      bool  wait;
+  int which_result_;
 
-      OpSpec()
-      { 
-        upsample[0]=upsample[1]=integrate[0]=integrate[1]=0; 
-        resample=wait=false; 
-      }
-  };
-  
-  std::vector<OpSpec> ops_;
-  int pass_child_;
-  
-  int res_depend_mask_;
-  
 };
 
 

@@ -2,6 +2,7 @@
 #define MEQ_MEQ_H
 
 #include <Common/Debug.h>
+#include <Common/Thread/Mutex.h>
 #include <DMI/DMI.h>
 #include <DMI/Exception.h>
     
@@ -15,6 +16,9 @@ namespace Meq
 {
   using namespace DMI;
   
+  // AIPS++ is not thread-safe, so we protect components with a mutex
+  extern Thread::Mutex aipspp_mutex;
+
   //## These exception are meant to be thrown from methods like Node::init(),
   //## getResult(), processCommands() and setStateImpl() when something goes 
   //## wrong. The type of the exception indicates whether any cleanup is 

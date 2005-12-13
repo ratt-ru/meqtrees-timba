@@ -57,9 +57,7 @@ protected:
   //## override this, since we would like to poll children ourselves, not implemented yet, at the moment just returns node::pollchildren
 
 
-  virtual int pollChildren (std::vector<Result::Ref> &child_results,
-                            Result::Ref &resref,
-                            const Request &req);
+  virtual int pollChildren (Result::Ref &resref,const Request &req);
 
   // Evaluate the value for the given request.
   //##ModelId=400E535502B5

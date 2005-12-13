@@ -125,6 +125,7 @@ class CompiledFunklet: public Funklet{
   void setFunction(string funcstring){
     //check if this is a valid string
     FailWhen(!itsFunction.setFunction(funcstring),std::string(itsFunction.errorMessage()));
+    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     Npar = itsFunction.nparameters();
     Ndim = itsFunction.ndim();
     itsDerFunction.setFunction(funcstring);
@@ -147,6 +148,7 @@ class CompiledFunklet: public Funklet{
   void setParam(){
     //set paramters...if coeff doesnt match, take matching part and set rest to unsolvable/0  ?
     FailWhen(Npar != getNumParms (),"nr. coeff not matching nr. of parameters in Compiled Function!!");
+    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
    
     const double* coeffData = static_cast<const double *>(coeff().getConstDataPtr());
     
@@ -160,7 +162,7 @@ class CompiledFunklet: public Funklet{
 
 
   virtual string getFunction() const{
-
+    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     return string(itsFunction.getText());
   }
 

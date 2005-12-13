@@ -72,7 +72,7 @@ const String KeywordDefValues = "DEFAULTVALUES";
 //##ModelId=3F95060D031A
 std::map<string, ParmTable*> ParmTable::theirTables;
 
-Thread::Mutex ParmTable::theirMutex;
+// Thread::Mutex ParmTable::theirMutex();
 Vector<double> toParmVector (const LoVec_double &values)
 {
 
@@ -123,7 +123,7 @@ LoMat_double fromParmMatrix (const Matrix<double>& values)
 
 //##ModelId=3F86886F02B7
 ParmTable::ParmTable (const string& tableName)
-: constructor_lock(theirMutex),
+: constructor_lock(theirMutex()),
   itsTable    (tableName, TableLock(TableLock::UserLocking)),
   itsIndex    (itsTable,ColName),
   itsIndexName(itsIndex.accessKey(),ColName),
@@ -143,7 +143,7 @@ ParmTable::ParmTable (const string& tableName)
 //##ModelId=3F86886F02BC
 ParmTable::~ParmTable()
 {
-  Thread::Mutex::Lock lock(theirMutex);
+  Thread::Mutex::Lock lock(theirMutex());
   delete itsInitIndex;
 }
 
@@ -151,6 +151,7 @@ ParmTable::~ParmTable()
 int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
 			    const string& parmName,const Domain& domain )
 {
+  Thread::Mutex::Lock lock(theirMutex());
 
   //check if table is still existing, needed if table is deleted in between to tests..
   if(!(Table::isReadable(itsTable.tableName()))){
@@ -158,7 +159,6 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
     return 0;
   }
 
-  Thread::Mutex::Lock lock(theirMutex);
   TableLocker locker(itsTable, FileLocker::Read);
   Table sel = find (parmName, domain);
   funklets.resize(sel.nrow());
@@ -231,7 +231,7 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
 //##ModelId=3F86886F02C3
 int ParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName)
 {
-  Thread::Mutex::Lock lock(theirMutex);
+  Thread::Mutex::Lock lock(theirMutex());
   // Try to find the default initial values in the InitialValues subtable.
   // The parameter name consists of parts (separated by dots), so the
   // parameters are categorised in that way.
@@ -289,7 +289,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
                                 bool domain_is_key)
 {
 
-  Thread::Mutex::Lock lock(theirMutex);
+  Thread::Mutex::Lock lock(theirMutex());
   // for now, only Polcs are supported
   //  FailWhen(funklet.objectType() != TpMeqPolc && funklet.objectType() != TpMeqPolcLog ,"ParmTable currently only supports Meq::Polc(Log) funklets");  
   itsTable.reopenRW();
@@ -425,6 +425,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
 Table ParmTable::find (const string& parmName,
                        const Domain& domain)
 {
+  Thread::Mutex::Lock lock(theirMutex());
   // First see if the parameter name exists at all.
   Table result;
   *itsIndexName   = parmName;
@@ -445,7 +446,7 @@ Table ParmTable::find (const string& parmName,
 //##ModelId=3F95060D033E
 ParmTable* ParmTable::openTable (const String& tableName)
 {
-  Thread::Mutex::Lock lock(theirMutex);
+  Thread::Mutex::Lock lock(theirMutex());
   std::map<string,ParmTable*>::const_iterator p = theirTables.find(tableName);
   if (p != theirTables.end()) {
     return p->second;
@@ -463,7 +464,7 @@ ParmTable* ParmTable::openTable (const String& tableName)
 //##ModelId=3F95060D0372
 void ParmTable::closeTables()
 {
-  Thread::Mutex::Lock lock(theirMutex);
+  Thread::Mutex::Lock lock(theirMutex());
   for (std::map<string,ParmTable*>::const_iterator iter = theirTables.begin();
        iter != theirTables.end();
        ++iter) {
@@ -475,7 +476,7 @@ void ParmTable::closeTables()
 //##ModelId=400E535402E7
 void ParmTable::createTable (const String& tableName)
 {
-  Thread::Mutex::Lock lock(theirMutex);
+  Thread::Mutex::Lock lock(theirMutex());
   TableDesc tdesc;
   tdesc.addColumn (ScalarColumnDesc<String>(ColName));
   tdesc.addColumn (ScalarColumnDesc<Double>(ColEndTime));
@@ -497,7 +498,7 @@ void ParmTable::createTable (const String& tableName)
 
 void ParmTable::unlock()
 {
-  Thread::Mutex::Lock lock(theirMutex);
+  Thread::Mutex::Lock lock(theirMutex());
   itsTable.unlock();
   if (! itsInitTable.isNull()) {
     itsInitTable.unlock();
@@ -506,13 +507,13 @@ void ParmTable::unlock()
 
 void ParmTable::lock()
 {
-  Thread::Mutex::Lock lock(theirMutex);
+  Thread::Mutex::Lock lock(theirMutex());
   itsTable.lock();
 }
 
 void ParmTable::lockTables()
 {
-  Thread::Mutex::Lock lock(theirMutex);
+  Thread::Mutex::Lock lock(theirMutex());
   for (std::map<string,ParmTable*>::const_iterator iter = theirTables.begin();
        iter != theirTables.end();
        ++iter) {
@@ -522,7 +523,7 @@ void ParmTable::lockTables()
 
 void ParmTable::unlockTables()
 {
-  Thread::Mutex::Lock lock(theirMutex);
+  Thread::Mutex::Lock lock(theirMutex());
   for (std::map<string,ParmTable*>::const_iterator iter = theirTables.begin();
        iter != theirTables.end();
        ++iter) {

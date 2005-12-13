@@ -97,6 +97,7 @@ int AzEl::getResult (Result::Ref &resref,
   // For the time being we only support scalars
   Assert( vra.isScalar() && vdec.isScalar() );
 
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   // create a frame for an Observatory, or a telescope station
   MeasFrame Frame; // create default frame 
 

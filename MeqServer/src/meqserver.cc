@@ -8,6 +8,7 @@
 #include <AppUtils/VisRepeater.h>
 #include <MeqServer/MeqServer.h>
 #include <MeqServer/AID-MeqServer.h>
+#include <MEQ/MTPool.h>
 
 typedef std::vector<string> StrVec;
 typedef StrVec::iterator SVI;
@@ -135,6 +136,26 @@ int main (int argc,const char *argv[])
         std::find(args.begin(),args.end(),string("-noglish")) == args.end();
     bool start_gateways = 
         std::find(args.begin(),args.end(),string("-nogw")) == args.end();
+    // "-mt" option
+    StrVec::const_iterator iter = 
+        std::find(args.begin(),args.end(),string("-mt"));
+    if( iter != args.end() )
+    {
+      ++iter;
+      if( iter == args.end() || !isdigit((*iter)[0]) )
+      {
+        cerr<<"-mt option must be followed by number of threads to use\n";
+        return 1;
+      }
+      int nt = atoi(iter->c_str());
+      if( nt>0 )
+      {
+        Meq::MTPool::Brigade::setBrigadeSize(nt);
+        Meq::MTPool::Brigade::startNewBrigade();
+        Meq::MTPool::Brigade::startNewBrigade();
+      }
+    }
+  
     
 //     Debug::setLevel("VisRepeater",2);
 //     Debug::setLevel("MSVisAgent",2);
@@ -190,6 +211,11 @@ int main (int argc,const char *argv[])
     for( uint i=0; i<appthreads.size(); i++ )
       appthreads[i].join();
 
+    if( Meq::MTPool::Brigade::numBrigades() )
+    {
+      cout<<"=================== stopping worker threads ===================\n";
+      Meq::MTPool::Brigade::stopAll();
+    }
     cout<<"=================== deleting app objects ======================\n";
     apps.clear();
 
