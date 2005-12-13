@@ -22,27 +22,6 @@ namespace OctoPython
   inline std::string sdebug (int=0) { return "8Python"; }
   
   // -----------------------------------------------------------------------
-  // Various declarations
-  // -----------------------------------------------------------------------
-  // OctoPython error
-  extern PyObject *PyExc_OctoPythonError;
-  // Data conversion exception
-  extern PyObject *PyExc_DataConvError;
-  
-  // Python class objects from dmitypes (used as constructors and
-  // for asinstance() comparisons)
-  typedef struct {
-    PyObject *hiid,*message,*record,*array_class,*conv_error,
-             *dmi_type,*dmi_typename,*dmi_coerce;
-  } DMISymbols;
-  extern DMISymbols py_dmisyms;
-  // ProxyWP type structure
-  extern PyTypeObject PyProxyWPType;
-  // ThreadCond
-  extern PyTypeObject PyThreadCondType;
-  
-  
-  // -----------------------------------------------------------------------
   // Data conversion functions
   // -----------------------------------------------------------------------
   typedef enum { EP_THROW,EP_RETNULL,EP_CONV_ERROR } ErrorPolicy;
@@ -77,7 +56,7 @@ namespace OctoPython
   PyObject * pyFromArray    (const DMI::NumArray &);
   PyObject * pyFromMessage  (const Message &);
   PyObject * pyFromHIID     (const HIID &);
-  // simple helper for std::strings
+  // simple helper for std::strings, returns NEW REF
   inline PyObject * pyFromString (const std::string &str)
   { return PyString_FromString(str.c_str()); }
   
@@ -85,6 +64,7 @@ namespace OctoPython
   // Returns 1 on success, or throws an exception on 
   // error (if a Python exception is also raised, this will be a 
   // PythonException, otherwise another std::exception)
+  // The input object's ref count is untouched
   int pyToDMI     (ObjRef &objref,PyObject *obj,
                    TypeId objtype=TypeId(0),DMI::Vec *pvec0=0,int pvec_pos=0);
   int pyToRecord  (DMI::Record::Ref &rec,PyObject *pyobj);
@@ -131,14 +111,20 @@ namespace OctoPython
       { Py_XDECREF(pobj); pobj = other.pobj; Py_XINCREF(pobj); return *this; }
       
       // Assignment of PyObject * decrements old ref, does not increment
-      // new ref (we assume we're assigning a new ref!)
+      // new ref. So, only NEW REFERENCES should be assigned. 
       PyObjectRef & operator = (PyObject *p)
       { Py_XDECREF(pobj); pobj = p; return *this; }
+      
+      // <<, of PyObject * decrements old ref, and increments new ref 
+      // new ref. So, only BORROWED REFERENCES should be <<'d. 
+      PyObjectRef & operator << (PyObject *p)
+      { Py_XDECREF(pobj); pobj = p; Py_XINCREF(pobj); return *this; }
+      
 
       // Destructor decrements the ref count
       ~PyObjectRef ()
       { Py_XDECREF(pobj); }
-
+      
       // detach -- detaches object
       void detach ()
       { Py_XDECREF(pobj); pobj = 0; }
@@ -154,12 +140,15 @@ namespace OctoPython
       PyObject * & _obj () { return pobj; }
 
       // new_ref() increments ref count and returns pointer
-      // (useful for calling functions that steal a ref)
+      // (useful for calling functions that steal a ref when we want
+      // to retain a ref of our own).
       PyObject * new_ref ()     { Py_XINCREF(pobj); return pobj; }
 
       // steal() returns pointer and sets internal pointer to 0.
       // This is useful for returning a PyObject* from functions
-      // that are meant to return a NEW REFERENCE.
+      // that are meant to return a NEW REFERENCE. Also, if you're calling
+      // a function that steals a ref and you don't want to retain the object,
+      // use this method.
       // Note that if you return a PyObject as ref.steal(), then your
       // function will return a new reference on success, or automatically
       // deallocate the object if an exception is thrown, which is the exact
@@ -183,6 +172,8 @@ namespace OctoPython
   // Various setError() methods to set up Python exceptions
   // These will set up the given Python exception, with the supplied
   // string as data.
+  // The first argument is an error object, its ref count does not
+  // need to be incremented.
   inline void setError (PyObject *errobj,const char *msg)
   { PyErr_SetString(errobj,msg); };
   
@@ -191,6 +182,15 @@ namespace OctoPython
 
   inline void setError (PyObject *errobj,const std::string &str)
   { PyErr_SetString(errobj,str.c_str()); };
+  
+  inline void setError (PyObjectRef &errobj,const char *msg)
+  { PyErr_SetString(*errobj,msg); };
+  
+  inline void setError (PyObjectRef &errobj,const std::exception &exc)
+  { PyErr_SetString(*errobj,exc.what()); };
+
+  inline void setError (PyObjectRef &errobj,const std::string &str)
+  { PyErr_SetString(*errobj,str.c_str()); };
   
   // PythonException:
   // Throwing a PythonException is the standard way to propagate errors
@@ -236,6 +236,29 @@ namespace OctoPython
       {}
       
   };
+  
+  // -----------------------------------------------------------------------
+  // Various globals
+  // -----------------------------------------------------------------------
+  // OctoPython error
+  extern PyObjectRef PyExc_OctoPythonError;
+  // Data conversion exception
+  extern PyObjectRef PyExc_DataConvError;
+  
+  // Python class objects from dmitypes (used as constructors and
+  // for asinstance() comparisons)
+  typedef struct 
+  {
+    PyObjectRef hiid,message,record,array_class,conv_error,
+                dmi_type,dmi_typename,dmi_coerce;
+  } DMISymbols;
+  extern DMISymbols py_dmisyms;
+  // ProxyWP type structure
+  extern PyTypeObject PyProxyWPType;
+  // ThreadCond
+  extern PyTypeObject PyThreadCondType;
+  
+  
 
   // throwError() macro
   // Raises Python exception PyExc_"err"Error with the given 
@@ -280,7 +303,7 @@ namespace OctoPython
     catch ( ... )  \
       { cdebug(2)<<"caught unknown exception\n";  returnError(retval,OctoPython,"uknown exception"); }
 
-  // helper macro: returns Py_None
+  // helper macro: returns a new ref to Py_None
   #define returnNone { Py_INCREF(Py_None); return Py_None; }
 
 

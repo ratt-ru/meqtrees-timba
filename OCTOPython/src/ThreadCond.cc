@@ -12,7 +12,6 @@ namespace OctoPython
 typedef struct 
 {
     PyObject_HEAD
-    PyObject *address;
     Thread::Condition cond;
     bool verbose;
 } PyThreadCond;

@@ -12,8 +12,8 @@ namespace OctoPython
 typedef struct 
 {
     PyObject_HEAD
-    PyObject *address;
-    WPRef wpref;
+    PyObjectRef address;
+    WPRef       wpref;
 } PyProxyWP;
 
 // -----------------------------------------------------------------------
@@ -23,7 +23,7 @@ typedef struct
 static void
 PyProxyWP_dealloc(PyProxyWP* self)
 {
-  Py_XDECREF(self->address);
+  self->address.detach();
   self->ob_type->tp_free((PyObject*)self);
 }
 
@@ -65,9 +65,8 @@ PyProxyWP_init(PyProxyWP *self, PyObject *args, PyObject *kwds)
       returnError(-1,OctoPython,"OCTOPUSSY not initialized");
     self->wpref <<= new Octoproxy::ProxyWP(wpc);
     Octopussy::dispatcher().attach(self->wpref.dewr_p(),DMI::ANONWR);
-    // Get address
+    // Get address -- new ref returned, so assign
     self->address = pyFromHIID(self->wpref->address());
-    Py_INCREF(self->address);
   }
   catchStandardErrors(-1);
   return 0;
@@ -85,8 +84,7 @@ PyProxyWP_init(PyProxyWP *self, PyObject *args, PyObject *kwds)
 // -----------------------------------------------------------------------
 static PyObject * PyProxyWP_address (PyProxyWP* self)
 {
-  Py_INCREF(self->address);
-  return self->address;
+  return self->address.new_ref();
 }
 
 // helper function, converts scope string to Message::Scope constant
@@ -233,8 +231,7 @@ static PyObject * PyProxyWP_receive (PyProxyWP* self,PyObject *args)
     // pop first message and return it
     mref = wp.queue().front().mref;
     wp.queue().pop_front();
-    PyObject * py_msg = pyFromMessage(*mref);
-    return py_msg;
+    return pyFromMessage(*mref); // returns NEW REF
   }
   catchStandardErrors(NULL);
 }
@@ -259,11 +256,12 @@ static PyObject * PyProxyWP_receive_all (PyProxyWP* self,PyObject *args)
     int n = wp.queue().size();
     if( !n )
       returnNone; 
-    PyObjectRef pylist = PyList_New(n);
+    PyObjectRef pylist = PyList_New(n); // returns NEW REF
     for( int i=0; i<n; i++ )
     {
       mref = wp.queue().front().mref;
       wp.queue().pop_front();
+      // pyFromMessage() returns new ref, PyList_SET_ITEM steals it
       PyList_SET_ITEM(*pylist,i,pyFromMessage(*mref));
     }
     return ~pylist;
@@ -341,8 +339,7 @@ static PyObject * PyProxyWP_receive_threaded (PyProxyWP* self,PyObject *args)
       returnNone;
     }
     // got a message, return it
-    PyObject * py_msg = pyFromMessage(*mref);
-    return py_msg;
+    return pyFromMessage(*mref);     // returns new ref
   }
   catchStandardErrors(NULL);
 }

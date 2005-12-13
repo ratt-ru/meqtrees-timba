@@ -11,8 +11,8 @@ namespace OctoPython
 
 static int dum = aidRegistry_Global();
 
-PyObject * PyExc_OctoPythonError;
-PyObject * PyExc_DataConvError;
+PyObjectRef PyExc_OctoPythonError;
+PyObjectRef PyExc_DataConvError;
 
 
 extern "C" {
@@ -46,7 +46,7 @@ static PyObject * string_to_hiid (PyObject *, PyObject *args)
   HIID id;
   try
   {
-    return convertHIIDToSeq(HIID(str,true,sepset));
+    return convertHIIDToSeq(HIID(str,true,sepset));  // return NEW REF
   }
   catchStandardErrors(NULL);
 }
@@ -67,7 +67,7 @@ static PyObject * hiid_to_string (PyObject *, PyObject *args)
   }
   catchStandardErrors(NULL);
   
-  return PyString_FromString(id.toString(sep).c_str());
+  return PyString_FromString(id.toString(sep).c_str()); // return NEW REF
 }
 
 // -----------------------------------------------------------------------
@@ -76,7 +76,7 @@ static PyObject * hiid_to_string (PyObject *, PyObject *args)
 static PyObject * hiid_matches (PyObject *, PyObject *args)
 {
   PyObject *l1,*l2;
-  if( !PyArg_ParseTuple(args, "OO", &l1,&l2) )
+  if( !PyArg_ParseTuple(args, "OO", &l1,&l2) )  // ref count not increased
     return NULL;
   bool match;
   try
@@ -88,7 +88,7 @@ static PyObject * hiid_matches (PyObject *, PyObject *args)
   }
   catchStandardErrors(NULL);
   
-  return PyInt_FromLong(match);
+  return PyInt_FromLong(match); // returns NEW REF
 }
 
 static bool octopussy_initialized = false;
@@ -139,7 +139,7 @@ static PyObject * start_octopussy (PyObject *, PyObject *args)
   }
   catchStandardErrors(NULL);
   
-  return Py_BuildValue("i",int(thread_id));
+  return Py_BuildValue("i",int(thread_id)); // return NEW REF
 }
 
 // -----------------------------------------------------------------------
@@ -228,39 +228,37 @@ PyMODINIT_FUNC initoctopython ()
   initDataConv();
   
   // add types
-  PyObject * proxy_type = (PyObject *)&PyProxyWPType;
-  Py_INCREF(proxy_type);
-  PyModule_AddObject(module, "proxy_wp", proxy_type);
+  static PyObjectRef proxy_type ((PyObject *)&PyProxyWPType,true); // create new ref
+  PyModule_AddObject(module, "proxy_wp", ~proxy_type); // steals ref
   
-  PyObject * tc_type = (PyObject *)&PyThreadCondType;
-  Py_INCREF(tc_type);
-  PyModule_AddObject(module, "thread_condition", tc_type);
+  static PyObjectRef tc_type((PyObject *)&PyThreadCondType,true); // create new ref
+  PyModule_AddObject(module, "thread_condition", ~tc_type); // steals ref
   
-  PyObject * timbamod = PyImport_ImportModule("Timba");
+  static PyObjectRef timbamod(PyImport_ImportModule("Timba"));  // returns new ref
   if( !timbamod )
   {
     PyErr_Print();
     Py_FatalError("octopython init error: import of Timba module failed");
     return;
   }
-  PyObject * dmimod = PyImport_ImportModule("Timba.dmi");
+  static PyObjectRef dmimod(PyImport_ImportModule("Timba.dmi")); // new ref
   if( !dmimod )
   {
     PyErr_Print();
     Py_FatalError("octopython init error: import of dmi module failed");
     return;
   }
-  PyObject * dmidict = PyModule_GetDict(dmimod);
+  PyObject * dmidict = PyModule_GetDict(*dmimod); // borrowed ref
   if( !dmidict )
   {
     Py_FatalError("octopython init error: can't access dmi module dict");
     return;
   }
   
+  // PyDict_GetItemString returns borrowed ref, so increment ref count
   #define GetSym(cls) \
-    if( ! ( py_dmisyms.cls = PyDict_GetItemString(dmidict,#cls) ) ) \
-      { Py_FatalError("octopython: symbol dmi." #cls " not found"); return; } \
-    Py_INCREF(py_dmisyms.cls);
+    if( ! ( py_dmisyms.cls << PyDict_GetItemString(dmidict,#cls) ) ) \
+      { Py_FatalError("octopython: symbol dmi." #cls " not found"); return; } 
   
   GetSym(hiid);
   GetSym(message);
@@ -272,30 +270,30 @@ PyMODINIT_FUNC initoctopython ()
   GetSym(dmi_coerce);
   
   // register an exception object
+  // returns new reference, so assign directly
   PyExc_OctoPythonError = PyErr_NewException("octopython.OctoPythonError", NULL, NULL);
   PyExc_DataConvError = PyErr_NewException("octopython.DataConvError", NULL, NULL);
-  Py_INCREF(PyExc_OctoPythonError);
-  Py_INCREF(PyExc_DataConvError);
-  PyModule_AddObject(module, "OctoPythonError", PyExc_OctoPythonError);
-  PyModule_AddObject(module, "DataConvError", PyExc_DataConvError);
+  // AddObject steals a ref, so pass in a new one
+  PyModule_AddObject(module, "OctoPythonError", PyExc_OctoPythonError.new_ref());
+  PyModule_AddObject(module, "DataConvError", PyExc_DataConvError.new_ref());
   
   // build AID dictionaries
-  PyObject * aid_map = PyDict_New(),
-           * aid_rmap = PyDict_New();
-  Py_INCREF(aid_map);
-  Py_INCREF(aid_rmap);
+  // _New() returns new ref
+  PyObjectRef aid_map(PyDict_New()),aid_rmap(PyDict_New());
   const AtomicID::Registry::Map &map = AtomicID::getRegistryMap();
   AtomicID::Registry::Map::const_iterator iter = map.begin();
   for( ; iter != map.end(); iter++ )
   {
-    PyObject * aidint = PyInt_FromLong(iter->first);
-    PyObject * aidstr = PyString_FromString(iter->second.c_str());
-    PyDict_SetItem(aid_map,aidint,aidstr);
-    PyDict_SetItem(aid_rmap,aidstr,aidint);
+    // new refs returned, so assign
+    PyObjectRef aidint(PyInt_FromLong(iter->first));
+    PyObjectRef aidstr(PyString_FromString(iter->second.c_str()));
+    // SetItem does not steal a ref but increments ref counts
+    PyDict_SetItem(*aid_map,*aidint,*aidstr);
+    PyDict_SetItem(*aid_rmap,*aidstr,*aidint);
   }
   // add AID dicts to module's symbols
-  PyModule_AddObject(module,"aid_map",aid_map);
-  PyModule_AddObject(module,"aid_rmap",aid_rmap);
+  PyModule_AddObject(module,"aid_map",~aid_map);  // steals ref
+  PyModule_AddObject(module,"aid_rmap",~aid_rmap); // steals ref
   
   // drop out on error
   if( PyErr_Occurred() )
@@ -305,5 +303,5 @@ PyMODINIT_FUNC initoctopython ()
 
 } // extern "C"
 
-} // namesapce OctoPython
+} // namespace OctoPython
 
