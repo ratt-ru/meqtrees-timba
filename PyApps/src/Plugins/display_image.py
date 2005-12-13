@@ -1472,12 +1472,8 @@ class QwtImageDisplay(QwtPlot):
         plot_array = self._vells_data.getActiveData()
         self.array_plot(" ", plot_array)
 
-    def handle_finished (self):
-      print 'in handle_finished'
-
     def reset_color_bar(self, reset_value=True):
       self.adjust_color_bar = reset_value
-#     print 'self.adjust_color_bar = ', self.adjust_color_bar
 
     def set_xaxis_title(self, title=''):
       self._x_title = title
