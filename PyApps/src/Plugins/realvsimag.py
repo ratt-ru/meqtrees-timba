@@ -891,7 +891,7 @@ class realvsimag_plotter(object):
             if self._plot_parms.has_key('y_axis'):
               self._plot_y_axis_label = self._plot_parms.get('y_axis')
             if self._plot_title is None and self._plot_parms.has_key('title'):
-              self._plot_title = self.label + self._plot_parms.get('title')
+              self._plot_title = self.label + ' ' +self._plot_parms.get('title')
             if self.value_tag is None and self._plot_parms.has_key('value_tag'):
               self.value_tag = self._plot_parms.get('value_tag')
             if self.error_tag is None and self._plot_parms.has_key('error_tag'):
@@ -1009,7 +1009,7 @@ class realvsimag_plotter(object):
             self._string_tag = 'data'
             item_tag = self._string_tag + '_plot'
       if self._plot_title is None:
-        self._plot_title = self.label + self._plot_type
+        self._plot_title = self.label + ' ' + self._plot_type
 
 # the system knows that it is plotting 'errors' if it has
 # been able to find both a value_tag and an error_tag along

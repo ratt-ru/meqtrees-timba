@@ -1200,7 +1200,7 @@ class QwtImageDisplay(QwtPlot):
               self._plot_type = plot_parms.get('plot_type')
             if self._window_title is None and plot_parms.has_key('title'):
               self._window_title = plot_parms.get('title')
-              self.setTitle(self.label+self._window_title)
+              self.setTitle(self.label+ ' ' + self._window_title)
             if self._x_title is None and plot_parms.has_key('x_axis'):
               self._x_title = plot_parms.get('x_axis')
             if self._y_title is None and plot_parms.has_key('y_axis'):
@@ -1537,7 +1537,7 @@ class QwtImageDisplay(QwtPlot):
 
 # set title
       self._window_title = data_label  
-      self.setTitle(self.label+self._window_title)
+      self.setTitle(self.label+ ' ' + self._window_title)
 
 # hack to get array display correct until forest.state
 # record is available
