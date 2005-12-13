@@ -302,13 +302,17 @@ int MSInputSink::refillStream ()
     int nout = 0;
     while( !nout )
     {
-    // End of table iterator? Generate footer
+    // End of table iterator? Generate footer and close MS
       if( tableiter_.pastEnd() )
       {
         setState(FOOTER);
         DMI::Record::Ref footer(DMI::ANONWR);
         footer()[FVDSID] = vdsid_; 
         putOnStream(VisEventHIID(FOOTER,vdsid_),footer);
+        // close & detach from everything
+        selms_ = MeasurementSet();
+        ms_ = MeasurementSet();
+        tileformat_.detach();
         return AppEvent::SUCCESS;
       }
       const LoRange ALL = LoRange::all();
