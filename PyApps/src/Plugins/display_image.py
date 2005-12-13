@@ -324,7 +324,6 @@ class QwtImageDisplay(QwtPlot):
         self.xCrossSectionLoc = None
         self.yCrossSectionLoc = None
         self.dummy_xCrossSection = None
-	self.refresh_marker_display()
         toggle_id = self.menu_table['Delete X-Section Display']
         self.show_x_sections = False
         self._menu.setItemVisible(toggle_id, False)
@@ -339,7 +338,7 @@ class QwtImageDisplay(QwtPlot):
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
                      QPen(Qt.black), QSize(10,10)))
           self.setCurveData(self.metrics_plot, self.metrics_rank, self.iteration_number)
-        self.replot()
+	self.refresh_marker_display()
 
     def handle_basic_menu_id(self, menuid):
       if menuid < 0:
@@ -565,7 +564,6 @@ class QwtImageDisplay(QwtPlot):
           self.ymin = None
           self.ymax = None
           self.refresh_marker_display()
-          self.replot()
           _dprint(3, 'called replot in unzoom')
         else:
           return
@@ -858,7 +856,6 @@ class QwtImageDisplay(QwtPlot):
               self.xsect_ypos = ypos
               self.show_x_sections = True
               self.calculate_cross_sections()
-              self.replot()
               _dprint(2, 'called replot in onMousePressed');
            
 # fake a mouse move to show the cursor position
@@ -1078,13 +1075,6 @@ class QwtImageDisplay(QwtPlot):
         self.axis_ymin = self.ymin
         self.axis_ymax = self.ymax
 
-      if self.is_combined_image:
-         _dprint(2, 'display_image inserting markers')
-         self.removeMarkers()
-         self.info_marker = None
-         self.source_marker = None
-	 self.insert_marker_lines()
-      self.insert_array_info()
 
 # add solver metrics info?
       if not self.metrics_rank is None:
@@ -1099,7 +1089,8 @@ class QwtImageDisplay(QwtPlot):
         self.setCurveData(self.metrics_plot, self.metrics_rank, self.iteration_number)
       if self.show_x_sections:
         self.calculate_cross_sections()
-      self.replot()
+      else:
+        self.refresh_marker_display()      
       _dprint(2, 'called replot in display_image');
     # display_image()
 
