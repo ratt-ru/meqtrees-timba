@@ -46,6 +46,8 @@ def set_state (node,**fields):
   
   
 def process_vis_header (header):
+  global _header_handlers;
+  _dprint(0,"calling",len(_header_handlers),"header handlers");
   for handler in _header_handlers:
     handler(header);
 
@@ -54,6 +56,8 @@ def process_vis_footer (footer):
   """standard method called whenever a vis-footer is received.
   Comment out to disable.
   """
+  global _footer_handlers;
+  _dprint(0,"calling",len(_footer_handlers),"footer handlers");
   for handler in _footer_handlers:
     handler(footer);
 

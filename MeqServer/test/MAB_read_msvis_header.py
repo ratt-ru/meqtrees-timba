@@ -6,7 +6,6 @@ from Timba.meqkernel import set_state
 def process_vis_header (hdr):
     """handler for the visheader""";
     # phase center
-    return;
     (ra0,dec0) = hdr.phase_ref;
     set_state('ra0',value=ra0);
     set_state('dec0',value=dec0);
