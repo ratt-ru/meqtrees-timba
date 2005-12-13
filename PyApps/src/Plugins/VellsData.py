@@ -123,9 +123,15 @@ class VellsData:
 #        _dprint(3, 'self._plot_vells_dict[menu_label] ', self._plot_vells_dict[menu_label])
          tag = "] main value "
          if len(self.rq_label) > 0:
-           plot_string = "[" + str(i) + tag + " " + self.rq_label
+           if self._number_of_planes > 1:
+             plot_string = "[" + str(i) + tag + " " + self.rq_label
+           else:
+             plot_string = tag[2:len(tag)] + " " + self.rq_label
          else:
-           plot_string = "[" + str(i) + tag 
+           if self._number_of_planes > 1:
+             plot_string = "[" + str(i) + tag 
+           else:
+             plot_string = tag[2:len(tag)] 
          self._plot_labels[menu_label] = plot_string
        
        if vells_rec.vellsets[i].has_key("perturbed_value"):
