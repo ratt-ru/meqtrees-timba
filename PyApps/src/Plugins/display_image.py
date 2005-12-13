@@ -832,8 +832,8 @@ class QwtImageDisplay(QwtPlot):
               ypos = e.pos().y()
               xpos = self.invTransform(QwtPlot.xBottom, xpos)
               ypos = self.invTransform(QwtPlot.yLeft, ypos)
-              temp_array = asarray(ypos)
-              shape = self.raw_array.shape
+#             temp_array = asarray(ypos)
+#             shape = self.raw_array.shape
               self.x_arrayloc = ypos
               self.y_arrayloc = xpos
               if self._vells_plot:
@@ -1413,6 +1413,12 @@ class QwtImageDisplay(QwtPlot):
           is_scalar = True
           scalar_data = data_array[0]
       if is_scalar:
+        self._vells_plot = False
+        dummy_array = zeros(shape=(2,2),type=Float32)
+        self.array_plot(data_label, dummy_array)
+        self.set_xaxis_title(' ')
+        self.set_yaxis_title(' ')
+        self.removeMarkers()
         Message = data_label + ' is a scalar\n with value: ' + str(scalar_data)
         _dprint(3,' scalar message ', Message)
 #         mb_color = QMessageBox("display_image.py",
@@ -1433,7 +1439,9 @@ class QwtImageDisplay(QwtPlot):
         self.source_marker = self.insertMarker()
         ylb = self.axisScale(QwtPlot.yLeft).lBound()
         xlb = self.axisScale(QwtPlot.xBottom).lBound()
-        self.setMarkerPos(self.source_marker, xlb, ylb)
+        yhb = self.axisScale(QwtPlot.yLeft).hBound()
+        xhb = self.axisScale(QwtPlot.xBottom).hBound()
+        self.setMarkerPos(self.source_marker, xlb+0.1, ylb+1.0)
         self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
         fn = self.fontInfo().family()
         self.setMarkerLabel( self.source_marker, Message,
@@ -1445,6 +1453,17 @@ class QwtImageDisplay(QwtPlot):
           toggle_id = self.menu_table['Toggle ND Controller']
           self._menu.setItemVisible(toggle_id, False)
           self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+
+# make sure any color bar from array plot of other Vells member is hidden
+        self.emit(PYSIGNAL("show_colorbar_display"),(0,0)) 
+        if self.complex_type:
+          self.emit(PYSIGNAL("show_colorbar_display"),(0,1)) 
+# make sure options relating to color bar are not in context menu
+        toggle_id = self.menu_table['Toggle ColorBar']
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle Color/GrayScale Display']
+        self._menu.setItemVisible(toggle_id, False)
+
         self.replot()
           
       else:
