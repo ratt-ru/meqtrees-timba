@@ -424,10 +424,19 @@ def forest_solver(ns, interferometer_list, station_list, patch_list, input_colum
         pass
 
         # Redundancy constraints: to be added
+        
+    # set up a non-default child poll order for most efficient 
+    # parallelization
+    # (i.e. poll child 1:2, 3:4, 5:6, ..., 13:14,
+    # then the rest)
+    cpo = [];
+    for i in range(len(station_list)/2):
+      (ant1,ant2) = station_list[i*2:(i+1)*2];
+      cpo.append(ns.ce(ant1,ant2).name);
     
     ns.solver << Meq.Solver(num_iter=6,
                             debug_level=10,
-                            children=ce_list)    
+                            children=ce_list,child_poll_order=cpo);    
     pass
 
 
