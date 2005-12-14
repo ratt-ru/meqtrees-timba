@@ -67,4 +67,10 @@ AM_YFLAGS		= -d -p KeyParse
 AM_LFLAGS		= -PKeyTokenize
 LEX_OUTPUT_ROOT		= lex.KeyTokenize
 
+all: gprof-helper.so
+
+gprof-helper.so: $(srcdir)/gprof-helper.c
+	$(CC) -shared -fPIC $(srcdir)/gprof-helper.c -o gprof-helper.so -lpthread -ldl
+
+
 include $(top_srcdir)/Makefile.common
