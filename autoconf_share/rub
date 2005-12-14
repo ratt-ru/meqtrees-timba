@@ -40,6 +40,26 @@
 pgmpath=`dirname $0`
 pgmpath=`cd $pgmpath > /dev/null 2>&1  &&  pwd`
 
+# Keep arguments.
+# Put quotes around an argument if it contains special characters.
+# Escape a " in the argument.
+args=
+for arg in "$@"
+do
+  argx=`echo "$arg" | sed -e "s/[a-zA-Z0-9_-/]//g"`
+  if [ "$argx" = "" ]; then
+    args="$args $arg"
+  else
+    argxx=`echo "$argx" | sed -e "s/'//g"`
+    if [ "$argxx" = "$argx" ]; then
+      args="$args '$arg'"
+    else
+      arg=`echo "$arg" | sed -e 's/"/\\\\"/g'`
+      args="$args \"$arg\""
+    fi
+  fi
+done
+
 # Set default options.
 cvsdefault=cvs
 cvscomm=$cvsdefault
@@ -444,6 +464,8 @@ if [ "$curwdl" != "LOFAR" ]; then
 fi
 \rm -f allpkg.tmp rub.log
 touch allpkg.tmp rub.log
+echo "$0$args" > rub.log
+echo "" >> rub.log
 
 # First update bootstrap and autoconf_share.
 if [ $update != 0 ]; then

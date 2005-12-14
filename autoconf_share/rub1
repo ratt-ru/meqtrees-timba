@@ -66,6 +66,14 @@ fi
 # Get cvs update flags.
 updq="$9"
 
+# Always use a specific tag if given.
+# Set version to blank for types t and l.
+if [ "$cvstag" != "" ]; then
+  getvers=$cvstag
+elif [ $verstype = t  -o  $verstype = l ]; then
+  getvers=
+fi
+
 # See if this package was already updated. Take the last line.
 pkgline=`grep "^$pkgname " allpkg.tmp | tail -1`
 if [ "$pkgline" = "" ]; then
@@ -83,12 +91,6 @@ if [ "$pkgline" = "" ]; then
         exit 1
       fi
     fi
-  # Files can be updated or checked out.
-  # Find out which version is needed.
-  elif [ "$cvstag" != "" ]; then
-    getvers=$cvstag
-  elif [ $verstype = t ]; then
-    getvers=
   elif [ $verstype = l ]; then
     # Find the highest released version.
     # Check out the package if not existing yet.
@@ -100,9 +102,8 @@ if [ "$pkgline" = "" ]; then
   fi
 
 # The package was already updated.
-# If a specific version was given, handle it.
 elif [ "$cvstag" != "" ]; then
-  getvers=$cvstag
+  curvers=$cvstag
 else
   # Check wanted version and possibly already checked out version.
   # verstypes t and l are already handled when the package was retrieved
