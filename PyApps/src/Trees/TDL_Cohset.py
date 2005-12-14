@@ -13,6 +13,7 @@
 #    - 03 dec 2005: replaced MG_JEN_exec with TDL_display
 #    - 08 dec 2005: added method: coll()
 #    - 09 dec 2005: added methods: cohs(), Condeq(), DataCollect()
+#    - 13 dec 2005: repaired construction with ifrs (rather than stations)
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -95,10 +96,12 @@ class Cohset (TDL_common.Super):
         # Make a record/dict of ifr-slots to hold the 2x2 coherency matrices:
         if isinstance(pp['ifrs'], list):
             # Assume that pp.ifrs has been given explicitly
+            pp['stations'] = ifrs2stations(pp['ifrs'])
             self.history('input: len(ifrs)='+str(len(pp['ifrs'])))
         elif isinstance(pp['stations'], list):
             self.history('input: stations='+str(pp['stations']))
-            pp['ifrs'] = [ (s1,s2) for s1 in pp['stations'] for s2 in pp['stations'] if s1<s2 ]
+            # pp['ifrs'] = [ (s1,s2) for s1 in pp['stations'] for s2 in pp['stations'] if s1<s2 ]
+            pp['ifrs'] = stations2ifrs(pp['stations'])
         else:
             self.history(error=hist+'neither stations/ifrs specified')
             return F
@@ -462,9 +465,11 @@ class Cohset (TDL_common.Super):
         c0 = complex(0.0)
         c1 = complex(1.0)
         zz = array([c1,c0,c0,c1])
+        coh22 = ns.cxunity22 << Meq.Constant(zz, dims=[2,2])
         for key in self.keys():
             s12 = self.__stations[key]
-            self.__coh[key] = ns.cxunity22(s1=s12[0], s2=s12[1]) << Meq.Constant(zz, dims=[2,2])
+            # self.__coh[key] = ns.cxunity22(s1=s12[0], s2=s12[1]) << Meq.Constant(zz, dims=[2,2])
+            self.__coh[key] = coh22
         self.__dims = [2,2]
         self.history(append=funcname+' -> '+self.oneliner())
 
@@ -474,7 +479,8 @@ class Cohset (TDL_common.Super):
         uniqual = _counter(funcname, increment=-1)
         for key in self.keys():
             s12 = self.__stations[key]
-            self.__coh[key] = ns.uniform(uniqual)(s1=s12[0], s2=s12[1]) << Meq.Selector(coh22)
+            # self.__coh[key] = ns.uniform(uniqual)(s1=s12[0], s2=s12[1]) << Meq.Selector(coh22)
+            self.__coh[key] = coh22
         self.__dims = [2,2]
         self.history(append=funcname+' -> '+self.oneliner())
 
@@ -906,7 +912,8 @@ if __name__ == '__main__':
     ifrs = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ]
     polrep = 'linear'
     # polrep = 'circular'
-    cs = Cohset(label='initial', polrep=polrep, stations=stations)
+    # cs = Cohset(label='initial', polrep=polrep, stations=stations)
+    cs = Cohset(label='initial', polrep=polrep, ifrs=ifrs)
     cs.display('initial')
 
     if 0:
@@ -941,7 +948,7 @@ if __name__ == '__main__':
         cs1.zero(ns)
         cs.Condeq(ns, cs1)
 
-    if 1:
+    if 0:
         corrs = '*'
         corrs = 'XX'
         corrs = 'YX'
