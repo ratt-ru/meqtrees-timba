@@ -133,7 +133,7 @@ def _define_forest (ns):
    # Make the Cohset ifrs (and the Joneset stations):
    ifrs = TDL_Cohset.stations2ifrs(MG['stations'])
    stations = TDL_Cohset.ifrs2stations(ifrs)
-   Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', stations=stations)
+   Cohset = TDL_Cohset.Cohset(label=MG['script_name'], polrep='linear', stations=stations)
 
    # Make MeqSpigot nodes that read the MS:
    MG_JEN_Cohset.make_spigots(ns, Cohset, MS_corr_index=MG['MS_corr_index'],
@@ -217,7 +217,7 @@ def _test_forest (mqs, parent):
    Settings.orphans_are_roots = True;
 
    # Start the sequence of requests issued by MeqSink:
-   MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG.stream_control)
+   MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG['stream_control'])
    return True
 
 
@@ -231,16 +231,16 @@ def _test_forest (mqs, parent):
 
 
 if __name__ == '__main__':
-    print '\n*******************\n** Local test of:',MG.script_name,':\n'
+    print '\n*******************\n** Local test of:',MG['script_name'],':\n'
 
     if 1:
-        MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=3)
+        MG_JEN_exec.without_meqserver(MG['script_name'], callback=_define_forest, recurse=3)
 
     ns = NodeScope()
     nsim = ns.Subscope('_')
     stations = range(0,3)
     ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
-    cs = TDL_Cohset.Cohset(label='test', scops=MG.script_name, ifrs=ifrs)
+    cs = TDL_Cohset.Cohset(label='test', scops=MG['script_name'], ifrs=ifrs)
 
     if 0:   
         cs.display('initial')
@@ -250,7 +250,7 @@ if __name__ == '__main__':
         cs.display('final result')
 
     # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
-    print '\n** End of local test of:',MG.script_name,'\n*******************\n'
+    print '\n** End of local test of:',MG['script_name'],'\n*******************\n'
 
 
 #********************************************************************************

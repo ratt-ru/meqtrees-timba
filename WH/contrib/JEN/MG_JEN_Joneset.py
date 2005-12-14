@@ -12,6 +12,7 @@
 # - 31 aug 2005: added .visualise()
 # - 05 sep 2005: adapted to Joneset object
 # - 07 dec 2005: introduced define_MeqParm() argument 'constrain'
+# - 10 dec 2005: make the functions inarg-compatible
 
 # Copyright: The MeqTree Foundation 
 
@@ -29,6 +30,7 @@ from Timba.TDL import *
 
 from numarray import *
 
+from Timba.Trees import JEN_inarg
 from Timba.Trees import TDL_Joneset
 from Timba.Trees import TDL_radio_conventions
 
@@ -42,74 +44,6 @@ from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN import MG_JEN_Sixpack
 
 
-#-------------------------------------------------------------------------
-# Script control record (may be edited here):
-
-MG = MG_JEN_exec.MG_init('MG_JEN_Joneset.py',
-                         last_changed='h05oct2005',
-                         trace=False)             # If True, produce progress messages  
-
-
-# Check the MG record, and replace any referenced values
-MG = MG_JEN_exec.MG_check(MG)
-
-
-
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(MG)
-
-
-
-
-
-#********************************************************************************
-#********************************************************************************
-#**************** PART III: Required test/demo function *************************
-#********************************************************************************
-#********************************************************************************
-
-
-def _define_forest (ns):
-   """Definition of a MeqForest for demonstration/testing/experimentation
-   of the subject of this MG script, and its importable functions"""
-
-   # Perform some common functions, and return an empty list (cc=[]):
-   cc = MG_JEN_exec.on_entry (ns, MG)
-
-
-    # Make a sequence (jseq) of (jonesets of) 2x2 jones matrices:
-   stations = range(0,3)
-   scope = MG.script_name
-   jseq = TDL_Joneset.Joneseq(label='JJones', origin='MG_JEN_Joneset') 
-   jseq.append(GJones (ns, stations=stations, scope=scope,
-                       scale=1.0, stddev_Gampl=0.1, stddev_Gphase=0.1)) 
-   jseq.append(BJones (ns, stations=stations, scope=scope,
-                       scale=1.0, stddev_Breal=0.1, stddev_Bimag=0.1))
-   jseq.append(FJones (ns, stations=stations, scope=scope, RM=0.5))
-   jseq.append(DJones_WSRT (ns, stations=stations, scope=scope, PZD=0.8, 
-                            scale=1.0, stddev_dang=0.1, stddev_dell=0.1))
-   # jseq.append(DJones_WSRT (ns, stations=stations, scope=scope, coupled_XY_dang=False, coupled_XY_dell=False))
-   jseq.display()
-
-   # Visualise them individually:
-   for js in jseq:
-     cc.extend(visualise(ns, js))
-
-   # Matrix multiply to produce the resulting Jones joneset:
-   js = jseq.make_Joneset(ns)
-   cc.extend(visualise(ns, js))
-
-   # Visualise separately per parmgroup:
-   for pg in js.parmgroup().keys():
-       cc.extend(visualise(ns, js, parmgroup=pg))
-
-   MG_JEN_exec.display_object(cc, 'cc', txt=MG.script_name)
-
-   # Finished: 
-   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
@@ -122,33 +56,9 @@ def _define_forest (ns):
 
 #********************************************************************************
 #********************************************************************************
-#******************** PART IV: Optional: Importable functions *******************
+#******************** PART II: Optional: Importable functions *******************
 #********************************************************************************
 #********************************************************************************
-
-#======================================================================================
-# Visualise the contents of the given Joneseq object:
-
-def visualise_Joneseq (ns, Joneseq, **pp):
-    """visualises the contents of the given Joneseq"""
-
-    dconc = []
-    for js in Joneseq:
-      dc = visualise(ns, js, **pp)
-      print '****',js.label(),dc
-      dconc.append(dc)
-    js = Joneseq.make_Joneset(ns)
-    dc = visualise(ns, js, **pp)
-    print '****',dc
-    dconc.append(dc)
-    # return True
-
-    # Make a concatenation of the various dcolls:
-    dconc = MG_JEN_dataCollect.dconc (ns, dconc, scope=Joneset.scope(),
-                                      bookpage='Joneseq')
-
-    # Return a dcoll record (dataCollect node = dcond['dcoll'])
-    return dconc
 
 
 #--------------------------------------------------------------------------------
@@ -159,7 +69,7 @@ def adjust_for_telescope(pp, origin='<origin>'):
    return False # inhibited!
    #------------------------
    if not isinstance(pp, dict): return False
-   pp = record(pp)
+   # pp = record(pp)
 
    if not pp.has_key('telescope'): pp['telescope'] = 'WSRT'
 
@@ -184,182 +94,153 @@ def adjust_for_telescope(pp, origin='<origin>'):
       
 
 
-#--------------------------------------------------------------------------------
-# KJones: diagonal 2x2 matrix for DFT Fourier kernel
-#--------------------------------------------------------------------------------
-
-def KJones (ns=0, label='KJones', Sixpack=None, **pp):
-  """defines diagonal KJones matrices for DFT Fourier kernel""";
-  funcname = 'MG_JEN_Joneset::KJones()'
-
-  # Input parameters:
-  pp.setdefault('scope', '<scope>')    # scope of this Joneset
-  pp.setdefault('stations', [0])       # range of station names/numbers
-  pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
-  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
-  pp['punit'] = Sixpack.label()
-  pp.setdefault('solvable', False)     # if False, do not store parmgroup info
-  pp = record(pp)
-  adjust_for_telescope(pp, origin=funcname)
-
-  # Create a Joneset object
-  js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
-
-  # Get a record with the names of MS interface nodes
-  # Supply a nodescope (ns) in case it does not exist yet
-  rr = MG_JEN_forest_state.MS_interface_nodes(ns)
-
-  # Calculate punit (l,m,n) from input Sixpack:
-  radec = Sixpack.radec()
-  lmn   = ns.lmn  (q=pp.punit) << Meq.LMN(radec_0=ns[rr.radec0], radec=radec)
-  n     = ns.n    (q=pp.punit) << Meq.Selector(lmn, index=2)
-  lmn1  = ns.lmn_minus1(q=pp.punit) << Meq.Paster(lmn, n-1, index=2)
-  sqrtn = ns << Meq.Sqrt(n)
-
-  # The 2x2 KJones matrix is diagonal, with identical elements (Kmel) 
-  for station in pp.stations:
-    skey = TDL_radio_conventions.station_key(station)
-    Kmel = ns.dft(s=skey, q=pp.punit) << Meq.VisPhaseShift(lmn=lmn1,
-                                                           uvw=ns[rr.uvw[skey]])/sqrtn
-    stub = ns[label](s=skey, q=pp.punit) << Meq.Matrix22 (Kmel,0,0,Kmel)
-    js.append(skey, stub)
-
-
-  # Finished:
-  js.cleanup()
-  MG_JEN_forest_state.object(js, funcname)
-  return js
-
 
 
 #--------------------------------------------------------------------------------
 # GJones: diagonal 2x2 matrix for complex gains per polarization
 #--------------------------------------------------------------------------------
 
-def GJones (ns=0, label='GJones', Sixpack=None, **pp):
-  """defines diagonal GJones matrices for complex(Gampl,Gphase) parms""";
-  funcname = 'MG_JEN_Joneset::GJones()'
+def GJones (ns=None, **inarg):
+    """defines diagonal GJones matrices for complex(Gampl,Gphase) parms""";
 
-  # Input parameters:
-  pp.setdefault('scope', '<scope>')    # scope of this Joneset
-  pp.setdefault('stations', [0])       # range of station names/numbers
-  pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
-  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
-  pp['punit'] = Sixpack.label()
-  pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
-  pp.setdefault('polrep', 'linear')    # polarisation representation
-  pp.setdefault('Gscale', 0.0)         # scale of polc_ft non-c00 coeff
-  pp.setdefault('solvable', True)      # if False, do not store parmgroup info
-  pp.setdefault('Gampl', 0.3)          # default funklet value
-  pp.setdefault('Gphase', 0.0)         # default funklet value
-  pp.setdefault('Gphase_constrain', True)   # if True, constrain 1st station phase
-  pp.setdefault('Gpolar', False)       # if True, use MeqPolar, otherwise MeqToComplex
-  pp.setdefault('stddev_Gampl', 0)     # scatter in default funklet c00 values
-  pp.setdefault('stddev_Gphase', 0)    # scatter in default funklet c00 values
-  pp.setdefault('fdeg_Gampl', 0)       # degree of default freq polynomial         
-  pp.setdefault('fdeg_Gphase', 0)      # degree of default freq polynomial          
-  pp.setdefault('tdeg_Gampl', 0)       # degree of default time polynomial         
-  pp.setdefault('tdeg_Gphase', 0)      # degree of default time polynomial       
-  pp.setdefault('tile_size_Gampl', 0)  # used in tiled solutions         
-  pp.setdefault('tile_size_Gphase', 0) # used in tiled solutions         
-  pp = record(pp)
-  adjust_for_telescope(pp, origin=funcname)
+    jones = 'GJones'
 
-  # Create a Joneset object
-  js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    # Input arguments:
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()')
+    # pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::GJones()')
+    pp.setdefault('scope', '<scope>')    # scope of this Joneset
+    pp.setdefault('punit', 'uvp')        # source/patch for which this Joneset is valid
+    pp.setdefault('stations', [0])       # range of station names/numbers
+    pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
+    # ** Jones matrix elements:
+    pp.setdefault('polrep', 'linear')    # polarisation representation
+    # ** Solving instructions:
+    pp.setdefault('solvable', True)      # if False, do not store parmgroup info
+    pp.setdefault('Gampl', 0.3)          # default c00 funklet value
+    pp.setdefault('Gphase', 0.0)         # default c00 funklet value
+    pp.setdefault('Gphase_constrain', True)   # if True, constrain 1st station phase
+    pp.setdefault('Gpolar', False)       # if True, use MeqPolar, otherwise MeqToComplex
+    # ** MeqParm default values:
+    pp.setdefault('Gscale', 0.0)         # scale of polc_ft non-c00 coeff
+    pp.setdefault('stddev_Gampl', 0.0)   # scatter in default c00 funklet values
+    pp.setdefault('stddev_Gphase', 0.0)  # scatter in default c00 funklet values
+    pp.setdefault('fdeg_Gampl', 0)       # degree of default freq polynomial         
+    pp.setdefault('fdeg_Gphase', 0)      # degree of default freq polynomial          
+    pp.setdefault('tdeg_Gampl', 0)       # degree of default time polynomial         
+    pp.setdefault('tdeg_Gphase', 0)      # degree of default time polynomial       
+    pp.setdefault('tile_size_Gampl', 0)  # used in tiled solutions         
+    pp.setdefault('tile_size_Gphase', 0) # used in tiled solutions         
+    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+    if not JEN_inarg.is_OK(pp): return False
+    funcname = JEN_inarg.localscope(pp)
+    label = jones+JEN_inarg.qualifier(pp)
 
-  # Register the parmgroups:
-  a1 = js.register('Gampl', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
-  a2 = js.register('Gampl', ipol=2, color='blue', style='diamond', size=10, corrs='paral2')
-  p1 = js.register('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral1')
-  p2 = js.register('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral2')
+    # Some preparations:
+    adjust_for_telescope(pp, origin=funcname)
 
-  # MeqParm node_groups: add 'G' to default 'Parm':
-  js.node_groups(label[0])
+    # Create a Joneset object
+    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    
+    # Register the parmgroups:
+    a1 = js.register('Gampl', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
+    a2 = js.register('Gampl', ipol=2, color='blue', style='diamond', size=10, corrs='paral2')
+    p1 = js.register('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral1')
+    p2 = js.register('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral2')
 
-  # Define extra solvegroup(s) from combinations of parmgroups:
-  js.define_solvegroup('GJones', [a1, p1, a2, p2])
-  js.define_solvegroup('Gpol1', [a1, p1])
-  js.define_solvegroup('Gpol2', [a2, p2])
-  js.define_solvegroup('Gampl', [a1, a2])
-  js.define_solvegroup('Gphase', [p1, p2])
+    # MeqParm node_groups: add 'G' to default 'Parm':
+    js.node_groups(label[0])
 
-  first_station = True
-  for station in pp.stations:
-    skey = TDL_radio_conventions.station_key(station)        
-    # Define station MeqParms (in ss), and do some book-keeping:  
-    js.MeqParm(reset=True)
+    # Define extra solvegroup(s) from combinations of parmgroups:
+    js.define_solvegroup('GJones', [a1, p1, a2, p2])
+    js.define_solvegroup('Gpol1', [a1, p1])
+    js.define_solvegroup('Gpol2', [a2, p2])
+    js.define_solvegroup('Gampl', [a1, a2])
+    js.define_solvegroup('Gphase', [p1, p2])
+    
+    first_station = True
+    for station in pp['stations']:
+       skey = TDL_radio_conventions.station_key(station)        
+       # Define station MeqParms (in ss), and do some book-keeping:  
+       js.MeqParm(reset=True)
 
-    for Gampl in [a1,a2]:
-       default = MG_JEN_funklet.polc_ft (c00=pp.Gampl, stddev=pp.stddev_Gampl,
-                                         fdeg=pp.fdeg_Gampl, tdeg=pp.tdeg_Gampl,
-                                         scale=pp.Gscale) 
-       js.define_MeqParm (ns, Gampl, station=skey, default=default,
-                          tile_size=pp.tile_size_Gampl)
+       for Gampl in [a1,a2]:
+          default = MG_JEN_funklet.polc_ft (c00=pp['Gampl'], stddev=pp['stddev_Gampl'],
+                                            fdeg=pp['fdeg_Gampl'], tdeg=pp['tdeg_Gampl'],
+                                            scale=pp['Gscale']) 
+          js.define_MeqParm (ns, Gampl, station=skey, default=default,
+                             tile_size=pp['tile_size_Gampl'])
 
-    for Gphase in [p1,p2]:
-       default = MG_JEN_funklet.polc_ft (c00=pp.Gphase, stddev=pp.stddev_Gphase, 
-                                         fdeg=pp.fdeg_Gphase, tdeg=pp.tdeg_Gphase,
-                                         scale=pp.Gscale) 
-       constrain = False
-       if pp['Gphase_constrain']: 
-          if first_station: constrain = True
-       js.define_MeqParm (ns, Gphase, station=skey, default=default,
-                          constrain=constrain,
-                          tile_size=pp.tile_size_Gphase)
+       for Gphase in [p1,p2]:
+          default = MG_JEN_funklet.polc_ft (c00=pp['Gphase'], stddev=pp['stddev_Gphase'], 
+                                            fdeg=pp['fdeg_Gphase'], tdeg=pp['tdeg_Gphase'],
+                                            scale=pp['Gscale']) 
+          constrain = False
+          if pp['Gphase_constrain']: 
+             if first_station: constrain = True
+          js.define_MeqParm (ns, Gphase, station=skey, default=default,
+                             constrain=constrain,
+                             tile_size=pp['tile_size_Gphase'])
 
-    ss = js.MeqParm(update=True)
-    first_station = False
+       ss = js.MeqParm(update=True)
+       first_station = False
 
-    # Make the 2x2 Jones matrix:
-    if pp.Gpolar:
-      stub = ns[label](s=skey, q=pp.punit) << Meq.Matrix22 (
-        ns[label+'_11'](s=skey, q=pp.punit) << Meq.Polar( ss[a1], ss[p1]),
-        0,0,
-        ns[label+'_22'](s=skey, q=pp.punit) << Meq.Polar( ss[a2], ss[p2])
-        )
-    else:
-      cos1 = ns << ss[a1] * Meq.Cos(ss[p1])
-      cos2 = ns << ss[a2] * Meq.Cos(ss[p2])
-      sin1 = ns << ss[a1] * Meq.Sin(ss[p1])
-      sin2 = ns << ss[a2] * Meq.Sin(ss[p2])
-      stub = ns[label](s=skey, q=pp.punit) << Meq.Matrix22 (
-        ns[label+'_11'](s=skey, q=pp.punit) << Meq.ToComplex( cos1, sin1),
-        0,0,
-        ns[label+'_22'](s=skey, q=pp.punit) << Meq.ToComplex( cos2, sin2)
-        )
-    js.append(skey, stub)
+       # Make the 2x2 Jones matrix:
+       if pp['Gpolar']:
+          stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
+             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Polar( ss[a1], ss[p1]),
+             0,0,
+             ns[label+'_22'](s=skey, q=pp['punit']) << Meq.Polar( ss[a2], ss[p2])
+             )
+       else:
+          cos1 = ns << ss[a1] * Meq.Cos(ss[p1])
+          cos2 = ns << ss[a2] * Meq.Cos(ss[p2])
+          sin1 = ns << ss[a1] * Meq.Sin(ss[p1])
+          sin2 = ns << ss[a2] * Meq.Sin(ss[p2])
+          stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
+             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex( cos1, sin1),
+             0,0,
+             ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex( cos2, sin2)
+             )
+       js.append(skey, stub)
 
 
-  # Finished:
-  js.cleanup()
-  MG_JEN_forest_state.object(js, funcname)
-  return js
+    # Finished:
+    js.cleanup()
+    MG_JEN_forest_state.object(js, funcname)
+    return js
 
 
 #--------------------------------------------------------------------------------
 # FJones: 2x2 matrix for ionospheric Faraday rotation (NOT ion.phase!)
 #--------------------------------------------------------------------------------
 
-def FJones (ns=0, label='FJones', Sixpack=None, **pp):
+def FJones (ns=0, **inarg):
   """defines diagonal FJones Faraday rotation matrices""";
-  funcname = 'MG_JEN_Joneset::FJones()'
 
-  # Input parameters:
+  jones = 'FJones'
+
+  # Input arguments:
+  pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()')
+  # pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::FJones()')
   pp.setdefault('scope', '<scope>')    # scope of this Joneset
+  pp.setdefault('punit', 'uvp')        # source/patch for which this Joneset is valid
   pp.setdefault('stations', [0])       # range of station names/numbers
-  pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
-  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
-  pp['punit'] = Sixpack.label()
+  pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++) 
+  # ** Jones matrix elements:
   pp.setdefault('polrep', 'linear')    # polarisation representation
-  pp.setdefault('Fscale', 0.0)         # scale of polc_ft non-c00 coeff
+  # ** Solving instructions:
   pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
-  pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
-  pp.setdefault('RM', 0.0)             # default funklet value
   pp.setdefault('tile_size_RM', 1)     # used in tiled solutions         
   pp.setdefault('fdeg_RM', 0)          # degree of default freq polynomial          
   pp.setdefault('tdeg_RM', 0)          # degree of default time polynomial         
-  pp = record(pp)
+  # ** MeqParm default values:
+  pp.setdefault('RM', 0.0)             # default c00 funklet value
+  pp.setdefault('Fscale', 0.0)         # scale of polc_ft non-c00 coeff
+  if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+  if not JEN_inarg.is_OK(pp): return False
+  funcname = JEN_inarg.localscope(pp)
+  label = jones+JEN_inarg.qualifier(pp)
+
   adjust_for_telescope(pp, origin=funcname)
 
   # Create a Joneset object:
@@ -376,13 +257,13 @@ def FJones (ns=0, label='FJones', Sixpack=None, **pp):
 
   # Make a node for the Faraday rotation (same for all stations...)
   js.MeqParm(reset=True)
-  js.define_MeqParm(ns, RM, default=pp.RM)              # Rotation Measure
+  js.define_MeqParm(ns, RM, default=pp['RM'])              # Rotation Measure
   ss = js.MeqParm(update=True)
   wvl2 = MG_JEN_twig.wavelength (ns, unop='Sqr')        # -> lambda squared
-  farot = ns.farot(q=pp.punit) << (ss[RM] * wvl2)       # Faraday rotation angle
+  farot = ns.farot(q=pp['punit']) << (ss[RM] * wvl2)       # Faraday rotation angle
   
   # The FJones matrix depends on the polarisation representation:
-  if pp.polrep=='circular':
+  if pp['polrep']=='circular':
      matname = 'FJones_phase_matrix'
      stub = MG_JEN_matrix.phase (ns, angle=farot, name=matname)
   else:
@@ -390,7 +271,7 @@ def FJones (ns=0, label='FJones', Sixpack=None, **pp):
      stub = MG_JEN_matrix.rotation (ns, angle=farot, name=matname)
 
   # For the moment, assume that FJones is the same for all stations:
-  for station in pp.stations:
+  for station in pp['stations']:
      skey = TDL_radio_conventions.station_key(station)
      js.append(skey, stub)
 
@@ -405,99 +286,108 @@ def FJones (ns=0, label='FJones', Sixpack=None, **pp):
 # BJones: diagonal 2x2 matrix for complex bandpass per polarization
 #--------------------------------------------------------------------------------
 
-def BJones (ns=0, label='BJones', Sixpack=None, **pp):
-  """defines diagonal BJones bandpass matrices""";
-  funcname = 'MG_JEN_Joneset::BJones()'
+def BJones (ns=0, **inarg):
+    """defines diagonal BJones bandpass matrices""";
 
-  # Input parameters:
-  pp.setdefault('scope', '<scope>')    # scope of this Joneset
-  pp.setdefault('stations', [0])       # range of station names/numbers
-  pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
-  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
-  pp['punit'] = Sixpack.label()
-  pp.setdefault('Bscale', 0.0)          # scale of polc_ft non-c00 coeff
-  pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
-  pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
-  # pp.setdefault('Bpolar', False)        # if True, use MeqPolar, otherwise MeqToComplex
-  pp.setdefault('Breal', 1.0)          # default funklet value
-  pp.setdefault('Bimag', 0.0)          # default funklet value
-  pp.setdefault('Breal_constrain', False)   # if True, constrain 1st station phase
-  pp.setdefault('Bimag_constrain', True)   # if True, constrain 1st station phase
-  pp.setdefault('stddev_Breal', 0)     # scatter in default funklet c00 values
-  pp.setdefault('stddev_Bimag', 0)     # scatter in default funklet c00 values
-  pp.setdefault('fdeg_Breal', 3)       # degree of default freq polynomial              # <---- !!
-  pp.setdefault('fdeg_Bimag', 3)       # degree of default freq polynomial              # <---- !!
-  pp.setdefault('tdeg_Breal', 0)       # degree of default time polynomial              # <---- !!
-  pp.setdefault('tdeg_Bimag', 0)       # degree of default time polynomial              # <---- !!
-  pp.setdefault('tile_size_Breal', 0)  # used in tiled solutions         
-  pp.setdefault('tile_size_Bimag', 0)  # used in tiled solutions         
-  pp = record(pp)
-  adjust_for_telescope(pp, origin=funcname)
+    jones = 'BJones'
 
-  # Create a Joneset object:
-  js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    # Input arguments:
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()')
+    # pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::BJones()')
+    pp.setdefault('scope', '<scope>')    # scope of this Joneset
+    pp.setdefault('punit', 'uvp')        # source/patch for which this Joneset is valid
+    pp.setdefault('stations', [0])       # range of station names/numbers
+    # ** Jones matrix elements:
+    pp.setdefault('polrep', 'linear')    # polarisation representation
+    # ** Solving instructions:
+    pp.setdefault('solvable', True)      # if True, the parms are potentially solvable
+    pp.setdefault('parmtable', None)     # name of the MeqParm table (AIPS++)
+    # pp.setdefault('Bpolar', False)        # if True, use MeqPolar, otherwise MeqToComplex
+    pp.setdefault('Breal', 1.0)          # default c00 funklet value
+    pp.setdefault('Bimag', 0.0)          # default c00 funklet value
+    pp.setdefault('Breal_constrain', False)   # if True, constrain 1st station phase
+    pp.setdefault('Bimag_constrain', True)   # if True, constrain 1st station phase
+    # ** MeqParm default values:
+    pp.setdefault('Bscale', 0.0)          # scale of polc_ft non-c00 coeff
+    pp.setdefault('stddev_Breal', 0)     # scatter in default c00 funklet values
+    pp.setdefault('stddev_Bimag', 0)     # scatter in default c00 funklet values
+    pp.setdefault('fdeg_Breal', 3)       # degree of default freq polynomial              # <---- !!
+    pp.setdefault('fdeg_Bimag', 3)       # degree of default freq polynomial              # <---- !!
+    pp.setdefault('tdeg_Breal', 0)       # degree of default time polynomial              # <---- !!
+    pp.setdefault('tdeg_Bimag', 0)       # degree of default time polynomial              # <---- !!
+    pp.setdefault('tile_size_Breal', 0)  # used in tiled solutions         
+    pp.setdefault('tile_size_Bimag', 0)  # used in tiled solutions         
+    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+    if not JEN_inarg.is_OK(pp): return False
+    funcname = JEN_inarg.localscope(pp)
+    label = jones+JEN_inarg.qualifier(pp)
+
+    adjust_for_telescope(pp, origin=funcname)
+
+    # Create a Joneset object:
+    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
   
-  # Register the parmgroups:
-  br1 = js.register('Breal', ipol=1, color='red', style='square', size=7, corrs='paral1')
-  br2 = js.register('Breal', ipol=2, color='blue', style='square', size=7, corrs='paral2')
-  bi1 = js.register('Bimag', ipol=1, color='magenta', style='square', size=7, corrs='paral1')
-  bi2 = js.register('Bimag', ipol=2, color='cyan', style='square', size=7, corrs='paral2')
+    # Register the parmgroups:
+    br1 = js.register('Breal', ipol=1, color='red', style='square', size=7, corrs='paral1')
+    br2 = js.register('Breal', ipol=2, color='blue', style='square', size=7, corrs='paral2')
+    bi1 = js.register('Bimag', ipol=1, color='magenta', style='square', size=7, corrs='paral1')
+    bi2 = js.register('Bimag', ipol=2, color='cyan', style='square', size=7, corrs='paral2')
 
-  # MeqParm node_groups: add 'B' to default 'Parm':
-  js.node_groups(label[0])
+    # MeqParm node_groups: add 'B' to default 'Parm':
+    js.node_groups(label[0])
 
-  # Define extra solvegroup(s) from combinations of parmgroups:
-  js.define_solvegroup('BJones', [br1, bi1, br2, bi2])
-  js.define_solvegroup('Bpol1', [br1, bi1])
-  js.define_solvegroup('Bpol2', [br2, bi2])
-  js.define_solvegroup('Breal', [br1, br2])
-  js.define_solvegroup('Bimag', [bi1, bi2])
+    # Define extra solvegroup(s) from combinations of parmgroups:
+    js.define_solvegroup('BJones', [br1, bi1, br2, bi2])
+    js.define_solvegroup('Bpol1', [br1, bi1])
+    js.define_solvegroup('Bpol2', [br2, bi2])
+    js.define_solvegroup('Breal', [br1, br2])
+    js.define_solvegroup('Bimag', [bi1, bi2])
 
-  first_station = True
-  for station in pp.stations:
-    skey = TDL_radio_conventions.station_key(station)      
-    # Define station MeqParms (in ss), and do some book-keeping:  
-    js.MeqParm(reset=True)
+    first_station = True
+    for station in pp['stations']:
+        skey = TDL_radio_conventions.station_key(station)      
+        # Define station MeqParms (in ss), and do some book-keeping:  
+        js.MeqParm(reset=True)
 
-    # Example: polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0) 
+        # Example: polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0) 
 
-    for Breal in [br1,br2]:
-       default = MG_JEN_funklet.polc_ft (c00=pp.Breal, stddev=pp.stddev_Breal, 
-                                         fdeg=pp.fdeg_Breal, tdeg=pp.tdeg_Breal, 
-                                         scale=pp.Bscale) 
-       constrain = False
-       if pp['Breal_constrain']: 
-          if first_station: constrain = True
-       js.define_MeqParm (ns, Breal, station=skey, default=default,
-                          constrain=constrain,
-                          tile_size=pp.tile_size_Breal)
+        for Breal in [br1,br2]:
+            default = MG_JEN_funklet.polc_ft (c00=pp['Breal'], stddev=pp['stddev_Breal'], 
+                                              fdeg=pp['fdeg_Breal'], tdeg=pp['tdeg_Breal'], 
+                                              scale=pp['Bscale']) 
+            constrain = False
+            if pp['Breal_constrain']: 
+                if first_station: constrain = True
+            js.define_MeqParm (ns, Breal, station=skey, default=default,
+                               constrain=constrain,
+                               tile_size=pp['tile_size_Breal'])
 
-    for Bimag in [bi1,bi2]:
-       default = MG_JEN_funklet.polc_ft (c00=pp.Bimag, stddev=pp.stddev_Bimag, 
-                                         fdeg=pp.fdeg_Bimag, tdeg=pp.tdeg_Bimag, 
-                                         scale=pp.Bscale) 
-       constrain = False
-       if pp['Bimag_constrain']: 
-          if first_station: constrain = True
-       js.define_MeqParm (ns, Bimag, station=skey, default=default,
-                          constrain=constrain,
-                          tile_size=pp.tile_size_Bimag)
+        for Bimag in [bi1,bi2]:
+            default = MG_JEN_funklet.polc_ft (c00=pp['Bimag'], stddev=pp['stddev_Bimag'], 
+                                              fdeg=pp['fdeg_Bimag'], tdeg=pp['tdeg_Bimag'], 
+                                              scale=pp['Bscale']) 
+            constrain = False
+            if pp['Bimag_constrain']: 
+                if first_station: constrain = True
+            js.define_MeqParm (ns, Bimag, station=skey, default=default,
+                               constrain=constrain,
+                               tile_size=pp['tile_size_Bimag'])
 
-    ss = js.MeqParm(update=True)
-    first_station = False
+        ss = js.MeqParm(update=True)
+        first_station = False
 
-    # Make the 2x2 Jones matrix
-    stub = ns[label](s=skey, q=pp.punit) << Meq.Matrix22 (
-      ns[label+'_11'](s=skey, q=pp.punit) << Meq.ToComplex(ss[br1], ss[bi1]),
-      0,0,
-      ns[label+'_22'](s=skey, q=pp.punit) << Meq.ToComplex(ss[br2], ss[bi2])
-      )
-    js.append(skey, stub)
+        # Make the 2x2 Jones matrix
+        stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
+            ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[br1], ss[bi1]),
+            0,0,
+            ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[br2], ss[bi2])
+            )
+        js.append(skey, stub)
 
-  # Finished:
-  js.cleanup()
-  MG_JEN_forest_state.object(js, funcname)
-  return js
+    # Finished:
+    js.cleanup()
+    MG_JEN_forest_state.object(js, funcname)
+    return js
 
 
 
@@ -507,34 +397,42 @@ def BJones (ns=0, label='BJones', Sixpack=None, **pp):
 # DJones: 2x2 matrix for polarization leakage
 #--------------------------------------------------------------------------------
 
-def DJones_WSRT (ns=0, label='DJones_WSRT', Sixpack=None, **pp):
+def DJones_WSRT (ns=0, **inarg):
   """defines 2x2 DJones_WSRT (polarisation leakage) matrices""";
-  funcname = 'MG_JEN_Joneset::DJones_WSRT()'
 
+  jones = 'DJones_WSRT'
 
-  # Input parameters:
+  # Input arguments:
+  pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()')
+  # pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::DJones_WSRT()')
   pp.setdefault('scope', '<scope>')       # scope of this Joneset
+  pp.setdefault('punit', 'uvp')        # source/patch for which this Joneset is valid
   pp.setdefault('stations', [0])          # range of station names/numbers
-  pp.setdefault('punit', 'uvp')        # name of prediction-unit (source/patch)
-  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
-  pp['punit'] = Sixpack.label()
-  pp.setdefault('Dscale', 0.0)            # scale of polc_ft non-c00 coeff
+  # ** Jones matrix elements:
+  pp.setdefault('polrep', 'linear')       # polarisation representation
+  # ** Solving instructions:
   pp.setdefault('solvable', True)         # if True, the parms are potentially solvable
   pp.setdefault('parmtable', None)        # name of the MeqParm table (AIPS++)
   pp.setdefault('coupled_XY_dang', True)  # if True, Xdang = Ydang per station
   pp.setdefault('coupled_XY_dell', True)  # if True, Xdell = -Ydell per station
-  pp.setdefault('dang', 0.0)              # default funklet value
-  pp.setdefault('dell', 0.0)              # default funklet value
-  pp.setdefault('PZD', 0.0)               # default funklet value
-  pp.setdefault('stddev_dang', 0)         # scatter in default funklet c00 values
-  pp.setdefault('stddev_dell', 0)         # scatter in default funklet c00 values
+  pp.setdefault('dang', 0.0)              # default c00 funklet value
+  pp.setdefault('dell', 0.0)              # default c00 funklet value
+  pp.setdefault('PZD', 0.0)               # default c00 funklet value
+  # ** MeqParm default values:
+  pp.setdefault('Dscale', 0.0)            # scale of polc_ft non-c00 coeff
+  pp.setdefault('stddev_dang', 0)         # scatter in default c00 funklet values
+  pp.setdefault('stddev_dell', 0)         # scatter in default c00 funklet values
   pp.setdefault('fdeg_dang', 0)           # degree of default freq polynomial
   pp.setdefault('fdeg_dell', 0)           # degree of default freq polynomial
   pp.setdefault('tdeg_dang', 0)           # degree of default time polynomial
   pp.setdefault('tdeg_dell', 0)           # degree of default time polynomial
   pp.setdefault('tile_size_dang', 0)      # used in tiled solutions         
   pp.setdefault('tile_size_dell', 0)      # used in tiled solutions         
-  pp = record(pp)
+  if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+  if not JEN_inarg.is_OK(pp): return False
+  funcname = JEN_inarg.localscope(pp)
+  label = jones+JEN_inarg.qualifier(pp)
+
   adjust_for_telescope(pp, origin=funcname)
 
   # Create a Joneset object:
@@ -553,12 +451,12 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', Sixpack=None, **pp):
   js.node_groups(label[0])
 
   # Define extra solvegroup(s) from combinations of parmgroups:
-  if pp.coupled_XY_dang and pp.coupled_XY_dell:
+  if pp['coupled_XY_dang'] and pp['coupled_XY_dell']:
     js.define_solvegroup('DJones', [dang, dell, pzd])
-  elif pp.coupled_XY_dang:
+  elif pp['coupled_XY_dang']:
     js.define_solvegroup('DJones', [dang, dell1, dell2, pzd])
     js.define_solvegroup('dell', [dell1, dell2, pzd])
-  elif pp.coupled_XY_dell:
+  elif pp['coupled_XY_dell']:
     js.define_solvegroup('DJones', [dang1, dang2, dell, pzd])
     js.define_solvegroup('dang', [dang1, dang2, pzd])
   else:
@@ -568,7 +466,7 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', Sixpack=None, **pp):
 
   # The X/Y Phase-Zero-Difference (PZD) is shared by all stations:
   js.MeqParm(reset=True)
-  js.define_MeqParm(ns, pzd, default=pp.PZD)
+  js.define_MeqParm(ns, pzd, default=pp['PZD'])
   ss = js.MeqParm(update=True)
   matname = 'DJones_PZD_matrix'
   pmat = MG_JEN_matrix.phase (ns, angle=ss[pzd], name=matname)
@@ -577,7 +475,7 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', Sixpack=None, **pp):
   # Make the jones matrices per station:
   jones = {}
   ss = {}
-  for station in pp.stations:
+  for station in pp['stations']:
     skey = TDL_radio_conventions.station_key(station)  
     # Define station MeqParms (in ss), and do some book-keeping:  
     js.MeqParm(reset=True)
@@ -585,43 +483,43 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', Sixpack=None, **pp):
 
     # Dipole angle errors may be coupled (dang(X)=dang(Y)) or not:
     matname = 'DJones_dang_matrix'
-    if pp.coupled_XY_dang:
-       default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.Dscale,
-                                         fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
+    if pp['coupled_XY_dang']:
+       default = MG_JEN_funklet.polc_ft (c00=pp['dang'], stddev=pp['stddev_dang'], scale=pp['Dscale'],
+                                         fdeg=pp['fdeg_dang'], tdeg=pp['tdeg_dang']) 
        js.define_MeqParm (ns, dang, station=skey, default=default,
-                          tile_size=pp.tile_size_dang)
+                          tile_size=pp['tile_size_dang'])
        ss = js.MeqParm(update=True, reset=True)
        rmat = MG_JEN_matrix.rotation (ns, angle=ss[dang], qual=qual, name=matname)
     else: 
        for dang in [dang1,dang2]:
-          default = MG_JEN_funklet.polc_ft (c00=pp.dang, stddev=pp.stddev_dang, scale=pp.Dscale,
-                                            fdeg=pp.fdeg_dang, tdeg=pp.tdeg_dang) 
+          default = MG_JEN_funklet.polc_ft (c00=pp['dang'], stddev=pp['stddev_dang'], scale=pp['Dscale'],
+                                            fdeg=pp['fdeg_dang'], tdeg=pp['tdeg_dang']) 
           js.define_MeqParm (ns, dang, station=skey, default=default,
-                             tile_size=pp.tile_size_dang)
+                             tile_size=pp['tile_size_dang'])
        ss = js.MeqParm(update=True, reset=True)
        rmat = MG_JEN_matrix.rotation (ns, angle=[ss[dang1],ss[dang2]], qual=qual, name=matname)
 
 
     # Dipole ellipticities may be coupled (dell(X)=-dell(Y)) or not:
     matname = 'DJones_dell_matrix'
-    if pp.coupled_XY_dell:
-       default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.Dscale,
-                                         fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
+    if pp['coupled_XY_dell']:
+       default = MG_JEN_funklet.polc_ft (c00=pp['dell'], stddev=pp['stddev_dell'], scale=pp['Dscale'],
+                                         fdeg=pp['fdeg_dell'], tdeg=pp['tdeg_dell']) 
        js.define_MeqParm (ns, dell, station=skey, default=default,
-                          tile_size=pp.tile_size_dell)
+                          tile_size=pp['tile_size_dell'])
        ss = js.MeqParm(update=True, reset=True)
        emat = MG_JEN_matrix.ellipticity (ns, angle=ss[dell], qual=qual, name=matname)
     else:
        for dell in [dell1,dell2]:
-          default = MG_JEN_funklet.polc_ft (c00=pp.dell, stddev=pp.stddev_dell, scale=pp.Dscale, 
-                                            fdeg=pp.fdeg_dell, tdeg=pp.tdeg_dell) 
+          default = MG_JEN_funklet.polc_ft (c00=pp['dell'], stddev=pp['stddev_dell'], scale=pp['Dscale'], 
+                                            fdeg=pp['fdeg_dell'], tdeg=pp['tdeg_dell']) 
           js.define_MeqParm (ns, dell, station=skey, default=default,
-                             tile_size=pp.tile_size_dell)
+                             tile_size=pp['tile_size_dell'])
        ss = js.MeqParm(update=True, reset=True)
        emat = MG_JEN_matrix.ellipticity (ns, angle=[ss[dell1],ss[dell2]], qual=qual, name=matname)
 
     # Make the 2x2 Jones matrix by multiplying the sub-matrices:
-    stub = ns[label](s=skey, q=pp.punit) << Meq.MatrixMultiply (rmat, emat, pmat)
+    stub = ns[label](s=skey, q=pp['punit']) << Meq.MatrixMultiply (rmat, emat, pmat)
     js.append(skey, stub)
 
   # Finished:
@@ -630,6 +528,62 @@ def DJones_WSRT (ns=0, label='DJones_WSRT', Sixpack=None, **pp):
   return js
 
 
+
+#--------------------------------------------------------------------------------
+# KJones: diagonal 2x2 matrix for DFT Fourier kernel
+# This function requires a Sixpack as input!
+#--------------------------------------------------------------------------------
+
+def KJones (ns=0, Sixpack=None, **inarg):
+  """defines diagonal KJones matrices for DFT Fourier kernel""";
+
+  jones = 'KJones'
+
+  # Input arguments:
+  pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()')
+  pp.setdefault('scope', '<scope>')    # scope of this Joneset
+  pp.setdefault('stations', [0])       # range of station names/numbers
+  # ** Solving instructions:
+  pp.setdefault('solvable', False)     # if False, do not store parmgroup info
+  # ** MeqParm default values:
+  if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+  if not JEN_inarg.is_OK(pp): return False
+  funcname = JEN_inarg.localscope(pp)
+  label = jones+JEN_inarg.qualifier(pp)
+
+
+  adjust_for_telescope(pp, origin=funcname)
+
+  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
+  punit = Sixpack.label()
+
+  # Create a Joneset object
+  js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+
+  # Get a record with the names of MS interface nodes
+  # Supply a nodescope (ns) in case it does not exist yet
+  rr = MG_JEN_forest_state.MS_interface_nodes(ns)
+
+  # Calculate punit (l,m,n) from input Sixpack:
+  radec = Sixpack.radec()
+  lmn   = ns.lmn  (q=punit) << Meq.LMN(radec_0=ns[rr.radec0], radec=radec)
+  n     = ns.n    (q=punit) << Meq.Selector(lmn, index=2)
+  lmn1  = ns.lmn_minus1(q=punit) << Meq.Paster(lmn, n-1, index=2)
+  sqrtn = ns << Meq.Sqrt(n)
+
+  # The 2x2 KJones matrix is diagonal, with identical elements (Kmel) 
+  for station in pp['stations']:
+    skey = TDL_radio_conventions.station_key(station)
+    Kmel = ns.dft(s=skey, q=punit) << Meq.VisPhaseShift(lmn=lmn1,
+                                                        uvw=ns[rr.uvw[skey]])/sqrtn
+    stub = ns[label](s=skey, q=punit) << Meq.Matrix22 (Kmel,0,0,Kmel)
+    js.append(skey, stub)
+
+
+  # Finished:
+  js.cleanup()
+  MG_JEN_forest_state.object(js, funcname)
+  return js
 
 
 
@@ -735,6 +689,32 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
 #	    # ss := [ss,"none"];
 
 
+
+
+#======================================================================================
+# Visualise the contents of the given Joneseq object:
+
+def visualise_Joneseq (ns, Joneseq, **pp):
+    """visualises the contents of the given Joneseq"""
+
+    dconc = []
+    for js in Joneseq:
+      dc = visualise(ns, js, **pp)
+      print '****',js.label(),dc
+      dconc.append(dc)
+    js = Joneseq.make_Joneset(ns)
+    dc = visualise(ns, js, **pp)
+    print '****',dc
+    dconc.append(dc)
+    # return True
+
+    # Make a concatenation of the various dcolls:
+    dconc = MG_JEN_dataCollect.dconc (ns, dconc, scope=Joneset.scope(),
+                                      bookpage='Joneseq')
+
+    # Return a dcoll record (dataCollect node = dcond['dcoll'])
+    return dconc
+
 #======================================================================================
 # Visualise the contents of the given Joneseq object:
 
@@ -761,6 +741,8 @@ def visualise_Joneseq (ns, Joneseq, **pp):
 
     # Return a dcoll record (dataCollect node = dcond['dcoll'])
     return dconc
+
+
 
 
 
@@ -796,50 +778,287 @@ def punit2Sixpack(ns, punit='uvp'):
 
 
 
-
-
-
-
-
 #********************************************************************************
-# Testing routines
-# NB: this section should always be at the end of the script
 #********************************************************************************
+#************* PART III: MG control record (may be edited here)******************
+#********************************************************************************
+#********************************************************************************
+
+script_name = 'MG_JEN_Joneset'
+
+MG = JEN_inarg.init(script_name,
+                    last_changed = 'h11dec2005',
+                    stations=range(4),            # range of station names/numbers 
+                    punit='3C84',                  # prediction-unit (source/patch)
+                    parmtable=None,               # name of the MeqParm table (AIPS++)
+                    polrep='linear',              # polarisation representation
+                    scope=script_name)            # scope of Joneset
+
+
+#========
+if True:                                              # ... Copied from MG_JEN_Joneset.py ...
+    # inarg = MG_JEN_Joneset.GJones(_getinarg=True)       # get a record with default input arguments
+    inarg = GJones(_getinarg=True)                      # local (MG_JEN_Joneset.py) version 
+    JEN_inarg.modify(inarg,
+                     scope=MG['scope'],                 # scope of this Joneset
+                     punit=MG['punit'],                 # source/patch name
+                     stations=MG['stations'],           # range of station names/numbers
+                     parmtable=MG['parmtable'],         # name of the MeqParm table (AIPS++)
+                     
+                     # ** Jones matrix elements:
+                     polrep=MG['polrep'],               # polarisation representation
+                     # Gpolar=False,                      # if True, use MeqPolar, otherwise MeqToComplex
+                     
+                     # ** Solving instructions:
+                     # solvable=True,                     # if False, do not store parmgroup info
+                     # tile_size_Gampl=0,                 # used in tiled solutions         
+                     # tile_size_Gphase=0,                # used in tiled solutions         
+                     Gphase_constrain=True,             # if True, constrain 1st station phase
+                     # fdeg_Gampl=0,                      # degree of default freq polynomial         
+                     # fdeg_Gphase=0,                     # degree of default freq polynomial          
+                     # tdeg_Gampl=0,                      # degree of default time polynomial         
+                     # tdeg_Gphase=0,                     # degree of default time polynomial       
+                     
+                     # ** MeqParm default values:
+                     # Gscale=0.0,                        # scale of polc_ft non-c00 coeff
+                     Gampl=0.3,                         # default c00 funklet value
+                     Gphase=0.0,                        # default c00 funklet value
+                     stddev_Gampl=0.1,                  # scatter in default c00 funklet values
+                     stddev_Gphase=0.1,                 # scatter in default c00 funklet values
+                     
+                     _JEN_inarg_option=None)            # optional, not yet used 
+    JEN_inarg.attach(MG, inarg)
+    
+    
+    
+#========
+if True:                                              # ... Copied from MG_JEN_Joneset.py ...
+    # inarg = MG_JEN_Joneset.BJones(_getinarg=True)       # get a record with default input arguments
+    inarg = BJones(_getinarg=True)                      # local (MG_JEN_Joneset.py) version 
+    JEN_inarg.modify(inarg,
+                     scope=MG['scope'],                 # scope of this Joneset
+                     punit=MG['punit'],                 # source/patch name
+                     stations=MG['stations'],           # range of station names/numbers
+                     parmtable=MG['parmtable'],         # name of the MeqParm table (AIPS++)
+                     
+                     # ** Jones matrix elements:
+                     polrep=MG['polrep'],               # polarisation representation
+                     # Bpolar=False,                      # if True, use MeqPolar, otherwise MeqToComplex
+                     
+                     # ** Solving instructions:
+                     # solvable=True,                     # if False, do not store parmgroup info
+                     Breal_constrain=False,             # if True, constrain 1st station phase
+                     Bimag_constrain=True,              # if True, constrain 1st station phase
+                     tile_size_Breal=0,                 # used in tiled solutions         
+                     tile_size_Bimag=0,                 # used in tiled solutions         
+                     fdeg_Breal=3,                      # degree of default freq polynomial              # <---- !!
+                     fdeg_Bimag=3,                      # degree of default freq polynomial              # <---- !!
+                     tdeg_Breal=0,                      # degree of default time polynomial              # <---- !!
+                     tdeg_Bimag=0,                      # degree of default time polynomial              # <---- !!
+                     
+                     # ** MeqParm default values:
+                     Bscale=1.0,                        # scale of polc_ft non-c00 coeff
+                     Breal=1.0,                         # default c00 funklet value
+                     Bimag=0.0,                         # default c00 funklet value
+                     stddev_Breal=0.1,                    # scatter in default c00 funklet values
+                     stddev_Bimag=0.1,                    # scatter in default c00 funklet values
+                     
+                     _JEN_inarg_option=None)            # optional, not yet used 
+    JEN_inarg.attach(MG, inarg)
+    
+    
+
+#========
+if True:                                              # ... Copied from MG_JEN_Joneset.py ...
+    # inarg = MG_JEN_Joneset.FJones(_getinarg=True)       # get a record with default input arguments
+    inarg = FJones(_getinarg=True)                      # local (MG_JEN_Joneset.py) version 
+    JEN_inarg.modify(inarg,
+                     scope=MG['scope'],                 # scope of this Joneset
+                     punit=MG['punit'],                 # source/patch name
+                     stations=MG['stations'],           # range of station names/numbers
+                     parmtable=MG['parmtable'],         # name of the MeqParm table (AIPS++)
+                     
+                     # ** Jones matrix elements:
+                     polrep=MG['polrep'],               # polarisation representation
+                     
+                     # ** Solving instructions:
+                     # solvable=True,                     # if False, do not store parmgroup info
+                     tile_size_RM=1,                    # used in tiled solutions         
+                     fdeg_RM=0,                         # degree of default freq polynomial          
+                     tdeg_RM=0,                         # degree of default time polynomial         
+
+                     # ** MeqParm default values:
+                     Fscale=0.0,                        # scale of polc_ft non-c00 coeff
+                     RM=0.5,                            # default c00 funklet value
+                     
+                     _JEN_inarg_option=None)            # optional, not yet used 
+    JEN_inarg.attach(MG, inarg)
+    
+    
+#========
+if True:                                              # ... Copied from MG_JEN_Joneset.py ...
+    # inarg = MG_JEN_Joneset.DJones_WSRT(_getinarg=True)   # get a record with default input arguments
+    inarg = DJones_WSRT(_getinarg=True)                 # local (MG_JEN_Joneset.py) version 
+    JEN_inarg.modify(inarg,
+                     scope=MG['scope'],                 # scope of this Joneset
+                     punit=MG['punit'],                 # source/patch name
+                     stations=MG['stations'],           # range of station names/numbers
+                     parmtable=MG['parmtable'],         # name of the MeqParm table (AIPS++)
+                     
+                     # ** Jones matrix elements:
+                     polrep=MG['polrep'],               # polarisation representation
+                     coupled_XY_dang=True,              # if True, Xdang = Ydang per station
+                     coupled_XY_dell=True,              # if True, Xdell = -Ydell per station
+                     
+                     # ** Solving instructions:
+                     # solvable=True,                     # if False, do not store parmgroup info
+                     fdeg_dang=0,                       # degree of default freq polynomial
+                     fdeg_dell=0,                       # degree of default freq polynomial
+                     tdeg_dang=0,                       # degree of default time polynomial
+                     tdeg_dell=0,                       # degree of default time polynomial
+                     tile_size_dang=0,                  # used in tiled solutions         
+                     tile_size_dell=0,                  # used in tiled solutions         
+                     
+                     # ** MeqParm default values:
+                     Dscale=1.0,                        # scale of polc_ft non-c00 coeff
+                     dang=0.0,                          # default c00 funklet value
+                     dell=0.0,                          # default c00 funklet value
+                     PZD=0.8,                           # default c00 funklet value
+                     stddev_dang=0.1,                     # scatter in default c00 funklet values
+                     stddev_dell=0.1,                     # scatter in default c00 funklet values
+                     
+                     _JEN_inarg_option=None)            # optional, not yet used 
+    JEN_inarg.attach(MG, inarg)
+   
+    #========
+    if True:
+        # Make a (modified) clone of the DJones_WRT inarg specified above: 
+        clone = JEN_inarg.clone(inarg, _qual='independent') # the qualifier changes its identifcation        
+        JEN_inarg.modify(clone,
+                         coupled_XY_dang=False,             # if True, Xdang = Ydang per station
+                         coupled_XY_dell=False,             # if True, Xdell = -Ydell per station
+                         _JEN_inarg_option=None)            # optional, not yet used 
+        JEN_inarg.attach(MG, clone)
+            
+
+#------------------------------------------------------------------------------
+
+#========
+if True:                                              # ... Copied from MG_JEN_Joneset.py ...
+    # inarg = MG_JEN_Joneset.KJones(_getinarg=True)       # get a record with default input arguments
+    inarg = KJones(_getinarg=True)                      # local (MG_JEN_Joneset.py) version 
+    JEN_inarg.modify(inarg,
+                     scope=MG['scope'],                 # scope of this Joneset
+                     stations=MG['stations'],           # range of station names/numbers
+                     _JEN_inarg_option=None)            # optional, not yet used 
+    JEN_inarg.attach(MG, inarg)
+            
+
+
+
 
 #-------------------------------------------------------------------------
-# Meqforest execution routine (may be called from the browser):
-# The 'mqs' argument is a meqserver proxy object.
-# If not explicitly supplied, a default request will be used.
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(MG)
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
+
+def _define_forest (ns):
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
+
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
+
+   # Make a sequence (jseq) of (jonesets of) 2x2 jones matrices:
+   jseq = TDL_Joneset.Joneseq(label='JJones', origin='MG_JEN_Joneset')
+   
+   jseq.append(GJones (ns, _inarg=MG))
+   jseq.append(BJones (ns, _inarg=MG))
+   jseq.append(FJones (ns, _inarg=MG))
+   jseq.append(DJones_WSRT (ns, _inarg=MG))
+   jseq.append(DJones_WSRT (ns, _inarg=MG, _qual='independent'))
+
+   # jseq.append(KJones (ns, _inarg=MG))    # <--- special case (Sixpack? MSauxinfo?) 
+
+   jseq.display()
+
+   # Visualise them individually:
+   for js in jseq:
+     cc.extend(visualise(ns, js))
+
+   # Matrix multiply to produce the resulting Jones joneset:
+   js = jseq.make_Joneset(ns)
+   cc.extend(visualise(ns, js))
+
+   # Visualise separately per parmgroup:
+   for pg in js.parmgroup().keys():
+       cc.extend(visualise(ns, js, parmgroup=pg))
+
+   MG_JEN_exec.display_object(cc, 'cc', txt=MG['script_name'])
+
+   # Finished: 
+   return MG_JEN_exec.on_exit (ns, MG, cc)
+
+
+
+
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#*******************  PART V: Forest execution routine(s) ***********************
+#********************************************************************************
+#********************************************************************************
+
 
 def _test_forest (mqs, parent):
    return MG_JEN_exec.meqforest (mqs, parent)
 
 
 
-#-------------------------------------------------------------------------
-# Test routine to check the tree for consistency in the absence of a server
+#********************************************************************************
+#********************************************************************************
+#******************** PART VI: Standalone test routine(s) ***********************
+#********************************************************************************
+#********************************************************************************
+
 
 if __name__ == '__main__':
-  print '\n*******************\n** Local test of:',MG.script_name,':\n'
+  print '\n*******************\n** Local test of:',MG['script_name'],':\n'
 
   # This is the default:
   if 0:
-      MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest)
+      MG_JEN_exec.without_meqserver(MG['script_name'], callback=_define_forest)
 
   ns = NodeScope()
   stations = range(0,3)
   ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
-  scope = MG.script_name
+  scope = MG['script_name']
 
-  if 1:
+  if 0:
     Sixpack = punit2Sixpack(ns, punit='uvp')
     js = KJones (ns, stations=stations, scope=scope, Sixpack=Sixpack)
     js.display()     
     display_first_subtree (js, full=1)
 
-  if 0:
-    # js = GJones (ns, stations=stations, scope=scope, solvable=True, polrep='circular', polar=True)
-    js = BJones (ns, stations=stations, scope=scope, solvable=True, polrep='circular')
+  if 1:
+    js = GJones (ns, stations=stations, scope=scope, solvable=True, polrep='circular', polar=True)
+    # js = BJones (ns, stations=stations, scope=scope, solvable=True, polrep='circular')
     # js = FJones (ns, stations=stations, scope=scope, solvable=True, polrep='circular')
     # js = FJones (ns, stations=stations, scope=scope, solvable=True, polrep='linear')
     # js = DJones_WSRT (ns, stations=stations, scope=scope, solvable=True, coupled_XY_dang=False, coupled_XY_dell=True)
@@ -866,9 +1085,9 @@ if __name__ == '__main__':
 
 
   if 1:
-    MG_JEN_exec.display_object (MG, 'MG', MG.script_name)
-    # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
-  print '\n** End of local test of:',MG.script_name,'\n*******************\n'
+    MG_JEN_exec.display_object (MG, 'MG', MG['script_name'])
+    # MG_JEN_exec.display_subtree (rr, MG['script_name'], full=1)
+  print '\n** End of local test of:',MG['script_name'],'\n*******************\n'
 
 #********************************************************************************
 #********************************************************************************

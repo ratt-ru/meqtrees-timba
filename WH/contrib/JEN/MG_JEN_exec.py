@@ -7,6 +7,7 @@
 
 # History:
 # - 24 aug 2005: creation
+# - 10 dec 2005: introduced JEN_inarg.py for MG record
 
 # Copyright: The MeqTree Foundation 
 
@@ -48,6 +49,7 @@ _dprintf = _dbg.dprintf                       # use: _dprintf(2, "a = %d", a)
 from copy import deepcopy       
 import os       
 
+from Timba.Trees import JEN_inarg 
 from Timba.Contrib.JEN import MG_JEN_forest_state
 
 
@@ -198,13 +200,19 @@ def on_entry (ns, MG, **pp):
    # Check the MG-record:
    # display_object (MG, name='MG', txt='.on_entry(): before MG_check()', full=True)
    MG = MG_check(MG)
-   display_object (MG, name='MG', txt='.on_entry(): after MG_check()', full=True)
+   # display_object (MG, name='MG', txt='.on_entry(): after MG_check()', full=True)
+
+   # Now make sure (recursively) that MG is a TDL record:
+   # Do this AFTER MG_check, because the latter may modify MG (replace_reference())
+   # Until everything has settled down....
+   MG_record = JEN_inarg.TDL_record(MG)
 
    # Transfer certain ctrl fields to the MG_JEN_stream_control record:
-   if MG.has_key('stream_control'): stream_control (MG.stream_control)
+   if MG_record.has_key('stream_control'):
+      stream_control (MG_record.stream_control)
 
    # Attach the script control field (MG) to the forest state record:
-   Settings.forest_state.MG_JEN_script_ctrl = MG
+   Settings.forest_state.MG_JEN_script_ctrl = MG_record
 
    # Optionally, create the standard nodes expected by the MS
    # They are attached to the forest_state record, to be used by
@@ -230,12 +238,15 @@ def on_exit (ns, MG, cc=[], stepchildren=[], **pp):
 
    global exit_counter
    exit_counter += 1
-   
+
+   # First make sure (recursively) that MG is a TDL record: 
+   MG_record = JEN_inarg.TDL_record(MG)
+
    pp.setdefault('make_bookmark', True)                # if False, inhibit bookmarks
 
    # Make a (single) root node for use in _test_forest():
    global _test_root
-   _test_root = MG.script_name
+   _test_root = MG_record.script_name
    if exit_counter>1:
       _test_root += '_'+str(exit_counter)
 
