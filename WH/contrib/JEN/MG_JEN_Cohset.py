@@ -722,6 +722,11 @@ def punit2Sixpack(ns, punit='uvp'):
 #********************************************************************************
 #********************************************************************************
 
+
+#----------------------------------------------------------------------------------------------------
+# Intialise the MG control record with some overall arguments 
+#----------------------------------------------------------------------------------------------------
+
 # punit = 'unpol'
 # punit = 'unpol2'
 # punit = '3c147'
@@ -742,8 +747,20 @@ MG = JEN_inarg.init('MG_JEN_Cohset',
 MG['ifrs'] = TDL_Cohset.stations2ifrs(MG['stations'])
 
 
-#========
+#----------------------------------------------------------------------------------------------------
+# Interaction with the MS: spigots, sinks and stream control
+#----------------------------------------------------------------------------------------------------
+
+#=======
 if True:                                               # ... Copied from MG_JEN_Cohset.py ...
+   MG['stream_control'] = dict(ms_name='D1.MS',
+                               data_column_name='DATA',
+                               tile_size=10,                   # input tile-size
+                               channel_start_index=10,
+                               channel_end_index=50,           # -10 should indicate 10 from the end (OMS...)
+                               # output_col='RESIDUALS')
+                               predict_column='CORRECTED_DATA')
+
    # inarg = MG_JEN_Cohset.make_spigots(_getinarg=True)   # get a record with default input arguments
    inarg = make_spigots(_getinarg=True)                 # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
@@ -756,8 +773,6 @@ if True:                                               # ... Copied from MG_JEN_
    JEN_inarg.attach(MG, inarg)
                  
 
-#========
-if True:                                              # ... Copied from MG_JEN_Cohset.py ...
    # inarg = MG_JEN_Cohset.make_sinks(_getinarg=True)     # get a record with default input arguments 
    inarg = make_sinks(_getinarg=True)                   # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
@@ -769,18 +784,12 @@ if True:                                              # ... Copied from MG_JEN_C
    JEN_inarg.attach(MG, inarg)
                  
 
-#========
-if True:
-   MG['stream_control'] = dict(ms_name='D1.MS',
-                               data_column_name='DATA',
-                               tile_size=10,                   # input tile-size
-                               channel_start_index=10,
-                               channel_end_index=50,           # -10 should indicate 10 from the end (OMS...)
-                               # output_col='RESIDUALS')
-                               predict_column='CORRECTED_DATA')
 
 
-#========
+#----------------------------------------------------------------------------------------------------
+# Operations on the raw uv-data:
+#----------------------------------------------------------------------------------------------------
+
 if False:                                              # ... Copied from MG_JEN_Cohset.py ...
    # inarg = MG_JEN_Cohset.insert_flagger(_getinarg=True) # get a record with default input arguments
    inarg = insert_flagger(_getinarg=True)               # local (MG_JEN_Cohset.py) version 
@@ -798,20 +807,8 @@ if False:                                              # ... Copied from MG_JEN_
 
 
 #----------------------------------------------------------------------------------------------------
-# Solving:
+# Insert a solver:
 #----------------------------------------------------------------------------------------------------
-
-#========
-if True:                                              # ... Copied from MG_JEN_Cohset.py ...
-   # inarg = MG_JEN_Cohset.predict(_getinarg=True)        # get a record with default input arguments
-   inarg = predict(_getinarg=True)                      # local (MG_JEN_Cohset.py) version 
-   JEN_inarg.modify(inarg,
-                    scope='rawdata',                   # Cohset scope
-                    ifrs=MG['ifrs'],                   # list if Cohset ifrs 
-                    polrep=MG['polrep'],               # polarisation representation
-                    _JEN_inarg_option=None)            # optional, not yet used 
-   JEN_inarg.attach(MG, inarg)
-
 
 #========
 if True:                                              # ... Copied from MG_JEN_Cohset.py ...
@@ -824,34 +821,50 @@ if True:                                              # ... Copied from MG_JEN_C
                     # jones=['G'],                       # Succession of Jones matrices 
                     # jones=['D'],                       # Succession of Jones matrices 
                     jones=['G','D'],                   # Succession of Jones matrices 
-                    # Insert Joneset paramters here
+
+                    # Insert non-default Jones matrix arguments here: 
+                    # (This is easiest by copying lines from MG_JEN_Joneset.py)
+                    #..................................................
                     _JEN_inarg_option=None)            # optional, not yet used 
    JEN_inarg.attach(MG, inarg)
 
 
-#========
-if True:                                              # ... Copied from MG_JEN_Cohset.py ...
-   # inarg = MG_JEN_Cohset.insert_solver(_getinarg=True)  # get a record with default input arguments
-   inarg = insert_solver(_getinarg=True)                # local (MG_JEN_Cohset.py) version 
+   # inarg = MG_JEN_Cohset.predict(_getinarg=True)        # get a record with default input arguments
+   inarg = predict(_getinarg=True)                      # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
-                    # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
-                    # solvegroup=['GJones'],             # list of solvegroup(s) to be solved for
-                    # solvegroup=['DJones'],             # list of solvegroup(s) to be solved for
-                    solvegroup=['GJones','DJones'],    # list of solvegroup(s) to be solved for
-                    # num_iter=20,                       # max number of iterations
-                    # epsilon=1e-4,                      # iteration control criterion
-                    # debug_level=10,                    # solver debug_level
-                    visu=True,                         # if True, include visualisation
-                    subtract=True,                    # if True, subtract 'predicted' from uv-data 
-                    correct=False,                      # if True, correct the uv-data with 'Joneset'
-                    history=True,                      # if True, include history collection of metrics 
+                    scope='rawdata',                   # Cohset scope
+                    ifrs=MG['ifrs'],                   # list if Cohset ifrs 
+                    polrep=MG['polrep'],               # polarisation representation
                     _JEN_inarg_option=None)            # optional, not yet used 
    JEN_inarg.attach(MG, inarg)
+
+
+   #========
+   if True:                                              # ... Copied from MG_JEN_Cohset.py ...
+       # inarg = MG_JEN_Cohset.insert_solver(_getinarg=True)  # get a record with default input arguments
+       inarg = insert_solver(_getinarg=True)                # local (MG_JEN_Cohset.py) version 
+       JEN_inarg.modify(inarg,
+                        # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
+                        # solvegroup=['GJones'],             # list of solvegroup(s) to be solved for
+                        # solvegroup=['DJones'],             # list of solvegroup(s) to be solved for
+                        solvegroup=['GJones','DJones'],    # list of solvegroup(s) to be solved for
+                        # num_iter=20,                       # max number of iterations
+                        # epsilon=1e-4,                      # iteration control criterion
+                        # debug_level=10,                    # solver debug_level
+                        visu=True,                         # if True, include visualisation
+                        subtract=True,                    # if True, subtract 'predicted' from uv-data 
+                        correct=False,                      # if True, correct the uv-data with 'Joneset'
+                        history=True,                      # if True, include history collection of metrics 
+                        _JEN_inarg_option=None)            # optional, not yet used 
+       JEN_inarg.attach(MG, inarg)
                  
 
 
+
+
+
 #----------------------------------------------------------------------------------------------------
-# Simulation: 
+# Simulation (no MS): 
 #----------------------------------------------------------------------------------------------------
 
 #========
@@ -876,19 +889,25 @@ if False:                                              # ... Copied from MG_JEN_
 
 
 
-#-------------------------------------------------------------------------
+
+
+
+
+#====================================================================================
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
 MG_JEN_forest_state.init(MG['script_name'])
 
 
-#-------------------------------------------------------------------------
+#====================================================================================
 # The MSauxinfo object contains auxiliary MS info (nodes):
 # It is used at various points in this module, e.g. make_sinks()
 
 MSauxinfo = TDL_MSauxinfo.MSauxinfo(label=MG['script_name'])
 MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
+
+
 
 
 

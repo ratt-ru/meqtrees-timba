@@ -811,13 +811,13 @@ if True:                                              # ... Copied from MG_JEN_J
                      
                      # ** Solving instructions:
                      # solvable=True,                     # if False, do not store parmgroup info
-                     # tile_size_Gampl=0,                 # used in tiled solutions         
-                     # tile_size_Gphase=0,                # used in tiled solutions         
                      Gphase_constrain=True,             # if True, constrain 1st station phase
-                     # fdeg_Gampl=0,                      # degree of default freq polynomial         
-                     # fdeg_Gphase=0,                     # degree of default freq polynomial          
-                     # tdeg_Gampl=0,                      # degree of default time polynomial         
-                     # tdeg_Gphase=0,                     # degree of default time polynomial       
+                     fdeg_Gampl=5,                      # degree of default freq polynomial         
+                     fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
+                     tdeg_Gampl=0,                      # degree of default time polynomial         
+                     tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
+                     tile_size_Gampl=0,                 # used in tiled solutions         
+                     tile_size_Gphase='tile_size_Gampl', # used in tiled solutions         
                      
                      # ** MeqParm default values:
                      # Gscale=0.0,                        # scale of polc_ft non-c00 coeff
@@ -849,12 +849,12 @@ if True:                                              # ... Copied from MG_JEN_J
                      # solvable=True,                     # if False, do not store parmgroup info
                      Breal_constrain=False,             # if True, constrain 1st station phase
                      Bimag_constrain=True,              # if True, constrain 1st station phase
+                     fdeg_Breal=3,                      # degree of default freq polynomial        
+                     fdeg_Bimag='fdeg_Breal',           # degree of default freq polynomial          
+                     tdeg_Breal=0,                      # degree of default time polynomial         
+                     tdeg_Bimag='tdeg_Breal',           # degree of default time polynomial    
                      tile_size_Breal=0,                 # used in tiled solutions         
-                     tile_size_Bimag=0,                 # used in tiled solutions         
-                     fdeg_Breal=3,                      # degree of default freq polynomial              # <---- !!
-                     fdeg_Bimag=3,                      # degree of default freq polynomial              # <---- !!
-                     tdeg_Breal=0,                      # degree of default time polynomial              # <---- !!
-                     tdeg_Bimag=0,                      # degree of default time polynomial              # <---- !!
+                     tile_size_Bimag='tile_size_Breal', # used in tiled solutions         
                      
                      # ** MeqParm default values:
                      Bscale=1.0,                        # scale of polc_ft non-c00 coeff
@@ -912,12 +912,12 @@ if True:                                              # ... Copied from MG_JEN_J
                      
                      # ** Solving instructions:
                      # solvable=True,                     # if False, do not store parmgroup info
-                     fdeg_dang=0,                       # degree of default freq polynomial
-                     fdeg_dell=0,                       # degree of default freq polynomial
+                     fdeg_dang=1,                       # degree of default freq polynomial
+                     fdeg_dell='fdeg_dang',             # degree of default freq polynomial
                      tdeg_dang=0,                       # degree of default time polynomial
-                     tdeg_dell=0,                       # degree of default time polynomial
+                     tdeg_dell='tdeg_dang',             # degree of default time polynomial
                      tile_size_dang=0,                  # used in tiled solutions         
-                     tile_size_dell=0,                  # used in tiled solutions         
+                     tile_size_dell='tile_size_dang',   # used in tiled solutions         
                      
                      # ** MeqParm default values:
                      Dscale=1.0,                        # scale of polc_ft non-c00 coeff

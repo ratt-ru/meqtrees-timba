@@ -83,7 +83,10 @@
 #    2) If inarg has a field 'inarg': It looks for a field in with the correct localscope,
 #       and extracts it as an 'interal' argument record pp.
 #    3) Otherwise:
-#
+# 
+#    Optional extras:
+#    1) .clone(inarg, _qual=...):
+#    2) .init(funcname, **opt)
 
 #================================================================================
 # Preamble
@@ -204,7 +207,7 @@ def clone(inarg, _qual=None, trace=False):
       display(rr, 'rr <- JEN_inarg.clone('+str(_qual)+')', full=True)
    return rr
 
-#----------------------------------------------------------------------------
+#============================================================================
 
 def modify(inarg, **arg):
    """Recursively modify the values of the specified (**arg) fields"""
@@ -240,6 +243,7 @@ def modify(inarg, **arg):
       display(inarg,'<= JEN_inarg.modify()',full=True)
    return ok
 
+#----------------------------------------------------------------------------
 
 def _modify_level(rr, arg=None, found=None, level=0, trace=False):
    """Recursive function that does the work for .modify()"""
@@ -258,7 +262,7 @@ def _modify_level(rr, arg=None, found=None, level=0, trace=False):
             MESSAGE(rr,s1)
          else:
             s1 += ' (unchanged) = '+str(rr[key])
-            MESSAGE(rr,s1)
+            # MESSAGE(rr,s1)
    # Recursive:
    for key in rr.keys():
       if isinstance(rr[key], dict):
@@ -267,7 +271,7 @@ def _modify_level(rr, arg=None, found=None, level=0, trace=False):
    return True
 
 
-#----------------------------------------------------------------------------
+#============================================================================
 
 def _ensure_CTRL_record(rr, localscope='<localscope>'):
    """Make sure that rr has a valid JEN_inarg_CTRL record"""
@@ -367,27 +371,34 @@ def display(rr, txt=None, name=None, full=False):
    if not name:                                        # Make sure of name
       name = 'rr'
       if is_inarg(rr): name = 'inarg/pp'               # argument record
+
    # Work on a copy (qq):
    qq = rr
    if not is_OK(qq): full = True
-   if not full: qq = strip(rr, CTRL_record)       # remove CTRL fields
-   JEN_record.display_object(qq,name,txt)
-   if not full: print '** NB: The JEN_inarg_CTRL records are not shown.\n'
+   if not full:
+      qq = _strip(rr, CTRL_record)                     # remove CTRL fields
+
+   # Do the display:
+   JEN_record.display_object(qq,name, txt, full=full)
+   if not full:
+      print '** NB: The JEN_inarg_CTRL records are not shown.\n'
    return True
 
 
 #----------------------------------------------------------------------------
 
-def strip(rr, key=CTRL_record, level=0, trace=False):
+def _strip(rr, key=CTRL_record, level=0, trace=False):
    """Strip off all instances of the named (key) field from record rr"""
    if not isinstance(rr, dict): return rr
    qq = deepcopy(rr)
    # Remove the named field if present:
-   if qq.has_key(key): qq.__delitem__(key)
+   if qq.has_key(key):
+      print _prefix(level),'_strip(',key,'): ',localscope(qq)
+      qq.__delitem__(key)
    # Recurse:
    for key1 in qq.keys():
       if isinstance(qq[key1], dict):
-         qq[key1] = strip(qq[key1], key=key, level=level+1, trace=trace)
+         qq[key1] = _strip(qq[key1], key=key, level=level+1, trace=trace)
    return qq
 
 #----------------------------------------------------------------------------
@@ -412,9 +423,15 @@ def getinarg(pp, check=True, strip=False, trace=False):
    #....................................................................
    #....................................................................
 
+   if True:
+      lscope = localscope(pp)
+      display(pp,'pp before _replace_reference(): '+lscope, full=True)
+
    # Replace referenced values (if any):
    # NB: This should be done ONLY to the executed pp-record, of course...!
+   print '\n** BEFOER:'
    _replace_reference(pp, trace=trace)
+   print '** AFTER:\n'
 
    if check:
       # At the very least, report any problems:
@@ -422,41 +439,55 @@ def getinarg(pp, check=True, strip=False, trace=False):
          display(pp,'.getinarg(): NOT OK!!')
          return True                              # do NOT execute....
 
-   if strip:
-      # Optionally, strip off the JEN_inarg_CTRL record:
-      strip(pp, CTRL_record, trace=trace)
-
    trace = True              # ALWAYS show pp to be executed
    if trace:
-      fname = localscope(pp)
-      display(pp,'pp to be executed for: '+fname, full=True)
+      lscope = localscope(pp)
+      display(pp,'(unstripped) pp to be executed for: '+lscope, full=True)
+
+   strip = True              # ALWAY strip, but AFTER display.....?
+   if strip:
+      # Optionally, strip off the JEN_inarg_CTRL record:
+      pp = _strip(pp, CTRL_record, trace=trace)
       
+
    # Return False to cause the calling function to execute its body:
    return False
    
 #----------------------------------------------------------------------------
 
-def _replace_reference(rr, level=0, trace=False):
+def _replace_reference(rr, repeat=0, trace=False):
    """If the value of a field in the given record (rr) is a field name
    in the same record, replace it with the value of the referenced field"""
    # trace = True
    if not isinstance(rr, dict): return False
-   if level>10:
-      print 'JEN_inarg._replace_reference(): max level exceeded',level
+   if repeat>10:
+      print 'JEN_inarg._replace_reference(): max repeat exceeded',repeat
       return False
-   count = 0
+
+   count = 0                               # replacement counter
    for key in rr.keys():                   # for all fields
       value = rr[key]                      # field value
-      if isinstance(value, str):           # if field value is a string
-         # print level,key,value
+      # print 'JEN_inarg._replace_reference():',repeat,key,value
+      if key==CTRL_record:                 # ignore
+         print '..ignore'
+         pass
+      elif isinstance(value, str):         # if field value is a string
+         print '..JEN_inarg._replace_reference():',repeat,key,value
          if rr.has_key(value):             # if field value is the name of another field
-            if not value==rr[value]:       # no change
+            print '....JEN_inarg._replace_reference():',repeat,key,value,rr[value]
+            if not value==rr[value]:       # different values
+               print '......JEN_inarg._replace_reference():',repeat,key,value,rr[value]
                count += 1                  # count the number of replacements
-               s1 = '._replace_reference('+str(level)+'): key='+key+':  '
+               s1 = '._replace_reference('+str(repeat)+'): key='+key+':  '
                s1 += str(value)+' -> '+str(rr[value])
+               print '......',s1
                MESSAGE(rr, s1)
                rr[key] = rr[value]         # replace with the value of the referenced field
-   if count>0: _replace_reference(rr, level=level+1)       # repeat if necessary
+
+   # Repeat this if necessary, i.e. if at least one value has been replaced
+   # (This is because values may be multiply referenced)
+   if count>0: _replace_reference(rr, repeat=repeat+1)
+
    return count
 
 #----------------------------------------------------------------------------
@@ -655,8 +686,8 @@ def result(rr=None, pp=None, attach=None, trace=True):
       rr['result of function: '+key] = attach
 
    if trace:
-      fname = localscope(rr)
-      name = 'result of function: '+fname
+      lscope = localscope(rr)
+      name = 'result of function: '+lscope
       display(rr, 'JEN_inarg.result()', name=name, full=True)
    return rr
 
@@ -818,12 +849,12 @@ if __name__ == '__main__':
       r1 = test1(inarg=False)            # error
 
    if 0:
-      # Test of .strip():
+      # Test of ._strip():
       rr = test1(_getinarg=True)
-      JEN_record.display_object(rr,'rr','before .strip(rr)')
-      qq = strip(rr, CTRL_record)
-      JEN_record.display_object(qq,'qq','after .strip(rr)')
-      JEN_record.display_object(rr,'rr','after .strip(rr)')
+      JEN_record.display_object(rr,'rr','before ._strip(rr)')
+      qq = _strip(rr, CTRL_record)
+      JEN_record.display_object(qq,'qq','after ._strip(rr)')
+      JEN_record.display_object(rr,'rr','after ._strip(rr)')
 
    if 0:
       rr = dict(aa=3, bb=4)

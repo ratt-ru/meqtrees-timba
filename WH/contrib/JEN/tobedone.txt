@@ -58,14 +58,27 @@ NB: Just temporary: To be converted into Bugzilla items....!
        - use last value as prediction for the next (almost as good)
 
  - MXM/JEN: BJones (Abell963)
-   - solve for BJones on the central source, dt = 1 hr
-     - takes care of slowly time-variable BJones
-     - contamination from the other sources?
-   - correct the uv-data for this BJones
-   - solve for GJones on the central source, dt = 1 min
-     - rapid gain variations, w.r.t. slow BJones
-   - subtract the (corrupted) central source 
-   - correct the uv-data for this GJones
+   - Alternative:
+     - solve for BJones on the central source, dt = 1 hr
+       - takes care of slowly time-variable BJones
+       - contamination from the other sources?
+     - correct the uv-data for this BJones
+     - solve for GJones on the central source, dt = 1 min
+       - rapid gain variations, w.r.t. slow BJones
+     - subtract the (corrupted) central source 
+     - correct the uv-data for this GJones
+   - Alternative: 
+     - First GJones (1 min), then BJones (1 hour)
+     - Allows flagging (provisory subtract!)           <===== !!
+     - Does this produce the correct BJones(f,t)?
+   - Alternative:
+     - Simultaneous GJones(1min), and BJones(1hr)
+     - better, but larger matrix
+   - in all cases:
+     - MS tile-size must be one hour
+     - different MeqParm solution tile-sizes
+     - Need independent Sixpacks for the same source   <===== !!
+       for GJones/BJones solutions                  
    - then what?
      - position-dependent GJones 
        - extended source: requires uvbrick
@@ -145,6 +158,47 @@ NB: Just temporary: To be converted into Bugzilla items....!
  - JEN: TDL_display_record.py (from MG_JEN_exec.py)
 
  - JEN: TDL_parameter_set.py (a record of function parameters)
+
+ - Stefan: Station redundancy calibration (AGB)
+   - Tile-tile sensitivity: 20 Jy @ 10s/10kHz
+     - not many point sources visible
+     - use the galaxy (visible only for baselines < few lambda
+   - integrate a little longer to get S/N>3 
+     - apply corrections SMOOTHLY!                <---- !!
+       - indistinguishable from temp variations
+   - antenna beam differences cause them to see different skies
+     - it will be an improvement nevertheless
+     - we can learn about mutual coupling from the residuals....
+   - ionospheric variations are invisible to redundancy scheme
+   - Implemented already: 
+     - Kramer-Rao bound better than 1 (noise interpreted as station err)
+
+ - AGB: EoR calibration issues (14 dec):
+   - Limited part of the sky (3 fields): GSM is 'known' at some point
+   - Short baselines only (most of the time)
+   - 10 kHz resolution 
+   - on-line calibration: 
+     - only ionosphere, assume known LSM and stable beamshapes
+     - then integrate to (10,10)
+   - Data integration:
+     - dt=1s and df=10kHz form a pair 
+       (both 10^-4, in radial and transverse direction) 
+     - similarly, (10s,100kHz) are a pair, but 100 kHz is too much
+     - Need to remove 3 kHz airplane spikes, separated by 8.3 kHz
+       - measured by DZB recirculation, with resolution of 150 Hz
+       - very strong spike 1 kHz wide
+       - much lower wings 3-5 kHz wide, but way above the noise
+       - AJB thinks about removing them, before integration to 10 kHz
+         - Is there some RFI compensation scheme?
+     - Need to correct for ionosphere, before integrating to 10 sec
+   - In contrast:
+     - Transients may want to store(!) (10s,10kHz) data, just like Eor
+     - Surveys have to find LSM sources in each 2 deg field
+       - 3C/4C is not sufficient, expect 3-5 sources > 1 Jy per field
+     - Both use the long baselines also
+
+      
+   
 
 
 

@@ -72,7 +72,7 @@ def MG_check(MG):
    """Make sure that MG is a record with some expected fields"""
    if isinstance(MG, str):
       MG = record(script_name=MG)            # deal with legacy code
-   if True:
+   if False:
       replace_reference(MG)
    return MG
 
@@ -100,7 +100,7 @@ def replace_reference(rr, up=None, level=1):
             if not value==key:                # ignore self-reference
                if rr.has_key(value):          # if field value is the name of another field
                   count += 1                  # count the number of replacements
-                  # print prefix,'-',count,': replace_reference(): rr[',key,'] =',value,'->',rr[value]
+                  print prefix,'-',count,': MG_JEN_exec::replace_reference(): rr[',key,'] =',value,'->',rr[value]
                   rr[key] = rr[value]         # replace with the value of the referenced field
    if count>0: replace_reference(rr, level=level+1)       # repeat if necessary
    return count
