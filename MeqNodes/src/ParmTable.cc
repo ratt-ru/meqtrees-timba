@@ -163,68 +163,68 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
   Table sel = find (parmName, domain);
   funklets.resize(sel.nrow());
   if( sel.nrow() > 0 ) 
-  {
-    ROScalarColumn<double> sfCol (sel, ColStartFreq);
-    ROScalarColumn<double> efCol (sel, ColEndFreq);
-    ROScalarColumn<double> stCol (sel, ColStartTime);
-    ROScalarColumn<double> etCol (sel, ColEndTime);
-    ROArrayColumn<double> valCol (sel, ColValues);
-    ROScalarColumn<double> f0Col (sel, ColFreq0);
-    ROScalarColumn<double> t0Col (sel, ColTime0);
-    ROScalarColumn<double> fsCol (sel, ColFreqScale);
-    ROScalarColumn<double> tsCol (sel, ColTimeScale);
-    ROScalarColumn<double> diffCol (sel, ColPerturbation);
-    ROScalarColumn<double> weightCol (sel, ColWeight);    
-    ROScalarColumn<String> ftypeCol; 
-    
-    if(itsTable.actualTableDesc().isColumn(ColFunkletType))
-      ftypeCol.attach(sel, ColFunkletType);    
-    ROArrayColumn<double> lscaleCol;
-    Vector<uInt> rowNums = sel.rowNumbers(itsTable);
-    for( uint i=0; i<sel.nrow(); i++ )
     {
+      ROScalarColumn<double> sfCol (sel, ColStartFreq);
+      ROScalarColumn<double> efCol (sel, ColEndFreq);
+      ROScalarColumn<double> stCol (sel, ColStartTime);
+      ROScalarColumn<double> etCol (sel, ColEndTime);
+      ROArrayColumn<double> valCol (sel, ColValues);
+      ROScalarColumn<double> f0Col (sel, ColFreq0);
+      ROScalarColumn<double> t0Col (sel, ColTime0);
+      ROScalarColumn<double> fsCol (sel, ColFreqScale);
+      ROScalarColumn<double> tsCol (sel, ColTimeScale);
+      ROScalarColumn<double> diffCol (sel, ColPerturbation);
+      ROScalarColumn<double> weightCol (sel, ColWeight);    
+      ROScalarColumn<String> ftypeCol; 
+    
+      if(itsTable.actualTableDesc().isColumn(ColFunkletType))
+	ftypeCol.attach(sel, ColFunkletType);    
+      ROArrayColumn<double> lscaleCol;
+      Vector<uInt> rowNums = sel.rowNumbers(itsTable);
       int axis[] = { Axis::TIME,Axis::FREQ };
-      double offset[] = { t0Col(i),f0Col(i) };
-      double scale[]  = { tsCol(i),fsCol(i) };
-      // for now, only Polcs are supported
+      for( uint i=0; i<sel.nrow(); i++ )
+	{
+	  Funklet::Ref funkref;
+	  double offset[] = { t0Col(i),f0Col(i)};
+	  double scale[]  = { tsCol(i),fsCol(i)};
+	  // for now, only Polcs are supported
       
-      Funklet::Ref funklet;
-      if (!ftypeCol.isNull() && (ftypeCol(i)=="MeqPolcLog"||ftypeCol(i)=="PolcLog")){
-	std::vector<double>scale_vector(2,1.);
-	if(lscaleCol.isNull()){
-	  if(itsTable.actualTableDesc().isColumn(ColLScale))
-	    lscaleCol.attach(sel, ColLScale);
-	}    
-	if(!lscaleCol.isNull()) {
-	  
-
-	  scale_vector[0] = scale_vector[1] = lscaleCol(i).data()[0];
-	  if(lscaleCol(i).nelements()>=2)
-	    scale_vector[1]=lscaleCol(i).data()[1];
-	  
-	}
-	
-	funklet<<= new PolcLog(fromParmMatrix(valCol(i)),
-			     axis,offset,scale,diffCol(i),weightCol(i),rowNums(i),scale_vector);
-      }
-      else{
-	if (!ftypeCol.isNull() && (ftypeCol(i)=="MeqPolc"||ftypeCol(i)=="Polc")){
-	  funklet<<= new Polc(fromParmMatrix(valCol(i)),
-			      axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
-	}
-	else
-	  {
-	    funklet<<= new CompiledFunklet(fromParmMatrix(valCol(i)),defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale
-					   ,diffCol(i),weightCol(i),rowNums(i),ftypeCol(i));
+	  if (ftypeCol.isNull() || (ftypeCol(i)=="MeqPolc"||ftypeCol(i)=="Polc")){
+	    funkref<<= new Polc(fromParmMatrix(valCol(i)),
+			       axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
 	  }
+	  else{
+	    if (ftypeCol(i)=="MeqPolcLog"||ftypeCol(i)=="PolcLog"){
+	      std::vector<double>scale_vector(2,1.);
+	      if(lscaleCol.isNull()){
+		if(itsTable.actualTableDesc().isColumn(ColLScale))
+		  lscaleCol.attach(sel, ColLScale);
+	      }    
+	      if(!lscaleCol.isNull()) {
+	  
 
-      }
-      funklet().setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
-      
-      funklets[i] =funklet;
+		scale_vector[0] = scale_vector[1] = lscaleCol(i).data()[0];
+		if(lscaleCol(i).nelements()>=2)
+		  scale_vector[1]=lscaleCol(i).data()[1];
+	  
+	      }
+	
+	      funkref<<= new PolcLog(fromParmMatrix(valCol(i)),
+				    axis,offset,scale,diffCol(i),weightCol(i),rowNums(i),scale_vector);
+	    }
+  
+	    else
+	      {
+		funkref<<= new CompiledFunklet(fromParmMatrix(valCol(i)),defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale
+					      ,diffCol(i),weightCol(i),rowNums(i),ftypeCol(i));
+	      }
+	    
+	  }
+	  funkref().setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
+	  funklets[i] = funkref;
             
+	}
     }
-  }
   return funklets.size();
 }
 
@@ -493,7 +493,7 @@ void ParmTable::createTable (const String& tableName)
   tdesc.addColumn (ScalarColumnDesc<String>(ColFunkletType));
   tdesc.addColumn (ArrayColumnDesc<Double>(ColLScale,1));
   SetupNewTable newtab(tableName, tdesc, Table::New);
-  Table tab(newtab);
+  Table tab(newtab,0,False,Table::LittleEndian);
 }
 
 void ParmTable::unlock()
