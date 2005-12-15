@@ -9,15 +9,23 @@
 #include <ext/pool_allocator.h>
 //#include <ext/bitmap_allocator.h>
 #include <ext/mt_allocator.h>
+#include <ext/malloc_allocator.h>
 
 // define macro names for different allocators
 
 #define DMI_Std_Allocator std::allocator
 #define DMI_Pool_Allocator __gnu_cxx::__pool_alloc
+// bitmap_allocator is broken in g++ 3.4
 //#define DMI_Bitmap_Allocator __gnu_cxx::bitmap_allocator
 #define DMI_MT_Allocator __gnu_cxx::__mt_alloc
+#define DMI_Malloc_Allocator __gnu_cxx::malloc_allocator
 
 // pick default allocator based on predefined macros
+
+// mt allocator appears to have a threading-related bug (as of 3.4.3)
+// See bugzilla bug 300. Switching to std::allocator for now, may want
+// to look into other allocators later.
+#define USE_STD_ALLOC 1
         
 #if defined(DMI_USE_STD_ALLOC)
 
@@ -37,17 +45,21 @@
 
   #define DMI_Allocator DMI_Bitmap_Allocator
   
+#elif defined(DMI_USE_MALLOC_ALLOC)
+
+  #define DMI_Allocator DMI_Malloc_Allocator
+
 #else // default is mt_alloc
 
   #define DMI_Allocator DMI_MT_Allocator
   
 #endif
 
-#define ObjRefAllocator DMI_MT_Allocator<ObjRef>
-#define BlockSetAllocator DMI_MT_Allocator<BlockSet>
+#define ObjRefAllocator DMI_Allocator<ObjRef>
+#define BlockSetAllocator DMI_Allocator<BlockSet>
   
 // universal allocator for countedref types  
-#define DMI_RefAllocator(T) DMI_MT_Allocator<T>
+#define DMI_RefAllocator(T) DMI_Allocator<T>
 
 #endif
 

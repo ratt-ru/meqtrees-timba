@@ -160,7 +160,7 @@ class List : public Container
             int item_bc[];
       };
       
-      typedef std::list<ObjRef,DMI_MT_Allocator<ObjRef> > ItemList;
+      typedef std::list<ObjRef,DMI_Allocator<ObjRef> > ItemList;
       
       // Helper functions to apply an index (n).
       // If n<0, counts backwards from end of list as follows:

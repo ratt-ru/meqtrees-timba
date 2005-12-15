@@ -55,7 +55,7 @@ class Vec : public Container
           : state(UNINITIALIZED) {}
       };
       
-      typedef DMI_MT_Allocator<Element> ElementAllocator;
+      typedef DMI_Allocator<Element> ElementAllocator;
 
       typedef std::vector<Element,ElementAllocator > ElementVector; 
       

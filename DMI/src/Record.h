@@ -72,7 +72,7 @@ class Record : public Container
         bool     protect;
       } Field;
       
-      typedef DMI_MT_Allocator<Field> FieldAllocator;
+      typedef DMI_Allocator<Field> FieldAllocator;
 
       typedef hash_map<HIID,Field,DMI_hash_namespace::hash<HIID>,std::equal_to<HIID>,FieldAllocator > FieldMap; 
   
