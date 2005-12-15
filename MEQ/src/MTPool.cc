@@ -41,9 +41,6 @@ Brigade::Brigade (Thread::Mutex::Lock *plock,bool one_short)
   if( !plock )
     plock = &lock;
   plock->relock(cond());
-  Thread::Mutex::Lock lock2(globMutex());
-  all_brigades_.push_back(this);
-  lock2.release();
   brigade_id_ = max_brigade_id_++;
   suspended_ = active_ = missing_temp_ = false;
   num_workers_ = one_short ? brigade_size_-1 : brigade_size_;
@@ -81,6 +78,9 @@ void * Brigade::startWorker (void *brig)
   Brigade * brigade = static_cast<Brigade*>(brig);
   // store per-thread context
   context_pointer_.set(brigade);
+  // enable immediate cancellation
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,0);
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,0);
   return brigade->workerLoop();
 }
 
@@ -366,12 +366,15 @@ void Brigade::stopAll ()
   // send cancellation requests to all workers
   for( uint i=0; i<workers.size(); i++ )
     workers[i].cancel();
-  // rejoin them all
-  cdebug1(0)<<"rejoining all worker threads\n";
-  for( uint i=0; i<workers.size(); i++ )
-    workers[i].join();
+// // rejoin them all
+// // looks like they all die anyway, so no point join()ing
+//  cdebug1(0)<<"rejoining all worker threads\n";
+//  for( uint i=0; i<workers.size(); i++ )
+//    workers[i].join();
   // delete brigades
   cdebug1(0)<<"deleting brigades\n";
+// // this may cause memory corruption on exit, so disabling it and
+// // to hell with the leak
   for( uint i=0; i<all_brigades_.size(); i++ )
     delete all_brigades_[i];
   all_brigades_.clear();

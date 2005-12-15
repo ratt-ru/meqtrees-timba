@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# This runs the specified program and arguments with a preloaded 
+# gprof-helper.so. This is necessary to correctly profile multithreaded
+# programs.
+
+LD_PRELOAD=$HOME/LOFAR/installed/current/libexec/gprof-helper.so
+$*
+
