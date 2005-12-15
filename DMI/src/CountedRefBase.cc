@@ -133,6 +133,8 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
     return;
   dprintf(2)("copying from %s(%x,%d)\n",other.debug(),flags,depth);
   detach();
+  // do a little jig and dance to make sure the other is not deleting the target
+  // as we speak
   if( !other.valid() ) // copying invalid ref?
     empty();
   else
@@ -343,15 +345,23 @@ void CountedRefBase::detach ()
     if( isAnonTarget() )
     {
       dprintf(3)("last ref, anon_ target_ will be deleted\n");
+      CountedRefTarget *tmp = target_;
+      empty();
   #ifdef USE_THREADS
       // explicitly release target_ mutex prior to destroying it (otherwise,
       // we'll be destroying a locked_ mutex, which is in bad taste). Since
       // the target_ is anon_, no-one else can be legally referencing it at 
       // this point. Which means it's OK to release the mutex: no-one else
       // can [legally] grab it.
+      // NB: BAD LOGIC! Some other thread may be inside ref::copy() just now
+      // waiting on the mutex -- then as soon as we release, it reattaches 
+      // itself to the target before we can clear ourselves; we then proceed
+      // to delete the target from under the other ref. The solution is to
+      // call empty() before releasing the lock, see above.
       _thread_lock.release();
   #endif      
-      delete target_;
+      delete tmp;
+      return;
     }
   }
   else  // else just detach ourselves from list
@@ -371,10 +381,13 @@ void CountedRefBase::detach ()
   // decrement ref count of target_, if 0 and anon_, delete it
   if( !(--target_->ref_count_) && isAnonTarget() )
   {
+      CountedRefTarget *tmp = target_;
+      empty();
   #ifdef USE_THREADS
       _thread_lock.release();
   #endif      
-      delete target_;
+      delete tmp;
+      return;
   }
 #endif
   empty();
