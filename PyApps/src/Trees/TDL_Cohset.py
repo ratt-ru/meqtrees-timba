@@ -142,6 +142,9 @@ class Cohset (TDL_common.Super):
         self.__solvegroup = dict()
         self.__condeq_corrs = dict()
 
+        # The Cohset may remember the Joneset with which it has been corrupted:
+        self.__Joneset = None
+
         # The Cohset collects data/historyCollect nodes:
         self.__coll = []
 
@@ -362,11 +365,19 @@ class Cohset (TDL_common.Super):
             ss.append(indent2+' - first: '+keys[0]+' : '+str(self.__coh[keys[0]]))
             ss.append(indent2+'   ....')
             ss.append(indent2+' - last:  '+keys[n]+' : '+str(self.__coh[keys[n]]))
+        if self.Joneset():
+            ss.append(indent1+' - Joneset (applied by .corrupt():')
+            ss.append(indent2+' - '+str(self.__Joneset.oneliner()))
         ss.append(indent1+' - Collected dcoll/hcoll nodes ( '+str(len(self.__coll))+' ):')
         for coll in self.coll():
             ss.append(indent2+' - '+str(coll))       
         return TDL_common.Super.display_end(self, ss)
 
+
+    def Joneset(self, clear=False):
+        """Return the Joneset (if any) with which this Cohset has been corrupted"""
+        if clear: self.__Joneset = None
+        return self.__Joneset
 
     def coll(self, new=None, clear=False):
         """Interaction with collected hcoll/dcoll nodes"""
@@ -648,6 +659,7 @@ class Cohset (TDL_common.Super):
             self.__coh[key] = coh
         self.scope(scope)
         self.update_from_Joneset(Joneset)
+        self.__Joneset = Joneset                                 # keep for retrieval
         self.history(append='corrupted by: '+Joneset.oneliner())
         self.history(append=funcname+' -> '+self.oneliner())
         return True

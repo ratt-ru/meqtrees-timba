@@ -72,7 +72,7 @@ def MG_check(MG):
    """Make sure that MG is a record with some expected fields"""
    if isinstance(MG, str):
       MG = record(script_name=MG)            # deal with legacy code
-   if False:
+   if True:
       replace_reference(MG)
    return MG
 

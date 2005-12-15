@@ -61,11 +61,14 @@ class Super:
         self.history(s, reset=True)
 
         # Deal with the extra constructor arguments (if any):
-        for key in pp.keys():
-            v = pp[key]
-            if isinstance(v, Timba.TDL.TDLimpl._NodeStub):
-                pp[key] = '<nodestub>'
-        self.history('inarg = '+str(pp))
+        qq = deepcopy(pp)                                     # modify a copy
+        for key in qq.keys():
+            v = qq[key]
+            if isinstance(v, Timba.TDL.TDLimpl._NodeStub):    # avoid clutter
+                qq[key] = key+': <nodestub>'
+            elif isinstance(v, dict):                         # avoid clutter
+                qq[key] = key+': '+str(type(v))+'['+str(len(v))+']'
+        self.history('inarg = '+str(qq))
 
         return None
 

@@ -633,10 +633,13 @@ def attach(rr=None, inarg=None, trace=False):
    if rr.has_key(lscope):
       # NB: This happens with nested functions all the time, so assume OK
       MESSAGE(rr, s0+'duplicate localscope: '+lscope)
-   else:
-      rr[lscope] = inarg[lscope]
-      MESSAGE(rr, s0+'attached: '+lscope)
-      
+      return rr                                  # just return input rr
+
+   # OK, attach to rr:
+   qq = deepcopy(inarg[lscope])               # use a copy, just in case
+   _replace_reference(qq, trace=trace)        # replace any referenced values        
+   rr[lscope] = qq                            # attach to rr
+   MESSAGE(rr, s0+'attached: '+lscope)
    if trace: display(rr,'rr <- JEN_inarg.attach()', full=True)
    return rr
 

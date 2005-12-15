@@ -257,19 +257,11 @@ def JJones(ns=None, **inarg):
 #======================================================================================
 
 # - The 'measured' Cohset is assumed to be the main data stream.
-# - The 'predicted' Cohset contains corrupted model visibilities.
-# - The (optional) 'correct' Joneset contains the instrumental model
-#   that is affected by this solver. If supplied, the measured data
-#   will be corrected with the estimated values BEFORE the reqseq graft.
-# - The (optional) 'subtract' Cohset contains predicted visibilities
-#   e.g. for a particular source/patch. If supplied, they will be
-#   subtracted from the measured data BEFORE the reqseq graft.
-# - The (optional) 'compare' Joneset contains the simulated instrumental
-#   values. If supplied they will be subtracted from the estimated values
-#   when visualised. 
+# - The 'predicted' Cohset contains corrupted model visibilities,
+#   and the Joneset with which it has been corrupted (if any).
 
 
-def insert_solver (ns=None, measured=None, predicted=None, Joneset=None, **inarg):
+def insert_solver (ns=None, measured=None, predicted=None, **inarg):
     """insert a solver for a specific subset (solvegroup) of MeqParms""" 
 
     # Input arguments:
@@ -283,7 +275,7 @@ def insert_solver (ns=None, measured=None, predicted=None, Joneset=None, **inarg
     pp.setdefault('visu', True)            # if True, include visualisation
     pp.setdefault('history', True)         # if True, include history collection of metrics 
     pp.setdefault('subtract',False)        # if True, subtract 'predicted' from 'measured' 
-    pp.setdefault('correct',False)         # if True, correct 'measured' with 'Joneset'(inv) 
+    pp.setdefault('correct',False)         # if True, correct 'measured' with predicted.Joneset()' 
     if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
@@ -407,15 +399,17 @@ def insert_solver (ns=None, measured=None, predicted=None, Joneset=None, **inarg
           if pp['visu']: visualise (ns, measured, errorbars=True, graft=False)
         
        # Optional: Correct the measured data with the given Joneset.
-       # Assume that this is the Joneset that has been used for predict,
-       # and which has been affected by the solution for its MeqParms.
-       if pp['correct'] and Joneset:
-          measured.correct(ns, Joneset)   
-          if pp['visu']: visualise (ns, measured, errorbars=True, graft=False)
-
        # NB: Correction should be inserted BEFORE the solver reqseq (see below),
        # because otherwise it messes up the correction of the insertion ifr
        # (one of the input Jones matrices is called before the solver....)
+       if pp['correct']:
+           # The 'predicted' Cohset has kept the Joneset with which it has been
+           # corrupted, and which has been affected by the solution for its MeqParms.
+          Joneset = predicted.Joneset() 
+          if Joneset:                                  # if Joneset available
+              measured.correct(ns, Joneset)            # correct 
+              if pp['visu']: visualise (ns, measured, errorbars=True, graft=False)
+
 
     #-------------------------------------------------------------
 
@@ -852,8 +846,8 @@ if True:                                              # ... Copied from MG_JEN_C
                         # epsilon=1e-4,                      # iteration control criterion
                         # debug_level=10,                    # solver debug_level
                         visu=True,                         # if True, include visualisation
-                        subtract=True,                    # if True, subtract 'predicted' from uv-data 
-                        correct=False,                      # if True, correct the uv-data with 'Joneset'
+                        subtract=False,                    # if True, subtract 'predicted' from uv-data 
+                        correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
                         history=True,                      # if True, include history collection of metrics 
                         _JEN_inarg_option=None)            # optional, not yet used 
        JEN_inarg.attach(MG, inarg)
@@ -949,8 +943,7 @@ def _define_forest (ns):
 
    if True:
       # Insert a solver for a named group of MeqParms (e.g. 'GJones'):
-      insert_solver (ns, measured=Cohset, predicted=predicted,
-                     Joneset=Joneset, _inarg=MG)
+      insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG)
       visualise (ns, Cohset)
       visualise (ns, Cohset, type='spectra')
  
