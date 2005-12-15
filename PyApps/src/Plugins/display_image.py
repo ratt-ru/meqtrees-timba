@@ -8,8 +8,6 @@ from UVPAxis import *
 from ComplexColorMap import *
 from ComplexScaleDraw import *
 from QwtPlotImage import *
-from SpectrumData import *
-from VellsData import *
 from Timba.GUI.pixmaps import pixmaps
 from guiplot2dnodesettings import *
 #from tabdialog import *
@@ -148,8 +146,6 @@ class QwtImageDisplay(QwtPlot):
         self.axis_ymax = None
 	self._menu = None
         self.num_possible_ND_axes = None
-        self._spectrum_data = None
-        self._vells_data = None
         self._plot_type = None
         self.colorbar_requested = False
 	self.is_combined_image = False
@@ -168,7 +164,6 @@ class QwtImageDisplay(QwtPlot):
         self.second_axis_inc = None
         self.x_arrayloc = None
         self.y_arrayloc = None
-        self.image_shape = None
         self.xmin = None
         self.xmax = None
         self.ymin = None
@@ -201,8 +196,8 @@ class QwtImageDisplay(QwtPlot):
         
         self.enableAxis(QwtPlot.yRight, False)
         self.enableAxis(QwtPlot.xTop, False)
-        self.dummy_xCrossSection = None
-        self.xCrossSection = None
+        self.xrCrossSection = None
+        self.xiCrossSection = None
         self.yCrossSection = None
         self.myXScale = None
         self.myYScale = None
@@ -315,7 +310,8 @@ class QwtImageDisplay(QwtPlot):
       if self.show_x_sections:
 # delete any previous curves
         self.removeCurves()
-        self.xCrossSection = None
+        self.xrCrossSection = None
+        self.xiCrossSection = None
         self.yCrossSection = None
         self.x_arrayloc = None
         self.y_arrayloc = None
@@ -323,21 +319,14 @@ class QwtImageDisplay(QwtPlot):
         self.enableAxis(QwtPlot.xTop, False)
         self.xCrossSectionLoc = None
         self.yCrossSectionLoc = None
-        self.dummy_xCrossSection = None
         toggle_id = self.menu_table['Delete X-Section Display']
         self.show_x_sections = False
         self._menu.setItemVisible(toggle_id, False)
+
 # add solver metrics info back in?
         if not self.metrics_rank is None:
-          self.metrics_plot = self.insertCurve('metrics')
-          self.setCurvePen(self.metrics_plot, QPen(Qt.black, 2))
-          self.setCurveStyle(self.metrics_plot,Qt.SolidLine)
-          self.setCurveYAxis(self.metrics_plot, QwtPlot.yLeft)
-          self.setCurveXAxis(self.metrics_plot, QwtPlot.xBottom)
-          plot_curve=self.curve(self.metrics_plot)
-          plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
-                     QPen(Qt.black), QSize(10,10)))
-          self.setCurveData(self.metrics_plot, self.metrics_rank, self.iteration_number)
+          self.add_solver_metrics()
+
 	self.refresh_marker_display()
 
     def handle_basic_menu_id(self, menuid):
@@ -399,6 +388,7 @@ class QwtImageDisplay(QwtPlot):
         if self.is_vector:
           self.array_plot(self._window_title, self.complex_image, False)
         else:
+          self.adjust_color_bar = True
           if self.ampl_phase:
             dummy_image = self.complex_image.copy()
             real_array = dummy_image.getreal()
@@ -409,12 +399,9 @@ class QwtImageDisplay(QwtPlot):
             imag_array = phase_array
             dummy_image.setreal(real_array)
             dummy_image.setimag(imag_array)
-            self.plotImage.setImageRange(dummy_image)
             self.display_image(dummy_image)
           else:
-            self.plotImage.setImageRange(self.complex_image)
             self.display_image(self.complex_image)
-          self.adjust_color_bar = True
         return True
 
 # if we get here ...
@@ -471,6 +458,10 @@ class QwtImageDisplay(QwtPlot):
 # if we get here ...
       return False
 
+    def setAxisParms(self, axis_parms):
+      self.first_axis_parm = axis_parms[0]
+      self.second_axis_parm = axis_parms[1]
+
     def update_spectrum_display(self, menuid):
       if self.handle_basic_menu_id(menuid):
         return
@@ -481,17 +472,8 @@ class QwtImageDisplay(QwtPlot):
         self.source_marker = None
         self.is_combined_image = False
 
-      self.active_image_index = menuid
-      self._spectrum_data.setActivePlot(self.active_image_index)
-      plot_label = self._spectrum_data.getPlotLabel()
-      plot_data = self._spectrum_data.getActivePlotArray()
-      if plot_label == 'spectra: combined image':
-        self.removeMarkers()
-        self.info_marker = None
-        self.source_marker = None
-        self.is_combined_image = True
-        self.reset_color_bar(True)
-      self.array_plot(plot_label, plot_data, False)
+# if we got here, emit signal up to result_plotter here
+      self.emit(PYSIGNAL("handle_spectrum_menu_id"),(menuid,))
 
     def set_flag_toggles(self, flag_plane=None, flag_setting=False):
 # add flag toggling for vells but make hidden by default
@@ -538,6 +520,32 @@ class QwtImageDisplay(QwtPlot):
            self._menu.removeItem(menu_id)
            menu_id = menu_id + 1
     # end initVellsContextMenu()
+
+    def setMenuItems(self, menu_labels):
+      self.vells_menu_items = len(menu_labels)
+      if self.vells_menu_items > 1:
+        menu_id = self._start_vells_menu_id
+        for i in range(self.vells_menu_items):
+          self._menu.insertItem(menu_labels[i], menu_id)
+          menu_id = menu_id + 1
+
+    def setSpectrumMenuItems(self, menu_labels):
+      self.spectrum_menu_items = len(menu_labels)
+      if self.spectrum_menu_items > 1:
+        menu_id = self._start_spectrum_menu_id
+        for i in range(self.spectrum_menu_items):
+          self._menu.insertItem(menu_labels[i], menu_id)
+          menu_id = menu_id + 1
+
+    def setSpectrumMarkers(self, marker_parms, marker_labels):
+      if self.spectrum_menu_items > 2: 
+        self.num_y_markers = marker_parms[0]
+        self.y_marker_step = marker_parms[1]
+        self.marker_labels = marker_labels
+
+    def getSpectrumTags(self):
+       return (self._data_labels, self._string_tag) 
+    
 
     def zoom(self):
       if self.zooming == 0:
@@ -625,25 +633,59 @@ class QwtImageDisplay(QwtPlot):
     def update_vells_display(self, menuid):
       if self.handle_basic_menu_id(menuid):
         return
-
 # are we toggling something with flags?
       if self.handle_flag_toggles(menuid):
         return
+# if we got here, emit signal up to result_plotter here
+      self.emit(PYSIGNAL("handle_menu_id"),(menuid,))
 
-# toggle get vells parameters	
-      self._vells_data.unravelMenuId(menuid)
-      plot_label = self._vells_data.getPlotLabel()
-      plot_data = self._vells_data.getActiveData()
-      raw_data_rank = self._vells_data.getActiveDataRank()
-      if self.raw_data_rank != raw_data_rank:
-        self.old_plot_data_rank = plot_data.rank
-        self.raw_data_rank = raw_data_rank
-        # get initial axis parameters
-        axis_parms =  self._vells_data.getActiveAxisParms()
-        self.first_axis_parm = axis_parms[0]
-        self.second_axis_parm = axis_parms[1]
-      self.reset_color_bar(True)
-      self.plot_vells_array(plot_data, plot_label)
+    def setVellsPlot(self, do_vells_plot=True):
+      self._vells_plot = do_vells_plot
+
+    def report_scalar_value(self, data_label, scalar_data):
+      self._vells_plot = False
+      dummy_array = zeros(shape=(2,2),type=Float32)
+      self.array_plot(data_label, dummy_array)
+      self.set_xaxis_title(' ')
+      self.set_yaxis_title(' ')
+      self.removeMarkers()
+      Message = data_label + ' is a scalar\n with value: ' + str(scalar_data)
+      _dprint(3,' scalar message ', Message)
+      
+# text marker giving source of point that was clicked
+      if not self.source_marker is None:
+        self.removeMarker(self.source_marker)
+      self.source_marker = self.insertMarker()
+      ylb = self.axisScale(QwtPlot.yLeft).lBound()
+      xlb = self.axisScale(QwtPlot.xBottom).lBound()
+      yhb = self.axisScale(QwtPlot.yLeft).hBound()
+      xhb = self.axisScale(QwtPlot.xBottom).hBound()
+      self.setMarkerPos(self.source_marker, xlb+0.1, ylb+1.0)
+      self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
+      fn = self.fontInfo().family()
+      self.setMarkerLabel( self.source_marker, Message,
+         QFont(fn, 10, QFont.Bold, False),
+         Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+      if self.toggle_array_rank > 2: 
+        self.toggle_ND_Controller = 0
+        self.hidden_ND_Controller = True
+        toggle_id = self.menu_table['Toggle ND Controller']
+        self._menu.setItemVisible(toggle_id, False)
+        self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+
+# make sure any color bar from array plot of other Vells member is hidden
+      self.emit(PYSIGNAL("show_colorbar_display"),(0,0)) 
+      if self.complex_type:
+        self.emit(PYSIGNAL("show_colorbar_display"),(0,1)) 
+# make sure options relating to color bar are not in context menu
+      toggle_id = self.menu_table['Toggle ColorBar']
+      self._menu.setItemVisible(toggle_id, False)
+      toggle_id = self.menu_table['Toggle Color/GrayScale Display']
+      self._menu.setItemVisible(toggle_id, False)
+
+      self.replot()
+
+      self._vells_plot = True
 
     def printplot(self):
       self.emit(PYSIGNAL("do_print"),(self.is_vector,self.complex_type))
@@ -832,8 +874,6 @@ class QwtImageDisplay(QwtPlot):
               ypos = e.pos().y()
               xpos = self.invTransform(QwtPlot.xBottom, xpos)
               ypos = self.invTransform(QwtPlot.yLeft, ypos)
-#             temp_array = asarray(ypos)
-#             shape = self.raw_array.shape
               self.x_arrayloc = ypos
               self.y_arrayloc = xpos
               if self._vells_plot:
@@ -847,8 +887,6 @@ class QwtImageDisplay(QwtPlot):
                   ypos = int((ypos - self.vells_axis_parms[self.y_parm][0]) / self.second_axis_inc)
                 else:
                   ypos = self.plotImage.yMap.limTransform(ypos)
-#               xpos = self.plotImage.xMap.limTransform(xpos)
-#               ypos = self.plotImage.yMap.limTransform(ypos)
               else:
                 xpos = int(xpos)
                 ypos = int(ypos)
@@ -957,17 +995,26 @@ class QwtImageDisplay(QwtPlot):
           self.delete_cross_sections()
           return
         self.setAxisAutoScale(QwtPlot.xTop)
-        if self.xCrossSection is None:
-          self.xCrossSection = self.insertCurve('xCrossSection')
-          self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
-          plot_curve=self.curve(self.xCrossSection)
+        if self.xrCrossSection is None:
+          if self.complex_type:
+            self.xrCrossSection = self.insertCurve('xrCrossSection')
+          else:
+            self.xrCrossSection = self.insertCurve('xCrossSection')
+          self.setCurvePen(self.xrCrossSection, QPen(Qt.black, 2))
+          plot_curve=self.curve(self.xrCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, 
              QBrush(Qt.black), QPen(Qt.black), QSize(5,5)))
         self.enableAxis(QwtPlot.yRight)
         self.setAxisTitle(QwtPlot.yRight, 'x cross-section value')
-        self.setCurveYAxis(self.xCrossSection, QwtPlot.yRight)
-# nope!
-#              self.setCurveStyle(self.xCrossSection, QwtCurve.Steps)
+        self.setCurveYAxis(self.xrCrossSection, QwtPlot.yRight)
+        if self.complex_type:
+          if self.xiCrossSection is None:
+            self.xiCrossSection = self.insertCurve('xiCrossSection')
+            self.setCurvePen(self.xiCrossSection, QPen(Qt.black, 2))
+            plot_curve=self.curve(self.xiCrossSection)
+            plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, 
+               QBrush(Qt.black), QPen(Qt.black), QSize(5,5)))
+            self.setCurveYAxis(self.xiCrossSection, QwtPlot.yRight)
         if self.yCrossSection is None:
           self.yCrossSection = self.insertCurve('yCrossSection')
           self.setCurvePen(self.yCrossSection, QPen(Qt.white, 2))
@@ -978,7 +1025,6 @@ class QwtImageDisplay(QwtPlot):
         self.setAxisTitle(QwtPlot.xTop, 'y cross-section value')
         self.setCurveYAxis(self.yCrossSection, QwtPlot.yLeft)
         self.setCurveXAxis(self.yCrossSection, QwtPlot.xTop)
-#        self.setAxisOptions(QwtPlot.xTop,QwtAutoScale.Inverted)
         if self._vells_plot:
           delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
           if self.complex_type:
@@ -992,7 +1038,12 @@ class QwtImageDisplay(QwtPlot):
           start_y = self.vells_axis_parms[self.y_parm][0] + 0.5 * y_step
           for i in range(shape[1]):
             self.y_index[i] = start_y + i * y_step
-        self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
+        if self.complex_type:
+          limit = shape[0] / 2
+          self.setCurveData(self.xrCrossSection, self.x_index[:limit], self.x_array[:limit])
+          self.setCurveData(self.xiCrossSection, self.x_index[limit:], self.x_array[limit:])
+        else:
+          self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
         self.setCurveData(self.yCrossSection, self.y_array, self.y_index)
 
         self.refresh_marker_display()
@@ -1045,12 +1096,6 @@ class QwtImageDisplay(QwtPlot):
           self.emit(PYSIGNAL("max_image_range"),(image_limits, 1) )
         self.adjust_color_bar = False
 
-      if self.image_shape is None:
-        self.image_shape = image.shape 
-      else:
-        if not self.image_shape == image.shape:
-          self.image_shape = image.shape 
-
       if self._vells_plot:
         if self.complex_type:
           temp_x_axis_parms = self.vells_axis_parms[self.x_parm]
@@ -1075,24 +1120,27 @@ class QwtImageDisplay(QwtPlot):
         self.axis_ymin = self.ymin
         self.axis_ymax = self.ymax
 
-
-# add solver metrics info?
       if not self.metrics_rank is None:
-        self.metrics_plot = self.insertCurve('metrics')
-        self.setCurvePen(self.metrics_plot, QPen(Qt.black, 2))
-        self.setCurveStyle(self.metrics_plot,Qt.SolidLine)
-        self.setCurveYAxis(self.metrics_plot, QwtPlot.yLeft)
-        self.setCurveXAxis(self.metrics_plot, QwtPlot.xBottom)
-        plot_curve=self.curve(self.metrics_plot)
-        plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
-                   QPen(Qt.black), QSize(10,10)))
-        self.setCurveData(self.metrics_plot, self.metrics_rank, self.iteration_number)
+        self.add_solver_metrics()
+
       if self.show_x_sections:
         self.calculate_cross_sections()
       else:
         self.refresh_marker_display()      
       _dprint(2, 'called replot in display_image');
     # display_image()
+
+    def add_solver_metrics(self):
+# add solver metrics info?
+      self.metrics_plot = self.insertCurve('metrics')
+      self.setCurvePen(self.metrics_plot, QPen(Qt.black, 2))
+      self.setCurveStyle(self.metrics_plot,Qt.SolidLine)
+      self.setCurveYAxis(self.metrics_plot, QwtPlot.yLeft)
+      self.setCurveXAxis(self.metrics_plot, QwtPlot.xBottom)
+      plot_curve=self.curve(self.metrics_plot)
+      plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
+                 QPen(Qt.black), QSize(10,10)))
+      self.setCurveData(self.metrics_plot, self.metrics_rank, self.iteration_number)
 
     def insert_array_info(self):
 # draw dividing line for complex array
@@ -1237,236 +1285,10 @@ class QwtImageDisplay(QwtPlot):
         self.y_marker_step = None
 # ensure that menu for display is updated if required
         self.initSpectrumContextMenu()
-        if self._spectrum_data is None:
-          self._spectrum_data = SpectrumData(self._data_labels, self._string_tag)
-
-# store the data
-        self._spectrum_data.StoreSpectrumData(self._data_values)
-
-# test and update the context menu
-        plot_menus = self._spectrum_data.getMenuLabels()
-        self.spectrum_menu_items = len(plot_menus)
-        if self.spectrum_menu_items > 1: 
-          menu_id = self._start_spectrum_menu_id
-          for i in range(self.spectrum_menu_items):
-            self._menu.insertItem(plot_menus[i], menu_id)
-            menu_id = menu_id + 1
-
-        if self.spectrum_menu_items > 2: 
-           marker_parms = self._spectrum_data.getMarkerParms()
-           self.num_y_markers = marker_parms[0]
-           self.y_marker_step = marker_parms[1]
-           self.marker_labels = self._spectrum_data.getMarkerLabels()
-
-# plot active instance of array
-        if self.active_image_index is None:
-          self.active_image_index = self.spectrum_menu_items - 1
-          self._spectrum_data.setActivePlot(self.active_image_index)
-        plot_label = self._spectrum_data.getPlotLabel()
-        plot_data = self._spectrum_data.getActivePlotArray()
-        self.array_plot(plot_label, plot_data, False)
-
-        if plot_label == 'spectra: combined image':
-	    self.is_combined_image = True
-            self.reset_color_bar(True)
-            self.refresh_marker_display()
-      _dprint(2, 'exiting plot_data');
-
     # end plot_data()
-
-    def plot_vells_data (self, vells_record,label=''):
-      """ process incoming vells data and attributes into the
-          appropriate type of plot """
-
-      self.metrics_rank = None
-      self.rq_label = label
-      _dprint(3, 'in plot_vells_data self.rq_label = ', self.rq_label);
-      self._label = label
-      self._vells_rec = vells_record;
-# if we are single stepping through requests, Oleg may reset the
-# cache, so check for a non-data record situation
-      if isinstance(self._vells_rec, bool):
-        return
-
-# are we dealing with 'solver' results?
-      if self._vells_rec.has_key("solver_result"):
-        if self._vells_rec.solver_result.has_key("incremental_solutions"):
-          self._solver_flag = True
-          self._value_array = self._vells_rec.solver_result.incremental_solutions
-          if self._vells_rec.solver_result.has_key("metrics"):
-            metrics = self._vells_rec.solver_result.metrics
-            self.metrics_rank = zeros(len(metrics), Int32)
-            self.iteration_number = zeros(len(metrics), Int32)
-            for i in range(len(metrics)):
-               self.metrics_rank[i] = metrics[i].rank
-               self.iteration_number[i] = i+1
-          shape = self._value_array.shape
-          if shape[1] > 1:
-            self._x_title = 'Solvable Coeffs'
-            self._y_title = 'Iteration Nr'
-            self.array_plot("Solver Incremental Solutions", self._value_array, True)
-          else:
-            self._y_title = 'Value'
-            self._x_title = 'Iteration Nr'
-            self.array_plot("Solver Incremental Solution", self._value_array, True)
-        return
-
-# are we dealing with Vellsets?
-      if self._vells_rec.has_key("vellsets") and not self._solver_flag:
-        _dprint(3, 'handling vellsets')
-        self._vells_plot = True
-#       self.initVellsContextMenu()
-        
-        if self._vells_data is None:
-          self._vells_data = VellsData()
-# store the data
-        self._vells_data.StoreVellsData(self._vells_rec,self.rq_label)
-        if self.num_possible_ND_axes is None:
-          vells_data_parms = self._vells_data.getVellsDataParms()
-          self.vells_axis_parms = vells_data_parms[0]
-          self.axis_labels = vells_data_parms[1]
-          self.num_possible_ND_axes = vells_data_parms[2]
-          if len(self.vells_axis_parms) > 2 and self.num_possible_ND_axes > 2:
-            self.toggle_array_rank = self.num_possible_ND_axes
-          # emitting the following signal will cause the ND Controller GUI  
-          # to be constructed 
-            self.emit(PYSIGNAL("vells_axes_labels"),(self.axis_labels, self.vells_axis_parms))
-          # get initial axis parameters
-          axis_parms =  self._vells_data.getActiveAxisParms()
-          self.first_axis_parm = axis_parms[0]
-          self.second_axis_parm = axis_parms[1]
-
-        self.initVellsContextMenu()
-
-        self.number_of_planes = self._vells_data.getNumPlanes()
-        self._shape =  self._vells_data.getActiveData().shape
-        self.raw_data_rank = self._vells_data.getActiveDataRank()
-
-# do we have flags for data	  
-	self._flags_array = None
-        self.image_flag_array = None
-        if self._vells_data.activePlaneHasFlags():
-# add toggling for flags?
-          flag_plane = self._vells_data.getActivePlane()
-          self.set_flag_toggles(flag_plane, True)
-
-# test if we have a numarray
-          try:
-            self._flags_array = self._vells_data.getActiveFlagData()
-            _dprint(3, 'self._flags_array ', self._flags_array)
-            array_shape = self._flags_array.shape
-            if len(array_shape) == 1 and array_shape[0] == 1:
-              temp_value = self._flags_array[0]
-              temp_array = asarray(temp_value)
-              self._flags_array = resize(temp_array,self._shape)
-          except:
-            temp_array = asarray(self._vells_data.getActiveFlagData())
-            self._flags_array = resize(temp_array,self._shape)
-
-          if self.array_tuple is None:
-            self.setFlagsData(self._flags_array)
-          else:
-            self.setFlagsData(self._flags_array[self.array_tuple])
-
-# test and update the context menu
-        menu_labels = self._vells_data.getMenuLabels()
-        self.vells_menu_items = len(menu_labels)
-        if self.vells_menu_items > 1:
-          menu_id = self._start_vells_menu_id
-          for i in range(self.vells_menu_items):
-            self._menu.insertItem(menu_labels[i], menu_id)
-            menu_id = menu_id + 1
-
-# plot the appropriate plane / perturbed value
-        plot_data = self._vells_data.getActiveData()
-        if plot_data.rank != self.old_plot_data_rank:
-          self.old_plot_data_rank = plot_data.rank
-          # get initial axis parameters
-          axis_parms =  self._vells_data.getActiveAxisParms()
-          self.first_axis_parm = axis_parms[0]
-          self.second_axis_parm = axis_parms[1]
-        plot_label = self._vells_data.getPlotLabel()
-        self.plot_vells_array(plot_data, plot_label)
-
-    # end plot_vells_data()
-
-    def setArraySelector (self,lcd_number, slider_value, display_string):
-#     #print 'in setArraySelector lcd_number, slider_value ', lcd_number, slider_value
-      self._vells_data.updateArraySelector(lcd_number,slider_value)
-      if self._vells_plot:
-        plot_array = self._vells_data.getActiveData()
-        self.array_plot('data: '+ display_string, plot_array)
 
     def plot_vells_array (self, data_array, data_label=" "):
 
-# do we have a scalar?
-      is_scalar = False
-      scalar_data = 0.0
-      try:
-        shape = data_array.shape
-        _dprint(3,'data_array shape is ', shape)
-      except:
-        is_scalar = True
-        scalar_data = data_array
-      if not is_scalar and len(shape) == 1:
-        if shape[0] == 1:
-          is_scalar = True
-          scalar_data = data_array[0]
-      if is_scalar:
-        self._vells_plot = False
-        dummy_array = zeros(shape=(2,2),type=Float32)
-        self.array_plot(data_label, dummy_array)
-        self.set_xaxis_title(' ')
-        self.set_yaxis_title(' ')
-        self.removeMarkers()
-        Message = data_label + ' is a scalar\n with value: ' + str(scalar_data)
-        _dprint(3,' scalar message ', Message)
-#         mb_color = QMessageBox("display_image.py",
-#                    Message,
-#                    QMessageBox.Information,
-#                    QMessageBox.Ok | QMessageBox.Default,
-#                    QMessageBox.NoButton,
-#                    QMessageBox.NoButton)
-#         mb_color.exec_loop()
-
-#         message = QLabel(Message,self)
-#         message.setTextFormat(Qt.RichText)
-#         self.set_widgets(message)
-      
-# text marker giving source of point that was clicked
-        if not self.source_marker is None:
-          self.removeMarker(self.source_marker)
-        self.source_marker = self.insertMarker()
-        ylb = self.axisScale(QwtPlot.yLeft).lBound()
-        xlb = self.axisScale(QwtPlot.xBottom).lBound()
-        yhb = self.axisScale(QwtPlot.yLeft).hBound()
-        xhb = self.axisScale(QwtPlot.xBottom).hBound()
-        self.setMarkerPos(self.source_marker, xlb+0.1, ylb+1.0)
-        self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
-        fn = self.fontInfo().family()
-        self.setMarkerLabel( self.source_marker, Message,
-          QFont(fn, 10, QFont.Bold, False),
-          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
-        if self.toggle_array_rank > 2: 
-          self.toggle_ND_Controller = 0
-          self.hidden_ND_Controller = True
-          toggle_id = self.menu_table['Toggle ND Controller']
-          self._menu.setItemVisible(toggle_id, False)
-          self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
-
-# make sure any color bar from array plot of other Vells member is hidden
-        self.emit(PYSIGNAL("show_colorbar_display"),(0,0)) 
-        if self.complex_type:
-          self.emit(PYSIGNAL("show_colorbar_display"),(0,1)) 
-# make sure options relating to color bar are not in context menu
-        toggle_id = self.menu_table['Toggle ColorBar']
-        self._menu.setItemVisible(toggle_id, False)
-        toggle_id = self.menu_table['Toggle Color/GrayScale Display']
-        self._menu.setItemVisible(toggle_id, False)
-
-        self.replot()
-          
-      else:
         if self.hidden_ND_Controller and self.toggle_array_rank > 2: 
           if self.raw_data_rank > 2:
             self.hidden_ND_Controller = False
@@ -1480,16 +1302,10 @@ class QwtImageDisplay(QwtPlot):
           self.removeMarker(self.source_marker)
         self.source_marker  = None
         self.array_plot(data_label, data_array)
- 
-    def setSelectedAxes (self,first_axis, second_axis):
-      self.delete_cross_sections()
-      if self._vells_plot:
-        self._vells_data.setSelectedAxes(first_axis, second_axis)
-        axis_parms = self._vells_data.getActiveAxisParms()
-        self.first_axis_parm = axis_parms[0]
-        self.second_axis_parm = axis_parms[1]
-        plot_array = self._vells_data.getActiveData()
-        self.array_plot(" ", plot_array)
+
+    def setVellsParms(self, vells_axis_parms, axis_labels):
+      self.vells_axis_parms = vells_axis_parms
+      self.axis_labels = axis_labels
 
     def reset_color_bar(self, reset_value=True):
       self.adjust_color_bar = reset_value
@@ -1508,7 +1324,8 @@ class QwtImageDisplay(QwtPlot):
 
 # delete any previous curves
       self.removeCurves()
-      self.xCrossSection = None
+      self.xrCrossSection = None
+      self.xiCrossSection = None
       self.yCrossSection = None
       self.enableAxis(QwtPlot.yLeft, False)
       self.enableAxis(QwtPlot.xBottom, False)
@@ -1516,7 +1333,6 @@ class QwtImageDisplay(QwtPlot):
       self.enableAxis(QwtPlot.xTop, False)
       self.xCrossSectionLoc = None
       self.yCrossSectionLoc = None
-      self.dummy_xCrossSection = None
       self.myXScale = None
       self.myYScale = None
       self.split_axis = None
@@ -1534,6 +1350,14 @@ class QwtImageDisplay(QwtPlot):
 # set title
       self._window_title = data_label  
       self.setTitle(self.label+ ' ' + self._window_title)
+
+      if data_label == 'spectra: combined image':
+        self.removeMarkers()
+        self.info_marker = None
+        self.source_marker = None
+        self.is_combined_image = True
+        self.reset_color_bar(True)
+        self.refresh_marker_display()
 
 # hack to get array display correct until forest.state
 # record is available
@@ -1567,6 +1391,8 @@ class QwtImageDisplay(QwtPlot):
       if plot_array.type() == Complex64:
         complex_type = True;
       self.complex_type = complex_type
+      if self.complex_type: 
+        self.complex_image = plot_array
 
 # add possibility to flip between real/imag and ampl/phase
       if self.complex_type and not self.complex_switch_set:
@@ -1577,7 +1403,6 @@ class QwtImageDisplay(QwtPlot):
 # test if we have a 2-D array
       if self.is_vector == False:
         if self.complex_type: 
-          self.complex_image = plot_array
           self.complex_divider = plot_array.shape[0]
         self.enableAxis(QwtPlot.yLeft)
         self.enableAxis(QwtPlot.xBottom)
@@ -1608,6 +1433,7 @@ class QwtImageDisplay(QwtPlot):
 
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if self.complex_type and self._display_type != "brentjens":
+          dummy_image = None
           if self._vells_plot:
             _dprint(3, 'complex type: self._vells_plot ', self._vells_plot)
             self.x_parm = self.first_axis_parm
@@ -1636,6 +1462,15 @@ class QwtImageDisplay(QwtPlot):
           else:
             if self.ampl_phase:
               self._x_title = 'Array/Channel Number (amplitude followed by phase)'
+              dummy_image = self.complex_image.copy()
+              real_array = dummy_image.getreal()
+              imag_array = dummy_image.getimag()
+              abs_array = abs(dummy_image)
+              phase_array = arctan2(imag_array,real_array)
+              real_array = abs_array
+              imag_array = phase_array
+              dummy_image.setreal(real_array)
+              dummy_image.setimag(imag_array)
             else:
               self._x_title = 'Array/Channel Number (real followed by imaginary)'
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
@@ -1650,7 +1485,10 @@ class QwtImageDisplay(QwtPlot):
               self.myYScale = ComplexScaleDraw(self.y_marker_step)
               self.setAxisScaleDraw(QwtPlot.yLeft, self.myYScale)
 
-          self.display_image(plot_array)
+          if self.ampl_phase:
+            self.display_image(dummy_image)
+          else:
+            self.display_image(plot_array)
 
         else:
           if self._vells_plot:
@@ -1684,8 +1522,6 @@ class QwtImageDisplay(QwtPlot):
 
       if self.is_vector == True:
         _dprint(3, ' we are plotting a vector')
-        if self.complex_type: 
-          self.complex_image = plot_array
 
 # remove any markers
         self.removeMarkers()
@@ -1779,13 +1615,13 @@ class QwtImageDisplay(QwtPlot):
           else:
             self.setAxisTitle(QwtPlot.yLeft, 'Value: real (black line / red dots)')
             self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (blue line / green dots)')
-          self.xCrossSection = self.insertCurve('xCrossSection')
+          self.xrCrossSection = self.insertCurve('xCrossSection')
           self.yCrossSection = self.insertCurve('yCrossSection')
-          self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
+          self.setCurvePen(self.xrCrossSection, QPen(Qt.black, 2))
           self.setCurvePen(self.yCrossSection, QPen(Qt.blue, 2))
-          self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
+          self.setCurveYAxis(self.xrCrossSection, QwtPlot.yLeft)
           self.setCurveYAxis(self.yCrossSection, QwtPlot.yRight)
-          plot_curve=self.curve(self.xCrossSection)
+          plot_curve=self.curve(self.xrCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
                      QPen(Qt.red), QSize(5,5)))
           plot_curve=self.curve(self.yCrossSection)
@@ -1802,11 +1638,8 @@ class QwtImageDisplay(QwtPlot):
           _dprint(3, 'plotting complex array with x values ', self.x_index)
           _dprint(3, 'plotting complex array with real values ', self.x_array)
           _dprint(3, 'plotting complex array with imag values ', self.y_array)
-          self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
+          self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
           self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
-          if not self.dummy_xCrossSection is None:
-            self.removeCurve(self.dummy_xCrossSection)
-            self.dummy_xCrossSection = None
 
 # stuff for flags
           if not self._flags_array is None:
@@ -1839,17 +1672,15 @@ class QwtImageDisplay(QwtPlot):
           self.x_array = zeros(num_elements, Float32)
           self.y_array = zeros(num_elements, Float32)
           self.x_array =  flattened_array
-          self.xCrossSection = self.insertCurve('xCrossSection')
-          self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
-          self.setCurveStyle(self.xCrossSection,Qt.SolidLine)
-          self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
-          plot_curve=self.curve(self.xCrossSection)
+          self.xrCrossSection = self.insertCurve('xCrossSection')
+          self.setCurvePen(self.xrCrossSection, QPen(Qt.black, 2))
+          self.setCurveStyle(self.xrCrossSection,Qt.SolidLine)
+          self.setCurveYAxis(self.xrCrossSection, QwtPlot.yLeft)
+          plot_curve=self.curve(self.xrCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
                      QPen(Qt.red), QSize(5,5)))
-          self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
-          if not self.dummy_xCrossSection is None:
-            self.removeCurve(self.dummy_xCrossSection)
-            self.dummy_xCrossSection = None
+          self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
+
 # stuff for flags
           if not self._flags_array is None:
             self.real_flag_vector = self.insertCurve('real_flags')
@@ -1866,6 +1697,10 @@ class QwtImageDisplay(QwtPlot):
         self.replot()
         _dprint(2, 'called replot in array_plot');
     # array_plot()
+
+    def set_solver_metrics(self,metrics_rank, iteration_number):
+      self.metrics_rank = metrics_rank
+      self.iteration_number = iteration_number
 
     def setFlagsData (self, incoming_flag_array, flip_axes=True):
       """ figure out shape, rank etc of a flag array and
