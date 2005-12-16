@@ -166,8 +166,8 @@ class CompiledFunklet: public Funklet{
     return string(itsFunction.getText());
   }
 
-  virtual Funklet * getState(){
-    return itsState.dewr_p();
+  virtual Funklet::Ref getState() const{
+    return itsState;
   }
 
 

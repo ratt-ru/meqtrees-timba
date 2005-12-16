@@ -139,13 +139,15 @@ namespace Meq {
 	if( n )
 	  {
 	    //get the one with best fitting domain....
-	    funkletref <<= funklets.front();
+	    funkletref = funklets.front();
 	    
 	    //reset dbid if funklet domain not matching 
-	    if(funkletref().domain().start(0)<domain.start(0) || funkletref().domain().start(1)<domain.start(1) ||
-	       funkletref().domain().end(0)>domain.end(0) || funkletref().domain().end(1)>domain.end(1))
-	      funkletref(). setDbId (-1);
-	    funkletref().setDomain(domain);
+	    if(funkletref->domain().start(0)!=domain.start(0) || funkletref->domain().start(1)!=domain.start(1) ||
+	       funkletref->domain().end(0)!=domain.end(0) || funkletref->domain().end(1)!=domain.end(1))
+	      {
+		funkletref(). setDbId (-1);
+		funkletref().setDomain(domain);
+	      }
 	    return funkletref.dewr_p();
 	  }
       }
@@ -168,7 +170,7 @@ namespace Meq {
 	    if( _use_previous && converged_ && its_funklet_.valid()&& (its_funklet_->objectType()!=TpMeqComposedPolc))
 	      {
 
-		funkletref <<= its_funklet_;
+		funkletref = its_funklet_;
 		//reset dbid
 		funkletref(). setDbId (-1);
 
@@ -179,7 +181,7 @@ namespace Meq {
 	      if(!deffunklet) {
 		cdebug(3)<<"no funklets found, try reusing old one "<<endl;
 		FailWhen(!its_funklet_.valid()|| (its_funklet_->objectType()==TpMeqComposedPolc),"no funklets found,no default_funklet and no funklet specified");
-		funkletref <<= its_funklet_;
+		funkletref = its_funklet_;
 		//reset dbid
 		funkletref(). setDbId (-1);
 	      }
@@ -286,7 +288,7 @@ namespace Meq {
 	  if(!funklist  || (domainV.size()!=funklist->size())) match=false;
 	  else
 	    for(int axis=0;axis<Axis::MaxAxis;axis++){
-	      if(!tiling_[axis]) continue;
+	      //if(!tiling_[axis]) continue;
 	      int funknr=0;
 	      for(vector<Domain::Ref>::iterator domIt=domainV.begin();domIt<domainV.end();domIt++){
 		const Funklet::Ref & partfunk = funklist->get(funknr++); 
@@ -361,7 +363,7 @@ namespace Meq {
 	if( !newrid.empty() && newrid == rqid_ )
 	  {
 	    cdebug(3)<<"current funklet domain ID matches, re-using"<<endl;
-	    return pfunklet;
+	    return its_funklet_.dewr_p();
 	  }
 	
 	// (b) no domain in funklet (i.e. effectively infinite domain of applicability)
@@ -371,7 +373,7 @@ namespace Meq {
 	    wstate()[FDomainId] = domain_id_ = rq_dom_id;
 	    wstate()[FDomain].replace() <<= &domain;
 	    rqid_=newrid;
-	    return pfunklet;
+	    return its_funklet_.dewr_p();
 	  }
 	// (c) funklet domain is a superset of the requested domain
 	if(!tiled_ && (pfunklet->objectType()!=TpMeqComposedPolc) &&  pfunklet->domain().supersetOfProj(domain) )
@@ -381,7 +383,7 @@ namespace Meq {
 	    wstate()[FDomainId] = domain_id_ = rq_dom_id;
 	    wstate()[FDomain].replace() <<= &domain;
 	    rqid_=newrid;
-	    return pfunklet;
+	    return its_funklet_.dewr_p();
 	  }
       }
     // no funklet, or funklet not suitable -- get a new one
@@ -393,14 +395,14 @@ namespace Meq {
      
 	cdebug(4)<<"tiling funklet, "<<endl;
 	Funklet *newfunklet = initTiledFunklet(funkref,domain,cells);
-	newfunklet->setDomain(domain);
-	its_funklet_<<=newfunklet;
-	wstate()[FFunklet].replace() = newfunklet->getState();
+	funkref().setDomain(domain);
+	its_funklet_=funkref;
+	wstate()[FFunklet].replace() = its_funklet_().getState();
 	wstate()[FDomainId] = domain_id_ = rq_dom_id;
 	wstate()[FDomain].replace() <<= &domain;
 	rqid_=newrid;
 	cdebug(2)<<"found relevant funklet,after tiling type "<<newfunklet->objectType()<<endl;
-	return newfunklet;
+	return its_funklet_.dewr_p();
       }
 
     
@@ -411,13 +413,13 @@ namespace Meq {
 	pfunklet = its_funklet_.dewr_p();
       }
     else
-      its_funklet_<<=funkref;
+      its_funklet_<<=pfunklet;
     // update state record
-    wstate()[FFunklet].replace() = pfunklet->getState();
+    wstate()[FFunklet].replace() = its_funklet_().getState();
     wstate()[FDomainId] = domain_id_ = rq_dom_id;
     wstate()[FDomain].replace() <<= &domain;
     rqid_=newrid;
-    return pfunklet;
+    return its_funklet_.dewr_p();
   }
 
 

@@ -83,7 +83,7 @@ public:
                     double weight=defaultFunkletWeight,
                     DbId id=-1);
   
-  Funklet (int naxis,const int iaxis[],const double offset[],const double scale[],
+  Funklet (int naxis,const int iaxis[]=defaultFunkletAxes,const double offset[]=defaultFunkletOffset,const double scale[]=defaultFunkletScale,
            double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
            DbId id=-1);
   
@@ -303,8 +303,11 @@ public:
 
 
   //reimplement in FuncTest (CompiledFunklet) since browser doesnt know about aips++ contaminated classes
-  virtual Funklet *getState() {
-    return this;
+  virtual Funklet::Ref getState() const{
+ 
+    Funklet::Ref funkref;
+    funkref<<=this;
+    return funkref;
   }
 
   virtual string getFunction() const{
