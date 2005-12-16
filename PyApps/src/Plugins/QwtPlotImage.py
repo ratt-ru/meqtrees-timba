@@ -81,10 +81,6 @@ class QwtPlotImage(QwtPlotMappedItem):
     def defineImageRange(self, limits, real=True):
        min = limits[0]
        max = limits[1]
-       if min > max:
-         temp = max
-         max = min
-         min = temp
        if abs(max - min) < 0.00005:
          if max == 0.0 or min == 0.0:
            min = -0.1
@@ -92,6 +88,10 @@ class QwtPlotImage(QwtPlotMappedItem):
          else:
            min = 0.9 * min
            max = 1.1 * max
+       if min > max:
+         temp = max
+         max = min
+         min = temp
        if real:
          self.r_cmin = min
          self.r_cmax = max
@@ -106,10 +106,6 @@ class QwtPlotImage(QwtPlotMappedItem):
         real_array =  image.getreal()
         min = real_array.min()
         max = real_array.max()
-        if min > max:
-          temp = max
-          max = min
-          min = temp
         if abs(max - min) < 0.00005:
           if max == 0.0 or min == 0.0:
             min = -0.1
@@ -117,15 +113,15 @@ class QwtPlotImage(QwtPlotMappedItem):
           else:
             min = 0.9 * min
             max = 1.1 * max
+        if min > max:
+          temp = max
+          max = min
+          min = temp
         self.r_cmin = min
         self.r_cmax = max
 
         min = imag_array.min()
         max = imag_array.max()
-        if min > max:
-          temp = max
-          max = min
-          min = temp
         if abs(max - min) < 0.00005:
           if max == 0.0 or min == 0.0:
             min = -0.1
@@ -133,16 +129,16 @@ class QwtPlotImage(QwtPlotMappedItem):
           else:
             min = 0.9 * min
             max = 1.1 * max
+        if min > max:
+          temp = max
+          max = min
+          min = temp
         self.i_cmin = min
         self.i_cmax = max
       else:
         self.complex = False
         min = image.min()
         max = image.max()
-        if min > max:
-          temp = max
-          max = min
-          min = temp
         if abs(max - min) < 0.00005:
           if max == 0.0 or min == 0.0:
             min = -0.1
@@ -150,6 +146,10 @@ class QwtPlotImage(QwtPlotMappedItem):
           else:
             min = 0.9 * min
             max = 1.1 * max
+        if min > max:
+          temp = max
+          max = min
+          min = temp
         self.r_cmin = min
         self.r_cmax = max
     # setImageRange
