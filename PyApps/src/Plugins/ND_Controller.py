@@ -8,17 +8,19 @@ from qt import *
 import sys
 
 # the LCD Range class is directly adapted from the Qt/PyQt tutorial code examples
-class LCDRange(QWidget):
+class LCDRange(QVBox):
     def __init__(self, lcd_number=1, lcd_parms=None,parent=None, name=None):
-        QWidget.__init__(self, parent, name)
+        QVBox.__init__(self, parent, name)
 
         self.lcd_number = lcd_number
-        self.lcd = QLCDNumber(self, "lcd")
-        self.lcd.setSegmentStyle(QLCDNumber.Filled)
-        self.lcd.setPaletteBackgroundColor(Qt.red)
-        self.lcd.setMaximumHeight(40)
         self.lcd_parms=lcd_parms
         self.button_label = None
+
+        self.spinbox = QSpinBox(self)
+        self.spinbox.setMinValue(0)
+        self.spinbox.setMaxValue(99)
+        self.spinbox.setWrapping(True)
+        self.maxVal = 99
 
         self.slider = QSlider(Qt.Horizontal, self, "slider")
         self.slider.setTickmarks(QSlider.Below)
@@ -29,14 +31,16 @@ class LCDRange(QWidget):
 
         self.resetValue()
 
-        self.connect(self.slider, SIGNAL("valueChanged(int)"), self.update)
+        self.connect(self.slider, SIGNAL("valueChanged(int)"), self.update_slider)
+        self.connect(self.spinbox, SIGNAL("valueChanged(int)"), self.update_spinbox)
 
 
-        self.setFocusProxy(self.slider)
-
-        l = QVBoxLayout(self)
-        l.addWidget(self.lcd, 1)
-        l.addWidget(self.slider)
+#       self.setFocusProxy(self.slider)
+    
+        self.qlabel = QLabel(self)
+        self.qlabel.setText('  ')
+        self.qlabel1 = QLabel(self)
+        self.qlabel1.setText('  ')
 
     def setLabel(self, label):
         self.button_label = label
@@ -56,16 +60,31 @@ class LCDRange(QWidget):
             display_str = dummy[:9]
           else:
             display_str = dummy
-        self.lcd.setNumDigits(len(display_str))
-        self.lcd.display(display_str)
         self.slider.setValue(0)
+        self.spinbox.setValue(0)
+
+    def setDisplayString(self, value ):
+      display_str = ''
+      if not self.lcd_parms is None:
+        delta_vells = (self.lcd_parms[1] - self.lcd_parms[0]) / self.maxVal
+        index = self.lcd_parms[0] + (value + 0.5) * delta_vells 
+        dummy = str(index)
+        if len(dummy) > 10:
+          display_str = dummy[:9]
+        else:
+          display_str = dummy
+        self.spinbox.setPrefix(display_str + '  ')
+      if not self.button_label is None:
+        display_str = self.button_label + ' ' + display_str
+      self.emit(PYSIGNAL("sliderValueChanged"), (self.lcd_number, value, display_str))
 
     def setRange(self, array_shape):
         self.slider.setRange(0, array_shape-1)
+        self.spinbox.setMaxValue(array_shape-1)
         self.maxVal = array_shape
 
     def setLCDColor(self, color):
-        self.lcd.setPaletteBackgroundColor(color)
+        self.spinbox.setPaletteBackgroundColor(color)
 
     def setActive(self, active):
         self.active = active
@@ -76,34 +95,25 @@ class LCDRange(QWidget):
     def setText(self, s):
         self.label.setText(s)
 
-    def update(self, slider_value):
+    def update_slider(self, slider_value):
         if self.active:
-          display_str = None
-          if self.lcd_parms is None:
-            display_str = str(slider_value)
-          else:
-            delta_vells = (self.lcd_parms[1] - self.lcd_parms[0]) / self.maxVal
-            index = self.lcd_parms[0] + (slider_value + 0.5) * delta_vells 
-            dummy = str(index)
-            if len(dummy) > 10:
-              display_str = dummy[:9]
-            else:
-              display_str = dummy
-          self.lcd.setNumDigits(len(display_str))
-          self.lcd.display(display_str)
-          if not self.button_label is None:
-            display_str = self.button_label + ' ' + display_str
-          self.emit(PYSIGNAL("sliderValueChanged"), (self.lcd_number, slider_value, display_str))
-        
-          return self.slider.value()
+          self.spinbox.setValue(slider_value)
+          self.setDisplayString(slider_value)
         else:
           self.resetValue()
+
+    def update_spinbox(self, spin_value):
+        if self.active:
+          self.slider.setValue(spin_value)
+          self.setDisplayString(spin_value)
+        else:
+          self.spinbox.setValue(0)
 
 
 controller_instructions = \
 '''This control GUI allows you to select a 2-dimensional sub-array for on-screen display from a larger N-dimensional array. When you select an array for plotting that has 3 or more dimensions, the default start-up plot will show the last two dimensions with the indices into the previous dimensions all initialized to zero. <br><br>
-So, for example, if we select a 5-d array for display, the last two dimensions (axes 3 and 4 in current notation) are shown with green push buttons, but the corresponding sliders are shown in red and you will not be able to move the sliders.The remaining axes have sliders shown in green and indexes for those dimensions initialized to zero. By moving the sliders associated with these axes, you change the indices for the first three dimensions. <br><br> 
-You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their labels displayed in green and their sliders will be displayed in red and are frozen. The other axes will have live sliders shown in green - you can move the sliders to change the array indices for these dimensions.'''
+So, for example, if we select a 5-d array for display, the last two dimensions (axes 3 and 4 in current notation) are shown with green push buttons, but the corresponding spinboxes are shown in red and you will not be able to move the sliders under them. The remaining axes have spinboxes shown in green and indexes for those dimensions initialized to zero. By moving the sliders associated with these axes, you change the indices for the first three dimensions. Alternatively you may change the index associated with a dimension by clicking the spinbox up or down. Note that spinboxes have wrapping turned on: this means that if you have an index with a maximum value of 99, clicking on a spinbox's up arrow will cause the index to wrap around back to zero. You may also jump to a given dimension index by typing the value of that index in the spinbox. Note that if you are displaying a Vellset, the first value displayed in a spinbox is the value of the Vells at the given index (the second number - separated from the first one by blanks).  <br><br> 
+You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their labels displayed in green and their sliders will be displayed in red and are frozen. The other axes will have their spinboxes shown in green - you can move the spinboxes (and sliders) to change the array indices for these dimensions.'''
 
 class ND_Controller(QWidget):
     def __init__(self, array_shape=None, axis_label=None, axis_parms = None, parent=None, name=None):
@@ -146,6 +156,8 @@ class ND_Controller(QWidget):
           else:
             button_label = 'axis ' + str(i)
           button = QPushButton(button_label, self);
+          mincolwidth = button.sizeHint().width()
+          self.layout.setColSpacing(col,mincolwidth)
           self.buttons.append(button)
           self.button_number.append(i)
           self.buttons[self.num_selectors].setToggleButton(True)
@@ -158,6 +170,8 @@ class ND_Controller(QWidget):
             self.active_axes[self.num_selectors] = True
           self.layout.addWidget(self.buttons[self.num_selectors], row, col)
           self.buttonGroup.insert(self.buttons[self.num_selectors],self.num_selectors)
+          col = col + 1
+          self.layout.addWidget(QLabel(' ', self),row,col)
 
 # add lcd ranges
           col = col + 1;
@@ -173,13 +187,15 @@ class ND_Controller(QWidget):
           self.lcd_ranges[self.num_selectors].setRange(array_shape[i])
           QObject.connect(self.lcd_ranges[self.num_selectors], PYSIGNAL("sliderValueChanged"),self.update)
           self.layout.addWidget(self.lcd_ranges[self.num_selectors], row, col);
+          col = col + 1;
+          self.layout.addWidget(QLabel(' ', self),row,col)
           if self.num_selectors <= self.rank -3:
             self.lcd_ranges[self.num_selectors].setLCDColor(Qt.green)
             self.lcd_ranges[self.num_selectors].setActive(True)
             self.lcd_ranges[self.num_selectors].resetValue()
           else:
             self.lcd_ranges[self.num_selectors].setLCDColor(Qt.red)
-          if col >= 3:
+          if col >= 7:
             col = 0
             row = row + 1
           else:
