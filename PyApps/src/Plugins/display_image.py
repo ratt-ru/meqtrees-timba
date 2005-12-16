@@ -100,6 +100,7 @@ class QwtImageDisplay(QwtPlot):
         'Reset zoomer': 304,
         'Delete X-Section Display': 305,
         'Toggle real/imag or ampl/phase Display': 306,
+        'Toggle axis flip': 307,
         }
 
     _start_spectrum_menu_id = 0
@@ -149,7 +150,6 @@ class QwtImageDisplay(QwtPlot):
         self._plot_type = None
         self.colorbar_requested = False
 	self.is_combined_image = False
-        self.image_flag_array = None
         self.active_image_index = None
         self.y_marker_step = None
         self.imag_flag_vector = None
@@ -170,8 +170,10 @@ class QwtImageDisplay(QwtPlot):
         self.ymax = None
         self.adjust_color_bar = True
         self.array_selector = None
+        self.original_flag_array = None
         self.show_x_sections = False
         self.flag_range = False
+        self.axes_flip = False
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -345,6 +347,9 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle Cross-Section Legend']:
         self.toggleLegend()
         return True
+      if menuid == self.menu_table['Toggle axis flip']:
+        self.toggleAxis()
+        return True
       if menuid == self.menu_table['Toggle ColorBar']:
         if self.toggle_color_bar == 1:
           self.toggle_color_bar = 0
@@ -390,16 +395,8 @@ class QwtImageDisplay(QwtPlot):
         else:
           self.adjust_color_bar = True
           if self.ampl_phase:
-            dummy_image = self.complex_image.copy()
-            real_array = dummy_image.getreal()
-            imag_array = dummy_image.getimag()
-            abs_array = abs(dummy_image)
-            phase_array = arctan2(imag_array,real_array)
-            real_array = abs_array
-            imag_array = phase_array
-            dummy_image.setreal(real_array)
-            dummy_image.setimag(imag_array)
-            self.display_image(dummy_image)
+            ampl_phase_image = self.convert_to_AP(self.complex_image)
+            self.display_image(ampl_phase_image)
           else:
             self.display_image(self.complex_image)
         return True
@@ -537,6 +534,9 @@ class QwtImageDisplay(QwtPlot):
           self._menu.insertItem(menu_labels[i], menu_id)
           menu_id = menu_id + 1
 
+      toggle_id = self.menu_table['Toggle axis flip']
+      self._menu.setItemVisible(toggle_id, False)
+
     def setSpectrumMarkers(self, marker_parms, marker_labels):
       if self.spectrum_menu_items > 2: 
         self.num_y_markers = marker_parms[0]
@@ -585,8 +585,18 @@ class QwtImageDisplay(QwtPlot):
         self.enableLegend(True)
       self.setAutoLegend(self.setlegend)
       self.replot()
-
     # toggleLegend()
+
+    def toggleAxis(self):
+      if self.axes_flip:
+        self.axes_flip = False
+      else:
+        self.axes_flip = True
+      if self._vells_plot or self._plot_type is None:
+        if self._vells_plot and not self.original_flag_array is None:
+          self.setFlagsData (self.original_flag_array)
+        self.plot_vells_array(self.original_data, self.original_label)
+    # toggleAxis()
 
     def updatePlotParameters(self):
       parms_interface = WidgetSettingsDialog(actual_parent=self, gui_parent=self)
@@ -1359,11 +1369,15 @@ class QwtImageDisplay(QwtPlot):
         self.reset_color_bar(True)
         self.refresh_marker_display()
 
+      self.original_data = incoming_plot_array
+      self.original_label = data_label
+
 # hack to get array display correct until forest.state
 # record is available
       plot_array = incoming_plot_array
       axes = None
-      if flip_axes:
+      array_flip = flip_axes and not self.axes_flip
+      if array_flip:
         axes = arange(incoming_plot_array.rank)[::-1]
         plot_array = transpose(incoming_plot_array, axes)
 #       _dprint(3, 'transposed plot array ', plot_array, ' has shape ', plot_array.shape)
@@ -1394,7 +1408,7 @@ class QwtImageDisplay(QwtPlot):
       if self.complex_type: 
         self.complex_image = plot_array
 
-# add possibility to flip between real/imag and ampl/phase
+# add possibility to switch between real/imag and ampl/phase
       if self.complex_type and not self.complex_switch_set:
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
         self._menu.insertItem("Toggle real/imag or ampl/phase Display", toggle_id)
@@ -1433,22 +1447,14 @@ class QwtImageDisplay(QwtPlot):
 
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if self.complex_type and self._display_type != "brentjens":
-          dummy_image = None
+          ampl_phase_image = None
           if self.ampl_phase:
-            dummy_image = self.complex_image.copy()
-            real_array = dummy_image.getreal()
-            imag_array = dummy_image.getimag()
-            abs_array = abs(dummy_image)
-            phase_array = arctan2(imag_array,real_array)
-            real_array = abs_array
-            imag_array = phase_array
-            dummy_image.setreal(real_array)
-            dummy_image.setimag(imag_array)
+            ampl_phase_image = self.convert_to_AP(self.complex_image)
           if self._vells_plot:
             _dprint(3, 'complex type: self._vells_plot ', self._vells_plot)
             self.x_parm = self.first_axis_parm
             self.y_parm = self.second_axis_parm
-            if flip_axes:
+            if array_flip:
               self.x_parm = self.second_axis_parm
               self.y_parm = self.first_axis_parm
             self.myXScale = ComplexScaleSeparate(self.vells_axis_parms[self.x_parm][0], self.vells_axis_parms[self.x_parm][1])
@@ -1471,11 +1477,20 @@ class QwtImageDisplay(QwtPlot):
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           else:
             if self.ampl_phase:
-              self._x_title = 'Array/Channel Number (amplitude followed by phase)'
+              if array_flip:
+                self._x_title = 'Array/Channel Number (amplitude followed by phase)'
+              else:
+                self._x_title = 'Array/Sequence Number (amplitude followed by phase)'
             else:
-              self._x_title = 'Array/Channel Number (real followed by imaginary)'
+              if array_flip:
+                self._x_title = 'Array/Channel Number (real followed by imaginary)'
+              else:
+                self._x_title = 'Array/Sequence Number (real followed by imaginary)'
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
-            self._y_title = 'Array/Sequence Number'
+            if array_flip:
+              self._y_title = 'Array/Sequence Number'
+            else:
+              self._y_title = 'Array/Channel Number'
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
             self.myXScale = ComplexScaleDraw(plot_array.shape[0])
             self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
@@ -1487,7 +1502,7 @@ class QwtImageDisplay(QwtPlot):
               self.setAxisScaleDraw(QwtPlot.yLeft, self.myYScale)
 
           if self.ampl_phase:
-            self.display_image(dummy_image)
+            self.display_image(ampl_phase_image)
           else:
             self.display_image(plot_array)
 
@@ -1496,7 +1511,7 @@ class QwtImageDisplay(QwtPlot):
             _dprint(3, 'not complex type: self._vells_plot ', self._vells_plot)
             self.x_parm = self.first_axis_parm
             self.y_parm = self.second_axis_parm
-            if flip_axes:
+            if array_flip:
               self.x_parm = self.second_axis_parm
               self.y_parm = self.first_axis_parm
             delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
@@ -1510,10 +1525,16 @@ class QwtImageDisplay(QwtPlot):
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           else:
             if self._x_title is None:
-              self._x_title = 'Array/Channel Number'
+              if array_flip:
+                self._x_title = 'Array/Channel Number'
+              else:
+                self._x_title = 'Array/Sequence Number'
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             if self._y_title is None:
-              self._y_title = 'Array/Sequence Number'
+              if array_flip:
+                self._y_title = 'Array/Sequence Number'
+              else:
+                self._y_title = 'Array/Channel Number'
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
 	    if not self.y_marker_step is None:
               _dprint(3, 'creating split Y scale for Y axis ', self.y_marker_step)
@@ -1561,15 +1582,12 @@ class QwtImageDisplay(QwtPlot):
 # we have a vector so figure out which axis we are plotting
           self.x_parm = self.first_axis_parm
           self.y_parm = self.second_axis_parm
-          if flip_axes:
+          if array_flip:
             self.x_parm = self.second_axis_parm
             self.y_parm = self.first_axis_parm
 # now do a check in case we have selected the wrong plot axis
           if  self.y_parm is None:
             self.y_parm = self.x_parm
-#         if self.vells_axis_parms[self.x_parm][3] == 1 and self.vells_axis_parms[self.y_parm][3] > 1:
-#           self.x_parm = self.first_axis_parm
-#           self.y_parm = self.second_axis_parm
           delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
           x_step = delta_vells / num_elements 
           start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
@@ -1703,6 +1721,16 @@ class QwtImageDisplay(QwtPlot):
       self.metrics_rank = metrics_rank
       self.iteration_number = iteration_number
 
+    def convert_to_AP(self, real_imag_image):
+      a_p_image = real_imag_image.copy()
+      real_array = a_p_image.getreal()
+      imag_array = a_p_image.getimag()
+      abs_array = abs(a_p_image)
+      phase_array = arctan2(imag_array,real_array)
+      a_p_image.setreal(abs_array)
+      a_p_image.setimag(phase_array)
+      return a_p_image
+
     def setFlagsData (self, incoming_flag_array, flip_axes=True):
       """ figure out shape, rank etc of a flag array and
           plot it  """
@@ -1710,7 +1738,8 @@ class QwtImageDisplay(QwtPlot):
 # hack to get array display correct until forest.state
 # record is available
       flag_array = incoming_flag_array
-      if flip_axes:
+      self.original_flag_array = incoming_flag_array
+      if flip_axes and not self.axes_flip:
         axes = arange(incoming_flag_array.rank)[::-1]
         flag_array = transpose(incoming_flag_array, axes)
 
@@ -1732,7 +1761,6 @@ class QwtImageDisplay(QwtPlot):
 
       if flag_is_vector == False:
         self.plotImage.setFlagsArray(flag_array)
-        self.image_flag_array = flag_array
       else:
         num_elements = n_rows*n_cols
         self._flags_array = reshape(flag_array,(num_elements,))
@@ -1748,6 +1776,8 @@ class QwtImageDisplay(QwtPlot):
         self._menu.insertItem("Toggle ColorBar", toggle_id)
         toggle_id = self.menu_table['Toggle Color/GrayScale Display']
         self._menu.insertItem("Toggle Color/GrayScale Display", toggle_id)
+        toggle_id = self.menu_table['Toggle axis flip']
+        self._menu.insertItem("Toggle axis flip", toggle_id)
         if self.toggle_array_rank > 2: 
           toggle_id = self.menu_table['Toggle ND Controller']
           self._menu.insertItem("Toggle ND Controller", toggle_id)

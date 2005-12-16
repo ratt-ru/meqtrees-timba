@@ -672,11 +672,11 @@ class ResultPlotter(GriddedPlugin):
           if shape[1] > 1:
             self._x_title = 'Solvable Coeffs'
             self._y_title = 'Iteration Nr'
-            self._visu_plotter.array_plot("Solver Incremental Solutions", self._value_array, True)
+            self._visu_plotter.array_plot("Solver Incremental Solutions", self._value_array)
           else:
             self._y_title = 'Value'
             self._x_title = 'Iteration Nr'
-            self._visu_plotter.array_plot("Solver Incremental Solution", self._value_array, True)
+            self._visu_plotter.array_plot("Solver Incremental Solution", self._value_array)
         return
 
   def test_vells_scalar (self, data_array, data_label):
