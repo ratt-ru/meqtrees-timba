@@ -168,6 +168,8 @@ class QwtImageDisplay(QwtPlot):
         self.xmax = None
         self.ymin = None
         self.ymax = None
+        self.xsect_xpos = None
+        self.xsect_ypos = None
         self.adjust_color_bar = True
         self.array_selector = None
         self.original_flag_array = None
@@ -319,8 +321,8 @@ class QwtImageDisplay(QwtPlot):
         self.y_arrayloc = None
         self.enableAxis(QwtPlot.yRight, False)
         self.enableAxis(QwtPlot.xTop, False)
-        self.xCrossSectionLoc = None
-        self.yCrossSectionLoc = None
+        self.xsect_xpos = None
+        self.xsect_ypos = None
         toggle_id = self.menu_table['Delete X-Section Display']
         self.show_x_sections = False
         self._menu.setItemVisible(toggle_id, False)
@@ -592,10 +594,26 @@ class QwtImageDisplay(QwtPlot):
         self.axes_flip = False
       else:
         self.axes_flip = True
-      if self._vells_plot or self._plot_type is None:
-        if self._vells_plot and not self.original_flag_array is None:
+
+# delete any cross sections
+      self.delete_cross_sections()
+
+#     if self._vells_plot or self._plot_type is None:
+#     temp = self.xsect_xpos 
+#     self.xsect_xpos = self.xsect_ypos
+#     self.xsect_ypos = temp
+#     temp = self.x_arrayloc
+#     self.y_arrayloc = self.x_arrayloc
+#     self.x_arrayloc  = temp
+      if self._vells_plot:
+        if not self.original_flag_array is None:
           self.setFlagsData (self.original_flag_array)
         self.plot_vells_array(self.original_data, self.original_label)
+      if not self._vells_plot and self._plot_type is None:
+        print 'calling array_plot'
+        self.array_plot(self.original_label, self.original_data)
+#     if self._plot_type == 'spectra':
+#       self.array_plot(self.original_label, self.original_data, False)
     # toggleAxis()
 
     def updatePlotParameters(self):
@@ -1341,8 +1359,6 @@ class QwtImageDisplay(QwtPlot):
       self.enableAxis(QwtPlot.xBottom, False)
       self.enableAxis(QwtPlot.yRight, False)
       self.enableAxis(QwtPlot.xTop, False)
-      self.xCrossSectionLoc = None
-      self.yCrossSectionLoc = None
       self.myXScale = None
       self.myYScale = None
       self.split_axis = None
@@ -1376,7 +1392,11 @@ class QwtImageDisplay(QwtPlot):
 # record is available
       plot_array = incoming_plot_array
       axes = None
-      array_flip = flip_axes and not self.axes_flip
+      array_flip = None
+      if flip_axes:
+        array_flip = flip_axes and not self.axes_flip
+      else:
+        array_flip = self.axes_flip
       if array_flip:
         axes = arange(incoming_plot_array.rank)[::-1]
         plot_array = transpose(incoming_plot_array, axes)
