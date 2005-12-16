@@ -631,19 +631,16 @@ class ResultPlotter(GriddedPlugin):
 
         self.raw_data_rank = self._vells_data.getActiveDataRank()
 
-# do we have flags for data	  
-	self._flags_array = None
-        self.image_flag_array = None
+# do we have flags for data?	  
         if self._vells_data.activePlaneHasFlags():
-# add toggling for flags?
           flag_plane = self._vells_data.getActivePlane()
           self._visu_plotter.set_flag_toggles(flag_plane, True)
           self._visu_plotter.setFlagsData(self._vells_data.getActiveFlagData())
 
 # test and update the context menu
         menu_labels = self._vells_data.getMenuLabels()
-        self.vells_menu_items = len(menu_labels)
-        if self.vells_menu_items > 1:
+        vells_menu_items = len(menu_labels)
+        if vells_menu_items > 1:
           self._visu_plotter.setMenuItems(menu_labels)
 
 # plot the appropriate plane / perturbed value
