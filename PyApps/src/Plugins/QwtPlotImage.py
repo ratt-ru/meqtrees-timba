@@ -249,9 +249,6 @@ class QwtPlotImage(QwtPlotMappedItem):
 # display flag image pixels in black 
           self.flags_image.setColor(0, qRgb(0, 0, 0))
 
-#for testing only
-# 	  self.image = self.flag_image
-
     def setBrentjensImage(self, image):
       absmin = abs(image.min())
       MaxAbs = abs(image.max())
