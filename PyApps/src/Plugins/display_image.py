@@ -1434,6 +1434,16 @@ class QwtImageDisplay(QwtPlot):
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if self.complex_type and self._display_type != "brentjens":
           dummy_image = None
+          if self.ampl_phase:
+            dummy_image = self.complex_image.copy()
+            real_array = dummy_image.getreal()
+            imag_array = dummy_image.getimag()
+            abs_array = abs(dummy_image)
+            phase_array = arctan2(imag_array,real_array)
+            real_array = abs_array
+            imag_array = phase_array
+            dummy_image.setreal(real_array)
+            dummy_image.setimag(imag_array)
           if self._vells_plot:
             _dprint(3, 'complex type: self._vells_plot ', self._vells_plot)
             self.x_parm = self.first_axis_parm
@@ -1462,15 +1472,6 @@ class QwtImageDisplay(QwtPlot):
           else:
             if self.ampl_phase:
               self._x_title = 'Array/Channel Number (amplitude followed by phase)'
-              dummy_image = self.complex_image.copy()
-              real_array = dummy_image.getreal()
-              imag_array = dummy_image.getimag()
-              abs_array = abs(dummy_image)
-              phase_array = arctan2(imag_array,real_array)
-              real_array = abs_array
-              imag_array = phase_array
-              dummy_image.setreal(real_array)
-              dummy_image.setimag(imag_array)
             else:
               self._x_title = 'Array/Channel Number (real followed by imaginary)'
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
