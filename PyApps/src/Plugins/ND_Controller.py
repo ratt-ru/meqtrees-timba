@@ -7,13 +7,15 @@
 from qt import *
 import sys
 
-# the LCD Range class is directly adapted from the Qt/PyQt tutorial code examples
-class LCDRange(QVBox):
-    def __init__(self, lcd_number=1, lcd_parms=None,parent=None, name=None):
-        QVBox.__init__(self, parent, name)
+# the Axis Range class is directly adapted from the Qt/PyQt tutorial code examples
+class AxisRange(QWidget):
+    def __init__(self, axis_number=1, axis_parms=None,parent=None, name=None):
+        QWidget.__init__(self, parent, name)
 
-        self.lcd_number = lcd_number
-        self.lcd_parms=lcd_parms
+        self.button = QPushButton(' ', self)
+        self.axis_number = axis_number
+
+        self.axis_parms=axis_parms
         self.button_label = None
 
         self.spinbox = QSpinBox(self)
@@ -34,27 +36,32 @@ class LCDRange(QVBox):
         self.connect(self.slider, SIGNAL("valueChanged(int)"), self.update_slider)
         self.connect(self.spinbox, SIGNAL("valueChanged(int)"), self.update_spinbox)
 
+        self.layout = QGridLayout(self)
+        self.layout.addMultiCellWidget(self.button,0,1,0,0)
+        self.layout.addMultiCellWidget(QLabel(' ', self),0,1,1,1)
+        self.layout.addWidget(self.spinbox, 0,2)
+        self.layout.addWidget(self.slider, 1,2)
+        self.layout.addMultiCellWidget(QLabel(' ', self),0,1,3,3)
 
-#       self.setFocusProxy(self.slider)
-    
-        self.qlabel = QLabel(self)
-        self.qlabel.setText('  ')
-        self.qlabel1 = QLabel(self)
-        self.qlabel1.setText('  ')
+        self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
+
+    def getButton(self):
+      return self.button
 
     def setLabel(self, label):
         self.button_label = label
+        self.button.setText(label)
 
     def value(self):
         return self.slider.value()
 
     def resetValue(self):
         display_str = None
-        if self.lcd_parms is None or not self.active:
+        if self.axis_parms is None or not self.active:
           display_str = str(0)
         else:
-          delta_vells = (self.lcd_parms[1] - self.lcd_parms[0]) / self.maxVal
-          index = self.lcd_parms[0] + 0.5 * delta_vells 
+          delta_vells = (self.axis_parms[1] - self.axis_parms[0]) / self.maxVal
+          index = self.axis_parms[0] + 0.5 * delta_vells 
           dummy = str(index)
           if len(dummy) > 10:
             display_str = dummy[:9]
@@ -65,9 +72,9 @@ class LCDRange(QVBox):
 
     def setDisplayString(self, value ):
       display_str = ''
-      if not self.lcd_parms is None:
-        delta_vells = (self.lcd_parms[1] - self.lcd_parms[0]) / self.maxVal
-        index = self.lcd_parms[0] + (value + 0.5) * delta_vells 
+      if not self.axis_parms is None:
+        delta_vells = (self.axis_parms[1] - self.axis_parms[0]) / self.maxVal
+        index = self.axis_parms[0] + (value + 0.5) * delta_vells 
         dummy = str(index)
         if len(dummy) > 10:
           display_str = dummy[:9]
@@ -76,14 +83,15 @@ class LCDRange(QVBox):
         self.spinbox.setPrefix(display_str + '  ')
       if not self.button_label is None:
         display_str = self.button_label + ' ' + display_str
-      self.emit(PYSIGNAL("sliderValueChanged"), (self.lcd_number, value, display_str))
+#     print 'setDisplayString emitting signal ValueChanged with ', (self.axis_number, value, display_str)
+      self.emit(PYSIGNAL("ValueChanged"), (self.axis_number, value, display_str))
 
     def setRange(self, array_shape):
         self.slider.setRange(0, array_shape-1)
         self.spinbox.setMaxValue(array_shape-1)
         self.maxVal = array_shape
 
-    def setLCDColor(self, color):
+    def setSpinBoxColor(self, color):
         self.spinbox.setPaletteBackgroundColor(color)
 
     def setActive(self, active):
@@ -123,6 +131,7 @@ class ND_Controller(QWidget):
 
 # create grid layout
       self.layout = QGridLayout(self)
+      self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Preferred)
 
       self.axis_parms = axis_parms
 
@@ -133,7 +142,7 @@ class ND_Controller(QWidget):
 # add control buttons and LCD Displays
       self.buttons = []
       self.button_number = []
-      self.lcd_ranges = []
+      self.axis_controllers = []
       row = 0
       col = 0
       self.rank = 0
@@ -155,10 +164,27 @@ class ND_Controller(QWidget):
             button_label = axis_label[i]
           else:
             button_label = 'axis ' + str(i)
-          button = QPushButton(button_label, self);
-          mincolwidth = button.sizeHint().width()
-          self.layout.setColSpacing(col,mincolwidth)
-          self.buttons.append(button)
+          if self.axis_parms is None:
+            parms = None
+          else:
+            if self.axis_parms.has_key(axis_label[i]):
+              parms = self.axis_parms[axis_label[i]]
+            else:
+              parms = None
+          self.axis_controllers.append(AxisRange(axis_number=self.num_selectors, axis_parms=parms, parent=self))
+          self.axis_controllers[self.num_selectors].setLabel(button_label)
+          self.axis_controllers[self.num_selectors].setRange(array_shape[i])
+          if self.num_selectors <= self.rank -3:
+            self.axis_controllers[self.num_selectors].setSpinBoxColor(Qt.green)
+            self.axis_controllers[self.num_selectors].setActive(True)
+            self.axis_controllers[self.num_selectors].resetValue()
+          else:
+            self.axis_controllers[self.num_selectors].setSpinBoxColor(Qt.red)
+
+          QObject.connect(self.axis_controllers[self.num_selectors], PYSIGNAL("ValueChanged"),self.update)
+          self.layout.addWidget(self.axis_controllers[self.num_selectors], row, col);
+
+          self.buttons.append(self.axis_controllers[self.num_selectors].getButton())
           self.button_number.append(i)
           self.buttons[self.num_selectors].setToggleButton(True)
           if self.num_selectors <= self.rank -3:
@@ -168,34 +194,8 @@ class ND_Controller(QWidget):
             self.buttons[self.num_selectors].setOn(True)
             self.buttons[self.num_selectors].setPaletteForegroundColor(Qt.green)
             self.active_axes[self.num_selectors] = True
-          self.layout.addWidget(self.buttons[self.num_selectors], row, col)
           self.buttonGroup.insert(self.buttons[self.num_selectors],self.num_selectors)
-          col = col + 1
-          self.layout.addWidget(QLabel(' ', self),row,col)
-
-# add lcd ranges
-          col = col + 1;
-          if self.axis_parms is None:
-            parms = None
-          else:
-            if self.axis_parms.has_key(axis_label[i]):
-              parms = self.axis_parms[axis_label[i]]
-            else:
-              parms = None
-          self.lcd_ranges.append (LCDRange(self.num_selectors, parms, self))
-          self.lcd_ranges[self.num_selectors].setLabel(button_label)
-          self.lcd_ranges[self.num_selectors].setRange(array_shape[i])
-          QObject.connect(self.lcd_ranges[self.num_selectors], PYSIGNAL("sliderValueChanged"),self.update)
-          self.layout.addWidget(self.lcd_ranges[self.num_selectors], row, col);
-          col = col + 1;
-          self.layout.addWidget(QLabel(' ', self),row,col)
-          if self.num_selectors <= self.rank -3:
-            self.lcd_ranges[self.num_selectors].setLCDColor(Qt.green)
-            self.lcd_ranges[self.num_selectors].setActive(True)
-            self.lcd_ranges[self.num_selectors].resetValue()
-          else:
-            self.lcd_ranges[self.num_selectors].setLCDColor(Qt.red)
-          if col >= 7:
+          if col >= 1:
             col = 0
             row = row + 1
           else:
@@ -221,7 +221,7 @@ class ND_Controller(QWidget):
           self.buttons[button_id].setOn(True)
         if self.buttons[button_id].isOn():
           self.buttons[button_id].setPaletteForegroundColor(Qt.green)
-          self.lcd_ranges[button_id].setLCDColor(Qt.red)
+          self.axis_controllers[button_id].setSpinBoxColor(Qt.red)
           self.active_axes[button_id] = True
           if len(self.active_axes) == 2:
             first_axis = None
@@ -232,19 +232,19 @@ class ND_Controller(QWidget):
                   first_axis = self.button_number[i]
                 else:
                   second_axis = self.button_number[i]
-                self.lcd_ranges[i].setLCDColor(Qt.red)
-                self.lcd_ranges[i].setActive(False)
+                self.axis_controllers[i].setSpinBoxColor(Qt.red)
+                self.axis_controllers[i].setActive(False)
               else:
-                self.lcd_ranges[i].setLCDColor(Qt.green)
-                self.lcd_ranges[i].setActive(True)
-              self.lcd_ranges[i].resetValue()
+                self.axis_controllers[i].setSpinBoxColor(Qt.green)
+                self.axis_controllers[i].setActive(True)
+              self.axis_controllers[i].resetValue()
+#           print "defineAxes emitting signal defineSelectedAxes with ", (first_axis, second_axis)
             self.emit(PYSIGNAL("defineSelectedAxes"), (first_axis, second_axis))
-#           print 'emitted defineSelectedAxes signal'
         else:
           if self.active_axes.has_key(button_id):
             del self.active_axes[button_id]
           self.buttons[button_id].setPaletteForegroundColor(Qt.red)
-          self.lcd_ranges[button_id].setLCDColor(Qt.red)
+          self.axis_controllers[button_id].setSpinBoxColor(Qt.red)
     # defineAxes
 
     def redefineAxes(self):
@@ -256,20 +256,21 @@ class ND_Controller(QWidget):
         for i in range(self.num_selectors):
           self.buttons[i].setOn(False)
           self.buttons[i].setPaletteForegroundColor(Qt.red)
-          self.lcd_ranges[i].setLCDColor(Qt.red)
-          self.lcd_ranges[i].setActive(False)
-          self.lcd_ranges[i].resetValue()
+          self.axis_controllers[i].setSpinBoxColor(Qt.red)
+          self.axis_controllers[i].setActive(False)
+          self.axis_controllers[i].resetValue()
         self.active_axes = {}
     # resetAxes
 
-    def update(self, lcd_number, slider_value, display_string):
-      if not self.active_axes.has_key(lcd_number):
-        if not self.buttons[lcd_number].isOn():
-          self.emit(PYSIGNAL("sliderValueChanged"), (self.button_number[lcd_number], slider_value, display_string))
+    def update(self, axis_number, slider_value, display_string):
+      if not self.active_axes.has_key(axis_number):
+        if not self.buttons[axis_number].isOn():
+#         print 'update emitting signal sliderValueChanged with  ', (self.button_number[axis_number], slider_value, display_string)
+          self.emit(PYSIGNAL("sliderValueChanged"), (self.button_number[axis_number], slider_value, display_string))
         else:
-          self.lcd_ranges[lcd_number].resetValue()
+          self.axis_controllers[axis_number].resetValue()
       else:
-        self.lcd_ranges[lcd_number].resetValue()
+        self.axis_controllers[axis_number].resetValue()
 
 # class ND_Controller
 
