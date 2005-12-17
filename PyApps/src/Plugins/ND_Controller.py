@@ -13,6 +13,7 @@ class AxisRange(QWidget):
         QWidget.__init__(self, parent, name)
 
         self.button = QPushButton(' ', self)
+        self.button.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
         self.axis_number = axis_number
 
         self.axis_parms=axis_parms
