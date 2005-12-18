@@ -173,81 +173,94 @@ class QwtPlotImage(QwtPlotMappedItem):
       self.setImageRange(flagged_image)
     # setFlaggedImageRange
 
-    def setImage(self, image):
-        if image.type() == Complex32 or image.type() == Complex64:
-          self.complex = True
-          real_array =  image.getreal()
-          imag_array =  image.getimag()
-          limits = [self.r_cmin,self.r_cmax]
-          byte_image = bytescale(real_array,limits)
-          (nx,ny) = real_array.shape
-          image_for_display = array(shape=(nx*2,ny),type=byte_image.type());
-          image_for_display[:nx,:] = byte_image
-          limits = [self.i_cmin,self.i_cmax]
-          byte_image = bytescale(imag_array,limits)
-          image_for_display[nx:,:] = byte_image
-        else:
-          limits = [self.r_cmin,self.r_cmax]
-          image_for_display = bytescale(image,limits)
-        
-# turn image into a QImage	
-        self.image = toQImage(image_for_display).mirror(0, 1)
-        self.flags_image = None
+    def to_QImage(self, image):
+# convert to 8 bit image
+      if image.type() == Complex32 or image.type() == Complex64:
+        self.complex = True
+        real_array =  image.getreal()
+        imag_array =  image.getimag()
+        limits = [self.r_cmin,self.r_cmax]
+        byte_image = bytescale(real_array,limits)
+        (nx,ny) = real_array.shape
+        image_for_display = array(shape=(nx*2,ny),type=byte_image.type());
+        image_for_display[:nx,:] = byte_image
+        limits = [self.i_cmin,self.i_cmax]
+        byte_image = bytescale(imag_array,limits)
+        image_for_display[nx:,:] = byte_image
+      else:
+        limits = [self.r_cmin,self.r_cmax]
+        image_for_display = bytescale(image,limits)
+# turn image into a QImage, and return result	
+      return toQImage(image_for_display).mirror(0, 1)
 
-# set color scale a la HippoDraw Scale
-        if self.display_type == "hippo":
-          dv = 255.0
-          vmin = 1.0
-          for i in range(0, 256):
-            r = 1.0
-            g = 1.0
-            b = 1.0
-            v = 1.0 * i
-            if (v < (vmin + 0.25 * dv)):
-              r = 0;
-              if dv != 0:
-                g = 4 * (v - vmin) / dv;
-            elif (v < (vmin + 0.5 * dv)):
-              r = 0;
-              if dv != 0:
-                b = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
-            elif (v < (vmin + 0.75 * dv)):
-              b = 0;
-              if dv != 0:
-                r = 4 * (v - vmin - 0.5 * dv) / dv;
-            else: 
-              b = 0;
-              if dv != 0:
-                g = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
-              else:
-                r = 0
-            red   = int ( r * 255. )
-            green = int ( g * 255. )
-            blue  = int ( b * 255. )
+    def toGrayScale(self, Qimage):
+      for i in range(0, 256):
+        Qimage.setColor(i, qRgb(i, i, i))
+
+    def toHippo(self, Qimage):
+      dv = 255.0
+      vmin = 1.0
+      for i in range(0, 256):
+        r = 1.0
+        g = 1.0
+        b = 1.0
+        v = 1.0 * i
+        if (v < (vmin + 0.25 * dv)):
+          r = 0;
+          if dv != 0:
+            g = 4 * (v - vmin) / dv;
+        elif (v < (vmin + 0.5 * dv)):
+          r = 0;
+          if dv != 0:
+            b = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
+        elif (v < (vmin + 0.75 * dv)):
+          b = 0;
+          if dv != 0:
+            r = 4 * (v - vmin - 0.5 * dv) / dv;
+        else: 
+          b = 0;
+          if dv != 0:
+            g = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
+          else:
+            r = 0
+        red   = int ( r * 255. )
+        green = int ( g * 255. )
+        blue  = int ( b * 255. )
 # the following call will use the previous computations to
 # set up a hippo-like color display
-            self.image.setColor(i, qRgb(red, green, blue))
+        Qimage.setColor(i, qRgb(red, green, blue))
 
-# the following call will set up gray scale
-        if self.display_type == "grayscale":
-          for i in range(0, 256):
-            self.image.setColor(i, qRgb(i, i, i))
+    def setImage(self, image):
+# convert to QImage
+      self.image = self.to_QImage(image)
 
-# compute flagged image
-        if not self._flags_array is None:
- 	  self.flags_image =  self.image.copy()
-          n_rows = self._flags_array.shape[0]
-          n_cols = self._flags_array.shape[1]
-	  for j in range(0, n_rows ) :
-	    for i in range(0, n_cols) :
+# set color scale a la HippoDraw Scale
+      if self.display_type == "hippo":
+        self.toHippo(self.image)
+
+# set color scale to Grayscale
+      if self.display_type == "grayscale":
+        self.toGrayScale(self.image)
+
+# compute flagged image if required
+      self.flags_image = None
+      if not self._flags_array is None:
+        self.setFlagQimage()
+
+    def setFlagQimage(self):
+      self.flags_image =  self.image.copy()
+      n_rows = self._flags_array.shape[0]
+      n_cols = self._flags_array.shape[1]
+      for j in range(0, n_rows ) :
+        for i in range(0, n_cols) :
 # display is mirrored in vertical direction	    
-	      mirror_col = n_cols-1-i
-	      if self._flags_array[j][i] > 0:
- 	        self.flags_image.setPixel(j,mirror_col,0)
-                if self.complex:
- 	          self.flags_image.setPixel(j+n_rows,mirror_col,0)
+          mirror_col = n_cols-1-i
+	  if self._flags_array[j][i] > 0:
+ 	    self.flags_image.setPixel(j,mirror_col,0)
+            if self.complex:
+ 	      self.flags_image.setPixel(j+n_rows,mirror_col,0)
 # display flag image pixels in black 
-          self.flags_image.setColor(0, qRgb(0, 0, 0))
+      self.flags_image.setColor(0, qRgb(0, 0, 0))
 
     def setBrentjensImage(self, image):
       absmin = abs(image.min())
