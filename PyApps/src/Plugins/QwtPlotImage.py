@@ -46,7 +46,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.ComplexColorMap = None
 	self._flags_array = None
 	self._display_flags = False
-        self.image = None
+        self.Qimage = None
         self.r_cmax = None
         self.r_cmin = None
         self.i_cmax = None
@@ -232,23 +232,23 @@ class QwtPlotImage(QwtPlotMappedItem):
 
     def setImage(self, image):
 # convert to QImage
-      self.image = self.to_QImage(image)
+      self.Qimage = self.to_QImage(image)
 
 # set color scale a la HippoDraw Scale
       if self.display_type == "hippo":
-        self.toHippo(self.image)
+        self.toHippo(self.Qimage)
 
 # set color scale to Grayscale
       if self.display_type == "grayscale":
-        self.toGrayScale(self.image)
+        self.toGrayScale(self.Qimage)
 
 # compute flagged image if required
-      self.flags_image = None
+      self.flags_Qimage = None
       if not self._flags_array is None:
         self.setFlagQimage()
 
     def setFlagQimage(self):
-      self.flags_image =  self.image.copy()
+      self.flags_Qimage =  self.Qimage.copy()
       n_rows = self._flags_array.shape[0]
       n_cols = self._flags_array.shape[1]
       for j in range(0, n_rows ) :
@@ -256,11 +256,11 @@ class QwtPlotImage(QwtPlotMappedItem):
 # display is mirrored in vertical direction	    
           mirror_col = n_cols-1-i
 	  if self._flags_array[j][i] > 0:
- 	    self.flags_image.setPixel(j,mirror_col,0)
+ 	    self.flags_Qimage.setPixel(j,mirror_col,0)
             if self.complex:
- 	      self.flags_image.setPixel(j+n_rows,mirror_col,0)
+ 	      self.flags_Qimage.setPixel(j+n_rows,mirror_col,0)
 # display flag image pixels in black 
-      self.flags_image.setColor(0, qRgb(0, 0, 0))
+      self.flags_Qimage.setColor(0, qRgb(0, 0, 0))
 
     def setBrentjensImage(self, image):
       absmin = abs(image.min())
@@ -276,14 +276,14 @@ class QwtPlotImage(QwtPlotMappedItem):
         shape = image.shape
         Ncol = self.ComplexColorMap.getNumberOfColors()
         bits_per_pixel = 32
-        self.image = QImage(shape[0], shape[1], bits_per_pixel, Ncol)
+        self.Qimage = QImage(shape[0], shape[1], bits_per_pixel, Ncol)
         for i in range(shape[0]):
           for j in range(shape[1]):
             colre = int(self.ValueAxis.worldToAxis(real_image[i,j]))
             colim = int(self.ValueAxis.worldToAxis(imag_image[i,j]))
             if(colre < Ncol and colim < Ncol): 
               value = self.ComplexColorMap.get_color_value(colre,colim)
-              self.image.setPixel(i,j,value)
+              self.Qimage.setPixel(i,j,value)
             else:
               _dprint(2, "*************************************");
               _dprint(2, "colre: ", colre);
@@ -292,7 +292,7 @@ class QwtPlotImage(QwtPlotMappedItem):
               _dprint(2, "imag : ", imag_image[i,j]);
               _dprint(2, "Ncol: ", Ncol);
               _dprint(2, "*************************************");
-        self.image.mirror(0,1)
+        self.Qimage.mirror(0,1)
 
     def setData(self, data_array, xScale = None, yScale = None):
         self.complex = False
@@ -332,16 +332,16 @@ class QwtPlotImage(QwtPlotMappedItem):
         Calculate (x1, y1, x2, y2) so that it contains at least 1 pixel,
         and copy the visible region to scale it to the canvas.
         """
-        if self.image is None:
+        if self.Qimage is None:
           return
 
 #       print 'in drawImage'
 #       print 'incoming x map ranges ',xMap.d1(), ' ', xMap.d2()
 #       print 'incoming y map ranges ',yMap.d1(), ' ', yMap.d2()
         # calculate y1, y2
-        y1 = y2 = self.image.height()
-#       print 'image height ', self.image.height()
-#        y1 = y2 = self.image.height() - 1
+        y1 = y2 = self.Qimage.height()
+#       print 'image height ', self.Qimage.height()
+#        y1 = y2 = self.Qimage.height() - 1
 #        print 'starting image height ', y1
         y1 *= (self.yMap.d2() - yMap.d2())
         y1 /= (self.yMap.d2() - self.yMap.d1())
@@ -352,12 +352,12 @@ class QwtPlotImage(QwtPlotMappedItem):
         y2 *= (self.yMap.d2() - yMap.d1())
         y2 /= (self.yMap.d2() - self.yMap.d1())
 #       print 'float y2 ', y2
-#       y2 = min(self.image.height(), int(y2+0.5))
-        y2 = min(self.image.height(), (y2+0.5))
+#       y2 = min(self.Qimage.height(), int(y2+0.5))
+        y2 = min(self.Qimage.height(), (y2+0.5))
         y2 = int(y2)
 #       print 'int y1, y2 ', y1, ' ', y2
         # calculate x1, x2 - these are OK
-        x1 = x2 = self.image.width() 
+        x1 = x2 = self.Qimage.width() 
 #       print 'starting image width ', x1
         x1 *= (xMap.d1() - self.xMap.d1())
         x1 /= (self.xMap.d2() - self.xMap.d1())
@@ -367,14 +367,14 @@ class QwtPlotImage(QwtPlotMappedItem):
         x2 *= (xMap.d2() - self.xMap.d1())
         x2 /= (self.xMap.d2() - self.xMap.d1())
 #       print 'float x2 ', x2
-        x2 = min(self.image.width(), int(x2+0.5))
+        x2 = min(self.Qimage.width(), int(x2+0.5))
 #       print 'x1, x2 ', x1, ' ', x2
         # copy
 	image = None
 	if self._display_flags:
-          image = self.flags_image.copy(x1, y1, x2-x1, y2-y1)
+          image = self.flags_Qimage.copy(x1, y1, x2-x1, y2-y1)
 	else:
-          image = self.image.copy(x1, y1, x2-x1, y2-y1)
+          image = self.Qimage.copy(x1, y1, x2-x1, y2-y1)
         # zoom
         image = image.smoothScale(xMap.i2()-xMap.i1()+1, yMap.i1()-yMap.i2()+1)
         # draw
