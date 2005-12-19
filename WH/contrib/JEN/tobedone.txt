@@ -18,6 +18,15 @@ NB: Just temporary: To be converted into Bugzilla items....!
    - Allow later specification of shape (also via Joneset?)
    - Allow ND funklets......!
 
+ - JEN: TDL_Parmset.py (new official object)
+   - Contains regester/parmgroup/solvegroup from TDL_Joneset
+   - A Joneset/Cohset/Sixpack object contains a Parmset object
+   - js.Parmset.register(...) 
+
+ - GVD: MeqTree testing
+   - when using a subset of the MS, the tree is still made for all ifrs
+     (however, it does not fail....)
+
  - MXM/JEN/SBY: Tools for funklet creation.....
  - SBY/OMS: Domain dimensions.....
 

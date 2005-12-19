@@ -1,23 +1,21 @@
 # MG_JEN_cps_GDJones.py
 
 # Short description:
-#   Gain/leakage calibration on a Central Point Source (cps) 
+#   Simultaneaos GJones/DJones solution script
+#   for a central point source (cps), i.e. a calibrator source
 
 # Keywords: ....
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
 # History:
-# - 25 sep 2005: creation
+# - 19 dec 2005: converted to JEN_inarg
 
-# Copyright: The MeqTree Foundation
-
-# Full description:
-
+# Copyright: The MeqTree Foundation 
 
 #********************************************************************************
 #********************************************************************************
-#**************** PART II: Preample and initialisation **************************
+#**************** PART II: Preamble *********************************************
 #********************************************************************************
 #********************************************************************************
 
@@ -25,85 +23,203 @@ from Timba.TDL import *
 # from Timba.Meq import meq
 
 from numarray import *
-# from string import *
-# from copy import deepcopy
 
+from Timba.Trees import JEN_inarg
 from Timba.Trees import TDL_Cohset
+from Timba.Trees import TDL_Joneset
+from Timba.Trees import TDL_MSauxinfo
+# from Timba.Trees import TDL_Sixpack
+
 from Timba.Contrib.JEN import MG_JEN_Cohset
+from Timba.Contrib.JEN import MG_JEN_Joneset
+from Timba.Contrib.JEN import MG_JEN_Sixpack
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 
+from Timba.Contrib.JEN import MG_JEN_twig
+from Timba.Contrib.JEN import MG_JEN_dataCollect
+from Timba.Contrib.JEN import MG_JEN_historyCollect
 from Timba.Contrib.JEN import MG_JEN_flagger
 
 
-#-------------------------------------------------------------------------
-# MG control record (may be edited here)
-
-   # Some alternatives:
-   # punit = 'unpol'
-   # punit = '3c147'
-   # punit = 'RMtest'
-   # punit = 'QUV'
-   # punit = 'QU'
-   # punit =  'SItest'
 
 
-MG = MG_JEN_exec.MG_init('MG_JEN_cps_GDJones.py',
-                         last_changed = 'd28sep2005',
-                         punit='QU',                        # name of calibrator source
-                         stations=range(4),                   # specify the (subset of) stations to be used
-                         MS_corr_index = [0,1,2,3],              # correlations to be used
-                         # MS_corr_index = [0,-1,-1,1],          # only XX/YY available
-                         # MS_corr_index = [0,-1,-1,3],          # all available, but use only XX/YY
-                         parmtable=None,                      # name of MeqParm table
-                         # output_col='RESIDUALS',
-                         output_col='PREDICT',
-                         
-                         insert_solver=True,                   # if True, insert a solver
-                         # num_cells=[2,2],                       # resampling (None=ignore)
-                         num_iter=20,                             # (max) number of solver iterations per snippet
-                         epsilon=1e-4,                            # iteration stop criterion (policy-free)
-                         subtract_cps=True,                   # if True, subtract the cps
-                         correct_data=False,                   # if True, correct the uv-data
 
-                         fdeg_Gampl=2,                          # degree of freq polynomial
-                         fdeg_Gphase='fdeg_Gampl',
-                         tdeg_Gampl=1,                          # degree of time polynomial
-                         tdeg_Gphase='tdeg_Gampl',
-                         tile_size_Gampl=None,                   # used in tiled solutions
-                         tile_size_Gphase='tile_size_Gampl',
-                         
-                         fdeg_dang=2,                          # degree of freq polynomial
-                         fdeg_dell='fdeg_dang',
-                         tdeg_dang=1,                          # degree of time polynomial
-                         tdeg_dell='tdeg_dang',
-                         tile_size_dang=None,                   # used in tiled solutions
-                         tile_size_dell='tile_size_dang',
+#********************************************************************************
+#********************************************************************************
+#****************** PART II: Definition of importable functions *****************
+#********************************************************************************
+#********************************************************************************
 
-                         flag_spigots=False,                   # If True, insert a flagger before solving
-                         flag_sinks=False,                      # If True, insert a flagger after solving
 
-                         visu_spigots=True,               # If True, insert built-in view(s) 
-                         visu_solver=True,                    # If True, insert built-in view(s) 
-                         visu_sinks=True,                # If True, insert built-in view(s)
-                         trace=False)                              # If True, produce progress messages  
 
-MG.stream_control = record(ms_name='D1.MS',
-                           data_column_name='DATA',
-                           tile_size=10,                              # input tile-size
-                           channel_start_index=10,
-                           channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
-                           # output_col='RESIDUALS')
-                           predict_column='CORRECTED_DATA')
 
-MG = MG_JEN_exec.MG_check(MG)
 
-#-------------------------------------------------------------------------
+#********************************************************************************
+#********************************************************************************
+#************* PART III: MG control record (may be edited here)******************
+#********************************************************************************
+#********************************************************************************
+
+
+#----------------------------------------------------------------------------------------------------
+# Intialise the MG control record with some overall arguments 
+#----------------------------------------------------------------------------------------------------
+
+# punit = 'unpol'
+# punit = 'unpol2'
+# punit = '3c147'
+# punit = 'RMtest'
+# punit = 'QUV'
+# punit = 'QU'
+# punit =  'SItest'
+# punit = 'unpol10'
+
+MG = JEN_inarg.init('MG_JEN_cps_GDJones',
+                    last_changed = 'd19dec2005',
+                    punit='QU',                        # name of calibrator source/patch
+                    polrep='linear',                   # polarisation representation (linear/circular)
+                    # polrep='circular',                 # polarisation representation (linear/circular)
+                    stations=range(4),                 # specify the (subset of) stations to be used
+                    parmtable=None)                    # name of MeqParm table
+
+# Derive a list of ifrs from MG['stations'] (used below):
+MG['ifrs'] = TDL_Cohset.stations2ifrs(MG['stations'])
+
+
+
+#----------------------------------------------------------------------------------------------------
+# Specify arguments for data stream control:
+#----------------------------------------------------------------------------------------------------
+
+
+MG['stream_control'] = dict(ms_name='D1.MS',
+                            data_column_name='DATA',
+                            tile_size=10,                   # input tile-size
+                            channel_start_index=10,
+                            channel_end_index=50,           # -10 should indicate 10 from the end (OMS...)
+                            # output_col='RESIDUALS')
+                            predict_column='CORRECTED_DATA')
+
+inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
+JEN_inarg.modify(inarg,
+                 # MS_corr_index=[0,-1,-1,1],       # only XX/YY available
+                 # MS_corr_index=[0,-1,-1,3],       # all available, use only XX/YY
+                 MS_corr_index=[0,1,2,3],           # all corrs available, use all
+                 # flag=False,                        # if True, flag the input data
+                 visu=True,                         # if True, visualise the input data
+                 _JEN_inarg_option=None)            # optional, not yet used 
+JEN_inarg.attach(MG, inarg)
+                 
+
+
+inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
+JEN_inarg.modify(inarg,
+                 output_col='PREDICT',              # logical (tile) output column
+                 visu_array_config=True,            # if True, visualise the array config (from MS)
+                 # flag=False,                        # if True, flag the input data
+                 visu=True,                         # if True, visualise the input data
+                 _JEN_inarg_option=None)            # optional, not yet used 
+JEN_inarg.attach(MG, inarg)
+                 
+
+
+
+
+
+#----------------------------------------------------------------------------------------------------
+# Specify arguments for solver-related functions:
+#----------------------------------------------------------------------------------------------------
+
+
+# Specify the name qualifier for (the inarg records of) this 'predict and solve' group.
+# NB: The same qualifier should be used when using the functions in _define_forest()
+qual = None
+
+# Specify the sequence of zero or more (corrupting) Jones matrices:
+Jsequence = ['GJones','DJones_WSRT'] 
+
+# Specify a list of MeqParm solvegroup(s) to be solved for:
+solvegroup = ['GJones','DJones']
+
+
+inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
+JEN_inarg.modify(inarg,
+                 stations=MG['stations'],               # List of array stations
+                 parmtable=MG['parmtable'],             # MeqParm table name
+                 unsolvable=False,                      # If True, no solvegroup info is kept
+                 polrep=MG['polrep'],                   # polarisation representation
+                 Jsequence=Jsequence,                   # Sequence of corrupting Jones matrices 
+                 _JEN_inarg_option=None)                # optional, not yet used 
+if 'GJones' in Jsequence: 
+    JEN_inarg.modify(inarg,
+                     Gphase_constrain=True,             # if True, constrain 1st station phase
+                     fdeg_Gampl=5,                      # degree of default freq polynomial         
+                     fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
+                     tdeg_Gampl=0,                      # degree of default time polynomial         
+                     tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
+                     tile_size_Gampl=0,                 # used in tiled solutions         
+                     tile_size_Gphase='tile_size_Gampl', # used in tiled solutions         
+                     _JEN_inarg_option=None)            # optional, not yet used 
+if 'DJones_WSRT' in Jsequence: 
+    JEN_inarg.modify(inarg,
+                     fdeg_dang=1,                       # degree of default freq polynomial
+                     fdeg_dell='fdeg_dang',             # degree of default freq polynomial
+                     tdeg_dang=0,                       # degree of default time polynomial
+                     tdeg_dell='tdeg_dang',             # degree of default time polynomial
+                     tile_size_dang=0,                  # used in tiled solutions         
+                     tile_size_dell='tile_size_dang',   # used in tiled solutions         
+                     _JEN_inarg_option=None)            # optional, not yet used 
+JEN_inarg.attach(MG, inarg)
+
+
+
+inarg = MG_JEN_Cohset.predict(_getdefaults=True, _qual=qual)  
+JEN_inarg.modify(inarg,
+                 ifrs=MG['ifrs'],                       # list of Cohset ifrs 
+                 polrep=MG['polrep'],                   # polarisation representation
+                 _JEN_inarg_option=None)                # optional, not yet used 
+JEN_inarg.attach(MG, inarg)
+
+
+inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
+JEN_inarg.modify(inarg,
+                 solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
+                 # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
+                 # num_iter=20,                       # max number of iterations
+                 # epsilon=1e-4,                      # iteration control criterion
+                 # debug_level=10,                    # solver debug_level
+                 visu=True,                         # if True, include visualisation
+                 history=True,                      # if True, include history collection of metrics 
+                 subtract=False,                    # if True, subtract 'predicted' from uv-data 
+                 correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
+                 _JEN_inarg_option=None)            # optional, not yet used 
+JEN_inarg.attach(MG, inarg)
+                 
+
+
+
+
+
+
+
+
+
+#====================================================================================
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(MG)
+MG_JEN_forest_state.init(MG['script_name'])
+
+
+#====================================================================================
+# The MSauxinfo object contains auxiliary MS info (nodes):
+# It is used at various points in this module, e.g. make_sinks()
+
+MSauxinfo = TDL_MSauxinfo.MSauxinfo(label=MG['script_name'])
+MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
+
 
 
 
@@ -112,82 +228,49 @@ MG_JEN_forest_state.init(MG)
 
 #********************************************************************************
 #********************************************************************************
-#**************** PART III: Required test/demo function *************************
+#***************** PART IV: Required test/demo function *************************
 #********************************************************************************
 #********************************************************************************
 
-
-
-
-# Tree definition:
 
 def _define_forest (ns):
-   """Definition of a MeqForest for demonstration/testing/experimentation
-   of the subject of this MG script, and its importable functions"""
-   # Perform some common functions, and return an empty list (cc=[]):
-   cc = MG_JEN_exec.on_entry (ns, MG)
 
-   # Make spigots for a specific set of ifrs:
-   ifrs = TDL_Cohset.stations2ifrs(MG['stations'])
-   stations = TDL_Cohset.ifrs2stations(ifrs)
-   Cohset = TDL_Cohset.Cohset(label=MG.script_name, polrep='linear', stations=stations)
+    # Perform some common functions, and return an empty list (cc=[]):
+    cc = MG_JEN_exec.on_entry (ns, MG)
 
-   # Make MeqSpigot nodes that read the MS:
-   MG_JEN_Cohset.make_spigots(ns, Cohset, MS_corr_index=MG['MS_corr_index'],
-                              visu=MG['visu_spigots'], flag=MG['flag_spigots'])
+    # Make MeqSpigot nodes that read the MS:
+    Cohset = TDL_Cohset.Cohset(label=MG['script_name'],
+                               polrep=MG['polrep'],
+                               ifrs=MG['ifrs'])
+    MG_JEN_Cohset.make_spigots(ns, Cohset, _inarg=MG)
 
-   # Make predicted data with a punit (see above) and corrupting Jones matrices
-   Sixpack = MG_JEN_Cohset.punit2Sixpack (ns, punit=MG['punit'])
-   Joneset = MG_JEN_Cohset.JJones(ns, jones=['G','D'], Sixpack=Sixpack, **MG)
-   predicted = MG_JEN_Cohset.predict (ns, ifrs=ifrs, Sixpack=Sixpack, Joneset=Joneset)
+    # Make a Cohset with predicted (corrupted) uv-data:
+    qual = None
+    Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
+    Joneset =  MG_JEN_Cohset.JJones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
+    predicted =  MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
+    
+    # Insert the solver:
+    MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG, _qual=qual)
+    MG_JEN_Cohset.visualise (ns, Cohset)
+    MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
 
-   if MG['insert_solver']:
-      # Insert a solver for a named solvegroup of MeqParms.
-      # After solving, the predicted (punit) uv-model may be subtracted: 
-      subtract = None
-      if MG['subtract_cps']: subtract = predicted
-      # After solving, the uv-data may be corrected with the the improved Joneset: 
-      correct = None
-      if MG['correct_data']: correct = Joneset
-      MG_JEN_Cohset.insert_solver (ns, solvegroup=['GJones','DJones'], 
-                                   measured=Cohset, predicted=predicted, 
-                                   subtract=subtract, correct=correct, 
-                                   visu=MG['visu_solver'], **MG)
+    # Make MeqSink nodes that write the MS:
+    sinks =  MG_JEN_Cohset.make_sinks(ns, Cohset, _inarg=MG)
+    cc.extend(sinks)
 
-   # Make MeqSink nodes that write the MS:
-   sinks = MG_JEN_Cohset.make_sinks(ns, Cohset,  output_col=MG['output_col'],
-                                    flag=MG['flag_sinks'], visu=MG['visu_sinks'])
-   cc.extend(sinks)
-
-   # Finished: 
-   return MG_JEN_exec.on_exit (ns, MG, cc)
-
-
-
-
-
+    # Finished: 
+    return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
 
 #********************************************************************************
 #********************************************************************************
-#******************** PART IV: Optional: Importable functions *******************
+#*******************  PART V: Forest execution routine(s) ***********************
 #********************************************************************************
 #********************************************************************************
 
-
-
-
-
-
-
-
-#********************************************************************************
-#********************************************************************************
-#*****************  PART V: Forest execution routines ***************************
-#********************************************************************************
-#********************************************************************************
 
 
 def _test_forest (mqs, parent):
@@ -200,42 +283,39 @@ def _test_forest (mqs, parent):
    Settings.orphans_are_roots = True;
 
    # Start the sequence of requests issued by MeqSink:
-   # NB: If save=True, the meqforest is saved to a file for EVERY tile....!!
-   MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG.stream_control, save=False)
+   MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG['stream_control'])
    return True
 
 
 
 
+
+
 #********************************************************************************
 #********************************************************************************
-#******************** PART VI: Standalone test routines *************************
+#******************** PART VI: Standalone test routine(s) ***********************
 #********************************************************************************
 #********************************************************************************
 
 
 if __name__ == '__main__':
-    print '\n*******************\n** Local test of:',MG.script_name,':\n'
+    print '\n*******************\n** Local test of:',MG['script_name'],':\n'
 
+    # This is the default:
     if 1:
-        MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=3)
+       MG_JEN_exec.without_meqserver(MG['script_name'], callback=_define_forest, recurse=3)
 
+    # This is the place for some specific tests during development.
     ns = NodeScope()
     nsim = ns.Subscope('_')
     stations = range(0,3)
     ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
-    cs = TDL_Cohset.Cohset(label='test', scops=MG.script_name, ifrs=ifrs)
+    cs = TDL_Cohset.Cohset(label='test', scops=MG['script_name'], ifrs=ifrs)
 
-    if 0:   
-        cs.display('initial')
-       
-    if 0:
-        display_first_subtree(cs)
-        cs.display('final result')
 
+    # ............
     # MG_JEN_exec.display_subtree (rr, 'rr', full=1)
-    print '\n** End of local test of:',MG.script_name,'\n*******************\n'
-
+    print '\n** End of local test of:',MG['script_name'],'\n*******************\n'
 
 #********************************************************************************
 #********************************************************************************
