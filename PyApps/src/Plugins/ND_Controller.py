@@ -121,8 +121,8 @@ class AxisRange(QWidget):
 
 controller_instructions = \
 '''This control GUI allows you to select a 2-dimensional sub-array for on-screen display from a larger N-dimensional array. When you select an array for plotting that has 3 or more dimensions, the default start-up plot will show the last two dimensions with the indices into the previous dimensions all initialized to zero. <br><br>
-So, for example, if we select a 5-d array for display, the last two dimensions (axes 3 and 4 in current notation) are shown with green push buttons, but the corresponding spinboxes are shown in red and you will not be able to move the sliders under them. The remaining axes have spinboxes shown in green and indexes for those dimensions initialized to zero. By moving the sliders associated with these axes, you change the indices for the first three dimensions. Alternatively you may change the index associated with a dimension by clicking the spinbox up or down. Note that spinboxes have wrapping turned on: this means that if you have an index with a maximum value of 99, clicking on a spinbox's up arrow will cause the index to wrap around back to zero. You may also jump to a given dimension index by typing the value of that index in the spinbox. Note that if you are displaying a Vellset, the first value displayed in a spinbox is the value of the Vells at the given index (the second number - separated from the first one by blanks).  <br><br> 
-You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their labels displayed in green and their sliders will be displayed in red and are frozen. The other axes will have their spinboxes shown in green - you can move the spinboxes (and sliders) to change the array indices for these dimensions.'''
+So, for example, if we select a 5-d array for display, the last two dimensions (axes 3 and 4 in current notation) are shown with red spinboxes  and you will not be able to move the sliders under them. The remaining axes have spinboxes shown in green and indexes for those dimensions initialized to zero. By moving the sliders associated with these axes, you change the indices for the first three dimensions. Alternatively you may change the index associated with a dimension by clicking the spinbox up or down. Note that spinboxes have wrapping turned on: this means that if you have an index with a maximum value of 99, clicking on a spinbox's up arrow will cause the index to wrap around back to zero. You may also jump to a given dimension index by typing the value of that index in the spinbox. Note that if you are displaying a Vellset, the first value displayed in a spinbox is the value of the Vells at the given index (the second number - separated from the first one by blanks).  <br><br> 
+You can change the two axes you wish to see displayed on the screen by clicking on any two of the pushbuttons. These pushbuttons will then have their corresponding spinboxes displayed in red and are frozen. The other axes will have their spinboxes shown in green - you can move the spinboxes (and sliders) to change the array indices for these dimensions.'''
 
 class ND_Controller(QWidget):
     def __init__(self, array_shape=None, axis_label=None, axis_parms = None, parent=None, name=None):
@@ -190,10 +190,10 @@ class ND_Controller(QWidget):
           self.buttons[self.num_selectors].setToggleButton(True)
           if self.num_selectors <= self.rank -3:
             self.buttons[self.num_selectors].setOn(False)
-            self.buttons[self.num_selectors].setPaletteForegroundColor(Qt.red)
+#           self.buttons[self.num_selectors].setPaletteForegroundColor(Qt.red)
           else:
             self.buttons[self.num_selectors].setOn(True)
-            self.buttons[self.num_selectors].setPaletteForegroundColor(Qt.green)
+#           self.buttons[self.num_selectors].setPaletteForegroundColor(Qt.green)
             self.active_axes[self.num_selectors] = True
           self.buttonGroup.insert(self.buttons[self.num_selectors],self.num_selectors)
           if col >= 1:
@@ -221,7 +221,7 @@ class ND_Controller(QWidget):
         if do_on:
           self.buttons[button_id].setOn(True)
         if self.buttons[button_id].isOn():
-          self.buttons[button_id].setPaletteForegroundColor(Qt.green)
+#         self.buttons[button_id].setPaletteForegroundColor(Qt.green)
           self.axis_controllers[button_id].setSpinBoxColor(Qt.red)
           self.active_axes[button_id] = True
           if len(self.active_axes) == 2:
@@ -244,7 +244,7 @@ class ND_Controller(QWidget):
         else:
           if self.active_axes.has_key(button_id):
             del self.active_axes[button_id]
-          self.buttons[button_id].setPaletteForegroundColor(Qt.red)
+#         self.buttons[button_id].setPaletteForegroundColor(Qt.red)
           self.axis_controllers[button_id].setSpinBoxColor(Qt.red)
     # defineAxes
 
@@ -256,7 +256,7 @@ class ND_Controller(QWidget):
     def resetAxes(self):
         for i in range(self.num_selectors):
           self.buttons[i].setOn(False)
-          self.buttons[i].setPaletteForegroundColor(Qt.red)
+#         self.buttons[i].setPaletteForegroundColor(Qt.red)
           self.axis_controllers[i].setSpinBoxColor(Qt.red)
           self.axis_controllers[i].setActive(False)
           self.axis_controllers[i].resetValue()
