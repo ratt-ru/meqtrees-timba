@@ -110,7 +110,7 @@ AC_ARG_ENABLE(dbgassert,
   fi
 
   if test "$lofar_compiler" = "gnu"; then
-    lofar_warnflags="-W -Wall -Wno-unknown-pragmas";
+    lofar_warnflags="-W -Wall -Woverloaded-virtual -Wno-unknown-pragmas";
   fi
 # Suppress KCC warnings about returning by const value and about double ;
   if test "$lofar_compiler" = "kcc"; then
