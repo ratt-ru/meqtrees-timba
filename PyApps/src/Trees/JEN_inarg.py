@@ -50,10 +50,10 @@
 #
 #    An inarg-compatible function may be used in the following manner: 
 #    1) First obtain an inarg record with default arguments by:
-#            inarg = myfunc(getdefaults=True)
+#            inarg = myfunc(_getdefaults=True)
 #    2) Execute it by:
 #            result = myfunc(_inarg=inarg)
-#    Thus, there are two reserved keywords (getdefaults and inarg), which should
+#    Thus, there are two reserved keywords (_getdefaults and _inarg), which should
 #    not be used for actual arguments. 
 #    Note that the function can still be called in a traditional way also:
 #            result = myfunc(aa=4)
@@ -99,8 +99,8 @@
 #       - etc
 #
 #    Inside myfunc(), the function JEN_inarg.inarg2pp(inarg, funcname) does the following:
-#    1) If inarg has a field 'getdefaults': It returns pp=dict()
-#    2) If inarg has a field 'inarg': It looks for a field in with the correct localscope,
+#    1) If inarg has a field '_getdefaults': It returns pp=dict()
+#    2) If inarg has a field '_inarg': It looks for a field in with the correct localscope,
 #       and extracts it as an 'interal' argument record pp.
 #    3) Otherwise:
 # 
@@ -436,7 +436,7 @@ def getdefaults(pp, check=True, strip=False, trace=False):
    """The function that decides whether its calling function is to be executed
    (and then checks and prepares the argument record pp), or whether it should
    just return an inarg record with default values. This is controlled by the
-   presence of a 'getdefaults' field in the internal argument record pp""" 
+   presence of a '_getdefaults' field in the internal argument record pp""" 
    if trace:
       display(pp,'input pp to .getdefaults(pp)', full=True)
 
