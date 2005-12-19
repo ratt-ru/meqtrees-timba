@@ -6,6 +6,8 @@ NB: Just temporary: To be converted into Bugzilla items....!
  - JEN: TDL_Cohset.py: 
    - arrange for proper treatment of XX/YY only (etc)
    - selfcal for WHAT with WSRT XY/YX (14 only)
+   - update from Sixpack (like from Joneset)       <----
+     - This requires solvegroups in Sixpack
 
  - JEN: MG_JEN_Joneset.py:
    - dissimilar station (WHAT) 

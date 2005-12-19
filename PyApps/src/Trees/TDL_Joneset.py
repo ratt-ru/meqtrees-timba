@@ -46,12 +46,12 @@ class Joneset (TDL_common.Super):
         pp.setdefault('jchar', None)                 # single-character identifier (e.g. 'G') 
         pp.setdefault('polrep', 'linear')
         pp.setdefault('punit', 'uvp')                # name of predict-unit (source/patch)
-        pp.setdefault('solvable', True)              # if False, do not store parmgroup info
+        pp.setdefault('unsolvable', False)           # if True, do NOT store parmgroup/solvegroup info
         pp.setdefault('parmtable', None)             # name of MeqParm table (AIPS++)
 
         self.__scope = pp['scope']
         self.__punit = pp['punit']
-        self.__solvable = pp['solvable']
+        self.__unsolvable = pp['unsolvable']
         self.__parmtable = pp['parmtable']
         self.check_parmtable_extension()
 
@@ -83,16 +83,18 @@ class Joneset (TDL_common.Super):
         self.__node_groups = ['Parm']
 
     def __getitem__(self, key):
+        """Get s station (key) 2x2 Jones matrix (node)"""
         # This allows indexing by key and by index nr:
         if isinstance(key, int): key = self.__jones.keys()[key]
         return self.__jones[key]
 
     def __setitem__(self, key, value):
+        """Set the station (key) 2x2 Jones matrix (node)"""
         self.__jones[key] = value
         return self.__jones[key]
 
     def register(self, key=None, ipol=None, color=None, style='circle', size=10, corrs=None):
-        # Register a parameter group
+        """Register a parameter (MeqParm) group"""
         if isinstance(ipol, int): key = key+'_'+self.pols(ipol)     # append (X,Y,R,L) if requirec
         self.__parmgroup[key] = []
         self.__plot_color[key] = color
@@ -112,25 +114,30 @@ class Joneset (TDL_common.Super):
 
 
     def define_solvegroup(self, key=None, parmgroup=None):
-      print '\n** .define_solvegroup(',key,parmgroup,'):'
-      # Derive a new solvegroup by combining existing parmgroups:
-      # These are used when defining a solver downstream (see Cohset)
-      if not self.solvable(): return False                          # only if Joneset is solvable
+      """Derive a new solvegroup by combining existing parmgroups:
+      These are used when defining a solver downstream (see Cohset)"""
+      trace = False
+      if trace: print '\n** .define_solvegroup(',key,parmgroup,'):'
+
+      # NB: This is inhibited if Joneset is set 'unsolvable' (e.g. for simulated uv-data) 
+      if self.unsolvable(): return False
+
       if not isinstance(parmgroup, list): parmgroup = [parmgroup]
       self.__solvegroup[key] = parmgroup                            # list of existing parmgroup keys
+
       # Each solvegroup has a list of condeq_corrs, which allows the
       # solver to have only condeqs for the relevant corrs:
       corrs = []
       for pg in self.__solvegroup[key]:
           for corr in self.__condeq_corrs[pg]:
               if not corrs.__contains__(corr): corrs.append(corr)
-              print '   pg=',pg,' corr=',corr,'   corrs=',corrs
+              if trace: print '   pg=',pg,' corr=',corr,'   corrs=',corrs
       self.__condeq_corrs[key] = corrs
       return True
 
 
     def cleanup(self):
-      # Remove empty parmgroups/solvegroups:
+      """Remove empty parmgroups/solvegroups"""
       removed = []
       for key in self.__parmgroup.keys():
         if len(self.__parmgroup[key])==0:
@@ -151,12 +158,13 @@ class Joneset (TDL_common.Super):
       return True
 
     def node_groups(self, new=None):
-      if not new==None:
-        if not isinstance(new, (tuple, list)): new = [new]
-        for png in new:
-          if not self.__node_groups.__contains__(png):
-            self.__node_groups.append(png)
-      return self.__node_groups
+        """Get/set node_groups (input for MeqParm definition)"""  
+        if not new==None:
+            if not isinstance(new, (tuple, list)): new = [new]
+            for png in new:
+                if not self.__node_groups.__contains__(png):
+                    self.__node_groups.append(png)
+        return self.__node_groups
 
     def append(self, key=None, node=None):
         """Append a named (key) 2x2 jones matrix node to the internal jones set"""
@@ -164,7 +172,8 @@ class Joneset (TDL_common.Super):
         self.__jones[key] = node
         return self.len()
 
-    def define_MeqParm(self, ns, key=None, station=None, default=0,
+    def define_MeqParm(self, ns, key=None, station=None,
+                       default=0,
                        node_groups='Parm', constrain=False,
                        use_previous=True, tile_size=None):
         """Convenience function to create a MeqParm node"""
@@ -191,7 +200,7 @@ class Joneset (TDL_common.Super):
                                             tiling=tiling,
                                             table_name=self.parmtable())
 
-        # Put the node into the internal MeqParm buffer for later use:
+        # Put the node stub into the internal MeqParm buffer for later use:
         # See .MeqParm() below
         self.__MeqParm[key] = node
         self.__constrain[key] = constrain    # governs solution constraints.....
@@ -199,6 +208,7 @@ class Joneset (TDL_common.Super):
 
 
     def MeqParm(self, update=False, reset=False):
+        """Get/update/reset the temporary helper record self.__MeqParm"""
         if update:
             # Append the accumulated MeqParm node names to their respective parmgroups:
             for key in self.__MeqParm.keys():
@@ -223,7 +233,7 @@ class Joneset (TDL_common.Super):
         return self.__scope
     def jchar(self): return self.__jchar
     def punit(self): return self.__punit
-    def solvable(self): return self.__solvable
+    def unsolvable(self): return self.__unsolvable
     def polrep(self): return self.__polrep
     def pols(self, ipol=None):
         if ipol==None: return self.__pols
@@ -264,7 +274,7 @@ class Joneset (TDL_common.Super):
     def plot_size(self): return self.__plot_size
             
     def nodenames(self, select='*'):
-        # Return the names of the jones matrix node names:
+        """Return the names of (a selection of) the jones matrix node names"""
         nn = []
         for key in self.keys():
             if isinstance(self.__jones[key], str):
@@ -277,18 +287,22 @@ class Joneset (TDL_common.Super):
         return nn
 
     def oneliner(self):
+        """Make a one-line summary of this Joneset object"""
         s = TDL_common.Super.oneliner(self)
-        s = s+' ('+str(self.jchar())+')'
-        s = s+' punit='+str(self.punit())
-        s = s+' '+str(self.pols())
-        s = s+' '+str(self.node_groups())
-        s = s+' solvable='+str(self.solvable())
-        s = s+' parmtable='+str(self.parmtable())
-        s = s+' len='+str(self.len())
-        s = s+' ('+str(self.nodenames('first'))+',...)'
+        s += ' ('+str(self.jchar())+')'
+        s += ' punit='+str(self.punit())
+        s += ' '+str(self.pols())
+        s += ' '+str(self.node_groups())
+        if self.unsolvable():
+            s += ' unsolvable'
+        else:
+            s += ' parmtable='+str(self.parmtable())
+        s += ' len='+str(self.len())
+        s += ' ('+str(self.nodenames('first'))+',...)'
         return s
 
     def display(self, txt=None, full=False):
+        """Display a description of the contents of this Joneset object"""
         ss = TDL_common.Super.display (self, txt=txt, end=False)
         indent1 = 2*' '
         indent2 = 6*' '
@@ -302,7 +316,7 @@ class Joneset (TDL_common.Super):
           else:
             ss.append(indent2+' - '+key+' ( '+str(n)+' ): '+pgk[0]+' ... '+pgk[n-1])
 
-        ss.append(indent1+' - solvegroups ( solvable = '+str(self.solvable())+' , node_groups = '+str(self.node_groups())+' ):')
+        ss.append(indent1+' - solvegroups ( unsolvable = '+str(self.unsolvable())+' , node_groups = '+str(self.node_groups())+' ):')
         for key in self.solvegroup().keys():
             ss.append(indent2+' - '+key+' : parmgroups: '+str(self.solvegroup()[key])+' , corrs: '+str(self.condeq_corrs()[key]))
 
@@ -320,29 +334,40 @@ class Joneset (TDL_common.Super):
 
 
     def update(self, Joneset=None):
-        # Update the internal info from another Joneset object:
-        # (used in Joneseq.make_Joneset())
+        """Update the internal info from another Joneset object:
+        (used in Joneseq.make_Joneset())"""
         if Joneset==None: return False
         self.__jchar += Joneset.jchar()
-        if not self.solvable():
-            self.history(append='updated (not solvable) from: '+Joneset.oneliner())
-        elif Joneset.solvable():
+        if self.unsolvable():
+            self.history(append='not updated from (unsolvable): '+Joneset.oneliner())
+        elif not Joneset.unsolvable():
             self.__parmgroup.update(Joneset.parmgroup())
             self.__solvegroup.update(Joneset.solvegroup())
             self.__condeq_corrs.update(Joneset.condeq_corrs())
             self.__plot_color.update(Joneset.plot_color())
             self.__plot_style.update(Joneset.plot_style())
             self.__plot_size.update(Joneset.plot_size())
-            self.history(append='updated from (solvable): '+Joneset.oneliner())
+            self.history(append='updated from (not unsolvable): '+Joneset.oneliner())
         else:
-            # A Joneset that is not solvable has no solvegroups.
+            # A Joneset that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from solvable Jonesets.
-            # Therefore, its parm info should not be copied here.
-            self.history(append='updated from (not solvable): '+Joneset.oneliner())
+            # Therefore, its parm info should NOT be copied here.
+            self.history(append='not updated from (unsolvable): '+Joneset.oneliner())
         return True
 
 
+
+
+
+
+
+
+
+#=================================================================================
+#=================================================================================
+#=================================================================================
+#=================================================================================
 
 #=================================================================================
 # Class Joneseq: Holds (and multiplies) a sequence of Joneset objects 

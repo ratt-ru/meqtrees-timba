@@ -77,6 +77,7 @@ def MG_check(MG):
    return MG
 
 # Helper function that replaces 'referenced' values with actual ones:
+# NB: This function is largely replaced with JEN_inarg._replace_reference()....
 
 def replace_reference(rr, up=None, level=1):
    """If the value of a field in the given record (rr) is a field name
@@ -94,7 +95,7 @@ def replace_reference(rr, up=None, level=1):
                upfield = value.split('/')[1] # 
                for upkey in up.keys():       # search for upfield in parent record
                   count += 1                 # count the number of replacements
-                  # print prefix,'-',count,'replace_with_upward: rr[',key,'] =',value,'->',up[upkey]
+                  print prefix,'-',count,'replace_with_upward: rr[',key,'] =',value,'->',up[upkey]
                   if upkey==upfield: rr[key] = up[upkey]  # replace if found
          else:
             if not value==key:                # ignore self-reference

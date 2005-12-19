@@ -14,6 +14,8 @@
 #    - 08 dec 2005: added method: coll()
 #    - 09 dec 2005: added methods: cohs(), Condeq(), DataCollect()
 #    - 13 dec 2005: repaired construction with ifrs (rather than stations)
+#    - 15 dec 2005: included self.__Joneset (see .corrupt())
+#    - 19 dec 2005: included .update_from_Sixpack() (place-holder)
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -47,6 +49,7 @@ from copy import deepcopy
 from Timba.Trees import TDL_common
 from Timba.Trees import TDL_radio_conventions
 from Timba.Trees import TDL_Joneset
+# from Timba.Trees import TDL_Sixpack
 
 
 
@@ -664,24 +667,44 @@ class Cohset (TDL_common.Super):
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
+    def update_from_Sixpack(self, Sixpack=None):
+        """Update the internal info from a Sixpack object
+        (NB: Not yet implemented in Sixpack....)"""
+        if Sixpack==None: return False
+        if not Sixpack.unsolvable():
+            self.__parmgroup.update(Sixpack.parmgroup())
+            self.__solvegroup.update(Sixpack.solvegroup())
+            self.__condeq_corrs.update(Sixpack.condeq_corrs())
+            self.__plot_color.update(Sixpack.plot_color())
+            self.__plot_style.update(Sixpack.plot_style())
+            self.__plot_size.update(Sixpack.plot_size())
+            self.history(append='updated from (not unsolvable): '+Sixpack.oneliner())
+        else:
+            # A Sixpack that is 'unsolvable' has no solvegroups.
+            # However, its parmgroups might interfere with parmgroups
+            # of the same name (e.g. Gphase) from 'not unsolvable' Sixpacks.
+            # Therefore, its parm info should not be copied here.
+            self.history(append='not updated from (unsolvable): '+Sixpack.oneliner())
+        return True
+
     def update_from_Joneset(self, Joneset=None):
-        """Update the internal info from another Joneset object"""
+        """Update the internal info from a (corrupting) Joneset object"""
         # (see Joneseq.Joneset())
         if Joneset==None: return False
-        if Joneset.solvable():
+        if not Joneset.unsolvable():
             self.__parmgroup.update(Joneset.parmgroup())
             self.__solvegroup.update(Joneset.solvegroup())
             self.__condeq_corrs.update(Joneset.condeq_corrs())
             self.__plot_color.update(Joneset.plot_color())
             self.__plot_style.update(Joneset.plot_style())
             self.__plot_size.update(Joneset.plot_size())
-            self.history(append='updated from (solvable): '+Joneset.oneliner())
+            self.history(append='updated from (not unsolvable): '+Joneset.oneliner())
         else:
-            # A Joneset that is not solvable has no solvegroups.
+            # A Joneset that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
-            # of the same name (e.g. Gphase) from solvable Jonesets.
+            # of the same name (e.g. Gphase) from 'not unsolvable' Jonesets.
             # Therefore, its parm info should not be copied here.
-            self.history(append='updated from (not solvable): '+Joneset.oneliner())
+            self.history(append='not updated from (unsolvable): '+Joneset.oneliner())
         return True
 
     def update_from_Cohset(self, Cohset=None):
@@ -710,19 +733,26 @@ class Cohset (TDL_common.Super):
             corrs.extend(self.condeq_corrs()[sgname])
         return corrs
 
-    def solveparms(self, solvegroup=None):
+    def solveparms(self, solvegroup=None, select='*'):
         """Collect a list of names of solvable MeqParms"""
-        parms = []
+        parms = []                                  # list of solvable node-names
         for sgname in solvegroup:
             if not self.solvegroup().has_key(sgname):
                 print '\n** solvegroup name not recognised:',sgname
                 print '     choose from:',self.solvegroup().keys()
                 print
                 return
-            solvegroup = self.solvegroup()[sgname]
+            solvegroup = self.solvegroup()[sgname]  # list of one or more parmgroups
             for key in solvegroup:
                 pgnames = self.parmgroup()[key]     # list of parmgroup node-names
-                parms.extend(pgnames)              # list of solvable node-names
+                n = len(pgnames)
+                if select=='first':                 # select the first of each parmgroup
+                    parms.append(pgnames[0])        # append
+                elif select=='last':                # select the last of each parmgroup
+                    parms.append(pgnames[n-1])      # append
+                else:
+                    parms.extend(pgnames)           # append entire parmgroup
+        # Return a list of solvable MeqParm names:
         return parms
 
 

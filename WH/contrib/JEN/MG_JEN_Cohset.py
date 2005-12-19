@@ -64,11 +64,11 @@ from Timba.Contrib.JEN import MG_JEN_flagger
 def make_spigots(ns=None, Cohset=None, **inarg):
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_spigots()')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_spigots()', version='25dec2005')
     pp.setdefault('MS_corr_index', [0,1,2,3])
     pp.setdefault('visu', False)
     pp.setdefault('flag', False)
-    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
 
@@ -104,12 +104,12 @@ def make_spigots(ns=None, Cohset=None, **inarg):
 def make_sinks(ns=None, Cohset=None, **inarg):
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_sinks()')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_sinks()', version='25dec2005')
     pp.setdefault('visu_array_config', True)
     pp.setdefault('visu', False)
     pp.setdefault('flag', False)
     pp.setdefault('output_col', 'PREDICT')
-    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
 
@@ -157,26 +157,28 @@ def predict (ns=None, Sixpack=None, Joneset=None, **inarg):
     the source defined by Sixpack"""
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()')
-    pp.setdefault('scope', 'rawdata')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()', version='25dec2005')
     pp.setdefault('ifrs', [(0,1)])
     pp.setdefault('polrep', 'linear')
-    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getinarg=True))
-    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True))
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
 
+    # Make sure that there is a valid source/patch Sixpack:
     if not Sixpack: Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
-
-    # Make a 2x2 coherency matrix (coh0) by multiplication with the Stokes matrix:
-    coh0 = Sixpack.coh22(ns, pp['polrep'])
+    punit = Sixpack.label()
 
     # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
     Cohset = TDL_Cohset.Cohset(label='predict', origin=funcname, **pp)
 
-    # Put the same node (coh0) with 'nominal' (i.e. uncorrupted) visibilities
-    # into all ifr-slots of the Cohset:
-    Cohset.uniform(ns, coh0)
+    # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
+    # by multiplication its (I,Q,U,V) with the Stokes matrix:
+    nominal = Sixpack.coh22(ns, pp['polrep'])
+
+    # Put the same 'nominal' (i.e. uncorrupted) visibilities into all
+    # ifr-slots of the Cohset:
+    Cohset.uniform(ns, nominal)
 
     # Optionally, multiply the Cohset with the KJones (DFT) Joneset
     if False:
@@ -200,41 +202,60 @@ def predict (ns=None, Sixpack=None, Joneset=None, **inarg):
 
 
 #--------------------------------------------------------------------------------------
-# Make a JJones Joneset from the specified sequence (list) of jones matrices:
+# Make a JJones Joneset from the specified sequence of Jones matrices:
 
-def JJones(ns=None, **inarg):
+def JJones(ns=None, Sixpack=None, **inarg):
     """Make a Joneset by creating and multiplying one ore more Jonesets"""
    
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::JJones()')
-    pp.setdefault('scope', 'predicted') 
-    pp.setdefault('punit', 'uvp') 
-    pp.setdefault('jones', ['G']) 
-    pp.setdefault('stations', range(4)) 
-    pp.setdefault('parmtable', None)
-    # Include nested inarg records for various Jones matrix functions:
-    JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getinarg=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getinarg=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getinarg=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getinarg=True))
-    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::JJones()', version='25dec2005')
+    # Arguments that should common to all Jonesets in the sequence
+    # (they are set recursively by JEN_inarg.modify())
+    pp.setdefault('stations',[0])                   # list of stations
+    pp.setdefault('polrep', 'linear')               # polarisation representation
+    pp.setdefault('unsolvable', False)              # if True, do NOT store solvegroup info
+    pp.setdefault('parmtable', None)                # MeqParm table name
+    pp.setdefault('Jsequence', ['GJones'])          # sequence of Jones matrices
+    pp.setdefault('expect', '*')                    # list of expected Jones matrices 
+
+    # Include default inarg records for various Jones matrix definition functions:
+    # (This includes a mechanism to exclude the unneeded ones, to avoid clutter)
+    available = ['GJones','FJones','BJones','DJones_WSRT']
+    if pp['expect']=='*':
+        pp['expect'] = available                    # all the available ones
+    if not isinstance(pp['expect'], (list, tuple)): pp['expect'] = [pp['expect']]
+    if 'GJones' in pp['expect']:
+        JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True))
+    if 'FJones' in pp['expect']:
+        JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True))
+    if 'BJones' in pp['expect']:
+        JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True))
+    if 'DJones_WSRT' in pp['expect']:
+        JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True))
+
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
+
+    # Make sure that there is a valid source/patch Sixpack:
+    # NB: This is just for the punit-name!
+    if not Sixpack: Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
+    punit = Sixpack.label()
     
-    # Create a sequence of Jonesets:
+    # Create a sequence of Jonesets for the specified punit:
     jseq = TDL_Joneset.Joneseq()
-    if not isinstance(pp['jones'], (list,tuple)): pp['jones'] = [pp['jones']]
-    for jones in pp['jones']:
-        if jones=='G':
-            jseq.append(MG_JEN_Joneset.GJones (ns, _inarg=pp, Gscale=0))
-        elif jones=='B':
-            jseq.append(MG_JEN_Joneset.BJones (ns, _inarg=pp, Bscale=0))
-        elif jones=='F':
-            jseq.append(MG_JEN_Joneset.FJones (ns, _inarg=pp, Fscale=0)) 
-        elif jones=='D':
-            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, _inarg=pp, Dscale=0))
+    if not isinstance(pp['Jsequence'], (list,tuple)): pp['Jsequence'] = [pp['Jsequence']]
+    for jones in pp['Jsequence']:
+        if jones=='GJones':
+            jseq.append(MG_JEN_Joneset.GJones (ns, _inarg=pp, punit=punit))
+        elif jones=='BJones':
+            jseq.append(MG_JEN_Joneset.BJones (ns, _inarg=pp, punit=punit))
+        elif jones=='FJones':
+            jseq.append(MG_JEN_Joneset.FJones (ns, _inarg=pp, punit=punit)) 
+        elif jones=='DJones_WSRT':
+            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, _inarg=pp, punit=punit))
         else:
-            print '** jones not recognised:',jones,'from:',pp['jones']
+            print '** jones not recognised:',jones,'from:',pp['Jsequence']
                
     # Matrix-multiply the collected jones matrices in jseq to a 2x2 Joneset:
     MG_JEN_forest_state.object(jseq, funcname)
@@ -265,7 +286,7 @@ def insert_solver (ns=None, measured=None, predicted=None, **inarg):
     """insert a solver for a specific subset (solvegroup) of MeqParms""" 
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_solver()')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_solver()', version='25dec2005')
     pp.setdefault('solvegroup', [])        # list of solvegroup(s) to be solved for
     pp.setdefault('num_iter', 20)          # max number of iterations
     pp.setdefault('num_cells', None)       # if defined, ModRes argument [ntime,nfreq]
@@ -276,7 +297,7 @@ def insert_solver (ns=None, measured=None, predicted=None, **inarg):
     pp.setdefault('history', True)         # if True, include history collection of metrics 
     pp.setdefault('subtract',False)        # if True, subtract 'predicted' from 'measured' 
     pp.setdefault('correct',False)         # if True, correct 'measured' with predicted.Joneset()' 
-    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
 
@@ -323,18 +344,19 @@ def insert_solver (ns=None, measured=None, predicted=None, **inarg):
     #     first use:  Pohset.update_from_Cohset(measured)
     corrs = Pohset.solvecorrs(pp['solvegroup'])
     solvable = Pohset.solveparms(pp['solvegroup'])
-
-    # Temporary: show the first solvable MeqParm of each parmgroup on the allcorrs page:
     if pp['visu']:
-        MG_JEN_forest_state.bookmark (ns[solvable[0]], page='allcorrs')
+        # Show the first MeqParm in each parmgroup:
+        ss1 = Pohset.solveparms(pp['solvegroup'], select='first')
+        for s1 in ss1:
+            MG_JEN_forest_state.bookmark (ns[s1], page='solvable')
   
     # Make condeq nodes (use Pohset from here onwards):
     solver_condeqs = []
     Pohset.Condeq(ns, Mohset)
-    Pohset.display('after defining condeqs')
+    # Pohset.display('after defining condeqs')
     solver_condeqs = Pohset.cohs(corrs=corrs, ns=ns)  
 
-    # Visualise the condeqs (at solver resoltion), if required:
+    # Visualise the condeqs (at solver resolution), if required:
     dcoll_condeq = []
     if pp['visu']:
        Pohset.scope('condeq_'+solver_name)
@@ -345,7 +367,7 @@ def insert_solver (ns=None, measured=None, predicted=None, **inarg):
     # Obtain the current list of (full-resolution) hcoll/dcoll nodes, and clear: 
     coll_before = measured.coll(clear=True)
 
-    # Make the solver node:
+    # Make the MeqSolver node itself:
     punit = Pohset.punit()
     solver = ns.solver(solver_name, q=punit) << Meq.Solver(children=solver_condeqs,
                                                            solvable=solvable,
@@ -446,7 +468,7 @@ def insert_flagger (ns=None, Cohset=None, **inarg):
     """insert a flagger for the coherency matrices in Cohset""" 
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_flagger()')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_flagger()', version='25dec2005')
     pp.setdefault('sigma', 5.0)              # flagged if exceeds sigma*stddev
     pp.setdefault('unop', 'Abs')             # unop used to make real data
     pp.setdefault('oper', 'GT')              # decision function (GT=Greater Than)
@@ -454,7 +476,7 @@ def insert_flagger (ns=None, Cohset=None, **inarg):
     pp.setdefault('merge', True)             # if True, merge the flags of 4 corrs
     pp.setdefault('visu', False)             # if True, visualise the result
     pp.setdefault('compare', False)          # ....
-    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
 
@@ -581,104 +603,6 @@ def visualise(ns=None, Cohset=None, **pp):
 
 
 
-#==========================================================================
-# Some functions related to simulation:
-# (i.s.o. make_spigots and make_sinks)
-#==========================================================================
-
-
-
-
-#--------------------------------------------------------------------------------
-# Produce a Cohset for the specified ifrs, with simulated uv-data: 
-
-def simulate(ns=None, ifrs=None, Sixpack=None, **inarg):
-   """Make a Cohset with simulated uv-data"""
-
-   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::simulate()')
-   pp.setdefault('jones', [])
-   pp.setdefault('stddev_noise', 0.0)
-   if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
-   if not JEN_inarg.is_OK(pp): return False
-   funcname = JEN_inarg.localscope(pp)
-
-   # Recommended ways to mark nodes that contains simulated data: 
-   scope = 'simulated'           # mark the Cohset/Jonesets (visualisation)
-   nsim = ns.Subscope('_')       # prepend all simulation nodes with _:: 
-
-   if not Sixpack: Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
-
-   # Optional: corrupt the uvdata with simulated jones matrices: 
-   if not isinstance(pp['jones'], (list,tuple)): pp['jones'] = [pp['jones']]
-   if len(pp['jones'])>0:
-       stations = TDL_Cohset.ifrs2stations(ifrs) 
-       jseq = TDL_Joneset.Joneseq()
-       for jones in pp['jones']:
-           if jones=='G':
-              jseq.append(MG_JEN_Joneset.GJones (nsim, _inarg=pp))
-           elif jones=='B':
-              jseq.append(MG_JEN_Joneset.BJones (nsim, _inarg=pp))
-           elif jones=='F':
-              jseq.append(MG_JEN_Joneset.FJones (nsim, _inarg=pp))
-           elif jones=='D':
-              jseq.append(MG_JEN_Joneset.DJones_WSRT (nsim, _inarg=pp))
-           elif jones=='K':
-              # NB: Note that we are NOT using nodescope nsim here, because the array coordinate
-              #     nodes (for uvw) have predefined names). This probably means that we cannot
-              #     solve for station positions until we have addressed this problem....
-              #     In any case, KJones does not produce any solvegroups....
-              jseq.append(MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack, _inarg=pp)) 
-
-           else:
-              print '** jones not recognised:',jones,'from:',pp['jones']
-               
-       # Matrix-multiply the collected jones matrices in jseq to a 2x2 Joneset:
-       global simulated_JJones
-       simulated_JJones = jseq.make_Joneset(nsim)
-       MG_JEN_forest_state.object(jseq, funcname)
-       MG_JEN_forest_state.object(simulated_JJones, funcname)
-
-   # Make the Cohset with simulated/corrupted uvdata:
-   Cohset = predict (nsim, Sixpack=Sixpack, Joneset=simulated_JJones)
-
-   # Add some gaussian noise to the data
-   # (NB: More advanced noise may be added to the Cohset after this function)
-   if (pp['stddev_noise']>0): addnoise (ns, Cohset, stddev=pp['stddev_noise'])
-
-   MG_JEN_forest_state.object(Cohset, funcname)
-   return Cohset
-
-
-
-#---------------------------------------------------------------------------------
-
-def addnoise (ns=None, Cohset=None, **inarg):
-    """Add gaussian noise to the coherency matrices in Cohset""" 
-
-    # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::addnoise()')
-    pp.setdefault('stddev', 1.0)                      # stddev of the noise
-    pp.setdefault('unop', 'Exp')                      # Unary operation on the noise
-    if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
-    if not JEN_inarg.is_OK(pp): return False
-    funcname = JEN_inarg.localscope(pp)
-
-    for key in Cohset.keys():
-        s12 = Cohset.stations()[key]
-        nsub = ns.Subscope('addnoise', s1=s12[0], s2=s12[1])
-        noise = MG_JEN_twig.gaussnoise (nsub, dims=Cohset.dims(),
-                                        stddev=pp['stddev'], unop=pp['unop'])
-        coh = ns.noisy(s1=s12[0], s2=s12[1]) << Meq.Add(Cohset[key], noise)
-        Cohset[key] = coh
-
-    # Finished:
-    s = funcname
-    s = s+', stddev='+str(pp['stddev'])
-    s = s+', unop='+str(pp['unop'])
-    Cohset.history(s)
-    MG_JEN_forest_state.history (funcname)
-    return True
-
 
 
 
@@ -732,8 +656,9 @@ def punit2Sixpack(ns, punit='uvp'):
 
 MG = JEN_inarg.init('MG_JEN_Cohset',
                     last_changed = 'd13dec2005',
-                    punit='unpol10',                   # name of calibrator source
-                    polrep='linear',                   # polarisation representation (linear/circular)
+                    punit='unpol10',                   # name of calibrator source/patch
+                    # polrep='linear',                   # polarisation representation (linear/circular)
+                    polrep='circular',                 # polarisation representation (linear/circular)
                     stations=range(4),                 # specify the (subset of) stations to be used
                     parmtable=None)                    # name of MeqParm table
 
@@ -755,23 +680,24 @@ if True:                                               # ... Copied from MG_JEN_
                                # output_col='RESIDUALS')
                                predict_column='CORRECTED_DATA')
 
-   # inarg = MG_JEN_Cohset.make_spigots(_getinarg=True)   # get a record with default input arguments
-   inarg = make_spigots(_getinarg=True)                 # local (MG_JEN_Cohset.py) version 
+   # inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
+   inarg = make_spigots(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
                     # MS_corr_index=[0,-1,-1,1],       # only XX/YY available
                     # MS_corr_index=[0,-1,-1,3],       # all available, use only XX/YY
-                    # MS_corr_index=[0,1,2,3],           # all corrs available, use all
+                    MS_corr_index=[0,1,2,3],           # all corrs available, use all
                     # flag=False,                        # if True, flag the input data
                     visu=True,                         # if True, visualise the input data
                     _JEN_inarg_option=None)            # optional, not yet used 
    JEN_inarg.attach(MG, inarg)
                  
 
-   # inarg = MG_JEN_Cohset.make_sinks(_getinarg=True)     # get a record with default input arguments 
-   inarg = make_sinks(_getinarg=True)                   # local (MG_JEN_Cohset.py) version 
+
+   # inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
+   inarg = make_sinks(_getdefaults=True)                # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
                     output_col='PREDICT',              # logical (tile) output column
-                    visu_array_config=True,            # if True, visualise the array config
+                    visu_array_config=True,            # if True, visualise the array config (from MS)
                     # flag=False,                        # if True, flag the input data
                     visu=True,                         # if True, visualise the input data
                     _JEN_inarg_option=None)            # optional, not yet used 
@@ -784,9 +710,9 @@ if True:                                               # ... Copied from MG_JEN_
 # Operations on the raw uv-data:
 #----------------------------------------------------------------------------------------------------
 
-if False:                                              # ... Copied from MG_JEN_Cohset.py ...
-   # inarg = MG_JEN_Cohset.insert_flagger(_getinarg=True) # get a record with default input arguments
-   inarg = insert_flagger(_getinarg=True)               # local (MG_JEN_Cohset.py) version 
+if False:                                                # ... Copied from MG_JEN_Cohset.py ...
+   # inarg = MG_JEN_Cohset.insert_flagger(_getdefaults=True) 
+   inarg = insert_flagger(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
                     # sigma=5.0,                         # flagged if exceeds sigma*stddev
                     # unop='Abs',                        # unop used to make real data
@@ -800,86 +726,112 @@ if False:                                              # ... Copied from MG_JEN_
    
 
 
+
+
 #----------------------------------------------------------------------------------------------------
 # Insert a solver:
 #----------------------------------------------------------------------------------------------------
 
 #========
-if True:                                              # ... Copied from MG_JEN_Cohset.py ...
-   # inarg = MG_JEN_Cohset.JJones(_getinarg=True)        # get a record with default input arguments
-   inarg = JJones(_getinarg=True)                       # local (MG_JEN_Cohset.py) version 
-   JEN_inarg.modify(inarg,
-                    stations=MG['stations'], 
-                    # scope='predicted', 
-                    parmtable=MG['parmtable'],
-                    # jones=['G'],                       # Succession of Jones matrices 
-                    # jones=['D'],                       # Succession of Jones matrices 
-                    jones=['G','D'],                   # Succession of Jones matrices 
+if True:                                                   # ... Copied from MG_JEN_Cohset.py ...
 
-                    # Insert non-default Jones matrix arguments here: 
-                    # (This is easiest by copying lines from MG_JEN_Joneset.py)
-                    #..................................................
-                    _JEN_inarg_option=None)            # optional, not yet used 
+   # Specify the name qualifier for (the inarg records of) this 'predict and solve' group.
+   # NB: The same qualifier should be used when using the functions in _define_forest()
+   qual = None
+   qual = 'qual1'
+
+   # Specify the sequence of zero or more (corrupting) Jones matrices:
+   Jsequence = ['GJones'] 
+   # Jsequence = ['BJones'] 
+   # Jsequence = ['FJones'] 
+   # Jsequence =['DJones_WSRT']             
+   # Jsequence = ['GJones','DJones_WSRT']
+   
+   # Specify a list of MeqParm solvegroup(s) to be solved for:
+   solvegroup = ['GJones']
+   # solvegroup = ['DJones']
+   # solvegroup = ['GJones','DJones']
+
+
+   # inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
+   inarg = JJones(_getdefaults=True, _qual=qual, expect=Jsequence)  
+   JEN_inarg.modify(inarg,
+                    stations=MG['stations'],               # List of array stations
+                    parmtable=MG['parmtable'],             # MeqParm table name
+                    unsolvable=False,                      # If True, no solvegroup info is kept
+                    polrep=MG['polrep'],                   # polarisation representation
+                    Jsequence=Jsequence,                   # Sequence of corrupting Jones matrices 
+                    _JEN_inarg_option=None)                # optional, not yet used 
+
+   # Insert non-default Jones matrix arguments here: 
+   #    (This is easiest by copying lines from MG_JEN_Joneset.py)
+   if 'GJones' in Jsequence: 
+       JEN_inarg.modify(inarg,
+                        Gphase_constrain=True,             # if True, constrain 1st station phase
+                        fdeg_Gampl=5,                      # degree of default freq polynomial         
+                        fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
+                        tdeg_Gampl=0,                      # degree of default time polynomial         
+                        tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
+                        tile_size_Gampl=0,                 # used in tiled solutions         
+                        tile_size_Gphase='tile_size_Gampl', # used in tiled solutions         
+                        _JEN_inarg_option=None)            # optional, not yet used 
+   if 'DJones_WSRT' in Jsequence: 
+       JEN_inarg.modify(inarg,
+                        fdeg_dang=1,                       # degree of default freq polynomial
+                        fdeg_dell='fdeg_dang',             # degree of default freq polynomial
+                        tdeg_dang=0,                       # degree of default time polynomial
+                        tdeg_dell='tdeg_dang',             # degree of default time polynomial
+                        tile_size_dang=0,                  # used in tiled solutions         
+                        tile_size_dell='tile_size_dang',   # used in tiled solutions         
+                        _JEN_inarg_option=None)            # optional, not yet used 
+   if 'BJones' in Jsequence: 
+       JEN_inarg.modify(inarg,
+                        Breal_constrain=False,             # if True, constrain 1st station phase
+                        Bimag_constrain=True,              # if True, constrain 1st station phase
+                        fdeg_Breal=3,                      # degree of default freq polynomial        
+                        fdeg_Bimag='fdeg_Breal',           # degree of default freq polynomial          
+                        tdeg_Breal=0,                      # degree of default time polynomial         
+                        tdeg_Bimag='tdeg_Breal',           # degree of default time polynomial    
+                        tile_size_Breal=0,                 # used in tiled solutions         
+                        tile_size_Bimag='tile_size_Breal', # used in tiled solutions         
+                        _JEN_inarg_option=None)            # optional, not yet used 
+   if 'FJones' in Jsequence: 
+       JEN_inarg.modify(inarg,
+                        fdeg_RM=0,                         # degree of default freq polynomial          
+                        tdeg_RM=0,                         # degree of default time polynomial         
+                        tile_size_RM=1,                    # used in tiled solutions         
+                        _JEN_inarg_option=None)            # optional, not yet used 
    JEN_inarg.attach(MG, inarg)
 
 
-   # inarg = MG_JEN_Cohset.predict(_getinarg=True)        # get a record with default input arguments
-   inarg = predict(_getinarg=True)                      # local (MG_JEN_Cohset.py) version 
+   # inarg = MG_JEN_Cohset.predict(_getdefaults=True, _qual=qual)  
+   inarg = predict(_getdefaults=True, _qual=qual)             # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
-                    scope='rawdata',                   # Cohset scope
-                    ifrs=MG['ifrs'],                   # list if Cohset ifrs 
-                    polrep=MG['polrep'],               # polarisation representation
-                    _JEN_inarg_option=None)            # optional, not yet used 
+                    ifrs=MG['ifrs'],                       # list of Cohset ifrs 
+                    polrep=MG['polrep'],                   # polarisation representation
+                    _JEN_inarg_option=None)                # optional, not yet used 
    JEN_inarg.attach(MG, inarg)
 
 
    #========
-   if True:                                              # ... Copied from MG_JEN_Cohset.py ...
-       # inarg = MG_JEN_Cohset.insert_solver(_getinarg=True)  # get a record with default input arguments
-       inarg = insert_solver(_getinarg=True)                # local (MG_JEN_Cohset.py) version 
+   if True:                                                # ... Copied from MG_JEN_Cohset.py ...
+       # inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
+       inarg = insert_solver(_getdefaults=True, _qual=qual)   # local (MG_JEN_Cohset.py) version 
        JEN_inarg.modify(inarg,
+                        solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
                         # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
-                        # solvegroup=['GJones'],             # list of solvegroup(s) to be solved for
-                        # solvegroup=['DJones'],             # list of solvegroup(s) to be solved for
-                        solvegroup=['GJones','DJones'],    # list of solvegroup(s) to be solved for
                         # num_iter=20,                       # max number of iterations
                         # epsilon=1e-4,                      # iteration control criterion
                         # debug_level=10,                    # solver debug_level
                         visu=True,                         # if True, include visualisation
+                        history=True,                      # if True, include history collection of metrics 
                         subtract=False,                    # if True, subtract 'predicted' from uv-data 
                         correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
-                        history=True,                      # if True, include history collection of metrics 
                         _JEN_inarg_option=None)            # optional, not yet used 
        JEN_inarg.attach(MG, inarg)
                  
 
 
-
-
-
-#----------------------------------------------------------------------------------------------------
-# Simulation (no MS): 
-#----------------------------------------------------------------------------------------------------
-
-#========
-if False:                                               # ... Copied from MG_JEN_Cohset.py ...
-   # inarg = MG_JEN_Cohset.simulate(_getinarg=True)       # get a record with default input arguments
-   inarg = simulate(_getinarg=True)                     # local (MG_JEN_Cohset.py) version 
-   JEN_inarg.modify(inarg,
-                    #..............
-                    _JEN_inarg_option=None)            # optional, not yet used 
-   JEN_inarg.attach(MG, inarg)
-
-
-#========
-if False:                                              # ... Copied from MG_JEN_Cohset.py ...
-   # inarg = MG_JEN_Cohset.addnoise(_getinarg=True)       # get a record with default input arguments
-   inarg = addnoise(_getinarg=True)                     # local (MG_JEN_Cohset.py) version 
-   JEN_inarg.modify(inarg,
-                    # stddev=1.0,                        # stddev of the noise
-                    # unop='Exp',                        # Unary operation on the noise
-                    _JEN_inarg_option=None)            # optional, not yet used 
-   JEN_inarg.attach(MG, inarg)
 
 
 
@@ -916,48 +868,42 @@ MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
 
 def _define_forest (ns):
 
-   # Perform some common functions, and return an empty list (cc=[]):
-   cc = MG_JEN_exec.on_entry (ns, MG)
+    # Perform some common functions, and return an empty list (cc=[]):
+    cc = MG_JEN_exec.on_entry (ns, MG)
 
-   if True:
-      # Make MeqSpigot nodes that read the MS:
-      Cohset = TDL_Cohset.Cohset(label=MG['script_name'],
-                                 polrep=MG['polrep'],
-                                 ifrs=MG['ifrs'])
-                                 # stations=MG['stations'])
-      make_spigots(ns, Cohset, _inarg=MG)
-
-
-   if False:
-      insert_flagger (ns, Cohset, scope='residual', unop=['Real','Imag'], visu=True)
-      visualise (ns, Cohset)
-      visualise (ns, Cohset, type='spectra')
+    if True:
+        # Make MeqSpigot nodes that read the MS:
+        Cohset = TDL_Cohset.Cohset(label=MG['script_name'],
+                                   polrep=MG['polrep'],
+                                   ifrs=MG['ifrs'])
+        make_spigots(ns, Cohset, _inarg=MG)
 
 
-   if True:
-      # Make predicted uv-data for the given source:
-      # Source/patch to be used for simulation/selfcal:
-      Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
-      Joneset = JJones(ns, Sixpack=Sixpack, _inarg=MG)
-      predicted = predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
+    if False:
+        # Optional: insert a flagger to the raw data: 
+        insert_flagger (ns, Cohset, **MG)
+        visualise (ns, Cohset)
+        visualise (ns, Cohset, type='spectra')
 
-   if True:
-      # Insert a solver for a named group of MeqParms (e.g. 'GJones'):
-      insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG)
-      visualise (ns, Cohset)
-      visualise (ns, Cohset, type='spectra')
- 
-   if False:
-      # Tie the trees for the simulated ifrs together in an artificial 'sink':
-      cc.append(Cohset.simul_sink(ns))
+    if True:
+        # Optional: Insert a solver:
+        qual = 'qual1'
+        Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
+        Joneset = JJones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
+        predicted = predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
+        if True:
+            # Insert a solver for a named group of MeqParms (e.g. 'GJones'):
+            insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG, _qual=qual)
+            visualise (ns, Cohset)
+            visualise (ns, Cohset, type='spectra')
 
-   if True:
-      # Make MeqSink nodes that write the MS:
-      sinks = make_sinks(ns, Cohset, _inarg=MG)
-      cc.extend(sinks)
+    if True:
+        # Make MeqSink nodes that write the MS:
+        sinks = make_sinks(ns, Cohset, _inarg=MG)
+        cc.extend(sinks)
 
-   # Finished: 
-   return MG_JEN_exec.on_exit (ns, MG, cc)
+    # Finished: 
+    return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
@@ -1034,35 +980,6 @@ if __name__ == '__main__':
        # punit = 'RMtest'
        Sixpack = punit2Sixpack(ns, punit)
 
-    if 1:
-       inarg = JJones(_getinarg=True)
-       JJones(ns, Sixpack, _inarg=inarg, stations=stations)
-           
-    if 0:
-       jseq = TDL_Joneset.Joneseq()
-       jseq.append(MG_JEN_Joneset.GJones (ns, stations=stations))
-       js = jseq.make_Joneset(ns)
-       cs = predict (ns, Sixpack=Sixpack, ifrs=ifrs, Joneset=js)
-       visualise (ns, cs)
-       addnoise (ns, cs)
-       insert_flagger (ns, cs, scope='residual', unop=['Real','Imag'], visu=True)
-
-    if 0:
-        punit = 'unpol'
-        # punit = '3c147'
-        # punit = 'RMtest'
-        Sixpack = punit2Sixpack(ns, punit)
-        Joneset = MG_JEN_Joneset.GJones (nsim, stations=stations, solvable=1)
-        measured = predict (nsim, Sixpack=Sixpack, ifrs=ifrs, Joneset=Joneset)
-        # measured.select(ns, corrs=['XX','YY'])
-        
-        Joneset = MG_JEN_Joneset.DJones_WSRT (ns, stations=stations)
-        predicted = predict (ns, Sixpack=Sixpack, ifrs=ifrs, Joneset=Joneset)
-        cs = predicted
-        
-        sgname = 'DJones'
-        # sgname = ['DJones', 'GJones']
-        insert_solver (ns, solvegroup=sgname, measured=measured, predicted=predicted) 
            
     if 0:
         display_first_subtree(cs)

@@ -8,21 +8,41 @@
 # History:
 #    - 04 dec 2005: creation
 #    - 11 dec 2005: ready for use with MG_JEN_Joneset.py
+#    - 13 dec 2005: added .clone()
+#    - 15 dec 2005: included ._replace_reference() in .attach()
+#    - 16 dec 2005: included version keyword in .inarg2pp()
 #
 # Full description:
 #    By obeying a simple (and unconstraining!) set of rules, the input
 #    arguments of any function may be manipulated as a record. This has
-#    many advantages.
+#    many advantages:
+#
+#    -) The inarg argument record is guaranteed to be uptodate
+#       (use the versioning keyword)
+#    -) Arguments can be referred to other arguments by name
+#       (thus, when one is modified, the other will follow)
+#    -) It can be manipulated independently of the function
+#       -) It can be combined (hierarchically) with others
+#       -) Argument values may be modified recursively
+#       -) It can be used for batch processing
+#       -) It can be modified in a gui
+#    -) Template specification modules may be copied from the
+#       script in which the inarg-compatible function is defined.
+#       These templates are designed in such a way that: 
+#       -) Argument modification statements can be commented out
+#          This allows a visible choice of alternatives
+#       -) Helpful suggestions may be inserted as comments
+#       -) Various alternative templates are possible for the same function
 #
 #    An 'inarg-compatible' function has the following general structure:
 #
 #        def myfunc(x=None, y=None, **inarg):
 #
 #            # The part that deals with the input arguments:
-#            pp = JEN_inarg.inarg2pp(inarg, 'myfunc')
+#            pp = JEN_inarg.inarg2pp(inarg, 'myfunc', version='15dec2005')
 #            pp.setdefault('aa', value1)
 #            pp.setdefault('bb', value2)
-#            if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
+#            if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
 #
 #            # The function body, which uses the values in record pp:
 #            result = .... 
@@ -30,10 +50,10 @@
 #
 #    An inarg-compatible function may be used in the following manner: 
 #    1) First obtain an inarg record with default arguments by:
-#            inarg = myfunc(getinarg=True)
+#            inarg = myfunc(getdefaults=True)
 #    2) Execute it by:
 #            result = myfunc(_inarg=inarg)
-#    Thus, there are two reserved keywords (getinarg and inarg), which should
+#    Thus, there are two reserved keywords (getdefaults and inarg), which should
 #    not be used for actual arguments. 
 #    Note that the function can still be called in a traditional way also:
 #            result = myfunc(aa=4)
@@ -42,7 +62,7 @@
 #    1) By a special function (recursive!):
 #            JEN_inarg.modify(inarg, bb=56)
 #    2) By extra keyword arguments when obtaining the inarg record:
-#            inarg = myfunc(_getinarg=True, aa='something', bb='other')
+#            inarg = myfunc(_getdefaults=True, aa='something', bb='other')
 #    3) By extra keyword arguments when executing myfunc():
 #            result = myfunc(x=1, y=-2, _inarg=inarg, bb=-78)
 #    In all cases, the keywords have to exist. Only .modify() is recursive,
@@ -79,7 +99,7 @@
 #       - etc
 #
 #    Inside myfunc(), the function JEN_inarg.inarg2pp(inarg, funcname) does the following:
-#    1) If inarg has a field 'getinarg': It returns pp=dict()
+#    1) If inarg has a field 'getdefaults': It returns pp=dict()
 #    2) If inarg has a field 'inarg': It looks for a field in with the correct localscope,
 #       and extracts it as an 'interal' argument record pp.
 #    3) Otherwise:
@@ -104,13 +124,13 @@ option_field = '_JEN_inarg_option'
 
 #----------------------------------------------------------------------------
 
-def init(funcname='<funcname>', **opt):
+def init(funcname='<funcname>', version='15dec2005', **opt):
    """Initialise a valid inarg record, with optional fields **opt.
    This is done when starting a composite inarg record, e.g. in MG_JEN_xxx.py"""
    # if not isinstance(opt): opt = dict()     # overkill?
    inarg = opt                              # default is empty dict                       
    inarg['script_name'] = funcname          # expected in MG control record (kludge...)
-   _ensure_CTRL_record(inarg, funcname)
+   _ensure_CTRL_record(inarg, funcname, version=version)
    trace = True
    if trace: display(inarg,'JEN_inarg.init()', full=True)
    # Return the inarg record:
@@ -273,12 +293,21 @@ def _modify_level(rr, arg=None, found=None, level=0, trace=False):
 
 #============================================================================
 
-def _ensure_CTRL_record(rr, localscope='<localscope>'):
+def _ensure_CTRL_record(rr, localscope='<localscope>', version=None):
    """Make sure that rr has a valid JEN_inarg_CTRL record"""
-   if not rr.has_key(CTRL_record):
-      rr[CTRL_record] = dict(localscope=localscope)
-   elif not isinstance(rr[CTRL_record], dict):
-      rr[CTRL_record] = dict(localscope=localscope)
+   version = str(version)                             # convert to string!
+   if not rr.has_key(CTRL_record):                    # rr does NOT have a CTRL record yet
+      rr[CTRL_record] = dict(localscope=localscope, version=version)
+   elif not isinstance(rr[CTRL_record], dict):        # CTRL_record is not a record...??
+      ERROR(rr,'inarg/pp['+CTRL_record+'] not a dict, but: '+str(type(rr[CTRL_record])))
+      # rr[CTRL_record] = dict(localscope=localscope, version=version)
+   else:                                              # rr already has a valid CTRL_record
+      if version:                                     # version has been specified (.inarg2pp())
+         # The version keyword allows detecton of obsolete inarg records:
+         rr_version = rr[CTRL_record]['version']
+         if not rr_version==version:
+            ERROR(rr,'inarg/pp version mismatch: '+rr_version+' != '+version)
+            return False                              # then what....?
    return True
    
 #----------------------------------------------------------------------------
@@ -403,53 +432,47 @@ def _strip(rr, key=CTRL_record, level=0, trace=False):
 
 #----------------------------------------------------------------------------
 
-def getinarg(pp, check=True, strip=False, trace=False):
+def getdefaults(pp, check=True, strip=False, trace=False):
    """The function that decides whether its calling function is to be executed
    (and then checks and prepares the argument record pp), or whether it should
    just return an inarg record with default values. This is controlled by the
-   presence of a 'getinarg' field in the internal argument record pp""" 
+   presence of a 'getdefaults' field in the internal argument record pp""" 
    if trace:
-      display(pp,'input pp to .getinarg(pp)', full=True)
-   if not isinstance(pp, dict):
-      print '** JEN_inarg.getinarg(pp): pp not a record, but:',type(pp) 
-      return False
+      display(pp,'input pp to .getdefaults(pp)', full=True)
 
-   if pp.has_key('_getinarg'):
-      # Use: if JEN_inarg.getinarg(pp): return JEN_inarg.pp2inarg(pp)
-      # i.e. if True, do not execte the body of the mother function,
+   if not isinstance(pp, dict):
+      print '** JEN_inarg.getdefaults(pp): pp not a record, but:',type(pp) 
+      return False                      # ....?
+
+   if pp.has_key('_getdefaults'):
+      # Use: if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+      # i.e. if True, do NOT execute the body of the mother function,
       #      but just return an inarg record with its default arguments
       return True
 
    #....................................................................
    #....................................................................
 
-   if True:
-      lscope = localscope(pp)
-      display(pp,'pp before _replace_reference(): '+lscope, full=True)
-
    # Replace referenced values (if any):
    # NB: This should be done ONLY to the executed pp-record, of course...!
-   print '\n** BEFOER:'
    _replace_reference(pp, trace=trace)
-   print '** AFTER:\n'
 
    if check:
       # At the very least, report any problems:
       if not is_OK(pp):
-         display(pp,'.getinarg(): NOT OK!!')
+         display(pp,'.getdefaults(): NOT OK!!')
          return True                              # do NOT execute....
 
-   trace = True              # ALWAYS show pp to be executed
+   # trace = True              # ALWAYS show pp to be executed
    if trace:
       lscope = localscope(pp)
-      display(pp,'(unstripped) pp to be executed for: '+lscope, full=True)
+      display(pp,'pp to be executed for: '+lscope, full=True)
 
-   strip = True              # ALWAY strip, but AFTER display.....?
+   # strip = True              # ALWAY strip, but AFTER display.....?
    if strip:
       # Optionally, strip off the JEN_inarg_CTRL record:
       pp = _strip(pp, CTRL_record, trace=trace)
       
-
    # Return False to cause the calling function to execute its body:
    return False
    
@@ -458,7 +481,6 @@ def getinarg(pp, check=True, strip=False, trace=False):
 def _replace_reference(rr, repeat=0, trace=False):
    """If the value of a field in the given record (rr) is a field name
    in the same record, replace it with the value of the referenced field"""
-   # trace = True
    if not isinstance(rr, dict): return False
    if repeat>10:
       print 'JEN_inarg._replace_reference(): max repeat exceeded',repeat
@@ -467,20 +489,14 @@ def _replace_reference(rr, repeat=0, trace=False):
    count = 0                               # replacement counter
    for key in rr.keys():                   # for all fields
       value = rr[key]                      # field value
-      # print 'JEN_inarg._replace_reference():',repeat,key,value
       if key==CTRL_record:                 # ignore
-         print '..ignore'
          pass
       elif isinstance(value, str):         # if field value is a string
-         print '..JEN_inarg._replace_reference():',repeat,key,value
          if rr.has_key(value):             # if field value is the name of another field
-            print '....JEN_inarg._replace_reference():',repeat,key,value,rr[value]
             if not value==rr[value]:       # different values
-               print '......JEN_inarg._replace_reference():',repeat,key,value,rr[value]
                count += 1                  # count the number of replacements
                s1 = '._replace_reference('+str(repeat)+'): key='+key+':  '
                s1 += str(value)+' -> '+str(rr[value])
-               print '......',s1
                MESSAGE(rr, s1)
                rr[key] = rr[value]         # replace with the value of the referenced field
 
@@ -492,7 +508,7 @@ def _replace_reference(rr, repeat=0, trace=False):
 
 #----------------------------------------------------------------------------
 
-def inarg2pp(inarg, funcname='<funcname>', trace=False):
+def inarg2pp(inarg, funcname='<funcname>', version='15dec2005', trace=False):
    """Extract the relevant internal argument record (pp) from inarg"""
 
    s0 = '** JEN_inarg.inarg2pp('+funcname+'): '
@@ -511,10 +527,12 @@ def inarg2pp(inarg, funcname='<funcname>', trace=False):
       inarg.__delitem__('_qual')
 
 
-   if inarg.has_key('_getinarg'):
-      # Called as .func(_getinarg=... [, _qual=...]), and results in default inarg.
+
+   # Check for the existence of reserved keywords:
+   if inarg.has_key('_getdefaults'):
+      # Called as .func(_getdefaults=... [, _qual=...]), and results in default inarg.
       # NB: The call may contain other (overriding) keyword arguments too...
-      if trace: print s0,'inarg has key _getinarg'
+      if trace: print s0,'inarg has key _getdefaults'
       pp = inarg
 
    elif inarg.has_key('_inarg'):
@@ -542,21 +560,27 @@ def inarg2pp(inarg, funcname='<funcname>', trace=False):
          pp = inarg['_inarg'][localscope]
          # display(pp,'pp extracted from inarg')
 
+         # Indicate that this particular sub-inarg will be executed
+         # (this allows stripping off non-executed inarg records, to avoid clutter)
+         if False:
+            # NB: This give version clashes (requires more thought....)
+            _ensure_CTRL_record(inarg['_inarg'][localscope], localscope)    # just in case....
+            CTRL(inarg['_inarg'][localscope], 'executed', True)
+
          # Now deal with any EXTRA keyword arguments in inarg, which may have been
-         # supplied as:     func(_inarg=inarg, aa=10, bb=-13)
+         # supplied as:     myfunc(_inarg=inarg, aa=10, bb=-13)
          # If recognised, these OVERRIDE the values of the relevant pp fields.
          # NB: Any extra arguments that are not fields in pp are ignored, and lost!
-         # NB: This feature is inhibited for nested inarg records, because they might
-         #     contain keywords with the same name as its calling function.
-         if not CTRL(pp, 'nested', report=False):
-            for key in inarg.keys():
+         
+         for key in inarg.keys():
+            if not key=='_inarg':
                if pp.has_key(key):
                   was = pp[key]
                   pp[key] = inarg[key]
-                  if trace: print s1,'overridden pp[',key,']: ',was,'->',pp[key]
+                  MESSAGE(pp, s1+'overridden pp['+key+']: '+str(was)+' -> '+str(pp[key]))
                else:
-                  # if trace: print s1,'ignored extra field inarg[',key,'] =',inarg[key]
-                  pass
+                  MESSAGE(pp, s1+'ignored extra field inarg['+key+'] = '+str(inarg[key]))
+
 
    else:
       # Assume that the function has been called 'traditionally'
@@ -564,7 +588,7 @@ def inarg2pp(inarg, funcname='<funcname>', trace=False):
       if trace: print '-- inarg traditional'
 
    # Attach CTRL record to pp (if necessary):
-   _ensure_CTRL_record(pp, localscope)
+   _ensure_CTRL_record(pp, localscope, version)
 
    if trace: display(pp,'pp <- .inarg2pp(inarg)', full=True)
    return pp
@@ -600,7 +624,7 @@ def pp2inarg(pp, help=None, trace=False):
    """Turn the internal argument record pp into an inarg record"""
    # if trace: display(pp,'.pp2inarg() input pp')
    localscope = pp[CTRL_record]['localscope']
-   if pp.has_key('_getinarg'): pp.__delitem__('_getinarg')
+   if pp.has_key('_getdefaults'): pp.__delitem__('_getdefaults')
 
    # Make the external inarg record:
    inarg = dict()
@@ -630,9 +654,12 @@ def attach(rr=None, inarg=None, trace=False):
 
    # The inarg record should contain the name[+qualifier(s)] of 'its' function: 
    lscope = localscope(inarg)
+
+   # Check whether rr already has this inarg:
    if rr.has_key(lscope):
       # NB: This happens with nested functions all the time, so assume OK
-      MESSAGE(rr, s0+'duplicate localscope: '+lscope)
+      #     (it is the equivalent of .setdefault(key,value), where key exists already)
+      # MESSAGE(rr, s0+'duplicate localscope: '+lscope)
       return rr                                  # just return input rr
 
    # OK, attach to rr:
@@ -647,8 +674,7 @@ def attach(rr=None, inarg=None, trace=False):
 
 def nest(pp=None, inarg=None, trace=False):
    """Attach a nested inarg to internal argument record pp"""
-   # Make sure that the CTRL record of inarg has a 'nested' field.
-   # This is used in .inarg2pp() to avoid problems
+   # Make sure that the CTRL record of inarg has a 'nested' field....(?)
    CTRL(inarg,'nested',True, trace=trace)
    return attach(pp, inarg=inarg, trace=trace)
 
@@ -698,6 +724,22 @@ def result(rr=None, pp=None, attach=None, trace=True):
 #********************************************************************************
 
 
+#========================================================================
+# Helper routines:
+#========================================================================
+
+# Counter service (....)
+
+_counters = {}
+
+def _counter (key, increment=0, reset=False, trace=True):
+    global _counters
+    _counters.setdefault(key, 0)
+    if reset: _counters[key] = 0
+    _counters[key] += increment
+    if trace: print '** JEN_inarg: _counters(',key,') =',_counters[key]
+    return _counters[key]
+
 
 
 #********************************************************************************
@@ -715,7 +757,7 @@ if __name__ == '__main__':
       """A test function with inarg capability"""
 
       # Extract a bare argument record pp from inarg
-      pp = inarg2pp(inarg, 'JEN_inarg::test1()', trace=True)
+      pp = inarg2pp(inarg, 'JEN_inarg::test1()', version='10dec2005', trace=True)
 
       # Specify the function arguments, with default values:
       pp.setdefault('aa', 45)
@@ -727,10 +769,10 @@ if __name__ == '__main__':
       if pp['nested']:
          # It is possible to include the default inarg records from other
          # functions that are used in the function body below:
-         nest(pp, inarg=test2(_getinarg=True, trace=pp['trace']), trace=pp['trace'])
+         nest(pp, inarg=test2(_getdefaults=True, trace=pp['trace']), trace=pp['trace'])
 
-      # .test(_getinarg=True) -> an inarg record with default values
-      if getinarg(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
+      # .test(_getdefaults=True) -> an inarg record with default values
+      if getdefaults(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
 
       # Execute the function body, using pp:
       # Initialise a result record (rr) with the argument record pp
@@ -750,11 +792,11 @@ if __name__ == '__main__':
    def test2(**inarg):
       """Another test function"""
 
-      pp = inarg2pp(inarg, 'JEN_inarg::test2()', trace=True)
+      pp = inarg2pp(inarg, 'JEN_inarg::test2()', version='2.45', trace=True)
       pp.setdefault('ff', 145)
       pp.setdefault('bb', -119)
       pp.setdefault('trace', False)
-      if getinarg(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
+      if getdefaults(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
 
       # Initialise a result record (rr) with the argument record pp
       rr = result(pp=pp)
@@ -766,7 +808,7 @@ if __name__ == '__main__':
       # Test of basic inarg-operation:
       qual = '<qual>'
       qual = None
-      inarg = test1(_getinarg=True, _qual=qual, trace=True)
+      inarg = test1(_getdefaults=True, _qual=qual, trace=True)
       if 0:
          # modify(trace=True)
          # modify(inarg, trace=True)
@@ -782,7 +824,7 @@ if __name__ == '__main__':
       
    if 1:
       # Test of .clone()
-      inarg = test1(_getinarg=True)
+      inarg = test1(_getdefaults=True)
       localscope(inarg, trace=True)
       qualifier(inarg, trace=True)
       rr = clone(inarg, 'cloned', trace=True)
@@ -793,7 +835,7 @@ if __name__ == '__main__':
       
    if 0:
       # Test of .CTRL()
-      inarg = test1(_getinarg=True)
+      inarg = test1(_getdefaults=True)
       tf = is_inarg(inarg)
       print 'is_inarg(inarg) ->',tf
       ok = is_OK(inarg)
@@ -807,7 +849,7 @@ if __name__ == '__main__':
 
    if 0:
       # Test of .CTRL()
-      inarg = test1(_getinarg=True)
+      inarg = test1(_getdefaults=True)
       cc = CTRL(inarg, trace=True)
       ERROR(inarg,'error 1', trace=True)
       cc = CTRL(inarg, 'nested', trace=True)
@@ -823,7 +865,7 @@ if __name__ == '__main__':
 
    if 0:
       # Test of .MESSAGE():
-      inarg = test1(_getinarg=True)
+      inarg = test1(_getdefaults=True)
       ERROR(inarg,'error 1', trace=True)
       ERROR(inarg,'error 2', clear=True, trace=True)
       ERROR(inarg,'error 3', trace=True)
@@ -834,8 +876,8 @@ if __name__ == '__main__':
 
    if 0:
       # Test: Combine the inarg records of multiple functions:
-      inarg1 = test1(_getinarg=True)
-      inarg2 = test2(_getinarg=True)
+      inarg1 = test1(_getdefaults=True)
+      inarg2 = test2(_getdefaults=True)
       inarg = attach(inarg=inarg1, trace=True)
       attach(inarg, inarg=inarg2, trace=True)
       # attach(inarg, inarg=inarg2, trace=True)
@@ -853,7 +895,7 @@ if __name__ == '__main__':
 
    if 0:
       # Test of ._strip():
-      rr = test1(_getinarg=True)
+      rr = test1(_getdefaults=True)
       JEN_record.display_object(rr,'rr','before ._strip(rr)')
       qq = _strip(rr, CTRL_record)
       JEN_record.display_object(qq,'qq','after ._strip(rr)')
