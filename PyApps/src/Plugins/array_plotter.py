@@ -54,11 +54,10 @@ class ArrayPlotter(GriddedPlugin):
     self.layout_parent = None
     self.array_selector = None
     self.colorbar = {}
-    self.layout = None
+    self.layout_parent = QWidget(self.wparent())
+    self.layout = QGridLayout(self.layout_parent)
+    self._plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
     if self.actual_rank  > 1:
-      self.layout_parent = QWidget(self.wparent())
-      self.layout = QGridLayout(self.layout_parent)
-      self._plotter = QwtImageDisplay('spectra',parent=self.layout_parent)
       self.layout.addWidget(self._plotter, 0, 1)
       if dataitem.data.type() == Complex32 or dataitem.data.type() == Complex64:
         num_colorbars = 2
@@ -85,15 +84,12 @@ class ArrayPlotter(GriddedPlugin):
         self.set_ND_controls()
 
     else:
-      self._plotter = QwtImageDisplay('spectra',parent=self.wparent())
+      self.layout.addWidget(self._plotter, 0, 0)
 
     self.plotPrinter = plot_printer(self._plotter, self.colorbar)
     QObject.connect(self._plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print)
     self._plotter.show()
-    if self.layout_parent is None:
-      self.set_widgets(self._plotter,dataitem.caption,icon=self.icon());
-    else:
-      self.set_widgets(self.layout_parent,dataitem.caption,icon=self.icon());
+    self.set_widgets(self.layout_parent,dataitem.caption,icon=self.icon());
 
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
