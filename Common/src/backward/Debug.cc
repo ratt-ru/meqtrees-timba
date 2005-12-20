@@ -132,11 +132,14 @@ namespace Debug
     {
       cerr<<"Debug: setting all debug levels to "<<level<<endl;
     }
-    // set levels in range
+    // set levels in range, but ignore null pointers
     for( CMI iter = range.first; iter != range.second; iter++ )
     {
-      (*levels)[iter->first] = level;
-      iter->second->setLevel( level );
+      if( iter->second )
+      {
+        (*levels)[iter->first] = level;
+        iter->second->setLevel( level );
+      }
     }
     return true;
   }
@@ -350,7 +353,10 @@ namespace Debug
     if( !contexts ) // allocate on first use
       contexts = new ContextMap;
     // insert into context map
-    bool newcontext = contexts->find(name) == contexts->end();
+    ContextMap::iterator iter = contexts->find(name);
+    bool newcontext = false;
+    if( iter == contexts->end() || !iter->second ) // check for null pointer (deleted context)
+      newcontext = true;
     contexts->insert( ContextMap::value_type(name,this) );
     // look into preset levels
     int lev = 0;
@@ -379,20 +385,11 @@ namespace Debug
     lockMutex(levels);
     if( !contexts )
       return;
-
-    for( CMI iter = contexts->begin(); iter != contexts->end(); ) {
-      if( iter->second == this ) {
-        contexts->erase(iter++);
-      } else {
-        iter++;
-      }
-    }
-
-    if( contexts->empty() )
-    {
-      delete contexts;
-      contexts = 0;
-    }
+    // replace deleted contexts with a null pointer -- just erasing them
+    // produces a SEGV on exit for some obscure reason
+    for( CMI iter = contexts->begin(); iter != contexts->end(); iter++ ) 
+      if( iter->second == this ) 
+        iter->second = 0;
   }
 
   // int dbg_printf( const char *format, ...) 
