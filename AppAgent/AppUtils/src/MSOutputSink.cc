@@ -227,8 +227,6 @@ void MSOutputSink::putColumn (Column &col,int irow,const LoMat_fcomplex &data)
   Matrix<Complex> aips_data;
   if( flip_freq_ )
   {
-    // cast away const here because reverse() is not declared const for some reason
-    // (it ought to be!)
     LoMat_fcomplex revdata(data);
     revdata.reverseSelf(blitz::secondDim);
     B2A::copyArray(aips_data,revdata);

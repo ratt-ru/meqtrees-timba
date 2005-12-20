@@ -340,6 +340,9 @@ int MSInputSink::refillStream ()
         LoCube_fcomplex datacube = B2A::refAipsToBlitz<fcomplex,3>(datacube1);
         Cube<Bool> flagcube1 = ROArrayColumn<Bool>(table,"FLAG").getColumn();
         LoCube_bool flagcube = B2A::refAipsToBlitz<bool,3>(flagcube1);
+        // apply channel selection
+        datacube.reference(datacube(ALL,CHANS,ALL));
+        flagcube.reference(flagcube(ALL,CHANS,ALL));
         // flip along frequency axis, if asked to
         if( flip_freq_ )
         {
@@ -369,11 +372,11 @@ int MSInputSink::refillStream ()
           ptile->winterval()(ntimes) = intCol(i);
           ptile->wrowflag()(ntimes)  = rowflagCol(i) && !clear_flags_ ? 1 : 0;
           ptile->wuvw()(ALL,ntimes)  = uvwmat(ALL,i);
-          ptile->wdata()(ALL,ALL,ntimes) = datacube(ALL,CHANS,i);
+          ptile->wdata()(ALL,ALL,ntimes) = datacube(ALL,ALL,i);
           if( clear_flags_ )
             ptile->wflags()(ALL,ALL,ntimes) = 0;
           else
-            ptile->wflags()(ALL,ALL,ntimes) = where(flagcube(ALL,CHANS,i),1,0);
+            ptile->wflags()(ALL,ALL,ntimes) = where(flagcube(ALL,ALL,i),1,0);
           ptile->wseqnr()(ntimes) = rownums(i);
         }
         current_timeslot_++;
