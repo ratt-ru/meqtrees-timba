@@ -605,7 +605,7 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
 
     # Use a sub-scope where node-names are prepended with name
     # and may have other qualifiers: nsub = ns.subscope(name, '[qual_list]')
-    label = Joneset.label()                     # e.g. GJones
+    label = 'Joneset:'+str(Joneset.label())     # e.g. Joneset:GJones
     visu_scope = 'visu_'+Joneset.scope()+'_'+label
   
     # Make dcolls per (specified) parm group:
@@ -657,7 +657,7 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
        return dconc
 
     else:
-       # Default: Return a list of one dataCollect node:
+       # Default: Return a LIST(!) of one dataCollect node:
        # (This is consistent with MG_JEN_Cohset.visualise()...)
        return [dconc['dcoll']]
     
@@ -711,7 +711,7 @@ def visualise_Joneseq (ns, Joneseq, **pp):
     dconc = MG_JEN_dataCollect.dconc (ns, dconc, scope=Joneset.scope(),
                                       bookpage='Joneseq')
 
-    # Return a dcoll record (dataCollect node = dcond['dcoll'])
+    # Return a dcoll record (dataCollect node = dconc['dcoll'])
     return dconc
 
 

@@ -345,22 +345,38 @@ def insert_solver (ns=None, measured=None, predicted=None, **inarg):
     corrs = Pohset.solvecorrs(pp['solvegroup'])
     solvable = Pohset.solveparms(pp['solvegroup'])
     if pp['visu']:
-        # Show the first MeqParm in each parmgroup:
-        ss1 = Pohset.solveparms(pp['solvegroup'], select='first')
-        for s1 in ss1:
-            MG_JEN_forest_state.bookmark (ns[s1], page='solvable')
+        if len(solvable)<10:
+            # If not too many, show all solvable MeqParms
+            for s1 in solvable:
+                MG_JEN_forest_state.bookmark (ns[s1], page='solvable')
+        else:
+            # Show the first MeqParm in each parmgroup:
+            ss1 = Pohset.solveparms(pp['solvegroup'], select='first')
+            for s1 in ss1:
+                MG_JEN_forest_state.bookmark (ns[s1], page='solvable')
   
     # Make condeq nodes (use Pohset from here onwards):
     solver_condeqs = []
     Pohset.Condeq(ns, Mohset)
     # Pohset.display('after defining condeqs')
-    solver_condeqs = Pohset.cohs(corrs=corrs, ns=ns)  
+    solver_condeqs = Pohset.cohs(corrs=corrs, ns=ns)
+    extra_condeqs = []
+    if True:
+        # Special WNB kludge: Make an extra condeq to constrain the phase on one station:
+        ss1 = Pohset.solveparms(['Gphase'], select='first')
+        name = 'extra_condeq'
+        # zero = ns['zero_'+name] << Meq.Constant(0.0)
+        zero = ns['zero_'+name] << Meq.Parm(0.0)
+        for s1 in ss1:
+            extra_condeqs.append(ns[name+'_'+s1] << Meq.Condeq(s1, zero))
+        solver_condeqs.extend(extra_condeqs)
 
     # Visualise the condeqs (at solver resolution), if required:
     dcoll_condeq = []
     if pp['visu']:
+       # NB: This does NOT include any special condeqs (see above)
        Pohset.scope('condeq_'+solver_name)
-       dcoll_condeq = visualise (ns, Pohset, errorbars=True, graft=False)
+       dcoll_condeq = visualise (ns, Pohset, errorbars=True, graft=False, extra=extra_condeqs)
        # NB: What about visualising MeqParms (solvegroups)?
        #     Possibly compared with their simulated values...
   
@@ -377,9 +393,12 @@ def insert_solver (ns=None, measured=None, predicted=None, **inarg):
                                                            save_funklets=True,
                                                            debug_level=pp['debug_level'])
     # Make a bookmark for the solver plot:
-    MG_JEN_forest_state.bookmark (solver, name=('solver: '+solver_name),
+    page_name = 'solver: '+solver_name
+    MG_JEN_forest_state.bookmark (solver, page=page_name,
                                   udi='cache/result', viewer='Result Plotter')
+    MG_JEN_forest_state.bookmark (solver, page=page_name, viewer='ParmFiddler')
     if pp['visu']:
+        # Optional: also show the solver on the allcorrs page:
         MG_JEN_forest_state.bookmark (solver, page='allcorrs',
                                       udi='cache/result', viewer='Result Plotter')
 
@@ -389,6 +408,14 @@ def insert_solver (ns=None, measured=None, predicted=None, **inarg):
         # Make a tensor node of solver metrics/debug hcoll nodes:
         hc = MG_JEN_historyCollect.make_hcoll_solver_metrics (ns, solver, name=solver_name)
         hcoll_nodes.append(hc)
+
+    # Visualise the solvable MeqParms:
+    dcoll_parm = []
+    if pp['visu']:
+          Joneset = predicted.Joneset() 
+          if Joneset:                                  # if Joneset available
+              dcoll_parm.extend(MG_JEN_Joneset.visualise (ns, Joneset, errorbars=True))
+
 
     # Make a solver subtree with the solver and its associated hcoll/dcoll nodes:
     # The latter are at solver resolution, which may be lower (resampling)
@@ -436,7 +463,8 @@ def insert_solver (ns=None, measured=None, predicted=None, **inarg):
     #-------------------------------------------------------------
 
     # Attach any collected full-resolution hcoll/dcoll nodes:
-    coll_after = measured.coll(clear=True)               
+    coll_after = measured.coll(clear=True)
+    coll_after.extend(dcoll_parm)                # predicted.Joneset() visualisation (if any)
     if (len(coll_before)+len(coll_after))>0:
        cc = coll_before                          # hcoll/dcoll nodes BEFORE the solver
        if len(coll_before)>1:
@@ -507,7 +535,7 @@ def insert_flagger (ns=None, Cohset=None, **inarg):
 # Cohset visualisation:
 #======================================================================================
 
-def visualise(ns=None, Cohset=None, **pp):
+def visualise(ns=None, Cohset=None, extra=None, **pp):
     """visualises the 2x2 coherency matrices in Cohset"""
 
     funcname = 'MG_JEN_Cohset.visualise(): '
@@ -529,6 +557,10 @@ def visualise(ns=None, Cohset=None, **pp):
     nodes = {}
     for corr in Cohset.corrs():
         nodes[corr] = Cohset.cohs(corrs=corr, ns=ns, name='visu')
+        if extra:
+            # Special case (kludge): include some extra nodes
+            if not isinstance(extra, (list,tuple)): extra = [extra]
+            nodes[corr].extend(extra)
 
     # Make dcolls per (available) corr, and collect groups of corrs:
     dcoll = dict()

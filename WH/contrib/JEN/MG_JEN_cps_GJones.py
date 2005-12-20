@@ -142,6 +142,7 @@ Jsequence = ['GJones']
 
 # Specify a list of MeqParm solvegroup(s) to be solved for:
 solvegroup = ['GJones']
+# solvegroup = ['Gphase']
 
 
 inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
@@ -154,13 +155,20 @@ JEN_inarg.modify(inarg,
                  _JEN_inarg_option=None)                # optional, not yet used 
 if 'GJones' in Jsequence: 
     JEN_inarg.modify(inarg,
-                     Gphase_constrain=True,             # if True, constrain 1st station phase
-                     fdeg_Gampl=5,                      # degree of default freq polynomial         
+                     # MeqParm solving instructions:
+                     Gphase_constrain=False,             # if True, constrain 1st station phase
+                     fdeg_Gampl=0,                      # degree of default freq polynomial         
                      fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                      tdeg_Gampl=0,                      # degree of default time polynomial         
                      tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
                      tile_size_Gampl=0,                 # used in tiled solutions         
                      tile_size_Gphase='tile_size_Gampl', # used in tiled solutions         
+                     # ** MeqParm default values:
+                     c00_Gampl=2.0,                     # default c00 funklet value
+                     c00_Gphase=0.5,                    # default c00 funklet value
+                     stddev_Gampl=0.0,                  # scatter in default c00 funklet values
+                     stddev_Gphase=0.0,                 # scatter in default c00 funklet values
+                     # ft_coeff_scale=0.0,                # scale of polc_ft non-c00 coeff
                      _JEN_inarg_option=None)            # optional, not yet used 
 JEN_inarg.attach(MG, inarg)
 
