@@ -129,10 +129,10 @@ class QwtImageDisplay(QwtPlot):
 	self._flags_array = None
 	self.flag_toggle = False
 	self.flag_blink = False
-        self._solver_flag = False
 
 # save raw data
         self.plot_key = plot_key
+        self.solver_display = None
         self.x_array = None
         self.y_array = None
         self.x_index = None
@@ -1187,12 +1187,17 @@ class QwtImageDisplay(QwtPlot):
       self.metrics_plot = self.insertCurve('metrics')
       self.setCurvePen(self.metrics_plot, QPen(Qt.black, 2))
       self.setCurveStyle(self.metrics_plot,Qt.SolidLine)
-      self.setCurveYAxis(self.metrics_plot, QwtPlot.yLeft)
-      self.setCurveXAxis(self.metrics_plot, QwtPlot.xBottom)
+      if self.array_flip:
+        self.setCurveYAxis(self.metrics_plot, QwtPlot.yLeft)
+        self.setCurveXAxis(self.metrics_plot, QwtPlot.xBottom)
+        self.setCurveData(self.metrics_plot, self.metrics_rank, self.iteration_number)
+      else:
+        self.setCurveYAxis(self.metrics_plot, QwtPlot.xBottom)
+        self.setCurveXAxis(self.metrics_plot, QwtPlot.yLeft)
+        self.setCurveData(self.metrics_plot, self.iteration_number, self.metrics_rank)
       plot_curve=self.curve(self.metrics_plot)
       plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
                  QPen(Qt.black), QSize(10,10)))
-      self.setCurveData(self.metrics_plot, self.metrics_rank, self.iteration_number)
 
     def insert_array_info(self):
 # draw dividing line for complex array
@@ -1401,6 +1406,16 @@ class QwtImageDisplay(QwtPlot):
       self._window_title = data_label  
       self.setTitle(self.label+ ' ' + self._window_title)
 
+# do we have solver data?
+      if self._window_title.find('Solver Incremental') >= 0:
+        self.solver_display = True
+        if self._window_title.find('Solver Incremental Solutions') >= 0:
+            self._x_title = 'Solvable Coefficients'
+            self._y_title = 'Iteration Nr'
+        else:
+            self._y_title = 'Value'
+            self._x_title = 'Iteration Nr'
+
       if data_label == 'spectra: combined image':
         self.removeMarkers()
         self.info_marker = None
@@ -1416,12 +1431,12 @@ class QwtImageDisplay(QwtPlot):
 # record is available
       plot_array = incoming_plot_array
       axes = None
-      array_flip = None
+      self.array_flip = None
       if flip_axes:
-        array_flip = flip_axes and not self.axes_flip
+        self.array_flip = flip_axes and not self.axes_flip
       else:
-        array_flip = self.axes_flip
-      if array_flip:
+        self.array_flip = self.axes_flip
+      if self.array_flip:
         axes = arange(incoming_plot_array.rank)[::-1]
         plot_array = transpose(incoming_plot_array, axes)
 #       _dprint(3, 'transposed plot array ', plot_array, ' has shape ', plot_array.shape)
@@ -1508,7 +1523,7 @@ class QwtImageDisplay(QwtPlot):
             _dprint(3, 'complex type: self._vells_plot ', self._vells_plot)
             self.x_parm = self.first_axis_parm
             self.y_parm = self.second_axis_parm
-            if array_flip:
+            if self.array_flip:
               self.x_parm = self.second_axis_parm
               self.y_parm = self.first_axis_parm
             self.myXScale = ComplexScaleSeparate(self.vells_axis_parms[self.x_parm][0], self.vells_axis_parms[self.x_parm][1])
@@ -1531,17 +1546,17 @@ class QwtImageDisplay(QwtPlot):
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           else:
             if self.ampl_phase:
-              if array_flip:
+              if self.array_flip:
                 self._x_title = 'Array/Channel Number (amplitude followed by phase)'
               else:
                 self._x_title = 'Array/Sequence Number (amplitude followed by phase)'
             else:
-              if array_flip:
+              if self.array_flip:
                 self._x_title = 'Array/Channel Number (real followed by imaginary)'
               else:
                 self._x_title = 'Array/Sequence Number (real followed by imaginary)'
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
-            if array_flip:
+            if self.array_flip:
               self._y_title = 'Array/Sequence Number'
             else:
               self._y_title = 'Array/Channel Number'
@@ -1565,7 +1580,7 @@ class QwtImageDisplay(QwtPlot):
             _dprint(3, 'not complex type: self._vells_plot ', self._vells_plot)
             self.x_parm = self.first_axis_parm
             self.y_parm = self.second_axis_parm
-            if array_flip:
+            if self.array_flip:
               self.x_parm = self.second_axis_parm
               self.y_parm = self.first_axis_parm
             delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
@@ -1578,14 +1593,18 @@ class QwtImageDisplay(QwtPlot):
             self._y_title = self.vells_axis_parms[self.y_parm][2]
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           else:
+            if self.solver_display is True:
+              if not self.array_flip:
+                self._y_title = 'Solvable Coefficients'
+                self._x_title = 'Iteration Nr'
             if self._x_title is None:
-              if array_flip:
+              if self.array_flip:
                 self._x_title = 'Array/Channel Number'
               else:
                 self._x_title = 'Array/Sequence Number'
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             if self._y_title is None:
-              if array_flip:
+              if self.array_flip:
                 self._y_title = 'Array/Sequence Number'
               else:
                 self._y_title = 'Array/Channel Number'
@@ -1636,7 +1655,7 @@ class QwtImageDisplay(QwtPlot):
 # we have a vector so figure out which axis we are plotting
           self.x_parm = self.first_axis_parm
           self.y_parm = self.second_axis_parm
-          if array_flip:
+          if self.array_flip:
             self.x_parm = self.second_axis_parm
             self.y_parm = self.first_axis_parm
 # now do a check in case we have selected the wrong plot axis
@@ -1789,8 +1808,6 @@ class QwtImageDisplay(QwtPlot):
       """ figure out shape, rank etc of a flag array and
           plot it  """
 
-# hack to get array display correct until forest.state
-# record is available
       flag_array = incoming_flag_array
       self.original_flag_array = incoming_flag_array
       if flip_axes and not self.axes_flip:
