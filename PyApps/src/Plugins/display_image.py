@@ -472,6 +472,7 @@ class QwtImageDisplay(QwtPlot):
         self.is_combined_image = False
 
 # if we got here, emit signal up to result_plotter here
+      menuid = self.spectrum_menu_items - 1 - menuid
       self.emit(PYSIGNAL("handle_spectrum_menu_id"),(menuid,))
 
     def set_flag_toggles(self, flag_plane=None, flag_setting=False):
@@ -532,9 +533,11 @@ class QwtImageDisplay(QwtPlot):
       self.spectrum_menu_items = len(menu_labels)
       if self.spectrum_menu_items > 1:
         menu_id = self._start_spectrum_menu_id
+        menu_index = self.spectrum_menu_items - 1
         for i in range(self.spectrum_menu_items):
-          self._menu.insertItem(menu_labels[i], menu_id)
+          self._menu.insertItem(menu_labels[menu_index], menu_id)
           menu_id = menu_id + 1
+          menu_index = menu_index - 1
 
       toggle_id = self.menu_table['Toggle axis flip']
       self._menu.setItemVisible(toggle_id, False)
@@ -543,7 +546,12 @@ class QwtImageDisplay(QwtPlot):
       if self.spectrum_menu_items > 2: 
         self.num_y_markers = marker_parms[0]
         self.y_marker_step = marker_parms[1]
-        self.marker_labels = marker_labels
+        labels_length = len(marker_labels)
+        labels_index = labels_length -1
+        self.marker_labels = []
+        for i in range(labels_length):
+          self.marker_labels.append(marker_labels[labels_index])
+          labels_index = labels_index-1
 
     def getSpectrumTags(self):
        return (self._data_labels, self._string_tag) 
@@ -610,7 +618,6 @@ class QwtImageDisplay(QwtPlot):
           self.setFlagsData (self.original_flag_array)
         self.plot_vells_array(self.original_data, self.original_label)
       if not self._vells_plot and self._plot_type is None:
-        print 'calling array_plot'
         self.array_plot(self.original_label, self.original_data)
 #     if self._plot_type == 'spectra':
 #       self.array_plot(self.original_label, self.original_data, False)
@@ -775,10 +782,27 @@ class QwtImageDisplay(QwtPlot):
         value = self.raw_array[xpos,ypos]
 	message = None
         temp_str = " value: %-.3g" % value
-	if not marker_index is None:
-          message = result + temp_str + '\nsource: ' + self.marker_labels[marker_index]
+	if not marker_index is None:  
+          if self.is_combined_image:
+            length = len(self.marker_labels)
+            marker_index = length -1 - marker_index
+            message = result + temp_str + '\nsource: ' + self.marker_labels[marker_index]
+          else:
+            title_pos = self._window_title.find('spectra:')
+            if title_pos >= 0:
+              source = self._window_title[title_pos+8:]
+            
+              message = result + temp_str + '\nsource: ' + source
+            else:
+              message = result + temp_str
 	else:
-          message = result + temp_str
+          title_pos = self._window_title.find('spectra:')
+          if title_pos >= 0:
+            source = self._window_title[title_pos+8:]
+            
+            message = result + temp_str + '\nsource: ' + source
+          else:
+            message = result + temp_str
     
 # alias
         fn = self.fontInfo().family()
