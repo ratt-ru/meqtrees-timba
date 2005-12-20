@@ -1417,6 +1417,16 @@ class QwtImageDisplay(QwtPlot):
       if actual_array_rank == 1:
         self.is_vector = True;
 
+# I don't think we should ever see the N-D controller in the vector case.
+# If self.toggle_array_rank > 2 that means that the cells dimensions are
+# greater than the vector being plotted so we can turn off any ND Controller.
+        if self.toggle_array_rank > 2: 
+          self.toggle_ND_Controller = 0
+          self.hidden_ND_Controller = True
+          toggle_id = self.menu_table['Toggle ND Controller']
+          self._menu.setItemVisible(toggle_id, False)
+          self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+
 # test for real or complex
       self.complex_type = False
       complex_type = False;
