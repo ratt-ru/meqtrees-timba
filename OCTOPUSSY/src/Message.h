@@ -11,9 +11,9 @@
 #include <OCTOPUSSY/AID-OCTOPUSSY.h>
 #include <OCTOPUSSY/LatencyVector.h>
 
-// in debug mode, enable latency stats, unless explicitly disabled
-#if defined(LOFAR_DEBUG) && !defined(DISABLE_LATENCY_STATS)
-#define ENABLE_LATENCY_STATS 1
+// if not in debug mode, disable latency stats
+#if !LOFAR_DEBUG
+  #undef ENABLE_LATENCY_STATS
 #endif
 
 namespace Octopussy
