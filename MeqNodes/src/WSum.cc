@@ -45,7 +45,7 @@ void WSum::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 
     }
   
-  if(weights.size()>1 && weights.size()<numChildren())
+  if(weights.size()>1 && weights.size()<size_t(numChildren()))
     cdebug(3)<<"Size of weightvector different from number of children, assume 0 for missing weights";
 }
 
@@ -64,9 +64,9 @@ Vells WSum::evaluate (const Request& req, const LoShape& shape,
                      const vector<const Vells*>& values)
 {
 
-  int nrw=weights.size();
+  size_t nrw=weights.size();
   int allsame =0;
-  if(nrw<numChildren()){
+  if(nrw<size_t(numChildren())){
 
        if(nrw==1) allsame=1;//if exactly 1 weight is given, assume all the same
        //otherwise, assume weights = 0 for children without weight
@@ -75,7 +75,7 @@ Vells WSum::evaluate (const Request& req, const LoShape& shape,
   if( values.empty() || nrw<=0)
     return Vells(0.);
   Vells result((*values[0])*weights[0]);
-  for( int i=1; i<values.size()&&(allsame || i<nrw); i++ )
+  for( size_t i=1; i<values.size()&&(allsame || i<nrw); i++ )
     if(!allsame)
       result += (*(values[i]))*weights[i];
     else
