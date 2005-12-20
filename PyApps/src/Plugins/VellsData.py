@@ -87,9 +87,6 @@ class VellsData:
         _dprint(3, '** in calc_vells_ranges:')
         _dprint(3, 'I think I need a ND GUI as number of valid plot axes is ',self.num_possible_ND_axes)
         _dprint(3, 'length of self.vells_axis_parms is ', len(self.vells_axis_parms))
-        _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
-        _dprint(3, 'I am emitting a vells_axes_labels signal which will cause the ND GUI to be constructed')
-
       _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
       _dprint(3, 'self.axis_labels is ', self.axis_labels)
 
