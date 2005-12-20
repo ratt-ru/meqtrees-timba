@@ -120,14 +120,14 @@ int Condeq::getResult (Result::Ref &resref,
     // of pointers to main value
     vector<const Vells*> values(nrch);
     int npertsets;
-    bool have_nulls = false;
+    bool missing_data = false;
     for( int i=0; i<nrch; i++ )
     {
       const Result &chres = *child_result[i];
       const VellSet &vs = chres.vellSet(chres.tensorRank()>0 ? iplane : 0);
-      if( vs.isNull() )
+      if( !vs.hasValue() )
       {
-        have_nulls = true;
+        missing_data = true;
         break;
       }
       child_vs[i] = &vs;
@@ -137,10 +137,10 @@ int Condeq::getResult (Result::Ref &resref,
           flagref() |= vs.dataFlags();
         else
           flagref.attach(vs.dataFlags());
-      values[i] = vs.isNull() ? 0 : &( vs.getValue() );
+      values[i] = &( vs.getValue() );
     }
     // null vellsert on any child produces null output
-    if( have_nulls )
+    if( missing_data )
     {
       result.setNewVellSet(iplane);
       continue;
