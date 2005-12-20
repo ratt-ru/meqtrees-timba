@@ -214,7 +214,7 @@ public:
   // The mask vector (must be same size as returned by getNumParms()) tells which 
   // parameters are solvable. 
   // Returns the number of spids in this funklet (==number of true values in mask)
-  virtual int makeSolvable (int spidIndex,const std::vector<bool> &mask);
+  int makeSolvable (int spidIndex,const std::vector<bool> &mask);
 
   // Updates solvable parms of funklet. Size of values must be equal to the number 
   // of solvable parms.
@@ -348,7 +348,10 @@ protected:
                             const std::vector<int>    &spidIndex,
                             int makePerturbed) const;
 
-  virtual void do_evaluate (VellSet &vs,const Cells &cells,
+ 
+
+  //This one not implemented yet
+  void do_evaluate (VellSet &vs,const Cells &cells,
                             const std::vector<double> &perts,
                             const std::vector<int>    &spidIndex,
 			    const std::vector<Result::Ref> & childres,

@@ -61,7 +61,7 @@ CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int dep
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     for(int i=0;i<res_shape[dimN];i++){
       xval[dimN]=grid[dimN](i);
-      if(dimN<Ndim-1){
+      if(dimN < (Ndim-1.) ){
 	fill_values(value,pertValPtr,xval,res_shape,dimN+1,grid,perts,spidIndex,makePerturbed,pos);
       }
       else{//the real filling

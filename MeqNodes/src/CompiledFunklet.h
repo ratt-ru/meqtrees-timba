@@ -147,7 +147,7 @@ class CompiledFunklet: public Funklet{
 
   void setParam(){
     //set paramters...if coeff doesnt match, take matching part and set rest to unsolvable/0  ?
-    FailWhen(Npar != getNumParms (),"nr. coeff not matching nr. of parameters in Compiled Function!!");
+    FailWhen(int(Npar) != getNumParms (),"nr. coeff not matching nr. of parameters in Compiled Function!!");
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
    
     const double* coeffData = static_cast<const double *>(coeff().getConstDataPtr());
