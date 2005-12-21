@@ -184,7 +184,7 @@ class QwtImageDisplay(QwtPlot):
 
         self.label = ''
         self.vells_menu_items = 0
-        self.zooming = 0
+        self.zooming = False
         self.setlegend = 0
         self.setAutoLegend(self.setlegend)
         self.enableLegend(False)
@@ -558,11 +558,11 @@ class QwtImageDisplay(QwtPlot):
     
 
     def zoom(self):
-      if self.zooming == 0:
-        self.zooming = 1
+      if not self.zooming:
+        self.zooming = True
         self.zoom_button.setText("Disable zoomer");
       else:
-        self.zooming = 0
+        self.zooming = False
         self.zoom_button.setText("Enable zoomer");
 
     def reset_zoom(self):
@@ -903,7 +903,7 @@ class QwtImageDisplay(QwtPlot):
 
             else:
               self.formatCoordinates(e.pos().x(), e.pos().y())
-            if self.zooming == 1:
+            if self.zooming:
               self.xpos = e.pos().x()
               self.ypos = e.pos().y()
               self.enableOutline(1)
@@ -956,7 +956,7 @@ class QwtImageDisplay(QwtPlot):
     def onMouseReleased(self, e):
         if Qt.LeftButton == e.button():
             self.refresh_marker_display()
-            if self.zooming == 1:
+            if self.zooming:
               xmin = min(self.xpos, e.pos().x())
               xmax = max(self.xpos, e.pos().x())
               ymin = min(self.ypos, e.pos().y())
@@ -993,7 +993,7 @@ class QwtImageDisplay(QwtPlot):
               self.zoomState = (xmin, xmax, ymin, ymax)
               self.enableOutline(0)
         elif Qt.RightButton == e.button():
-            if self.zooming == 1:
+            if self.zooming:
               if len(self.zoomStack):
                  xmin, xmax, ymin, ymax = self.zoomStack.pop()
               else:
@@ -1002,7 +1002,7 @@ class QwtImageDisplay(QwtPlot):
               return
         elif Qt.MidButton == e.button():
           return
-        if self.zooming == 1:
+        if self.zooming:
           self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
           self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
           self._x_auto_scale = False
