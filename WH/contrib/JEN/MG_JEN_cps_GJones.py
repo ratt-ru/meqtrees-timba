@@ -190,6 +190,7 @@ JEN_inarg.modify(inarg,
                  # num_iter=20,                       # max number of iterations
                  # epsilon=1e-4,                      # iteration control criterion
                  # debug_level=10,                    # solver debug_level
+                 extra_condeqs=True,                # if True, constrain Gphase with condeq(s)
                  visu=True,                         # if True, include visualisation
                  history=True,                      # if True, include history collection of metrics 
                  subtract=False,                    # if True, subtract 'predicted' from uv-data 

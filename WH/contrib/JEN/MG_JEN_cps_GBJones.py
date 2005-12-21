@@ -91,7 +91,7 @@ MG = JEN_inarg.init('MG_JEN_cps_GBJones',
                     polrep='linear',                   # polarisation representation (linear/circular)
                     # polrep='circular',                 # polarisation representation (linear/circular)
                     stations=range(4),                 # specify the (subset of) stations to be used
-                    insert_solver_GJones=False,         # if True, insert GJones solver
+                    insert_solver_GJones=True,         # if True, insert GJones solver
                     insert_solver_BJones=True,         # if True, insert BJones solver
                     parmtable=None)                    # name of MeqParm table
 

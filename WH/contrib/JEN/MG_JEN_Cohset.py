@@ -288,6 +288,7 @@ def insert_solver (ns=None, measured=None, predicted=None, **inarg):
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_solver()', version='25dec2005')
     pp.setdefault('solvegroup', [])        # list of solvegroup(s) to be solved for
+    pp.setdefault('extra_condeqs', False)  # If True, constrain Gphase via condeqs
     pp.setdefault('num_iter', 20)          # max number of iterations
     pp.setdefault('num_cells', None)       # if defined, ModRes argument [ntime,nfreq]
     # pp.setdefault('num_cells', [1,5])      # if defined, ModRes argument [ntime,nfreq]
@@ -360,9 +361,11 @@ def insert_solver (ns=None, measured=None, predicted=None, **inarg):
     Pohset.Condeq(ns, Mohset)
     # Pohset.display('after defining condeqs')
     solver_condeqs = Pohset.cohs(corrs=corrs, ns=ns)
+
+    # Special WNB kludge: Make extra condeqs to constrain the phase of one station:
+    # NB: Constrain vs Condition....
     extra_condeqs = []
-    if True:
-        # Special WNB kludge: Make an extra condeq to constrain the phase on one station:
+    if pp['extra_condeqs']:
         ss1 = Pohset.solveparms(['Gphase'], select='first')
         name = 'extra_condeq'
         # zero = ns['zero_'+name] << Meq.Constant(0.0)
@@ -855,6 +858,7 @@ if True:                                                   # ... Copied from MG_
                         # num_iter=20,                       # max number of iterations
                         # epsilon=1e-4,                      # iteration control criterion
                         # debug_level=10,                    # solver debug_level
+                        extra_condeqs=False,               # if True, constrain Gphase with condeq(s)
                         visu=True,                         # if True, include visualisation
                         history=True,                      # if True, include history collection of metrics 
                         subtract=False,                    # if True, subtract 'predicted' from uv-data 
