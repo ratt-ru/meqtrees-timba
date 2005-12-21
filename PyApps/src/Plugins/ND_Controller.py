@@ -31,13 +31,16 @@ class AxisRange(QWidget):
         self.maxVal = 99
         self.active = False
 
+        self.label_info = QLabel(' ', self)
+
         self.resetValue()
 
         self.connect(self.slider, SIGNAL("valueChanged(int)"), self.update_slider)
         self.connect(self.spinbox, SIGNAL("valueChanged(int)"), self.update_spinbox)
 
         self.layout = QGridLayout(self)
-        self.layout.addMultiCellWidget(self.button,0,1,0,0)
+        self.layout.addWidget(self.label_info,0,0)
+        self.layout.addWidget(self.button,1,0)
         self.layout.addMultiCellWidget(QLabel(' ', self),0,1,1,1)
         self.layout.addWidget(self.spinbox, 0,2)
         self.layout.addWidget(self.slider, 1,2)
@@ -56,7 +59,7 @@ class AxisRange(QWidget):
     def resetValue(self):
         display_str = None
         if self.axis_parms is None or not self.active:
-          display_str = str(0)
+          display_str = ''
         else:
           delta_vells = (self.axis_parms[1] - self.axis_parms[0]) / self.maxVal
           index = self.axis_parms[0] + 0.5 * delta_vells 
@@ -67,6 +70,7 @@ class AxisRange(QWidget):
             display_str = dummy
         self.slider.setValue(0)
         self.spinbox.setValue(0)
+        self.label_info.setText(' ' + display_str)
 
     def setDisplayString(self, value ):
       display_str = ''
@@ -78,7 +82,8 @@ class AxisRange(QWidget):
           display_str = dummy[:9]
         else:
           display_str = dummy
-        self.spinbox.setPrefix(display_str + '  ')
+#       self.spinbox.setPrefix(display_str + '  ')
+        self.label_info.setText(' ' + display_str)
       if not self.button_label is None:
         display_str = self.button_label + ' ' + display_str
       self.emit(PYSIGNAL("ValueChanged"), (self.axis_number, value, display_str))
