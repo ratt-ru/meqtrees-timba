@@ -62,9 +62,27 @@ class Parmset (TDL_common.Super):
         self.__plot_color = TDL_radio_conventions.plot_color()
         self.__plot_style = TDL_radio_conventions.plot_style()
         self.__plot_size = TDL_radio_conventions.plot_size()
+        self.__parm = dict()
         self.__MeqParm = dict()
         self.__constrain = dict()
         self.__node_groups = ['Parm']
+
+    def __getitem__(self, key):
+        """Get s station (key) MeqParm node"""
+        # This allows indexing by key and by index nr:
+        if isinstance(key, int): key = self.__parm.keys()[key]
+        return self.__parm[key]
+
+    def __setitem__(self, key, value):
+        """Set the station (key) MeqParm node"""
+        self.__parm[key] = value
+        return self.__parm[key]
+
+    def parm(self): return self.__parm
+    def len(self): return len(self.__parm)
+    def keys(self): return self.__parm.keys()
+    def has_key(self, key): return self.keys().__contains__(key)
+        
 
     def register(self, key=None, **pp):
     # def register(self, key=None, ipol=None, color=None, style='circle', size=10, corrs=None):
@@ -170,9 +188,9 @@ class Parmset (TDL_common.Super):
         if tile_size:
             tiling.time = tile_size
 
-        quals = dict(q=self.punit());
+        quals = dict(q=self.punit())
         if station:
-            quals['s'] = station;
+            quals['s'] = station
         node = ns[key](**quals) << Meq.Parm(default,
                                             node_groups=self.node_groups(),
                                             use_previous=use_previous,
@@ -261,6 +279,16 @@ class Parmset (TDL_common.Super):
         ss.append(indent1+' - solvegroups ( unsolvable = '+str(self.unsolvable())+' , node_groups = '+str(self.node_groups())+' ):')
         for key in self.solvegroup().keys():
             ss.append(indent2+' - '+key+' : parmgroups: '+str(self.solvegroup()[key])+' , corrs: '+str(self.condeq_corrs()[key]))
+        ss.append(indent1+' - Avaliable MeqParm nodes ( '+str(self.len())+' ):')
+        if full or self.len()<15:
+            for key in self.keys():
+                ss.append(indent2+' - '+key+' : '+str(self.__parm[key]))
+        else:
+            keys = self.keys()
+            n = len(keys)-1
+            ss.append(indent2+' - first: '+keys[0]+' : '+str(self.__parm[keys[0]]))
+            ss.append(indent2+'   ....')
+            ss.append(indent2+' - last:  '+keys[n]+' : '+str(self.__parm[keys[n]]))
         return TDL_common.Super.display_end (self, ss)
 
 
@@ -357,6 +385,8 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: TDL_Parmset.py:\n'
     from numarray import *
     from Timba.Trees import TDL_display
+    from Timba.Trees import TDL_Joneset
+    from Timba.Contrib.JEN import MG_JEN_funklet
     # from Timba.Trees import JEN_record
     ns = NodeScope()
     nsim = ns.Subscope('_')
@@ -379,7 +409,7 @@ if __name__ == '__main__':
         print ps.parmtable('cal_BJones')
         print ps.check_parmtable_extension()
 
-    if 1:
+    if 0:
         ps = Parmset(label='GJones', polrep='circular')
         p1 = ps.register('Gphase', ipol=1, color='red', corrs=['XX','YY'])
         a2 = ps.register('Gampl', ipol=2, color='blue', corrs=['XX','YY'])
@@ -402,6 +432,50 @@ if __name__ == '__main__':
           ps.define_MeqParm(ns, d2, station=station, default=0)
           ps.define_MeqParm(ns, d12, station=station, default=0)
           ss = ps.MeqParm(update=True)
+
+
+    if 1:
+        # Create a Joneset object
+        pp = dict(stations=range(3), c00_Gampl=1.0, c00_Gphase=0.0, Gphase_constrain=True)
+        js = TDL_Joneset.Joneset(label='test', **pp)
+    
+        # Register the parmgroups:
+        a1 = js.register('Gampl', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
+        a2 = js.register('Gampl', ipol=2, color='blue', style='diamond', size=10, corrs='paral2')
+        p1 = js.register('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral1')
+        p2 = js.register('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral2')
+
+        # MeqParm node_groups: add 'G' to default 'Parm':
+        js.node_groups('G')
+
+        # Define extra solvegroup(s) from combinations of parmgroups:
+        js.define_solvegroup('GJones', [a1, p1, a2, p2])
+        js.define_solvegroup('Gpol1', [a1, p1])
+        js.define_solvegroup('Gpol2', [a2, p2])
+        js.define_solvegroup('Gampl', [a1, a2])
+        js.define_solvegroup('Gphase', [p1, p2])
+    
+        first_station = True
+        for station in pp['stations']:
+            skey = TDL_radio_conventions.station_key(station)        
+            # Define station MeqParms (in ss), and do some book-keeping:  
+            js.MeqParm(reset=True)
+            
+            for Gampl in [a1,a2]:
+                default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gampl'])
+                js.define_MeqParm (ns, Gampl, station=skey, default=default)
+
+            for Gphase in [p1,p2]:
+                default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'])
+                constrain = False
+                if pp['Gphase_constrain']: 
+                    if first_station: constrain = True
+                js.define_MeqParm (ns, Gphase, station=skey, default=default,
+                                   constrain=constrain)
+
+            ss = js.MeqParm(update=True)        # use ss[p1] etc...
+            first_station = False
+        js.display()
 
 
     if 1:
