@@ -91,6 +91,7 @@
 #    2) A set of zero or more input argument values (keyword=value)
 #    3) A control-record, with the following fields:
 #       - localscope (required): (see .localscope())
+#       - scope (required): localscope without qualifier
 #       - qualifier (optional): (see .qualifier() and .clone())
 #       - nested (optional): indicates whether the function is nested
 #       - ERROR (optional): record with error messages (see .ERROR())
@@ -248,6 +249,7 @@ def modify(inarg, **arg):
 
    # The actual work: recursive modification:
    _modify_level(inarg, arg=arg, found=found, trace=trace)
+   MESSAGE(inarg,'.modify(): found ='+str(found))
 
    # Check the result:
    ok = True
@@ -265,7 +267,7 @@ def modify(inarg, **arg):
 
 #----------------------------------------------------------------------------
 
-def _modify_level(rr, arg=None, found=None, level=0, trace=False):
+def _modify_level(rr, arg, found, level=0, trace=False):
    """Recursive function that does the work for .modify()"""
    fname = localscope(rr)
    # s0 = _prefix(level)
@@ -283,24 +285,32 @@ def _modify_level(rr, arg=None, found=None, level=0, trace=False):
          else:
             s1 += ' (unchanged) = '+str(rr[key])
             # MESSAGE(rr,s1)
+
    # Recursive:
    for key in rr.keys():
       if isinstance(rr[key], dict):
          if not key==CTRL_record:                # ignore CTRL_record
             _modify_level(rr[key], arg=arg, found=found, level=level+1, trace=trace)
+
    return True
 
 
 #============================================================================
 
-def _ensure_CTRL_record(rr, localscope='<localscope>', version=None):
+def _ensure_CTRL_record(rr, localscope='<localscope>', version=None, barescope=None):
    """Make sure that rr has a valid JEN_inarg_CTRL record"""
-   version = str(version)                             # convert to string!
+
+   # Convert inputs to strings (just in case)!
+   version = str(version)
+   localscope = str(localscope)
+   if barescope==None:
+      barescope = localscope.split('[')[0]            # remove any qualifiers
+   barescope = str(barescope)
+   
    if not rr.has_key(CTRL_record):                    # rr does NOT have a CTRL record yet
-      rr[CTRL_record] = dict(localscope=localscope, version=version)
+      rr[CTRL_record] = dict(localscope=localscope, version=version, barescope=barescope)
    elif not isinstance(rr[CTRL_record], dict):        # CTRL_record is not a record...??
       ERROR(rr,'inarg/pp['+CTRL_record+'] not a dict, but: '+str(type(rr[CTRL_record])))
-      # rr[CTRL_record] = dict(localscope=localscope, version=version)
    else:                                              # rr already has a valid CTRL_record
       if version:                                     # version has been specified (.inarg2pp())
          # The version keyword allows detecton of obsolete inarg records:
@@ -357,7 +367,9 @@ def CTRL(rr, key=None, value=None, delete=None, report=True, level=0, trace=Fals
 
 def localscope(rr, trace=False):
    """Get the localscope (funcname+qualifiers) from the CTRL record or rr"""
-   return CTRL(rr, 'localscope')
+   lscope = CTRL(rr, 'localscope')
+   if trace: print '.localscope() ->',type(lscope),len(lscope),'=',lscope
+   return lscope
 
 def qualifier(rr, trace=False):
    """Get the localscope (funcname+qualifiers) from the CTRL record or rr"""
@@ -365,6 +377,12 @@ def qualifier(rr, trace=False):
    if qual==None: qual = ''                   # empty string
    if trace: print '.qualifier() ->',type(qual),len(qual),'=',qual
    return qual
+
+def barescope(rr, trace=False):
+   """Get the funcname (localscope without qualifiers) from the CTRL record or rr"""
+   bs = CTRL(rr, 'barescope')
+   if trace: print '.barescope() ->',type(bs),len(bs),'=',bs
+   return bs
 
 #----------------------------------------------------------------------------
 
@@ -521,6 +539,7 @@ def inarg2pp(inarg, funcname='<funcname>', version='15dec2005', trace=False):
 
    # Construct the localscope string (funcname+[qualifiers]):
    localscope = '**** '+str(funcname)
+   barescope = localscope                      # localscope without qualifiers
    if inarg.has_key('_qual'):
       qual = inarg['_qual']
       if not qual==None: localscope += '['+str(qual)+']' 
@@ -588,7 +607,7 @@ def inarg2pp(inarg, funcname='<funcname>', version='15dec2005', trace=False):
       if trace: print '-- inarg traditional'
 
    # Attach CTRL record to pp (if necessary):
-   _ensure_CTRL_record(pp, localscope, version)
+   _ensure_CTRL_record(pp, localscope, version=version, barescope=barescope)
 
    if trace: display(pp,'pp <- .inarg2pp(inarg)', full=True)
    return pp
@@ -636,7 +655,7 @@ def pp2inarg(pp, help=None, trace=False):
 
 #----------------------------------------------------------------------------
 
-def attach(rr=None, inarg=None, trace=False):
+def attach(rr=None, inarg=None, recurse=False, level=0, trace=False):
    """Attach the inarg (or pp?) to an appropiately named field of record rr"""
 
    s0 = '** JEN_inarg.attach(): '
@@ -661,6 +680,16 @@ def attach(rr=None, inarg=None, trace=False):
       #     (it is the equivalent of .setdefault(key,value), where key exists already)
       # MESSAGE(rr, s0+'duplicate localscope: '+lscope)
       return rr                                  # just return input rr
+
+   # Recurse until rr has another field with the same barescope....
+   if recurse:
+      bs = barescope(inarg) 
+      if not rr.has_key(bs):
+         for key in rr.keys():
+            if not isinstance(rr[key], dict):
+               pass
+            else:
+               attach(rr[key], inarg, recurse=recurse, level=level+1, trace=trace)
 
    # OK, attach to rr:
    qq = deepcopy(inarg[lscope])               # use a copy, just in case
@@ -830,6 +859,7 @@ if __name__ == '__main__':
       rr = clone(inarg, 'cloned', trace=True)
       localscope(rr, trace=True)
       qualifier(rr, trace=True)
+      barescope(rr, trace=True)
       attach(inarg, rr, trace=True)
 
       

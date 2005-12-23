@@ -601,12 +601,13 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
     pp.setdefault('errorbars', False)           # if True, plot stddev as crosses around mean
     pp.setdefault('show_mxel', True)            # if True, show Joneset matrix elements too  
     pp.setdefault('result', 'dcoll')            # result of this routine ([dcoll] or dconc)
-    pp = record(pp)
+    # pp = record(pp)
 
     # Use a sub-scope where node-names are prepended with name
     # and may have other qualifiers: nsub = ns.subscope(name, '[qual_list]')
     label = 'Joneset:'+str(Joneset.label())     # e.g. Joneset:GJones
-    visu_scope = 'visu_'+Joneset.scope()+'_'+label
+    # visu_scope = 'visu_'+Joneset.scope()+'_'+label
+    visu_scope = 'visu_'+label
   
     # Make dcolls per (specified) parm group:
     dcoll = []                                  # list of dcoll records
@@ -617,14 +618,14 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
             pgk = Joneset.parmgroup()[key]      # list of MeqParm node names
             if len(pgk)>0:                      # ignore if empty 
                 dc = MG_JEN_dataCollect.dcoll (ns, pgk, scope=visu_scope, tag=key,
-                                               type=pp.type, errorbars=pp.errorbars,
+                                               type=pp['type'], errorbars=pp['errorbars'],
                                                color=Joneset.plot_color()[key],
                                                style=Joneset.plot_style()[key])
                 dcoll.append(dc)
 
 
     # Optional: Also make dcolls per matrix element:
-    if pp.show_mxel:
+    if pp['show_mxel']:
         melname = ['m11', 'm12', 'm21', 'm22']
         nodes = dict(m11=[], m12=[], m21=[], m22=[])
         for key in Joneset.keys():
@@ -642,12 +643,12 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
                 style = 'xcross'                     # symbol: x
                 size = 7
                 color = 'gray'
-                dc = MG_JEN_dataCollect.dcoll (ns, nodes[key],
-                                               scope=visu_scope, tag=key,
-                                               type=pp.type,
-                                               color=color, style=style, size=size,
-                                               errorbars=pp.errorbars)
-                dcoll.append(dc)
+            dc = MG_JEN_dataCollect.dcoll (ns, nodes[key],
+                                           scope=visu_scope, tag=key,
+                                           type=pp['type'],
+                                           color=color, style=style, size=size,
+                                           errorbars=pp['errorbars'])
+            dcoll.append(dc)
 
     # Make a concatenation of the various dcolls:
     dconc = MG_JEN_dataCollect.dconc (ns, dcoll, scope=visu_scope, bookpage=label)
@@ -721,6 +722,18 @@ def visualise_Joneseq (ns, Joneseq, **pp):
 #==========================================================================
 # Some convenience functions:
 #==========================================================================
+
+# Counter service (use to automatically generate unique node names)
+
+_counters = {}
+
+def _counter (key, increment=0, reset=False, trace=True):
+    global _counters
+    _counters.setdefault(key, 0)
+    if reset: _counters[key] = 0
+    _counters[key] += increment
+    if trace: print '** MG_JEN_Joneset: _counters(',key,') =',_counters[key]
+    return _counters[key]
 
 
 #--------------------------------------------------------------------------

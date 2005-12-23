@@ -929,7 +929,7 @@ def _counter (key, increment=0, reset=False, trace=False):
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0
     _counters[key] += increment
-    if trace: print '** Cohset: _counters(',key,') =',_counters[key]
+    if trace: print '** TDL_Cohset: _counters(',key,') =',_counters[key]
     return _counters[key]
 
 

@@ -516,7 +516,7 @@ def _counter (key, increment=0, reset=False, trace=True):
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0
     _counters[key] += increment
-    if trace: print '** Joneset: _counters(',key,') =',_counters[key]
+    if trace: print '** TDL_Joneset: _counters(',key,') =',_counters[key]
     return _counters[key]
 
 

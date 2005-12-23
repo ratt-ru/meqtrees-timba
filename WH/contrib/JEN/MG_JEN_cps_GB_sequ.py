@@ -1,7 +1,7 @@
-# MG_JEN_cps_GBJones.py
+# MG_JEN_cps_GB_sequ.py
 
 # Short description:
-#   GBJones solution script with simultaneous G/B solution
+#   GBJones solution script for sequential G-B Jones solutions 
 #   for a central point source (cps), i.e. a calibrator source
 
 # Keywords: ....
@@ -10,20 +10,22 @@
 
 # History:
 # - 19 dec 2005: converted to JEN_inarg
-# - 21 dec 2005: simultaneous G/B Jones solutions
 
 # Copyright: The MeqTree Foundation
 
 # Detailed description:
-#   The uv-data are solved simultaneaously for GJones (phase/gain),
+#   The uv-data are first solved (and corrected) for GJones (phase/gain),
 #     with a time resolution of 1 time-slot (1-2 minutes)
-#   and BJones (bandpass), with a slower time resolution of, say, 1 hour.
+#   Then they are solved (and corrected) for BJones (bandpass),
+#     with a slower time resolution of, say, 1 hour.
 #   The result is uv-data that is corrected for uv-plane effects,
 #     i.e. phase, gain and bandpass for the brightest (cps) source.
 #   Optionally, the central source may be subtracted...
 
 # Remarks:
-# - Converges very slowly (needs all 20 iterations)!
+# - Does not work because one solver is the child of another.
+#   (OMS will cure that, since cascading solvers are needed for peeling)
+
 
 #********************************************************************************
 #********************************************************************************
@@ -88,13 +90,14 @@ from Timba.Contrib.JEN import MG_JEN_flagger
 # punit =  'SItest'
 # punit = 'unpol10'
 
-MG = JEN_inarg.init('MG_JEN_cps_GBJones',
+MG = JEN_inarg.init('MG_JEN_cps_GB_sequ',
                     last_changed = 'd21dec2005',
                     punit='unpol',                   # name of calibrator source/patch
                     polrep='linear',                   # polarisation representation (linear/circular)
                     # polrep='circular',                 # polarisation representation (linear/circular)
                     stations=range(4),                 # specify the (subset of) stations to be used
-                    insert_solver_GBJones=True,         # if True, insert GBJones solver
+                    insert_solver_GJones=True,         # if True, insert GJones solver
+                    insert_solver_BJones=True,         # if True, insert BJones solver
                     parmtable=None)                    # name of MeqParm table
 
 # Derive a list of ifrs from MG['stations'] (used below):
@@ -142,19 +145,19 @@ JEN_inarg.attach(MG, inarg)
 
 
 #----------------------------------------------------------------------------------------------------
-# Specify arguments for functions related to the BGJones solver:
+# Specify arguments for functions related to the GJones solver:
 #----------------------------------------------------------------------------------------------------
 
-if MG['insert_solver_GBJones']:
+if MG['insert_solver_GJones']:
     # Specify the name qualifier for (the inarg records of) this 'predict and solve' group.
     # NB: The same qualifier should be used when using the functions in _define_forest()
-    qual = None
+    qual = 'GJones'
     
     # Specify the sequence of zero or more (corrupting) Jones matrices:
-    Jsequence = ['GJones','BJones'] 
+    Jsequence = ['GJones'] 
     
     # Specify a list of MeqParm solvegroup(s) to be solved for:
-    solvegroup = ['GJones','BJones']
+    solvegroup = ['GJones']
     
 
     inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
@@ -174,6 +177,60 @@ if MG['insert_solver_GBJones']:
                          tile_size_Gampl=1,                 # used in tiled solutions         
                          tile_size_Gphase='tile_size_Gampl', # used in tiled solutions         
                          _JEN_inarg_option=None)            # optional, not yet used 
+    JEN_inarg.attach(MG, inarg)
+
+
+
+
+    inarg = MG_JEN_Cohset.predict(_getdefaults=True, _qual=qual)  
+    JEN_inarg.modify(inarg,
+                     ifrs=MG['ifrs'],                       # list of Cohset ifrs 
+                     polrep=MG['polrep'],                   # polarisation representation
+                     _JEN_inarg_option=None)                # optional, not yet used 
+    JEN_inarg.attach(MG, inarg)
+
+
+    inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
+    JEN_inarg.modify(inarg,
+                     solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
+                     # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
+                     # num_iter=20,                       # max number of iterations
+                     # epsilon=1e-4,                      # iteration control criterion
+                     # debug_level=10,                    # solver debug_level
+                     visu=True,                         # if True, include visualisation
+                     history=True,                      # if True, include history collection of metrics 
+                     subtract=False,                    # if True, subtract 'predicted' from uv-data 
+                     correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
+                     _JEN_inarg_option=None)            # optional, not yet used 
+    JEN_inarg.attach(MG, inarg)
+                 
+
+
+
+#----------------------------------------------------------------------------------------------------
+# Specify arguments for functions related to the BJones solver:
+#----------------------------------------------------------------------------------------------------
+
+
+if MG['insert_solver_BJones']:
+    # Specify the name qualifier for (the inarg records of) this 'predict and solve' group.
+    # NB: The same qualifier should be used when using the functions in _define_forest()
+    qual = 'BJones'
+    
+    # Specify the sequence of zero or more (corrupting) Jones matrices:
+    Jsequence = ['BJones'] 
+    
+    # Specify a list of MeqParm solvegroup(s) to be solved for:
+    solvegroup = ['BJones']
+    
+
+    inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
+    JEN_inarg.modify(inarg,
+                     stations=MG['stations'],               # List of array stations
+                     parmtable=MG['parmtable'],             # MeqParm table name
+                     polrep=MG['polrep'],                   # polarisation representation
+                     Jsequence=Jsequence,                   # Sequence of corrupting Jones matrices 
+                     _JEN_inarg_option=None)                # optional, not yet used 
     if 'BJones' in Jsequence: 
         JEN_inarg.modify(inarg,
                          Breal_constrain=False,             # if True, constrain 1st station
@@ -259,9 +316,18 @@ def _define_forest (ns):
     # Model of the calibrator source:
     Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
 
-    if MG['insert_solver_GBJones']:
+    if MG['insert_solver_GJones']:
         # Insert the (fast) GJones solver (and correct the uv-data):
-        qual = None
+        qual = 'GJones'
+        Joneset =  MG_JEN_Cohset.JJones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
+        predicted =  MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
+        MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG, _qual=qual)
+        MG_JEN_Cohset.visualise (ns, Cohset)
+        MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
+
+    if MG['insert_solver_BJones']:
+        # Insert the (slow) BJones solver (and correct the uv-data):
+        qual = 'BJones'
         Joneset =  MG_JEN_Cohset.JJones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
         predicted =  MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
         MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG, _qual=qual)
