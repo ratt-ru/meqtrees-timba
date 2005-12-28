@@ -13,6 +13,7 @@ App                              1203       ; from /home/oms/LOFAR/Timba/AppAgen
 AppAgent                         1228       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:30
 Args                             1483       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:13
 Argv                             1076       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Dispatcher.h:20
+Array                            1609       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:34
 Attrib                           1382       ; from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 Auto                             1213       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
 Axes                             1346       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
