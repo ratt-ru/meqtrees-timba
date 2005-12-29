@@ -281,6 +281,7 @@ DMI::BObj * __construct_MeqCompiledFunklet (int n) { return n>0 ? new Meq::Compi
         AtomicID::registerId(-1255,"Size")+
         AtomicID::registerId(-1588,"Iterations")+
         AtomicID::registerId(-1589,"Converged")+
+        AtomicID::registerId(-1609,"Array")+
         AtomicID::registerId(-1437,"MeqCeil")+
         TypeInfoReg::addToRegistry(-1437,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1437,__construct_MeqCeil)+

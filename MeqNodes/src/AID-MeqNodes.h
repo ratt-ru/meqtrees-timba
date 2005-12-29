@@ -13,6 +13,11 @@
 const DMI::AtomicID AidAdditional(-1524);         // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
 const int AidAdditional_int = -1524;
 #endif
+#ifndef _defined_id_AidArray
+#define _defined_id_AidArray 1
+const DMI::AtomicID AidArray(-1609);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:34
+const int AidArray_int = -1609;
+#endif
 #ifndef _defined_id_AidAttrib
 #define _defined_id_AidAttrib 1
 const DMI::AtomicID AidAttrib(-1382);             // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30

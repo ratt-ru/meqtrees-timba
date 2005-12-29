@@ -59,6 +59,9 @@ const HIID FDebugLevel = AidDebug|AidLevel;
 const HIID FIterations = AidIterations;
 const HIID FConverged  = AidConverged;
 
+const HIID FMetricsArray  = AidMetrics|AidArray;
+const HIID FDebugArray  = AidDebug|AidArray;
+
 #if LOFAR_DEBUG
 const int DefaultDebugLevel = 100;
 #else
@@ -379,11 +382,66 @@ void Solver::fillEquations (const VellSet &vs)
 
 
 
+// helper method to flatten a list of records into an array
+template<class T>
+ObjRef flattenScalarList (const DMI::List &list,const HIID &field)
+{
+  // presize the array to list size
+  LoShape shape(list.size());
+  DMI::NumArray * parr = new DMI::NumArray(typeIdOf(T),shape);
+  ObjRef res(parr);
+  blitz::Array<T,1> &arr = parr->getArray<T,1>();
+  // go through list and fill with data
+  DMI::List::const_iterator iter = list.begin();
+  for( int n=0; iter != list.end(); iter++,n++ )
+    arr(n) = iter->as<DMI::Record>()[field].as<T>(0);
+  return res;
+}
 
-
-
-
-
+template<class T,int N>
+ObjRef flattenArrayList (const DMI::List &list,const HIID &field)
+{
+  // figure out maximum shape of output array
+  blitz::TinyVector<int,N> maxshape(1);
+  DMI::List::const_iterator iter = list.begin();
+  // go through list and compare shapes
+  for( ; iter != list.end(); iter++ )
+  {
+    DMI::Record::Hook harr(iter->as<DMI::Record>(),field);
+    if( harr.exists() )
+    {
+      const LoShape &shp = harr.as<DMI::NumArray>().shape();
+      FailWhen(shp.size() != N,"array rank mismatch when flattening list for field "+field.toString());
+      for( int i=0; i<N; i++ )
+        maxshape[i] = std::max(maxshape[i],shp[i]);
+    }
+  }
+  // preallocate array
+  LoShape outshape;
+  outshape.resize(N+1);
+  outshape[0] = list.size();
+  for( int i=0; i<N; i++ )
+    outshape[i+1] = maxshape[i];
+  DMI::NumArray * parr = new DMI::NumArray(typeIdOf(T),outshape);
+  ObjRef res(parr);
+  T * pdata = static_cast<T*>(parr->getDataPtr());
+  int stride = blitz::product(maxshape);
+  // go through list again and fill with data
+  for( iter = list.begin(); iter != list.end(); iter++,pdata+=stride )
+  {
+    DMI::Record::Hook harr(iter->as<DMI::Record>(),field);
+    if( harr.exists() )
+    {
+      const blitz::Array<T,N> & subarr = harr.as<DMI::NumArray>().getConstArray<T,N>();
+      // get slice of output to write to
+      blitz::Array<T,N> outslice(pdata,maxshape,blitz::neverDeleteData);
+      // subdomain of output to write to (in case this array is smaller)
+      blitz::RectDomain<N> dom(subarr.lbound(),subarr.ubound());
+      outslice(dom) = subarr;
+    }
+  }
+  return res;
+}
 
 
 
@@ -596,6 +654,35 @@ int Solver::getResult (Result::Ref &resref,
     // replace incr_solutions in solver result
     solveResult[FIncrementalSolutions].replace() <<= arr_ref;
   }
+  // finally, to make life easier for DataCollect and HistoryCollect nodes, reformat all
+  // metrics and debug fields from lists into arrays, where the first axis is the number of
+  // iterations
+  DMI::Record::Ref metrics_ref;
+  DMI::Record &metrics = metrics_ref <<= new DMI::Record;
+  metrics[FRank]   = flattenScalarList<int>(metricsList,FRank);
+  metrics[FFit]    = flattenScalarList<double>(metricsList,FFit);
+  metrics[FErrors] = flattenArrayList<double,1>(metricsList,FErrors);
+  metrics[FFlag]   = flattenScalarList<bool>(metricsList,FFlag);
+  metrics[FMu]     = flattenScalarList<double>(metricsList,FMu);
+  metrics[FStdDev] = flattenScalarList<double>(metricsList,FStdDev);
+  solveResult[FMetricsArray] = metrics_ref;
+  
+  if( pDebugList )
+  {
+    DMI::Record::Ref debug_ref;
+    DMI::Record &dbgrec = debug_ref <<= new DMI::Record;
+    dbgrec["$nEq"] = flattenArrayList<double,2>(*pDebugList,"$nEq");
+    dbgrec["$known"] = flattenArrayList<double,1>(*pDebugList,"$known");
+    dbgrec["$constr"] = flattenArrayList<double,2>(*pDebugList,"$constr");
+    dbgrec["$er"] = flattenArrayList<double,1>(*pDebugList,"$er");
+    dbgrec["$piv"] = flattenArrayList<int,1>(*pDebugList,"$piv");
+    dbgrec["$sEq"] = flattenArrayList<double,2>(*pDebugList,"$sEq");
+    dbgrec["$sol"] = flattenArrayList<double,1>(*pDebugList,"$sol");
+    dbgrec["$prec"] = flattenScalarList<double>(*pDebugList,"$prec");
+    dbgrec["$nonlin"] = flattenScalarList<double>(*pDebugList,"$nonlin");
+    solveResult[FDebugArray] = debug_ref;
+  }
+  
   return 0;
 }
 
