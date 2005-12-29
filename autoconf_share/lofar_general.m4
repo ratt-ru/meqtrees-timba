@@ -47,6 +47,7 @@ AC_SUBST(MAKE_RPMS)
 lofar_CHECK_LONG_LONG([])
 lofar_DEBUG_OPTIMIZE([])
 lofar_CHECK_PRETTY_FUNCTION([])
+lofar_CHECK_INSTALL_IF_MODIFIED([])
 lofar_QATOOLS([])
 lofar_DOCXX([])
 lofar_LOG4CPLUS([])
@@ -330,25 +331,44 @@ AC_DEFUN([lofar_CHECK_SSTREAM],[
 ])
 
 #
-# lofar_PROG_BSD_INSTALL
+# lofar_CHECK_INSTALL_IF_MODIFIED
 #
-# If the install utility supports the BSD install option -C, 
-# define `HAVE_BSD_INSTALL'. 
+# Check if the install utility and the script install-sh support the
+# BSD install option -C (install if modified). If they do, add the
+# option to the command definition.
 #
-AC_DEFUN([lofar_PROG_BSD_INSTALL],[
+# From the BSD install man page:
+#   -C   Install file, unless target already exists and is the same as the
+#        new file, in which case the modification time won't be changed.
+#
+AC_DEFUN([lofar_CHECK_INSTALL_IF_MODIFIED],[
   AC_PREREQ(2.13)
   AC_REQUIRE([AC_PROG_INSTALL])
+#
   AC_MSG_CHECKING(whether ${INSTALL} supports -C option)
   touch tmp$$
   if ${INSTALL} -C tmp$$ /tmp 2>/dev/null; then
-    lofar_cv_have_bsd_install=yes
+    lofar_cv_install_if_modified=yes
   else
-    lofar_cv_have_bsd_install=no
+    lofar_cv_install_if_modified=no
   fi
   rm -f tmp$$ /tmp/tmp$$
-  AC_MSG_RESULT($lofar_cv_have_bsd_install)
-  if test "$lofar_cv_have_bsd_install" = yes; then
+  AC_MSG_RESULT($lofar_cv_install_if_modified)
+  if test "$lofar_cv_install_if_modified" = yes; then
     INSTALL="${INSTALL} -C"
+  fi
+#
+  AC_MSG_CHECKING(whether ${install_sh} supports -C option)
+  touch tmp$$
+  if ${install_sh} -C tmp$$ /tmp 2>/dev/null; then
+    lofar_cv_install_sh_if_modified=yes
+  else
+    lofar_cv_install_sh_if_modified=no
+  fi
+  rm -f tmp$$ /tmp/tmp$$
+  AC_MSG_RESULT($lofar_cv_install_sh_if_modified)
+  if test "$lofar_cv_install_sh_if_modified" = yes; then
+    install_sh="${install_sh} -C"
   fi
 ])
 
