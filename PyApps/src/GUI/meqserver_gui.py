@@ -218,7 +218,7 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self.profiler.wtop(),PYSIGNAL("collected()"),self._show_profiler);
     
     # create main toolbar
-    self.maintoolbar = QToolBar(self,"Panels");
+    self.maintoolbar = QToolBar(self,"MainToolbar");
     self.qa_viewpanels = QActionGroup(self);
     self.qa_viewpanels.setExclusive(False);
     
@@ -226,6 +226,27 @@ class meqserver_gui (app_proxy_gui):
     for panel in (self.tb_panel,self.maintab_panel,self.gw_panel):
       panel.visQAction(self.qa_viewpanels);
       panel.makeMinButton(self.maintoolbar);
+      
+    # add TDL jobs button
+    self._tb_jobs = QToolButton(self.maintoolbar);
+    self._tb_jobs.setIconSet(pixmaps.gear.iconset());
+    self._tb_jobs.setTextLabel("TDL Exec");
+    self._tb_jobs.setUsesTextLabel(True);
+    self._tb_jobs.setTextPosition(QToolButton.BesideIcon);
+    QToolTip.add(self._tb_jobs,"Executes jobs predefined by TDL script");
+    self._tb_jobs.setPopupDelay(1);
+    self._tb_jobs.hide();
+    # add TDL run button
+    self._qa_runtdl = QAction(pixmaps.blue_round_reload.iconset(),"&Re-run current TDL script",Qt.CTRL+Qt.Key_R,self);
+    self._qa_runtdl.addTo(self.maintoolbar);
+    QObject.connect(self,PYSIGNAL("isConnected()"),self._enable_run_current);
+    QObject.connect(self._qa_runtdl,SIGNAL("activated()"),self._run_current_tdl_script);
+    self._qa_runtdl.setWhatsThis("""This button re-runs the current TDL script, if one is loaded.""");
+    self._qa_runtdl.setVisible(False);
+    self._qa_runtdl.setEnabled(False);
+    self._main_tdlfile = None; # this is used by _run_current
+    
+    # add what's this button at far right
     dum = QWidget(self.maintoolbar);
     self.maintoolbar.setStretchableWidget(dum);
     self._whatsthisbutton = QWhatsThis.whatsThisButton(self.maintoolbar);
@@ -251,7 +272,7 @@ class meqserver_gui (app_proxy_gui):
     # build menu bar
     self._menus = {};
     kernel_menu    = self._menus['MeqTimba'] = QPopupMenu(self);
-    tdl_menu       = self._menus['TDL'] = QPopupMenu(self);
+    tdl_menu       = self._tdlmenu = self._menus['TDL'] = QPopupMenu(self);
     bookmarks_menu = self._menus['Bookmarks'] = QPopupMenu(self);
     debug_menu     = self._menus['Debug'] = QPopupMenu(self);
     view_menu      = self._menus['View'] = QPopupMenu(self);
@@ -304,21 +325,25 @@ class meqserver_gui (app_proxy_gui):
     self._connect_dialog.show();
     
     # --- TDL menu
-    loadtdl = QAction("Load TDL script...",0,self);
-    loadtdl.addTo(tdl_menu);
-    QObject.connect(loadtdl,SIGNAL("activated()"),self._load_tdl_script);
-    runtdl = QAction("&Load && run TDL script...",Qt.ALT+Qt.Key_T,self);
-    runtdl.addTo(tdl_menu);
-    QObject.connect(self,PYSIGNAL("isConnected()"),runtdl.setEnabled);
-    QObject.connect(runtdl,SIGNAL("activated()"),self._run_tdl_script);
     syncedit = QAction("Sync to external editor",0,self);
     syncedit.addTo(tdl_menu);
     syncedit.setToggleAction(True);
     sync = Config.getbool('tdl-sync-to-external-editor',True);
     syncedit.setOn(sync);
     tdlgui.set_external_sync(sync);
+    loadtdl = QAction("Load TDL script...",0,self);
+    loadtdl.addTo(tdl_menu);
+    QObject.connect(loadtdl,SIGNAL("activated()"),self._load_tdl_script);
+    loadruntdl = QAction("&Load && run TDL script...",Qt.CTRL+Qt.Key_T,self);
+    loadruntdl.addTo(tdl_menu);
+    QObject.connect(self,PYSIGNAL("isConnected()"),loadruntdl.setEnabled);
+    QObject.connect(loadruntdl,SIGNAL("activated()"),self._run_tdl_script);
     QObject.connect(syncedit,SIGNAL("toggled(bool)"),self.curry(Config.set,'tdl-sync-to-external-editor'));
     QObject.connect(syncedit,SIGNAL("toggled(bool)"),tdlgui.set_external_sync);
+    self._qa_runtdl.addTo(tdl_menu);
+    # menu for tdl jobs is inserted when TDL script is run
+    QObject.connect(self,PYSIGNAL("isConnected()"),self._clear_tdl_jobs);
+    self._mi_tdljobs = None;
     
     # --- View menu
     self.qa_viewpanels.addTo(view_menu);
@@ -500,9 +525,38 @@ class meqserver_gui (app_proxy_gui):
       self.log_message('sending KILL signal to kernel process '+str(pid));
       os.kill(pid,signal.SIGKILL);
       
+  def _clear_tdl_jobs (self,dum=False):
+    """removes the TDL Jobs submenu, if it exists""";
+    if self._mi_tdljobs is not None:
+      self._tdlmenu.removeItem(self._mi_tdljobs);
+      self._mi_tdljobs  = None;
+    self._tb_jobs.hide();
+    
   def _run_tdl_script (self,run=False):
     self._load_tdl_script(True);
     
+  def _enable_run_current (self,dum=False):
+    """enables/disables the Run TDL QAction. If kernel is connected and a TDL script
+    is loaded, enables, else disables.""";
+    if self._connected and self._main_tdlfile is not None:
+      filename = "("+os.path.basename(self._main_tdlfile)+")";
+      self._qa_runtdl.setWhatsThis("Re-runs the current TDL script "+filename);
+      self._qa_runtdl.setVisible(True);
+      self._qa_runtdl.setEnabled(True);
+    else:
+      self._qa_runtdl.setVisible(False);
+      self._qa_runtdl.setEnabled(False);
+    
+  def _run_current_tdl_script (self):
+    """runs the currently loaded TDL script""";
+    if self._main_tdlfile is None:
+      QMessageBox.warning(self,"No TDL script","No TDL script has been loaded.",QMessageBox.Ok);
+      return;
+    if not self._connected:
+      QMessageBox.warning(self,"No kernel","Not connected to a MeqTree kernel.",QMessageBox.Ok);
+      return;
+    self._tdl_compile_file(self._main_tdlfile,show=False);
+  
   class LoadTDLDialog (QFileDialog):
     def __init__ (self,*args):
       QFileDialog.__init__(self,*args);
@@ -542,7 +596,11 @@ class meqserver_gui (app_proxy_gui):
       # show this file
       self.show_tdl_file(str(dialog.selectedFile()),run=run);
       
-  def show_tdl_file (self,pathname,run=False,mainfile=None):
+  def show_tdl_file (self,pathname,run=False,mainfile=None,show=True):
+    if self._main_tdlfile is None:
+      self._main_tdlfile = pathname;
+      self._enable_run_current();  # update GUI
+    self._tb_jobs.hide();
     tab = self._tdl_tabs.get(pathname,None);
     if tab is None:
       _dprint(1,'No tab open, loading',pathname);
@@ -563,6 +621,7 @@ class meqserver_gui (app_proxy_gui):
       _dprint(1,'Creating editor tab for',pathname);
       # create editor tab with item
       tab = tdlgui.TDLEditor(self.maintab,close_button=True);
+      QObject.connect(self,PYSIGNAL("isConnected()"),tab.hide_jobs_menu);
       tab.load_file(pathname,text,mainfile=mainfile);
       label = os.path.basename(pathname);
       if mainfile:
@@ -578,9 +637,10 @@ class meqserver_gui (app_proxy_gui):
       QObject.connect(tab,PYSIGNAL("fileChanged()"),self.curry(self._tdltab_reset_label,tab));
     else:
       _dprint(1,'we already have a tab for',pathname);
-    self.show_tab(tab);
-    self.gw_panel.hide();
-    self.maintab_panel.show();
+    if show:
+      self.show_tab(tab);
+      self.gw_panel.hide();
+      self.maintab_panel.show();
     # ok, we have a working tab now
     # run if requested
     if run:
@@ -590,8 +650,11 @@ class meqserver_gui (app_proxy_gui):
     
   def _tdl_compile_tab_contents (self,tab):
     tmp = self.wait_cursor();
-    self.log_message("compiling TDL script "+os.path.basename(tab.get_filename()));
+    self._main_tdlfile = tab.get_filename();
+    basename = os.path.basename(self._main_tdlfile);
+    self.log_message("compiling TDL script "+basename);
     QApplication.flush();
+    self._mnain_tdlfile = tab.get_filename();
     if tab.compile_content():
       # since we were successful, a nodelist will have been requested
       # by compile_content(). We want to disable automatic nodelist requests
@@ -599,15 +662,30 @@ class meqserver_gui (app_proxy_gui):
       # we disable the auto-request for the next second or so
       self._autoreq_disable_timer.start(1000);
       self.tb_panel.show();
+      # populate the jobs menu
+      if self._mi_tdljobs is not None:
+        self._tdlmenu.removeItem(self._mi_tdljobs);
+      popup = tab.get_jobs_popup();
+      if popup.count():
+        self._mi_tdljobs = self._tdlmenu.insertItem(pixmaps.gear.iconset(),
+          "&Execute TDL job...",popup);
+        self._tdlmenu.setWhatsThis(self._mi_tdljobs,"Execute jobs predefined by TDL script "+basename);
+        self._tb_jobs.setPopup(popup);
+        QToolTip.add(self._tb_jobs,"Execute jobs predefined by TDL script "+basename);
+        self._tb_jobs.show();
+      else:
+        self._mi_tdljobs = None;
+        self._tb_jobs.hide();
     tmp = None;
     
-  def _tdl_compile_file (self,filename):
+  def _tdl_compile_file (self,filename,show=True):
     tab = self._tdl_tabs.get(filename,None);
     if tab is None:
       _dprint(1,'No tab open, loading',pathname);
-      show_tdl_file(self,filename,run=True);
+      self.show_tdl_file(filename,run=True,show=show);
     else:
-      self.show_tab(tab);
+      if show:
+        self.show_tab(tab);
       self._tdl_compile_tab_contents(tab);
     
   def _tdltab_reset_label (self,tab):
@@ -665,6 +743,10 @@ class meqserver_gui (app_proxy_gui):
   def _tdltab_close (self,tab):
     for (path,tab1) in self._tdl_tabs.iteritems():
       if tab is tab1:
+        if path == self._main_tdlfile:
+          self._main_tdlfile = None;
+          self._enable_run_current();  # update GUI
+          self._clear_tdl_jobs();
         self.maintab.showPage(tab);
         if tab.confirm_close():
           del self._tdl_tabs[path];

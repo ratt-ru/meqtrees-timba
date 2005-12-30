@@ -70,10 +70,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     #### populate toolbar
     self._tb_jobs = QToolButton(self._toolbar);
     self._tb_jobs.setIconSet(pixmaps.gear.iconset());
-    self._tb_jobs.setTextLabel("Jobs");
+    self._tb_jobs.setTextLabel("Exec");
     self._tb_jobs.setUsesTextLabel(True);
     self._tb_jobs.setTextPosition(QToolButton.BesideIcon);
-    QToolTip.add(self._tb_jobs,"Display menu of functions defined by this TDL script");
+    QToolTip.add(self._tb_jobs,"Executes jobs predefined by this TDL script");
     self._jobmenu = QPopupMenu(self);
     self._tb_jobs.setPopup(self._jobmenu);
     self._tb_jobs.setPopupDelay(1);
@@ -111,7 +111,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     QObject.connect(self._tb_run,SIGNAL("clicked()"),self._run_main_file);
     self._qa_runmain.addTo(self._tb_runmenu);
     qa_runthis_as = QAction(pixmaps.blue_round_reload.iconset(),"Save & run this script as main script...",0,self);
-    qa_runthis_as.setToolTip("Saves and recompiles this script as a top-level TDL script");
+    qa_runthis_as.setToolTip("Saves and reruns this script as a top-level TDL script");
     QObject.connect(qa_runthis_as,SIGNAL("activated()"),self._run_as_main_file);
     qa_runthis_as.addTo(self._tb_runmenu);
     
@@ -228,6 +228,9 @@ class TDLEditor (QFrame,PersistentCurrier):
     
   def __del__ (self):
     self.has_focus(False);
+    
+  def hide_jobs_menu (self,dum=False):
+    self._tb_jobs.hide();
     
   def get_filename (self):
     return self._filename;
@@ -633,7 +636,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     num_nodes = len(ns.AllNodes());
     # no nodes? return
     if not num_nodes:
-      self.show_message("Script executed successfully, but no nodes were defined.",
+      self.show_message("Script has run successfully, but no nodes were defined.",
               transient=True);
       return None;
     # make list of publishing nodes 
@@ -693,10 +696,12 @@ class TDLEditor (QFrame,PersistentCurrier):
         qa._call = curry(func,mqs,self);
         QObject.connect(qa,SIGNAL("activated()"),qa._call);
         qa.addTo(self._jobmenu);
+    else:
+      self._tb_jobs.hide();
 
     # no, show status and return
 #    if not callable(testfunc):
-    msg = """Script executed successfully. %d node definitions 
+    msg = """Script has run successfully. %d node definitions 
       (of which %d are root nodes) sent to the kernel.
       """ % (num_nodes,len(ns.RootNodes()));
     if joblist:
@@ -704,25 +709,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     self.show_message(msg,transient=True);
     return True;
     
-#     # yes, offer to run the test
-#     if QMessageBox.information(self,"TDL script executed",
-#          """<p>Executed TDL script <tt>%s</tt>.</p>
-#          <p>%d nodes (%d roots) were defined.</p>
-#          <p>This script provides a built-in test, would you like to run this now?</p>
-#          """ % (pathname,num_nodes,len(ns.RootNodes())),
-#          "Run test","Skip test") != 0:
-#       return None;
-#     # run test
-#     try:
-#       testfunc(mqs);
-#     except:
-#       traceback.print_exc();
-#       (exctype,excvalue,tb) = sys.exc_info();
-#       _dprint(0,'exception',sys.exc_info(),'in test_forest() of TDL file',pathname);
-#       QMessageBox.warning(self,"Error testing TDL script",
-#         """<p>Error running tests in <tt>%s</tt>:</p>
-#         <p><small><i>%s: %s</i><small></p>""" % (pathname,exctype.__name__,excvalue),
-#         QMessageBox.Ok);
+  def get_jobs_popup (self):
+    return self._jobmenu;
 
   def _set_mainfile (self,mainfile):
     """adjusts GUI controls based on whether we are a mainfile or not""";
