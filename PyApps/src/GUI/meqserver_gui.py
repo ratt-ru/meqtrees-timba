@@ -273,17 +273,17 @@ class meqserver_gui (app_proxy_gui):
     self._menus = {};
     kernel_menu    = self._menus['MeqTimba'] = QPopupMenu(self);
     tdl_menu       = self._tdlmenu = self._menus['TDL'] = QPopupMenu(self);
-    bookmarks_menu = self._menus['Bookmarks'] = QPopupMenu(self);
     debug_menu     = self._menus['Debug'] = QPopupMenu(self);
     view_menu      = self._menus['View'] = QPopupMenu(self);
+    bookmarks_menu = self._menus['Bookmarks'] = QPopupMenu(self);
     help_menu      = self._menus['Help'] = QPopupMenu(self);
 
     menubar = self.menuBar();    
     kernel_menu_id = menubar.insertItem("&MeqTimba",kernel_menu);
     kernel_menu_id = menubar.insertItem("&TDL",tdl_menu);
-    bookmarks_menu_id = menubar.insertItem("&Bookmarks",bookmarks_menu);
     debug_menu_id = menubar.insertItem("&Debug",debug_menu);
     window_menu_id = menubar.insertItem("&View",view_menu);
+    bookmarks_menu_id = menubar.insertItem("&Bookmarks",bookmarks_menu);
     menubar.insertSeparator();
     help_menu_id = menubar.insertItem("&Help",help_menu);
     
