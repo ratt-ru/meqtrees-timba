@@ -210,6 +210,13 @@ void CountedRefBase::xfer (CountedRefBase& other,int flags,int depth)
     VERIFY;
     // copy all fields
     locked_ = false;
+    writable_ = other.writable_;
+    if( flags&DMI::SHARED )
+      shared_ = true;
+    else if( flags&DMI::COW )
+      shared_ = false;
+    else
+      shared_ = other.shared_;
     // invalidate other ref (const violation here, but that's a consequence
     // of our destructive semantics)
     other.empty();
@@ -220,13 +227,6 @@ void CountedRefBase::xfer (CountedRefBase& other,int flags,int depth)
       locked_ = false;
       privatize(flags,depth);
     }
-    writable_ = other.writable_;
-    if( flags&DMI::SHARED )
-      shared_ = true;
-    else if( flags&DMI::COW )
-      shared_ = false;
-    else
-      shared_ = other.shared_;
     locked_ = flags&DMI::LOCKED;
   }
   dprintf(3)("  is now %s\n",debug(-1));
@@ -305,7 +305,11 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   {
     int own = flags&DMI::OWNERSHIP_MASK;
     if( own == DMI::AUTOCLONE )
+    {
       targ = targ->clone(flags&DMI::DEEP);
+      targ->anon_ = true;
+      flags &= ~DMI::READONLY;
+    }
     else
       targ->anon_ = own != DMI::EXTERNAL;
   }
