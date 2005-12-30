@@ -26,11 +26,10 @@ void Meq::RqId::maskSubId (RequestId &id,int mask)
     id = AtomicID(0);
     return;
   }
-  // staqrt from end 
-  HIID::reverse_iterator iter = id.rbegin();
+  HIID::iterator iter = id.begin();
   // ... until we run out of bits, or get to the start of BOTH ids
   for( int m1=1; 
-       m1 < (1<<RQIDM_NBITS) && iter != id.rend(); 
+       m1 < (1<<RQIDM_NBITS) && iter != id.end(); 
        m1<<=1,iter++ )
   {
     if( !(mask&m1) )
@@ -49,12 +48,12 @@ void Meq::RqId::incrSubId (RequestId &id,int mask)
     msb++;
   // if request ID is shorter, resize
   if( id.size() < msb )
-    id.push_front(0,msb-id.size());
+    id.resize(msb);
   // start from end 
-  HIID::reverse_iterator iter = id.rbegin();
+  HIID::iterator iter = id.begin();
   // ... until we run out of bits, or get to the start of the id
   for( int m1=1; 
-       m1 < (1<<RQIDM_NBITS) && iter != id.rend(); 
+       m1 < (1<<RQIDM_NBITS) && iter != id.end(); 
        m1<<=1,iter++ )
   {
     if( mask&m1 )
@@ -73,12 +72,10 @@ void Meq::RqId::setSubId (RequestId &id,int mask,int value)
     msb++;
   // if request ID is shorter, resize
   if( id.size() < msb )
-    id.push_front(0,msb-id.size());
-  // start from end 
-  HIID::reverse_iterator iter = id.rbegin();
-  // ... until we run out of bits, or get to the start of the id
+    id.resize(msb);
+  HIID::iterator iter = id.begin();
   for( int m1=1; 
-       m1 < (1<<RQIDM_NBITS) && iter != id.rend(); 
+       m1 < (1<<RQIDM_NBITS) && iter != id.end(); 
        m1<<=1,iter++ )
   {
     if( mask&m1 )
@@ -95,17 +92,17 @@ bool Meq::RqId::maskedCompare (const RequestId &id1,const RequestId &id2,int mas
   // null id always fails comparison
   if( id1.empty() || id2.empty() )
     return false;
-  // start comparing from end of each ID
-  HIID::const_reverse_iterator iter1 = id1.rbegin();
-  HIID::const_reverse_iterator iter2 = id2.rbegin();
-  // ... until we run out of bits, or get to the start of BOTH ids
+  // start comparing from start of each ID
+  HIID::const_iterator iter1 = id1.begin();
+  HIID::const_iterator iter2 = id2.begin();
+  // ... until we run out of bits, or get to the end of BOTH ids
   for(  int m1=1; 
-        m1 < (1<<RQIDM_NBITS) && (iter1 != id1.rend() || iter2 != id2.rend()); 
+        m1 < (1<<RQIDM_NBITS) && (iter1 != id1.end() || iter2 != id2.end()); 
         m1<<=1 )
   {
     // once we run out of indices in either ID, assume 0
-    AtomicID x1 = iter1 != id1.rend() ? *(iter1++) : AtomicID(0);
-    AtomicID x2 = iter2 != id2.rend() ? *(iter2++) : AtomicID(0);
+    AtomicID x1 = iter1 != id1.end() ? *(iter1++) : AtomicID(0);
+    AtomicID x2 = iter2 != id2.end() ? *(iter2++) : AtomicID(0);
     if( mask&m1 && x1 != x2 )
       return false;
   }
@@ -115,17 +112,16 @@ bool Meq::RqId::maskedCompare (const RequestId &id1,const RequestId &id2,int mas
 int Meq::RqId::diffMask (const RequestId &id1,const RequestId &id2)
 {
   int mask = 0;
-  // start comparing from end of each ID
-  HIID::const_reverse_iterator iter1 = id1.rbegin();
-  HIID::const_reverse_iterator iter2 = id2.rbegin();
-  // ... until we run out of bits, or get to the start of BOTH ids
+  HIID::const_iterator iter1 = id1.begin();
+  HIID::const_iterator iter2 = id2.begin();
+  // ... until we run out of bits, or get to the end of BOTH ids
   for(  int m1=1; 
-        m1 < (1<<RQIDM_NBITS) && (iter1 != id1.rend() || iter2 != id2.rend()); 
+        m1 < (1<<RQIDM_NBITS) && (iter1 != id1.end() || iter2 != id2.end()); 
         m1<<=1 )
   {
     // once we run out of indices in either ID, assume 0
-    AtomicID x1 = iter1 != id1.rend() ? *(iter1++) : AtomicID(0);
-    AtomicID x2 = iter2 != id2.rend() ? *(iter2++) : AtomicID(0);
+    AtomicID x1 = iter1 != id1.end() ? *(iter1++) : AtomicID(0);
+    AtomicID x2 = iter2 != id2.end() ? *(iter2++) : AtomicID(0);
     if( x1 != x2 )
       mask |= m1;
   }

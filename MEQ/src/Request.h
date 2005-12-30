@@ -25,32 +25,74 @@
 
 //# Includes
 #include <MEQ/Cells.h>
+#include <MEQ/AID-Meq.h>
 #include <DMI/Record.h>
 
 #pragma aidgroup Meq
 #pragma types #Meq::Request
 #pragma aid Reexecute
+#pragma aid st ev e0 e1 e2 ds pu
 
 // This class represents a request for which an expression has to be
 // evaluated. It contains the domain and cells to evaluate for.
-// A flag tells if derivatives (perturbed values) have to be calculated.
+// The request type field tells if derivatives (perturbed values) have 
+// to be calculated.
+
+// Request type: part of the request ID (so used in cache comparisons).
+// Used to distinguish different modes of request. Standard modes are:
+//  E0      evaluate cells, no derivatives
+//  E1,E2   evaluate cells, single or double derivatives
+//  DS      discover spids (sent by solver prior to solution)
+//  PU      last parm update (sent by solver to update parameters)
 
 namespace Meq { using namespace DMI;
 
 class Node;
 
+namespace RequestType
+{
+  static const AtomicID EVAL = Aidev;
+  static const AtomicID EVAL_SINGLE = Aide1;
+  static const AtomicID EVAL_DOUBLE = Aide2;
+  static const AtomicID DISCOVER_SPIDS = Aidds;
+  static const AtomicID PARM_UPDATE = Aidpu;
+  
+  // depmask for the type field -- always the first field in a request
+  static const int DEPMASK_TYPE = 0x01;
+  
+  inline AtomicID type (const HIID &rqid)
+  { return rqid.empty() ? AtomicID(0) : rqid[0]; }
+  
+  // sets request type in rqid
+  inline void setType (HIID &rqid,AtomicID type)
+  {
+    if( rqid.empty() )
+      rqid.resize(1);
+    rqid[0] = type;
+  }
+  
+  // returns evaluation mode corresponding to type -- 0/1/2 for EVAL requests,
+  // -1 for all others
+  inline int evalMode (AtomicID type)
+  {
+    if( type == EVAL || !type )
+      return 0;
+    else if( type == EVAL_SINGLE )
+      return 1;
+    else if( type == EVAL_DOUBLE )
+      return 2;
+    else
+      return -1;
+  }
+  
+  inline int evalMode (const HIID &rqid)
+  { return evalMode(type(rqid)); }
+}
+
 //##ModelId=3F86886E01FF
 class Request : public DMI::Record
 {
 public:
-  typedef enum 
-  {
-    DISCOVER_SPIDS = -1,
-    GET_RESULT     = 0,
-    DERIV_SINGLE   = 1,
-    DERIV_DOUBLE   = 2
-  } EvaluationMode;
-    
     //##ModelId=400E53040057
   typedef CountedRef<Request> Ref;
     
@@ -66,10 +108,10 @@ public:
   //##Documentation
   //## Create the request from the cells for which the expression has
   //## to be evaluated. 
-  explicit Request (const Cells &, int evmode = DERIV_SINGLE, const HIID &id=HIID(),int cellflags=DMI::AUTOCLONE);
+  explicit Request (const Cells &, const HIID &id=HIID(),int cellflags=DMI::AUTOCLONE);
   
     //##ModelId=400E53550016
-  explicit Request (const Cells *, int evmode = DERIV_SINGLE, const HIID &id=HIID(),int cellflags=0);
+  explicit Request (const Cells *, const HIID &id=HIID(),int cellflags=0);
 
     //##ModelId=400E53550034
   virtual TypeId objectType () const
@@ -90,19 +132,15 @@ public:
   
     //##ModelId=3F868870006C
   //##Documentation
-  //## Evaluation mode (only makes sense if Cells are attached).
-  //## See enum EvluationMode above for details
+  //## Request type -- index 0 of request ID
+  AtomicID requestType () const
+  { return RequestType::type(id_); }
+  
+  //## Request eval mode -- just calls evalMode above
   int evalMode () const
-  { return eval_mode_; }
+  { return RequestType::evalMode(requestType()); }
   
-  void setEvalMode (int em);
-  
-  //## Service flag. Requests with a service flag bypass the normal cache.
-  //## Used for requests that manage tree state, etc.
-  bool serviceFlag () const
-  { return service_flag_; }
-
-  void setServiceFlag (bool flag=true);
+  void setRequestType (AtomicID rtype);
   
     //##ModelId=3F868870006E
   //##Documentation
@@ -175,12 +213,8 @@ private:
   HIID   next_id_;
     //##ModelId=3F86BFF80269
   Cells::Ref * pcells_;
-    //##ModelId=3F868870003C
-  int    eval_mode_;
   
   bool   has_rider_;
-  
-  bool   service_flag_;
 };
 
 

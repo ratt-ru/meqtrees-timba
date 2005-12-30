@@ -298,7 +298,8 @@ int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
     Cells &cells = cellref <<= new Cells;
     fillCells(cells,current_range_,tile);
     // Generate new Request with these Cells
-    Request &req = current_req_ <<= new Request(cells,0,rqid_);
+    Request &req = current_req_ <<= new Request(cells,rqid_);
+    req.setRequestType(RequestType::EVAL);
     cdebug(3)<<"start of snippet, generated request id="<<rqid_<<endl;
     // reset have-tile flags
     have_tile_.assign(handlers_.size(),false);

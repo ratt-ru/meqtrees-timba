@@ -183,6 +183,13 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         TypeInfoReg::addToRegistry(-1357,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1357,__construct_MeqRequest)+
         AtomicID::registerId(-1279,"Reexecute")+
+        AtomicID::registerId(-1619,"st")+
+        AtomicID::registerId(-1620,"ev")+
+        AtomicID::registerId(-1617,"e0")+
+        AtomicID::registerId(-1618,"e1")+
+        AtomicID::registerId(-1615,"e2")+
+        AtomicID::registerId(-1616,"ds")+
+        AtomicID::registerId(-1614,"pu")+
         AtomicID::registerId(-1341,"MeqVells")+
         TypeInfoReg::addToRegistry(-1341,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1341,__construct_MeqVells)+

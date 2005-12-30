@@ -472,7 +472,7 @@ namespace Meq {
   {
     cdebug(3)<<"evaluating parm for domain "<<request.cells().domain()<<endl;
     // is request for solvable parm values?
-    bool solve = isSolvable() && request.evalMode() > Request::GET_RESULT;
+    bool solve = isSolvable() && request.evalMode() > 0;
     // find a funklet to use
     Funklet * pfunklet = initFunklet(request,solve);
     // if funklet not set to solvable, do some extra init

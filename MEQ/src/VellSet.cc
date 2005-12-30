@@ -364,7 +364,7 @@ void VellSet::clear()
   shape_.clear();
   numspids_ = 0;
   spids_ = 0;
-  pset_.resize(0);
+  pset_.clear();
   pvalue_ = 0;
   pflags_ = 0;
   is_fail_ = false;
@@ -374,7 +374,21 @@ void VellSet::clear()
 void VellSet::setNumPertSets (int nsets)
 {
   Thread::Mutex::Lock lock(mutex());
-  // can only change from 0 to smth
+  // setting to 0 clears the pertsets
+  if( !nsets )
+  {
+    Record::removeField(FSpids,true,0);
+    for( uint i=0; i<pset_.size(); i++ )
+    {
+      Record::removeField(FiPerturbations(i),true,0);
+      Record::removeField(FiPerturbedValues(i),true,0);
+    }
+    numspids_ = 0;
+    spids_ = 0;
+    pset_.clear();
+    return;
+  }
+  // else can only change from 0 to smth
   FailWhen(pset_.size() && nsets != int(pset_.size()),
       "can't change the number of perturbation sets in a VellSet");
   pset_.resize(nsets);

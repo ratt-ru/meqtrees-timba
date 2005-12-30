@@ -70,7 +70,8 @@ const int DefaultDebugLevel = 0;
 
 //##ModelId=400E53550260
 Solver::Solver()
-: flag_mask_        (-1),
+: eval_mode_(1),
+  flag_mask_        (-1),
   do_save_funklets_ (false),
   do_last_update_   (false),
   use_svd_          (true),
@@ -114,13 +115,14 @@ TypeId Solver::objectType() const
 //##ModelId=400E5355026B
 int Solver::pollChildren (Result::Ref &resref,const Request &request)
 {
-  // a request that has cells in it is a solve request -- do not pass it to the
-  // children, as we'll be doing our own polling in getResult() below
-  if( request.hasCells() )
+  // block off spid discovery requests completely.
+  // For all evaluation requests, we handle child polling for 
+  // them separately in getResult().
+  if( request.requestType() == RequestType::DISCOVER_SPIDS ||
+      request.evalMode() >= 0 )
     return 0;
-  // A cell-less request contains commands and states only, and thus it should
-  // passed on to the children as is. (This request will never make it to our
-  // getResult())
+  // Other requests passed on to the children as is. 
+  // (These never make it to our getResult())
   else
     return Node::pollChildren(resref,request);
 }
@@ -452,7 +454,9 @@ int Solver::getResult (Result::Ref &resref,
                        const Request &request, bool newreq)
 {
   // Use single derivative by default, or a higher mode if specified in request
-  int eval_mode = std::max(request.evalMode(),int(Request::DERIV_SINGLE));
+  AtomicID rqtype = RequestType::EVAL_SINGLE;
+  if( std::max(eval_mode_,request.evalMode()) > 1 )
+    rqtype = RequestType::EVAL_DOUBLE;
   // The result has no planes, all solver information is in extra fields
   Result& result = resref <<= new Result(0);
   DMI::Record &solveResult = result[FSolverResult] <<= new DMI::Record;
@@ -466,16 +470,17 @@ int Solver::getResult (Result::Ref &resref,
   // get the request ID -- we're going to be incrementing the iteration index
   RequestId rqid = request.id();
   RqId::setSubId(rqid,iter_depmask_,0);      // current ID starts at 0
+  RequestType::setType(rqid,rqtype);
   RequestId next_rqid = rqid;  
   RqId::incrSubId(next_rqid,iter_depmask_);  // next ID is iteration 1
-  // Now, generate a "service" request that will 
+  // Now, generate a request to set parms solvable and discover spids
   // (a) setup our solvables
   // (b) do spid discovery
   Request::Ref reqref;
-  Request &req = reqref <<= new Request(request.cells(),Request::DISCOVER_SPIDS,rqid);
+  Request &req = reqref <<= new Request(request.cells(),rqid);
+  req.setRequestType(RequestType::DISCOVER_SPIDS);
   // rider of original request gets sent up along with it
   req.copyRider(request);
-  req.setServiceFlag(true);
   // do we have a solvables spec in our state record?
   const DMI::Record *solvables = state()[FSolvable].as_po<DMI::Record>();
   if( solvables )
@@ -550,7 +555,7 @@ int Solver::getResult (Result::Ref &resref,
   
   // OK, now create the "real" request object. This will be modified from 
   // iteration to iteration, so we keep it attached to reqref and rely on COW
-  reqref <<= new Request(request.cells(),eval_mode);
+  reqref <<= new Request(request.cells());
   int  step;
   bool converged=false;
   for( step=0; step < max_num_iter_ && !converged; step++ ) 
@@ -631,6 +636,7 @@ int Solver::getResult (Result::Ref &resref,
     Request::Ref lastref;
     Request &lastreq = lastref <<= new Request;
     lastreq.setId(next_rqid);
+    lastreq.setRequestType(RequestType::PARM_UPDATE);
     // note that this is not a service request, since it doesn't imply 
     // any state changes
     lastreq.copyRider(*reqref);
@@ -683,7 +689,12 @@ int Solver::getResult (Result::Ref &resref,
     solveResult[FDebugArray] = debug_ref;
   }
   
-  return 0;
+  // clear state dependencies possibly introduced by parms
+  has_state_dep_ = false;
+  // return flag to indicate result is independent of request type
+  // (i.e. return result from cache for all requests regardless of
+  // type)
+  return Node::RES_IGNORE_TYPE;
 }
 
 
@@ -853,6 +864,8 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
   // possible modifications made above
   newst[FIterationDependMask].get(iter_depmask_,initializing);
 
+  // get eval mode
+  newst[FEvalMode].get(eval_mode_,initializing);
   // get debug flag
   newst[FDebugLevel].get(debug_lvl_,initializing);
   // get other solver parameters

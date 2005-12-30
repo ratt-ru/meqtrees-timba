@@ -3,7 +3,6 @@
 #include <AppUtils/MSOutputSink.h>
 #include <OCTOPUSSY/Octopussy.h>
 #include <OCTOPUSSY/StatusMonitorWP.h>
-#include <OCTOGlish/GlishConnServerWP.h>
 #include <AppAgent/OctoEventMultiplexer.h>
 #include <AppUtils/VisRepeater.h>
 #include <MeqServer/MeqServer.h>
@@ -131,9 +130,6 @@ int main (int argc,const char *argv[])
       for( int i=1; i<argc; i++ )
         args[i-1] = argv[i];
     }
-    // parse various options
-    bool glish = 
-        std::find(args.begin(),args.end(),string("-noglish")) == args.end();
     bool start_gateways = 
         std::find(args.begin(),args.end(),string("-nogw")) == args.end();
     // "-mt" option
@@ -172,11 +168,6 @@ int main (int argc,const char *argv[])
     OctopussyConfig::initGlobal(argc,argv);
     Octopussy::init(start_gateways);
     
-    if( glish )
-    {
-      cout<<"=================== initializing Glish gateway =================\n";
-      Octopussy::dispatcher().attach(new OctoGlish::GlishConnServerWP);
-    }
     cout<<"=================== starting StatusMonitor ====================\n";
       Octopussy::dispatcher().attach(new Octopussy::StatusMonitorWP());
     

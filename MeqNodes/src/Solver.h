@@ -42,6 +42,8 @@
 //field: flag_mask -1
 //  Flag mask applied to condeq results. No equations are generated for
 //  flagged points. Default -1 uses all flags.
+//field: eval_mode 1
+//  Use single or double derivatives.
 //field: num_iter 3  
 //  Number of iterations to do in a solve
 //field: epsilon 0
@@ -144,6 +146,7 @@ private:
   
   // === state set from the state record
   
+  int             eval_mode_;         // 1 for single, 2 for double-deriv
   int             flag_mask_;         // flag mask applied during solve
   bool            do_save_funklets_;  // save funklets after solve?
   bool            do_last_update_;    // send up final update after solve?

@@ -983,10 +983,45 @@ const int AidZ_int = -1021;
 const DMI::AtomicID Aidaxes(-1346);               // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 const int Aidaxes_int = -1346;
 #endif
+#ifndef _defined_id_Aidds
+#define _defined_id_Aidds 1
+const DMI::AtomicID Aidds(-1616);                 // from /home/oms/LOFAR/Timba/MEQ/src/Request.h:34
+const int Aidds_int = -1616;
+#endif
+#ifndef _defined_id_Aide0
+#define _defined_id_Aide0 1
+const DMI::AtomicID Aide0(-1617);                 // from /home/oms/LOFAR/Timba/MEQ/src/Request.h:34
+const int Aide0_int = -1617;
+#endif
+#ifndef _defined_id_Aide1
+#define _defined_id_Aide1 1
+const DMI::AtomicID Aide1(-1618);                 // from /home/oms/LOFAR/Timba/MEQ/src/Request.h:34
+const int Aide1_int = -1618;
+#endif
+#ifndef _defined_id_Aide2
+#define _defined_id_Aide2 1
+const DMI::AtomicID Aide2(-1615);                 // from /home/oms/LOFAR/Timba/MEQ/src/Request.h:34
+const int Aide2_int = -1615;
+#endif
+#ifndef _defined_id_Aidev
+#define _defined_id_Aidev 1
+const DMI::AtomicID Aidev(-1620);                 // from /home/oms/LOFAR/Timba/MEQ/src/Request.h:34
+const int Aidev_int = -1620;
+#endif
 #ifndef _defined_id_Aidndim
 #define _defined_id_Aidndim 1
 const DMI::AtomicID Aidndim(-1309);               // from /home/oms/LOFAR/Timba/MEQ/src/Domain.h:33
 const int Aidndim_int = -1309;
+#endif
+#ifndef _defined_id_Aidpu
+#define _defined_id_Aidpu 1
+const DMI::AtomicID Aidpu(-1614);                 // from /home/oms/LOFAR/Timba/MEQ/src/Request.h:33
+const int Aidpu_int = -1614;
+#endif
+#ifndef _defined_id_Aidst
+#define _defined_id_Aidst 1
+const DMI::AtomicID Aidst(-1619);                 // from /home/oms/LOFAR/Timba/MEQ/src/Request.h:34
+const int Aidst_int = -1619;
 #endif
 
 

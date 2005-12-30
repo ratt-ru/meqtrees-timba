@@ -30,34 +30,32 @@ static DMI::Container::Register reg(TpMeqRequest,true);
 
 //##ModelId=3F8688700056
 Request::Request()
-: pcells_(0),eval_mode_(0),has_rider_(false),service_flag_(false)
+: pcells_(0),has_rider_(false)
 {
 }
 
 //##ModelId=3F8688700061
 Request::Request (const DMI::Record &other,int flags,int depth)
 : Record(), 
-  pcells_(0),eval_mode_(0),has_rider_(false),service_flag_(false)
+  pcells_(0),has_rider_(false)
 {
   Record::cloneOther(other,flags,depth,true);
 }
 
 //##ModelId=400E535403DD
-Request::Request (const Cells& cells,int em,const HIID &id,int cellflags)
-: has_rider_(false),service_flag_(false)
+Request::Request (const Cells& cells,const HIID &id,int cellflags)
+: has_rider_(false)
 {
   setCells(cells,cellflags);
   setId(id);
-  setEvalMode(em);
 }
 
 //##ModelId=400E53550016
-Request::Request (const Cells * cells, int em, const HIID &id,int cellflags)
-: has_rider_(false),service_flag_(false)
+Request::Request (const Cells * cells,const HIID &id,int cellflags)
+: has_rider_(false)
 {
   setCells(cells,cellflags);
   setId(id);
-  setEvalMode(em);
 }
 
 // Set the request id.
@@ -72,14 +70,12 @@ void Request::setNextId (const HIID &id)
   (*this)[FNextRequestId] = next_id_ = id;
 }
 
-void Request::setEvalMode (int em)
+void Request::setRequestType (AtomicID type)
 { 
-  (*this)[FEvalMode] = eval_mode_ = em; 
-}
-
-void Request::setServiceFlag (bool flag)
-{ 
-  (*this)[FServiceFlag] = service_flag_ = flag; 
+  if( id_.empty() )
+    id_.resize(1);
+  id_[0] = type;
+  setId(id_);
 }
 
 //##ModelId=3F868870006E
@@ -110,9 +106,7 @@ void Request::validateContent (bool)
     // request ID
     id_ = (*this)[FRequestId].as<HIID>(HIID());
     next_id_ = (*this)[FNextRequestId].as<HIID>(HIID());
-    // flags
-    eval_mode_ = (*this)[FEvalMode].as<int>(GET_RESULT);
-    service_flag_ = (*this)[FServiceFlag].as<bool>(false);
+    FailWhen(evalMode()>=0 && !hasCells(),"request type "+requestType().toString()+" must have a Cells");
     // rider
     validateRider();
   }

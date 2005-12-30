@@ -29,7 +29,7 @@ typedef enum
 //##Documentation
 //## The request ID is basically a HIID of length up to RQIDM_NBITS. Each 
 //## index of an rqid maps onto one bit of the rqid mask, starting with 
-//## the _last_ index. 
+//## the _first_ index. 
 typedef HIID RequestId;
 // 
 // //=== Some standard symbolic deps

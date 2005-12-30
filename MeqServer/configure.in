@@ -53,7 +53,6 @@ dnl
 lofar_GENERAL
 lofar_BLITZ(1)
 lofar_AIPSPP(1)
-lofar_PACKAGE(Timba/OCTOGlish)
 lofar_PACKAGE(Timba/OCTOPython)
 lofar_PACKAGE(Timba/VisCube)
 lofar_PACKAGE(Timba/AppAgent/AppAgent)

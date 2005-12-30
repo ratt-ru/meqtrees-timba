@@ -199,7 +199,6 @@ const DMI::Record & Node::Cache::record ()
   }
   rec[FRequestId] = rqid;    
   rec[FResultCode] = rescode;
-  rec[FServiceFlag] = service_flag;
   return rec;
 }
 
@@ -223,7 +222,6 @@ bool Node::Cache::fromRecord (const Record &rec)
       result.detach();
     rqid = rec[FRequestId].as<HIID>();
     rescode = rec[FResultCode].as<int>();
-    service_flag = rec[FServiceFlag].as<bool>(false);
     return true;
   }
   catch( std::exception &exc )
@@ -462,6 +460,8 @@ const DMI::Record & Node::syncState()
   fillProfilingStats(pprof_children_,timers_.children);
   fillProfilingStats(pprof_getresult_,timers_.getresult);
   {
+    if( has_state_dep_ )
+      cache_.rescode |= forest().getStateDependMask();
     // Thread::Mutex::Lock lock(cache_.mutex);
     st.replace(FCache,cache_.record());
     st.replace(FCacheStats,cache_stats_);
@@ -537,18 +537,54 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   // Check that cached result is applicable:
   // (1) An empty reqid never matches, hence it can be used to 
   //     always force a recalculation.
-  // (2) A cached RES_VOLATILE code, or a service flag on current or
-  //     previous request requires an exact ID match and a service flag 
-  //     match.
-  // (3) Otherwise, do a masked compare using the cached result code
+  // (2) Ignore PARM_UPDATE requests if we have no dependency on
+  //     iteration
+  // (3) Do a masked compare of rqids using the dependency mask.
+  //   (3b) As a special case, reuse a cached result w/perts if no perts
+  //        are requested -- strip them off
   cdebug(4)<<"checking cache: request "<<cache_.rqid<<", code "<<ssprintf("0x%x",cache_.rescode)<<endl;
 //   fprintf(flog,"%s: cache contains %s, code %x, request is %s\n",
 //           name().c_str(),
 //           cache_.rqid.toString().c_str(),cache_.rescode,req.id().toString().c_str());
-  if( !req.id().empty() && !cache_.rqid.empty() &&
-      ( ( cache_.rescode&RES_VOLATILE || req.serviceFlag() || cache_.service_flag )
-        ? req.id() == cache_.rqid && req.serviceFlag() == cache_.service_flag
-        : RqId::maskedCompare(req.id(),cache_.rqid,cache_.rescode) ) )
+  RequestId rqid = req.id();
+  bool match = false;
+  // (1) empty rqid never matches
+  if( rqid.empty() || cache_.rqid.empty() )
+    match = false;
+  // (2) ignore PU requests if no dependency on iteration
+  else if( req.requestType() == RequestType::PARM_UPDATE && 
+           !(cache_.rescode&getDependMask(AidIteration)) )
+  {
+    ref <<= new Result;
+    match = true;
+  }
+  // (3) find the diffmask
+  else
+  {
+    int diffmask = RqId::diffMask(rqid,cache_.rqid)&cache_.rescode;
+    // (3a) exact match -- return the cached request
+    if( !diffmask )
+    {
+      ref = cache_.result;
+      match = true;
+    }
+    // (3b) last special case: E0 requests match E1/E2 cache, but derivatives are stripped off
+    else if( diffmask == RequestType::DEPMASK_TYPE && 
+             req.evalMode() == 0 && 
+             RequestType::evalMode(cache_.rqid) > 0 )
+    {
+      ref = cache_.result;
+      Result &res = ref();
+      for( int i=0; i<res.numVellSets(); i++ )
+        if( res.vellSet(i).numPertSets() )
+          res.vellSetWr(i).setNumPertSets(0);
+      match = true;
+    }
+    else
+      match = false;
+  }
+  // finally, do we have a match?
+  if( match )
   {
     cdebug(4)<<"cache hit"<<endl;
     pcs_total_->hits++;
@@ -558,7 +594,6 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
 //         name().c_str(),
 //         (ref->hasCells() ? int(&(ref->cells())) : 0),
 //         (req.hasCells() ? int(&(req.cells())) : 0));
-    ref = cache_.result;
     retcode = cache_.rescode;
     // if we're returning a cached result for a new request, clear the parent stats
     if( new_request_ )
@@ -596,7 +631,9 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
   if( actual_cache_policy_ == CACHE_DEFAULT )
     actual_cache_policy_ = forest().cachePolicy();
   // decide if we cache of not
-  int diffmask = RES_VOLATILE | RqId::diffMask(req.id(),req.nextId());
+  int diffmask = RqId::diffMask(req.id(),req.nextId());
+  if( !(retcode&RES_IGNORE_TYPE) )
+    retcode |= RequestType::DEPMASK_TYPE;
   bool do_cache = false;    // do we cache at all?
   bool longcache = false;   // do we cache beyond the last parent?
   if( retcode&RES_FAIL )
@@ -615,7 +652,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
   else if( actual_cache_policy_ < CACHE_ALWAYS )  // some form of smart caching 
   {
     // cache if result is not invalidated by next request
-    longcache = !(diffmask&retcode) && !req.serviceFlag();
+    longcache = !(diffmask&retcode);
     do_cache = longcache || npar > 1;
   }
   else    // CACHE_ALWAYS: always retain cache
@@ -1006,7 +1043,7 @@ int Node::processCommands (Result::Ref &,const DMI::Record &rec,Request::Ref &re
 //  // should never cache a processCommand() result
 // or should we? I think we should (if only to ignore the same command
 // coming from multiple parents)
-  return RES_VOLATILE;
+  return 0;
 }
 
 int Node::discoverSpids (Result::Ref &ref,const std::vector<Result::Ref> &child_results,
@@ -1079,8 +1116,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     // do we have a new request? Empty request id treated as always new
     new_request_ = !current_request_.valid() ||
                    req0.id().empty() || 
-                   ( req0.id() != current_reqid_ ) ||
-                   ( req0.serviceFlag() != current_request_->serviceFlag() );
+                   req0.id() != current_reqid_;
     // update stats
     pcs_total_->req++;
     if( new_request_ )
@@ -1168,8 +1204,8 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     if( req.hasCells() )
     {
       setExecState(CS_ES_EVALUATING);
-      // normal getResult() mode
-      if( req.evalMode() >= Request::GET_RESULT )
+      // EVAL/SINGLE/DOUBLE: normal getResult() mode
+      if( req.evalMode() >= 0 )
       {
         stage = "getting result";
         cdebug(3)<<"  calling getResult(): cells are "<<req.cells();
@@ -1191,7 +1227,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
         if( ref.valid() && !ref->hasCells() && rescells.valid() )
           ref().setCells(*rescells);
       }
-      else // else spid discovery mode
+      else if( req.requestType() == RequestType::DISCOVER_SPIDS )
       {
         retcode |= discoverSpids(ref,child_results_,req);
       }
