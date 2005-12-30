@@ -654,7 +654,8 @@ class meqserver_gui (app_proxy_gui):
     basename = os.path.basename(self._main_tdlfile);
     self.log_message("compiling TDL script "+basename);
     QApplication.flush();
-    self._mnain_tdlfile = tab.get_filename();
+    self._main_tdlfile = tab.get_filename();
+    self._tb_jobs.hide();
     if tab.compile_content():
       # since we were successful, a nodelist will have been requested
       # by compile_content(). We want to disable automatic nodelist requests
@@ -675,7 +676,6 @@ class meqserver_gui (app_proxy_gui):
         self._tb_jobs.show();
       else:
         self._mi_tdljobs = None;
-        self._tb_jobs.hide();
     tmp = None;
     
   def _tdl_compile_file (self,filename,show=True):
