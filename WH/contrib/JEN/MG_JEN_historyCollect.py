@@ -11,6 +11,7 @@
 # - 24 aug 2005: creation
 # - 03 oct 2005: tdl_jobs for different dimensions
 # - 26 nov 2005: cleanup and simplification
+# - 29 dec 2005: adapted to plots for all iterations
 
 # Copyright: The MeqTree Foundation 
 
@@ -101,7 +102,7 @@ def _define_forest (ns):
       # MG_JEN_forest_state.bookmark (solver, udi='cache/result', viewer='Result Plotter')
 
       # Make a tensor node of hcoll nodes, and attach them to cc:
-      cc.append(make_hcoll_solver_metrics (ns, solver))
+      cc.append(make_hcoll_solver_metrics (ns, solver, firstonly=True))
 
 
    #---------------------------------------------------------------------------
@@ -124,8 +125,9 @@ def _define_forest (ns):
 def make_hcoll_solver_metrics (ns, solver, **pp):
    """Make a vector historyCollect nodes for solver metrics"""
 
-   pp.setdefault('name', 'solver')
-   pp.setdefault('debug', True)
+   pp.setdefault('name', 'solver')      # Name of the solver
+   pp.setdefault('debug', True)         # if True, plot the debug record fields also
+   pp.setdefault('firstonly', False)    # if True, plot the first iterations only
    
    # Make a qualifying integer to avoid node name clashes:
    uniqual = MG_JEN_forest_state.uniqual(MG.script_name+'::make_hcoll_solver_metrics()')
@@ -133,29 +135,55 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
 
    # Make hcoll nodes for 'traditional' solver metrics:
    metrics = ['fit','rank','mu','stddev']
+
    pagename = 'hcoll_'+pp['name']+'_metrics'
    for metric in metrics:
-      input_index = hiid('solver_result/metrics/0/'+metric)          
-      hcoll_name = 'hcoll_'+pp['name']+'_metric_'+metric
+      input_index = hiid('solver_result/metrics_array/'+metric)          
+      hcoll_name = 'hcoll_'+pp['name']+'_m_'+metric
       hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
                                                             input_index=input_index,
                                                             top_label=hiid('history'))
       hcoll_nodes.append(hcoll)
       MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
 
-   if pp['debug']: 
-      # Optional: make hcoll nodes for 'debug' solver metrics:
-      # debug = ['nonlin','seq','sol','prec','known','er','piv','neq']
-      debug = ['nonlin','sol','prec','er']
-      pagename = 'hcoll_'+pp['name']+'_debug'
-      for metric in debug:
-         input_index = hiid('solver_result/debug/0/'+metric)          
-         hcoll_name = 'hcoll_'+pp['name']+'_debug_'+metric
+   if pp['firstonly']:
+      # Optional: The value of the first [0] iteration only:
+      pagename = 'hcoll_'+pp['name']+'_metrics0'
+      for metric in metrics:
+         input_index = hiid('solver_result/metrics/0/'+metric)          
+         hcoll_name = 'hcoll_'+pp['name']+'_m0_'+metric
          hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
                                                                input_index=input_index,
                                                                top_label=hiid('history'))
          hcoll_nodes.append(hcoll)
          MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
+
+   if pp['debug']: 
+      # Optional: make hcoll nodes for 'debug' solver metrics:
+      # debug = ['nonlin','seq','sol','prec','known','er','piv','neq']
+      debug = ['nonlin','sol','prec','er']
+
+      pagename = 'hcoll_'+pp['name']+'_debug'
+      for metric in debug:
+         input_index = hiid('solver_result/debug_array/'+metric)          
+         hcoll_name = 'hcoll_'+pp['name']+'_db_'+metric
+         hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
+                                                               input_index=input_index,
+                                                               top_label=hiid('history'))
+         hcoll_nodes.append(hcoll)
+         MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
+
+      if pp['firstonly']:
+         # Optional: The value of the first [0] iteration only:
+         pagename = 'hcoll_'+pp['name']+'_debug0'
+         for metric in debug:
+            input_index = hiid('solver_result/debug/0/'+metric)          
+            hcoll_name = 'hcoll_'+pp['name']+'_d0_'+metric
+            hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
+                                                                  input_index=input_index,
+                                                                  top_label=hiid('history'))
+            hcoll_nodes.append(hcoll)
+            MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
 
    # Return a tensor node of historyCollect nodes:
    root = ns.hcolls_solver_metrics(uniqual) << Meq.Composer(children=hcoll_nodes)
@@ -170,11 +198,11 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
 def insert_hcoll(ns, node, **pp):
    """Make (and insert) a historyCollect node for the (given field of the) given node"""
 
-   pp.setdefault('input_index', 'VellSets/0/Value')     # this is the default
-   pp.setdefault('strip', True)                         
-   pp.setdefault('mean', False)                         
-   pp.setdefault('page', None)
-   pp.setdefault('graft', True)
+   pp.setdefault('input_index', 'VellSets/0/Value')   
+   pp.setdefault('strip', True)                      # if True, strip off perturbed vells   
+   pp.setdefault('mean', False)                      # if True, take the mean first   
+   pp.setdefault('page', None)                       # if string, make a bookmark
+   pp.setdefault('graft', True)                      # if True, insert a ReqSeq for requests
 
    # Make a qualifying integer to avoid node name clashes:
    uniqual = MG_JEN_forest_state.uniqual(MG.script_name+'::insert_hcoll()')
@@ -186,9 +214,15 @@ def insert_hcoll(ns, node, **pp):
    if pp['mean']:
       hcoll_input = ns.mean_hcoll(uniqual) << Meq.Mean(hcoll_input)
 
+   # Deal with the target field of the result record:
+   if isinstance(pp['input_index'], str):
+      pp['input_index'] = hiid(pp['input_index'])
+
    # Make the historyCollect node itself:
-   name = 'hcoll_'+node.name
-   if isinstance(pp['input_index'], str): pp['input_index'] = hiid(pp['input_index'])
+   if isinstance(node, str):                       # node given as (string) node name
+      name = 'hcoll_'+node
+   else:                                           # assume node given as nodestub
+      name = 'hcoll_'+node.name             
    hcoll = ns[name](uniqual) << Meq.HistoryCollect(hcoll_input, verbose=True,
                                                    input_index=pp['input_index'],
                                                    # top_label=hiid('visu'))
