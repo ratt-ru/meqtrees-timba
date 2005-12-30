@@ -215,34 +215,9 @@ void Forest::incrRequestId (RequestId &rqid,const HIID &symdep)
     return;
   // the assigned value will be the max of index and whatever is already
   // at the specified position in rqid
-  int & index = ++symdep_counts[symdep];
+  int index = ++symdep_counts[symdep];
   // find MSB of mask
-  uint msb=0;
-  for( int m1=depmask; m1 != 0; m1 >>= 1 )
-    msb++;
-  // if request ID is shorter, resize
-  if( rqid.size() < msb )
-    rqid.push_front(0,msb-rqid.size());
-  // start from end 
-  HIID::reverse_iterator iter = rqid.rbegin();
-  // ... until we run out of bits, or get to the start of the id
-  for( int m1=1; 
-       m1 < (1<<RQIDM_NBITS) && iter != rqid.rend(); 
-       m1<<=1,iter++ )
-  {
-    if( depmask&m1 && *iter >= index )
-      index = *iter+1;
-  }
-  // now assign the index
-  iter = rqid.rbegin();
-  // ... until we run out of bits, or get to the start of the id
-  for( int m1=1; 
-       m1 < (1<<RQIDM_NBITS) && iter != rqid.rend(); 
-       m1<<=1,iter++ )
-  {
-    if( depmask&m1 )
-      *iter = index;
-  }
+  RqId::setSubId(rqid,depmask,index);
 }
 
 int Forest::getNodeList (DMI::Record &list,int content)

@@ -182,6 +182,12 @@ class meqserver_gui (app_proxy_gui):
     self.set_verbose(self.get_verbose());
     
     _dprint(2,"meqserver-specifc init"); 
+    # size window if stored in config
+    width = Config.getint('browser-window-width',0);
+    height = Config.getint('browser-window-height',0);
+    if width or height:
+      self.resize(QSize(width,height));
+    
     # add Tree browser panel
     self.tb_panel = self.PanelizedWindow(self.splitter,"Trees","Trees",pixmaps.view_tree.iconset());
     self.treebrowser = treebrowser.TreeBrowser(self.tb_panel);
@@ -465,6 +471,12 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(meqds.nodelist,PYSIGNAL("requested()"),self._autoreq_timer.stop);
     # tdl tabs
     self._tdl_tabs = {};
+    
+  def resizeEvent (self,ev):
+    app_proxy_gui.resizeEvent(self,ev);
+    sz = ev.size();
+    Config.set('browser-window-width',sz.width());
+    Config.set('browser-window-height',sz.height());
     
   def _notify_forest_loaded (self):
     if len(meqds.nodelist):
