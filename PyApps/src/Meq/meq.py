@@ -333,7 +333,11 @@ _meqdomain_id = 0;
 def requestid (domain_id,rqtype='ev'):
   return hiid(rqtype,0,0,0,domain_id,0);
 
-def request (cells=None,rqtype='ev',rqid=None):
+def request (cells=None,rqtype='ev',rqid=None,eval_mode=None):
+  # use eval_mode to override rqtype, if supplied
+  if eval_mode == 0:    rqtype='ev';
+  elif eval_mode == 1:  rqtype='e1';
+  elif eval_mode == 2:  rqtype='e2';
   # generate rqid if not supplied
   if rqid is None:
     global _meqdomain_id;
