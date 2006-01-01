@@ -330,18 +330,20 @@ def cells(domain=None,num_freq=None,num_time=None,
 
 _meqdomain_id = 0;
 
-def requestid (domain_id,config_id=0,iter_id=0):
-  return hiid((domain_id,config_id,iter_id));
+def requestid (domain_id,rqtype='ev'):
+  return hiid(rqtype,0,0,0,domain_id,0);
 
-def request (cells=None,rqid=None,eval_mode=0):
+def request (cells=None,rqtype='ev',rqid=None):
   # generate rqid if not supplied
   if rqid is None:
     global _meqdomain_id;
-    rqid = requestid(_meqdomain_id);
+    rqid = requestid(_meqdomain_id,rqtype);
     _meqdomain_id += 1;
+  elif len(rqid) >= 6:
+    _meqdomain_id = rqid[5];
   else:
-    _meqdomain_id = rqid[0];
-  rec = _request_type(request_id=make_hiid(rqid),eval_mode=eval_mode);
+    _meqdomain_id = 0;
+  rec = _request_type(request_id=make_hiid(rqid));
   if cells is not None:
     if not isinstance(cells,_cells_type):
       raise TypeError,'cells argument must me a MeqCells object';
