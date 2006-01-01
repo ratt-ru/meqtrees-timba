@@ -335,9 +335,11 @@ def requestid (domain_id,rqtype='ev'):
 
 def request (cells=None,rqtype='ev',rqid=None,eval_mode=None):
   # use eval_mode to override rqtype, if supplied
-  if eval_mode == 0:    rqtype='ev';
-  elif eval_mode == 1:  rqtype='e1';
-  elif eval_mode == 2:  rqtype='e2';
+  if eval_mode is not None:
+    print "WARNING: the eval_mode argument to meq.request() is deprecated."
+    if eval_mode == 0:    rqtype='ev';
+    elif eval_mode == 1:  rqtype='e1';
+    elif eval_mode == 2:  rqtype='e2';
   # generate rqid if not supplied
   if rqid is None:
     global _meqdomain_id;
