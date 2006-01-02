@@ -13,20 +13,17 @@
 #############
 ## What the Resampler can and cannot do so far ....
 ## 
-## 1) It can downsample to non exact cell sizes.
-## 2) Special cases : exact cell sizes and one dimensional cells are not handled      with special code, but the general method should work for these cases.
-## 3) Oversampling does not work
-## 4) Flagged cells are not averaged. However, the flagged cell are counted and
+## 1) Flagged cells are not averaged. However, the flagged cell are counted and
 ##   added to the flag count of the output cell.
-## 5) The flag mask, bit, density parameters does not work yet.
-## 6) The implementation is not optimized. However, checks for memory leaks have 
+## 2) The flag mask, bit, density parameters does not work yet.
+## 3) The implementation is not optimized. However, checks for memory leaks have 
 ##  been done.
 
 ## Here is the copy of the bug report
 ## support resolution drivers (i.e., three auto-resampling modes: integrate,
 ## upsample, or follow resolution of specific child)
 #
-## - generalize resampling code to support arbitrary dimensionality
+## - generalize resampling code to support arbitrary dimensionality - DONE
 #
 ## - compute Result cells based on resolution
 #
@@ -114,12 +111,12 @@ def _test_forest (mqs, parent):
  f1 = 1600
  t0 = 1.0
  t1 = 10.0
- nfreq =5
- ntime =5
+ nfreq =20
+ ntime =10
 
  freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
  cells =meq.cells(domain=freqtime_domain, num_freq=nfreq,  num_time=ntime);
- request = meq.request(cells,eval_mode=1);
+ request = meq.request(cells,rqtype='e1');
  b = mqs.meq('Node.Execute',record(name='z',request=request),wait=True);
  print b
  
