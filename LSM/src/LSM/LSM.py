@@ -135,7 +135,7 @@ class SpH:
   if (self.lsm!=None) and (self.lsm.cells!=None) and\
    (self.lsm.mqs!=None):
    # create request object
-   my_request = meq.request(cells=self.lsm.cells, eval_mode=0)
+   my_request = meq.request(cells=self.lsm.cells, rqtype='ev')
    # get the correct name from the sixpack object
    punit=self.lsm.getPUnit(pname)
    psixpack=punit.getSP()
