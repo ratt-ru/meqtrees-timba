@@ -28,7 +28,6 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
-
 namespace Meq {
 
 //#define DEBUG
@@ -131,117 +130,117 @@ ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
 	int nxs=xaxs.extent(0);
 	int nys=yaxs.extent(0);
 
-	blitz::Array<double,1> tempx(nx_+2);
-	tempx(blitz::Range(1,nx_))=xax;
-	tempx(0)=xstart;
-	tempx(nx_+1)=xend;
-#ifdef DEBUG
-	cout<<"In X "<<tempx<<endl;
-#endif
-
-	blitz::Array<double,1> tempy(ny_+2);
-	tempy(blitz::Range(1,ny_))=yax;
-	tempy(0)=ystart;
-	tempy(ny_+1)=yend;
-
-#ifdef DEBUG
-	cout<<"In Y "<<tempy<<endl;
-#endif
 	//if out cells are smaller than in cells
 	//it will be taken to be idential for the moment
-  identical_=(nx_>nxs)||(ny_>nys) 
-					||((nx_==nxs)&&(ny_==nys));	
+  identical_=((nx_==nxs)&&(ny_==nys));	
 #ifdef DEBUG
   cout<<"Itentical "<<identical_<<endl;
 #endif
-  // array of indices
-	xindex_.resize(nxs);
-	yindex_.resize(nys);
 
-  // do the search
-	for (int i=0; i<nxs;i++)
-	  xindex_(i)=bin_search(tempx,xaxs(i),0,nx_+1);
-	for (int i=0; i<nys;i++)
-	  yindex_(i)=bin_search(tempy,yaxs(i),0,ny_+1);
-
-#ifdef DEBUG
-	cout<<"X index "<<xindex_<<endl;
-	cout<<"Y index "<<yindex_<<endl;
-#endif
-	//now calculate the weights
-	//each old cell is smaller than new cells. So there are 2 cases to consider
-	// --|  /.....\  |-- old cell completely within new cell
-	// /...--|....\  |-- old cell shared by 2 new cells     
-	// So for each axis we have 2 wights for each old cell (left,right) 
-	// The area is proportional to the product of the weights of X,Y axes
-	// Note also that left,right weights sum up to 1.
-	// Consider special cases where xindex==0 or xindex==nx_
-	// because they are at the domain boundary.
-
-	//just for the time being assume exact resampling. That is
-	//if an old cell center belongs to a new cell, that old cell is
-	//entirely included in the new cell
-	
-	xweights_.resize(nxs);  
-	for (int i=0; i<nxs; i++) {
-     if(xindex_(i)==0) {
-						 xweights_[0](i)=0;
-						 xweights_[1](i)=1;
-		 } else if(xindex_(i)==nx_) {
-						 xweights_[0](i)=1;
-						 xweights_[1](i)=0;
-		 } else {
-						 if ((xaxs(i)-xax(xindex_(i)-1)) >
-														 (xcellsize(xindex_(i)-1)+inxcellsize(i))/2) {
-						  xweights_[0](i)=0;
-						  xweights_[1](i)=1;
-						 }else if ((-xaxs(i)+xax(xindex_(i))) >
-														 (xcellsize(xindex_(i))+inxcellsize(i))/2) {
-						  xweights_[0](i)=1;
-						  xweights_[1](i)=0;
-						 } else {
-						  xweights_[0](i)=((xcellsize(xindex_(i)-1)+inxcellsize(i))/2
-                -(xaxs(i)-xax(xindex_(i)-1)))/inxcellsize(i);
-						  xweights_[1](i)=1-xweights_[0](i);
-						 }
-		 }
-	}
-
-#ifdef DEBUG
-	cout<<"X weights"<<xweights_<<endl;
-#endif
-	yweights_.resize(nys);  
-	for (int i=0; i<nys; i++) {
-     if(yindex_(i)==0) {
-						 yweights_[0](i)=0;
-						 yweights_[1](i)=1;
-		 } else if(yindex_(i)==ny_) {
-						 yweights_[0](i)=1;
-						 yweights_[1](i)=0;
-		 } else {
-						 if ((yaxs(i)-yax(yindex_(i)-1)) > 
-														 (ycellsize(yindex_(i)-1)+inycellsize(i))/2) {
-						  yweights_[0](i)=0;
-						  yweights_[1](i)=1;
-						 } else if ((-yaxs(i)+yax(yindex_(i))) > 
-														 (ycellsize(yindex_(i))+inycellsize(i))/2) {
-						  yweights_[0](i)=1;
-						  yweights_[1](i)=0;
-						 } else {
-						  yweights_[0](i)=((ycellsize(yindex_(i)-1)+inycellsize(i))/2
-                -(yaxs(i)-yax(yindex_(i)-1)))/inycellsize(i);
-						  yweights_[1](i)=1-yweights_[0](i);
-						 }
-		 }
-	}
-
-#ifdef DEBUG
-	cout<<"Y weights"<<yweights_<<endl;
-#endif
 	//resize the array to store cumulative flags+weights
 	cell_weight_.resize(nx_,ny_);
 	//make it zero
   cell_weight_=0; 
+
+	////////////////////////////////
+	bx_.resize(2);
+	bx_[0].resize(nx_);
+	bx_[1].resize(ny_);
+
+#ifdef DEBUG
+ cout<<inxcellsize<<endl<<xaxs<<endl;
+#endif
+ //array to be searched - input cells
+ blitz::Array<double,1> xx(nxs-1); 
+ for (int i=0; i<nxs-1;i++) {
+		xx(i)=xaxs(i)+inxcellsize(i)*0.5;
+ }
+#ifdef DEBUG
+ cout<<xx<<endl;
+#endif
+ //arrayf of values within search is done
+ blitz::Array<double,1> inxx(nx_+1); 
+ inxx(0)=xstart;
+ inxx(nx_)=xend;
+ for (int i=1; i<nx_;i++) {
+  inxx(i)=xax(i-1)+xcellsize(i-1)*0.5;
+ }	
+#ifdef DEBUG
+ cout<<inxx<<endl;
+#endif
+ blitz::Array<int,1> xxindex(nxs-1); 
+ // do the search
+ for (int i=0; i<nxs-1;i++)
+	  xxindex(i)=bin_search(inxx,xx(i),0,nx_+1);
+#ifdef DEBUG
+ cout<<xxindex<<endl;
+#endif
+
+ int cli=0;
+#ifdef DEBUG
+ cout<<"Cell "<<cli<<" falls on cells ["<<0<<","<<xxindex(cli)<<"]"<<endl;
+#endif
+ insert(cli,0,xxindex(cli), 0,inxcellsize,xcellsize,xaxs,xax);
+	
+ cli++;
+ while(cli<nxs-1){
+#ifdef DEBUG
+  cout<<"Cell "<<cli<<" falls on cells ["<<xxindex(cli-1)<<","<<xxindex(cli)<<"]"<<endl;
+#endif
+  insert(cli, xxindex(cli-1),xxindex(cli), 0,inxcellsize,xcellsize,xaxs,xax);
+  cli++;
+ }
+#ifdef DEBUG
+ cout<<"Cell "<<cli<<" falls on cells ["<<xxindex(cli-1)<<","<<nx_-1<<"]"<<endl;
+#endif
+ insert(cli, xxindex(cli-1),nx_-1, 0,inxcellsize,xcellsize,xaxs,xax);
+ bx_[0].print();
+
+ blitz::Array<double,1> yy(nys-1); 
+ for (int i=0; i<nys-1;i++) {
+		yy(i)=yaxs(i)+inycellsize(i)*0.5;
+ }
+#ifdef DEBUG
+ cout<<yy<<endl;
+#endif
+ //arrayf of values within search is done
+ blitz::Array<double,1> inyy(ny_+1); 
+ inyy(0)=ystart;
+ inyy(ny_)=yend;
+ for (int i=1; i<ny_;i++) {
+  inyy(i)=yax(i-1)+ycellsize(i-1)*0.5;
+ }	
+#ifdef DEBUG
+ cout<<inyy<<endl;
+#endif
+ blitz::Array<int,1> yyindex(nys-1); 
+ // do the search
+ for (int i=0; i<nys-1;i++)
+	  yyindex(i)=bin_search(inyy,yy(i),0,ny_+1);
+#ifdef DEBUG
+ cout<<yyindex<<endl;
+#endif
+
+ cli=0;
+#ifdef DEBUG
+ cout<<"Cell "<<cli<<" falls on cells ["<<0<<","<<yyindex(cli)<<"]"<<endl;
+#endif
+ insert(cli,0,yyindex(cli), 1,inycellsize,ycellsize,yaxs,yax);
+	
+ cli++;
+ while(cli<nys-1){
+#ifdef DEBUG
+  cout<<"Cell "<<cli<<" falls on cells ["<<yyindex(cli-1)<<","<<yyindex(cli)<<"]"<<endl;
+#endif
+  insert(cli, yyindex(cli-1),yyindex(cli), 1,inycellsize,ycellsize,yaxs,yax);
+  cli++;
+ }
+#ifdef DEBUG
+ cout<<"Cell "<<cli<<" falls on cells ["<<yyindex(cli-1)<<","<<ny_-1<<"]"<<endl;
+#endif
+ insert(cli, yyindex(cli-1),ny_-1, 1,inycellsize,ycellsize,yaxs,yax);
+ bx_[1].print();
+
 }
 
 ResampleMachine::~ResampleMachine()
@@ -251,23 +250,11 @@ ResampleMachine::~ResampleMachine()
 
 int ResampleMachine::apply(VellSet &out, const VellSet &in)
 {
+
 				Vells invl=in.getValue();
 				int nxs,nys;
 				nxs=invl.extent(0);
 				nys=invl.extent(1);
-				//before doing the proper summation, find out limits
-				//for boundary points
-        int xlow=0;
-        while(xindex_(xlow)==0 && xlow <nxs) xlow++;				
-        int xhigh=nxs-1;
-        while(xindex_(xhigh)==nx_ && xhigh>=0) xhigh--;				
-        int ylow=0;
-        while(yindex_(ylow)==0 && ylow <nys) ylow++;				
-        int yhigh=nys-1;
-        while(yindex_(yhigh)==ny_ && yhigh>=0) yhigh--;				
-#ifdef DEBUG
-        cout<<"Limits ["<<xlow<<","<<xhigh<<"]["<<ylow<<","<<yhigh<<"]"<<endl; 
-#endif
 
 				VellsFlagType *F=0;
 				//check for flags
@@ -296,15 +283,13 @@ int ResampleMachine::apply(VellSet &out, const VellSet &in)
 				 cout<<" B "<<B<<endl;
 #endif
 				if (!invl.hasDataFlags() ) {
-         do_resample(xlow, xhigh, nxs, ylow, yhigh, nys, 
-				  A,  B);
+         do_resample(A,  B);
 				  out.setValue(new Vells(A));
 				}else {
          //allocate memory for flags
 				blitz::Array<VellsFlagType,2> Aflag(nx_,ny_); 
 				 Aflag=0;
-         do_resample(xlow, xhigh, nxs, ylow, yhigh, nys, 
-				  A,  B,  F, invl.hasDataFlags(), Aflag);
+         do_resample( A,  B,  F, invl.hasDataFlags(), Aflag);
 				  out.setValue(new Vells(A));
 					out.setDataFlags(new Vells(Aflag));
 				}
@@ -318,14 +303,12 @@ int ResampleMachine::apply(VellSet &out, const VellSet &in)
 				 cout<<" Bc "<<Bc<<endl;
 #endif
 				if (!invl.hasDataFlags() ) {
-         do_resample(xlow, xhigh, nxs, ylow, yhigh, nys, 
-				  Ac,  Bc);
+         do_resample( Ac,  Bc);
 				  out.setValue(new Vells(Ac));
 				}else{
 				 blitz::Array<VellsFlagType,2> Aflag(nx_,ny_); 
 				 Aflag=0;
-         do_resample(xlow, xhigh, nxs, ylow, yhigh, nys, 
-				  Ac,  Bc,  F, invl.hasDataFlags(),Aflag);
+         do_resample( Ac,  Bc,  F, invl.hasDataFlags(),Aflag);
 				  out.setValue(new Vells(Ac));
 					out.setDataFlags(new Vells(Aflag));
 				}
@@ -384,82 +367,27 @@ int  ResampleMachine::bin_search(blitz::Array<double,1> xarr,double x,int i_star
 
 
 template<class T> int  
-ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, int nys, 
-				blitz::Array<T,2> A,  blitz::Array<T,2> B ){
+ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
+				bx_[0].print();
+				bx_[1].print();
 				double tmp;
-				for (int i=0;i<xlow;i++) {
-				 for (int j=0;j<ylow;j++) {
-             tmp=xweights_[1](i)*yweights_[1](j);
-             cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-				 }
-				 for (int j=ylow;j<=yhigh;j++) {
-             tmp=xweights_[1](i)*yweights_[0](j);
-             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[1](j);
-             cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-				 }
-				 for (int j=yhigh+1;j<nys;j++) {
-						tmp=xweights_[1](i)*yweights_[0](j);
-            cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-				 }
+				for (int i=0; i<bx_[0].size();i++) {
+						Bnode &xx=bx_[0].get(i);
+						for (int j=0; j<bx_[1].size(); j++) {
+						 Bnode &yy=bx_[1].get(j);
+						 std::list<Bedge>::iterator fx=xx.begin();
+						 std::list<Bedge>::iterator fy=yy.begin();
+						 while(fx!=xx.end()) {
+							while(fy!=yy.end()) {
+								tmp=((*fx).w)*((*fy).w);
+								cell_weight_(i,j)+=tmp;
+								A(i,j)+=tmp*B((*fx).id,(*fy).id);
+								std::advance(fy,1);
+							}
+								std::advance(fx,1);
+						 }
+						}
 				}
-				for (int i=xlow;i<=xhigh;i++) {
-				 for (int j=0;j<ylow;j++) {
-						tmp=xweights_[0](i)*yweights_[1](j);
-            cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-						tmp=xweights_[1](i)*yweights_[1](j);
-            cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-				 }
-				 for (int j=ylow;j<=yhigh;j++) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[0](i)*yweights_[1](j);
-             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[0](j);
-             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[1](j);
-             cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-				 }
-				 for (int j=yhigh+1;j<nys;j++) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[0](j);
-             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-				 }
-				}
-				for (int i=xhigh+1;i<nxs;i++) {
-				 for (int j=0;j<ylow;j++) {
-						 tmp=xweights_[0](i)*yweights_[1](j);
-             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-				 }
-				 for (int j=ylow;j<=yhigh;j++) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[0](i)*yweights_[1](j);
-             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-				 }
-				 for (int j=yhigh+1;j<nys;j++) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-				 }
-				}
-
 #ifdef DEBUG
 				cout<<" A "<<A<<endl;
 				cout<<" Weight "<<cell_weight_<<endl;
@@ -476,8 +404,7 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
 }
 
 template<class T> int  
-ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, int nys, 
-				blitz::Array<T,2> A,  blitz::Array<T,2> B,  
+ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,  
 			  VellsFlagType *Fp, bool has_flags, 
 				blitz::Array<VellsFlagType,2> Aflag) {
 				double tmp;
@@ -487,129 +414,27 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
 #ifdef DEBUG
 				 cout <<"Flags "<<F<<endl;
 #endif
-				for (int i=0;i<xlow;i++) {
-				 for (int j=0;j<ylow;j++) {
-             if (!F(i,j)) {
-             tmp=xweights_[1](i)*yweights_[1](j);
-             cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-						 }else{
-										 Aflag(xindex_(i), yindex_(j))++;
-						 }
+				for (int i=0; i<bx_[0].size();i++) {
+						Bnode &xx=bx_[0].get(i);
+						for (int j=0; j<bx_[1].size(); j++) {
+						 Bnode &yy=bx_[1].get(j);
+						 std::list<Bedge>::iterator fx=xx.begin();
+						 std::list<Bedge>::iterator fy=yy.begin();
+						 while(fx!=xx.end()) {
+							while(fy!=yy.end()) {
+								tmp=((*fx).w)*((*fy).w);
+								cell_weight_(i,j)+=tmp;
 
-				 }
-				 for (int j=ylow;j<=yhigh;j++) {
-             if (!F(i,j)) {
-             tmp=xweights_[1](i)*yweights_[0](j);
-             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[1](j);
-             cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-						 }else{
-										 Aflag(xindex_(i), yindex_(j)-1)++;
-										 Aflag(xindex_(i), yindex_(j))++;
+                if (!F((*fx).id,(*fy).id)) {
+								A(i,j)+=tmp*B((*fx).id,(*fy).id);
+								} else {
+								Aflag(i, j)++;
+								}
+								std::advance(fy,1);
+							}
+								std::advance(fx,1);
 						 }
-
-				 }
-				 for (int j=yhigh+1;j<nys;j++) {
-             if (!F(i,j)) {
-						tmp=xweights_[1](i)*yweights_[0](j);
-            cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-						 }else{
-										 Aflag(xindex_(i), yindex_(j)-1)++;
-						 }
-
-				 }
-				}
-				for (int i=xlow;i<=xhigh;i++) {
-				 for (int j=0;j<ylow;j++) {
-             if (!F(i,j)) {
-						tmp=xweights_[0](i)*yweights_[1](j);
-            cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-						tmp=xweights_[1](i)*yweights_[1](j);
-            cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-						 }else{
-										 Aflag(xindex_(i)-1, yindex_(j))++;
-										 Aflag(xindex_(i), yindex_(j))++;
-						 }
-
-				 }
-				 for (int j=ylow;j<=yhigh;j++) {
-             if (!F(i,j)) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[0](i)*yweights_[1](j);
-             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[0](j);
-             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[1](j);
-             cell_weight_(xindex_(i), yindex_(j))+=tmp;
-             A(xindex_(i), yindex_(j))+=tmp*B(i,j);
-						 }else{ //
-										 Aflag(xindex_(i)-1, yindex_(j)-1)++;
-										 Aflag(xindex_(i)-1, yindex_(j))++;
-										 Aflag(xindex_(i), yindex_(j)-1)++;
-										 Aflag(xindex_(i), yindex_(j))++;
-						 }
-
-				 }
-				 for (int j=yhigh+1;j<nys;j++) {
-             if (!F(i,j)) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[1](i)*yweights_[0](j);
-             cell_weight_(xindex_(i), yindex_(j)-1)+=tmp;
-             A(xindex_(i), yindex_(j)-1)+=tmp*B(i,j);
-						 }else{
-										 Aflag(xindex_(i)-1, yindex_(j)-1)++;
-										 Aflag(xindex_(i), yindex_(j)-1)++;
-						 }
-
-				 }
-				}
-				for (int i=xhigh+1;i<nxs;i++) {
-				 for (int j=0;j<ylow;j++) {
-             if (!F(i,j)) {
-						 tmp=xweights_[0](i)*yweights_[1](j);
-             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-						 }else{
-										 Aflag(xindex_(i)-1, yindex_(j))++;
-						 }
-
-				 }
-				 for (int j=ylow;j<=yhigh;j++) {
-             if (!F(i,j)) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-						 tmp=xweights_[0](i)*yweights_[1](j);
-             cell_weight_(xindex_(i)-1, yindex_(j))+=tmp;
-             A(xindex_(i)-1, yindex_(j))+=tmp*B(i,j);
-						 }else{
-										 Aflag(xindex_(i)-1, yindex_(j)-1)++;
-										 Aflag(xindex_(i)-1, yindex_(j))++;
-						 }
-
-				 }
-				 for (int j=yhigh+1;j<nys;j++) {
-             if (!F(i,j)) {
-						 tmp=xweights_[0](i)*yweights_[0](j);
-             cell_weight_(xindex_(i)-1, yindex_(j)-1)+=tmp;
-             A(xindex_(i)-1, yindex_(j)-1)+=tmp*B(i,j);
-						 }else{
-										 Aflag(xindex_(i)-1, yindex_(j)-1)++;
-						 }
-
-				 }
+						}
 				}
 
 #ifdef DEBUG
@@ -627,4 +452,52 @@ ResampleMachine::do_resample(int xlow, int xhigh, int nxs, int ylow, int yhigh, 
         //A/=cell_weight_; 
 				return 0;
 }
+
+#ifndef MAX
+#define MAX(a,b)\
+				(a>b?a:b)
+#endif
+#ifndef MIN
+#define MIN(a,b)\
+				(a<b?a:b)
+#endif
+
+#ifndef INSERT
+#define INSERT(i,j,w,gg)\
+				Bnode &b=(gg).get((j));\
+        Bedge ed((i),(w));\
+        b.append(ed);
+#endif
+
+//update the graph for input cell number incell, that is included
+//within the range of output cells in range cell1,cell2
+void
+ResampleMachine::insert(int incell,int cell1, int cell2, int axis,
+	blitz::Array<double,1> incellsize,blitz::Array<double,1> outcellsize,
+	blitz::Array<double,1> incenter,blitz::Array<double,1> outcenter
+								) {
+//the trivial case where the input cell is enclosed by one output cell
+
+ if (cell1==cell2) {
+  //find intersection length - must be the orignal
+	//cell length, so the weight is 1
+  INSERT(incell,cell1,1.0,bx_[axis]);	
+ } else {
+	double ledge=incenter(incell)-incellsize(incell)*0.5;
+	double redge=incenter(incell)+incellsize(incell)*0.5;
+	for (int i=cell1; i<=cell2;i++) {
+ //find common length = min(right_edge)-max(left_edge)
+  double ll=outcenter(i)-outcellsize(i)*0.5; 
+  double rr=outcenter(i)+outcellsize(i)*0.5; 
+	double comm=MIN(rr,redge)-MAX(ll,ledge);
+#ifdef DEBUG
+	cout<<"W ="<<comm<<"/"<<incellsize(incell)<<endl;
+#endif
+	double weight=comm/incellsize(incell);
+  INSERT(incell,i,weight,bx_[axis]);	
+	}
+ }
+}
+
+
 } // namespace Meq
