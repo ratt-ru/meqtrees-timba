@@ -12,6 +12,7 @@
 #    - 30 nov 2005: added comment to MeqParm() tile_size
 #    - 03 dec 2005: replaced MG_JEN_exec with TDL_display
 #    - 07 dec 2005: introduced self.__constrain (needs more thought)
+#    - 02 jan 2006: adopted TDL_Parmset.py
 #
 # Full description:
 #
@@ -26,6 +27,7 @@ from Timba.TDL import *
 from copy import deepcopy
 
 from Timba.Trees import TDL_common
+from Timba.Trees import TDL_Parmset
 from Timba.Trees import TDL_radio_conventions
 
 
@@ -51,15 +53,15 @@ class Joneset (TDL_common.Super):
 
         self.__scope = pp['scope']
         self.__punit = pp['punit']
-        self.__unsolvable = pp['unsolvable']
-        self.__parmtable = pp['parmtable']
-        self.check_parmtable_extension()
 
         TDL_common.Super.__init__(self, type='Joneset', **pp)
 
         self.__jchar = pp['jchar']
         if not isinstance(self.__jchar, str): self.__jchar = self.label()[0]
         self.__jchar = self.__jchar[0]               # single character
+
+        # Define its Parmset object
+        self.Parmset = TDL_Parmset.Parmset(**pp)
 
         self.clear()
 
@@ -72,15 +74,9 @@ class Joneset (TDL_common.Super):
 
     def clear(self):
         self.__jones = dict()
-        self.__parmgroup = dict()
-        self.__solvegroup = dict()
-        self.__condeq_corrs = dict()
         self.__plot_color = TDL_radio_conventions.plot_color()
         self.__plot_style = TDL_radio_conventions.plot_style()
         self.__plot_size = TDL_radio_conventions.plot_size()
-        self.__MeqParm = dict()
-        self.__constrain = dict()
-        self.__node_groups = ['Parm']
 
     def __getitem__(self, key):
         """Get s station (key) 2x2 Jones matrix (node)"""
@@ -94,77 +90,23 @@ class Joneset (TDL_common.Super):
         return self.__jones[key]
 
     def register(self, key=None, ipol=None, color=None, style='circle', size=10, corrs=None):
-        """Register a parameter (MeqParm) group"""
+        """Register a parameter (MeqParm) group (frontend for Parmset.register())"""
         if isinstance(ipol, int): key = key+'_'+self.pols(ipol)     # append (X,Y,R,L) if requirec
-        self.__parmgroup[key] = []
-        self.__plot_color[key] = color
-        self.__plot_style[key] = style
-        self.__plot_size[key] = size
+
         if corrs=='*': corrs = self.corrs_all()
         if corrs=='paral': corrs = self.corrs_paral()
         if corrs=='paral1': corrs = self.corrs_paral1()
         if corrs=='paral2': corrs = self.corrs_paral2()
         if corrs=='cross': corrs = self.corrs_cross()
         # if self.corrs_all().__contains__(corrs): corrs = corrs      # single corr (e.g. 'RR')
-        self.__condeq_corrs[key] = corrs
+        rider = dict(condeq_corrs=corrs)
+
+        self.Parmset.register(key=key, color=color, style=style, size=size, rider=rider)
+
         s = 'Register parmgroup: '+key+': '+str(color)+' '+str(style)+' '+str(size)+' '+str(corrs)+' '
         self.history(s)
-        self.define_solvegroup(key, parmgroup=[key])
         return key                                                  # return the actual key name
 
-
-    def define_solvegroup(self, key=None, parmgroup=None):
-      """Derive a new solvegroup by combining existing parmgroups:
-      These are used when defining a solver downstream (see Cohset)"""
-      trace = False
-      if trace: print '\n** .define_solvegroup(',key,parmgroup,'):'
-
-      # NB: This is inhibited if Joneset is set 'unsolvable' (e.g. for simulated uv-data) 
-      if self.unsolvable(): return False
-
-      if not isinstance(parmgroup, list): parmgroup = [parmgroup]
-      self.__solvegroup[key] = parmgroup                            # list of existing parmgroup keys
-
-      # Each solvegroup has a list of condeq_corrs, which allows the
-      # solver to have only condeqs for the relevant corrs:
-      corrs = []
-      for pg in self.__solvegroup[key]:
-          for corr in self.__condeq_corrs[pg]:
-              if not corrs.__contains__(corr): corrs.append(corr)
-              if trace: print '   pg=',pg,' corr=',corr,'   corrs=',corrs
-      self.__condeq_corrs[key] = corrs
-      return True
-
-
-    def cleanup(self):
-      """Remove empty parmgroups/solvegroups"""
-      removed = []
-      for key in self.__parmgroup.keys():
-        if len(self.__parmgroup[key])==0:
-          self.__parmgroup.__delitem__(key)
-          removed.append(key)
-      # Remove solvegroups that have parmgroup members that do not exist:
-      for skey in self.__solvegroup.keys():
-        ok = True
-        for key in self.__solvegroup[skey]:
-          if not self.__parmgroup.has_key(key):
-            ok = False
-        if not ok: self.__solvegroup.__delitem__(skey)
-      self.history ('.cleanup(): removed parmgroup(s): '+str(removed))
-      # Remove condeq_corrs that have no solvegroup counterpart:
-      for key in self.__condeq_corrs.keys():
-        if not self.__solvegroup.has_key(key):
-          self.__condeq_corrs.__delitem__(key)
-      return True
-
-    def node_groups(self, new=None):
-        """Get/set node_groups (input for MeqParm definition)"""  
-        if not new==None:
-            if not isinstance(new, (tuple, list)): new = [new]
-            for png in new:
-                if not self.__node_groups.__contains__(png):
-                    self.__node_groups.append(png)
-        return self.__node_groups
 
     def append(self, key=None, node=None):
         """Append a named (key) 2x2 jones matrix node to the internal jones set"""
@@ -172,86 +114,17 @@ class Joneset (TDL_common.Super):
         self.__jones[key] = node
         return self.len()
 
-    def define_MeqParm(self, ns, key=None, station=None,
-                       default=0,
-                       node_groups='Parm', constrain=False,
-                       use_previous=True, tile_size=None):
-        """Convenience function to create a MeqParm node"""
-        # NB: If use_previous==True, the MeqParm will use its current funklet (if any)
-        #     as starting point for the next snippet solution, unless a suitable funklet
-        #     was found in the MeqParm table. If False, it will use the default funklet first.
 
-        # If tile_size is specified (i.e. nonzero and not None), assume an integer.
-        # This specifies the size (nr of cells) of the solution-tile in the time-direction.
-        # This means that separate solutions are made for these tiles, which tile the domain.
-        # Tiled solutions are efficient, because they reduce the node overhead
-        # For the moment, only time-tiling is enabled...
-
-        tiling = record()
-        if tile_size:
-            tiling.time = tile_size
-
-        quals = dict(q=self.punit());
-        if station:
-            quals['s'] = station;
-        node = ns[key](**quals) << Meq.Parm(default,
-                                            node_groups=self.node_groups(),
-                                            use_previous=use_previous,
-                                            tiling=tiling,
-                                            table_name=self.parmtable())
-
-        # Put the node stub into the internal MeqParm buffer for later use:
-        # See .MeqParm() below
-        self.__MeqParm[key] = node
-        self.__constrain[key] = constrain    # governs solution constraints.....
-        return node
-
-
-    def MeqParm(self, update=False, reset=False):
-        """Get/update/reset the temporary helper record self.__MeqParm"""
-        if update:
-            # Append the accumulated MeqParm node names to their respective parmgroups:
-            for key in self.__MeqParm.keys():
-                if not self.__constrain[key]:
-                    # If constrain=True, leave the MeqParm out of the parmgroup
-                    # It will then NOT be included into the solvable MeqParms
-                    nodename = self.__MeqParm[key].name
-                    self.__parmgroup[key].append(nodename)
-        if reset:
-            # Always return self.__MeqParm as it was BEFORE reset:
-            ss = self.__MeqParm                # return value
-            # Reset the MeqParm buffer and related:
-            self.__MeqParm = dict()
-            self.__constrain = dict()
-            return ss
-        return self.__MeqParm
-
-
-    # Access functions:
     def scope(self, new=None):
         if isinstance(new, str): self.__scope = new
         return self.__scope
     def jchar(self): return self.__jchar
     def punit(self): return self.__punit
-    def unsolvable(self): return self.__unsolvable
     def polrep(self): return self.__polrep
     def pols(self, ipol=None):
         if ipol==None: return self.__pols
         return self.__pols[ipol-1]
 
-    def parmtable(self, new=None):
-        if isinstance(new, str):
-            self.__parmtable = new
-            self.check_parmtable_extension()
-        return self.__parmtable
-    def check_parmtable_extension(self):
-        if isinstance(self.__parmtable, str):
-            ss = self.__parmtable.split('.')
-            if len(ss)==1: self.__parmtable += '.mep'
-            return self.__parmtable.split('.')[1]
-        return True
-
-    def condeq_corrs(self): return self.__condeq_corrs
     def corrs_paral(self):
       return [self.pols(1)+self.pols(1), self.pols(2)+self.pols(2)]
     def corrs_paral1(self): return [self.pols(1)+self.pols(1)]
@@ -267,8 +140,6 @@ class Joneset (TDL_common.Super):
     def keys(self): return self.__jones.keys()
     def has_key(self, key): return self.keys().__contains__(key)
 
-    def parmgroup(self): return self.__parmgroup
-    def solvegroup(self): return self.__solvegroup
     def plot_color(self): return self.__plot_color
     def plot_style(self): return self.__plot_style
     def plot_size(self): return self.__plot_size
@@ -292,11 +163,6 @@ class Joneset (TDL_common.Super):
         s += ' ('+str(self.jchar())+')'
         s += ' punit='+str(self.punit())
         s += ' '+str(self.pols())
-        s += ' '+str(self.node_groups())
-        if self.unsolvable():
-            s += ' unsolvable'
-        else:
-            s += ' parmtable='+str(self.parmtable())
         s += ' len='+str(self.len())
         s += ' ('+str(self.nodenames('first'))+',...)'
         return s
@@ -307,18 +173,7 @@ class Joneset (TDL_common.Super):
         indent1 = 2*' '
         indent2 = 6*' '
 
-        ss.append(indent1+' - Registered parmgroups:')
-        for key in self.parmgroup().keys():
-          pgk = self.parmgroup()[key]
-          n = len(pgk)
-          if full or n<3:
-            ss.append(indent2+' - '+key+' ( '+str(n)+' ): '+str(pgk))
-          else:
-            ss.append(indent2+' - '+key+' ( '+str(n)+' ): '+pgk[0]+' ... '+pgk[n-1])
-
-        ss.append(indent1+' - solvegroups ( unsolvable = '+str(self.unsolvable())+' , node_groups = '+str(self.node_groups())+' ):')
-        for key in self.solvegroup().keys():
-            ss.append(indent2+' - '+key+' : parmgroups: '+str(self.solvegroup()[key])+' , corrs: '+str(self.condeq_corrs()[key]))
+        ss.append(indent1+' - '+str(self.Parmset.oneliner()))
 
         ss.append(indent1+' - Station jones matrix nodes ( '+str(self.len())+' ):')
         if full or self.len()<15:
@@ -338,15 +193,13 @@ class Joneset (TDL_common.Super):
         (used in Joneseq.make_Joneset())"""
         if Joneset==None: return False
         self.__jchar += Joneset.jchar()
-        if self.unsolvable():
+        if self.Parmset.unsolvable():
             self.history(append='not updated from (unsolvable): '+Joneset.oneliner())
-        elif not Joneset.unsolvable():
-            self.__parmgroup.update(Joneset.parmgroup())
-            self.__solvegroup.update(Joneset.solvegroup())
-            self.__condeq_corrs.update(Joneset.condeq_corrs())
+        elif not Joneset.Parmset.unsolvable():
             self.__plot_color.update(Joneset.plot_color())
             self.__plot_style.update(Joneset.plot_style())
             self.__plot_size.update(Joneset.plot_size())
+            self.update_from_Parmset(Joneset.Parmset)
             self.history(append='updated from (not unsolvable): '+Joneset.oneliner())
         else:
             # A Joneset that is 'unsolvable' has no solvegroups.
@@ -354,6 +207,17 @@ class Joneset (TDL_common.Super):
             # of the same name (e.g. Gphase) from solvable Jonesets.
             # Therefore, its parm info should NOT be copied here.
             self.history(append='not updated from (unsolvable): '+Joneset.oneliner())
+        return True
+
+
+    def update_from_Parmset(self, Parmset=None):
+        """Update the internal info from a given Parmset"""
+        if Parmset:
+            self.Parmset.update(Parmset)
+            self.history(append='updated from: '+Parmset.oneliner())
+        self.__plot_color.update(self.Parmset.plot_color())
+        self.__plot_style.update(self.Parmset.plot_style())
+        self.__plot_size.update(self.Parmset.plot_size())
         return True
 
 

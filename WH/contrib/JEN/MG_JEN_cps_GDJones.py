@@ -82,6 +82,9 @@ MG = JEN_inarg.init('MG_JEN_cps_GDJones',
                     polrep='linear',                   # polarisation representation (linear/circular)
                     # polrep='circular',                 # polarisation representation (linear/circular)
                     stations=range(4),                 # specify the (subset of) stations to be used
+                    redun=False,                       # if True, use redundant baseline calibration
+                    master_reqseq=False,               # if True, use a master reqseq for solver(s)
+                    chain_solvers=False,               # if True, chain the solver(s)
                     parmtable=None)                    # name of MeqParm table
 
 # Derive a list of ifrs from MG['stations'] (used below):
@@ -155,11 +158,11 @@ JEN_inarg.modify(inarg,
 if 'GJones' in Jsequence: 
     JEN_inarg.modify(inarg,
                      Gphase_constrain=True,             # if True, constrain 1st station phase
-                     fdeg_Gampl=5,                      # degree of default freq polynomial         
+                     fdeg_Gampl=0,                      # degree of default freq polynomial         
                      fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                      tdeg_Gampl=0,                      # degree of default time polynomial         
                      tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
-                     tile_size_Gampl=0,                 # used in tiled solutions         
+                     tile_size_Gampl=1,                 # used in tiled solutions         
                      tile_size_Gphase='tile_size_Gampl', # used in tiled solutions         
                      _JEN_inarg_option=None)            # optional, not yet used 
 if 'DJones_WSRT' in Jsequence: 
@@ -253,8 +256,6 @@ def _define_forest (ns):
     
     # Insert the solver:
     MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG, _qual=qual)
-    MG_JEN_Cohset.visualise (ns, Cohset)
-    MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
 
     # Make MeqSink nodes that write the MS:
     sinks =  MG_JEN_Cohset.make_sinks(ns, Cohset, _inarg=MG)

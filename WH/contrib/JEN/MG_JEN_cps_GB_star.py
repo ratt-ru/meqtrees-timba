@@ -91,14 +91,17 @@ from Timba.Contrib.JEN import MG_JEN_flagger
 # punit = 'unpol10'
 
 MG = JEN_inarg.init('MG_JEN_cps_GB_star',
-                    last_changed = 'd21dec2005',
-                    punit='unpol',                   # name of calibrator source/patch
+                    last_changed = 'd02jan2006',
+                    punit='unpol',                     # name of calibrator source/patch
                     polrep='linear',                   # polarisation representation (linear/circular)
                     # polrep='circular',                 # polarisation representation (linear/circular)
                     stations=range(4),                 # specify the (subset of) stations to be used
-                    insert_solver_GBJones=True,         # if True, insert GBJones solver
-                    solver_subtree_GJones=True,         # if True, include GJones solver
-                    solver_subtree_BJones=True,         # if True, include BJones solver
+                    insert_solver_GBJones=True,        # if True, insert GBJones solver
+                    solver_subtree_GJones=True,        # if True, include GJones solver
+                    solver_subtree_BJones=True,        # if True, include BJones solver
+                    redun=False,                       # if True, use redundant baseline calibration
+                    master_reqseq=False,               # if True, use a master reqseq for solver(s)
+                    chain_solvers=False,               # if True, chain the solver(s)
                     parmtable=None)                    # name of MeqParm table
 
 # Derive a list of ifrs from MG['stations'] (used below):
@@ -111,13 +114,16 @@ MG['ifrs'] = TDL_Cohset.stations2ifrs(MG['stations'])
 #----------------------------------------------------------------------------------------------------
 
 
-MG['stream_control'] = dict(ms_name='D1.MS',
+MG['stream_control'] = dict(dummy_start=None,
+                            ms_name='D1.MS',
+                            # ms_name='A963.MS',
                             data_column_name='DATA',
                             tile_size=10,                   # input tile-size
                             channel_start_index=10,
                             channel_end_index=50,           # -10 should indicate 10 from the end (OMS...)
                             # output_col='RESIDUALS')
-                            predict_column='CORRECTED_DATA')
+                            predict_column='CORRECTED_DATA',
+                            dummy_end=None)
 
 inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
 JEN_inarg.modify(inarg,
@@ -207,7 +213,8 @@ if MG['insert_solver_GBJones']:
         solver_subtree_qual.append(qual)
         ss_inarg[qual] = MG_JEN_Cohset.solver_subtree(_getdefaults=True, _qual=qual) 
         JEN_inarg.modify(ss_inarg[qual],
-                         solvegroup=['GJones'],             # list of solvegroup(s) to be solved for
+                         # solvegroup=['GJones'],             # list of solvegroup(s) to be solved for
+                         solvegroup=['Gphase'],             # list of solvegroup(s) to be solved for
                          # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
                          # num_iter=20,                       # max number of iterations
                          # epsilon=1e-4,                      # iteration control criterion
@@ -238,7 +245,7 @@ if MG['insert_solver_GBJones']:
     JEN_inarg.modify(inarg,
                      solver_subtree=solver_subtree_qual,     # list of .solver_subtree() inarg qualifiers
                      visu=True,                              # if True, include visualisation
-                     subtract=False,                         # if True, subtract 'predicted' from uv-data 
+                     subtract=True,                          # if True, subtract 'predicted' from uv-data 
                      correct=True,                           # if True, correct the uv-data with 'predicted.Joneset()'
                      _JEN_inarg_option=None)                 # optional, not yet used 
     # Attach the .solver_subtree() inargs AFTER modification:
@@ -297,8 +304,6 @@ def _define_forest (ns):
         Joneset =  MG_JEN_Cohset.JJones(ns, Sixpack=Sixpack, _inarg=MG)
         predicted =  MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
         MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG)
-        MG_JEN_Cohset.visualise (ns, Cohset)
-        MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
 
     # Make MeqSink nodes that write the MS:
     sinks =  MG_JEN_Cohset.make_sinks(ns, Cohset, _inarg=MG)

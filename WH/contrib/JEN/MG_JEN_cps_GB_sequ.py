@@ -10,6 +10,7 @@
 
 # History:
 # - 19 dec 2005: converted to JEN_inarg
+# - 02 jan 2006: introduced chain_solvers option
 
 # Copyright: The MeqTree Foundation
 
@@ -98,6 +99,9 @@ MG = JEN_inarg.init('MG_JEN_cps_GB_sequ',
                     stations=range(4),                 # specify the (subset of) stations to be used
                     insert_solver_GJones=True,         # if True, insert GJones solver
                     insert_solver_BJones=True,         # if True, insert BJones solver
+                    redun=False,                       # if True, use redundant baseline calibration
+                    master_reqseq=False,                # if True, use a master reqseq for solver(s)
+                    chain_solvers=True,               # if True, chain the solver(s)
                     parmtable=None)                    # name of MeqParm table
 
 # Derive a list of ifrs from MG['stations'] (used below):
@@ -193,14 +197,18 @@ if MG['insert_solver_GJones']:
     inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
     JEN_inarg.modify(inarg,
                      solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
+                     visu=True,                         # if True, include visualisation
+                     redun=MG['redun'],                 # if True, use redundant baseline calibration
+                     master_reqseq=MG['master_reqseq'], # if True, use a master reqseq for solver(s)
+                     chain_solvers=MG['chain_solvers'], # if True, chain the solver(s)
+                     subtract=False,                    # if True, subtract 'predicted' from uv-data 
+                     correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
+                     # Arguments for .solver_subtree()
                      # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
                      # num_iter=20,                       # max number of iterations
                      # epsilon=1e-4,                      # iteration control criterion
                      # debug_level=10,                    # solver debug_level
-                     visu=True,                         # if True, include visualisation
                      history=True,                      # if True, include history collection of metrics 
-                     subtract=False,                    # if True, subtract 'predicted' from uv-data 
-                     correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
                      _JEN_inarg_option=None)            # optional, not yet used 
     JEN_inarg.attach(MG, inarg)
                  
@@ -260,6 +268,9 @@ if MG['insert_solver_BJones']:
     JEN_inarg.modify(inarg,
                      solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
                      visu=True,                         # if True, include visualisation
+                     redun=MG['redun'],                 # if True, use redundant baseline calibration
+                     master_reqseq=MG['master_reqseq'], # if True, use a master reqseq for solver(s)
+                     chain_solvers=MG['chain_solvers'], # if True, chain the solver(s)
                      subtract=False,                    # if True, subtract 'predicted' from uv-data 
                      correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
                      # Arguments for .solver_subtree()
@@ -322,8 +333,6 @@ def _define_forest (ns):
         Joneset =  MG_JEN_Cohset.JJones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
         predicted =  MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
         MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG, _qual=qual)
-        MG_JEN_Cohset.visualise (ns, Cohset)
-        MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
 
     if MG['insert_solver_BJones']:
         # Insert the (slow) BJones solver (and correct the uv-data):
@@ -331,8 +340,6 @@ def _define_forest (ns):
         Joneset =  MG_JEN_Cohset.JJones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
         predicted =  MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
         MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG, _qual=qual)
-        MG_JEN_Cohset.visualise (ns, Cohset)
-        MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
 
     # Make MeqSink nodes that write the MS:
     sinks =  MG_JEN_Cohset.make_sinks(ns, Cohset, _inarg=MG)

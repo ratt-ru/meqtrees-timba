@@ -1,13 +1,47 @@
 file: ../WH/contrib/JEN/tobedone.txt
-                                      last changed:   d09dec
+                                      last changed:   d31dec
 
-NB: Just temporary: To be converted into Bugzilla items....!
+NB: Just temporary: To be converted into Bugzilla items....! 
+
+
+
+==================================================================
+
+detected bugs:
+
+ - 31dec2005: ReqMux does not work!! 
+   Error mssage: nmandatory<=nchildren (see MG_JEN_Cohset.py)
+
+ - 02jan2006: master reqseq works fine...
+
+ - 02jan2006: chain_solvers does not work! Try MG_JEN_cps_GB_sequ.py
+   The tree looks OK, and the first GJones solution works OK
+   After that, BJones does not solve ("spid discovery did not produce
+   any solvable coefficients....")
+   After that, the next snippets are processed, but without effect...
+
+ - NB: Discuss new hcoll_metrics with WNB
+
+==================================================================
+
+
+
+ - MXM: Read MG inputs from a file
+   - Otherwise, have to adapt custom values after each cvs update
+   - A step towards inarg-file-driven (sequences of) MG scripts 
+   - Need an inarg GUI...
 
  - JEN: TDL_Cohset.py: 
-   - arrange for proper treatment of XX/YY only (etc)
+   - arrange for proper treatment of XX/YY only (etc)        done
    - selfcal for WHAT with WSRT XY/YX (14 only)
    - update from Sixpack (like from Joneset)       <----
-     - This requires solvegroups in Sixpack
+     - This requires solvegroups in Sixpack                  TDL_Parmset.py
+
+ - JEN: MG_JEN_Cohset::visualise()
+   - Make a realvsimag/spectra mode that shares stripper nodes etc
+
+ - JEN: MG_JEN_Joneset::visualise()
+   - streamline a bit....
 
  - JEN: MG_JEN_Joneset.py:
    - dissimilar station (WHAT) 
@@ -100,8 +134,14 @@ NB: Just temporary: To be converted into Bugzilla items....!
    - automatic?
    - reqseq structure?
 
+ - Reduction sequence:
+   - Desirable: one-button operation
+     - No manual MeqParm tree operations (intelligent MeqParm, etc)
+     - Multiple spigot2sink operations?
+       - between different MS columns
 
- - Resampling:
+ - Resampling (Sarod):
+   - get it to work (
    - improvement in speed?
    - degradation of the solution quality?
    - clashes with tiled solutions?
@@ -169,6 +209,25 @@ NB: Just temporary: To be converted into Bugzilla items....!
  - JEN: TDL_display_record.py (from MG_JEN_exec.py)
 
  - JEN: TDL_parameter_set.py (a record of function parameters)
+
+ - JEN: Implement redundancy calibration
+   - Future: weak redundancy 
+     - Use 3rd (weight) child of condeqs
+     - Use telescope positions MSauxinfo
+   - WSRT: 
+     - Mohset = measured.copy()
+     - Mohset.correct(Joneset)
+     - Pohset = Mohset.copy()   # Pohset is a copy of the corrected Mohset!
+     - Pohset.rxyz_WSRT(): Make baseline lengths per ifr
+     - Pohset.redun_WSRT(): Replace each ifr with 'predicted'
+       - The next one with the same rxyz 
+       - The Mean of all (the other?) ifrs with the same rxzy
+     - Pohset.Condeq(Mohset)
+
+ - JEN: Contamination filtering
+
+ - JEN: Automatic search for contaminating sources
+   - Use RADAR
 
  - Stefan: Station redundancy calibration (AGB)
    - Tile-tile sensitivity: 20 Jy @ 10s/10kHz

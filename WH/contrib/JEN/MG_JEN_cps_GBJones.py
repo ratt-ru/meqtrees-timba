@@ -95,6 +95,9 @@ MG = JEN_inarg.init('MG_JEN_cps_GBJones',
                     # polrep='circular',                 # polarisation representation (linear/circular)
                     stations=range(4),                 # specify the (subset of) stations to be used
                     insert_solver_GBJones=True,         # if True, insert GBJones solver
+                    redun=False,                       # if True, use redundant baseline calibration
+                    master_reqseq=False,               # if True, use a master reqseq for solver(s)
+                    chain_solvers=False,               # if True, chain the solver(s)
                     parmtable=None)                    # name of MeqParm table
 
 # Derive a list of ifrs from MG['stations'] (used below):
@@ -260,13 +263,9 @@ def _define_forest (ns):
     Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
 
     if MG['insert_solver_GBJones']:
-        # Insert the (fast) GJones solver (and correct the uv-data):
-        qual = None
-        Joneset =  MG_JEN_Cohset.JJones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
-        predicted =  MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
-        MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG, _qual=qual)
-        MG_JEN_Cohset.visualise (ns, Cohset)
-        MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
+        Joneset =  MG_JEN_Cohset.JJones(ns, Sixpack=Sixpack, _inarg=MG)
+        predicted =  MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
+        MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG)
 
     # Make MeqSink nodes that write the MS:
     sinks =  MG_JEN_Cohset.make_sinks(ns, Cohset, _inarg=MG)
