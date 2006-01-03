@@ -78,7 +78,7 @@ install=2
 distcheck=0
 rpm=0
 update=1
-contbuild=0
+skipbuilt=0
 system=0
 recur=1
 
@@ -179,12 +179,13 @@ do
   elif [ "$1" = -noconfopt ]; then
     shift
     confopt=""
-  elif [ "$1" = -contbuild ]; then
+  elif [ "$1" = -skipbuilt ]; then
     shift
-    contbuild=1
-  elif [ "$1" = -nocontbuild ]; then
+    skipbuilt=1
+    update=0
+  elif [ "$1" = -noskipbuilt ]; then
     shift
-    contbuild=0
+    skipbuilt=0
   elif [ "$1" = -clean ]; then
     shift
     clean=1
@@ -298,7 +299,7 @@ if [ $help = 1 ]; then
   echo 'Run as:'
   echo ' rub [-cvs cvs-command] [-update] [-updq string] [-r<cvstag>]'
   echo '     [-recur[sive]] [-release=option] [-build variants]]'
-  echo '     [-system] [-conf] [-confopt string] [-j<option>] [-contbuild]'
+  echo '     [-system] [-conf] [-confopt string] [-j<option>] [-skipbuilt]'
   echo '     [-[dist]clean] [-make] [-check] [-install] [-distcheck] [-rpm]'
   echo '     package1 [-v<version>] [...]'
   echo ''
@@ -311,7 +312,7 @@ if [ $help = 1 ]; then
   echo '                    command (default is empty)'
   echo '  -r<cvstag>        cvs tag of the given package(s) to be updated/checked out'
   echo '                    If given, the tag will be used for all packages.'
-  echo '  -recur            Do everything recursively, thus also for all'
+  echo '  -recur[sive]      Do everything recursively, thus also for all'
   echo '                    packages used by the given packages.'
   echo '                    default is -recur.'
   echo '  -release=option   defines which CVS release to check out depending on'
@@ -335,11 +336,19 @@ if [ $help = 1 ]; then
   echo '                    Default is -noconf.'
   echo '  -confopt string   configure options.'
   echo '  -j<option>        Option for a parallel make. Default is -noj.'
-  echo '  -contbuild        Continue from the previous build run; thus start'
-  echo '                    the build at the package that failed last time.'
+  echo '  -skipbuilt        Skip packages built in the previous build run to'
+  echo '                    speed up the build process (especially with -conf).'
+  echo '                    It can be used after an unsuccesful built to start'
+  echo '                    the build at the package that failed.'
+  echo '                    It can also be used when building another package'
+  echo '                    that uses a lot of previously built packages'
   echo '                    Successfully built packages are logged in file'
-  echo '                    build.result.<variant>.   It forces -noupdate.'
-  echo '                    Default is -nocontbuild'.
+  echo '                    build.result.<variant>.'
+  echo '                    -skipbuilt sets -noupdate, which is undone'
+  echo '                    if -update is given thereafter.'
+  echo '                    Default is -noskipbuilt'.
+  echo '                    Note that it is not checked if source files have'
+  echo '                    changed, so it should be used with care.'
   echo '  -clean            indicates that all build/<variant> directories'
   echo '                    will be cleaned in order to start a clean build.'
   echo '                    Default is -noclean.'
@@ -466,11 +475,6 @@ done
 # Add the possibly last package.
 if [ "$pkg" != "" ]; then
   PKGS="$PKGS $pkg#-v"
-fi
-
-# Do not update if contbuild is given.
-if [ $contbuild = 1 ]; then
-  update=0;
 fi
 
 # Check if in correct directory.
@@ -625,7 +629,7 @@ if [ $rpm = 1 ]; then
 fi
 
 # Build all variants.
-if [ $contbuild = 0 ]; then
+if [ $skipbuilt = 0 ]; then
   # Start fresh, so delete results from previous builds.
   \rm -f build.log build.result.*
   touch build.log
@@ -638,10 +642,10 @@ do
   touch build.result.$variant
   for pkg in $pkgs
   do
-    if [ $contbuild = 1 ]; then
+    if [ $skipbuilt = 1 ]; then
       fgrep "$pkg " build.result.$variant >& /dev/null
       if [ $? = 0 ]; then
-        echo "  package $pkg will not be built; already done in previous run"
+        echo "  skipping package $pkg; already built in a previous run"
         continue
       fi
     fi
@@ -649,7 +653,7 @@ do
     echo "" >> build.log
     echo " *** Building package $pkg ***" >> build.log
     echo "(cd $pkg && mkdir -p build/$variant && $bootcmd cd build/$variant && $confcmd $premake $mainmake $postmake;)" >> build.log
-    eval "(cd $pkg && mkdir -p build/$variant && $bootcmd cd build/$variant && $confcmd $premake make $postmake && echo $pkg '#' `date` >> $curwd/build.result.$variant;)" >> build.log 2>&1
+    eval "(cd $pkg && mkdir -p build/$variant && $bootcmd cd build/$variant && $confcmd $premake make $postmake && echo $pkg '# built at' `date` >> $curwd/build.result.$variant;)" >> build.log 2>&1
     status=$?
     if [ "$status" != 0 ]; then
       echo " Error during build (see build.log for details)"
