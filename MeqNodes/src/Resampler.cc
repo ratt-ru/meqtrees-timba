@@ -30,7 +30,7 @@
 
 namespace Meq {
 
-#define DEBUG
+//#define DEBUG
 const HIID FFlagDensity = AidFlag|AidDensity;
 
 //##ModelId=400E5355029C
