@@ -8,6 +8,7 @@
 # History:
 # - 24 aug 2005: creation
 # - 10 dec 2005: introduced JEN_inarg.py for MG record
+# - 03 jan 2006: selection_string etc
 
 # Copyright: The MeqTree Foundation 
 
@@ -434,7 +435,7 @@ def stream_control (ctrl=None, display=False, init=False):
       ss = Settings.forest_state[field]
       for key in ['ms_name','data_column_name','tile_size']:
          if ctrl.has_key(key): ss.inputinit[key] = ctrl[key]
-      for key in ['channel_start_index','channel_end_index']:
+      for key in ['channel_start_index','channel_end_index','selection_string','ddid_index','field_index']:
          if ctrl.has_key(key): ss.inputinit.selection[key] = ctrl[key]
       for key in ['predict_column']:
          if ctrl.has_key(key): ss.outputinit[key] = ctrl[key]
