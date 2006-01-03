@@ -17,6 +17,7 @@
 # - 20 dec 2005: separate solver_subtree()
 # - 29 dec 2005: redundancy calibration
 # - 01 jan 2006: implement chain and master solver schemes
+# - 03 jan 2006: resampling: move argument num_cells to insert_solver
 
 # Copyright: The MeqTree Foundation 
 
@@ -123,6 +124,11 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     solvers = Cohset.rider('master_reqseq')
     if len(solvers)>0:
         Cohset.graft(ns, solvers, name='master_reqseq')
+
+    # Insert the end of the solver chain, if required:
+    solver = Cohset.rider('chain_solvers')
+    if len(solver)>0:
+        Cohset.graft(ns, solver[0], name='chain_solvers')
 
     # Optional: flag the sink (output) data:
     if pp['flag']:
@@ -303,7 +309,7 @@ def insert_solver(ns=None, measured=None, predicted=None, **inarg):
     pp.setdefault('num_cells', None)       # if defined, ModRes argument [ntime,nfreq]
     pp.setdefault('redun', False)          # if True, use redundant baseline calibration
     pp.setdefault('master_reqseq', False)  # if True, use a master_reqseq before the sinks
-    pp.setdefault('chain_solvers', False)  # if True, chain the solvers
+    pp.setdefault('chain_solvers', True)  # if True, chain the solvers
     pp.setdefault('visu', True)            # if True, include visualisation
     pp.setdefault('subtract',False)        # if True, subtract 'predicted' from 'measured' 
     pp.setdefault('correct',False)         # if True, correct 'measured' with predicted.Joneset()' 
@@ -338,6 +344,7 @@ def insert_solver(ns=None, measured=None, predicted=None, **inarg):
         Mohset.Condeq(ns, predicted)        
     Mohset.scope('condeq_'+punit)
     Mohset.history(funcname+' -> '+Mohset.oneliner())
+    Mohset.bundle_deletion_orphans(ns)
 
     # Make a list of one or more MeqSolver subtree(s):
     # Assume that pp contains the relevant (qual) inarg record(s).
@@ -478,7 +485,6 @@ def solver_subtree (ns=None, Cohset=None, **inarg):
                                                         errorbars=True, show_mxel=True))
 
 
-  
     # Extract a list of condeq nodes for the specified corrs and baseline lengths:
     Cohset.select(rmin=pp['rmin'], rmax=pp['rmax'])
     solver_condeqs = Cohset.cohs(corrs=corrs, ns=ns)
@@ -524,7 +530,9 @@ def solver_subtree (ns=None, Cohset=None, **inarg):
     hcoll_nodes = []
     if pp['history'] and pp['visu']:
         # Make a tensor node of solver metrics/debug hcoll nodes:
-        hc = MG_JEN_historyCollect.make_hcoll_solver_metrics (ns, solver, name=solver_name)
+        hc = MG_JEN_historyCollect.make_hcoll_solver_metrics (ns, solver,
+                                                              firstonly=True,
+                                                              name=solver_name)
         hcoll_nodes.append(hc)
 
 
@@ -781,7 +789,7 @@ MG = JEN_inarg.init('MG_JEN_Cohset',
                     stations=range(4),                 # specify the (subset of) stations to be used
                     redun=False,                       # if True, use redundant baseline calibration
                     master_reqseq=False,               # if True, use a master reqseq for solver(s)
-                    chain_solvers=False,                # if True, chain the solver(s)
+                    chain_solvers=True,                # if True, chain the solver(s)
                     parmtable=None)                    # name of MeqParm table
 
 # Derive a list of ifrs from MG['stations'] (used below):
@@ -950,12 +958,12 @@ if True:                                                   # ... Copied from MG_
                         correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
                         visu=True,                         # if True, include visualisation
                         # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
-                        num_cells=[2,5],                   # ModRes argument [ntime,nfreq]
-                        # Arguments for .solver_subtree()
+                        # num_cells=[2,5],                   # ModRes argument [ntime,nfreq]
+                        # ** Arguments for .solver_subtree()
                         num_iter=10,                       # max number of iterations
                         # epsilon=1e-4,                      # iteration control criterion
                         # debug_level=10,                    # solver debug_level
-                        rmin=None,                         # if specified, only use baselines>=rmin 
+                        rmin=200,                         # if specified, only use baselines>=rmin 
                         rmax=None,                         # if specified, only use baselines<=rmax
                         extra_condeqs=False,               # if True, constrain Gphase with condeq(s) (kludge)
                         history=True,                      # if True, include history collection of metrics 

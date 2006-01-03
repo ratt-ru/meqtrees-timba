@@ -10,6 +10,7 @@
 
 # History:
 # - 19 dec 2005: converted to JEN_inarg
+# - 03 jan 2006: num_cells
 
 # Copyright: The MeqTree Foundation
 
@@ -101,7 +102,7 @@ MG = JEN_inarg.init('MG_JEN_cps_GB_star',
                     solver_subtree_BJones=True,        # if True, include BJones solver
                     redun=False,                       # if True, use redundant baseline calibration
                     master_reqseq=False,               # if True, use a master reqseq for solver(s)
-                    chain_solvers=False,               # if True, chain the solver(s)
+                    chain_solvers=True,                # if True, chain the solver(s)
                     parmtable=None)                    # name of MeqParm table
 
 # Derive a list of ifrs from MG['stations'] (used below):
@@ -215,7 +216,6 @@ if MG['insert_solver_GBJones']:
         JEN_inarg.modify(ss_inarg[qual],
                          # solvegroup=['GJones'],             # list of solvegroup(s) to be solved for
                          solvegroup=['Gphase'],             # list of solvegroup(s) to be solved for
-                         # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
                          # num_iter=20,                       # max number of iterations
                          # epsilon=1e-4,                      # iteration control criterion
                          # debug_level=10,                    # solver debug_level
@@ -231,7 +231,6 @@ if MG['insert_solver_GBJones']:
         ss_inarg[qual] = MG_JEN_Cohset.solver_subtree(_getdefaults=True, _qual=qual) 
         JEN_inarg.modify(ss_inarg[qual],
                          solvegroup=['BJones'],             # list of solvegroup(s) to be solved for
-                         # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
                          # num_iter=20,                       # max number of iterations
                          # epsilon=1e-4,                      # iteration control criterion
                          # debug_level=10,                    # solver debug_level
@@ -247,6 +246,7 @@ if MG['insert_solver_GBJones']:
                      visu=True,                              # if True, include visualisation
                      subtract=True,                          # if True, subtract 'predicted' from uv-data 
                      correct=True,                           # if True, correct the uv-data with 'predicted.Joneset()'
+                     # num_cells=None,                       # if defined, ModRes argument [ntime,nfreq]
                      _JEN_inarg_option=None)                 # optional, not yet used 
     # Attach the .solver_subtree() inargs AFTER modification:
     localscope = JEN_inarg.localscope(inarg)

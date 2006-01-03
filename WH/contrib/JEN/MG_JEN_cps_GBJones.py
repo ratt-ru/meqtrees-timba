@@ -11,6 +11,7 @@
 # History:
 # - 19 dec 2005: converted to JEN_inarg
 # - 21 dec 2005: simultaneous G/B Jones solutions
+# - 03 jan 2006: num_cells
 
 # Copyright: The MeqTree Foundation
 
@@ -97,7 +98,7 @@ MG = JEN_inarg.init('MG_JEN_cps_GBJones',
                     insert_solver_GBJones=True,         # if True, insert GBJones solver
                     redun=False,                       # if True, use redundant baseline calibration
                     master_reqseq=False,               # if True, use a master reqseq for solver(s)
-                    chain_solvers=False,               # if True, chain the solver(s)
+                    chain_solvers=True,                # if True, chain the solver(s)
                     parmtable=None)                    # name of MeqParm table
 
 # Derive a list of ifrs from MG['stations'] (used below):
@@ -208,8 +209,8 @@ if MG['insert_solver_GBJones']:
                      visu=True,                         # if True, include visualisation
                      subtract=False,                    # if True, subtract 'predicted' from uv-data 
                      correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
-                     # Arguments for .solver_subtree()
                      # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
+                     # Arguments for .solver_subtree()
                      # num_iter=20,                       # max number of iterations
                      # epsilon=1e-4,                      # iteration control criterion
                      # debug_level=10,                    # solver debug_level

@@ -11,6 +11,7 @@
 # History:
 # - 19 dec 2005: converted to JEN_inarg
 # - 02 jan 2006: introduced chain_solvers option
+# - 03 jan 2006: num_cells
 
 # Copyright: The MeqTree Foundation
 
@@ -203,8 +204,8 @@ if MG['insert_solver_GJones']:
                      chain_solvers=MG['chain_solvers'], # if True, chain the solver(s)
                      subtract=False,                    # if True, subtract 'predicted' from uv-data 
                      correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
-                     # Arguments for .solver_subtree()
                      # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
+                     # ** Arguments for .solver_subtree()
                      # num_iter=20,                       # max number of iterations
                      # epsilon=1e-4,                      # iteration control criterion
                      # debug_level=10,                    # solver debug_level

@@ -155,12 +155,11 @@ class Cohset (TDL_common.Super):
 
         # The Cohset may remember the Joneset with which it has been corrupted:
         self.__Joneset = None
+        # self.__Joneset = dict(correct_with=None, corrected_by=None,
+        #                       corrupt_with=None, corrupted_by=None)
 
         # The Cohset may collect various bits of information along the way:
         self.__rider = {}
-
-        # The Cohset may remember the last solver reqseq (see .graft()):
-        self.__chain_solvers = {}
 
         # Plot information (standard, but extended from Jonesets):
         self.__plot_color = TDL_radio_conventions.plot_color()
@@ -581,7 +580,9 @@ class Cohset (TDL_common.Super):
         kk = []
         for key in self.keys(selected=selected, trace=False):
             if trace: print '-',funcname,key,':',self.__coh[key],'-> None'
-            self.__coh[key] = None
+            if self.__coh[key]:
+                self.rider('deletion_orphans', append=self.__coh[key])
+                self.__coh[key] = None
             kk.append(key)
         self.history(append=funcname+' ('+str(len(kk))+'): '+str(kk))
         if trace: print '**',funcname,'\n'
@@ -679,7 +680,7 @@ class Cohset (TDL_common.Super):
         """Chain the solver subtrees (node), parallel to the main data-stream"""
         funcname = '::chain_solvers():'
         # First check for a previous solver subtree:
-        previous = self.rider('chain_solvers')
+        previous = self.rider('chain_solvers', clear=True)
         if len(previous)>0:
             if not name: name = 'reqseq_chain_solvers'
             uniqual = _counter('chain_solvers', increment=-1)
@@ -960,8 +961,11 @@ class Cohset (TDL_common.Super):
 
         # Copy the new condeq nodes to self.__coh, deleting the rest:
         for key in self.__coh.keys():
-            self.__coh[key] = None         # delete
-            if coh.has_key(key): self.__coh[key] = coh[key]
+            if self.__coh[key]:     
+                self.rider('deletion_orphans', append=self.__coh[key])
+                self.__coh[key] = None         # delete
+            if coh.has_key(key):
+                self.__coh[key] = coh[key]
 
         # The input Cohset may contain parmgroup/solvegroup info:
         self.update_from_Joneset(Cohset.Joneset())
@@ -1218,15 +1222,27 @@ class Cohset (TDL_common.Super):
                 if isinstance(pp[key], (list,tuple)):
                     if len(pp[key])>0:
                         pp[key] = ns[key+'_VisDataMux'] << Meq.ReqSeq(children=pp[key])
+                        # pp[key] = ns[key+'_VisDataMux'] << Meq.ReqMux(children=pp[key])  # <--- error...?
                         # pp[key] = ns[key+'_VisDataMux'] << Meq.Add(children=pp[key])
             root = ns.VisDataMux << Meq.VisDataMux(start=pp['start'],
                                                    pre=pp['pre'], post=pp['post'])
-        
+
+        # Bundle the collected deletion orphans (minimise browser klutter)
+        self.bundle_deletion_orphans(ns)
 
         self.scope('sink')
         self.history(append=funcname+' inarg = '+str(pp))
         self.history(append=funcname+' MS_corr_index = '+str(MS_corr_index))
         self.history(append=funcname+' -> '+self.oneliner())
+        return True
+
+
+    def bundle_deletion_orphans(self, ns=None):
+        """Bundle the collected deletion orphans (minimise browser klutter)"""
+        orphans = self.rider('deletion_orphans', clear=True)
+        if len(orphans)>0:
+            uniqual = _counter('bundle_deletion_orphans', increment=-1)
+            root_node = ns.deletion_orphans(uniqual) << Meq.Composer(children=orphans)
         return True
 
 #------------------------------------------------------------------------------------
