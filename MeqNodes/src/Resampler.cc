@@ -30,7 +30,7 @@
 
 namespace Meq {
 
-//#define DEBUG
+#define DEBUG
 const HIID FFlagDensity = AidFlag|AidDensity;
 
 //##ModelId=400E5355029C
@@ -381,14 +381,17 @@ ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
 							while(fy!=yy.end()) {
 								tmp=((*fx).w)*((*fy).w);
 								cell_weight_(i,j)+=tmp;
+								//cout<<"add to ("<<i<<","<<j<<") from ["<<(*fx).id<<","<<(*fy).id<<"]"<<endl;
 								A(i,j)+=tmp*B((*fx).id,(*fy).id);
 								std::advance(fy,1);
 							}
+                fy=yy.begin();
 								std::advance(fx,1);
 						 }
 						}
 				}
 #ifdef DEBUG
+				cout<<" Bc "<<B<<endl;
 				cout<<" A "<<A<<endl;
 				cout<<" Weight "<<cell_weight_<<endl;
 
@@ -432,12 +435,14 @@ ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
 								}
 								std::advance(fy,1);
 							}
+                fy=yy.begin();
 								std::advance(fx,1);
 						 }
 						}
 				}
 
 #ifdef DEBUG
+				cout<<" Bc "<<B<<endl;
 				cout<<" A "<<A<<endl;
 				cout<<" Weight "<<cell_weight_<<endl;
 
