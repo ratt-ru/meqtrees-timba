@@ -139,7 +139,7 @@ namespace Meq {
 	if( n )
 	  {
 	    //get the one with best fitting domain....
-	    funkletref = funklets.front();
+	    funkletref <<= funklets.front();
 	    
 	    //reset dbid if funklet domain not matching 
 	    if(funkletref->domain().start(0)!=domain.start(0) || funkletref->domain().start(1)!=domain.start(1) ||
@@ -543,7 +543,7 @@ namespace Meq {
       for (int ifunk=0;ifunk<nr_funk;ifunk++)
 	{
 	  Funklet::Ref partfunk = funklist->get(ifunk);
-	  parmtable_->putCoeff1(name_,partfunk(),false);
+	  parmtable_->putCoeff1(name_,partfunk,false);
 	  cdebug(4)<<" put in database "<<partfunk->getDbId()<<endl;
 	  funklist->replace(ifunk,partfunk);
 	}
@@ -714,7 +714,7 @@ namespace Meq {
 		cdebug(2)<<"got "<<FUpdateValues<<" command"<<endl;
 		// Update the funklet coefficients with the new values.
 		LoVec_double values = hset.as<LoVec_double>();
-		FailWhen(!tiled_ && (values.size() != int(its_funklet_().getSpids().size())),
+		FailWhen(!tiled_ && (values.size() != int(its_funklet_->getSpids().size())),
 			 "size of "+FUpdateValues.toString()+" does not match size of funklets");
 		its_funklet_().update(values.data());
 		wstate()[FFunklet].replace()=its_funklet_().getState();
