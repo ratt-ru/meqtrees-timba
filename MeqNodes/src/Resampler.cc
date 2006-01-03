@@ -87,6 +87,7 @@ int Resampler::getResult (Result::Ref &resref,
   }
 
 	result.setCells(outcells);
+	result.setDims(chres.dims());
   return 0;
 }
 
@@ -194,7 +195,10 @@ ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
  cout<<"Cell "<<cli<<" falls on cells ["<<xxindex(cli-1)<<","<<nx_-1<<"]"<<endl;
 #endif
  insert(cli, xxindex(cli-1),nx_-1, 0,inxcellsize,xcellsize,xaxs,xax);
+
+#ifdef DEBUG
  bx_[0].print();
+#endif
 
  blitz::Array<double,1> yy(nys-1); 
  for (int i=0; i<nys-1;i++) {
@@ -239,7 +243,10 @@ ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
  cout<<"Cell "<<cli<<" falls on cells ["<<yyindex(cli-1)<<","<<ny_-1<<"]"<<endl;
 #endif
  insert(cli, yyindex(cli-1),ny_-1, 1,inycellsize,ycellsize,yaxs,yax);
+
+#ifdef DEBUG
  bx_[1].print();
+#endif
 
 }
 
@@ -365,11 +372,17 @@ int  ResampleMachine::bin_search(blitz::Array<double,1> xarr,double x,int i_star
   return -3;
 }
 
+#ifndef FMULT
+#define FMULT(a,b)\
+				((a)==1.0?(b):((b)==1.0?(a):(a)*(b)))
+#endif
 
 template<class T> int  
 ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
+#ifdef DEBUG
 				bx_[0].print();
 				bx_[1].print();
+#endif
 				double tmp;
 				for (int i=0; i<bx_[0].size();i++) {
 						Bnode &xx=bx_[0].get(i);
@@ -380,6 +393,7 @@ ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
 						 while(fx!=xx.end()) {
 							while(fy!=yy.end()) {
 								tmp=((*fx).w)*((*fy).w);
+							  //tmp=FMULT(((*fx).w),((*fy).w));
 								cell_weight_(i,j)+=tmp;
 								//cout<<"add to ("<<i<<","<<j<<") from ["<<(*fx).id<<","<<(*fy).id<<"]"<<endl;
 								A(i,j)+=tmp*B((*fx).id,(*fy).id);
@@ -426,6 +440,7 @@ ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
 						 while(fx!=xx.end()) {
 							while(fy!=yy.end()) {
 								tmp=((*fx).w)*((*fy).w);
+							  //tmp=FMULT(((*fx).w),((*fy).w));
 								cell_weight_(i,j)+=tmp;
 
                 if (!F((*fx).id,(*fy).id)) {
