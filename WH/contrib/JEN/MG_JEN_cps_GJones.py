@@ -199,7 +199,7 @@ JEN_inarg.modify(inarg,
                  # epsilon=1e-4,                      # iteration control criterion
                  # debug_level=10,                    # solver debug_level
                  history=True,                      # if True, include history collection of metrics 
-                 extra_condeqs=True,                # if True, constrain Gphase with condeq(s)
+                 extra_condeqs=False,                # if True, constrain Gphase with condeq(s)
                  _JEN_inarg_option=None)            # optional, not yet used 
 JEN_inarg.attach(MG, inarg)
                  
