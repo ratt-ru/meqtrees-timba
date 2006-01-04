@@ -33,12 +33,8 @@ namespace Meq {
 
 using Debug::ssprintf;
     
-int Node::processRequestRider (Result::Ref &resref,Request::Ref &reqref) 
+int Node::processRequestRider (Result::Ref &resref,const Request &req) 
 {
-  // since processCommands() is allowed to modify the request
-  // (thus invoking copy-on-write), hold on to the old request in this ref 
-  Request::Ref oldreq(reqref);
-  const Request &req = *reqref;
   if( !req.hasRider() )
     return 0;
   int retcode = 0;
@@ -57,7 +53,7 @@ int Node::processRequestRider (Result::Ref &resref,Request::Ref &reqref)
         if( hlist.exists() )
         {
           cdebug(4)<<"    found "<<FCommandAll<<", calling processCommands()"<<endl;
-          retcode |= processCommands(resref,hlist.as<DMI::Record>(),reqref);
+          retcode |= processCommands(resref,hlist.as<DMI::Record>(),req);
         }
       }
       // process command_by_list (pattern matching list)
@@ -94,7 +90,7 @@ int Node::processRequestRider (Result::Ref &resref,Request::Ref &reqref)
             if( matched )
             {
               cdebug(4)<<"        node matched, calling processCommands()"<<endl;
-              retcode |= processCommands(resref,entry,reqref);
+              retcode |= processCommands(resref,entry,req);
             }
           }
           if( !matched ) {
@@ -108,7 +104,7 @@ int Node::processRequestRider (Result::Ref &resref,Request::Ref &reqref)
         if( hlist.exists() && hlist[nodeIndex()].exists() )
         {
           cdebug(4)<<"    found "<<FCommandByNodeIndex<<"["<<nodeIndex()<<"], calling processCommands()"<<endl;
-          retcode |= processCommands(resref,hlist.as<DMI::Record>(),reqref);
+          retcode |= processCommands(resref,hlist.as<DMI::Record>(),req);
         }
       }
     }

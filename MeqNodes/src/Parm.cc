@@ -691,10 +691,10 @@ namespace Meq {
     
   }
 
-  int Parm::processCommands (Result::Ref &resref,const DMI::Record &rec,Request::Ref &reqref)
+  int Parm::processCommands (Result::Ref &resref,const DMI::Record &rec,const Request &req)
   {
     // process parent class's commands
-    int retcode = Node::processCommands(resref,rec,reqref);
+    int retcode = Node::processCommands(resref,rec,req);
     bool saved  = false;
     
     if(rec[FConverged].as<bool>(false))
@@ -708,7 +708,7 @@ namespace Meq {
       {
 	if( isSolvable() )
 	  {
-	    HIID req_domain_id = RqId::maskSubId(reqref->id(),domain_depend_mask_);
+	    HIID req_domain_id = RqId::maskSubId(req.id(),domain_depend_mask_);
 	    if( req_domain_id == domain_id_ )
 	      {
 		cdebug(2)<<"got "<<FUpdateValues<<" command"<<endl;

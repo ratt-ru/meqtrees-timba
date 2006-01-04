@@ -51,7 +51,7 @@ protected:
 
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
   
-  virtual int  processCommands (Result::Ref &resref,const DMI::Record &rec,Request::Ref &reqref);
+  virtual int  processCommands (Result::Ref &resref,const DMI::Record &rec,const Request &req);
   
   void fillResult (Result::Ref &resref,const DMI::List &list);
   

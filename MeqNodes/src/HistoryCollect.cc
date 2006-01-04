@@ -77,25 +77,26 @@ void HistoryCollect::fillResult (Result::Ref &resref,const DMI::List &list)
   toprec[FValue] = list;
 }
 
-int HistoryCollect::processCommands (Result::Ref &resref,const DMI::Record &rec,Request::Ref &reqref)
+int HistoryCollect::processCommands (Result::Ref &resref,const DMI::Record &rec,const Request &req)
 {
+  int retcode = Node::processCommands(resref,rec,req);
   if( rec[CmdGetHistory].as<bool>(false) )
   {
     // if request has a cells field, then our getResult() will be called
     // anyway, so just set a flag instead of filling it in
-    if( reqref->hasCells() )
+    if( req.hasCells() )
       temp_verbose_ = true;
     else
       fillResult(resref,state()[FHistoryList].as<DMI::List>());
   }
   if( rec[CmdClearHistory].as<bool>(false) )
   {
-    if( reqref->hasCells() )
+    if( req.hasCells() )
       temp_clear_ = true;
     else
       wstate()[FHistoryList].replace() <<= new DMI::List;
   }
-  return 0;
+  return retcode;
 }
 
 int HistoryCollect::getResult (Result::Ref &resref, 

@@ -95,7 +95,7 @@ namespace Meq {
 			   const Request &req,bool newreq);
 
     // process parm-specific rider commands
-    virtual int processCommands (Result::Ref &resref,const DMI::Record &rec,Request::Ref &reqref);
+    virtual int processCommands (Result::Ref &resref,const DMI::Record &rec,const Request &req);
     
     // Make the new value persistent (for the given domain).
     virtual void save();

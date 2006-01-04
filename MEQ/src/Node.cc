@@ -974,7 +974,7 @@ int Node::resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int r
 }
 
 // process Node-specific commands
-int Node::processCommands (Result::Ref &,const DMI::Record &rec,Request::Ref &reqref)
+int Node::processCommands (Result::Ref &,const DMI::Record &rec,const Request &req)
 {
   bool generate_symdeps = false;
   // process the Resolve.Children command: call resolve children
@@ -1022,27 +1022,6 @@ int Node::processCommands (Result::Ref &,const DMI::Record &rec,Request::Ref &re
       resetDependMasks();
     }
   }
-// 18/04/05 OMS: phasing this out, ModRes will need to be rewritten a-la Solver
-//   // Init.Dep.Mask command: add our own symdeps to the request rider
-//   // (by inserting Add.Dep.Mask commands)
-//   if( rec[FInitDepMask].as<bool>(false) && !gen_symdep_masks_.empty() )
-//   {
-//     const HIID &group = gen_symdep_group_.empty() ? FAll : gen_symdep_group_;
-//     DMI::Record &cmdrec = Rider::getCmdRec_All(reqref,group);
-//     DMI::Record &deprec = Rider::getOrInit(cmdrec,FAddDepMask);
-//     std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
-//     for( ; iter != gen_symdep_masks_.end(); iter++ )
-//     {
-//       DMI::Record::Hook hook(deprec,iter->first);
-//       if( hook.exists() )
-//         hook.as_wr<int>() |=  iter->second;
-//       else
-//         hook = iter->second;
-//     }
-//   }
-//  // should never cache a processCommand() result
-// or should we? I think we should (if only to ignore the same command
-// coming from multiple parents)
   return 0;
 }
 
@@ -1078,7 +1057,7 @@ int Node::discoverSpids (Result::Ref &ref,const std::vector<Result::Ref> &child_
 }
 
 //##ModelId=3F6726C4039D
-int Node::execute (Result::Ref &ref,const Request &req0)
+int Node::execute (Result::Ref &ref,const Request &req)
 {
   // check for re-entrancy
 #ifdef DISABLE_NODE_MT
@@ -1102,7 +1081,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
   lock.release();
 #endif
   
-  cdebug(3)<<"execute, request ID "<<req0.id()<<": "<<req0.sdebug(DebugLevel-1,"    ")<<endl;
+  cdebug(3)<<"execute, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
   FailWhen(node_resolve_id_<0,"execute() called before resolve()");
   // this indicates the current stage (for exception handler)
   string stage;
@@ -1110,20 +1089,20 @@ int Node::execute (Result::Ref &ref,const Request &req0)
   {
     timers_.total.start();
     if( forest().debugLevel()>1 )
-      wstate()[FNewRequest].replace() <<= req0;
+      wstate()[FNewRequest].replace() <<= req;
     setExecState(CS_ES_REQUEST);
     int retcode = 0;
     // do we have a new request? Empty request id treated as always new
     new_request_ = !current_request_.valid() ||
-                   req0.id().empty() || 
-                   req0.id() != current_reqid_;
+                   req.id().empty() || 
+                   req.id() != current_reqid_;
     // update stats
     pcs_total_->req++;
     if( new_request_ )
       pcs_new_->req++;
     // check the cache, return on match (cache will be cleared on mismatch)
     stage = "checking cache";
-    if( getCachedResult(retcode,ref,req0) )
+    if( getCachedResult(retcode,ref,req) )
     {
         cdebug(3)<<"  cache hit, returning cached code "<<ssprintf("0x%x",retcode)<<" and result:"<<endl<<
                    "    "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
@@ -1134,27 +1113,24 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     // clear out the RETCACHE flag and the result state, since we
     // have no result for now
     control_status_ &= ~(CS_RETCACHE|CS_RES_MASK);
-    // attach a ref to the request; processRequestRider() is allowed to modify
-    // the request; this will result in a copy-on-write operation on this ref
-    Request::Ref reqref(req0,DMI::READONLY);
     if( new_request_ )
     {
       // check if node is ready to go on to the new request, return WAIT if not
       stage = "calling readyForRequest()";
-      if( !readyForRequest(req0) )
+      if( !readyForRequest(req) )
       {
         cdebug(3)<<"  node not ready for new request, returning RES_WAIT"<<endl;
         setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
         return exitExecute(RES_WAIT);
       }
       // set this request as current
-      setCurrentRequest(req0);
+      setCurrentRequest(req);
       // check for request riders
-      if( req0.hasRider() )
+      if( req.hasRider() )
       {
         setExecState(CS_ES_COMMAND);
         stage = "processing rider";
-        retcode = processRequestRider(ref,reqref);
+        retcode = processRequestRider(ref,req);
       }
     } // endif( new_request_ )
     // if node is deactivated, return an empty result at this point
@@ -1163,13 +1139,10 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       if( !ref.valid() )
         ref <<= new Result(0);
       cdebug(3)<<"  node deactivated, empty result. Cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
-      int ret = cacheResult(ref,req0,retcode) | RES_UPDATED;
+      int ret = cacheResult(ref,req,retcode) | RES_UPDATED;
       setExecState(CS_ES_IDLE,control_status_|CS_RES_EMPTY);
       return exitExecute(ret);
     }
-    // in case processRequestRider modified the request, work with the new
-    // request object from now on
-    const Request &req = *reqref;
     // clear the retcode if the request has cells, children code + getResult() 
     // will be considered the real result
     Cells::Ref rescells;
@@ -1193,7 +1166,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       // if failed, then cache & return the fail
       if( retcode&RES_FAIL )
       {
-        int ret = cacheResult(ref,req0,retcode) | RES_UPDATED;
+        int ret = cacheResult(ref,req,retcode) | RES_UPDATED;
         setExecState(CS_ES_IDLE,control_status_|CS_RES_FAIL);
         return exitExecute(ret);
       }
@@ -1252,7 +1225,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       }
     }
     // cache & return accumulated return code
-    int ret = cacheResult(ref,req0,retcode) | RES_UPDATED;
+    int ret = cacheResult(ref,req,retcode) | RES_UPDATED;
     setExecState(CS_ES_IDLE,control_status_|result_status);
     return exitExecute(ret);
   }
@@ -1275,7 +1248,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
   if( timers_.children.isRunning() )
     timers_.children.stop();
     
-  int ret = cacheResult(ref,req0,RES_FAIL) | RES_UPDATED;
+  int ret = cacheResult(ref,req,RES_FAIL) | RES_UPDATED;
   setExecState(CS_ES_IDLE,
       (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
   return exitExecute(ret);

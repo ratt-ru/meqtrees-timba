@@ -641,6 +641,7 @@ int Solver::getResult (Result::Ref &resref,
     // any state changes
     lastreq.copyRider(*reqref);
     lastreq.setNextId(request.nextId());
+    lastreq[FConverged]=converged;
     ParmTable::lockTables();
     timers_.getresult.stop();
     Node::pollChildren(resref, lastreq);
