@@ -33,7 +33,7 @@ const HIID FResultIndex = AidResult|AidIndex;
 
 //##ModelId=400E5355029C
 ReqMux::ReqMux()
-: Node(-1,0,1),which_result_(0) // at least one child required
+: Node(-2),which_result_(0) // at least one child required
 {
   disableFailPropagation();
 }
