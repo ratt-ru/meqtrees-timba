@@ -206,6 +206,8 @@ if MG['insert_solver_GJones']:
                      correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
                      # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
                      # ** Arguments for .solver_subtree()
+                     rmin=200,                          # if specified, only use baselines>=rmin 
+                     rmax=None,                         # if specified, only use baselines<=rmax
                      # num_iter=20,                       # max number of iterations
                      # epsilon=1e-4,                      # iteration control criterion
                      # debug_level=10,                    # solver debug_level
@@ -267,15 +269,17 @@ if MG['insert_solver_BJones']:
 
     inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
     JEN_inarg.modify(inarg,
-                     solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
                      visu=True,                         # if True, include visualisation
                      redun=MG['redun'],                 # if True, use redundant baseline calibration
                      master_reqseq=MG['master_reqseq'], # if True, use a master reqseq for solver(s)
                      chain_solvers=MG['chain_solvers'], # if True, chain the solver(s)
                      subtract=False,                    # if True, subtract 'predicted' from uv-data 
                      correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
-                     # Arguments for .solver_subtree()
                      # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
+                     # ** Arguments for .solver_subtree()
+                     solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
+                     rmin=200,                          # if specified, only use baselines>=rmin 
+                     rmax=None,                         # if specified, only use baselines<=rmax
                      # num_iter=20,                       # max number of iterations
                      # epsilon=1e-4,                      # iteration control criterion
                      # debug_level=10,                    # solver debug_level

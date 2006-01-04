@@ -23,6 +23,8 @@
 #    - 31 dec 2005: removed self.__dims (cohs are ALWAYS [2,2])
 #    - 31 dec 2005: generalised .coll() to .rider()
 #    - 01 jan 2006: extended .graft() with chain_solvers argument
+#    - 03 jan 2006: introduced .chain_solvers() function
+#    - 04 jan 2006: cleanup(): collection of orphans to avoid browser clutter
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -411,7 +413,7 @@ class Cohset (TDL_common.Super):
             ss.append(indent1+' - Joneset (applied by .corrupt():')
             ss.append(indent2+' - '+str(self.__Joneset.oneliner()))
 
-        ss.append(indent1+' - Rider (things collected along the way):')
+        ss.append(indent1+' - rider (things collected along the way):')
         for key in self.__rider.keys():
             n = len(self.__rider[key])
             ss.append(indent2+' - '+key+'('+str(n)+'):'+str(self.__rider[key]))       
@@ -425,7 +427,7 @@ class Cohset (TDL_common.Super):
         return self.__Joneset
 
 
-    def rider(self, key=None, append=None, clear=False):
+    def rider(self, key=None, append=None, clear=False, report=False):
         """Interaction with rider info (lists) of various types (key)"""
         if not isinstance(key, str):                  # no key specified
             if clear: self.__rider = {}               # clear the entire rider dict
@@ -449,7 +451,7 @@ class Cohset (TDL_common.Super):
             return cc                                 # Return a list (as it was before clearing)
 
         # Not found, but always return a list:
-        print '\n** Cohset.rider(',key,'): not recognised in:',self.__rider.keys()
+        if report: print '\n** Cohset.rider(',key,'): not recognised in:',self.__rider.keys()
         return []
 
     #----------------------------------------------------------------
@@ -539,10 +541,20 @@ class Cohset (TDL_common.Super):
                 self.__selected[key] = pp['select'] 
             if trace: print s0,was,'->',self.__selected[key],':',self.__coh[key]
 
-        # Make sure that the deleted items are not selected (overkill?):
+        # Some bookkeeping and cleaning up:
         for key in self.__coh.keys():
-            if not self.__coh[key]: self.__selected[key] = False
-            # if isinstance(self.__coh[key], str): self.__selected[key] = False         
+            if not self.__coh[key]:
+                # Make sure that the deleted items are not selected (overkill?):
+                self.__selected[key] = False
+            elif isinstance(self.__coh[key], str):
+                pass
+                # Should not happen, really....
+                # self.__selected[key] = False         
+            elif not self.__selected[key]:
+                # Assume that a de-selected item will eventually be an orphan node.
+                # NB: Attaching it to an orphan root node is safe, even if the node
+                #     is eventually used after all (see .sinks())
+                self.rider('selection_orphans', append=self.__coh[key])
 
         # Finished:
         self.history(append=funcname+' inarg = '+str(pp))
@@ -958,14 +970,15 @@ class Cohset (TDL_common.Super):
             basel = str(around(self.__rxyz[key]))+'m'
             coh[key] = ns[scope+'_'+basel](uniqual)(s1=s12[0], s2=s12[1], q=punit) << Meq.Condeq(
                 self.__coh[key], Cohset[key])
+            print '-',key,':',coh[key]
 
         # Copy the new condeq nodes to self.__coh, deleting the rest:
         for key in self.__coh.keys():
-            if self.__coh[key]:     
-                self.rider('deletion_orphans', append=self.__coh[key])
-                self.__coh[key] = None         # delete
             if coh.has_key(key):
                 self.__coh[key] = coh[key]
+            elif self.__coh[key]:          # existing node
+                self.rider('deletion_orphans', append=self.__coh[key])
+                self.__coh[key] = None     # delete
 
         # The input Cohset may contain parmgroup/solvegroup info:
         self.update_from_Joneset(Cohset.Joneset())
@@ -1227,9 +1240,9 @@ class Cohset (TDL_common.Super):
             root = ns.VisDataMux << Meq.VisDataMux(start=pp['start'],
                                                    pre=pp['pre'], post=pp['post'])
 
-        # Bundle the collected deletion orphans (minimise browser klutter)
-        self.bundle_deletion_orphans(ns)
-
+        
+        # Bookkeeping:
+        self.cleanup(ns)
         self.scope('sink')
         self.history(append=funcname+' inarg = '+str(pp))
         self.history(append=funcname+' MS_corr_index = '+str(MS_corr_index))
@@ -1237,22 +1250,28 @@ class Cohset (TDL_common.Super):
         return True
 
 
-    def bundle_deletion_orphans(self, ns=None):
-        """Bundle the collected deletion orphans (minimise browser klutter)"""
-        orphans = self.rider('deletion_orphans', clear=True)
-        if len(orphans)>0:
-            uniqual = _counter('bundle_deletion_orphans', increment=-1)
-            root_node = ns.deletion_orphans(uniqual) << Meq.Composer(children=orphans)
+    def cleanup(self, ns=None):
+        """Clean up the current Cohset"""
+        # Bundle the collected orphans (minimise browser clutter)
+        for key in ['deletion_orphans','selection_orphans']:
+            orphans = self.rider(key, clear=False, report=True)
+            print '\n** .cleanup():',key,'-> orphans(',len(orphans),'):',orphans
+            if len(orphans)>0:
+                uniqual = _counter(key, increment=-1)
+                root_node = ns[key](uniqual) << Meq.Composer(children=orphans)
+                print '   ->',root_node
         return True
 
 #------------------------------------------------------------------------------------
 
-    def simul_sink (self, ns):
+    def simul_sink (self, ns=None):
         """makes a common root node for all entries in Cohset""" 
         cc = []
         for key in self.keys():
             cc.append(self.__coh[key])
-        return ns.simul_sink << Meq.Add(children=cc)
+        node = ns.simul_sink << Meq.Add(children=cc)
+        self.cleanup(ns)
+        return node
 
 
 

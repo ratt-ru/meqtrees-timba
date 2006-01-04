@@ -216,6 +216,8 @@ if MG['insert_solver_GBJones']:
         JEN_inarg.modify(ss_inarg[qual],
                          # solvegroup=['GJones'],             # list of solvegroup(s) to be solved for
                          solvegroup=['Gphase'],             # list of solvegroup(s) to be solved for
+                         rmin=200,                          # if specified, only use baselines>=rmin 
+                         # rmax=None,                         # if specified, only use baselines<=rmax
                          # num_iter=20,                       # max number of iterations
                          # epsilon=1e-4,                      # iteration control criterion
                          # debug_level=10,                    # solver debug_level
@@ -231,6 +233,8 @@ if MG['insert_solver_GBJones']:
         ss_inarg[qual] = MG_JEN_Cohset.solver_subtree(_getdefaults=True, _qual=qual) 
         JEN_inarg.modify(ss_inarg[qual],
                          solvegroup=['BJones'],             # list of solvegroup(s) to be solved for
+                         rmin=200,                          # if specified, only use baselines>=rmin 
+                         # rmax=None,                         # if specified, only use baselines<=rmax
                          # num_iter=20,                       # max number of iterations
                          # epsilon=1e-4,                      # iteration control criterion
                          # debug_level=10,                    # solver debug_level

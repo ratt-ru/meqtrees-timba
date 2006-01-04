@@ -301,42 +301,96 @@ class Parmset (TDL_common.Super):
         self.define_solvegroup(key, parmgroup=[key])
         return key                                                  # return the actual key name
 
+    def parm_names(self, parmgroup=None, select='*', trace=False):
+        """Return a list of parmgroup MeqParm node names"""
+        if trace: print '\n** .parm_names(',parmgroup,select,'):'
+        node_names = self.parmgroup(parmgroup) # list of MeqParm node-names
+        parms = []
+        n = len(node_names)
+        if select=='first':                 # select the first of each parmgroup
+            parms.append(node_names[0])     # append a single node name
+        elif select=='last':                # select the last of each parmgroup
+            parms.append(node_names[n-1])   # append a single node name
+        else:
+            parms.extend(node_names)        # append entire parmgroup
+        # Return a list of solvable MeqParm node names:
+        if trace: print '  ->',len(parms),':',parms,'\n'
+        return parms
+
+
+    def parm_nodes(self, parmgroup=None, select='*', trace=False):
+        """Return a list of parmgroup MeqParm nodes"""
+        if trace: print '\n** .parm_nodes(',parmgroup,select,'):'
+        node_names = self.parm_names(parmgroup=parmgroup, select=select, trace=False)
+        if not isinstance(node_names, list): return False
+        nodes = []
+        for name in node_names:
+            nodes.append(self.__parm[name])
+        # Return a list of solvable MeqParm nodes:
+        if trace: print '  ->',len(nodes),':',nodes,'\n'
+        return nodes
 
 #--------------------------------------------------------------------------------
 # Functions related to condeqs:
 #--------------------------------------------------------------------------------
 
-    def define_condeq(self, key=None, parmgroup=None, select='*', unop='Add', value=0.0):
+    def define_condeq(self, parmgroup=None, unop='Add', value=0.0, select='*', trace=True):
         """Provide information for named (key) condeq equations"""
-        if not isinstance(key, str): return False
-        if not self.__parmgroup.has_key(parmgroup): return False
+        if not self.__parmgroup.has_key(parmgroup):
+            print '\n** parmgroup not recognised in:',self.__parmgroup.keys(),'\n'
+            return False
+        # Make the name (key) of the condeq defnition:
+        key = parmgroup
+        if select=='first':
+            key += '_first'
+            if unop=='Add': unop = None
+            if unop=='Multiply': unop = None
+        elif select=='last':
+            key += '_last'
+            if unop=='Add': unop = None
+            if unop=='Multiply': unop = None
+        elif unop=='Add':
+            key += '_sum'
+        elif unop=='Multiply':
+            key += '_prod'
+            if value==0: value = 1.0
+        key += '='+str(value)
+        if self.__condeq.has_key(key): key += '_2'
+        if self.__condeq.has_key(key): key += '_2'
+        if self.__condeq.has_key(key): key += '_2'
         # Look ahead to the possibility of a unop sequence:
         if unop:
             if not isinstance(unop,(list,tuple)): unop = [unop]
         # Make the dict that defines the condition equation (see .condeq())
         self.__condeq[key] = dict(parmgroup=parmgroup, select=select, unop=unop, value=value)
-        return True
+        if trace: print '\n** .define_condeq(',key,'):',self.__condeq[key],'\n'
+        return key
 
  
     def condeq(self, key=None):
        """Access to condeq definitions"""
        if not key: return self.__condeq
        if self.__condeq.has_key(key):
-           return self.__cndeq[key]
+           return self.__condeq[key]
        return False
    
         
     def make_condeq(self, ns=None, key=None):
-       """Make a condeq node for the specified parmgroup"""
+       """Make a condeq node, using the specified (key) condeq definition"""
+       funcname = '::make_condeq()'
        if not self.__condeq.has_key(key):
            return False
-       rr = self.__condeq(key)
+       rr = self.condeq(key)
+       nodes = self.parm_nodes(rr['parmgroup'], select=rr['select'])
+       uniqual = _counter(funcname, increment=-1)
+       node = nodes[0]
        if rr['unop']:
-           node_names = self.__parmgroup(rr['parmgroup'])
-           node = ns << getattr(Meq, rr['unop'][0])(node_names)
-       else:
-           node = ns
-       return node
+           unop = rr['unop'][0]                    # for the moment
+           if unop in ['Add','Multiply']:
+               name = key.split('=')[0]
+               node = ns[name](uniqual) << getattr(Meq, unop)(children=nodes)
+       condeq = ns['Condeq_'+key](uniqual) << Meq.Condeq(node, rr['value'])
+       return condeq
 
 #--------------------------------------------------------------------------------
 # Functions related to solvegroups:
@@ -594,24 +648,31 @@ if __name__ == '__main__':
             ss = js.Parmset.buffer(update=True)        # use ss[p1] etc...
             first_station = False
         ps = js.Parmset
-        ps.define_condeq('Gphase_sum', parmgroup='Gphase', unop='Add', value=0.0)
-        ps.define_condeq('Gphase_first', parmgroup='Gphase', unop=None, value=0.0)
-        ps.define_condeq('Gampl_prod', parmgroup='Gampl', unop='Multiply', value=1.0)
+        ps.define_condeq(p1, unop='Add', value=0.0)
+        ps.define_condeq(p2, unop='Add', value=0.0)
+        ps.define_condeq(p1, select='first', value=0.0)
+        ps.define_condeq(a1, unop='Multiply', value=1.0)
+        ps.define_condeq(a2, unop='Multiply', value=1.0)
         ps.display()
 
     if 1:
+        for key in ps.condeq().keys():
+            condeq = ps.make_condeq(ns, key)
+            TDL_display.subtree(condeq, key, full=True, recurse=5)
+
+    if 0:
         print
         for key in ps.parmgroup().keys():
             print '- parmgroup:',key,':',ps.parmgroup(key)
         print
 
-    if 1:
+    if 0:
         print
         for key in ps.solvegroup().keys():
             print '- solvegroup:',key,':',ps.solvegroup(key)
         print
 
-    if 1:
+    if 0:
         print
         for sg in ps.solvegroup().keys():
             ps.sg_rider(sg, key='condeq_corrs', trace=True)
@@ -624,6 +685,15 @@ if __name__ == '__main__':
         for key in ps.solvegroup().keys():
             ps.solveparm_names(key, select=select, trace=True)
             ps.solveparm_nodes(key, select=select, trace=True)
+        print
+        
+    if 0:
+        select = '*'
+        # select = 'first'
+        select = 'last'
+        for key in ps.parmgroup().keys():
+            ps.parm_names(key, select=select, trace=True)
+            ps.parm_nodes(key, select=select, trace=True)
         print
         
 

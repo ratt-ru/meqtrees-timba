@@ -189,12 +189,12 @@ JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
 JEN_inarg.modify(inarg,
-                 solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
                  subtract=False,                    # if True, subtract 'predicted' from uv-data 
                  correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
                  visu=True,                         # if True, include visualisation
                  # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
-                 # Arguments for .solver_subtree()
+                 # ** Arguments for .solver_subtree()
+                 solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
                  # num_iter=20,                       # max number of iterations
                  # epsilon=1e-4,                      # iteration control criterion
                  # debug_level=10,                    # solver debug_level

@@ -293,7 +293,7 @@ def JJones(ns=None, Sixpack=None, **inarg):
 
 
 #======================================================================================
-# Insert a solver for the specified solvegroup(s):
+# Insert a solver:
 #======================================================================================
 
 # - The 'measured' Cohset is assumed to be the main data stream.
@@ -344,7 +344,6 @@ def insert_solver(ns=None, measured=None, predicted=None, **inarg):
         Mohset.Condeq(ns, predicted)        
     Mohset.scope('condeq_'+punit)
     Mohset.history(funcname+' -> '+Mohset.oneliner())
-    Mohset.bundle_deletion_orphans(ns)
 
     # Make a list of one or more MeqSolver subtree(s):
     # Assume that pp contains the relevant (qual) inarg record(s).
@@ -422,6 +421,7 @@ def insert_solver(ns=None, measured=None, predicted=None, **inarg):
     MG_JEN_forest_state.object(Mohset, funcname)
     MG_JEN_forest_state.object(predicted, funcname)
     MG_JEN_forest_state.history (funcname)
+    Mohset.cleanup(ns)                
     return True
     
 
@@ -949,7 +949,6 @@ if True:                                                   # ... Copied from MG_
        # inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
        inarg = insert_solver(_getdefaults=True, _qual=qual)   # local (MG_JEN_Cohset.py) version 
        JEN_inarg.modify(inarg,
-                        solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
                         master_reqseq=MG['master_reqseq'], # if True, use a master reqseq for solver(s)
                         chain_solvers=MG['chain_solvers'], # if True, chain the solver(s)
                         redun=False,                        # if True, use redundant baseline calibration
@@ -960,6 +959,7 @@ if True:                                                   # ... Copied from MG_
                         # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
                         # num_cells=[2,5],                   # ModRes argument [ntime,nfreq]
                         # ** Arguments for .solver_subtree()
+                        solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
                         num_iter=10,                       # max number of iterations
                         # epsilon=1e-4,                      # iteration control criterion
                         # debug_level=10,                    # solver debug_level
