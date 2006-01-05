@@ -8,11 +8,6 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_AppUtils ();
 
-#ifndef _defined_id_AidAuto
-#define _defined_id_AidAuto 1
-const DMI::AtomicID AidAuto(-1213);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
-const int AidAuto_int = -1213;
-#endif
 #ifndef _defined_id_AidCalibrated
 #define _defined_id_AidCalibrated 1
 const DMI::AtomicID AidCalibrated(-1275);         // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
@@ -22,11 +17,6 @@ const int AidCalibrated_int = -1275;
 #define _defined_id_AidClear 1
 const DMI::AtomicID AidClear(-1353);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
 const int AidClear_int = -1353;
-#endif
-#ifndef _defined_id_AidClosed
-#define _defined_id_AidClosed 1
-const DMI::AtomicID AidClosed(-1252);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
-const int AidClosed_int = -1252;
 #endif
 #ifndef _defined_id_AidColumn
 #define _defined_id_AidColumn 1
@@ -63,11 +53,6 @@ const int AidEnd_int = -1276;
 const DMI::AtomicID AidError(-1056);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 const int AidError_int = -1056;
 #endif
-#ifndef _defined_id_AidFail
-#define _defined_id_AidFail 1
-const DMI::AtomicID AidFail(-1248);               // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
-const int AidFail_int = -1248;
-#endif
 #ifndef _defined_id_AidFlag
 #define _defined_id_AidFlag 1
 const DMI::AtomicID AidFlag(-1134);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
@@ -83,40 +68,20 @@ const int AidFlags_int = -1253;
 const DMI::AtomicID AidFlip(-1254);               // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:37
 const int AidFlip_int = -1254;
 #endif
-#ifndef _defined_id_AidFooter
-#define _defined_id_AidFooter 1
-const DMI::AtomicID AidFooter(-1135);             // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
-const int AidFooter_int = -1135;
-#endif
 #ifndef _defined_id_AidFormat
 #define _defined_id_AidFormat 1
 const DMI::AtomicID AidFormat(-1261);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 const int AidFormat_int = -1261;
-#endif
-#ifndef _defined_id_AidHeader
-#define _defined_id_AidHeader 1
-const DMI::AtomicID AidHeader(-1201);             // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
-const int AidHeader_int = -1201;
 #endif
 #ifndef _defined_id_AidIncrement
 #define _defined_id_AidIncrement 1
 const DMI::AtomicID AidIncrement(-1598);          // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 const int AidIncrement_int = -1598;
 #endif
-#ifndef _defined_id_AidInit
-#define _defined_id_AidInit 1
-const DMI::AtomicID AidInit(-1038);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MTGatewayWP.h:16
-const int AidInit_int = -1038;
-#endif
 #ifndef _defined_id_AidInput
 #define _defined_id_AidInput 1
 const DMI::AtomicID AidInput(-1036);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
 const int AidInput_int = -1036;
-#endif
-#ifndef _defined_id_AidInterrupt
-#define _defined_id_AidInterrupt 1
-const DMI::AtomicID AidInterrupt(-1273);          // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
-const int AidInterrupt_int = -1273;
 #endif
 #ifndef _defined_id_AidIteration
 #define _defined_id_AidIteration 1
@@ -138,11 +103,6 @@ const int AidMask_int = -1263;
 const DMI::AtomicID AidMessage(-1269);            // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:36
 const int AidMessage_int = -1269;
 #endif
-#ifndef _defined_id_AidMismatch
-#define _defined_id_AidMismatch 1
-const DMI::AtomicID AidMismatch(-1257);           // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
-const int AidMismatch_int = -1257;
-#endif
 #ifndef _defined_id_AidName
 #define _defined_id_AidName 1
 const DMI::AtomicID AidName(-1122);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
@@ -152,11 +112,6 @@ const int AidName_int = -1122;
 #define _defined_id_AidNon 1
 const DMI::AtomicID AidNon(-1274);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
 const int AidNon_int = -1274;
-#endif
-#ifndef _defined_id_AidNum
-#define _defined_id_AidNum 1
-const DMI::AtomicID AidNum(-1163);                // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
-const int AidNum_int = -1163;
 #endif
 #ifndef _defined_id_AidOriginal
 #define _defined_id_AidOriginal 1
@@ -173,11 +128,6 @@ const int AidOutput_int = -1241;
 const DMI::AtomicID AidParams(-1277);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 const int AidParams_int = -1277;
 #endif
-#ifndef _defined_id_AidPause
-#define _defined_id_AidPause 1
-const DMI::AtomicID AidPause(-1245);              // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
-const int AidPause_int = -1245;
-#endif
 #ifndef _defined_id_AidPredict
 #define _defined_id_AidPredict 1
 const DMI::AtomicID AidPredict(-1265);            // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:36
@@ -187,11 +137,6 @@ const int AidPredict_int = -1265;
 #define _defined_id_AidRaw 1
 const DMI::AtomicID AidRaw(-1132);                // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 const int AidRaw_int = -1132;
-#endif
-#ifndef _defined_id_AidRepeater
-#define _defined_id_AidRepeater 1
-const DMI::AtomicID AidRepeater(-1251);           // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:9
-const int AidRepeater_int = -1251;
 #endif
 #ifndef _defined_id_AidResiduals
 #define _defined_id_AidResiduals 1
@@ -203,16 +148,6 @@ const int AidResiduals_int = -1259;
 const DMI::AtomicID AidSelection(-1271);          // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 const int AidSelection_int = -1271;
 #endif
-#ifndef _defined_id_AidSeq
-#define _defined_id_AidSeq 1
-const DMI::AtomicID AidSeq(-1250);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
-const int AidSeq_int = -1250;
-#endif
-#ifndef _defined_id_AidSet
-#define _defined_id_AidSet 1
-const DMI::AtomicID AidSet(-1272);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
-const int AidSet_int = -1272;
-#endif
 #ifndef _defined_id_AidShape
 #define _defined_id_AidShape 1
 const DMI::AtomicID AidShape(-1278);              // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:37
@@ -223,20 +158,15 @@ const int AidShape_int = -1278;
 const DMI::AtomicID AidSize(-1255);               // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 const int AidSize_int = -1255;
 #endif
+#ifndef _defined_id_AidSnippet
+#define _defined_id_AidSnippet 1
+const DMI::AtomicID AidSnippet(-1621);            // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:33
+const int AidSnippet_int = -1621;
+#endif
 #ifndef _defined_id_AidStart
 #define _defined_id_AidStart 1
 const DMI::AtomicID AidStart(-1106);              // from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:21
 const int AidStart_int = -1106;
-#endif
-#ifndef _defined_id_AidState
-#define _defined_id_AidState 1
-const DMI::AtomicID AidState(-1072);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:25
-const int AidState_int = -1072;
-#endif
-#ifndef _defined_id_AidStream
-#define _defined_id_AidStream 1
-const DMI::AtomicID AidStream(-1268);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:12
-const int AidStream_int = -1268;
 #endif
 #ifndef _defined_id_AidString
 #define _defined_id_AidString 1
@@ -252,11 +182,6 @@ const int AidThrow_int = -1205;
 #define _defined_id_AidTile 1
 const DMI::AtomicID AidTile(-1232);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/VisAgentVocabulary.h:11
 const int AidTile_int = -1232;
-#endif
-#ifndef _defined_id_AidTiles
-#define _defined_id_AidTiles 1
-const DMI::AtomicID AidTiles(-1262);              // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:12
-const int AidTiles_int = -1262;
 #endif
 #ifndef _defined_id_AidTime
 #define _defined_id_AidTime 1
@@ -277,16 +202,6 @@ const int AidVDSID_int = -1151;
 #define _defined_id_AidVis 1
 const DMI::AtomicID AidVis(-1240);                // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/VisAgentVocabulary.h:10
 const int AidVis_int = -1240;
-#endif
-#ifndef _defined_id_AidVisRepeater
-#define _defined_id_AidVisRepeater 1
-const DMI::AtomicID AidVisRepeater(-1264);        // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:9
-const int AidVisRepeater_int = -1264;
-#endif
-#ifndef _defined_id_AidWhen
-#define _defined_id_AidWhen 1
-const DMI::AtomicID AidWhen(-1249);               // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
-const int AidWhen_int = -1249;
 #endif
 #ifndef _defined_id_AidWrite
 #define _defined_id_AidWrite 1

@@ -70,7 +70,6 @@ class meqserver (app_proxy):
       self.dprint(1,'verbose>0: auto-enabling node_result output');
       self.track_results(True);
       self.dprint(1,'you can disable this by calling .track_results(False)');
-    
   
   # define meqserver-specific methods
   def meq (self,command,args=None,wait=False,silent=False):
@@ -84,7 +83,7 @@ class meqserver (app_proxy):
       if silent:
         self.dprint(0,'warning: both wait and silent specified, ignoring silent flag');
       payload.request_id = self.new_rqid();
-      replyname = 'app.result' + command + payload.request_id;
+      replyname = 'result' + command + payload.request_id;
       self.dprintf(3,'sending command %s with wait\n',command);
       self.dprint(5,'arguments are ',args);
       self.pause_events();
@@ -125,10 +124,15 @@ class meqserver (app_proxy):
     rec = record({'name':name,'nodeindex':nodeindex,'class':classname,'children':children});
     return self.meq('Get.Node.List',rec,wait=True);
   
-  def execute (self,node,req,wait=True):
+  def execute (self,node,req,wait=False):
     rec = self.makenodespec(node);
     rec.request = req;
     return self.meq('Node.Execute',rec,wait=wait);
+    
+  def publish (self,node,wait=False):
+    rec = self.makenodespec(node);
+    rec.enable = True;
+    return self.meq('Node.Publish.Results',rec,wait=wait);
   
   def _result_handler (self,msg):
     try:

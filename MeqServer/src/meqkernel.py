@@ -78,7 +78,8 @@ def process_init (rec):
   # reset internals
   reset();
   # do we have an init-script in the header?
-  try: script = rec.input.python_init;
+  _dprint(0,rec);
+  try: script = rec.python_init;
   except AttributeError:
     _dprint(0,"no init-script specified, ignoring");
     return;

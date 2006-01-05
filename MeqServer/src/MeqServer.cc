@@ -25,10 +25,7 @@
     
 using Debug::ssprintf;
 using namespace AppAgent;
-using namespace AppControlAgentVocabulary;
-using namespace VisRepeaterVocabulary;
 using namespace VisVocabulary;
-using namespace VisAgent;
     
 namespace Meq 
 {
@@ -36,6 +33,11 @@ namespace Meq
 static int dum =  aidRegistry_MeqServer() + 
                   aidRegistry_Meq() + 
                   aidRegistry_MeqNodes();
+
+const HIID MeqCommandPrefix = AidCommand;
+const HIID MeqCommandMask   = AidCommand|AidWildcard;
+const HIID MeqResultPrefix  = AidResult;
+
 
 const HIID DataProcessingError = AidData|AidProcessing|AidError;
   
@@ -85,7 +87,15 @@ MeqServer::MeqServer()
 {
   if( mqs_ )
     Throw1("A singleton MeqServer has already been created");
+  
+  state_ = AidIdle;
+  
+  // default control channel is null
+  control_channel_.attach(new AppAgent::EventChannel,DMI::SHARED|DMI::WRITE);
+  
   mqs_ = this;
+  
+  command_map["Halt"] = &MeqServer::halt;
   
   command_map["Get.Forest.State"] = &MeqServer::getForestState;
   command_map["Set.Forest.State"] = &MeqServer::setForestState;
@@ -120,6 +130,11 @@ MeqServer::MeqServer()
   command_map["Debug.Continue"] = &MeqServer::debugContinue;
   
   debug_next_node = 0;
+  running_ = false;
+}
+
+MeqServer::~MeqServer ()
+{
 }
 
 static string makeNodeLabel (const string &name,int)
@@ -164,6 +179,13 @@ Node & MeqServer::resolveNode (bool &getstate,const DMI::Record &rec)
   return forest.findNode(name);
 }
 
+
+void MeqServer::halt (DMI::Record::Ref &out,DMI::Record::Ref &in)
+{
+  cdebug(1)<<"halting MeqServer"<<endl;
+  running_ = false;
+  out()[AidMessage] = "halting the meqserver";
+}
 
 void MeqServer::setForestState (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
@@ -342,8 +364,7 @@ void MeqServer::getNodeList (DMI::Record::Ref &out,DMI::Record::Ref &in)
 //##ModelId=400E5B6C015E
 void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
-  int old_control_state = control().state();
-  control().setState(AppState_Execute,true);
+  AtomicID oldstate = setState(AidExecuting);
   try
   {
     DMI::Record::Ref rec = in;
@@ -389,11 +410,13 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
   }
   catch( std::exception &exc )
   {
-    control().setState(old_control_state);
+    setState(oldstate);
+//    control().setState(old_control_state);
 //    old_paused ? control().pause() : control().resume();
     throw;
   }
-  control().setState(old_control_state);
+  setState(oldstate);
+//  control().setState(old_control_state);
 //  old_paused ? control().pause() : control().resume();
 }
 
@@ -492,7 +515,7 @@ void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
     Node & node = forest.create(nodeindex,ref,true);
     VisDataMux *pmux = dynamic_cast<VisDataMux*>(&node);
     if( pmux )
-      (pmux_=pmux)->attachAgents(input(),output(),control());
+      pmux_ = pmux;
     cdebug(3)<<"loaded node "<<node.name()<<endl;
     nloaded++;
   }
@@ -535,7 +558,7 @@ void MeqServer::nodeCreated (Node &node)
   if( pmux )
   {
     FailWhen1(pmux_,"VisDataMux node already created, can't have more than one");
-    (pmux_=pmux)->attachAgents(input(),output(),control());
+    pmux_ = pmux;
     return; 
   }
   // is it a Spigot or a Sink? we need a mux then
@@ -562,13 +585,11 @@ void MeqServer::resolveDataMux ()
   if( !pmux_ )
   {
     cdebug(1)<<"implicitly creating a VisDataMux node"<<endl;
-    DMI::Record::Ref initrec(DMI::ANONWR),dum(DMI::ANONWR);
+    DMI::Record::Ref initrec(DMI::ANONWR);
     initrec[AidName]  = "VisDataMux";
     initrec[AidClass] = "MeqVisDataMux";
     int nodeindex;
     pmux_ = &(dynamic_cast<VisDataMux&>(forest.create(nodeindex,initrec)));
-    pmux_->resolve(0,false,dum,0);
-    pmux_->attachAgents(input(),output(),control());
   }
   // attach sinks and spigots
   for( int i=0; i<forest.maxNodeIndex(); i++ )
@@ -585,6 +606,9 @@ void MeqServer::resolveDataMux ()
           pmux_->attachSink(*psink);
       }
     }
+  // call resolve on the mux
+  DMI::Record::Ref dum(DMI::ANONWR);
+  pmux_->resolve(0,false,dum,0);
 }
 
 
@@ -728,6 +752,16 @@ int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef &evdata,vo
   return 1;
 }
 
+void MeqServer::postEvent (const HIID &type,const ObjRef &data)
+{
+  control().postEvent(type,data);
+}
+
+void MeqServer::postEvent (const HIID &type,const DMI::Record::Ref &data)
+{
+  control().postEvent(type,data);
+}
+
 void MeqServer::postError (const std::exception &exc,AtomicID category)
 {
   DMI::Record::Ref out(new DMI::Record);
@@ -772,7 +806,6 @@ void MeqServer::fillForestStatus  (DMI::Record &rec,int level)
     rec[AidForest|AidState] = forest.state();
   DMI::Record &fst = rec[AidForest|AidStatus] <<= new DMI::Record;
   fst[AidState] = control().state();
-  fst[AidState|AidString] = control().stateString();
   fst[AidRunning] = control().state() == AppState_Stream || 
                     control().state() == AppState_Execute ||
                     control().state() == AppState_Debug;
@@ -806,7 +839,10 @@ void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
     return;
   // suspend input stream on first breakpoint
   if( debug_stack.empty() )
-    input().suspend();
+  {
+//    input().suspend();
+// implement this!!!
+  }
   // allocate a new debug frame
   debug_stack.push_front(DebugFrame());
   DebugFrame & frame = debug_stack.front();
@@ -818,9 +854,9 @@ void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
   fillForestStatus(rec);
   rec[AidMessage] = makeNodeMessage("stopped at ",node,":" + node.getStrExecState());
   control().postEvent(EvDebugStop,ref);
-  int old_state = control().state();
-  control().setState(AppState_Debug);
-  input().suspend();
+//  int old_state = control().state();
+//  control().setState(AppState_Debug);
+//  input().suspend();
   // keep on processing commands until asked to continue
   while( forest.debugLevel() > 0 && control().state() > 0 && !debug_continue )  // while in a running state
   {
@@ -828,9 +864,9 @@ void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
   }
   // clear debug frame 
   debug_stack.pop_front();
-  if( debug_stack.empty() )
-    input().resume();
-  control().setState(old_state);
+//  if( debug_stack.empty() )
+//    input().resume();
+//  control().setState(old_state);
 }
 
 // static callbacks mapping to methods of the global MeqServer object
@@ -843,6 +879,28 @@ void MeqServer::mqs_processBreakpoint (Node &node,int bpmask,bool global)
 {
   mqs_->processBreakpoint(node,bpmask,global);
 }
+
+void MeqServer::mqs_postEvent (const HIID &id,const ObjRef &data)
+{
+  mqs_->postEvent(id,data);
+}
+
+void MeqServer::publishState ()
+{
+  DMI::Record::Ref rec(DMI::ANONWR);
+  rec[AidState] = HIID(state_);
+  rec[AidState|AidString] = HIID(state_).toString();
+  control().postEvent("App.Notify.State",rec);
+}
+      
+AtomicID MeqServer::setState (AtomicID state)
+{
+  AtomicID oldstate = state_;
+  state_ = state;
+  publishState();
+  return oldstate;
+}
+
 
 DMI::Record::Ref MeqServer::executeCommand (const HIID &cmd,const ObjRef &argref)
 {
@@ -867,47 +925,78 @@ void MeqServer::processCommands ()
 {
   // check for any commands from the control agent
   HIID cmdid;
-  DMI::Record::Ref cmddata;
-  if( control().getCommand(cmdid,cmddata,AppEvent::WAIT) == AppEvent::SUCCESS 
-      && cmdid.matches(AppCommandMask) )
+  ObjRef cmd_data;
+  while( running_ )
   {
-    // strip off the App.Control.Command prefix -- the -1 is not very
-    // nice because it assumes a wildcard is the last thing in the mask.
-    // Which it usually will be
-    cmdid = cmdid.subId(AppCommandMask.length()-1);
-    cdebug(3)<<"received app command "<<cmdid.toString('.')<<endl;
-    int request_id = 0;
-    bool silent = false;
-    DMI::Record::Ref retval;
-    bool have_error = true;
-    int oldstate = control().state();
-    request_id = cmddata[FRequestId].as<int>(0);
-    ObjRef ref = cmddata[FArgs].remove();
-    silent     = cmddata[FSilent].as<bool>(false);
-    try
+    // get an event from the control channel
+    int state = control().getEvent(cmdid,cmd_data);
+    if( state == AppEvent::CLOSED )
     {
-      retval = executeCommand(cmdid,ref);
-      have_error = false;
+      running_ = false;   // closed? break out
+      return;
     }
-    catch( std::exception &exc )
+    cdebug(4)<<"state "<<state<<", got event "<<cmdid.toString('.')<<endl;
+    if( state != AppEvent::SUCCESS ) // if unsuccessful, break out
+      return;
+    // is it a MeqCommand?
+    if( cmdid.matches(MeqCommandMask) )
     {
-      (retval <<= new DMI::Record)[AidError] = exceptionToObj(exc);
+      // strip off the Meq command mask -- the -1 is there because 
+      // we know a wildcard is the last thing in the mask.
+      cmdid = cmdid.subId(MeqCommandMask.length()-1);
+      // MeqCommands are expected to have a DMI::Record payload
+      if( !cmd_data.valid() || cmd_data->objectType() != TpDMIRecord )
+      {
+        postError("command "+cmdid.toString('.')+" does not contain a record, ignoring");
+        continue;
+      }
+      // extract payload
+      DMI::Record &cmddata = cmd_data.as<DMI::Record>();
+      cdebug(3)<<"received command "<<cmdid.toString('.')<<endl;
+      int request_id = 0;
+      bool silent = false;
+      DMI::Record::Ref retval;
+      bool have_error = true;
+  //    int oldstate = control().state();
+      request_id = cmddata[FRequestId].as<int>(0);
+      ObjRef ref = cmddata[FArgs].remove();
+      silent     = cmddata[FSilent].as<bool>(false);
+      try
+      {
+        retval = executeCommand(cmdid,ref);
+        have_error = false;
+      }
+      catch( std::exception &exc )
+      {
+        (retval <<= new DMI::Record)[AidError] = exceptionToObj(exc);
+      }
+      catch( ... )
+      {
+        (retval <<= new DMI::Record)[AidError] = "unknown exception while processing command";
+      }
+      // send back reply if quiet flag has not been raised;
+      // errors are always sent back
+      if( !silent || have_error )
+      {
+        HIID reply_id = MeqResultPrefix|cmdid;
+        if( request_id )
+          reply_id |= request_id;
+        control().postEvent(reply_id,retval);
+      }
     }
-    catch( ... )
+    else // other commands -- ignore for now
     {
-      (retval <<= new DMI::Record)[AidError] = "unknown exception while processing command";
+      if( cmdid == HIID("Request.State") )
+        publishState();
+      else if( cmdid == HIID("Halt") )
+      {
+        running_ = false;
+        postMessage("halt command received, exiting");
+      }
+      else
+        postError("ignoring unrecognized event "+cmdid.toString('.'));
     }
-    control().setState(oldstate);
-    // send back reply if quiet flag has not been raised;
-    // errors are always sent back
-    if( !silent || have_error )
-    {
-      HIID reply_id = CommandResultPrefix|cmdid;
-      if( request_id )
-        reply_id |= request_id;
-      control().postEvent(reply_id,retval);
-    }
-  }
+  } // end while(true)
 }
 
 //##ModelId=3F608106021C
@@ -916,220 +1005,24 @@ void MeqServer::run ()
   // connect forest events to data_mux slots (so that the mux can register
   // i/o nodes)
   forest.setDebuggingCallbacks(mqs_reportNodeStatus,mqs_processBreakpoint);
+  forest.setEventCallback(mqs_postEvent);
   // init Python interface
   MeqPython::initMeqPython(this);
-  
-  verifySetup(true);
-  DMI::Record::Ref initrec;
-  HIID output_event;
-  string doing_what;
-  bool python_init = false;
-  DMI::ExceptionList errors;
-  // keep running as long as start() on the control agent succeeds
-  while( control().start(initrec) == AppState::RUNNING )
+
+  setState(AidIdle);  
+  running_ = true;
+  while( running_ )
   {
-    errors.clear();
-    try
-    {
-      // [re]initialize i/o agents with record returned by control
-      if( initrec[input().initfield()].exists() )
-      {
-        doing_what = "initializing input agent";
-        output_event = InputInitFailed;
-        cdebug(1)<<doing_what<<endl;
-        if( !input().init(*initrec) )
-          Throw("init failed");
-        // see if python needs to be initialized
-        // string pyscr = initrec[input().initfield()][AidPython|AidInit].as<string>("");
-        //        if( !pyscr.empty() )
-        //        {
-        //          MeqPython::runFile(this,pyscr);
-        //          python_init = true;
-        //        }
-      }
-      if( initrec[output().initfield()].exists() )
-      {
-        doing_what = "initializing output agent";
-        output_event = OutputInitFailed;
-        cdebug(1)<<doing_what<<endl;
-        if( !output().init(*initrec) )
-          Throw("init failed");
-      }
-    }
-    catch( std::exception &exc )
-    { errors.add(exc); }
-    catch( ... )
-    { errors.add(LOFAR::Exception("unknown exception",__HERE__)); }
-    // in case of error, generate event and go back to start
-    if( !errors.empty() )
-    {
-      errors.add(LOFAR::Exception("error " + doing_what,__HERE__));
-      cdebug(1)<<errors<<", waiting for reinitialization"<<endl;
-      postError(errors);
-      continue;
-    }
-    // init Python side
-    try
-    {
-      MeqPython::processInitRecord(*initrec);
-    }
-    catch( std::exception &exc )
-    {
-      postError(exc);
-    }    
-    // put init record into forest state
-    {
-      DMI::Record::Ref tmp(DMI::ANONWR);
-      tmp[AidStream] = initrec;
-      forest.setState(tmp,false);
-    }
-        
-    // get params from control record
-    int ntiles = 0;
-    DMI::Record::Ref header;
-    bool reading_data=false;
-    HIID vdsid,datatype;
-    
-    control().setStatus(StStreamState,"none");
-    control().setStatus(StNumTiles,0);
-    control().setStatus(StVDSID,vdsid);
-    
-    control().setState(AppState_Idle);
-    // run main loop
-    while( control().state() > 0 )  // while in a running state
-    {
-      // check for any incoming data
-      DMI::Record::Ref eventrec;
-      eventrec.detach();
-      cdebug(4)<<"checking input\n";
-      HIID id;
-      ObjRef ref,header_ref;
-      bool tile_failed = false;
-      int instat = input().getNext(id,ref,0,AppEvent::WAIT);
-      if( instat > 0 )
-      { 
-        string output_message;
-        HIID output_event;
-        errors.clear();
-        int retcode = 0;
-        try
-        {
-          // process data event
-          if( instat == DATA )
-          {
-            doing_what = "processing data event "+id.toString('.');
-            VisCube::VTile::Ref tileref = ref.ref_cast<VisCube::VTile>();
-            doing_what = "processing tile "+tileref->tileId().toString('.');
-            cdebug(4)<<"received tile "<<tileref->tileId()<<endl;
-            if( !reading_data )
-            {
-              control().setState(AppState_Stream);
-              control().setStatus(StStreamState,"DATA");
-              reading_data = true;
-            }
-            ntiles++;
-            if( !(ntiles%100) )
-              control().setStatus(StNumTiles,ntiles);
-            // deliver tile to Python
-            try  { MeqPython::processVisTile(*tileref); }
-            catch( std::exception &exc ) { errors.add(exc); }
-            // deliver tile to data mux
-            if( pmux_ )
-              retcode = pmux_->deliverTile(tileref);
-          }
-          else if( instat == FOOTER )
-          {
-            doing_what = "processing footer "+id.toString('.');
-            cdebug(2)<<"received footer"<<endl;
-            reading_data = false;
-            const DMI::Record &footer = *(ref.ref_cast<DMI::Record>());
-            // deliver footer to Python
-            try  { MeqPython::processVisFooter(footer); }
-            catch( std::exception &exc ) { errors.add(exc); }
-            // deliver footer to mux
-            if( pmux_ )
-              retcode = pmux_->deliverFooter(footer);
-            // generate footer report
-            eventrec <<= new DMI::Record;
-            if( header.valid() )
-              eventrec[AidHeader] <<= header.copy();
-            if( ref.valid() )
-              eventrec[AidFooter] <<= ref.copy();
-            output_event = DataSetFooter;
-            output_message = ssprintf("received footer for dataset %s, %d tiles written",
-                id.toString('.').c_str(),ntiles);
-            control().setStatus(StStreamState,"END");
-            control().setStatus(StNumTiles,ntiles);
-            control().setState(AppState_Idle);
-            // post to output only if writing some data
-          }
-          else if( instat == HEADER )
-          {
-            doing_what = "processing header "+id.toString('.');
-            cdebug(2)<<"received header"<<endl;
-            reading_data = false;
-            header = ref;
-            // deliver header to Python
-            try  { MeqPython::processVisHeader(*header); }
-            catch( std::exception &exc ) { errors.add(exc); }
-            // deliver header to mux
-            if( pmux_ )
-              retcode = pmux_->deliverHeader(*header);
-            // generate header report
-            eventrec <<= new DMI::Record;
-            eventrec[AidHeader] <<= header.copy();
-            output_event = DataSetHeader;
-            output_message = "received header for dataset "+id.toString('.');
-            if( !datatype.empty() )
-              output_message += ", " + datatype.toString('.');
-            control().setStatus(StStreamState,"HEADER");
-            control().setStatus(StNumTiles,ntiles=0);
-            control().setStatus(StVDSID,vdsid = id);
-            control().setStatus(FDataType,datatype);
-            control().setState(AppState_Stream);
-          }
-          // generate output event if one was queued up
-          if( !output_event.empty() )
-            postDataEvent(output_event,output_message,eventrec);
-          // throw exception any time we go from success to fail
-          // (this shouldn't normally happen since VisDataMux throws exception
-          // lists on any error)
-          if( retcode&Node::RES_FAIL && !tile_failed)
-          {
-            tile_failed = true;
-            Throw("one or more nodes has returned a FAIL. Check node caches for more information");
-          }
-          else
-            tile_failed = false;
-        }
-        catch( std::exception &exc )
-        {
-          errors.add(exc);
-          errors.add(LOFAR::Exception("error "+doing_what,__HERE__));
-          cdebug(2)<<errors;
-        }
-        catch( ... )
-        {
-          errors.add(LOFAR::Exception("unknown exception "+doing_what,__HERE__));
-          cdebug(2)<<errors;
-        }
-        // in case of error, generate event
-        if( !errors.empty() )
-        {
-          DMI::Record::Ref retval(DMI::ANONWR);
-          retval[AidError] = exceptionToObj(errors);
-          retval[AidData|AidId] = id;
-          control().postEvent(DataProcessingError,retval);
-        }
-      }
-      processCommands();
-    }
-    // go back up for another start() call
+    // process any pending commands
+    processCommands();
   }
+  
+  // clear the forest
   forest.clear();
   pmux_ = 0;
-  cdebug(1)<<"exiting with control state "<<control().stateString()<<endl;
+  // close control channel
   control().close();
+  // destroy python interface
   MeqPython::destroyMeqPython();
 }
 

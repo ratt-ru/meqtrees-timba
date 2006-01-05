@@ -76,6 +76,9 @@ int Sink::getResult (Result::Ref &resref,
   cdebug(3)<<"procPendingTile: processing tile "<<tile_id<<" of "
             <<tileref->ntime()<<" timeslots"<<endl;
   resref = childres[0];
+  // if no output column, then return immediately
+  if( output_col < 0 )
+    return 0;
   // get results from child node (1 expected)
   const Result &result = *resref;
   int nvs = result.numVellSets();

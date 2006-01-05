@@ -118,7 +118,6 @@ const MsgAddress & Dispatcher::attach (WPRef &wpref)
 {
   // lock mutex on entry
   Thread::Mutex::Lock lock(wpmutex);
-  FailWhen( !wpref.isWritable(),"writable ref required" ); 
   WPInterface & wp = wpref;
   FailWhen( wp.isAttached() && wp.dsp() != this,"wp is already attached" );
   // assign instance number to this WP

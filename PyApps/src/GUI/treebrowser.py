@@ -471,13 +471,13 @@ class TreeBrowser (QObject):
       StickyListViewItem(self._nlv,rootitem,"By class (%d)"%len(classes),key=20);
     cls_item._no_auto_open = True;
     for (cls,nodes) in classes.iteritems():
-      if len(nodes) == 1:
-        item = self.NodeItem(self,nodes[0],nodes[0].name,cls_item,item);
-      else:
-        item = QListViewItem(cls_item,item,"%s (%d)"%(cls,len(nodes)));
-        item.setText(self.icolumn("class"),cls);
-        item.setExpandable(True);
-        item._iter_nodes = iter(nodes);
+      # if len(nodes) == 1:
+      #  item = self.NodeItem(self,nodes[0],nodes[0].name,cls_item,item);
+      # else:
+      item = QListViewItem(cls_item,item,"%s (%d)"%(cls,len(nodes)));
+      item.setText(self.icolumn("class"),cls);
+      item.setExpandable(True);
+      item._iter_nodes = iter(nodes);
       item._no_auto_open = True;
     # emit signal
     self.emit(PYSIGNAL("forestLoaded()"),());

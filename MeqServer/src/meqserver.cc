@@ -1,10 +1,6 @@
-#include <AppAgent/BOIOSink.h>
-#include <AppUtils/MSInputSink.h>
-#include <AppUtils/MSOutputSink.h>
 #include <OCTOPUSSY/Octopussy.h>
 #include <OCTOPUSSY/StatusMonitorWP.h>
-#include <AppAgent/OctoEventMultiplexer.h>
-#include <AppUtils/VisRepeater.h>
+#include <AppAgent/OctoEventMux.h>
 #include <MeqServer/MeqServer.h>
 #include <MeqServer/AID-MeqServer.h>
 #include <MEQ/MTPool.h>
@@ -16,103 +12,6 @@ typedef StrVec::const_iterator SVCI;
 using namespace DebugMeq;
 using namespace DMI;
 using namespace AppAgent;
-using namespace VisAgent;
-using namespace OctoAgent;
-using namespace AppControlAgentVocabulary;
-
-bool setupApp (ApplicationBase::Ref &app,const string &str)
-{
-  if( str.length() < 6 )
-    return false;
-  string name = str.substr(0,5);
-  string spec = str.substr(5);
-  // select application based on spec string
-  AtomicID wpclass;
-  if( name == "-meq:" )
-  {
-    cout<<"=================== creating MeqServer =-==================\n";
-    app <<= new Meq::MeqServer;
-    wpclass = AidMeqServer;
-  }
-  else if( name == "-rpt:" )
-  {
-    cout<<"=================== creating repeater =====================\n";
-    app <<= new VisRepeater;
-    wpclass = AidRepeater;
-  }
-  else 
-    return false;
-  
-  // split spec string at ":" character
-  StrVec specs;
-  uint ipos = 0, len = spec.length();
-  while( ipos < len )
-  {
-    uint ipos1 = spec.find(':',ipos);
-    if( ipos1 == string::npos )
-      ipos1 = len;
-    specs.push_back(spec.substr(ipos,ipos1-ipos));
-    ipos = ipos1 + 1;
-  }
-  // print it out
-  cout<<"=== app spec: ";
-  for( uint i=0; i<specs.size(); i++ )
-      cout<<"\""<<specs[i]<<"\" ";
-  cout<<endl;
-  FailWhen(specs.size() != 3,"invalid app spec: "+spec);
-  
-  // initialize parameter record
-  DMI::Record::Ref recref;
-  DMI::Record &rec = recref <<= new DMI::Record;
-  // init errors will be thrown as exceptions
-  rec[FThrowError] = true;
-  // setup control agent for delayed initialization
-  rec[AidControl] <<= new DMI::Record;
-  rec[AidControl][FDelayInit] = false;
-  rec[AidControl][FEventMapIn] <<= new DMI::Record;
-  rec[AidControl][FEventMapIn][FDefaultPrefix] = HIID(specs[2])|AidIn;
-  rec[AidControl][FEventMapOut] <<= new DMI::Record;
-  rec[AidControl][FEventMapOut][FDefaultPrefix] = HIID(specs[2])|AidOut;
-
-  // create agents
-  OctoAgent::EventMultiplexer::Ref mux;
-    mux <<= new OctoAgent::EventMultiplexer(wpclass);
-  // input agent
-  VisAgent::InputAgent::Ref in;
-  if( specs[0] == "M" )
-    in <<= new VisAgent::InputAgent(new MSVisAgent::MSInputSink);
-  else if( specs[0] == "B" )
-    in <<= new VisAgent::InputAgent(new BOIOSink);
-  else if( specs[0] == "O" )
-    in <<= new VisAgent::InputAgent(mux().newSink());
-  else
-    Throw("invalid input type: "+spec[0]);
-  // output agent
-  VisAgent::OutputAgent::Ref out;
-  if( specs[1] == "M" )
-    out <<= new VisAgent::OutputAgent(new MSVisAgent::MSOutputSink);
-  else if( specs[1] == "B" )
-    out <<= new VisAgent::OutputAgent(new BOIOSink);
-  else if( specs[1] == "O" )
-    out <<= new VisAgent::OutputAgent(mux().newSink());
-  else
-    Throw("invalid output type: "+spec[1]);
-  // control agent
-  AppControlAgent::Ref control;
-  control <<= new AppControlAgent(mux().newSink());
-  // attach flags to non-octopussy agents
-  if( specs[0] != "O" )
-    in().attach(mux().eventFlag());
-  if( specs[1] != "O" )
-    out().attach(mux().eventFlag());
-  // attach agents to app and mux to OCTOPUSSY
-  app()<<in<<out<<control;
-  Octopussy::dispatcher().attach(mux);
-  // preinitialize control
-  control().preinit(recref);
-  
-  return true;
-}
     
 int main (int argc,const char *argv[])
 {
@@ -120,16 +19,10 @@ int main (int argc,const char *argv[])
   {
     // collect command-line arguments into vector
     StrVec args(argc-1);
-    // use defaults if none
-    if( args.empty() )
-    {
-//      args.push_back(string("-meq:M:M:MeqServer"));
-    }
-    else // else fill from command line
-    {
-      for( int i=1; i<argc; i++ )
-        args[i-1] = argv[i];
-    }
+    for( int i=1; i<argc; i++ )
+      args[i-1] = argv[i];
+    
+    // parse various options
     bool start_gateways = 
         std::find(args.begin(),args.end(),string("-nogw")) == args.end();
     // "-mt" option
@@ -151,7 +44,6 @@ int main (int argc,const char *argv[])
         Meq::MTPool::Brigade::startNewBrigade();
       }
     }
-  
     
 //     Debug::setLevel("VisRepeater",2);
 //     Debug::setLevel("MSVisAgent",2);
@@ -165,53 +57,59 @@ int main (int argc,const char *argv[])
     Debug::initLevels(argc,argv);
     
     cout<<"=================== initializing OCTOPUSSY =====================\n";
-    OctopussyConfig::initGlobal(argc,argv);
+    Octopussy::OctopussyConfig::initGlobal(argc,argv);
     Octopussy::init(start_gateways);
     
     cout<<"=================== starting StatusMonitor ====================\n";
-      Octopussy::dispatcher().attach(new Octopussy::StatusMonitorWP());
+    Octopussy::dispatcher().attach(new Octopussy::StatusMonitorWP());
     
     cout<<"=================== starting OCTOPUSSY thread =================\n";
     Octopussy::initThread(true);
     
-    cout<<"=================== creating apps =============================\n";
-    std::vector<ApplicationBase::Ref> apps;
-    for( uint i=0; i<args.size(); i++ )
-    {
-      ApplicationBase::Ref ref;
-      if( setupApp(ref,args[i]) )
-        apps.push_back(ref);
-    }
-    // init a default solver, if no apps were set up
-    if( apps.empty() )
-    {
-      ApplicationBase::Ref ref;
-      if( setupApp(ref,"-meq:M:M:MeqServer") )
-        apps.push_back(ref);
-    }
+    cout<<"=================== creating MeqServer ========================\n";
+    Meq::MeqServer meqserver;
     
-    cout<<"=================== starting app threads ======================\n";
-    std::vector<Thread::ThrID> appthreads(apps.size());
-    for( uint i=0; i<apps.size(); i++)
-    {
-      appthreads[i] = apps[i]().runThread(true);
-      cout<<"  thread: "<<appthreads[i]<<endl;
-    }
+    // create control channel 
+    DMI::Record::Ref recref;
+    DMI::Record &rec = recref <<= new DMI::Record;
+    rec[FEventMapIn] <<= new DMI::Record;
+    rec[FEventMapIn][FDefaultPrefix] = AidMeqServer|AidIn;
+    rec[FEventMapOut] <<= new DMI::Record;
+    rec[FEventMapOut][FDefaultPrefix] = AidMeqServer|AidOut;
+
+    // create octopussy message multiplexer and event channel
+    AppAgent::OctoEventMux::Ref mux(new AppAgent::OctoEventMux(AidMeqServer));
+    EventChannel::Ref control_channel(mux().newChannel());
     
-    cout<<"=================== rejoining app threads =====================\n";
-    for( uint i=0; i<appthreads.size(); i++ )
-      appthreads[i].join();
+    // attach channel to app and mux to OCTOPUSSY
+    meqserver.attachControl(control_channel);
+    Octopussy::dispatcher().attach(mux);
+    // preinitialize control channel
+    control_channel().init(recref);
+    
+    cout<<"=================== running MeqServer =========================\n";
+    meqserver.run();
+    
+//     cout<<"=================== starting app threads ======================\n";
+//     std::vector<Thread::ThrID> appthreads(apps.size());
+//     for( uint i=0; i<apps.size(); i++)
+//     {
+//       appthreads[i] = apps[i]().runThread(true);
+//       cout<<"  thread: "<<appthreads[i]<<endl;
+//     }
+//     
+//     cout<<"=================== rejoining app threads =====================\n";
+//     for( uint i=0; i<appthreads.size(); i++ )
+//       appthreads[i].join();
 
     if( Meq::MTPool::Brigade::numBrigades() )
     {
       cout<<"=================== stopping worker threads ===================\n";
       Meq::MTPool::Brigade::stopAll();
     }
-    cout<<"=================== deleting app objects ======================\n";
-    apps.clear();
 
-    pthread_kill_other_threads_np();
-    exit(1);
+//    pthread_kill_other_threads_np();
+//    exit(1);
     
     cout<<"=================== stopping OCTOPUSSY ========================\n";
     Octopussy::stopThread();

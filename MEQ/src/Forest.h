@@ -209,6 +209,19 @@ class Forest
       node_status_callback      = stat;
       node_breakpoint_callback  = bp;
     }
+    
+    // set event callback
+    void setEventCallback (void (*cb)(const HIID &,const ObjRef &))
+    {
+      event_callback = cb;
+    }
+    
+    // posts an event via the callback
+    void postEvent (const HIID &type,const ObjRef &data)
+    {
+      if( event_callback )
+        (*event_callback)(type,data);
+    }
 
     //##ModelId=3F60697A0078
     LocalDebugContext;
@@ -233,7 +246,7 @@ class Forest
     
     void (*node_status_callback)(Node&,int,int);
     void (*node_breakpoint_callback)(Node&,int,bool);
-  
+    void (*event_callback)(const HIID &,const ObjRef &);
       
     //##ModelId=3F60697903A7
     typedef std::vector<Node::Ref> Repository;

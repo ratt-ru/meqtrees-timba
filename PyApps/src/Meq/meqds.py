@@ -192,6 +192,7 @@ class NodeList (QObject):
   def clear (self):
     self._nimap = self._namemap = self._classmap = {};
     self._rootnodes = [];
+    self.serial = 0;
   
   # initialize from a MEQ-produced nodelist
   def load (self,meqnl):

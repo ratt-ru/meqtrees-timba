@@ -323,7 +323,6 @@ class CountedRef : private CountedRefBase
     //##ModelId=3DB934510135
       CountedRefBase::isLocked;
     //##ModelId=3DB934510276
-      CountedRefBase::isWritable;
       CountedRefBase::isDirectlyWritable;
     //##ModelId=3DB934520105
       CountedRefBase::isAnonTarget;

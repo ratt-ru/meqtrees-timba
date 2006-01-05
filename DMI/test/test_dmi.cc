@@ -521,7 +521,7 @@ int main ( int argc,const char *argv[] )
     
     const string lit = "uhfu.efhf.ihusjka.sjkjk";
     const string slit = "$" + lit;
-    HIID hlit1(slit),hlit2(lit,true,"_");
+    HIID hlit1(slit),hlit2(lit,true,"_.");
     Assert(hlit1 == hlit2);
     cout<<hlit1<<endl;
     cout<<hlit1.toString('.',false)<<endl;

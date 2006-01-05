@@ -42,7 +42,7 @@
 #pragma aid Link Or Create Control Status New Breakpoint Single Shot Step
 #pragma aid Cache Policy Stats All New Requests Parents Num Active Description
 #pragma aid Profiling Stats Total Children Get Result Ticks Per Second CPU MHz
-#pragma aid Poll Polling Order MT Propagate Child Fails
+#pragma aid Poll Polling Order MT Propagate Child Fails Message Error Data
     
 namespace Meq 
 { 
@@ -50,6 +50,8 @@ using namespace DMI;
 
 class Forest;
 class Request;
+
+const HIID FNode          = AidNode;
 
 //== Node state fields
 const HIID FChildren      = AidChildren;
@@ -614,6 +616,19 @@ class Node : public DMI::BObj
     // overloaded function to change exec state but not rest of control status
     void setExecState (int es)
     { setExecState(es,control_status_,false); }
+    
+    //------------------ generating events
+    // posts an event on behalf of the node. posting is done via the
+    // forest
+    void postEvent (const HIID &type,const ObjRef &data = _dummy_objref );
+    // posts a message event, will post a record of the form 
+    // {node=nodename,<type>=msg,...} or {node=nodename,<type>=msg,data=data}
+    // If data is a record then the first form is used, with node and <type> 
+    // fields being inserted
+    void postMessage (const string &msg,const ObjRef &data = _dummy_objref,AtomicID type=AidMessage);
+    // shortcut for posting a message of type Error
+    void postError   (const string &msg,const ObjRef &data = _dummy_objref )
+    { postMessage(msg,data,AidError); }
     
   
     //##Documentation
@@ -1280,6 +1295,8 @@ class Node : public DMI::BObj
     ProfilingStats * pprof_getresult_;
     
     static int checking_level_;
+    
+    static ObjRef _dummy_objref;
 };
 
 // convenience functions to lock/unlock objects en-masse

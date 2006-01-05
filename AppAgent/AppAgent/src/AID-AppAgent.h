@@ -18,25 +18,10 @@ const int AidAddress_int = -1543;
 const DMI::AtomicID AidAgent(-1243);              // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:12
 const int AidAgent_int = -1243;
 #endif
-#ifndef _defined_id_AidAlways
-#define _defined_id_AidAlways 1
-const DMI::AtomicID AidAlways(-1225);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
-const int AidAlways_int = -1225;
-#endif
-#ifndef _defined_id_AidApp
-#define _defined_id_AidApp 1
-const DMI::AtomicID AidApp(-1203);                // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
-const int AidApp_int = -1203;
-#endif
 #ifndef _defined_id_AidAppAgent
 #define _defined_id_AidAppAgent 1
 const DMI::AtomicID AidAppAgent(-1228);           // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:30
 const int AidAppAgent_int = -1228;
-#endif
-#ifndef _defined_id_AidAuto
-#define _defined_id_AidAuto 1
-const DMI::AtomicID AidAuto(-1213);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
-const int AidAuto_int = -1213;
 #endif
 #ifndef _defined_id_AidBOIO
 #define _defined_id_AidBOIO 1
@@ -48,15 +33,10 @@ const int AidBOIO_int = -1220;
 const DMI::AtomicID AidCategory(-1496);           // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:30
 const int AidCategory_int = -1496;
 #endif
-#ifndef _defined_id_AidCommand
-#define _defined_id_AidCommand 1
-const DMI::AtomicID AidCommand(-1204);            // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
-const int AidCommand_int = -1204;
-#endif
-#ifndef _defined_id_AidControl
-#define _defined_id_AidControl 1
-const DMI::AtomicID AidControl(-1142);            // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
-const int AidControl_int = -1142;
+#ifndef _defined_id_AidChannel
+#define _defined_id_AidChannel 1
+const DMI::AtomicID AidChannel(-1165);            // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
+const int AidChannel_int = -1165;
 #endif
 #ifndef _defined_id_AidCritical
 #define _defined_id_AidCritical 1
@@ -78,11 +58,6 @@ const int AidDebug_int = -1482;
 const DMI::AtomicID AidDefault(-1221);            // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:13
 const int AidDefault_int = -1221;
 #endif
-#ifndef _defined_id_AidDelay
-#define _defined_id_AidDelay 1
-const DMI::AtomicID AidDelay(-1164);              // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:33
-const int AidDelay_int = -1164;
-#endif
 #ifndef _defined_id_AidDestination
 #define _defined_id_AidDestination 1
 const DMI::AtomicID AidDestination(-1495);        // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:30
@@ -98,16 +73,6 @@ const int AidError_int = -1056;
 const DMI::AtomicID AidEvent(-1080);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
 const int AidEvent_int = -1080;
 #endif
-#ifndef _defined_id_AidExit
-#define _defined_id_AidExit 1
-const DMI::AtomicID AidExit(-1230);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
-const int AidExit_int = -1230;
-#endif
-#ifndef _defined_id_AidField
-#define _defined_id_AidField 1
-const DMI::AtomicID AidField(-1183);              // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
-const int AidField_int = -1183;
-#endif
 #ifndef _defined_id_AidFile
 #define _defined_id_AidFile 1
 const DMI::AtomicID AidFile(-1224);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
@@ -122,11 +87,6 @@ const int AidFooter_int = -1135;
 #define _defined_id_AidGlobal 1
 const DMI::AtomicID AidGlobal(-1211);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:13
 const int AidGlobal_int = -1211;
-#endif
-#ifndef _defined_id_AidHalt
-#define _defined_id_AidHalt 1
-const DMI::AtomicID AidHalt(-1227);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
-const int AidHalt_int = -1227;
 #endif
 #ifndef _defined_id_AidHeader
 #define _defined_id_AidHeader 1
@@ -148,11 +108,6 @@ const int AidHigher_int = -1222;
 const DMI::AtomicID AidHost(-1096);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 const int AidHost_int = -1096;
 #endif
-#ifndef _defined_id_AidID
-#define _defined_id_AidID 1
-const DMI::AtomicID AidID(-1208);                 // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
-const int AidID_int = -1208;
-#endif
 #ifndef _defined_id_AidIn
 #define _defined_id_AidIn 1
 const DMI::AtomicID AidIn(-1207);                 // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:12
@@ -162,11 +117,6 @@ const int AidIn_int = -1207;
 #define _defined_id_AidInfo 1
 const DMI::AtomicID AidInfo(-1494);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:31
 const int AidInfo_int = -1494;
-#endif
-#ifndef _defined_id_AidInit
-#define _defined_id_AidInit 1
-const DMI::AtomicID AidInit(-1038);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MTGatewayWP.h:16
-const int AidInit_int = -1038;
 #endif
 #ifndef _defined_id_AidInput
 #define _defined_id_AidInput 1
@@ -192,6 +142,11 @@ const int AidLower_int = -1218;
 #define _defined_id_AidLowest 1
 const DMI::AtomicID AidLowest(-1237);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:14
 const int AidLowest_int = -1237;
+#endif
+#ifndef _defined_id_AidMT
+#define _defined_id_AidMT 1
+const DMI::AtomicID AidMT(-1604);                 // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45
+const int AidMT_int = -1604;
 #endif
 #ifndef _defined_id_AidMap
 #define _defined_id_AidMap 1
@@ -233,21 +188,6 @@ const int AidOutput_int = -1241;
 const DMI::AtomicID AidParameters(-1235);         // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
 const int AidParameters_int = -1235;
 #endif
-#ifndef _defined_id_AidPause
-#define _defined_id_AidPause 1
-const DMI::AtomicID AidPause(-1245);              // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
-const int AidPause_int = -1245;
-#endif
-#ifndef _defined_id_AidPaused
-#define _defined_id_AidPaused 1
-const DMI::AtomicID AidPaused(-1234);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
-const int AidPaused_int = -1234;
-#endif
-#ifndef _defined_id_AidPlayback
-#define _defined_id_AidPlayback 1
-const DMI::AtomicID AidPlayback(-1542);           // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/FileSink.h:12
-const int AidPlayback_int = -1542;
-#endif
 #ifndef _defined_id_AidPost
 #define _defined_id_AidPost 1
 const DMI::AtomicID AidPost(-1231);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:12
@@ -263,6 +203,11 @@ const int AidPrefix_int = -1214;
 const DMI::AtomicID AidPriority(-1244);           // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:14
 const int AidPriority_int = -1244;
 #endif
+#ifndef _defined_id_AidQueue
+#define _defined_id_AidQueue 1
+const DMI::AtomicID AidQueue(-1469);              // from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:8
+const int AidQueue_int = -1469;
+#endif
 #ifndef _defined_id_AidReceive
 #define _defined_id_AidReceive 1
 const DMI::AtomicID AidReceive(-1236);            // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:12
@@ -272,16 +217,6 @@ const int AidReceive_int = -1236;
 #define _defined_id_AidRecord 1
 const DMI::AtomicID AidRecord(-1541);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:33
 const int AidRecord_int = -1541;
-#endif
-#ifndef _defined_id_AidRequest
-#define _defined_id_AidRequest 1
-const DMI::AtomicID AidRequest(-1226);            // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
-const int AidRequest_int = -1226;
-#endif
-#ifndef _defined_id_AidResult
-#define _defined_id_AidResult 1
-const DMI::AtomicID AidResult(-1242);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
-const int AidResult_int = -1242;
 #endif
 #ifndef _defined_id_AidResume
 #define _defined_id_AidResume 1
@@ -293,35 +228,10 @@ const int AidResume_int = -1239;
 const DMI::AtomicID AidScope(-1041);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/LoggerWP.h:9
 const int AidScope_int = -1041;
 #endif
-#ifndef _defined_id_AidSink
-#define _defined_id_AidSink 1
-const DMI::AtomicID AidSink(-1470);               // from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:7
-const int AidSink_int = -1470;
-#endif
-#ifndef _defined_id_AidStart
-#define _defined_id_AidStart 1
-const DMI::AtomicID AidStart(-1106);              // from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:21
-const int AidStart_int = -1106;
-#endif
-#ifndef _defined_id_AidState
-#define _defined_id_AidState 1
-const DMI::AtomicID AidState(-1072);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:25
-const int AidState_int = -1072;
-#endif
-#ifndef _defined_id_AidStatus
-#define _defined_id_AidStatus 1
-const DMI::AtomicID AidStatus(-1209);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
-const int AidStatus_int = -1209;
-#endif
-#ifndef _defined_id_AidStop
-#define _defined_id_AidStop 1
-const DMI::AtomicID AidStop(-1247);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
-const int AidStop_int = -1247;
-#endif
-#ifndef _defined_id_AidString
-#define _defined_id_AidString 1
-const DMI::AtomicID AidString(-48);               // from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:109
-const int AidString_int = -48;
+#ifndef _defined_id_AidSize
+#define _defined_id_AidSize 1
+const DMI::AtomicID AidSize(-1255);               // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
+const int AidSize_int = -1255;
 #endif
 #ifndef _defined_id_AidSuspend
 #define _defined_id_AidSuspend 1
@@ -332,11 +242,6 @@ const int AidSuspend_int = -1219;
 #define _defined_id_AidText 1
 const DMI::AtomicID AidText(-1055);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:30
 const int AidText_int = -1055;
-#endif
-#ifndef _defined_id_AidThrow
-#define _defined_id_AidThrow 1
-const DMI::AtomicID AidThrow(-1205);              // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppAgent.h:10
-const int AidThrow_int = -1205;
 #endif
 #ifndef _defined_id_AidTile
 #define _defined_id_AidTile 1
@@ -353,25 +258,10 @@ const int AidType_int = -1085;
 const DMI::AtomicID AidUnmapped(-1212);           // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:13
 const int AidUnmapped_int = -1212;
 #endif
-#ifndef _defined_id_AidUpdate
-#define _defined_id_AidUpdate 1
-const DMI::AtomicID AidUpdate(-1229);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
-const int AidUpdate_int = -1229;
-#endif
-#ifndef _defined_id_AidValue
-#define _defined_id_AidValue 1
-const DMI::AtomicID AidValue(-1233);              // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
-const int AidValue_int = -1233;
-#endif
 #ifndef _defined_id_AidVis
 #define _defined_id_AidVis 1
 const DMI::AtomicID AidVis(-1240);                // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/VisAgentVocabulary.h:10
 const int AidVis_int = -1240;
-#endif
-#ifndef _defined_id_AidWait
-#define _defined_id_AidWait 1
-const DMI::AtomicID AidWait(-1206);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
-const int AidWait_int = -1206;
 #endif
 #ifndef _defined_id_AidWarning
 #define _defined_id_AidWarning 1

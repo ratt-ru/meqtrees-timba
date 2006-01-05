@@ -1,12 +1,10 @@
 lib_LTLIBRARIES = libapputils.la
 
-DOCHDRS = VisPipe.h ApplicationBase.h VisRepeater.h \
-          MSInputSink.h MSOutputSink.h MSVisAgentVocabulary.h
+DOCHDRS = MSInputChannel.h MSOutputChannel.h MSChannelVocabulary.h 
 
 libapputils_la_SOURCES = AID-AppUtils-Registry.cc \
-  ApplicationBase.cc VisPipe.cc VisRepeater.cc \
-  MSInputSink.cc MSOutputSink.cc \
-  MSVisAgentDebugContext.cc 
+  MSInputChannel.cc MSOutputChannel.cc \
+  MSChannelDebugContext.cc 
 
 glishdir = $(libexecdir)/glish/appagent
 dist_glish_SCRIPTS = app_proxy.g app_defaults.g

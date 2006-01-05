@@ -73,6 +73,7 @@ void ReqSeq::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 int ReqSeq::pollChildren (Result::Ref &resref,const Request &req)
 {
   setExecState(CS_ES_POLLING);
+  resref.detach();
   // in cells-only mode, process cell-less requests just like a regular Node
   if( cells_only_ && !req.hasCells() )
     return Node::pollChildren(resref,req);
@@ -85,21 +86,35 @@ int ReqSeq::pollChildren (Result::Ref &resref,const Request &req)
   {
     Result::Ref res;
     // increment sequence ID for subsequent children
-    if( i )
+    if( i && seq_depmask_ )
     {
       RqId::incrSubId(rqid,seq_depmask_);
       reqref().setId(rqid);
     }
-    // poll children
+    // poll current child
     int code = getChild(i).execute(res,*reqref);
     cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",code)<<endl;
-    // a wait is returne immediately
-    result_code_ |= code;
+    // a wait is returned immediately
     if( code&RES_WAIT )
     {
       timers_.children.stop();
       return result_code_;
     }
+    // handle child fail according to mode
+    if( code&RES_FAIL )
+    {
+      // if fail propagation is on, then abort polling and return failed result
+      if( propagate_child_fails_ )
+      {
+        resref.xfer(res);
+        timers_.children.stop();
+        return result_code_|code;
+      }
+      // if fail propagation is off -- ignore the fail if not the selected child
+      else if( i != which_result_ )
+        code &= ~RES_FAIL;
+    }
+    result_code_ |= code;
     // note that we only cache the result if the request has cells in it,
     // since otherwise our getResult is not called at all
     if( i == which_result_ && req.hasCells() )
@@ -120,7 +135,7 @@ int ReqSeq::discoverSpids (Result::Ref &ref,
   // ignore child results since we don't keep any, but return the result
   // we were holding from the active child
   ref.xfer(result_);
-  return 0;
+  return result_code_;
 }
 
 int ReqSeq::getResult (Result::Ref &resref, 

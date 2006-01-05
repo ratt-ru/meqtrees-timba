@@ -154,10 +154,9 @@ class NodeBrowser(HierBrowser,GriddedPlugin):
 class meqserver_gui (app_proxy_gui):
 
   StatePixmaps = { None: pixmaps.stop, \
-    treebrowser.AppState.Idle: pixmaps.grey_cross,
-    treebrowser.AppState.Stream: pixmaps.spigot,
-    treebrowser.AppState.Execute: pixmaps.gear,
-    treebrowser.AppState.Debug: pixmaps.breakpoint };
+    'idle': pixmaps.grey_cross,
+    'executing': pixmaps.gear,
+    'debug': pixmaps.breakpoint };
 
   def __init__(self,app,*args,**kwargs):
     meqds.set_meqserver(app);
@@ -169,9 +168,9 @@ class meqserver_gui (app_proxy_gui):
     # add handlers for various application events
     self._add_ce_handler("node.result",self.ce_NodeResult);
     self._add_ce_handler("process.status",self.ce_ProcessStatus);
-    self._add_ce_handler("app.result.node.get.state",self.ce_NodeState);
-    self._add_ce_handler("app.result.get.node.list",self.ce_LoadNodeList);
-    self._add_ce_handler("app.update.status.num.tiles",self.ce_UpdateAppStatus);
+    self._add_ce_handler("result.node.get.state",self.ce_NodeState);
+    self._add_ce_handler("result.get.node.list",self.ce_LoadNodeList);
+    self._add_ce_handler("vis.num.tiles",self.ce_UpdateNumTiles);
     
   def populate (self,main_parent=None,*args,**kwargs):
     # init icons
@@ -1093,12 +1092,15 @@ class meqserver_gui (app_proxy_gui):
     except AttributeError: pass;
     else: self.treebrowser.update_forest_status(fst);
     
-  def ce_UpdateAppStatus (self,ev,status):
-    try: nt = status.num_tiles;
-    except AttributeError: pass;
+  def ce_UpdateNumTiles (self,ev,rec):
+    try: nt = rec.num_tiles;
+    except AttributeError: return;
+    try: 
+      msg = "node '"+rec.node+"' streaming data";
+    except AttributeError: 
+      msg = "streaming data";
     else:
-      if self.app.state == treebrowser.AppState.Stream:
-        self.status_label.setText(' streaming data (%d tiles) ' % (nt,) ); 
+      self.status_label.setText(' %s (%d tiles) ' % (msg,nt,) ); 
         
   def update_node_state (self,node,event=None):
     meqds.reclassify_nodestate(node);
@@ -1125,8 +1127,8 @@ class meqserver_gui (app_proxy_gui):
 
   def _update_app_state (self):
     app_proxy_gui._update_app_state(self);
-    if self.app.state == treebrowser.AppState.Stream:
-      self.ce_UpdateAppStatus(None,self.app.status);
+    # if self.app.state == treebrowser.AppState.Stream:
+    #   self.ce_UpdateAppStatus(None,self.app.status);
     self.treebrowser.update_app_state(self.app.state);
 
 # register NodeBrowser at low priority for now (still experimental),

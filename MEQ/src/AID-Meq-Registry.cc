@@ -253,6 +253,8 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1604,"MT")+
         AtomicID::registerId(-1606,"Propagate")+
         AtomicID::registerId(-1605,"Fails")+
+        AtomicID::registerId(-1056,"Error")+
+        AtomicID::registerId(-1103,"Data")+
         AtomicID::registerId(-1283,"MeqFunction")+
         TypeInfoReg::addToRegistry(-1283,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1283,__construct_MeqFunction)+

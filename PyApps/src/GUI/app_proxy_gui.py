@@ -804,6 +804,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
   def _update_app_state (self):
     state = self.app.statestr.lower();
     self.status_label.setText(' '+state+' '); 
+    _dprint(2,'app.state is',self.app.state,', setting pixmap');
     pm = self.StatePixmaps.get(self.app.state,self.StatePixmap_Default);
     self.status_icon.setPixmap(pm.pm());
     # update window title        

@@ -10,58 +10,6 @@
     {
       static int res = 
 
-        AtomicID::registerId(-1220,"BOIO")+
-        AtomicID::registerId(-1224,"File")+
-        AtomicID::registerId(-1122,"Name")+
-        AtomicID::registerId(-1215,"Mode")+
-        AtomicID::registerId(-1080,"Event")+
-        AtomicID::registerId(-1103,"Data")+
-        AtomicID::registerId(-1205,"Throw")+
-        AtomicID::registerId(-1056,"Error")+
-        AtomicID::registerId(-1201,"Header")+
-        AtomicID::registerId(-1135,"Footer")+
-        AtomicID::registerId(-1542,"Playback")+
-        AtomicID::registerId(-1203,"App")+
-        AtomicID::registerId(-1142,"Control")+
-        AtomicID::registerId(-1235,"Parameters")+
-        AtomicID::registerId(-1038,"Init")+
-        AtomicID::registerId(-1106,"Start")+
-        AtomicID::registerId(-1247,"Stop")+
-        AtomicID::registerId(-1245,"Pause")+
-        AtomicID::registerId(-1239,"Resume")+
-        AtomicID::registerId(-1227,"Halt")+
-        AtomicID::registerId(-1225,"Always")+
-        AtomicID::registerId(-1206,"Wait")+
-        AtomicID::registerId(-1210,"Notify")+
-        AtomicID::registerId(-1213,"Auto")+
-        AtomicID::registerId(-1230,"Exit")+
-        AtomicID::registerId(-1164,"Delay")+
-        AtomicID::registerId(-1072,"State")+
-        AtomicID::registerId(-48,"String")+
-        AtomicID::registerId(-1209,"Status")+
-        AtomicID::registerId(-1226,"Request")+
-        AtomicID::registerId(-1183,"Field")+
-        AtomicID::registerId(-1233,"Value")+
-        AtomicID::registerId(-1208,"ID")+
-        AtomicID::registerId(-1234,"Paused")+
-        AtomicID::registerId(-1204,"Command")+
-        AtomicID::registerId(-1229,"Update")+
-        AtomicID::registerId(-1242,"Result")+
-        AtomicID::registerId(-1228,"AppAgent")+
-        AtomicID::registerId(-1055,"Text")+
-        AtomicID::registerId(-1496,"Category")+
-        AtomicID::registerId(-1495,"Destination")+
-        AtomicID::registerId(-1543,"Address")+
-        AtomicID::registerId(-1223,"Normal")+
-        AtomicID::registerId(-1493,"Warning")+
-        AtomicID::registerId(-1497,"Critical")+
-        AtomicID::registerId(-1494,"Info")+
-        AtomicID::registerId(-1482,"Debug")+
-        AtomicID::registerId(-1541,"Record")+
-        AtomicID::registerId(-1036,"Input")+
-        AtomicID::registerId(-1241,"Output")+
-        AtomicID::registerId(-1470,"Sink")+
-        AtomicID::registerId(-1085,"Type")+
         AtomicID::registerId(-1243,"Agent")+
         AtomicID::registerId(-1216,"Map")+
         AtomicID::registerId(-1236,"Receive")+
@@ -79,11 +27,41 @@
         AtomicID::registerId(-1237,"Lowest")+
         AtomicID::registerId(-1218,"Lower")+
         AtomicID::registerId(-1238,"Low")+
+        AtomicID::registerId(-1223,"Normal")+
         AtomicID::registerId(-1246,"High")+
         AtomicID::registerId(-1222,"Higher")+
+        AtomicID::registerId(-1220,"BOIO")+
+        AtomicID::registerId(-1224,"File")+
+        AtomicID::registerId(-1122,"Name")+
+        AtomicID::registerId(-1215,"Mode")+
+        AtomicID::registerId(-1080,"Event")+
+        AtomicID::registerId(-1103,"Data")+
+        AtomicID::registerId(-1228,"AppAgent")+
+        AtomicID::registerId(-1055,"Text")+
+        AtomicID::registerId(-1496,"Category")+
+        AtomicID::registerId(-1495,"Destination")+
+        AtomicID::registerId(-1543,"Address")+
+        AtomicID::registerId(-1210,"Notify")+
+        AtomicID::registerId(-1493,"Warning")+
+        AtomicID::registerId(-1056,"Error")+
+        AtomicID::registerId(-1497,"Critical")+
+        AtomicID::registerId(-1494,"Info")+
+        AtomicID::registerId(-1482,"Debug")+
+        AtomicID::registerId(-1541,"Record")+
+        AtomicID::registerId(-1036,"Input")+
+        AtomicID::registerId(-1241,"Output")+
+        AtomicID::registerId(-1165,"Channel")+
+        AtomicID::registerId(-1085,"Type")+
+        AtomicID::registerId(-1604,"MT")+
+        AtomicID::registerId(-1469,"Queue")+
+        AtomicID::registerId(-1255,"Size")+
         AtomicID::registerId(-1240,"Vis")+
+        AtomicID::registerId(-1235,"Parameters")+
+        AtomicID::registerId(-1201,"Header")+
+        AtomicID::registerId(-1135,"Footer")+
         AtomicID::registerId(-1232,"Tile")+
         AtomicID::registerId(-1219,"Suspend")+
+        AtomicID::registerId(-1239,"Resume")+
     0;
     return res;
   }

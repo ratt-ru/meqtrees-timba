@@ -23,8 +23,9 @@
 #ifndef DMI_CountedRefBase_h
 #define DMI_CountedRefBase_h 1
 
-// debug build uses linked list
-// (optimized should use plain ref counts)
+// define this to use a linked list instead of plain ref counts
+// note that linked lists are being phased out, and haven't been tested
+// for thread safety too well
 // #define COUNTEDREF_LINKED_LIST 1
 
 #include <Common/Debug.h>
@@ -34,13 +35,6 @@
 #include <Common/lofar_iostream.h>
 // Uncomment this to enable verification calls during countedref operations
 // #define COUNTEDREF_VERIFY 1
-
-#ifdef USE_THREADS
-  #define threadLock(t) Thread::Mutex::Lock t##_lock(t->cref_mutex_)
-#else
-  #define threadLock(t) 
-#endif
-
 
 namespace DMI 
 {
@@ -56,19 +50,25 @@ namespace DMI
 //## Writability of the target is determined by two mechanisms: 
 //## copy-on-write (default) or sharing.
 //## 1. Default case: COW, anon target:
-//##    * isWritable() always true
 //##    * isDirectlyWritable() true if we are the sole ref to that target
 //##    * dereferencing for writing clones new target if not directly writable
 //## 2. COW, external target:
 //##    * Initial writability determined by flags when attach()ed.
-//##    * isWritable() always true
 //##    * isDirectlyWritable() true if we are the sole ref to that target_ and
 //##      the target is initially writable
 //##    * dereferencing for writing clones new target if not directly writable.
 //##      Note that new target automatically becomes anon.
-//## 3. Shared 
+//## 3. SHARED 
 //##    * Always writable
+//##    * All other refs must be attached as SHARED too.
 //##    
+//## Thread safety:
+//##   Refs themselves are NOT THREAD SAFE. Ref targets are. What this means
+//##   is:
+//##   * Where two threads may be accessing the same ref, make sure you 
+//##     lock a mutex (presumably on the ref container).
+//##   * Two threads may share a target via their own refs, in this case 
+//##     accessing the target (including COW) is thread-safe.
   
 class CountedRefBase 
 {
@@ -78,7 +78,12 @@ class CountedRefBase
 
   public:
     //##ModelId=3C0CE1C10277
-      CountedRefBase();
+      CountedRefBase()
+      {
+        empty();
+        dprintf(5)("default constructor\n");
+      }
+      
 
       //##ModelId=3DB9345D022B
     //##Documentation
@@ -111,18 +116,29 @@ class CountedRefBase
       //##ModelId=3C0CDEE2015A
       //##Documentation
       //## Returns true if reference is valid (i.e. has a target).
-      bool valid () const;
+      bool valid () const
+      { return target_ != 0; }
 
       //##ModelId=3C0CDEE2015B
       //##Documentation
       //## Dereferences, returns const reference to target.
-      const CountedRefTarget* getTarget () const;
+      const CountedRefTarget* getTarget () const
+      {
+        FailWhen( !valid(),"dereferencing invalid ref");
+        return target_;
+      }
 
       //##ModelId=3C0CE2970094
       //##Documentation
       //## Dereferences to writable target (exception if shared and 
       //## not writable, else does copy-on-write as needed)
-      CountedRefTarget* getTargetWr ();
+      CountedRefTarget* getTargetWr ()
+      {
+        FailWhen( !valid(),"dereferencing invalid ref");
+        if( !isDirectlyWritable() )
+          privatize();  // do COW
+        return target_;
+      }
 
       //##ModelId=3C0CDEE20162
     //##Documentation
@@ -131,13 +147,16 @@ class CountedRefBase
     //## by calling privatize() with the same flags. 
     //## DMI::LOCKED will lock the copy. 
     //## DMI::SHARED or DMI::COW will change to shared or cow ref.
-      CountedRefBase copy (int flags = 0, int depth = -1) const;
+      CountedRefBase copy (int flags = 0, int depth = -1) const
+      { return CountedRefBase(*this,flags|DMI::COPYREF,depth); }
+
     //##Documentation
     //## Transfer the reference in-place, by returning a copy and detaching
     //## this ref. flags/depth have same meaning as copy()
     //## DMI::SHARED or DMI::COW will enforce shared or cow ref (default
     //## inherits from xferred)
-      CountedRefBase xfer (int flags = 0, int depth = -1) const;
+      CountedRefBase xfer (int flags = 0, int depth = -1) 
+      { return CountedRefBase(*this,flags|DMI::XFER,depth); }
 
       //##ModelId=3C0CDEE2018A
     //##Documentation
@@ -166,12 +185,24 @@ class CountedRefBase
       //##ModelId=3C187D92023F
       //##Documentation
       //## Locks the ref. Locked refs can't be detached or transferred.
-      CountedRefBase& lock ();
+      CountedRefBase& lock ()
+      {
+        dprintf(3)("locking\n");
+        locked_ = true;
+        return *this;
+      }
+ 
 
       //##ModelId=3C187D9A022C
       //##Documentation
       //## Unlocks the ref.
-      CountedRefBase& unlock ();
+      CountedRefBase& unlock ()
+      {
+        dprintf(3)("unlocking\n");
+        locked_ = false;
+        return *this;
+      }
+
 
       //##ModelId=3C18873600E9
       //##Documentation
@@ -197,35 +228,36 @@ class CountedRefBase
       //##ModelId=3C0CDEE20178
       //##Documentation
       //## Attaches to target_, with READONLY forced (otherwise same as above)
-      CountedRefBase& attach (const CountedRefTarget* targ, int flags = 0);
+      CountedRefBase& attach (const CountedRefTarget* targ, int flags = 0)
+      {
+        // delegate to other version of attach, with READONLY flag set
+        FailWhen(flags&DMI::WRITE,"can't attach writable ref to const object");
+        return attach(const_cast<CountedRefTarget*>(targ),flags|DMI::READONLY);
+      }
 
       //##ModelId=3C1612A60137
       //##Documentation
       //## Detaches ref from its target. Can't be called if ref is locked.
       void detach ();
 
-      //##ModelId=3DB9345F0180
-      //##Documentation
-      //## Can ref target be written to? For COW refs, always true.
-      //## For shared refs, determined by access rights.
-      bool isWritable () const;
-
-      //##ModelId=3C19F62B0137
-      //##Documentation
-      //## Alias for isWritable().
-      bool isWrite () const
-      { return isWritable(); }
-
       //##Documentation
       //## Can ref target be written to without cloning? For COW refs,
       //## true if ref is only ref to target and writable is true.
       //## For shared refs, awlays true
-      bool isDirectlyWritable () const;
+      bool isDirectlyWritable () const
+      { return ( writable_ && isOnlyRef() ) || shared_; }
 
       //##ModelId=3C583B9F03B8
       //##Documentation
       //## Returns true if there are no other refs to target
-      bool isOnlyRef () const;
+      bool isOnlyRef () const
+      {
+      #ifdef COUNTEDREF_LINKED_LIST
+        return !next_ && !prev_;
+      #else
+        return !target_ || target_->targetReferenceCount() == 1;
+      #endif
+      }
 
       //##ModelId=3DB9345F0072
       bool isLocked () const
@@ -304,7 +336,14 @@ class CountedRefBase
       //##ModelId=3C161C330291
       //##Documentation
       //## Nulls internals.
-      void empty ();
+      void empty ()
+      {
+        target_ = 0; 
+      #ifdef COUNTEDREF_LINKED_LIST
+        next_ = prev_ = 0;
+      #endif
+        locked_ = writable_ = shared_ = false;
+      }
 
     // Data Members for Associations
 
@@ -312,6 +351,9 @@ class CountedRefBase
       //##Documentation
       //## Reference target_
       mutable CountedRefTarget *target_;
+      
+      // ref mutex
+      mutable Thread::Mutex mutex_;
 
   private:
 #ifdef COUNTEDREF_LINKED_LIST
@@ -349,13 +391,6 @@ inline std::ostream & operator << (std::ostream &str,const CountedRefBase &ref)
 {
   ref.print(str);
   return str;
-}
-
-//##ModelId=3C0CE1C10277
-inline CountedRefBase::CountedRefBase()
-{
-  empty();
-  dprintf(5)("default constructor\n");
 }
 
 //##ModelId=3DB9345D022B
@@ -402,94 +437,6 @@ inline CountedRefBase & CountedRefBase::operator=(const CountedRefBase &right)
   return *this;
 }
 
-//##ModelId=3C0CDEE2015A
-inline bool CountedRefBase::valid () const
-{
-  return target_ != 0;
-}
-
-//##ModelId=3DB9345F0180
-inline bool CountedRefBase::isWritable () const
-{
-  return true; // shared_ || writable_;
-}
-
-inline bool CountedRefBase::isDirectlyWritable () const
-{
-  return ( writable_ && isOnlyRef() ) || shared_;
-}
-
-//##ModelId=3C0CDEE2015B
-inline const CountedRefTarget* CountedRefBase::getTarget () const
-{
-  FailWhen( !valid(),"dereferencing invalid ref");
-  return target_;
-}
-
-//##ModelId=3C0CE2970094
-inline CountedRefTarget* CountedRefBase::getTargetWr () 
-{
-  FailWhen( !valid(),"dereferencing invalid ref");
-  FailWhen( !isWritable(),"r/w access violation: non-const dereference");
-  if( !isDirectlyWritable() )
-    privatize();  // do COW
-  return target_;
-}
-
-//##ModelId=3C0CDEE20162
-inline CountedRefBase CountedRefBase::copy (int flags, int depth) const
-{
-  return CountedRefBase(*this,flags|DMI::COPYREF,depth);
-}
-
-inline CountedRefBase CountedRefBase::xfer (int flags, int depth) const
-{
-  return CountedRefBase(*this,flags|DMI::XFER,depth);
-}
-
-//##ModelId=3C187D92023F
-inline CountedRefBase& CountedRefBase::lock ()
-{
-  dprintf(3)("locking\n");
-  locked_ = true;
-  return *this;
-}
-
-//##ModelId=3C187D9A022C
-inline CountedRefBase& CountedRefBase::unlock ()
-{
-  dprintf(3)("unlocking\n");
-  locked_ = false;
-  return *this;
-}
-
-//##ModelId=3C0CDEE20178
-inline CountedRefBase& CountedRefBase::attach (const CountedRefTarget* targ, int flags)
-{
-  // delegate to other version of attach, with READONLY flag set
-  FailWhen(flags&DMI::WRITE,"can't attach writable ref to const object");
-  return attach(const_cast<CountedRefTarget*>(targ),flags|DMI::READONLY);
-}
-
-//##ModelId=3C161C330291
-inline void CountedRefBase::empty ()
-{
-  target_ = 0; 
-#ifdef COUNTEDREF_LINKED_LIST
-  next_ = prev_ = 0;
-#endif
-  locked_ = writable_ = shared_ = false;
-}
-
-//##ModelId=3DB93460004B
-inline bool CountedRefBase::isOnlyRef () const
-{
-#ifdef COUNTEDREF_LINKED_LIST
-  return !next_ && !prev_;
-#else
-  return !target_ || target_->targetReferenceCount() == 1;
-#endif
-}
 
 #undef threadLock
 

@@ -335,7 +335,10 @@ void HIID::addString (const string &str,const string &sepset,bool allow_literal)
           string name(str.substr(p0,p1-p0));
           int aid;
           if( name[0] == '$' )
+          {
+            allow_literal = true;
             makeLiteral(strlowercase(name.substr(1)),size());
+          }
           else if( AtomicID::findName(aid,name) )
             push_back(AtomicID(aid));
           else if( allow_literal ) // convert to literal form

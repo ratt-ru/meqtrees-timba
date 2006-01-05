@@ -117,6 +117,41 @@ Node::~Node()
 {
 }
 
+ObjRef Node::_dummy_objref;
+
+void Node::postEvent (const HIID &type,const ObjRef &data)
+{ 
+  forest().postEvent(type,data); 
+}
+
+void Node::postMessage (const string &msg,const ObjRef &data,AtomicID type)
+{
+  ObjRef ref;
+  DMI::Record *prec;
+  // if data is a record, place message into it, else create
+  // new record and nest data in it
+  if( data.valid() )
+  {
+    if( data->objectType() == TpDMIRecord )
+    {
+      ref = data;
+      prec = ref.ref_cast<DMI::Record>().dewr_p();
+    }
+    else
+    {
+      ref <<= prec = new DMI::Record;
+      (*prec)[AidData] = data;
+    }
+  }
+  else
+    ref <<= prec = new DMI::Record;
+  // add node name and message
+  (*prec)[FNode] = name();
+  (*prec)[type] = msg;
+  // post to forest
+  forest().postEvent(type,ref);
+}
+
 void Node::setDependMask (int mask)
 {
   depend_mask_ = mask;
@@ -715,7 +750,8 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
 void Node::holdChildCaches (bool hold,int diffmask)
 {
   for( int i=0; i<numChildren(); i++ )
-    getChild(i).holdCache(hold && !(child_retcodes_[i]&diffmask) );
+    if( !child_disabled_[i] )
+      getChild(i).holdCache(hold && !(child_retcodes_[i]&diffmask) );
   for( int i=0; i<numStepChildren(); i++ )
     getStepChild(i).holdCache(hold && !(stepchild_retcodes_[i]&diffmask) );
 }
@@ -1247,10 +1283,22 @@ int Node::execute (Result::Ref &ref,const Request &req)
     timers_.getresult.stop();
   if( timers_.children.isRunning() )
     timers_.children.stop();
-    
-  int ret = cacheResult(ref,req,RES_FAIL) | RES_UPDATED;
+  int ret;
+  // any exceptions here need to be caught so that we clean up properly
+  try
+  {
+    ret = cacheResult(ref,req,RES_FAIL) | RES_UPDATED;
+  }
+  catch( ... )
+  {
+    setExecState(CS_ES_IDLE,
+          (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
+    exitExecute(ret);
+    throw;
+  }
+  // no error, return
   setExecState(CS_ES_IDLE,
-      (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
+        (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
   return exitExecute(ret);
 }
 

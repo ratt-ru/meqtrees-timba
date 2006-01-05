@@ -499,18 +499,16 @@ def _define_forest(ns):
 
 
 
-def create_inputrec(msname, tile_size=1500):
+def create_inputrec(msname, snippet_size=1500):
     inputrec=record()
 
     inputrec.ms_name          = msname
     inputrec.data_column_name = 'DATA'
-    inputrec.tile_size        = tile_size
+    inputrec.snippet_size        = snippet_size
     inputrec.selection = record(channel_start_index=25,
                                 channel_end_index=40,
                                 channel_increment=1,
                                 selection_string='')#'TIME_CENTROID < 4472026000')
-    inputrec.python_init = 'MAB_read_msvis_header.py'
-    
     return inputrec
 
 
@@ -545,7 +543,7 @@ def _test_forest(mqs, parent):
 
 def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=1500)
+    inputrec        = create_inputrec(msname, snippet_size=1500)
     outputrec       = create_outputrec()
 
     source_list,extra_sources = create_initial_source_model(extra_sources_filename='extra_sources.txt')
@@ -568,10 +566,11 @@ def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
-    mqs.init(record(mandate_regular_grid=False),\
-                    inputinit=inputrec, outputinit=outputrec)
-
     
+    req = meq.request();
+    req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
+    req.output = record(ms=outputrec);
+    mqs.execute('VisDataMux',req,wait=False);
     pass
 
 
@@ -584,7 +583,7 @@ def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
 
 def _tdl_job_phase_solution_with_given_fluxes_all(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=5)
+    inputrec        = create_inputrec(msname, snippet_size=5)
     outputrec       = create_outputrec()
 
     station_list = range(1,15)
@@ -608,9 +607,11 @@ def _tdl_job_phase_solution_with_given_fluxes_all(mqs, parent):
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
-    mqs.init(record(mandate_regular_grid=False),\
-                    inputinit=inputrec, outputinit=outputrec)
-
+    
+    req = meq.request();
+    req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
+    req.output = record(ms=outputrec);
+    mqs.execute('VisDataMux',req,wait=False);
     pass
 
 
@@ -626,7 +627,7 @@ def _tdl_job_phase_solution_with_given_fluxes_all(mqs, parent):
 
 def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=100)
+    inputrec        = create_inputrec(msname, snippet_size=100)
     outputrec       = create_outputrec()
 
     source_list  = create_initial_source_model()
@@ -650,9 +651,11 @@ def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
-    mqs.init(record(mandate_regular_grid=False),\
-                    inputinit=inputrec, outputinit=outputrec)
-
+    
+    req = meq.request();
+    req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
+    req.output = record(ms=outputrec);
+    mqs.execute('VisDataMux',req,wait=False);
     pass
 
 
@@ -661,7 +664,7 @@ def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
 
 def _tdl_job_phase_solution_with_given_fluxes_edge(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=10)
+    inputrec        = create_inputrec(msname, snippet_size=10)
     outputrec       = create_outputrec()
 
     source_list  = create_initial_source_model()
@@ -683,16 +686,18 @@ def _tdl_job_phase_solution_with_given_fluxes_edge(mqs, parent):
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
-    mqs.init(record(mandate_regular_grid=False),\
-                    inputinit=inputrec, outputinit=outputrec)
-
+    
+    req = meq.request();
+    req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
+    req.output = record(ms=outputrec);
+    mqs.execute('VisDataMux',req,wait=False);
     pass
 
 
 
 def _tdl_job_phase_solution_with_given_fluxes_centre(mqs, parent):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=10)
+    inputrec        = create_inputrec(msname, snippet_size=10)
     outputrec       = create_outputrec()
 
     source_list  = create_initial_source_model()
@@ -714,9 +719,11 @@ def _tdl_job_phase_solution_with_given_fluxes_centre(mqs, parent):
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
-    mqs.init(record(mandate_regular_grid=False),\
-                    inputinit=inputrec, outputinit=outputrec)
-
+    
+    req = meq.request();
+    req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
+    req.output = record(ms=outputrec);
+    mqs.execute('VisDataMux',req,wait=False);
     pass
 
 

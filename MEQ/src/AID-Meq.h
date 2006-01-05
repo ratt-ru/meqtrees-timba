@@ -148,6 +148,11 @@ const int AidCreate_int = -1312;
 const DMI::AtomicID AidCwd(-1553);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
 const int AidCwd_int = -1553;
 #endif
+#ifndef _defined_id_AidData
+#define _defined_id_AidData 1
+const DMI::AtomicID AidData(-1103);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
+const int AidData_int = -1103;
+#endif
 #ifndef _defined_id_AidDataset
 #define _defined_id_AidDataset 1
 const DMI::AtomicID AidDataset(-1376);            // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:39
@@ -237,6 +242,11 @@ const int AidEnd_int = -1276;
 #define _defined_id_AidEpsilon 1
 const DMI::AtomicID AidEpsilon(-1377);            // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
 const int AidEpsilon_int = -1377;
+#endif
+#ifndef _defined_id_AidError
+#define _defined_id_AidError 1
+const DMI::AtomicID AidError(-1056);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
+const int AidError_int = -1056;
 #endif
 #ifndef _defined_id_AidErrors
 #define _defined_id_AidErrors 1

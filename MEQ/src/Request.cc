@@ -106,7 +106,6 @@ void Request::validateContent (bool)
     // request ID
     id_ = (*this)[FRequestId].as<HIID>(HIID());
     next_id_ = (*this)[FNextRequestId].as<HIID>(HIID());
-    FailWhen(evalMode()>=0 && !hasCells(),"request type "+requestType().toString()+" must have a Cells");
     // rider
     validateRider();
   }

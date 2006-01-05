@@ -362,6 +362,7 @@ void * WPInterface::workerThread ()
 //##ModelId=3DB937210093
 void * WPInterface::start_workerThread (void *pwp)
 {
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,0);
   return static_cast<WPInterface*>(pwp)->workerThread();
 }
 

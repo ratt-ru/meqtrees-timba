@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
-# Original file name: /home/oms/LOFAR/Timba/MeqServer/src/defrecs_MeqServer.g
-# Generated on Sun Dec 11 18:06:00 CET 2005
+# Original file name: /home/oms/alt/LOFAR/Timba/MeqServer/src/defrecs_MeqServer.g
+# Generated on Mon Jan  2 18:18:05 CET 2006
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
@@ -8,7 +8,7 @@
 # 
 #
 # ---------- class MeqSink
-# generated from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h
+# generated from /home/oms/alt/LOFAR/Timba/MeqServer/src/Sink.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'A MeqSink is attached to a VisAgent data source. A MeqSink represents \
@@ -42,7 +42,7 @@ r.flag_bit::description := 'Output flag bit. If non-0, overrides flag behaviour 
 _meqdefrec_map.MeqSink := r;
 #
 # ---------- class MeqSpigot
-# generated from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h
+# generated from /home/oms/alt/LOFAR/Timba/MeqServer/src/Spigot.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'A MeqSpigot is attached to a VisAgent data source, and represents \

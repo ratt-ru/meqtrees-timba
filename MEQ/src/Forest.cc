@@ -59,6 +59,7 @@ Forest::Forest ()
   breakpoints = breakpoints_ss = 0;
   node_status_callback = 0;
   node_breakpoint_callback = 0;
+  event_callback = 0;
   debug_level_ = 0;
   // default cache policy
   cache_policy_ = Node::CACHE_SMART;

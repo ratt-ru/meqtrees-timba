@@ -34,16 +34,6 @@ namespace DMI
   #define VERIFY 
 #endif
 
-// The threadLock(target_) macro sets a lock on the target_'s mutex, by instantiating
-// a Mutex::Lock object. The lock will be released when the object goes
-// out of scope.
-// If compiled w/o thread support, this is defined as nothing.
-#ifdef USE_THREADS
-  #define threadLock(t) Thread::Mutex::Lock _thread_lock(t->cref_mutex_)
-#else
-  #define threadLock(t) 
-#endif
-
 // Note that CRefs themselves are not thread-safe, but target_s are.
 // I.e. different threads should never access the same CRef, but both
 // can hold different refs to the same target_.
@@ -61,7 +51,7 @@ InitDebugContext(CountedRefBase,"CRef");
 //##ModelId=3DB9346500B5
 void CountedRefBase::cloneTarget (int flags,int depth) const
 {
-  threadLock(target_);
+  Thread::Mutex::Lock target_lock(target_->cref_mutex_);
   if( !valid() )
     return;
   VERIFY;
@@ -105,7 +95,7 @@ void CountedRefBase::verify (const CountedRefBase *start)
   const CountedRefTarget *target_ = start->target_;
   if( !target_ )
     return;
-  threadLock(target_);
+  Thread::Mutex::Lock target_lock(target_->cref_mutex_);
 #ifdef COUNTEDREF_LINKED_LIST
   // run through & verify ref chain
   const CountedRefBase *ref = target_->owner_ref_;
@@ -118,7 +108,9 @@ void CountedRefBase::verify (const CountedRefBase *start)
     if( ref == start )
       found_start = true;
     if( ref->next_ )
+    {
       Assert1(ref->next_->prev_ == ref);
+    }
     ref = ref->next_;
   }
   Assert1(found_start);
@@ -139,7 +131,7 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
     empty();
   else
   {
-    threadLock(other.target_);
+    Thread::Mutex::Lock other_target_lock(other.target_->cref_mutex_);
 #if COUNTEDREF_VERIFY
     other.verify();
 #endif
@@ -190,7 +182,7 @@ void CountedRefBase::xfer (CountedRefBase& other,int flags,int depth)
     empty();
   else
   {
-    threadLock(other.target_);
+    Thread::Mutex::Lock other_target_lock(other.target_->cref_mutex_);
 #if COUNTEDREF_VERIFY
     other.verify();
 #endif
@@ -209,7 +201,7 @@ void CountedRefBase::xfer (CountedRefBase& other,int flags,int depth)
     target_ = other.target_;
     VERIFY;
     // copy all fields
-    locked_ = false;
+    locked_ = flags&DMI::LOCKED;
     writable_ = other.writable_;
     if( flags&DMI::SHARED )
       shared_ = true;
@@ -227,7 +219,6 @@ void CountedRefBase::xfer (CountedRefBase& other,int flags,int depth)
       locked_ = false;
       privatize(flags,depth);
     }
-    locked_ = flags&DMI::LOCKED;
   }
   dprintf(3)("  is now %s\n",debug(-1));
 }
@@ -240,8 +231,8 @@ bool CountedRefBase::privatize (int flags, int depth)
   // All other flags are passed on. 
   const int mask_local_flags = DMI::LOCKED|DMI::UNLOCKED|DMI::SHARED|DMI::COW;
   FailWhen( !valid(),"can't privatize an invalid ref" );
-  dprintf1(2)("%s: privatizing to depth %d, target_:\n",debug(),flags&DMI::DEEP?-1:depth);
-  threadLock(target_);
+  dprintf1(2)("%s: privatizing to depth %d\n",debug(),flags&DMI::DEEP?-1:depth);
+  Thread::Mutex::Lock target_lock(target_->cref_mutex_);
   dprintf1(2)("  %s\n",target_->debug(2,"  "));
   // no cloning is done if the object is anon_ and writable_ and we are the only ref
   bool res = true;
@@ -298,7 +289,7 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   // If target_ is already referenced, check anon_/external for 
   // consistency with supplied flags.
   // Else, use flags to determine how to attach (anon_ by default).
-  threadLock(targ);
+  Thread::Mutex::Lock targ_lock(targ->cref_mutex_);
   flags = targ->modifyAttachFlags(flags);
   // if target is unattached, determine ownership
   if( !targ->isTargetAttached() )
@@ -340,7 +331,7 @@ void CountedRefBase::detach ()
   // locked_ refs can't be detached (only destroyed)
   FailWhen( isLocked(),"can't detach a locked_ ref");
   // delete object if anon_, and we are last ref to it
-  threadLock(target_);
+  Thread::Mutex::Lock target_lock(target_->cref_mutex_);
   VERIFY;
 #ifdef COUNTEDREF_LINKED_LIST
   if( !prev_ && !next_ ) 
@@ -351,7 +342,6 @@ void CountedRefBase::detach ()
       dprintf(3)("last ref, anon_ target_ will be deleted\n");
       CountedRefTarget *tmp = target_;
       empty();
-  #ifdef USE_THREADS
       // explicitly release target_ mutex prior to destroying it (otherwise,
       // we'll be destroying a locked_ mutex, which is in bad taste). Since
       // the target_ is anon_, no-one else can be legally referencing it at 
@@ -362,8 +352,7 @@ void CountedRefBase::detach ()
       // itself to the target before we can clear ourselves; we then proceed
       // to delete the target from under the other ref. The solution is to
       // call empty() before releasing the lock, see above.
-      _thread_lock.release();
-  #endif      
+      target_lock.release();
       delete tmp;
       return;
     }
@@ -388,7 +377,7 @@ void CountedRefBase::detach ()
       CountedRefTarget *tmp = target_;
       empty();
   #ifdef USE_THREADS
-      _thread_lock.release();
+      target_lock.release();
   #endif      
       delete tmp;
       return;
@@ -429,10 +418,9 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
   {
     if( valid() )
     {
-      Debug::appendf(out,"%c%c%c%c%c",
+      Debug::appendf(out,"%c%c%c%c",
                          isAnonTarget() ? 'A' : '-', 
                          isSharedTarget() ? 'S' : '-', 
-                         isWritable() ? 'w' : '-', 
                          isDirectlyWritable() ? 'W' : '-', 
                          isLocked() ? 'L' : '-');
 #ifdef COUNTEDREF_LINKED_LIST

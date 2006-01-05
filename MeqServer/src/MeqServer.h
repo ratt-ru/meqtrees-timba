@@ -3,20 +3,21 @@
 
 #include <DMI/Events.h>
 #include <MEQ/Forest.h>
-#include <AppUtils/VisPipe.h>
+#include <AppAgent/EventChannel.h>
+#include <MeqServer/AID-MeqServer.h>
 #include <MeqServer/VisDataMux.h>
-#include <AppUtils/VisRepeater.h>
 
 #pragma aidgroup MeqServer    
 #pragma aid MeqClient
-#pragma aid Node Name NodeIndex MeqServer
+#pragma aid Node Name NodeIndex MeqServer Meq 
 #pragma aid Create Delete Get Set State Request Resolve Child Children List Batch
 #pragma aid App Command Args Result Data Processing Error Message Code
 #pragma aid Execute Clear Cache Save Load Forest Recursive Forest Header Version 
 #pragma aid Publish Results Enable Disable Event Id Silent Idle Stream 
 #pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
 #pragma aid Get Forest Status Stack Running Changed All Disabled Publishing
-#pragma aid Python Init TDL Script File Source Serial
+#pragma aid Python Init TDL Script File Source Serial String
+#pragma aid Idle Executing Debug
     
 namespace Meq
 {
@@ -41,15 +42,26 @@ namespace Meq
 
 //##ModelId=3F5F195E013B
 //##Documentation
-class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
+class MeqServer : public DMI::EventRecepient
 {
   public:
     //##ModelId=3F5F195E0140
-    MeqServer();
+    MeqServer ();
+  
+    // attaches a control channel to this MeqServer
+    void attachControl (const AppAgent::EventChannel::Ref &channel)
+    { control_channel_ = channel; }
+    
+    virtual ~MeqServer ();
 
     //##ModelId=3F608106021C
-    virtual void run();
+    // runs command processing loop until Halt command is received or control 
+    // channel is closed
+    virtual void run ();
 
+    // halts the meqserver
+    void halt (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    
     // sets state
     void setForestState (DMI::Record::Ref &out,DMI::Record::Ref &in);
     // gets status + state record
@@ -101,12 +113,27 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     // executes one of the above commands, as specified by cmd
     DMI::Record::Ref executeCommand (const HIID &cmd,const ObjRef &argref);
     
+    // returns control channel
+    AppAgent::EventChannel & control ()
+    { return control_channel_(); }
+    
+    // callback for receiving an event
     virtual int receiveEvent (const EventIdentifier &evid,const ObjRef &,void *);
 
-    // posts a message or error event (with type==AidError) to the control agent
+    // posts a message or error event (with type==AidError) on the control channel
     void postMessage (const std::string &msg,const HIID &type = AidMessage,AtomicID category = AidNormal);
     
+    // error messages are posted with a type of Error and a Normal category by default
+    void postError (const std::string &msg,AtomicID category = AidNormal)
+    { postMessage(msg,AidError,category); }
+    
+    // posts an error message corresponding to exception
+    // error messages are posted with a type of Error and a Normal category by default
     void postError (const std::exception &exc,AtomicID category = AidNormal);
+    
+    // posts a generic event on the control channel
+    void postEvent (const HIID &type,const ObjRef &data = ObjRef());
+    void postEvent (const HIID &type,const DMI::Record::Ref &data);
     
     //##ModelId=3F5F195E0156
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
@@ -115,6 +142,15 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     LocalDebugContext;
 
   private:
+    // publishes state message to control channel
+    void publishState ();  
+      
+    // sets internal state and calls publishState(), returns old state
+    AtomicID setState (AtomicID state);
+    
+    AtomicID state () const
+    { return state_; }
+      
     // internal method called when creating or deleting a node
     void nodeCreated (Node &node);
     void nodeDeleted (Node &node);
@@ -134,6 +170,9 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     // and forest_state (level>1). If level==0, does nothing.
     void fillForestStatus  (DMI::Record &rec,int level=1);
       
+    // control channel
+    AppAgent::EventChannel::Ref control_channel_;
+    
     //##ModelId=3F5F218F02BD
     Forest forest;
     
@@ -167,12 +206,18 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     const Node * debug_next_node;
     bool  debug_continue;
     
+    bool running_;
+    
+    AtomicID state_;
+    
     
     static MeqServer *mqs_;
     
     static void mqs_reportNodeStatus (Node &node,int oldstat,int newstat);
 
     static void mqs_processBreakpoint (Node &node,int bpmask,bool global);
+    
+    static void mqs_postEvent (const HIID &type,const ObjRef &data);
     
 };
 

@@ -138,6 +138,11 @@ const int AidEvent_int = -1080;
 const DMI::AtomicID AidExecute(-1479);            // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:14
 const int AidExecute_int = -1479;
 #endif
+#ifndef _defined_id_AidExecuting
+#define _defined_id_AidExecuting 1
+const DMI::AtomicID AidExecuting(-1623);          // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:20
+const int AidExecuting_int = -1623;
+#endif
 #ifndef _defined_id_AidFile
 #define _defined_id_AidFile 1
 const DMI::AtomicID AidFile(-1224);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
@@ -232,6 +237,11 @@ const int AidMandate_int = -1486;
 #define _defined_id_AidMask 1
 const DMI::AtomicID AidMask(-1263);               // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 const int AidMask_int = -1263;
+#endif
+#ifndef _defined_id_AidMeq
+#define _defined_id_AidMeq 1
+const DMI::AtomicID AidMeq(-1622);                // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:12
+const int AidMeq_int = -1622;
 #endif
 #ifndef _defined_id_AidMeqClient
 #define _defined_id_AidMeqClient 1
@@ -462,6 +472,16 @@ const int AidStop_int = -1247;
 #define _defined_id_AidStream 1
 const DMI::AtomicID AidStream(-1268);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:12
 const int AidStream_int = -1268;
+#endif
+#ifndef _defined_id_AidString
+#define _defined_id_AidString 1
+const DMI::AtomicID AidString(-48);               // from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:109
+const int AidString_int = -48;
+#endif
+#ifndef _defined_id_AidSync
+#define _defined_id_AidSync 1
+const DMI::AtomicID AidSync(-1624);               // from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:11
+const int AidSync_int = -1624;
 #endif
 #ifndef _defined_id_AidTDL
 #define _defined_id_AidTDL 1

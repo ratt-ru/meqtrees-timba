@@ -333,10 +333,18 @@ _meqdomain_id = 0;
 def requestid (domain_id,rqtype='ev'):
   return hiid(rqtype,0,0,0,domain_id,0);
 
-def request (cells=None,rqtype='ev',rqid=None,eval_mode=None):
+def request (cells=None,rqtype=None,rqid=None,eval_mode=None):
+  # if cells is specified, default rqtype becomes 'ev'
+  if rqtype is None:
+    if cells is not None:
+      rqtype='ev';
+    else:
+      rqtype='0';
   # use eval_mode to override rqtype, if supplied
   if eval_mode is not None:
-    print "WARNING: the eval_mode argument to meq.request() is deprecated."
+    print "*** WARNING: the eval_mode argument to meq.request() is now deprecated.";
+    print "*** Please replace it with rqtype='ev', 'e1' or 'e2'";
+    print "*** for eval_mode 0, 1 or 2.";
     if eval_mode == 0:    rqtype='ev';
     elif eval_mode == 1:  rqtype='e1';
     elif eval_mode == 2:  rqtype='e2';

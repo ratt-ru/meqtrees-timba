@@ -1,15 +1,14 @@
 #ifndef MEQSERVER_SRC_VISDATAMUX_H_HEADER_INCLUDED_82375EEB
 #define MEQSERVER_SRC_VISDATAMUX_H_HEADER_INCLUDED_82375EEB
 
-#include <AppAgent/AppControlAgent.h>
-#include <AppAgent/InputAgent.h>
-#include <AppAgent/OutputAgent.h>
+#include <AppAgent/EventChannel.h>
 #include <MeqServer/VisHandlerNode.h>
 #include <MeqServer/TID-MeqServer.h>
+#include <VisCube/VisVocabulary.h>
 #include <vector>
     
 #pragma types #Meq::VisDataMux
-#pragma aid Station Index Tile Format Start Pre Post
+#pragma aid Station Index Tile Format Start Pre Post Sync
 
 namespace Meq 
 {
@@ -23,20 +22,13 @@ class VisDataMux : public Node
   public:
     //##ModelId=3F9FF71B006A
     VisDataMux ();
-    
+  
     virtual TypeId objectType() const
     { return TpMeqVisDataMux; }
       
-    //##ModelId=3FA1016000B0
-    void attachAgents ( AppAgent::VisAgent::InputAgent  & inp,
-                        AppAgent::VisAgent::OutputAgent & outp,
-                        AppAgent::AppControlAgent       & ctrl);
-
+    // called to attach a sink or spigot node to the mux
     void attachSpigot (Spigot &spigot);
     void attachSink   (Sink &sink);
-    
-    // clears all handlers
-    void clear ();
     
     //##ModelId=3F98DAE6024A
     //##Documentation
@@ -59,20 +51,24 @@ class VisDataMux : public Node
     //##ModelId=3F9FF6970269
     void fillCells (Cells &cells,LoRange &range,const VisCube::VTile &tile);
 
-    AppAgent::AppControlAgent &       control()   { return *control_; }
-    AppAgent::VisAgent::InputAgent &  input()     { return *input_;   }
-    AppAgent::VisAgent::OutputAgent & output()    { return *output_; }
-        
     //##ModelId=3F98DAE60246
     LocalDebugContext;
     
   protected:
     void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+    int  pollChildren (Result::Ref &resref,const Request &request);
     
   private:
     //##ModelId=3F9FF71B00C7
     VisDataMux (const VisDataMux &);
-  
+
+    void initInput (const DMI::Record &rec);
+    void initOutput (const DMI::Record &rec);
+    
+    void clearOutput ();
+    
+    void postNumTiles ();
+    
     int startSnippet (const VisCube::VTile &tile);
     int endSnippet   ();
     
@@ -112,10 +108,10 @@ class VisDataMux : public Node
     Request::Ref current_req_;
     int current_seqnr_;
     LoRange current_range_;
-    
-    AppAgent::AppControlAgent       * control_;
-    AppAgent::VisAgent::InputAgent  * input_;
-    AppAgent::VisAgent::OutputAgent * output_;
+
+    int num_tiles_;
+    AppAgent::EventChannel::Ref  input_channel_;    
+    AppAgent::EventChannel::Ref  output_channel_;    
 };
 
 } // namespace Meq

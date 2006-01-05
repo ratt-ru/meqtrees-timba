@@ -26,18 +26,32 @@
 #include <MEQ/Forest.h>
 #include <MEQ/Cells.h>
 #include <MEQ/Request.h>
-#include <AppAgent/AppControlAgent.h>
+#include <AppAgent/BOIOChannel.h>
+#include <AppAgent/VisDataVocabulary.h>
+#include <AppAgent/MTQueueChannel.h>
+#include <AppUtils/MSInputChannel.h>
+#include <AppUtils/MSOutputChannel.h>
+#include <MeqServer/MeqPython.h>
 #include <MeqServer/Spigot.h>
 #include <MeqServer/Sink.h>
 
 using namespace AppAgent;
-using namespace AppControlAgentVocabulary;
 using namespace VisVocabulary;
-using namespace VisAgent;
+using namespace AppAgent;
 
 const HIID child_labels[] = { AidStart,AidPre,AidPost };
 
 InitDebugContext(Meq::VisDataMux,"VisDataMux");
+
+const HIID FInput    = AidInput;
+const HIID FOutput   = AidOutput;
+const HIID FMS       = AidMS;
+const HIID FBOIO     = AidBOIO;
+const HIID FDefault  = AidDefault;
+const HIID FNumTiles = AidNum|AidTiles;
+const HIID FVisNumTiles = AidVis|AidNum|AidTiles;
+const HIID FSync     = AidSync;
+
     
 //##ModelId=3F9FF71B006A
 Meq::VisDataMux::VisDataMux ()
@@ -50,6 +64,8 @@ Meq::VisDataMux::VisDataMux ()
   // init request id for dataset=1
   // frst.incrRequestId(rqid_,FDataset);
   enableMultiThreadedPolling();
+  // default cache policy is to cache nothing
+  cache_policy_ = CACHE_MINIMAL;
 }
 
 void Meq::VisDataMux::setStateImpl (DMI::Record::Ref &rec,bool initializing)
@@ -59,24 +75,81 @@ void Meq::VisDataMux::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   child_disabled_[0] = child_disabled_[1] = child_disabled_[2] = true;
 }
 
-void Meq::VisDataMux::clear ()
+// inits input channel from record
+void Meq::VisDataMux::initInput (const DMI::Record &rec)
 {
-  for( uint i=0; i<handlers_.size(); i++ )
-    handlers_[i].clear();  
-  for( uint i=0; i<child_indices_.size(); i++ )
-    child_indices_[i].clear();  
+  wstate()[FInput].remove();
+  EventChannel::Ref newchannel;
+  // instantiate one of a number of channel types depending on record
+  const DMI::Record * prec = 0;
+  if( (prec = rec[FMS].as_po<DMI::Record>()) != 0 )
+    newchannel <<= new MSInputChannel;
+  else if( (prec = rec[FBOIO].as_po<DMI::Record>()) != 0 )
+    newchannel <<= new BOIOChannel;
+  else if( (prec = rec[FDefault].as_po<DMI::Record>()) != 0 )
+    newchannel <<= new EventChannel;
+  else if( !rec.size() ) // empty record means no channel
+    Throw("invalid specification for input channel");
+  // detach old channel
+  if( input_channel_.valid() )
+  {
+    input_channel_().close();
+    input_channel_.detach();
+  }
+  // init new channel
+  if( prec )
+  {
+    MeqPython::processInitRecord(rec);
+    input_channel_ <<= new MTQueueChannel(newchannel);
+    input_channel_().init(*prec);
+    input_channel_().solicitEvent(VisData::VisEventMask());
+    wstate()[FInput] = rec;
+  }
+}
+    
+// inits input channel from record
+void Meq::VisDataMux::initOutput (const DMI::Record &rec)
+{
+  wstate()[FOutput].remove();
+  EventChannel::Ref newchannel;
+  // instantiate one of a number of channel types depending on record
+  const DMI::Record * prec = 0;
+  if( (prec = rec[FMS].as_po<DMI::Record>()) != 0 )
+    newchannel <<= new MSOutputChannel;
+  else if( (prec = rec[FBOIO].as_po<DMI::Record>()) != 0 )
+    newchannel <<= new BOIOChannel;
+  else if( (prec = rec[FDefault].as_po<DMI::Record>()) != 0 )
+    newchannel <<= new EventChannel;
+  else if( !rec.size() ) // empty record means no channel
+    Throw("invalid specification for output channel");
+  // detach old channel
+  if( output_channel_.valid() )
+  {
+    output_channel_().close();
+    output_channel_.detach();
+  }
+  // init new channel
+  if( prec )
+  {
+    output_channel_ <<= new MTQueueChannel(newchannel);
+    // output_channel_.xfer(newchannel);  
+    output_channel_().init(*prec);
+    wstate()[FOutput] = rec;
+  }
 }
 
-//##ModelId=3FA1016000B0
-void Meq::VisDataMux::attachAgents (
-                VisAgent::InputAgent  & inp,
-                VisAgent::OutputAgent & outp,
-                AppControlAgent & ctrl)
+void Meq::VisDataMux::clearOutput ()
 {
-  input_ = &inp;
-  output_ = &outp;
-  control_ = &ctrl;
-//   force_regular_grid = rec[FMandateRegularGrid].as<bool>(false);
+  output_channel_.detach();
+  wstate()[FOutput].replace() = false;
+}  
+
+void Meq::VisDataMux::postNumTiles ()
+{
+  DMI::Record::Ref ref(DMI::ANONWR);
+  ref[FNode] = name();
+  ref[FNumTiles] = num_tiles_;
+  postEvent(FVisNumTiles,ref);
 }
 
 void Meq::VisDataMux::attachSpigot (Meq::Spigot &spigot)
@@ -100,7 +173,9 @@ void Meq::VisDataMux::attachSink (Meq::Sink &sink)
     child_indices_.resize(did+100);
   cdebug(2)<<"attaching sink for did "<<did<<endl;
   // get sink output column
-  output_columns_.insert(sink.getOutputColumn());
+  int outcol = sink.getOutputColumn();
+  if( outcol >= 0 )
+    output_columns_.insert(outcol);
   // add sink to list of handlers for this data id
   handlers_[did].insert(&sink);
   // add index of child to list of children for this data id
@@ -221,6 +296,7 @@ int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
 {
   int result_flag = 0;
   DMI::ExceptionList errors;
+  num_tiles_++;
   // get handler for this tile
   int did = formDataId(tileref->antenna1(),tileref->antenna2());
   if( did > int(handlers_.size()) )
@@ -280,6 +356,10 @@ int Meq::VisDataMux::deliverFooter (const DMI::Record &footer)
       CatchExceptionsMore("delivering footer to '"+(*iter)->name()+"'");
     }
   }
+  // post footer to output
+  if( output_channel_.valid() )
+    output_channel_().postEvent(VisData::VisEventHIID(VisData::FOOTER,HIID()),ObjRef(footer));
+  
   if( !errors.empty() )
     throw errors;
   return result_flag;
@@ -307,7 +387,11 @@ int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
     if( isChildValid(0) )
     {
       Result::Ref res;
+      timers_.getresult.stop();
+      timers_.children.start();
       result_flag = getChild(0).execute(res,req);
+      timers_.children.stop();
+      timers_.getresult.start();
       if( result_flag&RES_FAIL )
       {
         res->addToExceptionList(errors);
@@ -328,13 +412,19 @@ int Meq::VisDataMux::endSnippet ()
   DMI::ExceptionList errors;
   int result_flag = 0;
   cdebug(3)<<"end of snippet"<<endl;
+  // post tile count
+  postNumTiles();
   // poll pre-processing child
   if( isChildValid(1) )
   {
     Result::Ref res;
     try 
     { 
+      timers_.getresult.stop();
+      timers_.children.start();
       int retcode = getChild(1).execute(res,*current_req_); 
+      timers_.children.stop();
+      timers_.getresult.start();
       result_flag |= retcode;
       if( retcode&RES_FAIL )
       {
@@ -367,7 +457,11 @@ int Meq::VisDataMux::endSnippet ()
     {
       int retcode;
       Result::Ref res;
+      timers_.getresult.stop();
+      timers_.children.start();
       int ichild = awaitChildResult(retcode,res,*current_req_);
+      timers_.children.stop();
+      timers_.getresult.start();
       if( ichild < 0 )  // break out if finished
         break;
       result_flag |= retcode;
@@ -383,12 +477,15 @@ int Meq::VisDataMux::endSnippet ()
         {
           cdebug(2)<<"handler returns updated tile "<<ptile->tileId()<<", posting to output\n";
           writing_data_ = true;
-          if( cached_header_.valid() )
+          if( output_channel_.valid() )
           {
-            output().put(HEADER,cached_header_);
-            cached_header_.detach();
+            if( cached_header_.valid() )
+            {
+              output_channel_().postEvent(VisData::VisEventHIID(VisData::HEADER,HIID()),cached_header_);
+              cached_header_.detach();
+            }
+            output_channel_().postEvent(VisData::VisEventHIID(VisData::DATA,ptile->tileId()),ObjRef(ptile));
           }
-          output().put(DATA,ObjRef(ptile));
         }
       }
     }
@@ -402,7 +499,11 @@ int Meq::VisDataMux::endSnippet ()
     Result::Ref res;
     try 
     {
+      timers_.getresult.stop();
+      timers_.children.start();
       int retcode = getChild(2).execute(res,*current_req_); 
+      timers_.children.stop();
+      timers_.getresult.start();
       result_flag |= retcode; 
       if( retcode&RES_FAIL )
       {
@@ -457,3 +558,132 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTil
   }
 }
 
+//##ModelId=400E5355026B
+int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
+{
+  const DMI::Record * inrec = request[FInput].as_po<DMI::Record>();
+  // no "Input" field in request, pass request on normally
+  if( !inrec )
+    return Node::pollChildren(resref,request);
+  timers_.children.stop();
+  timers_.getresult.start();
+  // init input channel
+  initInput(*inrec);
+  // init output channel, if any
+  const DMI::Record * outrec = request[FOutput].as_po<DMI::Record>();
+  bool sync_output = false;
+  if( outrec )
+  {
+    initOutput(*outrec);
+    sync_output= (*outrec)[FSync].as<bool>(true);
+  }
+  else
+    clearOutput();
+  // now run the I/O loop
+  cached_header_.detach();
+  DMI::Record::Ref header;
+  // any non-fatal fails during processing are accumulatede here
+  // (fatal errors are thrown immediately)
+  VellSet::Ref fail_list(DMI::ANONWR); 
+  while( true )
+  {
+    HIID evid;
+    ObjRef evdata;
+    // wait for a valid input event 
+    int state = input_channel_().getEvent(evid,evdata);
+    // break out once stream is closed
+    if( state == AppEvent::CLOSED )
+      break;
+    else if( state != AppEvent::SUCCESS )
+      Throw(ssprintf("input channel fails with state %d",state));
+    // parse the event
+    if( !VisData::VisEventMask().matches(evid) )
+    {
+      postError("unknown input event "+evid.toString()+", ignoring");
+      continue;
+    }
+    // figure out the event type
+    int type = VisData::VisEventType(evid);
+    HIID ev_inst = VisData::VisEventInstance(evid);
+    string doing_what;
+    DMI::ExceptionList errors;
+    // process data event
+    if( type == VisData::DATA )
+    {
+      doing_what = "processing data event "+ev_inst.toString('.');
+      VisCube::VTile::Ref tileref = evdata.ref_cast<VisCube::VTile>();
+      doing_what = "processing tile "+tileref->tileId().toString('.');
+      cdebug(4)<<"received tile "<<tileref->tileId()<<endl;
+      // deliver tile to Python
+      try  { MeqPython::processVisTile(*tileref); }
+      catch( std::exception &exc ) { errors.add(exc); }
+      // deliver the tile 
+      try { deliverTile(tileref); }
+      catch( std::exception &exc ) { errors.add(exc); }
+    }
+    else if( type == VisData::FOOTER )
+    {
+      doing_what = "processing footer "+ev_inst.toString('.');
+      cdebug(2)<<"received footer"<<endl;
+      const DMI::Record &footer = *(evdata.ref_cast<DMI::Record>());
+      // deliver footer to Python
+      try  { MeqPython::processVisFooter(footer); }
+      catch( std::exception &exc ) { errors.add(exc); }
+      // deliver footer to ourselves
+      try { deliverFooter(footer); }
+      catch( std::exception &exc ) { errors.add(exc); }
+      // generate footer report
+      DMI::Record::Ref evrec(DMI::ANONWR);
+      if( header.valid() )
+        evrec[AidHeader] <<= header.copy();
+      evrec[AidFooter] <<= evdata.copy();
+      postMessage(ssprintf("received footer %s, %d tiles processed",
+          ev_inst.toString('.').c_str(),num_tiles_),evrec);
+    }
+    else if( type == VisData::HEADER )
+    {
+      doing_what = "processing header "+ev_inst.toString('.');
+      cdebug(2)<<"received header"<<endl;
+      header = evdata;
+      // deliver header to Python
+      try  { MeqPython::processVisHeader(*header); }
+      catch( std::exception &exc ) { errors.add(exc); }
+      // deliver header to mux
+      try  { deliverHeader(*header); }
+      catch( std::exception &exc ) { errors.add(exc); }
+      // generate header report
+      DMI::Record::Ref evrec(DMI::ANONWR);
+      evrec[AidHeader] <<= header.copy();
+      postMessage("received header "+ev_inst.toString('.'),evrec);
+      num_tiles_ = 0;
+      postNumTiles();
+    }
+    else // unknown event
+    {
+      postError("unknown input event "+evid.toString()+", ignoring");
+      continue;
+    }
+    // have we accumulated any exceptions?
+    if( !errors.empty() )
+    {
+      fail_list().addFail(errors); // add to overall list
+      postError("error "+doing_what,errors.makeList());
+    }
+  }
+  // flush output if needed
+  if( sync_output && output_channel_.valid() )
+  {
+    postMessage("flushing output tiles");
+    output_channel_().flush();
+  }
+  // if we have accumulated any fails, return them here
+  if( fail_list->isFail() )
+  {
+    resref <<= new Result(1);
+    resref().setVellSet(0,fail_list);
+    return RES_FAIL;
+  }
+  postMessage("visibility stream processed successfully");
+  // normal exit
+  return 0;
+}

@@ -21,7 +21,12 @@ _dprintf = _dbg.dprintf;
 
 # class app_proxy
 class app_proxy (verbosity):
-  "app_proxy is an interface to a C++ ApplicationBase (see AppAgents)"
+  """app_proxy is an interface to a remote OCTOPUSSY workprocess that 
+  accepts commands. The app is assumed to use the following message IDs:
+  <appclass>.In.*     for incoming messages
+  <appclass>.Out.*    for outgoing messages
+  <appclass>.Debug.*  for outgoing debug messages
+  """;
   
   set_debug = staticmethod(octopussy.set_debug);
   setdebug = staticmethod(octopussy.set_debug);
@@ -74,7 +79,6 @@ class app_proxy (verbosity):
     self.statestr = 'no connection';
     self.app_addr = None;
     self.client_addr = self._pwp.address();
-    self.status = record();
     self.paused = False;
     # ------------------------------ export some proxy_wp and octopussy methods
     self.pause_events = self._pwp.pause_events;
@@ -185,13 +189,12 @@ class app_proxy (verbosity):
     _dprint(2,"got hello message:",msg);
     self.app_addr = getattr(msg,'from');
     if self.state is None:
-      self.state = -1;
+      self.state = 0;
       self.statestr = 'connected';
     # request state & status 
     if self._req_state:
       _dprint(2,"requesting state and status update");
       self.send_command("Request.State");
-      self.send_command("Request.Status");
     self._gui_event_handler(self.hello_event,getattr(msg,'from'));
       
   def _bye_handler (self,msg):
@@ -239,23 +242,17 @@ class app_proxy (verbosity):
         return;
     # update state if not connected
     if self.state is None:
-      self.state = -1;
+      self.state = 0;
       self.statestr = 'connected';
     # extract event name: message ID is <appid>.Out.<event>, so get a slice
     event = msg.msgid[len(self.appid)+1:];
     value = msg.payload;
     _dprint(5,"which maps to event: ",event);
-    # process some special events
+    # process state notifications
     if event == 'app.notify.state':
       _dprint(1,value.state_string,' (',value.state,')');
-      self.state = value.state;
-      self.paused = value.paused;
+      self.state = str(value.state).lower();
       self.statestr = value.state_string;
-    # update_status: update our status record
-    elif event.startswith('app.update.status'):
-      for f in value.field_names():
-        self.status[f] = value[f];
-      _dprint(5,'new status record',self.status);
     # process messages and error reports
     if isinstance(value,record):
       if value.has_field('error'):
@@ -283,54 +280,11 @@ class app_proxy (verbosity):
     
   def send_command (self,msgid,payload=None,priority=5):
     "Sends an app control command to the app";
-    msgid = self._snd_prefix + "App.Control" + msgid;
+    msgid = self._snd_prefix + msgid;
     msg = message(msgid,payload=payload,priority=priority);
     # self.relay->[spaste('sending_command_',message)](payload);
     self._pwp.publish(msg);
       
-  def init (self,initrec=None,inputinit=None,outputinit=None,controlinit=None,wait=False):
-    "Initializes the app. All four of the records may be supplied,"
-    "or any may be omitted to reuse the old record"
-    "If wait=T, waits for the app to complete init";
-    _dprint(1,'initializing');
-    if wait:
-      self.ensure_connection();
-    _dprint(2,'initrec:',initrec);
-    _dprint(2,'input init:',inputinit);
-    _dprint(2,'output init:',outputinit);
-    _dprint(2,'control_init:',controlinit);
-    # get init record from previous value or from arguments
-    if initrec is not None:
-      initrec = make_record(initrec);
-    else:
-      initrec = self.initrec_prev;
-      _dprint(2,'init: reusing previous initrec:',initrec);
-    # get subrecord from previous values or from arguments
-    for (f,subrec) in ( ('input',inputinit),('output',outputinit),('control',controlinit) ):
-      if subrec is not None:
-        initrec[f] = make_record(subrec);
-        _dprintf(2,'init: using %s subrec from parameters\n',f);
-      else:
-        if initrec.has_field(f):
-          _dprintf(2,'init: initrec contains a %s subrec\n',f);
-        else:
-          if self.initrec_prev.has_field(f):
-            initrec[f] = self.initrec_prev[f];
-            _dprintf(2,'init: using previous %s subrec\n',f);
-          else:
-            _dprintf(2,'init: no %s subrec at all\n',f);
-    # initialize
-    self.initrec_prev = initrec;
-    _dprint(3,'init: initrec is ',initrec);
-    # send init command
-    if wait: 
-      self.pause_events();
-    self.send_command("Init",initrec);
-    if wait:
-      _dprint(2,'init: awaiting app.notify.init event');
-      res = self.await('app.notify.init',resume=True);
-      _dprint(2,'init: got event ',res);
-
   def set_verbose_events (self,verb=True):
     "enables/disables printing of all incoming events";
     self.verbose_events = verb;
@@ -355,9 +309,6 @@ class app_proxy (verbosity):
       self._error_log = [];
     return log;
     
-  def stop (self):
-    "sends Stop command to app"
-    return self.send_command("Stop");
   def halt (self):
     "sends Halt command to app"
     return self.send_command("Halt");
@@ -371,9 +322,6 @@ class app_proxy (verbosity):
   def resume (self,payload=None):
     "sends Resume command to app"
     return self.send_command("Resume",payload=payload,priority=10);
-  def reqstatus (self):
-    "sends Request.Status command to app"
-    return self.send_command("Request.Status");
     
   def trim_msgid (self,msgid):
     if msgid[:len(self._rcv_prefix)] == self._rcv_prefix:
@@ -404,35 +352,3 @@ class app_proxy (verbosity):
       raise RuntimeError,"Can't call run_gui without gui support";
     self._gui.await_gui_exit();
     
-if __name__ == "__main__":
-  app_defaults.parse_argv(sys.argv);
-  args = app_defaults.args;
-  gui = args['gui'];
-  
-  octopussy.init();
-  octopussy.start();
-  
-  args['verbose'] = 2;
-  args['wp_verbose'] = 2;
-  args['launch'] = ('repeater','o','o');
-  print '================= launching app';
-  print 'Args are:',args;
-  app = app_proxy('repeater',**args);
-  if gui:
-    print '================= app.init()';
-    app.init(wait=False);
-    print '================= app.run_gui()';
-    app.run_gui();
-  else:
-    print '================= app.init()';
-    app.init(wait=True);
-    print '================= sleeping for 2 sec';
-    time.sleep(2);
-    
-  print '================= stopping app';
-  app.halt();
-  app.disconnect();
-  del app;
-  
-  print '================= stopping octopussy';
-  octopussy.stop();
