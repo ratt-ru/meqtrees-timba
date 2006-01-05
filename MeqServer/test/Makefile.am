@@ -11,11 +11,11 @@ bin_PROGRAMS   		=
 # glishwriter_LDADD		      = ../src/libsolver.la -lglish -lsos -lnpd
 # glishwriter_DEPENDENCIES	= ../src/libsolver.la $(LOFAR_DEPEND)
 
-check_PROGRAMS = tThread
+#check_PROGRAMS = tThread
 
-tThread_SOURCES 	= tThread.cc
-tThread_LDADD 	        = -lpython2.3
-tThread_DEPENDENCIES	= $(LOFAR_DEPEND)
+#tThread_SOURCES 	= tThread.cc
+#tThread_LDADD 	        = -lpython2.3
+#tThread_DEPENDENCIES	= $(LOFAR_DEPEND)
 
 TESTS				=  solver_test.sh
 
