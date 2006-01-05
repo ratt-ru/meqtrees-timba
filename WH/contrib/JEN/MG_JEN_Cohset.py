@@ -806,10 +806,10 @@ if True:                                               # ... Copied from MG_JEN_
    MG['stream_control'] = dict(ms_name='D1.MS',
                                data_column_name='DATA',
                                tile_size=10,                   # input tile-size
+                               snippet_size=10,                # input snippet-size (in time-slots!)
                                channel_start_index=10,
                                channel_end_index=50,           # -10 should indicate 10 from the end (OMS...)
                                # selection_string='TIME_CENTROID<4615466159.46',
-                               # output_col='RESIDUALS')
                                predict_column='CORRECTED_DATA')
 
    # inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
@@ -959,7 +959,7 @@ if True:                                                   # ... Copied from MG_
        JEN_inarg.modify(inarg,
                         master_reqseq=MG['master_reqseq'], # if True, use a master reqseq for solver(s)
                         chain_solvers=MG['chain_solvers'], # if True, chain the solver(s)
-                        redun=True,                        # if True, use redundant baseline calibration
+                        # redun=True,                        # if True, use redundant baseline calibration
                         # redun=MG['redun'],                 # if True, use redundant baseline calibration
                         subtract=False,                    # if True, subtract 'predicted' from uv-data 
                         correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'

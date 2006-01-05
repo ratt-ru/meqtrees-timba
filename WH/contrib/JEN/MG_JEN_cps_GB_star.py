@@ -120,9 +120,10 @@ MG['stream_control'] = dict(dummy_start=None,
                             # ms_name='A963.MS',
                             data_column_name='DATA',
                             tile_size=10,                   # input tile-size
+                            snippet_size=10,                # input snippet-size (in time-slots!)
                             channel_start_index=10,
                             channel_end_index=50,           # -10 should indicate 10 from the end (OMS...)
-                            # output_col='RESIDUALS')
+                            # selection_string='TIME_CENTROID<4615466159.46',
                             predict_column='CORRECTED_DATA',
                             dummy_end=None)
 

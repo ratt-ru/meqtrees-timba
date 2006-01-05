@@ -7,6 +7,7 @@
 #
 # History:
 #    - 04 dec 2005: creation
+#    - 05 jan 2006: added dcoll v vs w 
 #
 # Full description:
 #   The MS is read by the kernel when the tree is executed,
@@ -109,6 +110,7 @@ class MSauxinfo (TDL_common.Super):
         ss.append(indent1+'* .dcoll_zvsy() -> '+str(self.__dcoll_zvsy))
         ss.append(indent1+'* .dcoll_uvsv() -> '+str(self.__dcoll_uvsv))
         ss.append(indent1+'* .dcoll_uvsw() -> '+str(self.__dcoll_uvsw))
+        ss.append(indent1+'* .dcoll_vvsw() -> '+str(self.__dcoll_vvsw))
         
         if end: TDL_common.Super.display_end(self, ss)
         return ss
@@ -152,6 +154,7 @@ class MSauxinfo (TDL_common.Super):
         self.__dcoll_zvsy = None
         self.__dcoll_uvsv = None
         self.__dcoll_uvsw = None
+        self.__dcoll_vvsw = None
         # self.__refpos = record()
         return True
 
@@ -315,6 +318,7 @@ class MSauxinfo (TDL_common.Super):
         dcoll.append(self.dcoll_zvsy(ns))
         dcoll.append(self.dcoll_uvsv(ns))
         dcoll.append(self.dcoll_uvsw(ns))
+        dcoll.append(self.dcoll_vvsw(ns))
         return dcoll
     
 
@@ -394,7 +398,7 @@ class MSauxinfo (TDL_common.Super):
         """Make dataCollect node for plotting u vs w"""
         if not self.__dcoll_uvsw: 
             self.make_uvw_nodes(ns)                        # just in case
-            key = 'uvsw'                                   # dz vs dy
+            key = 'uvsw'                           
             cc = []
             for ikey in self.__s12.keys():
                 s12 = self.__s12[ikey]
@@ -412,6 +416,30 @@ class MSauxinfo (TDL_common.Super):
                                                top_label=hiid('visu'))
             self.__dcoll_uvsw = node
         return self.__dcoll_uvsw
+
+
+    def dcoll_vvsw(self, ns):
+        """Make dataCollect node for plotting v vs w"""
+        if not self.__dcoll_vvsw: 
+            self.make_uvw_nodes(ns)                        # just in case
+            key = 'vvsw'                                   
+            cc = []
+            for ikey in self.__s12.keys():
+                s12 = self.__s12[ikey]
+                name = key+':s1='+s12[0]+':s2='+s12[1]
+                node = ns[name] << Meq.ToComplex(self.__nodes_wcoord[ikey],
+                                                 self.__nodes_vcoord[ikey])
+                cc.append(node)
+
+            attrib = record(plot=record(), tag=key)
+            attrib['plot'] = record(type='realvsimag', title=' v vs w',
+                                    color=self.__color_uv,
+                                    x_axis='v_coord (m)', y_axis='w_coord (m)')
+            name = 'dcoll_'+key
+            node = ns[name] << Meq.DataCollect(children=cc, attrib=attrib,
+                                               top_label=hiid('visu'))
+            self.__dcoll_vvsw = node
+        return self.__dcoll_vvsw
 
 
 
