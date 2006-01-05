@@ -137,6 +137,7 @@ ev                               1620       ; from /home/oms/LOFAR/Timba/MEQ/src
 Eval                             1557       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:41
 Event                            1080       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
 Execute                          1479       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:14
+Executing                        1623       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:20
 Exit                             1230       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
 Exposure                         1159       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 F                                1026       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
@@ -258,6 +259,7 @@ Masks                            1344       ; from /home/oms/LOFAR/Timba/MEQ/src
 Matrix                           1345       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
 Max                              1070       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/LoggerWP.h:9
 Meas                             1184       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:35
+Meq                              1622       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:12
 MeqAbs                           1460       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Abs.h:29
 MeqAcos                          1411       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Acos.h:29
 MeqAdd                           1418       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Add.h:30
@@ -336,9 +338,9 @@ MeqSelector                      1447       ; from /home/oms/LOFAR/Timba/MeqNode
 MeqServer                        1462       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
 MeqSin                           1430       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
 MeqSinh                          1407       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sinh.h:29
-MeqSink                          1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
+#MeqSink                         1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
 MeqSolver                        1401       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:30
-MeqSpigot                        1468       ; from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:9
+#MeqSpigot                       1468       ; from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:9
 MeqSqr                           1458       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqr.h:30
 MeqSqrt                          1408       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqrt.h:30
 MeqStatPointSourceDFT            1396       ; from /home/oms/LOFAR/Timba/MeqNodes/src/StatPointSourceDFT.h:31
@@ -358,7 +360,7 @@ MeqUVInterpol                    1508       ; from /home/rnijboer/LOFAR/Timba/Me
 MeqUVW                           1421       ; from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:31
 MeqVells                         1341       ; from /home/oms/LOFAR/Timba/MEQ/src/Vells.h:30
 MeqVellSet                       1307       ; from /home/oms/LOFAR/Timba/MEQ/src/VellSet.h:35
-MeqVisDataMux                    1585       ; from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:10
+#MeqVisDataMux                   1585       ; from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:10
 MeqVisPhaseShift                 1517       ; from /home/brentjens/LOFAR/Timba/MeqNodes/src/VisPhaseShift.h:31
 MeqWAvg                          1503       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WAvg.h:30
 MeqWMean                         1504       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WMean.h:30
@@ -535,7 +537,7 @@ Spigot                           1485       ; from /home/oms/LOFAR/Timba/MeqServ
 SPW                              1193       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
 st                               1619       ; from /home/oms/LOFAR/Timba/MEQ/src/Request.h:34
 Stack                            1466       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:17
-start                            1106       ; from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:21
+Start                            1106       ; from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:21
 State                            1072       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:25
 Station                          1131       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
 Stats                            1531       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:41
@@ -546,7 +548,7 @@ Step                             1473       ; from /home/oms/LOFAR/Timba/MeqServ
 Steps                            1284       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 Stop                             1247       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
 Stream                           1268       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:12
-string                           48         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:109
+String                           48         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:109
 Style                            1406       ; from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 Subscribe                        1042       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
 Subscriptions                    1074       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MTGatewayWP.h:16
@@ -554,6 +556,7 @@ Subtable                         1173       ; from /home/oms/LOFAR/Timba/VisCube
 Suspend                          1219       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/VisAgentVocabulary.h:11
 Symdep                           1311       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:38
 Symdeps                          1322       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:38
+Sync                             1624       ; from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:11
 T                                1011       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Table                            1354       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:35
 Target                           1116       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:35
