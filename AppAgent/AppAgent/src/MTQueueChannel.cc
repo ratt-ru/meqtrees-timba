@@ -109,16 +109,10 @@ void * MTQueueChannel::runWorker ()
         eventFlag().condVar().wait(); // will relock mutex on exit
       return 0;
     }
-    // get_queue has space, so clear the remote's event flag and release lock on it
-    lock.release();
-    // Now, we call getEvent() to see if anything arrives.
-    // this waits for an event, or for the event flag to be raised. Event
-    // flag will be raised by main thread is something is posted.
-    stat = remote().getEvent(id,data,HIID(),AppEvent::WAIT,source);
-    // channel closed
-    if( stat == AppEvent::CLOSED )
-      continue;   // back up to top, we break out only when queue is empty
-    lock.lock(eventFlag().condVar());
+    // get_queue has space. Wait for event to arrive. We don't release the lock
+    // here since it will be released anyway if we decide to wait on the flag.
+    // Event flag will be raised by main thread if something is posted.
+    stat = remote().getEvent(id,data,HIID(),AppEvent::NOWAIT,source);
     // post event if we have one
     if( stat == AppEvent::SUCCESS )
     {
@@ -130,7 +124,13 @@ void * MTQueueChannel::runWorker ()
       // raise event flag to wake up main thread
       raiseEventFlag();
     }
-    // go back to top of loop to check the post_queue
+    // check if channel has closed
+    if( remote().state() == CLOSED )
+      continue;   // back up to top, we break out only when queue is empty
+    // now sleep on flag if we had no events
+    if( stat == AppEvent::WAIT ) 
+      eventFlag().condVar().wait();
+   // go back to top of loop to check the post_queue
   }
   return 0;
 }
@@ -140,6 +140,12 @@ void MTQueueChannel::postEvent (const HIID &id,const ObjRef &data,
 {
   // obtain lock on event flag
   Thread::Mutex::Lock lock(eventFlag().condVar());
+  if( remote().state() == CLOSED )
+  {
+    lock.release();
+    close(remote().stateString());
+    return;
+  }
   // as long as the post queue is full, wait on the flag
   while( post_queue_.size() >= queue_size_ )
     eventFlag().condVar().wait();
@@ -163,6 +169,7 @@ int MTQueueChannel::getEvent (HIID &id,ObjRef &data,
   {
     if( remote().state() == CLOSED )
     {
+      lock.release();
       close(remote().stateString());
       return CLOSED;
     }
@@ -196,6 +203,7 @@ int MTQueueChannel::hasEvent (const HIID &mask,HIID &out)
   {
     if( remote().state() == CLOSED )
     {
+      lock.release();
       close(remote().stateString());
       return CLOSED;
     }

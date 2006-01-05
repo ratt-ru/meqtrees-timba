@@ -30,13 +30,26 @@ int FileChannel::getEvent (HIID &id,ObjRef &data,const HIID &mask,int wait,HIID 
     input_stream_.pop_front();
     recordInputEvent(id,data,HIID());
   }
-  else if( res == OUTOFSEQ && wait == BLOCK )
+  else if( res == OUTOFSEQ )
   {
-      // boo-boo, can't block here since we'd never get an event to unblock us...
-    Throw("blocking for an event here would block indefinitely");
+    if( wait == BLOCK )
+    {
+        // boo-boo, can't block here since we'd never get an event to unblock us...
+      Throw("blocking on an event here would block indefinitely");
+    }
+    else
+      return waitOnFlag(WAIT);
   }
   else if( res == WAIT )
-    return waitOnFlag(WAIT);
+  {
+    if( wait == WAIT )
+      return waitOnFlag(WAIT);
+    else if( wait == BLOCK )
+    {
+        // boo-boo, can't block here since we'd never get an event to unblock us...
+      Throw("blocking on an event here would block indefinitely");
+    }
+  }
   return res;
 }
 
