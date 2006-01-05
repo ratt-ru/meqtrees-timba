@@ -953,7 +953,7 @@ if __name__ == '__main__':
 
     if 0:
         # Display the final result:
-        # MG_JEN_exec.display_subtree(cs[k], 'cs['+str(k)+']', full=True, recurse=5)
+        # TDL_display.subtree(cs[k], 'cs['+str(k)+']', full=True, recurse=5)
         obj.display('final result')
     print '\n*******************\n** End of local test of: TDL_Antenna.py:\n'
 

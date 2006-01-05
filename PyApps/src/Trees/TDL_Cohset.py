@@ -987,10 +987,47 @@ class Cohset (TDL_common.Super):
         return True
 
 
-    def Condeq_redun (self, ns, **pp):
+    def Condeq_redun (self, ns=None):
         """Make (2x2) MeqCondeq nodes, using Cohset as the other input.
         If no other Cohset given, make MeqCondeqs for redundant spacings"""
-        funcname = '::Condeq():'
+        funcname = '::Condeq_redun():'
+        uniqual = _counter(funcname, increment=-1)
+        punit = self.punit()
+        scope = 'Condeq_redun'
+        coh = dict()                       # use temporary dict for new nodes
+        for key in self.keys():
+            s12 = self.__stations[key]
+            basel = str(around(self.__rxyz[key]))+'m'
+            print '-',key,basel,s12
+            print '---',self.__redun[key]
+            coh[key] = None
+            redun = self.__redun[key]      # list of zero or more keys of redundant ifrs
+            if len(redun)>0:
+                # Assume that the first ifr in the list is the most suitable
+                # (preferably, redundant ifrs should share a station, see .redn() below)
+                key2 = redun[0]            # key of the other ifr
+                ss = self.__stations[key2]
+                coh[key] = ns[scope+'_'+basel](uniqual)(s1=s12[0], s2=s12[1], q=punit) << Meq.Condeq(
+                    self.__coh[key], self.__coh[key2])
+
+        # Copy the new condeq nodes to self.__coh, deleting the rest:
+        for key in self.__coh.keys():
+            if coh.has_key(key):
+                self.__coh[key] = coh[key]
+            elif self.__coh[key]:          # existing node
+                self.rider('deletion_orphans', append=self.__coh[key])
+                self.__coh[key] = None     # delete
+
+        self.scope(scope)
+        self.history(append=funcname+' -> '+self.oneliner())
+        return True
+
+
+
+    def Condeq_redun_old (self, ns, **pp):
+        """Make (2x2) MeqCondeq nodes, using Cohset as the other input.
+        If no other Cohset given, make MeqCondeqs for redundant spacings"""
+        funcname = '::Condeq_redun_old():'
         pp.setdefault('minimum',False)      # If True, use the minimum nr of ifrs (Does not work!!)
         uniqual = _counter(funcname, increment=-1)
         punit = self.punit()

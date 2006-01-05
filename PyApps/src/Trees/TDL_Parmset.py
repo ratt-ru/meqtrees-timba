@@ -84,7 +84,6 @@ class Parmset (TDL_common.Super):
         self.__plot_size = TDL_radio_conventions.plot_size()
         self.__parm = dict()
         self.__buffer = dict()
-        self.__constrain = dict()
         self.__node_groups = ['Parm']
 
     def scope(self, new=None):
@@ -174,7 +173,7 @@ class Parmset (TDL_common.Super):
         self.__parm[key] = value
         return self.__parm[key]
 
-    def parm(self): return self.__parm
+    def MeqParm(self): return self.__parm
     def len(self): return len(self.__parm)
     def keys(self): return self.__parm.keys()
     def has_key(self, key): return self.keys().__contains__(key)
@@ -206,8 +205,7 @@ class Parmset (TDL_common.Super):
 
 
     def define_MeqParm(self, ns, key=None, station=None,
-                       default=0,
-                       node_groups='Parm', constrain=False,
+                       default=0.0, node_groups='Parm',
                        use_previous=True, tile_size=None):
         """Convenience function to create a MeqParm node"""
         # NB: If use_previous==True, the MeqParm will use its current funklet (if any)
@@ -236,7 +234,6 @@ class Parmset (TDL_common.Super):
         # Put the node stub into the internal MeqParm buffer for later use:
         # See .buffer() below
         self.__buffer[key] = node
-        self.__constrain[key] = constrain    # governs solution constraints.....
         return node
 
     def buffer(self, update=False, reset=False):
@@ -244,18 +241,14 @@ class Parmset (TDL_common.Super):
         if update:
             # Append the accumulated MeqParm node names to their respective parmgroups:
             for key in self.__buffer.keys():
-                if not self.__constrain[key]:
-                    # If constrain=True, leave the MeqParm out of the parmgroup
-                    # It will then NOT be included into the solvable MeqParms
-                    nodename = self.__buffer[key].name
-                    self.__parm[nodename] = self.__buffer[key]
-                    self.__parmgroup[key].append(nodename)
+                nodename = self.__buffer[key].name
+                self.__parm[nodename] = self.__buffer[key]
+                self.__parmgroup[key].append(nodename)
         if reset:
             # Always return self.__buffer as it was BEFORE reset:
             ss = self.__buffer                # return value
             # Reset the buffer and related:
             self.__buffer = dict()
-            self.__constrain = dict()
             return ss
         return self.__buffer
 
@@ -272,9 +265,9 @@ class Parmset (TDL_common.Super):
             return self.__parmgroup
         if self.__parmgroup.has_key(key):
             return self.__parmgroup[key]
-        print '\n** parmgroup name not recognised:',sgname
+        print '\n** parmgroup name not recognised: ',key
         print '     choose from:',self.parmgroup().keys(),'\n'
-        return None
+        return []
 
     def pg_rider(self): return self.__pg_rider
     def plot_color(self): return self.__plot_color
@@ -307,24 +300,27 @@ class Parmset (TDL_common.Super):
         node_names = self.parmgroup(parmgroup) # list of MeqParm node-names
         parms = []
         n = len(node_names)
-        if select=='first':                 # select the first of each parmgroup
+        if n==0:
+            pass
+        elif select=='first':               # select the first of each parmgroup
             parms.append(node_names[0])     # append a single node name
         elif select=='last':                # select the last of each parmgroup
             parms.append(node_names[n-1])   # append a single node name
         else:
             parms.extend(node_names)        # append entire parmgroup
-        # Return a list of solvable MeqParm node names:
         if trace: print '  ->',len(parms),':',parms,'\n'
         return parms
 
 
     def parm_nodes(self, parmgroup=None, select='*', trace=False):
         """Return a list of parmgroup MeqParm nodes"""
+        trace = True
         if trace: print '\n** .parm_nodes(',parmgroup,select,'):'
-        node_names = self.parm_names(parmgroup=parmgroup, select=select, trace=False)
+        node_names = self.parm_names(parmgroup=parmgroup, select=select, trace=True)
         if not isinstance(node_names, list): return False
         nodes = []
         for name in node_names:
+            print '- parm_nodes():',name,self.__parm.has_key(name)
             nodes.append(self.__parm[name])
         # Return a list of solvable MeqParm nodes:
         if trace: print '  ->',len(nodes),':',nodes,'\n'
@@ -379,6 +375,7 @@ class Parmset (TDL_common.Super):
        """Make a condeq node, using the specified (key) condeq definition"""
        funcname = '::make_condeq()'
        if not self.__condeq.has_key(key):
+           print '\n**',funcname,':',key,'not recognised in:',self.__condeq.keys()
            return False
        rr = self.condeq(key)
        nodes = self.parm_nodes(rr['parmgroup'], select=rr['select'])
@@ -417,7 +414,7 @@ class Parmset (TDL_common.Super):
             return self.__solvegroup
         if self.__solvegroup.has_key(key):
             return self.__solvegroup[key]
-        print '\n** solvegroup name not recognised:',sgname
+        print '\n** solvegroup name not recognised: ',key
         print '     choose from:',self.solvegroup().keys(),'\n'
         return None
 
@@ -504,6 +501,8 @@ class Parmset (TDL_common.Super):
         elif not Parmset.unsolvable():
             self.__parmgroup.update(Parmset.parmgroup())
             self.__pg_rider.update(Parmset.pg_rider())
+            self.__condeq.update(Parmset.condeq())
+            self.__parm.update(Parmset.MeqParm())
             self.__solvegroup.update(Parmset.solvegroup())
             self.__plot_color.update(Parmset.plot_color())
             self.__plot_style.update(Parmset.plot_style())
@@ -605,7 +604,7 @@ if __name__ == '__main__':
 
     if 1:
         # Create a Joneset object
-        pp = dict(stations=range(3), c00_Gampl=1.0, c00_Gphase=0.0, Gphase_constrain=True)
+        pp = dict(stations=range(3), c00_Gampl=1.0, c00_Gphase=0.0)
         js = TDL_Joneset.Joneset(label='test', **pp)
         js.display()
         js.Parmset.display()
@@ -639,20 +638,16 @@ if __name__ == '__main__':
 
             for Gphase in [p1,p2]:
                 default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'])
-                constrain = False
-                if pp['Gphase_constrain']: 
-                    if first_station: constrain = True
-                js.Parmset.define_MeqParm (ns, Gphase, station=skey, default=default,
-                                           constrain=constrain)
+                js.Parmset.define_MeqParm (ns, Gphase, station=skey, default=default)
 
             ss = js.Parmset.buffer(update=True)        # use ss[p1] etc...
             first_station = False
         ps = js.Parmset
         ps.define_condeq(p1, unop='Add', value=0.0)
         ps.define_condeq(p2, unop='Add', value=0.0)
-        ps.define_condeq(p1, select='first', value=0.0)
         ps.define_condeq(a1, unop='Multiply', value=1.0)
         ps.define_condeq(a2, unop='Multiply', value=1.0)
+        ps.define_condeq(p1, select='first', value=0.0)
         ps.display()
 
     if 1:
