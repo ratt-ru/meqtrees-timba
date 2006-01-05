@@ -172,7 +172,6 @@ if MG['insert_solver_GBJones']:
                      _JEN_inarg_option=None)                # optional, not yet used 
     if 'GJones' in Jsequence: 
         JEN_inarg.modify(inarg,
-                         Gphase_constrain=True,             # if True, constrain 1st station phase
                          fdeg_Gampl=0,                      # degree of default freq polynomial         
                          fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                          tdeg_Gampl=0,                      # degree of default time polynomial         
@@ -182,10 +181,6 @@ if MG['insert_solver_GBJones']:
                          _JEN_inarg_option=None)            # optional, not yet used 
     if 'BJones' in Jsequence: 
         JEN_inarg.modify(inarg,
-                         Breal_constrain=False,             # if True, constrain 1st station
-                         # NB: If Breal_constrain, one station does not get corrected
-                         #     But if False, the rank decreases, and it needs 8 iterations....!
-                         Bimag_constrain=True,              # if True, constrain 1st station
                          fdeg_Breal=5,                      # degree of default freq polynomial        
                          fdeg_Bimag='fdeg_Breal',           # degree of default freq polynomial          
                          tdeg_Breal=1,                      # degree of default time polynomial         
@@ -211,11 +206,17 @@ if MG['insert_solver_GBJones']:
     # Make the .solver_subtree() inarg for the BJones solution (if required)
     if MG['solver_subtree_GJones']:
         qual = 'GJones'
+        # Extra condition equations to be used:
+        condition = []
+        condition.append('Gphase_X_sum=0.0')
+        condition.append('Gphase_Y_sum=0.0')
         solver_subtree_qual.append(qual)
         ss_inarg[qual] = MG_JEN_Cohset.solver_subtree(_getdefaults=True, _qual=qual) 
         JEN_inarg.modify(ss_inarg[qual],
                          # solvegroup=['GJones'],             # list of solvegroup(s) to be solved for
                          solvegroup=['Gphase'],             # list of solvegroup(s) to be solved for
+                         # condition=[],                      # list of names of extra condition equations
+                         condition=condition,               # list of names of extra condition equations
                          rmin=200,                          # if specified, only use baselines>=rmin 
                          # rmax=None,                         # if specified, only use baselines<=rmax
                          # num_iter=20,                       # max number of iterations
@@ -229,10 +230,16 @@ if MG['insert_solver_GBJones']:
     # Make the .solver_subtree() inarg for the BJones solution (if required)
     if MG['solver_subtree_BJones']:
         qual = 'BJones'
+        # Extra condition equations to be used:
+        condition = []
+        condition.append('Bimag_X_sum=0.0')
+        condition.append('Bimag_Y_sum=0.0')
         solver_subtree_qual.append(qual)
         ss_inarg[qual] = MG_JEN_Cohset.solver_subtree(_getdefaults=True, _qual=qual) 
         JEN_inarg.modify(ss_inarg[qual],
                          solvegroup=['BJones'],             # list of solvegroup(s) to be solved for
+                         # condition=[],                      # list of names of extra condition equations
+                         condition=condition,               # list of names of extra condition equations
                          rmin=200,                          # if specified, only use baselines>=rmin 
                          # rmax=None,                         # if specified, only use baselines<=rmax
                          # num_iter=20,                       # max number of iterations

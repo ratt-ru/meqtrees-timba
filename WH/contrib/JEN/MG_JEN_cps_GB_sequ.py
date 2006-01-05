@@ -163,6 +163,11 @@ if MG['insert_solver_GJones']:
     
     # Specify a list of MeqParm solvegroup(s) to be solved for:
     solvegroup = ['GJones']
+
+    # Extra condition equations to be used:
+    condition = []
+    condition.append('Gphase_X_sum=0.0')
+    condition.append('Gphase_Y_sum=0.0')
     
 
     inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
@@ -174,7 +179,6 @@ if MG['insert_solver_GJones']:
                      _JEN_inarg_option=None)                # optional, not yet used 
     if 'GJones' in Jsequence: 
         JEN_inarg.modify(inarg,
-                         Gphase_constrain=True,             # if True, constrain 1st station phase
                          fdeg_Gampl=0,                      # degree of default freq polynomial         
                          fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                          tdeg_Gampl=0,                      # degree of default time polynomial         
@@ -197,7 +201,6 @@ if MG['insert_solver_GJones']:
 
     inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
     JEN_inarg.modify(inarg,
-                     solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
                      visu=True,                         # if True, include visualisation
                      redun=MG['redun'],                 # if True, use redundant baseline calibration
                      master_reqseq=MG['master_reqseq'], # if True, use a master reqseq for solver(s)
@@ -206,7 +209,10 @@ if MG['insert_solver_GJones']:
                      correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
                      # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
                      # ** Arguments for .solver_subtree()
-                     rmin=200,                          # if specified, only use baselines>=rmin 
+                     solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
+                     # condition=[],                      # list of names of extra condition equations
+                     condition=condition,               # list of names of extra condition equations
+                     # rmin=200,                          # if specified, only use baselines>=rmin 
                      rmax=None,                         # if specified, only use baselines<=rmax
                      # num_iter=20,                       # max number of iterations
                      # epsilon=1e-4,                      # iteration control criterion
@@ -233,6 +239,11 @@ if MG['insert_solver_BJones']:
     
     # Specify a list of MeqParm solvegroup(s) to be solved for:
     solvegroup = ['BJones']
+
+    # Extra condition equations to be used:
+    condition = []
+    condition.append('Bimag_X_sum=0.0')
+    condition.append('Bimag_Y_sum=0.0')
     
 
     inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
@@ -244,10 +255,6 @@ if MG['insert_solver_BJones']:
                      _JEN_inarg_option=None)                # optional, not yet used 
     if 'BJones' in Jsequence: 
         JEN_inarg.modify(inarg,
-                         Breal_constrain=False,             # if True, constrain 1st station
-                         # NB: If Breal_constrain, one station does not get corrected
-                         #     But if False, the rank decreases, and it needs 8 iterations....!
-                         Bimag_constrain=True,              # if True, constrain 1st station
                          fdeg_Breal=5,                      # degree of default freq polynomial        
                          fdeg_Bimag='fdeg_Breal',           # degree of default freq polynomial          
                          tdeg_Breal=1,                      # degree of default time polynomial         
@@ -278,8 +285,10 @@ if MG['insert_solver_BJones']:
                      # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
                      # ** Arguments for .solver_subtree()
                      solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
+                     # condition=[],                      # list of names of extra condition equations
+                     condition=condition,               # list of names of extra condition equations
                      rmin=200,                          # if specified, only use baselines>=rmin 
-                     rmax=None,                         # if specified, only use baselines<=rmax
+                     # rmax=None,                         # if specified, only use baselines<=rmax
                      # num_iter=20,                       # max number of iterations
                      # epsilon=1e-4,                      # iteration control criterion
                      # debug_level=10,                    # solver debug_level

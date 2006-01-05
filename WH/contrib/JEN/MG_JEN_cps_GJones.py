@@ -148,6 +148,11 @@ Jsequence = ['GJones']
 solvegroup = ['GJones']
 # solvegroup = ['Gphase']
 
+# Extra condition equations to be used:
+condition = []
+condition.append('Gphase_X_sum=0.0')
+condition.append('Gphase_Y_sum=0.0')
+
 
 inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
 JEN_inarg.modify(inarg,
@@ -160,7 +165,6 @@ JEN_inarg.modify(inarg,
 if 'GJones' in Jsequence: 
     JEN_inarg.modify(inarg,
                      # MeqParm solving instructions:
-                     Gphase_constrain=False,             # if True, constrain 1st station phase
                      fdeg_Gampl=0,                      # degree of default freq polynomial         
                      fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                      tdeg_Gampl=0,                      # degree of default time polynomial         
@@ -195,11 +199,12 @@ JEN_inarg.modify(inarg,
                  # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
                  # ** Arguments for .solver_subtree()
                  solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
+                 # condition=[],                      # list of names of extra condition equations
+                 condition=condition,               # list of names of extra condition equations
                  # num_iter=20,                       # max number of iterations
                  # epsilon=1e-4,                      # iteration control criterion
                  # debug_level=10,                    # solver debug_level
                  history=True,                      # if True, include history collection of metrics 
-                 extra_condeqs=False,                # if True, constrain Gphase with condeq(s)
                  _JEN_inarg_option=None)            # optional, not yet used 
 JEN_inarg.attach(MG, inarg)
                  

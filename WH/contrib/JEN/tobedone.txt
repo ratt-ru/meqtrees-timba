@@ -11,16 +11,11 @@ detected bugs:
 
  - 31dec2005: ReqMux does not work!! 
    Error mssage: nmandatory<=nchildren (see MG_JEN_Cohset.py)
-
- - 02jan2006: master reqseq works fine...
-
- - 02jan2006: chain_solvers does not work! Try MG_JEN_cps_GB_sequ.py
-   The tree looks OK, and the first GJones solution works OK
-   After that, BJones does not solve ("spid discovery did not produce
-   any solvable coefficients....")
-   After that, the next snippets are processed, but without effect...
+   Rebuild, and try again.......
 
  - NB: Discuss new hcoll_metrics with WNB
+
+ - AGW fax: 1-250-4937767
 
 ==================================================================
 
@@ -52,10 +47,8 @@ detected bugs:
    - Allow later specification of shape (also via Joneset?)
    - Allow ND funklets......!
 
- - JEN: TDL_Parmset.py (new official object)
-   - Contains regester/parmgroup/solvegroup from TDL_Joneset
+ - JEN: TDL_Parmset.py 
    - A Joneset/Cohset/Sixpack object contains a Parmset object
-   - js.Parmset.register(...) 
 
  - GVD: MeqTree testing
    - when using a subset of the MS, the tree is still made for all ifrs
@@ -266,6 +259,35 @@ detected bugs:
      - Surveys have to find LSM sources in each 2 deg field
        - 3C/4C is not sufficient, expect 3-5 sources > 1 Jy per field
      - Both use the long baselines also
+
+
+ - RJN: uvbrick
+   - distributing point source over adjacent grid points
+     - makes it an extended source
+     - but smaller than the observation resolution
+   - moving point source to the nearest grid point
+     - causes it to be subtracted at the wrong position
+       (but within the observation resolution!)
+     - does not affect the selfcal solution very much
+   - do we need multiple w-planes?
+   - separate the w-effects from interpolation effects
+   - for the moment:
+     - move point sources to nearest grid point
+     - dont do anything for extended sources
+     - FFT to single w-plane, and interpolate (linearly?) 
+     - study the error effects in the residual images
+       - think of refinements from there onwards 
+     - develop the application of image-plane effects via interpolation
+
+ - AGW/WNB: hcoll, especially solver metrics
+   - combine non-matching arrays
+   - concatenate in the time direction (sawtooth)
+   - put vectors into the same plot (comparison)
+
+ - JEN: Contamination reduction
+   - Subtract all the nominal sources at the start
+   - For each peeling step, add one source, and then subtract it
+   - Reuse predicted sources as much as possible
 
       
    

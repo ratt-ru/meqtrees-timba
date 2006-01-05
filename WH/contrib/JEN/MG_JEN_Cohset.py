@@ -85,7 +85,7 @@ def make_spigots(ns=None, Cohset=None, **inarg):
     MSauxinfo.create_nodes(ns)
 
     # Append the initial (spigot) Cohset to the forest state object:
-    MG_JEN_forest_state.object(Cohset, funcname)
+    # MG_JEN_forest_state.object(Cohset, funcname)
 
     # Optional: visualise the spigot (input) data:
     if pp['visu']:
@@ -163,6 +163,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     
     # Append the final Cohset to the forest state object:
     MG_JEN_forest_state.object(Cohset, funcname)
+    MG_JEN_forest_state.object(Cohset.Parmset, funcname)
     
     # Return a list of sink nodes:
     return sinks
@@ -215,7 +216,7 @@ def predict (ns=None, Sixpack=None, Joneset=None, **inarg):
     Cohset.history(funcname+' using '+Sixpack.oneliner())
     Cohset.history(funcname+' -> '+Cohset.oneliner())
     MG_JEN_forest_state.history (funcname)
-    MG_JEN_forest_state.object(Cohset, funcname)
+    # MG_JEN_forest_state.object(Cohset, funcname)
     return Cohset
 
 
@@ -277,9 +278,9 @@ def JJones(ns=None, Sixpack=None, **inarg):
             print '** jones not recognised:',jones,'from:',pp['Jsequence']
                
     # Matrix-multiply the collected jones matrices in jseq to a 2x2 Joneset:
-    MG_JEN_forest_state.object(jseq, funcname)
+    # MG_JEN_forest_state.object(jseq, funcname)
     Joneset = jseq.make_Joneset(ns)
-    MG_JEN_forest_state.object(Joneset, funcname)
+    # MG_JEN_forest_state.object(Joneset, funcname)
     return Joneset
     
 
@@ -419,7 +420,9 @@ def insert_solver(ns=None, measured=None, predicted=None, **inarg):
 
     # Finished: do some book-keeping:
     MG_JEN_forest_state.object(Mohset, funcname)
+    MG_JEN_forest_state.object(Mohset.Parmset, funcname)
     MG_JEN_forest_state.object(predicted, funcname)
+    MG_JEN_forest_state.object(predicted.Parmset, funcname)
     MG_JEN_forest_state.history (funcname)
     Mohset.cleanup(ns)                
     return True
@@ -436,7 +439,7 @@ def solver_subtree (ns=None, Cohset=None, **inarg):
     pp.setdefault('solvegroup', [])        # list of solvegroup(s) to be solved for
     pp.setdefault('rmin', None)            # if specified, only use baselines>=rmin 
     pp.setdefault('rmax', None)            # if specified, only use baselines<=rmax
-    pp.setdefault('extra_condeqs', False)  # If True, constrain Gphase via condeqs (kludge...)
+    pp.setdefault('condition', [])         # List of zero or more condition keys
     pp.setdefault('num_iter', 20)          # max number of iterations
     pp.setdefault('num_cells', None)       # if defined, ModRes argument [ntime,nfreq]
     pp.setdefault('epsilon', 1e-4)         # iteration control criterion
@@ -489,18 +492,16 @@ def solver_subtree (ns=None, Cohset=None, **inarg):
     Cohset.select(rmin=pp['rmin'], rmax=pp['rmax'])
     solver_condeqs = Cohset.cohs(corrs=corrs, ns=ns)
 
-    # Special WNB kludge: Make extra condeqs to constrain the phase of one station:
-    # (Rework this into a proper condition generator, using Parmsets etc)
-    # NB: Constrain vs Condition....
+    # Make extra condeq nodes to condition the solution, if required: 
     extra_condeqs = []
-    if pp['extra_condeqs']:
-        ss1 = Cohset.Parmset.solveparm_names(pp['Gphase'], select='first')
-        name = 'extra_condeq'
-        zero = ns['zero_'+name] << Meq.Constant(0.0)
-        # zero = ns['zero_'+name] << Meq.Parm(0.0)        # no longer needed
-        for s1 in ss1:
-            extra_condeqs.append(ns[name+'_'+s1] << Meq.Condeq(s1, zero))
-        solver_condeqs.extend(extra_condeqs)
+    if pp['condition']==None: pp['condition'] = []
+    if not isinstance(pp['condition'], (list, tuple)): pp['condition'] = [pp['condition']]
+    Cohset.Parmset.display('extra_condeqs', full=True)
+    for key in pp['condition']:
+        if isinstance(key, str):
+            condeq = Cohset.Parmset.make_condeq(ns, key)
+            if not isinstance(condeq, bool): extra_condeqs.append(condeq)
+    solver_condeqs.extend(extra_condeqs)
 
     # Visualise the condeqs (at solver resolution), if required:
     dcoll_condeq = []
@@ -561,7 +562,7 @@ def solver_subtree (ns=None, Cohset=None, **inarg):
 
 
     # Finished: do some book-keeping:
-    MG_JEN_forest_state.object(Cohset, funcname)
+    # MG_JEN_forest_state.object(Cohset, funcname)
     MG_JEN_forest_state.history (funcname)
     return root
     
@@ -606,7 +607,7 @@ def insert_flagger (ns=None, Cohset=None, **inarg):
     Cohset.scope('flagged')
     Cohset.history(funcname+' -> '+Cohset.oneliner())
     MG_JEN_forest_state.history (funcname)
-    MG_JEN_forest_state.object(Cohset, funcname)
+    # MG_JEN_forest_state.object(Cohset, funcname)
     return True
 
 
@@ -700,7 +701,7 @@ def visualise(ns=None, Cohset=None, extra=None, **pp):
         # Make the dcoll nodes children of a (synchronising) MeqReqSeq node
         # that is inserted into the coherency stream(s):
         Cohset.graft(ns, sc, name=visu_scope+'_'+pp['type']) 
-        MG_JEN_forest_state.object(Cohset, funcname+'_'+visu_scope+'_'+pp['type'])
+        # MG_JEN_forest_state.object(Cohset, funcname+'_'+visu_scope+'_'+pp['type'])
         # Return an empty list to be consistent with the alternative below
         return []
 
@@ -883,6 +884,16 @@ if True:                                                   # ... Copied from MG_
    # solvegroup = ['DJones']
    # solvegroup = ['GJones','DJones']
 
+   # Extra condition equations to be used:
+   condition = []
+   condition.append('Gphase_X_sum=0.0')
+   condition.append('Gphase_Y_sum=0.0')
+   # condition.append('Gphase_X_first=0.0')
+   # condition.append('Gphase_Y_last=0.0')
+   # condition.append('Bimag_X_sum=0.0')
+   # condition.append('Bimag_Y_sum=0.0')
+   # condition = []
+
 
    # inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
    inarg = JJones(_getdefaults=True, _qual=qual, expect=Jsequence)  
@@ -898,7 +909,6 @@ if True:                                                   # ... Copied from MG_
    #    (This is easiest by copying lines from MG_JEN_Joneset.py)
    if 'GJones' in Jsequence: 
        JEN_inarg.modify(inarg,
-                        Gphase_constrain=False,             # if True, constrain 1st station phase
                         fdeg_Gampl=3,                      # degree of default freq polynomial         
                         fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                         tdeg_Gampl=1,                      # degree of default time polynomial         
@@ -917,8 +927,6 @@ if True:                                                   # ... Copied from MG_
                         _JEN_inarg_option=None)            # optional, not yet used 
    if 'BJones' in Jsequence: 
        JEN_inarg.modify(inarg,
-                        Breal_constrain=False,             # if True, constrain 1st station phase
-                        Bimag_constrain=True,              # if True, constrain 1st station phase
                         fdeg_Breal=3,                      # degree of default freq polynomial        
                         fdeg_Bimag='fdeg_Breal',           # degree of default freq polynomial          
                         tdeg_Breal=0,                      # degree of default time polynomial         
@@ -951,7 +959,7 @@ if True:                                                   # ... Copied from MG_
        JEN_inarg.modify(inarg,
                         master_reqseq=MG['master_reqseq'], # if True, use a master reqseq for solver(s)
                         chain_solvers=MG['chain_solvers'], # if True, chain the solver(s)
-                        redun=False,                        # if True, use redundant baseline calibration
+                        redun=True,                        # if True, use redundant baseline calibration
                         # redun=MG['redun'],                 # if True, use redundant baseline calibration
                         subtract=False,                    # if True, subtract 'predicted' from uv-data 
                         correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
@@ -960,12 +968,13 @@ if True:                                                   # ... Copied from MG_
                         # num_cells=[2,5],                   # ModRes argument [ntime,nfreq]
                         # ** Arguments for .solver_subtree()
                         solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
+                        # condition=[],                      # list of names of extra condition equations
+                        condition=condition,               # list of names of extra condition equations
+                        # rmin=200,                         # if specified, only use baselines>=rmin 
+                        # rmax=None,                         # if specified, only use baselines<=rmax
                         num_iter=10,                       # max number of iterations
                         # epsilon=1e-4,                      # iteration control criterion
                         # debug_level=10,                    # solver debug_level
-                        rmin=200,                         # if specified, only use baselines>=rmin 
-                        rmax=None,                         # if specified, only use baselines<=rmax
-                        extra_condeqs=False,               # if True, constrain Gphase with condeq(s) (kludge)
                         history=True,                      # if True, include history collection of metrics 
                         _JEN_inarg_option=None)            # optional, not yet used 
        JEN_inarg.attach(MG, inarg)

@@ -14,6 +14,8 @@
 # - 07 dec 2005: introduced define_MeqParm() argument 'constrain'
 # - 10 dec 2005: make the functions inarg-compatible
 # - 02 jan 2006: converted to TDL_Parmset.py
+# - 07 dec 2005: removed define_MeqParm() argument 'constrain' again
+# - 07 dec 2005: introduced Parmset.define_condeq()
 
 # Copyright: The MeqTree Foundation 
 
@@ -117,7 +119,6 @@ def GJones (ns=None, **inarg):
     pp.setdefault('Gpolar', False)                 # if True, use MeqPolar, otherwise MeqToComplex
     # ** Solving instructions:
     pp.setdefault('unsolvable', False)             # if True, do NOT store solvegroup/parmgroup info
-    pp.setdefault('Gphase_constrain', True)        # if True, constrain 1st station phase
     pp.setdefault('fdeg_Gampl', 0)                 # degree of default freq polynomial         
     pp.setdefault('fdeg_Gphase', 0)                # degree of default freq polynomial          
     pp.setdefault('tdeg_Gampl', 0)                 # degree of default time polynomial         
@@ -147,6 +148,23 @@ def GJones (ns=None, **inarg):
     p1 = js.register('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral1')
     p2 = js.register('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral2')
 
+    # Define potential extra condition equations:
+    js.Parmset.define_condeq(p1, unop='Add', value=0.0)
+    js.Parmset.define_condeq(p1, select='first', value=0.0)
+    js.Parmset.define_condeq(p1, select='last', value=0.0)
+
+    js.Parmset.define_condeq(p2, unop='Add', value=0.0)
+    js.Parmset.define_condeq(p2, select='first', value=0.0)
+    js.Parmset.define_condeq(p2, select='last', value=0.0)
+
+    js.Parmset.define_condeq(a1, unop='Multiply', value=1.0)
+    js.Parmset.define_condeq(a1, select='first', value=1.0)
+    js.Parmset.define_condeq(a1, select='last', value=1.0)
+
+    js.Parmset.define_condeq(a2, unop='Multiply', value=1.0)
+    js.Parmset.define_condeq(a2, select='first', value=1.0)
+    js.Parmset.define_condeq(a2, select='last', value=1.0)
+
     # MeqParm node_groups: add 'G' to default 'Parm':
     js.Parmset.node_groups(label[0])
 
@@ -174,11 +192,7 @@ def GJones (ns=None, **inarg):
           default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'], stddev=pp['stddev_Gphase'], 
                                             fdeg=pp['fdeg_Gphase'], tdeg=pp['tdeg_Gphase'],
                                             scale=pp['ft_coeff_scale']) 
-          constrain = False
-          if pp['Gphase_constrain']: 
-             if first_station: constrain = True
           js.Parmset.define_MeqParm (ns, Gphase, station=skey, default=default,
-                                     constrain=constrain,
                                      tile_size=pp['tile_size_Gphase'])
 
        ss = js.Parmset.buffer(update=True)
@@ -298,8 +312,6 @@ def BJones (ns=0, **inarg):
     # ** Solving instructions:
     pp.setdefault('unsolvable', False)             # if True, do NOT store solvegroup/parmgroup info
     pp.setdefault('parmtable', None)               # name of the MeqParm table (AIPS++)
-    pp.setdefault('Breal_constrain', False)        # if True, constrain 1st station phase
-    pp.setdefault('Bimag_constrain', True)         # if True, constrain 1st station phase
     pp.setdefault('fdeg_Breal', 3)                 # degree of default freq polynomial           
     pp.setdefault('fdeg_Bimag', 3)                 # degree of default freq polynomial           
     pp.setdefault('tdeg_Breal', 0)                 # degree of default time polynomial           
@@ -328,6 +340,12 @@ def BJones (ns=0, **inarg):
     bi1 = js.register('Bimag', ipol=1, color='magenta', style='square', size=7, corrs='paral1')
     bi2 = js.register('Bimag', ipol=2, color='cyan', style='square', size=7, corrs='paral2')
 
+    # Define potential extra condition equations:
+    js.Parmset.define_condeq(bi1, unop='Add', value=0.0)
+    js.Parmset.define_condeq(bi2, unop='Add', value=0.0)
+    js.Parmset.define_condeq(br1, unop='Multiply', value=1.0)
+    js.Parmset.define_condeq(br2, unop='Multiply', value=1.0)
+
     # MeqParm node_groups: add 'B' to default 'Parm':
     js.Parmset.node_groups(label[0])
 
@@ -350,23 +368,15 @@ def BJones (ns=0, **inarg):
             default = MG_JEN_funklet.polc_ft (c00=pp['c00_Breal'], stddev=pp['stddev_Breal'], 
                                               fdeg=pp['fdeg_Breal'], tdeg=pp['tdeg_Breal'], 
                                               scale=pp['ft_coeff_scale']) 
-            constrain = False
-            if pp['Breal_constrain']: 
-                if first_station: constrain = True
             js.Parmset.define_MeqParm (ns, Breal, station=skey, default=default,
-                               constrain=constrain,
-                               tile_size=pp['tile_size_Breal'])
+                                       tile_size=pp['tile_size_Breal'])
 
         for Bimag in [bi1,bi2]:
             default = MG_JEN_funklet.polc_ft (c00=pp['c00_Bimag'], stddev=pp['stddev_Bimag'], 
                                               fdeg=pp['fdeg_Bimag'], tdeg=pp['tdeg_Bimag'], 
                                               scale=pp['ft_coeff_scale']) 
-            constrain = False
-            if pp['Bimag_constrain']: 
-                if first_station: constrain = True
             js.Parmset.define_MeqParm (ns, Bimag, station=skey, default=default,
-                               constrain=constrain,
-                               tile_size=pp['tile_size_Bimag'])
+                                       tile_size=pp['tile_size_Bimag'])
 
         ss = js.Parmset.buffer(update=True)
         first_station = False
@@ -439,6 +449,11 @@ def DJones_WSRT (ns=0, **inarg):
    dell1 = js.register('dell', ipol=1, color='magenta', style='triangle', size=7, corrs='cross')
    dell2 = js.register('dell', ipol=2, color='yellow', style='triangle', size=7, corrs='cross')
    pzd = js.register('PZD', color='blue', style='circle', size=10, corrs='cross')
+
+   # Define potential extra condition equations:
+   js.Parmset.define_condeq(dang, unop='Add', value=0.0)
+   js.Parmset.define_condeq(dang1, unop='Add', value=0.0)
+   js.Parmset.define_condeq(dang2, unop='Add', value=0.0)
 
    # MeqParm node_groups: add 'D' to default 'Parm':
    js.Parmset.node_groups(label[0])
@@ -797,7 +812,6 @@ if True:                                                # ... Copied from MG_JEN
                      
                      # ** Solving instructions:
                      unsolvable=False,                  # if True, do not store parmgroup info
-                     Gphase_constrain=True,             # if True, constrain 1st station phase
                      fdeg_Gampl=5,                      # degree of default freq polynomial         
                      fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                      tdeg_Gampl=0,                      # degree of default time polynomial         
@@ -831,8 +845,6 @@ if True:                                                # ... Copied from MG_JEN
                      
                      # ** Solving instructions:
                      unsolvable=False,                  # if True, do not store parmgroup info
-                     Breal_constrain=False,             # if True, constrain 1st station phase
-                     Bimag_constrain=True,              # if True, constrain 1st station phase
                      fdeg_Breal=3,                      # degree of default freq polynomial        
                      fdeg_Bimag='fdeg_Breal',           # degree of default freq polynomial          
                      tdeg_Breal=0,                      # degree of default time polynomial         

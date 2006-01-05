@@ -147,6 +147,14 @@ Jsequence = ['GJones','DJones_WSRT']
 # Specify a list of MeqParm solvegroup(s) to be solved for:
 solvegroup = ['GJones','DJones']
 
+# Extra condition equations to be used:
+condition = []
+condition.append('Gphase_X_sum=0.0')
+condition.append('Gphase_Y_sum=0.0')
+# condition.append('dang_sum=0.0')
+# condition.append('dang_X_sum=0.0')
+# condition.append('dang_Y_sum=0.0')    
+
 
 inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
 JEN_inarg.modify(inarg,
@@ -158,7 +166,6 @@ JEN_inarg.modify(inarg,
                  _JEN_inarg_option=None)                # optional, not yet used 
 if 'GJones' in Jsequence: 
     JEN_inarg.modify(inarg,
-                     Gphase_constrain=True,             # if True, constrain 1st station phase
                      fdeg_Gampl=0,                      # degree of default freq polynomial         
                      fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                      tdeg_Gampl=0,                      # degree of default time polynomial         
@@ -189,12 +196,16 @@ JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
 JEN_inarg.modify(inarg,
-                 solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
                  subtract=False,                    # if True, subtract 'predicted' from uv-data 
                  correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
                  visu=True,                         # if True, include visualisation
                  # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
                  # Arguments for .solver_subtree()
+                 solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
+                 # condition=[],                      # list of names of extra condition equations
+                 condition=condition,               # list of names of extra condition equations
+                 # rmin=200,                          # if specified, only use baselines>=rmin 
+                 # rmax=None,                         # if specified, only use baselines<=rmax
                  # num_iter=20,                       # max number of iterations
                  # epsilon=1e-4,                      # iteration control criterion
                  # debug_level=10,                    # solver debug_level
