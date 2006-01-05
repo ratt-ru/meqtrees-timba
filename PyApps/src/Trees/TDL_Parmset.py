@@ -8,6 +8,7 @@
 # History:
 #    - 20 dec 2005: creation, from TDL_Joneset.py
 #    - 02 jan 2006: replaced the functions in TDL_Joneset.py (etc)
+#    - 05 jan 2006: added make_condeq() etc
 #
 # Full description:
 #   The (many) MeqParms of a Measurement Equation are usually solved in groups
@@ -82,7 +83,7 @@ class Parmset (TDL_common.Super):
         self.__plot_color = TDL_radio_conventions.plot_color()
         self.__plot_style = TDL_radio_conventions.plot_style()
         self.__plot_size = TDL_radio_conventions.plot_size()
-        self.__parm = dict()
+        self.__MeqParm = dict()
         self.__buffer = dict()
         self.__node_groups = ['Parm']
 
@@ -146,13 +147,13 @@ class Parmset (TDL_common.Super):
         ss.append(indent1+' - Available MeqParm nodes ( '+str(self.len())+' ):')
         if full or self.len()<10:
             for key in self.keys():
-                ss.append(indent2+' - '+key+' : '+str(self.__parm[key]))
+                ss.append(indent2+' - '+key+' : '+str(self.__MeqParm[key]))
         else:
             keys = self.keys()
             n = len(keys)-1
-            ss.append(indent2+' - first: '+keys[0]+' : '+str(self.__parm[keys[0]]))
+            ss.append(indent2+' - first: '+keys[0]+' : '+str(self.__MeqParm[keys[0]]))
             ss.append(indent2+'   ....')
-            ss.append(indent2+' - last:  '+keys[n]+' : '+str(self.__parm[keys[n]]))
+            ss.append(indent2+' - last:  '+keys[n]+' : '+str(self.__MeqParm[keys[n]]))
         return TDL_common.Super.display_end (self, ss)
 
 
@@ -165,17 +166,17 @@ class Parmset (TDL_common.Super):
     def __getitem__(self, key):
         """Get a named (key) MeqParm node"""
         # This allows indexing by key and by index nr:
-        if isinstance(key, int): key = self.__parm.keys()[key]
-        return self.__parm[key]
+        if isinstance(key, int): key = self.__MeqParm.keys()[key]
+        return self.__MeqParm[key]
 
     def __setitem__(self, key, value):
         """Set a named (key) MeqParm node"""
-        self.__parm[key] = value
-        return self.__parm[key]
+        self.__MeqParm[key] = value
+        return self.__MeqParm[key]
 
-    def MeqParm(self): return self.__parm
-    def len(self): return len(self.__parm)
-    def keys(self): return self.__parm.keys()
+    def MeqParm(self): return self.__MeqParm
+    def len(self): return len(self.__MeqParm)
+    def keys(self): return self.__MeqParm.keys()
     def has_key(self, key): return self.keys().__contains__(key)
 
     def node_groups(self, new=None):
@@ -242,7 +243,7 @@ class Parmset (TDL_common.Super):
             # Append the accumulated MeqParm node names to their respective parmgroups:
             for key in self.__buffer.keys():
                 nodename = self.__buffer[key].name
-                self.__parm[nodename] = self.__buffer[key]
+                self.__MeqParm[nodename] = self.__buffer[key]
                 self.__parmgroup[key].append(nodename)
         if reset:
             # Always return self.__buffer as it was BEFORE reset:
@@ -320,8 +321,8 @@ class Parmset (TDL_common.Super):
         if not isinstance(node_names, list): return False
         nodes = []
         for name in node_names:
-            print '- parm_nodes():',name,self.__parm.has_key(name)
-            nodes.append(self.__parm[name])
+            print '- parm_nodes():',name,self.__MeqParm.has_key(name)
+            nodes.append(self.__MeqParm[name])
         # Return a list of solvable MeqParm nodes:
         if trace: print '  ->',len(nodes),':',nodes,'\n'
         return nodes
@@ -467,7 +468,7 @@ class Parmset (TDL_common.Super):
         if not isinstance(names, list): return False
         nodes = []
         for name in names:
-            nodes.append(self.__parm[name])
+            nodes.append(self.__MeqParm[name])
         # Return a list of solvable MeqParm nodes:
         if trace: print '  ->',len(nodes),':',nodes,'\n'
         return nodes
@@ -502,7 +503,7 @@ class Parmset (TDL_common.Super):
             self.__parmgroup.update(Parmset.parmgroup())
             self.__pg_rider.update(Parmset.pg_rider())
             self.__condeq.update(Parmset.condeq())
-            self.__parm.update(Parmset.MeqParm())
+            self.__MeqParm.update(Parmset.MeqParm())
             self.__solvegroup.update(Parmset.solvegroup())
             self.__plot_color.update(Parmset.plot_color())
             self.__plot_style.update(Parmset.plot_style())
