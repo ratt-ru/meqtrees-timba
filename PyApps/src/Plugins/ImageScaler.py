@@ -55,7 +55,7 @@ class ImageScaler:
   def iTransform(self,x):
 #  Transform a point in double interval into an point in the
 #  integer interval
-#  param: x value
+#  param: x floating point array to be transformed
 #  linear mapping:<dd>rint(i1 + (i2 - i1) / (d2 - d1) * (x - d1))
 #  logarithmic mapping:<dd>rint(i1 + (i2 - i1) / log(d2 / d1) * log(x / d1))
 #  warning: The specified point is allowed to lie outside the intervals. If you
@@ -110,7 +110,7 @@ class ImageScaler:
 
   def invTransform(self, y):
 # Transform an integer value into a double value
-# param: y integer value to be transformed
+# param: y integer array to be transformed
 # linear mapping:<dd>d1 + (d2 - d1) / (i2 - i1) * (y - i1)
 # logarithmic mapping:<dd>d1 + (d2 - d1) / log(i2 / i1) * log(y / i1)
     if self.d_cnv == 0.0:
@@ -127,7 +127,7 @@ class ImageScaler:
 # The function is similar to transform, but limits the input value
 # to the nearest border of the map's double interval if it lies outside
 # that interval.
-# param: x value to be transformed
+# param: x array to be transformed
 # return transformed value
     if self.d_log: 
       if x > self.LogMax:
@@ -150,7 +150,7 @@ class ImageScaler:
 # Exact transformation
 # This function is similar to transform, but
 # makes the integer interval appear to be double. 
-# param: x value to be transformed
+# param: x array to be transformed
 # linear mapping:<dd>i1 + (i2 - i1) / (d2 - d1) * (x - d1)
 # logarithmic mapping:<dd>i1 + (i2 - i1) / log(d2 / d1) * log(x / d1)
     if self.d_log:
