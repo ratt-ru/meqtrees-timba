@@ -246,8 +246,10 @@ else
     lfr_a0=`echo $lfr_a0 | sed -e "s%+root%$LOFARROOT%g"`
     lfr_a0=`echo $lfr_a0 | sed -e "s%+pkg%$lfr_ext_name%g"`
     lfr_a=`echo $lfr_a0 | sed -e "s%+vers%$lfr_ext_version%g"`
-    lfr_b=`echo $lfr_a | sed -e "s%+comp%$lfr_buildcomp%"`
-    lfr_slist="$lfr_slist $lfr_b"
+    if test "$lfr_buildcomp" != ""; then
+      lfr_b=`echo $lfr_a | sed -e "s%+comp%$lfr_buildcomp%"`
+      lfr_slist="$lfr_slist $lfr_b"
+    fi
     if test "$lfr_a" != "$lfr_b"; then
       if test "$lfr_buildcomp" != "$lofar_compiler"; then
         lfr_b=`echo $lfr_a | sed -e "s%+comp%$lofar_compiler%"`
