@@ -325,14 +325,10 @@ int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
       try { result_flag |= endSnippet(); }
       CatchExceptions("ending tile "+rqid_.toString('.'));
     }
-    else
-      time0_ = tileref->time(0);
     current_seqnr_ = seqnr;
     // notify start of new snippet
     try { result_flag |= startSnippet(*tileref); }
     CatchExceptions("starting tile "+rqid_.toString('.'));
-    tile_time_[0] = tileref->time(0) - time0_;
-    tile_time_[1] = tileref->time(tileref->nrow()-1) - time0_;
   }
   have_tile_[did] = true;
   // deliver tile to all handlers
@@ -557,7 +553,7 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTil
   if( num_tiles_ == 1 )
     time0_ = time1(0); // reference time
   tile_time_[0] = time1(0) - time0_;
-  tile_time_[1] = time1(i1-i0+1) - time0_;
+  tile_time_[1] = time1(i1-i0) - time0_;
   // now, for any rows missing _within_ the valid range, fill in interpolated
   // times (just to keep Cells & co. happy)
   int j=1;
