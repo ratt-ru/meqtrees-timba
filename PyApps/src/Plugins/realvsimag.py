@@ -890,7 +890,7 @@ class realvsimag_plotter(object):
               self._plot_x_axis_label = self._plot_parms.get('x_axis')
             if self._plot_parms.has_key('y_axis'):
               self._plot_y_axis_label = self._plot_parms.get('y_axis')
-            if self._plot_title is None and self._plot_parms.has_key('title'):
+            if self._plot_parms.has_key('title'):
               self._plot_title = self.label + ' ' +self._plot_parms.get('title')
             if self.value_tag is None and self._plot_parms.has_key('value_tag'):
               self.value_tag = self._plot_parms.get('value_tag')
@@ -1010,6 +1010,9 @@ class realvsimag_plotter(object):
             item_tag = self._string_tag + '_plot'
       if self._plot_title is None:
         self._plot_title = self.label + ' ' + self._plot_type
+
+# define the plot title
+      self.plot.setTitle(self._plot_title)
 
 # the system knows that it is plotting 'errors' if it has
 # been able to find both a value_tag and an error_tag along
@@ -1274,8 +1277,6 @@ class realvsimag_plotter(object):
 # with an individual 'string' key. We store these keys and 
 # associated curve numbers in the xy_plot_dict
       if self._xy_plot_dict.has_key(item_tag) == False: 
-        if not self._plot_title is None:
-          self.plot.setTitle(self._plot_title)
         if not self._plot_y_axis_label is None:
           self.plot.setAxisTitle(QwtPlot.yLeft, self._plot_y_axis_label)
         if not self._plot_x_axis_label is None:
