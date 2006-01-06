@@ -259,6 +259,7 @@ class QwtColorBar(QwtPlot):
 def make():
     demo = QwtColorBar()
     demo.setRange(-512, 512)
+    demo.setLogScale(True)
     demo.setDisplayType("grayscale")
     demo.resize(50, 200)
     demo.show()
