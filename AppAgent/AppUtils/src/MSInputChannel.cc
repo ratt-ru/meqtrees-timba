@@ -21,6 +21,7 @@
 //  $Id$
 
 #define AIPSPP_HOOKS
+#include <Common/AipsppMutex.h>
 #include "MSInputChannel.h"
 #include <AppAgent/VisDataVocabulary.h>
 #include <Common/BlitzToAips.h>
@@ -50,10 +51,12 @@
 #include <unistd.h>
 
 using namespace casa;
-using namespace LOFAR;
 
 namespace AppAgent
 {
+using namespace LOFAR;
+using AipsppMutex::aipspp_mutex;
+using namespace LOFAR::Thread;
 
 using namespace AppEvent;
 using namespace VisData;
@@ -157,6 +160,7 @@ void MSInputChannel::fillHeader (DMI::Record &hdr,const DMI::Record &select)
 //##ModelId=3DF9FECD025E
 void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
 {
+  Mutex::Lock lock(aipspp_mutex);
   // open MS
   ms_ = MeasurementSet(msname_,TableLock(TableLock::AutoNoReadLocking),Table::Old);
   dprintf(1)("opened MS %s, %d rows\n",msname_.c_str(),ms_.nrow());
@@ -272,6 +276,7 @@ void MSInputChannel::close (const string &str)
 {
   FileChannel::close(str);
   // close & detach from everything
+  Mutex::Lock lock(aipspp_mutex);
   selms_ = MeasurementSet();
   ms_ = MeasurementSet();
   tileformat_.detach();
@@ -280,6 +285,7 @@ void MSInputChannel::close (const string &str)
 //##ModelId=3DF9FECD021B
 int MSInputChannel::refillStream ()
 {
+  Mutex::Lock lock(aipspp_mutex);
   try
   {
     if( state() == HEADER )

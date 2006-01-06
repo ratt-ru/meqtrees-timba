@@ -25,6 +25,7 @@
 #include <Common/BlitzToAips.h>
 #include <DMI/Exception.h>
 #include <AppAgent/VisDataVocabulary.h>
+#include <Common/AipsppMutex.h>
 
 #include <tables/Tables/ArrColDesc.h>
 #include <tables/Tables/ArrayColumn.h>
@@ -37,6 +38,8 @@ namespace AppAgent
 {
 
 using namespace LOFAR;
+using namespace LOFAR::Thread;
+using AipsppMutex::aipspp_mutex;
 
 using namespace AppEvent;
 using namespace VisData;
@@ -56,6 +59,7 @@ int MSOutputChannel::init (const DMI::Record &params)
   if( FileChannel::init(params) < 0 )
     return state();
   
+  Mutex::Lock lock(aipspp_mutex);
   params_ = params;
   ms_ = MeasurementSet();
   msname_ = "(none)";
@@ -68,6 +72,7 @@ int MSOutputChannel::init (const DMI::Record &params)
 void MSOutputChannel::close (const string &msg)
 {
   FileChannel::close(msg);
+  Mutex::Lock lock(aipspp_mutex);
   ms_ = MeasurementSet();
   msname_ = "(none)";
   cdebug(1)<<"closed\n";
@@ -77,6 +82,7 @@ void MSOutputChannel::close (const string &msg)
 void MSOutputChannel::postEvent (const HIID &id, const ObjRef &data,AtomicID cat,const HIID &src)
 {
   recordOutputEvent(id,data,cat,src);
+  Mutex::Lock lock(aipspp_mutex);
   try
   {
     int code = VisEventType(id);

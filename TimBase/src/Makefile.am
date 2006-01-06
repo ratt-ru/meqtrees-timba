@@ -1,4 +1,5 @@
 INSTHDRS = \
+        AipsppMutex.h \
         BlitzToAips.h \
         CheckConfig.h \
         Debug.h \
@@ -36,7 +37,7 @@ INSTHDRS = \
         Thread/Mutex.h \
         Thread/SmartLock.h \
         Thread/Thread.h \
-	      Timer.h
+	Timer.h
 
 NOINSTHDRS =
 
@@ -51,6 +52,7 @@ DOCHDRS	= $(INSTHDRS) $(NOINSTHDRS)
 lib_LTLIBRARIES 	= libcommon.la
 
 libcommon_la_SOURCES 	= \
+        AipsppMutex.cc \
         Debug.cc \
         Exception.cc \
         Stopwatch.cc \
@@ -61,7 +63,7 @@ libcommon_la_SOURCES 	= \
         Profiling/PerfProfile.cc \
         Thread/SmartLock.cc \
         Thread/Thread.cc \
-	      Timer.cc
+	Timer.cc
 
 AM_YFLAGS		= -d -p KeyParse
 AM_LFLAGS		= -PKeyTokenize
