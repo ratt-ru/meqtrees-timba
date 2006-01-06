@@ -2,6 +2,7 @@
 #define _APPAGENT_MTQUEUECHANNEL_H 1
 
 #include <AppAgent/EventChannel.h>
+#include <DMI/Exception.h>
 
 #pragma aidgroup AppAgent
 #pragma aid MT Queue Size
@@ -115,6 +116,10 @@ class MTQueueChannel : public EventChannel
     static void * start_workerThread (void *args);
 
     void * runWorker ();
+    
+    // helper method: if error list is not empty, grabs a copy of the list,
+    // clears the list, wakes up remote thread, and throws list as exception
+    void checkErrorQueue ();
       
     EventChannel & remote ()
     { return *premote_; }
@@ -137,6 +142,9 @@ class MTQueueChannel : public EventChannel
     
     Queue post_queue_;
     Queue get_queue_;
+    
+    // error queue -- for exceptions from remote agent
+    DMI::ExceptionList err_queue_;
     
     // max queue size 
     uint queue_size_;

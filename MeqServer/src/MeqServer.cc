@@ -398,12 +398,22 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
       }
     }
     out[AidResult|AidCode] = flags;
+    if( flags&Node::RES_FAIL )
+    {
+      string msg;
+      // extract fail message fro result
+      if( resref.valid() && resref->numVellSets() >= 1 )
+      {
+        const VellSet &vs = resref->vellSet(0);
+        if( vs.isFail() && vs.numFails() > 0 )
+          msg = ": "+vs.getFailMessage(0);
+      }
+      out[AidError] = makeNodeMessage(node,ssprintf("execute() failed%s (return code 0x%x)",msg.c_str(),flags));
+    }
+    else
+      out[AidMessage] = makeNodeMessage(node,ssprintf("execute() successful (return code 0x%x)",flags));
     if( resref.valid() )
       out[AidResult] <<= resref;
-    if( flags&Node::RES_FAIL )
-      out[AidError] = makeNodeMessage(node,ssprintf("execute() failed, return code %x",flags));
-    else
-      out[AidMessage] = makeNodeMessage(node,ssprintf("execute() returns code %x",flags));
     if( getstate )
       out[FNodeState] <<= node.syncState();
     fillForestStatus(out(),in[FGetForestStatus].as<int>(0));

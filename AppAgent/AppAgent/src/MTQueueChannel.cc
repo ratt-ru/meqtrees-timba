@@ -66,14 +66,34 @@ void * MTQueueChannel::runWorker ()
   // lock the remote event flag so that it cannot be raised by main thread
   Thread::Mutex::Lock lock(eventFlag().condVar());
   // init the remote channel
-  remote().init(*initrec_);
+  try
+  {
+    remote().init(*initrec_);
+  }
+  catch( std::exception &exc )
+  {
+    err_queue_.add(exc);
+    eventFlag().condVar().broadcast();
+  }
   initrec_.detach();
   while( remote().state() != CLOSED || !get_queue_.empty() )
   {
+    // if any errors have accumulated, wait for exception queue to clear
+    while( !err_queue_.empty() )
+    {
+      // has channel been closed? break out
+      if( state() == CLOSED )
+        remote().close();
+      if( remote().state() == CLOSED )
+        continue;
+      eventFlag().condVar().wait();
+    }
     // clear the post_queue of any accumulated events
     while( !post_queue_.empty() )
     {
       // has remote channel been closed? discard queue then
+      if( state() == CLOSED )
+        remote().close();
       if( remote().state() == CLOSED )
       {
         post_queue_.clear();
@@ -88,7 +108,17 @@ void * MTQueueChannel::runWorker ()
       // thread has a chance to post something else
       raiseEventFlag();
       lock.release();
-      remote().postEvent(qe.id,qe.data,qe.category,qe.addr);
+      try
+      {
+        remote().postEvent(qe.id,qe.data,qe.category,qe.addr);
+      }
+      catch( std::exception &exc )
+      {
+        lock.lock(eventFlag().condVar());
+        err_queue_.add(exc);
+        eventFlag().condVar().broadcast();
+        continue;
+      }
       lock.lock(eventFlag().condVar());
     }
     // clear our event flag since our queue is clear
@@ -103,16 +133,27 @@ void * MTQueueChannel::runWorker ()
     // clear event flag again
     clearEventFlag();
     // if remote channel is closed, wait for get_queue to clear up and exit
+    if( state() == CLOSED )
+      remote().close();
     if( remote().state() == CLOSED )
     {
       while( !get_queue_.empty() )
         eventFlag().condVar().wait(); // will relock mutex on exit
-      return 0;
+      continue;
     }
     // get_queue has space. Wait for event to arrive. We don't release the lock
     // here since it will be released anyway if we decide to wait on the flag.
     // Event flag will be raised by main thread if something is posted.
-    stat = remote().getEvent(id,data,HIID(),AppEvent::NOWAIT,source);
+    try
+    {
+      stat = remote().getEvent(id,data,HIID(),AppEvent::NOWAIT,source);
+    }
+    catch( std::exception &exc )
+    {
+      err_queue_.add(exc);
+      eventFlag().condVar().broadcast();
+      continue;
+    }
     // post event if we have one
     if( stat == AppEvent::SUCCESS )
     {
@@ -125,6 +166,8 @@ void * MTQueueChannel::runWorker ()
       raiseEventFlag();
     }
     // check if channel has closed
+    if( state() == CLOSED )
+      remote().close();
     if( remote().state() == CLOSED )
       continue;   // back up to top, we break out only when queue is empty
     // now sleep on flag if we had no events
@@ -132,6 +175,7 @@ void * MTQueueChannel::runWorker ()
       eventFlag().condVar().wait();
    // go back to top of loop to check the post_queue
   }
+  eventFlag().condVar().broadcast();
   return 0;
 }
 
@@ -146,9 +190,11 @@ void MTQueueChannel::postEvent (const HIID &id,const ObjRef &data,
     close(remote().stateString());
     return;
   }
+  checkErrorQueue();
   // as long as the post queue is full, wait on the flag
-  while( post_queue_.size() >= queue_size_ )
+  while( post_queue_.size() >= queue_size_ && err_queue_.empty() )
     eventFlag().condVar().wait();
+  checkErrorQueue();
   post_queue_.push_back(QueueEntry());
   QueueEntry &qe = post_queue_.back();
   qe.id = id;
@@ -159,12 +205,24 @@ void MTQueueChannel::postEvent (const HIID &id,const ObjRef &data,
   raiseEventFlag();
 }
 
+void MTQueueChannel::checkErrorQueue ()
+{
+  if( !err_queue_.empty() )
+  {
+    DMI::ExceptionList err = err_queue_;
+    err_queue_.clear();
+    eventFlag().condVar().broadcast();
+    throw err;
+  }
+}
 
 int MTQueueChannel::getEvent (HIID &id,ObjRef &data,
                               const HIID &mask,int wait,HIID &source)
 {
   Thread::Mutex::Lock lock(eventFlag().condVar());
-  // if queue is empty, return WAIT or block or close
+  // check error queue
+  checkErrorQueue();
+  // if get_queue is empty, return WAIT or block or close
   if( get_queue_.empty() )
   {
     if( remote().state() == CLOSED )
@@ -175,13 +233,14 @@ int MTQueueChannel::getEvent (HIID &id,ObjRef &data,
     }
     if( wait == WAIT )
     {
-      while( get_queue_.empty() )
+      while( get_queue_.empty() && err_queue_.empty() )
         eventFlag().condVar().wait();
     }
     else
       return WAIT;
   }
-  // ok, queue not empty, check head
+  checkErrorQueue();
+  // ok, get_queue not empty, check head
   QueueEntry & qe = get_queue_.front();
   if( !mask.empty() && !mask.matches(qe.id) )
     return OUTOFSEQ;
@@ -198,6 +257,7 @@ int MTQueueChannel::getEvent (HIID &id,ObjRef &data,
 int MTQueueChannel::hasEvent (const HIID &mask,HIID &out)
 {
   Thread::Mutex::Lock lock(eventFlag().condVar());
+  checkErrorQueue();
   // if queue is empty, check if remote channel is closed
   if( get_queue_.empty() )
   {
@@ -226,14 +286,16 @@ void MTQueueChannel::close (const string &str)
   Thread::Mutex::Lock lock(eventFlag().condVar());
   get_queue_.clear();
   post_queue_.clear();
-  if( remote().state() != CLOSED )
-    remote().close(str);
   // raise event flag to notify remote
   raiseEventFlag();
+  while( remote().state() != CLOSED )
+    eventFlag().condVar().wait();
   lock.release();
   // now rejoin remote thread
   remote_thread_.join();
   remote_thread_ = 0;
+  // check for errors
+  checkErrorQueue();
 }
 
 void MTQueueChannel::solicitEvent (const HIID &mask)

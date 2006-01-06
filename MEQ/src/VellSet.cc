@@ -602,6 +602,11 @@ ObjRef VellSet::getFail (int i) const
   return (*this)[FFail][i].ref();
 }
 
+const std::string & VellSet::getFailMessage (int i) const
+{
+  return (*this)[FFail][i][AidMessage];
+}
+
 DMI::ExceptionList & VellSet::addToExceptionList (DMI::ExceptionList &list) const
 {
   // get address of fail field (hook will create it as necessary)
