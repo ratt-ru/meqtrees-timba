@@ -1105,16 +1105,21 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     try: 
       nt = rec.num_tiles;
       nch = rec.num_chunks;
-      time = int(rec.time);
+      time0 = int(rec.time_0);
+      time1 = int(rec.time_1);
     except AttributeError: return;
     try: 
       msg = " node '"+rec.node+"': ";
     except AttributeError: 
       msg = "";
     if nt:
-      (time,secs) = divmod(time,60);
-      (time,mins) = divmod(time,60);
-      timestr = "%d:%02d:%02d"%(time,mins,secs);
+      (time0,secs) = divmod(time0,60);
+      (time0,mins) = divmod(time0,60);
+      timestr = "%d:%02d:%02d"%(time0,mins,secs);
+      if time1 != time0:
+        (time1,secs) = divmod(time1,60);
+        (time1,mins) = divmod(time1,60);
+        timestr += " to %d:%02d:%02d"%(time1,mins,secs);
       msg += "%d tiles (%d chunks) processed, relative time %s " % (nt,nch,timestr);
     else:
       msg = "0 tiles processed";

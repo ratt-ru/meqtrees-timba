@@ -50,7 +50,8 @@ const HIID FBOIO     = AidBOIO;
 const HIID FDefault  = AidDefault;
 const HIID FNumTiles = AidNum|AidTiles;
 const HIID FNumChunks = AidNum|AidChunks;
-const HIID FTime      = AidTime;
+const HIID FTime0      = AidTime|0;
+const HIID FTime1      = AidTime|1;
 const HIID FVisNumTiles = AidVis|AidNum|AidTiles;
 const HIID FSync     = AidSync;
 
@@ -152,7 +153,8 @@ void Meq::VisDataMux::postStatus ()
   ref[FNode] = name();
   ref[FNumTiles]  = num_tiles_;
   ref[FNumChunks] = num_chunks_;
-  ref[FTime] = time1_;
+  ref[FTime0] = tile_time_[0];
+  ref[FTime1] = tile_time_[1];
   postEvent(FVisNumTiles,ref);
 }
 
@@ -325,11 +327,12 @@ int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
     }
     else
       time0_ = tileref->time(0);
-    time1_ = tileref->time(0) - time0_;
     current_seqnr_ = seqnr;
     // notify start of new snippet
     try { result_flag |= startSnippet(*tileref); }
     CatchExceptions("starting tile "+rqid_.toString('.'));
+    tile_time_[0] = tileref->time(0) - time0_;
+    tile_time_[1] = tileref->time(tileref->nrow()-1) - time0_;
   }
   have_tile_[did] = true;
   // deliver tile to all handlers
@@ -550,6 +553,11 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTil
   range = makeLoRange(i0,i1);
   LoVec_double time1     = tile.time()(range).copy();
   LoVec_double interval1 = tile.interval()(range).copy();
+  // setup time limits
+  if( num_tiles_ == 1 )
+    time0_ = time1(0); // reference time
+  tile_time_[0] = time1(0) - time0_;
+  tile_time_[1] = time1(i1-i0+1) - time0_;
   // now, for any rows missing _within_ the valid range, fill in interpolated
   // times (just to keep Cells & co. happy)
   int j=1;

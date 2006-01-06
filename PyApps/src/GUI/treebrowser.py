@@ -644,14 +644,16 @@ Please press OK to confirm.""",QMessageBox.Ok,\
 
   def update_app_state (self,state):
     self.app_state = state;
-    self.is_running = state in (AppState.Debug,AppState.Stream,AppState.Execute);
-    self.is_stopped = state == AppState.Debug;
-    self._update_all_controls();
+    # self.is_running = state in (AppState.Debug,AppState.Stream,AppState.Execute);
+    # self.is_stopped = state == AppState.Debug;
+    # self._update_all_controls();
     
   def update_forest_status (self,fst):
     """Updates forest status: enables/disables debug QActions as appropriate,
     sets/clears highlighting of stopped nodes."""
     _dprint(2,"updating forest status");
+    self.is_running = fst.running;
+    self.is_stopped = bool(getattr(fst,'debug_stack',False));
     # this will hold the list of nodes currently in the debug stack
     debug_stack = sets.Set();
     self._debug_node = None;

@@ -110,8 +110,8 @@ class VisDataMux : public Node
 
     int num_chunks_;
     int num_tiles_;
-    double time0_;     // start of first tile
-    double time1_;     // start of current tile
+    double time0_;          // start of first tile
+    double tile_time_[2];   // range of current tile
     AppAgent::EventChannel::Ref  input_channel_;    
     AppAgent::EventChannel::Ref  output_channel_;    
 };
