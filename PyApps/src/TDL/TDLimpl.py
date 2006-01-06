@@ -92,15 +92,20 @@ class _NodeDef (object):
         something that resolves to a NodeDef.
     """;
     def __init__ (self,x=None):
-      """A ChildList may be initialized from a dict, from a sequence,
-      or from a single object.""";
+      """A ChildList may be initialized from a dict, from a sequence (of 
+      children, or of (id,child) tuples), or from a single object.""";
       self.is_dict = isinstance(x,dict);
       if x is None:
         list.__init__(self);
       elif self.is_dict:
         list.__init__(self,x.iteritems());
       elif isinstance(x,(list,tuple)):
-        list.__init__(self,enumerate(x));
+        # check if it is a sequence if duplets
+        # no -- assume sequence of children
+        if [ True for y in x if not isinstance(y,tuple) or len(y) != 2 ]:
+          list.__init__(self,enumerate(x));
+        else: # yes -- use directly
+          list.__init__(self,x);
       else:
         list.__init__(self,[(0,x)]);
       self._resolved = False;
@@ -113,11 +118,11 @@ class _NodeDef (object):
       reslist = _NodeDef.ChildList();
       for (i,(ich,child)) in enumerate(self):
         _dprint(5,'checking child',i,ich,'=',child);
-        if not isinstance(child,_NodeStub):
+        if child is not None and not isinstance(child,_NodeStub):
           if isinstance(child,str):        # child referenced by name? 
             try: child = scope.Repository()[child];
             except KeyError:
-              raise ChildError,"child %s = %s not found" % (str(ich),child);
+              raise ChildError,"child '%s' = %s not found" % (str(ich),child);
           elif isinstance(child,(complex,float)):
             child = scope.MakeConstant(child);
           elif isinstance(child,(bool,int,long)):
@@ -126,7 +131,7 @@ class _NodeDef (object):
             # try to resolve child to a _NodeDef
             anonch = _NodeDef.resolve(child);
             if anonch is None:
-              raise ChildError,"child %s has illegal type %s" % (str(ich),type(child).__name__);
+              raise ChildError,"child '%s' has illegal type %s" % (str(ich),type(child).__name__);
             _dprint(4,'creating anon child',ich);
             child = anonch.autodefine(scope);
         reslist.append((ich,child));
@@ -351,11 +356,20 @@ class _NodeStub (object):
         self.children = children;
         self.stepchildren = stepchildren;
         # add ourselves to parent list
-        for child in self.children + self.stepchildren:
-          child[1].parents[self.name] = self;
+        for (lbl,child) in self.children + self.stepchildren:
+          if child is not None:
+            child.parents[self.name] = self;
         # set init record and add ourselves to repository
         _dprint(5,'adding',self.name,'to repository with initrec',self._initrec);
         self.scope._repository[self.name] = self;
+        # if creating sink or spigot, mark that we need a VisDataMux
+        if self.classname == 'MeqSink':
+          self.scope._repository._sinks.append(self);
+        elif self.classname == 'MeqSpigot':
+          self.scope._repository._spigots.append(self);
+        # if creating a VisDataMux explicitly, mark that we have one
+        elif self.classname == 'MeqVisDataMux':
+          self.scope._repository._have_vdm = self;
         self._initrec = initrec;
       return self;
     # any error is reported to the scope object for accumulation, we remain
@@ -413,7 +427,8 @@ class _NodeStub (object):
       self.children.append((len(self.children),node));
     # add ourselves to parent list
     for num,child in children:
-      child.parents[self.name] = self;
+      if child is not None:
+        child.parents[self.name] = self;
     return self;
   # add_stepchildren(...)    adds stepchildren to node    
   def add_stepchildren (self,*args):
@@ -500,13 +515,14 @@ _MODULE_FILENAME = traceback.extract_stack()[-1][0];
 _MODULE_DIRNAME = os.path.dirname(_MODULE_FILENAME);
 
 class _NodeRepository (dict):
-  def __init__ (self,testing=False,caller_filename=None):
+  def __init__ (self,root_scope,testing=False,caller_filename=None):
     """initializes repository.
     If testing=True, errors will be thrown immediately rather than accumulated.
     caller_filename specifies the creator of the repository. This is used
     in reporting error tracebacks -- they are only unrolled up to the caller
     filename. If not specified, it is extracted from the stack.
     """;
+    self._root_scope = root_scope;
     self._errors = [];
     self._testing = testing;
     # determine caller if not supplied
@@ -516,6 +532,10 @@ class _NodeRepository (dict):
           caller_filename = filename;
           break; 
     self._caller_filename = caller_filename;
+    # other state
+    self._sinks = [];
+    self._spigots = [];
+    self._have_vdm = None;
 
   def deleteOrphan (self,name):
     """recursively deletes orphaned branches""";
@@ -614,16 +634,29 @@ class _NodeRepository (dict):
       
   def resolve (self,cleanup_orphans):
     """resolves contents of repository. 
-    If cleanup_orphans is True
-    If a rootnodes NodeGroup is specified,
-    then all orphan nodes not in this group will be automatically deleted,
-    while orphans within the group will be collected in self._roots.
-    If rootnodes is None, then all orphans will be collected in self._roots and
-    NOT deleted.
+    cleanup_orphans: If True, then all orphan nodes are deleted. 
+                     If False, all orphans will be treated as root nodes.
+    This will also create a VisDataMux as needed.
     """;
     uninit = [];
     orphans = [];
     self._roots = {};
+    # create mux if needed. 
+    if self._sinks or self._spigots:
+      if not self._have_vdm:
+        self._have_vdm = self._root_scope.VisDataMux << \
+          _Meq.VisDataMux(children={'pre':None,'post':None,'start':None});
+      # now assign sinks and spigots to vdm, unless they already have a 
+      # vdm parent
+      self._have_vdm.add_children(*[ node for node in self._sinks
+        if 'MeqVisDataMux' not in [ p.classname for p in node.parents.itervalues() ] ]);
+      self._have_vdm.add_stepchildren(*[ node for node in self._spigots
+        if 'MeqVisDataMux' not in [ p.classname for p in node.parents.itervalues() ] ]);
+    else: # no vdm needed. So release ref to it even if explicitly created,
+      # to ensure it is orphaned or kept as needed elsewhere.
+      self._have_vdm = None;  
+    # now go through node list, weed out uninitialized nodes, finalize 
+    # parents and children, etc.
     for (name,node) in self.iteritems():
       if not node.initialized():
         uninit.append(name);
@@ -635,7 +668,7 @@ class _NodeRepository (dict):
           else:
             self._roots[name] = node;
         for (i,ch) in node.children:
-          if not ch.initialized():
+          if ch is not None and not ch.initialized():
             self.add_error(ChildError("child %s = %s is not initialized" % (str(i),ch.name)),tb=node._deftb);
             if node._caller != ch._caller:
               self.add_error(CalledFrom("child referenced here"),tb=ch._deftb);
@@ -646,9 +679,9 @@ class _NodeRepository (dict):
         node._initrec.node_description = ':'.join((name,node.classname,node._debuginfo));
         node._initrec.name = node.name;
         if node.children.is_dict:
-          children = dmi.record([(lbl,ch.name) for (lbl,ch) in node.children]);
+          children = dmi.record([(lbl,ch and ch.name) for (lbl,ch) in node.children]);
         else:  # children as list
-          children = [ ch.name for (lbl,ch) in node.children ];
+          children = [ ch and ch.name for (lbl,ch) in node.children ];
         _dprint(5,'node',node.name,'children are',children);
         if children:
           node._initrec.children = children;
@@ -698,7 +731,7 @@ class NodeScope (object):
       self._name = qualifyName(name,*quals,**kwquals);
     # repository: only one parent repository is created
     if parent is None:
-      self._repository = _NodeRepository(test);
+      self._repository = _NodeRepository(self,test);
       self._constants = weakref.WeakValueDictionary();
     else:
       self._repository = parent._repository;
@@ -850,7 +883,12 @@ def _printNode (node,name='',offset=0):
   if name:
     header += name+": ";
   header += str(node);
-  print "%s: %.*s" % (header,78-len(header),str(node._initrec));
-  for (ich,child) in node.children:
-    _printNode(child,str(ich),offset+2);
+  if node is None:
+    print header;
+  else:
+    print "%s: %.*s" % (header,78-len(header),str(node._initrec));
+    for (ich,child) in node.children:
+      _printNode(child,str(ich),offset+2);
+    for (ich,child) in node.stepchildren:
+      _printNode(child,"(%d)"%ich,offset+2);
     

@@ -222,7 +222,7 @@ int pyToRecord (DMI::Record::Ref &rec,PyObject *pyobj)
     try 
     { 
       pyToDMI(ref,*pyval); 
-      rec()[id] <<= ref;
+      rec().add(id,ref);
       cdebug(4)<<objstr<<"assigned value for key " <<keystr<<" ("<<ikey<<")\n";
       num_assigned++;
     }
@@ -360,6 +360,15 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
   string objstr = 
       Debug(3) ? "PyToDMI("+ObjStr(obj)+"): " : string();
   cdebug(3)<<objstr<<"called for "<<bool(pvec0)<<"/"<<pvec_pos<<endl;
+  // None is empty ObjRef
+  if( obj == Py_None )
+  {
+    if( pvec0 )
+      pvec0->put(pvec_pos,ObjRef());
+    else
+      objref.detach();
+    return 1;
+  }
   // dmi_supported_types =
   // (int,long,float,complex,str,hiid,array_class,record,message);
   // this is really a switch calling different kinds of object builders

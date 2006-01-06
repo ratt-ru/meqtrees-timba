@@ -72,6 +72,12 @@ class _MeqGen (TDLimpl.ClassGen):
                          dmi.record(state=dmi.record(solvable=False))]);
     return _NodeDef('Meq','Solver',*childlist,**kw);
     
+  def VisDataMux (self,*childlist,**kw):
+    children = [ (nm,kw.get(nm,None)) for nm in ('start','pre','post') ];
+    for ch in childlist:
+      children.append((len(children),ch));
+    return _NodeDef('Meq','VisDataMux',children=children,**kw);
+    
   # now for some aliases
   def Matrix22 (self,*children,**kw):
     "composes a 2x2 matrix as [[a,b],[c,d]]";

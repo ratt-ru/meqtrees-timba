@@ -732,6 +732,7 @@ def _tdl_job_phase_solution_with_given_fluxes_centre(mqs, parent):
 
 
 Settings.forest_state.cache_policy = 1 #100
+Settings.forest_state.a = None #100
 Settings.orphans_are_roots = False
 
 if __name__ == '__main__':

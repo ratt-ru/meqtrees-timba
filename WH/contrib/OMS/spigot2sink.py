@@ -4,10 +4,11 @@ from Timba.Meq import meq
 
 def _define_forest(ns):
     ms_name = "D1.MS"
-    station_list        = range(14)
+    station_list        = range(3)
     ifr_list = [(ant1, ant2) for ant1 in station_list for ant2 in station_list if ant1 < ant2]
 
-    ns.vdm << Meq.VisDataMux();
+    ## we create a VisDataMux explicitly, though this is not really necessary
+    # ns.vdm << Meq.VisDataMux();
     for ant1,ant2 in ifr_list:
       ns.spigot(ant1,ant2) << Meq.Spigot(station_1_index=ant1,station_2_index=ant2);
       ns.sink(ant1,ant2) << Meq.Sink(ns.spigot(ant1,ant2),station_1_index=ant1,station_2_index=ant2);
@@ -38,7 +39,7 @@ def _test_forest (mqs,parent):
     req.output = record(ms=outputrec);
 
     mqs.publish('sink:1:2');
-    mqs.execute('vdm',req,wait=False);
+    mqs.execute('VisDataMux',req,wait=False);
 
 
 Settings.forest_state.cache_policy = 100 #100

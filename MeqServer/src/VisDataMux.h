@@ -25,10 +25,9 @@ class VisDataMux : public Node
   
     virtual TypeId objectType() const
     { return TpMeqVisDataMux; }
-      
-    // called to attach a sink or spigot node to the mux
-    void attachSpigot (Spigot &spigot);
-    void attachSink   (Sink &sink);
+
+    // redefined to check that children are Sinks and stepchildren are Spigots
+    virtual void resolveChildren ();
     
     //##ModelId=3F98DAE6024A
     //##Documentation

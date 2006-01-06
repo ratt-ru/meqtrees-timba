@@ -156,37 +156,41 @@ void Meq::VisDataMux::postStatus ()
   postEvent(FVisNumTiles,ref);
 }
 
-void Meq::VisDataMux::attachSpigot (Meq::Spigot &spigot)
+void Meq::VisDataMux::resolveChildren ()
 {
-  // get data ID from spigot
-  int did = spigot.dataId();
-  if( did >= int(handlers_.size()) )
-    handlers_.resize(did+100);
-  cdebug(2)<<"attaching spigot for did "<<did<<endl;
-  // add spigot to list of handlers for this data id
-  handlers_[did].insert(&spigot);
-}
-
-void Meq::VisDataMux::attachSink (Meq::Sink &sink)
-{
-  // get data ID from sink
-  int did = sink.dataId();
-  if( did >= int(handlers_.size()) )
-    handlers_.resize(did+100);
-  if( did >= int(child_indices_.size()) )
-    child_indices_.resize(did+100);
-  cdebug(2)<<"attaching sink for did "<<did<<endl;
-  // get sink output column
-  int outcol = sink.getOutputColumn();
-  if( outcol >= 0 )
-    output_columns_.insert(outcol);
-  // add sink to list of handlers for this data id
-  handlers_[did].insert(&sink);
-  // add index of child to list of children for this data id
-  child_indices_[did].insert(numChildren()); 
-  // attach as child
-  Node::Ref sinkref(sink,DMI::SHARED);
-  addChild(sinkref);
+  Node::resolveChildren();
+  // all regular children are sinks, but skip the first three (start, post and pre)
+  for( int i=3; i<numChildren(); i++ )
+  {
+    Sink * psink = dynamic_cast<Sink*>(&(getChild(i)));
+    FailWhen(!psink,Debug::ssprintf("child %d not of class MeqSink",i));
+    int did = psink->dataId();
+    if( did >= int(handlers_.size()) )
+      handlers_.resize(did+100);
+    if( did >= int(child_indices_.size()) )
+      child_indices_.resize(did+100);
+    cdebug(2)<<"attaching sink for did "<<did<<endl;
+    // get sink output column
+    int outcol = psink->getOutputColumn();
+    if( outcol >= 0 )
+      output_columns_.insert(outcol);
+    // add sink to list of handlers for this data id
+    handlers_[did].insert(psink);
+    // add index of child to list of children for this data id
+    child_indices_[did].insert(i); 
+  }
+  // all stepchildren are spigots
+  for( int i=0; i<numStepChildren(); i++ )
+  {
+    Spigot * pspigot = dynamic_cast<Spigot*>(&(getStepChild(i)));
+    FailWhen(!pspigot,Debug::ssprintf("stepchild %d not of class MeqSpigot",i));
+    int did = pspigot->dataId();
+    if( did >= int(handlers_.size()) )
+      handlers_.resize(did+100);
+    cdebug(2)<<"attaching spigot for did "<<did<<endl;
+    // add spigot to list of handlers for this data id
+    handlers_[did].insert(pspigot);
+  }
 }
 
 // define standard catch clauses to be re-used below on multiple occasions

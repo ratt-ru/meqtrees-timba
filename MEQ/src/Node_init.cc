@@ -167,14 +167,14 @@ bool Node::processChildSpec (DMI::Container &children,const HIID &chid,const HII
 {
   const string which = stepchild ? "stepchild" : "child";
   DMI::Container::Hook ch_hook(children,id);
-  TypeId spec_type = ch_hook.type();
   // child specified by missing ref (i.e. None): no child
   if( ch_hook.isRef() && !(ch_hook.ref(true).valid()) )
   {
     return false;
   }
+  TypeId spec_type = ch_hook.type();
   // child specified by init-record: create recursively
-  else if( spec_type == TpDMIRecord )
+  if( spec_type == TpDMIRecord )
   {
     cdebug(4)<<"  "<<which<<" "<<id<<" specified by init record"<<endl;
     DMI::Record::Ref child_initrec = ch_hook.ref();
