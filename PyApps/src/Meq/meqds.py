@@ -484,15 +484,18 @@ def clear_forest ():
   nodelist.clear();
   nodelist.emit(PYSIGNAL("cleared()"),());
 
-def request_nodelist (profiling_stats=False):
+def request_nodelist (force=False,profiling_stats=False):
   """Sends a request to the kernel to return a nodelist.""";
   rec = NodeList.RequestRecord;
-  if profiling_stats:
+  # force explicit refresh
+  if force or profiling_stats:
     rec.forest_serial = 0;
-    rec = copy.copy(rec);
-    rec.profiling_stats = True;
   else:
     rec.forest_serial = nodelist.serial;
+  # set profiling stats as needed
+  if profiling_stats:
+    rec = copy.copy(rec);
+    rec.profiling_stats = True;
   nodelist.emit(PYSIGNAL("requested()"),());
   mqs().meq('Get.Node.List',rec,wait=False);
   _dprint(2,"nodelist requested",rec);

@@ -195,7 +195,11 @@ class MeqServer : public DMI::EventRecepient
     const Node * debug_next_node;
     bool  debug_continue;
     
+    // true as long as we're not exiting
     bool running_;
+    
+    // true if we are executing a node
+    bool executing_;
     
     AtomicID state_;
     

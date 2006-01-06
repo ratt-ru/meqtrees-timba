@@ -30,30 +30,6 @@ octolistener_LDADD		= libmeqserver.la
 octolistener_DEPENDENCIES	= libmeqserver.la $(LOFAR_DEPEND)
 
 
-# --- begin generate defrec maps (copy this into local Makefiles)
-#     (shouldn't require any changes)
-
-# this defines the name of the local defrec script
-DEFREC_MAP = $(srcdir)/defrecs_$(PACKAGE).g
-
-# this rule shouldn't require any changes
-MAKEDEFREC = $(lofar_sharedir)/../Timba/MEQ/src/makedefrecs.pl
-$(DEFREC_MAP): $(DOCHDRS) $(MAKEDEFREC)
-	$(MAKEDEFREC) $@ $(addprefix $(srcdir)/,$(DOCHDRS))
-  
-defrecs: $(DEFREC_MAP)
-
-all install: defrecs
-
-.PHONY: defrecs
-
-# --- end generate defrec maps
-
-# more glish scripts here
-glishdir = $(libexecdir)/glish/meq
-dist_glish_SCRIPTS = $(DEFREC_MAP) meqserver.g defrecs.g \
-  meptools.g msuvw_to_mep.g fitpolcs_mqs.g fitpolcs_wlc.g 
-
 include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 

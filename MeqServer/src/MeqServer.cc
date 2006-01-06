@@ -129,7 +129,7 @@ MeqServer::MeqServer()
   command_map["Debug.Continue"] = &MeqServer::debugContinue;
   
   debug_next_node = 0;
-  running_ = false;
+  running_ = executing_ = false;
 }
 
 MeqServer::~MeqServer ()
@@ -375,6 +375,13 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
         cdebug(3)<<"    request cells are: "<<req.cells();
       }
     }
+    // post status event
+    executing_ = true;
+    DMI::Record::Ref status(DMI::ANONWR);
+    status[AidMessage] = ssprintf("executing node '%s'",node.name().c_str());
+    fillForestStatus(status());
+    postEvent("Forest.Status",status);
+    // execute node
     Result::Ref resref;
     int flags = node.execute(resref,req);
     cdebug(2)<<"  execute() returns flags "<<ssprintf("0x%x",flags)<<endl;
@@ -410,15 +417,17 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
       out[AidResult] <<= resref;
     if( getstate )
       out[FNodeState] <<= node.syncState();
-    fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
+    fillForestStatus(out(),in[FGetForestStatus].as<int>(1));
   }
   catch( std::exception &exc )
   {
+    executing_ = false;
     setState(oldstate);
 //    control().setState(old_control_state);
 //    old_paused ? control().pause() : control().resume();
     throw;
   }
+  executing_ = false;
   setState(oldstate);
 //  control().setState(old_control_state);
 //  old_paused ? control().pause() : control().resume();
@@ -743,9 +752,7 @@ void MeqServer::fillForestStatus  (DMI::Record &rec,int level)
     rec[AidForest|AidState] = forest.state();
   DMI::Record &fst = rec[AidForest|AidStatus] <<= new DMI::Record;
   fst[AidState] = control().state();
-  fst[AidRunning] = control().state() == AppState_Stream || 
-                    control().state() == AppState_Execute ||
-                    control().state() == AppState_Debug;
+  fst[AidRunning] = executing_;
   fst[AidDebug|AidLevel] = forest.debugLevel();
   if( forest.debugLevel() )
   {
@@ -795,7 +802,7 @@ void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
 //  control().setState(AppState_Debug);
 //  input().suspend();
   // keep on processing commands until asked to continue
-  while( forest.debugLevel() > 0 && control().state() > 0 && !debug_continue )  // while in a running state
+  while( forest.debugLevel() > 0 && running_ && !debug_continue )  // while in a running state
   {
     processCommands();
   }

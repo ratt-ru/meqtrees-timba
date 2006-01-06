@@ -816,7 +816,7 @@ Please press OK to confirm.""",QMessageBox.Ok,\
   def _request_nodelist (self):
     _dprint(1,"requesting node list and forest state");
     meqds.request_forest_state();
-    meqds.request_nodelist();
+    meqds.request_nodelist(force=True);
     
   def _debug_single_step (self):
     self.clear_debug_stack();
