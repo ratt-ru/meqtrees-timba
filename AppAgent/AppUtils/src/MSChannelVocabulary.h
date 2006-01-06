@@ -59,7 +59,7 @@ namespace MSChannel
        FChannelIncrement  = AidChannel|AidIncrement,
        FSelectionString   = AidSelection|Aidstring,
        FDataColumnName    = AidData|AidColumn|AidName,
-       FSnippetSize       = AidSnippet|AidSize,
+       FTileSize          = AidTile|AidSize,
        FTileFormat        = AidTile|AidFormat,
        FOriginalDataShape = AidOriginal|AidData|AidShape,
        FFlipFreq          = AidFlip|AidFreq,

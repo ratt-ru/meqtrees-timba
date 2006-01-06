@@ -249,7 +249,7 @@ int MSInputChannel::init (const DMI::Record &params)
   // get name of data column (default is DATA)
   dataColName_ = params[FDataColumnName].as<string>("DATA");
   // get # of timeslots per tile (default is 1)
-  tilesize_ = params[FSnippetSize].as<int>(1);
+  tilesize_ = params[FTileSize].as<int>(1);
   // clear flags?
   clear_flags_ = params[FClearFlags].as<bool>(false);
 

@@ -49,6 +49,8 @@ const HIID FMS       = AidMS;
 const HIID FBOIO     = AidBOIO;
 const HIID FDefault  = AidDefault;
 const HIID FNumTiles = AidNum|AidTiles;
+const HIID FNumChunks = AidNum|AidChunks;
+const HIID FTime      = AidTime;
 const HIID FVisNumTiles = AidVis|AidNum|AidTiles;
 const HIID FSync     = AidSync;
 
@@ -144,11 +146,13 @@ void Meq::VisDataMux::clearOutput ()
   wstate()[FOutput].replace() = false;
 }  
 
-void Meq::VisDataMux::postNumTiles ()
+void Meq::VisDataMux::postStatus ()
 {
   DMI::Record::Ref ref(DMI::ANONWR);
   ref[FNode] = name();
-  ref[FNumTiles] = num_tiles_;
+  ref[FNumTiles]  = num_tiles_;
+  ref[FNumChunks] = num_chunks_;
+  ref[FTime] = time1_;
   postEvent(FVisNumTiles,ref);
 }
 
@@ -296,7 +300,7 @@ int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
 {
   int result_flag = 0;
   DMI::ExceptionList errors;
-  num_tiles_++;
+  num_chunks_++;
   // get handler for this tile
   int did = formDataId(tileref->antenna1(),tileref->antenna2());
   if( did > int(handlers_.size()) )
@@ -313,12 +317,15 @@ int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
     if( current_seqnr_ >= 0 )
     {
       try { result_flag |= endSnippet(); }
-      CatchExceptions("ending snippet "+rqid_.toString('.'));
+      CatchExceptions("ending tile "+rqid_.toString('.'));
     }
+    else
+      time0_ = tileref->time(0);
+    time1_ = tileref->time(0) - time0_;
     current_seqnr_ = seqnr;
     // notify start of new snippet
     try { result_flag |= startSnippet(*tileref); }
-    CatchExceptions("starting snippet "+rqid_.toString('.'));
+    CatchExceptions("starting tile "+rqid_.toString('.'));
   }
   have_tile_[did] = true;
   // deliver tile to all handlers
@@ -343,7 +350,7 @@ int Meq::VisDataMux::deliverFooter (const DMI::Record &footer)
   if( current_seqnr_ >= 0 )
   {
     try { result_flag |= endSnippet(); }
-    CatchExceptions("ending snippet "+rqid_.toString('.'));
+    CatchExceptions("ending tile "+rqid_.toString('.'));
   }
   cdebug(2)<<"delivering footer to all handlers"<<endl;
   for( uint i=0; i<handlers_.size(); i++ )
@@ -368,6 +375,7 @@ int Meq::VisDataMux::deliverFooter (const DMI::Record &footer)
 int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
 {
   int result_flag = 0;
+  num_tiles_++;
   DMI::ExceptionList errors;
   try
   {
@@ -380,7 +388,7 @@ int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
     // Generate new Request with these Cells
     Request &req = current_req_ <<= new Request(cells,rqid_);
     req.setRequestType(RequestType::EVAL);
-    cdebug(3)<<"start of snippet, generated request id="<<rqid_<<endl;
+    cdebug(3)<<"start of tile, generated request id="<<rqid_<<endl;
     // reset have-tile flags
     have_tile_.assign(handlers_.size(),false);
     // if we have a pre-processing child, poll it now
@@ -396,12 +404,12 @@ int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
       {
         res->addToExceptionList(errors);
         errors.add(MakeNodeException(
-            "error starting snippet "+rqid_.toString('.')+": "+
+            "error starting tile "+rqid_.toString('.')+": "+
             "child '"+getChild(0).name()+"' returns a FAIL"));
       }
     }
   }
-  CatchExceptionsMore("starting snippet "+rqid_.toString('.'));
+  CatchExceptionsMore("starting tile "+rqid_.toString('.'));
   if( !errors.empty() )
     throw errors;
   return result_flag;
@@ -411,9 +419,9 @@ int Meq::VisDataMux::endSnippet ()
 {
   DMI::ExceptionList errors;
   int result_flag = 0;
-  cdebug(3)<<"end of snippet"<<endl;
+  cdebug(3)<<"end of tile"<<endl;
   // post tile count
-  postNumTiles();
+  postStatus();
   // poll pre-processing child
   if( isChildValid(1) )
   {
@@ -430,11 +438,11 @@ int Meq::VisDataMux::endSnippet ()
       {
         res->addToExceptionList(errors);
         errors.add(MakeNodeException(
-            "error pre-processing snippet "+rqid_.toString('.')+": "+
+            "error pre-processing tile "+rqid_.toString('.')+": "+
             "child '"+getChild(1).name()+"' returns a FAIL"));
       }
     }
-    CatchExceptionsMore("pre-processing snippet "+rqid_.toString('.'));
+    CatchExceptionsMore("pre-processing tile "+rqid_.toString('.'));
   }
   int nerr0 = errors.size();
   // ok, now we want to asyncronously poll all sinks that have a tile 
@@ -489,10 +497,10 @@ int Meq::VisDataMux::endSnippet ()
         }
       }
     }
-    CatchExceptions("error processing snippet "+rqid_.toString('.'));
+    CatchExceptions("error processing tile "+rqid_.toString('.'));
   }
   if( errors.size() > nerr0 )
-    errors.add(MakeNodeException("error processing snippet "+rqid_.toString('.')));
+    errors.add(MakeNodeException("error processing tile "+rqid_.toString('.')));
   // poll post-processing child
   if( isChildValid(2) )
   {
@@ -509,11 +517,11 @@ int Meq::VisDataMux::endSnippet ()
       {
         res->addToExceptionList(errors);
         errors.add(MakeNodeException(
-            "error post-processing snippet "+rqid_.toString('.')+": "+
+            "error post-processing tile "+rqid_.toString('.')+": "+
             "child '"+getChild(2).name()+"' returns a FAIL"));
       }
     }
-    CatchExceptionsMore("post-processing snippet "+rqid_.toString('.'));
+    CatchExceptionsMore("post-processing tile "+rqid_.toString('.'));
   }
   // throw errors if any
   if( !errors.empty() )
@@ -637,8 +645,8 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
       if( header.valid() )
         evrec[AidHeader] <<= header.copy();
       evrec[AidFooter] <<= evdata.copy();
-      postMessage(ssprintf("received footer %s, %d tiles processed",
-          ev_inst.toString('.').c_str(),num_tiles_),evrec);
+      postMessage(ssprintf("received footer %s, %d tiles (%d chunks) processed",
+          ev_inst.toString('.').c_str(),num_tiles_,num_chunks_),evrec);
     }
     else if( type == VisData::HEADER )
     {
@@ -655,8 +663,8 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
       DMI::Record::Ref evrec(DMI::ANONWR);
       evrec[AidHeader] <<= header.copy();
       postMessage("received header "+ev_inst.toString('.'),evrec);
-      num_tiles_ = 0;
-      postNumTiles();
+      num_tiles_ = num_chunks_ = 0;
+      postStatus();
     }
     else // unknown event
     {
@@ -673,7 +681,7 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
   // flush output if needed
   if( sync_output && output_channel_.valid() )
   {
-    postMessage("flushing output tiles");
+    postMessage("flushing output");
     output_channel_().flush();
   }
   // if we have accumulated any fails, return them here

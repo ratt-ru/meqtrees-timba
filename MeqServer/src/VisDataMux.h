@@ -8,7 +8,7 @@
 #include <vector>
     
 #pragma types #Meq::VisDataMux
-#pragma aid Station Index Tile Format Start Pre Post Sync
+#pragma aid Station Index Tile Format Start Pre Post Sync Chunks 
 
 namespace Meq 
 {
@@ -67,7 +67,7 @@ class VisDataMux : public Node
     
     void clearOutput ();
     
-    void postNumTiles ();
+    void postStatus ();
     
     int startSnippet (const VisCube::VTile &tile);
     int endSnippet   ();
@@ -109,7 +109,10 @@ class VisDataMux : public Node
     int current_seqnr_;
     LoRange current_range_;
 
+    int num_chunks_;
     int num_tiles_;
+    double time0_;     // start of first tile
+    double time1_;     // start of current tile
     AppAgent::EventChannel::Ref  input_channel_;    
     AppAgent::EventChannel::Ref  output_channel_;    
 };

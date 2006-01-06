@@ -1102,14 +1102,23 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     else: self.treebrowser.update_forest_status(fst);
     
   def ce_UpdateNumTiles (self,ev,rec):
-    try: nt = rec.num_tiles;
+    try: 
+      nt = rec.num_tiles;
+      nch = rec.num_chunks;
+      time = int(rec.time);
     except AttributeError: return;
     try: 
-      msg = "node '"+rec.node+"' streaming data";
+      msg = " node '"+rec.node+"': ";
     except AttributeError: 
-      msg = "streaming data";
+      msg = "";
+    if nt:
+      (time,secs) = divmod(time,60);
+      (time,mins) = divmod(time,60);
+      timestr = "%d:%02d:%02d"%(time,mins,secs);
+      msg += "%d tiles (%d chunks) processed, relative time %s " % (nt,nch,timestr);
     else:
-      self.status_label.setText(' %s (%d tiles) ' % (msg,nt,) ); 
+      msg = "0 tiles processed";
+    self.status_label.setText(msg); 
         
   def update_node_state (self,node,event=None):
     meqds.reclassify_nodestate(node);
