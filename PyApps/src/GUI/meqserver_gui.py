@@ -379,7 +379,8 @@ class meqserver_gui (app_proxy_gui):
     addbkmark.addTo(bookmarks_menu);
     self._qa_addpagemark = addpagemark = QAction(pixmaps.bookmark_toolbar.iconset(),"Add pagemark for this page",Qt.ALT+Qt.CTRL+Qt.Key_B,self);
     addpagemark.addTo(bookmarks_menu);
-    self._qa_autopublish = autopublish = QAction(pixmaps.publish.iconset(),"Auto-publish loaded bookmarks",0,self);
+    # self._qa_autopublish = autopublish = QAction(pixmaps.publish.iconset(),"Auto-publish loaded bookmarks",0,self);
+    self._qa_autopublish = autopublish = QAction("Auto-publish loaded bookmarks",0,self);
     autopublish.addTo(bookmarks_menu);
     QObject.connect(addbkmark,SIGNAL("activated()"),self._add_bookmark);
     QObject.connect(addpagemark,SIGNAL("activated()"),self._add_pagemark);
@@ -392,6 +393,7 @@ class meqserver_gui (app_proxy_gui):
     autopublish.setToggleAction(True);
     autopublish.setOn(Config.getbool('autopublish-bookmarks',True));
     QObject.connect(autopublish,SIGNAL("toggled(bool)"),self.curry(Config.set,'autopublish-bookmarks'));
+    QObject.connect(autopublish,SIGNAL("toggled(bool)"),self._autopublish_bookmarks);
     # bookmark manager
     bookmarks_menu.insertSeparator();
     self._bookmarks = bookmarks.BookmarkFolder("main",self,menu=bookmarks_menu,gui_parent=self);
@@ -491,6 +493,13 @@ class meqserver_gui (app_proxy_gui):
     self.show_tab(self.profiler.wtop(),switch=False);
     self._reset_maintab_label(self.profiler.wtop(),iconset=pixmaps.clock.iconset());
     QApplication.flush();
+    
+  def _autopublish_bookmarks (self,enabled):
+    if not enabled:
+      QMessageBox.warning(self,"Auto-publishing disabled",
+"""You have disabled auto-publishing. When you load a bookmark, 
+the displays will no longer refresh automatically. You can reactivate 
+auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     
   def _debug_kernel (self):
     pid = self.app.app_addr[2];    
