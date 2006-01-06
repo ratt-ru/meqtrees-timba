@@ -101,7 +101,6 @@ class QwtImageDisplay(QwtPlot):
         'Delete X-Section Display': 305,
         'Toggle real/imag or ampl/phase Display': 306,
         'Toggle axis flip': 307,
-        'Toggle logarithmic range for image': 308,
         }
 
     _start_spectrum_menu_id = 0
@@ -160,7 +159,6 @@ class QwtImageDisplay(QwtPlot):
         self.iteration_number = None
         self.ampl_phase = False
         self.complex_switch_set = False
-        self.log_switch_set = False
         self._active_perturb = None
         self.first_axis_inc = None
         self.second_axis_inc = None
@@ -236,7 +234,6 @@ class QwtImageDisplay(QwtPlot):
         self.toggle_color_bar = 1
         self.toggle_ND_Controller = 1
         self.hidden_ND_Controller = False
-        self.toggle_log_display = False
         self.toggle_gray_scale = 0
         self._toggle_flag_label = None
         self._toggle_blink_label = None
@@ -404,25 +401,6 @@ class QwtImageDisplay(QwtPlot):
             self.display_image(ampl_phase_image)
           else:
             self.display_image(self.complex_image)
-        return True
-      if menuid == self.menu_table['Toggle logarithmic range for image']:
-        if self.toggle_log_display == False:
-          self.toggle_log_display = True
-          self.plotImage.setLogScale()
-        else:
-          self.toggle_log_display = False
-          self.plotImage.setLogScale(False)
-          self.plotImage.setImageRange(self.raw_image)
-        self.plotImage.updateImage(self.raw_image)
-        self.emit(PYSIGNAL("set_log_scale"),(self.toggle_log_display,) )
-        image_limits = self.plotImage.getRealImageRange()
-        self.emit(PYSIGNAL("max_image_range"),(image_limits, 0))
-        if self.complex_type:
-          image_limits = self.plotImage.getImagImageRange()
-          self.emit(PYSIGNAL("max_image_range"),(image_limits, 1) )
-        if self.show_x_sections:
-          self.calculate_cross_sections()
-        self.replot()
         return True
 
 # if we get here ...
@@ -638,11 +616,11 @@ class QwtImageDisplay(QwtPlot):
       if self._vells_plot:
         if not self.original_flag_array is None:
           self.setFlagsData (self.original_flag_array)
-        self.plot_vells_array(self.original_array, self.original_label)
+        self.plot_vells_array(self.original_data, self.original_label)
       if not self._vells_plot and self._plot_type is None:
-        self.array_plot(self.original_label, self.original_array)
+        self.array_plot(self.original_label, self.original_data)
 #     if self._plot_type == 'spectra':
-#       self.array_plot(self.original_label, self.original_array, False)
+#       self.array_plot(self.original_label, self.original_data, False)
     # toggleAxis()
 
     def updatePlotParameters(self):
@@ -1058,10 +1036,6 @@ class QwtImageDisplay(QwtPlot):
           self.delete_cross_sections()
           return
         self.setAxisAutoScale(QwtPlot.yRight)
-        if self.toggle_log_display:
-          self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Logarithmic)
-        else:
-          self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.None)
         self.y_array = zeros(shape[1], Float32)
         self.y_index = arange(shape[1])
         self.y_index = self.y_index + 0.5
@@ -1073,10 +1047,6 @@ class QwtImageDisplay(QwtPlot):
           self.delete_cross_sections()
           return
         self.setAxisAutoScale(QwtPlot.xTop)
-        if self.toggle_log_display:
-          self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.Logarithmic)
-        else:
-          self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.None)
         if self.xrCrossSection is None:
           if self.complex_type:
             self.xrCrossSection = self.insertCurve('xrCrossSection')
@@ -1454,7 +1424,7 @@ class QwtImageDisplay(QwtPlot):
         self.reset_color_bar(True)
         self.refresh_marker_display()
 
-      self.original_array = incoming_plot_array
+      self.original_data = incoming_plot_array
       self.original_label = data_label
 
 # hack to get array display correct until forest.state
@@ -1514,11 +1484,7 @@ class QwtImageDisplay(QwtPlot):
         self.complex_switch_set = True
 
 # test if we have a 2-D array
-      if self.is_vector == False and not self.log_switch_set:
-        toggle_id = self.menu_table['Toggle logarithmic range for image']
-        self._menu.insertItem("Toggle logarithmic range for image", toggle_id)
-        self.log_switch_set = True
-
+      if self.is_vector == False:
         if self.complex_type: 
           self.complex_divider = plot_array.shape[0]
         self.enableAxis(QwtPlot.yLeft)
