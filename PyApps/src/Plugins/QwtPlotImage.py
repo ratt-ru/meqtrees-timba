@@ -13,6 +13,7 @@ from qt import *
 from qwt import *
 from numarray import *
 from UVPAxis import *
+from ImageScaler import *
 from ComplexColorMap import *
 
 # from scipy.pilutil
@@ -51,8 +52,10 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.r_cmin = None
         self.i_cmax = None
         self.i_cmin = None
+        self.dimap = None
         self.complex = False
-        self.ampl_phase = False
+        self.log_scale = False
+        self.transform_offset = 0.0
     # __init__()
     
     def setDisplayType(self, display_type):
@@ -62,6 +65,11 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.ValueAxis =  UVPAxis()
         self.ComplexColorMap = ComplexColorMap(256)
     # setDisplayType
+
+    def setLogScale(self, log_scale = True):
+      self.log_scale = log_scale
+      if self.log_scale == False:
+        self.dimap = None
 
     def setFlagsArray(self, flags_array):
       self._flags_array = flags_array
@@ -173,23 +181,73 @@ class QwtPlotImage(QwtPlotMappedItem):
       self.setImageRange(flagged_image)
     # setFlaggedImageRange
 
+    def convert_to_log(self, incoming_image):
+      self.transform_offset = 0.0
+      transform_image = incoming_image
+      image_min = incoming_image.min()
+      if image_min <= 0.0:
+        image_min = -1.0 * image_min
+        transform_image = 1.0 + image_min  + incoming_image
+        self.transform_offset = 1.0 + image_min
+      scaler = ImageScaler(1, 256, transform_image.min(), transform_image.max(), True)
+      self.dimap = QwtDiMap(1, 256, transform_image.min(), transform_image.max(), True)
+      temp_image = scaler.iTransform(transform_image)
+      
+
+      return temp_image
+
+    def convert_limits(self, limits):
+      if not self.dimap is None:
+        first_limit = self.dimap.transform(self.transform_offset + limits[0])
+        second_limit = self.dimap.transform(self.transform_offset + limits[1])
+      else:
+        first_limit = None
+        second_limit = None
+      return [first_limit, second_limit]
+
+
     def to_QImage(self, image):
 # convert to 8 bit image
+      image_for_display = None
       if image.type() == Complex32 or image.type() == Complex64:
         self.complex = True
         real_array =  image.getreal()
-        imag_array =  image.getimag()
-        limits = [self.r_cmin,self.r_cmax]
-        byte_image = bytescale(real_array,limits)
+        if self.log_scale:
+          temp_array = self.convert_to_log(real_array)
+          if not self.r_cmin is None and not self.r_cmax is None:
+            limits = self.convert_limits([self.r_cmin,self.r_cmax])
+          else:
+            limits = [self.r_cmin, self.r_cmax] 
+          byte_image = bytescale(temp_array,limits)
+        else:
+          limits = [self.r_cmin,self.r_cmax]
+          byte_image = bytescale(real_array,limits)
         (nx,ny) = real_array.shape
         image_for_display = array(shape=(nx*2,ny),type=byte_image.type());
         image_for_display[:nx,:] = byte_image
-        limits = [self.i_cmin,self.i_cmax]
-        byte_image = bytescale(imag_array,limits)
+        imag_array =  image.getimag()
+        if self.log_scale:
+          temp_array = self.convert_to_log(imag_array)
+          if not self.i_cmin is None and not self.i_cmax is None:
+            limits = self.convert_limits([self.i_cmin,self.i_cmax])
+          else:
+            limits = [self.i_cmin, self.i_cmax] 
+          byte_image = bytescale(temp_array,limits)
+        else:
+          limits = [self.i_cmin,self.i_cmax]
+          byte_image = bytescale(imag_array,limits)
         image_for_display[nx:,:] = byte_image
       else:
-        limits = [self.r_cmin,self.r_cmax]
-        image_for_display = bytescale(image,limits)
+        if self.log_scale:
+          temp_array = self.convert_to_log(image)
+          if not self.r_cmin is None and not self.r_cmax is None:
+            limits = self.convert_limits([self.r_cmin,self.r_cmax])
+          else:
+            limits = [self.r_cmin, self.r_cmax] 
+          image_for_display = bytescale(temp_array,limits)
+        else:
+          limits = [self.r_cmin,self.r_cmax]
+          image_for_display = bytescale(image,limits)
 # turn image into a QImage, and return result	
       return toQImage(image_for_display).mirror(0, 1)
 

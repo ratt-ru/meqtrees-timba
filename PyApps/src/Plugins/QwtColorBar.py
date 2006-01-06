@@ -45,6 +45,7 @@ class QwtColorBar(QwtPlot):
         self.max = 256.0
         self.image_min = None
         self.image_max = None
+        self.log_scale = False
         self.bar_array = reshape(arange(self.max), (1,256))
         self.y_scale = arange(2)
         self.y_scale = (self.min, self.max)
@@ -110,6 +111,16 @@ class QwtColorBar(QwtPlot):
         self.show()
         self.replot()
     # set Range()
+
+    def setLogScale(self, log_scale=True):
+      self.log_scale = log_scale
+      self.plotImage.setLogScale(self.log_scale)
+      if self.log_scale:
+        self.setAxisOptions(QwtPlot.yLeft, QwtAutoScale.Logarithmic)
+      else:
+        self.setAxisOptions(QwtPlot.yLeft, QwtAutoScale.None)
+        self.plotImage.setImageRange(self.bar_array)
+      self.plotImage.updateImage(self.bar_array)
 
     def setMaxRange(self, limits, colorbar_number=0):
       if colorbar_number == self.colorbar_number:

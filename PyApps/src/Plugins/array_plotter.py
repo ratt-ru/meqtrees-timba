@@ -71,9 +71,9 @@ class ArrayPlotter(GriddedPlugin):
           self.layout.addWidget(self.colorbar[i], 0, 2)
         self.colorbar[i].setRange(-1,1,colorbar_number=i)
         self.colorbar[i].hide()
-        QObject.connect(self._plotter, PYSIGNAL('image_range'), self.colorbar[i].setRange) 
         QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
         QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
+        QObject.connect(self._plotter, PYSIGNAL('set_log_scale'), self.colorbar[i].setLogScale) 
         QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay)
         QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._plotter.setImageRange)
 
