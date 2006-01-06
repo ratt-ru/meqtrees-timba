@@ -130,6 +130,8 @@ const void * DMI::Container::Hook::resolveTarget (int flags,TypeId hint) const
   if( flags&DMI::DEREFERENCE && target.tid == TpDMIObjRef )
   {
     ObjRef &ref = *static_cast<ObjRef*>(const_cast<void*>(target.ptr));
+    if( !ref.valid() )
+      return 0;
     // the code above already ensures that container itself is writable if necessary, 
     // so we can deref for writing and assume COW will do its thing
     return writing ? ref.dewr_p() : ref.deref_p();
