@@ -751,6 +751,68 @@ def result(rr=None, pp=None, attach=None, trace=True):
 
 
 #********************************************************************************
+#********************************************************************************
+#********************************************************************************
+#********************************************************************************
+
+
+
+
+#========================================================================
+# Test functions:
+#========================================================================
+
+
+def test1(ns=None, object=None, **inarg):
+   """A test function with inarg capability"""
+   
+   # Extract a bare argument record pp from inarg
+   pp = inarg2pp(inarg, 'JEN_inarg::test1()', version='10dec2005', trace=True)
+   
+   # Specify the function arguments, with default values:
+   pp.setdefault('aa', 45)
+   pp.setdefault('bb', -19)
+   pp.setdefault('list', range(4))
+   pp.setdefault('ref_ref_aa', 'ref_aa')
+   pp.setdefault('ref_aa', 'aa')
+   pp.setdefault('nested', True)
+   pp.setdefault('trace', False)
+   if pp['nested']:
+      # It is possible to include the default inarg records from other
+      # functions that are used in the function body below:
+      nest(pp, inarg=test2(_getdefaults=True, trace=pp['trace']), trace=pp['trace'])
+
+   # .test(_getdefaults=True) -> an inarg record with default values
+   if getdefaults(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
+
+   # Execute the function body, using pp:
+   # Initialise a result record (rr) with the argument record pp
+   rr = result(pp=pp)
+   if pp['nested']:
+      # The inarg record for test2 is part of pp (see above):
+      rr = result(rr, attach=test2(inarg=pp))
+   cc = CTRL(rr)
+   print 'CTRL =',cc
+   MESSAGE(rr, 'result MESSAGE')
+   ERROR(rr, 'result ERROR')
+   WARNING(rr, 'result WARNING')
+   return rr
+
+
+#---------------------------------------------------------------------------
+
+def test2(**inarg):
+   """Another test function"""
+
+   pp = inarg2pp(inarg, 'JEN_inarg::test2()', version='2.45', trace=True)
+   pp.setdefault('ff', 145)
+   pp.setdefault('bb', -119)
+   pp.setdefault('trace', False)
+   if getdefaults(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
+
+   # Initialise a result record (rr) with the argument record pp
+   rr = result(pp=pp)
+   return rr
 
 
 #========================================================================
@@ -781,55 +843,6 @@ if __name__ == '__main__':
    from Timba.Trees import JEN_record
 
 
-   #---------------------------------------------------------------------------
-   def test1(ns=None, object=None, **inarg):
-      """A test function with inarg capability"""
-
-      # Extract a bare argument record pp from inarg
-      pp = inarg2pp(inarg, 'JEN_inarg::test1()', version='10dec2005', trace=True)
-
-      # Specify the function arguments, with default values:
-      pp.setdefault('aa', 45)
-      pp.setdefault('bb', -19)
-      pp.setdefault('ref_ref_aa', 'ref_aa')
-      pp.setdefault('ref_aa', 'aa')
-      pp.setdefault('nested', True)
-      pp.setdefault('trace', False)
-      if pp['nested']:
-         # It is possible to include the default inarg records from other
-         # functions that are used in the function body below:
-         nest(pp, inarg=test2(_getdefaults=True, trace=pp['trace']), trace=pp['trace'])
-
-      # .test(_getdefaults=True) -> an inarg record with default values
-      if getdefaults(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
-
-      # Execute the function body, using pp:
-      # Initialise a result record (rr) with the argument record pp
-      rr = result(pp=pp)
-      if pp['nested']:
-         # The inarg record for test2 is part of pp (see above):
-         rr = result(rr, attach=test2(inarg=pp))
-      cc = CTRL(rr)
-      print 'CTRL =',cc
-      MESSAGE(rr, 'result MESSAGE')
-      ERROR(rr, 'result ERROR')
-      WARNING(rr, 'result WARNING')
-      return rr
-
-
-   #---------------------------------------------------------------------------
-   def test2(**inarg):
-      """Another test function"""
-
-      pp = inarg2pp(inarg, 'JEN_inarg::test2()', version='2.45', trace=True)
-      pp.setdefault('ff', 145)
-      pp.setdefault('bb', -119)
-      pp.setdefault('trace', False)
-      if getdefaults(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
-
-      # Initialise a result record (rr) with the argument record pp
-      rr = result(pp=pp)
-      return rr
 
    #---------------------------------------------------------------------------
 

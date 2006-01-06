@@ -959,7 +959,7 @@ if True:                                                   # ... Copied from MG_
        JEN_inarg.modify(inarg,
                         master_reqseq=MG['master_reqseq'], # if True, use a master reqseq for solver(s)
                         chain_solvers=MG['chain_solvers'], # if True, chain the solver(s)
-                        # redun=True,                        # if True, use redundant baseline calibration
+                        redun=True,                        # if True, use redundant baseline calibration
                         # redun=MG['redun'],                 # if True, use redundant baseline calibration
                         subtract=False,                    # if True, subtract 'predicted' from uv-data 
                         correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
