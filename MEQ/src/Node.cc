@@ -147,7 +147,7 @@ void Node::postMessage (const string &msg,const ObjRef &data,AtomicID type)
     ref <<= prec = new DMI::Record;
   // add node name and message
   (*prec)[FNode] = name();
-  (*prec)[type] = msg;
+  (*prec)[type] = "node '"+name()+"': "+msg;
   // post to forest
   forest().postEvent(type,ref);
 }
