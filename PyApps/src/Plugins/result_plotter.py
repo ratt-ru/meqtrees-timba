@@ -563,7 +563,7 @@ class ResultPlotter(GriddedPlugin):
       if self._rec.vellsets[0].has_key("value"):
         value = self._rec.vellsets[0].value
         str_value = str(value[0])
-        Message = "This vellset has scalar value: <b>" + str_value + "</b>";
+        Message = "This vellset " + self.label + "  has scalar value: <b>" + str_value + "</b>";
 
       cache_message = QLabel(Message,self.wparent())
       cache_message.setTextFormat(Qt.RichText)
