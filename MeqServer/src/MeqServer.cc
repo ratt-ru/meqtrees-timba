@@ -870,77 +870,74 @@ void MeqServer::processCommands ()
   // check for any commands from the control agent
   HIID cmdid;
   ObjRef cmd_data;
-  while( running_ )
+  // get an event from the control channel
+  int state = control().getEvent(cmdid,cmd_data);
+  if( state == AppEvent::CLOSED )
   {
-    // get an event from the control channel
-    int state = control().getEvent(cmdid,cmd_data);
-    if( state == AppEvent::CLOSED )
+    running_ = false;   // closed? break out
+    return;
+  }
+  cdebug(4)<<"state "<<state<<", got event "<<cmdid.toString('.')<<endl;
+  if( state != AppEvent::SUCCESS ) // if unsuccessful, break out
+    return;
+  // is it a MeqCommand?
+  if( cmdid.matches(MeqCommandMask) )
+  {
+    // strip off the Meq command mask -- the -1 is there because 
+    // we know a wildcard is the last thing in the mask.
+    cmdid = cmdid.subId(MeqCommandMask.length()-1);
+    // MeqCommands are expected to have a DMI::Record payload
+    if( !cmd_data.valid() || cmd_data->objectType() != TpDMIRecord )
     {
-      running_ = false;   // closed? break out
+      postError("command "+cmdid.toString('.')+" does not contain a record, ignoring");
       return;
     }
-    cdebug(4)<<"state "<<state<<", got event "<<cmdid.toString('.')<<endl;
-    if( state != AppEvent::SUCCESS ) // if unsuccessful, break out
-      return;
-    // is it a MeqCommand?
-    if( cmdid.matches(MeqCommandMask) )
+    // extract payload
+    DMI::Record &cmddata = cmd_data.as<DMI::Record>();
+    cdebug(3)<<"received command "<<cmdid.toString('.')<<endl;
+    int request_id = 0;
+    bool silent = false;
+    DMI::Record::Ref retval;
+    bool have_error = true;
+//    int oldstate = control().state();
+    request_id = cmddata[FRequestId].as<int>(0);
+    ObjRef ref = cmddata[FArgs].remove();
+    silent     = cmddata[FSilent].as<bool>(false);
+    try
     {
-      // strip off the Meq command mask -- the -1 is there because 
-      // we know a wildcard is the last thing in the mask.
-      cmdid = cmdid.subId(MeqCommandMask.length()-1);
-      // MeqCommands are expected to have a DMI::Record payload
-      if( !cmd_data.valid() || cmd_data->objectType() != TpDMIRecord )
-      {
-        postError("command "+cmdid.toString('.')+" does not contain a record, ignoring");
-        continue;
-      }
-      // extract payload
-      DMI::Record &cmddata = cmd_data.as<DMI::Record>();
-      cdebug(3)<<"received command "<<cmdid.toString('.')<<endl;
-      int request_id = 0;
-      bool silent = false;
-      DMI::Record::Ref retval;
-      bool have_error = true;
-  //    int oldstate = control().state();
-      request_id = cmddata[FRequestId].as<int>(0);
-      ObjRef ref = cmddata[FArgs].remove();
-      silent     = cmddata[FSilent].as<bool>(false);
-      try
-      {
-        retval = executeCommand(cmdid,ref);
-        have_error = false;
-      }
-      catch( std::exception &exc )
-      {
-        (retval <<= new DMI::Record)[AidError] = exceptionToObj(exc);
-      }
-      catch( ... )
-      {
-        (retval <<= new DMI::Record)[AidError] = "unknown exception while processing command";
-      }
-      // send back reply if quiet flag has not been raised;
-      // errors are always sent back
-      if( !silent || have_error )
-      {
-        HIID reply_id = MeqResultPrefix|cmdid;
-        if( request_id )
-          reply_id |= request_id;
-        control().postEvent(reply_id,retval);
-      }
+      retval = executeCommand(cmdid,ref);
+      have_error = false;
     }
-    else // other commands -- ignore for now
+    catch( std::exception &exc )
     {
-      if( cmdid == HIID("Request.State") )
-        publishState();
-      else if( cmdid == HIID("Halt") )
-      {
-        running_ = false;
-        postMessage("halt command received, exiting");
-      }
-      else
-        postError("ignoring unrecognized event "+cmdid.toString('.'));
+      (retval <<= new DMI::Record)[AidError] = exceptionToObj(exc);
     }
-  } // end while(true)
+    catch( ... )
+    {
+      (retval <<= new DMI::Record)[AidError] = "unknown exception while processing command";
+    }
+    // send back reply if quiet flag has not been raised;
+    // errors are always sent back
+    if( !silent || have_error )
+    {
+      HIID reply_id = MeqResultPrefix|cmdid;
+      if( request_id )
+        reply_id |= request_id;
+      control().postEvent(reply_id,retval);
+    }
+  }
+  else // other commands -- ignore for now
+  {
+    if( cmdid == HIID("Request.State") )
+      publishState();
+    else if( cmdid == HIID("Halt") )
+    {
+      running_ = false;
+      postMessage("halt command received, exiting");
+    }
+    else
+      postError("ignoring unrecognized event "+cmdid.toString('.'));
+  }
 }
 
 //##ModelId=3F608106021C
