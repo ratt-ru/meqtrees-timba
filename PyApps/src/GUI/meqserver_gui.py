@@ -451,7 +451,7 @@ class meqserver_gui (app_proxy_gui):
  
     # subscribe to nodelist requests
     QObject.connect(meqds.nodelist,PYSIGNAL("requested()"),self.curry(
-      self.log_message,"updating forest, please wait"));
+      self.log_message,"fetching forest from kernel, please wait"));
     QObject.connect(self.treebrowser,PYSIGNAL("forestLoaded()"),self._notify_forest_loaded);
     # subscribe to updates of forest state
     meqds.subscribe_forest_state(self._update_forest_state);
@@ -481,7 +481,7 @@ class meqserver_gui (app_proxy_gui):
     
   def _notify_forest_loaded (self):
     if len(meqds.nodelist):
-      self.log_message("updated forest, %d nodes"%(len(meqds.nodelist),));
+      self.log_message("fetched forest, %d nodes"%(len(meqds.nodelist),));
     else:
       self.log_message("forest is empty");
     

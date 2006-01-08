@@ -199,8 +199,10 @@ class TreeBrowser (QObject):
       except AttributeError: pass;
       else:
         _dprint(3,'node',self.node.name,'breakpoint mask is',self.node.breakpoint);
-        for (item,bp) in self._debug_bp_items:
-          menu.setItemChecked(item,(self.node.breakpoint&bp)!=0);
+        self._set_breakpoints_quietly = True;
+        for (qa,bp) in self._debug_bp_actions:
+          qa.setOn((self.node.breakpoint&bp)!=0);
+        self._set_breakpoints_quietly = False;
     
     def expand (self):
       if self._expanded:
@@ -222,6 +224,11 @@ class TreeBrowser (QObject):
         name = "(" + node.name +")";
         i1 = self.__class__(self.tb,node,name,self,i1,stepchild=True);
       self._expanded = True;
+      
+    def curry (self,*args,**kwargs):
+      cb = curry(*args,**kwargs);
+      self._callbacks.append(cb);
+      return cb;
       
     def xcurry (self,*args,**kwargs):
       cb = xcurry(*args,**kwargs);
@@ -254,23 +261,46 @@ class TreeBrowser (QObject):
         else:
           raise TypeError,'unknown action type '+type(action);
     
+    def _set_node_breakpoint (self,node,mask,set=True):
+      if self._set_breakpoints_quietly:
+        return;
+      if set:
+        if not self.tb.is_debugger_enabled():
+          res = QMessageBox.question(self.tb.wtop(),"Enabling tree debugger",
+"""For breakpoints to work the tree debugger must be enabled. This will 
+slow down tree execution. Do you want to enable the tree debugger now?""",
+            QMessageBox.Yes|QMessageBox.Default,
+            QMessageBox.No,
+            QMessageBox.Cancel|QMessageBox.Escape);
+          if res == QMessageBox.Yes:
+            self.tb.enable_debugger();
+          elif res == QMessageBox.Cancel:
+            return;
+        meqds.set_node_breakpoint(node,mask);
+      else:
+        meqds.clear_node_breakpoint(node,mask);
+    
     def debug_menu (self):
       try: menu = self._debug_menu;
       except AttributeError:
+        self._set_breakpoints_quietly = False;
         node = self.node;
         menu = self._debug_menu = QPopupMenu();
         menu1 = self._debug_bp_menu = QPopupMenu();
-        self._debug_bp_items = [];
+        self._debug_bp_actions = [];
         _dprint(3,'node',node.name,'breakpoint mask is',node.breakpoint);
         for st in meqds.CS_ES_statelist:
           title = ''.join(('at ',node.name,':',st[1]));
           bpmask = meqds.breakpoint_mask(st[0]);
-          cb = self.xcurry(meqds.set_node_breakpoint,(node.nodeindex,bpmask),_argslice=slice(0));
-          item = menu1.insertItem(st[4].iconset(),title,cb);
-          menu1.setItemChecked(item,(node.breakpoint&bpmask)!=0);
-          self._debug_bp_items.append((item,bpmask));
-        menu1.insertItem(pixmaps.node_any.iconset(),''.join(("at ",node.name,':all')),self.xcurry(\
-              meqds.set_node_breakpoint,(node.nodeindex,meqds.BP_ALL),_argslice=slice(0)));
+          qa = QAction(st[4].iconset(),title,0,menu1);
+          qa.setToggleAction(True);
+          qa.setOn((node.breakpoint&bpmask)!=0);
+          QObject.connect(qa,SIGNAL("toggled(bool)"),
+              self.curry(self._set_node_breakpoint,node.nodeindex,bpmask));
+          qa.addTo(menu1);
+          self._debug_bp_actions.append((qa,bpmask));
+        menu1.insertItem(pixmaps.node_any.iconset(),''.join(("at ",node.name,':all')), \
+              self.curry(self._set_node_breakpoint,node.nodeindex,meqds.BP_ALL));
         menu.insertItem(pixmaps.breakpoint.iconset(),"Set &breakpoint at",menu1);
         menu.insertItem(pixmaps.roadsign_nolimit.iconset(),"Clear &all breakpoints at "+node.name,self.xcurry(\
               meqds.clear_node_breakpoint,(node.nodeindex,meqds.BP_ALL),_argslice=slice(0)));
@@ -573,6 +603,12 @@ class TreeBrowser (QObject):
     self._setting_debug_control = True;
     self._qa_dbg_enable.setOn(enable);
     self._setting_debug_control = False;
+    
+  def is_debugger_enabled (self):
+    return self._qa_dbg_enable.isOn();
+    
+  def enable_debugger (self,enable=True):
+    self._debug_enable_slot(enable);
     
   def _debug_enable_slot (self,enable):
     """Sends a debug enable/disable message.""";
