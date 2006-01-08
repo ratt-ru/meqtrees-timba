@@ -451,7 +451,6 @@ class HistoryPlotter(GriddedPlugin):
     for i in range(2):
       self.colorbar[i] =  QwtColorBar(colorbar_number=i, parent=self.layout_parent)
       self.colorbar[i].setRange(-1, 1)
-      QObject.connect(self._plotter, PYSIGNAL('image_range'), self.colorbar[i].setRange) 
       QObject.connect(self._plotter, PYSIGNAL('max_image_range'), self.colorbar[i].setMaxRange) 
       QObject.connect(self._plotter, PYSIGNAL('display_type'), self.colorbar[i].setDisplayType) 
       QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay) 
