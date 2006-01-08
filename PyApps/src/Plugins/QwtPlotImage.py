@@ -70,6 +70,7 @@ class QwtPlotImage(QwtPlotMappedItem):
       self.log_scale = log_scale
       if self.log_scale == False:
         self.dimap = None
+        self.transform_offset = 0.0
 
     def setFlagsArray(self, flags_array):
       self._flags_array = flags_array
@@ -192,9 +193,10 @@ class QwtPlotImage(QwtPlotMappedItem):
       scaler = ImageScaler(1, 256, transform_image.min(), transform_image.max(), True)
       self.dimap = QwtDiMap(1, 256, transform_image.min(), transform_image.max(), True)
       temp_image = scaler.iTransform(transform_image)
-      
-
       return temp_image
+
+    def getTransformOffset(self):
+      return self.transform_offset
 
     def convert_limits(self, limits):
       if not self.dimap is None:
