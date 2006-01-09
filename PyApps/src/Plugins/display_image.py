@@ -414,12 +414,11 @@ class QwtImageDisplay(QwtPlot):
           self.plotImage.setLogScale(False)
           self.plotImage.setImageRange(self.raw_image)
         self.plotImage.updateImage(self.raw_image)
-        self.emit(PYSIGNAL("set_log_scale"),(self.toggle_log_display,) )
         image_limits = self.plotImage.getRealImageRange()
-        self.emit(PYSIGNAL("max_image_range"),(image_limits, 0))
+        self.emit(PYSIGNAL("max_image_range"),(image_limits, 0, self.toggle_log_display))
         if self.complex_type:
           image_limits = self.plotImage.getImagImageRange()
-          self.emit(PYSIGNAL("max_image_range"),(image_limits, 1) )
+          self.emit(PYSIGNAL("max_image_range"),(image_limits, 1,self.toggle_log_display) )
         if self.show_x_sections:
           self.calculate_cross_sections()
         self.replot()
