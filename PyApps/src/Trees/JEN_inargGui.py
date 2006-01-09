@@ -39,130 +39,177 @@ class ArgBrowser(QMainWindow):
 
         # NB: What is the usage of args (list): better to have **args?
 
+        # We inherit from QMainWindow:
         apply(QMainWindow.__init__, (self,) + args)
 
-        if False:
-            # Buttons to be added:
-            # - unhide (toggle, default=False, yellow if True)
-            # - revert (revert to the input values, in self.inarg)
-            # - execute (green): executes the corresponding script 
-            # - cancel (red)
-            # - save as (saves the edited inarg script)
-            # - restore (load another inarg script)
-            self.v = QVBoxLayout(self,30,5)
-            self.button = {}
-            keys = ['unhide','revert','execute','cancel','saveAs..','restore']
-            # keys = ['unhide']
-            for key in keys:
-                b = QPushButton(self)
-                # print dir(b)
-                b.setText(key)
-                # b.background('red')
-                self.button[key] = b 
-                self.v.addWidget(b)
-            return None
+        vbox = QVBoxLayout(self)
+        combo = QComboBox(self)
+        combo.setEditText('editText')
+        vbox.addWidget(combo)
 
-        # self.listview is the root object
-        self.listview = QListView(self)
-        self.setCentralWidget(self.listview)
-        # print '\n** dir(self): ',dir(self),'\n'
-        self.listview.addColumn("nr")
-        self.listview.addColumn("name")
-        self.listview.addColumn("value")
-        self.listview.addColumn("help")
-        self.listview.addColumn("type")
-        self.listview.setRootIsDecorated(1)
-        # print '\n** dir(listview): ',dir(self.listview),'\n'
+        # The listview displays the inarg record:
+        self.__listview = QListView(self)
+        # self.setCentralWidget(self.__listview)
+        vbox.addWidget(self.__listview)
+        self.__listview.addColumn("name")
+        self.__listview.addColumn("value")
+        self.__listview.addColumn("help")
+        self.__listview.addColumn("type")
+        self.__listview.addColumn("ident")
+        self.__listview.setRootIsDecorated(1)
 
-        self.popup = None
-        self.clear()
+
+        # Buttons to be added at the bottom:
+        hbox = QHBoxLayout(self)
+        vbox.addLayout(hbox)
+        b_exec = QPushButton('Execute', self)
+        hbox.addWidget(b_exec)
+        b_cancel = QPushButton('Cancel', self)
+        hbox.addWidget(b_cancel)
+        QObject.connect(b_exec, SIGNAL("pressed ()"), self.exec_with_inarg)
+        QObject.connect(b_cancel, SIGNAL("pressed ()"), self.cancel_exec)
+
+
+        # Menus:
+        # - save as (saves the edited inarg script)
+        # - restore (load another inarg script)
+        # - revert (revert to the input values, in self.__inarg)
+        # - unhide (toggle, default=False, yellow if True)
+        menubar = self.menuBar()
+        filemenu = QPopupMenu(self)
+        # filemenu.insertItem('save',,self,,SLOT(self.save))
+        filemenu.insertItem('save', self.save_inarg)
+        filemenu.insertItem('saveAs', self.saveAs_inarg)
+        filemenu.insertItem('restore', self.restore_inarg)
+        filemenu.insertItem('print', self.print_inarg)
+        filemenu.insertItem('close', self.closeGui)
+        menubar.insertItem('File', filemenu)
+        editmenu = QPopupMenu(self)
+        editmenu.insertItem('revert', self.revert_inarg)
+        menubar.insertItem('Edit', editmenu)
+        viewmenu = QPopupMenu(self)
+        viewmenu.insertItem('unhide', self.unhide)
+        menubar.insertItem('View', viewmenu)
+
+        # Initialise:
+        self.__inarg = None                        # edited copy
+        self.__inarg_input = None                  # input copy
+        self.__popup = None
+        self.clearGui()
         return None
 
     def closeGui (self):
         """Close the gui"""
-        self.clear()
-        self.listview.close()                    #............?
-        if self.popup: self.popup.close()
+        self.clearGui()
+        self.__listview.close()                    #............?
+        if self.__popup: self.__popup.close()
         self.close()                             #............?
         # clean up any signal connections?
         return True
 
-    def clear (self):
+
+    def clearGui (self):
         """Clear the gui"""
-        self.listview.clear()
-        if self.popup: self.popup.close()
-        self.inarg = None                        # edited copy
-        self.inarg_input = None                  # input copy
+        self.__listview.clear()
+        if self.__popup: self.__popup.close()
         self.items = []                          # list of listview items
         self.itemdict = []                       # list of itd records
-        self.unhide = False                      # if True, hide nothing
+        self.__unhide = False                    # if True, hide nothing
         return True
 
 
 #---------------------------------------------------------------------------
 
-    def revert(self):
+    def revert_inarg(self):
         """Revert to the original (input) inarg values"""
-        self.recurse(self.inarg_input, self.listview)
+        self.__inarg = self.__inarg_input
+        self.refresh()
         return True
 
     def unhide(self):
-        """Toggle the hiding of less important fields"""
-        self.unhide = not self.unhide
-        self.recurse(self.inarg, self.listview)    
+        """Hide the less important fields"""
+        unhide = self.__unhide
+        self.clearGui()
+        self.__unhide = not unhide
+        print '** unhide ->',self.__unhide
+        self.refresh(clear=False)    
         return True
 
-    def cancel(self):
+    def print_inarg(self):
+        """Print the current inarg record"""
+        print '** not yet implemented: self.print_inarg()'
+        return True
+
+    def saveAs_inarg(self):
+        """Save the (edited) inarg record for later use"""
+        print '** not yet implemented: self.saveAs()'
+        return True
+
+    def save_inarg(self):
+        """Save the (edited) inarg record for later use"""
+        print '** not yet implemented: self.save()'
+        return True
+
+    def restore_inarg(self):
+        """Read in a stored inarg record"""
+        print '** not yet implemented: self.restore()'
+        # self.refresh()    
+        return True
+
+    #-------------------------------------------------------------------------------
+
+    def cancel_exec(self):
         """Do nothing"""
+        print '** not yet implemented: self.cancel()'
+        self.closeGui()
         return False
 
-    def execute(self):
+    def exec_with_inarg(self):
         """Execute the relevant function"""
+        print '** not yet implemented: self.execute()'
         return True
 
-    def saveAs(self):
-        """Save the (edited) inarg record for later use"""
-        return True
-
-    def save(self):
-        """Save the (edited) inarg record for later use"""
-        return True
-
-    def restore(self):
-        """Read in a stored inarg record"""
-        return True
 
     #-------------------------------------------------------------------------------
 
     def input (self, inarg=None, name=None):
         """Input of a new (inarg) record in the gui"""
         if not isinstance(inarg, dict): return False
-        self.clear()
-        self.inarg = inarg                                    # to be edited
-        self.inarg_input = inarg                              # unchanged
+        self.clearGui()
+        self.__inarg = deepcopy(inarg)                          # to be edited
+        self.__inarg_input = deepcopy(self.__inarg)             # unchanged copy
 
         # Modify the name (of its main window):
         if not name:
-            if self.inarg.has_key('script_name'):             # MG_JEN script
-                name = self.inarg['script_name']
+            if self.__inarg.has_key('script_name'):             # MG_JEN script
+                name = self.__inarg['script_name']
             else:
-                name = self.inarg.keys()[0]
+                name = self.__inarg.keys()[0]
         self.setCaption(name)
 
         # Transfer the inarg fields recursively:
-        self.recurse (self.inarg, listview=self.listview)
+        self.recurse (self.__inarg, listview=self.__listview)
 
         # Connect signals and slots, once a signal is detected the according slot is executed
-        QObject.connect(self.listview, SIGNAL("doubleClicked (QListViewItem * )"), self.itemSelected)
+        QObject.connect(self.__listview, SIGNAL("doubleClicked (QListViewItem * )"), self.itemSelected)
         self.show()
         return True
 
+
+    def refresh (self, clear=True):
+        """Refresh the listview widget from self.__inarg"""
+        print 'refresh()'
+        if clear: self.clearGui()
+        print 'refresh() after clearGui()'
+        self.recurse (self.__inarg, listview=self.__listview)
+        print 'refresh() after recurse()'
+        return True
 
     def recurse (self, rr=None, listview=None, level=0):
         """Recursive input of a hierarchical inarg record"""
         if not isinstance(rr, dict): return False
 
-        # Every level of a hierarchial inarg record may have a CTRL_record:
+        # Every level of a hierarchical inarg record may have a CTRL_record:
         ctrl = None
         if rr.has_key(CTRL_record):                            # has a CTRL record
             ctrl = rr[CTRL_record]                             # use it
@@ -170,15 +217,17 @@ class ArgBrowser(QMainWindow):
         for key in rr.keys():
             if isinstance(rr[key], dict):   
                 if key==CTRL_record:                           # is a CTRL record         
-                    itd = self.make_itd(key, rr[key], hide=False)    
+                    itd = self.make_itd(key, rr[key], hide=True)    
                     if not itd['hide']:
-                        item = QListViewItem(listview, ' ', key, 'CTRL_record')
+                        item = QListViewItem(listview, key, 'CTRL_record')
                         self.items.append(item)        
                         self.recurse (rr[key], listview=item, level=level+1)
                 else:
                     itd = self.make_itd(key, rr[key], ctrl=ctrl)    
                     if not itd['hide']:
-                        item = QListViewItem(listview, ' ', key)
+                        item = QListViewItem(listview, key)
+                        if level==0:
+                            item.setOpen(True)                 # show its children
                         # item.setColor(itd['color'])          # <-----??            
                         self.items.append(item)        
                         self.recurse (rr[key], listview=item, level=level+1)
@@ -186,30 +235,40 @@ class ArgBrowser(QMainWindow):
             else:                                              # rr[key] is a value
                 itd = self.make_itd(key, rr[key], ctrl=ctrl)
                 if not itd['hide']:
-                    item = QListViewItem(listview, str(itd['ident']), key, str(rr[key]),
-                                         itd['help'], itd['type'])
+                    # value = QString(str(rr[key]))
+                    value = str(rr[key])
+                    item = QListViewItem(listview, key, value,
+                                         itd['help'], itd['type'],
+                                         str(itd['ident']))
                     # item.setColor(itd['color'])              # <-----??            
                     self.items.append(item)
 
         return True
 
+
     #-------------------------------------------------------------------------------
 
-    def make_itd(self, key, value, ctrl=None, color='black', hide=False, save=True, trace=True):
+    def make_itd(self, key, value, ctrl=None, color='black', hide=False,
+                 save=True, level=0, trace=True):
         """Make an itd record from the given value and ctrl-record"""
         rr = dict(key=str(key),
                   value=value,                
-                  type=str(type(value)),
-                  color=color,                 
-                  hide=hide,
+                  type=str(type(value)),     # item type (mandatory?)
+                  color=color,               # Display color  
+                  hide=hide,                 # If True, hide this item
                   # help=None,
                   help='help-string',
-                  # range=None,
-                  range=[-1,1],
                   # choice=None,
-                  choice=range(4),
-                  choiceonly=False,
-                  ident=-1)
+                  choice=range(4),           # Choose from these values
+                  # range=None,
+                  range=[-1,1],              # Allowed range
+                  min=None,                  # Allowed min value
+                  max=None,                  # Allowed max value
+                  TF=False,                  # If True, only True or False allowed 
+                  choiceonly=False,          # If True, only this choice allowed
+                  funcname='<funcname>',     # name of the relevant function 
+                  level=level,               # inarg hierarchy level
+                  ident=-1)                  # internal identifier
 
         # If ctrl is a record, use its information:
         if isinstance(ctrl, dict):
@@ -226,8 +285,23 @@ class ArgBrowser(QMainWindow):
                         rr[field] = ctrl[field][key]
 
         # Override some fields, if required:
-        if self.unhide:
+        if self.__unhide:
             rr['hide'] = False
+        if rr['TF']:
+            rr['choice'] = [True,False]
+            rr['choiceonly'] = True
+        if rr['range']:
+            if not isinstance(rr['range'], (tuple,list)):
+                rr['range'] = 'error: '+str(type(rr['range']))
+            elif not len(rr['range'])==2:
+                rr['range'] = 'error: len ='+str(len(rr['range']))
+            else:
+                rr['min'] = rr['range'][0]
+                rr['max'] = rr['range'][1]
+
+        # Indent according to inarg level:
+        prefix = (level*'.')
+        rr['help'] = prefix+rr['help']
 
         # Keep the itemdict for later reference:
         if save:
@@ -243,29 +317,22 @@ class ArgBrowser(QMainWindow):
         """Deal with a selected (double-clicked) listview item"""
         
         # Read the (string) values from the columns:
-        ident = item.text(0)                   # string in 1st column 
-        key = item.text(1)                     # etc 
-        vstring = item.text(2)           
-        help = item.text(3)              
-        vtype = item.text(4)         
-        if self.popup:
-            self.popup.close()
+        key = item.text(0)            
+        vstring = item.text(1)           
+        help = item.text(2)              
+        vtype = item.text(3)         
+        ident = item.text(4)          
+        if self.__popup:
+            self.__popup.close()
 
-        if True:
-            ident = str(ident)
-            print 'ident =',ident, (ident==' '), ' type =',type(ident)
-            if ident==' ': ident = '0'
-            ident = int(ident)
-            if ident==0: return False          # not editable
+        # Use the ident string to get the relevant itemdict record:
+        ident = str(ident)
+        if ident==' ': ident = '0'
+        ident = int(ident)
+        if ident>0:
             itd = self.itemdict[ident]
-        else:
-            # Place-holder: make a dummy itd record.
-            # We need to use the corresponding self.itemdict item here...
-            itd = self.make_itd(key, item.text(1), save=False)    
-            itd['type'] = item.text(3)         # override
-
-        # Make the popup object:
-        self.popup = Popup(self, name=itd['key'], itd=itd)
+            # Make the popup object:
+            self.__popup = Popup(self, name=itd['key'], itd=itd)
         return True
 
 
@@ -279,35 +346,73 @@ class Popup(QDialog):
     def __init__(self, parent=None, name='popup_name', itd=None):
         QDialog.__init__(self, parent, "Test", 0, 0)
 
-        self.v = QVBoxLayout(self,10,5)
+        # Keep the itemdict (itd) for use in self.textChanged():
+        self.itemdict = itd
 
-        # print '\n** itd: ',itd,'\n'
-        
-        self.edit = {} 
+        vbox = QVBoxLayout(self,10,5)
 
         # The key field (not editable)
-        field = 'key'
-        self.edit[field]=QLineEdit(self)
-        self.edit[field].setText('key: '+str(itd['key']))
-        self.v.addWidget(self.edit[field])
+        label = QLabel(self)
+        label.setText(str(itd['key']))
+        vbox.addWidget(label)
 
         # The value field (string!):
-        field = 'value'
-        self.edit[field]=QLineEdit(self)
-        self.edit[field].setText(str(itd['value']))
-        self.v.addWidget(self.edit[field])
+        field = 'choice'
+        vv = itd['choice']
+        self.combo = QComboBox(self)
+        value = QString(str(itd['value']))
+        self.combo_input = value
+        self.combo.insertItem(value)
+        self.combo.setEditable(not itd['choiceonly'])
+        for i in range(len(vv)):
+            value = QString(str(vv[i]))
+            self.combo.insertItem(value, i+1)
+        vbox.addWidget(self.combo)
+        QObject.connect(self.combo, SIGNAL("textChanged(const QString &)"), self.textChanged)
 
-        # Other information fields (not editable):
-        fields = ['type','choice','range','help']
-        for field in fields:
-            if itd.has_key(field) and itd[field]:
-                self.edit[field] = QLineEdit(self)
-                self.edit[field].setText(field+': '+str(itd[field]))
-                self.v.addWidget(self.edit[field])
+        # Other information keys (not editable):
+        keys = ['help','type']
+        if itd['range']:
+            keys.append('range')
+        else:
+            if itd['min']: keys.append('min')
+            if itd['max']: keys.append('max')
+        keys.append('funcname')
+        for key in keys:
+            if itd.has_key(key) and itd[key]:
+                label = QLabel(self)
+                label.setText(key+':  '+str(itd[key]))
+                vbox.addWidget(label)
 
-        # QObject.connect(self.popup, SIGNAL("doubleClicked (QListViewItem * )"), self.function)
+        # The close button:
+        button = QPushButton('close',self)
+        vbox.addWidget(button)
+        QObject.connect(button, SIGNAL("pressed ()"), self.close)
+
+        # Display the popup:
         self.show()
         return None
+
+
+
+
+    def textChanged (self, value):
+        """Deal with the changed value (string)"""
+        print '** textChanged(',value,'):',type(value)
+        value = str(value)
+        v = eval(value)
+        print 'eval(',value,') ->',type(v),'=',v
+
+        # How does one detect an eval() error?
+
+        # Do some checks:
+        itd = self.itemdict
+
+        # How to revert to the original value if wrong?
+        # use self.combo_input (QString)
+        # self.combo.setCurrentText(self.combo_input)
+        # NB: This will call this function again! (if value==self.combo_input:...)
+        return True
 
 #============================================================================
 # Main etc:
