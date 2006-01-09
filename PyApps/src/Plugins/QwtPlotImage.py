@@ -194,8 +194,13 @@ class QwtPlotImage(QwtPlotMappedItem):
         image_min = -1.0 * image_min
         transform_image = 1.0 + image_min  + incoming_image
         self.transform_offset = 1.0 + image_min
-      scaler = ImageScaler(1, 256, transform_image.min(), transform_image.max(), True)
-      self.dimap = QwtDiMap(1, 256, transform_image.min(), transform_image.max(), True)
+      scale_min = transform_image.min()
+      scale_max = transform_image.max()
+      if scale_min == scale_max:
+       scale_min = scale_min - 0.5 * scale_min
+       scale_max = scale_max + 0.5 * scale_min
+      scaler = ImageScaler(1, 256, scale_min, scale_max, True)
+      self.dimap = QwtDiMap(1, 256, scale_min, scale_max, True)
       temp_image = scaler.iTransform(transform_image)
       return temp_image
 

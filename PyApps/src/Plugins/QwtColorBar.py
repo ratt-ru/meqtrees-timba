@@ -49,7 +49,6 @@ class QwtColorBar(QwtPlot):
         self.log_scale = False
         self.bar_array = reshape(arange(self.max), (1,256))
         self.y_scale = (self.min, self.max)
-        self.y_max_scale = (self.min, self.max)
         self.plotImage.setData(self.bar_array, None, self.y_scale)
 
 # Over-ride default QWT Plot size policy of MinimumExpanding
@@ -153,6 +152,11 @@ class QwtColorBar(QwtPlot):
         self.min = self.image_min
         self.max = self.image_max
         if self.log_scale:
+          if self.min <= 0.0:
+            self.min = -1.0 * self.min + 1.0
+            self.max = self.max + self.min
+            self.image_min = self.min
+            self.image_max = self.max
           max = log(self.max)
           min = log(self.min)
           delta = (max - min) / 256.0
@@ -163,7 +167,6 @@ class QwtColorBar(QwtPlot):
           for i in range (256):
             self.bar_array[0,i] = self.min + i * delta
         self.y_scale = (self.min, self.max)
-        self.y_max_scale = (self.min, self.max)
         self.plotImage.setData(self.bar_array, None, self.y_scale)
         self.show()
         self.replot()
