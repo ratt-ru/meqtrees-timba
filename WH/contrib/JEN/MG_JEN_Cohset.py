@@ -33,6 +33,7 @@ from Timba.TDL import *
 from numarray import *
 
 from Timba.Trees import JEN_inarg
+from Timba.Trees import JEN_inargGui
 from Timba.Trees import TDL_Cohset
 from Timba.Trees import TDL_Joneset
 from Timba.Trees import TDL_MSauxinfo
@@ -1105,7 +1106,7 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of:',MG['script_name'],':\n'
 
     # This is the default:
-    if 1:
+    if 0:
        MG_JEN_exec.without_meqserver(MG['script_name'], callback=_define_forest, recurse=3)
 
     # This is the place for some specific tests during development.
@@ -1115,13 +1116,24 @@ if __name__ == '__main__':
     ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
     cs = TDL_Cohset.Cohset(label='test', scops=MG['script_name'], ifrs=ifrs)
 
+    if 1:
+        import sys
+        from qt import *
+        app = QApplication(sys.argv)
+        igui = JEN_inargGui.ArgBrowser()
+        igui.input(MG, name=MG['script_name'])
+        igui.show()
+        app.connect(app, SIGNAL("lastWindowClosed()"),
+                    app, SLOT("quit()"))
+        app.exec_loop()
+       
     if 0:   
        cs.display('initial')
        
     if 0:
        cs.spigots (ns)
 
-    if 1:
+    if 0:
        punit = 'unpol'
        # punit = '3c147'
        # punit = 'RMtest'
