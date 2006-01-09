@@ -5,6 +5,9 @@
 
 from Timba.GUI.pixmaps import pixmaps
 from QwtPlotImage import *
+from math import log
+from math import exp
+
 
 colorbar_instructions = \
 '''The colorbar displays the current range of intensities in the corresponding image display. You can interact with the colorbar to change the range of intensities displayed in the image.<br><br>
@@ -43,12 +46,10 @@ class QwtColorBar(QwtPlot):
         self.plotImage = QwtPlotImage(self)
         self.min = 0.0
         self.max = 256.0
-        self.image_min = None
-        self.image_max = None
         self.log_scale = False
         self.bar_array = reshape(arange(self.max), (1,256))
-        self.y_scale = arange(2)
         self.y_scale = (self.min, self.max)
+        self.y_max_scale = (self.min, self.max)
         self.plotImage.setData(self.bar_array, None, self.y_scale)
 
 # Over-ride default QWT Plot size policy of MinimumExpanding
@@ -103,27 +104,37 @@ class QwtColorBar(QwtPlot):
         self.min = min * 1.0
         self.max = max * 1.0
         self.emit(PYSIGNAL("set_image_range"),(self.min, self.max, self.colorbar_number))
-        self.delta = (self.max - self.min) / 256.0
-        for i in range (256):
-          self.bar_array[0,i] = self.min + i * self.delta
+        if self.log_scale:
+          max = log(self.max)
+          min = log(self.min)
+          delta = (max - min) / 256.0
+          for i in range (256):
+            self.bar_array[0,i] = exp (min + i * delta)
+        else:
+          delta = (self.max - self.min) / 256.0
+          for i in range (256):
+            self.bar_array[0,i] = self.min + i * delta
         self.y_scale = (self.min, self.max)
         self.plotImage.setData(self.bar_array, None, self.y_scale)
         self.show()
         self.replot()
     # set Range()
 
-    def setLogScale(self, log_scale=True):
-      self.log_scale = log_scale
+    def getTransformOffset(self):
+      return self.plotImage.getTransformOffset()
+ 
+    def setScales(self):
       self.plotImage.setLogScale(self.log_scale)
+      self.plotImage.setLogYScale(self.log_scale)
       if self.log_scale:
         self.setAxisOptions(QwtPlot.yLeft, QwtAutoScale.Logarithmic)
       else:
         self.setAxisOptions(QwtPlot.yLeft, QwtAutoScale.None)
-        self.plotImage.setImageRange(self.bar_array)
-      self.plotImage.updateImage(self.bar_array)
 
-    def setMaxRange(self, limits, colorbar_number=0):
+    def setMaxRange(self, limits, colorbar_number=0, log_scale=False):
       if colorbar_number == self.colorbar_number:
+        self.log_scale = log_scale
+        self.setScales()
         min = limits[0]
         max = limits[1]
         if min > max:
@@ -141,14 +152,22 @@ class QwtColorBar(QwtPlot):
         self.image_max = max * 1.0
         self.min = self.image_min
         self.max = self.image_max
-        self.delta = (self.max - self.min) / 256.0
-        for i in range (256):
-          self.bar_array[0,i] = self.min + i * self.delta
+        if self.log_scale:
+          max = log(self.max)
+          min = log(self.min)
+          delta = (max - min) / 256.0
+          for i in range (256):
+            self.bar_array[0,i] = exp (min + i * delta)
+        else:
+          delta = (self.max - self.min) / 256.0
+          for i in range (256):
+            self.bar_array[0,i] = self.min + i * delta
         self.y_scale = (self.min, self.max)
+        self.y_max_scale = (self.min, self.max)
         self.plotImage.setData(self.bar_array, None, self.y_scale)
         self.show()
         self.replot()
-    # set Range()
+    # setMaxRange()
 
     def showDisplay(self, show_self, colorbar_number=0):
       if colorbar_number == self.colorbar_number:
@@ -170,7 +189,6 @@ class QwtColorBar(QwtPlot):
             self.image_max = self.image_min
             self.image_min = temp
           self.setRange(self.image_min, self.image_max, self.colorbar_number)
-#         self.emit(PYSIGNAL("set_image_range"),(self.image_min, self.image_max, self.colorbar_number))
         else:
           return
 
@@ -245,22 +263,18 @@ class QwtColorBar(QwtPlot):
           ymax = ymin
           ymin = temp
         self.setRange(ymin, ymax, self.colorbar_number)
-#       self.emit(PYSIGNAL("set_image_range"),(ymin, ymax, self.colorbar_number))
 
         self.replot()
     # onMouseReleased()
-
-    # what about printing?
-    # We may need something here.
 
 # class QwtColorBar
 
 # the following tests the QwtColorBar class
 def make():
     demo = QwtColorBar()
-    demo.setRange(-512, 512)
-    demo.setLogScale(True)
-    demo.setDisplayType("grayscale")
+    demo.setMaxRange((1.0e-11, 0.001),0,True)
+    demo.setMaxRange((1.0e-11, 0.001),0)
+
     demo.resize(50, 200)
     demo.show()
     return demo
