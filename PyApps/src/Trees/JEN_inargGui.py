@@ -333,9 +333,13 @@ class ArgBrowser(QMainWindow):
             itd = self.itemdict[ident]
             # Make the popup object:
             self.__popup = Popup(self, name=itd['key'], itd=itd)
+            QObject.connect(self.__popup, PYSIGNAL("valueChanged()"), self.valueChanged)
+            # self.emit(PYSIGNAL("valueChanged()"),(v2,))
         return True
 
-
+    def valueChanged(self, new):
+        print '\n** valueChanged() ->',type(new),'=',new
+        return True
 
 
 #----------------------------------------------------------------------------
@@ -395,23 +399,29 @@ class Popup(QDialog):
 
 
 
-
     def textChanged (self, value):
         """Deal with the changed value (string)"""
-        print '** textChanged(',value,'):',type(value)
-        value = str(value)
-        v = eval(value)
-        print 'eval(',value,') ->',type(v),'=',v
+        print '\n** textChanged(',value,'):',type(value)
+        v1 = str(value)
+        try:
+          v2 = eval(v1)
+        except:
+          print sys.exc_info();
+          return;
+        print 'eval(',v1,') ->',type(v2),'=',v2
 
         # How does one detect an eval() error?
 
-        # Do some checks:
-        itd = self.itemdict
+        # Do some checks (if necessary):
+        if not value==self.combo_input:
+            itd = self.itemdict
+            # How to revert to the original value if wrong?
+            # use self.combo_input (QString)
+            # self.combo.setCurrentText(self.combo_input)
+            # NB: This will call this function again!
 
-        # How to revert to the original value if wrong?
-        # use self.combo_input (QString)
-        # self.combo.setCurrentText(self.combo_input)
-        # NB: This will call this function again! (if value==self.combo_input:...)
+        self.emit(PYSIGNAL("valueChanged()"),(v2,))
+
         return True
 
 #============================================================================
