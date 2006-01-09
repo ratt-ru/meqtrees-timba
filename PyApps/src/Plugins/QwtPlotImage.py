@@ -55,6 +55,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.dimap = None
         self.complex = False
         self.log_scale = False
+        self.log_y_scale = False
         self.transform_offset = 0.0
     # __init__()
     
@@ -71,6 +72,9 @@ class QwtPlotImage(QwtPlotMappedItem):
       if self.log_scale == False:
         self.dimap = None
         self.transform_offset = 0.0
+
+    def setLogYScale(self, log_y_scale = True):
+      self.log_y_scale = log_y_scale
 
     def setFlagsArray(self, flags_array):
       self._flags_array = flags_array
@@ -372,7 +376,7 @@ class QwtPlotImage(QwtPlotMappedItem):
             self.plot.setAxisScale(QwtPlot.xBottom, 0, shape0)
         if yScale:
 #           self.yMap = QwtDiMap(0, shape[1], yScale[0], yScale[1])
-            self.yMap = QwtDiMap(0, shape[1]-1, yScale[0], yScale[1])
+            self.yMap = QwtDiMap(0, shape[1]-1, yScale[0], yScale[1], self.log_y_scale)
 #           self.plot.setAxisScale(QwtPlot.yLeft, *yScale)
             temp_scale = (yScale[0],yScale[1])
             self.plot.setAxisScale(QwtPlot.yLeft, *temp_scale)
