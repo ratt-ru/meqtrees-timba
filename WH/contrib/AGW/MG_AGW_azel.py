@@ -5,7 +5,6 @@ last_changed = '09Jan2006'
 from Timba.TDL import *
 from Timba.Meq import meq
 from Timba.Meq import meqds
-from numarray import *
  
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
 # This is a record passed to Set.Forest.State. 
@@ -20,7 +19,7 @@ def _define_forest (ns):
   define the forest. The 'ns' argument is a NodeScope object in which
   the forest is to be defined, usually this is simply the global scope.
   """;
-# set of a sequence of nodes for testing of the AzEl node
+# set up a sequence of nodes for testing of the AzEl node
 
 # first define an RA and DEC (in radians)
   ra = 0.0
