@@ -10,9 +10,6 @@ from Timba.Meq import meqds
 # This is a record passed to Set.Forest.State. 
 Settings.forest_state.cache_policy = 100;
 
-# Make sure our solver root node is not cleaned up
-Settings.orphans_are_roots = True;
-
 def _define_forest (ns):
   """define_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, this method is automatically called to
@@ -77,7 +74,6 @@ def _test_forest (mqs,parent):
 # The following is the testing branch, executed when the script is run directly
 # via 'python script.py'
 if __name__ == '__main__':
-#  from Timba.Meq import meqds 
   Timba.TDL._dbg.set_verbose(5);
   ns = NodeScope();
   _define_forest(ns);
