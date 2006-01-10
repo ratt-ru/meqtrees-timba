@@ -67,12 +67,17 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.ComplexColorMap = ComplexColorMap(256)
     # setDisplayType
 
+    # When set to True, the log_scale parameter will cause
+    # the displayed image to be scaled logarithmically.
     def setLogScale(self, log_scale = True):
       self.log_scale = log_scale
       if self.log_scale == False:
         self.dimap = None
         self.transform_offset = 0.0
 
+    # When set to True, the log_y_scale parameter will cause
+    # the output Y coordinate axis to be scaled properly for a Log plot
+    # (used by QwtColorBar.py)
     def setLogYScale(self, log_y_scale = True):
       self.log_y_scale = log_y_scale
 
