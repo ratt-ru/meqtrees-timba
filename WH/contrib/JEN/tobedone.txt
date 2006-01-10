@@ -217,10 +217,21 @@ detected bugs:
        - The Mean of all (the other?) ifrs with the same rxzy
      - Pohset.Condeq(Mohset)
 
- - JEN: Contamination filtering
-
- - JEN: Automatic search for contaminating sources
-   - Use RADAR
+ - WNB: Weak reduncancy:
+   - weight = cos(duv):
+     - weight=1 for duv=0 (strong redundancy)
+     - weight<=0 for |duv|>something (3rd condeq child)
+     - cutoff for duv=dish diameter?
+   - weight(duv) should NOT depend on baseline length (ruv)
+     - corrugation length is the same everywhere
+   - w(duv) can be wider if the visibility function is smoother
+     - if the dominating sources are near the field centre
+     - if the remaining sources are uniformly distributed
+     - subtract the brightest few sources first?
+     - is there a way to estimate the smoothness?      <-----!!
+   - Even strong redundancy (duv=0) has its limitations
+     - if the antenna voltage beams do not see the same sky (l,m,freq)
+     - NB: WSRT pointing is now better than 10 mdeg
 
  - Stefan: Station redundancy calibration (AGB)
    - Tile-tile sensitivity: 20 Jy @ 10s/10kHz
@@ -284,12 +295,19 @@ detected bugs:
    - concatenate in the time direction (sawtooth)
    - put vectors into the same plot (comparison)
 
+ - JEN: Contamination filtering
+
  - JEN: Contamination reduction
-   - Subtract all the nominal sources at the start
+   - Subtract all the nominal sources at the start (at full resolution)
    - For each peeling step, add one source, and then subtract it
    - Reuse predicted sources as much as possible
 
-      
+ - JEN: Automatic search for contaminating sources
+   - Use RADAR
+     - Matrix of test sources (LSM)
+     - let them walk to the correct positions
+     - short baselines first... (they 'see' further)
+   
    
 
 
