@@ -1,5 +1,17 @@
-script_name = 'MG_AGW_tree.py'
-last_changed = '04Jan2006'
+# script_name = 'MG_AGW_tree.py'
+
+# Short description:
+#   Creates a very basic MeqTree with a Solver
+
+# Keywords: ....
+
+# Author: Tony Willis (AGW), DRAO
+
+# History:
+# - 10 jan 2006: added copyright
+# - 04 jan 2006: first version checked in
+
+# Copyright: The MeqTree Foundation
 
 # standard preamble
 from Timba.TDL import *

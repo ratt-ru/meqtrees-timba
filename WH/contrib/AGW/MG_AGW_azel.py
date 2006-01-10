@@ -1,5 +1,16 @@
-script_name = 'MG_AGW_azel.py'
-last_changed = '09Jan2006'
+# script_name = 'MG_AGW_azel.py'
+
+# Short description:
+#   Tests the Meqtree AzEl node
+
+# Keywords: ....
+
+# Author: Tony Willis (AGW), DRAO
+
+# History:
+# - 10 jan 2006: first version checked in
+
+# Copyright: The MeqTree Foundation
 
 # standard preamble
 from Timba.TDL import *
