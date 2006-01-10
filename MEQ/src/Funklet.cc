@@ -111,15 +111,24 @@ void Funklet::validateContent (bool)
     else
       domain_ <<= new Domain;
     // get various others
-    axes_       = (*this)[FAxisIndex].as_vector(default_axes);
-    if(!Record::hasField(FAxisIndex))
-      (*this)[FAxisIndex].replace()=axes_;
-    offsets_    = (*this)[FOffset].as_vector(default_offset);
-    if(!Record::hasField(FOffset))
-      (*this)[FOffset].replace()=offsets_;
-    scales_     = (*this)[FScale].as_vector(default_scale);
-    if(!Record::hasField(FScale))
-      (*this)[FScale].replace()=scales_;
+// OMS 10/01/05: assigning vectors has been consistently crashing in mt_alloc
+// with g++-3.4.5. Rewriting this to try to get around it (will be more efficient 
+// this way in any case)
+    if( !(*this)[FAxisIndex].get_vector(axes_) )
+      (*this)[FAxisIndex].replace() = axes_ = default_axes;
+    if( !(*this)[FOffset].get_vector(offsets_) )
+      (*this)[FOffset].replace() = offsets_ = default_offset;
+    if( !(*this)[FScale].get_vector(scales_) )
+      (*this)[FScale].replace() = scales_ = default_scale;
+//     axes_       = (*this)[FAxisIndex].as_vector(default_axes);
+//     if(!Record::hasField(FAxisIndex))
+//       (*this)[FAxisIndex].replace()=axes_;
+//     offsets_    = (*this)[FOffset].as_vector(default_offset);
+//     if(!Record::hasField(FOffset))
+//       (*this)[FOffset].replace()=offsets_;
+//     scales_     = (*this)[FScale].as_vector(default_scale);
+//     if(!Record::hasField(FScale))
+//       (*this)[FScale].replace()=scales_;
     Assert(axes_.size() == uint(rank()) && offsets_.size() == uint(rank()) && scales_.size() == uint(rank()) );
     //?? rank() is  defined as axes_.size(), no need to check really....
 

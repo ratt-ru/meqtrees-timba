@@ -37,8 +37,6 @@ InitDebugContext(Node,"MeqNode");
 
 using Debug::ssprintf;
 
-Thread::Mutex aipspp_mutex;  // declared in Meq.h, gotta define it somewhere...
-
 //##ModelId=3F5F43E000A0
 Node::Node (int nchildren,const HIID *labels,int nmandatory)
     : control_status_(CS_ACTIVE),

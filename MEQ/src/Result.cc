@@ -156,12 +156,9 @@ void Result::validateContent (bool)
     else
       pvellsets_ = 0;
     // get dimensions
-    fld = Record::findField(FDims);
-    if( fld )
+    if( (*this)[FDims].get_vector(dims_) )
     {
-      Container & cont = fld->ref.as<Container>(); 
-      dims_ = cont[HIID()].as_vector<int>();
-      // # of vellsets in tensor
+      // product of dims must match # of vellsets in tensor
       FailWhen(dims_.product()!=numVellSets(),"dimensions do not match number of vellsets");
     }
     else

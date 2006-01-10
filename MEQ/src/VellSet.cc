@@ -232,10 +232,8 @@ void VellSet::validateContent (bool)
       Field * fld = Record::findField(FShape);
       if( fld )
       {
-        const Container & cc = fld->ref.as<Container>();
-        std::vector<int> shp = cc[HIID()].as_vector<int>();
-        FailWhen(int(shp.size())>Axis::MaxAxis,"illegal "+FShape.toString()+" field");
-        shape_ = shp;
+        fld->ref.as<Container>()[HIID()].get_vector(shape_);
+        FailWhen(int(shape_.size())>Axis::MaxAxis,"illegal "+FShape.toString()+" field");
         fld->protect = true;
       }
       else
