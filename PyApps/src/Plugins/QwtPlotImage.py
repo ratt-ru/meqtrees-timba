@@ -16,6 +16,12 @@ from UVPAxis import *
 from ImageScaler import *
 from ComplexColorMap import *
 
+from Timba.utils import verbosity
+_dbg = verbosity(0,name='QwtPlotImage');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
+
 # from scipy.pilutil
 # note: low is set to 1, so that we can save a value of 0 for a flagged pixel
 def bytescale(data, limits, high=255, low=1):
@@ -206,7 +212,9 @@ class QwtPlotImage(QwtPlotMappedItem):
        scale_max = scale_max + 0.5 * scale_min
       scaler = ImageScaler(1, 256, scale_min, scale_max, True)
       self.dimap = QwtDiMap(1, 256, scale_min, scale_max, True)
+      _dprint(3, 'doing log transform of ', transform_image)
       temp_image = scaler.iTransform(transform_image)
+      _dprint(3, 'log transformed image ', temp_image)
       return temp_image
 
     def getTransformOffset(self):
@@ -371,6 +379,7 @@ class QwtPlotImage(QwtPlotMappedItem):
     def setData(self, data_array, xScale = None, yScale = None):
         self.complex = False
         shape = data_array.shape
+        _dprint(3, 'array shape is ', shape)
         shape0 = shape[0]
         if data_array.type() == Complex32 or data_array.type() == Complex64:
           self.complex = True
@@ -385,10 +394,13 @@ class QwtPlotImage(QwtPlotMappedItem):
             self.xMap = QwtDiMap(0, shape0, 0, shape0 )
             self.plot.setAxisScale(QwtPlot.xBottom, 0, shape0)
         if yScale:
-#           self.yMap = QwtDiMap(0, shape[1], yScale[0], yScale[1])
+            _dprint(3, 'yScale is ', yScale)
+            _dprint(3, 'self.log_y_scale is ', self.log_y_scale)
+#           self.yMap = QwtDiMap(0, shape[1], yScale[0], yScale[1], self.log_y_scale)
             self.yMap = QwtDiMap(0, shape[1]-1, yScale[0], yScale[1], self.log_y_scale)
 #           self.plot.setAxisScale(QwtPlot.yLeft, *yScale)
             temp_scale = (yScale[0],yScale[1])
+            _dprint(3, 'Called setAxisScale(QwtPlot.yLeft) with ', temp_scale)
             self.plot.setAxisScale(QwtPlot.yLeft, *temp_scale)
         else:
             self.yMap = QwtDiMap(0, shape[1], 0, shape[1])
@@ -414,22 +426,22 @@ class QwtPlotImage(QwtPlotMappedItem):
 #       print 'incoming y map ranges ',yMap.d1(), ' ', yMap.d2()
         # calculate y1, y2
         y1 = y2 = self.Qimage.height()
-#       print 'image height ', self.Qimage.height()
+        _dprint(3, 'image height ', self.Qimage.height())
 #        y1 = y2 = self.Qimage.height() - 1
 #        print 'starting image height ', y1
         y1 *= (self.yMap.d2() - yMap.d2())
         y1 /= (self.yMap.d2() - self.yMap.d1())
 #       y1 = max(0, int(y1-0.5))
         y1 = max(0, (y1-0.5))
-#       print 'float y1 ', y1
+        _dprint(3, 'float y1 ', y1)
         y1 = int(y1 + 0.5)
         y2 *= (self.yMap.d2() - yMap.d1())
         y2 /= (self.yMap.d2() - self.yMap.d1())
-#       print 'float y2 ', y2
+        _dprint(3, 'float y2 ', y2)
 #       y2 = min(self.Qimage.height(), int(y2+0.5))
         y2 = min(self.Qimage.height(), (y2+0.5))
         y2 = int(y2)
-#       print 'int y1, y2 ', y1, ' ', y2
+        _dprint(3, 'int y1, y2 ', y1, ' ',y2)
         # calculate x1, x2 - these are OK
         x1 = x2 = self.Qimage.width() 
 #       print 'starting image width ', x1
@@ -442,7 +454,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         x2 /= (self.xMap.d2() - self.xMap.d1())
 #       print 'float x2 ', x2
         x2 = min(self.Qimage.width(), int(x2+0.5))
-#       print 'x1, x2 ', x1, ' ', x2
+        _dprint(3, 'int x1, x2 ', x1, ' ',x2)
         # copy
 	image = None
 	if self._display_flags:
