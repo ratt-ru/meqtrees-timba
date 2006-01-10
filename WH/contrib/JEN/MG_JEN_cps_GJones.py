@@ -100,8 +100,7 @@ MG['ifrs'] = TDL_Cohset.stations2ifrs(MG['stations'])
 
 MG['stream_control'] = dict(ms_name='D1.MS',
                             data_column_name='DATA',
-                            tile_size=10,                   # input tile-size
-                            snippet_size=10,                # input snippet-size (in time-slots!)
+                            tile_size=10,                   # input tile-size (in time-slots!)
                             channel_start_index=10,
                             channel_end_index=50,           # -10 should indicate 10 from the end (OMS...)
                             # output_col='RESIDUALS')
@@ -170,8 +169,8 @@ if 'GJones' in Jsequence:
                      fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                      tdeg_Gampl=0,                      # degree of default time polynomial         
                      tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
-                     tile_size_Gampl=0,                 # used in tiled solutions         
-                     tile_size_Gphase='tile_size_Gampl', # used in tiled solutions         
+                     subtile_size_Gampl=0,                 # used in tiled solutions         
+                     subtile_size_Gphase='subtile_size_Gampl', # used in tiled solutions         
                      # ** MeqParm default values:
                      c00_Gampl=2.0,                     # default c00 funklet value
                      c00_Gphase=0.5,                    # default c00 funklet value

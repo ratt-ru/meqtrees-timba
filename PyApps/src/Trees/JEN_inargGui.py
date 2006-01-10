@@ -41,6 +41,8 @@ class ArgBrowser(QMainWindow):
 
         # We inherit from QMainWindow:
         apply(QMainWindow.__init__, (self,) + args)
+        self.setMinimumWidth(600)
+        self.setMinimumHeight(400)
 
         vbox = QVBoxLayout(self)
         combo = QComboBox(self)
@@ -54,7 +56,6 @@ class ArgBrowser(QMainWindow):
         self.__listview.addColumn("name")
         self.__listview.addColumn("value")
         self.__listview.addColumn("help")
-        self.__listview.addColumn("type")
         self.__listview.addColumn("ident")
         self.__listview.setRootIsDecorated(1)
 
@@ -112,8 +113,7 @@ class ArgBrowser(QMainWindow):
         """Clear the gui"""
         self.__listview.clear()
         if self.__popup: self.__popup.close()
-        self.items = []                          # list of listview items
-        self.itemdict = []                       # list of itd records
+        self.__itemdict = []                       # list of itd records
         self.__unhide = False                    # if True, hide nothing
         return True
 
@@ -191,7 +191,9 @@ class ArgBrowser(QMainWindow):
         self.recurse (self.__inarg, listview=self.__listview)
 
         # Connect signals and slots, once a signal is detected the according slot is executed
-        QObject.connect(self.__listview, SIGNAL("doubleClicked (QListViewItem * )"), self.itemSelected)
+        # QObject.connect(self.__listview, SIGNAL("doubleClicked (QListViewItem * )"), self.itemSelected)
+        QObject.connect(self.__listview, SIGNAL("clicked (QListViewItem * )"), self.itemSelected)
+
         self.show()
         return True
 
@@ -205,7 +207,7 @@ class ArgBrowser(QMainWindow):
         print 'refresh() after recurse()'
         return True
 
-    def recurse (self, rr=None, listview=None, level=0):
+    def recurse (self, rr=None, listview=None, level=0, module='<module>'):
         """Recursive input of a hierarchical inarg record"""
         if not isinstance(rr, dict): return False
 
@@ -217,56 +219,63 @@ class ArgBrowser(QMainWindow):
         for key in rr.keys():
             if isinstance(rr[key], dict):   
                 if key==CTRL_record:                           # is a CTRL record         
-                    itd = self.make_itd(key, rr[key], hide=True)    
+                    itd = self.make_itd(key, rr[key], hide=True, module=module)    
                     if not itd['hide']:
                         item = QListViewItem(listview, key, 'CTRL_record')
-                        self.items.append(item)        
                         self.recurse (rr[key], listview=item, level=level+1)
                 else:
-                    itd = self.make_itd(key, rr[key], ctrl=ctrl)    
+                    itd = self.make_itd(key, rr[key], ctrl=ctrl, module=key)    
                     if not itd['hide']:
                         item = QListViewItem(listview, key)
                         if level==0:
                             item.setOpen(True)                 # show its children
                         # item.setColor(itd['color'])          # <-----??            
-                        self.items.append(item)        
-                        self.recurse (rr[key], listview=item, level=level+1)
+                        self.recurse (rr[key], listview=item, level=level+1, module=key)
 
             else:                                              # rr[key] is a value
-                itd = self.make_itd(key, rr[key], ctrl=ctrl)
+                itd = self.make_itd(key, rr[key], ctrl=ctrl, module=module)
                 if not itd['hide']:
                     # value = QString(str(rr[key]))
-                    value = str(rr[key])
-                    item = QListViewItem(listview, key, value,
-                                         itd['help'], itd['type'],
-                                         str(itd['ident']))
+                    value = str(itd['value'])                  # current value
+                    ident = str(itd['ident'])                  # used by selectedItem()
+                    help = ' '                                 # short explanation
+                    if itd['help']:
+                        help = str(itd['help'])
+                        hh = help.split('\n')
+                        if len(hh)>1: help = hh[0]+'...'       # first line only
+                        hcmax = 40                             # max nr of chars
+                        if len(help)>hcmax:
+                            help = help[:hcmax]+'...'
+                    item = QListViewItem(listview, key, value, help, ident)
                     # item.setColor(itd['color'])              # <-----??            
-                    self.items.append(item)
 
         return True
 
 
     #-------------------------------------------------------------------------------
 
-    def make_itd(self, key, value, ctrl=None, color='black', hide=False,
+    def make_itd(self, key, value, ctrl=None,
+                 color='black', hide=False,
+                 module='<module>',
                  save=True, level=0, trace=True):
+
         """Make an itd record from the given value and ctrl-record"""
         rr = dict(key=str(key),
                   value=value,                
-                  type=str(type(value)),     # item type (mandatory?)
+                  type=None,                 # mandatory item type ...?
                   color=color,               # Display color  
                   hide=hide,                 # If True, hide this item
-                  # help=None,
-                  help='help-string',
-                  # choice=None,
-                  choice=range(4),           # Choose from these values
-                  # range=None,
-                  range=[-1,1],              # Allowed range
+                  help=None,                 # help string
+                  # help='help-string',
+                  choice=None,               # list of choices
+                  # choice=range(4),           # Choose from these values
+                  range=None,                # list [min,max]
+                  # range=[-1,1],              # Allowed range
                   min=None,                  # Allowed min value
                   max=None,                  # Allowed max value
-                  TF=False,                  # If True, only True or False allowed 
-                  choiceonly=False,          # If True, only this choice allowed
-                  funcname='<funcname>',     # name of the relevant function 
+                  tf=None,                   # If True, only True or False allowed 
+                  editable=True,             # If True, the value may be edited
+                  module=module,             # name of the relevant function module
                   level=level,               # inarg hierarchy level
                   ident=-1)                  # internal identifier
 
@@ -277,19 +286,18 @@ class ArgBrowser(QMainWindow):
             for field in overall:
                 if ctrl.has_key(field):
                     rr[field] = ctrl[field]
-            # Then the key-specific keys (see JEM_inarg.define()):
-            key_specific = ['hide','choice','help','range','choiceonly']
+            # Then the key-specific keys (see JEN_inarg.define()):
+            key_specific = ['choice','tf',
+                            'editable','hide','color',
+                            'range','min','max','help']
             for field in key_specific:
                 if ctrl.has_key(field):
                     if ctrl[field].has_key(key):
                         rr[field] = ctrl[field][key]
 
         # Override some fields, if required:
-        if self.__unhide:
+        if self.__unhide:                            # see self.unhide()
             rr['hide'] = False
-        if rr['TF']:
-            rr['choice'] = [True,False]
-            rr['choiceonly'] = True
         if rr['range']:
             if not isinstance(rr['range'], (tuple,list)):
                 rr['range'] = 'error: '+str(type(rr['range']))
@@ -298,15 +306,22 @@ class ArgBrowser(QMainWindow):
             else:
                 rr['min'] = rr['range'][0]
                 rr['max'] = rr['range'][1]
-
-        # Indent according to inarg level:
-        prefix = (level*'.')
-        rr['help'] = prefix+rr['help']
+        if not rr['choice']==None:
+            if not isinstance(rr['choice'], (tuple,list)):
+                rr['choice'] = [rr['choice']]
+        if not rr['tf']==None:
+            rr['choice'] = [True,False]
+            rr['editable'] = False
+            if not isinstance(rr['value'], bool):
+                rr['value'] = rr['tf']                # ....!?
+        if rr['help']:
+            indent = (level*'.')
+            rr['help'] = indent+str(rr['help'])
 
         # Keep the itemdict for later reference:
         if save:
-            rr['ident'] = len(self.itemdict)
-            self.itemdict.append(rr)
+            rr['ident'] = len(self.__itemdict)
+            self.__itemdict.append(rr)
         if trace:
             print rr
         return rr
@@ -314,31 +329,42 @@ class ArgBrowser(QMainWindow):
     #-------------------------------------------------------------------------------
 
     def itemSelected(self, item):
-        """Deal with a selected (double-clicked) listview item"""
+        """Deal with a selected listview item"""
+
+        # If +/- clicked, the item is None:
+        if not item: return False
         
         # Read the (string) values from the columns:
         key = item.text(0)            
         vstring = item.text(1)           
         help = item.text(2)              
-        vtype = item.text(3)         
-        ident = item.text(4)          
+        ident = item.text(3)          
         if self.__popup:
             self.__popup.close()
 
         # Use the ident string to get the relevant itemdict record:
         ident = str(ident)
         if ident==' ': ident = '0'
-        ident = int(ident)
+        try:
+            ident = int(ident)
+        except:
+            # print sys.exc_info()
+            return False
         if ident>0:
-            itd = self.itemdict[ident]
+            itd = self.__itemdict[ident]
+            self.__current_ident = ident
             # Make the popup object:
             self.__popup = Popup(self, name=itd['key'], itd=itd)
             QObject.connect(self.__popup, PYSIGNAL("valueChanged()"), self.valueChanged)
             # self.emit(PYSIGNAL("valueChanged()"),(v2,))
         return True
 
+
     def valueChanged(self, new):
-        print '\n** valueChanged() ->',type(new),'=',new
+        """Deal with a changed value from self.__popup"""
+        ident = self.__current_ident
+        print '\n** valueChanged() ->',type(new),'=',new,' (ident=',ident,')'
+        # ...........
         return True
 
 
@@ -351,42 +377,58 @@ class Popup(QDialog):
         QDialog.__init__(self, parent, "Test", 0, 0)
 
         # Keep the itemdict (itd) for use in self.textChanged():
-        self.itemdict = itd
+        self.__itemdict = itd
 
-        vbox = QVBoxLayout(self,10,5)
+        vbox = QVBoxLayout(self,10,5)           # ....?
 
-        # The key field (not editable)
+        # The name (key) of the variable:
         label = QLabel(self)
         label.setText(str(itd['key']))
         vbox.addWidget(label)
 
-        # The value field (string!):
-        field = 'choice'
-        vv = itd['choice']
+        # Use a combobox for editing the vaue:
         self.combo = QComboBox(self)
         value = QString(str(itd['value']))
-        self.combo_input = value
-        self.combo.insertItem(value)
-        self.combo.setEditable(not itd['choiceonly'])
-        for i in range(len(vv)):
-            value = QString(str(vv[i]))
-            self.combo.insertItem(value, i+1)
+        self.combo.insertItem(value)            # current value
+        self.combo_input_value = value          # see self.modified()
+        self.combo.setEditable(itd['editable'])
+        if itd['choice']:
+            vv = itd['choice']
+            for i in range(len(vv)):
+                value = QString(str(vv[i]))
+                self.combo.insertItem(value, i+1)
         vbox.addWidget(self.combo)
-        QObject.connect(self.combo, SIGNAL("textChanged(const QString &)"), self.textChanged)
+        QObject.connect(self.combo, SIGNAL("textChanged(const QString &)"), self.modified)
+        QObject.connect(self.combo, SIGNAL("activated(const QString &)"), self.modified)
 
-        # Other information keys (not editable):
-        keys = ['help','type']
+        # The value type is updated during editing:
+        self.type = QLabel(self)
+        self.type.setText('type'+':  '+str(type(itd['value'])))
+        vbox.addWidget(self.type)
+
+        # Other information (labels):
+        keys = ['help']
         if itd['range']:
             keys.append('range')
         else:
             if itd['min']: keys.append('min')
             if itd['max']: keys.append('max')
-        keys.append('funcname')
+        keys.append('module')
         for key in keys:
             if itd.has_key(key) and itd[key]:
                 label = QLabel(self)
                 label.setText(key+':  '+str(itd[key]))
                 vbox.addWidget(label)
+
+        # Status label:
+        self.status = QLabel(self)
+        self.status.setText(' ')
+        vbox.addWidget(self.status)
+
+        # Message label:
+        self.message = QLabel(self)
+        self.message.setText(' ')
+        vbox.addWidget(self.message)
 
         # The close button:
         button = QPushButton('close',self)
@@ -397,35 +439,52 @@ class Popup(QDialog):
         self.show()
         return None
 
+    #-------------------------------------------------------------------------
 
+    def modified (self, value):
+        """Deal with combo-box signals"""
+        # print '\n** .modified(',value,'):',type(value)
 
-    def textChanged (self, value):
-        """Deal with the changed value (string)"""
-        print '\n** textChanged(',value,'):',type(value)
-        v1 = str(value)
+        # Do nothing if the value has not changed:
+        if value==self.combo_input_value:
+            self.status.setText('...not modified...')
+            return True
+
+        # Deal with the modified value:
+        self.status.setText('...modified...')
+        v1 = str(value)                           # value is a QString object
         try:
-          v2 = eval(v1)
+            v2 = eval(v1)                         # covers most things
         except:
-          print sys.exc_info();
-          return;
-        print 'eval(',v1,') ->',type(v2),'=',v2
+            v2 = v1                               # assume string
+            # print sys.exc_info();
+            # return;
 
-        # How does one detect an eval() error?
+        # print 'eval(',v1,') ->',type(v2),'=',v2
+        self.type.setText('type'+':  '+str(type(v2)))
 
-        # Do some checks (if necessary):
-        if not value==self.combo_input:
-            itd = self.itemdict
-            # How to revert to the original value if wrong?
-            # use self.combo_input (QString)
-            # self.combo.setCurrentText(self.combo_input)
-            # NB: This will call this function again!
+        # Update the itemdict(itd) from the ArgBrowser:
+        itd = self.__itemdict
+        itd['value'] = v2
 
-        self.emit(PYSIGNAL("valueChanged()"),(v2,))
+        # Check the new value (range, min, max, type):
+        ok = True
+        if not ok:                                # problem....
+            self.message.setText('...ERROR: ...')
+            # Revert to the original value:
+            self.combo.setCurrentText(self.combo_input_value)
+            self.status.setText('...reverted...')
+            return False
+
+        # Return the modified itemdict(itd) to the ArgBrowser:
+        self.emit(PYSIGNAL("valueChanged()"),(itd,))
 
         return True
 
+
+
 #============================================================================
-# Main etc:
+# Testing routine:
 #============================================================================
 
 

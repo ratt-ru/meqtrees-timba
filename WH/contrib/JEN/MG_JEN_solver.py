@@ -40,8 +40,8 @@ MG = MG_JEN_exec.MG_init('MG_JEN_solver.py',
 
 MG.ab = record(parmtable=None,                      # name of AIPS++ MeqParm table
                use_previous=True,                   # if True, start with previous solution
-               time_tile_size=None,                    # used in tiled solutions
-               freq_tile_size=None,                 # used in tiled solutions
+               time_subtile_size=None,                    # used in tiled solutions
+               freq_subtile_size=None,                 # used in tiled solutions
                dflt_a = array([[1,.3,.1],[.1,.2,.3]]),
                dflt_b = array([[-1,-.3,.1],[.1,.2,-.3]]),
 
@@ -83,8 +83,10 @@ def _define_forest (ns):
    # Test ab: Make a solver with a single condeq, with children a and b:
    # First make the solvable parm (a):
    tiling = record()
-   if MG.ab['time_tile_size']: tiling.time = MG.ab['time_tile_size']
-   if MG.ab['freq_tile_size']: tiling.freq = MG.ab['freq_tile_size']
+   if MG.ab['time_subtile_size']:
+      tiling.time = MG.ab['time_subtile_size']
+   if MG.ab['freq_subtile_size']:
+      tiling.freq = MG.ab['freq_subtile_size']
    a = ns.a << Meq.Parm(MG.ab['dflt_a'], node_groups='Parm',
                         use_previous=MG.ab['use_previous'],
                         tiling=tiling,

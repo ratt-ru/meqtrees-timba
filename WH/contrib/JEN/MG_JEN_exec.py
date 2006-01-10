@@ -429,7 +429,7 @@ def stream_control (ctrl=None, display=False, init=False, new=True):
 
          ss.inputrec.ms_name = '<undefined>'
          ss.inputrec.data_column_name = 'DATA'
-         ss.inputrec.snippet_size = 10                  # in time only....
+         ss.inputrec.tile_size = 10                  # in time only....
 
          ss.inputrec.selection = record()
          ss.inputrec.selection.channel_start_index = 0
@@ -477,8 +477,8 @@ def stream_control (ctrl=None, display=False, init=False, new=True):
          ss = Settings.forest_state[field]
          for key in ss.inputrec.keys():
             if ctrl.has_key(key): ss.inputrec[key] = ctrl[key]
-         if ctrl.has_key('tile_size'):                            # legacy...
-            ss.inputrec['snippet_size'] = ctrl['tile_size']
+         # if ctrl.has_key('tile_size'):                            # legacy...
+         #   ss.inputrec['snippet_size'] = ctrl['tile_size']
          for key in ss.inputrec.selection.keys():
             if ctrl.has_key(key): ss.inputrec.selection[key] = ctrl[key]
          for key in ss.outputrec.keys():

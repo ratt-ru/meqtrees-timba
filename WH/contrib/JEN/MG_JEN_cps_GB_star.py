@@ -119,8 +119,7 @@ MG['stream_control'] = dict(dummy_start=None,
                             ms_name='D1.MS',
                             # ms_name='A963.MS',
                             data_column_name='DATA',
-                            tile_size=10,                   # input tile-size
-                            snippet_size=10,                # input snippet-size (in time-slots!)
+                            tile_size=10,                   # input tile-size (in time-slots!)
                             channel_start_index=10,
                             channel_end_index=50,           # -10 should indicate 10 from the end (OMS...)
                             # selection_string='TIME_CENTROID<4615466159.46',
@@ -177,8 +176,8 @@ if MG['insert_solver_GBJones']:
                          fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                          tdeg_Gampl=0,                      # degree of default time polynomial         
                          tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
-                         tile_size_Gampl=1,                 # used in tiled solutions         
-                         tile_size_Gphase='tile_size_Gampl', # used in tiled solutions         
+                         subtile_size_Gampl=1,                 # used in tiled solutions         
+                         subtile_size_Gphase='subtile_size_Gampl', # used in tiled solutions         
                          _JEN_inarg_option=None)            # optional, not yet used 
     if 'BJones' in Jsequence: 
         JEN_inarg.modify(inarg,
@@ -186,8 +185,8 @@ if MG['insert_solver_GBJones']:
                          fdeg_Bimag='fdeg_Breal',           # degree of default freq polynomial          
                          tdeg_Breal=1,                      # degree of default time polynomial         
                          tdeg_Bimag='tdeg_Breal',           # degree of default time polynomial    
-                         tile_size_Breal=0,                 # used in tiled solutions         
-                         tile_size_Bimag='tile_size_Breal', # used in tiled solutions         
+                         subtile_size_Breal=0,                 # used in tiled solutions         
+                         subtile_size_Bimag='subtile_size_Breal', # used in tiled solutions         
                          _JEN_inarg_option=None)            # optional, not yet used 
     JEN_inarg.attach(MG, inarg)
 

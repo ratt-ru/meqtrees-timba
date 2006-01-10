@@ -614,22 +614,47 @@ def inarg2pp(inarg, funcname='<funcname>', version='15dec2005', trace=False):
 
 
 
-
 #----------------------------------------------------------------------------
 
-def define(pp, key=None, default=None, choice=None, help=None):
+def define(pp, key=None, default=None,
+           choice=None, editable=None, tf=None,
+           range=None, min=None, max=None,
+           help=None, trace=False):
    """Define a pp entry with a default value, and other info.
    This is a more able version of pp.setdefault(key,value),
-   which is helpful for a (future) inarg specification GUI"""
+   which is helpful for a specification GUI (see JEN_inargGui.py)"""
+   s1 = '.define('+str(key)+'): '
+   if trace: print '\n**',s1
    if not isinstance(pp, dict):
-      print '.inarg(): pp not a record, but:',type(pp) 
+      print s1,'pp not a record, but:',type(pp) 
+      return False
+   elif not isinstance(key, str):
+      WARNING(pp, s1+'key not a string, but: '+str(type(key)))
       return False
    elif pp.has_key(key):
-      print '.inarg(): duplicate argument key:',key 
+      # NB: This may happen if executed with extra arguments....
+      MESSAGE(pp, s1+'duplicate argument key in: '+str(pp.keys()))
       return False
-   # OK, make the new argument field:
+   
+   # OK, make the new argument field (key):
    pp.setdefault(key,default)
+
+   # Deal with the extra info, if any:
+   rr = dict(choice=choice, editable=editable, tf=tf,
+             range=range, min=min, max=max,
+             help=help)
+   s2 = '- CTRL_record:'
+   for field in rr.keys():
+      if trace: print s2,field,' (',rr[field],'):',
+      if not rr[field]==None:
+         pp[CTRL_record].setdefault(field, {})
+         pp[CTRL_record][field][key] = rr[field]
+         if trace: print '->',rr[field]
+      elif trace:
+         print
+   if trace: print
    return True
+
 
 #----------------------------------------------------------------------------
 
@@ -770,13 +795,16 @@ def test1(ns=None, object=None, **inarg):
    pp = inarg2pp(inarg, 'JEN_inarg::test1()', version='10dec2005', trace=True)
    
    # Specify the function arguments, with default values:
-   pp.setdefault('aa', 45)
-   pp.setdefault('bb', -19)
-   pp.setdefault('list', range(4))
+   define(pp, 'aa', 45, choice=[46,78,54,False,None], editable=False,
+          help='help for aa', trace=True)
+   define(pp, 'bb', -0.19, choice=[0.2,0.5,1.5], range=[-1,1],
+          help='longer string for elaborate help for bb', trace=True)
+   define(pp, 'list', range(4), choice=[['a','A'],[45,-34],True],
+          help='multiline help \n for list', trace=True)
    pp.setdefault('ref_ref_aa', 'ref_aa')
    pp.setdefault('ref_aa', 'aa')
-   pp.setdefault('nested', True)
-   pp.setdefault('trace', False)
+   define(pp, 'nested', True, tf=True, trace=True)
+   define(pp, 'trace', False, tf=False, trace=True)
    if pp['nested']:
       # It is possible to include the default inarg records from other
       # functions that are used in the function body below:
@@ -857,14 +885,15 @@ if __name__ == '__main__':
          modify(inarg, aa='aa', trace=True, _JEN_inarg_option=None)
          # modify(inarg, aa='aaaa', cc='cc', trace=True)
          display(inarg, 'after .modify()', full=True)
-      result = test1(_inarg=inarg, _qual=qual, bb='override', qq='ignored', nested=False)
+      # result = test1(_inarg=inarg, _qual=qual, bb='override', qq='ignored', nested=False)
+      display(result, 'after .test1()', full=True)
 
    if 0:
       # Test of traditional operation of the same function:
       result = test1(aa=23, bb='override', qq='ignored', nested=False)
       display(result, 'after .test1()', full=True)
       
-   if 1:
+   if 0:
       # Test of .clone()
       inarg = test1(_getdefaults=True)
       localscope(inarg, trace=True)

@@ -123,8 +123,8 @@ def GJones (ns=None, **inarg):
     pp.setdefault('fdeg_Gphase', 0)                # degree of default freq polynomial          
     pp.setdefault('tdeg_Gampl', 0)                 # degree of default time polynomial         
     pp.setdefault('tdeg_Gphase', 0)                # degree of default time polynomial       
-    pp.setdefault('tile_size_Gampl', 0)            # used in tiled solutions         
-    pp.setdefault('tile_size_Gphase', 0)           # used in tiled solutions         
+    pp.setdefault('subtile_size_Gampl', 0)            # used in tiled solutions         
+    pp.setdefault('subtile_size_Gphase', 0)           # used in tiled solutions         
     # ** MeqParm default values:
     pp.setdefault('c00_Gampl', 0.3)                # default c00 funklet value
     pp.setdefault('c00_Gphase', 0.0)               # default c00 funklet value
@@ -186,14 +186,14 @@ def GJones (ns=None, **inarg):
                                             fdeg=pp['fdeg_Gampl'], tdeg=pp['tdeg_Gampl'],
                                             scale=pp['ft_coeff_scale']) 
           js.Parmset.define_MeqParm (ns, Gampl, station=skey, default=default,
-                                     tile_size=pp['tile_size_Gampl'])
+                                     subtile_size=pp['subtile_size_Gampl'])
 
        for Gphase in [p1,p2]:
           default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'], stddev=pp['stddev_Gphase'], 
                                             fdeg=pp['fdeg_Gphase'], tdeg=pp['tdeg_Gphase'],
                                             scale=pp['ft_coeff_scale']) 
           js.Parmset.define_MeqParm (ns, Gphase, station=skey, default=default,
-                                     tile_size=pp['tile_size_Gphase'])
+                                     subtile_size=pp['subtile_size_Gphase'])
 
        ss = js.Parmset.buffer(update=True)
        first_station = False
@@ -242,7 +242,7 @@ def FJones (ns=0, **inarg):
    pp.setdefault('polrep', 'linear')              # polarisation representation
    # ** Solving instructions:
    pp.setdefault('unsolvable', False)             # if True, do NOT store solvegroup/parmgroup info
-   pp.setdefault('tile_size_RM', 1)               # used in tiled solutions         
+   pp.setdefault('subtile_size_RM', 1)               # used in tiled solutions         
    pp.setdefault('fdeg_RM', 0)                    # degree of default freq polynomial          
    pp.setdefault('tdeg_RM', 0)                    # degree of default time polynomial         
    # ** MeqParm default values:
@@ -316,8 +316,8 @@ def BJones (ns=0, **inarg):
     pp.setdefault('fdeg_Bimag', 3)                 # degree of default freq polynomial           
     pp.setdefault('tdeg_Breal', 0)                 # degree of default time polynomial           
     pp.setdefault('tdeg_Bimag', 0)                 # degree of default time polynomial          
-    pp.setdefault('tile_size_Breal', 0)            # used in tiled solutions         
-    pp.setdefault('tile_size_Bimag', 0)            # used in tiled solutions         
+    pp.setdefault('subtile_size_Breal', 0)            # used in tiled solutions         
+    pp.setdefault('subtile_size_Bimag', 0)            # used in tiled solutions         
     # ** MeqParm default values: 
     pp.setdefault('c00_Breal', 1.0)                # default c00 funklet value
     pp.setdefault('c00_Bimag', 0.0)                # default c00 funklet value
@@ -369,14 +369,14 @@ def BJones (ns=0, **inarg):
                                               fdeg=pp['fdeg_Breal'], tdeg=pp['tdeg_Breal'], 
                                               scale=pp['ft_coeff_scale']) 
             js.Parmset.define_MeqParm (ns, Breal, station=skey, default=default,
-                                       tile_size=pp['tile_size_Breal'])
+                                       subtile_size=pp['subtile_size_Breal'])
 
         for Bimag in [bi1,bi2]:
             default = MG_JEN_funklet.polc_ft (c00=pp['c00_Bimag'], stddev=pp['stddev_Bimag'], 
                                               fdeg=pp['fdeg_Bimag'], tdeg=pp['tdeg_Bimag'], 
                                               scale=pp['ft_coeff_scale']) 
             js.Parmset.define_MeqParm (ns, Bimag, station=skey, default=default,
-                                       tile_size=pp['tile_size_Bimag'])
+                                       subtile_size=pp['subtile_size_Bimag'])
 
         ss = js.Parmset.buffer(update=True)
         first_station = False
@@ -422,8 +422,8 @@ def DJones_WSRT (ns=0, **inarg):
    pp.setdefault('fdeg_dell', 0)                     # degree of default freq polynomial
    pp.setdefault('tdeg_dang', 0)                     # degree of default time polynomial
    pp.setdefault('tdeg_dell', 0)                     # degree of default time polynomial
-   pp.setdefault('tile_size_dang', 0)                # used in tiled solutions         
-   pp.setdefault('tile_size_dell', 0)                # used in tiled solutions         
+   pp.setdefault('subtile_size_dang', 0)                # used in tiled solutions         
+   pp.setdefault('subtile_size_dell', 0)                # used in tiled solutions         
    # ** MeqParm default values:
    pp.setdefault('c00_dang', 0.0)                    # default c00 funklet value
    pp.setdefault('c00_dell', 0.0)                    # default c00 funklet value
@@ -497,7 +497,7 @@ def DJones_WSRT (ns=0, **inarg):
                                            scale=pp['ft_coeff_scale'],
                                            fdeg=pp['fdeg_dang'], tdeg=pp['tdeg_dang']) 
          js.Parmset.define_MeqParm (ns, dang, station=skey, default=default,
-                                    tile_size=pp['tile_size_dang'])
+                                    subtile_size=pp['subtile_size_dang'])
          ss = js.Parmset.buffer(update=True, reset=True)
          rmat = MG_JEN_matrix.rotation (ns, angle=ss[dang], qual=qual, name=matname)
       else: 
@@ -506,7 +506,7 @@ def DJones_WSRT (ns=0, **inarg):
                                               scale=pp['ft_coeff_scale'],
                                               fdeg=pp['fdeg_dang'], tdeg=pp['tdeg_dang']) 
             js.Parmset.define_MeqParm (ns, dang, station=skey, default=default,
-                                       tile_size=pp['tile_size_dang'])
+                                       subtile_size=pp['subtile_size_dang'])
          ss = js.Parmset.buffer(update=True, reset=True)
          rmat = MG_JEN_matrix.rotation (ns, angle=[ss[dang1],ss[dang2]], qual=qual, name=matname)
 
@@ -518,7 +518,7 @@ def DJones_WSRT (ns=0, **inarg):
                                            scale=pp['ft_coeff_scale'],
                                            fdeg=pp['fdeg_dell'], tdeg=pp['tdeg_dell']) 
          js.Parmset.define_MeqParm (ns, dell, station=skey, default=default,
-                                    tile_size=pp['tile_size_dell'])
+                                    subtile_size=pp['subtile_size_dell'])
          ss = js.Parmset.buffer(update=True, reset=True)
          emat = MG_JEN_matrix.ellipticity (ns, angle=ss[dell], qual=qual, name=matname)
       else:
@@ -527,7 +527,7 @@ def DJones_WSRT (ns=0, **inarg):
                                               scale=pp['ft_coeff_scale'], 
                                               fdeg=pp['fdeg_dell'], tdeg=pp['tdeg_dell']) 
             js.Parmset.define_MeqParm (ns, dell, station=skey, default=default,
-                                       tile_size=pp['tile_size_dell'])
+                                       subtile_size=pp['subtile_size_dell'])
          ss = js.Parmset.buffer(update=True, reset=True)
          emat = MG_JEN_matrix.ellipticity (ns, angle=[ss[dell1],ss[dell2]], qual=qual, name=matname)
 
@@ -816,8 +816,8 @@ if True:                                                # ... Copied from MG_JEN
                      fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                      tdeg_Gampl=0,                      # degree of default time polynomial         
                      tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
-                     tile_size_Gampl=0,                 # used in tiled solutions         
-                     tile_size_Gphase='tile_size_Gampl', # used in tiled solutions         
+                     subtile_size_Gampl=0,                 # used in tiled solutions         
+                     subtile_size_Gphase='subtile_size_Gampl', # used in tiled solutions         
                      
                      # ** MeqParm default values:
                      c00_Gampl=0.3,                     # default c00 funklet value
@@ -849,8 +849,8 @@ if True:                                                # ... Copied from MG_JEN
                      fdeg_Bimag='fdeg_Breal',           # degree of default freq polynomial          
                      tdeg_Breal=0,                      # degree of default time polynomial         
                      tdeg_Bimag='tdeg_Breal',           # degree of default time polynomial    
-                     tile_size_Breal=0,                 # used in tiled solutions         
-                     tile_size_Bimag='tile_size_Breal', # used in tiled solutions         
+                     subtile_size_Breal=0,                 # used in tiled solutions         
+                     subtile_size_Bimag='subtile_size_Breal', # used in tiled solutions         
                      
                      # ** MeqParm default values:
                      c00_Breal=1.0,                         # default c00 funklet value
@@ -878,7 +878,7 @@ if True:                                                # ... Copied from MG_JEN
                      
                      # ** Solving instructions:
                      unsolvable=False,                  # if True, do not store parmgroup info
-                     tile_size_RM=1,                    # used in tiled solutions         
+                     subtile_size_RM=1,                    # used in tiled solutions         
                      fdeg_RM=0,                         # degree of default freq polynomial          
                      tdeg_RM=0,                         # degree of default time polynomial         
 
@@ -910,8 +910,8 @@ if True:                                                # ... Copied from MG_JEN
                      fdeg_dell='fdeg_dang',             # degree of default freq polynomial
                      tdeg_dang=0,                       # degree of default time polynomial
                      tdeg_dell='tdeg_dang',             # degree of default time polynomial
-                     tile_size_dang=0,                  # used in tiled solutions         
-                     tile_size_dell='tile_size_dang',   # used in tiled solutions         
+                     subtile_size_dang=0,                  # used in tiled solutions         
+                     subtile_size_dell='subtile_size_dang',   # used in tiled solutions         
                      
                      # ** MeqParm default values:
                      c00_dang=0.0,                      # default c00 funklet value
