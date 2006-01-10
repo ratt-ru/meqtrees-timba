@@ -8,6 +8,11 @@ from QwtPlotImage import *
 from math import log
 from math import exp
 
+from Timba.utils import verbosity
+_dbg = verbosity(0,name='QwtColorBar');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
 
 colorbar_instructions = \
 '''The colorbar displays the current range of intensities in the corresponding image display. You can interact with the colorbar to change the range of intensities displayed in the image.<br><br>
@@ -106,11 +111,11 @@ class QwtColorBar(QwtPlot):
         if self.log_scale:
           max = log(self.max)
           min = log(self.min)
-          delta = (max - min) / 256.0
+          delta = (max - min) / 255.0
           for i in range (256):
             self.bar_array[0,i] = exp (min + i * delta)
         else:
-          delta = (self.max - self.min) / 256.0
+          delta = (self.max - self.min) / 255.0
           for i in range (256):
             self.bar_array[0,i] = self.min + i * delta
         self.y_scale = (self.min, self.max)
@@ -159,11 +164,12 @@ class QwtColorBar(QwtPlot):
             self.image_max = self.max
           max = log(self.max)
           min = log(self.min)
-          delta = (max - min) / 256.0
+          delta = (max - min) / 255.0
           for i in range (256):
             self.bar_array[0,i] = exp (min + i * delta)
+          _dprint(3, 'log bar array is ',self.bar_array)
         else:
-          delta = (self.max - self.min) / 256.0
+          delta = (self.max - self.min) / 255.0
           for i in range (256):
             self.bar_array[0,i] = self.min + i * delta
         self.y_scale = (self.min, self.max)
@@ -217,8 +223,10 @@ class QwtColorBar(QwtPlot):
     def onMousePressed(self, e):
         if Qt.LeftButton == e.button():
             # Python semantics: self.pos = e.pos() does not work; force a copy
+            _dprint(3, 'e.pos() ', e.pos())
             self.xpos = e.pos().x()
             self.ypos = e.pos().y()
+            _dprint(3, 'self.xpos self.ypos ', self.xpos, ' ', self.ypos)
             self.enableOutline(1)
             self.setOutlinePen(QPen(Qt.black))
             self.setOutlineStyle(Qwt.Rect)
