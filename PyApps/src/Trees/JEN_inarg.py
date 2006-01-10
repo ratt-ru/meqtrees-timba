@@ -617,6 +617,7 @@ def inarg2pp(inarg, funcname='<funcname>', version='15dec2005', trace=False):
 #----------------------------------------------------------------------------
 
 def define(pp, key=None, default=None,
+           mandatory_type=None,
            choice=None, editable=None, tf=None,
            range=None, min=None, max=None,
            help=None, trace=False):
@@ -641,6 +642,7 @@ def define(pp, key=None, default=None,
 
    # Deal with the extra info, if any:
    rr = dict(choice=choice, editable=editable, tf=tf,
+             mandatory_type=mandatory_type,
              range=range, min=min, max=max,
              help=help)
    s2 = '- CTRL_record:'

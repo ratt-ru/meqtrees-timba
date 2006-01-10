@@ -26,6 +26,8 @@ CTRL_record = '_JEN_inarg_CTRL_record:'
 # The name of an (optional) option field (e.g. see .modify())
 option_field = '_JEN_inarg_option'
 
+# Name of record of unique local identification nrs:
+kident = 'JEN_inargGUI_ident'
 
 
 #================================================================================
@@ -56,7 +58,7 @@ class ArgBrowser(QMainWindow):
         self.__listview.addColumn("name")
         self.__listview.addColumn("value")
         self.__listview.addColumn("help")
-        self.__listview.addColumn("ident")
+        self.__listview.addColumn("iitd")
         self.__listview.setRootIsDecorated(1)
 
 
@@ -207,37 +209,49 @@ class ArgBrowser(QMainWindow):
         print 'refresh() after recurse()'
         return True
 
-    def recurse (self, rr=None, listview=None, level=0, module='<module>'):
+    def recurse (self, rr=None, listview=None, level=0, module='<module>', makeitd=True):
         """Recursive input of a hierarchical inarg record"""
         if not isinstance(rr, dict): return False
 
-        # Every level of a hierarchical inarg record may have a CTRL_record:
-        ctrl = None
-        if rr.has_key(CTRL_record):                            # has a CTRL record
-            ctrl = rr[CTRL_record]                             # use it
-
+        if makeitd:
+            # Make sure that there is a CTRL_record for iitd storage:
+            rr.setdefault(CTRL_record, dict())
+            if not isinstance(rr[CTRL_record], dict): rr[CTRL_record] = dict()
+            # Its 'kident' (see above) record is used to store unique identifiers (iitd)
+            rr[CTRL_record].setdefault(kident, dict())
+            
         for key in rr.keys():
+            # rr[CTRL_record][kident][key] = 0                   # local identifier
             if isinstance(rr[key], dict):   
                 if key==CTRL_record:                           # is a CTRL record         
-                    itd = self.make_itd(key, rr[key], hide=True, module=module)    
-                    if not itd['hide']:
+                    # itd = self.make_itd(key, rr[key], hide=True, module=module)    
+                    if self.__unhide:
                         item = QListViewItem(listview, key, 'CTRL_record')
-                        self.recurse (rr[key], listview=item, level=level+1)
+                        self.recurse (rr[key], listview=item,
+                                      level=level+1, makeitd=False)
                 else:
-                    itd = self.make_itd(key, rr[key], ctrl=ctrl, module=key)    
-                    if not itd['hide']:
+                    # itd = self.make_itd(key, rr[key], module=key)    
+                    if True:
                         item = QListViewItem(listview, key)
                         if level==0:
                             item.setOpen(True)                 # show its children
                         # item.setColor(itd['color'])          # <-----??            
-                        self.recurse (rr[key], listview=item, level=level+1, module=key)
+                        self.recurse (rr[key], listview=item, level=level+1,
+                                      module=key, makeitd=makeitd)
+
+            elif not makeitd:
+                # E.g. the fields inside a CTRL_record:
+                item = QListViewItem(listview, key, str(rr[key]))
+                # item.setColor(itd['color'])                  # <-----??            
+                # self.recurse (rr[key], listview=item, level=level+1,
+                #               module=key, makeitd=makeitd)
 
             else:                                              # rr[key] is a value
-                itd = self.make_itd(key, rr[key], ctrl=ctrl, module=module)
+                itd = self.make_itd(key, rr[key], ctrl=rr[CTRL_record], module=module)
                 if not itd['hide']:
-                    # value = QString(str(rr[key]))
                     value = str(itd['value'])                  # current value
-                    ident = str(itd['ident'])                  # used by selectedItem()
+                    iitd = str(itd['iitd'])                    # used by selectedItem()
+                    rr[CTRL_record][kident][key] = itd['iitd'] # unique local identifier
                     help = ' '                                 # short explanation
                     if itd['help']:
                         help = str(itd['help'])
@@ -246,10 +260,11 @@ class ArgBrowser(QMainWindow):
                         hcmax = 40                             # max nr of chars
                         if len(help)>hcmax:
                             help = help[:hcmax]+'...'
-                    item = QListViewItem(listview, key, value, help, ident)
+                    item = QListViewItem(listview, key, value, help, iitd)
                     # item.setColor(itd['color'])              # <-----??            
 
         return True
+
 
 
     #-------------------------------------------------------------------------------
@@ -257,27 +272,24 @@ class ArgBrowser(QMainWindow):
     def make_itd(self, key, value, ctrl=None,
                  color='black', hide=False,
                  module='<module>',
-                 save=True, level=0, trace=True):
+                 save=True, level=0, trace=False):
 
         """Make an itd record from the given value and ctrl-record"""
-        rr = dict(key=str(key),
-                  value=value,                
-                  type=None,                 # mandatory item type ...?
-                  color=color,               # Display color  
-                  hide=hide,                 # If True, hide this item
-                  help=None,                 # help string
-                  # help='help-string',
-                  choice=None,               # list of choices
-                  # choice=range(4),           # Choose from these values
-                  range=None,                # list [min,max]
-                  # range=[-1,1],              # Allowed range
-                  min=None,                  # Allowed min value
-                  max=None,                  # Allowed max value
-                  tf=None,                   # If True, only True or False allowed 
-                  editable=True,             # If True, the value may be edited
-                  module=module,             # name of the relevant function module
-                  level=level,               # inarg hierarchy level
-                  ident=-1)                  # internal identifier
+        itd = dict(key=str(key),
+                   value=value,                
+                   mandatory_type=None,       # mandatory item type 
+                   color=color,               # Display color  
+                   hide=hide,                 # If True, hide this item
+                   help=None,                 # help string
+                   choice=None,               # list of choices
+                   range=None,                # list [min,max]
+                   min=None,                  # Allowed min value
+                   max=None,                  # Allowed max value
+                   tf=None,                   # If True, only True or False allowed 
+                   editable=True,             # If True, the value may be edited
+                   module=module,             # name of the relevant function module
+                   level=level,               # inarg hierarchy level
+                   iitd=-1)                   # sequenc nr in self.__itemdict
 
         # If ctrl is a record, use its information:
         if isinstance(ctrl, dict):
@@ -285,46 +297,47 @@ class ArgBrowser(QMainWindow):
             overall = ['color']
             for field in overall:
                 if ctrl.has_key(field):
-                    rr[field] = ctrl[field]
+                    itd[field] = ctrl[field]
             # Then the key-specific keys (see JEN_inarg.define()):
             key_specific = ['choice','tf',
                             'editable','hide','color',
+                            'mandatory_type',
                             'range','min','max','help']
             for field in key_specific:
                 if ctrl.has_key(field):
                     if ctrl[field].has_key(key):
-                        rr[field] = ctrl[field][key]
+                        itd[field] = ctrl[field][key]
 
         # Override some fields, if required:
         if self.__unhide:                            # see self.unhide()
-            rr['hide'] = False
-        if rr['range']:
-            if not isinstance(rr['range'], (tuple,list)):
-                rr['range'] = 'error: '+str(type(rr['range']))
-            elif not len(rr['range'])==2:
-                rr['range'] = 'error: len ='+str(len(rr['range']))
+            itd['hide'] = False
+        if itd['range']:
+            if not isinstance(itd['range'], (tuple,list)):
+                itd['range'] = 'error: '+str(type(itd['range']))
+            elif not len(itd['range'])==2:
+                itd['range'] = 'error: len ='+str(len(itd['range']))
             else:
-                rr['min'] = rr['range'][0]
-                rr['max'] = rr['range'][1]
-        if not rr['choice']==None:
-            if not isinstance(rr['choice'], (tuple,list)):
-                rr['choice'] = [rr['choice']]
-        if not rr['tf']==None:
-            rr['choice'] = [True,False]
-            rr['editable'] = False
-            if not isinstance(rr['value'], bool):
-                rr['value'] = rr['tf']                # ....!?
-        if rr['help']:
+                itd['min'] = itd['range'][0]
+                itd['max'] = itd['range'][1]
+        if not itd['choice']==None:
+            if not isinstance(itd['choice'], (tuple,list)):
+                itd['choice'] = [itd['choice']]
+        if not itd['tf']==None:
+            itd['choice'] = [True,False]
+            itd['editable'] = False
+            if not isinstance(itd['value'], bool):
+                itd['value'] = itd['tf']                # ....!?
+        if itd['help']:
             indent = (level*'.')
-            rr['help'] = indent+str(rr['help'])
+            itd['help'] = indent+str(itd['help'])
 
         # Keep the itemdict for later reference:
         if save:
-            rr['ident'] = len(self.__itemdict)
-            self.__itemdict.append(rr)
+            itd['iitd'] = len(self.__itemdict)
+            self.__itemdict.append(itd)
         if trace:
-            print rr
-        return rr
+            print itd
+        return itd
 
     #-------------------------------------------------------------------------------
 
@@ -338,35 +351,62 @@ class ArgBrowser(QMainWindow):
         key = item.text(0)            
         vstring = item.text(1)           
         help = item.text(2)              
-        ident = item.text(3)          
+        iitd = item.text(3)          
         if self.__popup:
             self.__popup.close()
 
-        # Use the ident string to get the relevant itemdict record:
-        ident = str(ident)
-        if ident==' ': ident = '0'
+        # Use the iitd string to get the relevant itemdict record:
+        iitd = str(iitd)
+        if iitd==' ': iitd = '-1'
         try:
-            ident = int(ident)
+            iitd = int(iitd)
         except:
             # print sys.exc_info()
             return False
-        if ident>0:
-            itd = self.__itemdict[ident]
-            self.__current_ident = ident
+        if iitd>=0:
+            itd = self.__itemdict[iitd]
+            self.__current_iitd = iitd
             # Make the popup object:
             self.__popup = Popup(self, name=itd['key'], itd=itd)
             QObject.connect(self.__popup, PYSIGNAL("valueChanged()"), self.valueChanged)
-            # self.emit(PYSIGNAL("valueChanged()"),(v2,))
         return True
 
 
-    def valueChanged(self, new):
+    def valueChanged(self, itd):
         """Deal with a changed value from self.__popup"""
-        ident = self.__current_ident
-        print '\n** valueChanged() ->',type(new),'=',new,' (ident=',ident,')'
-        # ...........
+        iitd = self.__current_iitd
+        print '\n** valueChanged() ->',type(itd),'=',itd,' (iitd=',iitd,')'
+        # Replace the relevant itemdict with the modified one:
+        self.__itemdict[iitd] = itd
+        self.replace (self.__inarg, itd, trace=True)
         return True
 
+
+    def replace (self, rr=None, itd=None, level=0, trace=False):
+        """Replace the modified value in self.__inarg"""
+        if not isinstance(rr, dict): return False
+
+        # Search for the correct iitd identifier:
+        if rr.has_key(CTRL_record):
+            iitd = rr[CTRL_record][kident]
+            for key in iitd.keys():
+                if trace: print '-',level,key,':',iitd[key],itd['iitd'],
+                if iitd[key]==itd['iitd']:             # found
+                    rr[key] = itd['value']             # replace value
+                    if trace: print 'found'
+                    return True                        # escape
+                if trace: print 
+
+        # If not yet found, recurse:
+        for key in rr.keys():
+            if isinstance(rr[key], dict):   
+                if not key==CTRL_record:             
+                    found = self.replace (rr[key], itd=itd,
+                                          level=level+1, trace=trace)
+                    if found: return True          # escape
+        # Not found
+        print 'not found'
+        return False
 
 #----------------------------------------------------------------------------
 # Popup for interaction with an argument value:
@@ -476,9 +516,8 @@ class Popup(QDialog):
             self.status.setText('...reverted...')
             return False
 
-        # Return the modified itemdict(itd) to the ArgBrowser:
+        # Send the modified itemdict(itd) to the ArgBrowser:
         self.emit(PYSIGNAL("valueChanged()"),(itd,))
-
         return True
 
 
