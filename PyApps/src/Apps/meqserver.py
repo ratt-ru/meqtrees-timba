@@ -9,21 +9,18 @@ from Timba.Apps import app_defaults
 if app_defaults.include_gui:
   from Timba.GUI.meqserver_gui import *
 
-#-------- update default debuglevels
-app_defaults.debuglevels.update({
-  'MeqNode'      :2,
-  'MeqForest'    :2,
-  'MeqSink'      :2,
-  'MeqSpigot'    :2,
-  'MeqVisHandler':2,
-  'MeqServer'    :2,
-  'meqserver'    :1  
-});
+# #-------- update default debuglevels
+# app_defaults.debuglevels.update({
+#   'MeqNode'      :2,
+#   'MeqForest'    :2,
+#   'MeqSink'      :2,
+#   'MeqSpigot'    :2,
+#   'MeqVisHandler':2,
+#   'MeqServer'    :2,
+#   'meqserver'    :1  
+# });
+# 
 
-#-------- update default arguments
-app_defaults.args.update({'launch':True,'spawn':None,
-                         'verbose':2,'wp_verbose':0 });
-                         
 #-------- parse command line
 if __name__ == '__main__':
   app_defaults.parse_argv(sys.argv[1:]);
@@ -39,15 +36,14 @@ from Timba.utils import *
 from Timba.Meq import meq
 
 
-# default launch arguments (for launch=True)
-default_launch = ('meqserver','M','M');
 # default spawn arguments (for spawn=True)
-default_spawn = ( os.environ['HOME']+'/LOFAR/installed/current/bin/meqserver',
-                  '-noglish','-meq:M:O:MeqServer' );
+default_spawn = ("meqserver");
+default_spawn_opt = ("meqserver-opt");
+default_launch = ();
 
 class meqserver (app_proxy):
   "interface to MeqServer app";
-  def __init__(self,appid='meqserver',client_id='meqclient',launch=None,spawn=None,**kwargs):
+  def __init__(self,appid='meqserver',client_id='meqclient',launch=None,spawn=None,opt=False,**kwargs):
     # if launch or spawn is just True, substitute default values
     if launch:
       if isinstance(launch,bool) and launch:
@@ -55,7 +51,10 @@ class meqserver (app_proxy):
       elif len(launch) == 2:
         launch = ('meqserver',) + launch;
     if spawn and isinstance(spawn,bool):
-      spawn = default_spawn;
+      if opt:
+        spawn = default_spawn_opt;
+      else:
+        spawn = default_spawn;
     # set gui arg
     if 'gui' in kwargs and kwargs['gui'] and not callable(kwargs['gui']):
       kwargs['gui'] = meqserver_gui;
@@ -157,7 +156,6 @@ class meqserver (app_proxy):
 
 mqs = None;
 
-
 # inits a meqserver
 def default_mqs (debug={},**kwargs):
   global mqs;
@@ -170,9 +168,8 @@ def default_mqs (debug={},**kwargs):
     # start meqserver, overriding default args with any kwargs
     args = app_defaults.args;
     args.update(kwargs);
-    print 'starting a meqserver with args:',args;
+    # print 'meqserver args:',args;
     mqs = meqserver(**args);
-    mqs.init(record(output_col='PREDICT'),wait=False);
     if debug is None:
       pass;
     else:
@@ -180,6 +177,14 @@ def default_mqs (debug={},**kwargs):
       if isinstance(debug,dict):
         octopussy.set_debug(debug);
   return mqs;
+  
+def stop_default_mqs ():
+  global mqs;
+  if mqs: 
+    mqs.halt();
+    mqs.disconnect();
+  octopussy.stop();
+  
   
 #
 # self-test block

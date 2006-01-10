@@ -12,9 +12,17 @@ typedef StrVec::const_iterator SVCI;
 using namespace DebugMeq;
 using namespace DMI;
 using namespace AppAgent;
+
+// define a local debug context
+namespace main_debug_context
+{
+  static ::Debug::Context main_debug_context("meqserver_main");
+  static inline ::Debug::Context & getDebugContext() { return main_debug_context; };
+}
     
 int main (int argc,const char *argv[])
 {
+  using main_debug_context::getDebugContext;
   try 
   {
     // collect command-line arguments into vector
@@ -56,17 +64,17 @@ int main (int argc,const char *argv[])
 //     Debug::setLevel("Solver",3);
     Debug::initLevels(argc,argv);
     
-    cout<<"=================== initializing OCTOPUSSY =====================\n";
+    cdebug(0)<<"=================== initializing OCTOPUSSY =====================\n";
     Octopussy::OctopussyConfig::initGlobal(argc,argv);
     Octopussy::init(start_gateways);
     
-    cout<<"=================== starting StatusMonitor ====================\n";
+    cdebug(0)<<"=================== starting StatusMonitor ====================\n";
     Octopussy::dispatcher().attach(new Octopussy::StatusMonitorWP());
     
-    cout<<"=================== starting OCTOPUSSY thread =================\n";
+    cdebug(0)<<"=================== starting OCTOPUSSY thread =================\n";
     Octopussy::initThread(true);
     
-    cout<<"=================== creating MeqServer ========================\n";
+    cdebug(0)<<"=================== creating MeqServer ========================\n";
     Meq::MeqServer meqserver;
     
     // create control channel 
@@ -87,48 +95,48 @@ int main (int argc,const char *argv[])
     // preinitialize control channel
     control_channel().init(recref);
     
-    cout<<"=================== running MeqServer =========================\n";
+    cdebug(0)<<"=================== running MeqServer =========================\n";
     meqserver.run();
     
-//     cout<<"=================== starting app threads ======================\n";
+//     cdebug(0)<<"=================== starting app threads ======================\n";
 //     std::vector<Thread::ThrID> appthreads(apps.size());
 //     for( uint i=0; i<apps.size(); i++)
 //     {
 //       appthreads[i] = apps[i]().runThread(true);
-//       cout<<"  thread: "<<appthreads[i]<<endl;
+//       cdebug(0)<<"  thread: "<<appthreads[i]<<endl;
 //     }
 //     
-//     cout<<"=================== rejoining app threads =====================\n";
+//     cdebug(0)<<"=================== rejoining app threads =====================\n";
 //     for( uint i=0; i<appthreads.size(); i++ )
 //       appthreads[i].join();
 
     if( Meq::MTPool::Brigade::numBrigades() )
     {
-      cout<<"=================== stopping worker threads ===================\n";
+      cdebug(0)<<"=================== stopping worker threads ===================\n";
       Meq::MTPool::Brigade::stopAll();
     }
 
 //    pthread_kill_other_threads_np();
 //    exit(1);
     
-    cout<<"=================== stopping OCTOPUSSY ========================\n";
+    cdebug(0)<<"=================== stopping OCTOPUSSY ========================\n";
     Octopussy::stopThread();
     
-    cout<<"=================== exiting ===================================\n";
+    cdebug(0)<<"=================== exiting ===================================\n";
   }
   catch ( std::exception &exc ) 
   {
-    cout<<"Exiting with exception: "<<exc.what()<<endl;  
+    cdebug(0)<<"Exiting with exception: "<<exc.what()<<endl;  
     return 1;
   }
 //  catch ( AipsError &err ) 
 //  {
-//    cout<<"Exiting with AIPS++ exception: "<<err.getMesg()<<endl;  
+//    cdebug(0)<<"Exiting with AIPS++ exception: "<<err.getMesg()<<endl;  
 //    return 1;
 //  }
   catch( ... )
   {
-    cout<<"Exiting with unknown exception\n";  
+    cdebug(0)<<"Exiting with unknown exception\n";  
     return 1;
   }
   

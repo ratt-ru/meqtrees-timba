@@ -243,7 +243,7 @@ class proxy_wp(octopython.proxy_wp,verbosity):
   # their whenever handlers.
   # If await is supplied (is a hiid), returns when a message matching the
   # await mask is received (returns message).
-  # If timeout is supplied, returns None after it has expired.
+  # If timeout (in seconds) is supplied, returns None after it has expired.
   # Otherwise loop indefinitely, or until the C++ ProxyWP has exited
   def event_loop (self,await=[],timeout=None):
     """runs event loop for this WP -- calls receive() to fetch messages,

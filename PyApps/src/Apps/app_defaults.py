@@ -1,6 +1,7 @@
 from Timba import dmi
 
 import re
+import sys
 
 # Default debug levels.
 # these may be overwritten/added to by other modules.
@@ -9,7 +10,7 @@ debuglevels = {};
 
 # default arguments to app_proxy and derivatives
 args = dmi.record({
-  'launch':True,'spawn':None,
+  'launch':False,'spawn':True,'opt':False,
   'verbose':0,'wp_verbose':0,
   'threads':True,
   'gui':False
@@ -35,6 +36,9 @@ def parse_argv (argv):
     elif arg == "-gui":
       args['gui'] = True;
       
+    elif arg == "-opt":
+      args['opt'] = True;
+      
     elif arg == "-nothreads":
       args['threads'] = False;
       
@@ -59,3 +63,5 @@ def parse_argv (argv):
       if m:
         print 'will set debug level ',m.group(1),' to ',m.group(2);
         debuglevels[m.group(1)] = int(m.group(2));
+
+parse_argv(sys.argv);

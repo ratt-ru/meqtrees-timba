@@ -12,12 +12,9 @@ from Timba import py_app_launcher
 import threading
 import sys
 import os
+import os.path
 import string
 import time
-
-_dbg = verbosity(0,name='app_proxy');
-_dprint = _dbg.dprint;
-_dprintf = _dbg.dprintf;
 
 # class app_proxy
 class app_proxy (verbosity):
@@ -31,30 +28,35 @@ class app_proxy (verbosity):
   set_debug = staticmethod(octopussy.set_debug);
   setdebug = staticmethod(octopussy.set_debug);
   
-  def __init__(self,appid,client_id,launch=None,spawn=None,
-               verbose=0,wp_verbose=0,
-               gui=False,threads=False,debug=True):
+  def __init__(self,appid,client_id,
+               launch=None,      # launch app in separate thread (disabled for now)
+               spawn=None,       # spawn process (pass in process name and arguments)
+               wait_init=None,   # wait for process to connect (values in seconds, <0 for unlimited)
+               verbose=0,        # verbosity level
+               wp_verbose=0,     # WP verbosity level
+               gui=False,        # construct a GUI?
+               threads=False,    # run communications in separate thread
+               debug=True):      # subscribe to debug messages?
     verbosity.__init__(self,verbose,name=str(appid));
     self.appid = hiid(appid);
     self.client_id = hiid(client_id);
     self._rcv_prefix = self.appid + "Out";          # messages from app
     self._rcv_prefix_debug = self.appid + "Debug";  # debug messages from app
     self._snd_prefix = self.appid + "In";           # messages to app
-    _dprint(1,"initializing");
-
+    self.dprint(1,"initializing");
     # start a proxy wp. Select threaded or polled version, depending on
     # arguments
     if wp_verbose is None:
       wp_verbose = verbose;
     
     if threads:
-      _dprint(1,"running in threaded mode");
+      self.dprint(1,"running in threaded mode");
       # select threading API
       if gui: api = Timba.qt_threading;
       else:   api = threading;
       self._pwp = octopussy.proxy_wp_thread(str(client_id),verbose=wp_verbose,thread_api=api);
     else:
-      _dprint(1,"running in non-threaded mode");
+      self.dprint(1,"running in non-threaded mode");
       self._pwp = octopussy.proxy_wp(str(client_id),verbose=wp_verbose);
       
     # subscribe and register handler for app events
@@ -83,14 +85,6 @@ class app_proxy (verbosity):
     # ------------------------------ export some proxy_wp and octopussy methods
     self.pause_events = self._pwp.pause_events;
     self.resume_events = self._pwp.resume_events;
-    # ------------------------------ define default control record
-    self.initrec_prev = record(
-      throw_error=True,
-      control=record(
-        event_map_in  = record(default_prefix=self._snd_prefix),
-        event_map_out = record(default_prefix=self._rcv_prefix,
-                                debug_prefix=self._rcv_prefix_debug),
-        stop_when_end = False ));
       
     # ------------------------------ run/connect to app process
     if spawn: 
@@ -98,15 +92,25 @@ class app_proxy (verbosity):
         raise ValueError,'specify either launch or spawn, not both';
       if isinstance(spawn,str):
         spawn = spawn.split(" ");
-      # subscribe to hello message from remot -- we wait for it
-      _dprint(1,"spawning",spawn);
-      self.serv_pid = os.spawnv(os.P_NOWAIT,spawn[0],spawn);
-      _dprint(1,"spawned external server, pid",self.serv_pid);
-      _dprint(2,"waiting for Hello message from app");
+      # first argument is app binary
+      path = spawn[0];
+      args = list(spawn[1:]);
+      if path[0] != '/': # not absolute path, so need to search $PATH
+        for dirname in os.environ['PATH'].split(':'):
+          filename = os.path.join(dirname,path);
+          if os.path.isfile(filename) and os.access(filename,os.X_OK):
+            path = filename;
+            break;
+      if not os.path.isfile(path) or not os.access(path,os.X_OK):
+        raise RuntimeError,"can't spawn kernel %s: not an executable file" % (path,);
+      self.dprint(1,"spawning",path,args);
+      self.serv_pid = os.spawnv(os.P_NOWAIT,path,[path]+args);
+      self.dprint(1,"spawned external server, pid",self.serv_pid);
+      self.dprint(2,"waiting for Hello message from app");
       self._req_state = False;
     elif launch: # use py_app_launcher to run a local app thread
       raise RuntimeError,"launch option temporarily disabled";
-##       _dprint(1,"launching",launch);
+##       self.dprint(1,"launching",launch);
 ##       (appname,inagent,outagent) = launch;
 ##       if not appname in py_app_launcher.application_names:
 ##         raise NameError,appname+' is not a recognized app name';
@@ -120,7 +124,7 @@ class app_proxy (verbosity):
     
     # start the gui, if so specified
     if gui:
-      _dprint(1,"starting a GUI");
+      self.dprint(1,"starting a GUI");
       if not app_defaults.include_gui:
         raise ValueError,'gui=True but app_defaults.include_gui=False';
       # gui argument can be a callable object (called to start the gui),
@@ -130,7 +134,7 @@ class app_proxy (verbosity):
       else:
         self._gui = Timba.GUI.app_proxy_gui.app_proxy_gui;
       if threads: 
-        _dprint(1,"threading enabled, posting construct event");
+        self.dprint(1,"threading enabled, posting construct event");
         # threaded model: post a GUI construction event to the main app
         mainapp = Timba.GUI.app_proxy_gui.mainapp();
         mainapp.postCallable(self._construct_gui);
@@ -138,22 +142,26 @@ class app_proxy (verbosity):
         mainapp.postCallable(self._pwp.start);
       else:
         # non-threaded: construct GUI here & now
-        _dprint(1,"threading disabled, constructing GUI immediately");
+        self.dprint(1,"threading disabled, constructing GUI immediately");
         self._construct_gui(poll_app=50);
     else:     
       self._gui = None;
       # start the wp event thread now
-      self._pwp.start();
+      if threads:
+        self._pwp.start();
+    # wait for connection?
+    if wait_init:
+      self.ensure_connection(wait_init);
     
   def __del__ (self):
-    _dprint(1,"destructor");
+    self.dprint(1,"destructor");
     self.disconnect();
     
   def disconnect (self):
     if hasattr(self._pwp,'stop'):
-      _dprint(1,"stopping proxy_wp thread");
+      self.dprint(1,"stopping proxy_wp thread");
       self._pwp.stop();
-      _dprint(1,"stopped");
+      self.dprint(1,"stopped");
     
   # poll: dispatches all pending events. Only useful in the unthreaded
   # mode (when an event thread is not running)
@@ -163,9 +171,9 @@ class app_proxy (verbosity):
   # message handler to actually construct an application's GUI
   def _construct_gui (self,poll_app=None):
     try:
-      _dprint(2,"_construct_gui: creating GUI");
+      self.dprint(2,"_construct_gui: creating GUI");
       self._gui = self._gui(self,poll_app=poll_app,verbose=self.get_verbose());
-      _dprint(2,"_construct_gui: showing GUI");
+      self.dprint(2,"_construct_gui: showing GUI");
       self._gui.show();
       if poll_app:
         self._gui_event_handler = self._gui.handleAppEvent;
@@ -186,59 +194,59 @@ class app_proxy (verbosity):
   process_status_event = hiid("Process.Status");
   
   def _hello_handler (self,msg):
-    _dprint(2,"got hello message:",msg);
+    self.dprint(2,"got hello message:",msg);
     self.app_addr = getattr(msg,'from');
     if self.state is None:
       self.state = 0;
       self.statestr = 'connected';
     # request state & status 
     if self._req_state:
-      _dprint(2,"requesting state and status update");
+      self.dprint(2,"requesting state and status update");
       self.send_command("Request.State");
     self._gui_event_handler(self.hello_event,getattr(msg,'from'));
       
   def _bye_handler (self,msg):
-    _dprint(2,"got bye message:",msg);
+    self.dprint(2,"got bye message:",msg);
     self.app_addr = None;
     self.state = None;
     self.statestr = 'no connection';
     self._gui_event_handler(self.bye_event,getattr(msg,'from'));
 
   def _process_stat_handler (self,msg):
-    _dprint(5,"got process status: ",msg.msgid);
+    self.dprint(5,"got process status: ",msg.msgid);
     if self.app_addr is None:
-      _dprint(5,"no app address set, ignoring");
+      self.dprint(5,"no app address set, ignoring");
       return;
     fromaddr = getattr(msg,'from');
     if fromaddr[2:3] == self.app_addr[2:3]:
       self.app_process_status = msg.msgid[2:];
-      _dprint(5,"process status set");
+      self.dprint(5,"process status set");
       self._gui_event_handler(self.process_status_event,self.app_process_status);
     else:
-      _dprint(5,"process status source does not match app address, ignoring");
+      self.dprint(5,"process status source does not match app address, ignoring");
     
   def _remote_down_handler (self,msg):
-    _dprint(2,"got gw.remote.down message:",msg);
+    self.dprint(2,"got gw.remote.down message:",msg);
     if self.app_addr:
       if msg.msgid[3:] == self.app_addr[2:]:
-        _dprint(2,"matches ourselves, generating synthetic bye");
+        self.dprint(2,"matches ourselves, generating synthetic bye");
         self._bye_handler(msg);
       else:
-        _dprint(2,"does not match ourselves, ignoring");
+        self.dprint(2,"does not match ourselves, ignoring");
     else:
-      _dprint(2,"no app address set, ignoring");
+      self.dprint(2,"no app address set, ignoring");
 
   def _event_handler (self,msg):
     "event handler for app";
-    _dprint(5,"got message: ",msg.msgid);
+    self.dprint(5,"got message: ",msg.msgid);
     # verify source address
     addr = getattr(msg,'from');
     if self.app_addr is None:
-      _dprint(2,"hmmm, no app address set, let's assume this is it",addr);
+      self.dprint(2,"hmmm, no app address set, let's assume this is it",addr);
       self.app_addr = addr;
     else:
       if self.app_addr != addr:
-        _dprint(2,"ignoring message from",addr,": doesn't match app address",self.app_addr);
+        self.dprint(2,"ignoring message from",addr,": doesn't match app address",self.app_addr);
         return;
     # update state if not connected
     if self.state is None:
@@ -247,10 +255,10 @@ class app_proxy (verbosity):
     # extract event name: message ID is <appid>.Out.<event>, so get a slice
     event = msg.msgid[len(self.appid)+1:];
     value = msg.payload;
-    _dprint(5,"which maps to event: ",event);
+    self.dprint(5,"which maps to event: ",event);
     # process state notifications
     if event == 'app.notify.state':
-      _dprint(1,value.state_string,' (',value.state,')');
+      self.dprint(1,value.state_string,' (',value.state,')');
       self.state = str(value.state).lower();
       self.statestr = value.state_string;
     # process messages and error reports
@@ -259,22 +267,29 @@ class app_proxy (verbosity):
         self.log_error(event,value.error);
       for f in ("text","message","error"):
         if value.has_field(f):
-          _dprint(1,'[',f,']',value[f]); 
+          self.dprint(1,'[',f,']',value[f]); 
     # print events if so requested
     if self._verbose_events:
-      _dprint(2,'   event:',event);
-      _dprint(3,'   value:',value);
+      self.dprint(2,'   event:',event);
+      self.dprint(3,'   value:',value);
     # forward to gui
     self._gui_event_handler(event,value);
     
-  def ensure_connection (self):
-    "If app is not connected, blocks until it is";
+  def ensure_connection (self,wait=-1):
+    """If app is not connected, waits for the specified number of seconds
+    for it to connect. If wait<0, waits forever.""";
     try:
       self._pwp.pause_events();
+      if wait >= 0:
+        endtime = time.time() + wait;
+      else:
+        endtime = time.time() + 1e+40;
       while self.state is None:
-        _dprint(2,'no connection to app, awaiting');
-        res = self._pwp.await('*',resume=True);  # await anything, but keep looping until status changes
-        _dprint(3,'await returns',res);
+        self.dprint(2,'no connection to app, awaiting (wait=',wait,')');
+        res = self._pwp.await('*',resume=True,timeout=5);  # await anything, but keep looping until status changes
+        self.dprint(3,'await returns',res);
+        if time.time() >= endtime:
+          raise RuntimeError,"timeout waiting for connection";
     finally:
       self._pwp.resume_events();
     
