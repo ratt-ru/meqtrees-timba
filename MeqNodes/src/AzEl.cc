@@ -103,7 +103,7 @@ int AzEl::getResult (Result::Ref &resref,
 
   if( obs_name_.empty() ) 
   {
-    FailWhen(childres.size() < 5,"observatory name not supplied so X,Y,Z children expected");
+    FailWhen(childres.size() < 2,"observatory name not supplied so X,Y,Z children expected");
     // create frame for individual telescope station
     const Vells& vx  = childres[1]->vellSet(0).getValue();
     const Vells& vy  = childres[1]->vellSet(1).getValue();
