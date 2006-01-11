@@ -4,8 +4,8 @@ Settings.forest_state.cache_policy = 100;
 
 # fdfdf/ddd ='';
 
- err = err;
+# err = err;
 
 def test ():
  ee = err;   
-  err = 1;
+ err = 1;

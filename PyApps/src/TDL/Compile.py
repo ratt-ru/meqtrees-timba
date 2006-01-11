@@ -35,7 +35,7 @@ def compile_file (mqs,filename,text=None):
     and message is an informational message.
   Exceptions thrown:
     Any compilation error results in an esception. This is either a 
-    CompileError containing an error list, or a standard python exception.
+    TDL.CumulativeError containing an error list, or a regular exception.
   """;
   _dprint(1,"compiling",filename);
   reload(Timba.TDL.Settings);
@@ -46,6 +46,7 @@ def compile_file (mqs,filename,text=None):
     infile = file(filename,'r');
     if text is None:
       text = infile.read();
+      infile.seek(0);
     # infile is now an open input file object, and text is the script 
 
     # flush all modules imported via previous TDL run
@@ -71,13 +72,13 @@ def compile_file (mqs,filename,text=None):
     # find define_forest func
     define_func = getattr(_tdlmod,'_define_forest',None);
     if not callable(define_func):
-      raise CompileError(TDL.TDLError("No _define_forest() function found",filename=filename,lineno=1));
+      raise TDL.TDLError("No _define_forest() function found",filename=filename,lineno=1);
     define_func(ns);
     ns.Resolve();
     # do we have an error list? show it
     errlist = ns.GetErrors();
     if errlist:
-      raise CompileError(*errlist);
+      raise TDL.CumulativeError(*errlist);
     allnodes = ns.AllNodes();
     num_nodes = len(allnodes);
     # no nodes? return
@@ -100,18 +101,7 @@ def compile_file (mqs,filename,text=None):
 
     return (_tdlmod,msg);
     
-  # compile errors rethrown directly
-  except CompileError:
-    raise;
-  # this exception gives us an error list directly
-  except TDL.CumulativeError,value:
-    _dprint(0,'exception',sys.exc_info(),'compiling TDL file',filename);
-    errlist = value.args;
-    raise CompileError(*errlist);
-  # all other errors explicitly added to list    
   except:
-    (exctype,excvalue,tb) = sys.exc_info();
-    _dprint(0,'exception',sys.exc_info(),'compiling TDL file',filename);
-    # add error to list in nodecope
-    ns.Repository().add_error(excvalue,tb=traceback.extract_tb(tb));
-    raise CompileError(*ns.GetErrors());
+    _dprint(0,'exception compiling TDL file:',filename);
+    traceback.print_exc();
+    raise;

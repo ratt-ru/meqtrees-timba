@@ -340,7 +340,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       
   def set_error_list (self,errlist,signal=True,show_item=True):
     """Shows an error list. errlist should be a sequence of Exception
-    objects following the TDL error convention (see decompose_error() above).
+    objects following the TDL error convention.
     """;
     _dprint(1,self._filename,"error list of",len(errlist),"entries",id(errlist));
     _dprint(1,self._filename,"current list has",len(self._error_list),"entries",id(self._error_list));
@@ -571,8 +571,11 @@ class TDLEditor (QFrame,PersistentCurrier):
     try:
       (_tdlmod,msg) = TDL.Compile.compile_file(meqds.mqs(),self._filename,tdltext);
     # catch compilation errors
-    except TDL.Compile.CompileError,value:
-      self.set_error_list(value.errlist);
+    except TDL.CumulativeError,value:
+      self.set_error_list(value.args);
+      return None;
+    except Exception,value:
+      self.set_error_list([value]);
       return None;
     # refresh the nodelist
     meqds.request_nodelist();
