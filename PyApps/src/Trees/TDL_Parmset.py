@@ -214,6 +214,17 @@ class Parmset (TDL_common.Super):
         #     as starting point for the next snippet solution, unless a suitable funklet
         #     was found in the MeqParm table. If False, it will use the default funklet first.
 
+        # Future (MXM, 10 jan 2006):
+        # - default is a scalar, default = 1.0
+        # - new keywords:
+        #   - [polctype_]shape = [1,1,...]    [ntime, nfreq, ..]
+        #     - 1-based,
+        #     - default=None
+        #     - shape overrides the shape of the initialising funklet, e.g. from parmtable
+        #   - init_funklet = None
+        #     - used for non-polc funklets, e.g. = polclog(0)
+        #     - and for initialisation of other coeff than c00, e.g. polc([[],[]]) 
+
         # If subtile_size is specified (i.e. nonzero and not None), assume an integer.
         # This specifies the size (nr of cells) of the solution-tile in the time-direction.
         # This means that separate solutions are made for these tiles, which tile the domain.

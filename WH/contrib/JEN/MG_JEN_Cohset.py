@@ -70,9 +70,16 @@ def make_spigots(ns=None, Cohset=None, **inarg):
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_spigots()', version='25dec2005')
-    pp.setdefault('MS_corr_index', [0,1,2,3])
-    pp.setdefault('visu', False)
-    pp.setdefault('flag', False)
+    JEN_inarg.define (pp, 'MS_corr_index', [0,1,2,3],
+                      choice=[[0,-1,-1,1],[0,-1,-1,3]],
+                      help='correlations to be used: \n'+
+                      '- [0,1,2,3]:   all corrs available, use all \n'+
+                      '- [0,-1,-1,1]: only XX/YY (or RR/LL) available \n'+
+                      '- [0,-1,-1,3]: all available, but use only XX/YY or RR/LL')
+    JEN_inarg.define (pp, 'visu', tf=False,
+                      help='if True, visualise the input uv-data')
+    JEN_inarg.define (pp, 'flag', tf=False,
+                      help='if True, insert a flagger for the input uv-data')
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
@@ -106,14 +113,20 @@ def make_spigots(ns=None, Cohset=None, **inarg):
 #--------------------------------------------------------------------------
 
 
+
 def make_sinks(ns=None, Cohset=None, **inarg):
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_sinks()', version='25dec2005')
-    pp.setdefault('visu_array_config', True)
-    pp.setdefault('visu', False)
-    pp.setdefault('flag', False)
-    pp.setdefault('output_col', 'PREDICT')
+    JEN_inarg.define (pp, 'output_col', 'PREDICT',
+                      choice=['PREDICT','RESIDUALS','CORRECTED_DATA'],
+                      help='name of the logical (tile) output column')
+    JEN_inarg.define (pp, 'visu_array_config', tf=True,
+                      help='if True, visualise the array config (from MS)')
+    JEN_inarg.define (pp, 'visu', tf=False,
+                      help='if True, visualise the output uv-data')
+    JEN_inarg.define (pp, 'flag', tf=False,
+                      help='if True, insert a flagger for the output uv-data')
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
@@ -179,7 +192,8 @@ def predict (ns=None, Sixpack=None, Joneset=None, **inarg):
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()', version='25dec2005')
-    pp.setdefault('ifrs', [(0,1)])
+    JEN_inarg.define (pp, 'ifrs', [(0,1)], hide=True,
+                      help='list of ifrs (tuples) for the Cohset')
     pp.setdefault('polrep', 'linear')
     JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True))
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
@@ -307,14 +321,23 @@ def insert_solver(ns=None, measured=None, predicted=None, **inarg):
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_solver()', version='25dec2005')
-    pp.setdefault('solver_subtree', None)  # solver_subtree qualifier(s)
-    pp.setdefault('num_cells', None)       # if defined, ModRes argument [ntime,nfreq]
-    pp.setdefault('redun', False)          # if True, use redundant baseline calibration
-    pp.setdefault('master_reqseq', False)  # if True, use a master_reqseq before the sinks
-    pp.setdefault('chain_solvers', True)  # if True, chain the solvers
-    pp.setdefault('visu', True)            # if True, include visualisation
-    pp.setdefault('subtract',False)        # if True, subtract 'predicted' from 'measured' 
-    pp.setdefault('correct',False)         # if True, correct 'measured' with predicted.Joneset()' 
+    JEN_inarg.define(pp, 'solver_subtree', None, hide=True,
+                     help='solver subtree qualifier(s)')
+    JEN_inarg.define(pp, 'num_cells', None,
+                     choice=[None, [2,2],[2,5]],
+                     help='ModRes argument [ntime, nfreq]')
+    JEN_inarg.define(pp, 'redun', tf=False,
+                     help='if True, use redundant baseline calibration')
+    JEN_inarg.define(pp, 'chain_soilvers', tf=True, hide=True,
+                     help='if True, chain the solver(s)')
+    JEN_inarg.define(pp, 'master_reqseq', tf=False,
+                     help='if True, make a master_reqseq for all solver(s)')
+    JEN_inarg.define(pp, 'visu', tf=True,
+                     help='if True, include full visualisation')
+    JEN_inarg.define(pp, 'subtract', tf=False,
+                     help='if True, subtract predicted from measured')
+    JEN_inarg.define(pp, 'correct', tf=False,
+                     help='if True, correct measured with predicted.Joneset')
     # Include (nest) the inarg record of a subroutine called below:
     JEN_inarg.nest(pp, solver_subtree(_getdefaults=True))
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
@@ -769,33 +792,78 @@ def punit2Sixpack(ns, punit='uvp'):
 #********************************************************************************
 #********************************************************************************
 
+def inarg_polrep (rr, **pp):
+    JEN_inarg.define (rr, 'polrep', 'linear', choice=['linear','circular'],
+                      help='polarisation representation')
+    return True
+
+def inarg_punit (rr, **pp):
+    punits = ['unpol','unpol2','unpol10','3c147','RMtest','QUV','QU','SItest']
+    JEN_inarg.define (rr, 'punit', 'unpol10', choice=punits,
+                      help='name of calibrator source/patch \n'+
+                      '- unpol:   unpolarised, I=1Jy \n'+
+                      '- unpol2:  idem, I=2Jy \n'+
+                      '- unpol10: idem, I=10Jy \n'+
+                      '- RMtest:  Rotation Measure \n'+
+                      '- SItest:  Spectral Index \n'+
+                      '- QUV:     non-zero Q,U,V \n'+
+                      '- QU:      non-zero Q,U \n'+
+                      '- 3c147:')
+    return True
+
+def inarg_general (rr, **pp):
+    JEN_inarg.define (rr, 'last_changed', 'd11jan2006', editable=False)
+    inarg_polrep(rr)
+    inarg_punit(rr)
+    JEN_inarg.define (rr, 'stations', range(4),
+                      choice=[range(7),range(14),range(15)],
+                      help='the (subset of) stations to be used')
+    JEN_inarg.define (rr, 'redun', tf=False,
+                      help='if True, redundant spacing calibration')
+    JEN_inarg.define (rr, 'master_reqseq', tf=False, hide=True,
+                      help='if True, use a master reqseq for solver(s)')
+    JEN_inarg.define (rr, 'chain_solvers', tf=True, hide=True,
+                      help='if True, chain the solvers (recommended)')
+    JEN_inarg.define (rr, 'parmtable', None, choice=[],
+                      help='name of MeqParm table to be used')
+    # Derive a list of ifrs from rr['stations'] (assumed to exist):
+    JEN_inarg.define (rr, 'ifrs', TDL_Cohset.stations2ifrs(rr['stations']), hide=True,
+                      help='list if ifrs (derived from stations)')
+    return True
+
+
+def inarg_stream_control (rr, **pp):
+    JEN_inarg.define (rr, 'ms_name', 'D1.MS',
+                      choice=['D1.MS'],
+                      help='name of the (AIPS++) Measurement Set')
+    JEN_inarg.define (rr, 'data_column_name', 'DATA',
+                      choice=['DATA'],
+                      help='MS input column')
+    JEN_inarg.define (rr, 'tile_size', 10, choice=[1,2,3,5,10,20,50,100],
+                      help='size (in time-slots) of the input data-tile')
+    JEN_inarg.define (rr, 'channel_start_index', 10, choice=[0,5,10,20],
+                      help='index of first selected freq channel')
+    JEN_inarg.define (rr, 'channel_end_index', 50, choice=[-1,25,50,100],
+                      help='index of last selected freq channel')
+    JEN_inarg.define (rr, 'predict_column', 'CORRECTED_DATA',
+                      choice=['CORRECTED_DATA'],
+                      help='MS output column')
+    if False:
+        # Temporarily disabled (' ' does not play well)
+        JEN_inarg.define (rr, 'selection_string', ' ',
+                          choice=['TIME_CENTROID<4615466159.46'],
+                          help='TaQL (AIPS++ Table Query Language) data-selection')
+    return True
+
 
 #----------------------------------------------------------------------------------------------------
 # Intialise the MG control record with some overall arguments 
 #----------------------------------------------------------------------------------------------------
 
-# punit = 'unpol'
-# punit = 'unpol2'
-# punit = '3c147'
-# punit = 'RMtest'
-# punit = 'QUV'
-# punit = 'QU'
-# punit =  'SItest'
-# punit = 'unpol10'
+MG = JEN_inarg.init('MG_JEN_Cohset')
+# MG_JEN_Cohset.inarg_general(MG)          # define some general input arguments     
+inarg_general(MG)                        # define some general input arguments     
 
-MG = JEN_inarg.init('MG_JEN_Cohset',
-                    last_changed = 'd03jan2006',
-                    punit='unpol10',                   # name of calibrator source/patch
-                    polrep='linear',                   # polarisation representation (linear/circular)
-                    # polrep='circular',                 # polarisation representation (linear/circular)
-                    stations=range(4),                 # specify the (subset of) stations to be used
-                    redun=False,                       # if True, use redundant baseline calibration
-                    master_reqseq=False,               # if True, use a master reqseq for solver(s)
-                    chain_solvers=True,                # if True, chain the solver(s)
-                    parmtable=None)                    # name of MeqParm table
-
-# Derive a list of ifrs from MG['stations'] (used below):
-MG['ifrs'] = TDL_Cohset.stations2ifrs(MG['stations'])
 
 
 #----------------------------------------------------------------------------------------------------
@@ -804,13 +872,13 @@ MG['ifrs'] = TDL_Cohset.stations2ifrs(MG['stations'])
 
 #=======
 if True:                                               # ... Copied from MG_JEN_Cohset.py ...
-   MG['stream_control'] = dict(ms_name='D1.MS',
-                               data_column_name='DATA',
-                               tile_size=10,                   # input tile-size (in time-slots!)
-                               channel_start_index=10,
-                               channel_end_index=50,           # -10 should indicate 10 from the end (OMS...)
-                               # selection_string='TIME_CENTROID<4615466159.46',
-                               predict_column='CORRECTED_DATA')
+   MG['stream_control'] = dict()
+   # MG_JEN_exec.inarg_stream_control(MG['stream_control'])
+   inarg_stream_control(MG['stream_control'])
+   JEN_inarg.modify(MG['stream_control'],
+                    tile_size=10,
+                    _JEN_inarg_option=None)            # optional, not yet used 
+
 
    # inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
    inarg = make_spigots(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
@@ -981,7 +1049,12 @@ if True:                                                   # ... Copied from MG_
                  
 
 
-
+#---------------------------------------------------------------
+# Launch the inarg Gui (should be done from the browser):
+if False:
+    igui = JEN_inargGui.ArgBrowser()
+    igui.input(MG, name=MG['script_name'], set_open=False)
+    igui.launch()
 
 
 
@@ -1116,15 +1189,9 @@ if __name__ == '__main__':
     cs = TDL_Cohset.Cohset(label='test', scops=MG['script_name'], ifrs=ifrs)
 
     if 1:
-        import sys
-        from qt import *
-        app = QApplication(sys.argv)
         igui = JEN_inargGui.ArgBrowser()
-        igui.input(MG, name=MG['script_name'])
-        igui.show()
-        app.connect(app, SIGNAL("lastWindowClosed()"),
-                    app, SLOT("quit()"))
-        app.exec_loop()
+        igui.input(MG, name=MG['script_name'], set_open=False)
+        igui.launch()
        
     if 0:   
        cs.display('initial')

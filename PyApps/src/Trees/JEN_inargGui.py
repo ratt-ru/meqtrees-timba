@@ -7,6 +7,7 @@
 #
 # History:
 #    - 05 jan 2006: creation (from MXM ArgBrowser.py)
+#    - 10 jan 2006: in workable state
 #
 # Full description:
 
@@ -29,6 +30,9 @@ option_field = '_JEN_inarg_option'
 # Name of record of unique local identification nrs:
 kident = 'JEN_inargGUI_ident'
 
+# Name of generic save/restore file (see .save_inarg()):
+generic_savefile = 'generic_save_restore_inarg.xxx'
+
 
 #================================================================================
 #================================================================================
@@ -41,9 +45,11 @@ class ArgBrowser(QMainWindow):
 
         # NB: What is the usage of args (list): better to have **args?
 
+        self.__QApp = QApplication(sys.argv)
+
         # We inherit from QMainWindow:
         apply(QMainWindow.__init__, (self,) + args)
-        self.setMinimumWidth(600)
+        self.setMinimumWidth(700)
         self.setMinimumHeight(400)
 
         vbox = QVBoxLayout(self)
@@ -55,30 +61,31 @@ class ArgBrowser(QMainWindow):
         self.__listview = QListView(self)
         # self.setCentralWidget(self.__listview)
         vbox.addWidget(self.__listview)
-        self.__listview.addColumn("name")
-        self.__listview.addColumn("value")
-        self.__listview.addColumn("help")
+        self.__listview.addColumn("name", 300)
+        self.__listview.addColumn("value",200)
+        self.__listview.addColumn("help", 500)
         self.__listview.addColumn("iitd")
         self.__listview.setRootIsDecorated(1)
-
+        self.__popup = None            # popup object
+        self.__set_open = True         # see .recurse()
+        self.clearGui()
 
         # Buttons to be added at the bottom:
         hbox = QHBoxLayout(self)
         vbox.addLayout(hbox)
-        b_exec = QPushButton('Execute', self)
+        b_save = QPushButton('Save', self)
+        hbox.addWidget(b_save)
+        b_exec = QPushButton('Proceed', self)
         hbox.addWidget(b_exec)
         b_cancel = QPushButton('Cancel', self)
         hbox.addWidget(b_cancel)
+        QObject.connect(b_save, SIGNAL("pressed ()"), self.save_inarg)
         QObject.connect(b_exec, SIGNAL("pressed ()"), self.exec_with_inarg)
         QObject.connect(b_cancel, SIGNAL("pressed ()"), self.cancel_exec)
 
 
         # Menus:
-        # - save as (saves the edited inarg script)
-        # - restore (load another inarg script)
-        # - revert (revert to the input values, in self.__inarg)
-        # - unhide (toggle, default=False, yellow if True)
-        menubar = self.menuBar()
+        self.__menubar = self.menuBar()
         filemenu = QPopupMenu(self)
         # filemenu.insertItem('save',,self,,SLOT(self.save))
         filemenu.insertItem('save', self.save_inarg)
@@ -86,20 +93,26 @@ class ArgBrowser(QMainWindow):
         filemenu.insertItem('restore', self.restore_inarg)
         filemenu.insertItem('print', self.print_inarg)
         filemenu.insertItem('close', self.closeGui)
-        menubar.insertItem('File', filemenu)
+        self.__menubar.insertItem('File', filemenu)
         editmenu = QPopupMenu(self)
         editmenu.insertItem('revert', self.revert_inarg)
-        menubar.insertItem('Edit', editmenu)
+        self.__menubar.insertItem('Edit', editmenu)
         viewmenu = QPopupMenu(self)
-        viewmenu.insertItem('unhide', self.unhide)
-        menubar.insertItem('View', viewmenu)
+        viewmenu.insertItem('refresh', self.refresh)
+        self.__item_unhide = viewmenu.insertItem('unhide', self.unhide)
+        self.__menubar.insertItem('View', viewmenu)
 
         # Initialise:
-        self.__inarg = None                        # edited copy
-        self.__inarg_input = None                  # input copy
-        self.__popup = None
-        self.clearGui()
+        self.__inarg = None            # the edited inarg
+        self.__inarg_input = None      # the input inarg (see .revert_inarg())
+        if True:
+            # Always restore the generic savefile (but do not show)
+            self.restore_inarg()            
         return None
+
+    def QApp (self):
+        """Access to the QApplication"""
+        return self.__QApp
 
     def closeGui (self):
         """Close the gui"""
@@ -129,10 +142,15 @@ class ArgBrowser(QMainWindow):
         return True
 
     def unhide(self):
-        """Hide the less important fields"""
+        """Hide/unhide the less important fields"""
         unhide = self.__unhide
         self.clearGui()
         self.__unhide = not unhide
+        item = self.__item_unhide
+        if self.__unhide:
+            self.__menubar.changeItem(item,'hide')
+        else:
+            self.__menubar.changeItem(item,'unhide')
         print '** unhide ->',self.__unhide
         self.refresh(clear=False)    
         return True
@@ -144,17 +162,31 @@ class ArgBrowser(QMainWindow):
 
     def saveAs_inarg(self):
         """Save the (edited) inarg record for later use"""
-        print '** not yet implemented: self.saveAs()'
+        filename = QFileDialog.getSaveFileName("","",self);
+        self.save_inarg(filename);
         return True
 
-    def save_inarg(self):
+    def fileSelected(self, filename=None):
+        filename = str(filename)
+        print '** fileSelected():',filename
+        self.__fileDialog.close()
+        self.save_inarg(filename)
+        return True
+
+    def save_inarg(self, filename=None):
         """Save the (edited) inarg record for later use"""
         print '** not yet implemented: self.save()'
+        if not isinstance(filename, str):
+            filename = generic_savefile
         return True
 
-    def restore_inarg(self):
+    def restore_inarg(self, filename=None, dialog=False):
         """Read in a stored inarg record"""
         print '** not yet implemented: self.restore()'
+        if not isinstance(filename, str):
+            filename = generic_savefile
+        # NB: Check the existence of the file first
+        #     (this allows for automatic restore)
         # self.refresh()    
         return True
 
@@ -174,7 +206,7 @@ class ArgBrowser(QMainWindow):
 
     #-------------------------------------------------------------------------------
 
-    def input (self, inarg=None, name=None):
+    def input (self, inarg=None, name=None, set_open=True):
         """Input of a new (inarg) record in the gui"""
         if not isinstance(inarg, dict): return False
         self.clearGui()
@@ -190,6 +222,7 @@ class ArgBrowser(QMainWindow):
         self.setCaption(name)
 
         # Transfer the inarg fields recursively:
+        self.__set_open = set_open
         self.recurse (self.__inarg, listview=self.__listview)
 
         # Connect signals and slots, once a signal is detected the according slot is executed
@@ -200,16 +233,17 @@ class ArgBrowser(QMainWindow):
         return True
 
 
-    def refresh (self, clear=True):
+    def refresh (self, clear=True, trace=False):
         """Refresh the listview widget from self.__inarg"""
-        print 'refresh()'
+        if trace: print 'refresh()'
         if clear: self.clearGui()
-        print 'refresh() after clearGui()'
+        if trace: print 'refresh() after clearGui()'
         self.recurse (self.__inarg, listview=self.__listview)
-        print 'refresh() after recurse()'
+        if trace: print 'refresh() after recurse()'
         return True
 
-    def recurse (self, rr=None, listview=None, level=0, module='<module>', makeitd=True):
+    def recurse (self, rr=None, listview=None, level=0, module='<module>',
+                 makeitd=True, trace=False):
         """Recursive input of a hierarchical inarg record"""
         if not isinstance(rr, dict): return False
 
@@ -221,30 +255,22 @@ class ArgBrowser(QMainWindow):
             rr[CTRL_record].setdefault(kident, dict())
             
         for key in rr.keys():
-            # rr[CTRL_record][kident][key] = 0                   # local identifier
             if isinstance(rr[key], dict):   
                 if key==CTRL_record:                           # is a CTRL record         
-                    # itd = self.make_itd(key, rr[key], hide=True, module=module)    
                     if self.__unhide:
                         item = QListViewItem(listview, key, 'CTRL_record')
                         self.recurse (rr[key], listview=item,
                                       level=level+1, makeitd=False)
                 else:
-                    # itd = self.make_itd(key, rr[key], module=key)    
-                    if True:
-                        item = QListViewItem(listview, key)
-                        if level==0:
-                            item.setOpen(True)                 # show its children
-                        # item.setColor(itd['color'])          # <-----??            
-                        self.recurse (rr[key], listview=item, level=level+1,
-                                      module=key, makeitd=makeitd)
+                    item = QListViewItem(listview, key)
+                    if self.__set_open and level==0:
+                        item.setOpen(True)                     # show its children
+                    self.recurse (rr[key], listview=item, level=level+1,
+                                  module=key, makeitd=makeitd)
 
             elif not makeitd:
                 # E.g. the fields inside a CTRL_record:
                 item = QListViewItem(listview, key, str(rr[key]))
-                # item.setColor(itd['color'])                  # <-----??            
-                # self.recurse (rr[key], listview=item, level=level+1,
-                #               module=key, makeitd=makeitd)
 
             else:                                              # rr[key] is a value
                 itd = self.make_itd(key, rr[key], ctrl=rr[CTRL_record], module=module)
@@ -369,16 +395,23 @@ class ArgBrowser(QMainWindow):
             # Make the popup object:
             self.__popup = Popup(self, name=itd['key'], itd=itd)
             QObject.connect(self.__popup, PYSIGNAL("valueChanged()"), self.valueChanged)
+            QObject.connect(self.__popup, PYSIGNAL("popupClosed()"), self.popupClosed)
         return True
 
 
+    def popupClosed(self, dummy=-1):
+        """Action upon closing the value editing popup"""
+        # print '** popupClosed(): dummy =',dummy
+        self.refresh()
+        return True
+
     def valueChanged(self, itd):
-        """Deal with a changed value from self.__popup"""
-        iitd = self.__current_iitd
-        print '\n** valueChanged() ->',type(itd),'=',itd,' (iitd=',iitd,')'
+        """Deal with a changed itemdict (itd) received from self.__popup"""
+        iitd = self.__current_iitd      # its position in self.__itemdict
+        # print '\n** valueChanged() (iitd=',iitd,'): \n    ->',itd
         # Replace the relevant itemdict with the modified one:
-        self.__itemdict[iitd] = itd
-        self.replace (self.__inarg, itd, trace=True)
+        self.__itemdict[iitd] = itd     # replace in self.__itemdict
+        self.replace (self.__inarg, itd, trace=False)
         return True
 
 
@@ -408,6 +441,30 @@ class ArgBrowser(QMainWindow):
         print 'not found'
         return False
 
+
+    def launch (self):
+        """Launch the inargGui"""
+        self.show()
+        self.__QApp.connect(self.__QApp, SIGNAL("lastWindowClosed()"),
+                           self.__QApp, SLOT("quit()"))
+        self.__QApp.exec_loop()
+        return True
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
 # Popup for interaction with an argument value:
 #----------------------------------------------------------------------------
@@ -473,7 +530,7 @@ class Popup(QDialog):
         # The close button:
         button = QPushButton('close',self)
         vbox.addWidget(button)
-        QObject.connect(button, SIGNAL("pressed ()"), self.close)
+        QObject.connect(button, SIGNAL("pressed ()"), self.onClose)
 
         # Display the popup:
         self.show()
@@ -481,17 +538,23 @@ class Popup(QDialog):
 
     #-------------------------------------------------------------------------
 
+    def onClose (self):
+        """Action on pressing the close button"""
+        # print '** onClose()'
+        # Notify the ArgBrowser:
+        self.emit(PYSIGNAL("popupClosed()"),(0,))
+        # print '** onClose(): after emit'
+        self.close()
+        return True
+
+    #-------------------------------------------------------------------------
+
     def modified (self, value):
         """Deal with combo-box signals"""
         # print '\n** .modified(',value,'):',type(value)
 
-        # Do nothing if the value has not changed:
-        if value==self.combo_input_value:
-            self.status.setText('...not modified...')
-            return True
-
         # Deal with the modified value:
-        self.status.setText('...modified...')
+        self.status.setText('... value modified ...')
         v1 = str(value)                           # value is a QString object
         try:
             v2 = eval(v1)                         # covers most things
@@ -531,7 +594,7 @@ if __name__=="__main__":
     from Timba.Trees import JEN_inarg
     # from Timba.Trees import JEN_record
 
-    app = QApplication(sys.argv)
+    # QApp = QApplication(sys.argv)
     igui = ArgBrowser()
 
     if 0:
@@ -551,8 +614,12 @@ if __name__=="__main__":
         rgui.input(result)
         rgui.show()
 
-    igui.show()
-    app.connect(app, SIGNAL("lastWindowClosed()"),
-                app, SLOT("quit()"))
-    app.exec_loop()
+    if 1:
+        igui.launch()
+
+    if 0:
+        igui.show()
+        igui.QApp().connect(igui.QApp(), SIGNAL("lastWindowClosed()"),
+                            igui.QApp(), SLOT("quit()"))
+        igui.QApp().exec_loop()
 

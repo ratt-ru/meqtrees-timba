@@ -16,6 +16,8 @@
 # - 02 jan 2006: converted to TDL_Parmset.py
 # - 07 dec 2005: removed define_MeqParm() argument 'constrain' again
 # - 07 dec 2005: introduced Parmset.define_condeq()
+# - 10 jan 2006: tile_size -> subtile_size
+# - 10 jan 2006: pp.setdefault() -> JEN_inarg.define(pp)
 
 # Copyright: The MeqTree Foundation 
 
@@ -101,6 +103,27 @@ def adjust_for_telescope(pp, origin='<origin>'):
 
 
 #--------------------------------------------------------------------------------
+
+def inarg_common (pp, trace=False):
+   """Some common JEN_inarg definitions"""
+   JEN_inarg.define(pp, 'punit', 'uvp', trace=trace, 
+                    help='source/patch for which this Joneset is valid')
+   JEN_inarg.define(pp, 'stations', [0], trace=trace, hide=True,
+                    help='list of station names/numbers')
+   JEN_inarg.define(pp, 'parmtable', None, trace=trace, 
+                    help='name of the MeqParm table (AIPS++)')
+   # ** Jones matrix elements:
+   JEN_inarg.define(pp, 'polrep', 'linear', choice=['linear','circular'], trace=trace, 
+                    help='polarisation representation')
+   # ** Solving instructions:
+   JEN_inarg.define(pp, 'unsolvable', tf=False, trace=trace, hide=True,
+                    help='if True, do NOT store solvegroup/parmgroup info')
+    # ** MeqParm default values:
+   JEN_inarg.define(pp, 'ft_coeff_scale', 0.0, trace=trace, hide=True,
+                    help='scale of polc_ft non-c00 coeff')
+   return True
+
+#--------------------------------------------------------------------------------
 # GJones: diagonal 2x2 matrix for complex gains per polarization
 #--------------------------------------------------------------------------------
 
@@ -111,14 +134,10 @@ def GJones (ns=None, **inarg):
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005')
-    pp.setdefault('punit', 'uvp')                  # source/patch for which this Joneset is valid
-    pp.setdefault('stations', [0])                 # range of station names/numbers
-    pp.setdefault('parmtable', None)               # name of the MeqParm table (AIPS++)
+    inarg_common(pp)                               # some common arguments             
     # ** Jones matrix elements:
-    pp.setdefault('polrep', 'linear')              # polarisation representation 
     pp.setdefault('Gpolar', False)                 # if True, use MeqPolar, otherwise MeqToComplex
     # ** Solving instructions:
-    pp.setdefault('unsolvable', False)             # if True, do NOT store solvegroup/parmgroup info
     pp.setdefault('fdeg_Gampl', 0)                 # degree of default freq polynomial         
     pp.setdefault('fdeg_Gphase', 0)                # degree of default freq polynomial          
     pp.setdefault('tdeg_Gampl', 0)                 # degree of default time polynomial         
@@ -130,7 +149,6 @@ def GJones (ns=None, **inarg):
     pp.setdefault('c00_Gphase', 0.0)               # default c00 funklet value
     pp.setdefault('stddev_Gampl', 0.0)             # scatter in default c00 funklet values
     pp.setdefault('stddev_Gphase', 0.0)            # scatter in default c00 funklet values
-    pp.setdefault('ft_coeff_scale', 0.0)           # scale of polc_ft non-c00 coeff
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
@@ -235,19 +253,14 @@ def FJones (ns=0, **inarg):
 
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005')
-   pp.setdefault('punit', 'uvp')                  # source/patch for which this Joneset is valid
-   pp.setdefault('stations', [0])                 # range of station names/numbers
-   pp.setdefault('parmtable', None)               # name of the MeqParm table (AIPS++) 
+   inarg_common(pp)                               # some common arguments             
    # ** Jones matrix elements:
-   pp.setdefault('polrep', 'linear')              # polarisation representation
    # ** Solving instructions:
-   pp.setdefault('unsolvable', False)             # if True, do NOT store solvegroup/parmgroup info
    pp.setdefault('subtile_size_RM', 1)               # used in tiled solutions         
    pp.setdefault('fdeg_RM', 0)                    # degree of default freq polynomial          
    pp.setdefault('tdeg_RM', 0)                    # degree of default time polynomial         
    # ** MeqParm default values:
    pp.setdefault('c00_RM', 0.0)                   # default c00 funklet value
-   pp.setdefault('ft_coeff_scale', 0.0)           # scale of polc_ft non-c00 coeff
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
@@ -305,13 +318,9 @@ def BJones (ns=0, **inarg):
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005')
-    pp.setdefault('punit', 'uvp')                  # source/patch for which this Joneset is valid
-    pp.setdefault('stations', [0])                 # range of station names/numbers
+    inarg_common(pp)                               # some common arguments             
     # ** Jones matrix elements:
-    pp.setdefault('polrep', 'linear')              # polarisation representation
     # ** Solving instructions:
-    pp.setdefault('unsolvable', False)             # if True, do NOT store solvegroup/parmgroup info
-    pp.setdefault('parmtable', None)               # name of the MeqParm table (AIPS++)
     pp.setdefault('fdeg_Breal', 3)                 # degree of default freq polynomial           
     pp.setdefault('fdeg_Bimag', 3)                 # degree of default freq polynomial           
     pp.setdefault('tdeg_Breal', 0)                 # degree of default time polynomial           
@@ -323,7 +332,6 @@ def BJones (ns=0, **inarg):
     pp.setdefault('c00_Bimag', 0.0)                # default c00 funklet value
     pp.setdefault('stddev_Breal', 0)               # scatter in default c00 funklet values
     pp.setdefault('stddev_Bimag', 0)               # scatter in default c00 funklet values
-    pp.setdefault('ft_coeff_scale', 0.0)           # scale of polc_ft non-c00 coeff
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
@@ -409,13 +417,9 @@ def DJones_WSRT (ns=0, **inarg):
 
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005')
-   pp.setdefault('punit', 'uvp')                     # source/patch for which this Joneset is valid
-   pp.setdefault('stations', [0])                    # range of station names/numbers
+   inarg_common(pp)                               # some common arguments             
    # ** Jones matrix elements:
-   pp.setdefault('polrep', 'linear')                 # polarisation representation
    # ** Solving instructions:
-   pp.setdefault('unsolvable', False)                # if True, do NOT store solvegroup/parmgroup info
-   pp.setdefault('parmtable', None)                  # name of the MeqParm table (AIPS++)
    pp.setdefault('coupled_XY_dang', True)            # if True, Xdang = Ydang per station
    pp.setdefault('coupled_XY_dell', True)            # if True, Xdell = -Ydell per station
    pp.setdefault('fdeg_dang', 0)                     # degree of default freq polynomial
@@ -430,7 +434,6 @@ def DJones_WSRT (ns=0, **inarg):
    pp.setdefault('c00_PZD', 0.0)                     # default c00 funklet value
    pp.setdefault('stddev_dang', 0)                   # scatter in default c00 funklet values
    pp.setdefault('stddev_dell', 0)                   # scatter in default c00 funklet values
-   pp.setdefault('ft_coeff_scale', 0.0)              # scale of polc_ft non-c00 coeff
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
@@ -554,6 +557,7 @@ def KJones (ns=0, Sixpack=None, **inarg):
 
   # Input arguments:
   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='12dec2005')
+  # inarg_common(pp)                               # some common arguments             
   pp.setdefault('stations', [0])       # range of station names/numbers
   # ** Solving instructions:
   pp.setdefault('unsolvable', True)                # if True, do NOT store solvegroup/parmgroup info
@@ -1049,6 +1053,13 @@ if __name__ == '__main__':
     js.display()     
     display_first_subtree (js, full=1)
 
+  if 1:
+    inarg = GJones (_getdefaults=True)
+    from Timba.Trees import JEN_inargGui
+    igui = JEN_inargGui.ArgBrowser()
+    igui.input(inarg)
+    igui.launch()
+
   if 0:
     # jseq = TDL_Joneset.Joneseq(origin='MG_JEN_Joneset')
     jseq = Joneseq()
@@ -1068,7 +1079,7 @@ if __name__ == '__main__':
     MG_JEN_exec.display_subtree (dconc, 'dconc', full=1)
 
 
-  if 1:
+  if 0:
     MG_JEN_exec.display_object (MG, 'MG', MG['script_name'])
     # MG_JEN_exec.display_subtree (rr, MG['script_name'], full=1)
   print '\n** End of local test of:',MG['script_name'],'\n*******************\n'

@@ -313,6 +313,9 @@ def _ensure_CTRL_record(rr, localscope='<localscope>', version=None, barescope=N
       ERROR(rr,'inarg/pp['+CTRL_record+'] not a dict, but: '+str(type(rr[CTRL_record])))
    else:                                              # rr already has a valid CTRL_record
       if version:                                     # version has been specified (.inarg2pp())
+         #===================================================
+         return True                # temporarily disabled!!!
+         #===================================================
          # The version keyword allows detecton of obsolete inarg records:
          rr_version = rr[CTRL_record]['version']
          if not rr_version==version:
@@ -614,49 +617,6 @@ def inarg2pp(inarg, funcname='<funcname>', version='15dec2005', trace=False):
 
 
 
-#----------------------------------------------------------------------------
-
-def define(pp, key=None, default=None,
-           mandatory_type=None,
-           choice=None, editable=None, tf=None,
-           range=None, min=None, max=None,
-           help=None, trace=False):
-   """Define a pp entry with a default value, and other info.
-   This is a more able version of pp.setdefault(key,value),
-   which is helpful for a specification GUI (see JEN_inargGui.py)"""
-   s1 = '.define('+str(key)+'): '
-   if trace: print '\n**',s1
-   if not isinstance(pp, dict):
-      print s1,'pp not a record, but:',type(pp) 
-      return False
-   elif not isinstance(key, str):
-      WARNING(pp, s1+'key not a string, but: '+str(type(key)))
-      return False
-   elif pp.has_key(key):
-      # NB: This may happen if executed with extra arguments....
-      MESSAGE(pp, s1+'duplicate argument key in: '+str(pp.keys()))
-      return False
-   
-   # OK, make the new argument field (key):
-   pp.setdefault(key,default)
-
-   # Deal with the extra info, if any:
-   rr = dict(choice=choice, editable=editable, tf=tf,
-             mandatory_type=mandatory_type,
-             range=range, min=min, max=max,
-             help=help)
-   s2 = '- CTRL_record:'
-   for field in rr.keys():
-      if trace: print s2,field,' (',rr[field],'):',
-      if not rr[field]==None:
-         pp[CTRL_record].setdefault(field, {})
-         pp[CTRL_record][field][key] = rr[field]
-         if trace: print '->',rr[field]
-      elif trace:
-         print
-   if trace: print
-   return True
-
 
 #----------------------------------------------------------------------------
 
@@ -777,6 +737,63 @@ def result(rr=None, pp=None, attach=None, trace=True):
    return rr
 
 
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
+
+def define(pp, key=None, default=None,
+           choice=None, editable=None, tf=None,
+           mandatory_type=None,
+           range=None, min=None, max=None,
+           help=None, hide=None, trace=False):
+   """Define a pp entry with a default value, and other info.
+   This is a more able version of pp.setdefault(key,value),
+   which is helpful for a specification GUI (see JEN_inargGui.py)"""
+   s1 = '.define('+str(key)+'): '
+   if trace: print '\n**',s1
+
+   _ensure_CTRL_record(pp)
+
+   # Do some basic checks:
+   if not isinstance(pp, dict):
+      print s1,'pp not a record, but:',type(pp) 
+      return False
+   elif not isinstance(key, str):
+      WARNING(pp, s1+'key not a string, but: '+str(type(key)))
+      return False
+   elif pp.has_key(key):
+      # NB: This may happen if executed with extra arguments....
+      MESSAGE(pp, s1+'duplicate argument key in: '+str(pp.keys()))
+      return False
+
+   # Deal with some special cases:
+   if isinstance(tf, bool):          # tf (TrueFalse) specified
+      default = tf                   # 
+      choice = [True, False]
+      editable = False
+   
+   # OK, make the new argument field (key):
+   pp.setdefault(key,default)
+
+   # Put the extra info into the control record:
+   # (Use a dict (rr) to drive the loop below)
+   rr = dict(choice=choice, editable=editable, tf=tf,
+             mandatory_type=mandatory_type,
+             range=range, min=min, max=max,
+             hide=hide, help=help)
+   s2 = '- CTRL_record:'
+   for field in rr.keys():
+      if trace: print s2,field,' (',rr[field],'):',
+      if not rr[field]==None:
+         pp[CTRL_record].setdefault(field, {})
+         pp[CTRL_record][field][key] = rr[field]
+         if trace: print '->',rr[field]
+      elif trace:
+         print
+   if trace: print
+   return True
+
+
 #********************************************************************************
 #********************************************************************************
 #********************************************************************************
@@ -803,6 +820,8 @@ def test1(ns=None, object=None, **inarg):
           help='longer string for elaborate help for bb', trace=True)
    define(pp, 'list', range(4), choice=[['a','A'],[45,-34],True],
           help='multiline help \n for list', trace=True)
+   define(pp, 'hide', 'the rain in spain', hide=True,
+          help='multiline help for hide', trace=True)
    pp.setdefault('ref_ref_aa', 'ref_aa')
    pp.setdefault('ref_aa', 'aa')
    define(pp, 'nested', True, tf=True, trace=True)
