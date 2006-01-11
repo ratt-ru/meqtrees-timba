@@ -9,6 +9,7 @@ from Timba.GUI import app_proxy_gui
 from Timba.Meq import meqds
 from Timba import TDL
 import Timba.TDL.Settings
+import Timba.TDL.Compile
 
 from qt import *
 from qtext import *
@@ -25,9 +26,6 @@ import tempfile
 _dbg = verbosity(0,name='tdlgui');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
-
-# this holds the module object which all TDL scripts are imported into
-_tdlmodlist = [];
 
 def _file_mod_time (path):
   try:
@@ -565,101 +563,23 @@ class TDLEditor (QFrame,PersistentCurrier):
     else:
       if not self._sync_external_file(self._filename,ask=False):
         return None;
-    # open file
-    infile = file(self._filename,'r');
-    if infile is None:
-      return None;
     tdltext = str(self._editor.text());
-    # infile is now an open input file object, and tdltext is the script 
-
-    # flush all modules imported via previous TDL run
-    global _tdlmodlist;
-    _dprint(1,'clearing out TDL-imported modules',_tdlmodlist);
-    for m in _tdlmodlist:
-      try: del sys.modules[m];
-      except KeyError: pass;
-    reload(Timba.TDL.Settings);
-    # initialize global nodescope (and repository)
-    ns = TDL.NodeScope();
-    # remember which modules are imported
-    prior_mods = sets.Set(sys.modules.keys());
-    modname = '__tdlruntime';
-    try:
-      try:
-        imp.acquire_lock();
-        _tdlmod = imp.load_source(modname,self._filename,infile);
-      finally:
-        imp.release_lock();
-        infile.close();
-        _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
-        _dprint(1,'TDL run imported',_tdlmodlist);
-    except: # catch any import errors
-      (exctype,excvalue,tb) = sys.exc_info();
-      _dprint(0,'exception',sys.exc_info(),'importing TDL file',self._filename);
-      # add error to list in nodecope
-      ns.Repository().add_error(excvalue,tb=traceback.extract_tb(tb));
-      self.set_error_list(ns.GetErrors());
-      return None;
-    mqs = meqds.mqs();
-    # module here, call functions
-    errlist = [];
-    try:
-      # find define_forest func
-      define_func = getattr(_tdlmod,'_define_forest',None);
-      if not callable(define_func):
-        define_func = getattr(_tdlmod,'define_forest',None);
-        if not callable(define_func):
-          self.set_error_list([TDL.TDLError("No _define_forest() function found",filename=self._filename,lineno=1)]);
-          return None;
-        res = QMessageBox.warning(self,"Deprecated method",
-          """Your script contains a define_forest() method. This is deprecated
-          and will be disabled in the future. Please rename it to 
-          _define_forest(). 
-          """,
-          QMessageBox.Ok);
-      define_func(ns);
-      ns.Resolve();
-    except TDL.CumulativeError,value:
-    # this exception gives us an error list directly
-      errlist = value.args;
-    except:
-      # other exception: simply add to list
-      (exctype,excvalue,tb) = sys.exc_info();
-      traceback.print_exc();
-      _dprint(0,'exception',sys.exc_info(),'in define_forest() of TDL file',self._filename);
-      ns.Repository().add_error(excvalue,tb=traceback.extract_tb(tb))
-    # do we have an error list? show it
-    errlist = ns.GetErrors();
-    if errlist:
-      self.set_error_list(errlist);
-      return None;
-    num_nodes = len(ns.AllNodes());
-    # no nodes? return
-    if not num_nodes:
-      self.show_message("Script has run successfully, but no nodes were defined.",
-              transient=True);
-      return None;
     # make list of publishing nodes 
-    allnodes = ns.AllNodes();
     pub_nodes = [ node.name for node in meqds.nodelist.iternodes() 
                   if node.is_publishing() and node.name in allnodes ];
-    # try to run stuff
-    meqds.clear_forest();
-    mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
-    mqs.meq('Resolve.Batch',record(name=list(ns.RootNodes().iterkeys())));
+    # try the compilation
+    try:
+      (_tdlmod,msg) = TDL.Compile.compile_file(meqds.mqs(),self._filename,tdltext);
+    # catch compilation errors
+    except TDL.Compile.CompileError,value:
+      self.set_error_list(value.errlist);
+      return None;
+    # refresh the nodelist
+    meqds.request_nodelist();
     # restore publishing nodes
     for name in pub_nodes: 
       mqs.meq('Node.Publish.Results',record(name=name,enable=True),wait=False);
     ### NB: presume this all was successful for now
-
-    # is a forest state defined?
-    fst = getattr(Timba.TDL.Settings,'forest_state',record());
-    # add in source code
-    fst.tdl_source = record(**{os.path.basename(self._filename):tdltext});
-    mqs.meq('Set.Forest.State',record(state=fst));
-
-    # refresh the nodelist
-    meqds.request_nodelist();
 
     # does the script define an explicit job list?
     joblist = getattr(_tdlmod,'_tdl_job_list',[]);
@@ -693,19 +613,15 @@ class TDLEditor (QFrame,PersistentCurrier):
         qa = QAction(pixmaps.gear.iconset(),name,0,self._jobmenu);
         if func.__doc__:
           qa.setToolTip(func.__doc__);
-        qa._call = curry(func,mqs,self);
+        qa._call = curry(func,meqds.mqs(),self);
         QObject.connect(qa,SIGNAL("activated()"),qa._call);
         qa.addTo(self._jobmenu);
     else:
       self._tb_jobs.hide();
 
-    # no, show status and return
-#    if not callable(testfunc):
-    msg = """Script has run successfully. %d node definitions 
-      (of which %d are root nodes) sent to the kernel.
-      """ % (num_nodes,len(ns.RootNodes()));
     if joblist:
       msg += " %d predefined function(s) available." % (len(joblist),);
+      
     self.show_message(msg,transient=True);
     return True;
     
