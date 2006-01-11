@@ -244,18 +244,9 @@
 
 # Okay, the non-numbers are equal.
 # Now check if all numbers are approximately equal.
-# First replace all non-numeric characters and single e.+- by a blank.
-# Remove blanks by a newline.
-  sed -e 's/[^-+.e0-9]/ /g' ${PROG}_tmp.out | sed -e 's/\(^\| \)[e.+-]\+\( \|$\)//g' | sed -e 's/^ \+//' -e 's/ \+$//' -e 's/ \+/\n/g' > ${PROG}_tmp.out2
-sed -e 's/[^-+.e0-9]/ /g' ${PROG}_tmp_orig.out | sed -e 's/\(^\| \)[e.+-]\+\( \|$\)//g' | sed -e 's/^ \+//' -e 's/ \+$//' -e 's/ \+/\n/g' > ${PROG}_tmp_orig.out2
-# Show the differences column-wise.
-  diff -y --suppress-common-lines ${PROG}_tmp.out2 ${PROG}_tmp_orig.out2 > ${PROG}_tmp_diff.out
-
-# Now loop through all differences and see if almost equal.
-  awk '{ a1=$1; if (a1<0) a1=-a1; a2=$3; if (a2<0) a2=-a2; if (a1>1e-20 || a2>1e-20) if ((a1>a2 && a1-a2> '"$PREC"'*a1) || (a2>a1 && a2-a1> '"$PREC"'*a2)) print "float diff>'"$PREC"':",a1,a2 }' ${PROG}_tmp_diff.out > ${PROG}_tmp_diff.out2
-  if [ -s ${PROG}_tmp_diff.out2 ]
+  $lofar_sharedir/checkfloat ${PROG}_tmp.out ${PROG}_tmp_orig.out $PREC
+  if [ $? != 0 ]
   then
-     $CAT ${PROG}_tmp_diff.out2
      echo "FAIL (floating point discrepancies > $PREC): $PROG"
      STATUS=2
      exit
