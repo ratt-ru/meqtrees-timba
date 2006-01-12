@@ -16,6 +16,8 @@
 #================================================================================
 
 import sys
+import pickle
+
 from qt import *
 from copy import deepcopy
 
@@ -31,7 +33,7 @@ option_field = '_JEN_inarg_option'
 kident = 'JEN_inargGUI_ident'
 
 # Name of generic save/restore file (see .save_inarg()):
-generic_savefile = 'generic_save_restore_inarg.xxx'
+generic_savefile = 'generic_save_restore.inarg'
 
 
 #================================================================================
@@ -83,15 +85,18 @@ class ArgBrowser(QMainWindow):
         QObject.connect(b_exec, SIGNAL("pressed ()"), self.exec_with_inarg)
         QObject.connect(b_cancel, SIGNAL("pressed ()"), self.cancel_exec)
 
-
-        # Menus:
+        # Menubar:
         self.__menubar = self.menuBar()
         filemenu = QPopupMenu(self)
         # filemenu.insertItem('save',,self,,SLOT(self.save))
-        filemenu.insertItem('save', self.save_inarg)
+        filemenu.insertItem('open', self.open_inarg)
         filemenu.insertItem('saveAs', self.saveAs_inarg)
+        filemenu.insertSeparator()     
+        filemenu.insertItem('save', self.save_inarg)
         filemenu.insertItem('restore', self.restore_inarg)
+        filemenu.insertSeparator()     
         filemenu.insertItem('print', self.print_inarg)
+        filemenu.insertSeparator()     
         filemenu.insertItem('close', self.closeGui)
         self.__menubar.insertItem('File', filemenu)
         editmenu = QPopupMenu(self)
@@ -99,15 +104,26 @@ class ArgBrowser(QMainWindow):
         self.__menubar.insertItem('Edit', editmenu)
         viewmenu = QPopupMenu(self)
         viewmenu.insertItem('refresh', self.refresh)
+        viewmenu.insertSeparator()     
         self.__item_unhide = viewmenu.insertItem('unhide', self.unhide)
         self.__menubar.insertItem('View', viewmenu)
+        self.__menubar.insertSeparator()
+        helpmenu = QPopupMenu(self)
+        self.__menubar.insertItem('Help', helpmenu)
+
+        # Statusbar:
+        self.__statusbar = self.statusBar()
+        # vbox.addLayout(self.__statusbar)         # invalid type
+        self.__statusbar.clear()
+        self.__statusbar.message("xxx")
 
         # Initialise:
-        self.__inarg = None            # the edited inarg
-        self.__inarg_input = None      # the input inarg (see .revert_inarg())
+        self.__inarg = None                        # the edited inarg
+        self.__inarg_input = None                  # the input inarg (see .revert_inarg())
+        self.__savefile = generic_savefile         # used by .save_inarg(None)
         if True:
             # Always restore the generic savefile (but do not show)
-            self.restore_inarg()            
+            self.restore_inarg(generic_savefile)            
         return None
 
     def QApp (self):
@@ -116,10 +132,11 @@ class ArgBrowser(QMainWindow):
 
     def closeGui (self):
         """Close the gui"""
+        self.save_inarg(generic_savefile)          # save always....            
         self.clearGui()
-        self.__listview.close()                    #............?
         if self.__popup: self.__popup.close()
-        self.close()                             #............?
+        self.__listview.close()                    #............?
+        self.close()                               #............?
         # clean up any signal connections?
         return True
 
@@ -160,34 +177,65 @@ class ArgBrowser(QMainWindow):
         print '** not yet implemented: self.print_inarg()'
         return True
 
+#-------------------------------------------------------------------
+
     def saveAs_inarg(self):
         """Save the (edited) inarg record for later use"""
-        filename = QFileDialog.getSaveFileName("","",self);
+        print '\n** self.saveAs_inarg():'
+        filename = QFileDialog.getSaveFileName("","*.inarg",self)
         self.save_inarg(filename);
         return True
 
-    def fileSelected(self, filename=None):
-        filename = str(filename)
-        print '** fileSelected():',filename
-        self.__fileDialog.close()
-        self.save_inarg(filename)
+    def open_inarg(self):
+        """Read a saved inarg record from a file, using a file browser"""
+        print '\n** self.open_inarg():'
+        filename = QFileDialog.getOpenFileName("","*.inarg",self)
+        self.restore_inarg(filename);
         return True
+
+#    def fileSelected(self, filename=None):
+#        filename = str(filename)
+#        print '** fileSelected():',filename
+#        self.__fileDialog.close()
+#        self.save_inarg(filename)
+#        return True
 
     def save_inarg(self, filename=None):
         """Save the (edited) inarg record for later use"""
-        print '** not yet implemented: self.save()'
-        if not isinstance(filename, str):
-            filename = generic_savefile
+        print '\n** self.save_inarg(',filename,'):'
+        # if not isinstance(filename, str):
+        if filename==None:
+            filename = self.__savefile
+        filename = str(filename)
+        f = open(filename,'wb')
+        p = pickle.Pickler(f)
+        r = p.dump(self.__inarg)
+        # print '   self.__inarg =',self.__inarg,'\n'
+        print '** self.save_inarg(',filename,'): ->',r
+        self.__statusbar.message("save_inarg()")
+        f.close()
         return True
 
-    def restore_inarg(self, filename=None, dialog=False):
-        """Read in a stored inarg record"""
-        print '** not yet implemented: self.restore()'
-        if not isinstance(filename, str):
-            filename = generic_savefile
-        # NB: Check the existence of the file first
-        #     (this allows for automatic restore)
-        # self.refresh()    
+    def restore_inarg(self, filename=None):
+        """Read a saved inarg record from a file"""
+        print '\n** self.restore_inarg(',filename,'):'
+        # if not isinstance(filename, str):
+        if filename==None:
+            # filename = generic_savefile
+            filename = self.__savefile
+        filename = str(filename)
+        try:
+            f = open(filename,'rb')
+        except:
+            print '** .restore_inarg(',filename,'): file does not exist'
+            return False
+        p = pickle.Unpickler(f)
+        inarg = p.load()
+        print '** self.restore_inarg(',filename,'):'
+        self.__statusbar.message("restore_inarg()")
+        # print '   ->',inarg,'\n'
+        f.close()
+        self.input(inarg)    
         return True
 
     #-------------------------------------------------------------------------------
@@ -220,6 +268,7 @@ class ArgBrowser(QMainWindow):
             else:
                 name = self.__inarg.keys()[0]
         self.setCaption(name)
+        self.__savefile = name + '.inarg'
 
         # Transfer the inarg fields recursively:
         self.__set_open = set_open
@@ -446,7 +495,7 @@ class ArgBrowser(QMainWindow):
         """Launch the inargGui"""
         self.show()
         self.__QApp.connect(self.__QApp, SIGNAL("lastWindowClosed()"),
-                           self.__QApp, SLOT("quit()"))
+                            self.__QApp, SLOT("quit()"))
         self.__QApp.exec_loop()
         return True
 
