@@ -112,10 +112,15 @@ class ArgBrowser(QMainWindow):
         self.__menubar.insertItem('Help', helpmenu)
 
         # Statusbar:
-        self.__statusbar = self.statusBar()
+        # self.__statusbar = self.statusBar()
         # vbox.addLayout(self.__statusbar)         # invalid type
-        self.__statusbar.clear()
-        self.__statusbar.message("xxx")
+        # self.__statusbar.clear()
+        # self.__statusbar.message("xxx")
+
+        # Message label (i.s.o. statusbar):
+        self.__message = QLabel(self)
+        self.__message.setText(' ')
+        vbox.addWidget(self.__message)
 
         # Initialise:
         self.__inarg = None                        # the edited inarg
@@ -154,8 +159,9 @@ class ArgBrowser(QMainWindow):
 
     def revert_inarg(self):
         """Revert to the original (input) inarg values"""
-        self.__inarg = self.__inarg_input
+        self.__inarg = deepcopy(self.__inarg_input)
         self.refresh()
+        self.__message.setText('** reverted to the original (input) inarg record')
         return True
 
     def unhide(self):
@@ -174,66 +180,48 @@ class ArgBrowser(QMainWindow):
 
     def print_inarg(self):
         """Print the current inarg record"""
-        print '** not yet implemented: self.print_inarg()'
+        self.__message.setText('** print_inarg: not yet implemented')
         return True
 
 #-------------------------------------------------------------------
 
     def saveAs_inarg(self):
         """Save the (edited) inarg record for later use"""
-        print '\n** self.saveAs_inarg():'
         filename = QFileDialog.getSaveFileName("","*.inarg",self)
         self.save_inarg(filename);
         return True
 
     def open_inarg(self):
         """Read a saved inarg record from a file, using a file browser"""
-        print '\n** self.open_inarg():'
         filename = QFileDialog.getOpenFileName("","*.inarg",self)
         self.restore_inarg(filename);
         return True
 
-#    def fileSelected(self, filename=None):
-#        filename = str(filename)
-#        print '** fileSelected():',filename
-#        self.__fileDialog.close()
-#        self.save_inarg(filename)
-#        return True
-
     def save_inarg(self, filename=None):
         """Save the (edited) inarg record for later use"""
-        print '\n** self.save_inarg(',filename,'):'
-        # if not isinstance(filename, str):
         if filename==None:
             filename = self.__savefile
         filename = str(filename)
         f = open(filename,'wb')
         p = pickle.Pickler(f)
         r = p.dump(self.__inarg)
-        # print '   self.__inarg =',self.__inarg,'\n'
-        print '** self.save_inarg(',filename,'): ->',r
-        self.__statusbar.message("save_inarg()")
+        self.__message.setText('** saved inarg record to file:   '+filename)
         f.close()
         return True
 
     def restore_inarg(self, filename=None):
         """Read a saved inarg record from a file"""
-        print '\n** self.restore_inarg(',filename,'):'
-        # if not isinstance(filename, str):
         if filename==None:
-            # filename = generic_savefile
             filename = self.__savefile
         filename = str(filename)
         try:
             f = open(filename,'rb')
         except:
-            print '** .restore_inarg(',filename,'): file does not exist'
+            self.__message.setText('** restore: file does not exist:  '+filename)
             return False
         p = pickle.Unpickler(f)
         inarg = p.load()
-        print '** self.restore_inarg(',filename,'):'
-        self.__statusbar.message("restore_inarg()")
-        # print '   ->',inarg,'\n'
+        self.__message.setText('** restored inarg record from file:   '+filename)
         f.close()
         self.input(inarg)    
         return True
@@ -242,13 +230,12 @@ class ArgBrowser(QMainWindow):
 
     def cancel_exec(self):
         """Do nothing"""
-        print '** not yet implemented: self.cancel()'
         self.closeGui()
         return False
 
     def exec_with_inarg(self):
         """Execute the relevant function"""
-        print '** not yet implemented: self.execute()'
+        self.__message.setText('** not yet implemented:  self.exec_with_inarg()')
         return True
 
 
@@ -259,7 +246,7 @@ class ArgBrowser(QMainWindow):
         if not isinstance(inarg, dict): return False
         self.clearGui()
         self.__inarg = deepcopy(inarg)                          # to be edited
-        self.__inarg_input = deepcopy(self.__inarg)             # unchanged copy
+        self.__inarg_input = deepcopy(inarg)                    # unchanged copy
 
         # Modify the name (of its main window):
         if not name:
@@ -269,6 +256,7 @@ class ArgBrowser(QMainWindow):
                 name = self.__inarg.keys()[0]
         self.setCaption(name)
         self.__savefile = name + '.inarg'
+        self.__message.setText('** input of inarg record:  '+name)
 
         # Transfer the inarg fields recursively:
         self.__set_open = set_open
@@ -360,8 +348,8 @@ class ArgBrowser(QMainWindow):
                    range=None,                # list [min,max]
                    min=None,                  # Allowed min value
                    max=None,                  # Allowed max value
-                   tf=None,                   # If True, only True or False allowed 
                    editable=True,             # If True, the value may be edited
+                   browse=None,               # Extension of files ('e.g *.MS')
                    module=module,             # name of the relevant function module
                    level=level,               # inarg hierarchy level
                    iitd=-1)                   # sequenc nr in self.__itemdict
@@ -374,9 +362,9 @@ class ArgBrowser(QMainWindow):
                 if ctrl.has_key(field):
                     itd[field] = ctrl[field]
             # Then the key-specific keys (see JEN_inarg.define()):
-            key_specific = ['choice','tf',
+            key_specific = ['choice',
                             'editable','hide','color',
-                            'mandatory_type',
+                            'mandatory_type','browse',
                             'range','min','max','help']
             for field in key_specific:
                 if ctrl.has_key(field):
@@ -397,11 +385,6 @@ class ArgBrowser(QMainWindow):
         if not itd['choice']==None:
             if not isinstance(itd['choice'], (tuple,list)):
                 itd['choice'] = [itd['choice']]
-        if not itd['tf']==None:
-            itd['choice'] = [True,False]
-            itd['editable'] = False
-            if not isinstance(itd['value'], bool):
-                itd['value'] = itd['tf']                # ....!?
         if itd['help']:
             indent = (level*'.')
             itd['help'] = indent+str(itd['help'])
@@ -552,6 +535,13 @@ class Popup(QDialog):
         self.type.setText('type'+':  '+str(type(itd['value'])))
         vbox.addWidget(self.type)
 
+        if itd['browse']:
+            # Include a file browser button, if required:
+            self.__filter = itd['browse']
+            button = QPushButton('browse '+self.__filter, self)
+            vbox.addWidget(button)
+            QObject.connect(button, SIGNAL("pressed ()"), self.onBrowse)
+
         # Other information (labels):
         keys = ['help']
         if itd['range']:
@@ -584,6 +574,15 @@ class Popup(QDialog):
         # Display the popup:
         self.show()
         return None
+
+    #-------------------------------------------------------------------------
+
+    def onBrowse (self):
+        """Action on pressing the browse button"""
+        filename = QFileDialog.getOpenFileName("",self.__filter, self)
+        print '** nBrowse(): filename =',filename
+        self.combo.setCurrentText(filename)     
+        return True
 
     #-------------------------------------------------------------------------
 

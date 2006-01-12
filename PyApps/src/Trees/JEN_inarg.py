@@ -743,7 +743,7 @@ def result(rr=None, pp=None, attach=None, trace=True):
 
 def define(pp, key=None, default=None,
            choice=None, editable=None, tf=None,
-           mandatory_type=None,
+           mandatory_type=None, browse=None,
            range=None, min=None, max=None,
            help=None, hide=None, trace=False):
    """Define a pp entry with a default value, and other info.
@@ -777,8 +777,9 @@ def define(pp, key=None, default=None,
 
    # Put the extra info into the control record:
    # (Use a dict (rr) to drive the loop below)
-   rr = dict(choice=choice, editable=editable, tf=tf,
+   rr = dict(choice=choice, editable=editable, 
              mandatory_type=mandatory_type,
+             browse=browse,
              range=range, min=min, max=max,
              hide=hide, help=help)
    s2 = '- CTRL_record:'
@@ -822,6 +823,8 @@ def test1(ns=None, object=None, **inarg):
           help='multiline help \n for list', trace=True)
    define(pp, 'hide', 'the rain in spain', hide=True,
           help='multiline help for hide', trace=True)
+   define(pp, 'py_file', 'xxx.py', browse='*.py',
+          help='open a .py file', trace=True)
    pp.setdefault('ref_ref_aa', 'ref_aa')
    pp.setdefault('ref_aa', 'aa')
    define(pp, 'nested', True, tf=True, trace=True)
