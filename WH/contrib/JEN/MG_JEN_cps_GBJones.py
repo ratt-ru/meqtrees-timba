@@ -40,7 +40,6 @@ from numarray import *
 from Timba.Trees import JEN_inarg
 from Timba.Trees import TDL_Cohset
 from Timba.Trees import TDL_Joneset
-from Timba.Trees import TDL_MSauxinfo
 # from Timba.Trees import TDL_Sixpack
 
 from Timba.Contrib.JEN import MG_JEN_Cohset
@@ -233,13 +232,6 @@ if MG['insert_solver_GBJones']:
 
 MG_JEN_forest_state.init(MG['script_name'])
 
-
-#====================================================================================
-# The MSauxinfo object contains auxiliary MS info (nodes):
-# It is used at various points in this module, e.g. make_sinks()
-
-MSauxinfo = TDL_MSauxinfo.MSauxinfo(label=MG['script_name'])
-MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
 
 
 

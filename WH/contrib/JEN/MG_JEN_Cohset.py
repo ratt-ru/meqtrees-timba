@@ -18,6 +18,7 @@
 # - 29 dec 2005: redundancy calibration
 # - 01 jan 2006: implement chain and master solver schemes
 # - 03 jan 2006: resampling: move argument num_cells to insert_solver
+# - 11 jan 2006: make function MSauxinfo()
 
 # Copyright: The MeqTree Foundation 
 
@@ -89,8 +90,7 @@ def make_spigots(ns=None, Cohset=None, **inarg):
     spigots = Cohset.cohs()
 
     # Create the nodes expected by read_MS_auxinfo.py 
-    global MSauxinfo
-    MSauxinfo.create_nodes(ns)
+    MSauxinfo().create_nodes(ns)
 
     # Append the initial (spigot) Cohset to the forest state object:
     # MG_JEN_forest_state.object(Cohset, funcname)
@@ -161,8 +161,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     # Attach array visualisation nodes:
     start = []
     if pp['visu_array_config']:
-       global MSauxinfo
-       dcoll = MSauxinfo.dcoll(ns)
+       dcoll = MSauxinfo().dcoll(ns)
        for i in range(len(dcoll)):
           MG_JEN_forest_state.bookmark(dcoll[i], page='MSauxinfo_array_config')
        start.extend(dcoll)
@@ -217,7 +216,9 @@ def predict (ns=None, Sixpack=None, Joneset=None, **inarg):
 
     # Optionally, multiply the Cohset with the KJones (DFT) Joneset
     if False:
-       KJones = MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack, _inarg=pp)
+       KJones = MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
+                                       MSauxinfo=MSauxinfo(),
+                                       _inarg=pp)
        Cohset.corrupt (ns, Joneset=KJones)
 
     # Optionally, corrupt the Cohset visibilities with the instrumental effects
@@ -328,10 +329,7 @@ def insert_solver(ns=None, measured=None, predicted=None, **inarg):
                      help='ModRes argument [ntime, nfreq]')
     JEN_inarg.define(pp, 'redun', tf=False,
                      help='if True, use redundant baseline calibration')
-    JEN_inarg.define(pp, 'chain_solvers', tf=True, hide=True,
-                     help='if True, chain the solver(s)')
-    JEN_inarg.define(pp, 'master_reqseq', tf=False,
-                     help='if True, make a master_reqseq for all solver(s)')
+    inarg_solver_config (pp)
     JEN_inarg.define(pp, 'visu', tf=True,
                      help='if True, include full visualisation')
     JEN_inarg.define(pp, 'subtract', tf=False,
@@ -785,17 +783,16 @@ def punit2Sixpack(ns, punit='uvp'):
 
 
 
+#----------------------------------------------------------------------------------------------------
+# inarg_functons (definition of groups of input arguments):
+#----------------------------------------------------------------------------------------------------
 
-#********************************************************************************
-#********************************************************************************
-#************* PART III: MG control record (may be edited here)******************
-#********************************************************************************
-#********************************************************************************
 
 def inarg_polrep (rr, **pp):
     JEN_inarg.define (rr, 'polrep', 'linear', choice=['linear','circular'],
                       help='polarisation representation')
     return True
+
 
 def inarg_punit (rr, **pp):
     punits = ['unpol','unpol2','unpol10','3c147','RMtest','QUV','QU','SItest']
@@ -811,25 +808,57 @@ def inarg_punit (rr, **pp):
                       '- 3c147:')
     return True
 
+
 def inarg_general (rr, **pp):
     JEN_inarg.define (rr, 'last_changed', 'd11jan2006', editable=False)
     inarg_polrep(rr)
     inarg_punit(rr)
+    inarg_solver_config (rr)
+    inarg_redun(rr)
+    inarg_stations(rr)
+    inarg_parmtable(rr)
+    return True
+
+# Copied from MG_JEN_Cohset.py:
+# JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
+# MG_JEN_Cohset.inarg_stations(MG)
+# MG_JEN_Cohset.inarg_parmtable(MG)
+# MG_JEN_Cohset.inarg_polrep(MG)
+# MG_JEN_Cohset.inarg_punit(MG)
+# MG_JEN_Cohset.inarg_solver_config (MG)
+# MG_JEN_Cohset.inarg_redun(MG)
+
+
+def inarg_parmtable (rr, **pp):
+    JEN_inarg.define (rr, 'parmtable', None, choice=[],
+                      help='name of MeqParm table to be used')
+    return True
+
+
+def inarg_stations (rr, **pp):
     JEN_inarg.define (rr, 'stations', range(4),
                       choice=[range(7),range(14),range(15)],
                       help='the (subset of) stations to be used')
-    JEN_inarg.define (rr, 'redun', tf=False,
-                      help='if True, redundant spacing calibration')
-    JEN_inarg.define (rr, 'master_reqseq', tf=False, hide=True,
-                      help='if True, use a master reqseq for solver(s)')
-    JEN_inarg.define (rr, 'chain_solvers', tf=True, hide=True,
-                      help='if True, chain the solvers (recommended)')
-    JEN_inarg.define (rr, 'parmtable', None, choice=[],
-                      help='name of MeqParm table to be used')
     # Derive a list of ifrs from rr['stations'] (assumed to exist):
     JEN_inarg.define (rr, 'ifrs', TDL_Cohset.stations2ifrs(rr['stations']), hide=True,
                       help='list if ifrs (derived from stations)')
     return True
+
+
+def inarg_redun (rr, **pp):
+    JEN_inarg.define (rr, 'redun', tf=False,
+                      help='if True, redundant spacing calibration')
+    return True
+
+
+
+def inarg_solver_config (rr, **pp):
+    JEN_inarg.define (rr, 'chain_solvers', tf=True, hide=True,
+                      help='if True, chain the solvers (recommended)')
+    JEN_inarg.define (rr, 'master_reqseq', tf=False, hide=True,
+                      help='if True, use a master reqseq for solver(s)')
+    return True
+
 
 
 def inarg_stream_control (rr, **pp):
@@ -849,12 +878,20 @@ def inarg_stream_control (rr, **pp):
                       choice=['CORRECTED_DATA'],
                       help='MS output column')
     if False:
-        # Temporarily disabled (' ' does not play well)
+        # Temporarily disabled (empty string ' ' does not play well with inargGui...)
         JEN_inarg.define (rr, 'selection_string', ' ',
                           choice=['TIME_CENTROID<4615466159.46'],
                           help='TaQL (AIPS++ Table Query Language) data-selection')
     return True
 
+
+
+
+#********************************************************************************
+#********************************************************************************
+#************* PART III: MG control record (may be edited here)******************
+#********************************************************************************
+#********************************************************************************
 
 #----------------------------------------------------------------------------------------------------
 # Intialise the MG control record with some overall arguments 
@@ -1072,8 +1109,13 @@ MG_JEN_forest_state.init(MG['script_name'])
 # The MSauxinfo object contains auxiliary MS info (nodes):
 # It is used at various points in this module, e.g. make_sinks()
 
-MSauxinfo = TDL_MSauxinfo.MSauxinfo(label=MG['script_name'])
-MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
+def MSauxinfo(create=False):
+    global msauxinfo
+    if create:
+        msauxinfo = TDL_MSauxinfo.MSauxinfo(label='MG_JEN_Cohset')
+        msauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
+    return msauxinfo
+MSauxinfo(create=True)
 
 
 

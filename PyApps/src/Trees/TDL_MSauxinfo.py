@@ -7,7 +7,8 @@
 #
 # History:
 #    - 04 dec 2005: creation
-#    - 05 jan 2006: added dcoll v vs w 
+#    - 05 jan 2006: added dcoll v vs w
+#    - 11 jan 2006: used in MG_JEN_Joneset::KJones()
 #
 # Full description:
 #   The MS is read by the kernel when the tree is executed,
@@ -159,13 +160,62 @@ class MSauxinfo (TDL_common.Super):
         return True
 
 
+    #--------------------------------------------------------------------
+    # Interaction with phase centre coordinates
+    #--------------------------------------------------------------------
+
+    def radec0(self, new=None):
+        """Get/set RA,DEC of phase centre"""
+        print '.radec0(): not yet implemented'
+        if new:
+            # Make new station_uvw nodes.....
+            pass
+        # return self.__node_radec0
+
+    def ra0(self, new=None):
+        """Get/set RA of phase centre"""
+        print '.ra0(): not yet implemented'
+        if new:
+            # Make new station_uvw nodes.....
+            pass
+        # return self.__node_ra0
+
+    def dec0(self, new=None):
+        """Get/set DEC of phase centre"""
+        print '.dec0(): not yet implemented'
+        if new:
+            # Make new station_uvw nodes.....
+            pass
+        # return self.__node_dec0
+
+    #--------------------------------------------------------------------
+
+    def node_radec0(self): return self.__node_radec0
+    def node_ra0(self): return self.__node_ra0
+    def node_dec0(self): return self.__node_dec0
+
     def station_keys(self): return self.__station_keys
 
     def node_xyz(self, key=None):
-        """Return the requested node_xyz(s)"""
+        """Return the requested station xyz node(s)"""
         if not key: return self.__nodes_xyz                # all
+        if not self.__nodes_xyz.has_key(key):
+            print '** .node_xyz(',key,'): not recognised in:',self.__nodes_xyz.keys()
+            return False
         return self.__nodes_xyz[key]                       # one
 
+    def node_station_uvw(self, key=None, ns=None):
+        """Return the requested station uvw node(s)"""
+        if len(self.__nodes_station_uvw)==0:
+            if ns: self.create_station_uvw_nodes(ns)
+        if not key: return self.__nodes_station_uvw        # all
+        if not self.__nodes_station_uvw.has_key(key):
+            print '** .node_station_uvw(',key,'): not recognised in:',self.__nodes_station_uvw.keys()
+            return False
+        return self.__nodes_station_uvw[key]               # one
+
+
+    #--------------------------------------------------------------------
 
     def station_config_default(self, stations=range(14)):
         """Create a a default station configuration"""
@@ -179,10 +229,6 @@ class MSauxinfo (TDL_common.Super):
             print '-',k,skey,self.__xyz[skey]
         print
         return True
-
-    def node_radec0(self): return self.__node_radec0
-    def node_ra0(self): return self.__node_ra0
-    def node_dec0(self): return self.__node_dec0
 
     def create_radec_nodes(self, ns):
         """Create the (RA,DEC) nodes expected by read_MS_auxinfo(hdr)
@@ -241,8 +287,8 @@ class MSauxinfo (TDL_common.Super):
         return True
 
 
-    def make_station_uvw_nodes(self, ns):
-        """Make station-based MeqUVW nodes related to (ra0,dec0)"""
+    def create_station_uvw_nodes(self, ns):
+        """Create station-based MeqUVW nodes related to (ra0,dec0)"""
         if len(self.__nodes_station_uvw)>0: return True    # Do once only....
         first = True
         cc = []
@@ -287,7 +333,7 @@ class MSauxinfo (TDL_common.Super):
     def make_uvw_nodes(self, ns):
         """Make nodes with ifr-based uvw, for plotting"""
         if len(self.__nodes_uvw)>0: return True          # do only once
-        self.make_station_uvw_nodes(ns)                  # just in case
+        self.create_station_uvw_nodes(ns)                  # just in case
         skeys = self.station_keys()
         for i in range(len(skeys)):
             for j in range(len(skeys)):
@@ -501,7 +547,7 @@ if __name__ == '__main__':
         obj.make_dpos_nodes(ns)
 
     if 0:
-        obj.make_station_uvw_nodes(ns)
+        obj.create_station_uvw_nodes(ns)
         obj.make_uvw_nodes(ns)
         obj.dcoll_uvsv(ns)
         obj.dcoll_uvsw(ns)

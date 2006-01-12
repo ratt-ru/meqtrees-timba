@@ -18,6 +18,7 @@
 # - 07 dec 2005: introduced Parmset.define_condeq()
 # - 10 jan 2006: tile_size -> subtile_size
 # - 10 jan 2006: pp.setdefault() -> JEN_inarg.define(pp)
+# - 11 jan 2006: KJones with MSauxinfo
 
 # Copyright: The MeqTree Foundation 
 
@@ -548,12 +549,61 @@ def DJones_WSRT (ns=0, **inarg):
 #--------------------------------------------------------------------------------
 # KJones: diagonal 2x2 matrix for DFT Fourier kernel
 # This function requires a Sixpack as input!
+# And also an MSauxinfo object (see TDL_MSauxinfo.py and MG_JEN_Cohset.py)
 #--------------------------------------------------------------------------------
 
-def KJones (ns=0, Sixpack=None, **inarg):
+def KJones (ns=0, Sixpack=None, MSauxinfo=None, **inarg):
+   """defines diagonal KJones matrices for DFT Fourier kernel""";
+
+   jones = 'KJones'
+   
+   # Input arguments:
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='12dec2005')
+   pp.setdefault('stations', [0])                   # range of station names/numbers
+   pp.setdefault('unsolvable', True)                # if True, do NOT store solvegroup/parmgroup info
+   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+   if not JEN_inarg.is_OK(pp): return False
+   funcname = JEN_inarg.localscope(pp)
+   label = jones+JEN_inarg.qualifier(pp)
+   
+   adjust_for_telescope(pp, origin=funcname)
+
+   if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
+   punit = Sixpack.label()
+
+   # Create a Joneset object
+   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+
+   # Calculate punit (l,m,n) from input Sixpack:
+   radec = Sixpack.radec()
+   radec0 = MSauxinfo.radec0()
+   lmn   = ns.lmn  (q=punit) << Meq.LMN(radec_0=radec0, radec=radec)
+   n     = ns.n    (q=punit) << Meq.Selector(lmn, index=2)
+   lmn1  = ns.lmn_minus1(q=punit) << Meq.Paster(lmn, n-1, index=2)
+   sqrtn = ns << Meq.Sqrt(n)
+   
+   # The 2x2 KJones matrix is diagonal, with identical elements (Kmel) 
+   for station in pp['stations']:
+      skey = TDL_radio_conventions.station_key(station)
+      uvw = MSauxinfo.node_station_uvw(skey, ns=ns)
+      Kmel = ns.dft(s=skey, q=punit) << Meq.VisPhaseShift(lmn=lmn1, uvw=uvw)/sqrtn
+      stub = ns[label](s=skey, q=punit) << Meq.Matrix22 (Kmel,0,0,Kmel)
+      js.append(skey, stub)
+
+
+   # Finished:
+   js.Parmset.cleanup()
+   MG_JEN_forest_state.object(js, funcname)
+   return js
+
+
+
+
+
+def KJones_old (ns=0, Sixpack=None, **inarg):
   """defines diagonal KJones matrices for DFT Fourier kernel""";
 
-  jones = 'KJones'
+  jones = 'KJones_old'
 
   # Input arguments:
   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='12dec2005')
@@ -603,6 +653,18 @@ def KJones (ns=0, Sixpack=None, **inarg):
 
 
 
+
+
+
+
+
+
+
+
+
+
+#======================================================================================
+#======================================================================================
 #======================================================================================
 # Joneset/Joneseq visualisation:
 #======================================================================================
@@ -1047,41 +1109,47 @@ if __name__ == '__main__':
   ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
   scope = MG['script_name']
 
-  if 0:
-    Sixpack = punit2Sixpack(ns, punit='uvp')
-    js = KJones (ns, stations=stations, scope=scope, Sixpack=Sixpack)
-    js.display()     
-    display_first_subtree (js, full=1)
-
   if 1:
-    inarg = GJones (_getdefaults=True)
-    from Timba.Trees import JEN_inargGui
-    igui = JEN_inargGui.ArgBrowser()
-    igui.input(inarg)
-    igui.launch()
+     from Timba.Trees import TDL_MSauxinfo
+     MSauxinfo = TDL_MSauxinfo.MSauxinfo(label='MG_JEN_Cohset')
+     MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
+     MSauxinfo.create_nodes(ns)
+     # Sixpack = punit2Sixpack(ns, punit='uvp')
+     inarg = KJones (_getdefaults=True)
+     JEN_inarg.modify(inarg, stations=stations)
+     js = KJones (ns, MSauxinfo=MSauxinfo,_inarg=inarg)
+     js.display()     
+     display_first_subtree (js, full=True)
 
   if 0:
-    # jseq = TDL_Joneset.Joneseq(origin='MG_JEN_Joneset')
-    jseq = Joneseq()
-    jseq.append(GJones (ns, scope=scope, stations=stations))
-    jseq.append(BJones (ns, scope=scope, stations=stations))
-    jseq.append(FJones (ns, scope=scope, stations=stations))
-    # jseq.append(DJones_WSRT (ns, stations=stations))
-    jseq.display()
-    js = jseq.make_Joneset(ns)
-    js.display()     
-    display_first_subtree (js, full=1)
+     inarg = GJones (_getdefaults=True)
+     from Timba.Trees import JEN_inargGui
+     igui = JEN_inargGui.ArgBrowser()
+     igui.input(inarg)
+     igui.launch()
 
   if 0:
-    js = GJones (ns, stations=stations)
-    dconc = visualise(ns, js)
-    MG_JEN_exec.display_object (dconc, 'dconc')
-    MG_JEN_exec.display_subtree (dconc, 'dconc', full=1)
+     # jseq = TDL_Joneset.Joneseq(origin='MG_JEN_Joneset')
+     jseq = Joneseq()
+     jseq.append(GJones (ns, scope=scope, stations=stations))
+     jseq.append(BJones (ns, scope=scope, stations=stations))
+     jseq.append(FJones (ns, scope=scope, stations=stations))
+     # jseq.append(DJones_WSRT (ns, stations=stations))
+     jseq.display()
+     js = jseq.make_Joneset(ns)
+     js.display()     
+     display_first_subtree (js, full=1)
+
+  if 0:
+     js = GJones (ns, stations=stations)
+     dconc = visualise(ns, js)
+     MG_JEN_exec.display_object (dconc, 'dconc')
+     MG_JEN_exec.display_subtree (dconc, 'dconc', full=1)
 
 
   if 0:
-    MG_JEN_exec.display_object (MG, 'MG', MG['script_name'])
-    # MG_JEN_exec.display_subtree (rr, MG['script_name'], full=1)
+     MG_JEN_exec.display_object (MG, 'MG', MG['script_name'])
+     # MG_JEN_exec.display_subtree (rr, MG['script_name'], full=1)
   print '\n** End of local test of:',MG['script_name'],'\n*******************\n'
 
 #********************************************************************************
