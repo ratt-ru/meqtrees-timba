@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import sys
+import atexit
+from Timba.Meq import meqds
 
 # first things first: setup app defaults from here and from
 # command line (this has to go first, as other modules being imported
@@ -71,14 +73,17 @@ class meqserver (app_proxy):
       self.dprint(1,'you can disable this by calling .track_results(False)');
   
   # define meqserver-specific methods
-  def meq (self,command,args=None,wait=False,silent=False):
-    "sends a meq-command and optionally waits for result";
+  def meq (self,command,args=None,wait=None,silent=False):
+    """sends a meq-command and optionally waits for result.
+    wait can be specified in seconds, or True to wait indefinitely.""";
     command = make_hiid(command);
     payload = record();
     if not args is None:
       payload.args = args;
     # send command and wait for reply
     if wait:
+      if isinstance(wait,bool):
+        wait = None;       # timeout=None means block indefinitely
       if silent:
         self.dprint(0,'warning: both wait and silent specified, ignoring silent flag');
       payload.request_id = self.new_rqid();
@@ -87,7 +92,7 @@ class meqserver (app_proxy):
       self.dprint(5,'arguments are ',args);
       self.pause_events();
       self.send_command('command'+command,payload);
-      msg = self.await(replyname,resume=True);
+      msg = self.await(replyname,resume=True,timeout=wait);
       return msg.payload;
     # else simply send command
     else: 
@@ -110,8 +115,8 @@ class meqserver (app_proxy):
     initrec = make_record(initrec);
     return self.meq('Create.Node',initrec,wait=wait,silent=silent);
   
-  def getnodestate (self,node):
-    return self.meq('Node.Get.State',self.makenodespec(node),wait=True);
+  def getnodestate (self,node,wait=True):
+    return self.meq('Node.Get.State',self.makenodespec(node),wait=wait);
   
   def getnodeindex (self,name):
     retval = self.meq('Get.NodeIndex',self.makenodespec(name),wait=True);
@@ -169,7 +174,11 @@ def default_mqs (debug={},**kwargs):
     args = app_defaults.args;
     args.update(kwargs);
     # print 'meqserver args:',args;
+    spawn = args.get('spawn',None);
     mqs = meqserver(**args);
+    meqds.set_meqserver(mqs);
+    if spawn:
+      atexit.register(stop_default_mqs);
     if debug is None:
       pass;
     else:

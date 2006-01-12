@@ -4,6 +4,7 @@ from Timba.TDL import *
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
 # This is a record passed to Set.Forest.State. 
 Settings.forest_state.cache_policy = 100;
+Settings.forest_state.a = None;
 
 # Make sure our solver root node is not cleaned up
 Settings.orphans_are_roots = True;
@@ -32,15 +33,14 @@ def _test_forest (mqs,parent):
   from Timba.Meq import meq
   # run tests on the forest
   cells = meq.cells(meq.domain(0,1,0,1),num_freq=6,num_time=4);
-  request = meq.request(cells,eval_mode=0);
+  request = meq.request(cells,rqtype='ev');
   mqs.meq('Node.Execute',record(name='x',request=request));
   mqs.meq('Save.Forest',record(file_name='tile_test.forest.save'));
   # execute request on solver
-  request = meq.request(cells,eval_mode=1);
+  request = meq.request(cells,rqtype='ev');
 #  mqs.meq('Node.Set.Breakpoint',record(name='solver'));
 #  mqs.meq('Debug.Set.Level',record(debug_level=100));
   a = mqs.meq('Node.Execute',record(name='solver',request=request),wait=True);
-  print a;
 
 def _tdl_job_test1 (mqs,parent):
   """this is a test job. You can see it appear in the menu automatically."""

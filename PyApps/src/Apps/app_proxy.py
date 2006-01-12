@@ -275,15 +275,22 @@ class app_proxy (verbosity):
     # forward to gui
     self._gui_event_handler(event,value);
     
-  def ensure_connection (self,wait=-1):
+  def ensure_connection (self,wait=True):
     """If app is not connected, waits for the specified number of seconds
-    for it to connect. If wait<0, waits forever.""";
+    for it to connect. If wait=True, waits forever. If wait=None/False, 
+    does not wait at all.""";
+    if not wait:
+      wait = 0;
+    elif isinstance(wait,bool):
+      wait = -1;
     try:
       self._pwp.pause_events();
       if wait >= 0:
         endtime = time.time() + wait;
+        timeout = min(wait,5);
       else:
         endtime = time.time() + 1e+40;
+        timeout = 5;
       while self.state is None:
         self.dprint(2,'no connection to app, awaiting (wait=',wait,')');
         res = self._pwp.await('*',resume=True,timeout=5);  # await anything, but keep looping until status changes
