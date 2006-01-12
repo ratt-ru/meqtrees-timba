@@ -131,7 +131,7 @@ class QwtColorBar(QwtPlot):
       self.plotImage.setLogScale(self.log_scale)
       self.plotImage.setLogYScale(self.log_scale)
       if self.log_scale:
-        self.setAxisOptions(QwtPlot.yLeft, QwtAutoScale.Logarithmic)
+        self.setAxisOptions(QwtPlot.yLeft, QwtAutoScale.Floating | QwtAutoScale.Logarithmic)
       else:
         self.setAxisOptions(QwtPlot.yLeft, QwtAutoScale.None)
 
@@ -158,8 +158,9 @@ class QwtColorBar(QwtPlot):
         self.max = self.image_max
         if self.log_scale:
           if self.min <= 0.0:
-            self.min = -1.0 * self.min + 1.0
-            self.max = self.max + self.min
+            offset = -1.0 * self.min + 0.001
+            self.min = self.min + offset
+            self.max = self.max + offset
             self.image_min = self.min
             self.image_max = self.max
           max = log(self.max)

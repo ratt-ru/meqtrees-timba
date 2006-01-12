@@ -203,8 +203,8 @@ class QwtPlotImage(QwtPlotMappedItem):
       image_min = incoming_image.min()
       if image_min <= 0.0:
         image_min = -1.0 * image_min
-        transform_image = 1.0 + image_min  + incoming_image
-        self.transform_offset = 1.0 + image_min
+        self.transform_offset = 0.001 + image_min
+        transform_image = self.transform_offset + incoming_image
       scale_min = transform_image.min()
       scale_max = transform_image.max()
       if scale_min == scale_max:

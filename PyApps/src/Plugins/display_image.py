@@ -188,6 +188,7 @@ class QwtImageDisplay(QwtPlot):
         self.vells_menu_items = 0
         self.zooming = False
         self.setlegend = 0
+        self.log_offset = 0.0
         self.setAutoLegend(self.setlegend)
         self.enableLegend(False)
         self.setLegendFont(font)
@@ -209,6 +210,7 @@ class QwtImageDisplay(QwtPlot):
         self.myYScale = None
         self.active_image = False
         self.info_marker = None
+        self.log_marker = None
         self.source_marker = None
         self.array_tuple = None
 
@@ -419,6 +421,10 @@ class QwtImageDisplay(QwtPlot):
         if self.complex_type:
           image_limits = self.plotImage.getImagImageRange()
           self.emit(PYSIGNAL("max_image_range"),(image_limits, 1,self.toggle_log_display) )
+        self.log_offset = 0.0
+        if self.toggle_log_display:
+          self.log_offset = self.plotImage.getTransformOffset()
+        self.insert_array_info()
         if self.show_x_sections:
           self.calculate_cross_sections()
         self.replot()
@@ -489,6 +495,7 @@ class QwtImageDisplay(QwtPlot):
       if self.is_combined_image:
         self.removeMarkers()
         self.info_marker = None
+        self.log_marker = None
         self.source_marker = None
         self.is_combined_image = False
 
@@ -881,6 +888,7 @@ class QwtImageDisplay(QwtPlot):
     def refresh_marker_display(self):
       self.removeMarkers()
       self.info_marker = None
+      self.log_marker = None
       self.source_marker = None
       if self.is_combined_image:
         self.insert_marker_lines()
@@ -1119,13 +1127,17 @@ class QwtImageDisplay(QwtPlot):
           start_y = self.vells_axis_parms[self.y_parm][0] + 0.5 * y_step
           for i in range(shape[1]):
             self.y_index[i] = start_y + i * y_step
+
+        self.log_offset = 0.0
+        if self.toggle_log_display:
+          self.log_offset = self.plotImage.getTransformOffset()
         if self.complex_type:
           limit = shape[0] / 2
-          self.setCurveData(self.xrCrossSection, self.x_index[:limit], self.x_array[:limit])
-          self.setCurveData(self.xiCrossSection, self.x_index[limit:], self.x_array[limit:])
+          self.setCurveData(self.xrCrossSection, self.x_index[:limit], self.x_array[:limit] + self.log_offset)
+          self.setCurveData(self.xiCrossSection, self.x_index[limit:], self.x_array[limit:] + self.log_offset)
         else:
-          self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
-        self.setCurveData(self.yCrossSection, self.y_array, self.y_index)
+          self.setCurveData(self.xrCrossSection, self.x_index, self.x_array + self.log_offset)
+        self.setCurveData(self.yCrossSection, self.y_array + self.log_offset, self.y_index)
 
         self.refresh_marker_display()
         self.show_x_sections = True
@@ -1262,6 +1274,20 @@ class QwtImageDisplay(QwtPlot):
         self.setMarkerLabel( self.info_marker, self.array_parms,
           QFont(fn, 7, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
+
+      if not self.log_marker is None:
+        self.removeMarker(self.log_marker)
+      if self.log_offset > 0.0:
+        temp_str = "Log offset: %-.3g" % self.log_offset
+        self.log_marker = self.insertMarker()
+        ylb = self.axisScale(QwtPlot.yLeft).lBound()
+        xlb = self.axisScale(QwtPlot.xBottom).hBound()
+        self.setMarkerPos(self.log_marker, xlb, ylb)
+        self.setMarkerLabelAlign(self.log_marker, Qt.AlignLeft | Qt.AlignTop)
+        self.setMarkerLabel( self.log_marker, temp_str,
+          QFont(fn, 7, QFont.Bold, False),
+          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
+      
 
     # insert_array_info()
 
@@ -1448,6 +1474,7 @@ class QwtImageDisplay(QwtPlot):
       if data_label == 'spectra: combined image':
         self.removeMarkers()
         self.info_marker = None
+        self.log_marker = None
         self.source_marker = None
         self.is_combined_image = True
         self.reset_color_bar(True)
