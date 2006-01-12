@@ -328,7 +328,7 @@ def insert_solver(ns=None, measured=None, predicted=None, **inarg):
                      help='ModRes argument [ntime, nfreq]')
     JEN_inarg.define(pp, 'redun', tf=False,
                      help='if True, use redundant baseline calibration')
-    JEN_inarg.define(pp, 'chain_soilvers', tf=True, hide=True,
+    JEN_inarg.define(pp, 'chain_solvers', tf=True, hide=True,
                      help='if True, chain the solver(s)')
     JEN_inarg.define(pp, 'master_reqseq', tf=False,
                      help='if True, make a master_reqseq for all solver(s)')
