@@ -4,14 +4,30 @@ from Timba.Apps import assayer
 
 import sys
 import traceback
+import os
 
 # testing branch
 if __name__ == '__main__':
-
+  os.system("killall -9 meqserver meqserver-opt");
+  
   ass = assayer.assayer("tdl_test");
+
   ass.compile("tdl_test.tdl");
+
+  ass.init_test("default");
+
   ass.watch_node('x','cache.result');
-  stat = ass.run(watch="solver/cache.result",inspect=("x/cache.result","solver/cache.result"));
+
+  ass.run();
+
+  ass.inspect("x/cache.result");
+  ass.inspect("solver/cache.result");
+
+  stat = ass.finish();
+
   if stat:
     print "ASSAY FAILED: ",stat;
-  sys.exit(stat);
+  else:
+    print "ASSAY SUCCEEDED";
+    
+  

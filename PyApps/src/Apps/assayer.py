@@ -3,6 +3,7 @@ from Timba.TDL import Compile
 from Timba.Meq import meqds
 from Timba.utils import *
 from Timba import dmi
+from Timba import octopussy
 
 import sys
 import traceback
@@ -57,32 +58,45 @@ class logger (file):
     return self.writelines([prefix+line for line in args]);
     
 class assayer (object):
-  def __init__ (self,testname=None):
-    self.mqs = meqserver.default_mqs(wait_init=10);
+  def __init__ (self,name,log=True,nokill=None):
+    self.recording = "-assayrecord" in sys.argv;
+    # if nokill is not explicitly specified, leave kernel running when recording
+    if nokill is None:
+      nokill = self.recording;
+    self.name = name;
+    self.mqs = meqserver.default_mqs(wait_init=10,nokill=True);
     self.mqs.whenever("*",self._kernel_event_handler);
     self.mqs.whenever("node.result",self._node_snapshot_handler);
     self.tdlmod = self.logger = self.testname = None;
     self.watching = [];
     self.testname = None;
-    self.recording = "-assayrecord" in sys.argv;
     self.default_tol = 1e-6;   # default comparison tolerance
     self.time_tol    = .2;     # default time tolerance
     self.hostname = os.popen('hostname').read().rstrip();
-    if testname:
-      self.init_test(testname);
+    # open log and dump initial messages
+    if log:
+      self.logger = logger(self.name+".assaylog");
+      self.logf("start of log for assayer %s",self.name);
+      
+  def __del__ (self):
+    if self.mqs is not None:
+      _dprint(0,"stopping meqserver");
+      self.mqs.halt();
+      self.mqs.disconnect();
+      octopussy.stop();
       
   def log (self,*args):
-    _dprint(1,*args);
+    _dprint(1,*args+('\n',));
     if self.logger:
       self.logger.log(*args);
       
   def logf (self,*args):
-    _dprintf(1,*args);
+    _dprintf(1,args[0]+"\n",*args[1:]);
     if self.logger:
       self.logger.logf(*args);
   
   def logs (self,*args):
-    _dprint(1,*args);
+    _dprint(1,*args+('\n',));
     if self.logger:
       self.logger.logs(*args);
       
@@ -99,32 +113,39 @@ class assayer (object):
       
   def set_time_tolerance (self,tol):
     self.time_tol = tol;
+    
+  def compile (self,script):
+    try:
+      self.script = script;
+      _dprint(0,"compiling",script);
+      (self.tdlmod,msg) = Compile.compile_file(self.mqs,script);
+      _dprintf(0,"compiled %s: %s",script,msg);
+      self.logf("compiled TDL script %s: %s",script,msg);
+    except:
+      self.logexc();
+      raise;
       
-  def init_test (self,name,log=True):
-    self.watching = [];
-    self.testname = name;
-    if log:
-      if not isinstance(log,str):
-        log = name;
-      # open log and dump initial messages
-      self.logger = logger(log+".assaylog");
-      self.logf("start of log for test '%s' on host %s",name,self.hostname)
-      if self.tdlmod:
-        self.log("already compiled TDL script",self.script);
+  def init_test (self,name):
+    try:
+      if self.testname is not None:
+        self.finish_test();
+      self._assay_stat = 0;
+      self.watching = [];
+      self.testname = name;
+      self.logf("START: test '%s'",name);
+      if not self.tdlmod:
+        raise AssaySetupError("FAIL: can't init_test because no script is compiled");
       # load assay data for the sake of per-host timings
-      self._load_assay_data();
+      self.datafile = '.'.join((self.name,name,'data-assay'));
+      if not self._load_assay_data(self.datafile):
+        if self.recording:
+          self._recorded_time = {};
+        else:
+          raise AssaySetupError("FAIL: no assay data "+self.datafile);
       if self.recording:
         self.log("RECORDING assay data, no comparisons will be done");
         self._sequences = {};
         self._inspections = {};
-        self._recorded_time = {};
-      
-  def compile (self,script):
-    try:
-      self.script = script;
-      (self.tdlmod,msg) = Compile.compile_file(self.mqs,script);
-      _dprintf(0,"compiled %s: %s",script,msg);
-      self.logf("compiled TDL script %s: %s",script,msg);
     except:
       self.logexc();
       raise;
@@ -148,30 +169,15 @@ class assayer (object):
       self.logexc();
       raise;
     
-  def run (self,procname="_test_forest",test=None,watch=None,inspect=None):
+  def run (self,procname="_test_forest",**kwargs):
     try:
       if self.tdlmod is None:
         raise AssaySetupError,"no TDL script compiled";
-      # setup test name, if specified
-      if test:
-        self.init_test(testname);
       self._assay_stat = 0;
       # check that procedure exists
       proc = getattr(self.tdlmod,procname,None);
       if not callable(proc):
         raise AssaySetupError,"no "+procname+"() in compiled script";
-      # check for watch-nodes
-      if watch:
-        if not self.testname:
-          raise AssaySetupError,"can't watch nodes: no test specified";
-        if isinstance(watch,str):
-          self.watch(watch);
-        else:
-          for nodespec in watch:
-            self.watch(nodespec);
-      # check for inspection nodes
-      if inspect and not self.testname:
-        raise AssaySetupError,"can't inspect nodes: no test specified";
       # now, enable publishing for specified watch nodes
       if self.watching:
         for (node,field,tol) in self.watching:
@@ -179,7 +185,7 @@ class assayer (object):
       # run the specified procedure
       self.logf("running %s(), test %s",procname,self.testname);
       dt = time.time();
-      retval = proc(self.mqs,None);
+      retval = proc(self.mqs,None,**kwargs);
       self._assay_time(time.time() - dt);
       # inspect return value
       if self.recording:
@@ -200,27 +206,50 @@ class assayer (object):
             self.log("  error is: ",exc.__class__.__name__,*map(str,exc.args));
           else:
             self.logf("%s() return value ok",procname);
-      # inspect nodes from list, if any
-      if inspect is not None:
-        if isinstance(inspect,str):
-          self.inspect(inspect);
-        else:
-          for nodespec in inspect:
-            self.inspect(nodespec);
-      # in record mode, dump recording results
-      if not self._assay_stat and self.recording:
-        self._record_assay_data();
     except:
+      self._assay_stat = OTHER_ERROR;
       self.logexc();
       raise;
-    # assay successful?
+    # return assay status
+    if self.logger:
+      self.logger.flush();
+    return self._assay_stat;
+    
+  def finish_test (self):
     if not self._assay_stat:
       if self.recording:
-        self.logf("SUCCESS: test %s completed",self.testname);
+        self._record_assay_data(self.datafile);
+        self.logf("SUCCESS: test '%s' assay data recorded to %s",self.testname,self.datafile);
       else:
-        self.logf("SUCCESS: test %s has been completed successfully",self.testname);
+        self.logf("SUCCESS: test '%s' completed successfully",self.testname);
     else: 
-      self.logf("FAIL: test %s, code %d",self.testname,self._assay_stat);
+      self.logf("FAIL: test '%s', code %d",self.testname,self._assay_stat);
+    self.testname = None;
+    self.watching = [];
+    return self._assay_stat;
+    
+  def finish (self):
+    if self.testname is not None:
+      self.finish_test();
+    self.logger = None;
+    # in recording mode, pause before exiting
+    if self.recording and "-nopause" not in sys.argv:
+      self.mqs.disconnect();
+      octopussy.stop();
+      if self._assay_stat:
+        print """\n*** ERROR ***: Assay data recording failed, please review the log.\n""";
+      a = raw_input("""\n\n
+Since you're running the assayer in recording mode, we have disconnected 
+from the meqserver without stopping it. You may wish to run the browser to
+ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
+      if not a or a[0].lower() == 'y':
+        os.system("meqbrowser.py");
+      print """\n\nReminder: you may need to kill the meqserver manually.""";
+    else:
+      self.mqs.halt();
+      self.mqs.disconnect();
+      octopussy.stop();
+    self.mqs = None;
     return self._assay_stat;
     
   def inspect (self,nodespec,tolerance=None):
@@ -266,7 +295,8 @@ class assayer (object):
     
   def _assay_time (self,dt):
     if self.recording:
-      self._recorded_time[self.hostname] = min(dt,1);
+      self._recorded_time[self.hostname] = dt;
+      self.logf("runtime is %.2f seconds (none recorded)",dt);
     else:
       # see if we have a timing for this host
       t0 = self._recorded_time.get(self.hostname,None);
@@ -275,7 +305,7 @@ class assayer (object):
         self.log("   you may want to re-run this test with -assayrecord");
         return;
       else:
-        self.logf("runtime is %.2g seconds vs. %.2g recorded",dt,t0);
+        self.logf("runtime is %.2f seconds vs. %.2f recorded",dt,t0);
       t0 = max(t0,1e-10);
       dt = max(dt,1e-10);
       if dt > 2 and dt > t0*(1+self.time_tol):
@@ -286,8 +316,7 @@ class assayer (object):
         self.logf("SURPISE: runtime faster by a factor of %g",t0/dt);
         
       
-  def _load_assay_data (self):
-    fname = self.testname+".data-assay";
+  def _load_assay_data (self,fname):
     # catch file-open errors and return none
     try:
       pfile = file(fname,"r");
@@ -297,26 +326,24 @@ class assayer (object):
     unpickler = cPickle.Unpickler(pfile);
     name = unpickler.load();
     if name != self.testname:
-      raise AssaySetupError,"test name in assay data file "+fname+" does not match";
+      raise AssaySetupError,"test name in data file "+fname+" does not match";
     self._recorded_time = unpickler.load();
     self._sequences = unpickler.load();
     self._inspections = unpickler.load();
     self.logf("loaded assay data from file %s",fname);
     for (host,t0) in self._recorded_time.iteritems():
-      self.logf("  host %s recorded runtime is %.2g seconds",host,t0);
+      self.logf("  host %s recorded runtime is %.2f seconds",host,t0);
     return True;
       
-  def _record_assay_data (self):
+  def _record_assay_data (self,fname):
     if not self.recording or not self.testname:
       return;
-    fname = self.testname+".data-assay";
     pfile = file(fname,"w");
     pickler = cPickle.Pickler(pfile);
     pickler.dump(self.testname);
     pickler.dump(self._recorded_time);
     pickler.dump(self._sequences);
     pickler.dump(self._inspections);
-    self.log("assay data has been recorded to file",fname);
 
   def _node_snapshot_handler (self,msg):
     try: 

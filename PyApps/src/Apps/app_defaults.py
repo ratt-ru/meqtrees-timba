@@ -13,7 +13,8 @@ args = dmi.record({
   'launch':False,'spawn':True,'opt':False,
   'verbose':0,'wp_verbose':0,
   'threads':True,
-  'gui':False
+  'gui':False,
+  'extra':(),
 });
 
 # if this is false, then all gui definitions are omitted at startup, and
@@ -23,8 +24,14 @@ include_gui = True;
 def parse_argv (argv):
   dbgre = re.compile('-d(.+)=([0-9]+)');
 
-  for arg in argv:
-    if arg == "-spawn":
+  for i in range(len(argv)):
+    arg = argv[i]
+    
+    if arg ==  "--":
+      args.extra = argv[i+1:];
+      return;
+      
+    elif arg == "-spawn":
       (args['launch'],args['spawn']) = (None,True);
       
     elif arg == "-launch":

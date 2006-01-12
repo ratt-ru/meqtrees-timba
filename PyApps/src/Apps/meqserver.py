@@ -162,7 +162,7 @@ class meqserver (app_proxy):
 mqs = None;
 
 # inits a meqserver
-def default_mqs (debug={},**kwargs):
+def default_mqs (debug={},nokill=False,**kwargs):
   global mqs;
   if not isinstance(mqs,meqserver):
     # start octopussy if needed
@@ -177,7 +177,7 @@ def default_mqs (debug={},**kwargs):
     spawn = args.get('spawn',None);
     mqs = meqserver(**args);
     meqds.set_meqserver(mqs);
-    if spawn:
+    if spawn and not nokill:
       atexit.register(stop_default_mqs);
     if debug is None:
       pass;
@@ -192,7 +192,9 @@ def stop_default_mqs ():
   if mqs: 
     mqs.halt();
     mqs.disconnect();
-  octopussy.stop();
+    mqs = None;
+  if octopussy.is_running():
+    octopussy.stop();
   
   
 #

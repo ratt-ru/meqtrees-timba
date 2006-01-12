@@ -31,6 +31,7 @@ class app_proxy (verbosity):
   def __init__(self,appid,client_id,
                launch=None,      # launch app in separate thread (disabled for now)
                spawn=None,       # spawn process (pass in process name and arguments)
+               extra=[],         # extra arguments to spawned process
                wait_init=None,   # wait for process to connect (values in seconds, <0 for unlimited)
                verbose=0,        # verbosity level
                wp_verbose=0,     # WP verbosity level
@@ -95,6 +96,8 @@ class app_proxy (verbosity):
       # first argument is app binary
       path = spawn[0];
       args = list(spawn[1:]);
+      # extra arguments (after "--" in command line)
+      args += list(app_defaults.args.extra);
       if path[0] != '/': # not absolute path, so need to search $PATH
         for dirname in os.environ['PATH'].split(':'):
           filename = os.path.join(dirname,path);
