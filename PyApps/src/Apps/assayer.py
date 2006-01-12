@@ -120,7 +120,8 @@ class assayer (object):
       _dprint(0,"compiling",script);
       (self.tdlmod,msg) = Compile.compile_file(self.mqs,script);
       _dprintf(0,"compiled %s: %s",script,msg);
-      self.logf("compiled TDL script %s: %s",script,msg);
+      lines = ["compiled TDL script %s: "%script]+msg.rstrip().split('\n');
+      self.logs(*[ s+'\n' for s in lines ]);
     except:
       self.logexc();
       raise;
@@ -186,7 +187,8 @@ class assayer (object):
       self.logf("running %s(), test %s",procname,self.testname);
       dt = time.time();
       retval = proc(self.mqs,None,**kwargs);
-      self._assay_time(time.time() - dt);
+      if not self._assay_stat:
+        self._assay_time(time.time() - dt);
       # inspect return value
       if self.recording:
         self._inspections['retval'] = normalize_value(retval);
@@ -301,7 +303,8 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
       # see if we have a timing for this host
       t0 = self._recorded_time.get(self.hostname,None);
       if t0 is None:
-        self.logf("WARNING: no runtime recorded for host %s",self.hostname);
+        self.logf("runtime is %.2f seconds (none recorded)",dt);
+        self.logf("WARNING: no expected runtime recorded for host %s",self.hostname);
         self.log("   you may want to re-run this test with -assayrecord");
         return;
       else:
@@ -359,7 +362,34 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
             seq.append(normalize_value(val));
             self.logf("recorded value #%d for node '%s' %s",len(seq),name,'.'.join(field));
           else:                # assay value
-            pass;
+            # extract value from nodestate
+            val = extract_value(nodestate,field);
+            # get request id (for informational purposes)
+            try:
+              rqid = nodestate.cache.request_id;
+            except:
+              rqid = '';
+            # look for sequence data
+            try:
+              seq = self._sequences[(node,field)];
+            except:
+              self._assay_stat = MISSING_DATA;
+              self.logf("ERROR: no recorded sequence for node '%s' %s",node,'.'.join(field));
+              return;
+            # get first item from sequence
+            if not seq:
+              self._assay_stat = MISSING_DATA;
+              self.logf("ERROR: end of recorded sequence on node '%s' %s (rqid %s)",node,'.'.join(field),rqid);
+              return;              
+            expected = seq.pop(0);
+            try:
+              compare_value(expected,val,tolerance,field=node+'/'+'.'.join(field));
+            except Exception,exc:
+              self._assay_stat = MISMATCH;
+              self.logf("ERROR: assay fails on node '%s' %s (rqid %s)",node,'.'.join(field),rqid);
+              self.log("  error is: ",exc.__class__.__name__,*map(str,exc.args));
+            else:
+              self.logf("node '%s' %s (rqid %s) ok",node,'.'.join(field),rqid);
     except:
       self.logexc();
       self._assay_stat = OTHER_ERROR;
@@ -371,7 +401,7 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
       if isinstance(value,dmi.record):
         for f in ("text","message","error"):
           if value.has_field(f):
-            self.logf("kernel %s: %s",f,value[f]);
+            self.logf("meqserver %s: %s",f,value[f]);
     except:
       self.logexc();
       self.log("last error non-fatal, assay will continue");
