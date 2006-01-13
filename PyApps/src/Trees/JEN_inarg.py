@@ -823,8 +823,10 @@ def test1(ns=None, object=None, **inarg):
           help='multiline help \n for list', trace=True)
    define(pp, 'hide', 'the rain in spain', hide=True,
           help='multiline help for hide', trace=True)
-   define(pp, 'py_file', 'xxx.py', browse='*.py',
+   define(pp, 'file_browse', 'xxx.py', browse='*.py',
           help='open a .py file', trace=True)
+   define(pp, 'empty_string', ' ', choice=[' ',''," ",""],
+          help='four versions of empty strings', trace=True)
    pp.setdefault('ref_ref_aa', 'ref_aa')
    pp.setdefault('ref_aa', 'aa')
    define(pp, 'nested', True, tf=True, trace=True)

@@ -52,7 +52,11 @@ from Timba.Contrib.JEN import MG_JEN_historyCollect
 from Timba.Contrib.JEN import MG_JEN_flagger
 
 
-
+try:
+    from qt import *
+    # from qt import QApplication,QCursor,Qt,QObject
+except:
+    pass;
 
 
 #********************************************************************************
@@ -809,26 +813,6 @@ def inarg_punit (rr, **pp):
     return True
 
 
-def inarg_general (rr, **pp):
-    JEN_inarg.define (rr, 'last_changed', 'd11jan2006', editable=False)
-    inarg_polrep(rr)
-    inarg_punit(rr)
-    inarg_solver_config (rr)
-    inarg_redun(rr)
-    inarg_stations(rr)
-    inarg_parmtable(rr)
-    return True
-
-# Copied from MG_JEN_Cohset.py:
-# JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
-# MG_JEN_Cohset.inarg_stations(MG)
-# MG_JEN_Cohset.inarg_parmtable(MG)
-# MG_JEN_Cohset.inarg_polrep(MG)
-# MG_JEN_Cohset.inarg_punit(MG)
-# MG_JEN_Cohset.inarg_solver_config (MG)
-# MG_JEN_Cohset.inarg_redun(MG)
-
-
 def inarg_parmtable (rr, **pp):
     JEN_inarg.define (rr, 'parmtable', None, choice=[],
                       help='name of MeqParm table to be used')
@@ -862,8 +846,8 @@ def inarg_solver_config (rr, **pp):
 
 
 def inarg_stream_control (rr, **pp):
-    JEN_inarg.define (rr, 'ms_name', 'D1.MS',
-                      choice=['D1.MS'],
+    JEN_inarg.define (rr, 'ms_name', 'D1.MS', 
+                      choice=['D1.MS'], browse='*.MS',
                       help='name of the (AIPS++) Measurement Set')
     JEN_inarg.define (rr, 'data_column_name', 'DATA',
                       choice=['DATA'],
@@ -898,10 +882,26 @@ def inarg_stream_control (rr, **pp):
 #----------------------------------------------------------------------------------------------------
 
 MG = JEN_inarg.init('MG_JEN_Cohset')
-# MG_JEN_Cohset.inarg_general(MG)          # define some general input arguments     
-inarg_general(MG)                        # define some general input arguments     
 
+# Define some overall arguments:
+# Local (MG_JEN_Cohset.py) version:
+JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
+inarg_stations(MG)
+inarg_parmtable(MG)
+inarg_polrep(MG)
+inarg_punit(MG)
+inarg_solver_config (MG)
+inarg_redun(MG)
 
+# Copied from MG_JEN_Cohset.py:
+# JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
+# MG_JEN_Cohset.inarg_stations(MG)
+# MG_JEN_Cohset.inarg_parmtable(MG)
+# MG_JEN_Cohset.inarg_polrep(MG)
+# MG_JEN_Cohset.inarg_punit(MG)
+# MG_JEN_Cohset.inarg_solver_config (MG)
+# MG_JEN_Cohset.inarg_redun(MG)
+    
 
 #----------------------------------------------------------------------------------------------------
 # Interaction with the MS: spigots, sinks and stream control
@@ -1119,10 +1119,6 @@ MSauxinfo(create=True)
 
 
 
-
-
-
-
 #********************************************************************************
 #********************************************************************************
 #***************** PART IV: Required test/demo function *************************
@@ -1130,7 +1126,46 @@ MSauxinfo(create=True)
 #********************************************************************************
 
 
-def _define_forest (ns):
+def _tdl_predefine (mqs, parent, **kwargs):
+    """_tdl_predefine() is a standard TDL name. When a forest script is
+    loaded by, e.g., the browser, this method is called prior to
+    defining the forest. The method can do anything: run a GUI, read
+    config files, etc.
+    Parameters:
+      mqs:    a meqserver object.
+      parent: parent widget (if running in a GUI), or None if no GUI
+      kwargs: extra arguments (may be used by assay scripts, etc.)
+    If this function returns a dict, this dict is passed as the kwargs
+    of _define_forest(). 
+    Errors should be indicated by throwing an exception.
+    """
+
+    res = True
+    if parent:
+        QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
+        try:
+            igui = JEN_inargGui.ArgBrowser(parent)
+            igui.input(MG, name=MG['script_name'], set_open=False)
+            res = igui.exec_loop()
+            print '** _tdl_predefine(): res =',type(res),'=',res,'\n'
+            if res is None:
+                raise RuntimeError("Cancelled by user");
+        finally:
+            QApplication.restoreOverrideCursor()
+    return res
+
+
+
+
+#**************************************************************************
+
+def _define_forest (ns, **kwargs):
+    # print '** _define_forest(): kwargs =',kwargs
+    # if len(kwargs)==0: return False
+
+    # The MG may be passed in from _tdl_predefine():
+    # In that case, override the global MG record.
+    if len(kwargs)>1: MG = kwargs
 
     # Perform some common functions, and return an empty list (cc=[]):
     cc = MG_JEN_exec.on_entry (ns, MG)

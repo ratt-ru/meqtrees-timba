@@ -8,8 +8,15 @@
 # History:
 #    - 05 jan 2006: creation (from MXM ArgBrowser.py)
 #    - 10 jan 2006: in workable state
+#    - 11 jan 2006: added file browsers and status message 
+#    - 12 jan 2006: added hooks for assay  
 #
 # Full description:
+#
+#
+# To be done:
+# - Upward search for argument names/values (now local only)
+
 
 #================================================================================
 # Preamble
@@ -43,14 +50,20 @@ generic_savefile = 'generic_save_restore.inarg'
 
 class ArgBrowser(QMainWindow):
     
-    def __init__(self, *args):
+    def __init__(self, parent=None):
 
-        # NB: What is the usage of args (list): better to have **args?
-
-        self.__QApp = QApplication(sys.argv)
+        if not parent:
+          self.__QApp = QApplication(sys.argv)
+	else:
+	  self.__QApp = qApp;
+	
 
         # We inherit from QMainWindow:
-        apply(QMainWindow.__init__, (self,) + args)
+	if parent:
+        	QMainWindow.__init__(self,parent,None,Qt.WType_Dialog|Qt.WShowModal);
+	else:
+        	QMainWindow.__init__(self);
+        
         self.setMinimumWidth(700)
         self.setMinimumHeight(400)
 
@@ -58,6 +71,8 @@ class ArgBrowser(QMainWindow):
         combo = QComboBox(self)
         combo.setEditText('editText')
         vbox.addWidget(combo)
+	
+
 
         # The listview displays the inarg record:
         self.__listview = QListView(self)
@@ -87,6 +102,7 @@ class ArgBrowser(QMainWindow):
 
         # Menubar:
         self.__menubar = self.menuBar()
+
         filemenu = QPopupMenu(self)
         # filemenu.insertItem('save',,self,,SLOT(self.save))
         filemenu.insertItem('open', self.open_inarg)
@@ -94,28 +110,39 @@ class ArgBrowser(QMainWindow):
         filemenu.insertSeparator()     
         filemenu.insertItem('save', self.save_inarg)
         filemenu.insertItem('restore', self.restore_inarg)
+        filemenu.insertItem('recover', self.recover_inarg)
         filemenu.insertSeparator()     
         filemenu.insertItem('print', self.print_inarg)
         filemenu.insertSeparator()     
         filemenu.insertItem('close', self.closeGui)
         self.__menubar.insertItem('File', filemenu)
+
         editmenu = QPopupMenu(self)
         editmenu.insertItem('revert', self.revert_inarg)
         self.__menubar.insertItem('Edit', editmenu)
+
         viewmenu = QPopupMenu(self)
         viewmenu.insertItem('refresh', self.refresh)
         viewmenu.insertSeparator()     
         self.__item_unhide = viewmenu.insertItem('unhide', self.unhide)
         self.__menubar.insertItem('View', viewmenu)
-        self.__menubar.insertSeparator()
+
+        assaymenu = QPopupMenu(self)
+        assaymenu.insertItem('silent', self.assay)
+        assaymenu.insertItem('verbose', self.assay_verbose)
+        assaymenu.insertItem('record', self.assay_record)
+        self.__menubar.insertItem('Assay', assaymenu)
+
         helpmenu = QPopupMenu(self)
+        self.__menubar.insertSeparator()
         self.__menubar.insertItem('Help', helpmenu)
 
-        # Statusbar:
-        # self.__statusbar = self.statusBar()
+        # Statusbar (does not work...?):
+        self.__statusbar = self.statusBar()
+        self.__statusbar.show();
         # vbox.addLayout(self.__statusbar)         # invalid type
         # self.__statusbar.clear()
-        # self.__statusbar.message("xxx")
+        self.__statusbar.message("xxx")
 
         # Message label (i.s.o. statusbar):
         self.__message = QLabel(self)
@@ -123,9 +150,13 @@ class ArgBrowser(QMainWindow):
         vbox.addWidget(self.__message)
 
         # Initialise:
+        self.__result = None                       # output for exec_loop
         self.__inarg = None                        # the edited inarg
         self.__inarg_input = None                  # the input inarg (see .revert_inarg())
         self.__savefile = generic_savefile         # used by .save_inarg(None)
+	
+	self.__closed = False;
+	
         if True:
             # Always restore the generic savefile (but do not show)
             self.restore_inarg(generic_savefile)            
@@ -141,9 +172,14 @@ class ArgBrowser(QMainWindow):
         self.clearGui()
         if self.__popup: self.__popup.close()
         self.__listview.close()                    #............?
-        self.close()                               #............?
+        self.close()
+	self.__closed = True;                      #............?
         # clean up any signal connections?
         return True
+
+    def closeEvent (self,ev):
+        self.__closed = True;
+    	QMainWindow.closeEvent(self,ev);
 
 
     def clearGui (self):
@@ -209,6 +245,12 @@ class ArgBrowser(QMainWindow):
         f.close()
         return True
 
+    def recover_inarg(self):
+        """Recover the inarg record that was saved when pressing
+        the 'Proceed' button. This allows continuation from that point"""
+        self.restore_inarg(self, generic_savefile)
+        return True
+
     def restore_inarg(self, filename=None):
         """Read a saved inarg record from a file"""
         if filename==None:
@@ -227,16 +269,45 @@ class ArgBrowser(QMainWindow):
         return True
 
     #-------------------------------------------------------------------------------
+    # Script execution, using the current inarg record:
+    #-------------------------------------------------------------------------------
 
     def cancel_exec(self):
         """Do nothing"""
+        self.emit(PYSIGNAL("cancel_exec()"),(0,))
+        self.__result = None
         self.closeGui()
-        return False
-
+        return True
+    
     def exec_with_inarg(self):
         """Execute the relevant function"""
-        self.__message.setText('** not yet implemented:  self.exec_with_inarg()')
+        # Save the current inarg in the generic
+        self.save_inarg(generic_savefile)
+        self.emit(PYSIGNAL("exec_with_inarg()"),(self.__inarg,))
+        # NB: The gui has to be closed for it to proceed.
+        # In the future, we will want to keep the gui open, so we can redefine
+        # the tree with different parameters....
+        self.__result = self.__inarg
+        self.closeGui()
         return True
+
+
+    def assay(self, switch=None):
+        """Assay the relevant script with the current inarg record.
+        The result is put into a file: xxx.assaylog"""
+        self.__message.setText('** assay('+str(switch)+') not implemented yet')
+        # Get script name from self.__scriptname....
+        return True
+
+    def assay_verbose(self):
+        """Assay the relevant script with the current inarg record
+        while printing information"""
+        return self.assay(switch='-dassayer=2')
+
+    def assay_record(self):
+        """Assay the relevant script with the current inarg record
+        and record the result for later comparison (xxx.dataassay)"""
+        return self.assay(switch='-assayrecord')
 
 
     #-------------------------------------------------------------------------------
@@ -482,7 +553,13 @@ class ArgBrowser(QMainWindow):
         self.__QApp.exec_loop()
         return True
 
-
+    def exec_loop (self):
+    	self.show();
+	print "__closed is",self.__closed
+	while not self.__closed:
+		qApp.processEvents();
+	print "__closed is",self.__closed
+	return self.__result
 
 
 
@@ -566,10 +643,23 @@ class Popup(QDialog):
         self.message.setText(' ')
         vbox.addWidget(self.message)
 
-        # The close button:
-        button = QPushButton('close',self)
-        vbox.addWidget(button)
-        QObject.connect(button, SIGNAL("pressed ()"), self.onClose)
+        if True:
+            hbox = QHBoxLayout(self)
+            vbox.addLayout(hbox)
+
+            button = QPushButton('OK',self)
+            hbox.addWidget(button)
+            QObject.connect(button, SIGNAL("pressed ()"), self.onOK)
+
+            button = QPushButton('Cancel',self)
+            hbox.addWidget(button)
+            QObject.connect(button, SIGNAL("pressed ()"), self.onCancel)
+
+        else:
+            # The close button:
+            button = QPushButton('close',self)
+            vbox.addWidget(button)
+            QObject.connect(button, SIGNAL("pressed ()"), self.onClose)
 
         # Display the popup:
         self.show()
@@ -580,29 +670,43 @@ class Popup(QDialog):
     def onBrowse (self):
         """Action on pressing the browse button"""
         filename = QFileDialog.getOpenFileName("",self.__filter, self)
-        print '** nBrowse(): filename =',filename
-        self.combo.setCurrentText(filename)     
+        print '** nBrowse(): filename:',type(filename),len(filename),filename==' ',':',filename
+        if len(filename)>2:
+            self.combo.setCurrentText(filename)
+            self.status.setText('... new filename ...')
+        else:
+            self.status.setText('... ignored ...')
+            
         return True
 
     #-------------------------------------------------------------------------
+    # Popup buttons:
+    #-------------------------------------------------------------------------
 
     def onClose (self):
-        """Action on pressing the close button"""
-        # print '** onClose()'
-        # Notify the ArgBrowser:
+        """Action on pressing the Close button"""
         self.emit(PYSIGNAL("popupClosed()"),(0,))
-        # print '** onClose(): after emit'
-        self.close()
         return True
-
+	
+    def onOK (self):
+        """Action on pressing the OK button"""
+        self.emit(PYSIGNAL("popupOK()"),(0,))
+        return True
+	
+    def onCancel (self):
+        """Action on pressing the Cancel button"""
+        self.emit(PYSIGNAL("popupCancel()"),(0,))
+        return True
+	
+    #-------------------------------------------------------------------------
+    # Action if value modified:
     #-------------------------------------------------------------------------
 
     def modified (self, value):
         """Deal with combo-box signals"""
-        # print '\n** .modified(',value,'):',type(value)
+        self.status.setText('... value modified ...')
 
         # Deal with the modified value:
-        self.status.setText('... value modified ...')
         v1 = str(value)                           # value is a QString object
         try:
             v2 = eval(v1)                         # covers most things
@@ -612,7 +716,11 @@ class Popup(QDialog):
             # return;
 
         # print 'eval(',v1,') ->',type(v2),'=',v2
-        self.type.setText('type'+':  '+str(type(v2)))
+        # Report the type
+        s2 = 'type'+':  '+str(type(v2))+' '
+        if isinstance(v2, str): s2 += '[nchar='+str(len(v2))+']'
+        if isinstance(v2, (list,tuple)): s2 += '['+str(len(v2))+']'
+        self.type.setText(s2)
 
         # Update the itemdict(itd) from the ArgBrowser:
         itd = self.__itemdict
