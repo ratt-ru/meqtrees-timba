@@ -120,7 +120,6 @@ class HistoryPlotter(GriddedPlugin):
     self.layout_parent = None
     self.layout = None
     self.ND_Controls = None
-    self.array_selector = None
     _dprint(3, 'at end of init: self._plotter = ', self._plotter)
 
 # back to 'real' work
