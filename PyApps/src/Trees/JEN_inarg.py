@@ -499,9 +499,11 @@ def getdefaults(pp, check=True, strip=False, trace=False):
    
 #----------------------------------------------------------------------------
 
-def _replace_reference(rr, repeat=0, trace=False):
+def _replace_reference(rr, repeat=0, level=0, trace=False):
    """If the value of a field in the given record (rr) is a field name
    in the same record, replace it with the value of the referenced field"""
+   if trace:
+      print '\n** _replace_reference(',repeat,'):',type(rr)
    if not isinstance(rr, dict): return False
    if repeat>10:
       print 'JEN_inarg._replace_reference(): max repeat exceeded',repeat
@@ -512,19 +514,23 @@ def _replace_reference(rr, repeat=0, trace=False):
       value = rr[key]                      # field value
       if key==CTRL_record:                 # ignore
          pass
+      elif isinstance(value, dict):        # if field value is a dict
+         _replace_reference(rr[key], level=level+1)     # recurse
       elif isinstance(value, str):         # if field value is a string
+         if trace: print level,(level*'.'),':',key,'=',value
          if rr.has_key(value):             # if field value is the name of another field
             if not value==rr[value]:       # different values
                count += 1                  # count the number of replacements
                s1 = '._replace_reference('+str(repeat)+'): key='+key+':  '
                s1 += str(value)+' -> '+str(rr[value])
+               if trace: print s1
                MESSAGE(rr, s1)
                rr[key] = rr[value]         # replace with the value of the referenced field
 
    # Repeat this if necessary, i.e. if at least one value has been replaced
    # (This is because values may be multiply referenced)
-   if count>0: _replace_reference(rr, repeat=repeat+1)
-
+   if count>0:
+      _replace_reference(rr, repeat=repeat+1)
    return count
 
 #----------------------------------------------------------------------------

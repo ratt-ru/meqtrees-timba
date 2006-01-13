@@ -54,16 +54,11 @@ class ArgBrowser(QMainWindow):
 
         if not parent:
           self.__QApp = QApplication(sys.argv)
+          QMainWindow.__init__(self,parent,None,Qt.WType_Dialog|Qt.WShowModal);
 	else:
-	  self.__QApp = qApp;
+	  self.__QApp = parent
+          QMainWindow.__init__(self);
 	
-
-        # We inherit from QMainWindow:
-	if parent:
-        	QMainWindow.__init__(self,parent,None,Qt.WType_Dialog|Qt.WShowModal);
-	else:
-        	QMainWindow.__init__(self);
-        
         self.setMinimumWidth(700)
         self.setMinimumHeight(400)
 
@@ -72,8 +67,6 @@ class ArgBrowser(QMainWindow):
         combo.setEditText('editText')
         vbox.addWidget(combo)
 	
-
-
         # The listview displays the inarg record:
         self.__listview = QListView(self)
         # self.setCentralWidget(self.__listview)
@@ -123,6 +116,7 @@ class ArgBrowser(QMainWindow):
 
         viewmenu = QPopupMenu(self)
         viewmenu.insertItem('refresh', self.refresh)
+        viewmenu.insertItem('inarg2pp', self.inarg2pp)
         viewmenu.insertSeparator()     
         self.__item_unhide = viewmenu.insertItem('unhide', self.unhide)
         self.__menubar.insertItem('View', viewmenu)
@@ -154,13 +148,14 @@ class ArgBrowser(QMainWindow):
         self.__inarg = None                        # the edited inarg
         self.__inarg_input = None                  # the input inarg (see .revert_inarg())
         self.__savefile = generic_savefile         # used by .save_inarg(None)
-	
-	self.__closed = False;
+        self.__scriptname = None                   # target script for inarg record
+        self.__closed = False
 	
         if True:
             # Always restore the generic savefile (but do not show)
             self.restore_inarg(generic_savefile)            
         return None
+
 
     def QApp (self):
         """Access to the QApplication"""
@@ -309,6 +304,14 @@ class ArgBrowser(QMainWindow):
         and record the result for later comparison (xxx.dataassay)"""
         return self.assay(switch='-assayrecord')
 
+    def inarg2pp (self):
+        """Show the resulting pp record as it would be inside the target,
+        with all the referenced values replaced"""
+        pp = JEN_inarg.inarg2pp(inarg)
+        JEN_inarg.getdefaults(pp, check=True, strip=False, trace=True)
+        JEN_inarg.display(pp, full=False)
+        # NB: Use JEN_inspect.....
+        return True
 
     #-------------------------------------------------------------------------------
 
@@ -320,9 +323,11 @@ class ArgBrowser(QMainWindow):
         self.__inarg_input = deepcopy(inarg)                    # unchanged copy
 
         # Modify the name (of its main window):
+        self.__scriptname = None
         if not name:
             if self.__inarg.has_key('script_name'):             # MG_JEN script
                 name = self.__inarg['script_name']
+                self.__scriptname = name                        # corresponding script
             else:
                 name = self.__inarg.keys()[0]
         self.setCaption(name)
@@ -341,14 +346,12 @@ class ArgBrowser(QMainWindow):
         return True
 
 
-    def refresh (self, clear=True, trace=False):
+    def refresh (self, clear=True):
         """Refresh the listview widget from self.__inarg"""
-        if trace: print 'refresh()'
         if clear: self.clearGui()
-        if trace: print 'refresh() after clearGui()'
         self.recurse (self.__inarg, listview=self.__listview)
-        if trace: print 'refresh() after recurse()'
         return True
+
 
     def recurse (self, rr=None, listview=None, level=0, module='<module>',
                  makeitd=True, trace=False):
@@ -497,26 +500,25 @@ class ArgBrowser(QMainWindow):
             self.__current_iitd = iitd
             # Make the popup object:
             self.__popup = Popup(self, name=itd['key'], itd=itd)
-            QObject.connect(self.__popup, PYSIGNAL("valueChanged()"), self.valueChanged)
-            QObject.connect(self.__popup, PYSIGNAL("popupClosed()"), self.popupClosed)
+            QObject.connect(self.__popup, PYSIGNAL("popupOK()"), self.popupOK)
+            QObject.connect(self.__popup, PYSIGNAL("popupCancel()"), self.popupCancel)
         return True
 
 
-    def popupClosed(self, dummy=-1):
-        """Action upon closing the value editing popup"""
-        # print '** popupClosed(): dummy =',dummy
+    def popupCancel(self):
+        """Action upon pressing the popup Cancel button"""
+        self.refresh()
+        self.__message.setText('** popup cancelled')
+        return True
+
+    def popupOK(self, itd):
+        """Action upon pressing the popup OK button"""
+        # Replace the relevant itemdict with the modified one:
+        iitd = self.__current_iitd                # its position in self.__itemdict
+        self.__itemdict[iitd] = itd               # replace in self.__itemdict
+        self.replace (self.__inarg, itd, trace=False)
         self.refresh()
         return True
-
-    def valueChanged(self, itd):
-        """Deal with a changed itemdict (itd) received from self.__popup"""
-        iitd = self.__current_iitd      # its position in self.__itemdict
-        # print '\n** valueChanged() (iitd=',iitd,'): \n    ->',itd
-        # Replace the relevant itemdict with the modified one:
-        self.__itemdict[iitd] = itd     # replace in self.__itemdict
-        self.replace (self.__inarg, itd, trace=False)
-        return True
-
 
     def replace (self, rr=None, itd=None, level=0, trace=False):
         """Replace the modified value in self.__inarg"""
@@ -528,8 +530,10 @@ class ArgBrowser(QMainWindow):
             for key in iitd.keys():
                 if trace: print '-',level,key,':',iitd[key],itd['iitd'],
                 if iitd[key]==itd['iitd']:             # found
+                    was = rr[key]
                     rr[key] = itd['value']             # replace value
                     if trace: print 'found'
+                    self.__message.setText('** replaced:  '+key+': '+str(was)+' -> '+str(rr[key]))
                     return True                        # escape
                 if trace: print 
 
@@ -644,6 +648,7 @@ class Popup(QDialog):
         vbox.addWidget(self.message)
 
         if True:
+            # Make Cancel/OK buttons:
             hbox = QHBoxLayout(self)
             vbox.addLayout(hbox)
 
@@ -655,56 +660,44 @@ class Popup(QDialog):
             hbox.addWidget(button)
             QObject.connect(button, SIGNAL("pressed ()"), self.onCancel)
 
-        else:
-            # The close button:
-            button = QPushButton('close',self)
-            vbox.addWidget(button)
-            QObject.connect(button, SIGNAL("pressed ()"), self.onClose)
-
         # Display the popup:
         self.show()
         return None
 
     #-------------------------------------------------------------------------
-
-    def onBrowse (self):
-        """Action on pressing the browse button"""
-        filename = QFileDialog.getOpenFileName("",self.__filter, self)
-        print '** nBrowse(): filename:',type(filename),len(filename),filename==' ',':',filename
-        if len(filename)>2:
-            self.combo.setCurrentText(filename)
-            self.status.setText('... new filename ...')
-        else:
-            self.status.setText('... ignored ...')
-            
-        return True
-
-    #-------------------------------------------------------------------------
     # Popup buttons:
     #-------------------------------------------------------------------------
 
-    def onClose (self):
-        """Action on pressing the Close button"""
-        self.emit(PYSIGNAL("popupClosed()"),(0,))
-        return True
-	
     def onOK (self):
         """Action on pressing the OK button"""
-        self.emit(PYSIGNAL("popupOK()"),(0,))
+        self.emit(PYSIGNAL("popupOK()"),(self.__itemdict,))
+        self.status.setText('... inarg record updated ...')
+        self.close()
         return True
 	
     def onCancel (self):
         """Action on pressing the Cancel button"""
         self.emit(PYSIGNAL("popupCancel()"),(0,))
+        self.close()
         return True
 	
+    def onBrowse (self):
+        """Action on pressing the browse button"""
+        filename = QFileDialog.getOpenFileName("",self.__filter, self)
+        if len(filename)>2:
+            self.combo.setCurrentText(filename)
+            self.status.setText('... new filename ...')
+            self.onOK()
+        else:
+            self.status.setText('... ignored ...')
+        return True
+
     #-------------------------------------------------------------------------
     # Action if value modified:
     #-------------------------------------------------------------------------
 
     def modified (self, value):
         """Deal with combo-box signals"""
-        self.status.setText('... value modified ...')
 
         # Deal with the modified value:
         v1 = str(value)                           # value is a QString object
@@ -715,28 +708,27 @@ class Popup(QDialog):
             # print sys.exc_info();
             # return;
 
-        # print 'eval(',v1,') ->',type(v2),'=',v2
+        # Update the itemdict(itd) from the ArgBrowser:
+        self.__itemdict['value'] = v2
+        self.status.setText('... locally modified ...')
+        if value==self.combo_input_value:
+            self.status.setText('... locally reverted ...')
+
         # Report the type
         s2 = 'type'+':  '+str(type(v2))+' '
         if isinstance(v2, str): s2 += '[nchar='+str(len(v2))+']'
         if isinstance(v2, (list,tuple)): s2 += '['+str(len(v2))+']'
         self.type.setText(s2)
 
-        # Update the itemdict(itd) from the ArgBrowser:
-        itd = self.__itemdict
-        itd['value'] = v2
-
         # Check the new value (range, min, max, type):
         ok = True
         if not ok:                                # problem....
-            self.message.setText('...ERROR: ...')
+            self.message.setText('... ERROR: ...')
             # Revert to the original value:
             self.combo.setCurrentText(self.combo_input_value)
-            self.status.setText('...reverted...')
+            self.status.setText('... locally reverted ...')
             return False
 
-        # Send the modified itemdict(itd) to the ArgBrowser:
-        self.emit(PYSIGNAL("valueChanged()"),(itd,))
         return True
 
 
