@@ -184,7 +184,7 @@ class HistoryPlotter(GriddedPlugin):
     """
     _dprint(3, ' ')
     if self._rec.history.has_key('value'):
-      self._plot_array = self.create_plot_array(self._rec.history['value'])
+      (self._plot_array, self._flag_plot_array) = self.create_plot_array(self._rec.history['value'])
       try:
         _dprint(3, 'plot_array rank and shape ', self._plot_array.rank, ' ', self._plot_array.shape)
       except: pass;
@@ -223,6 +223,7 @@ class HistoryPlotter(GriddedPlugin):
                 self.array_selector.append(0)
         self.array_tuple = tuple(self.array_selector)
         self._plotter.array_plot(self.label +' data', self._plot_array[self.array_tuple])
+        self.addTupleFlags()
       else:
         if self._plot_array.rank == 2:
           self._plotter.set_yaxis_title('Sequence Number')
@@ -231,6 +232,13 @@ class HistoryPlotter(GriddedPlugin):
           self._plotter.set_yaxis_title('Values')
           self._plotter.set_xaxis_title('Sequence Number')
         self._plotter.array_plot(self.label+ ' data', self._plot_array)
+        if not self._flag_plot_array is None and self._flag_plot_array.max() > 0:
+          self._plotter.setFlagsData(self._flag_plot_array)
+          self._plotter.handleFlagToggle(False)
+          self._plotter.handleFlagRange(False)
+        else:
+          self._plotter.handleFlagToggle(True)
+          self._plotter.handleFlagRange(True)
 
     else:
       Message = "MeqHistoryCollect node lacks a value field."
@@ -263,6 +271,7 @@ class HistoryPlotter(GriddedPlugin):
 # first try to figure out what we have ...
     _dprint(3, 'history_plotter: incoming list/array is ', history_list)
     plot_array = None
+    flag_plot_array = None
     list_length = len(history_list)
     prev_shape = None
     max_dims = []
@@ -304,6 +313,8 @@ class HistoryPlotter(GriddedPlugin):
           for j in range(len(max_dims)):
             array_dims.append(max_dims[j])
           plot_array = zeros(array_dims, data_array.type()) 
+          flag_plot_array = zeros(array_dims, Int32)
+          flag_plot_array = flag_plot_array + 1 
         array_selector = []
         array_selector.append(i)
         for j in range(data_array.rank):
@@ -311,13 +322,15 @@ class HistoryPlotter(GriddedPlugin):
           array_selector.append(axis_slice)
         array_tuple = tuple(array_selector)
         plot_array[array_tuple] = data_array
+        flag_plot_array[array_tuple] = 0
     _dprint(3,'returned plot array has shape ', plot_array.shape)
-    return plot_array
+    return (plot_array, flag_plot_array)
 
   def setArraySelector (self,lcd_number, slider_value, display_string):
     self.array_selector[lcd_number] = slider_value
     self.array_tuple = tuple(self.array_selector)
     self._plotter.array_plot(self.label + ' data ', self._plot_array[self.array_tuple])
+    self.addTupleFlags()
 
   def setSelectedAxes (self,first_axis, second_axis):
     self.array_selector = []
@@ -332,6 +345,16 @@ class HistoryPlotter(GriddedPlugin):
         self.array_selector.append(0)
     self.array_tuple = tuple(self.array_selector)
     self._plotter.array_plot(self.label+ ' data', self._plot_array[self.array_tuple])
+    self.addTupleFlags()
+
+  def addTupleFlags(self):
+    if not self._flag_plot_array is None and self._flag_plot_array[self.array_tuple].max() > 0:
+      self._plotter.setFlagsData(self._flag_plot_array[self.array_tuple])
+      self._plotter.handleFlagToggle(False)
+      self._plotter.handleFlagRange(False)
+    else:
+      self._plotter.handleFlagToggle(True)
+      self._plotter.handleFlagRange(True)
 
   def create_image_plotters(self):
     _dprint(3,'starting create_image_plotters')

@@ -436,16 +436,7 @@ class QwtImageDisplay(QwtPlot):
     def handle_flag_toggles(self, menuid):
 # toggle flags display	
       if menuid == self.menu_table['toggle flagged data for plane ']:
-        if self.flag_toggle == False:
-          self.flag_toggle = True
-        else:
-          self.flag_toggle = False
-        if self.real_flag_vector is None:
-          self.plotImage.setDisplayFlag(self.flag_toggle)
-        else:
-          self.curve(self.real_flag_vector).setEnabled(self.flag_toggle)
-          if not self.imag_flag_vector is None:
-            self.curve(self.imag_flag_vector).setEnabled(self.flag_toggle)
+        self.handleFlagToggle(self.flag_toggle)
         self.replot()
 	return True
 
@@ -460,29 +451,46 @@ class QwtImageDisplay(QwtPlot):
 	return True
 
       if menuid == self.menu_table['Toggle display range to that of flagged image for plane ']:
-        if self.flag_range == False:
-          self.flag_range = True
-          self.plotImage.setFlaggedImageRange()
-          self.plotImage.updateImage(self.raw_image)
-          flag_image_limits = self.plotImage.getRealImageRange()
-          self.emit(PYSIGNAL("max_image_range"),(flag_image_limits, 0) )
-          if self.complex_type:
-            flag_image_limits = self.plotImage.getImagImageRange()
-            self.emit(PYSIGNAL("max_image_range"),(flag_image_limits, 1) )
-        else:
-          self.flag_range = False
-          self.plotImage.setImageRange(self.raw_image)
-          self.plotImage.updateImage(self.raw_image)
-          image_limits = self.plotImage.getRealImageRange()
-          self.emit(PYSIGNAL("max_image_range"),(image_limits, 0) )
-          if self.complex_type:
-            image_limits = self.plotImage.getImagImageRange()
-            self.emit(PYSIGNAL("max_image_range"),(image_limits, 1) )
+        self.handleFlagRange(self.flag_range)
         self.replot()
 	return True
 
 # if we get here ...
       return False
+
+    def handleFlagToggle(self, flag_toggle):
+      if flag_toggle == False:
+        self.flag_toggle = True
+      else:
+        self.flag_toggle = False
+      if self.real_flag_vector is None:
+        self.plotImage.setDisplayFlag(self.flag_toggle)
+      else:
+        self.curve(self.real_flag_vector).setEnabled(self.flag_toggle)
+        if not self.imag_flag_vector is None:
+          self.curve(self.imag_flag_vector).setEnabled(self.flag_toggle)
+
+    def handleFlagRange(self, flag_range):
+      if self.is_vector:
+        return
+      if flag_range == False:
+        self.flag_range = True
+        self.plotImage.setFlaggedImageRange()
+        self.plotImage.updateImage(self.raw_image)
+        flag_image_limits = self.plotImage.getRealImageRange()
+        self.emit(PYSIGNAL("max_image_range"),(flag_image_limits, 0) )
+        if self.complex_type:
+          flag_image_limits = self.plotImage.getImagImageRange()
+          self.emit(PYSIGNAL("max_image_range"),(flag_image_limits, 1) )
+      else:
+        self.flag_range = False
+        self.plotImage.setImageRange(self.raw_image)
+        self.plotImage.updateImage(self.raw_image)
+        image_limits = self.plotImage.getRealImageRange()
+        self.emit(PYSIGNAL("max_image_range"),(image_limits, 0) )
+        if self.complex_type:
+          image_limits = self.plotImage.getImagImageRange()
+          self.emit(PYSIGNAL("max_image_range"),(image_limits, 1) )
 
     def setAxisParms(self, axis_parms):
       self.first_axis_parm = axis_parms[0]
