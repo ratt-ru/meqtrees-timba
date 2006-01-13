@@ -1,5 +1,15 @@
 # standard preamble
 from Timba.TDL import *
+
+# this is an important construct, we want our TDL script to still be
+# able to run in a GUI-less environment, so we can't fail if importing
+# the qt module fails.
+try:
+  from qt import QMessageBox,QApplication,Qt,QCursor
+  _gui = True;
+except ImportError:
+  _gui = False;
+
  
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
 # This is a record passed to Set.Forest.State. 
@@ -9,12 +19,37 @@ Settings.forest_state.a = None;
 # Make sure our solver root node is not cleaned up
 Settings.orphans_are_roots = True;
 
-def _define_forest (ns):
+def _tdl_predefine (mqs,parent,**kwargs):
+  """_tdl_predefine() is a standard TDL name. When a forest script is
+  loaded by, e.g., the browser, this method is called prior to
+  defining the forest. The method can do anything: run a GUI, read
+  config files, etc.
+  Parameters:
+    mqs:    a meqserver object.
+    parent: parent widget (if running in a GUI), or None if no GUI
+    kwargs: extra arguments (may be used by assay scripts, etc.)
+  If this function returns a dict, this dict is passed as the kwargs
+  of _define_forest(). 
+  Errors should be indicated by throwing an exception.
+  """;
+  if parent:
+    QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor));
+    try:
+      res = QMessageBox.information(parent,"tdl_predefine",
+        "Press OK to compile forest",QMessageBox.Ok,QMessageBox.Cancel);
+      if res == QMessageBox.Cancel:
+        raise RuntimeError("user cancelled");
+    finally:
+      QApplication.restoreOverrideCursor();
+  return dict(a=None);
+
+def _define_forest (ns,**kwargs):
   """define_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, this method is automatically called to
   define the forest. The 'ns' argument is a NodeScope object in which
   the forest is to be defined, usually this is simply the global scope.
   """;
+  print "_define_solver() kwargs",kwargs;
   ns['solver'] << Meq.Solver(
       num_iter=5,debug_level=10,solvable="x",
       children = Meq.Condeq(
@@ -23,8 +58,29 @@ def _define_forest (ns):
         a=None
       ),
     );
+    
+def _tdl_postdefine (mqs,parent,**kwargs):
+  """_tdl_postdefine() is a standard TDL name. When a forest script is
+  loaded by, e.g., the browser, this method is called prior to
+  defining the forest. The method can do anything: run a GUI, read
+  config files, etc. Parameters:
+    mqs:    a meqserver object.
+    parent: parent widget (if running in a GUI), or None if no GUI
+    kwargs: extra arguments (may be used by assay scripts, etc.)
+  If this function returns a string, this string is appended to the 
+  end of the status message. 
+  """;
+  if parent:
+    QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor));
+    try:
+      buttons = ("Good","Great","OK");
+      res = QMessageBox.information(parent,"tdl_postdefine",
+        "Forest compiled successfully.",*buttons);
+      return "User pressed '"+buttons[res]+"'.";
+    finally:
+      QApplication.restoreOverrideCursor();
 
-def _test_forest (mqs,parent):
+def _test_forest (mqs,parent,**kwargs):
   """test_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, and the "test" option is set to true,
   this method is automatically called after define_forest() to run a 

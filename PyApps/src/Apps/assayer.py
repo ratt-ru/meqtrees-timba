@@ -64,26 +64,19 @@ class assayer (object):
     if nokill is None:
       nokill = self.recording;
     self.name = name;
-    self.mqs = meqserver.default_mqs(wait_init=10,nokill=True);
+    self.mqs = meqserver.default_mqs(wait_init=10,debug=False);
     self.mqs.whenever("*",self._kernel_event_handler);
     self.mqs.whenever("node.result",self._node_snapshot_handler);
     self.tdlmod = self.logger = self.testname = None;
     self.watching = [];
     self.testname = None;
-    self.default_tol = 1e-6;   # default comparison tolerance
-    self.time_tol    = .2;     # default time tolerance
+    self.default_tol = 1e-5;    # default comparison tolerance
+    self.time_tol    = .5;      # default runtime tolerance
     self.hostname = os.popen('hostname').read().rstrip();
     # open log and dump initial messages
     if log:
       self.logger = logger(self.name+".assaylog");
       self.logf("start of log for assayer %s",self.name);
-      
-  def __del__ (self):
-    if self.mqs is not None:
-      _dprint(0,"stopping meqserver");
-      self.mqs.halt();
-      self.mqs.disconnect();
-      octopussy.stop();
       
   def log (self,*args):
     _dprint(1,*args+('\n',));
@@ -186,7 +179,9 @@ class assayer (object):
       # run the specified procedure
       self.logf("running %s(), test %s",procname,self.testname);
       dt = time.time();
+      _dprint(0,"running",procname);
       retval = proc(self.mqs,None,**kwargs);
+      _dprint(0,procname,"finished");
       if not self._assay_stat:
         self._assay_time(time.time() - dt);
       # inspect return value
@@ -226,6 +221,8 @@ class assayer (object):
         self.logf("SUCCESS: test '%s' completed successfully",self.testname);
     else: 
       self.logf("FAIL: test '%s', code %d",self.testname,self._assay_stat);
+    if self.logger:
+      self.logger.flush();
     self.testname = None;
     self.watching = [];
     return self._assay_stat;
@@ -248,9 +245,7 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
         os.system("meqbrowser.py");
       print """\n\nReminder: you may need to kill the meqserver manually.""";
     else:
-      self.mqs.halt();
-      self.mqs.disconnect();
-      octopussy.stop();
+      meqserver.stop_default_mqs();
     self.mqs = None;
     return self._assay_stat;
     

@@ -669,7 +669,6 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     return tab;
     
   def _tdl_compile_tab_contents (self,tab):
-    tmp = self.wait_cursor();
     self._main_tdlfile = tab.get_filename();
     basename = os.path.basename(self._main_tdlfile);
     self.log_message("compiling TDL script "+basename);
@@ -696,7 +695,6 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         self._tb_jobs.show();
       else:
         self._mi_tdljobs = None;
-    tmp = None;
     
   def _tdl_compile_file (self,filename,show=True):
     tab = self._tdl_tabs.get(filename,None);

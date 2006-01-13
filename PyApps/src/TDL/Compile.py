@@ -24,12 +24,23 @@ class CompileError (RuntimeError):
   def __init__ (self,*errlist):
     self.errlist = errlist;
 
-def compile_file (mqs,filename,text=None):
-  """Compiles a TDL script and sends to meqserver given by mqs.
+def compile_file (mqs,filename,text=None,parent=None,
+                  predef_args={},define_args={},postdef_args={}):
+  """Compiles a TDL script and sends it to meqserver given by mqs.
   Parameters:
     mqs:      a meqserver object
     filename: script location
     text:     script text for putting into forest (if None, will be read from file)
+    parent:   parent widget passed to TDL script (if a GUI is running)
+    predef_args: dict of extra arguments for _tdl_predefine()
+    define_args: dict of extra arguments for _define_forest()
+    postdef_args: dict of extra arguments for _tdl_postdefine()
+    busy_callback: this function is called whenever the compiler gets busy.
+              Normal use is to set an hourglass cursor in GUIs.
+    free_callback: this function is called whenever the compiler is no longer busy.
+              Normal use is to restore normal cursor in GUIs.
+              
+          
   Return value:
     a tuple of (module,message), where module is the newly-imported TDL module,
     and message is an informational message.
@@ -73,7 +84,18 @@ def compile_file (mqs,filename,text=None):
     define_func = getattr(_tdlmod,'_define_forest',None);
     if not callable(define_func):
       raise TDL.TDLError("No _define_forest() function found",filename=filename,lineno=1);
-    define_func(ns);
+    # now find predefine function and call it
+    predefine_func = getattr(_tdlmod,'_tdl_predefine',None);
+    if callable(predefine_func):
+      predef_result = predefine_func(mqs,parent,**predef_args);
+    else:
+      predef_result = None;
+    # call the define function
+    args = define_args.copy();
+    if isinstance(predef_result,dict):
+      args.update(predef_result);
+    define_func(ns,**args);
+    # resolve the nodescope
     ns.Resolve();
     # do we have an error list? show it
     errlist = ns.GetErrors();
@@ -96,8 +118,15 @@ def compile_file (mqs,filename,text=None):
     mqs.meq('Set.Forest.State',record(state=fst));
 
     msg = """Script has run successfully. %d node definitions 
-      (of which %d are root nodes) sent to the kernel.
-      """ % (num_nodes,len(ns.RootNodes()));
+(of which %d are root nodes) sent to the kernel.""" \
+      % (num_nodes,len(ns.RootNodes()));
+    
+    # call the post-define function
+    postdefine_func = getattr(_tdlmod,'_tdl_postdefine',None);
+    if callable(postdefine_func):
+      res = postdefine_func(mqs,parent,**postdef_args);
+      if isinstance(res,str):
+        msg += "\n" + res;
 
     return (_tdlmod,msg);
     

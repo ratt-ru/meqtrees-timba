@@ -358,7 +358,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       nhere = 0;
       for index,err in enumerate(errlist):
         errmsg = str(err.args[0]);
-        filename = err.filename;
+        filename = getattr(err,'filename',None);
         line = getattr(err,'lineno',0);
         column = getattr(err,'offset',0);
         # effectively, this makes CalledFrom errors child items
@@ -375,7 +375,7 @@ class TDLEditor (QFrame,PersistentCurrier):
         # set item content
         item.setText(1,errmsg);
         if filename is None:
-          item.setText(2,"[<internal TDL error, see console for more info>]");
+          item.setText(2,"[more info may be available on the text console]");
         elif filename == self._filename:
           item._err_location = index,None,line,column;
           item.setText(2,"[line %d]" % (line,));
@@ -569,7 +569,11 @@ class TDLEditor (QFrame,PersistentCurrier):
                   if node.is_publishing() and node.name in allnodes ];
     # try the compilation
     try:
-      (_tdlmod,msg) = TDL.Compile.compile_file(meqds.mqs(),self._filename,tdltext);
+      QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
+      try:
+        (_tdlmod,msg) = TDL.Compile.compile_file(meqds.mqs(),self._filename,tdltext,parent=self);
+      finally:
+        QApplication.restoreOverrideCursor();
     # catch compilation errors
     except TDL.CumulativeError,value:
       self.set_error_list(value.args);
