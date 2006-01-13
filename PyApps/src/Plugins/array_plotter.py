@@ -76,8 +76,8 @@ class ArrayPlotter(GriddedPlugin):
         QObject.connect(self._plotter, PYSIGNAL('show_colorbar_display'), self.colorbar[i].showDisplay)
         QObject.connect(self.colorbar[i], PYSIGNAL('set_image_range'), self._plotter.setImageRange)
 
-      if self.array_rank > 2:
-        _dprint(3,' array_plotter: array has rank and shape: ', self.array_rank, ' ', self.array_shape)
+      if self.actual_rank > 2:
+        _dprint(3,' array_plotter: array has actual rank and shape: ', self.actual_rank, ' ', self.array_shape)
         _dprint(3,' array_plotter: so an ND Controller GUI is needed')
         self._plotter.set_toggle_array_rank(self.array_rank)
         self.set_ND_controls()
