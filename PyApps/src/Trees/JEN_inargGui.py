@@ -62,24 +62,43 @@ class ArgBrowser(QMainWindow):
         self.setMinimumWidth(700)
         self.setMinimumHeight(400)
 
+        #----------------------------------------------------
+        # The basic layout: Stack widgets vertically in vbox
+        
         vbox = QVBoxLayout(self)
-        combo = QComboBox(self)
-        combo.setEditText('editText')
-        vbox.addWidget(combo)
-	
+
+        #----------------------------------------------------
+        # Statusbar:
+        if False:
+            # NB: Only works when put before vbox definition,
+            #     but then inhibits the vbox....!!?
+            #     (Solved by using a QLabel instead, see below)
+            self.__statusbar = self.statusBar()
+            self.__statusbar.show()
+            self.__statusbar.clear()
+            self.__statusbar.message("statusbar")
+
+
+        #----------------------------------------------------
         # The listview displays the inarg record:
         self.__listview = QListView(self)
         # self.setCentralWidget(self.__listview)
         vbox.addWidget(self.__listview)
+
+        color = QColor('darkblue')
+        self.__listview.setPaletteForegroundColor(color)
+        color = QColor('pink')
+        color = QColor('lightgreen')
+        color.setRgb(250,255,255)           # 0-255
+        self.__listview.setPaletteBackgroundColor(color)
+
         self.__listview.addColumn("name", 300)
         self.__listview.addColumn("value",200)
         self.__listview.addColumn("help", 500)
         self.__listview.addColumn("iitd")
         self.__listview.setRootIsDecorated(1)
-        self.__popup = None            # popup object
-        self.__set_open = True         # see .recurse()
-        self.clearGui()
 
+        #----------------------------------------------------
         # Buttons to be added at the bottom:
         hbox = QHBoxLayout(self)
         vbox.addLayout(hbox)
@@ -93,7 +112,18 @@ class ArgBrowser(QMainWindow):
         QObject.connect(b_exec, SIGNAL("pressed ()"), self.exec_with_inarg)
         QObject.connect(b_cancel, SIGNAL("pressed ()"), self.cancel_exec)
 
-        # Menubar:
+        #----------------------------------------------------
+        # Message label (i.s.o. statusbar):
+        self.__message = QLabel(self)
+        font = QFont("times")
+        font.setBold(True)
+        # self.__message.setFont(font)
+        self.__message.setText(' ')
+        vbox.addWidget(self.__message)
+
+
+        #----------------------------------------------------
+        # Menubar (at the end...!?):
         self.__menubar = self.menuBar()
 
         filemenu = QPopupMenu(self)
@@ -131,30 +161,22 @@ class ArgBrowser(QMainWindow):
         self.__menubar.insertSeparator()
         self.__menubar.insertItem('Help', helpmenu)
 
-        # Statusbar (does not work...?):
-        self.__statusbar = self.statusBar()
-        self.__statusbar.show();
-        # vbox.addLayout(self.__statusbar)         # invalid type
-        # self.__statusbar.clear()
-        self.__statusbar.message("xxx")
-
-        # Message label (i.s.o. statusbar):
-        self.__message = QLabel(self)
-        self.__message.setText(' ')
-        vbox.addWidget(self.__message)
-
+        #-------------------------------------------------------
         # Initialise:
+        self.__popup = None                        # popup object (editing)
+        self.clearGui()
+        self.__set_open = True                     # see .recurse()
         self.__result = None                       # output for exec_loop
         self.__inarg = None                        # the edited inarg
         self.__inarg_input = None                  # the input inarg (see .revert_inarg())
         self.__savefile = generic_savefile         # used by .save_inarg(None)
         self.__scriptname = None                   # target script for inarg record
         self.__closed = False
-	
         if True:
             # Always restore the generic savefile (but do not show)
             self.restore_inarg(generic_savefile)            
         return None
+
 
 
     def QApp (self):
@@ -173,6 +195,7 @@ class ArgBrowser(QMainWindow):
         return True
 
     def closeEvent (self,ev):
+        """Callback function for close"""
         self.__closed = True;
     	QMainWindow.closeEvent(self,ev);
 
@@ -314,6 +337,8 @@ class ArgBrowser(QMainWindow):
         return True
 
     #-------------------------------------------------------------------------------
+    # Input of a inarg record:
+    #-------------------------------------------------------------------------------
 
     def input (self, inarg=None, name=None, set_open=True):
         """Input of a new (inarg) record in the gui"""
@@ -370,10 +395,16 @@ class ArgBrowser(QMainWindow):
                 if key==CTRL_record:                           # is a CTRL record         
                     if self.__unhide:
                         item = QListViewItem(listview, key, 'CTRL_record')
+                        item.setSelectable(False)
                         self.recurse (rr[key], listview=item,
                                       level=level+1, makeitd=False)
                 else:
-                    item = QListViewItem(listview, key)
+                    text = QString(key)
+                    font = QFont("times")
+                    font.setBold(True)
+                    # text.setFont(font)
+                    item = QListViewItem(listview, text)
+                    item.setSelectable(False)
                     if self.__set_open and level==0:
                         item.setOpen(True)                     # show its children
                     self.recurse (rr[key], listview=item, level=level+1,

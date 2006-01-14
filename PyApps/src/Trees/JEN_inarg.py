@@ -11,6 +11,8 @@
 #    - 13 dec 2005: added .clone()
 #    - 15 dec 2005: included ._replace_reference() in .attach()
 #    - 16 dec 2005: included version keyword in .inarg2pp()
+#    - 14 jan 2006: added .dissect_target()
+#    - 14 jan 2006: made _replace_reference() react to '@' and '@@'
 #
 # Full description:
 #    By obeying a simple (and unconstraining!) set of rules, the input
@@ -115,7 +117,9 @@
 
 from Timba.TDL import *
 from Timba.Trees import JEN_record
+
 from copy import deepcopy
+from datetime import datetime
 
 # The name of the control-record
 CTRL_record = '_JEN_inarg_CTRL_record:'
@@ -125,18 +129,21 @@ option_field = '_JEN_inarg_option'
 
 #----------------------------------------------------------------------------
 
-def init(funcname='<funcname>', version='15dec2005', **opt):
-   """Initialise a valid inarg record, with optional fields **opt.
+def init(target='<target>', version='15dec2005', **pp):
+   """Initialise a valid inarg record, with optional fields **pp.
    This is done when starting a composite inarg record, e.g. in MG_JEN_xxx.py"""
-   # if not isinstance(opt): opt = dict()     # overkill?
-   inarg = opt                              # default is empty dict                       
-   inarg['script_name'] = funcname          # expected in MG control record (kludge...)
-   _ensure_CTRL_record(inarg, funcname, version=version)
+
+   # Deal with the keyword arguments:
+   if not isinstance(pp): pp = dict()     # overkill?
+   inarg = pp                             # default is empty dict                       
+   inarg['script_name'] = target          # expected in MG control record (kludge...)
+
+   _ensure_CTRL_record(inarg, target, version=version)
+
    trace = True
    if trace: display(inarg,'JEN_inarg.init()', full=True)
    # Return the inarg record:
    return inarg
-
 
 
 #----------------------------------------------------------------------------
@@ -297,24 +304,72 @@ def _modify_level(rr, arg, found, level=0, trace=False):
 
 #============================================================================
 
-def _ensure_CTRL_record(rr, localscope='<localscope>', version=None, barescope=None):
+def dissect_target (target='<dir>/<module>::<function>()', qual=None, trace=False):
+   """Dissect the input string into fields of a record"""
+   rr = dict(target_definition=target,
+             target_function='<target_function>',
+             target_module='<target_module>',
+             target_dir='.',
+             qual=qual,
+             localscope='<localscope>',
+             barescope='<barescope>')
+
+   if trace: print '** .dissect_target(',target,'):'
+   # Get the target directory (if any):
+   ss = target.split('/')
+   if len(ss)>1:
+      rr['target_dir'] = ss[0]
+      target = ss[len(ss)-1]
+
+   # Get the target module (if any):
+   ss = target.split(':')
+   if len(ss)==3:                                     # split on ::
+      rr['target_module'] = ss[0]
+      rr['target_function'] = ss[2]
+      target = ss[len(ss)-1]
+   ss = target.split('.')
+   if len(ss)>1:                                      # split on .
+      rr['target_module'] = ss[0]
+      target = ss[len(ss)-1]
+
+   # The naked name of the target function:
+   rr['target_function'] = target.split('(')[0]       # remove any ()
+
+   # The localscope is the inarg record field-name:
+   rr['localscope'] = '**** '
+   rr['localscope'] = ''
+   rr['localscope'] += rr['target_dir']+'/'
+   rr['localscope'] += rr['target_module']+'.'
+   rr['localscope'] += rr['target_function']+'()'
+   if qual:                                           # qualifier specified
+      rr['localscope'] += '['+str(qual)+']'
+
+   # The barescope is a stripped version of the localscope:
+   rr['barescope'] = rr['target_module']+rr['target_function']
+
+   # Finished:
+   if trace: print '    ->',rr
+   return rr
+
+
+def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
    """Make sure that rr has a valid JEN_inarg_CTRL record"""
 
-   # Convert inputs to strings (just in case)!
-   version = str(version)
-   localscope = str(localscope)
-   if barescope==None:
-      barescope = localscope.split('[')[0]            # remove any qualifiers
-   barescope = str(barescope)
-   
    if not rr.has_key(CTRL_record):                    # rr does NOT have a CTRL record yet
-      rr[CTRL_record] = dict(localscope=localscope, version=version, barescope=barescope)
+      ctrl = dissect_target (target, qual=qual)
+      ctrl['version'] = version
+      now = str(datetime.now())
+      ctrl['datetime_defined'] = now                  # not modified anymore
+      ctrl['last_edited'] = now                       # updated in inargGUI
+      rr[CTRL_record] = ctrl                          # Attach the CTRL_record
+
    elif not isinstance(rr[CTRL_record], dict):        # CTRL_record is not a record...??
       ERROR(rr,'inarg/pp['+CTRL_record+'] not a dict, but: '+str(type(rr[CTRL_record])))
+
    else:                                              # rr already has a valid CTRL_record
       if version:                                     # version has been specified (.inarg2pp())
          #===================================================
-         return True                # temporarily disabled!!!
+         # return True                # temporarily disabled!!!
          #===================================================
          # The version keyword allows detecton of obsolete inarg records:
          rr_version = rr[CTRL_record]['version']
@@ -330,16 +385,19 @@ def CTRL(rr, key=None, value=None, delete=None, report=True, level=0, trace=Fals
    JEN_inarg_CTRL_record field from rr (if any).
    If a field (key) is specified, return its value instead.
    If a value is specified, modify the field value first"""
+
    if not isinstance(rr, dict):
       return False
-   elif not rr.has_key(CTRL_record):     # recursive
+
+   elif not rr.has_key(CTRL_record):          # recursive....!!
       for key1 in rr.keys():
          if isinstance(rr[key1],dict):
             return CTRL(rr[key1], key=key, value=value, delete=delete,
                         level=level+1, report=report, trace=trace)
+
    else:                                      # CTRL record found
       s1 = 'JEN_inarg_CTRL(level='+str(level)+')'
-      cc = rr[CTRL_record]               # convenience
+      cc = rr[CTRL_record]                    # convenience
       if not isinstance(cc, dict):
          if trace: print s1,'not a record, but:',type(cc)
       elif not key:                           # no key specified
@@ -499,9 +557,12 @@ def getdefaults(pp, check=True, strip=False, trace=False):
    
 #----------------------------------------------------------------------------
 
-def _replace_reference(rr, repeat=0, level=0, trace=False):
-   """If the value of a field in the given record (rr) is a field name
-   in the same record, replace it with the value of the referenced field"""
+def _replace_reference(rr, acc=dict(), repeat=0, level=0, trace=False):
+   """If the value of a field in the given record (rr) is referenced to:
+   - a field name (prepended with @) in the same record
+   - a field name (prepended with @@) in the parent record(s)
+   replace it with the value of the referenced field"""
+
    if trace:
       print '\n** _replace_reference(',repeat,'):',type(rr)
    if not isinstance(rr, dict): return False
@@ -515,30 +576,43 @@ def _replace_reference(rr, repeat=0, level=0, trace=False):
       if key==CTRL_record:                 # ignore
          pass
       elif isinstance(value, dict):        # if field value is a dict
-         _replace_reference(rr[key], level=level+1)     # recurse
+         acc1 = deepcopy(acc)
+         for key1 in rr.keys():
+            if not isinstance(rr[key1], dict): acc1[key1] = rr[key1]
+         _replace_reference(rr[key], acc=acc1, level=level+1)     # recurse
       elif isinstance(value, str):         # if field value is a string
          if trace: print level,(level*'.'),':',key,'=',value
-         if rr.has_key(value):             # if field value is the name of another field
-            if not value==rr[value]:       # different values
-               count += 1                  # count the number of replacements
-               s1 = '._replace_reference('+str(repeat)+'): key='+key+':  '
-               s1 += str(value)+' -> '+str(rr[value])
-               if trace: print s1
-               MESSAGE(rr, s1)
-               rr[key] = rr[value]         # replace with the value of the referenced field
+         if value[0]=='@':
+            if value[1]=='@':
+               vkey = value.split('@')[2]     # strip off the prepended '@@'
+               qq = acc                       # search in acc (upwards)
+            else:
+               vkey = value.split('@')[1]     # strip off the prepended '@'
+               qq = rr                        # search in rr
+
+            if qq.has_key(vkey):              # if vkey is the name of another field
+               if not value==qq[vkey]:        # different values
+                  count += 1                  # count the number of replacements
+                  s1 = 'qq['+key+']: '+str(value)+' -> '+str(qq[vkey])
+                  if trace: print s1
+                  MESSAGE(rr, s1)
+                  rr[key] = qq[vkey]          # replace with the value of the referenced field
 
    # Repeat this if necessary, i.e. if at least one value has been replaced
    # (This is because values may be multiply referenced)
    if count>0:
-      _replace_reference(rr, repeat=repeat+1)
+      _replace_reference(rr, acc=acc, repeat=repeat+1)
    return count
 
+
+#----------------------------------------------------------------------------
+# This is the on_entry function of a inarg-compatible function.
 #----------------------------------------------------------------------------
 
-def inarg2pp(inarg, funcname='<funcname>', version='15dec2005', trace=False):
+def inarg2pp(inarg, target='<target>', version='15jan2006', trace=False):
    """Extract the relevant internal argument record (pp) from inarg"""
 
-   s0 = '** JEN_inarg.inarg2pp('+funcname+'): '
+   s0 = '** JEN_inarg.inarg2pp('+target+'): '
    # if trace: display(inarg,'input to .inarg2pp(inarg)', full=True)
 
    if not isinstance(inarg, dict):
@@ -546,14 +620,12 @@ def inarg2pp(inarg, funcname='<funcname>', version='15dec2005', trace=False):
       if trace: print s0,'inarg not a dict'
       return inarg
 
-   # Construct the localscope string (funcname+[qualifiers]):
-   localscope = '**** '+str(funcname)
-   barescope = localscope                      # localscope without qualifiers
+   # Construct the localscope string (target+[qualifiers]):
+   qual = None
    if inarg.has_key('_qual'):
       qual = inarg['_qual']
-      if not qual==None: localscope += '['+str(qual)+']' 
       inarg.__delitem__('_qual')
-
+   localscope = dissect_target(target, qual=qual)['localscope']
 
 
    # Check for the existence of reserved keywords:
@@ -616,7 +688,7 @@ def inarg2pp(inarg, funcname='<funcname>', version='15dec2005', trace=False):
       if trace: print '-- inarg traditional'
 
    # Attach CTRL record to pp (if necessary):
-   _ensure_CTRL_record(pp, localscope, version=version, barescope=barescope)
+   _ensure_CTRL_record(pp, target, version=version, qual=qual)
 
    if trace: display(pp,'pp <- .inarg2pp(inarg)', full=True)
    return pp
@@ -818,7 +890,7 @@ def test1(ns=None, object=None, **inarg):
    """A test function with inarg capability"""
    
    # Extract a bare argument record pp from inarg
-   pp = inarg2pp(inarg, 'JEN_inarg::test1()', version='10dec2005', trace=True)
+   pp = inarg2pp(inarg, 'JEN_inarg::test1()', version='10jan2006', trace=True)
    
    # Specify the function arguments, with default values:
    define(pp, 'aa', 45, choice=[46,78,54,False,None], editable=False,
@@ -833,8 +905,8 @@ def test1(ns=None, object=None, **inarg):
           help='open a .py file', trace=True)
    define(pp, 'empty_string', ' ', choice=[' ',''," ",""],
           help='four versions of empty strings', trace=True)
-   pp.setdefault('ref_ref_aa', 'ref_aa')
-   pp.setdefault('ref_aa', 'aa')
+   pp.setdefault('ref_ref_aa', '@ref_aa')
+   pp.setdefault('ref_aa', '@aa')
    define(pp, 'nested', True, tf=True, trace=True)
    define(pp, 'trace', False, tf=False, trace=True)
    if pp['nested']:
@@ -867,6 +939,8 @@ def test2(**inarg):
    pp = inarg2pp(inarg, 'JEN_inarg::test2()', version='2.45', trace=True)
    pp.setdefault('ff', 145)
    pp.setdefault('bb', -119)
+   pp.setdefault('ref_ref_aa', '@@ref_aa')
+   pp.setdefault('ref_aa', '@aa')
    pp.setdefault('trace', False)
    if getdefaults(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
 
