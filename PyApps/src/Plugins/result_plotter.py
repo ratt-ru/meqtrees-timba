@@ -24,6 +24,7 @@ from QwtPlotImage import *
 from QwtColorBar import *
 from SpectrumData import *
 from VellsData import *
+from SolverData import *
 from ND_Controller import *
 from plot_printer import *
 
@@ -120,8 +121,8 @@ class ResultPlotter(GriddedPlugin):
     self.layout_parent = None
     self.layout = None
     self.ND_Controls = None
-    self._solver_flag = False
     self._vells_data = None
+    self._solver_data = None
     self.num_possible_ND_axes = None
     self.old_plot_data_rank = -1
     self.active_image_index = None
@@ -574,7 +575,10 @@ class ResultPlotter(GriddedPlugin):
       if self._visu_plotter is None:
         self.create_image_plotters()
         _dprint(3, 'passed create_image_plotters')
-      self.plot_vells_data()
+      if self._rec.has_key("vellsets"):
+        self.plot_vells_data()
+      else:
+        self.plot_solver()
 # otherwise we are dealing with a set of visualization data
     else:
       if self._rec.has_key("visu"):
@@ -597,107 +601,98 @@ class ResultPlotter(GriddedPlugin):
       if isinstance(self._rec, bool):
         return
 
-# are we dealing with 'solver' results?
-      if self._rec.has_key("solver_result"):
-        self.plot_solver()
-        return
+      _dprint(3, 'handling vellsets')
+      self._vells_plot = True
+      self._visu_plotter.setVellsPlot(self._vells_plot)
 
-# are we dealing with Vellsets?
-      if self._rec.has_key("vellsets") and not self._solver_flag:
-        _dprint(3, 'handling vellsets')
-        self._vells_plot = True
-        self._visu_plotter.setVellsPlot(self._vells_plot)
-
-        if self._vells_data is None:
-          self._vells_data = VellsData()
+      if self._vells_data is None:
+        self._vells_data = VellsData()
 # store the data
-        self._vells_data.StoreVellsData(self._rec,self.label)
-        if self.num_possible_ND_axes is None:
-          vells_data_parms = self._vells_data.getVellsDataParms()
-          vells_axis_parms = vells_data_parms[0]
-          axis_labels = vells_data_parms[1]
-          self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels)
-          self.num_possible_ND_axes = vells_data_parms[2]
-          if len(vells_axis_parms) > 2 and self.num_possible_ND_axes > 2:
-            self.toggle_array_rank = self.num_possible_ND_axes
-            self.set_ND_controls (axis_labels, vells_axis_parms)
+      self._vells_data.StoreVellsData(self._rec,self.label)
+      if self.num_possible_ND_axes is None:
+        vells_data_parms = self._vells_data.getVellsDataParms()
+        vells_axis_parms = vells_data_parms[0]
+        axis_labels = vells_data_parms[1]
+        self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels)
+        self.num_possible_ND_axes = vells_data_parms[2]
+        if len(vells_axis_parms) > 2 and self.num_possible_ND_axes > 2:
+          self.toggle_array_rank = self.num_possible_ND_axes
+          self.set_ND_controls (axis_labels, vells_axis_parms)
 
-          # get initial axis parameters
-          axis_parms =  self._vells_data.getActiveAxisParms()
-          self._visu_plotter.setAxisParms(axis_parms)
+        # get initial axis parameters
+        axis_parms =  self._vells_data.getActiveAxisParms()
+        self._visu_plotter.setAxisParms(axis_parms)
 
 # generate basic menu
-        self._visu_plotter.initVellsContextMenu()
+      self._visu_plotter.initVellsContextMenu()
 
-        self.raw_data_rank = self._vells_data.getActiveDataRank()
+      self.raw_data_rank = self._vells_data.getActiveDataRank()
 
 # do we have flags for data?	  
-        if self._vells_data.activePlaneHasFlags():
-          flag_plane = self._vells_data.getActivePlane()
-          self._visu_plotter.set_flag_toggles(flag_plane, True)
-          self._visu_plotter.setFlagsData(self._vells_data.getActiveFlagData())
+      if self._vells_data.activePlaneHasFlags():
+        flag_plane = self._vells_data.getActivePlane()
+        self._visu_plotter.set_flag_toggles(flag_plane, True)
+        self._visu_plotter.setFlagsData(self._vells_data.getActiveFlagData())
 
 # test and update the context menu
-        menu_labels = self._vells_data.getMenuLabels()
-        vells_menu_items = len(menu_labels)
-        if vells_menu_items > 1:
-          self._visu_plotter.setMenuItems(menu_labels)
+      menu_labels = self._vells_data.getMenuLabels()
+      vells_menu_items = len(menu_labels)
+      if vells_menu_items > 1:
+        self._visu_plotter.setMenuItems(menu_labels)
 
 # plot the appropriate plane / perturbed value
-        plot_data = self._vells_data.getActiveData()
-        if plot_data.rank != self.old_plot_data_rank:
-          self.old_plot_data_rank = plot_data.rank
-          # get initial axis parameters
-          axis_parms =  self._vells_data.getActiveAxisParms()
-          self._visu_plotter.setAxisParms(axis_parms)
-        plot_label = self._vells_data.getPlotLabel()
-        if not self.test_vells_scalar(plot_data, plot_label):
-          self._visu_plotter.plot_vells_array(plot_data, plot_label)
+      plot_data = self._vells_data.getActiveData()
+      if plot_data.rank != self.old_plot_data_rank:
+        self.old_plot_data_rank = plot_data.rank
+        # get initial axis parameters
+        axis_parms =  self._vells_data.getActiveAxisParms()
+        self._visu_plotter.setAxisParms(axis_parms)
+      plot_label = self._vells_data.getPlotLabel()
+      if not self.test_vells_scalar(plot_data, plot_label):
+        self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
     # end plot_vells_data()
 
   def plot_solver (self):
-        if self._rec.solver_result.has_key("incremental_solutions"):
-          self._solver_flag = True
-          self._value_array = self._rec.solver_result.incremental_solutions
-          if self._rec.solver_result.has_key("metrics"):
-            metrics = self._rec.solver_result.metrics
-            metrics_rank = zeros(len(metrics), Int32)
-            iteration_number = zeros(len(metrics), Int32)
-            for i in range(len(metrics)):
-               metrics_rank[i] = metrics[i].rank
-               iteration_number[i] = i+1
-          shape = self._value_array.shape
-          self._visu_plotter.set_solver_metrics(metrics_rank, iteration_number)
-          if shape[1] > 1:
-            self._x_title = 'Solvable Coeffs'
-            self._y_title = 'Iteration Nr'
-            self._visu_plotter.array_plot("Solver Incremental Solutions", self._value_array)
-          else:
-            self._y_title = 'Value'
-            self._x_title = 'Iteration Nr'
-            self._visu_plotter.array_plot("Solver Incremental Solution", self._value_array)
-        return
+    if self._solver_data is None:
+        self._solver_data = SolverData()
+# store the data
+    self._solver_data.StoreSolverData(self._rec,self.label)
+# retrieve it
+    self._solver_array =  self._solver_data.getSolverData()
+    (metrics_rank, iteration_number) = self._solver_data.getSolverMetrics()
+    self._visu_plotter.set_solver_metrics(metrics_rank, iteration_number)
+    shape = self._solver_array.shape
+    title = ''
+    if shape[1] > 1:
+      self._x_title = 'Solvable Coeffs'
+      self._y_title = 'Iteration Nr'
+      title = self.label + " Solver Incremental Solutions"
+    else:
+      self._y_title = 'Value'
+      self._x_title = 'Iteration Nr'
+      title = self.label + " Solver Incremental Solution"
+    self._visu_plotter.array_plot(title, self._solver_array)
 
   def test_vells_scalar (self, data_array, data_label):
 # do we have a scalar?
-      is_scalar = False
-      scalar_data = 0.0
-      try:
-        shape = data_array.shape
-        _dprint(3,'data_array shape is ', shape)
-      except:
+    is_scalar = False
+    scalar_data = 0.0
+    try:
+      shape = data_array.shape
+      _dprint(3,'data_array shape is ', shape)
+    except:
+      is_scalar = True
+      scalar_data = data_array
+    if not is_scalar and len(shape) == 1:
+      if shape[0] == 1:
         is_scalar = True
-        scalar_data = data_array
-      if not is_scalar and len(shape) == 1:
-        if shape[0] == 1:
-          is_scalar = True
-          scalar_data = data_array[0]
-      if is_scalar:
-        self._visu_plotter.report_scalar_value(data_label, scalar_data)
-        return True
-      else:
-        return False
+        scalar_data = data_array[0]
+    if is_scalar:
+      self._visu_plotter.report_scalar_value(data_label, scalar_data)
+      return True
+    else:
+      return False
 
   def update_vells_display (self, menuid):
       self._vells_data.unravelMenuId(menuid)
