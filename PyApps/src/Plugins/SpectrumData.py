@@ -4,7 +4,7 @@ import sys
 from numarray import *
 
 from Timba.utils import verbosity
-_dbg = verbosity(0,name='spectrum_data');
+_dbg = verbosity(0,name='SpectrumData');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
