@@ -40,8 +40,9 @@ class FileChannel : public EventChannel
     //##Documentation
     //## called to put more objects on the stream. Returns SUCCESS if something
     //## was put on, or <0 code (ERROR/CLOSED/whatever). Should call
-    //## putOnStream() to put new objects on the stream, and can also call
-    //## close() to close the channel.
+    //## putOnStream() to put new objects on the stream. 
+    //## Once channel is out of objects, should return CLOSED (but not call
+    //## close() itself).
     virtual int refillStream () =0;
     
     //##ModelId=3EB92AEE0279

@@ -58,7 +58,6 @@ int BOIOChannel::refillStream()
     if( tid == 0 )
     {
       cdebug(1)<<"EOF on BOIO file, closing"<<endl;
-      close();
       return CLOSED;
     }
     else if( tid != TpDMIRecord )

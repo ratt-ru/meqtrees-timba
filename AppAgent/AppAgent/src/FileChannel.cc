@@ -62,10 +62,10 @@ int FileChannel::hasEvent (const HIID &mask, HIID &out)
       // to data members. This is easier than making everything mutable
     int res = const_cast<FileChannel*>(this)->refillStream();
     if( res != AppEvent::SUCCESS )
-    {
       clearEventFlag();   // empty stream = no more events from us
-      return res;
-    }
+    if( res == AppEvent::CLOSED )
+      close();
+    return res;
   }
   out = input_stream_.front().id;
   if( mask.empty() || mask.matches(out) )

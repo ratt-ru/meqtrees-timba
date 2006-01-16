@@ -598,6 +598,7 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
   // now run the I/O loop
   cached_header_.detach();
   DMI::Record::Ref header;
+  int stream_state = VisData::FOOTER; // no event
   // any non-fatal fails during processing are accumulatede here
   // (fatal errors are thrown immediately)
   VellSet::Ref fail_list(DMI::ANONWR); 
@@ -619,17 +620,19 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
       continue;
     }
     // figure out the event type
-    int type = VisData::VisEventType(evid);
+    int event_type = VisData::VisEventType(evid);
     HIID ev_inst = VisData::VisEventInstance(evid);
     string doing_what;
     DMI::ExceptionList errors;
     // process data event
-    if( type == VisData::DATA )
+    if( event_type == VisData::DATA )
     {
       doing_what = "processing data event "+ev_inst.toString('.');
       VisCube::VTile::Ref tileref = evdata.ref_cast<VisCube::VTile>();
-      doing_what = "processing tile "+tileref->tileId().toString('.');
       cdebug(4)<<"received tile "<<tileref->tileId()<<endl;
+      doing_what = "processing tile "+tileref->tileId().toString('.');
+      // check for correct sequence
+      FailWhen(stream_state!=VisData::DATA,"data event "+ev_inst.toString('.')+" out of sequence");
       // deliver tile to Python
       try  { MeqPython::processVisTile(*tileref); }
       catch( std::exception &exc ) { errors.add(exc); }
@@ -637,10 +640,12 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
       try { deliverTile(tileref); }
       catch( std::exception &exc ) { errors.add(exc); }
     }
-    else if( type == VisData::FOOTER )
+    else if( event_type == VisData::FOOTER )
     {
       doing_what = "processing footer "+ev_inst.toString('.');
       cdebug(2)<<"received footer"<<endl;
+      FailWhen(stream_state!=VisData::DATA,"footer out of sequence");
+      stream_state = VisData::FOOTER;
       const DMI::Record &footer = *(evdata.ref_cast<DMI::Record>());
       // deliver footer to Python
       try  { MeqPython::processVisFooter(footer); }
@@ -656,11 +661,13 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
       postMessage(ssprintf("received footer %s, %d tiles (%d chunks) processed",
           ev_inst.toString('.').c_str(),num_tiles_,num_chunks_),evrec);
     }
-    else if( type == VisData::HEADER )
+    else if( event_type == VisData::HEADER )
     {
       doing_what = "processing header "+ev_inst.toString('.');
       cdebug(2)<<"received header"<<endl;
+      FailWhen(stream_state!=VisData::FOOTER,"header out of sequence");
       header = evdata;
+      stream_state = VisData::DATA;
       // deliver header to Python
       try  { MeqPython::processVisHeader(*header); }
       catch( std::exception &exc ) { errors.add(exc); }
@@ -686,12 +693,18 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
       postError("error "+doing_what,errors.makeList());
     }
   }
+  input_channel_().close();
   // flush output if needed
-  if( sync_output && output_channel_.valid() )
+  if( output_channel_.valid() )
   {
-    postMessage("flushing output");
-    output_channel_().flush();
+    if( sync_output )
+    {
+      postMessage("flushing output");
+      output_channel_().flush();
+    }
+    output_channel_().close();
   }
+  FailWhen(stream_state!=VisData::FOOTER,"data stream missing a footer");
   // if we have accumulated any fails, return them here
   if( fail_list->isFail() )
   {

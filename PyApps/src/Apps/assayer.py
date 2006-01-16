@@ -60,8 +60,16 @@ class logger (file):
     
 class assayer (object):
   def __init__ (self,name,log=True,nokill=None):
+    # parse command line
     self.recording = "-assayrecord" in sys.argv;
     self._assay_runtime = "-noruntime" not in sys.argv;
+    self._subset_tests = None;    # all tests by default
+    # "-assay" limits number of tests
+    for i in range(len(sys.argv)):
+      if sys.argv[i] == "-assay":
+        if i >=  len(sys.argv)-1:
+          raise AssaySetupError("-assay argument must be followed by a comma-separated list of test names");
+        self._subset_tests = sys.argv[i+1].split(",");
     # if nokill is not explicitly specified, leave kernel running when recording
     if nokill is None:
       nokill = self.recording;
@@ -82,7 +90,8 @@ class assayer (object):
     if log:
       self.logger = logger(self.name+".assaylog");
       self.logf("start of log for assayer %s",self.name);
-      
+    if self._subset_tests:
+      self.log("will only run the following tests:",*self._subset_tests); 
   def log (self,*args):
     _dprint(1,*args+('\n',));
     if self.logger:
@@ -128,10 +137,19 @@ class assayer (object):
     try:
       if self.testname is not None:
         self.finish_test();
+      # check if test is to be ignored
+      if self._subset_tests:
+        self._ignore_test = name not in self._subset_tests;
+      else:
+        self._ignore_test = False;
       self._assay_stat = 0;
       self.watching = [];
       self.testname = name;
-      self.logf("START: test '%s'",name);
+      if self._ignore_test:
+        self.logf("IGNORE: test '%s', not listed in -assay arguments",name);
+        return;
+      else:
+        self.logf("START: test '%s'",name);
       if not self.tdlmod:
         raise AssaySetupError("FAIL: can't init_test because no script is compiled");
       # load assay data for the sake of per-host timings
@@ -162,6 +180,8 @@ class assayer (object):
     tolerance:   comparison tolerance (None for default).
     """;
     try:
+      if self._ignore_test:
+        return;
       if tolerance is None:
         tolerance = self.default_tol;
       if self.testname is None:
@@ -194,6 +214,8 @@ class assayer (object):
                  nodestate.cache.request_id[0] to the given rqtype.
     """;
     try:
+      if self._ignore_test:
+        return;
       # parse nodespec and generate description if needed. func
       # will be a callable returning the subfield, or the entire node state
       ns = nodespec.split("/",1);
@@ -222,6 +244,8 @@ class assayer (object):
     
   def run (self,procname="_test_forest",**kwargs):
     try:
+      if self._ignore_test:
+        return;
       if self.tdlmod is None:
         raise AssaySetupError,"no TDL script compiled";
       self._assay_stat = 0;
@@ -270,6 +294,18 @@ class assayer (object):
     return self._assay_stat;
     
   def finish_test (self):
+    if self._ignore_test:
+      self._ignore_test = False;
+      self.testname = None;
+      self.watching = [];
+      return 0;
+    # check that all expected sequences have run their course
+    for (node,desc,func,cond,tol) in self.watching:
+      seq = self._sequences.get((node,desc),None);
+      if seq:
+        self.logf("ERROR: sequence not completed (%d entries remain) for node '%s' %s",len(seq),node,desc);
+        self._assay_stat = MISMATCH;
+    # check final status
     if not self._assay_stat:
       if self.recording:
         self._record_assay_data(self.datafile);
@@ -315,6 +351,8 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
   
   def inspect_node (self,node,field,tolerance=None):
     try:
+      if self._ignore_test:
+        return;
       field = tuple(field.split('.'));
       nodestate = self.mqs.getnodestate(node,wait=2);
       val = extract_value(nodestate,field);

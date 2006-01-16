@@ -293,8 +293,7 @@ int MSInputChannel::refillStream ()
     else if( state() != DATA ) // return CLOSED when no more data
     {
       if( state() == FOOTER )
-        setState(CLOSED);
-      return AppEvent::CLOSED;
+        return AppEvent::CLOSED;
     }
   // loop until some tiles are generated
     int nout = 0;
@@ -307,8 +306,6 @@ int MSInputChannel::refillStream ()
         DMI::Record::Ref footer(DMI::ANONWR);
         footer()[FVDSID] = vdsid_; 
         putOnStream(VisEventHIID(FOOTER,vdsid_),footer);
-        // close & detach from everything
-        close();
         return AppEvent::SUCCESS;
       }
       const LoRange ALL = LoRange::all();

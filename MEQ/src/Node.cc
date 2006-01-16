@@ -531,7 +531,7 @@ void Node::markStateDependency ()
 //##ModelId=400E531300C8
 void Node::clearCache (bool recursive,bool quiet)
 {
-  // Thread::Mutex::Lock lock(cache_.mutex);
+  Thread::Mutex::Lock lock(execCond());
   cache_.clear();
   // clearRCRCache();
   if( control_status_ & CS_CACHED )
@@ -757,7 +757,7 @@ void Node::holdChildCaches (bool hold,int diffmask)
 // called by parent node to ask us to hold cache, or to allow release of cache
 void Node::holdCache (bool hold)
 {
-  // Thread::Mutex::Lock lock(cache_.mutex);
+  Thread::Mutex::Lock lock(execCond());
   pcparents_->nhint++;
   if( hold )
     pcparents_->nhold++;
@@ -1112,8 +1112,8 @@ int Node::execute (Result::Ref &ref,const Request &req)
     MTPool::Brigade::markThreadAsUnblocked(*this);
   }
   executing_ = true;
-  lock.release();
 #endif
+  // since we use the same mutex for the cache, hold lock until we have checked it
   
   cdebug(3)<<"execute, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
   FailWhen(node_resolve_id_<0,"execute() called before resolve()");
@@ -1143,6 +1143,7 @@ int Node::execute (Result::Ref &ref,const Request &req)
         setExecState(CS_ES_IDLE,control_status_|CS_RETCACHE);
         return exitExecute(retcode);
     }
+    lock.release();
     has_state_dep_ = false;
     // clear out the RETCACHE flag and the result state, since we
     // have no result for now
@@ -1173,6 +1174,7 @@ int Node::execute (Result::Ref &ref,const Request &req)
       if( !ref.valid() )
         ref <<= new Result(0);
       cdebug(3)<<"  node deactivated, empty result. Cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
+      lock.relock(execCond());
       int ret = cacheResult(ref,req,retcode) | RES_UPDATED;
       setExecState(CS_ES_IDLE,control_status_|CS_RES_EMPTY);
       return exitExecute(ret);
@@ -1200,6 +1202,7 @@ int Node::execute (Result::Ref &ref,const Request &req)
       // if failed, then cache & return the fail
       if( retcode&RES_FAIL )
       {
+        lock.relock(execCond());
         int ret = cacheResult(ref,req,retcode) | RES_UPDATED;
         setExecState(CS_ES_IDLE,control_status_|CS_RES_FAIL);
         return exitExecute(ret);
@@ -1259,6 +1262,7 @@ int Node::execute (Result::Ref &ref,const Request &req)
       }
     }
     // cache & return accumulated return code
+    lock.relock(execCond());
     int ret = cacheResult(ref,req,retcode) | RES_UPDATED;
     setExecState(CS_ES_IDLE,control_status_|result_status);
     return exitExecute(ret);
@@ -1285,6 +1289,7 @@ int Node::execute (Result::Ref &ref,const Request &req)
   // any exceptions here need to be caught so that we clean up properly
   try
   {
+    lock.relock(execCond());
     ret = cacheResult(ref,req,RES_FAIL) | RES_UPDATED;
   }
   catch( ... )
