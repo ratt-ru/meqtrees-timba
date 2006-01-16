@@ -104,6 +104,8 @@ def adjust_for_telescope(pp, origin='<origin>'):
 
 
 #--------------------------------------------------------------------------------
+# Common input arguments (move to TDL_Joneset.py?)
+#--------------------------------------------------------------------------------
 
 def inarg_common (pp, trace=False):
    """Some common JEN_inarg definitions"""
@@ -124,6 +126,9 @@ def inarg_common (pp, trace=False):
                     help='scale of polc_ft non-c00 coeff')
    return True
 
+
+
+
 #--------------------------------------------------------------------------------
 # GJones: diagonal 2x2 matrix for complex gains per polarization
 #--------------------------------------------------------------------------------
@@ -137,19 +142,32 @@ def GJones (ns=None, **inarg):
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005')
     inarg_common(pp)                               # some common arguments             
     # ** Jones matrix elements:
-    pp.setdefault('Gpolar', False)                 # if True, use MeqPolar, otherwise MeqToComplex
+    JEN_inarg.define(pp, 'Gpolar', tf=False,  
+                     help='if True, use MeqPolar, otherwise MeqToComplex')
     # ** Solving instructions:
-    pp.setdefault('fdeg_Gampl', 0)                 # degree of default freq polynomial         
-    pp.setdefault('fdeg_Gphase', 0)                # degree of default freq polynomial          
-    pp.setdefault('tdeg_Gampl', 0)                 # degree of default time polynomial         
-    pp.setdefault('tdeg_Gphase', 0)                # degree of default time polynomial       
-    pp.setdefault('subtile_size_Gampl', 0)            # used in tiled solutions         
-    pp.setdefault('subtile_size_Gphase', 0)           # used in tiled solutions         
+    JEN_inarg.define(pp, 'fdeg_Gampl', 0, choice=range(3),  
+                     help='degree of freq polynomial')
+    JEN_inarg.define(pp, 'fdeg_Gphase', 0, choice=range(3),  
+                     help='degree of freq polynomial')
+    JEN_inarg.define(pp, 'tdeg_Gampl', 0, choice=range(3),  
+                     help='degree of time polynomial')
+    JEN_inarg.define(pp, 'tdeg_Gphase', 0, choice=range(3),  
+                     help='degree of time polynomial')
+    JEN_inarg.define(pp, 'subtile_size_Gampl', None,
+                     choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
+                     help='sub-tile size (None=entire tile)')
+    JEN_inarg.define(pp, 'subtile_size_Gphase', None,  
+                     choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
+                     help='sub-tile size (None=entire tile)')
     # ** MeqParm default values:
-    pp.setdefault('c00_Gampl', 0.3)                # default c00 funklet value
-    pp.setdefault('c00_Gphase', 0.0)               # default c00 funklet value
-    pp.setdefault('stddev_Gampl', 0.0)             # scatter in default c00 funklet values
-    pp.setdefault('stddev_Gphase', 0.0)            # scatter in default c00 funklet values
+    JEN_inarg.define(pp, 'c00_Gampl', 1.0, choice=[0.9, 0.1], hide=True,  
+                     help='default c00 funklet value')
+    JEN_inarg.define(pp, 'c00_Gphase', 0.0, choice=[0.1], hide=True,  
+                     help='default c00 funklet value')
+    JEN_inarg.define(pp, 'stddev_Gampl', 0.0, choice=[0.1], hide=True,   # obsolete?
+                     help='scatter in default c00 funklet values')
+    JEN_inarg.define(pp, 'stddev_Gphase', 0.0, choice=[0.1], hide=True,  # obsolete?  
+                     help='scatter in default c00 funklet values')
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
@@ -1109,7 +1127,7 @@ if __name__ == '__main__':
   ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
   scope = MG['script_name']
 
-  if 1:
+  if 0:
      from Timba.Trees import TDL_MSauxinfo
      MSauxinfo = TDL_MSauxinfo.MSauxinfo(label='MG_JEN_Cohset')
      MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
@@ -1121,7 +1139,7 @@ if __name__ == '__main__':
      js.display()     
      display_first_subtree (js, full=True)
 
-  if 0:
+  if 1:
      inarg = GJones (_getdefaults=True)
      from Timba.Trees import JEN_inargGui
      igui = JEN_inargGui.ArgBrowser()

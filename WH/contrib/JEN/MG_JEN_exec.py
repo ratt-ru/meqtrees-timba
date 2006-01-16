@@ -10,6 +10,7 @@
 # - 10 dec 2005: introduced JEN_inarg.py for MG record
 # - 03 jan 2006: selection_string etc
 # - 05 jan 2006: made stream_control inarg-compatible
+# - 16 jan 2006: added inarg_stream_control()
 
 # Copyright: The MeqTree Foundation 
 
@@ -411,6 +412,34 @@ def spigot2sink (mqs, parent, ctrl={}, **pp):
    if pp['save']: MG_JEN_forest_state.save_meqforest(mqs, **pp)
    
    return True
+
+
+#-------------------------------------------------------------------------
+# Default stream control input arguments (see e.g. MG_JEN_Cohset.py)
+
+def inarg_stream_control (rr, **pp):
+    JEN_inarg.define (rr, 'ms_name', 'D1.MS', 
+                      choice=['D1.MS'], browse='*.MS',
+                      help='name of the (AIPS++) Measurement Set')
+    JEN_inarg.define (rr, 'data_column_name', 'DATA',
+                      choice=['DATA'],
+                      help='MS input column')
+    JEN_inarg.define (rr, 'tile_size', 10, choice=[1,2,3,5,10,20,50,100],
+                      help='size (in time-slots) of the input data-tile')
+    JEN_inarg.define (rr, 'channel_start_index', 10, choice=[0,5,10,20],
+                      help='index of first selected freq channel')
+    JEN_inarg.define (rr, 'channel_end_index', 50, choice=[-1,25,50,100],
+                      help='index of last selected freq channel')
+    JEN_inarg.define (rr, 'predict_column', 'CORRECTED_DATA',
+                      choice=['CORRECTED_DATA'],
+                      help='MS output column')
+    if False:
+        # Temporarily disabled (empty string ' ' does not play well with inargGui...)
+        JEN_inarg.define (rr, 'selection_string', ' ',
+                          choice=['TIME_CENTROID<4615466159.46'],
+                          help='TaQL (AIPS++ Table Query Language) data-selection')
+    return True
+
 
 
 #-------------------------------------------------------------------------

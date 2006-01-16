@@ -1,3 +1,5 @@
+
+
 # MG_JEN_Cohset.py
 
 # Short description:
@@ -19,6 +21,7 @@
 # - 01 jan 2006: implement chain and master solver schemes
 # - 03 jan 2006: resampling: move argument num_cells to insert_solver
 # - 11 jan 2006: make function MSauxinfo()
+# - 14 jan 2006: referenced values prepended with @/@@
 
 # Copyright: The MeqTree Foundation 
 
@@ -76,7 +79,7 @@ def make_spigots(ns=None, Cohset=None, **inarg):
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_spigots()', version='25dec2005')
     JEN_inarg.define (pp, 'MS_corr_index', [0,1,2,3],
-                      choice=[[0,-1,-1,1],[0,-1,-1,3]],
+                      choice=[[0,-1,-1,1],[0,-1,-1,3],'@@'],
                       help='correlations to be used: \n'+
                       '- [0,1,2,3]:   all corrs available, use all \n'+
                       '- [0,-1,-1,1]: only XX/YY (or RR/LL) available \n'+
@@ -195,7 +198,7 @@ def predict (ns=None, Sixpack=None, Joneset=None, **inarg):
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()', version='25dec2005')
-    JEN_inarg.define (pp, 'ifrs', [(0,1)], hide=True,
+    JEN_inarg.define (pp, 'ifrs', [(0,1)], choice=['@@'], hide=True,
                       help='list of ifrs (tuples) for the Cohset')
     pp.setdefault('polrep', 'linear')
     JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True))
@@ -793,14 +796,22 @@ def punit2Sixpack(ns, punit='uvp'):
 
 
 def inarg_polrep (rr, **pp):
-    JEN_inarg.define (rr, 'polrep', 'linear', choice=['linear','circular'],
+    pp.setdefault('master', False)          # If True, it is the master value
+    pp.setdefault('polrep', 'linear')        
+    if not pp['master']: pp['polrep'] = '@@polrep'
+    JEN_inarg.define (rr, 'polrep', pp['polrep'],
+                      choice=['linear','circular','@@polrep'],
                       help='polarisation representation')
     return True
 
 
 def inarg_punit (rr, **pp):
-    punits = ['unpol','unpol2','unpol10','3c147','RMtest','QUV','QU','SItest']
-    JEN_inarg.define (rr, 'punit', 'unpol10', choice=punits,
+    pp.setdefault('master', False)          # If True, it is the master value
+    pp.setdefault('punit', 'unpol')        
+    if not pp['master']: pp['punit'] = '@@punit'
+    choice = ['unpol','unpol2','unpol10','3c147',
+              'RMtest','QUV','QU','SItest','@@punit']
+    JEN_inarg.define (rr, 'punit', pp['punit'], choice=choice,
                       help='name of calibrator source/patch \n'+
                       '- unpol:   unpolarised, I=1Jy \n'+
                       '- unpol2:  idem, I=2Jy \n'+
@@ -814,14 +825,21 @@ def inarg_punit (rr, **pp):
 
 
 def inarg_parmtable (rr, **pp):
-    JEN_inarg.define (rr, 'parmtable', None, choice=[],
+    pp.setdefault('master', False)          # If True, it is the master value
+    pp.setdefault('parmtable', None)        
+    if not pp['master']: pp['parmtable'] = '@@parmtable'
+    JEN_inarg.define (rr, 'parmtable', pp['parmtable'],
                       help='name of MeqParm table to be used')
     return True
 
 
 def inarg_stations (rr, **pp):
-    JEN_inarg.define (rr, 'stations', range(4),
-                      choice=[range(7),range(14),range(15)],
+    pp.setdefault('master', False)          # If True, it is the master value
+    pp.setdefault('stations', range(4))        
+    pp.setdefault('ifrs', (0,1))        
+    if not pp['master']: pp['stations'] = '@@stations'
+    JEN_inarg.define (rr, 'stations', pp['stations'],
+                      choice=[range(7),range(14),range(15),'@@stations'],
                       help='the (subset of) stations to be used')
     # Derive a list of ifrs from rr['stations'] (assumed to exist):
     JEN_inarg.define (rr, 'ifrs', TDL_Cohset.stations2ifrs(rr['stations']), hide=True,
@@ -830,42 +848,26 @@ def inarg_stations (rr, **pp):
 
 
 def inarg_redun (rr, **pp):
-    JEN_inarg.define (rr, 'redun', tf=False,
+    pp.setdefault('master', False)          # If True, it is the master value
+    pp.setdefault('redun', False)        
+    if not pp['master']: pp['redun'] = '@@redun'
+    JEN_inarg.define (rr, 'redun', tf=pp['redun'], 
                       help='if True, redundant spacing calibration')
     return True
 
 
 
 def inarg_solver_config (rr, **pp):
-    JEN_inarg.define (rr, 'chain_solvers', tf=True, hide=True,
+    pp.setdefault('master', False)          # If True, it is the master value
+    pp.setdefault('chain_solvers', True)        
+    pp.setdefault('master_reqseq', False)        
+    if not pp['master']:
+        pp['chain_solvers'] = '@@chain_solvers'
+        pp['master_reqseq'] = '@@master_reqseq'
+    JEN_inarg.define (rr, 'chain_solvers', tf=pp['chain_solvers'], hide=True,
                       help='if True, chain the solvers (recommended)')
-    JEN_inarg.define (rr, 'master_reqseq', tf=False, hide=True,
+    JEN_inarg.define (rr, 'master_reqseq', tf=pp['master_reqseq'], hide=True,
                       help='if True, use a master reqseq for solver(s)')
-    return True
-
-
-
-def inarg_stream_control (rr, **pp):
-    JEN_inarg.define (rr, 'ms_name', 'D1.MS', 
-                      choice=['D1.MS'], browse='*.MS',
-                      help='name of the (AIPS++) Measurement Set')
-    JEN_inarg.define (rr, 'data_column_name', 'DATA',
-                      choice=['DATA'],
-                      help='MS input column')
-    JEN_inarg.define (rr, 'tile_size', 10, choice=[1,2,3,5,10,20,50,100],
-                      help='size (in time-slots) of the input data-tile')
-    JEN_inarg.define (rr, 'channel_start_index', 10, choice=[0,5,10,20],
-                      help='index of first selected freq channel')
-    JEN_inarg.define (rr, 'channel_end_index', 50, choice=[-1,25,50,100],
-                      help='index of last selected freq channel')
-    JEN_inarg.define (rr, 'predict_column', 'CORRECTED_DATA',
-                      choice=['CORRECTED_DATA'],
-                      help='MS output column')
-    if False:
-        # Temporarily disabled (empty string ' ' does not play well with inargGui...)
-        JEN_inarg.define (rr, 'selection_string', ' ',
-                          choice=['TIME_CENTROID<4615466159.46'],
-                          help='TaQL (AIPS++ Table Query Language) data-selection')
     return True
 
 
@@ -874,7 +876,7 @@ def inarg_stream_control (rr, **pp):
 #********************************************************************************
 #********************************************************************************
 #************* PART III: MG control record (may be edited here)******************
-#********************************************************************************
+#********************************************************************************level,(level*'.'),
 #********************************************************************************
 
 #----------------------------------------------------------------------------------------------------
@@ -886,21 +888,21 @@ MG = JEN_inarg.init('MG_JEN_Cohset')
 # Define some overall arguments:
 # Local (MG_JEN_Cohset.py) version:
 JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
-inarg_stations(MG)
-inarg_parmtable(MG)
-inarg_polrep(MG)
-inarg_punit(MG)
-inarg_solver_config (MG)
-inarg_redun(MG)
+inarg_stations(MG, master=True)
+inarg_parmtable(MG, master=True)
+inarg_polrep(MG, master=True)
+inarg_punit(MG, master=True)
+inarg_solver_config (MG, master=True)
+inarg_redun(MG, master=True)
 
 # Copied from MG_JEN_Cohset.py:
 # JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
-# MG_JEN_Cohset.inarg_stations(MG)
-# MG_JEN_Cohset.inarg_parmtable(MG)
-# MG_JEN_Cohset.inarg_polrep(MG)
-# MG_JEN_Cohset.inarg_punit(MG)
-# MG_JEN_Cohset.inarg_solver_config (MG)
-# MG_JEN_Cohset.inarg_redun(MG)
+# MG_JEN_Cohset.inarg_stations(MG, master=True)
+# MG_JEN_Cohset.inarg_parmtable(MG, master=True)
+# MG_JEN_Cohset.inarg_polrep(MG, master=True)
+# MG_JEN_Cohset.inarg_punit(MG, master=True)
+# MG_JEN_Cohset.inarg_solver_config (MG, master=True)
+# MG_JEN_Cohset.inarg_redun(MG, master=True)
     
 
 #----------------------------------------------------------------------------------------------------
@@ -910,8 +912,7 @@ inarg_redun(MG)
 #=======
 if True:                                               # ... Copied from MG_JEN_Cohset.py ...
    MG['stream_control'] = dict()
-   # MG_JEN_exec.inarg_stream_control(MG['stream_control'])
-   inarg_stream_control(MG['stream_control'])
+   MG_JEN_exec.inarg_stream_control(MG['stream_control'])
    JEN_inarg.modify(MG['stream_control'],
                     tile_size=10,
                     _JEN_inarg_option=None)            # optional, not yet used 
@@ -1003,10 +1004,13 @@ if True:                                                   # ... Copied from MG_
    # inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
    inarg = JJones(_getdefaults=True, _qual=qual, expect=Jsequence)  
    JEN_inarg.modify(inarg,
-                    stations=MG['stations'],               # List of array stations
-                    parmtable=MG['parmtable'],             # MeqParm table name
+                    # stations=MG['stations'],               # List of array stations
+                    # parmtable=MG['parmtable'],             # MeqParm table name
+                    stations='@@stations',               # List of array stations
+                    parmtable='@@parmtable',             # MeqParm table name
                     unsolvable=False,                      # If True, no solvegroup info is kept
-                    polrep=MG['polrep'],                   # polarisation representation
+                    # polrep=MG['polrep'],                   # polarisation representation
+                    polrep='@@polrep',                   # polarisation representation
                     Jsequence=Jsequence,                   # Sequence of corrupting Jones matrices 
                     _JEN_inarg_option=None)                # optional, not yet used 
 
@@ -1015,27 +1019,27 @@ if True:                                                   # ... Copied from MG_
    if 'GJones' in Jsequence: 
        JEN_inarg.modify(inarg,
                         fdeg_Gampl=3,                      # degree of default freq polynomial         
-                        fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
+                        fdeg_Gphase='@fdeg_Gampl',          # degree of default freq polynomial          
                         tdeg_Gampl=1,                      # degree of default time polynomial         
-                        tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
+                        tdeg_Gphase='@tdeg_Gampl',          # degree of default time polynomial       
                         subtile_size_Gampl=0,                 # used in tiled solutions         
                         subtile_size_Gphase='subtile_size_Gampl', # used in tiled solutions         
                         _JEN_inarg_option=None)            # optional, not yet used 
    if 'DJones_WSRT' in Jsequence: 
        JEN_inarg.modify(inarg,
                         fdeg_dang=1,                       # degree of default freq polynomial
-                        fdeg_dell='fdeg_dang',             # degree of default freq polynomial
+                        fdeg_dell='@fdeg_dang',             # degree of default freq polynomial
                         tdeg_dang=1,                       # degree of default time polynomial
-                        tdeg_dell='tdeg_dang',             # degree of default time polynomial
+                        tdeg_dell='@tdeg_dang',             # degree of default time polynomial
                         subtile_size_dang=0,                  # used in tiled solutions         
                         subtile_size_dell='subtile_size_dang',   # used in tiled solutions         
                         _JEN_inarg_option=None)            # optional, not yet used 
    if 'BJones' in Jsequence: 
        JEN_inarg.modify(inarg,
                         fdeg_Breal=3,                      # degree of default freq polynomial        
-                        fdeg_Bimag='fdeg_Breal',           # degree of default freq polynomial          
+                        fdeg_Bimag='@fdeg_Breal',           # degree of default freq polynomial          
                         tdeg_Breal=0,                      # degree of default time polynomial         
-                        tdeg_Bimag='tdeg_Breal',           # degree of default time polynomial    
+                        tdeg_Bimag='@tdeg_Breal',           # degree of default time polynomial    
                         subtile_size_Breal=0,                 # used in tiled solutions         
                         subtile_size_Bimag='subtile_size_Breal', # used in tiled solutions         
                         _JEN_inarg_option=None)            # optional, not yet used 
@@ -1051,8 +1055,10 @@ if True:                                                   # ... Copied from MG_
    # inarg = MG_JEN_Cohset.predict(_getdefaults=True, _qual=qual)  
    inarg = predict(_getdefaults=True, _qual=qual)             # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
-                    ifrs=MG['ifrs'],                       # list of Cohset ifrs 
-                    polrep=MG['polrep'],                   # polarisation representation
+                    # ifrs=MG['ifrs'],                       # list of Cohset ifrs 
+                    # polrep=MG['polrep'],                   # polarisation representation
+                    ifrs='@@ifrs',                       # list of Cohset ifrs 
+                    polrep='@@polrep',                   # polarisation representation
                     _JEN_inarg_option=None)                # optional, not yet used 
    JEN_inarg.attach(MG, inarg)
 
@@ -1062,10 +1068,13 @@ if True:                                                   # ... Copied from MG_
        # inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
        inarg = insert_solver(_getdefaults=True, _qual=qual)   # local (MG_JEN_Cohset.py) version 
        JEN_inarg.modify(inarg,
-                        master_reqseq=MG['master_reqseq'], # if True, use a master reqseq for solver(s)
-                        chain_solvers=MG['chain_solvers'], # if True, chain the solver(s)
+                        # master_reqseq=MG['master_reqseq'], # if True, use a master reqseq for solver(s)
+                        # chain_solvers=MG['chain_solvers'], # if True, chain the solver(s)
+                        master_reqseq='@@master_reqseq', # if True, use a master reqseq for solver(s)
+                        chain_solvers='@@chain_solvers', # if True, chain the solver(s)
                         redun=True,                        # if True, use redundant baseline calibration
                         # redun=MG['redun'],                 # if True, use redundant baseline calibration
+                        # redun='@@redun',                 # if True, use redundant baseline calibration
                         subtract=False,                    # if True, subtract 'predicted' from uv-data 
                         correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
                         visu=True,                         # if True, include visualisation
@@ -1140,6 +1149,7 @@ def _tdl_predefine (mqs, parent, **kwargs):
     Errors should be indicated by throwing an exception.
     """
 
+    print '\n** inside _tdl_predefine() **\n'
     res = True
     if parent:
         QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))

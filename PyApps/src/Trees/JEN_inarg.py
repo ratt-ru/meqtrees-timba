@@ -134,9 +134,9 @@ def init(target='<target>', version='15dec2005', **pp):
    This is done when starting a composite inarg record, e.g. in MG_JEN_xxx.py"""
 
    # Deal with the keyword arguments:
-   if not isinstance(pp): pp = dict()     # overkill?
-   inarg = pp                             # default is empty dict                       
-   inarg['script_name'] = target          # expected in MG control record (kludge...)
+   if not isinstance(pp, dict): pp = dict()     # overkill?
+   inarg = pp                                   # default is empty dict                       
+   inarg['script_name'] = target                # expected in MG control record (kludge...)
 
    _ensure_CTRL_record(inarg, target, version=version)
 
@@ -563,9 +563,10 @@ def _replace_reference(rr, acc=dict(), repeat=0, level=0, trace=False):
    - a field name (prepended with @@) in the parent record(s)
    replace it with the value of the referenced field"""
 
-   if trace:
+   if trace and level==0:
       print '\n** _replace_reference(',repeat,'):',type(rr)
-   if not isinstance(rr, dict): return False
+   if not isinstance(rr, dict):
+      return False
    if repeat>10:
       print 'JEN_inarg._replace_reference(): max repeat exceeded',repeat
       return False
@@ -575,13 +576,22 @@ def _replace_reference(rr, acc=dict(), repeat=0, level=0, trace=False):
       value = rr[key]                      # field value
       if key==CTRL_record:                 # ignore
          pass
-      elif isinstance(value, dict):        # if field value is a dict
+
+      elif isinstance(value, dict):           # if field value is a dict
+         # Append suitable arguments for upward reference (@@) to acc1:
          acc1 = deepcopy(acc)
-         for key1 in rr.keys():
-            if not isinstance(rr[key1], dict): acc1[key1] = rr[key1]
-         _replace_reference(rr[key], acc=acc1, level=level+1)     # recurse
-      elif isinstance(value, str):         # if field value is a string
-         if trace: print level,(level*'.'),':',key,'=',value
+         for key1 in rr.keys(): 
+            if not isinstance(rr[key1], dict):
+               if isinstance(rr[key1], str):
+                  if not rr[key1][0]=='@':    # ignore referenced values
+                     acc1[key1] = rr[key1]
+               else:
+                  acc1[key1] = rr[key1]
+         if trace: print _prefix(level),acc1.keys()
+         _replace_reference(rr[key], acc=acc1, level=level+1, trace=trace)
+
+      elif isinstance(value, str):            # if field value is a string
+         if trace: print _prefix(level),(level*'.'),':',key,'=',value
          if value[0]=='@':
             if value[1]=='@':
                vkey = value.split('@')[2]     # strip off the prepended '@@'
@@ -593,7 +603,7 @@ def _replace_reference(rr, acc=dict(), repeat=0, level=0, trace=False):
             if qq.has_key(vkey):              # if vkey is the name of another field
                if not value==qq[vkey]:        # different values
                   count += 1                  # count the number of replacements
-                  s1 = 'qq['+key+']: '+str(value)+' -> '+str(qq[vkey])
+                  s1 = _prefix(level)+'qq['+key+']: '+str(value)+' -> '+str(qq[vkey])
                   if trace: print s1
                   MESSAGE(rr, s1)
                   rr[key] = qq[vkey]          # replace with the value of the referenced field
@@ -602,7 +612,41 @@ def _replace_reference(rr, acc=dict(), repeat=0, level=0, trace=False):
    # (This is because values may be multiply referenced)
    if count>0:
       _replace_reference(rr, acc=acc, repeat=repeat+1)
+   if trace and level==0: print
    return count
+
+#---------------------------------------------------------------------------
+
+def _count_reference(rr, n=0, n1=0, n2=0, name='<name>', level=0, trace=False):
+   """Count the nr of argument names prepended with @ or @@"""
+   if trace:
+      if level==0: print '\n** _count_reference():',type(rr)
+      # print _prefix(level),name,':'
+   if not isinstance(rr, dict):
+      return False
+   for key in rr.keys():                   # for all fields
+      value = rr[key]
+      if key==CTRL_record:                 # ignore
+         pass
+      elif isinstance(value, dict):        # if field value is a dict
+         qq = _count_reference(rr[key], n=n, n1=n1, n2=n2,
+                               name=key, level=level+1, trace=trace)
+         n = qq['n']
+         n1 = qq['n1']
+         n2 = qq['n2']
+      elif isinstance(value, str):         # if field value is a string
+         if value[0]=='@':
+            n += 1                         # total nr
+            if value[1]=='@':
+               n2 += 1                     # nr of '@@...'
+            else:
+               n1 += 1                     # nr of '@...'
+            if trace:
+               print _prefix(level),n,n1,n2,':',key,'=',value,'  (',name,')'
+   # Return the result as a record:
+   if trace and level==0:
+      print 
+   return dict(n=n, n1=n1, n2=n2)
 
 
 #----------------------------------------------------------------------------
@@ -844,14 +888,27 @@ def define(pp, key=None, default=None,
       MESSAGE(pp, s1+'duplicate argument key in: '+str(pp.keys()))
       return False
 
+   # Make sure that choice is a list/tuple.
+   # Also append the 'global' option, where the parent records
+   # of the inarg record are searched for a value for this argument.
+   # See _replace_references()
+   if choice==None:
+      choice = []
+   else:
+      if not isinstance(choice, (list, tuple)):
+         choice = [choice]
+   choice.append('@@'+key)           # global option
+
    # Deal with some special cases:
    if isinstance(tf, bool):          # tf (TrueFalse) specified
-      default = tf                   # 
-      choice = [True, False]
+      default = tf                   #  
+      cc = [True, False]
+      if choice: cc.extend(choice)   # append other choices
+      choice = cc
       editable = False
    
    # OK, make the new argument field (key):
-   pp.setdefault(key,default)
+   pp.setdefault(key, default)
 
    # Put the extra info into the control record:
    # (Use a dict (rr) to drive the loop below)

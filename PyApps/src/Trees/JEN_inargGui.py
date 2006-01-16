@@ -29,6 +29,7 @@ from qt import *
 from copy import deepcopy
 
 from Timba.TDL import *
+from Timba.Trees import JEN_inarg
 
 # The name of the control-record
 CTRL_record = '_JEN_inarg_CTRL_record:'
@@ -146,16 +147,23 @@ class ArgBrowser(QMainWindow):
 
         viewmenu = QPopupMenu(self)
         viewmenu.insertItem('refresh', self.refresh)
+        viewmenu.insertSeparator()     
         viewmenu.insertItem('inarg2pp', self.inarg2pp)
         viewmenu.insertSeparator()     
         self.__item_unhide = viewmenu.insertItem('unhide', self.unhide)
+        self.__item_show_CTRL = viewmenu.insertItem('show CTRL', self.show_CTRL)
         self.__menubar.insertItem('View', viewmenu)
 
-        assaymenu = QPopupMenu(self)
-        assaymenu.insertItem('silent', self.assay)
-        assaymenu.insertItem('verbose', self.assay_verbose)
-        assaymenu.insertItem('record', self.assay_record)
-        self.__menubar.insertItem('Assay', assaymenu)
+        testmenu = QPopupMenu(self)
+        testmenu.insertItem('inarg_OK?', self.test_OK)
+        testmenu.insertItem('count_@@', self.count_ref)
+        testmenu.insertItem('replace_@@', self.replace_ref)
+        testmenu.insertSeparator()     
+        testmenu.insertItem('assay', self.assay)
+        testmenu.insertItem('assay_verbose', self.assay_verbose)
+        testmenu.insertItem('assay_record', self.assay_record)
+        testmenu.insertSeparator()     
+        self.__menubar.insertItem('Test', testmenu)
 
         helpmenu = QPopupMenu(self)
         self.__menubar.insertSeparator()
@@ -177,6 +185,11 @@ class ArgBrowser(QMainWindow):
             self.restore_inarg(generic_savefile)            
         return None
 
+    # From: ../PyApps/src/GUI/treebrowser.py
+    # - redefines the paintCell to change item colors...
+    # - to change the font, look at the .paint attribute...?  
+    # def paintCell (self,painter,cg,column,width,align):
+    #  return QListViewItem.paintCell(self,painter,self._color_group or cg,column,width,align);
 
 
     def QApp (self):
@@ -205,7 +218,8 @@ class ArgBrowser(QMainWindow):
         self.__listview.clear()
         if self.__popup: self.__popup.close()
         self.__itemdict = []                       # list of itd records
-        self.__unhide = False                    # if True, hide nothing
+        self.__unhide = False                      # if True, show hidden arguments too
+        self.__show_CTRL = False                   # if True, show CTRL_records
         return True
 
 
@@ -224,11 +238,29 @@ class ArgBrowser(QMainWindow):
         self.clearGui()
         self.__unhide = not unhide
         item = self.__item_unhide
+        s1 = '** unhide -> '+str(self.__unhide)+':  '
         if self.__unhide:
             self.__menubar.changeItem(item,'hide')
+            self.__message.setText(s1+'show all hidden arguments')
         else:
             self.__menubar.changeItem(item,'unhide')
-        print '** unhide ->',self.__unhide
+            self.__message.setText(s1+'hide all hidden arguments')
+        self.refresh(clear=False)    
+        return True
+
+    def show_CTRL(self):
+        """show/hide the CTRL records"""
+        show_CTRL = self.__show_CTRL
+        self.clearGui()
+        self.__show_CTRL = not show_CTRL
+        item = self.__item_show_CTRL
+        s1 = '** show_CTRL -> '+str(self.__show_CTRL)+':  '
+        if self.__show_CTRL:
+            self.__menubar.changeItem(item,'hide CTRL')
+            self.__message.setText(s1+'show CTRL records')
+        else:
+            self.__menubar.changeItem(item,'show CTRL')
+            self.__message.setText(s1+'hide CTRL records')
         self.refresh(clear=False)    
         return True
 
@@ -236,6 +268,39 @@ class ArgBrowser(QMainWindow):
         """Print the current inarg record"""
         self.__message.setText('** print_inarg: not yet implemented')
         return True
+
+    def test_OK(self):
+        """Test whether the current inarg record is OK"""
+        ok = JEN_inarg.is_OK(self.__inarg, trace=True)
+        s1 = '** test_OK(): '
+        if True:
+            # See whether there are any unresolved references:
+            inarg = deepcopy(self.__inarg)
+            JEN_inarg._replace_reference(inarg, trace=True)
+            rr = JEN_inarg._count_reference(inarg, trace=True)
+            if rr['n']>0:
+                ok = False
+            s1 += ' (unresolved: '+str(rr)+') '
+        if (ok):
+            s1 += '      -- ok --'
+        else:
+            s1 += '      ** NOT OK!! **'
+        self.__message.setText(s1)
+        return ok
+
+    def count_ref(self):
+        """Count the nr of unresolved (@, @@) references"""
+        rr = JEN_inarg._count_reference(self.__inarg, trace=True)
+        s1 = '** unresolved references:  '
+        s1 += '  @='+str(rr['n1'])+'  @@='+str(rr['n2'])
+        self.__message.setText(s1)
+        return rr
+
+    def replace_ref(self):
+        """Resolve any unresolved (@, @@) references"""
+        JEN_inarg._replace_reference(self.__inarg, trace=True)
+        self.refresh()
+        return self.count_ref()
 
 #-------------------------------------------------------------------
 
@@ -266,7 +331,7 @@ class ArgBrowser(QMainWindow):
     def recover_inarg(self):
         """Recover the inarg record that was saved when pressing
         the 'Proceed' button. This allows continuation from that point"""
-        self.restore_inarg(self, generic_savefile)
+        self.restore_inarg(generic_savefile)
         return True
 
     def restore_inarg(self, filename=None):
@@ -299,13 +364,20 @@ class ArgBrowser(QMainWindow):
     
     def exec_with_inarg(self):
         """Execute the relevant function"""
-        # Save the current inarg in the generic
+        if not self.test_OK():
+            self.__message.setText('** problem with inarg record: done nothing!')
+            return False
+        # OK: Save the current inarg in the generic file, for later recovery:
         self.save_inarg(generic_savefile)
-        self.emit(PYSIGNAL("exec_with_inarg()"),(self.__inarg,))
+
+        # Resolve any references (@, @@):
+        # (@@ values do not work inside...)
+        JEN_inarg._replace_reference(self.__inarg)
+
         # NB: The gui has to be closed for it to proceed.
         # In the future, we will want to keep the gui open, so we can redefine
         # the tree with different parameters....
-        self.__result = self.__inarg
+        self.__result = self.__inarg              # see self.exec_loop()
         self.closeGui()
         return True
 
@@ -330,7 +402,7 @@ class ArgBrowser(QMainWindow):
     def inarg2pp (self):
         """Show the resulting pp record as it would be inside the target,
         with all the referenced values replaced"""
-        pp = JEN_inarg.inarg2pp(inarg)
+        pp = JEN_inarg.inarg2pp(self.__inarg)
         JEN_inarg.getdefaults(pp, check=True, strip=False, trace=True)
         JEN_inarg.display(pp, full=False)
         # NB: Use JEN_inspect.....
@@ -349,15 +421,18 @@ class ArgBrowser(QMainWindow):
 
         # Modify the name (of its main window):
         self.__scriptname = None
+        s1 = '** input of inarg record:  '
         if not name:
             if self.__inarg.has_key('script_name'):             # MG_JEN script
                 name = self.__inarg['script_name']
                 self.__scriptname = name                        # corresponding script
+                s1 += 'inarg.script_name =   '
             else:
                 name = self.__inarg.keys()[0]
+                s1 += '[inarg.keys[0]] =   '
+        self.__message.setText(s1+name)
         self.setCaption(name)
         self.__savefile = name + '.inarg'
-        self.__message.setText('** input of inarg record:  '+name)
 
         # Transfer the inarg fields recursively:
         self.__set_open = set_open
@@ -393,7 +468,7 @@ class ArgBrowser(QMainWindow):
         for key in rr.keys():
             if isinstance(rr[key], dict):   
                 if key==CTRL_record:                           # is a CTRL record         
-                    if self.__unhide:
+                    if self.__show_CTRL:
                         item = QListViewItem(listview, key, 'CTRL_record')
                         item.setSelectable(False)
                         self.recurse (rr[key], listview=item,
