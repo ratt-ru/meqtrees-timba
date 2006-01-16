@@ -375,7 +375,7 @@ class TDLEditor (QFrame,PersistentCurrier):
         # set item content
         item.setText(1,errmsg);
         if filename is None:
-          item.setText(2,"[more info may be available on the text console]");
+          item.setText(2,"[internal error; more info may be available on the text console]");
         elif filename == self._filename:
           item._err_location = index,None,line,column;
           item.setText(2,"[line %d]" % (line,));
@@ -566,12 +566,12 @@ class TDLEditor (QFrame,PersistentCurrier):
     tdltext = str(self._editor.text());
     # make list of publishing nodes 
     pub_nodes = [ node.name for node in meqds.nodelist.iternodes() 
-                  if node.is_publishing() and node.name in allnodes ];
+                  if node.is_publishing() ];
     # try the compilation
     try:
       QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
       try:
-        (_tdlmod,msg) = TDL.Compile.compile_file(meqds.mqs(),self._filename,tdltext,parent=self);
+        (_tdlmod,ns,msg) = TDL.Compile.compile_file(meqds.mqs(),self._filename,tdltext,parent=self);
       finally:
         QApplication.restoreOverrideCursor();
     # catch compilation errors
@@ -582,10 +582,12 @@ class TDLEditor (QFrame,PersistentCurrier):
       self.set_error_list([value]);
       return None;
     # refresh the nodelist
+    allnodes = ns.AllNodes();
     meqds.request_nodelist();
     # restore publishing nodes
     for name in pub_nodes: 
-      mqs.meq('Node.Publish.Results',record(name=name,enable=True),wait=False);
+      if name in allnodes:
+        meqds.mqs().meq('Node.Publish.Results',record(name=name,enable=True),wait=False);
     ### NB: presume this all was successful for now
 
     # does the script define an explicit job list?

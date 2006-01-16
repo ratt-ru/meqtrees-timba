@@ -19,6 +19,9 @@ _dprintf = _dbg.dprintf;
 # this holds a list of all modules imported from TDL scripts
 _tdlmodlist = [];
 
+# this is information about ourselves
+_MODULE_FILENAME = traceback.extract_stack()[-1][0];
+_MODULE_DIRNAME = os.path.dirname(_MODULE_FILENAME);
 
 class CompileError (RuntimeError):
   def __init__ (self,*errlist):
@@ -42,11 +45,12 @@ def compile_file (mqs,filename,text=None,parent=None,
               
           
   Return value:
-    a tuple of (module,message), where module is the newly-imported TDL module,
-    and message is an informational message.
+    a tuple of (module,ns,message), where module is the newly-imported 
+    TDL module, ns is the global NodeScope object, and message is an 
+    informational message.
   Exceptions thrown:
-    Any compilation error results in an esception. This is either a 
-    TDL.CumulativeError containing an error list, or a regular exception.
+    Any compilation error results in an exception. This is either a 
+    TDL.CumulativeError containing an error list, or a regular exception
   """;
   _dprint(1,"compiling",filename);
   reload(Timba.TDL.Settings);
@@ -105,7 +109,7 @@ def compile_file (mqs,filename,text=None,parent=None,
     num_nodes = len(allnodes);
     # no nodes? return
     if not num_nodes:
-      return (_tdlmod,"Script has run successfully, but no nodes were defined.");
+      return (_tdlmod,ns,"Script has run successfully, but no nodes were defined.");
     # try to run stuff
     meqds.clear_forest();
     mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
@@ -128,9 +132,37 @@ def compile_file (mqs,filename,text=None,parent=None,
       if isinstance(res,str):
         msg += "\n" + res;
 
-    return (_tdlmod,msg);
-    
-  except:
+    return (_tdlmod,ns,msg);
+  # CumulativeError exceptions returned as is  
+  except TDL.CumulativeError:
     _dprint(0,'exception compiling TDL file:',filename);
     traceback.print_exc();
     raise;
+  # Other exceptions wrapped in a CumulativeError, and
+  # location information is added in
+  except:
+    (etype,exc,tb) = sys.exc_info();
+    _dprint(0,'exception compiling TDL file:',filename);
+    traceback.print_exception(etype,exc,tb);
+    tb = traceback.extract_tb(tb);
+    # create new error object, with type: args message
+    try:
+      args = " ".join(exc.args);
+      err = etype("%s: %s"%(etype.__name__,args));
+    except AttributeError:
+      err = etype(etype.__name__);
+    # is this an internal error?
+    internal = ( os.path.dirname(tb[-1][0]) == _MODULE_DIRNAME );
+    # get location info
+    filename = getattr(exc,'filename',None);
+    lineno   = getattr(exc,'lineno',None);
+    offset   = getattr(exc,'offset',0);
+    if filename is None and not internal:
+      filename = tb and tb[-1][-0];
+    if lineno is None and not internal:
+      lineno = tb[-1][1];
+    # put into error object
+    setattr(err,'filename',filename);
+    setattr(err,'lineno',lineno);
+    setattr(err,'offset',offset);
+    raise TDL.CumulativeError(err);

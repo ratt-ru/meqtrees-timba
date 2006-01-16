@@ -33,6 +33,9 @@ def parse_argv (argv):
       
     elif arg == "-spawn":
       (args['launch'],args['spawn']) = (None,True);
+
+    elif arg == "-nospawn":
+      args.spawn = None;
       
     elif arg == "-launch":
       (args['launch'],args['spawn']) = (True,None);

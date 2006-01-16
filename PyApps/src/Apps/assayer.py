@@ -1,4 +1,5 @@
 from Timba.Apps import meqserver
+from Timba.Apps import app_defaults
 from Timba.TDL import Compile
 from Timba.Meq import meqds
 from Timba.utils import *
@@ -60,11 +61,15 @@ class logger (file):
 class assayer (object):
   def __init__ (self,name,log=True,nokill=None):
     self.recording = "-assayrecord" in sys.argv;
+    self._assay_runtime = "-noruntime" not in sys.argv;
     # if nokill is not explicitly specified, leave kernel running when recording
     if nokill is None:
       nokill = self.recording;
     self.name = name;
-    self.mqs = meqserver.default_mqs(wait_init=10,debug=False);
+    if app_defaults.args.spawn:
+      self.mqs = meqserver.default_mqs(wait_init=10,debug=False);
+    else:
+      self.mqs = meqserver.default_mqs(debug=False);
     self.mqs.whenever("*",self._kernel_event_handler);
     self.mqs.whenever("node.result",self._node_snapshot_handler);
     self.tdlmod = self.logger = self.testname = None;
@@ -111,7 +116,7 @@ class assayer (object):
     try:
       self.script = script;
       _dprint(0,"compiling",script);
-      (self.tdlmod,msg) = Compile.compile_file(self.mqs,script);
+      (self.tdlmod,ns,msg) = Compile.compile_file(self.mqs,script);
       _dprintf(0,"compiled %s: %s",script,msg);
       lines = ["compiled TDL script %s: "%script]+msg.rstrip().split('\n');
       self.logs(*[ s+'\n' for s in lines ]);
@@ -144,21 +149,73 @@ class assayer (object):
       self.logexc();
       raise;
       
-  def watch_node (self,node,field,tolerance=None):
+  def _add_watch (self,node,desc,functional, \
+                  conditional=None,tolerance=None):
+    """Helper method for adding a node watcher.
+    node:        node name
+    desc:        textual description (e.g. same as field name, if watching a field) 
+    functional:  a callable taking one parameter (nodestate), and returning 
+                 the value to watch.
+    conditional: a callable taking one parameter (nodestate), and returning 
+                 True if the given snapshot is to be used in the watch. If None,
+                 all snapshots are watched.
+    tolerance:   comparison tolerance (None for default).
+    """;
     try:
       if tolerance is None:
         tolerance = self.default_tol;
       if self.testname is None:
         raise AssaySetupError,"can't watch nodes: no test specified";
-      self.watching.append((node,tuple(field.split(".")),tolerance));
-      self.logf("will watch node '%s' %s",node,field);
+      self.watching.append((node,desc,functional,conditional,tolerance));
+      self.logf("will watch node '%s' %s",node,desc);
     except:
       self.logexc();
       raise;
 
-  def watch (self,nodespec):
+  def watch (self,nodespec,tolerance=None,
+             functional=None,conditional=None,rqtype=None,desc=None):
+    """Adds a node watcher.
+    nodespec:    A node name or a string of the form "node/a.b.c".
+                 In the former case, the entire node state is watched, in the 
+                 latter case, only field a.b.c will be extracted.
+    tolerance:   comparison tolerance, None for default.
+    functional:  if not None, then must be a callable taking one parameter.
+                 The node state (or subfield) specified by nodespec is then
+                 passed to the functional to generate the actual value to watch.
+                 This is useful to, e.g., reduce large arrays to their mean.
+    desc:        textual description. If None, then one is generated based on
+                 nodespec. Note that each watcher must have a unique description,
+                 so you may want to provide one explicitly.
+    conditional: a callable taking one parameter (nodestate), and returning 
+                 True if the given snapshot is to be used in the watch. If None,
+                 all snapshots are watched.
+    rqtype:      shorthand for conditioning on request type. If not None, 
+                 then generates an extra conditional that compares 
+                 nodestate.cache.request_id[0] to the given rqtype.
+    """;
     try:
-      self.watch_node(*nodespec.split("/"));
+      # parse nodespec and generate description if needed. func
+      # will be a callable returning the subfield, or the entire node state
+      ns = nodespec.split("/",1);
+      if len(ns) == 1:
+        func = lambda st:st;
+        desc = desc or '';
+      else:
+        func = lambda st:extract_value(st,ns[1].split("."));
+        desc = desc or ns[1];
+      # generate compound functional
+      if functional is None:
+        func1 = func;
+      else:
+        func1 = lambda st:functional(func(st));
+      # generate a conditional if rqtype is supplied
+      if rqtype is not None:
+        if conditional is not None:
+          conditional = lambda st:conditional(st) and st.cache.request_id[0]==dmi.hiid(rqtype);
+        else:
+          conditional = lambda st:st.cache.request_id[0]==dmi.hiid(rqtype);
+      # call watch
+      self._add_watch(ns[0],desc,func1,tolerance=tolerance,conditional=conditional);
     except:
       self.logexc();
       raise;
@@ -174,8 +231,8 @@ class assayer (object):
         raise AssaySetupError,"no "+procname+"() in compiled script";
       # now, enable publishing for specified watch nodes
       if self.watching:
-        for (node,field,tol) in self.watching:
-          self.mqs.publish(node);
+        for w in self.watching:
+          self.mqs.publish(w[0]);
       # run the specified procedure
       self.logf("running %s(), test %s",procname,self.testname);
       dt = time.time();
@@ -304,6 +361,8 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
         return;
       else:
         self.logf("runtime is %.2f seconds vs. %.2f recorded",dt,t0);
+      if not self._assay_runtime:
+        return;
       t0 = max(t0,1e-10);
       dt = max(dt,1e-10);
       if dt > 2 and dt > t0*(1+self.time_tol):
@@ -349,42 +408,58 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
       nodestate = getattr(msg,'payload',None);
       name = nodestate.name;
       # are we watching this node?
-      for (node,field,tolerance) in self.watching:
+      for (node,desc,functional,conditional,tolerance) in self.watching:
         if node == name:
+          _dprint(5,"nodestats is",nodestate);
+          # extract rqid (for labels)
+          try:
+            rqid = "(rqid %s)" % str(nodestate.cache.request_id);
+          except:
+            rqid = "(no rqid)";
+          # apply functional to extract value
+          _dprint(3,"extracting value for snapshot",name,rqid);
+          value = functional(nodestate);
+          # check conditional, if defined
+          use = True;
+          if conditional is not None:
+            try: 
+              use = conditional(nodestate);
+              _dprint(3,"conditional returns",use);
+            except: 
+              _dprint(3,"conditional failed with exception, ignoring result");
+              if _dbg.verbose>2:
+                traceback.print_exc();
+              use = False;
+          # if failed condition, return
+          if not use:
+            return;
+          _dprint(4,"value is",value);
           if self.recording:   # collect value
-            seq = self._sequences.setdefault((node,field),[]);
-            val = extract_value(nodestate,field);
-            seq.append(normalize_value(val));
-            self.logf("recorded value #%d for node '%s' %s",len(seq),name,'.'.join(field));
+            seq = self._sequences.setdefault((node,desc),[]);
+            seq.append(normalize_value(value));
+            self.logf("recorded value #%d for node '%s' %s %s",len(seq),name,desc,rqid);
           else:                # assay value
-            # extract value from nodestate
-            val = extract_value(nodestate,field);
-            # get request id (for informational purposes)
-            try:
-              rqid = nodestate.cache.request_id;
-            except:
-              rqid = '';
             # look for sequence data
             try:
-              seq = self._sequences[(node,field)];
+              seq = self._sequences[(node,desc)];
             except:
               self._assay_stat = MISSING_DATA;
-              self.logf("ERROR: no recorded sequence for node '%s' %s",node,'.'.join(field));
+              self.logf("ERROR: no recorded sequence for node '%s' %s",node,desc);
               return;
             # get first item from sequence
             if not seq:
               self._assay_stat = MISSING_DATA;
-              self.logf("ERROR: end of recorded sequence on node '%s' %s (rqid %s)",node,'.'.join(field),rqid);
+              self.logf("ERROR: end of recorded sequence on node '%s' %s %s",node,desc,rqid);
               return;              
             expected = seq.pop(0);
             try:
-              compare_value(expected,val,tolerance,field=node+'/'+'.'.join(field));
+              compare_value(expected,value,tolerance,field=node+'/'+desc);
             except Exception,exc:
               self._assay_stat = MISMATCH;
-              self.logf("ERROR: assay fails on node '%s' %s (rqid %s)",node,'.'.join(field),rqid);
+              self.logf("ERROR: assay fails on node '%s' %s %s",node,desc,rqid);
               self.log("  error is: ",exc.__class__.__name__,*map(str,exc.args));
             else:
-              self.logf("node '%s' %s (rqid %s) ok",node,'.'.join(field),rqid);
+              self.logf("node '%s' %s %s ok",node,desc,rqid);
     except:
       self.logexc();
       self._assay_stat = OTHER_ERROR;
@@ -422,6 +497,7 @@ def normalize_value (value):
 
 def extract_value (record,field):
   """helper function to recursively extract a sequence of fields""";
+  _dprint(6,'extract',field,'from',record);
   value = record;
   for f in field:
     value = value[f];
