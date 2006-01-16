@@ -3,6 +3,7 @@ from Timba.Meq import meq
 from Timba.Trees import TDL_Joneset
 from numarray import *
 from copy import deepcopy
+import os
 
 #from Timba import dmi
 #import meqserver
@@ -500,26 +501,34 @@ def _define_forest(ns):
 
 
 def create_inputrec(msname, tile_size=1500):
-    inputrec=record()
-
-    inputrec.ms_name          = msname
-    inputrec.data_column_name = 'DATA'
-    inputrec.tile_size        = tile_size
-    inputrec.selection = record(channel_start_index=25,
-                                channel_end_index=40,
-                                channel_increment=1,
-                                selection_string='')#'TIME_CENTROID < 4472026000')
-    return inputrec
-
+    boioname = "boio."+msname+"."+str(tile_size);
+    # if boio dump for this tiling exists, use it
+    # (skip this for now)
+    if os.access(boioname,os.R_OK):
+      rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
+    # else use MS, but tell the event channel to record itself to boio file
+    else:
+      rec = record();
+      rec.ms_name          = msname
+      rec.data_column_name = 'DATA'
+      rec.tile_size        = tile_size
+      rec.selection = record(channel_start_index=25,
+                             channel_end_index=40,
+                             channel_increment=1,
+                             selection_string='')#'TIME_CENTROID < 4472026000')
+      rec.record_input = boioname;
+      rec = record(ms=rec);
+    rec.python_init='MAB_read_msvis_header.py';
+    return rec;
 
 
 def create_outputrec(output_column='CORRECTED_DATA'):
-    outputrec=record()
+    rec=record()
 
-    outputrec.write_flags=False
-    outputrec.predict_column=output_column
+    rec.write_flags=False
+    rec.predict_column=output_column
     
-    return outputrec
+    return record(ms=rec);
 
 
 def create_solver_defaults(num_iter=30, epsilon=1e-4, solvable=[]):
@@ -541,7 +550,7 @@ def _test_forest(mqs, parent):
     pass
 
 
-def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
+def _tdl_job_source_flux_fit_no_calibration(mqs,parent,write=True):
     msname          = '3C343.MS'
     inputrec        = create_inputrec(msname, tile_size=1500)
     outputrec       = create_outputrec()
@@ -568,9 +577,11 @@ def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
     set_MAB_node_state(mqs, 'solver', solver_defaults)
     
     req = meq.request();
-    req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
-    req.output = record(ms=outputrec);
-    mqs.execute('VisDataMux',req,wait=False);
+    req.input  = inputrec;
+    if write:
+      req.output = outputrec;
+    # parent=None means no GUI, so wait for request to complete
+    mqs.execute('VisDataMux',req,wait=(parent is None));
     pass
 
 
@@ -581,7 +592,7 @@ def _tdl_job_source_flux_fit_no_calibration(mqs, parent):
 #   PHASES    PHASES     PHASES
 
 
-def _tdl_job_phase_solution_with_given_fluxes_all(mqs, parent):
+def _tdl_job_phase_solution_with_given_fluxes_all(mqs,parent,write=True):
     msname          = '3C343.MS'
     inputrec        = create_inputrec(msname, tile_size=5)
     outputrec       = create_outputrec()
@@ -609,9 +620,10 @@ def _tdl_job_phase_solution_with_given_fluxes_all(mqs, parent):
     set_MAB_node_state(mqs, 'solver', solver_defaults)
     
     req = meq.request();
-    req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
-    req.output = record(ms=outputrec);
-    mqs.execute('VisDataMux',req,wait=False);
+    req.input  = inputrec;
+    if write:
+      req.output = outputrec;
+    mqs.execute('VisDataMux',req,wait=(parent is None));
     pass
 
 
