@@ -200,7 +200,8 @@ AC_ARG_WITH(lofar-libdir,
     fi
   fi
 
-  # Get the possible version:variant given.
+  # Get the possible version:variant given. If no version is given, 
+  # assume stable.
   # Empty variant means the current variant.
   # Remove trailing / and /LOFAR if user has given that (redundantly).
   lofar_root=
@@ -214,10 +215,25 @@ AC_ARG_WITH(lofar-libdir,
       ;;
     esac
     lofar_root=`echo $lofar_root | sed -e 's%/$%%' -e 's%/LOFAR$%%'`;
+    if test "x$lofar_root" = "x"; then
+      lofar_root="stable"
+    fi
   fi
-  # If root has no / or ~, add /home/lofar/ to it.
-  # Replace ~ by home directory.
   # If variant has no _, add compiler_ to it.
+  if test "x$lofar_variant" = "x"; then
+    lofar_variant="$lfr_curvar";
+  else
+    case "$lofar_variant" in
+    *_*)
+      ;;
+    *)
+      lofar_variant=${lofar_compiler}_$lofar_variant;
+      ;;
+    esac
+  fi
+  # If root has no / or ~, use /data/LOFAR/installed/$lofar_root/$lofar_variant
+  # as default.
+  # Replace ~ by home directory.
   lfr_libdir=;
   if test "x$lofar_root" = "x"; then
     lofar_root=$lfr_top;
@@ -230,26 +246,16 @@ AC_ARG_WITH(lofar-libdir,
     */*)
       ;;
     ?*)
-      lofar_root=/home/lofar/$lofar_root;
+      lofar_root=/data/LOFAR/installed/$lofar_root/$lofar_variant;
       ;;
     esac
   fi
+  LOFARROOT=$lofar_root
   if test "x$lfr_libdir" = "x"; then
-    lfr_libdir=$lofar_root/LOFAR;
+    lfr_libdir=$lofar_root/lib;
   fi
   if test "x$lofar_root_libdir" = "x"; then
     lofar_root_libdir=$lfr_libdir;
-  fi
-  if test "x$lofar_variant" = "x"; then
-    lofar_variant="$lfr_curvar";
-  else
-    case "$lofar_variant" in
-    *_*)
-      ;;
-    *)
-      lofar_variant=${lofar_compiler}_$lofar_variant;
-      ;;
-    esac
   fi
 
   # Create pkginc (used by lofar_package.m4) if not existing yet.
@@ -332,13 +338,12 @@ AC_ARG_WITH(lofar-libdir,
   CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc -I$lfr_curwd/pkgbldinc -I$lfr_curwd -I$srcdirx/include"
   LOFAR_DEPEND=
 ]
-AC_CHECK_FILE([$lofar_root/LOFAR],
+AC_CHECK_FILE([$lofar_root],
 			[lfr_root=yes],
 			[lfr_root=no])
   [if test $lfr_root = no; then]
     AC_MSG_WARN([Could not find LOFAR in $lofar_root])
   [fi
-  lofar_root=$lofar_root/LOFAR
 
   case $lofar_root_libdir in
   */build/*)
