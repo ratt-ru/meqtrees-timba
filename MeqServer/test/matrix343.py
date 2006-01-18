@@ -500,11 +500,11 @@ def _define_forest(ns):
 
 
 
-def create_inputrec(msname, tile_size=1500):
+def create_inputrec(msname, tile_size=1500,short=False):
     boioname = "boio."+msname+"."+str(tile_size);
     # if boio dump for this tiling exists, use it
     # (skip this for now)
-    if os.access(boioname,os.R_OK):
+    if not short and os.access(boioname,os.R_OK):
       rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
     # else use MS, but tell the event channel to record itself to boio file
     else:
@@ -516,7 +516,10 @@ def create_inputrec(msname, tile_size=1500):
                              channel_end_index=40,
                              channel_increment=1,
                              selection_string='')#'TIME_CENTROID < 4472026000')
-      rec.record_input = boioname;
+      if short:
+        rec.selection.selection_string = 'TIME_CENTROID < 4472026000';
+      else:
+        rec.record_input = boioname;
       rec = record(ms=rec);
     rec.python_init='MAB_read_msvis_header.py';
     return rec;
@@ -550,9 +553,9 @@ def _test_forest(mqs, parent):
     pass
 
 
-def _tdl_job_source_flux_fit_no_calibration(mqs,parent,write=True):
+def _tdl_job_source_flux_fit_no_calibration(mqs,parent,write=True,short=False):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=1500)
+    inputrec        = create_inputrec(msname,tile_size=1500,short=short)
     outputrec       = create_outputrec()
 
     source_list,extra_sources = create_initial_source_model(extra_sources_filename='extra_sources.txt')
@@ -592,9 +595,9 @@ def _tdl_job_source_flux_fit_no_calibration(mqs,parent,write=True):
 #   PHASES    PHASES     PHASES
 
 
-def _tdl_job_phase_solution_with_given_fluxes_all(mqs,parent,write=True):
+def _tdl_job_phase_solution_with_given_fluxes_all(mqs,parent,write=True,short=False):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=5)
+    inputrec        = create_inputrec(msname,tile_size=5,short=short)
     outputrec       = create_outputrec()
 
     station_list = range(1,15)
