@@ -95,7 +95,7 @@ $global_listdir or die "Path to global list file not specified";
 #
 print STDERR "=== Updating $global_listdir/$global_listfile\n";
 print STDERR "    I will now attempt a cvs update on it, hold on\n"; 
-my $cmd = "(cd $global_listdir && cvs update $global_listfile)";
+my $cmd = "(cd $global_listdir && cvs update -A $global_listfile)";
 print STDERR "    Running: $cmd\n";
 system "$cmd";
 $exit_value = $?>>8;
