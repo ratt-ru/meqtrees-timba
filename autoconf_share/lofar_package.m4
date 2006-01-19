@@ -97,6 +97,7 @@ AC_ARG_WITH([[lofar-]][LOFAR_PKG_LIB][[-libdir]],
 
 [
 enable_package=yes
+lfr_pkgnam=$1
 if test "$with_package" = "no"; then
   if test "$lfr_option" != 0; then]
 AC_MSG_ERROR([Cannot configure without package $1])
@@ -120,7 +121,7 @@ else
     ;;
   esac
 # Remove possible trailing /LOFAR/package/.
-  lfr_root=`echo $lfr_root | sed -e 's%/$%%' -e 's%/$1$%%' -e 's%/LOFAR$%%'`;
+  lfr_root=`echo $lfr_root | sed -e 's%/$%%' -e 's%/$lfr_pkgnam$%%' -e 's%/LOFAR$%%'`;
 
 # If no version is given, use root if mandatory or if package is not
 # available locally.
@@ -129,7 +130,7 @@ else
       lfr_root=$lofar_root;
     else
       lfr_root=$lofar_top_srcdir;
-      ]AC_CHECK_FILE([$lfr_root/$1/configure],
+      ]AC_CHECK_FILE([$lfr_root/$lfr_pkgnam/configure],
 	             [lfr_var=yes], [lfr_var=no])[
       if test $lfr_var = no; then
         lfr_root=$lofar_root;
@@ -144,7 +145,7 @@ else
       ;;
     ~*)
       lfr_root=`echo $lfr_root | sed -e "s%~%$HOME%"`/LOFAR;
-      lfr_libdir=$lfr_root/$1/build/$lofar_variant;
+      lfr_libdir=$lfr_root/$lfr_pkgnam/build/$lofar_variant;
       ;;
     */*)
       lfr_root=$lfr_root/LOFAR;
@@ -152,12 +153,12 @@ else
     *)
       # something like daily
       lfr_root=/home/lofar/$lfr_root/LOFAR;
-      lfr_libdir=$lfr_root/$1/build/$lofar_variant;
+      lfr_libdir=$lfr_root/$lfr_pkgnam/build/$lofar_variant;
       ;;
     esac
   fi
 # Form the include directory (is src directory of package).
-  lfr_include=$lfr_root/$1;
+  lfr_include=$lfr_root/$lfr_pkgnam;
 
 # Add compiler type to variant if needed.
   if test "$lfr_variant" != ""; then
@@ -179,7 +180,7 @@ else
   # Use root directory if used and if library is given.
     if test "$lfr_root" = "$lofar_root"; then
       if test "$lofar_root_libdir" != ""; then
-        lfr_libdir=`echo "$lofar_root_libdir" | sed -e 's%<package>%$1%'`;
+        lfr_libdir=`echo "$lofar_root_libdir" | sed -e 's%<package>%$lfr_pkgnam%'`;
       fi
     fi
     if test "$lfr_libdir" = ""; then
@@ -195,7 +196,7 @@ else
         lfr_lib=`echo $lfr_lib | sed -e "s%/$lfr_curvar%/$lfr_variant%"`
       fi
       lfr_pkg=`echo $lfr_srcdir | sed -e "s%.*/LOFAR/%%"`
-      lfr_libdir=`echo $lfr_lib | sed -e "s%/$lfr_pkg%/$1%"`
+      lfr_libdir=`echo $lfr_lib | sed -e "s%/$lfr_pkg%/$lfr_pkgnam%"`
     fi
   fi
 
@@ -236,7 +237,7 @@ else
   # Also assemble all new external packages and flags this package depends on.
     rm -f libnames_depend
     touch libnames_depend
-    $lofar_sharedir/makepkglinks $1 $lfr_include $lfr_libdir pkginc pkgbldinc libnames_depend lofar_config.h-pkg $lfr_recoption 0
+    $lofar_sharedir/makepkglinks $lfr_pkgnam $lfr_include $lfr_libdir pkginc pkgbldinc libnames_depend lofar_config.h-pkg $lfr_recoption 0
   # Get the libraries this package is dependent on.
   # Use echo to remove the possible newlines.
     lfr_depend=`cat libnames_depend`
@@ -304,7 +305,7 @@ dnl
       enable_package=no
     else]
       AC_MSG_WARN([Could not find libtool in $lfr_libdir])
-      AC_MSG_ERROR([Probably package $1 has not been configured yet])
+      AC_MSG_ERROR([Probably package $lfr_pkgnam has not been configured yet])
 [
     fi
   fi

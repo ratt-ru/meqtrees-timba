@@ -162,10 +162,6 @@ do
   elif [ "$1" = -nomake ]; then
     shift
     buildmake=0
-    check=0
-    if [ $install = 1 ]; then
-      install=0
-    fi
   elif [ "$1" = -conf ]; then
     shift
     conf=1
@@ -605,27 +601,27 @@ fi
 if [ $buildmake = 1 ]; then
   mainmake="date && make $jobsopt "
   echo "Packages will be built"
-fi
-if [ $check = 1 ]; then
-  if [ "$checktool" = "" ]; then
-    postmake="&& make check "
-    echo "Packages will be checked"
-  else
-    postmake="&& make CHECKTOOL='$checktool' check "
-    echo "Packages will be checked with '$checktool'"
+  if [ $check = 1 ]; then
+    if [ "$checktool" = "" ]; then
+      postmake="&& make check "
+      echo "Packages will be checked"
+    else
+      postmake="&& make CHECKTOOL='$checktool' check "
+      echo "Packages will be checked with '$checktool'"
+    fi
   fi
-fi
-if [ $install = 1 ]; then
-  postmake="$postmake && make install "
-  echo "Packages will be installed"
-fi
-if [ $distcheck = 1 ]; then
-  postmake="$postmake && make distcheck "
-  echo "Packages will be distcheck-ed"
-fi
-if [ $rpm = 1 ]; then
-  postmake="$postmake && make rpm "
-  echo "Packages will be rpm-ed"
+  if [ $install = 1 ]; then
+    postmake="$postmake && make install "
+    echo "Packages will be installed"
+  fi
+  if [ $distcheck = 1 ]; then
+    postmake="$postmake && make distcheck "
+    echo "Packages will be distcheck-ed"
+  fi
+  if [ $rpm = 1 ]; then
+    postmake="$postmake && make rpm "
+    echo "Packages will be rpm-ed"
+  fi
 fi
 
 # Build all variants.
@@ -653,8 +649,13 @@ do
     echo "" >> build.log
     echo " *** Building package $pkg ***" >> build.log
     echo "(cd $pkg && mkdir -p build/$variant && $bootcmd cd build/$variant && $confcmd $premake $mainmake $postmake;)" >> build.log
-    eval "(cd $pkg && mkdir -p build/$variant && $bootcmd cd build/$variant && $confcmd $premake make $postmake && echo $pkg '# built at' `date` >> $curwd/build.result.$variant;)" >> build.log 2>&1
-    status=$?
+    if [ $buildmake = 1 ]; then
+      eval "(cd $pkg && mkdir -p build/$variant && $bootcmd cd build/$variant && $confcmd $premake $mainmake $postmake && echo $pkg '# built at' `date` >> $curwd/build.result.$variant;)" >> build.log 2>&1
+      status=$?
+    else
+      eval "(cd $pkg && mkdir -p build/$variant && $bootcmd cd build/$variant && $confcmd $premake $mainmake $postmake;)" >> build.log 2>&1
+      status=$?
+    fi
     if [ "$status" != 0 ]; then
       echo " Error during build (see build.log for details)"
       exit $status
