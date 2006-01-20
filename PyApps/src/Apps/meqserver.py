@@ -133,6 +133,11 @@ class meqserver (app_proxy):
     rec.request = req;
     return self.meq('Node.Execute',rec,wait=wait);
     
+  def clearcache (self,node,recursive=True,wait=False):
+    rec = self.makenodespec(node);
+    rec.recursive = recursive;
+    return self.meq('Node.Clear.Cache',rec,wait=wait);
+    
   def publish (self,node,wait=False):
     rec = self.makenodespec(node);
     rec.enable = True;

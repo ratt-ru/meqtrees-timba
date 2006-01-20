@@ -611,6 +611,7 @@ class TDLEditor (QFrame,PersistentCurrier):
           QMessageBox.Ok);
     if callable(testfunc):
       joblist.append(testfunc);
+    joblist.sort(lambda a,b:cmp(str(a),str(b)));
 
     # create list of job actions
     self._jobmenu.clear();

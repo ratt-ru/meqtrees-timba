@@ -263,8 +263,7 @@ class assayer (object):
       _dprint(0,"running",procname);
       retval = proc(self.mqs,None,**kwargs);
       _dprint(0,procname,"finished");
-      if not self._assay_stat:
-        self._assay_time(time.time() - dt);
+      self._assay_time(time.time() - dt);
       # inspect return value
       if self.recording:
         self._inspections['retval'] = normalize_value(retval);
@@ -400,7 +399,7 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
         return;
       else:
         self.logf("runtime is %.2f seconds vs. %.2f recorded",dt,t0);
-      if not self._assay_runtime:
+      if self._assay_stat or not self._assay_runtime:
         return;
       t0 = max(t0,1e-10);
       dt = max(dt,1e-10);
