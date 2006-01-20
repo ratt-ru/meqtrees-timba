@@ -12,7 +12,7 @@ namespace Meq {
 
   ComposedPolc::ComposedPolc(vector<Funklet::Ref> & funklets,double pert,double weight,DbId id):Polc(*funklets.begin()),nr_funklets_(funklets.size())
   {
-    //   cdebug(0)<<"creating composed polc"<<endl;
+    //   cdebug(3)<<"creating composed polc"<<endl;
     
     (*this)[AidClass].replace() = "MeqComposedPolc";
     initFunklets(funklets);
@@ -60,7 +60,8 @@ namespace Meq {
       {
 	//check on shape 
 	const LoShape fshape= (*funkIt)->getCoeffShape ();
-	  for(uint axisi= 0; axisi<fshape.size();axisi++){
+	  const int rank=(*funkIt)->rank();
+	  for(uint axisi= 0; axisi<rank;axisi++){
 	    if(axisHasShape_[axisi]) continue;
 
 	    if(fshape[axisi]>1 ) { axisHasShape_[axisi]=1; continue;}
@@ -126,13 +127,13 @@ namespace Meq {
     Axis::degenerateShape(res_shape,cells.rank());
 
 
-    for(int iaxis=0;iaxis<cells.rank();iaxis++)
+    for(int iaxis=0;iaxis<nr_axis;iaxis++)
       if(axisHasShape_[iaxis])
 	res_shape[iaxis]=cells.ncells(iaxis);
       else
     	res_shape[iaxis]=1;
 	
-    cdebug(3)<<"evalauating ells with res_Shape : "<<res_shape<<endl;
+    cdebug(3)<<"evalauating cells with res_Shape : "<<res_shape<<endl;
     double *value = vs.setValue(new Vells(double(0),res_shape,true)).realStorage();
 
     double *pertValPtr[makePerturbed][nr_spids]; 
@@ -207,8 +208,8 @@ namespace Meq {
       if(!isConstant && partvs.hasShape()){
 	maxnx =  partvs.shape()[0];
 	maxny =  partvs.shape()[1];
+	cdebug(3)<<"got partvs with shape "<< partvs.shape()<<endl;
       }
-      cdebug(3)<<"got partvs with shape "<< partvs.shape()<<endl;
 
       blitz::Array<double,2>  parts;
       blitz::Array<double,2> perts[2][nr_spids] ;
