@@ -47,7 +47,23 @@ generic_savefile = 'generic_save_restore.inarg'
 #================================================================================
 #================================================================================
 
-        
+
+
+
+class MyListViewItem (QListViewItem):
+
+  def set_text_color(self, color=None):
+    if color==None: color = 'black'
+    self.__text_color = color
+    
+  def paintCell (self,painter,cg,column,width,align):
+    cg1 = QColorGroup(cg)
+    cg1.setColor(QColorGroup.Text, QColor(self.__text_color))
+    return QListViewItem.paintCell(self,painter,cg1,column,width,align)
+
+
+#================================================================================
+#================================================================================
 
 class ArgBrowser(QMainWindow):
     
@@ -62,6 +78,14 @@ class ArgBrowser(QMainWindow):
 	
         self.setMinimumWidth(700)
         self.setMinimumHeight(400)
+
+        fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
+        fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
+        self.setWFlags(fl)
+
+        # NB: Use Window Manager instead (right-click on title bar)
+        #     Implemented for MG_JEN_ substrings.....
+        # self.setWFlags(Qt.WStyle_StaysOnTop)   # does not work???
 
         #----------------------------------------------------
         # The basic layout: Stack widgets vertically in vbox
@@ -91,6 +115,7 @@ class ArgBrowser(QMainWindow):
         color = QColor('pink')
         color = QColor('lightgreen')
         color.setRgb(250,255,255)           # 0-255
+        color.setRgb(240,240,255)           # 0-255
         self.__listview.setPaletteBackgroundColor(color)
 
         self.__listview.addColumn("name", 300)
@@ -129,12 +154,12 @@ class ArgBrowser(QMainWindow):
 
         filemenu = QPopupMenu(self)
         # filemenu.insertItem('save',,self,,SLOT(self.save))
-        filemenu.insertItem('open', self.open_inarg)
-        filemenu.insertItem('saveAs', self.saveAs_inarg)
+        filemenu.insertItem('open..', self.open_inarg)
+        filemenu.insertItem('saveAs..', self.saveAs_inarg)
         filemenu.insertSeparator()     
         filemenu.insertItem('save', self.save_inarg)
         filemenu.insertItem('restore', self.restore_inarg)
-        filemenu.insertItem('recover', self.recover_inarg)
+        filemenu.insertItem('recover_last', self.recover_inarg)
         filemenu.insertSeparator()     
         filemenu.insertItem('print', self.print_inarg)
         filemenu.insertSeparator()     
@@ -142,7 +167,7 @@ class ArgBrowser(QMainWindow):
         self.__menubar.insertItem('File', filemenu)
 
         editmenu = QPopupMenu(self)
-        editmenu.insertItem('revert', self.revert_inarg)
+        editmenu.insertItem('revert_to_input', self.revert_inarg)
         self.__menubar.insertItem('Edit', editmenu)
 
         viewmenu = QPopupMenu(self)
@@ -180,16 +205,11 @@ class ArgBrowser(QMainWindow):
         self.__savefile = generic_savefile         # used by .save_inarg(None)
         self.__scriptname = None                   # target script for inarg record
         self.__closed = False
-        if True:
+        if False:
+            # Temporarily disabled because of problems (with file?)
             # Always restore the generic savefile (but do not show)
             self.restore_inarg(generic_savefile)            
         return None
-
-    # From: ../PyApps/src/GUI/treebrowser.py
-    # - redefines the paintCell to change item colors...
-    # - to change the font, look at the .paint attribute...?  
-    # def paintCell (self,painter,cg,column,width,align):
-    #  return QListViewItem.paintCell(self,painter,self._color_group or cg,column,width,align);
 
 
     def QApp (self):
@@ -275,7 +295,9 @@ class ArgBrowser(QMainWindow):
         s1 = '** test_OK(): '
         if True:
             # See whether there are any unresolved references:
+            print s1,'self.__inarg:',type(self.__inarg)
             inarg = deepcopy(self.__inarg)
+            print s1,'inarg:',type(inarg)
             JEN_inarg._replace_reference(inarg, trace=True)
             rr = JEN_inarg._count_reference(inarg, trace=True)
             if rr['n']>0:
@@ -364,13 +386,14 @@ class ArgBrowser(QMainWindow):
     
     def exec_with_inarg(self):
         """Execute the relevant function"""
+        self.__message.setText('** If you read this, something is wrong!!!')
         if not self.test_OK():
             self.__message.setText('** problem with inarg record: done nothing!')
             return False
         # OK: Save the current inarg in the generic file, for later recovery:
         self.save_inarg(generic_savefile)
 
-        # Resolve any references (@, @@):
+        # Resolve any references (@, @@), but AFTER saving!!!:
         # (@@ values do not work inside...)
         JEN_inarg._replace_reference(self.__inarg)
 
@@ -454,7 +477,7 @@ class ArgBrowser(QMainWindow):
 
 
     def recurse (self, rr=None, listview=None, level=0, module='<module>',
-                 makeitd=True, trace=False):
+                 makeitd=True, color=None, trace=False):
         """Recursive input of a hierarchical inarg record"""
         if not isinstance(rr, dict): return False
 
@@ -469,29 +492,33 @@ class ArgBrowser(QMainWindow):
             if isinstance(rr[key], dict):   
                 if key==CTRL_record:                           # is a CTRL record         
                     if self.__show_CTRL:
-                        item = QListViewItem(listview, key, 'CTRL_record')
+                        item = MyListViewItem(listview, key, 'CTRL_record')
+                        item.set_text_color('green')
                         item.setSelectable(False)
-                        self.recurse (rr[key], listview=item,
+                        self.recurse (rr[key], listview=item, color='green',
                                       level=level+1, makeitd=False)
                 else:
                     text = QString(key)
-                    font = QFont("times")
-                    font.setBold(True)
-                    # text.setFont(font)
-                    item = QListViewItem(listview, text)
+                    item = MyListViewItem(listview, text)
+                    if color:
+                      item.set_text_color(color)
+                    else:
+                      item.set_text_color('blue')
                     item.setSelectable(False)
                     if self.__set_open and level==0:
                         item.setOpen(True)                     # show its children
                     self.recurse (rr[key], listview=item, level=level+1,
-                                  module=key, makeitd=makeitd)
+                                  module=key, makeitd=makeitd, color=color)
 
             elif not makeitd:
                 # E.g. the fields inside a CTRL_record:
-                item = QListViewItem(listview, key, str(rr[key]))
+                item = MyListViewItem(listview, key, str(rr[key]))
+                item.set_text_color(color)
 
             else:                                              # rr[key] is a value
                 itd = self.make_itd(key, rr[key], ctrl=rr[CTRL_record], module=module)
-                if not itd['hide']:
+                nohide = ((not itd['hide']) or self.__unhide)
+                if nohide:
                     value = str(itd['value'])                  # current value
                     iitd = str(itd['iitd'])                    # used by selectedItem()
                     rr[CTRL_record][kident][key] = itd['iitd'] # unique local identifier
@@ -503,20 +530,24 @@ class ArgBrowser(QMainWindow):
                         hcmax = 40                             # max nr of chars
                         if len(help)>hcmax:
                             help = help[:hcmax]+'...'
-                    item = QListViewItem(listview, key, value, help, iitd)
-                    # item.setColor(itd['color'])              # <-----??            
+                    item = MyListViewItem(listview, key, value, help, iitd)
+                    if itd['hide']:
+                      item.set_text_color('grey')
+                    else:
+                      item.set_text_color(color)
+                      
 
         return True
 
 
 
     #-------------------------------------------------------------------------------
+    # (Move to JEN_inarg.py)
 
     def make_itd(self, key, value, ctrl=None,
                  color='black', hide=False,
                  module='<module>',
                  save=True, level=0, trace=False):
-
         """Make an itd record from the given value and ctrl-record"""
         itd = dict(key=str(key),
                    value=value,                
@@ -552,8 +583,6 @@ class ArgBrowser(QMainWindow):
                         itd[field] = ctrl[field][key]
 
         # Override some fields, if required:
-        if self.__unhide:                            # see self.unhide()
-            itd['hide'] = False
         if itd['range']:
             if not isinstance(itd['range'], (tuple,list)):
                 itd['range'] = 'error: '+str(type(itd['range']))
@@ -566,8 +595,9 @@ class ArgBrowser(QMainWindow):
             if not isinstance(itd['choice'], (tuple,list)):
                 itd['choice'] = [itd['choice']]
         if itd['help']:
-            indent = (level*'.')
-            itd['help'] = indent+str(itd['help'])
+            prefix = ''
+            if itd['hide']: prefix = '(hidden) '
+            itd['help'] = prefix+str(itd['help'])
 
         # Keep the itemdict for later reference:
         if save:

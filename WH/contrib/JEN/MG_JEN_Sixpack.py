@@ -9,6 +9,8 @@
 
 # History:
 # - 24 aug 2005: creation
+# - 20 oct 2005: introduced Sixpack object
+# - 20 jan 2006: introduced Parmset
 
 # Copyright: The MeqTree Foundation
 
@@ -50,6 +52,8 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 # NB: Also browse the list of other available scripts!
 
 from Timba.Trees import TDL_Sixpack
+from Timba.Trees import TDL_Parmset
+from Timba.Trees import JEN_inarg
 
 from Timba.Contrib.JEN import MG_JEN_funklet
 from Timba.Contrib.JEN import MG_JEN_matrix
@@ -140,6 +144,27 @@ def _define_forest (ns):
 #********************************************************************************
 #********************************************************************************
 
+#-----------------------------------------------------------------------------
+# Standard input arguments (used e.g. by MG_JEN_Cohset.py)
+
+def inarg_punit (pp, **kwargs):
+    JEN_inarg.inarg_common(kwargs)
+    choice = ['unpol','unpol2','unpol10','3c147',
+              'RMtest','QUV','QU','SItest']
+    JEN_inarg.define (pp, 'punit', 'unpol', choice=choice,
+                      slave=kwargs['slave'], hide=kwargs['hide'],
+                      help='name of calibrator source/patch \n'+
+                      '- unpol:   unpolarised, I=1Jy \n'+
+                      '- unpol2:  idem, I=2Jy \n'+
+                      '- unpol10: idem, I=10Jy \n'+
+                      '- RMtest:  Rotation Measure \n'+
+                      '- SItest:  Spectral Index \n'+
+                      '- QUV:     non-zero Q,U,V \n'+
+                      '- QU:      non-zero Q,U \n'+
+                      '- 3c147:')
+    return True
+
+
 #----------------------------------------------------------------------
 # Some sources are predefined: Modify parameters pp accordingly.
 
@@ -224,11 +249,36 @@ def newstar_source (ns=0, **pp):
    pp.setdefault('RA', 0.0)            # Right Ascension (rad, J2000)
    pp.setdefault('Dec', 1.0)           # Declination (rad, J2000)
    pp.setdefault('fsr_trace', True)    # if True, attach to forest state record
-   # pp = record(pp)
   
    # Adjust parameters pp for some special cases:
    predefined (pp)  
+
+   print '**\n  pp=',pp,'\n'
+
+   # Make the Sixpack and get its Parmset object:
+   Sixpack = TDL_Sixpack.Sixpack(label=pp['name'])
+   Sixpack.display()
+   print dir(Sixpack)
+   pset = Sixpack.Parmset 
    
+   # Register the parmgroups:
+   sI = pset.register('sI', color='red', style='diamond', size=10)
+   sQ = pset.register('sQ', color='blue', style='diamond', size=10)
+   sU = pset.register('sU', color='magenta', style='diamond', size=10)
+   sV = pset.register('sV', color='cyan', style='diamond', size=10)
+   
+   # MeqParm node_groups: add 'S' to default 'Parm':
+   pset.node_groups('S')
+   
+   # Define extra solvegroup(s) from combinations of parmgroups:
+   pset.define_solvegroup('stokesI', [sI])
+   pset.define_solvegroup('stokesQ', [sQ])
+   pset.define_solvegroup('stokesU', [sU])
+   pset.define_solvegroup('stokesV', [sV])
+   pset.define_solvegroup('IQUV', [sI,sQ,sU,sV])
+   pset.define_solvegroup('IQU', [sI,sQ,sU])
+   pset.define_solvegroup('QU', [sQ,sU])
+
    # Make the Sixpack of 6 standard subtree root-nodes: 
    n6 = record(I='stokesI', Q='stokesQ', U='stokesU', V='stokesV', R='ra', D='dec') 
    zero = ns.zero << Meq.Constant(0)
@@ -312,14 +362,18 @@ def newstar_source (ns=0, **pp):
    radec[n6.R] = ns[n6.R](q=pp['name']) << Meq.Parm(pp['RA'])
    radec[n6.D] = ns[n6.D](q=pp['name']) << Meq.Parm(pp['Dec'])
 
-   # Finished: Make the Sixpack and return it
-   Sixpack = TDL_Sixpack.Sixpack(label=pp['name'],
-                                 stokesI=iquv[n6.I], 
-                                 stokesQ=iquv[n6.Q], 
-                                 stokesU=iquv[n6.U], 
-                                 stokesV=iquv[n6.V], 
-                                 ra=radec[n6.R], 
-                                 dec=radec[n6.D])
+   # Finished: Fill the Sixpack and return it:
+   Sixpack.stokesI(iquv[n6.I])
+   Sixpack.stokesQ(iquv[n6.Q])
+   Sixpack.stokesU(iquv[n6.U])
+   Sixpack.stokesV(iquv[n6.V])
+   Sixpack.display()
+   dir(Sixpack)
+   print 'n6 =',n6
+   # Sixpack.radec([iquv[n6.R],iquv[n6.D]])
+   Sixpack.ra(radec[n6.R])
+   Sixpack.dec(radec[n6.D])
+
    if pp['fsr_trace']: MG_JEN_forest_state.object(Sixpack)
    return Sixpack
 

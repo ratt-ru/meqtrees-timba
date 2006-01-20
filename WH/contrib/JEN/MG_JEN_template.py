@@ -9,6 +9,7 @@
 
 # History:
 # - 24 aug 2005: creation
+# - 18 jan 2006: include _tdl_predefine()
 
 # Copyright: The MeqTree Foundation
 
@@ -83,9 +84,13 @@
 from Timba.TDL import *
 # from Timba.Meq import meq
 
+from qt import *
 # from numarray import *
 # from string import *
 # from copy import deepcopy
+
+from Timba.Trees import JEN_inarg
+from Timba.Trees import JEN_inargGui
 
 # Scripts needed to run a MG_JEN script: 
 from Timba.Contrib.JEN import MG_JEN_exec
@@ -95,39 +100,41 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
 
-MG = MG_JEN_exec.MG_init('MG_JEN_template.py',
-                         last_changed='h02oct2005',
-                         aa=13,
-                         bb='aa',                 # replace with value of referenced field  
-                         trace=False)             # If True, produce progress messages  
+MG = JEN_inarg.init('MG_JEN_template')
 
-MG.test1 = record(a11=1,
-                  a12=2,
-                  a21=-1,
-                  a22=4)
+JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
+JEN_inarg.define (MG, 'aa', 13, help='Some value')
+JEN_inarg.define (MG, 'bb', '@aa', help='Equal to aa')
+JEN_inarg.define (MG, 'trace', tf=False, help='If True, verbose operation')
 
-MG.test2 = record(a11=1.1,
-                  a12=-2,
-                  a21='a11',            # replace with value of referenced field 
-                  a22=0.5,
-                  up='../aa')           # replace with value of field from one level up     
 
-MG.stream_control = record(ms_name='D1.MS',
-                           data_column_name='DATA',
-                           tile_size=10,                  # input tile-size
-                           channel_start_index=10,
-                           channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
-                           output_col='RESIDUALS')
+MG['test1'] = dict(a11=1,
+                   a12=2,
+                   a21=-1,
+                   a22=4)
+
+MG['test2'] = dict(a11=1.1,
+                   a12=-2,
+                   a21='@a11',            # replace with value of referenced field 
+                   a22=0.5,
+                   up='@@aa')           # replace with value of field from one level up     
+
+MG['stream_control'] = dict(ms_name='D1.MS',
+                            data_column_name='DATA',
+                            tile_size=10,                  # input tile-size
+                            channel_start_index=10,
+                            channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
+                            output_col='RESIDUALS')
 
 # Check the MG record, and replace any referenced values
-MG = MG_JEN_exec.MG_check(MG)
+# MG = MG_JEN_exec.MG_check(MG)
 
 
 #-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(MG)
+MG_JEN_forest_state.init(MG['script_name'])
 
 
 
@@ -140,26 +147,53 @@ MG_JEN_forest_state.init(MG)
 #********************************************************************************
 #********************************************************************************
 
+# Tree pre-definition routine, which calls JEN_inargGUI, the GUI
+# that allows editing of the input argument record (inarg) MG.
+# It is called automatically when pressing the 'blue button' in
+# the prowser. When the 'proceed' button is pressed, it calls
+# def_define_forest(ns, inarg), using the result of _tdl_predefine().
+
+def _tdl_predefine (mqs, parent, **kwargs):
+    res = True
+    if parent:
+        QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
+        try:
+            igui = JEN_inargGui.ArgBrowser(parent)
+            igui.input(MG, name=MG['script_name'], set_open=False)
+            res = igui.exec_loop()
+            if res is None:
+                raise RuntimeError("Cancelled by user");
+        finally:
+            QApplication.restoreOverrideCursor()
+    # Return the input argument record (kwargs) to _define_forest():
+    return res
+
+
+#---------------------------------------------------------------------------
 # Tree definition routine (may be executed from the browser):
 # To be used as example, for experimentation, and automatic testing.
 
-
-def _define_forest (ns):
+def _define_forest (ns, **kwargs):
    """Definition of a MeqForest for demonstration/testing/experimentation
    of the subject of this MG script, and its importable functions"""
+
+   # The MG may be passed in from _tdl_predefine():
+   # In that case, override the global MG record.
+   if len(kwargs)>1: MG = kwargs
+
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
    # Test/demo of importable function: .example1()
    bb = []
-   bb.append(example1 (ns, arg1=MG.test1.a11, arg2=MG.test1.a12))
-   bb.append(example1 (ns, arg1=MG.test1.a21, arg2=MG.test1.a22))
+   bb.append(example1 (ns, arg1=MG['test1']['a11'], arg2=MG['test1']['a12']))
+   bb.append(example1 (ns, arg1=MG['test1']['a21'], arg2=MG['test1']['a22']))
    cc.append(MG_JEN_exec.bundle(ns, bb, '.example1()'))
 
    # Test/demo of importable function: .example2()
    bb = []
-   bb.append(example1 (ns, arg1=MG.test2.a11, arg2=MG.test2.a12))
-   bb.append(example1 (ns, arg1=MG.test2.a21, arg2=MG.test2.a22))
+   bb.append(example1 (ns, arg1=MG['test2']['a11'], arg2=MG['test2']['a12']))
+   bb.append(example1 (ns, arg1=MG['test2']['a21'], arg2=MG['test2']['a22']))
    cc.append(MG_JEN_exec.bundle(ns, bb, '.example2()'))
 
    # Finished: 
@@ -172,7 +206,7 @@ def _define_forest (ns):
 # nodes are appended to the list cc. Groups of experiments may be
 # bundled The function .on_ext() ties the nodes in cc together by
 # making them the children of a single root node, with the specified
-# name (default is MG.script_name). The latter is executed by the
+# name (default is MG['script_name']). The latter is executed by the
 # function _test_forest() and its _tdl_job_ relatives (see below).
 
 # Groups of experiments may be bundled with the .bundle() function in
@@ -282,7 +316,7 @@ def _tdl_job_21cm(mqs, parent):
 
 def _tdl_job_spigot2sink(mqs, parent):
     """Execute the forest under MS stream_control"""
-    return MG_JEN_exec.spigot2sink (mqs, parent, ctrl=MG.stream_control)
+    return MG_JEN_exec.spigot2sink (mqs, parent, ctrl=MG['stream_control'])
 
 # Execute the forest for a sequence of requests:
 
@@ -315,16 +349,16 @@ def _tdl_job_sequence(mqs, parent):
 #      > python MG_JEN_template.py
 
 if __name__ == '__main__':
-   print '\n*******************\n** Local test of:',MG.script_name,':\n'
+   print '\n*******************\n** Local test of:',MG['script_name'],':\n'
 
    # Generic test:
-   if 1:
-       MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=3)
+   if 0:
+       MG_JEN_exec.without_meqserver(MG['script_name'], callback=_define_forest, recurse=3)
 
    # Various specific tests:
    ns = NodeScope()
 
-   if 1:
+   if 0:
       example1()
       print example1.__doc__
       print __doc__
@@ -342,9 +376,14 @@ if __name__ == '__main__':
       if dict(): print 'dict():'
 
    if 1:
-       MG_JEN_exec.display_object (MG, 'MG', MG.script_name)
-       # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
-   print '\n** End of local test of:',MG.script_name,'\n*******************\n'
+      igui = JEN_inargGui.ArgBrowser()
+      igui.input(MG, name=MG['script_name'], set_open=False)
+      igui.launch()
+       
+   if 0:
+       MG_JEN_exec.display_object (MG, 'MG', MG['script_name'])
+       # MG_JEN_exec.display_subtree (rr, MG['script_name'], full=1)
+   print '\n** End of local test of:',MG['script_name'],'\n*******************\n'
        
 #********************************************************************************
 #********************************************************************************

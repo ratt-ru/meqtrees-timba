@@ -192,16 +192,15 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 
 #======================================================================================
 
-def predict (ns=None, Sixpack=None, Joneset=None, **inarg):
+def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     """Make a Cohset with predicted (optional: corrupted) uv-data for
     the source defined by Sixpack"""
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()', version='25dec2005')
-    JEN_inarg.define (pp, 'ifrs', [(0,1)], choice=['@@'], hide=True,
-                      help='list of ifrs (tuples) for the Cohset')
-    pp.setdefault('polrep', 'linear')
-    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True))
+    inarg_stations(pp, slave=slave)
+    inarg_polrep(pp, slave=slave)
+    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, slave=True))
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
@@ -247,34 +246,25 @@ def predict (ns=None, Sixpack=None, Joneset=None, **inarg):
 #--------------------------------------------------------------------------------------
 # Make a JJones Joneset from the specified sequence of Jones matrices:
 
-def JJones(ns=None, Sixpack=None, **inarg):
+def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     """Make a Joneset by creating and multiplying one ore more Jonesets"""
    
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::JJones()', version='25dec2005')
+    # JEN_inarg.inarg_common(pp)
     # Arguments that should common to all Jonesets in the sequence
-    # (they are set recursively by JEN_inarg.modify())
-    pp.setdefault('stations',[0])                   # list of stations
-    pp.setdefault('polrep', 'linear')               # polarisation representation
-    pp.setdefault('unsolvable', False)              # if True, do NOT store solvegroup info
-    pp.setdefault('parmtable', None)                # MeqParm table name
-    pp.setdefault('Jsequence', ['GJones'])          # sequence of Jones matrices
-    pp.setdefault('expect', '*')                    # list of expected Jones matrices 
-
+    inarg_stations(pp, slave=slave)
+    inarg_parmtable(pp, slave=slave)
+    inarg_polrep(pp, slave=slave)
+    JEN_inarg.define (pp, 'Jsequence', ['GJones'],
+                      choice=[['GJones'],['BJones'],['FJones'],
+                              ['DJones_WSRT'],['GJones','DJones_WSRT']],
+                      help='sequence of Jones matrices to be used')
     # Include default inarg records for various Jones matrix definition functions:
-    # (This includes a mechanism to exclude the unneeded ones, to avoid clutter)
-    available = ['GJones','FJones','BJones','DJones_WSRT']
-    if pp['expect']=='*':
-        pp['expect'] = available                    # all the available ones
-    if not isinstance(pp['expect'], (list, tuple)): pp['expect'] = [pp['expect']]
-    if 'GJones' in pp['expect']:
-        JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True))
-    if 'FJones' in pp['expect']:
-        JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True))
-    if 'BJones' in pp['expect']:
-        JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True))
-    if 'DJones_WSRT' in pp['expect']:
-        JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True, slave=True))
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -324,19 +314,16 @@ def JJones(ns=None, Sixpack=None, **inarg):
 # - The 'predicted' Cohset contains corrupted model visibilities,
 #   and the Joneset with which it has been corrupted (if any).
 
-def insert_solver(ns=None, measured=None, predicted=None, **inarg):
+def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     """insert one or more solver subtrees in the data stream""" 
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_solver()', version='25dec2005')
     JEN_inarg.define(pp, 'solver_subtree', None, hide=True,
                      help='solver subtree qualifier(s)')
-    JEN_inarg.define(pp, 'num_cells', None,
-                     choice=[None, [2,2],[2,5]],
-                     help='ModRes argument [ntime, nfreq]')
-    JEN_inarg.define(pp, 'redun', tf=False,
-                     help='if True, use redundant baseline calibration')
-    inarg_solver_config (pp)
+    inarg_num_cells(pp, slave=True)
+    inarg_num_cells(pp, slave=slave)
+    inarg_solver_config (pp, slave=True)
     JEN_inarg.define(pp, 'visu', tf=True,
                      help='if True, include full visualisation')
     JEN_inarg.define(pp, 'subtract', tf=False,
@@ -460,21 +447,28 @@ def insert_solver(ns=None, measured=None, predicted=None, **inarg):
 #-----------------------------------------------------------------------------
 # A solver subtree
 
-def solver_subtree (ns=None, Cohset=None, **inarg):
+
+def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
     """Make a solver-subtree for the given Condeq Cohset""" 
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::solver_subtree()', version='20dec2005')
-    pp.setdefault('solvegroup', [])        # list of solvegroup(s) to be solved for
-    pp.setdefault('rmin', None)            # if specified, only use baselines>=rmin 
-    pp.setdefault('rmax', None)            # if specified, only use baselines<=rmax
-    pp.setdefault('condition', [])         # List of zero or more condition keys
-    pp.setdefault('num_iter', 20)          # max number of iterations
-    pp.setdefault('num_cells', None)       # if defined, ModRes argument [ntime,nfreq]
-    pp.setdefault('epsilon', 1e-4)         # iteration control criterion
-    pp.setdefault('debug_level', 10)       # solver debug_level
-    pp.setdefault('visu', True)            # if True, include visualisation
-    pp.setdefault('history', True)         # if True, include history collection of metrics 
+    MG_JEN_Joneset.inarg_solvegroup(pp, slave=slave)
+    JEN_inarg.define(pp, 'rmin', None, choice=[None, 100, 200, 500],  
+                     help='if specified, only use baselines>=rmin')
+    JEN_inarg.define(pp, 'rmax', None, choice=[None, 500, 1000, 2000],  
+                     help='if specified, only use baselines<=rmax')
+    inarg_num_cells(pp, slave=slave)
+    JEN_inarg.define(pp, 'num_iter', 20, choice=[1,3,5,10,20],  
+                     help='max number of iterations')
+    JEN_inarg.define(pp, 'epsilon', 1e-4, choice=[1e-3,1e-4, 1e-5],  
+                     help='iteration control criterion')
+    JEN_inarg.define(pp, 'debug_level', 10, choice=[10], hide=True,  
+                     help='solver debug_level')
+    JEN_inarg.define(pp, 'visu', tf=True,   
+                     help='if True, include visualisation')
+    JEN_inarg.define(pp, 'history', tf=True,   
+                     help='if True, include history collection of metrics')
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
@@ -486,7 +480,8 @@ def solver_subtree (ns=None, Cohset=None, **inarg):
     # predefined solvegroups of parms in the input Cohset.
     # These are collected from the Jonesets upstream.
     # The solver_name is just a concatenation of such solvegroup names:
-    if isinstance(pp['solvegroup'], str): pp['solvegroup'] = [pp['solvegroup']]
+    if isinstance(pp['solvegroup'], str):
+        pp['solvegroup'] = [pp['solvegroup']]
     solver_name = pp['solvegroup'][0]
     for i in range(len(pp['solvegroup'])):
         if i>0: solver_name = solver_name+pp['solvegroup'][i]
@@ -795,83 +790,78 @@ def punit2Sixpack(ns, punit='uvp'):
 #----------------------------------------------------------------------------------------------------
 
 
-def inarg_polrep (rr, **pp):
-    pp.setdefault('master', False)          # If True, it is the master value
-    pp.setdefault('polrep', 'linear')        
-    if not pp['master']: pp['polrep'] = '@@polrep'
-    JEN_inarg.define (rr, 'polrep', pp['polrep'],
-                      choice=['linear','circular','@@polrep'],
+def inarg_polrep (pp, **kwargs):
+    JEN_inarg.inarg_common(kwargs)
+    JEN_inarg.define (pp, 'polrep', 'linear',
+                      slave=kwargs['slave'], hide=kwargs['hide'],
+                      choice=['linear','circular'],
                       help='polarisation representation')
     return True
 
 
-def inarg_punit (rr, **pp):
-    pp.setdefault('master', False)          # If True, it is the master value
-    pp.setdefault('punit', 'unpol')        
-    if not pp['master']: pp['punit'] = '@@punit'
-    choice = ['unpol','unpol2','unpol10','3c147',
-              'RMtest','QUV','QU','SItest','@@punit']
-    JEN_inarg.define (rr, 'punit', pp['punit'], choice=choice,
-                      help='name of calibrator source/patch \n'+
-                      '- unpol:   unpolarised, I=1Jy \n'+
-                      '- unpol2:  idem, I=2Jy \n'+
-                      '- unpol10: idem, I=10Jy \n'+
-                      '- RMtest:  Rotation Measure \n'+
-                      '- SItest:  Spectral Index \n'+
-                      '- QUV:     non-zero Q,U,V \n'+
-                      '- QU:      non-zero Q,U \n'+
-                      '- 3c147:')
-    return True
-
-
-def inarg_parmtable (rr, **pp):
-    pp.setdefault('master', False)          # If True, it is the master value
-    pp.setdefault('parmtable', None)        
-    if not pp['master']: pp['parmtable'] = '@@parmtable'
-    JEN_inarg.define (rr, 'parmtable', pp['parmtable'],
+def inarg_parmtable (pp, **kwargs):
+    JEN_inarg.inarg_common(kwargs)
+    JEN_inarg.define (pp, 'parmtable', None,
+                      slave=kwargs['slave'], hide=kwargs['hide'],
                       help='name of MeqParm table to be used')
     return True
 
 
-def inarg_stations (rr, **pp):
-    pp.setdefault('master', False)          # If True, it is the master value
-    pp.setdefault('stations', range(4))        
-    pp.setdefault('ifrs', (0,1))        
-    if not pp['master']: pp['stations'] = '@@stations'
-    JEN_inarg.define (rr, 'stations', pp['stations'],
-                      choice=[range(7),range(14),range(15),'@@stations'],
+def inarg_stations (pp, **kwargs):
+    JEN_inarg.inarg_common(kwargs)
+    JEN_inarg.define (pp, 'stations', range(4),
+                      slave=kwargs['slave'], hide=kwargs['hide'],
+                      choice=[range(7),range(14),range(15)],
                       help='the (subset of) stations to be used')
-    # Derive a list of ifrs from rr['stations'] (assumed to exist):
-    JEN_inarg.define (rr, 'ifrs', TDL_Cohset.stations2ifrs(rr['stations']), hide=True,
+    # Derive a list of ifrs from pp['stations'] (assumed to exist):
+    JEN_inarg.define (pp, 'ifrs', TDL_Cohset.stations2ifrs(pp['stations']),
+                      slave=kwargs['slave'], hide=True,
                       help='list if ifrs (derived from stations)')
     return True
 
 
-def inarg_redun (rr, **pp):
-    pp.setdefault('master', False)          # If True, it is the master value
-    pp.setdefault('redun', False)        
-    if not pp['master']: pp['redun'] = '@@redun'
-    JEN_inarg.define (rr, 'redun', tf=pp['redun'], 
+def inarg_redun (pp, **kwargs):
+    JEN_inarg.inarg_common(kwargs)
+    JEN_inarg.define (pp, 'redun', tf=False, 
+                      slave=kwargs['slave'], hide=kwargs['hide'],
                       help='if True, redundant spacing calibration')
     return True
 
 
 
-def inarg_solver_config (rr, **pp):
-    pp.setdefault('master', False)          # If True, it is the master value
-    pp.setdefault('chain_solvers', True)        
-    pp.setdefault('master_reqseq', False)        
-    if not pp['master']:
-        pp['chain_solvers'] = '@@chain_solvers'
-        pp['master_reqseq'] = '@@master_reqseq'
-    JEN_inarg.define (rr, 'chain_solvers', tf=pp['chain_solvers'], hide=True,
+def inarg_solver_config (pp, **kwargs):
+    JEN_inarg.inarg_common(kwargs, hide=True)
+    JEN_inarg.define (pp, 'chain_solvers', True,
+                      slave=kwargs['slave'], hide=kwargs['hide'],
                       help='if True, chain the solvers (recommended)')
-    JEN_inarg.define (rr, 'master_reqseq', tf=pp['master_reqseq'], hide=True,
+    JEN_inarg.define (pp, 'master_reqseq', tf=False,
+                      slave=kwargs['slave'], hide=kwargs['hide'],
                       help='if True, use a master reqseq for solver(s)')
     return True
 
 
 
+def inarg_num_cells (pp, **kwargs):
+    JEN_inarg.inarg_common(kwargs)
+    JEN_inarg.define (pp, 'num_cells', None,
+                      slave=kwargs['slave'], hide=kwargs['hide'],
+                      choice=[None,[5,2],[2,2],[3,3]],  
+                      help='if defined, ModRes argument [ntime,nfreq]')
+    return True
+
+
+def inarg_Cohset_common (pp, last_changed='<undefined>', **kwargs):
+   """Some common JEN_inarg definitions for Cohset scripts"""
+   # JEN_inarg.inarg_common(kwargs)
+   JEN_inarg.define (pp, 'last_changed', last_changed, editable=False)
+   inarg_stations(pp)
+   inarg_parmtable(pp)
+   inarg_polrep(pp)
+   MG_JEN_Sixpack.inarg_punit(pp)
+   inarg_solver_config (pp)
+   inarg_redun(pp)
+   inarg_num_cells(pp)
+   return True
 
 #********************************************************************************
 #********************************************************************************
@@ -886,24 +876,10 @@ def inarg_solver_config (rr, **pp):
 MG = JEN_inarg.init('MG_JEN_Cohset')
 
 # Define some overall arguments:
+# MG_JEN_Cohset.inarg_Cohset_common (MG, last_changed='d19jan2006')
 # Local (MG_JEN_Cohset.py) version:
-JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
-inarg_stations(MG, master=True)
-inarg_parmtable(MG, master=True)
-inarg_polrep(MG, master=True)
-inarg_punit(MG, master=True)
-inarg_solver_config (MG, master=True)
-inarg_redun(MG, master=True)
+inarg_Cohset_common (MG, last_changed='d19jan2006')
 
-# Copied from MG_JEN_Cohset.py:
-# JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
-# MG_JEN_Cohset.inarg_stations(MG, master=True)
-# MG_JEN_Cohset.inarg_parmtable(MG, master=True)
-# MG_JEN_Cohset.inarg_polrep(MG, master=True)
-# MG_JEN_Cohset.inarg_punit(MG, master=True)
-# MG_JEN_Cohset.inarg_solver_config (MG, master=True)
-# MG_JEN_Cohset.inarg_redun(MG, master=True)
-    
 
 #----------------------------------------------------------------------------------------------------
 # Interaction with the MS: spigots, sinks and stream control
@@ -921,11 +897,6 @@ if True:                                               # ... Copied from MG_JEN_
    # inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
    inarg = make_spigots(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
-                    # MS_corr_index=[0,-1,-1,1],       # only XX/YY available
-                    # MS_corr_index=[0,-1,-1,3],       # all available, use only XX/YY
-                    MS_corr_index=[0,1,2,3],           # all corrs available, use all
-                    # flag=False,                        # if True, flag the input data
-                    visu=True,                         # if True, visualise the input data
                     _JEN_inarg_option=None)            # optional, not yet used 
    JEN_inarg.attach(MG, inarg)
                  
@@ -934,10 +905,6 @@ if True:                                               # ... Copied from MG_JEN_
    # inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
    inarg = make_sinks(_getdefaults=True)                # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
-                    output_col='PREDICT',              # logical (tile) output column
-                    visu_array_config=True,            # if True, visualise the array config (from MS)
-                    # flag=False,                        # if True, flag the input data
-                    visu=True,                         # if True, visualise the input data
                     _JEN_inarg_option=None)            # optional, not yet used 
    JEN_inarg.attach(MG, inarg)
                  
@@ -952,13 +919,6 @@ if False:                                                # ... Copied from MG_JE
    # inarg = MG_JEN_Cohset.insert_flagger(_getdefaults=True) 
    inarg = insert_flagger(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
-                    # sigma=5.0,                         # flagged if exceeds sigma*stddev
-                    # unop='Abs',                        # unop used to make real data
-                    # oper='GT',                         # decision function (GT=Greater Than)
-                    # flag_bit=1,                        # affected flag-bit
-                    # merge=True,                        # if True, merge the flags of 4 corrs
-                    # compare=False,                     # ....
-                    # visu=False,                        # if True, visualise the result
                     _JEN_inarg_option=None)            # optional, not yet used 
    JEN_inarg.attach(MG, inarg)
    
@@ -1001,16 +961,9 @@ if True:                                                   # ... Copied from MG_
    # condition = []
 
 
-   # inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, expect=Jsequence) 
-   inarg = JJones(_getdefaults=True, _qual=qual, expect=Jsequence)  
+   # inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual) 
+   inarg = JJones(_getdefaults=True, _qual=qual, slave=True)  
    JEN_inarg.modify(inarg,
-                    # stations=MG['stations'],               # List of array stations
-                    # parmtable=MG['parmtable'],             # MeqParm table name
-                    stations='@@stations',               # List of array stations
-                    parmtable='@@parmtable',             # MeqParm table name
-                    unsolvable=False,                      # If True, no solvegroup info is kept
-                    # polrep=MG['polrep'],                   # polarisation representation
-                    polrep='@@polrep',                   # polarisation representation
                     Jsequence=Jsequence,                   # Sequence of corrupting Jones matrices 
                     _JEN_inarg_option=None)                # optional, not yet used 
 
@@ -1053,12 +1006,8 @@ if True:                                                   # ... Copied from MG_
 
 
    # inarg = MG_JEN_Cohset.predict(_getdefaults=True, _qual=qual)  
-   inarg = predict(_getdefaults=True, _qual=qual)             # local (MG_JEN_Cohset.py) version 
+   inarg = predict(_getdefaults=True, _qual=qual, slave=True)             # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
-                    # ifrs=MG['ifrs'],                       # list of Cohset ifrs 
-                    # polrep=MG['polrep'],                   # polarisation representation
-                    ifrs='@@ifrs',                       # list of Cohset ifrs 
-                    polrep='@@polrep',                   # polarisation representation
                     _JEN_inarg_option=None)                # optional, not yet used 
    JEN_inarg.attach(MG, inarg)
 
@@ -1066,20 +1015,11 @@ if True:                                                   # ... Copied from MG_
    #========
    if True:                                                # ... Copied from MG_JEN_Cohset.py ...
        # inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
-       inarg = insert_solver(_getdefaults=True, _qual=qual)   # local (MG_JEN_Cohset.py) version 
+       inarg = insert_solver(_getdefaults=True, _qual=qual, slave=True)   # local (MG_JEN_Cohset.py) version 
        JEN_inarg.modify(inarg,
-                        # master_reqseq=MG['master_reqseq'], # if True, use a master reqseq for solver(s)
-                        # chain_solvers=MG['chain_solvers'], # if True, chain the solver(s)
-                        master_reqseq='@@master_reqseq', # if True, use a master reqseq for solver(s)
-                        chain_solvers='@@chain_solvers', # if True, chain the solver(s)
-                        redun=True,                        # if True, use redundant baseline calibration
-                        # redun=MG['redun'],                 # if True, use redundant baseline calibration
-                        # redun='@@redun',                 # if True, use redundant baseline calibration
                         subtract=False,                    # if True, subtract 'predicted' from uv-data 
                         correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
                         visu=True,                         # if True, include visualisation
-                        # num_cells=None,                    # if defined, ModRes argument [ntime,nfreq]
-                        # num_cells=[2,5],                   # ModRes argument [ntime,nfreq]
                         # ** Arguments for .solver_subtree()
                         solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
                         # condition=[],                      # list of names of extra condition equations
@@ -1087,8 +1027,6 @@ if True:                                                   # ... Copied from MG_
                         # rmin=200,                         # if specified, only use baselines>=rmin 
                         # rmax=None,                         # if specified, only use baselines<=rmax
                         num_iter=10,                       # max number of iterations
-                        # epsilon=1e-4,                      # iteration control criterion
-                        # debug_level=10,                    # solver debug_level
                         history=True,                      # if True, include history collection of metrics 
                         _JEN_inarg_option=None)            # optional, not yet used 
        JEN_inarg.attach(MG, inarg)

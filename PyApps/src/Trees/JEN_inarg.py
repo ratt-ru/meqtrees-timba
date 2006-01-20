@@ -863,11 +863,32 @@ def result(rr=None, pp=None, attach=None, trace=True):
 #----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
 
-def define(pp, key=None, default=None,
+def inarg_template (pp, **kwargs):
+   """Template/example for inarg_xxx() functions (see e.g. MG_JEN_Cohset.py)"""
+   JEN_inarg.inarg_common(kwargs)
+   JEN_inarg.define (pp, 'xxx', '<default>',
+                     slave=kwargs['slave'], hide=kwargs['hide'],
+                     choice=[],
+                     help='')
+   return True
+
+
+def inarg_common (rr, **kwargs):
+   """Used in inarg_xxx() functions (see above)"""
+   rr.setdefault('slave', False)     
+   rr.setdefault('hide', False)
+   for key in kwargs.keys():
+      rr[key] = kwargs[key]
+   return True
+
+
+#----------------------------------------------------------------------------
+
+def define(pp, key=None, default=None, slave=False,
            choice=None, editable=None, tf=None,
            mandatory_type=None, browse=None,
            range=None, min=None, max=None,
-           help=None, hide=None, trace=False):
+           help=None, hide=None, mutable=None, trace=False):
    """Define a pp entry with a default value, and other info.
    This is a more able version of pp.setdefault(key,value),
    which is helpful for a specification GUI (see JEN_inargGui.py)"""
@@ -888,25 +909,37 @@ def define(pp, key=None, default=None,
       MESSAGE(pp, s1+'duplicate argument key in: '+str(pp.keys()))
       return False
 
-   # Make sure that choice is a list/tuple.
-   # Also append the 'global' option, where the parent records
-   # of the inarg record are searched for a value for this argument.
-   # See _replace_references()
-   if choice==None:
-      choice = []
-   else:
-      if not isinstance(choice, (list, tuple)):
-         choice = [choice]
-   choice.append('@@'+key)           # global option
-
    # Deal with some special cases:
    if isinstance(tf, bool):          # tf (TrueFalse) specified
       default = tf                   #  
       cc = [True, False]
-      if choice: cc.extend(choice)   # append other choices
+      if choice:
+         cc.extend(choice)            # append any other choices
       choice = cc
       editable = False
    
+   # Make sure that choice is a list/tuple.
+   if choice==None:
+      choice = []
+   elif not isinstance(choice, (list, tuple)):
+      choice = [choice]
+
+   # Make sure that the default value is among the choice:
+   if not (default in choice):        
+      choice.insert(0,default)        # prepend 
+
+   # In 'slaved' mode, the default is the key prepended with '@@'
+   # This causes the parent record(s) of the pp record to be
+   # searched for field with the same name, whose value will be used.
+   # See _replace_references()
+   slavedmode = '@@'+key              # 
+   if slave:                          # slaved mode
+      default = slavedmode            #
+      hide = True
+      mutable = False
+   if not (slavedmode in choice):
+      choice.append(slavedmode)       # always....?
+
    # OK, make the new argument field (key):
    pp.setdefault(key, default)
 
@@ -914,7 +947,7 @@ def define(pp, key=None, default=None,
    # (Use a dict (rr) to drive the loop below)
    rr = dict(choice=choice, editable=editable, 
              mandatory_type=mandatory_type,
-             browse=browse,
+             browse=browse, mutable=mutable,
              range=range, min=min, max=max,
              hide=hide, help=help)
    s2 = '- CTRL_record:'
@@ -958,6 +991,8 @@ def test1(ns=None, object=None, **inarg):
           help='multiline help \n for list', trace=True)
    define(pp, 'hide', 'the rain in spain', hide=True,
           help='multiline help for hide', trace=True)
+   define(pp, 'slave', 'the rain in spain', slave=True,
+          help='if slaved, use @@', trace=True)
    define(pp, 'file_browse', 'xxx.py', browse='*.py',
           help='open a .py file', trace=True)
    define(pp, 'empty_string', ' ', choice=[' ',''," ",""],
@@ -996,6 +1031,7 @@ def test2(**inarg):
    pp = inarg2pp(inarg, 'JEN_inarg::test2()', version='2.45', trace=True)
    pp.setdefault('ff', 145)
    pp.setdefault('bb', -119)
+   pp.setdefault('aa', 'aa_test2')
    pp.setdefault('ref_ref_aa', '@@ref_aa')
    pp.setdefault('ref_aa', '@aa')
    pp.setdefault('trace', False)
@@ -1038,6 +1074,11 @@ if __name__ == '__main__':
    #---------------------------------------------------------------------------
 
    if 1:
+      pp = dict()
+      inarg_common(pp, hide=True)
+      print 'pp =',pp
+
+   if 0:
       # Test of basic inarg-operation:
       qual = '<qual>'
       qual = None

@@ -9,6 +9,7 @@
 
 # History:
 # - 29 sep 2005: creation
+# - 18 jan 2006: introduced TDL_Parmset.py
 
 # Copyright: The MeqTree Foundation
 
@@ -91,7 +92,7 @@ MG_JEN_Cohset.inarg_parmtable(MG)
 #=======
 if True:                                               # ... Copied from MG_JEN_Cohset.py ...
    MG['stream_control'] = dict()
-   MG_JEN_Cohset.inarg_stream_control(MG['stream_control'])
+   MG_JEN_exec.inarg_stream_control(MG['stream_control'])
    JEN_inarg.modify(MG['stream_control'],
                     tile_size=10,
                     _JEN_inarg_option=None)            # optional, not yet used 
@@ -202,11 +203,29 @@ lsm = LSM()
 #********************************************************************************
 #********************************************************************************
 
+def _tdl_predefine (mqs, parent, **kwargs):
+    res = True
+    if parent:
+        QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
+        try:
+            igui = JEN_inargGui.ArgBrowser(parent)
+            igui.input(MG, name=MG['script_name'], set_open=False)
+            res = igui.exec_loop()
+            if res is None:
+                raise RuntimeError("Cancelled by user");
+        finally:
+            QApplication.restoreOverrideCursor()
+    return res
 
-def _define_forest (ns):
-   """Dummy function, just to define global nodescope my_ns"""
+
+def _define_forest (ns, **kwargs):
+   """..."""
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)  
+
+   # The MG may be passed in from _tdl_predefine():
+   # In that case, override the global MG record.
+   if len(kwargs)>1: MG = kwargs
 
    # Load the specified lsm into the global lsm object:
    global lsm

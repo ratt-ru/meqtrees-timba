@@ -417,25 +417,25 @@ def spigot2sink (mqs, parent, ctrl={}, **pp):
 #-------------------------------------------------------------------------
 # Default stream control input arguments (see e.g. MG_JEN_Cohset.py)
 
-def inarg_stream_control (rr, **pp):
-    JEN_inarg.define (rr, 'ms_name', 'D1.MS', 
+def inarg_stream_control (inarg, **pp):
+    JEN_inarg.define (inarg, 'ms_name', 'D1.MS', 
                       choice=['D1.MS'], browse='*.MS',
                       help='name of the (AIPS++) Measurement Set')
-    JEN_inarg.define (rr, 'data_column_name', 'DATA',
+    JEN_inarg.define (inarg, 'data_column_name', 'DATA',
                       choice=['DATA'],
                       help='MS input column')
-    JEN_inarg.define (rr, 'tile_size', 10, choice=[1,2,3,5,10,20,50,100],
+    JEN_inarg.define (inarg, 'tile_size', 10, choice=[1,2,3,5,10,20,50,100],
                       help='size (in time-slots) of the input data-tile')
-    JEN_inarg.define (rr, 'channel_start_index', 10, choice=[0,5,10,20],
+    JEN_inarg.define (inarg, 'channel_start_index', 10, choice=[0,5,10,20],
                       help='index of first selected freq channel')
-    JEN_inarg.define (rr, 'channel_end_index', 50, choice=[-1,25,50,100],
+    JEN_inarg.define (inarg, 'channel_end_index', 50, choice=[-1,25,50,100],
                       help='index of last selected freq channel')
-    JEN_inarg.define (rr, 'predict_column', 'CORRECTED_DATA',
+    JEN_inarg.define (inarg, 'predict_column', 'CORRECTED_DATA',
                       choice=['CORRECTED_DATA'],
                       help='MS output column')
     if False:
         # Temporarily disabled (empty string ' ' does not play well with inargGui...)
-        JEN_inarg.define (rr, 'selection_string', ' ',
+        JEN_inarg.define (inarg, 'selection_string', ' ',
                           choice=['TIME_CENTROID<4615466159.46'],
                           help='TaQL (AIPS++ Table Query Language) data-selection')
     return True

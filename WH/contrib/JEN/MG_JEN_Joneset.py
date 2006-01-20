@@ -107,16 +107,18 @@ def adjust_for_telescope(pp, origin='<origin>'):
 # Common input arguments (move to TDL_Joneset.py?)
 #--------------------------------------------------------------------------------
 
-def inarg_common (pp, trace=False):
-   """Some common JEN_inarg definitions"""
-   JEN_inarg.define(pp, 'punit', 'uvp', trace=trace, 
+def inarg_Joneset_common (pp, **kwargs):
+   """Some common JEN_inarg definitions for Joneset definition functions"""
+   JEN_inarg.inarg_common(kwargs)
+   JEN_inarg.define(pp, 'punit', 'uvp', slave=kwargs['slave'], trace=trace, 
                     help='source/patch for which this Joneset is valid')
-   JEN_inarg.define(pp, 'stations', [0], trace=trace, hide=True,
+   JEN_inarg.define(pp, 'stations', [0], slave=kwargs['slave'], trace=trace, 
                     help='list of station names/numbers')
-   JEN_inarg.define(pp, 'parmtable', None, trace=trace, 
+   JEN_inarg.define(pp, 'parmtable', None, slave=kwargs['slave'], trace=trace, 
                     help='name of the MeqParm table (AIPS++)')
    # ** Jones matrix elements:
-   JEN_inarg.define(pp, 'polrep', 'linear', choice=['linear','circular'], trace=trace, 
+   JEN_inarg.define(pp, 'polrep', 'linear', choice=['linear','circular'],
+                    slave=kwargs['slave'], trace=trace, 
                     help='polarisation representation')
    # ** Solving instructions:
    JEN_inarg.define(pp, 'unsolvable', tf=False, trace=trace, hide=True,
@@ -126,21 +128,61 @@ def inarg_common (pp, trace=False):
                     help='scale of polc_ft non-c00 coeff')
    return True
 
+#------------------------------------------------------------------------------
 
+def inarg_solvegroup (pp, **kwargs):
+   """To be used by functions that call Joneset functions"""
+   kwargs.setdefault('Jsequence','*')        # not yet used (for customisation)
+   s_choice = []
+   c_choice = [None]
+   s_default = []
+   c_default = None
+   s_help = 'group (list) of parmgroups, to be solved for:'
+   c_help = '(list of) extra condition equations:'
+
+   # Make the choice and help, depending on Jsequence:
+   s_choice.extend([['GJones'],['Gampl'],['Gphase'],['Gpol1'],['Gpol2']])
+   s_help += '\n- [GJones]:  all GJones MeqParms'
+   s_help += '\n- [Gampl]:   GJones station gains (both pols)'
+   s_help += '\n- [Gphase]:  GJones station phases (both pols)'
+   s_choice.extend([['Gpol1'],['Gpol2']])
+   s_help += '\n- [Gpol1]:   All GJones MeqParms for pol1 (X or R)'
+   s_help += '\n- [Gpol2]:   All GJones MeqParms for pol2 (Y or L)'
+   c_choice.extend(['Gphase_X_sum=0.0','Gphase_Y_sum=0.0'])
+   c_help += '\n- [...phase_sum=0.0]:   sum of phases = zero'
+   c_choice.extend(['Gphase_X_first=0.0','Gphase_Y_first=0.0'])  
+   c_choice.extend(['Gphase_X_last=0.0','Gphase_Y_last=0.0'])  
+   c_help += '\n- [...phase_first=0.0]: phase of first station = zero'
+   c_help += '\n- [...phase_last=0.0]:  phase of last station = zero'
+
+   s_choice.extend([['DJones'],['dang'],['dell']])
+
+   s_choice.extend([['FJones']])
+
+   s_choice.extend([['BJones'],['Breal'],['Bimag'],['Bpol1'],['Bpol2']])
+   s_choice.extend([['Bpol1'],['Bpol2']])
+
+   s_choice.append(['GJones','DJones'])
+   s_choice.append(['GJones','DJones','FJones'])
+   s_choice.append(['GJones','BJones'])
+
+   JEN_inarg.define(pp, 'solvegroup', s_default, choice=s_choice, help=s_help)
+   JEN_inarg.define(pp, 'condition', c_default, choice=c_choice, help=c_help)
+   return True
 
 
 #--------------------------------------------------------------------------------
 # GJones: diagonal 2x2 matrix for complex gains per polarization
 #--------------------------------------------------------------------------------
 
-def GJones (ns=None, **inarg):
+def GJones (ns=None, slave=False, **inarg):
     """defines diagonal GJones matrices for complex(Gampl,Gphase) parms""";
 
     jones = 'GJones'
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005')
-    inarg_common(pp)                               # some common arguments             
+    inarg_Joneset_common(pp, slave=slave)              
     # ** Jones matrix elements:
     JEN_inarg.define(pp, 'Gpolar', tf=False,  
                      help='if True, use MeqPolar, otherwise MeqToComplex')
@@ -265,14 +307,15 @@ def GJones (ns=None, **inarg):
 # FJones: 2x2 matrix for ionospheric Faraday rotation (NOT ion.phase!)
 #--------------------------------------------------------------------------------
 
-def FJones (ns=0, **inarg):
+def FJones (ns=0, slave=False, **inarg):
    """defines diagonal FJones Faraday rotation matrices""";
 
    jones = 'FJones'
 
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005')
-   inarg_common(pp)                               # some common arguments             
+   # inarg_Joneset_common(pp)                               # some common arguments             
+   inarg_Joneset_common(pp, slave=slave)              
    # ** Jones matrix elements:
    # ** Solving instructions:
    pp.setdefault('subtile_size_RM', 1)               # used in tiled solutions         
@@ -330,14 +373,15 @@ def FJones (ns=0, **inarg):
 # BJones: diagonal 2x2 matrix for complex bandpass per polarization
 #--------------------------------------------------------------------------------
 
-def BJones (ns=0, **inarg):
+def BJones (ns=0, slave=False, **inarg):
     """defines diagonal BJones bandpass matrices""";
 
     jones = 'BJones'
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005')
-    inarg_common(pp)                               # some common arguments             
+    # inarg_Joneset_common(pp)                               # some common arguments             
+    inarg_Joneset_common(pp, slave=slave)              
     # ** Jones matrix elements:
     # ** Solving instructions:
     pp.setdefault('fdeg_Breal', 3)                 # degree of default freq polynomial           
@@ -429,14 +473,15 @@ def BJones (ns=0, **inarg):
 # DJones: 2x2 matrix for polarization leakage
 #--------------------------------------------------------------------------------
 
-def DJones_WSRT (ns=0, **inarg):
+def DJones_WSRT (ns=0, slave=False, **inarg):
    """defines 2x2 DJones_WSRT (polarisation leakage) matrices""";
 
    jones = 'DJones_WSRT'
 
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005')
-   inarg_common(pp)                               # some common arguments             
+   # inarg_Joneset_common(pp)                               # some common arguments             
+   inarg_Joneset_common(pp, slave=slave)              
    # ** Jones matrix elements:
    # ** Solving instructions:
    pp.setdefault('coupled_XY_dang', True)            # if True, Xdang = Ydang per station
@@ -570,15 +615,16 @@ def DJones_WSRT (ns=0, **inarg):
 # And also an MSauxinfo object (see TDL_MSauxinfo.py and MG_JEN_Cohset.py)
 #--------------------------------------------------------------------------------
 
-def KJones (ns=0, Sixpack=None, MSauxinfo=None, **inarg):
+def KJones (ns=0, Sixpack=None, MSauxinfo=None, slave=False, **inarg):
    """defines diagonal KJones matrices for DFT Fourier kernel""";
 
    jones = 'KJones'
    
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='12dec2005')
-   pp.setdefault('stations', [0])                   # range of station names/numbers
-   pp.setdefault('unsolvable', True)                # if True, do NOT store solvegroup/parmgroup info
+   inarg_Joneset_common(pp, slave=slave)              
+   # pp.setdefault('stations', [0])                   # range of station names/numbers
+   # pp.setdefault('unsolvable', True)                # if True, do NOT store solvegroup/parmgroup info
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
@@ -617,57 +663,6 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, **inarg):
 
 
 
-
-def KJones_old (ns=0, Sixpack=None, **inarg):
-  """defines diagonal KJones matrices for DFT Fourier kernel""";
-
-  jones = 'KJones_old'
-
-  # Input arguments:
-  pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='12dec2005')
-  # inarg_common(pp)                               # some common arguments             
-  pp.setdefault('stations', [0])       # range of station names/numbers
-  # ** Solving instructions:
-  pp.setdefault('unsolvable', True)                # if True, do NOT store solvegroup/parmgroup info
-  # ** MeqParm default values:
-  if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
-  if not JEN_inarg.is_OK(pp): return False
-  funcname = JEN_inarg.localscope(pp)
-  label = jones+JEN_inarg.qualifier(pp)
-
-
-  adjust_for_telescope(pp, origin=funcname)
-
-  if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
-  punit = Sixpack.label()
-
-  # Create a Joneset object
-  js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
-
-  # Get a record with the names of MS interface nodes
-  # Supply a nodescope (ns) in case it does not exist yet
-  rr = MG_JEN_forest_state.MS_interface_nodes(ns)
-
-  # Calculate punit (l,m,n) from input Sixpack:
-  radec = Sixpack.radec()
-  lmn   = ns.lmn  (q=punit) << Meq.LMN(radec_0=ns[rr.radec0], radec=radec)
-  n     = ns.n    (q=punit) << Meq.Selector(lmn, index=2)
-  lmn1  = ns.lmn_minus1(q=punit) << Meq.Paster(lmn, n-1, index=2)
-  sqrtn = ns << Meq.Sqrt(n)
-
-  # The 2x2 KJones matrix is diagonal, with identical elements (Kmel) 
-  for station in pp['stations']:
-    skey = TDL_radio_conventions.station_key(station)
-    Kmel = ns.dft(s=skey, q=punit) << Meq.VisPhaseShift(lmn=lmn1,
-                                                        uvw=ns[rr.uvw[skey]])/sqrtn
-    stub = ns[label](s=skey, q=punit) << Meq.Matrix22 (Kmel,0,0,Kmel)
-    js.append(skey, stub)
-
-
-  # Finished:
-  js.Parmset.cleanup()
-  MG_JEN_forest_state.object(js, funcname)
-  return js
 
 
 

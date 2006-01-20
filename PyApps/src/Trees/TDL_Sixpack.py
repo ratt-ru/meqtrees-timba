@@ -4,6 +4,7 @@
 
 from Timba.Meq import meq
 from Timba.Trees import TDL_common
+from Timba.Trees import TDL_Parmset  
 from Timba import utils
 from Timba.TDL import *
 import math
@@ -70,14 +71,19 @@ class Sixpack_Point(TDL_common.Super):
 
    pp.setdefault('label',None)
    pp.setdefault('ns',None)
-   pp.setdefault('type','Sixpack')
+   # pp.setdefault('type','Sixpack')
    pp.setdefault('ra',0)
    pp.setdefault('dec',math.pi/2)
    pp.setdefault('stokesI',1.0)
    pp.setdefault('stokesQ',0)
    pp.setdefault('stokesU',0)
    pp.setdefault('stokesV',0)
-   TDL_common.Super.__init__(self, **pp)
+
+
+   TDL_common.Super.__init__(self, type='Sixpack_point', **pp)
+   # TDL_common.Super.__init__(self, **pp)
+
+
    self.__label=pp['label']
    self.__sI=pp['stokesI']
    self.__sQ=pp['stokesQ']
@@ -93,6 +99,7 @@ class Sixpack_Point(TDL_common.Super):
    self.__radec=None
    self.__iquv=None
 
+
    # 2 types of 2x2 cohaerency matrices
    self.__coh22_linear = None
    self.__coh22_circular = None
@@ -107,6 +114,18 @@ class Sixpack_Point(TDL_common.Super):
      # compose with given label
      self.__sixpack=my_ns.sixpack(q=my_name)<<Meq.Composer(self.__RA,\
        self.__Dec,self.__sI,self.__sQ,self.__sU,self.__sV)
+
+
+
+
+
+
+
+
+
+
+
+
 
  # common methods to get/set an item from the Sixpack, if input is None,
  # item is returned, else item is set to new value given as input.
@@ -444,6 +463,14 @@ class Sixpack:
     self.__obj=Sixpack_Point(**pp)
     self.__point=True
   
+   # Define its Parmset object
+   self.Parmset = TDL_Parmset.Parmset(**pp)
+   # print dir(self)
+
+
+
+
+
 
  def ra(self,val=None):
   if self.__point:
@@ -521,7 +548,10 @@ class Sixpack:
   return self.__obj.oneliner()
 
  def display(self,txt=None,full=False):
-  return self.__obj.display(txt,full)
+  ss = self.__obj.display(txt,full)
+  indent1=2*' '
+  ss.append(indent1+' - '+str(self.Parmset.oneliner()))
+  return ss
 
  # generic string
  def __str__(self):

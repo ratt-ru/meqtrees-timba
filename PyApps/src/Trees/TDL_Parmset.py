@@ -207,6 +207,7 @@ class Parmset (TDL_common.Super):
 
 
     def define_MeqParm(self, ns, key=None, station=None,
+                       parmgroup=None,
                        default=0.0, node_groups='Parm',
                        use_previous=True, subtile_size=None):
         """Convenience function to create a MeqParm node"""
@@ -246,8 +247,11 @@ class Parmset (TDL_common.Super):
 
         # Put the node stub into the internal MeqParm buffer for later use:
         # See .buffer() below
-        self.__buffer[key] = node
+        if parmgroup==None:
+            parmgroup = key
+        self.__buffer[parmgroup] = node
         return node
+
 
     def buffer(self, update=False, reset=False):
         """Get/update/reset the temporary helper record self.__buffer"""
@@ -289,7 +293,6 @@ class Parmset (TDL_common.Super):
 
 
     def register(self, key=None, **pp):
-        # def register(self, key=None, ipol=None, color=None, style='circle', size=10, corrs=None):
         """Register a parameter (MeqParm) group"""
 
         pp.setdefault('color', None)        # plot color
