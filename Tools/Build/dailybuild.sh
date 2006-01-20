@@ -23,8 +23,9 @@ export SERVER_START="MeqServer startup attempt: "
 
 
 function Cleanup {
-    rm -rf $DAILY_DIR
-    mkdir $DAILY_DIR && cd $DAILY_DIR
+    rm -rf $DAILY_DIR && \
+    mkdir $DAILY_DIR && \
+    cd $DAILY_DIR
 }
 
 
@@ -33,15 +34,15 @@ function Cleanup {
 
 function Checkout {
 
-    cvs co LOFAR/autoconf_share
-    cvs co LOFAR/LCS/Common
-    cvs co LOFAR/Timba
-
-    mkdir LOFAR/installed
-    cd $DAILY_DIR/LOFAR/installed
-    tar xvzf ../Timba/install-symlinked.tgz
-    ln -s symlinked current
-
+    cvs co LOFAR/autoconf_share && \
+    cvs co LOFAR/LCS/Common && \
+    cvs co LOFAR/Timba && \
+    \
+    mkdir LOFAR/installed && \
+    cd $DAILY_DIR/LOFAR/installed && \
+    tar xvzf ../Timba/install-symlinked.tgz && \
+    ln -s symlinked current && \
+    \
     mkdir -p $DAILY_DIR/LOFAR/LCS/Common/build
 }
 
@@ -51,22 +52,20 @@ function Checkout {
 
 
 function BuildVariant {
-   variant=$1
-   
-# Prepare LCS/Common
-   cd $DAILY_DIR/LOFAR/LCS/Common
-   ./bootstrap
-   mkdir -p $DAILY_DIR/LOFAR/LCS/Common/build/$variant
-   cd $DAILY_DIR/LOFAR/LCS/Common/build/$variant
-   ../../lofarconf
-
-
-# Prepare Timba   
-   cd $DAILY_DIR/LOFAR/Timba
-   ./bootstrap
-   mkdir -p $DAILY_DIR/LOFAR/Timba/build/$variant
-   cd $DAILY_DIR/LOFAR/Timba/build/$variant
-   ../../lofarconf
+   variant=$1 && \
+   \
+   cd $DAILY_DIR/LOFAR/LCS/Common && \
+   ./bootstrap && \
+   mkdir -p $DAILY_DIR/LOFAR/LCS/Common/build/$variant && \
+   cd $DAILY_DIR/LOFAR/LCS/Common/build/$variant && \
+   ../../lofarconf && \
+   \
+   \
+   cd $DAILY_DIR/LOFAR/Timba && \
+   ./bootstrap && \
+   mkdir -p $DAILY_DIR/LOFAR/Timba/build/$variant && \
+   cd $DAILY_DIR/LOFAR/Timba/build/$variant && \
+   ../../lofarconf && \
    make -j 24
 }
 
@@ -76,7 +75,7 @@ function BuildVariant {
 
 
 function FilterWarnings {
-   Filename=$1
+   Filename=$1 && \
    grep -i warning $Filename |\
    grep -v "underquoted definition"|\
    grep -v "mt_allocator.h"|\
@@ -93,7 +92,7 @@ function FilterWarnings {
 
 
 function FilterErrors {
-   filename=$1
+   filename=$1 && \
    grep -i error $filename
 }
 
@@ -113,23 +112,23 @@ function LineCount {
 
 
 function BuildAndFilter {
-   variant=$1
-   logfile=$DAILY_DIR/$variant.log
-   warningfile=$DAILY_DIR/$variant.warnings
-   errorfile=$DAILY_DIR/$variant.errors
-   echo Building $variant
-   
-   BuildVariant   $variant  &> $logfile
-   FilterWarnings $logfile  &> $warningfile
+   variant=$1 && \
+   logfile=$DAILY_DIR/${variant}.log && \
+   warningfile=$DAILY_DIR/${variant}.warnings && \
+   errorfile=$DAILY_DIR/${variant}.errors && \
+   echo Building $variant && \
+   \
+   BuildVariant   $variant  &> $logfile && \
+   FilterWarnings $logfile  &> $warningfile && \
    FilterErrors   $logfile  &> $errorfile
 }
 
 
 function ReportVariant {
-   variant=$1
-
-   warningfile=$DAILY_DIR/$variant.warnings
-   errorfile=$DAILY_DIR/$variant.errors
+   variant=$1 && \
+   \
+   warningfile=$DAILY_DIR/$variant.warnings && \
+   errorfile=$DAILY_DIR/$variant.errors && \
    echo Variant $variant has `LineCount $errorfile` errors and `LineCount $warningfile` warnings "(<a href=\"${variant}.log\">full log</a>)"
 }
 
