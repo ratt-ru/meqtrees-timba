@@ -77,7 +77,7 @@ class assayer (object):
     if app_defaults.args.spawn:
       self.mqs = meqserver.default_mqs(wait_init=10,debug=False);
     else:
-      self.mqs = meqserver.default_mqs(debug=False);
+      self.mqs = meqserver.default_mqs(wait_init=True,debug=False);
     self.mqs.whenever("*",self._kernel_event_handler);
     self.mqs.whenever("node.result",self._node_snapshot_handler);
     self.tdlmod = self.logger = self.testname = None;
@@ -300,11 +300,12 @@ class assayer (object):
       self.watching = [];
       return 0;
     # check that all expected sequences have run their course
-    for (node,desc,func,cond,tol) in self.watching:
-      seq = self._sequences.get((node,desc),None);
-      if seq:
-        self.logf("ERROR: sequence not completed (%d entries remain) for node '%s' %s",len(seq),node,desc);
-        self._assay_stat = MISMATCH;
+    if not self.recording:
+      for (node,desc,func,cond,tol) in self.watching:
+        seq = self._sequences.get((node,desc),None);
+        if seq:
+          self.logf("ERROR: sequence not completed (%d entries remain) for node '%s' %s",len(seq),node,desc);
+          self._assay_stat = MISMATCH;
     # check final status
     if not self._assay_stat:
       if self.recording:

@@ -286,6 +286,7 @@ class app_proxy (verbosity):
       wait = 0;
     elif isinstance(wait,bool):
       wait = -1;
+      self.dprint(0,'blocking until server is connected');
     try:
       self._pwp.pause_events();
       if wait >= 0:
