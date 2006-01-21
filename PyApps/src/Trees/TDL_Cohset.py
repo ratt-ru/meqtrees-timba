@@ -1270,7 +1270,9 @@ class Cohset (TDL_common.Super):
         if True:
             for key in ['start','pre','post']:
                 if isinstance(pp[key], (list,tuple)):
-                    if len(pp[key])>0:
+                    if len(pp[key])==0:
+                        pp[key] = None          # empty list gives an error....!
+                    else:
                         pp[key] = ns[key+'_VisDataMux'] << Meq.ReqSeq(children=pp[key])
                         # pp[key] = ns[key+'_VisDataMux'] << Meq.ReqMux(children=pp[key])  # <--- error...?
                         # pp[key] = ns[key+'_VisDataMux'] << Meq.Add(children=pp[key])

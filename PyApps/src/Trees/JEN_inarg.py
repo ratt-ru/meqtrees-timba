@@ -886,7 +886,7 @@ def inarg_common (rr, **kwargs):
 
 def define(pp, key=None, default=None, slave=False,
            choice=None, editable=None, tf=None,
-           mandatory_type=None, browse=None,
+           mandatory_type=None, browse=None, vector=None,
            range=None, min=None, max=None,
            help=None, hide=None, mutable=None, trace=False):
    """Define a pp entry with a default value, and other info.
@@ -949,7 +949,7 @@ def define(pp, key=None, default=None, slave=False,
              mandatory_type=mandatory_type,
              browse=browse, mutable=mutable,
              range=range, min=min, max=max,
-             hide=hide, help=help)
+             hide=hide, vector=vector, help=help)
    s2 = '- CTRL_record:'
    for field in rr.keys():
       if trace: print s2,field,' (',rr[field],'):',
@@ -991,6 +991,9 @@ def test1(ns=None, object=None, **inarg):
           help='multiline help \n for list', trace=True)
    define(pp, 'hide', 'the rain in spain', hide=True,
           help='multiline help for hide', trace=True)
+   define(pp, 'vector', ['aa',2,None], vector=True,
+          choice=['bb','ccc',['6',7,9],True],
+          help='if vector, affects editing', trace=True)
    define(pp, 'slave', 'the rain in spain', slave=True,
           help='if slaved, use @@', trace=True)
    define(pp, 'file_browse', 'xxx.py', browse='*.py',

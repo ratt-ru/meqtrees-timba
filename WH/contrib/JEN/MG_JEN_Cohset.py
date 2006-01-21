@@ -84,7 +84,7 @@ def make_spigots(ns=None, Cohset=None, **inarg):
                       '- [0,1,2,3]:   all corrs available, use all \n'+
                       '- [0,-1,-1,1]: only XX/YY (or RR/LL) available \n'+
                       '- [0,-1,-1,3]: all available, but use only XX/YY or RR/LL')
-    JEN_inarg.define (pp, 'visu', tf=False,
+    JEN_inarg.define (pp, 'visu', tf=True,
                       help='if True, visualise the input uv-data')
     JEN_inarg.define (pp, 'flag', tf=False,
                       help='if True, insert a flagger for the input uv-data')
@@ -130,7 +130,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
                       help='name of the logical (tile) output column')
     JEN_inarg.define (pp, 'visu_array_config', tf=True,
                       help='if True, visualise the array config (from MS)')
-    JEN_inarg.define (pp, 'visu', tf=False,
+    JEN_inarg.define (pp, 'visu', tf=True,
                       help='if True, visualise the output uv-data')
     JEN_inarg.define (pp, 'flag', tf=False,
                       help='if True, insert a flagger for the output uv-data')
@@ -175,7 +175,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 
     # Attach any collected hcoll/dcoll nodes:
     post = Cohset.rider('dcoll', clear=True)               
-    post.extend(Cohset.rider('hcoll', clear=True))               
+    post.extend(Cohset.rider('hcoll', clear=True))
 
     # Make MeqSinks
     Cohset.sinks(ns, start=start, post=post, output_col=pp['output_col'])
@@ -321,7 +321,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_solver()', version='25dec2005')
     JEN_inarg.define(pp, 'solver_subtree', None, hide=True,
                      help='solver subtree qualifier(s)')
-    inarg_num_cells(pp, slave=True)
+    inarg_redun(pp, slave=slave)
     inarg_num_cells(pp, slave=slave)
     inarg_solver_config (pp, slave=True)
     JEN_inarg.define(pp, 'visu', tf=True,

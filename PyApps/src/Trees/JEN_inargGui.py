@@ -52,15 +52,15 @@ generic_savefile = 'generic_save_restore.inarg'
 
 class MyListViewItem (QListViewItem):
 
-  def set_text_color(self, color=None):
-    if color==None: color = 'black'
-    self.__text_color = color
+    def set_text_color(self, color=None):
+        if color==None: color = 'black'
+        self.__text_color = color
     
-  def paintCell (self,painter,cg,column,width,align):
-    cg1 = QColorGroup(cg)
-    cg1.setColor(QColorGroup.Text, QColor(self.__text_color))
-    return QListViewItem.paintCell(self,painter,cg1,column,width,align)
-
+    def paintCell (self,painter,cg,column,width,align):
+        cg1 = QColorGroup(cg)
+        cg1.setColor(QColorGroup.Text, QColor(self.__text_color))
+        return QListViewItem.paintCell(self,painter,cg1,column,width,align)
+      
 
 #================================================================================
 #================================================================================
@@ -70,11 +70,11 @@ class ArgBrowser(QMainWindow):
     def __init__(self, parent=None):
 
         if not parent:
-          self.__QApp = QApplication(sys.argv)
-          QMainWindow.__init__(self,parent,None,Qt.WType_Dialog|Qt.WShowModal);
+            self.__QApp = QApplication(sys.argv)
+            QMainWindow.__init__(self,parent,None,Qt.WType_Dialog|Qt.WShowModal);
 	else:
-	  self.__QApp = parent
-          QMainWindow.__init__(self);
+	    self.__QApp = parent
+            QMainWindow.__init__(self);
 	
         self.setMinimumWidth(700)
         self.setMinimumHeight(400)
@@ -110,11 +110,7 @@ class ArgBrowser(QMainWindow):
         # self.setCentralWidget(self.__listview)
         vbox.addWidget(self.__listview)
 
-        color = QColor('darkblue')
-        self.__listview.setPaletteForegroundColor(color)
-        color = QColor('pink')
-        color = QColor('lightgreen')
-        color.setRgb(250,255,255)           # 0-255
+        color = QColor()
         color.setRgb(240,240,255)           # 0-255
         self.__listview.setPaletteBackgroundColor(color)
 
@@ -199,6 +195,7 @@ class ArgBrowser(QMainWindow):
         self.__popup = None                        # popup object (editing)
         self.clearGui()
         self.__set_open = True                     # see .recurse()
+        self.__setOpen = dict()                    # see .recurse()
         self.__result = None                       # output for exec_loop
         self.__inarg = None                        # the edited inarg
         self.__inarg_input = None                  # the input inarg (see .revert_inarg())
@@ -498,15 +495,19 @@ class ArgBrowser(QMainWindow):
                         self.recurse (rr[key], listview=item, color='green',
                                       level=level+1, makeitd=False)
                 else:
+                    # A record (perhaps an inarg sub-record):
                     text = QString(key)
-                    item = MyListViewItem(listview, text)
+                    iitd = str(-2)
+                    item = MyListViewItem(listview, text, '', '', iitd)
                     if color:
-                      item.set_text_color(color)
+                        item.set_text_color(color)
                     else:
-                      item.set_text_color('blue')
+                        item.set_text_color('blue')
                     item.setSelectable(False)
                     if self.__set_open and level==0:
                         item.setOpen(True)                     # show its children
+                    if self.__setOpen.has_key(key):
+                        item.setOpen(self.__setOpen[key])      # open or close    
                     self.recurse (rr[key], listview=item, level=level+1,
                                   module=key, makeitd=makeitd, color=color)
 
@@ -560,6 +561,8 @@ class ArgBrowser(QMainWindow):
                    min=None,                  # Allowed min value
                    max=None,                  # Allowed max value
                    editable=True,             # If True, the value may be edited
+                   mutable=True,              # If True, the value may be modified
+                   vector=False,              # If True, the value is a vector/list
                    browse=None,               # Extension of files ('e.g *.MS')
                    module=module,             # name of the relevant function module
                    level=level,               # inarg hierarchy level
@@ -575,6 +578,7 @@ class ArgBrowser(QMainWindow):
             # Then the key-specific keys (see JEN_inarg.define()):
             key_specific = ['choice',
                             'editable','hide','color',
+                            'mutable','vector',
                             'mandatory_type','browse',
                             'range','min','max','help']
             for field in key_specific:
@@ -616,28 +620,35 @@ class ArgBrowser(QMainWindow):
         if not item: return False
         
         # Read the (string) values from the columns:
-        key = item.text(0)            
-        vstring = item.text(1)           
-        help = item.text(2)              
-        iitd = item.text(3)          
+        key = str(item.text(0))            
+        # vstring = str(item.text(1))           
+        # help = str(item.text(2))              
+        iitd = str(item.text(3))          
         if self.__popup:
             self.__popup.close()
 
         # Use the iitd string to get the relevant itemdict record:
-        iitd = str(iitd)
         if iitd==' ': iitd = '-1'
         try:
             iitd = int(iitd)
         except:
             # print sys.exc_info()
             return False
+
         if iitd>=0:
+            # A regular item: launch a popup for editing:
             itd = self.__itemdict[iitd]
             self.__current_iitd = iitd
             # Make the popup object:
             self.__popup = Popup(self, name=itd['key'], itd=itd)
             QObject.connect(self.__popup, PYSIGNAL("popupOK()"), self.popupOK)
             QObject.connect(self.__popup, PYSIGNAL("popupCancel()"), self.popupCancel)
+
+        elif iitd==-2:
+            # A record: open or close it (toggle):
+            self.__setOpen.setdefault(key, False)
+            self.__setOpen[key] = not self.__setOpen[key]   # toggle
+            self.refresh()
         return True
 
 
@@ -724,8 +735,18 @@ class Popup(QDialog):
 
         # Keep the itemdict (itd) for use in self.textChanged():
         self.__itemdict = itd
+        print '\n** Popup: itd =',itd,'\n'
 
-        vbox = QVBoxLayout(self,10,5)           # ....?
+        # Keep track of the arg value in various ways:
+        value = itd['value']
+        self.__last_value = value     
+        self.__current_value = value  
+        self.__input_value = value  
+        qsval = QString(str(value))
+        print value,' ->  qsval =',qsval
+
+        # Put in widgets from top to bottom:
+        vbox = QVBoxLayout(self,10,5)     
 
         # The name (key) of the variable:
         label = QLabel(self)
@@ -733,24 +754,24 @@ class Popup(QDialog):
         vbox.addWidget(label)
 
         # Use a combobox for editing the vaue:
-        self.combo = QComboBox(self)
-        value = QString(str(itd['value']))
-        self.combo.insertItem(value)            # current value
-        self.combo_input_value = value          # see self.modified()
-        self.combo.setEditable(itd['editable'])
+        self.__combo = QComboBox(self)
+        self.__combo.insertItem(qsval)       
+        self.__combo.setEditable(itd['editable'])
         if itd['choice']:
             vv = itd['choice']
             for i in range(len(vv)):
-                value = QString(str(vv[i]))
-                self.combo.insertItem(value, i+1)
-        vbox.addWidget(self.combo)
-        QObject.connect(self.combo, SIGNAL("textChanged(const QString &)"), self.modified)
-        QObject.connect(self.combo, SIGNAL("activated(const QString &)"), self.modified)
+                qsval1 = QString(str(vv[i]))
+                self.__combo.insertItem(qsval1, i+1)
+        vbox.addWidget(self.__combo)
+        QObject.connect(self.__combo, SIGNAL("activated(const QString &)"), self.activated)
+        QObject.connect(self.__combo, SIGNAL("textChanged(const QString &)"), self.textChanged)
+        self.__activated = False
+        self.__textChanged = False
 
         # The value type is updated during editing:
-        self.type = QLabel(self)
-        self.type.setText('type'+':  '+str(type(itd['value'])))
-        vbox.addWidget(self.type)
+        self.__type = QLabel(self)
+        vbox.addWidget(self.__type)
+        self.showType (self.__current_value)
 
         if itd['browse']:
             # Include a file browser button, if required:
@@ -758,6 +779,12 @@ class Popup(QDialog):
             button = QPushButton('browse '+self.__filter, self)
             vbox.addWidget(button)
             QObject.connect(button, SIGNAL("pressed ()"), self.onBrowse)
+
+        if itd['vector']:
+            # Include a clear button, for vector/list editing:
+            button = QPushButton('clear list', self)
+            vbox.addWidget(button)
+            QObject.connect(button, SIGNAL("pressed ()"), self.onClear)
 
         # Other information (labels):
         keys = ['help']
@@ -774,14 +801,27 @@ class Popup(QDialog):
                 vbox.addWidget(label)
 
         # Status label:
-        self.status = QLabel(self)
-        self.status.setText(' ')
-        vbox.addWidget(self.status)
+        self.__status = QLabel(self)
+        self.__status.setText(' ')
+        vbox.addWidget(self.__status)
 
         # Message label:
-        self.message = QLabel(self)
-        self.message.setText(' ')
-        vbox.addWidget(self.message)
+        self.__message = QLabel(self)
+        self.__message.setText(' ')
+        vbox.addWidget(self.__message)
+
+        if True:
+            # Make Revert/undo:
+            hbox = QHBoxLayout(self)
+            vbox.addLayout(hbox)
+
+            button = QPushButton('Revert',self)
+            hbox.addWidget(button)
+            QObject.connect(button, SIGNAL("pressed ()"), self.onRevert)
+
+            button = QPushButton('Undo',self)
+            hbox.addWidget(button)
+            QObject.connect(button, SIGNAL("pressed ()"), self.onUndo)
 
         if True:
             # Make Cancel/OK buttons:
@@ -800,6 +840,16 @@ class Popup(QDialog):
         self.show()
         return None
 
+    #-----------------------------------------------------------------------
+
+    def showType (self, v2):
+        """Show the type (and the length, if relevant) of v2"""
+        s2 = 'type'+':  '+str(type(v2))+' '
+        if isinstance(v2, str): s2 += '[nchar='+str(len(v2))+']'
+        if isinstance(v2, (list,tuple)): s2 += '['+str(len(v2))+']'
+        self.__type.setText(s2)
+
+
     #-------------------------------------------------------------------------
     # Popup buttons:
     #-------------------------------------------------------------------------
@@ -807,7 +857,7 @@ class Popup(QDialog):
     def onOK (self):
         """Action on pressing the OK button"""
         self.emit(PYSIGNAL("popupOK()"),(self.__itemdict,))
-        self.status.setText('... inarg record updated ...')
+        self.__status.setText('... inarg record updated ...')
         self.close()
         return True
 	
@@ -817,54 +867,116 @@ class Popup(QDialog):
         self.close()
         return True
 	
+    def onRevert (self):
+        """Action on pressing the Revert button"""
+        self.__combo.setCurrentText(QString(str(self.__input_value)))
+        self.__status.setText('... Revert: -> input value ...')
+        return True
+	
+    def onUndo (self):
+        """Action on pressing the Undo button"""
+        self.__combo.setCurrentText(QString(str(self.__last_value)))
+        self.__status.setText('... Undo: -> last (valid) value ...')
+        return True
+	
     def onBrowse (self):
         """Action on pressing the browse button"""
         filename = QFileDialog.getOpenFileName("",self.__filter, self)
         if len(filename)>2:
-            self.combo.setCurrentText(filename)
-            self.status.setText('... new filename ...')
+            self.__combo.setCurrentText(filename)
+            self.__status.setText('... new filename ...')
             self.onOK()
         else:
-            self.status.setText('... ignored ...')
+            self.__status.setText('... ignored ...')
+        return True
+
+    def onClear (self):
+        """Action on pressing the clear (vector) button"""
+        self.__current_value = []
+        self.__combo.setCurrentText(QString(str(self.__current_value)))
+        self.__status.setText('... cleared the vector...')
         return True
 
     #-------------------------------------------------------------------------
-    # Action if value modified:
+    # Actions if combobox value modified:
     #-------------------------------------------------------------------------
 
-    def modified (self, value):
-        """Deal with combo-box signals"""
+    def activated (self, qsval):
+        """Action whenever another combobox item is selected"""
 
-        # Deal with the modified value:
-        v1 = str(value)                           # value is a QString object
+        if self.__textChanged:
+            print '** activated():  ignore'
+            self.__textChanged = False
+            return False
+
+        v2 = self.evaluate(qsval)
+        print '** activated():',v2
+        self.__activated = True
+
+        if self.__itemdict['vector']:             # special case
+            new = self.__current_value
+            new.append(v2)
+            print 'vector: ',self.__current_value,'(',v2,') ->',new
+            v2 = new
+            self.__combo.setCurrentText(QString(str(v2)))
+
+        self.accept(v2)
+        self.__activated = False
+        return True
+
+    #-----------------------------------------------------------------------
+
+    def textChanged (self, qsval):
+        """Action whenever the combobox text is modified"""
+
+        if self.__activated:
+            print '** textChanged():  ignore'
+            self.__activated = False
+            return False
+
+        self.__textChanged = True
+        v2 = self.evaluate(qsval)
+        print '** textChanged():',v2
+
+        # Check the new value (range, min, max, type):
+        ok = True
+        if not ok:                                # problem....
+            self.__message.setText('... ERROR: ...')
+            # Revert to the original value:
+            self.__combo.setCurrentText(QString(str(self.__input_value)))
+            self.__status.setText('... locally reverted ...')
+            return False
+
+        self.accept(v2)
+        self.__textChanged = False
+        return True
+
+#-----------------------------------------------------------------------
+
+    def evaluate (self, qsval):
+        """Evaluate the (modified) QString value from the combobox"""
+        v1 = str(qsval)                           # qsval is a QString object
         try:
             v2 = eval(v1)                         # covers most things
         except:
             v2 = v1                               # assume string
             # print sys.exc_info();
             # return;
+        self.showType(v2)
+        return v2
+
+#-----------------------------------------------------------------------
+
+    def accept (self, v2):
+        """Accept the new combobox value (v2)"""
 
         # Update the itemdict(itd) from the ArgBrowser:
         self.__itemdict['value'] = v2
-        self.status.setText('... locally modified ...')
-        if value==self.combo_input_value:
-            self.status.setText('... locally reverted ...')
+        self.__status.setText('... locally modified ...')
 
-        # Report the type
-        s2 = 'type'+':  '+str(type(v2))+' '
-        if isinstance(v2, str): s2 += '[nchar='+str(len(v2))+']'
-        if isinstance(v2, (list,tuple)): s2 += '['+str(len(v2))+']'
-        self.type.setText(s2)
-
-        # Check the new value (range, min, max, type):
-        ok = True
-        if not ok:                                # problem....
-            self.message.setText('... ERROR: ...')
-            # Revert to the original value:
-            self.combo.setCurrentText(self.combo_input_value)
-            self.status.setText('... locally reverted ...')
-            return False
-
+        self.__last_value = self.__current_value
+        self.__current_value = v2
+        self.showType (v2)
         return True
 
 
