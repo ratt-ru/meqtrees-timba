@@ -93,7 +93,7 @@ function FilterWarnings {
 
 function FilterErrors {
    filename=$1 && \
-   grep -i error $filename
+   grep -i error $filename|grep -v -e"^distcc.*(dcc_writex) ERROR: failed to write:"
 }
 
   
