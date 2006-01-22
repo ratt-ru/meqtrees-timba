@@ -81,8 +81,14 @@ function FilterWarnings {
    grep -v "mt_allocator.h"|\
    grep -v -e "pyconfig\.h.*_POSIX_C_SOURCE"|\
    grep -v -e "/usr/include/features\.h.*this is the location of the "|\
-   grep -v -e "^\*\*\*"|grep -v "configure: WARNING: compiler ccache .* mismatches build"|\
-   grep -v "configure: WARNING: ccache .* is an unknown compiler"
+   grep -v -e "ThreadCond\.cc:132:.* missing initializer for member"|\
+   grep -v -e "ThreadCond\.cc:174:.* missing initializer for member"|\
+   grep -v -e "ProxyWPObject\.cc:371:.* missing initializer for member"|\
+   grep -v -e "ProxyWPObject\.cc:413:.* missing initializer for member"|\
+   grep -v -e "^\*\*\*"|\
+   grep -v "configure: WARNING: compiler ccache .* mismatches build"|\
+   grep -v "configure: WARNING: ccache .* is an unknown compiler"|\
+   grep -v -e "^distcc.*Warning: failed to distribute"
 }
 
 
@@ -93,7 +99,10 @@ function FilterWarnings {
 
 function FilterErrors {
    filename=$1 && \
-   grep -i error $filename|grep -v -e"^distcc.*(dcc_writex) ERROR: failed to write:"
+   grep -i error $filename|\
+   grep -v -e "^distcc.*(dcc_writex) ERROR: failed to write:"|\
+   grep -v -e "^distcc.*(dcc_select_for_read) ERROR: IO timeout"|\
+   grep -v -e "^distcc.*(dcc_r_token_int) ERROR: read failed while waiting for token \"DONE\""
 }
 
   
