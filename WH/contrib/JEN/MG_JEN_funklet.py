@@ -248,6 +248,7 @@ def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
 #---------------------------------------------------------------------
 # Predefined polclog definitions of selected sources:
 
+
 def polclog_predefined (source='<source>', SI=-0.7, I0=1.0, f0=1e6, stokes='stokesI'):
 
    polclog = dict(stokesI=1.0, stokesQ=0.0, stokesU=0.0, stokesV=0.0)

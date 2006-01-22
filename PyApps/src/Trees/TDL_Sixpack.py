@@ -465,6 +465,7 @@ class Sixpack:
   
    # Define its Parmset object
    self.Parmset = TDL_Parmset.Parmset(**pp)
+   self.Parmset.quals(dict(q=self.label()))       # punit...?
    # print dir(self)
 
 

@@ -253,31 +253,28 @@ def newstar_source (ns=0, **pp):
    # Adjust parameters pp for some special cases:
    predefined (pp)  
 
-   print '**\n  pp=',pp,'\n'
+   # print '**\n  pp=',pp,'\n'
 
    # Make the Sixpack and get its Parmset object:
-   Sixpack = TDL_Sixpack.Sixpack(label=pp['name'])
+   punit = pp['name']
+   Sixpack = TDL_Sixpack.Sixpack(label=punit)
    Sixpack.display()
-   print dir(Sixpack)
+   # print dir(Sixpack)
    pset = Sixpack.Parmset 
    
    # Register the parmgroups:
-   sI = pset.register('sI', color='red', style='diamond', size=10)
-   sQ = pset.register('sQ', color='blue', style='diamond', size=10)
-   sU = pset.register('sU', color='magenta', style='diamond', size=10)
-   sV = pset.register('sV', color='cyan', style='diamond', size=10)
+   sI = pset.parmgroup('stokesI', color='red', style='diamond', size=10)
+   sQ = pset.parmgroup('stokesQ', color='blue', style='diamond', size=10)
+   sU = pset.parmgroup('stokesU', color='magenta', style='diamond', size=10)
+   sV = pset.parmgroup('stokesV', color='cyan', style='diamond', size=10)
    
    # MeqParm node_groups: add 'S' to default 'Parm':
    pset.node_groups('S')
    
    # Define extra solvegroup(s) from combinations of parmgroups:
-   pset.define_solvegroup('stokesI', [sI])
-   pset.define_solvegroup('stokesQ', [sQ])
-   pset.define_solvegroup('stokesU', [sU])
-   pset.define_solvegroup('stokesV', [sV])
-   pset.define_solvegroup('IQUV', [sI,sQ,sU,sV])
-   pset.define_solvegroup('IQU', [sI,sQ,sU])
-   pset.define_solvegroup('QU', [sQ,sU])
+   pset.define_solvegroup('stokesIQUV', [sI,sQ,sU,sV])
+   pset.define_solvegroup('stokesIQU', [sI,sQ,sU])
+   pset.define_solvegroup('stokesQU', [sQ,sU])
 
    # Make the Sixpack of 6 standard subtree root-nodes: 
    n6 = record(I='stokesI', Q='stokesQ', U='stokesU', V='stokesV', R='ra', D='dec') 
@@ -287,21 +284,23 @@ def newstar_source (ns=0, **pp):
    parm = {}
    fmult = 1.0
    if pp['SI'] is None:
-      parm['I0'] = ns.I0(q=pp['name']) << Meq.Parm(pp['I0'])
+      parm['I0'] = ns.I0(q=punit) << Meq.Parm(pp['I0'])
       iquv[n6.I] = parm['I0']
+      # pset.define_MeqParm (ns, 'I0', parmgroup=sI, default=pp['I0'])
+      # iquv[n6.I] = pset.buffer()[sI]
    else:
-      iquv[n6.I] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'],
+      iquv[n6.I] = MG_JEN_funklet.polclog_flux(ns, source=punit,
                                                I0=pp['I0'], SI=pp['SI'], stokes='stokesI')
       # fmult = ...??
 
    # Create Stokes V by converting Vpct and correcting for SI if necessary
    iquv[n6.V] = zero
    if pp['Vpct'] is not None:
-      parm['Vpct'] = ns.Vpct(q=pp['name']) << Meq.Parm(pp['Vpct'])
+      parm['Vpct'] = ns.Vpct(q=punit) << Meq.Parm(pp['Vpct'])
       if isinstance(fmult, float):
-         iquv[n6.V] = ns[n6.V](q=pp['name']) << (parm['Vpct']*(fmult/100))
+         iquv[n6.V] = ns[n6.V](q=punit) << (parm['Vpct']*(fmult/100))
       else:
-         iquv[n6.V] = ns[n6.V](q=pp['name']) << (parm['Vpct']*fmult/100)
+         iquv[n6.V] = ns[n6.V](q=punit) << (parm['Vpct']*fmult/100)
     
       
    if pp['RM'] is None:
@@ -309,20 +308,20 @@ def newstar_source (ns=0, **pp):
       # Create Stokes Q by converting Qpct and correcting for SI if necessary
       iquv[n6.Q] = zero
       if pp['Qpct'] is not None:
-         parm['Qpct'] = ns.Qpct(q=pp['name']) << Meq.Parm(pp['Qpct'])
+         parm['Qpct'] = ns.Qpct(q=punit) << Meq.Parm(pp['Qpct'])
          if isinstance(fmult, float):
-            iquv[n6.Q] = ns[n6.Q](q=pp['name']) << (parm['Qpct']*(fmult/100))
+            iquv[n6.Q] = ns[n6.Q](q=punit) << (parm['Qpct']*(fmult/100))
          else:
-            iquv[n6.Q] = ns[n6.Q](q=pp['name']) << (parm['Qpct']*fmult/100)
+            iquv[n6.Q] = ns[n6.Q](q=punit) << (parm['Qpct']*fmult/100)
 
       # Create Stokes U by converting Upct and correcting for SI if necessary
       iquv[n6.U] = zero
       if pp['Upct'] is not None:
-         parm['Upct'] = ns.Upct(q=pp['name']) << Meq.Parm(pp['Upct'])
+         parm['Upct'] = ns.Upct(q=punit) << Meq.Parm(pp['Upct'])
          if isinstance(fmult, float):
-            iquv[n6.U] = ns[n6.U](q=pp['name']) << (parm['Upct']*(fmult/100))
+            iquv[n6.U] = ns[n6.U](q=punit) << (parm['Upct']*(fmult/100))
          else:
-            iquv[n6.U] = ns[n6.U](q=pp['name']) << (parm['Upct']*fmult/100)
+            iquv[n6.U] = ns[n6.U](q=punit) << (parm['Upct']*fmult/100)
     
    else:
       # With Rotation Measure: 
@@ -332,37 +331,38 @@ def newstar_source (ns=0, **pp):
       if 0:
          pass
          # NB: Some sources have polclogs for their absolute polarised flux (e.g. 3c286):
-         # iquv['Q'] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'], stokes='stokesQ')
-         # iquv['U'] = MG_JEN_funklet.polclog_flux(ns, source=pp['name'], stokes='stokesU')
+         # iquv['Q'] = MG_JEN_funklet.polclog_flux(ns, source=punit, stokes='stokesQ')
+         # iquv['U'] = MG_JEN_funklet.polclog_flux(ns, source=punit, stokes='stokesU')
          # if not == 0.0, then ....
-      parm['Qpct'] = ns.Qpct(q=pp['name']) << Meq.Parm(pp['Qpct'])
-      parm['Upct'] = ns.Upct(q=pp['name']) << Meq.Parm(pp['Upct'])
+      parm['Qpct'] = ns.Qpct(q=punit) << Meq.Parm(pp['Qpct'])
+      parm['Upct'] = ns.Upct(q=punit) << Meq.Parm(pp['Upct'])
       if isinstance(fmult, float):
-         Q = ns['Q'](q=pp['name']) << (parm['Qpct']*(fmult/100))
-         U = ns['U'](q=pp['name']) << (parm['Upct']*(fmult/100))
+         Q = ns['Q'](q=punit) << (parm['Qpct']*(fmult/100))
+         U = ns['U'](q=punit) << (parm['Upct']*(fmult/100))
       else:
-         Q = ns['Q'](q=pp['name']) << (parm['Qpct']*fmult/100)
-         U = ns['U'](q=pp['name']) << (parm['Upct']*fmult/100)
-      QU = ns['QU'](q=pp['name']) << Meq.Composer(children=[Q,U])  
+         Q = ns['Q'](q=punit) << (parm['Qpct']*fmult/100)
+         U = ns['U'](q=punit) << (parm['Upct']*fmult/100)
+      QU = ns['QU'](q=punit) << Meq.Composer(children=[Q,U])  
 
       # Rotate QU by the RM matrix -> QURM
-      parm['RM'] = ns.RM(q=pp['name']) << Meq.Parm(pp['RM'])
+      parm['RM'] = ns.RM(q=punit) << Meq.Parm(pp['RM'])
       wvl2 = MG_JEN_twig.wavelength (ns, qual=None, unop='Sqr')
-      farot = ns.farot(q=pp['name']) << (parm['RM']*wvl2)
+      farot = ns.farot(q=punit) << (parm['RM']*wvl2)
       rotmat = MG_JEN_matrix.rotation (ns, angle=farot)
-      QURM = ns['QURM'](q=pp['name']) << Meq.MatrixMultiply(rotmat, QU)  
+      QURM = ns['QURM'](q=punit) << Meq.MatrixMultiply(rotmat, QU)  
 
       # Unpack QURM into separate StokesQ and StokesU subtrees:
-      iquv[n6.Q] = ns[n6.Q](q=pp['name']) <<  Meq.Selector(QURM, index=0)
-      iquv[n6.U] = ns[n6.U](q=pp['name']) <<  Meq.Selector(QURM, index=1)
+      iquv[n6.Q] = ns[n6.Q](q=punit) <<  Meq.Selector(QURM, index=0)
+      iquv[n6.U] = ns[n6.U](q=punit) <<  Meq.Selector(QURM, index=1)
 
 
    # Source coordinates (RA, DEC)
    radec = {}
-   radec[n6.R] = ns[n6.R](q=pp['name']) << Meq.Parm(pp['RA'])
-   radec[n6.D] = ns[n6.D](q=pp['name']) << Meq.Parm(pp['Dec'])
+   radec[n6.R] = ns[n6.R](q=punit) << Meq.Parm(pp['RA'])
+   radec[n6.D] = ns[n6.D](q=punit) << Meq.Parm(pp['Dec'])
 
    # Finished: Fill the Sixpack and return it:
+   # parm = Sixpack.Parmset.buffer()
    Sixpack.stokesI(iquv[n6.I])
    Sixpack.stokesQ(iquv[n6.Q])
    Sixpack.stokesU(iquv[n6.U])

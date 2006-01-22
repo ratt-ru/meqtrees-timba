@@ -39,7 +39,11 @@
 #=================================================================================
 
 from Timba.TDL import *
+
 from copy import deepcopy
+from random import *
+from math import *
+from numarray import *
 
 from Timba.Trees import TDL_common
 from Timba.Trees import TDL_radio_conventions
@@ -58,23 +62,19 @@ class Parmset (TDL_common.Super):
     def __init__(self, **pp):
 
         # Input arguments:
-        pp.setdefault('scope', '<pscope>')           # used in visualisation etc
-        pp.setdefault('punit', None)                 # punit (source/patch) ..............??
         pp.setdefault('unsolvable', False)           # if True, do NOT store parmgroup/solvegroup info
         pp.setdefault('parmtable', None)             # name of MeqParm table (AIPS++)
 
-        self.__scope = pp['scope']
-        self.__punit = pp['punit']
+        self.__quals = dict()
         self.__unsolvable = pp['unsolvable']
         self.__parmtable = pp['parmtable']
         self.check_parmtable_extension()
 
         TDL_common.Super.__init__(self, type='Parmset', **pp)
-
-
         self.clear()
-
         return None
+
+
 
     def clear(self):
         self.__parmgroup = dict()
@@ -88,19 +88,28 @@ class Parmset (TDL_common.Super):
         self.__buffer = dict()
         self.__node_groups = ['Parm']
 
-    def scope(self, new=None):
-        if isinstance(new, str): self.__scope = new
-        return self.__scope
-    def punit(self): return self.__punit
     def unsolvable(self): return self.__unsolvable
 
+    def quals(self, new=None, clear=False):
+        """Get/set the default MeqParm node-name qualifier(s)"""
+        if clear:
+            self.__quals = dict()
+        if isinstance(new, dict):
+            for key in new.keys():
+                self.__quals[key] = str(new[key])
+        return self.__quals
         
+    def buffer(self):
+        """Get the temporary helper record self.__buffer"""
+        return self.__buffer
+
 #--------------------------------------------------------------------------------
             
     def oneliner(self):
         """Make a one-line summary of this Parmset object"""
         s = TDL_common.Super.oneliner(self)
-        s += ' punit='+str(self.punit())
+        # if len(self.quals())>0:
+        s += ' quals='+str(self.quals())
         s += ' pg:'+str(len(self.parmgroup()))
         s += ' sg:'+str(len(self.solvegroup()))
         s += ' cq:'+str(len(self.condeq()))
@@ -110,6 +119,7 @@ class Parmset (TDL_common.Super):
         else:
             s += ' parmtable='+str(self.parmtable())
         return s
+
 
     def display(self, txt=None, full=False):
         """Display a description of the contents of this Parmset object"""
@@ -205,12 +215,13 @@ class Parmset (TDL_common.Super):
             return self.__parmtable.split('.')[1]
         return True
 
+    #-------------------------------------------------------------------------------------
 
-    def define_MeqParm(self, ns, key=None, station=None,
-                       parmgroup=None,
+    def define_MeqParm(self, ns, key=None, qual=None, parmgroup=None,
                        default=0.0, node_groups='Parm',
                        use_previous=True, subtile_size=None):
         """Convenience function to create a MeqParm node"""
+        
         # NB: If use_previous==True, the MeqParm will use its current funklet (if any)
         #     as starting point for the next snippet solution, unless a suitable funklet
         #     was found in the MeqParm table. If False, it will use the default funklet first.
@@ -236,38 +247,36 @@ class Parmset (TDL_common.Super):
         if subtile_size:
             tiling.time = subtile_size
 
-        quals = dict(q=self.punit())
-        if station:
-            quals['s'] = station
+        # The node-name qualifiers are the superset of the default ones
+        # and the ones specified in this function call:
+        quals = deepcopy(self.quals())
+        if isinstance(qual, dict):
+            for qkey in qual.keys():
+                quals[qkey] = str(qual[qkey])
+
+        # Make the new MeqParm node:
         node = ns[key](**quals) << Meq.Parm(default,
                                             node_groups=self.node_groups(),
                                             use_previous=use_previous,
                                             tiling=tiling,
                                             table_name=self.parmtable())
 
-        # Put the node stub into the internal MeqParm buffer for later use:
-        # See .buffer() below
+        # Store the new node:
         if parmgroup==None:
             parmgroup = key
+        nodename = node.name
+        self.__MeqParm[nodename] = node                 # record of named nodes 
+        self.__parmgroup[parmgroup].append(nodename)    # 
+
+        # Put the node stub into the internal MeqParm buffer for later use:
+        # This buffer is a service that allows access to the most recently
+        # defined MeqParms by means of their parmgroup name, rather than
+        # their full name:
         self.__buffer[parmgroup] = node
         return node
 
 
-    def buffer(self, update=False, reset=False):
-        """Get/update/reset the temporary helper record self.__buffer"""
-        if update:
-            # Append the accumulated MeqParm node names to their respective parmgroups:
-            for key in self.__buffer.keys():
-                nodename = self.__buffer[key].name
-                self.__MeqParm[nodename] = self.__buffer[key]
-                self.__parmgroup[key].append(nodename)
-        if reset:
-            # Always return self.__buffer as it was BEFORE reset:
-            ss = self.__buffer                # return value
-            # Reset the buffer and related:
-            self.__buffer = dict()
-            return ss
-        return self.__buffer
+
 
 
 
@@ -276,39 +285,33 @@ class Parmset (TDL_common.Super):
 # Functions related to parmgroups:
 #--------------------------------------------------------------------------------
 
-    def parmgroup (self, key=None):
-        """Get the named (key) parmgroup"""
-        if key==None:
-            return self.__parmgroup
-        if self.__parmgroup.has_key(key):
-            return self.__parmgroup[key]
-        print '\n** parmgroup name not recognised: ',key
-        print '     choose from:',self.parmgroup().keys(),'\n'
-        return []
+    def parmgroup (self, key=None, **pp):
+        """Get/create the named (key) parmgroup"""
+        if key==None:                       # no parmgroup specified
+            return self.__parmgroup         #   return the entire record
+        elif self.__parmgroup.has_key(key): # parmgroup already exists
+            return self.__parmgroup[key]    #   return it
+
+        # Parmgroup does not exist yet: Create it:
+        pp.setdefault('color', None)        # plot color
+        pp.setdefault('style', 'circle')    # plot style
+        pp.setdefault('size', 10)           # size of plotted symbol
+        pp.setdefault('rider', dict())      # optional: record with named extra information
+        self.__parmgroup[key] = []
+        self.__pg_rider[key] = pp['rider']
+        self.__plot_color[key] = pp['color']
+        self.__plot_style[key] = pp['style']
+        self.__plot_size[key] = pp['size']
+        self.history('** Created parmgroup: '+key+':   '+str(pp))
+        self.define_solvegroup(key, parmgroup=[key])
+        return key                          # return the actual key name
+
 
     def pg_rider(self): return self.__pg_rider
     def plot_color(self): return self.__plot_color
     def plot_style(self): return self.__plot_style
     def plot_size(self): return self.__plot_size
 
-
-    def register(self, key=None, **pp):
-        """Register a parameter (MeqParm) group"""
-
-        pp.setdefault('color', None)        # plot color
-        pp.setdefault('style', 'circle')    # plot style
-        pp.setdefault('size', 10)           # size of plotted symbol
-        pp.setdefault('rider', dict())      # optional: record with named extra information
-        
-        self.__parmgroup[key] = []
-        self.__pg_rider[key] = pp['rider']
-        self.__plot_color[key] = pp['color']
-        self.__plot_style[key] = pp['style']
-        self.__plot_size[key] = pp['size']
-
-        self.history('** Register parmgroup: '+key+':   '+str(pp))
-        self.define_solvegroup(key, parmgroup=[key])
-        return key                                                  # return the actual key name
 
     def parm_names(self, parmgroup=None, select='*', trace=False):
         """Return a list of parmgroup MeqParm node names"""
@@ -404,6 +407,7 @@ class Parmset (TDL_common.Super):
                node = ns[name](uniqual) << getattr(Meq, unop)(children=nodes)
        condeq = ns['Condeq_'+key](uniqual) << Meq.Condeq(node, rr['value'])
        return condeq
+
 
 #--------------------------------------------------------------------------------
 # Functions related to solvegroups:
@@ -536,6 +540,147 @@ class Parmset (TDL_common.Super):
 
 
 
+#===========================================================================================
+#===========================================================================================
+#===========================================================================================
+#===========================================================================================
+
+#===========================================================================================
+# Copied from MG_JEN_funklet.py
+#===========================================================================================
+
+
+#-------------------------------------------------------------------------------------
+# Make a 'standard' freq-time polc with the following features:
+# - fdeg and tdeg give the polynomial degree in these dimensions
+# - the constant coeff (c00) is specified explicitly
+# - the other coeff are generated with an algorithm:
+#   - first they are all set to the same value (=scale)
+#   - then they are 'attenuated' (more for higher-order coeff)
+#   - their sign is alternated between -1 and 1
+# - If stddev>0, a 'proportional' random number is added to each coeff
+
+def polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0): 
+ 
+   # If the input is a polc (funklet) already, just return it ......??
+   if isinstance(c00, dmi_type('MeqFunklet')):
+	return c00
+
+   # Create a coeff array with the correct dimensions.
+   # All coeff have the same value (=scale), see also below
+   scale = float(scale)
+   coeff = resize(array(scale), (tdeg+1,fdeg+1))
+
+   # Multiply each coeff with sign*mult**(i+j)
+   # If mult<1, this makes the higher-order coeff smaller
+   sign = 1.0
+   for i in range(tdeg+1):
+      for j in range(fdeg+1):
+         factor = mult**(i+j)                               # depends on polynomial degree                
+         coeff[i,j] *= (sign*factor)                        # attenuate, and apply the sign
+         if (i+j)==0: coeff[0,0] = c00                      # override the constant coeff c00
+         if stddev > 0:
+            # Optional: Add some gaussian scatter to the coeff value
+            # NB: If stddev=0, the coeff values are fully predictable!
+            coeff[i,j] += gauss(0.0, stddev*factor)         # add 'proportional' scatter,    
+         sign *=-1                                          # negate the sign for the next coeff                                 
+
+  # NB: Should we set the lower-right triangle coeff to zero?  
+
+  # Make the polc:
+   polc = meq.polc(coeff)
+   return polc
+
+
+# NB: The polcs generated with this function are given to MeqParms as default funklets.
+#     This is their ONLY use....
+#     However, the MeqParm default funklets are used if no other funklets are known.
+#     When used, their domains are ignored: It is assumed that their coeff are valid
+#     for the requested domain, which may be anything....
+#     So: It  might be reasonable to demand that MeqParms default funklets are c00 only!?
+#     However: If the requested domain is automatically scaled back to (0-1) (under what
+#              conditions?), the polc_ft() should be tested with requested domain (0-1)
+#     After all, it IS nice to be able to make a (t,f) variable MeqParm.......
+
+
+
+#======================================================================
+# Make a polclog for a freq-dependent spectral index:
+#======================================================================
+
+# regular polc (comparison): v(f,t) = c00 + c01.t + c10.f + c11.f.t + ....
+#
+# polclog:
+#            I(f) = I0(c0 + c1.x + c2.x^2 + c3.x^3 + .....)
+#            in which:  x = 10log(f/f0)
+#
+# if c2 and higher are zero:           
+#            I(f) = 10^(c0 + c1.10log(f/f0)) = (10^c0) * (f/f0)^c1
+#                 = I0 * (f/f0)^SI  (classical spectral index formula)
+#            in which: c0 = 10log(I0)  and c1 is the classical S.I. (usually ~0.7)   
+#
+# so:        I(f) = 10^SIF
+# NB: If polclog_SIF is to be used as multiplication factor for (Q,U,V),
+#     use: fmult = ns.fmult() << Meq.Parm(polclog(SI, I0=1.0), i.e. SIF[0] = 0.0)
+
+
+
+def polclog_SIF (I0=1.0, SI=-0.7, f0=1e6):
+   SIF = [log(I0)/log(10)]                               # SIF[0] = 10log(I0). (Python log() is e-log)
+   # NB: what if I0 is polc???
+   if not isinstance(SI, list): SI = [SI]
+   SIF.extend(SI)                                             # NB: SIF[1] = classical S.I.
+   SIF = array(SIF)
+   SIF = reshape(SIF, (1,len(SIF)))               # freq coeff only....
+   polclog = meq.polclog(SIF)                        # NB: the default f0 = 1Hz!
+   polclog.axis_list = record(freq=f0)                # the default is f0=1Hz
+   # print oneliner(polclog, 'polclog_SIF')
+   return polclog
+
+#    if len(SI) == 1:
+#       print type(ns)
+#       parm['I0'] = (ns.I0(q=pp['name']) << Meq.Parm(pp['I0']))
+#       parm['SI'] = (ns.SI(q=pp['name']) << Meq.Parm(pp['SI']))
+#       freq = (ns.freq << Meq.Freq())
+#       fratio = (ns.fratio(q=pp['name']) << (freq/pp['f0']))
+#       fmult = (ns.fmult(q=pp['name']) << Meq.Pow(fratio, parm['SI']))
+#       iquv[n6.I] = (ns[n6.I](q=pp['name']) << (parm['I0'] * fmult))
+
+
+#---------------------------------------------------------------------
+# Make a StokesI(q=source) node based on a polclog:
+
+def polclog_flux (ns, source=None, I0=1.0, SI=-0.7, f0=1e6, stokes='stokesI'):
+   # print
+   # source = MG_JEN_forest_state.autoqual('MG_JEN_funklet_flux', qual=source)
+   uniqual = _counter('polclog_flux', increment=-1)
+
+   polclog = polclog_predefined(source, I0=I0, SI=SI, f0=f0, stokes=stokes)
+   SIF = ns['SIF_'+stokes](q=source) << Meq.Parm(polclog)
+   node = ns[stokes](q=source) << Meq.Pow(10.0, SIF)
+   # print '** polclog_flux(',source,') ->',SIF,'->',node
+   return node
+
+#---------------------------------------------------------------------
+# Make a fmult(q=source) node based on a polclog:
+# This may be used to multiply StokesQ,U,V.....
+
+def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
+   source = MG_JEN_forest_state.autoqual('MG_JEN_funklet_fmult', qual=source)
+   uniqual = _counter('polclog_fmult', increment=-1)
+      
+   # polclog = polclog_predefined(source, I0=1.0, SI=SI, f0=f0, stokes='stokesI')
+   # def polclog_predefined (source='<source>', SI=-0.7, I0=1.0, f0=1e6, stokes='stokesI'):
+      # polclog['stokesI'] = polclog_SIF (SI=SI, I0=I0, f0=f0)
+      # return polclog[stokes]
+
+   polclog = polclog_SIF (SI=SI, I0=I0, f0=f0)
+
+   SIF = ns.SIF(q=source) << Meq.Parm(polclog)
+   node = ns.mult(q=source) << Meq.Pow(10.0, SIF)
+   # node = ns << Meq.Pow(10.0, SIF)               # <--- better?
+   # print '** polclog_fmult(',source,') ->',SIF,'->',node
+   return node
 
 
 
@@ -593,30 +738,6 @@ if __name__ == '__main__':
         print ps.parmtable('cal_BJones')
         print ps.check_parmtable_extension()
 
-    if 0:
-        ps = Parmset(label='GJones', polrep='circular')
-        p1 = ps.register('Gphase', ipol=1, color='red', corrs=['XX','YY'])
-        a2 = ps.register('Gampl', ipol=2, color='blue', corrs=['XX','YY'])
-        a1 = ps.register('Gampl', ipol=1, color='blue', corrs=['XX','YY'])
-        d12 = ps.register('Ddang', color='blue', corrs=['XY','YX'])
-        d2 = ps.register('Ddang', ipol=2, color='blue', corrs=['XY','YX'])
-
-        ps.define_solvegroup('p1_a2', [p1, a2])
-        ps.define_solvegroup('a1_a2', [a1, a2])
-        ps.define_solvegroup('ALL', ps.parmgroup().keys())
-
-        ps.node_groups(['G','QQ'])
-        ps.node_groups(['G'])
-
-        for station in range(14):
-          ps.buffer(reset=True)
-          ps.define_MeqParm(ns, p1, station=station, default=0)
-          ps.define_MeqParm(ns, a2, station=station, default=1)
-          ps.define_MeqParm(ns, a1, station=station, default=1)
-          ps.define_MeqParm(ns, d2, station=station, default=0)
-          ps.define_MeqParm(ns, d12, station=station, default=0)
-          ss = ps.buffer(update=True)
-
 
     if 1:
         # Create a Joneset object
@@ -627,10 +748,10 @@ if __name__ == '__main__':
     
     if 1:
         # Register the parmgroups:
-        a1 = js.register('Gampl', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
-        a2 = js.register('Gampl', ipol=2, color='blue', style='diamond', size=10, corrs='paral2')
-        p1 = js.register('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral1')
-        p2 = js.register('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral2')
+        a1 = js.parmgroup('Gampl', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
+        a2 = js.parmgroup('Gampl', ipol=2, color='blue', style='diamond', size=10, corrs='paral2')
+        p1 = js.parmgroup('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral1')
+        p2 = js.parmgroup('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral2')
 
         # MeqParm node_groups: add 'G' to default 'Parm':
         js.Parmset.node_groups('G')
@@ -642,31 +763,27 @@ if __name__ == '__main__':
         js.Parmset.define_solvegroup('Gampl', [a1, a2])
         js.Parmset.define_solvegroup('Gphase', [p1, p2])
     
-        first_station = True
         for station in pp['stations']:
             skey = TDL_radio_conventions.station_key(station)        
             # Define station MeqParms (in ss), and do some book-keeping:  
-            js.Parmset.buffer(reset=True)
-            
+            qual = dict(s=skey)
             for Gampl in [a1,a2]:
                 default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gampl'])
-                js.Parmset.define_MeqParm (ns, Gampl, station=skey, default=default)
+                js.Parmset.define_MeqParm (ns, Gampl, qual=qual, default=default)
 
             for Gphase in [p1,p2]:
                 default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'])
-                js.Parmset.define_MeqParm (ns, Gphase, station=skey, default=default)
+                js.Parmset.define_MeqParm (ns, Gphase, qual=qual, default=default)
 
-            ss = js.Parmset.buffer(update=True)        # use ss[p1] etc...
-            first_station = False
         ps = js.Parmset
         ps.define_condeq(p1, unop='Add', value=0.0)
         ps.define_condeq(p2, unop='Add', value=0.0)
         ps.define_condeq(a1, unop='Multiply', value=1.0)
         ps.define_condeq(a2, unop='Multiply', value=1.0)
         ps.define_condeq(p1, select='first', value=0.0)
-        ps.display()
+        ps.display(full=True)
 
-    if 1:
+    if 0:
         for key in ps.condeq().keys():
             condeq = ps.make_condeq(ns, key)
             TDL_display.subtree(condeq, key, full=True, recurse=5)

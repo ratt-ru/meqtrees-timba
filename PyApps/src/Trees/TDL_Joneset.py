@@ -62,6 +62,7 @@ class Joneset (TDL_common.Super):
 
         # Define its Parmset object
         self.Parmset = TDL_Parmset.Parmset(**pp)
+        self.Parmset.quals(dict(q=self.__punit))
 
         self.clear()
 
@@ -89,8 +90,8 @@ class Joneset (TDL_common.Super):
         self.__jones[key] = value
         return self.__jones[key]
 
-    def register(self, key=None, ipol=None, color=None, style='circle', size=10, corrs=None):
-        """Register a parameter (MeqParm) group (frontend for Parmset.register())"""
+    def parmgroup(self, key=None, ipol=None, color=None, style='circle', size=10, corrs=None):
+        """Register a parameter (MeqParm) group (frontend for Parmset.parmgroup())"""
         if isinstance(ipol, int): key = key+'_'+self.pols(ipol)     # append (X,Y,R,L) if requirec
 
         if corrs=='*': corrs = self.corrs_all()
@@ -101,7 +102,7 @@ class Joneset (TDL_common.Super):
         # if self.corrs_all().__contains__(corrs): corrs = corrs      # single corr (e.g. 'RR')
         rider = dict(condeq_corrs=corrs)
 
-        self.Parmset.register(key=key, color=color, style=style, size=size, rider=rider)
+        self.Parmset.parmgroup(key=key, color=color, style=style, size=size, rider=rider)
 
         s = 'Register parmgroup: '+key+': '+str(color)+' '+str(style)+' '+str(size)+' '+str(corrs)+' '
         self.history(s)
@@ -416,11 +417,11 @@ if __name__ == '__main__':
 
     if 0:
         js = Joneset(label='GJones', polrep='circular')
-        p1 = js.register('Gphase', ipol=1, color='red', corrs=js.corrs_paral1())
-        a2 = js.register('Gampl', ipol=2, color='blue', corrs=js.corrs_paral2())
-        a1 = js.register('Gampl', ipol=1, color='blue', corrs=js.corrs_paral1())
-        d12 = js.register('Ddang', color='blue', corrs=js.corrs_cross())
-        d2 = js.register('Ddang', ipol=2, color='blue', corrs=js.corrs_cross())
+        p1 = js.parmgroup('Gphase', ipol=1, color='red', corrs=js.corrs_paral1())
+        a2 = js.parmgroup('Gampl', ipol=2, color='blue', corrs=js.corrs_paral2())
+        a1 = js.parmgroup('Gampl', ipol=1, color='blue', corrs=js.corrs_paral1())
+        d12 = js.parmgroup('Ddang', color='blue', corrs=js.corrs_cross())
+        d2 = js.parmgroup('Ddang', ipol=2, color='blue', corrs=js.corrs_cross())
         js.node_groups(['G','QQ'])
         js.node_groups(['G'])
 

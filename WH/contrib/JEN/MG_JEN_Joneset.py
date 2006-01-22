@@ -19,6 +19,7 @@
 # - 10 jan 2006: tile_size -> subtile_size
 # - 10 jan 2006: pp.setdefault() -> JEN_inarg.define(pp)
 # - 11 jan 2006: KJones with MSauxinfo
+# - 20 jan 2006: new TDL_Parmset.py
 
 # Copyright: The MeqTree Foundation 
 
@@ -171,6 +172,13 @@ def inarg_solvegroup (pp, **kwargs):
    return True
 
 
+
+
+
+
+#--------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
 # GJones: diagonal 2x2 matrix for complex gains per polarization
 #--------------------------------------------------------------------------------
@@ -222,10 +230,10 @@ def GJones (ns=None, slave=False, **inarg):
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
     
     # Register the parmgroups (in js.Parmset eventually):
-    a1 = js.register('Gampl', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
-    a2 = js.register('Gampl', ipol=2, color='blue', style='diamond', size=10, corrs='paral2')
-    p1 = js.register('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral1')
-    p2 = js.register('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral2')
+    a1 = js.parmgroup('Gampl', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
+    a2 = js.parmgroup('Gampl', ipol=2, color='blue', style='diamond', size=10, corrs='paral2')
+    p1 = js.parmgroup('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral1')
+    p2 = js.parmgroup('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral2')
 
     # Define potential extra condition equations:
     js.Parmset.define_condeq(p1, unop='Add', value=0.0)
@@ -254,28 +262,26 @@ def GJones (ns=None, slave=False, **inarg):
     js.Parmset.define_solvegroup('Gampl', [a1, a2])
     js.Parmset.define_solvegroup('Gphase', [p1, p2])
     
-    first_station = True
+    # first_station = True
     for station in pp['stations']:
        skey = TDL_radio_conventions.station_key(station)        
-       # Define station MeqParms (in ss), and do some book-keeping:  
-       js.Parmset.buffer(reset=True)
+       qual = dict(s=skey)
 
        for Gampl in [a1,a2]:
           default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gampl'], stddev=pp['stddev_Gampl'],
                                             fdeg=pp['fdeg_Gampl'], tdeg=pp['tdeg_Gampl'],
                                             scale=pp['ft_coeff_scale']) 
-          js.Parmset.define_MeqParm (ns, Gampl, station=skey, default=default,
+          js.Parmset.define_MeqParm (ns, Gampl, qual=qual, default=default,
                                      subtile_size=pp['subtile_size_Gampl'])
 
        for Gphase in [p1,p2]:
           default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'], stddev=pp['stddev_Gphase'], 
                                             fdeg=pp['fdeg_Gphase'], tdeg=pp['tdeg_Gphase'],
                                             scale=pp['ft_coeff_scale']) 
-          js.Parmset.define_MeqParm (ns, Gphase, station=skey, default=default,
+          js.Parmset.define_MeqParm (ns, Gphase, qual=qual, default=default,
                                      subtile_size=pp['subtile_size_Gphase'])
 
-       ss = js.Parmset.buffer(update=True)
-       first_station = False
+       ss = js.Parmset.buffer()
 
        # Make the 2x2 Jones matrix:
        if pp['Gpolar']:
@@ -334,7 +340,7 @@ def FJones (ns=0, slave=False, **inarg):
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
    # Register the parmgroups (in js.Parmset eventually):
-   RM = js.register('RM', color='red', style='circle', size=10, corrs='cross')
+   RM = js.parmgroup('RM', color='red', style='circle', size=10, corrs='cross')
 
    # MeqParm node_groups: add 'F' to default 'Parm':
    js.Parmset.node_groups(label[0])
@@ -343,9 +349,8 @@ def FJones (ns=0, slave=False, **inarg):
    js.Parmset.define_solvegroup('FJones', [RM])
 
    # Make a node for the Faraday rotation (same for all stations...)
-   js.Parmset.buffer(reset=True)
    js.Parmset.define_MeqParm(ns, RM, default=pp['c00_RM'])              # Rotation Measure
-   ss = js.Parmset.buffer(update=True)
+   ss = js.Parmset.buffer()
    wvl2 = MG_JEN_twig.wavelength (ns, unop='Sqr')        # -> lambda squared
    farot = ns.farot(q=pp['punit']) << (ss[RM] * wvl2)       # Faraday rotation angle
   
@@ -360,6 +365,7 @@ def FJones (ns=0, slave=False, **inarg):
    # For the moment, assume that FJones is the same for all stations:
    for station in pp['stations']:
       skey = TDL_radio_conventions.station_key(station)
+      qual = dict(s=skey)
       js.append(skey, stub)
 
    # Finished:
@@ -406,10 +412,10 @@ def BJones (ns=0, slave=False, **inarg):
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
   
     # Register the parmgroups (in js.Parmset eventually):
-    br1 = js.register('Breal', ipol=1, color='red', style='square', size=7, corrs='paral1')
-    br2 = js.register('Breal', ipol=2, color='blue', style='square', size=7, corrs='paral2')
-    bi1 = js.register('Bimag', ipol=1, color='magenta', style='square', size=7, corrs='paral1')
-    bi2 = js.register('Bimag', ipol=2, color='cyan', style='square', size=7, corrs='paral2')
+    br1 = js.parmgroup('Breal', ipol=1, color='red', style='square', size=7, corrs='paral1')
+    br2 = js.parmgroup('Breal', ipol=2, color='blue', style='square', size=7, corrs='paral2')
+    bi1 = js.parmgroup('Bimag', ipol=1, color='magenta', style='square', size=7, corrs='paral1')
+    bi2 = js.parmgroup('Bimag', ipol=2, color='cyan', style='square', size=7, corrs='paral2')
 
     # Define potential extra condition equations:
     js.Parmset.define_condeq(bi1, unop='Add', value=0.0)
@@ -427,11 +433,10 @@ def BJones (ns=0, slave=False, **inarg):
     js.Parmset.define_solvegroup('Breal', [br1, br2])
     js.Parmset.define_solvegroup('Bimag', [bi1, bi2])
 
-    first_station = True
+    # first_station = True
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
-        # Define station MeqParms (in ss), and do some book-keeping:  
-        js.Parmset.buffer(reset=True)
+        qual = dict(s=skey)
 
         # Example: polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0) 
 
@@ -439,18 +444,18 @@ def BJones (ns=0, slave=False, **inarg):
             default = MG_JEN_funklet.polc_ft (c00=pp['c00_Breal'], stddev=pp['stddev_Breal'], 
                                               fdeg=pp['fdeg_Breal'], tdeg=pp['tdeg_Breal'], 
                                               scale=pp['ft_coeff_scale']) 
-            js.Parmset.define_MeqParm (ns, Breal, station=skey, default=default,
+            js.Parmset.define_MeqParm (ns, Breal, qual=qual, default=default,
                                        subtile_size=pp['subtile_size_Breal'])
 
         for Bimag in [bi1,bi2]:
             default = MG_JEN_funklet.polc_ft (c00=pp['c00_Bimag'], stddev=pp['stddev_Bimag'], 
                                               fdeg=pp['fdeg_Bimag'], tdeg=pp['tdeg_Bimag'], 
                                               scale=pp['ft_coeff_scale']) 
-            js.Parmset.define_MeqParm (ns, Bimag, station=skey, default=default,
+            js.Parmset.define_MeqParm (ns, Bimag, qual=qual, default=default,
                                        subtile_size=pp['subtile_size_Bimag'])
 
-        ss = js.Parmset.buffer(update=True)
-        first_station = False
+        ss = js.Parmset.buffer()
+        # first_station = False
 
         # Make the 2x2 Jones matrix
         stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
@@ -509,13 +514,13 @@ def DJones_WSRT (ns=0, slave=False, **inarg):
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
    # Register the parmgroups (in js.Parmset eventually):
-   dang = js.register('dang', color='green', style='triangle', size=7, corrs='cross')
-   dell = js.register('dell', color='magenta', style='triangle', size=7, corrs='cross')
-   dang1 = js.register('dang', ipol=1, color='green', style='triangle', size=7, corrs='cross')
-   dang2 = js.register('dang', ipol=2, color='black', style='triangle', size=7, corrs='cross')
-   dell1 = js.register('dell', ipol=1, color='magenta', style='triangle', size=7, corrs='cross')
-   dell2 = js.register('dell', ipol=2, color='yellow', style='triangle', size=7, corrs='cross')
-   pzd = js.register('PZD', color='blue', style='circle', size=10, corrs='cross')
+   dang = js.parmgroup('dang', color='green', style='triangle', size=7, corrs='cross')
+   dell = js.parmgroup('dell', color='magenta', style='triangle', size=7, corrs='cross')
+   dang1 = js.parmgroup('dang', ipol=1, color='green', style='triangle', size=7, corrs='cross')
+   dang2 = js.parmgroup('dang', ipol=2, color='black', style='triangle', size=7, corrs='cross')
+   dell1 = js.parmgroup('dell', ipol=1, color='magenta', style='triangle', size=7, corrs='cross')
+   dell2 = js.parmgroup('dell', ipol=2, color='yellow', style='triangle', size=7, corrs='cross')
+   pzd = js.parmgroup('PZD', color='blue', style='circle', size=10, corrs='cross')
 
    # Define potential extra condition equations:
    js.Parmset.define_condeq(dang, unop='Add', value=0.0)
@@ -540,9 +545,8 @@ def DJones_WSRT (ns=0, slave=False, **inarg):
       js.Parmset.define_solvegroup('dell', [dell1, dell2, pzd])
 
    # The X/Y Phase-Zero-Difference (PZD) is shared by all stations:
-   js.Parmset.buffer(reset=True)
    js.Parmset.define_MeqParm(ns, pzd, default=pp['c00_PZD'])
-   ss = js.Parmset.buffer(update=True)
+   ss = js.Parmset.buffer()
    matname = 'DJones_PZD_matrix'
    pmat = MG_JEN_matrix.phase (ns, angle=ss[pzd], name=matname)
 
@@ -552,10 +556,7 @@ def DJones_WSRT (ns=0, slave=False, **inarg):
    ss = {}
    for station in pp['stations']:
       skey = TDL_radio_conventions.station_key(station)  
-      # Define station MeqParms (in ss), and do some book-keeping:  
-      js.Parmset.buffer(reset=True)
-      qual = None
-
+      qual = dict(s=skey)
 
       # Dipole angle errors may be coupled (dang(X)=dang(Y)) or not:
       matname = 'DJones_dang_matrix'
@@ -563,19 +564,19 @@ def DJones_WSRT (ns=0, slave=False, **inarg):
          default = MG_JEN_funklet.polc_ft (c00=pp['c00_dang'], stddev=pp['stddev_dang'],
                                            scale=pp['ft_coeff_scale'],
                                            fdeg=pp['fdeg_dang'], tdeg=pp['tdeg_dang']) 
-         js.Parmset.define_MeqParm (ns, dang, station=skey, default=default,
+         js.Parmset.define_MeqParm (ns, dang, qual=qual, default=default,
                                     subtile_size=pp['subtile_size_dang'])
-         ss = js.Parmset.buffer(update=True, reset=True)
-         rmat = MG_JEN_matrix.rotation (ns, angle=ss[dang], qual=qual, name=matname)
+         ss = js.Parmset.buffer()
+         rmat = MG_JEN_matrix.rotation (ns, angle=ss[dang], qual=None, name=matname)
       else: 
          for dang in [dang1,dang2]:
             default = MG_JEN_funklet.polc_ft (c00=pp['c00_dang'], stddev=pp['stddev_dang'],
                                               scale=pp['ft_coeff_scale'],
                                               fdeg=pp['fdeg_dang'], tdeg=pp['tdeg_dang']) 
-            js.Parmset.define_MeqParm (ns, dang, station=skey, default=default,
+            js.Parmset.define_MeqParm (ns, dang, qual=qual, default=default,
                                        subtile_size=pp['subtile_size_dang'])
-         ss = js.Parmset.buffer(update=True, reset=True)
-         rmat = MG_JEN_matrix.rotation (ns, angle=[ss[dang1],ss[dang2]], qual=qual, name=matname)
+         ss = js.Parmset.buffer()
+         rmat = MG_JEN_matrix.rotation (ns, angle=[ss[dang1],ss[dang2]], qual=None, name=matname)
 
 
       # Dipole ellipticities may be coupled (dell(X)=-dell(Y)) or not:
@@ -584,19 +585,19 @@ def DJones_WSRT (ns=0, slave=False, **inarg):
          default = MG_JEN_funklet.polc_ft (c00=pp['c00_dell'], stddev=pp['stddev_dell'],
                                            scale=pp['ft_coeff_scale'],
                                            fdeg=pp['fdeg_dell'], tdeg=pp['tdeg_dell']) 
-         js.Parmset.define_MeqParm (ns, dell, station=skey, default=default,
+         js.Parmset.define_MeqParm (ns, dell, qual=qual, default=default,
                                     subtile_size=pp['subtile_size_dell'])
-         ss = js.Parmset.buffer(update=True, reset=True)
-         emat = MG_JEN_matrix.ellipticity (ns, angle=ss[dell], qual=qual, name=matname)
+         ss = js.Parmset.buffer()
+         emat = MG_JEN_matrix.ellipticity (ns, angle=ss[dell], qual=None, name=matname)
       else:
          for dell in [dell1,dell2]:
             default = MG_JEN_funklet.polc_ft (c00=pp['c00_dell'], stddev=pp['stddev_dell'],
                                               scale=pp['ft_coeff_scale'], 
                                               fdeg=pp['fdeg_dell'], tdeg=pp['tdeg_dell']) 
-            js.Parmset.define_MeqParm (ns, dell, station=skey, default=default,
+            js.Parmset.define_MeqParm (ns, dell, qual=qual, default=default,
                                        subtile_size=pp['subtile_size_dell'])
-         ss = js.Parmset.buffer(update=True, reset=True)
-         emat = MG_JEN_matrix.ellipticity (ns, angle=[ss[dell1],ss[dell2]], qual=qual, name=matname)
+         ss = js.Parmset.buffer()
+         emat = MG_JEN_matrix.ellipticity (ns, angle=[ss[dell1],ss[dell2]], qual=None, name=matname)
 
       # Make the 2x2 Jones matrix by multiplying the sub-matrices:
       stub = ns[label](s=skey, q=pp['punit']) << Meq.MatrixMultiply (rmat, emat, pmat)
@@ -649,6 +650,7 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, slave=False, **inarg):
    # The 2x2 KJones matrix is diagonal, with identical elements (Kmel) 
    for station in pp['stations']:
       skey = TDL_radio_conventions.station_key(station)
+      qual = dict(s=skey)
       uvw = MSauxinfo.node_station_uvw(skey, ns=ns)
       Kmel = ns.dft(s=skey, q=punit) << Meq.VisPhaseShift(lmn=lmn1, uvw=uvw)/sqrtn
       stub = ns[label](s=skey, q=punit) << Meq.Matrix22 (Kmel,0,0,Kmel)
@@ -1134,24 +1136,28 @@ if __name__ == '__main__':
      js.display()     
      display_first_subtree (js, full=True)
 
-  if 1:
+  if 0:
      inarg = GJones (_getdefaults=True)
      from Timba.Trees import JEN_inargGui
      igui = JEN_inargGui.ArgBrowser()
      igui.input(inarg)
      igui.launch()
 
-  if 0:
+  if 1:
      # jseq = TDL_Joneset.Joneseq(origin='MG_JEN_Joneset')
      jseq = Joneseq()
      jseq.append(GJones (ns, scope=scope, stations=stations))
      jseq.append(BJones (ns, scope=scope, stations=stations))
      jseq.append(FJones (ns, scope=scope, stations=stations))
-     # jseq.append(DJones_WSRT (ns, stations=stations))
+     jseq.append(DJones_WSRT (ns, scope=scope, stations=stations))
      jseq.display()
      js = jseq.make_Joneset(ns)
      js.display()     
      display_first_subtree (js, full=1)
+
+  if 0:
+     js = GJones (ns, stations=stations)
+     js.display(full=True)     
 
   if 0:
      js = GJones (ns, stations=stations)
