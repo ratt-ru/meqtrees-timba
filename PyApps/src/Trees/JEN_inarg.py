@@ -1038,6 +1038,9 @@ def test2(**inarg):
    pp.setdefault('ref_ref_aa', '@@ref_aa')
    pp.setdefault('ref_aa', '@aa')
    pp.setdefault('trace', False)
+   ERROR(pp, '...error...')
+   WARNING(pp, '...warning...')
+   MESSAGE(pp, '...message...')
    if getdefaults(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
 
    # Initialise a result record (rr) with the argument record pp

@@ -120,6 +120,9 @@ class ArgBrowser(QMainWindow):
         self.__listview.addColumn("iitd")
         self.__listview.setRootIsDecorated(1)
 
+        self.__visible_item = None
+        
+
         #----------------------------------------------------
         # Buttons to be added at the bottom:
         hbox = QHBoxLayout(self)
@@ -194,6 +197,8 @@ class ArgBrowser(QMainWindow):
         # Initialise:
         self.__popup = None                        # popup object (editing)
         self.clearGui()
+        self.__unhide = False                      # if True, show hidden arguments too
+        self.__show_CTRL = False                   # if True, show CTRL_records
         self.__set_open = True                     # see .recurse()
         self.__setOpen = dict()                    # see .recurse()
         self.__result = None                       # output for exec_loop
@@ -235,8 +240,7 @@ class ArgBrowser(QMainWindow):
         self.__listview.clear()
         if self.__popup: self.__popup.close()
         self.__itemdict = []                       # list of itd records
-        self.__unhide = False                      # if True, show hidden arguments too
-        self.__show_CTRL = False                   # if True, show CTRL_records
+        self.__CTRL_count = -100                   # for generating unique numbers
         return True
 
 
@@ -465,13 +469,22 @@ class ArgBrowser(QMainWindow):
         self.show()
         return True
 
+    #--------------------------------------------------------------------------
 
     def refresh (self, clear=True):
         """Refresh the listview widget from self.__inarg"""
         if clear: self.clearGui()
         self.recurse (self.__inarg, listview=self.__listview)
+        if self.__visible_item:
+            pass
+            # This does not work because the earlier items have disappeared.
+            # print '** visible_item =',self.__visible_item
+            # self.__listview.ensureItemVisible(self.__visible_item)
+            # Better: Make a unique number for each item in the 4th column,
+            # (retaining the record recognition) and use listview.findItem()....
         return True
 
+    #--------------------------------------------------------------------------
 
     def recurse (self, rr=None, listview=None, level=0, module='<module>',
                  makeitd=True, color=None, trace=False):
@@ -488,10 +501,21 @@ class ArgBrowser(QMainWindow):
         for key in rr.keys():
             if isinstance(rr[key], dict):   
                 if key==CTRL_record:                           # is a CTRL record         
+                    self.__CTRL_count -= 1                     # decrement
                     if self.__show_CTRL:
-                        item = MyListViewItem(listview, key, 'CTRL_record')
+                        CTRL_ident = str(self.__CTRL_count)
+                        item = MyListViewItem(listview, key, 'CTRL_record', '', CTRL_ident)
                         item.set_text_color('green')
                         item.setSelectable(False)
+                        key1 = CTRL_record+'_'+str(CTRL_ident) # unique name
+                        if rr[key].has_key('ERROR'):           # special case
+                            # item.set_text_color('orange')
+                            self.__setOpen[key1] = True        # set open     
+                        elif rr[key].has_key('WARNING'):       # special case
+                            # item.set_text_color('orange')
+                            self.__setOpen[key1] = True        # set open     
+                        if self.__setOpen.has_key(key1):
+                            item.setOpen(self.__setOpen[key1]) # open or close    
                         self.recurse (rr[key], listview=item, color='green',
                                       level=level+1, makeitd=False)
                 else:
@@ -499,17 +523,26 @@ class ArgBrowser(QMainWindow):
                     text = QString(key)
                     iitd = str(-2)
                     item = MyListViewItem(listview, text, '', '', iitd)
-                    if color:
+                    color1 = color
+                    if not JEN_inarg.is_OK(rr[key]):           # contains an error/warning
+                        item.set_text_color('red')
+                        # self.__setOpen[key] = True             # set open     
+                        self.__show_CTRL = True                # show CTRL_record(s)
+                    elif key in ['ERROR','WARNING']:           # special cases
+                        self.__setOpen[key] = True             # set open     
+                        color1 = 'red'                         # pass down
+                        item.set_text_color('red')
+                    elif color:                                # color specified (e.g. CTRL)
                         item.set_text_color(color)
                     else:
-                        item.set_text_color('blue')
+                        item.set_text_color('blue')            # default: highlight it
                     item.setSelectable(False)
                     if self.__set_open and level==0:
                         item.setOpen(True)                     # show its children
                     if self.__setOpen.has_key(key):
                         item.setOpen(self.__setOpen[key])      # open or close    
                     self.recurse (rr[key], listview=item, level=level+1,
-                                  module=key, makeitd=makeitd, color=color)
+                                  module=key, makeitd=makeitd, color=color1)
 
             elif not makeitd:
                 # E.g. the fields inside a CTRL_record:
@@ -618,6 +651,9 @@ class ArgBrowser(QMainWindow):
 
         # If +/- clicked, the item is None:
         if not item: return False
+
+        # Used in ensureItemVisible() after refresh:
+        self.__visible_item = item
         
         # Read the (string) values from the columns:
         key = str(item.text(0))            
@@ -649,8 +685,17 @@ class ArgBrowser(QMainWindow):
             self.__setOpen.setdefault(key, False)
             self.__setOpen[key] = not self.__setOpen[key]   # toggle
             self.refresh()
+
+        elif iitd<-100:
+            # A CTRL record:
+            CTRL_ident = iitd                               # see .recurse()
+            key1 = CTRL_record+'_'+str(CTRL_ident)          # unique name
+            self.__setOpen.setdefault(key1, False)
+            self.__setOpen[key1] = not self.__setOpen[key1] # toggle
+            self.refresh()
         return True
 
+    #-------------------------------------------------------------------------------
 
     def popupCancel(self):
         """Action upon pressing the popup Cancel button"""
