@@ -26,6 +26,7 @@ from SpectrumData import *
 from VellsData import *
 from SolverData import *
 from ND_Controller import *
+from ResultsRange import *
 from plot_printer import *
 
 from Timba.utils import verbosity
@@ -127,6 +128,11 @@ class ResultPlotter(GriddedPlugin):
     self.old_plot_data_rank = -1
     self.active_image_index = None
     self._spectrum_data = None
+    self.data_list = []
+    self.data_list_labels = []
+    self.data_list_length = 0
+    self.max_list_length = 10
+    self.results_selector = None
 
 # back to 'real' work
     if dataitem and dataitem.data is not None:
@@ -307,10 +313,13 @@ class ResultPlotter(GriddedPlugin):
 
       if self._plot_type == 'realvsimag':
         _dprint(3, 'pre_work setting visu_plotter to realvsimag_plotter!')
-        self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.wparent())
-        self.set_widgets(self._visu_plotter.plot,self.dataitem.caption,icon=self.icon())
-        self._wtop = self._visu_plotter.plot;  # QwtPlot widget inside realvsimag_plotter
-                                               # is our top widget
+        self.layout_parent = QWidget(self.wparent())
+        self.layout = QGridLayout(self.layout_parent)
+        self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.layout_parent)
+        self.layout.addWidget(self._visu_plotter.plot, 0, 1)
+        self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
+        self._wtop = self.layout_parent;       
+
 
   def do_postwork(self, node):
     _dprint(3,"in postwork: do nothing at present");
@@ -510,9 +519,9 @@ class ResultPlotter(GriddedPlugin):
 
     self.plotPrinter = plot_printer(self._visu_plotter)
     QObject.connect(self._visu_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
-
     self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
     self._wtop = self.layout_parent;       
+
   # create_image_plotters
 
   def set_data (self,dataitem,default_open=None,**opts):
@@ -546,16 +555,33 @@ class ResultPlotter(GriddedPlugin):
       except: pass;
       try: self._rec = self._rec.cache.result; # look for cache.result record
       except:
+# cached_result not found, display an empty viewer with a "no result
+# in this node record" message (the user can then use the Display with
+# menu to switch to a different viewer)
         Message = "No result record was found in the cache, so no plot can be made with the <b>Result Plotter</b>! You may wish to select another type of display."
         cache_message = QLabel(Message,self.wparent())
         cache_message.setTextFormat(Qt.RichText)
         self._wtop = cache_message
         self.set_widgets(cache_message)
         return
-# cached_result not found, display an empty viewer with a "no result
-# in this node record" message (the user can then use the Display with
-# menu to switch to a different viewer)
+    label_found = False
+    if len(self.data_list_labels) > 0:
+      for i in range(len(self.data_list_labels)):
+        if self.data_list_labels[i] == self.label:
+          label_found = True
+    if not label_found:
+      if len(self.data_list_labels) > self.max_list_length - 1:
+        del self.data_list_labels[0]
+        del self.data_list[0]
+      self.data_list.append(self._rec)
+      self.data_list_labels.append(self.label)
+      if len(self.data_list) != self.data_list_length:
+        self.data_list_length = len(self.data_list)
+        if self.data_list_length > 1:
+          self.adjust_selector()
+    self.process_data()
 
+  def process_data (self):
 # are we dealing with Vellsets?
     if self._rec.has_key("dims"):
       _dprint(3, '*** dims field exists ', self._rec.dims)
@@ -589,8 +615,12 @@ class ResultPlotter(GriddedPlugin):
 # enable & highlight the cell
     self.enable();
     self.flash_refresh();
+    _dprint(3, 'exiting process_data')
 
-    _dprint(3, 'exiting set_data')
+  def replay_data (self, data_index):
+    self._rec = self.data_list[data_index]
+    self.label = self.data_list_labels[data_index]
+    self.process_data()
 
   def plot_vells_data (self):
       """ process incoming vells data and attributes into the
@@ -733,6 +763,14 @@ class ResultPlotter(GriddedPlugin):
         plot_array = self._vells_data.getActiveData()
         self._visu_plotter.array_plot('data: '+ display_string, plot_array)
 
+  def adjust_selector (self):
+    if self.results_selector is None:
+      self.results_selector = ResultsRange(self.layout_parent)
+      self.layout.addWidget(self.results_selector, 1,1)
+      self.results_selector.show()
+      QObject.connect(self.results_selector, PYSIGNAL('result_index'), self.replay_data)
+    self.results_selector.setRange(self.data_list_length)
+
   def set_ND_controls (self, labels, parms):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numarray of dimension 3 or greater """
@@ -749,7 +787,7 @@ class ResultPlotter(GriddedPlugin):
     QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
     QObject.connect(self._visu_plotter, PYSIGNAL('reset_axes_labels'), self.ND_Controls.redefineAxes) 
     QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_Controls.showDisplay)
-    self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
+    self.layout.addMultiCellWidget(self.ND_Controls,2,2,0,2)
     self.ND_Controls.show()
 
   def set_ColorBar (self):
