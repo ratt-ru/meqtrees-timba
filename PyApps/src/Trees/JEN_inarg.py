@@ -361,6 +361,8 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
       now = str(datetime.now())
       ctrl['datetime_defined'] = now                  # not modified anymore
       ctrl['last_edited'] = now                       # updated in inargGUI
+      ss = 'CTRL: '+ctrl['target_function']
+      ctrl['oneliner'] = ss
       rr[CTRL_record] = ctrl                          # Attach the CTRL_record
 
    elif not isinstance(rr[CTRL_record], dict):        # CTRL_record is not a record...??

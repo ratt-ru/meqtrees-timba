@@ -371,15 +371,15 @@ def newstar_source (ns=0, **pp):
    
    # Register the parmgroups:
    sI = pset.parmgroup('stokesI', color='red', style='diamond', size=10,
-                       rider=dict(condeq_corrs='paral'))
+                       rider=dict(condeq_corrs='corrI'))
    sQ = pset.parmgroup('stokesQ', color='blue', style='diamond', size=10,
-                       rider=dict(condeq_corrs='*'))
+                       rider=dict(condeq_corrs='corrQ'))
    sU = pset.parmgroup('stokesU', color='magenta', style='diamond', size=10, 
-                       rider=dict(condeq_corrs='cross'))
+                       rider=dict(condeq_corrs='corrU'))
    sV = pset.parmgroup('stokesV', color='cyan', style='diamond', size=10, 
-                       rider=dict(condeq_corrs='*'))
+                       rider=dict(condeq_corrs='corrV'))
    pg_radec = pset.parmgroup('radec', color='black', style='circle', size=10, 
-                       rider=dict(condeq_corrs='paral'))
+                       rider=dict(condeq_corrs='corrI'))                       # <----- ?
    
    # MeqParm node_groups: add 'S' to default 'Parm':
    pset.node_groups('S')

@@ -220,9 +220,21 @@ class Cohset (TDL_common.Super):
                 
         self.__paral = []                            # list of AVAILABLE 'parallel' corrs
         self.__cross = []                            # list of AVAILABLE cross-corrs
+        self.__corrI = []                            # list of AVAILABLE corrs for stokesI
+        self.__corrQ = []                            # list of AVAILABLE corrs for stokesQ
+        self.__corrU = []                            # list of AVAILABLE corrs for stokesU
+        self.__corrV = []                            # list of AVAILABLE corrs for stokesV
         for corr in self.__corrs:
-            if ['XX','YY','RR','LL'].__contains__(corr): self.__paral.append(corr)
-            if ['XY','YX','RL','LR'].__contains__(corr): self.__cross.append(corr)
+            if ['XX','YY','RR','LL'].__contains__(corr):
+                self.__paral.append(corr)
+                self.__corrI.append(corr)
+            if ['XY','YX','RL','LR'].__contains__(corr):
+                self.__cross.append(corr)
+                self.__corrU.append(corr)
+            if ['XX','YY','RL','LR'].__contains__(corr):
+                self.__corrQ.append(corr)
+            if ['XY','YX','RR','LL'].__contains__(corr):
+                self.__corrV.append(corr)
         return True
 
     def corrs(self):
@@ -237,6 +249,18 @@ class Cohset (TDL_common.Super):
     def paral(self):
         """Return a list of AVAILABLE parallel correlation names (XX, LL, etc)"""
         return self.__paral
+    def corrI(self):
+        """Return a list of AVAILABLE corrs relevant for stokesI"""
+        return self.__corrI
+    def corrQ(self):
+        """Return a list of AVAILABLE corrs relevant for stokesQ"""
+        return self.__corrQ
+    def corrU(self):
+        """Return a list of AVAILABLE corrs relevant for stokesU"""
+        return self.__corrU
+    def corrV(self):
+        """Return a list of AVAILABLE corrs relevant for stokesV"""
+        return self.__corrV
 
 
     def corr_index(self, corrs='*'):
@@ -471,6 +495,8 @@ class Cohset (TDL_common.Super):
         pp.setdefault('restore', False)    # if True, restore the saved selection first
         pp.setdefault('init', False)       # if True, initialise
         pp.setdefault('trace', False)      # if True, print messages
+
+        trace = False
         if trace: print '\n**',funcname,pp
 
         # Initial call (from self.__init__())

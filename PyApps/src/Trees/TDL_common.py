@@ -68,6 +68,12 @@ class Super:
                 qq[key] = key+': <nodestub>'
             elif isinstance(v, dict):                         # avoid clutter
                 qq[key] = key+': '+str(type(v))+'['+str(len(v))+']'
+            elif isinstance(v, (list,tuple)):                 # avoid clutter
+                qq[key] = key+': '+str(type(v))+'['+str(len(v))+'] = '
+                if len(v)>5:
+                    qq[key] += str(v[:5])+'...'
+                else:
+                    qq[key] += str(v)
         self.history('inarg = '+str(qq))
 
         return None

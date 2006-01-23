@@ -90,9 +90,7 @@ class ArgBrowser(QMainWindow):
         #----------------------------------------------------
         # The basic layout: Stack widgets vertically in vbox
         
-        print 'before'
         vbox = QVBoxLayout(self)
-        print 'after'
 
         #----------------------------------------------------
         # Statusbar:
@@ -124,12 +122,16 @@ class ArgBrowser(QMainWindow):
 
         self.__visible_item = None
         
+        #----------------------------------------------------
+        # The text editor:
+        if False:
+            self.__textedit = QTextEdit(self)
+            vbox.addWidget(self.__textedit)
+            self.__textedit.setText('xxxx \n hhhhh \n\n\n\n ...')
 
         #----------------------------------------------------
         # Buttons to be added at the bottom:
-        print 'before H'
         hbox = QHBoxLayout(vbox)
-        print 'after H'
         b_save = QPushButton('Save', self)
         hbox.addWidget(b_save)
         b_exec = QPushButton('Proceed', self)

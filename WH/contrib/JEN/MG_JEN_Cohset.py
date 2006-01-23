@@ -22,6 +22,7 @@
 # - 03 jan 2006: resampling: move argument num_cells to insert_solver
 # - 11 jan 2006: make function MSauxinfo()
 # - 14 jan 2006: referenced values prepended with @/@@
+# - 21 jan 2006: condeq_corr cats (corrI etc)
 
 # Copyright: The MeqTree Foundation 
 
@@ -353,7 +354,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
 
     # We need a Mohset copy, since it will be modified with condeqs etc
     Mohset = measured.copy(label='measured')
-    Mohset.history(funcname+' input: '+str(pp))
+    # Mohset.history(funcname+' input: '+str(pp))  # too much
     Mohset.history(funcname+' measured: '+measured.oneliner())
     Mohset.history(funcname+' predicted: '+predicted.oneliner())
 
@@ -499,13 +500,18 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
 
     # Get a list of names of solvable MeqParms for the solver:
     corrs = Cohset.Parmset.sg_rider(pp['solvegroup'], key='condeq_corrs')
-    print '\n** corrs =',corrs
-    if corrs=='*' or corrs==['*']: corrs = Cohset.corrs()
-    if corrs=='paral' or corrs==['paral']: corrs = Cohset.paral()
-    if corrs=='cross' or corrs==['cross']: corrs = Cohset.cross()
-    print '\n** corrs =',corrs
+    was = corrs
+    if not isinstance(corrs, (list, tuple)): corrs = [corrs]
+    if corrs==['*']: corrs = Cohset.corrs()
+    if corrs==['paral']: corrs = Cohset.paral()
+    if corrs==['cross']: corrs = Cohset.cross()
+    if corrs==['corrI']: corrs = Cohset.corrI()
+    if corrs==['corrQ']: corrs = Cohset.corrQ()
+    if corrs==['corrU']: corrs = Cohset.corrU()
+    if corrs==['corrV']: corrs = Cohset.corrV()
+    print '** corrs: ',was,'->',corrs
     solvable = Cohset.Parmset.solveparm_names(pp['solvegroup'])
-    print '\n** solvable:',type(solvable),'=\n   ',solvable,'\n'
+    print '** solvable:',type(solvable),'=\n   ',solvable,'\n'
 
     dcoll_parm = []
     hcoll_parm = []
@@ -1036,8 +1042,8 @@ if True:                                                   # ... Copied from MG_
        # inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
        inarg = insert_solver(_getdefaults=True, _qual=qual, slave=True)   # local (MG_JEN_Cohset.py) version 
        JEN_inarg.modify(inarg,
-                        subtract=False,                    # if True, subtract 'predicted' from uv-data 
-                        correct=True,                      # if True, correct the uv-data with 'predicted.Joneset()'
+                        subtract=True,                    # if True, subtract 'predicted' from uv-data 
+                        correct=False,                      # if True, correct the uv-data with 'predicted.Joneset()'
                         visu=True,                         # if True, include visualisation
                         # ** Arguments for .solver_subtree()
                         solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
