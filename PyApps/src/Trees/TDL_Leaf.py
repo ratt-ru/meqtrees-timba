@@ -8,6 +8,7 @@
 #
 # History:
 #    - 19 oct 2005: creation
+#    - 20 jan 2006: unary operations (unop=...)
 #
 # Full description:
 #
@@ -49,9 +50,10 @@ def const_k_Jy(ns): return MeqConstant(ns, 'k_Jy/K', k_Boltzmann/1e-26)
 def const_2k_Jy(ns): return MeqConstant(ns, '2k_Jy/Hz.K', 2*k_Boltzmann/1e-26)
 def const_G_gravity(ns): return MeqConstant(ns, 'G_gravity_Nm2/kg2', 6.6732e-11)
 
-def MeqConstant(ns, name='constant', value=-1.0):
+def MeqConstant(ns, name='constant', value=-1.0, unop=None):
     uniqual = _counter (name, increment=True)
-    return ns[name](uniqual) << Meq.Constant(value)
+    node = ns[name](uniqual) << Meq.Constant(value)
+    return apply_unop(ns, unop, node)
     
 
 
@@ -61,56 +63,72 @@ def MeqConstant(ns, name='constant', value=-1.0):
 #**************************************************************************************
 
 
-def MeqFreq(ns, name='MeqFreq'):
-    uniqual = _counter (name, increment=True)
-    return ns[name](uniqual) << Meq.Freq()
+def apply_unop(ns, unop=None, node=None):
+    """Helper function to apply (optional) unary operation(s) to node"""
+    if unop==None: return node
+    if not isinstance(unop, (list, tuple)): unop = [unop]
+    for unop1 in unop:
+        node = ns << getattr(Meq,unop1)(node)
+    return node
 
-def MeqWavelength(ns, name='MeqWavelength'):
+def MeqFreq(ns, name='MeqFreq', unop=None):
+    uniqual = _counter (name, increment=True)
+    node = ns[name](uniqual) << Meq.Freq()
+    return apply_unop(ns, unop, node)
+
+def MeqWavelength(ns, name='MeqWavelength', unop=None):
     uniqual = _counter (name, increment=True)
     freq = MeqFreq(ns)                          # Hz
-    return ns[name](uniqual) << Meq.Divide(const_c_light(ns), freq)
+    node = ns[name](uniqual) << Meq.Divide(const_c_light(ns), freq)
+    return apply_unop(ns, unop, node)
 
-def MeqInverseWavelength(ns, name='MeqInverseWavelength'):
+def MeqInverseWavelength(ns, name='MeqInverseWavelength', unop=None):
     uniqual = _counter (name, increment=True)
     freq = MeqFreq(ns)                          # Hz
-    return ns[name](uniqual) << Meq.Divide(freq, const_c_light(ns))
+    node = ns[name](uniqual) << Meq.Divide(freq, const_c_light(ns))
+    return apply_unop(ns, unop, node)
 
-def MeqTime(ns, name='MeqTime'):
+def MeqTime(ns, name='MeqTime', unop=None):
     uniqual = _counter (name, increment=True)
-    return ns[name](uniqual) << Meq.Time()
+    node = ns[name](uniqual) << Meq.Time()
+    return apply_unop(ns, unop, node)
 
-def MeqFreqTimeComplex(ns, name='MeqFreqTime'):
+def MeqFreqTimeComplex(ns, name='MeqFreqTime', unop=None):
     return MeqFreqTime(ns, combine='ToComplex', name=name)
+    return apply_unop(ns, unop, node)
 
-def MeqTimeFreqComplex(ns, name='MeqTimeFreq'):
+def MeqTimeFreqComplex(ns, name='MeqTimeFreq', unop=None):
     return MeqTimeFreq(ns, combine='ToComplex', name=name)
 
-def MeqFreqTime(ns, combine='Add', name='MeqFreqTime'):
+def MeqFreqTime(ns, combine='Add', name='MeqFreqTime', unop=None):
     name += '_'+combine                         # -> MeqFreqTime_Add
     uniqual = _counter (name, increment=True)
     freq = MeqFreq(ns)
     time = MeqTime(ns)
-    return ns[name](uniqual) << getattr(Meq,combine)(children=[freq, time])
+    node = ns[name](uniqual) << getattr(Meq,combine)(children=[freq, time])
+    return apply_unop(ns, unop, node)
 
-def MeqTimeFreq(ns, combine='Add', name='MeqTimeFreq'):
+def MeqTimeFreq(ns, combine='Add', name='MeqTimeFreq', unop=None):
     name += '_'+combine                         # -> MeqTimeFreq_Add
     uniqual = _counter (name, increment=True)
     freq = MeqFreq(ns)
     time = MeqTime(ns)
-    return ns[name](uniqual) << getattr(Meq,combine)(children=[time, freq])
+    node = ns[name](uniqual) << getattr(Meq,combine)(children=[time, freq])
+    return apply_unop(ns, unop, node)
 
 #-------------------------------------------------------------------------------------
 # Some 'leaves' with parameters:
 #-------------------------------------------------------------------------------------
 
-def MeqTsky (ns, index=-2.6):
+def MeqTsky (ns, index=-2.6, unop=None):
     """Return a subtree for the sky temperature (K).
     The argument index specifies the default(=-2.6) spectral index"""
     uniqual = _counter ('MeqTsky', increment=True)
     pindex = ns.Tsky_spectral_index(uniqual) << Meq.Parm(index)    
     wvl = MeqWavelength(ns)
     # NB: I have no idea where the 50 comes from....
-    return ns.Tsky_K(uniqual) << Meq.Pow(wvl, pindex) * 50
+    node = ns.Tsky_K(uniqual) << Meq.Pow(wvl, pindex) * 50
+    return apply_unop(ns, unop, node)
     
 
 
@@ -182,16 +200,18 @@ if __name__ == '__main__':
 
     cc = []
 
-    if 0:
+    if 1:
         cc.append(MeqFreq(ns))
         cc.append(MeqWavelength(ns))
+        cc.append(MeqWavelength(ns, unop='Sqr'))
+        cc.append(MeqWavelength(ns, unop=['Cos','Sqr']))
         cc.append(MeqTime(ns))
         cc.append(MeqFreqTime(ns))
         cc.append(MeqTimeFreq(ns))
         cc.append(MeqFreqTimeComplex(ns))
         cc.append(MeqTimeFreqComplex(ns))
 
-    if 1:
+    if 0:
         cc.append(MeqTsky(ns))
 
     if 0:

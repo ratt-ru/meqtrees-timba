@@ -90,7 +90,9 @@ class ArgBrowser(QMainWindow):
         #----------------------------------------------------
         # The basic layout: Stack widgets vertically in vbox
         
+        print 'before'
         vbox = QVBoxLayout(self)
+        print 'after'
 
         #----------------------------------------------------
         # Statusbar:
@@ -125,8 +127,9 @@ class ArgBrowser(QMainWindow):
 
         #----------------------------------------------------
         # Buttons to be added at the bottom:
-        hbox = QHBoxLayout(self)
-        vbox.addLayout(hbox)
+        print 'before H'
+        hbox = QHBoxLayout(vbox)
+        print 'after H'
         b_save = QPushButton('Save', self)
         hbox.addWidget(b_save)
         b_exec = QPushButton('Proceed', self)
@@ -199,6 +202,7 @@ class ArgBrowser(QMainWindow):
         self.clearGui()
         self.__unhide = False                      # if True, show hidden arguments too
         self.__show_CTRL = False                   # if True, show CTRL_records
+        self.show_CTRL(False, refresh=False)
         self.__set_open = True                     # see .recurse()
         self.__setOpen = dict()                    # see .recurse()
         self.__result = None                       # output for exec_loop
@@ -241,6 +245,7 @@ class ArgBrowser(QMainWindow):
         if self.__popup: self.__popup.close()
         self.__itemdict = []                       # list of itd records
         self.__CTRL_count = -100                   # for generating unique numbers
+        self.__Record_count = -1000                # for generating unique numbers
         return True
 
 
@@ -269,11 +274,17 @@ class ArgBrowser(QMainWindow):
         self.refresh(clear=False)    
         return True
 
-    def show_CTRL(self):
+    def show_CTRL(self, tf=None, refresh=True):
         """show/hide the CTRL records"""
-        show_CTRL = self.__show_CTRL
-        self.clearGui()
-        self.__show_CTRL = not show_CTRL
+        if isinstance(tf, bool):                        # specified explicitly
+            if self.__show_CTRL==tf:
+                refresh = False
+            self.__show_CTRL = tf
+        else:                                           # toggle
+            self.__show_CTRL = not self.__show_CTRL
+        if refresh:
+            self.refresh(clear=True)    
+        # Update the menu-button text:
         item = self.__item_show_CTRL
         s1 = '** show_CTRL -> '+str(self.__show_CTRL)+':  '
         if self.__show_CTRL:
@@ -282,7 +293,6 @@ class ArgBrowser(QMainWindow):
         else:
             self.__menubar.changeItem(item,'show CTRL')
             self.__message.setText(s1+'hide CTRL records')
-        self.refresh(clear=False)    
         return True
 
     def print_inarg(self):
@@ -527,7 +537,7 @@ class ArgBrowser(QMainWindow):
                     if not JEN_inarg.is_OK(rr[key]):           # contains an error/warning
                         item.set_text_color('red')
                         # self.__setOpen[key] = True             # set open     
-                        self.__show_CTRL = True                # show CTRL_record(s)
+                        self.show_CTRL(True, refresh=False)
                     elif key in ['ERROR','WARNING']:           # special cases
                         self.__setOpen[key] = True             # set open     
                         color1 = 'red'                         # pass down
@@ -780,7 +790,7 @@ class Popup(QDialog):
 
         # Keep the itemdict (itd) for use in self.textChanged():
         self.__itemdict = itd
-        print '\n** Popup: itd =',itd,'\n'
+        # print '\n** Popup: itd =',itd,'\n'
 
         # Keep track of the arg value in various ways:
         value = itd['value']
@@ -788,7 +798,7 @@ class Popup(QDialog):
         self.__current_value = value  
         self.__input_value = value  
         qsval = QString(str(value))
-        print value,' ->  qsval =',qsval
+        # print value,' ->  qsval =',qsval
 
         # Put in widgets from top to bottom:
         vbox = QVBoxLayout(self,10,5)     
@@ -857,8 +867,7 @@ class Popup(QDialog):
 
         if True:
             # Make Revert/undo:
-            hbox = QHBoxLayout(self)
-            vbox.addLayout(hbox)
+            hbox = QHBoxLayout(vbox)
 
             button = QPushButton('Revert',self)
             hbox.addWidget(button)
@@ -870,8 +879,7 @@ class Popup(QDialog):
 
         if True:
             # Make Cancel/OK buttons:
-            hbox = QHBoxLayout(self)
-            vbox.addLayout(hbox)
+            hbox = QHBoxLayout(vbox)
 
             button = QPushButton('OK',self)
             hbox.addWidget(button)

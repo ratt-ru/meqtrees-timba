@@ -1,5 +1,5 @@
 file: ../WH/contrib/JEN/tobedone.txt
-                                      last changed:   d31dec
+                                      last changed:   d20jan
 
 NB: Just temporary: To be converted into Bugzilla items....! 
 
@@ -348,6 +348,19 @@ detected bugs:
    - Need an EJones funklet (4D beamshape model)
    - 17 MHz ripple
 
+ - Robert Braun (RXB): driftscans
+   - Let the sky drift through the beam (and its sidelobes)
+   - Main lobe is twice as wide as a sidelobe
+     - This allows discrimination of what is where...
+   - NB: RXB is doing very precise measurements of WSRT beamshapes
+     - Out to the 4-6th sidelobes
+     - Needed for mosaicking
+     - Equatorial mounts are a great advantage!
 
+ - Robert Braun: Bandpass(t,f)
+   - How to calibrate?
+   - NB: WSRT has a special room for the bandpass filters
+     - Large volume of layered air (if undisturbe)
+     - Access is discouraged
 
                       ================================

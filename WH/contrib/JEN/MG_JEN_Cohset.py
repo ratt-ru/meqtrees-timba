@@ -212,6 +212,11 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
     Cohset = TDL_Cohset.Cohset(label='predict', origin=funcname, **pp)
 
+    # Copy info (plot-styles, parmgroup/solvegroup etc):
+    Cohset.update_from_Sixpack(Sixpack)
+    Cohset.Parmset.display(full=True)
+    # return False
+
     # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
     # by multiplication its (I,Q,U,V) with the Stokes matrix:
     nominal = Sixpack.coh22(ns, pp['polrep'])
@@ -258,7 +263,8 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     inarg_polrep(pp, slave=slave)
     JEN_inarg.define (pp, 'Jsequence', ['GJones'],
                       choice=[['GJones'],['BJones'],['FJones'],
-                              ['DJones_WSRT'],['GJones','DJones_WSRT']],
+                              ['DJones_WSRT'],['GJones','DJones_WSRT'],
+                              []],
                       help='sequence of Jones matrices to be used')
     # Include default inarg records for various Jones matrix definition functions:
     JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True, slave=True))
@@ -270,6 +276,12 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
 
+    # Check the Jones sequence:
+    if not isinstance(pp['Jsequence'], (list,tuple)):
+        pp['Jsequence'] = [pp['Jsequence']]
+    if len(pp['Jsequence'])==0: return None             # not needed
+    if pp['Jsequence']==None: return None               # not needed
+
     # Make sure that there is a valid source/patch Sixpack:
     # NB: This is just for the punit-name!
     if not Sixpack: Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
@@ -277,7 +289,6 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     
     # Create a sequence of Jonesets for the specified punit:
     jseq = TDL_Joneset.Joneseq()
-    if not isinstance(pp['Jsequence'], (list,tuple)): pp['Jsequence'] = [pp['Jsequence']]
     for jones in pp['Jsequence']:
         if jones=='GJones':
             jseq.append(MG_JEN_Joneset.GJones (ns, _inarg=pp, punit=punit))
@@ -488,7 +499,13 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
 
     # Get a list of names of solvable MeqParms for the solver:
     corrs = Cohset.Parmset.sg_rider(pp['solvegroup'], key='condeq_corrs')
+    print '\n** corrs =',corrs
+    if corrs=='*' or corrs==['*']: corrs = Cohset.corrs()
+    if corrs=='paral' or corrs==['paral']: corrs = Cohset.paral()
+    if corrs=='cross' or corrs==['cross']: corrs = Cohset.cross()
+    print '\n** corrs =',corrs
     solvable = Cohset.Parmset.solveparm_names(pp['solvegroup'])
+    print '\n** solvable:',type(solvable),'=\n   ',solvable,'\n'
 
     dcoll_parm = []
     hcoll_parm = []
@@ -939,14 +956,16 @@ if True:                                                   # ... Copied from MG_
    qual = 'qual1'
 
    # Specify the sequence of zero or more (corrupting) Jones matrices:
-   Jsequence = ['GJones'] 
+   Jsequence = []
+   # Jsequence = ['GJones'] 
    # Jsequence = ['BJones'] 
    # Jsequence = ['FJones'] 
    # Jsequence =['DJones_WSRT']             
    # Jsequence = ['GJones','DJones_WSRT']
    
    # Specify a list of MeqParm solvegroup(s) to be solved for:
-   solvegroup = ['GJones']
+   solvegroup = ['stokesI']
+   # solvegroup = ['GJones']
    # solvegroup = ['DJones']
    # solvegroup = ['GJones','DJones']
 
@@ -958,7 +977,7 @@ if True:                                                   # ... Copied from MG_
    # condition.append('Gphase_Y_last=0.0')
    # condition.append('Bimag_X_sum=0.0')
    # condition.append('Bimag_Y_sum=0.0')
-   # condition = []
+   condition = []
 
 
    # inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual) 

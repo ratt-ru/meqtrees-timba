@@ -10,6 +10,8 @@
 #    - 02 jan 2006: replaced the functions in TDL_Joneset.py (etc)
 #    - 05 jan 2006: added make_condeq() etc
 #    - 09 jan 2006: tile_size -> subtile_size
+#    - 20 jan 2006: register() -> parmgroup()
+#    - 21 jan 2006: function tf_polc() from MG_JEN_funklet.py
 #
 # Full description:
 #   The (many) MeqParms of a Measurement Equation are usually solved in groups
@@ -267,6 +269,7 @@ class Parmset (TDL_common.Super):
         nodename = node.name
         self.__MeqParm[nodename] = node                 # record of named nodes 
         self.__parmgroup[parmgroup].append(nodename)    # 
+        print '\n** MeqParm[',nodename,'] ->',node 
 
         # Put the node stub into the internal MeqParm buffer for later use:
         # This buffer is a service that allows access to the most recently

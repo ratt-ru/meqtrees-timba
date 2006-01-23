@@ -142,13 +142,14 @@ def inarg_solvegroup (pp, **kwargs):
    c_help = '(list of) extra condition equations:'
 
    # Make the choice and help, depending on Jsequence:
-   s_choice.extend([['GJones'],['Gampl'],['Gphase'],['Gpol1'],['Gpol2']])
+   s_choice.extend([['GJones'],['Gampl'],['Gphase']])
    s_help += '\n- [GJones]:  all GJones MeqParms'
    s_help += '\n- [Gampl]:   GJones station gains (both pols)'
    s_help += '\n- [Gphase]:  GJones station phases (both pols)'
    s_choice.extend([['Gpol1'],['Gpol2']])
    s_help += '\n- [Gpol1]:   All GJones MeqParms for pol1 (X or R)'
    s_help += '\n- [Gpol2]:   All GJones MeqParms for pol2 (Y or L)'
+
    c_choice.extend(['Gphase_X_sum=0.0','Gphase_Y_sum=0.0'])
    c_help += '\n- [...phase_sum=0.0]:   sum of phases = zero'
    c_choice.extend(['Gphase_X_first=0.0','Gphase_Y_first=0.0'])  
@@ -156,16 +157,28 @@ def inarg_solvegroup (pp, **kwargs):
    c_help += '\n- [...phase_first=0.0]: phase of first station = zero'
    c_help += '\n- [...phase_last=0.0]:  phase of last station = zero'
 
-   s_choice.extend([['DJones'],['dang'],['dell']])
-
-   s_choice.extend([['FJones']])
-
-   s_choice.extend([['BJones'],['Breal'],['Bimag'],['Bpol1'],['Bpol2']])
-   s_choice.extend([['Bpol1'],['Bpol2']])
+   s_choice.append(['GJones','stokesI'])
+   s_choice.extend([['stokesI'],['stokesIQU'],['stokesIQUV']])
+   s_help += '\n- [stokesI]:    stokes I (incl SI(f), if relevant)'
+   s_help += '\n- [stokesIQU]:  stokes I,Q,U (incl RM and SI(f))'
+   s_help += '\n- [stokesIQUV]: stokes I,Q,U,V (incl RM and SI(f))'
 
    s_choice.append(['GJones','DJones'])
+   s_choice.extend([['DJones'],['dang'],['dell']])
+   c_choice.extend(['dang_sum=0.0'])
+   c_help += '\n- [dang_sum=0.0]:   sum of dipole pos.angle errors = zero'
+
    s_choice.append(['GJones','DJones','FJones'])
+   s_choice.extend([['FJones']])
+
    s_choice.append(['GJones','BJones'])
+   s_choice.extend([['BJones'],['Breal'],['Bimag']])
+   s_choice.extend([['Bpol1'],['Bpol2']])
+   c_choice.extend(['Bimag_X_sum=0.0','Bimag_Y_sum=0.0'])
+   c_choice.extend(['Breal_X_product=1.0','Breal_Y_product=1.0'])
+   c_help += '\n- [...imag_sum=0.0]:   sum of imag.parts = zero'
+   c_help += '\n- [...real_product=1.0]:   product of real.parts = unity'
+
 
    JEN_inarg.define(pp, 'solvegroup', s_default, choice=s_choice, help=s_help)
    JEN_inarg.define(pp, 'condition', c_default, choice=c_choice, help=c_help)
@@ -195,13 +208,13 @@ def GJones (ns=None, slave=False, **inarg):
     JEN_inarg.define(pp, 'Gpolar', tf=False,  
                      help='if True, use MeqPolar, otherwise MeqToComplex')
     # ** Solving instructions:
-    JEN_inarg.define(pp, 'fdeg_Gampl', 0, choice=range(3),  
+    JEN_inarg.define(pp, 'fdeg_Gampl', 0, choice=[0,1,2,3],  
                      help='degree of freq polynomial')
-    JEN_inarg.define(pp, 'fdeg_Gphase', 0, choice=range(3),  
+    JEN_inarg.define(pp, 'fdeg_Gphase', 0, choice=[0,1,2,3,'@fdeg_Gampl'],  
                      help='degree of freq polynomial')
-    JEN_inarg.define(pp, 'tdeg_Gampl', 0, choice=range(3),  
+    JEN_inarg.define(pp, 'tdeg_Gampl', 0, choice=[0,1,2,3],  
                      help='degree of time polynomial')
-    JEN_inarg.define(pp, 'tdeg_Gphase', 0, choice=range(3),  
+    JEN_inarg.define(pp, 'tdeg_Gphase', 0, choice=[0,1,2,3,'@tdeg_Gampl'],  
                      help='degree of time polynomial')
     JEN_inarg.define(pp, 'subtile_size_Gampl', None,
                      choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
@@ -624,10 +637,9 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, slave=False, **inarg):
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='12dec2005')
    inarg_Joneset_common(pp, slave=slave)              
-   # pp.setdefault('stations', [0])                   # range of station names/numbers
-   # pp.setdefault('unsolvable', True)                # if True, do NOT store solvegroup/parmgroup info
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
+
    funcname = JEN_inarg.localscope(pp)
    label = jones+JEN_inarg.qualifier(pp)
    
@@ -1136,14 +1148,14 @@ if __name__ == '__main__':
      js.display()     
      display_first_subtree (js, full=True)
 
-  if 0:
+  if 1:
      inarg = GJones (_getdefaults=True)
      from Timba.Trees import JEN_inargGui
      igui = JEN_inargGui.ArgBrowser()
      igui.input(inarg)
      igui.launch()
 
-  if 1:
+  if 0:
      # jseq = TDL_Joneset.Joneseq(origin='MG_JEN_Joneset')
      jseq = Joneseq()
      jseq.append(GJones (ns, scope=scope, stations=stations))

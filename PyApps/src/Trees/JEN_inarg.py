@@ -892,6 +892,8 @@ def define(pp, key=None, default=None, slave=False,
    """Define a pp entry with a default value, and other info.
    This is a more able version of pp.setdefault(key,value),
    which is helpful for a specification GUI (see JEN_inargGui.py)"""
+
+   trace = False                           # <---------
    s1 = '.define('+str(key)+'): '
    if trace: print '\n**',s1
 
@@ -905,8 +907,9 @@ def define(pp, key=None, default=None, slave=False,
       WARNING(pp, s1+'key not a string, but: '+str(type(key)))
       return False
    elif pp.has_key(key):
+      # NB: This ALWAYS happens when executing the script with an existing inarg record...
       # NB: This may happen if executed with extra arguments....
-      MESSAGE(pp, s1+'duplicate argument key in: '+str(pp.keys()))
+      # MESSAGE(pp, s1+'duplicate argument key in: '+str(pp.keys()))
       return False
 
    # Deal with some special cases:

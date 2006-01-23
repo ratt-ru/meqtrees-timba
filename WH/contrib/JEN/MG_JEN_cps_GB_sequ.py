@@ -182,8 +182,8 @@ if MG['insert_solver_GJones']:
                          fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
                          tdeg_Gampl=0,                      # degree of default time polynomial         
                          tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
-                         subsubtile_size_Gampl=1,                 # used in tiled solutions         
-                         subsubtile_size_Gphase='subsubtile_size_Gampl', # used in tiled solutions         
+                         subtile_size_Gampl=1,                 # used in tiled solutions         
+                         subtile_size_Gphase='subtile_size_Gampl', # used in tiled solutions         
                          _JEN_inarg_option=None)            # optional, not yet used 
     JEN_inarg.attach(MG, inarg)
 
@@ -258,8 +258,8 @@ if MG['insert_solver_BJones']:
                          fdeg_Bimag='fdeg_Breal',           # degree of default freq polynomial          
                          tdeg_Breal=1,                      # degree of default time polynomial         
                          tdeg_Bimag='tdeg_Breal',           # degree of default time polynomial    
-                         subsubtile_size_Breal=0,                 # used in tiled solutions         
-                         subsubtile_size_Bimag='subsubtile_size_Breal', # used in tiled solutions         
+                         subtile_size_Breal=0,                 # used in tiled solutions         
+                         subtile_size_Bimag='subtile_size_Breal', # used in tiled solutions         
                          _JEN_inarg_option=None)            # optional, not yet used 
     JEN_inarg.attach(MG, inarg)
     

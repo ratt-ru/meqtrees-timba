@@ -376,12 +376,6 @@ class Cohset (TDL_common.Super):
 
         #.................................................................................
         ss.append(indent1+' - Available 2x2 cohaerency matrices ( '+str(self.len())+' ):')
-        deleted = self.keys(deleted=True)
-        ss.append(indent1+' - Deleted:( '+str(len(deleted))+' ): '+str(deleted))
-        selected = self.keys(selected=True)
-        ss.append(indent1+' - Selected:( '+str(len(selected))+' ): '+str(selected))
-        deselected = self.keys(selected=False)
-        ss.append(indent1+' - Deselected:( '+str(len(deselected))+' ): '+str(deselected))
         if full or self.len()<10:
             for key in self.__coh.keys():
                 s12 = self.__stations[key]
@@ -397,6 +391,12 @@ class Cohset (TDL_common.Super):
             ss.append(indent2+' - first: '+keys[0]+' : '+str(self.__coh[keys[0]]))
             ss.append(indent2+'   ....')
             ss.append(indent2+' - last:  '+keys[n]+' : '+str(self.__coh[keys[n]]))
+        deleted = self.keys(deleted=True)
+        ss.append(indent1+' - Deleted:( '+str(len(deleted))+' ): '+str(deleted))
+        selected = self.keys(selected=True)
+        ss.append(indent1+' - Selected:( '+str(len(selected))+' ): '+str(selected))
+        deselected = self.keys(selected=False)
+        ss.append(indent1+' - Deselected:( '+str(len(deselected))+' ): '+str(deselected))
         #.................................................................................
 
         if full:
@@ -866,9 +866,9 @@ class Cohset (TDL_common.Super):
         (NB: Not yet implemented in Sixpack....)"""
         if Sixpack==None: return False
         if not Sixpack.Parmset.unsolvable():
-            self.__plot_color.update(Sixpack.plot_color())
-            self.__plot_style.update(Sixpack.plot_style())
-            self.__plot_size.update(Sixpack.plot_size())
+            # self.__plot_color.update(Sixpack.plot_color())
+            # self.__plot_style.update(Sixpack.plot_style())
+            # self.__plot_size.update(Sixpack.plot_size())
             self.update_from_Parmset(Sixpack.Parmset)
             self.history(append='updated from (not unsolvable): '+Sixpack.oneliner())
         else:
@@ -982,6 +982,7 @@ class Cohset (TDL_common.Super):
 
         # The input Cohset may contain parmgroup/solvegroup info:
         self.update_from_Joneset(Cohset.Joneset())
+        self.update_from_Parmset(Cohset.Parmset)
         self.scope(scope)
         self.history(append=funcname+' -> '+self.oneliner())
         return True

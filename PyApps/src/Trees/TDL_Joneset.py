@@ -90,7 +90,7 @@ class Joneset (TDL_common.Super):
         self.__jones[key] = value
         return self.__jones[key]
 
-    def parmgroup(self, key=None, ipol=None, color=None, style='circle', size=10, corrs=None):
+    def parmgroup (self, key=None, ipol=None, color=None, style='circle', size=10, corrs=None):
         """Register a parameter (MeqParm) group (frontend for Parmset.parmgroup())"""
         if isinstance(ipol, int): key = key+'_'+self.pols(ipol)     # append (X,Y,R,L) if requirec
 

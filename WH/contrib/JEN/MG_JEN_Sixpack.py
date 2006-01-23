@@ -30,6 +30,7 @@
 #********************************************************************************
 
 from Timba.TDL import *
+from Timba.Meq import meq
 
 MG = record(script_name='MG_JEN_Sixpack.py', last_changed = 'h22sep2005')
 
@@ -53,11 +54,12 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 
 from Timba.Trees import TDL_Sixpack
 from Timba.Trees import TDL_Parmset
+from Timba.Trees import TDL_Leaf
 from Timba.Trees import JEN_inarg
 
 from Timba.Contrib.JEN import MG_JEN_funklet
 from Timba.Contrib.JEN import MG_JEN_matrix
-from Timba.Contrib.JEN import MG_JEN_twig
+# from Timba.Contrib.JEN import MG_JEN_twig
 
 
 
@@ -222,16 +224,121 @@ def predefined (pp, trace=0):
   return 
 
 
+#---------------------------------------------------------------------
+# Predefined polclog definitions of selected sources:
+# From MG_JEN_funklet.py (for comparison)
+
+def polclog_predefined (source='<source>', SI=-0.7, I0=1.0, f0=1e6, stokes='stokesI'):
+
+   polclog = dict(stokesI=1.0, stokesQ=0.0, stokesU=0.0, stokesV=0.0)
+   if source=='3c147':	
+      polclog['stokesI'] = polclog_SIF (I0=10**1.766, SI=[0.447, -0.148], f0=1e6)
+   elif source =='3c48':	
+      polclog['stokesI'] = polclog_SIF (I0=10**2.345, SI=[0.071, -0.138], f0=1e6)
+   elif source =='3c295':	
+      polclog['stokesI'] = polclog_SIF (I0=10**1.485, SI=[0.759, -0.255], f0=1e6)
+   elif source =='3c286':	
+      polclog['stokesI'] = polclog_SIF (I0=10**1.48, SI=[0.292, -0.124], f0=1e6)
+      polclog['stokesQ'] = polclog_SIF (I0=2.735732, SI=[-0.923091, 0.073638], f0=1e6)
+      polclog['stokesU'] = polclog_SIF (I0=6.118902, SI=[-2.05799, 0.163173], f0=1e6)
+      #    pp['I0'] = 10**1.48
+      #    pp['SI'] = [0.292, -0.124]
+      #    pp['Q'] = [2.735732, -0.923091, 0.073638]
+      #    pp['U'] = [6.118902, -2.05799, 0.163173]
+      
+   else:
+      # If source not recognised, use the other arguments:
+      polclog['stokesI'] = polclog_SIF (SI=SI, I0=I0, f0=f0)
+
+   print '** polclog_predefined(',source,stokes,') ->',polclog[stokes]
+   return polclog[stokes]
+
+
+#======================================================================
+# Make a polclog for a freq-dependent spectral index:
+#======================================================================
+
+# regular polc (comparison): v(f,t) = c00 + c01.t + c10.f + c11.f.t + ....
+#
+# polclog:
+#            I(f) = I0(c0 + c1.x + c2.x^2 + c3.x^3 + .....)
+#            in which:  x = 10log(f/f0)
+#
+# if c2 and higher are zero:           
+#            I(f) = 10^(c0 + c1.10log(f/f0)) = (10^c0) * (f/f0)^c1
+#                 = I0 * (f/f0)^SI  (classical spectral index formula)
+#            in which: c0 = 10log(I0)  and c1 is the classical S.I. (usually ~0.7)   
+#
+# so:        I(f) = 10^SIF
+# NB: If polclog_SIF is to be used as multiplication factor for (Q,U,V),
+#     use: fmult = ns.fmult() << Meq.Parm(polclog(SI, I0=1.0), i.e. SIF[0] = 0.0)
+
+
+
+def polclog_SIF (I0=1.0, SI=-0.7, f0=1e6):
+   SIF = [log(I0)/log(10)]                               # SIF[0] = 10log(I0). (Python log() is e-log)
+   # NB: what if I0 is polc???
+   if not isinstance(SI, list): SI = [SI]
+   SIF.extend(SI)                                             # NB: SIF[1] = classical S.I.
+   SIF = array(SIF)
+   SIF = reshape(SIF, (1,len(SIF)))               # freq coeff only....
+   polclog = meq.polclog(SIF)                        # NB: the default f0 = 1Hz!
+   polclog.axis_list = record(freq=f0)                # the default is f0=1Hz
+   # print oneliner(polclog, 'polclog_SIF')
+   return polclog
+
+#    if len(SI) == 1:
+#       print type(ns)
+#       parm['I0'] = (ns.I0(q=pp['name']) << Meq.Parm(pp['I0']))
+#       parm['SI'] = (ns.SI(q=pp['name']) << Meq.Parm(pp['SI']))
+#       freq = (ns.freq << Meq.Freq())
+#       fratio = (ns.fratio(q=pp['name']) << (freq/pp['f0']))
+#       fmult = (ns.fmult(q=pp['name']) << Meq.Pow(fratio, parm['SI']))
+#       iquv[n6.I] = (ns[n6.I](q=pp['name']) << (parm['I0'] * fmult))
+
+
+#---------------------------------------------------------------------
+# Make a StokesI(q=source) node based on a polclog:
+
+def polclog_flux (ns, source=None, I0=1.0, SI=-0.7, f0=1e6, stokes='stokesI'):
+   # print
+   source = MG_JEN_forest_state.autoqual('MG_JEN_funklet_flux', qual=source)
+
+   polclog = polclog_predefined(source, I0=I0, SI=SI, f0=f0, stokes=stokes)
+   SIF = ns['SIF_'+stokes](q=source) << Meq.Parm(polclog)
+   node = ns[stokes](q=source) << Meq.Pow(10.0, SIF)
+   # print '** polclog_flux(',source,') ->',SIF,'->',node
+   return node
+
+#---------------------------------------------------------------------
+# Make a fmult(q=source) node based on a polclog:
+# This may be used to multiply StokesQ,U,V.....
+
+def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
+   source = MG_JEN_forest_state.autoqual('MG_JEN_funklet_fmult', qual=source)
+      
+   polclog = polclog_predefined(source, I0=1.0, SI=SI, f0=f0, stokes='stokesI')
+   SIF = ns.SIF(q=source) << Meq.Parm(polclog)
+   node = ns.mult(q=source) << Meq.Pow(10.0, SIF)
+   # node = ns << Meq.Pow(10.0, SIF)               # <--- better?
+   # print '** polclog_fmult(',source,') ->',SIF,'->',node
+   return node
+   
 
 
 
 
 
 
-#---------------------------------------------------------------------------------------
+#=======================================================================================
+#=======================================================================================
+#=======================================================================================
 # Make Sixpack of subtrees for sources with 'NEWSTAR' parametrization:
+#=======================================================================================
+
 
 def newstar_source (ns=0, **pp):
+   """Make a Sixpack for a source with NEWSTAR parametrisation"""
 
    # Deal with input parameters (pp):
    pp.setdefault('name', 'cps')        # source name
@@ -263,10 +370,16 @@ def newstar_source (ns=0, **pp):
    pset = Sixpack.Parmset 
    
    # Register the parmgroups:
-   sI = pset.parmgroup('stokesI', color='red', style='diamond', size=10)
-   sQ = pset.parmgroup('stokesQ', color='blue', style='diamond', size=10)
-   sU = pset.parmgroup('stokesU', color='magenta', style='diamond', size=10)
-   sV = pset.parmgroup('stokesV', color='cyan', style='diamond', size=10)
+   sI = pset.parmgroup('stokesI', color='red', style='diamond', size=10,
+                       rider=dict(condeq_corrs='paral'))
+   sQ = pset.parmgroup('stokesQ', color='blue', style='diamond', size=10,
+                       rider=dict(condeq_corrs='*'))
+   sU = pset.parmgroup('stokesU', color='magenta', style='diamond', size=10, 
+                       rider=dict(condeq_corrs='cross'))
+   sV = pset.parmgroup('stokesV', color='cyan', style='diamond', size=10, 
+                       rider=dict(condeq_corrs='*'))
+   pg_radec = pset.parmgroup('radec', color='black', style='circle', size=10, 
+                       rider=dict(condeq_corrs='paral'))
    
    # MeqParm node_groups: add 'S' to default 'Parm':
    pset.node_groups('S')
@@ -284,19 +397,18 @@ def newstar_source (ns=0, **pp):
    parm = {}
    fmult = 1.0
    if pp['SI'] is None:
-      parm['I0'] = ns.I0(q=punit) << Meq.Parm(pp['I0'])
+      parm['I0'] = pset.define_MeqParm (ns, 'I0', parmgroup=sI, default=pp['I0'])
       iquv[n6.I] = parm['I0']
-      # pset.define_MeqParm (ns, 'I0', parmgroup=sI, default=pp['I0'])
-      # iquv[n6.I] = pset.buffer()[sI]
    else:
-      iquv[n6.I] = MG_JEN_funklet.polclog_flux(ns, source=punit,
-                                               I0=pp['I0'], SI=pp['SI'], stokes='stokesI')
+      polclog = polclog_SIF (SI=pp['SI'], I0=pp['I0'], f0=pp['f0'])
+      parm['SIF'] = pset.define_MeqParm (ns, 'SIF_stokesI', parmgroup=sI, default=polclog)
+      iquv[n6.I] = ns['stokesI'](q=punit) << Meq.Pow(10.0, parm['SIF'])
       # fmult = ...??
 
    # Create Stokes V by converting Vpct and correcting for SI if necessary
    iquv[n6.V] = zero
    if pp['Vpct'] is not None:
-      parm['Vpct'] = ns.Vpct(q=punit) << Meq.Parm(pp['Vpct'])
+      parm['Vpct'] = pset.define_MeqParm (ns, 'Vpct', parmgroup=sV, default=pp['Vpct'])
       if isinstance(fmult, float):
          iquv[n6.V] = ns[n6.V](q=punit) << (parm['Vpct']*(fmult/100))
       else:
@@ -308,7 +420,7 @@ def newstar_source (ns=0, **pp):
       # Create Stokes Q by converting Qpct and correcting for SI if necessary
       iquv[n6.Q] = zero
       if pp['Qpct'] is not None:
-         parm['Qpct'] = ns.Qpct(q=punit) << Meq.Parm(pp['Qpct'])
+         parm['Qpct'] = pset.define_MeqParm (ns, 'Qpct', parmgroup=sQ, default=pp['Qpct'])
          if isinstance(fmult, float):
             iquv[n6.Q] = ns[n6.Q](q=punit) << (parm['Qpct']*(fmult/100))
          else:
@@ -317,7 +429,7 @@ def newstar_source (ns=0, **pp):
       # Create Stokes U by converting Upct and correcting for SI if necessary
       iquv[n6.U] = zero
       if pp['Upct'] is not None:
-         parm['Upct'] = ns.Upct(q=punit) << Meq.Parm(pp['Upct'])
+         parm['Upct'] = pset.define_MeqParm (ns, 'Upct', parmgroup=sU, default=pp['Upct'])
          if isinstance(fmult, float):
             iquv[n6.U] = ns[n6.U](q=punit) << (parm['Upct']*(fmult/100))
          else:
@@ -334,8 +446,8 @@ def newstar_source (ns=0, **pp):
          # iquv['Q'] = MG_JEN_funklet.polclog_flux(ns, source=punit, stokes='stokesQ')
          # iquv['U'] = MG_JEN_funklet.polclog_flux(ns, source=punit, stokes='stokesU')
          # if not == 0.0, then ....
-      parm['Qpct'] = ns.Qpct(q=punit) << Meq.Parm(pp['Qpct'])
-      parm['Upct'] = ns.Upct(q=punit) << Meq.Parm(pp['Upct'])
+      parm['Qpct'] = pset.define_MeqParm (ns, 'Qpct', parmgroup=sQ, default=pp['Qpct'])
+      parm['Upct'] = pset.define_MeqParm (ns, 'Upct', parmgroup=sU, default=pp['Upct'])
       if isinstance(fmult, float):
          Q = ns['Q'](q=punit) << (parm['Qpct']*(fmult/100))
          U = ns['U'](q=punit) << (parm['Upct']*(fmult/100))
@@ -345,8 +457,8 @@ def newstar_source (ns=0, **pp):
       QU = ns['QU'](q=punit) << Meq.Composer(children=[Q,U])  
 
       # Rotate QU by the RM matrix -> QURM
-      parm['RM'] = ns.RM(q=punit) << Meq.Parm(pp['RM'])
-      wvl2 = MG_JEN_twig.wavelength (ns, qual=None, unop='Sqr')
+      parm['RM'] = pset.define_MeqParm (ns, 'RM', parmgroup=sQ, default=pp['RM'])  
+      wvl2 = TDL_Leaf.MeqWavelength (ns, unop='Sqr')       
       farot = ns.farot(q=punit) << (parm['RM']*wvl2)
       rotmat = MG_JEN_matrix.rotation (ns, angle=farot)
       QURM = ns['QURM'](q=punit) << Meq.MatrixMultiply(rotmat, QU)  
@@ -358,23 +470,21 @@ def newstar_source (ns=0, **pp):
 
    # Source coordinates (RA, DEC)
    radec = {}
-   radec[n6.R] = ns[n6.R](q=punit) << Meq.Parm(pp['RA'])
-   radec[n6.D] = ns[n6.D](q=punit) << Meq.Parm(pp['Dec'])
+   radec[n6.R] = pset.define_MeqParm (ns, n6.R, parmgroup=pg_radec, default=pp['RA'])  
+   radec[n6.D] = pset.define_MeqParm (ns, n6.D, parmgroup=pg_radec, default=pp['Dec'])  
 
    # Finished: Fill the Sixpack and return it:
-   # parm = Sixpack.Parmset.buffer()
    Sixpack.stokesI(iquv[n6.I])
    Sixpack.stokesQ(iquv[n6.Q])
    Sixpack.stokesU(iquv[n6.U])
    Sixpack.stokesV(iquv[n6.V])
-   Sixpack.display()
-   dir(Sixpack)
-   print 'n6 =',n6
    # Sixpack.radec([iquv[n6.R],iquv[n6.D]])
    Sixpack.ra(radec[n6.R])
    Sixpack.dec(radec[n6.D])
 
-   if pp['fsr_trace']: MG_JEN_forest_state.object(Sixpack)
+   Sixpack.display()
+   if pp['fsr_trace']:
+      MG_JEN_forest_state.object(Sixpack)
    return Sixpack
 
 
@@ -458,14 +568,18 @@ if __name__ == '__main__':
    if 1:
       # Sixpack = newstar_source (ns)
       # Sixpack = newstar_source (ns, name='3c147')
-      Sixpack = newstar_source (ns, name='3c286')                    # <------ !!
+      Sixpack = newstar_source (ns, name='RMtest')
+      # Sixpack = newstar_source (ns, name='SItest')
+      # Sixpack = newstar_source (ns, name='3c286')                    # <------ !!
       # Sixpack = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
       Sixpack.display()
-      Sixpack.nodescope(ns)
-      MG_JEN_exec.display_subtree (Sixpack.stokesI(), 'stokesI()', full=1)
-      MG_JEN_exec.display_subtree (Sixpack.sixpack(), 'sixpack()', full=1)
-      MG_JEN_exec.display_subtree (Sixpack.iquv(), 'iquv()', full=1)
-      MG_JEN_exec.display_subtree (Sixpack.radec(), 'radec()', full=1)
+      Sixpack.Parmset.display()
+      if 1:
+         Sixpack.nodescope(ns)
+         MG_JEN_exec.display_subtree (Sixpack.stokesI(), 'stokesI()', full=1)
+         MG_JEN_exec.display_subtree (Sixpack.sixpack(), 'sixpack()', full=1)
+         MG_JEN_exec.display_subtree (Sixpack.iquv(), 'iquv()', full=1)
+         MG_JEN_exec.display_subtree (Sixpack.radec(), 'radec()', full=1)
 
    print '\n** End of local test of:',MG.script_name,'\n*******************\n'
        
