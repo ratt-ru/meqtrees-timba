@@ -78,6 +78,7 @@ inline double Condeq::calcDerivative (Vells &deriv,const VellSet &vs,int index,b
   return pert;
 }
 
+using VellsMath::tocomplex;
 
 //##ModelId=400E53050066
 int Condeq::getResult (Result::Ref &resref, 
@@ -152,7 +153,9 @@ int Condeq::getResult (Result::Ref &resref,
     // are collapsed into a single pert)
     VellSet &vellset = result.setNewVellSet(iplane,spids.size(),1);
     // The main value is measured-predicted.
-    vellset.setValue(*values[1] - *values[0]);
+    Vells mainval = *values[1] - *values[0];
+    vellset.setValue(mainval);
+    bool force_complex = mainval.isComplex();
     // set flags if any
     if( flagref.valid() )
       vellset.setDataFlags(flagref);
@@ -182,6 +185,19 @@ int Condeq::getResult (Result::Ref &resref,
       }      
       else 
         deriv = Vells(0.);
+      // check if we need to cast to complex
+      if( force_complex )
+      {
+        if( !deriv.isComplex() )
+          deriv = tocomplex(deriv,0);
+      }
+      else if( deriv.isComplex() ) // started not complex, but found a complex derivative, so need to convert everything
+      {
+        force_complex = true;
+        vellset.setValue(tocomplex(mainval,0));
+        for( uint j1=0; j1<j; j1++ )
+          vellset.setPerturbedValue(j1,tocomplex(vellset.getPerturbedValue(j1),0));
+      }
       vellset.setPerturbedValue(j,deriv_ref);
       vellset.setPerturbation(j,pert);
     }
