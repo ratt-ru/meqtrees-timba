@@ -46,7 +46,7 @@ pgmpath=`cd $pgmpath > /dev/null 2>&1  &&  pwd`
 args=
 for arg in "$@"
 do
-  argx=`echo "$arg" | sed -e "s/[a-zA-Z0-9_-/]//g"`
+  argx=`echo "$arg" | sed -e "s/[a-zA-Z0-9_/-]//g"`
   if [ "$argx" = "" ]; then
     args="$args $arg"
   else
