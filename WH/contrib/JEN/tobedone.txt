@@ -1,7 +1,10 @@
 file: ../WH/contrib/JEN/tobedone.txt
                                       last changed:   d20jan
 
-NB: Just temporary: To be converted into Bugzilla items....! 
+
+NB: Even though this document is checked in, it is just a compilation
+    of personal (JEN) notes, which might be out of date, or otherwise
+    lacking in polish.....! 
 
 
 
@@ -362,5 +365,35 @@ detected bugs:
    - NB: WSRT has a special room for the bandpass filters
      - Large volume of layered air (if undisturbe)
      - Access is discouraged
+
+ - Stefan/JDB: Limits of calibration (document Stefan, 15 jan 2006)
+   - Nr of equations vs nr of unknowns to be solved (ratio<0.1?)
+     - (This is the ONLY correct, and unconfusing) way to view the problem)
+     - Visibilities are independent after 10 sec (propto baseline length)
+     - Most parameters are station-based (selfcal condition)
+     - Station parameters vary slowly (time, freq)
+     - Ionosphere (MIM) has even smaller nr of parameters
+       - NB: Separate parameters needed for the brightest sources
+     - Source parameters vary very slowly in time
+   - Violation of Murphy's law (MAB):
+     - If errors are gaussian, they just increase the noise-level
+     - If they are systematic, they can be described with a smaller
+       nr of parameters (in time, mostly)
+   - Station (voltage) beamshapes:
+     - If regular dipole configuration: high sidelobes
+     - These are attenuated by dipole response (highest in zenith)
+       (and by delay smearing: considerable!)
+       (and by strong freq dependence of the sidelobes)
+     - When looking towards zenith: factor 4-6   
+     - But: at large zenith angles, the sidelobes that look to the 
+       zenith may be higher than the main lobe....! 
+       - A separate solution is needed, with extra parameters
+       - But: main and sidelobes share parameters (how?)
+     - Assume a priori knowledge of 1-10% (how defined?)
+       - How many parameters are needed per voltage beam?
+       - How bad is the situation in the first minute after
+         the HBA beamformer is switched (every 10 min)? 
+
+
 
                       ================================

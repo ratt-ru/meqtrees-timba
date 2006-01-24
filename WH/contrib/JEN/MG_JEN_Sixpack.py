@@ -166,6 +166,18 @@ def inarg_punit (pp, **kwargs):
                       '- 3c147:')
     return True
 
+#------------------------------------------------------------------------------
+
+def inarg_Sixpack_common (pp, **kwargs):
+    """Some common JEN_inarg definitions for Joneset definition functions"""
+    JEN_inarg.inarg_common(kwargs)
+    JEN_inarg.define(pp, 'parmtable', None, slave=kwargs['slave'], trace=trace, 
+                     help='name of the MeqParm table (AIPS++)')
+    # ** Solving instructions:
+    JEN_inarg.define(pp, 'unsolvable', tf=False, trace=trace, hide=True,
+                     help='if True, do NOT store solvegroup/parmgroup info')
+    return True
+
 
 #----------------------------------------------------------------------
 # Some sources are predefined: Modify parameters pp accordingly.
@@ -342,6 +354,7 @@ def newstar_source (ns=0, **pp):
 
    # Deal with input parameters (pp):
    pp.setdefault('name', 'cps')        # source name
+   inarg_Sixpack_common(pp)            # solvable, parmtable etc
    pp.setdefault('I0', 1.0)            # StokesI0 (Jy)
    pp.setdefault('Qpct', None)         # StokesQpct
    pp.setdefault('Upct', None)         # StokesUpct
@@ -360,13 +373,10 @@ def newstar_source (ns=0, **pp):
    # Adjust parameters pp for some special cases:
    predefined (pp)  
 
-   # print '**\n  pp=',pp,'\n'
-
    # Make the Sixpack and get its Parmset object:
    punit = pp['name']
-   Sixpack = TDL_Sixpack.Sixpack(label=punit)
+   Sixpack = TDL_Sixpack.Sixpack(label=punit, **pp)
    Sixpack.display()
-   # print dir(Sixpack)
    pset = Sixpack.Parmset 
    
    # Register the parmgroups:
@@ -566,15 +576,22 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    if 1:
+      name = '3c286'
+      name = '3c147'
+      name = 'SItest'
+      name = 'RMtest'
+      unsolvable = False
+      unsolvable = True
+      parmtable = None
+      parmtable = '<lsm-parmtable>'
+      Sixpack = newstar_source (ns, name=name,
+                                unsolvable=unsolvable,
+                                parmtable=parmtable)
       # Sixpack = newstar_source (ns)
-      # Sixpack = newstar_source (ns, name='3c147')
-      Sixpack = newstar_source (ns, name='RMtest')
-      # Sixpack = newstar_source (ns, name='SItest')
-      # Sixpack = newstar_source (ns, name='3c286')                    # <------ !!
       # Sixpack = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
       Sixpack.display()
       Sixpack.Parmset.display()
-      if 1:
+      if 0:
          Sixpack.nodescope(ns)
          MG_JEN_exec.display_subtree (Sixpack.stokesI(), 'stokesI()', full=1)
          MG_JEN_exec.display_subtree (Sixpack.sixpack(), 'sixpack()', full=1)

@@ -70,8 +70,9 @@ class Super:
                 qq[key] = key+': '+str(type(v))+'['+str(len(v))+']'
             elif isinstance(v, (list,tuple)):                 # avoid clutter
                 qq[key] = key+': '+str(type(v))+'['+str(len(v))+'] = '
-                if len(v)>5:
-                    qq[key] += str(v[:5])+'...'
+                nmax = 3
+                if len(v)>nmax:
+                    qq[key] += str(v[:nmax])+'...'
                 else:
                     qq[key] += str(v)
         self.history('inarg = '+str(qq))
@@ -108,20 +109,26 @@ class Super:
     def display_indent1(self): return 2*' '
     def display_indent2(self): return 6*' '
 
-    def display(self, txt=None, end=True):
+    def display(self, txt=None, end=True, full=False):
         indent1 = self.display_indent1()
         indent2 = self.display_indent2()
         ss = []
         ss.append('\n** '+self.type()+'.display('+str(txt)+'):')
         ss.append(indent1+self.oneliner())
-        ss.append(indent1+'* .ok() -> '+str(self.ok())+': .errors() -> '+str(self.errors())+' .warnings() -> '+str(self.warnings()))
+
+        s1 = '* .ok() -> '+str(self.ok())
+        s1 += ': .errors() -> '+str(self.errors())
+        s1 += ' .warnings() -> '+str(self.warnings())
+        ss.append(indent1+s1)
+
         hh = self.history()
         ss.append(indent1+'* Object history ('+str(len(hh))+' entries):')
         for i in range(len(hh)):
-                  ss.append(indent2+'* '+str(i)+': '+hh[i])
+            ss.append(indent2+'* '+str(i)+': '+hh[i])
         # ss.append(indent1+'*')
         if end: ss = self.display_end(ss)
         return ss
+
 
     def display_end(self, ss=[]):
         ss.append('** end of '+self.type()+'.display()\n')

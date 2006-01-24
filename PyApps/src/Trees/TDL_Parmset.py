@@ -67,18 +67,19 @@ class Parmset (TDL_common.Super):
         pp.setdefault('unsolvable', False)           # if True, do NOT store parmgroup/solvegroup info
         pp.setdefault('parmtable', None)             # name of MeqParm table (AIPS++)
 
-        self.__quals = dict()
+        TDL_common.Super.__init__(self, type='Parmset', **pp)
+
         self.__unsolvable = pp['unsolvable']
         self.__parmtable = pp['parmtable']
         self.check_parmtable_extension()
-
-        TDL_common.Super.__init__(self, type='Parmset', **pp)
         self.clear()
         return None
 
 
 
     def clear(self):
+        """Clear the object"""
+        self.__quals = dict()                        # record of default node-name qualifiers
         self.__parmgroup = dict()
         self.__pg_rider = dict()
         self.__condeq = dict()
@@ -90,7 +91,9 @@ class Parmset (TDL_common.Super):
         self.__buffer = dict()
         self.__node_groups = ['Parm']
 
-    def unsolvable(self): return self.__unsolvable
+    def unsolvable(self):
+        """If True, no parmgroup/solvegroup info is stored"""
+        return self.__unsolvable
 
     def quals(self, new=None, clear=False):
         """Get/set the default MeqParm node-name qualifier(s)"""
@@ -115,7 +118,7 @@ class Parmset (TDL_common.Super):
         s += ' pg:'+str(len(self.parmgroup()))
         s += ' sg:'+str(len(self.solvegroup()))
         s += ' cq:'+str(len(self.condeq()))
-        s += ' '+str(self.node_groups())
+        # s += ' '+str(self.node_groups())
         if self.unsolvable():
             s += ' unsolvable'
         else:
@@ -128,8 +131,8 @@ class Parmset (TDL_common.Super):
         ss = TDL_common.Super.display (self, txt=txt, end=False)
         indent1 = 2*' '
         indent2 = 6*' '
-
-        ss.append(indent1+' - Registered parmgroups:')
+ 
+        ss.append(indent1+' - Registered parmgroups ('+str(len(self.parmgroup()))+'):')
         for key in self.parmgroup().keys():
           pgk = self.parmgroup()[key]
           n = len(pgk)
@@ -138,24 +141,27 @@ class Parmset (TDL_common.Super):
           else:
             ss.append(indent2+' - '+key+' ( '+str(n)+' ): '+pgk[0]+' ... '+pgk[n-1])
 
+        ss.append(indent1+' - parmtable   = '+str(self.parmtable()))
+        ss.append(indent1+' - node_groups = '+str(self.node_groups()))
+        ss.append(indent1+' - unsolvable  = '+str(self.unsolvable()))
+
+        ss.append(indent1+' - Defined solvegroups ('+str(len(self.solvegroup()))+'):')
+        for key in self.solvegroup().keys():
+            ss.append(indent2+' - '+key+' :     parmgroups: '+str(self.solvegroup()[key]))
+
         ss.append(indent1+' - parmgroup riders (pg_rider):')
         for key in self.parmgroup().keys():
             if len(self.pg_rider()[key])>0:
                 ss.append(indent2+' - '+key+': '+str(self.pg_rider()[key]))
  
-        ss.append(indent1+' - parmgroup condeq definitions:')
+        ss.append(indent1+' - parmgroup condeq definitions ('+str(len(self.__condeq))+'):')
         for key in self.__condeq.keys():
             ss.append(indent2+' - '+key+': '+str(self.__condeq[key]))
- 
-        ss.append(indent1+' - unsolvable  = '+str(self.unsolvable()))
-        ss.append(indent1+' - node_groups = '+str(self.node_groups()))
-        ss.append(indent1+' - Defined solvegroups:')
-        for key in self.solvegroup().keys():
-            ss.append(indent2+' - '+key+' :  parmgroups: '+str(self.solvegroup()[key]))
 
-        ss.append(indent1+' - Contents of temporary buffer:')
-        for key in self.buffer().keys():
-            ss.append(indent2+' - '+key+': '+str(self.buffer()[key]))
+        if full:
+            ss.append(indent1+' - Contents of temporary buffer:')
+            for key in self.buffer().keys():
+                ss.append(indent2+' - '+key+': '+str(self.buffer()[key]))
 
         ss.append(indent1+' - Available MeqParm nodes ( '+str(self.len())+' ):')
         if full or self.len()<10:

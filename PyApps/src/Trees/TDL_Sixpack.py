@@ -1,6 +1,18 @@
 #!/usr/bin/env python
 
-## Sixpack Object
+# TDL_Sixpack.py
+#
+# Author: S.Yatawatta and J.E.Noordam
+#
+# Short description:
+#    A Joneset object encapsulates 2x2 instrumental jones matrices for a set of stations.
+#
+# History:
+#    - 02 sep 2005: creation
+#    - 02 jan 2006: adopted TDL_Parmset.py
+#
+# Full description:
+#
 
 from Timba.Meq import meq
 from Timba.Trees import TDL_common
@@ -12,6 +24,232 @@ import math
 _dbg = utils.verbosity(0, name='Sixpack')
 _dprint = _dbg.dprint                    # use: _dprint(2, "abc")
 _dprintf = _dbg.dprintf   
+
+
+
+
+
+
+
+
+##########################################################################################
+##########################################################################################
+##########################################################################################
+
+
+class Sixpack:
+    """
+    Constructors:
+    Sixpack(stokesI=sI,stokesQ=sQ,stokesU=sU,stokesV=sV,ra=RA,dec=Dec,label=label): 
+    by default, stokesI=1.0 and dec=pi/2 and all other node stubs are zero
+    
+    Sixpack(stokesI=sI,stokesQ=sQ,stokesU=sU,stokesV=sV,ra=RA,dec=Dec,ns=ns,label=label): 
+    by default, stokesI=1.0 and dec=pi/2 and all other node stubs are zero,
+    composed into one subtree as well.
+    
+    Other methods:
+    decompose() : decomposes the root into six subtrees
+    in composed state, sixpack !=None,
+    in decomposed state, sixpack ==None
+    sixpack(ns=ns): if already composed, return the sixpack subtree,
+    else, first compose it using given nodescope and return it
+    iquv(ns=ns): compose the fourpack using the given nodescope 
+    and return it or return an already composed subtree
+    radec(ns=ns): compose the twopack using the given nodescope and
+    return it or return an already composed subtree
+    
+    stokesI(new_stokesI):
+    if called without any input, returns the StokesI,
+    else, set StokesI node stub to the new value
+    stokesQ(new_stokesQ):
+    stokesU(new_stokesQ):
+    stokesV(new_stokesQ): same as above stokesI()
+    
+    ra(new_RA): 
+    dec(new_Dec): same as above stokesI()
+
+    Sixpack_Point contains:
+    __label: label of root node, if any
+    
+    node stubs
+    __sI:
+    __sQ:
+    __sU:
+    __sV:
+    __RA:
+    __Dec: six stubs for the six subtrees
+    __sixpack: Root of the Sixpack subtree
+    __iquv: root of fourpack subtree
+    __radec: root of radec subtree
+    """
+    """
+    Constructors:
+    Sixpack(root=root,label=label): 
+    the above two are mandetory, only in a patch the 'root' input argument
+    should be given. Note that by default both are set to None. 
+    
+    Other methods:
+    root() : return the root 
+    
+    Sixpack_Patch contains:
+    __label: label of root node, if any
+    __root: root of subtree
+    """
+
+    def __init__(self,**pp):
+        """
+        Depending on the input, this can be a Sixpack_Point or Sixpack_Patch
+        """
+        pp.setdefault('root',None)
+        pp.setdefault('unsolvable', False)           # if True, do NOT store parmgroup/solvegroup info
+        pp.setdefault('parmtable', None)             # name of MeqParm table (AIPS++)
+
+        if pp['root']!=None:
+            # create a Sixpack_Patch
+            # print "Create Patch"
+            self.__obj=Sixpack_Patch(**pp)
+            self.__point=False
+        else:
+            # print "Create Point"
+            self.__obj=Sixpack_Point(**pp)
+            self.__point=True
+  
+        # Define its Parmset object
+        self.Parmset = TDL_Parmset.Parmset(**pp)
+        self.Parmset.quals(dict(q=self.label()))       # punit...?
+        return None
+
+
+
+    def ra(self,val=None):
+        """Right Ascension (rad)"""
+        if self.__point:
+            return self.__obj.ra(val)
+        else:
+            return None
+
+    def dec(self,val=None):
+        """Declination (rad)"""
+        if self.__point:
+            return self.__obj.dec(val)
+        else:
+            return None
+
+    def stokesI(self,val=None):
+        """Stokes parameter: total intensity (Jy)"""
+        if self.__point:
+            return self.__obj.stokesI(val)
+        else:
+            return None
+
+    def stokesQ(self,val=None):
+        """Stokes parameter: linear polarisation (Jy)"""
+        if self.__point:
+            return self.__obj.stokesQ(val)
+        else:
+            return None
+
+    def stokesU(self,val=None):
+        """Stokes parameter: linear polarisation (Jy)"""
+        if self.__point:
+            return self.__obj.stokesU(val)
+        else:
+            return None
+
+    def stokesV(self,val=None):
+        """Stokes parameter: circular polarisation (Jy)"""
+        if self.__point:
+            return self.__obj.stokesV(val)
+        else:
+            return None
+
+    def nodescope(self,val=None):
+        if self.__point:
+            return self.__obj.nodescope(val)
+        else:
+            return None
+
+    def decompose(self):
+        """Decompose the sixpack into six node stubs"""
+        if self.__point:
+            self.__obj.decompose()
+        else:
+            return None
+
+    def sixpack(self,ns=None):
+        """Compose the sixpack from the six node stubs"""
+        if self.__point:
+            return self.__obj.sixpack(ns)
+        else:
+            return None
+
+    def iquv(self,ns=None):
+        """Return the 4-pack (I,Q,U,V) from the six node stubs"""
+        if self.__point:
+            return self.__obj.iquv(ns)
+        else:
+            return None
+
+    def radec(self,ns=None):
+        """Return the 2-pack (RA, Dec) from the six node stubs"""
+        if self.__point:
+            return self.__obj.radec(ns)
+        else:
+            return None
+
+        
+    def oneliner(self):
+        """Return a one-line summary of the object"""
+        return self.__obj.oneliner()
+
+    def display(self, txt=None, full=False):
+        """Display a summary of the object"""
+        ss = self.__obj.display(txt,full)
+        indent1=2*' '
+        ss.append(indent1+' - '+str(self.Parmset.oneliner()))
+        return ss
+
+    def __str__(self):
+        """Generic string"""
+        return self.oneliner()
+
+    def root(self):
+        """The following method is only valid for a patch"""
+        if not self.__point:
+            return self.__obj.root()
+        else:
+            return None
+
+    def label(self,*nkw,**kw):
+        """The following method is only valid for a patch"""
+        return self.__obj.label(*nkw,**kw)
+
+    def type(self, *nkw, **kw):
+        """Return object type"""
+        return self.__obj.type(*nkw,**kw)
+
+    def ispoint(self):
+        """True if the object is a point source"""
+        return self.__point
+
+    def clone(self,**kw):
+        """Clone..."""
+        self.__obj.clone(**kw)
+        return self
+
+    def coh22(self, ns, polrep='linear', name='nominal'):
+        """Make a 2x2 nominal cohaerency matrix with the specified polarisation representation"""
+        return self.__obj.coh22(ns, polrep=polrep, name=name)
+
+
+
+
+
+##########################################################################################
+##########################################################################################
+##########################################################################################
+
+
 
 class Sixpack_Point(TDL_common.Super):
     """
@@ -68,8 +306,8 @@ class Sixpack_Point(TDL_common.Super):
         """
 
         pp.setdefault('label',None)
+
         pp.setdefault('ns',None)
-        # pp.setdefault('type','Sixpack')
         pp.setdefault('ra',0)
         pp.setdefault('dec',math.pi/2)
         pp.setdefault('stokesI',1.0)
@@ -78,7 +316,6 @@ class Sixpack_Point(TDL_common.Super):
         pp.setdefault('stokesV',0)
         
         TDL_common.Super.__init__(self, type='Sixpack_point', **pp)
-        # TDL_common.Super.__init__(self, **pp)
 
         self.__label=pp['label']
         self.__sI=pp['stokesI']
@@ -392,209 +629,6 @@ class Sixpack_Patch(TDL_common.Super):
         """
         return self
  
-
-##########################################################################################
-##########################################################################################
-##########################################################################################
-
-class Sixpack:
-    """
-    Constructors:
-    Sixpack(stokesI=sI,stokesQ=sQ,stokesU=sU,stokesV=sV,ra=RA,dec=Dec,label=label): 
-    by default, stokesI=1.0 and dec=pi/2 and all other node stubs are zero
-    
-    Sixpack(stokesI=sI,stokesQ=sQ,stokesU=sU,stokesV=sV,ra=RA,dec=Dec,ns=ns,label=label): 
-    by default, stokesI=1.0 and dec=pi/2 and all other node stubs are zero,
-    composed into one subtree as well.
-    
-    Other methods:
-    decompose() : decomposes the root into six subtrees
-    in composed state, sixpack !=None,
-    in decomposed state, sixpack ==None
-    sixpack(ns=ns): if already composed, return the sixpack subtree,
-    else, first compose it using given nodescope and return it
-    iquv(ns=ns): compose the fourpack using the given nodescope 
-    and return it or return an already composed subtree
-    radec(ns=ns): compose the twopack using the given nodescope and
-    return it or return an already composed subtree
-    
-    stokesI(new_stokesI):
-    if called without any input, returns the StokesI,
-    else, set StokesI node stub to the new value
-    stokesQ(new_stokesQ):
-    stokesU(new_stokesQ):
-    stokesV(new_stokesQ): same as above stokesI()
-    
-    ra(new_RA): 
-    dec(new_Dec): same as above stokesI()
-
-    Sixpack_Point contains:
-    __label: label of root node, if any
-    
-    node stubs
-    __sI:
-    __sQ:
-    __sU:
-    __sV:
-    __RA:
-    __Dec: six stubs for the six subtrees
-    __sixpack: Root of the Sixpack subtree
-    __iquv: root of fourpack subtree
-    __radec: root of radec subtree
-    """
-    """
-    Constructors:
-    Sixpack(root=root,label=label): 
-    the above two are mandetory, only in a patch the 'root' input argument
-    should be given. Note that by default both are set to None. 
-    
-    Other methods:
-    root() : return the root 
-    
-    Sixpack_Patch contains:
-    __label: label of root node, if any
-    __root: root of subtree
-    """
-
-    def __init__(self,**pp):
-        """
-        Depending on the input, this can be a Sixpack_Point or Sixpack_Patch
-        """
-        pp.setdefault('root',None)
-        if pp['root']!=None:
-            # create a Sixpack_Patch
-            # print "Create Patch"
-            self.__obj=Sixpack_Patch(**pp)
-            self.__point=False
-        else:
-            # print "Create Point"
-            self.__obj=Sixpack_Point(**pp)
-            self.__point=True
-  
-        # Define its Parmset object
-        self.Parmset = TDL_Parmset.Parmset(**pp)
-        self.Parmset.quals(dict(q=self.label()))       # punit...?
-        # print dir(self)
-        return None
-
-
-
-    def ra(self,val=None):
-        if self.__point:
-            return self.__obj.ra(val)
-        else:
-            return None
-
-    def dec(self,val=None):
-        if self.__point:
-            return self.__obj.dec(val)
-        else:
-            return None
-
-    def stokesI(self,val=None):
-        if self.__point:
-            return self.__obj.stokesI(val)
-        else:
-            return None
-
-    def stokesQ(self,val=None):
-        if self.__point:
-            return self.__obj.stokesQ(val)
-        else:
-            return None
-
-    def stokesU(self,val=None):
-        if self.__point:
-            return self.__obj.stokesU(val)
-        else:
-            return None
-
-    def stokesV(self,val=None):
-        if self.__point:
-            return self.__obj.stokesV(val)
-        else:
-            return None
-
-    def nodescope(self,val=None):
-        if self.__point:
-            return self.__obj.nodescope(val)
-        else:
-            return None
-
-    # decompose the sixpack into six node stubs
-    def decompose(self):
-        if self.__point:
-            self.__obj.decompose()
-        else:
-            return None
-
-    # compose the sixpack from the six node stubs
-    def sixpack(self,ns=None):
-        if self.__point:
-            return self.__obj.sixpack(ns)
-        else:
-            return None
-
-    # return the 4pack from the six node stubs
-    def iquv(self,ns=None):
-        if self.__point:
-            return self.__obj.iquv(ns)
-        else:
-            return None
-
-    # return the 2pack from the six node stubs
-    def radec(self,ns=None):
-        if self.__point:
-            return self.__obj.radec(ns)
-        else:
-            return None
-
-        
-    # print a summary
-    def oneliner(self):
-        return self.__obj.oneliner()
-
-    def display(self,txt=None,full=False):
-        ss = self.__obj.display(txt,full)
-        indent1=2*' '
-        ss.append(indent1+' - '+str(self.Parmset.oneliner()))
-        return ss
-
-    # generic string
-    def __str__(self):
-        return self.oneliner()
-
-    # the following method is only valid for a patch
-    def root(self):
-        if not self.__point:
-            return self.__obj.root()
-        else:
-            return None
-
-    # the following method is only valid for a patch
-    def label(self,*nkw,**kw):
-        return self.__obj.label(*nkw,**kw)
-
-    def type(self,*nkw,**kw): 
-        return self.__obj.type(*nkw,**kw)
-
-    # the following method is used to see if this object is a patch or a point source
-    def ispoint(self):
-        return self.__point
-
-    def clone(self,**kw):
-        self.__obj.clone(**kw)
-        return self
-
-
-    #----------------------------------------------------------------------
-    # Function dealing with conversion to a 2x2 cohaerency matrix
-    # JEN, 10 oct 2005
-
-    def coh22(self, ns, polrep='linear', name='nominal'):
-        """Make a 2x2 nominal cohaerency matrix of the specified polarisation representation"""
-        return self.__obj.coh22(ns, polrep=polrep, name=name)
-
 
 
 

@@ -207,7 +207,8 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     funcname = JEN_inarg.localscope(pp)
 
     # Make sure that there is a valid source/patch Sixpack:
-    if not Sixpack: Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
+    if not Sixpack:
+        Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
     punit = Sixpack.label()
 
     # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
@@ -226,7 +227,7 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     # ifr-slots of the Cohset:
     Cohset.uniform(ns, nominal)
 
-    # Optionally, multiply the Cohset with the KJones (DFT) Joneset
+    # Optionally, multiply the Cohset with the KJones (DFT) Joneset:
     if False:
        KJones = MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
                                        MSauxinfo=MSauxinfo(),
