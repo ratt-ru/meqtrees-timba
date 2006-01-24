@@ -27,7 +27,8 @@ DISTCLEANFILES=\
       lofar_config.h-pkg\
       lofar_config.h\
       .doxygenrc \
-      *.spec
+      *.spec \
+      *.err
 
 # Make the rpm if possible.
 # Note:
