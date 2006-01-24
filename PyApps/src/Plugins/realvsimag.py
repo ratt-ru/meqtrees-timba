@@ -122,6 +122,15 @@ class realvsimag_plotter(object):
         'dashdotline' : Qt.DashDotLine,
         'dashdotdotline' : Qt.DashDotDotLine,
         }
+
+  menu_table = {
+        'Toggle flagged data': 200,
+        'Toggle blink of flagged data': 201,
+        'Toggle results history': 202,
+        'Modify Plot Parameters': 299,
+        'Reset zoomer': 300,
+        'Toggle Legend': 301,
+        }
     
   def __init__(self, plot_key=None, parent=None):
         # QWidget.__init__(self, parent)
@@ -188,6 +197,7 @@ class realvsimag_plotter(object):
         self._flags_r_dict = {}
         self.flag_plot_dict={}
 
+        self.setResults = True
         self.flag_toggle = True
         self.flag_blink = False
         self.toggle_menu_added = False
@@ -358,8 +368,11 @@ class realvsimag_plotter(object):
         
         self.zoom(False);
         self.setZoomerMousePattern(0);
-
   # __initContextMenu(self):
+
+  def setResultsSelector(self):
+    toggle_id = self.menu_table['Toggle results history']
+    self._menu.insertItem("Toggle results history", toggle_id)
 
 ##    def __initToolBar(self):
 ##        """Initialize the toolbar
@@ -465,6 +478,10 @@ class realvsimag_plotter(object):
     if menuid == 301:
       self.toggleLegend()
       return
+
+    if menuid == self.menu_table['Toggle results history']:
+      self.toggleResults()
+      return
 	
 # toggle flags display	
     if menuid == 200:
@@ -517,6 +534,14 @@ class realvsimag_plotter(object):
 
     # toggleLegend()
 
+  def toggleResults(self):
+    if self.setResults:
+      self.setResults = False
+    else:
+      self.setResults = True
+    self.plot.emit(PYSIGNAL("show_results_selector"),(self.setResults,))
+
+    # toggleLegend()
 
   def slotMousePressed(self, e):
     """ Mouse press processing instructions go here"""
@@ -1070,10 +1095,10 @@ class realvsimag_plotter(object):
 # if we have read in flagged data, need to add 
 # toggle stuff to context menu
         if not self.toggle_menu_added:
-          caption = "toggle flagged data" 
+          caption = "Toggle flagged data" 
           toggle_id = 200
           self._menu.insertItem(caption,toggle_id)
-          caption = "toggle blink of flagged data"
+          caption = "Toggle blink of flagged data"
           toggle_id = 201
           self._menu.insertItem(caption,toggle_id)
           self.toggle_menu_added = True

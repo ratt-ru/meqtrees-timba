@@ -769,7 +769,18 @@ class ResultPlotter(GriddedPlugin):
       self.layout.addWidget(self.results_selector, 1,1)
       self.results_selector.show()
       QObject.connect(self.results_selector, PYSIGNAL('result_index'), self.replay_data)
+      self._visu_plotter.setResultsSelector()
+      if self._plot_type == 'realvsimag':
+        QObject.connect(self._visu_plotter.plot, PYSIGNAL('show_results_selector'), self.show_selector)
+      else:
+        QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_selector)
     self.results_selector.setRange(self.data_list_length)
+
+  def show_selector (self, do_show_selector):
+    if do_show_selector:
+      self.results_selector.show()
+    else:
+      self.results_selector.hide()
 
   def set_ND_controls (self, labels, parms):
     """ this function adds the extra GUI control buttons etc if we are

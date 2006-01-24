@@ -102,6 +102,7 @@ class QwtImageDisplay(QwtPlot):
         'Toggle real/imag or ampl/phase Display': 306,
         'Toggle axis flip': 307,
         'Toggle logarithmic range for image': 308,
+        'Toggle results history': 309,
         }
 
     _start_spectrum_menu_id = 0
@@ -178,6 +179,7 @@ class QwtImageDisplay(QwtPlot):
         self.show_x_sections = False
         self.flag_range = False
         self.axes_flip = False
+        self.setResults = True
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -338,6 +340,10 @@ class QwtImageDisplay(QwtPlot):
 
 	self.refresh_marker_display()
 
+    def setResultsSelector(self):
+      toggle_id = self.menu_table['Toggle results history']
+      self._menu.insertItem("Toggle results history", toggle_id)
+
     def handle_basic_menu_id(self, menuid):
       if menuid < 0:
         self.zoom()
@@ -380,6 +386,13 @@ class QwtImageDisplay(QwtPlot):
         else:
           self.toggle_ND_Controller = 1
         self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+        return True
+      if menuid == self.menu_table['Toggle results history']:
+        if self.setResults:
+          self.setResults = False
+        else:
+          self.setResults = True
+        self.emit(PYSIGNAL("show_results_selector"),(self.setResults,))
         return True
       if menuid == self.menu_table['Toggle real/imag or ampl/phase Display']:
         if self.ampl_phase:
