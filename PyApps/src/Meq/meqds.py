@@ -566,32 +566,7 @@ def update_node_state (state,event):
   if nodelist:
     nodelist[ni].update_state(state,event);
 
-def add_node_snapshot (state,event):
-  ni = state.nodeindex;
-  _dprint(5,"adding snapshot for node ",state.name);
-  # update state
-  try: node = nodelist[ni];
-  except KeyError: pass;
-  else: node.update_state(state,event);
-  # get list of snapshots and filter it to eliminate dead refs
-  sslist = filter(lambda s:s[0]() is not None,snapshots.get(ni,[]));
-  if len(sslist) and sslist[-1][0]() == state:
-    state.__nochange = True;
-    return;
-  sslist.append((weakref.ref(state),event,time.time()));
-  snapshots[ni] = sslist;
-  
-def get_node_snapshots (node):
-  ni = nodeindex(node);
-  sslist0 = snapshots.get(ni,[]);
-  # filter out dead refs, reset list if it changes
-  sslist = filter(lambda s:s[0]() is not None,sslist0);
-  if len(sslist) != len(sslist0):
-    snapshots[ni] = sslist;
-  return sslist;
-
 # create global node list
-snapshots = {};
 nodelist = NodeList();
 
 _mqs = None;
