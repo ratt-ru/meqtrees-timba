@@ -144,6 +144,7 @@ Execute                          1479       ; from /home/oms/LOFAR/Timba/MeqServ
 Executing                        1623       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:20
 Exit                             1230       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
 Exposure                         1159       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
+Extent                           1639       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:36
 F                                1026       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Factor                           1593       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:33
 Fail                             1248       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
