@@ -373,17 +373,19 @@ class TDLEditor (QFrame,PersistentCurrier):
         item.setOpen(True);
         self._error_items.append(item);
         # set item content
-        item.setText(1,errmsg);
         if filename is None:
-          item.setText(2,"[internal error; more info may be available on the text console]");
-        elif filename == self._filename:
-          item._err_location = index,None,line,column;
-          item.setText(2,"[line %d]" % (line,));
-          self._editor.markerAdd(line-1,self.ErrorMarker);
-          self._error_at_line.setdefault(line-1,item);
+          item.setText(2,"["+errmsg+"]");
+          item.setText(1,"internal compilation error; see text console for more info");
         else:
-          item._err_location = index,filename,line,column;
-          item.setText(2,"[line %d of %s]" % (line,filename));
+          item.setText(1,errmsg);
+          if filename == self._filename:
+            item._err_location = index,None,line,column;
+            item.setText(2,"[line %d]" % (line,));
+            self._editor.markerAdd(line-1,self.ErrorMarker);
+            self._error_at_line.setdefault(line-1,item);
+          else:
+            item._err_location = index,filename,line,column;
+            item.setText(2,"[line %d of %s]" % (line,filename));
       if nhere == nerr-1:
         self._error_count_label.setText('<b>%d</b> errors total'%(nhere,));
       else:
@@ -579,6 +581,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       self.set_error_list(value.args);
       return None;
     except Exception,value:
+      traceback.print_exc();
       self.set_error_list([value]);
       return None;
     # refresh the nodelist

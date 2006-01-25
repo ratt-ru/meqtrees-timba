@@ -143,24 +143,24 @@ def compile_file (mqs,filename,text=None,parent=None,
   except:
     (etype,exc,tb) = sys.exc_info();
     _dprint(0,'exception compiling TDL file:',filename);
-    traceback.print_exception(etype,exc,tb);
-    tb = traceback.extract_tb(tb);
     # create new error object, with type: args message
     try:
-      args = " ".join(exc.args);
+      args = str(exc.args[0]);
       err = etype("%s: %s"%(etype.__name__,args));
     except AttributeError:
       err = etype(etype.__name__);
-    # is this an internal error?
+    # figure out where it was raised
+    tb = traceback.extract_tb(tb);
     internal = ( os.path.dirname(tb[-1][0]) == _MODULE_DIRNAME );
-    # get location info
+    # get location info from original exception
     filename = getattr(exc,'filename',None);
     lineno   = getattr(exc,'lineno',None);
-    offset   = getattr(exc,'offset',0);
+    offset   = getattr(exc,'offset',0) or 0;
+    # if not provided, get from traceback
     if filename is None and not internal:
       filename = tb and tb[-1][-0];
-    if lineno is None and not internal:
       lineno = tb[-1][1];
+      offset = 0;
     # put into error object
     setattr(err,'filename',filename);
     setattr(err,'lineno',lineno);

@@ -407,11 +407,13 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     sz = self.size().expandedTo(QSize(size[0],size[1]));
     self.resize(sz);
     
-    #------ populate the custom event map
-    self._ce_handler_map = { 
-      hiid("hello"):            [self._connected_event,self.ce_UpdateState],
-      hiid("bye"):              [self._disconnected_event,self.ce_UpdateState],
-      hiid("app.notify.state"): [self.ce_UpdateState]                };
+    # events from remote application are emitted as PYSIGNALS taking
+    # two arguments. Connect some standard handlers here
+    QObject.connect(self,PYSIGNAL("hello"),self._connected_event);
+    QObject.connect(self,PYSIGNAL("hello"),self.ce_UpdateState);
+    QObject.connect(self,PYSIGNAL("bye"),self._disconnected_event);
+    QObject.connect(self,PYSIGNAL("bye"),self.ce_UpdateState);
+    QObject.connect(self,PYSIGNAL("app.notify.state"),self.ce_UpdateState);
       
     #------ start timer when in polling mode
     if poll_app:
@@ -620,9 +622,6 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     splitter.setSizes([200,600]);
 ##    self.maintab.setCornerWidget(self.pause_button,Qt.TopRight);
     
-  def _add_ce_handler (self,event,handler):
-    self._ce_handler_map.setdefault(make_hiid(event),[]).append(handler);
-
   def show(self):
     #------ show the main window
     self.dprint(2,"showing GUI"); 
@@ -767,9 +766,8 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       ev0 = ev;
       if int(ev0[-1]) >= 0:
         ev0 = ev0[:-1];
-      # execute procedures from the custom map
-      for handler in self._ce_handler_map.get(ev0,()):
-        handler(ev,value);
+      # emit event as a PYSIGNAL so that registered handlers can get it
+      self.emit(PYSIGNAL(str(ev).lower()),(ev,value));
       # finally, just in case we've somehow missed a Hello message,
       # force a connected call signal
       if not self._connected and ev0 != hiid('bye'):

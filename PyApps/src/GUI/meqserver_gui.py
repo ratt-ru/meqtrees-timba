@@ -13,6 +13,7 @@ from Timba.GUI import meqgui
 from Timba.GUI import bookmarks 
 from Timba.GUI import connect_meqtimba_dialog 
 from Timba.GUI import widgets 
+from Timba.GUI import VisProgressMeter 
 from Timba.Apps.config import Config
 from Timba import Grid
 from Timba import TDL
@@ -58,11 +59,10 @@ class meqserver_gui (app_proxy_gui):
     # init standard proxy GUI
     app_proxy_gui.__init__(self,app,*args,**kwargs);
     # add handlers for various application events
-    self._add_ce_handler("node.result",self.ce_NodeResult);
-    self._add_ce_handler("process.status",self.ce_ProcessStatus);
-    self._add_ce_handler("result.node.get.state",self.ce_NodeState);
-    self._add_ce_handler("result.get.node.list",self.ce_LoadNodeList);
-    self._add_ce_handler("vis.num.tiles",self.ce_UpdateNumTiles);
+    QObject.connect(self,PYSIGNAL("node.result"),self.ce_NodeResult);
+    QObject.connect(self,PYSIGNAL("process.status"),self.ce_ProcessStatus);
+    QObject.connect(self,PYSIGNAL("result.node.get.state"),self.ce_NodeState);
+    QObject.connect(self,PYSIGNAL("result.get.node.list"),self.ce_LoadNodeList);
     
   def populate (self,main_parent=None,*args,**kwargs):
     # init icons
@@ -155,16 +155,23 @@ class meqserver_gui (app_proxy_gui):
 #     self.tdledit = tdl_editor.TDLEditor(self,"tdl editor tab");
 #     self.add_tab(self.tdledit,"TDL");
 #     QObject.connect(self.tdledit,PYSIGNAL("loadedFile()"),self._set_tdl_pathname);
-    
+
     # excluse ubiquotous events from the event logger
     self.eventlog.set_mask('!node.status.*;!process.status;'+self.eventlog.get_mask());
     
-    # add dummy stretch, and a memory size widget
+    # add a VisProgressMeter to status bar 
+    self._visprogmeter = VisProgressMeter.VisProgressMeter(self.statusbar);
+    self._visprogmeter.hide();
+    self.statusbar.addWidget(self._visprogmeter); # ,2);
+    self._visprogmeter.connect_app_signals(self);
+    
+    # add dummy stretch, and a memory size widget to status bar
     self._wstat = ProcStatusWidget(self.statusbar);
     self._wstat.hide();
     dum = QWidget(self.statusbar);
+    dum.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Preferred);
     self.statusbar.addWidget(dum,10);
-    self.statusbar.addWidget(self._wstat,0);
+    self.statusbar.addWidget(self._wstat) #,0);
     
     # build menu bar
     self._menus = {};
@@ -991,34 +998,6 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     except AttributeError: pass;
     else: self.treebrowser.update_forest_status(fst);
     
-  def ce_UpdateNumTiles (self,ev,rec):
-    try: 
-      nt = rec.num_tiles;
-      nch = rec.num_chunks;
-      time0 = int(rec.time_0);
-      time1 = int(rec.time_1);
-    except AttributeError: return;
-    try: 
-      msg = " node '"+rec.node+"': ";
-    except AttributeError: 
-      msg = "";
-    if nt:
-      if nt == 1:
-        stiles = "1 tile";
-      else:
-        stiles = "%d tiles"%nt;  
-      (time0,secs) = divmod(time0,60);
-      (time0,mins) = divmod(time0,60);
-      timestr = "%d:%02d:%02d"%(time0,mins,secs);
-      if time1 != time0:
-        (time1,secs) = divmod(time1,60);
-        (time1,mins) = divmod(time1,60);
-        timestr += " to %d:%02d:%02d"%(time1,mins,secs);
-      msg += "%s (%d chunks), relative time %s " % (stiles,nch,timestr);
-    else:
-      msg += "0 tiles";
-    self.status_label.setText(msg); 
-        
   def update_node_state (self,node,event=None):
     meqds.reclassify_nodestate(node);
     udi = meqds.node_udi(node);

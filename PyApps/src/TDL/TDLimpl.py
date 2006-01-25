@@ -104,7 +104,8 @@ class _NodeDef (object):
         # no -- assume sequence of children
         if [ True for y in x if not isinstance(y,tuple) or len(y) != 2 ]:
           list.__init__(self,enumerate(x));
-        else: # yes -- use directly
+        else: # yes -- use directly, assume is a dict
+          self.is_dict = True;
           list.__init__(self,x);
       else:
         list.__init__(self,[(0,x)]);
