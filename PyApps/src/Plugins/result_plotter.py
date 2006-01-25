@@ -570,7 +570,7 @@ class ResultPlotter(GriddedPlugin):
       for i in range(len(self.data_list_labels)):
         if self.data_list_labels[i] == self.label:
           label_found = True
-    if not label_found:
+    if not label_found and self.max_list_length > 0:
       if len(self.data_list_labels) > self.max_list_length - 1:
         del self.data_list_labels[0]
         del self.data_list[0]
@@ -786,16 +786,28 @@ class ResultPlotter(GriddedPlugin):
       self.results_selector.hide()
 
   def adjust_results_buffer (self, signal_value):
-#   self.max_list_length
-    print ' in adjust_results_buffer'
-    results_dialog = BufferSizeDialog(self.max_list_length)
+    if self._plot_type == 'realvsimag':
+      results_dialog = BufferSizeDialog(self.max_list_length, parent = self._visu_plotter.plot)
+    else:
+      results_dialog = BufferSizeDialog(self.max_list_length, parent = self._visu_plotter)
     QObject.connect(results_dialog,PYSIGNAL("return_value"),self.set_results_buffer)
+ 
     results_dialog.show()
-    print ' exiting adjust_results_buffer'
-    
 
   def set_results_buffer (self, result_value):
-    print ' in set_results_buffer with value ', result_value
+    if result_value < 0:
+      return
+    self.max_list_length = result_value
+    if len(self.data_list_labels) > self.max_list_length:
+      differ = len(self.data_list_labels) - self.max_list_length
+      for i in range(differ):
+        del self.data_list_labels[0]
+        del self.data_list[0]
+
+    if len(self.data_list) != self.data_list_length:
+      self.data_list_length = len(self.data_list)
+      if self.data_list_length > 1:
+        self.results_selector.setRange(self.data_list_length)
 
   def set_ND_controls (self, labels, parms):
     """ this function adds the extra GUI control buttons etc if we are

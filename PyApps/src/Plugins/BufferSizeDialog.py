@@ -70,7 +70,6 @@ class BufferSizeDialog(QDialog):
         self.value = a0
 
     def runDone(self):
-        print 'returning ', self.value
         self.emit(PYSIGNAL("return_value"),(self.value,))
         self.done(self.value)
 
