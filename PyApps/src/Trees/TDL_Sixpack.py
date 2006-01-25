@@ -104,15 +104,15 @@ class Sixpack:
         pp.setdefault('unsolvable', False)           # if True, do NOT store parmgroup/solvegroup info
         pp.setdefault('parmtable', None)             # name of MeqParm table (AIPS++)
 
-        if pp['root']!=None:
+        if pp['root'] != None:
             # create a Sixpack_Patch
             # print "Create Patch"
-            self.__obj=Sixpack_Patch(**pp)
-            self.__point=False
+            self.__obj = Sixpack_Patch(**pp)
+            self.__point = False
         else:
             # print "Create Point"
-            self.__obj=Sixpack_Point(**pp)
-            self.__point=True
+            self.__obj = Sixpack_Point(**pp)
+            self.__point = True
   
         # Define its Parmset object
         self.Parmset = TDL_Parmset.Parmset(**pp)
@@ -190,7 +190,7 @@ class Sixpack:
         else:
             return None
 
-    def radec(self,ns=None):
+    def radec(self, ns=None):
         """Return the 2-pack (RA, Dec) from the six node stubs"""
         if self.__point:
             return self.__obj.radec(ns)
@@ -204,10 +204,15 @@ class Sixpack:
 
     def display(self, txt=None, full=False):
         """Display a summary of the object"""
-        ss = self.__obj.display(txt,full)
+        ss = self.__obj.display(txt, full=full)
         indent1=2*' '
         ss.append(indent1+' - '+str(self.Parmset.oneliner()))
+        #--------------------------------------------------------
+        ss.append('** end of '+self.type()+'.display()\n')
+        for s in ss: print s
         return ss
+        #--------------------------------------------------------
+        # return TDL_common.Super.display_end(self, ss)
 
     def __str__(self):
         """Generic string"""
@@ -456,17 +461,17 @@ class Sixpack_Point(TDL_common.Super):
 
     def radec(self, ns=None):
         """return the 2pack from the six node stubs"""
-        if self.__radec!=None:
+        if self.__radec != None:
             return self.__radec
-        my_ns=ns
-        if my_ns!=None:
+        my_ns = ns
+        if my_ns != None:
             # update nodescope
-            self.__ns=ns
+            self.__ns = ns
         else:
             # no nodescope given, use default nodescope
-            my_ns=self.__ns
+            my_ns = self.__ns
         my_name=self.__label
-        if  my_ns!=None and my_name !=None:
+        if  my_ns != None and my_name != None:
             # compose with given label
             self.__radec=my_ns.radec(q=my_name) << Meq.Composer(self.__RA, self.__Dec)
         else:
@@ -495,7 +500,6 @@ class Sixpack_Point(TDL_common.Super):
         """Display a summary of the object"""
         ss=TDL_common.Super.display(self, txt=txt,end=False)
         indent1=2*' '
-        # ss.append(" ")
         ss.append(indent1+"- stokesI (node stub)= "+str(self.__sI))
         ss.append(indent1+"- stokesQ (node stub)= "+str(self.__sQ))
         ss.append(indent1+"- stokesU (node stub)= "+str(self.__sU))
@@ -512,9 +516,8 @@ class Sixpack_Point(TDL_common.Super):
             ss.append(indent1+"- State is 'composed'")
         else:
             ss.append(indent1+"- State is 'decomposed'")
-        # ss.append(indent1+' - '+str(self.Parmset.oneliner()))
-        # ss.append(" ")
-        return TDL_common.Super.display_end(self, ss)
+        return ss
+        # return TDL_common.Super.display_end(self, ss, doprint=False)
 
     # Generic string
     def __str__(self):
@@ -590,24 +593,25 @@ class Sixpack_Patch(TDL_common.Super):
     def root(self):
         return self.__root
 
-    # print a summary
     def oneliner(self):
+        """Make a one-line summary"""
         s=TDL_common.Super.oneliner(self)
         s+=":{ "
         s+=" root= "+str(self.__root)
         s+=" }"
-        print s
+        # print s
         return s
 
     def display(self,txt=None,full=False):
-        ss=TDL_common.Super.display(self,txt=txt,end=False)
+        """Make a multiline summary"""
+        ss = TDL_common.Super.display(self,txt=txt,end=False)
         indent1=2*' '
         ss.append(indent1+"- root (node stub)= "+str(self.__root))
-        # ss.append(indent1+' - '+str(self.Parmset.oneliner()))
-        return TDL_common.Super.display_end(self,ss)
+        return ss
+        # return TDL_common.Super.display_end(self, ss, doprint=False)
 
-    # generic string
     def __str__(self):
+        """Generic string"""
         return self.oneliner()
 
 

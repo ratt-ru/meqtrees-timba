@@ -1297,14 +1297,20 @@ class Cohset (TDL_common.Super):
         if True:
             for key in ['start','pre','post']:
                 if isinstance(pp[key], (list,tuple)):
+                    print '-',key,':',type(pp[key]),len(pp[key])
+                    for node in pp[key]:
+                        print '  -',node
                     if len(pp[key])==0:
                         pp[key] = None          # empty list gives an error....!
                     else:
-                        pp[key] = ns[key+'_VisDataMux'] << Meq.ReqSeq(children=pp[key])
-                        # pp[key] = ns[key+'_VisDataMux'] << Meq.ReqMux(children=pp[key])  # <--- error...?
+                        # pp[key] = ns[key+'_VisDataMux'] << Meq.ReqSeq(children=pp[key])
+                        pp[key] = ns[key+'_VisDataMux'] << Meq.ReqMux(children=pp[key]) 
                         # pp[key] = ns[key+'_VisDataMux'] << Meq.Add(children=pp[key])
+                    print '-',key,':',pp[key]
+                print '-',key,':',pp[key]
             root = ns.VisDataMux << Meq.VisDataMux(start=pp['start'],
-                                                   pre=pp['pre'], post=pp['post'])
+                                                   pre=pp['pre'],
+                                                   post=pp['post'])
 
         
         # Bookkeeping:

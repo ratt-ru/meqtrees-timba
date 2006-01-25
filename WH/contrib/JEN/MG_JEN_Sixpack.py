@@ -376,7 +376,7 @@ def newstar_source (ns=0, **pp):
    # Make the Sixpack and get its Parmset object:
    punit = pp['name']
    Sixpack = TDL_Sixpack.Sixpack(label=punit, **pp)
-   Sixpack.display()
+   # Sixpack.display()
    pset = Sixpack.Parmset 
    
    # Register the parmgroups:
@@ -492,9 +492,9 @@ def newstar_source (ns=0, **pp):
    Sixpack.ra(radec[n6.R])
    Sixpack.dec(radec[n6.D])
 
-   Sixpack.display()
-   if pp['fsr_trace']:
-      MG_JEN_forest_state.object(Sixpack)
+   # Sixpack.display()
+   # if pp['fsr_trace']:
+   #   MG_JEN_forest_state.object(Sixpack)
    return Sixpack
 
 

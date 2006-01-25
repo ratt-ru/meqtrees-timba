@@ -130,9 +130,10 @@ class Super:
         return ss
 
 
-    def display_end(self, ss=[]):
+    def display_end(self, ss=[], doprint=True):
         ss.append('** end of '+self.type()+'.display()\n')
-        for s in ss: print s
+        if doprint:
+            for s in ss: print s
         return ss
 
 

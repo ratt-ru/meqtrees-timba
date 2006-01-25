@@ -366,6 +366,7 @@ detected bugs:
      - Large volume of layered air (if undisturbe)
      - Access is discouraged
 
+
  - Stefan/JDB: Limits of calibration (document Stefan, 15 jan 2006)
    - Nr of equations vs nr of unknowns to be solved (ratio<0.1?)
      - (This is the ONLY correct, and unconfusing) way to view the problem)
@@ -375,6 +376,8 @@ detected bugs:
      - Ionosphere (MIM) has even smaller nr of parameters
        - NB: Separate parameters needed for the brightest sources
      - Source parameters vary very slowly in time
+     - NB: The current system is set up in such a way that we may
+       minimise the number of free parameters (polcs, MIM, etc)
    - Violation of Murphy's law (MAB):
      - If errors are gaussian, they just increase the noise-level
      - If they are systematic, they can be described with a smaller
@@ -392,8 +395,46 @@ detected bugs:
      - Assume a priori knowledge of 1-10% (how defined?)
        - How many parameters are needed per voltage beam?
        - How bad is the situation in the first minute after
-         the HBA beamformer is switched (every 10 min)? 
+         the HBA beamformer is switched (every 10 min)?
+     - Tapering reduces the sidelobe level.
+       - This requires a regular dipole configuration
+         with small enough separation between dipoles (lambda/2?)
+       - JDB: The effect of tapering is 'destroyed' by missing tiles
+         - So: Ignore the station if one HBA tile is missing....!
+         - What about the effect of HBA individual LNA variations?
+     - Mutual coupling: produces blind scan angles (how?)
+       - Obviously, this is a (strong!) function of separation 
+   - The brightest sources have a special status:
+     - They are used to estimate MIM and voltage beams
+       - These are used to subtract the fainter sources
+     - But: They are subtracted with their own instr.parameters!
+       - These are optimised for minimum residuals
+       - This will probably include some source contamination!
+         - What is the overall effect of this error? Might be positive...
+     - So what is the total nr of free parameters, for this discussion....?!   
 
 
+
+------------------------------------------------------------------------------
+
+ - Optical Calibration:
+   - (lambda, flux, astrometric, polarimetric, flat-field) ....
+     - cannot be separated from metrology
+   - T-OWL block-diagram: nicely modular
+     - Concentrate on the calibration signal input unit at the top
+   - metrology system -> closed-loop
+     - Essential for smart focal planes: 
+       - Rapid change: alignment of many units
+     - M.E.
+     - How to separate different effects?
+       - Does this lay constraints on the design of other units?
+   - polarisation: cannot be ignored?
+   - (pre-) development projects (WHT): stake our claim.
+     - Rene Rutten?
+   - existing work elsewhere?
+   - Simulation software Ton Schoenmaker
+     - software simulation of the hardware
+     - set up a workable loop (interfaces)
+   - March.... two weeks effort.... (forget it)
 
                       ================================

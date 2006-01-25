@@ -565,6 +565,8 @@ def _replace_reference(rr, acc=dict(), repeat=0, level=0, trace=False):
    - a field name (prepended with @@) in the parent record(s)
    replace it with the value of the referenced field"""
 
+   trace = False
+   
    if trace and level==0:
       print '\n** _replace_reference(',repeat,'):',type(rr)
    if not isinstance(rr, dict):

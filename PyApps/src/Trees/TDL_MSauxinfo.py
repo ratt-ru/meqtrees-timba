@@ -164,13 +164,13 @@ class MSauxinfo (TDL_common.Super):
     # Interaction with phase centre coordinates
     #--------------------------------------------------------------------
 
-    def radec0(self, new=None):
-        """Get/set RA,DEC of phase centre"""
-        print '.radec0(): not yet implemented'
+    def radec0(self, ns=None, new=None):
+        """Get/set RA,DEC of the uv-data phase centre"""
         if new:
             # Make new station_uvw nodes.....
             pass
-        # return self.__node_radec0
+        self.create_radec_nodes(ns)
+        return self.__node_radec0
 
     def ra0(self, new=None):
         """Get/set RA of phase centre"""
@@ -289,6 +289,7 @@ class MSauxinfo (TDL_common.Super):
 
     def create_station_uvw_nodes(self, ns):
         """Create station-based MeqUVW nodes related to (ra0,dec0)"""
+        print '\n** create_station_uvw_nodes(): ',len(self.__nodes_station_uvw),'\n'
         if len(self.__nodes_station_uvw)>0: return True    # Do once only....
         first = True
         cc = []
@@ -304,6 +305,7 @@ class MSauxinfo (TDL_common.Super):
             cc.append(self.__nodes_station_uvw[skey])      #
         # Attach them to a single root node (to avoid meqbrowser clutter)
         self.__root_nodes['station_uvw'] = ns.MSauxinfo_uvw << Meq.Composer(children=cc)
+        self.history('** .create_station_uvw_nodes()')
         return True
 
 
@@ -355,7 +357,6 @@ class MSauxinfo (TDL_common.Super):
                     name = 'wcoord'+':s1='+skeys[i]+':s2='+skeys[j]
                     self.__nodes_wcoord[ikey] = ns[name] << Meq.Selector(node, index=2)
         return True
-
 
     def dcoll(self, ns):
         """Make a list of all dataCollect nodes"""

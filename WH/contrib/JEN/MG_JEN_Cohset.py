@@ -1,5 +1,3 @@
-
-
 # MG_JEN_Cohset.py
 
 # Short description:
@@ -99,6 +97,7 @@ def make_spigots(ns=None, Cohset=None, **inarg):
 
     # Create the nodes expected by read_MS_auxinfo.py 
     MSauxinfo().create_nodes(ns)
+    MSauxinfo().display(funcname)
 
     # Append the initial (spigot) Cohset to the forest state object:
     # MG_JEN_forest_state.object(Cohset, funcname)
@@ -154,8 +153,8 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 
     # Optional: flag the sink (output) data:
     if pp['flag']:
-       insert_flagger (ns, Cohset, scope='sinks',
-                       unop=['Real','Imag'], visu=False)
+        insert_flagger (ns, Cohset, scope='sinks',
+                        unop=['Real','Imag'], visu=False)
 
     # Optional: visualise the sink (output) data:
     # But only if there are no dcoll/hcoll nodes to be inserted
@@ -163,16 +162,17 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     ncoll = len(Cohset.rider('dcoll'))               
     ncoll += len(Cohset.rider('hcoll'))               
     if pp['visu'] and ncoll==0:
-       visualise (ns, Cohset)
-       visualise (ns, Cohset, type='spectra')
+        visualise (ns, Cohset)
+        visualise (ns, Cohset, type='spectra')
 
     # Attach array visualisation nodes:
     start = []
-    if pp['visu_array_config']:
-       dcoll = MSauxinfo().dcoll(ns)
-       for i in range(len(dcoll)):
-          MG_JEN_forest_state.bookmark(dcoll[i], page='MSauxinfo_array_config')
-       start.extend(dcoll)
+    if pp['visu_array_config']: 
+        dcoll = MSauxinfo().dcoll(ns)
+        MSauxinfo().display(funcname)
+        for i in range(len(dcoll)):
+            MG_JEN_forest_state.bookmark(dcoll[i], page='MSauxinfo_array_config')
+        start.extend(dcoll)
 
     # Attach any collected hcoll/dcoll nodes:
     post = Cohset.rider('dcoll', clear=True)               
@@ -183,8 +183,8 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     sinks = Cohset.cohs()
     
     # Append the final Cohset to the forest state object:
-    MG_JEN_forest_state.object(Cohset, funcname)
-    MG_JEN_forest_state.object(Cohset.Parmset, funcname)
+    # MG_JEN_forest_state.object(Cohset, funcname)
+    # MG_JEN_forest_state.object(Cohset.Parmset, funcname)
     
     # Return a list of sink nodes:
     return sinks
@@ -192,61 +192,8 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 
 
 #======================================================================================
-
-def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
-    """Make a Cohset with predicted (optional: corrupted) uv-data for
-    the source defined by Sixpack"""
-
-    # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()', version='25dec2005')
-    inarg_stations(pp, slave=slave)
-    inarg_polrep(pp, slave=slave)
-    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, slave=True))
-    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
-    if not JEN_inarg.is_OK(pp): return False
-    funcname = JEN_inarg.localscope(pp)
-
-    # Make sure that there is a valid source/patch Sixpack:
-    if not Sixpack:
-        Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
-    punit = Sixpack.label()
-
-    # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
-    Cohset = TDL_Cohset.Cohset(label='predict', origin=funcname, **pp)
-
-    # Copy info (plot-styles, parmgroup/solvegroup etc):
-    Cohset.update_from_Sixpack(Sixpack)
-    Cohset.Parmset.display(full=True)
-    # return False
-
-    # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
-    # by multiplication its (I,Q,U,V) with the Stokes matrix:
-    nominal = Sixpack.coh22(ns, pp['polrep'])
-
-    # Put the same 'nominal' (i.e. uncorrupted) visibilities into all
-    # ifr-slots of the Cohset:
-    Cohset.uniform(ns, nominal)
-
-    # Optionally, multiply the Cohset with the KJones (DFT) Joneset:
-    if False:
-       KJones = MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
-                                       MSauxinfo=MSauxinfo(),
-                                       _inarg=pp)
-       Cohset.corrupt (ns, Joneset=KJones)
-
-    # Optionally, corrupt the Cohset visibilities with the instrumental effects
-    # in the given Joneset of 2x2 station jones matrices:
-    if Joneset:
-       Cohset.corrupt (ns, Joneset=Joneset)
-       # Cohset.display('.predict(): after corruption')
-
-    # Finished:
-    MG_JEN_forest_state.object(Sixpack, funcname)
-    Cohset.history(funcname+' using '+Sixpack.oneliner())
-    Cohset.history(funcname+' -> '+Cohset.oneliner())
-    MG_JEN_forest_state.history (funcname)
-    # MG_JEN_forest_state.object(Cohset, funcname)
-    return Cohset
+# Prediction:
+#======================================================================================
 
 
 
@@ -264,7 +211,8 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     inarg_parmtable(pp, slave=slave)
     inarg_polrep(pp, slave=slave)
     JEN_inarg.define (pp, 'Jsequence', ['GJones'],
-                      choice=[['GJones'],['BJones'],['FJones'],
+                      choice=[['GJones'],['BJones'],['FJones'],['KJones'],
+                              ['DJones'],['GJones','DJones'],
                               ['DJones_WSRT'],['GJones','DJones_WSRT'],
                               []],
                       help='sequence of Jones matrices to be used')
@@ -272,6 +220,7 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True, slave=True))
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
@@ -286,7 +235,8 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
 
     # Make sure that there is a valid source/patch Sixpack:
     # NB: This is just for the punit-name!
-    if not Sixpack: Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
+    if not Sixpack:
+        Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
     punit = Sixpack.label()
     
     # Create a sequence of Jonesets for the specified punit:
@@ -298,8 +248,14 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
             jseq.append(MG_JEN_Joneset.BJones (ns, _inarg=pp, punit=punit))
         elif jones=='FJones':
             jseq.append(MG_JEN_Joneset.FJones (ns, _inarg=pp, punit=punit)) 
+        elif jones=='DJones':
+            jseq.append(MG_JEN_Joneset.DJones (ns, _inarg=pp, punit=punit))
         elif jones=='DJones_WSRT':
             jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, _inarg=pp, punit=punit))
+        elif jones=='KJones':
+            jseq.append(MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
+                                               MSauxinfo=MSauxinfo(),
+                                               _inarg=pp, punit=punit))
         else:
             print '** jones not recognised:',jones,'from:',pp['Jsequence']
                
@@ -309,6 +265,54 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     # MG_JEN_forest_state.object(Joneset, funcname)
     return Joneset
     
+
+#------------------------------------------------------------------------------
+
+def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
+    """Make a Cohset with predicted uv-data for the source defined by Sixpack.
+    If a Joneset with instrumental effects is supplied, corrupt the data."""
+
+    # Input arguments:
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()', version='25dec2005')
+    inarg_stations(pp, slave=slave)
+    inarg_polrep(pp, slave=slave)
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+    if not JEN_inarg.is_OK(pp): return False
+    funcname = JEN_inarg.localscope(pp)
+
+    # Make sure that there is a valid source/patch Sixpack:
+    if not Sixpack:
+        Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
+    punit = Sixpack.label()
+
+    # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
+    Cohset = TDL_Cohset.Cohset(label='predict', origin=funcname, **pp)
+
+    # Copy info (plot-styles, parmgroup/solvegroup etc):
+    Cohset.update_from_Sixpack(Sixpack)
+    # Cohset.Parmset.display(full=True)
+
+    # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
+    # by multiplication its (I,Q,U,V) with the Stokes matrix:
+    nominal = Sixpack.coh22(ns, pp['polrep'])
+
+    # Put the same 'nominal' (i.e. uncorrupted) visibilities into all
+    # ifr-slots of the Cohset:
+    Cohset.uniform(ns, nominal)
+
+    # Optionally, corrupt the Cohset visibilities with the instrumental effects
+    # in the given Joneset of 2x2 station jones matrices:
+    if Joneset:
+       Cohset.corrupt (ns, Joneset=Joneset)
+       # Cohset.display('.predict(): after corruption')
+
+    # Finished:
+    MG_JEN_forest_state.object(Sixpack, funcname)
+    Cohset.history(funcname+' using '+Sixpack.oneliner())
+    Cohset.history(funcname+' -> '+Cohset.oneliner())
+    MG_JEN_forest_state.history (funcname)
+    # MG_JEN_forest_state.object(Cohset, funcname)
+    return Cohset
 
 
 
@@ -448,10 +452,10 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
         measured.graft(ns, fullres, name='insert_solver')
 
     # Finished: do some book-keeping:
-    MG_JEN_forest_state.object(Mohset, funcname)
-    MG_JEN_forest_state.object(Mohset.Parmset, funcname)
-    MG_JEN_forest_state.object(predicted, funcname)
-    MG_JEN_forest_state.object(predicted.Parmset, funcname)
+    # MG_JEN_forest_state.object(Mohset, funcname)
+    # MG_JEN_forest_state.object(Mohset.Parmset, funcname)
+    # MG_JEN_forest_state.object(predicted, funcname)
+    # MG_JEN_forest_state.object(predicted.Parmset, funcname)
     MG_JEN_forest_state.history (funcname)
     Mohset.cleanup(ns)                
     return True
@@ -544,7 +548,7 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
     extra_condeqs = []
     if pp['condition']==None: pp['condition'] = []
     if not isinstance(pp['condition'], (list, tuple)): pp['condition'] = [pp['condition']]
-    Cohset.Parmset.display('extra_condeqs', full=True)
+    # Cohset.Parmset.display('extra_condeqs', full=True)
     for key in pp['condition']:
         if isinstance(key, str):
             condeq = Cohset.Parmset.make_condeq(ns, key)
@@ -964,6 +968,7 @@ if True:                                                   # ... Copied from MG_
 
    # Specify the sequence of zero or more (corrupting) Jones matrices:
    Jsequence = []
+   # Jsequence = ['KJones'] 
    # Jsequence = ['GJones'] 
    # Jsequence = ['BJones'] 
    # Jsequence = ['FJones'] 
@@ -978,8 +983,8 @@ if True:                                                   # ... Copied from MG_
 
    # Extra condition equations to be used:
    condition = []
-   condition.append('Gphase_X_sum=0.0')
-   condition.append('Gphase_Y_sum=0.0')
+   # condition.append('Gphase_X_sum=0.0')
+   # condition.append('Gphase_Y_sum=0.0')
    # condition.append('Gphase_X_first=0.0')
    # condition.append('Gphase_Y_last=0.0')
    # condition.append('Bimag_X_sum=0.0')
@@ -1121,7 +1126,7 @@ def _tdl_predefine (mqs, parent, **kwargs):
             igui = JEN_inargGui.ArgBrowser(parent)
             igui.input(MG, name=MG['script_name'], set_open=False)
             res = igui.exec_loop()
-            print '** _tdl_predefine(): res =',type(res),'=',res,'\n'
+            # print '** _tdl_predefine(): res =',type(res),'=',res,'\n'
             if res is None:
                 raise RuntimeError("Cancelled by user");
         finally:

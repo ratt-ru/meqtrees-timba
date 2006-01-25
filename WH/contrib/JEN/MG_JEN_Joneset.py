@@ -652,12 +652,23 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, slave=False, **inarg):
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
    # Calculate punit (l,m,n) from input Sixpack:
-   radec = Sixpack.radec()
+   radec = Sixpack.radec(ns)
    radec0 = MSauxinfo.radec0()
-   lmn   = ns.lmn  (q=punit) << Meq.LMN(radec_0=radec0, radec=radec)
-   n     = ns.n    (q=punit) << Meq.Selector(lmn, index=2)
-   lmn1  = ns.lmn_minus1(q=punit) << Meq.Paster(lmn, n-1, index=2)
-   sqrtn = ns << Meq.Sqrt(n)
+   lmn    = ns.lmn(q=punit) << Meq.LMN(radec_0=radec0, radec=radec)
+   ncoord = ns.ncoord(q=punit) << Meq.Selector(lmn, index=2)
+   lmn1   = ns.lmn_minus1(q=punit) << Meq.Paster(lmn, ncoord-1, index=2)
+   sqrtn  = ns << Meq.Sqrt(ncoord)
+
+   if True:
+      # Sixpack.display(full=True)
+      print '\n KJones:'
+      print '- radec  =',radec
+      print '- radec0 =',radec0
+      print '- lmn    =',lmn
+      print '- lmn1   =',lmn1
+      print '- ncoord =',ncoord
+      print '- sqrtn  =',sqrtn
+      print
    
    # The 2x2 KJones matrix is diagonal, with identical elements (Kmel) 
    for station in pp['stations']:
