@@ -27,6 +27,7 @@ from VellsData import *
 from SolverData import *
 from ND_Controller import *
 from ResultsRange import *
+from BufferSizeDialog import *
 from plot_printer import *
 
 from Timba.utils import verbosity
@@ -772,8 +773,10 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.setResultsSelector()
       if self._plot_type == 'realvsimag':
         QObject.connect(self._visu_plotter.plot, PYSIGNAL('show_results_selector'), self.show_selector)
+        QObject.connect(self._visu_plotter.plot, PYSIGNAL('adjust_results_buffer_size'), self.adjust_results_buffer)
       else:
         QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_selector)
+        QObject.connect(self._visu_plotter, PYSIGNAL('adjust_results_buffer_size'), self.adjust_results_buffer)
     self.results_selector.setRange(self.data_list_length)
 
   def show_selector (self, do_show_selector):
@@ -781,6 +784,17 @@ class ResultPlotter(GriddedPlugin):
       self.results_selector.show()
     else:
       self.results_selector.hide()
+
+  def adjust_results_buffer (self, signal_value):
+#   self.max_list_length
+    print ' in adjust_results_buffer'
+    results_dialog = BufferSizeDialog(self.max_list_length)
+    QObject.connect(results_dialog,PYSIGNAL("return_value"),self.set_results_buffer)
+    print ' exiting adjust_results_buffer'
+    
+
+  def set_results_buffer (self, result_value):
+    print ' in set_results_buffer with value ', result_value
 
   def set_ND_controls (self, labels, parms):
     """ this function adds the extra GUI control buttons etc if we are

@@ -130,6 +130,7 @@ class realvsimag_plotter(object):
         'Modify Plot Parameters': 299,
         'Reset zoomer': 300,
         'Toggle Legend': 301,
+        'Adjust results buffer size': 302,
         }
     
   def __init__(self, plot_key=None, parent=None):
@@ -373,6 +374,8 @@ class realvsimag_plotter(object):
   def setResultsSelector(self):
     toggle_id = self.menu_table['Toggle results history']
     self._menu.insertItem("Toggle results history", toggle_id)
+    toggle_id = self.menu_table['Adjust results buffer size']
+    self._menu.insertItem("Adjust results buffer size", toggle_id)
 
 ##    def __initToolBar(self):
 ##        """Initialize the toolbar
@@ -482,6 +485,10 @@ class realvsimag_plotter(object):
     if menuid == self.menu_table['Toggle results history']:
       self.toggleResults()
       return
+
+    if menuid == self.menu_table['Adjust results buffer size']:
+      self.plot.emit(PYSIGNAL("adjust_results_buffer_size"),(True,))
+      return True
 	
 # toggle flags display	
     if menuid == 200:
