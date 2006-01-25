@@ -790,6 +790,7 @@ class ResultPlotter(GriddedPlugin):
     print ' in adjust_results_buffer'
     results_dialog = BufferSizeDialog(self.max_list_length)
     QObject.connect(results_dialog,PYSIGNAL("return_value"),self.set_results_buffer)
+    results_dialog.show()
     print ' exiting adjust_results_buffer'
     
 
