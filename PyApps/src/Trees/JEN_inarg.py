@@ -140,8 +140,8 @@ def init(target='<target>', version='15dec2005', **pp):
 
    _ensure_CTRL_record(inarg, target, version=version)
 
-   trace = True
-   if trace: display(inarg,'JEN_inarg.init()', full=True)
+   trace = False
+   if trace: display(inarg, 'JEN_inarg.init()', full=True)
    # Return the inarg record:
    return inarg
 

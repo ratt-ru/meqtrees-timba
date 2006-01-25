@@ -98,13 +98,13 @@ def replace_reference(rr, up=None, level=1):
                upfield = value.split('/')[1] # 
                for upkey in up.keys():       # search for upfield in parent record
                   count += 1                 # count the number of replacements
-                  print prefix,'-',count,'replace_with_upward: rr[',key,'] =',value,'->',up[upkey]
+                  # print prefix,'-',count,'replace_with_upward: rr[',key,'] =',value,'->',up[upkey]
                   if upkey==upfield: rr[key] = up[upkey]  # replace if found
          else:
             if not value==key:                # ignore self-reference
                if rr.has_key(value):          # if field value is the name of another field
                   count += 1                  # count the number of replacements
-                  print prefix,'-',count,': MG_JEN_exec::replace_reference(): rr[',key,'] =',value,'->',rr[value]
+                  # print prefix,'-',count,': MG_JEN_exec::replace_reference(): rr[',key,'] =',value,'->',rr[value]
                   rr[key] = rr[value]         # replace with the value of the referenced field
    if count>0: replace_reference(rr, level=level+1)       # repeat if necessary
    return count
@@ -394,7 +394,7 @@ def spigot2sink (mqs, parent, ctrl={}, **pp):
 
    else:
       # New (06jan2006):
-      ss = stream_control (ctrl, new=True)
+      ss = stream_control (ctrl)
       # path = os.environ['HOME']+'/LOFAR/Timba/WH/contrib/JEN/'
       path = os.environ['HOME']+'/LOFAR/Timba/PyApps/src/Trees/'
       python_init = path+'read_MS_auxinfo.py'
@@ -417,15 +417,16 @@ def spigot2sink (mqs, parent, ctrl={}, **pp):
 #-------------------------------------------------------------------------
 # Default stream control input arguments (see e.g. MG_JEN_Cohset.py)
 
-def inarg_stream_control (inarg, **pp):
+
+def inarg_stream_control (inarg, **kwargs):
+    JEN_inarg.inarg_common(kwargs)
     JEN_inarg.define (inarg, 'ms_name', 'D1.MS', 
                       choice=['D1.MS'], browse='*.MS',
                       help='name of the (AIPS++) Measurement Set')
     JEN_inarg.define (inarg, 'data_column_name', 'DATA',
                       choice=['DATA'],
                       help='MS input column')
-    JEN_inarg.define (inarg, 'tile_size', 10, choice=[1,2,3,5,10,20,50,100],
-                      help='size (in time-slots) of the input data-tile')
+    inarg_tile_size(inarg, slave=kwargs['slave'])
     JEN_inarg.define (inarg, 'channel_start_index', 10, choice=[0,5,10,20],
                       help='index of first selected freq channel')
     JEN_inarg.define (inarg, 'channel_end_index', 50, choice=[-1,25,50,100],
@@ -440,91 +441,62 @@ def inarg_stream_control (inarg, **pp):
                           help='TaQL (AIPS++ Table Query Language) data-selection')
     return True
 
+#--------------------------------------------------------------------------
+
+def inarg_tile_size (inarg, **kwargs):
+    JEN_inarg.inarg_common(kwargs)
+    print '\n** kwargs=',kwargs,'\n'
+    JEN_inarg.define (inarg, 'tile_size', 11, slave=kwargs['slave'],
+                      choice=[1,2,3,5,10,20,50,100],
+                      help='size (in time-slots) of the input data-tile')
+    return False
+
+
 
 
 #-------------------------------------------------------------------------
 # Access to MG_JEN_stream_control record (kept in the forest state record):
 
-def stream_control (ctrl=None, display=False, init=False, new=True):
+def stream_control (ctrl=None, display=False, init=False):
    """Access to the MG_JEN_stream_control record in the forest_state record
    If init==True, initialise it with default settings."""
 
    field = 'MG_JEN_stream_control'     # field name in forest state record
-   # if new: field += '_new'
 
    if init:
-      if new:
-         ss = record(inputrec=record(), outputrec=record())
+      ss = record(inputrec=record(), outputrec=record())
 
-         ss.inputrec.ms_name = '<undefined>'
-         ss.inputrec.data_column_name = 'DATA'
-         ss.inputrec.tile_size = 10                  # in time only....
-
-         ss.inputrec.selection = record()
-         ss.inputrec.selection.channel_start_index = 0
-         ss.inputrec.selection.channel_end_index = -1
-         ss.inputrec.selection.channel_increment = 1
-         # ss.inputrec.selection.ddid_index = 0           # .... suitable default?
-         # ss.inputrec.selection.field_index = 0          # .... same?
-         ss.inputrec.selection.selection_string = ''
-
-         ss.outputrec.write_flags = False               # ....?
-         # ss.outputrec.predict_column = 'PREDICT';
-         ss.outputrec.predict_column = 'CORRECTED_DATA' # .....predict...? _name?
-         # ss.outputrec.residuals_column = 'RESIDUALS'  # ....
+      ss.inputrec.ms_name = '<undefined>'
+      ss.inputrec.data_column_name = 'DATA'
+      ss.inputrec.tile_size = 10                  # in time only....
       
-         Settings.forest_state[field] = ss
-
-      else:
-         ss = record(initrec=record(), inputinit=record(), outputinit=record())
-         
-         ss.inputinit.sink_type = 'ms_in';
-         ss.inputinit.data_column_name = 'DATA';
-         ss.inputinit.tile_size = 1;
-         if True:
-            # path = os.environ['HOME']+'/LOFAR/Timba/WH/contrib/JEN/'
-            path = os.environ['HOME']+'/LOFAR/Timba/PyApps/src/Trees/'
-            ss.inputinit.python_init = path+'read_MS_auxinfo.py'
-            # ss.inputinit.python_init = path+'read_msvis_header.py'
-            
-         ss.inputinit.selection = record();
-         ss.inputinit.selection.channel_start_index = 0;
-         ss.inputinit.selection.channel_end_index = -1;
+      ss.inputrec.selection = record()
+      ss.inputrec.selection.channel_start_index = 0
+      ss.inputrec.selection.channel_end_index = -1
+      ss.inputrec.selection.channel_increment = 1
+      # ss.inputrec.selection.ddid_index = 0           # .... suitable default?
+      # ss.inputrec.selection.field_index = 0          # .... same?
+      ss.inputrec.selection.selection_string = ''
       
-         ss.outputinit.sink_type = 'ms_out';
-         ss.outputinit.predict_column_name = 'PREDICT';
-         ss.outputinit.residuals_column_name = 'RESIDUALS';
+      ss.outputrec.write_flags = False               # ....?
+      # ss.outputrec.predict_column = 'PREDICT';
+      ss.outputrec.predict_column = 'CORRECTED_DATA' # .....predict...? _name?
+      # ss.outputrec.residuals_column = 'RESIDUALS'  # ....
       
-         ss.initrec.output_col = 'RESIDUALS'
-   
-         Settings.forest_state[field] = ss
+      Settings.forest_state[field] = ss
 
 
    # Modify the MG_JEN_stream_control record, if required:
    if not ctrl==None:
-      if new:
-         ss = Settings.forest_state[field]
-         for key in ss.inputrec.keys():
-            if ctrl.has_key(key): ss.inputrec[key] = ctrl[key]
-         # if ctrl.has_key('tile_size'):                            # legacy...
-         #   ss.inputrec['snippet_size'] = ctrl['tile_size']
-         for key in ss.inputrec.selection.keys():
-            if ctrl.has_key(key): ss.inputrec.selection[key] = ctrl[key]
-         for key in ss.outputrec.keys():
-            if ctrl.has_key(key): ss.outputrec[key] = ctrl[key]
-         Settings.forest_state[field] = ss
+      ss = Settings.forest_state[field]
+      for key in ss.inputrec.keys():
+         if ctrl.has_key(key): ss.inputrec[key] = ctrl[key]
+      for key in ss.inputrec.selection.keys():
+         if ctrl.has_key(key): ss.inputrec.selection[key] = ctrl[key]
+      for key in ss.outputrec.keys():
+         if ctrl.has_key(key): ss.outputrec[key] = ctrl[key]
+      Settings.forest_state[field] = ss
 
-      else:
-         ss = Settings.forest_state[field]
-         for key in ['ms_name','data_column_name','tile_size']:
-            if ctrl.has_key(key): ss.inputinit[key] = ctrl[key]
-         for key in ['channel_start_index','channel_end_index','selection_string','ddid_index','field_index']:
-            if ctrl.has_key(key): ss.inputinit.selection[key] = ctrl[key]
-         for key in ['predict_column']:
-            if ctrl.has_key(key): ss.outputinit[key] = ctrl[key]
-         for key in ['output_col']:
-            if ctrl.has_key(key): ss.initrec[key] = ctrl[key]
-         Settings.forest_state[field] = ss
 
    if display:
       ss = Settings.forest_state[field]

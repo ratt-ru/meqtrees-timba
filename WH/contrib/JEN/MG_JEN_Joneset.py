@@ -111,6 +111,7 @@ def adjust_for_telescope(pp, origin='<origin>'):
 def inarg_Joneset_common (pp, **kwargs):
    """Some common JEN_inarg definitions for Joneset definition functions"""
    JEN_inarg.inarg_common(kwargs)
+   trace = False
    JEN_inarg.define(pp, 'punit', 'uvp', slave=kwargs['slave'], trace=trace, 
                     help='source/patch for which this Joneset is valid')
    JEN_inarg.define(pp, 'stations', [0], slave=kwargs['slave'], trace=trace, 
@@ -337,11 +338,16 @@ def FJones (ns=0, slave=False, **inarg):
    inarg_Joneset_common(pp, slave=slave)              
    # ** Jones matrix elements:
    # ** Solving instructions:
-   pp.setdefault('subtile_size_RM', 1)               # used in tiled solutions         
-   pp.setdefault('fdeg_RM', 0)                    # degree of default freq polynomial          
-   pp.setdefault('tdeg_RM', 0)                    # degree of default time polynomial         
+   JEN_inarg.define(pp, 'fdeg_RM', 0, choice=[0,1,2,3],  
+                    help='degree of freq polynomial')
+   JEN_inarg.define(pp, 'tdeg_RM', 0, choice=[0,1,2,3],  
+                    help='degree of time polynomial')
+   JEN_inarg.define(pp, 'subtile_size_RM', 1,  
+                    choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
+                    help='sub-tile size (None=entire tile)')
    # ** MeqParm default values:
-   pp.setdefault('c00_RM', 0.0)                   # default c00 funklet value
+   JEN_inarg.define(pp, 'c00_RM', 0.0, choice=[0.1], hide=True,  
+                    help='default c00 funklet value')
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
@@ -403,17 +409,29 @@ def BJones (ns=0, slave=False, **inarg):
     inarg_Joneset_common(pp, slave=slave)              
     # ** Jones matrix elements:
     # ** Solving instructions:
-    pp.setdefault('fdeg_Breal', 3)                 # degree of default freq polynomial           
-    pp.setdefault('fdeg_Bimag', 3)                 # degree of default freq polynomial           
-    pp.setdefault('tdeg_Breal', 0)                 # degree of default time polynomial           
-    pp.setdefault('tdeg_Bimag', 0)                 # degree of default time polynomial          
-    pp.setdefault('subtile_size_Breal', 0)            # used in tiled solutions         
-    pp.setdefault('subtile_size_Bimag', 0)            # used in tiled solutions         
+    JEN_inarg.define(pp, 'fdeg_Breal', 3, choice=[0,1,2,3],  
+                     help='degree of freq polynomial')
+    JEN_inarg.define(pp, 'fdeg_Bimag', 3, choice=[0,1,2,3,'@fdeg_Breal'],  
+                     help='degree of freq polynomial')
+    JEN_inarg.define(pp, 'tdeg_Breal', 0, choice=[0,1,2,3],  
+                     help='degree of time polynomial')
+    JEN_inarg.define(pp, 'tdeg_Bimag', 0, choice=[0,1,2,3,'@tdeg_Breal'],  
+                     help='degree of time polynomial')
+    JEN_inarg.define(pp, 'subtile_size_Breal', None,
+                     choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
+                     help='sub-tile size (None=entire tile)')
+    JEN_inarg.define(pp, 'subtile_size_Bimag', None,  
+                     choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
+                     help='sub-tile size (None=entire tile)')
     # ** MeqParm default values: 
-    pp.setdefault('c00_Breal', 1.0)                # default c00 funklet value
-    pp.setdefault('c00_Bimag', 0.0)                # default c00 funklet value
-    pp.setdefault('stddev_Breal', 0)               # scatter in default c00 funklet values
-    pp.setdefault('stddev_Bimag', 0)               # scatter in default c00 funklet values
+    JEN_inarg.define(pp, 'c00_Breal', 1.0, choice=[0.9, 0.1], hide=True,  
+                     help='default c00 funklet value')
+    JEN_inarg.define(pp, 'c00_Bimag', 0.0, choice=[0.1], hide=True,  
+                     help='default c00 funklet value')
+    JEN_inarg.define(pp, 'stddev_Breal', 0.0, choice=[0.1], hide=True,   # obsolete?
+                     help='scatter in default c00 funklet values')
+    JEN_inarg.define(pp, 'stddev_Bimag', 0.0, choice=[0.1], hide=True,  # obsolete?  
+                     help='scatter in default c00 funklet values')
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
@@ -446,7 +464,6 @@ def BJones (ns=0, slave=False, **inarg):
     js.Parmset.define_solvegroup('Breal', [br1, br2])
     js.Parmset.define_solvegroup('Bimag', [bi1, bi2])
 
-    # first_station = True
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
         qual = dict(s=skey)
@@ -468,7 +485,6 @@ def BJones (ns=0, slave=False, **inarg):
                                        subtile_size=pp['subtile_size_Bimag'])
 
         ss = js.Parmset.buffer()
-        # first_station = False
 
         # Make the 2x2 Jones matrix
         stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
@@ -488,7 +504,7 @@ def BJones (ns=0, slave=False, **inarg):
 
 
 #--------------------------------------------------------------------------------
-# DJones: 2x2 matrix for polarization leakage
+# DJones_WSRT: 2x2 matrix for WSRT polarization leakage
 #--------------------------------------------------------------------------------
 
 def DJones_WSRT (ns=0, slave=False, **inarg):
@@ -501,21 +517,36 @@ def DJones_WSRT (ns=0, slave=False, **inarg):
    # inarg_Joneset_common(pp)                               # some common arguments             
    inarg_Joneset_common(pp, slave=slave)              
    # ** Jones matrix elements:
+   JEN_inarg.define(pp, 'coupled_XY_dang', tf=True,  
+                    help='if True, Xdang = Ydang per station')
+   JEN_inarg.define(pp, 'coupled_XY_dell', tf=True,  
+                    help='if True, Xdell = -Ydell per station')
    # ** Solving instructions:
-   pp.setdefault('coupled_XY_dang', True)            # if True, Xdang = Ydang per station
-   pp.setdefault('coupled_XY_dell', True)            # if True, Xdell = -Ydell per station
-   pp.setdefault('fdeg_dang', 0)                     # degree of default freq polynomial
-   pp.setdefault('fdeg_dell', 0)                     # degree of default freq polynomial
-   pp.setdefault('tdeg_dang', 0)                     # degree of default time polynomial
-   pp.setdefault('tdeg_dell', 0)                     # degree of default time polynomial
-   pp.setdefault('subtile_size_dang', 0)                # used in tiled solutions         
-   pp.setdefault('subtile_size_dell', 0)                # used in tiled solutions         
+   JEN_inarg.define(pp, 'fdeg_dang', 0, choice=[0,1,2,3],  
+                    help='degree of freq polynomial')
+   JEN_inarg.define(pp, 'fdeg_dell', 0, choice=[0,1,2,3,'@fdeg_dang'],  
+                    help='degree of freq polynomial')
+   JEN_inarg.define(pp, 'tdeg_dang', 0, choice=[0,1,2,3],  
+                    help='degree of time polynomial')
+   JEN_inarg.define(pp, 'tdeg_dell', 0, choice=[0,1,2,3,'@tdeg_dang'],  
+                    help='degree of time polynomial')
+   JEN_inarg.define(pp, 'subtile_size_dang', None,
+                    choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
+                    help='sub-tile size (None=entire tile)')
+   JEN_inarg.define(pp, 'subtile_size_dell', None,  
+                    choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
+                    help='sub-tile size (None=entire tile)')
    # ** MeqParm default values:
-   pp.setdefault('c00_dang', 0.0)                    # default c00 funklet value
-   pp.setdefault('c00_dell', 0.0)                    # default c00 funklet value
-   pp.setdefault('c00_PZD', 0.0)                     # default c00 funklet value
-   pp.setdefault('stddev_dang', 0)                   # scatter in default c00 funklet values
-   pp.setdefault('stddev_dell', 0)                   # scatter in default c00 funklet values
+   JEN_inarg.define(pp, 'c00_dang', 0.0, choice=[0.1], hide=True,  
+                    help='default c00 funklet value')
+   JEN_inarg.define(pp, 'c00_dell', 0.0, choice=[0.1], hide=True,  
+                    help='default c00 funklet value')
+   JEN_inarg.define(pp, 'c00_PZD', 0.0, choice=[0.1], hide=True,  
+                    help='default c00 funklet value')
+   JEN_inarg.define(pp, 'stddev_dang', 0.0, choice=[0.1], hide=True,   # obsolete?
+                    help='scatter in default c00 funklet values')
+   JEN_inarg.define(pp, 'stddev_dell', 0.0, choice=[0.1], hide=True,  # obsolete?  
+                    help='scatter in default c00 funklet values')
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
@@ -659,7 +690,7 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, slave=False, **inarg):
    lmn1   = ns.lmn_minus1(q=punit) << Meq.Paster(lmn, ncoord-1, index=2)
    sqrtn  = ns << Meq.Sqrt(ncoord)
 
-   if True:
+   if False:
       # Sixpack.display(full=True)
       print '\n KJones:'
       print '- radec  =',radec
@@ -1159,14 +1190,17 @@ if __name__ == '__main__':
      js.display()     
      display_first_subtree (js, full=True)
 
-  if 1:
-     inarg = GJones (_getdefaults=True)
+  if 0:
+     inarg = FJones (_getdefaults=True)
+     # inarg = GJones (_getdefaults=True)
+     # inarg = BJones (_getdefaults=True)
+     # inarg = DJones_WSRT (_getdefaults=True)
      from Timba.Trees import JEN_inargGui
      igui = JEN_inargGui.ArgBrowser()
      igui.input(inarg)
      igui.launch()
 
-  if 0:
+  if 1:
      # jseq = TDL_Joneset.Joneseq(origin='MG_JEN_Joneset')
      jseq = Joneseq()
      jseq.append(GJones (ns, scope=scope, stations=stations))

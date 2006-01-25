@@ -908,6 +908,12 @@ MG = JEN_inarg.init('MG_JEN_Cohset')
 # Local (MG_JEN_Cohset.py) version:
 inarg_Cohset_common (MG, last_changed='d19jan2006')
 
+# Lift a (slaved) stream_control argument to the top level, for convenience:
+MG_JEN_exec.inarg_tile_size(MG)
+JEN_inarg.modify(MG,
+                 tile_size=10,
+                 _JEN_inarg_option=None)               # optional, not yet used 
+
 
 #----------------------------------------------------------------------------------------------------
 # Interaction with the MS: spigots, sinks and stream control
@@ -916,11 +922,7 @@ inarg_Cohset_common (MG, last_changed='d19jan2006')
 #=======
 if True:                                               # ... Copied from MG_JEN_Cohset.py ...
    MG['stream_control'] = dict()
-   MG_JEN_exec.inarg_stream_control(MG['stream_control'])
-   JEN_inarg.modify(MG['stream_control'],
-                    tile_size=10,
-                    _JEN_inarg_option=None)            # optional, not yet used 
-
+   MG_JEN_exec.inarg_stream_control(MG['stream_control'], slave=True)
 
    # inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
    inarg = make_spigots(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
@@ -969,7 +971,7 @@ if True:                                                   # ... Copied from MG_
    # Specify the sequence of zero or more (corrupting) Jones matrices:
    Jsequence = []
    # Jsequence = ['KJones'] 
-   # Jsequence = ['GJones'] 
+   Jsequence = ['GJones'] 
    # Jsequence = ['BJones'] 
    # Jsequence = ['FJones'] 
    # Jsequence =['DJones_WSRT']             
@@ -977,6 +979,7 @@ if True:                                                   # ... Copied from MG_
    
    # Specify a list of MeqParm solvegroup(s) to be solved for:
    solvegroup = ['stokesI']
+   solvegroup = ['stokesI','GJones']
    # solvegroup = ['GJones']
    # solvegroup = ['DJones']
    # solvegroup = ['GJones','DJones']
@@ -1049,7 +1052,7 @@ if True:                                                   # ... Copied from MG_
        inarg = insert_solver(_getdefaults=True, _qual=qual, slave=True)   # local (MG_JEN_Cohset.py) version 
        JEN_inarg.modify(inarg,
                         subtract=True,                    # if True, subtract 'predicted' from uv-data 
-                        correct=False,                      # if True, correct the uv-data with 'predicted.Joneset()'
+                        correct=False,                    # if True, correct the uv-data with 'predicted.Joneset()'
                         visu=True,                         # if True, include visualisation
                         # ** Arguments for .solver_subtree()
                         solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
@@ -1062,15 +1065,6 @@ if True:                                                   # ... Copied from MG_
                         _JEN_inarg_option=None)            # optional, not yet used 
        JEN_inarg.attach(MG, inarg)
                  
-
-
-#---------------------------------------------------------------
-# Launch the inarg Gui (should be done from the browser):
-if False:
-    igui = JEN_inargGui.ArgBrowser()
-    igui.input(MG, name=MG['script_name'], set_open=False)
-    igui.launch()
-
 
 
 
@@ -1093,6 +1087,7 @@ def MSauxinfo(create=False):
         msauxinfo = TDL_MSauxinfo.MSauxinfo(label='MG_JEN_Cohset')
         msauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
     return msauxinfo
+# Create the object:
 MSauxinfo(create=True)
 
 
