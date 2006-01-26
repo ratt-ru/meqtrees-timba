@@ -26,7 +26,7 @@ from QwtColorBar import *
 from ND_Controller import *
 from plot_printer import *
 
-from vtk_qt_3d_display import *
+#from vtk_qt_3d_display import *
 
 
 class ArrayPlotter(GriddedPlugin):
