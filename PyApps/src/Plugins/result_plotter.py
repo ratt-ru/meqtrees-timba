@@ -786,10 +786,7 @@ class ResultPlotter(GriddedPlugin):
       self.results_selector.hide()
 
   def adjust_results_buffer (self, signal_value):
-    if self._plot_type == 'realvsimag':
-      results_dialog = BufferSizeDialog(self.max_list_length, parent = self._visu_plotter.plot)
-    else:
-      results_dialog = BufferSizeDialog(self.max_list_length, parent = self._visu_plotter)
+    results_dialog = BufferSizeDialog(self.max_list_length, parent = self.wparent())
     QObject.connect(results_dialog,PYSIGNAL("return_value"),self.set_results_buffer)
  
     results_dialog.show()
