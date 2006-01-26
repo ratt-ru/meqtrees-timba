@@ -36,14 +36,17 @@ class VisProgressMeter (QHBox):
     self.xcurry = self._currier.xcurry;
     
   def connect_app_signals (self,app):
+    """connects standard app signals to appropriate methods."""
     self._app = app;
     QObject.connect(app,PYSIGNAL("vis.channel.open"),self.xcurry(self.start,_argslice=slice(1,2)));
     QObject.connect(app,PYSIGNAL("vis.header"),self.xcurry(self.header,_argslice=slice(1,2)));
     QObject.connect(app,PYSIGNAL("vis.num.tiles"),self.xcurry(self.update,_argslice=slice(1,2)));
     QObject.connect(app,PYSIGNAL("vis.footer"),self.xcurry(self.footer,_argslice=slice(1,2)));
     QObject.connect(app,PYSIGNAL("vis.channel.closed"),self.xcurry(self.close,_argslice=slice(1,2)));
+    QObject.connect(app,PYSIGNAL("isConnected()"),self.xcurry(self.reset));
   
   def start (self,rec):
+    """initializes and shows meter. Usually connected to a Vis.Channel.Open signal""";
     if isinstance(self.parent(),QStatusBar):
       self.parent().clear();
     self._wlabel.setText(" opening dataset "); 
@@ -60,10 +63,12 @@ class VisProgressMeter (QHBox):
     self.startTimer(1000);
     
   def timerEvent (self,ev):
+    """redefined to keep clock display ticking"""
     if self._vis_inittime is not None:
       self._wtime.setText(" "+hms_str(time.time()-self._vis_inittime));
   
   def header (self,rec):
+    """processes header record. Usually connected to a Vis.Header signal""";
     if isinstance(self.parent(),QStatusBar):
       self.parent().clear();
     times = rec.header.time_extent;
@@ -80,6 +85,7 @@ class VisProgressMeter (QHBox):
     self._vis_hdrtime = time.time();
        
   def update (self,rec):
+    """indicates progress based on a Vis.Num.Tiles signal""";
     nt = rec.num_tiles;
     ts = rec.timeslots;
     time0 = int(rec.time[0]-self._vis_time0);
@@ -103,6 +109,7 @@ class VisProgressMeter (QHBox):
     self._wlabel.setText(msg+" "); 
     
   def footer (self,rec):
+    """processes footer record. Usually connected to a Vis.Footer signal""";
     if self._vis_output:
       msg = "received footer, writing to output";
     else:
@@ -113,7 +120,8 @@ class VisProgressMeter (QHBox):
     self._wprog.setProgress(99,100);
     
   def close (self,rec):
-    self.killTimers();
+    """closes meter, posts message describing elapsed time and rate.
+    Usually connected to a Vis.Channel.Closed signal.""";
     if self._app:
       msg = "dataset complete";
       if self._vis_inittime is not None:
@@ -121,12 +129,18 @@ class VisProgressMeter (QHBox):
       if self._vis_rate is not None:
         msg = msg+"; "+self._vis_rate;
       self._app.log_message(msg);
+    self.reset();
+    
+  def reset (self):
+    """resets and hides meter."""
+    self.killTimers();
     self._vis_inittime = None;
-    self._wlabel.setText(msg+" "); 
     self._wprog.reset();
     self._wprog.hide();
     self._wlabel.setText(""); 
     self._wlabel.hide();
+    self._wtime.setText(""); 
     self._wtime.hide();
     self.hide();
+    
     
