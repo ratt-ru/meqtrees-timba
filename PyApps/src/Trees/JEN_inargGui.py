@@ -118,6 +118,8 @@ class ArgBrowser(QMainWindow):
         self.__listview.addColumn("value",200)
         self.__listview.addColumn("help", 500)
         self.__listview.addColumn("iitd")
+        self.__listview.addColumn("order")
+        self.__listview.setSorting(4)       # sort on 'order' 
         self.__listview.setRootIsDecorated(1)
 
         self.__visible_item = None
@@ -222,6 +224,7 @@ class ArgBrowser(QMainWindow):
 
     def QApp (self):
         """Access to the QApplication"""
+
         return self.__QApp
 
     def closeGui (self):
@@ -246,8 +249,9 @@ class ArgBrowser(QMainWindow):
         self.__listview.clear()
         if self.__popup: self.__popup.close()
         self.__itemdict = []                       # list of itd records
-        self.__CTRL_count = -100                   # for generating unique numbers
-        self.__Record_count = -1000                # for generating unique numbers
+        self.__CTRL_count = 1000                   # for generating unique numbers
+        self.__record_count = 2000                 # for generating unique numbers
+        self.__item_count = 100000                 # for generating unique numbers
         return True
 
 
@@ -509,14 +513,25 @@ class ArgBrowser(QMainWindow):
             if not isinstance(rr[CTRL_record], dict): rr[CTRL_record] = dict()
             # Its 'kident' (see above) record is used to store unique identifiers (iitd)
             rr[CTRL_record].setdefault(kident, dict())
+
+        # If an order (list) is supplied, use that. Otherways, use the rr.keys() order.
+        # NB: This is NOT sufficient to get the list-items sorted in this order,
+        #     because by default they are sorted alphabetically on the first column.
+        #     So, a column of unique numbers is generated, and used for sorting...
+        order = JEN_inarg.CTRL(rr, 'order')
+        if order==None:
+            order = rr.keys()
             
-        for key in rr.keys():
+        for key in order:
+            self.__item_count += 1                             # overall item count
+            # print level,(level*'.'),self.__item_count,key
             if isinstance(rr[key], dict):   
                 if key==CTRL_record:                           # is a CTRL record         
-                    self.__CTRL_count -= 1                     # decrement
+                    self.__CTRL_count += 1                     # increment the counter
                     if self.__show_CTRL:
-                        CTRL_ident = str(self.__CTRL_count)
-                        item = MyListViewItem(listview, key, 'CTRL_record', '', CTRL_ident)
+                        CTRL_ident = str(-self.__CTRL_count)
+                        item = MyListViewItem(listview, key, 'CTRL_record', '',
+                                              CTRL_ident, str(self.__item_count))
                         item.set_text_color('green')
                         item.setSelectable(False)
                         key1 = CTRL_record+'_'+str(CTRL_ident) # unique name
@@ -534,7 +549,16 @@ class ArgBrowser(QMainWindow):
                     # A record (perhaps an inarg sub-record):
                     text = QString(key)
                     iitd = str(-2)
-                    item = MyListViewItem(listview, text, '', '', iitd)
+                    self.__record_count += 1                   # increment the counter
+                    R_ident = str(-self.__record_count)
+                    item = MyListViewItem(listview, text, '', '',
+                                          R_ident, str(self.__item_count))
+                    item.setSelectable(False)
+
+                    if key=='stream_control':                  # See MG_JEN_Cohset.py
+                        # Temporary kludge, until this feature is implemented properly
+                        self.__setOpen[key] = True             # set open     
+                        
                     color1 = color
                     if not JEN_inarg.is_OK(rr[key]):           # contains an error/warning
                         item.set_text_color('red')
@@ -548,18 +572,22 @@ class ArgBrowser(QMainWindow):
                         item.set_text_color(color)
                     else:
                         item.set_text_color('blue')            # default: highlight it
-                    item.setSelectable(False)
                     if self.__set_open and level==0:
                         item.setOpen(True)                     # show its children
                     if self.__setOpen.has_key(key):
                         item.setOpen(self.__setOpen[key])      # open or close    
+
                     self.recurse (rr[key], listview=item, level=level+1,
                                   module=key, makeitd=makeitd, color=color1)
 
             elif not makeitd:
                 # E.g. the fields inside a CTRL_record:
-                item = MyListViewItem(listview, key, str(rr[key]))
+                item = MyListViewItem(listview, key, str(rr[key]), '',
+                                      '', str(self.__item_count))
                 item.set_text_color(color)
+                if isinstance(rr[key], (list,tuple)):
+                    if key=='order':
+                        print '\n** (not makeitd):',key,':',type(rr[key]),'[',len(rr[key]),'] =\n   ',rr[key]
 
             else:                                              # rr[key] is a value
                 itd = self.make_itd(key, rr[key], ctrl=rr[CTRL_record], module=module)
@@ -576,7 +604,8 @@ class ArgBrowser(QMainWindow):
                         hcmax = 40                             # max nr of chars
                         if len(help)>hcmax:
                             help = help[:hcmax]+'...'
-                    item = MyListViewItem(listview, key, value, help, iitd)
+                    item = MyListViewItem(listview, key, value, help,
+                                          iitd, str(self.__item_count))
                     if itd['hide']:
                       item.set_text_color('grey')
                     else:
@@ -692,14 +721,14 @@ class ArgBrowser(QMainWindow):
             QObject.connect(self.__popup, PYSIGNAL("popupOK()"), self.popupOK)
             QObject.connect(self.__popup, PYSIGNAL("popupCancel()"), self.popupCancel)
 
-        elif iitd==-2:
-            # A record: open or close it (toggle):
+        elif iitd<-2000:
+            # A record (see self.__record_count): open or close it (toggle):
             self.__setOpen.setdefault(key, False)
             self.__setOpen[key] = not self.__setOpen[key]   # toggle
             self.refresh()
 
-        elif iitd<-100:
-            # A CTRL record:
+        elif iitd<-1000:
+            # A CTRL record (see self.__CTRL_count):
             CTRL_ident = iitd                               # see .recurse()
             key1 = CTRL_record+'_'+str(CTRL_ident)          # unique name
             self.__setOpen.setdefault(key1, False)

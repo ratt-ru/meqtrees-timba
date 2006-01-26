@@ -363,6 +363,7 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
       ctrl['last_edited'] = now                       # updated in inargGUI
       ss = 'CTRL: '+ctrl['target_function']
       ctrl['oneliner'] = ss
+      ctrl['order'] = [CTRL_record]                   # order of fields
       rr[CTRL_record] = ctrl                          # Attach the CTRL_record
 
    elif not isinstance(rr[CTRL_record], dict):        # CTRL_record is not a record...??
@@ -693,7 +694,8 @@ def inarg2pp(inarg, target='<target>', version='15jan2006', trace=False):
       elif not inarg['_inarg'].has_key(localscope):
          # Trying to run the function with the wrong inarg
          # (i.e. an inarg for a different funtion(s)) should result in an error:
-         print s1,'inarg does not relate to function:',localscope
+         print '\n',s1,'inarg does not relate to function:',localscope
+         print '  inarg.keys():',inarg.keys(),'\n'
          return False
 
       elif not isinstance(inarg['_inarg'][localscope], dict):
@@ -809,8 +811,20 @@ def attach(rr=None, inarg=None, recurse=False, level=0, trace=False):
    _replace_reference(qq, trace=trace)        # replace any referenced values        
    rr[lscope] = qq                            # attach to rr
    MESSAGE(rr, s0+'attached: '+lscope)
+   order(rr, append=lscope)                   # Update the order-field of the CTRL_record:
    if trace: display(rr,'rr <- JEN_inarg.attach()', full=True)
    return rr
+
+#----------------------------------------------------------------------------
+
+def order(pp=None, append=None, trace=False):
+   """Get/append the order of the fields of argument record pp"""
+   order = CTRL(pp, 'order')
+   if append:
+      order.append(append)                
+      order = CTRL(pp, 'order', order)
+   return order
+
 
 #----------------------------------------------------------------------------
 
@@ -881,6 +895,10 @@ def inarg_common (rr, **kwargs):
    """Used in inarg_xxx() functions (see above)"""
    rr.setdefault('slave', False)     
    rr.setdefault('hide', False)
+   # NB: Think about this one, and the entire inarg_common idea!!
+   # rr.setdefault('setopen', False)
+   # if rr['setopen']:
+      # CTRL(rr,'setopen',True, trace=trace)
    for key in kwargs.keys():
       rr[key] = kwargs[key]
    return True
@@ -950,6 +968,9 @@ def define(pp, key=None, default=None, slave=False,
    # OK, make the new argument field (key):
    pp.setdefault(key, default)
 
+   # Update the order-field of the CTRL_record:
+   order(pp, append=key)
+
    # Put the extra info into the control record:
    # (Use a dict (rr) to drive the loop below)
    rr = dict(choice=choice, editable=editable, 
@@ -1007,10 +1028,13 @@ def test1(ns=None, object=None, **inarg):
           help='open a .py file', trace=True)
    define(pp, 'empty_string', ' ', choice=[' ',''," ",""],
           help='four versions of empty strings', trace=True)
+
    pp.setdefault('ref_ref_aa', '@ref_aa')
    pp.setdefault('ref_aa', '@aa')
+
    define(pp, 'nested', True, tf=True, trace=True)
    define(pp, 'trace', False, tf=False, trace=True)
+
    if pp['nested']:
       # It is possible to include the default inarg records from other
       # functions that are used in the function body below:

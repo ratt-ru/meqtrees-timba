@@ -148,6 +148,9 @@ def MeqL(ns, name='MeqL', axis='x2', ref=0.0):
 def MeqM(ns, name='MeqM', axis='x3', ref=0.0):
     return MeqFunklet(ns, name, axis, ref=ref)
 
+# def MeqN(ns, name='MeqN', axis='x4', ref=0.0):         # <--------------???
+#     return MeqFunklet(ns, name, axis, ref=ref)
+
 def MeqU(ns, name='MeqU', axis='x2', ref=0.0):
     return MeqFunklet(ns, name, axis, ref=ref)
 
