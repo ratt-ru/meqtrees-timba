@@ -514,5 +514,6 @@ if __name__ == "__main__":
   display.AddUpdateButton()
   display.AddVTKExitEvent()
   display.show()
+  display.testEvent()
   app.exec_loop()
 
