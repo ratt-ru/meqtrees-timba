@@ -366,14 +366,19 @@ class vtk_qt_3d_display(qt.QWidget):
 #    array_dim = 700
     num_arrays = 800
     array_dim = 64
+    axis_slice = slice(0,array_dim)
     gain = 1.0 / num_arrays
     if self.image_array is None:
       self.image_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Float32)
+      array_selector = []
+      array_selector.append(0)
+      array_selector.append(axis_slice)
+      array_selector.append(axis_slice)
       for k in range(num_arrays):
-        for i in range(array_dim):
-          for j in range(array_dim):
-            self.image_numarray[k,i,j] = iteration * k * gain
-
+        array_tuple = tuple(array_selector)
+        self.image_numarray[array_tuple] = iteration * k * gain
+        if k < num_arrays:
+          array_selector[0] = k + 1
 #note: for vtkImageImportFromNumarray to work, incoming array
 #      must have rank 3
       self.image_array = vtkImageImportFromNumarray()
@@ -383,10 +388,15 @@ class vtk_qt_3d_display(qt.QWidget):
       self.set_initial_display()
       self.lut.SetRange(self.image_numarray.min(), self.image_numarray.max())
     else:
+      array_selector = []
+      array_selector.append(0)
+      array_selector.append(axis_slice)
+      array_selector.append(axis_slice)
       for k in range(num_arrays):
-        for i in range(array_dim):
-          for j in range(array_dim):
-            self.image_numarray[k,i,j] = iteration * k * gain
+        array_tuple = tuple(array_selector)
+        self.image_numarray[array_tuple] = iteration * k * gain
+        if k < num_arrays:
+          array_selector[0] = k+1
       self.lut.SetRange(self.image_numarray.min(), self.image_numarray.max())
       self.image_array.SetArray(self.image_numarray)
 # refresh display if data contents updated after
