@@ -64,7 +64,8 @@ namespace Meq {
 	  for(uint axisi= 0; axisi<rank;axisi++){
 	    if(axisHasShape_[axisi]) continue;
 
-	    if(fshape[axisi]>1 ) { axisHasShape_[axisi]=1; continue;}
+	    if(fshape.size()>axisi && fshape[axisi]>1 ) 
+	      { axisHasShape_[axisi]=1; continue;}
 	    //cehck if domain changes around this axis
 	    if(!newdom.isDefined (axisi)) continue;
 	    if(newdom.start(axisi)!= (*funkIt)->domain().start(axisi) ||
