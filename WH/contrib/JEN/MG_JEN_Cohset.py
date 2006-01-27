@@ -1197,6 +1197,7 @@ def _test_forest (mqs, parent):
    Settings.orphans_are_roots = True;
 
    # Start the sequence of requests issued by MeqSink:
+   mqs.clearcache('VisDataMux');
    MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG['stream_control'])
    return True
 

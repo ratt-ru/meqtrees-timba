@@ -11,6 +11,7 @@ import traceback
 import time
 import cPickle
 import os
+import numarray
 
 _dbg = verbosity(0,name='assayer');
 _dprint = _dbg.dprint;
@@ -86,6 +87,7 @@ class assayer (object):
     self.default_tol = 1e-5;    # default comparison tolerance
     self.time_tol    = .5;      # default runtime tolerance
     self.hostname = os.popen('hostname').read().rstrip();
+    self._assay_stat = 0;
     # open log and dump initial messages
     if log:
       self.logger = logger(self.name+".assaylog");
@@ -547,9 +549,13 @@ _seqtypes = (list,tuple);
 def compare_value (a,b,tol=1e-6,field=None): 
   try:
     if isinstance(a,_numtypes):
-      if abs(a-b) <= max(abs(a),abs(b))*tol:
+      diff = abs(a-b);
+      scale = (abs(a)+abs(b))/2;
+      if scale:
+        diff = diff/scale;  # relative difference
+      if diff <= tol:
         return True;
-      raise DataMismatch(field,a,b);
+      raise DataMismatch(field,a,b,"rd %g"%diff);
     elif isinstance(a,dict):
       if len(a) != len(b):
         raise DataMismatch(field,"lengths",len(a),len(b));
@@ -572,11 +578,16 @@ def compare_value (a,b,tol=1e-6,field=None):
     elif isinstance(a,dmi.array_class):
       if a.shape != b.shape:
         raise DataMismatch(field,"shapes",a.shape,b.shape);
-      diff = abs(a-b).max();
-      maxdiff = max(abs(a).max(),abs(b).max())*tol;
-      if diff <= maxdiff:
+      diff = abs(a-b)
+      scale = (abs(a)+abs(b))/2;
+      numarray.Error.pushMode(dividebyzero="ignore");
+      maxdiff = numarray.where(scale!=0,diff/scale,diff).max();  # max relative difference
+      numarray.Error.popMode();
+      # diff = abs(a-b).max();
+      # maxdiff = max(abs(a).max(),abs(b).max())*tol;
+      if maxdiff <= tol:
         return True;
-      raise DataMismatch(field,"diff %g max %g"%(diff,maxdiff));
+      raise DataMismatch(field,"rd %g max %g"%(maxdiff,tol));
     else:
       if a == b:
         return True;
