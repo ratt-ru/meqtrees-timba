@@ -1,4 +1,5 @@
 A                                1001       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+Abort                            1642       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/EventChannel.h:34
 Active                           1349       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:38
 Add                              1088       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 Additional                       1524       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
@@ -344,9 +345,9 @@ MeqSelector                      1447       ; from /home/oms/LOFAR/Timba/MeqNode
 MeqServer                        1462       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
 MeqSin                           1430       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
 MeqSinh                          1407       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sinh.h:29
-#MeqSink                         1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
+MeqSink                          1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
 MeqSolver                        1401       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:30
-#MeqSpigot                       1468       ; from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:9
+MeqSpigot                        1468       ; from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:9
 MeqSqr                           1458       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqr.h:30
 MeqSqrt                          1408       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqrt.h:30
 MeqStatPointSourceDFT            1396       ; from /home/oms/LOFAR/Timba/MeqNodes/src/StatPointSourceDFT.h:31
@@ -366,7 +367,7 @@ MeqUVInterpol                    1508       ; from /home/rnijboer/LOFAR/Timba/Me
 MeqUVW                           1421       ; from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:31
 MeqVells                         1341       ; from /home/oms/LOFAR/Timba/MEQ/src/Vells.h:30
 MeqVellSet                       1307       ; from /home/oms/LOFAR/Timba/MEQ/src/VellSet.h:35
-#MeqVisDataMux                   1585       ; from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:10
+MeqVisDataMux                    1585       ; from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:10
 MeqVisPhaseShift                 1517       ; from /home/brentjens/LOFAR/Timba/MeqNodes/src/VisPhaseShift.h:31
 MeqWAvg                          1503       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WAvg.h:30
 MeqWMean                         1504       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WMean.h:30
@@ -406,6 +407,7 @@ Object                           1579       ; from /home/oms/LOFAR/Timba/DMI/src
 Observatory                      1554       ; from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:33
 OctopussyMessage                 1049       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:29
 Offset                           1195       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
+On                               1641       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/EventChannel.h:34
 Only                             1390       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ReqSeq.h:32
 Open                             1045       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 Oper                             1453       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
