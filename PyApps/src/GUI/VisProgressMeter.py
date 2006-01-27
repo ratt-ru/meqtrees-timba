@@ -30,6 +30,7 @@ class VisProgressMeter (QHBox):
     self._vis_output = False;
     self._vis_inittime = None;
     self._vis_hdrtime = None;
+    self._vis_rate = None;
     self._timerid = None;
     self._currier = PersistentCurrier();
     self.curry = self._currier.curry;
@@ -83,6 +84,7 @@ class VisProgressMeter (QHBox):
     self._wprog.show();
     self.show();
     self._vis_hdrtime = time.time();
+    self._vis_rate = None;
        
   def update (self,rec):
     """indicates progress based on a Vis.Num.Tiles signal""";
