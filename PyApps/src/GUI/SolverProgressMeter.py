@@ -50,11 +50,16 @@ class SolverProgressMeter (QHBox):
     
   def solver_end (self,rec):
     """processes solver.end record. Usually connected to a Solver.End signal""";
-    msg = "<b>%(node)s</b> fi<b>%(iterations)d</b> fit:<b>%(fit).4g</b> r:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
+    if rec.converged:
+      color="green";
+    else:
+      color="red";
+    rec.final_iter = "<font color=\"%s\">i<b>%d</b></font>"%(color,rec.iterations);
+    msg = "<b>%(node)s</b> %(final_iter)s fit:<b>%(fit).4g</b> r:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
     if rec.num_tiles > 1:
       msg += "c:%(num_converged)d/%(num_tiles)d"%rec;
-    if not rec.converged:
-      msg += "<b>N/C<b> ";
+#    if not rec.converged:
+#      msg += " <b><font color=\"red\">N/C</font><b>";
     self._wlabel.setText("<nobr>"+msg+"</nobr>");
     
   def reset (self):

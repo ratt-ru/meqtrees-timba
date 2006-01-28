@@ -20,11 +20,17 @@ class VisProgressMeter (QHBox):
     self.setSpacing(5);
     self._wtime = QLabel(self);
     self._wtime.setSizePolicy(QSizePolicy.Minimum,QSizePolicy.Minimum);
+    self._wtime.setAlignment(Qt.AlignLeft|Qt.AlignVCenter);
+    self._wtime.setIndent(5);
+    self._wtime.setTextFormat(Qt.RichText);
     self._wprog = QProgressBar(self);
     self._wprog.setCenterIndicator(True);
     self._wprog.setSizePolicy(QSizePolicy.Minimum,QSizePolicy.Minimum);
     self._wlabel = QLabel(self);
     self._wlabel.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
+    self._wlabel.setIndent(5);
+    self._wlabel.setTextFormat(Qt.RichText);
+    self._wlabel.setAlignment(Qt.AlignLeft|Qt.AlignVCenter);
     self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
     self._app = None;
     self._vis_output = False;
@@ -53,7 +59,7 @@ class VisProgressMeter (QHBox):
     """initializes and shows meter. Usually connected to a Vis.Channel.Open signal""";
     if isinstance(self.parent(),QStatusBar):
       self.parent().clear();
-    self._wlabel.setText(" opening dataset "); 
+    self._wlabel.setText("<nobr>opening dataset</nobr>"); 
     self._wlabel.show();
     self._wprog.reset();
     self._wprog.show();
@@ -69,7 +75,7 @@ class VisProgressMeter (QHBox):
   def timerEvent (self,ev):
     """redefined to keep clock display ticking"""
     if self._vis_inittime is not None:
-      self._wtime.setText(" "+hms_str(time.time()-self._vis_inittime));
+      self._wtime.setText(hms_str(time.time()-self._vis_inittime));
   
   def header (self,rec):
     """processes header record. Usually connected to a Vis.Header signal""";
@@ -80,10 +86,10 @@ class VisProgressMeter (QHBox):
     self._vis_time0 = times[0];
     self._wprog.setTotalSteps(nt);
     if nt:
-      timestr = " received header, dataset length is " + hms_str(nt)+ " ";
+      timestr = "received header, dataset length is " + hms_str(nt);
     else:
-      timestr = " received header ";
-    self._wlabel.setText(timestr); 
+      timestr = "received header";
+    self._wlabel.setText("<nobr>"+timestr+"</nobr>"); 
     self._wprog.show();
     self.show();
     self._vis_hdrtime = time.time();
@@ -109,11 +115,11 @@ class VisProgressMeter (QHBox):
     if time1 != time0:
       timestr1 = self._vis_rtime1 = hms_str(time1);
       timestr += " to " + timestr1;
-    msg = " tile %d, timeslots %d to %d, relative time %s" \
+    msg = " tile <b>%d</b>, timeslots %d to %d, relative time %s" \
       % (nt-1,ts[0],ts[1],timestr);
     if self._vis_rate is not None:
-      msg = msg+"; avg %.2f sec/ts" % self._vis_rate;
-    self._wlabel.setText(msg+" "); 
+      msg = msg+"; avg <b>%.2f</b> sec/ts" % self._vis_rate;
+    self._wlabel.setText("<nobr>"+msg+"</nobr>"); 
     
   def footer (self,rec):
     """processes footer record. Usually connected to a Vis.Footer signal""";
@@ -122,8 +128,8 @@ class VisProgressMeter (QHBox):
     else:
       msg = "received footer";
     if self._vis_rate is not None:
-      msg = msg+"; avg rate %.2f sec/ts" % self._vis_rate;
-    self._wlabel.setText(msg+" "); 
+      msg = msg+"; avg rate <b>%.2f</b> sec/ts" % self._vis_rate;
+    self._wlabel.setText("<nobr>"+msg+"</nobr>"); 
     self._wprog.setProgress(99,100);
     
   def close (self,rec):
