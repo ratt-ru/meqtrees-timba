@@ -528,7 +528,13 @@ class Parmset (TDL_common.Super):
         if self.unsolvable():
             self.history(append='not updated from (unsolvable): '+Parmset.oneliner())
         elif not Parmset.unsolvable():
-            self.__parmgroup.update(Parmset.parmgroup())
+
+            # NB: update OVERWRITES existing fields with new versions!
+            print 'Parmset.update(): self.__parmgroup:\n    ',self.__parmgroup
+            if True:
+                self.__parmgroup.update(Parmset.parmgroup())
+            print '    ',self.__parmgroup,'\n'
+
             self.__pg_rider.update(Parmset.pg_rider())
             self.__condeq.update(Parmset.condeq())
             self.__MeqParm.update(Parmset.MeqParm())

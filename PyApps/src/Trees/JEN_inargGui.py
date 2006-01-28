@@ -122,7 +122,7 @@ class ArgBrowser(QMainWindow):
         self.__listview.setSorting(4)       # sort on 'order' 
         self.__listview.setRootIsDecorated(1)
 
-        self.__visible_item = None
+        self.__find_item = None
         
         #----------------------------------------------------
         # The text editor:
@@ -134,15 +134,21 @@ class ArgBrowser(QMainWindow):
         #----------------------------------------------------
         # Buttons to be added at the bottom:
         hbox = QHBoxLayout(vbox)
+
         b_save = QPushButton('Save', self)
-        hbox.addWidget(b_save)
-        b_exec = QPushButton('Proceed', self)
-        hbox.addWidget(b_exec)
-        b_cancel = QPushButton('Cancel', self)
-        hbox.addWidget(b_cancel)
+        QToolTip.add(b_save, 'Save the current inarg record')
         QObject.connect(b_save, SIGNAL("pressed ()"), self.save_inarg)
-        QObject.connect(b_exec, SIGNAL("pressed ()"), self.exec_with_inarg)
+        hbox.addWidget(b_save)
+
+        b_proceed = QPushButton('Proceed', self)
+        QToolTip.add(b_proceed, 'Proceed with the current inarg record')
+        QObject.connect(b_proceed, SIGNAL("pressed ()"), self.exec_with_inarg)
+        hbox.addWidget(b_proceed)
+
+        b_cancel = QPushButton('Cancel', self)
+        QToolTip.add(b_cancel, 'Cancel the gui, and do nothing')
         QObject.connect(b_cancel, SIGNAL("pressed ()"), self.cancel_exec)
+        hbox.addWidget(b_cancel)
 
         #----------------------------------------------------
         # Message label (i.s.o. statusbar):
@@ -177,6 +183,12 @@ class ArgBrowser(QMainWindow):
         self.__menubar.insertItem('Edit', editmenu)
 
         viewmenu = QPopupMenu(self)
+        k = viewmenu.insertItem('HISTORY', self.viewHISTORY)
+        viewmenu.setWhatsThis(k, 'Recursively show the inarg HISTORY')
+        viewmenu.insertItem('MESSAGES', self.viewMESSAGE)
+        viewmenu.insertItem('ERRORS', self.viewERROR)
+        viewmenu.insertItem('WARNINGS', self.viewWARNING)
+        viewmenu.insertSeparator()     
         viewmenu.insertItem('refresh', self.refresh)
         viewmenu.insertSeparator()     
         viewmenu.insertItem('inarg2pp', self.inarg2pp)
@@ -186,6 +198,9 @@ class ArgBrowser(QMainWindow):
         self.__menubar.insertItem('View', viewmenu)
 
         testmenu = QPopupMenu(self)
+        testmenu.insertItem('modified?', self.test_modified)
+        testmenu.insertItem('protected?', self.test_protected)
+        testmenu.insertItem('toggle protected', self.toggle_protected)   # temporary
         testmenu.insertItem('inarg_OK?', self.test_OK)
         testmenu.insertItem('count_@@', self.count_ref)
         testmenu.insertItem('replace_@@', self.replace_ref)
@@ -207,11 +222,14 @@ class ArgBrowser(QMainWindow):
         self.__unhide = False                      # if True, show hidden arguments too
         self.__show_CTRL = False                   # if True, show CTRL_records
         self.show_CTRL(False, refresh=False)
+        self.__find_item = None                    # see self.refresh()
         self.__set_open = True                     # see .recurse()
         self.__setOpen = dict()                    # see .recurse()
         self.__result = None                       # output for exec_loop
         self.__inarg = None                        # the edited inarg
         self.__inarg_input = None                  # the input inarg (see .revert_inarg())
+        self.__protected = False                   # if True, self.__inarg is protected
+        self.__modified = False                    # if True, self.__inarg has been modified
         self.__savefile = generic_savefile         # used by .save_inarg(None)
         self.__scriptname = None                   # target script for inarg record
         self.__closed = False
@@ -306,24 +324,43 @@ class ArgBrowser(QMainWindow):
         self.__message.setText('** print_inarg: not yet implemented')
         return True
 
+    def toggle_protected(self):
+        """Toggle the protection of the current inarg record"""
+        self.__protected = not self.__protected                # toggle
+        return self.test_protected()
+
+    def test_protected(self):
+        """Test whether the current inarg record is protected"""
+        self.__message.setText('self.__protected ='+str(self.__protected))
+        return True
+
+    def test_modified(self):
+        """Test whether the current inarg record is modified"""
+        self.__message.setText('self.__modified ='+str(self.__modified))
+        return True
+
     def test_OK(self):
         """Test whether the current inarg record is OK"""
-        ok = JEN_inarg.is_OK(self.__inarg, trace=True)
         s1 = '** test_OK(): '
+        ok = JEN_inarg.is_OK(self.__inarg, trace=True)
+        if not ok:
+            for field in ['ERROR', 'WARNING']:
+                n = JEN_inarg.count(self.__inarg, field)
+                if n>0:
+                    s1 += ' ('+field+'s='+str(n)+') '
+                    self.view('WARNING')
         if True:
             # See whether there are any unresolved references:
-            print s1,'self.__inarg:',type(self.__inarg)
             inarg = deepcopy(self.__inarg)
-            print s1,'inarg:',type(inarg)
             JEN_inarg._replace_reference(inarg, trace=True)
             rr = JEN_inarg._count_reference(inarg, trace=True)
             if rr['n']>0:
                 ok = False
-            s1 += ' (unresolved: '+str(rr)+') '
+                s1 += ' (unresolved: '+str(rr)+') '
         if (ok):
-            s1 += '      -- ok --'
+            s1 += '      -- inarg OK --'
         else:
-            s1 += '      ** NOT OK!! **'
+            s1 += '      ** inarg NOT OK....!! **'
         self.__message.setText(s1)
         return ok
 
@@ -352,7 +389,7 @@ class ArgBrowser(QMainWindow):
     def open_inarg(self):
         """Read a saved inarg record from a file, using a file browser"""
         filename = QFileDialog.getOpenFileName("","*.inarg",self)
-        self.restore_inarg(filename);
+        self.restore_inarg(filename)
         return True
 
     def save_inarg(self, filename=None):
@@ -388,6 +425,21 @@ class ArgBrowser(QMainWindow):
         self.__message.setText('** restored inarg record from file:   '+filename)
         f.close()
         self.input(inarg)    
+        return True
+
+    #-------------------------------------------------------------------------------
+
+    def viewMESSAGE(self):
+        return self.view('MESSAGE')
+    def viewERROR(self):
+        return self.view('ERROR')
+    def viewWARNING(self):
+        return self.view('WARNING')
+    def viewHISTORY(self):
+        return self.view('HISTORY')
+
+    def view (self, field='MESSAGE'):
+        JEN_inarg.view(self.__inarg, field=field)
         return True
 
     #-------------------------------------------------------------------------------
@@ -459,6 +511,11 @@ class ArgBrowser(QMainWindow):
         self.__inarg = deepcopy(inarg)                          # to be edited
         self.__inarg_input = deepcopy(inarg)                    # unchanged copy
 
+        # Check whether the inarg record is protected:
+        self.__protected = JEN_inarg.CTRL(self.__inarg, 'protected')
+        if self.__protected==None:
+            self.__protected = JEN_inarg.CTRL(self.__inarg, 'protected', False)
+            
         # Modify the name (of its main window):
         self.__scriptname = None
         s1 = '** input of inarg record:  '
@@ -491,13 +548,12 @@ class ArgBrowser(QMainWindow):
         """Refresh the listview widget from self.__inarg"""
         if clear: self.clearGui()
         self.recurse (self.__inarg, listview=self.__listview)
-        if self.__visible_item:
-            pass
-            # This does not work because the earlier items have disappeared.
-            # print '** visible_item =',self.__visible_item
-            # self.__listview.ensureItemVisible(self.__visible_item)
-            # Better: Make a unique number for each item in the 4th column,
-            # (retaining the record recognition) and use listview.findItem()....
+        if self.__find_item:
+            # Find the specified list item (see self.itemSelected())
+            item = self.__listview.findItem(self.__find_item, 4)
+            self.__listview.ensureItemVisible(item)
+            # The problem is that the item is visble at the BOTTOM of the window.
+            # It would be better to have it at the top....!
         return True
 
     #--------------------------------------------------------------------------
@@ -690,17 +746,18 @@ class ArgBrowser(QMainWindow):
     def itemSelected(self, item):
         """Deal with a selected listview item"""
 
+        # Disable (see also below):
+        self.__find_item = None
+
         # If +/- clicked, the item is None:
         if not item: return False
-
-        # Used in ensureItemVisible() after refresh:
-        self.__visible_item = item
         
         # Read the (string) values from the columns:
         key = str(item.text(0))            
         # vstring = str(item.text(1))           
         # help = str(item.text(2))              
         iitd = str(item.text(3))          
+        unique = str(item.text(4))          
         if self.__popup:
             self.__popup.close()
 
@@ -716,15 +773,19 @@ class ArgBrowser(QMainWindow):
             # A regular item: launch a popup for editing:
             itd = self.__itemdict[iitd]
             self.__current_iitd = iitd
-            # Make the popup object:
-            self.__popup = Popup(self, name=itd['key'], itd=itd)
-            QObject.connect(self.__popup, PYSIGNAL("popupOK()"), self.popupOK)
-            QObject.connect(self.__popup, PYSIGNAL("popupCancel()"), self.popupCancel)
+            if self.__protected:
+                self.__message.setText('** The inarg is protected: editing is disabled')
+            else:
+                # Make the popup object:
+                self.__popup = Popup(self, name=itd['key'], itd=itd)
+                QObject.connect(self.__popup, PYSIGNAL("popupOK()"), self.popupOK)
+                QObject.connect(self.__popup, PYSIGNAL("popupCancel()"), self.popupCancel)
 
         elif iitd<-2000:
             # A record (see self.__record_count): open or close it (toggle):
             self.__setOpen.setdefault(key, False)
             self.__setOpen[key] = not self.__setOpen[key]   # toggle
+            self.__find_item = unique
             self.refresh()
 
         elif iitd<-1000:
@@ -733,6 +794,7 @@ class ArgBrowser(QMainWindow):
             key1 = CTRL_record+'_'+str(CTRL_ident)          # unique name
             self.__setOpen.setdefault(key1, False)
             self.__setOpen[key1] = not self.__setOpen[key1] # toggle
+            self.__find_item = unique
             self.refresh()
         return True
 
@@ -749,6 +811,7 @@ class ArgBrowser(QMainWindow):
         # Replace the relevant itemdict with the modified one:
         iitd = self.__current_iitd                # its position in self.__itemdict
         self.__itemdict[iitd] = itd               # replace in self.__itemdict
+        self.__modified = True                    # self.__inarg has been modified
         self.replace (self.__inarg, itd, trace=False)
         self.refresh()
         return True
@@ -831,6 +894,10 @@ class Popup(QDialog):
         qsval = QString(str(value))
         # print value,' ->  qsval =',qsval
 
+        # Place-holders (see self.onOpen() and onCancel()):
+        self.__lsm = None
+        self.__ms = None
+
         # Put in widgets from top to bottom:
         vbox = QVBoxLayout(self,10,5)     
 
@@ -860,17 +927,28 @@ class Popup(QDialog):
         self.showType (self.__current_value)
 
         if itd['browse']:
-            # Include a file browser button, if required:
+            # Include file browse/open buttons, if required:
+            hbox = QHBoxLayout(vbox)
+
             self.__filter = itd['browse']
-            button = QPushButton('browse '+self.__filter, self)
-            vbox.addWidget(button)
+            button = QPushButton('Browse  '+self.__filter, self)
+            QToolTip.add(button,'Launch a file-browser')
+            hbox.addWidget(button)
             QObject.connect(button, SIGNAL("pressed ()"), self.onBrowse)
+
+            button = QPushButton('Open', self)
+            QToolTip.add(button,'Open the selected file, and do something useful')
+            hbox.addWidget(button)
+            QObject.connect(button, SIGNAL("pressed ()"), self.onOpen)
+
 
         if itd['vector']:
             # Include a clear button, for vector/list editing:
             button = QPushButton('clear list', self)
+            QToolTip.add(button,'Revert to the value [] (empty list)')
             vbox.addWidget(button)
             QObject.connect(button, SIGNAL("pressed ()"), self.onClear)
+
 
         # Other information (labels):
         keys = ['help']
@@ -884,6 +962,8 @@ class Popup(QDialog):
             if itd.has_key(key) and itd[key]:
                 label = QLabel(self)
                 label.setText(key+':  '+str(itd[key]))
+                if key=='range': QToolTip.add(label,'Allowed range')
+                if key=='module': QToolTip.add(label,'Name of inarg (sub-)module')
                 vbox.addWidget(label)
 
         # Status label:
@@ -900,11 +980,18 @@ class Popup(QDialog):
             # Make Revert/undo:
             hbox = QHBoxLayout(vbox)
 
+            button = QPushButton('Inspect',self)
+            QToolTip.add(button,'Inspect the current value')
+            hbox.addWidget(button)
+            QObject.connect(button, SIGNAL("pressed ()"), self.onInspect)
+
             button = QPushButton('Revert',self)
+            QToolTip.add(button,'Revert to the input value')
             hbox.addWidget(button)
             QObject.connect(button, SIGNAL("pressed ()"), self.onRevert)
 
             button = QPushButton('Undo',self)
+            QToolTip.add(button,'Undo: revert to the last value')
             hbox.addWidget(button)
             QObject.connect(button, SIGNAL("pressed ()"), self.onUndo)
 
@@ -913,10 +1000,12 @@ class Popup(QDialog):
             hbox = QHBoxLayout(vbox)
 
             button = QPushButton('OK',self)
+            QToolTip.add(button,'Modify the inarg value, and close this popup')
             hbox.addWidget(button)
             QObject.connect(button, SIGNAL("pressed ()"), self.onOK)
 
             button = QPushButton('Cancel',self)
+            QToolTip.add(button,'Close this popup, and do nothing')
             hbox.addWidget(button)
             QObject.connect(button, SIGNAL("pressed ()"), self.onCancel)
 
@@ -942,13 +1031,29 @@ class Popup(QDialog):
         """Action on pressing the OK button"""
         self.emit(PYSIGNAL("popupOK()"),(self.__itemdict,))
         self.__status.setText('... inarg record updated ...')
-        self.close()
-        return True
+        return self.closeAll()
 	
     def onCancel (self):
         """Action on pressing the Cancel button"""
         self.emit(PYSIGNAL("popupCancel()"),(0,))
+        return self.closeAll()
+
+    def closeAll (self):
+        """Close the popup, and any associated things"""
+        if self.__lsm:                   # Local Sky Model 
+            # self.__lsm.close()         # function does not exist!
+            self.__lsm = None
+        if self.__ms:
+            pass
         self.close()
+        return True
+	
+    def onInspect (self):
+        """Action on pressing the Inspect button"""
+        v = self.__current_value
+        s = '** Inspect: '+str(type(v))+' = '+str(v)
+        print '\n',s,'\n'
+        self.__status.setText(s)
         return True
 	
     def onRevert (self):
@@ -962,7 +1067,15 @@ class Popup(QDialog):
         self.__combo.setCurrentText(QString(str(self.__last_value)))
         self.__status.setText('... Undo: -> last (valid) value ...')
         return True
-	
+
+    def onClear (self):
+        """Action on pressing the clear (vector) button"""
+        self.__current_value = []
+        self.__combo.setCurrentText(QString(str(self.__current_value)))
+        self.__status.setText('... cleared the vector...')
+        return True
+
+
     def onBrowse (self):
         """Action on pressing the browse button"""
         filename = QFileDialog.getOpenFileName("",self.__filter, self)
@@ -974,12 +1087,45 @@ class Popup(QDialog):
             self.__status.setText('... ignored ...')
         return True
 
-    def onClear (self):
-        """Action on pressing the clear (vector) button"""
-        self.__current_value = []
-        self.__combo.setCurrentText(QString(str(self.__current_value)))
-        self.__status.setText('... cleared the vector...')
+    def onOpen (self):
+        """Action on pressing the open button"""
+        filename = str(self.__current_value)
+        if self.__filter=='*.lsm':
+            self.__status.setText('open Local Sky Model:  '+filename)
+            self.openLSM (filename)   
+        elif self.__filter=='*.MS':
+            self.__status.setText('open Measurement Set:  '+filename)
+            self.openMS (filename)
+        else:
+            self.__status.setText('filter not recognised:  '+self.__filter)
         return True
+
+    def openMS (self, filename):
+        """Callback function that opens a Measurement Set""" 
+        # self.__ms = ...
+        # self.__ms.browse()
+        return True
+
+
+    def openLSM (self, filename):
+        """Callback function that opens a Local Sky Model""" 
+        from Timba.LSM.LSM import *
+        from Timba.LSM.LSM_GUI import *
+        self.__lsm = LSM()                       # Create an empty global lsm:
+        self.__lsm.load(filename)
+        print dir(self.__lsm)
+        print self.__lsm.__doc__ 
+        # self.__lsm.display()                   # locks the widget! No way to close it! 
+        plist = self.__lsm.queryLSM(count=1000)  # error if called without argument....?
+        print '\n** .queryLSM(count=1000) ->',type(plist),len(plist)
+        plist = self.__lsm.queryLSM(count=1)
+        print '\n** .queryLSM(count=2) ->',type(plist),len(plist)
+        for punit in plist: 
+            sp = punit.getSP()                   # get_Sixpack()?
+            sp.display()
+        return True
+
+
 
     #-------------------------------------------------------------------------
     # Actions if combobox value modified:

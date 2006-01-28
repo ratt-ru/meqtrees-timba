@@ -180,7 +180,13 @@ def is_inarg(rr, origin='...', level=0, trace=False):
 
 #----------------------------------------------------------------------------
 
-def is_OK(rr, level=0, trace=False):
+def is_OK(rr, trace=False):
+   """Generic test whether rr (pp or inarg) is ok"""
+   if count(rr, 'ERROR')>0: return False
+   if count(rr, 'WARNING')>0: return False
+   return True
+
+def is_OK_old(rr, level=0, trace=False):
    """Generic test whether rr (pp or inarg) is ok"""
    if not isinstance(rr, dict):
       return False
@@ -198,7 +204,7 @@ def is_OK(rr, level=0, trace=False):
 
 def _prefix(level=0):
    """Make a level-dependent message prefix (for tracing recursion)"""
-   prefix = str(level)+': '+(level*'.')
+   prefix = '  '+str(level)+': '+(level*'..')
    return prefix
 
 #----------------------------------------------------------------------------
@@ -355,6 +361,10 @@ def dissect_target (target='<dir>/<module>::<function>()', qual=None, trace=Fals
 def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
    """Make sure that rr has a valid JEN_inarg_CTRL record"""
 
+   if not isinstance(rr, dict):
+      print '\n** _ensure_CTRL_record(rr): rr not a dict, but: '+str(type(rr)),'\n'
+      return False
+
    if not rr.has_key(CTRL_record):                    # rr does NOT have a CTRL record yet
       ctrl = dissect_target (target, qual=qual)
       ctrl['version'] = version
@@ -364,6 +374,7 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
       ss = 'CTRL: '+ctrl['target_function']
       ctrl['oneliner'] = ss
       ctrl['order'] = [CTRL_record]                   # order of fields
+      ctrl['protected'] = False                       # if True, cannot be edited...
       rr[CTRL_record] = ctrl                          # Attach the CTRL_record
 
    elif not isinstance(rr[CTRL_record], dict):        # CTRL_record is not a record...??
@@ -383,7 +394,8 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
    
 #----------------------------------------------------------------------------
 
-def CTRL(rr, key=None, value=None, delete=None, report=True, level=0, trace=False):
+def CTRL(rr, key=None, value=None, delete=None, report=True,
+         recurse=True, level=0, trace=False):
    """Access to JEN_inarg_CTRL_record. If no key specified, get the (first!)
    JEN_inarg_CTRL_record field from rr (if any).
    If a field (key) is specified, return its value instead.
@@ -393,10 +405,12 @@ def CTRL(rr, key=None, value=None, delete=None, report=True, level=0, trace=Fals
       return False
 
    elif not rr.has_key(CTRL_record):          # recursive....!!
-      for key1 in rr.keys():
-         if isinstance(rr[key1],dict):
-            return CTRL(rr[key1], key=key, value=value, delete=delete,
-                        level=level+1, report=report, trace=trace)
+      if recurse:
+         for key1 in rr.keys():
+            if isinstance(rr[key1],dict):
+               return CTRL(rr[key1], key=key, value=value, delete=delete,
+                           recurse=recurse, level=level+1,
+                           report=report, trace=trace)
 
    else:                                      # CTRL record found
       s1 = 'JEN_inarg_CTRL(level='+str(level)+')'
@@ -452,26 +466,84 @@ def barescope(rr, trace=False):
 
 def ERROR(rr, txt=None, clear=False, trace=False):
    """Interact with the ERROR record of the JEN_inarg_CTRL field"""
-   return MESSAGE(rr, txt=txt, key='ERROR', clear=clear, trace=trace)
+   return MESSAGE(rr, txt=txt, field='ERROR', clear=clear, trace=trace)
 
 def WARNING(rr, txt=None, clear=False, trace=False):
    """Interact with the WARNING record of the JEN_inarg_CTRL field"""
-   return MESSAGE(rr, txt=txt, key='WARNING', clear=clear, trace=trace)
+   return MESSAGE(rr, txt=txt, field='WARNING', clear=clear, trace=trace)
 
-def MESSAGE(rr, txt=None, key='MESSAGE', clear=False, trace=False):
+def HISTORY(rr, txt=None, clear=False, trace=False):
+   """Interact with the HISTORY record of the JEN_inarg_CTRL field"""
+   return MESSAGE(rr, txt=txt, field='HISTORY', clear=clear, trace=trace)
+
+def MESSAGE(rr, txt=None, field='MESSAGE', clear=False, trace=False):
    """Interact with the specified record of the JEN_inarg_CTRL field"""
-   s1 = 'JEN_inarg.'+key+'():'
+   s1 = 'JEN_inarg.'+field+'():'
    if clear:                                     # clear the record
-      CTRL(rr,key,delete=True, trace=trace)
+      CTRL(rr,field,delete=True, trace=trace)
    if txt:                                       # message specified
-      cc = CTRL(rr,key,report=False, trace=trace)  # check existence
+      cc = CTRL(rr,field,report=False, trace=trace)  # check existence
       if not cc: cc = dict()
       cc[str(len(cc))] = txt
-      print '**',s1,localscope(rr),'(total=',len(cc),'):',txt
-      cc = CTRL(rr,key,cc, trace=trace)      
-   if trace: display(rr,s1, full=True)
-   return CTRL(rr,key,trace=trace)      
+      if field in ['ERROR','WARNING']:
+         print '\n**',s1,localscope(rr),'(total=',len(cc),'):',txt,'\n'
+      cc = CTRL(rr,field,cc, trace=trace)      
+   if trace:
+      display(rr,s1, full=True)
+   return CTRL(rr,field,trace=trace)      
 
+#------------------------------------------------------------------------------
+
+def view(rr, field='MESSAGE', ss='', level=0, trace=True):
+   """View (recursively) the specified JEN_inarg_CTRL field entries"""
+   if level==0:
+      s = '\n** Recursive view of inarg CTRL_record field: '+field
+      if trace: print s
+      ss = s
+   if isinstance(rr, dict):
+      # Get the specified field of the CTRL_record (if any):
+      cc = CTRL(rr, field, report=False, recurse=False) 
+      if isinstance(cc, dict):
+         # Show the dict entries in the correct order:
+         for i in range(len(cc)):
+            s = _prefix(level)+' - '+str(i)+':  '+cc[str(i)]
+            if trace: print s
+            ss += '\n'+s
+      # Recursive:
+      for key in rr.keys():
+         if isinstance(rr[key], dict):
+            if not key==CTRL_record:
+               s = _prefix(level+1)+' ***** '+key+':'
+               if trace: print s
+               ss += '\n'+s
+               ss = view(rr[key], field=field, ss=ss, level=level+1, trace=trace)
+   if level==0:
+      ok = is_OK(rr)
+      if ok: s = '** end of view of: '+field+'   (OK)\n'
+      if not ok: s = '** end of view of: '+field+'                   .... NOT OK ....!!\n'
+      if trace: print s
+      ss += '\n'+s
+   return ss
+
+#------------------------------------------------------------------------------
+
+def count(rr, field='MESSAGE', total=0, level=0):
+   """Count (recursively) the specified JEN_inarg_CTRL fields"""
+   if isinstance(rr, dict):
+      # Get the specified field of the CTRL_record (if any):
+      cc = CTRL(rr, field, report=False, recurse=False) 
+      if isinstance(cc, dict):
+         total += len(cc)
+      # Recursive:
+      for key in rr.keys():
+         if isinstance(rr[key], dict):
+            if not key==CTRL_record:
+               total = count(rr[key], field=field, total=total, level=level+1)
+   return total
+
+
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
 
 def display(rr, txt=None, name=None, full=False):
@@ -624,9 +696,8 @@ def _replace_reference(rr, acc=dict(), repeat=0, level=0, trace=False):
 
 def _count_reference(rr, n=0, n1=0, n2=0, name='<name>', level=0, trace=False):
    """Count the nr of argument names prepended with @ or @@"""
-   if trace:
-      if level==0: print '\n** _count_reference():',type(rr)
-      # print _prefix(level),name,':'
+   if level==0:
+      if trace: print '\n** _count_reference():',type(rr)
    if not isinstance(rr, dict):
       return False
    for key in rr.keys():                   # for all fields
@@ -649,8 +720,8 @@ def _count_reference(rr, n=0, n1=0, n2=0, name='<name>', level=0, trace=False):
             if trace:
                print _prefix(level),n,n1,n2,':',key,'=',value,'  (',name,')'
    # Return the result as a record:
-   if trace and level==0:
-      print 
+   if level==0:
+      if trace: print 
    return dict(n=n, n1=n1, n2=n2)
 
 
@@ -1110,12 +1181,12 @@ if __name__ == '__main__':
 
    #---------------------------------------------------------------------------
 
-   if 1:
+   if 0:
       pp = dict()
       inarg_common(pp, hide=True)
       print 'pp =',pp
 
-   if 0:
+   if 1:
       # Test of basic inarg-operation:
       qual = '<qual>'
       qual = None
@@ -1128,6 +1199,11 @@ if __name__ == '__main__':
          display(inarg, 'after .modify()', full=True)
       # result = test1(_inarg=inarg, _qual=qual, bb='override', qq='ignored', nested=False)
       display(result, 'after .test1()', full=True)
+      print view(inarg)
+      view(inarg, 'ERROR')
+      view(inarg, 'WARNING')
+      for field in ['ERROR','WARNING','MESSAGE','HISTORY','XXX']:
+         print '** count(',field,') ->',count(inarg, field)
 
    if 0:
       # Test of traditional operation of the same function:
