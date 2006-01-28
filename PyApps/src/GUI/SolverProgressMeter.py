@@ -34,10 +34,10 @@ class SolverProgressMeter (QHBox):
     if isinstance(self.parent(),QStatusBar):
       self.parent().clear();
     if rec.num_tiles > 1:
-      msg = "<b>%(node)s p:%(num_spids)d t:%(num_tiles)d u:<b>%(num_unknowns)d</b>"%rec;
+      msg = "<b>%(node)s</b> p:%(num_spids)d t:%(num_tiles)d u:<b>%(num_unknowns)d</b>"%rec;
     else:
-      msg = "<b>%(node)s p:%(num_spids)d u:<b>%(num_unknowns)</b>d"%rec;
-    self._wlabel.setText("<nobr><small>"+msg+"</small></nobr>");
+      msg = "<b>%(node)s</b> p:%(num_spids)d u:<b>%(num_unknowns)d</b>"%rec;
+    self._wlabel.setText("<nobr>"+msg+"</nobr>");
     self._wlabel.show();
     self.show();
     
@@ -46,7 +46,7 @@ class SolverProgressMeter (QHBox):
     msg = "<b>%(node)s</b> i<b>%(iterations)d</b> fit:<b>%(fit).2g</b> r:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
     if rec.num_tiles > 1:
       msg += "c:%(num_converged)d/%(num_tiles)d"%rec;
-    self._wlabel.setText("<nobr><small>"+msg+"</small></nobr>");
+    self._wlabel.setText("<nobr>"+msg+"</nobr>");
     
   def solver_end (self,rec):
     """processes solver.end record. Usually connected to a Solver.End signal""";
@@ -55,7 +55,7 @@ class SolverProgressMeter (QHBox):
       msg += "c:%(num_converged)d/%(num_tiles)d"%rec;
     if not rec.converged:
       msg += "<b>N/C<b> ";
-    self._wlabel.setText("<nobr><small>"+msg+"</small></nobr>");
+    self._wlabel.setText("<nobr>"+msg+"</nobr>");
     
   def reset (self):
     """resets and hides meter."""
