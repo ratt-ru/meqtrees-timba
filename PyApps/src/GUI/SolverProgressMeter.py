@@ -43,14 +43,14 @@ class SolverProgressMeter (QHBox):
     
   def solver_iter (self,rec):
     """processes solver.iter record. Usually connected to a Solver.Iter signal""";
-    msg = "<b>%(node)s</b> i<b>%(iterations)d</b> fit:<b>%(fit).2g</b> r:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
+    msg = "<b>%(node)s</b> i<b>%(iterations)d</b> fit:<b>%(fit).4g</b> r:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
     if rec.num_tiles > 1:
       msg += "c:%(num_converged)d/%(num_tiles)d"%rec;
     self._wlabel.setText("<nobr>"+msg+"</nobr>");
     
   def solver_end (self,rec):
     """processes solver.end record. Usually connected to a Solver.End signal""";
-    msg = "<b>%(node)s</b> fi<b>%(iterations)d</b> fit:<b>%(fit).2g</b> r:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
+    msg = "<b>%(node)s</b> fi<b>%(iterations)d</b> fit:<b>%(fit).4g</b> r:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
     if rec.num_tiles > 1:
       msg += "c:%(num_converged)d/%(num_tiles)d"%rec;
     if not rec.converged:
