@@ -203,7 +203,7 @@ class meqserver_gui (app_proxy_gui):
     connect = QAction("Connect to kernel...",0,self);
     connect.addTo(kernel_menu);
     QObject.connect(self,PYSIGNAL("isConnected()"),connect.setDisabled);
-    stopkern = QAction(pixmaps.red_round_cross.iconset(),"&Stop kernel process",0,self);
+    stopkern = QAction(pixmaps.red_round_cross.iconset(),"&Stop kernel process",Qt.CTRL+Qt.Key_C,self);
     QObject.connect(self,PYSIGNAL("isConnected()"),stopkern.setEnabled);
     QObject.connect(stopkern,SIGNAL("activated()"),self._stop_kernel);
     stopkern.addTo(kernel_menu);
@@ -274,9 +274,9 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self._wstat,PYSIGNAL("shown()"),showps.setOn);
     
     # --- Bookmarks menu
-    self._qa_addbkmark = addbkmark = QAction(pixmaps.bookmark_add.iconset(),"Add bookmark",Qt.ALT+Qt.Key_B,self);
+    self._qa_addbkmark = addbkmark = QAction(pixmaps.bookmark_add.iconset(),"Add bookmark",Qt.CTRL+Qt.Key_B,self);
     addbkmark.addTo(bookmarks_menu);
-    self._qa_addpagemark = addpagemark = QAction(pixmaps.bookmark_toolbar.iconset(),"Add pagemark for this page",Qt.ALT+Qt.CTRL+Qt.Key_B,self);
+    self._qa_addpagemark = addpagemark = QAction(pixmaps.bookmark_toolbar.iconset(),"Add pagemark for this page",Qt.SHIFT+Qt.CTRL+Qt.Key_B,self);
     addpagemark.addTo(bookmarks_menu);
     # self._qa_autopublish = autopublish = QAction(pixmaps.publish.iconset(),"Auto-publish loaded bookmarks",0,self);
     self._qa_autopublish = autopublish = QAction("Auto-publish loaded bookmarks",0,self);
@@ -341,7 +341,7 @@ class meqserver_gui (app_proxy_gui):
       
     # finally, add standard stuff to bottom of menus
     kernel_menu.insertSeparator();
-    exit = QAction(pixmaps.exit.iconset(),"&Quit browser",Qt.ALT+Qt.Key_Q,self);
+    exit = QAction(pixmaps.exit.iconset(),"&Quit browser",Qt.CTRL+Qt.Key_Q,self);
     exit.addTo(kernel_menu);
     QObject.connect(exit,SIGNAL("activated()"),self.close);
     ## NB: uncomment the line below to have Ctrl+C handled through the GUI

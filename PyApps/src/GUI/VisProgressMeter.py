@@ -1,6 +1,7 @@
 import time
 from qt import *
 
+from Timba import dmi
 from Timba.utils import PersistentCurrier
 
 def hms_str (tm):
@@ -26,15 +27,17 @@ class VisProgressMeter (QHBox):
     self._wlabel.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
     self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
     self._app = None;
-    self._vis_time0 = 0;
     self._vis_output = False;
     self._vis_inittime = None;
-    self._vis_hdrtime = None;
-    self._vis_rate = None;
     self._timerid = None;
     self._currier = PersistentCurrier();
     self.curry = self._currier.curry;
     self.xcurry = self._currier.xcurry;
+    self._reset_stats();
+  
+  def _reset_stats (self):
+    self._vis_hdrtime = self._vis_rate = self._vis_nt = \
+    self._vis_time0 = self._vis_rtime0 = self._vis_rtime1 = None;
     
   def connect_app_signals (self,app):
     """connects standard app signals to appropriate methods."""
@@ -57,11 +60,11 @@ class VisProgressMeter (QHBox):
     self.show();
     self._vis_output = rec.get("output");
     self._vis_inittime = time.time();
-    self._vis_hdrtime = None;
     self._wtime.setText(" 0:00:00");
     self._wtime.show();
     self.killTimers();
     self.startTimer(1000);
+    self._reset_stats();
     
   def timerEvent (self,ev):
     """redefined to keep clock display ticking"""
@@ -84,11 +87,10 @@ class VisProgressMeter (QHBox):
     self._wprog.show();
     self.show();
     self._vis_hdrtime = time.time();
-    self._vis_rate = None;
        
   def update (self,rec):
     """indicates progress based on a Vis.Num.Tiles signal""";
-    nt = rec.num_tiles;
+    nt = self._vis_nt = rec.num_tiles;
     ts = rec.timeslots;
     time0 = int(rec.time[0]-self._vis_time0);
     time1 = int(rec.time[1]-self._vis_time0);
@@ -97,17 +99,20 @@ class VisProgressMeter (QHBox):
     if self._vis_hdrtime is not None:
       dt = time.time() - self._vis_hdrtime;
       if ts[0]:
-        self._vis_rate = "avg %.2f sec/ts" % (dt/ts[0]);
+        self._vis_rate = dt/ts[0];
       else:
         self._vis_rate = None;
     # form message
-    timestr = hms_str(time0);
+    timestr = self._vis_rtime1 = hms_str(time0);
+    if self._vis_rtime0 is None:
+      self._vis_rtime0 = timestr;
     if time1 != time0:
-      timestr += " to " + hms_str(time1);
+      timestr1 = self._vis_rtime1 = hms_str(time1);
+      timestr += " to " + timestr1;
     msg = " tile %d, timeslots %d to %d, relative time %s" \
       % (nt-1,ts[0],ts[1],timestr);
     if self._vis_rate is not None:
-      msg = msg+"; "+self._vis_rate;
+      msg = msg+"; avg %.2f sec/ts" % self._vis_rate;
     self._wlabel.setText(msg+" "); 
     
   def footer (self,rec):
@@ -117,7 +122,7 @@ class VisProgressMeter (QHBox):
     else:
       msg = "received footer";
     if self._vis_rate is not None:
-      msg = msg+"; "+self._vis_rate;
+      msg = msg+"; avg rate %.2f sec/ts" % self._vis_rate;
     self._wlabel.setText(msg+" "); 
     self._wprog.setProgress(99,100);
     
@@ -126,11 +131,26 @@ class VisProgressMeter (QHBox):
     Usually connected to a Vis.Channel.Closed signal.""";
     if self._app:
       msg = "dataset complete";
+      rec = dmi.record();
       if self._vis_inittime is not None:
-        msg += " in "+hms_str(time.time()-self._vis_inittime);
+        elapsed = time.time()-self._vis_inittime;
+        rec.elapsed = hms_str(elapsed);
+        msg += " in "+rec.elapsed;
+      else:
+        elapsed = None;
       if self._vis_rate is not None:
-        msg = msg+"; "+self._vis_rate;
-      self._app.log_message(msg);
+        rec.secs_per_ts = self._vis_rate;
+        msg = msg+"; avg %.2f sec/ts" % self._vis_rate;
+      if self._vis_nt is not None:
+        rec.num_tiles = self._vis_nt;
+        if elapsed is not None:
+          rec.secs_per_tile = elapsed/self._vis_nt;
+          msg = msg+"; avg %.2f sec/tile" % rec.secs_per_tile;
+      if self._vis_rtime0 is not None:
+        rec.start_time_rel = self._vis_rtime0;
+      if self._vis_rtime1 is not None:
+        rec.end_time_rel = self._vis_rtime1;
+      self._app.log_message(msg,content=rec);
     self.reset();
     
   def reset (self):
