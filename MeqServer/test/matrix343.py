@@ -454,8 +454,7 @@ def forest_solver(ns, interferometer_list, station_list, patch_list, input_colum
       (ant1,ant2) = station_list[i*2:(i+1)*2];
       cpo.append(ns.ce(ant1,ant2).name);
     
-    ns.solver << Meq.Solver(num_iter=6,convergence_quota=0.9,
-                            children=ce_list,child_poll_order=cpo);    
+    ns.solver << Meq.Solver(children=ce_list,child_poll_order=cpo);    
     pass
 
 
@@ -552,10 +551,11 @@ def create_outputrec(output_column='CORRECTED_DATA'):
     return record(ms=rec);
 
 
-def create_solver_defaults(num_iter=30, epsilon=1e-4, solvable=[]):
+def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvable=[]):
     solver_defaults=record()
     solver_defaults.num_iter     = num_iter
     solver_defaults.epsilon      = epsilon
+    solver_defaults.convergence_quota = convergence_quota
     solver_defaults.save_funklets= True
     solver_defaults.last_update  = True
 #See example in TDL/MeqClasses.py

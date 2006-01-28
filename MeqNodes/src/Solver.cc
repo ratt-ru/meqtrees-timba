@@ -1060,27 +1060,23 @@ bool Solver::Subsolver::solve (int step)
   // So make a copy to separate them.
   solFlag = solver.solveLoop(fit,rank,solution,settings.use_svd);
 
-  casa::Matrix<double> covar;
-  casa::Vector<double> errors;
-  //  LSQaips tmpSolver(solver);
-  // both of these calls produce SEGV in certain situations; so may need
-  // to be commented out again. Not sure why a tmpSolver is used
-  // NB: trying without tmpSolver
-//  bool result_covar = solver.getCovariance(covar);
-//  bool result_errors = solver.getErrors(errors);
-  
   cdebug1(4)<<"solution after: " << solution << ", rank " << rank << endl;
   // Put the statistics in a record the result.
   DMI::Record & mrec = metrics <<= new DMI::Record;
   mrec[FRank]   = int(rank);
   mrec[FFit]    = fit;
-  mrec[FErrors] = errors;
-  mrec[FCoVar ] = covar; 
   mrec[FFlag]   = solFlag; 
   mrec[FMu]     = solver.getWeightedSD();
   mrec[FStdDev] = solver.getSD();
   mrec[FNumUnknowns] = nuk;
   //  mrec[FChi   ] = solver_.getChi());
+  
+////# commenting this out for now because it seems to fuck with convergence!??
+//   // fill errors and covariance matrices
+//   DMI::NumArray &errors = mrec[FErrors] <<= new DMI::NumArray(Tpdouble,LoShape(nuk),DMI::NOZERO); 
+//   DMI::NumArray &covar = mrec[FCoVar] <<= new DMI::NumArray(Tpdouble,LoShape(nuk,nuk),DMI::NOZERO); 
+//   solver.getCovariance(static_cast<double*>(covar.getDataPtr()));
+//   solver.getErrors(static_cast<double*>(errors.getDataPtr()));
   
   // Put debug info
   if( use_debug )
