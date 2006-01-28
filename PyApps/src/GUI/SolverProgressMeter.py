@@ -51,7 +51,7 @@ class SolverProgressMeter (QHBox):
   def solver_end (self,rec):
     """processes solver.end record. Usually connected to a Solver.End signal""";
     if rec.converged:
-      color="green";
+      color="darkgreen";
     else:
       color="red";
     rec.final_iter = "<font color=\"%s\">i<b>%d</b></font>"%(color,rec.iterations);
