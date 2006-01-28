@@ -1000,6 +1000,9 @@ int Solver::getResult (Result::Ref &resref,
       }
     }
   } // end of FOR loop over solver iterations
+  // post a Solver.End event (which is simply a copy of the latest iteration event)
+  if( debug_lvl_ >= 0 )
+    postEvent(FSolverEnd,evrec);
   
   // send up one final update if needed
   if( do_last_update_ && (cur_iter_ == max_num_iter_ || converged))
@@ -1067,10 +1070,6 @@ int Solver::getResult (Result::Ref &resref,
       dbgrec["$nonlin"] = flattenScalarList<double>(*pDebugList,AtomicID(i)|AidSlash|"$nonlin");
     }
   }
-  // post a Solver.End event, which is simply a copy of the latest
-  // iteration event
-  if( debug_lvl_ >= 0 )
-    postEvent(FSolverEnd,evrec);
   
   // clear state dependencies possibly introduced by parms
   has_state_dep_ = false;
