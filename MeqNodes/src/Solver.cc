@@ -70,6 +70,7 @@ const HIID
     
     // Solver result rider
     FMetrics         = AidMetrics,
+    FNumUnknowns     = AidNum|AidUnknowns,
     FRank            = AidRank,
     FFit             = AidFit,
     FErrors          = AidErrors,
@@ -1078,6 +1079,7 @@ bool Solver::Subsolver::solve (int step)
   mrec[FFlag]   = solFlag; 
   mrec[FMu]     = solver.getWeightedSD();
   mrec[FStdDev] = solver.getSD();
+  mrec[FNumUnknowns] = nuk;
   //  mrec[FChi   ] = solver_.getChi());
   
   // Put debug info
