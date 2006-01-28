@@ -23,6 +23,11 @@ const int AidArray_int = -1609;
 const DMI::AtomicID AidAttrib(-1382);             // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 const int AidAttrib_int = -1382;
 #endif
+#ifndef _defined_id_AidBegin
+#define _defined_id_AidBegin 1
+const DMI::AtomicID AidBegin(-1643);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
+const int AidBegin_int = -1643;
+#endif
 #ifndef _defined_id_AidBit
 #define _defined_id_AidBit 1
 const DMI::AtomicID AidBit(-1293);                // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
@@ -87,6 +92,11 @@ const int AidDensity_int = -1590;
 #define _defined_id_AidEQ 1
 const DMI::AtomicID AidEQ(-1444);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 const int AidEQ_int = -1444;
+#endif
+#ifndef _defined_id_AidEnd
+#define _defined_id_AidEnd 1
+const DMI::AtomicID AidEnd(-1276);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
+const int AidEnd_int = -1276;
 #endif
 #ifndef _defined_id_AidError
 #define _defined_id_AidError 1
@@ -187,6 +197,11 @@ const int AidLabel_int = -1456;
 #define _defined_id_AidList 1
 const DMI::AtomicID AidList(-1040);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
 const int AidList_int = -1040;
+#endif
+#ifndef _defined_id_AidMT
+#define _defined_id_AidMT 1
+const DMI::AtomicID AidMT(-1604);                 // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45
+const int AidMT_int = -1604;
 #endif
 #ifndef _defined_id_AidMap
 #define _defined_id_AidMap 1

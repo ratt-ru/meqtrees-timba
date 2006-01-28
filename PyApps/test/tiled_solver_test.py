@@ -28,7 +28,7 @@ def _define_forest_1 (ns,**kwargs):
   ns.y = Meq.Parm(meq.polc([0,0],shape=(1,2)),node_groups='Parm',tiling=record(time=3));
   
   ns.solver <<Meq. Solver(
-        num_iter=5,debug_level=10,solvable=["x","y"],
+        num_iter=30,epsilon=1e-5,debug_level=10,solvable=["x","y"],
         children = ns.condeq << Meq.Condeq(ns.x+ns.y,ns.c) );
                 
 
@@ -42,7 +42,7 @@ def _define_forest_2 (ns,**kwargs):
   ns.y = Meq.Parm(meq.polc([0,0,0,0],shape=(4,1)),node_groups='Parm',tiling=record(time=12));
   
   ns.solver <<Meq. Solver(
-        num_iter=5,debug_level=10,solvable=["x","y"],
+        num_iter=30,epsilon=1e-5,debug_level=10,solvable=["x","y"],
         children = ns.condeq << Meq.Condeq(ns.x+ns.y,ns.c) );
     
 _define_forest = _define_forest_2

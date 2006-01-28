@@ -301,6 +301,9 @@ DMI::BObj * __construct_MeqCompiledFunklet (int n) { return n>0 ? new Meq::Compi
         AtomicID::registerId(-1637,"Colin")+
         AtomicID::registerId(-1636,"LM")+
         AtomicID::registerId(-1593,"Factor")+
+        AtomicID::registerId(-1604,"MT")+
+        AtomicID::registerId(-1643,"Begin")+
+        AtomicID::registerId(-1276,"End")+
         AtomicID::registerId(-1437,"MeqCeil")+
         TypeInfoReg::addToRegistry(-1437,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1437,__construct_MeqCeil)+

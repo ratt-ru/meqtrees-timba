@@ -34,6 +34,7 @@
 #pragma aid Solve Result Incremental Solutions Tile Tiles Info Size Iterations 
 #pragma aid Converged Array Convergence Quota Tiling Tilings Super Size Stride
 #pragma aid Total SS Uk Unknown Unknowns Spid Set Stride Map Colin LM Factor MT 
+#pragma aid Begin End
 
 // The comments below are used to automatically generate a default
 // init-record for the class 

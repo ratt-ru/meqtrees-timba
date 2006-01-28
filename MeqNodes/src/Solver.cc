@@ -78,8 +78,11 @@ const HIID
     FFlag            = AidFlag,
     FMu              = AidMu,
     FStdDev          = AidStdDev,
-    FChi             = AidChi;
+    FChi             = AidChi,
+    
+    FDebug           = AidDebug;
 
+// various state fields
 const HIID FTileSize = AidTile|AidSize;
 
 const HIID FSolverResult = AidSolver|AidResult;
@@ -94,6 +97,17 @@ const HIID FConverged  = AidConverged;
 
 const HIID FMetricsArray  = AidMetrics|AidArray;
 const HIID FDebugArray  = AidDebug|AidArray;
+
+// solver events (published depending on debug level)
+const HIID FSolverBegin = AidSolver|AidBegin;
+const HIID FSolverIter  = AidSolver|AidIter;
+const HIID FSolverEnd   = AidSolver|AidEnd;
+
+const HIID FNumTiles     = AidNum|AidTiles;
+const HIID FNumSpids     = AidNum|AidSpids;
+const HIID FNumConverged = AidNum|AidConverged;
+
+
 
 #if LOFAR_DEBUG
 const int DefaultDebugLevel = 0;
@@ -759,8 +773,8 @@ int Solver::getResult (Result::Ref &resref,
   wstate()[FSolverResult].replace() <<= &solveResult;
   DMI::List & metricsList = solveResult[FMetrics] <<= new DMI::List;
   DMI::List * pDebugList = 0;
-  if( debug_lvl_>0 )
-    solveResult["Debug"] <<= pDebugList = new DMI::List;
+  if( debug_lvl_ >= 2 )
+    solveResult[FDebug] <<= pDebugList = new DMI::List;
   // get the request ID -- we're going to be incrementing the iteration index
   RequestId rqid = request.id();
   RqId::setSubId(rqid,iter_depmask_,0);      // current ID starts at 0
@@ -826,6 +840,17 @@ int Solver::getResult (Result::Ref &resref,
     Throw("spid discovery did not return any solvable parameters");
   }
   num_spids_ = spids_.size();
+  // post a Solver.Begin event
+  DMI::Record::Ref evrec(DMI::ANONWR);
+  if( debug_lvl_ >= 0 )
+  {
+    evrec[FNumUnknowns] = num_unknowns_;
+    evrec[FNumTiles] = numSubsolvers();
+    evrec[FNumSpids] = num_spids_;
+    evrec[FNode] = name();
+    postEvent(FSolverBegin,evrec);
+  }
+  Timestamp last_post_event; // keep track of when the most recent event was posted
   
   // allocate matrix of incremental solutions -- allocate directly in solver
   // result so that it stays visible in our state record (handy
@@ -852,9 +877,20 @@ int Solver::getResult (Result::Ref &resref,
   // iteration to iteration, so we keep it attached to reqref and rely on COW
   reqref <<= new Request(request.cells());
   bool converged = false;
-  
   for( cur_iter_=0; cur_iter_ < max_num_iter_ && !converged; cur_iter_++ ) 
   {
+    // generate a Solver.Iter event after the 0th iteration
+    if( cur_iter_ && debug_lvl_ >= 0 )
+    {
+      // check that we don't "spam" the channel by comparing timestamps,
+      // and issuing no more than 3 events per second (unless debug level 
+      // is high enough that we send it anyway)
+      if( debug_lvl_ >= 1 || Timestamp::delta(last_post_event).seconds() > .3 )
+      {
+        last_post_event = Timestamp::now();
+        postEvent(FSolverIter,evrec);
+      }
+    }
     // increment the solve-dependent parts of the request ID
     rqid = next_rqid;
     RqId::incrSubId(next_rqid,iter_depmask_);
@@ -938,6 +974,31 @@ int Solver::getResult (Result::Ref &resref,
       if( pdbgvec )
         pdbgvec->put(i,subsolvers_[i].debugrec);
     }
+    // fill in a Solver.Iter event (will be posted at top of loop,
+    // if we don't loop again, then Solver.End will be sent below instead)
+    if( debug_lvl_ >= 0 )
+    {
+      double sumfit = 0;
+      int sumrank = 0;
+      for( int i=0; i<numSubsolvers(); i++ )
+      {
+        sumrank += subsolvers_[i].rank;
+        sumfit += subsolvers_[i].fit;
+      }
+      // generate event as needed
+      evrec[FNumConverged] = num_conv_;
+      evrec[FConverged]  = converged;
+      evrec[FIterations] = cur_iter_+1;
+      evrec[FRank] = sumrank;
+      evrec[FFit] = sumfit/numSubsolvers();
+      // attach more info with higher debug levels
+      if( debug_lvl_ >= 1 )
+      {
+        evrec[FMetrics] <<= pmetvec;
+        if( debug_lvl_ >= 3 && pdbgvec )
+          evrec[FDebug] <<= pdbgvec;
+      }
+    }
   } // end of FOR loop over solver iterations
   
   // send up one final update if needed
@@ -1006,6 +1067,10 @@ int Solver::getResult (Result::Ref &resref,
       dbgrec["$nonlin"] = flattenScalarList<double>(*pDebugList,AtomicID(i)|AidSlash|"$nonlin");
     }
   }
+  // post a Solver.End event, which is simply a copy of the latest
+  // iteration event
+  if( debug_lvl_ >= 0 )
+    postEvent(FSolverEnd,evrec);
   
   // clear state dependencies possibly introduced by parms
   has_state_dep_ = false;
