@@ -110,7 +110,7 @@ const std::string & Node::childName (int i) const
   if( children_[i].valid() )
     return children_[i]->name();
   else
-    return state()[FChildrenNames][i];
+    return state()[FChildrenNames][getChildLabel(i)];
 }
 
 
@@ -278,7 +278,7 @@ void Node::setupChildren (DMI::Record &initrec,bool stepchildren)
         const HIID &id = iter.id();
         // for normal children with child labels, use the label as index into
         // the record
-        processChildSpec(childrec,stepchildren || child_labels_.empty()?AtomicID(ifield):id,id,stepchildren);
+        processChildSpec(childrec,(stepchildren || child_labels_.empty())?AtomicID(ifield):id,id,stepchildren);
         ifield++;
       }
     }
@@ -287,7 +287,9 @@ void Node::setupChildren (DMI::Record &initrec,bool stepchildren)
       DMI::Container &childrec = ref.as<DMI::Container>();
       stepchildren ? initStepChildren(childrec.size()) : initChildren(childrec.size());
       for( int i=0; i<childrec.size(); i++ )
-        processChildSpec(childrec,AtomicID(i),AtomicID(i),stepchildren);
+      {
+        processChildSpec(childrec,stepchildren?AtomicID(i):getChildLabel(i),AtomicID(i),stepchildren);
+      }
     }
     else if( ref->objectType() == TpDMINumArray )
     {
@@ -296,7 +298,9 @@ void Node::setupChildren (DMI::Record &initrec,bool stepchildren)
       int nch = childarr.shape()[0];
       stepchildren ? initStepChildren(nch) : initChildren(nch);
       for( int i=0; i<nch; i++ )
-        processChildSpec(childarr,AtomicID(i),AtomicID(i),stepchildren);
+      {
+        processChildSpec(childarr,stepchildren?AtomicID(i):getChildLabel(i),AtomicID(i),stepchildren);
+      }
     }
   }
 }

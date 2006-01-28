@@ -247,8 +247,13 @@ bool Node::Cache::fromRecord (const Record &rec)
   try
   {
     const Result *res = rec[FResult].as_po<Result>();
-    if( !res )
+    if( res )
+      is_valid = true;
+    else
+    {
+      is_valid = false;
       res = rec[FFail].as_po<Result>();
+    }
     if( res )
       result <<= res;
     else
@@ -547,7 +552,8 @@ void Node::clearCache (bool recursive,bool quiet)
     memset(pcs_total_,0,sizeof(CacheStats));
     memset(pcs_new_,0,sizeof(CacheStats));
     for( int i=0; i<numChildren(); i++ )
-      getChild(i).clearCache(true,quiet);
+      if( isChildValid(i) )
+        getChild(i).clearCache(true,quiet);
   }
 }
 

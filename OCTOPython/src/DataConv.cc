@@ -11,6 +11,7 @@
 
 using Debug::ssprintf;
 using std::endl;
+using namespace DMI;
         
 namespace OctoPython {    
     
@@ -413,11 +414,11 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
     case Tpdcomplex_int:
           Py_complex pc = PyComplex_AsCComplex(obj);
           if( pvec0 )
-            (*pvec0)[pvec_pos] = dcomplex(pc.real,pc.imag);
+            (*pvec0)[pvec_pos] = make_dcomplex(pc.real,pc.imag);
           else
           {
             objref <<= parr = new DMI::NumArray(Tpdcomplex,LoShape(1));
-            *static_cast<dcomplex*>(parr->getDataPtr()) = dcomplex(pc.real,pc.imag);
+            *static_cast<dcomplex*>(parr->getDataPtr()) = make_dcomplex(pc.real,pc.imag);
           }
           break;
     case Tpstring_int:
@@ -559,7 +560,7 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
 // Converts dcomplex into PyComplex, returns NEW REF
 inline PyObject * PyComplex_FromDComplex (const dcomplex &x)
 {
-  return PyComplex_FromDoubles(x.real(),x.imag());
+  return PyComplex_FromDoubles(creal(x),cimag(x));
 }
 
 // -----------------------------------------------------------------------
@@ -670,7 +671,7 @@ PyObject * pyFromVec (const DMI::Vec &dv)
   else if( typeinfo.category == TypeCategories::DYNAMIC )
     extractField(pyFromObjRef,ref(true))
   else
-    throwError(Type,"DMI type "+type.toString()+" not supported by Python");
+    return pyConvError("dmi type "+type.toString()+" not supported under Python");
   // if we got here, we've formed a tuple
   // (scalars should have been returned directly from the if-else blocks above)
   Assert(tuple);
@@ -861,7 +862,7 @@ PyObject * pyFromDMI (const DMI::BObj &obj,int err_policy)
     else if( dynamic_cast<const Message *>(&obj) )
       pyobj = pyFromMessage(dynamic_cast<const Message &>(obj));
     else
-      throwError(Type,"dmi type "+objtype.toString()+" not supported");
+      pyobj = pyConvError("dmi type "+objtype.toString()+" not supported under Python");
     return ~pyobj;
   }
   catch( std::exception &exc )

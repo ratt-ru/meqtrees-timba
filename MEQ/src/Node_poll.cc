@@ -51,7 +51,7 @@ void Node::setChildPollOrder (const std::vector<string> &order)
 
 // Checks if an MT poll is possible, returns brigade if it is. Sets
 // a lock on the brigade's cond() mutex/variable.
-// If MT should be in same thread, returns 0.
+// If MT is not possible (i.e. do serially in same thread), returns 0.
 // As a side effect, inits mt.old_brigade_ if the current thread
 // switches brigades.
 MTPool::Brigade * Node::mt_checkBrigadeAvailability (Thread::Mutex::Lock &lock)
@@ -68,7 +68,7 @@ MTPool::Brigade * Node::mt_checkBrigadeAvailability (Thread::Mutex::Lock &lock)
     // (A) if our brigade is idle (we are the only busy thread in it),
     //     and has no orders queued, use it for polling right away
     if( current->numBusy() < 2 && current->queueEmpty() )
-      return current;
+      return mt.cur_brigade_ = current;
     Thread::Mutex::Lock lock2(MTPool::Brigade::globMutex());
     // we allow at most 2 active brigades, so:
     // (B) if rest of our brigade is blocked (numBlocked()<2), suspend it
@@ -100,7 +100,7 @@ MTPool::Brigade * Node::mt_checkBrigadeAvailability (Thread::Mutex::Lock &lock)
       return 0;
   }
   // ok, at this point we have no brigade but we're allowed to join an idle one
-  return MTPool::Brigade::joinIdleBrigade(lock);
+  return mt.cur_brigade_ = MTPool::Brigade::joinIdleBrigade(lock);
 }
 
 int Node::startAsyncPoll (const Request &req)
@@ -108,10 +108,10 @@ int Node::startAsyncPoll (const Request &req)
   setExecState(CS_ES_POLLING);
   async_poll_child_ = 0;
   Thread::Mutex::Lock lock;
-  mt.cur_brigade_ = mt_checkBrigadeAvailability(lock);
-  //  mutlithreaded version
-  if( mt.cur_brigade_ )
+  // multithreaded version
+  if( mt_checkBrigadeAvailability(lock) )
   {
+    mt.polling_ = true;
     mt.numchildren_ = numStepChildren(); // children counted separately since some may be disabled
     mt.child_retcount_ = 0;
     mt.child_retqueue_.reserve(numChildren());
@@ -151,6 +151,10 @@ int Node::startAsyncPoll (const Request &req)
 // when operating in async poll mode (i.e. Solver)
 void Node::mt_receiveAsyncChildResult (int ichild,MTPool::WorkOrder &res)
 {
+  // do nothing if poll is already finished (this may be possible if the
+  // main thread aborted execute())
+  if( !mt.polling_ )
+    return;
   Thread::Mutex::Lock lock(mt.child_poll_cond_);
   // store result in child result queue
   mt.child_retqueue_.push_back(MT_ChildResult());
@@ -169,6 +173,10 @@ void Node::mt_receiveAsyncChildResult (int ichild,MTPool::WorkOrder &res)
 // when operating in async poll mode
 void Node::mt_receiveStepchildResult (int ichild,MTPool::WorkOrder &res)
 {
+  // do nothing if poll is already finished (this may be possible if the
+  // main thread aborted execute())
+  if( !mt.polling_ )
+    return;
   Thread::Mutex::Lock lock(mt.child_poll_cond_);
   res.resref.detach(); // discard stepchild result
   stepchild_retcodes_[ichild] = res.retcode;
@@ -178,6 +186,41 @@ void Node::mt_receiveStepchildResult (int ichild,MTPool::WorkOrder &res)
   // waiting for all stepchildren to finish
   if( ++mt.child_retcount_ >= mt.numchildren_ )
     mt.child_poll_cond_.broadcast();
+}
+
+void Node::mt_finishPoll ()
+{
+   // if we have an old brigade waiting to be rejoined, do it
+   mt.polling_ = false;
+   if( mt.rejoin_old_ )
+   {
+     Thread::Mutex::Lock lock(mt.cur_brigade_->cond());
+     mt.cur_brigade_->leave();  // this will make it idle as needed
+     mt.cur_brigade_ = 0;
+     lock.release();
+     if( mt.old_brigade_ )
+     {
+       lock.relock(mt.old_brigade_->cond());
+       mt.old_brigade_->rejoin();  // this will resume it as needed
+     }
+   }
+}
+
+ // this is called when execute() aborts in the middle of an MT poll 
+ // (i.e. mt.cur_brigade_ != 0 on return from execute())
+ // deactivates worker threads and cleans up
+void Node::mt_abortPoll ()
+{
+  if( !mt.cur_brigade_ )
+    return;
+  mt.polling_ = false;
+  // if we joined up with a new brigade for this poll, then
+  // we must wait for it to become idle. Since we haven't left
+  // it yet, minbusy is 1 (we are still marked busy)
+  if( mt.old_brigade_ )
+    mt.cur_brigade_->waitUntilIdle(1);
+  // clean up (leaving brigade if needed)
+  mt_finishPoll();
 }
 
 int Node::awaitChildResult (int &rescode,Result::Ref &resref,const Request &req)
@@ -193,18 +236,7 @@ int Node::awaitChildResult (int &rescode,Result::Ref &resref,const Request &req)
         // if polling is finished, return -1
         if( mt.child_retcount_ >= mt.numchildren_)
         {
-          // if we have an old brigade waiting to be rejoined, do it
-          if( mt.rejoin_old_ )
-          {
-            Thread::Mutex::Lock lock(mt.cur_brigade_->cond());
-            mt.cur_brigade_->leave();  // this will make it idle as needed
-            mt.cur_brigade_ = 0;
-            if( mt.old_brigade_ )
-            {
-              lock.relock(mt.old_brigade_->cond());
-              mt.old_brigade_->rejoin();  // this will resume it as needed
-            }
-          }
+          mt_finishPoll();
           return -1;
         }
       }
@@ -267,6 +299,10 @@ int Node::awaitChildResult (int &rescode,Result::Ref &resref,const Request &req)
 // when operating in sync poll mode (i.e. normal pollChildren())
 void Node::mt_receiveSyncChildResult (int ichild,MTPool::WorkOrder &res)
 {
+  // do nothing if poll is already finished (this may be possible if the
+  // main thread aborted execute())
+  if( !mt.polling_ )
+    return;
   Thread::Mutex::Lock lock(mt.child_poll_cond_);
   // store result in child result queue
   child_results_[ichild].xfer(res.resref);
@@ -286,6 +322,7 @@ void Node::mt_receiveSyncChildResult (int ichild,MTPool::WorkOrder &res)
     mt.child_poll_cond_.broadcast();
 }
 
+
 //##ModelId=400E531702FD
 int Node::pollChildren (Result::Ref &resref,const Request &req)
 {
@@ -302,11 +339,11 @@ int Node::pollChildren (Result::Ref &resref,const Request &req)
   
   // multithreaded poll
   Thread::Mutex::Lock lock;
-  mt.cur_brigade_ = mt_checkBrigadeAvailability(lock);
-  if( mt.cur_brigade_ )
+  if( mt_checkBrigadeAvailability(lock) )
   {
     cdebug(1)<<endl<<"T"<<std::hex<<Thread::self()<<std::dec<<" node "<<name()<<
             "placing WOs for "<<numChildren()<<" child nodes and "<<numStepChildren()<<" stepchildren"<<endl;
+    mt.polling_ = true;
     mt.numchildren_ = numStepChildren(); // children counted separately below
     mt.child_retcount_ = 0;
     // place work orders on the pool queue
@@ -349,20 +386,8 @@ int Node::pollChildren (Result::Ref &resref,const Request &req)
     while( mt.child_retcount_ < mt.numchildren_ )
       mt.child_poll_cond_.wait();
     lock2.release();
-    // if we have an old brigade waiting to be rejoined, do it
-    if( mt.rejoin_old_ )
-    {
-      lock.relock(mt.cur_brigade_->cond());
-      mt.cur_brigade_->leave();  // this will make it idle as needed
-      mt.cur_brigade_ = 0;
-      lock.release();
-      if( mt.old_brigade_ )
-      {
-        lock.relock(mt.old_brigade_->cond());
-        mt.old_brigade_->rejoin();  // this will resume it as needed
-        lock.release();
-      }
-    }
+    // finish up
+    mt_finishPoll();
   }
   else // single-threaded poll
   {

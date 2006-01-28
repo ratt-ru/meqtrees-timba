@@ -85,7 +85,7 @@ void copyArray ( casa::Array<T1> &out,const blitz::Array<T2,N> &in )
 {
   T1 *data = new T1[in.size()];
   // create temp array representing the data in column (aips++) order
-  blitz::Array<T2,N> tmp(data,in.shape(),blitz::neverDeleteData,blitz::ColumnMajorArray<N>());
+  blitz::Array<T1,N> tmp(data,in.shape(),blitz::neverDeleteData,blitz::ColumnMajorArray<N>());
   // use blitz assignment to copy data: presumably, this is fast enough
   tmp = in;
   // give data to aips++ array
@@ -94,23 +94,22 @@ void copyArray ( casa::Array<T1> &out,const blitz::Array<T2,N> &in )
   out.takeStorage(shape,data,casa::TAKE_OVER);
 }
 
-//   // Makes the AIPS++ array "out" a reference to the blitz array "in".
-//   // The AIPS++ array will not delete the data when done, hence it is up to the
-//   // caller to ensure that the "in" object outlives the out object.
-//   // The blitz array must be contiguous and in aips++ order for this 
-//   // (otherwise a copy is made) 
-//   template<class T1,class T2,int N>
-//   void refArray ( casa::Array<T1> &out,blitz::Array<T2,N> &in )
-//   {
-//     if( !in.isStorageContiguous() || in)
-//       copyArray(out,in);
-//     else
-//     {
-//       casa::IPosition shape;
-//       convertShape(shape,in.shape());
-//       out.takeStorage(shape,reinterpret_cast<T1*>(in.data()),casa::SHARE);
-//     }
-//   }
+#ifndef USE_STD_COMPLEX
+template<class T,int N>
+void copyArray (casa::Array<casa::Complex> &out,const blitz::Array<T,N> &in)
+{
+  casa::Complex *data = new casa::Complex[in.size()];
+  // create temp array representing the data in column (aips++) order
+  // use a hard pointer cast to make this appear to be an fcomplex array
+  blitz::Array<fcomplex,N> tmp(reinterpret_cast<fcomplex*>(data),in.shape(),blitz::neverDeleteData,blitz::ColumnMajorArray<N>());
+  // use blitz assignment to copy data: presumably, this is fast enough
+  tmp = in;
+  // give data to aips++ array
+  casa::IPosition shape;
+  convertShape(shape,in.shape());
+  out.takeStorage(shape,data,casa::TAKE_OVER);
+}
+#endif
 
 // Versions of the above that return result by value
 template<class T,int N>
@@ -169,6 +168,48 @@ void refArray ( blitz::Array<T,N> &out,casa::Array<T> &in )
   aipsToBlitz(out,in,blitz::neverDeleteData);
 }
 
+// Helper function for converting AIPS++ arrays to Blitz arrays
+// with a hard-and-dangerous pointer cast.
+// Types must be binary-compatible.
+// NB! we assume that the C99 _Complex is binary-compatible to
+// AIPS++ complex
+template<class TA,class TB,int N>
+void _aipsToBlitz_cast ( blitz::Array<TB,N> &out,casa::Array<TA> &in,blitz::preexistingMemoryPolicy policy )
+{
+  using namespace DebugDefault;
+  FailWhen( in.ndim() != N,"array rank mismatch" );
+  blitz::TinyVector<int,N> shape;
+  convertShape(shape,in.shape());
+  bool deleteData;
+  TA* ptr = in.getStorage(deleteData);
+  // if deleteData is True, we can take over the storage. Else make copy
+  blitz::Array<TB,N> tmp(reinterpret_cast<TB*>(ptr),shape,
+                        deleteData ? blitz::deleteDataWhenDone : policy,
+                        blitz::ColumnMajorArray<N>());
+  out.reference(tmp);
+}
+// Makes the blitz array "out" a copy of the AIPS++ array "in".
+// The data is always copied.
+template<class TA,class TB,int N>
+void _copyArray_cast ( blitz::Array<TB,N> &out,const casa::Array<TA> &in )
+{
+  using namespace DebugDefault;
+  // cast away const but that's OK since data will be duplicated
+  _aipsToBlitz_cast(out,const_cast<casa::Array<TA>&>(in),blitz::duplicateData);
+}
+
+// Makes the Blitz array "out" a reference to the AIPS++ array "in".
+// The Blitz array will not delete the data when done, hence it is up to the
+// caller to ensure that the "in" object outlives the out object.
+// The AIPS++ array must be contiguous for this (otherwise a copy is always made) 
+template<class TA,class TB,int N>
+void _refArray_cast ( blitz::Array<TB,N> &out,casa::Array<TA> &in )
+{
+  using namespace DebugDefault;
+  _aipsToBlitz_cast(out,in,blitz::neverDeleteData);
+}
+
+
 // Versions of the above that return result by value
 template<class T,int N>
 blitz::Array<T,N> copyAipsToBlitz ( const casa::Array<T> &in )
@@ -185,6 +226,40 @@ blitz::Array<T,N> refAipsToBlitz ( casa::Array<T> &in )
   refArray(out,in);
   return out;
 }
+
+#ifndef USE_STD_COMPLEX
+template<int N>
+inline blitz::Array<fcomplex,N> copyAipsToBlitzComplex ( const casa::Array<casa::Complex> &in )
+{
+  blitz::Array<fcomplex,N> out;
+  _copyArray_cast(out,in);
+  return out;
+}
+
+template<int N>
+inline blitz::Array<fcomplex,N> refAipsToBlitzComplex ( casa::Array<casa::Complex> &in )
+{
+  blitz::Array<fcomplex,N> out;
+  _refArray_cast(out,in);
+  return out;
+}
+
+template<int N>
+inline blitz::Array<dcomplex,N> copyAipsToBlitzComplex ( const casa::Array<casa::DComplex> &in )
+{
+  blitz::Array<dcomplex,N> out;
+  _copyArray_cast(out,in);
+  return out;
+}
+
+template<int N>
+inline blitz::Array<dcomplex,N> refAipsToBlitzComplex ( casa::Array<casa::DComplex> &in )
+{
+  blitz::Array<dcomplex,N> out;
+  _refArray_cast(out,in);
+  return out;
+}
+#endif
 
 
 // Copies data between arrays. Shapes must match to begin with

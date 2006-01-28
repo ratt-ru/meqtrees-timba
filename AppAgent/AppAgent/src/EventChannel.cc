@@ -23,6 +23,10 @@
 #include "EventChannel.h"
 #include "AID-AppAgent.h"
 
+#include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
+
 namespace AppAgent
 {    
 
@@ -36,13 +40,13 @@ HIID EventChannel::_dummy_hiid;
 
 //##ModelId=3E4100E40257
 EventChannel::EventChannel ()
-  : state_(OPEN)
+  : state_(CLOSED)
 {
 }
 
 //##ModelId=3E4784B1021A
 EventChannel::EventChannel (EventFlag &evflag)
-  : state_(OPEN)
+  : delete_on_abort_(true),state_(CLOSED)
 {
   attach(evflag);
 }
@@ -63,23 +67,78 @@ void EventChannel::attach (EventFlag& evflag)
 //##ModelId=3E4143B200F2
 int EventChannel::init (const DMI::Record &params)
 {
-  close();
-  string infile = params[FRecordInput].as<string>("");
+  if( state() != CLOSED )
+    abort();
+  delete_on_abort_ = params[FDeleteOnAbort].as<bool>(true);
+  string infile = record_input_filename_ = params[FRecordInput].as<string>("");
   if( !infile.empty() )
+  {
+    if( delete_on_abort_ )
+      infile += ".tmp";
     record_input_.open(infile,BOIO::WRITE);
-  string outfile = params[FRecordOutput].as<string>("");
+  }
+  string outfile = record_output_filename_ = params[FRecordOutput].as<string>("");
   if( !outfile.empty() )
+  {
+    if( delete_on_abort_ )
+      outfile += ".tmp";
     record_output_.open(outfile,BOIO::WRITE);
+  }
   return setState(OPEN);
+}
+
+void EventChannel::renameRecording (const string &from,const string &to)
+{
+  if( rename(from.c_str(),to.c_str()) < 0 )
+  {
+    int err = errno;
+    char buf[256];
+    strerror_r(err,buf,sizeof(buf));
+    buf[sizeof(buf)-1] = 0;
+    using Debug::ssprintf;
+    Throw(ssprintf("error %d renaming recording file to %s: %s",err,to.c_str(),buf));
+  }
 }
 
 void EventChannel::close (const string &str)
 {
-  record_output_.close();
-  record_input_.close();
+  if( record_input_.isOpen() )
+  {
+    string fname = record_input_.fileName();
+    record_input_.close();
+    if( delete_on_abort_ ) // success, so rename tmp file to real file
+      renameRecording(fname,record_input_filename_);
+  }
+  if( record_output_.isOpen() )
+  {
+    string fname = record_output_.fileName();
+    record_output_.close();
+    if( delete_on_abort_ ) // success, so rename tmp file to real file
+      renameRecording(fname,record_output_filename_);
+  }
   setState(CLOSED,str);
 }
     
+void EventChannel::abort (const string &str)
+{
+  if( record_input_.isOpen() )
+  {
+    string fname = record_input_.fileName();
+    record_input_.close();
+    if( delete_on_abort_ )
+      unlink(fname.c_str());
+  }
+  if( record_output_.isOpen() )
+  {
+    string fname = record_output_.fileName();
+    record_output_.close();
+    if( delete_on_abort_ )
+      unlink(fname.c_str());
+  }
+  close(str);
+}
+
+
 //##ModelId=3E394D4C02BB
 int EventChannel::getEvent (HIID &,ObjRef &,const HIID &,int wait,HIID &)
 { 

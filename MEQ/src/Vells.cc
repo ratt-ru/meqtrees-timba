@@ -579,6 +579,74 @@ static void implement_zero (Meq::Vells &out,const Meq::Vells &)
 
 typedef Meq::VellsFlagType FT; // to keep things compact
 
+template<class T> inline T sqr (T x) { return x*x; }
+template<class T> inline T pow2(T x) { return x*x; }
+template<class T> inline T pow3(T x) { return x*x*x; }
+template<class T> inline T pow4(T x) { T t1 = x*x; return t1*t1; }    
+template<class T> inline T pow5(T x) { T t1 = x*x; return t1*t1*x; }  
+template<class T> inline T pow6(T x) { T t1 = x*x*x; return t1*t1; }  
+template<class T> inline T pow7(T x) { T t1 = x*x; return t1*t1*t1*x; } 
+template<class T> inline T pow8(T x) { T t1 = x*x, t2=t1*t1; return t2*t2; }
+
+#ifdef USE_STD_COMPLEX
+
+template<typename T>
+inline double UNARY_MINUS_impl (T x)
+{ return -x; }
+
+#else
+
+// unary minus -- not defined for C99 _Complex, so implement explicitly
+inline double UNARY_MINUS_impl (double x)
+{ return -x; }
+inline dcomplex UNARY_MINUS_impl (dcomplex x)
+{ return - __real__ x + 1i*(__imag__ x); }
+
+
+// Define _Complex double versions for unary functions, group 1.
+// most of them map to gcc __builtin_c<func>() functions, with the exception
+// of the inlines already declared above. 
+#define defineComplexFunc(FUNCNAME,x) \
+  inline dcomplex FUNCNAME (dcomplex arg) \
+  { return __builtin_c##FUNCNAME(arg); }
+// temporary hack since builtin_clog appears to be missing in gcc (as of 3.4.5)
+inline dcomplex __builtin_clog (dcomplex x)
+{ 
+  std::complex<double> y = log(*reinterpret_cast<std::complex<double>*>(&x));
+  return *reinterpret_cast<dcomplex*>(&y);
+}
+
+defineComplexFunc(cos,x) defineComplexFunc(cosh,x) 
+defineComplexFunc(exp,x) defineComplexFunc(log,x) 
+defineComplexFunc(sin,x) defineComplexFunc(sinh,x) 
+defineComplexFunc(tan,x) defineComplexFunc(tanh,x) 
+defineComplexFunc(sqrt,x) 
+
+#define __builtin_cfabs(x) __builtin_cabs(x)
+#define __builtin_cnorm(x) __builtin_cabs(x)
+
+#undef defineComplexFunc
+#define defineComplexFunc(FUNCNAME,x) \
+  inline double FUNCNAME (dcomplex arg) \
+  { return __builtin_c##FUNCNAME(arg); }
+#define abs _tmpabs_
+DoForAllUnaryFuncs3(defineComplexFunc,);
+#undef abs
+
+inline dcomplex conj (dcomplex x)
+{ return ~x; }
+
+inline dcomplex pow (dcomplex x,dcomplex y) 
+{ return __builtin_cpow(x,y); }
+
+inline dcomplex pow (dcomplex x,double y) 
+{ return __builtin_cpow(x,y+0i); }
+
+inline dcomplex pow (double x,dcomplex y) 
+{ return __builtin_cpow(x+0i,y); }
+
+#endif
+
 
 // -----------------------------------------------------------------------
 // definitions for unary operators
@@ -597,7 +665,7 @@ typedef Meq::VellsFlagType FT; // to keep things compact
   }
 
 #define implementUnaryOperator(OPER,OPERNAME,x) \
-  defineUnaryOperTemplate(OPER,OPERNAME,x); \
+  defineUnaryOperTemplate(OPERNAME##_impl,OPERNAME,x); \
   Meq::Vells::UnaryOperPtr Meq::Vells::unary_##OPERNAME##_lut[VELLS_LUT_SIZE] = \
     ExpandMethodList(OPERNAME);
 
@@ -622,14 +690,6 @@ DoForAllUnaryFlagOperators(implementUnaryFlagOperator,);
 // definitions for unary functions, Group 1
 // defined for all types, preserves type
 // -----------------------------------------------------------------------
-template<class T> inline T sqr (T x) { return x*x; }
-template<class T> inline T pow2(T x) { return x*x; }
-template<class T> inline T pow3(T x) { return x*x*x; }
-template<class T> inline T pow4(T x) { T t1 = x*x; return t1*t1; }    
-template<class T> inline T pow5(T x) { T t1 = x*x; return t1*t1*x; }  
-template<class T> inline T pow6(T x) { T t1 = x*x*x; return t1*t1; }  
-template<class T> inline T pow7(T x) { T t1 = x*x; return t1*t1*t1*x; } 
-template<class T> inline T pow8(T x) { T t1 = x*x, t2=t1*t1; return t2*t2; }
 
 #define defineUnaryFuncTemplate(FUNC,x) defineUnaryOperTemplate(FUNC,FUNC,x)
 
@@ -709,6 +769,14 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_conj_lut[VELLS_LUT_SIZE] =
 // definitions for unary functions, Group 5
 // reduction to scalar, no shape required (min, max, mean etc.)
 // -----------------------------------------------------------------------
+// since "0" does not automatically convert to a complex, 
+// provide explicit conversion via these functions.
+// the second pointer argument is a dummy used for type matching
+inline double mkconst (double x,double *)
+{ return x; }
+inline dcomplex mkconst (double x,dcomplex *)
+{ return x + 0i; }
+
 // Defines a templated implementation of an unary reduction function 
 // which computes: y=y0, then y=FUNC(y,x(i)) for all i, and returns y
 // This is a helper template for all reduction functions.
@@ -717,7 +785,7 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_conj_lut[VELLS_LUT_SIZE] =
   static inline TY implement_##FUNCNAME##_impl (int &nel,const Meq::Vells &x,FT flagmask,\
     Type2Type<TY> = Type2Type<TY>(),Type2Type<TX> = Type2Type<TX>() ) \
   { \
-    TY y0 = y_init; \
+    TY y0 = mkconst(y_init,(TY*)0); \
     if( flagmask && x.hasDataFlags() ) { \
       Meq::Vells::Strides st[2]; \
       Meq::Vells::Shape shp; \
@@ -780,7 +848,7 @@ static void implement_mean (Meq::Vells &y,const Meq::Vells &x,FT flagmask)
 { 
   int nel;
   TY y0 = implement_sum_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
-  y.as(Type2Type<TY>()) = nel ? y0/TY(nel) : 0;
+  y.as(Type2Type<TY>()) = nel ? y0/TY(nel) : mkconst(0,&y0);
 }
 Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_mean_lut[VELLS_LUT_SIZE] = 
   ExpandMethodList(mean);
@@ -811,7 +879,7 @@ static void implement_product (Meq::Vells &y,const Meq::Vells &x,const Meq::Vell
   int nel;
   TY y0 = implement_product_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
   int renorm = shape.product()/x.nelements(); // renorm factor for collapsed dimensions
-  y.as(Type2Type<TY>()) = std::pow(y0,renorm);
+  y.as(Type2Type<TY>()) = pow(y0,renorm);
 }
 
 // empty def because nel argument counts for us
@@ -1107,15 +1175,17 @@ Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_pow_lut[VELLS_LUT_SIZE][VELLS_LUT_
 
 // tocomplex()
 // define standard template (will only be invoked for real arguments)
-defineBinaryFuncTemplate(dcomplex,tocomplex,);
+defineBinaryFuncTemplate(make_dcomplex,tocomplex,);
 // error function for complex arguments
 defineErrorFunc2(error_binary_tocomplex,"tocomplex() can only be applied to two real Meq::Vells"); 
 // LUT 
 Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_tocomplex_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
     ExpandRealToComplexBinaryLUTMatrix(tocomplex);
 
+// define complex functions missing if std::complex is not being used
+
 // polreptocomplex()
-#define polar(x,y) (x)*exp(dcomplex(0,y))
+#define polar(x,y) (x)*exp(make_dcomplex(0,y))
 // define standard template (will only be invoked for real arguments)
 defineBinaryFuncTemplate(polar,polar,);
 // error function for complex arguments

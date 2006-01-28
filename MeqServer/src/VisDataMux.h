@@ -9,6 +9,7 @@
     
 #pragma types #Meq::VisDataMux
 #pragma aid Station Index Tile Format Start Pre Post Sync Chunks 
+#pragma aid Open Closed Current Timeslots
 
 namespace Meq 
 {
@@ -107,11 +108,14 @@ class VisDataMux : public Node
     Request::Ref current_req_;
     int current_seqnr_;
     LoRange current_range_;
+    
+    int max_tiles_;  // max number of input tiles -- rest are ignored
 
     int num_chunks_;
     int num_tiles_;
-    double time0_;          // start of first tile
-    double tile_time_[2];   // range of current tile
+    int num_ts_;                    // number of timeslots seen
+    std::vector<int> tile_ts_;      // range of timeslot indices for current tile
+    std::vector<double> tile_time_; // range of times for current tile
     AppAgent::EventChannel::Ref  input_channel_;    
     AppAgent::EventChannel::Ref  output_channel_;    
 };

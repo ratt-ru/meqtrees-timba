@@ -754,7 +754,7 @@ namespace Meq {
     dcomplex p;
 
     // Natural spline
-    y2(0) = u(0) = 0.0;
+    y2(0) = u(0) = make_dcomplex(0.0);
 
     for (int i=1;i<n-1;i++){
       sig = (x(i)-x(i-1))/(x(i+1)-x(i-1));
@@ -808,7 +808,7 @@ namespace Meq {
 
     for (int j=0; j<m; j++){
       for (int i=0; i<n; i++){
-       	yatmp(i) = real(ya(j,i));
+       	yatmp(i) = creal(ya(j,i));
       };
       ytmp=0.0;
       dytmp=0.0;
@@ -824,7 +824,7 @@ namespace Meq {
 
     for (int j=0; j<m; j++){
       for (int i=0; i<n; i++){
-       	yatmp(i) = imag(ya(j,i));
+       	yatmp(i) = cimag(ya(j,i));
       };
       ytmp=0.0;
       dytmp=0.0;
@@ -835,8 +835,8 @@ namespace Meq {
     dytmp=0.0;
     UVInterpol::mypolint(x1a,ymtmp,m,x1,ytmp,dytmp);
 
-    y = y + dcomplex(0.0,ytmp);
-    dy = dy + dcomplex(0.0,dytmp);
+    y = y + make_dcomplex(0.0,ytmp);
+    dy = dy + make_dcomplex(0.0,dytmp);
 
   };
 

@@ -15,7 +15,7 @@ def process_vis_header (hdr):
         raise ValueError,'incorrectly shaped antenna_pos';
     nant = pos.shape[1];
     coords = ('x','y','z');
-    for iant in range(nant):
+    for iant in range(14):  # range(nant), temporary hack
         sn = str(iant+1);
         # since some antennas may be missing from the tree,
         # ignore errors

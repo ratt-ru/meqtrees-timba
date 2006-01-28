@@ -51,7 +51,8 @@ namespace Meq {
 
   const HIID
   // Parm staterec fields
-  FTableName       = AidTable|AidName,
+    FSolvable        = AidSolvable,
+    FTableName       = AidTable|AidName,
     FParmName        = AidParm|AidName,
     FAutoSave        = AidAuto|AidSave,
     FDomainId        = AidDomain|AidId,

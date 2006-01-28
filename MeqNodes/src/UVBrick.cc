@@ -483,8 +483,8 @@ namespace Meq {
 	position(1)=0;
 	for (int j = 0; j < nv; j++){
 	  
-	  arr1(k,i,j) = dcomplex( _uvreal->getAt(position),
-                                  _uvimag->getAt(position) );
+	  arr1(k,i,j) = make_dcomplex( _uvreal->getAt(position),
+                                       _uvimag->getAt(position) );
      
 	  position(1)+=1;
 	};

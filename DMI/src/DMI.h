@@ -28,6 +28,7 @@
 #include "config.h"
 #include "lofar_config.h"
 #include <Common/Debug.h>
+#include <Common/LofarTypes.h>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -44,7 +45,8 @@ namespace DMI
 {
   using std::string;
   using std::vector;
-  
+
+   
 // must be called somewhere on startup before any DMI-using
 // global initializers constructors
   extern int initialize ();

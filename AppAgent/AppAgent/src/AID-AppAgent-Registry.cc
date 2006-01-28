@@ -52,9 +52,13 @@
         AtomicID::registerId(-1241,"Output")+
         AtomicID::registerId(-1165,"Channel")+
         AtomicID::registerId(-1085,"Type")+
+        AtomicID::registerId(-1336,"Delete")+
+        AtomicID::registerId(-1641,"On")+
+        AtomicID::registerId(-1642,"Abort")+
         AtomicID::registerId(-1604,"MT")+
         AtomicID::registerId(-1469,"Queue")+
         AtomicID::registerId(-1255,"Size")+
+        AtomicID::registerId(-1038,"Init")+
         AtomicID::registerId(-1240,"Vis")+
         AtomicID::registerId(-1235,"Parameters")+
         AtomicID::registerId(-1201,"Header")+

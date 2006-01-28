@@ -23,7 +23,11 @@
 #ifndef COMMON_LOFARTYPEDEFS_H
 #define COMMON_LOFARTYPEDEFS_H
 
-#include <complex>
+#if __GNUC__ >= 3 && !USE_STD_COMPLEX
+  #include <complex.h>
+#else
+  #include <complex>
+#endif
 #include <unistd.h>
 
 namespace LOFAR {
@@ -43,8 +47,18 @@ namespace LOFAR {
     typedef long long            longlong;
     typedef unsigned long long   ulonglong;
     typedef long double          ldouble;
+    
+    // complex types
+#if __GNUC__ >= 3 && !USE_STD_COMPLEX
+  #undef USE_STD_COMPLEX
+    typedef float _Complex fcomplex;
+    typedef double _Complex dcomplex;
+#else        
+  #undef USE_STD_COMPLEX
+  #define USE_STD_COMPLEX 1
     typedef std::complex<float>  fcomplex;
     typedef std::complex<double> dcomplex;
+#endif
  
     // Fixed data sizes.
     typedef char                int8;

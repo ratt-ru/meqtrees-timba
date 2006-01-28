@@ -48,18 +48,32 @@ const HIID FOutput   = AidOutput;
 const HIID FMS       = AidMS;
 const HIID FBOIO     = AidBOIO;
 const HIID FDefault  = AidDefault;
-const HIID FNumTiles = AidNum|AidTiles;
-const HIID FNumChunks = AidNum|AidChunks;
-const HIID FTime0      = AidTime|0;
-const HIID FTime1      = AidTime|1;
-const HIID FVisNumTiles = AidVis|AidNum|AidTiles;
-const HIID FSync     = AidSync;
+const HIID FMaxTiles = AidMax|AidTiles;
+
+
+const HIID FNumTiles     = AidNum|AidTiles;
+const HIID FNumChunks    = AidNum|AidChunks;
+// const HIID FNumTimeslots = AidNum|AidTimeslots;  // declared elsewhere
+const HIID FTimeslots    = AidTimeslots;
+const HIID FTime         = AidTime;
+
+// events posted by VisDataMux
+const HIID FVisChannelOpen   = AidVis|AidChannel|AidOpen;
+const HIID FVisHeader        = AidVis|AidHeader;
+const HIID FVisNumTiles      = AidVis|AidNum|AidTiles;
+const HIID FVisFooter        = AidVis|AidFooter;
+const HIID FVisChannelClosed = AidVis|AidChannel|AidClosed;
+
+const HIID FCurrentRequest = AidCurrent|AidRequest;
 
     
 //##ModelId=3F9FF71B006A
 Meq::VisDataMux::VisDataMux ()
   : Node(-4,child_labels,0)  // 3 labeled children, more possible, 0 mandatory
 {
+  tile_time_.resize(2);
+  tile_ts_.resize(2);
+  
   force_regular_grid = false;
   // use reasonable default
   handlers_.resize(VisVocabulary::ifrNumber(30,30)+1);
@@ -93,6 +107,8 @@ void Meq::VisDataMux::initInput (const DMI::Record &rec)
     newchannel <<= new EventChannel;
   else if( !rec.size() ) // empty record means no channel
     Throw("invalid specification for input channel");
+  // max tiles specification
+  max_tiles_ = rec[FMaxTiles].as<int>(-1);
   // detach old channel
   if( input_channel_.valid() )
   {
@@ -105,7 +121,6 @@ void Meq::VisDataMux::initInput (const DMI::Record &rec)
     MeqPython::processInitRecord(rec);
     input_channel_ <<= new MTQueueChannel(newchannel);
     input_channel_().init(*prec);
-    input_channel_().solicitEvent(VisData::VisEventMask());
     wstate()[FInput] = rec;
   }
 }
@@ -153,8 +168,9 @@ void Meq::VisDataMux::postStatus ()
   ref[FNode] = name();
   ref[FNumTiles]  = num_tiles_;
   ref[FNumChunks] = num_chunks_;
-  ref[FTime0] = tile_time_[0];
-  ref[FTime1] = tile_time_[1];
+  ref[FNumTimeslots] = num_ts_;
+  ref[FTimeslots] = tile_ts_;
+  ref[FTime] = tile_time_;
   postEvent(FVisNumTiles,ref);
 }
 
@@ -304,6 +320,9 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
 //##ModelId=3F950ACA0160
 int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
 {
+  // if max_tiles_ is set and has been exceeded, ignore
+  if( max_tiles_ >= 0 && num_tiles_ >= max_tiles_ )
+    return 0;
   int result_flag = 0;
   DMI::ExceptionList errors;
   num_chunks_++;
@@ -390,6 +409,7 @@ int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
     fillCells(cells,current_range_,tile);
     // Generate new Request with these Cells
     Request &req = current_req_ <<= new Request(cells,rqid_);
+    wstate()[FCurrentRequest] = current_req_;
     req.setRequestType(RequestType::EVAL);
     cdebug(3)<<"start of tile, generated request id="<<rqid_<<endl;
     // reset have-tile flags
@@ -543,17 +563,18 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTil
     if( i0 >= tile.nrow() )
     { Throw("tile does not contain any valid rows"); }
   cdebug1(5)<<"valid row range: "<<i0<<":"<<i1<<endl;
-  // find last valid row (error condition above enures that at least one exists)
+  // find last valid row (error condition above ensures that at least one exists)
   for( i1=tile.nrow()-1; !valid(i1); i1-- );
   // form a LoRange describing valid rows, extract time/interval for them
   range = makeLoRange(i0,i1);
   LoVec_double time1     = tile.time()(range).copy();
   LoVec_double interval1 = tile.interval()(range).copy();
   // setup time limits
-  if( num_tiles_ == 1 )
-    time0_ = time1(0); // reference time
-  tile_time_[0] = time1(0) - time0_;
-  tile_time_[1] = time1(i1-i0) - time0_;
+  tile_ts_[0] = num_ts_;
+  tile_ts_[1] = num_ts_ + i1-i0;
+  num_ts_ += tile.nrow();
+  tile_time_[0] = time1(0);
+  tile_time_[1] = time1(i1-i0);
   // now, for any rows missing _within_ the valid range, fill in interpolated
   // times (just to keep Cells & co. happy)
   int j=1;
@@ -587,124 +608,166 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
   initInput(*inrec);
   // init output channel, if any
   const DMI::Record * outrec = request[FOutput].as_po<DMI::Record>();
-  bool sync_output = false;
   if( outrec )
-  {
     initOutput(*outrec);
-    sync_output= (*outrec)[FSync].as<bool>(true);
-  }
   else
     clearOutput();
-  // now run the I/O loop
-  cached_header_.detach();
-  DMI::Record::Ref header;
-  int stream_state = VisData::FOOTER; // no event
-  // any non-fatal fails during processing are accumulatede here
+  // any non-fatal fails during processing are accumulated here
   // (fatal errors are thrown immediately)
   VellSet::Ref fail_list(DMI::ANONWR); 
-  while( true )
+  int stream_state = VisData::FOOTER; // no stream event yet
+  bool had_data = false;
+  // prepare event record describing start
+  DMI::Record::Ref ref(DMI::ANONWR);
+  ref[FNode] = name();
+  ref[FOutput] = output_channel_.valid();
+  // prepare event record describing end
+  DMI::Record::Ref endref(DMI::ANONWR);
+  endref[FNode] = name();
+  // now post the start event
+  postEvent(FVisChannelOpen,ref);
+  // a start event MUST be matched by an end event
+  // (otherwise progress meters, etc. in the browser get confused).
+  // Therefore, we now catch any exceptions and post the end event 
+  // as part of cleanup.
+  try
   {
-    HIID evid;
-    ObjRef evdata;
-    // wait for a valid input event 
-    int state = input_channel_().getEvent(evid,evdata);
-    // break out once stream is closed
-    if( state == AppEvent::CLOSED )
-      break;
-    else if( state != AppEvent::SUCCESS )
-      Throw(ssprintf("input channel fails with state %d",state));
-    // parse the event
-    if( !VisData::VisEventMask().matches(evid) )
+    input_channel_().solicitEvent(VisData::VisEventMask());
+    // now run the I/O loop
+    cached_header_.detach();
+    DMI::Record::Ref header;
+    while( true )
     {
-      postError("unknown input event "+evid.toString()+", ignoring");
-      continue;
-    }
-    // figure out the event type
-    int event_type = VisData::VisEventType(evid);
-    HIID ev_inst = VisData::VisEventInstance(evid);
-    string doing_what;
-    DMI::ExceptionList errors;
-    // process data event
-    if( event_type == VisData::DATA )
-    {
-      doing_what = "processing data event "+ev_inst.toString('.');
-      VisCube::VTile::Ref tileref = evdata.ref_cast<VisCube::VTile>();
-      cdebug(4)<<"received tile "<<tileref->tileId()<<endl;
-      doing_what = "processing tile "+tileref->tileId().toString('.');
-      // check for correct sequence
-      FailWhen(stream_state!=VisData::DATA,"data event "+ev_inst.toString('.')+" out of sequence");
-      // deliver tile to Python
-      try  { MeqPython::processVisTile(*tileref); }
-      catch( std::exception &exc ) { errors.add(exc); }
-      // deliver the tile 
-      try { deliverTile(tileref); }
-      catch( std::exception &exc ) { errors.add(exc); }
-    }
-    else if( event_type == VisData::FOOTER )
-    {
-      doing_what = "processing footer "+ev_inst.toString('.');
-      cdebug(2)<<"received footer"<<endl;
-      FailWhen(stream_state!=VisData::DATA,"footer out of sequence");
-      stream_state = VisData::FOOTER;
-      const DMI::Record &footer = *(evdata.ref_cast<DMI::Record>());
-      // deliver footer to Python
-      try  { MeqPython::processVisFooter(footer); }
-      catch( std::exception &exc ) { errors.add(exc); }
-      // deliver footer to ourselves
-      try { deliverFooter(footer); }
-      catch( std::exception &exc ) { errors.add(exc); }
-      // generate footer report
-      DMI::Record::Ref evrec(DMI::ANONWR);
-      if( header.valid() )
+      HIID evid;
+      ObjRef evdata;
+      // wait for a valid input event 
+      int state = input_channel_().getEvent(evid,evdata);
+      // break out once stream is closed
+      if( state == AppEvent::CLOSED )
+        break;
+      else if( state != AppEvent::SUCCESS )
+        Throw(ssprintf("input channel fails with state %d",state));
+      // parse the event
+      if( !VisData::VisEventMask().matches(evid) )
+      {
+        postError("unknown input event "+evid.toString()+", ignoring");
+        continue;
+      }
+      // figure out the event type
+      int event_type = VisData::VisEventType(evid);
+      HIID ev_inst = VisData::VisEventInstance(evid);
+      string doing_what;
+      DMI::ExceptionList errors;
+      // process data event
+      if( event_type == VisData::DATA )
+      {
+        doing_what = "processing data event "+ev_inst.toString('.');
+        VisCube::VTile::Ref tileref = evdata.ref_cast<VisCube::VTile>();
+        cdebug(4)<<"received tile "<<tileref->tileId()<<endl;
+        doing_what = "processing tile "+tileref->tileId().toString('.');
+        // check for correct sequence
+        FailWhen(stream_state!=VisData::DATA,"data event "+ev_inst.toString('.')+" out of sequence");
+        // deliver tile to Python
+        try  { MeqPython::processVisTile(*tileref); }
+        catch( std::exception &exc ) { errors.add(exc); }
+        // deliver the tile 
+        try { deliverTile(tileref); }
+        catch( std::exception &exc ) { errors.add(exc); }
+      }
+      else if( event_type == VisData::FOOTER )
+      {
+        doing_what = "processing footer "+ev_inst.toString('.');
+        cdebug(2)<<"received footer"<<endl;
+        FailWhen(stream_state!=VisData::DATA,"footer out of sequence");
+        stream_state = VisData::FOOTER;
+        const DMI::Record &footer = *(evdata.ref_cast<DMI::Record>());
+        // deliver footer to Python
+        try  { MeqPython::processVisFooter(footer); }
+        catch( std::exception &exc ) { errors.add(exc); }
+        // deliver footer to ourselves
+        try { deliverFooter(footer); }
+        catch( std::exception &exc ) { errors.add(exc); }
+        // generate footer report
+        DMI::Record::Ref evrec(DMI::ANONWR);
+        if( header.valid() )
+          evrec[AidHeader] <<= header.copy();
+        evrec[AidFooter] <<= evdata.copy();
+        evrec[FNode] = name();
+        evrec[FNumTiles]  = num_tiles_;
+        evrec[FNumChunks] = num_chunks_;
+        evrec[FNumTimeslots] = num_ts_;
+        evrec[FMessage] = ssprintf("received footer %s. Processed %d timeslots, %d tiles, %d chunks",
+            ev_inst.toString('.').c_str(),tile_ts_[1]+1,num_tiles_,num_chunks_);
+        postEvent(FVisFooter,evrec);
+      }
+      else if( event_type == VisData::HEADER )
+      {
+        had_data = true;
+        doing_what = "processing header "+ev_inst.toString('.');
+        cdebug(2)<<"received header"<<endl;
+        FailWhen(stream_state!=VisData::FOOTER,"header out of sequence");
+        header = evdata;
+        stream_state = VisData::DATA;
+        // deliver header to Python
+        try  { MeqPython::processVisHeader(*header); }
+        catch( std::exception &exc ) { errors.add(exc); }
+        // deliver header to mux
+        try  { deliverHeader(*header); }
+        catch( std::exception &exc ) { errors.add(exc); }
+        // generate header report
+        DMI::Record::Ref evrec(DMI::ANONWR);
         evrec[AidHeader] <<= header.copy();
-      evrec[AidFooter] <<= evdata.copy();
-      postMessage(ssprintf("received footer %s, %d tiles (%d chunks) processed",
-          ev_inst.toString('.').c_str(),num_tiles_,num_chunks_),evrec);
+        evrec[FNode] = name();
+        evrec[FMessage] = "received header "+ev_inst.toString('.');
+        num_tiles_ = num_chunks_ = num_ts_ = 0;
+        tile_ts_.assign(2,0);
+        tile_time_.assign(2,0);
+        postEvent(FVisHeader,evrec);
+      }
+      else // unknown event
+      {
+        postError("unknown input event "+evid.toString()+", ignoring");
+        continue;
+      }
+      // have we accumulated any exceptions?
+      if( !errors.empty() )
+      {
+        fail_list().addFail(errors); // add to overall list
+        postError("error "+doing_what,errors.makeList());
+      }
     }
-    else if( event_type == VisData::HEADER )
+    // check for correct stream state -- last thing should have been a footer
+    if( stream_state != VisData::FOOTER )
+      fail_list().addFail(MakeNodeException("input dataset missing a footer"));
+    if( !had_data )
+      fail_list().addFail(MakeNodeException("input stream was empty"));
+    // have we accumulated any errors? abort channels
+    if( fail_list->isFail() )
     {
-      doing_what = "processing header "+ev_inst.toString('.');
-      cdebug(2)<<"received header"<<endl;
-      FailWhen(stream_state!=VisData::FOOTER,"header out of sequence");
-      header = evdata;
-      stream_state = VisData::DATA;
-      // deliver header to Python
-      try  { MeqPython::processVisHeader(*header); }
-      catch( std::exception &exc ) { errors.add(exc); }
-      // deliver header to mux
-      try  { deliverHeader(*header); }
-      catch( std::exception &exc ) { errors.add(exc); }
-      // generate header report
-      DMI::Record::Ref evrec(DMI::ANONWR);
-      evrec[AidHeader] <<= header.copy();
-      postMessage("received header "+ev_inst.toString('.'),evrec);
-      num_tiles_ = num_chunks_ = 0;
-      postStatus();
+      input_channel_().abort();
+      if( output_channel_.valid() )
+        output_channel_().abort();
     }
-    else // unknown event
+    else // close & flush channels normally
     {
-      postError("unknown input event "+evid.toString()+", ignoring");
-      continue;
-    }
-    // have we accumulated any exceptions?
-    if( !errors.empty() )
-    {
-      fail_list().addFail(errors); // add to overall list
-      postError("error "+doing_what,errors.makeList());
+      input_channel_().close();
+      // flush output if needed
+      if( output_channel_.valid() )
+        output_channel_().close();
     }
   }
-  input_channel_().close();
-  // flush output if needed
-  if( output_channel_.valid() )
+  catch( ... )  // catch-all and cleanup for any errors not caught above
   {
-    if( sync_output )
-    {
-      postMessage("flushing output");
-      output_channel_().flush();
-    }
-    output_channel_().close();
+    // post end event 
+    postEvent(FVisChannelClosed,endref);
+    // abort channels
+    input_channel_().abort();
+    if( output_channel_.valid() )
+      output_channel_().abort();
+    throw; // rethrow
   }
-  FailWhen(stream_state!=VisData::FOOTER,"data stream missing a footer");
+  // post end event
+  postEvent(FVisChannelClosed,endref);
   // if we have accumulated any fails, return them here
   if( fail_list->isFail() )
   {
@@ -712,7 +775,6 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
     resref().setVellSet(0,fail_list);
     return RES_FAIL;
   }
-  postMessage("visibility stream processed successfully");
   // normal exit
   return 0;
 }

@@ -8,6 +8,11 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_AppAgent ();
 
+#ifndef _defined_id_AidAbort
+#define _defined_id_AidAbort 1
+const DMI::AtomicID AidAbort(-1642);              // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/EventChannel.h:34
+const int AidAbort_int = -1642;
+#endif
 #ifndef _defined_id_AidAddress
 #define _defined_id_AidAddress 1
 const DMI::AtomicID AidAddress(-1543);            // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:31
@@ -57,6 +62,11 @@ const int AidDebug_int = -1482;
 #define _defined_id_AidDefault 1
 const DMI::AtomicID AidDefault(-1221);            // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:13
 const int AidDefault_int = -1221;
+#endif
+#ifndef _defined_id_AidDelete
+#define _defined_id_AidDelete 1
+const DMI::AtomicID AidDelete(-1336);             // from /home/oms/LOFAR/Timba/MEQ/src/Forest.h:31
+const int AidDelete_int = -1336;
 #endif
 #ifndef _defined_id_AidDestination
 #define _defined_id_AidDestination 1
@@ -118,6 +128,11 @@ const int AidIn_int = -1207;
 const DMI::AtomicID AidInfo(-1494);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:31
 const int AidInfo_int = -1494;
 #endif
+#ifndef _defined_id_AidInit
+#define _defined_id_AidInit 1
+const DMI::AtomicID AidInit(-1038);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MTGatewayWP.h:16
+const int AidInit_int = -1038;
+#endif
 #ifndef _defined_id_AidInput
 #define _defined_id_AidInput 1
 const DMI::AtomicID AidInput(-1036);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
@@ -172,6 +187,11 @@ const int AidNormal_int = -1223;
 #define _defined_id_AidNotify 1
 const DMI::AtomicID AidNotify(-1210);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
 const int AidNotify_int = -1210;
+#endif
+#ifndef _defined_id_AidOn
+#define _defined_id_AidOn 1
+const DMI::AtomicID AidOn(-1641);                 // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/EventChannel.h:34
+const int AidOn_int = -1641;
 #endif
 #ifndef _defined_id_AidOut
 #define _defined_id_AidOut 1

@@ -526,14 +526,24 @@ class Node : public DMI::BObj
     LocalDebugContext;
     
     // multithreading-related stuff
-    // checks if poll can be done in mt mode, returns brigade
+    // checks if poll can be done in mt mode. If yes, sets
+    // mt.cur_brigade_ to the current brigade, and returns this value
+    // if not, returns 0.
     MTPool::Brigade * mt_checkBrigadeAvailability (Thread::Mutex::Lock &lock);
     
     // callbacks to deliver child results in MT mode
     void mt_receiveAsyncChildResult (int ichild,MTPool::WorkOrder &res);
     void mt_receiveSyncChildResult  (int ichild,MTPool::WorkOrder &res);
     void mt_receiveStepchildResult  (int ichild,MTPool::WorkOrder &res);
-
+    
+    // this is called when an MT poll is finished, to clean up, abandon
+    // brigades, etc.
+    void mt_finishPoll ();
+    
+    // this is called when execute() aborts in the middle of an MT poll 
+    // (i.e. mt.cur_brigade_ != 0 on return from execute())
+    // deactivates worker threads and cleans up
+    void mt_abortPoll ();
 
     //##Documentation
     //## Rider is a utility class providing functions for manipulating
@@ -1074,6 +1084,8 @@ class Node : public DMI::BObj
       MTPool::Brigade * old_brigade_; 
       // true if we need to rejoin old brigade on exit
       bool rejoin_old_;   
+      // true as long as polling is in progress
+      bool polling_;
     } mt;
     // this flag is set inside Node::execute() to prevent reentrancy
     bool executing_;
@@ -1086,6 +1098,10 @@ class Node : public DMI::BObj
 #ifdef DISABLE_NODE_MT
       executing_ = false;
 #else
+      // if we're aborting execute() while a MT-poll is in progress,
+      // we need to clean up
+      if( mt.cur_brigade_ )
+        mt_abortPoll();
       Thread::Mutex::Lock lock(execCond());
       executing_ = false;
       execCond().signal();

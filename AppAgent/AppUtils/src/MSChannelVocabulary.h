@@ -33,7 +33,7 @@
 #pragma aid DDID VDSID Selection Tile Snippet String Column Size Format Increment
 #pragma aid Vis Input Output Params Start End Write Flags Flag Mask
 #pragma aid Time Data Predict Residuals Column Name Message Type
-#pragma aid Throw Error Domain start string Original Shape Flip Clear
+#pragma aid Throw Error Domain start string Original Shape Flip Clear Extent
 
 #pragma aid MS Raw Non Calibrated Predict Residuals Iteration Cwd
 
@@ -54,6 +54,7 @@ namespace MSChannel
        FAntennaPos        = AidAntenna|AidPos,
        FMSName            = AidMS|AidName,
        FCwd               = AidCwd,
+       FTimeExtent        = AidTime|AidExtent,
        FChannelStartIndex = AidChannel|Aidstart|AidIndex,
        FChannelEndIndex   = AidChannel|AidEnd|AidIndex,
        FChannelIncrement  = AidChannel|AidIncrement,

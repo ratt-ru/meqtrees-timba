@@ -29,6 +29,9 @@
 
 namespace Meq {    
 
+const HIID FStdDev = AidStdDev;
+
+
 //##ModelId=400E535502AC
 GaussNoise::GaussNoise()
     : stddev_(1.0),generator_(0,stddev_)

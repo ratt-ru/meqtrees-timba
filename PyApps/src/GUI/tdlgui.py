@@ -229,6 +229,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     
   def hide_jobs_menu (self,dum=False):
     self._tb_jobs.hide();
+    self.clear_message();
     
   def get_filename (self):
     return self._filename;

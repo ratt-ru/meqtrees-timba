@@ -32,7 +32,7 @@ bool _convertScaSca (const void * from,void * to)
 template<class From,class To> 
 bool _convertComplexScaSca (const void * from,void * to)
 { 
-  *static_cast<To*>(to) = To(static_cast<const From *>(from)->real()); 
+  *static_cast<To*>(to) = To(creal(*static_cast<const From *>(from))); 
   return true;
 }
 template<> 

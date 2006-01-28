@@ -303,7 +303,7 @@ int ResampleMachine::apply(VellSet &out, const VellSet &in)
 				}else{
 				 blitz::Array<dcomplex,2> Bc=invl.as<dcomplex,2>()(LoRange::all(),LoRange::all()); 
          blitz::Array<dcomplex,2> Ac(nx_,ny_);
-				 Ac = 0;
+				 Ac = make_dcomplex(0);
 
 #ifdef DEBUG
 				 cout<<" Ac "<<Ac<<endl;

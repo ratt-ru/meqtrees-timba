@@ -25,6 +25,64 @@
 
 #include <Common/LofarTypes.h>
 #include <Common/lofar_complex.h>
+
+using LOFAR::fcomplex;
+using LOFAR::dcomplex;
+
+// Numeric_zero returns a 0 for any type
+// Because the C99 _Complex cannot be initialized with a 0, it will have explicit
+// specializations
+template<typename T>
+inline T numeric_zero (T* =0)
+{ return 0; }
+
+// add complex ops depending on compiler
+#if __GNUC__ >= 3 && !USE_STD_COMPLEX
+
+  inline fcomplex make_fcomplex (float r,float i=0.)
+  { return r + 1i*i; }
+
+  inline dcomplex make_dcomplex (double r,double i=0.)
+  { return r + 1i*i; }
+
+  inline float creal (fcomplex arg)
+  { return __real__ arg; }
+  inline float cimag (fcomplex arg)
+  { return __imag__ arg; }
+  inline float abs (fcomplex arg)
+  { return __builtin_cabsf(arg); }
+  inline double creal (dcomplex arg)
+  { return __real__ arg; }
+  inline double cimag (dcomplex arg)
+  { return __imag__ arg; }
+  inline double abs (dcomplex arg)
+  { return __builtin_cabs(arg); }
+  
+  template<>
+  inline fcomplex numeric_zero (fcomplex *)
+  { return 0.0fi; }
+  
+  template<>
+  inline dcomplex numeric_zero (dcomplex *)
+  { return 0.0fi; }
+  
+#else        
+
+  inline fcomplex make_fcomplex (float r,float i)
+  { return fcomplex(r,i); }
+
+  inline dcomplex make_dcomplex (double r,double i)
+  { return dcomplex(r,i); }
+
+  typedef<typename T>
+  inline T creal (const std::complex<T> &arg)
+  { return arg.real(); }
+
+  typedef<typename T>
+  inline T cimag (const std::complex<T> &arg)
+  { return arg.real(); }
+#endif
+    
     
 
 #ifndef DoForAllNumericTypes

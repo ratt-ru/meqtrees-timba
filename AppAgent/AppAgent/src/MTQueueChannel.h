@@ -5,7 +5,7 @@
 #include <DMI/Exception.h>
 
 #pragma aidgroup AppAgent
-#pragma aid MT Queue Size
+#pragma aid MT Queue Size Init
 
 namespace AppAgent
 {    
@@ -46,8 +46,11 @@ class MTQueueChannel : public EventChannel
     //## Inits agent, sets up queues, starts a separate thread for the other end.
     virtual int init (const DMI::Record &data);
     
-    //## closes the agent and stops worker thread
+    //## flushes output events, closes the agent and stops worker thread
     virtual void close (const string &str = "");
+    
+    //## aborts output, aborts the agent and stops worker thread
+    virtual void abort (const string &str = "");
     
     //##ModelId=3E8C3BDC0159
     //##Documentation
@@ -117,6 +120,14 @@ class MTQueueChannel : public EventChannel
 
     void * runWorker ();
     
+    // helper method: waits for remote channel to initialize itself,
+    // if it already hasn't. !!! caller must have lock on eventFlag().condVar()
+    void assureRemoteInit () const
+    {
+      while( !remote_initialized_ )
+        eventFlag().condVar().wait();
+    }
+    
     // helper method: if error list is not empty, grabs a copy of the list,
     // clears the list, wakes up remote thread, and throws list as exception
     void checkErrorQueue ();
@@ -152,6 +163,11 @@ class MTQueueChannel : public EventChannel
     Thread::ThrID remote_thread_;
     
     DMI::Record::Ref initrec_;
+    
+    // flag: remote channel has completed its init
+    bool remote_initialized_;
+    // flag: main channel has been aborted rather than closed
+    bool aborted_;
 };
     
 };

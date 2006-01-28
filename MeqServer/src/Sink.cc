@@ -244,7 +244,7 @@ void Sink::zeroTileColumn (T *coldata,const LoShape &colshape,
     Throw("output tile column must have 2 or 3 dimensions")
   }
   // assign zeroes
-  colarr = 0;
+  colarr = numeric_zero<T>();
 }
 
 int Sink::deliverHeader (const DMI::Record&,const VisCube::VTile::Format &outformat)

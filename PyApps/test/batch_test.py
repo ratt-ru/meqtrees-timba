@@ -12,6 +12,8 @@ import traceback
 # testing branch
 if __name__ == '__main__':
   mqs = meqserver.default_mqs(wait_init=5);
+  #  mqs = meqserver.default_mqs(wait_init=5,spawn=None); # if already running
+
 
   print 'meqserver state:',mqs.state;
 

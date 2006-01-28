@@ -31,7 +31,7 @@
 #pragma aidgroup AppAgent
 #pragma aid AppAgent Event Text Category Destination Address
 #pragma aid Normal Notify Warning Error Critical Info Debug
-#pragma aid Record Input Output Channel Type
+#pragma aid Record Input Output Channel Type Delete On Abort
 
 namespace AppAgent
 {    
@@ -61,8 +61,9 @@ namespace EventChannelVocabulary
 {
   const HIID FChannel      = AidChannel;
   
-  const HIID FRecordInput  = AidRecord|AidInput;
-  const HIID FRecordOutput = AidRecord|AidOutput;
+  const HIID FRecordInput   = AidRecord|AidInput;
+  const HIID FRecordOutput  = AidRecord|AidOutput;
+  const HIID FDeleteOnAbort = AidDelete|AidOn|AidAbort;
 };
 
 
@@ -139,6 +140,12 @@ class EventChannel : public SingularRefTarget
     //## closes the agent. Sets its state to CLOSED and closes recording
     //## files, if any. If str is supplied, the state string is set
     virtual void close (const string &str = "");
+    
+    //## aborts the agent, intended to be used on error instead of close().
+    //## Default implementation optionally deletes any recording files
+    //## (if Delete.On.Abort was set, which is the default), then calls
+    //## close().
+    virtual void abort (const string &str = "");
     
     //## returns channel state, if <0 then channel is closed
     int state () const
@@ -314,12 +321,24 @@ class EventChannel : public SingularRefTarget
   private:
     // helper function, records event on given BOIO object
     void recordEvent (BOIO &boio,const HIID &id, const ObjRef &ref,AtomicID category,const HIID &addr) const;
-      
+
+    // helper function for close(), renames recording file or throws an exception
+    void renameRecording (const string &from,const string &to);
+    
     //##ModelId=3E43E3B30155
     mutable EventFlag::Ref event_flag_;
   
+    // all I/O events are optionally recorded (see init())
     mutable BOIO record_input_;
     mutable BOIO record_output_;
+    
+    // filenames to record to. Initially recorded to tmp files,
+    // renamed on successful close(), deleted on abort().
+    string record_input_filename_;
+    string record_output_filename_;
+    
+    // flag: recording files deleted on abort
+    bool delete_on_abort_;
   
     //##ModelId=3E47837F02C2
     // channel number within the event flag

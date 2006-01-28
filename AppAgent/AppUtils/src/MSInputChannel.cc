@@ -37,10 +37,12 @@
 #include <ms/MeasurementSets/MSPolColumns.h>
 #include <ms/MeasurementSets/MSSpectralWindow.h>
 #include <ms/MeasurementSets/MSSpWindowColumns.h>
+#include <ms/MeasurementSets/MSRange.h>
 #include <measures/Measures/MDirection.h>
 #include <measures/Measures/MeasConvert.h>
 #include <measures/Measures/Stokes.h>
 #include <casa/Quanta/MVPosition.h>
+#include <casa/Containers/Record.h>
 #include <tables/Tables/ArrColDesc.h>
 #include <tables/Tables/ArrayColumn.h>
 #include <tables/Tables/ColumnDesc.h>
@@ -205,6 +207,17 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   header[FChannelEndIndex]   = channels_[1];
   header[FChannelIncrement]  = channel_incr_;
   
+  // figure out time range
+  casa::Vector<String> range_items(1);
+  range_items(0) = "TIME";
+  casa::Record range_rec = MSRange(selms_).range(range_items);
+  Vector<double> range_time;
+  range_rec.get("time",range_time);
+  std::vector<double> range_time_vec(2);
+  range_time_vec[0] = range_time(0);
+  range_time_vec[1] = range_time(1);
+  header[FTimeExtent] = range_time_vec;
+      
   // get and apply selection string
   String where = select[FSelectionString].as<string>("");
   dprintf(1)("select ddid=%d, field=%d, where=\"%s\", channels=[%d:%d]\n",
@@ -221,7 +234,7 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   } 
   
   // get the first timeslot 
-  header[FTime] = ROScalarColumn<double>(selms_, "TIME")(0);
+  // header[FTime] = ROScalarColumn<double>(selms_, "TIME")(0);
   // get the original shape of the data array
   LoShape datashape = ROArrayColumn<Complex>(selms_,dataColName_).shape(0);
   header[FOriginalDataShape] = datashape;
@@ -292,8 +305,7 @@ int MSInputChannel::refillStream ()
       setState(DATA);
     else if( state() != DATA ) // return CLOSED when no more data
     {
-      if( state() == FOOTER )
-        return AppEvent::CLOSED;
+      return AppEvent::CLOSED;
     }
   // loop until some tiles are generated
     int nout = 0;
@@ -306,6 +318,9 @@ int MSInputChannel::refillStream ()
         DMI::Record::Ref footer(DMI::ANONWR);
         footer()[FVDSID] = vdsid_; 
         putOnStream(VisEventHIID(FOOTER,vdsid_),footer);
+        selms_ = MeasurementSet();
+        ms_ = MeasurementSet();
+        tileformat_.detach();
         return AppEvent::SUCCESS;
       }
       const LoRange ALL = LoRange::all();
@@ -330,7 +345,7 @@ int MSInputChannel::refillStream ()
         Matrix<Double> uvwmat1 = ROArrayColumn<Double>(table, "UVW").getColumn();
         LoMat_double uvwmat = B2A::refAipsToBlitz<double,2>(uvwmat1);
         Cube<Complex> datacube1 = ROArrayColumn<Complex>(table, dataColName_).getColumn();
-        LoCube_fcomplex datacube = B2A::refAipsToBlitz<fcomplex,3>(datacube1);
+        LoCube_fcomplex datacube = B2A::refAipsToBlitzComplex<3>(datacube1);
         Cube<Bool> flagcube1 = ROArrayColumn<Bool>(table,"FLAG").getColumn();
         LoCube_bool flagcube = B2A::refAipsToBlitz<bool,3>(flagcube1);
         // apply channel selection

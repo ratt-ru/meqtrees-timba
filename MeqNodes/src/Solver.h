@@ -31,7 +31,9 @@
 
 #pragma types #Meq::Solver
 
-#pragma aid Solve Result Incremental Solutions Tile Size Iterations Converged Array
+#pragma aid Solve Result Incremental Solutions Tile Tiles Info Size Iterations 
+#pragma aid Converged Array Convergence Quota Tiling Tilings Super Size Stride
+#pragma aid Total SS Uk Unknown Unknowns Spid Set Stride Map Colin LM Factor MT 
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -47,7 +49,10 @@
 //field: num_iter 3  
 //  Number of iterations to do in a solve
 //field: epsilon 0
-//  Convergence criterium; not used at the moment
+//  Convergence criterium
+//field: convergence_quota_ 0.8
+//  When doing a subtiled solution, how many subsolvers have to converge
+//  before the result is deemed to have converged (i.e. 0.8 = 80%)
 //field: use_svd T
 //  Use singular value decomposition in solver?
 //field: last_update F
@@ -120,39 +125,26 @@ private:
   template<typename T>
   void fillEquations (const VellSet &vs);
 
-  // helper function for fillEquations()
-  template<typename T>
-  inline void fillEqVectors (int npert,int uk_index[],
-        const T &diff,const std::vector<Vells::ConstStridedIterator<T> > &deriv_iter);
-      
-  
-  //##Documentation
-  //## Do a solution.
-  //## If it is the last iteration, the solution is put in a new request
-  //## and 'sent' to the children to update the parms. Optionally the parm
-  //## tables are updated too.
-  //## <br> If it is not the last iteration, the solution is put in the
-  //## given request, so a next iteration can first update the parms.
-  //## debugRec is pointer to debug record, 0 for no debugging
-  //## <br> Returns the "fit" parameter of the solve. That is, the normalized
-  //## difference between the previouos and the current chi-squared
-  //## if this abs(value) is of the order of 10^-5, the fit should be 
-  //## considered "converged". This threshold is user-defined in the initrec
-  //## via the "epsilon" parameter.
-  double solve (casa::Vector<double>& solution,Request::Ref &reqref,
-	            DMI::Record& solRec,DMI::Record *debugRec,
-              bool saveFunklets);
-  
+  // this method is called from getResult() to fill in a request rider
+  // using the current solution
+  void fillRider (Request::Ref &reqref,bool save_funklets,bool converged);
   
   // === state set from the state record
+  typedef struct
+  {
+    bool            use_svd;        // use SVD?
+    double          epsilon;        // epsilon threshold
+    double          colin_factor;   // colinearity factor, passed to LSQFit.set(double,double)
+    double          lm_factor;      // L-M factor, passed to LSQFit.set(double,double)
+  } SolverSettings;
   
   int             eval_mode_;         // 1 for single, 2 for double-deriv
   int             flag_mask_;         // flag mask applied during solve
   bool            do_save_funklets_;  // save funklets after solve?
   bool            do_last_update_;    // send up final update after solve?
-  bool            use_svd_;           // use SVD?
   int             max_num_iter_;      // max # of iterations
-  double          min_epsilon_;       // epsilon threshold
+  double          conv_quota_;        // convergence quota
+  SolverSettings  settings_;
   
   int             debug_lvl_;         // debug detail generated
   
@@ -168,38 +160,226 @@ private:
   // === other internal state
   
     //##ModelId=400E5355025A
-  casa::LSQaips   solver_;
   int             num_spids_;
   int             num_unknowns_;
   int             num_equations_;
+  
+  LoShape         cells_shape_;
+  
+  int             num_conv_;    // how many subsolvers have converged
+  int             need_conv_;   // how many subsolvers need to converge
+  
+  int             cur_iter_;    // current iteration
 
   // # of child whose result is currently being processed
   int cur_child_;
   
   typedef VellSet::SpidType SpidType;
   
-  // spid map populated during discovery
-  typedef struct
+  // A DimVector is simply an int[Axis::MaxAxis] that is intialized with 0's.
+  // This is a useful shorthand class, since we use a lot of these 
+  // when figuring out tilings
+  class DimVector 
   {
-    int  nuk;                         // how many unknowns per this spid (1 if not tiled)
-    int  uk_index;                    // index of first unknown in vector
-    int  tile_size  [Axis::MaxAxis];  // tile sizes per each axis
-    int  tile_stride[Axis::MaxAxis];  // tile stride per each axis (how many uknowns are strides when we go to next tile)
-    int  tile_index [Axis::MaxAxis];  // current tile index (used when filling equations)
-    int  tile_uk0   [Axis::MaxAxis];  // current tile slice (used when filling equations)
-  } SpidInfo;   // haha 
-
-  typedef std::map<SpidType,SpidInfo> SpidMap;
+    private: 
+      int dims[Axis::MaxAxis];
+    public: 
+      DimVector ()
+      { clear(); }
+    
+      int operator [] (int i) const
+      { return dims[i]; }
+      
+      int & operator [] (int i) 
+      { return dims[i]; }
+      
+      bool operator < (const DimVector &other) const
+      { 
+        bool equal = true;
+        for(int i=0; i<Axis::MaxAxis; i++)
+          if( dims[i] > other.dims[i] )
+            return false;
+          else if( dims[i] < other.dims[i] )
+            equal = false;
+        return !equal;
+      }
+      
+      bool operator == (const DimVector &other) const
+      { 
+        return !memcmp(dims,other.dims,sizeof(dims));
+      }
+      
+      bool operator != (const DimVector &other) const
+      { 
+        return !( (*this) == other );
+      }
+      
+      int operator = (int x)
+      { 
+        for(int i=0; i<Axis::MaxAxis; i++)
+          dims[i] = x;
+        return x;
+      }
+      
+      HIID asHIID () const
+      { 
+        HIID id;
+        id.resize(Axis::MaxAxis); 
+        for( int i=0; i<Axis::MaxAxis; i++ )
+          id[i] = dims[i];
+        return id;
+      }
+        
+      void clear ()
+      { memset(dims,0,sizeof(dims)); }
+  };
   
+  // since we have many spids but generally only a handful of distinct tilings,
+  // we maintain info for each unique tiling rather than each spid.
+  // The Tiling class holds information for a tiling of an N-dimensional
+  // Vells (whose dimensions are usually determined by the request Cells).
+  // Since we always process a Vells element-by-element with the last dimension
+  // iterating fastest, Tiling provides functions for keep track of which tile
+  // we are in at any given point.
+  class Tiling
+  {
+    public:
+      DimVector        num_tiles;     // number of tiles per axis (0 if axis not defined)
+      DimVector        tile_size;     // tile size per axis       (0 if axis not defined)
+      DimVector        tile_stride;   // tile stride per axis (how many tiles to skip when going to next tile along this axis, 0 if not defined)
+      int              total_tiles;   // total number of tiles
+      
+      // these data members change as we advance over a hypercube
+      DimVector        dimcount;      // dimension counter, updated during equation filling
+      int              cur_tile;      // current tile number, updated during equation filling
+      bool             active;        // flag: tiling is active, updated during equation filling
+      
+      // once we have determined the solver tiling (which is the least common
+      // multiple of all other tilings, taken along each axis, and hence
+      // called the super-tiling), this vector is filled with the 
+      // super-tile # corresponding to tile #N in this tiling
+      std::vector<int> super_tile;
+      
+      Tiling ()
+      : total_tiles(0)
+      {};
+      
+      // creates a tiling for the given tile sizes and the given hypercube shape
+      Tiling (const DimVector &tsz,const DimVector &shape)
+      { init(tsz,shape); }
+      
+      // initializes, given tile sizes and hypercube shape
+      void init (const DimVector &tsz,const DimVector &shape);
+      
+      void activate ()     // activates tiling
+      {
+        if( !active )
+        {
+          active = true;
+          dimcount.clear();
+          cur_tile = 0;
+        }
+      }
+      
+      void deactivate ()    // deactivates tiling
+      { active = false; }
+      
+      // Advances tiling for a given hypercube advance. ndim tells how many
+      // hypercube dimension indices have advanced. That is, index
+      // number idim has been incremented, while indices idim+1 to N have
+      // rolled over to 0, and indices 0 to idim-1 have not changed.
+      // Updates dimcounts and cur_tile, and returns true if tile number 
+      // has changed.
+      bool advance (int idim);
+      
+      // creates a record describing the tiling
+      DMI::Record::Ref asRecord () const;
+  };
+
+  // map of all tilings used for current set of spids, filled in during
+  // spid discovery
+  typedef std::map<DimVector,Tiling> TilingMap;
+  TilingMap tilings_;
+  
+  // pointer into map, points to tiling of the solver
+  Tiling * psolver_tiling_;
+  
+  // overall spid tiling map populated during discovery
+  class SpidInfo // ha ha
+  {
+    public:
+      int  nodeindex;                   // node associated with this spid
+      int  nuk;                         // how many unknowns/subtiles per this spid (1 if not tiled)
+      Tiling *ptiling;                  // which tiling it uses
+      std::vector<int> ssuki;           // subsolver index of unknown per tile number
+        // (for tile N, ssuki[N] tells which unknown corresponds to
+        // this tile in the subsolver for tile N)
+      
+      // creates a record describing the spid
+      DMI::Record::Ref asRecord () const;
+  };
+  
+  typedef std::map<SpidType,SpidInfo> SpidMap;
   SpidMap spids_;
   
-  // in addition, we need a map from nodeindices to their associated unknownss.
-  // Since map guaranteees ordering by key, this ensures that we fill spids
-  // in the right order. 
-  // SpidSet maps spids to (uk0,uk0+nuk) pairs (essentially duplicating part
-  // of SpidMap above).
-  typedef std::map<SpidType,std::pair<int,int> > SpidSet;
-  // this maps a parm (by nodeindex) to its SpidSet
+  // this is a subsolver structure for a solver tile
+  // (corresponding to one block of a block-diagonal matrix)
+  class Subsolver
+  {
+    public:
+      casa::LSQaips   solver;
+      int             nuk;     // number of unknowns in this solver
+      
+      SolverSettings  settings;
+      bool            use_debug;  // should the solver fill debug info?
+      
+      // this info is maintained during a solution
+      casa::Vector<double>  solution; // current solution vector from solver
+      // matrix of incremental solutions, allocated sirectly in state record
+      LoMat_double    incr_solutions;
+      
+      // info for current solve step
+      uint rank;
+      double fit;
+      bool solFlag;
+      DMI::Record::Ref metrics;       // metric record
+      DMI::Record::Ref debugrec;      // debug record -- only filled in debug mode
+      
+      // raised once solver has converged to a solution
+      bool converged; 
+      
+      // constructor
+      Subsolver ()
+      : nuk(0),converged(false)
+      {}
+
+      // called prior to starting a solution.
+      // inits the solver object and various internals.
+      // uk0 is a global count of unknowns, which is incremented by this subsolver's count.
+      // incr_sol is a global matrix of incremental solutions. The subsolver
+      // uses a slice of it: [*,uk0:uk0+nuk-1]
+      void initSolution (int &uk0,LoMat_double &incr_sol,
+                         const SolverSettings &set,bool usedebug=false);
+      
+      // expecutes one solve step based on accumulated equations, 
+      // returns true if converged.
+      // if already converged, does nothing and returns true immediately
+      bool solve (int step);
+      
+  };
+  
+  std::vector<Subsolver> subsolvers_;    // each subsolver has its own structure
+  
+  // In addition, we need a map from nodeindices to their associated unknowns.
+  // ParmUkMap maps a parm to a SpidSet.
+  // A SpidSet maps each spid to a num_subsolvers x 2 matrix.
+  // For each subsolver #i, the range of unknowns correspodning to this spid
+  // is given by the interval [M(i,0),M(i,1)).
+  // (Since a spid subtile may be smaller than a subsolver tile, a spid
+  // may have multiple unknowns in each subsolver).
+  // Since map guarantees ordering by key, we can simply iterate over SpidSet
+  // to fill updates for each parm in the right order, i.e. by increasing spid.
+  typedef std::map<SpidType,LoMat_int> SpidSet;
   class ParmUkInfo
   {
     public:
@@ -217,6 +397,54 @@ private:
   std::vector<double> deriv_real_;
   std::vector<double> deriv_imag_;
   Vells::Strides      *strides_;
+  
+
+  // helper function -- returns number of subsolvers
+  int numSubsolvers () const
+  { return subsolvers_.size(); }
+  
+  // helper function for fillEquations() to fill a particular subsolver
+  template<typename T>
+  inline void fillEqVectors (Subsolver &ss,int npert,int uk_index[],
+        const T &diff,const std::vector<Vells::ConstStridedIterator<T> > &deriv_iter);
+      
+  
+  // mt-related methods and members
+  bool mt_solve_;
+  std::vector<Thread::ThrID> worker_threads_;
+  Thread::Condition worker_cond_;
+  
+  // start/stop worker pool
+  void startWorkerThreads ();
+  void stopWorkerThreads ();
+
+  // run a worker thread loop
+  static void * runWorkerThread (void *solver);
+  void * workerLoop ();
+  
+  
+  // Processes subsolvers in a loop, until all complete, or an exception
+  // occurs. 
+  // On entry, lock is a lock on worker_cond_
+  // On exit, lock should still be held.
+  void processSolversLoop (Thread::Mutex::Lock &lock);
+  
+  // Activates all worker threads to process subsolvers.
+  // Process what we can in this thread, and returns when all jobs are 
+  // complete.
+  void activateSubsolverWorkers ();
+  
+  
+  int wt_num_ss_;         // number of subsolvers taken by workers
+  int wt_num_active_;     // number of active workers. A worker is finished
+      // either with an exception, or when wt_num_ss_>=numSubsolvers(),
+      // then it decrements this value. see processSolversLoop().
+      // This value is also assigned to to wake up the worker threads.
+  // condition var to signal when a worker thread is completed
+  Thread::Condition wt_completed_cond_;
+  
+  // exceptions raised by workers are accumulated here
+  DMI::ExceptionList wt_exceptions_; 
   
 };
 

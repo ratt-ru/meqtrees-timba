@@ -57,6 +57,9 @@ namespace Meq
         Thread::Condition & cond ()
         { return cond_; }
         
+        Thread::Condition & busyCond ()
+        { return busy_cond_; }
+        
         // puts a new work order on the brigade's queue. 
         // !!! The caller must obtain a lock on cond() before calling this.
         // Ownership of order object is transferred to the queue. 
@@ -65,6 +68,11 @@ namespace Meq
           // queue is LIFO so orders are pushed in the front
           wo_queue_.push_front(wo);
         }
+        
+        // Clears the brigade's work order queue.
+        // !!! The caller must obtain a lock on cond() before calling this.
+        inline void clearQueue ()
+        { wo_queue_.clear(); }
         
         // gets next work order on from the queue.
         // !!! The caller must obtain a lock on cond() before calling this.
@@ -93,6 +101,17 @@ namespace Meq
         // returns number of non-blocked workers
         int numNonblocked () 
         { return num_nonblocked_; }
+        
+        // returns true if brigade has loaned a worker to another brigade
+        bool missingTemp() const
+        { return missing_temp_; }
+        
+        // waits until brigade is idle (numBusy() <= minbusy and
+        // missingTemp() is false). This is normally called when a poll
+        // is aborted and the node has to wait for all polling threads
+        // to subside. Minbusy==1 normally since the caller still belongs
+        // to the brigade, otherwise set it to 0.
+        void waitUntilIdle (int minbusy=1);
         
         // causes current thread to leave this brigade indefinitely.
         // !!! The caller must obtain a lock on cond() before calling this.
@@ -145,8 +164,13 @@ namespace Meq
             cur->markAsUnblocked(node);
         }
         
+        // ======== static Brigade methods
+        
         // sets the nominal size of all brigades
         static void setBrigadeSize (int size);
+        
+        static int getBrigadeSize ()
+        { return brigade_size_; }
         
         // global mutex for brigade pool
         static Thread::Mutex & globMutex ()
@@ -211,6 +235,8 @@ namespace Meq
         int num_busy_; 
           // brigade state condition variable & mutex
         Thread::Condition cond_;  
+          // brigade idle/busy condition variable & mutex
+        Thread::Condition busy_cond_;  
           // work order queue
         typedef std::list<WorkOrder *> WorkOrderQueue;  
         WorkOrderQueue wo_queue_;

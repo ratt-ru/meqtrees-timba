@@ -412,7 +412,7 @@ def dmi_type (name,baseclass=None):
       raise KeyError,name+" is not a known DMI type, and no base class supplied";
     for bc in _dmi_baseclasses.iterkeys():
       if issubclass(baseclass,bc):
-        tp = new.classobj(name,(baseclass,),{});
+        globals()[name] = tp = new.classobj(name,(baseclass,),{});
         _dmi_typename_map[tp] = name;
         _dmi_nametype_map[name.lower()] = tp;
         return tp;

@@ -278,10 +278,29 @@ DMI::BObj * __construct_MeqCompiledFunklet (int n) { return n>0 ? new Meq::Compi
         AtomicID::registerId(-1515,"Incremental")+
         AtomicID::registerId(-1514,"Solutions")+
         AtomicID::registerId(-1232,"Tile")+
+        AtomicID::registerId(-1262,"Tiles")+
+        AtomicID::registerId(-1494,"Info")+
         AtomicID::registerId(-1255,"Size")+
         AtomicID::registerId(-1588,"Iterations")+
         AtomicID::registerId(-1589,"Converged")+
         AtomicID::registerId(-1609,"Array")+
+        AtomicID::registerId(-1626,"Convergence")+
+        AtomicID::registerId(-1627,"Quota")+
+        AtomicID::registerId(-1562,"Tiling")+
+        AtomicID::registerId(-1632,"Tilings")+
+        AtomicID::registerId(-1628,"Super")+
+        AtomicID::registerId(-1634,"Stride")+
+        AtomicID::registerId(-1139,"Total")+
+        AtomicID::registerId(-1631,"SS")+
+        AtomicID::registerId(-1633,"Uk")+
+        AtomicID::registerId(-1630,"Unknown")+
+        AtomicID::registerId(-1629,"Unknowns")+
+        AtomicID::registerId(-1340,"Spid")+
+        AtomicID::registerId(-1272,"Set")+
+        AtomicID::registerId(-1216,"Map")+
+        AtomicID::registerId(-1637,"Colin")+
+        AtomicID::registerId(-1636,"LM")+
+        AtomicID::registerId(-1593,"Factor")+
         AtomicID::registerId(-1437,"MeqCeil")+
         TypeInfoReg::addToRegistry(-1437,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1437,__construct_MeqCeil)+
@@ -455,10 +474,8 @@ DMI::BObj * __construct_MeqCompiledFunklet (int n) { return n>0 ? new Meq::Compi
         TypeInfoReg::addToRegistry(-1508,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1508,__construct_MeqUVInterpol)+
         AtomicID::registerId(-1523,"UVInterpol")+
-        AtomicID::registerId(-1216,"Map")+
         AtomicID::registerId(-1099,"Count")+
         AtomicID::registerId(-1524,"Additional")+
-        AtomicID::registerId(-1494,"Info")+
         AtomicID::registerId(-1527,"UVImage")+
         AtomicID::registerId(-1528,"UVZ")+
         AtomicID::registerId(-1526,"UVDelta")+
@@ -481,7 +498,6 @@ DMI::BObj * __construct_MeqCompiledFunklet (int n) { return n>0 ? new Meq::Compi
         AtomicID::registerId(-1592,"MeqModRes")+
         TypeInfoReg::addToRegistry(-1592,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1592,__construct_MeqModRes)+
-        AtomicID::registerId(-1593,"Factor")+
         AtomicID::registerId(-1163,"Num")+
         AtomicID::registerId(-1607,"Resulution")+
         AtomicID::registerId(-1583,"MeqCompiledFunklet")+

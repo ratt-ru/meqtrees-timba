@@ -29,6 +29,7 @@
 #include <MEQ/Function.h>
 #include <MEQ/MeqVocabulary.h>
 #include <MEQ/Forest.h>
+#include <MEQ/MTPool.h>
 #include <MeqNodes/Solver.h>
 #include <MeqNodes/Condeq.h>
 #include <MeqNodes/ParmTable.h>
@@ -47,6 +48,37 @@ namespace Meq {
 
 InitDebugContext(Solver,"MeqSolver");
 
+// various solver fields
+
+const HIID
+    // Solver staterec fields
+    
+    FSolvable        = AidSolvable,
+    FParmGroup       = AidParm|AidGroup,
+    
+    // various solver parameters
+    FEpsilon         = AidEpsilon,          // convergence criterion, if fit parameter drops below this value, we have converged
+    FUseSVD          = AidUseSVD,           // use SVD? passed to LSQFit
+    FColinFactor     = AidColin|AidFactor,  // collinearity factor, passed to LSQFit::set(double,double)
+    FLMFactor        = AidLM|AidFactor,     // LM factor, passed to LSQFit::set(double,double)
+    FNumIter         = AidNum|AidIter,      // max number of iterations
+    // FSavePolcs already defined above
+    FLastUpdate      = AidLast|AidUpdate,
+    FConvergenceQuota = AidConvergence|AidQuota,
+    
+    FMTSolve         = AidMT|AidSolve,
+    
+    // Solver result rider
+    FMetrics         = AidMetrics,
+    FRank            = AidRank,
+    FFit             = AidFit,
+    FErrors          = AidErrors,
+    FCoVar           = AidCoVar,
+    FFlag            = AidFlag,
+    FMu              = AidMu,
+    FStdDev          = AidStdDev,
+    FChi             = AidChi;
+
 const HIID FTileSize = AidTile|AidSize;
 
 const HIID FSolverResult = AidSolver|AidResult;
@@ -63,7 +95,7 @@ const HIID FMetricsArray  = AidMetrics|AidArray;
 const HIID FDebugArray  = AidDebug|AidArray;
 
 #if LOFAR_DEBUG
-const int DefaultDebugLevel = 100;
+const int DefaultDebugLevel = 0;
 #else
 const int DefaultDebugLevel = 0;
 #endif
@@ -74,22 +106,26 @@ Solver::Solver()
   flag_mask_        (-1),
   do_save_funklets_ (false),
   do_last_update_   (false),
-  use_svd_          (true),
   max_num_iter_     (3),
-  min_epsilon_      (0),
+  conv_quota_       (0.8),
   debug_lvl_        (DefaultDebugLevel),
   parm_group_       (AidParm),
-  solver_           (1),
   strides_          (0)
 {
+  // set ddefault settings
+  settings_.use_svd       = true;
+  settings_.epsilon       = 0;
+  settings_.colin_factor  = 1e-8;
+  settings_.lm_factor     = 1e-3;
   // set Solver dependencies
   iter_symdeps_.assign(1,FIteration);
   const HIID symdeps[] = { FDomain,FResolution,FDataset,FIteration };
   setKnownSymDeps(symdeps,4);
   const HIID symdeps1[] = { FDomain,FResolution,FDataset };
   setActiveSymDeps(symdeps1,3);
-  // enable multithreading
+  // enable multithreading by default if available
   enableMultiThreadedPolling();
+  mt_solve_ = true;
 }
 
 //##ModelId=400E53550261
@@ -97,6 +133,7 @@ Solver::~Solver()
 {
   if( strides_ )
     delete [] strides_;
+  stopWorkerThreads();
 }
 
 //##ModelId=400E53550263
@@ -128,19 +165,102 @@ int Solver::pollChildren (Result::Ref &resref,const Request &request)
 }
 
 
+// initializes a Tiling object
+void Solver::Tiling::init (const DimVector &tsz,const DimVector &shape)
+{
+  tile_size = tsz;
+  cur_tile = 0;
+  active = false;
+  total_tiles = 1;
+  for( int i=Axis::MaxAxis-1; i>=0; i-- )
+  {
+    int nc = shape[i];
+    if( nc )
+    {
+      int tsz = tile_size[i];
+      // is this axis tiled?
+      if( tsz )
+        num_tiles[i] = nc/tsz + ((nc%tsz)?1:0); // a minimum of 1 tile always
+      else
+      {
+        num_tiles[i] = 1;
+        tile_size[i] = nc;
+      }
+      tile_stride[i] = total_tiles;
+      total_tiles *= num_tiles[i];
+    }
+  }
+}
 
+bool Solver::Tiling::advance (int idim)
+{
+  int old_tile = cur_tile;
+  // ndim tells us how many dimensions we have advanced over
+  // (with the last dimension iterating the fastest)
+  // That is, index idim has been incremented, while indices
+  // idim+1 ... N-1 have been reset to 0. cur_tile still points
+  // to the _last_ tile of the sub-cube in dimensions  [idim+1,...,N-1]
 
+  // See if we've gone to the next tile along this dimension
+  // (i.e. next sub-cube).
+  if( ++dimcount[idim] >= tile_size[idim] )
+  {
+    dimcount[idim] = 0;
+    cur_tile++;
+  }
+  // no, so we need to reset cur_tile to the _first_ tile of 
+  // the sub-cube in dimensions  [idim+1,...,N-1]. The size
+  // of that sub-cube is just our own stride
+  else
+    cur_tile -= (tile_stride[idim]-1);
+  // Now reset the rolled-over dimensions. 
+  for( idim++; idim < Axis::MaxAxis; idim++ )
+    dimcount[idim] = 0;
+  
+  return cur_tile != old_tile;
+}
 
+DMI::Record::Ref Solver::Tiling::asRecord () const
+{
+  DMI::Record::Ref ref(DMI::ANONWR);
+  ref()["Num.Tiles"] = num_tiles.asHIID();
+  ref()["Tile.Size"] = tile_size.asHIID();
+  ref()["Tile.Stride"] = tile_stride.asHIID();
+  ref()["Total.Tiles"] = total_tiles;
+  ref()["Super.Tile"] = super_tile;
+  return ref;
+}
 
-
-
-
-
+DMI::Record::Ref Solver::SpidInfo::asRecord () const
+{
+  DMI::Record::Ref ref(DMI::ANONWR);
+  ref()["Nodeindex"] = nodeindex;
+  ref()["Tiling"] = ptiling->tile_size.asHIID();
+  ref()["Num.Tiles"] = nuk;
+  ref()["SS.Uk.Index"] = ssuki;
+  return ref;
+}
 
 int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
 {
   parm_uks_.clear();
   spids_.clear();
+  tilings_.clear();
+  subsolvers_.clear();
+  // we also work out the solver tile sizes. Each solver tile encompasses a 
+  // whole number of spid sub-tiles, so the solver tile size along each axis 
+  // is the least common multiple (LCM) of all the spid tile sizes. Start
+  // by finding the largest subtile along each axis. At the end of the for() 
+  // loop below, max_tiling[i] will be the largest subtile size, or 0 if the 
+  // axis is not tiled by any parm.
+  DimVector num_cells;
+  int maxrank=0;         // last axis defined in cells
+  for( int i=0; i<Axis::MaxAxis; i++ )
+    if( cells.isDefined(i) )
+      num_cells[maxrank=i] = cells.ncells(i);
+  // this will hold the largest tile size found for each dimension,
+  // and eventually be the solver tiling
+  DimVector solver_tilesize;
   // convert spid map record into internal spid map, and count up the unknowns
   for( DMI::Record::const_iterator iter = spidmap_rec.begin(); 
       iter != spidmap_rec.end(); iter++ )
@@ -150,49 +270,212 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
         VellSet::SpidType spid = iter.id()[0].id();  // spid is first element of HIID
     // insert entry into spid table
     SpidInfo & spi = spids_[spid];     
-    spi.uk_index  = num_unknowns_;
-    spi.nuk = 1;
-    // OK, figure out tiling
-    memset(spi.tile_size,0,sizeof(spi.tile_size));
-    int sz;
-    const int *ptiles = rec[FTileSize].as_po<int>(sz);
-    if( ptiles )
+    spi.nodeindex = rec[FNodeIndex].as<int>();
+    // OK, figure out the tiling
+    DimVector tilesize(num_cells);
+    int ntsz;
+    const int *ptsz = rec[FTileSize].as_po<int>(ntsz);
+    // normalize the tile sizes (make sure we have at least 1 tile along
+    // each dim present in the Cells, and that dims not defined in Cells
+    // are not tiled)
+    bool specified = true;
+    for( int i=0; i<Axis::MaxAxis; i++ )
     {
-      int rank = std::min(sz,Axis::MaxAxis);
-      int stride = 1;
-      for( int i=rank-1; i>=0; i-- )
+      if( i>=ntsz )
+        specified = false;
+      if( num_cells[i] )
       {
-        int tsz = spi.tile_size[i] = ptiles[i];
-        spi.tile_stride[i] = stride;
-        // is this axis tiled by the spid?
-        if( tsz )
+        if( specified && ptsz[i] )
         {
-          int nc = cells.ncells(i);
-          int ntiles = nc/tsz + ((nc%tsz)?1:0);     // a minimum of 1 tile always
-          spi.nuk *= ntiles;
-          stride *= ntiles;
+          tilesize[i] = ptsz[i];
+          solver_tilesize[i] = std::max(solver_tilesize[i],ptsz[i]);
+        }
+        else
+          solver_tilesize[i] = num_cells[i];
+      }
+      else
+      {
+        FailWhen(specified && ptsz[i],ssprintf("spid %d is tiled along axis %s that is not defined in the Cells",
+                 spid,Axis::axisId(i).toString().c_str()));
+      }
+    }
+    // now see if this tiling is already in the map, and insert if not
+    TilingMap::iterator iter = tilings_.find(tilesize);
+    Tiling * ptiling;
+    if( iter == tilings_.end() )
+    {
+      ptiling = &( tilings_[tilesize] );
+      ptiling->init(tilesize,num_cells);
+    }
+    else
+      ptiling = &( iter->second );
+    // put pointer to tiling into SpidInfo, and figure out # of unknowns
+    spi.ptiling = ptiling;
+    spi.nuk = ptiling->total_tiles;
+    // increment total count of unknowns
+    num_unknowns_ += spi.nuk;
+    // add to the total number of unknowns for this nodeindex
+    // (this initializes the parm_uk entry as needed)
+    parm_uks_[spi.nodeindex].nuk += spi.nuk;
+  }
+  FailWhen(!num_unknowns_,"spid discovery did not return any solvable parameters");
+  // now work out the solver tile sizes. Each solver tile encompasses a 
+  // whole number of spid sub-tiles, so the solver tile size along each axis 
+  // is the least common multiple (LCM) of all the spid tile sizes.
+  // solver_tilesize currently holds the largest tile size along each axis.
+  int stride = 1;  // current stride (== # of subsolvers at end of loop)
+  for( int iaxis=0; iaxis <= maxrank; iaxis++ )
+  {
+    int nc = num_cells[iaxis];
+    if( nc )
+    {
+      int maxtile = solver_tilesize[iaxis];
+      // find least common multiple tilesize by checking increasing tile sizes
+      // (maxtile, maxtile*2, maxtile*3, ...), until we hit the ncells limit
+      int lcm = maxtile;
+      for( ; lcm < nc ; lcm += maxtile )
+      {
+        // check for divisibility by each tiling's tilesize
+        TilingMap::const_iterator iter = tilings_.begin();
+        for( ; iter != tilings_.end(); iter++ )
+        {
+          int tsz = iter->first[iaxis];   // map key is tile size
+          DbgAssert(tsz);        // loop above should ensure this is >0 for nc!=0
+          if( lcm%tsz )       // break out if not a multiple
+            break;
+        }
+        // did the loop complete? if so, then we have the lcm, else keep looking
+        if( iter == tilings_.end() )
+          break;
+      }
+      // ok, at this point lcm is the tiling for this axis, but limit it to ncells
+      solver_tilesize[iaxis] = std::min(lcm,nc);
+    }
+  }
+  // solver_tilesize now gives the solver tiling, insert it into map if needed
+  {
+  TilingMap::iterator iter = tilings_.find(solver_tilesize);
+  if( iter == tilings_.end() )
+  {
+    psolver_tiling_ = &( tilings_[solver_tilesize] );
+    psolver_tiling_->init(solver_tilesize,num_cells);
+  }
+  else
+    psolver_tiling_ = &( iter->second );
+  }
+  // allocate required number of subsolvers
+  subsolvers_.resize(psolver_tiling_->total_tiles);
+  // now for each spid tiling, figure out what solver tile a given spid 
+  // subtile belongs to
+  for( TilingMap::iterator iter = tilings_.begin(); iter != tilings_.end(); iter++ )
+  {
+    Tiling & tiling = iter->second;
+    tiling.super_tile.resize(tiling.total_tiles);
+    if( &tiling == psolver_tiling_ )  // is this the solver tiling itself?
+    {
+      // initialize with identity vector
+      for( int i=0; i<tiling.total_tiles; i++ )
+        tiling.super_tile[i] = i;
+    }
+    else  // else this a subtiling, so do the hard arithmetic
+    {
+      // the 'subtiling' object describes how the solver tiles tile
+      // our subtiling
+      DimVector subtile_size;
+      for( int i=0; i<=maxrank; i++ )
+        subtile_size[i] = solver_tilesize[i]/tiling.tile_size[i];
+      Tiling subtiling(subtile_size,tiling.num_tiles);
+      subtiling.activate();
+      // init a DimCounter for our tiling's shape
+      LoShape subtiling_shape;
+      subtiling_shape.resize(maxrank+1);
+      for( int i=0; i<=maxrank; i++ )
+        subtiling_shape[i] = tiling.num_tiles[i];
+      Vells::DimCounter counter(subtiling_shape);
+      for( int i=0; i<tiling.total_tiles; i++ )
+      {
+        tiling.super_tile[i] = subtiling.cur_tile;
+        int ndim = counter.incr();
+        if( ndim )  // ndim is the number of incremented dimensions, counting from end
+          subtiling.advance(maxrank-ndim+1);
+        else // we must have reached the end
+        {
+          DbgAssert(i==tiling.total_tiles-1);
         }
       }
     }
-    // increment count of unknowns
-    num_unknowns_ += spi.nuk;
-    // add unknown's indices to map for this nodeindex
-    ParmUkInfo & pui = parm_uks_[rec[FNodeIndex].as<int>()];
-    pui.spidset[spid] = std::pair<int,int>(spi.uk_index,spi.uk_index+spi.nuk);
-    pui.nuk += spi.nuk;
   }
+#ifdef USE_DEBUG
+  DMI::Record & inforec = wstate()["Tiling.Info"] <<= new DMI::Record;
+  // put tilings into state record
+  DMI::Record & trec = inforec["$Tilings"] <<= new DMI::Record;
+  for( TilingMap::const_iterator iter = tilings_.begin(); iter != tilings_.end(); iter++ )
+    trec[iter->first.asHIID()] = iter->second.asRecord();
+  inforec["Solver.Tiling"] = solver_tilesize.asHIID();
+#endif
+  // now figure out what unknown in each subsolver corresponds to each spid
+  for( SpidMap::iterator iter = spids_.begin(); iter != spids_.end(); iter++ )
+  {
+    SpidType spid = iter->first;
+    SpidInfo &spi = iter->second;
+    Tiling &tiling = *( spi.ptiling );
+    spi.ssuki.resize(spi.nuk);
+    // Now work out how the spid tiles map to subsolver unknowns
+    // Each spid tile receives a single unknown in the corresponding subsolver.
+    // uk0[] and nuk[] keep track of which unknown index we started allocating
+    // from, and how many we allocated
+    int uk0[numSubsolvers()];
+    int nuk[numSubsolvers()];
+    for( int i=0; i<numSubsolvers(); i++ )
+    {
+      uk0[i] = -1;
+      nuk[i] = 0;
+    }
+    // allocate the unknowns
+    for( int i=0; i<spi.nuk; i++ )
+    {
+      int isolver = tiling.super_tile[i];
+      DbgAssert(isolver>=0 && isolver<numSubsolvers());
+      if( uk0[isolver] < 0 )
+        uk0[isolver] = subsolvers_[isolver].nuk;
+      spi.ssuki[i] = subsolvers_[isolver].nuk++;
+      nuk[isolver]++;
+    }
+    // update the parm-to-unknowns map
+    LoMat_int &slice = parm_uks_[spi.nodeindex].spidset[spid];
+    slice.resize(numSubsolvers(),2);
+    for( int i=0; i<numSubsolvers(); i++ )
+    {
+      DbgAssert(uk0[i]>=0 && nuk[i]); // each subsolver MUST have unknowns for every spid
+      slice(i,0) = uk0[i];
+      slice(i,1) = uk0[i]+nuk[i];
+    }
+  }
+#ifdef USE_DEBUG
+  // put spid_map info into state record
+  DMI::Record & spidmaprec = inforec["Spid.Map"] <<= new DMI::Record;
+  for( SpidMap::const_iterator iter = spids_.begin(); iter != spids_.end(); iter++ )
+    spidmaprec[iter->first] = iter->second.asRecord();
+  // put uk_map info into state record
+  DMI::Record & pmaprec = inforec["Parm.Map"] <<= new DMI::Record;
+  for( ParmUkMap::const_iterator iter = parm_uks_.begin(); iter != parm_uks_.end(); iter++ )
+  {
+    DMI::Record & pmap = pmaprec[iter->first] <<= new DMI::Record;
+    const ParmUkInfo &pui = iter->second;
+    pmap["Num.Unknowns"] = pui.nuk;
+    DMI::Record & spidset = pmap["Spid.Set"] <<= new DMI::Record;
+    for( SpidSet::const_iterator iter = pui.spidset.begin(); iter != pui.spidset.end(); iter++ )
+      spidset[iter->first] = iter->second;
+  }
+  // final sanity checks
+  int nuk = 0;
+  for( int i=0; i<numSubsolvers(); i++ )
+    nuk += subsolvers_[i].nuk;
+  Assert(nuk==num_unknowns_);
+#endif
+  
   return num_unknowns_;
 }
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -201,7 +484,7 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
 // and the complex case. This allows us to have a single templated 
 // definition of fillEquations() below which works for both cases.
 template<typename T>
-inline void Solver::fillEqVectors (int npert,int uk_index[],
+inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
       const T &diff,const std::vector<Vells::ConstStridedIterator<T> > &deriv_iter)
 {
   // fill vectors of derivatives for each unknown 
@@ -215,8 +498,7 @@ inline void Solver::fillEqVectors (int npert,int uk_index[],
     ::Debug::getDebugStream()<<" -> "<<diff<<endl;
   }
   // add equation to solver
-  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-  solver_.makeNorm(npert,uk_index,&deriv_real_[0],1.,diff);
+  ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],1.,diff);
   num_equations_++;
 }
 
@@ -234,14 +516,14 @@ inline void Solver::fillEqVectors (int npert,int uk_index[],
 
 // Specialization for complex case: each value produces two equations
 template<>
-inline void Solver::fillEqVectors (int npert,int uk_index[],
+inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
       const dcomplex &diff,const std::vector<Vells::ConstStridedIterator<dcomplex> > &deriv_iter)
 {
   // fill vectors of derivatives for each unknown 
   for( int i=0; i<npert; i++ )
   {
-    deriv_real_[i] = (*deriv_iter[i]).real();
-    deriv_imag_[i] = (*deriv_iter[i]).imag();
+    deriv_real_[i] = creal(*deriv_iter[i]);
+    deriv_imag_[i] = cimag(*deriv_iter[i]);
   }
   if( Debug(4) )
   {
@@ -253,11 +535,9 @@ inline void Solver::fillEqVectors (int npert,int uk_index[],
     ::Debug::getDebugStream()<<" -> "<<diff<<endl;
   }
   // add equation to solver
-  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-  solver_.makeNorm(npert,uk_index,&deriv_real_[0],1.,diff.real());
-  num_equations_++;
-  solver_.makeNorm(npert,uk_index,&deriv_imag_[0],1.,diff.imag());
-  num_equations_++;
+  ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],1.,creal(diff));
+  ss.solver.makeNorm(npert,uk_index,&deriv_imag_[0],1.,cimag(diff));
+  num_equations_+=2;
 }
 
 
@@ -285,56 +565,93 @@ void Solver::fillEquations (const VellSet &vs)
   // be iterated over simultaneously (1 driving term, N derivatives,
   // 1 flag vells). Fortunately Vells math provides some help here
   // in the form of strided iterators
-  SpidInfo *pspi[npert];    // spid map for each derivative looked up in advance
   Vells::Shape outshape;          // output shape: superset of input shapes
   // fill in shape arrays for computeStrides() below
-  const Vells::Shape * shapes[npert+2];
-  int uk_index[npert];            // index of current unknown per each 
-  // derivative (since we may have multiple unknowns per spid due to tiling,
+  const Vells::Shape * shapes[npert+3];
+  // ***** OPTIMIZATION OPPORTUNITY ALERT *****
+  // Consider the case of an equation with 1 or more collapsed dimensions;
+  // and assume these dimensions are tiled by subsolvers. This equation 
+  // then needs to be added to every subsolver! This seems like too much of
+  // a pain, so I'm going to take the easy way out: use StridedIterators
+  // to explicitly re-expand the collapsed dimensions. 
+  // To achieve this, I add the cells shape to the shapes[] array
+  // fed to Vells::computeStrides() below. The resulting output_shape is 
+  // then always identical to the cells_shape (since no axes are collapsed),
+  // and strided iterators for an equation will iterate in-place as needed
+  // to yield the right number of equations. 
+  // (Note that this also takes care of properly weighting equations with
+  // collapsed dimensions.)
+  // This may not be the most efficient way to do this, but consider this:
+  // most equations don't have ANY collapsed axes (i.e. either the rhs or 
+  // the lhs have some variation along each given axis), in which case
+  // this is NOT inefficient at all.
+  shapes[0] = &( cells_shape_ );
+  // index of current unknown per each derivative per each subsolver
+  // (since we may have multiple unknowns per spid due to tiling,
   // we keep track of the current one when filling equations)
-  shapes[0] = &( diffval.shape() );
-  shapes[1] = &( diffval.flagShape() ); // returns null shape if no flags
-  int j=2;
-  // go over derivatives, find spids in map, fill in shapes
+  shapes[1] = &( diffval.shape() );
+  shapes[2] = &( diffval.flagShape() ); // returns null shape if no flags
+  int j=3;
+  // deactivate all tilings, then reactivate the ones for active spids
+  for( TilingMap::iterator iter = tilings_.begin(); iter != tilings_.end(); iter++ )
+    iter->second.active = false;
+  // activate the solver's tiling
+  psolver_tiling_->activate();
+  // go over derivatives, fill in shapes, get pointers to tilings and such
+  Tiling *   ptiling[npert];    // shorthand pointers to SpidInfo...
+  SpidInfo * pspi[npert];       //    ...and TilingInfo per derivative
+  int uk_index[npert];            // current unknown number per derivative
   for( int i=0; i<npert; i++,j++ )
   {
-    // find spid in map, and save pointer to map entry
-    VellSet::SpidType spid = vs.getSpid(i);
-    SpidMap::iterator iter = spids_.find(vs.getSpid(i));
+    SpidType spid = vs.getSpid(i);
+    SpidMap::iterator iter = spids_.find(spid);
     FailWhen(iter == spids_.end(),ssprintf("child %d returned spid %d that was "
-            "not reported during spid discovery",cur_child_,spid));
-    SpidInfo &spi = iter->second;
-    pspi[i] = &spi;
-    // init various indices
-    uk_index[i] = spi.uk_index;
-    for( int ii=0; ii<Axis::MaxAxis; ii++ )
-    {
-      spi.tile_index[ii] = 0;
-      spi.tile_uk0[ii] = spi.uk_index;
-    }
+             "not reported during spid discovery",cur_child_,spid));
+    pspi[i]     = &( iter->second );
+    (ptiling[i] = pspi[i]->ptiling)->activate();
     // get shape of derivative
     shapes[j] = &( vs.getPerturbedValue(i).shape() );
   }
   // compute output shape (the union of all input shapes), and
   // strides for all vells 
-  Vells::computeStrides(outshape,strides_,npert+2,shapes,"Solver::getResult");
+  Vells::computeStrides(outshape,strides_,npert+3,shapes,"Solver::getResult");
   int outrank = outshape.size();
   // create strided iterators for all vells
-  Vells::ConstStridedIterator<T> diff_iter(diffval,strides_[0]);
-  Vells::ConstStridedFlagIterator flag_iter(diffval,strides_[1]);
+  Vells::ConstStridedIterator<T> diff_iter(diffval,strides_[1]);
+  Vells::ConstStridedFlagIterator flag_iter(diffval,strides_[2]);
   std::vector<Vells::ConstStridedIterator<T> > deriv_iter(npert);
-  j=2;
+  j=3;
   for( int i=0; i<npert; i++,j++ )
     deriv_iter[i] = Vells::ConstStridedIterator<T>(vs.getPerturbedValue(i),strides_[j]);
   // create counter for output shape
   Vells::DimCounter counter(outshape);
+  // keep track of current subsolver -- always starts at 0
+  Subsolver * psolver = 0;  
   // now start generating equations. repeat while counter is valid
   // (we break out below, when incrementing the counter)
+  bool new_tile = true;
   while( true )
   {
-    // fill equations only if unflagged...
-    if( !(*flag_iter&flag_mask_) )
-      fillEqVectors(npert,uk_index,*diff_iter,deriv_iter);
+    // if any tile has changed, update everything (also called at start)
+    if( new_tile )
+    {
+      // pointer to current subsolver
+      int isolver = psolver_tiling_->cur_tile;
+      DbgAssert(isolver>=0 && isolver<numSubsolvers());
+      psolver = &( subsolvers_[isolver] );
+      // update unknown indices for each pert
+      for( int ipert=0; ipert<npert; ipert++ )
+      {
+        int itile = ptiling[ipert]->cur_tile;
+        DbgAssert(itile>=0 && itile<ptiling[ipert]->total_tiles);
+        int uk = pspi[ipert]->ssuki[itile];
+        DbgAssert(uk>=0 && uk<psolver->nuk);
+        uk_index[ipert] = uk;
+      }
+    }
+    // fill equations only if unflagged, and solver is not converged
+    if( !psolver->converged && !(*flag_iter&flag_mask_) )
+      fillEqVectors(*psolver,npert,uk_index,*diff_iter,deriv_iter);
     // increment counter and all iterators
     int ndim = counter.incr(); 
     if( !ndim )    // break out when counter is finished
@@ -342,51 +659,26 @@ void Solver::fillEquations (const VellSet &vs)
     diff_iter.incr(ndim);
     flag_iter.incr(ndim);
     for( int ipert=0; ipert<npert; ipert++ )
-    {
       deriv_iter[ipert].incr(ndim);
-      // if this is a tiled spid, we need to figure out whether we
-      // have changed tiles, and what the new uk_index is
-      SpidInfo &spi = *pspi[ipert];
-      if( spi.nuk > 1 )
-      {
-        // ndim tells us how many dimensions we have advanced over
-        // (with the last dimension iterating the fastest)
-        // That is, index N-ndim has been incremented, while indices
-        // N-ndim+1 ... N-1 have been reset to 0. Work out our tile
-        // numbers appropriately
-        int idim = outrank - ndim;  // idim=N-ndim, the incremented dimension
-        // Reset unknown index for this dimension to beginning of slice.
-        // tile_uki0[i] is the index of the start of the slice for the
-        // current values of tile indices 0...i-1.
-        int uk0 = spi.tile_uk0[idim];
-        if( spi.tile_size[idim] )
-        {
-          int ti = spi.tile_index[idim] = counter.counter(idim) / spi.tile_size[idim];
-          // work out start of slice for indices 0...idim-1,idim
-          uk0 += ti * spi.tile_stride[idim];
-        }
-        // this is the new uk_index then
-        uk_index[ipert] = uk0;
-        // reset the remaining tile indices to 0, and update
-        // their slice starting points
-        for( idim++; idim < outrank; idim++ )
-        {
-          spi.tile_uk0[idim] = uk0;
-          spi.tile_index[idim] = 0;
-        }
-      }
+    // now for each tiling in use, advance its counters
+    new_tile = false;
+    for( TilingMap::iterator iter = tilings_.begin(); iter != tilings_.end(); iter++ )
+    {
+      Tiling &ti = iter->second;
+      // note that ndim tells us how many dimensions from the END of the 
+      // output hypercube have been incremented. So the outer incremented
+      // dimension is N-ndim, so this is what we pass to Tiling::advance()
+      if( ti.active )
+        new_tile |= ti.advance(outshape.size()-ndim);
     }
   }
-}        
-
-
-
+}
 
 
 
 // helper method to flatten a list of records into an array
 template<class T>
-ObjRef flattenScalarList (const DMI::List &list,const HIID &field)
+static ObjRef flattenScalarList (const DMI::List &list,const HIID &field)
 {
   // presize the array to list size
   LoShape shape(list.size());
@@ -396,12 +688,12 @@ ObjRef flattenScalarList (const DMI::List &list,const HIID &field)
   // go through list and fill with data
   DMI::List::const_iterator iter = list.begin();
   for( int n=0; iter != list.end(); iter++,n++ )
-    arr(n) = iter->as<DMI::Record>()[field].as<T>(0);
+    arr(n) = iter->as<Container>()[field].as<T>(0);
   return res;
 }
 
 template<class T,int N>
-ObjRef flattenArrayList (const DMI::List &list,const HIID &field)
+static ObjRef flattenArrayList (const DMI::List &list,const HIID &field)
 {
   // figure out maximum shape of output array
   blitz::TinyVector<int,N> maxshape(1);
@@ -409,7 +701,7 @@ ObjRef flattenArrayList (const DMI::List &list,const HIID &field)
   // go through list and compare shapes
   for( ; iter != list.end(); iter++ )
   {
-    DMI::Record::Hook harr(iter->as<DMI::Record>(),field);
+    DMI::Record::Hook harr(iter->as<Container>(),field);
     if( harr.exists() )
     {
       const LoShape &shp = harr.as<DMI::NumArray>().shape();
@@ -431,7 +723,7 @@ ObjRef flattenArrayList (const DMI::List &list,const HIID &field)
   // go through list again and fill with data
   for( iter = list.begin(); iter != list.end(); iter++,pdata+=stride )
   {
-    DMI::Record::Hook harr(iter->as<DMI::Record>(),field);
+    DMI::Record::Hook harr(iter->as<Container>(),field);
     if( harr.exists() )
     {
       const blitz::Array<T,N> & subarr = harr.as<DMI::NumArray>().getConstArray<T,N>();
@@ -453,6 +745,7 @@ int Solver::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &,
                        const Request &request, bool newreq)
 {
+  cells_shape_ = request.cells().shape();
   // Use single derivative by default, or a higher mode if specified in request
   AtomicID rqtype = RequestType::EVAL_SINGLE;
   if( std::max(eval_mode_,request.evalMode()) > 1 )
@@ -520,8 +813,10 @@ int Solver::getResult (Result::Ref &resref,
     {
       // insert a copy of spid map record into the solver result
       solveResult[FSpidMap].replace() <<= pspid_map;
-      // populate our map from the record
+      // populate our map from the record and work out tilings
       populateSpidMap(*pspid_map,request.cells());
+#ifdef USE_DEBUG
+#endif
     }
   }
   if( !num_unknowns_ )
@@ -530,35 +825,34 @@ int Solver::getResult (Result::Ref &resref,
     Throw("spid discovery did not return any solvable parameters");
   }
   num_spids_ = spids_.size();
-  {
-  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-  solver_.set(num_unknowns_);
-  }
-  cdebug(2)<<"solver initialized for "<<num_unknowns_<<" unknowns\n";
   
+  // allocate matrix of incremental solutions -- allocate directly in solver
+  // result so that it stays visible in our state record (handy
+  // when debugging trees, for instance)
+  DMI::NumArray & allSolNA = solveResult[FIncrementalSolutions] 
+        <<= new DMI::NumArray(Tpdouble,LoShape(max_num_iter_,num_unknowns_));
+  LoMat_double & incr_solutions = allSolNA.getArray<double,2>();
+  // now go over allocated subsolvers and init them
+  int uk0 = 0;
+  for( int i=0; i<numSubsolvers(); i++ )
+    subsolvers_[i].initSolution(uk0,incr_solutions,settings_,pDebugList!=0);
+  cdebug(2)<<numSubsolvers()<<" sub-solvers initialized for "<<num_unknowns_<<" unknowns\n";
+  // how many subsolvers need to converge
+  need_conv_ = std::min(numSubsolvers(),int(ceil(numSubsolvers()*conv_quota_)));
+  num_conv_ = 0;
   // resize temporaries used in fillEquations()
   deriv_real_.resize(num_unknowns_);
   deriv_imag_.resize(num_unknowns_);
   // ISO C++ won't allow a vector of Strides, hence this old-style kludge
   if( strides_ )
     delete [] strides_;
-  strides_ = new Vells::Strides[num_spids_+2];
-  // and other stuff used during solution
-  Vector<double> solution(num_unknowns_);   // solution vector from solver
-  
-  // matrix of incremental solutions -- allocate directly in solver
-  // result so that it stays visible in our state record (handy
-  // when debugging trees, for instance)
-  DMI::NumArray & allSolNA = solveResult[FIncrementalSolutions] 
-        <<= new DMI::NumArray(Tpdouble,LoShape(max_num_iter_,num_unknowns_));
-  LoMat_double & incr_solutions = allSolNA.getArray<double,2>();
-  
+  strides_ = new Vells::Strides[num_spids_+3];
   // OK, now create the "real" request object. This will be modified from 
   // iteration to iteration, so we keep it attached to reqref and rely on COW
   reqref <<= new Request(request.cells());
-  int  step;
-  bool converged=false;
-  for( step=0; step < max_num_iter_ && !converged; step++ ) 
+  bool converged = false;
+  
+  for( cur_iter_=0; cur_iter_ < max_num_iter_ && !converged; cur_iter_++ ) 
   {
     // increment the solve-dependent parts of the request ID
     rqid = next_rqid;
@@ -607,28 +901,46 @@ int Solver::getResult (Result::Ref &resref,
     timers_.getresult.start();
     FailWhen(!num_equations_,"no equations were generated");
     cdebug(4)<<"accumulated "<<num_equations_<<" equations\n";
-    // Solve the equation.
-    DMI::Record * pSolRec = new DMI::Record;
-    metricsList.addBack(pSolRec);
-    DMI::Record * pDebug = 0;
-    if( pDebugList ){
-      pDebugList->addBack(pDebug = new DMI::Record);
+    // now for the subsolvers loop
+    int nremain = numSubsolvers() - num_conv_; // how many have not converged yet
+    num_conv_ = 0;
+    // call all subsolvers and count how many have converged
+    // use mt solving if enabled, and if >1 subsolver has not yet converged 
+    if( !worker_threads_.empty() && nremain > 1 )
+    {
+      num_conv_ = 0;
+      activateSubsolverWorkers();
     }
-
-    // ****   CALL SOLVE AND CHECK CONVERGENCE  ****
-    //    double fit = solve(solution,reqref,*pSolRec,pDebug,do_save_funklets_ && step == max_num_iter_-1);
-    
-    //always add save_funklets command, let parm decide (only save if converged)
-    double fit = solve(solution,reqref,*pSolRec,pDebug,do_save_funklets_);
-    
-
-    converged = ((abs(fit) <= min_epsilon_) && fit <= 0.0);
-    
-    // copy solutions vector to allSolutions row
-    incr_solutions(step,LoRange::all()) = B2A::refAipsToBlitz<double,1>(solution);
+    else // single-threaded loop
+    {
+      for( int i=0; i<numSubsolvers(); i++ )
+      {
+        Subsolver &ss = subsolvers_[i];
+        if( ss.solve(cur_iter_) )
+          num_conv_++;
+        cdebug(5)<<"subsolver "<<i<<" fit is "<<ss.fit<<", converged "<<ss.converged<<endl;
+      }
+    }
+    cdebug(4)<<num_conv_<<" subsolvers have converged ("<<need_conv_<<" needed)\n";
+    converged = num_conv_ >= need_conv_;
+    // fill in updates in request object
+    fillRider(reqref,do_save_funklets_&&converged,converged);
+    // get metrics and debug info
+    DMI::Vec * pmetvec;
+    metricsList.addBack(pmetvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
+    DMI::Vec * pdbgvec = 0;
+    if( pDebugList )
+      pDebugList->addBack(pdbgvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
+    for( int i=0; i<numSubsolvers(); i++ )
+    {
+      pmetvec->put(i,subsolvers_[i].metrics);
+      if( pdbgvec )
+        pdbgvec->put(i,subsolvers_[i].debugrec);
+    }
   } // end of FOR loop over solver iterations
+  
   // send up one final update if needed
-  if( do_last_update_ && (step == max_num_iter_ || converged))
+  if( do_last_update_ && (cur_iter_ == max_num_iter_ || converged))
   {
     // reqref will have already been populated with updates by solve() above.
     // However, we want to clear out the cells to avoid re-evaluation, so
@@ -647,46 +959,51 @@ int Solver::getResult (Result::Ref &resref,
     timers_.getresult.start();
     ParmTable::unlockTables();
   }
-  solveResult[FConverged] = converged;
-  solveResult[FIterations]= step;
+  solveResult[FConverged]  = converged;
+  solveResult[FIterations] = cur_iter_;
   // if we broke out of the loop because of some other criterion, we need
-  // to crop the incremental solutions matrix to [0:step-1,*]
-  if( step < max_num_iter_ )
+  // to crop the incremental solutions matrix to [0:cur_iter_-1,*]
+  if( cur_iter_ < max_num_iter_ )
   {
     // create new array and copy subarray of incremental solutions into it
     DMI::NumArray::Ref arr_ref;
-    arr_ref <<= new NumArray(Tpdouble,LoShape(step,num_unknowns_));
-    arr_ref().getArray<double,2>() = incr_solutions(LoRange(0,step),LoRange::all());
+    arr_ref <<= new NumArray(Tpdouble,LoShape(cur_iter_,num_unknowns_));
+    arr_ref().getArray<double,2>() = incr_solutions(LoRange(0,cur_iter_),LoRange::all());
     // replace incr_solutions in solver result
     solveResult[FIncrementalSolutions].replace() <<= arr_ref;
   }
+  
   // finally, to make life easier for DataCollect and HistoryCollect nodes, reformat all
   // metrics and debug fields from lists into arrays, where the first axis is the number of
   // iterations
-  DMI::Record::Ref metrics_ref;
-  DMI::Record &metrics = metrics_ref <<= new DMI::Record;
-  metrics[FRank]   = flattenScalarList<int>(metricsList,FRank);
-  metrics[FFit]    = flattenScalarList<double>(metricsList,FFit);
-  metrics[FErrors] = flattenArrayList<double,1>(metricsList,FErrors);
-  metrics[FFlag]   = flattenScalarList<bool>(metricsList,FFlag);
-  metrics[FMu]     = flattenScalarList<double>(metricsList,FMu);
-  metrics[FStdDev] = flattenScalarList<double>(metricsList,FStdDev);
-  solveResult[FMetricsArray] = metrics_ref;
-  
+  DMI::Vec &allmetrics = solveResult[FMetricsArray] <<= new DMI::Vec(TpDMIRecord,numSubsolvers());
+  for( int i=0; i<numSubsolvers(); i++ )
+  {
+    DMI::Record & metrics = allmetrics[i] <<= new DMI::Record;
+    metrics[FRank]   = flattenScalarList<int>(metricsList,AtomicID(i)|AidSlash|FRank);
+    metrics[FFit]    = flattenScalarList<double>(metricsList,AtomicID(i)|AidSlash|FFit);
+    metrics[FCoVar]  = flattenArrayList<double,1>(metricsList,AtomicID(i)|AidSlash|FErrors);
+    metrics[FErrors] = flattenArrayList<double,1>(metricsList,AtomicID(i)|AidSlash|FErrors);
+    metrics[FFlag]   = flattenScalarList<bool>(metricsList,AtomicID(i)|AidSlash|FFlag);
+    metrics[FMu]     = flattenScalarList<double>(metricsList,AtomicID(i)|AidSlash|FMu);
+    metrics[FStdDev] = flattenScalarList<double>(metricsList,AtomicID(i)|AidSlash|FStdDev);
+  } 
   if( pDebugList )
   {
-    DMI::Record::Ref debug_ref;
-    DMI::Record &dbgrec = debug_ref <<= new DMI::Record;
-    dbgrec["$nEq"] = flattenArrayList<double,2>(*pDebugList,"$nEq");
-    dbgrec["$known"] = flattenArrayList<double,1>(*pDebugList,"$known");
-    dbgrec["$constr"] = flattenArrayList<double,2>(*pDebugList,"$constr");
-    dbgrec["$er"] = flattenArrayList<double,1>(*pDebugList,"$er");
-    dbgrec["$piv"] = flattenArrayList<int,1>(*pDebugList,"$piv");
-    dbgrec["$sEq"] = flattenArrayList<double,2>(*pDebugList,"$sEq");
-    dbgrec["$sol"] = flattenArrayList<double,1>(*pDebugList,"$sol");
-    dbgrec["$prec"] = flattenScalarList<double>(*pDebugList,"$prec");
-    dbgrec["$nonlin"] = flattenScalarList<double>(*pDebugList,"$nonlin");
-    solveResult[FDebugArray] = debug_ref;
+    DMI::Vec &alldbg = solveResult[FDebugArray] <<= new DMI::Vec(TpDMIRecord,numSubsolvers());
+    for( int i=0; i<numSubsolvers(); i++ )
+    {
+      DMI::Record & dbgrec = alldbg[i] <<= new DMI::Record;
+      dbgrec["$nEq"] = flattenArrayList<double,2>(*pDebugList,AtomicID(i)|AidSlash|"$nEq");
+      dbgrec["$known"] = flattenArrayList<double,1>(*pDebugList,AtomicID(i)|AidSlash|"$known");
+      dbgrec["$constr"] = flattenArrayList<double,2>(*pDebugList,AtomicID(i)|AidSlash|"$constr");
+      dbgrec["$er"] = flattenArrayList<double,1>(*pDebugList,AtomicID(i)|AidSlash|"$er");
+      dbgrec["$piv"] = flattenArrayList<int,1>(*pDebugList,AtomicID(i)|AidSlash|"$piv");
+      dbgrec["$sEq"] = flattenArrayList<double,2>(*pDebugList,AtomicID(i)|AidSlash|"$sEq");
+      dbgrec["$sol"] = flattenArrayList<double,1>(*pDebugList,AtomicID(i)|AidSlash|"$sol");
+      dbgrec["$prec"] = flattenScalarList<double>(*pDebugList,AtomicID(i)|AidSlash|"$prec");
+      dbgrec["$nonlin"] = flattenScalarList<double>(*pDebugList,AtomicID(i)|AidSlash|"$nonlin");
+    }
   }
   
   // clear state dependencies possibly introduced by parms
@@ -696,11 +1013,6 @@ int Solver::getResult (Result::Ref &resref,
   // type)
   return Node::RES_IGNORE_TYPE;
 }
-
-
-
-
-
 
 
 
@@ -722,69 +1034,60 @@ static DMI::NumArray::Ref triMatrix (T *tridata,int n)
   return out;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-//====================>>>  Solver::solve  <<<====================
-
-double Solver::solve (Vector<double>& solution,Request::Ref &reqref,
-                    DMI::Record& solRec,DMI::Record * pDebugRec,
-                    bool saveFunklets)
+void Solver::Subsolver::initSolution (int &uk0,LoMat_double &incr_sol,
+                              const SolverSettings &set,bool usedebug)
 {
-  reqref().clearRider();
+  settings = set;
+  Assert1(nuk);
+  solver.set(nuk);
+  solver.set(settings.colin_factor,settings.lm_factor);
+  solution.resize(nuk);
+  incr_solutions.reference(incr_sol(LoRange::all(),LoRange(uk0,uk0+nuk-1)));
+  uk0 += nuk;
+  // init other members
+  use_debug = usedebug;
+  converged = false;
+}
+
+bool Solver::Subsolver::solve (int step)
+{
   solution = 0;
+  if( converged )
+    return true;
   // It looks as if in LSQ solveLoop and getCovariance
   // interact badly (maybe both doing an invert).
   // So make a copy to separate them.
-  uint rank;
-  double fit;
-  Matrix<double> covar;
-  Vector<double> errors;
+  solFlag = solver.solveLoop(fit,rank,solution,settings.use_svd);
 
-  // Make a copy of the solver for the actual solve.
-  // This is needed because the solver does in-place transformations.
-  ////  FitLSQ solver = solver_;
-  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-  bool solFlag = solver_.solveLoop (fit, rank, solution, use_svd_);
-
-  // {
-  LSQaips tmpSolver(solver_);
-    // both of these calls produce SEGV in certain situations; commented out until
-    // Wim or Ger fixes it
-    //cdebug(1) << "result_covar = solver_.getCovariance (covar);" << endl;
-    //bool result_covar = solver_.getCovariance (covar);
-   //cdebug(1) << "result_errors = solver_.getErrors (errors);" << endl;
-   bool result_errors = tmpSolver.getErrors (errors);
-    //cdebug(1) << "result_errors = " << result_errors << endl;
- // }
+  casa::Matrix<double> covar;
+  casa::Vector<double> errors;
+  //  LSQaips tmpSolver(solver);
+  // both of these calls produce SEGV in certain situations; so may need
+  // to be commented out again. Not sure why a tmpSolver is used
+  // NB: trying without tmpSolver
+//  bool result_covar = solver.getCovariance(covar);
+//  bool result_errors = solver.getErrors(errors);
   
-  
-  cdebug(4)<<"solution after: " << solution << ", rank " << rank << endl;
+  cdebug1(4)<<"solution after: " << solution << ", rank " << rank << endl;
   // Put the statistics in a record the result.
-  solRec[FRank]   = int(rank);
-  solRec[FFit]    = fit;
-  solRec[FErrors] = errors;
-  //solRec[FCoVar ] = covar; 
-  solRec[FFlag]   = solFlag; 
-  solRec[FMu]     = solver_.getWeightedSD();
-  solRec[FStdDev] = solver_.getSD();
-  //  solRec[FChi   ] = solver_.getChi());
+  DMI::Record & mrec = metrics <<= new DMI::Record;
+  mrec[FRank]   = int(rank);
+  mrec[FFit]    = fit;
+  mrec[FErrors] = errors;
+  mrec[FCoVar ] = covar; 
+  mrec[FFlag]   = solFlag; 
+  mrec[FMu]     = solver.getWeightedSD();
+  mrec[FStdDev] = solver.getSD();
+  //  mrec[FChi   ] = solver_.getChi());
+  
   // Put debug info
-  if( pDebugRec )
+  if( use_debug )
   {
-    DMI::Record &dbg = *pDebugRec;
+    DMI::Record &dbg = debugrec <<= new DMI::Record;
     uint nun,np,ncon,ner,rank;
     double * nEq,*known,*constr,*er,*sEq,*sol,prec,nonlin;
     uint * piv;
-    solver_.debugIt(nun,np,ncon,ner,rank,nEq,known,constr,er,piv, sEq,sol,prec,nonlin);
+    solver.debugIt(nun,np,ncon,ner,rank,nEq,known,constr,er,piv, sEq,sol,prec,nonlin);
     if( nEq )
       dbg["$nEq"] = triMatrix(nEq,nun);
     dbg["$known"] = LoVec_double(known,LoShape1(np),blitz::neverDeleteData);
@@ -799,10 +1102,18 @@ double Solver::solve (Vector<double>& solution,Request::Ref &reqref,
     dbg["$nonlin"] = nonlin;
   }
 
-
-  //check if converged;
-  bool converged = ((abs(fit) <= min_epsilon_) && fit <= 0.0);
+  // check if converged;
+  converged = ((abs(fit) <= settings.epsilon) && fit <= 0.0);
   
+  // copy solution to incr_solutions matrix
+  incr_solutions(step,LoRange::all()) = B2A::refAipsToBlitz<double,1>(solution);
+  
+  return converged;
+}  
+
+void Solver::fillRider (Request::Ref &reqref,bool save_funklets,bool converged)
+{
+  reqref().clearRider();
   // Put the solution in the rider:
   //    [FRider][<parm_group>][CommandByNodeIndex][<parmid>]
   // will contain a DMI::Record for each parm 
@@ -824,20 +1135,22 @@ double Solver::solve (Vector<double>& solution,Request::Ref &reqref,
     // vector via the spid set indices
     for( SpidSet::const_iterator ii = pui.spidset.begin(); ii != pui.spidset.end(); ii++ )
     {
-      const std::pair<int,int> & uks = ii->second;
-      for( int iu = uks.first; iu < uks.second; iu++ )
-        pupd[j++] = solution(iu);
+      const LoMat_int &slice = ii->second;
+      for( int isolver=0; isolver<numSubsolvers(); isolver++ )
+      {
+        Subsolver &ss = subsolvers_[isolver];
+        for( int i=slice(isolver,0); i<slice(isolver,1); i++ )
+          pupd[j++] = ss.solution(i);
+      }
     }
     // add save command if requested
-    if( saveFunklets  && converged)
+    if( save_funklets )
       cmdrec[FSaveFunklets] = true;
     cmdrec[FConverged] = converged;
-
   }
   // make sure the request rider is validated
   reqref().validateRider();
   ParmTable::unlockTables();
-  return fit;
 }
 
 
@@ -872,9 +1185,149 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
   newst[FFlagMask].get(flag_mask_,initializing);
   newst[FSaveFunklets].get(do_save_funklets_,initializing);  
   newst[FLastUpdate].get(do_last_update_,initializing);  
-  newst[FUseSVD].get(use_svd_,initializing);  
   newst[FNumIter].get(max_num_iter_,initializing);  
-  newst[FEpsilon].get(min_epsilon_,initializing);
+  newst[FConvergenceQuota].get(conv_quota_,initializing);
+  newst[FUseSVD].get(settings_.use_svd,initializing);  
+  newst[FEpsilon].get(settings_.epsilon,initializing);
+  newst[FColinFactor].get(settings_.colin_factor,initializing);
+  newst[FLMFactor].get(settings_.lm_factor,initializing);
+  
+  newst[FMTSolve].get(mt_solve_,initializing);
+  if( mt_solve_ && worker_threads_.empty() )
+    startWorkerThreads();
+  else if( !mt_solve_ )
+    stopWorkerThreads();
+}
+
+void Solver::startWorkerThreads ()
+{
+  // do nothing if -mt is not configured
+  int nt = MTPool::Brigade::getBrigadeSize();
+  if( nt<2 )
+    return;
+  // start workers
+  wt_num_active_ = 0;
+  cdebug(0)<<"starting "<<nt-1<<" worker threads\n";
+  worker_threads_.resize(nt-1);
+  for( int i=0; i<nt-1; i++ )
+    worker_threads_[i] = Thread::create(runWorkerThread,this);
+}
+
+void Solver::stopWorkerThreads ()
+{
+  if( worker_threads_.empty() )
+    return;
+  cdebug(0)<<"stopping worker threads\n";
+  // set mt_solve_ to false and wake all workers
+  Thread::Mutex::Lock lock(worker_cond_);
+  mt_solve_ = false;
+  worker_cond_.broadcast();
+  lock.release();
+  // rejoin
+  cdebug(1)<<"rejoining worker threads\n";
+  for( uint i=0; i<worker_threads_.size(); i++ )
+    worker_threads_[i].join();
+  worker_threads_.clear();
+}
+
+// static function starts up a worker thread
+void * Solver::runWorkerThread (void *solv)
+{
+  return static_cast<Solver*>(solv)->workerLoop();
+}
+
+// Activates all worker threads to process subsolvers.
+// Process what we can in this thread too, and return when all jobs are 
+// complete.
+// Any exceptions generated by the subsolvers are stored, and 
+// eventually rethrown from here
+void Solver::activateSubsolverWorkers ()
+{
+  Thread::Mutex::Lock lock(worker_cond_);
+  cdebug(3)<<"T"<<Thread::self()<<" activating workers"<<endl;
+  wt_num_ss_ = 0;
+  wt_num_active_ = worker_threads_.size() + 1;  // +1 since main thread is also active
+  wt_exceptions_.clear();
+  worker_cond_.broadcast();
+  // go into our own loop to start processing subsolvers
+  processSolversLoop(lock);
+  // now wait for worker threads to complete
+  lock.release();
+  lock.relock(wt_completed_cond_);
+  while( wt_num_active_ > 0 )
+    wt_completed_cond_.wait();
+  lock.release();
+  lock.relock(worker_cond_);
+  cdebug(3)<<"T"<<Thread::self()<<" all workers finished"<<endl;
+  // if any exceptions have accumulated, throw them
+  if( !wt_exceptions_.empty() )
+    throw wt_exceptions_;
+}
+
+// processes subsolvers in a loop, until all complete, or an exception
+// occurs. 
+// On entry, lock is a lock on worker_cond_
+// On exit, lock should still be held
+void Solver::processSolversLoop (Thread::Mutex::Lock &lock)
+{
+  cdebug(3)<<"T"<<Thread::self()<<" subsolver loop started"<<endl;
+  while( true )
+  {
+    // finish one all subsolvers have been assigned
+    if( wt_num_ss_ >= numSubsolvers() )
+      break;
+    // grab a subsolver 
+    cdebug(3)<<"T"<<Thread::self()<<" grabbing subsolver "<<wt_num_ss_<<endl;
+    Subsolver &ss = subsolvers_[wt_num_ss_++];
+    // shortcut -- if solver is already converged, do not release
+    // lock since we'll be going on to the next one anyway.
+    // But we need to call solve() anyway to clear its internals
+    bool already_conv = ss.converged;
+    if( !already_conv )
+      lock.release();
+    // process the subsolver
+    bool converged = false;
+    try
+    {
+      converged = ss.solve(cur_iter_);
+    }
+    catch( std::exception &exc )
+    {
+      if( !already_conv )
+        lock.lock(worker_cond_);
+      wt_exceptions_.add(exc);
+      break;
+    }
+    // relock and update
+    if( !already_conv )
+      lock.lock(worker_cond_);
+    if( converged )
+      num_conv_++;
+    // go back to grab another
+  }
+  cdebug(3)<<"T"<<Thread::self()<<" subsolver loop finished"<<endl;
+  // no more solvers or error, so worker thread is finished
+  Thread::Mutex::Lock lock2(wt_completed_cond_);
+  if( wt_num_active_>0 )
+    wt_num_active_--;
+  wt_completed_cond_.signal();
+}
+
+void * Solver::workerLoop ()
+{
+  Thread::Mutex::Lock lock(worker_cond_);
+  while( true )
+  {
+    // wait on condition variable until awoken with active subsolvers,
+    // or with worker threads being stopped
+    while( wt_num_active_ <= 0 && mt_solve_ )
+      worker_cond_.wait();
+    // stop condition
+    if( !mt_solve_ )
+      return 0;
+    // else subsolvers are active, go into work loop
+    processSolversLoop(lock);
+  }
 }
 
 

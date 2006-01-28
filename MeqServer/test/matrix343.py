@@ -10,9 +10,9 @@ import os
 
 # bookmark
 Settings.forest_state = record(bookmarks=[
-  record(name='Phase solutions',page=[
-    record(viewer="Result Plotter",udi="/node/GP:2:11",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/GP:11:11",pos=(0,1)),
+  record(name='Phase solutions - all',page=[
+    record(viewer="Result Plotter",udi="/node/JP:2:centre:11",pos=(0,0)),
+    record(viewer="Result Plotter",udi="/node/JP:2:edge:11",pos=(0,1)),
     record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
     record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
   ]),
@@ -152,11 +152,27 @@ def create_initial_source_model(tablename='', extra_sources_filename=''):
     return source_model,extra_sources
 
 
-
-
-
-
-
+def create_refparms (refnode):
+  """For any given parm node, this creates:
+  * a reference parms with the same name, linked to a "reference" MEP table called "mep-ref/<meptable>".
+  * a Subtract node taking the difference between the two.
+  The subtract node is made a child of a root node called "verifier".
+  The idea is that it is then easy to execute the verifier node with a request
+  corresponding to the entire MS (or a part thereof), and obtain comparisons
+  for all parameters between the new solution, and an older solution saved
+  in mep-ref/.
+  """;
+  nodename = refnode.name;
+  mepname = refnode.initrec().table_name;
+  r0 = refnode('ref') << Meq.Parm(0,table_name="mep-ref/"+mepname,node_groups='Ref',parm_name=nodename,cache_policy=100);
+  d  = refnode('diff') << Meq.Subtract(r0,refnode,cache_policy=100);
+  # create verifier node if not already created
+  global _verifier;  # holding global ref to it ensures that it is not cleaned up as an orpan node
+  _verifier = refnode.scope.verifier;
+  if not _verifier.initialized():
+    _verifier << Meq.DataCollect(cache_policy=100);
+  # add to its children
+  _verifier.add_children(d);
 
 
 def forest_source_subtrees(ns, source):
@@ -169,9 +185,10 @@ def forest_source_subtrees(ns, source):
             IQUVpolcs[i] = create_polc_ft(degree_f=source.IQUVorder[i], 
                                           c00= source.IQUV[i])
             pass
-        ns.stokes(stokes, source.name) << Meq.Parm(IQUVpolcs[i],
+        st = ns.stokes(stokes, source.name) << Meq.Parm(IQUVpolcs[i],
                                                   table_name=source.table,
                                                   node_groups='Parm')
+        create_refparms(st);
         pass    
 
     ns.xx(source.name) << (ns.stokes("I",source.name)+ns.stokes("Q",source.name))*0.5
@@ -217,17 +234,18 @@ def forest_station_patch_jones(ns, station, patch_name, mep_table_name):
                 gain_polc  = create_polc_ft(degree_f=1, degree_t=2, c00=1.0)
                 phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
                 pass
-            ns.JA(station, patch_name, elem) << Meq.Parm(gain_polc,
+            ja = ns.JA(station, patch_name, elem) << Meq.Parm(gain_polc,
                                                           table_name=mep_table_name,
                                                           node_groups='Parm',
                                                           tiling=record(time=100))
-            ns.JP(station, patch_name, elem) << Meq.Parm(phase_polc,
+            jp = ns.JP(station, patch_name, elem) << Meq.Parm(phase_polc,
                                                           table_name=mep_table_name,
                                                           node_groups='Parm',
                                                           tiling=record(time=1))
-            ns.J(station, patch_name, elem) << Meq.Polar(
-                    ns.JA(station, patch_name, elem),
-                    ns.JP(station, patch_name, elem))
+            ns.J(station, patch_name, elem) << Meq.Polar(ja,jp);
+            if i == j:
+              create_refparms(ja);
+              create_refparms(jp);
             pass # for j ...
         pass     # for i ...
     
@@ -265,17 +283,18 @@ def forest_station_jones(ns, station, mep_table_name):
                 gain_polc  = create_polc_ft(degree_f=0, degree_t=1, c00=1.0)
                 phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
                 pass
-            ns.GA(station, elem) << Meq.Parm(gain_polc,
+            ga = ns.GA(station, elem) << Meq.Parm(gain_polc,
                                              table_name=mep_table_name,
                                              node_groups='Parm',
                                              tiling=record(time=20))
-            ns.GP(station, elem) << Meq.Parm(phase_polc,
+            gp = ns.GP(station, elem) << Meq.Parm(phase_polc,
                                              table_name=mep_table_name,
                                              node_groups='Parm',
                                              tiling=record(time=1))
-            ns.G(station, elem) << Meq.Polar(
-                    ns.GA(station, elem),
-                    ns.GP(station, elem))
+            ns.G(station, elem) << Meq.Polar(ga,gp);
+            if i == j:
+              create_refparms(ga);
+              create_refparms(gp);
             pass # for j ...
         pass     # for i ...
     
@@ -435,8 +454,7 @@ def forest_solver(ns, interferometer_list, station_list, patch_list, input_colum
       (ant1,ant2) = station_list[i*2:(i+1)*2];
       cpo.append(ns.ce(ant1,ant2).name);
     
-    ns.solver << Meq.Solver(num_iter=6,
-                            debug_level=10,
+    ns.solver << Meq.Solver(num_iter=6,convergence_quota=0.9,
                             children=ce_list,child_poll_order=cpo);    
     pass
 
@@ -547,15 +565,61 @@ def create_solver_defaults(num_iter=30, epsilon=1e-4, solvable=[]):
     return solver_defaults
 
 
+# no need to define this
+#def _test_forest(mqs, parent):
+#    pass
+    
+_reference_domain_file = '3C343.domain';
+_reference_cells = None;
+
+import cPickle
+try:
+  unpickler = cPickle.Unpickler(file(_reference_domain_file,'r'));
+  _reference_cells = unpickler.load();
+  print "Loaded reference domain from "+_reference_domain_file;
+  del unpickler;
+except:
+  traceback.print_exc();  
+  print """Error loading reference domain. You may need to re-save it
+after a source calibration. Verifier will not be available.""";
+    
+def _tdl_job_1a_save_reference_domain (mqs,parent):
+  """This saves the domain and cells of the most recent request issued
+by the VisDataMux. On subsequent runs, this saved info will be available
+to interested parties. You should normally do this only once, after
+a source flux fit, to save the domain/cells corresponding to the entire MS.
+  Note that the "verify with reference domain" job requires that a saved 
+domain be available.""";
+  vdmstate = mqs.getnodestate('VisDataMux');
+  global _reference_cells;
+  _reference_cells = vdmstate.current_request.cells;
+  pick = cPickle.Pickler(file(_reference_domain_file,'w'));
+  pick.dump(_reference_cells);
+  
+
+def _tdl_job_8_evaluate_parms_over_reference_domain (mqs,parent):
+  """Executes the 'verifier' node over the saved reference domain.
+Assuming this is successful, you may examine the children of the verifier
+node to compare past and current solutions.""";
+  if _reference_cells is None:
+    raise RuntimeError,"""Reference domain not loaded, please run a source
+flux fit and save the domain.""";
+  req = meq.request(_reference_cells,rqtype='ev');
+  mqs.clearcache('solver');
+  mqs.execute('verifier',req,wait=False);
+
+def _tdl_job_9_clear_all_node_caches (mqs,parent):
+  """Clears all caches in the tree""";
+  mqs.clearcache('solver');
+  mqs.clearcache('VisDataMux');
 
 
-def _test_forest(mqs, parent):
-    pass
-
-
-def _tdl_job_source_flux_fit_no_calibration(mqs,parent,write=True,short=False):
+def _tdl_job_1_source_flux_fit_no_calibration(mqs,parent,write=True):
+    """This solves for the I and Q fluxes of the two sources,
+    over the entire MS. 
+    """;
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname,tile_size=1500,short=short)
+    inputrec        = create_inputrec(msname,tile_size=1500)
     outputrec       = create_outputrec()
 
     source_list,extra_sources = create_initial_source_model(extra_sources_filename='extra_sources.txt')
@@ -584,6 +648,8 @@ def _tdl_job_source_flux_fit_no_calibration(mqs,parent,write=True,short=False):
     if write:
       req.output = outputrec;
     # parent=None means no GUI, so wait for request to complete
+    mqs.clearcache('verifier');
+    mqs.clearcache('VisDataMux');
     mqs.execute('VisDataMux',req,wait=(parent is None));
     pass
 
@@ -595,9 +661,9 @@ def _tdl_job_source_flux_fit_no_calibration(mqs,parent,write=True,short=False):
 #   PHASES    PHASES     PHASES
 
 
-def _tdl_job_phase_solution_with_given_fluxes_all(mqs,parent,write=True,short=False):
+def _tdl_job_2_phase_solution_with_given_fluxes_all(mqs,parent,write=True):
     msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname,tile_size=5,short=short)
+    inputrec        = create_inputrec(msname, tile_size=100)
     outputrec       = create_outputrec()
 
     station_list = range(1,15)
@@ -614,9 +680,10 @@ def _tdl_job_phase_solution_with_given_fluxes_all(mqs,parent,write=True,short=Fa
         pass    
     print solvables
     
-    publish_node_state(mqs, 'JP:9:centre:11')
-    publish_node_state(mqs, 'JP:9:edge:11')
+    publish_node_state(mqs, 'JP:2:centre:11')
+    publish_node_state(mqs, 'JP:2:edge:11')
     publish_node_state(mqs, 'solver')
+    publish_node_state(mqs, 'corrected:2:11')
     
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
@@ -624,8 +691,11 @@ def _tdl_job_phase_solution_with_given_fluxes_all(mqs,parent,write=True,short=Fa
     
     req = meq.request();
     req.input  = inputrec;
+    # req.input.max_tiles = 2;  # this can be used to shorten the processing, for testing
     if write:
       req.output = outputrec;
+    mqs.clearcache('verifier');
+    mqs.clearcache('VisDataMux');
     mqs.execute('VisDataMux',req,wait=(parent is None));
     pass
 
@@ -746,7 +816,7 @@ def _tdl_job_phase_solution_with_given_fluxes_centre(mqs, parent):
 
 
 
-Settings.forest_state.cache_policy = 1 #100
+Settings.forest_state.cache_policy = 1
 Settings.forest_state.a = None #100
 Settings.orphans_are_roots = False
 

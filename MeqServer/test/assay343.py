@@ -8,12 +8,20 @@ import os
 import numarray
 
 def vs_stats (res):
-  """helper function to convert a result to a list of
+  """helper function to convert a result to a dict of
   (min,max,mean) values corresponding to each vellset."""
   stats = [];
   for vs in res.vellsets:
     a = vs.value;
-    stats.append((a.min(),a.max(),a.mean()));
+    flags = getattr(vs,'flags',None);
+    # apply flags if any
+    if flags is None:
+      (mn,mx,mean) = (a.min(),a.max(),a.mean());
+    else:
+      mn = numarray.where(flags,1e+99,a).min();
+      mx = numarray.where(flags,-1e+99,a).max();
+      mean = numarray.where(flags,0,a).mean();
+    stats.append({'min':mn,'max':mx,'mean':mean});
   return stats;
 
 # testing branch
@@ -43,7 +51,7 @@ if __name__ == '__main__':
 ## solvables have the same values is sufficient.
 #  ass.watch("solver/cache.result");
 #  ass.watch("VisDataMux/cache.result");
-  ass.run("_tdl_job_source_flux_fit_no_calibration",write=False);
+  ass.run("_tdl_job_1_source_flux_fit_no_calibration",write=False);
   
   # print some stuff for easy reference
   print '3C343 I flux:',ass.mqs.getnodestate("stokes:I:3C343").funklet.coeff.tolist();
@@ -76,7 +84,7 @@ if __name__ == '__main__':
 ## solvables have the same values is sufficient.
 #  ass.watch("solver/cache.result.solver_result.incremental_solutions",1e-4);
 #  ass.watch("VisDataMux/cache.result");
-  ass.run("_tdl_job_phase_solution_with_given_fluxes_all",write=False);
+  ass.run("_tdl_job_2_phase_solution_with_given_fluxes_all",write=False);
     
   stat = ass.finish_test();
   if stat:

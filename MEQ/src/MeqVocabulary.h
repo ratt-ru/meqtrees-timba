@@ -47,7 +47,6 @@ namespace Meq
 {
   const HIID 
       
-    FClearSolver     = AidClear|AidSolver,
     FRider           = AidRider,
     FNodeName        = AidNode|AidName,
     FNodeState       = AidNode|AidState,
@@ -129,18 +128,6 @@ namespace Meq
     FSolution       = AidSolution,
     FDataset        = AidDataset,
 
-    // Solver staterec fields
-    FDefault         = AidDefault,
-    FSolvable        = AidSolvable,
-    FParmGroup       = AidParm|AidGroup,
-    // Solver staterec fields and commands
-    FEpsilon         = AidEpsilon,
-    FUseSVD          = AidUseSVD,
-    FClearMatrix     = AidClear|AidMatrix,
-    FInvertMatrix    = AidInvert|AidMatrix,
-    FNumIter         = AidNum|AidIter,
-    // FSavePolcs already defined above
-    FLastUpdate      = AidLast|AidUpdate,
 
     FSolveDependMask   = AidSolve|AidDep|AidMask,
     FDomainDependMask  = AidDomain|AidDep|AidMask,
@@ -151,17 +138,6 @@ namespace Meq
     // Flag handling fields
     FFlagMask        = AidFlag|AidMask,
     FFlagBit         = AidFlag|AidBit,
-
-    // Solver result rider
-    FMetrics         = AidMetrics,
-    FRank            = AidRank,
-    FFit             = AidFit,
-    FErrors          = AidErrors,
-    FCoVar           = AidCoVar,
-    FFlag            = AidFlag,
-    FMu              = AidMu,
-    FStdDev          = AidStdDev,
-    FChi             = AidChi,
 
     FContagiousFail  = AidContagious|AidFail,
     

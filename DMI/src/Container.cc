@@ -492,6 +492,7 @@ const void * DMI::Container::Hook::get_address (ContentInfo &info,
     {
       if( must_exist ) 
         ThrowUninitialized;
+      info.size = 0;
       return 0;
     }
     // success if types match
@@ -540,6 +541,7 @@ const DMI::BObj * DMI::Container::Hook::get_address_bo (ContentInfo &info,
     {
       if( must_exist ) 
         ThrowUninitialized;
+      info.size = 0;
       return 0;
     }
     // for all BO-derived types, an Objref is expected

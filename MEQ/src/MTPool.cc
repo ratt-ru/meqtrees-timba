@@ -14,8 +14,8 @@ static std::vector<Thread::ThrID> workers;
   // pointer to brigade context
 Thread::Key Brigade::context_pointer_;
 
-  // nominal brigade size
-int Brigade::brigade_size_ = 2;
+  // nominal brigade size, 0 if mt is disabled
+int Brigade::brigade_size_ = 0;
   // global brigade pool mutex
 Thread::Mutex Brigade::brigade_mutex_;
   // pool of idle brigades
@@ -183,8 +183,13 @@ WorkOrder * Brigade::getWorkOrder (bool wait)
       // idle this thread if it was busy
       if( !idled )
       {
+        // mark this thread as non-busy, and wake up anyone waiting
+        // for the busy status to change
+        Thread::Mutex::Lock lock(busyCond());
         num_busy_--;
         idled = true;
+        busyCond().broadcast();
+        lock.release();
         DbgAssert(num_busy_>=0);
         cdebug1(1)<<sdebug(1)+" no WOs queued, idling thread\n";
         // if whole brigade is idle, move it to idle pool
@@ -202,8 +207,11 @@ WorkOrder * Brigade::getWorkOrder (bool wait)
       if( idled )
       {
         cdebug1(1)<<sdebug(1)+" un-idling thread\n";
+        Thread::Mutex::Lock lock(busyCond());
         idled = false;
         num_busy_++;
+        busyCond().broadcast();
+        lock.release();
         DbgAssert(num_busy_<=num_workers_);
       }
       activated();
@@ -253,9 +261,12 @@ void Brigade::allowIdling ()
 void Brigade::join ()
 {
   context_pointer_.set(this);
+  Thread::Mutex::Lock lock(busyCond());
   num_workers_++;
   num_nonblocked_++;
   num_busy_++;
+  busyCond().broadcast();
+  lock.release();
   cdebug1(1)<<sdebug(1)+" joined brigade\n";
   DbgAssert(num_workers_<=brigade_size_ && num_nonblocked_<=num_workers_ && num_busy_<=num_workers_);
   activated();
@@ -264,9 +275,12 @@ void Brigade::join ()
 void Brigade::leave ()
 {
   context_pointer_.set(0);
+  Thread::Mutex::Lock lock(busyCond());
   num_workers_--;
   num_nonblocked_--;
   num_busy_--;
+  busyCond().broadcast();
+  lock.release();
   cdebug1(1)<<sdebug(1)+" left brigade\n";
   DbgAssert(num_workers_>=0 && num_nonblocked_>=0 && num_busy_>=0);
   // if brigade is no longer busy, idle it
@@ -280,10 +294,13 @@ void Brigade::leave ()
 void Brigade::tempLeave ()
 {
   context_pointer_.set(0);
+  Thread::Mutex::Lock lock(busyCond());
   missing_temp_ = true;
   num_workers_--;
   num_nonblocked_--;
   num_busy_--;
+  busyCond().broadcast();
+  lock.release();
   if( !num_busy_ )
     deactivated();
   cdebug1(1)<<sdebug(1)+" temporarily left brigade\n";
@@ -293,6 +310,7 @@ void Brigade::tempLeave ()
 void Brigade::rejoin ()
 {
   context_pointer_.set(this);
+  Thread::Mutex::Lock lock(busyCond());
   num_workers_++;
   num_nonblocked_++;
   num_busy_++;
@@ -304,7 +322,27 @@ void Brigade::rejoin ()
     cdebug1(1)<<sdebug(1)+" brigade back up to full strength\n";
     resume();
   }
+  busyCond().broadcast();
+  lock.release();
   activated();
+}
+
+void Brigade::waitUntilIdle (int minbusy)
+{
+  cdebug1(1)<<sdebug(1)+ssprintf(" waiting until brigade idles with minbusy %d\n",minbusy);
+  Thread::Mutex::Lock lock(cond());
+  // clear the WO queue 
+  clearQueue();
+  lock.release();
+  // now we must wait for the brigade to become idle. 
+  lock.relock(busyCond());
+  while( num_busy_ > minbusy || missing_temp_ )
+  {
+    cdebug1(2)<<sdebug(1)+ssprintf(" missing_temp is %d\n",int(missing_temp_));
+    busyCond().wait();
+  }
+  cdebug1(1)<<sdebug(1)+ssprintf(" brigade is idle with minbusy %d\n",minbusy);
+  lock.release();
 }
 
 // this executes a work order. 
@@ -325,6 +363,7 @@ void WorkOrder::execute (Brigade &brigade)
 // starts a new brigade and returns pointer to it
 Brigade * Brigade::startNewBrigade (Thread::Mutex::Lock *plock,bool one_short)
 {
+  FailWhen1(!brigade_size_,"multithreading disabled, can't start worker threads");
   Brigade *brigade = new Brigade(plock,one_short);
   all_brigades_.push_back(brigade);
   return brigade;

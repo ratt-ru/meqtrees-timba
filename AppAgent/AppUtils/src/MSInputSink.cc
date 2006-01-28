@@ -256,7 +256,7 @@ bool MSInputSink::init (const DMI::Record &params)
   // clear flags?
   clear_flags_ = params[FClearFlags].as<bool>(false);
 
-  openMS(header,selection);  
+  openMS(header,selection);   
 
   // init common tile format and place it into header
   tileformat_ <<= new VTile::Format;
@@ -294,8 +294,9 @@ int MSInputSink::refillStream ()
       setState(DATA);
     else if( state() != DATA ) // return CLOSED when no more data
     {
-      if( state() == FOOTER )
-        setState(CLOSED);
+      selms_ = MeasurementSet();
+      ms_ = MeasurementSet();
+      tileformat_.detach();
       return AppEvent::CLOSED;
     }
   // loop until some tiles are generated
