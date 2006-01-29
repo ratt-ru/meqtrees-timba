@@ -71,26 +71,81 @@ class ArgBrowser(QMainWindow):
 
         if not parent:
             self.__QApp = QApplication(sys.argv)
-            QMainWindow.__init__(self,parent,None,Qt.WType_Dialog|Qt.WShowModal);
+            QMainWindow.__init__(self, parent, None, Qt.WType_Dialog|Qt.WShowModal)
 	else:
 	    self.__QApp = parent
-            QMainWindow.__init__(self);
+            QMainWindow.__init__(self)
 	
         self.setMinimumWidth(700)
         self.setMinimumHeight(400)
 
-        fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
-        fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
+        fl = Qt.WType_TopLevel|Qt.WStyle_Customize
+        fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title
         self.setWFlags(fl)
-
-        # NB: Use Window Manager instead (right-click on title bar)
-        #     Implemented for MG_JEN_ substrings.....
-        # self.setWFlags(Qt.WStyle_StaysOnTop)   # does not work???
 
         #----------------------------------------------------
         # The basic layout: Stack widgets vertically in vbox
         
         vbox = QVBoxLayout(self)
+
+        #----------------------------------------------------
+        # Menubar (at the end...!?):
+        self.__menubar = self.menuBar()
+
+        filemenu = QPopupMenu(self)
+        filemenu.insertItem('open ..', self.open_inarg)
+        filemenu.insertItem('open protected', self.open_protected)
+        filemenu.insertItem('recover_last', self.recover_inarg)
+        filemenu.insertSeparator()     
+        filemenu.insertItem('saveAs..', self.saveAs_inarg)
+        filemenu.insertItem('save_as_protected', self.save_as_protected)
+        filemenu.insertItem('save', self.save_inarg)
+        filemenu.insertItem('restore', self.restore_inarg)
+        filemenu.insertSeparator()     
+        filemenu.insertItem('print', self.print_inarg)
+        filemenu.insertSeparator()     
+        filemenu.insertItem('close', self.closeGui)
+        self.__menubar.insertItem('File', filemenu)
+
+        editmenu = QPopupMenu(self)
+        editmenu.insertItem('revert_to_input', self.revert_inarg)
+        editmenu.insertSeparator()     
+        editmenu.insertItem('refresh', self.refresh)
+        self.__menubar.insertItem('Edit', editmenu)
+
+        viewmenu = QPopupMenu(self)
+        k = viewmenu.insertItem('HISTORY', self.viewHISTORY)
+        viewmenu.setWhatsThis(k, 'Recursively show the inarg HISTORY')
+        viewmenu.insertItem('MESSAGES', self.viewMESSAGE)
+        viewmenu.insertItem('ERRORS', self.viewERROR)
+        viewmenu.insertItem('WARNINGS', self.viewWARNING)
+        viewmenu.insertSeparator()     
+        viewmenu.insertItem('inarg2pp', self.inarg2pp)
+        viewmenu.insertItem('display', self.inargDisplay)
+        viewmenu.insertItem('displayFull', self.inargDisplayFull)
+        viewmenu.insertSeparator()     
+        self.__item_unhide = viewmenu.insertItem('unhide', self.unhide)
+        self.__item_show_CTRL = viewmenu.insertItem('show CTRL', self.show_CTRL)
+        self.__menubar.insertItem('View', viewmenu)
+
+        testmenu = QPopupMenu(self)
+        testmenu.insertItem('modified?', self.test_modified)
+        testmenu.insertItem('protected?', self.test_protected)
+        # testmenu.insertItem('toggle protected', self.toggle_protected)   # temporary
+        testmenu.insertItem('inarg_OK?', self.test_OK)
+        testmenu.insertItem('count_@@', self.count_ref)
+        testmenu.insertItem('replace_@@', self.replace_ref)
+        testmenu.insertSeparator()     
+        testmenu.insertSeparator()     
+        testmenu.insertItem('assay', self.assay)
+        testmenu.insertItem('assay_verbose', self.assay_verbose)
+        testmenu.insertItem('assay_record', self.assay_record)
+        testmenu.insertSeparator()     
+        self.__menubar.insertItem('Test', testmenu)
+
+        helpmenu = QPopupMenu(self)
+        self.__menubar.insertSeparator()
+        self.__menubar.insertItem('Help', helpmenu)
 
         #----------------------------------------------------
         # Statusbar:
@@ -102,7 +157,6 @@ class ArgBrowser(QMainWindow):
             self.__statusbar.show()
             self.__statusbar.clear()
             self.__statusbar.message("statusbar")
-
 
         #----------------------------------------------------
         # The listview displays the inarg record:
@@ -160,60 +214,6 @@ class ArgBrowser(QMainWindow):
         vbox.addWidget(self.__message)
 
 
-        #----------------------------------------------------
-        # Menubar (at the end...!?):
-        self.__menubar = self.menuBar()
-
-        filemenu = QPopupMenu(self)
-        # filemenu.insertItem('save',,self,,SLOT(self.save))
-        filemenu.insertItem('open..', self.open_inarg)
-        filemenu.insertItem('saveAs..', self.saveAs_inarg)
-        filemenu.insertSeparator()     
-        filemenu.insertItem('save', self.save_inarg)
-        filemenu.insertItem('restore', self.restore_inarg)
-        filemenu.insertItem('recover_last', self.recover_inarg)
-        filemenu.insertSeparator()     
-        filemenu.insertItem('print', self.print_inarg)
-        filemenu.insertSeparator()     
-        filemenu.insertItem('close', self.closeGui)
-        self.__menubar.insertItem('File', filemenu)
-
-        editmenu = QPopupMenu(self)
-        editmenu.insertItem('revert_to_input', self.revert_inarg)
-        self.__menubar.insertItem('Edit', editmenu)
-
-        viewmenu = QPopupMenu(self)
-        k = viewmenu.insertItem('HISTORY', self.viewHISTORY)
-        viewmenu.setWhatsThis(k, 'Recursively show the inarg HISTORY')
-        viewmenu.insertItem('MESSAGES', self.viewMESSAGE)
-        viewmenu.insertItem('ERRORS', self.viewERROR)
-        viewmenu.insertItem('WARNINGS', self.viewWARNING)
-        viewmenu.insertSeparator()     
-        viewmenu.insertItem('refresh', self.refresh)
-        viewmenu.insertSeparator()     
-        viewmenu.insertItem('inarg2pp', self.inarg2pp)
-        viewmenu.insertSeparator()     
-        self.__item_unhide = viewmenu.insertItem('unhide', self.unhide)
-        self.__item_show_CTRL = viewmenu.insertItem('show CTRL', self.show_CTRL)
-        self.__menubar.insertItem('View', viewmenu)
-
-        testmenu = QPopupMenu(self)
-        testmenu.insertItem('modified?', self.test_modified)
-        testmenu.insertItem('protected?', self.test_protected)
-        testmenu.insertItem('toggle protected', self.toggle_protected)   # temporary
-        testmenu.insertItem('inarg_OK?', self.test_OK)
-        testmenu.insertItem('count_@@', self.count_ref)
-        testmenu.insertItem('replace_@@', self.replace_ref)
-        testmenu.insertSeparator()     
-        testmenu.insertItem('assay', self.assay)
-        testmenu.insertItem('assay_verbose', self.assay_verbose)
-        testmenu.insertItem('assay_record', self.assay_record)
-        testmenu.insertSeparator()     
-        self.__menubar.insertItem('Test', testmenu)
-
-        helpmenu = QPopupMenu(self)
-        self.__menubar.insertSeparator()
-        self.__menubar.insertItem('Help', helpmenu)
 
         #-------------------------------------------------------
         # Initialise:
@@ -231,7 +231,6 @@ class ArgBrowser(QMainWindow):
         self.__protected = False                   # if True, self.__inarg is protected
         self.__modified = False                    # if True, self.__inarg has been modified
         self.__savefile = generic_savefile         # used by .save_inarg(None)
-        self.__scriptname = None                   # target script for inarg record
         self.__closed = False
         if False:
             # Temporarily disabled because of problems (with file?)
@@ -326,7 +325,7 @@ class ArgBrowser(QMainWindow):
 
     def toggle_protected(self):
         """Toggle the protection of the current inarg record"""
-        self.__protected = not self.__protected                # toggle
+        self.__protected = not self.__protected      
         return self.test_protected()
 
     def test_protected(self):
@@ -339,15 +338,15 @@ class ArgBrowser(QMainWindow):
         self.__message.setText('self.__modified ='+str(self.__modified))
         return True
 
-    def test_OK(self):
+    def test_OK(self, judgement=True):
         """Test whether the current inarg record is OK"""
-        s1 = '** test_OK(): '
+        s1 = '** test:  '
         ok = JEN_inarg.is_OK(self.__inarg, trace=True)
         if not ok:
             for field in ['ERROR', 'WARNING']:
                 n = JEN_inarg.count(self.__inarg, field)
                 if n>0:
-                    s1 += ' ('+field+'s='+str(n)+') '
+                    s1 += '  ('+field+'S='+str(n)+') '
                     self.view('WARNING')
         if True:
             # See whether there are any unresolved references:
@@ -356,11 +355,10 @@ class ArgBrowser(QMainWindow):
             rr = JEN_inarg._count_reference(inarg, trace=True)
             if rr['n']>0:
                 ok = False
-                s1 += ' (unresolved: '+str(rr)+') '
-        if (ok):
-            s1 += '      -- inarg OK --'
-        else:
-            s1 += '      ** inarg NOT OK....!! **'
+                s1 += '  (unresolved: '+str(rr)+') '
+        if judgement:
+            if ok: s1 += '      -- inarg OK --'
+            if not ok: s1 += '      ** inarg NOT OK....!! **'
         self.__message.setText(s1)
         return ok
 
@@ -380,28 +378,70 @@ class ArgBrowser(QMainWindow):
 
 #-------------------------------------------------------------------
 
-    def saveAs_inarg(self):
-        """Save the (edited) inarg record for later use"""
-        filename = QFileDialog.getSaveFileName("","*.inarg",self)
-        self.save_inarg(filename);
-        return True
-
     def open_inarg(self):
         """Read a saved inarg record from a file, using a file browser"""
         filename = QFileDialog.getOpenFileName("","*.inarg",self)
         self.restore_inarg(filename)
         return True
 
-    def save_inarg(self, filename=None):
+    def open_protected(self):
+        """Read a protected inarg record from a file, using a file browser"""
+        filename = QFileDialog.getOpenFileName("", "*_protected.inarg", self)
+        self.restore_inarg(filename)
+        return True
+
+    def saveAs_inarg(self):
         """Save the (edited) inarg record for later use"""
-        if filename==None:
+        filename = ""
+        if True:
+            # Make a default filename (dangerous?)
+            filename = self.__savefile            
+            filename = filename.split('.inarg')[0]       # remove .inarg, if necessary 
+            filename = filename.split('_protected')[0]   # remove _protected, if necessary
+        filename = QFileDialog.getSaveFileName(filename, "*.inarg", self)
+        self.save_inarg(filename)
+        return True
+
+    def save_as_protected(self):
+        """Save the current inarg record as protected"""
+        filename = self.__savefile
+        filename = filename.split('.inarg')[0]       # remove .inarg, if necessary 
+        filename = filename.split('_protected')[0]   # just in case
+        filename += '_protected.inarg'               # repaste
+        self.__protected = JEN_inarg.CTRL(self.__inarg, 'protected', True)
+        filename = QFileDialog.getSaveFileName(filename, "*_protected.inarg", self)
+        self.save_inarg(filename, override=True)
+        return True
+
+
+    def save_inarg(self, filename=None, override=False):
+        """Save the (edited) inarg record for later use"""
+        if self.__protected and (not override):
+            s1 = '** Protected: Use saveAs ... to save it under a different name'
+            self.__message.setText(s1)
+            return False
+
+        if not JEN_inarg.is_OK(self.__inarg):
+            s1 = '** Something wrong with the inarg record:    done nothing...'
+            self.__message.setText(s1)
+            return False
+
+        if filename==None:                           # routine save under same name
             filename = self.__savefile
+        else:                                        # save under a different name
+            JEN_inarg.HISTORY(self.__inarg, 'Derived from: '+self.__savefile)
+
         filename = str(filename)
+        filename = filename.split('.inarg')[0]       # remove .inarg, if necessary 
+        filename += '.inarg'                         # append .inarg file extension
         f = open(filename,'wb')
         p = pickle.Pickler(f)
         r = p.dump(self.__inarg)
         self.__message.setText('** saved inarg record to file:   '+filename)
         f.close()
+        # Adjust the default savefile, and the GUI caption:
+        self.__savefile = filename
+        self.setCaption(self.__savefile)             # the GUI caption
         return True
 
     def recover_inarg(self):
@@ -424,7 +464,8 @@ class ArgBrowser(QMainWindow):
         inarg = p.load()
         self.__message.setText('** restored inarg record from file:   '+filename)
         f.close()
-        self.input(inarg)    
+        # Make the inarg ready for further processing:
+        self.input(inarg, name=filename)    
         return True
 
     #-------------------------------------------------------------------------------
@@ -478,7 +519,7 @@ class ArgBrowser(QMainWindow):
         """Assay the relevant script with the current inarg record.
         The result is put into a file: xxx.assaylog"""
         self.__message.setText('** assay('+str(switch)+') not implemented yet')
-        # Get script name from self.__scriptname....
+        # Get script name from CTRL_record....
         return True
 
     def assay_verbose(self):
@@ -491,6 +532,16 @@ class ArgBrowser(QMainWindow):
         and record the result for later comparison (xxx.dataassay)"""
         return self.assay(switch='-assayrecord')
 
+    def inargDisplay (self):
+        """Display the current inarg record"""
+        JEN_inarg.display(self.__inarg, full=False)
+        return True
+
+    def inargDisplayFull (self):
+        """Fully display the current inarg record"""
+        JEN_inarg.display(self.__inarg, full=True)
+        return True
+
     def inarg2pp (self):
         """Show the resulting pp record as it would be inside the target,
         with all the referenced values replaced"""
@@ -499,6 +550,7 @@ class ArgBrowser(QMainWindow):
         JEN_inarg.display(pp, full=False)
         # NB: Use JEN_inspect.....
         return True
+
 
     #-------------------------------------------------------------------------------
     # Input of a inarg record:
@@ -516,24 +568,26 @@ class ArgBrowser(QMainWindow):
         if self.__protected==None:
             self.__protected = JEN_inarg.CTRL(self.__inarg, 'protected', False)
             
-        # Modify the name (of its main window):
-        self.__scriptname = None
+        # Make the savefile name and the GUI caption:
         s1 = '** input of inarg record:  '
         if not name:
-            if self.__inarg.has_key('script_name'):             # MG_JEN script
+            if self.__inarg.has_key('script_name'):             # MG_JEN script (kludge)
                 name = self.__inarg['script_name']
-                self.__scriptname = name                        # corresponding script
                 s1 += 'inarg.script_name =   '
             else:
                 name = self.__inarg.keys()[0]
                 s1 += '[inarg.keys[0]] =   '
         self.__message.setText(s1+name)
-        self.setCaption(name)
-        self.__savefile = name + '.inarg'
+        self.__savefile = name                                  # default savefile name
+        caption = self.__savefile.split('/')                    # remove the directory
+        caption = caption[len(caption)-1]
+        if self.__protected:
+            caption = '(protected) '+caption
+        self.setCaption(caption)                                # the GUI caption
 
         # Transfer the inarg fields recursively:
         self.__set_open = set_open
-        self.recurse (self.__inarg, listview=self.__listview)
+        self.refresh()
 
         # Connect signals and slots, once a signal is detected the according slot is executed
         # QObject.connect(self.__listview, SIGNAL("doubleClicked (QListViewItem * )"), self.itemSelected)
@@ -554,6 +608,7 @@ class ArgBrowser(QMainWindow):
             self.__listview.ensureItemVisible(item)
             # The problem is that the item is visble at the BOTTOM of the window.
             # It would be better to have it at the top....!
+        self.test_OK(judgement=False)
         return True
 
     #--------------------------------------------------------------------------
@@ -562,6 +617,8 @@ class ArgBrowser(QMainWindow):
                  makeitd=True, color=None, trace=False):
         """Recursive input of a hierarchical inarg record"""
         if not isinstance(rr, dict): return False
+
+        # trace = True
 
         if makeitd:
             # Make sure that there is a CTRL_record for iitd storage:
@@ -574,13 +631,21 @@ class ArgBrowser(QMainWindow):
         # NB: This is NOT sufficient to get the list-items sorted in this order,
         #     because by default they are sorted alphabetically on the first column.
         #     So, a column of unique numbers is generated, and used for sorting...
-        order = JEN_inarg.CTRL(rr, 'order')
+        order = JEN_inarg.CTRL(rr, 'order', report=False)
         if order==None:
             order = rr.keys()
+        else:
+            for key in rr.keys():
+                if not key in order:
+                    order.append(key)
+        if trace:
+            print 'order =',order
             
+        # Create the listview items:
         for key in order:
             self.__item_count += 1                             # overall item count
-            # print level,(level*'.'),self.__item_count,key
+            if trace:
+                print JEN_inarg._prefix(level),self.__item_count,key
             if isinstance(rr[key], dict):   
                 if key==CTRL_record:                           # is a CTRL record         
                     self.__CTRL_count += 1                     # increment the counter
@@ -601,6 +666,7 @@ class ArgBrowser(QMainWindow):
                             item.setOpen(self.__setOpen[key1]) # open or close    
                         self.recurse (rr[key], listview=item, color='green',
                                       level=level+1, makeitd=False)
+
                 else:
                     # A record (perhaps an inarg sub-record):
                     text = QString(key)
@@ -641,9 +707,7 @@ class ArgBrowser(QMainWindow):
                 item = MyListViewItem(listview, key, str(rr[key]), '',
                                       '', str(self.__item_count))
                 item.set_text_color(color)
-                if isinstance(rr[key], (list,tuple)):
-                    if key=='order':
-                        print '\n** (not makeitd):',key,':',type(rr[key]),'[',len(rr[key]),'] =\n   ',rr[key]
+
 
             else:                                              # rr[key] is a value
                 itd = self.make_itd(key, rr[key], ctrl=rr[CTRL_record], module=module)
@@ -773,13 +837,10 @@ class ArgBrowser(QMainWindow):
             # A regular item: launch a popup for editing:
             itd = self.__itemdict[iitd]
             self.__current_iitd = iitd
-            if self.__protected:
-                self.__message.setText('** The inarg is protected: editing is disabled')
-            else:
-                # Make the popup object:
-                self.__popup = Popup(self, name=itd['key'], itd=itd)
-                QObject.connect(self.__popup, PYSIGNAL("popupOK()"), self.popupOK)
-                QObject.connect(self.__popup, PYSIGNAL("popupCancel()"), self.popupCancel)
+            # Make the popup object:
+            self.__popup = Popup(self, name=itd['key'], itd=itd)
+            QObject.connect(self.__popup, PYSIGNAL("popupOK()"), self.popupOK)
+            QObject.connect(self.__popup, PYSIGNAL("popupCancel()"), self.popupCancel)
 
         elif iitd<-2000:
             # A record (see self.__record_count): open or close it (toggle):

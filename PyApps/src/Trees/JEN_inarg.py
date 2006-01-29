@@ -474,6 +474,7 @@ def WARNING(rr, txt=None, clear=False, trace=False):
 
 def HISTORY(rr, txt=None, clear=False, trace=False):
    """Interact with the HISTORY record of the JEN_inarg_CTRL field"""
+   txt = str(datetime.now())+': '+str(txt)
    return MESSAGE(rr, txt=txt, field='HISTORY', clear=clear, trace=trace)
 
 def MESSAGE(rr, txt=None, field='MESSAGE', clear=False, trace=False):
