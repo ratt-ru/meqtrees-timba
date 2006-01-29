@@ -767,14 +767,14 @@ int Solver::getResult (Result::Ref &resref,
     rqtype = RequestType::EVAL_DOUBLE;
   // The result has no planes, all solver information is in extra fields
   Result& result = resref <<= new Result(0);
-  DMI::Record &solveResult = result[FSolverResult] <<= new DMI::Record;
-  // Keep a copy of the solver result in the state record, so that per-iteration metrics
-  // can be tracked while debugging
-  wstate()[FSolverResult].replace() <<= &solveResult;
-  DMI::List & metricsList = solveResult[FMetrics] <<= new DMI::List;
-  DMI::List * pDebugList = 0;
+  // solver result has to be kept by countedref, since we may be publishing
+  // it as we go along, so we're not allowed to keep a local pointer (else
+  // COW will break).
+  DMI::Record::Ref solveResult(DMI::ANONWR);
+  DMI::List::Ref metricsList(DMI::ANONWR);
+  DMI::List::Ref debugList;
   if( debug_lvl_ >= 2 )
-    solveResult[FDebug] <<= pDebugList = new DMI::List;
+    debugList <<= new DMI::List;
   // get the request ID -- we're going to be incrementing the iteration index
   RequestId rqid = request.id();
   RqId::setSubId(rqid,iter_depmask_,0);      // current ID starts at 0
@@ -854,14 +854,15 @@ int Solver::getResult (Result::Ref &resref,
   
   // allocate matrix of incremental solutions -- allocate directly in solver
   // result so that it stays visible in our state record (handy
-  // when debugging trees, for instance)
+  // when debugging trees, for instance). Note that we don't care about COW
+  // here since the array structure does not change, only data is filled in
   DMI::NumArray & allSolNA = solveResult[FIncrementalSolutions] 
         <<= new DMI::NumArray(Tpdouble,LoShape(max_num_iter_,num_unknowns_));
   LoMat_double & incr_solutions = allSolNA.getArray<double,2>();
   // now go over allocated subsolvers and init them
   int uk0 = 0;
   for( int i=0; i<numSubsolvers(); i++ )
-    subsolvers_[i].initSolution(uk0,incr_solutions,settings_,pDebugList!=0);
+    subsolvers_[i].initSolution(uk0,incr_solutions,settings_,debugList.valid());
   cdebug(2)<<numSubsolvers()<<" sub-solvers initialized for "<<num_unknowns_<<" unknowns\n";
   // how many subsolvers need to converge
   need_conv_ = std::min(numSubsolvers(),int(ceil(numSubsolvers()*conv_quota_)));
@@ -962,12 +963,12 @@ int Solver::getResult (Result::Ref &resref,
     converged = num_conv_ >= need_conv_;
     // fill in updates in request object
     fillRider(reqref,do_save_funklets_&&converged,converged);
-    // get metrics and debug info
+    // fill in metrics and debug info
     DMI::Vec * pmetvec;
-    metricsList.addBack(pmetvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
+    metricsList().addBack(pmetvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
     DMI::Vec * pdbgvec = 0;
-    if( pDebugList )
-      pDebugList->addBack(pdbgvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
+    if( debugList.valid() )
+      debugList().addBack(pdbgvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
     for( int i=0; i<numSubsolvers(); i++ )
     {
       pmetvec->put(i,subsolvers_[i].metrics);
@@ -999,6 +1000,12 @@ int Solver::getResult (Result::Ref &resref,
           evrec[FDebug] <<= pdbgvec;
       }
     }
+    // stick metrics and debug records into solver result
+    solveResult()[FMetrics].replace() = metricsList;
+    if( debugList.valid() )
+      solveResult()[FDebug].replace() = debugList;
+    // stick solver result into node state
+    wstate()[FSolverResult].replace() = solveResult;
   } // end of FOR loop over solver iterations
   // post a Solver.End event (which is simply a copy of the latest iteration event)
   if( debug_lvl_ >= 0 )
@@ -1024,8 +1031,8 @@ int Solver::getResult (Result::Ref &resref,
     timers_.getresult.start();
     ParmTable::unlockTables();
   }
-  solveResult[FConverged]  = converged;
-  solveResult[FIterations] = cur_iter_;
+  solveResult()[FConverged]  = converged;
+  solveResult()[FIterations] = cur_iter_;
   // if we broke out of the loop because of some other criterion, we need
   // to crop the incremental solutions matrix to [0:cur_iter_-1,*]
   if( cur_iter_ < max_num_iter_ )
@@ -1041,36 +1048,39 @@ int Solver::getResult (Result::Ref &resref,
   // finally, to make life easier for DataCollect and HistoryCollect nodes, reformat all
   // metrics and debug fields from lists into arrays, where the first axis is the number of
   // iterations
-  DMI::Vec &allmetrics = solveResult[FMetricsArray] <<= new DMI::Vec(TpDMIRecord,numSubsolvers());
+  DMI::Vec &allmetrics = solveResult()[FMetricsArray] <<= new DMI::Vec(TpDMIRecord,numSubsolvers());
   for( int i=0; i<numSubsolvers(); i++ )
   {
     DMI::Record & metrics = allmetrics[i] <<= new DMI::Record;
-    metrics[FRank]   = flattenScalarList<int>(metricsList,AtomicID(i)|AidSlash|FRank);
-    metrics[FFit]    = flattenScalarList<double>(metricsList,AtomicID(i)|AidSlash|FFit);
-    metrics[FCoVar]  = flattenArrayList<double,1>(metricsList,AtomicID(i)|AidSlash|FErrors);
-    metrics[FErrors] = flattenArrayList<double,1>(metricsList,AtomicID(i)|AidSlash|FErrors);
-    metrics[FFlag]   = flattenScalarList<bool>(metricsList,AtomicID(i)|AidSlash|FFlag);
-    metrics[FMu]     = flattenScalarList<double>(metricsList,AtomicID(i)|AidSlash|FMu);
-    metrics[FStdDev] = flattenScalarList<double>(metricsList,AtomicID(i)|AidSlash|FStdDev);
+    metrics[FRank]   = flattenScalarList<int>(*metricsList,AtomicID(i)|AidSlash|FRank);
+    metrics[FFit]    = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FFit);
+    metrics[FCoVar]  = flattenArrayList<double,1>(*metricsList,AtomicID(i)|AidSlash|FErrors);
+    metrics[FErrors] = flattenArrayList<double,1>(*metricsList,AtomicID(i)|AidSlash|FErrors);
+    metrics[FFlag]   = flattenScalarList<bool>(*metricsList,AtomicID(i)|AidSlash|FFlag);
+    metrics[FMu]     = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FMu);
+    metrics[FStdDev] = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FStdDev);
   } 
-  if( pDebugList )
+  if( debugList.valid() )
   {
-    DMI::Vec &alldbg = solveResult[FDebugArray] <<= new DMI::Vec(TpDMIRecord,numSubsolvers());
+    DMI::Vec &alldbg = solveResult()[FDebugArray] <<= new DMI::Vec(TpDMIRecord,numSubsolvers());
     for( int i=0; i<numSubsolvers(); i++ )
     {
       DMI::Record & dbgrec = alldbg[i] <<= new DMI::Record;
-      dbgrec["$nEq"] = flattenArrayList<double,2>(*pDebugList,AtomicID(i)|AidSlash|"$nEq");
-      dbgrec["$known"] = flattenArrayList<double,1>(*pDebugList,AtomicID(i)|AidSlash|"$known");
-      dbgrec["$constr"] = flattenArrayList<double,2>(*pDebugList,AtomicID(i)|AidSlash|"$constr");
-      dbgrec["$er"] = flattenArrayList<double,1>(*pDebugList,AtomicID(i)|AidSlash|"$er");
-      dbgrec["$piv"] = flattenArrayList<int,1>(*pDebugList,AtomicID(i)|AidSlash|"$piv");
-      dbgrec["$sEq"] = flattenArrayList<double,2>(*pDebugList,AtomicID(i)|AidSlash|"$sEq");
-      dbgrec["$sol"] = flattenArrayList<double,1>(*pDebugList,AtomicID(i)|AidSlash|"$sol");
-      dbgrec["$prec"] = flattenScalarList<double>(*pDebugList,AtomicID(i)|AidSlash|"$prec");
-      dbgrec["$nonlin"] = flattenScalarList<double>(*pDebugList,AtomicID(i)|AidSlash|"$nonlin");
+      dbgrec["$nEq"] = flattenArrayList<double,2>(*debugList,AtomicID(i)|AidSlash|"$nEq");
+      dbgrec["$known"] = flattenArrayList<double,1>(*debugList,AtomicID(i)|AidSlash|"$known");
+      dbgrec["$constr"] = flattenArrayList<double,2>(*debugList,AtomicID(i)|AidSlash|"$constr");
+      dbgrec["$er"] = flattenArrayList<double,1>(*debugList,AtomicID(i)|AidSlash|"$er");
+      dbgrec["$piv"] = flattenArrayList<int,1>(*debugList,AtomicID(i)|AidSlash|"$piv");
+      dbgrec["$sEq"] = flattenArrayList<double,2>(*debugList,AtomicID(i)|AidSlash|"$sEq");
+      dbgrec["$sol"] = flattenArrayList<double,1>(*debugList,AtomicID(i)|AidSlash|"$sol");
+      dbgrec["$prec"] = flattenScalarList<double>(*debugList,AtomicID(i)|AidSlash|"$prec");
+      dbgrec["$nonlin"] = flattenScalarList<double>(*debugList,AtomicID(i)|AidSlash|"$nonlin");
     }
   }
   
+  // insert solver result into result object and into state
+  wstate()[FSolverResult].replace() = solveResult;
+  result[FSolverResult] = solveResult;
   // clear state dependencies possibly introduced by parms
   has_state_dep_ = false;
   // return flag to indicate result is independent of request type
