@@ -565,24 +565,31 @@ class ResultPlotter(GriddedPlugin):
         self._wtop = cache_message
         self.set_widgets(cache_message)
         return
-    label_found = False
-    if len(self.data_list_labels) > 0:
-      for i in range(len(self.data_list_labels)):
-        if self.data_list_labels[i] == self.label:
-          label_found = True
-    if not label_found and self.max_list_length > 0:
-      if len(self.data_list_labels) > self.max_list_length - 1:
-        del self.data_list_labels[0]
-        del self.data_list[0]
-      self.data_list.append(self._rec)
-      self.data_list_labels.append(self.label)
-      if len(self.data_list) != self.data_list_length:
-        self.data_list_length = len(self.data_list)
-        if self.data_list_length > 1:
-          self.adjust_selector()
-    self.process_data()
+
+# update display with current data
+    process_result = self.process_data()
+
+# add this data set to internal list for later replay
+    if process_result:
+      label_found = False
+      if len(self.data_list_labels) > 0:
+        for i in range(len(self.data_list_labels)):
+          if self.data_list_labels[i] == self.label:
+            label_found = True
+      if not label_found and self.max_list_length > 0:
+        if len(self.data_list_labels) > self.max_list_length - 1:
+          del self.data_list_labels[0]
+          del self.data_list[0]
+        self.data_list.append(self._rec)
+        self.data_list_labels.append(self.label)
+        if len(self.data_list) != self.data_list_length:
+          self.data_list_length = len(self.data_list)
+          if self.data_list_length > 1:
+            _dprint(3, 'calling adjust_selector')
+            self.adjust_selector()
 
   def process_data (self):
+    process_result = False
 # are we dealing with Vellsets?
     if self._rec.has_key("dims"):
       _dprint(3, '*** dims field exists ', self._rec.dims)
@@ -597,7 +604,7 @@ class ResultPlotter(GriddedPlugin):
       cache_message.setTextFormat(Qt.RichText)
       self._wtop = cache_message
       self.set_widgets(cache_message)
-      return
+      return process_result
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       if self._visu_plotter is None:
         self.create_image_plotters()
@@ -606,22 +613,25 @@ class ResultPlotter(GriddedPlugin):
         self.plot_vells_data()
       else:
         self.plot_solver()
+      process_result = True
 # otherwise we are dealing with a set of visualization data
     else:
       if self._rec.has_key("visu"):
 # do plotting of visualization data
         self.display_visu_data()
         _dprint(3, 'passed display_visu_data')
+        process_result = True
 
 # enable & highlight the cell
     self.enable();
     self.flash_refresh();
     _dprint(3, 'exiting process_data')
+    return process_result
 
   def replay_data (self, data_index):
     self._rec = self.data_list[data_index]
     self.label = self.data_list_labels[data_index]
-    self.process_data()
+    process_result = self.process_data()
 
   def plot_vells_data (self):
       """ process incoming vells data and attributes into the
