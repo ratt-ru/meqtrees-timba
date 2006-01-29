@@ -11,7 +11,8 @@ class ProcStatusWidget (QLabel):
       self.setMinimumWidth(width);
     if height is not None:
       self.setMinimumHeight(height);
-    self.setAlignment(Qt.AlignRight);
+    self.setIndent(5);
+    self.setAlignment(Qt.AlignRight|Qt.AlignVCenter);
     # init status
     self._maxsizes = [0,0,0];
     
@@ -33,10 +34,10 @@ class ProcStatusWidget (QLabel):
   
   def setStatus (self,stat):
     (vsz,rss,shm,code,lib,data,dirty,cpu_sec,cpu_usec,cpus_sec,cpus_usec) = self._stat = stat;
-    lbls = ("VSZ","RSS","DS");
+    lbls = ("VSZ","RSS");
     s = "<nobr><small>";
     # form memory size strings
-    for (i,val) in enumerate((vsz,rss,data)):
+    for (i,val) in enumerate((vsz,rss)):
       val /= 1024;
       self._maxsizes[i] = max(val,self._maxsizes[i]);
       if self._maxsizes[i] != val:
@@ -48,6 +49,6 @@ class ProcStatusWidget (QLabel):
     # s += "cpu:" + self.formatTime(cpu_sec,cpu_usec);
     # s += "/" + self.formatTime(cpus_sec,cpus_usec);
     
-    s += " </small></nobr>";
+    s += "</small></nobr>";
     # set label
     self.setText(s);
