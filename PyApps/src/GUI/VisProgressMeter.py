@@ -40,10 +40,29 @@ class VisProgressMeter (QHBox):
     self.curry = self._currier.curry;
     self.xcurry = self._currier.xcurry;
     self._reset_stats();
+    
+  class TSStats (object):
+    """helper class to contain secs/timeslot stats""";
+    def __init__ (self):
+      self.reset(None,0);
+    def reset (self,tm,nt=None):
+      """resets to time0, and optionally a number of timeslots""";
+      self.time0 = tm;
+      self.nt = nt or 0;
+      self.rate = None;
+    def mark (self,tm):
+      """marks current time and computes rate""";
+      if self.nt and self.time0 is not None:
+        self.rate = (tm-self.time0)/self.nt;
+      return self.rate;
+    def update (self,nt):
+      """adds number of timeslots""";
+      self.nt += nt;
   
   def _reset_stats (self):
-    self._vis_hdrtime = self._vis_rate = self._vis_nt = \
-    self._vis_time0 = self._vis_rtime0 = self._vis_rtime1 = None;
+    self._stats = self.TSStats();  # total stats
+    self._pstats = self.TSStats(); # previous tile's stats
+    self._vis_nt = self._vis_time0 = self._vis_rtime0 = self._vis_rtime1 = None;
     
   def connect_app_signals (self,app):
     """connects standard app signals to appropriate methods."""
@@ -92,7 +111,7 @@ class VisProgressMeter (QHBox):
     self._wlabel.setText("<nobr>"+timestr+"</nobr>"); 
     self._wprog.show();
     self.show();
-    self._vis_hdrtime = time.time();
+    self._stats.reset(time.time());
        
   def update (self,rec):
     """indicates progress based on a Vis.Num.Tiles signal""";
@@ -101,13 +120,11 @@ class VisProgressMeter (QHBox):
     time0 = int(rec.time[0]-self._vis_time0);
     time1 = int(rec.time[1]-self._vis_time0);
     self._wprog.setProgress(time0);
-    # compute rate
-    if self._vis_hdrtime is not None:
-      dt = time.time() - self._vis_hdrtime;
-      if ts[0]:
-        self._vis_rate = dt/ts[0];
-      else:
-        self._vis_rate = None;
+    # compute rates
+    tm = time.time();
+    nts = ts[1]-ts[0]+1;
+    self._stats.mark(tm);
+    self._pstats.mark(tm);
     # form message
     timestr = self._vis_rtime1 = hms_str(time0);
     if self._vis_rtime0 is None:
@@ -117,9 +134,14 @@ class VisProgressMeter (QHBox):
       timestr += " to " + timestr1;
     msg = " tile <b>%d</b>, timeslots %d to %d, relative time %s" \
       % (nt-1,ts[0],ts[1],timestr);
-    if self._vis_rate is not None:
-      msg = msg+"; avg <b>%.2f</b> sec/ts" % self._vis_rate;
+    if self._stats.rate is not None:
+      msg = msg+"; avg <b>%.2f</b> sec/ts" % self._stats.rate;
+    if self._pstats.rate is not None:
+      msg = msg+"; last %.2f sec/ts" % self._pstats.rate;
     self._wlabel.setText("<nobr>"+msg+"</nobr>"); 
+    # update stat counters
+    self._stats.update(nts);
+    self._pstats.reset(tm,nts);
     
   def footer (self,rec):
     """processes footer record. Usually connected to a Vis.Footer signal""";
@@ -127,8 +149,13 @@ class VisProgressMeter (QHBox):
       msg = "received footer, writing to output";
     else:
       msg = "received footer";
-    if self._vis_rate is not None:
-      msg = msg+"; avg rate <b>%.2f</b> sec/ts" % self._vis_rate;
+    tm = time.time();
+    self._stats.mark(tm);
+    self._pstats.mark(tm);
+    if self._stats.rate is not None:
+      msg = msg+"; avg <b>%.2f</b> sec/ts" % self._stats.rate;
+    if self._pstats.rate is not None:
+      msg = msg+"; last %.2f sec/ts" % self._pstats.rate;
     self._wlabel.setText("<nobr>"+msg+"</nobr>"); 
     self._wprog.setProgress(99,100);
     
@@ -144,9 +171,9 @@ class VisProgressMeter (QHBox):
         msg += " in "+rec.elapsed;
       else:
         elapsed = None;
-      if self._vis_rate is not None:
-        rec.secs_per_ts = self._vis_rate;
-        msg = msg+"; avg %.2f sec/ts" % self._vis_rate;
+      if self._stats.rate is not None:
+        rec.secs_per_ts = self._stats.rate;
+        msg = msg+"; avg %.2f sec/ts" % rec.secs_per_ts;
       if self._vis_nt is not None:
         rec.num_tiles = self._vis_nt;
         if elapsed is not None:

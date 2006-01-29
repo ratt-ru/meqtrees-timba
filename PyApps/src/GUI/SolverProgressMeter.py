@@ -21,6 +21,9 @@ class SolverProgressMeter (QHBox):
     self._currier = PersistentCurrier();
     self.curry = self._currier.curry;
     self.xcurry = self._currier.xcurry;
+    self._hidetimer = QTimer(self);
+    self._hiding = False;
+    QObject.connect(self._hidetimer,SIGNAL("timeout()"),self._timed_reset);
     
   def connect_app_signals (self,app):
     """connects standard app signals to appropriate methods."""
@@ -31,6 +34,8 @@ class SolverProgressMeter (QHBox):
   
   def solver_begin (self,rec):
     """processes solver.begin record. Usually connected to a Solver.Begin signal""";
+    self._hidetimer.stop();
+    self._hiding = False;
     if isinstance(self.parent(),QStatusBar):
       self.parent().clear();
     if rec.num_tiles > 1:
@@ -61,6 +66,13 @@ class SolverProgressMeter (QHBox):
 #    if not rec.converged:
 #      msg += " <b><font color=\"red\">N/C</font><b>";
     self._wlabel.setText("<nobr>"+msg+"</nobr>");
+    # start timer to hide meter after 10 seconds
+    self._hidetimer.start(10000,True);
+    self._hiding = True;
+    
+  def _timed_reset (self):
+    if self._hiding:
+      self.reset();
     
   def reset (self):
     """resets and hides meter."""
