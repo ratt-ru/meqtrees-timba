@@ -30,7 +30,13 @@ class SolverData:
          self.metrics_rank = zeros(len(metrics), Int32)
          self.iteration_number = zeros(len(metrics), Int32)
          for i in range(len(metrics)):
-           self.metrics_rank[i] = metrics[i].rank
+# the metrics record is given as the first element of a 'metrics' tuple that
+# has one element
+           metrics_rec =  metrics[i][0]
+           try:
+             self.metrics_rank[i] = metrics_rec.rank
+           except:
+             pass
            self.iteration_number[i] = i+1
 
    def getSolverData(self):
