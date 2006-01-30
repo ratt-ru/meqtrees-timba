@@ -16,7 +16,7 @@ class SolverData:
      self._data_label = data_label
      self._solver_array = None
      self.metrics_rank = None
-     self.solver_divides = None
+     self.solver_offsets = None
      self.prev_unknowns = 0
      self.iteration_number = None
 #    self.__init__
@@ -32,7 +32,7 @@ class SolverData:
 # find out how many records in each metric field
          num_metrics = len(metrics)
          num_metrics_rec =  len(metrics[0])
-         self.solver_divides = zeros((num_metrics_rec), Int32)
+         self.solver_offsets = zeros((num_metrics_rec), Int32)
          self.metrics_rank = zeros((num_metrics,num_metrics_rec), Int32)
          self.iteration_number = zeros((num_metrics), Int32)
          for i in range(num_metrics):
@@ -43,7 +43,7 @@ class SolverData:
                self.metrics_rank[i,j] = metrics_rec.rank +self.prev_unknowns
                self.prev_unknowns = metrics_rec.num_unknowns
                if i == 0:
-                 self.solver_divides[j] = metrics_rec.num_unknowns
+                 self.solver_offsets[j] = metrics_rec.num_unknowns
              except:
                pass
            self.iteration_number[i] = i+1
@@ -52,7 +52,7 @@ class SolverData:
      return self._solver_array
 
    def getSolverMetrics(self):
-     return (self.metrics_rank, self.iteration_number, self.solver_divides)
+     return (self.metrics_rank, self.iteration_number, self.solver_offsets)
 
 def main(args):
   print 'we are in main' 

@@ -159,6 +159,7 @@ class QwtImageDisplay(QwtPlot):
         self.real_flag_vector = None
         self.array_parms = None
         self.metrics_rank = None
+        self.solver_offsets = None
         self.iteration_number = None
         self.ampl_phase = False
         self.complex_switch_set = False
@@ -919,7 +920,7 @@ class QwtImageDisplay(QwtPlot):
       self.source_marker = None
       if self.is_combined_image:
         self.insert_marker_lines()
-# draw dividing line for complex array
+# draw dividing lines for complex array, cross_sections, solver_offsets, etc
       self.insert_array_info()
       self.replot()
       _dprint(3, 'called replot in refresh_marker_display ')
@@ -1291,6 +1292,15 @@ class QwtImageDisplay(QwtPlot):
           self.y_sect_marker = self.insertLineMarker('', QwtPlot.xBottom)
           self.setMarkerLinePen(self.y_sect_marker, QPen(Qt.white, 3, Qt.SolidLine))
           self.setMarkerXPos(self.y_sect_marker, self.y_arrayloc)
+
+# insert markers for solver metrics?
+      if not self.solver_offsets is None:
+       shape = self.solver_offsets.shape 
+       if shape[0] > 1:
+         for i in range(shape[0] - 1):
+          self.y_solver_offset = self.insertLineMarker('', QwtPlot.xBottom)
+          self.setMarkerLinePen(self.y_solver_offset, QPen(Qt.black, 3, Qt.SolidLine))
+          self.setMarkerXPos(self.y_solver_offset, self.solver_offsets[i])
 
 # insert mean and standard deviation
       if not self.array_parms is None:
@@ -1885,9 +1895,10 @@ class QwtImageDisplay(QwtPlot):
         _dprint(2, 'called replot in array_plot');
     # array_plot()
 
-    def set_solver_metrics(self,metrics_rank, iteration_number):
+    def set_solver_metrics(self,metrics_rank, iteration_number, solver_offsets):
       self.metrics_rank = metrics_rank
       self.iteration_number = iteration_number
+      self.solver_offsets = solver_offsets
 
     def convert_to_AP(self, real_imag_image):
       a_p_image = real_imag_image.copy()
