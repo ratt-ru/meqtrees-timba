@@ -119,12 +119,12 @@ MG['test2'] = dict(a11=1.1,
                    a22=0.5,
                    up='@@aa')           # replace with value of field from one level up     
 
-MG['stream_control'] = dict(ms_name='D1.MS',
-                            data_column_name='DATA',
-                            tile_size=10,                  # input tile-size
-                            channel_start_index=10,
-                            channel_end_index=50,          # -10 should indicate 10 from the end (OMS...)
-                            output_col='RESIDUALS')
+inarg = MG_JEN_exec.stream_control(_getdefaults=True)
+JEN_inarg.modify(inarg,
+                 tile_size=10,
+                 _JEN_inarg_option=None)     
+JEN_inarg.attach(MG, inarg)
+
 
 # Check the MG record, and replace any referenced values
 # MG = MG_JEN_exec.MG_check(MG)
@@ -287,7 +287,7 @@ def example2(ns=None, **pp):
 
 def _test_forest (mqs, parent):
     """Execute the forest with a default domain"""
-    return MG_JEN_exec.meqforest (mqs, parent)
+    return MG_JEN_exec.meqforest (mqs, parent, ctrl=MG)
 
 def _tdl_job_default (mqs, parent):
     """Execute the forest with a default domain"""
@@ -316,7 +316,7 @@ def _tdl_job_21cm(mqs, parent):
 
 def _tdl_job_spigot2sink(mqs, parent):
     """Execute the forest under MS stream_control"""
-    return MG_JEN_exec.spigot2sink (mqs, parent, ctrl=MG['stream_control'])
+    return MG_JEN_exec.spigot2sink (mqs, parent, ctrl=MG)
 
 # Execute the forest for a sequence of requests:
 

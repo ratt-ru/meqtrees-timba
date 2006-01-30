@@ -427,7 +427,8 @@ def _test_forest (mqs, parent):
    """Meqforest execution routine"""
    # Use a simple version of MG_JEN_exec.meqforest():
    cells = meq.cells(meq.domain(0,1,0,1),num_freq=6,num_time=4);
-   request = meq.request(cells,eval_mode=0);
+   # request = meq.request(cells,eval_mode=0)
+   request = meq.request(cells, rqtype='ev')
    global _test_root
    mqs.meq('Node.Execute',record(name=_test_root, request=request));
    return

@@ -338,6 +338,7 @@ def dissect_target (target='<dir>/<module>::<function>()', qual=None, trace=Fals
       rr['target_module'] = ss[0]
       target = ss[len(ss)-1]
 
+
    # The naked name of the target function:
    rr['target_function'] = target.split('(')[0]       # remove any ()
 
@@ -367,14 +368,17 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
 
    if not rr.has_key(CTRL_record):                    # rr does NOT have a CTRL record yet
       ctrl = dissect_target (target, qual=qual)
-      ctrl['version'] = version
+      ctrl['version'] = str(version)
       now = str(datetime.now())
       ctrl['datetime_defined'] = now                  # not modified anymore
       ctrl['last_edited'] = now                       # updated in inargGUI
-      ss = 'CTRL: '+ctrl['target_function']
-      ctrl['oneliner'] = ss
       ctrl['order'] = [CTRL_record]                   # order of fields
       ctrl['protected'] = False                       # if True, cannot be edited...
+      ss = ctrl['target_definition']
+      ss += '  version='+ctrl['version']
+      ss += '  defined='+ctrl['datetime_defined']
+      ctrl['oneliner'] = ss
+      ctrl['description'] = '** Description of: ',ctrl['oneliner'] 
       rr[CTRL_record] = ctrl                          # Attach the CTRL_record
 
    elif not isinstance(rr[CTRL_record], dict):        # CTRL_record is not a record...??

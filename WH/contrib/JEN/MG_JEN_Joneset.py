@@ -112,7 +112,7 @@ def inarg_Joneset_common (pp, **kwargs):
    """Some common JEN_inarg definitions for Joneset definition functions"""
    JEN_inarg.inarg_common(kwargs)
    trace = False
-   JEN_inarg.define(pp, 'punit', 'uvp', slave=kwargs['slave'], trace=trace, 
+   JEN_inarg.define(pp, 'punit', 'uvp', trace=trace, 
                     help='source/patch for which this Joneset is valid')
    JEN_inarg.define(pp, 'stations', [0], slave=kwargs['slave'], trace=trace, 
                     help='list of station names/numbers')
@@ -152,9 +152,10 @@ def inarg_solvegroup (pp, **kwargs):
    s_help += '\n- [Gpol2]:   All GJones MeqParms for pol2 (Y or L)'
 
    c_choice.extend(['Gphase_X_sum=0.0','Gphase_Y_sum=0.0'])
+   c_choice.append(['Gphase_X_sum=0.0','Gphase_Y_sum=0.0'])
    c_help += '\n- [...phase_sum=0.0]:   sum of phases = zero'
-   c_choice.extend(['Gphase_X_first=0.0','Gphase_Y_first=0.0'])  
-   c_choice.extend(['Gphase_X_last=0.0','Gphase_Y_last=0.0'])  
+   c_choice.append(['Gphase_X_first=0.0','Gphase_Y_first=0.0'])  
+   c_choice.append(['Gphase_X_last=0.0','Gphase_Y_last=0.0'])  
    c_help += '\n- [...phase_first=0.0]: phase of first station = zero'
    c_help += '\n- [...phase_last=0.0]:  phase of last station = zero'
 
@@ -175,8 +176,8 @@ def inarg_solvegroup (pp, **kwargs):
    s_choice.append(['GJones','BJones'])
    s_choice.extend([['BJones'],['Breal'],['Bimag']])
    s_choice.extend([['Bpol1'],['Bpol2']])
-   c_choice.extend(['Bimag_X_sum=0.0','Bimag_Y_sum=0.0'])
-   c_choice.extend(['Breal_X_product=1.0','Breal_Y_product=1.0'])
+   c_choice.append(['Bimag_X_sum=0.0','Bimag_Y_sum=0.0'])
+   c_choice.append(['Breal_X_product=1.0','Breal_Y_product=1.0'])
    c_help += '\n- [...imag_sum=0.0]:   sum of imag.parts = zero'
    c_help += '\n- [...real_product=1.0]:   product of real.parts = unity'
 

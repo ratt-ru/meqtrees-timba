@@ -30,6 +30,9 @@
 from Timba.TDL import *
 # from Timba.Meq import meq
 
+from Timba.Trees import JEN_inarg
+from Timba.Trees import JEN_inargGui
+
 # from numarray import *
 # from string import *
 # from copy import deepcopy
@@ -42,20 +45,49 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.LSM.LSM import *
 from Timba.LSM.LSM_GUI import *
 from Timba.Contrib.JEN import MG_JEN_Sixpack
-from Timba.Contrib.SBY import MG_SBY_grow_tree
+# from Timba.Contrib.SBY import MG_SBY_grow_tree
 
 
-#-------------------------------------------------------------------------
-# Script control record (may be edited here):
 
-MG = MG_JEN_exec.MG_init('MG_JEN_lsm.py',
-                         last_changed='h12oct2005',
-                         lsm='lsm_current.lsm',                # specific lsm to be loaded         
-                         lsm_current='lsm_current.lsm',        # default (current) lsm  
-                         trace=False)        
+#********************************************************************************
+#********************************************************************************
+#************* PART III: MG control record (may be edited here)******************
+#********************************************************************************
+#********************************************************************************
 
-# Check the MG record, and replace any referenced values
-MG = MG_JEN_exec.MG_check(MG)
+#----------------------------------------------------------------------------------------------------
+# Intialise the MG control record with some overall arguments 
+#----------------------------------------------------------------------------------------------------
+
+MG = JEN_inarg.init('MG_JEN_lsm')
+
+# Define some overall arguments:
+JEN_inarg.define (MG, 'last_changed', 'd30jan2006', editable=False)
+# MG_JEN_Cohset.inarg_parmtable(pp)
+
+
+#----------------------------------------------------------------------------------------------------
+# Interaction with the MS: spigots, sinks and stream control
+#----------------------------------------------------------------------------------------------------
+
+#=======
+if False:                                        
+   MG_JEN_Cohset.inarg_stations(MG)
+   MG_JEN_Cohset.inarg_polrep(MG)
+
+   inarg = MG_JEN_exec.stream_control(_getdefaults=True)
+   JEN_inarg.modify(inarg,
+                    tile_size=10,
+                    _JEN_inarg_option=None)     
+   JEN_inarg.attach(MG, inarg)
+
+   inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
+   JEN_inarg.attach(MG, inarg)
+
+   inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
+   JEN_inarg.attach(MG, inarg)
+                 
+
 
 
 #-------------------------------------------------------------------------

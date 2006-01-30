@@ -109,14 +109,12 @@ MG['ifrs'] = TDL_Cohset.stations2ifrs(MG['stations'])
 # Specify arguments for data stream control:
 #----------------------------------------------------------------------------------------------------
 
+inarg = MG_JEN_exec.stream_control(_getdefaults=True)
+JEN_inarg.modify(inarg,
+                 tile_size=10,
+                 _JEN_inarg_option=None)     
+JEN_inarg.attach(MG, inarg)
 
-MG['stream_control'] = dict(ms_name='D1.MS',
-                            data_column_name='DATA',
-                            tile_size=10,                   # input tile-size (in time-slots!)
-                            channel_start_index=10,
-                            channel_end_index=50,           # -10 should indicate 10 from the end (OMS...)
-                            # output_col='RESIDUALS')
-                            predict_column='CORRECTED_DATA')
 
 inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
 JEN_inarg.modify(inarg,
@@ -293,7 +291,7 @@ def _test_forest (mqs, parent):
    Settings.orphans_are_roots = True;
 
    # Start the sequence of requests issued by MeqSink:
-   MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG['stream_control'])
+   MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG)
    return True
 
 

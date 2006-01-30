@@ -480,6 +480,10 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
                      help='max number of iterations')
     JEN_inarg.define(pp, 'epsilon', 1e-4, choice=[1e-3,1e-4, 1e-5],  
                      help='iteration control criterion')
+    JEN_inarg.define(pp, 'colin_factor', 1e-8, choice=[1e-8,0.0],  
+                     help='colinearity factor')
+    JEN_inarg.define(pp, 'usesvd', tf=True,  
+                     help='if True, use Singular Value Decomposition (SVD)')
     JEN_inarg.define(pp, 'debug_level', 10, choice=[10], hide=True,  
                      help='solver debug_level')
     JEN_inarg.define(pp, 'visu', tf=True,   
@@ -566,6 +570,8 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
                                                            solvable=solvable,
                                                            num_iter=pp['num_iter'],
                                                            epsilon=pp['epsilon'],
+                                                           colin_factor=pp['colin_factor'],
+                                                           usesvd=pp['usesvd'],
                                                            last_update=True,
                                                            save_funklets=True,
                                                            debug_level=pp['debug_level'])
@@ -845,6 +851,7 @@ def inarg_stations (pp, **kwargs):
     JEN_inarg.define (pp, 'ifrs', TDL_Cohset.stations2ifrs(pp['stations']),
                       slave=kwargs['slave'], hide=True,
                       help='list if ifrs (derived from stations)')
+    print 'pp[ifrs] =',pp['ifrs']
     return True
 
 
@@ -879,22 +886,30 @@ def inarg_num_cells (pp, **kwargs):
 
 
 def inarg_Cohset_common (pp, last_changed='<undefined>', **kwargs):
-   """Some common JEN_inarg definitions for Cohset scripts"""
-   # JEN_inarg.inarg_common(kwargs)
-   JEN_inarg.define (pp, 'last_changed', last_changed, editable=False)
-   inarg_stations(pp)
-   inarg_parmtable(pp)
-   inarg_polrep(pp)
-   MG_JEN_Sixpack.inarg_punit(pp)
-   inarg_solver_config (pp)
-   inarg_redun(pp)
-   inarg_num_cells(pp)
-   return True
+    """Some common JEN_inarg definitions for Cohset scripts"""
+    # JEN_inarg.inarg_common(kwargs)
+    JEN_inarg.define (pp, 'last_changed', last_changed, editable=False)
+    inarg_stations(pp)
+    inarg_parmtable(pp)
+    inarg_polrep(pp)
+    MG_JEN_Sixpack.inarg_punit(pp)
+    inarg_solver_config (pp)
+    inarg_redun(pp)
+    inarg_num_cells(pp)
+    return True
+
+
+
+
+
+
+
+
 
 #********************************************************************************
 #********************************************************************************
 #************* PART III: MG control record (may be edited here)******************
-#********************************************************************************level,(level*'.'),
+#********************************************************************************
 #********************************************************************************
 
 #----------------------------------------------------------------------------------------------------
@@ -908,12 +923,6 @@ MG = JEN_inarg.init('MG_JEN_Cohset')
 # Local (MG_JEN_Cohset.py) version:
 inarg_Cohset_common (MG, last_changed='d19jan2006')
 
-# Lift a (slaved) stream_control argument to the top level, for convenience:
-MG_JEN_exec.inarg_tile_size(MG)
-JEN_inarg.modify(MG,
-                 tile_size=10,
-                 _JEN_inarg_option=None)               # optional, not yet used 
-
 
 #----------------------------------------------------------------------------------------------------
 # Interaction with the MS: spigots, sinks and stream control
@@ -921,13 +930,17 @@ JEN_inarg.modify(MG,
 
 #=======
 if True:                                               # ... Copied from MG_JEN_Cohset.py ...
-   MG['stream_control'] = dict()
-   MG_JEN_exec.inarg_stream_control(MG['stream_control'], slave=True)
+   inarg = MG_JEN_exec.stream_control(_getdefaults=True)
+   JEN_inarg.modify(inarg,
+                    tile_size=11,
+                    _JEN_inarg_option=None)     
+   JEN_inarg.attach(MG, inarg)
+
 
    # inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
    inarg = make_spigots(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
-                    _JEN_inarg_option=None)            # optional, not yet used 
+                    _JEN_inarg_option=None)       
    JEN_inarg.attach(MG, inarg)
                  
 
@@ -935,7 +948,7 @@ if True:                                               # ... Copied from MG_JEN_
    # inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
    inarg = make_sinks(_getdefaults=True)                # local (MG_JEN_Cohset.py) version 
    JEN_inarg.modify(inarg,
-                    _JEN_inarg_option=None)            # optional, not yet used 
+                    _JEN_inarg_option=None)   
    JEN_inarg.attach(MG, inarg)
                  
 
@@ -1134,11 +1147,10 @@ def _tdl_predefine (mqs, parent, **kwargs):
 #**************************************************************************
 
 def _define_forest (ns, **kwargs):
-    # print '** _define_forest(): kwargs =',kwargs
-    # if len(kwargs)==0: return False
 
     # The MG may be passed in from _tdl_predefine():
     # In that case, override the global MG record.
+    global MG
     if len(kwargs)>1: MG = kwargs
 
     # Perform some common functions, and return an empty list (cc=[]):
@@ -1148,7 +1160,7 @@ def _define_forest (ns, **kwargs):
         # Make MeqSpigot nodes that read the MS:
         Cohset = TDL_Cohset.Cohset(label=MG['script_name'],
                                    polrep=MG['polrep'],
-                                   ifrs=MG['ifrs'])
+                                   stations=MG['stations'])
         make_spigots(ns, Cohset, _inarg=MG)
 
 
@@ -1197,8 +1209,7 @@ def _test_forest (mqs, parent):
    Settings.orphans_are_roots = True;
 
    # Start the sequence of requests issued by MeqSink:
-   mqs.clearcache('VisDataMux');
-   MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG['stream_control'])
+   MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG)
    return True
 
 

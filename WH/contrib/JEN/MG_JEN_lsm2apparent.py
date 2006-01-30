@@ -1,15 +1,14 @@
-# MG_JEN_lsm_attach.py
+# MG_JEN_lsm2apparent.py
 
 # Short description:
-#   A script to test attaching an lsm to a user tree
+#   A script for turning a given LSM into an apparent one.
 
 # Keywords: ....
 
 # Author: Jan Noordam (JEN), Dwingeloo
 
 # History:
-# - 29 sep 2005: creation
-# - 18 jan 2006: introduced TDL_Parmset.py
+# - 29 jan 2006: creation, copied from MG_JEN_lsm_attach.py
 
 # Copyright: The MeqTree Foundation
 
@@ -74,10 +73,10 @@ from Timba.Trees import JEN_inargGui
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
 
-MG = JEN_inarg.init('MG_JEN_lsm_attach.pyt')
+MG = JEN_inarg.init('MG_JEN_lsm2apparent.pyt')
 
 # To be copied to other scipts:
-JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
+JEN_inarg.define (MG, 'last_changed', 'd27jan2006', editable=False)
 JEN_inarg.define (MG, 'lsm', 'lsm_current.lsm', browse='*.lsm')
 MG_JEN_Cohset.inarg_polrep(MG)
 MG_JEN_Cohset.inarg_stations(MG)
@@ -209,11 +208,10 @@ def _define_forest (ns, **kwargs):
                               polrep=MG['polrep'],
                               stations=MG['stations'])
    MG_JEN_Cohset.make_spigots(ns, Cohset, _inarg=MG)
-   # Cohset.display('before')
    
    # Obtain the Sixpacks of the brightest punits.
    # Turn the point-sources in Cohsets with DFT KJonesets
-   plist = lsm.queryLSM(count=2)
+   plist = lsm.queryLSM(count=4)
    print '\n** plist =',type(plist),len(plist)
    for punit in plist: 
        sp = punit.getSP()            # get_Sixpack()

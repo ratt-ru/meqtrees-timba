@@ -40,8 +40,8 @@ option_field = '_JEN_inarg_option'
 # Name of record of unique local identification nrs:
 kident = 'JEN_inargGUI_ident'
 
-# Name of generic save/restore file (see .save_inarg()):
-generic_savefile = 'generic_save_restore.inarg'
+# Name of autosave save/restore file (see .save_inarg()):
+auto_save_file = 'auto_save.inarg'
 
 
 #================================================================================
@@ -95,12 +95,12 @@ class ArgBrowser(QMainWindow):
         filemenu = QPopupMenu(self)
         filemenu.insertItem('open ..', self.open_inarg)
         filemenu.insertItem('open protected', self.open_protected)
-        filemenu.insertItem('recover_last', self.recover_inarg)
+        filemenu.insertItem('open autosaved', self.open_autosaved)
         filemenu.insertSeparator()     
         filemenu.insertItem('saveAs..', self.saveAs_inarg)
         filemenu.insertItem('save_as_protected', self.save_as_protected)
         filemenu.insertItem('save', self.save_inarg)
-        filemenu.insertItem('restore', self.restore_inarg)
+        filemenu.insertItem('autosave', self.autosave)
         filemenu.insertSeparator()     
         filemenu.insertItem('print', self.print_inarg)
         filemenu.insertSeparator()     
@@ -111,11 +111,15 @@ class ArgBrowser(QMainWindow):
         editmenu.insertItem('revert_to_input', self.revert_inarg)
         editmenu.insertSeparator()     
         editmenu.insertItem('refresh', self.refresh)
+        editmenu.insertSeparator()     
+        editmenu.insertItem('description', self.editDescription)
         self.__menubar.insertItem('Edit', editmenu)
 
         viewmenu = QPopupMenu(self)
+        viewmenu.insertItem('description', self.viewDescription)
+        viewmenu.insertItem('savefile', self.savefile)
         k = viewmenu.insertItem('HISTORY', self.viewHISTORY)
-        viewmenu.setWhatsThis(k, 'Recursively show the inarg HISTORY')
+        viewmenu.setWhatsThis(k, 'Recursively show the inarg HISTORY')    # better: QToolTip...
         viewmenu.insertItem('MESSAGES', self.viewMESSAGE)
         viewmenu.insertItem('ERRORS', self.viewERROR)
         viewmenu.insertItem('WARNINGS', self.viewWARNING)
@@ -189,6 +193,11 @@ class ArgBrowser(QMainWindow):
         # Buttons to be added at the bottom:
         hbox = QHBoxLayout(vbox)
 
+        b_open = QPushButton('Open', self)
+        QToolTip.add(b_open, 'Open a new inarg record')
+        QObject.connect(b_open, SIGNAL("pressed ()"), self.open_inarg)
+        hbox.addWidget(b_open)
+
         b_save = QPushButton('Save', self)
         QToolTip.add(b_save, 'Save the current inarg record')
         QObject.connect(b_save, SIGNAL("pressed ()"), self.save_inarg)
@@ -230,12 +239,12 @@ class ArgBrowser(QMainWindow):
         self.__inarg_input = None                  # the input inarg (see .revert_inarg())
         self.__protected = False                   # if True, self.__inarg is protected
         self.__modified = False                    # if True, self.__inarg has been modified
-        self.__savefile = generic_savefile         # used by .save_inarg(None)
+        self.__savefile = auto_save_file         # used by .save_inarg(None)
         self.__closed = False
         if False:
             # Temporarily disabled because of problems (with file?)
-            # Always restore the generic savefile (but do not show)
-            self.restore_inarg(generic_savefile)            
+            # Always restore the autosave savefile (but do not show)
+            self.restore_inarg(auto_save_file)            
         return None
 
 
@@ -246,7 +255,7 @@ class ArgBrowser(QMainWindow):
 
     def closeGui (self):
         """Close the gui"""
-        self.save_inarg(generic_savefile)          # save always....            
+        self.autosave()            
         self.clearGui()
         if self.__popup: self.__popup.close()
         self.__listview.close()                    #............?
@@ -434,27 +443,28 @@ class ArgBrowser(QMainWindow):
         filename = str(filename)
         filename = filename.split('.inarg')[0]       # remove .inarg, if necessary 
         filename += '.inarg'                         # append .inarg file extension
+        self.savefile(filename)
         f = open(filename,'wb')
         p = pickle.Pickler(f)
         r = p.dump(self.__inarg)
         self.__message.setText('** saved inarg record to file:   '+filename)
         f.close()
-        # Adjust the default savefile, and the GUI caption:
-        self.__savefile = filename
-        self.setCaption(self.__savefile)             # the GUI caption
         return True
 
-    def recover_inarg(self):
-        """Recover the inarg record that was saved when pressing
+    def autosave(self):
+        """Save the inarg record into the auto_save_file"""
+        self.save_inarg(auto_save_file)
+        return True
+
+    def open_autosaved(self):
+        """Recover the inarg record that was saved automatically when pressing
         the 'Proceed' button. This allows continuation from that point"""
-        self.restore_inarg(generic_savefile)
+        self.restore_inarg(auto_save_file)
         return True
 
     def restore_inarg(self, filename=None):
         """Read a saved inarg record from a file"""
-        if filename==None:
-            filename = self.__savefile
-        filename = str(filename)
+        filename = str(filename)                     # filename is required!
         try:
             f = open(filename,'rb')
         except:
@@ -470,6 +480,23 @@ class ArgBrowser(QMainWindow):
 
     #-------------------------------------------------------------------------------
 
+    def savefile (self, name=None):
+        """Get/set the save_file name"""
+        if isinstance(name, str):
+            self.__savefile = name           
+            JEN_inarg.CTRL(self.__inarg, 'save_file', self.__savefile)
+            JEN_inarg.CTRL(self.__inarg_input, 'save_file', self.__savefile)
+            # Refresh the GUI caption:
+            caption = self.__savefile.split('/')         # remove the directory
+            caption = caption[len(caption)-1]
+            if self.__protected:
+                caption = '(protected) '+caption
+            self.setCaption(caption)                   
+        self.__message.setText('** Current savefile name:  '+self.__savefile)
+        return self.__savefile
+
+    #-------------------------------------------------------------------------------
+
     def viewMESSAGE(self):
         return self.view('MESSAGE')
     def viewERROR(self):
@@ -481,6 +508,20 @@ class ArgBrowser(QMainWindow):
 
     def view (self, field='MESSAGE'):
         JEN_inarg.view(self.__inarg, field=field)
+        return True
+
+    #-------------------------------------------------------------------------------
+
+    def viewDescription(self):
+        ss = JEN_inarg.CTRL(self.__inarg, 'description')
+        print '\n**',ss,'\n'
+        # if ss==None: ss = str(ss)
+        # mb = QMessageBox('description', ss)   # not enough arguements.....?
+        return True
+
+    def editDescription(self):
+        ss = JEN_inarg.CTRL(self.__inarg, 'description')
+        print '\n**',ss,'\n' 
         return True
 
     #-------------------------------------------------------------------------------
@@ -500,8 +541,9 @@ class ArgBrowser(QMainWindow):
         if not self.test_OK():
             self.__message.setText('** problem with inarg record: done nothing!')
             return False
-        # OK: Save the current inarg in the generic file, for later recovery:
-        self.save_inarg(generic_savefile)
+
+        # OK: Save the current inarg in the autosave file, for later recovery:
+        self.autosave()
 
         # Resolve any references (@, @@), but AFTER saving!!!:
         # (@@ values do not work inside...)
@@ -571,19 +613,18 @@ class ArgBrowser(QMainWindow):
         # Make the savefile name and the GUI caption:
         s1 = '** input of inarg record:  '
         if not name:
-            if self.__inarg.has_key('script_name'):             # MG_JEN script (kludge)
-                name = self.__inarg['script_name']
-                s1 += 'inarg.script_name =   '
+            savefile = JEN_inarg.CTRL(self.__inarg, 'save_file') # check existence
+            if isinstance(savefile, str):
+                self.savefile(savefile)
             else:
-                name = self.__inarg.keys()[0]
-                s1 += '[inarg.keys[0]] =   '
-        self.__message.setText(s1+name)
-        self.__savefile = name                                  # default savefile name
-        caption = self.__savefile.split('/')                    # remove the directory
-        caption = caption[len(caption)-1]
-        if self.__protected:
-            caption = '(protected) '+caption
-        self.setCaption(caption)                                # the GUI caption
+                if self.__inarg.has_key('script_name'):          # MG_JEN script (kludge)
+                    name = self.__inarg['script_name']
+                    s1 += 'inarg.script_name =   '
+                else:
+                    name = self.__inarg.keys()[0]
+                    s1 += '[inarg.keys[0]] =   '
+                self.savefile(name)
+                self.__message.setText(s1+name)
 
         # Transfer the inarg fields recursively:
         self.__set_open = set_open
@@ -992,10 +1033,16 @@ class Popup(QDialog):
             hbox = QHBoxLayout(vbox)
 
             self.__filter = itd['browse']
-            button = QPushButton('Browse  '+self.__filter, self)
-            QToolTip.add(button,'Launch a file-browser')
-            hbox.addWidget(button)
-            QObject.connect(button, SIGNAL("pressed ()"), self.onBrowse)
+            if self.__filter=='*.MS':
+                button = QPushButton('Browse', self)
+                QToolTip.add(button,'Launch a MS (directory) browser')
+                hbox.addWidget(button)
+                QObject.connect(button, SIGNAL("pressed ()"), self.onBrowseDir)
+            else:
+                button = QPushButton('Browse  '+self.__filter, self)
+                QToolTip.add(button,'Launch a file-browser')
+                hbox.addWidget(button)
+                QObject.connect(button, SIGNAL("pressed ()"), self.onBrowse)
 
             button = QPushButton('Open', self)
             QToolTip.add(button,'Open the selected file, and do something useful')
@@ -1140,9 +1187,21 @@ class Popup(QDialog):
     def onBrowse (self):
         """Action on pressing the browse button"""
         filename = QFileDialog.getOpenFileName("",self.__filter, self)
+        # filename = QFileDialog.getExistingDirectory("", self)
         if len(filename)>2:
             self.__combo.setCurrentText(filename)
             self.__status.setText('... new filename ...')
+            self.onOK()
+        else:
+            self.__status.setText('... ignored ...')
+        return True
+
+    def onBrowseDir (self):
+        """Action on pressing the browse button"""
+        dirname = QFileDialog.getExistingDirectory("", self)
+        if len(dirname)>2:
+            self.__combo.setCurrentText(dirname)
+            self.__status.setText('... new dirname ...')
             self.onOK()
         else:
             self.__status.setText('... ignored ...')

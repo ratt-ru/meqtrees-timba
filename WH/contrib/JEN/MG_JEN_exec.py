@@ -374,7 +374,7 @@ def importable_example(ns=None, **pp):
 # Execute the tree under (MS) stream_control:
 #================================================================================
 
-def spigot2sink (mqs, parent, ctrl={}, **pp):
+def spigot2sink (mqs, parent, ctrl=None, **pp):
    """Execute the tree under MS stream_control()"""
 
    from Timba.Meq import meq
@@ -382,34 +382,23 @@ def spigot2sink (mqs, parent, ctrl={}, **pp):
    pp.setdefault('wait', False)       
    pp.setdefault('trace', False)
    pp.setdefault('save', False)       
-   pp.setdefault('new', True)       
 
-   if not pp['new']:
-      # Old:
-      # Transfer certain ctrl fields to the MG_JEN_stream_control record:
-      stream_control (ctrl)
-      # Get the stream control record from forest_state record:
-      ss = stream_control()
-      mqs.init(ss.initrec, inputinit=ss.inputinit, outputinit=ss.outputinit)
-
-   else:
-      # New (06jan2006):
-      ss = stream_control (ctrl)
-      # path = os.environ['HOME']+'/LOFAR/Timba/WH/contrib/JEN/'
-      path = os.environ['HOME']+'/LOFAR/Timba/PyApps/src/Trees/'
-      python_init = path+'read_MS_auxinfo.py'
-      # python_init = path+'read_msvis_header.py'
-
-      req = meq.request()
-      req.input = record(ms=ss.inputrec, python_init=python_init)
-      req.output = record(ms=ss.outputrec)
-      mqs.execute('VisDataMux', req, wait=False)
-
+   ss = stream_control (_inarg=ctrl)
+   # path = os.environ['HOME']+'/LOFAR/Timba/WH/contrib/JEN/'
+   path = os.environ['HOME']+'/LOFAR/Timba/PyApps/src/Trees/'
+   python_init = path+'read_MS_auxinfo.py'
+   # python_init = path+'read_msvis_header.py'
+   
+   req = meq.request()
+   req.input = record(ms=ss.inputrec, python_init=python_init)
+   req.output = record(ms=ss.outputrec)
+   mqs.execute('VisDataMux', req, wait=False)
 
    # Optionally, save the meqforest
    # NB: If save=True, the meqforest is saved to a file for EVERY tile....!!
    #     This might be connected to the wait=False policy....
-   if pp['save']: MG_JEN_forest_state.save_meqforest(mqs, **pp)
+   if pp['save']:
+      MG_JEN_forest_state.save_meqforest(mqs, **pp)
    
    return True
 
@@ -434,22 +423,28 @@ def inarg_stream_control (inarg, **kwargs):
     JEN_inarg.define (inarg, 'predict_column', 'CORRECTED_DATA',
                       choice=['CORRECTED_DATA'],
                       help='MS output column')
-    if False:
-        # Temporarily disabled (empty string ' ' does not play well with inargGui...)
-        JEN_inarg.define (inarg, 'selection_string', ' ',
-                          choice=['TIME_CENTROID<4615466159.46'],
-                          help='TaQL (AIPS++ Table Query Language) data-selection')
+    inarg_selection(inarg)
     return True
 
 #--------------------------------------------------------------------------
 
 def inarg_tile_size (inarg, **kwargs):
     JEN_inarg.inarg_common(kwargs)
-    print '\n** kwargs=',kwargs,'\n'
     JEN_inarg.define (inarg, 'tile_size', 11, slave=kwargs['slave'],
                       choice=[1,2,3,5,10,20,50,100],
-                      help='size (in time-slots) of the input data-tile')
+                      help='(inputrec) size (in time-slots) of the input data-tile')
     return False
+
+
+#--------------------------------------------------------------------------
+
+def inarg_selection (inarg, **kwargs):
+   JEN_inarg.inarg_common(kwargs)
+   # Temporarily disabled (empty string ' ' does not play well with inargGui...)
+   JEN_inarg.define (inarg, 'selection_string', ' ',
+                     choice=['TIME_CENTROID<4615466159.46'],
+                     help='(inputrec.sel) TaQL (AIPS++ Table Query Language) data-selection')
+   return False
 
 
 
@@ -457,7 +452,93 @@ def inarg_tile_size (inarg, **kwargs):
 #-------------------------------------------------------------------------
 # Access to MG_JEN_stream_control record (kept in the forest state record):
 
-def stream_control (ctrl=None, display=False, init=False):
+
+def stream_control (slave=False, display=False, **inarg):
+   """Access to the MG_JEN_stream_control record in the forest_state record
+   If init==True, initialise it with default settings."""
+
+   # Input arguments:
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_exec::stream_control()', version='20jan2006')
+   # MeqServer.execute() inputrec fields:
+   JEN_inarg.define (pp, 'ms_name', 'D1.MS', 
+                     choice=['D1.MS'], browse='*.MS',
+                     help='(inputrec) name of the (AIPS++) Measurement Set')
+   JEN_inarg.define (pp, 'data_column_name', 'DATA',
+                     choice=['DATA'],
+                     help='(inputrec) MS input column')
+   inarg_tile_size(pp, slave=slave)
+
+   # MeqServer.execute() inputrec.selection fields:
+   JEN_inarg.define (pp, 'channel_start_index', 10, choice=[0,5,10,20],
+                     help='(inputrec.sel) index of first selected freq channel')
+   JEN_inarg.define (pp, 'channel_end_index', 50, choice=[-1,25,50,100],
+                     help='(inputrec.sel) index of last selected freq channel')
+   JEN_inarg.define (pp, 'channel_increment', 1, choice=[1,2,3,5,10],
+                     help='(inputrec.sel) take every nth channel (1=all)')
+   if False:
+      JEN_inarg.define (pp, 'ddid_index', 0, choice=[0,1],
+                        help='(inputrec.sel) MS data descriptor index')
+      JEN_inarg.define (pp, 'field_index', 0, choice=[0,1],
+                        help='(inputrec.sel) MS field index')
+      inarg_selection(pp)
+
+   # MeqServer.execute() outputrec fields:
+   JEN_inarg.define (pp, 'write_flags', tf=False,
+                     help='(outputrec) if True, write flags to MS')
+   JEN_inarg.define (pp, 'predict_column', 'CORRECTED_DATA',
+                     choice=['CORRECTED_DATA','PREDICT'],
+                     help='(outputrec) MS(?) output column')
+   if False:
+      JEN_inarg.define (pp, 'residuals_column', 'RESIDUALS',
+                        choice=['RESIDUALS'],
+                        help='(outputrec) MS(?) residuals column')
+
+   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+   if not JEN_inarg.is_OK(pp): return False
+   funcname = JEN_inarg.localscope(pp)
+
+   display_object(pp, funcname+'(pp)')
+
+
+   # Specify the MG_JEN_stream_control record(s):
+   ss = record(inputrec=record(selection=record()), outputrec=record()) 
+
+   keys = ['ms_name', 'data_column_name', 'tile_size']
+   for key in keys:
+      print key
+      if pp.has_key(key):
+         print '  ',key,pp[key]
+         ss['inputrec'][key] = pp[key]
+
+   keys = ['channel_start_index','channel_end_index','channel_increment']
+   keys.extend(['ddid_index','field_index','selection_string'])
+   for key in keys:
+      print key
+      if pp.has_key(key): ss['inputrec']['selection'][key] = pp[key]
+
+   keys = ['write_flags', 'predict_column', 'residuals_column']
+   for key in keys:
+      print key
+      if pp.has_key(key): ss['outputrec'][key] = pp[key]
+
+   # Attach to the forest state control record:
+   field = 'MG_JEN_stream_control' 
+   Settings.forest_state[field] = record()
+   for key in ss.keys():
+      Settings.forest_state[field][key] = ss[key]
+   if True or display:
+      ss = Settings.forest_state[field]
+      display_object(ss, funcname+'(ss)')
+   return Settings.forest_state[field]
+
+
+
+
+
+#-------------------------------------------------------------------------
+# Access to MG_JEN_stream_control record (kept in the forest state record):
+
+def stream_control_old (ctrl=None, display=False, init=False):
    """Access to the MG_JEN_stream_control record in the forest_state record
    If init==True, initialise it with default settings."""
 
@@ -503,7 +584,7 @@ def stream_control (ctrl=None, display=False, init=False):
       display_object(ss, field)
    return Settings.forest_state[field]
 
-stream_control(init=True)
+# stream_control_old(init=True)
 
 
 
@@ -632,14 +713,22 @@ def make_request (request=None, **pp):
       cells = make_cells(cells, **pp)
       if True:
          # Simplest, but a bit limited:
-         request = meq.request(cells, eval_mode=0);
+         # request = meq.request(cells, eval_mode=0);
+         request = meq.request(cells, rqtype='ev');
       else:
          # Better? (make sure that the domain/cell parameters in pp are not in the way)
-         pp.setdefault('eval_mode', 0)
+         # pp.setdefault('eval_mode', 0)
+         pp.setdefault('rqtype', 'ev')
          request = meq.request(cells, **pp);
       if pp['trace']: print s,'pp =',pp
    if pp['trace']: print s,'->',request
    return request
+
+
+# ** 27 January 2006:
+# *** WARNING: the eval_mode argument to meq.request() is now deprecated.
+# *** Please replace it with rqtype='ev', 'e1' or 'e2'
+# *** for eval_mode 0, 1 or 2.
 
 
 #---------------------------------------------------------
@@ -1014,6 +1103,7 @@ def _test_forest (mqs, parent):
 
 if __name__ == '__main__':
    print '\n****************\n** Local test of:',MG.script_name,':\n'
+   from Timba.Trees import JEN_inargGui 
 
    # Generic test:
    if 1:
@@ -1043,6 +1133,19 @@ if __name__ == '__main__':
    if 0:
       pp = importable_example()
 
+   if 1:
+      inarg = stream_control_new(_getdefaults=True)  
+      JEN_inarg.modify(inarg,
+                       tile_size=12,       
+                       _JEN_inarg_option=None)       
+      if True:
+         igui = JEN_inargGui.ArgBrowser()
+         igui.input(inarg, MG['script_name'])
+         igui.launch()
+      else:
+         stream_control_new(_inarg=inarg)  
+
+
    if 0:
       MG.ms_name = '...DD....MS'
       MG.channel_start_index = -111
@@ -1056,7 +1159,7 @@ if __name__ == '__main__':
       replace_reference(rr)
       display_object (rr, 'rr', 'after')
       
-   if 1:
+   if 0:
       display_forest_state()
    print '\n** End of local test of:',MG.script_name,'\n*************\n'
 
