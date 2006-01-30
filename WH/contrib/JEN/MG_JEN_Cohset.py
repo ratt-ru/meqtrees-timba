@@ -1132,9 +1132,8 @@ def _tdl_predefine (mqs, parent, **kwargs):
         QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
         try:
             igui = JEN_inargGui.ArgBrowser(parent)
-            igui.input(MG, name=MG['script_name'], set_open=False)
+            igui.input(MG, set_open=False)
             res = igui.exec_loop()
-            # print '** _tdl_predefine(): res =',type(res),'=',res,'\n'
             if res is None:
                 raise RuntimeError("Cancelled by user");
         finally:
@@ -1253,7 +1252,7 @@ if __name__ == '__main__':
 
     if 1:
         igui = JEN_inargGui.ArgBrowser()
-        igui.input(MG, name=MG['script_name'], set_open=False)
+        igui.input(MG, set_open=False)
         igui.launch()
        
     if 0:   

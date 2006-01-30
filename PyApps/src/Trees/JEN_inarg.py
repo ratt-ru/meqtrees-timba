@@ -338,9 +338,14 @@ def dissect_target (target='<dir>/<module>::<function>()', qual=None, trace=Fals
       rr['target_module'] = ss[0]
       target = ss[len(ss)-1]
 
-
    # The naked name of the target function:
    rr['target_function'] = target.split('(')[0]       # remove any ()
+
+   # Make a default save_file name:
+   s1 = rr['target_module']+'.'+rr['target_function']
+   s1 += '()'
+   s1 += '.inarg'
+   rr['save_file'] = s1
 
    # The localscope is the inarg record field-name:
    rr['localscope'] = '**** '
@@ -359,6 +364,16 @@ def dissect_target (target='<dir>/<module>::<function>()', qual=None, trace=Fals
    return rr
 
 
+def this_minute():
+   """Makes a organised datetime string"""
+   now = str(datetime.now())
+   ss = now.split(' ')
+   now = ss[0]
+   ss = ss[1].split(':')
+   now += ' '+ss[0]+':'+ss[1]
+   return now
+
+
 def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
    """Make sure that rr has a valid JEN_inarg_CTRL record"""
 
@@ -369,7 +384,8 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
    if not rr.has_key(CTRL_record):                    # rr does NOT have a CTRL record yet
       ctrl = dissect_target (target, qual=qual)
       ctrl['version'] = str(version)
-      now = str(datetime.now())
+      # now = str(datetime.now())
+      now = this_minute()
       ctrl['datetime_defined'] = now                  # not modified anymore
       ctrl['last_edited'] = now                       # updated in inargGUI
       ctrl['order'] = [CTRL_record]                   # order of fields
@@ -478,7 +494,8 @@ def WARNING(rr, txt=None, clear=False, trace=False):
 
 def HISTORY(rr, txt=None, clear=False, trace=False):
    """Interact with the HISTORY record of the JEN_inarg_CTRL field"""
-   txt = str(datetime.now())+': '+str(txt)
+   # txt = str(datetime.now())+': '+str(txt)
+   txt = this_minute()+': '+str(txt)
    return MESSAGE(rr, txt=txt, field='HISTORY', clear=clear, trace=trace)
 
 def MESSAGE(rr, txt=None, field='MESSAGE', clear=False, trace=False):
@@ -833,12 +850,23 @@ def gui(inarg):
 def pp2inarg(pp, help=None, trace=False):
    """Turn the internal argument record pp into an inarg record"""
    # if trace: display(pp,'.pp2inarg() input pp')
+
    localscope = pp[CTRL_record]['localscope']
-   if pp.has_key('_getdefaults'): pp.__delitem__('_getdefaults')
+   if pp.has_key('_getdefaults'):
+      pp.__delitem__('_getdefaults')
 
    # Make the external inarg record:
    inarg = dict()
    inarg[localscope] = pp
+
+   # Make a limited 'top-level' CTRL_record for the inarg record
+   # Copy some fields from the CTRL_record of pp to it.
+   # It will be lost if the inarg is nested, i.e. not top-level
+   if pp.has_key(CTRL_record):
+      inarg[CTRL_record] = dict()
+      for key in ['localscope','save_file','protected']:
+         inarg[CTRL_record][key] = pp[CTRL_record][key]
+   
    if trace: display(inarg,'inarg <- .pp2inarg(pp)')
    return inarg
 
@@ -1145,8 +1173,8 @@ def test2(**inarg):
    pp.setdefault('ref_ref_aa', '@@ref_aa')
    pp.setdefault('ref_aa', '@aa')
    pp.setdefault('trace', False)
-   ERROR(pp, '...error...')
-   WARNING(pp, '...warning...')
+   # ERROR(pp, '...error...')
+   # WARNING(pp, '...warning...')
    MESSAGE(pp, '...message...')
    if getdefaults(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
 

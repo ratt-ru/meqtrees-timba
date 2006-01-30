@@ -117,7 +117,7 @@ class ArgBrowser(QMainWindow):
 
         viewmenu = QPopupMenu(self)
         viewmenu.insertItem('description', self.viewDescription)
-        viewmenu.insertItem('savefile', self.savefile)
+        viewmenu.insertItem('savefile', self.savefile_name)
         k = viewmenu.insertItem('HISTORY', self.viewHISTORY)
         viewmenu.setWhatsThis(k, 'Recursively show the inarg HISTORY')    # better: QToolTip...
         viewmenu.insertItem('MESSAGES', self.viewMESSAGE)
@@ -134,8 +134,6 @@ class ArgBrowser(QMainWindow):
 
         testmenu = QPopupMenu(self)
         testmenu.insertItem('modified?', self.test_modified)
-        testmenu.insertItem('protected?', self.test_protected)
-        # testmenu.insertItem('toggle protected', self.toggle_protected)   # temporary
         testmenu.insertItem('inarg_OK?', self.test_OK)
         testmenu.insertItem('count_@@', self.count_ref)
         testmenu.insertItem('replace_@@', self.replace_ref)
@@ -237,9 +235,7 @@ class ArgBrowser(QMainWindow):
         self.__result = None                       # output for exec_loop
         self.__inarg = None                        # the edited inarg
         self.__inarg_input = None                  # the input inarg (see .revert_inarg())
-        self.__protected = False                   # if True, self.__inarg is protected
         self.__modified = False                    # if True, self.__inarg has been modified
-        self.__savefile = auto_save_file         # used by .save_inarg(None)
         self.__closed = False
         if False:
             # Temporarily disabled because of problems (with file?)
@@ -332,16 +328,6 @@ class ArgBrowser(QMainWindow):
         self.__message.setText('** print_inarg: not yet implemented')
         return True
 
-    def toggle_protected(self):
-        """Toggle the protection of the current inarg record"""
-        self.__protected = not self.__protected      
-        return self.test_protected()
-
-    def test_protected(self):
-        """Test whether the current inarg record is protected"""
-        self.__message.setText('self.__protected ='+str(self.__protected))
-        return True
-
     def test_modified(self):
         """Test whether the current inarg record is modified"""
         self.__message.setText('self.__modified ='+str(self.__modified))
@@ -404,20 +390,26 @@ class ArgBrowser(QMainWindow):
         filename = ""
         if True:
             # Make a default filename (dangerous?)
-            filename = self.__savefile            
+            filename = JEN_inarg.CTRL(self.__inarg, 'save_file')
             filename = filename.split('.inarg')[0]       # remove .inarg, if necessary 
             filename = filename.split('_protected')[0]   # remove _protected, if necessary
+            filename += '_<qual>'
         filename = QFileDialog.getSaveFileName(filename, "*.inarg", self)
-        self.save_inarg(filename)
+        print '** self.saveAs(): filename =',filename
+        if filename:
+            JEN_inarg.CTRL(self.__inarg, 'protected', False)
+            self.save_inarg(filename)
+        else:
+            self.__message.setText('** cancelled: done nothing')
         return True
 
     def save_as_protected(self):
         """Save the current inarg record as protected"""
-        filename = self.__savefile
-        filename = filename.split('.inarg')[0]       # remove .inarg, if necessary 
-        filename = filename.split('_protected')[0]   # just in case
-        filename += '_protected.inarg'               # repaste
-        self.__protected = JEN_inarg.CTRL(self.__inarg, 'protected', True)
+        filename = JEN_inarg.CTRL(self.__inarg, 'save_file')
+        filename = filename.split('.inarg')[0]           # remove .inarg, if necessary 
+        filename = filename.split('_protected')[0]       # just in case
+        filename += '_protected.inarg'                   # repaste
+        JEN_inarg.CTRL(self.__inarg, 'protected', True)
         filename = QFileDialog.getSaveFileName(filename, "*_protected.inarg", self)
         self.save_inarg(filename, override=True)
         return True
@@ -425,7 +417,10 @@ class ArgBrowser(QMainWindow):
 
     def save_inarg(self, filename=None, override=False):
         """Save the (edited) inarg record for later use"""
-        if self.__protected and (not override):
+
+        is_auto_save_file = (filename==auto_save_file)
+
+        if JEN_inarg.CTRL(self.__inarg, 'protected') and (not override):
             s1 = '** Protected: Use saveAs ... to save it under a different name'
             self.__message.setText(s1)
             return False
@@ -436,14 +431,17 @@ class ArgBrowser(QMainWindow):
             return False
 
         if filename==None:                           # routine save under same name
-            filename = self.__savefile
-        else:                                        # save under a different name
-            JEN_inarg.HISTORY(self.__inarg, 'Derived from: '+self.__savefile)
+            filename = JEN_inarg.CTRL(self.__inarg, 'save_file') 
+        else:                                        # save under a different filename
+            oldfile = JEN_inarg.CTRL(self.__inarg, 'save_file') 
+            JEN_inarg.HISTORY(self.__inarg, 'Derived from: '+oldfile)
 
+        # Make sure that the current inarg has the correct save_file name:
         filename = str(filename)
         filename = filename.split('.inarg')[0]       # remove .inarg, if necessary 
         filename += '.inarg'                         # append .inarg file extension
-        self.savefile(filename)
+        if not is_auto_save_file:
+            self.savefile_name(filename)                  # change the filename
         f = open(filename,'wb')
         p = pickle.Pickler(f)
         r = p.dump(self.__inarg)
@@ -475,25 +473,36 @@ class ArgBrowser(QMainWindow):
         self.__message.setText('** restored inarg record from file:   '+filename)
         f.close()
         # Make the inarg ready for further processing:
-        self.input(inarg, name=filename)    
+        self.input(inarg)    
         return True
 
     #-------------------------------------------------------------------------------
 
-    def savefile (self, name=None):
-        """Get/set the save_file name"""
+    def savefile_name (self, name=None):
+        """Get/set the save_file name in the inarg CTRL record"""
+        was = JEN_inarg.CTRL(self.__inarg, 'save_file') 
+
         if isinstance(name, str):
-            self.__savefile = name           
-            JEN_inarg.CTRL(self.__inarg, 'save_file', self.__savefile)
-            JEN_inarg.CTRL(self.__inarg_input, 'save_file', self.__savefile)
-            # Refresh the GUI caption:
-            caption = self.__savefile.split('/')         # remove the directory
-            caption = caption[len(caption)-1]
-            if self.__protected:
-                caption = '(protected) '+caption
-            self.setCaption(caption)                   
-        self.__message.setText('** Current savefile name:  '+self.__savefile)
-        return self.__savefile
+            # New savefile name supplied:
+            if True:
+                # remove the directory.... 
+                name = name.split('/')
+                name = name[len(name)-1]
+            JEN_inarg.CTRL(self.__inarg, 'save_file', name) 
+
+        # Always return the current savefile name:
+        savefile = JEN_inarg.CTRL(self.__inarg, 'save_file') 
+
+        # Refresh the GUI caption:
+        caption = savefile
+        if JEN_inarg.CTRL(self.__inarg, 'protected'): 
+            caption = '(protected) '+caption
+        self.setCaption(caption)                   
+
+        s1 = '** Current savefile name:  '+savefile
+        self.__message.setText(s1)
+        print '** self.savefile_name(',name,'): ',was,' -> ',savefile
+        return savefile
 
     #-------------------------------------------------------------------------------
 
@@ -598,7 +607,7 @@ class ArgBrowser(QMainWindow):
     # Input of a inarg record:
     #-------------------------------------------------------------------------------
 
-    def input (self, inarg=None, name=None, set_open=True):
+    def input (self, inarg=None, set_open=True):
         """Input of a new (inarg) record in the gui"""
         if not isinstance(inarg, dict): return False
         self.clearGui()
@@ -606,25 +615,14 @@ class ArgBrowser(QMainWindow):
         self.__inarg_input = deepcopy(inarg)                    # unchanged copy
 
         # Check whether the inarg record is protected:
-        self.__protected = JEN_inarg.CTRL(self.__inarg, 'protected')
-        if self.__protected==None:
-            self.__protected = JEN_inarg.CTRL(self.__inarg, 'protected', False)
+        if JEN_inarg.CTRL(self.__inarg, 'protected')==None:
+            JEN_inarg.CTRL(self.__inarg, 'protected', False)    # just in case
             
-        # Make the savefile name and the GUI caption:
+        # Deal with the savefile name (in the CTRL_record):
         s1 = '** input of inarg record:  '
-        if not name:
-            savefile = JEN_inarg.CTRL(self.__inarg, 'save_file') # check existence
-            if isinstance(savefile, str):
-                self.savefile(savefile)
-            else:
-                if self.__inarg.has_key('script_name'):          # MG_JEN script (kludge)
-                    name = self.__inarg['script_name']
-                    s1 += 'inarg.script_name =   '
-                else:
-                    name = self.__inarg.keys()[0]
-                    s1 += '[inarg.keys[0]] =   '
-                self.savefile(name)
-                self.__message.setText(s1+name)
+        savefile = self.savefile_name()
+        self.__message.setText(s1+'  '+savefile)
+        print s1+'  '+savefile
 
         # Transfer the inarg fields recursively:
         self.__set_open = set_open
