@@ -584,9 +584,9 @@ class ResultPlotter(GriddedPlugin):
         self.data_list_labels.append(self.label)
         if len(self.data_list) != self.data_list_length:
           self.data_list_length = len(self.data_list)
-          if self.data_list_length > 1:
-            _dprint(3, 'calling adjust_selector')
-            self.adjust_selector()
+        if self.data_list_length > 1:
+          _dprint(3, 'calling adjust_selector')
+          self.adjust_selector()
 
   def process_data (self):
     process_result = False
