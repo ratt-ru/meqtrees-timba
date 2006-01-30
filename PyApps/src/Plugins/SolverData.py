@@ -16,6 +16,7 @@ class SolverData:
      self._data_label = data_label
      self._solver_array = None
      self.metrics_rank = None
+     self.prev_unknowns = 0
      self.iteration_number = None
 #    self.__init__
 
@@ -27,17 +28,21 @@ class SolverData:
        self._solver_array = incoming_data.solver_result.incremental_solutions
        if incoming_data.solver_result.has_key("metrics"):
          metrics = incoming_data.solver_result.metrics
-         self.metrics_rank = zeros(len(metrics), Int32)
-         self.iteration_number = zeros(len(metrics), Int32)
-         for i in range(len(metrics)):
-# the metrics record is given as the first element of a 'metrics' tuple that
-# has one element
-           metrics_rec =  metrics[i][0]
-           try:
-             self.metrics_rank[i] = metrics_rec.rank
-           except:
-             pass
-           self.iteration_number[i] = i+1
+# find out how many records in each metric field
+         num_metrics = len(metrics)
+         num_metrics_rec =  len(metrics[0])
+         self.metrics_rank = zeros((num_metrics,num_metrics_rec), Int32)
+         self.iteration_number = zeros((num_metrics,num_metrics_rec), Int32)
+         for i in range(num_metrics):
+           self.prev_unknowns = 0
+           for j in range(num_metrics_rec):
+             metrics_rec =  metrics[i][j]
+             try:
+               self.metrics_rank[i,j] = metrics_rec.rank +self.prev_unknowns
+               self.prev_unknowns = metrics_rec.num_unknowns
+             except:
+               pass
+             self.iteration_number[i,j] = i+1
 
    def getSolverData(self):
      return self._solver_array
