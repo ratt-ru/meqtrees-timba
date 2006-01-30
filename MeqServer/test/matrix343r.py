@@ -430,8 +430,9 @@ def forest_solver(ns, interferometer_list, station_list, patch_list, input_colum
                                             station_2_index=ant2-1,
                                             flag_bit=4,
                                             input_col=input_column)
-        ns.ce(ant1, ant2) << Meq.Condeq(ns.spigot(ant1, ant2),
-                                        ns.predict(ant1, ant2))
+        ns.ce(ant1, ant2) << Meq.Condeq(
+          ns.resampler(ant1,ant2) << Meq.Resampler(ns.spigot(ant1, ant2)),
+          ns.predict(ant1, ant2))
         ce_list.append(ns.ce(ant1, ant2))
         pass
     # Constraints
@@ -455,6 +456,7 @@ def forest_solver(ns, interferometer_list, station_list, patch_list, input_colum
       cpo.append(ns.ce(ant1,ant2).name);
     
     ns.solver << Meq.Solver(children=ce_list,child_poll_order=cpo);    
+    ns.modres << Meq.ModRes(ns.solver);
     pass
 
 
@@ -467,7 +469,7 @@ def forest_create_sink_sequence(ns, interferometer_list, output_column='PREDICT'
                                        corr_index=[0,1,2,3],
                                        flag_mask=-1,
                                        output_col=output_column,
-                                       children=[Meq.ReqSeq(ns.solver,
+                                       children=[Meq.ReqSeq(ns.modres,
                                                  ns.corrected(ant1, ant2),
                                                  result_index=1)]
                                        )
@@ -642,6 +644,7 @@ def _tdl_job_1_source_flux_fit_no_calibration(mqs,parent,write=True):
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
+    set_MAB_node_state(mqs,'modres',record(num_cells=[1,16]))
     
     req = meq.request();
     req.input  = inputrec;
@@ -688,6 +691,7 @@ def _tdl_job_2_phase_solution_with_given_fluxes_all(mqs,parent,write=True):
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
+    set_MAB_node_state(mqs,'modres',record(num_cells=[100,1]))
     
     req = meq.request();
     req.input  = inputrec;
@@ -816,8 +820,7 @@ def _tdl_job_phase_solution_with_given_fluxes_centre(mqs, parent):
 
 
 
-Settings.forest_state.cache_policy = 1
-Settings.forest_state.a = None #100
+Settings.forest_state.cache_policy = 100 #100
 Settings.orphans_are_roots = False
 
 if __name__ == '__main__':
