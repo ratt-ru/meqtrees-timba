@@ -1251,20 +1251,27 @@ class QwtImageDisplay(QwtPlot):
     # display_image()
 
     def add_solver_metrics(self):
+      shape = self.metrics_rank.shape
+      for i in range(shape[1]):
+        plot_data= zeros(shape[0], Int32)
+        for j in range(shape[0]):
+          plot_data[j] = self.metrics_rank[j,i]
 # add solver metrics info?
-      self.metrics_plot = self.insertCurve('metrics')
-      self.setCurvePen(self.metrics_plot, QPen(Qt.black, 2))
-      self.setCurveStyle(self.metrics_plot,Qt.SolidLine)
-      if self.array_flip:
-        self.setCurveYAxis(self.metrics_plot, QwtPlot.yLeft)
-        self.setCurveXAxis(self.metrics_plot, QwtPlot.xBottom)
-        self.setCurveData(self.metrics_plot, self.metrics_rank, self.iteration_number)
-      else:
-        self.setCurveYAxis(self.metrics_plot, QwtPlot.xBottom)
-        self.setCurveXAxis(self.metrics_plot, QwtPlot.yLeft)
-        self.setCurveData(self.metrics_plot, self.iteration_number, self.metrics_rank)
-      plot_curve=self.curve(self.metrics_plot)
-      plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
+        metrics_key = 'metrics'+ str(i)
+        self.metrics_plot = self.insertCurve(metrics_key)
+        self.setCurvePen(self.metrics_plot, QPen(Qt.black, 2))
+        self.setCurveStyle(self.metrics_plot,Qt.SolidLine)
+        
+        if self.array_flip:
+          self.setCurveYAxis(self.metrics_plot, QwtPlot.yLeft)
+          self.setCurveXAxis(self.metrics_plot, QwtPlot.xBottom)
+          self.setCurveData(self.metrics_plot, plot_data, self.iteration_number)
+        else:
+          self.setCurveYAxis(self.metrics_plot, QwtPlot.xBottom)
+          self.setCurveXAxis(self.metrics_plot, QwtPlot.yLeft)
+          self.setCurveData(self.metrics_plot, self.iteration_number, plot_data)
+        plot_curve=self.curve(self.metrics_plot)
+        plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
                  QPen(Qt.black), QSize(10,10)))
 
     def insert_array_info(self):
