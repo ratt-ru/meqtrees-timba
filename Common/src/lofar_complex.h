@@ -23,6 +23,8 @@
 #ifndef COMMON_COMPLEX_H
 #define COMMON_COMPLEX_H
 
+#ifdef USE_STD_COMPLEX
+
 #include <complex>
 
 namespace LOFAR
@@ -46,6 +48,8 @@ using LOFAR::exp;
 using LOFAR::sqrt;
 // using LOFAR::conj;
 using std::conj;
+#endif
+
 #endif
 
 #endif
