@@ -32,7 +32,7 @@ class SolverData:
          num_metrics = len(metrics)
          num_metrics_rec =  len(metrics[0])
          self.metrics_rank = zeros((num_metrics,num_metrics_rec), Int32)
-         self.iteration_number = zeros((num_metrics,num_metrics_rec), Int32)
+         self.iteration_number = zeros((num_metrics), Int32)
          for i in range(num_metrics):
            self.prev_unknowns = 0
            for j in range(num_metrics_rec):
@@ -42,7 +42,7 @@ class SolverData:
                self.prev_unknowns = metrics_rec.num_unknowns
              except:
                pass
-             self.iteration_number[i,j] = i+1
+           self.iteration_number[i] = i+1
 
    def getSolverData(self):
      return self._solver_array
