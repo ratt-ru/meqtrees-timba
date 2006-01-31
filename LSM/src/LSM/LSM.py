@@ -564,6 +564,9 @@ class LSM:
   # patch creation methods 1,2,
   self.default_patch_method=1
 
+  # display window
+  self.__win=None
+
 
  # Much more important method
  # Inserts a source to source table
@@ -713,6 +716,12 @@ class LSM:
     d.display(app='create')
   else:
     d.display()
+  self.__win=d.win
+
+ # close the display, if any
+ def close_display(self):
+  if self.__win!=None:
+    self.__win.close()
 
  # return number of sources
  def getSources(self):
