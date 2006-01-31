@@ -95,9 +95,9 @@ int ModRes::pollChildren (Result::Ref &resref,
     //determine the resampling to be done
     int nx1=nx_;//(int)((double)nx*flag_density);
     int ny1=ny_;//(int)((double)ny*flag_density);
-    //sanity check
-    if (nx1<1) nx1=1;
-    if (ny1<1) ny1=1;
+    //sanity check: if either is zero, do not resample in that dimension
+    if (nx1<1) nx1=nx;
+    if (ny1<1) ny1=ny;
     #ifdef VERBOSE
     cout<<"Resampling Request new size "<<nx1<<" x "<<ny1<<" "<<flag_density<<endl;
     #endif
