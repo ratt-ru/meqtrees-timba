@@ -13,6 +13,8 @@
 #    - 16 dec 2005: included version keyword in .inarg2pp()
 #    - 14 jan 2006: added .dissect_target()
 #    - 14 jan 2006: made _replace_reference() react to '@' and '@@'
+#    - 31 jan 2006: top-level CTRL-record in pp2inarg()
+#    - 31 jan 2006: implemented .compare()
 #
 # Full description:
 #    By obeying a simple (and unconstraining!) set of rules, the input
@@ -134,14 +136,19 @@ def init(target='<target>', version='15dec2005', **pp):
    This is done when starting a composite inarg record, e.g. in MG_JEN_xxx.py"""
 
    # Deal with the keyword arguments:
-   if not isinstance(pp, dict): pp = dict()     # overkill?
+   if not isinstance(pp, dict):
+      pp = dict()                               # overkill?
    inarg = pp                                   # default is empty dict                       
    inarg['script_name'] = target                # expected in MG control record (kludge...)
 
+   # Make a CTRL record, and convert it to a 'top-level' version:
    _ensure_CTRL_record(inarg, target, version=version)
+   inarg[CTRL_record] = CTRL2toplevel(inarg[CTRL_record])
+   inarg[CTRL_record]['order'] = inarg.keys()   # bit of a kludge
 
    trace = False
-   if trace: display(inarg, 'JEN_inarg.init()', full=True)
+   if trace:
+      display(inarg, 'JEN_inarg.init()', full=True)
    # Return the inarg record:
    return inarg
 
@@ -328,8 +335,12 @@ def dissect_target (target='<dir>/<module>::<function>()', qual=None, trace=Fals
       target = ss[len(ss)-1]
 
    # Get the target module (if any):
-   ss = target.split(':')
-   if len(ss)==3:                                     # split on ::
+   ss = target.split(':')                             # split on ::
+   if len(ss)==1:                                     # Assume MG script                             
+      rr['target_module'] = ss[0]
+      rr['target_function'] = ''                      # important: len('')=0
+      target = ''
+   elif len(ss)==3:                                   # Assume function
       rr['target_module'] = ss[0]
       rr['target_function'] = ss[2]
       target = ss[len(ss)-1]
@@ -341,18 +352,13 @@ def dissect_target (target='<dir>/<module>::<function>()', qual=None, trace=Fals
    # The naked name of the target function:
    rr['target_function'] = target.split('(')[0]       # remove any ()
 
-   # Make a default save_file name:
-   s1 = rr['target_module']+'.'+rr['target_function']
-   s1 += '()'
-   s1 += '.inarg'
-   rr['save_file'] = s1
-
    # The localscope is the inarg record field-name:
    rr['localscope'] = '**** '
    rr['localscope'] = ''
    rr['localscope'] += rr['target_dir']+'/'
    rr['localscope'] += rr['target_module']+'.'
-   rr['localscope'] += rr['target_function']+'()'
+   if len(rr['target_function'])>0:
+      rr['localscope'] += rr['target_function']+'()'
    if qual:                                           # qualifier specified
       rr['localscope'] += '['+str(qual)+']'
 
@@ -384,7 +390,6 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
    if not rr.has_key(CTRL_record):                    # rr does NOT have a CTRL record yet
       ctrl = dissect_target (target, qual=qual)
       ctrl['version'] = str(version)
-      # now = str(datetime.now())
       now = this_minute()
       ctrl['datetime_defined'] = now                  # not modified anymore
       ctrl['last_edited'] = now                       # updated in inargGUI
@@ -562,6 +567,55 @@ def count(rr, field='MESSAGE', total=0, level=0):
             if not key==CTRL_record:
                total = count(rr[key], field=field, total=total, level=level+1)
    return total
+
+#------------------------------------------------------------------------------
+
+def compare(rr, other=None, ss='', level=0, trace=True):
+   """Compare the given inarg record with another one"""
+   if level==0:
+      ss = '** JEN_inarg.compare('+str(type(rr))+str(type(other))+'):'
+      if trace: print '\n'+ss
+
+   if isinstance(rr, dict) and isinstance(other, dict):
+      for key in rr.keys():
+         if not other.has_key(key):                    # check key
+            s = _prefix(level)+' EXTRA:  '+key
+            s += ' ('+str(type(rr[key]))+')'
+            ss += '\n'+s
+            if trace: print s
+         elif isinstance(rr[key], dict):
+            if key==CTRL_record:                       # CTRL_record
+               pass                                    # ignore
+            elif not isinstance(other[key],dict):      # wrong type
+               s = _prefix(level)+'not a record: '+key
+               ss += '\n'+s
+               if trace: print s
+            else:                                      # recurse
+               s = _prefix(level+1)+'** record: '+key+':'
+               ss += '\n'+s
+               if trace: print s
+               ss = compare(rr[key], other[key], ss=ss, level=level+1)
+         elif rr[key]==other[key]:                     # equal values (OK)
+            pass                        
+         else:                                         # different values
+            s = _prefix(level)+'DIFFERENCE ('+key+'):  '
+            s += str(rr[key])+'  !=  '+str(other[key])
+            ss += '\n'+s
+            if trace: print s
+            
+      # Look for extra keys in other:
+      for key in other.keys():
+         if not rr.has_key(key):                       # check key
+            s = _prefix(level)+' MISSING:  '+key
+            s += ' ('+str(type(other[key]))+')'
+            ss += '\n'+s
+            if trace: print s
+
+   if level==0:
+      s = ''
+      ss += '\n'+s
+      if trace: print s
+   return ss
 
 
 #----------------------------------------------------------------------------
@@ -851,26 +905,46 @@ def pp2inarg(pp, help=None, trace=False):
    """Turn the internal argument record pp into an inarg record"""
    # if trace: display(pp,'.pp2inarg() input pp')
 
-   localscope = pp[CTRL_record]['localscope']
-   if pp.has_key('_getdefaults'):
-      pp.__delitem__('_getdefaults')
-
    # Make the external inarg record:
    inarg = dict()
+
+   # Prepare pp and attach:
+   if pp.has_key('_getdefaults'):
+      pp.__delitem__('_getdefaults')
+   localscope = pp[CTRL_record]['localscope']
    inarg[localscope] = pp
 
-   # Make a limited 'top-level' CTRL_record for the inarg record
-   # Copy some fields from the CTRL_record of pp to it.
-   # It will be lost if the inarg is nested, i.e. not top-level
-   if pp.has_key(CTRL_record):
-      inarg[CTRL_record] = dict()
-      for key in ['localscope','save_file','protected']:
-         inarg[CTRL_record][key] = pp[CTRL_record][key]
-   
+   # Make a 'top-level' CTRL_record for the inarg record
+   # This will be lost if the inarg is nested, i.e. not top-level
+   inarg[CTRL_record] = CTRL2toplevel(pp[CTRL_record])
+
    if trace: display(inarg,'inarg <- .pp2inarg(pp)')
    return inarg
 
-   
+
+def CTRL2toplevel (ctrl):
+   """Make a top-level CTRL record from the given one"""
+   cc = dict()
+   # Copy some fields from the pp CTRL record:
+   ss = ['localscope','version','datetime_defined','last_edited',
+         'target_module','target_function','target_dir','target_definition']
+   for key in ss:
+      cc[key] = ctrl[key]
+
+   # Make a default save_file name:
+   s1 = cc['target_module']
+   if len(cc['target_function'])>0:
+      s1 += '.'+cc['target_function']
+      s1 += '()'
+   s1 += '.inarg'
+   cc['save_file'] = s1
+
+   cc['file_filter'] = cc['target_module']+'*.inarg'
+   cc['protected'] = False                     # If True, the inarg is protected        
+   cc['reference'] = False                     # Name of reference inarg (file), for comparison
+   cc['oneliner'] = '** Top-level CTRL-record of: '+cc['save_file']
+   cc['description'] = '** Description of: ',cc['oneliner'] 
+   return cc
 
 #----------------------------------------------------------------------------
 

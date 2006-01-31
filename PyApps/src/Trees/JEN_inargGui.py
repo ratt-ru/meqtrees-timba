@@ -10,6 +10,8 @@
 #    - 10 jan 2006: in workable state
 #    - 11 jan 2006: added file browsers and status message 
 #    - 12 jan 2006: added hooks for assay  
+#    - 31 jan 2006: adopted top-level inarg CTRL-record
+#    - 31 jan 2006: inplemented compare() 
 #
 # Full description:
 #
@@ -138,6 +140,8 @@ class ArgBrowser(QMainWindow):
         testmenu.insertItem('count_@@', self.count_ref)
         testmenu.insertItem('replace_@@', self.replace_ref)
         testmenu.insertSeparator()     
+        testmenu.insertItem('compare', self.compare_ref)
+        testmenu.insertItem('compare...', self.compare_other)
         testmenu.insertSeparator()     
         testmenu.insertItem('assay', self.assay)
         testmenu.insertItem('assay_verbose', self.assay_verbose)
@@ -233,8 +237,9 @@ class ArgBrowser(QMainWindow):
         self.__set_open = True                     # see .recurse()
         self.__setOpen = dict()                    # see .recurse()
         self.__result = None                       # output for exec_loop
-        self.__inarg = None                        # the edited inarg
+        self.__inarg = None                        # the current inarg
         self.__inarg_input = None                  # the input inarg (see .revert_inarg())
+        self.__other = None                        # another inarg (e.g. for comparison)
         self.__modified = False                    # if True, self.__inarg has been modified
         self.__closed = False
         if False:
@@ -385,6 +390,20 @@ class ArgBrowser(QMainWindow):
         self.restore_inarg(filename)
         return True
 
+    def compare_ref(self):
+        """Compare the current inarg to its reference inarg (in a file)"""
+        filename = JEN_inarg.CTRL(self.__inarg, 'reference')
+        self.restore_inarg(filename, other=True)
+        JEN_inarg.compare(self.__inarg, self.__other)
+        return True
+
+    def compare_other(self):
+        """Compare the current inarg to a saved inarg record from a file"""
+        filename = QFileDialog.getOpenFileName("","*.inarg",self)
+        self.restore_inarg(filename, other=True)
+        JEN_inarg.compare(self.__inarg, self.__other)
+        return True
+
     def saveAs_inarg(self):
         """Save the (edited) inarg record for later use"""
         filename = ""
@@ -397,6 +416,11 @@ class ArgBrowser(QMainWindow):
         filename = QFileDialog.getSaveFileName(filename, "*.inarg", self)
         print '** self.saveAs(): filename =',filename
         if filename:
+            # The current inarge record (saved in savefile)
+            # becomes the reference inarg for the one in this new file: 
+            savefile = JEN_inarg.CTRL(self.__inarg, 'save_file')
+            JEN_inarg.CTRL(self.__inarg, 'reference', savefile)
+            # Remove the protection of the new inarg, if any:
             JEN_inarg.CTRL(self.__inarg, 'protected', False)
             self.save_inarg(filename)
         else:
@@ -460,7 +484,7 @@ class ArgBrowser(QMainWindow):
         self.restore_inarg(auto_save_file)
         return True
 
-    def restore_inarg(self, filename=None):
+    def restore_inarg(self, filename=None, other=True):
         """Read a saved inarg record from a file"""
         filename = str(filename)                     # filename is required!
         try:
@@ -470,10 +494,15 @@ class ArgBrowser(QMainWindow):
             return False
         p = pickle.Unpickler(f)
         inarg = p.load()
-        self.__message.setText('** restored inarg record from file:   '+filename)
         f.close()
+
         # Make the inarg ready for further processing:
-        self.input(inarg)    
+        if other:
+            self.__other = inarg
+            self.__message.setText('** Read OTHER inarg record from file:   '+filename)
+        else:
+            self.input(inarg)    
+            self.__message.setText('** New current inarg record from file:   '+filename)
         return True
 
     #-------------------------------------------------------------------------------
@@ -1147,7 +1176,7 @@ class Popup(QDialog):
     def closeAll (self):
         """Close the popup, and any associated things"""
         if self.__lsm:                   # Local Sky Model 
-            # self.__lsm.close()         # function does not exist!
+            self.__lsm.close_display()   # function does not exist!
             self.__lsm = None
         if self.__ms:
             pass
@@ -1189,7 +1218,6 @@ class Popup(QDialog):
         if len(filename)>2:
             self.__combo.setCurrentText(filename)
             self.__status.setText('... new filename ...')
-            self.onOK()
         else:
             self.__status.setText('... ignored ...')
         return True
@@ -1200,7 +1228,6 @@ class Popup(QDialog):
         if len(dirname)>2:
             self.__combo.setCurrentText(dirname)
             self.__status.setText('... new dirname ...')
-            self.onOK()
         else:
             self.__status.setText('... ignored ...')
         return True
@@ -1233,7 +1260,6 @@ class Popup(QDialog):
         self.__lsm.load(filename)
         print dir(self.__lsm)
         print self.__lsm.__doc__ 
-        # self.__lsm.display()                   # locks the widget! No way to close it! 
         plist = self.__lsm.queryLSM(count=1000)  # error if called without argument....?
         print '\n** .queryLSM(count=1000) ->',type(plist),len(plist)
         plist = self.__lsm.queryLSM(count=1)
@@ -1241,6 +1267,7 @@ class Popup(QDialog):
         for punit in plist: 
             sp = punit.getSP()                   # get_Sixpack()?
             sp.display()
+        self.__lsm.display()                     # close to release the 
         return True
 
 
