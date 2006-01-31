@@ -95,11 +95,12 @@ class ArgBrowser(QMainWindow):
         self.__menubar = self.menuBar()
 
         filemenu = QPopupMenu(self)
-        filemenu.insertItem('open ..', self.open_inarg)
+        filemenu.insertItem('open ...', self.open_filter)
         filemenu.insertItem('open protected', self.open_protected)
         filemenu.insertItem('open autosaved', self.open_autosaved)
+        filemenu.insertItem('open *.inarg', self.open_inarg)
         filemenu.insertSeparator()     
-        filemenu.insertItem('saveAs..', self.saveAs_inarg)
+        filemenu.insertItem('saveAs ...', self.saveAs_inarg)
         filemenu.insertItem('save_as_protected', self.save_as_protected)
         filemenu.insertItem('save', self.save_inarg)
         filemenu.insertItem('autosave', self.autosave)
@@ -197,7 +198,7 @@ class ArgBrowser(QMainWindow):
 
         b_open = QPushButton('Open', self)
         QToolTip.add(b_open, 'Open a new inarg record')
-        QObject.connect(b_open, SIGNAL("pressed ()"), self.open_inarg)
+        QObject.connect(b_open, SIGNAL("pressed ()"), self.open_filter)
         hbox.addWidget(b_open)
 
         b_save = QPushButton('Save', self)
@@ -380,27 +381,37 @@ class ArgBrowser(QMainWindow):
 
     def open_inarg(self):
         """Read a saved inarg record from a file, using a file browser"""
-        filename = QFileDialog.getOpenFileName("","*.inarg",self)
-        self.restore_inarg(filename)
-        return True
+        return self.open_browse(file_filter="*.inarg")
 
     def open_protected(self):
         """Read a protected inarg record from a file, using a file browser"""
-        filename = QFileDialog.getOpenFileName("", "*_protected.inarg", self)
-        self.restore_inarg(filename)
-        return True
+        return self.open_browse(file_filter="*_protected.inarg")
+
+    def open_filter(self):
+        """Like open_inarg(), but using the file_filter from the current inarg.
+        In the case of staring an MG script, this restricts the choice to .inarg
+        files that are relevant to this script"""
+        ff = JEN_inarg.CTRL(self.__inarg, 'file_filter')
+        return self.open_browse(file_filter=ff)
+
+    def open_browse(self, file_filter="*.inarg"):
+        """Read a saved inarg record from a file, using a file browser"""
+        filename = QFileDialog.getOpenFileName("", file_filter, self)
+        return self.restore_inarg(filename)
+
+#-------------------------------------------------------------------
 
     def compare_ref(self):
         """Compare the current inarg to its reference inarg (in a file)"""
         filename = JEN_inarg.CTRL(self.__inarg, 'reference')
-        self.restore_inarg(filename, other=True)
+        self.restore_inarg(filename, other=True)        # -> self.__other
         JEN_inarg.compare(self.__inarg, self.__other)
         return True
 
     def compare_other(self):
         """Compare the current inarg to a saved inarg record from a file"""
         filename = QFileDialog.getOpenFileName("","*.inarg",self)
-        self.restore_inarg(filename, other=True)
+        self.restore_inarg(filename, other=True)        # -> self.__other
         JEN_inarg.compare(self.__inarg, self.__other)
         return True
 
@@ -484,7 +495,7 @@ class ArgBrowser(QMainWindow):
         self.restore_inarg(auto_save_file)
         return True
 
-    def restore_inarg(self, filename=None, other=True):
+    def restore_inarg(self, filename=None, other=False):
         """Read a saved inarg record from a file"""
         filename = str(filename)                     # filename is required!
         try:
@@ -1214,7 +1225,6 @@ class Popup(QDialog):
     def onBrowse (self):
         """Action on pressing the browse button"""
         filename = QFileDialog.getOpenFileName("",self.__filter, self)
-        # filename = QFileDialog.getExistingDirectory("", self)
         if len(filename)>2:
             self.__combo.setCurrentText(filename)
             self.__status.setText('... new filename ...')
