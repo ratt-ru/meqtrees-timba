@@ -296,8 +296,9 @@ int ResampleMachine::apply(VellSet &out, const VellSet &in)
          //allocate memory for flags
 				blitz::Array<VellsFlagType,2> Aflag(nx_,ny_); 
 				 Aflag=0;
-         do_resample( A,  B,  F, invl.hasDataFlags(), Aflag);
+         int has_flags=do_resample( A,  B,  F, invl.hasDataFlags(), Aflag);
 				  out.setValue(new Vells(A));
+				 if (has_flags)
 					out.setDataFlags(new Vells(Aflag));
 				}
 				}else{
@@ -318,7 +319,7 @@ int ResampleMachine::apply(VellSet &out, const VellSet &in)
          int has_flags=do_resample( Ac,  Bc,  F, invl.hasDataFlags(),Aflag);
 				 out.setValue(new Vells(Ac));
 				 // only attach flags if new flags were created
-				 if (!has_flags)
+				 if (has_flags)
 					out.setDataFlags(new Vells(Aflag));
 				}
 				}
@@ -386,6 +387,7 @@ ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
 				bx_[1].print();
 #endif
 				double tmp;
+				cell_weight_=0;
 				for (int i=0; i<bx_[0].size();i++) {
 						Bnode &xx=bx_[0].get(i);
 						for (int j=0; j<bx_[1].size(); j++) {
@@ -442,6 +444,7 @@ ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
 #endif
 				 Acell=0;
 				 Aflg=0;
+				 cell_weight_=0;
 				for (int i=0; i<bx_[0].size();i++) {
 						Bnode &xx=bx_[0].get(i);
 						for (int j=0; j<bx_[1].size(); j++) {
@@ -467,20 +470,21 @@ ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
                 fy=yy.begin();
 								std::advance(fx,1);
 						 }
+						 cout<<"A("<<i<<","<<j<<")="<<A(i,j)<<endl;
 						}
 				}
 
 #ifdef DEBUG
 				cout<<" Bc "<<B<<endl;
 				cout<<" A "<<A<<endl;
-				cout<<" Weight "<<cell_weight_<<endl;
 
+#endif
+			 cout<<" Weight "<<cell_weight_<<endl;
        cout<<" size "<<nx_<<","<<ny_<<endl;
        cout<<" Acell"<<Acell<<endl;
        cout<<" Aflg"<<Aflg<<endl;
        cout<<" Afalg"<<Aflag<<endl;
 			 cout<<" mask="<<flag_mask_<<" density="<<flag_density_<<" bit="<<flag_bit_<<endl;
-#endif
 				for (int i=0; i<nx_; i++) {
 				 for (int j=0; j<ny_; j++) {
           if(cell_weight_(i,j)!=0)
@@ -488,13 +492,14 @@ ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
 					//recalculate flags if any
 					if (static_cast<double>(Aflag(i,j))/static_cast<double>(Acell(i,j)) >flag_density_) {
            Aflag(i,j)=(flag_bit_?flag_bit_:Aflg(i,j));
-					 if (!Aflag(i,j))
+					 if (Aflag(i,j))
 					  create_flags=1;
 					} else {
            Aflag(i,j)=0; //do not flag output
 					}
 				 }
 				}
+				cout<<"create flags ="<<create_flags<<endl;
 				return create_flags;
 }
 
