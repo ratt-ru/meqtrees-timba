@@ -35,9 +35,14 @@ class Dummy:
 
      self.win=LSMWindow(self.lsm) 
      self.win.show()
-     self.app.connect(self.app,SIGNAL("lastWindowClosed()"),
+     # stand alone mode
+     if kw.has_key('app') and (kw['app']=='create'):
+      self.app.connect(self.app,SIGNAL("lastWindowClosed()"),
         self.app, SLOT("quit()"))
-     self.app.exec_loop()
+      self.app.exec_loop()
+     else: # running under browser
+      self.app.connect(self.app,SIGNAL("lastWindowClosed()"),
+        self.win, SLOT("close()"))
 
 
 #######################################################

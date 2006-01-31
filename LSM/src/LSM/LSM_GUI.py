@@ -365,6 +365,7 @@ class LSMWindow(QMainWindow):
         self.fileExportAction.addTo(self.fileMenu)
         self.filePrintAction.addTo(self.fileMenu)
         self.fileMenu.insertSeparator()
+        self.fileMenu.insertItem('&Close',self,SLOT('close()'),Qt.CTRL + Qt.Key_C)
         self.fileMenu.insertItem('&Quit',qApp,SLOT('closeAllWindows()'),Qt.CTRL + Qt.Key_Q)
 
         self.MenuBar.insertItem(QString(""),self.fileMenu,1)
