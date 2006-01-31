@@ -470,7 +470,7 @@ ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
                 fy=yy.begin();
 								std::advance(fx,1);
 						 }
-						 cout<<"A("<<i<<","<<j<<")="<<A(i,j)<<endl;
+						 //cout<<"A("<<i<<","<<j<<")="<<A(i,j)<<endl;
 						}
 				}
 
@@ -478,13 +478,13 @@ ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
 				cout<<" Bc "<<B<<endl;
 				cout<<" A "<<A<<endl;
 
-#endif
 			 cout<<" Weight "<<cell_weight_<<endl;
        cout<<" size "<<nx_<<","<<ny_<<endl;
        cout<<" Acell"<<Acell<<endl;
        cout<<" Aflg"<<Aflg<<endl;
        cout<<" Afalg"<<Aflag<<endl;
 			 cout<<" mask="<<flag_mask_<<" density="<<flag_density_<<" bit="<<flag_bit_<<endl;
+#endif
 				for (int i=0; i<nx_; i++) {
 				 for (int j=0; j<ny_; j++) {
           if(cell_weight_(i,j)!=0)
@@ -499,7 +499,6 @@ ResampleMachine::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
 					}
 				 }
 				}
-				cout<<"create flags ="<<create_flags<<endl;
 				return create_flags;
 }
 
