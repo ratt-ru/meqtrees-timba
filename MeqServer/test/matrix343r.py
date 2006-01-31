@@ -644,7 +644,7 @@ def _tdl_job_1_source_flux_fit_no_calibration(mqs,parent,write=True):
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
-    set_MAB_node_state(mqs,'modres',record(num_cells=[1,16]))
+    set_MAB_node_state(mqs,'modres',record(num_cells=[1,0]))
     
     req = meq.request();
     req.input  = inputrec;
@@ -691,7 +691,7 @@ def _tdl_job_2_phase_solution_with_given_fluxes_all(mqs,parent,write=True):
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
-    set_MAB_node_state(mqs,'modres',record(num_cells=[100,1]))
+    set_MAB_node_state(mqs,'modres',record(num_cells=[0,1]))
     
     req = meq.request();
     req.input  = inputrec;
@@ -820,7 +820,7 @@ def _tdl_job_phase_solution_with_given_fluxes_centre(mqs, parent):
 
 
 
-Settings.forest_state.cache_policy = 100 #100
+Settings.forest_state.cache_policy = 1 #100
 Settings.orphans_are_roots = False
 
 if __name__ == '__main__':
