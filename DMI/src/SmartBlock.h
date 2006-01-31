@@ -1,7 +1,7 @@
 #ifndef DMI_SmartBlock_h
 #define DMI_SmartBlock_h 1
 
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 #include <DMI/DMI.h>
 #include <DMI/CountedRef.h>
 #include <DMI/CountedRefTarget.h>

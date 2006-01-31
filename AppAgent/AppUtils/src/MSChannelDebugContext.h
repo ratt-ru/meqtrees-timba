@@ -1,7 +1,7 @@
 #ifndef MSVISAGENT_MSVISAGENTDEBUGCONTEXT_h 
 #define MSVISAGENT_MSVISAGENTDEBUGCONTEXT_h 1
 
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 
 namespace AppAgent
 {    

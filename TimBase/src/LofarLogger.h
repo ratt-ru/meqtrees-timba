@@ -24,14 +24,14 @@
 #define COMMON_LOFARLOGGER_H
 
 #include <lofar_config.h>
-#include <Common/StringUtil.h>
+#include <TimBase/StringUtil.h>
 
 //# Dependent of the availability of the log4Cplus package one set of macro's
 //# or the other set of macro's is included.
 #ifdef HAVE_LOG4CPLUS
-# include <Common/LofarLog4Cplus.h>
+# include <TimBase/LofarLog4Cplus.h>
 #else
-# include <Common/LofarLogCout.h>
+# include <TimBase/LofarLogCout.h>
 #endif //HAVE_LOG4CPLUS
 
 

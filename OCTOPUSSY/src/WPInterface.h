@@ -1,8 +1,8 @@
 #ifndef OCTOPUSSY_WPInterface_h
 #define OCTOPUSSY_WPInterface_h 1
 
-#include <Common/Thread.h>
-#include <Common/Thread/Condition.h>
+#include <TimBase/Thread.h>
+#include <TimBase/Thread/Condition.h>
 #include <DMI/CountedRefTarget.h>
 #include <OCTOPUSSY/OctopussyConfig.h>
 #include <OCTOPUSSY/Subscriptions.h>

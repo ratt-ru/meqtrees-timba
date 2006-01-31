@@ -21,9 +21,9 @@
 //#  $Id$
 
 #include <lofar_config.h>
-#include <Common/lofar_string.h>
-#include <Common/Net/Socket.h>
-#include <Common/LofarLogger.h>
+#include <TimBase/lofar_string.h>
+#include <TimBase/Net/Socket.h>
+#include <TimBase/LofarLogger.h>
 
 #include <fcntl.h>
 

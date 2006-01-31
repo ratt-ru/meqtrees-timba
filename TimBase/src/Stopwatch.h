@@ -25,8 +25,8 @@
 
 //# Includes
 #include <sys/times.h>
-#include <Common/lofar_string.h>
-#include <Common/Timer.h>
+#include <TimBase/lofar_string.h>
+#include <TimBase/Timer.h>
 
 namespace LOFAR
 {

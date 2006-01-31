@@ -29,7 +29,7 @@
 #define MAKE_LOFAR_SYMBOLS_GLOBAL
 
 #ifdef USE_THREADS
-#include "Common/Thread.h"
+#include "TimBase/Thread.h"
 #endif
 
 // Debug
@@ -40,4 +40,4 @@ namespace Debug
   using namespace std;
 }
 
-#include <Common/backward/Debug.cc>
+#include <TimBase/backward/Debug.cc>

@@ -46,7 +46,7 @@
 //    __REQUIRE_KEY_VALUE__
 #define CHECK_CONFIG_CC(key,val) int __REQUIRE_##key##_##val##__; 
 
-// Check Common/Thread.h and Common/Thread/Thread.cc for examples of how this 
+// Check TimBase/Thread.h and TimBase/Thread/Thread.cc for examples of how this 
 // works.
 
 #endif

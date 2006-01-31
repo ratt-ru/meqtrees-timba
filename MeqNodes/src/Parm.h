@@ -29,7 +29,7 @@
 #include <MEQ/Funklet.h>
 #include <MeqNodes/CompiledFunklet.h>
 #include <MeqNodes/ParmTable.h>
-#include <Common/lofar_vector.h>
+#include <TimBase/lofar_vector.h>
 
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Parm

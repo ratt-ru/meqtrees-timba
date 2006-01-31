@@ -20,7 +20,7 @@
 //#
 //# $Id$
 
-#include <Common/Profiling/PerfProfile.h>
+#include <TimBase/Profiling/PerfProfile.h>
 
 namespace LOFAR 
 {

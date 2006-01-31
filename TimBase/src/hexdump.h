@@ -24,8 +24,8 @@
 #define COMMON_HEXDUMP_H
 
 #include <lofar_config.h>
-#include <Common/LofarTypes.h>
-#include <Common/lofar_string.h>
+#include <TimBase/LofarTypes.h>
+#include <TimBase/lofar_string.h>
 
 
 namespace LOFAR

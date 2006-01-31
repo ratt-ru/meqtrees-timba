@@ -17,7 +17,7 @@
 #include <DMI/Global-Registry.h>
 #include <DMI/ContainerIter.h>
 #include <DMI/Exception.h>
-#include <Common/BlitzToAips.h>
+#include <TimBase/BlitzToAips.h>
 
 #include "AID-OCTOGlish.h"
 #include "GlishUtil.h"

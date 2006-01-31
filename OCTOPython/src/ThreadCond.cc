@@ -1,6 +1,6 @@
 #define MAKE_LOFAR_SYMBOLS_GLOBAL 1
 
-#include <Common/Thread/Condition.h>
+#include <TimBase/Thread/Condition.h>
 #include <Python.h>
 #include "OctoPython.h"
 #include "AID-OctoPython.h"

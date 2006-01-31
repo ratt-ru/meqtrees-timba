@@ -3,7 +3,7 @@
 //# Includes
 #include <MEQ/Polc.h>
 #include <DMI/List.h>
-#include <Common/lofar_vector.h>
+#include <TimBase/lofar_vector.h>
 
 #pragma aidgroup Meq
 #pragma type #Meq::ComposedPolc

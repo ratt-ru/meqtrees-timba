@@ -29,8 +29,8 @@
 #include <MEQ/Cells.h>
 #include <MEQ/MeqVocabulary.h>
 #include <MeqNodes/AID-MeqNodes.h>
-#include <Common/Debug.h>
-#include <Common/Lorrays.h>
+#include <TimBase/Debug.h>
+#include <TimBase/Lorrays.h>
 #include <casa/BasicMath/Math.h>
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/Vector.h>

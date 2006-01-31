@@ -1143,7 +1143,7 @@ bool Solver::Subsolver::solve (int step)
   mrec[FMu]     = solver.getWeightedSD();
   mrec[FStdDev] = solver.getSD();
   mrec[FNumUnknowns] = nuk;
-  //  mrec[FChi   ] = solver_.getChi());
+  mrec[FChi   ] = solver.getChi();
   
 ////# commenting this out for now because it seems to fuck with convergence!??
 //   // fill errors and covariance matrices

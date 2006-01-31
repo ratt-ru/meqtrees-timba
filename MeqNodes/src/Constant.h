@@ -26,7 +26,7 @@
 //# Includes
 #include <MEQ/Node.h>
 #include <MEQ/Vells.h>
-#include <Common/lofar_vector.h>
+#include <TimBase/lofar_vector.h>
 #include <MeqNodes/TID-MeqNodes.h>
 
 #include <MeqNodes/TID-MeqNodes.h>

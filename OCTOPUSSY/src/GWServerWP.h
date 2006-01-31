@@ -1,7 +1,7 @@
 #ifndef OCTOPUSSY_GWServerWP_h
 #define OCTOPUSSY_GWServerWP_h 1
 
-#include <Common/Net/Socket.h>
+#include <TimBase/Net/Socket.h>
 #include <DMI/DMI.h>
 #include <OCTOPUSSY/MTGatewayWP.h>
 #include <OCTOPUSSY/GatewayWP.h>

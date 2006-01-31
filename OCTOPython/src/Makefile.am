@@ -12,12 +12,14 @@ octopython_la_LDFLAGS = -module
 liboctopython.la:
 	@ln -s octopython.la liboctopython.la
 
-# octopython_la_LIBADD = 
+octopython_la_LIBADD =  \
+  ../pkgbldinc/TimBase/.libs/libtimbase.a \
+  ../pkgbldinc/DMI/.libs/libdmi.a
 
 octopython_la_DEPENDENCIES = \
   ../pkgbldinc/OCTOPUSSY/liboctopussy.la \
   ../pkgbldinc/DMI/libdmi.la \
-  ../pkgbldinc/Common/libcommon.la
+  ../pkgbldinc/TimBase/libtimbase.la
 
 check_PROGRAMS   		= 
 

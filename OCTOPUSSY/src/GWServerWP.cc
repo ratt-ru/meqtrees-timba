@@ -11,7 +11,7 @@ const Timeval Timeout_Retry(10.0),
 // max retries
 const int MaxOpenRetries = 10;
 
-// using LOFAR::num2str;  // defined in <Common/Debug.h>
+// using LOFAR::num2str;  // defined in <TimBase/Debug.h>
 using Debug::ssprintf;
 
 

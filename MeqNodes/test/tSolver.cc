@@ -21,7 +21,7 @@
 //# $Id$
 
 
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 #include <MEQ/Forest.h>
 #include <MEQ/Node.h>
 #include <MEQ/Function.h>

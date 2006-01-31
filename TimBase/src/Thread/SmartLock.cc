@@ -21,7 +21,7 @@
 //## end module%3D1996530052.includes
 
 // SmartLock
-#include <Common/Thread/SmartLock.h>
+#include <TimBase/Thread/SmartLock.h>
 //## begin module%3D1996530052.declarations preserve=no
 //## end module%3D1996530052.declarations
 

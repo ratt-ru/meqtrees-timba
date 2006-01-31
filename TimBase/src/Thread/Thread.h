@@ -23,7 +23,7 @@
 #ifndef LOFAR_COMMON_THREAD_THREAD_H
 #define LOFAR_COMMON_THREAD_THREAD_H
 
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 #ifdef USE_THREADS
 #include <pthread.h>
 #include <signal.h>

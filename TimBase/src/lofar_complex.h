@@ -39,7 +39,7 @@ namespace LOFAR
 }
 
 #ifdef MAKE_LOFAR_SYMBOLS_GLOBAL
-#include <Common/lofar_global_symbol_warning.h>
+#include <TimBase/lofar_global_symbol_warning.h>
 using LOFAR::complex;
 using LOFAR::sin;
 using LOFAR::cos;

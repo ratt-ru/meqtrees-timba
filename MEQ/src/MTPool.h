@@ -1,5 +1,5 @@
-#include <Common/Thread/Condition.h>
-#include <Common/Timer.h>
+#include <TimBase/Thread/Condition.h>
+#include <TimBase/Timer.h>
 #include <MEQ/Node.h>
 #include <list>
     

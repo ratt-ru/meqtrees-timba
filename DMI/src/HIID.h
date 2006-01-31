@@ -26,7 +26,7 @@
 #include <DMI/DMI.h>
 #include <DMI/AtomicID.h>
 #include <DMI/Allocators.h>
-#include <Common/lofar_iostream.h>
+#include <TimBase/lofar_iostream.h>
 
 #include <vector>
     

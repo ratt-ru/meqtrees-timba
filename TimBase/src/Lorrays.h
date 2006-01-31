@@ -26,13 +26,13 @@
 #include <lofar_config.h>
     
 #ifndef COMMON_LONUMERICS_H
-  #include <Common/Lonumerics.h>
+  #include <TimBase/Lonumerics.h>
 #endif
     
 #if !defined(HAVE_BLITZ) 
   #error Blitz not configured
 #endif
 
-#include <Common/Lorrays-Blitz.h>
+#include <TimBase/Lorrays-Blitz.h>
     
 #endif

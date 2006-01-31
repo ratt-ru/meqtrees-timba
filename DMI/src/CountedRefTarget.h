@@ -24,10 +24,10 @@
 #define DMI_CountedRefTarget_h 1
 
 #include <DMI/DMI.h>
-#include <Common/Thread.h>
-#include <Common/CheckConfig.h>
+#include <TimBase/Thread.h>
+#include <TimBase/CheckConfig.h>
 
-#include <Common/lofar_iostream.h>
+#include <TimBase/lofar_iostream.h>
 
 CHECK_CONFIG_THREADS(DMI);
 

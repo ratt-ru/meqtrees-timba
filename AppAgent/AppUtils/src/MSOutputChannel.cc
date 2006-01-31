@@ -22,10 +22,10 @@
 
 #include "MSOutputChannel.h"
 
-#include <Common/BlitzToAips.h>
+#include <TimBase/BlitzToAips.h>
 #include <DMI/Exception.h>
 #include <AppAgent/VisDataVocabulary.h>
-#include <Common/AipsppMutex.h>
+#include <TimBase/AipsppMutex.h>
 
 #include <tables/Tables/ArrColDesc.h>
 #include <tables/Tables/ArrayColumn.h>

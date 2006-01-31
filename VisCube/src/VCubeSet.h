@@ -3,7 +3,7 @@
 
 #include <DMI/BObj.h>
 #include <VisCube/VCube.h>
-#include <Common/Thread/Mutex.h>
+#include <TimBase/Thread/Mutex.h>
 #include <deque>
     
 #pragma types #VisCube::VCubeSet

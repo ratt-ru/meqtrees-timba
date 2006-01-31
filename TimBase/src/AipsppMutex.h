@@ -27,7 +27,7 @@
 #include "lofar_config.h"
 #endif
 
-#include <Common/Thread/Mutex.h>
+#include <TimBase/Thread/Mutex.h>
 
 namespace AipsppMutex
 {

@@ -24,7 +24,7 @@
 #define LOFAR_COMMON_THREAD_CONDITION_H
 
 //# Includes
-#include <Common/Thread/Mutex.h>
+#include <TimBase/Thread/Mutex.h>
 
 namespace LOFAR
 {

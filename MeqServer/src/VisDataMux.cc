@@ -321,7 +321,7 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
 int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
 {
   // if max_tiles_ is set and has been exceeded, ignore
-  if( max_tiles_ >= 0 && num_tiles_ >= max_tiles_ )
+  if( max_tiles_ >= 0 && num_tiles_ > max_tiles_ )
     return 0;
   int result_flag = 0;
   DMI::ExceptionList errors;
@@ -344,6 +344,9 @@ int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
       try { result_flag |= endSnippet(); }
       CatchExceptions("ending tile "+rqid_.toString('.'));
     }
+    num_tiles_++;
+    if( max_tiles_ >= 0 && num_tiles_ > max_tiles_ )
+      return 0;
     current_seqnr_ = seqnr;
     // notify start of new snippet
     try { result_flag |= startSnippet(*tileref); }
@@ -367,22 +370,25 @@ int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
 
 int Meq::VisDataMux::deliverFooter (const DMI::Record &footer)
 {
-  DMI::ExceptionList errors;
   int result_flag = 0;
-  if( current_seqnr_ >= 0 )
+  DMI::ExceptionList errors;
+  if( max_tiles_ < 0 || num_tiles_ <= max_tiles_ )
   {
-    try { result_flag |= endSnippet(); }
-    CatchExceptions("ending tile "+rqid_.toString('.'));
-  }
-  cdebug(2)<<"delivering footer to all handlers"<<endl;
-  for( uint i=0; i<handlers_.size(); i++ )
-  {
-    HandlerSet & hlist = handlers_[i];
-    HandlerSet::iterator iter = hlist.begin();
-    for( ; iter != hlist.end(); iter++ )
+    if( current_seqnr_ >= 0 )
     {
-      try { result_flag |= (*iter)->deliverFooter(footer); }
-      CatchExceptionsMore("delivering footer to '"+(*iter)->name()+"'");
+      try { result_flag |= endSnippet(); }
+      CatchExceptions("ending tile "+rqid_.toString('.'));
+    }
+    cdebug(2)<<"delivering footer to all handlers"<<endl;
+    for( uint i=0; i<handlers_.size(); i++ )
+    {
+      HandlerSet & hlist = handlers_[i];
+      HandlerSet::iterator iter = hlist.begin();
+      for( ; iter != hlist.end(); iter++ )
+      {
+        try { result_flag |= (*iter)->deliverFooter(footer); }
+        CatchExceptionsMore("delivering footer to '"+(*iter)->name()+"'");
+      }
     }
   }
   // post footer to output
@@ -397,7 +403,6 @@ int Meq::VisDataMux::deliverFooter (const DMI::Record &footer)
 int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
 {
   int result_flag = 0;
-  num_tiles_++;
   DMI::ExceptionList errors;
   try
   {

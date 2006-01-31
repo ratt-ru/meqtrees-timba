@@ -24,7 +24,7 @@
 #define COMMON_TYPENAMES_H
 
 //# Includes
-#include <Common/LofarTypes.h>
+#include <TimBase/LofarTypes.h>
 #include <string>
 
 namespace LOFAR
@@ -59,7 +59,7 @@ namespace LOFAR
 }
 
 // Include templated implementations.
-#include <Common/TypeNames.tcc>
+#include <TimBase/TypeNames.tcc>
 
 
 #endif

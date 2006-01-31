@@ -1,7 +1,7 @@
 #ifndef APPAGENT_SRC_APPEVENTFLAG_H_HEADER_INCLUDED_EC72D1EB
 #define APPAGENT_SRC_APPEVENTFLAG_H_HEADER_INCLUDED_EC72D1EB
     
-#include <Common/Thread/Condition.h>
+#include <TimBase/Thread/Condition.h>
 #include <DMI/CountedRef.h>
 
 namespace AppAgent

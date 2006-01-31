@@ -23,7 +23,7 @@
 #ifndef _VCube_VCube_h 
 #define _VCube_VCube_h 1
         
-#include <Common/Thread/Mutex.h>
+#include <TimBase/Thread/Mutex.h>
 #include <DMI/Record.h>
 #include <VisCube/VTile.h>
 #include <VisCube/AID-VisCube.h>

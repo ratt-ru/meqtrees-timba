@@ -1,8 +1,8 @@
 #ifndef DMI_TypeId_h
 #define DMI_TypeId_h 1
 
-#include <Common/LofarTypedefs.h>
-#include <Common/Lorrays.h>
+#include <TimBase/LofarTypedefs.h>
+#include <TimBase/Lorrays.h>
 #include <DMI/DMI.h>
 #include <DMI/TypeIterMacros.h>
 #include <DMI/Registry.h>

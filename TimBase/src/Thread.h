@@ -23,10 +23,10 @@
 #ifndef LOFAR_COMMON_THREAD_H
 #define LOFAR_COMMON_THREAD_H
     
-#include <Common/Thread/Thread.h>
-#include <Common/Thread/Key.h>
-#include <Common/Thread/Mutex.h>
-#include <Common/CheckConfig.h>
+#include <TimBase/Thread/Thread.h>
+#include <TimBase/Thread/Key.h>
+#include <TimBase/Thread/Mutex.h>
+#include <TimBase/CheckConfig.h>
     
 // You should invoke CHECK_CONFIG_THREADS(id) in every header file 
 // that defines a data structure that depends on USE_THREADs.

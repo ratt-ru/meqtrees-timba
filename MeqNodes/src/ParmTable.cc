@@ -26,7 +26,7 @@
 #include <MEQ/Domain.h>
 #include <MEQ/Polc.h>
 #include <MEQ/PolcLog.h>
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 #include <tables/Tables/TableLocker.h>
 #include <tables/Tables/TableDesc.h>
 #include <tables/Tables/ScaColDesc.h>
@@ -44,7 +44,7 @@
 #include <casa/Utilities/Regex.h>
 #include <casa/Utilities/GenSort.h>
 #include <casa/BasicMath/Math.h>
-#include <Common/BlitzToAips.h>
+#include <TimBase/BlitzToAips.h>
 
 using namespace casa;
 using namespace DebugMeq;

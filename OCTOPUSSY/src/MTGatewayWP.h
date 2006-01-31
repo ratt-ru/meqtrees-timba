@@ -4,12 +4,12 @@
 #ifdef USE_THREADS
 
 #include <DMI/DMI.h>
-#include <Common/Thread.h>
-#include <Common/Thread/Condition.h>
+#include <TimBase/Thread.h>
+#include <TimBase/Thread/Condition.h>
 #include <deque>
 //##ModelId=3DB958F10261
 
-#include <Common/Net/Socket.h>
+#include <TimBase/Net/Socket.h>
 #include <OCTOPUSSY/Subscriptions.h>
 #include <OCTOPUSSY/WorkProcess.h>
 

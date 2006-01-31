@@ -30,7 +30,7 @@
 #include <mpe.h>
 #endif
 
-#include <Common/lofar_string.h>
+#include <TimBase/lofar_string.h>
 #include <cstdio>
 
 namespace LOFAR

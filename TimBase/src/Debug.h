@@ -30,12 +30,12 @@ To disable this warning use -Wno-deprecated.
 
 #include <lofar_config.h>
 
-#include <Common/lofar_iostream.h>
-#include <Common/lofar_string.h>
-#include <Common/lofar_fstream.h>
-#include <Common/lofar_sstream.h>
-#include <Common/lofar_map.h>
-#include <Common/Exception.h>
+#include <TimBase/lofar_iostream.h>
+#include <TimBase/lofar_string.h>
+#include <TimBase/lofar_fstream.h>
+#include <TimBase/lofar_sstream.h>
+#include <TimBase/lofar_map.h>
+#include <TimBase/Exception.h>
 #ifdef ENABLE_LATENCY_STATS
 #include <sys/time.h>
 #endif

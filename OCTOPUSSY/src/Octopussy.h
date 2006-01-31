@@ -3,7 +3,7 @@
 
 #define MAKE_LOFAR_SYMBOLS_GLOBAL 1
 
-#include <Common/Thread.h>
+#include <TimBase/Thread.h>
     
 namespace Octopussy
 {

@@ -28,11 +28,11 @@
 // for thread safety too well
 // #define COUNTEDREF_LINKED_LIST 1
 
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 #include <DMI/DMI.h>
 #include <DMI/CountedRefTarget.h>
     
-#include <Common/lofar_iostream.h>
+#include <TimBase/lofar_iostream.h>
 // Uncomment this to enable verification calls during countedref operations
 // #define COUNTEDREF_VERIFY 1
 

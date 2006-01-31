@@ -162,6 +162,10 @@ def create_refparms (refnode):
   for all parameters between the new solution, and an older solution saved
   in mep-ref/.
   """;
+  ### temp kludge!!!
+  for q in refnode.quals:
+    if isinstance(q,int) and q>3:
+      return;
   nodename = refnode.name;
   mepname = refnode.initrec().table_name;
   r0 = refnode('ref') << Meq.Parm(0,table_name="mep-ref/"+mepname,node_groups='Ref',parm_name=nodename,cache_policy=100);
@@ -691,7 +695,7 @@ def _tdl_job_2_phase_solution_with_given_fluxes_all(mqs,parent,write=True):
     
     req = meq.request();
     req.input  = inputrec;
-    # req.input.max_tiles = 3;  # this can be used to shorten the processing, for testing
+    req.input.max_tiles = 1;  # this can be used to shorten the processing, for testing
     if write:
       req.output = outputrec;
     mqs.clearcache('verifier');
@@ -816,8 +820,7 @@ def _tdl_job_phase_solution_with_given_fluxes_centre(mqs, parent):
 
 
 
-Settings.forest_state.cache_policy = 1
-Settings.forest_state.a = None #100
+Settings.forest_state.cache_policy = 1  # 1 for smart caching, 100 for full caching
 Settings.orphans_are_roots = False
 
 if __name__ == '__main__':

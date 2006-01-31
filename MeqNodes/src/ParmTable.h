@@ -28,8 +28,8 @@
 #include <tables/Tables/ColumnsIndex.h>
 #include <casa/Containers/RecordField.h>
 #include <MEQ/Funklet.h>
-#include <Common/lofar_vector.h>
-#include <Common/Thread/Mutex.h>
+#include <TimBase/lofar_vector.h>
+#include <TimBase/Thread/Mutex.h>
 #include <map>
 
 

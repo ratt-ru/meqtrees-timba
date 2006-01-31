@@ -23,8 +23,8 @@
 #ifndef COMMON_LONUMERICS_H
 #define COMMON_LONUMERICS_H 1
 
-#include <Common/LofarTypes.h>
-#include <Common/lofar_complex.h>
+#include <TimBase/LofarTypes.h>
+#include <TimBase/lofar_complex.h>
 
 using LOFAR::fcomplex;
 using LOFAR::dcomplex;

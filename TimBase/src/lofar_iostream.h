@@ -23,7 +23,7 @@
 #ifndef COMMON_IOSTREAM_H
 #define COMMON_IOSTREAM_H
 
-#include <Common/lofar_iosfwd.h>
+#include <TimBase/lofar_iosfwd.h>
 #include <iostream>
 
 namespace LOFAR
@@ -40,7 +40,7 @@ namespace LOFAR
 }
 
 #ifdef MAKE_LOFAR_SYMBOLS_GLOBAL
-#include <Common/lofar_global_symbol_warning.h>
+#include <TimBase/lofar_global_symbol_warning.h>
 using LOFAR::istream;
 using LOFAR::ostream;
 using LOFAR::iostream;

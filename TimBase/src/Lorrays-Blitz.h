@@ -43,9 +43,9 @@
 # include <casa/Arrays/IPosition.h>
 #endif
 
-#include <Common/Lonumerics.h>
-#include <Common/lofar_string.h>
-#include <Common/lofar_vector.h>
+#include <TimBase/Lonumerics.h>
+#include <TimBase/lofar_string.h>
+#include <TimBase/lofar_vector.h>
     
 //    
 // Define the DoForAllArrayTypes and DoForAllNonArrayTypes macros.

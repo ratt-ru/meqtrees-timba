@@ -21,13 +21,13 @@
 //#  $Id$
 
 #include <lofar_config.h>
-#include <Common/lofar_iostream.h>
+#include <TimBase/lofar_iostream.h>
 
 using namespace LOFAR;
 
 #ifdef HAVE_BLITZ
 
-#include <Common/Lorrays.h>
+#include <TimBase/Lorrays.h>
 
 int main ()
 {

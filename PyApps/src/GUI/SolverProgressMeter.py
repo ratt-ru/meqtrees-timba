@@ -31,6 +31,7 @@ class SolverProgressMeter (QHBox):
     QObject.connect(app,PYSIGNAL("solver.begin"),self.xcurry(self.solver_begin,_argslice=slice(1,2)));
     QObject.connect(app,PYSIGNAL("solver.iter"),self.xcurry(self.solver_iter,_argslice=slice(1,2)));
     QObject.connect(app,PYSIGNAL("solver.end"),self.xcurry(self.solver_end,_argslice=slice(1,2)));
+    QObject.connect(app,PYSIGNAL("isConnected()"),self.xcurry(self.reset));
   
   def solver_begin (self,rec):
     """processes solver.begin record. Usually connected to a Solver.Begin signal""";

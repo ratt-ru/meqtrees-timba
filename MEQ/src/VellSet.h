@@ -25,7 +25,7 @@
 
 //# Includes
 #include <iostream>
-#include <Common/lofar_vector.h>
+#include <TimBase/lofar_vector.h>
 #include <MEQ/Vells.h>
 #include <DMI/Record.h>
 #include <DMI/Vec.h>

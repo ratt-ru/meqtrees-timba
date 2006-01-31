@@ -20,10 +20,10 @@
 //#
 //# $Id$
 
-#include <Common/Net/Socket.h>
-#include <Common/LofarLogger.h>
-#include <Common/StringUtil.h>
-#include <Common/hexdump.h>
+#include <TimBase/Net/Socket.h>
+#include <TimBase/LofarLogger.h>
+#include <TimBase/StringUtil.h>
+#include <TimBase/hexdump.h>
 
 #include <sys/socket.h>
 #include <sys/time.h>

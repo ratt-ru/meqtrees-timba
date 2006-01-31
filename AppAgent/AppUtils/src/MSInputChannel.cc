@@ -21,10 +21,10 @@
 //  $Id$
 
 #define AIPSPP_HOOKS
-#include <Common/AipsppMutex.h>
+#include <TimBase/AipsppMutex.h>
 #include "MSInputChannel.h"
 #include <AppAgent/VisDataVocabulary.h>
-#include <Common/BlitzToAips.h>
+#include <TimBase/BlitzToAips.h>
 #include <DMI/AIPSPP-Hooks.h>
 
 #include <ms/MeasurementSets/MSAntenna.h>

@@ -9,7 +9,7 @@
 #include <casa/BasicSL/String.h>
     
 #include <DMI/NumArray.h>
-#include <Common/BlitzToAips.h>
+#include <TimBase/BlitzToAips.h>
 
 class casa::String;
 

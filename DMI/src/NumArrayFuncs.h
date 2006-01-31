@@ -20,6 +20,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.2  2006/01/31 12:23:09  smirnov
+//  Common renamed to TimBase
+//
 //  Revision 1.1  2005/08/15 12:41:58  smirnov
 //  Upped the max array rank to 16.
 //  Split up NumArray LUT-functions into 8 separate .cc files to speed up
@@ -30,7 +33,7 @@
 #ifndef DMI_NUMARRAYFUNCS_H
 #define DMI_NUMARRAYFUNCS_H
 
-#include <Common/Lorrays.h>
+#include <TimBase/Lorrays.h>
 
 #ifndef LORRAYS_USE_BLITZ
   #error This version of NumArray requires Blitz Lorrays

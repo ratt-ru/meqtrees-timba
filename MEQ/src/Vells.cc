@@ -22,7 +22,7 @@
 
 // #define MEQVELLS_SKIP_FUNCTIONS 1
 #include <MEQ/Vells.h>
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 #include <DMI/Global-Registry.h>
 #include <cmath>
 #include <complex>

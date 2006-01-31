@@ -9,7 +9,7 @@
 
 #include "meqCopy.h"
 #include <MEQ/Vells.h>
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 
 #define   meqFlagger        *(values[0])
 

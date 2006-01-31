@@ -39,7 +39,7 @@
 // pulls in Vec.h and Array.h, which in turn include 
 // Container.h. 
       
-#include <Common/Thread/Mutex.h>
+#include <TimBase/Thread/Mutex.h>
 #include <DMI/DMI.h>
 #include <DMI/TypeInfo.h>
 #include <DMI/Timestamp.h>

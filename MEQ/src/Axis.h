@@ -23,7 +23,7 @@
 #ifndef MEQ_AXIS_H
 #define MEQ_AXIS_H
 
-#include <Common/Lorrays.h>
+#include <TimBase/Lorrays.h>
 #include <DMI/HIID.h>
 #include <DMI/Vec.h>
 #include <MEQ/Meq.h>

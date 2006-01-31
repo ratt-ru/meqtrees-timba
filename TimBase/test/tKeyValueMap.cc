@@ -21,14 +21,14 @@
 //  $Id$
 
 
-#include <Common/KeyValueMap.h>
-#include <Common/KeyParser.h>
-#include <Common/BlobOBufChar.h>
-#include <Common/BlobIBufChar.h>
-#include <Common/BlobOStream.h>
-#include <Common/BlobIStream.h>
-#include <Common/LofarLogger.h>
-#include <Common/lofar_iostream.h>
+#include <TimBase/KeyValueMap.h>
+#include <TimBase/KeyParser.h>
+#include <TimBase/BlobOBufChar.h>
+#include <TimBase/BlobIBufChar.h>
+#include <TimBase/BlobOStream.h>
+#include <TimBase/BlobIStream.h>
+#include <TimBase/LofarLogger.h>
+#include <TimBase/lofar_iostream.h>
 
 using namespace LOFAR;
 

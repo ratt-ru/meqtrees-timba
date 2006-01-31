@@ -27,8 +27,8 @@
 
 #include "config.h"
 #include "lofar_config.h"
-#include <Common/Debug.h>
-#include <Common/LofarTypes.h>
+#include <TimBase/Debug.h>
+#include <TimBase/LofarTypes.h>
 #include <stdio.h>
 #include <string>
 #include <vector>

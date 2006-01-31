@@ -20,7 +20,7 @@
 //#
 //#  $Id$
 
-#include <Common/Exception.h>
+#include <TimBase/Exception.h>
 #include <sstream>
 
 namespace LOFAR {

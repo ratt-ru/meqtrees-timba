@@ -25,7 +25,7 @@
 
 #include <DMI/DMI.h>
 #include <DMI/Registry.h>
-#include <Common/lofar_iostream.h>
+#include <TimBase/lofar_iostream.h>
 
 #include <map>
     

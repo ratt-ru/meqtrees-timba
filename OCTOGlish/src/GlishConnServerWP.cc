@@ -1,7 +1,7 @@
 #include "GlishConnServerWP.h"
 #include "GlishThreadWP.h"
 
-#include <Common/StringUtil.h>
+#include <TimBase/StringUtil.h>
 #include <tasking/Glish.h>
 
 #include <pwd.h>

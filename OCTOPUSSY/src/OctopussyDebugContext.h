@@ -1,7 +1,7 @@
 #ifndef OCTOPUSSY_OctopussyDebugContext_h
 #define OCTOPUSSY_OctopussyDebugContext_h 1
 
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 
 namespace DebugOctopussy
 {

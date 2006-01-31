@@ -28,7 +28,7 @@
 #include <MEQ/Domain.h>
 #include <MEQ/AID-Meq.h>
 #include <DMI/Record.h>
-#include <Common/Lorrays.h>
+#include <TimBase/Lorrays.h>
 #include <ostream>
 
 #pragma aidgroup Meq

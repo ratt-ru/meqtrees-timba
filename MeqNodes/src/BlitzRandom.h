@@ -1,7 +1,7 @@
 #ifndef MEQNODES_BLITZRANDOM_H
 #define MEQNODES_BLITZRANDOM_H
 
-#include <Common/Thread.h>
+#include <TimBase/Thread.h>
 #include <time.h>
     
 #include <random/uniform.h>

@@ -24,8 +24,8 @@
 #define COMMON_SOCKET_H
 
 #include <lofar_config.h>
-#include <Common/lofar_string.h>
-#include <Common/LofarTypes.h>
+#include <TimBase/lofar_string.h>
+#include <TimBase/LofarTypes.h>
 
 #if defined(__sun)
 #include <arpa/nameser.h>

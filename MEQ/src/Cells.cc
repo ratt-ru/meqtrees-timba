@@ -24,7 +24,7 @@
 //# Includes
 #include "Cells.h"
 #include "MeqVocabulary.h"
-#include <Common/Lorrays.h>
+#include <TimBase/Lorrays.h>
 #include <DMI/NumArray.h>
 
 namespace Meq {

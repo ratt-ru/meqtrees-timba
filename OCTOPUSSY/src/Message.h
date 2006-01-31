@@ -1,7 +1,7 @@
 #ifndef OCTOPUSSY_Message_h
 #define OCTOPUSSY_Message_h 1
 
-#include <Common/CheckConfig.h>
+#include <TimBase/CheckConfig.h>
 #include <DMI/SmartBlock.h>
 #include <DMI/HIID.h>
 #include <DMI/Record.h>

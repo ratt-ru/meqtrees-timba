@@ -7,8 +7,8 @@
 #include <unistd.h>
 #include <stack>
 #include <map>
-#include <Common/Thread.h>
-#include <Common/Thread/Condition.h>
+#include <TimBase/Thread.h>
+#include <TimBase/Thread/Condition.h>
 #include <DMI/DMI.h>
 #include <DMI/Timestamp.h>
 #include <DMI/Record.h>

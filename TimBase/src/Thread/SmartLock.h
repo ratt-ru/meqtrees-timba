@@ -24,7 +24,7 @@
 #define LOFAR_COMMON_THREAD_SMARTLOCK_H
 
 //# Includes
-#include <Common/Thread/Condition.h>
+#include <TimBase/Thread/Condition.h>
 
 namespace LOFAR 
 {

@@ -33,7 +33,7 @@
 #error AIPS++ support required
 #endif
     
-#include <Common/Lorrays.h>
+#include <TimBase/Lorrays.h>
 #include <casa/Arrays/Array.h>
 
 #ifndef LORRAYS_USE_BLITZ

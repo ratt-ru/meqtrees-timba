@@ -20,8 +20,8 @@
 //#
 //#  $Id$
 
-#include <Common/LofarLogCout.h>
-#include <Common/lofar_fstream.h>
+#include <TimBase/LofarLogCout.h>
+#include <TimBase/lofar_fstream.h>
 #include <cstdarg>
 #include <sys/time.h>
 

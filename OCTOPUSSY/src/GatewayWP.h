@@ -2,7 +2,7 @@
 #define OCTOPUSSY_GatewayWP_h 1
 
 #include <DMI/DMI.h>
-#include <Common/Net/Socket.h>
+#include <TimBase/Net/Socket.h>
 #include <OCTOPUSSY/Subscriptions.h>
 #include <OCTOPUSSY/WorkProcess.h>
 

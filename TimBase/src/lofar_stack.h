@@ -23,7 +23,7 @@
 #ifndef COMMON_STACK_H
 #define COMMON_STACK_H
 
-#include <Common/lofar_deque.h>
+#include <TimBase/lofar_deque.h>
 #include <stack>
 
 namespace LOFAR
@@ -32,7 +32,7 @@ namespace LOFAR
 }
 
 #ifdef MAKE_LOFAR_SYMBOLS_GLOBAL
-#include <Common/lofar_global_symbol_warning.h>
+#include <TimBase/lofar_global_symbol_warning.h>
 using LOFAR::stack;
 #endif
 

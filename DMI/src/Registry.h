@@ -1,12 +1,12 @@
 #ifndef DMI_Registry_h
 #define DMI_Registry_h 1
 
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 #include <DMI/DMI.h>
 #include <map>
 
 #ifdef USE_THREADS
-#include <Common/Thread/Mutex.h>
+#include <TimBase/Thread/Mutex.h>
 #define lockMutex LOFAR::Thread::Mutex::Lock _lock(HostClass::_registry_mutex)
 #define declareMutex static pthread_mutex_t _registry_mutex
 #define defineMutex(Class) pthread_mutex_t Class::_registry_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP

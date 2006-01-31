@@ -21,6 +21,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.42  2006/01/31 12:23:09  smirnov
+//  Common renamed to TimBase
+//
 //  Revision 1.41  2005/09/15 11:46:44  smirnov
 //  Revised error reporting to allow hierarchical exceptions
 //
@@ -216,16 +219,16 @@
 #ifndef DMI_NUMARRAY_H
 #define DMI_NUMARRAY_H
 
-#include <Common/Lorrays.h>
-#include <Common/Thread/Mutex.h>
-#include <Common/Thread/Key.h>
+#include <TimBase/Lorrays.h>
+#include <TimBase/Thread/Mutex.h>
+#include <TimBase/Thread/Key.h>
 #include <DMI/DMI.h>
 #include <DMI/Container.h>
 #include <DMI/NumArrayFuncs.h>
 
 #ifdef HAVE_AIPSPP
 #include <casa/Arrays.h>
-#include <Common/BlitzToAips.h>
+#include <TimBase/BlitzToAips.h>
 #endif
 
 #pragma types #DMI::NumArray

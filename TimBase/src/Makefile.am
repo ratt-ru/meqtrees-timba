@@ -49,9 +49,9 @@ noinst_HEADERS = $(NOINSTHDRS)
 
 DOCHDRS	= $(INSTHDRS) $(NOINSTHDRS)
 
-lib_LTLIBRARIES 	= libcommon.la
+lib_LTLIBRARIES 	= libtimbase.la
 
-libcommon_la_SOURCES 	= \
+libtimbase_la_SOURCES 	= \
         AipsppMutex.cc \
         Debug.cc \
         Exception.cc \

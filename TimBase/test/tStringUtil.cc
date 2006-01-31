@@ -20,7 +20,7 @@
 //#
 //#  $Id$
 
-#include <Common/StringUtil.h>
+#include <TimBase/StringUtil.h>
 #include <iostream>
 
 using namespace LOFAR;

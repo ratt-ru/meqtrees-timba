@@ -1,6 +1,6 @@
-#include <Common/Thread/Thread.h>
+#include <TimBase/Thread/Thread.h>
 
-#include <Common/CheckConfig.h>
+#include <TimBase/CheckConfig.h>
 #ifdef USE_THREADS
 CHECK_CONFIG_CC(UseThreads,yes);
 #include <map>

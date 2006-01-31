@@ -1,9 +1,9 @@
 #ifndef MEQ_MEQ_H
 #define MEQ_MEQ_H
 
-#include <Common/Debug.h>
-#include <Common/Thread/Mutex.h>
-#include <Common/AipsppMutex.h>
+#include <TimBase/Debug.h>
+#include <TimBase/Thread/Mutex.h>
+#include <TimBase/AipsppMutex.h>
 #include <DMI/DMI.h>
 #include <DMI/Exception.h>
     

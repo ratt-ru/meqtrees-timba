@@ -22,7 +22,7 @@
 
 #include "MSOutputSink.h"
 
-#include <Common/BlitzToAips.h>
+#include <TimBase/BlitzToAips.h>
 #include <DMI/Exception.h>
 
 #include <tables/Tables/ArrColDesc.h>

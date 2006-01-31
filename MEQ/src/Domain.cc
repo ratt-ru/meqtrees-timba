@@ -20,7 +20,7 @@
 //#
 //# $Id$
 
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 #include <DMI/Vec.h>
 #include "Domain.h"
 #include "MeqVocabulary.h"

@@ -23,8 +23,8 @@
 #ifndef VCube_VTile_h
 #define VCube_VTile_h 1
 
-#include <Common/Lorrays.h>
-#include <Common/Thread/Mutex.h>
+#include <TimBase/Lorrays.h>
+#include <TimBase/Thread/Mutex.h>
 #include <DMI/TypeInfo.h>
 #include <VisCube/ColumnarTableTile.h>
 

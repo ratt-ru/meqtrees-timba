@@ -25,7 +25,7 @@
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Vells.h>
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 
 using namespace LOFAR;
 using namespace Meq;

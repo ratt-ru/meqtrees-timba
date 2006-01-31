@@ -22,8 +22,8 @@
 #ifndef MEQ_NODE_H_HEADER_INCLUDED_E5514413
 #define MEQ_NODE_H_HEADER_INCLUDED_E5514413
     
-#include <Common/Stopwatch.h>
-#include <Common/Thread/Condition.h>
+#include <TimBase/Stopwatch.h>
+#include <TimBase/Thread/Condition.h>
 #include <DMI/Record.h>
 #include <MEQ/EventGenerator.h>
 #include <MEQ/Result.h>

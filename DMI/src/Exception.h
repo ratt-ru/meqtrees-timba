@@ -23,7 +23,7 @@
 #ifndef DMI_Exceptions_h
 #define DMI_Exceptions_h 1
 
-#include <Common/Exception.h>
+#include <TimBase/Exception.h>
 #include <DMI/BObj.h>
 
 #include <list>

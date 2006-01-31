@@ -23,7 +23,7 @@
 #ifndef COMMON_LOFARTYPES_H
 #define COMMON_LOFARTYPES_H
 
-#include <Common/LofarTypedefs.h>
+#include <TimBase/LofarTypedefs.h>
 #include <lofar_config.h>
 
 //# Make sure we include <sys/types.h> or <qglobal.h> if availabe. These files
@@ -67,7 +67,7 @@ namespace LOFAR
 }
 
 #ifdef MAKE_LOFAR_SYMBOLS_GLOBAL
-#include <Common/lofar_global_symbol_warning.h>
+#include <TimBase/lofar_global_symbol_warning.h>
 
 //# Make the type names defined in LofarTypedefs.h available in the
 //# global name space.

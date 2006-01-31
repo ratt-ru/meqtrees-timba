@@ -1,11 +1,11 @@
-#include <Common/Profiling/PerfProfile.h>
+#include <TimBase/Profiling/PerfProfile.h>
 
 #include "CompiledFunklet.h"
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/MeqVocabulary.h>
-#include <Common/Debug.h>
-#include <Common/lofar_vector.h>
+#include <TimBase/Debug.h>
+#include <TimBase/lofar_vector.h>
 #include <cstdlib>
 #include <cmath>
 

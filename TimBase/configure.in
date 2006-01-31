@@ -5,7 +5,7 @@ AC_INIT
 dnl AC_CONFIG_AUX_DIR(config)
 dnl AM_CONFIG_HEADER(config/config.h)
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(Common, 2.0, no-define)
+AM_INIT_AUTOMAKE(TimBase, 2.0, no-define)
 
 dnl Initialize for LOFAR (may set compilers)
 lofar_INIT

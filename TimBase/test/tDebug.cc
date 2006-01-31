@@ -21,8 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.3  2006/01/31 12:23:10  smirnov
+//  Common renamed to TimBase
+//
 //  Revision 1.2  2006/01/31 10:30:15  cvs
-//  %lofarcvsmv%: Moved from LOFAR/Timba/Common/test, creating new revision
+//  %lofarcvsmv%: Moved from LOFAR/Timba/TimBase/test, creating new revision
 //
 //  Revision 1.1  2005/01/17 13:27:33  smirnov
 //  %[ER: 16]%
@@ -69,7 +72,7 @@
 //
 
 
-#include "Common/Debug.h"
+#include "TimBase/Debug.h"
 
 using namespace LOFAR;
 using namespace DebugDefault;

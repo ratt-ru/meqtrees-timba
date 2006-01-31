@@ -56,7 +56,7 @@ dnl lofar_MATLAB
 dnl lofar_AIPSPP(1)
 dnl lofar_MPI
 lofar_BLITZ(1)
-lofar_PACKAGE(Timba/Common)
+lofar_PACKAGE(Timba/TimBase)
 
 dnl
 dnl Output Makefiles

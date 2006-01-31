@@ -2,7 +2,7 @@
 #define DMI_ConfigMgr_h 1
 
 #include <DMI/DMI.h>
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
     
 namespace DMI
 {

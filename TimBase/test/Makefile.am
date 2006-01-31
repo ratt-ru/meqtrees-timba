@@ -13,24 +13,24 @@ TESTS	= tDebug_test.sh \
 	  tTimer
 
 tDebug_SOURCES			= tDebug.cc
-tDebug_LDADD			= ../src/libcommon.la
-tDebug_DEPENDENCIES		= ../src/libcommon.la $(LOFAR_DEPEND)
+tDebug_LDADD			= ../src/libtimbase.la
+tDebug_DEPENDENCIES		= ../src/libtimbase.la $(LOFAR_DEPEND)
 
 testSocket_SOURCES		= testSocket.cc
-testSocket_LDADD		= ../src/libcommon.la	
-testSocket_DEPENDENCIES		= ../src/libcommon.la $(LOFAR_DEPEND)
+testSocket_LDADD		= ../src/libtimbase.la	
+testSocket_DEPENDENCIES		= ../src/libtimbase.la $(LOFAR_DEPEND)
 
 tStringUtil_SOURCES		= tStringUtil.cc
-tStringUtil_LDADD		= ../src/libcommon.la	
-tStringUtil_DEPENDENCIES	= ../src/libcommon.la $(LOFAR_DEPEND)
+tStringUtil_LDADD		= ../src/libtimbase.la	
+tStringUtil_DEPENDENCIES	= ../src/libtimbase.la $(LOFAR_DEPEND)
 
 tLorrays_SOURCES		= tLorrays.cc
-tLorrays_LDADD			= ../src/libcommon.la	
-tLorrays_DEPENDENCIES		= ../src/libcommon.la $(LOFAR_DEPEND)
+tLorrays_LDADD			= ../src/libtimbase.la	
+tLorrays_DEPENDENCIES		= ../src/libtimbase.la $(LOFAR_DEPEND)
 
 tTimer_SOURCES			= tTimer.cc
-tTimer_LDADD			= ../src/libcommon.la	
-tTimer_DEPENDENCIES		= ../src/libcommon.la $(LOFAR_DEPEND)
+tTimer_LDADD			= ../src/libtimbase.la	
+tTimer_DEPENDENCIES		= ../src/libtimbase.la $(LOFAR_DEPEND)
 
 TESTS_ENVIRONMENT		= lofar_sharedir=$(lofar_sharedir)
 

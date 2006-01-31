@@ -1,4 +1,4 @@
-#include <Common/Debug.h>
+#include <TimBase/Debug.h>
 #include "Octopussy.h"
 #include "Dispatcher.h"
 #include "Gateways.h"

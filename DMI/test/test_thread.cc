@@ -4,7 +4,7 @@
 #include "DMI/TID-DMI.h"
 #include "DMI/Record.h"
 #include "DMI/NumArray.h"
-#include "Common/Thread.h"
+#include "TimBase/Thread.h"
         
 DMI::SmartBlock *sblock;
 DMI::Record *rec;

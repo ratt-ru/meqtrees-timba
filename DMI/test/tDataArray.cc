@@ -1,6 +1,6 @@
 #include "DMI/NumArray.h"
 #include "DMI/Record.h"
-#include "Common/Debug.h"
+#include "TimBase/Debug.h"
 //#include <casa/Arrays/ArrayMath.h>
 //#include <casa/Arrays/ArrayLogical.h>
 

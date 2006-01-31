@@ -24,7 +24,7 @@
 #define LOFAR_COMMON_THREAD_KEY_H
 
 //# Includes
-#include <Common/Thread/Thread.h>
+#include <TimBase/Thread/Thread.h>
 
 namespace LOFAR
 {
