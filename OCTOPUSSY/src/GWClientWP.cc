@@ -424,7 +424,7 @@ void GWClientWP::tryConnect (Connection &cx)
 void initGateways (Dispatcher &dsp)
 {
   dsp.attach(new GWServerWP(-1),DMI::ANON);
-  dsp.attach(new GWServerWP("",0),DMI::ANON);
+  dsp.attach(new GWServerWP("",-1),DMI::ANON);
   dsp.attach(new GWClientWP,DMI::ANON);
 }
 

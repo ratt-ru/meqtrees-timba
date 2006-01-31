@@ -58,6 +58,9 @@ GWServerWP::GWServerWP (const string &path, int port1)
     while( (pos0 = hostname.find_first_of("%U")) != string::npos )
       hostname = hostname.substr(0,pos0) + uid + hostname.substr(pos0+2);
   }
+  // get port from config if not specified
+  if( port<0 )
+    config.get("gwport",port,4808);
 }
 
 
