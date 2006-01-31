@@ -21,6 +21,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.2  2006/01/31 10:30:15  cvs
+//  %lofarcvsmv%: Moved from LOFAR/Timba/Common/test, creating new revision
+//
 //  Revision 1.1  2005/01/17 13:27:33  smirnov
 //  %[ER: 16]%
 //  Branching off a version of Common
