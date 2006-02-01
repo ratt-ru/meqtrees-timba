@@ -56,8 +56,8 @@ int Resampler::getResult (Result::Ref &resref,
                            const std::vector<Result::Ref> &childres,
                            const Request &request,bool)
 {
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,childres);
+  //std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  //lockMutexes(child_reslock,childres);
   Assert(childres.size()==1);
   const Result &chres = *( childres.front() );
   const Cells &incells = chres.cells();
@@ -67,7 +67,6 @@ int Resampler::getResult (Result::Ref &resref,
   // return child result directly if nothing is to be done
   if( resampler.isIdentical() )
   {
-		cout<<" Identical"<<endl;
     resref.copy(childres.front());
     //resref=childres[0];
     return 0;
