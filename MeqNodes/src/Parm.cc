@@ -124,6 +124,7 @@ namespace Meq {
     funkletref.detach();
     if( parmtable_ )
       {
+	parmtable_ = ParmTable::openTable(parmtable_->name());
 	vector<Funklet::Ref> funklets;
 	int n = parmtable_->getFunklets(funklets,name_,domain);
 	cdebug(3)<<n<<" funklets found in MEP table"<<endl;
@@ -161,6 +162,8 @@ namespace Meq {
       {
 	if( parmtable_ )
 	  {
+	    parmtable_ = ParmTable::openTable(parmtable_->name());
+
 	    int n = parmtable_->getInitCoeff(funkletref,name_);
 	    cdebug(3)<<"looking for funklets in defaults subtable: "<<n<<endl;
 	  }
@@ -536,6 +539,8 @@ namespace Meq {
       return;
     if( !its_funklet_.valid() ) 
       return;
+    parmtable_ = ParmTable::openTable(parmtable_->name());
+
     if(its_funklet_->objectType()==TpMeqComposedPolc){
       DMI::List *funklist = its_funklet_()[FFunkletList].as_wpo<DMI::List>();
       if(!funklist) return;
