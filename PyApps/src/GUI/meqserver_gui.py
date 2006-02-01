@@ -899,6 +899,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       return None;
     _dprint(5,'got state for node ',name);
     self.update_node_state(state,ev);
+    meqds.update_node_state(state,ev);
     return True;
     
   _prefix_NodeStatus = hiid('node.status');
