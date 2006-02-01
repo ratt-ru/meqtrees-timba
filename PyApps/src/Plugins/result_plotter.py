@@ -288,6 +288,8 @@ class ResultPlotter(GriddedPlugin):
             self._plot_type = plot_parms.get('plot_type')
           if plot_parms.has_key('type'):
             self._plot_type = plot_parms.get('type')
+          if plot_parms.has_key('results_buffer'):
+            self.max_list_length = plot_parms.get('results_buffer')
       else:
 # first get plot_type at first possible point in list - nearest root
         list_length = len(attribute_list)
@@ -301,6 +303,8 @@ class ResultPlotter(GriddedPlugin):
             if plot_parms.has_key('attrib'):
               temp_parms = plot_parms.get('attrib')
               plot_parms = temp_parms
+            if plot_parms.has_key('results_buffer'):
+              self.max_list_length = plot_parms.get('results_buffer')
             if plot_parms.has_key('plot_type'):
               self._plot_type = plot_parms.get('plot_type')
               break
