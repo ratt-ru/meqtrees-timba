@@ -41,7 +41,7 @@ const HIID symdeps[] = { FDomain,FResolution };
 
 //##ModelId=400E5355029C
 ModRes::ModRes()
-: Node(1),res_index_(0) // 1 child expected
+: Node(1), do_resample_(0),res_index_(0) // 1 child expected
 {
   // our own result depends on domain & resolution
   res_symdeps_.assign(1,AidResolution);

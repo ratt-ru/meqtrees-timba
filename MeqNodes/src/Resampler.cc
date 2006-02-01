@@ -67,7 +67,9 @@ int Resampler::getResult (Result::Ref &resref,
   // return child result directly if nothing is to be done
   if( resampler.isIdentical() )
   {
+		cout<<" Identical"<<endl;
     resref.copy(childres.front());
+    //resref=childres[0];
     return 0;
   }
   // do the resampling  
