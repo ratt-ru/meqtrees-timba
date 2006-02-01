@@ -91,7 +91,6 @@ int Resampler::getResult (Result::Ref &resref,
   return 0;
 }
 
-
 ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
   : flag_mask_(-1),flag_bit_(0),flag_density_(0.5),identical_(false)
 {
@@ -135,9 +134,13 @@ ResampleMachine::ResampleMachine(const Cells &in, const Cells &out)
 	//it will be taken to be idential for the moment
   identical_=((nx_==nxs)&&(ny_==nys));	
 #ifdef DEBUG
-  cout<<"Itentical "<<identical_<<endl;
+  cout<<"Identical "<<identical_<<endl;
 #endif
-
+  //we need a resampler only if not identical
+	//so if idential_, stop here
+	if (identical_) {
+			return;
+	}
 	//resize the array to store cumulative flags+weights
 	cell_weight_.resize(nx_,ny_);
 	//make it zero
