@@ -144,6 +144,7 @@ namespace Meq {
   
     //##ModelId=400E535000A3
     ParmTable * parmtable_;
+    std::string parmtable_name_;
   
     //##ModelId=400E535000B2
     //##Documentation

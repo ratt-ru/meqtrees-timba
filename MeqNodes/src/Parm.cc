@@ -124,7 +124,7 @@ namespace Meq {
     funkletref.detach();
     if( parmtable_ )
       {
-	parmtable_ = ParmTable::openTable(parmtable_->name());
+	parmtable_ = ParmTable::openTable(parmtable_name_);
 	vector<Funklet::Ref> funklets;
 	int n = parmtable_->getFunklets(funklets,name_,domain);
 	cdebug(3)<<n<<" funklets found in MEP table"<<endl;
@@ -162,7 +162,7 @@ namespace Meq {
       {
 	if( parmtable_ )
 	  {
-	    parmtable_ = ParmTable::openTable(parmtable_->name());
+	    parmtable_ = ParmTable::openTable(parmtable_name_);
 
 	    int n = parmtable_->getInitCoeff(funkletref,name_);
 	    cdebug(3)<<"looking for funklets in defaults subtable: "<<n<<endl;
@@ -539,7 +539,7 @@ namespace Meq {
       return;
     if( !its_funklet_.valid() ) 
       return;
-    parmtable_ = ParmTable::openTable(parmtable_->name());
+    parmtable_ = ParmTable::openTable(parmtable_name_);
 
     if(its_funklet_->objectType()==TpMeqComposedPolc){
       DMI::List *funklist = its_funklet_()[FFunkletList].as_wpo<DMI::List>();
@@ -661,14 +661,13 @@ namespace Meq {
 
 
     // Get ParmTable name 
-    string tableName;
     HIID tableId;
     TypeId  TableType;
     if( rec->hasField(FTableName))
       {  TableType= rec[FTableName].type();   
 	//check wether tablename is a string or a hiid in which case one should look in the forest state for the name
 	if(TableType==Tpstring)
-	  rec[FTableName].get(tableName);
+	  rec[FTableName].get(parmtable_name_);
 	else if(TableType==TpDMIHIID)
 	  {
 	    //try to get the name from forest
@@ -677,21 +676,21 @@ namespace Meq {
 	    const DMI::Record &Fstate=forest().state();
 	    if(Fstate.hasField(tableId) && Fstate[tableId].type()==Tpstring) 
 	      {
-		Fstate[tableId].get(tableName);
+		Fstate[tableId].get(parmtable_name_);
 	      }
 	  }
-	if (tableName.empty())
+	if (parmtable_name_.empty())
 	  cdebug(2)<<"TableName doesnot have  correct type, or not found in forest state"<<endl; 
       
-	if( tableName.empty() ) { // no table
+	if( parmtable_name_.empty() ) { // no table
 	  parmtable_ = 0;
 	}
 	else    // else open a table
 	  {
-	    cdebug(2)<<"opening table: "<<tableName<<endl;
+	    cdebug(2)<<"opening table: "<<parmtable_name_<<endl;
 	    //check if table exists, otherwise create.
 	    
-	    parmtable_ = ParmTable::openTable(tableName);
+	    parmtable_ = ParmTable::openTable(parmtable_name_);
 	  }
       }//if rec[TableName]
     
