@@ -321,9 +321,13 @@ def forest_clean_patch_predict_trees(ns, patch_name, source_list, station_list):
     # create station-source dfts
     for source in source_list:
         for station in station_list:
-            ns.dft(station, source.name) << Meq.VisPhaseShift(
-                                                 lmn=ns.lmn_minus1(source.name),
-                                                 uvw=ns.uvw(station))
+            ns.dft(station,source.name) << Meq.Resampler( 
+              ns.dft_modres(station,source.name) << Meq.ModRes(
+                ns.dft_hires(station,source.name) << 
+                  Meq.VisPhaseShift(lmn=ns.lmn_minus1(source.name),
+                                uvw=ns.uvw(station))
+                )
+            )
             ns.conjdft(station, source.name) << Meq.Conj(ns.dft(station, source.name))
             pass # for station
         pass #for source
@@ -358,14 +362,10 @@ def forest_baseline_predict_trees(ns, interferometer_list, patch_names):
     for (ant1, ant2) in interferometer_list:
         corrupted_patch_vis_list = []
         for patch_name in patch_names:
-            ns.corrupted_patch_vis(ant1,ant2,patch_name) << Meq.Resampler(
-                ns.corrupted_patch_modres(ant1,ant2,patch_name) << Meq.ModRes(
-                    ns.corrupted_patch_hires(ant1,ant2,patch_name) <<      
+            ns.corrupted_patch_vis(ant1,ant2,patch_name) <<     \
                       Meq.MatrixMultiply(ns.J(ant1,patch_name), 
                                  ns.clean_visibility(ant1,ant2, patch_name),
                                  ns.ctJ(ant2, patch_name))
-                )
-            );
             corrupted_patch_vis_list.append(ns.corrupted_patch_vis(ant1,ant2,patch_name))        
             pass
         ns.predict(ant1, ant2) << Meq.Add(cache_num_active_parents=1,children=deepcopy(corrupted_patch_vis_list))    
@@ -648,7 +648,12 @@ def _tdl_job_1_source_flux_fit_no_calibration(mqs,parent,write=True):
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
-    set_MAB_node_state(mqs,'modres',record(num_cells=[1,0]))
+    # number of cells to resample to
+    nc = 4
+    set_MAB_node_state(mqs,'modres',record(num_cells=[nc,0]))
+    for st in range(1,15):
+      for src in ("3C343",):
+        set_MAB_node_state(mqs,':'.join(('dft_modres',str(st),src)),record(num_cells=[1000,0]))
     
     req = meq.request();
     req.input  = inputrec;
