@@ -358,10 +358,14 @@ def forest_baseline_predict_trees(ns, interferometer_list, patch_names):
     for (ant1, ant2) in interferometer_list:
         corrupted_patch_vis_list = []
         for patch_name in patch_names:
-            ns.corrupted_patch_vis(ant1,ant2,patch_name) << \
-                    Meq.MatrixMultiply(ns.J(ant1,patch_name), 
+            ns.corrupted_patch_vis(ant1,ant2,patch_name) << Meq.Resampler(
+                ns.corrupted_patch_modres(ant1,ant2,patch_name) << Meq.ModRes(
+                    ns.corrupted_patch_hires(ant1,ant2,patch_name) <<      
+                      Meq.MatrixMultiply(ns.J(ant1,patch_name), 
                                  ns.clean_visibility(ant1,ant2, patch_name),
                                  ns.ctJ(ant2, patch_name))
+                )
+            );
             corrupted_patch_vis_list.append(ns.corrupted_patch_vis(ant1,ant2,patch_name))        
             pass
         ns.predict(ant1, ant2) << Meq.Add(cache_num_active_parents=1,children=deepcopy(corrupted_patch_vis_list))    
