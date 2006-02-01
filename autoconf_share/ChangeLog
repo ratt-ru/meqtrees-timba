@@ -1,3 +1,185 @@
+2006-01-31 10:10  smirnov
+
+	* variants.birch, variants.lofar10, variants.lofar9: BugID: 95
+
+2006-01-30 12:14  zwart
+
+	* variants.hpclf1: BugID: 328
+
+	  The patched version of log4cplus also works on hpclf1
+
+2006-01-30 09:57  zwart
+
+	* variants.hpclf1: BugID: 328
+
+	  Added switched needed for icc9
+
+2006-01-24 10:04  loose
+
+	* Makefile.common: BugID: 597
+
+	  When a test program fails with an exit code other than 3 (test
+	  skipped), assay copies the output of this program to a .err file
+	  (so that the cause of the failure can be investigated). This file
+	  must be cleaned up, however, when a test program is known to fail
+	  (XFAIL_TESTS) in a distribution, otherwise `make distcheck' will
+	  complain.
+
+2006-01-23 12:09  diepen
+
+	* rub: BugID: 529 Fixed problem found in Groningen (in sed
+	  expression).
+
+2006-01-19 15:19  diepen
+
+	* lofar_package.m4, rub: Bugid: 599 Use $lfr_pkgnam instead of $1.
+	  In one way or another $1 is corrupted.  Do not do a build in rub
+	  if -nomake is given.
+
+2006-01-19 10:45  overeem
+
+	* variants.rs002-l: BugID: 592 Cleanup of settings.
+
+2006-01-19 10:18  overeem
+
+	* variants.rs002-l: BugID: 592 set compilers for 2.6.9 kernel to
+	  3.2.3 variant.
+
+2006-01-17 14:27  loose
+
+	* lofar_init.m4: BugID: 550
+
+	  Applied proposed patch; added "stable" as default lofar_root.
+
+2006-01-11 14:07  diepen
+
+	* assay, checkfloat: BugID: 591 Separated checkfloat from assay
+
+2006-01-05 15:38  diepen
+
+	* lofar_external.m4: BugID: 558 Skip buildcomp if undefined
+
+2006-01-03 08:35  diepen
+
+	* rub: BugID: 556 Changed -contbuild to -skipbuilt
+
+2006-01-02 16:35  diepen
+
+	* rub: BugID: 556 Added flag -contbuild to avoid a lot of
+	  rebuilding
+
+2005-12-29 11:14  loose
+
+	* lofar_general.m4: BugID: 352
+
+	  Renamed macro lofar_PROG_BSD_INSTALL to
+	  lofar_CHECK_INSTALL_IF_MODIFIED and added check for -C option for
+	  the install-sh script (which might, in the future, support this
+	  option).  Added invocation of this macro to the lofar_GENERAL
+	  macro, so that it is called by default.
+
+2005-12-19 15:18  loose
+
+	* lofar_general.m4: BugID: 543
+
+	  Added warning flag for overloading virtual functions.
+
+2005-12-15 11:09  loose
+
+	* doxygen.cfg: BugID: 423
+
+	  Added few "static" keywords that were removed from makedoc
+	  script.  Removed few "dynamic" keywords and unnecessary keywords.
+
+2005-12-14 12:42  diepen
+
+	* rub, rub1: BugID: 529 Write command as first line in rub.log
+	  (with correct quoting) Fixed problem when using -release=main
+
+2005-12-05 11:36  lofar
+
+	* scanBuildLog: BugID: 523 remove "" from searchpath
+
+2005-12-01 13:01  diepen
+
+	* lofar_aips++.m4: BugID: 516 Had to remove wcslib from the path
+
+2005-12-01 12:22  diepen
+
+	* lofar_aips++.m4: BugID: 516 Added --with-wcs
+
+2005-11-29 09:49  diepen
+
+	* rub, rub1: BugID: 504 Needed -A switch to get MAIN
+
+2005-11-29 09:22  diepen
+
+	* rub1: BugID: 504 Fixed bug; package was used as tag if no #-v
+	  given in lofarconf.in
+
+2005-11-28 16:22  diepen
+
+	* rub1: BugID: 504 Fixed check on lofarconf.in or configure.in
+
+2005-11-28 15:05  diepen
+
+	* rub, rub1: BugID: 504 Add -j and -checktool
+
+2005-11-25 15:36  loose
+
+	* runtest.sh: BugID: 396
+
+	  Prefer .stdout file over .out file when copying to runtest
+	  environment.
+
+2005-11-23 14:31  smirnov
+
+	* variants.birch, variants.cedar: BugID: 95
+
+2005-11-22 10:12  diepen
+
+	* rub: BugID: 396 Another little error in the update command
+
+2005-11-22 09:37  diepen
+
+	* rub1: BugID: 396 Fixed error in rubbing super package
+
+2005-11-22 09:35  loose
+
+	* ChangeLog, NEWS: BugID: 323
+
+	  Merged relevant changes in release 2.4 with the main development
+	  line.
+
+2005-11-22 09:07  diepen
+
+	* rub, rub1: BugID: 396 Improved error messages
+
+2005-11-22 08:30  diepen
+
+	* rub, rub1: BugID: 396 - Added option -release, -rpm, -distcheck -
+	  Make it a two-step check out; first determine which version to
+	  use, thereafter check out everything.  - Support of requires
+	  lines in rpm .spec.in files
+
+2005-11-22 07:53  diepen
+
+	* Makefile.common, lofar_general.m4, lofar_init.m4: BugID: 396 Turn
+	  MAKE_RPMS into a make variable (instead of automake variable), so
+	  older packages build well.
+
+2005-11-18 18:08  loose
+
+	* NEWS: BugID: 323
+
+	  Added extra release info for release 2.4
+
+2005-11-16 16:11  loose
+
+	* AUTHORS, COPYING, ChangeLog, NEWS, README: BugID: 323
+
+	  Prepare for release 2.4
+
 2005-11-14 14:50  diepen
 
 	* Makefile.common: BugID: 421 Use target test instead of alltest

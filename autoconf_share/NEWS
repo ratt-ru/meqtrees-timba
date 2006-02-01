@@ -1,3 +1,61 @@
+autoconf_share: Version 2.5, date: 2005/01/30
+=============================================
+
+Support for building rpm packages has now been completed. `rub' now supports
+extra command line options `-release', `-rpm', `-distcheck', `-j', and
+`-checktool'. Several bug fixes and enhancements have been made.
+
+
+The following BugIDs have been resolved
+---------------------------------------
+
+# 352 : Add check for support of "install -C"
+        Renamed macro lofar_PROG_BSD_INSTALL to
+        lofar_CHECK_INSTALL_IF_MODIFIED and added check for -C option for the
+        install-sh script
+
+# 396 : Support of rpm builds
+        Made it possibe to build an rpm from a package. Also support spec.in
+        files in rub to find dependent packages.
+        - Added option -release, -rpm, -distcheck
+        - Make it a two-step check out; first determine which version to use,
+          thereafter check out everything.
+        - Support of requires lines in rpm .spec.in files
+
+# 423 : Create a makedoc script for doxygen
+        A makedoc script has been created. It avoids the need to configure,
+        build, and install all software.
+
+# 504 : added -j and -checktool option
+        Add the -j option to make parallel makes possible.  
+        Add -checktool to be able to use tools like valgrind in make check.
+
+# 516 : AIPS++ needs WCS
+        Added --with-wcs
+        WCS has been added to the -l list of AIPS++.
+
+# 529 : log rub commandline in rub.log
+        The command is now listed at the top of rub.log.
+
+# 543 : g++ should warn when hiding virtual method in base class
+        Added warning flag for overloading virtual functions.
+
+# 550 : lofarconf --with-lofar does not work as documented
+        Patched lofar_init.m4. Weekly builds should now be installed in
+        /data/LOFAR/installed weekly.
+
+# 558 : make rpm does not work
+        The configure done in make rpm failed to find the correct log4cplus,
+        pqxx, etc. This has been fixed.
+
+# 591 : checkfloat not found
+        When doing make check, assay did not find the checkfloat script. Fixed.
+
+# 599 : Timba build fails
+        Fixed bug in lofar_package.m4.
+
+
+
 autoconf_share: Version 2.4, date: 2005/11/16
 =============================================
 
