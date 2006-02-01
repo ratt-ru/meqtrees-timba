@@ -83,13 +83,16 @@ JEN_inarg.define (MG, 'insert_flagger', tf=False,
 
 # Define some overall arguments:
 MG_JEN_Cohset.inarg_Cohset_common (MG, last_changed='d30jan2006')
+JEN_inarg.modify(MG,
+                 tile_size=1,
+                 _JEN_inarg_option=None)     
 
 
 #----------------------------------------------------------------------------------------------------
 # Interaction with the MS: spigots, sinks and stream control
 #----------------------------------------------------------------------------------------------------
 
-inarg = MG_JEN_exec.stream_control(_getdefaults=True)
+inarg = MG_JEN_exec.stream_control(_getdefaults=True, slave=True)
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  

@@ -126,8 +126,8 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_sinks()', version='25dec2005')
     JEN_inarg.define (pp, 'output_col', 'PREDICT',
-                      choice=['PREDICT','RESIDUALS','CORRECTED_DATA'],
-                      help='name of the logical (tile) output column')
+                      choice=['PREDICT','RESIDUALS','DATA'],
+                      help='name of the logical (VisTile) output column')
     JEN_inarg.define (pp, 'visu_array_config', tf=True,
                       help='if True, visualise the array config (from MS)')
     JEN_inarg.define (pp, 'visu', tf=True,
@@ -210,7 +210,7 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     inarg_stations(pp, slave=slave)
     inarg_parmtable(pp, slave=slave)
     inarg_polrep(pp, slave=slave)
-    JEN_inarg.define (pp, 'Jsequence', ['GJones'],
+    JEN_inarg.define (pp, 'Jsequence', [],
                       choice=[['GJones'],['BJones'],['FJones'],['KJones'],
                               ['DJones'],['GJones','DJones'],
                               ['DJones_WSRT'],['GJones','DJones_WSRT'],
@@ -345,7 +345,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
                      help='if True, include full visualisation')
     JEN_inarg.define(pp, 'subtract', tf=False,
                      help='if True, subtract predicted from measured')
-    JEN_inarg.define(pp, 'correct', tf=False,
+    JEN_inarg.define(pp, 'correct', tf=True,
                      help='if True, correct measured with predicted.Joneset')
     # Include (nest) the inarg record of a subroutine called below:
     JEN_inarg.nest(pp, solver_subtree(_getdefaults=True))
@@ -889,6 +889,8 @@ def inarg_Cohset_common (pp, last_changed='<undefined>', **kwargs):
     """Some common JEN_inarg definitions for Cohset scripts"""
     # JEN_inarg.inarg_common(kwargs)
     JEN_inarg.define (pp, 'last_changed', last_changed, editable=False)
+    MG_JEN_exec.inarg_ms_name(pp)
+    MG_JEN_exec.inarg_tile_size(pp)
     inarg_stations(pp)
     inarg_parmtable(pp)
     inarg_polrep(pp)
@@ -928,28 +930,27 @@ inarg_Cohset_common (MG, last_changed='d19jan2006')
 # Interaction with the MS: spigots, sinks and stream control
 #----------------------------------------------------------------------------------------------------
 
-#=======
-if True:                                               # ... Copied from MG_JEN_Cohset.py ...
-   inarg = MG_JEN_exec.stream_control(_getdefaults=True)
-   JEN_inarg.modify(inarg,
-                    tile_size=11,
-                    _JEN_inarg_option=None)     
-   JEN_inarg.attach(MG, inarg)
+
+inarg = MG_JEN_exec.stream_control(_getdefaults=True, slave=True)
+JEN_inarg.modify(inarg,
+                 tile_size=11,
+                 _JEN_inarg_option=None)     
+JEN_inarg.attach(MG, inarg)
 
 
-   # inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
-   inarg = make_spigots(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
-   JEN_inarg.modify(inarg,
-                    _JEN_inarg_option=None)       
-   JEN_inarg.attach(MG, inarg)
-                 
+# inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
+inarg = make_spigots(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
+JEN_inarg.modify(inarg,
+                 _JEN_inarg_option=None)       
+JEN_inarg.attach(MG, inarg)
 
 
-   # inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
-   inarg = make_sinks(_getdefaults=True)                # local (MG_JEN_Cohset.py) version 
-   JEN_inarg.modify(inarg,
-                    _JEN_inarg_option=None)   
-   JEN_inarg.attach(MG, inarg)
+
+# inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
+inarg = make_sinks(_getdefaults=True)                # local (MG_JEN_Cohset.py) version 
+JEN_inarg.modify(inarg,
+                 _JEN_inarg_option=None)   
+JEN_inarg.attach(MG, inarg)
                  
 
 

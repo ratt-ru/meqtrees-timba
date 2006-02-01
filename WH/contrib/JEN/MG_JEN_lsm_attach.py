@@ -74,11 +74,13 @@ from Timba.Trees import JEN_inargGui
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
 
-MG = JEN_inarg.init('MG_JEN_lsm_attach.pyt')
+MG = JEN_inarg.init('MG_JEN_lsm_attach')
 
 # To be copied to other scipts:
 JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
-JEN_inarg.define (MG, 'lsm', 'lsm_current.lsm', browse='*.lsm')
+JEN_inarg.define (MG, 'LSM', 'lsm_current.lsm', browse='*.lsm')
+MG_JEN_exec.inarg_ms_name(MG)
+MG_JEN_exec.inarg_tile_size(MG)
 MG_JEN_Cohset.inarg_polrep(MG)
 MG_JEN_Cohset.inarg_stations(MG)
 MG_JEN_Cohset.inarg_parmtable(MG)
@@ -91,7 +93,7 @@ MG_JEN_Cohset.inarg_parmtable(MG)
 
 #=======
 if True:                                               # ... Copied from MG_JEN_Cohset.py ...
-   inarg = MG_JEN_exec.stream_control(_getdefaults=True)
+   inarg = MG_JEN_exec.stream_control(_getdefaults=True, slave=True)
    JEN_inarg.modify(inarg,
                     tile_size=10,
                     _JEN_inarg_option=None)     

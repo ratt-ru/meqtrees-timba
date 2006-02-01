@@ -98,6 +98,7 @@ class ArgBrowser(QMainWindow):
         filemenu.insertItem('open ...', self.open_filter)
         filemenu.insertItem('open protected', self.open_protected)
         filemenu.insertItem('open autosaved', self.open_autosaved)
+        filemenu.insertItem('open reference', self.open_reference)
         filemenu.insertItem('open *.inarg', self.open_inarg)
         filemenu.insertSeparator()     
         filemenu.insertItem('saveAs ...', self.saveAs_inarg)
@@ -399,6 +400,24 @@ class ArgBrowser(QMainWindow):
         filename = QFileDialog.getOpenFileName("", file_filter, self)
         return self.restore_inarg(filename)
 
+    def autosave(self):
+        """Save the inarg record into the auto_save_file"""
+        self.save_inarg(auto_save_file)
+        return True
+
+    def open_autosaved(self):
+        """Recover the inarg record that was saved automatically when pressing
+        the 'Proceed' button. This allows continuation from that point"""
+        self.restore_inarg(auto_save_file)
+        return True
+
+    def open_reference(self):
+        """Recover the reference inarg record
+        (i.e. the one that the current one was derived from)"""
+        filename = JEN_inarg.CTRL(self.__inarg, 'reference') 
+        self.restore_inarg(filename)
+        return True
+
 #-------------------------------------------------------------------
 
     def compare_ref(self):
@@ -484,16 +503,6 @@ class ArgBrowser(QMainWindow):
         f.close()
         return True
 
-    def autosave(self):
-        """Save the inarg record into the auto_save_file"""
-        self.save_inarg(auto_save_file)
-        return True
-
-    def open_autosaved(self):
-        """Recover the inarg record that was saved automatically when pressing
-        the 'Proceed' button. This allows continuation from that point"""
-        self.restore_inarg(auto_save_file)
-        return True
 
     def restore_inarg(self, filename=None, other=False):
         """Read a saved inarg record from a file"""
@@ -792,7 +801,19 @@ class ArgBrowser(QMainWindow):
                 itd = self.make_itd(key, rr[key], ctrl=rr[CTRL_record], module=module)
                 nohide = ((not itd['hide']) or self.__unhide)
                 if nohide:
-                    value = str(itd['value'])                  # current value
+                    v = itd['value']                           # current value
+                    if isinstance(v, str):
+                        nchar = len(v)                         # nr of chars
+                        chmax = 15                             # max nr of chars
+                        if nchar>chmax:                        # string too long
+                            v = '... '+v[(nchar-chmax+1):nchar] # show the LAST bit
+                    elif isinstance(v, (list,tuple)):
+                        nv = len(v)                            # nr of list elements
+                        nmax = 4
+                        if nv>nmax:                            # too many elements
+                            # Show the LAST few elements
+                            v = '(n='+str(nv)+') ... '+str(v[(nv-nmax+1):nv])
+                    value = str(v)
                     iitd = str(itd['iitd'])                    # used by selectedItem()
                     rr[CTRL_record][kident][key] = itd['iitd'] # unique local identifier
                     help = ' '                                 # short explanation
@@ -800,9 +821,10 @@ class ArgBrowser(QMainWindow):
                         help = str(itd['help'])
                         hh = help.split('\n')
                         if len(hh)>1: help = hh[0]+'...'       # first line only
-                        hcmax = 40                             # max nr of chars
-                        if len(help)>hcmax:
-                            help = help[:hcmax]+'...'
+                        nchar = len(help)                      # nr of chars
+                        chmax = 40                             # max nr of chars
+                        if nchar>chmax:                        # string too long
+                            help = help[:chmax]+'...'
                     item = MyListViewItem(listview, key, value, help,
                                           iitd, str(self.__item_count))
                     if itd['hide']:

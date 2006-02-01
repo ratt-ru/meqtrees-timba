@@ -407,30 +407,20 @@ def spigot2sink (mqs, parent, ctrl=None, **pp):
 # Default stream control input arguments (see e.g. MG_JEN_Cohset.py)
 
 
-def inarg_stream_control (inarg, **kwargs):
+#--------------------------------------------------------------------------
+
+def inarg_ms_name (inarg, **kwargs):
     JEN_inarg.inarg_common(kwargs)
-    JEN_inarg.define (inarg, 'ms_name', 'D1.MS', 
+    JEN_inarg.define (inarg, 'ms_name', 'D1.MS', slave=kwargs['slave'], 
                       choice=['D1.MS'], browse='*.MS',
                       help='name of the (AIPS++) Measurement Set')
-    JEN_inarg.define (inarg, 'data_column_name', 'DATA',
-                      choice=['DATA'],
-                      help='MS input column')
-    inarg_tile_size(inarg, slave=kwargs['slave'])
-    JEN_inarg.define (inarg, 'channel_start_index', 10, choice=[0,5,10,20],
-                      help='index of first selected freq channel')
-    JEN_inarg.define (inarg, 'channel_end_index', 50, choice=[-1,25,50,100],
-                      help='index of last selected freq channel')
-    JEN_inarg.define (inarg, 'predict_column', 'CORRECTED_DATA',
-                      choice=['CORRECTED_DATA'],
-                      help='MS output column')
-    inarg_selection(inarg)
-    return True
+    return False
 
 #--------------------------------------------------------------------------
 
 def inarg_tile_size (inarg, **kwargs):
     JEN_inarg.inarg_common(kwargs)
-    JEN_inarg.define (inarg, 'tile_size', 11, slave=kwargs['slave'],
+    JEN_inarg.define (inarg, 'tile_size', 10, slave=kwargs['slave'],
                       choice=[1,2,3,5,10,20,50,100],
                       help='(inputrec) size (in time-slots) of the input data-tile')
     return False
@@ -447,8 +437,6 @@ def inarg_selection (inarg, **kwargs):
    return False
 
 
-
-
 #-------------------------------------------------------------------------
 # Access to MG_JEN_stream_control record (kept in the forest state record):
 
@@ -460,13 +448,11 @@ def stream_control (slave=False, display=False, **inarg):
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_exec::stream_control()', version='20jan2006')
    # MeqServer.execute() inputrec fields:
-   JEN_inarg.define (pp, 'ms_name', 'D1.MS', 
-                     choice=['D1.MS'], browse='*.MS',
-                     help='(inputrec) name of the (AIPS++) Measurement Set')
+   inarg_ms_name(pp, slave=slave)
+   inarg_tile_size(pp, slave=slave)
    JEN_inarg.define (pp, 'data_column_name', 'DATA',
                      choice=['DATA'],
                      help='(inputrec) MS input column')
-   inarg_tile_size(pp, slave=slave)
 
    # MeqServer.execute() inputrec.selection fields:
    JEN_inarg.define (pp, 'channel_start_index', 10, choice=[0,5,10,20],
@@ -487,7 +473,8 @@ def stream_control (slave=False, display=False, **inarg):
                      help='(outputrec) if True, write flags to MS')
    JEN_inarg.define (pp, 'predict_column', 'CORRECTED_DATA',
                      choice=['CORRECTED_DATA','PREDICT'],
-                     help='(outputrec) MS(?) output column')
+   #                  help='(outputrec) MS(?) output column')
+                     help='MS output column to be associated with the VisTile predict-column')
    if False:
       JEN_inarg.define (pp, 'residuals_column', 'RESIDUALS',
                         choice=['RESIDUALS'],

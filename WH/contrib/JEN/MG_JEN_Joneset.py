@@ -112,7 +112,7 @@ def inarg_Joneset_common (pp, **kwargs):
    """Some common JEN_inarg definitions for Joneset definition functions"""
    JEN_inarg.inarg_common(kwargs)
    trace = False
-   JEN_inarg.define(pp, 'punit', 'uvp', trace=trace, 
+   JEN_inarg.define(pp, 'punit', 'uvp', slave=kwargs['slave'], trace=trace, 
                     help='source/patch for which this Joneset is valid')
    JEN_inarg.define(pp, 'stations', [0], slave=kwargs['slave'], trace=trace, 
                     help='list of station names/numbers')

@@ -1193,7 +1193,7 @@ def test1(ns=None, object=None, **inarg):
           help='help for aa', trace=True)
    define(pp, 'bb', -0.19, choice=[0.2,0.5,1.5], range=[-1,1],
           help='longer string for elaborate help for bb', trace=True)
-   define(pp, 'list', range(4), choice=[['a','A'],[45,-34],True],
+   define(pp, 'list', range(4), choice=[['a','A'],[45,-34],range(20),'range(40)',True],
           help='multiline help \n for list', trace=True)
    define(pp, 'hide', 'the rain in spain', hide=True,
           help='multiline help for hide', trace=True)
@@ -1202,7 +1202,7 @@ def test1(ns=None, object=None, **inarg):
           help='if vector, affects editing', trace=True)
    define(pp, 'slave', 'the rain in spain', slave=True,
           help='if slaved, use @@', trace=True)
-   define(pp, 'file_browse', 'xxx.py', browse='*.py',
+   define(pp, 'file_browse', 'home/noordam/LOFAR/Timba/PyApps/src/Trees/xxx.py', browse='*.py',
           help='open a .py file', trace=True)
    define(pp, 'empty_string', ' ', choice=[' ',''," ",""],
           help='four versions of empty strings', trace=True)
