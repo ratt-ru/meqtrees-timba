@@ -59,8 +59,16 @@ int Resampler::getResult (Result::Ref &resref,
   //std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
   //lockMutexes(child_reslock,childres);
   Assert(childres.size()==1);
+
   const Result &chres = *( childres.front() );
+	//if result has no cells, must be a scalar
+	//pass it up
+  if (!chres.hasCells() || !request.hasCells()) {
+    resref.copy(childres.front());
+    return 0;
+	}
   const Cells &incells = chres.cells();
+
   const Cells &outcells = request.cells();
   // create resampler
   ResampleMachine resampler(incells, outcells);
