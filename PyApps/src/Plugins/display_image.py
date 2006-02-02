@@ -1299,7 +1299,7 @@ class QwtImageDisplay(QwtPlot):
        if shape[0] > 1:
          for i in range(shape[0] - 1):
           self.y_solver_offset = self.insertLineMarker('', QwtPlot.xBottom)
-          self.setMarkerLinePen(self.y_solver_offset, QPen(Qt.black, 3, Qt.SolidLine))
+          self.setMarkerLinePen(self.y_solver_offset, QPen(Qt.black, 1, Qt.SolidLine))
           self.setMarkerXPos(self.y_solver_offset, self.solver_offsets[i])
 
 # insert mean and standard deviation

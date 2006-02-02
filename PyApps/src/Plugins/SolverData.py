@@ -41,9 +41,9 @@ class SolverData:
              metrics_rec =  metrics[i][j]
              try:
                self.metrics_rank[i,j] = metrics_rec.rank +self.prev_unknowns
-               self.prev_unknowns = metrics_rec.num_unknowns
+               self.prev_unknowns = self.prev_unknowns +  metrics_rec.num_unknowns
                if i == 0:
-                 self.solver_offsets[j] = metrics_rec.num_unknowns
+                 self.solver_offsets[j] =  self.prev_unknowns
              except:
                pass
            self.iteration_number[i] = i+1
