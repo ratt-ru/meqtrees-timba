@@ -644,6 +644,10 @@ public:
           shape_[i] = shape0[j];
         memset(counter_,0,sizeof(int)*rank_); 
       }
+      
+      DimCounter ()
+      : rank_(0),valid_(false)
+      {}
 
       DimCounter (const Meq::Vells &vells)
       { init(vells.shape()); }
@@ -670,12 +674,13 @@ public:
       int incr ()
       {
         int idim = 0;
-        while( ++counter_[idim] >= shape_[idim] )
+        while( idim<rank_ && ++counter_[idim] >= shape_[idim] )
         {
           counter_[idim] = 0;
-          if( ++idim >= rank_ )
-            return valid_ = 0;
+          ++idim;
         }
+        if( idim >= rank_ )
+          return valid_ = 0;
         return idim+1;
       }
   };

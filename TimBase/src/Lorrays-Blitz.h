@@ -214,6 +214,8 @@ class VariVector : public std::vector<int>
       static const int SETRANK = 0x80000000;
       
       VariVector () {}
+      explicit VariVector (bool,int n) 
+        : std::vector<int>(n) {};
       // explicit constructor for 1 dimension. Use (size|VariVector::SIZE)
       // to construct an empty shape for 2 or more dimensions
       explicit VariVector (int n1) 
