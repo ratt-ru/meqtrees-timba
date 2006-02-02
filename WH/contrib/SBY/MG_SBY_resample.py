@@ -12,12 +12,9 @@
 
 #############
 ## What the Resampler can and cannot do so far ....
-## 
-## 1) Flagged cells are not averaged. However, the flagged cell are counted and
-##   added to the flag count of the output cell.
-## 2) The flag mask, bit, density parameters does not work yet.
-## 3) The implementation is not optimized. However, checks for memory leaks have 
-##  been done.
+## 1) Does not handle Spids and perturbes sets yet 
+## 3) The implementation is not optimized. However, checks for 
+##  memory leaks have been done.
 
 ## Here is the copy of the bug report
 ## support resolution drivers (i.e., three auto-resampling modes: integrate,
@@ -45,6 +42,7 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
+import random
 Settings.forest_state.cache_policy = 100;
 
 Settings.orphans_are_roots = True;
@@ -73,7 +71,8 @@ def _define_forest (ns):
    ns.r<<Meq.Parm(meq.array([[1,0.1,0.01],[-0.01,0.01,0.021]]))
    ns.i<<Meq.Parm(meq.array([[-1,0.1,-0.01],[0.01,0.01,-0.021]]))
    ns.x<<Meq.ToComplex(ns.r,ns.i)
-   ns.y<<Meq.ModRes(children=ns.x,num_cells=[11,12])
+   ns.y<<Meq.ModRes(children=ns.x,num_cells=[random.randint(0,100),random.randint(0,100)],downsample=[random.randint(0,100),random.randint(0,100)],upsample=[random.randint(0,100),random.randint(0,100)])
+   #ns.y<<Meq.ModRes(children=ns.x,downsample=[random.randint(0,100),random.randint(0,100)])#,upsample=[random.randint(0,100),random.randint(0,100)])
    ns.z<<Meq.Resampler(children=ns.y,flag_mask=3,flag_bit=4,flag_density=0.1)
 
 
