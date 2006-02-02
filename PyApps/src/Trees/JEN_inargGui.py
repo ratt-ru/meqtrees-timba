@@ -247,8 +247,6 @@ class ArgBrowser(QMainWindow):
         self.__other = None                        # another inarg (e.g. for comparison)
         self.__modified = False                    # if True, self.__inarg has been modified
         self.__closed = False
-        if True:
-            self.open_autosaved()            
         return None
 
 
@@ -542,8 +540,9 @@ class ArgBrowser(QMainWindow):
 
     def without_directory (self, filename):
         """Return the given filename without the directory""" 
-        filename = filename.split('/')
-        filename = filename[len(filename)-1]
+        if isinstance(filename,str):
+            filename = filename.split('/')
+            filename = filename[len(filename)-1]
         return filename
 
     def savefile_name (self, name=None):
@@ -819,7 +818,7 @@ class ArgBrowser(QMainWindow):
                     v = itd['value']                           # current value
                     if isinstance(v, str):
                         nchar = len(v)                         # nr of chars
-                        chmax = 18                             # max nr of chars
+                        chmax = 20                             # max nr of chars
                         if nchar>chmax:                        # string too long
                             v = '... '+v[(nchar-chmax+1):nchar] # show the LAST bit
                     elif isinstance(v, (list,tuple)):

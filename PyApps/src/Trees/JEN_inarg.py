@@ -986,7 +986,6 @@ def attach(rr=None, inarg=None, recurse=False, level=0, trace=False):
 
    # OK, attach to rr:
    qq = deepcopy(inarg[lscope])               # use a copy, just in case
-   _replace_reference(qq, trace=trace)        # replace any referenced values        
    rr[lscope] = qq                            # attach to rr
    MESSAGE(rr, s0+'attached: '+lscope)
    order(rr, append=lscope)                   # Update the order-field of the CTRL_record:

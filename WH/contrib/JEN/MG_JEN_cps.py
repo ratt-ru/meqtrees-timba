@@ -84,7 +84,7 @@ JEN_inarg.define (MG, 'insert_flagger', tf=False,
 # Define some overall arguments:
 MG_JEN_Cohset.inarg_Cohset_common (MG, last_changed='d30jan2006')
 JEN_inarg.modify(MG,
-                 tile_size=1,
+                 tile_size=5,
                  _JEN_inarg_option=None)     
 
 

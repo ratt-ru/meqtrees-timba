@@ -207,16 +207,18 @@ def GJones (ns=None, Sixpack=None, slave=False, **inarg):
     # ** Solving instructions:
     JEN_inarg.define(pp, 'fdeg_Gampl', 0, choice=[0,1,2,3],  
                      help='degree of freq polynomial')
-    JEN_inarg.define(pp, 'fdeg_Gphase', 0, choice=[0,1,2,3,'@fdeg_Gampl'],  
+    JEN_inarg.define(pp, 'fdeg_Gphase', '@fdeg_Gampl',
+                     choice=[0,1,2,3,'@fdeg_Gampl'],  
                      help='degree of freq polynomial')
     JEN_inarg.define(pp, 'tdeg_Gampl', 0, choice=[0,1,2,3],  
                      help='degree of time polynomial')
-    JEN_inarg.define(pp, 'tdeg_Gphase', 0, choice=[0,1,2,3,'@tdeg_Gampl'],  
+    JEN_inarg.define(pp, 'tdeg_Gphase', '@tdeg_Gampl',
+                     choice=[0,1,2,3,'@tdeg_Gampl'],  
                      help='degree of time polynomial')
-    JEN_inarg.define(pp, 'subtile_size_Gampl', None,
+    JEN_inarg.define(pp, 'subtile_size_Gampl', 1,
                      choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                      help='sub-tile size (None=entire tile)')
-    JEN_inarg.define(pp, 'subtile_size_Gphase', None,  
+    JEN_inarg.define(pp, 'subtile_size_Gphase', '@subtile_size_Gampl',  
                      choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                      help='sub-tile size (None=entire tile)')
     # ** MeqParm default values:
@@ -408,16 +410,18 @@ def BJones (ns=0, Sixpack=None, slave=False, **inarg):
     # ** Solving instructions:
     JEN_inarg.define(pp, 'fdeg_Breal', 3, choice=[0,1,2,3],  
                      help='degree of freq polynomial')
-    JEN_inarg.define(pp, 'fdeg_Bimag', 3, choice=[0,1,2,3,'@fdeg_Breal'],  
+    JEN_inarg.define(pp, 'fdeg_Bimag', '@fdeg_Breal',
+                     choice=[0,1,2,3,'@fdeg_Breal'],  
                      help='degree of freq polynomial')
     JEN_inarg.define(pp, 'tdeg_Breal', 0, choice=[0,1,2,3],  
                      help='degree of time polynomial')
-    JEN_inarg.define(pp, 'tdeg_Bimag', 0, choice=[0,1,2,3,'@tdeg_Breal'],  
+    JEN_inarg.define(pp, 'tdeg_Bimag', '@tdeg_Breal',
+                     choice=[0,1,2,3,'@tdeg_Breal'],  
                      help='degree of time polynomial')
     JEN_inarg.define(pp, 'subtile_size_Breal', None,
                      choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                      help='sub-tile size (None=entire tile)')
-    JEN_inarg.define(pp, 'subtile_size_Bimag', None,  
+    JEN_inarg.define(pp, 'subtile_size_Bimag', '@subtile_size_Breal',  
                      choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                      help='sub-tile size (None=entire tile)')
     # ** MeqParm default values: 
@@ -520,18 +524,20 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, **inarg):
    JEN_inarg.define(pp, 'coupled_XY_dell', tf=True,  
                     help='if True, Xdell = -Ydell per station')
    # ** Solving instructions:
-   JEN_inarg.define(pp, 'fdeg_dang', 0, choice=[0,1,2,3],  
+   JEN_inarg.define(pp, 'fdeg_dang', 1, choice=[0,1,2,3],  
                     help='degree of freq polynomial')
-   JEN_inarg.define(pp, 'fdeg_dell', 0, choice=[0,1,2,3,'@fdeg_dang'],  
+   JEN_inarg.define(pp, 'fdeg_dell', '@fdeg_dang',
+                    choice=[0,1,2,3,'@fdeg_dang'],  
                     help='degree of freq polynomial')
    JEN_inarg.define(pp, 'tdeg_dang', 0, choice=[0,1,2,3],  
                     help='degree of time polynomial')
-   JEN_inarg.define(pp, 'tdeg_dell', 0, choice=[0,1,2,3,'@tdeg_dang'],  
+   JEN_inarg.define(pp, 'tdeg_dell', '@tdeg_dang',
+                    choice=[0,1,2,3,'@tdeg_dang'],  
                     help='degree of time polynomial')
    JEN_inarg.define(pp, 'subtile_size_dang', None,
                     choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                     help='sub-tile size (None=entire tile)')
-   JEN_inarg.define(pp, 'subtile_size_dell', None,  
+   JEN_inarg.define(pp, 'subtile_size_dell', '@subtile_size_dang',  
                     choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                     help='sub-tile size (None=entire tile)')
    # ** MeqParm default values:
