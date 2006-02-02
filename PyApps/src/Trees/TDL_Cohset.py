@@ -300,6 +300,7 @@ class Cohset (TDL_common.Super):
             return self.__coh[key]
         keys = self.__coh.keys()
         print '** TDL_Cohset.__getitem(',key,'): not recognised in (',len(keys),'):',keys
+        return False
 
     def __setitem__(self, key, value):
         """Replace the named (key) item with value (usually a node)"""

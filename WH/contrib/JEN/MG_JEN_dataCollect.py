@@ -8,6 +8,7 @@
 # History:
 # - 24 aug 2005: creation
 # - 26 nov 2005: modify 'all' -> '*'
+# - 02 feb 2006: added attrib 'results_buffer'
 
 # Copyright: The MeqTree Foundation 
 
@@ -253,6 +254,7 @@ def dcoll (ns, node=[], **pp):
    pp.setdefault('errorbars', False)    # if True, plot stddev as crosses around mean
    pp.setdefault('bookmark', False)     # name of dcoll bookmark (False=none)
    pp.setdefault('bookpage', False)     # name of bookpage to be used (False=none)
+   pp.setdefault('results_buffer', 20)  # size of the results-buffer in the browser
    pp = record(pp)
    
    
@@ -283,6 +285,7 @@ def dcoll (ns, node=[], **pp):
       pp.xlabel = 'freq channel nr (real/imag)'
       pp.ylabel = 'ifr'
       attrib['plot'] = record(type=pp.type, title=pp.title,
+                              results_buffer=pp['results_buffer'],
                               spectrum_color='hippo',
                               x_axis=pp.xlabel, y_axis=pp.ylabel)
       dcoll['dcoll'] = ns[dcoll_name](uniqual) << Meq.DataCollect(children=dcoll['stripped'],
@@ -292,6 +295,7 @@ def dcoll (ns, node=[], **pp):
    else:
       # Assume pp.type == 'realvsimag'
       attrib['plot'] = record(type=pp.type, title=pp.title,
+                              results_buffer=pp['results_buffer'],
                               color=pp.color,
                               symbol=pp.style,
                               symbol_size=pp.size,

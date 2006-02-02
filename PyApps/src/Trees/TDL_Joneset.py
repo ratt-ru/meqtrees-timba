@@ -73,7 +73,10 @@ class Joneset (TDL_common.Super):
             self.__pols = ['R', 'L']
         return None
 
+
+
     def clear(self):
+        """Clear the Joneset object"""
         self.__jones = dict()
         self.__plot_color = TDL_radio_conventions.plot_color()
         self.__plot_style = TDL_radio_conventions.plot_style()
@@ -83,7 +86,19 @@ class Joneset (TDL_common.Super):
         """Get s station (key) 2x2 Jones matrix (node)"""
         # This allows indexing by key and by index nr:
         if isinstance(key, int): key = self.__jones.keys()[key]
-        return self.__jones[key]
+        if True:
+            try:
+                return self.__jones[key]
+            except:
+                print sys.exc_info()
+                keys = self.__jones.keys()
+                print '** TDL_Jonesset.__getitem(',key,'): not recognised in (',len(keys),'):',keys
+                return False
+        if self.__jones.has_key(key):
+            return self.__jones[key]
+        keys = self.__jones.keys()
+        print '** TDL_Jonesset.__getitem(',key,'): not recognised in (',len(keys),'):',keys
+        return False
 
     def __setitem__(self, key, value):
         """Set the station (key) 2x2 Jones matrix (node)"""
@@ -127,14 +142,14 @@ class Joneset (TDL_common.Super):
         return self.__pols[ipol-1]
 
     def corrs_paral(self):
-      return [self.pols(1)+self.pols(1), self.pols(2)+self.pols(2)]
+        return [self.pols(1)+self.pols(1), self.pols(2)+self.pols(2)]
     def corrs_paral1(self): return [self.pols(1)+self.pols(1)]
     def corrs_paral2(self): return [self.pols(2)+self.pols(2)]
     def corrs_cross(self):
-      return [self.pols(1)+self.pols(2), self.pols(2)+self.pols(1)]
+        return [self.pols(1)+self.pols(2), self.pols(2)+self.pols(1)]
     def corrs_all(self):
-      return [self.pols(1)+self.pols(1), self.pols(1)+self.pols(1),
-              self.pols(2)+self.pols(2), self.pols(2)+self.pols(2)]
+        return [self.pols(1)+self.pols(1), self.pols(1)+self.pols(1),
+                self.pols(2)+self.pols(2), self.pols(2)+self.pols(2)]
 
     def jones(self): return self.__jones
     def len(self): return len(self.__jones)

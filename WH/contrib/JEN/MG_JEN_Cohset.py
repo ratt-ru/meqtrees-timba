@@ -77,6 +77,9 @@ def make_spigots(ns=None, Cohset=None, **inarg):
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_spigots()', version='25dec2005')
+    JEN_inarg.define (pp, 'input_col', 'DATA', hide=True,
+                      choice=['DATA','PREDICT','RESIDUALS'],
+                      help='name of the logical (VisTile) input column')
     JEN_inarg.define (pp, 'MS_corr_index', [0,1,2,3],
                       choice=[[0,-1,-1,1],[0,-1,-1,3],'@@'],
                       help='correlations to be used: \n'+
@@ -243,19 +246,18 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     jseq = TDL_Joneset.Joneseq()
     for jones in pp['Jsequence']:
         if jones=='GJones':
-            jseq.append(MG_JEN_Joneset.GJones (ns, _inarg=pp, punit=punit))
+            jseq.append(MG_JEN_Joneset.GJones (ns, Sixpack=Sixpack, _inarg=pp))
         elif jones=='BJones':
-            jseq.append(MG_JEN_Joneset.BJones (ns, _inarg=pp, punit=punit))
+            jseq.append(MG_JEN_Joneset.BJones (ns, Sixpack=Sixpack, _inarg=pp))
         elif jones=='FJones':
-            jseq.append(MG_JEN_Joneset.FJones (ns, _inarg=pp, punit=punit)) 
+            jseq.append(MG_JEN_Joneset.FJones (ns, Sixpack=Sixpack, _inarg=pp)) 
         elif jones=='DJones':
-            jseq.append(MG_JEN_Joneset.DJones (ns, _inarg=pp, punit=punit))
+            jseq.append(MG_JEN_Joneset.DJones (ns, Sixpack=Sixpack, _inarg=pp))
         elif jones=='DJones_WSRT':
-            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, _inarg=pp, punit=punit))
+            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, Sixpack=Sixpack, _inarg=pp))
         elif jones=='KJones':
             jseq.append(MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
-                                               MSauxinfo=MSauxinfo(),
-                                               _inarg=pp, punit=punit))
+                                               MSauxinfo=MSauxinfo(), _inarg=pp))
         else:
             print '** jones not recognised:',jones,'from:',pp['Jsequence']
                
@@ -845,7 +847,7 @@ def inarg_stations (pp, **kwargs):
     JEN_inarg.inarg_common(kwargs)
     JEN_inarg.define (pp, 'stations', range(4),
                       slave=kwargs['slave'], hide=kwargs['hide'],
-                      choice=[range(7),range(14),range(15)],
+                      choice=[range(7),range(14),range(15),'range(5)'],
                       help='the (subset of) stations to be used')
     # Derive a list of ifrs from pp['stations'] (assumed to exist):
     JEN_inarg.define (pp, 'ifrs', TDL_Cohset.stations2ifrs(pp['stations']),

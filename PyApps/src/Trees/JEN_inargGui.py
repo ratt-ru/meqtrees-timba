@@ -197,25 +197,30 @@ class ArgBrowser(QMainWindow):
         # Buttons to be added at the bottom:
         hbox = QHBoxLayout(vbox)
 
-        b_open = QPushButton('Open', self)
-        QToolTip.add(b_open, 'Open a new inarg record')
-        QObject.connect(b_open, SIGNAL("pressed ()"), self.open_filter)
-        hbox.addWidget(b_open)
+        b = QPushButton('Resume', self)
+        QToolTip.add(b, 'Resume with the inarg record that was autosaved at Proceed')
+        QObject.connect(b, SIGNAL("pressed ()"), self.open_autosaved)
+        hbox.addWidget(b)
 
-        b_save = QPushButton('Save', self)
-        QToolTip.add(b_save, 'Save the current inarg record')
-        QObject.connect(b_save, SIGNAL("pressed ()"), self.save_inarg)
-        hbox.addWidget(b_save)
+        b = QPushButton('Open', self)
+        QToolTip.add(b, 'Open a new inarg record')
+        QObject.connect(b, SIGNAL("pressed ()"), self.open_filter)
+        hbox.addWidget(b)
 
-        b_proceed = QPushButton('Proceed', self)
-        QToolTip.add(b_proceed, 'Proceed with the current inarg record')
-        QObject.connect(b_proceed, SIGNAL("pressed ()"), self.exec_with_inarg)
-        hbox.addWidget(b_proceed)
+        b = QPushButton('Save', self)
+        QToolTip.add(b, 'Save the current inarg record')
+        QObject.connect(b, SIGNAL("pressed ()"), self.save_inarg)
+        hbox.addWidget(b)
 
-        b_cancel = QPushButton('Cancel', self)
-        QToolTip.add(b_cancel, 'Cancel the gui, and do nothing')
-        QObject.connect(b_cancel, SIGNAL("pressed ()"), self.cancel_exec)
-        hbox.addWidget(b_cancel)
+        b = QPushButton('Proceed', self)
+        QToolTip.add(b, 'Proceed with the current inarg record')
+        QObject.connect(b, SIGNAL("pressed ()"), self.exec_with_inarg)
+        hbox.addWidget(b)
+
+        b = QPushButton('Cancel', self)
+        QToolTip.add(b, 'Cancel the gui, and do nothing')
+        QObject.connect(b, SIGNAL("pressed ()"), self.cancel_exec)
+        hbox.addWidget(b)
 
         #----------------------------------------------------
         # Message label (i.s.o. statusbar):
@@ -258,7 +263,6 @@ class ArgBrowser(QMainWindow):
 
     def closeGui (self):
         """Close the gui"""
-        self.autosave()            
         self.clearGui()
         if self.__popup: self.__popup.close()
         self.__listview.close()                    #............?
@@ -460,11 +464,16 @@ class ArgBrowser(QMainWindow):
     def save_as_protected(self):
         """Save the current inarg record as protected"""
         filename = JEN_inarg.CTRL(self.__inarg, 'save_file')
+        oldname = filename
         filename = filename.split('.inarg')[0]           # remove .inarg, if necessary 
         filename = filename.split('_protected')[0]       # just in case
         filename += '_protected.inarg'                   # repaste
-        JEN_inarg.CTRL(self.__inarg, 'protected', True)
         filename = QFileDialog.getSaveFileName(filename, "*_protected.inarg", self)
+        if self.same_filename(oldname, filename):
+            s1 = '** Same filename not allowed: done nothing ...'
+            self.__message.setText(s1)
+            return False
+        JEN_inarg.CTRL(self.__inarg, 'protected', True)
         self.save_inarg(filename, override=True)
         return True
 
@@ -527,16 +536,24 @@ class ArgBrowser(QMainWindow):
 
     #-------------------------------------------------------------------------------
 
+    def same_filename (self, name1, name2):
+        """Find out whether name1 and name2 are the same filename"""
+        name1 = self.without_directory(name1)
+        name2 = self.without_directory(name2)
+        return (name1==name2)
+
+    def without_directory (self, filename):
+        """Return the given filename without the directory""" 
+        filename = filename.split('/')
+        filename = filename[len(filename)-1]
+        return filename
+
     def savefile_name (self, name=None):
         """Get/set the save_file name in the inarg CTRL record"""
         was = JEN_inarg.CTRL(self.__inarg, 'save_file') 
 
-        if isinstance(name, str):
-            # New savefile name supplied:
-            if True:
-                # remove the directory.... 
-                name = name.split('/')
-                name = name[len(name)-1]
+        if isinstance(name, str):                    # New savefile name supplied:
+            name = self.without_directory(name)
             JEN_inarg.CTRL(self.__inarg, 'save_file', name) 
 
         # Always return the current savefile name:
@@ -804,7 +821,7 @@ class ArgBrowser(QMainWindow):
                     v = itd['value']                           # current value
                     if isinstance(v, str):
                         nchar = len(v)                         # nr of chars
-                        chmax = 15                             # max nr of chars
+                        chmax = 18                             # max nr of chars
                         if nchar>chmax:                        # string too long
                             v = '... '+v[(nchar-chmax+1):nchar] # show the LAST bit
                     elif isinstance(v, (list,tuple)):
@@ -938,6 +955,7 @@ class ArgBrowser(QMainWindow):
             # A regular item: launch a popup for editing:
             itd = self.__itemdict[iitd]
             self.__current_iitd = iitd
+            self.__find_item = unique
             # Make the popup object:
             self.__popup = Popup(self, name=itd['key'], itd=itd)
             QObject.connect(self.__popup, PYSIGNAL("popupOK()"), self.popupOK)

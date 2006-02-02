@@ -451,7 +451,7 @@ def stream_control (slave=False, display=False, **inarg):
    inarg_ms_name(pp, slave=slave)
    inarg_tile_size(pp, slave=slave)
    JEN_inarg.define (pp, 'data_column_name', 'DATA',
-                     choice=['DATA'],
+                     choice=['DATA','CORRECTED_DATA'],
                      help='(inputrec) MS input column')
 
    # MeqServer.execute() inputrec.selection fields:
@@ -472,13 +472,15 @@ def stream_control (slave=False, display=False, **inarg):
    JEN_inarg.define (pp, 'write_flags', tf=False,
                      help='(outputrec) if True, write flags to MS')
    JEN_inarg.define (pp, 'predict_column', 'CORRECTED_DATA',
-                     choice=['CORRECTED_DATA','PREDICT'],
-   #                  help='(outputrec) MS(?) output column')
+                     choice=['DATA','CORRECTED_DATA','MODEL_DATA'],
                      help='MS output column to be associated with the VisTile predict-column')
    if False:
-      JEN_inarg.define (pp, 'residuals_column', 'RESIDUALS',
-                        choice=['RESIDUALS'],
-                        help='(outputrec) MS(?) residuals column')
+      JEN_inarg.define (pp, 'data_column', 'DATA',
+                        choice=['DATA','CORRECTED_DATA','MODEL_DATA'],
+                        help='MS output column to be associated with the VisTile data-column')
+      JEN_inarg.define (pp, 'residuals_column', 'MODEL_DATA',
+                        choice=['DATA','CORRECTED_DATA','MODEL_DATA'],
+                        help='MS output column to be associated with the VisTile residuals-column')
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False

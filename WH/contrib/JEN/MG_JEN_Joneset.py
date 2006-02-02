@@ -20,6 +20,7 @@
 # - 10 jan 2006: pp.setdefault() -> JEN_inarg.define(pp)
 # - 11 jan 2006: KJones with MSauxinfo
 # - 20 jan 2006: new TDL_Parmset.py
+# - 02 feb 2006: removed punit from the input arguments (use Sixpack)
 
 # Copyright: The MeqTree Foundation 
 
@@ -111,9 +112,7 @@ def adjust_for_telescope(pp, origin='<origin>'):
 def inarg_Joneset_common (pp, **kwargs):
    """Some common JEN_inarg definitions for Joneset definition functions"""
    JEN_inarg.inarg_common(kwargs)
-   trace = False
-   JEN_inarg.define(pp, 'punit', 'uvp', slave=kwargs['slave'], trace=trace, 
-                    help='source/patch for which this Joneset is valid')
+   trace = True
    JEN_inarg.define(pp, 'stations', [0], slave=kwargs['slave'], trace=trace, 
                     help='list of station names/numbers')
    JEN_inarg.define(pp, 'parmtable', None, slave=kwargs['slave'], trace=trace, 
@@ -187,10 +186,6 @@ def inarg_solvegroup (pp, **kwargs):
    return True
 
 
-
-
-
-
 #--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
@@ -198,7 +193,7 @@ def inarg_solvegroup (pp, **kwargs):
 # GJones: diagonal 2x2 matrix for complex gains per polarization
 #--------------------------------------------------------------------------------
 
-def GJones (ns=None, slave=False, **inarg):
+def GJones (ns=None, Sixpack=None, slave=False, **inarg):
     """defines diagonal GJones matrices for complex(Gampl,Gphase) parms""";
 
     jones = 'GJones'
@@ -240,9 +235,11 @@ def GJones (ns=None, slave=False, **inarg):
 
     # Some preparations:
     adjust_for_telescope(pp, origin=funcname)
+    pp['punit'] = get_punit(Sixpack)
 
     # Create a Joneset object
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    js.display('inside GJones')
     
     # Register the parmgroups (in js.Parmset eventually):
     a1 = js.parmgroup('Gampl', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
@@ -277,7 +274,6 @@ def GJones (ns=None, slave=False, **inarg):
     js.Parmset.define_solvegroup('Gampl', [a1, a2])
     js.Parmset.define_solvegroup('Gphase', [p1, p2])
     
-    # first_station = True
     for station in pp['stations']:
        skey = TDL_radio_conventions.station_key(station)        
        qual = dict(s=skey)
@@ -296,9 +292,9 @@ def GJones (ns=None, slave=False, **inarg):
           js.Parmset.define_MeqParm (ns, Gphase, qual=qual, default=default,
                                      subtile_size=pp['subtile_size_Gphase'])
 
-       ss = js.Parmset.buffer()
 
        # Make the 2x2 Jones matrix:
+       ss = js.Parmset.buffer()
        if pp['Gpolar']:
           stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
              ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Polar( ss[a1], ss[p1]),
@@ -317,7 +313,6 @@ def GJones (ns=None, slave=False, **inarg):
              )
        js.append(skey, stub)
 
-
     # Finished:
     js.Parmset.cleanup()
     MG_JEN_forest_state.object(js, funcname)
@@ -328,7 +323,7 @@ def GJones (ns=None, slave=False, **inarg):
 # FJones: 2x2 matrix for ionospheric Faraday rotation (NOT ion.phase!)
 #--------------------------------------------------------------------------------
 
-def FJones (ns=0, slave=False, **inarg):
+def FJones (ns=0, Sixpack=None, slave=False, **inarg):
    """defines diagonal FJones Faraday rotation matrices""";
 
    jones = 'FJones'
@@ -355,6 +350,7 @@ def FJones (ns=0, slave=False, **inarg):
    label = jones+JEN_inarg.qualifier(pp)
    
    adjust_for_telescope(pp, origin=funcname)
+   pp['punit'] = get_punit(Sixpack)
    
    # Create a Joneset object:
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
@@ -399,7 +395,7 @@ def FJones (ns=0, slave=False, **inarg):
 # BJones: diagonal 2x2 matrix for complex bandpass per polarization
 #--------------------------------------------------------------------------------
 
-def BJones (ns=0, slave=False, **inarg):
+def BJones (ns=0, Sixpack=None, slave=False, **inarg):
     """defines diagonal BJones bandpass matrices""";
 
     jones = 'BJones'
@@ -439,10 +435,11 @@ def BJones (ns=0, slave=False, **inarg):
     label = jones+JEN_inarg.qualifier(pp)
 
     adjust_for_telescope(pp, origin=funcname)
+    pp['punit'] = get_punit(Sixpack)
 
     # Create a Joneset object:
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
-  
+
     # Register the parmgroups (in js.Parmset eventually):
     br1 = js.parmgroup('Breal', ipol=1, color='red', style='square', size=7, corrs='paral1')
     br2 = js.parmgroup('Breal', ipol=2, color='blue', style='square', size=7, corrs='paral2')
@@ -485,9 +482,9 @@ def BJones (ns=0, slave=False, **inarg):
             js.Parmset.define_MeqParm (ns, Bimag, qual=qual, default=default,
                                        subtile_size=pp['subtile_size_Bimag'])
 
-        ss = js.Parmset.buffer()
 
         # Make the 2x2 Jones matrix
+        ss = js.Parmset.buffer()
         stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[br1], ss[bi1]),
             0,0,
@@ -508,7 +505,7 @@ def BJones (ns=0, slave=False, **inarg):
 # DJones_WSRT: 2x2 matrix for WSRT polarization leakage
 #--------------------------------------------------------------------------------
 
-def DJones_WSRT (ns=0, slave=False, **inarg):
+def DJones_WSRT (ns=0, Sixpack=None, slave=False, **inarg):
    """defines 2x2 DJones_WSRT (polarisation leakage) matrices""";
 
    jones = 'DJones_WSRT'
@@ -554,6 +551,7 @@ def DJones_WSRT (ns=0, slave=False, **inarg):
    label = jones+JEN_inarg.qualifier(pp)
 
    adjust_for_telescope(pp, origin=funcname)
+   pp['punit'] = get_punit(Sixpack)
 
    # Create a Joneset object:
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
@@ -677,8 +675,9 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, slave=False, **inarg):
    
    adjust_for_telescope(pp, origin=funcname)
 
-   if not Sixpack: Sixpack = punit2Sixpack(ns, punit='uvp')
-   punit = Sixpack.label()
+   if not Sixpack:
+      Sixpack = punit2Sixpack(ns, punit='uvp')
+   pp['punit'] = get_punit(Sixpack)
 
    # Create a Joneset object
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
@@ -686,9 +685,9 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, slave=False, **inarg):
    # Calculate punit (l,m,n) from input Sixpack:
    radec = Sixpack.radec(ns)
    radec0 = MSauxinfo.radec0()
-   lmn    = ns.lmn(q=punit) << Meq.LMN(radec_0=radec0, radec=radec)
-   ncoord = ns.ncoord(q=punit) << Meq.Selector(lmn, index=2)
-   lmn1   = ns.lmn_minus1(q=punit) << Meq.Paster(lmn, ncoord-1, index=2)
+   lmn    = ns.lmn(q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
+   ncoord = ns.ncoord(q=pp['punit']) << Meq.Selector(lmn, index=2)
+   lmn1   = ns.lmn_minus1(q=pp['punit']) << Meq.Paster(lmn, ncoord-1, index=2)
    sqrtn  = ns << Meq.Sqrt(ncoord)
 
    if False:
@@ -707,8 +706,8 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, slave=False, **inarg):
       skey = TDL_radio_conventions.station_key(station)
       qual = dict(s=skey)
       uvw = MSauxinfo.node_station_uvw(skey, ns=ns)
-      Kmel = ns.dft(s=skey, q=punit) << Meq.VisPhaseShift(lmn=lmn1, uvw=uvw)/sqrtn
-      stub = ns[label](s=skey, q=punit) << Meq.Matrix22 (Kmel,0,0,Kmel)
+      Kmel = ns.dft(s=skey, q=pp['punit']) << Meq.VisPhaseShift(lmn=lmn1, uvw=uvw)/sqrtn
+      stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (Kmel,0,0,Kmel)
       js.append(skey, stub)
 
 
@@ -890,26 +889,38 @@ def _counter (key, increment=0, reset=False, trace=True):
 
 
 #--------------------------------------------------------------------------
-# Initialise a Joneseq object
+
 def Joneseq(label='JJones', origin='MG_JEN_Joneset'):
-    jseq = TDL_Joneset.Joneseq(label=label, origin=origin)
-    return jseq;
+   """Initialise a Joneseq (Joneset sequence) object"""
+   jseq = TDL_Joneset.Joneseq(label=label, origin=origin)
+   return jseq
 
 #--------------------------------------------------------------------------------
-# Display the first jones matrix in the given joneset:
 
 def display_first_subtree (joneset, full=1):
-  keys = joneset.keys()
-  jones = joneset[keys[0]]
-  txt = 'jones[0/'+str(len(keys))+'] of joneset: '+joneset.label()
-  MG_JEN_exec.display_subtree(jones, txt, full=full)
+   """Display the first jones matrix in the given joneset"""
+   keys = joneset.keys()
+   jones = joneset[keys[0]]
+   txt = 'jones[0/'+str(len(keys))+'] of joneset: '+joneset.label()
+   MG_JEN_exec.display_subtree(jones, txt, full=full)
+   return True
+
+#--------------------------------------------------------------------------------
+
+def get_punit(Sixpack=None):
+    """Get a valid predict-unit (punit) name"""
+    punit = 'uvp'                               # default: uv-plane
+    if Sixpack:                                 # Sixpack supplied
+       punit = Sixpack.label()                  # get punit from there
+    return punit
 
 
-# Make a Sixpack from a punit string
+#--------------------------------------------------------------------------------
 
 def punit2Sixpack(ns, punit='uvp'):
-  Sixpack = MG_JEN_Sixpack.newstar_source (ns, name=punit)
-  return Sixpack
+   """Make a Sixpack from a punit string"""
+   Sixpack = MG_JEN_Sixpack.newstar_source (ns, name=punit)
+   return Sixpack
 
 
 
@@ -1201,7 +1212,7 @@ if __name__ == '__main__':
      igui.input(inarg)
      igui.launch()
 
-  if 1:
+  if 0:
      # jseq = TDL_Joneset.Joneseq(origin='MG_JEN_Joneset')
      jseq = Joneseq()
      jseq.append(GJones (ns, scope=scope, stations=stations))
@@ -1213,9 +1224,10 @@ if __name__ == '__main__':
      js.display()     
      display_first_subtree (js, full=1)
 
-  if 0:
+  if 1:
      js = GJones (ns, stations=stations)
      js.display(full=True)     
+     display_first_subtree (js, full=1)
 
   if 0:
      js = GJones (ns, stations=stations)
