@@ -69,7 +69,7 @@ int main ()
   for( ; slin.valid(); slin.incr(),slout.incr(),nsl++ )
   {
     cout<<"Slice "<<nsl<<":"<<slin.array()<<endl;
-    slout.array() = slin.array();
+    slout = slin();
   }
   cout<<nsl<<" slices processed.\n";
       

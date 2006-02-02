@@ -54,6 +54,9 @@ class ConstVellsSlicer
       
       const blitz::Array<T,N> array () const
       { return blitz::Array<T,N>(pdata_,shape_,strides_,blitz::neverDeleteData); } 
+      
+      const blitz::Array<T,N> operator () () const
+      { return array(); }
 
   protected:
       // init with Vells and N axes
@@ -96,6 +99,9 @@ class VellsSlicer : public ConstVellsSlicer<T,N>
       
       blitz::Array<T,N> array () 
       { return blitz::Array<T,N>(pdata(),ConstVellsSlicer<T,N>::shape(),ConstVellsSlicer<T,N>::strides(),blitz::neverDeleteData); }
+      
+      blitz::Array<T,N> operator () () 
+      { return array(); }
       
       blitz::Array<T,N> operator = (const blitz::Array<T,N> &other) 
       { return array() = other; }
