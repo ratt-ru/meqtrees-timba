@@ -296,6 +296,14 @@ class Cohset (TDL_common.Super):
         """Get a Cohset item by key or by index nr"""
         if isinstance(key, int):
             key = self.__coh.keys()[key]
+        if True:
+            try:
+                return self.__coh[key]
+            except:
+                print sys.exc_info()
+                keys = self.__coh.keys()
+                print '** TDL_Cohset.__getitem(',key,'): not recognised in (',len(keys),'):',keys
+                return False
         if self.__coh.has_key(key):
             return self.__coh[key]
         keys = self.__coh.keys()

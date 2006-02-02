@@ -50,8 +50,6 @@ auto_save_file = 'auto_save.inarg'
 #================================================================================
 
 
-
-
 class MyListViewItem (QListViewItem):
 
     def set_text_color(self, color=None):
@@ -249,10 +247,8 @@ class ArgBrowser(QMainWindow):
         self.__other = None                        # another inarg (e.g. for comparison)
         self.__modified = False                    # if True, self.__inarg has been modified
         self.__closed = False
-        if False:
-            # Temporarily disabled because of problems (with file?)
-            # Always restore the autosave savefile (but do not show)
-            self.restore_inarg(auto_save_file)            
+        if True:
+            self.open_autosaved()            
         return None
 
 
@@ -406,13 +402,15 @@ class ArgBrowser(QMainWindow):
 
     def autosave(self):
         """Save the inarg record into the auto_save_file"""
-        self.save_inarg(auto_save_file)
+        self.save_inarg(auto_save_file, override=True)
         return True
 
     def open_autosaved(self):
         """Recover the inarg record that was saved automatically when pressing
         the 'Proceed' button. This allows continuation from that point"""
+        print 'open_autosaved(): before'
         self.restore_inarg(auto_save_file)
+        print 'open_autosaved(): after'
         return True
 
     def open_reference(self):
