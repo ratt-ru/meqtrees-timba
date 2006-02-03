@@ -341,7 +341,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     JEN_inarg.define(pp, 'solver_subtree', None, hide=True,
                      help='solver subtree qualifier(s)')
     inarg_redun(pp, slave=slave)
-    inarg_num_cells(pp, slave=slave)
+    inarg_resample(pp, slave=slave)
     inarg_solver_config (pp, slave=True)
     JEN_inarg.define(pp, 'visu', tf=True,
                      help='if True, include full visualisation')
@@ -477,7 +477,7 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
                      help='if specified, only use baselines>=rmin')
     JEN_inarg.define(pp, 'rmax', None, choice=[None, 500, 1000, 2000],  
                      help='if specified, only use baselines<=rmax')
-    inarg_num_cells(pp, slave=slave)
+    inarg_resample(pp, slave=slave)
     JEN_inarg.define(pp, 'num_iter', 20, choice=[1,3,5,10,20],  
                      help='max number of iterations')
     JEN_inarg.define(pp, 'epsilon', 1e-4, choice=[1e-3,1e-4, 1e-5],  
@@ -618,6 +618,7 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
     #     require the low-resolution request, of course....
     if pp['num_cells']:
        num_cells = pp['num_cells']                # [ntime, nfreq]
+       # NB: Alternatives are up/downsample (see inarg_resample())
        root = ns.modres_solver(solver_name, q=punit) << Meq.ModRes(root, num_cells=num_cells)
 
 
@@ -878,19 +879,32 @@ def inarg_solver_config (pp, **kwargs):
 
 
 
-def inarg_num_cells (pp, **kwargs):
+def inarg_resample (pp, **kwargs):
     JEN_inarg.inarg_common(kwargs)
     JEN_inarg.define (pp, 'num_cells', None,
                       slave=kwargs['slave'], hide=kwargs['hide'],
                       choice=[None,[5,2],[2,2],[3,3]],  
                       help='if defined, ModRes argument [ntime,nfreq]')
+    if False:
+        # The following two are mutually exclusive with num_cells above...
+        # Expected: a tuple/list of two integer factors [time,freq] >=0
+        # If 0 or 1, no resampling is done in that dimension
+        JEN_inarg.define (pp, 'downsample', None,
+                          slave=kwargs['slave'], hide=kwargs['hide'],
+                          choice=[None,[5,2],[2,2],[3,3]],  
+                          help='if defined, ModRes argument (integer) [ntime,nfreq]')
+        JEN_inarg.define (pp, 'upsample', None,
+                          slave=kwargs['slave'], hide=kwargs['hide'],
+                          choice=[None,[5,2],[2,2],[3,3]],  
+                          help='if defined, ModRes argument (integer) [ntime,nfreq]')
     return True
 
 
 def inarg_Cohset_common (pp, last_changed='<undefined>', **kwargs):
     """Some common JEN_inarg definitions for Cohset scripts"""
     # JEN_inarg.inarg_common(kwargs)
-    JEN_inarg.define (pp, 'last_changed', last_changed, editable=False)
+    JEN_inarg.define (pp, 'last_changed', last_changed,
+                      editable=False, hide=True)
     MG_JEN_exec.inarg_ms_name(pp)
     MG_JEN_exec.inarg_tile_size(pp)
     inarg_stations(pp)
@@ -899,7 +913,7 @@ def inarg_Cohset_common (pp, last_changed='<undefined>', **kwargs):
     MG_JEN_Sixpack.inarg_punit(pp)
     inarg_solver_config (pp)
     inarg_redun(pp)
-    inarg_num_cells(pp)
+    inarg_resample(pp)
     return True
 
 
