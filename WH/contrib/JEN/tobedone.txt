@@ -1,5 +1,5 @@
 file: ../WH/contrib/JEN/tobedone.txt
-                                      last changed:   d20jan
+                                      last changed:   d03feb
 
 
 NB: Even though this document is checked in, it is just a compilation
@@ -21,6 +21,7 @@ detected bugs:
  - AGW fax: 1-250-4937767
 
 ==================================================================
+
 
 
 
@@ -414,6 +415,20 @@ detected bugs:
      - So what is the total nr of free parameters, for this discussion....?!   
 
 
+ - Robert Braun: 17 MHz ripple
+   - Diffraction arund the support legs
+   - Can be seen in HOLOG images: ampl>0, and out of phase
+   - Affects aperture efficiency as a function of frequency (17 MHz cycle)
+   - Position-dependent? (i.e. worse on the flanks?)
+   - non-isotropic? (i.e. clover-leaf pattern?)
+   - In other words:
+     - Is the entire beam pattern multiplied by a factor?
+     - Or does it 'breathe', i.e. become wider and narrower?
+     - What is the effect on the sidelobe pattern? (constant integral?)
+   - Corroboration: RXB calculates (v12*v12)/(v11*v22)
+     - i.e. cross-correlations divided by auto-corrs
+     - after initial gain calibration, of course
+     - this quantity shows the 17 MHz ripple...! 
 
 ------------------------------------------------------------------------------
 
