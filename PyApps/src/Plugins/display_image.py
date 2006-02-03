@@ -104,6 +104,7 @@ class QwtImageDisplay(QwtPlot):
         'Toggle logarithmic range for image': 308,
         'Toggle results history': 309,
         'Adjust results buffer size': 310,
+        'Toggle Metrics Display': 311,
         }
 
     _start_spectrum_menu_id = 0
@@ -163,6 +164,7 @@ class QwtImageDisplay(QwtPlot):
         self.iteration_number = None
         self.ampl_phase = False
         self.complex_switch_set = False
+        self.added_metrics_menu = False
         self.log_switch_set = False
         self._active_perturb = None
         self.first_axis_inc = None
@@ -176,12 +178,15 @@ class QwtImageDisplay(QwtPlot):
         self.xsect_xpos = None
         self.xsect_ypos = None
         self.adjust_color_bar = True
+        self.toggle_metrics = True
         self.array_selector = None
         self.original_flag_array = None
         self.show_x_sections = False
         self.flag_range = False
         self.axes_flip = False
         self.setResults = True
+        self.y_solver_offset = []
+        self.metrics_plot = []
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -337,7 +342,7 @@ class QwtImageDisplay(QwtPlot):
         self._menu.setItemVisible(toggle_id, False)
 
 # add solver metrics info back in?
-        if not self.metrics_rank is None:
+        if self.toggle_metrics and not self.metrics_rank is None:
           self.add_solver_metrics()
 
 	self.refresh_marker_display()
@@ -450,8 +455,28 @@ class QwtImageDisplay(QwtPlot):
         self.replot()
         return True
 
+      if menuid == self.menu_table['Toggle Metrics Display']:
+        self.toggleMetrics()
+        self.replot()
+        return True
+
 # if we get here ...
       return False
+
+    def toggleMetrics(self):
+      if self.toggle_metrics == False:
+        self.toggle_metrics = True
+      else:
+        self.toggle_metrics = False
+      if self.toggle_metrics and not self.metrics_rank is None:
+        self.add_solver_metrics()
+      if not self.toggle_metrics:
+        if len(self.y_solver_offset) > 0:
+          for i in range(len(self.y_solver_offset)):
+            self.removeMarker(self.y_solver_offset[i])
+        if len(self.metrics_plot) > 0:
+          for i in range(len(self.metrics_plot)):
+            self.removeCurve(self.metrics_plot[i])
 
     def handle_flag_toggles(self, menuid):
 # toggle flags display	
@@ -1241,7 +1266,7 @@ class QwtImageDisplay(QwtPlot):
         self.axis_ymin = self.ymin
         self.axis_ymax = self.ymax
 
-      if not self.metrics_rank is None:
+      if self.toggle_metrics and not self.metrics_rank is None:
         self.add_solver_metrics()
 
       if self.show_x_sections:
@@ -1252,6 +1277,7 @@ class QwtImageDisplay(QwtPlot):
     # display_image()
 
     def add_solver_metrics(self):
+      self.metrics_plot = []
       shape = self.metrics_rank.shape
       for i in range(shape[1]):
         plot_data= zeros(shape[0], Int32)
@@ -1259,19 +1285,19 @@ class QwtImageDisplay(QwtPlot):
           plot_data[j] = self.metrics_rank[j,i]
 # add solver metrics info?
         metrics_key = 'metrics'+ str(i)
-        self.metrics_plot = self.insertCurve(metrics_key)
-        self.setCurvePen(self.metrics_plot, QPen(Qt.black, 2))
-        self.setCurveStyle(self.metrics_plot,Qt.SolidLine)
+        self.metrics_plot.append(self.insertCurve(metrics_key))
+        self.setCurvePen(self.metrics_plot[i], QPen(Qt.black, 2))
+        self.setCurveStyle(self.metrics_plot[i],Qt.SolidLine)
         
         if self.array_flip:
-          self.setCurveYAxis(self.metrics_plot, QwtPlot.yLeft)
-          self.setCurveXAxis(self.metrics_plot, QwtPlot.xBottom)
-          self.setCurveData(self.metrics_plot, plot_data, self.iteration_number)
+          self.setCurveYAxis(self.metrics_plot[i], QwtPlot.yLeft)
+          self.setCurveXAxis(self.metrics_plot[i], QwtPlot.xBottom)
+          self.setCurveData(self.metrics_plot[i], plot_data, self.iteration_number)
         else:
-          self.setCurveYAxis(self.metrics_plot, QwtPlot.xBottom)
-          self.setCurveXAxis(self.metrics_plot, QwtPlot.yLeft)
-          self.setCurveData(self.metrics_plot, self.iteration_number, plot_data)
-        plot_curve=self.curve(self.metrics_plot)
+          self.setCurveYAxis(self.metrics_plot[i], QwtPlot.xBottom)
+          self.setCurveXAxis(self.metrics_plot[i], QwtPlot.yLeft)
+          self.setCurveData(self.metrics_plot[i], self.iteration_number, plot_data)
+        plot_curve=self.curve(self.metrics_plot[i])
         plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
                  QPen(Qt.black), QSize(10,10)))
 
@@ -1294,13 +1320,14 @@ class QwtImageDisplay(QwtPlot):
           self.setMarkerXPos(self.y_sect_marker, self.y_arrayloc)
 
 # insert markers for solver metrics?
-      if not self.solver_offsets is None:
+      if self.toggle_metrics and not self.solver_offsets is None:
        shape = self.solver_offsets.shape 
        if shape[0] > 1:
+         self.y_solver_offset = []
          for i in range(shape[0] - 1):
-          self.y_solver_offset = self.insertLineMarker('', QwtPlot.xBottom)
-          self.setMarkerLinePen(self.y_solver_offset, QPen(Qt.black, 1, Qt.SolidLine))
-          self.setMarkerXPos(self.y_solver_offset, self.solver_offsets[i])
+           self.y_solver_offset.append(self.insertLineMarker('', QwtPlot.xBottom))
+           self.setMarkerLinePen(self.y_solver_offset[i], QPen(Qt.black, 1, Qt.SolidLine))
+           self.setMarkerXPos(self.y_solver_offset[i], self.solver_offsets[i])
 
 # insert mean and standard deviation
       if not self.array_parms is None:
@@ -1508,6 +1535,10 @@ class QwtImageDisplay(QwtPlot):
 # do we have solver data?
       if self._window_title.find('Solver Incremental') >= 0:
         self.solver_display = True
+        if not self.added_metrics_menu:
+          toggle_id = self.menu_table['Toggle Metrics Display']
+          self._menu.insertItem("Toggle Metrics Display", toggle_id)
+          self.added_metrics_menu = True
         if self._window_title.find('Solver Incremental Solutions') >= 0:
             self._x_title = 'Solvable Coefficients'
             self._y_title = 'Iteration Nr'
@@ -2024,7 +2055,6 @@ class QwtImageDisplay(QwtPlot):
 
       self.index = self.index + 1
     # timerEvent()
-
 
 def make():
     demo = QwtImageDisplay('plot_key')
