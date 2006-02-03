@@ -398,6 +398,7 @@ class ArgBrowser(QMainWindow):
     def open_browse(self, file_filter="*.inarg"):
         """Read a saved inarg record from a file, using a file browser"""
         filename = QFileDialog.getOpenFileName("", file_filter, self)
+        filename = str(filename)
         return self.restore_inarg(filename)
 
     def autosave(self):
@@ -424,9 +425,9 @@ class ArgBrowser(QMainWindow):
 
     def essence(self):
         """Show a summary of the (specified) essence of the current inarg"""
-        match = ['ms_','lsm','parm','pol','flag','corr','subtr',
+        match = ['ms_','_col','lsm','parm','pol','flag','corr','subtr',
                  'sequ','solve','condit','deg_','tile']
-        exclude = ['@@']
+        exclude = []
         JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
         return True
 
@@ -440,6 +441,7 @@ class ArgBrowser(QMainWindow):
     def compare_other(self):
         """Compare the current inarg to a saved inarg record from a file"""
         filename = QFileDialog.getOpenFileName("","*.inarg",self)
+        filename = str(filename)
         self.restore_inarg(filename, other=True)        # -> self.__other
         JEN_inarg.compare(self.__inarg, self.__other)
         return True
@@ -454,6 +456,7 @@ class ArgBrowser(QMainWindow):
             filename = filename.split('_protected')[0]   # remove _protected, if necessary
             filename += '_<qual>'
         filename = QFileDialog.getSaveFileName(filename, "*.inarg", self)
+        filename = str(filename)
         print '** self.saveAs(): filename =',filename
         if filename:
             # The current inarge record (saved in savefile)
@@ -469,12 +472,14 @@ class ArgBrowser(QMainWindow):
 
     def save_as_protected(self):
         """Save the current inarg record as protected"""
+        self.save_inarg()                                # save the unproceted one too
         filename = JEN_inarg.CTRL(self.__inarg, 'save_file')
         oldname = filename
         filename = filename.split('.inarg')[0]           # remove .inarg, if necessary 
         filename = filename.split('_protected')[0]       # just in case
         filename += '_protected.inarg'                   # repaste
         filename = QFileDialog.getSaveFileName(filename, "*_protected.inarg", self)
+        filename = str(filename)
         if self.same_filename(oldname, filename):
             s1 = '** Same filename not allowed: done nothing ...'
             self.__message.setText(s1)
@@ -1272,6 +1277,7 @@ class Popup(QDialog):
     def onBrowse (self):
         """Action on pressing the browse button"""
         filename = QFileDialog.getOpenFileName("",self.__filter, self)
+        filename = str(filename)
         if len(filename)>2:
             self.__combo.setCurrentText(filename)
             self.__status.setText('... new filename ...')
@@ -1282,6 +1288,7 @@ class Popup(QDialog):
     def onBrowseDir (self):
         """Action on pressing the browse button"""
         dirname = QFileDialog.getExistingDirectory("", self)
+        dirname = str(dirname)
         if len(dirname)>2:
             self.__combo.setCurrentText(dirname)
             self.__status.setText('... new dirname ...')
