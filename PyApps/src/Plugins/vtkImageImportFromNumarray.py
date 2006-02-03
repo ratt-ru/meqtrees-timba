@@ -1,7 +1,8 @@
 """
 vtkImageImportFromNumarray: a Numarray front-end to vtkImageImport
 
-Adapted directly from the vtk distribution vtkImageImportFromArray.py code
+Adapted by AGW directly from the VTK distribution's  
+vtkImageImportFromArray.py code module
 
 Load a Numarray Python array into a VTK image.
 
