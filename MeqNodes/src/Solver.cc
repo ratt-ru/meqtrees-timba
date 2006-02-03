@@ -1315,21 +1315,21 @@ void * Solver::runWorkerThread (void *solv)
 // eventually rethrown from here
 void Solver::activateSubsolverWorkers ()
 {
-  Thread::Mutex::Lock lock(worker_cond_);
+  // init queue and clear error list
+  Thread::Mutex::Lock lock(worker_mutex_);
   cdebug(3)<<"T"<<Thread::self()<<" activating workers"<<endl;
   wt_num_ss_ = 0;
-  wt_num_active_ = worker_threads_.size() + 1;  // +1 since main thread is also active
   wt_exceptions_.clear();
-  worker_cond_.broadcast();
-  // go into our own loop to start processing subsolvers
-  processSolversLoop(lock);
-  // now wait for worker threads to complete
   lock.release();
-  lock.relock(wt_completed_cond_);
-  while( wt_num_active_ > 0 )
-    wt_completed_cond_.wait();
-  lock.release();
+  // use worker_cond variable to wakeup threads
   lock.relock(worker_cond_);
+  wt_num_active_ = worker_threads_.size() + 1;  // +1 since main thread is also active
+  worker_cond_.broadcast();
+  lock.release();
+  // go into our own loop to start processing subsolvers
+  // loop will exit only when no more threads are active
+  processSolversLoop();
+  lock.relock(worker_mutex_);
   cdebug(3)<<"T"<<Thread::self()<<" all workers finished"<<endl;
   // if any exceptions have accumulated, throw them
   if( !wt_exceptions_.empty() )
@@ -1338,11 +1338,10 @@ void Solver::activateSubsolverWorkers ()
 
 // processes subsolvers in a loop, until all complete, or an exception
 // occurs. 
-// On entry, lock is a lock on worker_cond_
-// On exit, lock should still be held
-void Solver::processSolversLoop (Thread::Mutex::Lock &lock)
+void Solver::processSolversLoop ()
 {
   cdebug(3)<<"T"<<Thread::self()<<" subsolver loop started"<<endl;
+  Thread::Mutex::Lock lock(worker_mutex_);
   while( true )
   {
     // finish one all subsolvers have been assigned
@@ -1354,8 +1353,7 @@ void Solver::processSolversLoop (Thread::Mutex::Lock &lock)
     // shortcut -- if solver is already converged, do not release
     // lock since we'll be going on to the next one anyway.
     // But we need to call solve() anyway to clear its internals
-    bool already_conv = ss.converged;
-    if( !already_conv )
+    if( !ss.converged )
       lock.release();
     // process the subsolver
     bool converged = false;
@@ -1365,24 +1363,33 @@ void Solver::processSolversLoop (Thread::Mutex::Lock &lock)
     }
     catch( std::exception &exc )
     {
-      if( !already_conv )
-        lock.lock(worker_cond_);
+      if( !lock.locked() )
+        lock.lock(worker_mutex_);
       wt_exceptions_.add(exc);
       break;
     }
     // relock and update
-    if( !already_conv )
-      lock.lock(worker_cond_);
+    if( !lock.locked() )
+      lock.lock(worker_mutex_);
     if( converged )
       num_conv_++;
     // go back to grab another
   }
   cdebug(3)<<"T"<<Thread::self()<<" subsolver loop finished"<<endl;
+  lock.release();
   // no more solvers or error, so worker thread is finished
-  Thread::Mutex::Lock lock2(wt_completed_cond_);
-  if( wt_num_active_>0 )
-    wt_num_active_--;
-  wt_completed_cond_.signal();
+  lock.relock(worker_cond_);
+  // decrement active threads counter
+  wt_num_active_--;
+  DbgAssert(wt_num_active_>=0);
+  // wait for all threads to become inactive, then exit
+  if( wt_num_active_ )
+  {
+    while( wt_num_active_ )
+      worker_cond_.wait();
+  }
+  else // we were last active thread, so wake all waiters
+    worker_cond_.broadcast();
 }
 
 void * Solver::workerLoop ()
@@ -1397,8 +1404,11 @@ void * Solver::workerLoop ()
     // stop condition
     if( !mt_solve_ )
       return 0;
-    // else subsolvers are active, go into work loop
-    processSolversLoop(lock);
+    // else subsolvers are active, release lock on completed_cond and 
+    // go into work loop
+    lock.release();
+    processSolversLoop();
+    lock.relock(worker_cond_);
   }
 }
 

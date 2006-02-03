@@ -413,7 +413,7 @@ private:
   // mt-related methods and members
   bool mt_solve_;
   std::vector<Thread::ThrID> worker_threads_;
-  Thread::Condition worker_cond_;
+  Thread::Mutex worker_mutex_;
   
   // start/stop worker pool
   void startWorkerThreads ();
@@ -426,9 +426,7 @@ private:
   
   // Processes subsolvers in a loop, until all complete, or an exception
   // occurs. 
-  // On entry, lock is a lock on worker_cond_
-  // On exit, lock should still be held.
-  void processSolversLoop (Thread::Mutex::Lock &lock);
+  void processSolversLoop ();
   
   // Activates all worker threads to process subsolvers.
   // Process what we can in this thread, and returns when all jobs are 
@@ -442,7 +440,7 @@ private:
       // then it decrements this value. see processSolversLoop().
       // This value is also assigned to to wake up the worker threads.
   // condition var to signal when a worker thread is completed
-  Thread::Condition wt_completed_cond_;
+  Thread::Condition worker_cond_;
   
   // exceptions raised by workers are accumulated here
   DMI::ExceptionList wt_exceptions_; 
