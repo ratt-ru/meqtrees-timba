@@ -15,6 +15,7 @@
 #    - 14 jan 2006: made _replace_reference() react to '@' and '@@'
 #    - 31 jan 2006: top-level CTRL-record in pp2inarg()
 #    - 31 jan 2006: implemented .compare()
+#    - 03 feb 2006: implemented .essence()
 #
 # Full description:
 #    By obeying a simple (and unconstraining!) set of rules, the input
@@ -554,6 +555,49 @@ def view(rr, field='MESSAGE', ss='', level=0, trace=True):
 
 #------------------------------------------------------------------------------
 
+def essence(rr, match=[], exclude=[], ss='', level=0, trace=True):
+   """View (recursively) the fields with names that match the specified subtrsings"""
+   if level==0:
+      s = '\n** Recursive view of essence: '+str(match)
+      if trace: print s
+      ss = s
+
+   for key in order(rr, trace=False):
+      if isinstance(rr[key], dict):
+         # Recursive:
+         if not key==CTRL_record:
+            s = _prefix(level+1)+' ***** '+key+':'
+            if trace: print s
+            ss += '\n'+s
+            ss = essence(rr[key], match=match, exclude=exclude,
+                         ss=ss, level=level+1, trace=trace)
+      else:
+         # Test for the presence of the specified substring(s) in key:
+         skip = False
+         v = rr[key]
+         for substring in exclude:
+            # print '-',key,substring,key.rfind(substring)
+            if key.rfind(substring)>=0: skip=True
+         if isinstance(v, str):
+            if v.rfind('@@')>=0: skip=True
+         if not skip:
+            for substring in match:
+               if key.rfind(substring)>=0:
+                  s = _prefix(level)+' - '+key+' = '+str(v)
+                  if trace: print s
+                  ss += '\n'+s
+            
+   if level==0:
+      ok = is_OK(rr)
+      if ok: s = '** end of essence:   (OK)\n'
+      if not ok: s = '** end of essence:                   .... NOT OK ....!!\n'
+      if trace: print s
+      ss += '\n'+s
+   return ss
+
+
+#------------------------------------------------------------------------------
+
 def count(rr, field='MESSAGE', total=0, level=0):
    """Count (recursively) the specified JEN_inarg_CTRL fields"""
    if isinstance(rr, dict):
@@ -567,6 +611,7 @@ def count(rr, field='MESSAGE', total=0, level=0):
             if not key==CTRL_record:
                total = count(rr[key], field=field, total=total, level=level+1)
    return total
+
 
 #------------------------------------------------------------------------------
 
@@ -994,12 +1039,22 @@ def attach(rr=None, inarg=None, recurse=False, level=0, trace=False):
 
 #----------------------------------------------------------------------------
 
-def order(pp=None, append=None, trace=False):
-   """Get/append the order of the fields of argument record pp"""
-   order = CTRL(pp, 'order')
+def order(rr=None, append=None, trace=False):
+   """Get/append the order of the fields of argument record rr"""
+   order = CTRL(rr, 'order')
+   if order==None:
+      order = rr.keys()
    if append:
+      # Append the new item to the order vector:
       order.append(append)                
-      order = CTRL(pp, 'order', order)
+      order = CTRL(rr, 'order', order)
+   else:
+      # Check whether ALL rr.keys are included in the returned order:
+      for key in rr.keys():
+         if not key in order:
+            order.append(key)
+   if trace:
+      print '** order(append=',append,') ->',order
    return order
 
 

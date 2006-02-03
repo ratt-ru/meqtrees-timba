@@ -140,6 +140,8 @@ class ArgBrowser(QMainWindow):
         testmenu.insertItem('count_@@', self.count_ref)
         testmenu.insertItem('replace_@@', self.replace_ref)
         testmenu.insertSeparator()     
+        testmenu.insertItem('essence', self.essence)
+        testmenu.insertSeparator()     
         testmenu.insertItem('compare', self.compare_ref)
         testmenu.insertItem('compare...', self.compare_other)
         testmenu.insertSeparator()     
@@ -419,6 +421,14 @@ class ArgBrowser(QMainWindow):
         return True
 
 #-------------------------------------------------------------------
+
+    def essence(self):
+        """Show a summary of the (specified) essence of the current inarg"""
+        match = ['ms_','lsm','parm','pol','flag','corr','subtr',
+                 'sequ','solve','condit','deg_','tile']
+        exclude = ['@@']
+        JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
+        return True
 
     def compare_ref(self):
         """Compare the current inarg to its reference inarg (in a file)"""
