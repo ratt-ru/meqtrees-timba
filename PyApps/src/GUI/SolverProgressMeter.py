@@ -37,8 +37,7 @@ class SolverProgressMeter (QHBox):
     """processes solver.begin record. Usually connected to a Solver.Begin signal""";
     self._hidetimer.stop();
     self._hiding = False;
-    if isinstance(self.parent(),QStatusBar):
-      self.parent().clear();
+    self._app.statusbar.clear();
     if rec.num_tiles > 1:
       msg = "<b>%(node)s</b> p:%(num_spids)d t:%(num_tiles)d u:<b>%(num_unknowns)d</b>"%rec;
     else:

@@ -160,16 +160,18 @@ class meqserver_gui (app_proxy_gui):
     # excluse ubiquotous events from the event logger
     self.eventlog.set_mask('!node.status.*;!process.status;'+self.eventlog.get_mask());
     
+    meterbar = QVBox(self.statusbar);
+    self.statusbar.addWidget(meterbar); 
     # add a VisProgressMeter to status bar 
-    self._visprogmeter = VisProgressMeter.VisProgressMeter(self.statusbar);
+    self._visprogmeter = VisProgressMeter.VisProgressMeter(meterbar);
     self._visprogmeter.hide();
-    self.statusbar.addWidget(self._visprogmeter); # ,2);
+    # self.statusbar.addWidget(self._visprogmeter); # ,2);
     self._visprogmeter.connect_app_signals(self);
     
     # add a SolverProgressMeter to status bar 
-    self._solprogmeter = SolverProgressMeter.SolverProgressMeter(self.statusbar);
+    self._solprogmeter = SolverProgressMeter.SolverProgressMeter(meterbar);
     self._solprogmeter.hide();
-    self.statusbar.addWidget(self._solprogmeter); # ,2);
+    # self.statusbar.addWidget(self._solprogmeter); # ,2);
     self._solprogmeter.connect_app_signals(self);
     
     # add dummy stretch, and a memory size widget to status bar

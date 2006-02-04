@@ -76,8 +76,7 @@ class VisProgressMeter (QHBox):
   
   def start (self,rec):
     """initializes and shows meter. Usually connected to a Vis.Channel.Open signal""";
-    if isinstance(self.parent(),QStatusBar):
-      self.parent().clear();
+    self._app.statusbar.clear();
     self._wlabel.setText("<nobr>opening dataset</nobr>"); 
     self._wlabel.show();
     self._wprog.reset();
@@ -98,8 +97,7 @@ class VisProgressMeter (QHBox):
   
   def header (self,rec):
     """processes header record. Usually connected to a Vis.Header signal""";
-    if isinstance(self.parent(),QStatusBar):
-      self.parent().clear();
+    self._app.statusbar.clear();
     times = rec.header.time_extent;
     nt = int(times[1] - times[0]);
     self._vis_time0 = times[0];
@@ -197,5 +195,3 @@ class VisProgressMeter (QHBox):
     self._wtime.setText(""); 
     self._wtime.hide();
     self.hide();
-    
-    
