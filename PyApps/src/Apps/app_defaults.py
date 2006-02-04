@@ -32,16 +32,21 @@ def parse_argv (argv):
       return;
       
     elif arg == "-spawn":
-      (args['launch'],args['spawn']) = (None,True);
+      args.launch = None
+      args.spawn = args.spawn or True;
 
     elif arg == "-nospawn":
       args.spawn = None;
       
+    elif arg.startswith("-mqs="):     
+      args.spawn = arg.split('=',2)[1];
+      
     elif arg == "-launch":
-      (args['launch'],args['spawn']) = (True,None);
+      args.launch = True
+      args.spawn = None;
       
     elif arg == "-wait":
-      (args['launch'],args['spawn']) = (None,None);
+      args.launch = args.spawn = None;
       
     elif arg == "-gui":
       args['gui'] = True;

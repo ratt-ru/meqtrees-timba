@@ -62,7 +62,8 @@ class VisProgressMeter (QHBox):
   def _reset_stats (self):
     self._stats = self.TSStats();  # total stats
     self._pstats = self.TSStats(); # previous tile's stats
-    self._vis_nt = self._vis_time0 = self._vis_rtime0 = self._vis_rtime1 = None;
+    self._vis_nt = self._vis_rtime0 = self._vis_rtime1 = None;
+    self._time_reset_needed = True;  # if true, total time counter will be reset
     
   def connect_app_signals (self,app):
     """connects standard app signals to appropriate methods."""
@@ -73,19 +74,23 @@ class VisProgressMeter (QHBox):
     QObject.connect(app,PYSIGNAL("vis.footer"),self.xcurry(self.footer,_argslice=slice(1,2)));
     QObject.connect(app,PYSIGNAL("vis.channel.closed"),self.xcurry(self.close,_argslice=slice(1,2)));
     QObject.connect(app,PYSIGNAL("isConnected()"),self.xcurry(self.reset));
+    
+  def _show (self):
+    self._wlabel.show();
+    self._wprog.show();
+    self._wtime.show();
+    self.show();
   
   def start (self,rec):
     """initializes and shows meter. Usually connected to a Vis.Channel.Open signal""";
     self._app.statusbar.clear();
     self._wlabel.setText("<nobr>opening dataset</nobr>"); 
-    self._wlabel.show();
     self._wprog.reset();
-    self._wprog.show();
-    self.show();
     self._vis_output = rec.get("output");
     self._vis_inittime = time.time();
     self._wtime.setText(" 0:00:00");
     self._wtime.show();
+    self._show();
     self.killTimers();
     self.startTimer(1000);
     self._reset_stats();
@@ -100,29 +105,32 @@ class VisProgressMeter (QHBox):
     self._app.statusbar.clear();
     times = rec.header.time_extent;
     nt = int(times[1] - times[0]);
-    self._vis_time0 = times[0];
     self._wprog.setTotalSteps(nt);
     if nt:
       timestr = "received header, dataset length is " + hms_str(nt);
     else:
       timestr = "received header";
     self._wlabel.setText("<nobr>"+timestr+"</nobr>"); 
-    self._wprog.show();
-    self.show();
-    self._stats.reset(time.time());
+    self._reset_stats();
+    self._show();
        
   def update (self,rec):
     """indicates progress based on a Vis.Num.Tiles signal""";
+    timestamp = time.time();
+    if self._time_reset_needed:
+      self._stats.reset(timestamp);
+      self._time_reset_needed = False;
     nt = self._vis_nt = rec.num_tiles;
     ts = rec.timeslots;
-    time0 = int(rec.time[0]-self._vis_time0);
-    time1 = int(rec.time[1]-self._vis_time0);
-    self._wprog.setProgress(time0);
+    tm0 = rec.time_extent[0];
+    nt0 = rec.time_extent[1]-rec.time_extent[0];
+    time0 = int(rec.time[0]-tm0);
+    time1 = int(rec.time[1]-tm0);
+    self._wprog.setProgress(time0,nt0);
     # compute rates
-    tm = time.time();
     nts = ts[1]-ts[0]+1;
-    self._stats.mark(tm);
-    self._pstats.mark(tm);
+    self._stats.mark(timestamp);
+    self._pstats.mark(timestamp);
     # form message
     timestr = self._vis_rtime1 = hms_str(time0);
     if self._vis_rtime0 is None:
@@ -139,7 +147,9 @@ class VisProgressMeter (QHBox):
     self._wlabel.setText("<nobr>"+msg+"</nobr>"); 
     # update stat counters
     self._stats.update(nts);
-    self._pstats.reset(tm,nts);
+    self._pstats.reset(timestamp,nts);
+    # show everything
+    self._show();
     
   def footer (self,rec):
     """processes footer record. Usually connected to a Vis.Footer signal""";
@@ -147,15 +157,16 @@ class VisProgressMeter (QHBox):
       msg = "received footer, writing to output";
     else:
       msg = "received footer";
-    tm = time.time();
-    self._stats.mark(tm);
-    self._pstats.mark(tm);
+    timestamp = time.time();
+    self._stats.mark(timestamp);
+    self._pstats.mark(timestamp);
     if self._stats.rate is not None:
       msg = msg+"; avg <b>%.2f</b> sec/ts" % self._stats.rate;
     if self._pstats.rate is not None:
       msg = msg+"; last %.2f sec/ts" % self._pstats.rate;
     self._wlabel.setText("<nobr>"+msg+"</nobr>"); 
     self._wprog.setProgress(99,100);
+    self._show();
     
   def close (self,rec):
     """closes meter, posts message describing elapsed time and rate.
@@ -186,6 +197,7 @@ class VisProgressMeter (QHBox):
     
   def reset (self):
     """resets and hides meter."""
+    self._reset_stats();
     self.killTimers();
     self._vis_inittime = None;
     self._wprog.reset();

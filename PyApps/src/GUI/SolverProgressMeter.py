@@ -22,7 +22,6 @@ class SolverProgressMeter (QHBox):
     self.curry = self._currier.curry;
     self.xcurry = self._currier.xcurry;
     self._hidetimer = QTimer(self);
-    self._hiding = False;
     QObject.connect(self._hidetimer,SIGNAL("timeout()"),self._timed_reset);
     
   def connect_app_signals (self,app):
@@ -32,19 +31,23 @@ class SolverProgressMeter (QHBox):
     QObject.connect(app,PYSIGNAL("solver.iter"),self.xcurry(self.solver_iter,_argslice=slice(1,2)));
     QObject.connect(app,PYSIGNAL("solver.end"),self.xcurry(self.solver_end,_argslice=slice(1,2)));
     QObject.connect(app,PYSIGNAL("isConnected()"),self.xcurry(self.reset));
+    
+  def _show (self,secs=60):
+    """shows meter, and starts timer to hide after the specified number of
+    seconds""";
+    self._hidetimer.start(secs*1000,True);
+    self._wlabel.show();
+    self.show();
   
   def solver_begin (self,rec):
     """processes solver.begin record. Usually connected to a Solver.Begin signal""";
-    self._hidetimer.stop();
-    self._hiding = False;
     self._app.statusbar.clear();
     if rec.num_tiles > 1:
       msg = "<b>%(node)s</b> p:%(num_spids)d t:%(num_tiles)d u:<b>%(num_unknowns)d</b>"%rec;
     else:
       msg = "<b>%(node)s</b> p:%(num_spids)d u:<b>%(num_unknowns)d</b>"%rec;
     self._wlabel.setText("<nobr>"+msg+"</nobr>");
-    self._wlabel.show();
-    self.show();
+    self._show();
     
   def solver_iter (self,rec):
     """processes solver.iter record. Usually connected to a Solver.Iter signal""";
@@ -52,6 +55,7 @@ class SolverProgressMeter (QHBox):
     if rec.num_tiles > 1:
       msg += "c:%(num_converged)d/%(num_tiles)d"%rec;
     self._wlabel.setText("<nobr>"+msg+"</nobr>");
+    self._show();
     
   def solver_end (self,rec):
     """processes solver.end record. Usually connected to a Solver.End signal""";
@@ -66,18 +70,14 @@ class SolverProgressMeter (QHBox):
 #    if not rec.converged:
 #      msg += " <b><font color=\"red\">N/C</font><b>";
     self._wlabel.setText("<nobr>"+msg+"</nobr>");
-    # start timer to hide meter after 10 seconds
-    self._hidetimer.start(10000,True);
-    self._hiding = True;
+    self._show(20); # hide sooner when ended
     
   def _timed_reset (self):
-    if self._hiding:
-      self.reset();
+    self.reset();
     
   def reset (self):
     """resets and hides meter."""
     self._wlabel.setText(""); 
     self._wlabel.hide();
     self.hide();
-    
-    
+    self._hidetimer.stop();
