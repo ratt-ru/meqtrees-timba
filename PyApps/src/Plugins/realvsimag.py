@@ -277,9 +277,9 @@ class realvsimag_plotter(object):
 
 
         self.plot.canvas().setMouseTracking(True)
-        if self._statusbar:
-          self._statusbar.message(
-            'Plot cursor movements are tracked in the status bar',2000)
+#       if self._statusbar:
+#         self._statusbar.message(
+#           'Plot cursor movements are tracked in the status bar',2000)
 
     # __initTracking()
 
