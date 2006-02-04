@@ -429,17 +429,18 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
   inforec["Solver.Tiling"] = solver_tilesize.asHIID();
 #endif
   // now figure out what unknown in each subsolver corresponds to each spid
-  for( DMI::Record::const_iterator iter = spidmap_rec.begin(); 
-      iter != spidmap_rec.end(); iter++ )
-// 04/02/06: commenting out for now, and allocating spids in the order
-// of the spid map instead
-//  for( SpidMap::iterator iter = spids_.begin(); iter != spids_.end(); iter++ )
+  
+//* // use this code to allocate unknonws in the same order as the older
+//* // (pre-tiled) Solver
+//*  for( DMI::Record::const_iterator iter = spidmap_rec.begin(); 
+//*      iter != spidmap_rec.end(); iter++ )
+  for( SpidMap::iterator iter = spids_.begin(); iter != spids_.end(); iter++ )
   {
-    const DMI::Record &rec = iter.ref().as<DMI::Record>();
-    VellSet::SpidType spid = iter.id()[0].id();  // spid is first element of HIID
-    SpidInfo &spi = spids_[spid];
-//    SpidType spid = iter->first;
-//    SpidInfo &spi = iter->second;
+//*   const DMI::Record &rec = iter.ref().as<DMI::Record>();
+//*   VellSet::SpidType spid = iter.id()[0].id();  // spid is first element of HIID
+//*   SpidInfo &spi = spids_[spid];
+    SpidType spid = iter->first;
+    SpidInfo &spi = iter->second;
     Tiling &tiling = *( spi.ptiling );
     spi.ssuki.resize(spi.nuk);
     // Now work out how the spid tiles map to subsolver unknowns
