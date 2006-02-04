@@ -649,11 +649,11 @@ def _tdl_job_1_source_flux_fit_no_calibration(mqs,parent,write=True):
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
     # number of cells to resample to
-    nc = 4
-    set_MAB_node_state(mqs,'modres',record(num_cells=[nc,0]))
-    for st in range(1,15):
-      for src in ("3C343",):
-        set_MAB_node_state(mqs,':'.join(('dft_modres',str(st),src)),record(num_cells=[1000,0]))
+    # nc = 16
+    # set_MAB_node_state(mqs,'modres',record(num_cells=[nc,0]))
+    # for st in range(1,15):
+    #   for src in ("3C343","3C343_1"):
+    #     set_MAB_node_state(mqs,':'.join(('dft_modres',str(st),src)),record(num_cells=[1437,0]))
     
     req = meq.request();
     req.input  = inputrec;
@@ -701,6 +701,9 @@ def _tdl_job_2_phase_solution_with_given_fluxes_all(mqs,parent,write=True):
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
     set_MAB_node_state(mqs,'modres',record(num_cells=[0,1]))
+    for st in range(1,15):
+      for src in ("3C343","3C343_1"):
+        set_MAB_node_state(mqs,':'.join(('dft_modres',str(st),src)),record(num_cells=[0,16]))
     
     req = meq.request();
     req.input  = inputrec;

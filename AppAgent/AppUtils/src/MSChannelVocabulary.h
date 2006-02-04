@@ -54,7 +54,6 @@ namespace MSChannel
        FAntennaPos        = AidAntenna|AidPos,
        FMSName            = AidMS|AidName,
        FCwd               = AidCwd,
-       FTimeExtent        = AidTime|AidExtent,
        FChannelStartIndex = AidChannel|Aidstart|AidIndex,
        FChannelEndIndex   = AidChannel|AidEnd|AidIndex,
        FChannelIncrement  = AidChannel|AidIncrement,

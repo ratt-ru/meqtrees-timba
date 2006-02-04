@@ -8,6 +8,7 @@
 #include <MeqNodes/ParmTable.h>
 #include <DMI/BOIO.h>
 #include <DMI/List.h>
+#include <MeqNodes/ParmTable.h>
 #include <MeqServer/MeqPython.h>
 #include <MeqServer/Sink.h>
 #include <MeqServer/Spigot.h>
@@ -361,6 +362,9 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
   AtomicID oldstate = setState(AidExecuting);
   try
   {
+    // close all parm tables to free up memory
+    ParmTable::closeTables();
+    //
     DMI::Record::Ref rec = in;
     bool getstate;
     Node & node = resolveNode(getstate,*rec);
@@ -959,6 +963,8 @@ void MeqServer::run ()
   
   // clear the forest
   forest.clear();
+  // close any parm tables
+  ParmTable::closeTables();
   // close control channel
   control().close();
   // destroy python interface

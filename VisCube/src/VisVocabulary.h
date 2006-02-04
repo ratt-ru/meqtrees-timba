@@ -33,7 +33,7 @@
 #pragma aid IF Conv Chain Group Data Desc Polarization Code Poly Delay
 #pragma aid Dir Phase Pointing Lines Calibration Group Proper Motion Sigma Weight
 #pragma aid Origin Target Tracking Beam Product Meas Centroid
-#pragma aid AIPSPP Ignore VDSID Data Type
+#pragma aid AIPSPP Ignore VDSID Data Type Extent
 
 #include <DMI/HIID.h>
 #include <VisCube/AID-VisCube.h>
@@ -60,6 +60,7 @@ namespace VisVocabulary
     FNumChannels    = AidNum|AidChannel,
     FNumBaselines   = AidNum|AidIFR,
     FChunkIndexing  = AidChunk|AidIndexing,
+    FTimeExtent     = AidTime|AidExtent,
 
     FName           = AidName,
     FRowIndex       = AidRow|AidIndex,

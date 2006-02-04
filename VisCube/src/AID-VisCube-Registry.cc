@@ -107,6 +107,7 @@ DMI::BObj * __construct_VisCubeVCubeSet (int n) { return n>0 ? new VisCube::VCub
         AtomicID::registerId(-1125,"AIPSPP")+
         AtomicID::registerId(-1149,"Ignore")+
         AtomicID::registerId(-1151,"VDSID")+
+        AtomicID::registerId(-1639,"Extent")+
         AtomicID::registerId(-1121,"VisCubeTableFormat")+
         TypeInfoReg::addToRegistry(-1121,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1121,__construct_VisCubeTableFormat)+

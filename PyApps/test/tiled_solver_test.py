@@ -38,8 +38,8 @@ def _define_forest_2 (ns,**kwargs):
   # and 4-th degree polc in time with tile size 10 (expecting to fit the sine)
   # Fit should be on a 100x1 grid.
   ns.c = Meq.Time()*5 + Meq.Sin(Meq.Time()*6.28*7);  # a bit more than one period over a tile
-  ns.x = Meq.Parm([0,0],node_groups='Parm',tiling=record(time=20));
-  ns.y = Meq.Parm(meq.polc([0,0,0,0],shape=(4,1)),node_groups='Parm',tiling=record(time=12));
+  ns.x = Meq.Parm([0,0],node_groups='Parm',tiling=record(time=6));
+  ns.y = Meq.Parm(meq.polc([0,0,0,0],shape=(4,1)),node_groups='Parm',tiling=record(time=5));
   
   ns.solver <<Meq. Solver(
         num_iter=30,epsilon=1e-5,debug_level=10,solvable=["x","y"],

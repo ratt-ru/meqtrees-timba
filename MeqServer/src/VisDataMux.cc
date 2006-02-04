@@ -71,8 +71,9 @@ const HIID FCurrentRequest = AidCurrent|AidRequest;
 Meq::VisDataMux::VisDataMux ()
   : Node(-4,child_labels,0)  // 3 labeled children, more possible, 0 mandatory
 {
-  tile_time_.resize(2);
-  tile_ts_.resize(2);
+  time_extent_.resize(2,0);
+  tile_time_.resize(2,0);
+  tile_ts_.resize(2,0);
   
   force_regular_grid = false;
   // use reasonable default
@@ -171,6 +172,7 @@ void Meq::VisDataMux::postStatus ()
   ref[FNumTimeslots] = num_ts_;
   ref[FTimeslots] = tile_ts_;
   ref[FTime] = tile_time_;
+  ref[FTimeExtent] = time_extent_;
   postEvent(FVisNumTiles,ref);
 }
 
@@ -264,6 +266,9 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
   handlers_.resize(maxdid);
   child_indices_.resize(maxdid);
   
+  // get time extent
+  if( !header[VisVocabulary::FTimeExtent].get_vector(time_extent_) )
+    time_extent_.assign(2,0);
   // get frequencies 
   if( !header[VisVocabulary::FChannelFreq].get(channel_freqs) ||
       !header[VisVocabulary::FChannelWidth].get(channel_widths) )
@@ -621,6 +626,7 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
   // (fatal errors are thrown immediately)
   VellSet::Ref fail_list(DMI::ANONWR); 
   int stream_state = VisData::FOOTER; // no stream event yet
+  time_extent_.assign(2,0);
   bool had_data = false;
   // prepare event record describing start
   DMI::Record::Ref ref(DMI::ANONWR);

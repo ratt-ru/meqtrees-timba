@@ -118,6 +118,11 @@ const int AidEffective_int = -1200;
 const DMI::AtomicID AidExposure(-1159);           // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 const int AidExposure_int = -1159;
 #endif
+#ifndef _defined_id_AidExtent
+#define _defined_id_AidExtent 1
+const DMI::AtomicID AidExtent(-1639);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:36
+const int AidExtent_int = -1639;
+#endif
 #ifndef _defined_id_AidFeed
 #define _defined_id_AidFeed 1
 const DMI::AtomicID AidFeed(-1196);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:31

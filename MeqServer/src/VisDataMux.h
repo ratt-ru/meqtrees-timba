@@ -116,6 +116,7 @@ class VisDataMux : public Node
     int num_ts_;                    // number of timeslots seen
     std::vector<int> tile_ts_;      // range of timeslot indices for current tile
     std::vector<double> tile_time_; // range of times for current tile
+    std::vector<double> time_extent_; // range of times for full stream (from header)
     AppAgent::EventChannel::Ref  input_channel_;    
     AppAgent::EventChannel::Ref  output_channel_;    
 };
