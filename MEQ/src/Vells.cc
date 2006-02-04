@@ -600,7 +600,7 @@ inline double UNARY_MINUS_impl (T x)
 inline double UNARY_MINUS_impl (double x)
 { return -x; }
 inline dcomplex UNARY_MINUS_impl (dcomplex x)
-{ return - __real__ x + 1i*(__imag__ x); }
+{ return - __real__ x - 1i*(__imag__ x); }
 
 
 // Define _Complex double versions for unary functions, group 1.
