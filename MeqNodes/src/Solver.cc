@@ -282,7 +282,7 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
   {
     // each spidmap entry is expected to be a record
     const DMI::Record &rec = iter.ref().as<DMI::Record>();
-        VellSet::SpidType spid = iter.id()[0].id();  // spid is first element of HIID
+    VellSet::SpidType spid = iter.id()[0].id();  // spid is first element of HIID
     // insert entry into spid table
     SpidInfo & spi = spids_[spid];     
     spi.nodeindex = rec[FNodeIndex].as<int>();
@@ -429,10 +429,17 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
   inforec["Solver.Tiling"] = solver_tilesize.asHIID();
 #endif
   // now figure out what unknown in each subsolver corresponds to each spid
-  for( SpidMap::iterator iter = spids_.begin(); iter != spids_.end(); iter++ )
+  for( DMI::Record::const_iterator iter = spidmap_rec.begin(); 
+      iter != spidmap_rec.end(); iter++ )
+// 04/02/06: commenting out for now, and allocating spids in the order
+// of the spid map instead
+//  for( SpidMap::iterator iter = spids_.begin(); iter != spids_.end(); iter++ )
   {
-    SpidType spid = iter->first;
-    SpidInfo &spi = iter->second;
+    const DMI::Record &rec = iter.ref().as<DMI::Record>();
+    VellSet::SpidType spid = iter.id()[0].id();  // spid is first element of HIID
+    SpidInfo &spi = spids_[spid];
+//    SpidType spid = iter->first;
+//    SpidInfo &spi = iter->second;
     Tiling &tiling = *( spi.ptiling );
     spi.ssuki.resize(spi.nuk);
     // Now work out how the spid tiles map to subsolver unknowns
@@ -499,8 +506,15 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
 // and the complex case. This allows us to have a single templated 
 // definition of fillEquations() below which works for both cases.
 template<typename T>
+inline void Solver::fillEqVectors (Subsolver &,int,int [],
+      const T &,const std::vector<Vells::ConstStridedIterator<T> > &)
+{
+  STATIC_CHECK(0,unsupported_template_type_for_fillEqVectors);
+}
+
+template<>
 inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
-      const T &diff,const std::vector<Vells::ConstStridedIterator<T> > &deriv_iter)
+      const double &diff,const std::vector<Vells::ConstStridedIterator<double> > &deriv_iter)
 {
   // fill vectors of derivatives for each unknown 
   for( int i=0; i<npert; i++ )
@@ -516,17 +530,6 @@ inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
   ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],1.,diff);
   num_equations_++;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 // Specialization for complex case: each value produces two equations
@@ -547,7 +550,7 @@ inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
     { 
       ::Debug::getDebugStream()<<uk_index[i]<<":"<<deriv_real_[i]<<","<<deriv_imag_[i]<<" "; 
     }
-    ::Debug::getDebugStream()<<" -> "<<diff<<endl;
+    ::Debug::getDebugStream()<<" -> "<<ssprintf("(%g,%g)\n",creal(diff),cimag(diff));
   }
   // add equation to solver
   ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],1.,creal(diff));
@@ -600,7 +603,8 @@ void Solver::fillEquations (const VellSet &vs)
   // most equations don't have ANY collapsed axes (i.e. either the rhs or 
   // the lhs have some variation along each given axis), in which case
   // this is NOT inefficient at all.
-  shapes[0] = &( cells_shape_ );
+  shapes[0] = &( cells_shape_ ); // ensure output shape is cells shape
+  
   // index of current unknown per each derivative per each subsolver
   // (since we may have multiple unknowns per spid due to tiling,
   // we keep track of the current one when filling equations)
@@ -1129,23 +1133,30 @@ bool Solver::Subsolver::solve (int step)
   solution = 0;
   if( converged )
     return true;
-  // It looks as if in LSQ solveLoop and getCovariance
-  // interact badly (maybe both doing an invert).
-  // So make a copy to separate them.
   solFlag = solver.solveLoop(fit,rank,solution,settings.use_svd);
 
+    // both of these calls produce SEGV in certain situations; commented out until
+    // Wim or Ger fixes it
+    //cdebug(1) << "result_covar = solver_.getCovariance (covar);" << endl;
+    //bool result_covar = solver_.getCovariance (covar);
+    //cdebug(1) << "result_errors = solver_.getErrors (errors);" << endl;
+  
   cdebug1(4)<<"solution after: " << solution << ", rank " << rank << endl;
-  // Put the statistics in a record the result.
+  // Put the statistics in a record of the result.
   DMI::Record & mrec = metrics <<= new DMI::Record;
   mrec[FRank]   = int(rank);
   mrec[FFit]    = fit;
+//  mrec[FErrors] = errors;
   mrec[FFlag]   = solFlag; 
   mrec[FMu]     = solver.getWeightedSD();
   mrec[FStdDev] = solver.getSD();
   mrec[FNumUnknowns] = nuk;
   mrec[FChi   ] = solver.getChi();
   
-////# commenting this out for now because it seems to fuck with convergence!??
+// getCovariance() and getErrors() seem to destroy the matrix.
+// so comment them out for now. The right way is to make a copy of the LSQFit
+// object, and get it from there. Since this is potentially expensive,
+// only do it under the use_debug clause.
 //   // fill errors and covariance matrices
 //   DMI::NumArray &errors = mrec[FErrors] <<= new DMI::NumArray(Tpdouble,LoShape(nuk),DMI::NOZERO); 
 //   DMI::NumArray &covar = mrec[FCoVar] <<= new DMI::NumArray(Tpdouble,LoShape(nuk,nuk),DMI::NOZERO); 
