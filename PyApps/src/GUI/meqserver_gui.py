@@ -222,6 +222,7 @@ class meqserver_gui (app_proxy_gui):
     self.treebrowser._qa_save.addTo(kernel_menu);
     self._connect_dialog = connect_meqtimba_dialog.ConnectMeqKernel(self,\
         name="&Connect to MeqTimba kernel",modal=False);
+    self._connect_dialog.move(QPoint(100,100));
     QObject.connect(self,PYSIGNAL("isConnected()"),self._connect_dialog.setHidden);
     QObject.connect(connect,SIGNAL("activated()"),self._connect_dialog.show);
     QObject.connect(self._connect_dialog,PYSIGNAL("startKernel()"),self._start_kernel);
