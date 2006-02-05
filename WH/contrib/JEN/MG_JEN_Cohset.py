@@ -21,6 +21,7 @@
 # - 11 jan 2006: make function MSauxinfo()
 # - 14 jan 2006: referenced values prepended with @/@@
 # - 21 jan 2006: condeq_corr cats (corrI etc)
+# - 05 feb 2006: punit='uvp'
 
 # Copyright: The MeqTree Foundation 
 
@@ -74,9 +75,11 @@ except:
 
 
 def make_spigots(ns=None, Cohset=None, **inarg):
+    """Make spigot nodes in the given Cohset object"""
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_spigots()', version='25dec2005')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_spigots()', version='25dec2005',
+                            description=make_spigots.__doc__)
     JEN_inarg.define (pp, 'input_col', 'DATA', hide=True,
                       choice=['DATA','PREDICT','RESIDUALS'],
                       help='name of the logical (VisTile) input column')
@@ -125,9 +128,11 @@ def make_spigots(ns=None, Cohset=None, **inarg):
 
 
 def make_sinks(ns=None, Cohset=None, **inarg):
+    """Make sink nodes in the given Cohset object"""
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_sinks()', version='25dec2005')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::make_sinks()', version='25dec2005',
+                            description=make_sinks.__doc__)
     JEN_inarg.define (pp, 'output_col', 'PREDICT',
                       choice=['PREDICT','RESIDUALS','DATA'],
                       help='name of the logical (VisTile) output column')
@@ -207,12 +212,14 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     """Make a Joneset by creating and multiplying one ore more Jonesets"""
    
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::JJones()', version='25dec2005')
-    # JEN_inarg.inarg_common(pp)
-    # Arguments that should common to all Jonesets in the sequence
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::JJones()', version='25dec2005',
+                            description=JJones.__doc__)
+    # Arguments that should be common to all Jonesets in the sequence:
+    # (NB: use MG_JEN_Joneset.inarg_common(pp, slave=slave)?)
     inarg_stations(pp, slave=slave)
     inarg_parmtable(pp, slave=slave)
     inarg_polrep(pp, slave=slave)
+    MG_JEN_Joneset.inarg_uvplane_effect(pp, slave=slave)    
     JEN_inarg.define (pp, 'Jsequence', [],
                       choice=[['GJones'],['BJones'],['FJones'],['KJones'],
                               ['DJones'],['GJones','DJones'],
@@ -275,7 +282,8 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     If a Joneset with instrumental effects is supplied, corrupt the data."""
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()', version='25dec2005')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()', version='25dec2005',
+                            description=predict.__doc__)
     inarg_stations(pp, slave=slave)
     inarg_polrep(pp, slave=slave)
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
@@ -285,7 +293,7 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     # Make sure that there is a valid source/patch Sixpack:
     if not Sixpack:
         Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
-    punit = Sixpack.label()
+    # punit = Sixpack.label()
 
     # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
     Cohset = TDL_Cohset.Cohset(label='predict', origin=funcname, **pp)
@@ -337,7 +345,8 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     """insert one or more solver subtrees in the data stream""" 
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_solver()', version='25dec2005')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_solver()', version='25dec2005',
+                            description=insert_solver.__doc__)
     JEN_inarg.define(pp, 'solver_subtree', None, hide=True,
                      help='solver subtree qualifier(s)')
     inarg_redun(pp, slave=slave)
@@ -471,7 +480,8 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
     """Make a solver-subtree for the given Condeq Cohset""" 
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::solver_subtree()', version='20dec2005')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::solver_subtree()', version='20dec2005',
+                            description=solver_subtree.__doc__)
     MG_JEN_Joneset.inarg_solvegroup(pp, slave=slave)
     JEN_inarg.define(pp, 'rmin', None, choice=[None, 100, 200, 500],  
                      help='if specified, only use baselines>=rmin')
@@ -638,7 +648,8 @@ def insert_flagger (ns=None, Cohset=None, **inarg):
     """insert a flagger for the coherency matrices in Cohset""" 
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_flagger()', version='25dec2005')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::insert_flagger()', version='25dec2005',
+                            description=insert_flagger.__doc__)
     pp.setdefault('sigma', 5.0)              # flagged if exceeds sigma*stddev
     pp.setdefault('unop', 'Abs')             # unop used to make real data
     pp.setdefault('oper', 'GT')              # decision function (GT=Greater Than)
@@ -854,7 +865,7 @@ def inarg_stations (pp, **kwargs):
     JEN_inarg.define (pp, 'ifrs', TDL_Cohset.stations2ifrs(pp['stations']),
                       slave=kwargs['slave'], hide=True,
                       help='list if ifrs (derived from stations)')
-    print 'pp[ifrs] =',pp['ifrs']
+    # print 'pp[ifrs] =',pp['ifrs']
     return True
 
 
@@ -911,6 +922,7 @@ def inarg_Cohset_common (pp, last_changed='<undefined>', **kwargs):
     inarg_parmtable(pp)
     inarg_polrep(pp)
     MG_JEN_Sixpack.inarg_punit(pp)
+    MG_JEN_Joneset.inarg_uvplane_effect(pp)    
     inarg_solver_config (pp)
     inarg_redun(pp)
     inarg_resample(pp)
@@ -930,11 +942,17 @@ def inarg_Cohset_common (pp, last_changed='<undefined>', **kwargs):
 #********************************************************************************
 #********************************************************************************
 
+def description ():
+    """MG_JEN_Cohset.py contains a number of helper routines for inserting
+    functionality for uv-data reduction"""
+    return True
+
+
 #----------------------------------------------------------------------------------------------------
 # Intialise the MG control record with some overall arguments 
 #----------------------------------------------------------------------------------------------------
 
-MG = JEN_inarg.init('MG_JEN_Cohset')
+MG = JEN_inarg.init('MG_JEN_Cohset', description=description.__doc__)
 
 # Define some overall arguments:
 # MG_JEN_Cohset.inarg_Cohset_common (MG, last_changed='d19jan2006')

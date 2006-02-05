@@ -132,7 +132,7 @@ option_field = '_JEN_inarg_option'
 
 #----------------------------------------------------------------------------
 
-def init(target='<target>', version='15dec2005', **pp):
+def init(target='<target>', version='15dec2005', description=None, **pp):
    """Initialise a valid inarg record, with optional fields **pp.
    This is done when starting a composite inarg record, e.g. in MG_JEN_xxx.py"""
 
@@ -145,7 +145,13 @@ def init(target='<target>', version='15dec2005', **pp):
    # Make a CTRL record, and convert it to a 'top-level' version:
    _ensure_CTRL_record(inarg, target, version=version)
    inarg[CTRL_record] = CTRL2toplevel(inarg[CTRL_record])
-   inarg[CTRL_record]['order'] = inarg.keys()   # bit of a kludge
+
+   # Attach/overwrite the inarg description string, if supplied:
+   if isinstance(description, str):
+      inarg[CTRL_record]['description'] = description
+
+   # The order (list) is needed by JEN_inargGui....
+   inarg[CTRL_record]['order'] = inarg.keys()
 
    trace = False
    if trace:
@@ -488,6 +494,22 @@ def barescope(rr, trace=False):
    if trace: print '.barescope() ->',type(bs),len(bs),'=',bs
    return bs
 
+#----------------------------------------------------------------------------
+
+def description(rr, new=None, append=None, prepend=None):
+   """Get/modify the inarg description string"""
+   ss = CTRL(rr, 'description')
+   if isinstance(new, str):
+      ss = new
+   if isinstance(append, str):
+      ss += '\n'+append
+      ss = CTRL(rr, 'description', ss)
+   if isinstance(prepend, str):
+      ss = prepend+'\n'+ss
+      ss = CTRL(rr, 'description', ss)
+   return CTRL(rr, 'description')
+   
+      
 #----------------------------------------------------------------------------
 
 def ERROR(rr, txt=None, clear=False, trace=False):
@@ -850,7 +872,7 @@ def _count_reference(rr, n=0, n1=0, n2=0, name='<name>', level=0, trace=False):
 # This is the on_entry function of a inarg-compatible function.
 #----------------------------------------------------------------------------
 
-def inarg2pp(inarg, target='<target>', version='15jan2006', trace=False):
+def inarg2pp(inarg, target='<target>', version='15jan2006', description=None, trace=False):
    """Extract the relevant internal argument record (pp) from inarg"""
 
    s0 = '** JEN_inarg.inarg2pp('+target+'): '
@@ -932,9 +954,11 @@ def inarg2pp(inarg, target='<target>', version='15jan2006', trace=False):
    # Attach CTRL record to pp (if necessary):
    _ensure_CTRL_record(pp, target, version=version, qual=qual)
 
+   # Transfer the function description, if supplied:
+   CTRL(pp, 'description', description)
+
    if trace: display(pp,'pp <- .inarg2pp(inarg)', full=True)
    return pp
-
 
 
 
@@ -1111,31 +1135,53 @@ def result(rr=None, pp=None, attach=None, trace=True):
 
 #----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
+# Functions dealing with .inarg_xxx() functions, which contain 
 #----------------------------------------------------------------------------
 
 def inarg_template (pp, **kwargs):
    """Template/example for inarg_xxx() functions (see e.g. MG_JEN_Cohset.py)"""
    JEN_inarg.inarg_common(kwargs)
-   JEN_inarg.define (pp, 'xxx', '<default>',
-                     slave=kwargs['slave'], hide=kwargs['hide'],
+   # The arg default values may be overridden via kwargs:
+   kwargs.setdefault('xxx', '<default>')
+   JEN_inarg.define (pp, 'xxx', kwargs['xxx'],
+                     slave=kwargs['_slave'], hide=kwargs['_hide'],
                      choice=[],
                      help='')
+   # JEN_inarg.inarg_check(pp, kwargs)          # Needs more though...
    return True
 
 
-def inarg_common (rr, **kwargs):
-   """Used in inarg_xxx() functions (see above)"""
-   rr.setdefault('slave', False)     
-   rr.setdefault('hide', False)
+def inarg_common (kwargs, **extra):
+   """Used in inarg_xxx() functions to pre-process their kwargs records"""
+
+   kwargs.setdefault('slave', False)            # old (to be phased out)                    
+   kwargs.setdefault('hide', False)             # old (to be phased out)      
+   kwargs.setdefault('_slave', kwargs['slave']) # new                        
+   kwargs.setdefault('_hide', kwargs['hide'])   # new                         
+   kwargs.setdefault('_help', dict())           # alternative help, per argument                           
+   kwargs.setdefault('_choice', dict())         # alternative choice                   
+
    # NB: Think about this one, and the entire inarg_common idea!!
-   # rr.setdefault('setopen', False)
-   # if rr['setopen']:
-      # CTRL(rr,'setopen',True, trace=trace)
-   for key in kwargs.keys():
-      rr[key] = kwargs[key]
+   # kwargs.setdefault('_setopen', False)
+   # if kwargs['_setopen']:
+      # CTRL(kwargs,'setopen',True, trace=trace)
+
+   # Transfer any extra keyword arguments supplied INSIDE inarg_xxx()
+   for key in extra.keys():
+      kwargs[key] = extra[key]
    return True
 
 
+def inarg_check (pp, kwargs, keys=[]):
+   """Optional: check the pp-entries defined in inarg_xxx() functions"""
+   # This requires a little more thought...
+   # Check whether kwargs contains typo 'slave' rather than '_slave'....?
+   return True
+
+
+
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
 
 def define(pp, key=None, default=None, slave=False,
@@ -1238,9 +1284,12 @@ def define(pp, key=None, default=None, slave=False,
 
 def test1(ns=None, object=None, **inarg):
    """A test function with inarg capability"""
+
+   print '** test1.__doc__ =',test1.__doc__
    
    # Extract a bare argument record pp from inarg
-   pp = inarg2pp(inarg, 'JEN_inarg::test1()', version='10jan2006', trace=True)
+   pp = inarg2pp(inarg, 'JEN_inarg::test1()', version='10jan2006',
+                 description=test1.__doc__, trace=True)
    
    # Specify the function arguments, with default values:
    define(pp, 'aa', 45, choice=[46,78,54,False,None], editable=False,
@@ -1294,7 +1343,8 @@ def test1(ns=None, object=None, **inarg):
 def test2(**inarg):
    """Another test function"""
 
-   pp = inarg2pp(inarg, 'JEN_inarg::test2()', version='2.45', trace=True)
+   pp = inarg2pp(inarg, 'JEN_inarg::test2()', version='2.45',
+                 description=test2.__doc__, trace=True)
    pp.setdefault('ff', 145)
    pp.setdefault('bb', -119)
    pp.setdefault('aa', 'aa_test2')

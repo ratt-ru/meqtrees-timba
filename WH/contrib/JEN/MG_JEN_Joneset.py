@@ -21,6 +21,7 @@
 # - 11 jan 2006: KJones with MSauxinfo
 # - 20 jan 2006: new TDL_Parmset.py
 # - 02 feb 2006: removed punit from the input arguments (use Sixpack)
+# - 05 feb 2006: Introduced keyword 'uv_plane_effect'
 
 # Copyright: The MeqTree Foundation 
 
@@ -112,11 +113,15 @@ def adjust_for_telescope(pp, origin='<origin>'):
 def inarg_Joneset_common (pp, **kwargs):
    """Some common JEN_inarg definitions for Joneset definition functions"""
    JEN_inarg.inarg_common(kwargs)
-   trace = True
+   # trace = True
    JEN_inarg.define(pp, 'stations', [0], slave=kwargs['slave'], trace=trace, 
                     help='list of station names/numbers')
    JEN_inarg.define(pp, 'parmtable', None, slave=kwargs['slave'], trace=trace, 
-                    help='name of the MeqParm table (AIPS++)')
+                    help='name of the MeqParm table')
+   inarg_uvplane_effect(pp, **kwargs)
+   JEN_inarg.define (pp, 'uvplane_effect', False,
+                     slave=kwargs['slave'], hide=kwargs['hide'],
+                     help='if True, the Joneset reprsents uv-plane effects (q=uvp)')
    # ** Jones matrix elements:
    JEN_inarg.define(pp, 'polrep', 'linear', choice=['linear','circular'],
                     slave=kwargs['slave'], trace=trace, 
@@ -124,10 +129,21 @@ def inarg_Joneset_common (pp, **kwargs):
    # ** Solving instructions:
    JEN_inarg.define(pp, 'unsolvable', tf=False, trace=trace, hide=True,
                     help='if True, do NOT store solvegroup/parmgroup info')
-    # ** MeqParm default values:
+   # ** MeqParm default values:
    JEN_inarg.define(pp, 'ft_coeff_scale', 0.0, trace=trace, hide=True,
                     help='scale of polc_ft non-c00 coeff')
    return True
+
+#------------------------------------------------------------------------------
+
+def inarg_uvplane_effect (pp, **kwargs):
+   JEN_inarg.inarg_common(kwargs)
+   kwargs.setdefault('uvplane_effect', False)
+   JEN_inarg.define (pp, 'uvplane_effect', kwargs['uvplane_effect'],
+                     slave=kwargs['slave'], hide=kwargs['hide'],
+                     help='if True, the Joneset reprsents uv-plane effects (q=uvp)')
+   return True
+
 
 #------------------------------------------------------------------------------
 
@@ -186,6 +202,16 @@ def inarg_solvegroup (pp, **kwargs):
    return True
 
 
+
+
+
+
+
+
+
+
+
+
 #--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
@@ -199,7 +225,8 @@ def GJones (ns=None, Sixpack=None, slave=False, **inarg):
     jones = 'GJones'
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005',
+                            description=GJones.__doc__)
     inarg_Joneset_common(pp, slave=slave)              
     # ** Jones matrix elements:
     JEN_inarg.define(pp, 'Gpolar', tf=False,  
@@ -237,7 +264,7 @@ def GJones (ns=None, Sixpack=None, slave=False, **inarg):
 
     # Some preparations:
     adjust_for_telescope(pp, origin=funcname)
-    pp['punit'] = get_punit(Sixpack)
+    pp['punit'] = get_punit(Sixpack, pp)
 
     # Create a Joneset object
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
@@ -331,7 +358,8 @@ def FJones (ns=0, Sixpack=None, slave=False, **inarg):
    jones = 'FJones'
 
    # Input arguments:
-   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005')
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005',
+                            description=FJones.__doc__)
    # inarg_Joneset_common(pp)                               # some common arguments             
    inarg_Joneset_common(pp, slave=slave)              
    # ** Jones matrix elements:
@@ -352,7 +380,7 @@ def FJones (ns=0, Sixpack=None, slave=False, **inarg):
    label = jones+JEN_inarg.qualifier(pp)
    
    adjust_for_telescope(pp, origin=funcname)
-   pp['punit'] = get_punit(Sixpack)
+   pp['punit'] = get_punit(Sixpack, pp)
    
    # Create a Joneset object:
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
@@ -403,7 +431,8 @@ def BJones (ns=0, Sixpack=None, slave=False, **inarg):
     jones = 'BJones'
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005')
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005',
+                            description=BJones.__doc__)
     # inarg_Joneset_common(pp)                               # some common arguments             
     inarg_Joneset_common(pp, slave=slave)              
     # ** Jones matrix elements:
@@ -439,7 +468,7 @@ def BJones (ns=0, Sixpack=None, slave=False, **inarg):
     label = jones+JEN_inarg.qualifier(pp)
 
     adjust_for_telescope(pp, origin=funcname)
-    pp['punit'] = get_punit(Sixpack)
+    pp['punit'] = get_punit(Sixpack, pp)
 
     # Create a Joneset object:
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
@@ -515,7 +544,8 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, **inarg):
    jones = 'DJones_WSRT'
 
    # Input arguments:
-   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005')
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005',
+                            description=DJones_WSRT.__doc__)
    # inarg_Joneset_common(pp)                               # some common arguments             
    inarg_Joneset_common(pp, slave=slave)              
    # ** Jones matrix elements:
@@ -557,7 +587,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, **inarg):
    label = jones+JEN_inarg.qualifier(pp)
 
    adjust_for_telescope(pp, origin=funcname)
-   pp['punit'] = get_punit(Sixpack)
+   pp['punit'] = get_punit(Sixpack, pp)
 
    # Create a Joneset object:
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
@@ -671,7 +701,8 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, slave=False, **inarg):
    jones = 'KJones'
    
    # Input arguments:
-   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='12dec2005')
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='12dec2005',
+                            description=KJones.__doc__)
    inarg_Joneset_common(pp, slave=slave)              
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -681,6 +712,7 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, slave=False, **inarg):
    
    adjust_for_telescope(pp, origin=funcname)
 
+   # Note the difference with other Jones matrices:
    if not Sixpack:
       Sixpack = punit2Sixpack(ns, punit='uvp')
    pp['punit'] = get_punit(Sixpack)
@@ -913,11 +945,14 @@ def display_first_subtree (joneset, full=1):
 
 #--------------------------------------------------------------------------------
 
-def get_punit(Sixpack=None):
+def get_punit(Sixpack=None, pp=dict()):
     """Get a valid predict-unit (punit) name"""
-    punit = 'uvp'                               # default: uv-plane
+    punit = 'uvp'                               # default: uv-plane effect
     if Sixpack:                                 # Sixpack supplied
        punit = Sixpack.label()                  # get punit from there
+    if pp.has_key('uvplane_effect'):            # 
+       if pp['uvplane_effect']:                 # valid for the entire field
+          punit = 'uvp'                         # override
     return punit
 
 

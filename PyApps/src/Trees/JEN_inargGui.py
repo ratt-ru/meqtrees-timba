@@ -186,12 +186,25 @@ class ArgBrowser(QMainWindow):
 
         self.__find_item = None
         
+
         #----------------------------------------------------
-        # The text editor:
-        if False:
-            self.__textedit = QTextEdit(self)
-            vbox.addWidget(self.__textedit)
-            self.__textedit.setText('xxxx \n hhhhh \n\n\n\n ...')
+        # The text window:
+        self.__tw = None
+        self.__text = None
+        self.__floatw = None
+        if True:
+            hbox = QHBoxLayout(vbox)
+            vtbox = QHBoxLayout(hbox)
+            self.__tw = QTextEdit(self)
+            self.__tw.setReadOnly(True)
+            hbox.addWidget(self.__tw)
+            
+            b = QPushButton('Float', self)
+            QToolTip.add(b, 'Float')
+            QObject.connect(b, SIGNAL("pressed ()"), self.floatw)
+            vtbox.addWidget(b)
+
+
 
         #----------------------------------------------------
         # Buttons to be added at the bottom:
@@ -254,7 +267,6 @@ class ArgBrowser(QMainWindow):
 
     def QApp (self):
         """Access to the QApplication"""
-
         return self.__QApp
 
     def closeGui (self):
@@ -269,22 +281,40 @@ class ArgBrowser(QMainWindow):
 
     def closeEvent (self,ev):
         """Callback function for close"""
-        self.__closed = True;
-    	QMainWindow.closeEvent(self,ev);
-
+        self.__closed = True
+    	QMainWindow.closeEvent(self,ev)
+        return True
 
     def clearGui (self):
         """Clear the gui"""
         self.__listview.clear()
         if self.__popup: self.__popup.close()
+        if self.__floatw: self.__floatw.close()
         self.__itemdict = []                       # list of itd records
         self.__CTRL_count = 1000                   # for generating unique numbers
         self.__record_count = 2000                 # for generating unique numbers
         self.__item_count = 100000                 # for generating unique numbers
         return True
+    
+    #---------------------------------------------------------------------------
+
+    def tw(self, text=None):
+        """Display the given text on the gui text-window"""
+        self.__text = str(text)
+        self.__tw.setText(self.__text)
+        return False
 
 
-#---------------------------------------------------------------------------
+    def floatw (self, text=None):
+        """Display the given text on a floating text-window"""
+        if isinstance(text, str):
+            self.__text = text
+        self.__floatw = Float(self, name='<float>', text=str(self.__text))
+        QObject.connect(self.__floatw, PYSIGNAL("floatOK()"), self.floatOK)
+        QObject.connect(self.__floatw, PYSIGNAL("floatCancel()"), self.floatCancel)
+        return True
+
+    #---------------------------------------------------------------------------
 
     def revert_inarg(self):
         """Revert to the original (input) inarg values"""
@@ -425,26 +455,33 @@ class ArgBrowser(QMainWindow):
 
     def essence(self):
         """Show a summary of the (specified) essence of the current inarg"""
-        match = ['ms_','_col','lsm','parm','pol','flag','corr','subtr',
+        match = ['ms_','_col','lsm','parm','pol','uvplane',
+                 'flag','corr','subtr',
                  'sequ','solve','condit','deg_','tile']
         exclude = []
-        JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
+        ss = JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
+        # self.__tw.setText(str(ss))
+        # self.floatw(ss)
         return True
 
     def compare_ref(self):
         """Compare the current inarg to its reference inarg (in a file)"""
         filename = JEN_inarg.CTRL(self.__inarg, 'reference')
         self.restore_inarg(filename, other=True)        # -> self.__other
-        JEN_inarg.compare(self.__inarg, self.__other)
-        return True
+        ss = JEN_inarg.compare(self.__inarg, self.__other)
+        # return self.__tw.setText(str(ss))
+        return self.tw(ss)
 
     def compare_other(self):
         """Compare the current inarg to a saved inarg record from a file"""
         filename = QFileDialog.getOpenFileName("","*.inarg",self)
         filename = str(filename)
         self.restore_inarg(filename, other=True)        # -> self.__other
-        JEN_inarg.compare(self.__inarg, self.__other)
-        return True
+        ss = JEN_inarg.compare(self.__inarg, self.__other)
+        # return self.__tw.setText(str(ss))
+        return self.tw(ss)
+
+#------------------------------------------------------------------------------------
 
     def saveAs_inarg(self):
         """Save the (edited) inarg record for later use"""
@@ -585,26 +622,25 @@ class ArgBrowser(QMainWindow):
     #-------------------------------------------------------------------------------
 
     def viewMESSAGE(self):
-        return self.view('MESSAGE')
+        return self.tw(self.view('MESSAGE'))
+
     def viewERROR(self):
-        return self.view('ERROR')
+        return self.tw(self.view('ERROR'))
+
     def viewWARNING(self):
-        return self.view('WARNING')
+        return self.tw(self.view('WARNING'))
+
     def viewHISTORY(self):
-        return self.view('HISTORY')
+        return self.tw(self.view('HISTORY'))
 
     def view (self, field='MESSAGE'):
-        JEN_inarg.view(self.__inarg, field=field)
-        return True
+        return JEN_inarg.view(self.__inarg, field=field)
 
     #-------------------------------------------------------------------------------
 
     def viewDescription(self):
         ss = JEN_inarg.CTRL(self.__inarg, 'description')
-        print '\n**',ss,'\n'
-        # if ss==None: ss = str(ss)
-        # mb = QMessageBox('description', ss)   # not enough arguements.....?
-        return True
+        return self.tw(ss)
 
     def editDescription(self):
         ss = JEN_inarg.CTRL(self.__inarg, 'description')
@@ -1067,6 +1103,46 @@ class ArgBrowser(QMainWindow):
 #----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
+# Floating text-editor:
+#----------------------------------------------------------------------------
+        
+class Float(QDialog):
+    def __init__(self, parent=None, name='float_name', text=None):
+        QDialog.__init__(self, parent, "Test", 0, 0)
+
+        self.__text = str(text)
+
+        # Put in widgets from top to bottom:
+        vbox = QVBoxLayout(self,10,5)     
+
+        self.__tw = QTextEdit(self)
+        self.__tw.setReadOnly(True)
+        vbox.addWidget(self.__tw)
+        self.__tw.setText(self.__text)
+        
+        hbox = QHBoxLayout(vbox)
+
+        b = QPushButton('xxx', self)
+        QToolTip.add(b, 'XXX')
+        # QObject.connect(b, SIGNAL("pressed ()"), self.xxx)
+        hbox.addWidget(b)
+
+        b = QPushButton('yyy', self)
+        QToolTip.add(b, 'YYY')
+        # QObject.connect(b, SIGNAL("pressed ()"), self.yyy)
+        hbox.addWidget(b)
+
+
+        # Display the popup:
+        self.show()
+        return None
+
+
+
+
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
 # Popup for interaction with an argument value:
 #----------------------------------------------------------------------------
         
@@ -1417,6 +1493,9 @@ class Popup(QDialog):
         self.__current_value = v2
         self.showType (v2)
         return True
+
+
+
 
 
 

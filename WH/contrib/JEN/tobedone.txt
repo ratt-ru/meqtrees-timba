@@ -12,10 +12,6 @@ NB: Even though this document is checked in, it is just a compilation
 
 detected bugs:
 
- - 31dec2005: ReqMux does not work!! 
-   Error mssage: nmandatory<=nchildren (see MG_JEN_Cohset.py)
-   Rebuild, and try again.......
-
  - NB: Discuss new hcoll_metrics with WNB
 
  - AGW fax: 1-250-4937767
@@ -24,6 +20,24 @@ detected bugs:
 
 
 
+ - MXM demo on Wednesday 9 febr:
+   - MG_JEN_cps_inspect.inarg:     
+     - DATA                    
+     - tile_size = 1 
+
+   - MG_JEN_cps_GJones.inarg:      
+     - DATA -> CORRECTED_DATA  
+     - tile_size = 100 (average out contamination)
+
+   - MG_JEN_cps_GDJones.inarg:     
+     - CORRECTED_DATA
+
+   - MG_JEN_cps_BJones.inarg:     
+     - CORRECTED_DATA
+
+
+
+-----------------------------------------------------------------------------------
 
  - MXM: Read MG inputs from a file
    - Otherwise, have to adapt custom values after each cvs update
