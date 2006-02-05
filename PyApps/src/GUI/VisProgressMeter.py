@@ -64,6 +64,7 @@ class VisProgressMeter (QHBox):
     self._pstats = self.TSStats(); # previous tile's stats
     self._vis_nt = self._vis_rtime0 = self._vis_rtime1 = None;
     self._time_reset_needed = True;  # if true, total time counter will be reset
+    self._hdr_time = self._etc_time = None;
     
   def connect_app_signals (self,app):
     """connects standard app signals to appropriate methods."""
@@ -97,8 +98,16 @@ class VisProgressMeter (QHBox):
     
   def timerEvent (self,ev):
     """redefined to keep clock display ticking"""
+    self._update_time();
+  
+  def _update_time (self):
+    txt = '';
+    timestamp = time.time();
     if self._vis_inittime is not None:
-      self._wtime.setText(hms_str(time.time()-self._vis_inittime));
+      txt = hms_str(timestamp-self._vis_inittime);
+      if self._etc_time is not None:
+        txt += '<small> ETC </small>' + hms_str(self._etc_time-self._vis_inittime);
+    self._wtime.setText("<nobr>"+txt+"</nobr>");
   
   def header (self,rec):
     """processes header record. Usually connected to a Vis.Header signal""";
@@ -113,6 +122,8 @@ class VisProgressMeter (QHBox):
     self._wlabel.setText("<nobr>"+timestr+"</nobr>"); 
     self._reset_stats();
     self._show();
+    # init header time
+    self._hdr_time = time.time();
        
   def update (self,rec):
     """indicates progress based on a Vis.Num.Tiles signal""";
@@ -127,6 +138,14 @@ class VisProgressMeter (QHBox):
     time0 = int(rec.time[0]-tm0);
     time1 = int(rec.time[1]-tm0);
     self._wprog.setProgress(time0,nt0);
+    # compute ETC
+    self._etc_time = None;
+    if self._hdr_time is not None:
+      progress = rec.time[0]-tm0;
+      if progress:
+        dt = timestamp - self._hdr_time;
+        self._etc_time = self._hdr_time + dt*(nt0/progress);
+    self._update_time();  
     # compute rates
     nts = ts[1]-ts[0]+1;
     self._stats.mark(timestamp);
@@ -138,7 +157,7 @@ class VisProgressMeter (QHBox):
     if time1 != time0:
       timestr1 = self._vis_rtime1 = hms_str(time1);
       timestr += " to " + timestr1;
-    msg = " tile <b>%d</b>, timeslots %d to %d, relative time %s" \
+    msg = " tile <b>%d</b>, t/s %d to %d, rel. time %s" \
       % (nt-1,ts[0],ts[1],timestr);
     if self._stats.rate is not None:
       msg = msg+"; avg <b>%.2f</b> sec/ts" % self._stats.rate;
