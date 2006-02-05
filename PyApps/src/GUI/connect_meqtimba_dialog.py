@@ -21,6 +21,7 @@ class ConnectMeqKernel(QDialog):
         self.setSizeGripEnabled(0)
 
         LayoutWidget = QWidget(self,"lo_top")
+        LayoutWidget.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
         LayoutWidget.setGeometry(QRect(10,10,472,400))
         lo_top = QVBoxLayout(LayoutWidget,11,6,"lo_top")
 
