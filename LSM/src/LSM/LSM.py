@@ -1331,15 +1331,18 @@ class LSM:
 
  # read in a list of sixpacks (composed) for sources
  # and build the LSM. 
- # Note: this should be used only with an empty LSM 
  # sixpack_list: list of sixpacks
  # ns: NodeScope of the sixpack trees
  # f0=rest frequency
- #
- def build_from_sixpacks(self,sixpack_list,ns,f0=1.6e6):
-   # fire up a server instance
-   my_ass = assayer.assayer("LSM-"+time.strftime('%Y-%d-%H-%M-%S'));
-   my_mqs=my_ass.mqs;
+ # mqs=MeqServer proxy, when run within MeqBrowser, this should
+ #     be given. Else a MeqServer will be created.
+ def build_from_sixpacks(self,sixpack_list,ns,f0=1.6e6,mqs=None):
+   if mqs==None:
+    # fire up a server instance
+    my_ass = assayer.assayer("LSM-"+time.strftime('%Y-%d-%H-%M-%S'));
+    my_mqs=my_ass.mqs;
+   else:
+    my_mqs=mqs;
    my_ns=ns
    my_ns.Resolve()
    # form a request
@@ -1394,8 +1397,9 @@ class LSM:
 
 
 
-   # shutdown
-   my_ass.finish()
+   if mqs==None:
+    # shutdown
+    my_ass.finish()
 
  # read in a text file to build the LSM
  # infile_name: file name, absolute path
@@ -1403,9 +1407,8 @@ class LSM:
  # The standard format of the file should be like this:
  #
  # cat     name            RA          eRA      Dec        eDec     freq   Flux(Jy)   eFl equi.
-#---------------------------------------------------------------------------------------------
+ #---------------------------------------------------------------------------------------------
  #NVSS  J163411+624953   16 34 11.868   0.73   62 49 53.72   8.3     1400    0.0030    .0005 J
- #
  #
  def build_from_catalog(self,infile_name,ns):
   from Timba.Contrib.JEN import MG_JEN_Sixpack
