@@ -11,7 +11,8 @@
 #    - 11 jan 2006: added file browsers and status message 
 #    - 12 jan 2006: added hooks for assay  
 #    - 31 jan 2006: adopted top-level inarg CTRL-record
-#    - 31 jan 2006: inplemented compare() 
+#    - 31 jan 2006: implemented compare()
+#    - 10 feb 2006: implemented text-windows
 #
 # Full description:
 #
@@ -49,6 +50,13 @@ auto_save_file = 'auto_save.inarg'
 #================================================================================
 #================================================================================
 
+def help():
+    """This is the help for JEN_inargGui.py"""
+    return True
+
+#================================================================================
+#================================================================================
+
 
 class MyListViewItem (QListViewItem):
 
@@ -76,7 +84,7 @@ class ArgBrowser(QMainWindow):
 	    self.__QApp = parent
             QMainWindow.__init__(self)
 	
-        self.setMinimumWidth(700)
+        self.setMinimumWidth(800)
         self.setMinimumHeight(400)
 
         fl = Qt.WType_TopLevel|Qt.WStyle_Customize
@@ -153,6 +161,7 @@ class ArgBrowser(QMainWindow):
 
         helpmenu = QPopupMenu(self)
         self.__menubar.insertSeparator()
+        helpmenu.insertItem('help', self.viewHelp)
         self.__menubar.insertItem('Help', helpmenu)
 
         #----------------------------------------------------
@@ -190,7 +199,6 @@ class ArgBrowser(QMainWindow):
         #----------------------------------------------------
         # The text window:
         self.__tw = None
-        self.__text = None
         self.__floatw = None
         if True:
             hbox = QHBoxLayout(vbox)
@@ -199,8 +207,8 @@ class ArgBrowser(QMainWindow):
             self.__tw.setReadOnly(True)
             hbox.addWidget(self.__tw)
             
-            b = QPushButton('Float', self)
-            QToolTip.add(b, 'Float')
+            b = QPushButton('F\nl\no\na\nt', self)
+            QToolTip.add(b, 'Display this text in a floating window')
             QObject.connect(b, SIGNAL("pressed ()"), self.floatw)
             vtbox.addWidget(b)
 
@@ -297,22 +305,42 @@ class ArgBrowser(QMainWindow):
         return True
     
     #---------------------------------------------------------------------------
+    # Functions dealing with text-window(s):
+    #---------------------------------------------------------------------------
 
     def tw(self, text=None):
         """Display the given text on the gui text-window"""
-        self.__text = str(text)
-        self.__tw.setText(self.__text)
+        self.__tw.setText(str(text))
         return False
 
 
-    def floatw (self, text=None):
+    def floatw (self, text=None, commit=None):
         """Display the given text on a floating text-window"""
-        if isinstance(text, str):
-            self.__text = text
-        self.__floatw = Float(self, name='<float>', text=str(self.__text))
-        QObject.connect(self.__floatw, PYSIGNAL("floatOK()"), self.floatOK)
-        QObject.connect(self.__floatw, PYSIGNAL("floatCancel()"), self.floatCancel)
+        if text==None: text = self.__tw.text()      # i.e. when Float button pressed
+        self.__floatw_commit = commit               # see self.floatwCommit()
+        self.__message.setText(str('** floatw_commit ='+str(self.__floatw_commit)))
+        readonly = (commit==None)                   # editable if NOT readonly
+        self.__floatw = Float(self, name='<float>', text=str(text), readonly=readonly)
+        QObject.connect(self.__floatw, PYSIGNAL("floatwCommit()"), self.floatwCommit)
+        QObject.connect(self.__floatw, PYSIGNAL("floatwCancel()"), self.floatwCancel)
         return True
+
+    def floatwCancel(self):
+        """Action upon pressing the floatw Cancel button"""
+        self.__message.setText('** floatw cancelled')
+        return True
+
+    def floatwCommit(self, text):
+        """Action upon pressing the floatw Commit button"""
+        self.tw (text)                              # Replace the tw text
+        dest = self.__floatw_commit                 # destination 
+        self.__message.setText('** floatwCommit(): destination = '+str(dest))
+        if dest=='description':
+            # JEN_inarg.CTRL(self.__inarg, 'description', text)
+            self.__message.setText('** description (not yet) updated')
+        self.__modified = True                      # self.__inarg has been modified
+        return True
+
 
     #---------------------------------------------------------------------------
 
@@ -460,16 +488,13 @@ class ArgBrowser(QMainWindow):
                  'sequ','solve','condit','deg_','tile']
         exclude = []
         ss = JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
-        # self.__tw.setText(str(ss))
-        # self.floatw(ss)
-        return True
+        return self.tw(ss)
 
     def compare_ref(self):
         """Compare the current inarg to its reference inarg (in a file)"""
         filename = JEN_inarg.CTRL(self.__inarg, 'reference')
         self.restore_inarg(filename, other=True)        # -> self.__other
         ss = JEN_inarg.compare(self.__inarg, self.__other)
-        # return self.__tw.setText(str(ss))
         return self.tw(ss)
 
     def compare_other(self):
@@ -478,7 +503,6 @@ class ArgBrowser(QMainWindow):
         filename = str(filename)
         self.restore_inarg(filename, other=True)        # -> self.__other
         ss = JEN_inarg.compare(self.__inarg, self.__other)
-        # return self.__tw.setText(str(ss))
         return self.tw(ss)
 
 #------------------------------------------------------------------------------------
@@ -638,14 +662,16 @@ class ArgBrowser(QMainWindow):
 
     #-------------------------------------------------------------------------------
 
-    def viewDescription(self):
-        ss = JEN_inarg.CTRL(self.__inarg, 'description')
+    def viewHelp(self):
+        ss = help.__doc__
         return self.tw(ss)
+
+    def viewDescription(self):
+        return self.tw(self.view('description'))
 
     def editDescription(self):
         ss = JEN_inarg.CTRL(self.__inarg, 'description')
-        print '\n**',ss,'\n' 
-        return True
+        return self.floatw(ss, commit='description')
 
     #-------------------------------------------------------------------------------
     # Script execution, using the current inarg record:
@@ -699,22 +725,22 @@ class ArgBrowser(QMainWindow):
 
     def inargDisplay (self):
         """Display the current inarg record"""
-        JEN_inarg.display(self.__inarg, full=False)
-        return True
+        ss = JEN_inarg.display(self.__inarg, full=False)
+        return self.tw(ss)
 
     def inargDisplayFull (self):
         """Fully display the current inarg record"""
-        JEN_inarg.display(self.__inarg, full=True)
-        return True
+        ss = JEN_inarg.display(self.__inarg, full=True)
+        return self.tw(ss)
 
     def inarg2pp (self):
         """Show the resulting pp record as it would be inside the target,
         with all the referenced values replaced"""
         pp = JEN_inarg.inarg2pp(self.__inarg)
         JEN_inarg.getdefaults(pp, check=True, strip=False, trace=True)
-        JEN_inarg.display(pp, full=False)
+        ss = JEN_inarg.display(pp, full=False)
         # NB: Use JEN_inspect.....
-        return True
+        return self.tw(ss)
 
 
     #-------------------------------------------------------------------------------
@@ -741,6 +767,9 @@ class ArgBrowser(QMainWindow):
         # Transfer the inarg fields recursively:
         self.__set_open = set_open
         self.refresh()
+
+        # Display the description:
+        self.viewDescription()
 
         # Connect signals and slots, once a signal is detected the according slot is executed
         # QObject.connect(self.__listview, SIGNAL("doubleClicked (QListViewItem * )"), self.itemSelected)
@@ -1107,29 +1136,37 @@ class ArgBrowser(QMainWindow):
 #----------------------------------------------------------------------------
         
 class Float(QDialog):
-    def __init__(self, parent=None, name='float_name', text=None):
+    def __init__(self, parent=None, name='float_name', text=None, readonly=True):
         QDialog.__init__(self, parent, "Test", 0, 0)
 
-        self.__text = str(text)
+        self.setMinimumWidth(800)
+        self.setMinimumHeight(400)
 
         # Put in widgets from top to bottom:
         vbox = QVBoxLayout(self,10,5)     
 
         self.__tw = QTextEdit(self)
-        self.__tw.setReadOnly(True)
+        self.__readonly = readonly
+        if (self.__readonly):
+            self.__tw.setReadOnly(True)
         vbox.addWidget(self.__tw)
-        self.__tw.setText(self.__text)
+        self.__tw.setText(str(text))
         
         hbox = QHBoxLayout(vbox)
 
-        b = QPushButton('xxx', self)
-        QToolTip.add(b, 'XXX')
-        # QObject.connect(b, SIGNAL("pressed ()"), self.xxx)
+        b = QPushButton('Commit', self)
+        QToolTip.add(b, 'Commit the (edited) text to its inarg record')
+        QObject.connect(b, SIGNAL("pressed ()"), self.onCommit)
         hbox.addWidget(b)
 
-        b = QPushButton('yyy', self)
-        QToolTip.add(b, 'YYY')
-        # QObject.connect(b, SIGNAL("pressed ()"), self.yyy)
+        b = QPushButton('Print', self)
+        QToolTip.add(b, 'Print the current text')
+        QObject.connect(b, SIGNAL("pressed ()"), self.onPrint)
+        hbox.addWidget(b)
+
+        b = QPushButton('Cancel', self)
+        QToolTip.add(b, 'Cancel this floating text-window')
+        QObject.connect(b, SIGNAL("pressed ()"), self.onCancel)
         hbox.addWidget(b)
 
 
@@ -1138,6 +1175,27 @@ class Float(QDialog):
         return None
 
 
+    def onPrint (self):
+        """Action on pressing the Print button"""
+        print '\n*** Printing not yet implemented...\n'
+        return True
+
+    def onCommit (self):
+        """Action on pressing the Commit button"""
+        text = str(self.__tw.text())
+        self.emit(PYSIGNAL("floatwCommit()"),(text,))
+        return self.closeAll()
+	
+    def onCancel (self):
+        """Action on pressing the Cancel button"""
+        self.emit(PYSIGNAL("floatwCancel()"),(0,))
+        return self.closeAll()
+
+    def closeAll (self):
+        """Close the floatw, and any associated things"""
+        self.close()
+        return True
+	
 
 
 #----------------------------------------------------------------------------
@@ -1273,7 +1331,7 @@ class Popup(QDialog):
             # Make Cancel/OK buttons:
             hbox = QHBoxLayout(vbox)
 
-            button = QPushButton('OK',self)
+            button = QPushButton('Commit',self)
             QToolTip.add(button,'Modify the inarg value, and close this popup')
             hbox.addWidget(button)
             QObject.connect(button, SIGNAL("pressed ()"), self.onOK)

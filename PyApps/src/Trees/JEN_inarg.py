@@ -406,7 +406,7 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
       ss += '  version='+ctrl['version']
       ss += '  defined='+ctrl['datetime_defined']
       ctrl['oneliner'] = ss
-      ctrl['description'] = '** Description of: ',ctrl['oneliner'] 
+      ctrl['description'] = '** Description of: '+ctrl['oneliner'] 
       rr[CTRL_record] = ctrl                          # Attach the CTRL_record
 
    elif not isinstance(rr[CTRL_record], dict):        # CTRL_record is not a record...??
@@ -496,7 +496,7 @@ def barescope(rr, trace=False):
 
 #----------------------------------------------------------------------------
 
-def description(rr, new=None, append=None, prepend=None):
+def description(rr, new=None, append=None, prepend=None, recurse=False):
    """Get/modify the inarg description string"""
    ss = CTRL(rr, 'description')
    if isinstance(new, str):
@@ -508,7 +508,7 @@ def description(rr, new=None, append=None, prepend=None):
       ss = prepend+'\n'+ss
       ss = CTRL(rr, 'description', ss)
    return CTRL(rr, 'description')
-   
+
       
 #----------------------------------------------------------------------------
 
@@ -550,19 +550,40 @@ def view(rr, field='MESSAGE', ss='', level=0, trace=True):
       s = '\n** Recursive view of inarg CTRL_record field: '+field
       if trace: print s
       ss = s
+
    if isinstance(rr, dict):
       # Get the specified field of the CTRL_record (if any):
-      cc = CTRL(rr, field, report=False, recurse=False) 
+      cc = CTRL(rr, field, report=False, recurse=False)
+
       if isinstance(cc, dict):
          # Show the dict entries in the correct order:
          for i in range(len(cc)):
             s = _prefix(level)+' - '+str(i)+':  '+cc[str(i)]
             if trace: print s
             ss += '\n'+s
+
+      elif isinstance(cc, str):
+         # Show the string line-by-line:
+         lines = cc.split('\n')
+         for line in lines: 
+            s = _prefix(level)+' - '+str(line)
+            if trace: print s
+            ss += '\n'+s
+
+      else:
+         # Show the value:
+         s = _prefix(level)+' - '+str(type(cc))+': '+str(cc)
+         if trace: print s
+         ss += '\n'+s
+         
       # Recursive:
       for key in rr.keys():
          if isinstance(rr[key], dict):
             if not key==CTRL_record:
+               if True:            # Skip a line before each new record
+                  s = _prefix(level+1)
+                  if trace: print s
+                  ss += '\n'+s
                s = _prefix(level+1)+' ***** '+key+':'
                if trace: print s
                ss += '\n'+s
@@ -588,6 +609,10 @@ def essence(rr, match=[], exclude=[], ss='', level=0, trace=True):
       if isinstance(rr[key], dict):
          # Recursive:
          if not key==CTRL_record:
+            if True:            # Skip a line before each new record
+               s = _prefix(level+1)
+               if trace: print s
+               ss += '\n'+s
             s = _prefix(level+1)+' ***** '+key+':'
             if trace: print s
             ss += '\n'+s
@@ -1012,7 +1037,7 @@ def CTRL2toplevel (ctrl):
    cc['protected'] = False                     # If True, the inarg is protected        
    cc['reference'] = False                     # Name of reference inarg (file), for comparison
    cc['oneliner'] = '** Top-level CTRL-record of: '+cc['save_file']
-   cc['description'] = '** Description of: ',cc['oneliner'] 
+   cc['description'] = '** Description of: '+cc['oneliner'] 
    return cc
 
 #----------------------------------------------------------------------------
