@@ -1,7 +1,13 @@
 #!/usr/bin/python
+#
+# The Local Sky Model (LSM)
+#
+# The code includes the LSM as well as other helper classes
+# used within the LSM. For an outside user, the only classes
+# needed are the LSM and the PUnit.
+# 
 
-# import modules for visualization
-import sys
+import sys,time
 import pickle # for serialization and file io
 from Dummy import *
 
@@ -10,6 +16,9 @@ from Timba.Meq import meq
 from Timba.TDL import *
 from Timba.Trees import TDL_Sixpack
 from Timba.Meq import meq
+
+from Timba.Apps import app_nogui
+from Timba.Apps import assayer
 
 #############################################
 class Source:
@@ -1318,6 +1327,143 @@ class LSM:
  # return the current NodeScope
  def getNodeScope(self,ns):
   return self.__ns
+
+
+ # read in a list of sixpacks (composed) for sources
+ # and build the LSM. 
+ # Note: this should be used only with an empty LSM 
+ # sixpack_list: list of sixpacks
+ # ns: NodeScope of the sixpack trees
+ # f0=rest frequency
+ #
+ def build_from_sixpacks(self,sixpack_list,ns,f0=1.6e6):
+   # fire up a server instance
+   my_ass = assayer.assayer("LSM-"+time.strftime('%Y-%d-%H-%M-%S'));
+   my_mqs=my_ass.mqs;
+   my_ns=ns
+   my_ns.Resolve()
+   # form a request
+   f1=f0+1.0
+   t0=0.0
+   t1=1.0
+   nfreq=ntime=1
+   freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
+   cells =meq.cells(domain=freqtime_domain, num_freq=nfreq,  num_time=ntime);
+   request = meq.request(cells,rqtype='e1');
+   # populate tree
+   # kernel will recreate the forest
+   my_mqs.meq('Clear.Forest');
+   my_mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),my_ns.AllNodes().itervalues())));
+   my_mqs.meq('Resolve.Batch',record(name=list(my_ns.RootNodes().iterkeys())))
+   fst = getattr(Timba.TDL.Settings,'forest_state',record());
+   my_mqs.meq('Set.Forest.State',record(state=fst));
+
+
+
+   for my_sp in sixpack_list:
+    # create a source object
+    s=Source(my_sp.label())
+    s_root=my_sp.sixpack()
+
+    # get RA 
+    b = my_mqs.meq('Node.Execute',record(name=my_sp.ra().name,request=request),wait=True);
+    if hasattr(b.result.vellsets[0].value[0],'tolist'):
+       source_RA=b.result.vellsets[0].value[0].tolist().pop(0)
+    else:
+       source_RA=b.result.vellsets[0].value[0]
+
+    # get Dec 
+    b = my_mqs.meq('Node.Execute',record(name=my_sp.dec().name,request=request),wait=True);
+    if hasattr(b.result.vellsets[0].value[0],'tolist'):
+       source_Dec=b.result.vellsets[0].value[0].tolist().pop(0)
+    else:
+       source_Dec=b.result.vellsets[0].value[0]
+
+    # get Stokes I
+    b = my_mqs.meq('Node.Execute',record(name=my_sp.stokesI().name,request=request),wait=True);
+    if hasattr(b.result.vellsets[0].value[0],'tolist'):
+       my_brightness=b.result.vellsets[0].value[0].tolist().pop(0)
+    else:
+       my_brightness=b.result.vellsets[0].value[0]
+
+
+    # add this to the LSM
+    self.add_source(s,brightness=my_brightness,
+     sixpack=my_sp,
+     ra=source_RA, dec=source_Dec)
+
+
+
+   # shutdown
+   my_ass.finish()
+
+ # read in a text file to build the LSM
+ # infile_name: file name, absolute path
+ # ns: nodescope
+ # The standard format of the file should be like this:
+ #
+ # cat     name            RA          eRA      Dec        eDec     freq   Flux(Jy)   eFl equi.
+#---------------------------------------------------------------------------------------------
+ #NVSS  J163411+624953   16 34 11.868   0.73   62 49 53.72   8.3     1400    0.0030    .0005 J
+ #
+ #
+ def build_from_catalog(self,infile_name,ns):
+  from Timba.Contrib.JEN import MG_JEN_Sixpack
+
+  infile=open(infile_name,'r')
+  all=infile.readlines()
+  infile.close()
+
+  # regexp pattern
+  pp=re.compile(r"""
+   ^(?P<col1>\S+)  # column 1 'NVSS'
+   \s*             # skip white space
+   (?P<col2>[A-Za-z]\w+\+\w+)  # source name i.e. 'J163002+631308'
+   \s*             # skip white space
+   (?P<col3>\d+)   # RA angle - hr 
+   \s*             # skip white space
+   (?P<col4>\d+)   # RA angle - min 
+   \s*             # skip white space
+   (?P<col5>\d+(\.\d+)?)   # RA angle - sec
+   \s*             # skip white space
+   (?P<col6>\d+(\.\d+)?)   # eRA angle - sec
+   \s*             # skip white space
+   (?P<col7>\d+)   # Dec angle - hr 
+   \s*             # skip white space
+   (?P<col8>\d+)   # Dec angle - min 
+   \s*             # skip white space
+   (?P<col9>\d+(\.\d+)?)   # Dec angle - sec
+   \s*             # skip white space
+   (?P<col10>\d+(\.\d+)?)   # eDec angle - sec
+   \s*             # skip white space
+   (?P<col11>\d+)   # freq
+   \s*             # skip white space
+   (?P<col12>\d+(\.\d+)?)   # brightness - Flux
+   \s*             # skip white space
+   (?P<col13>\d*\.\d+)   # brightness - eFlux
+   \s*
+   \S+
+   \s*$""",re.VERBOSE)
+ 
+  # read each source and insert to LSM
+  for eachline in all:
+   v=pp.search(eachline)
+   if v!=None:
+    s=Source(v.group('col2'))
+    source_RA=float(v.group('col3'))+(float(v.group('col5'))/60.0+float(v.group('col4')))/60.0
+    source_RA*=math.pi/12.0
+    source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
+    source_Dec*=math.pi/180.0
+
+    my_sixpack=MG_JEN_Sixpack.newstar_source(ns,name=s.name,I0=eval(v.group('col12')), f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
+   # first compose the sixpack before giving it to the LSM
+    SourceRoot=my_sixpack.sixpack(ns)
+    my_sixpack.display()
+    self.add_source(s,brightness=eval(v.group('col12')),
+     sixpack=my_sixpack,
+     ra=source_RA, dec=source_Dec)
+ 
+
 
 
 #########################################################################
