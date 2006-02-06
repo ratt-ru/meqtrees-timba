@@ -90,8 +90,6 @@ public:
     //##ModelId=400E5305010E
   bool operator == (const Domain& other) const
   { 
-    Thread::Mutex::Lock lock(mutex());
-    Thread::Mutex::Lock lock2(other.mutex());
     return memcmp(range_,other.range_,sizeof(range_)) == 0; 
   }
   

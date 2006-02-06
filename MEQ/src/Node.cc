@@ -842,8 +842,6 @@ void Node::resampleChildren (Cells::Ref &rescells,std::vector<Result::Ref> &chil
   if( auto_resample_ == RESAMPLE_NONE )
     return;
   const Cells *pcells = 0;
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,childres);
 //  rescells <<= pcells = &( childres[0]->cells() );
   bool need_resampling = false;
   for( uint ich=0; ich<childres.size(); ich++ )

@@ -471,8 +471,6 @@ void Cells::getCellStartEnd (LoVec_double &start,LoVec_double &end,int iaxis) co
 
 int Cells::compare (const Cells &that) const
 {
-  Thread::Mutex::Lock lock(mutex());
-  Thread::Mutex::Lock lock2(that.mutex());
   if( !domain_.valid() ) // are we empty?
     return !that.domain_.valid(); // equal if that is empty too, else not
   // check for equality of domains & shapes
