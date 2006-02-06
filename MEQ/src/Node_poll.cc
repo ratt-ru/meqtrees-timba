@@ -71,7 +71,7 @@ MTPool::Brigade * Node::mt_checkBrigadeAvailability (Thread::Mutex::Lock &lock)
       return mt.cur_brigade_ = current;
     Thread::Mutex::Lock lock2(MTPool::Brigade::globMutex());
     // we allow at most 2 active brigades, so:
-    // (B) if rest of our brigade is blocked (numBlocked()<2), suspend it
+    // (B) if rest of our brigade is blocked (numNonblocked()<2), suspend it
     //    and join an idle brigade (this keeps the number of active brigades 
     //    unchanged)
     // (C) If ours is the only active brigade, leave it and join an idle 
@@ -95,9 +95,9 @@ MTPool::Brigade * Node::mt_checkBrigadeAvailability (Thread::Mutex::Lock &lock)
         // we can (re)activate and join one
   {
     mt.old_brigade_ = 0;
-    mt.rejoin_old_ = true;
     if( MTPool::Brigade::numActiveBrigades() > 1 )
       return 0;
+    mt.rejoin_old_ = true;
   }
   // ok, at this point we have no brigade but we're allowed to join an idle one
   return mt.cur_brigade_ = MTPool::Brigade::joinIdleBrigade(lock);
