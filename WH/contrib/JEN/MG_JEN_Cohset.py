@@ -861,11 +861,6 @@ def inarg_stations (pp, **kwargs):
                       slave=kwargs['slave'], hide=kwargs['hide'],
                       choice=[range(7),range(14),range(15),'range(5)'],
                       help='the (subset of) stations to be used')
-    # Derive a list of ifrs from pp['stations'] (assumed to exist):
-    JEN_inarg.define (pp, 'ifrs', TDL_Cohset.stations2ifrs(pp['stations']),
-                      slave=kwargs['slave'], hide=True,
-                      help='list if ifrs (derived from stations)')
-    # print 'pp[ifrs] =',pp['ifrs']
     return True
 
 

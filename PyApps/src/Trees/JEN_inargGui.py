@@ -13,6 +13,7 @@
 #    - 31 jan 2006: adopted top-level inarg CTRL-record
 #    - 31 jan 2006: implemented compare()
 #    - 10 feb 2006: implemented text-windows
+#    - 11 feb 2006: implemented upgrade()
 #
 # Full description:
 #
@@ -152,6 +153,8 @@ class ArgBrowser(QMainWindow):
         testmenu.insertSeparator()     
         testmenu.insertItem('compare', self.compare_ref)
         testmenu.insertItem('compare...', self.compare_other)
+        testmenu.insertItem('upgrade', self.upgrade_from_ref)
+        testmenu.insertItem('upgrade...', self.upgrade_from_other)
         testmenu.insertSeparator()     
         testmenu.insertItem('assay', self.assay)
         testmenu.insertItem('assay_verbose', self.assay_verbose)
@@ -280,7 +283,8 @@ class ArgBrowser(QMainWindow):
     def closeGui (self):
         """Close the gui"""
         self.clearGui()
-        if self.__popup: self.__popup.close()
+        # if self.__popup: self.__popup.close()
+        # if self.__floatw: self.__floatw.close()
         self.__listview.close()                    #............?
         self.close()
 	self.__closed = True;                      #............?
@@ -290,14 +294,17 @@ class ArgBrowser(QMainWindow):
     def closeEvent (self,ev):
         """Callback function for close"""
         self.__closed = True
-    	QMainWindow.closeEvent(self,ev)
-        return True
+    	return QMainWindow.closeEvent(self,ev)
 
     def clearGui (self):
         """Clear the gui"""
         self.__listview.clear()
-        if self.__popup: self.__popup.close()
-        if self.__floatw: self.__floatw.close()
+        if self.__popup:
+            self.__popup.close()
+            self.__popup = None
+        if self.__floatw:
+            self.__floatw.close()
+            self.__floatw = None
         self.__itemdict = []                       # list of itd records
         self.__CTRL_count = 1000                   # for generating unique numbers
         self.__record_count = 2000                 # for generating unique numbers
@@ -483,7 +490,7 @@ class ArgBrowser(QMainWindow):
 
     def essence(self):
         """Show a summary of the (specified) essence of the current inarg"""
-        match = ['ms_','_col','lsm','parm','pol','uvplane',
+        match = ['ms_','_col','lsm','parm','pol','uvplane','stations',
                  'flag','corr','subtr',
                  'sequ','solve','condit','deg_','tile']
         exclude = []
@@ -503,6 +510,21 @@ class ArgBrowser(QMainWindow):
         filename = str(filename)
         self.restore_inarg(filename, other=True)        # -> self.__other
         ss = JEN_inarg.compare(self.__inarg, self.__other)
+        return self.tw(ss)
+
+    def upgrade_from_ref(self):
+        """Upgrade the current inarg from its reference inarg"""
+        filename = JEN_inarg.CTRL(self.__inarg, 'reference')
+        self.restore_inarg(filename, other=True)        # -> self.__other
+        ss = JEN_inarg.upgrade(self.__inarg, self.__other)
+        return self.tw(ss)
+
+    def upgrade_from_other(self):
+        """Upgrade the current inarg from a saved inarg record"""
+        filename = QFileDialog.getOpenFileName("","*.inarg",self)
+        filename = str(filename)
+        self.restore_inarg(filename, other=True)        # -> self.__other
+        ss = JEN_inarg.upgrade(self.__inarg, self.__other)
         return self.tw(ss)
 
 #------------------------------------------------------------------------------------

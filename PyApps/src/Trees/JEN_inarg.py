@@ -494,6 +494,7 @@ def barescope(rr, trace=False):
    if trace: print '.barescope() ->',type(bs),len(bs),'=',bs
    return bs
 
+
 #----------------------------------------------------------------------------
 
 def description(rr, new=None, append=None, prepend=None, recurse=False):
@@ -541,6 +542,22 @@ def MESSAGE(rr, txt=None, field='MESSAGE', clear=False, trace=False):
    if trace:
       display(rr,s1, full=True)
    return CTRL(rr,field,trace=trace)      
+
+#------------------------------------------------------------------------------
+
+def count(rr, field='MESSAGE', total=0, level=0):
+   """Count (recursively) the specified JEN_inarg_CTRL fields"""
+   if isinstance(rr, dict):
+      # Get the specified field of the CTRL_record (if any):
+      cc = CTRL(rr, field, report=False, recurse=False) 
+      if isinstance(cc, dict):
+         total += len(cc)
+      # Recursive:
+      for key in rr.keys():
+         if isinstance(rr[key], dict):
+            if not key==CTRL_record:
+               total = count(rr[key], field=field, total=total, level=level+1)
+   return total
 
 #------------------------------------------------------------------------------
 
@@ -645,23 +662,6 @@ def essence(rr, match=[], exclude=[], ss='', level=0, trace=True):
 
 #------------------------------------------------------------------------------
 
-def count(rr, field='MESSAGE', total=0, level=0):
-   """Count (recursively) the specified JEN_inarg_CTRL fields"""
-   if isinstance(rr, dict):
-      # Get the specified field of the CTRL_record (if any):
-      cc = CTRL(rr, field, report=False, recurse=False) 
-      if isinstance(cc, dict):
-         total += len(cc)
-      # Recursive:
-      for key in rr.keys():
-         if isinstance(rr[key], dict):
-            if not key==CTRL_record:
-               total = count(rr[key], field=field, total=total, level=level+1)
-   return total
-
-
-#------------------------------------------------------------------------------
-
 def compare(rr, other=None, ss='', level=0, trace=True):
    """Compare the given inarg record with another one"""
    if level==0:
@@ -683,6 +683,10 @@ def compare(rr, other=None, ss='', level=0, trace=True):
                ss += '\n'+s
                if trace: print s
             else:                                      # recurse
+               if True:            # Skip a line before each new record
+                  s = _prefix(level+1)
+                  if trace: print s
+                  ss += '\n'+s
                s = _prefix(level+1)+'** record: '+key+':'
                ss += '\n'+s
                if trace: print s
@@ -702,6 +706,76 @@ def compare(rr, other=None, ss='', level=0, trace=True):
             s += ' ('+str(type(other[key]))+')'
             ss += '\n'+s
             if trace: print s
+
+   if level==0:
+      s = ''
+      ss += '\n'+s
+      if trace: print s
+   return ss
+
+
+#------------------------------------------------------------------------------
+
+def upgrade(rr, other=None, ss='', level=0, trace=True):
+   """Upgrade the given inarg record from another one.
+   I.e. replace some of the supporting (CTRL) information,
+   but NOT the values of the various arguments"""
+   if level==0:
+      ss = '** JEN_inarg.upgrade('+str(type(rr))+str(type(other))+'):'
+      if trace: print '\n'+ss
+
+   if isinstance(rr, dict) and isinstance(other, dict):
+      for key in rr.keys():
+         if not other.has_key(key):                    # check key
+            s = _prefix(level)+' DELETED field: '+key
+            s += ' ('+str(type(rr[key]))+')'
+            ss += '\n'+s
+            if trace: print s
+            rr.__delitem__(key)                        # delete....
+            order(rr, remove=key)                      # Update the order-field of the CTRL_record:
+
+         elif isinstance(rr[key], dict):
+            if not isinstance(other[key],dict):        # wrong type
+               s = _prefix(level)+'not a record: '+key
+               ss += '\n'+s
+               if trace: print s
+
+            elif key==CTRL_record:                     # CTRL_record:
+               pass                                    # do last...
+
+            else:                                      # recurse
+               if True:            # Skip a line before each new record
+                  s = _prefix(level+1)
+                  if trace: print s
+                  ss += '\n'+s
+               s = _prefix(level+1)+'** record: '+key+':'
+               ss += '\n'+s
+               if trace: print s
+               ss = upgrade(rr[key], other[key], ss=ss, level=level+1)
+            
+      # Look for extra keys in other:
+      for key in other.keys():
+         if not rr.has_key(key):                       # check key
+            rr[key] = other[key]                       # upgrade
+            order(rr, append=key)                      # Update the order-field of the CTRL_record:
+            s = _prefix(level)+' ADDED field: '+key
+            s += ' ('+str(type(other[key]))+')'
+            ss += '\n'+s
+            if trace: print s
+
+      # Upgrade specific fields (qq) of the CTRL_record:
+      if rr.has_key(CTRL_record) and other.has_key(CTRL_record):
+         qq = ['description','help','choice',
+               'hide','mutable','order','version']
+         print 'qq =',qq
+         for qey in qq:
+            print '-',qey
+            if rr[CTRL_record].has_key(qey) and other[CTRL_record].has_key(qey):
+               rr[CTRL_record][qey] = other[CTRL_record][qey]
+               s = _prefix(level)+' UPGRADED CTRL field: '+qey
+               s += ' ('+str(type(rr[CTRL_record][qey]))+')'
+               ss += '\n'+s
+               if trace: print s
 
    if level==0:
       s = ''
@@ -1088,15 +1162,20 @@ def attach(rr=None, inarg=None, recurse=False, level=0, trace=False):
 
 #----------------------------------------------------------------------------
 
-def order(rr=None, append=None, trace=False):
+def order(rr=None, append=None, remove=None, trace=False):
    """Get/append the order of the fields of argument record rr"""
    order = CTRL(rr, 'order')
    if order==None:
       order = rr.keys()
-   if append:
-      # Append the new item to the order vector:
-      order.append(append)                
-      order = CTRL(rr, 'order', order)
+   if append or remove:
+      if append:
+         # Append the specified item to the order vector:
+         order.append(append)                
+         order = CTRL(rr, 'order', order)
+      if remove:
+         # Remove the specified item from the order vector:
+         order.remove(remove)                
+         order = CTRL(rr, 'order', order)
    else:
       # Check whether ALL rr.keys are included in the returned order:
       for key in rr.keys():
