@@ -46,6 +46,16 @@ def _define_forest (ns):
  global lsm
  home_dir = os.environ['HOME']
  infile_name = home_dir + '/LOFAR/Timba/LSM/test/3C343_nvss.txt'
+ lsm.build_from_catalog(infile_name,ns)
+ #remember node scope
+ lsm.setNodeScope(ns)
+
+########################################################################
+
+def _define_forest1 (ns):
+ global lsm
+ home_dir = os.environ['HOME']
+ infile_name = home_dir + '/LOFAR/Timba/LSM/test/3C343_nvss.txt'
  infile=open(infile_name,'r')
  all=infile.readlines()
  infile.close()
@@ -81,12 +91,11 @@ def _define_forest (ns):
    \S+
    \s*$""",re.VERBOSE)
  
- linecount=0
+ sixpack_list=[]
  # read each source and insert to LSM
  for eachline in all:
   v=pp.search(eachline)
   if v!=None:
-   linecount+=1
    #print v.group('col2'), v.group('col12')
    s=Source(v.group('col2'))
    source_RA=float(v.group('col3'))+(float(v.group('col5'))/60.0+float(v.group('col4')))/60.0
@@ -94,21 +103,18 @@ def _define_forest (ns):
    source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
    source_Dec*=math.pi/180.0
 
-   my_sixpack=MG_JEN_Sixpack.newstar_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[random()],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
+   my_sixpack=MG_JEN_Sixpack.newstar_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[1.0],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
    # first compose the sixpack before giving it to the LSM
    SourceRoot=my_sixpack.sixpack(ns)
+
+   sixpack_list.append(my_sixpack)
    my_sixpack.display()
-   lsm.add_source(s,brightness=eval(v.group('col12')),
-     sixpack=my_sixpack,
-     ra=source_RA, dec=source_Dec)
  
- print "Inserted %d sources" % linecount 
+ lsm.build_from_sixpacks(sixpack_list,ns,1e6)
  #remember node scope
  lsm.setNodeScope(ns)
 
-########################################################################
-
-
+#
 
 
 
@@ -174,7 +180,7 @@ def _tdl_job_query_punits(mqs, parent):
 if __name__ == '__main__':
   print '\n*******************\n** Local test of:',script_name,':\n'
   ns=NodeScope()
-  _define_forest(ns)
+  _define_forest1(ns)
   ns.Resolve()
   print "Added %d nodes" % len(ns.AllNodes())
   #display LSM without MeqBrowser
