@@ -35,10 +35,11 @@ function Cleanup {
 
 
 
-function GenerateDocs{
-    DOCSOUTPUT=$1
-    pushd $DOCSOUTPUT
-    python $GENERATEDOCSSCRIPT $DAILY_DIR/LOFAR/installed/symlinked/libexec/python/Timba
+function GenerateDocs {
+    DOCSOUTPUT=$1 && \
+    pushd $DOCSOUTPUT && \
+    python $GENERATEDOCSSCRIPT $DAILY_DIR/LOFAR/installed/symlinked/libexec/python/Timba && \
+    ln -s Timba.html index.html && \
     popd
 }
 
@@ -185,7 +186,7 @@ function InitializeTesting {
 function RunAssayScript {
    assayscript=$1
    logfile=$2
-   python $assayscript -assayrecord -opt -dassayer=2 -- -mt 2 &>> $logfile&
+   python $assayscript -assayrecord -opt -dassayer=2 -- -mt 2>&1 >> $logfile&
    pythonpid=$!
    meqserverpid=`ps --ppid $pythonpid | grep meqserver|awk '{print $1}'`
 }
@@ -330,8 +331,6 @@ BuildAndFilter gnu3_opt
 CheckStartupOfMeqServer gnu3_opt
 ReportVariant gnu3_opt
 echo
-GenerateDocs "${WEB_DIR}/${DOCSUBDIR}"
-GenerateDocs "${WEB_DIR}/${DATE_STR}/${DOCSUBDIR}"
 echo Done: `date`
 
 
@@ -355,3 +354,9 @@ HTMLReport $WEB_DIR/index.html
 mkdir $WEB_DIR/$DATE_STR
 cp $DAILY_DIR/gnu3_debug.log  $DAILY_DIR/gnu3_opt.log $WEB_DIR/$DATE_STR
 HTMLReport $WEB_DIR/$DATE_STR/index.html
+
+mkdir -p "${WEB_DIR}/${DOCSUBDIR}"
+GenerateDocs "${WEB_DIR}/${DOCSUBDIR}"
+
+mkdir -p "${WEB_DIR}/${DATE_STR}/${DOCSUBDIR}"
+GenerateDocs "${WEB_DIR}/${DATE_STR}/${DOCSUBDIR}"
