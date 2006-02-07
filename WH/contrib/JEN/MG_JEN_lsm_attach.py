@@ -44,6 +44,7 @@ from Timba.LSM.LSM import *
 from Timba.LSM.LSM_GUI import *
 from Timba.Contrib.JEN import MG_JEN_Sixpack
 from Timba.Contrib.JEN import MG_JEN_Cohset
+from Timba.Contrib.JEN import MG_JEN_Joneset
 
 from Timba.Trees import TDL_Cohset
 from Timba.Trees import JEN_inarg
@@ -84,6 +85,7 @@ MG_JEN_exec.inarg_tile_size(MG)
 MG_JEN_Cohset.inarg_polrep(MG)
 MG_JEN_Cohset.inarg_stations(MG)
 MG_JEN_Cohset.inarg_parmtable(MG)
+MG_JEN_Joneset.inarg_uvplane_effect(MG)    
 
 
 
@@ -200,7 +202,7 @@ def _define_forest (ns, **kwargs):
 
    # Load the specified lsm into the global lsm object:
    global lsm
-   lsm.load(MG['lsm'], ns) 
+   lsm.load(MG['LSM'], ns) 
    # lsm.display()            # This locks the browser!
 
    # Make an empty vector of Cohsets:

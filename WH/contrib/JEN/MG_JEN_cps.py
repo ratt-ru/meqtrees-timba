@@ -69,12 +69,17 @@ except:
 #********************************************************************************
 #********************************************************************************
 
-def description():
+def _description():
     """
-    MG_JEN_cps_GJones.inarg: Estimate gain and phase (GJones) values that
-    are valid for the entire field (uvplane effect).
+    Description of the input argument record: MG_JEN_cps_xxx.inarg
+    (to be used with the MeqTree TDL stript MG_JEN_cps.py) 
+    
+    ....
 
-    The MG_JEN_cps script is the basis for a range of uv-data operations
+    --------------------------------------------------------------------------
+    General description of the MeqTree TDL script MG_JEN_cps.py:
+
+    The MG_JEN_cps.py script is the basis for a range of uv-data operations
     that require only a Central Point Source (cps) as a selfcal model. This is
     particularly useful for reducing calibrator observations, i.e. fields with
     a strong point source with known parameters, in the centre of the field.
@@ -82,16 +87,27 @@ def description():
     significant other sources in the field (but a dominating point-like source
     in the centre.
 
+
+    * The selfcal model is a point source in the centre of the field.
+        A range of source models for standard calibrators (e.g. 3c147 etc)
+        is available, and also some customised source models (for experimentation)
+
+    * uvplane_effect=True: All instrumental MeqParms have qualifier q=uvp.
+        The uv-data are read from the MS DATA column
+        and written to the MS CORRECTED_DATA column
+
+    * In order to minimises contamination from other sources on the solution:
+        - It solves for MeqParms that vary slowly in time, over large domains.
+        - The short baselines are ignored (e.g. rmin=150m)
+
+
     Different operations may be specified by loading (and editing) socalled
-    'inarg' records from files. These contain input arguments for generating
-    a suitable MeqTree forest for the desired operation.
-    
-    - The selfcal model is a point source in the centre of the field.
-      A range of source models for standard calibrators (e.g. 3c147 etc)
-      is available, and also some customised source models (for experimentation)
-    - uvplane_effect=True: All instrumental MeqParms have qualifier q=uvp.
-    - solves for MeqParms that vary slowly in time, over large domains.
-      This minimises contamination from other sources on the solution.
+    'inarg' records from files (like this one). These contain input arguments
+    for generating a suitable MeqTree forest for the desired operation.
+
+
+    --------------------------------------------------------------------------
+    Brief descriptions of the various sub-modules:
 
     """
     return True
@@ -102,7 +118,7 @@ def description():
 # Intialise the MG control record with some overall arguments 
 #----------------------------------------------------------------------------------------------------
 
-MG = JEN_inarg.init('MG_JEN_cps', description=description.__doc__)
+MG = JEN_inarg.init('MG_JEN_cps', description=_description.__doc__)
 
 JEN_inarg.define (MG, 'insert_solver', tf=True,
                   help='if True, insert a solver')
@@ -166,6 +182,10 @@ inarg = MG_JEN_Cohset.predict(_getdefaults=True, slave=True)
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, slave=True) 
+JEN_inarg.modify(inarg,
+                 # Ignore short baselines to minimise peeling contamination
+                 rmin=150,
+                 _JEN_inarg_option=None)     
 JEN_inarg.attach(MG, inarg)
                  
 #----------------------------------------------------------------------------------------------------
@@ -221,7 +241,7 @@ def _tdl_predefine (mqs, parent, **kwargs):
 #**************************************************************************
 
 def _define_forest (ns, **kwargs):
-    """This is the triple-quote description string"""
+    """See _description()"""
 
     # The MG may be passed in from _tdl_predefine():
     # In that case, override the global MG record.

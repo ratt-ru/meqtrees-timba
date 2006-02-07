@@ -101,71 +101,72 @@ class ArgBrowser(QMainWindow):
         # Menubar (at the end...!?):
         self.__menubar = self.menuBar()
 
-        filemenu = QPopupMenu(self)
-        filemenu.insertItem('open ...', self.open_filter)
-        filemenu.insertItem('open protected', self.open_protected)
-        filemenu.insertItem('open autosaved', self.open_autosaved)
-        filemenu.insertItem('open reference', self.open_reference)
-        filemenu.insertItem('open *.inarg', self.open_inarg)
-        filemenu.insertSeparator()     
-        filemenu.insertItem('saveAs ...', self.saveAs_inarg)
-        filemenu.insertItem('save_as_protected', self.save_as_protected)
-        filemenu.insertItem('save', self.save_inarg)
-        filemenu.insertItem('autosave', self.autosave)
-        filemenu.insertSeparator()     
-        filemenu.insertItem('print', self.print_inarg)
-        filemenu.insertSeparator()     
-        filemenu.insertItem('close', self.closeGui)
-        self.__menubar.insertItem('File', filemenu)
+        menu = QPopupMenu(self)
+        menu.insertItem('open ...', self.open_filter)
+        menu.insertItem('open protected', self.open_protected)
+        menu.insertItem('open autosaved', self.open_autosaved)
+        menu.insertItem('open reference', self.open_reference)
+        menu.insertItem('open *.inarg', self.open_inarg)
+        menu.insertSeparator()     
+        menu.insertItem('saveAs ...', self.saveAs_inarg)
+        menu.insertItem('save_as_protected', self.save_as_protected)
+        menu.insertItem('save', self.save_inarg)
+        menu.insertItem('autosave', self.autosave)
+        menu.insertSeparator()     
+        menu.insertItem('print', self.print_inarg)
+        menu.insertSeparator()     
+        menu.insertItem('close', self.closeGui)
+        self.__menubar.insertItem('File', menu)
 
-        editmenu = QPopupMenu(self)
-        editmenu.insertItem('revert_to_input', self.revert_inarg)
-        editmenu.insertSeparator()     
-        editmenu.insertItem('refresh', self.refresh)
-        editmenu.insertSeparator()     
-        editmenu.insertItem('description', self.editDescription)
-        self.__menubar.insertItem('Edit', editmenu)
+        menu = QPopupMenu(self)
+        menu.insertItem('revert_to_input', self.revert_inarg)
+        menu.insertSeparator()     
+        menu.insertItem('refresh', self.refresh)
+        menu.insertSeparator()     
+        menu.insertItem('description', self.editDescription)
+        menu.insertSeparator()     
+        menu.insertItem('upgrade', self.upgrade_from_ref)
+        menu.insertItem('upgrade...', self.upgrade_from_other)
+        self.__menubar.insertItem('Edit', menu)
 
-        viewmenu = QPopupMenu(self)
-        viewmenu.insertItem('description', self.viewDescription)
-        viewmenu.insertItem('savefile', self.savefile_name)
-        k = viewmenu.insertItem('HISTORY', self.viewHISTORY)
-        viewmenu.setWhatsThis(k, 'Recursively show the inarg HISTORY')    # better: QToolTip...
-        viewmenu.insertItem('MESSAGES', self.viewMESSAGE)
-        viewmenu.insertItem('ERRORS', self.viewERROR)
-        viewmenu.insertItem('WARNINGS', self.viewWARNING)
-        viewmenu.insertSeparator()     
-        viewmenu.insertItem('inarg2pp', self.inarg2pp)
-        viewmenu.insertItem('display', self.inargDisplay)
-        viewmenu.insertItem('displayFull', self.inargDisplayFull)
-        viewmenu.insertSeparator()     
-        self.__item_unhide = viewmenu.insertItem('unhide', self.unhide)
-        self.__item_show_CTRL = viewmenu.insertItem('show CTRL', self.show_CTRL)
-        self.__menubar.insertItem('View', viewmenu)
+        menu = QPopupMenu(self)
+        menu.insertItem('description', self.viewDescription)
+        menu.insertItem('savefile', self.savefile_name)
+        k = menu.insertItem('HISTORY', self.viewHISTORY)
+        menu.setWhatsThis(k, 'Recursively show the inarg HISTORY')    # better: QToolTip...
+        menu.insertItem('MESSAGES', self.viewMESSAGE)
+        menu.insertItem('ERRORS', self.viewERROR)
+        menu.insertItem('WARNINGS', self.viewWARNING)
+        menu.insertSeparator()     
+        menu.insertItem('inarg2pp', self.inarg2pp)
+        menu.insertItem('display', self.inargDisplay)
+        menu.insertItem('displayFull', self.inargDisplayFull)
+        menu.insertSeparator()     
+        self.__item_unhide = menu.insertItem('unhide', self.unhide)
+        self.__item_show_CTRL = menu.insertItem('show CTRL', self.show_CTRL)
+        self.__menubar.insertItem('View', menu)
 
-        testmenu = QPopupMenu(self)
-        testmenu.insertItem('modified?', self.test_modified)
-        testmenu.insertItem('inarg_OK?', self.test_OK)
-        testmenu.insertItem('count_@@', self.count_ref)
-        testmenu.insertItem('replace_@@', self.replace_ref)
-        testmenu.insertSeparator()     
-        testmenu.insertItem('essence', self.essence)
-        testmenu.insertSeparator()     
-        testmenu.insertItem('compare', self.compare_ref)
-        testmenu.insertItem('compare...', self.compare_other)
-        testmenu.insertItem('upgrade', self.upgrade_from_ref)
-        testmenu.insertItem('upgrade...', self.upgrade_from_other)
-        testmenu.insertSeparator()     
-        testmenu.insertItem('assay', self.assay)
-        testmenu.insertItem('assay_verbose', self.assay_verbose)
-        testmenu.insertItem('assay_record', self.assay_record)
-        testmenu.insertSeparator()     
-        self.__menubar.insertItem('Test', testmenu)
+        menu = QPopupMenu(self)
+        menu.insertItem('modified?', self.test_modified)
+        menu.insertItem('inarg_OK?', self.test_OK)
+        menu.insertItem('count_@@', self.count_ref)
+        menu.insertItem('replace_@@', self.replace_ref)
+        menu.insertSeparator()     
+        menu.insertItem('essence', self.essence)
+        menu.insertSeparator()     
+        menu.insertItem('compare', self.compare_ref)
+        menu.insertItem('compare...', self.compare_other)
+        menu.insertSeparator()     
+        menu.insertItem('assay', self.assay)
+        menu.insertItem('assay_verbose', self.assay_verbose)
+        menu.insertItem('assay_record', self.assay_record)
+        menu.insertSeparator()     
+        self.__menubar.insertItem('Test', menu)
 
-        helpmenu = QPopupMenu(self)
+        menu = QPopupMenu(self)
         self.__menubar.insertSeparator()
-        helpmenu.insertItem('help', self.viewHelp)
-        self.__menubar.insertItem('Help', helpmenu)
+        menu.insertItem('help', self.viewHelp)
+        self.__menubar.insertItem('Help', menu)
 
         #----------------------------------------------------
         # Statusbar:
@@ -323,29 +324,35 @@ class ArgBrowser(QMainWindow):
 
     def floatw (self, text=None, commit=None):
         """Display the given text on a floating text-window"""
-        if text==None: text = self.__tw.text()      # i.e. when Float button pressed
+        if text==None:
+            text = self.__tw.text()                 # i.e. when Float button pressed
+        text = str(text)                            # just in case
         self.__floatw_commit = commit               # see self.floatwCommit()
         self.__message.setText(str('** floatw_commit ='+str(self.__floatw_commit)))
         readonly = (commit==None)                   # editable if NOT readonly
-        self.__floatw = Float(self, name='<float>', text=str(text), readonly=readonly)
-        QObject.connect(self.__floatw, PYSIGNAL("floatwCommit()"), self.floatwCommit)
-        QObject.connect(self.__floatw, PYSIGNAL("floatwCancel()"), self.floatwCancel)
+        if not self.__floatw:
+            self.__floatw = Float(self, name='<float>', text=text, readonly=readonly)
+            QObject.connect(self.__floatw, PYSIGNAL("floatwCommit()"), self.floatwCommit)
+            QObject.connect(self.__floatw, PYSIGNAL("floatwCancel()"), self.floatwCancel)
+        self.__floatw.setText(text)
         return True
 
     def floatwCancel(self):
         """Action upon pressing the floatw Cancel button"""
+        self.__floatw = None
         self.__message.setText('** floatw cancelled')
         return True
 
     def floatwCommit(self, text):
         """Action upon pressing the floatw Commit button"""
         self.tw (text)                              # Replace the tw text
+        self.__floatw = None
         dest = self.__floatw_commit                 # destination 
         self.__message.setText('** floatwCommit(): destination = '+str(dest))
         if dest=='description':
-            # JEN_inarg.CTRL(self.__inarg, 'description', text)
-            self.__message.setText('** description (not yet) updated')
-        self.__modified = True                      # self.__inarg has been modified
+            JEN_inarg.CTRL(self.__inarg, 'description', text)
+            self.__message.setText('** inarg description updated')
+            self.__modified = True                  # self.__inarg has been modified
         return True
 
 
@@ -491,18 +498,18 @@ class ArgBrowser(QMainWindow):
     def essence(self):
         """Show a summary of the (specified) essence of the current inarg"""
         match = ['ms_','_col','lsm','parm','pol','uvplane','stations',
-                 'flag','corr','subtr',
+                 'flag','corr','subtr','rmin','rmax',
                  'sequ','solve','condit','deg_','tile']
         exclude = []
         ss = JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
-        return self.tw(ss)
+        return self.floatw(ss)
 
     def compare_ref(self):
         """Compare the current inarg to its reference inarg (in a file)"""
         filename = JEN_inarg.CTRL(self.__inarg, 'reference')
         self.restore_inarg(filename, other=True)        # -> self.__other
         ss = JEN_inarg.compare(self.__inarg, self.__other)
-        return self.tw(ss)
+        return self.floatw(ss)
 
     def compare_other(self):
         """Compare the current inarg to a saved inarg record from a file"""
@@ -510,7 +517,7 @@ class ArgBrowser(QMainWindow):
         filename = str(filename)
         self.restore_inarg(filename, other=True)        # -> self.__other
         ss = JEN_inarg.compare(self.__inarg, self.__other)
-        return self.tw(ss)
+        return self.floatw(ss)
 
     def upgrade_from_ref(self):
         """Upgrade the current inarg from its reference inarg"""
@@ -976,13 +983,15 @@ class ArgBrowser(QMainWindow):
                    vector=False,              # If True, the value is a vector/list
                    browse=None,               # Extension of files ('e.g *.MS')
                    module=module,             # name of the relevant function module
+                   oneliner='<oneliner>',
+                   description='<description>',            
                    level=level,               # inarg hierarchy level
                    iitd=-1)                   # sequenc nr in self.__itemdict
 
         # If ctrl is a record, use its information:
         if isinstance(ctrl, dict):
             # First some overall fields:
-            overall = ['color']
+            overall = ['color','oneliner','description']
             for field in overall:
                 if ctrl.has_key(field):
                     itd[field] = ctrl[field]
@@ -1066,6 +1075,7 @@ class ArgBrowser(QMainWindow):
             self.__setOpen[key] = not self.__setOpen[key]   # toggle
             self.__find_item = unique
             self.refresh()
+            self.tw(JEN_inarg.description(self.__inarg, module=key))
 
         elif iitd<-1000:
             # A CTRL record (see self.__CTRL_count):
@@ -1161,8 +1171,9 @@ class Float(QDialog):
     def __init__(self, parent=None, name='float_name', text=None, readonly=True):
         QDialog.__init__(self, parent, "Test", 0, 0)
 
-        self.setMinimumWidth(800)
-        self.setMinimumHeight(400)
+        self.setGeometry(200,200,800,700)
+        # self.setMinimumWidth(800)
+        # self.setMinimumHeight(400)
 
         # Put in widgets from top to bottom:
         vbox = QVBoxLayout(self,10,5)     
@@ -1177,6 +1188,7 @@ class Float(QDialog):
         hbox = QHBoxLayout(vbox)
 
         b = QPushButton('Commit', self)
+        b.setDisabled(self.__readonly)
         QToolTip.add(b, 'Commit the (edited) text to its inarg record')
         QObject.connect(b, SIGNAL("pressed ()"), self.onCommit)
         hbox.addWidget(b)
@@ -1196,6 +1208,9 @@ class Float(QDialog):
         self.show()
         return None
 
+    def setText(self, text):
+        self.__tw.setText(str(text))
+        return True
 
     def onPrint (self):
         """Action on pressing the Print button"""

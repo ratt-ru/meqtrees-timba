@@ -497,8 +497,13 @@ def barescope(rr, trace=False):
 
 #----------------------------------------------------------------------------
 
-def description(rr, new=None, append=None, prepend=None, recurse=False):
+def description(rr, new=None, append=None, prepend=None, module=None):
    """Get/modify the inarg description string"""
+
+   # NB: This function needs some clearing up...
+   if module:                                     # module specified
+      return get_descr(rr, module=module)         # search 
+
    ss = CTRL(rr, 'description')
    if isinstance(new, str):
       ss = new
@@ -510,6 +515,26 @@ def description(rr, new=None, append=None, prepend=None, recurse=False):
       ss = CTRL(rr, 'description', ss)
    return CTRL(rr, 'description')
 
+
+def get_descr(rr, module=None, level=0):
+   """Get the description string for the specified module"""
+   s1 = '** JEN_inarg.get_descr('+str(module)+'): '
+   if isinstance(rr, dict):
+      if rr.has_key(module):                     # module found
+         mm = rr[module]
+         if not mm.has_key(CTRL_record): return s1+'no CTRL_record'
+         cc = mm[CTRL_record]
+         if not cc.has_key('description'): return s1+'no CTRL field: description' 
+         return str(cc['description'])           # OK, CTRL field found
+      else:
+         for key in rr.keys():
+            if isinstance(rr[key], dict):
+               if not key==CTRL_record:          # recurse
+                  ss = get_descr(rr[key], module=module, level=level+1)
+                  if isinstance(ss, str): return ss
+   # Not found:
+   if level==0: return s1+'module not found'
+   return False
       
 #----------------------------------------------------------------------------
 
@@ -564,7 +589,7 @@ def count(rr, field='MESSAGE', total=0, level=0):
 def view(rr, field='MESSAGE', ss='', level=0, trace=True):
    """View (recursively) the specified JEN_inarg_CTRL field entries"""
    if level==0:
-      s = '\n** Recursive view of inarg CTRL_record field: '+field
+      s = '\n** Recursive view of inarg CTRL_record field: '+field+'\n'
       if trace: print s
       ss = s
 
@@ -607,8 +632,8 @@ def view(rr, field='MESSAGE', ss='', level=0, trace=True):
                ss = view(rr[key], field=field, ss=ss, level=level+1, trace=trace)
    if level==0:
       ok = is_OK(rr)
-      if ok: s = '** end of view of: '+field+'   (OK)\n'
-      if not ok: s = '** end of view of: '+field+'                   .... NOT OK ....!!\n'
+      if ok: s = '\n** end of view of: '+field+'   (OK)\n'
+      if not ok: s = '\n** end of view of: '+field+'                   .... NOT OK ....!!\n'
       if trace: print s
       ss += '\n'+s
    return ss
@@ -618,9 +643,15 @@ def view(rr, field='MESSAGE', ss='', level=0, trace=True):
 def essence(rr, match=[], exclude=[], ss='', level=0, trace=True):
    """View (recursively) the fields with names that match the specified subtrsings"""
    if level==0:
-      s = '\n** Recursive view of essence: '+str(match)
+      s = '\n** Recursive view of essence: '+str(match)+'\n'
       if trace: print s
       ss = s
+
+   # Get the CTRL hide record first:
+   hide = None
+   if rr.has_key(CTRL_record):
+      if rr[CTRL_record].has_key('hide'):
+         hide = rr[CTRL_record]['hide']
 
    for key in order(rr, trace=False):
       if isinstance(rr[key], dict):
@@ -641,9 +672,11 @@ def essence(rr, match=[], exclude=[], ss='', level=0, trace=True):
          v = rr[key]
          for substring in exclude:
             # print '-',key,substring,key.rfind(substring)
-            if key.rfind(substring)>=0: skip=True
+            if key.rfind(substring)>=0: skip = True
          if isinstance(v, str):
-            if v.rfind('@@')>=0: skip=True
+            if v.rfind('@@')>=0: skip = True
+         if hide and hide.has_key(key):
+            skip = True
          if not skip:
             for substring in match:
                if key.rfind(substring)>=0:
@@ -653,8 +686,8 @@ def essence(rr, match=[], exclude=[], ss='', level=0, trace=True):
             
    if level==0:
       ok = is_OK(rr)
-      if ok: s = '** end of essence:   (OK)\n'
-      if not ok: s = '** end of essence:                   .... NOT OK ....!!\n'
+      if ok: s = '\n** end of essence:   (OK)\n'
+      if not ok: s = '\n** end of essence:                   .... NOT OK ....!!\n'
       if trace: print s
       ss += '\n'+s
    return ss
@@ -665,7 +698,7 @@ def essence(rr, match=[], exclude=[], ss='', level=0, trace=True):
 def compare(rr, other=None, ss='', level=0, trace=True):
    """Compare the given inarg record with another one"""
    if level==0:
-      ss = '** JEN_inarg.compare('+str(type(rr))+str(type(other))+'):'
+      ss = '** JEN_inarg.compare('+str(type(rr))+str(type(other))+'):\n'
       if trace: print '\n'+ss
 
    if isinstance(rr, dict) and isinstance(other, dict):
@@ -721,7 +754,7 @@ def upgrade(rr, other=None, ss='', level=0, trace=True):
    I.e. replace some of the supporting (CTRL) information,
    but NOT the values of the various arguments"""
    if level==0:
-      ss = '** JEN_inarg.upgrade('+str(type(rr))+str(type(other))+'):'
+      ss = '** JEN_inarg.upgrade('+str(type(rr))+str(type(other))+'):\n'
       if trace: print '\n'+ss
 
    if isinstance(rr, dict) and isinstance(other, dict):
