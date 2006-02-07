@@ -6,6 +6,9 @@ export CVSROOT=:pserver:brentjens@cvs:/cvs/cvsroot
 export CCACHE_PREFIX=distcc
 export WEB_DIR="$HOME/public_html"
 
+export DOCSUBDIR=pydoc
+export GENERATEDOCSSCRIPT=$DAILY_DIR/LOFAR/Timba/Tools/Build/generate-docs.py
+
 
 export PYTHONPATH=$DAILY_DIR/LOFAR/installed/current/libexec/python
 export PATH=".:$HOME/usr/bin:/usr/local/bin:/usr/bin:/bin:/usr/X11R6/bin:$DAILY_DIR/LOFAR/installed/current/bin"
@@ -26,6 +29,17 @@ function Cleanup {
     rm -rf $DAILY_DIR && \
     mkdir $DAILY_DIR && \
     cd $DAILY_DIR
+}
+
+
+
+
+
+function GenerateDocs{
+    DOCSOUTPUT=$1
+    pushd $DOCSOUTPUT
+    python $GENERATEDOCSSCRIPT $DAILY_DIR/LOFAR/installed/symlinked/libexec/python/Timba
+    popd
 }
 
 
@@ -166,6 +180,22 @@ function InitializeTesting {
 
 
 
+
+
+function RunAssayScript {
+   assayscript=$1
+   logfile=$2
+   python $assayscript -assayrecord -opt -dassayer=2 -- -mt 2 &>> $logfile&
+   pythonpid=$!
+   meqserverpid=`ps --ppid $pythonpid | grep meqserver|awk '{print $1}'`
+}
+
+
+
+
+
+
+
 function ExecuteTest {
    testname=$1
    if $testname; then 
@@ -251,6 +281,9 @@ function HTMLReportMainmatter {
    echo '<br/>'>>$filename
    echo '<br/>'>>$filename
    echo '<br/>'>>$filename
+   echo '<p>'>>$filename
+   echo '<a href="pydoc">Fresh PYDOC documentation</a>' >>$filename
+   echo '</p>'>>$filename
    
    echo '<pre>'>>$filename
    PrintErrorsWarnings gnu3_debug>>$filename
@@ -282,6 +315,7 @@ function HTMLReport {
 # Main program
 echo
 echo \*\*\*  Full checkout and build of MeqTree: `date`  \*\*\*
+echo 'http://lofar9.astron.nl/~brentjens/index.html'
 echo
 echo Cleanup...
 Cleanup
@@ -296,7 +330,8 @@ BuildAndFilter gnu3_opt
 CheckStartupOfMeqServer gnu3_opt
 ReportVariant gnu3_opt
 echo
-echo 'http://lofar9.astron.nl/~brentjens/index.html'
+GenerateDocs "${WEB_DIR}/${DOCSUBDIR}"
+GenerateDocs "${WEB_DIR}/${DATE_STR}/${DOCSUBDIR}"
 echo Done: `date`
 
 
