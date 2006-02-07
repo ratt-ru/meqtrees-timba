@@ -546,19 +546,11 @@ class ResultPlotter(GriddedPlugin):
     self.label = '';  # extra label, filled in if possible
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
-      _dprint(3, 'trying to extract dims ')
-      try:
-        print self._rec.dims
-      except: 
-        _dprint(3, 'no self._rec.dims ')
-      try:
-        print self._rec.cache.dims
-      except: 
-        _dprint(3, 'no self._rec.cache.dims ')
       # try to put request ID in label
       try: self.label = "rq " + str(self._rec.cache.request_id);
       except: pass;
-      try: self._rec = self._rec.cache.result; # look for cache.result record
+      try: 
+        self._rec = self._rec.cache.result; # look for cache.result record
       except:
 # cached_result not found, display an empty viewer with a "no result
 # in this node record" message (the user can then use the Display with
