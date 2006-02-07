@@ -68,12 +68,17 @@ class MyCanvasView(QCanvasView):
     #    |    +---------+  |
     #    +_____ d4_________+
 
-    [char_w,char_h]=self.getTextDims("%8.3f")
-    print char_w
-    self.d1=char_w+15+20 # 20 for the axis label
+    [char_w,char_h]=self.getTextDims("10000.000") # radians
+    [char_w1,char_h1]=self.getTextDims("66:66:66") # degrees
+    if char_w<char_w1: char_w=char_w1;
+    if char_h<char_h1: char_h=char_h1;
+    [label_w,label_h]=self.getLabelDims("Declination")
+    
+    # get space needed for Labels
+    self.d1=char_w+15+label_h
     self.d3=30
-    self.d4=30+20 # 20 for the axis label
-    self.d2=5 # more pixels for the legend
+    self.d4=char_h+15+label_h # 20 for the axis label
+    self.d2=char_w/2 # more pixels for the legend
 
     # limits in real coordinates
     self.x_min=bounds['min_RA']
@@ -516,7 +521,7 @@ class MyCanvasView(QCanvasView):
   def showLegend(self,flag):
    """if flag==1, show legend, else hide legend"""
    # get dimensions needed
-   [char_w,char_h]=self.getTextDims("%8.3f")
+   [char_w,char_h]=self.getTextDims("10000.000")
    if flag==1:
     self.canvas().resize(self.canvas().width()+30+char_w,self.canvas().height())
     # get limits from the boundary of main plot
@@ -535,14 +540,24 @@ class MyCanvasView(QCanvasView):
      self.legend=None
 
   # give the text width,height in pixels using the default font
-  def getTextDims(self,format):
+  def getTextDims(self,txt):
     myfont=self.font
     fm=QFontMetrics(myfont)
     # find width in pixels
-    label=QString(format%0.0)
+    label=QString(txt)
     char_width=fm.width(label)
     char_height=fm.height()
     return (char_width,char_height)
+
+  def getLabelDims(self,txt):
+    font=QFont( QApplication.font() )
+    font.setPointSize( 10 )
+    fm=QFontMetrics(font)
+    char_width=fm.width(txt)
+    char_height=fm.height()
+    v_space=2
+    return [char_width,char_height+2*v_space]
+
 
   #select new font
   def chooseFont( self ) :
@@ -757,7 +772,10 @@ class Axes:
      rt=QCanvasText(self.cview.canvas())
      rt.setText(xstr)
      rt.setFont( self.axfont )
-     rt.move(xys[0]-60,xys[1]-9)
+     fm=QFontMetrics(self.axfont)
+     char_width=fm.width(rt.text())
+     # fixme 10 should be equal to tick width
+     rt.move(xys[0]-char_width-10,xys[1]-9)
      rt.setZ(0)
      rt.hide()
      self.yax_text.append(rt)
@@ -765,7 +783,8 @@ class Axes:
      dt=QCanvasText(self.cview.canvas())
      dt.setText(degstr)
      dt.setFont( self.axfont )
-     dt.move(xys[0]-60,xys[1]-9)
+     char_width=fm.width(dt.text())
+     dt.move(xys[0]-char_width-10,xys[1]-9)
      dt.setZ(0)
      dt.hide()
      self.yax_degtext.append(dt)
@@ -1138,7 +1157,8 @@ class FontVertImage(QCanvasRectangle):
         # find width in pixels
         char_width=fm.width(self.label)
         char_height=fm.height()
-        self.pixmap=QPixmap(char_height,char_width+2*margin)
+        v_space=2
+        self.pixmap=QPixmap(v_space+char_height+v_space,char_width+2*margin)
         self.pixmap.fill(QColor(255,255,255))
         painter=QPainter(self.pixmap)
         m=QWMatrix() 
@@ -1147,7 +1167,7 @@ class FontVertImage(QCanvasRectangle):
         painter.setWorldMatrix(m)
         painter.setFont(self.font)
         tmp_str=QString(self.label)
-        painter.drawText(-char_width-margin,15,QString(self.label))
+        painter.drawText(-char_width-margin,char_height,QString(self.label))
         painter.end()
         self.setSize(self.pixmap.width(), self.pixmap.height())
 
