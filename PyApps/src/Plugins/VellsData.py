@@ -272,9 +272,6 @@ class VellsData:
        _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] has rank ',  self._plot_vells_dict[key][self.array_tuple].rank)
        return self._plot_vells_dict[key][self.array_tuple]
 
-   def getPlotData(self):
-     return self._plot_dict
-
    def getActivePlot(self):
      return self._active_plane
 
@@ -286,9 +283,6 @@ class VellsData:
 
    def setActivePerturb(self, active_perturb=0):
      self._active_perturb = active_perturb
-
-   def getActivePlotArray(self):
-     return self._plot_dict[self._active_plane]
 
    def getActiveAxisParms(self):
      return [self.first_axis_parm, self.second_axis_parm]
