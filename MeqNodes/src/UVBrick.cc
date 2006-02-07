@@ -374,7 +374,7 @@ namespace Meq {
     unitin(0) = "rad";
     unitin(1) = "rad";
     const casa::Vector<casa::String> unitout(4,"pix");
-    casa::MDoppler::Types doppler;
+    casa::MDoppler::Types doppler(casa::MDoppler::RADIO);
     casa::Double offset = 0.0;
 
     for (int i = 0; i < nf; i++){
