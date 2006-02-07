@@ -32,6 +32,8 @@
 
 namespace Meq {
   
+#define VERBOSE
+
   UVInterpol::UVInterpol():
     _additional_info(false),
     _uvZ(0.0),
@@ -175,29 +177,63 @@ namespace Meq {
 	  VellSet vvs = uvpoints->vellSet(1);
 	  Vells uvells = uvs.getValue();
 	  Vells vvells = vvs.getValue();
-	  
-	  blitz::Array<double,2> uarr = uvells.as<double,2>()(LoRange::all(),LoRange::all());
-	  blitz::Array<double,2> varr = vvells.as<double,2>()(LoRange::all(),LoRange::all());
+	  int vellsrank = uvs.shape().size();
 
-	  int imin, jmin;
+#ifdef VERBOSE
+	  cout << uvs.shape() << uvs.shape().size() << endl;
+#endif
 
-	  for (int i = 0; i < nt; i++){
+	  if (vellsrank==2) {
+
+	    blitz::Array<double,2> uarr = uvells.as<double,2>()(LoRange::all(),LoRange::all());
+	    blitz::Array<double,2> varr = vvells.as<double,2>()(LoRange::all(),LoRange::all());
+
+	    int imin, jmin;
+
+	    for (int i = 0; i < nt; i++){
         
-	    imin = 0;
-	    jmin = 0;
+	      imin = 0;
+	      jmin = 0;
 	   
 	      
-	    for (int i1 = 0; i1 < nu-1; i1++){
-	      if ((uu(i1)<=uarr(0,i)) && (uu(i1+1)>uarr(0,i))) {imin = i1;};
-	    };
-	    for (int j1 = 0; j1 < nv-1; j1++){
-	      if ((vv(j1)<=varr(0,i)) && (vv(j1+1)>varr(0,i))) {jmin = j1;};
-	    };
-
-	    arr2(imin,jmin) = 1.0;
-	     
-	  }; // i
+	      for (int i1 = 0; i1 < nu-1; i1++){
+		if ((uu(i1)<=uarr(0,i)) && (uu(i1+1)>uarr(0,i))) {imin = i1;};
+	      };
+	      for (int j1 = 0; j1 < nv-1; j1++){
+		if ((vv(j1)<=varr(0,i)) && (vv(j1+1)>varr(0,i))) {jmin = j1;};
+	      };
+	      
+	      arr2(imin,jmin) = 1.0;
+	      
+	    }; // i
 	  
+	  }
+
+	  if (vellsrank==1) {
+
+	    blitz::Array<double,1> uarr = uvells.as<double,1>()(LoRange::all());
+	    blitz::Array<double,1> varr = vvells.as<double,1>()(LoRange::all());
+
+	    int imin, jmin;
+
+	    for (int i = 0; i < nt; i++){
+        
+	      imin = 0;
+	      jmin = 0;
+	   
+	      
+	      for (int i1 = 0; i1 < nu-1; i1++){
+	    	if ((uu(i1)<=uarr(i)) && (uu(i1+1)>uarr(i))) {imin = i1;};
+	      };
+	      for (int j1 = 0; j1 < nv-1; j1++){
+	    	if ((vv(j1)<=varr(i)) && (vv(j1+1)>varr(i))) {jmin = j1;};
+	      };
+	      
+	     arr2(imin,jmin) = 1.0;
+	      
+	    }; // i
+	  
+	  }
 	  
 	  // Attach a Cells to the result
 	  res2.setCells(*uvcells);
@@ -254,8 +290,27 @@ namespace Meq {
     Vells uvells = uvs.getValue();
     Vells vvells = vvs.getValue();
 
-    blitz::Array<double,2> uarr = uvells.as<double,2>()(LoRange::all(),LoRange::all());
-    blitz::Array<double,2> varr = vvells.as<double,2>()(LoRange::all(),LoRange::all());
+    int vellsrank = uvs.shape().size();
+    blitz::Array<double,1> uarr1(nt);
+    blitz::Array<double,1> varr1(nt);
+
+    if (vellsrank==2){
+      blitz::Array<double,2> uarr = uvells.as<double,2>()(LoRange::all(),LoRange::all());
+      blitz::Array<double,2> varr = vvells.as<double,2>()(LoRange::all(),LoRange::all());
+      for (int i = 0; i < nt; i++){      
+	uarr1(i) = uarr(i,0);
+	varr1(i) = varr(i,0);
+      }
+    }
+    if (vellsrank==1){
+      blitz::Array<double,1> uarr = uvells.as<double,1>()(LoRange::all());
+      blitz::Array<double,1> varr = vvells.as<double,1>()(LoRange::all());
+      for (int i = 0; i < nt; i++){
+      	uarr1(i) = uarr(i);
+      	varr1(i) = varr(i);
+      }
+    }
+
 
     // uv grid from UVBrick
     //int nu = brickcells.ncells(Axis::axis("U"));
@@ -372,8 +427,10 @@ namespace Meq {
     for (int i = 0; i < nt; i++){
 	
       // Determine the uv-coordinates
-      uc = uarr(i,0);
-      vc = varr(i,0);
+      
+      uc = uarr1(i);
+      vc = varr1(i);
+
 
       // For all methods: the grid search can still be optimised
 
@@ -628,7 +685,7 @@ namespace Meq {
     const double tiny = 1.0e-20; 
 
     double big, temp, sum, dum;
-    int imax;
+    int imax(0);
     blitz::Array<double,1> vv(n);
 
     // Loop over rows to get the implicit scaling information
