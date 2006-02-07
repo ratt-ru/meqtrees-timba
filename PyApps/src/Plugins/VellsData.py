@@ -18,6 +18,7 @@ class VellsData:
      self._plot_vells_dict = {}
      self._plot_flags_dict = {}
      self._plot_labels = {}
+     self._key_menu_labels = {}
      self._menu_labels = {}
      self.do_calc_vells_range = True
      self.array_selector = []
@@ -108,27 +109,44 @@ class VellsData:
      self._number_of_planes = len(vells_rec["vellsets"])
      _dprint(3, 'number of planes ', self._number_of_planes)
      id = -1
+     self.dims = None
+     self.index = []
+     self.start_index = None
+     if vells_rec.has_key("dims"):
+       dims = vells_rec.dims
+       self.dims = list(dims)
+       for i in range(len(self.dims)):
+         self.dims[i] = self.dims[i] - 1
+         self.index.append(0)
+       self.start_index = len(self.dims) - 1
 
 # store data
      for i in range(self._number_of_planes):
        if vells_rec.vellsets[i].has_key("value"):
          menu_label = "go to [" + str(i) + "] value" 
+         if self.dims is None:
+           text_display = menu_label
+         else:
+           text_display = "go to " + str(self.index) + " value" 
          id = id + 1
 #        _dprint(3, 'menu label ', menu_label)
-         self._menu_labels[id] = menu_label
+         self._menu_labels[id] = text_display
+         self._key_menu_labels[id] = menu_label
          self._plot_vells_dict[menu_label] = vells_rec.vellsets[i].value
 #        _dprint(3, 'self._plot_vells_dict[menu_label] ', self._plot_vells_dict[menu_label])
          tag = "] main value "
-         if len(self.rq_label) > 0:
-           if self._number_of_planes > 1:
-             plot_string = "[" + str(i) + tag + " " + self.rq_label
-           else:
-             plot_string = tag[2:len(tag)] + " " + self.rq_label
-         else:
-           if self._number_of_planes > 1:
+         if self._number_of_planes > 1:
+           if self.dims is None:
              plot_string = "[" + str(i) + tag 
            else:
+             plot_string = str(self.index)
+         else:
+           if self.dims is None:
              plot_string = tag[2:len(tag)] 
+           else:
+             plot_string = str(self.index)
+         if len(self.rq_label) > 0:
+           plot_string = plot_string + " " + self.rq_label
          self._plot_labels[menu_label] = plot_string
        
        if vells_rec.vellsets[i].has_key("perturbed_value"):
@@ -137,8 +155,13 @@ class VellsData:
            tag = "] perturbed value "
            for j in range(number_of_perturbed_arrays):
              menu_label =  "   -> go to [" + str(i) + tag + str(j) 
+             if self.dims is None:
+               text_display = menu_label
+             else:
+               text_display = "   -> go to " + str(self.index) + " perturbed value " + str(j)
              id = id + 1
-             self._menu_labels[id] = menu_label
+             self._menu_labels[id] = text_display
+             self._key_menu_labels[id] = menu_label
              self._plot_vells_dict[menu_label] = vells_rec.vellsets[i].perturbed_value[j]
              if self._number_of_planes > 1:
                initial_plot_str = "[" + str(i) + tag + str(j)
@@ -166,9 +189,21 @@ class VellsData:
          toggle_index = "flag data " + str(i)
          self._plot_flags_dict[toggle_index] = vells_rec.vellsets[i].flags
 
+# update index used for strings on displays if self.dims exists
+       if not self.dims is None:
+         for j in range(self.start_index,-1,-1):
+           if self.index[j] < self.dims[j]:
+             self.index[j] = self.index[j] + 1
+             if j < self.start_index:
+               for k in range(j+1, len(self.index)):
+                 self.index[k] = 0
+             break
+           else:
+             pass
+
 # initialize axis selection ?
      if not self.initialSelection:
-       tag = self._menu_labels[0]
+       tag = self._key_menu_labels[0]
        data = self._plot_vells_dict[tag]
        rank = data.rank
        shape = data.shape
@@ -259,7 +294,7 @@ class VellsData:
      return [self.first_axis_parm, self.second_axis_parm]
 
    def unravelMenuId(self, menuid=0):
-      id_string = self._menu_labels[menuid] 
+      id_string = self._key_menu_labels[menuid] 
       self._active_perturb = None
       self._active_plane = 0
       perturb_loc = id_string.find("perturbed value")
