@@ -184,7 +184,7 @@ JEN_inarg.attach(MG, inarg)
 inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, slave=True) 
 JEN_inarg.modify(inarg,
                  # Ignore short baselines to minimise peeling contamination
-                 rmin=150,
+                 # rmin=150,
                  _JEN_inarg_option=None)     
 JEN_inarg.attach(MG, inarg)
                  
