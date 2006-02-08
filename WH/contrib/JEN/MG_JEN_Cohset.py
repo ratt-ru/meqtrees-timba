@@ -352,6 +352,8 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     inarg_redun(pp, slave=slave)
     inarg_resample(pp, slave=slave)
     inarg_solver_config (pp, slave=True)
+    JEN_inarg.define(pp, 'unop', None, choice=[None,'Abs','Arg'],
+                     help='Optional unary operation on Condeq inputs')
     JEN_inarg.define(pp, 'visu', tf=True,
                      help='if True, include full visualisation')
     JEN_inarg.define(pp, 'subtract', tf=False,

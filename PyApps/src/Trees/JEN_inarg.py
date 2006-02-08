@@ -149,6 +149,8 @@ def init(target='<target>', version='15dec2005', description=None, **pp):
    # Attach/overwrite the inarg description string, if supplied:
    if isinstance(description, str):
       inarg[CTRL_record]['description'] = description
+      inarg[CTRL_record]['generic'] = description
+      inarg[CTRL_record]['specific'] = '<specific>'
 
    # The order (list) is needed by JEN_inargGui....
    inarg[CTRL_record]['order'] = inarg.keys()
@@ -407,6 +409,8 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
       ss += '  defined='+ctrl['datetime_defined']
       ctrl['oneliner'] = ss
       ctrl['description'] = '** Description of: '+ctrl['oneliner'] 
+      ctrl['generic'] = '** Generic description of: '+ctrl['oneliner'] 
+      ctrl['specific'] = '** Specific description of: '+ctrl['oneliner'] 
       rr[CTRL_record] = ctrl                          # Attach the CTRL_record
 
    elif not isinstance(rr[CTRL_record], dict):        # CTRL_record is not a record...??
@@ -500,20 +504,20 @@ def barescope(rr, trace=False):
 def description(rr, new=None, append=None, prepend=None, module=None):
    """Get/modify the inarg description string"""
 
-   # NB: This function needs some clearing up...
+   # Get a module-specific description, if required:
    if module:                                     # module specified
       return get_descr(rr, module=module)         # search 
 
-   ss = CTRL(rr, 'description')
-   if isinstance(new, str):
-      ss = new
-   if isinstance(append, str):
-      ss += '\n'+append
-      ss = CTRL(rr, 'description', ss)
-   if isinstance(prepend, str):
-      ss = prepend+'\n'+ss
-      ss = CTRL(rr, 'description', ss)
-   return CTRL(rr, 'description')
+   # The specific part of the description may be modifed:
+   ss = CTRL(rr, 'specific')
+   if isinstance(new, str): ss = new
+   if isinstance(append, str): ss += '\n'+append
+   if isinstance(prepend, str): ss = prepend+'\n'+ss
+   ss = CTRL(rr, 'specific', ss)
+
+   # Return a combination of the generic and the specific part:
+   ss += '\n\n'+CTRL(rr, 'description')
+   return ss
 
 
 def get_descr(rr, module=None, level=0):

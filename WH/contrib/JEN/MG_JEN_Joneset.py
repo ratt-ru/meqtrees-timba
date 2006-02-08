@@ -432,7 +432,9 @@ def BJones (ns=0, Sixpack=None, slave=False, **inarg):
                              0   (Breal_Y,Bimag_Y)
 
     For circular polarisation, R and L are used rather than X and Y
-    The difference with Gjones is the higher-order (~5) freq-polynomial
+    The differences with Gjones are:
+      - the higher-order (~5) freq-polynomial
+      - solving for real/imag rather than gain/phase 
     """;
 
     jones = 'BJones'

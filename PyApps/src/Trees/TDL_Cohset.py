@@ -25,6 +25,7 @@
 #    - 01 jan 2006: extended .graft() with chain_solvers argument
 #    - 03 jan 2006: introduced .chain_solvers() function
 #    - 04 jan 2006: cleanup(): collection of orphans to avoid browser clutter
+#    - 11 feb 2006: add unop argument to .Condeq() and .Condeq_redun()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -1002,6 +1003,12 @@ class Cohset (TDL_common.Super):
         punit = self.punit()
         scope = 'Condeq'
 
+        # Optional: apply a unary operation to the Condeq inputs:
+        pp.setdefault('unop', None)            # e.g. 'Abs'
+        if isinstance(pp['unop'], str):
+            Cohset.unop(ns, pp['unop'])
+            self.unop(ns, pp['unop'])
+
         # Make condeq nodes for the selected keys:
         coh = dict()                       # use temporary dict for new nodes
         for key in self.keys():
@@ -1034,6 +1041,12 @@ class Cohset (TDL_common.Super):
         uniqual = _counter(funcname, increment=-1)
         punit = self.punit()
         scope = 'Condeq_redun'
+
+        # Optional: apply a unary operation to the Condeq inputs:
+        pp.setdefault('unop', None)        # e.g. 'Abs'
+        if isinstance(pp['unop'], str):
+            self.unop(ns, pp['unop'])
+
         coh = dict()                       # use temporary dict for new nodes
         for key in self.keys():
             s12 = self.__stations[key]
