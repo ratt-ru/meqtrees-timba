@@ -169,7 +169,7 @@ class realvsimag_plotter(object):
         self._statusbar = self._mainwin and self._mainwin.statusBar();
 
         self.__initTracking()
-        self.__initZooming()
+#       self.__initZooming()
         # forget the toolbar for now -- too much trouble when we're dealing with 
         # multiple windows. Do a context menu instead
         # self.__initToolBar()
@@ -197,6 +197,7 @@ class realvsimag_plotter(object):
         self._flags_i_dict = {}
         self._flags_r_dict = {}
         self.flag_plot_dict={}
+        self.zoomStack = []
 
         self.setResults = True
         self.flag_toggle = True
@@ -284,16 +285,17 @@ class realvsimag_plotter(object):
     # __initTracking()
 
   def onMouseMoved(self, e):
-        if self._statusbar:
-          self._statusbar.message(
-            'x = %+.6g, y = %.6g'
-            % (self.plot.invTransform(QwtPlot.xBottom, e.pos().x()),
-               self.plot.invTransform(QwtPlot.yLeft, e.pos().y())),2000)
+    return
+#       if self._statusbar:
+#         self._statusbar.message(
+#           'x = %+.6g, y = %.6g'
+#           % (self.plot.invTransform(QwtPlot.xBottom, e.pos().x()),
+#              self.plot.invTransform(QwtPlot.yLeft, e.pos().y())),2000)
 
     # onMouseMoved()
     
   def __initZooming(self):
-        """Initialize zooming
+        """Initialize zooming - not presently called
         """
         self.zoomer = QwtPlotZoomer(QwtPlot.xBottom,
                                     QwtPlot.yLeft,
@@ -348,16 +350,9 @@ class realvsimag_plotter(object):
 
         menu_id = 299
         self._menu.insertItem("Modify Plot Parameters", menu_id)
-        
-        self.zoom_button = QAction(self.plot);
-        self.zoom_button.setIconSet(pixmaps.viewmag.iconset());
-        self.zoom_button.setText("Enable zoomer");
-        self.zoom_button.setToggleAction(True);
-        # zoom.setAccel() can set keyboard accelerator
-        QObject.connect(self.zoom_button,SIGNAL("toggled(bool)"),self.zoom);
-        self.zoom_button.addTo(self._menu);
         menu_id = 300
         self._menu.insertItem("Reset zoomer", menu_id)
+        self._menu.setItemVisible(menu_id, False)
         menu_id = 301
         self._menu.insertItem("Toggle Legend", menu_id)
         
@@ -366,9 +361,6 @@ class realvsimag_plotter(object):
         printer.setText("Print plot");
         QObject.connect(printer,SIGNAL("activated()"),self.printPlot);
         printer.addTo(self._menu);
-        
-        self.zoom(False);
-        self.setZoomerMousePattern(0);
   # __initContextMenu(self):
 
   def setResultsSelector(self):
@@ -562,6 +554,21 @@ class realvsimag_plotter(object):
         _dprint(2,'button is left button');
         xPos = e.pos().x()
         yPos = e.pos().y()
+
+#store coordinates for later zoom
+        self.xpos = xPos
+        self.ypos = yPos
+        self.plot.enableOutline(1)
+        self.plot.setOutlinePen(QPen(Qt.black))
+        self.plot.setOutlineStyle(Qwt.Rect)
+        if self.zoomStack == []:
+          self.zoomState = (
+            self.plot.axisScale(QwtPlot.xBottom).lBound(),
+            self.plot.axisScale(QwtPlot.xBottom).hBound(),
+            self.plot.axisScale(QwtPlot.yLeft).lBound(),
+            self.plot.axisScale(QwtPlot.yLeft).hBound(),
+            )
+
         _dprint(2,'xPos yPos ', xPos, ' ', yPos);
 # We get information about the qwt plot curve that is
 # closest to the location of this mouse pressed event.
@@ -675,6 +682,38 @@ class realvsimag_plotter(object):
 
   def slotMouseReleased(self, e):
     if Qt.LeftButton == e.button():
+# handle completion of zooming
+# assume a change of <= 2 screen pixels is just due to clicking
+# left mouse button for coordinate values
+      if abs(self.xpos - e.pos().x()) > 2 and abs(self.ypos - e.pos().y())> 2:
+        xmin = min(self.xpos, e.pos().x())
+        xmax = max(self.xpos, e.pos().x())
+        ymin = min(self.ypos, e.pos().y())
+        ymax = max(self.ypos, e.pos().y())
+        self.plot.setOutlineStyle(Qwt.Cross)
+        xmin = self.plot.invTransform(QwtPlot.xBottom, xmin)
+        xmax = self.plot.invTransform(QwtPlot.xBottom, xmax)
+        ymin = self.plot.invTransform(QwtPlot.yLeft, ymin)
+        ymax = self.plot.invTransform(QwtPlot.yLeft, ymax)
+        self.plot.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+        self.plot.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+        self._x_auto_scale = False
+        self._y_auto_scale = False
+        self.xmin = xmin
+        self.xmax = xmax
+        self.ymin = ymin
+        self.ymax = ymax
+        self.axis_xmin = xmin
+        self.axis_xmax = xmax
+        self.axis_ymin = ymin
+        self.axis_ymax = ymax
+        menu_id = self.menu_table['Reset zoomer']
+        self._menu.setItemVisible(menu_id, True)
+
+        self.zoomStack.append(self.zoomState)
+        self.zoomState = (xmin, xmax, ymin, ymax)
+        self.plot.enableOutline(0)
+
       self.timerEvent_marker()
   # slotMouseReleased()
 
@@ -1787,45 +1826,27 @@ class realvsimag_plotter(object):
   # timerEvent()
 
   def reset_zoom(self):
-    self.zoomer.zoom(0)
-    self.plot.setAxisAutoScale(QwtPlot.xBottom)
-    self._x_auto_scale = True
-    self.axis_xmin = None
-    self.axis_xmax = None
-    self.plot.setAxisAutoScale(QwtPlot.yLeft)
-    self._y_auto_scale = True
-    self.axis_ymin = None
-    self.axis_ymax = None
-    self.clearZoomStack()
-
-
-  def zoom(self,on):
-        self.zoomer.setEnabled(on)
-# set fixed scales for realvsimag plot - zooming doesn't work well 
-# with autoscaling!!
-        if on:
-          self.zoom_button.setText("Disable zoomer");
-          lb = self.plot.axisScale(QwtPlot.yLeft).lBound()
-          hb = self.plot.axisScale(QwtPlot.yLeft).hBound()
-          self.plot.setAxisScale(QwtPlot.yLeft, lb, hb)
-          self._y_auto_scale = False
-          self.axis_ymin = lb
-          self.axis_ymax = hb
-          lb = self.plot.axisScale(QwtPlot.xBottom).lBound()
-          hb = self.plot.axisScale(QwtPlot.xBottom).hBound()
-          self.plot.setAxisScale(QwtPlot.xBottom, lb, hb)
-          self._x_auto_scale = False
-          self.axis_xmin = lb
-          self.axis_xmax = hb
-          self._x_auto_scale = False
-          self.picker.setRubberBand(QwtPicker.NoRubberBand)
-          self.clearZoomStack()
-        else:
-          self.zoom_button.setText("Enable zoomer");
-          self.picker.setRubberBand(QwtPicker.CrossRubberBand)
-#         self.plot.replot()
-    # zoom()
-
+    if len(self.zoomStack):
+      while len(self.zoomStack):
+        xmin, xmax, ymin, ymax = self.zoomStack.pop()
+      self.plot.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+      self.plot.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+      self._x_auto_scale = False
+      self._y_auto_scale = False
+      self.axis_xmin = xmin
+      self.axis_xmax = xmax
+      self.axis_ymin = ymin
+      self.axis_ymax = ymax
+      self.xmin = None
+      self.xmax = None
+      self.ymin = None
+      self.ymax = None
+      toggle_id = self.menu_table['Reset zoomer']
+      self._menu.setItemVisible(toggle_id, False)
+      _dprint(3, 'called replot in unzoom')
+      self.plot.replot()
+    else:
+      return
 
   def printPlot(self):
         try:
