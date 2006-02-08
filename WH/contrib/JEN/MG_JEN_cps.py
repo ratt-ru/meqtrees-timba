@@ -164,14 +164,14 @@ inarg = MG_JEN_Cohset.JJones(_getdefaults=True, slave=True)
 JEN_inarg.modify(inarg,
                  # Do a single solution over the (large) domain:
                  # NB: Do we need something like: subtile_size_*=None....?
-                 subtile_size_Gampl=None,
+                 subtile_size_Ggain=None,
                  subtile_size_Breal=None,
                  subtile_size_dang=None,
                  subtile_size_RM=None,
                  # Allow for slow variations in time:
-                 # NB: The tdeg_Gphase etc are @tdeg_Gampl etc
+                 # NB: The tdeg_Gphase etc are @tdeg_Ggain etc
                  # NB: Do we need something like: tdeg_*=None....?
-                 tdeg_Gampl=3,
+                 tdeg_Ggain=3,
                  tdeg_Breal=3,
                  tdeg_dang=3,
                  tdeg_RM=3,

@@ -158,9 +158,9 @@ def inarg_solvegroup (pp, **kwargs):
    c_help = '(list of) extra condition equations:'
 
    # Make the choice and help, depending on Jsequence:
-   s_choice.extend([['GJones'],['Gampl'],['Gphase']])
+   s_choice.extend([['GJones'],['Ggain'],['Gphase']])
    s_help += '\n- [GJones]:  all GJones MeqParms'
-   s_help += '\n- [Gampl]:   GJones station gains (both pols)'
+   s_help += '\n- [Ggain]:   GJones station gains (both pols)'
    s_help += '\n- [Gphase]:  GJones station phases (both pols)'
    s_choice.extend([['Gpol1'],['Gpol2']])
    s_help += '\n- [Gpol1]:   All GJones MeqParms for pol1 (X or R)'
@@ -220,7 +220,7 @@ def inarg_solvegroup (pp, **kwargs):
 #--------------------------------------------------------------------------------
 
 def GJones (ns=None, Sixpack=None, slave=False, **inarg):
-    """defines diagonal GJones matrices for complex(Gampl,Gphase) parms""";
+    """defines diagonal GJones matrices for complex(Ggain,Gphase) parms""";
 
     jones = 'GJones'
 
@@ -232,28 +232,28 @@ def GJones (ns=None, Sixpack=None, slave=False, **inarg):
     JEN_inarg.define(pp, 'Gpolar', tf=False,  
                      help='if True, use MeqPolar, otherwise MeqToComplex')
     # ** Solving instructions:
-    JEN_inarg.define(pp, 'fdeg_Gampl', 0, choice=[0,1,2,3],  
+    JEN_inarg.define(pp, 'fdeg_Ggain', 0, choice=[0,1,2,3],  
                      help='degree of freq polynomial')
-    JEN_inarg.define(pp, 'fdeg_Gphase', '@fdeg_Gampl',
-                     choice=[0,1,2,3,'@fdeg_Gampl'],  
+    JEN_inarg.define(pp, 'fdeg_Gphase', '@fdeg_Ggain',
+                     choice=[0,1,2,3,'@fdeg_Ggain'],  
                      help='degree of freq polynomial')
-    JEN_inarg.define(pp, 'tdeg_Gampl', 0, choice=[0,1,2,3],  
+    JEN_inarg.define(pp, 'tdeg_Ggain', 0, choice=[0,1,2,3],  
                      help='degree of time polynomial')
-    JEN_inarg.define(pp, 'tdeg_Gphase', '@tdeg_Gampl',
-                     choice=[0,1,2,3,'@tdeg_Gampl'],  
+    JEN_inarg.define(pp, 'tdeg_Gphase', '@tdeg_Ggain',
+                     choice=[0,1,2,3,'@tdeg_Ggain'],  
                      help='degree of time polynomial')
-    JEN_inarg.define(pp, 'subtile_size_Gampl', 1,
+    JEN_inarg.define(pp, 'subtile_size_Ggain', 1,
                      choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                      help='sub-tile size (None=entire tile)')
-    JEN_inarg.define(pp, 'subtile_size_Gphase', '@subtile_size_Gampl',  
+    JEN_inarg.define(pp, 'subtile_size_Gphase', '@subtile_size_Ggain',  
                      choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                      help='sub-tile size (None=entire tile)')
     # ** MeqParm default values:
-    JEN_inarg.define(pp, 'c00_Gampl', 1.0, choice=[0.9, 0.1], hide=True,  
+    JEN_inarg.define(pp, 'c00_Ggain', 1.0, choice=[0.9, 0.1], hide=True,  
                      help='default c00 funklet value')
     JEN_inarg.define(pp, 'c00_Gphase', 0.0, choice=[0.1], hide=True,  
                      help='default c00 funklet value')
-    JEN_inarg.define(pp, 'stddev_Gampl', 0.0, choice=[0.1], hide=True,   # obsolete?
+    JEN_inarg.define(pp, 'stddev_Ggain', 0.0, choice=[0.1], hide=True,   # obsolete?
                      help='scatter in default c00 funklet values')
     JEN_inarg.define(pp, 'stddev_Gphase', 0.0, choice=[0.1], hide=True,  # obsolete?  
                      help='scatter in default c00 funklet values')
@@ -271,8 +271,8 @@ def GJones (ns=None, Sixpack=None, slave=False, **inarg):
     js.display('inside GJones')
     
     # Register the parmgroups (in js.Parmset eventually):
-    a1 = js.parmgroup('Gampl', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
-    a2 = js.parmgroup('Gampl', ipol=2, color='blue', style='diamond', size=10, corrs='paral2')
+    a1 = js.parmgroup('Ggain', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
+    a2 = js.parmgroup('Ggain', ipol=2, color='blue', style='diamond', size=10, corrs='paral2')
     p1 = js.parmgroup('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral1')
     p2 = js.parmgroup('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral2')
 
@@ -300,19 +300,19 @@ def GJones (ns=None, Sixpack=None, slave=False, **inarg):
     js.Parmset.define_solvegroup('GJones', [a1, p1, a2, p2])
     js.Parmset.define_solvegroup('Gpol1', [a1, p1])
     js.Parmset.define_solvegroup('Gpol2', [a2, p2])
-    js.Parmset.define_solvegroup('Gampl', [a1, a2])
+    js.Parmset.define_solvegroup('Ggain', [a1, a2])
     js.Parmset.define_solvegroup('Gphase', [p1, p2])
     
     for station in pp['stations']:
        skey = TDL_radio_conventions.station_key(station)        
        qual = dict(s=skey)
 
-       for Gampl in [a1,a2]:
-          default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gampl'], stddev=pp['stddev_Gampl'],
-                                            fdeg=pp['fdeg_Gampl'], tdeg=pp['tdeg_Gampl'],
+       for Ggain in [a1,a2]:
+          default = MG_JEN_funklet.polc_ft (c00=pp['c00_Ggain'], stddev=pp['stddev_Ggain'],
+                                            fdeg=pp['fdeg_Ggain'], tdeg=pp['tdeg_Ggain'],
                                             scale=pp['ft_coeff_scale']) 
-          js.Parmset.define_MeqParm (ns, Gampl, qual=qual, default=default,
-                                     subtile_size=pp['subtile_size_Gampl'])
+          js.Parmset.define_MeqParm (ns, Ggain, qual=qual, default=default,
+                                     subtile_size=pp['subtile_size_Ggain'])
 
        for Gphase in [p1,p2]:
           default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'], stddev=pp['stddev_Gphase'], 
@@ -426,7 +426,14 @@ def FJones (ns=0, Sixpack=None, slave=False, **inarg):
 #--------------------------------------------------------------------------------
 
 def BJones (ns=0, Sixpack=None, slave=False, **inarg):
-    """defines diagonal BJones bandpass matrices""";
+    """Defines diagonal 2x2 Jones matrices that model the bandpass:
+
+    Bjones(station,source) = (Breal_X,Bimag_X)   0
+                             0   (Breal_Y,Bimag_Y)
+
+    For circular polarisation, R and L are used rather than X and Y
+    The difference with Gjones is the higher-order (~5) freq-polynomial
+    """;
 
     jones = 'BJones'
 
@@ -437,7 +444,7 @@ def BJones (ns=0, Sixpack=None, slave=False, **inarg):
     inarg_Joneset_common(pp, slave=slave)              
     # ** Jones matrix elements:
     # ** Solving instructions:
-    JEN_inarg.define(pp, 'fdeg_Breal', 3, choice=[0,1,2,3],  
+    JEN_inarg.define(pp, 'fdeg_Breal', 5, choice=[3,4,5],  
                      help='degree of freq polynomial')
     JEN_inarg.define(pp, 'fdeg_Bimag', '@fdeg_Breal',
                      choice=[0,1,2,3,'@fdeg_Breal'],  
@@ -1000,17 +1007,17 @@ if True:                                                # ... Copied from MG_JEN
                      
                      # ** Solving instructions:
                      unsolvable=False,                  # if True, do not store parmgroup info
-                     fdeg_Gampl=5,                      # degree of default freq polynomial         
-                     fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
-                     tdeg_Gampl=0,                      # degree of default time polynomial         
-                     tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
-                     subtile_size_Gampl=0,                 # used in tiled solutions         
-                     subtile_size_Gphase='subtile_size_Gampl', # used in tiled solutions         
+                     fdeg_Ggain=5,                      # degree of default freq polynomial         
+                     fdeg_Gphase='fdeg_Ggain',          # degree of default freq polynomial          
+                     tdeg_Ggain=0,                      # degree of default time polynomial         
+                     tdeg_Gphase='tdeg_Ggain',          # degree of default time polynomial       
+                     subtile_size_Ggain=0,                 # used in tiled solutions         
+                     subtile_size_Gphase='subtile_size_Ggain', # used in tiled solutions         
                      
                      # ** MeqParm default values:
-                     c00_Gampl=0.3,                     # default c00 funklet value
+                     c00_Ggain=0.3,                     # default c00 funklet value
                      c00_Gphase=0.0,                    # default c00 funklet value
-                     stddev_Gampl=0.1,                  # scatter in default c00 funklet values
+                     stddev_Ggain=0.1,                  # scatter in default c00 funklet values
                      stddev_Gphase=0.1,                 # scatter in default c00 funklet values
                      # ft_coeff_scale=0.0,                # scale of polc_ft non-c00 coeff
                      

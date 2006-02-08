@@ -127,12 +127,12 @@ if True:                                               # ... Copied from MG_JEN_
    # Insert non-default Jones matrix arguments here: 
    if 'GJones' in Jsequence: 
        JEN_inarg.modify(inarg,
-                        fdeg_Gampl=3,                      # degree of default freq polynomial         
-                        fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
-                        tdeg_Gampl=1,                      # degree of default time polynomial         
-                        tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
-                        subtile_size_Gampl=0,                 # used in tiled solutions         
-                        subtile_size_Gphase='subtile_size_Gampl', # used in tiled solutions         
+                        fdeg_Ggain=3,                      # degree of default freq polynomial         
+                        fdeg_Gphase='fdeg_Ggain',          # degree of default freq polynomial          
+                        tdeg_Ggain=1,                      # degree of default time polynomial         
+                        tdeg_Gphase='tdeg_Ggain',          # degree of default time polynomial       
+                        subtile_size_Ggain=0,                 # used in tiled solutions         
+                        subtile_size_Gphase='subtile_size_Ggain', # used in tiled solutions         
                         _JEN_inarg_option=None)     
    JEN_inarg.attach(MG, inarg)
 

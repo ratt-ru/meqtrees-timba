@@ -162,16 +162,16 @@ JEN_inarg.modify(inarg,
 if 'GJones' in Jsequence: 
     JEN_inarg.modify(inarg,
                      # MeqParm solving instructions:
-                     fdeg_Gampl=0,                      # degree of default freq polynomial         
-                     fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
-                     tdeg_Gampl=0,                      # degree of default time polynomial         
-                     tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
-                     subtile_size_Gampl=0,                 # used in tiled solutions         
-                     subtile_size_Gphase='subtile_size_Gampl', # used in tiled solutions         
+                     fdeg_Ggain=0,                      # degree of default freq polynomial         
+                     fdeg_Gphase='fdeg_Ggain',          # degree of default freq polynomial          
+                     tdeg_Ggain=0,                      # degree of default time polynomial         
+                     tdeg_Gphase='tdeg_Ggain',          # degree of default time polynomial       
+                     subtile_size_Ggain=0,                 # used in tiled solutions         
+                     subtile_size_Gphase='subtile_size_Ggain', # used in tiled solutions         
                      # ** MeqParm default values:
-                     c00_Gampl=2.0,                     # default c00 funklet value
+                     c00_Ggain=2.0,                     # default c00 funklet value
                      c00_Gphase=0.5,                    # default c00 funklet value
-                     stddev_Gampl=0.0,                  # scatter in default c00 funklet values
+                     stddev_Ggain=0.0,                  # scatter in default c00 funklet values
                      stddev_Gphase=0.0,                 # scatter in default c00 funklet values
                      # ft_coeff_scale=0.0,                # scale of polc_ft non-c00 coeff
                      _JEN_inarg_option=None)            # optional, not yet used 

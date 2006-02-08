@@ -173,12 +173,12 @@ if MG['insert_solver_GBJones']:
                      _JEN_inarg_option=None)                # optional, not yet used 
     if 'GJones' in Jsequence: 
         JEN_inarg.modify(inarg,
-                         fdeg_Gampl=0,                      # degree of default freq polynomial         
-                         fdeg_Gphase='fdeg_Gampl',          # degree of default freq polynomial          
-                         tdeg_Gampl=0,                      # degree of default time polynomial         
-                         tdeg_Gphase='tdeg_Gampl',          # degree of default time polynomial       
-                         subtile_size_Gampl=1,                 # used in tiled solutions         
-                         subtile_size_Gphase='subtile_size_Gampl', # used in tiled solutions         
+                         fdeg_Ggain=0,                      # degree of default freq polynomial         
+                         fdeg_Gphase='fdeg_Ggain',          # degree of default freq polynomial          
+                         tdeg_Ggain=0,                      # degree of default time polynomial         
+                         tdeg_Gphase='tdeg_Ggain',          # degree of default time polynomial       
+                         subtile_size_Ggain=1,                 # used in tiled solutions         
+                         subtile_size_Gphase='subtile_size_Ggain', # used in tiled solutions         
                          _JEN_inarg_option=None)            # optional, not yet used 
     if 'BJones' in Jsequence: 
         JEN_inarg.modify(inarg,
