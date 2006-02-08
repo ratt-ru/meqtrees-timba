@@ -195,7 +195,7 @@ class QwtImageDisplay(QwtPlot):
 
         self.label = ''
         self.vells_menu_items = 0
-        self.zooming = False
+        self.zooming = True
         self.setlegend = 0
         self.log_offset = 0.0
         self.setAutoLegend(self.setlegend)
@@ -663,6 +663,8 @@ class QwtImageDisplay(QwtPlot):
           self.ymin = None
           self.ymax = None
           self.refresh_marker_display()
+          toggle_id = self.menu_table['Reset zoomer']
+          self._menu.setItemVisible(toggle_id, False)
           _dprint(3, 'called replot in unzoom')
         else:
           return
@@ -1039,6 +1041,11 @@ class QwtImageDisplay(QwtPlot):
         if Qt.LeftButton == e.button():
             self.refresh_marker_display()
             if self.zooming:
+# assume a change of <= 2 screen pixels is just due to clicking
+# left mouse button for coordinate values
+              if abs(self.xpos - e.pos().x()) <=2 and abs(self.ypos - e.pos().y())<=2:
+                return
+
               xmin = min(self.xpos, e.pos().x())
               xmax = max(self.xpos, e.pos().x())
               ymin = min(self.ypos, e.pos().y())
@@ -1097,6 +1104,8 @@ class QwtImageDisplay(QwtPlot):
           self.axis_xmax = xmax
           self.axis_ymin = ymin
           self.axis_ymax = ymax
+          toggle_id = self.menu_table['Reset zoomer']
+          self._menu.setItemVisible(toggle_id, True)
         self.replot()
         _dprint(2, 'called replot in onMouseReleased');
 
@@ -1989,13 +1998,14 @@ class QwtImageDisplay(QwtPlot):
         if self.toggle_array_rank > 2: 
           toggle_id = self.menu_table['Toggle ND Controller']
           self._menu.insertItem("Toggle ND Controller", toggle_id)
-        self.zoom_button = QAction(self);
-        self.zoom_button.setIconSet(pixmaps.viewmag.iconset());
-        self.zoom_button.setText("Enable zoomer");
-        self.zoom_button.addTo(self._menu);
-        QObject.connect(self.zoom_button,SIGNAL("toggled(bool)"),self.zoom);
+#       self.zoom_button = QAction(self);
+#       self.zoom_button.setIconSet(pixmaps.viewmag.iconset());
+#       self.zoom_button.setText("Enable zoomer");
+#       self.zoom_button.addTo(self._menu);
+#       QObject.connect(self.zoom_button,SIGNAL("toggled(bool)"),self.zoom);
         toggle_id = self.menu_table['Reset zoomer']
         self._menu.insertItem("Reset zoomer", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Delete X-Section Display']
         self._menu.insertItem("Delete X-Section Display", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
