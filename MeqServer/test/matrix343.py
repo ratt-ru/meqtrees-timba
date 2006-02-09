@@ -10,19 +10,25 @@ import os
 
 # bookmark
 Settings.forest_state = record(bookmarks=[
-  record(name='Phase solutions - all',page=[
+  record(name='Flux solutions',page=[
+    record(viewer="Result Plotter",udi="/node/stokes:I:3C343",pos=(0,0)),
+    record(viewer="Result Plotter",udi="/node/stokes:I:3C343_1",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343",pos=(1,0)),
+#    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343_1",pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
+  ]), \
+  record(name='Phase solutions',page=[
     record(viewer="Result Plotter",udi="/node/JP:2:centre:11",pos=(0,0)),
     record(viewer="Result Plotter",udi="/node/JP:2:edge:11",pos=(0,1)),
     record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
     record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
   ]),
-  record(name='Flux solutions',page=[
-    record(viewer="Result Plotter",udi="/node/stokes:I:3C343",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:3C343_1",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343_1",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/solver",pos=(2,0)),
-  ]) \
+  record(name='Gain solutions',page=[
+    record(viewer="Result Plotter",udi="/node/JA:2:centre:11",pos=(0,0)),
+    record(viewer="Result Plotter",udi="/node/JA:2:edge:11",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
+  ])
 ]);
 
 
@@ -174,9 +180,10 @@ def create_refparms (refnode):
   global _verifier;  # holding global ref to it ensures that it is not cleaned up as an orpan node
   _verifier = refnode.scope.verifier;
   if not _verifier.initialized():
-    _verifier << Meq.DataCollect(cache_policy=100);
+    _verifier << Meq.VisDataMux(pre=\
+      refnode.scope.vdc << Meq.DataCollect(cache_policy=100));
   # add to its children
-  _verifier.add_children(d);
+  refnode.scope.vdc.add_children(d);
 
 
 def forest_source_subtrees(ns, source):
@@ -235,13 +242,13 @@ def forest_station_patch_jones(ns, station, patch_name, mep_table_name):
                 gain_polc  = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
                 phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
             else:
-                gain_polc  = create_polc_ft(degree_f=1, degree_t=2, c00=1.0)
+                gain_polc  = create_polc_ft(degree_f=1, degree_t=0, c00=1.0)
                 phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
                 pass
             ja = ns.JA(station, patch_name, elem) << Meq.Parm(gain_polc,
                                                           table_name=mep_table_name,
                                                           node_groups='Parm',
-                                                          tiling=record(time=100))
+                                                          tiling=record(time=1))
             jp = ns.JP(station, patch_name, elem) << Meq.Parm(phase_polc,
                                                           table_name=mep_table_name,
                                                           node_groups='Parm',
@@ -464,8 +471,9 @@ def forest_solver(ns, interferometer_list, station_list, patch_list, input_colum
 
 
 def forest_create_sink_sequence(ns, interferometer_list, output_column='PREDICT'):
+    ns.VisDataMux << Meq.VisDataMux;
     for (ant1, ant2) in interferometer_list:
-        ns.ROOT << ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1-1,
+        ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1-1,
                                        station_2_index=ant2-1,
                                        flag_bit=4,
                                        corr_index=[0,1,2,3],
@@ -477,6 +485,8 @@ def forest_create_sink_sequence(ns, interferometer_list, output_column='PREDICT'
                                        )
         pass
     pass
+    ns.VisDataMux.add_children(*[ns.sink(ant1,ant2) for (ant1, ant2) in interferometer_list]);
+    ns.VisDataMux.add_stepchildren(*[ns.spigot(ant1,ant2) for (ant1, ant2) in interferometer_list]);
 
 
 
@@ -605,12 +615,20 @@ def _tdl_job_8_evaluate_parms_over_reference_domain (mqs,parent):
   """Executes the 'verifier' node over the saved reference domain.
 Assuming this is successful, you may examine the children of the verifier
 node to compare past and current solutions.""";
-  if _reference_cells is None:
-    raise RuntimeError,"""Reference domain not loaded, please run a source
-flux fit and save the domain.""";
-  req = meq.request(_reference_cells,rqtype='ev');
-  mqs.clearcache('solver');
-  mqs.execute('verifier',req,wait=False);
+  #if _reference_cells is None:
+  #  raise RuntimeError,"""Reference domain not loaded, please run a source
+  #flux fit and save the domain.""";
+  #req = meq.request(_reference_cells,rqtype='ev');
+  #mqs.clearcache('solver');
+  #mqs.execute('verifier',req,wait=False);
+  msname   = '3C343.MS'
+  inputrec = create_inputrec(msname,tile_size=1500)
+  req = meq.request();
+  req.input  = inputrec;
+  mqs.clearcache('verifier');
+  mqs.clearcache('VisDataMux');
+  mqs.execute('verifier',req,wait=(parent is None));
+  pass
 
 def _tdl_job_9_clear_all_node_caches (mqs,parent):
   """Clears all caches in the tree""";
@@ -704,17 +722,9 @@ def _tdl_job_2_phase_solution_with_given_fluxes_all(mqs,parent,write=True):
     pass
 
 
-
-
-
-
-
-
-
-
 #   GAINS     GAINS      GAINS    
 
-def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
+def _tdl_job_3_gain_solution_with_given_fluxes(mqs, parent,write=True):
     msname          = '3C343.MS'
     inputrec        = create_inputrec(msname, tile_size=100)
     outputrec       = create_outputrec()
@@ -734,17 +744,23 @@ def _tdl_job_gain_solution_with_given_fluxes(mqs, parent):
         pass
     print solvables
     
-    publish_node_state(mqs, 'JA:9:centre:11')
+    publish_node_state(mqs, 'JA:2:centre:11')
+    publish_node_state(mqs, 'JA:2:edge:11')
     publish_node_state(mqs, 'solver')
+    publish_node_state(mqs, 'corrected:2:11')
     
     solver_defaults = create_solver_defaults(solvable=solvables)
     print solver_defaults
     set_MAB_node_state(mqs, 'solver', solver_defaults)
     
     req = meq.request();
-    req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
-    req.output = record(ms=outputrec);
-    mqs.execute('VisDataMux',req,wait=False);
+    req.input  = inputrec;
+    # req.input.max_tiles = 1;  # this can be used to shorten the processing, for testing
+    if write:
+      req.output = outputrec;
+    mqs.clearcache('verifier');
+    mqs.clearcache('VisDataMux');
+    mqs.execute('VisDataMux',req,wait=(parent is None));
     pass
 
 
