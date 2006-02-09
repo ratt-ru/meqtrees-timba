@@ -72,10 +72,29 @@ from Timba.Trees import JEN_inargGui
 # Intialise the MG control record with some overall arguments 
 #----------------------------------------------------------------------------------------------------
 
+def _description():
+    """
+    Description of the input argument record: MG_JEN_lsm_attach.inarg
+    (to be used with the MeqTree TDL stript MG_JEN_lsm_attach.py) 
+    
+    ....
+
+    --------------------------------------------------------------------------
+    General description of the MeqTree TDL script MG_JEN_lsm_attach.py:
+
+
+
+    --------------------------------------------------------------------------
+    Brief descriptions of the various sub-modules:
+
+    """
+    return True
+
+
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
 
-MG = JEN_inarg.init('MG_JEN_lsm_attach')
+MG = JEN_inarg.init('MG_JEN_cps', description=_description.__doc__)
 
 # To be copied to other scipts:
 JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
@@ -93,62 +112,44 @@ MG_JEN_Joneset.inarg_uvplane_effect(MG)
 # Interaction with the MS: spigots, sinks and stream control
 #----------------------------------------------------------------------------------------------------
 
-#=======
-if True:                                               # ... Copied from MG_JEN_Cohset.py ...
-   inarg = MG_JEN_exec.stream_control(_getdefaults=True, slave=True)
-   JEN_inarg.modify(inarg,
-                    tile_size=10,
-                    _JEN_inarg_option=None)     
-   JEN_inarg.attach(MG, inarg)
+
+inarg = MG_JEN_exec.stream_control(_getdefaults=True, slave=True)
+JEN_inarg.modify(inarg,
+                 tile_size=1,
+                 _JEN_inarg_option=None)     
+JEN_inarg.attach(MG, inarg)
 
 
-   inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
-   JEN_inarg.modify(inarg,
-                    _JEN_inarg_option=None)         
-   JEN_inarg.attach(MG, inarg)
-                 
+inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
+JEN_inarg.modify(inarg,
+                 _JEN_inarg_option=None)         
+JEN_inarg.attach(MG, inarg)
 
-   inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
-   JEN_inarg.modify(inarg,
-                    _JEN_inarg_option=None)          
-   JEN_inarg.attach(MG, inarg)
-                 
+
 
 #----------------------------------------------------------------------------------
 
-   # Specify the name qualifier for (the inarg records of) this 'predict and solve' group.
-   # NB: The same qualifier should be used when using the functions in _define_forest()
-   qual = None
-   # qual = 'qual1'
-
-   # Specify the sequence of zero or more (corrupting) Jones matrices:
-   Jsequence = ['KJones'] 
-   # Jsequence = ['GJones'] 
    
-   inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, slave=True) 
-   JEN_inarg.modify(inarg,
-                    Jsequence=Jsequence,                   # Sequence of corrupting Jones matrices 
-                    _JEN_inarg_option=None)          
-   # Insert non-default Jones matrix arguments here: 
-   if 'GJones' in Jsequence: 
-       JEN_inarg.modify(inarg,
-                        fdeg_Ggain=3,                      # degree of default freq polynomial         
-                        fdeg_Gphase='fdeg_Ggain',          # degree of default freq polynomial          
-                        tdeg_Ggain=1,                      # degree of default time polynomial         
-                        tdeg_Gphase='tdeg_Ggain',          # degree of default time polynomial       
-                        subtile_size_Ggain=0,                 # used in tiled solutions         
-                        subtile_size_Gphase='subtile_size_Ggain', # used in tiled solutions         
-                        _JEN_inarg_option=None)     
-   JEN_inarg.attach(MG, inarg)
+inarg = MG_JEN_Cohset.JJones(_getdefaults=True, slave=True) 
+JEN_inarg.modify(inarg,
+                 Jsequence=['KJones'],   
+                 _JEN_inarg_option=None)          
+JEN_inarg.attach(MG, inarg)
 
 
-   inarg = MG_JEN_Cohset.predict(_getdefaults=True, _qual=qual, slave=True)  
-   JEN_inarg.modify(inarg,
-                    _JEN_inarg_option=None)   
-   JEN_inarg.attach(MG, inarg)
+inarg = MG_JEN_Cohset.predict(_getdefaults=True, slave=True)  
+JEN_inarg.modify(inarg,
+                 _JEN_inarg_option=None)   
+JEN_inarg.attach(MG, inarg)
 
 
+#-------------------------------------------------------------------------
 
+inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
+JEN_inarg.modify(inarg,
+                 _JEN_inarg_option=None)          
+JEN_inarg.attach(MG, inarg)
+   
 
 #-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
@@ -200,6 +201,7 @@ def _define_forest (ns, **kwargs):
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)  
 
+
    # Load the specified lsm into the global lsm object:
    global lsm
    lsm.load(MG['LSM'], ns) 
@@ -215,6 +217,10 @@ def _define_forest (ns, **kwargs):
    MG_JEN_Cohset.make_spigots(ns, Cohset, _inarg=MG)
    # Cohset.display('before')
    
+   # Get the two-pack (nodes) for the position of the phase-centre:
+   radec0 = MG_JEN_Cohset.MSauxinfo().radec0()
+   print radec0
+
    # Obtain the Sixpacks of the brightest punits.
    # Turn the point-sources in Cohsets with DFT KJonesets
    plist = lsm.queryLSM(count=2)

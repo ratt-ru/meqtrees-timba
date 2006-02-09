@@ -48,7 +48,7 @@ Introduction
 
 \begin_inset Float figure
 wide false
-collapsed true
+collapsed false
 
 \layout Standard
 \align center 
@@ -408,13 +408,13 @@ Documentation (all)
 
 \begin_inset Float figure
 wide false
-collapsed true
+collapsed false
 
 \layout Standard
 \align center 
 
 \begin_inset Graphics
-	filename /dop12_0/noordam/LOFAR10/Timba/doc/JEN/cdr_nov2005/lsm_blob.eps
+	filename lsm_blob.eps
 	width 90col%
 
 \end_inset 

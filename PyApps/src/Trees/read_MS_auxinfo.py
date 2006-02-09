@@ -13,6 +13,8 @@
 # Derived from OMS: ../Timba/MeqServer/test/read_msvis_header.py
 # To be turned into a WSRT-specific version: read_WSRT_auxinfo.py
 
+from Timba.TDL import *
+# from Timba.Meq import meq                     # required in MG_JEN_exec !!
 
 from Timba.meqkernel import set_state
 from Timba.Trees import TDL_radio_conventions
@@ -23,6 +25,10 @@ def process_vis_header (hdr):
 
   trace = True
   if trace: print '\n** process_vis_header():'
+
+  # Attach the header record ot the forest state record:
+  # NB: This does not work, because this function is called too late...
+  ## Settings.forest_state.vis_header = hdr
 
   # phase center
   (ra0,dec0) = hdr.phase_ref;

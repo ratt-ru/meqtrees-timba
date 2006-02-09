@@ -118,23 +118,18 @@ class ArgBrowser(QMainWindow):
         menu.insertItem('close', self.closeGui)
         self.__menubar.insertItem('File', menu)
 
+
         menu = QPopupMenu(self)
         menu.insertItem('revert_to_input', self.revert_inarg)
         menu.insertSeparator()     
         menu.insertItem('refresh', self.refresh)
         menu.insertSeparator()     
-        menu.insertItem('description', self.editDescription)
+        menu.insertItem('spec.descr', self.editDescription)
         menu.insertSeparator()     
         menu.insertItem('upgrade', self.upgrade_from_ref)
         menu.insertItem('upgrade...', self.upgrade_from_other)
-        menu.insertSeparator()     
-        menu.insertItem('-> per_timeslot', self.per_timeslot)
-        menu.insertItem('-> cps_GJones', self.cps_GJones)
-        menu.insertItem('-> cps_GDJones', self.cps_GDJones)
-        menu.insertItem('-> cps_GBJones', self.cps_GBJones)
-        menu.insertItem('-> cps_inspect', self.cps_inspect)
-        menu.insertItem('-> cps_all(protected)', self.cps_all)
         self.__menubar.insertItem('Edit', menu)
+
 
         menu = QPopupMenu(self)
         menu.insertItem('essence', self.essence)
@@ -149,6 +144,22 @@ class ArgBrowser(QMainWindow):
         self.__item_unhide = menu.insertItem('unhide', self.unhide)
         self.__item_show_CTRL = menu.insertItem('show CTRL', self.show_CTRL)
         self.__menubar.insertItem('View', menu)
+
+
+        menu = QPopupMenu(self)
+        menu.insertSeparator()     
+        menu.insertItem('-> per_timeslot', self.per_timeslot)
+        menu.insertItem('-> cps_inspect', self.cps_inspect)
+        menu.insertSeparator()     
+        menu.insertItem('-> cps_GJones', self.cps_GJones)
+        menu.insertItem('-> cps_Gphase', self.cps_Gphase)
+        menu.insertItem('-> cps_Ggain', self.cps_Ggain)
+        menu.insertItem('-> cps_GDJones', self.cps_GDJones)
+        menu.insertItem('-> cps_GBJones', self.cps_GBJones)
+        menu.insertSeparator()     
+        menu.insertItem('-> cps_all(protected)', self.cps_all)
+        self.__menubar.insertItem('convert', menu)
+
 
         menu = QPopupMenu(self)
         menu.insertItem('inarg_OK?', self.test_OK)
@@ -168,6 +179,7 @@ class ArgBrowser(QMainWindow):
         menu.insertItem('assay_record', self.assay_record)
         menu.insertSeparator()     
         self.__menubar.insertItem('Test', menu)
+
 
         menu = QPopupMenu(self)
         self.__menubar.insertSeparator()
@@ -498,7 +510,7 @@ class ArgBrowser(QMainWindow):
     def essence(self):
         """Show a summary of the (specified) essence of the current inarg"""
         match = ['ms_','_col','lsm','parm','pol','uvplane','stations',
-                 'flag','corr','subtr','rmin','rmax',
+                 'flag','corr','subtr','rmin','rmax','cond',
                  'sequ','solve','condit','deg_','tile']
         exclude = []
         ss = JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
@@ -534,104 +546,6 @@ class ArgBrowser(QMainWindow):
         ss = JEN_inarg.upgrade(self.__inarg, self.__other)
         return self.tw(ss)
 
-
-    #------------------------------------------------------------------------------------
-    # MG_JEN_cps specific modes:
-    #------------------------------------------------------------------------------------
-
-    def per_timeslot(self):
-        """Modify the inarg for (temporary) per_timeslot operation"""
-        JEN_inarg.modify(self.__inarg,
-                         epsilon=1e-4,
-                         num_iter=20,
-                         tile_size=1,
-                         tdeg_Ggain=0,
-                         tdeg_dang=0,
-                         tdeg_RM=0,
-                         tdeg_Breal=0,
-                         subtile_size_Ggain=None,
-                         subtile_size_dang=None,
-                         subtile_size_RM=None,
-                         subtile_size_Breal=None,
-                         _JEN_inarg_option=None)     
-        self.refresh()
-        self.__message.setText('** modified inarg for per_timeslot operation')
-        return True
-
-
-    def cps_all(self):
-        """Modify the MG_JEN_cps inarg to multiple inarg files"""
-        self.revert_inarg()
-        self.cps_GJones(save_protected=True)
-        self.revert_inarg()
-        self.cps_GDJones(save_protected=True)
-        self.revert_inarg()
-        self.cps_GBJones(save_protected=True)
-        self.revert_inarg()
-        self.cps_inspect(save_protected=True)
-        self.__message.setText('** modified all MG_JEN_cps inargs (protected)')
-        return True
-
-    def cps_GJones(self, save_protected=False):
-        """Modify MG_JEN_cps inarg for GJones operation"""
-        JEN_inarg.modify(self.__inarg,
-                         Jsequence=['GJones'],
-                         solvegroup=['GJones'],
-                         _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_GJones')
-        print '** save_protected =',save_protected
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for GJones')
-        return True
-
-    def cps_GDJones(self, save_protected=False):
-        """Modify MG_JEN_cps inarg for GDJones operation"""
-        JEN_inarg.modify(self.__inarg,
-                         punit='QU',
-                         Jsequence=['GJones','DJones_WSRT'],
-                         solvegroup=['GJones','DJones'],
-                         _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_GDJones')
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for GDJones')
-        return True
-
-    def cps_GBJones(self, save_protected=False):
-        """Modify MG_JEN_cps inarg for GBJones operation"""
-        JEN_inarg.modify(self.__inarg,
-                         Jsequence=['GJones','BJones'],
-                         solvegroup=['GJones','BJones'],
-                         tdeg_Ggain=3,
-                         tdeg_Breal=2,
-                         fdeg_Ggain=0,
-                         fdeg_Breal=5,
-                         _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_GBJones')
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for GBJones')
-        return True
-
-    def cps_inspect(self, save_protected=False):
-        """Modify MG_JEN_cps inarg for inspect operation(s)"""
-        JEN_inarg.modify(self.__inarg,
-                         insert_solver=False,
-                         tile_size=1,
-                         _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_inspect')
-        if save_protected==True: self.save_as_protected()
-        #......................................................
-        JEN_inarg.modify(self.__inarg,
-                         data_column_name='CORRECTED_DATA',
-                         _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_inspect_CORRECTED_DATA')
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for inspect(s)')
-        return True
 
 
     #------------------------------------------------------------------------------------
@@ -1269,6 +1183,140 @@ class ArgBrowser(QMainWindow):
 
 
 
+
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    # MG_JEN_cps specific conversion modes (move to separate script):
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+
+    def per_timeslot(self):
+        """Modify the inarg for (temporary) per_timeslot operation"""
+        JEN_inarg.modify(self.__inarg,
+                         epsilon=1e-4,
+                         num_iter=20,
+                         tile_size=1,
+                         tdeg_Ggain=0,
+                         tdeg_dang=0,
+                         tdeg_RM=0,
+                         tdeg_Breal=0,
+                         subtile_size_Ggain=None,
+                         subtile_size_dang=None,
+                         subtile_size_RM=None,
+                         subtile_size_Breal=None,
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.__message.setText('** modified inarg for per_timeslot operation')
+        return True
+
+
+    def cps_all(self):
+        """Modify the MG_JEN_cps inarg to multiple inarg files"""
+        self.revert_inarg()
+        self.cps_inspect(revert=True, save_protected=True)
+        self.cps_GJones(revert=True, save_protected=True)
+        self.cps_Gphase(revert=True, save_protected=True)
+        self.cps_Ggain(revert=True, save_protected=True)
+        self.cps_GDJones(revert=True, save_protected=True)
+        self.cps_GBJones(revert=True, save_protected=True)
+        self.__message.setText('** modified all MG_JEN_cps inargs (protected)')
+        return True
+
+    def cps_GJones(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for GJones operation"""
+        if revert==True: self.revert_inarg()
+        JEN_inarg.modify(self.__inarg,
+                         Jsequence=['GJones'],
+                         solvegroup=['GJones'],
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.save_inarg('MG_JEN_cps_GJones')
+        print '** save_protected =',save_protected
+        if save_protected==True: self.save_as_protected()
+        self.__message.setText('** modified MG_JEN_cps inarg for GJones')
+        return True
+
+    def cps_Gphase(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for Gphase operation"""
+        if revert==True: self.revert_inarg()
+        JEN_inarg.modify(self.__inarg,
+                         Jsequence=['GJones'],
+                         solvegroup=['Gphase'],
+                         condeq_unop='Arg',
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.save_inarg('MG_JEN_cps_Gphase')
+        print '** save_protected =',save_protected
+        if save_protected==True: self.save_as_protected()
+        self.__message.setText('** modified MG_JEN_cps inarg for Gphase')
+        return True
+
+    def cps_Ggain(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for Ggain operation"""
+        if revert==True: self.revert_inarg()
+        JEN_inarg.modify(self.__inarg,
+                         Jsequence=['GJones'],
+                         solvegroup=['Ggain'],
+                         condeq_unop='Abs',
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.save_inarg('MG_JEN_cps_Ggain')
+        print '** save_protected =',save_protected
+        if save_protected==True: self.save_as_protected()
+        self.__message.setText('** modified MG_JEN_cps inarg for Ggain')
+        return True
+
+    def cps_GDJones(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for GDJones operation"""
+        if revert==True: self.revert_inarg()
+        JEN_inarg.modify(self.__inarg,
+                         punit='QU',
+                         Jsequence=['GJones','DJones_WSRT'],
+                         solvegroup=['GJones','DJones'],
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.save_inarg('MG_JEN_cps_GDJones')
+        if save_protected==True: self.save_as_protected()
+        self.__message.setText('** modified MG_JEN_cps inarg for GDJones')
+        return True
+
+    def cps_GBJones(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for GBJones operation"""
+        if revert==True: self.revert_inarg()
+        JEN_inarg.modify(self.__inarg,
+                         Jsequence=['GJones','BJones'],
+                         solvegroup=['GJones','BJones'],
+                         tdeg_Ggain=3,
+                         tdeg_Breal=2,
+                         fdeg_Ggain=0,
+                         fdeg_Breal=5,
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.save_inarg('MG_JEN_cps_GBJones')
+        if save_protected==True: self.save_as_protected()
+        self.__message.setText('** modified MG_JEN_cps inarg for GBJones')
+        return True
+
+    def cps_inspect(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for inspect operation(s)"""
+        if revert==True: self.revert_inarg()
+        JEN_inarg.modify(self.__inarg,
+                         insert_solver=False,
+                         tile_size=1,
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.save_inarg('MG_JEN_cps_inspect')
+        if save_protected==True: self.save_as_protected()
+        #......................................................
+        JEN_inarg.modify(self.__inarg,
+                         data_column_name='CORRECTED_DATA',
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.save_inarg('MG_JEN_cps_inspect_CORRECTED_DATA')
+        if save_protected==True: self.save_as_protected()
+        self.__message.setText('** modified MG_JEN_cps inarg for inspect(s)')
+        return True
 
 
 

@@ -220,7 +220,14 @@ def inarg_solvegroup (pp, **kwargs):
 #--------------------------------------------------------------------------------
 
 def GJones (ns=None, Sixpack=None, slave=False, **inarg):
-    """defines diagonal GJones matrices for complex(Ggain,Gphase) parms""";
+    """Defines diagonal 2x2 Jones matrices that represent complex gain:
+    Gjones(station,source) matrix elements:
+    - G_11 = Ggain_X*exp(iGphase_X)
+    - G_12 = 0
+    - G_21 = 0
+    - G_22 = Ggain_Y*exp(iGphase_Y)
+    For circular polarisation, R and L are used rather than X and Y
+    """
 
     jones = 'GJones'
 
@@ -436,7 +443,7 @@ def BJones (ns=0, Sixpack=None, slave=False, **inarg):
     NB: The main differences with Gjones are:
       - the higher-order (~5) freq-polynomial
       - solving for real/imag rather than gain/phase 
-    """;
+    """
 
     jones = 'BJones'
 
@@ -1254,8 +1261,8 @@ if __name__ == '__main__':
      display_first_subtree (js, full=True)
 
   if 0:
-     inarg = FJones (_getdefaults=True)
-     # inarg = GJones (_getdefaults=True)
+     # inarg = FJones (_getdefaults=True)
+     inarg = GJones (_getdefaults=True)
      # inarg = BJones (_getdefaults=True)
      # inarg = DJones_WSRT (_getdefaults=True)
      from Timba.Trees import JEN_inargGui
@@ -1278,7 +1285,8 @@ if __name__ == '__main__':
   if 1:
      js = GJones (ns, stations=stations)
      js.display(full=True)     
-     display_first_subtree (js, full=1)
+     js.Parmset.display(full=True)     
+     # display_first_subtree (js, full=1)
 
   if 0:
      js = GJones (ns, stations=stations)

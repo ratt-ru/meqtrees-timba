@@ -40,6 +40,7 @@ from Timba.Trees import JEN_inarg
 from Timba.Trees import JEN_inargGui
 from Timba.Trees import TDL_Cohset
 from Timba.Trees import TDL_Joneset
+from Timba.Trees import TDL_Leaf
 from Timba.Trees import TDL_MSauxinfo
 # from Timba.Trees import TDL_Sixpack
 
@@ -49,7 +50,7 @@ from Timba.Contrib.JEN import MG_JEN_Sixpack
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 
-from Timba.Contrib.JEN import MG_JEN_twig
+# from Timba.Contrib.JEN import MG_JEN_twig
 from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN import MG_JEN_historyCollect
 from Timba.Contrib.JEN import MG_JEN_flagger
@@ -166,6 +167,12 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         insert_flagger (ns, Cohset, scope='sinks',
                         unop=['Real','Imag'], visu=False)
 
+    # Make an extra VisDataMux for post-visualisation of the full domain:
+    # NB: Do this BEFORE Cohset.sinks....
+    if pp['fullDomainMux']:
+        post = [TDL_Leaf.MeqFreqTime(ns, zero_mean=True)]        
+        Cohset.fullDomainMux(ns, post=post)
+
     # Optional: visualise the sink (output) data:
     # But only if there are no dcoll/hcoll nodes to be inserted
     # (assume that the latter visualise the current status...?)
@@ -192,11 +199,6 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     Cohset.sinks(ns, start=start, post=post, output_col=pp['output_col'])
     sinks = Cohset.cohs()
 
-    # Add an extra VisDataMux for post-visualisation of the full domain:
-    if pp['fullDomainMux']:
-        post = [(ns.dummyFullDomainMux << 0.123456789)]
-        Cohset.fullDomainMux(ns, post=post)
-    
     # Append the final Cohset to the forest state object:
     # MG_JEN_forest_state.object(Cohset, funcname)
     # MG_JEN_forest_state.object(Cohset.Parmset, funcname)
@@ -359,7 +361,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     inarg_redun(pp, slave=slave)
     inarg_resample(pp, slave=slave)
     inarg_solver_config (pp, slave=True)
-    JEN_inarg.define(pp, 'unop', None, choice=[None,'Abs','Arg'],
+    JEN_inarg.define(pp, 'condeq_unop', None, choice=[None,'Abs','Arg'],
                      help='Optional unary operation on Condeq inputs')
     JEN_inarg.define(pp, 'visu', tf=True,
                      help='if True, include full visualisation')
@@ -392,10 +394,10 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     # Make condeq nodes in Mohset:
     if pp['redun']:                              # redundant-spacing calibration
         Mohset.correct(ns, predicted.Joneset())  # correct BOTH sides of the condeq                 
-        Mohset.Condeq_redun(ns)                  # special version of .Condeq()                        
+        Mohset.Condeq_redun(ns, unop=pp['condeq_unop'])   # special version of .Condeq()                        
         pp['subtract'] = False                   # .....??
     else:                                        # normal: measured-predicted
-        Mohset.Condeq(ns, predicted)        
+        Mohset.Condeq(ns, predicted, unop=pp['condeq_unop'])        
     Mohset.scope('condeq_'+punit)
     Mohset.history(funcname+' -> '+Mohset.oneliner())
 

@@ -56,7 +56,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 1.0: 1 March 2005} % Date of Issue (
+theDOIssue}{Version 1.0: 10 January 2006} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -442,13 +442,15 @@ changeList} {Creation
 \backslash 
 renewcommand{
 \backslash 
-theTitle} {A minimum ionospherical model
+theTitle} {TDL
+\backslash 
+_Cohset: Generating MeqTrees for
 \backslash 
 
 \backslash 
 
 \layout Standard
-                          for low-frequency data reduction
+                         radio aperture synthesis data reduction
 \backslash 
 
 \backslash 
@@ -518,7 +520,7 @@ vspace{2.0cm}
 \end_inset 
 
 
-\layout Standard
+\layout Abstract
 
 MeqTrees may be used to implement an arbitrary Measurement Equation (M.E.),
  and to solve for its parameters.
@@ -553,7 +555,7 @@ collapsed false
 
 \begin_inset Graphics
 	filename MeqTree_blob_diagram.eps
-	width 90col%
+	width 70col%
 
 \end_inset 
 

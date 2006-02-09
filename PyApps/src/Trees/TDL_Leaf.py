@@ -71,6 +71,14 @@ def apply_unop(ns, unop=None, node=None):
         node = ns << getattr(Meq,unop1)(node)
     return node
 
+def subtract_mean(ns, node=None):
+    """Helper function to subtract the mean from the result"""
+    mean = ns << Meq.Mean(node)
+    node = ns << Meq.Subtract(node, mean)
+    return node
+
+#-----------------------------------------------------------------------------
+
 def MeqFreq(ns, name='MeqFreq', unop=None):
     uniqual = _counter (name, increment=True)
     node = ns[name](uniqual) << Meq.Freq()
@@ -100,12 +108,13 @@ def MeqFreqTimeComplex(ns, name='MeqFreqTime', unop=None):
 def MeqTimeFreqComplex(ns, name='MeqTimeFreq', unop=None):
     return MeqTimeFreq(ns, combine='ToComplex', name=name)
 
-def MeqFreqTime(ns, combine='Add', name='MeqFreqTime', unop=None):
+def MeqFreqTime(ns, combine='Add', name='MeqFreqTime', zero_mean=False, unop=None):
     name += '_'+combine                         # -> MeqFreqTime_Add
     uniqual = _counter (name, increment=True)
     freq = MeqFreq(ns)
     time = MeqTime(ns)
     node = ns[name](uniqual) << getattr(Meq,combine)(children=[freq, time])
+    if zero_mean: node = subtract_mean(ns, node)
     return apply_unop(ns, unop, node)
 
 def MeqTimeFreq(ns, combine='Add', name='MeqTimeFreq', unop=None):

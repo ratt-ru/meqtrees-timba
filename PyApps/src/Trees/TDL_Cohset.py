@@ -26,6 +26,7 @@
 #    - 03 jan 2006: introduced .chain_solvers() function
 #    - 04 jan 2006: cleanup(): collection of orphans to avoid browser clutter
 #    - 11 feb 2006: add unop argument to .Condeq() and .Condeq_redun()
+#    - 11 feb 2006: added .fullDomainMux()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -1297,8 +1298,8 @@ class Cohset (TDL_common.Super):
         # print 'pp[post] =',type(pp['post'])
 
         # Mapping to MS correlations (see self.spigots() above)
-        # MS_corr_index = [0,1,2,3]                        # default
-        MS_corr_index = self.MS_corr_index()                  # defined in self.spigots()
+        # MS_corr_index = [0,1,2,3]                     # default
+        MS_corr_index = self.MS_corr_index()            # defined in self.spigots()
 
         # Make separate sinks for each ifr:
         for key in self.keys():
@@ -1338,7 +1339,6 @@ class Cohset (TDL_common.Super):
                                                    pre=pp['pre'],
                                                    post=pp['post'])
 
-        
         # Bookkeeping:
         self.cleanup(ns)
         self.scope('sink')
@@ -1347,6 +1347,7 @@ class Cohset (TDL_common.Super):
         self.history(append=funcname+' -> '+self.oneliner())
         return True
 
+#------------------------------------------------------------------------------------
 
     def cleanup(self, ns=None):
         """Clean up the current Cohset"""
@@ -1359,6 +1360,47 @@ class Cohset (TDL_common.Super):
                 root_node = ns[key](uniqual) << Meq.Composer(children=orphans)
                 print '   ->',root_node
         return True
+
+
+#------------------------------------------------------------------------------------
+
+    def fullDomainMux (self, ns, **pp):
+        """Optionally, create another VisDataMux with a fixed name (fullDomainMux),
+        to issue a request with a large domain to selected nodes.
+        For instance: solved MeqParms for the entire observation.
+        """
+        funcname = '::fullDomainMux():'
+
+        # Input arguments:
+        pp.setdefault('start', None)                    # optional child of MeqVisDataMux
+        pp.setdefault('pre', None)                      # optional child of MeqVisDataMux
+        pp.setdefault('post', None)                     # optional child of MeqVisDataMux
+
+        if True:
+            for key in ['start','pre','post']:
+                if isinstance(pp[key], (list,tuple)):
+                    print '-',key,':',type(pp[key]),len(pp[key])
+                    for node in pp[key]:
+                        print '  -',node
+                    if len(pp[key])==0:
+                        pp[key] = None                  # empty list gives an error....!
+                    else:
+                        pp[key] = ns[key+'_fullDomainMux'] << Meq.ReqMux(children=pp[key]) 
+                    print '-',key,':',pp[key]
+                print '-',key,':',pp[key]
+            root = ns.fullDomainMux << Meq.VisDataMux(start=pp['start'],
+                                                      pre=pp['pre'],
+                                                      post=pp['post'])
+
+        # Bookkeeping:
+        self.scope('fullDomainMux')
+        self.history(append=funcname+' inarg = '+str(pp))
+        self.history(append=funcname+' -> '+self.oneliner())
+        return True
+
+
+        
+
 
 #------------------------------------------------------------------------------------
 

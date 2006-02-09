@@ -368,6 +368,10 @@ def newstar_source (ns=0, **pp):
    pp.setdefault('pa', 0.0)            # position angle (rad), elliptic gaussian
    pp.setdefault('RA', 0.0)            # Right Ascension (rad, J2000)
    pp.setdefault('Dec', 1.0)           # Declination (rad, J2000)
+   pp.setdefault('RA0', None)          # Phase-centre Right Ascension (rad, J2000)
+   pp.setdefault('Dec0', None)         # Phase-centre Declination (rad, J2000)
+   pp.setdefault('dRA', 0.0)           # Delta Right Ascension (rad, J2000)
+   pp.setdefault('dDec', 0.0)          # Delta Declination (rad, J2000)
    pp.setdefault('fsr_trace', True)    # if True, attach to forest state record
   
    # Adjust parameters pp for some special cases:
@@ -480,8 +484,17 @@ def newstar_source (ns=0, **pp):
 
    # Source coordinates (RA, DEC)
    radec = {}
-   radec[n6.R] = pset.define_MeqParm (ns, n6.R, parmgroup=pg_radec, default=pp['RA'])  
-   radec[n6.D] = pset.define_MeqParm (ns, n6.D, parmgroup=pg_radec, default=pp['Dec'])  
+   if pp['RA0']:
+      # Special case: Source position specified as node (RA0) with offset (dRA):
+      radec[n6.R] = ns[n6.R] << Meq.Add(pp['RA0'],pp['dRA'])  
+   else:
+      radec[n6.R] = pset.define_MeqParm (ns, n6.R, parmgroup=pg_radec, default=pp['RA'])  
+
+   if pp['Dec0']:
+      # Special case: Source position specified as node (Dec0) with offset (dDec):
+      radec[n6.D] = ns[n6.D] << Meq.Add(pp['Dec0'],pp['dDec'])  
+   else:
+      radec[n6.D] = pset.define_MeqParm (ns, n6.D, parmgroup=pg_radec, default=pp['Dec'])  
 
    # Finished: Fill the Sixpack and return it:
    Sixpack.stokesI(iquv[n6.I])
