@@ -426,13 +426,14 @@ def FJones (ns=0, Sixpack=None, slave=False, **inarg):
 #--------------------------------------------------------------------------------
 
 def BJones (ns=0, Sixpack=None, slave=False, **inarg):
-    """Defines diagonal 2x2 Jones matrices that model the bandpass:
-
-    Bjones(station,source) = (Breal_X,Bimag_X)   0
-                             0   (Breal_Y,Bimag_Y)
-
+    """Defines diagonal 2x2 Jones matrices that represent the IF bandpass:
+    Bjones(station,source) matrix elements:
+    - B_11 = (Breal_X,Bimag_X)
+    - B_12 = 0
+    - B_21 = 0
+    - B_22 = (Breal_Y,Bimag_Y)
     For circular polarisation, R and L are used rather than X and Y
-    The differences with Gjones are:
+    NB: The main differences with Gjones are:
       - the higher-order (~5) freq-polynomial
       - solving for real/imag rather than gain/phase 
     """;
