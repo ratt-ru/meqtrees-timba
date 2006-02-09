@@ -374,6 +374,28 @@ def importable_example(ns=None, **pp):
 # Execute the tree under (MS) stream_control:
 #================================================================================
 
+def fullDomainMux (mqs, parent, ctrl=None):
+   """Execute the fullDomainMux with a large domain"""
+
+   from Timba.Meq import meq
+
+   # Make a minimum request:
+   ss = stream_control (_inarg=ctrl)
+   ss.inputrec.tile_size = 1000
+   ss.outputrec.predict_column = 'MODEL_DATA'         # Fucks up the MS?
+   req = meq.request()
+   req.input = record(ms=ss.inputrec)
+   req.output = record(ms=ss.outputrec)
+
+   if True:
+      print '\n** MG_JEN_exec.fullDomainMux(): disabled **\n'
+   else:
+      mqs.execute('fullDomainMux', req, wait=False)
+   return True
+
+
+#----------------------------------------------------------------------------
+
 def spigot2sink (mqs, parent, ctrl=None, **pp):
    """Execute the tree under MS stream_control()"""
 

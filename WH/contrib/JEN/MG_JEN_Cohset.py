@@ -142,6 +142,8 @@ def make_sinks(ns=None, Cohset=None, **inarg):
                       help='if True, visualise the output uv-data')
     JEN_inarg.define (pp, 'flag', tf=False,
                       help='if True, insert a flagger for the output uv-data')
+    JEN_inarg.define (pp, 'fullDomainMux', tf=True,
+                      help='if True, attach an extra VisDataMux')
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
@@ -189,6 +191,11 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     # Make MeqSinks
     Cohset.sinks(ns, start=start, post=post, output_col=pp['output_col'])
     sinks = Cohset.cohs()
+
+    # Add an extra VisDataMux for post-visualisation of the full domain:
+    if pp['fullDomainMux']:
+        post = [(ns.dummyFullDomainMux << 0.123456789)]
+        Cohset.fullDomainMux(ns, post=post)
     
     # Append the final Cohset to the forest state object:
     # MG_JEN_forest_state.object(Cohset, funcname)

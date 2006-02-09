@@ -10,6 +10,22 @@ NB: Even though this document is checked in, it is just a compilation
 
 ==================================================================
 
+Some things to remember:
+
+ - Reconnecting the ASTRON network without rebooting:
+   Log in as root, and type:   dhclient eth2
+   (if it is running but does not do anything: kill dhclient
+
+ - log in somewhere els:
+   ssh ssh -X noordam@lofar9.nfra.nl
+
+ - Secure copy from other machines:
+   shc ....
+
+
+
+==================================================================
+
 detected bugs:
 
  - NB: Discuss new hcoll_metrics with WNB
