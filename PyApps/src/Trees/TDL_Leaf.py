@@ -71,59 +71,100 @@ def apply_unop(ns, unop=None, node=None):
         node = ns << getattr(Meq,unop1)(node)
     return node
 
-def subtract_mean(ns, node=None):
-    """Helper function to subtract the mean from the result"""
-    mean = ns << Meq.Mean(node)
-    node = ns << Meq.Subtract(node, mean)
+def shift_mean(ns, node=None, mean=0.0):
+    """Helper function to shift the mean to the given value"""
+    oldmean = ns << Meq.Mean(node)
+    node = ns << Meq.Subtract(node, oldmean)
+    if mean: node = ns << Meq.Add(node, mean)
+    return node
+
+def normalise(ns, node=None, interval=[0.0,1.0]):
+    """Helper function to normalise the node on the given range"""
+    if not isinstance(interval, (list, tuple)): return node
+    if not len(interval)==2: return node
+    vmin = ns << Meq.Min(node)
+    vmax = ns << Meq.Max(node)
+    dv = ns << Meq.Subtract(vmax,vmin)
+    node = ns << Meq.Subtract(node, vmin)
+    dr = interval[1] - interval[0]
+    factor = ns << Meq.Divide(dr, dv)
+    node = ns << Meq.Multiply(node, factor)
+    if interval[0]==0:
+        node = ns << Meq.Add(node, vmin)
+    else:
+        node = ns << Meq.Add(node, vmin, interval[0])
+    return node
+
+def post_process(ns, node=None, **pp):
+    """Helper function to post-process the given node"""
+    pp.setdefault('unop', None)
+    pp.setdefault('mean', None)
+    pp.setdefault('normalise', None)
+    if not pp['mean']==None:
+        node = shift_mean(ns, node, pp['mean'])
+    if pp['unop']:
+        node = apply_unop(ns, pp['unop'], node)
+    if pp['normalise']:
+        node = normalise(ns, node, pp['normalise'])
     return node
 
 #-----------------------------------------------------------------------------
 
-def MeqFreq(ns, name='MeqFreq', unop=None):
+def MeqFreq(ns, name='MeqFreq', **pp):
+    """Make a MeqFreq node with optional post-processing"""
     uniqual = _counter (name, increment=True)
     node = ns[name](uniqual) << Meq.Freq()
-    return apply_unop(ns, unop, node)
+    return post_process(ns, node, **pp)
 
-def MeqWavelength(ns, name='MeqWavelength', unop=None):
+def MeqWavelength(ns, name='MeqWavelength', **pp):
+    """Make a wavelength node with optional post-processing"""
     uniqual = _counter (name, increment=True)
     freq = MeqFreq(ns)                          # Hz
     node = ns[name](uniqual) << Meq.Divide(const_c_light(ns), freq)
-    return apply_unop(ns, unop, node)
+    return post_process(ns, node, **pp)
 
-def MeqInverseWavelength(ns, name='MeqInverseWavelength', unop=None):
+def MeqInverseWavelength(ns, name='MeqInverseWavelength', **pp):
+    """Make 1/wavelength node with optional post-processing"""
     uniqual = _counter (name, increment=True)
     freq = MeqFreq(ns)                          # Hz
     node = ns[name](uniqual) << Meq.Divide(freq, const_c_light(ns))
-    return apply_unop(ns, unop, node)
+    return post_process(ns, node, **pp)
 
-def MeqTime(ns, name='MeqTime', unop=None):
+def MeqTime(ns, name='MeqTime', **pp):
+    """Make a MeqTime node with optional post-processing"""
     uniqual = _counter (name, increment=True)
     node = ns[name](uniqual) << Meq.Time()
-    return apply_unop(ns, unop, node)
+    return post_process(ns, node, **pp)
 
-def MeqFreqTimeComplex(ns, name='MeqFreqTime', unop=None):
-    return MeqFreqTime(ns, combine='ToComplex', name=name)
-    return apply_unop(ns, unop, node)
+def MeqFreqTimeComplex(ns, name='MeqFreqTime', **pp):
+    """Make a complex node that depends on time and freq,
+    with optional post-processing"""
+    return MeqFreqTime(ns, combine='ToComplex', name=name, **pp)
 
-def MeqTimeFreqComplex(ns, name='MeqTimeFreq', unop=None):
-    return MeqTimeFreq(ns, combine='ToComplex', name=name)
+def MeqTimeFreqComplex(ns, name='MeqTimeFreq', **pp):
+    """Make a complex node that depends on freq and time,
+    with optional post-processing"""
+    return MeqTimeFreq(ns, combine='ToComplex', name=name, **pp)
 
-def MeqFreqTime(ns, combine='Add', name='MeqFreqTime', zero_mean=False, unop=None):
+def MeqFreqTime(ns, combine='Add', name='MeqFreqTime', **pp):
+    """Make a real node that depends on freq and time,
+    with optional post-processing"""
     name += '_'+combine                         # -> MeqFreqTime_Add
     uniqual = _counter (name, increment=True)
     freq = MeqFreq(ns)
     time = MeqTime(ns)
     node = ns[name](uniqual) << getattr(Meq,combine)(children=[freq, time])
-    if zero_mean: node = subtract_mean(ns, node)
-    return apply_unop(ns, unop, node)
+    return post_process(ns, node, **pp)
 
-def MeqTimeFreq(ns, combine='Add', name='MeqTimeFreq', unop=None):
+def MeqTimeFreq(ns, combine='Add', name='MeqTimeFreq', **pp):
+    """Make a real node that depends on time and freq,
+    with optional post-processing"""
     name += '_'+combine                         # -> MeqTimeFreq_Add
     uniqual = _counter (name, increment=True)
     freq = MeqFreq(ns)
     time = MeqTime(ns)
     node = ns[name](uniqual) << getattr(Meq,combine)(children=[time, freq])
-    return apply_unop(ns, unop, node)
+    return post_process(ns, node, **pp)
 
 #-------------------------------------------------------------------------------------
 # Some 'leaves' with parameters:
@@ -218,8 +259,8 @@ if __name__ == '__main__':
         cc.append(MeqWavelength(ns, unop='Sqr'))
         cc.append(MeqWavelength(ns, unop=['Cos','Sqr']))
         cc.append(MeqTime(ns))
-        cc.append(MeqFreqTime(ns))
-        cc.append(MeqTimeFreq(ns))
+        cc.append(MeqFreqTime(ns, mean=0.0, unop='Cos'))
+        cc.append(MeqTimeFreq(ns, normalise=[-1,1]))
         cc.append(MeqFreqTimeComplex(ns))
         cc.append(MeqTimeFreqComplex(ns))
 
