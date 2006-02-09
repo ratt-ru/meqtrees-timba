@@ -547,7 +547,8 @@ class ResultPlotter(GriddedPlugin):
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
       # try to put request ID in label
-      try: self.label = "rq " + str(self._rec.cache.request_id);
+      try: 
+        self.label = "rq " + str(self._rec.cache.request_id);
       except: pass;
       try: 
         self._rec = self._rec.cache.result; # look for cache.result record
@@ -573,11 +574,11 @@ class ResultPlotter(GriddedPlugin):
           if self.data_list_labels[i] == self.label:
             label_found = True
       if not label_found and self.max_list_length > 0:
-        if len(self.data_list_labels) > self.max_list_length - 1:
-          del self.data_list_labels[0]
-          del self.data_list[0]
         self.data_list.append(self._rec)
         self.data_list_labels.append(self.label)
+        if len(self.data_list_labels) > self.max_list_length:
+          del self.data_list_labels[0]
+          del self.data_list[0]
         if len(self.data_list) != self.data_list_length:
           self.data_list_length = len(self.data_list)
         if self.data_list_length > 1:
@@ -625,9 +626,11 @@ class ResultPlotter(GriddedPlugin):
     return process_result
 
   def replay_data (self, data_index):
-    self._rec = self.data_list[data_index]
-    self.label = self.data_list_labels[data_index]
-    process_result = self.process_data()
+    if data_index < len(self.data_list):
+      self._rec = self.data_list[data_index]
+      self.label = self.data_list_labels[data_index]
+      self.results_selector.setLabel(self.data_list_labels[data_index])
+      process_result = self.process_data()
 
   def plot_vells_data (self):
       """ process incoming vells data and attributes into the
@@ -773,29 +776,24 @@ class ResultPlotter(GriddedPlugin):
   def adjust_selector (self):
     if self.results_selector is None:
       self.results_selector = ResultsRange(self.layout_parent)
+      self.results_selector.setMaxValue(self.max_list_length)
       self.layout.addWidget(self.results_selector, 1,1)
       self.results_selector.show()
       QObject.connect(self.results_selector, PYSIGNAL('result_index'), self.replay_data)
+      QObject.connect(self.results_selector, PYSIGNAL('adjust_results_buffer_size'), self.set_results_buffer)
       self._visu_plotter.setResultsSelector()
       if self._plot_type == 'realvsimag':
         QObject.connect(self._visu_plotter.plot, PYSIGNAL('show_results_selector'), self.show_selector)
-        QObject.connect(self._visu_plotter.plot, PYSIGNAL('adjust_results_buffer_size'), self.adjust_results_buffer)
       else:
         QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_selector)
-        QObject.connect(self._visu_plotter, PYSIGNAL('adjust_results_buffer_size'), self.adjust_results_buffer)
     self.results_selector.setRange(self.data_list_length)
+    self.results_selector.setLabel(self.label)
 
   def show_selector (self, do_show_selector):
     if do_show_selector:
       self.results_selector.show()
     else:
       self.results_selector.hide()
-
-  def adjust_results_buffer (self, signal_value):
-    results_dialog = BufferSizeDialog(self.max_list_length, parent = self.wparent())
-    QObject.connect(results_dialog,PYSIGNAL("return_value"),self.set_results_buffer)
- 
-    results_dialog.show()
 
   def set_results_buffer (self, result_value):
     if result_value < 0:
@@ -809,8 +807,6 @@ class ResultPlotter(GriddedPlugin):
 
     if len(self.data_list) != self.data_list_length:
       self.data_list_length = len(self.data_list)
-      if self.data_list_length > 1:
-        self.results_selector.setRange(self.data_list_length)
 
   def set_ND_controls (self, labels, parms):
     """ this function adds the extra GUI control buttons etc if we are
