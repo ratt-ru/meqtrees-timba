@@ -222,6 +222,8 @@ class realvsimag_plotter(object):
         self.index = -1
         self._angle = 0.0
         self._radius = 20.0
+        self.xpos = -10000
+        self.ypos = -10000
 
 # used for plotting MeqParm solutions
         self.x_list = []
@@ -285,13 +287,11 @@ class realvsimag_plotter(object):
     # __initTracking()
 
   def onMouseMoved(self, e):
-    return
-#       if self._statusbar:
-#         self._statusbar.message(
-#           'x = %+.6g, y = %.6g'
-#           % (self.plot.invTransform(QwtPlot.xBottom, e.pos().x()),
-#              self.plot.invTransform(QwtPlot.yLeft, e.pos().y())),2000)
-
+    xPos = e.pos().x()
+    yPos = e.pos().y()
+    if abs(self.xpos - e.pos().x()) > 2 and abs(self.ypos - e.pos().y())> 2:
+# we are zooming, so remove any markers
+      self.timerEvent_marker()
     # onMouseMoved()
     
   def __initZooming(self):
