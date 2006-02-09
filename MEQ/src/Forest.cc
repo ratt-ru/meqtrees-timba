@@ -223,6 +223,7 @@ void Forest::incrRequestId (RequestId &rqid,const HIID &symdep)
 
 int Forest::getNodeList (DMI::Record &list,int content)
 {
+  Thread::Mutex::Lock lock(forestMutex());
   int num = num_valid_nodes;
   // create lists (arrays) for all known content
   DMI::Vec *lni=0,*lname=0,*lclass=0,*lstate=0,*lprof=0,*lcache=0;
@@ -254,7 +255,7 @@ int Forest::getNodeList (DMI::Record &list,int content)
       {
         FailWhen(i0>num,"forest inconsistency: too many valid nodes");
         Node &node = nodes[i]();
-        const DMI::Record &nodestate = node.syncState();
+        DMI::Record::Ref nodestate;
         if( lni )
           (*lni)[i0] = i;
         if( lname )
@@ -265,13 +266,15 @@ int Forest::getNodeList (DMI::Record &list,int content)
           (*lstate)[i0] = node.getControlStatus();
         if( lchildren )
         {
-          lchildren->addBack(nodestate[FChildren].ref(true));
-          lstepchildren->addBack(nodestate[FStepChildren].ref(true));
+          node.state(nodestate);
+          lchildren->addBack((*nodestate)[FChildren].ref(true));
+          lstepchildren->addBack((*nodestate)[FStepChildren].ref(true));
         }
         if( lprof )
         {
-          (*lprof)[i0] = nodestate[FProfilingStats].ref(true);
-          (*lcache)[i0] = nodestate[FCacheStats].ref(true);
+          node.syncState(nodestate);
+          (*lprof)[i0] = (*nodestate)[FProfilingStats].ref(true);
+          (*lcache)[i0] = (*nodestate)[FCacheStats].ref(true);
         }
         i0++;
       }
@@ -343,7 +346,7 @@ void Forest::setStateImpl (DMI::Record::Ref &rec)
 
 void Forest::setState (DMI::Record::Ref &rec,bool complete)
 {
-  Thread::Mutex::Lock lock(rec->mutex()),lock2(state().mutex());
+  Thread::Mutex::Lock lock(forestMutex());
   cdebug(2)<<"setState(complete="<<complete<<"): "<<rec.sdebug(10)<<endl;
   string fail;
   try

@@ -88,6 +88,11 @@ const int AidCol_int = -1489;
 const DMI::AtomicID AidCommand(-1204);            // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
 const int AidCommand_int = -1204;
 #endif
+#ifndef _defined_id_AidConstructing
+#define _defined_id_AidConstructing 1
+const DMI::AtomicID AidConstructing(-1645);       // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
+const int AidConstructing_int = -1645;
+#endif
 #ifndef _defined_id_AidContinue
 #define _defined_id_AidContinue 1
 const DMI::AtomicID AidContinue(-1474);           // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:16

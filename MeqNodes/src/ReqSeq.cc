@@ -92,7 +92,9 @@ int ReqSeq::pollChildren (Result::Ref &resref,const Request &req)
       reqref().setId(rqid);
     }
     // poll current child
+    pstate_lock_->release(); // temporarily release state lock while executing
     int code = getChild(i).execute(res,*reqref);
+    pstate_lock_->relock(stateMutex());
     cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",code)<<endl;
     // a wait is returned immediately
     if( code&RES_WAIT )
@@ -123,8 +125,10 @@ int ReqSeq::pollChildren (Result::Ref &resref,const Request &req)
       result_ = res;
     }
   }
+  pstate_lock_->release(); // temporarily release state lock while executing
   pollStepChildren(*reqref);
   timers_.children.stop();
+  pstate_lock_->relock(stateMutex());
   return 0;
 }
 

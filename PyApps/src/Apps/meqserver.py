@@ -86,8 +86,8 @@ class meqserver (app_proxy):
         wait = None;       # timeout=None means block indefinitely
       if silent:
         self.dprint(0,'warning: both wait and silent specified, ignoring silent flag');
-      payload.request_id = self.new_rqid();
-      replyname = 'result' + command + payload.request_id;
+      payload.command_index = self.new_command_index();
+      replyname = 'result' + command + payload.command_index;
       self.dprintf(3,'sending command %s with wait\n',command);
       self.dprint(5,'arguments are ',args);
       self.pause_events();

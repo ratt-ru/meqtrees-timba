@@ -76,7 +76,7 @@ class app_proxy (verbosity):
     # setup state
     self._verbose_events = True;
     self._error_log = [];
-    self._rqid = 1;
+    self._command_index = 1;
     # ------------------------------ this state is meant to be visible
     self.state = None; # None means offline -- we'll get a Hello message for online
     self.statestr = 'no connection';
@@ -315,10 +315,10 @@ class app_proxy (verbosity):
     "enables/disables printing of all incoming events";
     self.verbose_events = verb;
 
-  def new_rqid(self):
-    "generates new request ID";
-    ret = self._rqid;
-    self._rqid = max(0,self._rqid+1);
+  def new_command_index(self):
+    "generates new command index";
+    ret = self._command_index;
+    self._command_index = max(1,self._command_index+1);
     return ret;
 
   def log_error (self,event,error):

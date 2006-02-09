@@ -258,14 +258,18 @@ int Node::awaitChildResult (int &rescode,Result::Ref &resref,const Request &req)
       // threads to finish and deliver a result, so just go to sleep
       if( !wo )
       {
+        pstate_lock_->release(); // release state lock while executing
         mt.child_poll_cond_.wait();
+        pstate_lock_->relock(stateMutex());
         // once woken, go back to top of loop to see what we have received
         continue;
       }
       // ok, we have a work order -- release child results lock and go on to 
       // fill it
       lock.release();
+      pstate_lock_->release();        // release state lock while executing
       wo->execute(*mt.cur_brigade_);
+      pstate_lock_->relock(stateMutex());
       delete wo;
       // reacquire child results lock and go back up to check our result queue
       lock.relock(mt.child_poll_cond_);
@@ -281,16 +285,20 @@ int Node::awaitChildResult (int &rescode,Result::Ref &resref,const Request &req)
       // if we find a non-disabled child, poll it and return result
       if( !child_disabled_[ichild] )
       {
+        pstate_lock_->release(); // temporarily release state lock while executing
         timers_.children.start();
         child_retcodes_[ichild] = rescode = getChild(ichild).execute(resref,req);
         timers_.children.stop();
+        pstate_lock_->relock(stateMutex());
         return ichild;
       }
     }
     // no more children -- poll stepchildren and return -1
+    pstate_lock_->release(); // temporarily release state lock
     timers_.children.start();
     pollStepChildren(req);
     timers_.children.stop();
+    pstate_lock_->relock(stateMutex());
     return -1;
   }
 }
@@ -332,121 +340,133 @@ int Node::pollChildren (Result::Ref &resref,const Request &req)
 //     wstate()[FChildResults] <<= chres = new DMI::Vec(TpMeqResult,numChildren());
 //   
   setExecState(CS_ES_POLLING);
-  // init polling structures
-  child_cumul_retcode_ = 0;
-  num_child_fails_ = 0;
-  child_fails_.resize(0);
-  
-  // multithreaded poll
-  Thread::Mutex::Lock lock;
-  if( mt_checkBrigadeAvailability(lock) )
+  // temporarily release our state lock, and make sure we relock it after 
+  // we're finished -- hence the try/catch block
+  pstate_lock_->release();
+  try
   {
-    cdebug(1)<<endl<<"T"<<std::hex<<Thread::self()<<std::dec<<" node "<<name()<<
-            "placing WOs for "<<numChildren()<<" child nodes and "<<numStepChildren()<<" stepchildren"<<endl;
-    mt.polling_ = true;
-    mt.numchildren_ = numStepChildren(); // children counted separately below
-    mt.child_retcount_ = 0;
-    // place work orders on the pool queue
-    for( int i=0; i<numStepChildren(); i++ )
-      mt.cur_brigade_->placeWorkOrder(new MTPool::WorkOrder(
-          *this,&Node::mt_receiveStepchildResult,getStepChild(i),i,req));
-    // since later orders are executed sooner, we put the stepchild orders first
-    for( int i=numChildren()-1; i>=0; i-- ) // child 0 we handle ourselves
+    // init polling structures
+    child_cumul_retcode_ = 0;
+    num_child_fails_ = 0;
+    child_fails_.resize(0);
+
+    // multithreaded poll
+    Thread::Mutex::Lock lock;
+    if( mt_checkBrigadeAvailability(lock) )
     {
-      int ichild = child_poll_order_[i];
-      if( child_disabled_[ichild] )
-        child_retcodes_[ichild] = RES_FAIL;
-      else
-      {
+      cdebug(1)<<endl<<"T"<<std::hex<<Thread::self()<<std::dec<<" node "<<name()<<
+              "placing WOs for "<<numChildren()<<" child nodes and "<<numStepChildren()<<" stepchildren"<<endl;
+      mt.polling_ = true;
+      mt.numchildren_ = numStepChildren(); // children counted separately below
+      mt.child_retcount_ = 0;
+      // place work orders on the pool queue
+      for( int i=0; i<numStepChildren(); i++ )
         mt.cur_brigade_->placeWorkOrder(new MTPool::WorkOrder(
-            *this,&Node::mt_receiveSyncChildResult,getChild(ichild),ichild,req));
-        mt.numchildren_++;
-      }
-    }
-    // get the last WO back from the queue since we'll be executing it ourselves
-    MTPool::WorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
-    // wake up one or all worker threads
-    if( mt.numchildren_ > 2 )
-      mt.cur_brigade_->cond().broadcast();
-    else  // only two WOs so only one worker needs to be woken
-      mt.cur_brigade_->cond().signal();
-    // release queue lock and go on to fill WO for first child
-    lock.release();
-    // keep executing work orders until queue is empty
-    while( wo )
-    {
-      wo->execute(*mt.cur_brigade_);
-      delete wo;
-      lock.relock(mt.cur_brigade_->cond());
-      wo = mt.cur_brigade_->getWorkOrder(false);  // wait=false
-      lock.release();
-    }
-    // no more WOs -- sleep until all children have returned 
-    Thread::Mutex::Lock lock2(mt.child_poll_cond_);
-    while( mt.child_retcount_ < mt.numchildren_ )
-      mt.child_poll_cond_.wait();
-    lock2.release();
-    // finish up
-    mt_finishPoll();
-  }
-  else // single-threaded poll
-  {
-    cdebug(3)<<"  calling execute() on "<<numChildren()<<" child nodes"<<endl;
-    timers_.children.start();
-    for( int i=0; i<numChildren(); i++ )
-    {
-      int ichild = child_poll_order_[i];
-      if( child_disabled_[ichild] )
-        child_retcodes_[ichild] = RES_FAIL;
-      else
+            *this,&Node::mt_receiveStepchildResult,getStepChild(i),i,req));
+      // since later orders are executed sooner, we put the stepchild orders first
+      for( int i=numChildren()-1; i>=0; i-- ) // child 0 we handle ourselves
       {
-        int childcode = child_retcodes_[ichild] = getChild(ichild).execute(child_results_[ichild],req);
-        cdebug(4)<<"    child "<<ichild<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
-        child_cumul_retcode_ |= childcode;
-        if( !(childcode&RES_WAIT) )
+        int ichild = child_poll_order_[i];
+        if( child_disabled_[ichild] )
+          child_retcodes_[ichild] = RES_FAIL;
+        else
         {
-          const Result * pchildres = child_results_[ichild].deref_p();
-    //       // cache it in verbose mode
-    //       if( chres )
-    //         chres[ichild] <<= pchildres;
-          if( childcode&RES_FAIL )
+          mt.cur_brigade_->placeWorkOrder(new MTPool::WorkOrder(
+              *this,&Node::mt_receiveSyncChildResult,getChild(ichild),ichild,req));
+          mt.numchildren_++;
+        }
+      }
+      // get the last WO back from the queue since we'll be executing it ourselves
+      MTPool::WorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
+      // wake up one or all worker threads
+      if( mt.numchildren_ > 2 )
+        mt.cur_brigade_->cond().broadcast();
+      else  // only two WOs so only one worker needs to be woken
+        mt.cur_brigade_->cond().signal();
+      // release queue lock and go on to fill WO for first child
+      lock.release();
+      // keep executing work orders until queue is empty
+      while( wo )
+      {
+        wo->execute(*mt.cur_brigade_);
+        delete wo;
+        lock.relock(mt.cur_brigade_->cond());
+        wo = mt.cur_brigade_->getWorkOrder(false);  // wait=false
+        lock.release();
+      }
+      // no more WOs -- sleep until all children have returned 
+      Thread::Mutex::Lock lock2(mt.child_poll_cond_);
+      while( mt.child_retcount_ < mt.numchildren_ )
+        mt.child_poll_cond_.wait();
+      lock2.release();
+      // finish up
+      mt_finishPoll();
+    }
+    else // single-threaded poll
+    {
+      cdebug(3)<<"  calling execute() on "<<numChildren()<<" child nodes"<<endl;
+      timers_.children.start();
+      for( int i=0; i<numChildren(); i++ )
+      {
+        int ichild = child_poll_order_[i];
+        if( child_disabled_[ichild] )
+          child_retcodes_[ichild] = RES_FAIL;
+        else
+        {
+          int childcode = child_retcodes_[ichild] = getChild(ichild).execute(child_results_[ichild],req);
+          cdebug(4)<<"    child "<<ichild<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
+          child_cumul_retcode_ |= childcode;
+          if( !(childcode&RES_WAIT) )
           {
-            child_fails_.push_back(pchildres);
-            num_child_fails_ += pchildres->numFails();
+            const Result * pchildres = child_results_[ichild].deref_p();
+      //       // cache it in verbose mode
+      //       if( chres )
+      //         chres[ichild] <<= pchildres;
+            if( childcode&RES_FAIL )
+            {
+              child_fails_.push_back(pchildres);
+              num_child_fails_ += pchildres->numFails();
+            }
           }
         }
       }
+      // now poll stepchildren (their results are always ignored)
+      pollStepChildren(req);
+      timers_.children.stop();
     }
-    // now poll stepchildren (their results are always ignored)
-    pollStepChildren(req);
-    timers_.children.stop();
-  }
-  // if any child has completely failed, return a Result containing all of the fails 
-  if( !child_fails_.empty() )
-  {
-    if( propagate_child_fails_ )
+    // if any child has completely failed, return a Result containing all of the fails 
+    if( !child_fails_.empty() )
     {
-      cdebug(3)<<"  got RES_FAIL from children ("<<num_child_fails_<<"), returning fail-result"<<endl;
-      Result &result = resref <<= new Result(num_child_fails_);
-      int ires = 0;
-      for( uint i=0; i<child_fails_.size(); i++ )
+      if( propagate_child_fails_ )
       {
-        const Result &childres = *(child_fails_[i]);
-        for( int j=0; j<childres.numVellSets(); j++ )
+        cdebug(3)<<"  got RES_FAIL from children ("<<num_child_fails_<<"), returning fail-result"<<endl;
+        Result &result = resref <<= new Result(num_child_fails_);
+        int ires = 0;
+        for( uint i=0; i<child_fails_.size(); i++ )
         {
-          const VellSet &vs = childres.vellSet(j);
-          if( vs.isFail() )
-            result.setVellSet(ires++,&vs);
+          const Result &childres = *(child_fails_[i]);
+          for( int j=0; j<childres.numVellSets(); j++ )
+          {
+            const VellSet &vs = childres.vellSet(j);
+            if( vs.isFail() )
+              result.setVellSet(ires++,&vs);
+          }
         }
       }
+      else
+      {
+        cdebug(3)<<"  ignoring RES_FAIL from children since fail propagation is off"<<endl;
+        child_cumul_retcode_ &= ~RES_FAIL;
+      }
     }
-    else
-    {
-      cdebug(3)<<"  ignoring RES_FAIL from children since fail propagation is off"<<endl;
-      child_cumul_retcode_ &= ~RES_FAIL;
-    }
+    cdebug(3)<<"  cumulative result code is "<<ssprintf("0x%x",child_cumul_retcode_)<<endl;
   }
-  cdebug(3)<<"  cumulative result code is "<<ssprintf("0x%x",child_cumul_retcode_)<<endl;
+  catch(...)
+  {
+    pstate_lock_->relock(stateMutex());
+    throw;
+  }
+  pstate_lock_->relock(stateMutex());
   return child_cumul_retcode_;
 }
 

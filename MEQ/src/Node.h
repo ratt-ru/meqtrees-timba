@@ -304,14 +304,31 @@ class Node : public DMI::BObj
     string className() const
     { return objectType().toString(); }
     
-    //##ModelId=3F5F441602D2
-    // returns state record
-    const DMI::Record & state() const
-    { return *staterec_; }
     
-    // syncs rapidly-updated object state (that may not be immediately
-    // put into the state record)
-    const DMI::Record & syncState();
+    // Access to node state
+    // Each node has a state record. Some extra rapidly-changing info
+    // (timers, cache, etc.) is cached outside the state record for
+    // performance.
+    // The syncState() method syncronizes this info into the state record
+    // and returns a copy. The state() method is faster, and it returns a 
+    // copy without sync().
+    DMI::Record::Ref state() const
+    { 
+      DMI::Record::Ref ref;
+      state(ref);
+      return ref; 
+    }
+    void state (DMI::Record::Ref &ref) const
+    { ref = staterec_; }
+    
+    DMI::Record::Ref syncState()
+    {
+      DMI::Record::Ref ref;
+      syncState(ref);
+      return ref; 
+    }
+    
+    void syncState (DMI::Record::Ref &ref);
     
     bool hasState () const
     { return staterec_.valid(); }
@@ -381,6 +398,9 @@ class Node : public DMI::BObj
     // Also used as a mutex to protect the executing_ flag.
     Thread::Condition & execCond ()
     { return mt.exec_cond_; };
+    
+    Thread::Mutex & stateMutex () const
+    { return state_mutex_; }
     
     // returns true if Node should poll its children in multithreaded mode
     bool multithreaded () const
@@ -974,6 +994,15 @@ class Node : public DMI::BObj
     //## control_status word
     int control_status_;
     
+    // The state mutex is locked whenever a node is liable to change its
+    // state. Normally this is locked through all of execute(), except 
+    // when we go to poll children.
+    mutable Thread::Mutex state_mutex_;
+    // this points to the current state_mutex lock object, which 
+    // is allocated on the stack in Node::execute(). pollChildren()
+    // needs to release this lock temporarily.
+    Thread::Mutex::Lock * pstate_lock_;
+    
     //## order in which children are polled, default order_[i] == i but
     //## can be overridden by the child_poll_order state field.
     std::vector<int> child_poll_order_;
@@ -1031,6 +1060,7 @@ class Node : public DMI::BObj
     
      
   private:
+      
     //##Documentation
     //## processes the request rider, and calls processCommand() as appropriate.
     //## The request object may be modified; a ref is passed in to facilitate

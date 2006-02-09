@@ -406,8 +406,7 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 //##ModelId=3F5F445A00AC
 void Node::setState (DMI::Record::Ref &rec)
 {
-  // lock records until we're through
-  Thread::Mutex::Lock lock(rec->mutex()),lock2(state().mutex());
+  Thread::Mutex::Lock lock(stateMutex());
   // when initializing, we're called with our own state record, which
   // makes the rules somewhat different:
   bool initializing = ( rec == staterec_ );
@@ -486,8 +485,9 @@ void Node::fillProfilingStats (ProfilingStats *st,const LOFAR::NSTimer &timer)
   st->average  = timer.shotCount() ? timer.faverageTime()*scale : 0;
 }
 
-const DMI::Record & Node::syncState()
+void Node::syncState (DMI::Record::Ref &ref)
 { 
+  Thread::Mutex::Lock lock(stateMutex());
   DMI::Record & st = wstate();
   if( current_request_.valid() )
     st.replace(FRequest,current_request_);
@@ -512,7 +512,7 @@ const DMI::Record & Node::syncState()
   st[FControlStatus]   = control_status_; 
   st[FBreakpointSingleShot] = breakpoints_ss_;
   st[FBreakpoint] = breakpoints_;
-  return st; 
+  ref = staterec_; 
 }
 
 //##ModelId=3F9919B10014
@@ -1117,7 +1117,12 @@ int Node::execute (Result::Ref &ref,const Request &req)
   }
   executing_ = true;
 #endif
-  // since we use the same mutex for the cache, hold lock until we have checked it
+  // since we use the same execCond() mutex for the cache, hold lock until we 
+  // have checked cache below
+  
+  // now set a lock on the state mutex
+  Thread::Mutex::Lock state_lock(stateMutex());
+  pstate_lock_ = &state_lock;
   
   cdebug(3)<<"execute, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
   FailWhen(node_resolve_id_<0,"execute() called before resolve()");
@@ -1311,6 +1316,7 @@ int Node::execute (Result::Ref &ref,const Request &req)
 
 void Node::setBreakpoint (int bpmask,bool oneshot)
 {
+  Thread::Mutex::Lock lock(stateMutex());
   if( oneshot )
   {
     breakpoints_ss_ |= bpmask;
@@ -1325,6 +1331,7 @@ void Node::setBreakpoint (int bpmask,bool oneshot)
 
 void Node::clearBreakpoint (int bpmask,bool oneshot)
 {
+  Thread::Mutex::Lock lock(stateMutex());
   if( oneshot )
   {
     breakpoints_ss_ &= ~bpmask;

@@ -484,9 +484,10 @@ def clear_forest ():
   nodelist.clear();
   nodelist.emit(PYSIGNAL("cleared()"),());
 
-def request_nodelist (force=False,profiling_stats=False):
+def request_nodelist (force=False,profiling_stats=False,sync=False):
   """Sends a request to the kernel to return a nodelist.""";
   rec = NodeList.RequestRecord;
+  rec.sync = sync;
   # force explicit refresh
   if force or profiling_stats:
     rec.forest_serial = 0;

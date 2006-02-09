@@ -95,39 +95,39 @@ MeqServer::MeqServer()
   
   mqs_ = this;
   
-  command_map["Halt"] = &MeqServer::halt;
+  async_commands["Halt"] = &MeqServer::halt;
   
-  command_map["Get.Forest.State"] = &MeqServer::getForestState;
-  command_map["Set.Forest.State"] = &MeqServer::setForestState;
+  async_commands["Get.Forest.State"] = &MeqServer::getForestState;
+  async_commands["Set.Forest.State"] = &MeqServer::setForestState;
   
-  command_map["Create.Node"] = &MeqServer::createNode;
-  command_map["Create.Node.Batch"] = &MeqServer::createNodeBatch;
-  command_map["Delete.Node"] = &MeqServer::deleteNode;
-  command_map["Resolve"] = &MeqServer::resolve;
-  command_map["Resolve.Batch"] = &MeqServer::resolveBatch;
-  command_map["Get.Node.List"] = &MeqServer::getNodeList;
-  command_map["Get.Forest.Status"] = &MeqServer::getForestStatus;
-  command_map["Get.NodeIndex"] = &MeqServer::getNodeIndex;
+  sync_commands["Create.Node"] = &MeqServer::createNode;
+  sync_commands["Create.Node.Batch"] = &MeqServer::createNodeBatch;
+  sync_commands["Delete.Node"] = &MeqServer::deleteNode;
+  sync_commands["Resolve"] = &MeqServer::resolve;
+  sync_commands["Resolve.Batch"] = &MeqServer::resolveBatch;
+  async_commands["Get.Node.List"] = &MeqServer::getNodeList;
+  async_commands["Get.Forest.Status"] = &MeqServer::getForestStatus;
+  async_commands["Get.NodeIndex"] = &MeqServer::getNodeIndex;
 
-  command_map["Disable.Publish.Results"] = &MeqServer::disablePublishResults;
-  command_map["Save.Forest"] = &MeqServer::saveForest;
-  command_map["Load.Forest"] = &MeqServer::loadForest;
-  command_map["Clear.Forest"] = &MeqServer::clearForest;
+  async_commands["Disable.Publish.Results"] = &MeqServer::disablePublishResults;
+  sync_commands["Save.Forest"] = &MeqServer::saveForest;
+  sync_commands["Load.Forest"] = &MeqServer::loadForest;
+  sync_commands["Clear.Forest"] = &MeqServer::clearForest;
 
   // per-node commands  
-  command_map["Node.Get.State"] = &MeqServer::nodeGetState;
-  command_map["Node.Set.State"] = &MeqServer::nodeSetState;
-  command_map["Node.Execute"] = &MeqServer::nodeExecute;
-  command_map["Node.Clear.Cache"] = &MeqServer::nodeClearCache;
-  command_map["Node.Publish.Results"] = &MeqServer::publishResults;
-  command_map["Node.Set.Breakpoint"] = &MeqServer::nodeSetBreakpoint;
-  command_map["Node.Clear.Breakpoint"] = &MeqServer::nodeClearBreakpoint;
+  async_commands["Node.Get.State"] = &MeqServer::nodeGetState;
+  async_commands["Node.Set.State"] = &MeqServer::nodeSetState;
+  sync_commands["Node.Execute"] = &MeqServer::nodeExecute;
+  sync_commands["Node.Clear.Cache"] = &MeqServer::nodeClearCache;
+  async_commands["Node.Publish.Results"] = &MeqServer::publishResults;
+  async_commands["Node.Set.Breakpoint"] = &MeqServer::nodeSetBreakpoint;
+  async_commands["Node.Clear.Breakpoint"] = &MeqServer::nodeClearBreakpoint;
   
-  command_map["Debug.Set.Level"] = &MeqServer::debugSetLevel;
-  command_map["Debug.Single.Step"] = &MeqServer::debugSingleStep;
-  command_map["Debug.Next.Node"] = &MeqServer::debugNextNode;
-  command_map["Debug.Until.Node"] = &MeqServer::debugUntilNode;
-  command_map["Debug.Continue"] = &MeqServer::debugContinue;
+  async_commands["Debug.Set.Level"] = &MeqServer::debugSetLevel;
+  async_commands["Debug.Single.Step"] = &MeqServer::debugSingleStep;
+  async_commands["Debug.Next.Node"] = &MeqServer::debugNextNode;
+  async_commands["Debug.Until.Node"] = &MeqServer::debugUntilNode;
+  async_commands["Debug.Continue"] = &MeqServer::debugContinue;
   
   debug_next_node = 0;
   running_ = executing_ = false;
@@ -225,29 +225,39 @@ void MeqServer::createNode (DMI::Record::Ref &out,DMI::Record::Ref &initrec)
 
 void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
-  DMI::Container &batch = in[AidBatch].as_wr<DMI::Container>();
-  int nn = batch.size();
-  postMessage(ssprintf("creating %d nodes, please wait",nn));
-  cdebug(2)<<"batch-creating "<<nn<<" nodes";
-  for( int i=0; i<nn; i++ )
+  AtomicID oldstate = setState(AidConstructing);
+  try
   {
-    ObjRef ref;
-    batch[i].detach(&ref);
-    DMI::Record::Ref recref(ref);
-    ref.detach();
-    int nodeindex;
-    try
+    DMI::Container &batch = in[AidBatch].as_wr<DMI::Container>();
+    int nn = batch.size();
+    postMessage(ssprintf("creating %d nodes, please wait",nn));
+    cdebug(2)<<"batch-creating "<<nn<<" nodes";
+    for( int i=0; i<nn; i++ )
     {
-      Node & node = forest.create(nodeindex,recref);
+      ObjRef ref;
+      batch[i].detach(&ref);
+      DMI::Record::Ref recref(ref);
+      ref.detach();
+      int nodeindex;
+      try
+      {
+        Node & node = forest.create(nodeindex,recref);
+      }
+      catch( std::exception &exc )
+      {
+        postError(exc);
+      }
     }
-    catch( std::exception &exc )
-    {
-      postError(exc);
-    }
+    // form a response message
+    out[AidMessage] = ssprintf("created %d nodes",nn);
+    out[FForestChanged] = incrementForestSerial();
   }
-  // form a response message
-  out[AidMessage] = ssprintf("created %d nodes",nn);
-  out[FForestChanged] = incrementForestSerial();
+  catch( ... )
+  {
+    setState(oldstate);
+    throw;
+  }
+  setState(oldstate);
 }
 
 void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
@@ -280,7 +290,7 @@ void MeqServer::nodeGetState (DMI::Record::Ref &out,DMI::Record::Ref &in)
   cdebug(3)<<"getState for node "<<node.name()<<" ";
   cdebug(4)<<in->sdebug(3);
   cdebug(3)<<endl;
-  out.attach(node.syncState());
+  node.syncState(out);
   cdebug(5)<<"Returned state is: "<<out->sdebug(20)<<endl;
 }
 
@@ -321,18 +331,28 @@ void MeqServer::resolve (DMI::Record::Ref &out,DMI::Record::Ref &in)
 
 void MeqServer::resolveBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
-  const DMI::Vec & names = in[AidName].as<DMI::Vec>();
-  int nn = names.size(Tpstring);
-  postMessage(ssprintf("resolving %d nodes, please wait",nn));
-  cdebug(2)<<"batch-resolve of "<<nn<<" nodes\n";
-  for( int i=0; i<nn; i++ )
+  AtomicID oldstate = setState(AidConstructing);
+  try
   {
-    Node &node = forest.findNode(names[i].as<string>());
-    node.resolve(0,false,in,0);
+    const DMI::Vec & names = in[AidName].as<DMI::Vec>();
+    int nn = names.size(Tpstring);
+    postMessage(ssprintf("resolving %d nodes, please wait",nn));
+    cdebug(2)<<"batch-resolve of "<<nn<<" nodes\n";
+    for( int i=0; i<nn; i++ )
+    {
+      Node &node = forest.findNode(names[i].as<string>());
+      node.resolve(0,false,in,0);
+    }
+    cdebug(3)<<"resolve complete"<<endl;
+    out[AidMessage] = ssprintf("resolved %d nodes",nn);
+    fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
   }
-  cdebug(3)<<"resolve complete"<<endl;
-  out[AidMessage] = ssprintf("resolved %d nodes",nn);
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
+  catch( ... )
+  {
+    setState(oldstate);
+    throw;
+  }
+  setState(oldstate);
 }
 
 void MeqServer::getNodeList (DMI::Record::Ref &out,DMI::Record::Ref &in)
@@ -423,7 +443,7 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
       out[FNodeState] <<= node.syncState();
     fillForestStatus(out(),in[FGetForestStatus].as<int>(1));
   }
-  catch( std::exception &exc )
+  catch( ... )
   {
     executing_ = false;
     setState(oldstate);
@@ -468,14 +488,14 @@ void MeqServer::saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
   header["Forest.Header.Version"] = 1;
   boio << header;
   // write forest state
-  boio << forest.state();
+  boio << *(forest.state());
   // write all nodes
   for( int i=1; i<=forest.maxNodeIndex(); i++ )
     if( forest.valid(i) )
     {
       Node &node = forest.get(i);
       cdebug(3)<<"saving node "<<node.name()<<endl;
-      boio << node.syncState();
+      boio << *(node.syncState());
       nsaved++;
     }
   cdebug(1)<<"saved "<<nsaved<<" nodes to file "<<filename<<endl;
@@ -694,6 +714,7 @@ void MeqServer::debugUntilNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
 
 int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef &evdata,void *) 
 {
+  Thread::Mutex::Lock lock(control_mutex_);
   cdebug(4)<<"received event "<<evid.id()<<endl;
 #ifdef TEST_PYTHON_CONVERSION
   MeqPython::testConversion(*evdata);
@@ -704,16 +725,19 @@ int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef &evdata,vo
 
 void MeqServer::postEvent (const HIID &type,const ObjRef &data)
 {
+  Thread::Mutex::Lock lock(control_mutex_);
   control().postEvent(type,data);
 }
 
 void MeqServer::postEvent (const HIID &type,const DMI::Record::Ref &data)
 {
+  Thread::Mutex::Lock lock(control_mutex_);
   control().postEvent(type,data);
 }
 
 void MeqServer::postError (const std::exception &exc,AtomicID category)
 {
+  Thread::Mutex::Lock lock(control_mutex_);
   DMI::Record::Ref out(new DMI::Record);
   out[AidError] = exceptionToObj(exc);
   control().postEvent(AidError,out,category);
@@ -721,6 +745,7 @@ void MeqServer::postError (const std::exception &exc,AtomicID category)
 
 void MeqServer::postMessage (const std::string &msg,const HIID &type,AtomicID category)
 {
+  Thread::Mutex::Lock lock(control_mutex_);
   DMI::Record::Ref out(new DMI::Record);
   if( type == HIID(AidError) )
     out[AidError] = msg;
@@ -835,6 +860,7 @@ void MeqServer::mqs_postEvent (const HIID &id,const ObjRef &data)
 
 void MeqServer::publishState ()
 {
+  Thread::Mutex::Lock (control_mutex_);
   DMI::Record::Ref rec(DMI::ANONWR);
   rec[AidState] = HIID(state_);
   rec[AidState|AidString] = HIID(state_).toString();
@@ -849,13 +875,34 @@ AtomicID MeqServer::setState (AtomicID state)
   return oldstate;
 }
 
+void MeqServer::execCommandEntry (ExecQueueEntry &qe)
+{
+  DMI::Record::Ref out(DMI::ANONWR);
+  try
+  {
+    (this->*(qe.proc))(out,qe.args);
+    if( !qe.silent )
+      control().postEvent(MeqResultPrefix|qe.cmd_id,out);
+  }
+  catch( std::exception &exc )
+  {
+    // post error event
+    out[AidError] = exceptionToObj(exc);
+    control().postEvent(MeqResultPrefix|qe.cmd_id,out);
+  }
+  catch( ... )
+  {
+    out[AidError] = "unknown exception while processing command "+qe.cmd_id.toString('.');
+    control().postEvent(MeqResultPrefix|qe.cmd_id,out);
+  }
+}
 
 DMI::Record::Ref MeqServer::executeCommand (const HIID &cmd,const ObjRef &argref)
 {
   DMI::Record::Ref retval(DMI::ANONWR);
   DMI::Record::Ref args;
-  CommandMap::const_iterator iter = command_map.find(cmd);
-  FailWhen(iter == command_map.end(),"unknown command "+cmd.toString('.'));
+  CommandMap::const_iterator iter = async_commands.find(cmd);
+  FailWhen(iter == async_commands.end(),"unknown command "+cmd.toString('.'));
   // provide an args record
   if( argref.valid() )
   {
@@ -899,45 +946,66 @@ void MeqServer::processCommands ()
     // extract payload
     DMI::Record &cmddata = cmd_data.as<DMI::Record>();
     cdebug(3)<<"received command "<<cmdid.toString('.')<<endl;
-    int request_id = 0;
-    bool silent = false;
-    DMI::Record::Ref retval;
-    bool have_error = true;
-//    int oldstate = control().state();
-    request_id = cmddata[FRequestId].as<int>(0);
-    ObjRef ref = cmddata[FArgs].remove();
-    silent     = cmddata[FSilent].as<bool>(false);
-    try
-    {
-      retval = executeCommand(cmdid,ref);
-      have_error = false;
+    ExecQueueEntry qe;
+    qe.args    = cmddata[FArgs].remove();
+    if( !qe.args.valid() )
+      qe.args <<= new DMI::Record;
+    qe.silent  = qe.args[FSilent].as<bool>(false);
+    int cmd_index  = cmddata[FCommandIndex].as<int>(0);
+    qe.cmd_id  = cmdid;
+    if( cmd_index )
+      qe.cmd_id |= cmd_index;
+    // get value of sync flag (false will be overridden by true if
+    // command is in the sync map)
+    bool sync = qe.args[FSync].as<bool>(false);
+    // finc command in sync or async map
+    CommandMap::const_iterator iter = async_commands.find(cmdid);
+    if( iter == async_commands.end() )
+    {  
+      iter = sync_commands.find(cmdid);
+      if( iter == sync_commands.end() )
+      {
+        DMI::Record::Ref out(DMI::ANONWR);
+        out[AidError] = "unknown command "+cmdid.toString('.');
+        control().postEvent(MeqResultPrefix|qe.cmd_id,out);
+        return;
+      }
+      sync = true; // it's a sync-only command, so force sync mode
     }
-    catch( std::exception &exc )
+    // directly execute command if found in map
+    if( !sync )
     {
-      (retval <<= new DMI::Record)[AidError] = exceptionToObj(exc);
+      qe.proc = iter->second;
+      // this posts and throws any exceptions
+      execCommandEntry(qe);
     }
-    catch( ... )
+    else
     {
-      (retval <<= new DMI::Record)[AidError] = "unknown exception while processing command";
-    }
-    // send back reply if quiet flag has not been raised;
-    // errors are always sent back
-    if( !silent || have_error )
-    {
-      HIID reply_id = MeqResultPrefix|cmdid;
-      if( request_id )
-        reply_id |= request_id;
-      control().postEvent(reply_id,retval);
+      qe.proc = iter->second;
+      Thread::Mutex::Lock lock(exec_cond_);
+      int sz = exec_queue_.size();
+      exec_queue_.push_back(qe);
+      exec_cond_.broadcast();
+      if( sz )
+        postMessage(ssprintf("queueing %s command (%d)",cmdid.toString('.').c_str(),sz));
+      lock.release();
     }
   }
-  else // other commands -- ignore for now
+  else // other commands 
   {
     if( cmdid == HIID("Request.State") )
       publishState();
     else if( cmdid == HIID("Halt") )
     {
+      Thread::Mutex::Lock lock(exec_cond_);
+      bool busy = !exec_queue_.empty();
       running_ = false;
-      postMessage("halt command received, exiting");
+      exec_cond_.broadcast();
+      lock.release();
+      if( busy )
+        postMessage("halt command received, exiting once current command finishes");
+      else
+        postMessage("halt command received, exiting");
     }
     else
       postError("ignoring unrecognized event "+cmdid.toString('.'));
@@ -952,6 +1020,8 @@ void MeqServer::run ()
   forest.setEventCallback(mqs_postEvent);
   // init Python interface
   MeqPython::initMeqPython(this);
+  // start node exec thread
+  exec_thread_ = Thread::create(startExecutionThread,this);
 
   setState(AidIdle);  
   running_ = true;
@@ -960,6 +1030,11 @@ void MeqServer::run ()
     // process any pending commands
     processCommands();
   }
+  // signal exec thread to exit (running_ = false)
+  Thread::Mutex::Lock lock(exec_cond_);
+  exec_cond_.signal();
+  lock.release();
+  exec_thread_.join();
   
   // clear the forest
   forest.clear();
@@ -969,6 +1044,37 @@ void MeqServer::run ()
   control().close();
   // destroy python interface
   MeqPython::destroyMeqPython();
+}
+
+
+void * MeqServer::runExecutionThread ()
+{
+  Thread::Mutex::Lock lock(exec_cond_);
+  while( true )
+  {
+    while( running_ && exec_queue_.empty() )
+      exec_cond_.wait();
+    // exit if no longer running
+    if( !running_ )
+      return 0;
+    // else get request from queue and execute it
+    ExecQueueEntry qe = exec_queue_.front();
+    lock.release();
+    execCommandEntry(qe);
+    // relock queue and remove front entry (unless it's been flushed for us...)
+    lock.relock(exec_cond_);
+    if( !exec_queue_.empty() )
+      exec_queue_.pop_front();
+    if( exec_queue_.empty() )
+      exec_cond_.broadcast();
+    // go back to top for next queue entry
+  }
+  return 0;
+}
+
+void * MeqServer::startExecutionThread (void *mqs)
+{
+  return static_cast<MeqServer*>(mqs)->runExecutionThread();
 }
 
 //##ModelId=3F5F195E0156

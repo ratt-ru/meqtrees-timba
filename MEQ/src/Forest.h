@@ -104,8 +104,11 @@ class Forest
     // specified by content
     int getNodeList (DMI::Record &list,int content = NL_DEFAULT);
     
-    const DMI::Record & state () const
-    { return *staterec_; }
+    DMI::Record::Ref state () const
+    { 
+      Thread::Mutex::Lock lock(forestMutex());
+      return staterec_.copy(); 
+    }
     
     // sets forest state from rec. If complete = true,
     // sets complete state, else only overwrites the fields specified in rec
@@ -222,6 +225,9 @@ class Forest
       if( event_callback )
         (*event_callback)(type,data);
     }
+    
+    Thread::Mutex & forestMutex () const
+    { return forest_mutex_; }
 
     //##ModelId=3F60697A0078
     LocalDebugContext;
@@ -230,6 +236,8 @@ class Forest
     string sdebug (int=0) const { return getDebugContext().name(); }
 
   private:
+    mutable Thread::Mutex forest_mutex_;
+      
     // forest state management
     DMI::Record & wstate ()
     { return staterec_(); }  

@@ -8,7 +8,7 @@
 
 #pragma aidgroup MeqServer    
 #pragma aid MeqClient
-#pragma aid Node Name NodeIndex MeqServer Meq 
+#pragma aid Node Name NodeIndex MeqServer Meq
 #pragma aid Create Delete Get Set State Request Resolve Child Children List Batch
 #pragma aid App Command Args Result Data Processing Error Message Code
 #pragma aid Execute Clear Cache Save Load Forest Recursive Forest Header Version 
@@ -16,13 +16,15 @@
 #pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
 #pragma aid Get Forest Status Stack Running Changed All Disabled Publishing
 #pragma aid Python Init TDL Script File Source Serial String
-#pragma aid Idle Executing Debug
+#pragma aid Idle Executing Debug Constructing Sync
     
 namespace Meq
 {
   const HIID  
     FArgs             = AidArgs,
     FSilent           = AidSilent,
+    FCommandIndex     = AidCommand|AidIndex,
+    FSync             = AidSync,
       
     FRecursive        = AidRecursive, 
     FFileName         = AidFile|AidName,
@@ -108,8 +110,7 @@ class MeqServer : public DMI::EventRecepient
     void debugContinue      (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void debugUntilNode     (DMI::Record::Ref &out,DMI::Record::Ref &in);
 
-    
-    // executes one of the above commands, as specified by cmd
+    // alternative interface to execute a command. Only works for async commands
     DMI::Record::Ref executeCommand (const HIID &cmd,const ObjRef &argref);
     
     // returns control channel
@@ -182,7 +183,14 @@ class MeqServer : public DMI::EventRecepient
     //##ModelId=3F61920F016E
     typedef std::map<HIID,PtrCommandMethod> CommandMap;
     //##ModelId=3F61920F0193
-    CommandMap command_map;
+    // Map of sync commands.
+    // Sync commands are generally slow, and must be executed serially, 
+    // so they're handled by a separate exec thread (see below)
+    CommandMap sync_commands;
+    // Map of async commands.
+    // Async commands are fast, and are executed directly in the 
+    // control thread.
+    CommandMap async_commands;
     
     typedef struct {
       Node *       node;
@@ -198,12 +206,42 @@ class MeqServer : public DMI::EventRecepient
     // true as long as we're not exiting
     bool running_;
     
-    // true if we are executing a node
+    // true while we're executing a node
     bool executing_;
     
+    // node execution thread
+    Thread::ThrID exec_thread_;
+    
+    // queue of commands to execute, empty if nothing is executing
+    typedef struct 
+    {
+      PtrCommandMethod proc;; // command method
+      DMI::Record::Ref args;  // command arguments
+      bool silent;            // silent flag (if true, no result event is produced, unless an error occurs)
+      HIID cmd_id;            // id of result event
+    } ExecQueueEntry;
+    typedef std::list<ExecQueueEntry> ExecQueue;
+    ExecQueue exec_queue_;
+    
+    // condition variable indicating changes to queue or to running_ status
+    Thread::Condition exec_cond_;
+    
+    void execCommandEntry (ExecQueueEntry &qe);
+    
+    // method that runs the exec thread loop
+    void * runExecutionThread ();
+    // static function to start MeqServer's exec thread
+    static void * startExecutionThread (void *mqs);
+    
+    
+    // mutex for accessing the control agent
+    Thread::Mutex control_mutex_;
+    
+    // MeqServer state
     AtomicID state_;
     
     
+    // Global MeqServer singleton
     static MeqServer *mqs_;
     
     static void mqs_reportNodeStatus (Node &node,int oldstat,int newstat);
