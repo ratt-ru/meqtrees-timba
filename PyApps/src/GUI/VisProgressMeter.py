@@ -157,12 +157,12 @@ class VisProgressMeter (QHBox):
     if time1 != time0:
       timestr1 = self._vis_rtime1 = hms_str(time1);
       timestr += " to " + timestr1;
-    msg = " tile <b>%d</b>, t/s %d to %d, rel. time %s" \
+    msg = " tile <b>%d</b>, t/s %d-%d, r/t %s" \
       % (nt-1,ts[0],ts[1],timestr);
     if self._stats.rate is not None:
       msg = msg+"; avg <b>%.2f</b> sec/ts" % self._stats.rate;
-    if self._pstats.rate is not None:
-      msg = msg+"; last %.2f sec/ts" % self._pstats.rate;
+#    if self._pstats.rate is not None:
+#      msg = msg+"; last %.2f sec/ts" % self._pstats.rate;
     self._wlabel.setText("<nobr>"+msg+"</nobr>"); 
     # update stat counters
     self._stats.update(nts);
