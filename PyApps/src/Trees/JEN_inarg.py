@@ -267,10 +267,13 @@ def modify(inarg, **arg):
    if not isinstance(arg, dict): return False
 
    # Deal with the option feld (if any):
+   opt = dict()
    if arg.has_key(option_field):                     # has an option field
-      # ..... placeholder for later ....
+      opt = arg[option_field]
       MESSAGE(inarg,'.modify(): stripped off: '+option_field)
       arg.__delitem__(option_field)                  # just strip it off
+   if not isinstance(opt, dict): opt = dict()
+   opt.setdefault('severe', True)
 
    # Keep track of whether the keywords are found (see also below):
    found = dict()
@@ -285,9 +288,14 @@ def modify(inarg, **arg):
    for key in found.keys():
       if not found[key]:
          ok = False
+
    if not ok:
-      ERROR(inarg,'.modify(): NOT ok: (found ='+str(found)+')')
-      trace = True
+      if opt['severe']:
+         ERROR(inarg,'.modify(severe): NOT ok: (found ='+str(found)+')')
+         trace = True
+      else:
+         MESSAGE(inarg,'.modify(severe=False): (found ='+str(found)+')')
+         ok = True
 
    if trace:
       print '** found =',found,': ok =',ok
@@ -1328,6 +1336,7 @@ def inarg_check (pp, kwargs, keys=[]):
 def define(pp, key=None, default=None, slave=False,
            choice=None, editable=None, tf=None,
            mandatory_type=None, browse=None, vector=None,
+           callback=None,
            range=None, min=None, max=None,
            help=None, hide=None, mutable=None, trace=False):
    """Define a pp entry with a default value, and other info.
@@ -1394,6 +1403,7 @@ def define(pp, key=None, default=None, slave=False,
    # (Use a dict (rr) to drive the loop below)
    rr = dict(choice=choice, editable=editable, 
              mandatory_type=mandatory_type,
+             callback=callback,
              browse=browse, mutable=mutable,
              range=range, min=min, max=max,
              hide=hide, vector=vector, help=help)
@@ -1409,13 +1419,26 @@ def define(pp, key=None, default=None, slave=False,
    if trace: print
    return True
 
+#--------------------------------------------------------------------------------
+
+def obsolete(pp=None, old=None, new=None):
+   """Helper function for upward compatibility when changing argument names"""
+   if pp.has_key(old):
+      if isinstance(pp[old], str):
+         lscope = localscope(pp)
+         print '\n** Obsolete use of argument (',old,') in:',lscope
+         print '   Its value (=',pp[old],') has been transferred:',old,'->',new
+         print '   But you should upgrade to the new name (',new,') asap.\n'
+         pp[new] = pp[old]
+   return True
+  
+
+
 
 #********************************************************************************
 #********************************************************************************
 #********************************************************************************
 #********************************************************************************
-
-
 
 
 #========================================================================

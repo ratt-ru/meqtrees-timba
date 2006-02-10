@@ -100,13 +100,13 @@ def _define_forest (ns):
    group['3c'] = ['3c147','3c48','3c286','3c295']
 
    # Sixpack['default'] = newstar_source (ns)
-   # Sixpack['QUV_RM_SI'] = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
+   # Sixpack['QUV_RM_SI'] = newstar_source (ns, punit='QUV', RM=1, SI=-0.7)
 
    radec = []
    for key in group.keys():
       ss = []
       for predef in group[key]:
-         Sixpack = newstar_source (ns, name=predef)
+         Sixpack = newstar_source (ns, punit=predef)
          bb = []
          bb.append(Sixpack.stokesI())
          bb.append(Sixpack.stokesQ())
@@ -150,11 +150,15 @@ def _define_forest (ns):
 # Standard input arguments (used e.g. by MG_JEN_Cohset.py)
 
 def inarg_punit (pp, **kwargs):
+    """Definition of inarg input argument punit""" 
     JEN_inarg.inarg_common(kwargs)
-    choice = ['unpol','unpol2','unpol10','3c147',
-              'RMtest','QUV','QU','SItest']
+    choice = ['unpol','unpol2','unpol10',
+              'QUV','QU','Qonly','Uonly','Vonly',
+              '3c147','3c286','3c48','3c295',
+              'RMtest','SItest']
     JEN_inarg.define (pp, 'punit', 'unpol', choice=choice,
                       slave=kwargs['slave'], hide=kwargs['hide'],
+                      callback=True,
                       help='name of calibrator source/patch \n'+
                       '- unpol:   unpolarised, I=1Jy \n'+
                       '- unpol2:  idem, I=2Jy \n'+
@@ -163,7 +167,18 @@ def inarg_punit (pp, **kwargs):
                       '- SItest:  Spectral Index \n'+
                       '- QUV:     non-zero Q,U,V \n'+
                       '- QU:      non-zero Q,U \n'+
-                      '- 3c147:')
+                      '- QU2:     stronger version of QU \n'+
+                      '- Qonly:   non-zero Q \n'+
+                      '- Uonly:   non-zero U \n'+
+                      '- Vonly:   non-zero V \n'+
+                      '- 3c286:   \n'+
+                      '- 3c48:    \n'+
+                      '- 3c295:   \n'+
+                      '- 3c147:   \n'+
+                      '')
+    # Upward compatibility (temporary).
+    # name has been changed into punit on friday 10 feb 2006....
+    JEN_inarg.define (pp, 'name', None, hide=True)
     return True
 
 #------------------------------------------------------------------------------
@@ -182,59 +197,102 @@ def inarg_Sixpack_common (pp, **kwargs):
 #----------------------------------------------------------------------
 # Some sources are predefined: Modify parameters pp accordingly.
 
-def predefined (pp, trace=0):  
+def predefined (pp, trace=0):
+    """Some sources are defined by their name (punit)"""
+    # NB: It is assumed that none of their source parameters are explicitly specified!
+    if (pp['punit']=='3c147'):
+       predefined_reset(pp) 
+       pp['I0'] = 10**1.766
+       pp['SI'] = [0.447, -0.184]
+    elif (pp['punit']=='3c48'):
+       predefined_reset(pp) 
+       pp['I0'] = 10**2.345
+       pp['SI'] = [0.071, -0.138]
+    elif (pp['punit']=='3c286'): 
+       predefined_reset(pp) 
+       pp['I0'] = 10**1.48
+       pp['SI'] = [0.292, -0.124]
+       pp['Q'] = [2.735732, -0.923091, 0.073638]         # <-----
+       pp['U'] = [6.118902, -2.05799, 0.163173]          # <-----
+    elif (pp['punit']=='3c295'):
+       predefined_reset(pp) 
+       pp['I0'] = 10**1.485
+       pp['SI'] = [0.759, -0.255]
+    elif (pp['punit']=='unpol'):
+       predefined_reset(pp) 
+       pp['I0'] = 1.0
+    elif (pp['punit']=='unpol2'):
+       predefined_reset(pp) 
+       pp['I0'] = 2.0
+    elif (pp['punit']=='unpol10'):
+       predefined_reset(pp) 
+       pp['I0'] = 10.0
+    elif (pp['punit']=='Qonly'):
+       predefined_reset(pp) 
+       pp['Qpct'] = 10
+    elif (pp['punit']=='Uonly'):
+       predefined_reset(pp) 
+       pp['Upct'] = -10
+    elif (pp['punit']=='Vonly'):
+       predefined_reset(pp) 
+       pp['Vpct'] = 2                            
+    elif (pp['punit']=='QU'):
+       predefined_reset(pp) 
+       pp['Qpct'] = 10
+       pp['Upct'] = -10
+    elif (pp['punit']=='QUV'):
+       predefined_reset(pp) 
+       pp['Qpct'] = 10
+       pp['Upct'] = -10
+       pp['Vpct'] = 2
+    elif (pp['punit']=='QU2'):
+       predefined_reset(pp) 
+       pp['I0'] = 2.0
+       pp['Qpct'] = 40
+       pp['Upct'] = -30
+    elif (pp['punit']=='RMtest'):
+       predefined_reset(pp) 
+       pp['RM'] = 1.0
+       pp['Qpct'] = 10
+       pp['Upct'] = -10
+    elif (pp['punit']=='SItest'):
+       predefined_reset(pp) 
+       pp['SI'] = -0.7
+    elif (pp['punit']=='I0polc'):
+       predefined_reset(pp) 
+       pp['I0'] = array([[2,-.3,.1],[.3,-.1,0.03]]),
 
-  # Some sources are defined by their name:
-  # NB: It is assumed that none of their source parameters are explicitly specified!
-  if (pp['name']=='3c147'):
-    pp['I0'] = 10**1.766
-    pp['SI'] = [0.447, -0.184]
-  elif (pp['name']=='3c48'):
-    pp['I0'] = 10**2.345
-    pp['SI'] = [0.071, -0.138]
-  elif (pp['name']=='3c286'): 
-    pp['I0'] = 10**1.48
-    pp['SI'] = [0.292, -0.124]
-    pp['Q'] = [2.735732, -0.923091, 0.073638]
-    pp['U'] = [6.118902, -2.05799, 0.163173]
-  elif (pp['name']=='3c295'):
-    pp['I0'] = 10**1.485
-    pp['SI'] = [0.759, -0.255]
-  elif (pp['name']=='unpol'):
-    pp['I0'] = 1.0
-  elif (pp['name']=='unpol2'):
-    pp['I0'] = 2.0
-  elif (pp['name']=='unpol10'):
-    pp['I0'] = 10.0
-  elif (pp['name']=='Qonly'):
-    pp['Qpct'] = 10
-  elif (pp['name']=='Uonly'):
-    pp['Upct'] = -10
-  elif (pp['name']=='Vonly'):
-    pp['Vpct'] = 2                            
-  elif (pp['name']=='QU'):
-    pp['Qpct'] = 10
-    pp['Upct'] = -10
-  elif (pp['name']=='QUV'):
-    pp['Qpct'] = 10
-    pp['Upct'] = -10
-    pp['Vpct'] = 2
-  elif (pp['name']=='QU2'):
-    pp['I0'] = 2.0
-    pp['Qpct'] = 40
-    pp['Upct'] = -30
-  elif (pp['name']=='RMtest'):
-    pp['RM'] = 1.0
-    pp['Qpct'] = 10
-    pp['Upct'] = -10
-  elif (pp['name']=='SItest'):
-    pp['SI'] = -0.7
-  elif (pp['name']=='I0polc'):
-    pp['I0'] = array([[2,-.3,.1],[.3,-.1,0.03]]),
+    else:
+       # If punit not recognised, pp is not changed at all:
+       pass
 
-  # if trace: print 'pp =',pp
-  return 
+    # if trace: print 'pp =',pp
+    return 
 
+#--------------------------------------------------------------------
+
+def predefined_reset(pp):
+    """Reset some of the pp fields to a known state.
+    This is used for all recognised punits in predefined()"""
+    pp.setdefault('I0', 1.0) 
+    pp.setdefault('Qpct', None) 
+    pp.setdefault('Upct', None) 
+    pp.setdefault('Vpct', None) 
+    pp.setdefault('RM', None) 
+    pp.setdefault('SI', None) 
+    return True
+
+
+#--------------------------------------------------------------------
+
+def predefined_inarg (punit='unpol'):
+    """Make a predefined inarg for a specific punit (source)"""
+    pp = dict(punit=punit)
+    predefined (pp)
+    print 'predefined(pp) ->',pp
+    inarg = newstar_source(_getdefaults=True)
+    JEN_inarg.modify(inarg, **pp)
+    return inarg
 
 #---------------------------------------------------------------------
 # Predefined polclog definitions of selected sources:
@@ -301,12 +359,12 @@ def polclog_SIF (I0=1.0, SI=-0.7, f0=1e6):
 
 #    if len(SI) == 1:
 #       print type(ns)
-#       parm['I0'] = (ns.I0(q=pp['name']) << Meq.Parm(pp['I0']))
-#       parm['SI'] = (ns.SI(q=pp['name']) << Meq.Parm(pp['SI']))
+#       parm['I0'] = (ns.I0(q=pp['punit']) << Meq.Parm(pp['I0']))
+#       parm['SI'] = (ns.SI(q=pp['punit']) << Meq.Parm(pp['SI']))
 #       freq = (ns.freq << Meq.Freq())
-#       fratio = (ns.fratio(q=pp['name']) << (freq/pp['f0']))
-#       fmult = (ns.fmult(q=pp['name']) << Meq.Pow(fratio, parm['SI']))
-#       iquv[n6.I] = (ns[n6.I](q=pp['name']) << (parm['I0'] * fmult))
+#       fratio = (ns.fratio(q=pp['punit']) << (freq/pp['f0']))
+#       fmult = (ns.fmult(q=pp['punit']) << Meq.Pow(fratio, parm['SI']))
+#       iquv[n6.I] = (ns[n6.I](q=pp['punit']) << (parm['I0'] * fmult))
 
 
 #---------------------------------------------------------------------
@@ -349,36 +407,73 @@ def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
 #=======================================================================================
 
 
-def newstar_source (ns=0, **pp):
-   """Make a Sixpack for a source with NEWSTAR parametrisation"""
+def newstar_source (ns=0, **inarg):
+   """Make a Sixpack (I,Q,U,V,Ra,Dec) for a source with NEWSTAR parametrisation"""
 
-   # Deal with input parameters (pp):
-   pp.setdefault('name', 'cps')        # source name
+   # Input arguments:
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Sixpack::newstar_source()', version='10feb2006',
+                           description=newstar_source.__doc__)
+   inarg_punit (pp)
    inarg_Sixpack_common(pp)            # solvable, parmtable etc
-   pp.setdefault('I0', 1.0)            # StokesI0 (Jy)
-   pp.setdefault('Qpct', None)         # StokesQpct
-   pp.setdefault('Upct', None)         # StokesUpct
-   pp.setdefault('Vpct', None)         # StokesVpct
-   pp.setdefault('RM', None)           # Rotation Measure (rad/m2)
-   pp.setdefault('SI', None)           # Spectral Index (generalised)
-   pp.setdefault('f0', 1e6)            # SI reference frequency (Hz)
-   pp.setdefault('shape', 'point')     # source shape (e.g. point or elliptic_gaussian)
-   pp.setdefault('major', 0.0)         # major axis (rad), elliptic gaussian
-   pp.setdefault('minor', 0.0)         # minor axis (rad), elliptic gaussian
-   pp.setdefault('pa', 0.0)            # position angle (rad), elliptic gaussian
-   pp.setdefault('RA', 0.0)            # Right Ascension (rad, J2000)
-   pp.setdefault('Dec', 1.0)           # Declination (rad, J2000)
-   pp.setdefault('RA0', None)          # Phase-centre Right Ascension (rad, J2000)
-   pp.setdefault('Dec0', None)         # Phase-centre Declination (rad, J2000)
-   pp.setdefault('dRA', 0.0)           # Delta Right Ascension (rad, J2000)
-   pp.setdefault('dDec', 0.0)          # Delta Declination (rad, J2000)
-   pp.setdefault('fsr_trace', True)    # if True, attach to forest state record
+   JEN_inarg.define(pp, 'I0', 1.0, choice=[1.0, 10.0],  
+                    help='Stokes I: Total intensity @ f=f0 (usually 1 MHz)')
+   JEN_inarg.define(pp, 'Qpct', None, choice=[None, 0.1, -0.05, 0.01],  
+                    help='Stokes Q (percentage of I)')
+   JEN_inarg.define(pp, 'Upct', None, choice=[None, -0.1, 0.05, -0.01],  
+                    help='Stokes U (percentage of I)')
+   JEN_inarg.define(pp, 'Vpct', None, choice=[None, 0.01, -0.005, 0.001],  
+                    help='Stokes V (percentage of I)')
+   JEN_inarg.define(pp, 'RM', None, choice=[1.0,3.0,10.0,-10.0,60.0],  
+                    help='Intrinsic Rotation Measure (rad/m2)')
+   help = """Spectral Index (generalised)
+   A scalar represents the classical SI: I(f)=I0*(f/f0)^SI
+   A vector represents a freq-dependent SI (....)"""
+   JEN_inarg.define(pp, 'SI', None,
+                    choice=[None,-0.7,[0.447, -0.184]],
+                    help=help)
+   JEN_inarg.define(pp, 'f0', 1e6, choice=[1e6], hide=True,
+                    help='reference freq (Hz): I=I0 @ f=f0')
+   JEN_inarg.define(pp, 'RA', 0.0, choice=[0.0,0.5,1.0],  
+                    help='Right Ascension (rad, J2000)')
+   JEN_inarg.define(pp, 'Dec', 1.0, choice=[0.5,1.0],  
+                    help='Declination (rad, J2000)')
+   JEN_inarg.define(pp, 'fsr_trace', tf=True, hide=True,   
+                    help='If True, attach to forest state record')
+
+   # Non-point sources:
+   JEN_inarg.define(pp, 'shape', 'point', hide=True,
+                    choice=['point','ell.gauss'],  
+                    help='source shape')
+   JEN_inarg.define(pp, 'major', 0.0, choice=[1.0,10.0,100.0], hide=True,
+                    help='major axis (arcsec)')
+   JEN_inarg.define(pp, 'minor', 0.0, choice=[0.5,5.0,50.0], hide=True, 
+                    help='minor axis (arcsec)')
+   JEN_inarg.define(pp, 'pa', 0.0, choice=[0.0,1.0,-0.5], hide=True,  
+                    help='position angle (rad)')
+
+   # Source positions may be supplied as nodes:
+   JEN_inarg.define(pp, 'RA0', None, choice=[], hide=True,  
+                    help='If RA0 is a node, RA0+dRA overrides RA')
+   JEN_inarg.define(pp, 'Dec0', None, choice=[], hide=True,   
+                    help='If Dec0 is a node, Dec0+dDec overrides Dec')
+   JEN_inarg.define(pp, 'dRA', 0.0, choice=[], hide=True,   
+                    help='RA offset (arcsec): RA = RA0 + dRA')
+   JEN_inarg.define(pp, 'dDec', 0.0, choice=[], hide=True,   
+                    help='Dec offset (arcsec): Dec = Dec0 + dDec')
+
+   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+   if not JEN_inarg.is_OK(pp): return False
+   funcname = JEN_inarg.localscope(pp)
+
+   # Upward compatibility (temporary)
+   JEN_inarg.obsolete (pp, old='name', new='punit')
   
    # Adjust parameters pp for some special cases:
-   predefined (pp)  
+   # NB: Disabled, to allow customisation via inargGui....
+   ## predefined (pp)  
 
    # Make the Sixpack and get its Parmset object:
-   punit = pp['name']
+   punit = pp['punit']
    Sixpack = TDL_Sixpack.Sixpack(label=punit, **pp)
    # Sixpack.display()
    pset = Sixpack.Parmset 
@@ -413,6 +508,7 @@ def newstar_source (ns=0, **pp):
    if pp['SI'] is None:
       parm['I0'] = pset.define_MeqParm (ns, 'I0', parmgroup=sI, default=pp['I0'])
       iquv[n6.I] = parm['I0']
+      fmult = iquv[n6.I]               
    else:
       polclog = polclog_SIF (SI=pp['SI'], I0=pp['I0'], f0=pp['f0'])
       parm['SIF'] = pset.define_MeqParm (ns, 'SIF_stokesI', parmgroup=sI, default=polclog)
@@ -486,15 +582,17 @@ def newstar_source (ns=0, **pp):
    radec = {}
    if pp['RA0']:
       # Special case: Source position specified as node (RA0) with offset (dRA):
-      radec[n6.R] = ns[n6.R] << Meq.Add(pp['RA0'],pp['dRA'])  
+      radec[n6.R] = ns[n6.R](q=punit) << Meq.Add(pp['RA0'],pp['dRA'])  
    else:
-      radec[n6.R] = pset.define_MeqParm (ns, n6.R, parmgroup=pg_radec, default=pp['RA'])  
+      radec[n6.R] = pset.define_MeqParm (ns, n6.R, qual=dict(q=punit),
+                                         parmgroup=pg_radec, default=pp['RA'])  
 
    if pp['Dec0']:
       # Special case: Source position specified as node (Dec0) with offset (dDec):
-      radec[n6.D] = ns[n6.D] << Meq.Add(pp['Dec0'],pp['dDec'])  
+      radec[n6.D] = ns[n6.D](q=punit) << Meq.Add(pp['Dec0'],pp['dDec'])  
    else:
-      radec[n6.D] = pset.define_MeqParm (ns, n6.D, parmgroup=pg_radec, default=pp['Dec'])  
+      radec[n6.D] = pset.define_MeqParm (ns, n6.D, qual=dict(q=punit),
+                                         parmgroup=pg_radec, default=pp['Dec'])  
 
    # Finished: Fill the Sixpack and return it:
    Sixpack.stokesI(iquv[n6.I])
@@ -580,6 +678,7 @@ def _tdl_job_sequence(mqs, parent):
 
 if __name__ == '__main__':
    print '\n*******************\n** Local test of:',MG.script_name,':\n'
+   from Timba.Trees import JEN_inargGui
 
    # Generic test:
    if 0:
@@ -587,29 +686,51 @@ if __name__ == '__main__':
 
    # Various specific tests:
    ns = NodeScope()
+   Sixpack = None
 
    if 1:
-      name = '3c286'
-      name = '3c147'
-      name = 'SItest'
-      name = 'RMtest'
+      punit = '3c286'
+      punit = '3c147'
+      punit = 'SItest'
+      punit = 'RMtest'
       unsolvable = False
       unsolvable = True
       parmtable = None
       parmtable = '<lsm-parmtable>'
-      Sixpack = newstar_source (ns, name=name,
+      Sixpack = newstar_source (ns, name=punit,
                                 unsolvable=unsolvable,
                                 parmtable=parmtable)
       # Sixpack = newstar_source (ns)
-      # Sixpack = newstar_source (ns, name='QUV', RM=1, SI=-0.7)
+      # Sixpack = newstar_source (ns, punit='QUV', RM=1, SI=-0.7)
       Sixpack.display()
       Sixpack.Parmset.display()
-      if 0:
-         Sixpack.nodescope(ns)
-         MG_JEN_exec.display_subtree (Sixpack.stokesI(), 'stokesI()', full=1)
-         MG_JEN_exec.display_subtree (Sixpack.sixpack(), 'sixpack()', full=1)
-         MG_JEN_exec.display_subtree (Sixpack.iquv(), 'iquv()', full=1)
-         MG_JEN_exec.display_subtree (Sixpack.radec(), 'radec()', full=1)
+
+   if 0:
+      inarg = predefined_inarg(punit='QU')
+      igui = JEN_inargGui.ArgBrowser()
+      igui.input(inarg)
+      igui.launch()
+
+   if 0:
+      inarg = newstar_source(_getdefaults=True)
+      JEN_inarg.modify(inarg,
+                       RA0=(ns.RA0 << 1.2),
+                       Dec0=(ns.Dec0 << 1.3),
+                       dRA=9.5,
+                       dDec=-11.7)
+      Sixpack = newstar_source(ns, _inarg=inarg)
+      Sixpack.display()
+
+   if 0:
+      Sixpack.nodescope(ns)
+      MG_JEN_exec.display_subtree (Sixpack.radec(), 'radec()', full=1)
+
+   if 0:
+      Sixpack.nodescope(ns)
+      MG_JEN_exec.display_subtree (Sixpack.stokesI(), 'stokesI()', full=1)
+      MG_JEN_exec.display_subtree (Sixpack.sixpack(), 'sixpack()', full=1)
+      MG_JEN_exec.display_subtree (Sixpack.iquv(), 'iquv()', full=1)
+
 
    print '\n** End of local test of:',MG.script_name,'\n*******************\n'
        

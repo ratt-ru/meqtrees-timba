@@ -977,7 +977,7 @@ def get_punit(Sixpack=None, pp=dict()):
 
 def punit2Sixpack(ns, punit='uvp'):
    """Make a Sixpack from a punit string"""
-   Sixpack = MG_JEN_Sixpack.newstar_source (ns, name=punit)
+   Sixpack = MG_JEN_Sixpack.newstar_source (ns, punit=punit)
    return Sixpack
 
 

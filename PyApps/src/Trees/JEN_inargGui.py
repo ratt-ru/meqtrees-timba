@@ -1009,6 +1009,7 @@ class ArgBrowser(QMainWindow):
                    mutable=True,              # If True, the value may be modified
                    vector=False,              # If True, the value is a vector/list
                    browse=None,               # Extension of files ('e.g *.MS')
+                   callback=None,             # see valueChanged()
                    module=module,             # name of the relevant function module
                    oneliner='<oneliner>',
                    description='<description>',            
@@ -1027,6 +1028,7 @@ class ArgBrowser(QMainWindow):
                             'editable','hide','color',
                             'mutable','vector',
                             'mandatory_type','browse',
+                            'callback',
                             'range','min','max','help']
             for field in key_specific:
                 if ctrl.has_key(field):
@@ -1123,13 +1125,27 @@ class ArgBrowser(QMainWindow):
         return True
 
     def popupOK(self, itd):
-        """Action upon pressing the popup OK button"""
+        """Action upon pressing the popup OK (Commit) button"""
         # Replace the relevant itemdict with the modified one:
         iitd = self.__current_iitd                # its position in self.__itemdict
         self.__itemdict[iitd] = itd               # replace in self.__itemdict
         self.__modified = True                    # self.__inarg has been modified
         self.replace (self.__inarg, itd, trace=False)
+        if itd['callback']:
+            print '\n** popupOK(): callback =',itd['callback'],'\n'
+            if itd['key']=='punit':
+                self.callback_punit(itd['value'])
         self.refresh()
+        return True
+
+    def callback_punit(self, punit):
+        """Kludge"""
+        from Timba.Contrib.JEN import MG_JEN_Sixpack
+        pp = dict(punit=punit)
+        MG_JEN_Sixpack.predefined(pp)
+        print '** callback_punit(',punit,'): predefined(pp) ->\n   ',pp,'\n'
+        pp[option_field] = dict(severe=False)
+        JEN_inarg.modify(self.__inarg, **pp)
         return True
 
     def replace (self, rr=None, itd=None, level=0, trace=False):
@@ -1271,10 +1287,10 @@ class ArgBrowser(QMainWindow):
         """Modify MG_JEN_cps inarg for GDJones operation"""
         if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
-                         punit='QU',
                          Jsequence=['GJones','DJones_WSRT'],
                          solvegroup=['GJones','DJones'],
                          _JEN_inarg_option=None)     
+        self.callback_punit('QU')
         self.refresh()
         self.save_inarg('MG_JEN_cps_GDJones')
         if save_protected==True: self.save_as_protected()
@@ -1764,7 +1780,6 @@ if __name__=="__main__":
     from Timba.Trees import JEN_inarg
     # from Timba.Trees import JEN_record
 
-    # QApp = QApplication(sys.argv)
     igui = ArgBrowser()
 
     if 0:

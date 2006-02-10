@@ -193,7 +193,7 @@ def lsm_343(ns):
          source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
          source_Dec*=math.pi/180.0
 
-         my_sixpack=MG_JEN_Sixpack.newstar_source(ns,name=s.name,
+         my_sixpack=MG_JEN_Sixpack.newstar_source(ns, punit=s.name,
                                                   I0=eval(v.group('col12')),
                                                   SI=[random()],f0=1e6,
                                                   RA=source_RA,

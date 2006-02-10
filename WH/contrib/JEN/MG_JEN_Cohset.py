@@ -302,7 +302,6 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     # Make sure that there is a valid source/patch Sixpack:
     if not Sixpack:
         Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
-    # punit = Sixpack.label()
 
     # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
     Cohset = TDL_Cohset.Cohset(label='predict', origin=funcname, **pp)
@@ -365,9 +364,9 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
                      help='Optional unary operation on Condeq inputs')
     JEN_inarg.define(pp, 'visu', tf=True,
                      help='if True, include full visualisation')
-    JEN_inarg.define(pp, 'subtract', tf=False,
+    JEN_inarg.define(pp, 'subtract_after', tf=False,
                      help='if True, subtract predicted from measured')
-    JEN_inarg.define(pp, 'correct', tf=True,
+    JEN_inarg.define(pp, 'correct_after', tf=True,
                      help='if True, correct measured with predicted.Joneset')
     # Include (nest) the inarg record of a subroutine called below:
     JEN_inarg.nest(pp, solver_subtree(_getdefaults=True))
@@ -395,7 +394,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     if pp['redun']:                              # redundant-spacing calibration
         Mohset.correct(ns, predicted.Joneset())  # correct BOTH sides of the condeq                 
         Mohset.Condeq_redun(ns, unop=pp['condeq_unop'])   # special version of .Condeq()                        
-        pp['subtract'] = False                   # .....??
+        pp['subtract_after'] = False             # .....??
     else:                                        # normal: measured-predicted
         Mohset.Condeq(ns, predicted, unop=pp['condeq_unop'])        
     Mohset.scope('condeq_'+punit)
@@ -424,7 +423,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
 
     # Optional: subtract the predicted (corrupted) Cohset from the measured data:
     # NB: This should be done BEFORE correct, since predicted contains corrupted values
-    if pp['subtract']:
+    if pp['subtract_after']:
         measured.subtract(ns, predicted) 
         if pp['visu']: visualise (ns, measured, errorbars=True, graft=False)
         
@@ -433,7 +432,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     # NB: Correction should be inserted BEFORE the solver reqseq (see below),
     # because otherwise it messes up the correction of the insertion ifr
     # (one of the input Jones matrices is called before the solver....)
-    if pp['correct']:
+    if pp['correct_after']:
         # The 'predicted' Cohset has kept the Joneset with which it has been
         # corrupted, and which has been affected by the solution for its MeqParms.
         Joneset = predicted.Joneset() 
@@ -837,7 +836,7 @@ def display_first_subtree (Cohset=None, recurse=3):
 # Make a Sixpack from a punit string
 
 def punit2Sixpack(ns, punit='uvp'):
-    Sixpack = MG_JEN_Sixpack.newstar_source (ns, name=punit)
+    Sixpack = MG_JEN_Sixpack.newstar_source (ns, punit=punit)
     return Sixpack
 
 
@@ -927,7 +926,7 @@ def inarg_Cohset_common (pp, last_changed='<undefined>', **kwargs):
     inarg_stations(pp)
     inarg_parmtable(pp)
     inarg_polrep(pp)
-    MG_JEN_Sixpack.inarg_punit(pp)
+    # MG_JEN_Sixpack.inarg_punit(pp)
     MG_JEN_Joneset.inarg_uvplane_effect(pp)    
     inarg_solver_config (pp)
     inarg_redun(pp)
@@ -972,26 +971,13 @@ inarg_Cohset_common (MG, last_changed='d19jan2006')
 
 
 inarg = MG_JEN_exec.stream_control(_getdefaults=True, slave=True)
-JEN_inarg.modify(inarg,
-                 tile_size=11,
-                 _JEN_inarg_option=None)     
 JEN_inarg.attach(MG, inarg)
 
 
 # inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
 inarg = make_spigots(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
-JEN_inarg.modify(inarg,
-                 _JEN_inarg_option=None)       
 JEN_inarg.attach(MG, inarg)
 
-
-
-# inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
-inarg = make_sinks(_getdefaults=True)                # local (MG_JEN_Cohset.py) version 
-JEN_inarg.modify(inarg,
-                 _JEN_inarg_option=None)   
-JEN_inarg.attach(MG, inarg)
-                 
 
 
 
@@ -1002,8 +988,6 @@ JEN_inarg.attach(MG, inarg)
 if False:                                                # ... Copied from MG_JEN_Cohset.py ...
    # inarg = MG_JEN_Cohset.insert_flagger(_getdefaults=True) 
    inarg = insert_flagger(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
-   JEN_inarg.modify(inarg,
-                    _JEN_inarg_option=None)            # optional, not yet used 
    JEN_inarg.attach(MG, inarg)
    
 
@@ -1015,111 +999,34 @@ if False:                                                # ... Copied from MG_JE
 #----------------------------------------------------------------------------------------------------
 
 #========
-if True:                                                   # ... Copied from MG_JEN_Cohset.py ...
+if True:                               
 
-   # Specify the name qualifier for (the inarg records of) this 'predict and solve' group.
-   # NB: The same qualifier should be used when using the functions in _define_forest()
-   qual = None
-   qual = 'qual1'
+   inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True) 
+   JEN_inarg.attach(MG, inarg)
 
-   # Specify the sequence of zero or more (corrupting) Jones matrices:
-   Jsequence = []
-   # Jsequence = ['KJones'] 
-   Jsequence = ['GJones'] 
-   # Jsequence = ['BJones'] 
-   # Jsequence = ['FJones'] 
-   # Jsequence =['DJones_WSRT']             
-   # Jsequence = ['GJones','DJones_WSRT']
-   
-   # Specify a list of MeqParm solvegroup(s) to be solved for:
-   solvegroup = ['stokesI']
-   solvegroup = ['stokesI','GJones']
-   # solvegroup = ['GJones']
-   # solvegroup = ['DJones']
-   # solvegroup = ['GJones','DJones']
-
-   # Extra condition equations to be used:
-   condition = []
-   # condition.append('Gphase_X_sum=0.0')
-   # condition.append('Gphase_Y_sum=0.0')
-   # condition.append('Gphase_X_first=0.0')
-   # condition.append('Gphase_Y_last=0.0')
-   # condition.append('Bimag_X_sum=0.0')
-   # condition.append('Bimag_Y_sum=0.0')
-   condition = []
-
-
-   # inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual) 
-   inarg = JJones(_getdefaults=True, _qual=qual, slave=True)  
-   JEN_inarg.modify(inarg,
-                    Jsequence=Jsequence,                   # Sequence of corrupting Jones matrices 
-                    _JEN_inarg_option=None)                # optional, not yet used 
-
-   # Insert non-default Jones matrix arguments here: 
-   #    (This is easiest by copying lines from MG_JEN_Joneset.py)
-   if 'GJones' in Jsequence: 
-       JEN_inarg.modify(inarg,
-                        fdeg_Ggain=3,                      # degree of default freq polynomial         
-                        fdeg_Gphase='@fdeg_Ggain',          # degree of default freq polynomial          
-                        tdeg_Ggain=1,                      # degree of default time polynomial         
-                        tdeg_Gphase='@tdeg_Ggain',          # degree of default time polynomial       
-                        subtile_size_Ggain=0,                 # used in tiled solutions         
-                        subtile_size_Gphase='subtile_size_Ggain', # used in tiled solutions         
-                        _JEN_inarg_option=None)            # optional, not yet used 
-   if 'DJones_WSRT' in Jsequence: 
-       JEN_inarg.modify(inarg,
-                        fdeg_dang=1,                       # degree of default freq polynomial
-                        fdeg_dell='@fdeg_dang',             # degree of default freq polynomial
-                        tdeg_dang=1,                       # degree of default time polynomial
-                        tdeg_dell='@tdeg_dang',             # degree of default time polynomial
-                        subtile_size_dang=0,                  # used in tiled solutions         
-                        subtile_size_dell='subtile_size_dang',   # used in tiled solutions         
-                        _JEN_inarg_option=None)            # optional, not yet used 
-   if 'BJones' in Jsequence: 
-       JEN_inarg.modify(inarg,
-                        fdeg_Breal=3,                      # degree of default freq polynomial        
-                        fdeg_Bimag='@fdeg_Breal',           # degree of default freq polynomial          
-                        tdeg_Breal=0,                      # degree of default time polynomial         
-                        tdeg_Bimag='@tdeg_Breal',           # degree of default time polynomial    
-                        subtile_size_Breal=0,                 # used in tiled solutions         
-                        subtile_size_Bimag='subtile_size_Breal', # used in tiled solutions         
-                        _JEN_inarg_option=None)            # optional, not yet used 
-   if 'FJones' in Jsequence: 
-       JEN_inarg.modify(inarg,
-                        fdeg_RM=0,                         # degree of default freq polynomial          
-                        tdeg_RM=0,                         # degree of default time polynomial         
-                        subtile_size_RM=1,                    # used in tiled solutions         
-                        _JEN_inarg_option=None)            # optional, not yet used 
+   # inarg = MG_JEN_Cohset.JJones(_getdefaults=True, slave=True) 
+   inarg = JJones(_getdefaults=True, slave=True)  
    JEN_inarg.attach(MG, inarg)
 
 
-   # inarg = MG_JEN_Cohset.predict(_getdefaults=True, _qual=qual)  
-   inarg = predict(_getdefaults=True, _qual=qual, slave=True)             # local (MG_JEN_Cohset.py) version 
-   JEN_inarg.modify(inarg,
-                    _JEN_inarg_option=None)                # optional, not yet used 
+   # inarg = MG_JEN_Cohset.predict(_getdefaults=True, slave=True)  
+   inarg = predict(_getdefaults=True, slave=True)       
    JEN_inarg.attach(MG, inarg)
 
 
    #========
-   if True:                                                # ... Copied from MG_JEN_Cohset.py ...
-       # inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, _qual=qual) 
-       inarg = insert_solver(_getdefaults=True, _qual=qual, slave=True)   # local (MG_JEN_Cohset.py) version 
-       JEN_inarg.modify(inarg,
-                        subtract=True,                    # if True, subtract 'predicted' from uv-data 
-                        correct=False,                    # if True, correct the uv-data with 'predicted.Joneset()'
-                        visu=True,                         # if True, include visualisation
-                        # ** Arguments for .solver_subtree()
-                        solvegroup=solvegroup,             # list of solvegroup(s) to be solved for
-                        # condition=[],                      # list of names of extra condition equations
-                        condition=condition,               # list of names of extra condition equations
-                        # rmin=200,                         # if specified, only use baselines>=rmin 
-                        # rmax=None,                         # if specified, only use baselines<=rmax
-                        num_iter=10,                       # max number of iterations
-                        history=True,                      # if True, include history collection of metrics 
-                        _JEN_inarg_option=None)            # optional, not yet used 
+   if True:                                        
+       # inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, slave=True) 
+       inarg = insert_solver(_getdefaults=True, slave=True) 
        JEN_inarg.attach(MG, inarg)
                  
 
+#----------------------------------------------------------------------------------
+
+# inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
+inarg = make_sinks(_getdefaults=True)           
+JEN_inarg.attach(MG, inarg)
+                 
 
 
 
@@ -1212,13 +1119,13 @@ def _define_forest (ns, **kwargs):
 
     if True:
         # Optional: Insert a solver:
-        qual = 'qual1'
-        Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
-        Joneset = JJones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
-        predicted = predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
+        # Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
+        Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
+        Joneset = JJones(ns, Sixpack=Sixpack, _inarg=MG)
+        predicted = predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
         if True:
             # Insert a solver for a named group of MeqParms (e.g. 'GJones'):
-            insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG, _qual=qual)
+            insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG)
 
     if True:
         # Make MeqSink nodes that write the MS:

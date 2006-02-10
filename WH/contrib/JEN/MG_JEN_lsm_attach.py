@@ -96,7 +96,6 @@ def _description():
 
 MG = JEN_inarg.init('MG_JEN_cps', description=_description.__doc__)
 
-# To be copied to other scipts:
 JEN_inarg.define (MG, 'last_changed', 'd11jan2006', editable=False)
 JEN_inarg.define (MG, 'LSM', 'lsm_current.lsm', browse='*.lsm')
 MG_JEN_exec.inarg_ms_name(MG)

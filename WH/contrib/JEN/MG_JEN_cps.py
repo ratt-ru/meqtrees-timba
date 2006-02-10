@@ -32,7 +32,7 @@ from Timba.Trees import TDL_Joneset
 
 from Timba.Contrib.JEN import MG_JEN_Joneset
 from Timba.Contrib.JEN import MG_JEN_Cohset
-# from Timba.Contrib.JEN import MG_JEN_Sixpack
+from Timba.Contrib.JEN import MG_JEN_Sixpack
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
@@ -133,7 +133,7 @@ JEN_inarg.modify(MG,
                  # parmtable name...?
                  uvplane_effect=True,
                  # Use large 'snippet' domains to minimise peeling contamination: 
-                 tile_size=100,
+                 # tile_size=100,
                  _JEN_inarg_option=None)     
 
 
@@ -159,6 +159,9 @@ JEN_inarg.attach(MG, inarg)
 #----------------------------------------------------------------------------------------------------
 # Insert a solver:
 #----------------------------------------------------------------------------------------------------
+
+inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True) 
+JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.JJones(_getdefaults=True, slave=True) 
 JEN_inarg.modify(inarg,
@@ -267,7 +270,8 @@ def _define_forest (ns, **kwargs):
 
 
     if MG['insert_solver']:
-        Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
+        # Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
+        Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
         Joneset = MG_JEN_Cohset.JJones(ns, Sixpack=Sixpack, _inarg=MG)
         predicted = MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
         MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG)
