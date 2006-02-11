@@ -153,6 +153,11 @@ const int AidError_int = -1056;
 const DMI::AtomicID AidEvent(-1080);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
 const int AidEvent_int = -1080;
 #endif
+#ifndef _defined_id_AidExec
+#define _defined_id_AidExec 1
+const DMI::AtomicID AidExec(-1651);               // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
+const int AidExec_int = -1651;
+#endif
 #ifndef _defined_id_AidExecute
 #define _defined_id_AidExecute 1
 const DMI::AtomicID AidExecute(-1479);            // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:14
@@ -493,6 +498,11 @@ const int AidStep_int = -1473;
 const DMI::AtomicID AidStop(-1247);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
 const int AidStop_int = -1247;
 #endif
+#ifndef _defined_id_AidStopped
+#define _defined_id_AidStopped 1
+const DMI::AtomicID AidStopped(-1649);            // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
+const int AidStopped_int = -1649;
+#endif
 #ifndef _defined_id_AidStream
 #define _defined_id_AidStream 1
 const DMI::AtomicID AidStream(-1268);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:12
@@ -532,6 +542,11 @@ const int AidUVW_int = -1123;
 #define _defined_id_AidUntil 1
 const DMI::AtomicID AidUntil(-1475);              // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:16
 const int AidUntil_int = -1475;
+#endif
+#ifndef _defined_id_AidUpdating
+#define _defined_id_AidUpdating 1
+const DMI::AtomicID AidUpdating(-1650);           // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
+const int AidUpdating_int = -1650;
 #endif
 #ifndef _defined_id_AidVersion
 #define _defined_id_AidVersion 1

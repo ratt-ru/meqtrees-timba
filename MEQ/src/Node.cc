@@ -1358,10 +1358,14 @@ void Node::setControlStatus (int newst,bool sync)
 
 void Node::setExecState (int es,int newst,bool sync)
 {
+  parent_status_published_ = false;
   // update exec state in new control status 
   newst = (newst&~CS_MASK_EXECSTATE) | es;
   // check breakpoints
-  int bp = breakpointMask(es);
+  int bp = breakpointMask(newst);
+  // if fail result is being returned, add BP_FAIL to mask
+  if( es == CS_ES_IDLE && (newst&CS_RES_FAIL)==CS_RES_FAIL )
+    bp |= BP_FAIL;
   // always check global breakpoints first (to make sure single-shots are cleared)
   bool breakpoint = forest_->checkGlobalBreakpoints(bp);
   // the local flag is true if a local breakpoint (also) occurs
@@ -1379,14 +1383,50 @@ void Node::setExecState (int es,int newst,bool sync)
   if( breakpoint )
   {
     // update control status
-    setControlStatus(newst|CS_STOP_BREAKPOINT,sync);
-    // notify the Forest that a breakpoint has been reached
-    forest_->processBreakpoint(*this,es,!local);
+    // the breakpoint flag is only raised if we stopped because of a local
+    // breakpoint
+    if( local )
+      newst |= CS_STOP_BREAKPOINT;
+    setControlStatus(newst|CS_STOPPED,sync);
+    // now notify the forest of breakpoint (presumably this will wait
+    // on the stop flag)
+    pstate_lock_->release();
+    publishParentalStatus();  // recursively publish parents' control status
+    forest_->processBreakpoint(*this,bp,!local);
+    pstate_lock_->relock(state_mutex_);
     // clear stop bit from control status
-    setControlStatus(control_status_&~CS_STOP_BREAKPOINT,sync);
+    setControlStatus(control_status_&~(CS_STOP_BREAKPOINT|CS_STOPPED),sync);
   }
   else  // no breakpoints, simply update control status
+  {
+    // now check if forest is stopped at a breakpoint in another thread.
+    // If this is the case, then stop here and wait
+    if( forest_->isStopFlagRaised() )
+    {
+      setControlStatus(newst|CS_STOPPED,sync);
+      pstate_lock_->release();
+      publishParentalStatus();  // recursively publish parents' control status
+      forest_->waitOnStopFlag();
+      pstate_lock_->relock(state_mutex_);
+    }
     setControlStatus(newst,sync);
+  }
+}
+
+void Node::publishParentalStatus ()
+{
+  parent_status_published_ = true;
+  // skip when already hit by this loop
+  for( int i=0; i<numParents(); i++ )
+  {
+    Node &parent = getParent(i);
+    // force out a status message for parent
+    if( !parent.parent_status_published_ )
+    {
+      forest_->newControlStatus(parent,parent.getControlStatus(),parent.getControlStatus(),true);
+      parent.publishParentalStatus();
+    }
+  }
 }
 
 std::string Node::getStrExecState (int state)

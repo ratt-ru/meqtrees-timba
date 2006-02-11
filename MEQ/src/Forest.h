@@ -153,21 +153,53 @@ class Forest
     
     void enableProfiling (bool enable) 
     { profiling_enabled_ = enable; }
+
+    Thread::Condition & stopFlagCond ()
+    { return stop_flag_cond_; }
     
-    // these methods are used by nodes to notify of their control state, 
-    // trip breakpoints, etc.
-    void newControlStatus (Node &node,int oldst,int newst)
+    // In mt-mode, one thread can hit a breakpoint while the others are
+    // still running. To prevent them from running away, we call this
+    // function to raise a stop flag. All other nodes hitting this flag 
+    // will then stop.
+    void raiseStopFlag ();
+    
+    // Nodes call this to see if another thread is sitting at a breakpoint.
+    bool isStopFlagRaised () const
+    { return stop_flag_; }
+
+    // Once the user chooses to continue, call this function to clear the
+    // stop flag. This will also signal all stopped threads to restart
+    void clearStopFlag ();
+    
+    // Thread hitting the stop flag call this method to wait for it to
+    // clear
+    void waitOnStopFlag () const;
+
+    // set a global (forest-wide) breakpoint
+    void setBreakpoint (int bpmask,bool single_shot=false);
+    
+    // clears global breakpoint(s)
+    void clearBreakpoint (int bpmask,bool single_shot=false);
+    
+        
+    // these methods are used by nodes to notify of their control state.
+    // At debug level 0, we only report state changes involving breakpoints
+    // At debug level 1, also post changes to result status
+    // At debug level 2 or force_update is true, all state changes are reported
+    void newControlStatus (Node &node,int oldst,int newst,bool force_update=false)
     {
-      if( node_status_callback && debug_level_>0 )
+      if( !node_status_callback )
+        return;
+      int changemask = oldst^newst;
+      if( force_update || 
+          changemask && ( debug_level_>1 ||
+                          (debug_level_>0 && changemask&Node::CS_RES_MASK) ||
+                          changemask&Node::CS_MASK_BREAKPOINTS ) )
         (*node_status_callback)(node,oldst,newst);
     }
 
     // called by a node when its breakpoint is hit
-    void processBreakpoint (Node &node,int bpmask,bool global)
-    {
-      if( node_breakpoint_callback )
-        (*node_breakpoint_callback)(node,bpmask,global);
-    }
+    void processBreakpoint (Node &node,int bpmask,bool global);
 
     // called by a node at any runstate change to check for global
     // breakpoints
@@ -180,31 +212,6 @@ class Forest
       }
       return (breakpoints&bpmask) != 0;
     }
-    
-    // sets global breakpoint(s)
-    void setBreakpoint (int bpmask,bool single_shot=false)
-    {
-      if( single_shot )
-        breakpoints_ss |= bpmask;
-      else
-        breakpoints |= bpmask;
-    }
-    
-    // clears global breakpoint(s)
-    void clearBreakpoint (int bpmask,bool single_shot=false)
-    {
-      if( single_shot )
-        breakpoints_ss &= ~bpmask;
-      else
-        breakpoints &= ~bpmask;
-    }
-
-    // changes or gets the debug level
-    void setDebugLevel (int level)
-    { debug_level_ = level; }
-    
-    int debugLevel () const
-    { return debug_level_; }
     
     // set debugging callbacks
     void setDebuggingCallbacks (void (*stat)(Node&,int,int),void (*bp)(Node&,int,bool))
@@ -225,6 +232,12 @@ class Forest
       if( event_callback )
         (*event_callback)(type,data);
     }
+    
+    int debugLevel () const
+    { return debug_level_; }
+    
+    void setDebugLevel (int level) 
+    { debug_level_ = level; }
     
     Thread::Mutex & forestMutex () const
     { return forest_mutex_; }
@@ -249,6 +262,9 @@ class Forest
       
     int breakpoints;
     int breakpoints_ss;
+    
+    bool stop_flag_;
+    Thread::Condition stop_flag_cond_;
     
     int debug_level_;
     

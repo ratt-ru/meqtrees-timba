@@ -313,9 +313,9 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self._bookmarks,PYSIGNAL("showPagemark()"),self._show_pagemark);
     
     # --- Debug menu
-    self.treebrowser._qa_dbg_enable.addTo(debug_menu);
+    self.treebrowser._qa_dbg_verbosity.addTo(debug_menu);
+    debug_menu.insertSeparator();
     self.treebrowser._qa_dbg_tools.addTo(debug_menu);
-    
     debug_menu.insertSeparator();
     collect_prof = QAction("Collect profiling stats",0,self);
     collect_prof.addTo(debug_menu);
@@ -970,6 +970,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
   def ce_NodeState (self,ev,value):
     if hasattr(value,'name'):
       _dprint(5,'got state for node ',value.name);
+      meqds.update_node_state(value,ev);
       self.update_node_state(value,ev);
       
   def ce_NodeResult (self,ev,value):

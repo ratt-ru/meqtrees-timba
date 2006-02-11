@@ -911,6 +911,7 @@ def _start_stream_control ():
 # this is called automatically by the browser to populate the tree browser
 # context menus and toolbar
 def define_treebrowser_actions (tb):
+  return;  # temporary while this plugin is broken
   _dprint(1,'defining stream control treebrowser actions');
   parent = tb.wtop();
   # create QAction for the Stream control plugin
@@ -926,6 +927,7 @@ def define_treebrowser_actions (tb):
 # Called *after* define_treebrowser_actions, so it's ok to use stuff initialized
 # there.
 def define_mainmenu_actions (menu,parent):
+  return;  # temporary while this plugin is broken
   _dprint(1,'defining stream control menu actions');
   global _qa_stream;
   # add ourselves to the MeqTimba menu

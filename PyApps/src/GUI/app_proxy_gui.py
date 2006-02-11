@@ -410,10 +410,10 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     # events from remote application are emitted as PYSIGNALS taking
     # two arguments. Connect some standard handlers here
     QObject.connect(self,PYSIGNAL("hello"),self._connected_event);
-    QObject.connect(self,PYSIGNAL("hello"),self.ce_UpdateState);
+    QObject.connect(self,PYSIGNAL("hello"),self.xcurry(self._update_app_state));
     QObject.connect(self,PYSIGNAL("bye"),self._disconnected_event);
-    QObject.connect(self,PYSIGNAL("bye"),self.ce_UpdateState);
-    QObject.connect(self,PYSIGNAL("app.notify.state"),self.ce_UpdateState);
+    QObject.connect(self,PYSIGNAL("bye"),self.xcurry(self._update_app_state));
+    QObject.connect(self,PYSIGNAL("app.notify.state"),self.xcurry(self._update_app_state));
       
     #------ start timer when in polling mode
     if poll_app:
@@ -721,8 +721,11 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     try:
       report = False;
       msgtext = None; 
-      # see if event contains a message to be logged
+      # see if event contains state updates, or a message to be logged
       if isinstance(value,record):
+        # update app state if appropriate fields are found
+        if hasattr(value,'app_state') or hasattr(value,'app_state_str'):
+          self._update_app_state();
         # the value of 'content' will later determine whether a data object
         # is logged along with the message. This will be the case if the 
         # content is anything more complicated than a single string. In 
@@ -793,9 +796,6 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       self.log_message("kernel disconnected",category=Logger.Normal);
     self._update_app_state();
       
-  def ce_UpdateState (self,ev,value):
-    self._update_app_state();
-    
 ##### updates status bar based on app state 
   StatePixmaps = { None: pixmaps.red_round_cross };
   StatePixmap_Default = pixmaps.grey_cross;

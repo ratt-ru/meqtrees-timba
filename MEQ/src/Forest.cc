@@ -61,6 +61,7 @@ Forest::Forest ()
   node_breakpoint_callback = 0;
   event_callback = 0;
   debug_level_ = 0;
+  stop_flag_ = false;
   // default cache policy
   cache_policy_ = Node::CACHE_SMART;
   profiling_enabled_ = true;
@@ -226,7 +227,7 @@ int Forest::getNodeList (DMI::Record &list,int content)
   Thread::Mutex::Lock lock(forestMutex());
   int num = num_valid_nodes;
   // create lists (arrays) for all known content
-  DMI::Vec *lni=0,*lname=0,*lclass=0,*lstate=0,*lprof=0,*lcache=0;
+  DMI::Vec *lni=0,*lname=0,*lclass=0,*lstate=0,*lrqid=0,*lprof=0,*lcache=0;
   DMI::List *lchildren=0,*lstepchildren=0;
   if( content&NL_NODEINDEX )
     list[AidNodeIndex] <<= lni = new DMI::Vec(Tpint,num);
@@ -240,7 +241,10 @@ int Forest::getNodeList (DMI::Record &list,int content)
     list[AidStep|AidChildren] <<= lstepchildren = new DMI::List;
   }
   if( content&NL_CONTROL_STATUS )
+  {
     list[FControlStatus] <<= lstate = new DMI::Vec(Tpint,num);
+    list[FRequestId] <<= lrqid = new DMI::Vec(TpDMIHIID,num);
+  }
   if( content&NL_PROFILING_STATS )
   {
     list[FProfilingStats] <<= lprof = new DMI::Vec(TpDMIRecord,num);
@@ -264,6 +268,8 @@ int Forest::getNodeList (DMI::Record &list,int content)
           (*lclass)[i0] = node.className();
         if( lstate )
           (*lstate)[i0] = node.getControlStatus();
+        if( lrqid )
+          (*lrqid)[i0] = node.currentRequestId();
         if( lchildren )
         {
           node.state(nodestate);
@@ -372,6 +378,59 @@ void Forest::setState (DMI::Record::Ref &rec,bool complete)
     staterec_ = rec;
   else  
     wstate().merge(rec,true);
+}
+
+void Forest::raiseStopFlag ()
+{
+  stop_flag_ = true; 
+}
+
+// This clears the stopped_at_breakpoint flag and signals on the
+// condition variable so as to restart all threads
+void Forest::clearStopFlag ()
+{
+  Thread::Mutex::Lock lock(stop_flag_cond_);
+  stop_flag_ = false;
+  stop_flag_cond_.broadcast();
+}
+
+// Waits for the stopped_at_breakpoint flag to clear, then returns.
+// In mt-mode, when one thread is halted at a breakpoint, this
+// flag is used to halt the other threads at the first opportunity.
+// In single-threaded mode this function should never be called.
+void Forest::waitOnStopFlag () const
+{
+  Thread::Mutex::Lock lock(stop_flag_cond_);
+  while( stop_flag_ )
+    stop_flag_cond_.wait();
+}
+
+// sets global breakpoint(s)
+void Forest::setBreakpoint (int bpmask,bool single_shot)
+{
+  if( single_shot )
+    breakpoints_ss |= bpmask;
+  else
+    breakpoints |= bpmask;
+}
+
+// clears global breakpoint(s)
+void Forest::clearBreakpoint (int bpmask,bool single_shot)
+{
+  if( single_shot )
+    breakpoints_ss &= ~bpmask;
+  else
+    breakpoints &= ~bpmask;
+}
+
+void Forest::processBreakpoint (Node &node,int bpmask,bool global)
+{
+  Thread::Mutex::Lock lock(stop_flag_cond_);
+  raiseStopFlag();
+  if( node_breakpoint_callback )
+    (*node_breakpoint_callback)(node,bpmask,global);
+  lock.release();
+  waitOnStopFlag();
 }
 
 

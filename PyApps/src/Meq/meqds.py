@@ -55,16 +55,23 @@ CS_CACHED              = 0x0200;
 CS_RETCACHE            = 0x0400;
 CS_BREAKPOINT          = 0x0800;
 CS_BREAKPOINT_SS       = 0x1000;
-CS_STOP_BREAKPOINT     = 0x2000;
+CS_STOPPED             = 0x2000;
+CS_STOP_BREAKPOINT     = 0x4000;
 
 CS_LSB_EXECSTATE       = 16;  # first bit of exec-state segment
 CS_MASK_EXECSTATE      = 0xF<<CS_LSB_EXECSTATE;
 
-CS_ES_statelist = [ (0<<CS_LSB_EXECSTATE,'IDLE' ,'-','idle',pixmaps.node_idle),
+CS_ES_statelist = [ (0<<CS_LSB_EXECSTATE,'END' ,'-','idle',pixmaps.node_idle),
                     (1<<CS_LSB_EXECSTATE,'REQ'  ,'R','received request',pixmaps.node_request),
                     (2<<CS_LSB_EXECSTATE,'CMD'  ,'C','processing command rider',pixmaps.node_command),
                     (3<<CS_LSB_EXECSTATE,'POLL' ,'P','polling children',pixmaps.node_poll),
-                    (4<<CS_LSB_EXECSTATE,'EVAL' ,'E','evaluating result',pixmaps.node_eval) ];
+                    (4<<CS_LSB_EXECSTATE,'EVAL' ,'E','evaluating result',pixmaps.node_eval),
+                  ];
+                  
+# some extra breakpoint masks
+BP_FAIL = 0x80;
+BP_ALL  = 0xFF;
+
                     
 # define CS_ES_XXX constants for the listed states, and
 # BP_XXX constants to represent breakpoint masks
@@ -72,8 +79,8 @@ for st in CS_ES_statelist:
   globals()['CS_ES_'+st[1]] = st[0];
   globals()['BP_'+st[1]] = int(1<<st[0]);
 
-# mask of all breakpoints
-BP_ALL = 0xFF;
+CS_ES_IDLE = CS_ES_END;  # alias
+
                     
 def CS_ES_state (statusword):
   "returns tuple describing exec-state based on the given status word";
@@ -133,6 +140,8 @@ class NodeList (QObject):
       return bool(self.control_status&CS_PUBLISHING);
     def has_breakpoints (self):
       return bool(self.control_status&CS_BREAKPOINT);
+    def is_stopped (self):
+      return bool(self.control_status&CS_STOPPED);
     def exec_state (self):
       return self.control_status&CS_MASK_EXECSTATE;
     def exec_state_str (self):
@@ -207,7 +216,8 @@ class NodeList (QObject):
     iter_children = iter(meqnl.children);
     iter_step_children = iter(meqnl.step_children);
     iter_cstate   = iter(meqnl.control_status);
-    # profiling into is optional
+    iter_rqid     = iter(meqnl.request_id);
+    # profiling info is optional
     if hasattr(meqnl,'profiling_stats'):
       self._has_profiling = True;
       iter_prof   = iter(meqnl.profiling_stats);
@@ -226,7 +236,7 @@ class NodeList (QObject):
         node = self._nimap.setdefault(ni,self.Node(ni,self));
         node.name      = iter_name.next();
         node.classname = iter_class.next();
-        node.update_status(iter_cstate.next());
+        node.update_status(iter_cstate.next(),iter_rqid.next());
         children  = iter_children.next();
         step_children  = iter_step_children.next();
         # set children

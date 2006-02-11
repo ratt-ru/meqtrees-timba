@@ -62,6 +62,7 @@ class TreeBrowser (QObject):
       self.node = weakref_proxy(node);  # self.node returns meqds node
       # internal state, etc.
       self._expanded = False;
+      self._stopped = 0;
       self._udi  = meqds.node_udi(node);
       self._callbacks = [];
       self._menu_actions = [];
@@ -118,9 +119,7 @@ class TreeBrowser (QObject):
               
     def _update_debug (self,node):
       """updates node item based on its debugging status.""";
-      try: stopped = min(node._stopped,1);
-      except AttributeError: stopped = -1;
-      self._color_group = self.tb.get_color_group(self._cg_name,stopped);
+      self._color_group = self.tb.get_color_group(self._cg_name,self._stopped);
       
     def _update_status (self,node,old_status):
       """updates node item based on node status.""";
@@ -138,9 +137,6 @@ class TreeBrowser (QObject):
         self._cg_name = "stepchild";
       else:
         self._cg_name = None;
-      # call update_debug to complete setting of color group (debug state
-      # determines background)
-      self._update_debug(node);
       ## # update status column
       ## self.setText(tb.icolumn("status"),node.control_status_string);
       # update breakpoint status pixmaps
@@ -150,6 +146,20 @@ class TreeBrowser (QObject):
         self.setPixmap(tb.icolumn("breakpoint"),pixmaps.forward_to.pm());
       else:
         self.setPixmap(tb.icolumn("breakpoint"),QPixmap());
+      # update first column pixmaps for stopped and stopped-at-breakpoint nodes
+      if control_status&meqds.CS_STOPPED:
+        if control_status&meqds.CS_STOP_BREAKPOINT:
+          self._stopped = 2;
+          #self.setPixmap(0,pixmaps.breakpoint.pm());
+        else:
+          self._stopped = 1;
+        self.setPixmap(0,pixmaps.clear_red_right.pm());
+      else:
+        self._stopped = 0;
+        self.setPixmap(0,QPixmap());
+      # call update_debug to complete setting of color group (debug state
+      # determines background)
+      self._update_debug(node);
       # update exec state pixmaps and rqid string
       es = meqds.CS_ES_state(control_status);
       self.setPixmap(tb.icolumn("execstate"),es[4].pm());
@@ -195,12 +205,12 @@ class TreeBrowser (QObject):
         self._publish_pixmap = QPixmap();
       self.setPixmap(tb.icolumn("publish"),self._publish_pixmap);
       # update breakpoints menu
-      try: menu = self._debug_bp_menu;
+      try: bp_actions = self._debug_bp_actions;
       except AttributeError: pass;
       else:
         _dprint(3,'node',self.node.name,'breakpoint mask is',self.node.breakpoint);
         self._set_breakpoints_quietly = True;
-        for (qa,bp) in self._debug_bp_actions:
+        for (qa,bp) in bp_actions:
           qa.setOn((self.node.breakpoint&bp)!=0);
         self._set_breakpoints_quietly = False;
     
@@ -265,17 +275,6 @@ class TreeBrowser (QObject):
       if self._set_breakpoints_quietly:
         return;
       if set:
-        if not self.tb.is_debugger_enabled():
-          res = QMessageBox.question(self.tb.wtop(),"Enabling tree debugger",
-"""For breakpoints to work the tree debugger must be enabled. This will 
-slow down tree execution. Do you want to enable the tree debugger now?""",
-            QMessageBox.Yes|QMessageBox.Default,
-            QMessageBox.No,
-            QMessageBox.Cancel|QMessageBox.Escape);
-          if res == QMessageBox.Yes:
-            self.tb.enable_debugger();
-          elif res == QMessageBox.Cancel:
-            return;
         meqds.set_node_breakpoint(node,mask);
       else:
         meqds.clear_node_breakpoint(node,mask);
@@ -286,22 +285,39 @@ slow down tree execution. Do you want to enable the tree debugger now?""",
         self._set_breakpoints_quietly = False;
         node = self.node;
         menu = self._debug_menu = QPopupMenu();
-        menu1 = self._debug_bp_menu = QPopupMenu();
+        # menu1 = self._debug_bp_menu = QPopupMenu();
         self._debug_bp_actions = [];
         _dprint(3,'node',node.name,'breakpoint mask is',node.breakpoint);
+        label = QHBox(menu);
+        label1 = QLabel(label);
+        label1.setSizePolicy(QSizePolicy.Minimum,QSizePolicy.Minimum);
+        label1.setPixmap(pixmaps.breakpoint.pm());
+        label2 = QLabel("Set breakpoint at:",label);
+        label2.setAlignment(Qt.AlignLeft);
+        label2.setIndent(10);
+        label2.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
+        menu.insertItem(label);
         for st in meqds.CS_ES_statelist:
-          title = ''.join(('at ',node.name,':',st[1]));
+          title = ''.join(('    ',node.name,':',st[1]));
           bpmask = meqds.breakpoint_mask(st[0]);
-          qa = QAction(st[4].iconset(),title,0,menu1);
+          qa = QAction(st[4].iconset(),title,0,menu);
           qa.setToggleAction(True);
           qa.setOn((node.breakpoint&bpmask)!=0);
           QObject.connect(qa,SIGNAL("toggled(bool)"),
               self.curry(self._set_node_breakpoint,node.nodeindex,bpmask));
-          qa.addTo(menu1);
+          qa.addTo(menu);
           self._debug_bp_actions.append((qa,bpmask));
-        menu1.insertItem(pixmaps.node_any.iconset(),''.join(("at ",node.name,':all')), \
+        qa = QAction(pixmaps.red_round_cross.iconset(),''.join(('    ',node.name,':FAIL')),0,menu);
+        qa.setToggleAction(True);
+        qa.setOn((node.breakpoint&meqds.BP_FAIL)!=0);
+        QObject.connect(qa,SIGNAL("toggled(bool)"),
+            self.curry(self._set_node_breakpoint,node.nodeindex,meqds.BP_FAIL));
+        qa.addTo(menu);
+        self._debug_bp_actions.append((qa,bpmask));
+        menu.insertItem(pixmaps.node_any.iconset(),'    all of the above', \
               self.curry(self._set_node_breakpoint,node.nodeindex,meqds.BP_ALL));
-        menu.insertItem(pixmaps.breakpoint.iconset(),"Set &breakpoint at",menu1);
+        # menu.insertItem(pixmaps.breakpoint.iconset(),"Set &breakpoint at",menu1);
+        menu.insertSeparator();
         menu.insertItem(pixmaps.roadsign_nolimit.iconset(),"Clear &all breakpoints at "+node.name,self.xcurry(\
               meqds.clear_node_breakpoint,(node.nodeindex,meqds.BP_ALL),_argslice=slice(0)));
         self._fill_menu(menu,"debug",separator=True);
@@ -387,7 +403,7 @@ slow down tree execution. Do you want to enable the tree debugger now?""",
     #---------------------- setup color groups for items
     self._cg = {};
     # color group for stopped nodes
-    stopcolor = { -1:None, 0:QColor("lightblue"), 1:QColor("lightblue2") };
+    stopcolor = { 0:None, 1:QColor("lightblue"), 2:QColor("lightblue2") };
     for stopped in stopcolor.keys():
       # color group for normal nodes
       self._cg[(None,stopped)] = self._new_colorgroup(stopcolor[stopped]);
@@ -444,8 +460,9 @@ slow down tree execution. Do you want to enable the tree debugger now?""",
     # ---------------------- other internal state
     self._column_map = {};
     self._recent_item = None;
-    self._current_debug_stack = None;
     self._callbacks = [];
+    self._stopped_nodes = [];
+    self._breakpoint_nodes = [];
     #----------------------- public state
     self.app_state = None;
     self.debug_level = 0;
@@ -522,8 +539,7 @@ slow down tree execution. Do you want to enable the tree debugger now?""",
     _dprint(2,"clearing tree browser");
     self.is_loaded = False;
     self._nlv_rootitem = self._fst_item = self._bkmark_item = \
-      self._recent_item = self._debug_node = \
-      self._current_debug_stack = None;
+      self._recent_item = None;
     self.NodeItem.clear_children(self._nlv);
     self._nlv.clear();
     self._update_all_controls();
@@ -568,8 +584,7 @@ slow down tree execution. Do you want to enable the tree debugger now?""",
   def _update_all_controls (self):
     """updates state of toolbar and other controls based on app state""";
     _dprint(3,self.debug_level,self.is_connected,self.is_running,self.is_stopped);
-    self._set_debug_control(self.debug_level>0);
-    # toolbar
+    # enable/disable toolbar buttons according to their methods
     for act in self._toolbar_actions:
       # call _is_visible() to setup visibility
       try:
@@ -591,56 +606,24 @@ slow down tree execution. Do you want to enable the tree debugger now?""",
       else:
         _dprint(4,'action',act.text(),'enabled:',enable);
         act.setEnabled(enable);
-    # show/hide the breakpoint column
-    self.show_column("breakpoint",self.debug_level > 0);
-    self.show_column("result",self.debug_level > 0);
-    # show/hide the execstate column
-    self.show_column("execstate",self.debug_level > 0 and self.is_running);
-
-  def _set_debug_control (self,enable):
-    """This updates the state of the debug control without sending
-    out a message.""";
+    # set the verbosity levels
     self._setting_debug_control = True;
-    self._qa_dbg_enable.setOn(enable);
+    lvl = max(0,min(self.debug_level,len(self._qa_dbg_verbosities)-1));
+    self._qa_dbg_verbosities[lvl].setOn(True);
     self._setting_debug_control = False;
-    
-  def is_debugger_enabled (self):
-    return self._qa_dbg_enable.isOn();
-    
-  def enable_debugger (self,enable=True):
-    self._debug_enable_slot(enable);
-    
-  def _debug_enable_slot (self,enable):
-    """Sends a debug enable/disable message.""";
-    if enable:
-      self._qa_dbg_enable.setAccel(Qt.CTRL+Qt.Key_F5);
-      self._qa_dbg_enable.setText("Disable tree debugger and continue");
-      self._qa_dbg_enable.setMenuText("Disable tree &debugger");
-      if not getattr(self,'_setting_debug_control',False):
-        mqs().meq('Debug.Set.Level',record(debug_level=2,get_forest_status=True),wait=False);
-    else:
-      if not getattr(self,'_setting_debug_control',False):
-        # confirm disable if in debugger
-        if self._current_debug_stack:
-          if QMessageBox.warning(None,"Disabling Tree Debugger",\
-               """This will disable the debugger and release the tree. 
-The tree will then ignore all breakpoints and run until it 
-finishes executing the current request, or runs out of data.
-You will not be able to interrupt this process.
-Please press OK to confirm.""",QMessageBox.Ok,\
-               QMessageBox.Cancel|QMessageBox.Default|QMessageBox.Escape) \
-             != QMessageBox.Ok:
-            self._set_debug_control(True);
-            return;
-        mqs().meq('Debug.Set.Level',record(debug_level=0,get_forest_status=True),wait=False);
-      # really disable
-      self.clear_debug_stack();
-      self._qa_dbg_enable.setAccel(Qt.Key_F5);
-      self._qa_dbg_enable.setText("Enable tree debugger");
-      self._qa_dbg_enable.setMenuText("Enable tree &debugger");
+    # show/hide the breakpoint column
+    self.show_column("breakpoint");
+    self.show_column("result");
+    # show/hide the execstate column
+    self.show_column("execstate",self.is_running);
 
-  def get_color_group (self,which,is_stopped=-1):
-    return self._cg[(which,is_stopped)][0];
+  def _debug_set_verbosity_slot (self,qa):
+    """Sends a debug level message.""";
+    if not getattr(self,'_setting_debug_control',False):
+      mqs().meq('Debug.Set.Level',record(debug_level=qa._debug_level,get_forest_status=2),wait=False);
+
+  def get_color_group (self,which,stopped=0):
+    return self._cg[(which,stopped)][0];
     
   def _new_colorgroup (self,background=None,foreground=None):
     palette = QPalette(self._nlv.palette().copy());
@@ -688,57 +671,28 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     """Updates forest status: enables/disables debug QActions as appropriate,
     sets/clears highlighting of stopped nodes."""
     _dprint(2,"updating forest status");
-    self.is_running = fst.running;
-    self.is_stopped = bool(getattr(fst,'debug_stack',False));
-    # this will hold the list of nodes currently in the debug stack
-    debug_stack = sets.Set();
-    self._debug_node = None;
-    # make sure debug buttons are enabled/disabled as appropriate
-    # also compiles a set of nodes in the debug-stack
+    self.is_running = fst.executing;
+    was_stopped = self.is_stopped;
+    self.is_stopped = fst.stopped;
     self.debug_level = fst.debug_level;
-    # do other stuff if debug is enabled
-    if fst.debug_level:
-      if meqds.nodelist and fst.debug_stack:
-        for (n,frame) in enumerate(fst.debug_stack):
-          try: node = meqds.nodelist[frame.nodeindex];
-          except KeyError: continue;
-          # top (most recently stopped) node gets special treatment
-          if not n:
-            self._debug_node = weakref_proxy(node);
-          node._stopped = n;
-          debug_stack.add(node.nodeindex);
-          if hasattr(frame,'state'):
-            node.update_state(frame.state);
-          else:
-            node.update_status(frame.control_status);
-    else:
-      _dprint(2,"debugging disabled");
-    # nodes in the debug-stack will have been highlighted by
-    # update_state/status above. We now need to remove highlighting from
-    # nodes no longer in the stack:
-    if self._current_debug_stack:
-      self.clear_debug_stack(self._current_debug_stack - debug_stack);
-    # set current stack
-    self._current_debug_stack = debug_stack;
-    # make sure most recent node is open
-    if self._debug_node:
-      self.make_node_visible(self._debug_node);
+    # if just stopped in the tree debugger, make sure all stopped nodes
+    # are visible
+    _dprint(5,"was stopped",was_stopped,"is stopped",self.is_stopped);
+    if not was_stopped and self.is_stopped:
+      # figure out list of stopped nodes
+      self._stopped_nodes = filter(lambda node:node.is_stopped(),meqds.nodelist.iternodes());
+      _dprint(5,len(self._stopped_nodes),"nodes stopped");
+      self._breakpoint_nodes = [];
+      for node in self._stopped_nodes:
+        self.make_node_visible(node);
+        if node.control_status&meqds.CS_STOP_BREAKPOINT:
+          self._breakpoint_nodes.append(node);
+      # nodes actually stopped at a breakpoint get priority in visibility
+      for node in self._breakpoint_nodes:
+        self.make_node_visible(node);
     # reset all controls
     self._update_all_controls();
         
-  def clear_debug_stack (self,clearset=None):
-    """Clears highlighting of stopped nodes. If a set is supplied, that 
-    set is cleared, otherwise the current set is used""";
-    if clearset is None:
-      clearset = self._current_debug_stack;
-      self._current_debug_stack = None;
-    if clearset:
-      for ni in clearset:
-        try: node = meqds.nodelist[ni];
-        except keyError: continue;
-        delattr(node,'_stopped');
-        node.emit(PYSIGNAL("update_debug()"),(node,));
-  
   def is_node_visible (self,node):
     for itemref in getattr(node,'_tb_items',[]):
       if itemref() and itemref().isVisible():
@@ -857,31 +811,19 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     meqds.request_nodelist(force=True);
     
   def _debug_single_step (self):
-    self.clear_debug_stack();
-    self.is_stopped = False;
-    self._update_all_controls();
     mqs().meq('Debug.Single.Step',record(),wait=False);
   
   def _debug_next_node (self):
-    self.clear_debug_stack();
-    self.is_stopped = False;
-    self._update_all_controls();
     mqs().meq('Debug.Next.Node',record(),wait=False);
     
   def _debug_until_node (self,node):
-    self.clear_debug_stack();
-    self.is_stopped = False;
-    self._update_all_controls();
     mqs().meq('Debug.Until.Node',record(nodeindex=node.nodeindex),wait=False);
   
   def _debug_continue (self):
-    self.clear_debug_stack();
-    self.is_stopped = False;
-    self._update_all_controls();
     mqs().meq('Debug.Continue',record(),wait=False);
     
   def _debug_pause (self):
-    mqs().meq('Debug.Pause',record(),wait=False);
+    mqs().meq('Debug.Interrupt',record(),wait=False);
 
   def add_action (self,action,order=1000,where="toolbar",callback=None):
     if callback:
@@ -969,8 +911,9 @@ class NodeIconReference (QMainWindow):
         (None,None),\
         (None,"      Miscellaneous icons:"),
         (None,None),\
-        (pixmaps.breakpoint,"node has breakpoints"),
-        (pixmaps.forward_to,"node has a temp ('until') breakpoint"),
+        (pixmaps.clear_red_right,"node is stopped in debugger"),
+        (pixmaps.breakpoint,"node has breakpoints set"),
+        (pixmaps.forward_to,"node has a temp ('until') breakpoint set"),
         (pixmaps.publish,"node is publishing snapshots"),
         (pixmaps.publish_active,"node state is updated (brief flash)"),
         (pixmaps.cancel,"node is disabled") ];
@@ -983,7 +926,8 @@ class NodeIconReference (QMainWindow):
       if text is None:  # draw separator 
         icon = QWidget(canvas); 
         label = QFrame(canvas);
-        label.setFrameShape(QFrame.HLine+QFrame.Sunken);
+        label.setFrameShape(QFrame.HLine);
+        label.setFrameShadow(QFrame.Sunken);
       else: # draw entry
         if pixmap is None:
           icon = QWidget(canvas);
@@ -992,9 +936,9 @@ class NodeIconReference (QMainWindow):
           icon.setPixmap(pixmap.pm());
         label = QLabel(text,canvas);  
       # make icon non-resizable
-      icon.setSizePolicy(QSizePolicy(0,0));
-    canvas.setSizePolicy(QSizePolicy(0,0));
-    self.setSizePolicy(QSizePolicy(0,0));
+      icon.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,QSizePolicy.Minimum));
+    canvas.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,QSizePolicy.Minimum));
+    self.setSizePolicy(QSizePolicy(QSizePolicy.Minimum,QSizePolicy.Minimum));
   def mouseReleaseEvent (self,ev):
     self.hide();
     
@@ -1003,39 +947,63 @@ def define_treebrowser_actions (tb):
   parent = tb.wtop();
   # populate the toolbar
   # Refresh
-  refresh = tb._qa_refresh = QAction("Refresh",pixmaps.refresh.iconset(),"Refresh node list",Qt.Key_F2,parent);
+  refresh = tb._qa_refresh = QAction(pixmaps.refresh.iconset(),"Refresh forest",Qt.Key_F2,parent);
+  refresh.setToolTip("This asks for an update of the current forest from the kernel");
   refresh._is_enabled = lambda tb=tb: tb.is_connected;
   tb.add_action(refresh,10,callback=tb._request_nodelist);
   tb.add_separator(20);
   # Save and load
-  qa_load = tb._qa_load = QAction("Load",pixmaps.file_open.iconset(),"Load forest",0,parent);
-  qa_save = tb._qa_save = QAction("Save",pixmaps.file_save.iconset(),"Save forest",0,parent);
+  qa_load = tb._qa_load = QAction(pixmaps.file_open.iconset(),"Load forest",0,parent);
+  qa_save = tb._qa_save = QAction(pixmaps.file_save.iconset(),"Save forest",0,parent);
+  qa_save.setToolTip("This saves the current forest to a file");
+  qa_load.setToolTip("This loads the current forest from a file");
   qa_load._is_enabled = qa_save._is_enabled = lambda tb=tb: tb.is_connected and tb.app_state == AppState.Idle;
   tb.add_action(qa_load,30,callback=tb.load_forest_dialog);
   tb.add_action(qa_save,40,callback=tb.save_forest_dialog);
   tb.add_separator(50);
-  # Enable debugger
-  dbg_enable = tb._qa_dbg_enable = QAction("Enable tree debugger",pixmaps.debugger.iconset(),"Enable tree &debugger",Qt.Key_F5,parent,"",True);
-  QObject.connect(dbg_enable,SIGNAL("toggled(bool)"),tb._debug_enable_slot);
-  QObject.connect(tb,PYSIGNAL("debug_enabled()"),dbg_enable.setOn);
-  dbg_enable._is_enabled = lambda tb=tb: tb.is_connected;
-  tb.add_action(dbg_enable,60);
+  # debugger verbosity
+  # dbg_enable = tb._qa_dbg_enable = QAction(pixmaps.debugger.iconset(),"Enable verbose &debugger",Qt.Key_F5,parent);
+  dbg_verbosity = tb._qa_dbg_verbosity = QActionGroup(parent);
+  dbg_verbosity.setExclusive(True);
+  # dbg_verbosity.setUsesDropDown(True);
+  QObject.connect(dbg_verbosity,SIGNAL("selected(QAction*)"),tb._debug_set_verbosity_slot);
+  dbg_verbosity.setToolTip("""This changes debug verbosity levels""");
+  tb._qa_dbg_verbosities = [];
+  for level,pm,text in \
+     [ (0,pixmaps.debug0,"Verbosity level 0: fast, no node tracking"), 
+       (1,pixmaps.debug1,"Verbosity level 1: slow, keep track of node result codes"), 
+       (2,pixmaps.debug2,"Verbosity level 2: slowest, keep track of everything") ]:
+    qa = QAction(pm.iconset(),text,0,dbg_verbosity);
+    qa.setToggleAction(True);
+    qa._debug_level = level;
+    dbg_verbosity.add(qa);
+    tb._qa_dbg_verbosities.append(qa);
+  dbg_verbosity._is_enabled = lambda tb=tb: tb.is_connected;
+  tb.add_action(dbg_verbosity,60);
+  tb.add_separator(65);
+  # dbg_enable.setToggleAction(True);
+  # qa_enable.setToolTip("""This enables verbose debugging mode. The forest will run slowly,
+# but you will see status updates for every single node.""");  
+#  QObject.connect(dbg_enable,SIGNAL("toggled(bool)"),tb._debug_enable_slot);
+#  QObject.connect(tb,PYSIGNAL("debug_enabled()"),dbg_enable.setOn);
+#  dbg_enable._is_enabled = lambda tb=tb: tb.is_connected;
+#  tb.add_action(dbg_enable,60);
   # Pause
-  pause = QAction("Pause",pixmaps.pause.iconset(),"&Pause",Qt.Key_F6,parent);
-  pause._is_visible = lambda tb=tb: tb.is_connected and tb.debug_level>0;
+  pause = QAction(pixmaps.pause.iconset(),"&Interrupt",Qt.Key_F6,parent);
+  pause._is_visible = lambda tb=tb: tb.is_connected;
   pause._is_enabled = lambda tb=tb: tb.is_running and not tb.is_stopped;
   tb.add_action(pause,70,callback=tb._debug_pause);
   tb.add_separator(80);
   # Debug action group
   ag_debug = tb._qa_dbg_tools = QActionGroup(parent);
   ag_debug.setText("Debugger tools");
-  dbgcont  = QAction("Continue",pixmaps.right_2triangles.iconset(),"&Continue",Qt.Key_F6+Qt.SHIFT,parent);      
+  dbgcont  = QAction("Continue",pixmaps.right_2triangles.iconset(),"&Continue",Qt.Key_F6+Qt.SHIFT,parent);
   QObject.connect(dbgcont,SIGNAL("activated()"),tb._debug_continue);
   dbgstep  = QAction("Step",pixmaps.down_triangle.iconset(),"&Step",Qt.Key_F7,parent);      
   QObject.connect(dbgstep,SIGNAL("activated()"),tb._debug_single_step);
   dbgnext  = QAction("Step to next node",pixmaps.down_2triangles.iconset(),"Step to &next node",Qt.Key_F8,parent);      
   QObject.connect(dbgnext,SIGNAL("activated()"),tb._debug_next_node);
-  ag_debug._is_visible = lambda tb=tb: tb.is_connected and tb.debug_level>0;
+  ag_debug._is_visible = lambda tb=tb: tb.is_connected;
   ag_debug._is_enabled = lambda tb=tb: tb.is_loaded and tb.is_stopped;
   ag_debug.add(dbgcont);
   ag_debug.add(dbgstep);
@@ -1147,4 +1115,4 @@ class NA_ContinueUntil (NodeAction):
   def activate (self,node):
     self.tb._debug_until_node(node);
   def is_enabled (self,node):
-    return self.tb.debug_level>0 and self.tb.is_running and self.tb.is_stopped;
+    return self.tb.is_running;

@@ -16,7 +16,7 @@
 #pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
 #pragma aid Get Forest Status Stack Running Changed All Disabled Publishing
 #pragma aid Python Init TDL Script File Source Serial String
-#pragma aid Idle Executing Debug Constructing Sync
+#pragma aid Idle Executing Exec Debug Constructing Updating Sync Stopped
     
 namespace Meq
 {
@@ -105,6 +105,7 @@ class MeqServer : public DMI::EventRecepient
     void nodeClearBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
     void debugSetLevel      (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void debugInterrupt     (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void debugSingleStep    (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void debugNextNode      (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void debugContinue      (DMI::Record::Ref &out,DMI::Record::Ref &in);
@@ -145,8 +146,9 @@ class MeqServer : public DMI::EventRecepient
     // publishes state message to control channel
     void publishState ();  
       
-    // sets internal state and calls publishState(), returns old state
-    AtomicID setState (AtomicID state);
+    // sets new app state, returns old state
+    // If !quiet and state has changed, calls publishState
+    AtomicID setState (AtomicID state,bool quiet=false);
     
     AtomicID state () const
     { return state_; }
@@ -163,6 +165,9 @@ class MeqServer : public DMI::EventRecepient
     // fills a record with forest_status (level>0) and 
     // and forest_state (level>1). If level==0, does nothing.
     void fillForestStatus  (DMI::Record &rec,int level=1);
+    
+    // fills a record with app state fields
+    void fillAppState (DMI::Record &rec);
       
     // control channel
     AppAgent::EventChannel::Ref control_channel_;
@@ -192,16 +197,11 @@ class MeqServer : public DMI::EventRecepient
     // control thread.
     CommandMap async_commands;
     
-    typedef struct {
-      Node *       node;
-    } DebugFrame;
-    
-    typedef std::list<DebugFrame> DebugStack;
-    
-    DebugStack debug_stack;
-    
     const Node * debug_next_node;
-    bool  debug_continue;
+    const Node * debug_bp_node;
+    
+    // flag: clear stop flag once the current command completes
+    bool clear_stop_flag_; 
     
     // true as long as we're not exiting
     bool running_;
@@ -226,7 +226,7 @@ class MeqServer : public DMI::EventRecepient
     // condition variable indicating changes to queue or to running_ status
     Thread::Condition exec_cond_;
     
-    void execCommandEntry (ExecQueueEntry &qe);
+    void execCommandEntry (ExecQueueEntry &qe,bool savestate=false);
     
     // method that runs the exec thread loop
     void * runExecutionThread ();

@@ -259,13 +259,16 @@ class app_proxy (verbosity):
     event = msg.msgid[len(self.appid)+1:];
     value = msg.payload;
     self.dprint(5,"which maps to event: ",event);
-    # process state notifications
-    if event == 'app.notify.state':
-      self.dprint(1,value.state_string,' (',value.state,')');
-      self.state = str(value.state).lower();
-      self.statestr = value.state_string;
-    # process messages and error reports
+    # process app updates, messages and error reports
     if isinstance(value,record):
+      # process state notifications
+      if hasattr(value,'app_state'):
+        self.dprint(1,'app_state',value.app_state);
+        self.state = str(value.app_state).lower();
+      if hasattr(value,'app_state_string'):
+        self.dprint(1,'app_state_string',value.app_state_string);
+        self.statestr = value.app_state_string;
+      # process messages
       if value.has_field('error'):
         self.log_error(event,value.error);
       for f in ("text","message","error"):

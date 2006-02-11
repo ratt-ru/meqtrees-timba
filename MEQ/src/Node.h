@@ -208,8 +208,13 @@ class Node : public DMI::BObj
       CS_BREAKPOINT          = 0x0800,
       // flag: have single-shot breakpoints
       CS_BREAKPOINT_SS       = 0x1000,
-      // flag: stopped at breakpoint
-      CS_STOP_BREAKPOINT     = 0x2000,
+      // flag: stopped 
+      CS_STOPPED             = 0x2000,
+      // flag: stopped at breakpoint (in mt-mode, one node may stop
+      // at a breakpoint, and the others will simply stop). 
+      CS_STOP_BREAKPOINT     = 0x4000,
+      // mask of all bits related to breakpoints
+      CS_MASK_BREAKPOINTS    = 0x7800,
       // mask of all read-only status bits
       CS_MASK_STATUS         = 0xFFF0,
           
@@ -232,6 +237,16 @@ class Node : public DMI::BObj
       // mask of bits that may be set from outside (via setState)
       CS_WRITABLE_MASK    = CS_MASK_CONTROL,
     } ControlStatus;
+    
+    typedef enum
+    {
+      // bits 0-4 automatically derived from exec state via breakpointMask() below
+      
+      // special breakpoint on FAIL 
+      BP_FAIL  = 0x80,
+      // all breakpoints
+      BP_ALL   = 0xFF        
+    } BreakpointMasks;
 
     // cache management policies
     typedef enum
@@ -248,9 +263,10 @@ class Node : public DMI::BObj
       CACHE_ALWAYS     =  20     // always cache
     } CachePolicy;
     
-    // helper function: returns a breakpoint mask corresponding to the given exec-state
-    static inline int breakpointMask (int execstate)
-    { return 1<<(execstate>>CS_LSB_EXECSTATE); }
+    // helper function: returns a breakpoint mask corresponding to the given 
+    // exec-state
+    static inline int breakpointMask (int es)
+    { return 1<<(es>>CS_LSB_EXECSTATE); }
 
     //##ModelId=3F5F43E000A0
     //##Documentation
@@ -1088,6 +1104,11 @@ class Node : public DMI::BObj
     // Looks into record, gets out the FChildren or FStepChildren field, and 
     // processes it as a list of [step]children
     void setupChildren (DMI::Record &init,bool stepchildren);
+    
+    // recusrively publishes status messages for parents of node
+    void publishParentalStatus ();
+    // flag used to keep track of whether parental branch has already published
+    bool parent_status_published_;
     
     // in async multithread polling mode, this structure is used to hold the child results
     typedef struct

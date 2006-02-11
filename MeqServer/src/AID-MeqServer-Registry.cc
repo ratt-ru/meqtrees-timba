@@ -85,8 +85,11 @@ DMI::BObj * __construct_MeqSpigot (int n) { return n>0 ? new Meq::Spigot [n] : n
         AtomicID::registerId(-1597,"Serial")+
         AtomicID::registerId(-48,"String")+
         AtomicID::registerId(-1623,"Executing")+
+        AtomicID::registerId(-1651,"Exec")+
         AtomicID::registerId(-1645,"Constructing")+
+        AtomicID::registerId(-1650,"Updating")+
         AtomicID::registerId(-1624,"Sync")+
+        AtomicID::registerId(-1649,"Stopped")+
         AtomicID::registerId(-1585,"MeqVisDataMux")+
         TypeInfoReg::addToRegistry(-1585,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1585,__construct_MeqVisDataMux)+
