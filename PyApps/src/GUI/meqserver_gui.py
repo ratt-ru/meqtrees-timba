@@ -554,15 +554,15 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       _dprint(1,'Creating editor tab for',pathname);
       # create editor tab with item
       tab = tdlgui.TDLEditor(self.maintab,close_button=True);
-      QObject.connect(self,PYSIGNAL("isConnected()"),tab.hide_jobs_menu);
-      QObject.connect(self,PYSIGNAL("isConnected()"),tab.show_run_control);
-      QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),tab.disable_controls);
       tab.load_file(pathname,text,mainfile=mainfile);
       label = os.path.basename(pathname);
       if mainfile:
         label = '(' + label + ')';
       self.add_tab(tab,label);
       self._tdl_tabs[pathname] = tab;
+      QObject.connect(self,PYSIGNAL("isConnected()"),tab.hide_jobs_menu);
+      QObject.connect(self,PYSIGNAL("isConnected()"),tab.show_run_control);
+      QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),tab.disable_controls);
       QObject.connect(tab,PYSIGNAL("fileSaved()"),self.curry(self._tdltab_change,tab));
       QObject.connect(tab,PYSIGNAL("hasErrors()"),self.curry(self._tdltab_errors,tab));
       QObject.connect(tab,PYSIGNAL("textModified()"),self.curry(self._tdltab_modified,tab));

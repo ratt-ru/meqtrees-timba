@@ -223,23 +223,32 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._file_disktime = None;  # modtime on disk when file was loaded
     self._basename = None;
     self._modified = False;
+    self._closed = False;
     
   def __del__ (self):
     self.has_focus(False);
     
   def hide_jobs_menu (self,dum=False):
+    if self._closed:
+      return;
     self._tb_jobs.hide();
     self.clear_message();
     
   def show_run_control (self,show=True):
+    if self._closed:
+      return;
     self._tb_run.setShown(show);
     
   def enable_controls (self,enable=True):
+    if self._closed:
+      return;
     self._tb_run.setEnabled(enable);
     self._tb_jobs.setEnabled(enable);
     self.clear_message();
     
   def disable_controls (self,disable=True):
+    if self._closed:
+      return;
     self._tb_run.setDisabled(disable);
     self._tb_jobs.setDisabled(disable);
     self.clear_message();
@@ -538,17 +547,21 @@ class TDLEditor (QFrame,PersistentCurrier):
     self.emit(PYSIGNAL("fileSaved()"),(filename,));
     return self._filename;
     
+  def close (self):
+    self._closed = True;    
+  
   def confirm_close (self):
-    if not self._modified:
-      return True;
-    res = QMessageBox.warning(self,"TDL file modified",
-      """Save modified file <p><tt>%s</tt>?</p>"""
-      % (self._filename or "",),
-      "Save","Don't Save","Cancel",0,2);
-    if res == 2:
-      return False;
-    if res == 0:
-      return bool(self._save_file());
+    if self._modified:
+      res = QMessageBox.warning(self,"TDL file modified",
+        """Save modified file <p><tt>%s</tt>?</p>"""
+        % (self._filename or "",),
+        "Save","Don't Save","Cancel",0,2);
+      if res == 2:
+        return False;
+      if res == 0:
+        if not self._save_file():
+          return False;
+    self.close();
     return True; 
     
   def _revert_to_saved (self,force=False):

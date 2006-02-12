@@ -492,7 +492,7 @@ int Meq::VisDataMux::endSnippet ()
     }
   // now do the poll
   startAsyncPoll(*current_req_);
-  while( true )
+  while( !forest().abortFlag() )
   {
     try
     {
@@ -511,7 +511,7 @@ int Meq::VisDataMux::endSnippet ()
         res->addToExceptionList(errors);
         errors.add(MakeNodeException("child '"+getChild(ichild).name()+"' returns a FAIL"));
       }
-      else // if child returns a Tile field in the result, dump tile to output
+      else if( !retcode&(RES_WAIT|RES_ABORT) ) // if child returns a Tile field in the result, dump tile to output
       {
         const VisCube::VTile *ptile = res[AidTile].as_po<VisCube::VTile>();
         if( ptile )
@@ -535,7 +535,7 @@ int Meq::VisDataMux::endSnippet ()
   if( errors.size() > nerr0 )
     errors.add(MakeNodeException("error processing tile "+rqid_.toString('.')));
   // poll post-processing child
-  if( isChildValid(2) )
+  if( !forest().abortFlag() && isChildValid(2) )
   {
     Result::Ref res;
     try 
@@ -748,10 +748,13 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
       }
     }
     // check for correct stream state -- last thing should have been a footer
-    if( stream_state != VisData::FOOTER )
-      fail_list().addFail(MakeNodeException("input dataset missing a footer"));
-    if( !had_data )
-      fail_list().addFail(MakeNodeException("input stream was empty"));
+    if( !forest().abortFlag() )
+    {
+      if( stream_state != VisData::FOOTER )
+        fail_list().addFail(MakeNodeException("input dataset missing a footer"));
+      if( !had_data )
+        fail_list().addFail(MakeNodeException("input stream was empty"));
+    }
     // have we accumulated any errors? abort channels
     if( fail_list->isFail() )
     {
@@ -775,10 +778,12 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
     input_channel_().abort();
     if( output_channel_.valid() )
       output_channel_().abort();
+    timers_.getresult.start();
     throw; // rethrow
   }
   // post end event
   postEvent(FVisChannelClosed,endref);
+  timers_.getresult.start();
   // if we have accumulated any fails, return them here
   if( fail_list->isFail() )
   {

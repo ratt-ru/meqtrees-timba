@@ -416,7 +416,7 @@ int Node::pollChildren (Result::Ref &resref,const Request &req)
           int childcode = child_retcodes_[ichild] = getChild(ichild).execute(child_results_[ichild],req);
           cdebug(4)<<"    child "<<ichild<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
           child_cumul_retcode_ |= childcode;
-          if( !(childcode&RES_WAIT) )
+          if( !(childcode&(RES_ABORT|RES_WAIT)) )
           {
             const Result * pchildres = child_results_[ichild].deref_p();
       //       // cache it in verbose mode
