@@ -9,6 +9,7 @@
 
 # History:
 # - 29 sep 2005: creation
+# - 11 feb 2006: total overhaul
 
 # Copyright: The MeqTree Foundation
 
@@ -49,90 +50,12 @@ from Timba.Contrib.JEN import MG_JEN_Sixpack
 
 
 
-#********************************************************************************
-#********************************************************************************
-#************* PART III: MG control record (may be edited here)******************
-#********************************************************************************
-#********************************************************************************
-
-#----------------------------------------------------------------------------------------------------
-# Intialise the MG control record with some overall arguments 
-#----------------------------------------------------------------------------------------------------
-
-MG = JEN_inarg.init('MG_JEN_lsm')
-
-# Define some overall arguments:
-JEN_inarg.define (MG, 'last_changed', 'd30jan2006', editable=False)
-# MG_JEN_Cohset.inarg_parmtable(pp)
-
-
-#----------------------------------------------------------------------------------------------------
-# Interaction with the MS: spigots, sinks and stream control
-#----------------------------------------------------------------------------------------------------
-
-#=======
-if False:                                        
-   MG_JEN_Cohset.inarg_stations(MG)
-   MG_JEN_Cohset.inarg_polrep(MG)
-
-   inarg = MG_JEN_exec.stream_control(_getdefaults=True)
-   JEN_inarg.modify(inarg,
-                    tile_size=10,
-                    _JEN_inarg_option=None)     
-   JEN_inarg.attach(MG, inarg)
-
-   inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
-   JEN_inarg.attach(MG, inarg)
-
-   inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
-   JEN_inarg.attach(MG, inarg)
-                 
-
-
-
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-
-MG_JEN_forest_state.init(MG)
-
-# NB: Using False here does not work, because it regards EVERYTHING
-#        as an orphan, and deletes it.....!?
-# Settings.orphans_are_roots = True
-
-
-# Create an empty global lsm, just in case:
-lsm = LSM()
 
 
 
 #********************************************************************************
 #********************************************************************************
-#**************** PART III: Required test/demo function *************************
-#********************************************************************************
-#********************************************************************************
-
-
-def _define_forest (ns):
-   """Dummy function, just to define global nodescope my_ns"""
-   # Perform some common functions, and return an empty list (cc=[]):
-   cc = MG_JEN_exec.on_entry (ns, MG)  
-
-   # Load the specified lsm into the global lsm object:
-   global lsm
-   # lsm.load(MG['lsm'],ns)  
-
-   # Finished: 
-   return MG_JEN_exec.on_exit (ns, MG, cc)
-
-
-
-
-
-
-#********************************************************************************
-#********************************************************************************
-#******************** PART IV: Optional: Importable functions *******************
+#******************** PART II: Optional: Importable functions *******************
 #********************************************************************************
 #********************************************************************************
 
@@ -212,8 +135,143 @@ def lsm_343(ns):
    print "Inserted %d sources" % linecount 
    lsm.setNodeScope(ns)                       # remember node scope....(!)
    lsm.save('3c343.lsm')
-   lsm.save(MG['lsm_current'])                        # 
+   # lsm.save(MG['lsm_current'])                        # 
    return lsm
+
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#************* PART III: MG control record (may be edited here)******************
+#********************************************************************************
+#********************************************************************************
+
+#----------------------------------------------------------------------------------------------------
+# Intialise the MG control record with some overall arguments 
+#----------------------------------------------------------------------------------------------------
+
+def description ():
+    """MG_JEN_lsm.py is used to create Local Sky Models (LSM) by hand"""
+    return True
+
+#-------------------------------------------------------------------------
+
+MG = JEN_inarg.init('MG_JEN_lsm', description=description.__doc__)
+JEN_inarg.define (MG, 'last_changed', 'd30jan2006', editable=False)
+
+JEN_inarg.define (MG, 'LSM', 'lsm_current.lsm', browse='*.lsm',
+                  help='(file)name of the Local Sky Model')
+JEN_inarg.define (MG, 'count', 2, choice=[1,2,3,5,10,100,1000],
+                  help='nr of LSM sources to be used')
+
+inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True) 
+JEN_inarg.attach(MG, inarg)
+
+
+
+
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+
+MG_JEN_forest_state.init(MG)
+
+# NB: Using False here does not work, because it regards EVERYTHING
+#        as an orphan, and deletes it.....!?
+# Settings.orphans_are_roots = True
+
+
+# Create an empty global lsm, just in case:
+lsm = LSM()
+
+
+
+#********************************************************************************
+#********************************************************************************
+#***************** PART IV: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
+
+def _tdl_predefine (mqs, parent, **kwargs):
+   res = True
+   if parent:
+      QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
+      try:
+         igui = JEN_inargGui.ArgBrowser(parent)
+         igui.input(MG, set_open=False)
+         res = igui.exec_loop()
+         if res is None:
+            raise RuntimeError("Cancelled by user");
+      finally:
+         QApplication.restoreOverrideCursor()
+   return res
+
+
+
+
+#**************************************************************************
+
+def _define_forest (ns, **kwargs):
+
+   # The MG may be passed in from _tdl_predefine():
+   # In that case, override the global MG record.
+   global MG
+   if len(kwargs)>1: MG = kwargs
+   
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
+   radec = []                          # for collect_radec()
+
+   if False:
+      # Create the source defined by MG:
+      sp = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
+      sp.display()
+      cc.append(MG_JEN_Sixpack.make_bookmark(ns, sp))
+      MG_JEN_Sixpack.collect_radec(radec, sp)
+   
+   # Load the specified lsm into the global lsm object:
+   global lsm
+   # lsm = LSM()
+   lsm.load(MG['LSM'],ns)
+   if False:
+      # first compose the sixpack before giving it to the LSM
+      sp.sixpack(ns)
+      s = Source('test')
+      lsm.add_source(s,
+                     # brightness=eval(v.group('col12')),
+                     # ra=source_RA,
+                     # dec=source_Dec)
+                     sixpack=sp)
+      lsm.display()
+
+   if False:
+      # Obtain the Sixpacks of the brightest punits.
+      # Turn the point-sources in Cohsets with DFT KJonesets
+      plist = lsm.queryLSM(count=MG['count'])
+      print '\n** plist =',type(plist),len(plist)
+      for punit in plist: 
+         sp = punit.getSP()              # get_Sixpack()
+         cc.append(MG_JEN_Sixpack.make_bookmark(ns, sp))
+         MG_JEN_Sixpack.collect_radec(radec, sp)
+         # qual = str(sp.label())
+         # sp.display()
+         if sp.ispoint():                # point source (Sixpack object)
+            pass
+         else:	                        # patch (not a Sixpack object!)
+            node = sp.root()            # ONLY valid for a patch...#
+            cc.append(node)             # ....?
+
+   # Make a radec root node (tidier)
+   MG_JEN_Sixpack.collect_radec(radec, ns=ns)
+   
+   # Finished: 
+   return MG_JEN_exec.on_exit (ns, MG, cc)
+
+
 
 
 
@@ -231,7 +289,8 @@ def lsm_343(ns):
 
 def _test_forest (mqs, parent):
     """Execute the forest with a default domain"""
-    return MG_JEN_exec.meqforest (mqs, parent, domain='21cm',nfreq=10, ntime=5)
+    return MG_JEN_exec.meqforest (mqs, parent)
+    # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm',nfreq=10, ntime=5)
 
 
 def _tdl_job_display (mqs, parent):
@@ -271,6 +330,8 @@ def _tdl_job_dirdir (mqs, parent):
 
 
 
+
+
 #********************************************************************************
 #********************************************************************************
 #******************** PART VI: Standalone test routines *************************
@@ -279,16 +340,22 @@ def _tdl_job_dirdir (mqs, parent):
 
 
 if __name__ == '__main__':
-   print '\n*******************\n** Local test of:',MG.script_name,':\n'
+   print '\n*******************\n** Local test of:',MG['script_name'],':\n'
 
    # Generic test:
    if 0:
-       MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=3)
+       MG_JEN_exec.without_meqserver(MG['script_name'], callback=_define_forest, recurse=3)
 
    # Various specific tests:
    ns = NodeScope()
 
    if 1:
+      igui = JEN_inargGui.ArgBrowser()
+      igui.input(MG, set_open=False)
+      igui.launch()
+       
+
+   if 0:
       lsm = lsm_343(ns)
       plist = lsm.queryLSM(count=3)
       for pu in plist:
@@ -296,9 +363,9 @@ if __name__ == '__main__':
          my_sp.display()
 
    if 0:
-      MG_JEN_exec.display_object (MG, 'MG', MG.script_name)
-      # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
-   print '\n** End of local test of:',MG.script_name,'\n*******************\n'
+      MG_JEN_exec.display_object (MG, 'MG', MG['script_name'])
+      # MG_JEN_exec.display_subtree (rr, MG['script_name'], full=1)
+   print '\n** End of local test of:',MG['script_name'],'\n*******************\n'
        
 #********************************************************************************
 #********************************************************************************

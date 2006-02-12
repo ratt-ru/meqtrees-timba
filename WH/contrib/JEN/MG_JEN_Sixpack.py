@@ -25,14 +25,13 @@
 
 #********************************************************************************
 #********************************************************************************
-#**************** PART II: Preample and initialisation **************************
+#**************** PART II: Preamble *********************************************
 #********************************************************************************
 #********************************************************************************
 
 from Timba.TDL import *
 from Timba.Meq import meq
 
-MG = record(script_name='MG_JEN_Sixpack.py', last_changed = 'h22sep2005')
 
 from Timba import utils
 # _dbg = utils.verbosity(0, name='tutorial')
@@ -63,67 +62,6 @@ from Timba.Contrib.JEN import MG_JEN_matrix
 
 
 
-
-#-------------------------------------------------------------------------
-# The forest state record will be included automatically in the tree.
-# Just assign fields to: Settings.forest_state[key] = ...
-# See MG_JEN_forest_state.py
-
-MG_JEN_forest_state.init(MG.script_name)
-
-
-
-
-
-
-#********************************************************************************
-#********************************************************************************
-#**************** PART III: Required test/demo function *************************
-#********************************************************************************
-#********************************************************************************
-
-# Tree definition routine (may be executed from the browser):
-# To be used as example, for experimentation, and automatic testing.
-
-
-def _define_forest (ns):
-   """Definition of a MeqForest for demonstration/testing/experimentation
-   of the subject of this MG script, and its importable functions"""
-
-   # Perform some common functions, and return an empty list (cc=[]):
-   cc = MG_JEN_exec.on_entry (ns, MG)
-
-   group = dict()
-   group['basic'] = ['unpol','Qonly','Uonly','Vonly']
-   group['combi'] = ['QU','QUV','QU2']
-   group['test'] = ['RMtest','SItest']
-   group['3c'] = ['3c147','3c48','3c286','3c295']
-
-   # Sixpack['default'] = newstar_source (ns)
-   # Sixpack['QUV_RM_SI'] = newstar_source (ns, punit='QUV', RM=1, SI=-0.7)
-
-   radec = []
-   for key in group.keys():
-      ss = []
-      for predef in group[key]:
-         Sixpack = newstar_source (ns, punit=predef)
-         bb = []
-         bb.append(Sixpack.stokesI())
-         bb.append(Sixpack.stokesQ())
-         bb.append(Sixpack.stokesU())
-         bb.append(Sixpack.stokesV())
-         ss.append(MG_JEN_exec.bundle(ns, bb, predef))
-         radec.append(Sixpack.ra())
-         radec.append(Sixpack.dec())
-      cc.append(MG_JEN_exec.bundle(ns, ss, key))
-      MG_JEN_forest_state.bookfolder(key)
- 
-   # Collect the 'loose' RA,DEC root nodes to a single root node (more tidy):
-   radec_root = ns.radec_root << Meq.Add (children=radec)
-
-
-   # Finished: 
-   return MG_JEN_exec.on_exit (ns, MG, cc)
 
 
 
@@ -610,6 +548,113 @@ def newstar_source (ns=0, **inarg):
 
 
 
+#------------------------------------------------------------------------------------
+
+def make_bookmark(ns, Sixpack):
+   """Make a bookmark of the I,Q,U,V nodes of the given Sixpack"""
+   bb = []
+   bb.append(Sixpack.stokesI())
+   bb.append(Sixpack.stokesQ())
+   bb.append(Sixpack.stokesU())
+   bb.append(Sixpack.stokesV())
+   return MG_JEN_exec.bundle(ns, bb, Sixpack.label())
+
+
+def collect_radec(radec=[], Sixpack=None, ns=None):
+   """Tie RA,Dec nodes to a single radec_root node (to avoid browser clutter)"""
+   if Sixpack:
+      radec.append(Sixpack.ra())
+      radec.append(Sixpack.dec())
+   if ns:
+      ns._radec_root << Meq.Add (children=radec)
+   return True
+
+
+
+
+
+
+
+
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#************* PART III: MG control record (may be edited here)******************
+#********************************************************************************
+#********************************************************************************
+
+def description ():
+    """MG_JEN_Sixpack.py makes source Sixpacks"""
+    return True
+
+
+#----------------------------------------------------------------------------------------------------
+# Intialise the MG control record with some overall arguments 
+#----------------------------------------------------------------------------------------------------
+
+MG = JEN_inarg.init('MG_JEN_Sixpack', description=description.__doc__)
+JEN_inarg.define (MG, 'last_changed', 'd12feb2006', editable=False)
+
+
+#-------------------------------------------------------------------------
+# The forest state record will be included automatically in the tree.
+# Just assign fields to: Settings.forest_state[key] = ...
+# See MG_JEN_forest_state.py
+
+MG_JEN_forest_state.init(MG)
+
+
+
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#**************** PART III: Required test/demo function *************************
+#********************************************************************************
+#********************************************************************************
+
+
+def _define_forest (ns):
+   """Definition of a MeqForest for demonstration/testing/experimentation
+   of the subject of this MG script, and its importable functions"""
+
+   # Perform some common functions, and return an empty list (cc=[]):
+   cc = MG_JEN_exec.on_entry (ns, MG)
+
+   group = dict()
+   group['basic'] = ['unpol','Qonly','Uonly','Vonly']
+   group['combi'] = ['QU','QUV','QU2']
+   group['test'] = ['RMtest','SItest']
+   group['3c'] = ['3c147','3c48','3c286','3c295']
+
+   # Sixpack['default'] = newstar_source (ns)
+   # Sixpack['QUV_RM_SI'] = newstar_source (ns, punit='QUV', RM=1, SI=-0.7)
+
+   radec = []
+   for key in group.keys():
+      ss = []
+      for predef in group[key]:
+         Sixpack = newstar_source (ns, punit=predef)
+         ss.append(make_bookmark(ns, Sixpack))
+         collect_radec(radec, Sixpack)
+      cc.append(MG_JEN_exec.bundle(ns, ss, key))
+      MG_JEN_forest_state.bookfolder(key)
+ 
+   # Make the radec_root node:
+   collect_radec(radec, ns=ns)
+
+   # Finished: 
+   return MG_JEN_exec.on_exit (ns, MG, cc)
+
+
+
 
 
 
@@ -666,6 +711,8 @@ def _tdl_job_sequence(mqs, parent):
 
 
 
+
+
 #********************************************************************************
 #********************************************************************************
 #******************** PART VI: Standalone test routines *************************
@@ -677,12 +724,12 @@ def _tdl_job_sequence(mqs, parent):
 #      > python MG_JEN_Sixpack.py
 
 if __name__ == '__main__':
-   print '\n*******************\n** Local test of:',MG.script_name,':\n'
+   print '\n*******************\n** Local test of:',MG['script_name'],':\n'
    from Timba.Trees import JEN_inargGui
 
    # Generic test:
    if 0:
-       MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest, recurse=3)
+       MG_JEN_exec.without_meqserver(MG['script_name'], callback=_define_forest, recurse=3)
 
    # Various specific tests:
    ns = NodeScope()
@@ -732,7 +779,7 @@ if __name__ == '__main__':
       MG_JEN_exec.display_subtree (Sixpack.iquv(), 'iquv()', full=1)
 
 
-   print '\n** End of local test of:',MG.script_name,'\n*******************\n'
+   print '\n** End of local test of:',MG['script_name'],'\n*******************\n'
        
 #********************************************************************************
 #********************************************************************************

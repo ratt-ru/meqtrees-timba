@@ -1035,7 +1035,7 @@ JEN_inarg.attach(MG, inarg)
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(MG['script_name'])
+MG_JEN_forest_state.init(MG)
 
 
 #====================================================================================
@@ -1074,7 +1074,6 @@ def _tdl_predefine (mqs, parent, **kwargs):
     Errors should be indicated by throwing an exception.
     """
 
-    print '\n** inside _tdl_predefine() **\n'
     res = True
     if parent:
         QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
