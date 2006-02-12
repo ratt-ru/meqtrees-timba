@@ -125,6 +125,7 @@ MeqServer::MeqServer()
   async_commands["Set.Forest.Breakpoint"] = &MeqServer::setForestBreakpoint;
   async_commands["Clear.Forest.Breakpoint"] = &MeqServer::clearForestBreakpoint;
   
+  async_commands["Execute.Abort"] = &MeqServer::executeAbort;
   async_commands["Debug.Set.Level"] = &MeqServer::debugSetLevel;
   async_commands["Debug.Interrupt"] = &MeqServer::debugInterrupt;
   async_commands["Debug.Single.Step"] = &MeqServer::debugSingleStep;
@@ -366,6 +367,21 @@ void MeqServer::getNodeList (DMI::Record::Ref &out,DMI::Record::Ref &in)
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
+void MeqServer::executeAbort (DMI::Record::Ref &out,DMI::Record::Ref &in)
+{
+  forest.raiseAbortFlag();
+  if( state() == AidExecuting )
+    out()[AidMessage] = "aborting tree execution";
+  if( forest.isStopFlagRaised() )
+  {
+    forest.clearBreakpoint(Node::CS_ALL&~forest_breakpoint_,false);
+    forest.clearBreakpoint(Node::CS_ALL,true);
+    debug_next_node = debug_bp_node = 0;
+    clear_stop_flag_ = true;
+  }
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(1));
+}
+    
 //##ModelId=400E5B6C015E
 void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
@@ -374,7 +390,7 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
   {
     // close all parm tables to free up memory
     ParmTable::closeTables();
-    //
+    forest.clearAbortFlag();
     DMI::Record::Ref rec = in;
     bool getstate;
     Node & node = resolveNode(getstate,*rec);
@@ -412,6 +428,7 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
         }
       }
     }
+    executing_ = false;
     out[AidResult|AidCode] = flags;
     if( flags&Node::RES_FAIL )
     {
@@ -425,6 +442,8 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
       }
       out[AidError] = makeNodeMessage(node,ssprintf("execute() failed%s (return code 0x%x)",msg.c_str(),flags));
     }
+    else if( flags&Node::RES_ABORT )
+      out[AidMessage] = makeNodeMessage(node,ssprintf("execute() aborted (return code 0x%x)",flags));
     else
       out[AidMessage] = makeNodeMessage(node,ssprintf("execute() successful (return code 0x%x)",flags));
     if( resref.valid() )
@@ -783,6 +802,22 @@ void MeqServer::reportNodeStatus (Node &node,int oldstat,int newstat)
   control().postEvent(ev,ObjRef(),AidDebug);
 }
 
+void MeqServer::fillAppState (DMI::Record &rec)
+{
+  Thread::Mutex::Lock lock(exec_cond_);
+  int sz = exec_queue_.size();
+  lock.release();
+  HIID st = state();
+  if( forest.isStopFlagRaised() && !clear_stop_flag_ )
+    st |= AidDebug;
+  rec[AidApp|AidState] = st;
+  string str = st.toString('.');
+  if( sz>1 )
+    str += ssprintf(" (%d)",sz-1);
+  rec[AidApp|AidState|AidString] = str;
+  rec[AidApp|AidExec|AidQueue|AidSize] = sz;
+}
+
 void MeqServer::fillForestStatus  (DMI::Record &rec,int level)
 {
   if( !level )
@@ -830,19 +865,6 @@ void MeqServer::mqs_processBreakpoint (Node &node,int bpmask,bool global)
 void MeqServer::mqs_postEvent (const HIID &id,const ObjRef &data)
 {
   mqs_->postEvent(id,data);
-}
-
-void MeqServer::fillAppState (DMI::Record &rec)
-{
-  Thread::Mutex::Lock lock(exec_cond_);
-  int sz = exec_queue_.size();
-  lock.release();
-  rec[AidApp|AidState] = HIID(state_);
-  string str = HIID(state_).toString();
-  if( sz>1 )
-    str += ssprintf(" (%d)",sz-1);
-  rec[AidApp|AidState|AidString] = str;
-  rec[AidApp|AidExec|AidQueue|AidSize] = sz;
 }
 
 void MeqServer::publishState ()
@@ -1035,6 +1057,7 @@ void MeqServer::processCommands ()
 //##ModelId=3F608106021C
 void MeqServer::run ()
 {
+  running_ = true;
   // connect debugging callbacks
   forest.setDebuggingCallbacks(mqs_reportNodeStatus,mqs_processBreakpoint);
   forest.setEventCallback(mqs_postEvent);
@@ -1044,7 +1067,6 @@ void MeqServer::run ()
   exec_thread_ = Thread::create(startExecutionThread,this);
 
   setState(AidIdle);  
-  running_ = true;
   while( running_ )
   {
     // process any pending commands

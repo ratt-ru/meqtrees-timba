@@ -152,6 +152,8 @@ class Node : public DMI::BObj
       // Result not yet available, must wait. This flag may be combined
       // with other flags (except FAIL) to indicate dependencies.
       RES_WAIT         = 0x10<<RQIDM_NBITS,    
+      // Execution was aborted via forest's abortFlag()
+      RES_ABORT        = 0x40<<RQIDM_NBITS,
       // Result is a complete fail (i.e. not a mix of failed and OK VellSets,
       // just a complete fail)
       RES_FAIL         = 0x80<<RQIDM_NBITS
@@ -1159,6 +1161,16 @@ class Node : public DMI::BObj
 #endif
       timers_.total.stop();
       return retcode;
+    }
+    
+    // helper function to exit when the abort flag is raised
+    int exitAbort (int retcode)
+    {
+      Result::Ref ref(new Result(0));
+      cdebug(3)<<"  abort flag raised, returning"<<endl;
+      Thread::Mutex::Lock lock(execCond());
+      setExecState(CS_ES_IDLE,control_status_|CS_RES_EMPTY);
+      return exitExecute(retcode|RES_ABORT);
     }
     
     //##ModelId=3F8433ED0337

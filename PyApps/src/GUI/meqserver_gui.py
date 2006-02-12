@@ -50,7 +50,8 @@ class meqserver_gui (app_proxy_gui):
   StatePixmaps = { None: pixmaps.stop, \
     'idle': pixmaps.grey_cross,
     'executing': pixmaps.gear,
-    'debug': pixmaps.breakpoint };
+    'executing.debug': pixmaps.breakpoint,
+    'executing_debug': pixmaps.breakpoint };
 
   def __init__(self,app,*args,**kwargs):
     meqds.set_meqserver(app);
@@ -143,6 +144,9 @@ class meqserver_gui (app_proxy_gui):
     self._qa_runtdl.setVisible(False);
     self._qa_runtdl.setEnabled(False);
     self._main_tdlfile = None; # this is used by _run_current
+    # disable TDL job controls while running
+    QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._tb_jobs.setDisabled);
+    QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._qa_runtdl.setDisabled);
     
     # add what's this button at far right
     dum = QWidget(self.maintoolbar);
@@ -551,6 +555,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       # create editor tab with item
       tab = tdlgui.TDLEditor(self.maintab,close_button=True);
       QObject.connect(self,PYSIGNAL("isConnected()"),tab.hide_jobs_menu);
+      QObject.connect(self,PYSIGNAL("isConnected()"),tab.show_run_control);
+      QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),tab.disable_controls);
       tab.load_file(pathname,text,mainfile=mainfile);
       label = os.path.basename(pathname);
       if mainfile:

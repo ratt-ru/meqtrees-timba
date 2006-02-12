@@ -813,6 +813,8 @@ int Solver::getResult (Result::Ref &resref,
   timers_.getresult.stop();
   int retcode = Node::pollChildren(resref,*reqref);
   timers_.getresult.start();
+  if( forest().abortFlag() )
+    return 0;
   if( retcode&(RES_FAIL|RES_WAIT) )
     return retcode;
   // Node's standard discoverSpids() implementation merges all child spids together
@@ -908,12 +910,16 @@ int Solver::getResult (Result::Ref &resref,
     timers_.getresult.stop();
     setExecState(CS_ES_POLLING);
     startAsyncPoll(*reqref);
+    if( forest().abortFlag() )
+      return 0;
     int rescode;
     Result::Ref child_res;
     // wait for child results until all have been polled (await will return -1 when this is the case)
     std::list<Result::Ref> child_fails;  // any fails accumulated here
     while( (cur_child_ = awaitChildResult(rescode,child_res,*reqref)) >= 0 )
     {
+      if( forest().abortFlag() )
+        return 0;
       // tell child to hold cache if it doesn't depend on iteration
       getChild(cur_child_).holdCache(!(rescode&iter_depmask_));
       // has the child failed? 
@@ -940,6 +946,8 @@ int Solver::getResult (Result::Ref &resref,
         timers_.getresult.stop();
       }
     } // end of while loop over children
+    if( forest().abortFlag() )
+      return 0;
     setExecState(CS_ES_EVALUATING);
     timers_.getresult.start();
     FailWhen(!num_equations_,"no equations were generated");
@@ -1015,7 +1023,8 @@ int Solver::getResult (Result::Ref &resref,
   // post a Solver.End event (which is simply a copy of the latest iteration event)
   if( debug_lvl_ >= 0 )
     postEvent(FSolverEnd,evrec);
-  
+  if( forest().abortFlag() )
+    return 0;
   // send up one final update if needed
   if( do_last_update_ && (cur_iter_ == max_num_iter_ || converged))
   {

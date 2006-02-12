@@ -647,7 +647,7 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
     // now run the I/O loop
     cached_header_.detach();
     DMI::Record::Ref header;
-    while( true )
+    while( !forest().abortFlag() )
     {
       HIID evid;
       ObjRef evdata;

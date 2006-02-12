@@ -100,6 +100,8 @@ class MeqServer : public DMI::EventRecepient
     
     void publishResults (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void disablePublishResults (DMI::Record::Ref &out,DMI::Record::Ref &in);
+
+    void executeAbort (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
     void nodeSetBreakpoint    (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void nodeClearBreakpoint  (DMI::Record::Ref &out,DMI::Record::Ref &in);

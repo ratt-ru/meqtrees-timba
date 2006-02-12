@@ -1126,17 +1126,20 @@ int Node::execute (Result::Ref &ref,const Request &req)
   
   cdebug(3)<<"execute, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
   FailWhen(node_resolve_id_<0,"execute() called before resolve()");
+  int retcode = 0;
   // this indicates the current stage (for exception handler)
   string stage;
   string local_error;              // non-empty if error is generated
   DMI::ExceptionList local_fails;  // this is non-empty if we detect a local fail
   try
   {
+    // check for abort flag
+    if( forest().abortFlag() )
+      return exitAbort(retcode);
     timers_.total.start();
     if( forest().debugLevel()>1 )
       wstate()[FNewRequest].replace() <<= req;
     setExecState(CS_ES_REQUEST);
-    int retcode = 0;
     // do we have a new request? Empty request id treated as always new
     new_request_ = !current_request_.valid() ||
                    req.id().empty() || 
@@ -1221,6 +1224,8 @@ int Node::execute (Result::Ref &ref,const Request &req)
       // if request has cells, then resample children (will do nothing if disabled)
       resampleChildren(rescells,child_results_);
     }
+    if( forest().abortFlag() )
+      return exitAbort(retcode);
     // does request have a Cells object? Compute our Result then
     if( req.hasCells() )
     {
@@ -1279,6 +1284,8 @@ int Node::execute (Result::Ref &ref,const Request &req)
     {
       result_status = CS_RES_EMPTY;
     }
+    if( forest().abortFlag() )
+      return exitAbort(retcode);
     // end of request processing
     // still no result? allocate an empty one just in case
     if( !ref.valid() )
@@ -1390,56 +1397,58 @@ void Node::setExecState (int es,int newst,bool sync)
   parent_status_published_ = false;
   // update exec state in new control status 
   newst = (newst&~CS_MASK_EXECSTATE) | es;
-  // check breakpoints
-  int bp = breakpointMask(newst);
-  // if fail result is being returned, add BP_FAIL to mask
-  if( es == CS_ES_IDLE && (newst&CS_RES_MASK) == CS_RES_FAIL )
-    bp |= BP_FAIL;
-  // always check global breakpoints first (to make sure single-shots are cleared)
-  bool breakpoint = forest_->checkGlobalBreakpoints(bp);
-  // the local flag is true if a local breakpoint (also) occurs
-  bool local = false;
-  // always check and flush local single-shot breakpoints
-  if( breakpoints_ss_&bp )
+  if( !forest().abortFlag() )
   {
-    breakpoint = local = true;
-    breakpoints_ss_ = 0;
-    newst &= ~CS_BREAKPOINT_SS;
-  }
-  else if( breakpoints_&bp ) // finally check for persistent local breakpoints
-    breakpoint = local = true;
-  // finally, check persistent local breakpoints too
-  if( breakpoint )
-  {
-    // update control status
-    // the breakpoint flag is only raised if we stopped because of a local
-    // breakpoint
-    if( local )
-      newst |= CS_STOP_BREAKPOINT;
-    setControlStatus(newst|CS_STOPPED,sync);
-    // now notify the forest of breakpoint (presumably this will wait
-    // on the stop flag)
-    pstate_lock_->release();
-    publishParentalStatus();  // recursively publish parents' control status
-    forest_->processBreakpoint(*this,bp,!local);
-    pstate_lock_->relock(state_mutex_);
-    // clear stop bit from control status
-    setControlStatus(control_status_&~(CS_STOP_BREAKPOINT|CS_STOPPED),sync);
-  }
-  else  // no breakpoints, simply update control status
-  {
-    // now check if forest is stopped at a breakpoint in another thread.
-    // If this is the case, then stop here and wait
-    if( forest_->isStopFlagRaised() )
+    // check breakpoints
+    int bp = breakpointMask(newst);
+    // if fail result is being returned, add BP_FAIL to mask
+    if( es == CS_ES_IDLE && (newst&CS_RES_MASK) == CS_RES_FAIL )
+      bp |= BP_FAIL;
+    // always check global breakpoints first (to make sure single-shots are cleared)
+    bool breakpoint = forest_->checkGlobalBreakpoints(bp);
+    // the local flag is true if a local breakpoint (also) occurs
+    bool local = false;
+    // always check and flush local single-shot breakpoints
+    if( breakpoints_ss_&bp )
     {
+      breakpoint = local = true;
+      breakpoints_ss_ = 0;
+      newst &= ~CS_BREAKPOINT_SS;
+    }
+    else if( breakpoints_&bp ) // finally check for persistent local breakpoints
+      breakpoint = local = true;
+    // finally, check persistent local breakpoints too
+    if( breakpoint )
+    {
+      // update control status
+      // the breakpoint flag is only raised if we stopped because of a local
+      // breakpoint
+      if( local )
+        newst |= CS_STOP_BREAKPOINT;
       setControlStatus(newst|CS_STOPPED,sync);
+      // now notify the forest of breakpoint (presumably this will wait
+      // on the stop flag)
       pstate_lock_->release();
       publishParentalStatus();  // recursively publish parents' control status
-      forest_->waitOnStopFlag();
+      forest_->processBreakpoint(*this,bp,!local);
       pstate_lock_->relock(state_mutex_);
+      // clear stop bit from control status
+      setControlStatus(control_status_&~(CS_STOP_BREAKPOINT|CS_STOPPED),sync);
     }
-    setControlStatus(newst,sync);
+    return;
   }
+  // no breakpoints, simply update control status
+  // But do check if forest is stopped at a breakpoint in another thread.
+  // If this is the case, then stop here and wait
+  if( !forest().abortFlag() && forest_->isStopFlagRaised() )
+  {
+    setControlStatus(newst|CS_STOPPED,sync);
+    pstate_lock_->release();
+    publishParentalStatus();  // recursively publish parents' control status
+    forest_->waitOnStopFlag();
+    pstate_lock_->relock(state_mutex_);
+  }
+  setControlStatus(newst,sync);
 }
 
 void Node::publishParentalStatus ()

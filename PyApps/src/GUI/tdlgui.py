@@ -231,6 +231,19 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_jobs.hide();
     self.clear_message();
     
+  def show_run_control (self,show=True):
+    self._tb_run.setShown(show);
+    
+  def enable_controls (self,enable=True):
+    self._tb_run.setEnabled(enable);
+    self._tb_jobs.setEnabled(enable);
+    self.clear_message();
+    
+  def disable_controls (self,disable=True):
+    self._tb_run.setDisabled(disable);
+    self._tb_jobs.setDisabled(disable);
+    self.clear_message();
+    
   def get_filename (self):
     return self._filename;
   def get_mainfile (self):

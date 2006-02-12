@@ -243,6 +243,15 @@ class Forest
     void setDebugLevel (int level) 
     { debug_level_ = level; }
     
+    void raiseAbortFlag ()
+    { abort_flag_ = true; }
+    
+    void clearAbortFlag ()
+    { abort_flag_ = false; }
+    
+    bool abortFlag () const
+    { return abort_flag_; }
+    
     Thread::Mutex & forestMutex () const
     { return forest_mutex_; }
 
@@ -266,6 +275,8 @@ class Forest
       
     int breakpoints;
     int breakpoints_ss;
+    
+    bool abort_flag_;
     
     bool stop_flag_;
     Thread::Condition stop_flag_cond_;

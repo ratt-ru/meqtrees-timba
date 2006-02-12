@@ -675,6 +675,8 @@ class TreeBrowser (QObject):
     self.is_stopped = fst.stopped;
     self.debug_level = fst.debug_level;
     self._forest_breakpoint = fst.breakpoint;
+    self.wtop().emit(PYSIGNAL("isRunning()"),(self.is_running,));
+    self.wtop().emit(PYSIGNAL("isStopped()"),(self.is_stopped,));
     # if just stopped in the tree debugger, make sure all stopped nodes
     # are visible
     _dprint(5,"was stopped",was_stopped,"is stopped",self.is_stopped);
@@ -809,6 +811,13 @@ class TreeBrowser (QObject):
     _dprint(1,"requesting node list and forest state");
     meqds.request_forest_state();
     meqds.request_nodelist(force=True);
+    
+  def _abort_execute (self):
+    if QMessageBox.warning(self.wtop(),"Aborting execution",
+          "Abort execution of current request?",
+          QMessageBox.Yes,QMessageBox.No|QMessageBox.Default|QMessageBox.Escape) == QMessageBox.No:
+      return;
+    mqs().meq('Execute.Abort',record(),wait=False);
     
   def _debug_set_verbosity_slot (self,qa):
     """Sends a debug level message.""";
@@ -970,10 +979,17 @@ def define_treebrowser_actions (tb):
   qa_save = tb._qa_save = QAction(pixmaps.file_save.iconset(),"Save forest",0,parent);
   qa_save.setToolTip("This saves the current forest to a file");
   qa_load.setToolTip("This loads the current forest from a file");
-  qa_load._is_enabled = qa_save._is_enabled = lambda tb=tb: tb.is_connected and tb.app_state == AppState.Idle;
+  qa_load._is_enabled = qa_save._is_enabled = lambda tb=tb: tb.is_connected and not tb.is_running;
   tb.add_action(qa_load,30,callback=tb.load_forest_dialog);
   tb.add_action(qa_save,40,callback=tb.save_forest_dialog);
-  tb.add_separator(50);
+  tb.add_separator(45);
+  # Abort button
+  qa_abort = QAction(pixmaps.abort.iconset(),"&Abort execution",0,parent);
+  qa_abort.setToolTip("This aborts the currently executing request");
+  qa_abort._is_visible = lambda tb=tb: tb.is_connected;
+  qa_abort._is_enabled = lambda tb=tb: tb.is_running;
+  tb.add_action(qa_abort,50,callback=tb._abort_execute);
+  tb.add_separator(55);
   # debugger verbosity
   # dbg_enable = tb._qa_dbg_enable = QAction(pixmaps.debugger.iconset(),"Enable verbose &debugger",Qt.Key_F5,parent);
   dbg_verbosity = tb._qa_dbg_verbosity = QActionGroup(parent);
@@ -991,6 +1007,7 @@ def define_treebrowser_actions (tb):
     qa._debug_level = level;
     dbg_verbosity.add(qa);
     tb._qa_dbg_verbosities.append(qa);
+  dbg_verbosity._is_visible = lambda tb=tb: tb.is_connected;
   dbg_verbosity._is_enabled = lambda tb=tb: tb.is_connected;
   tb.add_action(dbg_verbosity,60);
   tb.add_separator(61);
