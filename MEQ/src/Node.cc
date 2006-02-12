@@ -1128,6 +1128,8 @@ int Node::execute (Result::Ref &ref,const Request &req)
   FailWhen(node_resolve_id_<0,"execute() called before resolve()");
   // this indicates the current stage (for exception handler)
   string stage;
+  string local_error;              // non-empty if error is generated
+  DMI::ExceptionList local_fails;  // this is non-empty if we detect a local fail
   try
   {
     timers_.total.start();
@@ -1248,8 +1250,29 @@ int Node::execute (Result::Ref &ref,const Request &req)
       }
       else if( req.requestType() == RequestType::DISCOVER_SPIDS )
       {
+        stage = "discovering spids";
         retcode |= discoverSpids(ref,child_results_,req);
       }
+      // if FAIL is returned, prepare error message
+      if( retcode&RES_FAIL )
+      {
+        bool added = false;
+        if( ref.valid() )
+          for( int i=0; i<ref->numVellSets(); i++ )
+          {
+            const VellSet &vs = ref->vellSet(i);
+            if( vs.isFail() )
+            {
+              if( local_error.empty() )
+                local_error = vs.getFailMessage();
+              vs.addToExceptionList(local_fails);
+            }
+          }
+      }
+      if( local_error.empty() )
+        local_error = "unknown failure while "+stage+" for request "+req.id().toString('.');
+      else
+        local_error += " (while "+stage+" for request "+req.id().toString('.')+")";
       result_status = retcode&RES_FAIL ? CS_RES_FAIL : CS_RES_OK;
     }
     else // no cells at all, allocate an empty result
@@ -1281,12 +1304,15 @@ int Node::execute (Result::Ref &ref,const Request &req)
   {
     ref <<= new Result(1);
     VellSet & res = ref().setNewVellSet(0);
+    local_error = string(exc.what())+" (while "+stage+" for request "+req.id().toString('.')+")";
+    local_fails.add(exc);
     MakeFailVellSetMore(res,exc,"exception in execute() while "+stage);
   }
   catch( ... )
   {
     ref <<= new Result(1);
     VellSet & res = ref().setNewVellSet(0);
+    local_error = "unknown error while "+stage+" for request "+req.id().toString('.');
     MakeFailVellSet(res,"unknown exception in execute() while "+stage);
   }
   // clean up and return the fail
@@ -1295,6 +1321,9 @@ int Node::execute (Result::Ref &ref,const Request &req)
   if( timers_.children.isRunning() )
     timers_.children.stop();
   int ret;
+  // post local fails if any have accumulated
+  if( !local_error.empty() )
+    postError(local_error,local_fails.makeList());
   // any exceptions here need to be caught so that we clean up properly
   try
   {
