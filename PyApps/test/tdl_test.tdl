@@ -19,30 +19,6 @@ Settings.forest_state.a = None;
 # Make sure our solver root node is not cleaned up
 Settings.orphans_are_roots = True;
 
-def _tdl_predefine (mqs,parent,**kwargs):
-  """_tdl_predefine() is a standard TDL name. When a forest script is
-  loaded by, e.g., the browser, this method is called prior to
-  defining the forest. The method can do anything: run a GUI, read
-  config files, etc.
-  Parameters:
-    mqs:    a meqserver object.
-    parent: parent widget (if running in a GUI), or None if no GUI
-    kwargs: extra arguments (may be used by assay scripts, etc.)
-  If this function returns a dict, this dict is passed as the kwargs
-  of _define_forest(). 
-  Errors should be indicated by throwing an exception.
-  """;
-  if parent:
-    QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor));
-    try:
-      res = QMessageBox.information(parent,"tdl_predefine",
-        "Press OK to compile forest",QMessageBox.Ok,QMessageBox.Cancel);
-      if res == QMessageBox.Cancel:
-        raise RuntimeError("user cancelled");
-    finally:
-      QApplication.restoreOverrideCursor();
-  return dict(a=None);
-
 def _define_forest (ns,**kwargs):
   """define_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, this method is automatically called to
@@ -58,27 +34,17 @@ def _define_forest (ns,**kwargs):
         a=None
       ),
     );
+  ns.solver2 << Meq.Solver(
+      num_iter=5,debug_level=10,solvable="y",
+      children = Meq.Condeq(
+        Meq.Parm([0,1]),
+        5 + (ns.x << Meq.Parm(0,node_groups='Parm')),
+        a=None
+      ),
+    );
+  ns.reqseq = Meq.ReqSeq(ns.solver,ns.solver2);
     
-def _tdl_postdefine (mqs,parent,**kwargs):
-  """_tdl_postdefine() is a standard TDL name. When a forest script is
-  loaded by, e.g., the browser, this method is called prior to
-  defining the forest. The method can do anything: run a GUI, read
-  config files, etc. Parameters:
-    mqs:    a meqserver object.
-    parent: parent widget (if running in a GUI), or None if no GUI
-    kwargs: extra arguments (may be used by assay scripts, etc.)
-  If this function returns a string, this string is appended to the 
-  end of the status message. 
-  """;
-  if parent:
-    QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor));
-    try:
-      buttons = ("Good","Great","OK");
-      res = QMessageBox.information(parent,"tdl_postdefine",
-        "Forest compiled successfully.",*buttons);
-      return "User pressed '"+buttons[res]+"'.";
-    finally:
-      QApplication.restoreOverrideCursor();
+    
 
 def _test_forest (mqs,parent,**kwargs):
   """test_forest() is a standard TDL name. When a forest script is
@@ -96,7 +62,7 @@ def _test_forest (mqs,parent,**kwargs):
   request = meq.request(cells,rqtype='ev');
 #  mqs.meq('Node.Set.Breakpoint',record(name='solver'));
 #  mqs.meq('Debug.Set.Level',record(debug_level=100));
-  a = mqs.meq('Node.Execute',record(name='solver',request=request),wait=True);
+  a = mqs.meq('Node.Execute',record(name='reqseq',request=request),wait=False);
 
 def _tdl_job_test1 (mqs,parent):
   """this is a test job. You can see it appear in the menu automatically."""
