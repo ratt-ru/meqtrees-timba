@@ -433,6 +433,8 @@ namespace Meq {
                            const std::vector<Result::Ref> &,
                            const Request &request)
   {
+    if( !isSolvable() )
+      return 0;
     // init solvable funklet for this request
     Funklet * pfunklet = initFunklet(request,True);
     cdebug(3)<<"init funklet "<<pfunklet->objectType()<<" "<<pfunklet->isSolvable()<<endl;

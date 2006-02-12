@@ -101,8 +101,10 @@ class MeqServer : public DMI::EventRecepient
     void publishResults (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void disablePublishResults (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
-    void nodeSetBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in);
-    void nodeClearBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void nodeSetBreakpoint    (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void nodeClearBreakpoint  (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void setForestBreakpoint  (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void clearForestBreakpoint(DMI::Record::Ref &out,DMI::Record::Ref &in);
     
     void debugSetLevel      (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void debugInterrupt     (DMI::Record::Ref &out,DMI::Record::Ref &in);
@@ -199,6 +201,7 @@ class MeqServer : public DMI::EventRecepient
     
     const Node * debug_next_node;
     const Node * debug_bp_node;
+    int forest_breakpoint_;
     
     // flag: clear stop flag once the current command completes
     bool clear_stop_flag_; 

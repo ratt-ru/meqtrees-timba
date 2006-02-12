@@ -312,6 +312,8 @@ void Forest::initDefaultState ()
   fillSymDeps(st[FSymdeps] <<= new DMI::Record,symdep_map);
   st[FCachePolicy] = cache_policy_;
   st[FProfilingEnabled] = profiling_enabled_;
+  st[FBreakpoint] = breakpoints;
+  st[FBreakpointSingleShot] = breakpoints_ss;
 }
 
 void Forest::setStateImpl (DMI::Record::Ref &rec)
@@ -323,6 +325,8 @@ void Forest::setStateImpl (DMI::Record::Ref &rec)
     Axis::setAxisRecords(rec[FAxisMap].as<DMI::Vec>());
   rec[FCachePolicy].get(cache_policy_);
   rec[FProfilingEnabled].get(profiling_enabled_);
+  rec[FBreakpoint].get(breakpoints);
+  rec[FBreakpointSingleShot].get(breakpoints_ss);
 //  FailWhen(rec->hasField(FKnownSymdeps),"immutable field: "+FKnownSymdeps.toString());
 //  FailWhen(rec->hasField(FSymdeps),"immutable field: "+FSymdeps.toString());
 //   if( rec->hasField(FSymDeps) )
@@ -408,19 +412,21 @@ void Forest::waitOnStopFlag () const
 // sets global breakpoint(s)
 void Forest::setBreakpoint (int bpmask,bool single_shot)
 {
+  Thread::Mutex::Lock lock(forestMutex());
   if( single_shot )
-    breakpoints_ss |= bpmask;
+    wstate()[FBreakpointSingleShot] = breakpoints_ss |= bpmask;
   else
-    breakpoints |= bpmask;
+    wstate()[FBreakpoint] = breakpoints |= bpmask;
 }
 
 // clears global breakpoint(s)
 void Forest::clearBreakpoint (int bpmask,bool single_shot)
 {
+  Thread::Mutex::Lock lock(forestMutex());
   if( single_shot )
-    breakpoints_ss &= ~bpmask;
+    wstate()[FBreakpointSingleShot] = breakpoints_ss &= ~bpmask;
   else
-    breakpoints &= ~bpmask;
+    wstate()[FBreakpoint] = breakpoints &= ~bpmask;
 }
 
 void Forest::processBreakpoint (Node &node,int bpmask,bool global)

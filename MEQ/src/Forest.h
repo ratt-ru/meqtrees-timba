@@ -183,7 +183,8 @@ class Forest
     
         
     // these methods are used by nodes to notify of their control state.
-    // At debug level 0, we only report state changes involving breakpoints
+    // At debug level 0, we only report state changes involving 
+    //                   breakpoints and failed results
     // At debug level 1, also post changes to result status
     // At debug level 2 or force_update is true, all state changes are reported
     void newControlStatus (Node &node,int oldst,int newst,bool force_update=false)
@@ -191,9 +192,12 @@ class Forest
       if( !node_status_callback )
         return;
       int changemask = oldst^newst;
+      bool result = changemask&Node::CS_RES_MASK;
+      bool fail = result && ( (oldst&Node::CS_RES_MASK) == Node::CS_RES_FAIL ||
+                              (newst&Node::CS_RES_MASK) == Node::CS_RES_FAIL  );
       if( force_update || 
-          changemask && ( debug_level_>1 ||
-                          (debug_level_>0 && changemask&Node::CS_RES_MASK) ||
+          changemask && ( debug_level_>1 || fail ||
+                          (debug_level_>0 && result ) ||
                           changemask&Node::CS_MASK_BREAKPOINTS ) )
         (*node_status_callback)(node,oldst,newst);
     }

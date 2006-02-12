@@ -458,6 +458,7 @@ class TreeBrowser (QObject):
     QObject.connect(meqds.nodelist,PYSIGNAL("requested()"),self._requested_nodelist);
 
     # ---------------------- other internal state
+    self._forest_breakpoint = 0;
     self._column_map = {};
     self._recent_item = None;
     self._callbacks = [];
@@ -611,16 +612,14 @@ class TreeBrowser (QObject):
     lvl = max(0,min(self.debug_level,len(self._qa_dbg_verbosities)-1));
     self._qa_dbg_verbosities[lvl].setOn(True);
     self._setting_debug_control = False;
+    # set fail-breakpoint on or of
+    self._qa_bp_on_fail.setOn(self._forest_breakpoint&meqds.BP_FAIL);
+    self._setting_debug_control = False;
     # show/hide the breakpoint column
     self.show_column("breakpoint");
     self.show_column("result");
     # show/hide the execstate column
     self.show_column("execstate",self.is_running);
-
-  def _debug_set_verbosity_slot (self,qa):
-    """Sends a debug level message.""";
-    if not getattr(self,'_setting_debug_control',False):
-      mqs().meq('Debug.Set.Level',record(debug_level=qa._debug_level,get_forest_status=2),wait=False);
 
   def get_color_group (self,which,stopped=0):
     return self._cg[(which,stopped)][0];
@@ -675,6 +674,7 @@ class TreeBrowser (QObject):
     was_stopped = self.is_stopped;
     self.is_stopped = fst.stopped;
     self.debug_level = fst.debug_level;
+    self._forest_breakpoint = fst.breakpoint;
     # if just stopped in the tree debugger, make sure all stopped nodes
     # are visible
     _dprint(5,"was stopped",was_stopped,"is stopped",self.is_stopped);
@@ -810,6 +810,11 @@ class TreeBrowser (QObject):
     meqds.request_forest_state();
     meqds.request_nodelist(force=True);
     
+  def _debug_set_verbosity_slot (self,qa):
+    """Sends a debug level message.""";
+    if not getattr(self,'_setting_debug_control',False):
+      mqs().meq('Debug.Set.Level',record(debug_level=qa._debug_level,get_forest_status=2),wait=False);
+
   def _debug_single_step (self):
     mqs().meq('Debug.Single.Step',record(),wait=False);
   
@@ -824,6 +829,14 @@ class TreeBrowser (QObject):
     
   def _debug_pause (self):
     mqs().meq('Debug.Interrupt',record(),wait=False);
+    
+  def _debug_bp_on_fail (self,on):
+    if getattr(self,'_setting_debug_control',False):
+      return;
+    if on:
+      mqs().meq('Set.Forest.Breakpoint',record(breakpoint=meqds.BP_FAIL),wait=False);
+    else:
+      mqs().meq('Clear.Forest.Breakpoint',record(breakpoint=meqds.BP_FAIL),wait=False);
 
   def add_action (self,action,order=1000,where="toolbar",callback=None):
     if callback:
@@ -980,7 +993,7 @@ def define_treebrowser_actions (tb):
     tb._qa_dbg_verbosities.append(qa);
   dbg_verbosity._is_enabled = lambda tb=tb: tb.is_connected;
   tb.add_action(dbg_verbosity,60);
-  tb.add_separator(65);
+  tb.add_separator(61);
   # dbg_enable.setToggleAction(True);
   # qa_enable.setToolTip("""This enables verbose debugging mode. The forest will run slowly,
 # but you will see status updates for every single node.""");  
@@ -988,6 +1001,15 @@ def define_treebrowser_actions (tb):
 #  QObject.connect(tb,PYSIGNAL("debug_enabled()"),dbg_enable.setOn);
 #  dbg_enable._is_enabled = lambda tb=tb: tb.is_connected;
 #  tb.add_action(dbg_enable,60);
+  # Breakpoint on fail
+  bp_on_fail = tb._qa_bp_on_fail = QAction(pixmaps.breakpoint_on_fail.iconset(),"Set global breakpoint on &fail",0,parent);
+  bp_on_fail.setToggleAction(True);
+  bp_on_fail.setToolTip("This enables or disables a global breakpoint on any node returning a FAIL result");
+  bp_on_fail._is_visible = lambda tb=tb: tb.is_connected;
+  bp_on_fail._is_enabled = lambda tb=tb: tb.is_connected;
+  QObject.connect(bp_on_fail,SIGNAL("toggled(bool)"),tb._debug_bp_on_fail);
+  tb.add_action(bp_on_fail,65);
+  tb.add_separator(66);
   # Pause
   pause = QAction(pixmaps.pause.iconset(),"&Interrupt",Qt.Key_F6,parent);
   pause._is_visible = lambda tb=tb: tb.is_connected;

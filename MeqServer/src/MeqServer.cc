@@ -122,6 +122,8 @@ MeqServer::MeqServer()
   async_commands["Node.Publish.Results"] = &MeqServer::publishResults;
   async_commands["Node.Set.Breakpoint"] = &MeqServer::nodeSetBreakpoint;
   async_commands["Node.Clear.Breakpoint"] = &MeqServer::nodeClearBreakpoint;
+  async_commands["Set.Forest.Breakpoint"] = &MeqServer::setForestBreakpoint;
+  async_commands["Clear.Forest.Breakpoint"] = &MeqServer::clearForestBreakpoint;
   
   async_commands["Debug.Set.Level"] = &MeqServer::debugSetLevel;
   async_commands["Debug.Interrupt"] = &MeqServer::debugInterrupt;
@@ -132,6 +134,7 @@ MeqServer::MeqServer()
   
   debug_next_node = 0;
   running_ = executing_ = clear_stop_flag_ = false;
+  forest_breakpoint_ = 0;
 }
 
 MeqServer::~MeqServer ()
@@ -630,6 +633,31 @@ void MeqServer::nodeClearBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in)
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
+void MeqServer::setForestBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in)
+{
+  DMI::Record::Ref rec = in;
+  int bpmask = rec[FBreakpoint].as<int>(0);
+  cdebug(2)<<"setForestBreakpoint: mask "<<bpmask<<endl;
+  forest.setBreakpoint(bpmask);
+  forest_breakpoint_ |= bpmask;
+  out[AidMessage] = ssprintf("set global breakpoint %X; new bp mask is %X",
+                             bpmask,forest_breakpoint_);
+  
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
+}
+
+void MeqServer::clearForestBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in)
+{
+  DMI::Record::Ref rec = in;
+  int bpmask = rec[FBreakpoint].as<int>(Node::BP_ALL);
+  cdebug(2)<<"clearForestBreakpoint: mask "<<bpmask<<endl;
+  forest.clearBreakpoint(bpmask);
+  forest_breakpoint_ &= ~bpmask;
+  out[AidMessage] = ssprintf("clearing global breakpoint %X; new bp mask is %X",
+                             bpmask,forest_breakpoint_);
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
+}
+
 void MeqServer::debugSetLevel (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   cdebug(1)<<"setting debugging level"<<endl;
@@ -656,7 +684,7 @@ void MeqServer::debugContinue (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   if( forest.isStopFlagRaised() )
   {
-    forest.clearBreakpoint(Node::CS_ALL,false);
+    forest.clearBreakpoint(Node::CS_ALL&~forest_breakpoint_,false);
     forest.clearBreakpoint(Node::CS_ALL,true);
     debug_next_node = debug_bp_node = 0;
     clear_stop_flag_ = true;
@@ -697,7 +725,7 @@ void MeqServer::debugUntilNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
   if( forest.isStopFlagRaised() )
   {
     // clear all global breakpoints and continue
-    forest.clearBreakpoint(Node::CS_ALL,false);
+    forest.clearBreakpoint(Node::CS_ALL&~forest_breakpoint_,false);
     forest.clearBreakpoint(Node::CS_ALL,true);
     debug_next_node = debug_bp_node = 0;
     clear_stop_flag_ = true;
@@ -763,6 +791,7 @@ void MeqServer::fillForestStatus  (DMI::Record &rec,int level)
     rec[AidForest|AidState] = forest.state();
   DMI::Record &fst = rec[AidForest|AidStatus] <<= new DMI::Record;
   fillAppState(rec);
+  fst[AidBreakpoint] = forest_breakpoint_;
   fst[AidExecuting] = executing_;
   fst[AidDebug|AidLevel] = forest.debugLevel();
   fst[AidStopped] = forest.isStopFlagRaised() && !clear_stop_flag_;
@@ -777,6 +806,7 @@ void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
     forest.clearStopFlag();
     return;
   }
+  debug_next_node = 0;
   // post event indicating we're stopped in the debugger
   DMI::Record::Ref ref;
   DMI::Record &rec = ref <<= new DMI::Record;

@@ -1364,7 +1364,7 @@ void Node::setExecState (int es,int newst,bool sync)
   // check breakpoints
   int bp = breakpointMask(newst);
   // if fail result is being returned, add BP_FAIL to mask
-  if( es == CS_ES_IDLE && (newst&CS_RES_FAIL)==CS_RES_FAIL )
+  if( es == CS_ES_IDLE && (newst&CS_RES_MASK) == CS_RES_FAIL )
     bp |= BP_FAIL;
   // always check global breakpoints first (to make sure single-shots are cleared)
   bool breakpoint = forest_->checkGlobalBreakpoints(bp);
