@@ -72,11 +72,11 @@ void ReqSeq::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 
 int ReqSeq::pollChildren (Result::Ref &resref,const Request &req)
 {
-  setExecState(CS_ES_POLLING);
   resref.detach();
   // in cells-only mode, process cell-less requests just like a regular Node
   if( cells_only_ && !req.hasCells() )
     return Node::pollChildren(resref,req);
+  setExecState(CS_ES_POLLING);
   timers_.children.start();
   int retcode = result_code_ = 0;
   cdebug(3)<<"calling execute() on "<<numChildren()<<" children in turn"<<endl;

@@ -1435,6 +1435,8 @@ void Node::setExecState (int es,int newst,bool sync)
       // clear stop bit from control status
       setControlStatus(control_status_&~(CS_STOP_BREAKPOINT|CS_STOPPED),sync);
     }
+    else
+      setControlStatus(newst,sync);
     return;
   }
   // no breakpoints, simply update control status
