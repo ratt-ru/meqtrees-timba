@@ -226,7 +226,7 @@ def _define_forest (ns, **kwargs):
    cc = MG_JEN_exec.on_entry (ns, MG)
    radec = []                          # for collect_radec()
 
-   if False:
+   if True:
       # Create the source defined by MG:
       sp = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
       sp.display()
@@ -237,16 +237,13 @@ def _define_forest (ns, **kwargs):
    global lsm
    # lsm = LSM()
    lsm.load(MG['LSM'],ns)
-   if False:
+   if True:
       # first compose the sixpack before giving it to the LSM
       sp.sixpack(ns)
+      sp.display()
       s = Source('test')
-      lsm.add_source(s,
-                     # brightness=eval(v.group('col12')),
-                     # ra=source_RA,
-                     # dec=source_Dec)
-                     sixpack=sp)
-      lsm.display()
+      lsm.add_source(s,sixpack=sp)
+   lsm.display()
 
    if False:
       # Obtain the Sixpacks of the brightest punits.
