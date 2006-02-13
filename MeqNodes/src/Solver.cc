@@ -771,7 +771,7 @@ int Solver::getResult (Result::Ref &resref,
   if( std::max(eval_mode_,request.evalMode()) > 1 )
     rqtype = RequestType::EVAL_DOUBLE;
   // The result has no planes, all solver information is in extra fields
-  Result& result = resref <<= new Result(0);
+  resref <<= new Result(0);
   // solver result has to be kept by countedref, since we may be publishing
   // it as we go along, so we're not allowed to keep a local pointer (else
   // COW will break).
@@ -813,9 +813,7 @@ int Solver::getResult (Result::Ref &resref,
   timers_.getresult.stop();
   int retcode = Node::pollChildren(resref,*reqref);
   timers_.getresult.start();
-  if( forest().abortFlag() )
-    return 0;
-  if( retcode&(RES_FAIL|RES_WAIT) )
+  if( retcode&(RES_FAIL|RES_WAIT|RES_ABORT) )
     return retcode;
   // Node's standard discoverSpids() implementation merges all child spids together
   // into a result object. This is exactly what we need here
@@ -1045,6 +1043,8 @@ int Solver::getResult (Result::Ref &resref,
     timers_.getresult.start();
     ParmTable::unlockTables();
   }
+  if( forest().abortFlag() )
+    return RES_ABORT;
   solveResult()[FConverged]  = converged;
   solveResult()[FIterations] = cur_iter_;
   // if we broke out of the loop because of some other criterion, we need
@@ -1094,7 +1094,7 @@ int Solver::getResult (Result::Ref &resref,
   
   // insert solver result into result object and into state
   wstate()[FSolverResult].replace() = solveResult;
-  result[FSolverResult] = solveResult;
+  resref()[FSolverResult] = solveResult;
   // clear state dependencies possibly introduced by parms
   has_state_dep_ = false;
   // return flag to indicate result is independent of request type

@@ -1,6 +1,7 @@
 #include "Node.h"
 #include "MTPool.h"
-    
+#include "Forest.h"
+        
 namespace Meq
 {    
     
@@ -229,6 +230,10 @@ int Node::awaitChildResult (int &rescode,Result::Ref &resref,const Request &req)
   {
     while( true )
     {
+      // interrupt poll if aborting forest. Cleanup will be handled by
+      // mt_abortPoll() above, on exit from execute()
+      if( forest().abortFlag() )
+        return -1;
       Thread::Mutex::Lock lock(mt.child_poll_cond_);
       // if return queue is empty, finish poll provided all children have checked in
       if( mt.child_retqueue_.empty() )
@@ -277,6 +282,8 @@ int Node::awaitChildResult (int &rescode,Result::Ref &resref,const Request &req)
   }
   else // single-thread case
   {
+    if( forest().abortFlag() )
+      return -1;
     int ichild;
     // loop while we have children yet to poll
     while( async_poll_child_ < numChildren() )
@@ -433,6 +440,11 @@ int Node::pollChildren (Result::Ref &resref,const Request &req)
       // now poll stepchildren (their results are always ignored)
       pollStepChildren(req);
       timers_.children.stop();
+    }
+    if( forest().abortFlag() )
+    {
+      pstate_lock_->relock(stateMutex());
+      return RES_ABORT;
     }
     // if any child has completely failed, return a Result containing all of the fails 
     if( !child_fails_.empty() )

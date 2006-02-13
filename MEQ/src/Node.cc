@@ -1135,7 +1135,7 @@ int Node::execute (Result::Ref &ref,const Request &req)
   {
     // check for abort flag
     if( forest().abortFlag() )
-      return exitAbort(retcode);
+      return exitAbort(RES_ABORT);
     timers_.total.start();
     if( forest().debugLevel()>1 )
       wstate()[FNewRequest].replace() <<= req;
@@ -1207,6 +1207,8 @@ int Node::execute (Result::Ref &ref,const Request &req)
     {
       stage = "polling children";
       retcode |= pollChildren(ref,req);
+      if( forest().abortFlag() )
+        return exitAbort(RES_ABORT);
       // a WAIT from any child is returned immediately w/o a result
       if( retcode&RES_WAIT )
       {
@@ -1225,7 +1227,7 @@ int Node::execute (Result::Ref &ref,const Request &req)
       resampleChildren(rescells,child_results_);
     }
     if( forest().abortFlag() )
-      return exitAbort(retcode);
+      return exitAbort(RES_ABORT);
     // does request have a Cells object? Compute our Result then
     if( req.hasCells() )
     {
@@ -1285,7 +1287,7 @@ int Node::execute (Result::Ref &ref,const Request &req)
       result_status = CS_RES_EMPTY;
     }
     if( forest().abortFlag() )
-      return exitAbort(retcode);
+      return exitAbort(RES_ABORT);
     // end of request processing
     // still no result? allocate an empty one just in case
     if( !ref.valid() )
