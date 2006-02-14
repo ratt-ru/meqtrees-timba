@@ -231,8 +231,8 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     MG_JEN_Joneset.inarg_uvplane_effect(pp, slave=slave)    
     JEN_inarg.define (pp, 'Jsequence', [],
                       choice=[['GJones'],['BJones'],['FJones'],['KJones'],
-                              ['DJones'],['GJones','DJones'],
                               ['DJones_WSRT'],['GJones','DJones_WSRT'],
+                              ['DJones'],
                               []],
                       help='sequence of Jones matrices to be used')
     # Include default inarg records for various Jones matrix definition functions:

@@ -1393,7 +1393,6 @@ class Cohset (TDL_common.Super):
                                                       post=pp['post'])
 
         # Bookkeeping:
-        self.scope('fullDomainMux')
         self.history(append=funcname+' inarg = '+str(pp))
         self.history(append=funcname+' -> '+self.oneliner())
         return True

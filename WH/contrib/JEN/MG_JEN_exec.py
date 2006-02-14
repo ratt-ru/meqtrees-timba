@@ -11,6 +11,7 @@
 # - 03 jan 2006: selection_string etc
 # - 05 jan 2006: made stream_control inarg-compatible
 # - 16 jan 2006: added inarg_stream_control()
+# - 03 feb 2006: added fullDomainMux()
 
 # Copyright: The MeqTree Foundation 
 
@@ -387,10 +388,7 @@ def fullDomainMux (mqs, parent, ctrl=None):
    req.input = record(ms=ss.inputrec)
    req.output = record(ms=ss.outputrec)
 
-   if False:
-      print '\n** MG_JEN_exec.fullDomainMux(): disabled **\n'
-   else:
-      mqs.execute('fullDomainMux', req, wait=False)
+   mqs.execute('fullDomainMux', req, wait=False)
    return True
 
 
@@ -516,20 +514,20 @@ def stream_control (slave=False, display=False, **inarg):
 
    keys = ['ms_name', 'data_column_name', 'tile_size']
    for key in keys:
-      print key
+      # print key
       if pp.has_key(key):
-         print '  ',key,pp[key]
+         # print '  ',key,pp[key]
          ss['inputrec'][key] = pp[key]
 
    keys = ['channel_start_index','channel_end_index','channel_increment']
    keys.extend(['ddid_index','field_index','selection_string'])
    for key in keys:
-      print key
+      # print key
       if pp.has_key(key): ss['inputrec']['selection'][key] = pp[key]
 
    keys = ['write_flags', 'predict_column', 'residuals_column']
    for key in keys:
-      print key
+      # print key
       if pp.has_key(key): ss['outputrec'][key] = pp[key]
 
    # Attach to the forest state control record:

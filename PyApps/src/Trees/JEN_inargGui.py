@@ -14,6 +14,7 @@
 #    - 31 jan 2006: implemented compare()
 #    - 10 feb 2006: implemented text-windows
 #    - 11 feb 2006: implemented upgrade()
+#    - 13 feb 2006: convert menu (per_timeslot etc)
 #
 # Full description:
 #
@@ -148,16 +149,21 @@ class ArgBrowser(QMainWindow):
 
         menu = QPopupMenu(self)
         menu.insertSeparator()     
-        menu.insertItem('-> per_timeslot', self.per_timeslot)
         menu.insertItem('-> cps_inspect', self.cps_inspect)
         menu.insertSeparator()     
         menu.insertItem('-> cps_GJones', self.cps_GJones)
         menu.insertItem('-> cps_Gphase', self.cps_Gphase)
         menu.insertItem('-> cps_Ggain', self.cps_Ggain)
         menu.insertItem('-> cps_GDJones', self.cps_GDJones)
+        menu.insertItem('-> cps_DJones', self.cps_DJones)
         menu.insertItem('-> cps_GBJones', self.cps_GBJones)
         menu.insertSeparator()     
         menu.insertItem('-> cps_all(protected)', self.cps_all)
+        menu.insertSeparator()     
+        menu.insertItem('-> per_timeslot', self.per_timeslot)
+        menu.insertItem('-> small_tile', self.small_tile)
+        menu.insertItem('-> medium_tile', self.medium_tile)
+        menu.insertItem('-> large_tile', self.large_tile)
         self.__menubar.insertItem('convert', menu)
 
 
@@ -594,6 +600,7 @@ class ArgBrowser(QMainWindow):
         JEN_inarg.CTRL(self.__inarg, 'protected', was)
         return True
 
+    #-------------------------------------------------------------------------------
 
     def save_inarg(self, filename=None, override=False):
         """Save the (edited) inarg record for later use"""
@@ -622,14 +629,23 @@ class ArgBrowser(QMainWindow):
         filename += '.inarg'                         # append .inarg file extension
         if not is_auto_save_file:
             self.savefile_name(filename)             # change the filename
+
+        # Save the file without any setOpen info (causes segmentation violation)
+        wasOpen = self.__setOpen = dict()            # (see below)               
+        self.__setOpen = dict()           
+        
         # Write to file:
         f = open(filename,'wb')
         p = pickle.Pickler(f)
         r = p.dump(self.__inarg)
-        self.__message.setText('** saved inarg record to file:   '+filename)
         f.close()
+        self.__message.setText('** saved inarg record to file:   '+filename)
+
+        # Finish up:
+        self.__setOpen = wasOpen                     # restore old situation
         return True
 
+    #-------------------------------------------------------------------------------
 
     def revert_inarg(self):
         """Revert to the original (input) inarg values"""
@@ -1210,9 +1226,9 @@ class ArgBrowser(QMainWindow):
     def per_timeslot(self):
         """Modify the inarg for (temporary) per_timeslot operation"""
         JEN_inarg.modify(self.__inarg,
+                         tile_size=1,
                          epsilon=1e-4,
                          num_iter=20,
-                         tile_size=1,
                          tdeg_Ggain=0,
                          tdeg_dang=0,
                          tdeg_RM=0,
@@ -1226,6 +1242,63 @@ class ArgBrowser(QMainWindow):
         self.__message.setText('** modified inarg for per_timeslot operation')
         return True
 
+    def small_tile(self):
+        """Modify the inarg for (temporary) small_time operation"""
+        JEN_inarg.modify(self.__inarg,
+                         tile_size=10,
+                         epsilon=1e-3,
+                         num_iter=10,
+                         tdeg_Ggain=1,
+                         tdeg_dang=1,
+                         tdeg_RM=1,
+                         tdeg_Breal=1,
+                         subtile_size_Ggain=None,
+                         subtile_size_dang=None,
+                         subtile_size_RM=None,
+                         subtile_size_Breal=None,
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.__message.setText('** modified inarg for small_tile operation')
+        return True
+
+    def medium_tile(self):
+        """Modify the inarg for (temporary) medium_time operation"""
+        JEN_inarg.modify(self.__inarg,
+                         tile_size=20,
+                         epsilon=1e-3,
+                         num_iter=10,
+                         tdeg_Ggain=2,
+                         tdeg_dang=2,
+                         tdeg_RM=2,
+                         tdeg_Breal=2,
+                         subtile_size_Ggain=None,
+                         subtile_size_dang=None,
+                         subtile_size_RM=None,
+                         subtile_size_Breal=None,
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.__message.setText('** modified inarg for medium_tile operation')
+        return True
+
+    def large_tile(self):
+        """Modify the inarg for (temporary) large_tile operation"""
+        JEN_inarg.modify(self.__inarg,
+                         tile_size=100,
+                         epsilon=1e-2,
+                         num_iter=5,
+                         tdeg_Ggain=3,
+                         tdeg_dang=3,
+                         tdeg_RM=3,
+                         tdeg_Breal=3,
+                         subtile_size_Ggain=None,
+                         subtile_size_dang=None,
+                         subtile_size_RM=None,
+                         subtile_size_Breal=None,
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.__message.setText('** modified inarg for large_tile operation')
+        return True
+
 
     def cps_all(self):
         """Modify the MG_JEN_cps inarg to multiple inarg files"""
@@ -1235,6 +1308,7 @@ class ArgBrowser(QMainWindow):
         self.cps_Gphase(revert=True, save_protected=True)
         self.cps_Ggain(revert=True, save_protected=True)
         self.cps_GDJones(revert=True, save_protected=True)
+        self.cps_DJones(revert=True, save_protected=True)
         self.cps_GBJones(revert=True, save_protected=True)
         self.__message.setText('** modified all MG_JEN_cps inargs (protected)')
         return True
@@ -1284,7 +1358,7 @@ class ArgBrowser(QMainWindow):
         return True
 
     def cps_GDJones(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for GDJones operation"""
+        """Modify MG_JEN_cps inarg for GDJones (WSRT) operation"""
         if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones','DJones_WSRT'],
@@ -1294,7 +1368,21 @@ class ArgBrowser(QMainWindow):
         self.refresh()
         self.save_inarg('MG_JEN_cps_GDJones')
         if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for GDJones')
+        self.__message.setText('** modified MG_JEN_cps inarg for GDJones (WSRT)')
+        return True
+
+    def cps_DJones(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for DJones operation"""
+        if revert==True: self.revert_inarg()
+        JEN_inarg.modify(self.__inarg,
+                         Jsequence=['DJones_WSRT'],
+                         solvegroup=['DJones'],
+                         _JEN_inarg_option=None)     
+        self.callback_punit('QUV')
+        self.refresh()
+        self.save_inarg('MG_JEN_cps_DJones')
+        if save_protected==True: self.save_as_protected()
+        self.__message.setText('** modified MG_JEN_cps inarg for DJones')
         return True
 
     def cps_GBJones(self, revert=False, save_protected=False):
