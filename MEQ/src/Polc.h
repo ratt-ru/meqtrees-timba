@@ -119,6 +119,8 @@ public:
 
   virtual int makeSolvable (int spidIndex);
 
+  virtual void setCoeffShape(const LoShape & shape);
+
 protected:
   //------------------ implement protected Funklet interface ---------------------------------
   virtual void do_evaluate (VellSet &vs,const Cells &cells,

@@ -97,6 +97,7 @@ namespace Meq
 
   virtual void changeSolveDomain(const Domain & solveDomain);
   virtual void changeSolveDomain(const std::vector<double> & solveDomain);
+  virtual void setCoeffShape(const LoShape & shape);
 
   protected:
   //------------------ implement protected Funklet interface ---------------------------------

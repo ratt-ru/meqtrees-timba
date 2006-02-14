@@ -36,7 +36,7 @@
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cell Results Fail Origin Line Message Contagious  Normalized
 #pragma aid Solvable Config Groups All By List Polc Polcs Scale Matrix
-#pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear Invert Use Previous
+#pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear Invert Use Previous Reset
 #pragma aid Metrics Rank Fit Errors CoVar Flag Bit Mu StdDev Chi Iter Last Update
 #pragma aid Override Policy Discover Spids Map Eval Mode
 #pragma aid Iteration Solution Dataset Next Service Sequence

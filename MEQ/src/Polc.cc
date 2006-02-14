@@ -544,4 +544,54 @@ void Polc::transformCoeff(const std::vector<double> & newoffsets,const std::vect
 
 }
 
+
+void Polc::setCoeffShape(const LoShape & shape){
+ 
+  if(coeff().shape()==shape) return;
+
+  //  if(coeff().shape().size()< shape.size()){
+    // init problem??
+  //}
+  DMI::NumArray coeffnew(Tpdouble,shape);
+  double * dataptr = static_cast<double*>(coeffWr().getDataPtr());
+  double * newdataptr = static_cast<double*>(coeffnew.getDataPtr());
+  
+  int N=coeff().size();
+  int Nnew=coeffnew.size();
+  const int rank=coeff().rank();
+  const int ranknew=coeffnew.rank();
+  int i[rank];
+  for(int j=0;j<rank;j++)
+    i[j]=0;
+  for(int n=0;n<N;n++){
+    int element=0;
+    for(int j=0;j<ranknew&&j<rank;j++)
+      {//calculate position 
+	element*=shape[j];
+	element+=i[j];
+	if(i[j]>0 && (j>shape.size()||i[j]>=shape[j]))
+	  element=Nnew;
+	//dont fill this one
+	//we can go faster in case we are outside the scope of the new array
+      }
+    for(int j=rank-1;j>=0;j--)
+      {
+	//update coordinates, all this is necessary to allow N-dimensional stuff....
+	i[j]++;
+	if(i[j]>=coeff().shape()[j])
+	  i[j]=0;
+	else
+	  break;
+
+      }
+    if(element<Nnew)
+      newdataptr[element]=dataptr[n];
+    
+
+  }
+
+  setCoeff(coeffnew);
+}
+
+
 } // namespace Meq

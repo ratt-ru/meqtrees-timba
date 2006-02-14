@@ -285,6 +285,13 @@ public:
   const LoShape & getCoeffShape () const
   { return coeff().shape(); }
   
+
+  virtual void setCoeffShape(const LoShape & shape)
+  { 
+    // to be reimplemented by polctype funklets
+    cdebug(2)<<"set coeff shape only implemented for pocltype funklets"<<endl;
+  }
+
   virtual const DMI::NumArray & coeff () const
   { DbgAssert(pcoeff_); return pcoeff_->deref(); }
   

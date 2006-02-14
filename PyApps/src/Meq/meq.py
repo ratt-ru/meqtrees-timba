@@ -125,7 +125,8 @@ def parm (name,default=None,polcs=None,*args,**kwargs):
   rec = node('MeqParm',name,*args,**kwargs);
   # default must be a polc
   if default is not None:
-    rec.default = make_polc(default);
+#    rec.default = make_polc(default);
+    rec.init_funklet = make_polc(default);
   # polcs must be a list of polcs, or a single polc
   if polcs is not None:
     if isinstance(polcs,(list,tuple)):

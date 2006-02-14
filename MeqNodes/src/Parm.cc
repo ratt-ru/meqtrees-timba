@@ -38,6 +38,9 @@
 #include <DMI/Record.h>
 #include <MEQ/Forest.h>
 
+
+
+
 using namespace casa;
 
 namespace Meq {
@@ -59,12 +62,15 @@ namespace Meq {
   // FDomain      defined previously
     FFunklet         = AidFunklet,
     FDefaultFunklet  = AidDefault|AidFunklet,
+    FDefaultValue  = AidDefault|AidValue,
     FSolveDomain = AidSolve|AidDomain,
     FUsePrevious = AidUse|AidPrevious,
     FTileSize = AidTile|AidSize,
     FTiling = AidTiling,
-    FConverged  = AidConverged;
-
+    FInitFunklet  = AidInit|AidFunklet,
+    FConverged  = AidConverged,
+    FResetFunklet = AidReset|AidFunklet;
+  
     
 
 
@@ -75,7 +81,10 @@ namespace Meq {
       tiled_ (false),
       _use_previous(true),
       converged_(false),
+      reset_funklet_(false),
       parmtable_(0),
+      default_(1.),
+      force_shape_(false),
       domain_depend_mask_(0),
       solve_depend_mask_(0),
       domain_symdeps_(symdeps_domain,symdeps_domain+2),
@@ -91,27 +100,6 @@ namespace Meq {
     setActiveSymDeps(symdeps_default,0);
   }
 
-  Parm::Parm (const string& name, ParmTable* table,
-	      const Funklet::Ref::Xfer & defaultValue)
-    : Node  (0), // no children allowed
-      solvable_  (false),
-      auto_save_ (false),
-      tiled_ (false),
-      _use_previous(true),
-      converged_(false),
-      name_      (name),
-      parmtable_ (table),
-      default_funklet_(defaultValue),
-      domain_depend_mask_(0),
-      solve_depend_mask_(0),
-      domain_symdeps_(symdeps_domain,symdeps_domain+2),
-      solve_symdeps_(symdeps_solve,symdeps_solve+1),
-      solve_domain_(2),
-      integrated_(false)
-  {
-    setKnownSymDeps(symdeps_all,3);
-    setActiveSymDeps(symdeps_default,0);
-  }
 
   //##ModelId=3F86886F021E
   Parm::~Parm()
@@ -120,21 +108,32 @@ namespace Meq {
 
   Funklet * Parm::findRelevantFunklet (Funklet::Ref &funkletref,const Domain &domain)
   {
+ 
+
     cdebug(2)<<"looking for suitable funklets"<<endl;
     funkletref.detach();
     if( parmtable_ )
       {
-	parmtable_ = ParmTable::openTable(parmtable_name_);
+	//reimplement different function for (non)solvable
 	vector<Funklet::Ref> funklets;
+#ifdef HAVE_PARMDB	    
+	int n=0;
+#else
+	parmtable_ = ParmTable::openTable(parmtable_name_);
 	int n = parmtable_->getFunklets(funklets,name_,domain);
+#endif
+	
 	cdebug(3)<<n<<" funklets found in MEP table"<<endl;
 	if( n>1 )
 	  {
 	    cdebug(3)<<"discarding multiple funklets as only one is currently suported, unless ? "<<(!isSolvable()||tiled_)<< "= true "<<endl;
-	    if(tiled_ || !isSolvable() ){
+	    if(!reset_funklet_ && (tiled_ || !isSolvable()) ){
 	      funkletref <<=new ComposedPolc(funklets);
 	      cdebug(3)<<"composed funklet found? "<<funkletref-> objectType()<<endl;
 	      funkletref().setDomain(domain);
+	      if(force_shape_)
+		funkletref().setCoeffShape(shape_);
+
 	      return funkletref.dewr_p();
 	    }
 	  }
@@ -147,10 +146,16 @@ namespace Meq {
 	    if(funkletref->domain().start(0)!=domain.start(0) || funkletref->domain().start(1)!=domain.start(1) ||
 	       funkletref->domain().end(0)!=domain.end(0) || funkletref->domain().end(1)!=domain.end(1))
 	      {
+		cdebug(3)<<" resetting dbid" <<funkletref->domain().start(0)<<" == "<<domain.start(0)<<endl;
+		cdebug(3)<<funkletref->domain().start(1)<<" == "<<domain.start(1)<<endl;
+		cdebug(3)<<funkletref->domain().end(1)<<" == "<<domain.end(1)<<endl;
+		cdebug(3)<<funkletref->domain().end(1)<<" == "<<domain.end(1)<<endl;
 		funkletref(). setDbId (-1);
 		funkletref().setDomain(domain);
 	      }
-	    return funkletref.dewr_p();
+	    if(force_shape_)
+	      funkletref().setCoeffShape(shape_);
+	    if (!reset_funklet_) return funkletref.dewr_p();
 	  }
       }
     else
@@ -158,49 +163,69 @@ namespace Meq {
 	cdebug(3)<<"no MEP table assigned"<<endl;
       }
     // If we get here, there's no table or no funklet has been found -- try to get default
-    if( !funkletref.valid() )
+    int dbid=-1;
+    if(funkletref.valid())
+      dbid=funkletref().getDbId();
+    funkletref.detach();
+    if( !funkletref.valid())
       {
 	if( parmtable_ )
 	  {
+	    //MMMM change for parmdb
+#ifdef HAVE_PARMDB	    
+	    int n=0;
+#else
 	    parmtable_ = ParmTable::openTable(parmtable_name_);
-
 	    int n = parmtable_->getInitCoeff(funkletref,name_);
+#endif
 	    cdebug(3)<<"looking for funklets in defaults subtable: "<<n<<endl;
 	  }
-	if( !funkletref.valid() )
+	if( !funkletref.valid())
 	  {
-
+	    
 	    //use previous funklet, unless user really wants default??
-	    if( _use_previous && converged_ && its_funklet_.valid()&& (its_funklet_->objectType()!=TpMeqComposedPolc))
+	    if( _use_previous && converged_ && its_funklet_.valid())
 	      {
-
-		funkletref = its_funklet_;
-		//reset dbid
-		funkletref(). setDbId (-1);
-
+		if(its_funklet_->objectType()!=TpMeqComposedPolc)
+		  {
+		    funkletref = its_funklet_;
+		    //reset dbid
+		  }
+		else
+		  {
+		    const DMI::List *funklist = its_funklet_[FFunkletList].as_po<DMI::List>();
+		    funkletref = funklist->get(0);  //better getlast
+		  }
 	      }
-	    else{
-	      const Funklet *deffunklet = state()[FDefaultFunklet].as_po<Funklet>();
-	      //	    FailWhen(!deffunklet,"no funklets found and no default_funklet specified");
-	      if(!deffunklet) {
-		cdebug(3)<<"no funklets found, try reusing old one "<<endl;
-		FailWhen(!its_funklet_.valid()|| (its_funklet_->objectType()==TpMeqComposedPolc),"no funklets found,no default_funklet and no funklet specified");
-		funkletref = its_funklet_;
-		//reset dbid
-		funkletref(). setDbId (-1);
+	    
+	    else
+	      {
+		const Funklet *initfunklet = state()[FInitFunklet].as_po<Funklet>();
+		if(!initfunklet){
+		  DMI::NumArray::Ref arrayref;
+		  arrayref<<=new DMI::NumArray(Tpdouble,LoShape(1,1));
+		  arrayref()[0,0]=default_;
+		  Funklet *deffunklet = new Polc(arrayref);
+		  funkletref <<= deffunklet;
+		  cdebug(3)<<"no funklets found, using default value from state record, type "<<funkletref().objectType()<<endl;
+		}
+		else
+		  {
+		    funkletref<<=initfunklet;
+		    cdebug(3)<<"using init funklet from state record, type "<<funkletref().objectType()<<endl;
+		  }
 	      }
-	      else{
-		funkletref <<= deffunklet;
-		cdebug(3)<<"no funklets found, using default value from state record, type "<<funkletref().objectType()<<endl;
-	      }
-	    }
 	  }
-	funkletref().clearSolvable();
-	funkletref().setDomain(domain);
-	
-	return funkletref.dewr_p();
-      }
-    return 0;
+      }	
+    funkletref().clearSolvable();
+    funkletref().setDomain(domain);
+    if(force_shape_)
+      funkletref().setCoeffShape(shape_);
+    funkletref(). setDbId (dbid);
+    return funkletref.dewr_p();
+
+    
+    
   }
 
 
@@ -211,6 +236,8 @@ namespace Meq {
     // have been valid for a bigger/different domain before)
   
     cdebug(4)<<"init solvable "<<endl;
+
+    //MMMMMcheck when and why we set domain
     funklet.setDomain(request.cells().domain());
     int nr = 0;
     funklet.clearSolvable();
@@ -232,6 +259,7 @@ namespace Meq {
 
   void Parm::GetTiledDomains(Domain::Ref & domain, const Cells & cells,vector<Domain::Ref> & domainV){
     //   vector<Domain> domainV; //create vector of domains..1 per funklettile
+    domainV.clear();
     domainV.push_back(domain);
     //calculate domains..
     for(int axis=0;axis<Axis::MaxAxis;axis++){
@@ -270,26 +298,20 @@ namespace Meq {
     }
   }
 
-
-  Funklet * Parm::initTiledFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells){
-
-    //now if tiling change to ComposedPolc, all initialized with the same funklet....(should we check on solvability here?) 
-    vector<Domain::Ref> domainV; //create vector of domains..1 per funklettile
-    Domain::Ref domref;
-    domref <<=new Domain(domain);
-
-
-    GetTiledDomains(domref,cells,domainV);
-    //now create funklet for every domain.
+  bool Parm::checkTiledFunklet(Funklet::Ref &funkletref,std::vector<Domain::Ref> domainV)
+  {
+    //cehcks for solvable parms if te funkeltlist exactly matches the required tiling, reset the funklet otherwise
+    bool match =false;
+    
     if (funkletref->objectType()==TpMeqComposedPolc)
 	{
-	  bool match =true;
+	  match=true;
 	  const DMI::List *funklist = funkletref[FFunkletList].as_po<DMI::List>();
 	  FailWhen(!funklist,"Composed Polc does not contain funklist");
 	  const Funklet::Ref & firstfunk = funklist->get(0);
 	  int ncoeff = firstfunk->ncoeff();
 	  
-	  if(!funklist  || (domainV.size()!=funklist->size())) match=false;
+	  if(!funklist  || (int(domainV.size())!=funklist->size())) match=false;
 	  else
 	    for(int axis=0;axis<Axis::MaxAxis;axis++){
 	      //if(!tiling_[axis]) continue;
@@ -310,17 +332,36 @@ namespace Meq {
 	      if(!match) break;
 
 	    }
-	  if(match){
-	    return funkletref.dewr_p();
-	  }
-	  else
+	  if(!match){
 	    funkletref = firstfunk;
+	  }
 	}
-    
+    if(match)
+      if(force_shape_)
+	funkletref().setCoeffShape(shape_);
 
+
+    return match;
+	  
+  }    
+
+  Funklet * Parm::initTiledFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells){
+
+    //now if tiling change to ComposedPolc, all initialized with the same funklet....(should we check on solvability here?) 
+    vector<Domain::Ref> domainV; //create vector of domains..1 per funklettile
+    Domain::Ref domref;
+    domref <<=new Domain(domain);
+
+
+    GetTiledDomains(domref,cells,domainV);
     if(domainV.size()<=1)
       return funkletref.dewr_p();
+
+    if(checkTiledFunklet(funkletref,domainV))     
+      return funkletref.dewr_p();
+
       
+    //now create funklet for every domain.
  
     vector<Funklet::Ref> funklets;
     funklets.resize(domainV.size());
@@ -343,87 +384,109 @@ namespace Meq {
   {
     const Domain &domain = request.cells().domain();
     const Cells &cells = request.cells();
+
+    HIID rq_dom_id = RqId::maskSubId(request.id(),forest().getDependMask(FDomain));
     
-    HIID rq_dom_id = RqId::maskSubId(request.id(),domain_depend_mask_); 
+    //keep track of rqid apart from iteration nr. 
+
+    //    HIID newrid = RqId::maskSubId(request.id(),~forest().getDependMask(FIteration));
     HIID newrid = RqId::maskSubId(request.id(),forest().getDependMask(FDomain)|forest().getDependMask(FDataset));
     // do we have a current funklet set up?
-    
+
     //parm should keep a reference to the funklet object, snce it doesnt have to be equal to the wstate...
     //    Funklet * pfunklet = wstate()[FFunklet].as_wpo<Funklet>();
     Funklet * pfunklet(0);
     cdebug(3)<<" getting old funklet"<<endl;
-   if(its_funklet_.valid())
-
+    if(its_funklet_.valid())
       pfunklet= its_funklet_.dewr_p();
     // see if this can be reused
- 
+    
     if( pfunklet )
       {
-	// (a) domain ID of request matches that of funklet: can reuse
-	//     (a null domain ID in the request precludes this)
+	// reuse the funklet if domain and dataset do not change
+         if( !newrid.empty() && newrid == rqid_ )
+          {
+            cdebug(3)<<"current funklet request ID matches, re-using"<<endl;
+            return its_funklet_.dewr_p();
+          }
+ 
+        // (b) no domain in funklet (i.e. effectively infinite domain of applicability)
+        if( ! tiled_ && (pfunklet->objectType()!=TpMeqComposedPolc) && !pfunklet->hasDomain() )
+          {
+            cdebug(3)<<"current funklet has infinite domain, re-using"<<endl;
+            wstate()[FDomainId] = domain_id_ = rq_dom_id;
+            wstate()[FDomain].replace() <<= &domain;
+            rqid_=newrid;
 
-	//MM: changed.. reuse the funklet if domain or dataset changes 
-	//	if( !rq_dom_id.empty() && rq_dom_id == domain_id_ )
-	if( !newrid.empty() && newrid == rqid_ )
-	  {
-	    cdebug(3)<<"current funklet domain ID matches, re-using"<<endl;
-	    return its_funklet_.dewr_p();
-	  }
-	
-	// (b) no domain in funklet (i.e. effectively infinite domain of applicability)
-	if( ! tiled_ && (pfunklet->objectType()!=TpMeqComposedPolc) && !pfunklet->hasDomain() )
-	  { 
-	    cdebug(3)<<"current funklet has infinite domain, re-using"<<endl;
-	    wstate()[FDomainId] = domain_id_ = rq_dom_id;
-	    wstate()[FDomain].replace() <<= &domain;
-	    rqid_=newrid;
-	    return its_funklet_.dewr_p();
-	  }
-	// (c) funklet domain is a superset of the requested domain
-	if(!tiled_ && (pfunklet->objectType()!=TpMeqComposedPolc) &&  pfunklet->domain().supersetOfProj(domain) )
-	  {
-	    cdebug(3)<<"current funklet defined for superset of requested domain, re-using"<<pfunklet->getDbId()<<endl;
-	    pfunklet->setDbId(-1);
-	    wstate()[FDomainId] = domain_id_ = rq_dom_id;
-	    wstate()[FDomain].replace() <<= &domain;
-	    rqid_=newrid;
-	    return its_funklet_.dewr_p();
-	  }
+	    const LoShape shape=pfunklet->getCoeffShape();
+	    if(force_shape_)
+	      pfunklet->setCoeffShape(shape_);
+	    
+            return its_funklet_.dewr_p();
+          }
+        // (c) funklet domain is a superset of the requested domain
+        if(!tiled_ && (pfunklet->objectType()!=TpMeqComposedPolc) &&  pfunklet->domain().supersetOfProj(domain) )
+          {
+            cdebug(3)<<"current funklet defined for superset of requested domain, re-using"<<pfunklet->getDbId()<<endl;
+	    if(pfunklet->domain().start(0)!=domain.start(0) || pfunklet->domain().start(1)!=domain.start(1) ||
+	       pfunklet->domain().end(0)!=domain.end(0) || pfunklet->domain().end(1)!=domain.end(1))
+	      {
+		cdebug(3)<<" resetting dbid" <<pfunklet->domain().start(0)<<" == "<<domain.start(0)<<endl;
+		cdebug(3)<<pfunklet->domain().start(1)<<" == "<<domain.start(1)<<endl;
+		cdebug(3)<<pfunklet->domain().end(1)<<" == "<<domain.end(1)<<endl;
+		cdebug(3)<<pfunklet->domain().end(1)<<" == "<<domain.end(1)<<endl;
+		pfunklet->setDbId(-1);
+	      }
+            wstate()[FDomainId] = domain_id_ = rq_dom_id;
+            wstate()[FDomain].replace() <<= &domain;
+            rqid_=newrid;
+	    const LoShape shape=pfunklet->getCoeffShape();
+	    if(force_shape_)
+	      pfunklet->setCoeffShape(shape_);
+            return its_funklet_.dewr_p();
+          }
+
+
       }
     // no funklet, or funklet not suitable -- get a new one
     Funklet::Ref funkref;
     pfunklet = findRelevantFunklet(funkref,domain);
     FailWhen(!pfunklet,"no funklets found for specified domain");
     cdebug(2)<<"found relevant funklet, type "<<pfunklet->objectType()<<endl;
-    if(tiled_ && isSolvable()){
-     
-	cdebug(4)<<"tiling funklet, "<<endl;
-	Funklet *newfunklet = initTiledFunklet(funkref,domain,cells);
-	funkref().setDomain(domain);
-	its_funklet_=funkref;
-	wstate()[FFunklet].replace() = its_funklet_().getState();
-	wstate()[FDomainId] = domain_id_ = rq_dom_id;
-	wstate()[FDomain].replace() <<= &domain;
-	rqid_=newrid;
-	cdebug(2)<<"found relevant funklet,after tiling type "<<newfunklet->objectType()<<endl;
-	return its_funklet_.dewr_p();
-      }
-
-    
     if(pfunklet->objectType()!=TpMeqCompiledFunklet && pfunklet->hasField(FFunction))
       {
-	cdebug(4)<<"function found in state, creating new compiled funklet"<<endl;
-	its_funklet_<<=new CompiledFunklet(*pfunklet);
-	pfunklet = its_funklet_.dewr_p();
+        cdebug(4)<<"function found in state, creating new compiled funklet"<<endl;
+        its_funklet_<<=new CompiledFunklet(*pfunklet);
+        pfunklet = its_funklet_.dewr_p();
       }
     else
-      its_funklet_<<=pfunklet;
-    // update state record
+      {
+	if(force_shape_)
+	  pfunklet->setCoeffShape(shape_);
+	its_funklet_<<=pfunklet;
+      }
+    
+    if(tiled_ && isSolvable()){
+
+        cdebug(4)<<"tiling funklet, "<<endl;
+        Funklet *newfunklet = initTiledFunklet(funkref,domain,cells);
+        funkref().setDomain(domain);
+        its_funklet_=funkref;
+        wstate()[FFunklet].replace() = its_funklet_().getState();
+        wstate()[FDomainId] = domain_id_ = rq_dom_id;
+        wstate()[FDomain].replace() <<= &domain;
+        rqid_=newrid;
+        cdebug(2)<<"found relevant funklet,after tiling type "<<newfunklet->objectType()<<endl;
+        return its_funklet_.dewr_p();
+      }
     wstate()[FFunklet].replace() = its_funklet_().getState();
     wstate()[FDomainId] = domain_id_ = rq_dom_id;
     wstate()[FDomain].replace() <<= &domain;
     rqid_=newrid;
     return its_funklet_.dewr_p();
+    
+   
+    //MMMMreimplement
   }
 
 
@@ -433,8 +496,7 @@ namespace Meq {
                            const std::vector<Result::Ref> &,
                            const Request &request)
   {
-    if( !isSolvable() )
-      return 0;
+    if(!isSolvable()) return 0;
     // init solvable funklet for this request
     Funklet * pfunklet = initFunklet(request,True);
     cdebug(3)<<"init funklet "<<pfunklet->objectType()<<" "<<pfunklet->isSolvable()<<endl;
@@ -446,6 +508,11 @@ namespace Meq {
 	  pfunklet->changeSolveDomain(solve_domain_);
 	}
       }
+    const LoShape shape=pfunklet->getCoeffShape();
+    if(force_shape_)
+      pfunklet->setCoeffShape(shape_);
+
+
     wstate()[FFunklet].replace() = pfunklet->getState();
 
     // get spids from funklet
@@ -537,8 +604,12 @@ namespace Meq {
 
   void Parm::save()
   {
+#ifdef HAVE_PARMDB	    
+    return;
+#else
     if( !parmtable_ )
       return;
+
     if( !its_funklet_.valid() ) 
       return;
     parmtable_ = ParmTable::openTable(parmtable_name_);
@@ -553,12 +624,15 @@ namespace Meq {
 	  Funklet::Ref partfunk = funklist->get(ifunk);
 	  parmtable_->putCoeff1(name_,partfunk,false);
 	  cdebug(4)<<" put in database "<<partfunk->getDbId()<<endl;
-	  funklist->replace(ifunk,partfunk);
+ 	  funklist->replace(ifunk,partfunk);
 	}
     }
     else
       parmtable_->putCoeff1(name_,its_funklet_,false);
+#endif
+
   }
+
 
   void Parm::resetDependMasks ()
   {
@@ -584,7 +658,8 @@ namespace Meq {
     rec[FConverged].get(converged_,initializing);
     rec[FSolvable].get(solvable_,initializing);
     rec[FIntegrated].get(integrated_,initializing);
-    
+    rec[FResetFunklet].get(reset_funklet_,initializing);
+
     //default
     solve_domain_[0]=0.;
     solve_domain_[1]=1.;
@@ -651,16 +726,28 @@ namespace Meq {
       }
     // get domain IDs, if specified
     rec[FDomainId].get(domain_id_);
-    // Get default funklet (to be used if no table exists)
-    // We don't really do anything with the pointer (save for some debug output),
-    // but this effectively verifies that the Default field is in fact a Funklet
-    // object if it is present.
-    const Funklet *deffunklet = rec[FDefaultFunklet].as_po<Funklet>();
-    if( deffunklet )
+    // Get default value (to be used if no table exists)
+    rec[FDefaultValue].get(default_,initializing);
+    cdebug(3)<<"default value "<<default_;
+    const Funklet *initfunklet = rec[FInitFunklet].as_po<Funklet>();
+    if( initfunklet )
       {
-	cdebug(2)<<"default funklet set via state\n type = "<<deffunklet->objectType()<< endl;;
+	cdebug(2)<<"default funklet set via state\n type = "<<initfunklet->objectType()<< endl;;
       }
 
+
+    if(rec->hasField(FShape)){
+	 std::vector<int> shape;    
+	 force_shape_=true;
+	 rec[FShape].get_vector(shape,initializing);
+	 if(shape.size()>1)
+	   shape_=LoShape(shape[0],shape[1]);
+	 else
+	   shape_=LoShape(shape[0],1);
+	   
+       }
+
+    //MMMMshape
 
     // Get ParmTable name 
     HIID tableId;
@@ -691,8 +778,12 @@ namespace Meq {
 	  {
 	    cdebug(2)<<"opening table: "<<parmtable_name_<<endl;
 	    //check if table exists, otherwise create.
-	    
+	    //MMMM: change to new tableinterface...wait fo rbetter defaults??
+#ifdef HAVE_PARMDB	    
+	    parmtable_ = new  LOFAR::ParmDB::ParmDB(LOFAR::ParmDB::ParmDBMeta("aips",parmtable_name_));
+#else
 	    parmtable_ = ParmTable::openTable(parmtable_name_);
+#endif
 	  }
       }//if rec[TableName]
     
@@ -777,7 +868,12 @@ namespace Meq {
   {
     string out = Node::sdebug(detail,prefix,nm);
     if( detail>=2 || detail == -2) {
+#ifdef HAVE_PARMDB
+      Debug::appendf(out,"  parmtable=%s", parmtable_->getParmDBMeta().getTableName().c_str());
+      
+#else
       Debug::appendf(out,"  parmtable=%s", parmtable_->name().c_str());
+#endif
     }
     return out;
   }

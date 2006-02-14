@@ -64,7 +64,7 @@ namespace Meq {
 	  for(uint axisi= 0; axisi<rank;axisi++){
 	    if(axisHasShape_[axisi]) continue;
 
-	    if(fshape.size()>axisi && fshape[axisi]>1 ) 
+	    if(fshape.size()>axisi && fshape[axisi]>1 )
 	      { axisHasShape_[axisi]=1; continue;}
 	    //cehck if domain changes around this axis
 	    if(!newdom.isDefined (axisi)) continue;
@@ -384,6 +384,7 @@ namespace Meq {
 
 
 
+
   void ComposedPolc::changeSolveDomain(const std::vector<double> & solveDomain){
     Thread::Mutex::Lock lock(mutex());
     //transform cooeff of every Polc
@@ -403,6 +404,32 @@ namespace Meq {
 	Funklet::Ref partfunk = funklist.get(funknr);
       
 	partfunk().changeSolveDomain(solveDomain);
+
+	funklist.replace(funknr,partfunk);
+		
+      }//loop over funklets
+  };
+
+
+
+  void ComposedPolc::setCoeffShape(const LoShape & shape){
+    Thread::Mutex::Lock lock(mutex());
+    //transform cooeff of every Polc
+    const Field * fld = Record::findField(FFunkletList);
+    if(!fld ){
+      cdebug(2)<<"no funklet list found in record"<<endl;
+      return;
+    }
+    DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
+    
+    int nrfunk=funklist.size();
+    for(int funknr=0 ; funknr<nrfunk ; funknr++)
+      {
+      
+	
+	Funklet::Ref partfunk = funklist.get(funknr);
+      
+	partfunk().setCoeffShape(shape);
 
 	funklist.replace(funknr,partfunk);
 		

@@ -28,10 +28,12 @@ class _MeqGen (TDLimpl.ClassGen):
   def Parm (self,funklet=None,**kw):
     if funklet is not None:
       if isinstance(funklet,dmi.dmi_type('MeqFunklet')):
-        kw['default_funklet'] = funklet;
+#        kw['default_funklet'] = funklet;
+        kw['init_funklet'] = funklet;
       else:
         try:
-          kw['default_funklet'] = meq.polc(funklet,shape=kw.get('shape',None));
+#          kw['default_funklet'] = meq.polc(funklet,shape=kw.get('shape',None));
+          kw['init_funklet'] = meq.polc(funklet,shape=kw.get('shape',None));
         except:
           if _dbg.verbose>0:
             traceback.print_exc();

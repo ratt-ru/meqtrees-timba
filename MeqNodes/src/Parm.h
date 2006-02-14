@@ -28,7 +28,14 @@
 #include <MEQ/Vells.h>
 #include <MEQ/Funklet.h>
 #include <MeqNodes/CompiledFunklet.h>
+
+
+
+#ifdef HAVE_PARMDB
+#include <ParmDB/ParmDB.h>
+#else 
 #include <MeqNodes/ParmTable.h>
+#endif
 #include <TimBase/lofar_vector.h>
 
 #pragma aidgroup MeqNodes
@@ -46,7 +53,7 @@
 //  This will be reused for subsequent requests if the domains match, or
 //  if no domain is specified.
 //field: default [=]
-//  default funklet. A funklet object (e.g. meq.polc()) may be provided. 
+//  default value. The c00 coefficient of a polc.
 //  This is used when an applicable funklet is not found in the table, or 
 //  a table is not provided.
 //field: integrated F  
@@ -71,15 +78,7 @@ namespace Meq {
   public:
     // The default constructor.
     // The object should be filled by the init method.
-    //##ModelId=3F86886F021B
     Parm();
-    
-    // Create a parameter with the given name and default value.
-    // The default value is used if no suitable value can be found.
-    // The ParmTable can be null meaning that the parameter is temporary.
-  
-    Parm (const string& name, ParmTable* table,
-	  const Funklet::Ref::Xfer & defaultValue = Funklet::Ref() );
     
     virtual ~Parm();
     
@@ -111,7 +110,7 @@ namespace Meq {
   protected:
     virtual void resetDependMasks ();
     Funklet * initTiledFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells);
-
+    bool checkTiledFunklet(Funklet::Ref &funkletref,std::vector<Domain::Ref> domainV);
     // checks if current funklet can be reused
     Funklet * initFunklet (const Request &request,bool solve);
     //##ModelId=400E5353019E
@@ -130,8 +129,6 @@ namespace Meq {
 			       const Request &req);
   
   private:
-    
-    //##ModelId=3F86886F0216
     bool solvable_;
     bool auto_save_;
     bool tiled_;//true for tiled solvables
@@ -139,28 +136,31 @@ namespace Meq {
     bool _use_previous;// if available use previous funklet,  instead of default_funklet
 
     bool converged_; // only use previous if previous solution converged..
+
+    bool reset_funklet_;//reset funklet instead of using values from database
     //##ModelId=3F86886F0213
     string name_;
-  
     //##ModelId=400E535000A3
-    ParmTable * parmtable_;
+#ifdef HAVE_PARMDB
+    LOFAR::ParmDB::ParmDB * parmtable_;
+#else
+    ParmTable *parmtable_;
+#endif
     std::string parmtable_name_;
-  
-    //##ModelId=400E535000B2
-    //##Documentation
-    //## default funklet (used if no table or no matching funklets in the table)
-    Funklet::Ref   default_funklet_;
+    double  default_;
+    bool force_shape_;
+    LoShape shape_;//shape of  polctype funklets
+    Funklet::Ref init_funklet_;//funklet for initialisation 
     Funklet::Ref its_funklet_; //keep a ref to the funklet 
-  
+
+
     HIID        domain_id_,rqid_;
-  
     int         domain_depend_mask_;
     int         solve_depend_mask_;
     std::vector<HIID> domain_symdeps_;
     std::vector<HIID> solve_symdeps_;
-    std::vector<double> solve_domain_; //solve domain, default = [0,1]
 
-  
+    std::vector<double> solve_domain_; //solve domain, default = [0,1]
     bool        integrated_;
 
     //some functions
