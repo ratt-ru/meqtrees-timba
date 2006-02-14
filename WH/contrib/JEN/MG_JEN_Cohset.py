@@ -240,6 +240,7 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.DJones(_getdefaults=True, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True, slave=True))
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
@@ -368,6 +369,9 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
                      help='if True, subtract predicted from measured')
     JEN_inarg.define(pp, 'correct_after', tf=True,
                      help='if True, correct measured with predicted.Joneset')
+    JEN_inarg.define(pp, 'flag_residuals', tf=False,
+                     hide=True,                           # Not yet implemented....
+                     help='if True, flag the residuals')
     # Include (nest) the inarg record of a subroutine called below:
     JEN_inarg.nest(pp, solver_subtree(_getdefaults=True))
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
@@ -424,8 +428,13 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     # Optional: subtract the predicted (corrupted) Cohset from the measured data:
     # NB: This should be done BEFORE correct, since predicted contains corrupted values
     if pp['subtract_after']:
-        measured.subtract(ns, predicted) 
-        if pp['visu']: visualise (ns, measured, errorbars=True, graft=False)
+        measured.subtract(ns, predicted)
+        if pp['flag_residuals']:
+            # Insert a flagger that operates on the residuals
+            pp['flag_residuals'] = False;                # see below
+            pass
+        if pp['visu']:
+            visualise (ns, measured, errorbars=True, graft=False)
         
     # Optional: Correct the measured data with the given Joneset.
     # NB: This should be done AFTER subtract, for the same reason as stated above
@@ -433,6 +442,9 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     # because otherwise it messes up the correction of the insertion ifr
     # (one of the input Jones matrices is called before the solver....)
     if pp['correct_after']:
+        if pp['flag_residuals']:
+            # Insert a flagger in a side-branch, in which predicted is subtracted first
+            pass
         # The 'predicted' Cohset has kept the Joneset with which it has been
         # corrupted, and which has been affected by the solution for its MeqParms.
         Joneset = predicted.Joneset() 

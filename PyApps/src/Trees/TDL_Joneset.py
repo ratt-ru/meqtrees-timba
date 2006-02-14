@@ -111,9 +111,13 @@ class Joneset (TDL_common.Super):
 
         if corrs=='*': corrs = self.corrs_all()
         if corrs=='paral': corrs = self.corrs_paral()
-        if corrs=='paral1': corrs = self.corrs_paral1()
-        if corrs=='paral2': corrs = self.corrs_paral2()
+        # if corrs=='paral1': corrs = self.corrs_paral11()
+        # if corrs=='paral2': corrs = self.corrs_paral22()
+        if corrs=='paral11': corrs = self.corrs_paral11()
+        if corrs=='paral22': corrs = self.corrs_paral22()
         if corrs=='cross': corrs = self.corrs_cross()
+        if corrs=='cross12': corrs = self.corrs_cross12()
+        if corrs=='cross21': corrs = self.corrs_cross21()
         # if self.corrs_all().__contains__(corrs): corrs = corrs      # single corr (e.g. 'RR')
         rider = dict(condeq_corrs=corrs)
 
@@ -143,10 +147,14 @@ class Joneset (TDL_common.Super):
 
     def corrs_paral(self):
         return [self.pols(1)+self.pols(1), self.pols(2)+self.pols(2)]
-    def corrs_paral1(self): return [self.pols(1)+self.pols(1)]
-    def corrs_paral2(self): return [self.pols(2)+self.pols(2)]
+    def corrs_paral11(self): return [self.pols(1)+self.pols(1)]
+    def corrs_paral22(self): return [self.pols(2)+self.pols(2)]
+    def corrs_paral1(self): return self.corrs_paral11()           # obsolete
+    def corrs_paral2(self): return self.corrs_paral22()           # obsolete
     def corrs_cross(self):
         return [self.pols(1)+self.pols(2), self.pols(2)+self.pols(1)]
+    def corrs_cross12(self): return [self.pols(1)+self.pols(2)]
+    def corrs_cross21(self): return [self.pols(2)+self.pols(1)]
     def corrs_all(self):
         return [self.pols(1)+self.pols(1), self.pols(1)+self.pols(1),
                 self.pols(2)+self.pols(2), self.pols(2)+self.pols(2)]

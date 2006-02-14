@@ -183,11 +183,11 @@ def inarg_solvegroup (pp, **kwargs):
 
    s_choice.append(['GJones','DJones'])
    s_choice.extend([['DJones'],['dang'],['dell']])
-   s_choice.extend([['Dreal'],['Dimag']])
-   c_choice.append(['Dimag_X_sum=0.0','Dimag_Y_sum=0.0'])
-   c_choice.append(['Dreal_X_product=1.0','Dreal_Y_product=1.0'])
    c_choice.extend(['dang_sum=0.0'])
    c_help += '\n- [dang_sum=0.0]:   sum of dipole pos.angle errors = zero'
+   s_choice.extend([['Dreal'],['Dimag']])
+   # c_choice.append(['Dimag_X_sum=0.0','Dimag_Y_sum=0.0'])
+   # c_choice.append(['Dreal_X_product=1.0','Dreal_Y_product=1.0'])
 
    s_choice.append(['GJones','DJones','FJones'])
    s_choice.extend([['FJones']])
@@ -282,10 +282,10 @@ def GJones (ns=None, Sixpack=None, slave=False, **inarg):
     js.display('inside GJones')
     
     # Register the parmgroups (in js.Parmset eventually):
-    a1 = js.parmgroup('Ggain', ipol=1, color='red', style='diamond', size=10, corrs='paral1')
-    a2 = js.parmgroup('Ggain', ipol=2, color='blue', style='diamond', size=10, corrs='paral2')
-    p1 = js.parmgroup('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral1')
-    p2 = js.parmgroup('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral2')
+    a1 = js.parmgroup('Ggain', ipol=1, color='red', style='diamond', size=10, corrs='paral11')
+    a2 = js.parmgroup('Ggain', ipol=2, color='blue', style='diamond', size=10, corrs='paral22')
+    p1 = js.parmgroup('Gphase', ipol=1, color='magenta', style='diamond', size=10, corrs='paral11')
+    p2 = js.parmgroup('Gphase', ipol=2, color='cyan', style='diamond', size=10, corrs='paral22')
 
     # Define potential extra condition equations:
     js.Parmset.define_condeq(p1, unop='Add', value=0.0)
@@ -495,10 +495,10 @@ def BJones (ns=0, Sixpack=None, slave=False, **inarg):
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
     # Register the parmgroups (in js.Parmset eventually):
-    br1 = js.parmgroup('Breal', ipol=1, color='red', style='square', size=7, corrs='paral1')
-    br2 = js.parmgroup('Breal', ipol=2, color='blue', style='square', size=7, corrs='paral2')
-    bi1 = js.parmgroup('Bimag', ipol=1, color='magenta', style='square', size=7, corrs='paral1')
-    bi2 = js.parmgroup('Bimag', ipol=2, color='cyan', style='square', size=7, corrs='paral2')
+    br1 = js.parmgroup('Breal', ipol=1, color='red', style='square', size=7, corrs='paral11')
+    br2 = js.parmgroup('Breal', ipol=2, color='blue', style='square', size=7, corrs='paral22')
+    bi1 = js.parmgroup('Bimag', ipol=1, color='magenta', style='square', size=7, corrs='paral11')
+    bi2 = js.parmgroup('Bimag', ipol=2, color='cyan', style='square', size=7, corrs='paral22')
 
     # Define potential extra condition equations:
     js.Parmset.define_condeq(bi1, unop='Add', value=0.0)
@@ -560,13 +560,11 @@ def BJones (ns=0, Sixpack=None, slave=False, **inarg):
 def DJones (ns=0, Sixpack=None, slave=False, **inarg):
     """Defines diagonal 2x2 Jones matrices for full polarisation:
     Djones(station,source) matrix elements:
-    - D_11 = (Dreal_X,Dimag_X)
-    - D_12 = (Dreal_X,Dimag_Y)
-    - D_21 = (Dreal_Y,Dimag_X)
-    - D_22 = (Dreal_Y,Dimag_Y)
+    - D_11 = (Dreal_11,Dimag_11)
+    - D_12 = (Dreal_12,Dimag_12)
+    - D_21 = (Dreal_21,Dimag_21)
+    - D_22 = (Dreal_22,Dimag_22)
     For circular polarisation, R and L are used rather than X and Y
-    NB: The main differences with Bjones are:
-      - solving for real/imag for off-diagonal elements also 
     """
 
     jones = 'DJones'
@@ -615,26 +613,29 @@ def DJones (ns=0, Sixpack=None, slave=False, **inarg):
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
     # Register the parmgroups (in js.Parmset eventually):
-    br1 = js.parmgroup('Dreal', ipol=1, color='red', style='square', size=7, corrs='paral1')
-    br2 = js.parmgroup('Dreal', ipol=2, color='blue', style='square', size=7, corrs='paral2')
-    bi1 = js.parmgroup('Dimag', ipol=1, color='magenta', style='square', size=7, corrs='paral1')
-    bi2 = js.parmgroup('Dimag', ipol=2, color='cyan', style='square', size=7, corrs='paral2')
+    dr11 = js.parmgroup('Dreal_11', color='red', style='square', size=7, corrs='paral11')
+    dr12 = js.parmgroup('Dreal_12', color='red', style='square', size=7, corrs='cross12')
+    dr21 = js.parmgroup('Dreal_21', color='red', style='square', size=7, corrs='cross21')
+    dr22 = js.parmgroup('Dreal_22', color='blue', style='square', size=7, corrs='paral22')
+    di11 = js.parmgroup('Dimag_11', color='magenta', style='square', size=7, corrs='paral11')
+    di12 = js.parmgroup('Dimag_12', color='magenta', style='square', size=7, corrs='cross12')
+    di21 = js.parmgroup('Dimag_21', color='magenta', style='square', size=7, corrs='cross21')
+    di22 = js.parmgroup('Dimag_22', color='cyan', style='square', size=7, corrs='paral22')
 
     # Define potential extra condition equations:
-    js.Parmset.define_condeq(bi1, unop='Add', value=0.0)
-    js.Parmset.define_condeq(bi2, unop='Add', value=0.0)
-    js.Parmset.define_condeq(br1, unop='Multiply', value=1.0)
-    js.Parmset.define_condeq(br2, unop='Multiply', value=1.0)
+    # js.Parmset.define_condeq(di11, unop='Add', value=0.0)
+    # js.Parmset.define_condeq(di22, unop='Add', value=0.0)
+    # js.Parmset.define_condeq(dr11, unop='Multiply', value=1.0)
+    # js.Parmset.define_condeq(dr22, unop='Multiply', value=1.0)
 
     # MeqParm node_groups: add 'D' to default 'Parm':
     js.Parmset.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.Parmset.define_solvegroup('DJones', [br1, bi1, br2, bi2])
-    js.Parmset.define_solvegroup('Dpol1', [br1, bi1])
-    js.Parmset.define_solvegroup('Dpol2', [br2, bi2])
-    js.Parmset.define_solvegroup('Dreal', [br1, br2])
-    js.Parmset.define_solvegroup('Dimag', [bi1, bi2])
+    js.Parmset.define_solvegroup('DJones', [dr11, di11, dr12, di12,
+                                            dr21, di21, dr22, di22])
+    js.Parmset.define_solvegroup('Dreal', [dr11, dr12, dr21, dr22])
+    js.Parmset.define_solvegroup('Dimag', [di11, di12, di21, di22])
 
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
@@ -642,14 +643,14 @@ def DJones (ns=0, Sixpack=None, slave=False, **inarg):
 
         # Example: polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0) 
 
-        for Dreal in [br1,br2]:
+        for Dreal in [dr11,dr12,dr21,dr22]:
             default = MG_JEN_funklet.polc_ft (c00=pp['c00_Dreal'], stddev=pp['stddev_Dreal'], 
                                               fdeg=pp['fdeg_Dreal'], tdeg=pp['tdeg_Dreal'], 
                                               scale=pp['ft_coeff_scale']) 
             js.Parmset.define_MeqParm (ns, Dreal, qual=qual, default=default,
                                        subtile_size=pp['subtile_size_Dreal'])
 
-        for Dimag in [bi1,bi2]:
+        for Dimag in [di11,di12,di21,di22]:
             default = MG_JEN_funklet.polc_ft (c00=pp['c00_Dimag'], stddev=pp['stddev_Dimag'], 
                                               fdeg=pp['fdeg_Dimag'], tdeg=pp['tdeg_Dimag'], 
                                               scale=pp['ft_coeff_scale']) 
@@ -660,10 +661,10 @@ def DJones (ns=0, Sixpack=None, slave=False, **inarg):
         # Make the 2x2 Jones matrix
         ss = js.Parmset.buffer()
         stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
-            ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[br1], ss[bi1]),
-            ns[label+'_12'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[br1], ss[bi1]),
-            ns[label+'_21'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[br1], ss[bi1]),
-            ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[br2], ss[bi2])
+            ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr11], ss[di11]),
+            ns[label+'_12'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr12], ss[di12]),
+            ns[label+'_21'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr21], ss[di21]),
+            ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr22], ss[di22])
             )
         js.append(skey, stub)
 

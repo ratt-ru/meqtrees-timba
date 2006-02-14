@@ -273,14 +273,16 @@ def modify(inarg, **arg):
       MESSAGE(inarg,'.modify(): stripped off: '+option_field)
       arg.__delitem__(option_field)                  # just strip it off
    if not isinstance(opt, dict): opt = dict()
+   opt.setdefault('trace', False)
    opt.setdefault('severe', True)
+   opt.setdefault('match_substring', False)
 
    # Keep track of whether the keywords are found (see also below):
    found = dict()
    for key in arg.keys(): found[key] = 0
 
    # The actual work: recursive modification:
-   _modify_level(inarg, arg=arg, found=found, trace=trace)
+   _modify_level(inarg, arg=arg, found=found, opt=opt)
    MESSAGE(inarg,'.modify(): found ='+str(found))
 
    # Check the result:
@@ -304,14 +306,27 @@ def modify(inarg, **arg):
 
 #----------------------------------------------------------------------------
 
-def _modify_level(rr, arg, found, level=0, trace=False):
+def _modify_level(rr, arg, found, level=0, opt=dict()):
    """Recursive function that does the work for .modify()"""
    fname = localscope(rr)
    # s0 = _prefix(level)
-   
+
    # First replace the fields at this level (if present):
    for key in arg.keys():
-      if rr.has_key(key):                        # key exists in rr[fname]
+      if opt['match_substring']:
+         for rkey in rr.keys():
+            if rkey.rfind(key)>=0:
+               print '** matched subtring:',key,'in',rkey
+               if not isinstance(rr[rkey],dict):
+                  found[key] += 1
+                  s1 = '.modify( '+rkey+' ): '
+                  if not rr[rkey]==arg[key]:     # different value
+                     was = rr[rkey]
+                     rr[rkey] = arg[key]         # replace with new value
+                     s1 += str(was)+'  ->  '+str(rr[rkey])
+                     MESSAGE(rr,s1)
+
+      elif rr.has_key(key):                      # key exists in rr[fname]
          found[key] += 1                         # increment
          s1 = '.modify( '+key+' ): '
          if not rr[key]==arg[key]:               # different value
@@ -319,15 +334,13 @@ def _modify_level(rr, arg, found, level=0, trace=False):
             rr[key] = arg[key]                   # replace with new value
             s1 += str(was)+'  ->  '+str(rr[key])
             MESSAGE(rr,s1)
-         else:
-            s1 += ' (unchanged) = '+str(rr[key])
-            # MESSAGE(rr,s1)
 
    # Recursive:
    for key in rr.keys():
       if isinstance(rr[key], dict):
          if not key==CTRL_record:                # ignore CTRL_record
-            _modify_level(rr[key], arg=arg, found=found, level=level+1, trace=trace)
+            _modify_level(rr[key], arg=arg, found=found,
+                          level=level+1, opt=opt)
 
    return True
 
@@ -683,7 +696,6 @@ def essence(rr, match=[], exclude=[], ss='', level=0, trace=True):
          skip = False
          v = rr[key]
          for substring in exclude:
-            # print '-',key,substring,key.rfind(substring)
             if key.rfind(substring)>=0: skip = True
          if isinstance(v, str):
             if v.rfind('@@')>=0: skip = True

@@ -14,7 +14,10 @@
 #    - 31 jan 2006: implemented compare()
 #    - 10 feb 2006: implemented text-windows
 #    - 11 feb 2006: implemented upgrade()
-#    - 13 feb 2006: convert menu (per_timeslot etc)
+#    - 13 feb 2006: convert-menu (per_timeslot etc)
+#    - 13 feb 2006: removed self.__setOpen in saved files
+#    - 13 feb 2006: implemented .set_fdeg() etc
+#    - 13 feb 2006: converted to .modify() with 'match_substring'
 #
 # Full description:
 #
@@ -158,7 +161,13 @@ class ArgBrowser(QMainWindow):
         menu.insertItem('-> cps_DJones', self.cps_DJones)
         menu.insertItem('-> cps_GBJones', self.cps_GBJones)
         menu.insertSeparator()     
+        # NB: This one should perhaps only be available from the command-line....
         menu.insertItem('-> cps_all(protected)', self.cps_all)
+        menu.insertSeparator()     
+        menu.insertItem('-> fdeg_0', self.fdeg_0)
+        menu.insertItem('-> fdeg_1', self.fdeg_1)
+        menu.insertItem('-> fdeg_2', self.fdeg_2)
+        menu.insertItem('-> fdeg_3', self.fdeg_3)
         menu.insertSeparator()     
         menu.insertItem('-> per_timeslot', self.per_timeslot)
         menu.insertItem('-> small_tile', self.small_tile)
@@ -1223,24 +1232,36 @@ class ArgBrowser(QMainWindow):
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
 
+    def fdeg_0(self): return self.set_fdeg(0)
+    def fdeg_1(self): return self.set_fdeg(1)
+    def fdeg_2(self): return self.set_fdeg(2)
+    def fdeg_3(self): return self.set_fdeg(3)
+    def set_fdeg(self, fdeg=0):
+        """Modify the inarg by settin fdeg_* to the given value"""
+        JEN_inarg.modify(self.__inarg,
+                         fdeg_=fdeg,
+                         subtile_size_=None,
+                         _JEN_inarg_option=dict(match_substring=True))     
+        self.refresh()
+        self.__message.setText('** modified inarg: fdeg_* -> '+str(fdeg))
+        return True
+
+
     def per_timeslot(self):
         """Modify the inarg for (temporary) per_timeslot operation"""
         JEN_inarg.modify(self.__inarg,
                          tile_size=1,
                          epsilon=1e-4,
                          num_iter=20,
-                         tdeg_Ggain=0,
-                         tdeg_dang=0,
-                         tdeg_RM=0,
-                         tdeg_Breal=0,
-                         subtile_size_Ggain=None,
-                         subtile_size_dang=None,
-                         subtile_size_RM=None,
-                         subtile_size_Breal=None,
                          _JEN_inarg_option=None)     
+        JEN_inarg.modify(self.__inarg,
+                         tdeg_=0,
+                         subtile_size_=None,
+                         _JEN_inarg_option=dict(match_substring=True))     
         self.refresh()
         self.__message.setText('** modified inarg for per_timeslot operation')
         return True
+
 
     def small_tile(self):
         """Modify the inarg for (temporary) small_time operation"""
@@ -1248,15 +1269,11 @@ class ArgBrowser(QMainWindow):
                          tile_size=10,
                          epsilon=1e-3,
                          num_iter=10,
-                         tdeg_Ggain=1,
-                         tdeg_dang=1,
-                         tdeg_RM=1,
-                         tdeg_Breal=1,
-                         subtile_size_Ggain=None,
-                         subtile_size_dang=None,
-                         subtile_size_RM=None,
-                         subtile_size_Breal=None,
                          _JEN_inarg_option=None)     
+        JEN_inarg.modify(self.__inarg,
+                         tdeg_=1,
+                         subtile_size_=None,
+                         _JEN_inarg_option=dict(match_substring=True))     
         self.refresh()
         self.__message.setText('** modified inarg for small_tile operation')
         return True
@@ -1267,15 +1284,11 @@ class ArgBrowser(QMainWindow):
                          tile_size=20,
                          epsilon=1e-3,
                          num_iter=10,
-                         tdeg_Ggain=2,
-                         tdeg_dang=2,
-                         tdeg_RM=2,
-                         tdeg_Breal=2,
-                         subtile_size_Ggain=None,
-                         subtile_size_dang=None,
-                         subtile_size_RM=None,
-                         subtile_size_Breal=None,
                          _JEN_inarg_option=None)     
+        JEN_inarg.modify(self.__inarg,
+                         tdeg_=2,
+                         subtile_size_=None,
+                         _JEN_inarg_option=dict(match_substring=True))     
         self.refresh()
         self.__message.setText('** modified inarg for medium_tile operation')
         return True
@@ -1286,15 +1299,11 @@ class ArgBrowser(QMainWindow):
                          tile_size=100,
                          epsilon=1e-2,
                          num_iter=5,
-                         tdeg_Ggain=3,
-                         tdeg_dang=3,
-                         tdeg_RM=3,
-                         tdeg_Breal=3,
-                         subtile_size_Ggain=None,
-                         subtile_size_dang=None,
-                         subtile_size_RM=None,
-                         subtile_size_Breal=None,
                          _JEN_inarg_option=None)     
+        JEN_inarg.modify(self.__inarg,
+                         tdeg_=3,
+                         subtile_size_=None,
+                         _JEN_inarg_option=dict(match_substring=True))     
         self.refresh()
         self.__message.setText('** modified inarg for large_tile operation')
         return True
@@ -1375,7 +1384,7 @@ class ArgBrowser(QMainWindow):
         """Modify MG_JEN_cps inarg for DJones operation"""
         if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
-                         Jsequence=['DJones_WSRT'],
+                         Jsequence=['DJones'],
                          solvegroup=['DJones'],
                          _JEN_inarg_option=None)     
         self.callback_punit('QUV')
