@@ -342,11 +342,11 @@ def extract_parms(sixpack,ns):
  myra=get_default_parms(ra)
  dec=allnodes['dec:q='+myname]
  mydec=get_default_parms(dec)
- if allnodes.has_key('SIF_stokesI:q='+myname):
-  br=allnodes['SIF_stokesI:q='+myname]
-  mybr=get_default_parms(br)
- elif allnodes.has_key('I0:q='+myname):
+ if allnodes.has_key('I0:q='+myname):
   br=allnodes['I0:q='+myname]
+  mybr=get_default_parms(br)
+ elif allnodes.has_key('SIF_stokesI:q='+myname):
+  br=allnodes['SIF_stokesI:q='+myname]
   mybr=get_default_parms(br)
  else:
   mybr=0.0
@@ -366,21 +366,26 @@ def get_default_parms(nd):
  irec=nd.initrec()
  # try to get default_value
  if irec.has_key('default_vale'):
-  my_val=irec['default_value']
+  cf=irec['default_value']
   # this need to be a scalar
+  if cf.nelements()>1:
+     #my_val=cf.tolist().pop(0)
+     my_val=numarray.ravel(cf)[0]
+  else: #scalar
+     my_val=float(cf)
  elif irec.has_key('init_funklet'):
   # get coeff array (or scalar)
   fn=irec['init_funklet']
   if(is_meqpolc(fn)):
    cf=fn['coeff'] 
    if cf.nelements()>1:
-     my_val=cf.tolist().pop(0)
+     my_val=numarray.ravel(cf)[0]
    else: #scalar
      my_val=float(cf)
   elif(is_meqpolclog(fn)):
    cf=fn['coeff'] 
    if cf.nelements()>1:
-     my_val=cf.tolist().pop(0)
+     my_val=numarray.ravel(cf)[0]
    else: #scalar
      my_val=float(cf)
   else: # error
