@@ -134,6 +134,7 @@ class ResultPlotter(GriddedPlugin):
     self.data_list_length = 0
     self.max_list_length = 10
     self.results_selector = None
+    self.ignore_replay = False
 
 # back to 'real' work
     if dataitem and dataitem.data is not None:
@@ -167,8 +168,9 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.setSpectrumMarkers(marker_parms, marker_labels)
 
 # plot active instance of array
-    self.active_image_index = spectrum_menu_items - 1
-    self._spectrum_data.setActivePlot(self.active_image_index)
+    if self.active_image_index is None or self.active_image_index > spectrum_menu_items - 1:
+      self.active_image_index = spectrum_menu_items - 1
+      self._spectrum_data.setActivePlot(self.active_image_index)
     plot_label = self._spectrum_data.getPlotLabel()
     plot_data = self._spectrum_data.getActivePlotArray()
     self._visu_plotter.array_plot(plot_label, plot_data, False)
@@ -581,9 +583,9 @@ class ResultPlotter(GriddedPlugin):
           del self.data_list[0]
         if len(self.data_list) != self.data_list_length:
           self.data_list_length = len(self.data_list)
-        if self.data_list_length > 1:
-          _dprint(3, 'calling adjust_selector')
-          self.adjust_selector()
+          if self.data_list_length > 1:
+            _dprint(3, 'calling adjust_selector')
+            self.adjust_selector()
 
   def process_data (self):
     process_result = False
@@ -626,6 +628,9 @@ class ResultPlotter(GriddedPlugin):
     return process_result
 
   def replay_data (self, data_index):
+    if self.ignore_replay:
+      self.ignore_replay = False
+      return
     if data_index < len(self.data_list):
       self._rec = self.data_list[data_index]
       self.label = self.data_list_labels[data_index]
@@ -786,6 +791,7 @@ class ResultPlotter(GriddedPlugin):
         QObject.connect(self._visu_plotter.plot, PYSIGNAL('show_results_selector'), self.show_selector)
       else:
         QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_selector)
+    self.ignore_replay = True
     self.results_selector.setRange(self.data_list_length)
     self.results_selector.setLabel(self.label)
 

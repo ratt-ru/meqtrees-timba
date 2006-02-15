@@ -304,6 +304,8 @@ class QwtImageDisplay(QwtPlot):
         self.axis_ratio = plot_parms['ratio']
         self.aspect_ratio = plot_parms['aspect_ratio']
         self.replot()
+        _dprint(3, 'called replot in setPlotParms')
+
 
     def initSpectrumContextMenu(self):
         """Initialize the spectra context menu
@@ -388,6 +390,7 @@ class QwtImageDisplay(QwtPlot):
           self.setDisplayType('grayscale')
         self.plotImage.updateImage(self.raw_image)
         self.replot()
+        _dprint(3, 'called replot in handle_basic_menu_id')
         return True
       if menuid == self.menu_table['Toggle ND Controller']:
         if self.toggle_ND_Controller == 1:
@@ -453,11 +456,13 @@ class QwtImageDisplay(QwtPlot):
         if self.show_x_sections:
           self.calculate_cross_sections()
         self.replot()
+        _dprint(3, 'called replot in handle_basic_menu_id')
         return True
 
       if menuid == self.menu_table['Toggle Metrics Display']:
         self.toggleMetrics()
         self.replot()
+        _dprint(3, 'called replot in handle_basic_menu_id')
         return True
 
 # if we get here ...
@@ -483,6 +488,7 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['toggle flagged data for plane ']:
         self.handleFlagToggle(self.flag_toggle)
         self.replot()
+        _dprint(3, 'called replot in handle_flag_toggles')
 	return True
 
       if menuid == self.menu_table['toggle blink of flagged data for plane ']:
@@ -498,6 +504,7 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle display range to that of flagged image for plane ']:
         self.handleFlagRange(self.flag_range)
         self.replot()
+        _dprint(3, 'called replot in handle_flag_toggles')
 	return True
 
 # if we get here ...
@@ -678,6 +685,7 @@ class QwtImageDisplay(QwtPlot):
         self.enableLegend(True)
       self.setAutoLegend(self.setlegend)
       self.replot()
+      _dprint(3, 'called replot in toggleLegend')
     # toggleLegend()
 
     def toggleAxis(self):
@@ -717,6 +725,7 @@ class QwtImageDisplay(QwtPlot):
         self.plotImage.defineImageRange((min, max), False)
       self.plotImage.updateImage(self.raw_image)
       self.replot()
+      _dprint(3, 'called replot in setImageRange')
     # setImageRange
 	
 
@@ -802,6 +811,7 @@ class QwtImageDisplay(QwtPlot):
       self._menu.setItemVisible(toggle_id, False)
 
       self.replot()
+      _dprint(3,'called replot in update_vells_display')
 
       self._vells_plot = True
 
@@ -954,7 +964,7 @@ class QwtImageDisplay(QwtPlot):
     # refresh_marker_display()
 
     def insert_marker_lines(self):
-      _dprint(2, 'refresh_marker_display inserting markers')
+      _dprint(2, 'starting insert_marker_lines')
 # alias
       fn = self.fontInfo().family()
       y = 0
@@ -1030,7 +1040,6 @@ class QwtImageDisplay(QwtPlot):
               self.xsect_ypos = ypos
               self.show_x_sections = True
               self.calculate_cross_sections()
-              _dprint(2, 'called replot in onMousePressed');
            
 # fake a mouse move to show the cursor position
         self.onMouseMoved(e)
@@ -1107,7 +1116,7 @@ class QwtImageDisplay(QwtPlot):
           toggle_id = self.menu_table['Reset zoomer']
           self._menu.setItemVisible(toggle_id, True)
         self.replot()
-        _dprint(2, 'called replot in onMouseReleased');
+        _dprint(3, 'called replot in onMouseReleased');
 
     # onMouseReleased()
 
@@ -1211,7 +1220,7 @@ class QwtImageDisplay(QwtPlot):
       if curve:
         curve.setEnabled(not curve.enabled())
         self.replot()
-        _dprint(2, 'called replot in toggleCurve');
+        _dprint(3, 'called replot in toggleCurve');
     # toggleCurve()
 
     def setDisplayType(self, display_type):
@@ -1282,7 +1291,6 @@ class QwtImageDisplay(QwtPlot):
         self.calculate_cross_sections()
       else:
         self.refresh_marker_display()      
-      _dprint(2, 'called replot in display_image');
     # display_image()
 
     def add_solver_metrics(self):
@@ -1562,7 +1570,7 @@ class QwtImageDisplay(QwtPlot):
         self.source_marker = None
         self.is_combined_image = True
         self.reset_color_bar(True)
-        self.refresh_marker_display()
+#       self.refresh_marker_display()
 
       self.original_array = incoming_plot_array
       self.original_label = data_label
@@ -1932,7 +1940,7 @@ class QwtImageDisplay(QwtPlot):
 
 # do the replot
         self.replot()
-        _dprint(2, 'called replot in array_plot');
+        _dprint(3, 'called replot in array_plot');
     # array_plot()
 
     def set_solver_metrics(self,metrics_rank, iteration_number, solver_offsets):

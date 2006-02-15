@@ -71,7 +71,6 @@ class ResultsRange(QWidget):
 
     def update_slider(self, slider_value):
       self.spinbox.setValue(slider_value)
-      self.emit(PYSIGNAL("result_index"),(slider_value-1,))
 
     def update_spinbox(self, spin_value):
       self.slider.setValue(spin_value)
