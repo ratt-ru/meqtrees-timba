@@ -241,8 +241,9 @@ def _define_forest (ns, **kwargs):
       # first compose the sixpack before giving it to the LSM
       sp.sixpack(ns)
       sp.display()
-      s = Source('test')
-      lsm.add_source(s,sixpack=sp)
+      # s = Source('test')
+      # lsm.add_source(s,sixpack=sp)
+      lsm.add_sixpack(sixpack=sp)
    lsm.display()
 
    if False:
