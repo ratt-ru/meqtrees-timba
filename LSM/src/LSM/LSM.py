@@ -547,6 +547,9 @@ class LSM:
   helper attributes:
   __barr: array of p-Units sorted by brightness - private attribute
   __mqs: meqserver proxy
+  __root: root of all subtrees of the LSM
+  __file: currently opend file or recently saved file name
+          If not using a file, this will be Empty
  """
  # Constructor
  # Does pretty much nothing so far
@@ -575,6 +578,9 @@ class LSM:
 
   # display window
   self.__win=None
+
+  # filename
+  self.__file="None"
 
 
  # Much more important method
@@ -903,6 +909,12 @@ class LSM:
     g.__root=None
    p.dump(g)
    f.close()
+
+   self.__file=filename
+   # update GUI title if possible
+   if self.__win:
+     self.__win.setCaption("File: "+self.__file)
+
   except IOError:
    print "file %s cannot be opened, save failed" % filename 
   
@@ -937,7 +949,7 @@ class LSM:
     self.__ns.Resolve()
    else:
      self.__root=None
-
+   
    self.p_table=tmpl.p_table
    # reconstruct PUnits and Sixpacks if possible
    for sname in self.p_table.keys(): 
@@ -966,6 +978,11 @@ class LSM:
 
 
    f.close()
+
+   self.__file=filename
+   # update GUI title if possible
+   if self.__win:
+     self.__win.setCaption("File: "+self.__file)
   except IOError:
    print "file %s cannot be opened, load failed" % filename 
   # next step: Load the MeqTrees if possible 
@@ -1328,6 +1345,10 @@ class LSM:
  # return the current NodeScope
  def getNodeScope(self):
   return self.__ns
+
+ # return the current Opened/Saved Filename
+ def getFileName(self):
+  return self.__file
 
 
  # read in a list of sixpacks (composed) for sources

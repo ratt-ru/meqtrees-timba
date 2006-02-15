@@ -493,7 +493,7 @@ class LSMWindow(QMainWindow):
 
 
     def languageChange(self):
-        self.setCaption(self.__tr("LSMWindow"))
+        self.setCaption(self.__tr("File: "+self.lsm.getFileName()))
         self.tabWidget.changeTab(self.sourceTab,self.__tr("Source Table"))
         self.tabWidget.changeTab(self.punitTab,self.__tr("P-Unit Table"))
         self.tabWidget.changeTab(self.imageTab,self.__tr("Image"))
