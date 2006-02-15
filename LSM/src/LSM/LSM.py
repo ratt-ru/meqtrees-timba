@@ -1325,7 +1325,7 @@ class LSM:
    self.__root.add_children(child)
 
  # return the current NodeScope
- def getNodeScope(self,ns):
+ def getNodeScope(self):
   return self.__ns
 
 
@@ -1400,6 +1400,32 @@ class LSM:
    if mqs==None:
     # shutdown
     my_ass.finish()
+
+
+ # Add just one sixpack to the LSM
+ # input arguments are:
+ # sixpack  =sixpack_object
+ # ns       =nodescope, if not given the default one in LSM used
+ def add_sixpack(self,**kw):
+  if kw.has_key('sixpack'):
+   my_sp=kw['sixpack']
+   if kw.has_key('ns'):
+    ns=kw['ns']
+   else:
+    ns=self.__ns
+
+   # extract params
+   [ra,dec,br]=extract_parms(my_sp,ns)
+
+   # insert
+   s=Source(my_sp.label())
+   self.add_source(s,brightness=br,
+     sixpack=my_sp,
+     ra=ra, dec=dec)
+  else:
+   print "WARNING: add_sixpack() called without giving a sixpack. Ignored!"
+   pass
+
 
  # read in a text file to build the LSM
  # infile_name: file name, absolute path

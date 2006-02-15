@@ -58,6 +58,11 @@ class MyCanvasView(QCanvasView):
     self.parent=parent_window
     self.max_brightness=self.lsm.getMaxBrightness()
     self.min_brightness=self.lsm.getMinBrightness()
+    print "Initialize brightness to ",self.min_brightness,self.max_brightness
+    # sanity check
+    if self.min_brightness==0.0:
+      self.min_brightness=1e-6
+
     bounds=self.lsm.getBounds()
     # boundaries
     #    +-----------------+
@@ -908,12 +913,19 @@ class PointSource:
   self.cview=parent
   # get corresponding PUnit
   punit=self.cview.lsm.p_table[self.name]
+  #print self.name
   # get coords 
   xys=self.cview.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
   self.x=xys[0]
   self.y=xys[1]
+  #print xys
   self.cross=self.addCross(xys[0],xys[1],1,5,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())
-  length=int(math.log(punit.getBrightness()/self.cview.min_brightness)/math.log( self.cview.max_brightness/self.cview.min_brightness)*10)
+  #print "Brightness: min,max, current",self.cview.min_brightness,self.cview.max_brightness,punit.getBrightness()
+  br=punit.getBrightness()
+  if br >0.0:
+   length=int(math.log(br/self.cview.min_brightness)/math.log( self.cview.max_brightness/self.cview.min_brightness)*10)
+  else:
+   length=1.0e-6
   self.pcross=self.addCross(xys[0],xys[1],1,length,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())
   self.circle=self.addCircle(xys[0],xys[1],2,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())
 

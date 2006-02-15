@@ -177,7 +177,7 @@ def rec_parse(myrec):
   my_keys=myrec.keys()
   new_dict={}
   for kk in my_keys:
-   if kk=='default_funklet':
+   if kk=='funklet' or kk=='init_funklet':
      ff=myrec[kk]
      if is_meqpolclog(ff):
        #print "create polclog"
@@ -260,16 +260,27 @@ def create_node_stub(mydict,stubs,ns,myname):
    if not isinstance(krec,dict):
     irec_str=irec_str+" "+kname+"="+str(krec)+','
    else:
-    if (kname=='default_funklet'):
+    if (kname=='init_funklet'):
      if krec['type']=='meqpolclog':
-      irec_str=irec_str+" "+"meq.polclog(default_funklet_value),"
+      irec_str=irec_str+" "+"init_funklet="+"meq.polclog(default_funklet_value),"
       # deserialize the value
       default_funklet_value=krec['funk']
       #print dir(default_funklet_value)
      else:# assume to be a meqpolc()
-      irec_str=irec_str+" "+"meq.polc(default_funklet_value),"
+      irec_str=irec_str+" "+"init_funklet="+"meq.polc(default_funklet_value),"
       # deserialize the value
       default_funklet_value=krec['funk']
+    elif (kname=='funklet'):
+     if krec['type']=='meqpolclog':
+      irec_str=irec_str+" "+"funklet="+"meq.polclog(default_funklet_value),"
+      # deserialize the value
+      default_funklet_value=krec['funk']
+      #print dir(default_funklet_value)
+     else:# assume to be a meqpolc()
+      irec_str=irec_str+" "+"funklet="+"meq.polc(default_funklet_value),"
+      # deserialize the value
+      default_funklet_value=krec['funk']
+ 
      #print default_funklet_value
 
 
@@ -313,6 +324,67 @@ def serialize_funklet(fnklt):
   return coeff.getreal()
  # is we have a compiled funklet, we can return a dict
  # to be done
-   
+  
 #########################################################################
+#########################################################################
+# utility function to extract MeqParm information from a TDL_Sixpack
+# sixpack=sixpack object (in composed form)
+# ns=nodescope used for the sixpack
+def extract_parms(sixpack,ns):
+ # get name
+ myname=sixpack.label()
+ print "looking for params of ",myname
+ # RA
+ allnodes=ns.Repository()
+ ra=allnodes['ra:q='+myname]
+ # look for the meqparms in this node
+ myra=get_default_parms(ra)
+ dec=allnodes['dec:q='+myname]
+ mydec=get_default_parms(dec)
+ if allnodes.has_key('SIF_stokesI:q='+myname):
+  br=allnodes['SIF_stokesI:q='+myname]
+  mybr=get_default_parms(br)
+ elif allnodes.has_key('I0:q='+myname):
+  br=allnodes['I0:q='+myname]
+  mybr=get_default_parms(br)
+ else:
+  mybr=0.0
+
+ print "RA,Dec,App.Bri=",myra,mydec,mybr
+ return [myra,mydec,mybr]
+#
+# utility to extract the default parms (if any) of a given MeqParm
+# node. It will return the following in the given order, if they
+# exist.
+# 1. default_value
+# 2. First coefficient of init_funklet
+# 3. First coefficient of funklet
+# 4. 0.0
+def get_default_parms(nd):
+ # get initrec
+ irec=nd.initrec()
+ # try to get default_value
+ if irec.has_key('default_vale'):
+  my_val=irec['default_value']
+  # this need to be a scalar
+ elif irec.has_key('init_funklet'):
+  # get coeff array (or scalar)
+  fn=irec['init_funklet']
+  if(is_meqpolc(fn)):
+   cf=fn['coeff'] 
+   if cf.nelements()>1:
+     my_val=cf.tolist().pop(0)
+   else: #scalar
+     my_val=float(cf)
+  elif(is_meqpolclog(fn)):
+   cf=fn['coeff'] 
+   if cf.nelements()>1:
+     my_val=cf.tolist().pop(0)
+   else: #scalar
+     my_val=float(cf)
+  else: # error
+   my_val=-1
+ else: # error
+   my_val=-1
+ return my_val
 
