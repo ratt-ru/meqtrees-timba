@@ -932,7 +932,8 @@ class LSM:
      ns=NodeScope()
     self.__ns=ns
     my_dict=pickle.loads(tmpl.__root)
-    self.__root=reconstruct(my_dict,ns)
+    my_dict=reconstruct(my_dict,ns)
+    self.__root=my_dict['lsmroot']
     self.__ns.Resolve()
    else:
      self.__root=None
@@ -1422,6 +1423,12 @@ class LSM:
    self.add_source(s,brightness=br,
      sixpack=my_sp,
      ra=ra, dec=dec)
+   # keep this nodescope
+
+   #self.setNodeScope(ns)
+   #add to self root
+   self.addToTree(my_sp.sixpack())
+   print self.__root
   else:
    print "WARNING: add_sixpack() called without giving a sixpack. Ignored!"
    pass

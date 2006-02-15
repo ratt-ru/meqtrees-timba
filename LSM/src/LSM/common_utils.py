@@ -301,6 +301,7 @@ def reconstruct(my_dict,ns):
   for sname in my_dict.keys():
    if not nodestub_dict.has_key(sname):
      nodestub_dict[sname]=create_node_stub(my_dict,nodestub_dict,ns,sname)
+  return nodestub_dict
 
 def is_meqpolclog(obj):
  if str(obj.__class__)=="<class 'Timba.dmi.MeqPolcLog'>":
