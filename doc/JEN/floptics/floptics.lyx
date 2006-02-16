@@ -1,0 +1,860 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\begin_preamble
+\usepackage{lofar}    % ~/tex/lofar/lofar.sty
+\end_preamble
+\language english
+\inputencoding auto
+\fontscheme default
+\graphics default
+\paperfontsize default
+\spacing single 
+\papersize Default
+\paperpackage a4
+\use_geometry 0
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\topmargin 1in
+\bottommargin 1in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+
+\layout Standard
+
+
+\begin_inset ERT
+status Open
+
+\layout Standard
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\layout Standard
+% Based on the lofar.sty file (see preamble)
+\layout Standard
+%
+\layout Standard
+% Define the information for the page header and footer:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAuthor} {J.E. 
+\backslash 
+ Noordam} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theDOIssue}{Version 1.0: 15 February 2006} % Date of Issue (
+\backslash 
+today, 2004-Nov-25)
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theKOIssue}{Public} % Alternatives: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theScope}{Project Documentation} % Alternatives: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theDocNR} {LOFAR-ASTRON-DOC-00000} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theStatus} {Draft} % Alternatives:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theRevNR} {1.0} 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theFile}{$lofar/$}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theProject} {LOFAR Project} % in the footer 
+\layout Standard
+%
+\layout Standard
+% Define the information for the Verified table
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVSigList}{o.p.v. 
+\backslash 
+
+\backslash 
+}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVDateList}{
+\backslash 
+today}% Date of Verification (
+\backslash 
+today, 2004-Nov-25)
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theVRevList}{0.9 
+\backslash 
+
+\backslash 
+ 0.9.5}
+\layout Standard
+%
+\layout Standard
+% Define the information in the Accepted Table:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeada}{Work Package Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeadb}{System Engineering Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAHeadc}{Program Manager}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAManagera}{J.E. 
+\backslash 
+ Noordam}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theAManagerb}{C.M.
+\backslash 
+ de Vos}
+\layout Standard
+% 
+\backslash 
+renewcommand{
+\backslash 
+theAManagerc}{J. 
+\backslash 
+ Reitsma}
+\layout Standard
+%
+\layout Standard
+% Define the first and second columns of the Distribution List:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dGList} {
+\layout Standard
+ASTRON
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} J.W. 
+\backslash 
+ Pel
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} L. 
+\backslash 
+ Venema
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} J. 
+\backslash 
+ Pragt
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} T. 
+\backslash 
+ Schoenmaker
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} O.M.
+\backslash 
+ Smirnov 
+\backslash 
+
+\backslash 
+
+\layout Standard
+}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+ddGList} {}
+\layout Standard
+%
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dOList} {dOList
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} C.M. 
+\backslash 
+ de Vos
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} R.J. 
+\backslash 
+ Nijboer
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} J. D.
+\backslash 
+ Bregman 
+\backslash 
+
+\backslash 
+
+\layout Standard
+}
+\layout Standard
+% Define the Document Revision Table:
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+revList} {0.5 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+theRevNR}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+dateList} {2004-Nov-25 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+theDOIssue}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+sectionList} {- 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+ref{Sec2}}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+pageList} {- 
+\backslash 
+
+\backslash 
+ 
+\backslash 
+pageref{Sec2}-
+\backslash 
+pageref{Sec2e}}
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+changeList} {Creation 
+\backslash 
+
+\backslash 
+ Updated class description}
+\layout Standard
+%
+\layout Standard
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\layout Standard
+% Make the front page: 
+\layout Standard
+
+\backslash 
+renewcommand{
+\backslash 
+theTitle} {Floppy Optics in Astronomy
+\backslash 
+
+\backslash 
+
+\layout Standard
+                         the path to cheaper (and better) optical instruments
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{2.0cm}
+\backslash 
+theAuthor 
+\backslash 
+
+\backslash 
+    
+\layout Standard
+
+\backslash 
+vspace{0.1cm}{
+\backslash 
+it(jnoordam@astron.nl)}
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{0.3cm}Dwingeloo
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+vspace{0.1cm}
+\backslash 
+theDOIssue 
+\backslash 
+
+\backslash 
+}
+\layout Standard
+
+\backslash 
+maketitle
+\layout Standard
+%
+\layout Standard
+% Make the second page: 
+\layout Standard
+
+\backslash 
+theDistributionList
+\layout Standard
+
+\backslash 
+vspace{1cm}
+\layout Standard
+
+\backslash 
+theDocumentRevision
+\layout Standard
+
+\backslash 
+vspace{2.0cm}
+\end_inset 
+
+
+\layout Abstract
+
+Astronomical instruments can be made cheaper and better by actively correcting
+ the position of all optical surfaces, using the techniques developed in
+ radio astronomy.
+\layout Standard
+
+
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+newpage
+\end_inset 
+
+
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Introduction}
+
+\end_inset 
+
+Introduction
+\layout Standard
+
+Optical astronomy is in the situation where radio astronomy was around 1980.
+ Radio telescopes like the WSRT were carefully designed to be passively
+ stable during the 12 hours of an Earth rotation synthesis observation.
+ The residual errors were a few percent, which produced images with a dynamic
+ range of 1:100
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Dynamic range is defined as the ratio of the faintest source and the brightest
+ source.
+ It measures the capability to remove the Point-Spread-Function (PSF) of
+ the brighter sources, so that fainter sources can be observed.
+\end_inset 
+
+.
+ This changed drastically with the invention of self-calibration (selfcal),
+ a software technique where the instrumental errors are continuously monitored
+ with the help of the brighter source in the field-of-view.
+ The WSRT dynamic range jumped to 1:10.000, and has gradually increased since
+ then to well over 1:1.000.000
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+In fact, selfcal has been such a spectacular success that nobody has taken
+ the trouble to investigate its limits.
+ Fortunately for LOFAR calibration, which will be much more difficult than
+ for the WSRT, much more is possible.
+\end_inset 
+
+.
+ Selfcal made the VLA into much more than the point-source detection instrument
+ that was originally intended.
+ Without selfcal, the long-baseline instruments like MERLIN and VLBA and
+ EVN would have been impossible.
+\layout Standard
+
+In the light of selfcal, the WSRT has been over-engineered in 1970.
+ Many of the (expensive) precautions to ensure temperature stability were
+ unnecessary in retrospect.
+ A much cheaper instrument would have greatly exceeded the original specs,
+ which were rather more ambitious than the performance of the existing telescope
+s at the time.
+ However, this does not mean that the careful design of the WSRT was completely
+ unnecessary.
+ Features like the equatorial mount, the circularly symmetric dish/receiver
+ system, the (e)quality if the dishes, the absence of correlator errors,
+ the thorough shielding against RFI, the precise tracking of the sky, all
+ help to create the best possible starting conditions for selfcal, 
+\emph on 
+with a minimum number of free parameters
+\emph default 
+
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Thanks to its superior design and engineering, and better software, the
+ dynamic range of the WSRT is still 100 times better than that of telescopes
+ like the VLA.
+\end_inset 
+
+.
+ 
+\layout Standard
+
+Optical instruments are still designed for stability during the observations.
+ This is done by making them as mechanically stiff (and light) as possible,
+ and by carefully controlling the temperature of critical elements.
+ This is very expensive, and only just manages to direct the photons into
+ the right pixels with the existing telescopes.
+ It has been widely recognised that other measures are needed for the next
+ generation of telescopes.
+ As a first step, 
+\emph on 
+open-loop
+\emph default 
+ corrections have been introduced over the last decade, for instance by
+ adjusting the focus position as a function of temperature, using a pre-calibrat
+ed lookup-table.
+ 
+\layout Standard
+
+This document outlines the use of selfcal-like (i.e.
+ 
+\emph on 
+closed-loop
+\emph default 
+) methods for optical instruments.
+ The idea is to control the position (and perhaps shape) of virtually all
+ optical surfaces by means of actuators, and to use the output of the science
+ detector itself to derive the control information.
+\layout Standard
+
+Some differences between optical and radio:
+\layout Itemize
+
+Since radio-interferometry data are taken in the aperture plane, most of
+ the instrumental corrections may be estimated and applied afterwards, off-line.
+ In the optical case, the entire instrument must be kept in optimal shape
+ during the observations.
+\layout Itemize
+
+In the radio, the field-of-view and isoplanatic patch are so large that
+ most fields contain reference sources that are bright enough to be used
+ for selfcal.
+ In the optical, this is usually not the case.
+ Therefore, internal calibration sources have to be used to stabilise the
+ instrument, while other means have to be employed to make the connection
+ with the sky position.
+\layout Itemize
+
+In radio selfcal, there is no distinction between fast (atmospheric) effects,
+ and slower instrumental drifts.
+ The present discussion is about the latter, which is commonly known by
+ the (somewhat unfortunate) name of 
+\emph on 
+active optics
+\emph default 
+.
+ The subject of 
+\emph on 
+adaptive optics
+\emph default 
+ (AO) may be tackled in a latter stage, but is explicitly excluded here.
+ 
+\layout Section
+
+Estimating parameters
+\layout Standard
+
+The result of reading out a multi-pixel detector, is a series of N pixel
+ values 
+\begin_inset Formula $V_{i}=V_{i}(p_{1},p_{2},p_{3},...,p_{k})$
+\end_inset 
+
+, in which the parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+are the parameters of the Measurement Equation (M.E.).
+ The latter is a combination of a model of the observing instrument, and
+ a model of the observed brightness distribution.
+ Examples of such parameters are the brightness and position of the observed
+ sources, and the settings of the actuators that control the position (and
+ shape) of the various optical surfaces.
+ We may estimate the values of the 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+by solving the system of N equations: 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+V_{i}-M_{i}=\sum_{k}\frac{\partial V_{i}}{\partial p_{k}}\Delta p_{k}\label{eq:dV}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+where the 
+\begin_inset Formula $M_{i}$
+\end_inset 
+
+are the model values of 
+\begin_inset Formula $V_{i}$
+\end_inset 
+
+ that are predicted by the M.E.
+ The latter also yields values for the derivatives 
+\begin_inset Formula $\frac{\partial V}{\partial p}$
+\end_inset 
+
+.
+ Note that we solve for incremental values 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+.
+ In effect, we are looking for the set of values 
+\begin_inset Formula $\vec{P}$
+\end_inset 
+
+ that minimises the difference between measured and predicted values in
+ a least-squares sense.
+ In other words, we are looking for the (absolute) minimum in the socalled
+ 
+\begin_inset Formula $\chi^{2}$
+\end_inset 
+
+surface, where:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\chi^{2}=\sum_{i}(V_{i}-M_{i})^{2}\label{eq:chisq}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+The MeqTree system is designed to implement an arbitrary M.E., and to solve
+ for its parameters.
+ It is currently used for WSRT calibration, as a preparation for LOFAR calibrati
+on.
+ However, the system is completely 
+\emph on 
+policy-free
+\emph default 
+, in the sense that it makes no assumptions about the particular application.
+ All domain-specific knowledge is in the structure of the user-defined 'tree',
+ which implements an M.E.
+ Thus, there the MeqTree system can readily be used for optical instruments
+ as well
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+In fact, the MeqTree system is the main 'product' of the ASTRON Scientific
+ Computing group, which hopes to use it for a multitude of other apllications.
+\end_inset 
+
+.
+\layout Section
+
+Internal calibration
+\layout Standard
+
+We will assume for the moment that the scientific target source is too faint
+ to be used for selfcal.
+ Therefore, a known test signal must be injected as early as possible.
+ Calibration insertion unit (nr of sources, wavelength, gating)
+\layout Standard
+
+Intervening optical systems 
+\layout Standard
+
+
+\begin_inset Graphics
+
+\end_inset 
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename floptics_block.eps
+	width 90col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:Schematic-block-diagram}
+
+\end_inset 
+
+Schematic block diagram of an optical telescope.
+ The internal calibration signal is injected as early as possible.
+ The position (and shape) of optical surfaces are controlled by actuators.
+ The MeqTree system minimises the differences between measured and predicted
+ pixel values by manipulating the actuators.
+ The necessary derivatives may be calculated with the help of an explicit
+ Measurement Equation (M.E.), but they may also be determined empirically.
+ The latter is the preferred method, because it does not require any knowledge
+ of the optical details.
+\layout Standard
+
+
+\emph on 
+After internal calibration, one or more reference stars have to be used
+ to make the connection with the sky.
+ It should be emphasized that, in this stage, we only address slow variations.
+ Atmospheric turbulence and AO is ignored until we have gathered more experience.
+\end_inset 
+
+
+\layout Section
+
+Connection with the sky
+\layout Standard
+
+Pointing, rotation, extinction, atmospheric dispersion, adaptive optics
+\layout Section
+
+Data reduction during the observation
+\layout Section
+
+A step-wise development program
+\layout Subsection
+
+Exploring the optical Measurement Equation
+\layout Standard
+
+Even though 
+\layout Subsection
+
+An experimental verification (second half of 2006)
+\layout Itemize
+
+A suitable optical subsystem (e.g.
+ TMA), fitted out with actuators.
+\layout Itemize
+
+A test source, and a multi-pixel detector.
+\layout Itemize
+
+Some extra MeqTree nodes.
+\layout Itemize
+
+Interface between MeqTree system and detector and actuators.
+\layout Standard
+
+If successful, this could lead to a superior optical test-facility for the
+ ASTRON optical lab.
+ ATH could even market it.
+\layout Subsection
+
+Application to an existing instrument on the ING (in 2007)
+\layout Standard
+
+The new approach has to be demonstrated on a real instrument, and on a scientifi
+cally interesting source.
+ However, in the interest of proper development, this first instrument should
+ 
+\emph on 
+not
+\emph default 
+ be on the critical path of impatient scientists.
+ However, rather than finding the funds to design and build an entirely
+ new instrument, it might be possible to upgrade an existing instrument
+ that is not performing well in its present passive mode.
+\layout Subsection
+
+Application to new instruments
+\layout Standard
+
+If we play our cards well, ASTRON could become the world leader in designing
+ and building instruments for the next generation telescopes.
+ But it could also churn out cheap but high-quality instruments for other
+ telescopes.
+ And finally, we could banch out into non-astronomical instruments....
+ What bout that for a business plan?
+\layout Section
+
+Conclusions
+\layout Standard
+
+ASTRON is the only institute that builds instrumentation for both optical
+ and radio telescopes.
+ This unique synergy clearly leads to a win-win situation, where we can
+ cross-fertilise to leverage our business processes.
+\layout Standard
+
+While writing this document, it has occurred to me that back-fertilisation
+ towards radio astronomy is possible too.
+ In particular, the introduction of controlled instrumental errors to derive
+ an empirical M.E.
+ might be employed in radio telescopes as well.
+ 
+\layout Bibliography
+\bibitem {Using_MeqTrees}
+
+Using MeqTrees (JEN 2005)
+\the_end
