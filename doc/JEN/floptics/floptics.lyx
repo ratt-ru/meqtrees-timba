@@ -796,19 +796,121 @@ A known test signal must be injected as early as possible (see fig
 \end_inset 
 
 ).
+ From there on, all optical are part of the procedure, and their actuators
+ should ideally be controlled by the calibration system.
+ Obviously, the calibration signal will be much brighter than the science
+ target.
+ We have the following possibilities to separate them:
+\layout Itemize
+
+Different wavelength.
+ This has the disadvantage that it is not really closed-loop.
+\layout Itemize
+
+Different time (gating).
+ This is attractive, but the duty-cycle causes some loss of observation
+ time.
+ Also, the detector must be able to switch over on short time-scales.
+\layout Itemize
+
+Different position.
+ If the optical system is optimised for 3-4 positions, it might be assumed
+ to be optimised for the central position as well.
+ However, not really closed-loop.
+\layout Standard
+
+The injection signals, or their images, do not have to be of a particularly
+ high quality.
+ The important thing is that we have a model of their images that will allow
+ us to calibrate the system.
+ Thus, the injection signals should probably be fairly stable, so we can
+ derive an empirical model image.
  
 \layout Standard
 
-Calibration insertion unit (nr of sources, wavelength, gating)
+The internal calibration procedure could be as follows: 
+\layout Enumerate
+
+Start by moving each of the M actuators 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+a little bit, just enough to see a significant change in some of the pixel
+ values.
+ 
+\layout Enumerate
+
+For each actuator 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+, calculate the derivative 
+\begin_inset Formula $\frac{\partial V_{i}}{\partial p_{k}}$
+\end_inset 
+
+ for all N pixels.
+ Asuume a value of zero for all pixels whose value did not change significantly.
+\layout Enumerate
+
+Leave the actuators in their new positions (saves time)
+\layout Enumerate
+
+Solve for incremental improvements 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ for all actuator values.
+ 
+\layout Enumerate
+
+Check that the estimated new actuator values 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+are not outside reasonable limits.
+ After all, it is a non-linear system.
+\layout Enumerate
+
+Apply the changes 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ and measure the new detector pixel values.
+ This is equivalent to step one, which closes the loop.
 \layout Standard
 
-Intervening optical systems 
+The obvious drawback of this procedure is that, when the system is optimised,
+ it becomes less sensitive because the estimated 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+will be close to zero, so the next set of empirical derivatives will be
+ small also.
+ A possible solution is to multiply all actuator changes by some factor
+ (e.g.
+ 2), and make a correction for the subsequent jitter in the measured pixel
+ values.
 \layout Subsection
 
 Connection with the sky
-\layout Standard
+\layout Itemize
 
-Pointing, rotation, extinction, atmospheric dispersion, adaptive optics
+Pointing
+\layout Itemize
+
+sky rotation
+\layout Itemize
+
+extinction
+\layout Itemize
+
+atmospheric dispersion
+\layout Itemize
+
+adaptive optics
+\layout Itemize
+
+etc..
 \layout Standard
 
 
