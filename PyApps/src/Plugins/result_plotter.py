@@ -112,17 +112,10 @@ class ResultPlotter(GriddedPlugin):
         is instantiated.
     """
     self._rec = None;
-    self._hippo = None
-    self._visu_plotter = None
-    self.colorbar = None
-    self._window_controller = None
     self._plot_type = None
     self._wtop = None;
     self.dataitem = dataitem
     self._attributes_checked = False
-    self.layout_parent = None
-    self.layout = None
-    self.ND_Controls = None
     self._vells_data = None
     self._solver_data = None
     self.num_possible_ND_axes = None
@@ -133,12 +126,23 @@ class ResultPlotter(GriddedPlugin):
     self.data_list_labels = []
     self.data_list_length = 0
     self.max_list_length = 10
-    self.results_selector = None
     self.ignore_replay = False
+    self._window_controller = None
+
+    self.reset_plot_stuff()
 
 # back to 'real' work
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
+
+  def reset_plot_stuff(self):
+    self._visu_plotter = None
+    self.colorbar = {}
+    self.results_selector = None
+    self.ND_Controls = None
+    self.layout_parent = None
+    self.layout = None
+
 
   def __del__(self):
     if self._window_controller:
@@ -563,6 +567,7 @@ class ResultPlotter(GriddedPlugin):
         cache_message.setTextFormat(Qt.RichText)
         self._wtop = cache_message
         self.set_widgets(cache_message)
+        self.reset_plot_stuff()
         return
 
 # update display with current data
@@ -603,6 +608,7 @@ class ResultPlotter(GriddedPlugin):
       cache_message.setTextFormat(Qt.RichText)
       self._wtop = cache_message
       self.set_widgets(cache_message)
+      self.reset_plot_stuff()
       return process_result
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       if self._visu_plotter is None:
