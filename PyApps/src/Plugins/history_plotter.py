@@ -106,25 +106,28 @@ class HistoryPlotter(GriddedPlugin):
         is instantiated.
     """
     self._rec = None;
-    self._plotter = None
-    self.colorbar = None
-    self._window_controller = None
     self._plot_type = None
-    self.array_selector = None
     self._wtop = None;
     self.label = '';
     self.dataitem = dataitem
     self._attributes_checked = False
-    self.first_spectrum_plot = True
     self.displayed_invalid = False
-    self.layout_parent = None
-    self.layout = None
-    self.ND_Controls = None
+    self.array_selector = None
+    self.reset_plot_stuff()
+
+    self._window_controller = None
     _dprint(3, 'at end of init: self._plotter = ', self._plotter)
 
 # back to 'real' work
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
+
+  def reset_plot_stuff (self):
+    self._plotter = None
+    self.colorbar = None
+    self.layout_parent = None
+    self.layout = None
+    self.ND_Controls = None
 
   def __del__(self):
     if self._window_controller:
@@ -159,6 +162,7 @@ class HistoryPlotter(GriddedPlugin):
         cache_message.setTextFormat(Qt.RichText)
         self._wtop = cache_message
         self.set_widgets(cache_message)
+        self.reset_plot_stuff()
         return
 
     if self._rec.has_key("history"):
@@ -170,6 +174,7 @@ class HistoryPlotter(GriddedPlugin):
       cache_message.setTextFormat(Qt.RichText)
       self._wtop = cache_message
       self.set_widgets(cache_message)
+      self.reset_plot_stuff()
       return
 
 # enable & highlight the cell
@@ -265,6 +270,7 @@ class HistoryPlotter(GriddedPlugin):
         cache_message.setTextFormat(Qt.RichText)
         self._wtop = cache_message
         self.set_widgets(cache_message)
+        self.reset_plot_stuff()
         self.displayed_invalid = True
 
   def create_plot_array(self,history_list):
