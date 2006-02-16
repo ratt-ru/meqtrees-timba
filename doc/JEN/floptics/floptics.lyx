@@ -33,7 +33,7 @@
 
 
 \begin_inset ERT
-status Open
+status Collapsed
 
 \layout Standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -572,6 +572,9 @@ closed-loop
  The idea is to control the position (and perhaps shape) of virtually all
  optical surfaces by means of actuators, and to use the output of the science
  detector itself to derive the control information.
+ A software sytem (called MeqTree) exists to do this for radio aperture
+ synhesis, and can be easily adapted for optical instruments.
+ 
 \layout Standard
 
 Some differences between optical and radio:
@@ -588,8 +591,8 @@ In the radio, the field-of-view and isoplanatic patch are so large that
  for selfcal.
  In the optical, this is usually not the case.
  Therefore, internal calibration sources have to be used to stabilise the
- instrument, while other means have to be employed to make the connection
- with the sky position.
+ instrument, while other means like reference stars have to be employed
+ to make the connection with the sky position.
 \layout Itemize
 
 In radio selfcal, there is no distinction between fast (atmospheric) effects,
@@ -605,6 +608,13 @@ active optics
 adaptive optics
 \emph default 
  (AO) may be tackled in a latter stage, but is explicitly excluded here.
+ 
+\layout Standard
+
+A step-wise program for the development of these techniques is proposed.
+ For good measure, in an appendix, there is some discussion about other
+ software techniques that could replace expensive (and often not very effective)
+ hardware solutions.
  
 \layout Section
 
@@ -695,8 +705,8 @@ policy-free
 , in the sense that it makes no assumptions about the particular application.
  All domain-specific knowledge is in the structure of the user-defined 'tree',
  which implements an M.E.
- Thus, there the MeqTree system can readily be used for optical instruments
- as well
+ Thus, the MeqTree system can readily be used for optical instruments as
+ well
 \begin_inset Foot
 collapsed true
 
@@ -707,24 +717,99 @@ In fact, the MeqTree system is the main 'product' of the ASTRON Scientific
 \end_inset 
 
 .
-\layout Section
-
-Internal calibration
 \layout Standard
 
-We will assume for the moment that the scientific target source is too faint
- to be used for selfcal.
- Therefore, a known test signal must be injected as early as possible.
- Calibration insertion unit (nr of sources, wavelength, gating)
-\layout Standard
 
-Intervening optical systems 
+\begin_inset Float figure
+wide false
+collapsed false
+
 \layout Standard
 
 
 \begin_inset Graphics
+	filename floptics_dV.eps
+	width 80col%
 
 \end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:Measured-and-predicted}
+
+\end_inset 
+
+Measured and predicted pixel values.
+ It is not always necessary to have a very detailed model of the predicted
+ image of a (calibration) source.
+ In the above example, the measured source images are convolved with some
+ instrumental response.
+ The use of point-like models (all pixels except two are zero), will cause
+ the system to find those actuator settings that give the smallest (sharpest)
+ possible source images, with the smallest sidelobes, at the correct positions.
+ Various aspects may be given more weight by assigning a greater weight
+ to the selfcal equations associated with the relevant pixels.
+\layout Standard
+
+
+\emph on 
+Note that the use of two or more test-sources severly constrains the freedom
+ of the sytem to arrive at a sub-optimal solution.
+ This is particularly important in those cases where the minimum in the
+ 
+\begin_inset Formula $\chi^{2}$
+\end_inset 
+
+ surface is broad.
+ 
+\layout Standard
+
+
+\emph on 
+The above is equally valid for images, spectra, or whatever one chooses
+ to measure.
+\end_inset 
+
+
+\layout Section
+
+Proposed calibration procedure
+\layout Standard
+
+We will assume for the moment that the scientific target source is too faint
+ to be used for selfcal.
+ Therefore, we split up the procedure in internal and external calibration
+ (connection with the sky).
+ Such a split 
+\layout Subsection
+
+Internal calibration
+\layout Standard
+
+A known test signal must be injected as early as possible (see fig 
+\begin_inset LatexCommand \ref{cap:Schematic-block-diagram}
+
+\end_inset 
+
+).
+ 
+\layout Standard
+
+Calibration insertion unit (nr of sources, wavelength, gating)
+\layout Standard
+
+Intervening optical systems 
+\layout Subsection
+
+Connection with the sky
+\layout Standard
+
+Pointing, rotation, extinction, atmospheric dispersion, adaptive optics
+\layout Standard
 
 
 \begin_inset Float figure
@@ -736,7 +821,7 @@ collapsed false
 
 \begin_inset Graphics
 	filename floptics_block.eps
-	width 90col%
+	width 80col%
 
 \end_inset 
 
@@ -772,13 +857,59 @@ After internal calibration, one or more reference stars have to be used
 
 \layout Section
 
-Connection with the sky
+Deep data reduction during the observation
 \layout Standard
 
-Pointing, rotation, extinction, atmospheric dispersion, adaptive optics
-\layout Section
+A potentially very powerful by-product of using selfcal for correcting optical
+ instruments is the possibility to reduce the data during the observation,
+ with sufficient accuracy to allow the observer to decide whether the observatio
+n is yielding the desired result.
+ At the very least this can lead to a (much) more efficient use of precious
+ telescope time.
+ At best, it will lead to more discoveries.
+\layout Standard
 
-Data reduction during the observation
+The key is the use of a detailed model of the observed source, the parameters
+ of which are estimated along with the instrumental ones.
+ This means that known features are subtracted from the data with high accuracy,
+ and the residuals are continuously available during the observation.
+ There are two possibilities:
+\layout Itemize
+
+The desired feature of the source is expected, and part of the model.
+ Its essental parameters may be estimated on the spot, often in the presence
+ of much brighter features that would normally either outshine or pollute
+ it.
+ The observation may be cut off as soon as the standard solver metrics of
+ the MeqTree system indicate that the feature has been detected with sufficient
+ confidence.
+\layout Itemize
+
+Unexpected features (discoveries!) will stand out in the residuals 'like
+ a sore tooth', which greatly increases the chance of them.
+ Very importantly, unexpected things can be followed up on the spot.
+ First the standard confidence analysis tools of the MeqTree system should
+ be used to ascertain that it is not an artifact of the utilised model.
+ After that it could be decided to devote more observation time to it, possibly
+ with a different instrumental configuration.
+ 
+\layout Standard
+
+Note that all this is independent from the internal/external calibration
+ scheme outlined above.
+ Those require bright sources, which are usually not the target object.
+ But while the instrument is kept in optimal shape during the observation,
+ the selfcal technique may be applied to the (accumulating) data of the
+ science object at the same time.
+\layout Standard
+
+
+\emph on 
+Thinking a little further, deep on-line data reduction could be the basis
+ of a self-learning 'automatic peculiarity detector', a telescope that scans
+ the sky untiringly, looking for things that differ from the expected.
+ Such a capability was implicitly assumed in the proposal for a Large Unbiased
+ Survey Telescope (1985), but we now have a system to actually do it.
 \layout Section
 
 A step-wise development program
