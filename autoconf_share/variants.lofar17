@@ -5,11 +5,11 @@ gnu.compiler.conf: CXX="$CCACHE /usr/bin/g++"
 gnu.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/prod/linux_gnu
 
 gnu34.compiler.conf: CXX="$CCACHE /usr/local/gcc343/bin/g++" --with-ldflags="-Wl,--rpath,/usr/local/gcc343/lib" 
-gnu34.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/prod/linux_gnu34
+gnu34.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/prod/linux_gnunew
 gnu34.compiler.sse.var:    --with-sse
 
 gnunew.compiler.conf: CXX="$CCACHE /usr/local/gcc343/bin/g++" --with-ldflags="-Wl,--rpath,/usr/local/gcc343/lib"
-gnunew.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/prod/linux_gnu34
+gnunew.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/prod/linux_gnunew
 gnunew.compiler.sse.var:    --with-sse
 
 icc.compiler.conf: CXX="$CCACHE /usr/local/compiler80/bin/icc" --with-cppflags="-cxxlib-gcc" --with-ldflags="-cxxlib-gcc -Xlinker -rpath -Xlinker /usr/local/compiler80/lib"
