@@ -103,8 +103,7 @@ class QwtImageDisplay(QwtPlot):
         'Toggle axis flip': 307,
         'Toggle logarithmic range for image': 308,
         'Toggle results history': 309,
-        'Adjust results buffer size': 310,
-        'Toggle Metrics Display': 311,
+        'Toggle Metrics Display': 310,
         }
 
     _start_spectrum_menu_id = 0
@@ -352,8 +351,6 @@ class QwtImageDisplay(QwtPlot):
     def setResultsSelector(self):
       toggle_id = self.menu_table['Toggle results history']
       self._menu.insertItem("Toggle results history", toggle_id)
-      toggle_id = self.menu_table['Adjust results buffer size']
-      self._menu.insertItem("Adjust results buffer size", toggle_id)
 
     def handle_basic_menu_id(self, menuid):
       if menuid < 0:
@@ -405,9 +402,6 @@ class QwtImageDisplay(QwtPlot):
         else:
           self.setResults = True
         self.emit(PYSIGNAL("show_results_selector"),(self.setResults,))
-        return True
-      if menuid == self.menu_table['Adjust results buffer size']:
-        self.emit(PYSIGNAL("adjust_results_buffer_size"),(True,))
         return True
       if menuid == self.menu_table['Toggle real/imag or ampl/phase Display']:
         if self.ampl_phase:
