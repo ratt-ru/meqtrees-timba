@@ -611,13 +611,11 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
                                                            debug_level=pp['debug_level'])
     # Make a bookmark for the solver plot:
     page_name = 'solver: '+solver_name
-    MG_JEN_forest_state.bookmark (solver, page=page_name,
-                                  udi='cache/result', viewer='Result Plotter')
+    MG_JEN_forest_state.bookmark (solver, page=page_name, viewer='Result Plotter')
     MG_JEN_forest_state.bookmark (solver, page=page_name, viewer='ParmFiddler')
     if pp['visu']:
         # Optional: also show the solver on the allcorrs page:
-        MG_JEN_forest_state.bookmark (solver, page='allcorrs',
-                                      udi='cache/result', viewer='Result Plotter')
+        MG_JEN_forest_state.bookmark (solver, page='allcorrs', viewer='Result Plotter')
 
     # Make historyCollect nodes for the solver metrics
     hcoll_nodes = []

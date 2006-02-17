@@ -440,7 +440,7 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
    else:                                              # rr already has a valid CTRL_record
       if version:                                     # version has been specified (.inarg2pp())
          #===================================================
-         # return True                # temporarily disabled!!!
+         return True                # temporarily disabled!!!
          #===================================================
          # The version keyword allows detecton of obsolete inarg records:
          rr_version = rr[CTRL_record]['version']
