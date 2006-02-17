@@ -61,9 +61,11 @@ class Super:
         self.history(s, reset=True)
 
         # Deal with the extra constructor arguments (if any):
-        qq = deepcopy(pp)                                     # modify a copy
-        for key in qq.keys():
-            v = qq[key]
+        # Dont use deepcopy because it cannot handle nodestubs 
+        #qq = deepcopy(pp)
+        qq = {}                                     # modify a copy
+        for key in pp.keys():
+            v = pp[key]
             if isinstance(v, Timba.TDL.TDLimpl._NodeStub):    # avoid clutter
                 qq[key] = key+': <nodestub>'
             elif isinstance(v, dict):                         # avoid clutter
@@ -75,6 +77,8 @@ class Super:
                     qq[key] += str(v[:nmax])+'...'
                 else:
                     qq[key] += str(v)
+            else:
+                qq[key] = v
         self.history('inarg = '+str(qq))
 
         return None
