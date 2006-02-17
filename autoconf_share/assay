@@ -33,7 +33,9 @@
 # executable directly.
 #
 # assay redirects the output of program or .run file to a temporary file
-# and compare it with a corresponding .stdout file (if there) using diff.
+# and compare it with a corresponding .stdout file (if present) using diff.
+# (Note: assay will flag the absence of a .stdout file as an error, when 
+# your program or .run file returns with an exit status 2.)
 # Parts of the output can be skipped using special markers (>>> and <<<).
 # If the out files are different, it tries to find out if they match
 # by comparing numbers with the given precision (e.g. 1e-5) using:
@@ -187,32 +189,42 @@
   fi
 
 # Execute the command.
-  if eval "$COMMAND" > ${PROG}_tmp.out
-  then
+  eval "$COMMAND" > ${PROG}_tmp.out
+  STATUS=$?
+  case $STATUS in 
+  0) 
      if [ -f $PROG.stdout ]
      then
         CAT=cat
      else
         echo "PASS (execution succeeded): $PROG"
-        STATUS=0
         exit
      fi
-  else
-     STATUS=$?
-     if [ $STATUS = 3 ]
+     ;;
+  2) 
+     if [ -f $PROG.stdout ]
      then
-        echo "UNTESTED: $PROG"
-        STATUS=77
+        CAT=cat
      else
-        echo "FAIL (execution failure): $PROG"
-        # We may want to know what went wrong, so we'll secure the log file
-        if [ -f ${PROG}_tmp.log ]
-        then
-           mv ${PROG}_tmp.log ${PROG}.err
-        fi
+        echo "FAIL (reference output file missing): $PROG"
+        exit
+     fi
+     ;;
+  3) 
+     echo "UNTESTED: $PROG"
+     STATUS=77
+     exit
+     ;;
+  *) 
+     echo "FAIL (execution failure): $PROG"
+     # We may want to know what went wrong, so we'll secure the log file
+     if [ -f ${PROG}_tmp.log ]
+     then
+        mv ${PROG}_tmp.log ${PROG}.err
      fi
      exit
-  fi
+     ;;
+  esac
 
   echo "Comparing output with $PROG.stdout ..."
 # Strip out demarked text.
