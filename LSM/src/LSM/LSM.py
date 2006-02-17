@@ -602,7 +602,10 @@ class LSM:
   # Source names have to be unique
   if self.s_table.has_key(s.name):
    # Print error
-   raise NameError, 'Source '+s.name+' is already present'
+   #raise NameError, 'Source '+s.name+' is already present'
+   # dont stop, just issue a warning
+   print "WARNING: Source "+s.name+' is already present'
+   return
   self.s_table[s.name]=s
   """ After inserting the source to source table,
       search the  MeqParm table if it has any parms of the source.
@@ -979,7 +982,7 @@ class LSM:
 
    f.close()
 
-   self.__file=filename
+   self.setFileName(filename)
    # update GUI title if possible
    if self.__win:
      self.__win.setCaption("File: "+self.__file)
@@ -1350,6 +1353,11 @@ class LSM:
  def getFileName(self):
   return self.__file
 
+ # set the current Opened/Saved Filename
+ def setFileName(self,fname):
+  # truncate filename if too long
+  self.__file=fname
+
 
  # read in a list of sixpacks (composed) for sources
  # and build the LSM. 
@@ -1512,7 +1520,7 @@ class LSM:
     source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
     source_Dec*=math.pi/180.0
 
-    my_sixpack=MG_JEN_Sixpack.newstar_source(ns,name=s.name,I0=eval(v.group('col12')), f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
+    my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=eval(v.group('col12')), f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
    # first compose the sixpack before giving it to the LSM
     SourceRoot=my_sixpack.sixpack(ns)
     my_sixpack.display()
@@ -1520,6 +1528,7 @@ class LSM:
      sixpack=my_sixpack,
      ra=source_RA, dec=source_Dec)
  
+  self.setFileName(infile_name)
 
 
 
