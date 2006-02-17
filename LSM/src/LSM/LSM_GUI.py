@@ -570,6 +570,8 @@ class LSMWindow(QMainWindow):
     def fileSave(self):
         if self.savefile==None:
          s=QFileDialog.getSaveFileName(".","*.lsm",self,"Save File","Choose File Name to Save LSM")
+        else:
+         s=QString(self.savefile)
         if s!=None:
          if not s.endsWith(".lsm"):
            s.append(".lsm")
