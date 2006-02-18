@@ -200,7 +200,7 @@ ASTRON
 \layout Standard
 
 \backslash 
-hspace{0.5cm} J.W. 
+hspace{0.5cm} J. W. 
 \backslash 
  Pel
 \backslash 
@@ -240,7 +240,7 @@ hspace{0.5cm} T.
 \layout Standard
 
 \backslash 
-hspace{0.5cm} O.M.
+hspace{0.5cm} O. M.
 \backslash 
  Smirnov 
 \backslash 
@@ -270,7 +270,7 @@ dOList} {dOList
 \layout Standard
 
 \backslash 
-hspace{0.5cm} C.M. 
+hspace{0.5cm} C. M. 
 \backslash 
  de Vos
 \backslash 
@@ -280,7 +280,7 @@ hspace{0.5cm} C.M.
 \layout Standard
 
 \backslash 
-hspace{0.5cm} R.J. 
+hspace{0.5cm} R. J. 
 \backslash 
  Nijboer
 \backslash 
@@ -482,12 +482,12 @@ Optical astronomy is in the situation where radio astronomy was around 1980.
  The residual errors were a few percent, which produced images with a dynamic
  range of 1:100
 \begin_inset Foot
-collapsed true
+collapsed false
 
 \layout Standard
 
-Dynamic range is defined as the ratio of the faintest source and the brightest
- source.
+Dynamic range is defined as the ratio of the flux of the faintest discernible
+ feature to the flux of the brightest source in the field.
  It measures the capability to remove the Point-Spread-Function (PSF) of
  the brighter sources, so that fainter sources can be observed.
 \end_inset 
@@ -495,9 +495,9 @@ Dynamic range is defined as the ratio of the faintest source and the brightest
 .
  This changed drastically with the invention of self-calibration (selfcal),
  a software technique where the instrumental errors are continuously monitored
- with the help of the brighter source in the field-of-view.
- The WSRT dynamic range jumped to 1:10.000, and has gradually increased since
- then to well over 1:1.000.000
+ with the help of the brighter source(s) in the field-of-view.
+ The WSRT dynamic range jumped to 1:10.000 overnight, and has gradually increased
+ to well over 1:1.000.000
 \begin_inset Foot
 collapsed true
 
@@ -510,26 +510,28 @@ In fact, selfcal has been such a spectacular success that nobody has taken
 \end_inset 
 
 .
- Selfcal made the VLA into much more than the point-source detection instrument
- that was originally intended.
- Without selfcal, the long-baseline instruments like MERLIN and VLBA and
- EVN would have been impossible.
+ Selfcal also made the American VLA radio telescope into much more than
+ the point-source detection instrument that was originally intended.
+ And without selfcal, the very long-baseline instruments like MERLIN, VLBA
+ and EVN would have been impossible.
 \layout Standard
 
 In the light of selfcal, the WSRT has been over-engineered in 1970.
- Many of the (expensive) precautions to ensure temperature stability were
- unnecessary in retrospect.
+ In retrospect, many of the (expensive) precautions to ensure temperature
+ stability were unnecessary.
  A much cheaper instrument would have greatly exceeded the original specs,
- which were rather more ambitious than the performance of the existing telescope
-s at the time.
- However, this does not mean that the careful design of the WSRT was completely
- unnecessary.
+ which were already rather more ambitious than the performance of the existing
+ telescopes at the time.
+ However, this does not mean that the careful design of the WSRT was entirely
+ wasted.
  Features like the equatorial mount, the circularly symmetric dish/receiver
- system, the (e)quality if the dishes, the absence of correlator errors,
- the thorough shielding against RFI, the precise tracking of the sky, all
- help to create the best possible starting conditions for selfcal, 
+ system, the (e)quality of the parabolic reflectors, the absence of correlator
+ errors, the thorough shielding against RFI, the precise tracking of the
+ sky, all help to create the best possible starting conditions for selfcal,
+ 
 \emph on 
-with a minimum number of free parameters
+i.e.
+ a minimum number of free parameters
 \emph default 
 
 \begin_inset Foot
@@ -550,7 +552,7 @@ Optical instruments are still designed for stability during the observations.
  This is done by making them as mechanically stiff (and light) as possible,
  and by carefully controlling the temperature of critical elements.
  This is very expensive, and only just manages to direct the photons into
- the right pixels with the existing telescopes.
+ the right pixels.
  It has been widely recognised that other measures are needed for the next
  generation of telescopes.
  As a first step, 
@@ -571,9 +573,9 @@ closed-loop
 ) methods for optical instruments.
  The idea is to control the position (and perhaps shape) of virtually all
  optical surfaces by means of actuators, and to use the output of the science
- detector itself to derive the control information.
- A software sytem (called MeqTree) exists to do this for radio aperture
- synhesis, and can be easily adapted for optical instruments.
+ detector itself to derive the actuator control information.
+ A software sytem (called MeqTree) exists in ASTRON to do this for radio
+ aperture synhesis, and can be easily adapted for optical instruments.
  
 \layout Standard
 
@@ -581,12 +583,13 @@ Some differences between optical and radio:
 \layout Itemize
 
 Since radio-interferometry data are taken in the aperture plane, most of
- the instrumental corrections may be estimated and applied afterwards, off-line.
+ the instrumental corrections may be estimated and applied afterwards, i.e.
+ off-line.
  In the optical case, the entire instrument must be kept in optimal shape
  during the observations.
 \layout Itemize
 
-In the radio, the field-of-view and isoplanatic patch are so large that
+In the radio, the field-of-view and the isoplanatic patch are so large that
  most fields contain reference sources that are bright enough to be used
  for selfcal.
  In the optical, this is usually not the case.
@@ -595,10 +598,12 @@ In the radio, the field-of-view and isoplanatic patch are so large that
  to make the connection with the sky position.
 \layout Itemize
 
-In radio selfcal, there is no distinction between fast (atmospheric) effects,
- and slower instrumental drifts.
- The present discussion is about the latter, which is commonly known by
- the (somewhat unfortunate) name of 
+In radio selfcal, it is not necessary to make a distinction between fast
+ (atmospheric) effects, and slower instrumental drifts.
+ In the optical case, the problems caused by atmospheric turbulence are
+ in a class of their on.
+ Therefore, the present discussion is only about correcting slow drifts,
+ which is commonly known by the (somewhat unfortunate) name of 
 \emph on 
 active optics
 \emph default 
@@ -621,7 +626,7 @@ A step-wise program for the development of these techniques is proposed.
 Estimating parameters
 \layout Standard
 
-The result of reading out a multi-pixel detector, is a series of N pixel
+When reading out a multi-pixel detector, the result is a series of N pixel
  values 
 \begin_inset Formula $V_{i}=V_{i}(p_{1},p_{2},p_{3},...,p_{k})$
 \end_inset 
@@ -630,13 +635,13 @@ The result of reading out a multi-pixel detector, is a series of N pixel
 \begin_inset Formula $p_{k}$
 \end_inset 
 
-are the parameters of the Measurement Equation (M.E.).
+ are the parameters of the Measurement Equation (M.E.).
  The latter is a combination of a model of the observing instrument, and
  a model of the observed brightness distribution.
  Examples of such parameters are the brightness and position of the observed
  sources, and the settings of the actuators that control the position (and
  shape) of the various optical surfaces.
- We may estimate the values of the 
+ We may estimate the optimum values of the 
 \begin_inset Formula $p_{k}$
 \end_inset 
 
@@ -682,7 +687,7 @@ are the model values of
 \begin_inset Formula $\chi^{2}$
 \end_inset 
 
-surface, where:
+ surface, where:
 \layout Standard
 
 
@@ -722,7 +727,7 @@ In fact, the MeqTree system is the main 'product' of the ASTRON Scientific
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -771,61 +776,129 @@ Note that the use of two or more test-sources severly constrains the freedom
 
 \emph on 
 The above is equally valid for images, spectra, or whatever one chooses
- to measure.
+ to throw at a detector.
+ The key is the availability of model values 
+\begin_inset Formula $M_{i}$
+\end_inset 
+
+ to compare with the measured pixel values 
+\begin_inset Formula $V_{i}$
+\end_inset 
+
+, and of derivatives 
+\begin_inset Formula $\frac{\partial M}{\partial p}$
+\end_inset 
+
+ or 
+\begin_inset Formula $\frac{\partial V}{\partial p}$
+\end_inset 
+
+ w.r.t.
+ the M.E.
+ parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+.
 \end_inset 
 
 
 \layout Section
 
-Proposed calibration procedure
+Explicit Measurement Equation
 \layout Standard
 
-We will assume for the moment that the scientific target source is too faint
- to be used for selfcal.
- Therefore, we split up the procedure in internal and external calibration
- (connection with the sky).
- Such a split 
-\layout Subsection
+It has taken a long time to formulate the full-polarisation M.E.
+ of a radio telescope.
+ Most of the existing data reduction packages are based on approximate expressio
+ns, which are usually optimised for a specific telescope.
+ It was Hamaker in 1994 who first wrote down the generic M.E.
+ in a closed form (cite HBS 1995).
+ The expected value of the 4-element complex 'visibility' vector 
+\begin_inset Formula $\vec{V}_{ij}$
+\end_inset 
 
-Internal calibration
+ , measured by an interometer formed by stations 
+\begin_inset Formula $i$
+\end_inset 
+
+ and 
+\begin_inset Formula $j$
+\end_inset 
+
+ is the sum (integral, really) of the instumentally 'corrupted' contributions
+ from all sources 
+\begin_inset Formula $\vec{I}_{k}$
+\end_inset 
+
+: 
 \layout Standard
 
-A known test signal must be injected as early as possible (see fig 
-\begin_inset LatexCommand \ref{cap:Schematic-block-diagram}
+
+\begin_inset Formula \begin{equation}
+\vec{V}_{ij}(t,f)=\sum_{k}\:(J_{ik}\otimes J_{jk})\:\vec{I}_{k}\label{eq:visij}\end{equation}
 
 \end_inset 
 
-).
- From there on, all optical are part of the procedure, and their actuators
- should ideally be controlled by the calibration system.
- Obviously, the calibration signal will be much brighter than the science
- target.
- We have the following possibilities to separate them:
-\layout Itemize
 
-Different wavelength.
- This has the disadvantage that it is not really closed-loop.
-\layout Itemize
-
-Different time (gating).
- This is attractive, but the duty-cycle causes some loss of observation
- time.
- Also, the detector must be able to switch over on short time-scales.
-\layout Itemize
-
-Different position.
- If the optical system is optimised for 3-4 positions, it might be assumed
- to be optimised for the central position as well.
- However, not really closed-loop.
 \layout Standard
 
-The injection signals, or their images, do not have to be of a particularly
- high quality.
- The important thing is that we have a model of their images that will allow
- us to calibrate the system.
- Thus, the injection signals should probably be fairly stable, so we can
- derive an empirical model image.
+The 4 elements of the flux vectors 
+\begin_inset Formula $\vec{I_{k}}$
+\end_inset 
+
+ are the full-polarisation Stokes parameters (I,Q,U,V).
+ Instrumental effects are described by means of 2x2 Jones matrices 
+\begin_inset Formula $J_{i}$
+\end_inset 
+
+, which are themselves products of 2x2 matrices that each describe a specific
+ effect along the signal path (cite Noordam 1996).
+ The symbol 
+\begin_inset Formula $\otimes$
+\end_inset 
+
+ denotes the 
+\emph on 
+direct matrix product,
+\emph default 
+ or Kronecker product, which produces a 4x4 matrix.
+\layout Standard
+
+Note that it is assumed that all instrumental effects are associated with
+ stations 
+\begin_inset Formula $(i)$
+\end_inset 
+
+, rather than with interferometers 
+\begin_inset Formula $(i,j)$
+\end_inset 
+
+.
+ Since the number of interferometers is 
+\begin_inset Formula $N(N-1)/2$
+\end_inset 
+
+ in an array of 
+\begin_inset Formula $N$
+\end_inset 
+
+ stations, the number of measurements is much larger than the number of
+ free parameters.
+ This reduction of free parameters is essential for selfcal to work, and
+ the assumption that all effects are station-based is therefore sometimes
+ called the 
+\emph on 
+selfcal condition.
  
+\layout Standard
+
+It is not always easy to write down an explicit M.E., and it may be expensive
+ to calculate.
+ However, there are other possibilities.....
+\layout Section
+
+Empirical Measurement Equation
 \layout Standard
 
 The internal calibration procedure could be as follows: 
@@ -890,6 +963,57 @@ will be close to zero, so the next set of empirical derivatives will be
  (e.g.
  2), and make a correction for the subsequent jitter in the measured pixel
  values.
+\layout Section
+
+Calibration block diagram
+\layout Standard
+
+We will assume for the moment that the scientific target source is too faint
+ to be used for selfcal.
+ Therefore, we split up the procedure in internal and external calibration
+ (connection with the sky).
+ 
+\layout Subsection
+
+Internal calibration
+\layout Standard
+
+A known test signal must be injected as early as possible (see fig 
+\begin_inset LatexCommand \ref{cap:Schematic-block-diagram}
+
+\end_inset 
+
+).
+ From there on, all optical are part of the procedure, and their actuators
+ should ideally be controlled by the calibration system.
+ Obviously, the calibration signal will be much brighter than the science
+ target.
+ We have the following possibilities to separate them:
+\layout Itemize
+
+Different wavelength.
+ This has the disadvantage that it is not really closed-loop.
+\layout Itemize
+
+Different time (gating).
+ This is attractive, but the duty-cycle causes some loss of observation
+ time.
+ Also, the detector must be able to switch over on short time-scales.
+\layout Itemize
+
+Different position.
+ If the optical system is optimised for 3-4 positions, it might be assumed
+ to be optimised for the central position as well.
+ However, not really closed-loop.
+\layout Standard
+
+The injection signals, or their images, do not have to be of a particularly
+ high quality.
+ The important thing is that we have a model of their images that will allow
+ us to calibrate the system.
+ Thus, the injection signals should probably be fairly stable, so we can
+ derive an empirical model image.
+ 
 \layout Subsection
 
 Connection with the sky
@@ -916,7 +1040,7 @@ etc..
 
 \begin_inset Float figure
 wide false
-collapsed false
+collapsed true
 
 \layout Standard
 \align center 
@@ -1090,4 +1214,17 @@ While writing this document, it has occurred to me that back-fertilisation
 \bibitem {Using_MeqTrees}
 
 Using MeqTrees (JEN 2005)
+\layout Section
+\start_of_appendix 
+Other software techniques
+\layout Standard
+
+We have seen that selfcal is a closed-loop technique to keep the observing
+ instrument in the best possible 'shape' during the observations.
+ There are many other possibilities to replace traditional (and expensive)
+ hardware solutions with software.
+ Since hardware devices like chromatic corrections, atmospheric dispersion
+ compensators, image de-rotators etc are usually rather precarious compromises
+ (especially for wide-field instruments), the results of their software
+ counterparts are often superior.
 \the_end
