@@ -1077,17 +1077,19 @@ Predicted values
 \end_inset 
 
 .
- Obviously, we have no 
+ In its simplest form, this could take the form of non-zero pixel(s) at
+ the position(s) where we expect bright features on the detector.
+ 
 \emph on 
-a priori
-\emph default 
- knowledge of the actual instrumental Transer Function, but we may solve
- for the parameters of a phaenomenological Minimum Instrumental Model (MIM)
+But we may also solve for the parameters of a Minimum Transfer Function
+ (MTF)
 \begin_inset Foot
 collapsed true
 
 \layout Standard
 
+
+\emph on 
 This approach should be compared with the Minimum Ionospheric Model (MIM)
  proposed for LOFAR.
  This does not concern itself with the 3D structure of the ionosphere, but
@@ -1096,56 +1098,86 @@ This approach should be compared with the Minimum Ionospheric Model (MIM)
  
 \end_inset 
 
-.
+, which only deals with large-scale phaenomenological effects.
 \layout Standard
 
-Thus, a detailed knowledge of the internal structure of the instrument is
- not needed.
- Note that an empirical M.E.
- can only have actuator values as parameters....
- (this statement may need a little more thought....)
+Thus, a detailed knowledge (or indeed any knowledge) of the internal structure
+ of the instrument is not needed for calibrating the instrument.
+ This opens the way to calibrating the entirere optical chain of an arbitrary
+ telescope, and to keeping it in optimum shape during the observations.
+ 
 \layout Subsection
 
 Calibration procedure
 \layout Standard
 
-The calibration procedure could be as follows: 
-\layout Enumerate
+The calibration procedure could be as follows.
+ Initialise with:
+\layout Itemize
 
-Start by moving each of the M actuators 
-\begin_inset Formula $p_{k}$
+Obtain a model (expected values) 
+\begin_inset Formula $M_{i}$
 \end_inset 
 
-a little bit, just enough to see a significant change in some of the pixel
- values.
- 
-\layout Enumerate
-
-For each actuator 
-\begin_inset Formula $p_{k}$
+ for the detector pixel values 
+\begin_inset Formula $D_{i}$
 \end_inset 
 
-, calculate the derivative 
-\begin_inset Formula $\frac{\partial D_{i}}{\partial p_{k}}$
+.
+ Usually, this will be based on the pattern of test signals that is injected
+ for internal calibration, and our 
+\emph on 
+a priori
+\emph default 
+ guess of its ideal manifestation on the detector.
+\layout Itemize
+
+Postulate the (initial?) derivatives 
+\begin_inset Formula $\frac{\partial D_{i}}{\partial p_{m}}$
 \end_inset 
 
- for all N pixels.
- Asuume a value of zero for all pixels whose value did not change significantly.
-\layout Enumerate
+ w.r.t.
+ all parameters 
+\begin_inset Formula $p_{m}$
+\end_inset 
 
-Leave the actuators in their new positions (saves time)
+.
+ These are the ones that do NOT represent actuator settings, i.e.
+ they are parameters of the Minimum Transfer Function (MTF).
+\layout Itemize
+
+Empirically determine the initial derivatives 
+\begin_inset Formula $\frac{\partial D_{i}}{\partial p_{a}}$
+\end_inset 
+
+ w.r.t.
+ all parameters 
+\begin_inset Formula $p_{a}$
+\end_inset 
+
+that represent actuator settings.
+ Do this my successively moving them each actuator a little bit, just enough
+ to see a significant change in the measured value 
+\begin_inset Formula $D_{i}$
+\end_inset 
+
+ of some of the pixel values.
+ Assume a value of zero for all pixels whose value did not change significantly.
+\layout Standard
+
+Then repeat the following cycle:
 \layout Enumerate
 
 Solve for incremental improvements 
 \begin_inset Formula $\Delta p_{k}$
 \end_inset 
 
- for all actuator values.
+ for all parameter value.
  
 \layout Enumerate
 
-Check that the estimated new actuator values 
-\begin_inset Formula $p_{k}$
+Check that the estimated actuator changes 
+\begin_inset Formula $\Delta p_{a}$
 \end_inset 
 
 are not outside reasonable limits.
@@ -1153,24 +1185,71 @@ are not outside reasonable limits.
 \layout Enumerate
 
 Apply the changes 
-\begin_inset Formula $\Delta p_{k}$
+\begin_inset Formula $\Delta p_{m}$
 \end_inset 
 
- and measure the new detector pixel values.
- This is equivalent to step one, which closes the loop.
+ to the model values 
+\begin_inset Formula $M_{i}$
+\end_inset 
+
+.
+ Keep the same derivatives 
+\begin_inset Formula $\frac{\partial D_{i}}{\partial p_{a}}$
+\end_inset 
+
+ (there does not seem to be any information available to improve them....?)
+\layout Enumerate
+
+Apply the changes 
+\begin_inset Formula $\Delta p_{a}$
+\end_inset 
+
+ to the actuators 
+\emph on 
+successively
+\emph default 
+, and measure the detector pixel values 
+\begin_inset Formula $D_{i}$
+\end_inset 
+
+ each time.
+ This should probably be done in order of decreasing values of 
+\begin_inset Formula $\Vert\frac{\partial D_{i}}{\partial p_{a}}\Delta p_{a}\Vert$
+\end_inset 
+
+.
+ Use the 
+\begin_inset Formula $\frac{\triangle D_{i}}{\triangle p_{a}}$
+\end_inset 
+
+ as new estimates for the derivatives 
+\begin_inset Formula $\frac{\partial D_{i}}{\partial p_{a}}$
+\end_inset 
+
+.
+ 
+\layout Enumerate
+
+Back to step 1
 \layout Standard
 
-The obvious drawback of this procedure is that, when the system is optimised,
- it becomes less sensitive because the estimated 
+The obvious drawback of this procedure is that, near the optimum point 
+\begin_inset Formula $\vec{P_{0}},$
+\end_inset 
+
+ the system becomes less sensitive because the estimated 
 \begin_inset Formula $\Delta p_{k}$
 \end_inset 
 
-will be close to zero, so the next set of empirical derivatives will be
- small also.
- A possible solution is to multiply all actuator changes by some factor
- (e.g.
+will be close to zero, so the next set of derivatives will be small also.
+ A possible solution is to multiply all actuator changes 
+\begin_inset Formula $\Delta p_{a}$
+\end_inset 
+
+by some factor (e.g.
  2), and make a correction for the subsequent jitter in the measured pixel
  values.
+ Some more though is clearly needed here.......
 \layout Section
 
 
