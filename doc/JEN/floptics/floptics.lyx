@@ -623,12 +623,18 @@ A step-wise program for the development of these techniques is proposed.
  
 \layout Section
 
-Estimating parameters
+
+\begin_inset LatexCommand \label{sec:Estimating-M.E.-parameters}
+
+\end_inset 
+
+Estimating M.E.
+ parameters
 \layout Standard
 
 When reading out a multi-pixel detector, the result is a series of N pixel
- values 
-\begin_inset Formula $V_{i}=V_{i}(p_{1},p_{2},p_{3},...,p_{k})$
+ data values 
+\begin_inset Formula $D_{i}=D_{i}(p_{1},p_{2},p_{3},...,p_{k})$
 \end_inset 
 
 , in which the parameters 
@@ -641,16 +647,32 @@ When reading out a multi-pixel detector, the result is a series of N pixel
  Examples of such parameters are the brightness and position of the observed
  sources, and the settings of the actuators that control the position (and
  shape) of the various optical surfaces.
- We may estimate the optimum values of the 
+ Each set of parameter values 
+\begin_inset Formula $\vec{P}$
+\end_inset 
+
+ represents a point in a many-dimensional abstract 
+\emph on 
+phase-space
+\emph default 
+.
+\layout Standard
+
+We may estimate the optimum values of the 
 \begin_inset Formula $p_{k}$
 \end_inset 
 
-by solving the system of N equations: 
+(i.e.
+ the optimum point 
+\begin_inset Formula $\vec{P}_{0}$
+\end_inset 
+
+ in phase-space) by solving the system of N equations: 
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-V_{i}-M_{i}=\sum_{k}\frac{\partial V_{i}}{\partial p_{k}}\Delta p_{k}\label{eq:dV}\end{equation}
+D_{i}-M_{i}=\sum_{k}\frac{\partial D_{i}}{\partial p_{k}}\Delta p_{k}\label{eq:dV}\end{equation}
 
 \end_inset 
 
@@ -662,37 +684,70 @@ where the
 \end_inset 
 
 are the model values of 
-\begin_inset Formula $V_{i}$
+\begin_inset Formula $D_{i}$
 \end_inset 
 
  that are predicted by the M.E.
  The latter also yields values for the derivatives 
-\begin_inset Formula $\frac{\partial V}{\partial p}$
+\begin_inset Formula $\frac{\partial D}{\partial p}$
 \end_inset 
 
-.
- Note that we solve for incremental values 
+ (or, alternatively, 
+\begin_inset Formula $\frac{\partial M}{\partial p}$
+\end_inset 
+
+).
+ Sections 
+\begin_inset LatexCommand \ref{sec:Explicit-Measurement-Equation}
+
+\end_inset 
+
+ and 
+\begin_inset LatexCommand \ref{sec:Empirical-Measurement-Equation}
+
+\end_inset 
+
+ describe two different ways for obtaining such values.
+\layout Standard
+
+Note that we solve for incremental values 
 \begin_inset Formula $\Delta p_{k}$
 \end_inset 
 
-.
- In effect, we are looking for the set of values 
+ w.r.t.
+ the current point 
 \begin_inset Formula $\vec{P}$
 \end_inset 
 
- that minimises the difference between measured and predicted values in
- a least-squares sense.
+ in phase-space.
+ The desired point 
+\begin_inset Formula $\vec{P}_{0}$
+\end_inset 
+
+ is represented by the the set of values of the 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+ that minimises the difference between measured 
+\begin_inset Formula $(D)$
+\end_inset 
+
+ and predicted 
+\begin_inset Formula $(M)$
+\end_inset 
+
+ values in a least-squares sense.
  In other words, we are looking for the (absolute) minimum in the socalled
  
 \begin_inset Formula $\chi^{2}$
 \end_inset 
 
- surface, where:
+ surface in phase space, where:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-\chi^{2}=\sum_{i}(V_{i}-M_{i})^{2}\label{eq:chisq}\end{equation}
+\chi^{2}=\sum_{i}(D_{i}-M_{i})^{2}\label{eq:chisq}\end{equation}
 
 \end_inset 
 
@@ -805,7 +860,24 @@ The above is equally valid for images, spectra, or whatever one chooses
 
 \layout Section
 
+
+\begin_inset LatexCommand \label{sec:Explicit-Measurement-Equation}
+
+\end_inset 
+
 Explicit Measurement Equation
+\layout Standard
+
+The solution of a set of equations 
+\begin_inset LatexCommand \ref{eq:dV}
+
+\end_inset 
+
+ requires predicted values and their derivatives w.r.t.
+ the parameters of the M.E.
+ An explict M.E.
+ provides both.
+ 
 \layout Standard
 
 It has taken a long time to formulate the full-polarisation M.E.
@@ -843,7 +915,7 @@ ns, which are usually optimised for a specific telescope.
 
 \layout Standard
 
-The 4 elements of the flux vectors 
+The 4 elements of the flux vector 
 \begin_inset Formula $\vec{I_{k}}$
 \end_inset 
 
@@ -865,8 +937,43 @@ direct matrix product,
  or Kronecker product, which produces a 4x4 matrix.
 \layout Standard
 
-Note that it is assumed that all instrumental effects are associated with
- stations 
+The predicted visibility values 
+\begin_inset Formula $V_{ij}$
+\end_inset 
+
+ play the role of model values 
+\begin_inset Formula $M_{i}$
+\end_inset 
+
+ in equation 
+\begin_inset LatexCommand \ref{eq:dV}
+
+\end_inset 
+
+.
+ Th derivatives 
+\begin_inset Formula $\frac{\partial M}{\partial p}$
+\end_inset 
+
+ can be calculated by evaluating equation 
+\begin_inset LatexCommand \ref{eq:visij}
+
+\end_inset 
+
+ many times, for tiny perturbations in the various parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+.
+ This is precisely what the MeqTree system does for WSRT and LOFAR.
+\layout Standard
+
+Note that it is assumed in equ 
+\begin_inset LatexCommand \ref{eq:visij}
+
+\end_inset 
+
+ that all instrumental effects are associated with stations 
 \begin_inset Formula $(i)$
 \end_inset 
 
@@ -885,23 +992,124 @@ Note that it is assumed that all instrumental effects are associated with
 
  stations, the number of measurements is much larger than the number of
  free parameters.
- This reduction of free parameters is essential for selfcal to work, and
+ Such a reduction of free parameters is essential for selfcal to work, and
  the assumption that all effects are station-based is therefore sometimes
  called the 
 \emph on 
 selfcal condition.
  
+\emph default 
+Obviously, it is violated for noise, so selfcal works better for higher
+ 
+\begin_inset Formula $S/N$
+\end_inset 
+
+.
+ Radio telescopes may have other interferometer-based errors, but they are
+ remarkably small for the WSRT.
+ 
 \layout Standard
 
-It is not always easy to write down an explicit M.E., and it may be expensive
- to calculate.
- However, there are other possibilities.....
+It will be an instructive exercise to formulate the optical equivalent of
+ equation 
+\begin_inset LatexCommand \ref{eq:visij}
+
+\end_inset 
+
+ (indeed, Jaap Tinbergen may already have done so).
+ However, it is not always easy to write down an explicit M.E.
+ for a complex instrument, and it may be expensive to calculate
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Because of the huge data-volume, and the complex M.E., predicting data values
+ for LOFAR selfcal is expected to be one of the greatest challenges.
+\end_inset 
+
+.
+ Fortunately, there is another possibility, which is outlined in the next
+ section.
 \layout Section
+
+
+\begin_inset LatexCommand \label{sec:Empirical-Measurement-Equation}
+
+\end_inset 
 
 Empirical Measurement Equation
 \layout Standard
 
-The internal calibration procedure could be as follows: 
+If the important elements of an observational instruments can be adjusted
+ by actuators, and if these actuators are under computer control, an explicit
+ M.E.
+ is not necessary.
+ Instead, an implicit M.E.
+ may be determined empirically, by judiciously moving the actuators, and
+ measuring the effect on the detector.
+ After all, the only things that equation 
+\begin_inset LatexCommand \ref{eq:dV}
+
+\end_inset 
+
+ requires are:
+\layout Itemize
+
+Derivatives.
+ In this case the empirical 
+\begin_inset Formula $\frac{\partial D}{\partial p}$
+\end_inset 
+
+, rather than the 
+\begin_inset Formula $\frac{\partial M}{\partial p}$
+\end_inset 
+
+ calculated for an explicit M.E.
+\layout Itemize
+
+Predicted values 
+\begin_inset Formula $M_{i}$
+\end_inset 
+
+ for the measured detector pixel data 
+\begin_inset Formula $D_{i}$
+\end_inset 
+
+.
+ Obviously, we have no 
+\emph on 
+a priori
+\emph default 
+ knowledge of the actual instrumental Transer Function, but we may solve
+ for the parameters of a phaenomenological Minimum Instrumental Model (MIM)
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+This approach should be compared with the Minimum Ionospheric Model (MIM)
+ proposed for LOFAR.
+ This does not concern itself with the 3D structure of the ionosphere, but
+ only tries to find values for the minimum set of parameters that is consistent
+ with the measured phases in the direction of one or more bright sources.
+ 
+\end_inset 
+
+.
+\layout Standard
+
+Thus, a detailed knowledge of the internal structure of the instrument is
+ not needed.
+ Note that an empirical M.E.
+ can only have actuator values as parameters....
+ (this statement may need a little more thought....)
+\layout Subsection
+
+Calibration procedure
+\layout Standard
+
+The calibration procedure could be as follows: 
 \layout Enumerate
 
 Start by moving each of the M actuators 
@@ -918,7 +1126,7 @@ For each actuator
 \end_inset 
 
 , calculate the derivative 
-\begin_inset Formula $\frac{\partial V_{i}}{\partial p_{k}}$
+\begin_inset Formula $\frac{\partial D_{i}}{\partial p_{k}}$
 \end_inset 
 
  for all N pixels.
@@ -965,6 +1173,11 @@ will be close to zero, so the next set of empirical derivatives will be
  values.
 \layout Section
 
+
+\begin_inset LatexCommand \label{sec:Calibration-block-diagram}
+
+\end_inset 
+
 Calibration block diagram
 \layout Standard
 
@@ -974,6 +1187,11 @@ We will assume for the moment that the scientific target source is too faint
  (connection with the sky).
  
 \layout Subsection
+
+
+\begin_inset LatexCommand \label{sub:Internal-calibration}
+
+\end_inset 
 
 Internal calibration
 \layout Standard
@@ -1015,6 +1233,11 @@ The injection signals, or their images, do not have to be of a particularly
  derive an empirical model image.
  
 \layout Subsection
+
+
+\begin_inset LatexCommand \label{sub:Connection-with-the}
+
+\end_inset 
 
 Connection with the sky
 \layout Itemize
@@ -1083,6 +1306,11 @@ After internal calibration, one or more reference stars have to be used
 
 \layout Section
 
+
+\begin_inset LatexCommand \label{sec:Deep-data-reduction}
+
+\end_inset 
+
 Deep data reduction during the observation
 \layout Standard
 
@@ -1137,6 +1365,11 @@ Thinking a little further, deep on-line data reduction could be the basis
  Such a capability was implicitly assumed in the proposal for a Large Unbiased
  Survey Telescope (1985), but we now have a system to actually do it.
 \layout Section
+
+
+\begin_inset LatexCommand \label{sec:A-step-wise-development}
+
+\end_inset 
 
 A step-wise development program
 \layout Subsection
@@ -1195,6 +1428,11 @@ If we play our cards well, ASTRON could become the world leader in designing
  What bout that for a business plan?
 \layout Section
 
+
+\begin_inset LatexCommand \label{sec:Conclusions}
+
+\end_inset 
+
 Conclusions
 \layout Standard
 
@@ -1216,6 +1454,11 @@ While writing this document, it has occurred to me that back-fertilisation
 Using MeqTrees (JEN 2005)
 \layout Section
 \start_of_appendix 
+
+\begin_inset LatexCommand \label{sec:Other-software-techniques}
+
+\end_inset 
+
 Other software techniques
 \layout Standard
 
