@@ -227,6 +227,7 @@ Input                            1036       ; from /home/oms/LOFAR/Timba/OCTOPUS
 int                              37         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:105
 Integrate                        1150       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 Integrated                       1181       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
+Internal                         1660       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:48
 Interpolate                      1599       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Resampler.h:32
 Interrupt                        1273       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
 Interval                         1187       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:31
