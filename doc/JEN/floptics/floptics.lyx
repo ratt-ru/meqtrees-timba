@@ -672,7 +672,7 @@ We may estimate the optimum values of the
 
 
 \begin_inset Formula \begin{equation}
-D_{i}-M_{i}=\sum_{k}\frac{\partial D_{i}}{\partial p_{k}}\Delta p_{k}\label{eq:dV}\end{equation}
+D_{i}-M_{i}=\sum_{k}\frac{\partial D_{i}}{\partial p_{k}}\Delta p_{k}\label{eq:DM_k}\end{equation}
 
 \end_inset 
 
@@ -869,23 +869,24 @@ Explicit Measurement Equation
 \layout Standard
 
 The solution of a set of equations 
-\begin_inset LatexCommand \ref{eq:dV}
+\begin_inset LatexCommand \ref{eq:DM_k}
 
 \end_inset 
 
- requires predicted values and their derivatives w.r.t.
+ requires predicted values, and their derivatives w.r.t.
  the parameters of the M.E.
  An explict M.E.
  provides both.
- 
+ One way to obtain these is by means of an explict M.E.
+ Just as an example, we will briefly discuss the radio astronomy case.
 \layout Standard
 
 It has taken a long time to formulate the full-polarisation M.E.
  of a radio telescope.
- Most of the existing data reduction packages are based on approximate expressio
-ns, which are usually optimised for a specific telescope.
- It was Hamaker in 1994 who first wrote down the generic M.E.
- in a closed form (cite HBS 1995).
+ Most of the existing data reduction packages are still based on approximate
+ expressions, which are usually optimised for a specific telescope.
+ It was Hamaker in 1994 who first wrote down the M.E.
+ for a generic radio telescope in a closed form (cite HBS 1995).
  The expected value of the 4-element complex 'visibility' vector 
 \begin_inset Formula $\vec{V}_{ij}$
 \end_inset 
@@ -898,17 +899,17 @@ ns, which are usually optimised for a specific telescope.
 \begin_inset Formula $j$
 \end_inset 
 
- is the sum (integral, really) of the instumentally 'corrupted' contributions
+, is the sum (integral, really) of the instumentally 'corrupted' contributions
  from all sources 
 \begin_inset Formula $\vec{I}_{k}$
 \end_inset 
 
-: 
+in the field-of-view: 
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-\vec{V}_{ij}(t,f)=\sum_{k}\:(J_{ik}\otimes J_{jk})\:\vec{I}_{k}\label{eq:visij}\end{equation}
+\vec{V}_{ij}(t,f)=\sum_{k}\:(J_{ik}\otimes J_{jk}^{*})\:\vec{I}_{k}\label{eq:visij}\end{equation}
 
 \end_inset 
 
@@ -919,13 +920,14 @@ The 4 elements of the flux vector
 \begin_inset Formula $\vec{I_{k}}$
 \end_inset 
 
- are the full-polarisation Stokes parameters (I,Q,U,V).
+ are the socalled Stokes parameters (I,Q,U,V), which fully describe the
+ polarisation.
  Instrumental effects are described by means of 2x2 Jones matrices 
 \begin_inset Formula $J_{i}$
 \end_inset 
 
 , which are themselves products of 2x2 matrices that each describe a specific
- effect along the signal path (cite Noordam 1996).
+ effect along the signal path (cite AIPS++ Note 185, Noordam 1996).
  The symbol 
 \begin_inset Formula $\otimes$
 \end_inset 
@@ -934,10 +936,30 @@ The 4 elements of the flux vector
 \emph on 
 direct matrix product,
 \emph default 
- or Kronecker product, which produces a 4x4 matrix.
+ or Kronecker product, which here produces a 4x4 matrix
+\begin_inset Foot
+collapsed true
+
 \layout Standard
 
-The predicted visibility values 
+It is also possible to write equation 
+\begin_inset LatexCommand \ref{eq:visij}
+
+\end_inset 
+
+ entirely in terms of 2x2 matrices.
+ This is actually the preferred form.
+ For our example we have used the 'Kronecker' form for historical reasons,
+ because that is the one that represented the breakthrough.
+ It is good to be reminded from time to time how long it can take an entire
+ community to arrive at results that may appear so simple in retrospect.
+ Our present exercise will probably not be an exception.....
+\end_inset 
+
+.
+\layout Standard
+
+The predicted visibilities 
 \begin_inset Formula $V_{ij}$
 \end_inset 
 
@@ -946,7 +968,7 @@ The predicted visibility values
 \end_inset 
 
  in equation 
-\begin_inset LatexCommand \ref{eq:dV}
+\begin_inset LatexCommand \ref{eq:DM_k}
 
 \end_inset 
 
@@ -1041,34 +1063,34 @@ Because of the huge data-volume, and the complex M.E., predicting data values
 Empirical Measurement Equation
 \layout Standard
 
-If the important elements of an observational instruments can be adjusted
- by actuators, and if these actuators are under computer control, an explicit
- M.E.
- is not necessary.
- Instead, an implicit M.E.
- may be determined empirically, by judiciously moving the actuators, and
- measuring the effect on the detector.
- After all, the only things that equation 
-\begin_inset LatexCommand \ref{eq:dV}
-
-\end_inset 
-
- requires are:
+Lo and behold, it turns out that complex instruments may be calibrated without
+ a detailed knowledge (or indeed any knowledge) of their internal structure:
 \layout Itemize
 
-Derivatives.
- In this case the empirical 
-\begin_inset Formula $\frac{\partial D}{\partial p}$
+If the position and/or shape of the important elements (e.g.
+ optical surfaces) of an observational instruments can be adjusted by actuators,
+ and if these actuators are under computer control, an implicit M.E.
+ may be determined empirically.
+ Its parameters are the actuator settings 
+\begin_inset Formula $p_{a}$
 \end_inset 
 
-, rather than the 
-\begin_inset Formula $\frac{\partial M}{\partial p}$
+.
+ By judiciously moving the actuators one by one, the necessary derivatives
+ follow directly from 
+\begin_inset Formula $\Delta D_{i}/\Delta p_{a}$
 \end_inset 
 
- calculated for an explicit M.E.
+.
+ 
 \layout Itemize
 
-Predicted values 
+Equation 
+\begin_inset LatexCommand \ref{eq:DM_k}
+
+\end_inset 
+
+ also requires predicted values 
 \begin_inset Formula $M_{i}$
 \end_inset 
 
@@ -1077,19 +1099,25 @@ Predicted values
 \end_inset 
 
 .
- In its simplest form, this could take the form of non-zero pixel(s) at
- the position(s) where we expect bright features on the detector.
+ In its simplest form, this could just be a set of non-zero pixel(s) at
+ the position(s) where we expect bright features on the detector (see fig
  
-\emph on 
-But we may also solve for the parameters of a Minimum Transfer Function
+\begin_inset LatexCommand \ref{cap:Measured-and-predicted}
+
+\end_inset 
+
+).
+ This approach will work in many cases, and should be used initially, to
+ demonstrate the general principle.
+\layout Itemize
+
+But we may take one step further, and formulate a Minimum Transfer Function
  (MTF)
 \begin_inset Foot
 collapsed true
 
 \layout Standard
 
-
-\emph on 
 This approach should be compared with the Minimum Ionospheric Model (MIM)
  proposed for LOFAR.
  This does not concern itself with the 3D structure of the ionosphere, but
@@ -1098,15 +1126,115 @@ This approach should be compared with the Minimum Ionospheric Model (MIM)
  
 \end_inset 
 
-, which only deals with large-scale phaenomenological effects.
+.
+ The word 'minimum' indicates that MTF is not concerned with the details
+ of the instrument, but only tries to predict its 
+\emph on 
+phaenomenological
+\emph default 
+ effects with a minimum number of parameters 
+\begin_inset Formula $p_{m}$
+\end_inset 
+
+.
+ This is discussed in some more detail in section 
+\begin_inset LatexCommand \ref{sub:Minimum-Transfer-Function}
+
+\end_inset 
+
+ below.
+ Obviously, it should be possible to solve for the 
+\begin_inset Formula $p_{m}$
+\end_inset 
+
+.
 \layout Standard
 
-Thus, a detailed knowledge (or indeed any knowledge) of the internal structure
- of the instrument is not needed for calibrating the instrument.
- This opens the way to calibrating the entirere optical chain of an arbitrary
- telescope, and to keeping it in optimum shape during the observations.
- 
+Thus, for an empirical M.E., the selfcal equation 
+\begin_inset LatexCommand \ref{eq:DM_k}
+
+\end_inset 
+
+ must be written as: 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+D_{i}-M_{i}=\sum_{a}\frac{\partial D_{i}}{\partial p_{a}}\Delta p_{a}-\sum_{m}\frac{\partial M_{i}}{\partial p_{m}}\Delta p_{m}\label{eq:DM_am}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+In software terms, the 
+\emph on 
+m-term
+\emph default 
+ is equivalent to the case of an explicit M.E., so it is already fully supported
+ by the MeqTree system.
+ The 
+\emph on 
+a-term
+\emph default 
+ represents a new concept, and requires a minor adaptation of the MeqParm
+ node.
+ See also fig 
+\begin_inset LatexCommand \ref{cap:A-MeqTree-with}
+
+\end_inset 
+
+.
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename floptics_MeqTree.eps
+	width 90col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:A-MeqTree-with}
+
+\end_inset 
+
+A MeqTree with a solver for the case of an empirical Measurement Equation
+ (see section 
+\begin_inset LatexCommand \ref{sec:Empirical-Measurement-Equation}
+
+\end_inset 
+
+).
+\end_inset 
+
+
 \layout Subsection
+
+
+\begin_inset LatexCommand \label{sub:Minimum-Transfer-Function}
+
+\end_inset 
+
+Minimum Transfer Function (MTF)
+\layout Subsection
+
+
+\begin_inset LatexCommand \label{sub:Calibration-procedure}
+
+\end_inset 
 
 Calibration procedure
 \layout Standard
