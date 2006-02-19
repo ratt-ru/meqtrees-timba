@@ -482,7 +482,7 @@ Optical astronomy is in the situation where radio astronomy was around 1980.
  The residual errors were a few percent, which produced images with a dynamic
  range of 1:100
 \begin_inset Foot
-collapsed false
+collapsed true
 
 \layout Standard
 
@@ -1111,23 +1111,9 @@ Equation
  demonstrate the general principle.
 \layout Itemize
 
-But we may take one step further, and formulate a Minimum Transfer Function
- (MTF)
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-This approach should be compared with the Minimum Ionospheric Model (MIM)
- proposed for LOFAR.
- This does not concern itself with the 3D structure of the ionosphere, but
- only tries to find values for the minimum set of parameters that is consistent
- with the measured phases in the direction of one or more bright sources.
- 
-\end_inset 
-
-.
- The word 'minimum' indicates that MTF is not concerned with the details
+But we may take one step further, and formulate a Minimum Instrumental Model
+ (MIM).
+ The word 'minimum' indicates that the MIM is not concerned with the details
  of the instrument, but only tries to predict its 
 \emph on 
 phaenomenological
@@ -1138,7 +1124,7 @@ phaenomenological
 
 .
  This is discussed in some more detail in section 
-\begin_inset LatexCommand \ref{sub:Minimum-Transfer-Function}
+\begin_inset LatexCommand \ref{sub:Minimum-Instrumental-Model}
 
 \end_inset 
 
@@ -1171,8 +1157,8 @@ In software terms, the
 \emph on 
 m-term
 \emph default 
- is equivalent to the case of an explicit M.E., so it is already fully supported
- by the MeqTree system.
+ in the above expression is equivalent to the case of an explicit M.E., so
+ it is already fully supported by the MeqTree system.
  The 
 \emph on 
 a-term
@@ -1185,6 +1171,10 @@ a-term
 \end_inset 
 
 .
+ The MeqTree system has standard tools to detect non-orthogonality between
+ M.E.
+ parameters, and to deal with such cases gracefully.
+ 
 \layout Standard
 
 
@@ -1224,11 +1214,68 @@ A MeqTree with a solver for the case of an empirical Measurement Equation
 \layout Subsection
 
 
-\begin_inset LatexCommand \label{sub:Minimum-Transfer-Function}
+\begin_inset LatexCommand \label{sub:Minimum-Instrumental-Model}
 
 \end_inset 
 
-Minimum Transfer Function (MTF)
+Minimum Instrumental Model (MIM)
+\layout Standard
+
+A MIM is not concerned with the details of an instrument, but only describes
+ its 
+\emph on 
+phaenomenological
+\emph default 
+ effects with a minimum number of parameters 
+\begin_inset Formula $p_{m}$
+\end_inset 
+
+.This approach should be compared with the Minimum Ionospheric Model proposed
+ for LOFAR.
+ That MIM does not concern itself with the 3D structure of the ionosphere,
+ but only tries to find values for the minimum set of parameters that is
+ consistent with the measured phases in the direction of one or more bright
+ sources.
+\layout Standard
+
+Various effects of a complex but well-designed optical chain may be described
+ by simple functions, with a small number of parameters.
+ Some examples are:
+\layout Itemize
+
+The distortion of a 2D distribution of injected test sources (e.g.
+ socalled 'barrel' distortion) in an imaging instrument.
+\layout Itemize
+
+The position and curvature of a spectrum in a spectrograph.
+\layout Itemize
+
+The point-spread-function (PSF) as a function of position.
+ Note that the first term of the PSF is the attenuation.
+\layout Itemize
+
+The structure of smooth backgrounds (flat-fields).
+\layout Itemize
+
+The structure of the cumulative instrumental dispersion, including the atmospher
+e.
+\layout Itemize
+
+Etc, etc
+\layout Standard
+
+We may conjecture that MIM functions become smoother (i.e.
+ require fewer parameters) as the state of the instrument is closer to its
+ optimum point 
+\begin_inset Formula $\vec{P}_{0}$
+\end_inset 
+
+ in phase-space.
+ In any case, the system should be able to detect (as it is in the LOFAR
+ ionosphere case) whether a MIM function has enough parameters to describe
+ the measured phaenomena, and to increase (or decrease) the number of terms
+ dynamically.
+ 
 \layout Subsection
 
 
@@ -1532,8 +1579,19 @@ n is yielding the desired result.
 
 The key is the use of a detailed model of the observed source, the parameters
  of which are estimated along with the instrumental ones.
- This means that known features are subtracted from the data with high accuracy,
- and the residuals are continuously available during the observation.
+ This means that known features may be subtracted ('peeled') from the data
+ with high accuracy, while the residuals are continuously available during
+ the observation
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+The so-called 'peeling' technique that is being developed for radio astronomy
+ may be also be useful here.
+\end_inset 
+
+.
  There are two possibilities:
 \layout Itemize
 
@@ -1558,7 +1616,7 @@ Unexpected features (discoveries!) will stand out in the residuals 'like
 
 Note that all this is independent from the internal/external calibration
  scheme outlined above.
- Those require bright sources, which are usually not the target object.
+ The latter requires bright sources, which are usually not the target object.
  But while the instrument is kept in optimal shape during the observation,
  the selfcal technique may be applied to the (accumulating) data of the
  science object at the same time.
@@ -1584,27 +1642,37 @@ A step-wise development program
 Exploring the optical Measurement Equation
 \layout Standard
 
-Even though 
+Even when using an empirical M.E., some understanding of the explicit M.E.
+ will be needed, for instance for choosing suitable functions for a MIM.
 \layout Subsection
 
-An experimental verification (second half of 2006)
+An experimental verification (second half of 2006) 
+\layout Standard
+
+The ideas presented here must be verified in practice.
+ Partly as a demonstration of their validity and power, and partly to learn
+ how to use them best.
+ The following elements are needed:
 \layout Itemize
 
 A suitable optical subsystem (e.g.
  TMA), fitted out with actuators.
 \layout Itemize
 
-A test source, and a multi-pixel detector.
+A test source, with an injection mechanism.
+\layout Itemize
+
+A multi-pixel detector.
 \layout Itemize
 
 Some extra MeqTree nodes.
 \layout Itemize
 
-Interface between MeqTree system and detector and actuators.
+Electronic interface between MeqTree system and detector and actuators.
 \layout Standard
 
-If successful, this could lead to a superior optical test-facility for the
- ASTRON optical lab.
+If successful, this could lead to a new kind of optical test-facility for
+ the ASTRON optical lab.
  ATH could even market it.
 \layout Subsection
 
@@ -1613,15 +1681,14 @@ Application to an existing instrument on the ING (in 2007)
 
 The new approach has to be demonstrated on a real instrument, and on a scientifi
 cally interesting source.
- However, in the interest of proper development, this first instrument should
- 
+ In the interest of proper development, this first instrument should 
 \emph on 
 not
 \emph default 
  be on the critical path of impatient scientists.
  However, rather than finding the funds to design and build an entirely
- new instrument, it might be possible to upgrade an existing instrument
- that is not performing well in its present passive mode.
+ new instrument, it might be possible to upgrade an existing one that is
+ not performing well in its present passive mode.
 \layout Subsection
 
 Application to new instruments
@@ -1632,7 +1699,7 @@ If we play our cards well, ASTRON could become the world leader in designing
  But it could also churn out cheap but high-quality instruments for other
  telescopes.
  And finally, we could banch out into non-astronomical instruments....
- What bout that for a business plan?
+ What about that for a business plan?
 \layout Section
 
 
@@ -1641,6 +1708,13 @@ If we play our cards well, ASTRON could become the world leader in designing
 \end_inset 
 
 Conclusions
+\layout Standard
+
+Optical telescopes have reached a point where they can no longer get away
+ with passive solutions.
+ In the search for active solutions, it appears possible to adapt some of
+ the techniques developed in radio-astronomy over the last 25 years.
+ 
 \layout Standard
 
 ASTRON is the only institute that builds instrumentation for both optical
@@ -1655,6 +1729,14 @@ While writing this document, it has occurred to me that back-fertilisation
  an empirical M.E.
  might be employed in radio telescopes as well.
  
+\layout Bibliography
+\bibitem {key-2}
+
+Understanding radio polarimetry (HBS 1996)
+\layout Bibliography
+\bibitem {key-3}
+
+Practical aspects of the Measurement Equation (JEN, 1996)
 \layout Bibliography
 \bibitem {Using_MeqTrees}
 
