@@ -34,8 +34,10 @@ class VellsData:
 #    self.__init__
 
    def calc_vells_ranges(self, vells_rec):
-      """ get vells data ranges for use with other functions """
-                                                                                
+      """ this method determines the range of a vells. The results
+          are used to set up proper axis labelling etc for the
+          visualization displays.
+      """
       self.do_calc_vells_range = False
       axis_map = vells_rec.cells.domain.get('axis_map',['time','freq'])
       self.axis_labels = []
@@ -51,7 +53,7 @@ class VellsData:
         title = current_label
         if vells_rec.cells.domain.has_key(current_label):
           begin = vells_rec.cells.domain.get(current_label)[0]
-	  end = vells_rec.cells.domain.get(current_label)[1]
+          end = vells_rec.cells.domain.get(current_label)[1]
           title = current_label
           if current_label == 'time':
             end = end - begin
@@ -70,8 +72,6 @@ class VellsData:
               title = 'Frequency(Hz)'
         if vells_rec.cells.grid.has_key(current_label):
           grid_array = vells_rec.cells.grid.get(current_label)
-          _dprint(3, 'in calc_vells_ranges: examining cells.grid for label ', current_label)
-#         _dprint(3, 'in calc_vells_ranges: grid_array is ', grid_array)
           try:
             self.axis_shape[current_label] = grid_array.shape[0]
             _dprint(3, 'in calc_vells_ranges: grid_array shape is ', grid_array.shape)
@@ -90,13 +90,16 @@ class VellsData:
         _dprint(3, 'length of self.vells_axis_parms is ', len(self.vells_axis_parms))
       _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
       _dprint(3, 'self.axis_labels is ', self.axis_labels)
-
     # calc-vells_ranges
 
    def getVellsDataParms(self):
+     """ returns vells parameters for use with the visualization display """
      return [self.vells_axis_parms, self.axis_labels, self.num_possible_ND_axes]
 
    def StoreVellsData(self, vells_rec, rq_label = ''):
+     """ converts vells record structure into a format that is
+         easy to use with the visualization displays
+     """
      self._plot_vells_dict = {}
      self._plot_flags_dict = {}
      self._plot_labels = {}
@@ -212,15 +215,19 @@ class VellsData:
    # end StoreVellsData
 
    def getNumPlanes(self):
+     """ returns the number of vells planes that are stored """
      return self._number_of_planes
 
    def getMenuLabels(self):
+     """ returns the labels for vells selection menu """
      return self._menu_labels
 
    def getVellsPlotLabels(self):
+     """ returns the labels for vells plot menu """
      return self._plot_menu_labels
 
    def activePlaneHasFlags(self):
+     """ returns True if active plane has associated flags array """
      key = "flag data " + str(self._active_plane)
      if self._plot_flags_dict.has_key(key):
        return True
@@ -228,6 +235,7 @@ class VellsData:
        return False
 
    def getActiveFlagData(self):
+     """ returns flag data associated with active plane """
      key = "flag data " + str(self._active_plane)
      if self.array_tuple is None:
        return self._plot_flags_dict[key]
@@ -235,12 +243,15 @@ class VellsData:
        return self._plot_flags_dict[key][self.array_tuple]
 
    def getActivePlane(self):
+     """ returns number of active plane """
      return self._active_plane
 
    def getPlotLabels(self):
+     """ returns the labels for vells plots """
      return self._plot_labels
 
    def getPlotLabel(self):
+     """ returns the plot label for a given plane or perturbed plane """
      key = ""
      if not self._active_perturb is None:
        tag = "] perturbed value "
@@ -250,6 +261,9 @@ class VellsData:
      return self._plot_labels[key]
 
    def getActivePerturbData(self):
+     """ returns the vells data for the perturbed data associated with
+         the active plane
+     """
      tag = "] perturbed value "
      key =  "   -> go to [" + str(self._active_plane) + tag + str(self._active_perturb) 
      return self._plot_vells_dict[key]
