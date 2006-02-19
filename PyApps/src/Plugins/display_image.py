@@ -2073,14 +2073,14 @@ def make():
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
-    demo.start_test_timer(5000, True, "hippo")
+#   demo.start_test_timer(5000, True, "hippo")
 
 # or
 # uncomment the following three lines
-#   import pyfits
-#   image = pyfits.open('./3C236.FITS')
+    import pyfits
+    image = pyfits.open('./m51.fits')
 #   image = pyfits.open('./WN30080H.fits')
-#   demo.array_plot('3C236', image[0].data)
+    demo.array_plot('M51', image[0].data)
 
     return demo
 
