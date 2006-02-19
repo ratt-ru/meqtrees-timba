@@ -1710,21 +1710,56 @@ If we play our cards well, ASTRON could become the world leader in designing
 Conclusions
 \layout Standard
 
-Optical telescopes have reached a point where they can no longer get away
+Optical telescopes have reached the point where they can no longer get away
  with passive solutions.
- In the search for active solutions, it appears possible to adapt some of
- the techniques developed in radio-astronomy over the last 25 years.
+ It appears possible to use some of the active techniques developed in radio-ast
+ronomy over the last 25 years.
+ Especially promising is a 
+\emph on 
+closed-loop
+\emph default 
+ method called 
+\series bold 
+self-calibration
+\series default 
+, which uses the observed source itself to solve for the parameters of the
+ socalled Measurement Equation during the observations.
+ This opens the way to much cheaper instruments, which do not have to rely
+ on extreme mechanical stiffness and temperature control to keep the optical
+ surfaces in place.
+ This advantage applies to the entire telescope, not only the end instrument.
+ It is even possible to use this technique with an 
+\emph on 
+empirical
+\emph default 
+ M.E., i.e.
+ without any knowledge of the internal details of the optical chain.
  
 \layout Standard
 
-ASTRON is the only institute that builds instrumentation for both optical
- and radio telescopes.
- This unique synergy clearly leads to a win-win situation, where we can
- cross-fertilise to leverage our business processes.
+A potentially very important by-product is the possibility for deep data
+ reduction during the observations.
+ This will not only allow a more efficient use of (very expensive) telescope
+ time, but it also significantly increases the chance of making discoveries.
+ 
 \layout Standard
 
-While writing this document, it has occurred to me that back-fertilisation
- towards radio astronomy is possible too.
+A stepwise program for the development of this technique is outlined.
+ Since most of the elements are available, a first demonstration should
+ be possible within six months.
+ 
+\layout Standard
+
+ASTRON is one of the few institutes that builds instrumentation for both
+ optical and radio telescopes.
+ It is therefore well placed to use cross-fertilisation to become a leader
+ in building cheaper and better instruments for the next generation of giant
+ optical telescopes, and to do this faster.
+ In addition, since the proposed technique is quite general, ASTRON/ATH
+ may develop a variety of a new type of instruments for the optical laboratory.
+\layout Standard
+
+Finally, back-fertilisation towards radio astronomy is possible too.
  In particular, the introduction of controlled instrumental errors to derive
  an empirical M.E.
  might be employed in radio telescopes as well.
