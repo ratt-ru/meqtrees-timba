@@ -81,6 +81,11 @@ By default, colorbars are turned ON while Legends are turned OFF when a plot is 
 You can obtain more information about the behavior of the colorbar by using the QWhatsThis facility associated with the colorbar.'''
 
 class QwtImageDisplay(QwtPlot):
+    """ A general purpose class to plot data arrays. The arrays can
+        be of any dimension (>= 1). If the dimension is greater than
+        two, selection is employed to display a 2-dimensional
+        sub-array on the screen.
+    """
 
     display_table = {
         'hippo': 'hippo',
@@ -260,6 +265,7 @@ class QwtImageDisplay(QwtPlot):
 #       self.__init__
 
     def getPlotParms(self):
+        """ Obtain current plot parameters for modification """
         plot_parms = {}
         plot_parms['window_title'] = self._window_title
         plot_parms['x_title'] = self._x_title
@@ -274,6 +280,7 @@ class QwtImageDisplay(QwtPlot):
         return plot_parms
 
     def setPlotParms(self, plot_parms):
+        """ Set modified plot parameters """
         self._window_title = plot_parms['window_title'] 
         self._x_title = plot_parms['x_title']
         self._y_title = plot_parms['y_title'] 
@@ -307,8 +314,7 @@ class QwtImageDisplay(QwtPlot):
 
 
     def initSpectrumContextMenu(self):
-        """Initialize the spectra context menu
-        """
+        """Initialize the spectrum context menu """
         # skip if no main window
         if not self._mainwin:
           return;
@@ -326,6 +332,7 @@ class QwtImageDisplay(QwtPlot):
            menu_id = menu_id + 1
 
     def delete_cross_sections(self):
+      """ delete any displayed cross section plots """
       if self.show_x_sections:
 # delete any previous curves
         self.removeCurves()
@@ -349,10 +356,12 @@ class QwtImageDisplay(QwtPlot):
 	self.refresh_marker_display()
 
     def setResultsSelector(self):
+      """ add option to toggle ResultsRange selector to context menu """
       toggle_id = self.menu_table['Toggle results history']
       self._menu.insertItem("Toggle results history", toggle_id)
 
     def handle_basic_menu_id(self, menuid):
+      """ callback to handle most common basic context menu selections """
       if menuid < 0:
         self.zoom()
         return True
@@ -463,6 +472,7 @@ class QwtImageDisplay(QwtPlot):
       return False
 
     def toggleMetrics(self):
+      """ callback to make Solver Metrics plots visible or invisible """
       if self.toggle_metrics == False:
         self.toggle_metrics = True
       else:
@@ -478,6 +488,7 @@ class QwtImageDisplay(QwtPlot):
             self.removeCurve(self.metrics_plot[i])
 
     def handle_flag_toggles(self, menuid):
+      """ callback to handle or modify displays of flagged data """
 # toggle flags display	
       if menuid == self.menu_table['toggle flagged data for plane ']:
         self.handleFlagToggle(self.flag_toggle)
@@ -505,6 +516,7 @@ class QwtImageDisplay(QwtPlot):
       return False
 
     def handleFlagToggle(self, flag_toggle):
+      """ callback to make flagged data visible or invisible """
       if flag_toggle == False:
         self.flag_toggle = True
       else:
@@ -517,6 +529,7 @@ class QwtImageDisplay(QwtPlot):
           self.curve(self.imag_flag_vector).setEnabled(self.flag_toggle)
 
     def handleFlagRange(self, flag_range):
+      """ callback to adjust display range of flagged data """
       if self.is_vector:
         return
       if flag_range == False:
@@ -543,6 +556,7 @@ class QwtImageDisplay(QwtPlot):
       self.second_axis_parm = axis_parms[1]
 
     def update_spectrum_display(self, menuid):
+      """ callback to handle signal from SpectrumContextMenu """
       if self.handle_basic_menu_id(menuid):
         return
 
@@ -558,52 +572,55 @@ class QwtImageDisplay(QwtPlot):
       self.emit(PYSIGNAL("handle_spectrum_menu_id"),(menuid,))
 
     def set_flag_toggles(self, flag_plane=None, flag_setting=False):
+      """ creates context menus for selecting flagged Vells data """
 # add flag toggling for vells but make hidden by default
-          self._toggle_flag_label = "toggle flagged data for plane "
-	  toggle_id = self.menu_table[self._toggle_flag_label]
-          if flag_plane is None:
-            self._menu.insertItem(self._toggle_flag_label,toggle_id)
-          else:
-            self._menu.changeItem(toggle_id,self._toggle_flag_label+str(flag_plane))
-          self._menu.setItemEnabled(toggle_id, flag_setting)
-          self._menu.setItemVisible(toggle_id, flag_setting)
+      self._toggle_flag_label = "toggle flagged data for plane "
+      toggle_id = self.menu_table[self._toggle_flag_label]
+      if flag_plane is None:
+        self._menu.insertItem(self._toggle_flag_label,toggle_id)
+      else:
+        self._menu.changeItem(toggle_id,self._toggle_flag_label+str(flag_plane))
+      self._menu.setItemEnabled(toggle_id, flag_setting)
+      self._menu.setItemVisible(toggle_id, flag_setting)
 
-          self._toggle_blink_label = "toggle blink of flagged data for plane "
-          toggle_id = self.menu_table[self._toggle_blink_label]
-          if flag_plane is None:
-            self._menu.insertItem(self._toggle_blink_label,toggle_id)
-          else:
-            self._menu.changeItem(toggle_id,self._toggle_blink_label+str(flag_plane))
-          self._menu.setItemEnabled(toggle_id, flag_setting)
-          self._menu.setItemVisible(toggle_id, flag_setting)
+      self._toggle_blink_label = "toggle blink of flagged data for plane "
+      toggle_id = self.menu_table[self._toggle_blink_label]
+      if flag_plane is None:
+        self._menu.insertItem(self._toggle_blink_label,toggle_id)
+      else:
+        self._menu.changeItem(toggle_id,self._toggle_blink_label+str(flag_plane))
+      self._menu.setItemEnabled(toggle_id, flag_setting)
+      self._menu.setItemVisible(toggle_id, flag_setting)
 
-          self._toggle_range_label = "Toggle display range to that of flagged image for plane "
-          toggle_id = self.menu_table[self._toggle_range_label]
-          if flag_plane is None:
-            self._menu.insertItem(self._toggle_range_label,toggle_id)
-          else:
-            self._menu.changeItem(toggle_id, self._toggle_range_label+str(flag_plane))
-          self._menu.setItemEnabled(toggle_id, flag_setting)
-          self._menu.setItemVisible(toggle_id, flag_setting)
+      self._toggle_range_label = "Toggle display range to that of flagged image for plane "
+      toggle_id = self.menu_table[self._toggle_range_label]
+      if flag_plane is None:
+        self._menu.insertItem(self._toggle_range_label,toggle_id)
+      else:
+        self._menu.changeItem(toggle_id, self._toggle_range_label+str(flag_plane))
+      self._menu.setItemEnabled(toggle_id, flag_setting)
+      self._menu.setItemVisible(toggle_id, flag_setting)
 
     def initVellsContextMenu (self):
-        # skip if no main window
-        if not self._mainwin:
-          return;
-        if self._menu is None:
-          self._menu = QPopupMenu(self._mainwin);
-          QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
-          self.add_basic_menu_items()
-          self.set_flag_toggles()
+      """ intitialize context menu for selection of Vells data """
+      # skip if no main window
+      if not self._mainwin:
+        return;
+      if self._menu is None:
+        self._menu = QPopupMenu(self._mainwin);
+        QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
+        self.add_basic_menu_items()
+        self.set_flag_toggles()
 
-        if self.vells_menu_items > 0:
-         menu_id = self._start_vells_menu_id
-         for i in range(self.vells_menu_items):
-           self._menu.removeItem(menu_id)
-           menu_id = menu_id + 1
+      if self.vells_menu_items > 0:
+        menu_id = self._start_vells_menu_id
+        for i in range(self.vells_menu_items):
+          self._menu.removeItem(menu_id)
+          menu_id = menu_id + 1
     # end initVellsContextMenu()
 
     def setMenuItems(self, menu_labels):
+      """ add items specific to selection of Vells to context menu """
       self.vells_menu_items = len(menu_labels)
       if self.vells_menu_items > 1:
         menu_id = self._start_vells_menu_id
@@ -612,6 +629,7 @@ class QwtImageDisplay(QwtPlot):
           menu_id = menu_id + 1
 
     def setSpectrumMenuItems(self, menu_labels):
+      """ add items specific to selection of Spectra to context menu """
       self.spectrum_menu_items = len(menu_labels)
       if self.spectrum_menu_items > 1:
         menu_id = self._start_spectrum_menu_id
@@ -625,6 +643,7 @@ class QwtImageDisplay(QwtPlot):
       self._menu.setItemVisible(toggle_id, False)
 
     def setSpectrumMarkers(self, marker_parms, marker_labels):
+      """ inserts marker lines between 'combined image' spectra """
       if self.spectrum_menu_items > 2: 
         self.num_y_markers = marker_parms[0]
         self.y_marker_step = marker_parms[1]
@@ -638,39 +657,32 @@ class QwtImageDisplay(QwtPlot):
     def getSpectrumTags(self):
        return (self._data_labels, self._string_tag) 
     
-
-    def zoom(self):
-      if not self.zooming:
-        self.zooming = True
-        self.zoom_button.setText("Disable zoomer");
-      else:
-        self.zooming = False
-        self.zoom_button.setText("Enable zoomer");
-
     def reset_zoom(self):
-        if len(self.zoomStack):
-          while len(self.zoomStack):
-            xmin, xmax, ymin, ymax = self.zoomStack.pop()
-          self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
-          self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
-          self._x_auto_scale = False
-          self._y_auto_scale = False
-          self.axis_xmin = xmin
-          self.axis_xmax = xmax
-          self.axis_ymin = ymin
-          self.axis_ymax = ymax
-          self.xmin = None
-          self.xmax = None
-          self.ymin = None
-          self.ymax = None
-          self.refresh_marker_display()
-          toggle_id = self.menu_table['Reset zoomer']
-          self._menu.setItemVisible(toggle_id, False)
-          _dprint(3, 'called replot in unzoom')
-        else:
-          return
+      """ resets data display so all data are visible """
+      if len(self.zoomStack):
+        while len(self.zoomStack):
+          xmin, xmax, ymin, ymax = self.zoomStack.pop()
+        self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+        self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+        self._x_auto_scale = False
+        self._y_auto_scale = False
+        self.axis_xmin = xmin
+        self.axis_xmax = xmax
+        self.axis_ymin = ymin
+        self.axis_ymax = ymax
+        self.xmin = None
+        self.xmax = None
+        self.ymin = None
+        self.ymax = None
+        self.refresh_marker_display()
+        toggle_id = self.menu_table['Reset zoomer']
+        self._menu.setItemVisible(toggle_id, False)
+        _dprint(3, 'called replot in unzoom')
+      else:
+        return
 
     def toggleLegend(self):
+      """ sets legends display for cross section plots to visible/invisible """
       if self.setlegend == 1:
         self.setlegend = 0
         self.enableLegend(False)
@@ -683,6 +695,7 @@ class QwtImageDisplay(QwtPlot):
     # toggleLegend()
 
     def toggleAxis(self):
+      """ sets flag to reverse orientation of image displays """
       if self.axes_flip:
         self.axes_flip = False
       else:
@@ -691,27 +704,20 @@ class QwtImageDisplay(QwtPlot):
 # delete any cross sections
       self.delete_cross_sections()
 
-#     if self._vells_plot or self._plot_type is None:
-#     temp = self.xsect_xpos 
-#     self.xsect_xpos = self.xsect_ypos
-#     self.xsect_ypos = temp
-#     temp = self.x_arrayloc
-#     self.y_arrayloc = self.x_arrayloc
-#     self.x_arrayloc  = temp
       if self._vells_plot:
         if not self.original_flag_array is None:
           self.setFlagsData (self.original_flag_array)
         self.plot_vells_array(self.original_array, self.original_label)
       if not self._vells_plot and self._plot_type is None:
         self.array_plot(self.original_label, self.original_array)
-#     if self._plot_type == 'spectra':
-#       self.array_plot(self.original_label, self.original_array, False)
     # toggleAxis()
 
     def updatePlotParameters(self):
+      """ create a GUI for user to modify plot parameters """
       parms_interface = WidgetSettingsDialog(actual_parent=self, gui_parent=self)
 
     def setImageRange(self, min, max, colorbar=0):
+      """ callback to set allowable range of array intensity display """
       _dprint(3, 'received request for min and max of ', min, ' ', max)
       if colorbar == 0:
         self.plotImage.defineImageRange((min, max), True)
@@ -764,6 +770,9 @@ class QwtImageDisplay(QwtPlot):
       self._vells_plot = do_vells_plot
 
     def report_scalar_value(self, data_label, scalar_data):
+      """ report a scalar value in case where a vells plot has
+          already been initiated
+      """
       self._vells_plot = False
       dummy_array = zeros(shape=(2,2),type=Float32)
       self.array_plot(data_label, dummy_array)
@@ -805,11 +814,11 @@ class QwtImageDisplay(QwtPlot):
       self._menu.setItemVisible(toggle_id, False)
 
       self.replot()
-      _dprint(3,'called replot in update_vells_display')
-
+      _dprint(3,'called replot in report_scalar_value')
       self._vells_plot = True
 
     def printplot(self):
+      """ make a hardcopy of current displayed plot """
       self.emit(PYSIGNAL("do_print"),(self.is_vector,self.complex_type))
     # printplot()
 
@@ -945,6 +954,9 @@ class QwtImageDisplay(QwtPlot):
 
 
     def refresh_marker_display(self):
+      """ update all markers after new plot data has been displayed or
+          modified 
+      """ 
       self.removeMarkers()
       self.info_marker = None
       self.log_marker = None
@@ -970,11 +982,13 @@ class QwtImageDisplay(QwtPlot):
         self.setMarkerYPos(mY, y)
 
     def onMouseMoved(self, e):
-       if self.is_vector:
-          return
+      """ callback to handle MouseMoved event """ 
+      if self.is_vector:
+        return
 
 
     def onMousePressed(self, e):
+        """ callback to handle MousePressed event """ 
         if Qt.LeftButton == e.button():
             if self.is_vector:
             # Python semantics: self.pos = e.pos() does not work; force a copy
@@ -1041,6 +1055,7 @@ class QwtImageDisplay(QwtPlot):
     # onMousePressed()
 
     def onMouseReleased(self, e):
+        """ callback to handle MouseReleased event """
         if Qt.LeftButton == e.button():
             self.refresh_marker_display()
             if self.zooming:
@@ -1116,6 +1131,7 @@ class QwtImageDisplay(QwtPlot):
 
 
     def calculate_cross_sections(self):
+        """ calculate and display cross sections at specified location """
         _dprint(3, 'calculating cross-sections')
         shape = self.raw_array.shape
         _dprint(3, 'shape is ', shape)
@@ -1482,20 +1498,20 @@ class QwtImageDisplay(QwtPlot):
     # end plot_data()
 
     def plot_vells_array (self, data_array, data_label=" "):
-
-        if self.hidden_ND_Controller and self.toggle_array_rank > 2: 
-          if self.raw_data_rank > 2:
-            self.hidden_ND_Controller = False
-            self.toggle_ND_Controller = 1
-            toggle_id = self.menu_table['Toggle ND Controller']
-            self._menu.setItemVisible(toggle_id, True)
-          else:
-            self.toggle_ND_Controller = 0
-          self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
-        if not self.source_marker is None:
-          self.removeMarker(self.source_marker)
-        self.source_marker  = None
-        self.array_plot(data_label, data_array)
+      """ plot a Vells data array """
+      if self.hidden_ND_Controller and self.toggle_array_rank > 2: 
+        if self.raw_data_rank > 2:
+          self.hidden_ND_Controller = False
+          self.toggle_ND_Controller = 1
+          toggle_id = self.menu_table['Toggle ND Controller']
+          self._menu.setItemVisible(toggle_id, True)
+        else:
+          self.toggle_ND_Controller = 0
+        self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+      if not self.source_marker is None:
+        self.removeMarker(self.source_marker)
+      self.source_marker  = None
+      self.array_plot(data_label, data_array)
 
     def setVellsParms(self, vells_axis_parms, axis_labels):
       self.vells_axis_parms = vells_axis_parms
@@ -1513,8 +1529,8 @@ class QwtImageDisplay(QwtPlot):
       self.setAxisTitle(QwtPlot.yLeft, self._y_title)
 
     def array_plot (self, data_label, incoming_plot_array, flip_axes=True):
-      """ figure out shape, rank etc of a spectrum array and
-          plot it  """
+      """ Figure out shape, rank dimension etc of an array and
+          plot it. This is perhaps the main method of this class. """
 
 # delete any previous curves
       self.removeCurves()
@@ -1938,11 +1954,13 @@ class QwtImageDisplay(QwtPlot):
     # array_plot()
 
     def set_solver_metrics(self,metrics_rank, iteration_number, solver_offsets):
+      """ store Solver data for later plotting """
       self.metrics_rank = metrics_rank
       self.iteration_number = iteration_number
       self.solver_offsets = solver_offsets
 
     def convert_to_AP(self, real_imag_image):
+      """ convert real/imag complex array to amplitude/phase equivalent """
       a_p_image = real_imag_image.copy()
       real_array = a_p_image.getreal()
       imag_array = a_p_image.getimag()
@@ -1953,9 +1971,7 @@ class QwtImageDisplay(QwtPlot):
       return a_p_image
 
     def setFlagsData (self, incoming_flag_array, flip_axes=True):
-      """ figure out shape, rank etc of a flag array and
-          plot it  """
-
+      """ figure out shape, rank etc of a flag array and plot it  """
       flag_array = incoming_flag_array
       self.original_flag_array = incoming_flag_array
       if flip_axes and not self.axes_flip:
@@ -1987,6 +2003,7 @@ class QwtImageDisplay(QwtPlot):
     # setFlagsData()
 
     def add_basic_menu_items(self):
+        """ add standard options to context menu """
         toggle_id = self.menu_table['Modify Plot Parameters']
         self._menu.insertItem("Modify Plot Parameters", toggle_id)
         toggle_id = self.menu_table['Toggle Cross-Section Legend']
@@ -2000,11 +2017,6 @@ class QwtImageDisplay(QwtPlot):
         if self.toggle_array_rank > 2: 
           toggle_id = self.menu_table['Toggle ND Controller']
           self._menu.insertItem("Toggle ND Controller", toggle_id)
-#       self.zoom_button = QAction(self);
-#       self.zoom_button.setIconSet(pixmaps.viewmag.iconset());
-#       self.zoom_button.setText("Enable zoomer");
-#       self.zoom_button.addTo(self._menu);
-#       QObject.connect(self.zoom_button,SIGNAL("toggled(bool)"),self.zoom);
         toggle_id = self.menu_table['Reset zoomer']
         self._menu.insertItem("Reset zoomer", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
