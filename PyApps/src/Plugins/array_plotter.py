@@ -154,11 +154,17 @@ class ArrayPlotter(GriddedPlugin):
     self.layout.addMultiCellWidget(self.ND_Controls,1,1,0,2)
 
   def setArraySelector (self,lcd_number, slider_value, display_string):
+    """ update the subsection of an N-dimensional array 
+        and display the selected subarray.
+    """
     self.array_selector[lcd_number] = slider_value
     self.array_tuple = tuple(self.array_selector)
     self._plotter.array_plot('data: '+ display_string, self.data[self.array_tuple])
 
   def setSelectedAxes (self,first_axis, second_axis):
+    """ update the selected axes of an N-dimensional array
+        and display the selected sub-array.
+    """
     self._plotter.delete_cross_sections()
     self.array_selector = []
     for i in range(self.array_rank):
@@ -173,8 +179,4 @@ class ArrayPlotter(GriddedPlugin):
     self.array_tuple = tuple(self.array_selector)
     self._plotter.array_plot('data', self.data[self.array_tuple])
 
-# leave use of VTK until later
-#   else:
-#     self._plotter = vtk_qt_3d_display(self.wparent())
-    
 Grid.Services.registerViewer(array_class,ArrayPlotter,priority=10)
