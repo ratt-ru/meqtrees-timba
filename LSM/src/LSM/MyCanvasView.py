@@ -33,6 +33,10 @@ class MyCanvasView(QCanvasView):
     self.ydivs=5
     self.grid_on=0
     self.legend_on=0
+    self.axes_on=1
+    self.title_on=1
+    self.obsres_on=0 # beam
+    self.obswin_on=0
     self.display_point_sources='pcross' #cross,point,pcross
 
     self.canvas().setDoubleBuffering(True) 
@@ -47,24 +51,53 @@ class MyCanvasView(QCanvasView):
     # display coordinates in Radians (rad) or degrees (deg)
     self.default_coords='rad' 
 
-    self.font=QFont(QApplication.font())
-    self.font.setPointSize(10)
-    # get boundaries (using ObsWin  ?)
-    # 1. create Cell using ObsWin, 2. send request to meqserver, 
-    # 3. scan the result set to determine boundaries of
-    #    RA, Dec, I, Q, U, V 
+    # fonts 
+    font=QFont(QApplication.font())
+    font.setPointSize(10)
+    font1=QFont(QApplication.font())
+    font1.setPointSize(11)
+    self.fonts={}
+    self.fonts['default']=font
+    self.fonts['title']=font1
+    self.fonts['xlabel']=font1
+    self.fonts['ylabel']=font1
+    self.fonts['xcoord']=font
+    self.fonts['ycoord']=font
+
+
+    self.font=font
 
     self.lsm=lsm_object
     self.parent=parent_window
     self.max_brightness=self.lsm.getMaxBrightness()
     self.min_brightness=self.lsm.getMinBrightness()
-    print "Initialize brightness to ",self.min_brightness,self.max_brightness
     # sanity check
     if self.min_brightness==0.0:
       self.min_brightness=1e-6
-
+    # get boundaries (using ObsWin  ?)
+    # 1. create Cell using ObsWin, 2. send request to meqserver, 
+    # 3. scan the result set to determine boundaries of
+    #    RA, Dec, I, Q, U, V 
     bounds=self.lsm.getBounds()
-    # boundaries
+
+    # now determine actual geometric bundaries
+    # refined boundaries are
+    #    ______________________
+    #    h1 
+    #    ----------------------
+    #    
+    #
+    #    h2
+    #  
+    #    ----------------------
+    #    h3  
+    #    ----------------------
+    #    h4 
+    #    ----------------------
+    #    ^ w1 ^ w2 ^    w3   ^ w4 ^ w5(legend)
+    # this reduces to the following boundaries for transformation
+    # so d1=w1+w2, d2=w4, d3=h1, d4= h3+h4
+    # lets take w4 as padding.
     #    +-----------------+
     #    |         d3      |
     #    | d1 |---------|d2|
@@ -73,17 +106,17 @@ class MyCanvasView(QCanvasView):
     #    |    +---------+  |
     #    +_____ d4_________+
 
-    [char_w,char_h]=self.getTextDims("10000.000") # radians
-    [char_w1,char_h1]=self.getTextDims("66:66:66") # degrees
-    if char_w<char_w1: char_w=char_w1;
-    if char_h<char_h1: char_h=char_h1;
-    [label_w,label_h]=self.getLabelDims("Declination")
-    
-    # get space needed for Labels
-    self.d1=char_w+15+label_h
-    self.d3=30
-    self.d4=char_h+15+label_h # 20 for the axis label
-    self.d2=char_w/2 # more pixels for the legend
+    # setup 
+    self.h1=self.h2=self.h3=self.h4=0
+    self.w1=self.w2=self.w3=self.w4=self.w5=0
+    self.pad=0 # padding
+    # now calculate the real values
+    self.calculateDefaultDims()
+
+    self.d1=self.w1+self.w2
+    self.d2=self.w4
+    self.d3=self.h1
+    self.d4=self.h3+self.h4
 
     # limits in real coordinates
     self.x_min=bounds['min_RA']
@@ -126,8 +159,21 @@ class MyCanvasView(QCanvasView):
 
 
     ############ create axes/grid
-    self.axes=Axes(self,bounds,self.xdivs,self.ydivs)
-    self.axes.gridOff()
+    if self.axes_on==1:
+     self.axes=Axes(self,bounds,self.xdivs,self.ydivs)
+     self.axes.gridOff()
+    else:
+     self.axes=None
+
+    ########### create title
+    if self.title_on==1:
+     self.title=FontHorizImage("Title",self.canvas(),self.fonts['title'],self.pad)
+     xys=self.globalToLocal(self.x_max, self.y_max)
+     self.title.move(xys[0]+(self.w3-self.title.width())/2,xys[1]-self.h1)
+     self.title.setZ(0)
+     self.title.show()
+    else:
+     self.title=None
 
     ############ create legend
     self.legend=None
@@ -159,6 +205,9 @@ class MyCanvasView(QCanvasView):
 
 
     self.slabel=sliderlabel
+
+    # anything moving is kept here
+    self.__moving=0
  
     
   def contentsMouseMoveEvent(self,e):
@@ -182,11 +231,20 @@ class MyCanvasView(QCanvasView):
      self.zwindow.setLowerRight(point.x(),point.y())
      self.zwindow.show()
      self.canvas().update()
+
+
+    if self.zoom_status==GUI_MOVE_START and self.__moving:
+     point = self.inverseWorldMatrix().map(e.pos());
+     self.__moving.moveBy(point.x() - self.__moving_start.x(),point.y() - self.__moving_start.y())
+     self.__moving_start = point
+     self.canvas().update()
+
     return
    
   def contentsMousePressEvent(self,e):
    point = self.inverseWorldMatrix().map(e.pos())
-   
+   button=e.button()
+   #button==Qt.LeftButton:
    if self.zoom_status==GUI_ZOOM_NONE:
     ilist = self.canvas().collisions(point) #QCanvasItemList ilist
     head=self.lsm.getCurrentFreqTime(self.default_freq_index,self.default_time_index)
@@ -273,6 +331,15 @@ class MyCanvasView(QCanvasView):
     self.zwindow.setLowerRight(point.x(),point.y())
     self.zwindow.show()
     self.canvas().update()
+
+   # moving things
+   if self.zoom_status==GUI_MOVE_START:
+    ilist = self.canvas().collisions(point) #QCanvasItemList ilist
+    item=ilist.pop(0)
+    if item.rtti()==POINT_SOURCE_RTTI:
+     # enable moving
+     self.__moving=item
+     self.__moving_start=point
    return
 
   def contentsMouseReleaseEvent(self,e):
@@ -342,6 +409,17 @@ class MyCanvasView(QCanvasView):
       # update PUnit table on main window
       self.parent.insertPUnitRow(retval[0])
     self.canvas().update()
+
+
+   if self.zoom_status==GUI_MOVE_START:
+    self.zoom_status=GUI_ZOOM_NONE
+    print self.__moving.name
+    xys=self.localToGlobal(point.x(),point.y())
+    # update the LSM
+    self.lsm.move_punit(self.__moving.name,xys[0],xys[1])
+    # reset move
+    self.__moving=0
+    self.__moving_start=0
    return
 
 
@@ -526,7 +604,7 @@ class MyCanvasView(QCanvasView):
   def showLegend(self,flag):
    """if flag==1, show legend, else hide legend"""
    # get dimensions needed
-   [char_w,char_h]=self.getTextDims("10000.000")
+   [char_w,char_h]=self.getTextDims("10000.000",self.font)
    if flag==1:
     self.canvas().resize(self.canvas().width()+30+char_w,self.canvas().height())
     # get limits from the boundary of main plot
@@ -545,24 +623,13 @@ class MyCanvasView(QCanvasView):
      self.legend=None
 
   # give the text width,height in pixels using the default font
-  def getTextDims(self,txt):
-    myfont=self.font
+  def getTextDims(self,txt,myfont):
     fm=QFontMetrics(myfont)
     # find width in pixels
     label=QString(txt)
     char_width=fm.width(label)
     char_height=fm.height()
     return (char_width,char_height)
-
-  def getLabelDims(self,txt):
-    font=QFont( QApplication.font() )
-    font.setPointSize( 10 )
-    fm=QFontMetrics(font)
-    char_width=fm.width(txt)
-    char_height=fm.height()
-    v_space=2
-    return [char_width,char_height+2*v_space]
-
 
   #select new font
   def chooseFont( self ) :
@@ -594,6 +661,150 @@ class MyCanvasView(QCanvasView):
     #painter.end() 
     return pmap
 
+
+  # calculate default dimentions
+  def calculateDefaultDims(self):
+    # set default padding
+    self.pad=5
+    # title height and width
+    [tw,th]=self.getTextDims("DEFAULT TITLE",self.fonts['title'])
+    self.h1=th+self.pad*2
+    # ylabel height and width
+    [ylw,ylh]=self.getTextDims("Declination",self.fonts['ylabel'])
+    # y coords (in radians and degrees)
+    [char_w,char_h]=self.getTextDims("10000.000",self.fonts['ycoord']) # radians
+    [char_w1,char_h1]=self.getTextDims("66:66:66",self.fonts['ycoord']) # degrees
+    ycw=max(char_w,char_w1)
+    ych=self.ydivs*char_h # this is calculated to see if we clobber everything
+                          # we cannot do anything about it
+    self.h2=max(ylw,ych)
+    # we will recalculate the above to fit any free space left from 
+    # canvas height
+
+    self.w1=ylh+2*self.pad
+    self.w2=ycw+2*self.pad
+
+    # x label and coords
+    [xlw,xlh]=self.getTextDims("Right Ascension",self.fonts['xlabel'])
+    self.h3=xlh+self.pad*2
+    [char_w,char_h]=self.getTextDims("10000.000",self.fonts['xcoord']) # radians
+    [char_w1,char_h1]=self.getTextDims("66:66:66",self.fonts['xcoord']) # degrees
+    self.h4=max(char_h,char_h1)+self.pad*2
+     
+    xcw=self.xdivs*max(char_w,char_w1)
+   
+    self.w3=max(xcw,xlw)
+    # we will recalculate the above to fit any free space left from 
+    # canvas height
+
+    # this is the space required to print trailing part of x coords
+    self.w4=max(char_w,char_w1)
+
+    # calculate only if legend is on
+    if self.legend_on==0:
+     self.w5=self.pad
+
+    if (self.axes_on==0) and (self.obsres_on==0):
+     self.w1=self.w2=self.pad
+     self.h3=self.h4=self.pad
+
+    if self.title_on==0:
+     self.h1=self.pad
+ 
+    # get canvas size
+    H=self.canvas().height()
+    W=self.canvas().width()
+    # recalculate drawing area
+    self.h2=max(H-self.h1-self.h3-self.h4,self.h2)
+    self.w3=max(W-self.w1-self.w2-self.w4-self.w5,self.w3)
+ 
+   
+    
+  # redraw everything - called when contents have changed
+  # or geometry has changed
+  def updateCanvas(self):
+    # first delete everything on the canvas
+    ilist=self.canvas().allItems()
+    for itm in ilist:
+     if itm:
+      itm.setCanvas(None)
+      del itm
+    bounds=self.lsm.getBounds()
+
+    # setup 
+    self.h1=self.h2=self.h3=self.h4=0
+    self.w1=self.w2=self.w3=self.w4=self.w5=0
+    self.pad=0 # padding
+    # now calculate the real values
+    self.calculateDefaultDims()
+
+    self.d1=self.w1+self.w2
+    self.d2=self.w4
+    self.d3=self.h1
+    self.d4=self.h3+self.h4
+
+    # limits in real coordinates
+    self.x_min=bounds['min_RA']
+    self.x_max=bounds['max_RA']
+    self.y_min=bounds['min_Dec']
+    self.y_max=bounds['max_Dec']
+    # canvas size
+    H=self.canvas().height()
+    W=self.canvas().width()
+    # scales
+    if (self.x_max != self.x_min):
+     self.x_scale=(W-self.d1-self.d2)/(self.x_max-self.x_min)
+    else: 
+     self.x_scale=1.0
+
+    if (self.y_max != self.y_min):
+     self.y_scale=(H-self.d3-self.d4)/(self.y_max-self.y_min)
+    else:
+     self.y_scale=1.0
+
+    ############ re-create p-unit list
+    # table for all p-units plots on canvas
+    self.p_tab={}
+    # plot all p-units/sources
+    for sname in self.lsm.p_table.keys():
+     punit=self.lsm.p_table[sname]
+     if punit.getType()==POINT_TYPE:
+      xys=self.globalToLocal(punit.sp.getRA(),punit.sp.getDec())
+      self.p_tab[sname]=PointSource(sname,self)
+     else:
+      # we have a patch
+      retval=punit.getLimits()
+      self.p_tab[sname]=Patch(sname,self,retval[0],retval[1],\
+                 retval[2],retval[3])
+
+
+    ############ re-create axes/grid
+    if self.axes_on==1:
+     self.axes=Axes(self,bounds,self.xdivs,self.ydivs)
+     self.axes.gridOff()
+    else:
+     self.axes=None
+
+    ########### create title
+    if self.title_on==1:
+     self.title=FontHorizImage("Title",self.canvas(),self.fonts['title'],self.pad)
+     xys=self.globalToLocal(self.x_max, self.y_max)
+     self.title.move(xys[0]+(self.w3-self.title.width())/2,xys[1]-self.h1)
+     self.title.setZ(0)
+     self.title.show()
+    else:
+     self.title=None
+
+    ############ create zoom-window
+    self.zwindow=ZWindow(self.canvas())
+    #self.zwindow.hide()
+    self.zoom_status=GUI_ZOOM_NONE
+    # use old transformation matrices zoom in/out
+    #self.tmstack=None
+    
+    self.__moving=0
+    self.__moving_start=0
+    self.canvas().update()
 
 #################################################################
 # class for drawing point (and elliptic - extended) sources
@@ -726,7 +937,7 @@ class Axes:
      # draw line
      ff=QCanvasLine(self.cview.canvas())
      xys=self.cview.globalToLocal(xval,self.cview.y_min)
-     ff.setPoints(xys[0],xys[1],xys[0],xys[1]+10)
+     ff.setPoints(xys[0],xys[1],xys[0],xys[1]-10)
      ff.show()
      self.xax.append(ff)
      # text in radians 
@@ -770,7 +981,7 @@ class Axes:
      # draw line
      ff=QCanvasLine(self.cview.canvas())
      xys=self.cview.globalToLocal(self.cview.x_max,yval)
-     ff.setPoints(xys[0],xys[1],xys[0]-10,xys[1])
+     ff.setPoints(xys[0],xys[1],xys[0]+10,xys[1])
      ff.show()
      self.yax.append(ff)
      # text in radians 
@@ -807,14 +1018,14 @@ class Axes:
      self.grid.append(ff)
 
     # draw axes labels
-    self.ylabel=FontVertImage("Declination",self.cview.canvas())
+    self.ylabel=FontVertImage("Declination",self.cview.canvas(),self.cview.fonts['ylabel'],self.cview.pad)
     xys=self.cview.globalToLocal(self.cview.x_max, self.cview.y_min)
     self.ylabel.move(xys[0]-self.cview.d1,xys[1]-(self.cview.canvas().height()-self.cview.d3-self.cview.d4)/2-self.ylabel.height()/2)
     self.ylabel.setZ(0)
     self.ylabel.show()
 
-    self.xlabel=FontHorizImage("Right Ascension",self.cview.canvas())
-    self.xlabel.move(xys[0]+(self.cview.canvas().width()-self.cview.d1-self.cview.d2)/2-self.xlabel.width()/2,xys[1]+self.cview.d4-20)
+    self.xlabel=FontHorizImage("Right Ascension",self.cview.canvas(),self.cview.fonts['xlabel'],self.cview.pad)
+    self.xlabel.move(xys[0]+(self.cview.canvas().width()-self.cview.d1-self.cview.d2)/2-self.xlabel.width()/2,xys[1]+self.cview.h3)
     #self.xlabel.move(xys[0],xys[1])
     self.xlabel.setZ(0)
     self.xlabel.show()
@@ -1158,18 +1369,17 @@ class ImageItem(QCanvasRectangle):
 #################################################################
 #produce text rotated by 90
 class FontVertImage(QCanvasRectangle):
-    def __init__(self,label,canvas):
+    def __init__(self,label,canvas,font,v_space):
         QCanvasRectangle.__init__(self,canvas)
         self.imageRTTI=984376
         self.label=label
-        self.font=QFont( QApplication.font() )
-        self.font.setPointSize( 10 )
+        self.font=font
         fm=QFontMetrics(self.font)
         margin=20
         # find width in pixels
         char_width=fm.width(self.label)
         char_height=fm.height()
-        v_space=2
+        #v_space=2
         self.pixmap=QPixmap(v_space+char_height+v_space,char_width+2*margin)
         self.pixmap.fill(QColor(255,255,255))
         painter=QPainter(self.pixmap)
@@ -1192,23 +1402,23 @@ class FontVertImage(QCanvasRectangle):
 #################################################################
 #produce normal text 
 class FontHorizImage(QCanvasRectangle):
-    def __init__(self,label,canvas):
+    def __init__(self,label,canvas,font,v_space):
         QCanvasRectangle.__init__(self,canvas)
         self.imageRTTI=984376
         self.label=label
-        self.font=QFont( QApplication.font() )
-        self.font.setPointSize( 10 )
+        self.font=font
         fm=QFontMetrics(self.font)
         margin=20
+        #v_space=2
         # find width in pixels
         char_width=fm.width(self.label)
         char_height=fm.height()
-        self.pixmap=QPixmap(char_width+2*margin, char_height)
+        self.pixmap=QPixmap(char_width+2*margin, v_space+char_height+v_space)
         self.pixmap.fill(QColor(255,255,255))
         painter=QPainter(self.pixmap)
         painter.setFont(self.font)
         tmp_str=QString(self.label)
-        painter.drawText(margin,10,QString(self.label))
+        painter.drawText(margin,char_height/2+2*v_space,QString(self.label))
         painter.end()
         self.setSize(self.pixmap.width(), self.pixmap.height())
 

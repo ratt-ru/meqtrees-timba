@@ -6,6 +6,7 @@
 
 import sys
 import math
+from copy import deepcopy
 from qt import *
 from qttable import QTable
 from qtcanvas import *
@@ -345,12 +346,12 @@ class LSMWindow(QMainWindow):
         self.viewZoom_MoreAction = QAction(self,"viewZoom_MoreAction")
         self.viewZoom_LessAction = QAction(self,"viewZoom_LessAction")
         self.viewZoom_AllAction = QAction(self,"viewZoom_AllAction")
-        self.viewZoom_CancelAction = QAction(self,"viewZoom_CancelAction")
         self.view_selectAction = QAction(self,"view_selectAction")
         self.viewZoom_OptionsAction = QAction(self,"viewZoom_OptionsAction")
         self.view_nextAction= QAction(self,"view_nextAction")
         self.view_patchAction= QAction(self,"view_patchAction")
-
+        self.view_refreshAction = QAction(self,"view_refreshAction")
+        self.edit_moveAction = QAction(self,"edit_moveAction")
 
 
 
@@ -373,18 +374,21 @@ class LSMWindow(QMainWindow):
         self.viewMenu = QPopupMenu(self)
         self.viewZoom_WindowAction.addTo(self.viewMenu)
         self.viewZoom_AllAction.addTo(self.viewMenu)
-        self.viewZoom_CancelAction.addTo(self.viewMenu)
+        #self.viewZoom_CancelAction.addTo(self.viewMenu)
         self.viewMenu.insertSeparator()
         self.viewZoom_MoreAction.addTo(self.viewMenu)
         self.viewZoom_LessAction.addTo(self.viewMenu)
         self.viewMenu.insertSeparator()
-        self.viewZoom_OptionsAction.addTo(self.viewMenu)
+        self.view_refreshAction.addTo(self.viewMenu)
         self.viewMenu.insertSeparator()
         self.view_nextAction.addTo(self.viewMenu)
+        self.viewZoom_OptionsAction.addTo(self.viewMenu)
         self.MenuBar.insertItem(QString(""),self.viewMenu,2)
 
 
         self.editMenu = QPopupMenu(self)
+        self.edit_moveAction.addTo(self.editMenu)
+        self.editMenu.insertSeparator()
         self.view_selectAction.addTo(self.editMenu)
         self.view_patchAction.addTo(self.editMenu)
         self.MenuBar.insertItem(QString(""),self.editMenu,3)
@@ -411,9 +415,10 @@ class LSMWindow(QMainWindow):
         self.connect(self.viewZoom_MoreAction,SIGNAL("activated()"),self.zoomIn)
         self.connect(self.viewZoom_LessAction,SIGNAL("activated()"),self.zoomOut)
         self.connect(self.viewZoom_AllAction,SIGNAL("activated()"),self.zoomAll)
-        self.connect(self.viewZoom_CancelAction,SIGNAL("activated()"),self.zoomCancel)
+        self.connect(self.view_refreshAction,SIGNAL("activated()"),self.refreshView)
         self.connect(self.viewZoom_OptionsAction,SIGNAL("activated()"),self.changeOptions)
         self.connect(self.view_nextAction,SIGNAL("activated()"),self.viewNextMode)
+        self.connect(self.edit_moveAction,SIGNAL("activated()"),self.moveItem)
         self.connect(self.view_selectAction,SIGNAL("activated()"),self.viewSelectWindow)
         self.connect(self.view_patchAction,SIGNAL("activated()"),self.viewCreatePatches)
 
@@ -516,8 +521,8 @@ class LSMWindow(QMainWindow):
         self.helpAboutAction.setText(self.__tr("About"))
         self.helpAboutAction.setMenuText(self.__tr("&About"))
         self.helpAboutAction.setAccel(QString.null)
-        self.viewZoom_WindowAction.setText(self.__tr("Zoom Window"))
-        self.viewZoom_WindowAction.setMenuText(self.__tr("&Zoom Window"))
+        self.viewZoom_WindowAction.setText(self.__tr("Enable Zoom"))
+        self.viewZoom_WindowAction.setMenuText(self.__tr("Enable &Zoom"))
         self.viewZoom_WindowAction.setAccel(self.__tr("Ctrl+Z"))
         self.viewZoom_MoreAction.setText(self.__tr("Zoom In"))
         self.viewZoom_MoreAction.setMenuText(self.__tr("Zoom &In"))
@@ -530,9 +535,9 @@ class LSMWindow(QMainWindow):
         self.viewZoom_AllAction.setText(self.__tr("Zoom All"))
         self.viewZoom_AllAction.setMenuText(self.__tr("Zoom &All"))
         self.viewZoom_AllAction.setAccel(self.__tr("Ctrl+A"))
-        self.viewZoom_CancelAction.setText(self.__tr("Zoom Cancel"))
-        self.viewZoom_CancelAction.setMenuText(self.__tr("Zoom &Cancel"))
-        self.viewZoom_CancelAction.setAccel(self.__tr("Ctrl+C"))
+        self.view_refreshAction.setText(self.__tr("Refresh"))
+        self.view_refreshAction.setMenuText(self.__tr("&Refresh"))
+        self.view_refreshAction.setAccel(self.__tr("Ctrl+R"))
         self.viewZoom_OptionsAction.setText(self.__tr("Change Options for Plotting"))
         self.viewZoom_OptionsAction.setMenuText(self.__tr("Change &Options"))
         self.viewZoom_OptionsAction.setAccel(self.__tr("Ctrl+O"))
@@ -540,6 +545,9 @@ class LSMWindow(QMainWindow):
         self.view_nextAction.setMenuText(self.__tr("Next &Mode"))
         self.view_nextAction.setAccel(self.__tr("Ctrl+N"))
 
+        self.edit_moveAction.setText(self.__tr("Move"))
+        self.edit_moveAction.setMenuText(self.__tr("&Move"))
+        self.edit_moveAction.setAccel(self.__tr("Ctrl+M"))
         self.view_patchAction.setText(self.__tr("Create Patches"))
         self.view_patchAction.setMenuText(self.__tr("Create Patches (&Grid)"))
         self.view_patchAction.setAccel(self.__tr("Ctrl+G"))
@@ -662,15 +670,30 @@ class LSMWindow(QMainWindow):
       pn.end()
 
     def zoomStart(self):
-       self.cview.zoom_status=GUI_ZOOM_WINDOW
+       if (self.cview.zoom_status!=GUI_ZOOM_WINDOW):
+        self.cview.zoom_status=GUI_ZOOM_WINDOW
+        self.viewZoom_WindowAction.setMenuText(self.__tr("Disable &Zoom"))
+        self.viewZoom_WindowAction.setText(self.__tr("Disable Zoom"))
+        self.viewZoom_WindowAction.setAccel(self.__tr("Ctrl+Z"))
+       else:
+        self.cview.zoom_status=GUI_ZOOM_NONE
+        self.viewZoom_WindowAction.setMenuText(self.__tr("Enable &Zoom"))
+        self.viewZoom_WindowAction.setText(self.__tr("Enable Zoom"))
+        self.viewZoom_WindowAction.setAccel(self.__tr("Ctrl+Z"))
 
     def zoomIn(self):
        m = self.cview.worldMatrix()
+       g=QWMatrix()
+       g.scale(0.5,0.5)
+       self.cview.tmstack=g
        m.scale( 2.0, 2.0 )
        self.cview.setWorldMatrix( m )
 
     def zoomOut(self):
        m = self.cview.worldMatrix()
+       g=QWMatrix()
+       g.scale(2,2)
+       self.cview.tmstack=g
        m.scale( 0.5, 0.5 )
        self.cview.setWorldMatrix( m )
 
@@ -682,9 +705,10 @@ class LSMWindow(QMainWindow):
          m = self.cview.tmstack
          m *=self.cview.worldMatrix()
          self.cview.setWorldMatrix( m )
+         self.cview.tmstack=None
 
-    def zoomCancel(self):
-      self.cview.zoom_status=GUI_ZOOM_NONE
+    def refreshView(self):
+      self.cview.updateCanvas()
  
     def helpAbout(self):
       tmp_str="<font color=\"blue\">LSM Browser</font><br/>"
@@ -713,6 +737,10 @@ class LSMWindow(QMainWindow):
 
     def viewSelectWindow(self):
       self.cview.zoom_status=GUI_SELECT_WINDOW
+
+    def moveItem(self):
+      self.cview.zoom_status=GUI_MOVE_START
+
 
     # remove rows from PUnit table (table2)
     # with given name

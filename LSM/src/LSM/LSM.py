@@ -189,6 +189,14 @@ class PUnit:
  def getSP(self):
   return self.__sixpack
 
+ # change RA,Dec of myself, 
+ def change_location(self,new_ra,new_dec,ns):
+   my_sixpack=self.__sixpack
+   change_radec(my_sixpack,new_ra,new_dec,ns)
+   # change static values
+   self.sp.set_staticRA(new_ra)
+   self.sp.set_staticDec(new_dec)
+
 ###############################################
 class LSM:
  """LSM Object:
@@ -235,6 +243,9 @@ class LSM:
 
   # filename
   self.__file="None"
+
+  # undo buffer, stores a command and a variable if any
+  self.__undo=None
 
 
  # Much more important method
@@ -1185,5 +1196,19 @@ class LSM:
   self.setFileName(infile_name)
 
 
+ # moves the punit (if it is a point) given
+ # by the 'pname' to new location given by new RA,Dec
+ def move_punit(self,pname,new_ra,new_dec):
+   punit=self.getPUnit(pname)
+   ns=self.getNodeScope()
+   if ns==None:
+    print "WARNING: need nodescope to move item", pname
+   if punit.getType()==POINT_TYPE and ns!=None:
+    # remember original location for undo()
+    old_ra=punit.sp.getRA()
+    old_dec=punit.sp.getDec()
+    self.__undo={'action':'move_punit','pname':pname\
+       ,'old_ra':old_ra,'old_dec':old_dec}
+    punit.change_location(new_ra,new_dec,ns)
 
 #########################################################################

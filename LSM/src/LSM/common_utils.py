@@ -15,6 +15,7 @@ GUI_ZOOM_WINDOW=1 # turn on by menu selection
 GUI_ZOOM_START=2 # turn on by first mouse click, after ZOOM_WINDOW
 GUI_SELECT_WINDOW=3 # turn on by menu, window for selecting sources
 GUI_SELECT_START=4 # turn on by first mouse click, after SELECT_WINDOW
+GUI_MOVE_START=5 # turn on by menu selection
 
 # after the first mouse  click, in ZOOM_WINDOW mode, draw zoom window (show())
 # after the mouse released in this mode, set zoom mode to GUI_ZOOM_WINDOW
@@ -288,8 +289,9 @@ def create_node_stub(mydict,stubs,ns,myname):
   # MeqParm is special
   #if myclass.lstrip('Meq')=='Parm':
   # total_str="ns['"+myname+"']<<Meq.Parm(default_funklet_value)"
-  #print "Total=",total_str
+  print "Total=",total_str
   exec total_str in globals(),locals()
+  print ns[myname].initrec()
   return ns[myname]
      
  
@@ -364,6 +366,7 @@ def extract_parms(sixpack,ns):
 def get_default_parms(nd):
  # get initrec
  irec=nd.initrec()
+ print irec
  # try to get default_value
  if irec.has_key('default_vale'):
   cf=irec['default_value']
@@ -389,8 +392,70 @@ def get_default_parms(nd):
    else: #scalar
      my_val=float(cf)
   else: # error
+   print "WARNING: unable to find a value for funklet",fn
    my_val=-1
  else: # error
    my_val=-1
  return my_val
+
+#######################################################
+### change value of MeqParm
+def change_parm(ns,node,new_value):
+ # first delete old node 
+ #try:
+ #if ns.__hasattr__(nodename):
+ #  #ns.__delattr__(nodename)
+ #  pass
+ #gg=ns._repository.pop(nodename)
+ #del gg
+ #ns.Resolve()
+ #except AttributeError:
+ # print "WARNING: no node exists with name ",nodename
+ # pass
+ # now recreate a new node
+ #work_str="ns['"+nodename+"']<<Meq.Parm(meq.polc("+str(new_value)+"))"
+ #print work_str
+ #exec work_str in globals(),locals()
+ print "trying to change params of ",node.name
+ g=node.initrec()
+ print g
+ g['init_funklet']=meq.polc(new_value)
+ ns.Resolve()
+
+
+def change_radec(sixpack,new_ra,new_dec,ns):
+ myname=sixpack.label()
+ ra=sixpack.ra()
+ change_parm(ns,ra,new_ra)
+ dec=sixpack.dec()
+ change_parm(ns,dec,new_dec)
+
+
+
+
+
+
+
+
+
+
+#################################################################
+if __name__ == '__main__':
+  from Timba.Contrib.JEN import MG_JEN_Sixpack
+  ns=NodeScope()
+  my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit="foo",I0=1.0, f0=1e6,RA=2.0, Dec=2.1,trace=0)
+  my_sixpack.sixpack(ns)
+  ns.Resolve()
+  print ns.AllNodes()
+  print ns["ra:q="+my_sixpack.label()]
+  print my_sixpack.ra().name
+  my_sixpack.display()
+  rr=my_sixpack.ra()
+  print rr.name
+  print extract_parms(my_sixpack,ns)
+  change_radec(my_sixpack,3.0,4.5,ns)
+  my_sixpack.display()
+  print dir(ns)
+  print extract_parms(my_sixpack,ns)
+
 
