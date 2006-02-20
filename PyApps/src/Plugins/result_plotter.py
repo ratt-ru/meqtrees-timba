@@ -136,6 +136,9 @@ class ResultPlotter(GriddedPlugin):
       self.set_data(dataitem);
 
   def reset_plot_stuff(self):
+    """ resets widgets to None. Needed if we have been putting
+        out a message about Cache not containing results, etc
+    """
     self._visu_plotter = None
     self.colorbar = {}
     self.results_selector = None
@@ -148,11 +151,12 @@ class ResultPlotter(GriddedPlugin):
     if self._window_controller:
       self._window_controller.closeAllWindows()
                                                                                            
-# function needed by Oleg for reasons known only to him!
   def wtop (self):
+    """ function needed by Oleg for reasons known only to him! """
     return self._wtop;
 
   def plotSpectra(self, leaf_record):
+    """ stores and plots data for a visu Spectra node """
     if self._spectrum_data is None:
       (self._data_labels, self._string_tag) = self._visu_plotter.getSpectrumTags()
       self._spectrum_data = SpectrumData(self._data_labels, self._string_tag)
@@ -282,6 +286,7 @@ class ResultPlotter(GriddedPlugin):
 #
 
   def do_prework(self, node, attribute_list):
+    """ do any processing before actual handling of data in a leaf node """
     _dprint(3, 'doing prework with attribute list ',attribute_list)
 # we check if a plotter has been constructed - 
     if isinstance(node, dict) and self._visu_plotter is None:
@@ -333,10 +338,12 @@ class ResultPlotter(GriddedPlugin):
 
 
   def do_postwork(self, node):
+    """ do any processing needed after data in a leaf node has been handled """
     _dprint(3,"in postwork: do nothing at present");
 
 
   def is_leaf(self, node):
+    """ tests if a node is actually a leaf node """
     if node.has_key('value'):
       candidate_leaf = node['value']
       if isinstance(candidate_leaf, list):
@@ -505,7 +512,7 @@ class ResultPlotter(GriddedPlugin):
 
   def display_visu_data (self):
     """ extract group_label key from incoming visu data record and
-      create a visu_plotter object to plot the data 
+        create a visu_plotter object to plot the data 
     """
 # traverse the plot record tree and retrieve data
     _dprint(3, ' ')
@@ -593,6 +600,7 @@ class ResultPlotter(GriddedPlugin):
             self.adjust_selector()
 
   def process_data (self):
+    """ process the actual record structure associated with a Cache result """
     process_result = False
 # are we dealing with Vellsets?
     if self._rec.has_key("dims"):
@@ -634,6 +642,9 @@ class ResultPlotter(GriddedPlugin):
     return process_result
 
   def replay_data (self, data_index):
+    """ callback to redisplay contents of a result record stored in 
+        a results history buffer
+    """
     if self.ignore_replay:
       self.ignore_replay = False
       return
@@ -705,6 +716,7 @@ class ResultPlotter(GriddedPlugin):
     # end plot_vells_data()
 
   def plot_solver (self):
+    """ plots data from a MeqSolver node """
     if self._solver_data is None:
         self._solver_data = SolverData()
 # store the data
@@ -726,6 +738,7 @@ class ResultPlotter(GriddedPlugin):
     self._visu_plotter.array_plot(title, self._solver_array)
 
   def test_vells_scalar (self, data_array, data_label):
+    """ test if incoming Vells contains only a scalar value """
 # do we have a scalar?
     is_scalar = False
     scalar_data = 0.0
@@ -746,45 +759,54 @@ class ResultPlotter(GriddedPlugin):
       return False
 
   def update_vells_display (self, menuid):
-      self._vells_data.unravelMenuId(menuid)
-      plot_label = self._vells_data.getPlotLabel()
-      plot_data = self._vells_data.getActiveData()
-      raw_data_rank = self._vells_data.getActiveDataRank()
-      if self.raw_data_rank != raw_data_rank:
-        self.old_plot_data_rank = plot_data.rank
-        self.raw_data_rank = raw_data_rank
-        # get initial axis parameters
-        axis_parms =  self._vells_data.getActiveAxisParms()
-        self._visu_plotter.setAxisParms(axis_parms)
-      self._visu_plotter.reset_color_bar(True)
-      if not self.test_vells_scalar(plot_data, plot_label):
-        self._visu_plotter.plot_vells_array(plot_data, plot_label)
+    """ callback to handle a request from the lower level 
+        display_image.py code for different Vells data """
+    self._vells_data.unravelMenuId(menuid)
+    plot_label = self._vells_data.getPlotLabel()
+    plot_data = self._vells_data.getActiveData()
+    raw_data_rank = self._vells_data.getActiveDataRank()
+    if self.raw_data_rank != raw_data_rank:
+      self.old_plot_data_rank = plot_data.rank
+      self.raw_data_rank = raw_data_rank
+      # get initial axis parameters
+      axis_parms =  self._vells_data.getActiveAxisParms()
+      self._visu_plotter.setAxisParms(axis_parms)
+    self._visu_plotter.reset_color_bar(True)
+    if not self.test_vells_scalar(plot_data, plot_label):
+      self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
   def update_spectrum_display(self, menuid):
+    """ callback to handle a request from the lower level 
+        display_image.py code for different Spectrum data """
     self._spectrum_data.setActivePlot(menuid)
     plot_label = self._spectrum_data.getPlotLabel()
     plot_data = self._spectrum_data.getActivePlotArray()
     self._visu_plotter.array_plot(plot_label, plot_data, False)
 
   def setSelectedAxes (self,first_axis, second_axis):
+    """ callback to handle a request from the N-dimensional
+        controller to set new (sub)axes for the Vells display 
+    """
+    self._visu_plotter.delete_cross_sections()
+    if self._vells_plot:
+      self._vells_data.setSelectedAxes(first_axis, second_axis)
+      axis_parms = self._vells_data.getActiveAxisParms()
+      self._visu_plotter.setAxisParms(axis_parms)
       self._visu_plotter.delete_cross_sections()
-      if self._vells_plot:
-        self._vells_data.setSelectedAxes(first_axis, second_axis)
-        axis_parms = self._vells_data.getActiveAxisParms()
-        self._visu_plotter.setAxisParms(axis_parms)
-        self._visu_plotter.delete_cross_sections()
-        plot_array = self._vells_data.getActiveData()
-        self._visu_plotter.array_plot(" ", plot_array)
-
+      plot_array = self._vells_data.getActiveData()
+      self._visu_plotter.array_plot(" ", plot_array)
 
   def setArraySelector (self,lcd_number, slider_value, display_string):
-#     #print 'in setArraySelector lcd_number, slider_value ', lcd_number, slider_value
-      self._vells_data.updateArraySelector(lcd_number,slider_value)
-      if self._vells_plot:
-        plot_array = self._vells_data.getActiveData()
-        self._visu_plotter.array_plot('data: '+ display_string, plot_array)
+    """ callback to handle a request from the N-dimensional
+        controller that the user has changed an index into a dimension 
+    """
+    self._vells_data.updateArraySelector(lcd_number,slider_value)
+    if self._vells_plot:
+      plot_array = self._vells_data.getActiveData()
+      self._visu_plotter.array_plot('data: '+ display_string, plot_array)
 
   def adjust_selector (self):
+    """ instantiate and/or adjust contents of ResultsRange object """
     if self.results_selector is None:
       self.results_selector = ResultsRange(self.layout_parent)
       self.results_selector.setMaxValue(self.max_list_length)
@@ -802,12 +824,16 @@ class ResultPlotter(GriddedPlugin):
     self.results_selector.setLabel(self.label)
 
   def show_selector (self, do_show_selector):
+    """ callback to show or hide a ResultsRange object """
     if do_show_selector:
       self.results_selector.show()
     else:
       self.results_selector.hide()
 
   def set_results_buffer (self, result_value):
+    """ callback to set the number of results records that can be
+        stored in a results history buffer 
+    """ 
     if result_value < 0:
       return
     self.max_list_length = result_value
@@ -841,7 +867,6 @@ class ResultPlotter(GriddedPlugin):
 
   def set_ColorBar (self):
     """ this function adds a colorbar for 2 Ddisplays """
-    #print' set_ColorBar parms = ', min, ' ', max
 
     # create two color bars in case we are displaying complex arrays
     self.colorbar = {}
