@@ -477,7 +477,10 @@ Introduction
 \layout Standard
 
 Optical astronomy is in the situation where radio astronomy was around 1980.
- Radio telescopes like the WSRT were carefully designed to be passively
+ Radio telescopes like the WSRT were carefully designed to be 
+\emph on 
+passively
+\emph default 
  stable during the 12 hours of an Earth rotation synthesis observation.
  The residual errors were a few percent, which produced images with a dynamic
  range of 1:100
@@ -579,11 +582,31 @@ closed-loop
  
 \layout Standard
 
-Some differences between optical and radio:
+A step-wise program for the development of these techniques is proposed.
+ For good measure, in an appendix, there is some discussion about other
+ software techniques that could replace expensive (and often not very effective)
+ hardware solutions.
+ 
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Some-differences-between}
+
+\end_inset 
+
+Some differences between optical and radio
+\layout Standard
+
+Although there are significant parallels between optical and radio instruments,
+ there are some important differences as well:
 \layout Itemize
 
-Since radio-interferometry data are taken in the aperture plane, most of
- the instrumental corrections may be estimated and applied afterwards, i.e.
+Since radio-interferometry data are taken in the 
+\emph on 
+aperture plane
+\emph default 
+, most of the instrumental corrections may be estimated and applied afterwards,
+ i.e.
  off-line.
  In the optical case, the entire instrument must be kept in optimal shape
  during the observations.
@@ -601,7 +624,7 @@ In the radio, the field-of-view and the isoplanatic patch are so large that
 In radio selfcal, it is not necessary to make a distinction between fast
  (atmospheric) effects, and slower instrumental drifts.
  In the optical case, the problems caused by atmospheric turbulence are
- in a class of their on.
+ in a class of their own.
  Therefore, the present discussion is only about correcting slow drifts,
  which is commonly known by the (somewhat unfortunate) name of 
 \emph on 
@@ -612,14 +635,155 @@ active optics
 \emph on 
 adaptive optics
 \emph default 
- (AO) may be tackled in a latter stage, but is explicitly excluded here.
+ (AO) may be tackled in a later stage, but is explicitly excluded here.
  
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:Calibration-block-diagram}
+
+\end_inset 
+
+Calibration block diagram
 \layout Standard
 
-A step-wise program for the development of these techniques is proposed.
- For good measure, in an appendix, there is some discussion about other
- software techniques that could replace expensive (and often not very effective)
- hardware solutions.
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename floptics_block.eps
+	width 70col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:Schematic-block-diagram}
+
+\end_inset 
+
+Schematic block diagram of the optiacl train of an optical telescope, down
+ to the output detector.
+ The internal calibration signal is injected as early as possible.
+ The position (and shape) of optical surfaces should be controlled by hardware
+ actuators.
+ The MeqTree system minimises the differences between measured and predicted
+ pixel values by manipulating these actuators.
+ The necessary derivatives may be calculated with the help of an explicit
+ Measurement Equation (M.E.), but they may also be determined empirically.
+ The latter is the preferred method, because it does not require any knowledge
+ of the optical details.
+\layout Standard
+
+
+\emph on 
+After internal calibration, one or more reference stars have to be used
+ to make the connection with the sky.
+ It should be emphasized that, in this stage, we only address slow variations.
+ Atmospheric turbulence and AO will be ignored until we have gathered more
+ experience.
+\end_inset 
+
+
+\layout Standard
+
+We will assume for the moment that the scientific target source is too faint
+ to be used for selfcal.
+ Therefore, we split up the procedure in internal and external calibration
+ (connection with the sky).
+ 
+\layout Subsection
+
+
+\begin_inset LatexCommand \label{sub:Internal-calibration}
+
+\end_inset 
+
+Internal calibration
+\layout Standard
+
+A known test signal must be injected as early as possible (see fig 
+\begin_inset LatexCommand \ref{cap:Schematic-block-diagram}
+
+\end_inset 
+
+).
+ From there on, all optical elements ofare part of the procedure, and their
+ actuators should ideally be controlled by the calibration system.
+ Obviously, the calibration signal will be much brighter than the science
+ target.
+ We have the following possibilities to separate them:
+\layout Itemize
+
+Different wavelength.
+ This has the disadvantage that it is not really closed-loop.
+\layout Itemize
+
+Different time (gating).
+ This is attractive, but the duty-cycle causes some loss of observation
+ time.
+ Also, the detector must be able to switch over on short time-scales.
+\layout Itemize
+
+Different position.
+ If the optical system is optimised for 3-4 positions, it might be assumed
+ to be optimised for the central position as well.
+ However, not really closed-loop.
+\layout Standard
+
+The injection signals, or their images, do not have to be of a particularly
+ high quality.
+ The important thing is that we have a model of their images that will allow
+ us to calibrate the system.
+ Thus, the injection signals should probably be fairly stable, so we can
+ derive an empirical model image.
+ 
+\layout Subsection
+
+
+\begin_inset LatexCommand \label{sub:Connection-with-the}
+
+\end_inset 
+
+Connection with the sky
+\layout Standard
+
+Even when the instrument is internally calibrated, it must still be 'connected'
+ to the sky, in the sense that we must make sure that the photons are directed
+ to the right pixels.
+ This will probably be done with the help of one or more bright reference
+ stars.
+ There are various issues here: 
+\layout Itemize
+
+pointing, tracking and sky rotation
+\layout Itemize
+
+off-axis distortion in the optical train (affects reference sources)
+\layout Itemize
+
+variable pre-injection phenomena like extinction, atmospheric dispersion,
+ stray light, etc
+\layout Itemize
+
+the presence of adaptive optics (AO) 
+\layout Itemize
+
+etc..
+\layout Standard
+
+As mentioned before, the rapid variations caused by atmospheric turbulence
+ are explicitly excluded from this discussion (for the moment).
+ If the telescope is fitted out with an AO system, it may be used.
  
 \layout Section
 
@@ -662,17 +826,17 @@ We may estimate the optimum values of the
 \begin_inset Formula $p_{k}$
 \end_inset 
 
-(i.e.
+ (i.e.
  the optimum point 
 \begin_inset Formula $\vec{P}_{0}$
 \end_inset 
 
- in phase-space) by solving the system of N equations: 
+ in phase-space) by solving the system of N equations (one per pixel): 
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-D_{i}-M_{i}=\sum_{k}\frac{\partial D_{i}}{\partial p_{k}}\Delta p_{k}\label{eq:DM_k}\end{equation}
+D_{i}-M_{i}=\sum_{k}\frac{\partial M_{i}}{\partial p_{k}}\Delta p_{k}\label{eq:DM_k}\end{equation}
 
 \end_inset 
 
@@ -683,20 +847,20 @@ where the
 \begin_inset Formula $M_{i}$
 \end_inset 
 
-are the model values of 
+ are the model values of 
 \begin_inset Formula $D_{i}$
 \end_inset 
 
  that are predicted by the M.E.
  The latter also yields values for the derivatives 
-\begin_inset Formula $\frac{\partial D}{\partial p}$
-\end_inset 
-
- (or, alternatively, 
 \begin_inset Formula $\frac{\partial M}{\partial p}$
 \end_inset 
 
-).
+ (or 
+\begin_inset Formula $\frac{\partial D}{\partial p}$
+\end_inset 
+
+, whichever may be easier to determine).
  Sections 
 \begin_inset LatexCommand \ref{sec:Explicit-Measurement-Equation}
 
@@ -720,7 +884,7 @@ Note that we solve for incremental values
 \end_inset 
 
  in phase-space.
- The desired point 
+ The desired optimum point 
 \begin_inset Formula $\vec{P}_{0}$
 \end_inset 
 
@@ -736,13 +900,13 @@ Note that we solve for incremental values
 \begin_inset Formula $(M)$
 \end_inset 
 
- values in a least-squares sense.
+ values, in a least-squares sense.
  In other words, we are looking for the (absolute) minimum in the socalled
  
-\begin_inset Formula $\chi^{2}$
-\end_inset 
-
- surface in phase space, where:
+\emph on 
+chi-squared surface
+\emph default 
+ in phase space, where:
 \layout Standard
 
 
@@ -754,8 +918,97 @@ Note that we solve for incremental values
 
 \layout Standard
 
-The MeqTree system is designed to implement an arbitrary M.E., and to solve
- for its parameters.
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+
+
+\begin_inset Graphics
+	filename floptics_dV.eps
+	width 80col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap:Measured-and-predicted}
+
+\end_inset 
+
+A somewhat clumsy figure to illustrate the relation between measured and
+ predicted pixel values.
+ The main point os that it is not always necessary to have a very detailed
+ model.
+ In the above example, two point-like test sources have been injected at
+ the input of some optical train.
+ Their images on the output detector will be convolved with some instrumental
+ response (PSF).
+ Nevertheless, a very simple source model of a single non-zero pixel per
+ source may already be used for selfcal.
+ While trying to reconcile measured and predicted values, the system will
+ endeavour to find those actuator settings that give the smallest (sharpest)
+ possible source images, with the lowest sidelobes, and at the correct positions.
+ 
+\layout Standard
+
+
+\emph on 
+More sophisticated source models will give better results (depending on
+ what one wants to achieve).
+ Such models may either be obtained by means of an explicit M.E., or a Minimum
+ Instrument Model (MIM).
+ 
+\layout Standard
+
+
+\emph on 
+The above is equally valid for images, spectra, or whatever one chooses
+ to throw at a detector.
+ The key is the availability of model values 
+\begin_inset Formula $M_{i}$
+\end_inset 
+
+ to compare with the measured pixel values 
+\begin_inset Formula $D_{i}$
+\end_inset 
+
+, and of derivatives 
+\begin_inset Formula $\frac{\partial M}{\partial p}$
+\end_inset 
+
+ or 
+\begin_inset Formula $\frac{\partial D}{\partial p}$
+\end_inset 
+
+ w.r.t.
+ the M.E.
+ parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+.
+\end_inset 
+
+
+\layout Section
+
+
+\begin_inset LatexCommand \label{sec:The-MeqTree-system}
+
+\end_inset 
+
+The MeqTree system
+\layout Standard
+
+The ASTRON MeqTree system is designed to implement an arbitrary M.E., and
+ to solve for (arbitrary subsets of) its parameters.
  It is currently used for WSRT calibration, as a preparation for LOFAR calibrati
 on.
  However, the system is completely 
@@ -777,87 +1030,6 @@ In fact, the MeqTree system is the main 'product' of the ASTRON Scientific
 \end_inset 
 
 .
-\layout Standard
-
-
-\begin_inset Float figure
-wide false
-collapsed true
-
-\layout Standard
-
-
-\begin_inset Graphics
-	filename floptics_dV.eps
-	width 80col%
-
-\end_inset 
-
-
-\layout Caption
-
-
-\emph on 
-
-\begin_inset LatexCommand \label{cap:Measured-and-predicted}
-
-\end_inset 
-
-Measured and predicted pixel values.
- It is not always necessary to have a very detailed model of the predicted
- image of a (calibration) source.
- In the above example, the measured source images are convolved with some
- instrumental response.
- The use of point-like models (all pixels except two are zero), will cause
- the system to find those actuator settings that give the smallest (sharpest)
- possible source images, with the smallest sidelobes, at the correct positions.
- Various aspects may be given more weight by assigning a greater weight
- to the selfcal equations associated with the relevant pixels.
-\layout Standard
-
-
-\emph on 
-Note that the use of two or more test-sources severly constrains the freedom
- of the sytem to arrive at a sub-optimal solution.
- This is particularly important in those cases where the minimum in the
- 
-\begin_inset Formula $\chi^{2}$
-\end_inset 
-
- surface is broad.
- 
-\layout Standard
-
-
-\emph on 
-The above is equally valid for images, spectra, or whatever one chooses
- to throw at a detector.
- The key is the availability of model values 
-\begin_inset Formula $M_{i}$
-\end_inset 
-
- to compare with the measured pixel values 
-\begin_inset Formula $V_{i}$
-\end_inset 
-
-, and of derivatives 
-\begin_inset Formula $\frac{\partial M}{\partial p}$
-\end_inset 
-
- or 
-\begin_inset Formula $\frac{\partial V}{\partial p}$
-\end_inset 
-
- w.r.t.
- the M.E.
- parameters 
-\begin_inset Formula $p_{k}$
-\end_inset 
-
-.
-\end_inset 
-
-
 \layout Section
 
 
@@ -899,7 +1071,7 @@ It has taken a long time to formulate the full-polarisation M.E.
 \begin_inset Formula $j$
 \end_inset 
 
-, is the sum (integral, really) of the instumentally 'corrupted' contributions
+, is the sum (integral, really) of the instrumentally 'corrupted' contributions
  from all sources 
 \begin_inset Formula $\vec{I}_{k}$
 \end_inset 
@@ -973,7 +1145,7 @@ The predicted visibilities
 \end_inset 
 
 .
- Th derivatives 
+ The derivatives 
 \begin_inset Formula $\frac{\partial M}{\partial p}$
 \end_inset 
 
@@ -1175,42 +1347,6 @@ a-term
  M.E.
  parameters, and to deal with such cases gracefully.
  
-\layout Standard
-
-
-\begin_inset Float figure
-wide false
-collapsed false
-
-\layout Standard
-\align center 
-
-\begin_inset Graphics
-	filename floptics_MeqTree.eps
-	width 90col%
-
-\end_inset 
-
-
-\layout Caption
-
-
-\emph on 
-
-\begin_inset LatexCommand \label{cap:A-MeqTree-with}
-
-\end_inset 
-
-A MeqTree with a solver for the case of an empirical Measurement Equation
- (see section 
-\begin_inset LatexCommand \ref{sec:Empirical-Measurement-Equation}
-
-\end_inset 
-
-).
-\end_inset 
-
-
 \layout Subsection
 
 
@@ -1230,12 +1366,12 @@ phaenomenological
 \begin_inset Formula $p_{m}$
 \end_inset 
 
-.This approach should be compared with the Minimum Ionospheric Model proposed
- for LOFAR.
- That MIM does not concern itself with the 3D structure of the ionosphere,
- but only tries to find values for the minimum set of parameters that is
- consistent with the measured phases in the direction of one or more bright
- sources.
+.
+ This approach should be compared with the Minimum Ionospheric Model proposed
+ for LOFAR, which does not concern itself with the 3D structure of the ionospher
+e, but only tries to find values for the minimum set of parameters that
+ is consistent with the measured phases in the direction of one or more
+ bright sources.
 \layout Standard
 
 Various effects of a complex but well-designed optical chain may be described
@@ -1276,52 +1412,18 @@ We may conjecture that MIM functions become smoother (i.e.
  the measured phaenomena, and to increase (or decrease) the number of terms
  dynamically.
  
-\layout Subsection
+\layout Section
 
 
 \begin_inset LatexCommand \label{sub:Calibration-procedure}
 
 \end_inset 
 
-Calibration procedure
+Internal calibration procedure
 \layout Standard
 
-The calibration procedure could be as follows.
- Initialise with:
-\layout Itemize
-
-Obtain a model (expected values) 
-\begin_inset Formula $M_{i}$
-\end_inset 
-
- for the detector pixel values 
-\begin_inset Formula $D_{i}$
-\end_inset 
-
-.
- Usually, this will be based on the pattern of test signals that is injected
- for internal calibration, and our 
-\emph on 
-a priori
-\emph default 
- guess of its ideal manifestation on the detector.
-\layout Itemize
-
-Postulate the (initial?) derivatives 
-\begin_inset Formula $\frac{\partial D_{i}}{\partial p_{m}}$
-\end_inset 
-
- w.r.t.
- all parameters 
-\begin_inset Formula $p_{m}$
-\end_inset 
-
-.
- These are the ones that do NOT represent actuator settings, i.e.
- they are parameters of the Minimum Transfer Function (MTF).
-\layout Itemize
-
-Empirically determine the initial derivatives 
+The internal calibration procedure could be as follows.
+ Start with empirically determining the initial derivatives 
 \begin_inset Formula $\frac{\partial D_{i}}{\partial p_{a}}$
 \end_inset 
 
@@ -1330,8 +1432,8 @@ Empirically determine the initial derivatives
 \begin_inset Formula $p_{a}$
 \end_inset 
 
-that represent actuator settings.
- Do this my successively moving them each actuator a little bit, just enough
+that represent hardware actuator settings.
+ Do this by successively moving each actuator a little bit, just enough
  to see a significant change in the measured value 
 \begin_inset Formula $D_{i}$
 \end_inset 
@@ -1343,11 +1445,57 @@ that represent actuator settings.
 Then repeat the following cycle:
 \layout Enumerate
 
-Solve for incremental improvements 
-\begin_inset Formula $\Delta p_{k}$
+Submit a request to the solver for a 2D domain, in which each cell corresponds
+ to a detector pixel.
+ The solver will pass this to its condeq child(ren), which will pass it
+ on to its own children, etc.
+\layout Enumerate
+
+On one side of the condeq node, the MeqDetector node will read out the detector,
+ while the MeqActuator nodes return the derivatives that were determined
+ before.
+\layout Enumerate
+
+On the other side of the condeq node, the MIM subtree will calculate model
+ values 
+\begin_inset Formula $M_{i}$
 \end_inset 
 
- for all parameter value.
+ for the detector pixel values 
+\begin_inset Formula $D_{i}$
+\end_inset 
+
+.
+ As a by-product, the MeqTree will calculate the derivatives 
+\begin_inset Formula $\frac{\partial M_{i}}{\partial p_{m}}$
+\end_inset 
+
+ w.r.t.
+ all parameters 
+\begin_inset Formula $p_{m}$
+\end_inset 
+
+of the Minimum Instrumental Function (MIM), if any.
+\layout Enumerate
+
+Solve for incremental improvements 
+\begin_inset Formula $\Delta p_{m}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Delta p_{a}$
+\end_inset 
+
+ for all parameter values.
+ Apply the changes 
+\begin_inset Formula $\Delta p_{m}$
+\end_inset 
+
+ to the model values 
+\begin_inset Formula $M_{i}$
+\end_inset 
+
+.
  
 \layout Enumerate
 
@@ -1359,23 +1507,7 @@ are not outside reasonable limits.
  After all, it is a non-linear system.
 \layout Enumerate
 
-Apply the changes 
-\begin_inset Formula $\Delta p_{m}$
-\end_inset 
-
- to the model values 
-\begin_inset Formula $M_{i}$
-\end_inset 
-
-.
- Keep the same derivatives 
-\begin_inset Formula $\frac{\partial D_{i}}{\partial p_{a}}$
-\end_inset 
-
- (there does not seem to be any information available to improve them....?)
-\layout Enumerate
-
-Apply the changes 
+Apply the incremental changes 
 \begin_inset Formula $\Delta p_{a}$
 \end_inset 
 
@@ -1387,12 +1519,7 @@ successively
 \begin_inset Formula $D_{i}$
 \end_inset 
 
- each time.
- This should probably be done in order of decreasing values of 
-\begin_inset Formula $\Vert\frac{\partial D_{i}}{\partial p_{a}}\Delta p_{a}\Vert$
-\end_inset 
-
-.
+ before and after.
  Use the 
 \begin_inset Formula $\frac{\triangle D_{i}}{\triangle p_{a}}$
 \end_inset 
@@ -1406,125 +1533,65 @@ successively
 \layout Enumerate
 
 Back to step 1
+\layout Subsection
+
+
+\begin_inset LatexCommand \label{sub:Problems-to-be}
+
+\end_inset 
+
+Problems to be addressed
 \layout Standard
 
-The obvious drawback of this procedure is that, near the optimum point 
+Obviously, the procedure sketched above will present some problems.
+ For instance: 
+\layout Itemize
+
+Whereas the model derivatives are noise-free, the derivatives 
+\begin_inset Formula $\frac{\partial D_{i}}{\partial p_{a}}$
+\end_inset 
+
+ suffer from measurement noise.
+ 
+\layout Itemize
+
+Near the optimum point 
 \begin_inset Formula $\vec{P_{0}},$
 \end_inset 
 
- the system becomes less sensitive because the estimated 
-\begin_inset Formula $\Delta p_{k}$
-\end_inset 
-
-will be close to zero, so the next set of derivatives will be small also.
- A possible solution is to multiply all actuator changes 
+ the estimated 
 \begin_inset Formula $\Delta p_{a}$
 \end_inset 
 
-by some factor (e.g.
- 2), and make a correction for the subsequent jitter in the measured pixel
- values.
- Some more though is clearly needed here.......
-\layout Section
-
-
-\begin_inset LatexCommand \label{sec:Calibration-block-diagram}
-
-\end_inset 
-
-Calibration block diagram
-\layout Standard
-
-We will assume for the moment that the scientific target source is too faint
- to be used for selfcal.
- Therefore, we split up the procedure in internal and external calibration
- (connection with the sky).
+will be small, making it more difficult to obtain reliable derivatives empirical
+ly.
  
-\layout Subsection
-
-
-\begin_inset LatexCommand \label{sub:Internal-calibration}
-
-\end_inset 
-
-Internal calibration
-\layout Standard
-
-A known test signal must be injected as early as possible (see fig 
-\begin_inset LatexCommand \ref{cap:Schematic-block-diagram}
-
-\end_inset 
-
-).
- From there on, all optical are part of the procedure, and their actuators
- should ideally be controlled by the calibration system.
- Obviously, the calibration signal will be much brighter than the science
- target.
- We have the following possibilities to separate them:
 \layout Itemize
 
-Different wavelength.
- This has the disadvantage that it is not really closed-loop.
-\layout Itemize
-
-Different time (gating).
- This is attractive, but the duty-cycle causes some loss of observation
- time.
- Also, the detector must be able to switch over on short time-scales.
-\layout Itemize
-
-Different position.
- If the optical system is optimised for 3-4 positions, it might be assumed
- to be optimised for the central position as well.
- However, not really closed-loop.
-\layout Standard
-
-The injection signals, or their images, do not have to be of a particularly
- high quality.
- The important thing is that we have a model of their images that will allow
- us to calibrate the system.
- Thus, the injection signals should probably be fairly stable, so we can
- derive an empirical model image.
+There are also potential oscillation issues.
  
-\layout Subsection
-
-
-\begin_inset LatexCommand \label{sub:Connection-with-the}
-
-\end_inset 
-
-Connection with the sky
 \layout Itemize
 
-Pointing
-\layout Itemize
+Etc...
+\layout Standard
 
-sky rotation
-\layout Itemize
 
-extinction
-\layout Itemize
-
-atmospheric dispersion
-\layout Itemize
-
-adaptive optics
-\layout Itemize
-
-etc..
+\emph on 
+Some more thought is clearly needed here, and experimentation, of course
+ ....
 \layout Standard
 
 
 \begin_inset Float figure
 wide false
-collapsed true
+collapsed false
 
 \layout Standard
 \align center 
 
 \begin_inset Graphics
-	filename floptics_block.eps
-	width 80col%
+	filename floptics_MeqTree.eps
+	width 90col%
 
 \end_inset 
 
@@ -1534,27 +1601,87 @@ collapsed true
 
 \emph on 
 
-\begin_inset LatexCommand \label{cap:Schematic-block-diagram}
+\begin_inset LatexCommand \label{cap:A-MeqTree-with}
 
 \end_inset 
 
-Schematic block diagram of an optical telescope.
- The internal calibration signal is injected as early as possible.
- The position (and shape) of optical surfaces are controlled by actuators.
- The MeqTree system minimises the differences between measured and predicted
- pixel values by manipulating the actuators.
- The necessary derivatives may be calculated with the help of an explicit
- Measurement Equation (M.E.), but they may also be determined empirically.
- The latter is the preferred method, because it does not require any knowledge
- of the optical details.
+A MeqTree with a solver for the case of an empirical Measurement Equation
+ (see section 
+\begin_inset LatexCommand \ref{sec:Empirical-Measurement-Equation}
+
+\end_inset 
+
+).
+ As explained in the text, a MeqTree implements an arbitrary M.E., and solves
+ for arbitrary subsets of its parameters.
+ Virtually the only function of a MeqTree node is to return a result whenever
+ it gets a request.
+ More precisely, when a node gets a request for a particular N-dimansional
+ domain, it returns values for the cells of this domain.
+ Most nodes do this by passing the request to their children, and combining
+ their results in its own way (e.g.
+ a MeqAdd node just adds them, etc).
+ The arrows indicate the flow direction of the results.
+ MeqParm nodes represent M.E.
+ parameters, and have no children.
+ They calculate values for the cells of any requested domain, as best as
+ they can, using their own stored values.
+ In our present case, the domain cells will usually correspond to detector
+ pixels.
+ 
 \layout Standard
 
 
 \emph on 
-After internal calibration, one or more reference stars have to be used
- to make the connection with the sky.
- It should be emphasized that, in this stage, we only address slow variations.
- Atmospheric turbulence and AO is ignored until we have gathered more experience.
+The children of a MeqSolver node are MeqCondeq nodes, each of which has
+ two children (ignoring the weights child for the moment): one for measured
+ data (D), and one for predicted model values (M).
+ Both sides also carry information for calculating derivatives w.r.t.
+ to MeqParms or MeqActuators upstream.
+ 
+\layout Standard
+
+
+\emph on 
+For each domain cell (pixel), the condeq generates a condition equation,
+ in which the derivatives 
+\begin_inset Formula $\frac{\partial M}{\partial p}$
+\end_inset 
+
+ or 
+\begin_inset Formula $\frac{\partial D}{\partial p}$
+\end_inset 
+
+ are the coefficients, and the difference 
+\begin_inset Formula $(D_{i}-M_{i})$
+\end_inset 
+
+ is the driving term.
+ These are accumulated in the solution matrix, which is inverted to yield
+ incremental improvements 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+.
+ The latter are passed up the tree to update the relevant MeqParm and MeqActuato
+r nodes.
+\layout Standard
+
+
+\emph on 
+The only new parts that are needed are the MeqDetector and MeqActuator nodes,
+ which interface with detector and hardware actuators respectively.
+ The former reads out the detector upon request.
+ The latter returns zeroes, and perturbed values for calculating derivatives.
+ In order to do that, a MeqActuator needs to read out the detector independently
+, before and after changing the setting of its actuator.
+ This can be done while updating the MeqActuators with incremental values
+ 
+\begin_inset Formula $\Delta p_{a}$
+\end_inset 
+
+, after a solution.
+ Obviously, this will have to be done sequentually.
 \end_inset 
 
 
@@ -1605,7 +1732,7 @@ The desired feature of the source is expected, and part of the model.
 \layout Itemize
 
 Unexpected features (discoveries!) will stand out in the residuals 'like
- a sore tooth', which greatly increases the chance of them.
+ a sore tooth', which greatly increases the chance of not missing them.
  Very importantly, unexpected things can be followed up on the spot.
  First the standard confidence analysis tools of the MeqTree system should
  be used to ascertain that it is not an artifact of the utilised model.
@@ -1732,7 +1859,7 @@ self-calibration
 \emph on 
 empirical
 \emph default 
- M.E., i.e.
+ Measurement Equation (M.E.), i.e.
  without any knowledge of the internal details of the optical chain.
  
 \layout Standard
@@ -1745,8 +1872,8 @@ A potentially very important by-product is the possibility for deep data
 \layout Standard
 
 A stepwise program for the development of this technique is outlined.
- Since most of the elements are available, a first demonstration should
- be possible within six months.
+ Most of the elements that are needed for a first demonstration could be
+ ready within six months.
  
 \layout Standard
 
@@ -1794,4 +1921,9 @@ We have seen that selfcal is a closed-loop technique to keep the observing
  compensators, image de-rotators etc are usually rather precarious compromises
  (especially for wide-field instruments), the results of their software
  counterparts are often superior.
+\layout Standard
+
+
+\emph on 
+(to be completed)
 \the_end
