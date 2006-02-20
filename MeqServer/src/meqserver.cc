@@ -71,9 +71,6 @@ int main (int argc,const char *argv[])
     cdebug(0)<<"=================== starting StatusMonitor ====================\n";
     Octopussy::dispatcher().attach(new Octopussy::StatusMonitorWP());
     
-    cdebug(0)<<"=================== starting OCTOPUSSY thread =================\n";
-    Octopussy::initThread(true);
-    
     cdebug(0)<<"=================== creating MeqServer ========================\n";
     Meq::MeqServer meqserver;
     
@@ -94,6 +91,9 @@ int main (int argc,const char *argv[])
     Octopussy::dispatcher().attach(mux);
     // preinitialize control channel
     control_channel().init(recref);
+    
+    cdebug(0)<<"=================== starting OCTOPUSSY thread =================\n";
+    Octopussy::initThread(true);
     
     cdebug(0)<<"=================== running MeqServer =========================\n";
     meqserver.run();
