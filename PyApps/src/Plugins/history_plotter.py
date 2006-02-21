@@ -152,11 +152,16 @@ class HistoryPlotter(GriddedPlugin):
 
     self.label = '';  # extra label, filled in if possible
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
-#   try to put request ID ^Sin label
-      try: self.label = "rq " + str(self._rec.cache.request_id);
-      except: pass;
-      try: self._rec = self._rec.cache.result; # look for cache.result record
-      except:
+#   try to put request ID^S in label
+      rq_id_found = False
+      if self._rec.cache.has_key("request_id"):
+        self.label = "rq " + str(self._rec.cache.request_id);
+        rq_id_found = True
+      if self._rec.cache.has_key("result"):
+        self._rec = self._rec.cache.result; # look for cache.result record
+        if not rq_id_found and self._rec.has_key("request_id"):
+          self.label = "rq " + str(self._rec.request_id);
+      else:
         Message = "No result record was found in the cache, so no plot can be made with the <b>history plotter</b>! You may wish to select another type of display."
         cache_message = QLabel(Message,self.wparent())
         cache_message.setTextFormat(Qt.RichText)
