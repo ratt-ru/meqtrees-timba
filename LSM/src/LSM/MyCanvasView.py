@@ -264,7 +264,17 @@ class MyCanvasView(QCanvasView):
       punit=self.lsm.p_table[each_item.name]
       br=""
       if punit != None:
-       br="At [%5.4f, %5.4f]<br/>App. Brightness: %5.3f "%(punit.sp.getRA(),punit.sp.getDec(),punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index))
+       if self.default_coords=='rad':
+         br="<br/>At [%5.4f, %5.4f]<br/>App. Brightness: "%(punit.sp.getRA(),punit.sp.getDec())
+         ab=stdForm(punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index),"%5.3f")
+         br=br+ab[0]+ab[1]+"Jy"
+       else:
+         tmpval=radToRA(punit.sp.getRA())
+         br="<br/>At ["+str(tmpval[0])+"<sup>o</sup>"+str(tmpval[1])+"<sup>'</sup>"+str(tmpval[2])+"<sup>''</sup>,"
+         tmpval=radToDec(punit.sp.getDec())
+         br=br+str(tmpval[0])+"<sup>o</sup>"+str(tmpval[1])+"<sup>'</sup>"+str(tmpval[2])+"<sup>''</sup>]<br/>App. Brightness: "
+         ab=stdForm(punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index),"%5.3f")
+         br=br+ab[0]+ab[1]+"Jy"
       tmp_str+=br
       if punit._patch_name !=None:
        tmp_str+="<br/>patch <font color=\"blue\">"+punit._patch_name+"</font></li>"
@@ -413,7 +423,7 @@ class MyCanvasView(QCanvasView):
 
    if self.zoom_status==GUI_MOVE_START:
     self.zoom_status=GUI_ZOOM_NONE
-    print self.__moving.name
+    #print self.__moving.name
     xys=self.localToGlobal(point.x(),point.y())
     # update the LSM
     self.lsm.move_punit(self.__moving.name,xys[0],xys[1])
