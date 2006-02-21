@@ -16,6 +16,7 @@ from LSM_inner import *
 from Timba.Meq import meq
 from Timba.TDL import *
 from Timba.Trees import TDL_Sixpack
+from Timba.Trees import TDL_Parmset
 from Timba.Meq import meq
 
 from Timba.Apps import app_nogui
@@ -158,7 +159,10 @@ class PUnit:
   # root node namse of the IQUV,Ra,Dec subtrees
   if self.__sixpack!=None:
    newp.__sixpack={}
-   #print self.__sixpack
+   pset=self.__sixpack.Parmset
+   # copy ParmSet
+   newp.__sixpack['Parmset']=self.clone_parmset(pset)
+   print newp.__sixpack['Parmset']
    if self.__sixpack.ispoint():
     newp.__sixpack['I']=self.__sixpack.stokesI().name
     newp.__sixpack['Q']=self.__sixpack.stokesQ().name
@@ -197,6 +201,66 @@ class PUnit:
    self.sp.set_staticRA(new_ra)
    self.sp.set_staticDec(new_dec)
 
+ # Try to clone a TDL_Parmset, replacing any nodestubs with their names 
+ def clone_parmset(self,pset):
+  #print dir(pset)
+  mydict={}
+  if pset==None:
+   return mydict
+  # copy anything that is not a node stub
+  mydict['MeqParm']={'__type__':'dict'}
+  for key in pset.MeqParm().keys():
+   pgk=pset.MeqParm()[key]
+   if isinstance(pgk,Timba.TDL.TDLimpl._NodeStub):
+     mydict['MeqParm'][key]={'__type__':'nodestub','name':pgk.name}
+   else:
+     mydict['MeqParm'][key]=pgk
+
+  # dicts
+  mydict['node_groups']=pset.node_groups()
+  mydict['parmtable']=pset.parmtable()
+  mydict['quals']=pset.quals()
+  # dict of dicts
+  mydict['parmgroup']=pset.parmgroup()
+  
+  # strings
+  mydict['unsolvable']=pset.unsolvable()
+
+
+  return mydict
+
+ # Try to recreate a TDL_Parmset from a given dict.
+ # Assume all needed nodes exist in the ns
+ # Assume also the sixpack is present in this PUnit
+ def setParmset(self,tmp_dict,ns):
+  print tmp_dict
+  if self.__sixpack==None or ns==None:
+    print "WARNING: cannot reconstruct Parmset"
+    return
+  # recreate Parmset
+  pset=TDL_Parmset.Parmset(unsolvable=tmp_dict['unsolvable'],parmtable=tmp_dict['parmtable'])
+  pset.quals(tmp_dict['quals'])
+  # now reattach the node stubs
+  mydict=tmp_dict['MeqParm']
+  for key in mydict.keys():
+   pgk=mydict[key]
+   if isinstance(pgk,dict):
+     if pgk.has_key('__type__') and pgk['__type__']=='nodestub':
+      #print pgk
+      pset[pgk['name']]=ns['name']
+
+  pset.node_groups(tmp_dict['node_groups'])
+  
+  # parmgroup is a dict of dicts
+  mydict=tmp_dict['parmgroup']
+  for key in mydict.keys():
+   #print key
+   #print mydict[key]
+   pset.parmgroup(key)
+
+  pset.display()
+  # attach it to sixpack 
+  self.__sixpack.Parmset=pset
 ###############################################
 class LSM:
  """LSM Object:
@@ -639,8 +703,9 @@ class LSM:
       stokesV=self.__ns[tmp_dict['V']])
      # set the root node
      my_sp=my_sp.clone(sixpack=self.__ns[tmp_dict['pointroot']],ns=self.__ns)
-
     punit.setSP(my_sp)
+    # recreate Parmset for this sixpack
+    punit.setParmset(tmp_dict['Parmset'],self.__ns)
     # set the root
     punit.sp.setRoot(my_sp.sixpack())
 

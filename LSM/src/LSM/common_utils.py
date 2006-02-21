@@ -289,9 +289,9 @@ def create_node_stub(mydict,stubs,ns,myname):
   # MeqParm is special
   #if myclass.lstrip('Meq')=='Parm':
   # total_str="ns['"+myname+"']<<Meq.Parm(default_funklet_value)"
-  print "Total=",total_str
+  #print "Total=",total_str
   exec total_str in globals(),locals()
-  print ns[myname].initrec()
+  #print ns[myname].initrec()
   return ns[myname]
      
  

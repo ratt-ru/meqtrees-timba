@@ -211,6 +211,7 @@ class LSMWindow(QMainWindow):
         self.table2.setGeometry(QRect(-3,-3,401,471))
         self.table2.setNumRows(self.lsm.getPUnits())
         self.table2.setNumCols(self.lsm.getPUnitColumns())
+        self.table2.setSorting(1)
         self.tabWidget.insertTab(self.punitTab,QString.fromLatin1(""))
 
         self.table2.horizontalHeader().setLabel(PCOL_NAME,self.tr("PUnit Name"))
