@@ -560,12 +560,15 @@ class ResultPlotter(GriddedPlugin):
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
       # try to put request ID in label
-      try: 
+      rq_id_found = False
+      if self._rec.cache.has_key("request_id"):
         self.label = "rq " + str(self._rec.cache.request_id);
-      except: pass;
-      try: 
+        rq_id_found = True
+      if self._rec.cache.has_key("result"):
         self._rec = self._rec.cache.result; # look for cache.result record
-      except:
+        if not rq_id_found and self._rec.has_key("request_id"):
+          self.label = "rq " + str(self._rec.request_id);
+      else:
 # cached_result not found, display an empty viewer with a "no result
 # in this node record" message (the user can then use the Display with
 # menu to switch to a different viewer)
