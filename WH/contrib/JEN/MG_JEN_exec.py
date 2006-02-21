@@ -412,6 +412,12 @@ def spigot2sink (mqs, parent, ctrl=None, **pp):
    req = meq.request()
    req.input = record(ms=ss.inputrec, python_init=python_init)
    req.output = record(ms=ss.outputrec)
+
+   # See also bug 404: Add a "dataset" dependency to VisDataMux....
+   # Make sure that part of the request ID is incremented in test_forest.
+   # Otherwise, the VisDataMux node can only be properly executed once, since aftewards it
+   # persists in returning a result from the cache.....
+
    mqs.execute('VisDataMux', req, wait=False)
 
    # Optionally, save the meqforest

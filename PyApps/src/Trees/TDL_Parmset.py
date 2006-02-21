@@ -193,10 +193,18 @@ class Parmset (TDL_common.Super):
         self.__MeqParm[key] = value
         return self.__MeqParm[key]
 
-    def MeqParm(self): return self.__MeqParm
-    def len(self): return len(self.__MeqParm)
-    def keys(self): return self.__MeqParm.keys()
-    def has_key(self, key): return self.keys().__contains__(key)
+    def MeqParm(self):
+        """The list of MeqParm nodes"""
+        return self.__MeqParm
+    def len(self):
+        """The number of MeqParm nodes in MeqParm"""
+        return len(self.__MeqParm)
+    def keys(self):
+        """The list of MeqParm keys (names)"""
+        return self.__MeqParm.keys()
+    def has_key(self, key):
+        """Test whether MeqParm contains an item with the specified key"""
+        return self.keys().__contains__(key)
 
     def node_groups(self, new=None):
         """Get/set node_groups (input for MeqParm definition)"""  

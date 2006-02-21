@@ -51,6 +51,9 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 # Other MG_JEN scripts (uncomment as necessary):
 # NB: Also browse the list of other available scripts!
 
+from Timba.LSM.LSM import *
+from Timba.LSM.LSM_GUI import *
+
 from Timba.Trees import TDL_Sixpack
 from Timba.Trees import TDL_Parmset
 from Timba.Trees import TDL_Leaf
@@ -114,6 +117,11 @@ def inarg_punit (pp, **kwargs):
                       '- 3c295:   \n'+
                       '- 3c147:   \n'+
                       '')
+
+    # Optional: Specify an LSM to get the Sixpack from:
+    JEN_inarg.define (pp, 'LSM', None, browse='*.lsm', hide=False,
+                      help='(file)name of a Local Sky Model')
+
     # Upward compatibility (temporary).
     # name has been changed into punit on friday 10 feb 2006....
     JEN_inarg.define (pp, 'name', None, hide=True)
@@ -405,6 +413,19 @@ def newstar_source (ns=0, **inarg):
 
    # Upward compatibility (temporary)
    JEN_inarg.obsolete (pp, old='name', new='punit')
+
+   # Hidden option: If a LSM (file) is specified, return the Sixpack
+   # that represents the brightest object:
+   if pp['LSM']:
+       print '\n**',funcname,': LSM =',pp['LSM']
+       lsm = LSM()
+       lsm.load(pp['LSM'],ns)
+       plist = lsm.queryLSM(count=1)
+       print '\n** plist =',type(plist),len(plist)
+       punit = plist[0] 
+       Sixpack = punit.getSP()              # get_Sixpack()
+       Sixpack.display()
+       return Sixpack
   
    # Adjust parameters pp for some special cases:
    # NB: Disabled, to allow customisation via inargGui....

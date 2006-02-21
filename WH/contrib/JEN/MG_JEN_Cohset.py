@@ -163,6 +163,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         Cohset.graft(ns, solver[0], name='chain_solvers')
 
     # Optional: flag the sink (output) data:
+    # NB: Not very useful, unless residual uv-data....
     if pp['flag']:
         insert_flagger (ns, Cohset, scope='sinks',
                         unop=['Real','Imag'], visu=False)
@@ -170,7 +171,12 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     # Make an extra VisDataMux for post-visualisation of the full domain:
     # NB: Do this BEFORE Cohset.sinks....
     if pp['fullDomainMux']:
-        post = [TDL_Leaf.MeqFreqTime(ns, zero_mean=True)]        
+        if False:
+            # Test:
+            post = [TDL_Leaf.MeqFreqTime(ns, zero_mean=True)]
+        else:
+            mm = Cohset.Parmset.MeqParm()         # The list of upstream MeqParms
+            post = [ns.MeqParmGroups << Meq.Add(children=mm)]
         Cohset.fullDomainMux(ns, post=post)
 
     # Optional: visualise the sink (output) data:
@@ -403,6 +409,11 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
         Mohset.Condeq(ns, predicted, unop=pp['condeq_unop'])        
     Mohset.scope('condeq_'+punit)
     Mohset.history(funcname+' -> '+Mohset.oneliner())
+
+    # Update the measured Cohset with the Parmset from Mohset.
+    # This contains the Joneset/Sixpack MeqParms, which may be re-executed
+    # separately for the full (MS) domain for inspection (see .make_sinks())
+    measured.update_from_Parmset(Mohset.Parmset)
 
     # Make a list of one or more MeqSolver subtree(s):
     # Assume that pp contains the relevant (qual) inarg record(s).

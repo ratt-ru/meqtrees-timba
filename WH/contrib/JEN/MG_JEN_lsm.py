@@ -243,6 +243,7 @@ MG = JEN_inarg.init('MG_JEN_lsm', description=description.__doc__)
 JEN_inarg.define (MG, 'last_changed', 'd30jan2006', editable=False)
 
 JEN_inarg.define (MG, 'LSM', 'lsm_current.lsm', browse='*.lsm',
+                  choice=['lsm_current.lsm',None],
                   help='(file)name of the Local Sky Model')
 
 JEN_inarg.define (MG, 'test_pattern', None,

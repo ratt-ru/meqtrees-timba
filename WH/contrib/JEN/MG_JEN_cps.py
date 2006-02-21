@@ -294,7 +294,9 @@ def _define_forest (ns, **kwargs):
 
 
 
-def _test_forest (mqs, parent):
+# def _test_forest (mqs, parent):
+def _tdl_job_execute (mqs, parent):
+   """Execute the tree""" 
    
    # Timba.TDL.Settings.forest_state is a standard TDL name. 
    # This is a record passed to Set.Forest.State. 
@@ -322,21 +324,6 @@ def _tdl_job_fullDomainMux (mqs, parent):
    # Start the sequence of requests issued by MeqSink:
    MG_JEN_exec.fullDomainMux(mqs, parent, ctrl=MG)
    return True
-
-
-def _tdl_job_noMS (mqs, parent):
-   return MG_JEN_exec.meqforest (mqs, parent)
-
-
-# Execute the forest for a sequence of requests:
-
-def _tdl_job_sequence(mqs, parent):
-    for x in range(10):
-        MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
-                               f1=x, f2=x+1, t1=x, t2=x+1,
-                               save=False, trace=False, wait=False)
-    MG_JEN_exec.save_meqforest(mqs) 
-    return True
 
 
 
