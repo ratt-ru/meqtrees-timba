@@ -161,7 +161,8 @@ class PUnit:
    newp.__sixpack={}
    pset=self.__sixpack.Parmset
    # copy ParmSet
-   newp.__sixpack['Parmset']=self.clone_parmset(pset)
+   #newp.__sixpack['Parmset']=self.clone_parmset(pset)
+   newp.__sixpack['Parmset']=pset.clone()
    print newp.__sixpack['Parmset']
    if self.__sixpack.ispoint():
     newp.__sixpack['I']=self.__sixpack.stokesI().name
@@ -220,6 +221,7 @@ class PUnit:
   mydict['node_groups']=pset.node_groups()
   mydict['parmtable']=pset.parmtable()
   mydict['quals']=pset.quals()
+  mydict['pg_rider']=pset.pg_rider()
   # dict of dicts
   mydict['parmgroup']=pset.parmgroup()
   
@@ -238,31 +240,8 @@ class PUnit:
     print "WARNING: cannot reconstruct Parmset"
     return
   # recreate Parmset
-  pset=TDL_Parmset.Parmset(unsolvable=tmp_dict['unsolvable'],parmtable=tmp_dict['parmtable'])
-  pset.quals(tmp_dict['quals'])
-  # now reattach the node stubs
-  mydict=tmp_dict['MeqParm']
-  for key in mydict.keys():
-   pgk=mydict[key]
-   if isinstance(pgk,dict):
-     if pgk.has_key('__type__') and pgk['__type__']=='nodestub':
-      #print pgk
-      pset[pgk['name']]=ns['name']
-
-  pset.node_groups(tmp_dict['node_groups'])
-  
-  # parmgroup is a dict of dicts
-  mydict=tmp_dict['parmgroup']
-  for key in mydict.keys():
-   #print key
-   #print mydict[key]
-   # create the parmgroup
-   pset.parmgroup(key)
-   # add members
-   pg=pset.parmgroup(key)
-   for itm in mydict[key]:
-    pg.append(itm)
-
+  pset=TDL_Parmset.Parmset()
+  pset.restore(tmp_dict,ns)
   pset.display()
   # attach it to sixpack 
   self.__sixpack.Parmset=pset
