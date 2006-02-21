@@ -1211,4 +1211,27 @@ class LSM:
        ,'old_ra':old_ra,'old_dec':old_dec}
     punit.change_location(new_ra,new_dec,ns)
 
+ # perform a linear transform on all sources
+ # such that v_new=A v + b
+ # where v_new is the 2x1 vector of new coordinates in radians.
+ # A : 2x2 matrix
+ # b : 2x1 vector
+ # if patches are present, effect is undefined
+ def linear_transform(self,A,b):
+   ns=self.getNodeScope()
+   if ns==None:
+    print "WARNING: need nodescope to perform transform:",A,b
+    return
+   self.__undo=None # cannot undo this
+   for pname in self.p_table.keys():
+    pu=self.p_table[pname]
+    if pu.getType()==POINT_TYPE:
+     old_ra=pu.sp.getRA()
+     old_dec=pu.sp.getDec()
+     # calculate new coords
+     new_ra=A[0][0]*old_ra+A[0][1]*old_dec+b[0]
+     new_dec=A[1][0]*old_ra+A[1][1]*old_dec+b[1]
+     pu.change_location(new_ra,new_dec,ns)
+
+ 
 #########################################################################

@@ -20,6 +20,7 @@ from MyCanvasView import *
 from TreeDisp import *
 from ExportDialog import *
 from PatchOptionsDialog import *
+from TransDialog import *
 
 image0_data = \
     "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d" \
@@ -281,8 +282,7 @@ class LSMWindow(QMainWindow):
         self.table2.setSorting(0)
         self.table2.setReadOnly(1)
         ### now some signals
-        self.connect( self.table2, SIGNAL("clicked( int, int, int,const QPoint&)"),
-           self.putable_getcell)
+        self.connect( self.table2, SIGNAL("clicked( int, int, int,const QPoint&)"),self.putable_getcell)
 
 
 ####### Tab 3 ############################
@@ -352,6 +352,7 @@ class LSMWindow(QMainWindow):
         self.view_patchAction= QAction(self,"view_patchAction")
         self.view_refreshAction = QAction(self,"view_refreshAction")
         self.edit_moveAction = QAction(self,"edit_moveAction")
+        self.edit_transformAction = QAction(self,"edit_transformAction")
 
 
 
@@ -388,6 +389,7 @@ class LSMWindow(QMainWindow):
 
         self.editMenu = QPopupMenu(self)
         self.edit_moveAction.addTo(self.editMenu)
+        self.edit_transformAction.addTo(self.editMenu)
         self.editMenu.insertSeparator()
         self.view_selectAction.addTo(self.editMenu)
         self.view_patchAction.addTo(self.editMenu)
@@ -419,6 +421,7 @@ class LSMWindow(QMainWindow):
         self.connect(self.viewZoom_OptionsAction,SIGNAL("activated()"),self.changeOptions)
         self.connect(self.view_nextAction,SIGNAL("activated()"),self.viewNextMode)
         self.connect(self.edit_moveAction,SIGNAL("activated()"),self.moveItem)
+        self.connect(self.edit_transformAction,SIGNAL("activated()"),self.linearTransform)
         self.connect(self.view_selectAction,SIGNAL("activated()"),self.viewSelectWindow)
         self.connect(self.view_patchAction,SIGNAL("activated()"),self.viewCreatePatches)
 
@@ -426,38 +429,41 @@ class LSMWindow(QMainWindow):
 
     # event handelr fro PUnit table
     def putable_getcell(self,cellx,celly,button,point):
-     print cellx,celly
-     print button
-     print point
-     puname=self.table2.text(cellx,PCOL_NAME).ascii()
-     plist=self.lsm.queryLSM(name=puname)
-     punit=plist[0]
-     sp=plist[0].getSP()
-     win=None
-     if punit.getType()==POINT_TYPE: 
-      if (celly==PCOL_I):
-       # get I node stub corresponding to this punit
-       win=TreeDisp(self,puname,0,0,sp.stokesI())
-      elif (celly==PCOL_Q):
-       win=TreeDisp(self,puname,0,0,sp.stokesQ())
-      elif (celly==PCOL_U):
-       win=TreeDisp(self,puname,0,0,sp.stokesU())
-      elif (celly==PCOL_V):
-       win=TreeDisp(self,puname,0,0,sp.stokesV())
-      elif (celly==PCOL_RA):
-       win=TreeDisp(self,puname,0,0,sp.ra())
-      elif (celly==PCOL_DEC):
-       win=TreeDisp(self,puname,0,0,sp.dec())
-      elif (celly==PCOL_SLIST):
-       win=TreeDisp(self,puname,0,0,sp.sixpack())
-     else: # this is a patch
-      if (celly==PCOL_SLIST) or (celly==PCOL_I) or\
-        (celly==PCOL_Q) or (celly==PCOL_U) or (celly==PCOL_V) or\
-        (celly==PCOL_RA) or (celly==PCOL_DEC):
-       win=TreeDisp(self,puname,0,0,sp.root())
-     if win!=None:
-       win.setTitle(puname)
-       win.show()
+     #print cellx,celly
+     #print button
+     #print point
+     if button==1:
+       puname=self.table2.text(cellx,PCOL_NAME).ascii()
+       plist=self.lsm.queryLSM(name=puname)
+       punit=plist[0]
+       sp=plist[0].getSP()
+       win=None
+       if punit.getType()==POINT_TYPE: 
+        if (celly==PCOL_I):
+         # get I node stub corresponding to this punit
+         win=TreeDisp(self,puname,0,0,sp.stokesI())
+        elif (celly==PCOL_Q):
+         win=TreeDisp(self,puname,0,0,sp.stokesQ())
+        elif (celly==PCOL_U):
+         win=TreeDisp(self,puname,0,0,sp.stokesU())
+        elif (celly==PCOL_V):
+         win=TreeDisp(self,puname,0,0,sp.stokesV())
+        elif (celly==PCOL_RA):
+         win=TreeDisp(self,puname,0,0,sp.ra())
+        elif (celly==PCOL_DEC):
+         win=TreeDisp(self,puname,0,0,sp.dec())
+        elif (celly==PCOL_SLIST):
+         win=TreeDisp(self,puname,0,0,sp.sixpack())
+       else: # this is a patch
+        if (celly==PCOL_SLIST) or (celly==PCOL_I) or\
+          (celly==PCOL_Q) or (celly==PCOL_U) or (celly==PCOL_V) or\
+          (celly==PCOL_RA) or (celly==PCOL_DEC):
+         win=TreeDisp(self,puname,0,0,sp.root())
+       if win!=None:
+         win.setTitle(puname)
+         win.show()
+     else: # sort column in descending order, with whole row 
+       self.table2.sortColumn(celly,0,1)
 
     def exportPUTableTEX(self,filename="tab.tex"):
       mytable=self.table2
@@ -539,17 +545,20 @@ class LSMWindow(QMainWindow):
         self.view_refreshAction.setMenuText(self.__tr("&Refresh"))
         self.view_refreshAction.setAccel(self.__tr("Ctrl+R"))
         self.viewZoom_OptionsAction.setText(self.__tr("Change Options for Plotting"))
-        self.viewZoom_OptionsAction.setMenuText(self.__tr("Change &Options"))
+        self.viewZoom_OptionsAction.setMenuText(self.__tr("Change &Options..."))
         self.viewZoom_OptionsAction.setAccel(self.__tr("Ctrl+O"))
         self.view_nextAction.setText(self.__tr("Next"))
-        self.view_nextAction.setMenuText(self.__tr("Next &Mode"))
+        self.view_nextAction.setMenuText(self.__tr("Next &Mode..."))
         self.view_nextAction.setAccel(self.__tr("Ctrl+N"))
 
         self.edit_moveAction.setText(self.__tr("Move"))
         self.edit_moveAction.setMenuText(self.__tr("&Move"))
         self.edit_moveAction.setAccel(self.__tr("Ctrl+M"))
+        self.edit_transformAction.setText(self.__tr("Transform"))
+        self.edit_transformAction.setMenuText(self.__tr("&Transform..."))
+        self.edit_transformAction.setAccel(self.__tr("Ctrl+T"))
         self.view_patchAction.setText(self.__tr("Create Patches"))
-        self.view_patchAction.setMenuText(self.__tr("Create Patches (&Grid)"))
+        self.view_patchAction.setMenuText(self.__tr("Create Patches (&Grid)..."))
         self.view_patchAction.setAccel(self.__tr("Ctrl+G"))
         self.view_selectAction.setText(self.__tr("Create Patches"))
         self.view_selectAction.setMenuText(self.__tr("Create Patches (&Window)"))
@@ -740,6 +749,10 @@ class LSMWindow(QMainWindow):
 
     def moveItem(self):
       self.cview.zoom_status=GUI_MOVE_START
+
+    def linearTransform(self):
+      win=TransDialog(self,"Linear Transform",1,0,self.cview,self.lsm) 
+      win.show()
 
 
     # remove rows from PUnit table (table2)
