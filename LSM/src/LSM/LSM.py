@@ -256,7 +256,12 @@ class PUnit:
   for key in mydict.keys():
    #print key
    #print mydict[key]
+   # create the parmgroup
    pset.parmgroup(key)
+   # add members
+   pg=pset.parmgroup(key)
+   for itm in mydict[key]:
+    pg.append(itm)
 
   pset.display()
   # attach it to sixpack 
