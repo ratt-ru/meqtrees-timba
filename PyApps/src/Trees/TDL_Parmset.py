@@ -560,6 +560,63 @@ class Parmset (TDL_common.Super):
         return True
 
 
+#----------------------------------------------------------------------
+#   methods used in saving/restoring the Parmset
+#----------------------------------------------------------------------
+    def clone(self):
+        """clone self such that no NodeStubs are present. This 
+           is needed to save the Parmset."""
+        
+        #create new Parmset
+        newp=Parmset()
+        newp.__unsolvable=self.__unsolvable
+        newp.__parmtable=self.__parmtable
+        newp.__quals=self.__quals
+        newp.__parmgroup=self.__parmgroup
+        newp.__pg_rider=self.__pg_rider
+        newp.__condeq=self.__condeq
+        newp.__solvegroup=self.__solvegroup
+        newp.__plot_color=self.__plot_color
+        newp.__plot_style = self.__plot_style
+        newp.__plot_size = self.__plot_size
+        # do not copy buffer
+        newp.__node_groups=self.__node_groups
+        # convert MeqParm to a dict of strings
+        newp.__MeqParm={}
+        for key in self.__MeqParm.keys():
+             pgk=self.__MeqParm[key]
+             if isinstance(pgk,Timba.TDL.TDLimpl._NodeStub):
+               newp.__MeqParm[key]={'__type__':'nodestub','name':pgk.name}
+             else:
+               newp.__MeqParm[key]=pgk
+
+        return newp
+
+    def restore(self,oldp,ns):
+        """ recreate the Parmset from a saved version 'oldp'"""
+        self.__unsolvable=oldp.__unsolvable
+        self.__parmtable=oldp.__parmtable
+        self.__quals=oldp.__quals
+        self.__parmgroup=oldp.__parmgroup
+        self.__pg_rider=oldp.__pg_rider
+        self.__condeq=oldp.__condeq
+        self.__solvegroup=oldp.__solvegroup
+        self.__plot_color=oldp.__plot_color
+        self.__plot_style = oldp.__plot_style
+        self.__plot_size = oldp.__plot_size
+        # do not copy buffer
+        self.__node_groups=oldp.__node_groups
+        # recreate links to NodeStubs, which have to exist in the 
+        # nodescope 'ns'
+        self.__MeqParm={}
+        mydict=oldp.__MeqParm
+        for key in mydict.keys():
+           pgk=mydict[key]
+           if isinstance(pgk,dict):
+               if pgk.has_key('__type__') and pgk['__type__']=='nodestub':
+                   self.__MeqParm[pgk['name']]=ns['name']
+
+ 
 
 
 
