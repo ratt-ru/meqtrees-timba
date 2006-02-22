@@ -214,7 +214,8 @@ JEN_inarg.attach(MG, inarg)
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(MG['script_name'])
+MG_JEN_forest_state.init(MG)
+# MG_JEN_forest_state.init(MG['script_name'])
 
 
 

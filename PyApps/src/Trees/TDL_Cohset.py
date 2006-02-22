@@ -1322,7 +1322,9 @@ class Cohset (TDL_common.Super):
         # - child 'post' gets a request after the MeqSinks have returned a result 
         #   (may be used to attach all MeqDataCollect nodes)
         if True:
-            for key in ['start','pre','post']:
+            # for key in ['start','pre','post']:
+            for key in ['start','post']:
+                print '-',key,':',type(pp[key]),len(pp[key])
                 if isinstance(pp[key], (list,tuple)):
                     print '-',key,':',type(pp[key]),len(pp[key])
                     for node in pp[key]:

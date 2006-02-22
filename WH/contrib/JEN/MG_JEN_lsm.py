@@ -34,7 +34,7 @@ from Timba.TDL import *
 from Timba.Trees import JEN_inarg
 from Timba.Trees import JEN_inargGui
 
-# from numarray import *
+from numarray import *
 # from string import *
 # from copy import deepcopy
 from random import *
@@ -46,7 +46,6 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.LSM.LSM import *
 from Timba.LSM.LSM_GUI import *
 from Timba.Contrib.JEN import MG_JEN_Sixpack
-# from Timba.Contrib.SBY import MG_SBY_grow_tree
 
 
 
@@ -138,88 +137,141 @@ def lsm_343(ns):
    # lsm.save(MG['lsm_current'])                        # 
    return lsm
 
+
+
+
+
+
+#--------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
 
-def make_single (ns=None, lsm=None, cc=[], radec=[], **inarg):
-   """Define a single test-source"""
+def arcmin2rad(arcmin=None):
+   """Convert arcmin to radians"""
+   factor = pi/(60*180)                         # 180/pi = 57.2957795130....
+   if not arcmin==None: return arcmin*factor    # if arcmin specified, convert
+   return factor                                # return conversion factor
 
+#--------------------------------------------------------------------------------
+
+def add_single (ns=None, Sixpack=None, lsm=None, cc=[], radec=[], **inarg):
+   """Add a test-source (Sixpack) to the given lsm"""
+
+   qual = 'single'
+   
    # Input arguments:
-   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::make_single()', version='10feb2006',
-                           description=make_single.__doc__)
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True))
- 
-   if False:
-      # Source positions may be supplied as nodes:
-      JEN_inarg.define(pp, 'RA0', None, choice=[], hide=True,  
-                       help='If RA0 is a node, RA0+dRA overrides RA')
-      JEN_inarg.define(pp, 'Dec0', None, choice=[], hide=True,   
-                       help='If Dec0 is a node, Dec0+dDec overrides Dec')
-      JEN_inarg.define(pp, 'dRA', 0.0, choice=[], hide=True,   
-                       help='RA offset (arcsec): RA = RA0 + dRA')
-      JEN_inarg.define(pp, 'dDec', 0.0, choice=[], hide=True,   
-                       help='Dec offset (arcsec): Dec = Dec0 + dDec')
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::add_single()', version='10feb2006',
+                           description=add_single.__doc__)
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
    print 'funcname =',funcname
 
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _qual=qual)
+   # print 'pp1 =',pp1
+
    # Create the source defined by pp:
-   sp = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp)
-   sp.display()
-   cc.append(MG_JEN_Sixpack.make_bookmark(ns, sp))
-   MG_JEN_Sixpack.collect_radec(radec, sp)
+   Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual)
+   cc.append(MG_JEN_Sixpack.make_bookmark(ns, Sixpack))
+   MG_JEN_Sixpack.collect_radec(radec, Sixpack)
 
    # Compose the sixpack before adding it to the lsm:
-   sp.sixpack(ns)
-   sp.display()
-   lsm.add_sixpack(sixpack=sp)
-   return sp
+   Sixpack.sixpack(ns)
+   Sixpack.display()
+   lsm.add_sixpack(sixpack=Sixpack)
+   return True
+
 
 
 #--------------------------------------------------------------------------------
 
-def make_grid (ns=None, lsm=None, cc=[], radec=[], **inarg):
-   """Define a rectangular grid of test-sources"""
+def add_grid (ns=None, lsm=None, cc=[], radec=[], **inarg):
+   """Add a rectangular grid of identical test-sources to the given lsm"""
+
+   qual='grid'
 
    # Input arguments:
-   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::make_grid()', version='10feb2006',
-                           description=make_single.__doc__)
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True))
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::add_grid()', version='10feb2006',
+                           description=add_grid.__doc__)
+
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
  
-   # Source positions may be supplied as nodes:
    JEN_inarg.define(pp, 'nRA2', 1, choice=[0,1,2,3],   
                     help='(half) nr of sources in RA direction')
-   JEN_inarg.define(pp, 'nDEC2', 1, choice=[0,1,2,3],   
+   JEN_inarg.define(pp, 'nDec2', 1, choice=[0,1,2,3],   
                     help='(half) nr of sources in DEC direction')
-   JEN_inarg.define(pp, 'gRA', 10, choice=[],    
-                    help='RA grid spacing (arcsec)')
-   JEN_inarg.define(pp, 'gDEC', 10, choice=[],    
-                    help='DEC grid spacing (arcsec)')
+   JEN_inarg.define(pp, 'dRA', 10, choice=[],    
+                    help='RA grid spacing (arcmin)')
+   JEN_inarg.define(pp, 'dDec', 10, choice=[],    
+                    help='Dec grid spacing (arcmin)')
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
    print 'funcname =',funcname
 
-   # Create the source defined by pp:
-   sp = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp)
-   sp.display()
-   cc.append(MG_JEN_Sixpack.make_bookmark(ns, sp))
-   MG_JEN_Sixpack.collect_radec(radec, sp)
+   # Get the internal argument-record for .newstar_source():
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual)
+   RA0 = pp1['RA']
+   Dec0 = pp1['Dec']
 
-   # Compose the sixpack before adding it to the lsm:
-   sp.sixpack(ns)
-   sp.display()
-   lsm.add_sixpack(sixpack=sp)
-   return sp
+   # Create the sources defined by pp:
+   for i in array(range(-pp['nRA2'],pp['nRA2']+1)):
+      RA = RA0 + i*pp['dRA']*arcmin2rad()
+      for j in array(range(-pp['nDec2'],pp['nDec2']+1)):
+         Dec = Dec0 + j*pp['dDec']*arcmin2rad()
+         print '(RA,Dec) =',RA,Dec
+         if True:
+            punit = 'grid:'+str(i)+':'+str(j)
+            Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
+                                                    punit=punit, RA=RA, Dec=Dec)
+            cc.append(MG_JEN_Sixpack.make_bookmark(ns, Sixpack))
+            MG_JEN_Sixpack.collect_radec(radec, Sixpack)
+            # Compose the sixpack before adding it to the lsm:
+            Sixpack.sixpack(ns)
+            # Sixpack.display()
+            lsm.add_sixpack(sixpack=Sixpack)
+   return True
 
 
 #--------------------------------------------------------------------------------
 
-def make_spiral (ns=None, lsm=None, cc=[], radec=[], **pp):
-   """Define a spiral pattern of test-sources"""
+def add_spiral (ns=None, lsm=None, cc=[], radec=[], **inarg):
+   """Add a spiral pattern of identical test-sources to the given lsm"""
+
+   qual = 'spiral'
+
+   # Input arguments:
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::add_grid()', version='10feb2006',
+                           description=add_single.__doc__)
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
+
+   JEN_inarg.define(pp, 'n', 2, choice=[2,3,4,5,10],   
+                    help='nr of sources')
+   JEN_inarg.define(pp, 'rstart', 1, choice=[1,2,5,10,20,50,100],   
+                    help='start radius (arcmin)')
+   JEN_inarg.define(pp, 'rmult', 1.1, choice=[1.01,1.1,1.2,1.5,2],    
+                    help='radius multiplication factor')
+   JEN_inarg.define(pp, 'dang', 0.1, choice=[0,0.1,0.2,0.5,1.0],    
+                    help='position angle indrement (rad)')
+
+   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+   if not JEN_inarg.is_OK(pp): return False
+   funcname = JEN_inarg.localscope(pp)
+   print 'funcname =',funcname
+
    return True
+
+
+
+
+
+
+
+
+
 
 
 
@@ -242,23 +294,22 @@ def description ():
 MG = JEN_inarg.init('MG_JEN_lsm', description=description.__doc__)
 JEN_inarg.define (MG, 'last_changed', 'd30jan2006', editable=False)
 
+
 JEN_inarg.define (MG, 'LSM', 'lsm_current.lsm', browse='*.lsm',
                   choice=['lsm_current.lsm',None],
-                  help='(file)name of the Local Sky Model')
+                  help='(file)name of the Local Sky Model to be used')
 
+# Optional: add test-source(s) to the given lsm
 JEN_inarg.define (MG, 'test_pattern', None,
                   choice=[None,'single','grid','spiral'],
                   help='pattern of test-sources to be generated')
+JEN_inarg.nest(MG, add_single(_getdefaults=True))
+JEN_inarg.nest(MG, add_grid(_getdefaults=True))
+JEN_inarg.nest(MG, add_spiral(_getdefaults=True))
 
-JEN_inarg.nest(MG, make_single(_getdefaults=True))
-# JEN_inarg.nest(MG, make_grid(_getdefaults=True))
-# JEN_inarg.nest(MG, make_spiral(_getdefaults=True))
 
 JEN_inarg.define (MG, 'count', 2, choice=[1,2,3,5,10,100,1000],
                   help='nr of LSM sources to be used')
-
-# inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True) 
-# JEN_inarg.attach(MG, inarg)
 
 
 
@@ -316,27 +367,30 @@ def _define_forest (ns, **kwargs):
    cc = MG_JEN_exec.on_entry (ns, MG)
    radec = []                          # for collect_radec()
 
-
-   # Load the specified lsm into the global lsm object:
+   # Start with an empty lsm:
    global lsm
    # lsm = LSM()
-   lsm.load(MG['LSM'],ns)
+
+   # Optional: use an existing lsm
+   if MG['LSM']:
+      lsm.load(MG['LSM'],ns)
 
 
-   # Make a pattern of one or more test-sources, if required:
+   # Optional: add one or more test-sources to the lsm:
    if isinstance(MG['test_pattern'], str):
       if MG['test_pattern']=='single':
-         make_single(ns, lsm=lsm, cc=cc, radec=radec, **MG)
+         add_single(ns, lsm=lsm, cc=cc, radec=radec, _inarg=MG)
       elif MG['test_pattern']=='grid':
-         make_grid(ns, lsm=lsm, cc=cc, radec=radec, **MG)
+         add_grid(ns, lsm=lsm, cc=cc, radec=radec, _inarg=MG)
       elif MG['test_pattern']=='spiral':
-         make_spiral(ns, lsm=lsm, cc=cc, radec=radec, **MG)
+         add_spiral(ns, lsm=lsm, cc=cc, radec=radec, _inarg=MG)
       else:
          print 'test_pattern not recognised:',MG['test_pattern']
 
    lsm.display()
 
 
+   # Optional: test the result:
    if False:
       # Obtain the Sixpacks of the brightest punits.
       # Turn the point-sources in Cohsets with DFT KJonesets

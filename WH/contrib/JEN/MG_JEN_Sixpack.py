@@ -379,9 +379,9 @@ def newstar_source (ns=0, **inarg):
                     help=help)
    JEN_inarg.define(pp, 'f0', 1e6, choice=[1e6], hide=True,
                     help='reference freq (Hz): I=I0 @ f=f0')
-   JEN_inarg.define(pp, 'RA', 0.0, choice=[0.0,0.5,1.0],  
+   JEN_inarg.define(pp, 'RA', 0.0, choice=[0.0,0.5,1.0,4.357],  
                     help='Right Ascension (rad, J2000)')
-   JEN_inarg.define(pp, 'Dec', 1.0, choice=[0.5,1.0],  
+   JEN_inarg.define(pp, 'Dec', 1.0, choice=[0.5,1.0,1.0920],  
                     help='Declination (rad, J2000)')
    JEN_inarg.define(pp, 'fsr_trace', tf=True, hide=True,   
                     help='If True, attach to forest state record')
@@ -396,16 +396,6 @@ def newstar_source (ns=0, **inarg):
                     help='minor axis (arcsec)')
    JEN_inarg.define(pp, 'pa', 0.0, choice=[0.0,1.0,-0.5], hide=True,  
                     help='position angle (rad)')
-
-   # Source positions may be supplied as nodes:
-   JEN_inarg.define(pp, 'RA0', None, choice=[], hide=True,  
-                    help='If RA0 is a node, RA0+dRA overrides RA')
-   JEN_inarg.define(pp, 'Dec0', None, choice=[], hide=True,   
-                    help='If Dec0 is a node, Dec0+dDec overrides Dec')
-   JEN_inarg.define(pp, 'dRA', 0.0, choice=[], hide=True,   
-                    help='RA offset (arcsec): RA = RA0 + dRA')
-   JEN_inarg.define(pp, 'dDec', 0.0, choice=[], hide=True,   
-                    help='Dec offset (arcsec): Dec = Dec0 + dDec')
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -539,19 +529,10 @@ def newstar_source (ns=0, **inarg):
 
    # Source coordinates (RA, DEC)
    radec = {}
-   if pp['RA0']:
-      # Special case: Source position specified as node (RA0) with offset (dRA):
-      radec[n6.R] = ns[n6.R](q=punit) << Meq.Add(pp['RA0'],pp['dRA'])  
-   else:
-      radec[n6.R] = pset.define_MeqParm (ns, n6.R, qual=dict(q=punit),
-                                         parmgroup=pg_radec, default=pp['RA'])  
-
-   if pp['Dec0']:
-      # Special case: Source position specified as node (Dec0) with offset (dDec):
-      radec[n6.D] = ns[n6.D](q=punit) << Meq.Add(pp['Dec0'],pp['dDec'])  
-   else:
-      radec[n6.D] = pset.define_MeqParm (ns, n6.D, qual=dict(q=punit),
-                                         parmgroup=pg_radec, default=pp['Dec'])  
+   radec[n6.R] = pset.define_MeqParm (ns, n6.R, qual=dict(q=punit),
+                                      parmgroup=pg_radec, default=pp['RA'])  
+   radec[n6.D] = pset.define_MeqParm (ns, n6.D, qual=dict(q=punit),
+                                      parmgroup=pg_radec, default=pp['Dec'])  
 
    # Finished: Fill the Sixpack and return it:
    Sixpack.stokesI(iquv[n6.I])

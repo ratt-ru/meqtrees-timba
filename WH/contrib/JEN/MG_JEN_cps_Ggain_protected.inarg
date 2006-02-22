@@ -122,17 +122,17 @@ sS'JEN_inargGUI_ident'
 p50
 (dp51
 g20
-I86
-sg17
-I91
-sg21
-I88
-sg38
 I87
-sg25
-I90
-sg44
+sg17
+I92
+sg21
 I89
+sg38
+I88
+sg25
+I91
+sg44
+I90
 ssS'hide'
 p52
 (dp53
@@ -158,7 +158,7 @@ sg16
 I01
 ssS'generic'
 p54
-S'** Generic description of: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-15 00:27'
+S'** Generic description of: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-21 19:29'
 p55
 sS'version'
 p56
@@ -186,7 +186,7 @@ g12
 I00
 ssS'oneliner'
 p64
-S'MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-15 00:27'
+S'MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-21 19:29'
 p65
 sS'choice'
 p66
@@ -312,7 +312,7 @@ assS'qual'
 p101
 NsS'last_edited'
 p102
-S'2006-02-15 00:27'
+S'2006-02-21 19:29'
 p103
 sS'target_definition'
 p104
@@ -328,7 +328,7 @@ S'BJones'
 p109
 sS'specific'
 p110
-S'** Specific description of: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-15 00:27'
+S'** Specific description of: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-21 19:29'
 p111
 sS'protected'
 p112
@@ -485,21 +485,21 @@ p151
 sg50
 (dp152
 g124
-I126
-sg129
 I127
-sg131
-I125
-sg142
-I129
-sg144
-I124
-sg146
-I130
-sg148
-I131
-sg149
+sg129
 I128
+sg131
+I126
+sg142
+I130
+sg144
+I125
+sg146
+I131
+sg148
+I132
+sg149
+I129
 ssg52
 (dp153
 g125
@@ -525,7 +525,7 @@ I01
 sg150
 I01
 ssg54
-S'** Generic description of: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-15 00:27'
+S'** Generic description of: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-21 19:29'
 p154
 sg56
 g57
@@ -551,7 +551,7 @@ I00
 sg12
 I00
 ssg64
-S'MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-15 00:27'
+S'MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-21 19:29'
 p158
 sg66
 (dp159
@@ -690,7 +690,7 @@ aS'@@c00_PZD'
 p196
 assg101
 Nsg102
-S'2006-02-15 00:27'
+S'2006-02-21 19:29'
 p197
 sg104
 S'MG_JEN_Joneset::DJones_WSRT()'
@@ -702,7 +702,7 @@ sg108
 S'DJones_WSRT'
 p200
 sg110
-S'** Specific description of: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-15 00:27'
+S'** Specific description of: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-21 19:29'
 p201
 sg112
 I00
@@ -807,11 +807,11 @@ p219
 sg50
 (dp220
 g210
-I76
-sg217
-I78
-sg208
 I77
+sg217
+I79
+sg208
+I78
 ssg52
 (dp221
 g12
@@ -829,7 +829,7 @@ I01
 sg7
 I01
 ssg54
-S'** Generic description of: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-15 00:27'
+S'** Generic description of: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-21 19:29'
 p222
 sg56
 g57
@@ -851,7 +851,7 @@ sg62
 g12
 I00
 ssg64
-S'MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-15 00:27'
+S'MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-21 19:29'
 p226
 sg66
 (dp227
@@ -922,7 +922,7 @@ aS'@@uvplane_effect'
 p246
 assg101
 Nsg102
-S'2006-02-15 00:27'
+S'2006-02-21 19:29'
 p247
 sg104
 S'MG_JEN_Joneset::FJones()'
@@ -934,7 +934,7 @@ sg108
 S'FJones'
 p250
 sg110
-S'** Specific description of: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-15 00:27'
+S'** Specific description of: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-21 19:29'
 p251
 sg112
 I00
@@ -1002,7 +1002,7 @@ p266
 sg50
 (dp267
 g263
-I52
+I53
 ssg52
 (dp268
 g23
@@ -1014,7 +1014,7 @@ I01
 sg14
 I01
 ssg54
-S'** Generic description of: MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-15 00:27'
+S'** Generic description of: MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-21 19:29'
 p269
 sg56
 S'25dec2005'
@@ -1033,7 +1033,7 @@ ssg60
 S'Make a Joneset by creating and multiplying one ore more Jonesets'
 p272
 sg64
-S'MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-15 00:27'
+S'MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-21 19:29'
 p273
 sg66
 (dp274
@@ -1127,7 +1127,7 @@ p299
 ag121
 assg101
 Nsg102
-S'2006-02-15 00:27'
+S'2006-02-21 19:29'
 p300
 sg104
 S'MG_JEN_Cohset::JJones()'
@@ -1139,7 +1139,7 @@ sg108
 S'JJones'
 p303
 sg110
-S'** Specific description of: MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-15 00:27'
+S'** Specific description of: MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-21 19:29'
 p304
 sg112
 I00
@@ -1248,7 +1248,7 @@ I01
 sg7
 I01
 ssg54
-S'** Generic description of: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-15 00:27'
+S'** Generic description of: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-21 19:29'
 p332
 sg56
 S'12dec2005'
@@ -1271,7 +1271,7 @@ sg62
 g12
 I00
 ssg64
-S'MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-15 00:27'
+S'MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-21 19:29'
 p337
 sg66
 (dp338
@@ -1305,7 +1305,7 @@ asg7
 Nag326
 assg101
 Nsg102
-S'2006-02-15 00:27'
+S'2006-02-21 19:29'
 p348
 sg104
 S'MG_JEN_Joneset::KJones()'
@@ -1317,7 +1317,7 @@ sg108
 S'KJones'
 p351
 sg110
-S'** Specific description of: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-15 00:27'
+S'** Specific description of: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-21 19:29'
 p352
 sg112
 I00
@@ -1426,19 +1426,19 @@ p379
 sg50
 (dp380
 g356
-I60
-sg378
-I64
-sg357
-I63
-sg362
-I62
-sg363
 I61
-sg372
+sg378
 I65
+sg357
+I64
+sg362
+I63
+sg363
+I62
+sg372
+I66
 sg376
-I59
+I60
 ssg52
 (dp381
 g12
@@ -1462,7 +1462,7 @@ I01
 sg375
 I01
 ssg54
-S'** Generic description of: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-15 00:27'
+S'** Generic description of: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-21 19:29'
 p382
 sg56
 S'15dec2005'
@@ -1487,7 +1487,7 @@ I00
 sg376
 I00
 ssg64
-S'MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-15 00:27'
+S'MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-21 19:29'
 p387
 sg66
 (dp388
@@ -1615,7 +1615,7 @@ aS'@@uvplane_effect'
 p421
 assg101
 Nsg102
-S'2006-02-15 00:27'
+S'2006-02-21 19:29'
 p422
 sg104
 S'MG_JEN_Joneset::GJones()'
@@ -1627,7 +1627,7 @@ sg108
 S'GJones'
 p425
 sg110
-S'** Specific description of: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-15 00:27'
+S'** Specific description of: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-21 19:29'
 p426
 sg112
 I00
@@ -1763,17 +1763,17 @@ p454
 sg50
 (dp455
 g432
-I112
-sg440
 I113
+sg440
+I114
 sg437
-I110
-sg453
 I111
+sg453
+I112
 sg438
-I108
-sg452
 I109
+sg452
+I110
 ssg52
 (dp456
 g12
@@ -1797,7 +1797,7 @@ I01
 sg23
 I01
 ssg54
-S'** Generic description of: MG_JEN_Joneset::DJones()  version=14feb2006  defined=2006-02-15 00:27'
+S'** Generic description of: MG_JEN_Joneset::DJones()  version=14feb2006  defined=2006-02-21 19:29'
 p457
 sg56
 S'14feb2006'
@@ -1820,7 +1820,7 @@ sg62
 g12
 I00
 ssg64
-S'MG_JEN_Joneset::DJones()  version=14feb2006  defined=2006-02-15 00:27'
+S'MG_JEN_Joneset::DJones()  version=14feb2006  defined=2006-02-21 19:29'
 p462
 sg66
 (dp463
@@ -1941,7 +1941,7 @@ aS'@@tdeg_Dimag'
 p494
 assg101
 Nsg102
-S'2006-02-15 00:27'
+S'2006-02-21 19:29'
 p495
 sg104
 S'MG_JEN_Joneset::DJones()'
@@ -1953,7 +1953,7 @@ sg108
 S'DJones'
 p498
 sg110
-S'** Specific description of: MG_JEN_Joneset::DJones()  version=14feb2006  defined=2006-02-15 00:27'
+S'** Specific description of: MG_JEN_Joneset::DJones()  version=14feb2006  defined=2006-02-21 19:29'
 p499
 sg112
 I00
@@ -2243,16 +2243,16 @@ I00
 aS'@@uvplane_effect'
 p562
 assg102
-S'2006-02-15 00:27'
+S'2006-02-21 19:29'
 p563
 sS'HISTORY'
 p564
 (dp565
 g253
-S'2006-02-15 00:27: Derived from: MG_JEN_cps_Ggain.inarg'
+S'2006-02-21 19:29: Derived from: MG_JEN_cps_Ggain.inarg'
 p566
 sg116
-S'2006-02-15 00:27: Derived from: MG_JEN_cps.inarg'
+S'2006-02-21 19:29: Derived from: MG_JEN_cps.inarg'
 p567
 ssg104
 g4
@@ -2378,21 +2378,21 @@ g601
 sg50
 (dp610
 g607
-I163
+I165
 sg606
-I162
-sg603
 I164
+sg603
+I166
 sg604
-I160
+I162
 sS'visu_array_config'
 p611
-I161
+I163
 ssg106
 S'MG_JEN_Cohsetmake_sinks'
 p612
 sg54
-S'** Generic description of: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-15 00:27'
+S'** Generic description of: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-21 19:29'
 p613
 sg46
 g47
@@ -2400,7 +2400,7 @@ sg60
 S'Make sink nodes in the given Cohset object'
 p614
 sg64
-S'MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-15 00:27'
+S'MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-21 19:29'
 p615
 sg108
 S'make_sinks'
@@ -2441,13 +2441,13 @@ aI00
 aS'@@visu'
 p629
 assg110
-S'** Specific description of: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-15 00:27'
+S'** Specific description of: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-21 19:29'
 p630
 sg101
 Nsg56
 g270
 sg113
-S'2006-02-15 00:27'
+S'2006-02-21 19:29'
 p631
 sg48
 S'MG_JEN_Cohset'
@@ -2530,7 +2530,7 @@ ssg106
 S'MG_JEN_Cohsetmake_spigots'
 p649
 sg54
-S'** Generic description of: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-15 00:27'
+S'** Generic description of: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-21 19:29'
 p650
 sg46
 g47
@@ -2538,7 +2538,7 @@ sg60
 S'Make spigot nodes in the given Cohset object'
 p651
 sg64
-S'MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-15 00:27'
+S'MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-21 19:29'
 p652
 sg108
 S'make_spigots'
@@ -2582,13 +2582,13 @@ aI00
 aS'@@visu'
 p665
 assg110
-S'** Specific description of: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-15 00:27'
+S'** Specific description of: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-21 19:29'
 p666
 sg101
 Nsg56
 g270
 sg113
-S'2006-02-15 00:27'
+S'2006-02-21 19:29'
 p667
 sg48
 S'MG_JEN_Cohset'
@@ -2652,7 +2652,7 @@ ssg106
 S'MG_JEN_Cohsetpredict'
 p682
 sg54
-S'** Generic description of: MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-15 00:27'
+S'** Generic description of: MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-21 19:29'
 p683
 sg46
 g47
@@ -2660,7 +2660,7 @@ sg60
 S'Make a Cohset with predicted uv-data for the source defined by Sixpack.\n    If a Joneset with instrumental effects is supplied, corrupt the data.'
 p684
 sg64
-S'MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-15 00:27'
+S'MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-21 19:29'
 p685
 sg108
 S'predict'
@@ -2723,13 +2723,13 @@ aag299
 aS'@@stations'
 p694
 assg110
-S'** Specific description of: MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-15 00:27'
+S'** Specific description of: MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-21 19:29'
 p695
 sg101
 Nsg56
 g270
 sg113
-S'2006-02-15 00:27'
+S'2006-02-21 19:29'
 p696
 sg48
 S'MG_JEN_Cohset'
@@ -2784,123 +2784,130 @@ p706
 NsS'I0'
 p707
 F1.0
-sS'Vpct'
+sS'LSM'
 p708
-NsS'dDec'
+NsS'Vpct'
 p709
-F0.0
-sS'pa'
+NsS'dDec'
 p710
 F0.0
+sS'pa'
+p711
+F0.0
 sg26
-(dp711
+(dp712
 g28
 g598
 sg29
-(dp712
+(dp713
 g702
 S'reference freq (Hz): I=I0 @ f=f0'
-p713
+p714
 sg703
 S'major axis (arcsec)'
-p714
+p715
 sg12
 S'if True, do NOT store solvegroup/parmgroup info'
-p715
-sg707
-S'Stokes I: Total intensity @ f=f0 (usually 1 MHz)'
 p716
-sg710
-S'position angle (rad)'
-p717
-sS'SI'
-p718
-S'Spectral Index (generalised)\n   A scalar represents the classical SI: I(f)=I0*(f/f0)^SI\n   A vector represents a freq-dependent SI (....)'
-p719
-sS'Qpct'
-p720
-S'Stokes Q (percentage of I)'
-p721
-sS'punit'
-p722
-S'name of calibrator source/patch \n- unpol:   unpolarised, I=1Jy \n- unpol2:  idem, I=2Jy \n- unpol10: idem, I=10Jy \n- RMtest:  Rotation Measure \n- SItest:  Spectral Index \n- QUV:     non-zero Q,U,V \n- QU:      non-zero Q,U \n- QU2:     stronger version of QU \n- Qonly:   non-zero Q \n- Uonly:   non-zero U \n- Vonly:   non-zero V \n- 3c286:   \n- 3c48:    \n- 3c295:   \n- 3c147:   \n'
-p723
-sg709
-S'Dec offset (arcsec): Dec = Dec0 + dDec'
-p724
 sg704
 S'source shape'
-p725
+p717
 sg7
 S'name of the MeqParm table (AIPS++)'
-p726
-sS'fsr_trace'
-p727
-S'If True, attach to forest state record'
-p728
-sS'RA0'
-p729
-S'If RA0 is a node, RA0+dRA overrides RA'
-p730
-sS'dRA'
-p731
-S'RA offset (arcsec): RA = RA0 + dRA'
-p732
-sS'RM'
-p733
-S'Intrinsic Rotation Measure (rad/m2)'
-p734
+p718
 sg706
 S'Stokes U (percentage of I)'
-p735
-sS'Dec'
-p736
-S'Declination (rad, J2000)'
-p737
-sS'Dec0'
-p738
-S'If Dec0 is a node, Dec0+dDec overrides Dec'
-p739
+p719
+sg707
+S'Stokes I: Total intensity @ f=f0 (usually 1 MHz)'
+p720
 sg708
+S'(file)name of a Local Sky Model'
+p721
+sg709
 S'Stokes V (percentage of I)'
-p740
-sS'minor'
-p741
-S'minor axis (arcsec)'
-p742
+p722
+sg710
+S'Dec offset (arcsec): Dec = Dec0 + dDec'
+p723
+sg711
+S'position angle (rad)'
+p724
 sS'RA'
-p743
+p725
 S'Right Ascension (rad, J2000)'
+p726
+sS'dRA'
+p727
+S'RA offset (arcsec): RA = RA0 + dRA'
+p728
+sS'RM'
+p729
+S'Intrinsic Rotation Measure (rad/m2)'
+p730
+sS'Dec0'
+p731
+S'If Dec0 is a node, Dec0+dDec overrides Dec'
+p732
+sS'minor'
+p733
+S'minor axis (arcsec)'
+p734
+sS'Qpct'
+p735
+S'Stokes Q (percentage of I)'
+p736
+sS'punit'
+p737
+S'name of calibrator source/patch \n- unpol:   unpolarised, I=1Jy \n- unpol2:  idem, I=2Jy \n- unpol10: idem, I=10Jy \n- RMtest:  Rotation Measure \n- SItest:  Spectral Index \n- QUV:     non-zero Q,U,V \n- QU:      non-zero Q,U \n- QU2:     stronger version of QU \n- Qonly:   non-zero Q \n- Uonly:   non-zero U \n- Vonly:   non-zero V \n- 3c286:   \n- 3c48:    \n- 3c295:   \n- 3c147:   \n'
+p738
+sS'RA0'
+p739
+S'If RA0 is a node, RA0+dRA overrides RA'
+p740
+sS'Dec'
+p741
+S'Declination (rad, J2000)'
+p742
+sS'fsr_trace'
+p743
+S'If True, attach to forest state record'
 p744
+sS'SI'
+p745
+S'Spectral Index (generalised)\n   A scalar represents the classical SI: I(f)=I0*(f/f0)^SI\n   A vector represents a freq-dependent SI (....)'
+p746
 ssg46
 g47
 sg48
 S'MG_JEN_Sixpack'
-p745
+p747
 sg50
-(dp746
-g736
-I38
+(dp748
+g741
+I39
 sg707
-I30
-sg720
 I31
 sg708
-I33
-sg718
-I35
-sg7
-I28
-sg743
-I37
-sg733
-I34
-sg706
+I27
+sg735
 I32
-sg722
+sg737
 I26
+sg745
+I36
+sg7
+I29
+sg725
+I38
+sg729
+I35
+sg706
+I33
+sg709
+I34
 ssg52
-(dp747
+(dp749
 g702
 I01
 sg703
@@ -2908,403 +2915,415 @@ I01
 sg12
 I01
 sS'name'
-p748
+p750
 I01
-sg727
-I01
-sg722
+sg708
 I00
-sg709
+sg743
+I01
+sg737
+I00
+sg710
 I01
 sg704
 I01
-sg710
+sg711
 I01
-sg729
+sg739
+I01
+sg727
 I01
 sg731
 I01
-sg738
-I01
-sg741
+sg733
 I01
 ssg54
-S'** Generic description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-15 00:27'
-p749
+S'** Generic description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-21 19:29'
+p751
 sg56
 S'10feb2006'
-p750
-sg60
+p752
+sg574
+(dp753
+g708
+S'*.lsm'
+p754
+ssg60
 S'Make a Sixpack (I,Q,U,V,Ra,Dec) for a source with NEWSTAR parametrisation'
-p751
+p755
 sg62
-(dp752
+(dp756
 g12
 I00
-sg727
+sg743
 I00
 ssg64
-S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-15 00:27'
-p753
+S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-21 19:29'
+p757
 sg66
-(dp754
+(dp758
 g702
-(lp755
+(lp759
 F1000000.0
 aS'@@f0'
-p756
+p760
 asg703
-(lp757
+(lp761
 F0.0
 aF1.0
 aF10.0
 aF100.0
 aS'@@major'
-p758
+p762
 asg12
-(lp759
+(lp763
 I01
 aI00
 aS'@@unsolvable'
-p760
+p764
 asg704
-(lp761
+(lp765
 g705
 aS'ell.gauss'
-p762
+p766
 aS'@@shape'
-p763
+p767
 asg7
-(lp764
+(lp768
 NaS'@@parmtable'
-p765
+p769
 asg706
-(lp766
+(lp770
 NaF-0.10000000000000001
 aF0.050000000000000003
 aF-0.01
 aS'@@Upct'
-p767
+p771
 asg707
-(lp768
+(lp772
 F1.0
 aF10.0
 aS'@@I0'
-p769
+p773
 asg708
-(lp770
+(lp774
+NaS'@@LSM'
+p775
+asg709
+(lp776
 NaF0.01
 aF-0.0050000000000000001
 aF0.001
 aS'@@Vpct'
-p771
-asg709
-(lp772
+p777
+asg710
+(lp778
 F0.0
 aS'@@dDec'
-p773
-asg710
-(lp774
+p779
+asg711
+(lp780
 F0.0
 aF1.0
 aF-0.5
 aS'@@pa'
-p775
-asg743
-(lp776
+p781
+asg725
+(lp782
 F0.0
 aF0.5
 aF1.0
 aS'@@RA'
-p777
-asg731
-(lp778
+p783
+asg727
+(lp784
 F0.0
 aS'@@dRA'
-p779
-asg733
-(lp780
+p785
+asg729
+(lp786
 NaF1.0
 aF3.0
 aF10.0
 aF-10.0
 aF60.0
 aS'@@RM'
-p781
-asg738
-(lp782
+p787
+asg731
+(lp788
 NaS'@@Dec0'
-p783
-asg741
-(lp784
+p789
+asg733
+(lp790
 F0.0
 aF0.5
 aF5.0
 aF50.0
 aS'@@minor'
-p785
-asg720
-(lp786
+p791
+asg735
+(lp792
 NaF0.10000000000000001
 aF-0.050000000000000003
 aF0.01
 aS'@@Qpct'
-p787
-asg722
-(lp788
-S'unpol'
-p789
-aS'unpol2'
-p790
-aS'unpol10'
-p791
-aS'QUV'
-p792
-aS'QU'
 p793
-aS'Qonly'
-p794
-aS'Uonly'
+asg737
+(lp794
+S'unpol'
 p795
-aS'Vonly'
+aS'unpol2'
 p796
-aS'3c147'
+aS'unpol10'
 p797
-aS'3c286'
+aS'QUV'
 p798
-aS'3c48'
+aS'QU'
 p799
-aS'3c295'
+aS'Qonly'
 p800
-aS'RMtest'
+aS'Uonly'
 p801
-aS'SItest'
+aS'Vonly'
 p802
-aS'@@punit'
+aS'3c147'
 p803
-asg729
-(lp804
-NaS'@@RA0'
+aS'3c286'
+p804
+aS'3c48'
 p805
-asg736
-(lp806
+aS'3c295'
+p806
+aS'RMtest'
+p807
+aS'SItest'
+p808
+aS'@@punit'
+p809
+asg739
+(lp810
+NaS'@@RA0'
+p811
+asg741
+(lp812
 F0.5
 aF1.0
 aS'@@Dec'
-p807
-asg748
-(lp808
+p813
+asg750
+(lp814
 NaS'@@name'
-p809
-asg727
-(lp810
+p815
+asg743
+(lp816
 I01
 aI00
 aS'@@fsr_trace'
-p811
-asg718
-(lp812
+p817
+asg745
+(lp818
 NaF-0.69999999999999996
-a(lp813
+a(lp819
 F0.44700000000000001
 aF-0.184
 aaS'@@SI'
-p814
+p820
 assg101
 Nsg102
-S'2006-02-15 00:27'
-p815
+S'2006-02-21 19:29'
+p821
 sg104
 S'MG_JEN_Sixpack::newstar_source()'
-p816
+p822
 sg106
 S'MG_JEN_Sixpacknewstar_source'
-p817
+p823
 sg108
 S'newstar_source'
-p818
+p824
 sg110
-S'** Specific description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-15 00:27'
-p819
+S'** Specific description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-21 19:29'
+p825
 sS'callback'
-p820
-(dp821
-g722
+p826
+(dp827
+g737
 I01
 ssg112
 I00
 sg113
-g815
+g821
 sg118
-(lp822
+(lp828
 g26
-ag722
-ag748
+ag737
+ag708
+ag750
 ag7
 ag12
 ag707
-ag720
+ag735
 ag706
-ag708
-ag733
-ag718
+ag709
+ag729
+ag745
 ag702
+ag725
+ag741
 ag743
-ag736
-ag727
 ag704
 ag703
-ag741
-ag710
-ag729
-ag738
+ag733
+ag711
+ag739
 ag731
-ag709
-assg731
+ag727
+ag710
+assg727
 F0.0
-sg733
-Nsg738
-Nsg741
-F0.0
-sg743
-F0.0
-sg720
-Nsg722
-g789
 sg729
-Nsg736
+Nsg731
+Nsg733
+F0.0
+sg725
+F0.0
+sg735
+Nsg737
+g795
+sg739
+Nsg741
 F1.0
-sg748
-Nsg727
+sg750
+Nsg743
 I01
-sg718
+sg745
 Nssg505
 I00
 sg14
 g534
 sg596
-(dp823
+(dp829
 S'channel_start_index'
-p824
+p830
 I10
 sS'data_column_name'
-p825
+p831
 g624
 sS'predict_column'
-p826
+p832
 S'CORRECTED_DATA'
-p827
+p833
 sg5
 S'@@ms_name'
-p828
+p834
 sg26
-(dp829
+(dp835
 g28
 g596
 sg29
-(dp830
-g824
+(dp836
+g830
 S'(inputrec.sel) index of first selected freq channel'
-p831
-sg825
+p837
+sg831
 S'(inputrec) MS input column'
-p832
-sg826
+p838
+sg832
 S'MS output column to be associated with the VisTile predict-column'
-p833
+p839
 sg5
 g513
 sg518
 g519
 sS'channel_increment'
-p834
+p840
 S'(inputrec.sel) take every nth channel (1=all)'
-p835
+p841
 sS'channel_end_index'
-p836
+p842
 S'(inputrec.sel) index of last selected freq channel'
-p837
+p843
 sS'write_flags'
-p838
+p844
 S'(outputrec) if True, write flags to MS'
-p839
+p845
 ssg46
 g47
 sg48
 S'MG_JEN_exec'
-p840
+p846
 sg50
-(dp841
-g824
+(dp847
+g830
 I17
-sg825
+sg831
 I16
-sg826
+sg832
 I21
-sg838
+sg844
 I20
-sg836
+sg842
 I18
-sg834
+sg840
 I19
 ssg52
-(dp842
+(dp848
 g5
 I01
 sg518
 I01
 ssg54
-S'** Generic description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-15 00:27'
-p843
+S'** Generic description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-21 19:29'
+p849
 sg56
 S'20jan2006'
-p844
+p850
 sg58
-(dp845
+(dp851
 g5
 I00
 sg518
 I00
 ssg60
-S'** Description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-15 00:27'
-p846
+S'** Description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-21 19:29'
+p852
 sg62
-(dp847
-g838
+(dp853
+g844
 I00
 ssg64
-S'MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-15 00:27'
-p848
+S'MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-21 19:29'
+p854
 sg66
-(dp849
-g824
-(lp850
+(dp855
+g830
+(lp856
 I0
 aI5
 aI10
 aI20
 aS'@@channel_start_index'
-p851
-asg825
-(lp852
-g624
-ag827
-aS'@@data_column_name'
-p853
-asg826
-(lp854
-g624
-ag827
-aS'MODEL_DATA'
-p855
-aS'@@predict_column'
-p856
-asg5
-(lp857
-g6
-ag828
-asg518
+p857
+asg831
 (lp858
+g624
+ag833
+aS'@@data_column_name'
+p859
+asg832
+(lp860
+g624
+ag833
+aS'MODEL_DATA'
+p861
+aS'@@predict_column'
+p862
+asg5
+(lp863
+g6
+ag834
+asg518
+(lp864
 I1
 aI2
 aI3
@@ -3314,72 +3333,72 @@ aI20
 aI50
 aI100
 aS'@@tile_size'
-p859
-asg834
-(lp860
+p865
+asg840
+(lp866
 I1
 aI2
 aI3
 aI5
 aI10
 aS'@@channel_increment'
-p861
-asg836
-(lp862
+p867
+asg842
+(lp868
 I-1
 aI25
 aI50
 aI100
 aS'@@channel_end_index'
-p863
-asg838
-(lp864
+p869
+asg844
+(lp870
 I01
 aI00
 aS'@@write_flags'
-p865
+p871
 assg101
 Nsg102
-S'2006-02-15 00:27'
-p866
+S'2006-02-21 19:29'
+p872
 sg104
 S'MG_JEN_exec::stream_control()'
-p867
+p873
 sg106
 S'MG_JEN_execstream_control'
-p868
+p874
 sg108
 S'stream_control'
-p869
+p875
 sg110
-S'** Specific description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-15 00:27'
-p870
+S'** Specific description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-21 19:29'
+p876
 sg574
-(dp871
+(dp877
 g5
 g576
 ssg112
 I00
 sg113
-g866
+g872
 sg118
-(lp872
+(lp878
 g26
 ag5
 ag518
-ag825
-ag824
-ag836
-ag834
-ag838
-ag826
+ag831
+ag830
+ag842
+ag840
+ag844
+ag832
 assg518
-g859
-sg834
+g865
+sg840
 I1
-sg836
+sg842
 I50
-sg838
+sg844
 I00
 ssg509
 I00
@@ -3388,93 +3407,99 @@ I01
 sg514
 I01
 sg600
-(dp873
+(dp879
 S'correct_after'
-p874
+p880
 I01
 sg505
 S'@@master_reqseq'
-p875
+p881
 sS'condeq_unop'
-p876
+p882
 S'Abs'
-p877
+p883
 sg606
 I01
 sg509
 S'@@redun'
-p878
+p884
 sS'solver_subtree'
-p879
+p885
 NsS'subtract_after'
-p880
+p886
 I00
 sg514
 S'@@chain_solvers'
-p881
+p887
 sg26
-(dp882
+(dp888
 g28
 g600
 sg29
-(dp883
-g874
+(dp889
+g880
 S'if True, correct measured with predicted.Joneset'
-p884
+p890
 sg505
 g506
-sg876
+sg882
 S'Optional unary operation on Condeq inputs'
-p885
+p891
 sg606
 S'if True, include full visualisation'
-p886
+p892
 sg509
 g510
-sg879
+sg885
 S'solver subtree qualifier(s)'
-p887
-sg880
+p893
+sg886
 S'if True, subtract predicted from measured'
-p888
+p894
 sg514
 g515
+sS'flag_residuals'
+p895
+S'if True, flag the residuals'
+p896
 sg516
 g517
 ssg46
 g47
 sg48
 S'MG_JEN_Cohset'
-p889
+p897
 sg50
-(dp890
-g880
-I146
-sg874
+(dp898
+g886
 I147
-sg876
-I144
-sg606
+sg880
+I148
+sg882
 I145
+sg606
+I146
 ssg52
-(dp891
-g879
-I01
-sg516
-I01
-sg514
+(dp899
+g505
 I01
 sg509
 I01
-sg505
+sg885
+I01
+sg514
+I01
+sg895
+I01
+sg516
 I01
 ssg54
-S'** Generic description of: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-15 00:27'
-p892
+S'** Generic description of: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-21 19:29'
+p900
 sg56
 g270
 sg58
-(dp893
+(dp901
 g516
 I00
 sg514
@@ -3485,475 +3510,486 @@ sg505
 I00
 ssg60
 S'insert one or more solver subtrees in the data stream'
-p894
+p902
 sg62
-(dp895
+(dp903
 g880
-I00
-sg509
-I00
-sg874
 I00
 sg505
 I00
 sg606
 I00
+sg509
+I00
+sg886
+I00
+sg895
+I00
 ssg64
-S'MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-15 00:27'
-p896
+S'MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-21 19:29'
+p904
 sg66
-(dp897
-g874
-(lp898
-I01
-aI00
-aS'@@correct_after'
-p899
-asg505
-(lp900
-I01
-aI00
-ag875
-asg876
-(lp901
-Nag877
-aS'Arg'
-p902
-aS'@@condeq_unop'
-p903
-asg606
-(lp904
-I01
-aI00
-aS'@@visu'
-p905
-asg509
+(dp905
+g880
 (lp906
 I01
 aI00
-ag878
-asg879
-(lp907
-NaS'@@solver_subtree'
-p908
-asg880
+aS'@@correct_after'
+p907
+asg505
+(lp908
+I01
+aI00
+ag881
+asg882
 (lp909
+Nag883
+aS'Arg'
+p910
+aS'@@condeq_unop'
+p911
+asg606
+(lp912
+I01
+aI00
+aS'@@visu'
+p913
+asg509
+(lp914
+I01
+aI00
+ag884
+asg885
+(lp915
+NaS'@@solver_subtree'
+p916
+asg886
+(lp917
 I01
 aI00
 aS'@@subtract_after'
-p910
+p918
 asg514
-(lp911
+(lp919
 I01
-ag881
+ag887
+asg895
+(lp920
+I01
+aI00
+aS'@@flag_residuals'
+p921
 asg516
-(lp912
-Na(lp913
+(lp922
+Na(lp923
 I5
 aI2
-aa(lp914
+aa(lp924
 I2
 aI2
-aa(lp915
+aa(lp925
 I3
 aI3
 aaS'@@num_cells'
-p916
+p926
 assg101
 Nsg102
-S'2006-02-15 00:27'
-p917
+S'2006-02-21 19:29'
+p927
 sg104
 S'MG_JEN_Cohset::insert_solver()'
-p918
+p928
 sg106
 S'MG_JEN_Cohsetinsert_solver'
-p919
+p929
 sg108
 S'insert_solver'
-p920
+p930
 sg110
-S'** Specific description of: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-15 00:27'
-p921
+S'** Specific description of: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-21 19:29'
+p931
 sg112
 I00
 sg113
-g917
+g927
 sg114
-(dp922
+(dp932
 g253
 S'.modify( condeq_unop ): None  ->  Abs'
-p923
+p933
 sg116
 S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.solver_subtree()'
-p924
+p934
 ssg118
-(lp925
+(lp935
 g26
-ag879
+ag885
 ag509
 ag516
 ag514
 ag505
-ag876
+ag882
 ag606
+ag886
 ag880
-ag874
+ag895
 aS'./MG_JEN_Cohset.solver_subtree()'
-p926
+p936
 assg516
-g916
-sg926
-(dp927
+g926
+sg936
+(dp937
 S'rmin'
-p928
+p938
 Nsg606
 I01
 sS'epsilon'
-p929
+p939
 F0.01
 sS'rmax'
-p930
+p940
 NsS'usesvd'
-p931
+p941
 I01
 sS'debug_level'
-p932
+p942
 I10
 sS'solvegroup'
-p933
-(lp934
+p943
+(lp944
 S'Ggain'
-p935
+p945
 asg26
-(dp936
+(dp946
 g28
-g926
+g936
 sg29
-(dp937
-g928
+(dp947
+g938
 S'if specified, only use baselines>=rmin'
-p938
+p948
 sg606
 S'if True, include visualisation'
-p939
-sg929
+p949
+sg939
 S'iteration control criterion'
-p940
-sg930
+p950
+sg940
 S'if specified, only use baselines<=rmax'
-p941
-sg931
+p951
+sg941
 S'if True, use Singular Value Decomposition (SVD)'
-p942
-sg932
+p952
+sg942
 S'solver debug_level'
-p943
-sg933
+p953
+sg943
 S'group (list) of parmgroups, to be solved for:\n- [GJones]:  all GJones MeqParms\n- [Ggain]:   GJones station gains (both pols)\n- [Gphase]:  GJones station phases (both pols)\n- [Gpol1]:   All GJones MeqParms for pol1 (X or R)\n- [Gpol2]:   All GJones MeqParms for pol2 (Y or L)\n- [stokesI]:    stokes I (incl SI(f), if relevant)\n- [stokesIQU]:  stokes I,Q,U (incl RM and SI(f))\n- [stokesIQUV]: stokes I,Q,U,V (incl RM and SI(f))'
-p944
+p954
 sg516
 g517
 sS'history'
-p945
+p955
 S'if True, include history collection of metrics'
-p946
+p956
 sS'num_iter'
-p947
+p957
 S'max number of iterations'
-p948
+p958
 sS'condition'
-p949
+p959
 S'(list of) extra condition equations:\n- [...phase_sum=0.0]:   sum of phases = zero\n- [...phase_first=0.0]: phase of first station = zero\n- [...phase_last=0.0]:  phase of last station = zero\n- [dang_sum=0.0]:   sum of dipole pos.angle errors = zero\n- [...imag_sum=0.0]:   sum of imag.parts = zero\n- [...real_product=1.0]:   product of real.parts = unity'
-p950
+p960
 sS'colin_factor'
-p951
+p961
 S'colinearity factor'
-p952
+p962
 ssg46
 g47
 sg48
 S'MG_JEN_Cohset'
-p953
+p963
 sg50
-(dp954
-g928
-I150
-sg606
-I158
-sg929
-I154
-sg930
-I151
-sg931
-I156
-sg933
-I148
-sg516
+(dp964
+g938
 I152
-sg945
-I159
-sg947
+sg606
+I160
+sg939
+I156
+sg940
 I153
-sg949
-I149
-sg951
+sg941
+I158
+sg943
+I150
+sg516
+I154
+sg955
+I161
+sg957
 I155
+sg959
+I151
+sg961
+I157
 ssg52
-(dp955
-g932
+(dp965
+g942
 I01
 sg516
 I00
 ssg54
-S'** Generic description of: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-15 00:27'
-p956
+S'** Generic description of: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-21 19:29'
+p966
 sg56
 S'20dec2005'
-p957
+p967
 sg60
 S'Make a solver-subtree for the given Condeq Cohset'
-p958
+p968
 sg62
-(dp959
-g931
+(dp969
+g941
 I00
-sg945
+sg955
 I00
 sg606
 I00
 ssg64
-S'MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-15 00:27'
-p960
+S'MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-21 19:29'
+p970
 sg66
-(dp961
-g928
-(lp962
+(dp971
+g938
+(lp972
 NaI100
 aI200
 aI500
 aS'@@rmin'
-p963
+p973
 asg606
-(lp964
+(lp974
 I01
 aI00
 aS'@@visu'
-p965
-asg929
-(lp966
+p975
+asg939
+(lp976
 F0.001
 aF0.0001
 aF1.0000000000000001e-05
 aS'@@epsilon'
-p967
-asg930
-(lp968
+p977
+asg940
+(lp978
 NaI500
 aI1000
 aI2000
 aS'@@rmax'
-p969
-asg931
-(lp970
+p979
+asg941
+(lp980
 I01
 aI00
 aS'@@usesvd'
-p971
-asg932
-(lp972
+p981
+asg942
+(lp982
 I10
 aS'@@debug_level'
-p973
-asg933
-(lp974
-(lp975
-a(lp976
-g280
-aa(lp977
-g935
-aa(lp978
-S'Gphase'
-p979
-aa(lp980
-S'Gpol1'
-p981
-aa(lp982
-S'Gpol2'
 p983
-aa(lp984
+asg943
+(lp984
+(lp985
+a(lp986
+g280
+aa(lp987
+g945
+aa(lp988
+S'Gphase'
+p989
+aa(lp990
+S'Gpol1'
+p991
+aa(lp992
+S'Gpol2'
+p993
+aa(lp994
 g280
 aS'stokesI'
-p985
-aa(lp986
-g985
-aa(lp987
-S'stokesIQU'
-p988
-aa(lp989
-S'stokesIQUV'
-p990
-aa(lp991
-g280
-ag291
-aa(lp992
-g291
-aa(lp993
-S'dang'
-p994
-aa(lp995
-S'dell'
-p996
+p995
+aa(lp996
+g995
 aa(lp997
-S'Dreal'
+S'stokesIQU'
 p998
 aa(lp999
-S'Dimag'
+S'stokesIQUV'
 p1000
 aa(lp1001
 g280
 ag291
-ag284
 aa(lp1002
-g284
+g291
 aa(lp1003
-g280
-ag282
-aa(lp1004
-g282
+S'dang'
+p1004
 aa(lp1005
-S'Breal'
+S'dell'
 p1006
 aa(lp1007
-S'Bimag'
+S'Dreal'
 p1008
 aa(lp1009
-S'Bpol1'
+S'Dimag'
 p1010
 aa(lp1011
+g280
+ag291
+ag284
+aa(lp1012
+g284
+aa(lp1013
+g280
+ag282
+aa(lp1014
+g282
+aa(lp1015
+S'Breal'
+p1016
+aa(lp1017
+S'Bimag'
+p1018
+aa(lp1019
+S'Bpol1'
+p1020
+aa(lp1021
 S'Bpol2'
-p1012
+p1022
 aaS'@@solvegroup'
-p1013
+p1023
 asg516
-(lp1014
-Na(lp1015
+(lp1024
+Na(lp1025
 I5
 aI2
-aa(lp1016
+aa(lp1026
 I2
 aI2
-aa(lp1017
+aa(lp1027
 I3
 aI3
 aaS'@@num_cells'
-p1018
-asg945
-(lp1019
+p1028
+asg955
+(lp1029
 I01
 aI00
 aS'@@history'
-p1020
-asg947
-(lp1021
+p1030
+asg957
+(lp1031
 I1
 aI3
 aI5
 aI10
 aI20
 aS'@@num_iter'
-p1022
-asg949
-(lp1023
-NaS'Gphase_X_sum=0.0'
-p1024
-aS'Gphase_Y_sum=0.0'
-p1025
-a(lp1026
-g1024
-ag1025
-aa(lp1027
-S'Gphase_X_first=0.0'
-p1028
-aS'Gphase_Y_first=0.0'
-p1029
-aa(lp1030
-S'Gphase_X_last=0.0'
-p1031
-aS'Gphase_Y_last=0.0'
 p1032
-aaS'dang_sum=0.0'
-p1033
-a(lp1034
-S'Bimag_X_sum=0.0'
+asg959
+(lp1033
+NaS'Gphase_X_sum=0.0'
+p1034
+aS'Gphase_Y_sum=0.0'
 p1035
-aS'Bimag_Y_sum=0.0'
-p1036
+a(lp1036
+g1034
+ag1035
 aa(lp1037
-S'Breal_X_product=1.0'
+S'Gphase_X_first=0.0'
 p1038
-aS'Breal_Y_product=1.0'
+aS'Gphase_Y_first=0.0'
 p1039
+aa(lp1040
+S'Gphase_X_last=0.0'
+p1041
+aS'Gphase_Y_last=0.0'
+p1042
+aaS'dang_sum=0.0'
+p1043
+a(lp1044
+S'Bimag_X_sum=0.0'
+p1045
+aS'Bimag_Y_sum=0.0'
+p1046
+aa(lp1047
+S'Breal_X_product=1.0'
+p1048
+aS'Breal_Y_product=1.0'
+p1049
 aaS'@@condition'
-p1040
-asg951
-(lp1041
+p1050
+asg961
+(lp1051
 F1e-08
 aF0.0
 aS'@@colin_factor'
-p1042
+p1052
 assg101
 Nsg102
-S'2006-02-15 00:27'
-p1043
+S'2006-02-21 19:29'
+p1053
 sg104
 S'MG_JEN_Cohset::solver_subtree()'
-p1044
+p1054
 sg106
 S'MG_JEN_Cohsetsolver_subtree'
-p1045
+p1055
 sg108
 S'solver_subtree'
-p1046
+p1056
 sg110
-S'** Specific description of: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-15 00:27'
-p1047
+S'** Specific description of: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-21 19:29'
+p1057
 sg112
 I00
 sg113
-g1043
+g1053
 sg114
-(dp1048
+(dp1058
 g253
 S'.modify( num_iter ): 20  ->  5'
-p1049
+p1059
 sg116
 S'.modify( epsilon ): 0.0001  ->  0.01'
-p1050
+p1060
 sg310
 S".modify( solvegroup ): []  ->  ['Ggain']"
-p1051
+p1061
 ssg118
-(lp1052
+(lp1062
 g26
-ag933
-ag949
-ag928
-ag930
+ag943
+ag959
+ag938
+ag940
 ag516
-ag947
-ag929
-ag951
-ag931
-ag932
+ag957
+ag939
+ag961
+ag941
+ag942
 ag606
-ag945
+ag955
 assg516
-Nsg945
+Nsg955
 I01
-sg947
+sg957
 I5
-sg949
-Nsg951
+sg959
+Nsg961
 F1e-08
-sss.
+ssg895
+I00
+ss.

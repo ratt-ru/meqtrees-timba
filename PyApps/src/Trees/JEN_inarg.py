@@ -16,6 +16,7 @@
 #    - 31 jan 2006: top-level CTRL-record in pp2inarg()
 #    - 31 jan 2006: implemented .compare()
 #    - 03 feb 2006: implemented .essence()
+#    - 20 feb 2006: implemented _getpp option
 #
 # Full description:
 #    By obeying a simple (and unconstraining!) set of rules, the input
@@ -56,10 +57,12 @@
 #    An inarg-compatible function may be used in the following manner: 
 #    1) First obtain an inarg record with default arguments by:
 #            inarg = myfunc(_getdefaults=True)
+#       1a) Obtain the internal (pp) arguments record by:
+#            inarg = myfunc(_getpp=True)
 #    2) Execute it by:
 #            result = myfunc(_inarg=inarg)
-#    Thus, there are two reserved keywords (_getdefaults and _inarg), which should
-#    not be used for actual arguments. 
+#    Thus, there are some reserved keywords (prepended with _),
+#    which should not be used for actual arguments. 
 #    Note that the function can still be called in a traditional way also:
 #            result = myfunc(aa=4)
 #
@@ -903,6 +906,12 @@ def getdefaults(pp, check=True, strip=False, trace=False):
       #      but just return an inarg record with its default arguments
       return True
 
+   if pp.has_key('_getpp'):
+      # Use: if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+      # i.e. if True, do NOT execute the body of the mother function,
+      #      but just return an pp record with the current arguments
+      return True
+
    #....................................................................
    #....................................................................
 
@@ -1080,6 +1089,13 @@ def inarg2pp(inarg, target='<target>', version='15jan2006', description=None, tr
          pp = inarg['_inarg'][localscope]
          # display(pp,'pp extracted from inarg')
 
+         if inarg.has_key('_getpp'):
+            # Called as .func(_getpp=... [, _qual=...]), and results in internal pp.
+            # NB: The call may contain other (overriding) keyword arguments too...
+            if trace: print s0,'inarg has key _getpp'
+            pp['_getpp'] = inarg['_getpp']
+
+
          # Indicate that this particular sub-inarg will be executed
          # (this allows stripping off non-executed inarg records, to avoid clutter)
          if False:
@@ -1132,6 +1148,11 @@ def pp2inarg(pp, help=None, trace=False):
 
    # Make the external inarg record:
    inarg = dict()
+
+   # Special case: just return the internal argument record (pp): 
+   if pp.has_key('_getpp'):
+      pp.__delitem__('_getpp')
+      return pp
 
    # Prepare pp and attach:
    if pp.has_key('_getdefaults'):

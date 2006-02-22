@@ -154,6 +154,7 @@ class ArgBrowser(QMainWindow):
         menu.insertSeparator()     
         menu.insertItem('-> cps_inspect', self.cps_inspect)
         menu.insertSeparator()     
+        menu.insertItem('-> cps_stokesI', self.cps_stokesI)
         menu.insertItem('-> cps_GJones', self.cps_GJones)
         menu.insertItem('-> cps_Gphase', self.cps_Gphase)
         menu.insertItem('-> cps_Ggain', self.cps_Ggain)
@@ -1313,6 +1314,7 @@ class ArgBrowser(QMainWindow):
         """Modify the MG_JEN_cps inarg to multiple inarg files"""
         self.revert_inarg()
         self.cps_inspect(revert=True, save_protected=True)
+        self.cps_stokesI(revert=True, save_protected=True)
         self.cps_GJones(revert=True, save_protected=True)
         self.cps_Gphase(revert=True, save_protected=True)
         self.cps_Ggain(revert=True, save_protected=True)
@@ -1320,6 +1322,19 @@ class ArgBrowser(QMainWindow):
         self.cps_DJones(revert=True, save_protected=True)
         self.cps_GBJones(revert=True, save_protected=True)
         self.__message.setText('** modified all MG_JEN_cps inargs (protected)')
+        return True
+
+    def cps_stokesI(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for stokesI operation"""
+        if revert==True: self.revert_inarg()
+        JEN_inarg.modify(self.__inarg,
+                         solvegroup=['stokesI'],
+                         _JEN_inarg_option=None)     
+        self.refresh()
+        self.save_inarg('MG_JEN_cps_stokesI')
+        print '** save_protected =',save_protected
+        if save_protected==True: self.save_as_protected()
+        self.__message.setText('** modified MG_JEN_cps inarg for stokesI')
         return True
 
     def cps_GJones(self, revert=False, save_protected=False):
