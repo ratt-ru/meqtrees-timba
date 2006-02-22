@@ -422,13 +422,21 @@ def change_parm(ns,node,new_value):
  g['init_funklet']=meq.polc(new_value)
  ns.Resolve()
 
-
+# change MeqParm of TDL_Sixpack_Point RA,Dec 
 def change_radec(sixpack,new_ra,new_dec,ns):
  myname=sixpack.label()
  ra=sixpack.ra()
  change_parm(ns,ra,new_ra)
  dec=sixpack.dec()
  change_parm(ns,dec,new_dec)
+
+# change MeqParm of TDL_Sixpack_Patch RA,Dec 
+def change_radec_patch(patch_name,new_ra,new_dec,ns):
+ ra=ns['ra0:q='+patch_name]
+ change_parm(ns,ra,new_ra)
+ dec=ns['dec0:q='+patch_name]
+ change_parm(ns,dec,new_dec)
+
 
 
 

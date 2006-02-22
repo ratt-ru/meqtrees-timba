@@ -102,7 +102,7 @@ class PUnit:
   return self.FOV_distance
 
 
- # it this PUnit is a patch, return the limits
+ # if this PUnit is a patch, return the limits
  # of its boundary
  # [x_min,y_min,x_max,y_max]
  def getLimits(self):
@@ -161,7 +161,6 @@ class PUnit:
    newp.__sixpack={}
    pset=self.__sixpack.Parmset
    # copy ParmSet
-   #newp.__sixpack['Parmset']=self.clone_parmset(pset)
    newp.__sixpack['Parmset']=pset.clone()
    print newp.__sixpack['Parmset']
    if self.__sixpack.ispoint():
@@ -196,40 +195,16 @@ class PUnit:
 
  # change RA,Dec of myself, 
  def change_location(self,new_ra,new_dec,ns):
-   my_sixpack=self.__sixpack
-   change_radec(my_sixpack,new_ra,new_dec,ns)
+   if self.getType()==POINT_TYPE:
+    my_sixpack=self.__sixpack
+    change_radec(my_sixpack,new_ra,new_dec,ns)
+   elif self.getType()==PATCH_TYPE:
+    change_radec_patch(self.name,new_ra,new_dec,ns)
+     #ra0:q='+patch_name
+
    # change static values
    self.sp.set_staticRA(new_ra)
    self.sp.set_staticDec(new_dec)
-
- # Try to clone a TDL_Parmset, replacing any nodestubs with their names 
- def clone_parmset(self,pset):
-  #print dir(pset)
-  mydict={}
-  if pset==None:
-   return mydict
-  # copy anything that is not a node stub
-  mydict['MeqParm']={'__type__':'dict'}
-  for key in pset.MeqParm().keys():
-   pgk=pset.MeqParm()[key]
-   if isinstance(pgk,Timba.TDL.TDLimpl._NodeStub):
-     mydict['MeqParm'][key]={'__type__':'nodestub','name':pgk.name}
-   else:
-     mydict['MeqParm'][key]=pgk
-
-  # dicts
-  mydict['node_groups']=pset.node_groups()
-  mydict['parmtable']=pset.parmtable()
-  mydict['quals']=pset.quals()
-  mydict['pg_rider']=pset.pg_rider()
-  # dict of dicts
-  mydict['parmgroup']=pset.parmgroup()
-  
-  # strings
-  mydict['unsolvable']=pset.unsolvable()
-
-
-  return mydict
 
  # Try to recreate a TDL_Parmset from a given dict.
  # Assume all needed nodes exist in the ns
@@ -1274,13 +1249,12 @@ class LSM:
    self.__undo=None # cannot undo this
    for pname in self.p_table.keys():
     pu=self.p_table[pname]
-    if pu.getType()==POINT_TYPE:
-     old_ra=pu.sp.getRA()
-     old_dec=pu.sp.getDec()
-     # calculate new coords
-     new_ra=A[0][0]*old_ra+A[0][1]*old_dec+b[0]
-     new_dec=A[1][0]*old_ra+A[1][1]*old_dec+b[1]
-     pu.change_location(new_ra,new_dec,ns)
+    old_ra=pu.sp.getRA()
+    old_dec=pu.sp.getDec()
+    # calculate new coords
+    new_ra=A[0][0]*old_ra+A[0][1]*old_dec+b[0]
+    new_dec=A[1][0]*old_ra+A[1][1]*old_dec+b[1]
+    pu.change_location(new_ra,new_dec,ns)
 
  
 #########################################################################

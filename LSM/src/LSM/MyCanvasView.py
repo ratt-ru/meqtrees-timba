@@ -235,7 +235,9 @@ class MyCanvasView(QCanvasView):
 
     if self.zoom_status==GUI_MOVE_START and self.__moving:
      point = self.inverseWorldMatrix().map(e.pos());
-     self.__moving.moveBy(point.x() - self.__moving_start.x(),point.y() - self.__moving_start.y())
+     self.__moving.cross.moveBy(point.x() - self.__moving_start.x(),point.y() - self.__moving_start.y())
+     self.__moving.pcross.moveBy(point.x() - self.__moving_start.x(),point.y() - self.__moving_start.y())
+     self.__moving.circle.moveBy(point.x() - self.__moving_start.x(),point.y() - self.__moving_start.y())
      self.__moving_start = point
      self.canvas().update()
 
@@ -348,7 +350,10 @@ class MyCanvasView(QCanvasView):
     item=ilist.pop(0)
     if item.rtti()==POINT_SOURCE_RTTI:
      # enable moving
-     self.__moving=item
+     print item.name
+     # add all canvas items by that name to the move list
+     # self.p_tab[sname]
+     self.__moving=self.p_tab[item.name]
      self.__moving_start=point
    return
 
