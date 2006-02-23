@@ -687,11 +687,11 @@ class LSM:
  # send a request to the LSM to give the p-units
  # with highest brightness, or p-unit with name ='name' etc.
  # returns a list of p-units satisfying the query
+ # possible query formats are:
+ # count=4 : gives first 4 brightest punits
+ # name='name': gives p unit matching name='name'
+ # cat=1,2,.. : gives p units of given category
  def queryLSM(self,**kw):
-  # possible query formats are:
-  # count=4 : gives first 4 brightest punits
-  # name='name': gives p unit matching name='name'
-  # cat=1,2,.. : gives p units of given category
   
   outlist=[]
   if kw.has_key('name'):
@@ -1041,6 +1041,16 @@ class LSM:
  # return the current Opened/Saved Filename
  def getFileName(self):
   return self.__file
+ # get the filename with path stripped
+ def getBaseFileName(self):
+   # split the string
+   sl=string.split(self.__file,'/')
+   sl.reverse()
+   # get the first non empty string
+   gg=sl.pop(0)
+   while (len(gg)==0) and len(sl)>0:
+    gg=sl.pop(0)
+   return gg
 
  # set the current Opened/Saved Filename
  def setFileName(self,fname):

@@ -608,11 +608,65 @@ class LSMWindow(QMainWindow):
 
 
     def filePrint(self):
+        margin=10
         if not self.cview.printer:
             self.cview.printer = QPrinter()
         if  self.cview.printer.setup(self.cview):
             pp=QPainter(self.cview.printer)
-            self.canvas.drawArea(QRect(0,0,self.canvas.width(),self.canvas.height()),pp,False)
+            # set font
+            pp.setFont(self.cview.fonts['default'])
+            yPos=margin
+            fm=pp.fontMetrics()
+            metrics=QPaintDeviceMetrics(self.cview.printer)
+            #self.canvas.drawArea(QRect(0,0,self.canvas.width(),self.canvas.height()),pp,False)
+            # draw some text
+            pWidth=metrics.width()
+            pHeight=metrics.height()
+            # get filename
+            ttext=QString(self.lsm.getBaseFileName())
+            # center
+            pp.drawText((pWidth-ttext.length())/2,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
+            yPos=yPos+fm.lineSpacing()
+            # create a Pixmap of the canvas
+            pm=QPixmap(self.canvas.width(),self.canvas.height())
+            pn=QPainter(pm)
+            self.canvas.drawArea(self.canvas.rect(),pn)
+            # now print the Pixmap
+            pp.drawPixmap((pWidth-pm.width())/2,margin+yPos+1,pm)
+            # destroy Pixmap painter
+            pn.end()
+ 
+            yPos=yPos+fm.lineSpacing()+self.canvas.height()
+            ttext=QString("Additional Information:")
+            pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
+            yPos=yPos+fm.lineSpacing()
+            ttext=QString("Filename: "+self.lsm.getFileName())
+            pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
+            yPos=yPos+fm.lineSpacing()
+            ttext=QString("PUnits: "+str(self.lsm.getPUnits())+" Sources: "+str(self.lsm.getSources()))
+            pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
+            yPos=yPos+fm.lineSpacing()
+            ttext=QString("Apparent Brightness Max: "+str(self.lsm.getMaxBrightness())+" Min: "+str(self.lsm.getMinBrightness()))
+            pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
+            yPos=yPos+fm.lineSpacing()
+            n_punits=5
+            if self.lsm.getPUnits()<n_punits:
+              n_punits=self.lsm.getPUnits()
+            ttext=QString("First "+str(n_punits)+" PUnits are:")
+            pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
+            yPos=yPos+fm.lineSpacing()
+            # get the PUnits
+            l_punits=self.lsm.queryLSM(count=n_punits)
+            tab_margin=10
+            for punit in l_punits:
+              ttext=QString(punit.name+": brightness: "+str(punit.getBrightness())+", type: ")
+              if punit.getType()==POINT_TYPE:
+                ttext=ttext+QString("Point")
+              else:
+                ttext=ttext+QString("Patch")
+              pp.drawText(margin+tab_margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
+              yPos=yPos+fm.lineSpacing()
+            # print each PUnit on a line
             pp.end()
             if pp.isActive():
               pp.flush()

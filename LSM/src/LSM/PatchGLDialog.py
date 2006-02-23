@@ -7,8 +7,8 @@
 import math
 from qt import *
 from qtgl import *
-from OpenGL.GL import *
-from OpenGL.GLU import *
+#from OpenGL.GL import *
+#from OpenGL.GLU import *
 import sys
 import numarray
 

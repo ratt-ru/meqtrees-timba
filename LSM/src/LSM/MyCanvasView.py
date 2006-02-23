@@ -34,7 +34,7 @@ class MyCanvasView(QCanvasView):
     self.grid_on=0
     self.legend_on=0
     self.axes_on=1
-    self.title_on=1
+    self.title_on=0
     self.obsres_on=0 # beam
     self.obswin_on=0
     self.display_point_sources='pcross' #cross,point,pcross
@@ -724,7 +724,7 @@ class MyCanvasView(QCanvasView):
      self.h3=self.h4=self.pad
 
     if self.title_on==0:
-     self.h1=self.pad
+     self.h1=self.pad+5
  
     # get canvas size
     H=self.canvas().height()
