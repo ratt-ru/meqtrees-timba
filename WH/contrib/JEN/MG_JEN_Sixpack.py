@@ -119,8 +119,9 @@ def inarg_punit (pp, **kwargs):
                       '')
 
     # Optional: Specify an LSM to get the Sixpack from:
-    JEN_inarg.define (pp, 'LSM', None, browse='*.lsm', hide=False,
-                      help='(file)name of a Local Sky Model')
+    JEN_inarg.define (pp, 'from_LSM', None, browse='*.lsm', hide=False,
+                      help='(file)name of a Local Sky Model to be used'+
+                      '(instead of a predefined punit)')
 
     # Upward compatibility (temporary).
     # name has been changed into punit on friday 10 feb 2006....
@@ -406,15 +407,15 @@ def newstar_source (ns=0, **inarg):
 
    # Hidden option: If a LSM (file) is specified, return the Sixpack
    # that represents the brightest object:
-   if pp['LSM']:
-       print '\n**',funcname,': LSM =',pp['LSM']
+   if pp['from_LSM']:
+       print '\n**',funcname,': from_LSM =',pp['from_LSM']
        lsm = LSM()
-       lsm.load(pp['LSM'],ns)
+       lsm.load(pp['from_LSM'],ns)
        plist = lsm.queryLSM(count=1)
        print '\n** plist =',type(plist),len(plist)
-       punit = plist[0] 
-       Sixpack = punit.getSP()              # get_Sixpack()
-       Sixpack.display()
+       punit = plist[0]                     # take the first (the brightest)
+       Sixpack = punit.getSP()              # better: get_Sixpack()
+       Sixpack.display(funcname)
        return Sixpack
   
    # Adjust parameters pp for some special cases:
@@ -443,6 +444,7 @@ def newstar_source (ns=0, **inarg):
    pset.node_groups('S')
    
    # Define extra solvegroup(s) from combinations of parmgroups:
+   # NB A solvegroup is automatically creates for each parmgroup (e.g. stokesI)
    pset.define_solvegroup('stokesIQUV', [sI,sQ,sU,sV])
    pset.define_solvegroup('stokesIQU', [sI,sQ,sU])
    pset.define_solvegroup('stokesQU', [sQ,sU])
@@ -454,7 +456,7 @@ def newstar_source (ns=0, **inarg):
    iquv = {}
    parm = {}
    fmult = 1.0
-   if pp['SI'] is None:
+   if pp['SI']==None:
       parm['I0'] = pset.define_MeqParm (ns, 'I0', parmgroup=sI, default=pp['I0'])
       iquv[n6.I] = parm['I0']
       fmult = iquv[n6.I]               
@@ -465,8 +467,10 @@ def newstar_source (ns=0, **inarg):
       # fmult = ...??
 
    # Create Stokes V by converting Vpct and correcting for SI if necessary
-   iquv[n6.V] = zero
-   if pp['Vpct'] is not None:
+   if pp['Vpct']==None:
+       # iquv[n6.V] = zero
+       iquv[n6.V] = ns[n6.V](q=punit) << Meq.Parm(0.0)
+   else:
       parm['Vpct'] = pset.define_MeqParm (ns, 'Vpct', parmgroup=sV, default=pp['Vpct'])
       if isinstance(fmult, float):
          iquv[n6.V] = ns[n6.V](q=punit) << (parm['Vpct']*(fmult/100))
@@ -474,11 +478,13 @@ def newstar_source (ns=0, **inarg):
          iquv[n6.V] = ns[n6.V](q=punit) << (parm['Vpct']*fmult/100)
     
       
-   if pp['RM'] is None:
+   if pp['RM']==None:
       # Without Rotation Measure:
       # Create Stokes Q by converting Qpct and correcting for SI if necessary
-      iquv[n6.Q] = zero
-      if pp['Qpct'] is not None:
+      if pp['Qpct']==None:
+          # iquv[n6.Q] = zero
+          iquv[n6.Q] = ns[n6.Q](q=punit) << Meq.Parm(0.0)
+      else:
          parm['Qpct'] = pset.define_MeqParm (ns, 'Qpct', parmgroup=sQ, default=pp['Qpct'])
          if isinstance(fmult, float):
             iquv[n6.Q] = ns[n6.Q](q=punit) << (parm['Qpct']*(fmult/100))
@@ -486,8 +492,10 @@ def newstar_source (ns=0, **inarg):
             iquv[n6.Q] = ns[n6.Q](q=punit) << (parm['Qpct']*fmult/100)
 
       # Create Stokes U by converting Upct and correcting for SI if necessary
-      iquv[n6.U] = zero
-      if pp['Upct'] is not None:
+      if pp['Upct']==None:
+          # iquv[n6.U] = zero
+          iquv[n6.U] = ns[n6.U](q=punit) << Meq.Parm(0.0)
+      else:
          parm['Upct'] = pset.define_MeqParm (ns, 'Upct', parmgroup=sU, default=pp['Upct'])
          if isinstance(fmult, float):
             iquv[n6.U] = ns[n6.U](q=punit) << (parm['Upct']*(fmult/100))
@@ -497,9 +505,11 @@ def newstar_source (ns=0, **inarg):
    else:
       # With Rotation Measure: 
       # Create an intermediate QU = [Q,U]
-      if pp['Qpct'] is None: pp['Qpct'] = 0.0
-      if pp['Upct'] is None: pp['Upct'] = 0.0
-      if 0:
+      if pp['Qpct']==None:
+          pp['Qpct'] = 0.0
+      if pp['Upct']==None:
+          pp['Upct'] = 0.0
+      if False:
          pass
          # NB: Some sources have polclogs for their absolute polarised flux (e.g. 3c286):
          # iquv['Q'] = MG_JEN_funklet.polclog_flux(ns, source=punit, stokes='stokesQ')
@@ -742,11 +752,12 @@ if __name__ == '__main__':
       punit = '3c147'
       punit = 'SItest'
       punit = 'RMtest'
+      punit = 'unpol'
       unsolvable = False
       unsolvable = True
       parmtable = None
       parmtable = '<lsm-parmtable>'
-      Sixpack = newstar_source (ns, name=punit,
+      Sixpack = newstar_source (ns, punit=punit,
                                 unsolvable=unsolvable,
                                 parmtable=parmtable)
       # Sixpack = newstar_source (ns)
@@ -774,7 +785,7 @@ if __name__ == '__main__':
       Sixpack.nodescope(ns)
       MG_JEN_exec.display_subtree (Sixpack.radec(), 'radec()', full=1)
 
-   if 0:
+   if 1:
       Sixpack.nodescope(ns)
       MG_JEN_exec.display_subtree (Sixpack.stokesI(), 'stokesI()', full=1)
       MG_JEN_exec.display_subtree (Sixpack.sixpack(), 'sixpack()', full=1)

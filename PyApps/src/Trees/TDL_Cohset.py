@@ -1287,6 +1287,7 @@ class Cohset (TDL_common.Super):
     def sinks (self, ns, **pp):
         """Attaches the Cohset coherency matrices to MeqSink nodes""" 
         funcname = '::sinks():'
+        print '\n** Start of: TDL_Cohset.sinks()'
 
         # Input arguments:
         pp.setdefault('output_col', 'PREDICT')          # name of MS output column (NONE means inhibited)
@@ -1323,30 +1324,31 @@ class Cohset (TDL_common.Super):
         #   (may be used to attach all MeqDataCollect nodes)
         if True:
             # for key in ['start','pre','post']:
-            for key in ['start','post']:
+            for key in ['start','post']:           # ignore 'pre' for the moment....
                 print '-',key,':',type(pp[key]),len(pp[key])
                 if isinstance(pp[key], (list,tuple)):
                     print '-',key,':',type(pp[key]),len(pp[key])
                     for node in pp[key]:
                         print '  -',node
                     if len(pp[key])==0:
-                        pp[key] = None          # empty list gives an error....!
+                        pp[key] = None             # empty list gives an error....!
                     else:
                         # pp[key] = ns[key+'_VisDataMux'] << Meq.ReqSeq(children=pp[key])
                         pp[key] = ns[key+'_VisDataMux'] << Meq.ReqMux(children=pp[key]) 
                         # pp[key] = ns[key+'_VisDataMux'] << Meq.Add(children=pp[key])
                     print '-',key,':',pp[key]
                 print '-',key,':',pp[key]
-            root = ns.VisDataMux << Meq.VisDataMux(start=pp['start'],
-                                                   pre=pp['pre'],
-                                                   post=pp['post'])
-
+            root = ns['Cohset_VisDataMux'] << Meq.VisDataMux(start=pp['start'],
+                                                             # pre=pp['pre'],
+                                                             post=pp['post'])
+            
         # Bookkeeping:
         self.cleanup(ns)
         self.scope('sink')
         self.history(append=funcname+' inarg = '+str(pp))
         self.history(append=funcname+' MS_corr_index = '+str(MS_corr_index))
         self.history(append=funcname+' -> '+self.oneliner())
+        print '** End of: TDL_Cohset.sinks()\n'
         return True
 
 #------------------------------------------------------------------------------------
@@ -1390,9 +1392,9 @@ class Cohset (TDL_common.Super):
                         pp[key] = ns[key+'_fullDomainMux'] << Meq.ReqMux(children=pp[key]) 
                     print '-',key,':',pp[key]
                 print '-',key,':',pp[key]
-            root = ns.fullDomainMux << Meq.VisDataMux(start=pp['start'],
-                                                      pre=pp['pre'],
-                                                      post=pp['post'])
+            root = ns['Cohset_fullDomainMux'] << Meq.VisDataMux(start=pp['start'],
+                                                                # pre=pp['pre'],
+                                                                post=pp['post'])
 
         # Bookkeeping:
         self.history(append=funcname+' inarg = '+str(pp))

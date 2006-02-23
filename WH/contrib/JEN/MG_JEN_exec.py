@@ -418,7 +418,9 @@ def spigot2sink (mqs, parent, ctrl=None, **pp):
    # Otherwise, the VisDataMux node can only be properly executed once, since aftewards it
    # persists in returning a result from the cache.....
 
-   mqs.execute('VisDataMux', req, wait=False)
+   # NB: The name of the node is defined in TDL_Cohset.sinks():
+   # mqs.execute('VisDataMux', req, wait=False)
+   mqs.execute('Cohset_VisDataMux', req, wait=False)
 
    # Optionally, save the meqforest
    # NB: If save=True, the meqforest is saved to a file for EVERY tile....!!

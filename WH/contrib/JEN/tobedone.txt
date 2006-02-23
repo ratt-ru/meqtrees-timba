@@ -460,6 +460,26 @@ detected bugs:
      - after initial gain calibration, of course
      - this quantity shows the 17 MHz ripple...! 
 
+
+ - AGB: 3c84:
+   - point source: 100.000 sigma
+   - medium component: 10.000 sigma
+   - wide component: ...
+   - multi-resolution CLEAN
+   - V=1.4% !!
+
+ - Simulaton:
+   - Arbitrary LSM's (relative?)
+   - Corruption:
+     - Jones matrices
+     - ifr-based errors
+     - RFI
+     - BSR
+   - Every MeqParm a cos()?
+     - a*cos(2pi*(b*(t-t0)+c))
+     - use tree cos() and 'normalised' polc....
+     - make funklet for polc_cos (like polclog)
+
 ------------------------------------------------------------------------------
 
  - Optical Calibration:

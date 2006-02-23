@@ -174,9 +174,17 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         if False:
             # Test:
             post = [TDL_Leaf.MeqFreqTime(ns, zero_mean=True)]
+        elif False:
+            # The entire list of upstream MeqParms
+            mm = Cohset.Parmset.MeqParm()
+            post = [ns['_all_Parmset_MeqParms'] << Meq.Add(children=mm)]
         else:
-            mm = Cohset.Parmset.MeqParm()         # The list of upstream MeqParms
-            post = [ns.MeqParmGroups << Meq.Add(children=mm)]
+            # Bundle the MeqParms per parmgroup:
+            post = []
+            for key in Cohset.Parmset.parmgroup().keys():
+                pg = Cohset.Parmset.parmgroup(key)  # list of MeqParm node names
+                if len(pg)>0:
+                    post.append(ns['_parmgroup_'+key] << Meq.Add(children=pg))
         Cohset.fullDomainMux(ns, post=post)
 
     # Optional: visualise the sink (output) data:

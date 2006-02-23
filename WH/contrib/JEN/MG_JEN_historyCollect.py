@@ -98,7 +98,8 @@ def _define_forest (ns):
                                        # save_funklets=True,
                                        debug_level=10)
       # Make a bookmark for the solver plot:
-      MG_JEN_forest_state.bookmark (solver, udi='cache/result')
+      # MG_JEN_forest_state.bookmark (solver, udi='cache/result')
+      MG_JEN_forest_state.bookmark (solver, viewer='Result Plotter')
       # MG_JEN_forest_state.bookmark (solver, udi='cache/result', viewer='Result Plotter')
 
       # Make a tensor node of hcoll nodes, and attach them to cc:

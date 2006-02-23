@@ -525,7 +525,7 @@ class ArgBrowser(QMainWindow):
 
     def essence(self):
         """Show a summary of the (specified) essence of the current inarg"""
-        match = ['ms_','_col','lsm','parm','pol','uvplane','stations',
+        match = ['ms_','_col','LSM','parm','pol','uvplane','stations',
                  'flag','corr','subtr','rmin','rmax','cond',
                  'sequ','solve','condit','deg_','tile']
         exclude = []

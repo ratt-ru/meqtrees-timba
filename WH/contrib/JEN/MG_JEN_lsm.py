@@ -152,6 +152,12 @@ def arcmin2rad(arcmin=None):
    if not arcmin==None: return arcmin*factor    # if arcmin specified, convert
    return factor                                # return conversion factor
 
+def deg2rad(deg=None):
+   """Convert deg to radians"""
+   factor = pi/180                              # 180/pi = 57.2957795130....
+   if not deg==None: return deg*factor          # if deg specified, convert
+   return factor                                # return conversion factor
+
 #--------------------------------------------------------------------------------
 
 def add_single (ns=None, Sixpack=None, lsm=None, cc=[], radec=[], **inarg):
@@ -218,21 +224,18 @@ def add_grid (ns=None, lsm=None, cc=[], radec=[], **inarg):
    Dec0 = pp1['Dec']
 
    # Create the sources defined by pp:
-   for i in array(range(-pp['nRA2'],pp['nRA2']+1)):
+   for i in range(-pp['nRA2'],pp['nRA2']+1):
       RA = RA0 + i*pp['dRA']*arcmin2rad()
-      for j in array(range(-pp['nDec2'],pp['nDec2']+1)):
+      for j in range(-pp['nDec2'],pp['nDec2']+1):
          Dec = Dec0 + j*pp['dDec']*arcmin2rad()
-         print '(RA,Dec) =',RA,Dec
-         if True:
-            punit = 'grid:'+str(i)+':'+str(j)
-            Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
-                                                    punit=punit, RA=RA, Dec=Dec)
-            cc.append(MG_JEN_Sixpack.make_bookmark(ns, Sixpack))
-            MG_JEN_Sixpack.collect_radec(radec, Sixpack)
-            # Compose the sixpack before adding it to the lsm:
-            Sixpack.sixpack(ns)
-            # Sixpack.display()
-            lsm.add_sixpack(sixpack=Sixpack)
+         punit = 'grid:'+str(i)+':'+str(j)
+         Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
+                                                 punit=punit, RA=RA, Dec=Dec)
+         cc.append(MG_JEN_Sixpack.make_bookmark(ns, Sixpack))
+         MG_JEN_Sixpack.collect_radec(radec, Sixpack)
+         # Compose the sixpack before adding it to the lsm:
+         Sixpack.sixpack(ns)
+         lsm.add_sixpack(sixpack=Sixpack)
    return True
 
 
@@ -248,21 +251,52 @@ def add_spiral (ns=None, lsm=None, cc=[], radec=[], **inarg):
                            description=add_single.__doc__)
    JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
 
-   JEN_inarg.define(pp, 'n', 2, choice=[2,3,4,5,10],   
+   JEN_inarg.define(pp, 'nr', 5, choice=[2,3,4,5,10],   
                     help='nr of sources')
-   JEN_inarg.define(pp, 'rstart', 1, choice=[1,2,5,10,20,50,100],   
-                    help='start radius (arcmin)')
+   JEN_inarg.define(pp, 'rstart', 10, choice=[1,2,5,10,20,50,100],   
+                    help='start position radius (arcmin)')
+   JEN_inarg.define(pp, 'astart', 0, choice=[1,2,5,10,20,50,100],   
+                    help='start position angle (deg)')
    JEN_inarg.define(pp, 'rmult', 1.1, choice=[1.01,1.1,1.2,1.5,2],    
                     help='radius multiplication factor')
-   JEN_inarg.define(pp, 'dang', 0.1, choice=[0,0.1,0.2,0.5,1.0],    
-                    help='position angle indrement (rad)')
+   JEN_inarg.define(pp, 'ainc', 50, choice=[10,20,30,45,90,180,360,0],    
+                    help='position angle increment (deg)')
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
    print 'funcname =',funcname
 
+   # Get the internal argument-record for .newstar_source():
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual)
+   RA0 = pp1['RA']
+   Dec0 = pp1['Dec']
+
+   # Create the sources defined by pp:
+   r = 0.0
+   a = 0.0
+   for i in range(pp['nr']):
+      RA = RA0 + r*cos(a)
+      Dec = Dec0 + r*sin(a)
+      punit = 'spiral:'+str(i)
+      Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
+                                              punit=punit, RA=RA, Dec=Dec)
+      cc.append(MG_JEN_Sixpack.make_bookmark(ns, Sixpack))
+      MG_JEN_Sixpack.collect_radec(radec, Sixpack)
+      # Compose the sixpack before adding it to the lsm:
+      Sixpack.sixpack(ns)
+      # Sixpack.display()
+      lsm.add_sixpack(sixpack=Sixpack)
+
+      # Calculate the position of the next source:
+      if i==0:
+         r = pp['rstart']*arcmin2rad()
+         a = pp['astart']*deg2rad()
+      else:
+         r *= pp['rmult']
+         a += pp['ainc']*deg2rad()
    return True
+
 
 
 
