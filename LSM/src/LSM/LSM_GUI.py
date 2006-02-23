@@ -661,9 +661,9 @@ class LSMWindow(QMainWindow):
             for punit in l_punits:
               ttext=QString(punit.name+": brightness: "+str(punit.getBrightness())+", type: ")
               if punit.getType()==POINT_TYPE:
-                ttext=ttext+QString("Point")
+                ttext=QString(ttext.ascii()+"Point")
               else:
-                ttext=ttext+QString("Patch")
+                ttext=QString(ttext.ascii()+"Patch")
               pp.drawText(margin+tab_margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
               yPos=yPos+fm.lineSpacing()
             # print each PUnit on a line
