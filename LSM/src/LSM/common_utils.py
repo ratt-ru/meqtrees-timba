@@ -398,6 +398,20 @@ def get_default_parms(nd):
    my_val=-1
  return my_val
 
+
+######################################################
+## extract a node stub from given nodescope using the 
+## full name in the format 'a':q='b'
+def cname_node_stub(ns,nodename):
+  alist=string.split(nodename,":q=")
+  nodestub=None
+  if len(alist)==1:
+   nodestub=ns[alist[0]]
+  else:
+   wstr="nodestub=ns."+alist[0]+"(q='"+alist[1]+"')"
+   exec wstr# in globals(),locals()
+  return nodestub
+
 #######################################################
 ### change value of MeqParm
 def change_parm(ns,node,new_value):
@@ -418,7 +432,7 @@ def change_parm(ns,node,new_value):
  #exec work_str in globals(),locals()
  print "trying to change params of ",node.name
  g=node.initrec()
- print g
+ #print g
  g['init_funklet']=meq.polc(new_value)
  ns.Resolve()
 
@@ -432,14 +446,10 @@ def change_radec(sixpack,new_ra,new_dec,ns):
 
 # change MeqParm of TDL_Sixpack_Patch RA,Dec 
 def change_radec_patch(patch_name,new_ra,new_dec,ns):
- ra=ns['ra0:q='+patch_name]
+ ra=ns.ra0(q=patch_name)
  change_parm(ns,ra,new_ra)
- dec=ns['dec0:q='+patch_name]
+ dec=ns.dec0(q=patch_name)
  change_parm(ns,dec,new_dec)
-
-
-
-
 
 
 

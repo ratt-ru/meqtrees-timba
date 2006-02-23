@@ -162,7 +162,7 @@ class PUnit:
    pset=self.__sixpack.Parmset
    # copy ParmSet
    newp.__sixpack['Parmset']=pset.clone()
-   print newp.__sixpack['Parmset']
+   #print newp.__sixpack['Parmset']
    if self.__sixpack.ispoint():
     newp.__sixpack['I']=self.__sixpack.stokesI().name
     newp.__sixpack['Q']=self.__sixpack.stokesQ().name
@@ -210,14 +210,14 @@ class PUnit:
  # Assume all needed nodes exist in the ns
  # Assume also the sixpack is present in this PUnit
  def setParmset(self,tmp_dict,ns):
-  print tmp_dict
+  #print tmp_dict
   if self.__sixpack==None or ns==None:
     print "WARNING: cannot reconstruct Parmset"
     return
   # recreate Parmset
   pset=TDL_Parmset.Parmset()
   pset.restore(tmp_dict,ns)
-  pset.display()
+  #pset.display()
   # attach it to sixpack 
   self.__sixpack.Parmset=pset
 ###############################################
@@ -611,8 +611,9 @@ class LSM:
   
   # next step: save the MeqTrees
   if self.mqs != None:
-   forest_filename=filename+'.forest'
-   self.mqs.meq('Save.Forest',meq.record(file_name=forest_filename));
+   pass
+   #forest_filename=filename+'.forest'
+   #self.mqs.meq('Save.Forest',meq.record(file_name=forest_filename));
 
  # load from a file 
  def load(self,filename,ns=None):
@@ -656,10 +657,12 @@ class LSM:
      # NOTE: do not give the nodescope because then it tries to
      # compose, but the tree is already composed
      my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
-       ra=self.__ns[tmp_dict['ra']],\
-       dec=self.__ns[tmp_dict['dec']],stokesI=self.__ns[tmp_dict['I']],\
-       stokesQ=self.__ns[tmp_dict['Q']],stokesU=self.__ns[tmp_dict['U']],\
-      stokesV=self.__ns[tmp_dict['V']])
+       ra=cname_node_stub(self.__ns,tmp_dict['ra']),\
+       dec=cname_node_stub(self.__ns,tmp_dict['dec']),\
+       stokesI=cname_node_stub(self.__ns,tmp_dict['I']),\
+       stokesQ=cname_node_stub(self.__ns,tmp_dict['Q']),\
+       stokesU=cname_node_stub(self.__ns,tmp_dict['U']),\
+      stokesV=cname_node_stub(self.__ns,tmp_dict['V']))
      # set the root node
      my_sp=my_sp.clone(sixpack=self.__ns[tmp_dict['pointroot']],ns=self.__ns)
     punit.setSP(my_sp)
@@ -679,9 +682,10 @@ class LSM:
    print "file %s cannot be opened, load failed" % filename 
   # next step: Load the MeqTrees if possible 
   if self.mqs != None:
-   forest_filename=filename+'.forest'
+   pass
+   #forest_filename=filename+'.forest'
    #self.mqs.meq('Load.Forest',meq.record(file_name=forest_filename),wait=True);
-   self.mqs.meq('Load.Forest',meq.record(file_name=forest_filename));
+   #self.mqs.meq('Load.Forest',meq.record(file_name=forest_filename));
 
 
  # send a request to the LSM to give the p-units
