@@ -29,6 +29,7 @@ namespace Meq {
 
 //##ModelId=400E535502AC
 Time::Time()
+: Node(0)
 { 
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
@@ -37,13 +38,6 @@ Time::Time()
 //##ModelId=400E535502AD
 Time::~Time()
 {}
-
-//##ModelId=400E535502AF
-void Time::init (DMI::Record::Ref::Xfer &initrec, Forest* frst)
-{
-  Node::init(initrec,frst);
-  FailWhen(numChildren(),"Time node cannot have children");
-}
 
 //##ModelId=400E535502B5
 int Time::getResult (Result::Ref &resref, 

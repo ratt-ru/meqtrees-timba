@@ -46,12 +46,11 @@ Forest::Forest ()
 {
   staterec_ <<= new DMI::Record;
   // init default symdep set
-  known_symdeps[AidIteration]   = 0x02;
-  known_symdeps[AidState]       = depmask_state_ = 0x04;
-  known_symdeps[AidResolution]  = 0x08; 
-  known_symdeps[AidDomain]      = 0x10;
-  known_symdeps[AidDataset]     = 0x20;
-  symdep_map = known_symdeps;
+  symdeps_.set(AidIteration,  0x02);
+  symdeps_.set(AidState,depmask_state_ = 0x04);
+  symdeps_.set(AidResolution, 0x08);
+  symdeps_.set(AidDomain,     0x10);
+  symdeps_.set(AidDataset,    0x20);
   // resize repository to 1 initially, so that index #0 is never used
   nodes.reserve(RepositoryChunkSize);
   nodes.resize(1);
@@ -105,10 +104,19 @@ Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitiali
       Throw("'"+classname+"' is not a node class");
     }
     noderef.attach(pnode,DMI::SHARED);
+    // check if node index is already set (i.e. via init record),
+    if( node_index > 0 ) // node index already set (i.e. when reloading)
+    {
+      FailWhen(node_index<int(nodes.size()) && nodes[node_index].valid(),
+          Debug::ssprintf("%s: node %d already created",nodename.c_str(),node_index));
+    }
+    else  // not set, allocate new node index
+      node_index = nodes.size();
+    pnode->setNameAndIndex(nodename,node_index);
     if( reinitializing )
-      pnode->reinit(initrec,this);
+      pnode->reattachInitRecord(initrec,this);
     else
-      pnode->init(initrec,this);
+      pnode->attachInitRecord(initrec,this);
   }
   catch( std::exception &exc )
   {
@@ -118,21 +126,12 @@ Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitiali
   {
     Throw("failed to init node '"+nodename +"' of class "+classname); 
   }
-  // check if node index is already set (i.e. via init record),
-  if( node_index > 0 ) // node index already set (i.e. when reloading)
-  {
-    FailWhen(node_index<int(nodes.size()) && nodes[node_index].valid(),
-        Debug::ssprintf("%s: node %d already created",nodename.c_str(),node_index));
-  }
-  else  // not set, allocate new node index
-    node_index = nodes.size();
   // resize repository as needed, and put node into it
   if( node_index >= int(nodes.capacity()) )
     nodes.reserve(node_index + RepositoryChunkSize);
   if( node_index >= int(nodes.size()) )
     nodes.resize(node_index+1);
   nodes[node_index] = noderef;
-  pnode->setNodeIndex(node_index);
   // add to repository and name map
   num_valid_nodes++;
   if( !nodename.empty() )
@@ -272,13 +271,13 @@ int Forest::getNodeList (DMI::Record &list,int content)
           (*lrqid)[i0] = node.currentRequestId();
         if( lchildren )
         {
-          node.state(nodestate);
+          node.getState(nodestate);
           lchildren->addBack((*nodestate)[FChildren].ref(true));
           lstepchildren->addBack((*nodestate)[FStepChildren].ref(true));
         }
         if( lprof )
         {
-          node.syncState(nodestate);
+          node.getSyncState(nodestate);
           (*lprof)[i0] = (*nodestate)[FProfilingStats].ref(true);
           (*lcache)[i0] = (*nodestate)[FCacheStats].ref(true);
         }
@@ -287,12 +286,6 @@ int Forest::getNodeList (DMI::Record &list,int content)
     FailWhen(i0<num,"forest inconsistency: too few valid nodes found");
   }
   return num;
-}
-
-void Forest::fillSymDeps (DMI::Record &rec,const SymdepMap &map)
-{
-  for( SymdepMap::const_iterator iter = map.begin(); iter != map.end(); iter++ )
-    rec[iter->first] = iter->second;
 }
 
 void Forest::initDefaultState ()
@@ -307,9 +300,7 @@ void Forest::initDefaultState ()
   // state maps
   st[FAxisMap] = Axis::getAxisRecords();
   st[FDebugLevel] = debug_level_;
-  DMI::Record &known = st[FKnownSymDeps] <<= new DMI::Record;
-  fillSymDeps(st[FKnownSymdeps] <<= new DMI::Record,known_symdeps);
-  fillSymDeps(st[FSymdeps] <<= new DMI::Record,symdep_map);
+  st[FSymdeps] <<= symdeps().toRecord();
   st[FCachePolicy] = cache_policy_;
   st[FProfilingEnabled] = profiling_enabled_;
   st[FBreakpoint] = breakpoints;

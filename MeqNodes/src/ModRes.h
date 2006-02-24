@@ -82,8 +82,9 @@ public:
 protected:
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
-  virtual int  pollChildren (Result::Ref &resref,
-                             const Request &req);
+  virtual int pollChildren (Result::Ref &resref,
+                            std::vector<Result::Ref> &childres,
+                            const Request &req);
     
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,

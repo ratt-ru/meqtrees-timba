@@ -30,6 +30,7 @@ namespace Meq {
 //##ModelId=400E5305005F
 Condeq::Condeq()
 {
+  children().setMissingDataPolicy(AidAbandonPropagate);
   setAutoResample(RESAMPLE_FAIL); // children must return the same cells
 }
 

@@ -284,7 +284,7 @@ class _NodeStub (object):
   """;
   slots = ( "name","scope","basename","quals","kwquals",
             "classname","parents","children","stepchildren",
-            "_initrec","_caller","_deftb","_debuginfo" );
+            "nodeindex","_initrec","_caller","_deftb","_debuginfo" );
   # The Parents class is used to manage a weakly-reffed dictionary of the node's parents
   # We redefine it as a class to implement __copy__ and __depcopy__ (which otherwise
   # crashes and burns on weakrefs)
@@ -658,6 +658,7 @@ class _NodeRepository (dict):
       self._have_vdm = None;  
     # now go through node list, weed out uninitialized nodes, finalize 
     # parents and children, etc.
+    current_nodeindex = 1;
     for (name,node) in self.iteritems():
       if not node.initialized():
         uninit.append(name);
@@ -677,17 +678,11 @@ class _NodeRepository (dict):
         if hasattr(node._initrec,'name'):
           node._initrec = node._initrec.copy();
         # finalize the init-record by adding node name and children
+        node.nodeindex = node._initrec.nodeindex = current_nodeindex;
+        current_nodeindex += 1;
         node._initrec.node_description = ':'.join((name,node.classname,node._debuginfo));
-        node._initrec.name = node.name;
-        if node.children.is_dict:
-          children = dmi.record([(lbl,ch and ch.name) for (lbl,ch) in node.children]);
-        else:  # children as list
-          children = [ ch and ch.name for (lbl,ch) in node.children ];
-        _dprint(5,'node',node.name,'children are',children);
-        if children:
-          node._initrec.children = children;
-        if node.stepchildren:
-          node._initrec.step_children = [ ch.name for (lbl,ch) in node.stepchildren ];
+        node._initrec.name = node.name;\
+        _dprint(3,'checked node',node.name,'nodeindex',node.nodeindex);
         ch = None; # relinquish ref to node, otherwise orphan collection is confused
     node = None;  # relinquish ref to node, otherwise orphan collection is confused
     # now check for accumulated errors
@@ -706,6 +701,19 @@ class _NodeRepository (dict):
     if cleanup_orphans:
       map(self.deleteOrphan,orphans);
     _dprint(1,len0 - len(self),"orphans were deleted,",len(self._roots),"roots remain");
+    # now that all nodeindices have been assigned, do another loop to resolve
+    # the children specifications and replace them with node indices
+    for node in self.itervalues():
+      if node.children.is_dict:
+        children = dmi.record([(label,getattr(child,'nodeindex',-1)) 
+                                  for label,child in node.children]);
+      else:  # children as list
+        children = [ getattr(child,'nodeindex',-1) for label,child in node.children ];
+      _dprint(5,'node',node.name,'child nodeindices are',children);
+      if children:
+        node._initrec.children = children;
+      if node.stepchildren:
+        node._initrec.step_children = [ child.nodeindex for label,child in node.stepchildren ];
     # print roots in debug mode
     if _dbg.verbose > 3:
       for node in self._roots.itervalues():

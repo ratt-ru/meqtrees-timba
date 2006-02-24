@@ -31,7 +31,7 @@
 
 namespace Meq {
 
-const HIID symdeps[] = { FDomain,FResolution };
+const HIID dom_symdeps[] = { FDomain,FResolution };
 
 //const HIID FDomain = AidDomain;
 const HIID FVells = AidVells;
@@ -41,7 +41,6 @@ Constant::Constant ()
   integrated_(false)
 {
   (result_ <<= new Result(1)).setNewVellSet(0);
-  setKnownSymDeps(symdeps,2);
 }
 
 //##ModelId=400E5305008F
@@ -50,10 +49,9 @@ Constant::Constant (double value,bool integrated)
   integrated_(integrated)
 {
   (result_ <<= new Result(1)).setNewVellSet(0).setValue(new Vells(value,false));
-  setKnownSymDeps(symdeps,2);
   // intregrated results depend on cells
   if( integrated )
-    setActiveSymDeps(symdeps,2);
+    setActiveSymDeps(dom_symdeps,2);
 }
 
 //##ModelId=400E53050094
@@ -62,10 +60,9 @@ Constant::Constant (const dcomplex& value,bool integrated)
   integrated_(integrated)
 {
   (result_ <<= new Result(1)).setNewVellSet(0).setValue(new Vells(value,false));
-  setKnownSymDeps(symdeps,2);
   // intregrated results depend on cells
   if( integrated )
-    setActiveSymDeps(symdeps,2);
+    setActiveSymDeps(dom_symdeps,2);
 }
 
 //##ModelId=400E53050098
@@ -96,7 +93,7 @@ void Constant::setStateImpl (DMI::Record::Ref& rec, bool initializing)
   if( rec[FIntegrated].get(integrated_,initializing) )
   {
     if( integrated_ )
-      setActiveSymDeps(symdeps,2);
+      setActiveSymDeps(dom_symdeps,2);
     else // not integrated -- no dependency (value same regardless of domain/cells)
       setActiveSymDeps();
   }

@@ -18,7 +18,8 @@
 //# along with this program; if not, write to the Free Software
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
-//# $Id$
+
+
 
 #include <MeqNodes/Parm.h>
 #include <MEQ/ComposedPolc.h>
@@ -47,8 +48,8 @@ namespace Meq {
 
   InitDebugContext(Parm,"MeqParm");
 
-  const HIID symdeps_all[]     = { FDomain,FResolution,FState,FIteration };
-  const HIID symdeps_domain[]  = { FDomain,FResolution };
+  const HIID symdeps_all[]     = { FDataset,FDomain,FResolution,FState,FIteration };
+  const HIID symdeps_domain[]  = { FDataset,FDomain,FResolution };
   const HIID symdeps_solve[]   = { FIteration,FState };
   const HIID symdeps_default[] = { };
 
@@ -87,8 +88,8 @@ namespace Meq {
       force_shape_(false),
       domain_depend_mask_(0),
       solve_depend_mask_(0),
-      domain_symdeps_(symdeps_domain,symdeps_domain+2),
-      solve_symdeps_(symdeps_solve,symdeps_solve+1),
+      domain_symdeps_(symdeps_domain,symdeps_domain+sizeof(symdeps_domain)/sizeof(symdeps_domain[0])),
+      solve_symdeps_(symdeps_solve,symdeps_solve+sizeof(symdeps_solve)/sizeof(symdeps_solve[0])),
       solve_domain_(2),
       integrated_(false)
   {
@@ -96,7 +97,6 @@ namespace Meq {
     // whenever the parm solvable state is changed, or when fiddling.
     // Domain mask will be added if the funklet has >1 coefficient; solve_depend_mask 
     // is added if the parm is solvable
-    setKnownSymDeps(symdeps_all,3);
     setActiveSymDeps(symdeps_default,0);
   }
 
@@ -385,12 +385,13 @@ namespace Meq {
     const Domain &domain = request.cells().domain();
     const Cells &cells = request.cells();
 
-    HIID rq_dom_id = RqId::maskSubId(request.id(),forest().getDependMask(FDomain));
-    
-    //keep track of rqid apart from iteration nr. 
+    //    HIID rq_dom_id = RqId::maskSubId(request.id(),forest().getDependMask(FDomain));
+    HIID rq_dom_id = RqId::maskSubId(request.id(),domain_depend_mask_);
 
-    //    HIID newrid = RqId::maskSubId(request.id(),~forest().getDependMask(FIteration));
-    HIID newrid = RqId::maskSubId(request.id(),forest().getDependMask(FDomain)|forest().getDependMask(FDataset));
+    // NB: OMS 20/02/2006: I have removed the newrid variable, since
+    // the domain_depend_mask now includes FDataset, so the rq_dom_id
+    // is pretty much equivalent
+
     // do we have a current funklet set up?
 
     //parm should keep a reference to the funklet object, snce it doesnt have to be equal to the wstate...
@@ -404,7 +405,7 @@ namespace Meq {
     if( pfunklet )
       {
 	// reuse the funklet if domain and dataset do not change
-         if( !newrid.empty() && newrid == rqid_ )
+         if( !rq_dom_id.empty() && rq_dom_id == domain_id_ )
           {
             cdebug(3)<<"current funklet request ID matches, re-using"<<endl;
             return its_funklet_.dewr_p();
@@ -416,7 +417,6 @@ namespace Meq {
             cdebug(3)<<"current funklet has infinite domain, re-using"<<endl;
             wstate()[FDomainId] = domain_id_ = rq_dom_id;
             wstate()[FDomain].replace() <<= &domain;
-            rqid_=newrid;
 
 	    const LoShape shape=pfunklet->getCoeffShape();
 	    if(force_shape_)
@@ -439,7 +439,6 @@ namespace Meq {
 	      }
             wstate()[FDomainId] = domain_id_ = rq_dom_id;
             wstate()[FDomain].replace() <<= &domain;
-            rqid_=newrid;
 	    const LoShape shape=pfunklet->getCoeffShape();
 	    if(force_shape_)
 	      pfunklet->setCoeffShape(shape_);
@@ -475,14 +474,12 @@ namespace Meq {
         wstate()[FFunklet].replace() = its_funklet_().getState();
         wstate()[FDomainId] = domain_id_ = rq_dom_id;
         wstate()[FDomain].replace() <<= &domain;
-        rqid_=newrid;
         cdebug(2)<<"found relevant funklet,after tiling type "<<newfunklet->objectType()<<endl;
         return its_funklet_.dewr_p();
       }
     wstate()[FFunklet].replace() = its_funklet_().getState();
     wstate()[FDomainId] = domain_id_ = rq_dom_id;
     wstate()[FDomain].replace() <<= &domain;
-    rqid_=newrid;
     return its_funklet_.dewr_p();
     
    
@@ -496,7 +493,10 @@ namespace Meq {
                            const std::vector<Result::Ref> &,
                            const Request &request)
   {
-    if(!isSolvable()) return 0;
+    if( !isSolvable() )
+      return 0;
+    domain_depend_mask_ = symdeps().getMask(domain_symdeps_);
+    solve_depend_mask_ = symdeps().getMask(solve_symdeps_);
     // init solvable funklet for this request
     Funklet * pfunklet = initFunklet(request,True);
     cdebug(3)<<"init funklet "<<pfunklet->objectType()<<" "<<pfunklet->isSolvable()<<endl;
@@ -544,6 +544,9 @@ namespace Meq {
 		       const Request &request,bool newreq)
   {
     cdebug(3)<<"evaluating parm for domain "<<request.cells().domain()<<endl;
+    domain_depend_mask_ = symdeps().getMask(domain_symdeps_);
+    solve_depend_mask_ = symdeps().getMask(solve_symdeps_);
+    
     // is request for solvable parm values?
     bool solve = isSolvable() && request.evalMode() > 0;
     // find a funklet to use
@@ -633,19 +636,6 @@ namespace Meq {
 
   }
 
-
-  void Parm::resetDependMasks ()
-  {
-    Node::resetDependMasks();
-    domain_depend_mask_ = computeDependMask(domain_symdeps_);
-    solve_depend_mask_ = computeDependMask(solve_symdeps_);
-    if( hasState() )
-      {
-	wstate()[FDomainDependMask] = domain_depend_mask_;
-	wstate()[FSolveDependMask] = solve_depend_mask_;
-      }
-  }
-
   void Parm::setStateImpl (DMI::Record::Ref& rec, bool initializing)
   {
     Node::setStateImpl(rec,initializing);
@@ -681,17 +671,11 @@ namespace Meq {
     if( rec[FDomainSymDeps].get_vector(domain_symdeps_,initializing) )
       {
 	cdebug(2)<<"domain_symdeps set via state\n";
-	resetDependMasks();
       }
     if( rec[FSolveSymDeps].get_vector(solve_symdeps_,initializing) )
       {
 	cdebug(2)<<"solve_symdeps set via state\n";
-	resetDependMasks();
       }
-    // now set the dependency mask if specified; this will override
-    // possible modifications made above
-    rec[FDomainDependMask].get(domain_depend_mask_,initializing);
-    rec[FSolveDependMask].get(solve_depend_mask_,initializing);
  
    
     // Is a funklet specified? 
@@ -719,9 +703,9 @@ namespace Meq {
 	// funklet as appropriate.
 	if( !initializing )
 	  {
+	    cdebug(2)<<"resetting domainID"<<endl;
 	    wstate()[FDomain].remove(); 
 	    wstate()[FDomainId] = domain_id_ = HIID();
-	    rqid_=HIID();
 	  }
       }
     // get domain IDs, if specified
@@ -856,7 +840,6 @@ namespace Meq {
 	wstate()[FDomain].remove();
 	wstate()[FDomainId].remove();
 	domain_id_ = HIID();
-	rqid_ = HIID();
 	//    retcode |= RES_NO_CACHE;
       }
 

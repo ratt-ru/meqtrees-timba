@@ -223,7 +223,7 @@ WorkOrder * Brigade::getWorkOrder (bool wait)
 }
 
 // marks thread as blocked or unblocked
-void Brigade::markAsBlocked (const Node &node)
+void Brigade::markAsBlocked (const NodeFace &node)
 {
   Thread::Mutex::Lock lock(cond());
   num_nonblocked_--;
@@ -233,7 +233,7 @@ void Brigade::markAsBlocked (const Node &node)
   cdebug1(1)<<sdebug(1)+" thread blocked in node "+node.name()+"\n";
 }
 
-void Brigade::markAsUnblocked (const Node &node)
+void Brigade::markAsUnblocked (const NodeFace &node)
 {
   Thread::Mutex::Lock lock(cond());
   if( !isSuspended() )
@@ -349,7 +349,7 @@ void Brigade::waitUntilIdle (int minbusy)
 void WorkOrder::execute (Brigade &brigade)
 {
   timer.start();
-  Node &node = noderef();
+  NodeFace &node = noderef();
   const Request &req = *reqref;
   cdebug1(1)<<brigade.sdebug(1)+" executing WO "+req.id().toString('.')+" on node "+node.name()+"\n";
   // note that this will block if node is already being executed
@@ -357,7 +357,7 @@ void WorkOrder::execute (Brigade &brigade)
   cdebug1(1)<<brigade.sdebug(1)+" finished WO "+req.id().toString('.')+" on node "+node.name()+"\n";
   timer.stop();
   // notify client of completed order
-  (clientref().*callback)(ichild,*this);
+  (clientref.*callback)(ichild,*this);
 }
 
 // starts a new brigade and returns pointer to it

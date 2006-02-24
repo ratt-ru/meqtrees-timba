@@ -98,6 +98,7 @@ CS_RES_map = {  CS_RES_NONE:     ('-','valid result'),
                 CS_RES_OK:       ('o','valid result'),
                 CS_RES_WAIT:     ('w','WAIT code returned'),
                 CS_RES_EMPTY:    ('e','empty result returned'),
+                CS_RES_MISSING:  ('m','missing data returned'),
                 CS_RES_FAIL:     ('!','fail result returned')   };
  
 # this class defines and manages a node list
@@ -520,7 +521,11 @@ def ubsubscribe_nodelist (callback):
 
 def enable_node_publish (node,enable=True,get_state=True):
   ni = nodeindex(node);
-  mqs().meq('Node.Publish.Results',record(nodeindex=ni,get_state=get_state,enable=enable),wait=False);
+  if enable:
+    level = 1;
+  else:
+    level = 0;
+  mqs().meq('Node.Publish.Results',record(nodeindex=ni,get_state=get_state,level=level),wait=False);
 
 def disable_node_publish (node,disable=True):
   return enable_node_publish(node,not disable);

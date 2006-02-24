@@ -1,6 +1,6 @@
 #include <TimBase/Thread/Condition.h>
 #include <TimBase/Timer.h>
-#include <MEQ/Node.h>
+#include <MEQ/NodeNursery.h>
 #include <list>
     
 namespace Meq
@@ -14,10 +14,10 @@ namespace Meq
     class WorkOrder
     {
       public:
-        typedef void (Node::*Callback)(int,WorkOrder &);  
+        typedef void (NodeNursery::*Callback)(int,WorkOrder &);  
         
-        WorkOrder (Node &client,Callback cb,Node &child,int i,const Request &req)
-        : clientref(client,DMI::SHARED),
+        WorkOrder (NodeNursery &client,Callback cb,NodeFace &child,int i,const Request &req)
+        : clientref(client),
           callback(cb),
           noderef(child,DMI::SHARED),
           ichild(i),
@@ -27,12 +27,12 @@ namespace Meq
         void execute (Brigade &brig);      // runs the work order. 
         // Caller must successfully call lockNode() first.
         
-        Node::Ref clientref;  // who placed the order
-        Callback callback;    // where to deliver result within the caller
+        NodeNursery & clientref; // who placed the order
+        Callback callback;       // where to deliver result within the caller
         
-        Node::Ref noderef;    // which node to execute
-        int ichild;           // child number of node to execute
-        Request::Ref reqref;  // request to execute
+        NodeFace::Ref noderef;  // which node to execute
+        int ichild;             // child number of node to execute
+        Request::Ref reqref;    // request to execute
         
         Result::Ref resref;   // result of request (when completed)
         int retcode;          // return code (when completed)
@@ -147,17 +147,17 @@ namespace Meq
         { return active_; }
         
         // marks current thread as blocked/unblocked
-        void markAsBlocked (const Node &node);
-        void markAsUnblocked (const Node &node);
+        void markAsBlocked (const NodeFace &node);
+        void markAsUnblocked (const NodeFace &node);
         
         // marks current thread as blocked/unblocked, gets brigade from per-thread context
-        static void markThreadAsBlocked (const Node &node)
+        static void markThreadAsBlocked (const NodeFace &node)
         {
           Brigade *cur = current();
           if( cur )
             cur->markAsBlocked(node);
         }
-        static void markThreadAsUnblocked (const Node &node)
+        static void markThreadAsUnblocked (const NodeFace &node)
         {
           Brigade *cur = current();
           if( cur )

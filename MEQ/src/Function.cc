@@ -33,7 +33,7 @@ Function::Function(int nchildren,const HIID *labels,int nmandatory)
   : Node(nchildren,labels,nmandatory),
     enable_flags_(true),force_integrated_(false)
 {
-  setAutoResample(RESAMPLE_FAIL);
+//  setAutoResample(RESAMPLE_FAIL);
 }
 
 //##ModelId=3F86886E03D1

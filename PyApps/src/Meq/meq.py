@@ -329,12 +329,12 @@ def cells(domain=None,num_freq=None,num_time=None,
 # }
 # 
 
-_meqdomain_id = 0;
+_meqdataset_id = 0;
 
-def requestid (domain_id,rqtype='ev'):
-  return hiid(rqtype,0,0,0,domain_id,0);
+def requestid (domain_id=0,dataset_id=0,rqtype='ev'):
+  return hiid(rqtype,0,0,0,domain_id,dataset_id);
 
-def request (cells=None,rqtype=None,domain_id=None,rqid=None,eval_mode=None):
+def request (cells=None,rqtype=None,dataset_id=None,rqid=None,eval_mode=None):
   # if cells is specified, default rqtype becomes 'ev'
   if rqtype is None:
     if cells is not None:
@@ -351,15 +351,16 @@ def request (cells=None,rqtype=None,domain_id=None,rqid=None,eval_mode=None):
     elif eval_mode == 2:  rqtype='e2';
   # generate rqid if not supplied
   if rqid is None:
-    if domain_id is None:
-      global _meqdomain_id;
-      domain_id = _meqdomain_id;
-      _meqdomain_id += 1;
-    rqid = requestid(domain_id,rqtype);
-  elif len(rqid) >= 5:
-    _meqdomain_id = rqid[4];
+    if dataset_id is None:
+      global _meqdataset_id;
+      dataset_id = _meqdataset_id;
+      _meqdataset_id += 1;
+    rqid = requestid(dataset_id=dataset_id,rqtype=rqtype);
+  elif len(rqid) >= 6:
+    _meqdataset_id = rqid[5];
   else:
-    _meqdomain_id = 0;
+    _meqdataset_id = 0;
+  print 'rqid',rqid;
   rec = _request_type(request_id=make_hiid(rqid));
   if cells is not None:
     if not isinstance(cells,_cells_type):

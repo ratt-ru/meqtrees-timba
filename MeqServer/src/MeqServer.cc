@@ -103,8 +103,8 @@ MeqServer::MeqServer()
   sync_commands["Create.Node"] = &MeqServer::createNode;
   sync_commands["Create.Node.Batch"] = &MeqServer::createNodeBatch;
   sync_commands["Delete.Node"] = &MeqServer::deleteNode;
-  sync_commands["Resolve"] = &MeqServer::resolve;
-  sync_commands["Resolve.Batch"] = &MeqServer::resolveBatch;
+  sync_commands["Init.Node"] = &MeqServer::initNode;
+  sync_commands["Init.Node.Batch"] = &MeqServer::initNodeBatch;
   async_commands["Get.Node.List"] = &MeqServer::getNodeList;
   async_commands["Get.Forest.Status"] = &MeqServer::getForestStatus;
   async_commands["Get.NodeIndex"] = &MeqServer::getNodeIndex;
@@ -287,7 +287,7 @@ void MeqServer::nodeGetState (DMI::Record::Ref &out,DMI::Record::Ref &in)
   cdebug(3)<<"getState for node "<<node.name()<<" ";
   cdebug(4)<<in->sdebug(3);
   cdebug(3)<<endl;
-  node.syncState(out);
+  node.getSyncState(out);
   cdebug(5)<<"Returned state is: "<<out->sdebug(20)<<endl;
 }
 
@@ -312,36 +312,36 @@ void MeqServer::nodeSetState (DMI::Record::Ref &out,DMI::Record::Ref &in)
 }
 
 //##ModelId=3F98D91A03B9
-void MeqServer::resolve (DMI::Record::Ref &out,DMI::Record::Ref &in)
+void MeqServer::initNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   setState(AidConstructing);
   DMI::Record::Ref rec = in;
   bool getstate;
   Node & node = resolveNode(getstate,*rec);
-  cdebug(2)<<"resolve for node "<<node.name()<<endl;
-  node.resolve(0,false,rec,0);
-  cdebug(3)<<"resolve complete"<<endl;
-  out[AidMessage] = makeNodeMessage(node,"resolve complete");
+  cdebug(2)<<"init for node "<<node.name()<<endl;
+  node.init(0,false,0);
+  cdebug(3)<<"init complete"<<endl;
+  out[AidMessage] = makeNodeMessage(node,"recursive init complete");
   if( getstate )
     out[FNodeState] <<= node.syncState();
   out[FForestChanged] = incrementForestSerial();
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
-void MeqServer::resolveBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
+void MeqServer::initNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   setState(AidConstructing);
   const DMI::Vec & names = in[AidName].as<DMI::Vec>();
   int nn = names.size(Tpstring);
-  postMessage(ssprintf("resolving %d nodes, please wait",nn));
-  cdebug(2)<<"batch-resolve of "<<nn<<" nodes\n";
+  postMessage(ssprintf("recursively initializing from %d roots, please wait",nn));
+  cdebug(2)<<"batch-init of "<<nn<<" nodes\n";
   for( int i=0; i<nn; i++ )
   {
     Node &node = forest.findNode(names[i].as<string>());
-    node.resolve(0,false,in,0);
+    node.init(0,false,0);
   }
-  cdebug(3)<<"resolve complete"<<endl;
-  out[AidMessage] = ssprintf("resolved %d nodes",nn);
+  cdebug(3)<<"init complete"<<endl;
+  out[AidMessage] = "recursive init complete";
   out[FForestChanged] = incrementForestSerial();
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
@@ -486,6 +486,7 @@ void MeqServer::saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
   postMessage(ssprintf("saving forest to file %s, please wait",filename.c_str()));
   BOIO boio(filename,BOIO::WRITE);
   int nsaved = 0;
+  
   // write header record
   DMI::Record header;
   header["Forest.Header.Version"] = 1;
@@ -497,8 +498,17 @@ void MeqServer::saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
     if( forest.valid(i) )
     {
       Node &node = forest.get(i);
+      // if node is unresolved, fail and delete file
+      if( !node.isInitialized() )
+      {
+        boio.close();
+        unlink(filename.c_str());
+        Throw("can't save forest: uninitialized node "+node.name());
+      }
       cdebug(3)<<"saving node "<<node.name()<<endl;
-      boio << *(node.syncState());
+      DMI::Record::Ref saverec;
+      node.saveState(saverec);
+      boio << *saverec;
       nsaved++;
     }
   cdebug(1)<<"saved "<<nsaved<<" nodes to file "<<filename<<endl;
@@ -561,7 +571,7 @@ void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
     {
       Node &node = forest.get(i);
       cdebug(3)<<"setting children for node "<<node.name()<<endl;
-      node.relinkChildren();
+      node.reinit();
     }
   out[AidMessage] = ssprintf(fmessage.c_str(),nloaded,filename.c_str());
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
@@ -588,20 +598,13 @@ void MeqServer::publishResults (DMI::Record::Ref &out,DMI::Record::Ref &in)
   DMI::Record::Ref rec = in;
   bool getstate;
   Node & node = resolveNode(getstate,*rec);
-  bool enable = rec[FEnable].as<bool>(true);
-  const HIID &evid = rec[FEventId].as<HIID>(EvNodeResult);
-  if( enable )
-  {
-    cdebug(2)<<"publishResults: enabling for node "<<node.name()<<endl;
-    node.addResultSubscriber(EventSlot(evid,this));
+  int level = rec[FLevel].as<int>(1);
+  cdebug(2)<<"publishResults: setting level "<<level<<" for node "<<node.name()<<endl;
+  node.setPublishingLevel(level);
+  if( level )
     out[AidMessage] = makeNodeMessage(node,"publishing snapshots");
-  }
   else
-  {
-    cdebug(2)<<"publishResults: disabling for node "<<node.name()<<endl;
-    node.removeResultSubscriber(EventSlot(evid,this));
     out[AidMessage] = makeNodeMessage(node,"not publishing snapshots");
-  }
   if( getstate )
     out[FNodeState] <<= node.syncState();
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
@@ -612,7 +615,7 @@ void MeqServer::disablePublishResults (DMI::Record::Ref &out,DMI::Record::Ref &i
   cdebug(2)<<"disablePublishResults: disabling for all nodes"<<endl;
   for( int i=0; i<=forest.maxNodeIndex(); i++ )
     if( forest.valid(i) )
-      forest.get(i).removeResultSubscriber(this);
+      forest.get(i).setPublishingLevel(0);
   out[AidMessage] = "snapshots disabled on all nodes";
   out[FDisabledAllPublishing] = true;
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));

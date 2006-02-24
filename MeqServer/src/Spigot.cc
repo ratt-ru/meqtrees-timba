@@ -27,7 +27,7 @@ Spigot::Spigot ()
 {
   // since we effectively hold our own cache, disable node's result caching
   // by default
-  cache_policy_ = CACHE_NEVER;
+  setCachePolicy(CACHE_NEVER);
   
   corr_index_.resize(4);
   for( int i=0; i<4; i++ )
@@ -349,15 +349,13 @@ int Spigot::getResult (Result::Ref &resref,
     // update state record
     if( forest().debugLevel() > 1 )
       fillDebugState();
+    return 0;
   }
-  else // no result at all, return empty result (="missing data")
-  // NB: original plan was to return a WAIT here; however, the way a VisDataMux
-  // works, the request is not issued until the next snippet arrives at the 
-  // input, hence a WAIT situation is impossible for the time being
+  else // no result at all, return missing data
   {
     (resref <<= new Result(1)).setNewVellSet(0);
+    return RES_MISSING;
   }
-  return 0;
 }
 
 

@@ -4,20 +4,6 @@
         
 namespace Meq
 {    
-    
-void Node::enableMultiThreadedPolling (bool enable)
-{
-  if( enable )
-  {
-    if( MTPool::Brigade::numBrigades() )
-    {
-      mt.enabled_ = true;
-    }
-  }
-  else
-    mt.enabled_ = false;
-}
-
 void Node::setChildPollOrder (const std::vector<string> &order)
 {
   std::vector<bool> specified(numChildren(),false);

@@ -8,6 +8,11 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_Meq ();
 
+#ifndef _defined_id_AidAbandonPropagate
+#define _defined_id_AidAbandonPropagate 1
+const DMI::AtomicID AidAbandonPropagate(-1655);   // from /home/oms/LOFAR/Timba/MEQ/src/NodeNursery.h:32
+const int AidAbandonPropagate_int = -1655;
+#endif
 #ifndef _defined_id_AidActive
 #define _defined_id_AidActive 1
 const DMI::AtomicID AidActive(-1349);             // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:38
@@ -117,6 +122,11 @@ const int AidCode_int = -1120;
 #define _defined_id_AidCoeff 1
 const DMI::AtomicID AidCoeff(-1356);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:36
 const int AidCoeff_int = -1356;
+#endif
+#ifndef _defined_id_AidCollectPropagate
+#define _defined_id_AidCollectPropagate 1
+const DMI::AtomicID AidCollectPropagate(-1656);   // from /home/oms/LOFAR/Timba/MEQ/src/NodeNursery.h:32
+const int AidCollectPropagate_int = -1656;
 #endif
 #ifndef _defined_id_AidCommand
 #define _defined_id_AidCommand 1
@@ -338,10 +348,20 @@ const int AidGrow_int = -1355;
 const DMI::AtomicID AidId(-1208);                 // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
 const int AidId_int = -1208;
 #endif
+#ifndef _defined_id_AidIgnore
+#define _defined_id_AidIgnore 1
+const DMI::AtomicID AidIgnore(-1149);             // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:36
+const int AidIgnore_int = -1149;
+#endif
 #ifndef _defined_id_AidIndex
 #define _defined_id_AidIndex 1
 const DMI::AtomicID AidIndex(-1061);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:30
 const int AidIndex_int = -1061;
+#endif
+#ifndef _defined_id_AidIndices
+#define _defined_id_AidIndices 1
+const DMI::AtomicID AidIndices(-1659);            // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:48
+const int AidIndices_int = -1659;
 #endif
 #ifndef _defined_id_AidInf
 #define _defined_id_AidInf 1
@@ -358,10 +378,20 @@ const int AidInit_int = -1038;
 const DMI::AtomicID AidIntegrated(-1181);         // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
 const int AidIntegrated_int = -1181;
 #endif
+#ifndef _defined_id_AidInternal
+#define _defined_id_AidInternal 1
+const DMI::AtomicID AidInternal(-1660);           // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:48
+const int AidInternal_int = -1660;
+#endif
 #ifndef _defined_id_AidInvert
 #define _defined_id_AidInvert 1
 const DMI::AtomicID AidInvert(-1102);             // from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
 const int AidInvert_int = -1102;
+#endif
+#ifndef _defined_id_AidIs
+#define _defined_id_AidIs 1
+const DMI::AtomicID AidIs(-1658);                 // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:48
+const int AidIs_int = -1658;
 #endif
 #ifndef _defined_id_AidIter
 #define _defined_id_AidIter 1
@@ -518,6 +548,11 @@ const int AidMessage_int = -1269;
 const DMI::AtomicID AidMetrics(-1363);            // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 const int AidMetrics_int = -1363;
 #endif
+#ifndef _defined_id_AidMissing
+#define _defined_id_AidMissing 1
+const DMI::AtomicID AidMissing(-1657);            // from /home/oms/LOFAR/Timba/MEQ/src/NodeNursery.h:32
+const int AidMissing_int = -1657;
+#endif
 #ifndef _defined_id_AidMode
 #define _defined_id_AidMode 1
 const DMI::AtomicID AidMode(-1215);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
@@ -672,6 +707,11 @@ const int AidProfiling_int = -1536;
 #define _defined_id_AidPropagate 1
 const DMI::AtomicID AidPropagate(-1606);          // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45
 const int AidPropagate_int = -1606;
+#endif
+#ifndef _defined_id_AidPublishing
+#define _defined_id_AidPublishing 1
+const DMI::AtomicID AidPublishing(-1509);         // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:17
+const int AidPublishing_int = -1509;
 #endif
 #ifndef _defined_id_AidRA
 #define _defined_id_AidRA 1

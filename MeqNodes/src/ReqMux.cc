@@ -35,7 +35,9 @@ const HIID FResultIndex = AidResult|AidIndex;
 ReqMux::ReqMux()
 : Node(-2),which_result_(0) // at least one child required
 {
-  disableFailPropagation();
+  // change default children policies -- we want to ignore errors and pass them on
+  children().setFailPolicy(AidIgnore);
+  children().setMissingDataPolicy(AidIgnore);
 }
 
 //##ModelId=400E5355029D
@@ -52,16 +54,18 @@ void ReqMux::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   }
 }
 
-int ReqMux::pollChildren (Result::Ref &resref,const Request &req)
+int ReqMux::pollChildren (Result::Ref &resref,
+                          std::vector<Result::Ref> &childres,
+                          const Request &req)
 {
-  // get results from all children
-  int retcode = Node::pollChildren(resref,req);
-  // return a cumulative FAIL code as is (we'll only get it if fail propagation is 
-  // on), else use retcode from designated child
-  if( retcode&RES_FAIL )
+  // get results from all children using standard method
+  int retcode = Node::pollChildren(resref,childres,req);
+  // return a cumulative FAIL code as is (we'll only get it if a non-ignore error policy
+  // was explicitly set)
+  if( retcode&(RES_FAIL|RES_MISSING) )
     return retcode;
   else
-    return child_retcodes_[which_result_];
+    return children().childRetcode(which_result_);
 }
 
 int ReqMux::discoverSpids (Result::Ref &resref,

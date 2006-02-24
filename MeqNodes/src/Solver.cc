@@ -89,7 +89,6 @@ const HIID FSolverResult = AidSolver|AidResult;
 const HIID FIncrementalSolutions = AidIncremental|AidSolutions;
 
 const HIID FIterationSymdeps = AidIteration|AidSymdeps;
-const HIID FIterationDependMask = AidIteration|AidDepend|AidMask;
 
 const HIID FDebugLevel = AidDebug|AidLevel;
 const HIID FIterations = AidIterations;
@@ -134,8 +133,6 @@ Solver::Solver()
   settings_.lm_factor     = 1e-3;
   // set Solver dependencies
   iter_symdeps_.assign(1,FIteration);
-  const HIID symdeps[] = { FDomain,FResolution,FDataset,FIteration };
-  setKnownSymDeps(symdeps,4);
   const HIID symdeps1[] = { FDomain,FResolution,FDataset };
   setActiveSymDeps(symdeps1,3);
   // enable multithreading by default if available
@@ -165,18 +162,19 @@ TypeId Solver::objectType() const
 
 // do nothing here -- we'll do it manually in getResult()
 //##ModelId=400E5355026B
-int Solver::pollChildren (Result::Ref &resref,const Request &request)
+int Solver::pollChildren (Result::Ref &resref,
+                          std::vector<Result::Ref> &childres,
+                          const Request &request)
 {
-  // block off spid discovery requests completely.
-  // For all evaluation requests, we handle child polling for 
-  // them separately in getResult().
+  // block off spid discovery and evaluation requests completely.
+  // For evaluation requests, we handle child polling separately in getResult().
   if( request.requestType() == RequestType::DISCOVER_SPIDS ||
       request.evalMode() >= 0 )
     return 0;
   // Other requests passed on to the children as is. 
   // (These never make it to our getResult())
   else
-    return Node::pollChildren(resref,request);
+    return Node::pollChildren(resref,childres,request);
 }
 
 
@@ -765,6 +763,7 @@ int Solver::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &,
                        const Request &request, bool newreq)
 {
+  iter_depmask_ = symdeps().getMask(iter_symdeps_);
   cells_shape_ = request.cells().shape();
   // Use single derivative by default, or a higher mode if specified in request
   AtomicID rqtype = RequestType::EVAL_SINGLE;
@@ -810,19 +809,18 @@ int Solver::getResult (Result::Ref &resref,
   reqref().validateRider();
   // send up request to figure out spids. We can poll syncronously since there's
   // nothing for us to do until all children have returned
-  timers_.getresult.stop();
-  int retcode = Node::pollChildren(resref,*reqref);
-  timers_.getresult.start();
+  std::vector<Result::Ref> child_results;
+  timers().getresult.stop();
+  int retcode = Node::pollChildren(resref,child_results,*reqref);
+  timers().getresult.start();
   if( retcode&(RES_FAIL|RES_WAIT|RES_ABORT) )
     return retcode;
   // Node's standard discoverSpids() implementation merges all child spids together
   // into a result object. This is exactly what we need here
   Result::Ref tmpres;
-  Node::discoverSpids(tmpres,child_results_,req);
+  Node::discoverSpids(tmpres,child_results,req);
   // discard child results
-  for( uint i=0; i<child_results_.size(); i++ ){
-    child_results_[i].detach();
-  }
+  child_results.clear();
   // ****   ALL SPIDS DISCOVERED   ***
   // ok, now we should have a spid map
   num_unknowns_ = 0;
@@ -905,27 +903,24 @@ int Solver::getResult (Result::Ref &resref,
     reqref().setNextId(next_rqid);
     num_equations_ = 0;
     // start async child poll
-    timers_.getresult.stop();
+    timers().getresult.stop();
     setExecState(CS_ES_POLLING);
-    startAsyncPoll(*reqref);
+    children().startAsyncPoll(*reqref);
     if( forest().abortFlag() )
-      return 0;
+      return RES_ABORT;
     int rescode;
     Result::Ref child_res;
     // wait for child results until all have been polled (await will return -1 when this is the case)
     std::list<Result::Ref> child_fails;  // any fails accumulated here
-    while( (cur_child_ = awaitChildResult(rescode,child_res,*reqref)) >= 0 )
+    while( (cur_child_ = children().awaitChildResult(rescode,child_res,*reqref)) >= 0 )
     {
       if( forest().abortFlag() )
-        return 0;
+        return RES_ABORT;
       // tell child to hold cache if it doesn't depend on iteration
-      getChild(cur_child_).holdCache(!(rescode&iter_depmask_));
-      // has the child failed? 
-      if( rescode&RES_FAIL )
-      {
-        child_fails.push_back(child_res);
+      children().getChild(cur_child_).holdCache(!(rescode&iter_depmask_));
+      // skip children with fails or missing data
+      if( rescode&(RES_FAIL|RES_MISSING|RES_WAIT) )
         continue;
-      }
       // has the child asked us to wait?
       if( rescode&RES_WAIT )  // this never happens, so ok to return for now
         return rescode;
@@ -936,18 +931,18 @@ int Solver::getResult (Result::Ref &resref,
         // ignore failed or null vellsets
         if( vs.isFail() || vs.isNull() )
           continue;
-        timers_.getresult.start();
+        timers().getresult.start();
         if( vs.getValue().isReal() )
           fillEquations<double>(vs);
         else
           fillEquations<dcomplex>(vs);
-        timers_.getresult.stop();
+        timers().getresult.stop();
       }
     } // end of while loop over children
     if( forest().abortFlag() )
-      return 0;
+      return RES_ABORT;
     setExecState(CS_ES_EVALUATING);
-    timers_.getresult.start();
+    timers().getresult.start();
     FailWhen(!num_equations_,"no equations were generated");
     cdebug(4)<<"accumulated "<<num_equations_<<" equations\n";
     // now for the subsolvers loop
@@ -1038,9 +1033,10 @@ int Solver::getResult (Result::Ref &resref,
     lastreq.copyRider(*reqref);
     lastreq.setNextId(request.nextId());
     ParmTable::lockTables();
-    timers_.getresult.stop();
-    Node::pollChildren(resref, lastreq);
-    timers_.getresult.start();
+    timers().getresult.stop();
+    Node::pollChildren(resref,child_results,lastreq);
+    child_results.clear();
+    timers().getresult.start();
     ParmTable::unlockTables();
   }
   if( forest().abortFlag() )
@@ -1096,7 +1092,7 @@ int Solver::getResult (Result::Ref &resref,
   wstate()[FSolverResult].replace() = solveResult;
   resref()[FSolverResult] = solveResult;
   // clear state dependencies possibly introduced by parms
-  has_state_dep_ = false;
+  clearStateDependency();
   // return flag to indicate result is independent of request type
   // (i.e. return result from cache for all requests regardless of
   // type)
@@ -1262,13 +1258,8 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
   Node::setStateImpl(newst,initializing);
   // get the parm group
   newst[FParmGroup].get(parm_group_,initializing);
-  // get symdeps for iteration and solution
-  // recompute depmasks if active sysdeps change
-  if( newst[FIterationSymdeps].get_vector(iter_symdeps_,initializing) || initializing )
-    wstate()[FIterationDependMask] = iter_depmask_ = computeDependMask(iter_symdeps_);
-  // now reset the dependency mask if specified; this will override
-  // possible modifications made above
-  newst[FIterationDependMask].get(iter_depmask_,initializing);
+  // get symdeps for iteration 
+  newst[FIterationSymdeps].get_vector(iter_symdeps_,initializing);
 
   // get eval mode
   newst[FEvalMode].get(eval_mode_,initializing);

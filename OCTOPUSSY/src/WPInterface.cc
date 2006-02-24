@@ -827,8 +827,12 @@ bool WPInterface::poll (ulong )
 void WPInterface::notifyOfRepoll (bool do_signal)
 {
   setNeedRepoll(true);
+  dprintf(4)("raising need_repoll flag\n");
   if( do_signal )
+  {
+    dprintf(4)("signalling on queue_cond\n");
     queue_cond.signal();
+  }
   notify();
 }
 

@@ -113,7 +113,7 @@ def compile_file (mqs,filename,text=None,parent=None,
     # try to run stuff
     meqds.clear_forest();
     mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
-    mqs.meq('Resolve.Batch',record(name=list(ns.RootNodes().iterkeys())));
+    mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())));
 
     # is a forest state defined?
     fst = getattr(Timba.TDL.Settings,'forest_state',record());

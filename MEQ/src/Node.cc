@@ -36,19 +36,18 @@ namespace Meq {
 InitDebugContext(Node,"MeqNode");
 
 using Debug::ssprintf;
+ObjRef Node::_dummy_objref;
+
 
 //##ModelId=3F5F43E000A0
 Node::Node (int nchildren,const HIID *labels,int nmandatory)
     : control_status_(CS_ACTIVE),
-      propagate_child_fails_(true),
       depend_mask_(0),
-//      symdep_masks_(defaultSymdepMasks()),
       node_groups_(1,FAll),
-      auto_resample_(RESAMPLE_NONE),
+      auto_resample_(RESAMPLE_FAIL),
       disable_auto_resample_(false)
 {
-  mt.enabled_ = false; // multithreading disabled by default
-  mt.cur_brigade_ = 0;
+  description_ = name() + ':' + objectType().toString();
   executing_ = false;
   // figure out # of children
   if( nchildren<0 )               // negative: specifies N or more
@@ -67,17 +66,22 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
     check_min_children_ = nmandatory;
   }
   // if labels are supplied, then nchildren must be set
-  if( labels )   // copy labels
+  if( labels )   // copy labels and populate reverse map 
   {
     Assert(nchildren>0);
     child_labels_.resize(nchildren);
     for( int i=0; i<nchildren; i++ )
+    {
       child_labels_[i] = labels[i];
+      child_label_map_[labels[i]] = i;
+    }
   }
-  // else child_labels_ stays empty to indicate no labels -- this is checked below
-
+  // else child_labels_ stays empty to indicate no labels
+  
   // other init
+  internal_init_index_ = -1;
   breakpoints_ = breakpoints_ss_ = 0;
+  publishing_level_ = 0;
   cache_policy_ = 0;
   cache_.is_valid = false;
   cache_.rescode = 0;
@@ -95,7 +99,7 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
     pcparents_ = reinterpret_cast<CacheParentInfo*>(vec_par[HIID()].as_wp<int>());
     pcrescode_ = ( rec[FResultCode] <<= new DMI::Vec(Tpint,-1) )[HIID()].as_wp<int>();
   }
-// init profiling stats
+  // init profiling stats
   {
     DMI::Record &rec = profile_stats_ <<= new DMI::Record;
     rec[FCPUMhz]      = LOFAR::NSTimer::cpuSpeedInMHz();
@@ -115,7 +119,16 @@ Node::~Node()
 {
 }
 
-ObjRef Node::_dummy_objref;
+int Node::childLabelToNumber (const HIID &label) const
+{
+  ChildLabelMap::const_iterator iter = child_label_map_.find(label);
+  if( iter != child_label_map_.end() )
+    return iter->second;
+  // not found, maybe numeric?
+  if( label.size() != 1 )
+    return -1;
+  return label[0].index();   // AtomicID::index() returns -1 if non-numeric
+}
 
 void Node::postEvent (const HIID &type,const ObjRef &data)
 { 
@@ -156,65 +169,6 @@ void Node::setDependMask (int mask)
   if( staterec_.valid() )
     staterec_()[FDependMask] = mask;
   cdebug(3)<<ssprintf("new depend mask is %x\n",depend_mask_);
-}
-
-void Node::setKnownSymDeps (const HIID deps[],int ndeps)
-{
-  known_symdeps_ .assign(deps,deps+ndeps);
-  if( staterec_.valid() )
-    staterec_()[FKnownSymDeps].replace() = known_symdeps_;
-}
-
-void Node::setActiveSymDeps (const HIID deps[],int ndeps)
-{
-  cdebug(2)<<"setting "<<ndeps<<" active symdeps\n";
-  active_symdeps_.assign(deps,deps+ndeps);
-  if( known_symdeps_.empty() )
-  {
-    known_symdeps_ = active_symdeps_;
-    if( staterec_.valid() )
-      staterec_()[FKnownSymDeps].replace() = known_symdeps_;
-  }
-  if( staterec_.valid() )
-    staterec_()[FActiveSymDeps].replace() = active_symdeps_;
-  resetDependMasks();
-}
-
-// 18/04/05 OMS: phasing this out, ModRes will need to be rewritten a-la Solver
-// void Node::setGenSymDeps (const HIID symdeps[],const int depmasks[],int ndeps,const HIID &group)
-// {
-//   cdebug(2)<<"setting "<<ndeps<<" generated symdeps\n";
-//   gen_symdep_fullmask_ = 0;
-//   for( int i=0; i<ndeps; i++ )
-//   {
-//     gen_symdep_fullmask_ |= 
-//         gen_symdep_masks_[symdeps[i]] = depmasks[i];
-//   }
-//   gen_symdep_group_ = group;
-// }
-// 
-// int Node::getGenSymDepMask (const HIID &symdep) const
-// {
-//   std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.find(symdep);
-//   return iter == gen_symdep_masks_.end() ? 0 : iter->second;
-// }
-
-
-int Node::computeDependMask (const std::vector<HIID> &symdeps) 
-{
-  int mask = 0;
-  for( uint i=0; i<symdeps.size(); i++ )
-  {
-    const HIID &id = symdeps[i];
-//    cdebug(3)<<"adding symdep "<<id<<ssprintf(": mask %x\n",symdep_masks_[id]);
-    mask |= symdep_masks_[id];
-  }
-  return mask;
-}
-
-void Node::resetDependMasks ()
-{ 
-  setDependMask(computeDependMask(active_symdeps_)); 
 }
 
 // rebuilds (if needed) and returns a representative cache record
@@ -279,20 +233,39 @@ bool Node::Cache::fromRecord (const Record &rec)
 //##ModelId=400E531402D1
 void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
-  // if not initializing, check for immutable fields
-  if( !initializing )
+  // if initializing, put in name and nodeindex
+  if( initializing )
+  {
+    rec[FName] = name();
+    rec[FNodeIndex] = nodeIndex();
+  }
+  else
+  // else check for immutable fields
   {
     protectStateField(rec,FClass);
     protectStateField(rec,FChildren);
-    protectStateField(rec,FChildrenNames);
+    protectStateField(rec,FStepChildren);
+    protectStateField(rec,FChildIndices);
+    protectStateField(rec,FStepChildIndices);
+    protectStateField(rec,FParentIndices);
+    protectStateField(rec,FIsStepParent);
+    protectStateField(rec,FName);
     protectStateField(rec,FNodeIndex);
-    protectStateField(rec,FResolveParentId);
+    protectStateField(rec,FInternalInitIndex);
   }
   // apply changes to mutable bits of control state
   int cs0 = control_status_;
   int new_cs;
   if( rec[FControlStatus].get(new_cs) )
     control_status_ = (control_status_&~CS_WRITABLE_MASK)|(new_cs&CS_WRITABLE_MASK);
+  // set publishing level
+  if( rec[FPublishingLevel].get(publishing_level_,initializing) )
+  {
+    if( publishing_level_ )
+      control_status_ |= CS_PUBLISHING;
+    else
+      control_status_ &= ~CS_PUBLISHING;
+  }
   // set breakpoints
   if( rec[FBreakpoint].get(breakpoints_) )
     control_status_ = breakpoints_ ? control_status_|CS_BREAKPOINT : control_status_&~CS_BREAKPOINT;
@@ -320,47 +293,25 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     forest_->newControlStatus(*this,cs0,control_status_); 
   }
   
-  // set the name
-  rec[FName].get(myname_,initializing);
   // get/set description
   if( !rec[FNodeDescription].get(description_) && initializing )
   {
-    description_ = myname_ + ':' + objectType().toString();
+    description_ = name() + ':' + objectType().toString();
     rec[FNodeDescription] = description_; 
   }
   
   // set the caching policy
   rec[FCachePolicy].get(cache_policy_,initializing);
   rec[FCacheNumActiveParents].get(pcparents_->nact,initializing);
-  // get known symdeps
-  rec[FKnownSymDeps].get_vector(known_symdeps_,initializing && !known_symdeps_.empty());
-  // get symdep masks, if specified
-  DMI::Record::Hook hdepmasks(rec,FSymDepMasks);
-  if( hdepmasks.exists() )
-  {
-    symdep_masks_.clear();
-    if( hdepmasks.type() == TpDMIRecord )
-    {
-      cdebug(2)<<"new symdep_masks set via state\n";
-      const DMI::Record &maskrec = hdepmasks.as<DMI::Record>();
-      for( uint i=0; i<known_symdeps_.size(); i++ )
-      {
-        const HIID &id = known_symdeps_[i];
-        symdep_masks_[id] = maskrec[id].as<int>(0);
-      }
-      resetDependMasks();
-    }
-    else // not a record, clear everything
-    {
-      cdebug(2)<<"symdep_masks cleared via state\n";
-      resetDependMasks();
-    }
-  }
-  // recompute depmask if active sysdeps change
-  if( rec[FActiveSymDeps].get_vector(active_symdeps_,initializing && !known_symdeps_.empty()) )
+  
+  // active symdeps
+  SymdepMap::DepSet active_symdeps;
+  if( initializing )
+    active_symdeps = symdeps().getActive();
+  if( rec[FActiveSymDeps].get_vector(active_symdeps,initializing) )
   {
     cdebug(2)<<"active_symdeps set via state\n";
-    resetDependMasks();
+    setActiveSymDeps(active_symdeps); 
   }
   
   // now set the dependency mask if specified; this will override
@@ -376,30 +327,29 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     for( uint i=0; i<ngr.size(); i++ )
       node_groups_[i+1] = ngr[i];
   }
-//   // set auto-resample mode
-//   int ars = auto_resample_;
-//   if( rec[FAutoResample].get(ars,initializing) )
-//   {
-//     if( disable_auto_resample_ && ars != RESAMPLE_NONE )
-//     {
-//       NodeThrow(FailWithCleanup,"can't use auto-resampling with this node");
-//     }
-//     auto_resample_ = ars;
-//   }
+  // set auto-resample mode
+  int ars = auto_resample_;
+  if( rec[FAutoResample].get(ars,initializing) )
+  {
+    if( disable_auto_resample_ && ars != RESAMPLE_NONE )
+    {
+      NodeThrow(FailWithCleanup,"can't use auto-resampling with this node");
+    }
+    auto_resample_ = ars;
+  }
 
-  rec[FPropagateChildFails].get(propagate_child_fails_,initializing);
-  
-  // set child poll order
-  std::vector<string> cpo;
-  if( rec[FChildPollOrder].get_vector(cpo) )
-    setChildPollOrder(cpo);
+  // set children nursery state
+  children().setState(rec,initializing);
   
   // enable multithreading
   if( MTPool::Brigade::numBrigades() )
   {
-    bool mtpoll = mt.enabled_;
-    rec[FMTPolling].get(mtpoll,initializing);
-    enableMultiThreadedPolling(mtpoll);
+    bool mtpoll = children().multiThreaded();
+    if( rec[FMTPolling].get(mtpoll,initializing) )
+    {
+      children().enableMultiThreaded(mtpoll);
+      stepchildren().enableMultiThreaded(mtpoll);
+    }
   } 
 }
 
@@ -442,40 +392,24 @@ void Node::setState (DMI::Record::Ref &rec)
   if( !initializing )
     wstate().merge(rec,true);
   // make sure nodes upstream get themselves a state dependency
-  markStateDependency();
+  propagateStateDependency();
 }
 
-//##ModelId=400E53120082
-void Node::setNodeIndex (int nodeindex)
-{
-  wstate()[FNodeIndex] = node_index_ = nodeindex;
-}
-
-string Node::getChildName (int i) const
-{
-  if( children_[i].valid() )
-      return children_[i]->name();
-  else
-  {
-    HIID label = getChildLabel(i);
-    return state()[FChildrenNames][label].as<string>();
-  }
-}
-
-//##ModelId=3F85710E028E
-Node & Node::getChild (const HIID &id)
-{
-  ChildrenMap::const_iterator iter = child_map_.find(id);
-  FailWhen(iter==child_map_.end(),"unknown child "+id.toString());
-  return getChild(iter->second);
-}
-
-//##ModelId=3F98D9D20201
-inline int Node::getChildNumber (const HIID &id)
-{
-  ChildrenMap::const_iterator iter = child_map_.find(id);
-  return iter == child_map_.end() ? -1 : iter->second;
-}
+// //##ModelId=3F85710E028E
+// NodeFace & Node::getChild (const HIID &id)
+// {
+//   ChildrenMap::const_iterator iter = child_map_.find(id);
+//   FailWhen(iter==child_map_.end(),"unknown child "+id.toString());
+//   return getChild(iter->second);
+// }
+// 
+// //##ModelId=3F98D9D20201
+// inline int Node::getChildNumber (const HIID &id)
+// {
+//   ChildrenMap::const_iterator iter = child_map_.find(id);
+//   return iter == child_map_.end() ? -1 : iter->second;
+// }
+// 
 
 void Node::fillProfilingStats (ProfilingStats *st,const LOFAR::NSTimer &timer)
 {
@@ -485,7 +419,7 @@ void Node::fillProfilingStats (ProfilingStats *st,const LOFAR::NSTimer &timer)
   st->average  = timer.shotCount() ? timer.faverageTime()*scale : 0;
 }
 
-void Node::syncState (DMI::Record::Ref &ref)
+void Node::getSyncState (DMI::Record::Ref &ref)
 { 
   Thread::Mutex::Lock lock(stateMutex());
   DMI::Record & st = wstate();
@@ -499,7 +433,7 @@ void Node::syncState (DMI::Record::Ref &ref)
   fillProfilingStats(pprof_getresult_,timers_.getresult);
   {
     if( has_state_dep_ )
-      cache_.rescode |= forest().getStateDependMask();
+      cache_.rescode |= symdeps().getMask(FState);
     // Thread::Mutex::Lock lock(cache_.mutex);
     st.replace(FCache,cache_.record());
     st.replace(FCacheStats,cache_stats_);
@@ -522,7 +456,7 @@ void Node::setCurrentRequest (const Request &req)
   current_reqid_ = req.id();
 }
 
-void Node::markStateDependency ()
+void Node::propagateStateDependency ()
 {
   // do nothing if we are already dependent on state, parents will know anyway
   if( has_state_dep_ )
@@ -530,30 +464,26 @@ void Node::markStateDependency ()
   has_state_dep_ = true;
   // notify parents
   for( int i=0; i<numParents(); i++ )
-    getParent(i).markStateDependency();
+    getParent(i).propagateStateDependency();
 }
 
 //##ModelId=400E531300C8
-void Node::clearCache (bool recursive,bool quiet)
+void Node::clearCache (bool recursive) throw()
 {
   Thread::Mutex::Lock lock(execCond());
   cache_.clear();
-  // clearRCRCache();
   if( control_status_ & CS_CACHED )
-  {
-    if( quiet )
-      control_status_ &= ~CS_CACHED;
-    else
-      setControlStatus(control_status_ & ~CS_CACHED);
-  }
+    setControlStatus(control_status_&~CS_CACHED,recursive); // sync if recursive
   if( recursive )
   {
     // in recursive mode, also clear stats
     memset(pcs_total_,0,sizeof(CacheStats));
     memset(pcs_new_,0,sizeof(CacheStats));
-    for( int i=0; i<numChildren(); i++ )
-      if( isChildValid(i) )
-        getChild(i).clearCache(true,quiet);
+    for( int i=0; i<children().numChildren(); i++ )
+      if( children().isChildValid(i) )
+        children().getChild(i).clearCache(true);
+    for( int i=0; i<stepchildren().numChildren(); i++ )
+      stepchildren().getChild(i).clearCache(true);
   }
 }
 
@@ -572,7 +502,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
     return false;
   }
   if( has_state_dep_ )
-    cache_.rescode |= forest().getStateDependMask();
+    cache_.rescode |= symdeps().getMask(FState);
   // Check that cached result is applicable:
   // (1) An empty reqid never matches, hence it can be used to 
   //     always force a recalculation.
@@ -592,7 +522,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
     match = false;
   // (2) ignore PU requests if no dependency on iteration
   else if( req.requestType() == RequestType::PARM_UPDATE && 
-           !(cache_.rescode&getDependMask(AidIteration)) )
+           !(cache_.rescode&symdeps().getMask(FIteration)) )
   {
     ref <<= new Result;
     match = true;
@@ -662,7 +592,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
   int npar = pcparents_->nact ? pcparents_->nact : pcparents_->npar ; 
   pcparents_->nhint = pcparents_->nhold = 0;
   *pcrescode_ = retcode&((1<<RQIDM_NBITS)-1);
-  // clear child results if we're holding any
+  // clear cached child results
   for( uint i=0; i<child_results_.size(); i++ )
     child_results_[i].detach();
   // policy decided by ourselves or forest
@@ -725,26 +655,37 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
     // control status set directly (not via setControlStatus call) because
     // caller (execute(), presumably) is going to update status anyway
     control_status_ |= CS_CACHED;
-    // sync state and publish to all result subscribers
-    if( result_event_gen_.active() )
+    // sync state and publish event
+    if( publishing_level_ )
     {
       syncState();
-      result_event_gen_.generateEvent(staterec_.copy());  
+      postEvent(EvNodeResult,ObjRef(*staterec_));  
     }
   }
   else // clear cache
   {
     // if we need to publish state, insert cache temporarily
-    if( result_event_gen_.active() )
+    if( publishing_level_ )
     {
+      ObjRef stateref(staterec_);
+      DMI::Record &st = stateref.as<DMI::Record>();  // causes COW
       cache_.set(ref,req,retcode&~RES_UPDATED);
-      syncState();
-      result_event_gen_.generateEvent(staterec_.copy());  
+      st.replace(FCache,cache_.record());
+      postEvent(EvNodeResult,stateref);  
     }
     // now quietly clear cache
-    clearCache(false,true);
+    clearCache(false);
   }
   return retcode;
+}
+
+void Node::setPublishingLevel (int level)
+{
+  wstate()[FPublishingLevel] = publishing_level_ = level;
+  if( level )
+    setControlStatus(control_status_ | CS_PUBLISHING);
+  else
+    setControlStatus(control_status_ & ~CS_PUBLISHING);
 }
 
 // tells children to hold or release cache as appropriate
@@ -753,15 +694,27 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
 // diffmask
 void Node::holdChildCaches (bool hold,int diffmask)
 {
-  for( int i=0; i<numChildren(); i++ )
-    if( !child_disabled_[i] )
-      getChild(i).holdCache(hold && !(child_retcodes_[i]&diffmask) );
-  for( int i=0; i<numStepChildren(); i++ )
-    getStepChild(i).holdCache(hold && !(stepchild_retcodes_[i]&diffmask) );
+  // finish any child/stepchild polls that may be in progress, since
+  // we need their return codes now
+  children().finishPoll();
+  stepchildren().finishPoll();
+  
+  for( int i=0; i<children().numChildren(); i++ )
+    if( children().isChildEnabled(i) )
+    {
+      bool hold_child_cache = hold && !(children().childRetcode(i)&diffmask);
+      children().getChild(i).holdCache(hold_child_cache);
+    }
+  for( int i=0; i<stepchildren().numChildren(); i++ )
+    if( stepchildren().isChildEnabled(i) )
+    {
+      bool hold_child_cache = hold && !(stepchildren().childRetcode(i)&diffmask);
+      stepchildren().getChild(i).holdCache(hold_child_cache);
+    }
 }
 
 // called by parent node to ask us to hold cache, or to allow release of cache
-void Node::holdCache (bool hold)
+void Node::holdCache (bool hold) throw()
 {
   Thread::Mutex::Lock lock(execCond());
   pcparents_->nhint++;
@@ -775,69 +728,11 @@ void Node::holdCache (bool hold)
       ( actual_cache_policy_ <= CACHE_MINIMAL || !pcparents_->nhold ) )
   {
     cdebug(3)<<"clearing cache\n";
-    clearCache(false,false);
+    clearCache(false);
   }
 }
 
-bool Node::checkRCRCache (Result::Ref &ref,int ich,const Cells &cells)
-{
-  if( ich<0 || ich>=int(rcr_cache_.size()) || !rcr_cache_[ich].valid() )
-    return false;
-  // check if resolution of cached result matches the request
-  if( cells.compare(rcr_cache_[ich]->cells()) )
-  {
-    rcr_cache_[ich].detach();
-    return false;
-  }
-  // match, return true
-  ref.copy(rcr_cache_[ich]);
-  return true;
-}
-
-void Node::clearRCRCache (int ich)
-{
-  if( ich<0 ) // clear all
-  {
-    for( int i=0; i<numChildren(); i++ )
-      rcr_cache_[i].detach();
-  }
-  else
-    rcr_cache_[ich].detach();
-}
-
-void Node::cacheRCR (int ich,const Result::Ref::Copy &res)
-{
-  if( ich >= int(rcr_cache_.size()) )
-    rcr_cache_.resize(ich+1);
-  rcr_cache_[ich].copy(res);
-  // at this point we can perhaps tell the child to release cache, if there's
-  // no change expected. Still have to think this through
-}
-
-void Node::addResultSubscriber (const EventSlot &slot)
-{
-  result_event_gen_.addSlot(slot);
-  setControlStatus(control_status_ | CS_PUBLISHING);
-  cdebug(2)<<"added result subscription "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
-}
-
-void Node::removeResultSubscriber (const EventRecepient *recepient)
-{
-  result_event_gen_.removeSlot(recepient);
-  if( !result_event_gen_.active() )
-    setControlStatus(control_status_ & ~CS_PUBLISHING);
-  cdebug(2)<<"removing all subscriptions for "<<recepient<<endl;
-}
-
-void Node::removeResultSubscriber (const EventSlot &slot)
-{
-  result_event_gen_.removeSlot(slot);
-  if( !result_event_gen_.active() )
-    setControlStatus(control_status_ & ~CS_PUBLISHING);
-  cdebug(2)<<"removing result subscriber "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
-}
-
-void Node::resampleChildren (Cells::Ref &rescells,std::vector<Result::Ref> &childres)
+void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> &childres)
 {
   if( auto_resample_ == RESAMPLE_NONE )
     return;
@@ -868,197 +763,22 @@ void Node::resampleChildren (Cells::Ref &rescells,std::vector<Result::Ref> &chil
           {
             NodeThrow1("resolutions of child results do not match and auto-resampling is disabled");
           }
-          else 
-          // generate new output Cells by upsampling or integrating
-          // the special Cells constructor will do the right thing for us, according
-          // to the auto_resample_ setting
-          {
-            cdebug(3)<<"child result "<<ich<<" has different resolution\n";
-            rescells <<= pcells = new Cells(*pcells,cc,auto_resample_);
-            need_resampling = true;
-          }
         }
       }
     }
   }
-  // resample child results if required
-  if( need_resampling )
-  {
-    Throw("resampling currently disabled");
-//     cdebug(3)<<"resampling child results to "<<*pcells<<endl;
-//     ResampleMachine resample(*pcells);
-//     for( uint ich=0; ich<childres.size(); ich++ )
-//     {
-//       if( childres[ich]->hasCells() )
-//       {
-//         resample.setInputRes(childres[ich]->cells());
-//         if( resample.isIdentical() ) // child at correct resolution already
-//         {
-//           cdebug(3)<<"child "<<ich<<": already at this resolution\n";
-//           // clear resample cache for this child
-//           clearRCRCache(ich);
-//         }
-//         else
-//         {
-//           // check if resampled-child cache already contains the resampled result
-//           if( !checkRCRCache(childres[ich],ich,*pcells) )
-//           {
-//             cdebug(3)<<"child "<<ich<<": resampling\n";
-//             // privatize child result for writing
-//             Result &chres = childres[ich].privatize(DMI::WRITE)(); 
-//             chres.setCells(pcells);
-//             // resample and cache the child result 
-//             for( int ivs=0; ivs<chres.numVellSets(); ivs++ )
-//             {
-//               VellSet::Ref ref;
-//               resample.apply(ref,chres.vellSetRef(ivs),chres.isIntegrated());
-//               chres.setVellSet(ivs,ref);
-//             }
-//             cacheRCR(ich,childres[ich]);
-//           }
-//           else
-//           {
-//             cdebug(3)<<"child "<<ich<<": already cached at this resolution, reusing\n";
-//           }
-//         }
-//       }
-//     }
-  }
-  else if( rescells.valid() ) // no resampling needed and cells were present, clear cache of all resampled children
-    clearRCRCache();
-}
-
-int Node::resolve (Node *parent,bool stepparent,DMI::Record::Ref &depmasks,int rpid)
-{
-  try
-  {
-    // increment the parent count
-    if( parent )
-    {
-      pcparents_->npar++;
-      parents_.push_back(ParentEntry());
-      parents_.back().ref.attach(parent,DMI::SHARED);
-      parents_.back().stepparent = stepparent;
-    }
-    // if node already resolved with this resolve parent ID, do nothing
-    if( node_resolve_id_ == rpid )
-    {
-      cdebug(4)<<"node already resolved for rpid "<<rpid<<endl;
-      return 0;
-    }
-    cdebug(3)<<"resolving node, rpid="<<rpid<<endl;
-    wstate()[FResolveParentId] = node_resolve_id_ = rpid;
-    // resolve children
-    resolveChildren();
-    // process depmasks 
-    if( !known_symdeps_.empty() )
-    {
-      cdebug(3)<<"checking for "<<known_symdeps_.size()<<" known symdeps\n";
-      const DMI::Record &rec = *depmasks;
-      bool changed = false;
-      for( uint i=0; i<node_groups_.size(); i++ )
-      {
-        DMI::Record::Hook hgroup(rec,node_groups_[i]);
-        if( hgroup.exists() )
-        {
-          cdebug(4)<<"found symdeps for group "<<node_groups_[i]<<endl;
-          const DMI::Record &grouprec = hgroup.as<DMI::Record>();
-          for( uint i=0; i<known_symdeps_.size(); i++ )
-          {
-            const HIID &id = known_symdeps_[i];
-            int mask;
-            if( grouprec[id].get(mask) )
-            {
-              // add to its mask, if the symdep is present in the record.
-              symdep_masks_[id] |= mask;
-              cdebug(4)<<"symdep_mask["<<id<<"]="<<ssprintf("%x\n",symdep_masks_[id]);
-              changed = true;
-            }
-          }
-        }
-      }
-      // recompute stuff if anything has changed
-      if( changed )
-      {
-        cdebug(3)<<"recomputing depmasks\n"<<endl;
-        // recompute the active depend mask
-        resetDependMasks();
-        // reset subrecord in state rec
-        DMI::Record &known = wstate()[FSymDepMasks].replace() <<= new DMI::Record;
-        for( uint i=0; i<known_symdeps_.size(); i++ )
-          known[known_symdeps_[i]] = symdep_masks_[known_symdeps_[i]];
-      }
-    }
-  }
-  catch( std::exception &exc )
-  {
-    ThrowMore(exc,"failed to resolve node '"+name()+"'");
-  }
-  catch( ... )
-  {
-    Throw("failed to resolve node '"+name()+"'");
-  }
-  // init other stuff
-  child_results_.resize(numChildren());
-  child_retcodes_.resize(numChildren());
-  stepchild_retcodes_.resize(numStepChildren());
-  // pass recursively onto children
-  for( int i=0; i<numChildren(); i++ )
-    if( isChildValid(i) )
-      getChild(i).resolve(this,false,depmasks,rpid);
-  for( int i=0; i<numStepChildren(); i++ )
-    getStepChild(i).resolve(this,true,depmasks,rpid);
-  return 0;
 }
 
 // process Node-specific commands
 int Node::processCommands (Result::Ref &,const DMI::Record &rec,const Request &req)
 {
   bool generate_symdeps = false;
-  // process the Resolve.Children command: call resolve children
-  // non-recursively (since the request + command is going up 
-  // recursively anyway)
-  if( rec[FResolveChildren].as<bool>(false) )
-  {
-    cdebug(4)<<"processCommands("<<FResolveChildren<<")\n";
-    resolveChildren();
-  }
   // process the "State" command: change node state
   ObjRef stateref = rec[FState].ref(true);
   if( stateref.valid() )
   {
     cdebug(4)<<"processCommands("<<FState<<"): calling setState()"<<endl;
     setState(stateref.ref_cast<DMI::Record>());
-  }
-  // process the "Clear.Dep.Mask" command: flush known symdep masks and
-  // set our mask to 0
-  if( rec[FClearDepMask].as<bool>(false) )
-  {
-    cdebug(2)<<"processCommands("<<FClearDepMask<<"): clearing symdep_masks"<<endl;
-    symdep_masks_.clear();
-    wstate()[FSymDepMasks].remove();
-    setDependMask(0);
-  }
-  // process the "Add.Dep.Mask" command, if we track any symdeps
-  DMI::Record::Hook hdep(rec,FAddDepMask);
-  if( hdep.exists() )
-  {
-    if( !known_symdeps_.empty() && hdep.type() == TpDMIRecord )
-    {
-      cdebug(2)<<"processCommands("<<FAddDepMask<<"): checking for masks\n";
-      const DMI::Record &deprec = hdep.as<DMI::Record>();
-      // reinit the sysdep_masks field in the state record as we go along
-      DMI::Record &known = wstate()[FSymDepMasks].replace() <<= new DMI::Record;
-      for( uint i=0; i<known_symdeps_.size(); i++ )
-      {
-        const HIID &id = known_symdeps_[i];
-        // add to its mask, if the symdep is present in the record.
-        known[id] = symdep_masks_[id] |= deprec[id].as<int>(0);
-        cdebug(3)<<"symdep_mask["<<id<<"]="<<ssprintf("%x\n",symdep_masks_[id]);
-      } 
-      // recompute the active depend mask
-      resetDependMasks();
-    }
   }
   return 0;
 }
@@ -1094,8 +814,29 @@ int Node::discoverSpids (Result::Ref &ref,const std::vector<Result::Ref> &child_
   return 0;
 }
 
+int Node::pollChildren (Result::Ref &resref,
+                        std::vector<Result::Ref> &childres,
+                        const Request &req)
+{
+  setExecState(CS_ES_POLLING);
+  int retcode = children().syncPoll(resref,childres,req);
+  // if aborted, return without polling stepchildren
+  if( retcode&RES_ABORT )
+    return retcode;
+  // if failed and AbandonPropagate is in effect, return without polling stepchildren
+  if( retcode&RES_FAIL && children().failPolicy() == AidAbandonPropagate )
+    return retcode;
+  // if missing data and AbandonPropagate is in effect, return without polling stepchildren
+  if( retcode&RES_MISSING && children().failPolicy() == AidAbandonPropagate )
+    return retcode;
+  // do a background poll of the stepchildren
+  stepchildren().backgroundPoll(req);
+  
+  return retcode;
+}
+
 //##ModelId=3F6726C4039D
-int Node::execute (Result::Ref &ref,const Request &req)
+int Node::execute (Result::Ref &ref,const Request &req) throw()
 {
   // check for re-entrancy
 #ifdef DISABLE_NODE_MT
@@ -1125,7 +866,7 @@ int Node::execute (Result::Ref &ref,const Request &req)
   pstate_lock_ = &state_lock;
   
   cdebug(3)<<"execute, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
-  FailWhen(node_resolve_id_<0,"execute() called before resolve()");
+  FailWhen(internal_init_index_<0,"execute() called before resolve()");
   int retcode = 0;
   // this indicates the current stage (for exception handler)
   string stage;
@@ -1164,14 +905,14 @@ int Node::execute (Result::Ref &ref,const Request &req)
     control_status_ &= ~(CS_RETCACHE|CS_RES_MASK);
     if( new_request_ )
     {
-      // check if node is ready to go on to the new request, return WAIT if not
-      stage = "calling readyForRequest()";
-      if( !readyForRequest(req) )
-      {
-        cdebug(3)<<"  node not ready for new request, returning RES_WAIT"<<endl;
-        setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
-        return exitExecute(RES_WAIT);
-      }
+//       // check if node is ready to go on to the new request, return WAIT if not
+//       stage = "calling readyForRequest()";
+//       if( !readyForRequest(req) )
+//       {
+//         cdebug(3)<<"  node not ready for new request, returning RES_WAIT"<<endl;
+//         setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
+//         return exitExecute(RES_WAIT);
+//       }
       // set this request as current
       setCurrentRequest(req);
       // check for request riders
@@ -1203,34 +944,46 @@ int Node::execute (Result::Ref &ref,const Request &req)
     }
     // Pass request on to children and accumulate their results
     int result_status; // result status, this will be placed into our control_status
-    if( numChildren() )
-    {
-      stage = "polling children";
-      retcode |= pollChildren(ref,req);
-      if( forest().abortFlag() )
-        return exitAbort(RES_ABORT);
-      // a WAIT from any child is returned immediately w/o a result
-      if( retcode&RES_WAIT )
-      {
-        setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
-        return exitExecute(retcode);
-      }
-      // if failed, then cache & return the fail
-      if( retcode&RES_FAIL )
-      {
-        lock.relock(execCond());
-        int ret = cacheResult(ref,req,retcode) | RES_UPDATED;
-        setExecState(CS_ES_IDLE,control_status_|CS_RES_FAIL);
-        return exitExecute(ret);
-      }
-      // if request has cells, then resample children (will do nothing if disabled)
-      resampleChildren(rescells,child_results_);
-    }
+    stage = "polling children";
+    retcode |= pollChildren(ref,child_results_,req);
     if( forest().abortFlag() )
       return exitAbort(RES_ABORT);
+    // a WAIT from any child is returned immediately w/o a result
+    if( retcode&RES_WAIT )
+    {
+      setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
+      return exitExecute(retcode);
+    }
+    // if failed, then cache & return the result
+    else if( retcode&RES_FAIL )
+    {
+      lock.relock(execCond());
+      int ret = cacheResult(ref,req,retcode) | RES_UPDATED;
+      setExecState(CS_ES_IDLE,control_status_|CS_RES_FAIL);
+      return exitExecute(ret);
+    }
+    // if missing data, form and return a missing data result
+    else if( retcode&RES_MISSING )
+    {
+      lock.relock(execCond());
+      ref <<= new Result(1);
+      ref().setVellSet(0,new VellSet);
+      int ret = cacheResult(ref,req,retcode) | RES_UPDATED;
+      setExecState(CS_ES_IDLE,control_status_|CS_RES_MISSING);
+      return exitExecute(ret);
+    }
+    //if( forest().abortFlag() )
+    //      return exitAbort(RES_ABORT);
     // does request have a Cells object? Compute our Result then
     if( req.hasCells() )
     {
+      // if request has cells, then check child cells for consistency
+      //****** replace this with the auto-resampler
+      checkChildCells(rescells,child_results_);
+      // if no children cells were found, attach request cells
+      if( !rescells.valid() && req.hasCells() )
+        rescells.attach(req.cells());
+      
       setExecState(CS_ES_EVALUATING);
       // EVAL/SINGLE/DOUBLE: normal getResult() mode
       if( req.evalMode() >= 0 )
@@ -1251,14 +1004,15 @@ int Node::execute (Result::Ref &ref,const Request &req)
           return exitExecute(retcode);
         }
         // Set Cells in the Result object as needed
-        // (will do nothing when no variability)
+        // (setCells() will do nothing when result has no variability axes)
         if( ref.valid() && !ref->hasCells() && rescells.valid() )
           ref().setCells(*rescells);
       }
       else if( req.requestType() == RequestType::DISCOVER_SPIDS )
       {
         stage = "discovering spids";
-        retcode |= discoverSpids(ref,child_results_,req);
+        int code = discoverSpids(ref,child_results_,req);
+        retcode |= code | getDependMask();
       }
       // if FAIL is returned, prepare error message
       if( retcode&RES_FAIL )
@@ -1431,7 +1185,7 @@ void Node::setExecState (int es,int newst,bool sync)
       // now notify the forest of breakpoint (presumably this will wait
       // on the stop flag)
       pstate_lock_->release();
-      publishParentalStatus();  // recursively publish parents' control status
+      publishParentalStatus();  // recursively publish control status
       forest_->processBreakpoint(*this,bp,!local);
       pstate_lock_->relock(state_mutex_);
       // clear stop bit from control status
@@ -1448,7 +1202,7 @@ void Node::setExecState (int es,int newst,bool sync)
   {
     setControlStatus(newst|CS_STOPPED,sync);
     pstate_lock_->release();
-    publishParentalStatus();  // recursively publish parents' control status
+    publishParentalStatus();  // recursively publish control status
     forest_->waitOnStopFlag();
     pstate_lock_->relock(state_mutex_);
   }
@@ -1457,18 +1211,13 @@ void Node::setExecState (int es,int newst,bool sync)
 
 void Node::publishParentalStatus ()
 {
+  if( parent_status_published_ )
+    return;
   parent_status_published_ = true;
+  forest().newControlStatus(*this,control_status_,control_status_,true);
   // skip when already hit by this loop
   for( int i=0; i<numParents(); i++ )
-  {
-    Node &parent = getParent(i);
-    // force out a status message for parent
-    if( !parent.parent_status_published_ )
-    {
-      forest_->newControlStatus(parent,parent.getControlStatus(),parent.getControlStatus(),true);
-      parent.publishParentalStatus();
-    }
-  }
+    getParent(i).publishParentalStatus();
 }
 
 std::string Node::getStrExecState (int state)
@@ -1483,6 +1232,36 @@ std::string Node::getStrExecState (int state)
     default:                return "(unknown exec state)";
   }
 }
+
+void Node::enableMultiThreadedPolling (bool enable)
+{
+  if( !MTPool::Brigade::numBrigades() )
+    enable = false;
+  children().enableMultiThreaded(enable);
+  stepchildren().enableMultiThreaded(enable);
+}
+
+// these are called from the nurseries' idle loops
+void Node::lockStateMutex ()
+{ 
+  pstate_lock_->lock(stateMutex()); 
+} 
+
+void Node::unlockStateMutex ()
+{ 
+  pstate_lock_->release(); 
+} 
+
+void Node::Node_lockStateMutex (void *args)
+{
+  static_cast<Node*>(args)->lockStateMutex();
+}
+
+void Node::Node_unlockStateMutex (void *args)
+{
+  static_cast<Node*>(args)->unlockStateMutex();
+}
+
 
 //##ModelId=3F98D9D100B9
 int Node::getResult (Result::Ref &,const std::vector<Result::Ref> &,
@@ -1526,17 +1305,6 @@ string Node::sdebug (int detail, const string &prefix, const char *nm) const
   if( detail >= 1 || detail == -1 )
   {
     appendf(out,"cs:%x",getControlStatus());
-  }
-  if( abs(detail) >= 2 )
-  {
-    ChildrenMap::const_iterator iter = child_map_.begin();
-    for( ; iter != child_map_.end(); iter++ )
-    {
-      out += "\n" + prefix + "  " + iter->first.toString() + ": " 
-           + ( children_[iter->second].valid() 
-               ? children_[iter->second]->sdebug(abs(detail)-2)
-               : "unresolved" );
-    }
   }
   return out;
 }

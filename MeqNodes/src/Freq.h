@@ -42,9 +42,6 @@ public:
     //##ModelId=400E53050215
   virtual ~Freq();
   
-    //##ModelId=400E53050217
-  virtual void init (DMI::Record::Ref::Xfer &initrec, Forest* frst);
-  
     //##ModelId=400E5305021B
   virtual TypeId objectType() const
     { return TpMeqFreq; }

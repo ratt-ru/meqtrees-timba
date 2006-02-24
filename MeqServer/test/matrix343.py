@@ -546,7 +546,9 @@ def create_inputrec(msname, tile_size=1500,short=False):
       rec.selection = record(channel_start_index=25,
                              channel_end_index=40,
                              channel_increment=1,
-                             selection_string='')#'TIME_CENTROID < 4472026000')
+#                             selection_string='ANTENNA1<6 && ANTENNA2<6')
+#                             selection_string='TIME_CENTROID < 4472026000')
+                             selection_string='')
       if short:
         rec.selection.selection_string = 'TIME_CENTROID < 4472026000';
       else:
@@ -579,38 +581,9 @@ def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvab
     return solver_defaults
 
 
-# no need to define this
 #def _test_forest(mqs, parent):
 #    pass
     
-_reference_domain_file = '3C343.domain';
-_reference_cells = None;
-
-import cPickle
-try:
-  unpickler = cPickle.Unpickler(file(_reference_domain_file,'r'));
-  _reference_cells = unpickler.load();
-  print "Loaded reference domain from "+_reference_domain_file;
-  del unpickler;
-except:
-  traceback.print_exc();  
-  print """Error loading reference domain. You may need to re-save it
-after a source calibration. Verifier will not be available.""";
-    
-def _tdl_job_1a_save_reference_domain (mqs,parent):
-  """This saves the domain and cells of the most recent request issued
-by the VisDataMux. On subsequent runs, this saved info will be available
-to interested parties. You should normally do this only once, after
-a source flux fit, to save the domain/cells corresponding to the entire MS.
-  Note that the "verify with reference domain" job requires that a saved 
-domain be available.""";
-  vdmstate = mqs.getnodestate('VisDataMux');
-  global _reference_cells;
-  _reference_cells = vdmstate.current_request.cells;
-  pick = cPickle.Pickler(file(_reference_domain_file,'w'));
-  pick.dump(_reference_cells);
-  
-
 def _tdl_job_8_evaluate_parms_over_reference_domain (mqs,parent):
   """Executes the 'verifier' node over the saved reference domain.
 Assuming this is successful, you may examine the children of the verifier
@@ -765,73 +738,73 @@ def _tdl_job_3_gain_solution_with_given_fluxes(mqs, parent,write=True):
 
 
 
-
-
-def _tdl_job_phase_solution_with_given_fluxes_edge(mqs, parent):
-    msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=10)
-    outputrec       = create_outputrec()
-
-    source_list  = create_initial_source_model()
-    station_list = range(1,15)
-    patch_list   = ['centre', 'edge']
-    print inputrec
-    print outputrec
-
-    solvables = []
-    for station in station_list:
-        solvables.append('JP:'+str(station)+':'+patch_list[1]+':11')
-        solvables.append('JP:'+str(station)+':'+patch_list[1]+':22')
-        pass
-    print solvables
-    
-    publish_node_state(mqs, 'JP:9:edge:11')
-    publish_node_state(mqs, 'solver')
-    
-    solver_defaults = create_solver_defaults(solvable=solvables)
-    print solver_defaults
-    set_MAB_node_state(mqs, 'solver', solver_defaults)
-    
-    req = meq.request();
-    req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
-    req.output = record(ms=outputrec);
-    mqs.execute('VisDataMux',req,wait=False);
-    pass
-
-
-
-def _tdl_job_phase_solution_with_given_fluxes_centre(mqs, parent):
-    msname          = '3C343.MS'
-    inputrec        = create_inputrec(msname, tile_size=10)
-    outputrec       = create_outputrec()
-
-    source_list  = create_initial_source_model()
-    station_list = range(1,15)
-    patch_list   = ['centre', 'edge']
-    print inputrec
-    print outputrec
-
-    solvables = []
-    for station in station_list[1:]:
-        solvables.append('JP:'+str(station)+':'+patch_list[0]+':11')
-        solvables.append('JP:'+str(station)+':'+patch_list[0]+':22')
-        pass
-    print solvables
-    
-    publish_node_state(mqs, 'JP:9:centre:11')
-    publish_node_state(mqs, 'solver')
-    
-    solver_defaults = create_solver_defaults(solvable=solvables)
-    print solver_defaults
-    set_MAB_node_state(mqs, 'solver', solver_defaults)
-    
-    req = meq.request();
-    req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
-    req.output = record(ms=outputrec);
-    mqs.execute('VisDataMux',req,wait=False);
-    pass
-
-
+# 
+# 
+# def _tdl_job_phase_solution_with_given_fluxes_edge(mqs, parent):
+#     msname          = '3C343.MS'
+#     inputrec        = create_inputrec(msname, tile_size=10)
+#     outputrec       = create_outputrec()
+# 
+#     source_list  = create_initial_source_model()
+#     station_list = range(1,15)
+#     patch_list   = ['centre', 'edge']
+#     print inputrec
+#     print outputrec
+# 
+#     solvables = []
+#     for station in station_list:
+#         solvables.append('JP:'+str(station)+':'+patch_list[1]+':11')
+#         solvables.append('JP:'+str(station)+':'+patch_list[1]+':22')
+#         pass
+#     print solvables
+#     
+#     publish_node_state(mqs, 'JP:9:edge:11')
+#     publish_node_state(mqs, 'solver')
+#     
+#     solver_defaults = create_solver_defaults(solvable=solvables)
+#     print solver_defaults
+#     set_MAB_node_state(mqs, 'solver', solver_defaults)
+#     
+#     req = meq.request();
+#     req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
+#     req.output = record(ms=outputrec);
+#     mqs.execute('VisDataMux',req,wait=False);
+#     pass
+# 
+# 
+# 
+# def _tdl_job_phase_solution_with_given_fluxes_centre(mqs, parent):
+#     msname          = '3C343.MS'
+#     inputrec        = create_inputrec(msname, tile_size=10)
+#     outputrec       = create_outputrec()
+# 
+#     source_list  = create_initial_source_model()
+#     station_list = range(1,15)
+#     patch_list   = ['centre', 'edge']
+#     print inputrec
+#     print outputrec
+# 
+#     solvables = []
+#     for station in station_list[1:]:
+#         solvables.append('JP:'+str(station)+':'+patch_list[0]+':11')
+#         solvables.append('JP:'+str(station)+':'+patch_list[0]+':22')
+#         pass
+#     print solvables
+#     
+#     publish_node_state(mqs, 'JP:9:centre:11')
+#     publish_node_state(mqs, 'solver')
+#     
+#     solver_defaults = create_solver_defaults(solvable=solvables)
+#     print solver_defaults
+#     set_MAB_node_state(mqs, 'solver', solver_defaults)
+#     
+#     req = meq.request();
+#     req.input  = record(ms=inputrec,python_init='MAB_read_msvis_header.py');
+#     req.output = record(ms=outputrec);
+#     mqs.execute('VisDataMux',req,wait=False);
+#     pass
+# 
+# 
 
 
 

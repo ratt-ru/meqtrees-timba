@@ -27,9 +27,6 @@ class VisDataMux : public Node
     virtual TypeId objectType() const
     { return TpMeqVisDataMux; }
 
-    // redefined to check that children are Sinks and stepchildren are Spigots
-    virtual void resolveChildren ();
-    
     //##ModelId=3F98DAE6024A
     //##Documentation
     //## delivers visdata header to data mux
@@ -56,7 +53,13 @@ class VisDataMux : public Node
     
   protected:
     void setStateImpl (DMI::Record::Ref &rec,bool initializing);
-    int  pollChildren (Result::Ref &resref,const Request &request);
+  
+    // redefined to check that children are Sinks and stepchildren are Spigots
+    virtual void checkChildren ();
+    
+    int  pollChildren (Result::Ref &resref,
+                      std::vector<Result::Ref> &childres,
+                      const Request &request);
     
   private:
     //##ModelId=3F9FF71B00C7

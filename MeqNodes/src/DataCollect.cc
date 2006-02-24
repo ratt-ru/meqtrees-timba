@@ -40,7 +40,8 @@ DataCollect::DataCollect()
 //    item_label_(AidData)
 {
   attrib_ <<= new DMI::Record;
-  disableFailPropagation();
+  children().setFailPolicy(AidIgnore);
+  stepchildren().setFailPolicy(AidIgnore);
   enableMultiThreadedPolling();
 }
 
@@ -67,7 +68,7 @@ void DataCollect::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     DMI::Vec &lbl = rec[FLabel] <<= new DMI::Vec(Tpstring,numChildren());
     labels_ <<= &lbl;
     for( int i=0; i<numChildren(); i++ )
-      lbl[i] = childName(i);
+      lbl[i] = children().getChild(i).name();
   }
 }
 

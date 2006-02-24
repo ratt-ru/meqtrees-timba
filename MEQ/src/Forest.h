@@ -19,10 +19,11 @@
 //#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 //#  $Id$
-#ifndef MeqSERVER_SRC_FOREST_H_HEADER_INCLUDED_C53FA569
-#define MeqSERVER_SRC_FOREST_H_HEADER_INCLUDED_C53FA569
+#ifndef MEQ_SRC_FOREST_H_HEADER_INCLUDED_C53FA569
+#define MEQ_SRC_FOREST_H_HEADER_INCLUDED_C53FA569
 
 #include <MEQ/Node.h>
+#include <MEQ/SymdepMap.h>
 #include <MEQ/Request.h>
 #include <MEQ/MeqVocabulary.h>
 #include <DMI/HashMap.h>
@@ -40,8 +41,6 @@ using namespace DMI;
 class Forest
 {
   public:
-    typedef std::map<HIID,int> SymdepMap;
-  
     typedef enum {
       NL_NODEINDEX        = 1,
       NL_NAME             = 2,
@@ -126,15 +125,13 @@ class Forest
     }
     
     // Returns the current symdep map
-    const SymdepMap & getSymdepMasks () const
-    { return symdep_map; }
+    const SymdepMap & symdeps () const
+    { return symdeps_; }
     
     // Looks up the depmask for a symdep
     int getDependMask (const HIID &symdep) const
     { 
-      SymdepMap::const_iterator iter = symdep_map.find(symdep);
-      FailWhen(iter==symdep_map.end(),"unknown symdep "+symdep.toString());
-      return iter->second;
+      return symdeps().getMask(symdep);
     }
     
     int getStateDependMask () const
@@ -252,6 +249,9 @@ class Forest
     bool abortFlag () const
     { return abort_flag_; }
     
+    const bool & getAbortFlag () const
+    { return abort_flag_; }
+    
     Thread::Mutex & forestMutex () const
     { return forest_mutex_; }
 
@@ -302,12 +302,11 @@ class Forest
     //##ModelId=3F60697A00D5
     NameMap name_map;
     
-    typedef std::map<HIID,int> SymdepMap;
-    SymdepMap symdep_map;
+    SymdepMap symdeps_;
     
-    SymdepMap symdep_counts;
-    
-    SymdepMap known_symdeps;
+    //## for incrRequestId, this map keeps track of the current index
+    //## for each symdep
+    std::map<HIID,int> symdep_counts;
     
     int depmask_state_;
     

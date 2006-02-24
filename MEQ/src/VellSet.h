@@ -165,6 +165,10 @@ public:
   void copyPerturbations (const VellSet &other);
 
   // ------------------------ MAIN RESULT VALUE
+  // a vellset is empty when it has no main value or perturbed values
+  bool isEmpty () const
+  { return !hasValue() && !numSpids(); }
+  
   // a vellset is a "null" when it has no main value, or main value
   // is a null and there are no perturbed values
   bool isNull () const

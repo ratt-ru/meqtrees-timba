@@ -30,11 +30,11 @@ namespace Meq
     FFileName         = AidFile|AidName,
       
     FEnable           = AidEnable,
+    FLevel            = AidLevel,
     FEventId          = AidEvent|AidId,
     FEventData        = AidEvent|AidData,
-      
-    EvNodeResult      = AidNode|AidResult,
     
+      
     EvNodeStatus      = AidNode|AidStatus,
     
     EvDebugStop       = AidDebug|AidStop;
@@ -80,8 +80,8 @@ class MeqServer : public DMI::EventRecepient
     //##ModelId=3F61920F02A4
     void nodeSetState (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F98D91A03B9
-    void resolve      (DMI::Record::Ref &out,DMI::Record::Ref &in);
-    void resolveBatch (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void initNode     (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void initNodeBatch(DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F98D91B0064
     void getNodeList  (DMI::Record::Ref &out,DMI::Record::Ref &in);
     

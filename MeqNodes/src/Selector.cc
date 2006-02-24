@@ -59,7 +59,8 @@ int Selector::getResult (Result::Ref &resref,
     resref = childref[0];
     return 0;
   }
-  bool valid = false;
+  bool fail    = true;  // cleared below later once we have a non-fail selection
+  bool missing = true;  // cleared below once we have a non-missing-data selection
   const Result &childres = *childref[0];
   int nvs = childres.numVellSets();
   // multiple-selection mode
@@ -78,8 +79,12 @@ int Selector::getResult (Result::Ref &resref,
       }
       else
       {
-        result.setVellSet(i,childres.vellSet(isel));
-        valid = true;
+        const VellSet & vs = childres.vellSet(isel);
+        result.setVellSet(i,vs);
+        if( !vs.isFail() )
+          fail = false;
+        if( !vs.isEmpty() )
+          missing = false;
       }
     }
   }
@@ -118,9 +123,13 @@ int Selector::getResult (Result::Ref &resref,
     // single element selected
     if( rank == 0 ) 
     {
+      const VellSet &vs = childres.vellSet(offset);
       (resref <<= new Result(1,childres.isIntegrated())).
-            setVellSet(0,childres.vellSet(offset));
-      valid = true;
+            setVellSet(0,vs);
+      if( !vs.isFail() )
+        fail = false;
+      if( !vs.isEmpty() )
+        missing = false;
     }
     // else extract full slice
     else
@@ -135,7 +144,12 @@ int Selector::getResult (Result::Ref &resref,
       // calculate offset to start of slice
       for( int i=0; i<nout; i++ )
       {
-        result.setVellSet(i,childres.vellSet(offset));
+        const VellSet &vs = childres.vellSet(offset);
+        result.setVellSet(i,vs);
+        if( !vs.isFail() )
+          fail = false;
+        if( !vs.isEmpty() )
+          missing = false;
         // update offset
         for( int idim = rank-1; idim>=0; idim-- )
           if( shp0[idim] )
@@ -147,13 +161,19 @@ int Selector::getResult (Result::Ref &resref,
               shp0[idim] = shp[idim]; 
           }
       }
-      valid = true;
     }
   }
-  if( valid && childres.hasCells() )
+  // return fail or missing data if needed
+  if( fail )
+    return RES_FAIL;
+  if( missing )
+    return RES_MISSING;
+  
+  // else add input cells as needed
+  if( childres.hasCells() )
     resref().setCells(childres.cells());
   
-  return valid ? 0 : RES_FAIL;
+  return 0;
 }
 
 } // namespace Meq

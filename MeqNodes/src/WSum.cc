@@ -27,7 +27,9 @@ namespace Meq {
 
 //##ModelId=3F86886E028F
 WSum::WSum()
-{}
+  : weights(1,1.)
+{
+}
 
 //##ModelId=3F86886E0293
 WSum::~WSum()
@@ -36,51 +38,51 @@ WSum::~WSum()
 void WSum::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Function::setStateImpl(rec,initializing);
-  // get/init stddev parameter
-  if(!( rec[FWeights].get_vector(weights)) )
-    {
-      weights.push_back(1.);
-      cdebug(3)<<"warning: no weights given, using default 1"<<endl;
-      
-
-    }
   
-  if(weights.size()>1 && weights.size()<size_t(numChildren()))
-    cdebug(3)<<"Size of weightvector different from number of children, assume 0 for missing weights";
+  if( rec[FWeights].get_vector(weights) )
+  {
+    // empty vector -- use [1.]
+    if( weights.empty() )
+      weights.resize(1,1.);
+    
+    // ensure we have same # of weights as children, fill in 0. for missing weights
+    if( weights.size() > 1 )
+    {
+      weights.resize(numChildren(),0.0);
+      // disable children with 0 weight
+      for( int i=0; i<numChildren(); i++ )
+        children().enableChild(i,weights[i]!=0.);
+    }
+    else // single weight given, enable all children
+    {
+      for( int i=0; i<numChildren(); i++ )
+        children().enableChild(i);
+    }
+  }
 }
-
-//##ModelId=400E531702FD
-//needs to be implemented, do not send request to children with weight 0
-
-int WSum::pollChildren (Result::Ref &resref,const Request &req)
-{
-  return Node::pollChildren(resref,req);
-}
-
-
-
 
 Vells WSum::evaluate (const Request& req, const LoShape& shape,
                      const vector<const Vells*>& values)
 {
-
   size_t nrw=weights.size();
-  int allsame =0;
-  if(nrw<size_t(numChildren())){
-
-       if(nrw==1) allsame=1;//if exactly 1 weight is given, assume all the same
-       //otherwise, assume weights = 0 for children without weight
-     }
+  bool allsame = ( nrw==1 );
  
-  if( values.empty() || nrw<=0)
+  if( values.empty() || nrw<=0 )
     return Vells(0.);
-  Vells result((*values[0])*weights[0]);
-  for( size_t i=1; i<values.size()&&(allsame || i<nrw); i++ )
-    if(!allsame)
-      result += (*(values[i]))*weights[i];
-    else
-      result += (*(values[i]))*weights[0];
-      
+  
+  Vells result;
+  if( weights[0] != 0. )
+    result = (*values[0])*weights[0];
+  else
+    result = Vells(0.);
+  
+  for( size_t i=1; i<values.size(); i++ )
+  {
+    double w = allsame ? weights[0] : weights[i];
+    if( w != 0.0 )
+      result += (*(values[i]))*w;
+  }
+  
   return result;
 }
 

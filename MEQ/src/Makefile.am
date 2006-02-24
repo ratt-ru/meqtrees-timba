@@ -1,12 +1,12 @@
 SUBDIRS	= .
 
-LOCALHDRS = MeqVocabulary.h RequestId.h Meq.h VellsSlicer.h 
+LOCALHDRS = MeqVocabulary.h RequestId.h Meq.h VellsSlicer.h NodeFace.h
 
 LOCALSRCS = \
-  Axis.cc Domain.cc	Cells.cc Request.cc RequestId.cc \
+  Axis.cc Domain.cc   Cells.cc Request.cc RequestId.cc \
   Vells.cc VellSet.cc Result.cc Funklet.cc Polc.cc ComposedPolc.cc PolcLog.cc \
-  Node.cc Function.cc CompoundFunction.cc \
-  EventGenerator.cc Forest.cc MTPool.cc
+  Node.cc NodeNursery.cc Function.cc CompoundFunction.cc \
+  SymdepMap.cc Forest.cc MTPool.cc
 
 ## removed for now, as it needs to be re-worked for the new Vells
 ## structure
@@ -18,7 +18,7 @@ DOCHDRS		= $(LOCALHDRS) \
 lib_LTLIBRARIES 	= libmeq.la
 
 libmeq_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) \
-  Node_Riders.cc Node_init.cc Node_poll.cc AID-Meq-Registry.cc
+  Node_Riders.cc Node_init.cc AID-Meq-Registry.cc
 
 check_PROGRAMS = 
 

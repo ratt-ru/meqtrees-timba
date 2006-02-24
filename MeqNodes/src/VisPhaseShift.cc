@@ -111,7 +111,6 @@ int VisPhaseShift::getResult (Result::Ref &resref,
 				   const Request &request, bool newreq)
 {
   std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,childres);
   const int expect_nvs[]        = {3,3}; // number of Vells in children
   const int expect_integrated[] = {-1,-1};
   Assert(int(childres.size()) == num_children);

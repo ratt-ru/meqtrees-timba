@@ -29,6 +29,7 @@ namespace Meq {
 
 //##ModelId=400E53050214
 Freq::Freq()
+  : Node(0)
 { 
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
@@ -37,13 +38,6 @@ Freq::Freq()
 //##ModelId=400E53050215
 Freq::~Freq()
 {}
-
-//##ModelId=400E53050217
-void Freq::init (DMI::Record::Ref::Xfer &initrec, Forest* frst)
-{
-  Node::init(initrec,frst);
-  FailWhen(numChildren(),"Freq node cannot have children");
-}
 
 //##ModelId=400E5305021D
 int Freq::getResult (Result::Ref &resref, 

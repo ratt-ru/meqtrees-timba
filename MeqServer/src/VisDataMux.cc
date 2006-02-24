@@ -79,18 +79,16 @@ Meq::VisDataMux::VisDataMux ()
   // use reasonable default
   handlers_.resize(VisVocabulary::ifrNumber(30,30)+1);
   child_indices_.resize(VisVocabulary::ifrNumber(30,30)+1);
-  // init request id for dataset=1
-  // frst.incrRequestId(rqid_,FDataset);
+  
+  setActiveSymDeps(FDataset);
+  
   enableMultiThreadedPolling();
-  // default cache policy is to cache nothing
-  cache_policy_ = CACHE_MINIMAL;
 }
 
 void Meq::VisDataMux::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
-  // disable first three children since we execute them manually
-  child_disabled_[0] = child_disabled_[1] = child_disabled_[2] = true;
+  // do nothing else for now
 }
 
 // inits input channel from record
@@ -176,15 +174,20 @@ void Meq::VisDataMux::postStatus ()
   postEvent(FVisNumTiles,ref);
 }
 
-void Meq::VisDataMux::resolveChildren ()
+void Meq::VisDataMux::checkChildren ()
 {
-  Node::resolveChildren();
-  // all regular children are sinks, but skip the first three (start, post and pre)
-  for( int i=3; i<numChildren(); i++ )
+  Node::checkChildren();
+  // disable first three children (pre/post/start) since we execute them manually
+  children().disableChild(0);
+  children().disableChild(1);
+  children().disableChild(2);
+  // regular children from #3 on are expected to be sinks
+  for( int ichild=3; ichild<numChildren(); ichild++ )
   {
-    Sink * psink = dynamic_cast<Sink*>(&(getChild(i)));
-    FailWhen(!psink,Debug::ssprintf("child %d not of class MeqSink",i));
+    Sink * psink = dynamic_cast<Sink*>(&(children().getChild(ichild)));
+    FailWhen(!psink,Debug::ssprintf("child %d not of class MeqSink",ichild));
     int did = psink->dataId();
+    FailWhen(did<0 || did>0xFFFF,ssprintf("illegal data id %x from sink %s",did,psink->name().c_str()));
     if( did >= int(handlers_.size()) )
       handlers_.resize(did+100);
     if( did >= int(child_indices_.size()) )
@@ -197,13 +200,13 @@ void Meq::VisDataMux::resolveChildren ()
     // add sink to list of handlers for this data id
     handlers_[did].insert(psink);
     // add index of child to list of children for this data id
-    child_indices_[did].insert(i); 
+    child_indices_[did].insert(ichild); 
   }
-  // all stepchildren are spigots
-  for( int i=0; i<numStepChildren(); i++ )
+  // all stepchildren are expected to be spigots
+  for( int ichild=0; ichild<stepchildren().numChildren(); ichild++ )
   {
-    Spigot * pspigot = dynamic_cast<Spigot*>(&(getStepChild(i)));
-    FailWhen(!pspigot,Debug::ssprintf("stepchild %d not of class MeqSpigot",i));
+    Spigot * pspigot = dynamic_cast<Spigot*>(&(stepchildren().getChild(ichild)));
+    FailWhen(!pspigot,Debug::ssprintf("stepchild %d not of class MeqSpigot",ichild));
     int did = pspigot->dataId();
     if( did >= int(handlers_.size()) )
       handlers_.resize(did+100);
@@ -258,7 +261,7 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
   }
   // reset request ID
   forest().incrRequestId(rqid_,FDataset);
-  RqId::setSubId(rqid_,forest().getDependMask(FDomain),0);
+  RqId::setSubId(rqid_,symdeps().getMask(FDomain),0);
   current_seqnr_ = -1;
   int maxdid = formDataId(nstations-1,nstations-1) + 1;
   have_tile_.assign(maxdid,false);
@@ -412,7 +415,7 @@ int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
   try
   {
     // Generate new Request id
-    RqId::incrSubId(rqid_,forest().getDependMask(FDomain));
+    RqId::incrSubId(rqid_,symdeps().getMask(FDomain));
     // Generate Cells object from tile
     Cells::Ref cellref;
     Cells &cells = cellref <<= new Cells;
@@ -425,20 +428,20 @@ int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
     // reset have-tile flags
     have_tile_.assign(handlers_.size(),false);
     // if we have a pre-processing child, poll it now
-    if( isChildValid(0) )
+    if( children().isChildValid(0) )
     {
       Result::Ref res;
-      timers_.getresult.stop();
-      timers_.children.start();
-      result_flag = getChild(0).execute(res,req);
-      timers_.children.stop();
-      timers_.getresult.start();
+      timers().getresult.stop();
+      timers().children.start();
+      result_flag = children().getChild(0).execute(res,req);
+      timers().children.stop();
+      timers().getresult.start();
       if( result_flag&RES_FAIL )
       {
         res->addToExceptionList(errors);
         errors.add(MakeNodeException(
             "error starting tile "+rqid_.toString('.')+": "+
-            "child '"+getChild(0).name()+"' returns a FAIL"));
+            "child '"+children().getChild(0).name()+"' returns a FAIL"));
       }
     }
   }
@@ -456,23 +459,23 @@ int Meq::VisDataMux::endSnippet ()
   // post tile count
   postStatus();
   // poll pre-processing child
-  if( isChildValid(1) )
+  if( children().isChildValid(1) )
   {
     Result::Ref res;
     try 
     { 
-      timers_.getresult.stop();
-      timers_.children.start();
-      int retcode = getChild(1).execute(res,*current_req_); 
-      timers_.children.stop();
-      timers_.getresult.start();
+      timers().getresult.stop();
+      timers().children.start();
+      int retcode = children().getChild(1).execute(res,*current_req_); 
+      timers().children.stop();
+      timers().getresult.start();
       result_flag |= retcode;
       if( retcode&RES_FAIL )
       {
         res->addToExceptionList(errors);
         errors.add(MakeNodeException(
             "error pre-processing tile "+rqid_.toString('.')+": "+
-            "child '"+getChild(1).name()+"' returns a FAIL"));
+            "child '"+children().getChild(1).name()+"' returns a FAIL"));
       }
     }
     CatchExceptionsMore("pre-processing tile "+rqid_.toString('.'));
@@ -481,35 +484,35 @@ int Meq::VisDataMux::endSnippet ()
   // ok, now we want to asyncronously poll all sinks that have a tile 
   // assigned. First, disable all children
   for( int i=0; i<numChildren(); i++ )
-    child_disabled_[i] = true;
-  // now, enable sinks with tiles
+    children().disableChild(i);
+  // now, enable sinks with associated tiles
   for( uint i=0; i<child_indices_.size(); i++ )
     if( have_tile_[i] )
     {
       const IndexSet & ilist = child_indices_[i];
       for( IndexSet::const_iterator iter = ilist.begin(); iter != ilist.end(); iter++ )
-        child_disabled_[*iter] = false;
+        children().enableChild(*iter);
     }
   // now do the poll
-  startAsyncPoll(*current_req_);
+  children().startAsyncPoll(*current_req_);
   while( !forest().abortFlag() )
   {
     try
     {
       int retcode;
       Result::Ref res;
-      timers_.getresult.stop();
-      timers_.children.start();
-      int ichild = awaitChildResult(retcode,res,*current_req_);
-      timers_.children.stop();
-      timers_.getresult.start();
+      timers().getresult.stop();
+      timers().children.start();
+      int ichild = children().awaitChildResult(retcode,res,*current_req_);
+      timers().children.stop();
+      timers().getresult.start();
       if( ichild < 0 )  // break out if finished
         break;
       result_flag |= retcode;
       if( retcode&RES_FAIL )
       {
         res->addToExceptionList(errors);
-        errors.add(MakeNodeException("child '"+getChild(ichild).name()+"' returns a FAIL"));
+        errors.add(MakeNodeException("child '"+children().getChild(ichild).name()+"' returns a FAIL"));
       }
       else if( !retcode&(RES_WAIT|RES_ABORT) ) // if child returns a Tile field in the result, dump tile to output
       {
@@ -535,23 +538,23 @@ int Meq::VisDataMux::endSnippet ()
   if( errors.size() > nerr0 )
     errors.add(MakeNodeException("error processing tile "+rqid_.toString('.')));
   // poll post-processing child
-  if( !forest().abortFlag() && isChildValid(2) )
+  if( !forest().abortFlag() && children().isChildValid(2) )
   {
     Result::Ref res;
     try 
     {
-      timers_.getresult.stop();
-      timers_.children.start();
-      int retcode = getChild(2).execute(res,*current_req_); 
-      timers_.children.stop();
-      timers_.getresult.start();
+      timers().getresult.stop();
+      timers().children.start();
+      int retcode = children().getChild(2).execute(res,*current_req_); 
+      timers().children.stop();
+      timers().getresult.start();
       result_flag |= retcode; 
       if( retcode&RES_FAIL )
       {
         res->addToExceptionList(errors);
         errors.add(MakeNodeException(
             "error post-processing tile "+rqid_.toString('.')+": "+
-            "child '"+getChild(2).name()+"' returns a FAIL"));
+            "child '"+children().getChild(2).name()+"' returns a FAIL"));
       }
     }
     CatchExceptionsMore("post-processing tile "+rqid_.toString('.'));
@@ -606,14 +609,16 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTil
 }
 
 //##ModelId=400E5355026B
-int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
+int Meq::VisDataMux::pollChildren (Result::Ref &resref,
+          std::vector<Result::Ref> &childres,
+          const Request &request)
 {
   const DMI::Record * inrec = request[FInput].as_po<DMI::Record>();
   // no "Input" field in request, pass request on normally
   if( !inrec )
-    return Node::pollChildren(resref,request);
-  timers_.children.stop();
-  timers_.getresult.start();
+    return Node::pollChildren(resref,childres,request);
+  timers().children.stop();
+  timers().getresult.start();
   // init input channel
   initInput(*inrec);
   // init output channel, if any
@@ -778,12 +783,12 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
     input_channel_().abort();
     if( output_channel_.valid() )
       output_channel_().abort();
-    timers_.getresult.start();
+    timers().getresult.start();
     throw; // rethrow
   }
   // post end event
   postEvent(FVisChannelClosed,endref);
-  timers_.getresult.start();
+  timers().getresult.start();
   // if we have accumulated any fails, return them here
   if( fail_list->isFail() )
   {
@@ -791,6 +796,6 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,const Request &request)
     resref().setVellSet(0,fail_list);
     return RES_FAIL;
   }
-  // normal exit
-  return 0;
+  // normal exit -- return empty result
+  return getDependMask();
 }

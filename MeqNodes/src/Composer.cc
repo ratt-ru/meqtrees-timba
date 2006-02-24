@@ -32,6 +32,9 @@ namespace Meq {
 Composer::Composer()
   : Node(-2,0) // at least 1 child must be present
 {
+  // by default we ignore all fails and missing data
+  children().setFailPolicy(AidIgnore);
+  children().setMissingDataPolicy(AidIgnore);
   // we can only compose results with the same cells
   setAutoResample(RESAMPLE_FAIL);
 }
@@ -39,13 +42,6 @@ Composer::Composer()
 //##ModelId=400E53050043
 Composer::~Composer()
 {}
-
-// //##ModelId=400E53050047
-// void Composer::checkInitState (DMI::Record &rec)
-// {
-//   defaultInitField(rec,FContagiousFail,false);
-// }
-//     
 
 //##ModelId=400E5305004A
 void Composer::setStateImpl (DMI::Record::Ref &rec,bool initializing)
@@ -63,8 +59,8 @@ int Composer::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &childres,
                          const Request &request,bool)
 {
-  // count # of output planes, and # of fails among them
-  int nres = 0, nfails = 0;
+  // count # of output planes, and # of fails/missing data among them
+  int nres = 0, nfails = 0, nmissing = 0;
   for( uint i=0; i<childres.size(); i++ )
     nres += childres[i]->numVellSets();
   // check that integrated property matches
@@ -89,14 +85,22 @@ int Composer::getResult (Result::Ref &resref,
   for( int i=0; i<numChildren(); i++ )
   {
     const Result &chres = *childres[i];
-    for( int j=0; j<chres.numVellSets(); j++ )
+    for( int ivs=0; ivs<chres.numVellSets(); ivs++ )
     {
-      VellSet::Ref ref = chres.vellSetRef(j);
-      presult->setVellSet(ires++,ref);
+      const VellSet &vs = chres.vellSet(ivs);
+      presult->setVellSet(ires++,vs);
+      if( vs.isFail() )
+        nfails++;
+      else if( vs.isEmpty() )
+        nmissing++;
     }
     if( !pcells && chres.hasCells() )
       pcells = &( chres.cells() );
   }
+  if( nfails == nres )
+    return RES_FAIL;
+  if( nmissing == nres )
+    return RES_MISSING;
   // apply cells as needed
   if( pcells )
     presult->setCells(pcells);

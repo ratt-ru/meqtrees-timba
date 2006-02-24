@@ -18,7 +18,6 @@
 //# along with this program; if not, write to the Free Software
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
-//# $Id$
 
 #ifndef MEQNODES_PARM_H
 #define MEQNODES_PARM_H
@@ -108,7 +107,6 @@ namespace Meq {
     LocalDebugContext;
 
   protected:
-    virtual void resetDependMasks ();
     Funklet * initTiledFunklet(Funklet::Ref &funkletref,const Domain & domain, const Cells & cells);
     bool checkTiledFunklet(Funklet::Ref &funkletref,std::vector<Domain::Ref> domainV);
     // checks if current funklet can be reused
@@ -154,7 +152,7 @@ namespace Meq {
     Funklet::Ref its_funklet_; //keep a ref to the funklet 
 
 
-    HIID        domain_id_,rqid_;
+    HIID        domain_id_;
     int         domain_depend_mask_;
     int         solve_depend_mask_;
     std::vector<HIID> domain_symdeps_;

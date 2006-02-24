@@ -33,7 +33,6 @@ namespace Meq {
 const HIID FResultIndex = AidResult|AidIndex;
 const HIID FCellsOnly = AidCells|AidOnly;
 const HIID FSequenceSymdeps = AidSequence|AidSymdeps;
-const HIID FSequenceDependMask = AidSequence|AidDepend|AidMask;
 
 
 //##ModelId=400E5355029C
@@ -42,10 +41,12 @@ ReqSeq::ReqSeq()
   which_result_(0),
   cells_only_(false)
 {
-  disableAutoResample();
+  // change default children policies -- we want to ignore errors and pass them on
+  children().setFailPolicy(AidIgnore);
+  children().setMissingDataPolicy(AidIgnore);
   // init default seq symdeps 
+  seq_symdeps_.resize(1);
   seq_symdeps_.assign(1,AidState);
-  setKnownSymDeps(seq_symdeps_);
 }
 
 //##ModelId=400E5355029D
@@ -62,73 +63,93 @@ void ReqSeq::setStateImpl (DMI::Record::Ref &rec,bool initializing)
               "illegal "+FResultIndex.toString()+" value");
   }
   // get symdeps
-  if( rec[FSequenceSymdeps].get_vector(seq_symdeps_,initializing) || initializing )
-    wstate()[FSequenceDependMask] = seq_depmask_ = computeDependMask(seq_symdeps_);
-  // now reset the dependency mask if specified; this will override
-  // possible modifications made above
-  rec[FSequenceDependMask].get(seq_depmask_,initializing);
+  rec[FSequenceSymdeps].get_vector(seq_symdeps_,initializing);
 }
 
 
-int ReqSeq::pollChildren (Result::Ref &resref,const Request &req)
+int ReqSeq::pollChildren (Result::Ref &resref,
+                          std::vector<Result::Ref> &childres,
+                          const Request &req)
 {
+  seq_depmask_ = symdeps().getMask(seq_symdeps_);
   resref.detach();
   // in cells-only mode, process cell-less requests just like a regular Node
   if( cells_only_ && !req.hasCells() )
-    return Node::pollChildren(resref,req);
+    return Node::pollChildren(resref,childres,req);
   setExecState(CS_ES_POLLING);
-  timers_.children.start();
+  timers().children.start();
   int retcode = result_code_ = 0;
   cdebug(3)<<"calling execute() on "<<numChildren()<<" children in turn"<<endl;
   Request::Ref reqref(req);
   RequestId rqid = req.id();
-  for( int i=0; i<numChildren(); i++ )
+  for( int ichild=0; ichild<numChildren(); ichild++ )
   {
-    Result::Ref res;
+    Result::Ref child_res;
     // increment sequence ID for subsequent children
-    if( i && seq_depmask_ )
+    if( ichild && seq_depmask_ )
     {
       RqId::incrSubId(rqid,seq_depmask_);
       reqref().setId(rqid);
     }
     // poll current child
-    pstate_lock_->release(); // temporarily release state lock while executing
-    int code = getChild(i).execute(res,*reqref);
-    pstate_lock_->relock(stateMutex());
-    cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",code)<<endl;
+    unlockStateMutex();
+    int code = children().getChild(ichild).execute(child_res,*reqref);
+    lockStateMutex();
+    cdebug(4)<<"    child "<<ichild<<" returns code "<<ssprintf("0x%x",code)<<endl;
+    if( forest().abortFlag() )
+      return RES_ABORT;
     // a wait is returned immediately
     if( code&RES_WAIT )
     {
-      timers_.children.stop();
+      timers().children.stop();
       return result_code_;
     }
     // handle child fail according to mode
     if( code&RES_FAIL )
     {
-      // if fail propagation is on, then abort polling and return failed result
-      if( propagate_child_fails_ )
+      // if fail policy is Ignore, ignore fails from non-selected children 
+      if( children().failPolicy() == AidIgnore )
       {
-        resref.xfer(res);
-        timers_.children.stop();
+        if( ichild != which_result_ )
+          code &= ~RES_FAIL;
+      }
+      else // else return error directly
+      {
+        resref.xfer(child_res);
+        timers().children.stop();
         return result_code_|code;
       }
-      // if fail propagation is off -- ignore the fail if not the selected child
-      else if( i != which_result_ )
-        code &= ~RES_FAIL;
     }
+    // handle missing data according to current mode
+    if( code&RES_MISSING )
+    {
+      // if fail policy is Ignore, ignore fails from non-selected children 
+      if( children().missingDataPolicy() == AidIgnore )
+      {
+        if( ichild != which_result_ )
+          code &= ~RES_MISSING;
+      }
+      else // else return error directly
+      {
+        resref.xfer(child_res);
+        timers().children.stop();
+        return result_code_|code;
+      }
+    }
+    // merge return value into result
     result_code_ |= code;
     // note that we only cache the result if the request has cells in it,
     // since otherwise our getResult is not called at all
-    if( i == which_result_ && req.hasCells() )
+    if( ichild == which_result_ && req.hasCells() )
     {
-      cdebug(3)<<"retaining result of child "<<i<<" with code "<<code<<endl;
-      result_ = res;
+      cdebug(3)<<"retaining result of child "<<ichild<<" with code "<<code<<endl;
+      result_ = child_res;
     }
   }
-  pstate_lock_->release(); // temporarily release state lock while executing
-  pollStepChildren(*reqref);
-  timers_.children.stop();
-  pstate_lock_->relock(stateMutex());
+  unlockStateMutex();
+  stepchildren().backgroundPoll(*reqref);
+  timers().children.stop();
+  lockStateMutex();
   return 0;
 }
 
