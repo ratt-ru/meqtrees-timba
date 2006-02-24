@@ -98,7 +98,7 @@ def make_spigots(ns=None, Cohset=None, **inarg):
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
 
-    # Make MeqSinks
+    # Make MeqSpigots:
     Cohset.spigots(ns, MS_corr_index=pp['MS_corr_index'])
     spigots = Cohset.cohs()
 
@@ -1147,7 +1147,6 @@ def _define_forest (ns, **kwargs):
 
     if True:
         # Optional: Insert a solver:
-        # Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
         Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
         Joneset = JJones(ns, Sixpack=Sixpack, _inarg=MG)
         predicted = predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)

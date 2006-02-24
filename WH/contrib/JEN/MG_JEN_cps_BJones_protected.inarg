@@ -158,7 +158,7 @@ sg16
 I01
 ssS'generic'
 p54
-S'** Generic description of: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-24 17:44'
 p55
 sS'version'
 p56
@@ -186,7 +186,7 @@ g12
 I00
 ssS'oneliner'
 p64
-S'MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-24 17:10'
+S'MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-24 17:44'
 p65
 sS'choice'
 p66
@@ -314,7 +314,7 @@ assS'qual'
 p102
 NsS'last_edited'
 p103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p104
 sS'target_definition'
 p105
@@ -330,7 +330,7 @@ S'BJones'
 p110
 sS'specific'
 p111
-S'** Specific description of: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-02-24 17:44'
 p112
 sS'protected'
 p113
@@ -531,7 +531,7 @@ I01
 sg153
 I01
 ssg54
-S'** Generic description of: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-24 17:44'
 p157
 sg56
 g57
@@ -557,7 +557,7 @@ I00
 sg12
 I00
 ssg64
-S'MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-24 17:10'
+S'MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-24 17:44'
 p161
 sg66
 (dp162
@@ -697,7 +697,7 @@ aS'@@c00_PZD'
 p199
 assg102
 Nsg103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p200
 sg105
 S'MG_JEN_Joneset::DJones_WSRT()'
@@ -709,7 +709,7 @@ sg109
 S'DJones_WSRT'
 p203
 sg111
-S'** Specific description of: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-02-24 17:44'
 p204
 sg113
 I00
@@ -836,7 +836,7 @@ I01
 sg7
 I01
 ssg54
-S'** Generic description of: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-24 17:44'
 p225
 sg56
 g57
@@ -858,7 +858,7 @@ sg62
 g12
 I00
 ssg64
-S'MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-24 17:10'
+S'MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-24 17:44'
 p229
 sg66
 (dp230
@@ -930,7 +930,7 @@ aS'@@uvplane_effect'
 p249
 assg102
 Nsg103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p250
 sg105
 S'MG_JEN_Joneset::FJones()'
@@ -942,7 +942,7 @@ sg109
 S'FJones'
 p253
 sg111
-S'** Specific description of: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-02-24 17:44'
 p254
 sg113
 I00
@@ -1021,7 +1021,7 @@ I01
 sg14
 I01
 ssg54
-S'** Generic description of: MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-24 17:44'
 p271
 sg56
 S'25dec2005'
@@ -1040,7 +1040,7 @@ ssg60
 S'Make a Joneset by creating and multiplying one ore more Jonesets'
 p274
 sg64
-S'MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-24 17:10'
+S'MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-24 17:44'
 p275
 sg66
 (dp276
@@ -1134,7 +1134,7 @@ p301
 ag124
 assg102
 Nsg103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p302
 sg105
 S'MG_JEN_Cohset::JJones()'
@@ -1146,7 +1146,7 @@ sg109
 S'JJones'
 p305
 sg111
-S'** Specific description of: MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Cohset::JJones()  version=25dec2005  defined=2006-02-24 17:44'
 p306
 sg113
 I00
@@ -1255,7 +1255,7 @@ I01
 sg7
 I01
 ssg54
-S'** Generic description of: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-24 17:44'
 p334
 sg56
 S'12dec2005'
@@ -1278,7 +1278,7 @@ sg62
 g12
 I00
 ssg64
-S'MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-24 17:10'
+S'MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-24 17:44'
 p339
 sg66
 (dp340
@@ -1313,7 +1313,7 @@ Nag93
 ag328
 assg102
 Nsg103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p350
 sg105
 S'MG_JEN_Joneset::KJones()'
@@ -1325,7 +1325,7 @@ sg109
 S'KJones'
 p353
 sg111
-S'** Specific description of: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-02-24 17:44'
 p354
 sg113
 I00
@@ -1466,7 +1466,7 @@ I01
 sg366
 I01
 ssg54
-S'** Generic description of: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-02-24 17:44'
 p382
 sg56
 S'14feb2006'
@@ -1489,7 +1489,7 @@ sg62
 g12
 I00
 ssg64
-S'MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-02-24 17:10'
+S'MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-02-24 17:44'
 p387
 sg66
 (dp388
@@ -1611,7 +1611,7 @@ aS'@@fdeg_Jreal'
 p419
 assg102
 Nsg103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p420
 sg105
 S'MG_JEN_Joneset::JJones()'
@@ -1623,7 +1623,7 @@ sg109
 S'JJones'
 p423
 sg111
-S'** Specific description of: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-02-24 17:44'
 p424
 sg113
 I00
@@ -1785,7 +1785,7 @@ I01
 sg447
 I01
 ssg54
-S'** Generic description of: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-24 17:44'
 p454
 sg56
 S'15dec2005'
@@ -1810,7 +1810,7 @@ I00
 sg448
 I00
 ssg64
-S'MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-24 17:10'
+S'MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-24 17:44'
 p459
 sg66
 (dp460
@@ -1939,7 +1939,7 @@ aS'@@uvplane_effect'
 p493
 assg102
 Nsg103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p494
 sg105
 S'MG_JEN_Joneset::GJones()'
@@ -1951,7 +1951,7 @@ sg109
 S'GJones'
 p497
 sg111
-S'** Specific description of: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-02-24 17:44'
 p498
 sg113
 I00
@@ -2253,16 +2253,16 @@ I00
 aS'@@uvplane_effect'
 p564
 assg103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p565
 sS'HISTORY'
 p566
 (dp567
 g117
-S'2006-02-24 17:10: Derived from: MG_JEN_cps_BJones.inarg'
+S'2006-02-24 17:44: Derived from: MG_JEN_cps_BJones.inarg'
 p568
 sg119
-S'2006-02-24 17:10: Derived from: MG_JEN_cps.inarg'
+S'2006-02-24 17:44: Derived from: MG_JEN_cps.inarg'
 p569
 ssg105
 g4
@@ -2402,7 +2402,7 @@ ssg107
 S'MG_JEN_Cohsetmake_sinks'
 p614
 sg54
-S'** Generic description of: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-24 17:44'
 p615
 sg46
 g47
@@ -2410,7 +2410,7 @@ sg60
 S'Make sink nodes in the given Cohset object'
 p616
 sg64
-S'MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-24 17:10'
+S'MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-24 17:44'
 p617
 sg109
 S'make_sinks'
@@ -2451,13 +2451,13 @@ aI00
 aS'@@visu'
 p631
 assg111
-S'** Specific description of: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-02-24 17:44'
 p632
 sg102
 Nsg56
 g272
 sg114
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p633
 sg48
 S'MG_JEN_Cohset'
@@ -2540,7 +2540,7 @@ ssg107
 S'MG_JEN_Cohsetmake_spigots'
 p651
 sg54
-S'** Generic description of: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-24 17:44'
 p652
 sg46
 g47
@@ -2548,7 +2548,7 @@ sg60
 S'Make spigot nodes in the given Cohset object'
 p653
 sg64
-S'MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-24 17:10'
+S'MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-24 17:44'
 p654
 sg109
 S'make_spigots'
@@ -2592,13 +2592,13 @@ aI00
 aS'@@visu'
 p667
 assg111
-S'** Specific description of: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-02-24 17:44'
 p668
 sg102
 Nsg56
 g272
 sg114
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p669
 sg48
 S'MG_JEN_Cohset'
@@ -2662,7 +2662,7 @@ ssg107
 S'MG_JEN_Cohsetpredict'
 p684
 sg54
-S'** Generic description of: MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-24 17:44'
 p685
 sg46
 g47
@@ -2670,7 +2670,7 @@ sg60
 S'Make a Cohset with predicted uv-data for the source defined by Sixpack.\n    If a Joneset with instrumental effects is supplied, corrupt the data.'
 p686
 sg64
-S'MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-24 17:10'
+S'MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-24 17:44'
 p687
 sg109
 S'predict'
@@ -2733,13 +2733,13 @@ aag301
 aS'@@stations'
 p696
 assg111
-S'** Specific description of: MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Cohset::predict()  version=25dec2005  defined=2006-02-24 17:44'
 p697
 sg102
 Nsg56
 g272
 sg114
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p698
 sg48
 S'MG_JEN_Cohset'
@@ -2937,7 +2937,7 @@ I01
 sg707
 I01
 ssg54
-S'** Generic description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 17:44'
 p746
 sg56
 S'10feb2006'
@@ -2957,7 +2957,7 @@ I00
 sg713
 I00
 ssg64
-S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 17:10'
+S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 17:44'
 p752
 sg66
 (dp753
@@ -3112,7 +3112,7 @@ NaS'@@name'
 p806
 assg102
 Nsg103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p807
 sg105
 S'MG_JEN_Sixpack::newstar_source()'
@@ -3124,7 +3124,7 @@ sg109
 S'newstar_source'
 p810
 sg111
-S'** Specific description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 17:44'
 p811
 sS'callback'
 p812
@@ -3233,7 +3233,7 @@ I01
 sg520
 I01
 ssg54
-S'** Generic description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-24 17:44'
 p835
 sg56
 S'20jan2006'
@@ -3245,14 +3245,14 @@ I00
 sg520
 I00
 ssg60
-S'** Description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-24 17:10'
+S'** Description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-24 17:44'
 p838
 sg62
 (dp839
 g830
 I00
 ssg64
-S'MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-24 17:10'
+S'MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-24 17:44'
 p840
 sg66
 (dp841
@@ -3319,7 +3319,7 @@ aS'@@write_flags'
 p857
 assg102
 Nsg103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p858
 sg105
 S'MG_JEN_exec::stream_control()'
@@ -3331,7 +3331,7 @@ sg109
 S'stream_control'
 p861
 sg111
-S'** Specific description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-02-24 17:44'
 p862
 sg576
 (dp863
@@ -3457,7 +3457,7 @@ I01
 sg518
 I01
 ssg54
-S'** Generic description of: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-24 17:44'
 p887
 sg56
 g272
@@ -3489,7 +3489,7 @@ I00
 sg882
 I00
 ssg64
-S'MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-24 17:10'
+S'MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-24 17:44'
 p891
 sg66
 (dp892
@@ -3558,7 +3558,7 @@ aaS'@@num_cells'
 p914
 assg102
 Nsg103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p915
 sg105
 S'MG_JEN_Cohset::insert_solver()'
@@ -3570,7 +3570,7 @@ sg109
 S'insert_solver'
 p918
 sg111
-S'** Specific description of: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-02-24 17:44'
 p919
 sg113
 I00
@@ -3700,7 +3700,7 @@ I01
 sg518
 I00
 ssg54
-S'** Generic description of: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-24 17:10'
+S'** Generic description of: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-24 17:44'
 p952
 sg56
 S'20dec2005'
@@ -3717,7 +3717,7 @@ I00
 sg608
 I00
 ssg64
-S'MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-24 17:10'
+S'MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-24 17:44'
 p956
 sg66
 (dp957
@@ -3902,7 +3902,7 @@ aS'@@colin_factor'
 p1041
 assg102
 Nsg103
-S'2006-02-24 17:10'
+S'2006-02-24 17:44'
 p1042
 sg105
 S'MG_JEN_Cohset::solver_subtree()'
@@ -3914,7 +3914,7 @@ sg109
 S'solver_subtree'
 p1045
 sg111
-S'** Specific description of: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-24 17:10'
+S'** Specific description of: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-02-24 17:44'
 p1046
 sg113
 I00

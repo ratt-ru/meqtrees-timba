@@ -139,7 +139,7 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
 
    pagename = 'hcoll_'+pp['name']+'_metrics'
    for metric in metrics:
-      input_index = hiid('solver_result/metrics_array/'+metric)          
+      input_index = hiid('solver_result/metrics_array/0/'+metric)          
       hcoll_name = 'hcoll_'+pp['name']+'_m_'+metric
       hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
                                                             input_index=input_index,
@@ -151,7 +151,7 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
       # Optional: The value of the first [0] iteration only:
       pagename = 'hcoll_'+pp['name']+'_metrics0'
       for metric in metrics:
-         input_index = hiid('solver_result/metrics/0/'+metric)          
+         input_index = hiid('solver_result/metrics/0/0/'+metric)          
          hcoll_name = 'hcoll_'+pp['name']+'_m0_'+metric
          hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
                                                                input_index=input_index,
@@ -166,7 +166,7 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
 
       pagename = 'hcoll_'+pp['name']+'_debug'
       for metric in debug:
-         input_index = hiid('solver_result/debug_array/'+metric)          
+         input_index = hiid('solver_result/debug_array/0/'+metric)          
          hcoll_name = 'hcoll_'+pp['name']+'_db_'+metric
          hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
                                                                input_index=input_index,
@@ -178,7 +178,7 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
          # Optional: The value of the first [0] iteration only:
          pagename = 'hcoll_'+pp['name']+'_debug0'
          for metric in debug:
-            input_index = hiid('solver_result/debug/0/'+metric)          
+            input_index = hiid('solver_result/debug/0/0/'+metric)          
             hcoll_name = 'hcoll_'+pp['name']+'_d0_'+metric
             hcoll = ns[hcoll_name](uniqual) << Meq.HistoryCollect(solver, verbose=True,
                                                                   input_index=input_index,

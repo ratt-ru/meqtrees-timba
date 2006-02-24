@@ -1328,10 +1328,11 @@ class ArgBrowser(QMainWindow):
     def lsm_all(self):
         """Modify the MG_JEN_lsm inarg to multiple inarg files"""
         if not self.macron_entry('MG_JEN_lsm', revert=True): return False
+        self.__message.setText('** recreating all MG_JEN_lsm .inargs ...')
         self.lsm_single(revert=True, save_protected=True)
         self.lsm_grid(revert=True, save_protected=True)
         self.lsm_spiral(revert=True, save_protected=True)
-        self.__message.setText('** modified all MG_JEN_lsm inargs (protected)')
+        self.__message.setText('** recreated all MG_JEN_lsm .inargs (incl. protected)')
         return True
 
     #------------------------------------------------------------------------
@@ -1389,6 +1390,7 @@ class ArgBrowser(QMainWindow):
     def cps_all(self):
         """Modify the MG_JEN_cps inarg to multiple inarg files"""
         if not self.macron_entry('MG_JEN_cps', revert=True): return False
+        self.__message.setText('** recreating all MG_JEN_cps .inargs ...')
         self.cps_inspect(revert=True, save_protected=True)
         self.cps_GJones(revert=True, save_protected=True)
         self.cps_Gphase(revert=True, save_protected=True)
@@ -1399,7 +1401,7 @@ class ArgBrowser(QMainWindow):
         self.cps_BJones(revert=True, save_protected=True)
         self.cps_DJones(revert=True, save_protected=True)
         self.cps_stokesI(revert=True, save_protected=True)
-        self.__message.setText('** modified all MG_JEN_cps inargs (incl. protected)')
+        self.__message.setText('** recreated all MG_JEN_cps .inargs (incl. protected)')
         return True
 
     #------------------------------------------------------------------------

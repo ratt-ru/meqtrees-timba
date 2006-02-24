@@ -231,6 +231,7 @@ def add_grid (ns=None, lsm=None, **inarg):
                                                  punit=punit, RA=RA, Dec=Dec)
          # Compose the sixpack before adding it to the lsm:
          Sixpack.sixpack(ns)
+         # lsm.add_sixpack(sixpack=Sixpack,ns=ns)
          lsm.add_sixpack(sixpack=Sixpack)
    # Finished:
    return True
@@ -398,9 +399,13 @@ def _define_forest (ns, **kwargs):
    # Start with an empty lsm:
    global lsm
    # lsm = LSM()
+
    # Optional: use an existing lsm
    if MG['input_LSM']:
       lsm.load(MG['input_LSM'],ns)
+   else:
+      lsm.setNodeScope(ns)
+
 
 
    # Optional: add one or more test-sources to the lsm:

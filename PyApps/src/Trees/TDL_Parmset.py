@@ -12,6 +12,7 @@
 #    - 09 jan 2006: tile_size -> subtile_size
 #    - 20 jan 2006: register() -> parmgroup()
 #    - 21 jan 2006: function tf_polc() from MG_JEN_funklet.py
+#    - 24 feb 2006: adopted new MXM MeqParm init keywords
 #
 # Full description:
 #   The (many) MeqParms of a Measurement Equation are usually solved in groups
@@ -244,6 +245,8 @@ class Parmset (TDL_common.Super):
 
         # Future (MXM, 10 jan 2006):
         # - default is a scalar, default = 1.0
+        #   - NB: If neither init_funklet nor shape (nor table), then the shape
+        #         of the default (default_value, really) still determines the solution...
         # - new keywords:
         #   - [polctype_]shape = [1,1,...]    [ntime, nfreq, ..]
         #     - 1-based,
