@@ -434,7 +434,7 @@ def change_parm(ns,node,new_value):
  g=node.initrec()
  #print g
  g['init_funklet']=meq.polc(new_value)
- ns.Resolve()
+ #ns.Resolve()
 
 # change MeqParm of TDL_Sixpack_Point RA,Dec 
 def change_radec(sixpack,new_ra,new_dec,ns):

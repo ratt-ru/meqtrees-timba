@@ -638,7 +638,7 @@ class LSM:
     my_dict=pickle.loads(tmpl.__root)
     my_dict=reconstruct(my_dict,ns)
     self.__root=my_dict['lsmroot']
-    self.__ns.Resolve()
+    #self.__ns.Resolve()
    else:
      self.__root=None
    
@@ -815,7 +815,8 @@ class LSM:
    #stokes_root=self.__ns['Stokes['+patch_name+']']<<Meq.Stokes(children=select_root)
    #fft_root=self.__ns['FFT['+patch_name+']']<<Meq.FFTBrick(children=stokes_root)
    if self.__ns != None and resolve_forest==True:
-    self.__ns.Resolve()
+    pass
+    #self.__ns.Resolve()
     #print "Current forest has %d root nodes, of a total of %d nodes"% (len(self.__ns.RootNodes()),len(self.__ns.AllNodes()))
 
    #Timba.TDL._dbg.set_verbose(5);
@@ -986,11 +987,12 @@ class LSM:
     # remember PUnit name to update its value
     new_punit_names.append(retval[0])
   # now resolve forest and sync kernel
-  self.__ns.Resolve()
+  #self.__ns.Resolve()
   #print "Resolved local NodeScope"
   #print "Current forest has %d root nodes, of a total of %d nodes"% (len(self.__ns.RootNodes()),len(self.__ns.AllNodes()))
   if self.mqs != None:
      #print "Sending request to kernel"
+     self.__ns.Resolve()
      self.mqs.meq('Clear.Forest')
      self.mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),self.__ns.AllNodes().itervalues())));
      self.mqs.meq('Resolve.Batch',record(name=list(self.__ns.RootNodes().iterkeys())))
@@ -1077,7 +1079,7 @@ class LSM:
    else:
     my_mqs=mqs;
    my_ns=ns
-   my_ns.Resolve()
+   #my_ns.Resolve()
    # form a request
    f1=f0+1.0
    t0=0.0
