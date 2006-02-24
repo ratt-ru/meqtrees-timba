@@ -380,9 +380,10 @@ def newstar_source (ns=0, **inarg):
                     help=help)
    JEN_inarg.define(pp, 'f0', 1e6, choice=[1e6], hide=True,
                     help='reference freq (Hz): I=I0 @ f=f0')
-   JEN_inarg.define(pp, 'RA', 0.0, choice=[0.0,0.5,1.0,4.357],  
+   # NB: (4.357,1.092) are the coordinates of 3c343...
+   JEN_inarg.define(pp, 'RA', 4.357, choice=[0.0,0.5,1.0,4.357],  
                     help='Right Ascension (rad, J2000)')
-   JEN_inarg.define(pp, 'Dec', 1.0, choice=[0.5,1.0,1.0920],  
+   JEN_inarg.define(pp, 'Dec', 1.092, choice=[0.5,1.0,1.0920],  
                     help='Declination (rad, J2000)')
    JEN_inarg.define(pp, 'fsr_trace', tf=True, hide=True,   
                     help='If True, attach to forest state record')
@@ -451,7 +452,7 @@ def newstar_source (ns=0, **inarg):
 
    # Make the Sixpack of 6 standard subtree root-nodes: 
    n6 = record(I='stokesI', Q='stokesQ', U='stokesU', V='stokesV', R='ra', D='dec') 
-   zero = ns.zero << Meq.Constant(0)
+   # zero = ns.zero << Meq.Constant(0)
    
    iquv = {}
    parm = {}
@@ -562,13 +563,25 @@ def newstar_source (ns=0, **inarg):
 
 #------------------------------------------------------------------------------------
 
-def make_bookmark(ns, Sixpack):
+def make_bundle(ns, Sixpack, radec=None):
+   """Make a bundle of the I,Q,U,V nodes of the given Sixpack"""
+   bb = []
+   bb.append(Sixpack.stokesI())
+   bb.append(Sixpack.stokesQ())
+   bb.append(Sixpack.stokesU())
+   bb.append(Sixpack.stokesV())
+   if radec: collect_radec(radec, Sixpack)
+   return ns[Sixpack.label()] << Meq.Composer(children=bb)
+
+
+def make_bookmark(ns, Sixpack, radec=None):
    """Make a bookmark of the I,Q,U,V nodes of the given Sixpack"""
    bb = []
    bb.append(Sixpack.stokesI())
    bb.append(Sixpack.stokesQ())
    bb.append(Sixpack.stokesU())
    bb.append(Sixpack.stokesV())
+   if radec: collect_radec(radec, Sixpack)
    return MG_JEN_exec.bundle(ns, bb, Sixpack.label())
 
 
