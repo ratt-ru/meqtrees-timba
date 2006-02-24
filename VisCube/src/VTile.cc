@@ -334,7 +334,13 @@ int VTile::fromBlock (BlockSet& set)
   Thread::Mutex::Lock lock(mutex());  
   int ret = ColumnarTableTile::fromBlock(set);
   if( hasFormat() )
+  {
+    LoShape shape = format().shape(DATA);
+    FailWhen( shape.size() != 2 ,"Missing or misshapen DATA column in tile format");
+    ncorr_ = shape[0];
+    nfreq_ = shape[1];
     initArrays();
+  }
   return ret;
 }
 

@@ -336,6 +336,7 @@ int ColumnarTableTile::fromBlock (BlockSet& set)
     // if we already have a format, check that it is compatible with data
     if( hasFormat() )
     {
+      ncol_ = format().maxcol();
       vector<int> offset;
       size_t totsize = computeOffsets(offset,format(),nrow());
       FailWhen(totsize != datablock->size(),"block not compatible with tile format");
