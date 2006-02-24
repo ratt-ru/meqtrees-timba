@@ -246,7 +246,7 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     JEN_inarg.define (pp, 'Jsequence', [],
                       choice=[['GJones'],['BJones'],['FJones'],['KJones'],
                               ['DJones_WSRT'],['GJones','DJones_WSRT'],
-                              ['DJones'],
+                              ['JJones'],
                               []],
                       help='sequence of Jones matrices to be used')
     # Include default inarg records for various Jones matrix definition functions:
@@ -254,8 +254,8 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.DJones(_getdefaults=True, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.JJones(_getdefaults=True, slave=True))
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -282,8 +282,8 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
             jseq.append(MG_JEN_Joneset.BJones (ns, Sixpack=Sixpack, _inarg=pp))
         elif jones=='FJones':
             jseq.append(MG_JEN_Joneset.FJones (ns, Sixpack=Sixpack, _inarg=pp)) 
-        elif jones=='DJones':
-            jseq.append(MG_JEN_Joneset.DJones (ns, Sixpack=Sixpack, _inarg=pp))
+        elif jones=='JJones':
+            jseq.append(MG_JEN_Joneset.JJones (ns, Sixpack=Sixpack, _inarg=pp))
         elif jones=='DJones_WSRT':
             jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, Sixpack=Sixpack, _inarg=pp))
         elif jones=='KJones':

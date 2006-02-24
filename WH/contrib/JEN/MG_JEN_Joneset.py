@@ -23,6 +23,7 @@
 # - 02 feb 2006: removed punit from the input arguments (use Sixpack)
 # - 05 feb 2006: Introduced keyword 'uv_plane_effect'
 # - 14 feb 2006: Implemented DJones
+# - 24 feb 2006: DJones -> JJones
 
 # Copyright: The MeqTree Foundation 
 
@@ -117,8 +118,9 @@ def inarg_Joneset_common (pp, **kwargs):
    # trace = True
    JEN_inarg.define(pp, 'stations', [0], slave=kwargs['slave'], trace=trace, 
                     help='list of station names/numbers')
-   JEN_inarg.define(pp, 'parmtable', None, slave=kwargs['slave'], trace=trace, 
-                    help='name of the MeqParm table')
+   JEN_inarg.define(pp, 'parmtable', None, slave=kwargs['slave'], trace=trace,
+                    choice=[None,'test'],
+                    help='name of the MeqParm table to be used')
    inarg_uvplane_effect(pp, **kwargs)
    JEN_inarg.define (pp, 'uvplane_effect', False,
                      slave=kwargs['slave'], hide=kwargs['hide'],
@@ -174,6 +176,8 @@ def inarg_solvegroup (pp, **kwargs):
    c_choice.append(['Gphase_X_last=0.0','Gphase_Y_last=0.0'])  
    c_help += '\n- [...phase_first=0.0]: phase of first station = zero'
    c_help += '\n- [...phase_last=0.0]:  phase of last station = zero'
+
+   s_choice.append(['JJones'])
 
    s_choice.append(['GJones','stokesI'])
    s_choice.extend([['stokesI'],['stokesIQU'],['stokesIQUV']])
@@ -554,52 +558,52 @@ def BJones (ns=0, Sixpack=None, slave=False, **inarg):
 
 
 #--------------------------------------------------------------------------------
-# DJones: diagonal 2x2 matrix for full polarization:
+# JJones: diagonal 2x2 matrix for full polarization:
 #--------------------------------------------------------------------------------
 
-def DJones (ns=0, Sixpack=None, slave=False, **inarg):
+def JJones (ns=0, Sixpack=None, slave=False, **inarg):
     """Defines diagonal 2x2 Jones matrices for full polarisation:
-    Djones(station,source) matrix elements:
-    - D_11 = (Dreal_11,Dimag_11)
-    - D_12 = (Dreal_12,Dimag_12)
-    - D_21 = (Dreal_21,Dimag_21)
-    - D_22 = (Dreal_22,Dimag_22)
+    Jjones(station,source) matrix elements:
+    - J_11 = (Jreal_11,Jimag_11)
+    - J_12 = (Jreal_12,Jimag_12)
+    - J_21 = (Jreal_21,Jimag_21)
+    - J_22 = (Jreal_22,Jimag_22)
     For circular polarisation, R and L are used rather than X and Y
     """
 
-    jones = 'DJones'
+    jones = 'JJones'
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='14feb2006',
-                            description=DJones.__doc__)
+                            description=JJones.__doc__)
     # inarg_Joneset_common(pp)                               # some common arguments             
     inarg_Joneset_common(pp, slave=slave)              
     # ** Jones matrix elements:
     # ** Solving instructions:
-    JEN_inarg.define(pp, 'fdeg_Dreal', 5, choice=[3,4,5],  
+    JEN_inarg.define(pp, 'fdeg_Jreal', 5, choice=[3,4,5],  
                      help='degree of freq polynomial')
-    JEN_inarg.define(pp, 'fdeg_Dimag', '@fdeg_Dreal',
-                     choice=[0,1,2,3,'@fdeg_Dreal'],  
+    JEN_inarg.define(pp, 'fdeg_Jimag', '@fdeg_Jreal',
+                     choice=[0,1,2,3,'@fdeg_Jreal'],  
                      help='degree of freq polynomial')
-    JEN_inarg.define(pp, 'tdeg_Dreal', 0, choice=[0,1,2,3],  
+    JEN_inarg.define(pp, 'tdeg_Jreal', 0, choice=[0,1,2,3],  
                      help='degree of time polynomial')
-    JEN_inarg.define(pp, 'tdeg_Dimag', '@tdeg_Dreal',
-                     choice=[0,1,2,3,'@tdeg_Dreal'],  
+    JEN_inarg.define(pp, 'tdeg_Jimag', '@tdeg_Jreal',
+                     choice=[0,1,2,3,'@tdeg_Jreal'],  
                      help='degree of time polynomial')
-    JEN_inarg.define(pp, 'subtile_size_Dreal', None,
+    JEN_inarg.define(pp, 'subtile_size_Jreal', None,
                      choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                      help='sub-tile size (None=entire tile)')
-    JEN_inarg.define(pp, 'subtile_size_Dimag', '@subtile_size_Dreal',  
+    JEN_inarg.define(pp, 'subtile_size_Jimag', '@subtile_size_Jreal',  
                      choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                      help='sub-tile size (None=entire tile)')
     # ** MeqParm default values: 
-    JEN_inarg.define(pp, 'c00_Dreal', 1.0, choice=[0.9, 0.1], hide=True,  
+    JEN_inarg.define(pp, 'c00_Jreal', 1.0, choice=[0.9, 0.1], hide=True,  
                      help='default c00 funklet value')
-    JEN_inarg.define(pp, 'c00_Dimag', 0.0, choice=[0.1], hide=True,  
+    JEN_inarg.define(pp, 'c00_Jimag', 0.0, choice=[0.1], hide=True,  
                      help='default c00 funklet value')
-    JEN_inarg.define(pp, 'stddev_Dreal', 0.0, choice=[0.1], hide=True,   # obsolete?
+    JEN_inarg.define(pp, 'stddev_Jreal', 0.0, choice=[0.1], hide=True,   # obsolete?
                      help='scatter in default c00 funklet values')
-    JEN_inarg.define(pp, 'stddev_Dimag', 0.0, choice=[0.1], hide=True,  # obsolete?  
+    JEN_inarg.define(pp, 'stddev_Jimag', 0.0, choice=[0.1], hide=True,  # obsolete?  
                      help='scatter in default c00 funklet values')
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -613,14 +617,14 @@ def DJones (ns=0, Sixpack=None, slave=False, **inarg):
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
     # Register the parmgroups (in js.Parmset eventually):
-    dr11 = js.parmgroup('Dreal_11', color='red', style='square', size=7, corrs='paral11')
-    dr12 = js.parmgroup('Dreal_12', color='red', style='square', size=7, corrs='cross12')
-    dr21 = js.parmgroup('Dreal_21', color='red', style='square', size=7, corrs='cross21')
-    dr22 = js.parmgroup('Dreal_22', color='blue', style='square', size=7, corrs='paral22')
-    di11 = js.parmgroup('Dimag_11', color='magenta', style='square', size=7, corrs='paral11')
-    di12 = js.parmgroup('Dimag_12', color='magenta', style='square', size=7, corrs='cross12')
-    di21 = js.parmgroup('Dimag_21', color='magenta', style='square', size=7, corrs='cross21')
-    di22 = js.parmgroup('Dimag_22', color='cyan', style='square', size=7, corrs='paral22')
+    dr11 = js.parmgroup('Jreal_11', color='red', style='square', size=7, corrs='paral11')
+    dr12 = js.parmgroup('Jreal_12', color='red', style='square', size=7, corrs='cross12')
+    dr21 = js.parmgroup('Jreal_21', color='red', style='square', size=7, corrs='cross21')
+    dr22 = js.parmgroup('Jreal_22', color='blue', style='square', size=7, corrs='paral22')
+    di11 = js.parmgroup('Jimag_11', color='magenta', style='square', size=7, corrs='paral11')
+    di12 = js.parmgroup('Jimag_12', color='magenta', style='square', size=7, corrs='cross12')
+    di21 = js.parmgroup('Jimag_21', color='magenta', style='square', size=7, corrs='cross21')
+    di22 = js.parmgroup('Jimag_22', color='cyan', style='square', size=7, corrs='paral22')
 
     # Define potential extra condition equations:
     # js.Parmset.define_condeq(di11, unop='Add', value=0.0)
@@ -628,14 +632,14 @@ def DJones (ns=0, Sixpack=None, slave=False, **inarg):
     # js.Parmset.define_condeq(dr11, unop='Multiply', value=1.0)
     # js.Parmset.define_condeq(dr22, unop='Multiply', value=1.0)
 
-    # MeqParm node_groups: add 'D' to default 'Parm':
+    # MeqParm node_groups: add 'J' to default 'Parm':
     js.Parmset.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.Parmset.define_solvegroup('DJones', [dr11, di11, dr12, di12,
+    js.Parmset.define_solvegroup('JJones', [dr11, di11, dr12, di12,
                                             dr21, di21, dr22, di22])
-    js.Parmset.define_solvegroup('Dreal', [dr11, dr12, dr21, dr22])
-    js.Parmset.define_solvegroup('Dimag', [di11, di12, di21, di22])
+    js.Parmset.define_solvegroup('Jreal', [dr11, dr12, dr21, dr22])
+    js.Parmset.define_solvegroup('Jimag', [di11, di12, di21, di22])
 
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
@@ -643,19 +647,19 @@ def DJones (ns=0, Sixpack=None, slave=False, **inarg):
 
         # Example: polc_ft (c00=1, fdeg=0, tdeg=0, scale=1, mult=1/sqrt(10), stddev=0) 
 
-        for Dreal in [dr11,dr12,dr21,dr22]:
-            default = MG_JEN_funklet.polc_ft (c00=pp['c00_Dreal'], stddev=pp['stddev_Dreal'], 
-                                              fdeg=pp['fdeg_Dreal'], tdeg=pp['tdeg_Dreal'], 
+        for Jreal in [dr11,dr12,dr21,dr22]:
+            default = MG_JEN_funklet.polc_ft (c00=pp['c00_Jreal'], stddev=pp['stddev_Jreal'], 
+                                              fdeg=pp['fdeg_Jreal'], tdeg=pp['tdeg_Jreal'], 
                                               scale=pp['ft_coeff_scale']) 
-            js.Parmset.define_MeqParm (ns, Dreal, qual=qual, default=default,
-                                       subtile_size=pp['subtile_size_Dreal'])
+            js.Parmset.define_MeqParm (ns, Jreal, qual=qual, default=default,
+                                       subtile_size=pp['subtile_size_Jreal'])
 
-        for Dimag in [di11,di12,di21,di22]:
-            default = MG_JEN_funklet.polc_ft (c00=pp['c00_Dimag'], stddev=pp['stddev_Dimag'], 
-                                              fdeg=pp['fdeg_Dimag'], tdeg=pp['tdeg_Dimag'], 
+        for Jimag in [di11,di12,di21,di22]:
+            default = MG_JEN_funklet.polc_ft (c00=pp['c00_Jimag'], stddev=pp['stddev_Jimag'], 
+                                              fdeg=pp['fdeg_Jimag'], tdeg=pp['tdeg_Jimag'], 
                                               scale=pp['ft_coeff_scale']) 
-            js.Parmset.define_MeqParm (ns, Dimag, qual=qual, default=default,
-                                       subtile_size=pp['subtile_size_Dimag'])
+            js.Parmset.define_MeqParm (ns, Jimag, qual=qual, default=default,
+                                       subtile_size=pp['subtile_size_Jimag'])
 
 
         # Make the 2x2 Jones matrix
@@ -1403,13 +1407,14 @@ if __name__ == '__main__':
      jseq.append(BJones (ns, scope=scope, stations=stations))
      jseq.append(FJones (ns, scope=scope, stations=stations))
      jseq.append(DJones_WSRT (ns, scope=scope, stations=stations))
+     jseq.append(JJones (ns, scope=scope, stations=stations))
      jseq.display()
      js = jseq.make_Joneset(ns)
      js.display()     
      display_first_subtree (js, full=1)
 
   if 1:
-     js = DJones (ns, stations=stations)
+     js = JJones (ns, stations=stations)
      js.display(full=True)     
      js.Parmset.display(full=True)     
      # display_first_subtree (js, full=1)

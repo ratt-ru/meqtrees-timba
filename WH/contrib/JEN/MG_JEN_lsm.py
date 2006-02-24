@@ -416,7 +416,8 @@ def _define_forest (ns, **kwargs):
 
    # Save the (possibly modified) lsm under a different name:
    if MG['saveAs']:
-      print '** save not implemented:',MG['saveAs']
+      # print '** save not implemented:',MG['saveAs']
+      lsm.save(MG['saveAs'])
 
    # Display the current lsm AFTER saving (so we have the new name)
    # NB: The program does NOT wait for the control to be handed back!

@@ -174,7 +174,7 @@ g17
 I01
 ssS'generic'
 p62
-S'** Generic description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Generic description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 15:01'
 p63
 sS'version'
 p64
@@ -193,7 +193,7 @@ sg36
 I00
 ssS'oneliner'
 p70
-S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 10:44'
+S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 15:01'
 p71
 sS'choice'
 p72
@@ -353,7 +353,7 @@ S'grid'
 p128
 sS'last_edited'
 p129
-S'2006-02-24 10:44'
+S'2006-02-24 15:01'
 p130
 sS'target_definition'
 p131
@@ -369,7 +369,7 @@ S'newstar_source'
 p136
 sS'specific'
 p137
-S'** Specific description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Specific description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 15:01'
 p138
 sS'browse'
 p139
@@ -449,7 +449,7 @@ ssg133
 S'MG_JEN_lsmadd_grid'
 p153
 sg62
-S'** Generic description of: MG_JEN_lsm::add_grid()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Generic description of: MG_JEN_lsm::add_grid()  version=10feb2006  defined=2006-02-24 15:01'
 p154
 sg51
 g52
@@ -457,7 +457,7 @@ sg66
 S'Add a rectangular grid of identical test-sources to the given lsm'
 p155
 sg70
-S'MG_JEN_lsm::add_grid()  version=10feb2006  defined=2006-02-24 10:44'
+S'MG_JEN_lsm::add_grid()  version=10feb2006  defined=2006-02-24 15:01'
 p156
 sg135
 S'add_grid'
@@ -491,13 +491,13 @@ aI3
 aS'@@nDec2'
 p166
 assg137
-S'** Specific description of: MG_JEN_lsm::add_grid()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Specific description of: MG_JEN_lsm::add_grid()  version=10feb2006  defined=2006-02-24 15:01'
 p167
 sg127
 Nsg142
 I00
 sg143
-S'2006-02-24 10:44'
+S'2006-02-24 15:01'
 p168
 sg64
 g65
@@ -631,17 +631,17 @@ g181
 aS'@@last_changed'
 p211
 assg129
-S'2006-02-24 10:44'
+S'2006-02-24 15:01'
 p212
 sS'HISTORY'
 p213
 (dp214
 S'1'
 p215
-S'2006-02-24 10:44: Derived from: MG_JEN_lsm_single.inarg'
+S'2006-02-24 15:01: Derived from: MG_JEN_lsm_single.inarg'
 p216
 sg172
-S'2006-02-24 10:44: Derived from: MG_JEN_lsm.inarg'
+S'2006-02-24 15:01: Derived from: MG_JEN_lsm.inarg'
 p217
 ssg131
 g183
@@ -830,7 +830,7 @@ ssg60
 g17
 I01
 ssg62
-S'** Generic description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Generic description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 15:01'
 p251
 sg64
 g65
@@ -843,7 +843,7 @@ I00
 sg36
 I00
 ssg70
-S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 10:44'
+S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 15:01'
 p253
 sg72
 (dp254
@@ -985,7 +985,7 @@ p293
 assg127
 g208
 sg129
-S'2006-02-24 10:44'
+S'2006-02-24 15:01'
 p294
 sg131
 g132
@@ -996,7 +996,7 @@ sg135
 S'newstar_source'
 p296
 sg137
-S'** Specific description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Specific description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 15:01'
 p297
 sg139
 (dp298
@@ -1076,7 +1076,7 @@ ssg133
 S'MG_JEN_lsmadd_spiral'
 p308
 sg62
-S'** Generic description of: MG_JEN_lsm::add_spiral()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Generic description of: MG_JEN_lsm::add_spiral()  version=10feb2006  defined=2006-02-24 15:01'
 p309
 sg51
 g52
@@ -1084,7 +1084,7 @@ sg66
 S'Add a spiral pattern of identical test-sources to the given lsm'
 p310
 sg70
-S'MG_JEN_lsm::add_spiral()  version=10feb2006  defined=2006-02-24 10:44'
+S'MG_JEN_lsm::add_spiral()  version=10feb2006  defined=2006-02-24 15:01'
 p311
 sg135
 S'add_spiral'
@@ -1146,13 +1146,13 @@ aI0
 aS'@@ainc'
 p323
 assg137
-S'** Specific description of: MG_JEN_lsm::add_spiral()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Specific description of: MG_JEN_lsm::add_spiral()  version=10feb2006  defined=2006-02-24 15:01'
 p324
 sg127
 Nsg142
 I00
 sg143
-S'2006-02-24 10:44'
+S'2006-02-24 15:01'
 p325
 sg64
 g65
@@ -1317,7 +1317,7 @@ ssg60
 g17
 I01
 ssg62
-S'** Generic description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Generic description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 15:01'
 p347
 sg64
 g65
@@ -1330,7 +1330,7 @@ I00
 sg36
 I00
 ssg70
-S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 10:44'
+S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 15:01'
 p349
 sg72
 (dp350
@@ -1472,7 +1472,7 @@ p389
 assg127
 g3
 sg129
-S'2006-02-24 10:44'
+S'2006-02-24 15:01'
 p390
 sg131
 g132
@@ -1483,7 +1483,7 @@ sg135
 S'newstar_source'
 p392
 sg137
-S'** Specific description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Specific description of: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-02-24 15:01'
 p393
 sg139
 (dp394
@@ -1542,24 +1542,24 @@ sg66
 S'Add a test-source (Sixpack) to the given lsm'
 p399
 sg62
-S'** Generic description of: MG_JEN_lsm::add_single()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Generic description of: MG_JEN_lsm::add_single()  version=10feb2006  defined=2006-02-24 15:01'
 p400
 sg51
 g52
 sg70
-S'MG_JEN_lsm::add_single()  version=10feb2006  defined=2006-02-24 10:44'
+S'MG_JEN_lsm::add_single()  version=10feb2006  defined=2006-02-24 15:01'
 p401
 sg135
 S'add_single'
 p402
 sg137
-S'** Specific description of: MG_JEN_lsm::add_single()  version=10feb2006  defined=2006-02-24 10:44'
+S'** Specific description of: MG_JEN_lsm::add_single()  version=10feb2006  defined=2006-02-24 15:01'
 p403
 sg127
 Nsg142
 I00
 sg143
-S'2006-02-24 10:44'
+S'2006-02-24 15:01'
 p404
 sg64
 g65

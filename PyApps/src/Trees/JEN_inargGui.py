@@ -151,29 +151,40 @@ class ArgBrowser(QMainWindow):
 
 
         menu = QPopupMenu(self)
+        if False:
+            # These are not very useful, since one may as well
+            # open the relevant .inarg file directly, and work from there
+            menu.insertSeparator()     
+            menu.insertItem('-> cps_inspect', self.cps_inspect)
+            menu.insertSeparator()     
+            menu.insertItem('-> cps_stokesI', self.cps_stokesI)
+            menu.insertItem('-> cps_GJones', self.cps_GJones)
+            menu.insertItem('-> cps_Gphase', self.cps_Gphase)
+            menu.insertItem('-> cps_Ggain', self.cps_Ggain)
+            menu.insertItem('-> cps_GDJones', self.cps_GDJones)
+            menu.insertItem('-> cps_DJones', self.cps_DJones)
+            menu.insertItem('-> cps_GBJones', self.cps_GBJones)
+            menu.insertSeparator()     
+            menu.insertItem('-> lsm_single', self.lsm_single)
+            menu.insertItem('-> lsm_grid', self.lsm_grid)
+            menu.insertItem('-> lsm_spiral', self.lsm_spiral)
         menu.insertSeparator()     
-        menu.insertItem('-> cps_inspect', self.cps_inspect)
-        menu.insertSeparator()     
-        menu.insertItem('-> cps_stokesI', self.cps_stokesI)
-        menu.insertItem('-> cps_GJones', self.cps_GJones)
-        menu.insertItem('-> cps_Gphase', self.cps_Gphase)
-        menu.insertItem('-> cps_Ggain', self.cps_Ggain)
-        menu.insertItem('-> cps_GDJones', self.cps_GDJones)
-        menu.insertItem('-> cps_DJones', self.cps_DJones)
-        menu.insertItem('-> cps_GBJones', self.cps_GBJones)
-        menu.insertSeparator()     
-        # NB: This one should perhaps only be available from the command-line....
-        menu.insertItem('-> cps_all(protected)', self.cps_all)
+        menu.insertItem('-> per_timeslot', self.per_timeslot)
+        menu.insertItem('-> small_tile', self.small_tile)
+        menu.insertItem('-> medium_tile', self.medium_tile)
+        menu.insertItem('-> large_tile', self.large_tile) 
         menu.insertSeparator()     
         menu.insertItem('-> fdeg_0', self.fdeg_0)
         menu.insertItem('-> fdeg_1', self.fdeg_1)
         menu.insertItem('-> fdeg_2', self.fdeg_2)
         menu.insertItem('-> fdeg_3', self.fdeg_3)
-        menu.insertSeparator()     
-        menu.insertItem('-> per_timeslot', self.per_timeslot)
-        menu.insertItem('-> small_tile', self.small_tile)
-        menu.insertItem('-> medium_tile', self.medium_tile)
-        menu.insertItem('-> large_tile', self.large_tile)
+        if True:
+            # Generate the 'standard' .inarg record files starting from the (new)
+            # default version.
+            # NB: This one should perhaps only be available from the command-line....
+            menu.insertSeparator()     
+            menu.insertItem('-> cps_all(incl.protected)', self.cps_all)
+            menu.insertItem('-> lsm_all(incl.protected)', self.lsm_all)
         self.__menubar.insertItem('convert', menu)
 
 
@@ -702,7 +713,8 @@ class ArgBrowser(QMainWindow):
             filename = filename[len(filename)-1]
         return filename
 
-    def savefile_name (self, name=None):
+
+    def savefile_name (self, name=None, trace=False):
         """Get/set the save_file name in the inarg CTRL record"""
         was = JEN_inarg.CTRL(self.__inarg, 'save_file') 
 
@@ -722,7 +734,8 @@ class ArgBrowser(QMainWindow):
 
         s1 = '** Current savefile name:  '+savefile
         self.__message.setText(s1)
-        print '** self.savefile_name(',name,'): ',was,' -> ',savefile
+        if trace:
+            print '** self.savefile_name(',name,'): ',was,' -> ',savefile
         return savefile
 
     #-------------------------------------------------------------------------------
@@ -1265,7 +1278,7 @@ class ArgBrowser(QMainWindow):
 
 
     def small_tile(self):
-        """Modify the inarg for (temporary) small_time operation"""
+        """Modify the inarg for (temporary) small_tile operation"""
         JEN_inarg.modify(self.__inarg,
                          tile_size=10,
                          epsilon=1e-3,
@@ -1280,7 +1293,7 @@ class ArgBrowser(QMainWindow):
         return True
 
     def medium_tile(self):
-        """Modify the inarg for (temporary) medium_time operation"""
+        """Modify the inarg for (temporary) medium_tile operation"""
         JEN_inarg.modify(self.__inarg,
                          tile_size=20,
                          epsilon=1e-3,
@@ -1310,108 +1323,142 @@ class ArgBrowser(QMainWindow):
         return True
 
 
+    #------------------------------------------------------------------------
+
+    def lsm_all(self):
+        """Modify the MG_JEN_lsm inarg to multiple inarg files"""
+        if not self.macron_entry('MG_JEN_lsm', revert=True): return False
+        self.lsm_single(revert=True, save_protected=True)
+        self.lsm_grid(revert=True, save_protected=True)
+        self.lsm_spiral(revert=True, save_protected=True)
+        self.__message.setText('** modified all MG_JEN_lsm inargs (protected)')
+        return True
+
+    #------------------------------------------------------------------------
+
+    def lsm_single(self, revert=False, save_protected=False):
+        """Modify MG_JEN_lsm inarg for single operation"""
+        if not self.macron_entry('MG_JEN_lsm', revert): return False
+        JEN_inarg.modify(self.__inarg,
+                         test_pattern='single',
+                         _JEN_inarg_option=None)     
+        return self.macron_exit('MG_JEN_lsm_single', save_protected)
+
+    def lsm_grid(self, revert=False, save_protected=False):
+        """Modify MG_JEN_lsm inarg for grid operation"""
+        if not self.macron_entry('MG_JEN_lsm', revert): return False
+        JEN_inarg.modify(self.__inarg,
+                         test_pattern='grid',
+                         _JEN_inarg_option=None)     
+        return self.macron_exit('MG_JEN_lsm_grid', save_protected)
+
+    def lsm_spiral(self, revert=False, save_protected=False):
+        """Modify MG_JEN_lsm inarg for spiral operation"""
+        if not self.macron_entry('MG_JEN_lsm', revert): return False
+        JEN_inarg.modify(self.__inarg,
+                         test_pattern='spiral',
+                         _JEN_inarg_option=None)     
+        return self.macron_exit('MG_JEN_lsm_spiral', save_protected)
+
+    #------------------------------------------------------------------------
+
+    def macron_entry(self, script='<script>', revert=False):
+        """Helper function"""
+        # Check whether script is relevant for the current self.__inarg:
+        savefile = self.savefile_name()
+        relevant = (savefile.rfind(script)>=0)
+        if not relevant:
+            s1 = '** .macron_entry(): '+str(script)
+            s1 += ' '+str(savefile)
+            s1 += '  relevant='+str(relevant)+':  done nothing'
+            self.__message.setText(s1)
+            return False
+        if revert==True: self.revert_inarg()
+        return True
+
+    def macron_exit(self, savefile='<savefile>', save_protected=False):
+        """Helper function"""
+        self.refresh()
+        self.save_inarg(savefile)
+        if save_protected==True: self.save_as_protected()
+        self.__message.setText('** .macron_exit(): '+str(savefile))
+        return True
+
+    #------------------------------------------------------------------------
+
     def cps_all(self):
         """Modify the MG_JEN_cps inarg to multiple inarg files"""
-        self.revert_inarg()
+        if not self.macron_entry('MG_JEN_cps', revert=True): return False
         self.cps_inspect(revert=True, save_protected=True)
-        self.cps_stokesI(revert=True, save_protected=True)
         self.cps_GJones(revert=True, save_protected=True)
         self.cps_Gphase(revert=True, save_protected=True)
         self.cps_Ggain(revert=True, save_protected=True)
         self.cps_GDJones(revert=True, save_protected=True)
-        self.cps_DJones(revert=True, save_protected=True)
+        self.cps_JJones(revert=True, save_protected=True)
         self.cps_GBJones(revert=True, save_protected=True)
-        self.__message.setText('** modified all MG_JEN_cps inargs (protected)')
+        self.cps_BJones(revert=True, save_protected=True)
+        self.cps_DJones(revert=True, save_protected=True)
+        self.cps_stokesI(revert=True, save_protected=True)
+        self.__message.setText('** modified all MG_JEN_cps inargs (incl. protected)')
         return True
 
-    def cps_stokesI(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for stokesI operation"""
-        if revert==True: self.revert_inarg()
-        JEN_inarg.modify(self.__inarg,
-                         solvegroup=['stokesI'],
-                         _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_stokesI')
-        print '** save_protected =',save_protected
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for stokesI')
-        return True
+    #------------------------------------------------------------------------
 
     def cps_GJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for GJones operation"""
-        if revert==True: self.revert_inarg()
+        if not self.macron_entry('MG_JEN_cps', revert): return False
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones'],
                          solvegroup=['GJones'],
                          _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_GJones')
-        print '** save_protected =',save_protected
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for GJones')
-        return True
+        self.per_timeslot()
+        return self.macron_exit('MG_JEN_cps_GJones', save_protected)
 
     def cps_Gphase(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for Gphase operation"""
-        if revert==True: self.revert_inarg()
+        if not self.macron_entry('MG_JEN_cps', revert): return False
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones'],
                          solvegroup=['Gphase'],
                          condeq_unop='Arg',
                          _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_Gphase')
-        print '** save_protected =',save_protected
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for Gphase')
-        return True
+        self.per_timeslot()
+        return self.macron_exit('MG_JEN_cps_Gphase', save_protected)
 
     def cps_Ggain(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for Ggain operation"""
-        if revert==True: self.revert_inarg()
+        if not self.macron_entry('MG_JEN_cps', revert): return False
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones'],
                          solvegroup=['Ggain'],
                          condeq_unop='Abs',
                          _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_Ggain')
-        print '** save_protected =',save_protected
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for Ggain')
-        return True
+        self.per_timeslot()
+        return self.macron_exit('MG_JEN_cps_Ggain', save_protected)
 
     def cps_GDJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for GDJones (WSRT) operation"""
-        if revert==True: self.revert_inarg()
+        if not self.macron_entry('MG_JEN_cps', revert): return False
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones','DJones_WSRT'],
                          solvegroup=['GJones','DJones'],
                          _JEN_inarg_option=None)     
         self.callback_punit('QU')
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_GDJones')
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for GDJones (WSRT)')
-        return True
+        return self.macron_exit('MG_JEN_cps_GDJones', save_protected)
 
-    def cps_DJones(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for DJones operation"""
-        if revert==True: self.revert_inarg()
+    def cps_JJones(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for JJones operation"""
+        if not self.macron_entry('MG_JEN_cps', revert): return False
         JEN_inarg.modify(self.__inarg,
-                         Jsequence=['DJones'],
-                         solvegroup=['DJones'],
+                         Jsequence=['JJones'],
+                         solvegroup=['JJones'],
                          _JEN_inarg_option=None)     
         self.callback_punit('QUV')
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_DJones')
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for DJones')
-        return True
+        return self.macron_exit('MG_JEN_cps_JJones', save_protected)
 
     def cps_GBJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for GBJones operation"""
-        if revert==True: self.revert_inarg()
+        if not self.macron_entry('MG_JEN_cps', revert): return False
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones','BJones'],
                          solvegroup=['GJones','BJones'],
@@ -1420,31 +1467,54 @@ class ArgBrowser(QMainWindow):
                          fdeg_Ggain=0,
                          fdeg_Breal=5,
                          _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_GBJones')
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for GBJones')
-        return True
+        return self.macron_exit('MG_JEN_cps_GBJones', save_protected)
+
+    def cps_BJones(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for BJones operation"""
+        if not self.macron_entry('MG_JEN_cps', revert): return False
+        JEN_inarg.modify(self.__inarg,
+                         data_column_name='CORRECTED_DATA',
+                         Jsequence=['BJones'],
+                         solvegroup=['BJones'],
+                         tdeg_Breal=2,
+                         fdeg_Breal=5,
+                         _JEN_inarg_option=None)     
+        return self.macron_exit('MG_JEN_cps_BJones', save_protected)
+
+    def cps_DJones(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for DJones (WSRT) operation"""
+        if not self.macron_entry('MG_JEN_cps', revert): return False
+        JEN_inarg.modify(self.__inarg,
+                         data_column_name='CORRECTED_DATA',
+                         Jsequence=['DJones_WSRT'],
+                         solvegroup=['DJones'],
+                         _JEN_inarg_option=None)     
+        self.callback_punit('QU')
+        return self.macron_exit('MG_JEN_cps_DJones', save_protected)
+
+    def cps_stokesI(self, revert=False, save_protected=False):
+        """Modify MG_JEN_cps inarg for stokesI operation"""
+        if not self.macron_entry('MG_JEN_cps', revert): return False
+        JEN_inarg.modify(self.__inarg,
+                         data_column_name='CORRECTED_DATA',
+                         solvegroup=['stokesI'],
+                         _JEN_inarg_option=None)     
+        return self.macron_exit('MG_JEN_cps_stokesI', save_protected)
+
 
     def cps_inspect(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for inspect operation(s)"""
-        if revert==True: self.revert_inarg()
+        if not self.macron_entry('MG_JEN_cps', revert): return False
         JEN_inarg.modify(self.__inarg,
                          insert_solver=False,
                          tile_size=1,
                          _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_inspect')
-        if save_protected==True: self.save_as_protected()
+        self.macron_exit('MG_JEN_cps_inspect', save_protected)
         #......................................................
         JEN_inarg.modify(self.__inarg,
                          data_column_name='CORRECTED_DATA',
                          _JEN_inarg_option=None)     
-        self.refresh()
-        self.save_inarg('MG_JEN_cps_inspect_CORRECTED_DATA')
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** modified MG_JEN_cps inarg for inspect(s)')
-        return True
+        return self.macron_exit('MG_JEN_cps_inspect_CORRECTED_DATA', save_protected)
 
 
 

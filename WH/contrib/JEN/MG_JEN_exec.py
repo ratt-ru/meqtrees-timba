@@ -388,7 +388,9 @@ def fullDomainMux (mqs, parent, ctrl=None):
    req.input = record(ms=ss.inputrec)
    req.output = record(ms=ss.outputrec)
 
-   mqs.execute('fullDomainMux', req, wait=False)
+   # NB: The name of the node is defined in TDL_Cohset.sinks():
+   # mqs.execute('fullDomainMux', req, wait=False)
+   mqs.execute('Cohset_fullDomainMux', req, wait=False)
    return True
 
 
