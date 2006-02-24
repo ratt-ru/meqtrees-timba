@@ -861,7 +861,8 @@ class LSM:
    #self.p_table[patch_name]=newp
 
    if resolve_forest==True and sync_kernel==True:
-    newp.sp.updateValues(patch_name)
+    pass
+    #newp.sp.updateValues(patch_name)
 
    #Timba.TDL._dbg.set_verbose(0);
    # save the lsm
