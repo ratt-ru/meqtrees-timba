@@ -514,7 +514,7 @@ int Meq::VisDataMux::endSnippet ()
         res->addToExceptionList(errors);
         errors.add(MakeNodeException("child '"+children().getChild(ichild).name()+"' returns a FAIL"));
       }
-      else if( !retcode&(RES_WAIT|RES_ABORT) ) // if child returns a Tile field in the result, dump tile to output
+      else if( !(retcode&(RES_WAIT|RES_ABORT)) ) // if child returns a Tile field in the result, dump tile to output
       {
         const VisCube::VTile *ptile = res[AidTile].as_po<VisCube::VTile>();
         if( ptile )
@@ -772,7 +772,11 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,
       input_channel_().close();
       // flush output if needed
       if( output_channel_.valid() )
+      {
+        postMessage("flushing output, this may take a few seconds");
+        output_channel_().flush();
         output_channel_().close();
+      }
     }
   }
   catch( ... )  // catch-all and cleanup for any errors not caught above

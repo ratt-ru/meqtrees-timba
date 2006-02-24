@@ -97,13 +97,16 @@ int Composer::getResult (Result::Ref &resref,
     if( !pcells && chres.hasCells() )
       pcells = &( chres.cells() );
   }
-  if( nfails == nres )
-    return RES_FAIL;
-  if( nmissing == nres )
-    return RES_MISSING;
-  // apply cells as needed
-  if( pcells )
-    presult->setCells(pcells);
+  if( nres )
+  {
+    if( nfails == nres )
+      return RES_FAIL;
+    if( nmissing == nres )
+      return RES_MISSING;
+    // apply cells as needed
+    if( pcells )
+      presult->setCells(pcells);
+  }
   // we do not introduce any dependencies
   return 0;
 }
