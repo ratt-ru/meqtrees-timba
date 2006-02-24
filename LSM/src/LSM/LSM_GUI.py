@@ -747,18 +747,43 @@ class LSMWindow(QMainWindow):
 
     def zoomIn(self):
        m = self.cview.worldMatrix()
-       g=QWMatrix()
-       g.scale(0.5,0.5)
-       self.cview.tmstack=g
+       dx=m.dx()
+       dy=m.dy()
+       # first scale
        m.scale( 2.0, 2.0 )
+       # then move the origin by the scaled amount
+       dx1=m.dx()
+       dy1=m.dy()
+       m.translate(2*(dx1-dx),2*(dy1-dy))
+
+       g=QWMatrix()
+       g.translate(2*(dx-dx1),2*(dy-dy1))
+       g.scale(0.5,0.5)
+       if (self.cview.tmstack) == None:
+         self.cview.tmstack=g
+       else:
+         # calculate the total
+         self.cview.tmstack*=g
+
        self.cview.setWorldMatrix( m )
 
     def zoomOut(self):
        m = self.cview.worldMatrix()
+       dx=m.dx()
+       dy=m.dy()
        g=QWMatrix()
+       g.translate(0.5*dx,0.5*dy)
        g.scale(2,2)
-       self.cview.tmstack=g
+       print m
+       if (self.cview.tmstack) == None:
+         self.cview.tmstack=g
+       else:
+         # calculate the total
+         self.cview.tmstack*=g
+       # first scale
        m.scale( 0.5, 0.5 )
+       # then move the origin by the scaled amount
+       m.translate(-dx*0.5,-dy*0.5)
        self.cview.setWorldMatrix( m )
 
 

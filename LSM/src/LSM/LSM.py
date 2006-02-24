@@ -254,6 +254,8 @@ class LSM:
   self.__barr=[] 
   # root of all subtrees
   self.__root=None
+  # name of the root node
+  self.__root_name=None
 
   # how to create phase center of patches
   # 'G': geometric center, 'C': centroid  (weighted)
@@ -598,6 +600,7 @@ class LSM:
     g.__root=pickle.dumps(gdict)
    else:
     g.__root=None
+   g.__root_name=self.__root_name
    p.dump(g)
    f.close()
 
@@ -631,13 +634,14 @@ class LSM:
    self.default_patch_center=tmpl.default_patch_center
    self.default_patch_method=tmpl.default_patch_method
 
+   self.__root_name=tmpl.__root_name
    if tmpl.__root!=None:
     if ns==None:
      ns=NodeScope()
     self.__ns=ns
     my_dict=pickle.loads(tmpl.__root)
     my_dict=reconstruct(my_dict,ns)
-    self.__root=my_dict['lsmroot']
+    self.__root=my_dict[self.__root_name]
     #self.__ns.Resolve()
    else:
      self.__root=None
@@ -823,6 +827,7 @@ class LSM:
    # try to run stuff
    if self.mqs != None and resolve_forest==True and\
       sync_kernel==True:
+     self.__ns.Resolve()
      self.mqs.meq('Clear.Forest')
      self.mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),self.__ns.AllNodes().itervalues())));
      self.mqs.meq('Resolve.Batch',record(name=list(self.__ns.RootNodes().iterkeys())))
@@ -1031,9 +1036,10 @@ class LSM:
   if len(child_list)!=0:
    prefix=ns._name# true if ns is a sub scope
    if prefix!=None: 
-    self.__root=self.__ns[ns._name+' lsmroot']<<Meq.Composer(children=child_list)
+    self.__root_name=ns._name+ns.MakeUniqueName('_lsmroot')
    else: 
-    self.__root=self.__ns['lsmroot']<<Meq.Composer(children=child_list)
+    self.__root_name=ns.MakeUniqueName('_lsmroot')
+   self.__root=self.__ns[self.__root_name]<<Meq.Composer(children=child_list)
 
 
  # add a child node (subtree) to the root node

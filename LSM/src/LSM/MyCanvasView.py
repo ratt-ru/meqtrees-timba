@@ -72,6 +72,8 @@ class MyCanvasView(QCanvasView):
     self.max_brightness=self.lsm.getMaxBrightness()
     self.min_brightness=self.lsm.getMinBrightness()
     # sanity check
+    if self.max_brightness==self.min_brightness:
+      self.max_brightness=self.min_brightness+1.0
     if self.min_brightness==0.0:
       self.min_brightness=1e-6
     # get boundaries (using ObsWin  ?)
@@ -123,6 +125,11 @@ class MyCanvasView(QCanvasView):
     self.x_max=bounds['max_RA']
     self.y_min=bounds['min_Dec']
     self.y_max=bounds['max_Dec']
+    # sanity check
+    if self.x_min==self.x_max:
+      self.x_max=self.x_min+0.1
+    if self.y_min==self.y_max:
+      self.y_max=self.y_min+0.1
     # canvas size
     H=self.canvas().height()
     W=self.canvas().width()
@@ -365,11 +372,13 @@ class MyCanvasView(QCanvasView):
     self.zwindow.hide()
     # zoom window
     mm=QWMatrix()
-    if point.x()!=self.zwindow.left_x:
+    # limit to stop accidental zooming
+    win_delta=5
+    if abs(point.x()-self.zwindow.left_x)>win_delta:
      xsc=float(self.visibleWidth())/(point.x()-self.zwindow.left_x)
     else:
      xsc=1
-    if point.y()!=self.zwindow.left_y:
+    if abs(point.y()-self.zwindow.left_y)>win_delta:
      ysc=float(self.visibleHeight())/(point.y()-self.zwindow.left_y)
     else:
      ysc=1
@@ -377,6 +386,10 @@ class MyCanvasView(QCanvasView):
       ysc=xsc
     else:
       xsc=ysc
+    # if window is too small, do nothing
+    if (xsc==1) and (ysc==1): return;
+    # if we have negative scales also do nothing
+    if (xsc<0) or (ysc<0): return;
     mm.scale(xsc,ysc)
     mm.translate(-self.zwindow.left_x,-self.zwindow.left_y)
     #mm*=self.worldMatrix()
