@@ -85,7 +85,8 @@ def make_spigots(ns=None, Cohset=None, **inarg):
                       choice=['DATA','PREDICT','RESIDUALS'],
                       help='name of the logical (VisTile) input column')
     JEN_inarg.define (pp, 'MS_corr_index', [0,1,2,3],
-                      choice=[[0,-1,-1,1],[0,-1,-1,3],'@@'],
+                      choice=[[0,1,2,3],[0,-1,-1,1],[0,-1,-1,3]],
+                      # choice=[[0,-1,-1,1],[0,-1,-1,3],'@@'],
                       help='correlations to be used: \n'+
                       '- [0,1,2,3]:   all corrs available, use all \n'+
                       '- [0,-1,-1,1]: only XX/YY (or RR/LL) available \n'+

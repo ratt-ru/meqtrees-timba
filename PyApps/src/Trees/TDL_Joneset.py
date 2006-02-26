@@ -301,7 +301,7 @@ class Joneset (TDL_common.Super):
 class Joneseq (TDL_common.Super):
 
     def __init__(self, **pp):
-        pp.setdefault('label', 'JJones')
+        pp.setdefault('label', 'Jones')
         TDL_common.Super.__init__(self, type='Joneseq', **pp)
         self.clear()
         return None
@@ -414,7 +414,7 @@ class Joneseq (TDL_common.Super):
                              polrep=self.polrep(), scope=self.scope())
         newJoneset.history('Matrix multiplication of: '+self.oneliner())
         for key in keys:
-            newJoneset[key] = ns.JJones(**kwquals[key])(*quals[key]) << Meq.MatrixMultiply(children=cc[key])
+            newJoneset[key] = ns.Jones(**kwquals[key])(*quals[key]) << Meq.MatrixMultiply(children=cc[key])
         newJoneset.history('input sequence: '+str(labels))
         newJoneset.history('input punits (should be the same!): '+str(punits))
 

@@ -963,6 +963,7 @@ class ArgBrowser(QMainWindow):
 
                 else:
                     skip = self.check_skip(rr, key)
+                    skip = False
                     if not skip:
                         # A record (perhaps an inarg sub-record):
                         text = QString(key)
@@ -1232,6 +1233,9 @@ class ArgBrowser(QMainWindow):
 
         # Search for the correct iitd identifier:
         if rr.has_key(CTRL_record):
+            if not rr[CTRL_record].has_key(kident):
+                # This may happen if the record has been skipped (See .recurse())
+                return True                            # escape, do not recurse
             iitd = rr[CTRL_record][kident]
             for key in iitd.keys():
                 if trace: print '-',level,key,':',iitd[key],itd['iitd'],
