@@ -120,17 +120,14 @@ if True:                                               # ... Copied from MG_JEN_
    Jsequence = ['KJones'] 
    # Jsequence = ['GJones'] 
    
-   inarg = MG_JEN_Cohset.JJones(_getdefaults=True, _qual=qual, slave=True) 
+   inarg = MG_JEN_Cohset.Jones(_getdefaults=True, _qual=qual, slave=True) 
    JEN_inarg.modify(inarg,
                     Jsequence=Jsequence,                   # Sequence of corrupting Jones matrices 
                     _JEN_inarg_option=None)          
    # Insert non-default Jones matrix arguments here: 
    if 'GJones' in Jsequence: 
        JEN_inarg.modify(inarg,
-                        fdeg_Ggain=3,                      # degree of default freq polynomial         
-                        fdeg_Gphase='fdeg_Ggain',          # degree of default freq polynomial          
-                        tdeg_Ggain=1,                      # degree of default time polynomial         
-                        tdeg_Gphase='tdeg_Ggain',          # degree of default time polynomial       
+                        shape_Ggain=[2,4],
                         subtile_size_Ggain=0,                 # used in tiled solutions         
                         subtile_size_Gphase='subtile_size_Ggain', # used in tiled solutions         
                         _JEN_inarg_option=None)     
@@ -220,7 +217,7 @@ def _define_forest (ns, **kwargs):
        if sp.ispoint():                # point source (Sixpack object)
            # node = sp.iquv()
            # node = sp.coh22(ns)
-           js = MG_JEN_Cohset.JJones(ns, Sixpack=sp, _inarg=MG)
+           js = MG_JEN_Cohset.Jones(ns, Sixpack=sp, _inarg=MG)
            predicted = MG_JEN_Cohset.predict (ns, Sixpack=sp, Joneset=js, _inarg=MG)
            cs.append(predicted)
        else:	                    # patch (not a Sixpack object!)

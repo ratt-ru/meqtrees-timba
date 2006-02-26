@@ -82,6 +82,7 @@ class Parmset (TDL_common.Super):
         """Clear the object"""
         self.__quals = dict()                        # record of default node-name qualifiers
         self.__parmgroup = dict()
+        self.__default_value = dict()
         self.__pg_rider = dict()
         self.__condeq = dict()
         self.__solvegroup = dict()
@@ -235,7 +236,8 @@ class Parmset (TDL_common.Super):
     #-------------------------------------------------------------------------------------
 
     def define_MeqParm(self, ns, key=None, qual=None, parmgroup=None,
-                       default=0.0, node_groups='Parm',
+                       default=None, shape=None, tfdeg=[0,0], 
+                       node_groups='Parm',
                        use_previous=True, subtile_size=None):
         """Convenience function to create a MeqParm node"""
         
@@ -273,16 +275,28 @@ class Parmset (TDL_common.Super):
             for qkey in qual.keys():
                 quals[qkey] = str(qual[qkey])
 
+        # The default value:
+        if parmgroup==None:
+            parmgroup = key
+        if default==None:
+            default = self.__default_value[parmgroup]
+
+        # Use the shape (of coeff array, 1-relative) if specified.
+        # Otherwise, use the [tdeg,fdeg] polc degree (0-relative)
+        if shape==None:
+            shape = tfdeg
+            shape[0] += 1              
+            shape[1] += 1
+
         # Make the new MeqParm node:
         node = ns[key](**quals) << Meq.Parm(default,
-                                            node_groups=self.node_groups(),
-                                            use_previous=use_previous,
+                                            shape=shape,
                                             tiling=tiling,
+                                            use_previous=use_previous,
+                                            node_groups=self.node_groups(),
                                             table_name=self.parmtable())
 
         # Store the new node:
-        if parmgroup==None:
-            parmgroup = key
         nodename = node.name
         self.__MeqParm[nodename] = node                 # record of named nodes 
         self.__parmgroup[parmgroup].append(nodename)    # 
@@ -311,20 +325,23 @@ class Parmset (TDL_common.Super):
             return self.__parmgroup         #   return the entire record
         elif self.__parmgroup.has_key(key): # parmgroup already exists
             return self.__parmgroup[key]    #   return it
-
-        # Parmgroup does not exist yet: Create it:
-        pp.setdefault('color', None)        # plot color
-        pp.setdefault('style', 'circle')    # plot style
-        pp.setdefault('size', 10)           # size of plotted symbol
-        pp.setdefault('rider', dict())      # optional: record with named extra information
-        self.__parmgroup[key] = []
-        self.__pg_rider[key] = pp['rider']
-        self.__plot_color[key] = pp['color']
-        self.__plot_style[key] = pp['style']
-        self.__plot_size[key] = pp['size']
-        self.history('** Created parmgroup: '+key+':   '+str(pp))
-        self.define_solvegroup(key, parmgroup=[key])
-        return key                          # return the actual key name
+        else:
+            # Parmgroup does not exist yet: Create it:
+            pp.setdefault('default', 1.0)       # default value (usually c00)
+            pp.setdefault('color', None)        # plot color
+            pp.setdefault('style', 'circle')    # plot style
+            pp.setdefault('size', 10)           # size of plotted symbol
+            pp.setdefault('rider', dict())      # optional: record with named extra information
+            self.__parmgroup[key] = []
+            self.__pg_rider[key] = pp['rider']
+            self.__default_value[key] = pp['default']
+            self.__plot_color[key] = pp['color']
+            self.__plot_style[key] = pp['style']
+            self.__plot_size[key] = pp['size']
+            qq = TDL_common.unclutter_inarg(pp)
+            self.history('** Created parmgroup: '+key+':   '+str(qq))
+            self.define_solvegroup(key, parmgroup=[key])
+            return key                          # return the actual key name
 
 
     def pg_rider(self): return self.__pg_rider

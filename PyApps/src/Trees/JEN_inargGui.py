@@ -18,6 +18,7 @@
 #    - 13 feb 2006: removed self.__setOpen in saved files
 #    - 13 feb 2006: implemented .set_fdeg() etc
 #    - 13 feb 2006: converted to .modify() with 'match_substring'
+#    - 13 feb 2006: implemented .tdeg() and .fdeg() etc
 #
 # Full description:
 #
@@ -173,11 +174,24 @@ class ArgBrowser(QMainWindow):
         menu.insertItem('-> small_tile', self.small_tile)
         menu.insertItem('-> medium_tile', self.medium_tile)
         menu.insertItem('-> large_tile', self.large_tile) 
-        menu.insertSeparator()     
-        menu.insertItem('-> fdeg_0', self.fdeg_0)
-        menu.insertItem('-> fdeg_1', self.fdeg_1)
-        menu.insertItem('-> fdeg_2', self.fdeg_2)
-        menu.insertItem('-> fdeg_3', self.fdeg_3)
+        if True:
+            menu.insertSeparator()     
+            submenu = QPopupMenu(menu)
+            submenu.insertItem('-> tdeg_0', self.tdeg_0)
+            submenu.insertItem('-> tdeg_1', self.tdeg_1)
+            submenu.insertItem('-> tdeg_2', self.tdeg_2)
+            submenu.insertItem('-> tdeg_3', self.tdeg_3)
+            submenu.insertItem('-> tdeg_4', self.tdeg_4)
+            submenu.insertSeparator()     
+            submenu.insertItem('-> fdeg_0', self.fdeg_0)
+            submenu.insertItem('-> fdeg_1', self.fdeg_1)
+            submenu.insertItem('-> fdeg_2', self.fdeg_2)
+            submenu.insertItem('-> fdeg_3', self.fdeg_3)
+            submenu.insertItem('-> fdeg_4', self.fdeg_4)
+            submenu.insertItem('-> fdeg_5', self.fdeg_5)
+            submenu.insertItem('-> fdeg_6', self.fdeg_6)
+            submenu.insertItem('-> fdeg_7', self.fdeg_7)
+            menu.insertItem('-> tf_shape', submenu)
         if True:
             # Generate the 'standard' .inarg record files starting from the (new)
             # default version.
@@ -353,6 +367,7 @@ class ArgBrowser(QMainWindow):
             self.__floatw.close()
             self.__floatw = None
         self.__itemdict = []                       # list of itd records
+        self.__setOpen = dict()        
         self.__CTRL_count = 1000                   # for generating unique numbers
         self.__record_count = 2000                 # for generating unique numbers
         self.__item_count = 100000                 # for generating unique numbers
@@ -536,9 +551,10 @@ class ArgBrowser(QMainWindow):
 
     def essence(self):
         """Show a summary of the (specified) essence of the current inarg"""
-        match = ['ms_','_col','LSM','parm','pol','uvplane','stations',
+        match = ['ms_','_col','LSM','punit',
+                 'parm','pol','uvplane','stations',
                  'flag','corr','subtr','rmin','rmax','cond',
-                 'sequ','solve','condit','deg_','tile']
+                 'sequ','solve','condit','shape_','deg_','tile']
         exclude = []
         ss = JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
         return self.floatw(ss)
@@ -652,8 +668,8 @@ class ArgBrowser(QMainWindow):
             self.savefile_name(filename)             # change the filename
 
         # Save the file without any setOpen info (causes segmentation violation)
-        wasOpen = self.__setOpen = dict()            # (see below)               
-        self.__setOpen = dict()           
+        wasOpen = self.__setOpen                     # keep for restore (see below)               
+        self.__setOpen = dict()                      # clear
         
         # Write to file:
         f = open(filename,'wb')
@@ -671,6 +687,7 @@ class ArgBrowser(QMainWindow):
     def revert_inarg(self):
         """Revert to the original (input) inarg values"""
         self.__inarg = deepcopy(self.__inarg_input)
+        self.__setOpen = dict()                      # clear
         self.refresh()
         self.savefile_name()     
         self.__message.setText('** reverted to the original (input) inarg record')
@@ -945,39 +962,41 @@ class ArgBrowser(QMainWindow):
                                       level=level+1, makeitd=False)
 
                 else:
-                    # A record (perhaps an inarg sub-record):
-                    text = QString(key)
-                    iitd = str(-2)
-                    self.__record_count += 1                   # increment the counter
-                    R_ident = str(-self.__record_count)
-                    item = MyListViewItem(listview, text, '', '',
-                                          R_ident, str(self.__item_count))
-                    item.setSelectable(False)
-
-                    if key=='stream_control':                  # See MG_JEN_Cohset.py
-                        # Temporary kludge, until this feature is implemented properly
-                        self.__setOpen[key] = True             # set open     
+                    skip = self.check_skip(rr, key)
+                    if not skip:
+                        # A record (perhaps an inarg sub-record):
+                        text = QString(key)
+                        iitd = str(-2)
+                        self.__record_count += 1                   # increment the counter
+                        R_ident = str(-self.__record_count)
+                        item = MyListViewItem(listview, text, '', '',
+                                              R_ident, str(self.__item_count))
+                        item.setSelectable(False)
                         
-                    color1 = color
-                    if not JEN_inarg.is_OK(rr[key]):           # contains an error/warning
-                        item.set_text_color('red')
-                        # self.__setOpen[key] = True             # set open     
-                        self.show_CTRL(True, refresh=False)
-                    elif key in ['ERROR','WARNING']:           # special cases
-                        self.__setOpen[key] = True             # set open     
-                        color1 = 'red'                         # pass down
-                        item.set_text_color('red')
-                    elif color:                                # color specified (e.g. CTRL)
-                        item.set_text_color(color)
-                    else:
-                        item.set_text_color('blue')            # default: highlight it
-                    if self.__set_open and level==0:
-                        item.setOpen(True)                     # show its children
-                    if self.__setOpen.has_key(key):
-                        item.setOpen(self.__setOpen[key])      # open or close    
+                        if key=='stream_control':                  # See MG_JEN_Cohset.py
+                            # Temporary kludge, until this feature is implemented properly
+                            self.__setOpen[key] = True             # set open     
+                            
+                        color1 = color
+                        if not JEN_inarg.is_OK(rr[key]):           # contains an error/warning
+                            item.set_text_color('red')
+                            # self.__setOpen[key] = True             # set open     
+                            self.show_CTRL(True, refresh=False)
+                        elif key in ['ERROR','WARNING']:           # special cases
+                            self.__setOpen[key] = True             # set open     
+                            color1 = 'red'                         # pass down
+                            item.set_text_color('red')
+                        elif color:                                # color specified (e.g. CTRL)
+                            item.set_text_color(color)
+                        else:
+                            item.set_text_color('blue')            # default: highlight it
+                        if self.__set_open and level==0:
+                            item.setOpen(True)                     # show its children
+                        if self.__setOpen.has_key(key):
+                            item.setOpen(self.__setOpen[key])      # open or close    
 
-                    self.recurse (rr[key], listview=item, level=level+1,
-                                  module=key, makeitd=makeitd, color=color1)
+                        self.recurse (rr[key], listview=item, level=level+1,
+                                      module=key, makeitd=makeitd, color=color1)
 
             elif not makeitd:
                 # E.g. the fields inside a CTRL_record:
@@ -1024,6 +1043,26 @@ class ArgBrowser(QMainWindow):
 
         return True
 
+
+    #-------------------------------------------------------------------------------
+    # (Move to JEN_inarg.py)
+
+    def check_skip(self, rr, key, trace=False):
+        """Helper function to check whether any keys starts with @"""
+        skip = False
+        if not isinstance(rr, dict): return skip
+        if not rr.has_key(key): return skip
+        cc = rr[key]
+        if not isinstance(cc, dict): return skip
+        for ckey in cc.keys():
+            if ckey[0]=='@':
+                ukey = ckey.split('@')[1]
+                if trace: print '** ckey =',ckey,cc[ckey],
+                if rr.has_key(ukey):
+                    skip = not (cc[ckey] in rr[ukey])
+                    if trace: print ':',rr[ukey],' skip =',skip
+                if trace: print
+        return skip
 
 
     #-------------------------------------------------------------------------------
@@ -1246,20 +1285,38 @@ class ArgBrowser(QMainWindow):
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
 
-    def fdeg_0(self): return self.set_fdeg(0)
-    def fdeg_1(self): return self.set_fdeg(1)
-    def fdeg_2(self): return self.set_fdeg(2)
-    def fdeg_3(self): return self.set_fdeg(3)
-    def set_fdeg(self, fdeg=0):
-        """Modify the inarg by settin fdeg_* to the given value"""
+    def tdeg_0(self): return self.tdeg(0)
+    def tdeg_1(self): return self.tdeg(1)
+    def tdeg_2(self): return self.tdeg(2)
+    def tdeg_3(self): return self.tdeg(3)
+    def tdeg_4(self): return self.tdeg(4)
+    def tdeg(self, deg=0):
+        """Modify the inarg by settin tdeg_* to the given value"""
         JEN_inarg.modify(self.__inarg,
-                         fdeg_=fdeg,
+                         tdeg_=deg,
                          subtile_size_=None,
                          _JEN_inarg_option=dict(match_substring=True))     
         self.refresh()
-        self.__message.setText('** modified inarg: fdeg_* -> '+str(fdeg))
+        self.__message.setText('** modified inarg: tdeg_* -> '+str(deg))
         return True
 
+    def fdeg_0(self): return self.fdeg(0)
+    def fdeg_1(self): return self.fdeg(1)
+    def fdeg_2(self): return self.fdeg(2)
+    def fdeg_3(self): return self.fdeg(3)
+    def fdeg_4(self): return self.fdeg(4)
+    def fdeg_5(self): return self.fdeg(5)
+    def fdeg_6(self): return self.fdeg(6)
+    def fdeg_7(self): return self.fdeg(7)
+    def fdeg(self, deg=0):
+        """Modify the inarg by settin fdeg_* to the given value"""
+        JEN_inarg.modify(self.__inarg,
+                         fdeg_=deg,
+                         subtile_size_=None,
+                         _JEN_inarg_option=dict(match_substring=True))     
+        self.refresh()
+        self.__message.setText('** modified inarg: fdeg_* -> '+str(deg))
+        return True
 
     def per_timeslot(self):
         """Modify the inarg for (temporary) per_timeslot operation"""
@@ -1268,11 +1325,7 @@ class ArgBrowser(QMainWindow):
                          epsilon=1e-4,
                          num_iter=20,
                          _JEN_inarg_option=None)     
-        JEN_inarg.modify(self.__inarg,
-                         tdeg_=0,
-                         subtile_size_=None,
-                         _JEN_inarg_option=dict(match_substring=True))     
-        self.refresh()
+        self.tdeg(0)
         self.__message.setText('** modified inarg for per_timeslot operation')
         return True
 
@@ -1284,11 +1337,7 @@ class ArgBrowser(QMainWindow):
                          epsilon=1e-3,
                          num_iter=10,
                          _JEN_inarg_option=None)     
-        JEN_inarg.modify(self.__inarg,
-                         tdeg_=1,
-                         subtile_size_=None,
-                         _JEN_inarg_option=dict(match_substring=True))     
-        self.refresh()
+        self.tdeg(1)
         self.__message.setText('** modified inarg for small_tile operation')
         return True
 
@@ -1299,11 +1348,7 @@ class ArgBrowser(QMainWindow):
                          epsilon=1e-3,
                          num_iter=10,
                          _JEN_inarg_option=None)     
-        JEN_inarg.modify(self.__inarg,
-                         tdeg_=2,
-                         subtile_size_=None,
-                         _JEN_inarg_option=dict(match_substring=True))     
-        self.refresh()
+        self.tdeg(2)
         self.__message.setText('** modified inarg for medium_tile operation')
         return True
 
@@ -1314,11 +1359,7 @@ class ArgBrowser(QMainWindow):
                          epsilon=1e-2,
                          num_iter=5,
                          _JEN_inarg_option=None)     
-        JEN_inarg.modify(self.__inarg,
-                         tdeg_=3,
-                         subtile_size_=None,
-                         _JEN_inarg_option=dict(match_substring=True))     
-        self.refresh()
+        self.tdeg(2)
         self.__message.setText('** modified inarg for large_tile operation')
         return True
 
@@ -1464,10 +1505,10 @@ class ArgBrowser(QMainWindow):
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones','BJones'],
                          solvegroup=['GJones','BJones'],
-                         tdeg_Ggain=3,
-                         tdeg_Breal=2,
-                         fdeg_Ggain=0,
-                         fdeg_Breal=5,
+                         tdeg_Ggain=3, fdeg_Ggain=0,
+                         tdeg_Gphase='@tdeg_Ggain', fdeg_Gphase='@fdeg_Ggain',
+                         tdeg_Breal=0, fdeg_Breal=5,
+                         tdeg_Bimag='@tdeg_Breal', fdeg_Bimag='@fdeg_Breal',
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_cps_GBJones', save_protected)
 
@@ -1478,8 +1519,8 @@ class ArgBrowser(QMainWindow):
                          data_column_name='CORRECTED_DATA',
                          Jsequence=['BJones'],
                          solvegroup=['BJones'],
-                         tdeg_Breal=2,
-                         fdeg_Breal=5,
+                         tdeg_Breal=2, fdeg_Breal=5,
+                         tdeg_Bimag='@tdeg_Breal', fdeg_Bimag='@fdeg_Breal',
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_cps_BJones', save_protected)
 

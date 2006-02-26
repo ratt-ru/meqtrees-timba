@@ -163,34 +163,13 @@ JEN_inarg.attach(MG, inarg)
 inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True) 
 JEN_inarg.attach(MG, inarg)
 
-inarg = MG_JEN_Cohset.JJones(_getdefaults=True, slave=True) 
-JEN_inarg.modify(inarg,
-                 # Do a single solution over the (large) domain:
-                 # NB: Do we need something like: subtile_size_*=None....?
-                 subtile_size_Ggain=None,
-                 subtile_size_Breal=None,
-                 subtile_size_dang=None,
-                 subtile_size_RM=None,
-                 # Allow for slow variations in time:
-                 # NB: The tdeg_Gphase etc are @tdeg_Ggain etc
-                 # NB: Do we need something like: tdeg_*=None....?
-                 tdeg_Ggain=3,
-                 tdeg_Breal=3,
-                 tdeg_dang=3,
-                 tdeg_RM=3,
-                 _JEN_inarg_option=None)     
+inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True) 
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.predict(_getdefaults=True, slave=True)  
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, slave=True) 
-JEN_inarg.modify(inarg,
-                 # Ignore short baselines to minimise peeling contamination
-                 # rmin=150,
-                 epsilon=1e-2,
-                 num_iter=5,
-                 _JEN_inarg_option=None)     
 JEN_inarg.attach(MG, inarg)
                  
 #----------------------------------------------------------------------------------------------------
@@ -215,8 +194,6 @@ JEN_inarg.attach(MG, inarg)
 # Just assign fields to: Settings.forest_state[key] = ...
 
 MG_JEN_forest_state.init(MG)
-# MG_JEN_forest_state.init(MG['script_name'])
-
 
 
 
@@ -273,7 +250,7 @@ def _define_forest (ns, **kwargs):
     if MG['insert_solver']:
         # Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
         Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
-        Joneset = MG_JEN_Cohset.JJones(ns, Sixpack=Sixpack, _inarg=MG)
+        Joneset = MG_JEN_Cohset.Jones(ns, Sixpack=Sixpack, _inarg=MG)
         predicted = MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
         MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG)
 

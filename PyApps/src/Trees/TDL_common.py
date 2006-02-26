@@ -11,6 +11,7 @@
 # History:
 #    - 05 sep 2005: creation
 #    - 10 sep 2005: more or less stable
+#    - 25 feb 2006: .unclutter_inarg()  (used by other functions too)
 #
 # Remarks:
 #
@@ -60,26 +61,7 @@ class Super:
         s = str(self.__origin)+': Created '+str(self.type())+' object with label: '+str(self.label())
         self.history(s, reset=True)
 
-        # Deal with the extra constructor arguments (if any):
-        # Dont use deepcopy because it cannot handle nodestubs 
-        #qq = deepcopy(pp)
-        qq = {}                                     # modify a copy
-        for key in pp.keys():
-            v = pp[key]
-            if isinstance(v, Timba.TDL.TDLimpl._NodeStub):    # avoid clutter
-                qq[key] = key+': <nodestub>'
-            elif isinstance(v, dict):                         # avoid clutter
-                qq[key] = key+': '+str(type(v))+'['+str(len(v))+']'
-            elif isinstance(v, (list,tuple)):                 # avoid clutter
-                qq[key] = key+': '+str(type(v))+'['+str(len(v))+'] = '
-                nmax = 3
-                if len(v)>nmax:
-                    qq[key] += str(v[:nmax])+'...'
-                else:
-                    qq[key] += str(v)
-            else:
-                qq[key] = v
-        self.history('inarg = '+str(qq))
+        self.history('inarg = '+str(unclutter_inarg(pp)))
 
         return None
 
@@ -196,6 +178,31 @@ def _counter (key, increment=0, reset=False, trace=True):
     if trace: print '** Super: _counters(',key,') =',_counters[key]
     return _counters[key]
 
+
+def unclutter_inarg(pp):
+    """Strip the given input argument record to avoid clutter"""
+    # Dont use deepcopy because it cannot handle nodestubs 
+    # qq = deepcopy(pp)
+    qq = {}                                               # strip a copy
+    for key in pp.keys():
+        v = pp[key]
+        if isinstance(v, Timba.TDL.TDLimpl._NodeStub):    # avoid clutter
+            qq[key] = key+': <nodestub>'
+        elif isinstance(v, dict):                         # avoid clutter
+            if key=='_JEN_inarg_CTRL_record:':
+                pass
+            else:
+                qq[key] = key+': '+str(type(v))+'['+str(len(v))+']'
+        elif isinstance(v, (list,tuple)):                 # avoid clutter
+            qq[key] = key+': '+str(type(v))+'['+str(len(v))+'] = '
+            nmax = 3
+            if len(v)>nmax:
+                qq[key] += str(v[:nmax])+'...'
+            else:
+                qq[key] += str(v)
+        else:
+            qq[key] = v
+    return qq
 
 #========================================================================
 # Test routine:

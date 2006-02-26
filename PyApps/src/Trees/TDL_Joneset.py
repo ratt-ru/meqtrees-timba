@@ -13,6 +13,7 @@
 #    - 03 dec 2005: replaced MG_JEN_exec with TDL_display
 #    - 07 dec 2005: introduced self.__constrain (needs more thought)
 #    - 02 jan 2006: adopted TDL_Parmset.py
+#    - 25 feb 2006: adopted TDL_Leafset.py
 #
 # Full description:
 #
@@ -28,6 +29,7 @@ from copy import deepcopy
 
 from Timba.Trees import TDL_common
 from Timba.Trees import TDL_Parmset
+from Timba.Trees import TDL_Leafset
 from Timba.Trees import TDL_radio_conventions
 
 
@@ -60,9 +62,13 @@ class Joneset (TDL_common.Super):
         if not isinstance(self.__jchar, str): self.__jchar = self.label()[0]
         self.__jchar = self.__jchar[0]               # single character
 
-        # Define its Parmset object
+        # Define its Parmset object (MeqParm services)
         self.Parmset = TDL_Parmset.Parmset(**pp)
         self.Parmset.quals(dict(q=self.__punit))
+
+        # Define its Leafset object (simulation services) 
+        self.Leafset = TDL_Leafset.Leafset(**pp)
+        self.Leafset.quals(dict(q=self.__punit))
 
         self.clear()
 
@@ -81,6 +87,18 @@ class Joneset (TDL_common.Super):
         self.__plot_color = TDL_radio_conventions.plot_color()
         self.__plot_style = TDL_radio_conventions.plot_style()
         self.__plot_size = TDL_radio_conventions.plot_size()
+
+    def cleanup(self):
+        """Clean up the object (or rather its Parmset/Leafset)"""
+        self.Parmset.cleanup()
+        self.Leafset.cleanup()
+        return True
+
+    def buffer(self):
+        """Get the relevant temporary buffer (from Parmset/Leafset)"""
+        ss = self.Parmset.buffer()
+        if len(ss)==0: ss = self.Leafset.buffer()
+        return ss
 
     def __getitem__(self, key):
         """Get s station (key) 2x2 Jones matrix (node)"""
@@ -105,10 +123,18 @@ class Joneset (TDL_common.Super):
         self.__jones[key] = value
         return self.__jones[key]
 
-    def parmgroup (self, key=None, ipol=None, color=None, style='circle', size=10, corrs=None):
+    def parmgroup (self, key=None, **pp):
         """Register a parameter (MeqParm) group (frontend for Parmset.parmgroup())"""
-        if isinstance(ipol, int): key = key+'_'+self.pols(ipol)     # append (X,Y,R,L) if requirec
 
+        pp.setdefault('ipol', None)
+        pp.setdefault('corrs', None)
+        
+        # append (X,Y,R,L) if required
+        if isinstance(pp['ipol'], int):
+            key = key+'_'+self.pols(pp['ipol'])
+
+        # Deal with correlation:
+        corrs = pp['corrs']
         if corrs=='*': corrs = self.corrs_all()
         if corrs=='paral': corrs = self.corrs_paral()
         # if corrs=='paral1': corrs = self.corrs_paral11()
@@ -121,10 +147,19 @@ class Joneset (TDL_common.Super):
         # if self.corrs_all().__contains__(corrs): corrs = corrs      # single corr (e.g. 'RR')
         rider = dict(condeq_corrs=corrs)
 
-        self.Parmset.parmgroup(key=key, color=color, style=style, size=size, rider=rider)
+        # Register the parmgroup:
+        self.Parmset.parmgroup(key=key, rider=rider, **pp)
+        s1 = 'Register parmgroup: '+key+': '
+        s1 += str(pp['ipol'])+' '+str(pp['corrs'])
+        self.history(s1)
 
-        s = 'Register parmgroup: '+key+': '+str(color)+' '+str(style)+' '+str(size)+' '+str(corrs)+' '
-        self.history(s)
+        # Register a leafgroup with the same name: 
+        pp.__delitem__('corrs')
+        pp.__delitem__('ipol')
+        pp['style'] = 'triangle'
+        pp['size'] = 5
+        self.Leafset.leafgroup(key=key, **pp)
+
         return key                                                  # return the actual key name
 
 
@@ -198,6 +233,7 @@ class Joneset (TDL_common.Super):
         indent2 = 6*' '
 
         ss.append(indent1+' - '+str(self.Parmset.oneliner()))
+        ss.append(indent1+' - '+str(self.Leafset.oneliner()))
 
         ss.append(indent1+' - Station jones matrix nodes ( '+str(self.len())+' ):')
         if full or self.len()<15:

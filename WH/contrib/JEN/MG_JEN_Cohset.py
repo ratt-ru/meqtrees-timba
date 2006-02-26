@@ -229,20 +229,18 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 
 
 #--------------------------------------------------------------------------------------
-# Make a JJones Joneset from the specified sequence of Jones matrices:
+# Make a Joneset from the specified sequence of Jones matrices:
 
-def JJones(ns=None, Sixpack=None, slave=False, **inarg):
+def Jones(ns=None, Sixpack=None, slave=False, **inarg):
     """Make a Joneset by creating and multiplying one ore more Jonesets"""
    
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::JJones()', version='25dec2005',
-                            description=JJones.__doc__)
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::Jones()', version='25dec2005',
+                            description=Jones.__doc__)
     # Arguments that should be common to all Jonesets in the sequence:
-    # (NB: use MG_JEN_Joneset.inarg_common(pp, slave=slave)?)
-    inarg_stations(pp, slave=slave)
-    inarg_parmtable(pp, slave=slave)
-    inarg_polrep(pp, slave=slave)
-    MG_JEN_Joneset.inarg_uvplane_effect(pp, slave=slave)    
+    MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
+    MG_JEN_Joneset.inarg_Joneset_Parmset(pp, slave=slave)
+    MG_JEN_Joneset.inarg_simul(pp, slave=slave)
     JEN_inarg.define (pp, 'Jsequence', [],
                       choice=[['GJones'],['BJones'],['FJones'],['KJones'],
                               ['DJones_WSRT'],['GJones','DJones_WSRT'],
@@ -250,12 +248,12 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
                               []],
                       help='sequence of Jones matrices to be used')
     # Include default inarg records for various Jones matrix definition functions:
-    JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True, slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True, slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True, slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.JJones(_getdefaults=True, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True, simul=pp['simul'], slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True, simul=pp['simul'], slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, simul=pp['simul'], slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, simul=pp['simul'], slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True, simul=pp['simul'], slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.JJones(_getdefaults=True, simul=pp['simul'], slave=True))
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -277,15 +275,15 @@ def JJones(ns=None, Sixpack=None, slave=False, **inarg):
     jseq = TDL_Joneset.Joneseq()
     for jones in pp['Jsequence']:
         if jones=='GJones':
-            jseq.append(MG_JEN_Joneset.GJones (ns, Sixpack=Sixpack, _inarg=pp))
+            jseq.append(MG_JEN_Joneset.GJones (ns, Sixpack=Sixpack, simul=pp['simul'], _inarg=pp))
         elif jones=='BJones':
-            jseq.append(MG_JEN_Joneset.BJones (ns, Sixpack=Sixpack, _inarg=pp))
+            jseq.append(MG_JEN_Joneset.BJones (ns, Sixpack=Sixpack, simul=pp['simul'], _inarg=pp))
         elif jones=='FJones':
-            jseq.append(MG_JEN_Joneset.FJones (ns, Sixpack=Sixpack, _inarg=pp)) 
+            jseq.append(MG_JEN_Joneset.FJones (ns, Sixpack=Sixpack, simul=pp['simul'], _inarg=pp)) 
         elif jones=='JJones':
-            jseq.append(MG_JEN_Joneset.JJones (ns, Sixpack=Sixpack, _inarg=pp))
+            jseq.append(MG_JEN_Joneset.JJones (ns, Sixpack=Sixpack, simul=pp['simul'], _inarg=pp))
         elif jones=='DJones_WSRT':
-            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, Sixpack=Sixpack, _inarg=pp))
+            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, Sixpack=Sixpack, simul=pp['simul'], _inarg=pp))
         elif jones=='KJones':
             jseq.append(MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
                                                MSauxinfo=MSauxinfo(), _inarg=pp))
@@ -952,11 +950,17 @@ def inarg_Cohset_common (pp, last_changed='<undefined>', **kwargs):
                       editable=False, hide=True)
     MG_JEN_exec.inarg_ms_name(pp)
     MG_JEN_exec.inarg_tile_size(pp)
-    inarg_stations(pp)
-    inarg_parmtable(pp)
-    inarg_polrep(pp)
+
+    MG_JEN_Joneset.inarg_Joneset_common(pp)
+    # inarg_stations(pp)
+    # inarg_polrep(pp)
+    MG_JEN_Joneset.inarg_Joneset_Parmset(pp)
+    # MG_JEN_Joneset.inarg_uvplane_effect(pp)    
+    # inarg_parmtable(pp)
+    MG_JEN_Joneset.inarg_simul(pp)
+
     # MG_JEN_Sixpack.inarg_punit(pp)
-    MG_JEN_Joneset.inarg_uvplane_effect(pp)    
+
     inarg_solver_config (pp)
     inarg_redun(pp)
     inarg_resample(pp)
@@ -988,10 +992,10 @@ def description ():
 
 MG = JEN_inarg.init('MG_JEN_Cohset', description=description.__doc__)
 
-# Define some overall arguments:
-# MG_JEN_Cohset.inarg_Cohset_common (MG, last_changed='d19jan2006')
-# Local (MG_JEN_Cohset.py) version:
 inarg_Cohset_common (MG, last_changed='d19jan2006')
+JEN_inarg.modify(MG,
+                 simul=True,
+                 _JEN_inarg_option=None)     
 
 
 #----------------------------------------------------------------------------------------------------
@@ -1002,9 +1006,7 @@ inarg_Cohset_common (MG, last_changed='d19jan2006')
 inarg = MG_JEN_exec.stream_control(_getdefaults=True, slave=True)
 JEN_inarg.attach(MG, inarg)
 
-
-# inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
-inarg = make_spigots(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
+inarg = make_spigots(_getdefaults=True)    
 JEN_inarg.attach(MG, inarg)
 
 
@@ -1014,13 +1016,10 @@ JEN_inarg.attach(MG, inarg)
 # Operations on the raw uv-data:
 #----------------------------------------------------------------------------------------------------
 
-if False:                                                # ... Copied from MG_JEN_Cohset.py ...
-   # inarg = MG_JEN_Cohset.insert_flagger(_getdefaults=True) 
-   inarg = insert_flagger(_getdefaults=True)              # local (MG_JEN_Cohset.py) version 
+if False:                    
+   inarg = insert_flagger(_getdefaults=True)  
    JEN_inarg.attach(MG, inarg)
    
-
-
 
 
 #----------------------------------------------------------------------------------------------------
@@ -1029,23 +1028,17 @@ if False:                                                # ... Copied from MG_JE
 
 #========
 if True:                               
-
    inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True) 
    JEN_inarg.attach(MG, inarg)
 
-   # inarg = MG_JEN_Cohset.JJones(_getdefaults=True, slave=True) 
-   inarg = JJones(_getdefaults=True, slave=True)  
+   inarg = Jones(_getdefaults=True, slave=True)  
    JEN_inarg.attach(MG, inarg)
 
-
-   # inarg = MG_JEN_Cohset.predict(_getdefaults=True, slave=True)  
    inarg = predict(_getdefaults=True, slave=True)       
    JEN_inarg.attach(MG, inarg)
 
-
    #========
-   if True:                                        
-       # inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, slave=True) 
+   if True and (not MG['simul']):                                        
        inarg = insert_solver(_getdefaults=True, slave=True) 
        JEN_inarg.attach(MG, inarg)
                  
@@ -1148,9 +1141,9 @@ def _define_forest (ns, **kwargs):
     if True:
         # Optional: Insert a solver:
         Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
-        Joneset = JJones(ns, Sixpack=Sixpack, _inarg=MG)
+        Joneset = Jones(ns, Sixpack=Sixpack, _inarg=MG)
         predicted = predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
-        if True:
+        if True and (not MG['simul']):                                        
             # Insert a solver for a named group of MeqParms (e.g. 'GJones'):
             insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG)
 

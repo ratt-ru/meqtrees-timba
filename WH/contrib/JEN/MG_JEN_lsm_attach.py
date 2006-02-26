@@ -131,7 +131,7 @@ JEN_inarg.attach(MG, inarg)
 #----------------------------------------------------------------------------------
 
    
-inarg = MG_JEN_Cohset.JJones(_getdefaults=True, slave=True) 
+inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True) 
 JEN_inarg.modify(inarg,
                  Jsequence=['KJones'],   
                  _JEN_inarg_option=None)          
@@ -233,7 +233,7 @@ def _define_forest (ns, **kwargs):
        if sp.ispoint():                # point source (Sixpack object)
            # node = sp.iquv()
            # node = sp.coh22(ns)
-           js = MG_JEN_Cohset.JJones(ns, Sixpack=sp, _inarg=MG)
+           js = MG_JEN_Cohset.Jones(ns, Sixpack=sp, _inarg=MG)
            predicted = MG_JEN_Cohset.predict (ns, Sixpack=sp, Joneset=js, _inarg=MG)
            cs.append(predicted)
        else:	                    # patch (not a Sixpack object!)
