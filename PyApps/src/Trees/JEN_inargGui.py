@@ -157,22 +157,26 @@ class ArgBrowser(QMainWindow):
             # open the relevant .inarg file directly, and work from there
             menu.insertSeparator()     
             menu.insertItem('-> cps_inspect', self.cps_inspect)
+        if True:
+            menu.insertSeparator()     
+            submenu = QPopupMenu(menu)
+            submenu.insertItem('-> cps_stokesI', self.cps_stokesI)
+            submenu.insertItem('-> cps_GJones', self.cps_GJones)
+            submenu.insertItem('-> cps_Gphase', self.cps_Gphase)
+            submenu.insertItem('-> cps_Ggain', self.cps_Ggain)
+            submenu.insertItem('-> cps_GDJones', self.cps_GDJones)
+            submenu.insertItem('-> cps_JJones', self.cps_JJones)
+            submenu.insertItem('-> cps_GBJones', self.cps_GBJones)
+            submenu.insertItem('-> cps_BJones', self.cps_BJones)
+            submenu.insertItem('-> cps_DJones', self.cps_DJones)
+            menu.insertItem('-> cps_*', submenu)
         if False:
             menu.insertSeparator()     
-            menu.insertItem('-> cps_stokesI', self.cps_stokesI)
-            menu.insertItem('-> cps_GJones', self.cps_GJones)
-            menu.insertItem('-> cps_Gphase', self.cps_Gphase)
-            menu.insertItem('-> cps_Ggain', self.cps_Ggain)
-            menu.insertItem('-> cps_GDJones', self.cps_GDJones)
-            menu.insertItem('-> cps_JJones', self.cps_JJones)
-            menu.insertItem('-> cps_GBJones', self.cps_GBJones)
-            menu.insertItem('-> cps_BJones', self.cps_BJones)
-            menu.insertItem('-> cps_DJones', self.cps_DJones)
-        if False:
-            menu.insertSeparator()     
-            menu.insertItem('-> lsm_single', self.lsm_single)
-            menu.insertItem('-> lsm_grid', self.lsm_grid)
-            menu.insertItem('-> lsm_spiral', self.lsm_spiral)
+            submenu = QPopupMenu(menu)
+            submenu.insertItem('-> lsm_single', self.lsm_single)
+            submenu.insertItem('-> lsm_grid', self.lsm_grid)
+            submenu.insertItem('-> lsm_spiral', self.lsm_spiral)
+            menu.insertItem('-> lsm_*', submenu)
         menu.insertSeparator()     
         menu.insertItem('-> per_timeslot', self.per_timeslot)
         menu.insertItem('-> small_tile', self.small_tile)
@@ -555,7 +559,7 @@ class ArgBrowser(QMainWindow):
 
     def essence(self):
         """Show a summary of the (specified) essence of the current inarg"""
-        match = ['ms_','_col','LSM','punit',
+        match = ['ms_','_col','LSM','punit','simul',
                  'parm','pol','uvplane','stations',
                  'flag','corr','subtr','rmin','rmax','cond',
                  'sequ','solve','condit','shape_','deg_','tile']
@@ -1457,7 +1461,8 @@ class ArgBrowser(QMainWindow):
 
     def cps_GJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for GJones operation"""
-        if not self.macron_entry('MG_JEN_cps', revert): return False
+        # if not self.macron_entry('MG_JEN_cps', revert): return False
+        if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones'],
                          solvegroup=['GJones'],
@@ -1467,7 +1472,8 @@ class ArgBrowser(QMainWindow):
 
     def cps_Gphase(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for Gphase operation"""
-        if not self.macron_entry('MG_JEN_cps', revert): return False
+        # if not self.macron_entry('MG_JEN_cps', revert): return False
+        if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones'],
                          solvegroup=['Gphase'],
@@ -1478,7 +1484,8 @@ class ArgBrowser(QMainWindow):
 
     def cps_Ggain(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for Ggain operation"""
-        if not self.macron_entry('MG_JEN_cps', revert): return False
+        # if not self.macron_entry('MG_JEN_cps', revert): return False
+        if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones'],
                          solvegroup=['Ggain'],
@@ -1489,7 +1496,8 @@ class ArgBrowser(QMainWindow):
 
     def cps_GDJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for GDJones (WSRT) operation"""
-        if not self.macron_entry('MG_JEN_cps', revert): return False
+        # if not self.macron_entry('MG_JEN_cps', revert): return False
+        if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones','DJones_WSRT'],
                          solvegroup=['GJones','DJones'],
@@ -1499,7 +1507,8 @@ class ArgBrowser(QMainWindow):
 
     def cps_JJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for JJones operation"""
-        if not self.macron_entry('MG_JEN_cps', revert): return False
+        # if not self.macron_entry('MG_JEN_cps', revert): return False
+        if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['JJones'],
                          solvegroup=['JJones'],
@@ -1509,7 +1518,8 @@ class ArgBrowser(QMainWindow):
 
     def cps_GBJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for GBJones operation"""
-        if not self.macron_entry('MG_JEN_cps', revert): return False
+        # if not self.macron_entry('MG_JEN_cps', revert): return False
+        if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones','BJones'],
                          solvegroup=['GJones','BJones'],
@@ -1522,7 +1532,8 @@ class ArgBrowser(QMainWindow):
 
     def cps_BJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for BJones operation"""
-        if not self.macron_entry('MG_JEN_cps', revert): return False
+        # if not self.macron_entry('MG_JEN_cps', revert): return False
+        if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
                          data_column_name='CORRECTED_DATA',
                          Jsequence=['BJones'],
@@ -1534,7 +1545,8 @@ class ArgBrowser(QMainWindow):
 
     def cps_DJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for DJones (WSRT) operation"""
-        if not self.macron_entry('MG_JEN_cps', revert): return False
+        # if not self.macron_entry('MG_JEN_cps', revert): return False
+        if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
                          data_column_name='CORRECTED_DATA',
                          Jsequence=['DJones_WSRT'],
@@ -1545,13 +1557,15 @@ class ArgBrowser(QMainWindow):
 
     def cps_stokesI(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for stokesI operation"""
-        if not self.macron_entry('MG_JEN_cps', revert): return False
+        # if not self.macron_entry('MG_JEN_cps', revert): return False
+        if revert==True: self.revert_inarg()
         JEN_inarg.modify(self.__inarg,
                          data_column_name='CORRECTED_DATA',
                          solvegroup=['stokesI'],
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_cps_stokesI', save_protected)
 
+    #----------------------------------------------------------------------------
 
     def cps_inspect(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for inspect operation(s)"""

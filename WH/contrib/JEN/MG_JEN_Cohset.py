@@ -308,8 +308,6 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()', version='25dec2005',
                             description=predict.__doc__)
     MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
-    # inarg_stations(pp, slave=slave)
-    # inarg_polrep(pp, slave=slave)
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
@@ -996,7 +994,7 @@ MG = JEN_inarg.init('MG_JEN_Cohset', description=description.__doc__)
 
 inarg_Cohset_common (MG, last_changed='d19jan2006')
 JEN_inarg.modify(MG,
-                 simul=True,
+                 simul=False,
                  _JEN_inarg_option=None)     
 
 
@@ -1145,8 +1143,13 @@ def _define_forest (ns, **kwargs):
         Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
         Joneset = Jones(ns, Sixpack=Sixpack, _inarg=MG)
         predicted = predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
-        if True and (not MG['simul']):                                        
-            # Insert a solver for a named group of MeqParms (e.g. 'GJones'):
+        if MG['simul']:
+            # Replace the uv-data with the predicted visibilities: 
+            Cohset.replace(ns, predicted)
+            visualise (ns, Cohset)
+            visualise (ns, Cohset, type='spectra')
+        else:
+            # Insert a solver for a named solvegroup of MeqParms (e.g. 'GJones'):
             insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG)
 
     if True:

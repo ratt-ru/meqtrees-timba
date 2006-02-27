@@ -27,6 +27,7 @@
 #    - 04 jan 2006: cleanup(): collection of orphans to avoid browser clutter
 #    - 11 feb 2006: add unop argument to .Condeq() and .Condeq_redun()
 #    - 11 feb 2006: added .fullDomainMux()
+#    - 25 feb 2006: added .replace() and debugged .add() 
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -822,6 +823,10 @@ class Cohset (TDL_common.Super):
         return self.binop(ns, binop='Subtract', Cohset=Cohset)
 
 
+    def replace(self, ns, Cohset=[]):
+        """Replace with the (sum of the) cohaerencies of the given (list of) Cohset(s)"""
+        return self.add(ns, Cohset, exclude_itself=True)
+
     def add(self, ns, Cohset=[], exclude_itself=False):
         """Add the cohaerencies of the given (list of) Cohset(s)"""
         funcname = '::add():'
@@ -831,23 +836,25 @@ class Cohset (TDL_common.Super):
         # Modify the internal cohaerencies:
         uniqual = _counter(funcname, increment=-1)
         for key in self.keys():
-            cc = [self.__coh[key]]                     # include itself (default)
-            if exclude_itself: cc = []                 # exclude itself
-            for cs in Cohset: cc.append(cs[key])       # collect corresponding (key) nodes
-            if len(cc)==1:
-                self.__coh[key] = cc[0][key]           # just use the first
-            else:
-                self.__coh[key] = ns.cohsum.qmerge(self.__coh[key])(uniqual) << Meq.Add(children=cc)
+            itself = self.__coh[key]                   # its own node
+            name = 'added'
+            if exclude_itself:
+                name = 'replaced'
+                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, complex(0.0))
+            cc = [itself]                              # make a list for MeqAdd
+            for cs in Cohset:
+                cc.append(cs[key])                     # collect corresponding (key) nodes
+            self.__coh[key] = ns[name].qmerge(itself)(uniqual) << Meq.Add(children=cc)
 
         # Reporting and book-keeping
         n = len(Cohset)
         if exclude_itself:
-            self.scope('cohsum')
-            self.label('cohsum')                
+            self.scope('replaced')
+            self.label('replaced')                
             self.history(append=funcname+' replace by sum of '+str(n)+' Cohsets:')
         else:
             self.scope('added')
-            self.history(append=funcname+' add '+str(n)+' Cohset(s) to itself:')
+            self.history(append=funcname+' added '+str(n)+' Cohset(s) to itself:')
         for cs in Cohset:
             self.history(append=funcname+' ...... '+cs.oneliner())
         self.history(append=funcname+' -> '+self.oneliner())
@@ -901,6 +908,8 @@ class Cohset (TDL_common.Super):
         self.history(append='corrupted by: '+Joneset.oneliner())
         self.history(append=funcname+' -> '+self.oneliner())
         return True
+
+    #----------------------------------------------------------------------------------
 
     def update_from_Sixpack(self, Sixpack=None):
         """Update the internal info from a Sixpack object
@@ -958,6 +967,7 @@ class Cohset (TDL_common.Super):
         self.__plot_size.update(self.Parmset.plot_size())
         return True
 
+    #---------------------------------------------------------------------------
 
     def ReSampler (self, ns, **pp):
         """Insert a ReSampler node that ignores the result cells of its child,
@@ -1078,57 +1088,6 @@ class Cohset (TDL_common.Super):
 
 
 
-    def Condeq_redun_old (self, ns, **pp):
-        """Make (2x2) MeqCondeq nodes, using Cohset as the other input.
-        If no other Cohset given, make MeqCondeqs for redundant spacings"""
-        funcname = '::Condeq_redun_old():'
-        pp.setdefault('minimum',False)      # If True, use the minimum nr of ifrs (Does not work!!)
-        uniqual = _counter(funcname, increment=-1)
-        punit = self.punit()
-        coh = dict()                       # use temporary dict for new nodes
-        stocc = dict()                     # nr of occurences per station
-        for key in self.keys():
-            s12 = self.__stations[key]
-            stocc.setdefault(s12[0], 0)
-            stocc.setdefault(s12[1], 0)
-            basel = str(around(self.__rxyz[key]))+'m'
-            coh[key] = None
-            if Cohset:                     # Use the supplied Cohset 
-                scope = 'Condeq'
-                stocc[s12[0]] += 1
-                stocc[s12[1]] += 1
-                add_new = (stocc[s12[0]]==1 or stocc[s12[1]]==1)
-                if (not pp['minimum']) or add_new: 
-                    coh[key] = ns[scope+'_'+basel](uniqual)(s1=s12[0], s2=s12[1], q=punit) << Meq.Condeq(
-                        self.__coh[key], Cohset[key])
-            elif len(self.__redun[key])>0: # Redundant spacing(s) available
-                scope = 'Condeq_redun'
-                stocc[s12[0]] += 1
-                stocc[s12[1]] += 1
-                # Assume that the first ifr in the list is the most suitable
-                # (preferably, redundant ifrs should share a station, see .redn() below)
-                key2 = self.__redun[key][0] # key of the other ifr
-                ss = self.__stations[key2]
-                stocc[ss[0]] += 1
-                stocc[ss[1]] += 1
-                add_new = (stocc[s12[0]]==1 or stocc[s12[1]]==1 or stocc[ss[0]]==1 or stocc[ss[1]]==1)
-                if (not pp['minimum']) or add_new: 
-                    coh[key] = ns[scope+'_'+basel](uniqual)(s1=s12[0], s2=s12[1], q=punit) << Meq.Condeq(
-                        self.__coh[key], self.__coh[key2])
-
-        print '\n** stocc =',stocc,'\n'
-
-        # Copy the new nodes from the temporary dict (coh):
-        for key in coh:
-            self.__coh[key] = coh[key]
-
-        # The input Cohset may contain parmgroup/solvegroup info:
-        if Cohset:
-            self.update_from_Joneset(Cohset.Joneset())
-
-        self.scope(scope)
-        self.history(append=funcname+' -> '+self.oneliner())
-        return True
 
 
 #======================================================================================

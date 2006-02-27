@@ -117,17 +117,29 @@ def adjust_for_telescope(pp, origin='<origin>'):
 def inarg_Joneset_common (pp, jones=None, **kwargs):
    """Some common JEN_inarg definitions for Joneset definition functions"""
    JEN_inarg.inarg_common(kwargs)
-   # trace = True
+   inarg_stations(pp, **kwargs)
+   inarg_polrep(pp, **kwargs)
+   JEN_inarg.define(pp, '@Jsequence', jones, hide=True,
+                    help='list membership indication (used in JEN_inargGui)')
+   return True
+
+
+def inarg_stations (pp, **kwargs):
+   """Some common JEN_inarg definitions for Joneset definition functions"""
+   JEN_inarg.inarg_common(kwargs)
    JEN_inarg.define (pp, 'stations', range(5),
                      slave=kwargs['slave'], hide=kwargs['hide'],
                      choice=[range(7),range(14),range(15),'range(5)'],
                      help='the (subset of) stations to be used')
-   # ** Jones matrix elements:
+   return True
+
+
+def inarg_polrep (pp, **kwargs):
+   """Some common JEN_inarg definitions for Joneset definition functions"""
+   JEN_inarg.inarg_common(kwargs)
    JEN_inarg.define(pp, 'polrep', 'linear', choice=['linear','circular'],
                     slave=kwargs['slave'], hide=kwargs['hide'],
                     help='polarisation representation')
-   JEN_inarg.define(pp, '@Jsequence', jones, hide=True,
-                    help='list membership indication (used in JEN_inargGui)')
    return True
 
 #------------------------------------------------------------------------------
@@ -135,7 +147,6 @@ def inarg_Joneset_common (pp, jones=None, **kwargs):
 def inarg_simul (pp, **kwargs):
    """JEN_inarg definition for simul-mode (called from MG_JEN_Cohset.Jones())"""
    JEN_inarg.inarg_common(kwargs)
-   trace = True
    JEN_inarg.define(pp, 'simul', tf=False,
                     # editable=False, hide=True,
                     slave=kwargs['slave'], trace=trace, 
@@ -148,15 +159,12 @@ def inarg_simul (pp, **kwargs):
 def inarg_Joneset_Parmset (pp, **kwargs):
    """Some common JEN_inarg definitions for Joneset definition functions"""
    JEN_inarg.inarg_common(kwargs)
-   # trace = True
    JEN_inarg.define(pp, 'parmtable', None, slave=kwargs['slave'], trace=trace,
                     choice=[None,'test'],
                     help='name of the MeqParm table to be used')
    inarg_uvplane_effect(pp, **kwargs)
-   # ** Solving instructions:
-   # ** MeqParm default values:
-   JEN_inarg.define(pp, 'ft_coeff_scale', 0.0, trace=trace, hide=True,
-                    help='scale of polc_ft non-c00 coeff')
+   # JEN_inarg.define(pp, 'ft_coeff_scale', 0.0, trace=trace, hide=True,
+   #                 help='scale of polc_ft non-c00 coeff')
    return True
 
 #------------------------------------------------------------------------------
