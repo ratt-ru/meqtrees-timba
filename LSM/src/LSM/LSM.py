@@ -611,9 +611,6 @@ class LSM:
    f.close()
 
    self.__file=filename
-   # update GUI title if possible
-   if self.__win:
-     self.__win.setCaption("File: "+self.__file)
 
   except IOError:
    print "file %s cannot be opened, save failed" % filename 
@@ -685,9 +682,7 @@ class LSM:
    f.close()
 
    self.setFileName(filename)
-   # update GUI title if possible
-   if self.__win:
-     self.__win.setCaption("File: "+self.__file)
+
   except IOError:
    print "file %s cannot be opened, load failed" % filename 
   # next step: Load the MeqTrees if possible 
