@@ -570,6 +570,12 @@ class LSM:
  # while saving, discard any existing vellsets because
  # they can be recalculated. 
  def save(self,filename):
+  # add safeguard: do not save if the filename has 
+  # a 'protected.lsm' term
+  ii=string.find(filename,'protected.lsm')
+  if ii!=-1:
+   print "WARNING: the filename %s is protected. save failed!!!"%filename
+   return
   try:
    f=open(filename,'wb') 
    p=pickle.Pickler(f)
