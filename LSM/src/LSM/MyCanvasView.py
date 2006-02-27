@@ -1164,8 +1164,12 @@ class PointSource:
   self.cross=self.addCross(xys[0],xys[1],1,5,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())
   #print "Brightness: min,max, current",self.cview.min_brightness,self.cview.max_brightness,punit.getBrightness()
   br=punit.getBrightness()
+  if self.cview.max_brightness!=self.cview.min_brightness:
+   rat=self.cview.max_brightness/self.cview.min_brightness
+  else:
+   rat=1.1
   if br >0.0:
-   length=int(math.log(br/self.cview.min_brightness)/math.log( self.cview.max_brightness/self.cview.min_brightness)*10)
+   length=int(math.log(br/self.cview.min_brightness)/math.log(rat)*10)
   else:
    length=1.0e-6
   self.pcross=self.addCross(xys[0],xys[1],1,length,self.cview.getColor(punit.getBrightness()),self.name,punit.getBrightness())

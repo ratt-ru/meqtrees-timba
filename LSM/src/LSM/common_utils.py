@@ -366,7 +366,7 @@ def extract_parms(sixpack,ns):
 def get_default_parms(nd):
  # get initrec
  irec=nd.initrec()
- print irec
+ #print irec
  # try to get default_value
  if irec.has_key('default_vale'):
   cf=irec['default_value']
@@ -391,6 +391,8 @@ def get_default_parms(nd):
      my_val=numarray.ravel(cf)[0]
    else: #scalar
      my_val=float(cf)
+   # return exponent
+   my_val=math.pow(10,my_val)
   else: # error
    print "WARNING: unable to find a value for funklet",fn
    my_val=-1

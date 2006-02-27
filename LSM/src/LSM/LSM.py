@@ -1101,13 +1101,13 @@ class LSM:
 
 
  # read in a list of sixpacks (composed) for sources
- # and build the LSM. 
+ # and build the LSM using the MeqServer.
  # sixpack_list: list of sixpacks
  # ns: NodeScope of the sixpack trees
  # f0=rest frequency
  # mqs=MeqServer proxy, when run within MeqBrowser, this should
  #     be given. Else a MeqServer will be created.
- def build_from_sixpacks(self,sixpack_list,ns,f0=1.6e6,mqs=None):
+ def build_from_sixpacks_assy(self,sixpack_list,ns,f0=1.6e6,mqs=None):
    if mqs==None:
     # fire up a server instance
     my_ass = assayer.assayer("LSM-"+time.strftime('%Y-%d-%H-%M-%S'));
@@ -1115,7 +1115,7 @@ class LSM:
    else:
     my_mqs=mqs;
    my_ns=ns
-   #my_ns.Resolve()
+   my_ns.Resolve()
    # form a request
    f1=f0+1.0
    t0=0.0
@@ -1171,6 +1171,14 @@ class LSM:
    if mqs==None:
     # shutdown
     my_ass.finish()
+
+ # read in a list of sixpacks (composed) for sources
+ # and build the LSM by reading MeqParms.
+ # sixpack_list: list of sixpacks
+ # ns: NodeScope of the sixpack trees
+ def build_from_sixpacks(self,sixpack_list,ns):
+		for my_sp in sixpack_list:
+		  self.add_sixpack(sixpack=my_sp,ns=ns)
 
 
  # Add just one sixpack to the LSM
