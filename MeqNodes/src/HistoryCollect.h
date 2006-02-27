@@ -44,6 +44,15 @@ public:
 
   virtual TypeId objectType () const { return TpMeqHistoryCollect; }
 
+  // process HistoryCollect-specific rider commands
+  // Get.History    args: none
+  //    return history list in result
+  // Clear.History  args: none
+  //    clear history list
+  virtual int processCommand (Result::Ref &resref,
+                              const HIID &command,
+                              DMI::Record::Ref &args,
+                              int verbosity=0);
 protected:
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
@@ -51,7 +60,6 @@ protected:
 
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
   
-  virtual int  processCommands (Result::Ref &resref,const DMI::Record &rec,const Request &req);
   
   void fillResult (Result::Ref &resref,const DMI::List &list);
   
@@ -65,11 +73,6 @@ protected:
   // verbosity: if False, then history list is only returned
   // when requested. If True, it is attached to every result.
   bool verbose_;
-  
-  // temporary verbosity flag used when a Get.History command is issued 
-  bool temp_verbose_;
-  // temporary clear-history flag used when a Clear.History command is issued 
-  bool temp_clear_;
   
 };
 

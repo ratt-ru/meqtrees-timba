@@ -67,11 +67,6 @@ const HIID FForestSerial = AidForest|AidSerial;
 // publishing is disabled for all nodes.
 const HIID FDisabledAllPublishing = AidDisabled|AidAll|AidPublishing;
 
-// ...as field node_state
-// const HIID FNodeState = AidNode|AidState;
-
-//const HIID FBreakpoint = AidBreakpoint;
-const HIID FSingleShot = AidSingle|AidShot;
 
 MeqServer * MeqServer::mqs_ = 0;
 

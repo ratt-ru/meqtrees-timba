@@ -34,8 +34,10 @@ def _define_forest (ns,**kwargs):
         a=None
       ),
     );
+  # make solver2 fail deliberately by specifying a non-existent solvable
+  # this tests our error handling
   ns.solver2 << Meq.Solver(
-      num_iter=5,debug_level=10,solvable="y",
+      num_iter=5,debug_level=10,solvable="x",
       children = Meq.Condeq(
         Meq.Parm([0,1]),
         5 + (ns.y << Meq.Parm(0,node_groups='Parm')),

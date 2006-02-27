@@ -26,11 +26,9 @@ namespace Meq
     FCommandIndex     = AidCommand|AidIndex,
     FSync             = AidSync,
       
-    FRecursive        = AidRecursive, 
     FFileName         = AidFile|AidName,
       
     FEnable           = AidEnable,
-    FLevel            = AidLevel,
     FEventId          = AidEvent|AidId,
     FEventData        = AidEvent|AidData,
     

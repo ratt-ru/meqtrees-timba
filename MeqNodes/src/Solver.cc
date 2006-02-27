@@ -30,6 +30,7 @@
 #include <MEQ/MeqVocabulary.h>
 #include <MEQ/Forest.h>
 #include <MEQ/MTPool.h>
+#include <MEQ/Rider.h>
 #include <MeqNodes/Solver.h>
 #include <MeqNodes/Condeq.h>
 #include <MeqNodes/ParmTable.h>
@@ -1213,11 +1214,12 @@ void Solver::fillRider (Request::Ref &reqref,bool save_funklets,bool converged)
        iparm != parm_uks_.end(); iparm++ )
   {
     int nodeindex = iparm->first;
-    // create command record for this parm
-    DMI::Record & cmdrec = grouprec[nodeindex] <<= new DMI::Record;
+    // create UpdateParm command for this parm
+    DMI::Record & toprec = grouprec[nodeindex] <<= new DMI::Record;
+    DMI::Record & cmdrec = toprec[FUpdateParm] <<= new DMI::Record;
     const ParmUkInfo & pui = iparm->second;
     // create vector of updates and get pointer to its data
-    DMI::NumArray &arr = cmdrec[FUpdateValues] <<= new DMI::NumArray(Tpdouble,LoShape(pui.nuk));
+    DMI::NumArray &arr = cmdrec[FIncrUpdate] <<= new DMI::NumArray(Tpdouble,LoShape(pui.nuk));
     double *pupd = static_cast<double*>(arr.getDataPtr());
     int j=0;
     // fill updates for this node's spids, by fetching them from the solution 

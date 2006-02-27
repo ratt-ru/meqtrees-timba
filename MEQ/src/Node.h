@@ -45,7 +45,7 @@
 #pragma aid Cache Policy Stats All New Requests Parents Num Active Description
 #pragma aid Profiling Stats Total Children Get Result Ticks Per Second CPU MHz
 #pragma aid Poll Polling Order MT Propagate Child Fails Message Error Data
-#pragma aid Parent Indices Is Internal Publishing 
+#pragma aid Parent Indices Is Internal Publishing Level Recursive
     
 namespace Meq 
 { 
@@ -114,11 +114,10 @@ const HIID FActiveSymDeps = AidActive|AidSymdeps;
 
 const HIID FInternalInitIndex = AidInternal|AidInit|AidIndex;
 
-//== Node commands
-const HIID FResolveChildren = AidResolve|AidChildren;
-const HIID FInitDepMask = AidInit|AidDep|AidMask;
-const HIID FClearDepMask = AidClear|AidDep|AidMask;
-const HIID FAddDepMask = AidAdd|AidDep|AidMask;
+//== fields for Node commands
+const HIID FLevel = AidLevel;
+const HIID FSingleShot = AidSingle|AidShot;
+const HIID FRecursive = AidRecursive;
 
 //== Event IDs
 const HIID EvNodeResult = AidNode|AidResult;
@@ -450,64 +449,6 @@ class Node : public NodeFace
 
     LocalDebugContext;
     
-    //## Rider is a utility class providing functions for manipulating
-    //## the request rider.
-    class Rider
-    {   
-      public:
-      //## bitwise flags for methods below. Note that they are cumulative
-      typedef enum {
-        NEW_RIDER     = 0x01,
-        NEW_GROUPREC  = 0x02,
-        NEW_CMDREC    = 0x04,
-        NEW_ALL       = 0x07
-      } RiderFlags;
-        
-      //## Clears the rider from the request, if any.
-      //## Reqref will be COWed as needed.
-      static void clear (Request::Ref &reqref);
-
-      //## Inits (if necessary) and returns the rider.
-      //## Reqref will be COWed as needed.
-      //## If the NEW_RIDER flag is given, always creates a new rider.
-      static DMI::Record & getRider (Request::Ref &reqref,int flags=0);
-
-      //## Inits (if necessary) and returns the group command record for 'group'.
-      //## Reqref will be COWed as needed.
-      //## If the NEW_RIDER flag is given, always creates a new rider.
-      //## If the NEW_GROUPREC flag is given, always creates a new GCR.
-      static DMI::Record & getGroupRec (Request::Ref &reqref,const HIID &group,int flags=0);
-
-      //## Inits (if necessary) and returns the command_all subrecord for the given group.
-      //## Reqref will be COWed as needed.
-      //## If the NEW_RIDER flag is given, always creates a new rider.
-      //## If the NEW_GROUPREC flag is given, always creates a new GCR.
-      //## If the NEW_CMDREC flag is given, always creates a new command subrecord.
-      static DMI::Record & getCmdRec_All (Request::Ref &reqref,const HIID &group,int flags=0);
-
-      //## Inits (if necessary) and returns the command_by_nodeindex subrecord for 
-      //## the given group. Reqref will be COWed as needed.
-      //## If the NEW_RIDER flag is given, always creates a new rider.
-      //## If the NEW_GROUPREC flag is given, always creates a new GCR.
-      //## If the NEW_CMDREC flag is given, always creates a new command subrecord.
-      static DMI::Record & getCmdRec_ByNodeIndex (Request::Ref &reqref,const HIID &group,int flags=0);
-
-      //## Inits (if necessary) and returns the command_by_list subrecord (field) for 
-      //## the given group. Reqref will be COWed as needed.
-      //## If the NEW_RIDER flag is given, always creates a new rider.
-      //## If the NEW_GROUPREC flag is given, always creates a new GCR.
-      //## If the NEW_CMDREC flag is given, always creates a new command subrecord.
-      static DMI::Vec & getCmdRec_ByList (Request::Ref &reqref,const HIID &group,int flags=0);
-      
-      //## Adds a symdep mask for the given group (FAll by default). Inits
-      //## riders and subrecords as necessary.
-      static void addSymDepMask (Request::Ref &reqref,const HIID &symdep,
-                                 int mask,const HIID &group = AidAll );
-      
-      //## Inits (if necessary) and returns a subrecord for rec[field]
-      static DMI::Record & getOrInit (DMI::Record &rec,const HIID &field);
-    };
-
   protected:
     //====== NodeFace method
     //## called by parent node (from holdChildCaches() usually) to hint to 
@@ -578,13 +519,40 @@ class Node : public NodeFace
     virtual void checkChildren ()
     {}
     
-    //## called to process request rider commands, if any. This is allowed
-    //## to modify the request object, a ref is passed in to facilitate COW
-    //## (since the request is normally received as read-only).
-    //## Node is allowed to return stuff from processCommands, to do this
-    //## it should attach a Result to resref (if not already attached)
-    //## and populate its rider with whatever it wants to return.
-    virtual int processCommands (Result::Ref &resref,const DMI::Record &rec,const Request &req);
+    //====== NodeFace method
+    //## Processes node-specific commands. Args is expected to contain 
+    //## a DMI::Record. Standard commands defined at this level are:
+    //## State, args: {any state sub-record} 
+    //##    Changes the state of the node for the fields found in args record.
+    //## Set.State, args: {state={any state sub-record}} 
+    //##    Alternative version. Changes the state of the node for the fields 
+    //##    found in args.state.
+    //## Clear.Cache, args: {recursive=bool} (optional, default false)
+    //##    Clears cache, optionally recursively
+    //## Clear.Cache.Recursive, args: none
+    //##    Clears cache recursively
+    //## Set.Publish.Level args: {level=int} (optional, default 1)
+    //##    equivalent to setPublishLevel(level)
+    //## Set.Breakpoint args: {breakpoint=int,    # optional, default REQUEST
+    //##                       single_shot=bool}  # optional, default false
+    //##    equivalent to setBreakpoint(breakpoint,single_shot)
+    //## Clear.Breakpoint args: {breakpoint=int,    # optional, default ALL
+    //##                         single_shot=bool}  # optional, default false
+    //##    equivalent to clearBreakpoint(breakpoint,single_shot)
+    //## None of the commands defined here return a Result. If the
+    //## command is passed in via a Request rider, this method will be
+    //## called from execute() BEFORE polling children. 
+    //## If subclasses that redefine this to return a Result for some commands,
+    //## note the following: normally the same Result is passed into
+    //## getResult() and discoverSpids(), so these methods should take care
+    //## to modify but not replace it. However, if a child poll fails and a 
+    //## collect-fails policy is in effect, the collected fails will be 
+    //## attached to the Result, so any Result returned from
+    //## processCommand() by a subclass will be lost.
+    virtual int processCommand (Result::Ref &resref,
+                                const HIID &command,
+                                DMI::Record::Ref &args,
+                                int verbosity=0);
 
     //## Called from execute() to collect the child results for a given request.
     //## Default behaviour is to call NodeNursery::syncPoll() on children,
@@ -743,9 +711,12 @@ class Node : public NodeFace
     static void Node_unlockStateMutex (void *pnode);
       
     //## processes the request rider, and calls processCommand() as appropriate.
-    //## The request object may be modified; a ref is passed in to facilitate
-    //## copy-on-write
     int processRequestRider (Result::Ref &resref,const Request &req);
+    
+    //## helper function for above. Calls processCommand() for every field
+    //## in the list. List must therefore may only contain sub-records
+    //## (or invalid refs)
+    int processCommands (Result::Ref &resref,const DMI::Record &list);
     
     //## The state mutex is locked whenever a node is liable to change its
     //## state. Normally this is locked through all of execute(), except 

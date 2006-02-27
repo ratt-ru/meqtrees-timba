@@ -58,6 +58,7 @@ class NodeFace : public DMI::BObj
     {
       //## Result has been updated (as opposed to pulled from the node's cache)
       RES_UPDATED      = 0x01<<RQIDM_NBITS,  
+      RES_OK           = RES_UPDATED,  // alias for UPDATED
       //## Normally, results have an implicit dependency on the request type (rqid bit 0).
       //## Return this code to disable this dependency.
       RES_IGNORE_TYPE  = 0x02<<RQIDM_NBITS,  
@@ -132,14 +133,6 @@ class NodeFace : public DMI::BObj
     virtual void getSyncState (DMI::Record::Ref &ref)
     { getState(ref); }
     
-    //## this defines shortcuts to return a ref to state directly
-    DMI::Record::Ref state () const
-    { DMI::Record::Ref ref; getState(ref); return ref; }
-    
-    DMI::Record::Ref syncState ()
-    { DMI::Record::Ref ref; getSyncState(ref); return ref; }
-    
-    
     //## Executes a request on the node, returns a Result object (via ref)
     //## and a bitmask describing the properties of the result.
     //## The lower part of the bitmask is generally a dependency mask.
@@ -154,9 +147,27 @@ class NodeFace : public DMI::BObj
     //## code and a description of the fail inside the Result.
     virtual int execute   (CountedRef<Result> &resref, const Request &req) throw() =0;
     
-    
-//    //## Generic "command" interface. Processes the given command
-//    virtual void processCommand (const HIID &command,const ObjRef &args) =0;
+    //## Generic command interface. Processes the given command. 
+    //## Each subclass may implement its own set of commands.
+    //## command: command name
+    //## args: a DMI::Record of input arguments.
+    //##    Note that args are passed in as a non-const ref that may be taken
+    //##    over, its up to the caller to save a copy if needed.
+    //##    By convention, an invalid args ref may be interpreted as a 
+    //##    boolean "false" or "None" if appropriate.
+    //## Verbosity level: if >0, node may issue events/messages describing
+    //##    the operation. 
+    //## resref (output): a Result record may be returned by attaching it here.
+    //## Return code:
+    //##    Should have the RES_OK bit set if a valid command was found and
+    //##    processed, or unset if the command is not recognized. It may also
+    //##    contain a dependency mask.
+    //## Errors (except unknown command) should be indicated by throwing an 
+    //## exception.
+    virtual int processCommand (CountedRef<Result> &resref,
+                                const HIID &command,
+                                DMI::Record::Ref &args,
+                                int verbosity=0) =0;
     
     
     //## Clears the node's result cache, optionally recursively.
@@ -192,6 +203,16 @@ class NodeFace : public DMI::BObj
     virtual std::string sdebug(int detail = 0, const std::string &prefix = "", const char *objname = 0) const
     { return "node "+name(); }
 
+    
+    //## SOME UTILITY SHORTCUTS
+    //## this defines shortcuts to return a ref to state directly
+    DMI::Record::Ref state () const
+    { DMI::Record::Ref ref; getState(ref); return ref; }
+    
+    DMI::Record::Ref syncState ()
+    { DMI::Record::Ref ref; getSyncState(ref); return ref; }
+    
+    
     
   private:
     //## we do have some private data: name and nodeindex    

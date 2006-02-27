@@ -92,8 +92,26 @@ namespace Meq {
 			   const std::vector<Result::Ref> &childres,
 			   const Request &req,bool newreq);
 
-    // process parm-specific rider commands
-    virtual int processCommands (Result::Ref &resref,const DMI::Record &rec,const Request &req);
+    // process Parm-specific rider commands
+    // the following commands are recognized:
+    // Update.Parm , args:
+    //    { incr_update=<vector of doubles>, # incremental updates to spid values (default: no update)
+    //      converged=bool,                  # set the converged flag (default false)
+    //      save_funklets=bool,              # save funklets (default false)
+    //      clear_funklets=bool              # clear funklets (default false)
+    //    }
+    // Save.Funklets      args: none          
+    //    Save funklets (can also be specified via an option to Update.Parm)
+    // Clear.Funklets     args: none          # clear funklets
+    //    Clear funklets (can also be specified via an option to Update.Parm)
+    virtual int processCommand (Result::Ref &resref,
+                                const HIID &command,
+                                DMI::Record::Ref &args,
+                                int verbosity=0);
+    
+    // clears out any current funklets
+    void clearFunklets ();
+
     
     // Make the new value persistent (for the given domain).
     virtual void save();

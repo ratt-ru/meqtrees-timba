@@ -46,8 +46,7 @@ HistoryCollect::HistoryCollect()
     top_label_(AidHistory),
     input_index_(FVellSets|AidSlash|0|AidSlash|FValue),
     max_size_(-1),
-    verbose_(false),
-    temp_verbose_(false)
+    verbose_(false)
 {
 }
 
@@ -77,24 +76,21 @@ void HistoryCollect::fillResult (Result::Ref &resref,const DMI::List &list)
   toprec[FValue] = list;
 }
 
-int HistoryCollect::processCommands (Result::Ref &resref,const DMI::Record &rec,const Request &req)
+int HistoryCollect::processCommand (Result::Ref &resref,
+                                    const HIID &command,
+                                    DMI::Record::Ref &args,
+                                    int verbosity)
 {
-  int retcode = Node::processCommands(resref,rec,req);
-  if( rec[CmdGetHistory].as<bool>(false) )
+  int retcode = Node::processCommand(resref,command,args,verbosity);
+  if( command == CmdGetHistory )
   {
-    // if request has a cells field, then our getResult() will be called
-    // anyway, so just set a flag instead of filling it in
-    if( req.hasCells() )
-      temp_verbose_ = true;
-    else
-      fillResult(resref,state()[FHistoryList].as<DMI::List>());
+    fillResult(resref,state()[FHistoryList].as<DMI::List>());
+    retcode |= RES_OK;
   }
-  if( rec[CmdClearHistory].as<bool>(false) )
+  else if( command == CmdClearHistory )
   {
-    if( req.hasCells() )
-      temp_clear_ = true;
-    else
-      wstate()[FHistoryList].replace() <<= new DMI::List;
+    wstate()[FHistoryList].replace() <<= new DMI::List;
+    retcode |= RES_OK;
   }
   return retcode;
 }
@@ -131,12 +127,9 @@ int HistoryCollect::getResult (Result::Ref &resref,
         list.remove(0);
     }
     // if verbose, then add list to result
-    if( verbose_ || temp_verbose_ )
+    if( verbose_ )
       fillResult(resref,list);
   }
-  if( temp_clear_ )
-    wstate()[FHistoryList].replace() <<= new DMI::List;
-  temp_verbose_ = temp_clear_ = false;
   return 0;
 }
 

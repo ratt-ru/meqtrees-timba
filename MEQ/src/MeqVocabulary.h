@@ -38,7 +38,7 @@
 #pragma aid Solvable Config Groups All By List Polc Polcs Scale Matrix
 #pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear Invert Use Previous Reset
 #pragma aid Metrics Rank Fit Errors CoVar Flag Bit Mu StdDev Chi Iter Last Update
-#pragma aid Override Policy Discover Spids Map Eval Mode
+#pragma aid Override Policy Discover Spids Map Eval Mode Incr
 #pragma aid Iteration Solution Dataset Next Service Sequence
 #pragma aid Tile Tiled Tiles Tiling Sizes
 
@@ -87,7 +87,8 @@ namespace Meq
     FEndIndex        = AidEnd|AidIndex,
     
     // Parm rider commands
-    FUpdateValues    = AidUpdate|AidValues,
+    FUpdateParm      = AidUpdate|AidParm,
+    FIncrUpdate      = AidIncr|AidUpdate,
     FSaveFunklets    = AidSave|AidFunklets,
     FClearFunklets   = AidClear|AidFunklets,
     

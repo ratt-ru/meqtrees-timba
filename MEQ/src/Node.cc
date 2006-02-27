@@ -769,20 +769,6 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
   }
 }
 
-// process Node-specific commands
-int Node::processCommands (Result::Ref &,const DMI::Record &rec,const Request &req)
-{
-  bool generate_symdeps = false;
-  // process the "State" command: change node state
-  ObjRef stateref = rec[FState].ref(true);
-  if( stateref.valid() )
-  {
-    cdebug(4)<<"processCommands("<<FState<<"): calling setState()"<<endl;
-    setState(stateref.ref_cast<DMI::Record>());
-  }
-  return 0;
-}
-
 int Node::discoverSpids (Result::Ref &ref,const std::vector<Result::Ref> &child_results,
                          const Request &)
 {

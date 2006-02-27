@@ -772,77 +772,110 @@ namespace Meq {
       }//if rec[TableName]
     
   }
-
-  int Parm::processCommands (Result::Ref &resref,const DMI::Record &rec,const Request &req)
+  
+  void Parm::clearFunklets ()
   {
-    // process parent class's commands
-    int retcode = Node::processCommands(resref,rec,req);
-    bool saved  = false;
+    // clear out relevant fields
+    its_funklet_.detach();
+    wstate()[FFunklet].remove();
+    wstate()[FDomain].remove();
+    wstate()[FDomainId].remove();
+    domain_id_ = HIID();
+  }
+
+  int Parm::processCommand (Result::Ref &resref,const HIID &command,
+                            DMI::Record::Ref &args,int verbosity)
+  {
+    // process parent class commands
+    int retcode = Node::processCommand(resref,command,args,verbosity);
     
-    if(rec[FConverged].as<bool>(false))
-      {
-	converged_=true;
-	wstate()[FConverged]=converged_;
-      }
-    // Is an Update.Values command specified? use it to update solve funklets
-    DMI::Record::Hook hset(rec,FUpdateValues);
-    if( hset.exists() )
+    if( command == FUpdateParm )
+    {
+      retcode |= RES_OK;
+      // check if Converged flag is raised
+      if( args[FConverged].as<bool>(false) )
+	wstate()[FConverged] = converged_ = true;
+      
+      // Are updated Values specified? use it to update solve funklets
+      bool saved = false;
+      DMI::Record::Hook hset(*args,FIncrUpdate);
+      if( hset.exists() )
       {
 	if( isSolvable() )
+	{
+          // OMS 27/02/2006: we used to pass in the Request and make this sanity check.
+          // Since we no longer pass in a request, I have commented out this 
+          // check and the else clause below.
+          // 	  HIID req_domain_id = RqId::maskSubId(req.id(),domain_depend_mask_);
+          //           // check that the update refers to the same domain (if this is not true,
+          //           // something is seriously wrong)
+          //	  if( req_domain_id == domain_id_ )
+	  cdebug(2)<<"got updated values"<<endl;
+	  // Update the funklet coefficients with the new values.
+	  LoVec_double values = hset.as<LoVec_double>();
+	  FailWhen(!tiled_ && (values.size() != int(its_funklet_->getSpids().size())),
+		   "size of "+FIncrUpdate.toString()+" field does not match size of funklets");
+	  its_funklet_().update(values.data());
+	  wstate()[FFunklet].replace()=its_funklet_().getState();
+	  if( auto_save_ )
 	  {
-	    HIID req_domain_id = RqId::maskSubId(req.id(),domain_depend_mask_);
-	    if( req_domain_id == domain_id_ )
-	      {
-		cdebug(2)<<"got "<<FUpdateValues<<" command"<<endl;
-		// Update the funklet coefficients with the new values.
-		LoVec_double values = hset.as<LoVec_double>();
-		FailWhen(!tiled_ && (values.size() != int(its_funklet_->getSpids().size())),
-			 "size of "+FUpdateValues.toString()+" does not match size of funklets");
-		its_funklet_().update(values.data());
-		wstate()[FFunklet].replace()=its_funklet_().getState();
-		if( auto_save_ )
-		  {
-		    save();
-		    saved = true;
-		  }
-		// result depends on everything
-		retcode |= domain_depend_mask_|solve_depend_mask_;
-	      }
-	    else
-	      {
-		cdebug(2)<<"got "<<FUpdateValues<<", but request domain ID "<<req_domain_id<<
-                  " does not match current funklet domain ID "<<domain_id_<<endl;
-		cdebug(2)<<"ignoring "<<FUpdateValues<<" command"<<endl;
-	      }
-
-
+	    save();
+	    saved = true;
 	  }
-	else
-	  {
-	    cdebug(2)<<"got "<<FUpdateValues<<", but parm is not solvable"<<endl;
-	    cdebug(2)<<"ignoring "<<FUpdateValues<<" command"<<endl;
-	  }
+	  // result depends on everything
+	  retcode |= domain_depend_mask_|solve_depend_mask_;
+          if( verbosity>0 )
+            postMessage("applied incremental spid value update");
+          // 	  else
+          // 	  {
+          //             Throw("received incremental update for an unexpected domain ID");
+          //             // cdebug(2)<<"got incremental update, but request domain ID "<<req_domain_id<<
+          //             //  " does not match current funklet domain ID "<<domain_id_<<endl;
+          //             // cdebug(2)<<"ignoring the incremental update"<<endl;
+          // 	  }
+	}
+	else // not solvable
+	{
+          Throw("received incremental update for a non-solvable parm");
+          // cdebug(2)<<"got incremental update but parm is not solvable"<<endl;
+          // cdebug(2)<<"ignoring the incremental update"<<endl;
+	}
       }
-    // if not already saved, then check for a Save.Funklets command
-
-    cdebug(2)<<"saving funklets ? "<<rec[FSaveFunklets].as<bool>(false)<<endl;
-
-    if( !saved && rec[FSaveFunklets].as<bool>(false) ){
-      save();
-
-    }
-    // lastly, check for a Clear.Funklets command
-    if( rec[FClearFunklets].as<bool>(false) )
+      
+      // if not already saved, then check for a Save.Funklets option
+      cdebug(2)<<"saving funklets ? "<<args[FSaveFunklets].as<bool>(false)<<endl;
+      if( !saved && args[FSaveFunklets].as<bool>(false) )
       {
-	// clear out relevant fields
-	its_funklet_.detach();
-	wstate()[FFunklet].remove();
-	wstate()[FDomain].remove();
-	wstate()[FDomainId].remove();
-	domain_id_ = HIID();
-	//    retcode |= RES_NO_CACHE;
+        save();
+        saved = true;
       }
-
+      if( saved && verbosity>0 )
+        postMessage("funklets have been saved");
+      
+      // lastly, check for a Clear.Funklets option
+      if( args[FClearFunklets].as<bool>(false) )
+      {
+        clearFunklets();
+        if( verbosity>0 )
+          postMessage("clearing funklets");
+      }
+    }
+    else if( command == FSaveFunklets )
+    {
+      save();
+      if( verbosity>0 )
+        postMessage("saving funklets");
+      retcode |= RES_OK;
+    }
+    else if( command == FClearFunklets )
+    {
+      clearFunklets();
+      if( verbosity>0 )
+        postMessage("clearing funklets");
+      retcode |= RES_OK;
+    }
+    
+    // accumulated return code
     return retcode;
   }
 
