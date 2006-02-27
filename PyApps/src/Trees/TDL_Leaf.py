@@ -32,30 +32,93 @@ from Timba.Trees import TDL_common
 #**************************************************************************************
 
 
-def const_pi(ns): return MeqConstant(ns, 'pi', pi)
-def const_2pi(ns): return MeqConstant(ns, '2pi', 2*pi)
-def const_pi2(ns): return MeqConstant(ns, 'pi/2', pi/2)
-def const_e(ns): return MeqConstant(ns, 'e_ln', e)
-def const_sqrt2(ns): return MeqConstant(ns, 'sqrt(2)', sqrt(2.0))
-def const_sqrt3(ns): return MeqConstant(ns, 'sqrt(3)', sqrt(3.0))
+def const_pi(ns): return MeqConstant(ns, pi, name='pi')
+def const_2pi(ns): return MeqConstant(ns, 2*pi, name='2pi')
+def const_pi2(ns): return MeqConstant(ns, pi/2, name='pi/2')
 
-def const_c_light(ns): return MeqConstant(ns, 'c_light_m/s', 2.9979250e8)
-def const_e_charge(ns): return MeqConstant(ns, 'e_charge_C', 1.6021917e-19)
+def const_e(ns): return MeqConstant(ns, e, name='e_ln')
+def const_sqrt2(ns): return MeqConstant(ns, sqrt(2.0), name='sqrt(2)')
+def const_sqrt3(ns): return MeqConstant(ns, sqrt(3.0), name='sqrt(3)')
+def const_sqrt5(ns): return MeqConstant(ns, sqrt(5.0), name='sqrt(5)')
+
+def const_c_light(ns): return MeqConstant(ns, 2.9979250e8, name='c_light_m/s')
+def const_e_charge(ns): return MeqConstant(ns, 1.6021917e-19, name='e_charge_C')
+
 h_Planck =  6.626196e-34
-def const_h_Planck(ns): return MeqConstant(ns, 'h_Planck_Js', h_Planck)
-def const_h2pi_Planck(ns): return MeqConstant(ns, 'h2pi_Planck_Js', h_Planck/(2*pi))
+def const_h_Planck(ns): return MeqConstant(ns, h_Planck, name='h_Planck_Js')
+def const_h2pi_Planck(ns): return MeqConstant(ns, h_Planck/(2*pi), name='h_Planck_Js/2pi')
+
 k_Boltzmann = 1.380622e-23
-def const_k_Boltzmann(ns): return MeqConstant(ns, 'k_Boltzmann_J/K', k_Boltzmann)
-def const_k_Jy(ns): return MeqConstant(ns, 'k_Jy/K', k_Boltzmann/1e-26)
-def const_2k_Jy(ns): return MeqConstant(ns, '2k_Jy/Hz.K', 2*k_Boltzmann/1e-26)
-def const_G_gravity(ns): return MeqConstant(ns, 'G_gravity_Nm2/kg2', 6.6732e-11)
+def const_k_Boltzmann(ns): return MeqConstant(ns, k_Boltzmann, name='k_Boltzmann_J/K')
+def const_k_Jy(ns): return MeqConstant(ns, k_Boltzmann/1e-26, name='k_Jy/K')
+def const_2k_Jy(ns): return MeqConstant(ns, 2*k_Boltzmann/1e-26, name='2k_Jy/HzK')
+def const_G_gravity(ns): return MeqConstant(ns, 6.6732e-11, name='G_gravity_Nm2/kg2')
 
-def MeqConstant(ns, name='constant', value=-1.0, unop=None):
-    uniqual = _counter (name, increment=True)
-    node = ns[name](uniqual) << Meq.Constant(value)
-    return apply_unop(ns, unop, node)
-    
+#---------------------------------------------------------------------------------------
 
+def str2num (value):
+    """Helper function to convert a string value to numeric"""
+    if isinstance(value, str):
+        if value=='pi': value = pi
+        if value=='2pi': value = 2*pi
+        if value=='e': value = e
+        if value=='c': value = 2.9979250e8
+        if value=='k': value = 1.380622e-23
+        if value=='G': value = 6.6732e-11
+        if value=='h': value = 6.626196e-34
+    if isinstance(value, str):
+        value = eval(str)
+    return value
+
+#---------------------------------------------------------------------------------------
+
+def MeqConstant(ns, value=-1.23456789,
+                name=None, qual='uniqual',
+                binop=None, rhs=None,
+                unop=None):
+    """Make a MeqConstant node, with some services"""
+
+    # Prepare:
+    str_val = str(value)
+    str_rhs = str(rhs)
+    if name==None: name = str_val
+    if isinstance(value, str): value = str2num(value)
+
+    # Optional: apply a binary operation:
+    if isinstance(binop, str):
+        rhs = str2num (rhs)
+        if binop=='+': value += rhs
+        if binop=='-': value -= rhs
+        if binop=='*': value *= rhs
+        if binop=='/': value /= rhs
+        if binop=='^': value ^= rhs
+        name += binop+str_rhs
+        if unop==None: name = '('+name+')'
+
+    # Optional: apply one or more unary operations:
+    if not unop==None:
+        if not isinstance(unop, (list, tuple)): unop = [unop]
+        for unop1 in unop:
+            unop1 = unop1.lower()
+            try:
+                seval = unop1+'('+str(value)+')'
+                value = eval(seval)
+            except:
+                print '\n**',seval,'\n  ',sys.exc_info(),'\n'
+                return seval
+            name = unop1+'('+name+')'
+
+    # Make the node:
+    if qual==None:
+        node = ns[name] << Meq.Constant(value)
+    elif isinstance(qual, dict):
+        node = ns[name](**qual) << Meq.Constant(value)
+    elif qual=='uniqual':
+        uniqual = _counter (name, increment=True)
+        node = ns[name](uniqual) << Meq.Constant(value)
+    else:
+        node = ns[name](qual) << Meq.Constant(value)
+    return node
 
 
 #**************************************************************************************
@@ -63,12 +126,33 @@ def MeqConstant(ns, name='constant', value=-1.0, unop=None):
 #**************************************************************************************
 
 
-def apply_unop(ns, unop=None, node=None):
+def apply_unop(ns, node=None, unop=None):
     """Helper function to apply (optional) unary operation(s) to node"""
     if unop==None: return node
     if not isinstance(unop, (list, tuple)): unop = [unop]
     for unop1 in unop:
         node = ns << getattr(Meq,unop1)(node)
+    return node
+
+def apply_unop_to_constant(ns, value=None, unop=None):
+    """Helper function to apply (optional) unary operation(s) to a constant"""
+    if unop==None: return node
+    if not isinstance(unop, (list, tuple)): unop = [unop]
+    for unop1 in unop:
+        node = ns << getattr(Meq,unop1)(node)
+    return node
+
+def apply_binop(ns, node=None, binop=None, rhs=None):
+    """Helper function to apply (optional) binary operation to node:
+    result = node binop rhs (right-hand-side)"""
+    if rhs==None: return node
+    if not isinstance(binop, str): return node
+    if binop=='+': binop = 'Add'
+    if binop=='-': binop = 'Subtract'
+    if binop=='*': binop = 'Multiply'
+    if binop=='/': binop = 'Divide'
+    if binop=='^': binop = 'Pow'
+    node = ns << getattr(Meq,binop)(node,rhs)
     return node
 
 def shift_mean(ns, node=None, mean=0.0):
@@ -103,7 +187,7 @@ def post_process(ns, node=None, **pp):
     if not pp['mean']==None:
         node = shift_mean(ns, node, pp['mean'])
     if pp['unop']:
-        node = apply_unop(ns, pp['unop'], node)
+        node = apply_unop(ns, node, pp['unop'])
     if pp['normalise']:
         node = normalise(ns, node, pp['normalise'])
     return node
@@ -178,7 +262,7 @@ def MeqTsky (ns, index=-2.6, unop=None):
     wvl = MeqWavelength(ns)
     # NB: I have no idea where the 50 comes from....
     node = ns.Tsky_K(uniqual) << Meq.Pow(wvl, pindex) * 50
-    return apply_unop(ns, unop, node)
+    return apply_unop(ns, node, unop)
     
 
 
@@ -253,7 +337,7 @@ if __name__ == '__main__':
 
     cc = []
 
-    if 1:
+    if 0:
         cc.append(MeqFreq(ns))
         cc.append(MeqWavelength(ns))
         cc.append(MeqWavelength(ns, unop='Sqr'))
@@ -276,7 +360,7 @@ if __name__ == '__main__':
         cc.append(MeqAzimuth(ns))
         cc.append(MeqElevation(ns))
 
-    if 0:
+    if 1:
         ss = ['pi','pi2','2pi']
         ss.extend(['e','sqrt2', 'sqrt3'])
         ss.extend(['G_gravity','h_Planck', 'h2pi_Planck', 'e_charge'])
@@ -286,6 +370,25 @@ if __name__ == '__main__':
             v = eval(func)
             cc.append(v)
             print '- TDL_Leaf.'+func,' ->',v.name,v.initrec()
+
+    if 0:
+        node = MeqTime(ns)
+        cc.append(apply_binop(ns, node, 'Add', 3))
+        cc.append(apply_binop(ns, node, 'Subtract', 3))
+        cc.append(apply_binop(ns, node, 'Multiply', 3))
+        cc.append(apply_binop(ns, node, 'Divide', 3))
+        cc.append(apply_binop(ns, node, 'Pow', 3))
+        cc.append(apply_binop(ns, node, '+', 3))
+        cc.append(apply_binop(ns, node, '-', 3))
+        cc.append(apply_binop(ns, node, '*', 3))
+        cc.append(apply_binop(ns, node, '/', 3))
+        cc.append(apply_binop(ns, node, '^', 3))
+
+    if 1:
+        cc.append(MeqConstant(ns, 'pi', binop='+', rhs=3))
+        cc.append(MeqConstant(ns, 'pi', binop='/', rhs=2.5, unop=['Cos','Sin']))
+        cc.append(MeqConstant(ns, 'pi', binop='/', rhs='pi'))
+        cc.append(MeqConstant(ns, 'pi', binop='/', rhs='pi'))
 
     if 1:
         root = ns.root << Meq.Composer(children=cc)

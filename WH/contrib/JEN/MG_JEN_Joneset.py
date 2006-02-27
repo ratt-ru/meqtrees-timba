@@ -118,11 +118,13 @@ def inarg_Joneset_common (pp, jones=None, **kwargs):
    """Some common JEN_inarg definitions for Joneset definition functions"""
    JEN_inarg.inarg_common(kwargs)
    # trace = True
-   JEN_inarg.define(pp, 'stations', [0], slave=kwargs['slave'], trace=trace, 
-                    help='list of station names/numbers')
+   JEN_inarg.define (pp, 'stations', range(5),
+                     slave=kwargs['slave'], hide=kwargs['hide'],
+                     choice=[range(7),range(14),range(15),'range(5)'],
+                     help='the (subset of) stations to be used')
    # ** Jones matrix elements:
    JEN_inarg.define(pp, 'polrep', 'linear', choice=['linear','circular'],
-                    slave=kwargs['slave'], trace=trace, 
+                    slave=kwargs['slave'], hide=kwargs['hide'],
                     help='polarisation representation')
    JEN_inarg.define(pp, '@Jsequence', jones, hide=True,
                     help='list membership indication (used in JEN_inargGui)')
@@ -310,8 +312,6 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     adjust_for_telescope(pp, origin=funcname)
     pp['punit'] = get_punit(Sixpack, pp)
 
-    print '\n** pp =',pp,'\n'
-
     # Create a Joneset object
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
     js.display('inside GJones')
@@ -359,7 +359,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
        for Ggain in [a1,a2]:
           if simul:
-             js.Leafset.define_MeqLeaf (ns, Ggain, qual=qual)
+             js.Leafset.define_MeqLeaf (ns, Ggain, qual=qual, **pp)
           else:
              # default = MG_JEN_funklet.polc_ft (c00=pp['c00_Ggain'], stddev=pp['stddev_Ggain'],
              #                                  fdeg=pp['fdeg_Ggain'], tdeg=pp['tdeg_Ggain'],
@@ -370,7 +370,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
        for Gphase in [p1,p2]:
           if simul:
-             js.Leafset.define_MeqLeaf (ns, Gphase, qual=qual)
+             js.Leafset.define_MeqLeaf (ns, Gphase, qual=qual, **pp)
           else:
              # default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'], stddev=pp['stddev_Gphase'], 
              #                                  fdeg=pp['fdeg_Gphase'], tdeg=pp['tdeg_Gphase'],
@@ -462,7 +462,7 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
    # Make a node for the Faraday rotation (same for all stations...)
    if simul:
-      js.Leafset.define_MeqLeaf (ns, RM)
+      js.Leafset.define_MeqLeaf (ns, RM, **pp)
    else:
       js.Parmset.define_MeqParm(ns, RM, tfdeg=[pp['tdeg_RM'],pp['fdeg_RM']])
 
@@ -592,7 +592,7 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
         for Breal in [br1,br2]:
            if simul:
-              js.Leafset.define_MeqLeaf (ns, Breal, qual=qual)
+              js.Leafset.define_MeqLeaf (ns, Breal, qual=qual, **pp)
            else:
               js.Parmset.define_MeqParm (ns, Breal, qual=qual,
                                          tfdeg=[pp['tdeg_Breal'],pp['fdeg_Breal']],
@@ -600,7 +600,7 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
         for Bimag in [bi1,bi2]:
            if simul:
-              js.Leafset.define_MeqLeaf (ns, Bimag, qual=qual)
+              js.Leafset.define_MeqLeaf (ns, Bimag, qual=qual, **pp)
            else:
               js.Parmset.define_MeqParm (ns, Bimag, qual=qual,
                                          tfdeg=[pp['tdeg_Bimag'],pp['fdeg_Bimag']],
@@ -728,7 +728,7 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
         for Jreal in [dr11,dr12,dr21,dr22]:
            if simul:
-              js.Leafset.define_MeqLeaf (ns, Jreal, qual=qual)
+              js.Leafset.define_MeqLeaf (ns, Jreal, qual=qual, **pp)
            else:
               js.Parmset.define_MeqParm (ns, Jreal, qual=qual,
                                          tfdeg=[pp['tdeg_Jreal'],pp['fdeg_Jreal']],
@@ -736,7 +736,7 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
         for Jimag in [di11,di12,di21,di22]:
            if simul:
-              js.Leafset.define_MeqLeaf (ns, Jimag, qual=qual)
+              js.Leafset.define_MeqLeaf (ns, Jimag, qual=qual, **pp)
            else:
               js.Parmset.define_MeqParm (ns, Jimag, qual=qual,
                                          tfdeg=[pp['tdeg_Jimag'],pp['fdeg_Jimag']],
@@ -868,7 +868,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
    # The X/Y Phase-Zero-Difference (PZD) is shared by all stations:
    if simul:
-      js.Leafset.define_MeqLeaf (ns, pzd)
+      js.Leafset.define_MeqLeaf (ns, pzd, **pp)
    else:
       js.Parmset.define_MeqParm(ns, pzd)
       
@@ -888,7 +888,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
       matname = 'DJones_Dang_matrix'
       if pp['coupled_XY_Dang']:
          if simul:
-            js.Leafset.define_MeqLeaf (ns, Dang, qual=qual)
+            js.Leafset.define_MeqLeaf (ns, Dang, qual=qual, **pp)
          else:
             js.Parmset.define_MeqParm (ns, Dang, qual=qual,
                                        tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
@@ -899,7 +899,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
       else: 
          for Dang in [Dang1,Dang2]:
             if simul:
-               js.Leafset.define_MeqLeaf (ns, Dang, qual=qual)
+               js.Leafset.define_MeqLeaf (ns, Dang, qual=qual, **pp)
             else:
                js.Parmset.define_MeqParm (ns, Dang, qual=qual,
                                           tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
@@ -912,7 +912,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
       matname = 'DJones_Dell_matrix'
       if pp['coupled_XY_Dell']:
          if simul:
-            js.Leafset.define_MeqLeaf (ns, Dell, qual=qual)
+            js.Leafset.define_MeqLeaf (ns, Dell, qual=qual, **pp)
          else:
             js.Parmset.define_MeqParm (ns, Dell, qual=qual,
                                        tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
@@ -923,7 +923,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
       else:
          for Dell in [Dell1,Dell2]:
             if simul:
-               js.Leafset.define_MeqLeaf (ns, Dell, qual=qual)
+               js.Leafset.define_MeqLeaf (ns, Dell, qual=qual, **pp)
             else:
                js.Parmset.define_MeqParm (ns, Dell, qual=qual,
                                           tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
@@ -1394,7 +1394,7 @@ if __name__ == '__main__':
      igui.input(inarg)
      igui.launch()
 
-  if 1:
+  if 0:
      simul = False
      # simul = True
      jseq = Joneseq()
@@ -1408,7 +1408,7 @@ if __name__ == '__main__':
      js.display()     
      display_first_subtree (js, full=1)
 
-  if 0:
+  if 1:
      js = GJones (ns, stations=stations, simul=True)
      js.display(full=True)     
      js.Parmset.display(full=True)     

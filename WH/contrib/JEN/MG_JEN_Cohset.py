@@ -307,8 +307,9 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()', version='25dec2005',
                             description=predict.__doc__)
-    inarg_stations(pp, slave=slave)
-    inarg_polrep(pp, slave=slave)
+    MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
+    # inarg_stations(pp, slave=slave)
+    # inarg_polrep(pp, slave=slave)
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)

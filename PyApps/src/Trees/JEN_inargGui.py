@@ -157,14 +157,18 @@ class ArgBrowser(QMainWindow):
             # open the relevant .inarg file directly, and work from there
             menu.insertSeparator()     
             menu.insertItem('-> cps_inspect', self.cps_inspect)
+        if False:
             menu.insertSeparator()     
             menu.insertItem('-> cps_stokesI', self.cps_stokesI)
             menu.insertItem('-> cps_GJones', self.cps_GJones)
             menu.insertItem('-> cps_Gphase', self.cps_Gphase)
             menu.insertItem('-> cps_Ggain', self.cps_Ggain)
             menu.insertItem('-> cps_GDJones', self.cps_GDJones)
-            menu.insertItem('-> cps_DJones', self.cps_DJones)
+            menu.insertItem('-> cps_JJones', self.cps_JJones)
             menu.insertItem('-> cps_GBJones', self.cps_GBJones)
+            menu.insertItem('-> cps_BJones', self.cps_BJones)
+            menu.insertItem('-> cps_DJones', self.cps_DJones)
+        if False:
             menu.insertSeparator()     
             menu.insertItem('-> lsm_single', self.lsm_single)
             menu.insertItem('-> lsm_grid', self.lsm_grid)

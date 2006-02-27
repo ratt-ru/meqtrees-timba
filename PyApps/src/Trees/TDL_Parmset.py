@@ -331,6 +331,7 @@ class Parmset (TDL_common.Super):
             pp.setdefault('color', None)        # plot color
             pp.setdefault('style', 'circle')    # plot style
             pp.setdefault('size', 10)           # size of plotted symbol
+            pp.setdefault('default', 1.0)       # default MeqParm value for this parmgroup
             pp.setdefault('rider', dict())      # optional: record with named extra information
             self.__parmgroup[key] = []
             self.__pg_rider[key] = pp['rider']
@@ -348,6 +349,7 @@ class Parmset (TDL_common.Super):
     def plot_color(self): return self.__plot_color
     def plot_style(self): return self.__plot_style
     def plot_size(self): return self.__plot_size
+    def default_value(self): return self.__default_value
 
 
     def parm_names(self, parmgroup=None, select='*', trace=False):
@@ -558,10 +560,10 @@ class Parmset (TDL_common.Super):
         elif not Parmset.unsolvable():
 
             # NB: update OVERWRITES existing fields with new versions!
-            print 'Parmset.update(): self.__parmgroup:\n    ',self.__parmgroup
+            # print 'Parmset.update(): self.__parmgroup:\n    ',self.__parmgroup
             if True:
                 self.__parmgroup.update(Parmset.parmgroup())
-            print '    ',self.__parmgroup,'\n'
+            # print '    ',self.__parmgroup,'\n'
 
             self.__pg_rider.update(Parmset.pg_rider())
             self.__condeq.update(Parmset.condeq())
@@ -570,6 +572,7 @@ class Parmset (TDL_common.Super):
             self.__plot_color.update(Parmset.plot_color())
             self.__plot_style.update(Parmset.plot_style())
             self.__plot_size.update(Parmset.plot_size())
+            self.__default_value.update(Parmset.default_value())
             self.history(append='updated from (not unsolvable): '+Parmset.oneliner())
         else:
             # A Parmset that is 'unsolvable' has no solvegroups.
