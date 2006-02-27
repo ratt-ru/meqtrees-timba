@@ -809,9 +809,12 @@ class MyCanvasView(QCanvasView):
     ############ re-create axes/grid
     if self.axes_on==1:
      self.axes=Axes(self,bounds,self.xdivs,self.ydivs)
-     self.axes.gridOff()
     else:
      self.axes=None
+    if self.grid_on==1:
+     self.axes.gridOn()
+    else:
+     self.axes.gridOff()
 
     ########### create title
     if self.title_on==1:

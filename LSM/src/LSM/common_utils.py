@@ -430,7 +430,7 @@ def change_parm(ns,node,new_value):
  #work_str="ns['"+nodename+"']<<Meq.Parm(meq.polc("+str(new_value)+"))"
  #print work_str
  #exec work_str in globals(),locals()
- print "trying to change params of ",node.name
+ #print "trying to change params of ",node.name
  g=node.initrec()
  #print g
  g['init_funklet']=meq.polc(new_value)

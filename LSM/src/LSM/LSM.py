@@ -919,6 +919,8 @@ class LSM:
 
   #print xbins
   #print ybins
+
+
   for sname in self.p_table.keys(): 
     punit=self.p_table[sname]
     pb=punit.getBrightness('A')
@@ -956,9 +958,6 @@ class LSM:
     for sname in ll:
       p_id_y[sname]=ii+1
 
-  #print p_id_x
-  #print p_id_y
-
   # now create the patches
   patch_bins={}
   for ii in range(len(xbins)-2):
@@ -972,6 +971,15 @@ class LSM:
      jj=p_id_y[sname]
      patch_name="Patch#"+str(ii)+":"+str(jj)
      patch_bins[patch_name].append(sname)
+
+  # create progree dialog
+  if isinstance(qApp,QApplication):
+    lpb = QProgressDialog("Creating Patches", "Close", len(patch_bins), self.__win, "progress", 1)
+    lpb.setCaption("Please Wait")
+    lpb.setMinimumDuration(0)
+    lpb.show()
+    i=0
+
 
   #print patch_bins
   # now call single patch creation function
@@ -992,6 +1000,14 @@ class LSM:
     retval_arr.append(retval)
     # remember PUnit name to update its value
     new_punit_names.append(retval[0])
+
+   # update progress bar
+   if isinstance(qApp,QApplication):
+     lpb.setProgress(i)
+     qApp.processEvents()
+     i=i+1
+
+
   # now resolve forest and sync kernel
   #self.__ns.Resolve()
   #print "Resolved local NodeScope"
@@ -1012,7 +1028,10 @@ class LSM:
       punit.sp.updateValues(pname)
 
 
-
+  if isinstance(qApp,QApplication):
+     lpb.cancel()
+     del lpb
+ 
   return retval_arr
 
 
@@ -1028,7 +1047,11 @@ class LSM:
    punit=self.getPUnit(pname)
    psixpack=punit.getSP()
    if psixpack!=None:
-    child_list.append(psixpack.sixpack().name)
+    if psixpack.ispoint():
+     root_node=psixpack.sixpack()
+    else: #Patch
+     root_node=psixpack.root()
+    child_list.append(root_node.name)
    elif punit.sp!=None:
     child_list.append('sixpack:q='+pname)
   #print child_list
@@ -1270,6 +1293,14 @@ class LSM:
     print "WARNING: need nodescope to perform transform:",A,b
     return
    self.__undo=None # cannot undo this
+   # try to create a progress window if under GUI mode
+   if isinstance(qApp,QApplication):
+    lpb = QProgressDialog("Updating MeqParms", "Close", len(self.p_table), self.__win, "progress", 1)
+    lpb.setCaption("Please Wait")
+    lpb.setMinimumDuration(0)
+    lpb.show()
+    i=0
+
    for pname in self.p_table.keys():
     pu=self.p_table[pname]
     old_ra=pu.sp.getRA()
@@ -1278,6 +1309,14 @@ class LSM:
     new_ra=A[0][0]*old_ra+A[0][1]*old_dec+b[0]
     new_dec=A[1][0]*old_ra+A[1][1]*old_dec+b[1]
     pu.change_location(new_ra,new_dec,ns)
+    # update progress bar
+    if isinstance(qApp,QApplication):
+     lpb.setProgress(i)
+     qApp.processEvents()
+     i=i+1
 
+   if isinstance(qApp,QApplication):
+     lpb.cancel()
+     del lpb
  
 #########################################################################
