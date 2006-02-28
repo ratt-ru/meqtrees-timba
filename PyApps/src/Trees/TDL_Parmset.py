@@ -236,7 +236,7 @@ class Parmset (TDL_common.Super):
     #-------------------------------------------------------------------------------------
 
     def define_MeqParm(self, ns, key=None, qual=None, parmgroup=None,
-                       default=None, shape=None, tfdeg=[0,0], 
+                       default=None, shape=None, tfdeg=None, 
                        node_groups='Parm',
                        use_previous=True, subtile_size=None):
         """Convenience function to create a MeqParm node"""
@@ -284,7 +284,9 @@ class Parmset (TDL_common.Super):
         # Use the shape (of coeff array, 1-relative) if specified.
         # Otherwise, use the [tdeg,fdeg] polc degree (0-relative)
         if shape==None:
-            shape = tfdeg
+            shape = [0,0]
+            if not tfdeg==None:
+                shape = tfdeg
             shape[0] += 1              
             shape[1] += 1
 
