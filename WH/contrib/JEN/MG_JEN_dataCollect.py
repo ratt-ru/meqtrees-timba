@@ -122,7 +122,8 @@ def _define_forest (ns):
    for corr in ['XX','XY','YX','YY']:
       for i in range(n):
          for j in range(i+1,n+1):
-            default = MG_JEN_funklet.polc_ft(c00=1+(i+j)/10, fdeg=2, tdeg=1, stddev=0.01)
+            # default = MG_JEN_funklet.polc_ft(c00=1+(i+j)/10, fdeg=2, tdeg=1, stddev=0.01)
+            default = MG_JEN_funklet.polc_ft(c00=1+(i+j), fdeg=2, tdeg=1, stddev=0.01)
             node = ns.parm(i=i,j=j)(corr) << Meq.Parm(default)
             dc = dcoll(ns, node, scope=scope, tag=corr, type='spectra') 
             dd.append(dc)

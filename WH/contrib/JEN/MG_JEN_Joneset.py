@@ -200,8 +200,8 @@ def inarg_solvegroup (pp, **kwargs):
    s_choice.append(['JJones','stokesU'])
    s_choice.append(['JJones','stokesQ'])
    s_choice.append(['JJones','stokesV'])
-   s_choice.append(['JJones','stokesQU'])
-   s_choice.append(['JJones','stokesQUV'])
+   s_choice.append(['stokesQU','JJones'])
+   s_choice.append(['stokesQUV','JJones'])
    s_help += '\n- [JJones,stokesU]:     actually solves for U!'
    s_help += '\n- [JJones,stokesQ]:     -> zero Q(?), but better freq sol(?)'
    s_help += '\n- [JJones,stokesV]:     -> punit V(?)...'
