@@ -142,6 +142,7 @@ class ResultPlotter(GriddedPlugin):
     self._visu_plotter = None
     self.colorbar = {}
     self.results_selector = None
+    self.spectrum_node_selector = None
     self.ND_Controls = None
     self.layout_parent = None
     self.layout = None
@@ -157,6 +158,7 @@ class ResultPlotter(GriddedPlugin):
 
   def plotSpectra(self, leaf_record):
     """ stores and plots data for a visu Spectra node """
+    self._spectrum_data = None
     if self._spectrum_data is None:
       (self._data_labels, self._string_tag) = self._visu_plotter.getSpectrumTags()
       self._spectrum_data = SpectrumData(self._data_labels, self._string_tag)
@@ -381,9 +383,24 @@ class ResultPlotter(GriddedPlugin):
       self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
 
 # now do the plotting
-    self._visu_plotter.plot_data(leaf, attrib_list, label=self.label)
     if self._plot_type == 'spectra':
-      self.plotSpectra(leaf)
+      if self.first_leaf_node:
+        self.leaf_node_list = []
+        self.list_attrib_lists = []
+        self.list_labels = []
+        self._visu_plotter.plot_data(leaf, attrib_list, label=self.label)
+        self.plotSpectra(leaf)
+        self.leaf_node_list.append(leaf)
+        self.list_attrib_lists.append(attrib_list)
+        self.list_labels.append(self.label)
+        self.first_leaf_node = False
+      else:
+        self.leaf_node_list.append(leaf)
+        self.list_attrib_lists.append(attrib_list)
+        self.list_labels.append(self.label)
+        self.adjust_spectrum_selector()
+    else:
+      self._visu_plotter.plot_data(leaf, attrib_list, label=self.label)
 
   # do_leafwork
 
@@ -398,6 +415,8 @@ class ResultPlotter(GriddedPlugin):
     if label is None:
       label = 'root'
       is_root = True
+      node['plot_label'] = ''
+      
     _dprint(3, 'node has incoming label ', label)
     if attribute_list is None:
       attribute_list = []
@@ -421,10 +440,10 @@ class ResultPlotter(GriddedPlugin):
               for j in range(0, len(temp)):
                 tmp = label + '\n' + temp[j] 
                 temp[j] = tmp
-              node['label'] = tuple(temp)
+              node['plot_label'] = tuple(temp)
             else:
               temp = label + '\n' + node['label']
-              node['label'] = temp
+              node['plot_label'] = temp
         if node.has_key('attrib') and len(node['attrib']) > 0:
           _dprint(3, 'tree: dict node has attrib ', node['attrib'])
           if not self._attributes_checked:
@@ -444,10 +463,10 @@ class ResultPlotter(GriddedPlugin):
 # if not a leaf, and we find a 'value' field, then call
 # recursive method 'tree_traversal'
         if node.has_key('value'):
-          self.tree_traversal(node['value'], node['label'], attribute_list)
+          self.tree_traversal(node['value'], node['plot_label'], attribute_list)
       else:
         try:
-          _dprint(3, 'tree: leaf node has label(s) ', node['label'])
+          _dprint(3, 'tree: leaf node has label(s) ', node['plot_label'])
           _dprint(3, 'tree: leaf node has incoming label ', label)
         except:
           _dprint(3, 'node label field expected, not found, so am exiting')
@@ -498,10 +517,10 @@ class ResultPlotter(GriddedPlugin):
               for j in range(0, len(temp)):
                 tmp = temp_label + '\n' + temp[j]
                 temp[j] = tmp
-              node[i]['label'] = tuple(temp)
+              node[i]['plot_label'] = tuple(temp)
             else:
               temp = label + '\n' + node[i]['label']
-              node[i]['label'] = temp
+              node[i]['plot_label'] = temp
           if node[i].has_key('attrib'):
             _dprint(3, 'list: dict node has attrib ', i, ' ', node[i]['attrib'])
             if len(node[i]['attrib']) > 0:
@@ -517,6 +536,7 @@ class ResultPlotter(GriddedPlugin):
 # traverse the plot record tree and retrieve data
     _dprint(3, ' ')
     _dprint(3, 'calling tree_traversal from display_visu_data')
+    self.first_leaf_node = True
     self.tree_traversal( self._rec.visu)
 # now update the plot for 'realvsimag', 'errors' or 'standalone' plot
     _dprint(3, 'testing for update with self._plot_type ', self._plot_type)
@@ -656,6 +676,20 @@ class ResultPlotter(GriddedPlugin):
       self.label = self.data_list_labels[data_index]
       self.results_selector.setLabel(self.data_list_labels[data_index])
       process_result = self.process_data()
+
+  def select_spectrum_node (self, data_index):
+    """ callback to redisplay contents of a spectrum leaf node stored in 
+        a list of leaf nodes
+    """
+    if self.ignore_replay:
+      self.ignore_replay = False
+      return
+    if data_index < len(self.leaf_node_list):
+      leaf = self.leaf_node_list[data_index]
+      attrib_list = self.list_attrib_lists[data_index]
+      label = self.list_labels[data_index]
+      self._visu_plotter.plot_data(leaf, attrib_list,label)
+      self.plotSpectra(leaf)
 
   def plot_vells_data (self):
       """ process incoming vells data and attributes into the
@@ -832,6 +866,30 @@ class ResultPlotter(GriddedPlugin):
       self.results_selector.show()
     else:
       self.results_selector.hide()
+
+  def adjust_spectrum_selector (self):
+    """ instantiate and/or adjust contents of ResultsRange object """
+    if self.spectrum_node_selector is None:
+      self.spectrum_node_selector = ResultsRange(self.layout_parent)
+      self.spectrum_node_selector.setStringInfo(' spectrum ')
+      self.layout.addWidget(self.spectrum_node_selector, 2,1)
+      self.spectrum_node_selector.show()
+      QObject.connect(self.spectrum_node_selector, PYSIGNAL('result_index'), self.select_spectrum_node)
+#     QObject.connect(self.spectrum_node_selector, PYSIGNAL('adjust_results_buffer_size'), self.set_spectrum_node_buffer)
+      QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_spectrum_selector)
+    self.ignore_replay = True
+    self.spectrum_node_selector.setMaxValue(len(self.leaf_node_list),False)
+    self.spectrum_node_selector.setRange(len(self.leaf_node_list), False)
+    self.spectrum_node_selector.setLabel(self.label)
+    self.spectrum_node_selector.disableContextmenu()
+    
+
+  def show_spectrum_selector (self, do_show_selector):
+    """ callback to show or hide a ResultsRange object """
+    if do_show_selector:
+      self.spectrum_node_selector.show()
+    else:
+      self.spectrum_node_selector.hide()
 
   def set_results_buffer (self, result_value):
     """ callback to set the number of results records that can be
