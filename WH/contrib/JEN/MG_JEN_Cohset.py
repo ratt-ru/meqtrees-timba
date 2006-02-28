@@ -232,16 +232,15 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 #--------------------------------------------------------------------------------------
 # Make a Joneset from the specified sequence of Jones matrices:
 
-def Jones(ns=None, Sixpack=None, slave=False, **inarg):
+def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
     """Make a Joneset by creating and multiplying one ore more Jonesets"""
-   
+
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::Jones()', version='25dec2005',
                             description=Jones.__doc__)
     # Arguments that should be common to all Jonesets in the sequence:
     MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
     MG_JEN_Joneset.inarg_Joneset_Parmset(pp, slave=slave)
-    MG_JEN_Joneset.inarg_simul(pp, slave=slave)
     JEN_inarg.define (pp, 'Jsequence', [],
                       choice=[['GJones'],['BJones'],['FJones'],['KJones'],
                               ['DJones_WSRT'],['GJones','DJones_WSRT'],
@@ -249,12 +248,12 @@ def Jones(ns=None, Sixpack=None, slave=False, **inarg):
                               []],
                       help='sequence of Jones matrices to be used')
     # Include default inarg records for various Jones matrix definition functions:
-    JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True, simul=pp['simul'], slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True, simul=pp['simul'], slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, simul=pp['simul'], slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, simul=pp['simul'], slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True, simul=pp['simul'], slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.JJones(_getdefaults=True, simul=pp['simul'], slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.JJones(_getdefaults=True, simul=simul, slave=True))
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -276,15 +275,15 @@ def Jones(ns=None, Sixpack=None, slave=False, **inarg):
     jseq = TDL_Joneset.Joneseq()
     for jones in pp['Jsequence']:
         if jones=='GJones':
-            jseq.append(MG_JEN_Joneset.GJones (ns, Sixpack=Sixpack, simul=pp['simul'], _inarg=pp))
+            jseq.append(MG_JEN_Joneset.GJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp))
         elif jones=='BJones':
-            jseq.append(MG_JEN_Joneset.BJones (ns, Sixpack=Sixpack, simul=pp['simul'], _inarg=pp))
+            jseq.append(MG_JEN_Joneset.BJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp))
         elif jones=='FJones':
-            jseq.append(MG_JEN_Joneset.FJones (ns, Sixpack=Sixpack, simul=pp['simul'], _inarg=pp)) 
+            jseq.append(MG_JEN_Joneset.FJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp)) 
         elif jones=='JJones':
-            jseq.append(MG_JEN_Joneset.JJones (ns, Sixpack=Sixpack, simul=pp['simul'], _inarg=pp))
+            jseq.append(MG_JEN_Joneset.JJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp))
         elif jones=='DJones_WSRT':
-            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, Sixpack=Sixpack, simul=pp['simul'], _inarg=pp))
+            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, Sixpack=Sixpack, simul=simul, _inarg=pp))
         elif jones=='KJones':
             jseq.append(MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
                                                MSauxinfo=MSauxinfo(), _inarg=pp))
@@ -950,14 +949,8 @@ def inarg_Cohset_common (pp, last_changed='<undefined>', **kwargs):
                       editable=False, hide=True)
     MG_JEN_exec.inarg_ms_name(pp)
     MG_JEN_exec.inarg_tile_size(pp)
-
     MG_JEN_Joneset.inarg_Joneset_common(pp)
-    # inarg_stations(pp)
-    # inarg_polrep(pp)
     MG_JEN_Joneset.inarg_Joneset_Parmset(pp)
-    # MG_JEN_Joneset.inarg_uvplane_effect(pp)    
-    # inarg_parmtable(pp)
-    MG_JEN_Joneset.inarg_simul(pp)
 
     # MG_JEN_Sixpack.inarg_punit(pp)
 
@@ -992,11 +985,13 @@ def description ():
 
 MG = JEN_inarg.init('MG_JEN_Cohset', description=description.__doc__)
 
-inarg_Cohset_common (MG, last_changed='d19jan2006')
+inarg_Cohset_common (MG, last_changed='d25feb2006')
 JEN_inarg.modify(MG,
-                 simul=False,
                  _JEN_inarg_option=None)     
 
+
+# Simulation control, see below (not editable)
+MG['simul'] = False
 
 #----------------------------------------------------------------------------------------------------
 # Interaction with the MS: spigots, sinks and stream control
@@ -1141,7 +1136,7 @@ def _define_forest (ns, **kwargs):
     if True:
         # Optional: Insert a solver:
         Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
-        Joneset = Jones(ns, Sixpack=Sixpack, _inarg=MG)
+        Joneset = Jones(ns, Sixpack=Sixpack, simul=MG['simul'], _inarg=MG)
         predicted = predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
         if MG['simul']:
             # Replace the uv-data with the predicted visibilities: 

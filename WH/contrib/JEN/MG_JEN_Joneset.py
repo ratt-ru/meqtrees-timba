@@ -24,7 +24,7 @@
 # - 05 feb 2006: Introduced keyword 'uv_plane_effect'
 # - 14 feb 2006: Implemented DJones
 # - 24 feb 2006: DJones -> JJones
-# - 25 feb 2006: included Leafset etc
+# - 25 feb 2006: included simul (Leafset etc)
 
 # Copyright: The MeqTree Foundation 
 
@@ -142,17 +142,6 @@ def inarg_polrep (pp, **kwargs):
                     help='polarisation representation')
    return True
 
-#------------------------------------------------------------------------------
-
-def inarg_simul (pp, **kwargs):
-   """JEN_inarg definition for simul-mode (called from MG_JEN_Cohset.Jones())"""
-   JEN_inarg.inarg_common(kwargs)
-   JEN_inarg.define(pp, 'simul', tf=False,
-                    # editable=False, hide=True,
-                    slave=kwargs['slave'], trace=trace, 
-                    help='if True, use simulated (Leafset) Jones parameter values')
-   return True
-
 
 #------------------------------------------------------------------------------
 
@@ -268,6 +257,8 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     """
 
     jones = 'GJones'
+    # print '\n**',jones,' simul =',simul,'\n'
+    # JEN_inarg.display(inarg, jones)
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005',
@@ -313,6 +304,8 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
+
+    # JEN_inarg.display(inarg, funcname)
 
     label = jones+JEN_inarg.qualifier(pp)
 
