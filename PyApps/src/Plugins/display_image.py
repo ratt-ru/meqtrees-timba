@@ -983,6 +983,12 @@ class QwtImageDisplay(QwtPlot):
 
     def onMouseMoved(self, e):
       """ callback to handle MouseMoved event """ 
+      # remove any 'source' descriptor if we are zooming
+      if abs(self.xpos - e.pos().x()) >2 and abs(self.ypos - e.pos().y())>2:
+        if not self.source_marker is None:
+          self.removeMarker(self.source_marker)
+          self.source_marker = None
+          self.replot()
       if self.is_vector:
         return
 
