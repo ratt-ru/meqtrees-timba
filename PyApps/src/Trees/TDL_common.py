@@ -69,18 +69,30 @@ class Super:
         pass
 
     def label(self, new=None):
+        """Get/set the obect label"""
         if isinstance(new, str): self.__label = new
         return self.__label
-    def type(self): return self.__type
-    def tlabel(self): return self.__type+':'+self.__label
-    def errors(self): return self.__errors
-    def warnings(self): return self.__warnings
-    def ok(self): return (self.__errors==0 and self.__warnings==0)
+    def type(self):
+        """Return the obect type"""
+        return self.__type
+    def tlabel(self):
+        """Return a simple identified string"""
+        return self.__type+':'+self.__label
+    def errors(self):
+        """Return the nr of accumulated errors (if any)"""
+        return self.__errors
+    def warnings(self):
+        """Return the nr of accumulated warnings (if any)"""
+        return self.__warnings
+    def ok(self):
+        """Test whether the object is OK (no errors or warnings)"""
+        return (self.__errors==0 and self.__warnings==0)
 
     def __str__(self):
         return self.oneliner()
 
     def oneliner(self):
+        """Generic part of a one-line summary of this object"""
         s = '*'
         s += ' '+str(self.type())+':'
         s += ' '+str(self.label())
@@ -92,10 +104,16 @@ class Super:
             s += ', warnings='+str(self.warnings())
         return s
 
-    def display_indent1(self): return 2*' '
-    def display_indent2(self): return 6*' '
+    def display_indent1(self):
+        """Standard indentation, used in .display()"""
+        return 2*' '
+    def display_indent2(self):
+        """Standard indentation, used in .display()"""
+        return 6*' '
 
     def display(self, txt=None, end=True, full=False):
+        """Generic part of displaying the contents of this object in an organised way.
+        The specific part is added in the object itself"""
         indent1 = self.display_indent1()
         indent2 = self.display_indent2()
         ss = []
@@ -117,6 +135,7 @@ class Super:
 
 
     def display_end(self, ss=[], doprint=True):
+        """Called at the end of a .display() function"""
         ss.append('** end of '+self.type()+'.display()\n')
         if doprint:
             for s in ss: print s
@@ -124,7 +143,7 @@ class Super:
 
 
     def copy(self, label=None):
-        # Return a (re-labelled) 'deep' copy of this jonesset: 
+        """Return a (re-labelled) 'deep' copy of this object""" 
         new = deepcopy(self)                                       # copy() is not enough...
         if label==None: label = '('+self.label()+')'               # Enclose old label in ()
         new.label(label)                                           # re-label (always)
@@ -133,9 +152,9 @@ class Super:
                     reset=False, indent=True)
         return new
 
-    # Simple mechanisms for storing the object history, including errors/warnings:
 
     def history(self, append=None, error=None, warning=None, reset=False, indent=False):
+        """Simple mechanisms for storing the object history, including errors/warnings"""
         if reset: self.__history = []
         if indent:
             for i in range(len(self.__history)):
@@ -154,11 +173,12 @@ class Super:
     # Some ideas for functions to be added:
 
     def save(self, filename=None):
-        # Save the object in a file... Not very useful?
+        """Save the object in a file... Not very useful?
+        (Not implemented yet)"""
         pass
 
     def clear(self):
-        # Called from self.__init__() above. Expected to be overwritten.
+        """Called from self.__init__() above. Expected to be overwritten."""
         pass
 
 
@@ -166,11 +186,11 @@ class Super:
 # Helper routines:
 #========================================================================
 
-# Counter service (use to automatically generate unique node names)
 
 _counters = {}
 
 def _counter (key, increment=0, reset=False, trace=True):
+    """Counter service (use to automatically generate unique node names)"""
     global _counters
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0
@@ -178,9 +198,10 @@ def _counter (key, increment=0, reset=False, trace=True):
     if trace: print '** Super: _counters(',key,') =',_counters[key]
     return _counters[key]
 
+#--------------------------------------------------------------------------
 
 def unclutter_inarg(pp):
-    """Strip the given input argument record to avoid clutter"""
+    """Strip the given input argument record to avoid clutter (e.g. when printing it)"""
     # Dont use deepcopy because it cannot handle nodestubs 
     # qq = deepcopy(pp)
     qq = {}                                               # strip a copy

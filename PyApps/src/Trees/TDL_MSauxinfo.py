@@ -217,8 +217,9 @@ class MSauxinfo (TDL_common.Super):
 
     #--------------------------------------------------------------------
 
-    def station_config_default(self, stations=range(14)):
-        """Create a a default station configuration"""
+    def station_config_default(self, stations=range(15)):
+        """Create a a default station configuration.
+        If 15, it includes the LOFAR/WHAT station near RT8"""
         # NB: Stations might also be a list of names.....
         self.clear_config()
         for k in range(len(stations)):

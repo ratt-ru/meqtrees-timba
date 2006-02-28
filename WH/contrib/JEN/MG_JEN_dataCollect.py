@@ -400,8 +400,8 @@ def dconc (ns, dcoll, **pp):
     
    # Make concatenations (dconc) node:
    dconc['dcoll'] = ns[dconc_name](uniqual) << Meq.DataCollect(children=dconc['cc'],
-                                                     top_label=hiid('visu'),
-                                                     attrib=attrib)
+                                                               top_label=hiid('visu'),
+                                                               attrib=attrib)
 
    # Optionally, make a bookmark for the dconc node:
    if isinstance(pp.bookpage, str):

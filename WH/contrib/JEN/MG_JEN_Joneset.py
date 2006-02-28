@@ -173,11 +173,11 @@ def inarg_solvegroup (pp, **kwargs):
    """To be used by functions that call Joneset functions"""
    kwargs.setdefault('Jsequence','*')        # not yet used (for customisation)
    s_choice = []
-   c_choice = [None]
+   cond_choice = [None]
    s_default = []
-   c_default = None
+   cond_default = None
    s_help = 'group (list) of parmgroups, to be solved for:'
-   c_help = '(list of) extra condition equations:'
+   cond_help = '(list of) extra condition equations:'
 
    # Make the choice and help, depending on Jsequence:
    s_choice.extend([['GJones'],['Ggain'],['Gphase']])
@@ -188,29 +188,38 @@ def inarg_solvegroup (pp, **kwargs):
    s_help += '\n- [Gpol1]:   All GJones MeqParms for pol1 (X or R)'
    s_help += '\n- [Gpol2]:   All GJones MeqParms for pol2 (Y or L)'
 
-   c_choice.extend(['Gphase_X_sum=0.0','Gphase_Y_sum=0.0'])
-   c_choice.append(['Gphase_X_sum=0.0','Gphase_Y_sum=0.0'])
-   c_help += '\n- [...phase_sum=0.0]:   sum of phases = zero'
-   c_choice.append(['Gphase_X_first=0.0','Gphase_Y_first=0.0'])  
-   c_choice.append(['Gphase_X_last=0.0','Gphase_Y_last=0.0'])  
-   c_help += '\n- [...phase_first=0.0]: phase of first station = zero'
-   c_help += '\n- [...phase_last=0.0]:  phase of last station = zero'
+   cond_choice.extend(['Gphase_X_sum=0.0','Gphase_Y_sum=0.0'])
+   cond_choice.append(['Gphase_X_sum=0.0','Gphase_Y_sum=0.0'])
+   cond_help += '\n- [...phase_sum=0.0]:   sum of phases = zero'
+   cond_choice.append(['Gphase_X_first=0.0','Gphase_Y_first=0.0'])  
+   cond_choice.append(['Gphase_X_last=0.0','Gphase_Y_last=0.0'])  
+   cond_help += '\n- [...phase_first=0.0]: phase of first station = zero'
+   cond_help += '\n- [...phase_last=0.0]:  phase of last station = zero'
 
    s_choice.append(['JJones'])
+   s_choice.append(['JJones','stokesU'])
+   s_choice.append(['JJones','stokesQ'])
+   s_choice.append(['JJones','stokesV'])
+   s_choice.append(['JJones','stokesQU'])
+   s_choice.append(['JJones','stokesQUV'])
+   s_help += '\n- [JJones,stokesU]:     actually solves for U!'
+   s_help += '\n- [JJones,stokesQ]:     -> zero Q(?), but better freq sol(?)'
+   s_help += '\n- [JJones,stokesV]:     -> punit V(?)...'
 
    s_choice.append(['GJones','stokesI'])
    s_choice.extend([['stokesI'],['stokesIQU'],['stokesIQUV']])
+   s_choice.extend([['stokesIV'],['stokesQU'],['stokesQUV']])
    s_help += '\n- [stokesI]:    stokes I (incl SI(f), if relevant)'
    s_help += '\n- [stokesIQU]:  stokes I,Q,U (incl RM and SI(f))'
    s_help += '\n- [stokesIQUV]: stokes I,Q,U,V (incl RM and SI(f))'
 
    s_choice.append(['GJones','DJones'])
    s_choice.extend([['DJones'],['Dang'],['Dell']])
-   c_choice.extend(['Dang_sum=0.0'])
-   c_help += '\n- [Dang_sum=0.0]:   sum of dipole pos.angle errors = zero'
+   cond_choice.extend(['Dang_sum=0.0'])
+   cond_help += '\n- [Dang_sum=0.0]:   sum of dipole pos.angle errors = zero'
    s_choice.extend([['Dreal'],['Dimag']])
-   # c_choice.append(['Dimag_X_sum=0.0','Dimag_Y_sum=0.0'])
-   # c_choice.append(['Dreal_X_product=1.0','Dreal_Y_product=1.0'])
+   # cond_choice.append(['Dimag_X_sum=0.0','Dimag_Y_sum=0.0'])
+   # cond_choice.append(['Dreal_X_product=1.0','Dreal_Y_product=1.0'])
 
    s_choice.append(['GJones','DJones','FJones'])
    s_choice.extend([['FJones']])
@@ -218,14 +227,14 @@ def inarg_solvegroup (pp, **kwargs):
    s_choice.append(['GJones','BJones'])
    s_choice.extend([['BJones'],['Breal'],['Bimag']])
    s_choice.extend([['Bpol1'],['Bpol2']])
-   c_choice.append(['Bimag_X_sum=0.0','Bimag_Y_sum=0.0'])
-   c_choice.append(['Breal_X_product=1.0','Breal_Y_product=1.0'])
-   c_help += '\n- [...imag_sum=0.0]:   sum of imag.parts = zero'
-   c_help += '\n- [...real_product=1.0]:   product of real.parts = unity'
+   cond_choice.append(['Bimag_X_sum=0.0','Bimag_Y_sum=0.0'])
+   cond_choice.append(['Breal_X_product=1.0','Breal_Y_product=1.0'])
+   cond_help += '\n- [...imag_sum=0.0]:   sum of imag.parts = zero'
+   cond_help += '\n- [...real_product=1.0]:   product of real.parts = unity'
 
 
    JEN_inarg.define(pp, 'solvegroup', s_default, choice=s_choice, help=s_help)
-   JEN_inarg.define(pp, 'condition', c_default, choice=c_choice, help=c_help)
+   JEN_inarg.define(pp, 'condition', cond_default, choice=cond_choice, help=cond_help)
    return True
 
 

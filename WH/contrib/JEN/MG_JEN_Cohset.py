@@ -991,7 +991,7 @@ JEN_inarg.modify(MG,
 
 
 # Simulation control, see below (not editable)
-MG['simul'] = False
+MG['simul'] = True
 
 #----------------------------------------------------------------------------------------------------
 # Interaction with the MS: spigots, sinks and stream control

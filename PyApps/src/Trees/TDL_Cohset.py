@@ -840,7 +840,8 @@ class Cohset (TDL_common.Super):
             name = 'added'
             if exclude_itself:
                 name = 'replaced'
-                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, complex(0.0))
+                # itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, complex(0.0))
+                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, 0.0)
             cc = [itself]                              # make a list for MeqAdd
             for cs in Cohset:
                 cc.append(cs[key])                     # collect corresponding (key) nodes
