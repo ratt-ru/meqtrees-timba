@@ -103,8 +103,9 @@ def make_spigots(ns=None, Cohset=None, **inarg):
     Cohset.spigots(ns, MS_corr_index=pp['MS_corr_index'])
     spigots = Cohset.cohs()
 
-    # Create the nodes expected by read_MS_auxinfo.py 
-    MSauxinfo().create_nodes(ns)
+    # Create the nodes expected by read_MS_auxinfo.py
+    stations = Cohset.station_index()
+    MSauxinfo().create_nodes(ns, stations=stations)
     MSauxinfo().display(funcname)
 
     # Append the initial (spigot) Cohset to the forest state object:
@@ -169,28 +170,10 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         insert_flagger (ns, Cohset, scope='sinks',
                         unop=['Real','Imag'], visu=False)
 
-    # Make an extra VisDataMux for post-visualisation of the full domain:
-    # NB: Do this BEFORE Cohset.sinks....
-    if pp['fullDomainMux']:
-        if False:
-            # Test:
-            post = [TDL_Leaf.MeqFreqTime(ns, zero_mean=True)]
-        elif False:
-            # The entire list of upstream MeqParms
-            mm = Cohset.Parmset.MeqParm()
-            post = [ns['_all_Parmset_MeqParms'] << Meq.Add(children=mm)]
-        else:
-            # Bundle the MeqParms per parmgroup:
-            post = []
-            for key in Cohset.Parmset.parmgroup().keys():
-                pg = Cohset.Parmset.parmgroup(key)  # list of MeqParm node names
-                if len(pg)>0:
-                    post.append(ns['_parmgroup_'+key] << Meq.Add(children=pg))
-        Cohset.fullDomainMux(ns, post=post)
-
     # Optional: visualise the sink (output) data:
     # But only if there are no dcoll/hcoll nodes to be inserted
     # (assume that the latter visualise the current status...?)
+    # NB: Do this BEFORE fullDomainMux....
     ncoll = len(Cohset.rider('dcoll'))               
     ncoll += len(Cohset.rider('hcoll'))               
     if pp['visu'] and ncoll==0:
@@ -207,8 +190,41 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         start.extend(dcoll)
 
     # Attach any collected hcoll/dcoll nodes:
-    post = Cohset.rider('dcoll', clear=True)               
+    post = []
+    post.extend(Cohset.rider('dcoll', clear=True))               
     post.extend(Cohset.rider('hcoll', clear=True))
+
+
+    #----------------------------------------------------------------------
+    # Make an extra VisDataMux for post-visualisation of the full domain:
+    # NB: Do this BEFORE Cohset.sinks.... (why?)
+    if pp['fullDomainMux']:
+        bookpage = 'fullDomainMux'
+        # Attach some test-nodes:
+        fstart = []
+        fstart.append(TDL_Leaf.MeqFreqTime(ns, mean=0.0))
+        MG_JEN_forest_state.bookmark(fstart[0], page=bookpage)
+        if True:
+            # The same with the full time: truncaction problems?
+            fstart.append(TDL_Leaf.MeqFreqTime(ns))
+            MG_JEN_forest_state.bookmark(fstart[1], page=bookpage)
+
+        # Attach some hcoll/dcoll nodes:
+        fpost = []
+        visualise (ns, Cohset, bookpage=bookpage, keypage=False)
+        visualise (ns, Cohset, type='spectra', bookpage=bookpage, keypage=False)
+        fpost.extend(Cohset.rider('dcoll'))               
+        fpost.extend(Cohset.rider('hcoll'))
+        # Bundle the MeqParms per parmgroup:
+        for key in Cohset.Parmset.parmgroup().keys():
+            pg = Cohset.Parmset.parmgroup(key)         # list of MeqParm node names
+            if len(pg)>0:
+                fpost.append(ns['_parmgroup_'+key] << Meq.Add(children=pg))
+
+        # Make the VisDataMux:
+        Cohset.fullDomainMux(ns, start=fstart, post=fpost)
+    #----------------------------------------------------------------------
+
 
     # Make MeqSinks
     Cohset.sinks(ns, start=start, post=post, output_col=pp['output_col'])
@@ -735,7 +751,13 @@ def visualise(ns=None, Cohset=None, extra=None, **pp):
     pp.setdefault('graft', False)           # if True, graft the visu-nodes on the Cohset
     pp.setdefault('paralcorr', False)       # if True, also make plots for parallel corrs only  
     pp.setdefault('crosscorr', False)       # if True, also make plots for cross corrs only  
+    pp.setdefault('keypage', True)          # if True, make 'key' bookmarks
+    pp.setdefault('bookpage', '<scope>')    # bookmark page to be used for scope... 
+
     pp['graft'] = False                     # disabled permanently....?
+
+    if pp['bookpage']=='<scope>':
+        pp['bookpage'] = Cohset.scope()
 
     # Use a sub-scope where node-names are prepended with name
     # and may have other qualifiers: nsub = ns.subscope(name, '[qual_list]')
@@ -782,22 +804,25 @@ def visualise(ns=None, Cohset=None, extra=None, **pp):
     dconc = dict()
     sc = []
     for key in dcoll.keys():
-       bookpage = None
        if pp['type']=='spectra':
           # Since spectra plots are crowded, make separate plots for the 4 corrs.
           dc = dcoll[key]                                         # key = corr
-          MG_JEN_forest_state.bookmark (dc['dcoll'], page=key)
-          MG_JEN_forest_state.bookmark (dc['dcoll'], page=dcoll_scope+'_spectra')
-          MG_JEN_forest_state.bookmark (dc['dcoll'], page=Cohset.scope())
+          if pp['keypage']:
+              MG_JEN_forest_state.bookmark (dc['dcoll'], page=key)
+              MG_JEN_forest_state.bookmark (dc['dcoll'], page=dcoll_scope+'_spectra')
+          if pp['bookpage']:
+              MG_JEN_forest_state.bookmark (dc['dcoll'], page=pp['bookpage'])
 
        elif pp['type']=='realvsimag':
           # For realvsimag plots it is better to plot multiple corrs in the same plot.
           # NB: key = allcorrs, [paralcorr], [crosscorr]
+          keypage = pp['keypage']
+          if pp['keypage']: keypage=key
           dc = MG_JEN_dataCollect.dconc(ns, dcoll[key], 
                                         scope=dcoll_scope,
-                                        tag=key, bookpage=key)
-          # MG_JEN_forest_state.bookmark (dc['dcoll'], page=dcoll_scope)
-          MG_JEN_forest_state.bookmark (dc['dcoll'], page=Cohset.scope())
+                                        tag=key, bookpage=keypage)
+          if pp['bookpage']:
+              MG_JEN_forest_state.bookmark (dc['dcoll'], page=pp['bookpage'])
 
        dconc[key] = dc                               # atach to output record
        sc.append (dc['dcoll'])                       # step-child for graft below

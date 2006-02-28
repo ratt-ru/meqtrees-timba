@@ -958,7 +958,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 # And also an MSauxinfo object (see TDL_MSauxinfo.py and MG_JEN_Cohset.py)
 #--------------------------------------------------------------------------------
 
-def KJones (ns=0, Sixpack=None, MSauxinfo=None, slave=False, **inarg):
+def KJones (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inarg):
    """defines diagonal KJones matrices for DFT Fourier kernel""";
 
    jones = 'KJones'

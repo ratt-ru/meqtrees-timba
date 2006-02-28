@@ -24,7 +24,7 @@ def process_vis_header (hdr):
   """handler for the standard MS visheader""";
 
   trace = True
-  if trace: print '\n** process_vis_header():'
+  if trace: print '\n** read_MS_auxinfo.process_vis_header():'
 
   # Attach the header record ot the forest state record:
   # NB: This does not work, because this function is called too late...
@@ -60,7 +60,7 @@ def process_vis_header (hdr):
     except: pass
     first = False
 
-  if trace: print '** End of process_vis_header() **\n'
+  if trace: print '** End of read_MS_auxinfo.process_vis_header() **\n'
   return True
 
 

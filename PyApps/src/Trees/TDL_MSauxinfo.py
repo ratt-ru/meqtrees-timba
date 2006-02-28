@@ -227,9 +227,23 @@ class MSauxinfo (TDL_common.Super):
             self.__station_keys.append(skey)               # list of station keys
             vk = float(k)
             self.__xyz[skey] = array([vk,-vk,vk/10])       # dummy x,y,z positions (m)
-            print '-',k,skey,self.__xyz[skey]
-        print
+            # print '-',k,skey,self.__xyz[skey]
+        # print
         return True
+
+    def create_nodes(self, ns, stations=None):
+        """Create all nodes expected by read_MS_auxinfo(hdr)"""
+        if not self.__root_MSauxinfo:                      # do once only...
+            if not stations==None:
+                self.station_config_default(stations=stations)
+            self.create_radec_nodes(ns)
+            self.create_xyz_nodes(ns)
+            # Attach them to a single root node (to avoid meqbrowser clutter)
+            cc = []
+            for key in self.__root_nodes.keys():
+                cc.append(self.__root_nodes[key])
+            self.__root_MSauxinfo = ns.MSauxinfo << Meq.Composer(children=cc)
+        return self.__root_MSauxinfo
 
     def create_radec_nodes(self, ns):
         """Create the (RA,DEC) nodes expected by read_MS_auxinfo(hdr)
@@ -241,18 +255,6 @@ class MSauxinfo (TDL_common.Super):
         # Attach them to a single root node (to avoid meqbrowser clutter)
         self.__root_nodes['radec0'] = ns.MSauxinfo_radec0 << Meq.Composer(self.__node_radec0)
         return True
-
-    def create_nodes(self, ns):
-        """Create all nodes expected by read_MS_auxinfo(hdr)"""
-        if not self.__root_MSauxinfo:                      # do once only...
-            self.create_radec_nodes(ns)
-            self.create_xyz_nodes(ns)
-            # Attach them to a single root node (to avoid meqbrowser clutter)
-            cc = []
-            for key in self.__root_nodes.keys():
-                cc.append(self.__root_nodes[key])
-            self.__root_MSauxinfo = ns.MSauxinfo << Meq.Composer(children=cc)
-        return self.__root_MSauxinfo
 
     def create_xyz_nodes(self, ns, parm=False):
         """Create the (x,y,z) nodes expected by read_MS_auxinfo(hdr)

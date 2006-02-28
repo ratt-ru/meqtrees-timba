@@ -1283,9 +1283,8 @@ class Cohset (TDL_common.Super):
         # - child 'post' gets a request after the MeqSinks have returned a result 
         #   (may be used to attach all MeqDataCollect nodes)
         if True:
-            # for key in ['start','pre','post']:
-            for key in ['start','post']:           # ignore 'pre' for the moment....
-                print '-',key,':',type(pp[key]),len(pp[key])
+            for key in ['start','pre','post']:
+            # for key in ['start','post']:           # ignore 'pre' for the moment....
                 if isinstance(pp[key], (list,tuple)):
                     print '-',key,':',type(pp[key]),len(pp[key])
                     for node in pp[key]:
@@ -1299,7 +1298,7 @@ class Cohset (TDL_common.Super):
                     print '-',key,':',pp[key]
                 print '-',key,':',pp[key]
             root = ns['Cohset_VisDataMux'] << Meq.VisDataMux(start=pp['start'],
-                                                             # pre=pp['pre'],
+                                                             pre=pp['pre'],
                                                              post=pp['post'])
             
         # Bookkeeping:
@@ -1353,7 +1352,7 @@ class Cohset (TDL_common.Super):
                     print '-',key,':',pp[key]
                 print '-',key,':',pp[key]
             root = ns['Cohset_fullDomainMux'] << Meq.VisDataMux(start=pp['start'],
-                                                                # pre=pp['pre'],
+                                                                pre=pp['pre'],
                                                                 post=pp['post'])
 
         # Bookkeeping:

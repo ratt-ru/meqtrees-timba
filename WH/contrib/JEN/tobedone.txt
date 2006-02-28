@@ -482,6 +482,29 @@ detected bugs:
 
 ------------------------------------------------------------------------------
 
+ - MG_JEN_cps.py
+   - JJones
+     - Q
+     - U
+     - V
+     - QUV
+     - The polarisation of a single source can always be massaged away:
+       - pzd: V -> U
+       - farot: U -> Q
+       - gx,gy: Q -> 0
+       - The reverse is also true
+       - However: farot propto lambda^2 ...
+     - Multiple sources (voltage beam shapes)
+     - Altaz mount: sky rotation (requires stability assumptions)
+   - GDJones:
+     - dell/dang gives a handle on pzd (if V=0)
+     - or is it simply fundamental?
+   - How to detect 'wegmoffelbaarheid'?
+
+
+
+------------------------------------------------------------------------------
+
  - Optical Calibration:
    - (lambda, flux, astrometric, polarimetric, flat-field) ....
      - cannot be separated from metrology
