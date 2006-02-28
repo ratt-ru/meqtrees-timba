@@ -1468,8 +1468,8 @@ class QwtImageDisplay(QwtPlot):
                 temp_tag = self._string_tag + ' ' + tag
                 self._string_tag = temp_tag
 
-      if visu_record.has_key('label'):
-        self._data_labels = visu_record['label']
+      if visu_record.has_key('plot_label'):
+        self._data_labels = visu_record['plot_label']
         _dprint(2,'insert_array_info: self._data_labels ', self._data_labels);
       else:
         self._data_labels = ''

@@ -1150,8 +1150,8 @@ class realvsimag_plotter(object):
 # this leaf node. When the user clicks on a data point
 # with the middle mouse buton this string is displayed
 # to show the path to the data point that was clicked on.
-      if visu_record.has_key('label'):
-        self._data_labels = visu_record['label']
+      if visu_record.has_key('plot_label'):
+        self._data_labels = visu_record['plot_label']
         _dprint(2,'self._data_labels ', self._data_labels);
 
 # now generate plot 
