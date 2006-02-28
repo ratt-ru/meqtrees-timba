@@ -152,31 +152,6 @@ class ArgBrowser(QMainWindow):
 
 
         menu = QPopupMenu(self)
-        if False:
-            # These are not very useful, since one may as well
-            # open the relevant .inarg file directly, and work from there
-            menu.insertSeparator()     
-            menu.insertItem('-> cps_inspect', self.cps_inspect)
-        if True:
-            menu.insertSeparator()     
-            submenu = QPopupMenu(menu)
-            submenu.insertItem('-> cps_stokesI', self.cps_stokesI)
-            submenu.insertItem('-> cps_GJones', self.cps_GJones)
-            submenu.insertItem('-> cps_Gphase', self.cps_Gphase)
-            submenu.insertItem('-> cps_Ggain', self.cps_Ggain)
-            submenu.insertItem('-> cps_GDJones', self.cps_GDJones)
-            submenu.insertItem('-> cps_JJones', self.cps_JJones)
-            submenu.insertItem('-> cps_GBJones', self.cps_GBJones)
-            submenu.insertItem('-> cps_BJones', self.cps_BJones)
-            submenu.insertItem('-> cps_DJones', self.cps_DJones)
-            menu.insertItem('-> cps_*', submenu)
-        if False:
-            menu.insertSeparator()     
-            submenu = QPopupMenu(menu)
-            submenu.insertItem('-> lsm_single', self.lsm_single)
-            submenu.insertItem('-> lsm_grid', self.lsm_grid)
-            submenu.insertItem('-> lsm_spiral', self.lsm_spiral)
-            menu.insertItem('-> lsm_*', submenu)
         menu.insertSeparator()     
         menu.insertItem('-> per_timeslot', self.per_timeslot)
         menu.insertItem('-> small_tile', self.small_tile)
@@ -200,6 +175,24 @@ class ArgBrowser(QMainWindow):
             submenu.insertItem('-> fdeg_6', self.fdeg_6)
             submenu.insertItem('-> fdeg_7', self.fdeg_7)
             menu.insertItem('-> tf_shape', submenu)
+        if False:
+            # These are not very useful, since one may as well
+            # open the relevant .inarg file directly, and work from there
+            menu.insertSeparator()     
+            menu.insertItem('-> cps_inspect', self.cps_inspect)
+        if True:
+            menu.insertSeparator()     
+            submenu = QPopupMenu(menu)
+            submenu.insertItem('-> cps_stokesI', self.cps_stokesI)
+            submenu.insertItem('-> cps_GJones', self.cps_GJones)
+            submenu.insertItem('-> cps_Gphase', self.cps_Gphase)
+            submenu.insertItem('-> cps_Ggain', self.cps_Ggain)
+            submenu.insertItem('-> cps_GDJones', self.cps_GDJones)
+            submenu.insertItem('-> cps_JJones', self.cps_JJones)
+            submenu.insertItem('-> cps_GBJones', self.cps_GBJones)
+            submenu.insertItem('-> cps_BJones', self.cps_BJones)
+            submenu.insertItem('-> cps_DJones', self.cps_DJones)
+            menu.insertItem('-> (cps_)XJones', submenu)
         if True:
             # Generate the 'standard' .inarg record files starting from the (new)
             # default version.
@@ -207,6 +200,13 @@ class ArgBrowser(QMainWindow):
             menu.insertSeparator()     
             menu.insertItem('-> cps_all(incl.protected)', self.cps_all)
             menu.insertItem('-> lsm_all(incl.protected)', self.lsm_all)
+        if False:
+            menu.insertSeparator()     
+            submenu = QPopupMenu(menu)
+            submenu.insertItem('-> lsm_single', self.lsm_single)
+            submenu.insertItem('-> lsm_grid', self.lsm_grid)
+            submenu.insertItem('-> lsm_spiral', self.lsm_spiral)
+            menu.insertItem('-> lsm_*', submenu)
         self.__menubar.insertItem('convert', menu)
 
 
