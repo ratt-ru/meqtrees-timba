@@ -270,7 +270,7 @@ class Parmset (TDL_common.Super):
 
         # The node-name qualifiers are the superset of the default ones
         # and the ones specified in this function call:
-        quals = deepcopy(self.quals())
+        quals = deepcopy(self.quals())          # just in case.....
         if isinstance(qual, dict):
             for qkey in qual.keys():
                 quals[qkey] = str(qual[qkey])
@@ -286,7 +286,7 @@ class Parmset (TDL_common.Super):
         if shape==None:
             shape = [0,0]
             if not tfdeg==None:
-                shape = tfdeg
+                shape = deepcopy(tfdeg)         # just in case.....
             shape[0] += 1              
             shape[1] += 1
 
