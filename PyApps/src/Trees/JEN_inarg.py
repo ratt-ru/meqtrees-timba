@@ -668,7 +668,7 @@ def view(rr, field='MESSAGE', ss='', level=0, trace=True):
 
 #------------------------------------------------------------------------------
 
-def essence(rr, match=[], exclude=[], ss='', level=0, trace=True):
+def essence(rr, match=[], exclude=[], ss='', level=0, trace=False):
    """View (recursively) the fields with names that match the specified subtrsings"""
    if level==0:
       s = '\n** Recursive view of essence: '+str(match)+'\n'
@@ -682,10 +682,11 @@ def essence(rr, match=[], exclude=[], ss='', level=0, trace=True):
          hide = rr[CTRL_record]['hide']
 
    for key in order(rr, trace=False):
+      s1 = _prefix(level)+' - '+key
       if isinstance(rr[key], dict):
          # Recursive:
          if not key==CTRL_record:
-            if True:            # Skip a line before each new record
+            if True:                     # Skip a line before each new record
                s = _prefix(level+1)
                if trace: print s
                ss += '\n'+s
@@ -699,17 +700,25 @@ def essence(rr, match=[], exclude=[], ss='', level=0, trace=True):
          skip = False
          v = rr[key]
          for substring in exclude:
-            if key.rfind(substring)>=0: skip = True
+            if key.rfind(substring)>=0:
+               if trace: print s1,': excluded: (',exclude,')'
+               skip = True
          if isinstance(v, str):
-            if v.rfind('@@')>=0: skip = True
-         if hide and hide.has_key(key):
+            if v.rfind('@@')>=0:
+               if trace: print s1,': contains @@'
+               skip = True
+         if hide and hide.has_key(key) and hide[key]:
+            if trace: print s1,': hidden'
             skip = True
-         if not skip:
+         if skip:
+            if trace: print s1,': skipped'
+         else:
             for substring in match:
-               if key.rfind(substring)>=0:
-                  s = _prefix(level)+' - '+key+' = '+str(v)
-                  if trace: print s
-                  ss += '\n'+s
+               found = (key.rfind(substring)>=0)
+               if trace and (substring in ['punit']):
+                  print s1,':',substring,': found =',found
+               if found:
+                  ss += '\n'+s1+' = '+str(v)
             
    if level==0:
       ok = is_OK(rr)

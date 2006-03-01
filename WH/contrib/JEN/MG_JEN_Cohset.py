@@ -542,7 +542,7 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
     JEN_inarg.define(pp, 'rmax', None, choice=[None, 500, 1000, 2000],  
                      help='if specified, only use baselines<=rmax')
     inarg_resample(pp, slave=slave)
-    JEN_inarg.define(pp, 'num_iter', 20, choice=[1,3,5,10,20],  
+    JEN_inarg.define(pp, 'num_iter', 5, choice=[1,3,5,10,20],  
                      help='max number of iterations')
     JEN_inarg.define(pp, 'epsilon', 1e-4, choice=[1e-3,1e-4, 1e-5],  
                      help='iteration control criterion')

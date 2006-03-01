@@ -137,8 +137,9 @@ class ArgBrowser(QMainWindow):
 
 
         menu = QPopupMenu(self)
+        menu.insertSeparator()     
         menu.insertItem('essence', self.essence)
-        menu.insertItem('description', self.viewDescription)
+        menu.insertSeparator()     
         menu.insertSeparator()     
         menu.insertItem('HISTORY', self.viewHISTORY)
         menu.insertItem('MESSAGES', self.viewMESSAGE)
@@ -231,8 +232,13 @@ class ArgBrowser(QMainWindow):
 
 
         menu = QPopupMenu(self)
+        menu.insertItem('MeqTrees', self.viewDescription)
+        menu.insertItem('MG scripts', self.viewDescription)
         self.__menubar.insertSeparator()
-        k = menu.insertItem('help', self.viewHelp)
+        menu.insertItem('this MG script', self.viewDescription)
+        menu.insertItem('this inarg', self.viewDescription)
+        self.__menubar.insertSeparator()
+        # k = menu.insertItem('help', self.viewHelp)
         # menu.setWhatsThis(k, '...text...')    # better: QToolTip...
         self.__menubar.insertItem('Help', menu)
 
@@ -1335,7 +1341,7 @@ class ArgBrowser(QMainWindow):
         JEN_inarg.modify(self.__inarg,
                          tile_size=1,
                          epsilon=1e-4,
-                         num_iter=20,
+                         num_iter=10,
                          _JEN_inarg_option=None)     
         self.tdeg(0)
         self.__message.setText('** modified inarg for per_timeslot operation')
@@ -1347,7 +1353,7 @@ class ArgBrowser(QMainWindow):
         JEN_inarg.modify(self.__inarg,
                          tile_size=10,
                          epsilon=1e-3,
-                         num_iter=10,
+                         num_iter=5,
                          _JEN_inarg_option=None)     
         self.tdeg(1)
         self.__message.setText('** modified inarg for small_tile operation')
@@ -1358,7 +1364,7 @@ class ArgBrowser(QMainWindow):
         JEN_inarg.modify(self.__inarg,
                          tile_size=20,
                          epsilon=1e-3,
-                         num_iter=10,
+                         num_iter=5,
                          _JEN_inarg_option=None)     
         self.tdeg(2)
         self.__message.setText('** modified inarg for medium_tile operation')
@@ -1369,7 +1375,7 @@ class ArgBrowser(QMainWindow):
         JEN_inarg.modify(self.__inarg,
                          tile_size=100,
                          epsilon=1e-2,
-                         num_iter=5,
+                         num_iter=3,
                          _JEN_inarg_option=None)     
         self.tdeg(2)
         self.__message.setText('** modified inarg for large_tile operation')
@@ -1450,7 +1456,6 @@ class ArgBrowser(QMainWindow):
         self.cps_Ggain(revert=True, save_protected=True)
         self.cps_GDJones(revert=True, save_protected=True)
         self.cps_JJones(revert=True, save_protected=True)
-        self.cps_GBJones(revert=True, save_protected=True)
         self.cps_BJones(revert=True, save_protected=True)
         self.cps_DJones(revert=True, save_protected=True)
         self.cps_stokesI(revert=True, save_protected=True)
@@ -1516,20 +1521,6 @@ class ArgBrowser(QMainWindow):
         self.callback_punit('QUV')
         return self.macron_exit('MG_JEN_cps_JJones', save_protected)
 
-    def cps_GBJones(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for GBJones operation"""
-        # if not self.macron_entry('MG_JEN_cps', revert): return False
-        if revert==True: self.revert_inarg()
-        JEN_inarg.modify(self.__inarg,
-                         Jsequence=['GJones','BJones'],
-                         solvegroup=['GJones','BJones'],
-                         tdeg_Ggain=3, fdeg_Ggain=0,
-                         tdeg_Gphase='@tdeg_Ggain', fdeg_Gphase='@fdeg_Ggain',
-                         tdeg_Breal=0, fdeg_Breal=5,
-                         tdeg_Bimag='@tdeg_Breal', fdeg_Bimag='@fdeg_Breal',
-                         _JEN_inarg_option=None)     
-        return self.macron_exit('MG_JEN_cps_GBJones', save_protected)
-
     def cps_BJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for BJones operation"""
         # if not self.macron_entry('MG_JEN_cps', revert): return False
@@ -1538,7 +1529,7 @@ class ArgBrowser(QMainWindow):
                          data_column_name='CORRECTED_DATA',
                          Jsequence=['BJones'],
                          solvegroup=['BJones'],
-                         tdeg_Breal=2, fdeg_Breal=5,
+                         tdeg_Breal=1, fdeg_Breal=6,
                          tdeg_Bimag='@tdeg_Breal', fdeg_Bimag='@fdeg_Breal',
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_cps_BJones', save_protected)
