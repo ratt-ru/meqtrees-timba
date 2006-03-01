@@ -138,6 +138,7 @@ class ArgBrowser(QMainWindow):
 
         menu = QPopupMenu(self)
         menu.insertSeparator()     
+        menu.insertSeparator()     
         menu.insertItem('essence', self.essence)
         menu.insertSeparator()     
         menu.insertSeparator()     
@@ -176,11 +177,6 @@ class ArgBrowser(QMainWindow):
             submenu.insertItem('-> fdeg_6', self.fdeg_6)
             submenu.insertItem('-> fdeg_7', self.fdeg_7)
             menu.insertItem('-> tf_shape', submenu)
-        if False:
-            # These are not very useful, since one may as well
-            # open the relevant .inarg file directly, and work from there
-            menu.insertSeparator()     
-            menu.insertItem('-> cps_inspect', self.cps_inspect)
         if True:
             menu.insertSeparator()     
             submenu = QPopupMenu(menu)
@@ -195,18 +191,12 @@ class ArgBrowser(QMainWindow):
             menu.insertItem('-> (cps_)XJones', submenu)
         if True:
             # Generate the 'standard' .inarg record files starting from the (new)
-            # default version.
+            # default version. (NB: what about .upgrade()...?)
             # NB: This one should perhaps only be available from the command-line....
             menu.insertSeparator()     
             menu.insertItem('-> cps_all(incl.protected)', self.cps_all)
             menu.insertItem('-> lsm_all(incl.protected)', self.lsm_all)
-        if False:
-            menu.insertSeparator()     
-            submenu = QPopupMenu(menu)
-            submenu.insertItem('-> lsm_single', self.lsm_single)
-            submenu.insertItem('-> lsm_grid', self.lsm_grid)
-            submenu.insertItem('-> lsm_spiral', self.lsm_spiral)
-            menu.insertItem('-> lsm_*', submenu)
+            menu.insertItem('-> simul_all(incl.protected)', self.simul_all)
         self.__menubar.insertItem('convert', menu)
 
 
@@ -567,6 +557,7 @@ class ArgBrowser(QMainWindow):
         match = ['ms_','_col','LSM','punit','simul',
                  'parm','pol','uvplane','stations',
                  'flag','corr','subtr','rmin','rmax','cond',
+                 'T_sec','stddev','rms','mean','unop','binop',
                  'sequ','solve','condit','shape_','deg_','tile']
         exclude = []
         ss = JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
@@ -975,8 +966,8 @@ class ArgBrowser(QMainWindow):
                                       level=level+1, makeitd=False)
 
                 else:
-                    skip = self.check_skip(rr, key)
-                    skip = False
+                    skip = JEN_inarg.check_skip(rr, key)
+                    # skip = False
                     if not skip:
                         # A record (perhaps an inarg sub-record):
                         text = QString(key)
@@ -1298,9 +1289,35 @@ class ArgBrowser(QMainWindow):
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
-    # MG_JEN_cps specific conversion modes (move to separate script):
+    # Script-specific conversion modes (move to separate module eventually):
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
+
+
+    def macron_entry(self, script='<script>', revert=False):
+        """Helper function"""
+        # Check whether script is relevant for the current self.__inarg:
+        savefile = self.savefile_name()
+        relevant = (savefile.rfind(script)>=0)
+        if not relevant:
+            s1 = '** .macron_entry(): '+str(script)
+            s1 += ' '+str(savefile)
+            s1 += '  relevant='+str(relevant)+':  done nothing'
+            self.__message.setText(s1)
+            return False
+        if revert==True: self.revert_inarg()
+        return True
+
+    def macron_exit(self, savefile='<savefile>', save_protected=False):
+        """Helper function"""
+        self.refresh()
+        self.save_inarg(savefile)
+        if save_protected==True: self.save_as_protected()
+        self.__message.setText('** .macron_exit(): '+str(savefile))
+        return True
+
+
+    #------------------------------------------------------------------------
 
     def tdeg_0(self): return self.tdeg(0)
     def tdeg_1(self): return self.tdeg(1)
@@ -1382,6 +1399,8 @@ class ArgBrowser(QMainWindow):
 
 
     #------------------------------------------------------------------------
+    # MG_JEN_lsm.py
+    #------------------------------------------------------------------------
 
     def lsm_all(self):
         """Modify the MG_JEN_lsm inarg to multiple inarg files"""
@@ -1392,8 +1411,6 @@ class ArgBrowser(QMainWindow):
         self.lsm_spiral(revert=True, save_protected=True)
         self.__message.setText('** recreated all MG_JEN_lsm .inargs (incl. protected)')
         return True
-
-    #------------------------------------------------------------------------
 
     def lsm_single(self, revert=False, save_protected=False):
         """Modify MG_JEN_lsm inarg for single operation"""
@@ -1420,29 +1437,38 @@ class ArgBrowser(QMainWindow):
         return self.macron_exit('MG_JEN_lsm_spiral', save_protected)
 
     #------------------------------------------------------------------------
+    # MG_JEN_simul.py
+    #------------------------------------------------------------------------
 
-    def macron_entry(self, script='<script>', revert=False):
-        """Helper function"""
-        # Check whether script is relevant for the current self.__inarg:
-        savefile = self.savefile_name()
-        relevant = (savefile.rfind(script)>=0)
-        if not relevant:
-            s1 = '** .macron_entry(): '+str(script)
-            s1 += ' '+str(savefile)
-            s1 += '  relevant='+str(relevant)+':  done nothing'
-            self.__message.setText(s1)
-            return False
-        if revert==True: self.revert_inarg()
+    def simul_all(self):
+        """Modify the MG_JEN_simul inarg to multiple inarg files"""
+        if not self.macron_entry('MG_JEN_simul', revert=True): return False
+        self.__message.setText('** recreating all MG_JEN_simul .inargs ...')
+        self.simul_GJones(revert=True, save_protected=True)
+        self.simul_DJones(revert=True, save_protected=True)
+        self.__message.setText('** recreated all MG_JEN_simul .inargs (incl. protected)')
         return True
 
-    def macron_exit(self, savefile='<savefile>', save_protected=False):
-        """Helper function"""
-        self.refresh()
-        self.save_inarg(savefile)
-        if save_protected==True: self.save_as_protected()
-        self.__message.setText('** .macron_exit(): '+str(savefile))
-        return True
+    def simul_GJones(self, revert=False, save_protected=False):
+        """Modify MG_JEN_simul inarg for GJones corruption"""
+        if not self.macron_entry('MG_JEN_simul', revert): return False
+        JEN_inarg.modify(self.__inarg,
+                         Jsequence=['GJones'],
+                         mean_period_s=700,
+                         _JEN_inarg_option=None)     
+        return self.macron_exit('MG_JEN_simul_GJones', save_protected)
 
+    def simul_DJones(self, revert=False, save_protected=False):
+        """Modify MG_JEN_simul inarg for DJones corruption"""
+        if not self.macron_entry('MG_JEN_simul', revert): return False
+        JEN_inarg.modify(self.__inarg,
+                         Jsequence=['DJones_WSRT'],
+                         _JEN_inarg_option=None)     
+        return self.macron_exit('MG_JEN_simul_DJones', save_protected)
+
+
+    #------------------------------------------------------------------------
+    # MG_JEN_cps.py
     #------------------------------------------------------------------------
 
     def cps_all(self):
@@ -1460,8 +1486,6 @@ class ArgBrowser(QMainWindow):
         self.cps_stokesI(revert=True, save_protected=True)
         self.__message.setText('** recreated all MG_JEN_cps .inargs (incl. protected)')
         return True
-
-    #------------------------------------------------------------------------
 
     def cps_GJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for GJones operation"""

@@ -279,7 +279,8 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     
     if simul:                              # simulation mode
        ls = TDL_Leafset.Leafset()
-       ls.inarg(pp)
+       ls.inarg(pp, mean_period_s=500, stddev_period_s=10,
+                mean_tampl=0.2, stddev_tampl=0.02)
 
     else:                                  # normal mode
        inarg_Joneset_Parmset(pp, slave=slave)              
@@ -429,11 +430,11 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005',
                             description=FJones.__doc__)
    inarg_Joneset_common(pp, jones=jones, slave=slave)              
-   # ** Jones matrix elements:
 
    if simul:                              # simulation mode
       ls = TDL_Leafset.Leafset()
-      ls.inarg(pp)
+      ls.inarg(pp, mean_period_s=500, stddev_period_s=50,
+               mean_tampl=0.2, stddev_tampl=0.02)
       
    else:                                  # normal mode
       inarg_Joneset_Parmset(pp, slave=slave)              
@@ -528,7 +529,8 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
     if simul:                              # simulation mode
        ls = TDL_Leafset.Leafset()
-       ls.inarg(pp)
+       ls.inarg(pp, mean_period_s=5000, stddev_period_s=100,
+                mean_tampl=0.2, stddev_tampl=0.02)
 
     else:                                  # normal mode
        inarg_Joneset_Parmset(pp, slave=slave)              
@@ -657,7 +659,8 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
     if simul:                              # simulation mode
        ls = TDL_Leafset.Leafset()
-       ls.inarg(pp)
+       ls.inarg(pp, mean_period_s=500, stddev_period_s=50,
+                mean_tampl=0.2, stddev_tampl=0.02)
 
     else:                                  # normal mode
        inarg_Joneset_Parmset(pp, slave=slave)              
@@ -794,8 +797,9 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
    if simul:                              # simulation mode
       ls = TDL_Leafset.Leafset()
-      ls.inarg(pp)
-      
+      ls.inarg(pp, mean_period_s=3000, stddev_period_s=100,
+               mean_tampl=0.002, stddev_tampl=0.0002)
+
    else:                                  # normal mode
       inarg_Joneset_Parmset(pp, slave=slave)              
       # ** Solving instructions:

@@ -652,14 +652,16 @@ def view(rr, field='MESSAGE', ss='', level=0, trace=True):
       for key in rr.keys():
          if isinstance(rr[key], dict):
             if not key==CTRL_record:
-               if True:            # Skip a line before each new record
-                  s = _prefix(level+1)
+               skip = check_skip(rr, key)
+               if not skip:
+                  if True:            # Skip a line before each new record
+                     s = _prefix(level+1)
+                     if trace: print s
+                     ss += '\n'+s
+                  s = _prefix(level+1)+' ***** '+key+':'
                   if trace: print s
                   ss += '\n'+s
-               s = _prefix(level+1)+' ***** '+key+':'
-               if trace: print s
-               ss += '\n'+s
-               ss = view(rr[key], field=field, ss=ss, level=level+1, trace=trace)
+                  ss = view(rr[key], field=field, ss=ss, level=level+1, trace=trace)
    if level==0:
       ok = is_OK(rr)
       if ok: s = '\n** end of view of: '+field+'   (OK)\n'
@@ -669,6 +671,25 @@ def view(rr, field='MESSAGE', ss='', level=0, trace=True):
    return ss
 
 #------------------------------------------------------------------------------
+
+def check_skip(rr, key, trace=False):
+   """Helper function to check whether any keys starts with @"""
+   skip = False
+   if not isinstance(rr, dict): return skip
+   if not rr.has_key(key): return skip
+   cc = rr[key]
+   if not isinstance(cc, dict): return skip
+   for ckey in cc.keys():
+      if ckey[0]=='@':
+         ukey = ckey.split('@')[1]
+         if trace: print '** ckey =',ckey,cc[ckey],
+         if rr.has_key(ukey):
+            skip = not (cc[ckey] in rr[ukey])
+            if trace: print ':',rr[ukey],' skip =',skip
+         if trace: print
+   return skip
+
+#-----------------------------------------------------------------------------
 
 def essence(rr, match=[], exclude=[], ss='', level=0, trace=False):
    """View (recursively) the fields with names that match the specified subtrsings"""
@@ -688,15 +709,17 @@ def essence(rr, match=[], exclude=[], ss='', level=0, trace=False):
       if isinstance(rr[key], dict):
          # Recursive:
          if not key==CTRL_record:
-            if True:                     # Skip a line before each new record
-               s = _prefix(level+1)
+            skip = check_skip(rr, key)
+            if not skip:
+               if True:                     # Skip a line before each new record
+                  s = _prefix(level+1)
+                  if trace: print s
+                  ss += '\n'+s
+               s = _prefix(level+1)+' ***** '+key+':'
                if trace: print s
                ss += '\n'+s
-            s = _prefix(level+1)+' ***** '+key+':'
-            if trace: print s
-            ss += '\n'+s
-            ss = essence(rr[key], match=match, exclude=exclude,
-                         ss=ss, level=level+1, trace=trace)
+               ss = essence(rr[key], match=match, exclude=exclude,
+                            ss=ss, level=level+1, trace=trace)
       else:
          # Test for the presence of the specified substring(s) in key:
          skip = False
@@ -715,12 +738,14 @@ def essence(rr, match=[], exclude=[], ss='', level=0, trace=False):
          if skip:
             if trace: print s1,': skipped'
          else:
+            found = False
             for substring in match:
-               found = (key.rfind(substring)>=0)
-               if trace and (substring in ['punit']):
-                  print s1,':',substring,': found =',found
-               if found:
-                  ss += '\n'+s1+' = '+str(v)
+               if not found:                  # include once only
+                  found = (key.rfind(substring)>=0)
+                  if trace and (substring in ['punit']):
+                     print s1,':',substring,': found =',found
+                  if found:
+                     ss += '\n'+s1+' = '+str(v)
             
    if level==0:
       ok = is_OK(rr)
@@ -1407,8 +1432,8 @@ def define(pp, key=None, default=None, slave=False,
       return False
 
    # Deal with some special cases:
-   if isinstance(tf, bool):          # tf (TrueFalse) specified
-      default = tf                   #  
+   if isinstance(tf, bool):           # tf (TrueFalse) specified
+      default = tf                    #  
       cc = [True, False]
       if choice:
          cc.extend(choice)            # append any other choices
@@ -1420,6 +1445,14 @@ def define(pp, key=None, default=None, slave=False,
       choice = []
    elif not isinstance(choice, (list, tuple)):
       choice = [choice]
+
+   # If default is a dict with a field key, use that one:
+   # This is convenient in xyz_inarg(pp, **kwargs) functions...
+   if isinstance(default, dict):
+      if default.has_key(key):
+         default = default[key]
+      else:                           # do NOT accept dict default values...?
+         default = str(default)
 
    # Make sure that the default value is among the choice:
    if not (default in choice):        

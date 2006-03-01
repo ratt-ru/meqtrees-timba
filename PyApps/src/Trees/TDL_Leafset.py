@@ -167,21 +167,33 @@ class Leafset (TDL_common.Super):
 
 
     #-------------------------------------------------------------------------------------
+    # MeqLeaf definition:
+    #-------------------------------------------------------------------------------------
 
-    def inarg (self, pp):
+    def inarg (self, pp, **kwargs):
         """Definition of Leafset input arguments (see e.g. MG_JEN_Joneset.py)"""
-        JEN_inarg.define(pp, 'ampl', 1,
-                         choice=[0,0.001,0.01,0.1,1,10,100,1000],  
-                         help='amplitude of the time-variation')
-        JEN_inarg.define(pp, 'T_sec', 100.0, choice=[10,20,50,100,200,500,1000],  
-                         help='period (s) of the time-variation')
-        JEN_inarg.define(pp, 'unop', 'Cos',
+        kwargs.setdefault('mean_tampl', 0.1)
+        kwargs.setdefault('stddev_tampl', 0.01)
+        kwargs.setdefault('mean_period_s', 100)
+        kwargs.setdefault('stddev_period_s', 10)
+        JEN_inarg.define(pp, 'mean_tampl', kwargs,
+                         choice=[0,0.001,0.01,0.1,1,10],  
+                         help='mean amplitude of the time-variation')
+        JEN_inarg.define(pp, 'stddev_tampl', kwargs,
+                         choice=[0,0.0001,0.001,0.01,0.1,1],  
+                         help='scatter of the tvar amplitude')
+        JEN_inarg.define(pp, 'mean_period_s', kwargs,
+                         choice=[10,20,50,100,200,500,1000],  
+                         help='mean period (s) of the time-variation')
+        JEN_inarg.define(pp, 'stddev_period_s', kwargs,
+                         choice=[10,20,50,100],  
+                         help='scatter (s) of the tvar period')
+        JEN_inarg.define(pp, 'unop', 'Cos', hide=False,
                          choice=['Cos','Sin',['Cos','Sin'],None],  
                          help='time-variability function(s)')
-        JEN_inarg.define(pp, 'stddev', 1.1, choice=[0.1], hide=False, 
-                         help='scatter in default c00 funklet values')
         return True
 
+    #------------------------------------------------------------------------
 
     def define_MeqLeaf(self, ns, key=None, qual=None,
                        leafgroup=None, default=None, **pp):
@@ -200,26 +212,25 @@ class Leafset (TDL_common.Super):
         if default==None:
             default = self.__default_value[leafgroup]
         aa = []
-        name = 'default_'+leafgroup
-        aa.append(ns[name] << Meq.Constant(default))
+        aa.append(ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default))
+
 
         # Make the (additive) time-variation function:
         # For the moment: A cos(MeqTime) with a certain period
-        uniqual = _counter (name, increment=True)
+        # uniqual = _counter (leafgroup, increment=True)
         mm = []
-        name = '2pi/T_'+leafgroup
-        mm.append(ns[name](**quals)(T=str(pp['T_sec'])) << Meq.Constant(pp['T_sec']))
-        name = 'MeqTime_'+leafgroup
-        mm.append(ns[name](**quals) << Meq.Time())
-        name = 'targ_'+leafgroup
-        node = ns[name](**quals) << Meq.Multiply(children=mm)
+        T_sec = ceil(gauss(pp['mean_period_s'], pp['stddev_period_s']))
+        if T_sec<10: T_sec = 10
+        mm.append(ns['2pi/T'](leafgroup)(**quals)(T=str(T_sec)+'sec') << Meq.Constant(T_sec))
+        mm.append(ns['MeqTime'](leafgroup)(**quals) << Meq.Time())
+        node = ns['targ'](leafgroup)(**quals) << Meq.Multiply(children=mm)
 
         mm = []
         mm.append(ns << Meq.Cos(node))
-        name = 'ampl_'+leafgroup
-        mm.append(ns[name](**quals)(ampl=str(pp['ampl'])) << Meq.Constant(pp['ampl']))
-        name = 'tvar_'+leafgroup
-        aa.append(ns[name](**quals) << Meq.Multiply(children=mm))
+        ampl = gauss(pp['mean_tampl'], pp['stddev_tampl'])
+        if ampl<0: ampl = 0
+        mm.append(ns['tampl'](leafgroup)(**quals)(ampl=str(ampl)) << Meq.Constant(ampl))
+        aa.append(ns['tvar'](leafgroup)(**quals) << Meq.Multiply(children=mm))
 
         # Combine the various components into a leaf with the desired name:
         node = ns[key](**quals) << Meq.Add(children=aa)
@@ -228,7 +239,7 @@ class Leafset (TDL_common.Super):
         nodename = node.name
         self.__MeqLeaf[nodename] = node                 # record of named nodes 
         self.__leafgroup[leafgroup].append(nodename)    # 
-        print '\n** MeqLeaf[',nodename,'] ->',node 
+        # print '\n** MeqLeaf[',nodename,'] ->',node 
 
         # Put the node stub into the internal MeqLeaf buffer for later use:
         # This buffer is a service that allows access to the most recently

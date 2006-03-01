@@ -111,10 +111,8 @@ MG = JEN_inarg.init('MG_JEN_simul', description=_description.__doc__)
 # Define some overall arguments:
 MG_JEN_Cohset.inarg_Cohset_common (MG, last_changed='d30jan2006')
 JEN_inarg.modify(MG,
-                 # A uvplane effect (q=uvp) is valid for the entire field
                  uvplane_effect=True,
-                 # Use large 'snippet' domains: 
-                 # tile_size=100,
+                 tile_size=1,
                  _JEN_inarg_option=None)     
 
 JEN_inarg.define (MG, 'add_to_existing', tf=False,
