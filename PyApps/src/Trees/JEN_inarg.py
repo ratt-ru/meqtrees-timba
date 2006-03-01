@@ -273,38 +273,40 @@ def modify(inarg, **arg):
    opt = dict()
    if arg.has_key(option_field):                     # has an option field
       opt = arg[option_field]
-      MESSAGE(inarg,'.modify(): stripped off: '+option_field)
+      # MESSAGE(inarg,'.modify(): stripped off: '+option_field)
       arg.__delitem__(option_field)                  # just strip it off
    if not isinstance(opt, dict): opt = dict()
    opt.setdefault('trace', False)
-   opt.setdefault('severe', True)
+   opt.setdefault('severe', False)
    opt.setdefault('match_substring', False)
 
    # Keep track of whether the keywords are found (see also below):
    found = dict()
-   for key in arg.keys(): found[key] = 0
+   for key in arg.keys():
+      found[key] = 0
 
    # The actual work: recursive modification:
    _modify_level(inarg, arg=arg, found=found, opt=opt)
-   MESSAGE(inarg,'.modify(): found ='+str(found))
 
    # Check the result:
    ok = True
    for key in found.keys():
-      if not found[key]:
-         ok = False
+      if not found[key]:                             # key not found
+         ok = False                                  # problem...
 
-   if not ok:
-      if opt['severe']:
-         ERROR(inarg,'.modify(severe): NOT ok: (found ='+str(found)+')')
+   if not ok:                                        # problem...
+      if opt['severe']:                              # be severe
+         ERROR(inarg,'.modify(severe):   ** NOT OK ** (found = '+str(found)+')')
          trace = True
-      else:
-         MESSAGE(inarg,'.modify(severe=False): (found ='+str(found)+')')
+      else:                                          # be lenient
+         MESSAGE(inarg,'.modify(severe=False):   ** NOT OK **   found = '+str(found))
          ok = True
+   else:                                             # OK, report what has been done
+      MESSAGE(inarg,'.modify():   ** OK ** ('+str(arg.keys())+')')
 
    if trace:
       print '** found =',found,': ok =',ok
-      display(inarg,'<= JEN_inarg.modify()',full=True)
+      display(inarg,'<= JEN_inarg.modify()',full=True)    # too much...!
    return ok
 
 #----------------------------------------------------------------------------

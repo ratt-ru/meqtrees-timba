@@ -236,6 +236,7 @@ class Parmset (TDL_common.Super):
     #-------------------------------------------------------------------------------------
 
     def define_MeqParm(self, ns, key=None, qual=None, parmgroup=None,
+                       init_funklet=None,  
                        default=None, shape=None, tfdeg=None, 
                        node_groups='Parm',
                        use_previous=True, subtile_size=None):
@@ -291,13 +292,23 @@ class Parmset (TDL_common.Super):
             shape[1] += 1
 
         # Make the new MeqParm node:
-        node = ns[key](**quals) << Meq.Parm(default,
-                                            shape=shape,
-                                            tiling=tiling,
-                                            use_previous=use_previous,
-                                            node_groups=self.node_groups(),
-                                            table_name=self.parmtable())
+        if init_funklet:
+            print key,'init_funklet =',init_funklet
+            node = ns[key](**quals) << Meq.Parm(init_funklet=init_funklet,
+                                                shape=shape,
+                                                tiling=tiling,
+                                                use_previous=use_previous,
+                                                node_groups=self.node_groups(),
+                                                table_name=self.parmtable())
 
+        else:
+            node = ns[key](**quals) << Meq.Parm(default,
+                                                shape=shape,
+                                                tiling=tiling,
+                                                use_previous=use_previous,
+                                                node_groups=self.node_groups(),
+                                                table_name=self.parmtable())
+            
         # Store the new node:
         nodename = node.name
         self.__MeqParm[nodename] = node                 # record of named nodes 

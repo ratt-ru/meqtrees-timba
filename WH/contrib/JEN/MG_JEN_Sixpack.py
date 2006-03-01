@@ -54,6 +54,7 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.LSM.LSM import *
 from Timba.LSM.LSM_GUI import *
 
+from Timba.Trees import TDL_common
 from Timba.Trees import TDL_Sixpack
 from Timba.Trees import TDL_Parmset
 from Timba.Trees import TDL_Leaf
@@ -213,7 +214,7 @@ def predefined (pp, trace=0):
        # If punit not recognised, pp is not changed at all:
        pass
 
-    # if trace: print 'pp =',pp
+    if trace: print '\n** predefined() -> pp =',TDL_common.unclutter_inarg(pp),'\n'
     return 
 
 #--------------------------------------------------------------------
@@ -354,7 +355,7 @@ def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
 #=======================================================================================
 
 
-def newstar_source (ns=0, **inarg):
+def newstar_source (ns=0, predefine=False, **inarg):
    """Make a Sixpack (I,Q,U,V,Ra,Dec) for a source with NEWSTAR parametrisation"""
 
    # Input arguments:
@@ -420,8 +421,10 @@ def newstar_source (ns=0, **inarg):
        return Sixpack
   
    # Adjust parameters pp for some special cases:
-   # NB: Disabled, to allow customisation via inargGui....
-   ## predefined (pp)  
+   # NB: Normally disabled, to allow customisation via inargGui....
+   #     But may be invoked for testing (see below)
+   if predefine:
+       predefined (pp, trace=True)  
 
    # Make the Sixpack and get its Parmset object:
    punit = pp['punit']
@@ -465,7 +468,9 @@ def newstar_source (ns=0, **inarg):
       fmult = iquv[n6.I]               
    else:
       polclog = polclog_SIF (SI=pp['SI'], I0=pp['I0'], f0=pp['f0'])
-      parm['SIF'] = pset.define_MeqParm (ns, 'SIF_stokesI', parmgroup=sI, default=polclog)
+      print 'polclog =',polclog
+      parm['SIF'] = pset.define_MeqParm (ns, 'SIF_stokesI', parmgroup=sI,
+                                         init_funklet=polclog)
       iquv[n6.I] = ns['stokesI'](q=punit) << Meq.Pow(10.0, parm['SIF'])
       # fmult = ...??
 
@@ -668,11 +673,12 @@ def _define_forest (ns):
    for key in group.keys():
       ss = []
       for predef in group[key]:
-         Sixpack = newstar_source (ns, punit=predef)
+         Sixpack = newstar_source (ns, predefine=True, punit=predef)
          ss.append(make_bookmark(ns, Sixpack))
          collect_radec(radec, Sixpack)
       cc.append(MG_JEN_exec.bundle(ns, ss, key))
       MG_JEN_forest_state.bookfolder(key)
+      # JEN_bookmarks.bookfolder(key)
  
    # Make the radec_root node:
    collect_radec(radec, ns=ns)
@@ -700,8 +706,8 @@ def _define_forest (ns):
 # In the default function, the forest is executed once:
 # If not explicitly supplied, a default request will be used:
 
-def _tdl_job_default (mqs, parent):
-    return MG_JEN_exec.meqforest (mqs, parent)
+# def _tdl_job_default (mqs, parent):
+#    return MG_JEN_exec.meqforest (mqs, parent)
 
 def _test_forest (mqs, parent):
     return MG_JEN_exec.meqforest (mqs, parent)
@@ -765,14 +771,15 @@ if __name__ == '__main__':
    if 1:
       punit = '3c286'
       punit = '3c147'
-      punit = 'SItest'
       punit = 'RMtest'
       punit = 'unpol'
+      punit = 'SItest'
       unsolvable = False
-      unsolvable = True
+      # unsolvable = True
       parmtable = None
-      parmtable = '<lsm-parmtable>'
-      Sixpack = newstar_source (ns, punit=punit,
+      # parmtable = '<lsm-parmtable>'
+      Sixpack = newstar_source (ns, predefine=True,
+                                punit=punit, 
                                 unsolvable=unsolvable,
                                 parmtable=parmtable)
       # Sixpack = newstar_source (ns)

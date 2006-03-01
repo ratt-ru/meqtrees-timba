@@ -190,7 +190,6 @@ class ArgBrowser(QMainWindow):
             submenu.insertItem('-> cps_Ggain', self.cps_Ggain)
             submenu.insertItem('-> cps_GDJones', self.cps_GDJones)
             submenu.insertItem('-> cps_JJones', self.cps_JJones)
-            submenu.insertItem('-> cps_GBJones', self.cps_GBJones)
             submenu.insertItem('-> cps_BJones', self.cps_BJones)
             submenu.insertItem('-> cps_DJones', self.cps_DJones)
             menu.insertItem('-> (cps_)XJones', submenu)
@@ -489,7 +488,7 @@ class ArgBrowser(QMainWindow):
                 n = JEN_inarg.count(self.__inarg, field)
                 if n>0:
                     s1 += '  ('+field+'S='+str(n)+') '
-                    self.view('WARNING')
+                    self.view(field)
         if True:
             # See whether there are any unresolved references:
             inarg = deepcopy(self.__inarg)

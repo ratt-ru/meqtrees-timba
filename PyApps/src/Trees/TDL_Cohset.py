@@ -28,6 +28,7 @@
 #    - 11 feb 2006: add unop argument to .Condeq() and .Condeq_redun()
 #    - 11 feb 2006: added .fullDomainMux()
 #    - 25 feb 2006: added .replace() and debugged .add() 
+#    - 25 feb 2006: added .addNoise() 
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -823,6 +824,15 @@ class Cohset (TDL_common.Super):
         return self.binop(ns, binop='Subtract', Cohset=Cohset)
 
 
+    def addNoise(self, ns, rms=0.0, mean=0.0):
+        """Add (gaussian) noise to the Cohset cohaerencies"""
+        funcname = '::addNoise():'
+        self.scope('addNoise')
+        # self.history(append=funcname+': rms='+str(rms)+'Jy')
+        self.history(append=funcname+' (not implemented yet)')
+        # self.history(append=funcname+' -> '+self.oneliner())
+        return True
+
     def replace(self, ns, Cohset=[]):
         """Replace with the (sum of the) cohaerencies of the given (list of) Cohset(s)"""
         return self.add(ns, Cohset, exclude_itself=True)
@@ -840,8 +850,8 @@ class Cohset (TDL_common.Super):
             name = 'added'
             if exclude_itself:
                 name = 'replaced'
-                # itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, complex(0.0))
-                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, 0.0)
+                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, complex(0.0))
+                # itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, 0.0)
             cc = [itself]                              # make a list for MeqAdd
             for cs in Cohset:
                 cc.append(cs[key])                     # collect corresponding (key) nodes

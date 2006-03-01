@@ -548,62 +548,13 @@ def stream_control (slave=False, display=False, **inarg):
    if True or display:
       ss = Settings.forest_state[field]
       display_object(ss, funcname+'(ss)')
+
+   # Return the stream_control record:
    return Settings.forest_state[field]
 
 
 
 
-
-#-------------------------------------------------------------------------
-# Access to MG_JEN_stream_control record (kept in the forest state record):
-
-def stream_control_old (ctrl=None, display=False, init=False):
-   """Access to the MG_JEN_stream_control record in the forest_state record
-   If init==True, initialise it with default settings."""
-
-   field = 'MG_JEN_stream_control'     # field name in forest state record
-
-   if init:
-      ss = record(inputrec=record(), outputrec=record())
-
-      ss.inputrec.ms_name = '<undefined>'
-      ss.inputrec.data_column_name = 'DATA'
-      ss.inputrec.tile_size = 10                  # in time only....
-      
-      ss.inputrec.selection = record()
-      ss.inputrec.selection.channel_start_index = 0
-      ss.inputrec.selection.channel_end_index = -1
-      ss.inputrec.selection.channel_increment = 1
-      # ss.inputrec.selection.ddid_index = 0           # .... suitable default?
-      # ss.inputrec.selection.field_index = 0          # .... same?
-      ss.inputrec.selection.selection_string = ''
-      
-      ss.outputrec.write_flags = False               # ....?
-      # ss.outputrec.predict_column = 'PREDICT';
-      ss.outputrec.predict_column = 'CORRECTED_DATA' # .....predict...? _name?
-      # ss.outputrec.residuals_column = 'RESIDUALS'  # ....
-      
-      Settings.forest_state[field] = ss
-
-
-   # Modify the MG_JEN_stream_control record, if required:
-   if not ctrl==None:
-      ss = Settings.forest_state[field]
-      for key in ss.inputrec.keys():
-         if ctrl.has_key(key): ss.inputrec[key] = ctrl[key]
-      for key in ss.inputrec.selection.keys():
-         if ctrl.has_key(key): ss.inputrec.selection[key] = ctrl[key]
-      for key in ss.outputrec.keys():
-         if ctrl.has_key(key): ss.outputrec[key] = ctrl[key]
-      Settings.forest_state[field] = ss
-
-
-   if display:
-      ss = Settings.forest_state[field]
-      display_object(ss, field)
-   return Settings.forest_state[field]
-
-# stream_control_old(init=True)
 
 
 

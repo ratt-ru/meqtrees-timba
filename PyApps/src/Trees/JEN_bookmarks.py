@@ -139,7 +139,7 @@ def bookpage (bm={}, name='page', trace=0):
 # Collect the specified (item) bookmarks/pages into a named folder:
 # If none specified, collect all the non-folder bookmarks.
 
-def bookfolder (name='bookfolder', item=None, trace=0):
+def bookfolder (name='bookfolder', item=None, trace=False):
   """Collect the specified bookmarks/pages into a bookmark folder"""
   
   if (trace): print '\n** .bookfolder(',name,'):'
@@ -158,20 +158,20 @@ def bookfolder (name='bookfolder', item=None, trace=0):
   folder = []
   bmsnew = []
   for i in range(len(bms)):
-     print '-',i,':',bms[i]
+     if trace: print '-',i,':',bms[i]
      if item==None:                        # none specified
        if (bms[i].has_key('folder')):     # already a folder:
           bmsnew.append(bms[i]) 
-          if (trace): print 'append to bmsnew:',bms[i]
+          if trace: print 'append to bmsnew:',bms[i]
        else:                      
           folder.append(bms[i])
-          if (trace): print 'append to folder:',bms[i]
+          if trace: print 'append to folder:',bms[i]
      elif item.__contains__(bms[i].name):
        folder.append(bms[i]) 
-       if (trace): print 'append to folder:',bms[i]
+       if trace: print 'append to folder:',bms[i]
      else:
        bmsnew.append(bms[i]) 
-       if (trace): print 'append to bmsnew:',bms[i]
+       if trace: print 'append to bmsnew:',bms[i]
 
   # Make the new folder, and attach it to bmsnew:
   if len(folder)>0: 
