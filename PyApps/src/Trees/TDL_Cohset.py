@@ -29,6 +29,7 @@
 #    - 11 feb 2006: added .fullDomainMux()
 #    - 25 feb 2006: added .replace() and debugged .add() 
 #    - 25 feb 2006: added .addNoise() 
+#    - 25 feb 2006: added .Leafset 
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -65,6 +66,7 @@ from Timba.Trees import TDL_common
 from Timba.Trees import TDL_radio_conventions
 from Timba.Trees import TDL_Joneset
 from Timba.Trees import TDL_Parmset
+from Timba.Trees import TDL_Leafset
 # from Timba.Trees import TDL_Sixpack
 
 
@@ -156,8 +158,9 @@ class Cohset (TDL_common.Super):
         # The Cohset contains the position (RA, Dec) of the current phase centre:
         self.__phase_centre = pp['phase_centre']
 
-        # Define its Parmset object
+        # Define its Parmset and Leafset objects:
         self.Parmset = TDL_Parmset.Parmset(**pp)
+        self.Leafset = TDL_Leafset.Leafset(**pp)
 
         # The Cohset may remember the Joneset with which it has been corrupted:
         self.__Joneset = None
@@ -412,6 +415,7 @@ class Cohset (TDL_common.Super):
         ss.append(indent1+' - plot_style:      '+str(self.plot_style()))
         ss.append(indent1+' - plot_size:       '+str(self.plot_size()))
         ss.append(indent1+' - plot_pen:        '+str(self.plot_pen()))
+        ss.append(indent1+' - leafgroups:      '+str(self.Leafset.leafgroup().keys()))
         ss.append(indent1+' - parmgroups:      '+str(self.Parmset.parmgroup().keys()))
         ss.append(indent1+' - solvegroups:     '+str(self.Parmset.solvegroup().keys()))
 
@@ -835,7 +839,9 @@ class Cohset (TDL_common.Super):
 
     def replace(self, ns, Cohset=[]):
         """Replace with the (sum of the) cohaerencies of the given (list of) Cohset(s)"""
-        return self.add(ns, Cohset, exclude_itself=True)
+        self.add(ns, Cohset, exclude_itself=True)
+        self.update_from_Cohset(Cohset)
+        return True
 
     def add(self, ns, Cohset=[], exclude_itself=False):
         """Add the cohaerencies of the given (list of) Cohset(s)"""
@@ -940,6 +946,7 @@ class Cohset (TDL_common.Super):
             self.update_from_Parmset(Sixpack.Parmset)
             self.history(append='updated from (not unsolvable): '+Sixpack.oneliner())
         else:
+            # self.update_from_Leafset(Sixpack.Leafset)               #............??
             # A Sixpack that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from 'not unsolvable' Sixpacks.
@@ -956,8 +963,10 @@ class Cohset (TDL_common.Super):
             self.__plot_style.update(Joneset.plot_style())
             self.__plot_size.update(Joneset.plot_size())
             self.update_from_Parmset(Joneset.Parmset)
+            self.update_from_Leafset(Joneset.Leafset)
             self.history(append='updated from (not unsolvable): '+Joneset.oneliner())
         else:
+            self.update_from_Leafset(Joneset.Leafset)
             # A Joneset that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from 'not unsolvable' Jonesets.
@@ -972,6 +981,7 @@ class Cohset (TDL_common.Super):
         self.__plot_style.update(Cohset.plot_style())
         self.__plot_size.update(Cohset.plot_size())
         self.update_from_Parmset(Cohset.Parmset)
+        self.update_from_Leafset(Cohset.Leafset)
         self.history(append='updated from: '+Cohset.oneliner())
         return True
 
@@ -983,6 +993,16 @@ class Cohset (TDL_common.Super):
         self.__plot_color.update(self.Parmset.plot_color())
         self.__plot_style.update(self.Parmset.plot_style())
         self.__plot_size.update(self.Parmset.plot_size())
+        return True
+
+    def update_from_Leafset(self, Leafset=None):
+        """Update the internal info from a given Leafset"""
+        if Leafset:
+            self.Leafset.update(Leafset)
+            self.history(append='updated from: '+Leafset.oneliner())
+        self.__plot_color.update(self.Leafset.plot_color())
+        self.__plot_style.update(self.Leafset.plot_style())
+        self.__plot_size.update(self.Leafset.plot_size())
         return True
 
     #---------------------------------------------------------------------------

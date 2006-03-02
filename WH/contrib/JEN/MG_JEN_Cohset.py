@@ -180,6 +180,58 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         visualise (ns, Cohset)
         visualise (ns, Cohset, type='spectra')
 
+
+    #----------------------------------------------------------------------
+    # Make an extra VisDataMux for post-visualisation of the full domain:
+    if pp['fullDomainMux']:
+
+        # Attach some test-nodes:
+        start = []
+        if True:
+            bookpage = 'fDMux_test'
+            node = TDL_Leaf.MeqFreqTime(ns, mean=0.0)
+            start.append(node)
+            MG_JEN_forest_state.bookmark(node, page=bookpage)
+            if True:
+                # The same with the full time: truncation problems?
+                node = TDL_Leaf.MeqFreqTime(ns)
+                start.append(node)
+                MG_JEN_forest_state.bookmark(node, page=bookpage)
+
+        # NB: Do NOT include nodes that lead to spigots or solvers!!!!
+        #     Just stick to MeqParms etc
+
+        # Bundle the MeqParms per parmgroup:
+        post = []
+        bookpage = 'fDMux_parmgroups'
+        for key in Cohset.Parmset.parmgroup().keys():
+            pg = Cohset.Parmset.parmgroup(key)         # list of MeqParm node names
+            n = len(pg)
+            if n==0:
+                pass
+            elif key in ['radec']:
+                pass
+            else:
+                # NB: Mean produces a scalar....
+                # node = ns['_parmgroup_'+key] << Meq.Mean(children=pg)
+                node = ns['_parmgroup_'+key+'('+str(n)+')'] << Meq.Add(children=pg)
+                post.append(node)
+                MG_JEN_forest_state.bookmark(node, page=bookpage)
+
+        bookpage = 'fDMux_leafgroups'
+        for key in Cohset.Leafset.leafgroup().keys():
+            pg = Cohset.Leafset.leafgroup(key)         # list of MeqLeaf node names
+            n = len(pg)
+            if n>0:
+                node = ns['_leafgroup_'+key+'('+str(n)+')'] << Meq.Add(children=pg)
+                post.append(node)
+                MG_JEN_forest_state.bookmark(node, page=bookpage)
+
+        # Make the VisDataMux:
+        Cohset.fullDomainMux(ns, start=start, post=post)
+    #----------------------------------------------------------------------
+
+
     # Attach array visualisation nodes:
     start = []
     if pp['visu_array_config']: 
@@ -193,41 +245,6 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     post = []
     post.extend(Cohset.rider('dcoll', clear=True))               
     post.extend(Cohset.rider('hcoll', clear=True))
-
-
-    #----------------------------------------------------------------------
-    # Make an extra VisDataMux for post-visualisation of the full domain:
-    # NB: Do this BEFORE Cohset.sinks.... (why?)
-    if pp['fullDomainMux']:
-        bookpage = 'fullDomainMux'
-        # Attach some test-nodes:
-        fstart = []
-        fstart.append(TDL_Leaf.MeqFreqTime(ns, mean=0.0))
-        MG_JEN_forest_state.bookmark(fstart[0], page=bookpage)
-        if True:
-            # The same with the full time: truncaction problems?
-            fstart.append(TDL_Leaf.MeqFreqTime(ns))
-            MG_JEN_forest_state.bookmark(fstart[1], page=bookpage)
-
-        # Attach some hcoll/dcoll nodes:
-        # NB: Do NOT include nodes that lead to spigots or solvers!!!!
-        #     Just stick to MeqParms etc
-        #     But: Form more useful (complex) nodes....
-        fpost = []
-        # visualise (ns, Cohset, bookpage=bookpage, keypage=False)
-        # visualise (ns, Cohset, type='spectra', bookpage=bookpage, keypage=False)
-        # fpost.extend(Cohset.rider('dcoll'))               
-        # fpost.extend(Cohset.rider('hcoll'))
-        # Bundle the MeqParms per parmgroup:
-        for key in Cohset.Parmset.parmgroup().keys():
-            pg = Cohset.Parmset.parmgroup(key)         # list of MeqParm node names
-            if len(pg)>0:
-                fpost.append(ns['_parmgroup_'+key] << Meq.Add(children=pg))
-
-        # Make the VisDataMux:
-        Cohset.fullDomainMux(ns, start=fstart, post=fpost)
-    #----------------------------------------------------------------------
-
 
     # Make MeqSinks
     Cohset.sinks(ns, start=start, post=post, output_col=pp['output_col'])

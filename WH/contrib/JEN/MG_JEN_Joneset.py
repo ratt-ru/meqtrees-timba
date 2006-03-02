@@ -328,16 +328,16 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     
     # Register the parmgroups (in js.Parmset eventually):
     a1 = js.parmgroup('Ggain', ipol=1, corrs='paral11', c00_default=1.0,
-                      c00_scale=1.0, period_sec=200, fdeg=0,
+                      c00_scale=1.0, timescale_min=20, fdeg=0,
                       color='red', style='diamond', size=10, **pp)
     a2 = js.parmgroup('Ggain', ipol=2, corrs='paral22', c00_default=1.0,
-                      c00_scale=1.0, period_sec=200, fdeg=0,
+                      c00_scale=1.0, timescale_min=20, fdeg=0,
                       color='blue', style='diamond', size=10, **pp)
     p1 = js.parmgroup('Gphase', ipol=1, corrs='paral11', c00_default=0.0,
-                      c00_scale=1.0, period_sec=100, fdeg=0,
+                      c00_scale=1.0, timescale_min=10, fdeg=0,
                       color='magenta', style='diamond', size=10, **pp)
     p2 = js.parmgroup('Gphase', ipol=2, corrs='paral22', c00_default=0.0,
-                      c00_scale=1.0, period_sec=100, fdeg=0,
+                      c00_scale=1.0, timescale_min=10, fdeg=0,
                       color='cyan', style='diamond', size=10, **pp)
 
     # Define potential extra condition equations:

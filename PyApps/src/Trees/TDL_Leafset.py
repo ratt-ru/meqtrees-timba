@@ -181,7 +181,9 @@ class Leafset (TDL_common.Super):
     def define_MeqLeaf(self, ns, key=None, qual=None,
                        leafgroup=None, default=None, **pp):
         """Convenience function to create a MeqLeaf node"""
-        
+
+        # uniqual = _counter (leafgroup, increment=True)
+
         # The node-name qualifiers are the superset of the default ones
         # and the ones specified in this function call:
         quals = deepcopy(self.quals())
@@ -202,16 +204,14 @@ class Leafset (TDL_common.Super):
         aa = []
         aa.append(ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default))
 
-
         # Make the (additive) time-variation function:
         # For the moment: A cos(MeqTime) with a certain period
-        # uniqual = _counter (leafgroup, increment=True)
         mm = []
-        mean = lgp['period_sec']*pp['mean_period']
-        stddev = lgp['period_sec']*pp['stddev_period']
-        T_sec = ceil(gauss(mean, stddev))
+        mean_sec = lgp['timescale_min']*60*pp['mean_period']
+        stddev_sec = lgp['timescale_min']*60*pp['stddev_period']
+        T_sec = ceil(gauss(mean_sec, stddev_sec))
         if T_sec<10: T_sec = 10
-        mm.append(ns['2pi/T'](leafgroup)(**quals)(T=str(T_sec)+'sec') << Meq.Constant(T_sec))
+        mm.append(ns['2pi/T'](leafgroup)(**quals)(T=str(T_sec)+'sec') << Meq.Constant(2*pi/T_sec))
         mm.append(ns['MeqTime'](leafgroup)(**quals) << Meq.Time())
         node = ns['targ'](leafgroup)(**quals) << Meq.Multiply(children=mm)
 
@@ -219,8 +219,7 @@ class Leafset (TDL_common.Super):
         mm.append(ns << Meq.Cos(node))
         mean = lgp['c00_scale']*pp['mean_c00']
         stddev = lgp['c00_scale']*pp['stddev_c00']
-        ampl = ceil(gauss(mean, stddev))
-        if ampl<0: ampl = 0
+        ampl = gauss(mean, stddev)
         mm.append(ns['tampl'](leafgroup)(**quals)(ampl=str(ampl)) << Meq.Constant(ampl))
         aa.append(ns['tvar'](leafgroup)(**quals) << Meq.Multiply(children=mm))
 
@@ -245,22 +244,22 @@ class Leafset (TDL_common.Super):
 
     def inarg (self, pp, **kwargs):
         """Definition of Leafset input arguments (see e.g. MG_JEN_Joneset.py)"""
-        kwargs.setdefault('mean_c00', 1.0)
-        kwargs.setdefault('stddev_c00', 0.1)
+        kwargs.setdefault('mean_c00', 0.1)
+        kwargs.setdefault('stddev_c00', 0.01)
         kwargs.setdefault('mean_period', 1.0)
         kwargs.setdefault('stddev_period', 0.1)
         JEN_inarg.define(pp, 'mean_c00', kwargs,
-                         choice=[0,0.1,0.5,1,2,-1],  
-                         help='mean of simulated c00 (fraction of c00_scale)')
+                         choice=[0,0.1,0.2,0.5,-0.1],  
+                         help='mean of EXTRA c00 (fraction of c00_scale)')
         JEN_inarg.define(pp, 'stddev_c00', kwargs,
                          choice=[0,0.0001,0.001,0.01,0.1,1],  
-                         help='scatter in simulated c00 (fraction of c00_scale')
+                         help='scatter in EXTRA c00 (fraction of c00_scale')
         JEN_inarg.define(pp, 'mean_period', kwargs,
                          choice=[0.3,0.5,1,2,3],  
-                         help='mean (fraction of period_sec)')
+                         help='mean period T (fraction of timescale_min)')
         JEN_inarg.define(pp, 'stddev_period', kwargs,
-                         choice=[0,0.0001,0.001,0.01,0.1,1],  
-                         help='scatter (fraction of period_sec)')
+                         choice=[0,0.01,0.1,0.2,0.5],  
+                         help='scatter in period T (fraction of timescale_min)')
         JEN_inarg.define(pp, 'unop', 'Cos', hide=False,
                          choice=['Cos','Sin',['Cos','Sin'],None],  
                          help='time-variability function')
@@ -284,13 +283,13 @@ class Leafset (TDL_common.Super):
             pp.setdefault('size', 5)            # size of plotted symbol
             pp.setdefault('c00_default', 1.0)   # default c00 of the members of this leafgroup 
             pp.setdefault('c00_scale', 1.0)     # scale of typical parameter value
-            pp.setdefault('period_sec', 1000)   # typycal period (sec) of time-variation 
+            pp.setdefault('timescale_min', 20)  # typycal timescale (sec) of variation 
             pp.setdefault('fdeg', 0)            # degree of freq-variation (polynomial)
             pp.setdefault('rider', dict())      # optional: record with named extra information
 
             self.__leafgroup[key] = []
             self.__leafparms[key] = dict()
-            for lgparm in ['c00_default','c00_scale','period_sec','fdeg']:
+            for lgparm in ['c00_default','c00_scale','timescale_min','fdeg']:
                 self.__leafparms[key][lgparm] = pp[lgparm]
             self.__plot_color[key] = pp['color']
             self.__plot_style[key] = pp['style']

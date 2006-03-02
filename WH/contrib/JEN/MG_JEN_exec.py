@@ -389,14 +389,13 @@ def fullDomainMux (mqs, parent, ctrl=None):
    # Make a minimum request:
    ss = stream_control (_inarg=ctrl)
    ss.inputrec.tile_size = 1000
-   # ss.outputrec.predict_column = 'MODEL_DATA'         # Fucks up the MS?
    req = meq.request()
    req.input = record(ms=ss.inputrec)
-   req.output = record(ms=ss.outputrec)
+   # req.output = record(ms=ss.outputrec)       # not needed
 
 
    # NB: The name of the node is defined in TDL_Cohset.sinks():
-   # mqs.execute('fullDomainMux', req, wait=False)
+   mqs.clearcache('Cohset_fullDomainMux')
    mqs.execute('Cohset_fullDomainMux', req, wait=False)
    return True
 

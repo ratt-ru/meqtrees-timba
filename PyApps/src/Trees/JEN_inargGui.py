@@ -971,7 +971,7 @@ class ArgBrowser(QMainWindow):
 
                 else:
                     skip = JEN_inarg.check_skip(rr, key)
-                    # skip = False
+                    skip = False               # Temporary: editing does not work!! 
                     if not skip:
                         # A record (perhaps an inarg sub-record):
                         text = QString(key)
