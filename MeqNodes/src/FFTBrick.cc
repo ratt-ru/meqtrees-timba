@@ -25,20 +25,6 @@
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 #include <MEQ/Vells.h>
-//#include <casa/aips.h>
-//#include <casa/Arrays.h>
-//#include <casa/Arrays/Vector.h>
-//#include <casa/BasicSL/String.h>
-//#include <images/Images/ImageInterface.h>
-//#include <images/Images/PagedImage.h>
-//#include <images/Images/ImageFFT.h>
-//#include <images/Images/TempImage.h>
-//#include <coordinates/Coordinates/CoordinateUtil.h>
-//#include <coordinates/Coordinates/CoordinateSystem.h>
-//#include <lattices/Lattices/LatticeIterator.h>
-//#include <lattices/Lattices/Lattice.h>
-//#include <casa/BasicMath/Math.h>
-//#include <casa/BasicSL/Constants.h>
 #include <complex.h>
 #include <fftw3.h>
 
@@ -47,9 +33,14 @@ namespace Meq {
 
   FFTBrick::FFTBrick()
     :
-    _uvppw(2.0)
+    // The parameter determining the factor of zero padding. 
+    // uvppw = 10 means a factor of 10 zero padding, 
+    //  resulting in approx. 10 points per wavelength in the UVBrick.
+    _uvppw(10.0)
   {
     // For now these axes are defined in the PatchComposer Node.
+    // However, these axes should be defined here, 
+    //  since the output will be defined on these axes.
     //Axis::addAxis("U");
     //Axis::addAxis("V");
   };
@@ -65,9 +56,17 @@ namespace Meq {
     // Get the Cells (Time, Freq, L, M) of the child
     Cells child_cells = childres.at(0)->cells();
     
+    // This node applies the FFT on the L and M axes,
+    //   producing data on U and V axes.
+    // If the L and M axes do not exist, nothing is done yet. 
+    //   I guess something should be done. Error message?
+    // I assume all 4 Stokes parameters are available in different Planes.
+    //   What if this is not the case?
     if ( child_cells.isDefined(Axis::axis("L")) && child_cells.isDefined(Axis::axis("M")) ){
 
       // Construct the Result Cells from the Child Cells
+      // In my version the output is put on L and M axes. 
+      //   These should be U and V axes.
       int nf = child_cells.ncells(Axis::FREQ);
 
       const int nl = child_cells.ncells(Axis::axis("L"));
@@ -100,6 +99,9 @@ namespace Meq {
       VellSet& vs3uv = resref().setNewVellSet(15);
 
       // For now, use the L & M axes instead of U & V (Visualisation)
+      // Chang this in actual U and V axes.
+      // size is the maximum size of the shape. 
+      // We want a shape having Freq, U, and V axes.
       int size = std::max(Axis::axis("L"),Axis::axis("M"))+1;
 
       Vells::Shape shape;
@@ -108,6 +110,7 @@ namespace Meq {
       shape[Axis::axis("M")] = nv;
       shape[Axis::FREQ] = nf;
 
+      // Initialise all Vells to complex zero.
       // change 'false' into 'true' to actually fill the vells
       Vells& vells0 = vs0.setValue(new Vells(dcomplex(0.0),shape,true));
       Vells& vells1 = vs1.setValue(new Vells(dcomplex(0.0),shape,true));
@@ -135,6 +138,11 @@ namespace Meq {
       Vells vells12 = childres.at(0) -> vellSet(1).getValue();
       Vells vells21 = childres.at(0) -> vellSet(2).getValue();
       Vells vells22 = childres.at(0) -> vellSet(3).getValue();
+
+      // Get the input data.
+      // Rearrange the data such that the center origin is tranformed 
+      //   to the (0,0) element and add additional zeros (zero padding).
+      // 
 
       // Make a larger Vells to be used as input for the FFT
       const blitz::Array<dcomplex,3> & arr0_in = vells11.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
@@ -197,6 +205,9 @@ namespace Meq {
 
       };
 
+
+      // The data is rearranged and zero-padded, hence ready to be FFT'd
+      //
       // Prepare the FFT
       fftw_complex *in1, *out1, *in2, *out2, *in3, *out3, *in4, *out4;
       fftw_plan p;
@@ -270,6 +281,9 @@ namespace Meq {
       // Destroy the plan 
       if(p) fftw_destroy_plan(p);
 
+      // The data is FFt'd and now it should be rearranged 
+      //   to have the (0,0) element back to the center of the (uv) image.
+
       // Rearrange the uv-data
 
       //blitz::Array<dcomplex,3> brr0 = vells0.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
@@ -331,6 +345,10 @@ namespace Meq {
 
       };
 
+      // Now we're done FFT wise. For the UVInterpol node 
+      //   it is convenient to have additional planes 
+      //   containing extra info (say info on derivatives) 
+      //   to be used in the Bi-Cubic Interpolation scheme.  
      
       // Make the additional Vells planes for higher order Interpolation
       //blitz::Array<dcomplex,3> fft0 = vells0.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
