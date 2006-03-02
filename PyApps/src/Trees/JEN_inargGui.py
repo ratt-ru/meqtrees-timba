@@ -19,6 +19,9 @@
 #    - 13 feb 2006: implemented .set_fdeg() etc
 #    - 13 feb 2006: converted to .modify() with 'match_substring'
 #    - 13 feb 2006: implemented .tdeg() and .fdeg() etc
+#    - 01 mar 2006: implemented MG_JEN_simul support
+#    - 01 mar 2006: moved check_skip() to JEN_inarg.py
+#    - 02 mar 2006: elaborated help menu a bit....
 #
 # Full description:
 #
@@ -155,6 +158,7 @@ class ArgBrowser(QMainWindow):
 
         menu = QPopupMenu(self)
         menu.insertSeparator()     
+        menu.insertItem('-> check_simul', self.check_simul)
         menu.insertItem('-> per_timeslot', self.per_timeslot)
         menu.insertItem('-> small_tile', self.small_tile)
         menu.insertItem('-> medium_tile', self.medium_tile)
@@ -1352,12 +1356,25 @@ class ArgBrowser(QMainWindow):
         self.__message.setText('** modified inarg: fdeg_* -> '+str(deg))
         return True
 
+    def check_simul(self):
+        """Modify the inarg for checking the result of MG_JEN_simul"""
+        JEN_inarg.modify(self.__inarg,
+                         data_column_name='CORRECTED_DATA',
+                         predict_column=None,
+                         parmtable='check_simul',
+                         # tile_size=1,
+                         # num_iter=3,
+                         _JEN_inarg_option=None)     
+        self.tdeg(0)
+        self.__message.setText('** modified inarg for checking simul')
+        return True
+
     def per_timeslot(self):
         """Modify the inarg for (temporary) per_timeslot operation"""
         JEN_inarg.modify(self.__inarg,
                          tile_size=1,
                          epsilon=1e-4,
-                         num_iter=10,
+                         num_iter=5,
                          _JEN_inarg_option=None)     
         self.tdeg(0)
         self.__message.setText('** modified inarg for per_timeslot operation')

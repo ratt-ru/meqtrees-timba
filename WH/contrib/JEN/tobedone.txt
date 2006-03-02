@@ -466,7 +466,12 @@ detected bugs:
    - medium component: 10.000 sigma
    - wide component: ...
    - multi-resolution CLEAN
-   - V=1.4% !!
+   - V=0.3% of 4000WU(20Jy) = 13WU(60mJy)   (noise=20 uJy)
+   - can erroneous PZD (variation) cause V-rings?
+     - NS symmetry axis
+   - Q-map is superb (Q of 3C1276 in selfcal model, 
+                      but not central extended component?)
+   - 3c84 has NO intrinsic Q,U, only V (see above)  
 
  - Simulaton:
    - Arbitrary LSM's (relative?)

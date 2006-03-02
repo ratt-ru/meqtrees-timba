@@ -843,15 +843,22 @@ class Cohset (TDL_common.Super):
         if not isinstance(Cohset, (tuple,list)): Cohset = [Cohset]
         if len(Cohset)==0: return True                 # no change
 
-        # Modify the internal cohaerencies:
+        # Prepare:
         uniqual = _counter(funcname, increment=-1)
+        if exclude_itself:
+            # The following is used to make 'zero' cohaerencies,
+            # i.e. complex vellsets with some freq dependence.
+            # This is needed until MeqSinks are upgraded (mar 2005)
+            MeqFreq = ns.MeqFreq(uniqual) << Meq.Freq() 
+            freqzero = ns.freqzero(uniqual) << complex(1e-20)*MeqFreq
+
+        # Modify the internal cohaerencies:
         for key in self.keys():
             itself = self.__coh[key]                   # its own node
             name = 'added'
             if exclude_itself:
                 name = 'replaced'
-                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, complex(0.0))
-                # itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, 0.0)
+                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, freqzero)
             cc = [itself]                              # make a list for MeqAdd
             for cs in Cohset:
                 cc.append(cs[key])                     # collect corresponding (key) nodes

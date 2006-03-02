@@ -210,11 +210,14 @@ def make_sinks(ns=None, Cohset=None, **inarg):
             MG_JEN_forest_state.bookmark(fstart[1], page=bookpage)
 
         # Attach some hcoll/dcoll nodes:
+        # NB: Do NOT include nodes that lead to spigots or solvers!!!!
+        #     Just stick to MeqParms etc
+        #     But: Form more useful (complex) nodes....
         fpost = []
-        visualise (ns, Cohset, bookpage=bookpage, keypage=False)
-        visualise (ns, Cohset, type='spectra', bookpage=bookpage, keypage=False)
-        fpost.extend(Cohset.rider('dcoll'))               
-        fpost.extend(Cohset.rider('hcoll'))
+        # visualise (ns, Cohset, bookpage=bookpage, keypage=False)
+        # visualise (ns, Cohset, type='spectra', bookpage=bookpage, keypage=False)
+        # fpost.extend(Cohset.rider('dcoll'))               
+        # fpost.extend(Cohset.rider('hcoll'))
         # Bundle the MeqParms per parmgroup:
         for key in Cohset.Parmset.parmgroup().keys():
             pg = Cohset.Parmset.parmgroup(key)         # list of MeqParm node names

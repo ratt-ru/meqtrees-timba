@@ -380,6 +380,12 @@ def fullDomainMux (mqs, parent, ctrl=None):
 
    from Timba.Meq import meq
 
+   if True:
+      request = meq.request()
+      request.rider=record(parm=record(command_by_list=[record(state=record(solvable=False))]))
+      mqs.execute('post_fullDomainMux', request, wait=False)
+
+
    # Make a minimum request:
    ss = stream_control (_inarg=ctrl)
    ss.inputrec.tile_size = 1000
@@ -387,6 +393,7 @@ def fullDomainMux (mqs, parent, ctrl=None):
    req = meq.request()
    req.input = record(ms=ss.inputrec)
    req.output = record(ms=ss.outputrec)
+
 
    # NB: The name of the node is defined in TDL_Cohset.sinks():
    # mqs.execute('fullDomainMux', req, wait=False)

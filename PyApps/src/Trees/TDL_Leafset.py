@@ -71,7 +71,7 @@ class Leafset (TDL_common.Super):
         """Clear the object"""
         self.__quals = dict()                        # record of default node-name qualifiers
         self.__leafgroup = dict()
-        self.__default_value = dict()
+        self.__leafparms = dict()
         self.__plot_color = TDL_radio_conventions.plot_color()
         self.__plot_style = TDL_radio_conventions.plot_style()
         self.__plot_size = TDL_radio_conventions.plot_size()
@@ -98,7 +98,8 @@ class Leafset (TDL_common.Super):
         s = TDL_common.Super.oneliner(self)
         # if len(self.quals())>0:
         s += ' quals='+str(self.quals())
-        s += ' pg:'+str(len(self.leafgroup()))
+        s += ' lg:'+str(len(self.leafgroup()))
+        s += ' lp:'+str(len(self.leafparms()))
         return s
 
 
@@ -117,6 +118,12 @@ class Leafset (TDL_common.Super):
           else:
             ss.append(indent2+' - '+key+' ( '+str(n)+' ): '+pgk[0]+' ... '+pgk[n-1])
 
+        ss.append(indent1+' - Associated leafparms ('+str(len(self.leafparms()))+'):')
+        if full:
+            for key in self.leafparms().keys():
+                lgp = self.leafparms()[key]
+                ss.append(indent2+' - '+key+': '+str(lgp))
+                    
         if full:
             ss.append(indent1+' - Contents of temporary buffer:')
             for key in self.buffer().keys():
@@ -170,30 +177,6 @@ class Leafset (TDL_common.Super):
     # MeqLeaf definition:
     #-------------------------------------------------------------------------------------
 
-    def inarg (self, pp, **kwargs):
-        """Definition of Leafset input arguments (see e.g. MG_JEN_Joneset.py)"""
-        kwargs.setdefault('mean_tampl', 0.1)
-        kwargs.setdefault('stddev_tampl', 0.01)
-        kwargs.setdefault('mean_period_s', 100)
-        kwargs.setdefault('stddev_period_s', 10)
-        JEN_inarg.define(pp, 'mean_tampl', kwargs,
-                         choice=[0,0.001,0.01,0.1,1,10],  
-                         help='mean amplitude of the time-variation')
-        JEN_inarg.define(pp, 'stddev_tampl', kwargs,
-                         choice=[0,0.0001,0.001,0.01,0.1,1],  
-                         help='scatter of the tvar amplitude')
-        JEN_inarg.define(pp, 'mean_period_s', kwargs,
-                         choice=[10,20,50,100,200,500,1000],  
-                         help='mean period (s) of the time-variation')
-        JEN_inarg.define(pp, 'stddev_period_s', kwargs,
-                         choice=[10,20,50,100],  
-                         help='scatter (s) of the tvar period')
-        JEN_inarg.define(pp, 'unop', 'Cos', hide=False,
-                         choice=['Cos','Sin',['Cos','Sin'],None],  
-                         help='time-variability function(s)')
-        return True
-
-    #------------------------------------------------------------------------
 
     def define_MeqLeaf(self, ns, key=None, qual=None,
                        leafgroup=None, default=None, **pp):
@@ -209,8 +192,13 @@ class Leafset (TDL_common.Super):
         # Start with the default value for this leafgroup:
         if leafgroup==None:
             leafgroup = key
+
+        # Get the associated leafparms:
+        lgp = self.leafparms(key)
+
+        # Start with the MeqParm default value (funklet?) for this leafgroup:
         if default==None:
-            default = self.__default_value[leafgroup]
+            default = lgp['c00_default']
         aa = []
         aa.append(ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default))
 
@@ -219,7 +207,9 @@ class Leafset (TDL_common.Super):
         # For the moment: A cos(MeqTime) with a certain period
         # uniqual = _counter (leafgroup, increment=True)
         mm = []
-        T_sec = ceil(gauss(pp['mean_period_s'], pp['stddev_period_s']))
+        mean = lgp['period_sec']*pp['mean_period']
+        stddev = lgp['period_sec']*pp['stddev_period']
+        T_sec = ceil(gauss(mean, stddev))
         if T_sec<10: T_sec = 10
         mm.append(ns['2pi/T'](leafgroup)(**quals)(T=str(T_sec)+'sec') << Meq.Constant(T_sec))
         mm.append(ns['MeqTime'](leafgroup)(**quals) << Meq.Time())
@@ -227,7 +217,9 @@ class Leafset (TDL_common.Super):
 
         mm = []
         mm.append(ns << Meq.Cos(node))
-        ampl = gauss(pp['mean_tampl'], pp['stddev_tampl'])
+        mean = lgp['c00_scale']*pp['mean_c00']
+        stddev = lgp['c00_scale']*pp['stddev_c00']
+        ampl = ceil(gauss(mean, stddev))
         if ampl<0: ampl = 0
         mm.append(ns['tampl'](leafgroup)(**quals)(ampl=str(ampl)) << Meq.Constant(ampl))
         aa.append(ns['tvar'](leafgroup)(**quals) << Meq.Multiply(children=mm))
@@ -249,27 +241,57 @@ class Leafset (TDL_common.Super):
         return node
 
 
+    #------------------------------------------------------------------------
+
+    def inarg (self, pp, **kwargs):
+        """Definition of Leafset input arguments (see e.g. MG_JEN_Joneset.py)"""
+        kwargs.setdefault('mean_c00', 1.0)
+        kwargs.setdefault('stddev_c00', 0.1)
+        kwargs.setdefault('mean_period', 1.0)
+        kwargs.setdefault('stddev_period', 0.1)
+        JEN_inarg.define(pp, 'mean_c00', kwargs,
+                         choice=[0,0.1,0.5,1,2,-1],  
+                         help='mean of simulated c00 (fraction of c00_scale)')
+        JEN_inarg.define(pp, 'stddev_c00', kwargs,
+                         choice=[0,0.0001,0.001,0.01,0.1,1],  
+                         help='scatter in simulated c00 (fraction of c00_scale')
+        JEN_inarg.define(pp, 'mean_period', kwargs,
+                         choice=[0.3,0.5,1,2,3],  
+                         help='mean (fraction of period_sec)')
+        JEN_inarg.define(pp, 'stddev_period', kwargs,
+                         choice=[0,0.0001,0.001,0.01,0.1,1],  
+                         help='scatter (fraction of period_sec)')
+        JEN_inarg.define(pp, 'unop', 'Cos', hide=False,
+                         choice=['Cos','Sin',['Cos','Sin'],None],  
+                         help='time-variability function')
+        return True
+
 
 #--------------------------------------------------------------------------------
 # Functions related to leafgroups:
 #--------------------------------------------------------------------------------
 
-
     def leafgroup (self, key=None, **pp):
         """Get/create the named (key) leafgroup"""
-        if key==None:                       # no leafgroup specified
-            return self.__leafgroup         #   return the entire record
-        elif self.__leafgroup.has_key(key): # leafgroup already exists
-            return self.__leafgroup[key]    #   return it
+        if key==None:                           # no leafgroup specified
+            return self.__leafgroup             #   return the entire record
+        elif self.__leafgroup.has_key(key):     # leafgroup already exists
+            return self.__leafgroup[key]        #   return it
         else:
             # Leafgroup does not exist yet: Create it:
             pp.setdefault('color', 'red')       # plot color
             pp.setdefault('style', 'triangle')  # plot style
             pp.setdefault('size', 5)            # size of plotted symbol
-            pp.setdefault('default', 1.0)       # default value of this leafgroup 
+            pp.setdefault('c00_default', 1.0)   # default c00 of the members of this leafgroup 
+            pp.setdefault('c00_scale', 1.0)     # scale of typical parameter value
+            pp.setdefault('period_sec', 1000)   # typycal period (sec) of time-variation 
+            pp.setdefault('fdeg', 0)            # degree of freq-variation (polynomial)
             pp.setdefault('rider', dict())      # optional: record with named extra information
+
             self.__leafgroup[key] = []
-            self.__default_value[key] = pp['default']
+            self.__leafparms[key] = dict()
+            for lgparm in ['c00_default','c00_scale','period_sec','fdeg']:
+                self.__leafparms[key][lgparm] = pp[lgparm]
             self.__plot_color[key] = pp['color']
             self.__plot_style[key] = pp['style']
             self.__plot_size[key] = pp['size']
@@ -278,10 +300,17 @@ class Leafset (TDL_common.Super):
             return key                          # return the actual key name
 
 
+    def leafparms (self, key=None):
+        """Get the named (key) leafparms"""
+        if key==None:                           # no leafparms specified
+            return self.__leafparms             #   return the entire record
+        elif self.__leafparms.has_key(key):     # leafparms already exists
+            return self.__leafparms[key]        #   return it
+        return False
+
     def plot_color(self): return self.__plot_color
     def plot_style(self): return self.__plot_style
     def plot_size(self): return self.__plot_size
-    def default_value(self): return self.__default_value
 
 
     def leaf_names(self, leafgroup=None, select='*', trace=False):
@@ -344,7 +373,7 @@ class Leafset (TDL_common.Super):
         self.__plot_color.update(Leafset.plot_color())
         self.__plot_style.update(Leafset.plot_style())
         self.__plot_size.update(Leafset.plot_size())
-        self.__default_value.update(Leafset.default_value())
+        self.__leafparms.update(Leafset.leafparms())
         self.history(append='updated from (not unsolvable): '+Leafset.oneliner())
         return True
 

@@ -279,8 +279,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     
     if simul:                              # simulation mode
        ls = TDL_Leafset.Leafset()
-       ls.inarg(pp, mean_period_s=500, stddev_period_s=10,
-                mean_tampl=0.2, stddev_tampl=0.02)
+       ls.inarg(pp)
 
     else:                                  # normal mode
        inarg_Joneset_Parmset(pp, slave=slave)              
@@ -328,13 +327,17 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     js.display('inside GJones')
     
     # Register the parmgroups (in js.Parmset eventually):
-    a1 = js.parmgroup('Ggain', ipol=1, corrs='paral11', default=1.0,
+    a1 = js.parmgroup('Ggain', ipol=1, corrs='paral11', c00_default=1.0,
+                      c00_scale=1.0, period_sec=200, fdeg=0,
                       color='red', style='diamond', size=10, **pp)
-    a2 = js.parmgroup('Ggain', ipol=2, corrs='paral22', default=1.0,
+    a2 = js.parmgroup('Ggain', ipol=2, corrs='paral22', c00_default=1.0,
+                      c00_scale=1.0, period_sec=200, fdeg=0,
                       color='blue', style='diamond', size=10, **pp)
-    p1 = js.parmgroup('Gphase', ipol=1, corrs='paral11', default=0.0,
+    p1 = js.parmgroup('Gphase', ipol=1, corrs='paral11', c00_default=0.0,
+                      c00_scale=1.0, period_sec=100, fdeg=0,
                       color='magenta', style='diamond', size=10, **pp)
-    p2 = js.parmgroup('Gphase', ipol=2, corrs='paral22', default=0.0,
+    p2 = js.parmgroup('Gphase', ipol=2, corrs='paral22', c00_default=0.0,
+                      c00_scale=1.0, period_sec=100, fdeg=0,
                       color='cyan', style='diamond', size=10, **pp)
 
     # Define potential extra condition equations:

@@ -291,18 +291,21 @@ class Parmset (TDL_common.Super):
             shape[0] += 1              
             shape[1] += 1
 
-        # Make the new MeqParm node:
+        # Make the new MeqParm node (see also below):
         if init_funklet:
             print key,'init_funklet =',init_funklet
             node = ns[key](**quals) << Meq.Parm(init_funklet=init_funklet,
-                                                shape=shape,
+                                                # default_value=....
+                                                # shape=shape,             # DON'T
+                                                # perturbation=1e-7,       # scale*1e-7
                                                 tiling=tiling,
                                                 use_previous=use_previous,
                                                 node_groups=self.node_groups(),
                                                 table_name=self.parmtable())
 
         else:
-            node = ns[key](**quals) << Meq.Parm(default,
+            node = ns[key](**quals) << Meq.Parm(funklet=default,
+                                                # default_value=default,
                                                 shape=shape,
                                                 tiling=tiling,
                                                 use_previous=use_previous,
@@ -323,7 +326,22 @@ class Parmset (TDL_common.Super):
         return node
 
 
+# From ../PyApps/src/TDL/MeqClasses.py (mar 2005):
 
+#  def Parm (self,funklet=None,**kw):
+#    if funklet is not None:
+#      if isinstance(funklet,dmi.dmi_type('MeqFunklet')):
+# #        kw['default_funklet'] = funklet;
+#        kw['init_funklet'] = funklet;
+#      else:
+#        try:
+# #          kw['default_funklet'] = meq.polc(funklet,shape=kw.get('shape',None));
+#          kw['init_funklet'] = meq.polc(funklet,shape=kw.get('shape',None));
+#        except:
+#          if _dbg.verbose>0:
+#            traceback.print_exc();
+#          return _NodeDef(NodeDefError("illegal funklet argument in call to Meq.Parm"));
+#    return _NodeDef('Meq','Parm',**kw);
 
 
 
