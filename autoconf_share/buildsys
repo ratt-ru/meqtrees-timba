@@ -34,8 +34,11 @@ if test "$1" = ""  -o  "$1" = "-h"  -o  "$1" = "--help"; then
   echo 'It does bootstrap, configure, make, check and install.'
   echo ''
   echo 'Run as:'
-  echo ' buildsys [-confopt] variants package1 [package2 ...]'
+  echo ' buildsys [-confopt] [-checktool] variants package1 [package2 ...]'
   echo '  -confopt confopt  gives optional configure options.'
+  echo '  -checktool string Optional checking tool to use with make check.'
+  echo '                    E.g. "valgrind --tool=memcheck --num-callers=50 \'
+  echo '                                   --leak-check=yes --track-fds=yes"'
   echo '  variants          gives the variants to do (e.g. gnu3_debug)'
   echo '                    Separate multiple variants by whitespace and'
   echo '                    enclose in quotes.'
@@ -54,6 +57,7 @@ pgmpath=`cd $pgmpath > /dev/null 2>&1  &&  pwd`
 
 # Handle possible options.
 confopt=
+checktool=
 while [ 1 = 1 ]
 do
   # Get possible configure option.
@@ -77,6 +81,12 @@ do
       opt="$val"
     fi
     confopt="$opt"
+    ;;
+  # Get possible checktool option.
+  -checktool*)
+    shift
+    checktool="$1"
+    shift
     ;;
   *)
     break
@@ -107,7 +117,8 @@ fi
 echo ""
 echo 'Building PACKAGES="'$pkgs'"'
 echo '         VARIANTS="'$variants'"'
-echo '         confopt="'$confopt'"'
+echo '         -confopt "'$confopt'"'
+echo '         -checktool "'$checktool'"'
 echo ""
 
 # Build the system.
@@ -116,33 +127,37 @@ echo && echo ":::::: SYSTEM BUILD START" && echo
 for pkg in $pkgs
 do
   if test -d $pkg; then
-    echo \
-     && echo ":::::: BOOTSTRAPPING $pkg" \
-     && echo \
-     && ((cd $pkg && ./bootstrap) || echo ":::::: ERROR") \
-     && echo \
-     && echo ":::::: DONE BOOTSTRAPPING $pkg" \
-     && echo
+    echo
+    echo ":::::: BOOTSTRAPPING $pkg"
+    echo
+    (cd $pkg && ./bootstrap) || echo ":::::: ERROR"
+    echo
+    echo ":::::: DONE BOOTSTRAPPING $pkg"
+    echo
     for var in $variants
     do
-      echo \
-       && echo ":::::: CONFIGURING VARIANT $var FOR PACKAGE $pkg" \
-       && echo \
-       && date \
-       && ((mkdir -p $pkg/build/$var && cd $pkg/build/$var && \
-            ../../lofarconf -norecursive $confopt) || echo ":::::: ERROR") \
-       && echo \
-       && echo ":::::: FINISHED CONFIGURING VARIANT $var FOR PACKAGE $pkg" \
-       && echo
-      echo \
-       && echo ":::::: BUILDING VARIANT $var FOR PACKAGE $pkg" \
-       && echo \
-       && date \
-       && ((cd $pkg/build/$var \
-            && make -k WITH_INSTALL=1 build_system) || echo ":::::: ERROR" ) \
-       && echo \
-       && echo ":::::: FINISHED BUILDING VARIANT $var FOR PACKAGE $pkg" \
-       && echo
+      echo
+      echo ":::::: CONFIGURING VARIANT $var FOR PACKAGE $pkg"
+      echo
+      date
+      (mkdir -p $pkg/build/$var && cd $pkg/build/$var && \
+            ../../lofarconf -norecursive $confopt) || echo ":::::: ERROR"
+      echo
+      echo ":::::: FINISHED CONFIGURING VARIANT $var FOR PACKAGE $pkg"
+      echo
+      echo ":::::: BUILDING VARIANT $var FOR PACKAGE $pkg"
+      echo
+      date
+      if [ "$checktool" = "" ]; then
+        (cd $pkg/build/$var \
+            && make -k WITH_INSTALL=1 build_system) || echo ":::::: ERROR"
+      else
+        (cd $pkg/build/$var \
+            && make -k WITH_INSTALL=1 CHECKTOOL="$checktool" build_system) || echo ":::::: ERROR"
+      fi
+      echo
+      echo ":::::: FINISHED BUILDING VARIANT $var FOR PACKAGE $pkg"
+      echo
     done
   else
     echo ":::::: ERROR $pkg does not exist"

@@ -573,7 +573,7 @@ fi
 
 # System build is a bit different.
 if [ "$system" != 0 ]; then
-  $pgmpath/buildsys -confopt "$confopt" "$variants" "$pkgs"
+  $pgmpath/buildsys -confopt "$confopt" -checktool "$checktool" "$variants" "$pkgs"
   exit 0
 fi
 
@@ -586,8 +586,9 @@ premake=
 mainmake=date
 postmake=
 # Make sure bootstrap is executable; Eclipse does not set x bit.
+# Remove the cache, because sometimes it keeps old data.
 if [ $conf = 1 ]; then
-  bootcmd="chmod +x bootstrap && ./bootstrap && "
+  bootcmd="\\rm -rf autom4te.cache; chmod +x bootstrap && ./bootstrap && "
   confcmd="../../lofarconf $confopt && "
   echo "Packages will be bootstrapped and configured"
 fi
