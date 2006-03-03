@@ -449,11 +449,11 @@ def newstar_source (ns=0, predefine=False, **inarg):
    
    # Define extra solvegroup(s) from combinations of parmgroups:
    # NB A solvegroup is automatically creates for each parmgroup (e.g. stokesI)
-   pset.define_solvegroup('stokesIQUV', [sI,sQ,sU,sV])
-   pset.define_solvegroup('stokesIQU', [sI,sQ,sU])
-   pset.define_solvegroup('stokesIV', [sI,sV])
-   pset.define_solvegroup('stokesQU', [sQ,sU])
-   pset.define_solvegroup('stokesQUV', [sQ,sU,sV])
+   pset.solvegroup('stokesIQUV', [sI,sQ,sU,sV])
+   pset.solvegroup('stokesIQU', [sI,sQ,sU])
+   pset.solvegroup('stokesIV', [sI,sV])
+   pset.solvegroup('stokesQU', [sQ,sU])
+   pset.solvegroup('stokesQUV', [sQ,sU,sV])
 
    # Make the Sixpack of 6 standard subtree root-nodes: 
    n6 = record(I='stokesI', Q='stokesQ', U='stokesU', V='stokesV', R='ra', D='dec') 

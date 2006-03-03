@@ -361,11 +361,11 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     js.Parmset.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.Parmset.define_solvegroup('GJones', [a1, p1, a2, p2])
-    js.Parmset.define_solvegroup('Gpol1', [a1, p1])
-    js.Parmset.define_solvegroup('Gpol2', [a2, p2])
-    js.Parmset.define_solvegroup('Ggain', [a1, a2])
-    js.Parmset.define_solvegroup('Gphase', [p1, p2])
+    js.Parmset.solvegroup('GJones', [a1, p1, a2, p2])
+    js.Parmset.solvegroup('Gpol1', [a1, p1])
+    js.Parmset.solvegroup('Gpol2', [a2, p2])
+    js.Parmset.solvegroup('Ggain', [a1, a2])
+    js.Parmset.solvegroup('Gphase', [p1, p2])
     
     for station in pp['stations']:
        skey = TDL_radio_conventions.station_key(station)        
@@ -472,7 +472,7 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    js.Parmset.node_groups(label[0])
 
    # Define extra solvegroup(s) from combinations of parmgroups:
-   js.Parmset.define_solvegroup('FJones', [RM])
+   js.Parmset.solvegroup('FJones', [RM])
 
    # Make a node for the Faraday rotation (same for all stations...)
    if simul:
@@ -595,11 +595,11 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     js.Parmset.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.Parmset.define_solvegroup('BJones', [br1, bi1, br2, bi2])
-    js.Parmset.define_solvegroup('Bpol1', [br1, bi1])
-    js.Parmset.define_solvegroup('Bpol2', [br2, bi2])
-    js.Parmset.define_solvegroup('Breal', [br1, br2])
-    js.Parmset.define_solvegroup('Bimag', [bi1, bi2])
+    js.Parmset.solvegroup('BJones', [br1, bi1, br2, bi2])
+    js.Parmset.solvegroup('Bpol1', [br1, bi1])
+    js.Parmset.solvegroup('Bpol2', [br2, bi2])
+    js.Parmset.solvegroup('Breal', [br1, br2])
+    js.Parmset.solvegroup('Bimag', [bi1, bi2])
 
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
@@ -733,10 +733,10 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     js.Parmset.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.Parmset.define_solvegroup('JJones', [dr11, di11, dr12, di12,
+    js.Parmset.solvegroup('JJones', [dr11, di11, dr12, di12,
                                             dr21, di21, dr22, di22])
-    js.Parmset.define_solvegroup('Jreal', [dr11, dr12, dr21, dr22])
-    js.Parmset.define_solvegroup('Jimag', [di11, di12, di21, di22])
+    js.Parmset.solvegroup('Jreal', [dr11, dr12, dr21, dr22])
+    js.Parmset.solvegroup('Jimag', [di11, di12, di21, di22])
 
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
@@ -871,17 +871,17 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
    # Define extra solvegroup(s) from combinations of parmgroups:
    if pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
-      js.Parmset.define_solvegroup('DJones', [Dang, Dell, pzd])
+      js.Parmset.solvegroup('DJones', [Dang, Dell, pzd])
    elif pp['coupled_XY_Dang']:
-      js.Parmset.define_solvegroup('DJones', [Dang, Dell1, Dell2, pzd])
-      js.Parmset.define_solvegroup('Dell', [Dell1, Dell2, pzd])
+      js.Parmset.solvegroup('DJones', [Dang, Dell1, Dell2, pzd])
+      js.Parmset.solvegroup('Dell', [Dell1, Dell2, pzd])
    elif pp['coupled_XY_Dell']:
-      js.Parmset.define_solvegroup('DJones', [Dang1, Dang2, Dell, pzd])
-      js.Parmset.define_solvegroup('Dang', [Dang1, Dang2, pzd])
+      js.Parmset.solvegroup('DJones', [Dang1, Dang2, Dell, pzd])
+      js.Parmset.solvegroup('Dang', [Dang1, Dang2, pzd])
    else:
-      js.Parmset.define_solvegroup('DJones', [Dang1, Dang2, Dell1, Dell2, pzd])
-      js.Parmset.define_solvegroup('Dang', [Dang1, Dang2, pzd])
-      js.Parmset.define_solvegroup('Dell', [Dell1, Dell2, pzd])
+      js.Parmset.solvegroup('DJones', [Dang1, Dang2, Dell1, Dell2, pzd])
+      js.Parmset.solvegroup('Dang', [Dang1, Dang2, pzd])
+      js.Parmset.solvegroup('Dell', [Dell1, Dell2, pzd])
 
    # The X/Y Phase-Zero-Difference (PZD) is shared by all stations:
    if simul:
