@@ -722,12 +722,13 @@ namespace Meq {
 
     if(rec->hasField(FShape)){
 	 std::vector<int> shape;    
-	 force_shape_=true;
 	 rec[FShape].get_vector(shape,initializing);
+	 if(!(shape.size())) return;
 	 if(shape.size()>1)
 	   shape_=LoShape(shape[0],shape[1]);
 	 else
 	   shape_=LoShape(shape[0],1);
+	 force_shape_=true;
 	   
        }
 
