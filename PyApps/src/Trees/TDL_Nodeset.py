@@ -103,16 +103,16 @@ class Nodeset (TDL_common.Super):
             group = self.group(key)
             n = len(group)
             if full or n<3:
-                ss.append(indent2+' - '+key+' ( '+str(n)+' ): '+str(group))
+                ss.append(indent2+' - '+key+' ('+str(n)+'):    '+str(group))
             else:
-                ss.append(indent2+' - '+key+' ( '+str(n)+' ): '+group[0]+' ... '+group[n-1])
+                ss.append(indent2+' - '+key+' ('+str(n)+'):    '+group[0]+' ... '+group[n-1])
 
         #------------------------
         if full:  
             ss.append(indent1+' - group riders ('+str(len(self.group_rider()))+'):')
             for key in self.group_rider().keys():
                 if len(self.group_rider()[key])>0:
-                    ss.append(indent2+' - '+key+': '+str(self.group_rider()[key]))
+                    ss.append(indent2+' - '+key+':     '+str(self.group_rider()[key]))
 
         #------------------------
         ss.append(indent1+' - Defined gogs ('+str(len(self.gog()))+'):')
@@ -124,25 +124,25 @@ class Nodeset (TDL_common.Super):
             ss.append(indent1+' - gog riders ('+str(len(self.gog_rider()))+'):')
             for key in self.gog_rider().keys():
                 if len(self.gog_rider()[key])>0:
-                    ss.append(indent2+' - '+key+': '+str(self.gog_rider()[key]))
+                    ss.append(indent2+' - '+key+':    '+str(self.gog_rider()[key]))
 
         #------------------------
         if full:
-            ss.append(indent1+' - Contents of temporary buffer:')
+            ss.append(indent1+' - Contents of temporary buffer ('+str(len(self.__buffer))+'):')
             for key in self.buffer().keys():
-                ss.append(indent2+' - '+key+': '+str(self.buffer()[key]))
+                ss.append(indent2+' - '+key+':    '+str(self.buffer()[key]))
 
         #------------------------
-        ss.append(indent1+' - Available MeqNode nodes ( '+str(len(self.__MeqNode))+' ):')
+        ss.append(indent1+' - Available MeqNode nodes ('+str(len(self.__MeqNode))+'):')
         keys = self.__MeqNode.keys()
         n = len(keys)
         if full or n<10:
             for key in keys:
-                ss.append(indent2+' - '+key+' : '+str(self.__MeqNode[key]))
+                ss.append(indent2+' - '+str(self.__MeqNode[key]))
         else:
-            ss.append(indent2+' - first: '+keys[0]+' : '+str(self.__MeqNode[keys[0]]))
+            ss.append(indent2+' - first: '+str(self.__MeqNode[keys[0]]))
             ss.append(indent2+'   ....')
-            ss.append(indent2+' - last:  '+keys[n-1]+' : '+str(self.__MeqNode[keys[n-1]]))
+            ss.append(indent2+' - last:  '+str(self.__MeqNode[keys[n-1]]))
 
         return TDL_common.Super.display_end (self, ss)
 
@@ -177,7 +177,7 @@ class Nodeset (TDL_common.Super):
 
     #-------------------------------------------------------------------------------------
 
-    def MeqNode(self, key=None, node=None, trace=True):
+    def MeqNode(self, key=None, node=None, trace=False):
         """Get/create a named MeqNode entry"""
         if node:                                  # Create a new MeqNode entry
             nodename = node.name
@@ -238,7 +238,7 @@ class Nodeset (TDL_common.Super):
             qq = TDL_common.unclutter_inarg(pp)
             # self.history('** Defined group: '+key+':  rider = '+str(qq))
             self.history('** Defined group: '+key+':  rider keys: '+str(qq.keys()))
-            return key                              # return the actual group key name
+            return key                              # return the actual group/gog key name
         # Otherwise, return the specified (key) group (None = all):
         return self._fieldict (self.__group, key=key, name='.group()')
 
@@ -288,6 +288,10 @@ class Nodeset (TDL_common.Super):
         if trace: print '    -> nodenames(',len(names),'):',names
         return names
 
+    #-----------------------------------------------------------------------------------
+    # Group selection:
+    #-----------------------------------------------------------------------------------
+
     def select_groups (self, name=None, substring=True, rider=None, trace=False):
         """Return a list of groups according to the selection criteria"""
         if trace: print '** .select_groups(',name,substring,rider,'):'
@@ -296,36 +300,54 @@ class Nodeset (TDL_common.Super):
         if trace: print '    extract: groups(',len(gg),'):',gg
 
         # Match substrings in group keys, if required:
-        if substring:
-            cc = []
-            for g in gg:
-                for key in self.group_keys():
-                    if key.rfind(g)>=0:
-                        cc.append(key)
-            gg = cc
-            if trace: print '    substring: groups(',len(gg),'):',gg
+        gg = self._match_string (gg, self.group_keys(), substring=substring, trace=trace)
 
         # Select on group_rider criteria, if specified:
         if isinstance(rider, dict):
-            cc = []
-            for g in gg:
-                ok = True
-                rr = self.__group_rider[g]
-                for key in rider.keys():
-                    if rr.has_key(key):
-                        v = rider[key]
-                        if isinstance(v, (list, tuple)):
-                            if not v.__contains__(rr[key]): ok = False
-                        else:
-                            if (not v==rr[key]): ok = False
-                        print '     -',g,key,':',v,'<->',rr[key],'    ok =',ok
-                if ok: cc.append(g)
-            gg = cc
-            if trace: print '    rider: groups(',len(gg),'):',gg
+            gg = self._match_rider (gg, rider, self.__group_rider, trace=trace)
 
         # Return the list of selected group names:
         if trace: print '    -> groups(',len(gg),'):',gg
         return gg
+
+
+    #-----------------------------------------------------------------------
+
+    def _match_string (self, string, slist=[], substring=True, trace=False):
+        """Select the strings in slist that match the given (sub)string(s)"""
+        if not isinstance(string, (list,tuple)): string = [string]
+        if not isinstance(slist, (list,tuple)): slist = [slist]
+        cc = []
+        for ss in string:
+            for s in slist:                         # e.g. self.group_keys()
+                if substring:                       # match substring
+                    if s.rfind(ss)>=0: cc.append(s)
+                else:                               # match entire string
+                    if s==ss: cc.append(s)
+        if trace: print '    ** _match_string() ->',len(cc),'):',cc
+        return cc
+
+    #-----------------------------------------------------------------------
+
+    def _match_rider (self, gg, rider=None, ridict=None, trace=False):
+        """Select groups/gogs (gg) on rider criteria, if specified"""
+        if not isinstance(rider, dict): return gg
+        if not isinstance(ridict, dict): return False
+        cc = []
+        for g in gg:
+            ok = True
+            rr = ridict[g]
+            for key in rider.keys():
+                if rr.has_key(key):
+                    v = rider[key]
+                    if isinstance(v, (list, tuple)):
+                        if not v.__contains__(rr[key]): ok = False
+                    else:
+                        if (not v==rr[key]): ok = False
+                    print '     -',g,key,':',v,'<->',rr[key],'    ok =',ok
+            if ok: cc.append(g)
+        if trace: print '    ** _match_rider() ->',len(cc),'):',cc
+        return cc
 
     #--------------------------------------------------------------------------------
     # Helper function (very useful):
@@ -405,6 +427,26 @@ class Nodeset (TDL_common.Super):
         """Check whether the specified (key) gog exists"""
         return self.__gog.has_key(key)
 
+    def select_gogs (self, name=None, substring=True, rider=None, trace=False):
+        """Return a list of gogs according to the selection criteria"""
+        if trace: print '** .select_gogs(',name,substring,rider,'):'
+
+        # NB: Eventually we might need self._extract_flat_goglist()....
+        gg = name
+        if name==None: gg = self.gog_keys()
+        if not isinstance(gg, (list,tuple)): gg = [gg]
+        if trace: print '    extract: gogs(',len(gg),'):',gg
+
+        # Match substrings in gog keys, if required:
+        gg = self._match_string (gg, self.gog_keys(), substring=substring, trace=trace)
+
+        # Select on gog_rider criteria, if specified:
+        if isinstance(rider, dict):
+            gg = self._match_rider (gg, rider, self.__gog_rider, trace=trace)
+
+        # Return the list of selected gog ggs:
+        if trace: print '    -> gogs(',len(gg),'):',gg
+        return gg
 
     #--------------------------------------------------------------------------
     # Make a subtree of MeqNode bundles (also MeqNodes), e.g. for plotting:
@@ -504,7 +546,7 @@ class Nodeset (TDL_common.Super):
 
 
     def _apply_unop(self, ns, node=None, unop=None):
-        """Helper function to apply (optional) unary operation(s) to node"""
+        """Recursive helper function to apply (optional) unary operation(s) to node"""
         if unop==None: return node
         if not isinstance(unop, (list, tuple)): unop = [unop]
         for unop1 in unop:
@@ -519,6 +561,41 @@ class Nodeset (TDL_common.Super):
         for unop1 in unop:
             name = str(unop1)+'('+name+')'
         return name
+
+
+    #--------------------------------------------------------------------------
+    # Apply binary operations to the specified groups of MeqNodes:
+    #--------------------------------------------------------------------------
+    
+    def apply_binop (self, ns, group=None, binop=None):
+        """Apply binary operation(s) to the nodes in the specified group(s).
+        The resulting nodes are put into new groups, and a new gog is defined"""
+        if trace: print '\n** apply_binop(',group,binop,'):'
+        gg = self._extract_flat_grouplist(group, must_exist=True)
+        if not isinstance(gg, list): return False
+        if not len(gg)==2: return False
+
+        # Get two lists of nodes:
+        lhs = self.nodes(gg[0], trace=trace)          # left-hand side nodes        
+        if not isinstance(lhs, list): return False 
+        rhs = self.nodes(gg[1], trace=trace)          # right-hand side nodes
+        if not isinstance(rhs, list): return False 
+        if not len(lhs)==len(rhs): return False
+        if len(lhs)==0: return False
+
+        # Make the new group:
+        gname = self._binop_name(gg, binop=binop)
+        self.group(gname, binop=binop)
+        for i in range(len(lhs)):
+            cc = [lhs[i],rhs[i]]
+            node = ns << getattr(Meq,binop)(children=cc)
+            self.MeqNode(gname, node)
+        return gname
+
+
+    def _binop_name(self, name=None, binop=None):
+        """Helper function to make a binop name"""
+        return str(binop)+'('+str(name[0])+','+str(name[1])+')'
 
 
 
@@ -707,12 +784,20 @@ if __name__ == '__main__':
         nn = nst.nodenames (gg, select='*', trace=True)
         nn = nst.nodes (gg, select='*', trace=True)
 
-    if 1:
+    if 0:
         name = None
         name = 'Gp'
         rider = None
         rider = dict(bb=[2,3,None], aa=[1,2])
         nst.select_groups (name=name, substring=True, rider=rider, trace=True)
+
+    if 0:
+        name = None
+        name = 'Gp'
+        rider = None
+        rider = dict(bb=[2,3,None])
+        rider = dict(automatic=True)
+        nst.select_gogs (name=name, substring=True, rider=rider, trace=True)
 
     if 0:
         # bb = nst.bundle(ns)
@@ -721,6 +806,9 @@ if __name__ == '__main__':
         
     if 0:
         nst.apply_unop(ns, 'GJones', 'Cos')
+
+    if 1:
+        nst.apply_binop(ns, [a1,p1], 'ToPolar')
 
     if 0:
         print
@@ -734,9 +822,9 @@ if __name__ == '__main__':
             print '- gog:',key,':',nst.gog(key)
         print
 
-    if 0:
+    if 1:
         nst.display(full=True)
-        # nst.display()
+        nst.display()
 
 
     if 0:
