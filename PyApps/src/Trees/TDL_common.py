@@ -12,6 +12,8 @@
 #    - 05 sep 2005: creation
 #    - 10 sep 2005: more or less stable
 #    - 25 feb 2006: .unclutter_inarg()  (used by other functions too)
+#    - 06 mar 2006: added automatic error/warning printing to .history()
+#    - 06 mar 2006: .history() will return False if error/warning
 #
 # Remarks:
 #
@@ -126,9 +128,12 @@ class Super:
         ss.append(indent1+s1)
 
         hh = self.history()
-        ss.append(indent1+'* Object history ('+str(len(hh))+' entries):')
-        for i in range(len(hh)):
-            ss.append(indent2+'* '+str(i)+': '+hh[i])
+        if not full:
+            ss.append(indent1+'* Object history ('+str(len(hh))+' entries): (not shown)')
+        else:
+            ss.append(indent1+'* Object history ('+str(len(hh))+' entries):')
+            for i in range(len(hh)):
+                ss.append(indent2+'* '+str(i)+': '+hh[i])
         # ss.append(indent1+'*')
         if end: ss = self.display_end(ss)
         return ss
@@ -153,21 +158,45 @@ class Super:
         return new
 
 
-    def history(self, append=None, error=None, warning=None, reset=False, indent=False):
+    def history(self, append=None, error=None, warning=None, reset=False,
+                indent=False, trace=False):
         """Simple mechanisms for storing the object history, including errors/warnings"""
         if reset: self.__history = []
         if indent:
             for i in range(len(self.__history)):
                 self.__history[i] = '...'+self.__history[i]      # indent the old stuff
         if not append==None:
-            self.__history.append(str(append))
+            s1 = str(append)
+            self.__history.append(s1)
+            if trace: print s1
+        ok = True
         if not error==None:
             self.__errors += 1
-            self.__history.append('** ERROR ** '+str(error))
+            s1 = '** ERROR ** '+str(error)
+            self.__history.append(s1)
+            print '\n',s1,'\n'
+            ok = False
         if not warning==None:
             self.__warnings += 1
-            self.__history.append('** WARNING ** '+str(warning))
-        return self.__history
+            s1 = '** WARNING ** '+str(warning)
+            self.__history.append(s1)
+            print '\n',s1,'\n'
+            ok = False
+        if not ok:               # 
+            return False         # this allows False return of the calling function 
+        return self.__history    # return the entire history....
+
+    # Helper function for a frequent operation:
+
+    def _fieldict (self, rr=dict(), key=None, name='<name>'):
+        """Return the specified field (key) from the given dict (rr)"""
+        if key==None:                               # no field specified
+            return rr                               #   return the entire dict
+        elif not isinstance(rr, dict):
+            return self.history(error=str(name)+': rr not a dict, but: '+str(type(rr)))
+        elif rr.has_key(key):                       # rr has the specified field
+            return rr[key]                          #   return it
+        return self.history(error=str(name)+': key not recognised: '+key)
 
 
     # Some ideas for functions to be added:
@@ -224,6 +253,10 @@ def unclutter_inarg(pp):
         else:
             qq[key] = v
     return qq
+
+
+#--------------------------------------------------------------------------
+
 
 #========================================================================
 # Test routine:
