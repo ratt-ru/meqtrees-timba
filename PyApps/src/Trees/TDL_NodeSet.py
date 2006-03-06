@@ -1,19 +1,19 @@
-# TDL_Nodeset.py
+# TDL_NodeSet.py
 #
 # Author: J.E.Noordam
 #
 # Short description:
-#    A Nodeset object encapsulates group(s) of MeqNodes
+#    A NodeSet object encapsulates group(s) of MeqNodes
 #
 # History:
 #    - 03 mar 2006: creation from TDL_Parmset.py
 #
 # Full description:
 #   Many types of MeqTree nodes (e.g. MeqParms) come in groups of similar ones,
-#   which are dealt with as a group. The Nodeset object provides a
+#   which are dealt with as a group. The NodeSet object provides a
 #   convenient way to define and use such groups in various ways. 
 #
-#   A Nodeset object contains the following main components:
+#   A NodeSet object contains the following main components:
 #   - A list of named groups, i.e. lists of MeqNode names. 
 #   - A list of named gogs, i.e. lists of one or more group (or gog) names.
 
@@ -37,16 +37,16 @@ from Timba.Trees import JEN_bookmarks
 
 
 #=================================================================================
-# Class Nodeset
+# Class NodeSet
 #=================================================================================
 
 
-class Nodeset (TDL_common.Super):
-    """A Nodeset object encapsulates an (arbitrary) set of MeqNode nodes"""
+class NodeSet (TDL_common.Super):
+    """A NodeSet object encapsulates an (arbitrary) set of MeqNode nodes"""
 
     def __init__(self, **pp):
 
-        TDL_common.Super.__init__(self, type='Nodeset', **pp)
+        TDL_common.Super.__init__(self, type='NodeSet', **pp)
         self.clear()
         return None
 
@@ -81,7 +81,7 @@ class Nodeset (TDL_common.Super):
     #--------------------------------------------------------------------------------
             
     def oneliner(self):
-        """Make a one-line summary of this Nodeset object"""
+        """Make a one-line summary of this NodeSet object"""
         s = TDL_common.Super.oneliner(self)
         # if len(self.quals())>0:
         s += ' quals='+str(self.quals())
@@ -92,7 +92,7 @@ class Nodeset (TDL_common.Super):
 
 
     def display(self, txt=None, full=False):
-        """Display a description of the contents of this Nodeset object"""
+        """Display a description of the contents of this NodeSet object"""
         ss = TDL_common.Super.display (self, txt=txt, end=False, full=full)
         indent1 = 2*' '
         indent2 = 6*' '
@@ -620,32 +620,32 @@ class Nodeset (TDL_common.Super):
       return True
 
 
-    def update(self, Nodeset=None):
-        """Update the essentials from another Nodeset object"""
-        if Nodeset==None: return False
+    def update(self, NodeSet=None):
+        """Update the essentials from another NodeSet object"""
+        if NodeSet==None: return False
         # NB: update OVERWRITES existing fields with new versions!
-        self.__MeqNode.update(Nodeset.MeqNode())
-        self.__group.update(Nodeset.group())
-        self.__group_rider.update(Nodeset.group_rider())
-        self.__plot_color.update(Nodeset.plot_color())
-        self.__plot_style.update(Nodeset.plot_style())
-        self.__plot_size.update(Nodeset.plot_size())
-        self.__gog.update(Nodeset.gog())
-        self.__gog_rider.update(Nodeset.gog_rider())
-        self.history(append='updated from: '+Nodeset.oneliner())
+        self.__MeqNode.update(NodeSet.MeqNode())
+        self.__group.update(NodeSet.group())
+        self.__group_rider.update(NodeSet.group_rider())
+        self.__plot_color.update(NodeSet.plot_color())
+        self.__plot_style.update(NodeSet.plot_style())
+        self.__plot_size.update(NodeSet.plot_size())
+        self.__gog.update(NodeSet.gog())
+        self.__gog_rider.update(NodeSet.gog_rider())
+        self.history(append='updated from: '+NodeSet.oneliner())
         return True
 
 
 #----------------------------------------------------------------------
-#   methods used in saving/restoring the Nodeset
+#   methods used in saving/restoring the NodeSet
 #----------------------------------------------------------------------
 
     def clone(self):
         """clone self such that no NodeStubs are present. This 
-           is needed to save the Nodeset."""
+           is needed to save the NodeSet."""
         
-        #create new Nodeset
-        newp=Nodeset()
+        #create new NodeSet
+        newp=NodeSet()
         newp.__quals=self.__quals
         newp.__group=self.__group
         newp.__group_rider=self.__group_rider
@@ -665,7 +665,7 @@ class Nodeset (TDL_common.Super):
         return newp
 
     def restore(self,oldp,ns):
-        """ recreate the Nodeset from a saved version 'oldp'"""
+        """ recreate the NodeSet from a saved version 'oldp'"""
         self.__quals=oldp.__quals
         self.__group=oldp.__group
         self.__group_rider=oldp.__group_rider
@@ -710,7 +710,7 @@ def _counter (key, increment=0, reset=False, trace=True):
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0
     _counters[key] += increment
-    if trace: print '** Nodeset: _counters(',key,') =',_counters[key]
+    if trace: print '** NodeSet: _counters(',key,') =',_counters[key]
     return _counters[key]
 
 
@@ -723,14 +723,14 @@ def _counter (key, increment=0, reset=False, trace=True):
 #========================================================================
 
 if __name__ == '__main__':
-    print '\n*******************\n** Local test of: TDL_Nodeset.py:\n'
+    print '\n*******************\n** Local test of: TDL_NodeSet.py:\n'
     from numarray import *
     from Timba.Trees import TDL_display
     # from Timba.Trees import JEN_record
     ns = NodeScope()
     
     # stations = range(3)
-    nst = Nodeset(label='initial')
+    nst = NodeSet(label='initial')
     nst.display('initial')
 
     if 0:
@@ -832,7 +832,7 @@ if __name__ == '__main__':
         # k = 0 ; TDL_display.subtree(ns[k], 'ns['+str(k)+']', full=True, recurse=3)
         nst.display('final result')
 
-    print '\n*******************\n** End of local test of: TDL_Nodeset.py:\n'
+    print '\n*******************\n** End of local test of: TDL_NodeSet.py:\n'
 
 
 
