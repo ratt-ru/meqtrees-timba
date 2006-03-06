@@ -143,10 +143,14 @@
 # Use LimitExec if available
   if [ -x $LOFARROOT/bin/LimitExec ]
   then
-    CMDPREFIX="$LOFARROOT/bin/LimitExec $MAXTIME"
+    LOFAR_LIMITEXEC="$LOFARROOT/bin/LimitExec"
   elif [ -x $lofar_sharedir/limitexec.sh ]
   then
-    CMDPREFIX="$lofar_sharedir/limitexec.sh $MAXTIME"
+    LOFAR_LIMITEXEC="$lofar_sharedir/limitexec.sh"
+  fi
+  export LOFAR_LIMITEXEC
+  if [ "$LOFAR_LIMITEXEC" != "" ]; then
+    CMDPREFIX="$LOFAR_LIMITEXEC $MAXTIME"
   fi
   
   if [ "x$CHECKTOOL" != "x" ]

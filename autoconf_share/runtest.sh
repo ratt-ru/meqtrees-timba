@@ -28,13 +28,13 @@ if test $# -lt 1 || test $# -gt 3; then
   exit 0
 fi
 
-if test $# -eq 2; then
+if test $# -ge 2; then
   MAXTIME=$2
 else
   MAXTIME=300  # 300 seconds == 5 minutes
 fi
 
-if test $# -eq 3; then
+if test $# -ge 3; then
   PREC=$3
 else
   PREC=1e-5
@@ -79,6 +79,9 @@ if test "$AIPSPP" != ""; then
     export AIPSPATH
 fi
 
+# Delete all possible files from previous test runs.
+\rm -f $1.stdout $1.run $1.in $1.log_prop $1.in_* $1.err $1.valgrind*
+
 #
 # Copy expected files to current directory
 #
@@ -116,5 +119,5 @@ $lfr_share_dir/assay $1 $MAXTIME $PREC
 STS=$?
 
 # Cleanup (mainly for make distcheck).
-\rm -f *.stdout *.run *.in *.log_prop *.in_*
+\rm -f $1.stdout $1.run $1.in $1.log_prop $1.in_*
 exit $STS
