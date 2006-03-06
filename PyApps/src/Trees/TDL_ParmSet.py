@@ -1,9 +1,9 @@
-# TDL_Parmset.py
+# TDL_ParmSet.py
 #
 # Author: J.E.Noordam
 #
 # Short description:
-#    A Parmset object encapsulates group(s) of MeqParms
+#    A ParmSet object encapsulates group(s) of MeqParms
 #
 # History:
 #    - 20 dec 2005: creation, from TDL_Joneset.py
@@ -14,18 +14,19 @@
 #    - 21 jan 2006: function tf_polc() from MG_JEN_funklet.py
 #    - 24 feb 2006: adopted new MXM MeqParm init keywords
 #    - 03 mar 2006: introduced plotgroups and derivates
+#    - 06 mar 2006: adopted TDL_NodeSet objects
 #
 # Full description:
 #   The (many) MeqParms of a Measurement Equation are usually solved in groups
-#   (e.g. GJones phases for all stations, etc). The Parmset object provides a
+#   (e.g. GJones phases for all stations, etc). The ParmSet object provides a
 #   convenient way to define and use such groups in various ways. 
-#   A Joneset object contains a Parmset, which is used when solvers are defined.
+#   A Joneset object contains a ParmSet, which is used when solvers are defined.
 #
-#   A Parmset object contains the following main components:
+#   A ParmSet object contains the following main components:
 #   - A list of named parmgroups, i.e. lists of MeqParm node names. 
 #   - A list of named solvegroups, i.e. lists of one or more parmgroup names.
 #
-#   A Parmset object contains the following services:
+#   A ParmSet object contains the following services:
 #   - Creation of a named parmgroup, and addition of members.
 #   - Definition of a new MeqParm node (with all its various options)
 #     (this function may be used by itself too)
@@ -51,18 +52,19 @@ from numarray import *
 
 from Timba.Trees import TDL_common
 from Timba.Trees import TDL_radio_conventions
-from Timba.Trees import JEN_bookmarks
+from Timba.Trees import TDL_Nodeset
+# from Timba.Trees import JEN_bookmarks
 
 
 
 
 #=================================================================================
-# Class Parmset
+# Class ParmSet
 #=================================================================================
 
 
-class Parmset (TDL_common.Super):
-    """A Parmset object encapsulates an (arbitrary) set of MeqParm nodes"""
+class ParmSet (TDL_common.Super):
+    """A ParmSet object encapsulates an (arbitrary) set of MeqParm nodes"""
 
     def __init__(self, **pp):
 
@@ -70,167 +72,36 @@ class Parmset (TDL_common.Super):
         pp.setdefault('unsolvable', False)           # if True, do NOT store parmgroup/solvegroup info
         pp.setdefault('parmtable', None)             # name of MeqParm table (AIPS++)
 
-        TDL_common.Super.__init__(self, type='Parmset', **pp)
+        TDL_common.Super.__init__(self, type='ParmSet', **pp)
 
         self.__unsolvable = pp['unsolvable']
         self.__parmtable = pp['parmtable']
         self.check_parmtable_extension()
+
+        # Define its NodeSet object:
+        self.NodeSet = TDL_NodeSet.NodeSet(label=self.label())
+        # self.NodeSet = TDL_NodeSet.NodeSet(label=self.label(), **pp)
+        
         self.clear()
         return None
 
 
-
     def clear(self):
         """Clear the object"""
-        self.__quals = dict()                        # record of default node-name qualifiers
-        self.__parmgroup = dict()
         self.__default_value = dict()
-        self.__pg_rider = dict()
         self.__condeq = dict()
-        self.__solvegroup = dict()
-        self.__plotgroup = dict()
-        self.__derivate = dict()
         self.__plot_color = TDL_radio_conventions.plot_color()
         self.__plot_style = TDL_radio_conventions.plot_style()
         self.__plot_size = TDL_radio_conventions.plot_size()
         self.__MeqParm = dict()
-        self.__MeqTree = dict()
-        self.__buffer = dict()
         self.__node_groups = ['Parm']
+
+
+#--------------------------------------------------------------------------------
 
     def unsolvable(self):
         """If True, no parmgroup/solvegroup info is stored"""
         return self.__unsolvable
-
-    def quals(self, new=None, clear=False):
-        """Get/set the default MeqParm node-name qualifier(s)"""
-        if clear:
-            self.__quals = dict()
-        if isinstance(new, dict):
-            for key in new.keys():
-                self.__quals[key] = str(new[key])
-        return self.__quals
-        
-    def buffer(self):
-        """Get the temporary helper record self.__buffer"""
-        return self.__buffer
-
-#--------------------------------------------------------------------------------
-            
-    def oneliner(self):
-        """Make a one-line summary of this Parmset object"""
-        s = TDL_common.Super.oneliner(self)
-        # if len(self.quals())>0:
-        s += ' quals='+str(self.quals())
-        s += ' pg:'+str(len(self.parmgroup()))
-        s += ' sg:'+str(len(self.solvegroup()))
-        s += ' cq:'+str(len(self.condeq()))
-        # s += ' '+str(self.node_groups())
-        if self.unsolvable():
-            s += ' unsolvable'
-        else:
-            s += ' parmtable='+str(self.parmtable())
-        return s
-
-
-    def display(self, txt=None, full=False):
-        """Display a description of the contents of this Parmset object"""
-        ss = TDL_common.Super.display (self, txt=txt, end=False)
-        indent1 = 2*' '
-        indent2 = 6*' '
- 
-        ss.append(indent1+' - Registered parmgroups ('+str(len(self.parmgroup()))+'):')
-        for key in self.parmgroup().keys():
-          pgk = self.parmgroup()[key]
-          n = len(pgk)
-          if full or n<3:
-            ss.append(indent2+' - '+key+' ( '+str(n)+' ): '+str(pgk))
-          else:
-            ss.append(indent2+' - '+key+' ( '+str(n)+' ): '+pgk[0]+' ... '+pgk[n-1])
-
-        ss.append(indent1+' - parmtable   = '+str(self.parmtable()))
-        ss.append(indent1+' - node_groups = '+str(self.node_groups()))
-        ss.append(indent1+' - unsolvable  = '+str(self.unsolvable()))
-
-        ss.append(indent1+' - Defined solvegroups ('+str(len(self.solvegroup()))+'):')
-        for key in self.solvegroup().keys():
-            ss.append(indent2+' - '+key+' :     parmgroups: '+str(self.solvegroup()[key]))
-
-        ss.append(indent1+' - Defined plotgroups ('+str(len(self.plotgroup()))+'):')
-        for key in self.plotgroup().keys():
-            ss.append(indent2+' - '+key+' :     groups: '+str(self.plotgroup()[key]))
-
-        ss.append(indent1+' - Defined derivates ('+str(len(self.derivate()))+'):')
-        for key in self.derivate().keys():
-            ss.append(indent2+' - '+key+' : '+str(self.derivate()[key]))
-
-        ss.append(indent1+' - parmgroup riders (pg_rider):')
-        for key in self.parmgroup().keys():
-            if len(self.pg_rider()[key])>0:
-                ss.append(indent2+' - '+key+': '+str(self.pg_rider()[key]))
- 
-        ss.append(indent1+' - parmgroup condeq definitions ('+str(len(self.__condeq))+'):')
-        for key in self.__condeq.keys():
-            ss.append(indent2+' - '+key+': '+str(self.__condeq[key]))
-
-        if full:
-            ss.append(indent1+' - Contents of temporary buffer:')
-            for key in self.buffer().keys():
-                ss.append(indent2+' - '+key+': '+str(self.buffer()[key]))
-
-        ss.append(indent1+' - Available MeqParm nodes ( '+str(len(self.__MeqParm))+' ):')
-        keys = self.__MeqParm.keys()
-        n = len(keys)
-        if full or n<10:
-            for key in keys:
-                ss.append(indent2+' - '+key+' : '+str(self.__MeqParm[key]))
-        else:
-            ss.append(indent2+' - first: '+keys[0]+' : '+str(self.__MeqParm[keys[0]]))
-            ss.append(indent2+'   ....')
-            ss.append(indent2+' - last:  '+keys[n-1]+' : '+str(self.__MeqParm[keys[n-1]]))
-
-        ss.append(indent1+' - Available MeqTree nodes ( '+str(len(self.__MeqTree))+' ):')
-        keys = self.__MeqTree.keys()
-        n = len(keys)
-        if full or n<10:
-            for key in keys:
-                ss.append(indent2+' - '+key+' : '+str(self.__MeqTree[key]))
-        else:
-            ss.append(indent2+' - first: '+keys[0]+' : '+str(self.__MeqTree[keys[0]]))
-            ss.append(indent2+'   ....')
-            ss.append(indent2+' - last:  '+keys[n-1]+' : '+str(self.__MeqTree[keys[n-1]]))
-        return TDL_common.Super.display_end (self, ss)
-
-
-
-
-#--------------------------------------------------------------------------------
-# Functions related to MeqParm nodes: 
-#--------------------------------------------------------------------------------
-
-    def __getitem__(self, key):
-        """Get a named (key) MeqParm node"""
-        # This allows indexing by key and by index nr:
-        if isinstance(key, int): key = self.__MeqParm.keys()[key]
-        return self.__MeqParm[key]
-
-    def __setitem__(self, key, value):
-        """Set a named (key) MeqParm node"""
-        self.__MeqParm[key] = value
-        return self.__MeqParm[key]
-
-    def MeqParm(self):
-        """The list of MeqParm nodes"""
-        return self.__MeqParm
-    def len(self):
-        """The number of MeqParm nodes in MeqParm"""
-        return len(self.__MeqParm)
-    def keys(self):
-        """The list of MeqParm keys (names)"""
-        return self.__MeqParm.keys()
-    def has_key(self, key):
-        """Test whether MeqParm contains an item with the specified key"""
-        return self.keys().__contains__(key)
 
     def node_groups(self, new=None):
         """Get/set node_groups (input for MeqParm definition)"""  
@@ -240,7 +111,6 @@ class Parmset (TDL_common.Super):
                 if not self.__node_groups.__contains__(png):
                     self.__node_groups.append(png)
         return self.__node_groups
-
 
     def parmtable(self, new=None):
         """Get/set the parmtable (MeqParm table) name""" 
@@ -256,6 +126,75 @@ class Parmset (TDL_common.Super):
             if len(ss)==1: self.__parmtable += '.mep'
             return self.__parmtable.split('.')[1]
         return True
+
+#--------------------------------------------------------------------------------
+
+    def quals(self, new=None, clear=False):
+        """Get/set the default MeqParm node-name qualifier(s)"""
+        return self.Nodeset.quals(new=new, clear=clear)
+        
+    def buffer(self):
+        """Get the temporary helper record self.__buffer"""
+        return self.NodeSet.buffer()
+
+#--------------------------------------------------------------------------------
+            
+    def oneliner(self):
+        """Make a one-line summary of this ParmSet object"""
+        s = TDL_common.Super.oneliner(self)
+        s += ' quals='+str(self.quals())
+        s += ' pg:'+str(len(self.parmgroup()))
+        s += ' sg:'+str(len(self.solvegroup()))
+        s += ' cq:'+str(len(self.condeq()))
+        if self.unsolvable():
+            s += ' unsolvable'
+        else:
+            s += ' parmtable='+str(self.parmtable())
+        return s
+
+
+    def display(self, txt=None, full=False):
+        """Display a description of the contents of this ParmSet object"""
+        ss = TDL_common.Super.display (self, txt=txt, end=False)
+        indent1 = 2*' '
+        indent2 = 6*' '
+ 
+        ss.append(indent1+' - parmtable   = '+str(self.parmtable()))
+        ss.append(indent1+' - node_groups = '+str(self.node_groups()))
+        ss.append(indent1+' - unsolvable  = '+str(self.unsolvable()))
+
+        ss.append(indent1+' - Defined solvegroups ('+str(len(self.solvegroup()))+'):')
+        for key in self.solvegroup().keys():
+            ss.append(indent2+' - '+key+' :     parmgroups: '+str(self.solvegroup()[key]))
+
+        ss.append(indent1+' - parmgroup condeq definitions ('+str(len(self.__condeq))+'):')
+        for key in self.__condeq.keys():
+            ss.append(indent2+' - '+key+': '+str(self.__condeq[key]))
+
+        return TDL_common.Super.display_end (self, ss)
+
+
+
+
+#--------------------------------------------------------------------------------
+# Functions related to MeqParm nodes: 
+#--------------------------------------------------------------------------------
+
+    def MeqParm(self):
+        """The list of MeqParm nodes"""
+        return self.NodeSet.MeqNode()
+
+    def len(self):
+        """The number of MeqParm nodes in MeqParm"""
+        return len(self.NodeSet.MeqNode())
+
+    def keys(self):
+        """The list of MeqParm keys (names)"""
+        return self.NodeSet.MeqNode().keys()
+
+    def has_key(self, key):
+        """Test whether MeqParm contains an item with the specified key"""
+        return self.keys().__contains__(key)
 
     #-------------------------------------------------------------------------------------
 
@@ -336,17 +275,8 @@ class Parmset (TDL_common.Super):
                                                 node_groups=self.node_groups(),
                                                 table_name=self.parmtable())
             
-        # Store the new node:
-        nodename = node.name
-        self.__MeqParm[nodename] = node                 # record of named nodes 
-        self.__parmgroup[parmgroup].append(nodename)    # 
-        print '\n** MeqParm[',nodename,'] ->',node 
-
-        # Put the node stub into the internal MeqParm buffer for later use:
-        # This buffer is a service that allows access to the most recently
-        # defined MeqParms by means of their parmgroup name, rather than
-        # their full name:
-        self.__buffer[parmgroup] = node
+        # Store the new node n the NodeSet:
+        self.NodeSet.MeqNode(parmgroup, node)
         return node
 
 
@@ -376,186 +306,22 @@ class Parmset (TDL_common.Super):
 
     def parmgroup (self, key=None, **pp):
         """Get/create the named (key) parmgroup"""
-        if key==None:                       # no parmgroup specified
-            return self.__parmgroup         #   return the entire record
-        elif self.__parmgroup.has_key(key): # parmgroup already exists
-            return self.__parmgroup[key]    #   return it
-        else:
-            print 'parmgroup.keys( ->',self.__parmgroup.keys()
+        if len(pp)>0:
             # Parmgroup does not exist yet: Create it:
             pp.setdefault('default', 1.0)       # default value (usually c00)
-            pp.setdefault('color', None)        # plot color
-            pp.setdefault('style', 'circle')    # plot style
-            pp.setdefault('size', 10)           # size of plotted symbol
-            pp.setdefault('default', 1.0)       # default MeqParm value for this parmgroup
-            pp.setdefault('rider', dict())      # optional: record with named extra information
-            self.__parmgroup[key] = []
-            self.__pg_rider[key] = pp['rider']
             self.__default_value[key] = pp['default']
-            self.__plot_color[key] = pp['color']
-            self.__plot_style[key] = pp['style']
-            self.__plot_size[key] = pp['size']
             qq = TDL_common.unclutter_inarg(pp)
             self.history('** Created parmgroup: '+key+':   '+str(qq))
-            self.solvegroup(key, parmgroup=[key])
-            return key                          # return the actual key name
+            # self.solvegroup(key, parmgroup=[key])
+        return self.NodeSet.group(key, **pp)
 
 
-    def pg_rider(self): return self.__pg_rider
-    def plot_color(self): return self.__plot_color
-    def plot_style(self): return self.__plot_style
-    def plot_size(self): return self.__plot_size
     def default_value(self): return self.__default_value
 
     def parmgroup_names (self):
         """Return the names (keys) of the available parmgroups"""
         return self.__parmgroup.keys()
 
-    def parm_names(self, parmgroup=None, select='*', trace=False):
-        """Return a list of parmgroup MeqParm node names"""
-        if trace: print '\n** .parm_names(',parmgroup,select,'):'
-        node_names = self.parmgroup(parmgroup) # list of MeqParm node-names
-        print 'node_names =',node_names
-        parms = []
-        n = len(node_names)
-        if n==0:
-            pass
-        elif select=='first':               # select the first of each parmgroup
-            parms.append(node_names[0])     # append a single node name
-        elif select=='last':                # select the last of each parmgroup
-            parms.append(node_names[n-1])   # append a single node name
-        else:
-            parms.extend(node_names)        # append entire parmgroup
-        if trace: print '  ->',len(parms),':',parms,'\n'
-        return parms
-
-
-    def parm_nodes(self, parmgroup=None, select='*', trace=False):
-        """Return a list of parmgroup MeqParm nodes"""
-        trace = True
-        if trace: print '\n** .parm_nodes(',parmgroup,select,'):'
-        node_names = self.parm_names(parmgroup, select=select, trace=trace)
-        if not isinstance(node_names, list): return False
-        nodes = []
-        for name in node_names:
-            print '- parm_nodes():',name,self.__MeqParm.has_key(name)
-            nodes.append(self.__MeqParm[name])
-        # Return a list of solvable MeqParm nodes:
-        if trace: print '  ->',len(nodes),':',nodes,'\n'
-        return nodes
-
-    #--------------------------------------------------------------------------
-
-    def subtree_parmgroups(self, ns, parmgroup=None, label=None, bookpage=None):
-        """Return a subtree of the specified (named) parmgroup(s)"""
-        if parmgroup==None:                             # not specified
-            parmgroup = self.parmgroup_names()          # take all
-            name = 'Parmset.parmgroups'
-        else:                                           # specified
-            if not isinstance(parmgroup,(list,tuple)):
-                parmgroup = [parmgroup]                 # make list 
-            name = 'parmgroup_'+str(parmgroup)
-            if label: name = 'parmgroup_'+str(label)
-        if bookpage==None: bookpage = 'Parmset.parmgroups'
-        # Only make the subtree once:
-        if not self.__MeqTree.has_key(name):
-            cc = []
-            if not isinstance(parmgroup, (list,tuple)): parmgroup=[parmgroup]
-            for pg in parmgroup:                        # parmgroup name
-                cc.append(self.subtree_parmgroup(ns, pg, bookpage=bookpage))
-            self.__MeqTree[name] = ns[name] << Meq.Composer(children=cc)
-        return self.__MeqTree[name]
-
-
-    def subtree_parmgroup(self, ns, parmgroup=None, bookpage='Parmset_parmgroups'):
-        """Return a subtree of (the sum of) the nodes in a parmgroup"""
-        trace = True
-        if trace: print '\n** subtree_parmgroup(',parmgroup,'):'
-        nodes = self.parm_nodes(parmgroup, trace=trace)
-        if not isinstance(nodes, list): return False
-        n = len(nodes)
-        if n==0: return False
-        name = 'sum_'+parmgroup+'('+str(n)+')'
-        if not self.__MeqTree.has_key(name):
-            self.__MeqTree[name] = ns[name] << Meq.Add(children=nodes)
-            JEN_bookmarks.bookmark(self.__MeqTree[name], page=bookpage)
-        return self.__MeqTree[name]
-
-    #--------------------------------------------------------------------------------
-
-    def subtree_solvegroup(self, ns, solvegroup=None, label=None, bookpage='Parmset.solvegroups'):
-        """Return a subtree of the specified (named) solvegroup(s)"""
-        if solvegroup==None:                             # not specified
-            solvegroup = self.solvegroup_names()         # take all
-            name = 'Parmset.solvegroups'
-        else:                                            # specified
-            if not isinstance(solvegroup,(list,tuple)):
-                solvegroup = [solvegroup]                # make list 
-            name = 'solvegroup_'+str(solvegroup)
-            if label: name = 'solvegroup_'+str(label)
-        if bookpage==None: bookpage = 'Parmset.solvegroups'
-        # Only make the subtree once:
-        if not self.__MeqTree.has_key(name):
-            cc = []
-            for sg in solvegroup:                        # solvegroup name
-                for parmgroup in self.solvegroup(sg):    # parmgroup name
-                    cc.append(self.subtree_parmgroup(ns, parmgroup, bookpage=bookpage))
-            self.__MeqTree[name] = ns[name] << Meq.Composer(children=cc)
-        return self.__MeqTree[name]
-
-#--------------------------------------------------------------------------------
-# Functions related to plotgroups:
-#--------------------------------------------------------------------------------
-
-    def plotgroup (self, key=None, keys=None):
-        """Get/define the named (key) plotgroup"""
-        if key==None:
-            return self.__plotgroup                                # entire dict
-        if self.__plotgroup.has_key(key):
-            return self.__plotgroup[key]                           # specific group
-        if keys:
-            if not isinstance(keys, list): keys = [keys]   
-            self.__plotgroup[key] = keys                      # list of existing group keys
-            return self.__plotgroup[key]
-        print '\n** plotgroup name not recognised: ',key
-        print '     choose from:',self.plotgroup().keys(),'\n'
-        return None
-
-
-    def plotgroup_names (self):
-        """Return the names (keys) of the available plotgroups"""
-        return self.__plotgroup.keys()
-
-    def plotgroup_tree(self, ns, plotgroup=None, trace=False):
-        """Return a list of plotgroup nodes"""
-        if trace: print '\n** .plot_nodes(',plotgroup,select,'):'
-        nodes = self.parm_nodes(parmgroup=plotgroup, trace=trace)
-        if not isinstance(nodes, list): return False
-        n = len(nodes)
-        if n==0: return False
-        name = 'sum_'+parmgroup+'('+str(n)+')'
-        if not self.__MeqTree.has_key(name):
-            self.__MeqTree[name] = ns[name] << Meq.Add(children=nodes)
-        return self.__MeqTree[name]
-
-
-#--------------------------------------------------------------------------------
-# Functions related to derivates:
-#--------------------------------------------------------------------------------
-
-    def derivate (self, key=None, keys=None, relation=None):
-        """Get/define the named (key) derivate"""
-        if key==None:
-            return self.__derivate                                # entire dict
-        if self.__derivate.has_key(key):
-            return self.__derivate[key]                           # specific group
-        if keys:
-            if not isinstance(keys, list): keys = [keys]   
-            self.__derivate[key] = dict(parmgroups=keys, relation=relation)
-            return self.__derivate[key]
-        print '\n** derivate name not recognised: ',key
-        print '     choose from:',self.derivate().keys(),'\n'
-        return None
 
 
 #--------------------------------------------------------------------------------
@@ -569,7 +335,7 @@ class Parmset (TDL_common.Super):
         if self.__solvegroup.has_key(key):
             return self.__solvegroup[key]                           # specific group
         if parmgroup:
-            # NB: This is inhibited if Parmset is set 'unsolvable' (e.g. for simulated uv-data) 
+            # NB: This is inhibited if ParmSet is set 'unsolvable' (e.g. for simulated uv-data) 
             if self.unsolvable(): return False
             if not isinstance(parmgroup, list): parmgroup = [parmgroup]   
             self.__solvegroup[key] = parmgroup                      # list of existing parmgroup keys
@@ -582,71 +348,6 @@ class Parmset (TDL_common.Super):
         """Return the names (keys) of the available solvegroups"""
         return self.__solvegroup.keys()
 
-
-
-
-    #--------------------------------------------------------------------------------
-
-    def sg_rider(self, solvegroup=None, key=None, trace=False):
-        """Collect (merge) the specified (key) rider info for the specified solvegroup(s)"""
-        if not isinstance(solvegroup, (list, tuple)): solvegroup = [solvegroup]
-        if trace: print '\n** .sg_rider(',solvegroup,key,'):'
-        cc = []                                     # assume list items(...!!?) 
-        for sgname in solvegroup:                   # solvegroup may be multiple
-            sg = self.solvegroup(sgname)
-            if not sg: return False                 # solvegroup not found
-            for pgname in sg:                       # parmgroup name
-                pg_rider = self.pg_rider()[pgname]  # parmgroup rider dict
-                if not pg_rider.has_key(key): return False
-                items = pg_rider[key]               # assume that items is a list...!!?
-                if not isinstance(items,(list,tuple)): items = [items]
-                for item in items:
-                    if not item in cc: cc.append(item)  # merge into unique list.....!!?
-        # Return a merged list of unique items of the 
-        if trace: print '  ->',len(cc),':',cc,'\n'
-        return cc
-
-    def solveparm_groups(self, trace=False):
-        """Return the list of the parmgroups in solvegroups"""
-        pgnames = []
-        for key in self.solvegroup_names():
-            for pgname in self.solvegroup(key):
-                if not pgname in pgnames: pgnames.append(pgname)
-        if trace: print '\n** .solveparm_groups() ->',len(pgnames),':',pgnames
-        return pgnames
-
-    def solveparm_names(self, solvegroup=None, select='*', trace=False):
-        """Collect a list of (names of) solvable MeqParms"""
-        if not isinstance(solvegroup, (list, tuple)): solvegroup = [solvegroup]
-        if trace: print '\n** .solveparm_names(',solvegroup,select,'):'
-        parms = []                                  # list of solvable node-names
-        for sgname in solvegroup:                   # solvegroup may be multiple
-            sg = self.solvegroup(sgname)
-            if not sg: return False                 # solvegroup not found
-            for pgname in sg:                       # parmgroup name
-                node_names = self.parmgroup(pgname) # list of MeqParm node-names
-                n = len(node_names)
-                if select=='first':                 # select the first of each parmgroup
-                    parms.append(node_names[0])     # append a single node name
-                elif select=='last':                # select the last of each parmgroup
-                    parms.append(node_names[n-1])   # append a single node name
-                else:
-                    parms.extend(node_names)        # append entire parmgroup
-        # Return a list of solvable MeqParm node names:
-        if trace: print '  ->',len(parms),':',parms,'\n'
-        return parms
-
-
-    def solveparm_nodes(self, solvegroup=None, select='*', trace=False):
-        if trace: print '\n** .solveparm_nodes(',solvegroup,select,'):'
-        names = self.solveparm_names(solvegroup=solvegroup, select=select, trace=False)
-        if not isinstance(names, list): return False
-        nodes = []
-        for name in names:
-            nodes.append(self.__MeqParm[name])
-        # Return a list of solvable MeqParm nodes:
-        if trace: print '  ->',len(nodes),':',nodes,'\n'
-        return nodes
 
 
 #--------------------------------------------------------------------------------
@@ -712,6 +413,8 @@ class Parmset (TDL_common.Super):
        condeq = ns['Condeq_'+key](uniqual) << Meq.Condeq(node, rr['value'])
        return condeq
 
+
+
 #---------------------------------------------------------------------------
 #---------------------------------------------------------------------------
 
@@ -733,46 +436,47 @@ class Parmset (TDL_common.Super):
       return True
 
 
-    def update(self, Parmset=None):
-        """Update the solvegroup/parmgroup info from another Parmset object"""
-        if Parmset==None: return False
+    def update(self, ParmSet=None):
+        """Update the solvegroup/parmgroup info from another ParmSet object"""
+        if ParmSet==None: return False
         if self.unsolvable():
-            self.history(append='not updated from (unsolvable): '+Parmset.oneliner())
-        elif not Parmset.unsolvable():
+            self.history(append='not updated from (unsolvable): '+ParmSet.oneliner())
+        elif not ParmSet.unsolvable():
 
             # NB: update OVERWRITES existing fields with new versions!
-            # print 'Parmset.update(): self.__parmgroup:\n    ',self.__parmgroup
+            # print 'ParmSet.update(): self.__parmgroup:\n    ',self.__parmgroup
             if True:
-                self.__parmgroup.update(Parmset.parmgroup())
+                self.__parmgroup.update(ParmSet.parmgroup())
             # print '    ',self.__parmgroup,'\n'
 
-            self.__pg_rider.update(Parmset.pg_rider())
-            self.__condeq.update(Parmset.condeq())
-            self.__MeqParm.update(Parmset.MeqParm())
-            self.__solvegroup.update(Parmset.solvegroup())
-            self.__plot_color.update(Parmset.plot_color())
-            self.__plot_style.update(Parmset.plot_style())
-            self.__plot_size.update(Parmset.plot_size())
-            self.__default_value.update(Parmset.default_value())
-            self.history(append='updated from (not unsolvable): '+Parmset.oneliner())
+            self.__pg_rider.update(ParmSet.pg_rider())
+            self.__condeq.update(ParmSet.condeq())
+            self.NodeSet.MeqNode().update(ParmSet.MeqParm())
+            self.__solvegroup.update(ParmSet.solvegroup())
+            self.__plot_color.update(ParmSet.plot_color())
+            self.__plot_style.update(ParmSet.plot_style())
+            self.__plot_size.update(ParmSet.plot_size())
+            self.__default_value.update(ParmSet.default_value())
+            self.history(append='updated from (not unsolvable): '+ParmSet.oneliner())
         else:
-            # A Parmset that is 'unsolvable' has no solvegroups.
+            # A ParmSet that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
-            # of the same name (e.g. Gphase) from solvable Parmsets.
+            # of the same name (e.g. Gphase) from solvable ParmSets.
             # Therefore, its parm info should NOT be copied here.
-            self.history(append='not updated from (unsolvable): '+Parmset.oneliner())
+            self.history(append='not updated from (unsolvable): '+ParmSet.oneliner())
         return True
 
 
 #----------------------------------------------------------------------
-#   methods used in saving/restoring the Parmset
+#   methods used in saving/restoring the ParmSet
 #----------------------------------------------------------------------
+
     def clone(self):
         """clone self such that no NodeStubs are present. This 
-           is needed to save the Parmset."""
+           is needed to save the ParmSet."""
         
-        #create new Parmset
-        newp=Parmset()
+        #create new ParmSet
+        newp=ParmSet()
         newp.__unsolvable=self.__unsolvable
         newp.__parmtable=self.__parmtable
         newp.__quals=self.__quals
@@ -787,8 +491,8 @@ class Parmset (TDL_common.Super):
         newp.__node_groups=self.__node_groups
         # convert MeqParm to a dict of strings
         newp.__MeqParm={}
-        for key in self.__MeqParm.keys():
-             pgk=self.__MeqParm[key]
+        for key in self.NodeSet.MeqNode().keys():
+             pgk=self.NodeSet.MeqNode()[key]
              if isinstance(pgk,Timba.TDL.TDLimpl._NodeStub):
                newp.__MeqParm[key]={'__type__':'nodestub','name':pgk.name}
              else:
@@ -797,7 +501,7 @@ class Parmset (TDL_common.Super):
         return newp
 
     def restore(self,oldp,ns):
-        """ recreate the Parmset from a saved version 'oldp'"""
+        """ recreate the ParmSet from a saved version 'oldp'"""
         self.__unsolvable=oldp.__unsolvable
         self.__parmtable=oldp.__parmtable
         self.__quals=oldp.__quals
@@ -812,7 +516,7 @@ class Parmset (TDL_common.Super):
         self.__node_groups=oldp.__node_groups
         # recreate links to NodeStubs, which have to exist in the 
         # nodescope 'ns'
-        self.__MeqParm={}
+        self.NodeSet.MeqNode()={}
         mydict=oldp.__MeqParm
         for key in mydict.keys():
            pgk=mydict[key]
@@ -824,11 +528,11 @@ class Parmset (TDL_common.Super):
                    nodestub=None
                    if len(alist)==1:
                       nodestub=ns[alist[0]]
-                      self.__MeqParm[pgk['name']]=nodestub
+                      self.NodeSet.MeqNode()[pgk['name']]=nodestub
                    else:
                       wstr="nodestub=ns."+alist[0]+"(q='"+alist[1]+"')"
                       exec wstr
-                      self.__MeqParm[pgk['name']]=nodestub
+                      self.NodeSet.MeqNode()[pgk['name']]=nodestub
 
  
 
@@ -990,7 +694,7 @@ def _counter (key, increment=0, reset=False, trace=True):
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0
     _counters[key] += increment
-    if trace: print '** Parmset: _counters(',key,') =',_counters[key]
+    if trace: print '** ParmSet: _counters(',key,') =',_counters[key]
     return _counters[key]
 
 
@@ -1003,7 +707,7 @@ def _counter (key, increment=0, reset=False, trace=True):
 #========================================================================
 
 if __name__ == '__main__':
-    print '\n*******************\n** Local test of: TDL_Parmset.py:\n'
+    print '\n*******************\n** Local test of: TDL_ParmSet.py:\n'
     from numarray import *
     from Timba.Trees import TDL_display
     from Timba.Trees import TDL_Joneset
@@ -1013,7 +717,7 @@ if __name__ == '__main__':
     nsim = ns.Subscope('_')
     
     # stations = range(3)
-    ps = Parmset(label='initial', polrep='circular')
+    ps = ParmSet(label='initial', polrep='circular')
     ps.display('initial')
 
     if 0:
@@ -1036,7 +740,7 @@ if __name__ == '__main__':
         pp = dict(stations=range(3), c00_Gampl=1.0, c00_Gphase=0.0)
         js = TDL_Joneset.Joneset(label='test', **pp)
         js.display()
-        js.Parmset.display()
+        js.ParmSet.display()
     
     if 1:
         # Register the parmgroups:
@@ -1054,29 +758,29 @@ if __name__ == '__main__':
                           color='cyan', style='diamond', size=10, **pp)
         
         # MeqParm node_groups: add 'G' to default 'Parm':
-        js.Parmset.node_groups('G')
+        js.ParmSet.node_groups('G')
 
         # Define extra solvegroup(s) from combinations of parmgroups:
-        js.Parmset.solvegroup('GJones', [a1, p1, a2, p2])
-        js.Parmset.solvegroup('Gpol1', [a1, p1])
-        js.Parmset.solvegroup('Gpol2', [a2, p2])
-        js.Parmset.solvegroup('Gampl', [a1, a2])
-        js.Parmset.solvegroup('Gphase', [p1, p2])
+        js.ParmSet.solvegroup('GJones', [a1, p1, a2, p2])
+        js.ParmSet.solvegroup('Gpol1', [a1, p1])
+        js.ParmSet.solvegroup('Gpol2', [a2, p2])
+        js.ParmSet.solvegroup('Gampl', [a1, a2])
+        js.ParmSet.solvegroup('Gphase', [p1, p2])
 
         # Define derived quantities (to be plotted)
-        js.Parmset.derivate('Gpol1', [a1, p1], 'Polar')
-        js.Parmset.derivate('Gpol2', [a2, p2], 'Polar')
+        js.ParmSet.derivate('Gpol1', [a1, p1], 'Polar')
+        js.ParmSet.derivate('Gpol2', [a2, p2], 'Polar')
 
         # Define plotgroups:
-        js.Parmset.plotgroup('GJones', [a1, p1, a2, p2])
-        js.Parmset.plotgroup('Gpol1', [a1, p1])
-        js.Parmset.plotgroup('Gpol2', [a2, p2])
+        js.ParmSet.plotgroup('GJones', [a1, p1, a2, p2])
+        js.ParmSet.plotgroup('Gpol1', [a1, p1])
+        js.ParmSet.plotgroup('Gpol2', [a2, p2])
 
-        js.Parmset.define_condeq(p1, unop='Add', value=0.0)
-        js.Parmset.define_condeq(p2, unop='Add', value=0.0)
-        js.Parmset.define_condeq(a1, unop='Multiply', value=1.0)
-        js.Parmset.define_condeq(a2, unop='Multiply', value=1.0)
-        js.Parmset.define_condeq(p1, select='first', value=0.0)
+        js.ParmSet.define_condeq(p1, unop='Add', value=0.0)
+        js.ParmSet.define_condeq(p2, unop='Add', value=0.0)
+        js.ParmSet.define_condeq(a1, unop='Multiply', value=1.0)
+        js.ParmSet.define_condeq(a2, unop='Multiply', value=1.0)
+        js.ParmSet.define_condeq(p1, select='first', value=0.0)
 
         for station in pp['stations']:
             skey = TDL_radio_conventions.station_key(station)        
@@ -1084,23 +788,23 @@ if __name__ == '__main__':
             qual = dict(s=skey)
             for Gampl in [a1,a2]:
                 default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gampl'])
-                js.Parmset.define_MeqParm (ns, Gampl, qual=qual, default=default)
+                js.ParmSet.define_MeqParm (ns, Gampl, qual=qual, default=default)
 
             for Gphase in [p1,p2]:
                 default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'])
-                js.Parmset.define_MeqParm (ns, Gphase, qual=qual, default=default)
+                js.ParmSet.define_MeqParm (ns, Gphase, qual=qual, default=default)
 
-        js.Parmset.display(full=True)
+        js.ParmSet.display(full=True)
 
         # Make various subtrees:
-        node = js.Parmset.subtree_parmgroups(ns)
-        node = js.Parmset.subtree_parmgroups(ns, a2, label='xxx', bookpage='xxx')
+        node = js.ParmSet.subtree_parmgroups(ns)
+        node = js.ParmSet.subtree_parmgroups(ns, a2, label='xxx', bookpage='xxx')
 
-        node = js.Parmset.subtree_solvegroup(ns)
-        node = js.Parmset.subtree_solvegroup(ns, 'Gpol2', label='yyy', bookpage='yyy')
+        node = js.ParmSet.subtree_solvegroup(ns)
+        node = js.ParmSet.subtree_solvegroup(ns, 'Gpol2', label='yyy', bookpage='yyy')
 
         if True: js.Leafset.display(full=True)
-        js.Parmset.display(full=True)
+        js.ParmSet.display(full=True)
 
 
 
@@ -1151,7 +855,7 @@ if __name__ == '__main__':
         # k = 0 ; TDL_display.subtree(ps[k], 'ps['+str(k)+']', full=True, recurse=3)
         ps.display('final result')
 
-    print '\n*******************\n** End of local test of: TDL_Parmset.py:\n'
+    print '\n*******************\n** End of local test of: TDL_ParmSet.py:\n'
 
 
 

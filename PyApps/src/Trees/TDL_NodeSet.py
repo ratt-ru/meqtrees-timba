@@ -10,13 +10,43 @@
 #
 # Full description:
 #   Many types of MeqTree nodes (e.g. MeqParms) come in groups of similar ones,
-#   which are dealt with as a group. The NodeSet object provides a
-#   convenient way to define and use such groups in various ways. 
+#   which are dealt with as a group. The NodeSet object provides a convenient
+#   way to define and manipulate such groups in various ways. 
 #
 #   A NodeSet object contains the following main components:
-#   - A list of named groups, i.e. lists of MeqNode names. 
-#   - A list of named gogs, i.e. lists of one or more group (or gog) names.
-
+#   - A dict of named nodes (MeqNodes)
+#   - A dict of named groups, i.e. lists of MeqNode names. 
+#   - A dict of named gogs, i.e. lists of one or more group (or gog) names.
+#     NB: A gog list may contain any combination group/gog names, or even
+#     nested lists of group/gog names.     
+#
+#   The idea is to first define a number of named groups. When an (externally
+#   created) node is put into the NodeSet, it must be accompanied with the name
+#   of one or more groups to which it belongs. The groups of MeqNodes can then be
+#   manipulated as a whole. Examples of such group manipulations are:
+#
+#   - Simple retrieval of a list of nodes (or their names) in a group.
+#   - Selection of subgroups by matching substrings to their names.
+#   - Bundling the nodes of a group with a MeqAdd or a MeqComposer.
+#   - Applying unary operations (unop) to all nodes of a group.
+#   - Applying 'binary' operations, e.g. MeqSubtract, or MeqToPolar to
+#     the corresponding members of two groups.
+#   - Comparison (MeqSubtract) of the corresponding members in a group of the
+#     same name in another NodeSet.
+#   - etc, etc
+#
+#   NB: When new nodes are created, the result is an (aptly named) new group,
+#   which contains a list of the new MeqNodes.
+#  
+#   NB: Since the members of a group have a fixed order (it is a list), this
+#   defines the concept of 'corresponding' members of two or more groups. 
+#
+#   When defining a group/gog, it may be accompanied by a 'rider' dict, which can
+#   contain arbitrary information about the group/gog. The rider may be simply
+#   retrieved by (group/gog) name, or it may be used to select specific groups/gogs.
+#
+#   MeqNodes, groups and gogs may all be selected by matching substrings to
+#   their names.
 
 #=================================================================================
 # Preamble:
@@ -52,7 +82,6 @@ class NodeSet (TDL_common.Super):
 
     def clear(self):
         """Clear the object"""
-        self.__quals = dict()                # record of default node-name qualifiers
         self.__MeqNode = dict()
         self.__group = dict()
         self.__group_rider = dict()
@@ -62,19 +91,11 @@ class NodeSet (TDL_common.Super):
         self.__buffer = dict()
         self.__gog = dict()
         self.__gog_rider = dict()
+        self.__bookmark = dict()
+        self.__bookpage = dict()
+        self.__bookfolder = dict()
+        self.__quals = dict()                # record of default node-name qualifiers
 
-    #--------------------------------------------------------------------------------
-    # Convenience (service)
-    #--------------------------------------------------------------------------------
-
-    def quals(self, new=None, clear=False):
-        """Get/set the default MeqNode node-name qualifier(s)"""
-        if clear:
-            self.__quals = dict()
-        if isinstance(new, dict):
-            for key in new.keys():
-                self.__quals[key] = str(new[key])
-        return self.__quals
 
     #--------------------------------------------------------------------------------
     # Display functions:
@@ -83,11 +104,10 @@ class NodeSet (TDL_common.Super):
     def oneliner(self):
         """Make a one-line summary of this NodeSet object"""
         s = TDL_common.Super.oneliner(self)
-        # if len(self.quals())>0:
-        s += ' quals='+str(self.quals())
-        s += ' pg:'+str(len(self.group()))
-        s += ' sg:'+str(len(self.gog()))
-        # s += ' '+str(self.node_groups())
+        if len(self.quals())>0:
+            s += ' quals='+str(self.quals())
+        s += ' g:'+str(len(self.group()))
+        s += ' gog:'+str(len(self.gog()))
         return s
 
 
@@ -133,6 +153,20 @@ class NodeSet (TDL_common.Super):
                 ss.append(indent2+' - '+key+':    '+str(self.buffer()[key]))
 
         #------------------------
+        if full:
+            ss.append(indent1+' - Accumulated bookmarks ('+str(len(self.__bookmark))+'):')
+            for key in self.bookmark().keys():
+                ss.append(indent2+' - '+key+':    '+str(self.bookmark()[key]))
+
+            ss.append(indent1+' - Accumulated bookpages ('+str(len(self.__bookpage))+'):')
+            for key in self.bookpage().keys():
+                ss.append(indent2+' - '+key+':    '+str(self.bookpage()[key]))
+
+            ss.append(indent1+' - Accumulated bookfolders ('+str(len(self.__bookfolder))+'):')
+            for key in self.bookfolder().keys():
+                ss.append(indent2+' - '+key+':    '+str(self.bookfolder()[key]))
+
+        #------------------------
         ss.append(indent1+' - Available MeqNode nodes ('+str(len(self.__MeqNode))+'):')
         keys = self.__MeqNode.keys()
         n = len(keys)
@@ -149,8 +183,30 @@ class NodeSet (TDL_common.Super):
 
 
     #--------------------------------------------------------------------------------
-    # Functions related to MeqNode nodes: 
+    # Functions related to MeqNodes: 
     #--------------------------------------------------------------------------------
+
+    def MeqNode(self, key=None, node=None, trace=False):
+        """Get/create a named MeqNode entry (the nodes are defined externally!).
+        If a node is supplied, key is assumed to be a list of group-names to
+        which the new node belongs. Otherwise, key is the name of a MeqNode."""
+        if node:                                  # Create a new MeqNode entry
+            nodename = node.name
+            if self.__MeqNode.has_key(nodename):
+                self.history(warning='MeqNode(node): already exists: '+nodename)
+            else:
+                self.__MeqNode[nodename] = node 
+                # Assume that key indicates group-name(s):
+                if not isinstance(key, (list,tuple)): key = [key]
+                for groupname in key:
+                    print 'nodename =',nodename,' key=',key,':',groupname
+                    self.__group[groupname].append(nodename)  
+                    self.__buffer[groupname] = node   # see .buffer() service
+                if trace:
+                    print '\n** MeqNode(): new entry:',node,key 
+            return nodename
+        # Otherwise, return the specified (key) group (None = all):
+        return self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
 
     def __getitem__(self, key):
         """Get a named (key) MeqNode node"""
@@ -175,31 +231,25 @@ class NodeSet (TDL_common.Super):
         """Test whether MeqNode contains an item with the specified key"""
         return self.keys().__contains__(key)
 
-    #-------------------------------------------------------------------------------------
-
-    def MeqNode(self, key=None, node=None, trace=False):
-        """Get/create a named MeqNode entry"""
-        if node:                                  # Create a new MeqNode entry
-            nodename = node.name
-            if self.__MeqNode.has_key(nodename):
-                self.history(warning='MeqNode(node): already exists: '+nodename)
-            else:
-                self.__MeqNode[nodename] = node 
-                # Assume that key indicates group-name(s):
-                if not isinstance(key, (list,tuple)): key = [key]
-                for groupname in key:
-                    print 'nodename =',nodename,' key=',key,':',groupname
-                    self.__group[groupname].append(nodename)  
-                    self.__buffer[groupname] = node   # see .buffer() service
-                if trace:
-                    print '\n** MeqNode(): new entry:',node,key 
-            return nodename
-        # Otherwise, return the specified (key) group (None = all):
-        return self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
-
 
     #--------------------------------------------------------------------------------
-    # Convenience (service)
+    # Convenience (service): MeqBrowser bookmarks/pages/folders
+    #--------------------------------------------------------------------------------
+
+    def bookmark(self, key=None):
+        """Get the specified (key) bookmark definition (None = all)"""
+        return self._fieldict (self.__bookmark, key=key, name='.bookmark()')
+
+    def bookpage(self, key=None):
+        """Get the specified (key) bookpage definition (None = all)"""
+        return self._fieldict (self.__bookpage, key=key, name='.bookpage()')
+
+    def bookfolder(self, key=None):
+        """Get the specified (key) bookfolder definition (None = all)"""
+        return self._fieldict (self.__bookfolder, key=key, name='.bookfolder()')
+
+    #--------------------------------------------------------------------------------
+    # Convenience (service): temporary buffer
     #--------------------------------------------------------------------------------
 
     # When a new MeqNode entry is made (see .MeqNode(), the node stub is put into the
@@ -210,6 +260,23 @@ class NodeSet (TDL_common.Super):
     def buffer(self):
         """Get the temporary helper record self.__buffer"""
         return self.__buffer
+
+
+    #--------------------------------------------------------------------------------
+    # Convenience (service): quals
+    #--------------------------------------------------------------------------------
+
+    # The NodeSet object may remember node-name qualifiers. These are then used by the
+    # parent object (e.g. a Parmset) when making new nodes for the NodeSet.
+
+    def quals(self, new=None, clear=False):
+        """Get/set the default MeqNode node-name qualifier(s)"""
+        if clear:
+            self.__quals = dict()
+        if isinstance(new, dict):
+            for key in new.keys():
+                self.__quals[key] = str(new[key])
+        return self.__quals
 
 
     #--------------------------------------------------------------------------------
@@ -260,7 +327,7 @@ class NodeSet (TDL_common.Super):
         """Return the names (keys) of the available groups"""
         return self.__group.keys()
 
-    def is_group (self, key):
+    def has_group (self, key):
         """Check whether the specified (key) group exists"""
         return self.__group.has_key(key)
 
@@ -375,28 +442,28 @@ class NodeSet (TDL_common.Super):
             elif not isinstance(g, str):                            # 
                 return self.history(error=s1+'not a valid name: '+str(type(g))+': '+str(g))
             elif self.__group.has_key(g):                           # group exists  
-                if not self.is_group(g):
-                    return self.history(error=s1+'group available but invalid: '+g)
-                if not gg.__contains__(g): gg.append(g)
+                if not gg.__contains__(g): gg.append(g)             # avoid doubles
             elif self.__gog.has_key(g):                             # gog exists
                 gg1 = self._extract_flat_grouplist(self.__gog[g], origin=origin,
                                                   must_exist=must_exist, level=level+1)
                 if not isinstance(gg1, list): return False
                 for g1 in gg1:
-                    if not gg.__contains__(g1): gg.append(g1)
+                    if not gg.__contains__(g1): gg.append(g1)       # avoid doubles
             elif must_exist:                                        # must exist
                 return self.history(error=s1+'group not available: '+g)
             else:                                                   # does not have to exist
-                if not gg.__contains__(g): gg.append(g)
+                if not gg.__contains__(g): gg.append(g)             # avoid doubles
         return gg
 
 
-    #--------------------------------------------------------------------------------
+    #================================================================================
     # Functions related to group-of-groups (gogs):
-    #--------------------------------------------------------------------------------
+    #================================================================================
 
     def gog (self, key=None, groups=None, **pp):
-        """Get/define the named (key) group-of-groups (gog)"""
+        """Get/define the named (key) group-of-groups (gog).
+        If groups specified, create a new gog (named key) for the specified groups.
+        Otherwise, just return the specified (key) gog(s)"""
         if groups:                                  # define a new gog
             if key==None:                  
                 return self.history(error='gog('+str(groups)+'): no key specified')
@@ -423,7 +490,7 @@ class NodeSet (TDL_common.Super):
         """Return the names (keys) of the available gogs"""
         return self.__gog.keys()
 
-    def is_gog (self, key=None):
+    def has_gog (self, key=None):
         """Check whether the specified (key) gog exists"""
         return self.__gog.has_key(key)
 
@@ -448,11 +515,21 @@ class NodeSet (TDL_common.Super):
         if trace: print '    -> gogs(',len(gg),'):',gg
         return gg
 
+
+
+
+
+    #================================================================================
+    # Functions that generate new (groups of derived) MeqNodes
+    #================================================================================
+
+
+
     #--------------------------------------------------------------------------
     # Make a subtree of MeqNode bundles (also MeqNodes), e.g. for plotting:
     #--------------------------------------------------------------------------
     
-    def bundle (self, ns, group=None, name=None, bookpage='NodeSet.groups'):
+    def bundle (self, ns, group=None, name=None, bookpage=None):
         """Return a subtree of (the sum(s) of) the nodes in the specified group(s)"""
         if trace: print '\n** bundle(',group,name,bookpage,'):'
         gg = self._extract_flat_grouplist(group, must_exist=True)
@@ -464,7 +541,8 @@ class NodeSet (TDL_common.Super):
         if multiple:
             if not isinstance(name, str):
                 name = self.bundle_name(group)
-            bname = 'NodeSet_bundle_'+str(name)
+            # bname = 'NodeSet_bundle_'+str(name)
+            bname = '_bundle_'+str(name)
             if self.__MeqNode.has_key(bname):                # bundle already exists
                 return self.__MeqNode[bname]                 # just return it
 
@@ -477,12 +555,16 @@ class NodeSet (TDL_common.Super):
                 n = len(nodes)
                 if n>0: 
                     gname = 'sum_'+str(g)+'('+str(n)+')'
-                    if not self.__MeqNode.has_key(gname):    # does not exist yet
+                    if not self.__MeqNode.has_key(gname):    # MeqNode does not exist yet
                         node = ns[gname] << Meq.Add(children=nodes)
                         self.__MeqNode[gname] = node
-                        if isinstance(bookpage, str): 
-                            JEN_bookmarks.bookmark(node, page=bookpage)
-                    cc.append(self.__MeqNode[gname])  
+                    else:
+                        node = self.__MeqNode[gname]         # use existing
+                    cc.append(node)  
+                    if isinstance(bookpage, str):            # MeqBrowser bookpage specified 
+                        bms = JEN_bookmarks.bookmark(node, page=bookpage)
+                        self.__bookmark[bms.name] = bms
+                        self.__bookpage[bookpage] = JEN_bookmarks.get_bookpage(bookpage)
 
         # Return the root node of the subtree:
         if not multiple:
@@ -490,26 +572,45 @@ class NodeSet (TDL_common.Super):
         elif len(cc)>0:
             self.__MeqNode[bname] = ns[bname] << Meq.Composer(children=cc)
             return self.__MeqNode[bname]
+
         # Something wrong if got to here:
         return False
 
 
     #------------------------------------------------------------------------
 
-    def bundle_name (self, group):
+    def bundle_name (self, group, trace=False):
         """Make a decriptive bundle name of a flat list of groupnames"""
+        if trace: print '** .bundle_name(',group,'): ->',
         if isinstance(group, str):
-            if self.__gog.has_key(group): return 'gog:'+group
+            if self.__gog.has_key(group):
+                name = 'gog:'+group
+                if trace: print '(str,exist):',name
+                return name
+            if trace: print '(str,!exist):',group
             return group
         elif isinstance(group, (list, tuple)):
-            if len(group)==1: return group[0]
+            if len(group)==1:
+                if trace: print '(list[0]):',group[0]
+                return group[0]
         gg = self._extract_flat_grouplist(group, must_exist=True)
         name = ''
         for g in gg:
             name += g[0]
             if len(g)>1: name += g[1]
         name += '('+str(len(gg))+')'
+        if trace: print name
         return name
+
+    #------------------------------------------------------------------------
+
+    def make_bookpage (self, ns, group=None, pagename=None, trace=False):
+        """Make a bookpage of bundles of the specified group(s)"""
+        if trace: print '** .make_bookpage(',group,pagename,'):'
+        if not isinstance(pagename, str):
+            pagename = self.bundle_name(group)
+        rootnode = self.bundle (ns, group, bookpage=pagename)
+        return rootnode
 
 
     #--------------------------------------------------------------------------
@@ -517,7 +618,7 @@ class NodeSet (TDL_common.Super):
     #--------------------------------------------------------------------------
     
 
-    def apply_unop (self, ns, group=None, unop=None):
+    def apply_unop (self, ns, group=None, unop=None, bookpage=None):
         """Apply unary operation(s) to the nodes in the specified group(s).
         The resulting nodes are put into new groups, and a new gog is defined"""
         if trace: print '\n** apply_unop(',group,unop,'):'
@@ -526,21 +627,25 @@ class NodeSet (TDL_common.Super):
         if len(gg)==0: return False
         gog = []
         for g in gg:                                         # for all groups
-            gname = self._unop_name(g, unop=unop)
-            nodes = self.nodes(g, trace=trace)               # their nodes
-            if isinstance(nodes, list): 
-                gog.append(gname)
-                self.group(gname, unop=unop)
+            gname = self._unop_name(g, unop=unop)            # e.g. Cos(g)
+            nodes = self.nodes(g, trace=trace)               # the nodes of group g
+            if isinstance(nodes, list) and len(nodes)>0: 
+                self.group(gname, unop=unop)                 # define a new group gname
                 for node in nodes:
                     node = self._apply_unop(ns, node, unop)
-                    self.MeqNode(gname, node)
+                    self.MeqNode(gname, node)             
+                gog.append(gname)                            # groups for gog (below)
 
         # Make a gog for the new groups:
         if len(gog)>0:
-            gogname = self.bundle_name(group)
+            # The gogname is made in two stages:
+            gogname = self.bundle_name(group, trace=True)
             gogname = self._unop_name(gogname, unop=unop)
-            self.gog(gogname, unop=unop)
-            return gogname
+            self.gog(gogname, groups=gog, unop=unop)
+            # Return the bundle root node:
+            if isinstance(bookpage, bool): bookpage = gogname
+            node = self.bundle(ns, gogname, bookpage=bookpage)
+            return node
         # Something wrong if got to here:
         return False
 
@@ -567,13 +672,16 @@ class NodeSet (TDL_common.Super):
     # Apply binary operations to the specified groups of MeqNodes:
     #--------------------------------------------------------------------------
     
-    def apply_binop (self, ns, group=None, binop=None):
+    def apply_binop (self, ns, group=None, binop=None, bookpage=None):
         """Apply binary operation(s) to the nodes in the specified group(s).
         The resulting nodes are put into new groups, and a new gog is defined"""
         if trace: print '\n** apply_binop(',group,binop,'):'
         gg = self._extract_flat_grouplist(group, must_exist=True)
+        print 'gg =',gg
         if not isinstance(gg, list): return False
+        print 'gg =',gg
         if not len(gg)==2: return False
+        print 'gg =',gg
 
         # Get two lists of nodes:
         lhs = self.nodes(gg[0], trace=trace)          # left-hand side nodes        
@@ -590,12 +698,57 @@ class NodeSet (TDL_common.Super):
             cc = [lhs[i],rhs[i]]
             node = ns << getattr(Meq,binop)(children=cc)
             self.MeqNode(gname, node)
-        return gname
+
+        # Return the bundle root node:
+        if isinstance(bookpage, bool): bookpage = gname
+        node = self.bundle(ns, gname, bookpage=bookpage)
+        return node
 
 
     def _binop_name(self, name=None, binop=None):
         """Helper function to make a binop name"""
         return str(binop)+'('+str(name[0])+','+str(name[1])+')'
+
+
+    #--------------------------------------------------------------------------
+    # Compare corresponding groups in another NodeSet:
+    #--------------------------------------------------------------------------
+    
+    def compare (self, ns, NodeSet=None, group=None, binop='Subtract', bookpage=None):
+        """Compare (binop) with corresponding nodes in another Nodeset. 
+        The resulting nodes are put into new groups, and a new gog is defined."""
+        if trace: print '\n** compare(',group,binop,'):'
+
+        gg = self._extract_flat_grouplist(group, must_exist=True)
+        if not isinstance(gg, list): return False
+
+        gnames = []
+        for g in gg:
+            if not NodeSet.has_group(g):
+                pass                           # error...?
+            else:
+                # Get two lists of nodes:
+                lhs = self.nodes(g, trace=trace)             # left-hand side nodes        
+                if not isinstance(lhs, list): return False 
+                rhs = NodeSet.nodes(g, trace=trace)          # right-hand side nodes
+                if not isinstance(rhs, list): return False 
+                if not len(lhs)==len(rhs): return False
+                if len(lhs)==0: return False
+                
+                # Make the new group:
+                gname = 'compare('+g+')'
+                self.group(gname, binop=binop)
+                for i in range(len(lhs)):
+                    cc = [lhs[i],rhs[i]]
+                    node = ns << getattr(Meq,binop)(children=cc)
+                    self.MeqNode(gname, node)
+                gnames.append(gname)
+
+        # Return the bundle root node:
+        gogname = self.bundle_name(gnames)
+        if isinstance(bookpage, bool): bookpage = gogname
+        node = self.bundle(ns, gnames, bookpage=bookpage)
+        return node
 
 
 
@@ -630,6 +783,9 @@ class NodeSet (TDL_common.Super):
         self.__plot_color.update(NodeSet.plot_color())
         self.__plot_style.update(NodeSet.plot_style())
         self.__plot_size.update(NodeSet.plot_size())
+        self.__bookmark.update(NodeSet.bookmark())
+        self.__bookpage.update(NodeSet.bookpage())
+        self.__bookfolder.update(NodeSet.bookfolder())
         self.__gog.update(NodeSet.gog())
         self.__gog_rider.update(NodeSet.gog_rider())
         self.history(append='updated from: '+NodeSet.oneliner())
@@ -805,10 +961,17 @@ if __name__ == '__main__':
         TDL_display.subtree(bb, 'bundle', full=True, recurse=3)
         
     if 0:
-        nst.apply_unop(ns, 'GJones', 'Cos')
-
+        nst.make_bookpage(ns, 'grogog')
+        nst.make_bookpage(ns, 'grogog')
+        
     if 1:
-        nst.apply_binop(ns, [a1,p1], 'ToPolar')
+        nst.apply_unop(ns, 'GJones', 'Cos', bookpage=True)
+
+    if 0:
+        nst.compare(ns, nst, 'GJones', bookpage=True)
+
+    if 0:
+        nst.apply_binop(ns, [a1,p1], 'Polar', bookpage=True)
 
     if 0:
         print
@@ -824,7 +987,7 @@ if __name__ == '__main__':
 
     if 1:
         nst.display(full=True)
-        nst.display()
+        # nst.display()
 
 
     if 0:

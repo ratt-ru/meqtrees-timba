@@ -6,7 +6,8 @@
 # Author: Jan Noordam (JEN), Dwingeloo
 
 # History:
-# - 05 jan 2006: creation (copied from MG_JEN_forest_state.py
+# - 05 jan 2006: creation (copied from MG_JEN_forest_state.py)
+# - 12 mar 2006: .get_bookpage()
 
 
 # Copyright: The MeqTree Foundation 
@@ -70,6 +71,21 @@ def bookmarks (clear=0, trace=0):
   Settings.forest_state.setdefault('bookmarks',[])
   bms = Settings.forest_state.bookmarks
   return bms
+
+
+#----------------------------------------------------------------------
+# Add the given bookmark to the named page, and reconfigure it
+
+def get_bookpage (name='page', trace=0):
+  """Get the definition of the specified (name) bookpage"""
+  Settings.forest_state.setdefault('bookmarks',[])
+  bms = Settings.forest_state.bookmarks
+  for i in range(len(bms)):
+    if bms[i].has_key('page'):
+      if bms[i].name == name:
+        return bms[i]
+  # Not found:
+  return False
 
 
 #----------------------------------------------------------------------
