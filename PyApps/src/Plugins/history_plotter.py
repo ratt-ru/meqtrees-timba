@@ -220,17 +220,16 @@ class HistoryPlotter(GriddedPlugin):
               else:
                 if first_axis is None:
                   first_axis = i
-          if not first_axis is None and not second_axis is None:
-            self.array_selector = []
-            for i in range(self._plot_array.rank):
-              if i == first_axis:
-                axis_slice = slice(0,self._plot_array.shape[first_axis])
-                self.array_selector.append(axis_slice)
-              elif i == second_axis:
-                axis_slice = slice(0,self._plot_array.shape[second_axis])
-                self.array_selector.append(axis_slice)
-              else:
-                self.array_selector.append(0)
+          self.array_selector = []
+          for i in range(self._plot_array.rank):
+            if not first_axis is None and i == first_axis:
+              axis_slice = slice(0,self._plot_array.shape[first_axis])
+              self.array_selector.append(axis_slice)
+            elif not second_axis is None and i == second_axis:
+              axis_slice = slice(0,self._plot_array.shape[second_axis])
+              self.array_selector.append(axis_slice)
+            else:
+              self.array_selector.append(0)
         self.array_tuple = tuple(self.array_selector)
         self._plotter.array_plot(self.label +' data', self._plot_array[self.array_tuple])
         self.addTupleFlags()
