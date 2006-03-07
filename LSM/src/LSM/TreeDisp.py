@@ -150,7 +150,15 @@ class TreeDisp(QDialog):
          tmp_str="<u>Init Record:</u><br/><ul>"
          irec=item.node.initrec()
          for kk in irec.keys():
-          kstr="<li><font color=\"blue\">"+str(kk)+"::</font>"+str(irec[kk])+"</li>"
+          # do another level of indirection if it is a dict
+          if isinstance(irec[kk],dict):
+            kstr="<li><font color=\"blue\">"+str(kk)+"::</font><ul>"
+            subrec=irec[kk]
+            for bb in subrec.keys():
+             kstr=kstr+"<li><font color=\"blue\">"+str(bb)+"::</font>"+str(subrec[bb])+"</li>"
+            kstr=kstr+"</ul></li>"
+          else:
+             kstr="<li><font color=\"blue\">"+str(kk)+"::</font>"+str(irec[kk])+"</li>"
           tmp_str=tmp_str+kstr
          tmp_str=tmp_str+"</ul>"
          dialog.setInfoText(tmp_str)
