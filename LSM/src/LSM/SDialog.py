@@ -28,7 +28,7 @@ class SDialog(QDialog):
 
         self.languageChange()
 
-        #self.resize(QSize(600,480).expandedTo(self.minimumSizeHint()))
+        self.resize(QSize(300,300).expandedTo(self.minimumSizeHint()))
         self.clearWState(Qt.WState_Polished)
 
     def setInfoText(self,text):

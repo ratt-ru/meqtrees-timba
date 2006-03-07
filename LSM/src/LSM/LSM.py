@@ -834,7 +834,7 @@ class LSM:
      self.__ns.Resolve()
      self.mqs.meq('Clear.Forest')
      self.mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),self.__ns.AllNodes().itervalues())));
-     self.mqs.meq('Resolve.Batch',record(name=list(self.__ns.RootNodes().iterkeys())))
+     #self.mqs.meq('Resolve.Batch',record(name=list(self.__ns.RootNodes().iterkeys())))
      # is a forest state defined?
      fst = getattr(Timba.TDL.Settings,'forest_state',record());
      self.mqs.meq('Set.Forest.State',record(state=fst));

@@ -1,6 +1,7 @@
 from qt import *
 import sys
 
+from SDialog import *
 from Timba.TDL import *
 image0_data = \
     "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d" \
@@ -100,6 +101,9 @@ class TreeDisp(QDialog):
 
         #self.resize(QSize(600,480).expandedTo(self.minimumSizeHint()))
         self.clearWState(Qt.WState_Polished)
+        # handle clicks
+        self.connect(self.lv,SIGNAL("clicked(QListViewItem *)"),
+             self.displayInitrec)
 
 
     def languageChange(self):
@@ -107,19 +111,8 @@ class TreeDisp(QDialog):
         self.lv.header().setLabel(0,self.__tr("node"))
         self.lv.header().setLabel(1,self.__tr("class"))
         self.lv.clear()
-        """item_2 = QListViewItem(self.lv,None)
-        item_2.setOpen(1)
-        item_3 = QListViewItem(item_2,None)
-        item_3.setOpen(1)
-        item = QListViewItem(item_3,None)
-        item.setText(0,self.__tr("child11"))
-        item_3.setText(0,self.__tr("child1"))
-        item_3.setPixmap(0,self.image1)
-        item_3.setText(1,self.__tr("MeqAdd"))
-        item_2.setText(0,self.__tr("Root"))
-        item_2.setPixmap(0,self.image0)
-        """
-        item=QListViewItem(self.lv,None)
+        #item=QListViewItem(self.lv,None)
+        item=NodeItem(self.lv,None,self.root)
         item.setText(0,self.__tr(self.root.name))
         item.setText(1,self.__tr(self.root.classname))
         item.setPixmap(0,self.image0)
@@ -135,17 +128,13 @@ class TreeDisp(QDialog):
      # 'node' is a child of 'parent'
      # plot node and its children, and call this recursively
      # first plot root
-     ''' item=QListViewItem(parent,None)
-      item.setText(0,self.__tr(node.name))
-      item.setText(1,self.__tr(node.classname))
-      item.setPixmap(0,self.image0)
-     '''
      # get children
      clist=node.children
      #print clist
      if clist!=None:
       for ci,nstub in clist:
-       citem=QListViewItem(parent,None)
+       #citem=QListViewItem(parent,None)
+       citem=NodeItem(parent,None,nstub)
        citem.setText(0,self.__tr(str(ci)+":"+nstub.name))
        citem.setText(1,self.__tr(nstub.classname))
        #citem.setPixmap(0,self.image1)
@@ -154,7 +143,26 @@ class TreeDisp(QDialog):
     def __tr(self,s,c = None):
         return qApp.translate("TreeDisp",s,c)
 
+    
+    def displayInitrec(self,item):
+       if item !=None:
+         dialog=SDialog(self,item.node.name,0)
+         tmp_str="<u>Init Record:</u><br/><ul>"
+         irec=item.node.initrec()
+         for kk in irec.keys():
+          kstr="<li><font color=\"blue\">"+str(kk)+"::</font>"+str(irec[kk])+"</li>"
+          tmp_str=tmp_str+kstr
+         tmp_str=tmp_str+"</ul>"
+         dialog.setInfoText(tmp_str)
+         dialog.setTitle(item.node.name)
+         dialog.resize(QSize(450,300))
+         dialog.show()
 
+
+class NodeItem(QListViewItem):
+   def __init__(self,parent=None,after=None,node=None):
+      QListViewItem.__init__(self,parent,after)
+      self.node=node
 
 def main(args):
   ns=NodeScope()
