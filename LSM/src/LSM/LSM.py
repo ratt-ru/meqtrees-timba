@@ -192,6 +192,9 @@ class PUnit:
  # return a sixpack object (TDL_Sixpack) for this PUnit
  def getSP(self):
   return self.__sixpack
+ # return a sixpack object (TDL_Sixpack) for this PUnit
+ def getSixpack(self):
+  return self.__sixpack
 
  # change RA,Dec of myself, 
  def change_location(self,new_ra,new_dec,ns):
@@ -1026,7 +1029,7 @@ class LSM:
      for pname in new_punit_names:
       print "Updating Punit ",pname
       punit=self.getPUnit(pname)
-      punit.sp.updateValues(pname)
+      #punit.sp.updateValues(pname)
 
 
   if isinstance(qApp,QApplication):
