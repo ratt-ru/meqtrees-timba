@@ -88,13 +88,15 @@ class NodeSet (TDL_common.Super):
         self.__plot_color = dict()
         self.__plot_style = dict()
         self.__plot_size = dict()
-        self.__buffer = dict()
         self.__gog = dict()
         self.__gog_rider = dict()
+        self.__bundle = dict()
         self.__bookmark = dict()
         self.__bookpage = dict()
         self.__bookfolder = dict()
-        self.__quals = dict()                # record of default node-name qualifiers
+        self.__quals = dict()       
+        self.buffer(clear=True)
+        return True
 
 
     #--------------------------------------------------------------------------------
@@ -148,23 +150,29 @@ class NodeSet (TDL_common.Super):
 
         #------------------------
         if full:
+            ss.append(indent1+' - Bundles (gogs, really) ('+str(len(self.__bundle))+'):')
+            for key in self.bundle().keys():
+                ss.append(indent2+' - '+key+':    '+str(self.bundle()[key]))
+
+        #------------------------
+        if full:
             ss.append(indent1+' - Contents of temporary buffer ('+str(len(self.__buffer))+'):')
             for key in self.buffer().keys():
                 ss.append(indent2+' - '+key+':    '+str(self.buffer()[key]))
+
+        ss.append(indent1+' - Defined bookpages ('+str(len(self.__bookpage))+'):')
+        for key in self.bookpage().keys():
+            ss.append(indent2+' - '+key+':    '+str(self.bookpage()[key]))
+
+        ss.append(indent1+' - Defined bookfolders ('+str(len(self.__bookfolder))+'):')
+        for key in self.bookfolder().keys():
+            ss.append(indent2+' - '+key+':    '+str(self.bookfolder()[key]))
 
         #------------------------
         if full:
             ss.append(indent1+' - Accumulated bookmarks ('+str(len(self.__bookmark))+'):')
             for key in self.bookmark().keys():
                 ss.append(indent2+' - '+key+':    '+str(self.bookmark()[key]))
-
-            ss.append(indent1+' - Accumulated bookpages ('+str(len(self.__bookpage))+'):')
-            for key in self.bookpage().keys():
-                ss.append(indent2+' - '+key+':    '+str(self.bookpage()[key]))
-
-            ss.append(indent1+' - Accumulated bookfolders ('+str(len(self.__bookfolder))+'):')
-            for key in self.bookfolder().keys():
-                ss.append(indent2+' - '+key+':    '+str(self.bookfolder()[key]))
 
         #------------------------
         ss.append(indent1+' - Available MeqNode nodes ('+str(len(self.__MeqNode))+'):')
@@ -237,16 +245,53 @@ class NodeSet (TDL_common.Super):
     #--------------------------------------------------------------------------------
 
     def bookmark(self, key=None):
-        """Get the specified (key) bookmark definition (None = all)"""
+        """Get the specified (key) bookmark definition (None = all).
+        A definition is a record as in the forest_state bookmark record"""
         return self._fieldict (self.__bookmark, key=key, name='.bookmark()')
 
-    def bookpage(self, key=None):
-        """Get the specified (key) bookpage definition (None = all)"""
+    def bookpage(self, key=None, new=None):
+        """Get/define the specified (key) bookpage definition (None = all).
+        A definition consists of a list of MeqNodes (a gog, really)"""
+        if new:
+            if not isinstance(new, (list,tuple)): new = [new]
+            self.__bookpage[key] = new
         return self._fieldict (self.__bookpage, key=key, name='.bookpage()')
 
-    def bookfolder(self, key=None):
-        """Get the specified (key) bookfolder definition (None = all)"""
+    def bookfolder(self, key=None, new=None):
+        """Get/define the specified (key) bookfolder definition (None = all).
+        A definition consists of a list of MeqNodes (a gog, really)"""
+        if new:
+            if not isinstance(new, (list,tuple)): new = [new]
+            self.__bookpage[key] = new
         return self._fieldict (self.__bookfolder, key=key, name='.bookfolder()')
+
+    #------------------------------------------------------------------------
+
+    def make_bookpage (self, ns, group=None, pagename=None, trace=False):
+        """Make a bookpage of bundles of the specified group(s)"""
+        if trace: print '** .make_bookpage(',group,pagename,'):'
+        if not isinstance(pagename, str):
+            pagename = self._make_bundle_name(group)
+        rootnode = self.make_bundle (ns, group, bookpage=pagename)
+        return rootnode
+
+
+    def ensure_bookpages(self, ns=None, trace=True):
+        """Make sure that all defined bookpages have actually been created
+        in the forest_state record"""
+        print '\n** .ensure_bookpages(): '
+        for key in self.bookpage().keys():
+            pagename = 'bp_'+key
+            if not JEN_bookmarks.get_bookpage(pagename):
+                if trace: print '- create: ',pagename
+                for name in self.bookpage(key):
+                    node = self.make_bundle(ns, name)
+                    bms = JEN_bookmarks.bookmark(node, page=pagename)
+                    # self.__bookmark[bms.name] = bms
+                    if trace: print '  -',name,':',bms
+            elif trace:
+                print '- exists already: ',pagename
+        return True
 
     #--------------------------------------------------------------------------------
     # Convenience (service): temporary buffer
@@ -257,8 +302,9 @@ class NodeSet (TDL_common.Super):
     # to the most recently defined MeqNodes by means of their group name, rather than
     # their full name (e.g. see MG_JEN_Joneset.py) 
 
-    def buffer(self):
-        """Get the temporary helper record self.__buffer"""
+    def buffer(self, clear=False):
+        """Get/clear the temporary helper record self.__buffer"""
+        if clear: self.__buffer = dict()
         return self.__buffer
 
 
@@ -529,9 +575,9 @@ class NodeSet (TDL_common.Super):
     # Make a subtree of MeqNode bundles (also MeqNodes), e.g. for plotting:
     #--------------------------------------------------------------------------
     
-    def bundle (self, ns, group=None, name=None, bookpage=None):
+    def make_bundle (self, ns, group=None, name=None, bookpage=None):
         """Return a subtree of (the sum(s) of) the nodes in the specified group(s)"""
-        if trace: print '\n** bundle(',group,name,bookpage,'):'
+        if trace: print '\n** make_bundle(',group,name,bookpage,'):'
         gg = self._extract_flat_grouplist(group, must_exist=True)
         if not isinstance(gg, list): return False
         if len(gg)==0: return False
@@ -540,7 +586,7 @@ class NodeSet (TDL_common.Super):
         multiple = (len(gg)>1)               
         if multiple:
             if not isinstance(name, str):
-                name = self.bundle_name(group)
+                name = self._make_bundle_name(group)
             # bname = 'NodeSet_bundle_'+str(name)
             bname = '_bundle_'+str(name)
             if self.__MeqNode.has_key(bname):                # bundle already exists
@@ -554,22 +600,31 @@ class NodeSet (TDL_common.Super):
             if isinstance(nodes, list): 
                 n = len(nodes)
                 if n>0: 
-                    gname = 'sum_'+str(g)+'('+str(n)+')'
-                    if not self.__MeqNode.has_key(gname):    # MeqNode does not exist yet
+                    gname = 'sum_'+str(g)+'('+str(n)+')'     # 
+                    if self.__MeqNode.has_key(gname):        # bundle exists already
+                        node = self.__MeqNode[gname]         # use existing
+                        self.__bundle[gname] += 1            # increment counter ....?
+                    elif ns==None:                           # nodescope needed
+                        print '** .make_bundle(): nodescope required!'
+                        return False                         # error ...
+                    else:
                         node = ns[gname] << Meq.Add(children=nodes)
                         self.__MeqNode[gname] = node
-                    else:
-                        node = self.__MeqNode[gname]         # use existing
+                        self.__bundle[gname] = 1             # create
                     cc.append(node)  
                     if isinstance(bookpage, str):            # MeqBrowser bookpage specified 
                         bms = JEN_bookmarks.bookmark(node, page=bookpage)
                         self.__bookmark[bms.name] = bms
-                        self.__bookpage[bookpage] = JEN_bookmarks.get_bookpage(bookpage)
+                        self.bookpage(bookpage, gname)       # append
 
         # Return the root node of the subtree:
         if not multiple:
             if gname: return self.__MeqNode[gname]           # single group
-        elif len(cc)>0:
+        elif len(cc)==0:
+            print '** .make_bundle(): len(cc)==0!'
+        elif ns==None:
+            print '** .make_bundle(): nodescope required!'
+        else:
             self.__MeqNode[bname] = ns[bname] << Meq.Composer(children=cc)
             return self.__MeqNode[bname]
 
@@ -579,9 +634,9 @@ class NodeSet (TDL_common.Super):
 
     #------------------------------------------------------------------------
 
-    def bundle_name (self, group, trace=False):
+    def _make_bundle_name (self, group, trace=False):
         """Make a decriptive bundle name of a flat list of groupnames"""
-        if trace: print '** .bundle_name(',group,'): ->',
+        if trace: print '** ._make_bundle_name(',group,'): ->',
         if isinstance(group, str):
             if self.__gog.has_key(group):
                 name = 'gog:'+group
@@ -602,15 +657,10 @@ class NodeSet (TDL_common.Super):
         if trace: print name
         return name
 
-    #------------------------------------------------------------------------
 
-    def make_bookpage (self, ns, group=None, pagename=None, trace=False):
-        """Make a bookpage of bundles of the specified group(s)"""
-        if trace: print '** .make_bookpage(',group,pagename,'):'
-        if not isinstance(pagename, str):
-            pagename = self.bundle_name(group)
-        rootnode = self.bundle (ns, group, bookpage=pagename)
-        return rootnode
+    def bundle(self, key=None):
+        """Get the specified (key) bundle  (None = all)."""
+        return self._fieldict (self.__bundle, key=key, name='.bundle()')
 
 
     #--------------------------------------------------------------------------
@@ -627,7 +677,7 @@ class NodeSet (TDL_common.Super):
         if len(gg)==0: return False
         gog = []
         for g in gg:                                         # for all groups
-            gname = self._unop_name(g, unop=unop)            # e.g. Cos(g)
+            gname = self._make_unop_name(g, unop=unop)            # e.g. Cos(g)
             nodes = self.nodes(g, trace=trace)               # the nodes of group g
             if isinstance(nodes, list) and len(nodes)>0: 
                 self.group(gname, unop=unop)                 # define a new group gname
@@ -639,12 +689,12 @@ class NodeSet (TDL_common.Super):
         # Make a gog for the new groups:
         if len(gog)>0:
             # The gogname is made in two stages:
-            gogname = self.bundle_name(group, trace=True)
-            gogname = self._unop_name(gogname, unop=unop)
+            gogname = self._make_bundle_name(group, trace=True)
+            gogname = self._make_unop_name(gogname, unop=unop)
             self.gog(gogname, groups=gog, unop=unop)
             # Return the bundle root node:
             if isinstance(bookpage, bool): bookpage = gogname
-            node = self.bundle(ns, gogname, bookpage=bookpage)
+            node = self.make_bundle(ns, gogname, bookpage=bookpage)
             return node
         # Something wrong if got to here:
         return False
@@ -658,7 +708,7 @@ class NodeSet (TDL_common.Super):
             node = ns << getattr(Meq,unop1)(node)
         return node
 
-    def _unop_name(self, name=None, unop=None):
+    def _make_unop_name(self, name=None, unop=None):
         """Helper function to make a inop name"""
         if unop==None: return False
         if not isinstance(unop, (list, tuple)): unop = [unop]
@@ -692,7 +742,7 @@ class NodeSet (TDL_common.Super):
         if len(lhs)==0: return False
 
         # Make the new group:
-        gname = self._binop_name(gg, binop=binop)
+        gname = self._make_binop_name(gg, binop=binop)
         self.group(gname, binop=binop)
         for i in range(len(lhs)):
             cc = [lhs[i],rhs[i]]
@@ -701,11 +751,11 @@ class NodeSet (TDL_common.Super):
 
         # Return the bundle root node:
         if isinstance(bookpage, bool): bookpage = gname
-        node = self.bundle(ns, gname, bookpage=bookpage)
+        node = self.make_bundle(ns, gname, bookpage=bookpage)
         return node
 
 
-    def _binop_name(self, name=None, binop=None):
+    def _make_binop_name(self, name=None, binop=None):
         """Helper function to make a binop name"""
         return str(binop)+'('+str(name[0])+','+str(name[1])+')'
 
@@ -745,9 +795,9 @@ class NodeSet (TDL_common.Super):
                 gnames.append(gname)
 
         # Return the bundle root node:
-        gogname = self.bundle_name(gnames)
+        gogname = self._make_bundle_name(gnames)
         if isinstance(bookpage, bool): bookpage = gogname
-        node = self.bundle(ns, gnames, bookpage=bookpage)
+        node = self.make_bundle(ns, gnames, bookpage=bookpage)
         return node
 
 
@@ -755,13 +805,17 @@ class NodeSet (TDL_common.Super):
 #---------------------------------------------------------------------------
 #---------------------------------------------------------------------------
 
-    def cleanup(self):
+    def cleanup(self, ns=None):
       """Remove empty groups/gogs"""
+
+      # Remove empty groups:
       removed = []
       for key in self.__group.keys():
         if len(self.__group[key])==0:
           self.__group.__delitem__(key)
           removed.append(key)
+      self.history ('.cleanup(): removed group(s): '+str(removed))
+
       # Remove gogs that have group members that do not exist:
       for skey in self.__gog.keys():
         ok = True
@@ -769,9 +823,13 @@ class NodeSet (TDL_common.Super):
           if not self.__group.has_key(key):
             ok = False
         if not ok: self.__gog.__delitem__(skey)
-      self.history ('.cleanup(): removed group(s): '+str(removed))
+
+      # Miscellaneous:
+      self.ensure_bookpages(ns)                 # Make bookmarks if necessary
+      self.buffer(clear=True)                   # Clear the temporary buffer
       return True
 
+    #-----------------------------------------------------------------
 
     def update(self, NodeSet=None):
         """Update the essentials from another NodeSet object"""
@@ -931,6 +989,12 @@ if __name__ == '__main__':
                 node = ns[Gphase](i=i) << 0.0
                 nst.MeqNode (Gphase, node=node)
 
+        nst.bookpage('GX', [a1,p1])
+        nst.bookpage('GY', [a2,p2])
+
+    if 1:
+        nst.cleanup(ns)
+
     if 0:
         gg = nst.group_keys()
         # gg.append('xxx')
@@ -956,15 +1020,15 @@ if __name__ == '__main__':
         nst.select_gogs (name=name, substring=True, rider=rider, trace=True)
 
     if 0:
-        # bb = nst.bundle(ns)
-        bb = nst.bundle(ns, 'grogog')
+        # bb = nst.make_bundle(ns)
+        bb = nst.make_bundle(ns, 'grogog')
         TDL_display.subtree(bb, 'bundle', full=True, recurse=3)
         
     if 0:
         nst.make_bookpage(ns, 'grogog')
         nst.make_bookpage(ns, 'grogog')
         
-    if 1:
+    if 0:
         nst.apply_unop(ns, 'GJones', 'Cos', bookpage=True)
 
     if 0:

@@ -549,13 +549,19 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
                      help='if specified, only use baselines<=rmax')
     inarg_resample(pp, slave=slave)
     JEN_inarg.define(pp, 'num_iter', 5, choice=[1,3,5,10,20],  
-                     help='max number of iterations')
+                     help='max number of iterations (now also in fitter)')
     JEN_inarg.define(pp, 'epsilon', 1e-4, choice=[1e-3,1e-4, 1e-5],  
-                     help='iteration control criterion')
-    JEN_inarg.define(pp, 'colin_factor', 1e-8, choice=[1e-8,0.0],  
+                     help='iteration control criterion...')
+    JEN_inarg.define(pp, 'epsval', 1e-8, choice=[1e-3,1e-4, 1e-5],  hide=True,
+                     help='NEW: WNB version of epsilon....')
+    JEN_inarg.define(pp, 'derivative_eps', 1e-8, choice=[1e-3,1e-4, 1e-5], hide=True, 
+                     help='NEW: also iteration control...')
+    JEN_inarg.define(pp, 'colin_factor', 0.0, choice=[1e-8,0.0],  
                      help='colinearity factor')
     JEN_inarg.define(pp, 'usesvd', tf=True,  
                      help='if True, use Singular Value Decomposition (SVD)')
+    JEN_inarg.define(pp, 'setBalanced', tf=False, hide=True,                      
+                     help='NEW: if True, add (..) to diagonal, otherwise multiply (1+lambda)')
     JEN_inarg.define(pp, 'debug_level', 10, choice=[10], hide=True,  
                      help='solver debug_level')
     JEN_inarg.define(pp, 'visu', tf=True,   

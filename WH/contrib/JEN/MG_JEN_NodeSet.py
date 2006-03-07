@@ -70,7 +70,7 @@ def _define_forest (ns):
    nst = make_NodeSet(ns)
 
    # Make a bookpage for all node groups:
-   cc.append(nst.make_bookpage(ns, nst.group_keys()))
+   cc.append(nst.make_bookpage(ns, nst.group_keys(), 'all_groups'))
 
    # Make a bookpage for a particular group:
    cc.append(nst.make_bookpage(ns, ['Ggain_X']))
@@ -86,6 +86,9 @@ def _define_forest (ns):
 
    # Compare the Nodeset with itself:
    cc.append(nst.compare(ns, nst, ['Gphase_Y'], bookpage=True))
+
+   # Show the contents of the final NodeSet:
+   nst.display(MG['script_name'], full=True)
 
    #---------------------------------------------------------------------------
    # Finished: 
@@ -123,9 +126,8 @@ def make_NodeSet(ns):
    nst.gog('Gphase', [p1, p2])
    nst.gog('grogog', [a1, p2, 'GJones'])
 
-   # Make an input node:
+   # Make nodes themselves:
    freq = ns.freq << Meq.Freq()
-
    for i in range(12):
       for Ggain in [a1,a2]:
          node = ns[Ggain](i=i) << Meq.Multiply(i,freq)
@@ -134,6 +136,11 @@ def make_NodeSet(ns):
       for Gphase in [p1,p2]:
          node = ns[Gphase](i=i) << Meq.Multiply(-i,freq)
          nst.MeqNode (Gphase, node=node)
+
+   # Define some bookpages:
+   nst.bookpage('GX', [a1,p1])
+   nst.bookpage('GY', [a2,p2])
+   nst.cleanup(ns)
    return nst
 
 
