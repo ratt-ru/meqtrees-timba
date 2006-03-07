@@ -46,5 +46,5 @@ nothreads.var:            --with-threads=no
 sse.var:                  --without-sse
 shmem.var:                --with-shmem
 noshmem.var:              --with-shmem=no
-bgl_cpp.var:              --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -qasm=gcc -I/bgl/BlueLight/ppcfloor/bglsys/include/ -DHAVE_BGL -DYY_NEVER_INTERACTIVE'
-bgl_ldd.var:              --with-ldflags='-L/bgl/BlueLight/ppcfloor/bglsys/lib -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts -lstandalone.440 -lcrypt -lnss_files -lnss_dns -lresolv -lc -lnss_files -lnss_dns -lresolv -lm'
+bgl_cpp.var:              --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -I/bgl/dist/include -qlist -qsource -qmaxmem=64000 -qasm=gcc -I/bgl/BlueLight/ppcfloor/bglsys/include/ -DHAVE_BGL -DYY_NEVER_INTERACTIVE -DMPICH_SKIP_MPICXX'
+bgl_ldd.var:              --with-ldflags='-L/bgl/BlueLight/ppcfloor/bglsys/lib -L/bgl/dist/lib -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts -lstandalone.440 -lcrypt -lnss_files -lnss_dns -lresolv -lc -lnss_files -lnss_dns -lresolv -lm'
