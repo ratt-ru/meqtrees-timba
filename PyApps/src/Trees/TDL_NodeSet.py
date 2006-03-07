@@ -60,7 +60,7 @@ from math import *
 from numarray import *
 
 from Timba.Trees import TDL_common
-# from Timba.Trees import TDL_radio_conventions
+from Timba.Trees import TDL_radio_conventions
 from Timba.Trees import JEN_bookmarks
 
 
@@ -113,7 +113,7 @@ class NodeSet (TDL_common.Super):
         return s
 
 
-    def display(self, txt=None, full=False):
+    def display(self, txt=None, full=False, doprint=True, pad=True):
         """Display a description of the contents of this NodeSet object"""
         ss = TDL_common.Super.display (self, txt=txt, end=False, full=full)
         indent1 = 2*' '
@@ -162,7 +162,9 @@ class NodeSet (TDL_common.Super):
 
         ss.append(indent1+' - Defined bookpages ('+str(len(self.__bookpage))+'):')
         for key in self.bookpage().keys():
-            ss.append(indent2+' - '+key+':    '+str(self.bookpage()[key]))
+            exists = JEN_bookmarks.get_bookpage(key)
+            if exists: exists = True
+            ss.append(indent2+' - '+key+' ('+str(exists)+'):    '+str(self.bookpage()[key]))
 
         ss.append(indent1+' - Defined bookfolders ('+str(len(self.__bookfolder))+'):')
         for key in self.bookfolder().keys():
@@ -186,7 +188,7 @@ class NodeSet (TDL_common.Super):
             ss.append(indent2+'   ....')
             ss.append(indent2+' - last:  '+str(self.__MeqNode[keys[n-1]]))
 
-        return TDL_common.Super.display_end (self, ss)
+        return TDL_common.Super.display_end (self, ss, doprint=doprint, pad=pad)
 
 
 
@@ -216,28 +218,33 @@ class NodeSet (TDL_common.Super):
         # Otherwise, return the specified (key) group (None = all):
         return self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
 
-    def __getitem__(self, key):
-        """Get a named (key) MeqNode node"""
-        # This allows indexing by key and by index nr:
-        if isinstance(key, int): key = self.__MeqNode.keys()[key]
-        return self.__MeqNode[key]
 
-    def __setitem__(self, key, value):
-        """Set a named (key) MeqNode node"""
-        self.__MeqNode[key] = value
-        return self.__MeqNode[key]
 
-    def len(self):
-        """The number of MeqNode entries in MeqNode"""
-        return len(self.__MeqNode)
+    if False:
+        # To be removed eventually:
+        
+        def __getitem__(self, key):
+            """Get a named (key) MeqNode node"""
+            # This allows indexing by key and by index nr:
+            if isinstance(key, int): key = self.__MeqNode.keys()[key]
+            return self.__MeqNode[key]
 
-    def keys(self):
-        """The list of MeqNode keys (names)"""
-        return self.__MeqNode.keys()
+        def __setitem__(self, key, value):
+            """Set a named (key) MeqNode node"""
+            self.__MeqNode[key] = value
+            return self.__MeqNode[key]
 
-    def has_key(self, key):
-        """Test whether MeqNode contains an item with the specified key"""
-        return self.keys().__contains__(key)
+        def len(self):
+            """The number of MeqNode entries in MeqNode"""
+            return len(self.__MeqNode)
+        
+        def keys(self):
+            """The list of MeqNode keys (names)"""
+            return self.__MeqNode.keys()
+
+        def has_key(self, key):
+            """Test whether MeqNode contains an item with the specified key"""
+            return self.keys().__contains__(key)
 
 
     #--------------------------------------------------------------------------------
@@ -276,12 +283,13 @@ class NodeSet (TDL_common.Super):
         return rootnode
 
 
-    def ensure_bookpages(self, ns=None, trace=True):
+    def ensure_bookpages(self, ns=None, trace=False):
         """Make sure that all defined bookpages have actually been created
         in the forest_state record"""
         print '\n** .ensure_bookpages(): '
         for key in self.bookpage().keys():
-            pagename = 'bp_'+key
+            # pagename = 'bp_'+key              # NOT a good idea!
+            pagename = key
             if not JEN_bookmarks.get_bookpage(pagename):
                 if trace: print '- create: ',pagename
                 for name in self.bookpage(key):
@@ -350,7 +358,8 @@ class NodeSet (TDL_common.Super):
 
             qq = TDL_common.unclutter_inarg(pp)
             # self.history('** Defined group: '+key+':  rider = '+str(qq))
-            self.history('** Defined group: '+key+':  rider keys: '+str(qq.keys()))
+            # self.history('** Defined group: '+key+':  rider keys: '+str(qq.keys()))
+            self.history('** Defined group: '+key)
             return key                              # return the actual group/gog key name
         # Otherwise, return the specified (key) group (None = all):
         return self._fieldict (self.__group, key=key, name='.group()')
@@ -359,15 +368,24 @@ class NodeSet (TDL_common.Super):
     def group_rider(self, key=None):
         """Get the specified (key) group_rider (None = all)"""
         return self._fieldict (self.__group_rider, key=key, name='.group_rider()')
+
     def plot_color(self, key=None):
         """Get the specified (key) group plot_color (None = all)"""
         return self._fieldict (self.__plot_color, key=key, name='.plot_color()')
+
     def plot_style(self, key=None):
         """Get the specified (key) group plot_style (None = all)"""
         return self._fieldict (self.__plot_style, key=key, name='.plot_style()')
+
     def plot_size(self, key=None):
         """Get the specified (key) group plot_size (None = all)"""
         return self._fieldict (self.__plot_size, key=key, name='.plot_size()')
+
+    def radio_conventions(self):
+        self.__plot_color = TDL_radio_conventions.plot_color()
+        self.__plot_style = TDL_radio_conventions.plot_style()
+        self.__plot_size = TDL_radio_conventions.plot_size()
+        return True
 
     def group_keys (self, select='*'):
         """Return the names (keys) of the available groups"""
@@ -522,7 +540,8 @@ class NodeSet (TDL_common.Super):
 
             qq = TDL_common.unclutter_inarg(pp)
             # self.history('** Defined gog: '+key+':  '+str(groups)+',  rider = '+str(qq))
-            self.history('** Defined gog: '+key+':  '+str(groups)+',  rider keys:'+str(qq.keys()))
+            # self.history('** Defined gog: '+key+':  '+str(groups)+',  rider keys:'+str(qq.keys()))
+            self.history('** Defined gog: '+key+':  '+str(groups))
             return key                              # return the actual gog key name
         # Otherwise, return the specified (key) group (None = all):
         return self._fieldict (self.__gog, key=key, name='.gog()')
@@ -582,51 +601,49 @@ class NodeSet (TDL_common.Super):
         if not isinstance(gg, list): return False
         if len(gg)==0: return False
 
-        # The bundles of multiple groups are bundled:
-        multiple = (len(gg)>1)               
+        # The bundles of multiple groups are 'bbundled' also:
+        multiple = (len(gg)>1)                               # True if multiple
         if multiple:
             if not isinstance(name, str):
                 name = self._make_bundle_name(group)
-            # bname = 'NodeSet_bundle_'+str(name)
-            bname = '_bundle_'+str(name)
-            if self.__MeqNode.has_key(bname):                # bundle already exists
-                return self.__MeqNode[bname]                 # just return it
+            bbname = '_bd_'+str(name)
+            if self.__MeqNode.has_key(bbname):               # bbundle already exists
+                return self.__MeqNode[bbname]                # just return it
 
-        # Make (a bundle of) group bundle(s): 
         cc = []
-        gname = None
+        bname = None                                         # bundle name
         for g in gg:                                         # for all groups
             nodes = self.nodes(g, trace=trace)               # their nodes
             if isinstance(nodes, list): 
                 n = len(nodes)
                 if n>0: 
-                    gname = 'sum_'+str(g)+'('+str(n)+')'     # 
-                    if self.__MeqNode.has_key(gname):        # bundle exists already
-                        node = self.__MeqNode[gname]         # use existing
-                        self.__bundle[gname] += 1            # increment counter ....?
+                    bname = 'sum_'+str(g)+'('+str(n)+')'     # bundle name
+                    if self.__MeqNode.has_key(bname):        # bundle exists already
+                        node = self.__MeqNode[bname]         # use existing
+                        self.__bundle[bname] += 1            # increment counter ....?
                     elif ns==None:                           # nodescope needed
                         print '** .make_bundle(): nodescope required!'
                         return False                         # error ...
                     else:
-                        node = ns[gname] << Meq.Add(children=nodes)
-                        self.__MeqNode[gname] = node
-                        self.__bundle[gname] = 1             # create
+                        node = ns[bname] << Meq.Add(children=nodes)
+                        self.__MeqNode[bname] = node
+                        self.__bundle[bname] = 1             # create
                     cc.append(node)  
                     if isinstance(bookpage, str):            # MeqBrowser bookpage specified 
                         bms = JEN_bookmarks.bookmark(node, page=bookpage)
                         self.__bookmark[bms.name] = bms
-                        self.bookpage(bookpage, gname)       # append
+                        self.bookpage(bookpage, bname)       # append
 
-        # Return the root node of the subtree:
+        # Return the root node of a subtree:
         if not multiple:
-            if gname: return self.__MeqNode[gname]           # single group
+            if bname: return self.__MeqNode[bname]           # A single group bundle
         elif len(cc)==0:
             print '** .make_bundle(): len(cc)==0!'
         elif ns==None:
             print '** .make_bundle(): nodescope required!'
-        else:
-            self.__MeqNode[bname] = ns[bname] << Meq.Composer(children=cc)
-            return self.__MeqNode[bname]
+        else:                                                # A bundle of group bundles 
+            self.__MeqNode[bbname] = ns[bbname] << Meq.Composer(children=cc)
+            return self.__MeqNode[bbname]
 
         # Something wrong if got to here:
         return False
@@ -689,7 +706,7 @@ class NodeSet (TDL_common.Super):
         # Make a gog for the new groups:
         if len(gog)>0:
             # The gogname is made in two stages:
-            gogname = self._make_bundle_name(group, trace=True)
+            gogname = self._make_bundle_name(group, trace=False)
             gogname = self._make_unop_name(gogname, unop=unop)
             self.gog(gogname, groups=gog, unop=unop)
             # Return the bundle root node:

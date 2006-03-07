@@ -119,7 +119,7 @@ class Super:
         indent1 = self.display_indent1()
         indent2 = self.display_indent2()
         ss = []
-        ss.append('\n** '+self.type()+'.display('+str(txt)+'):')
+        ss.append('** '+self.type()+'.display('+str(txt)+'):')
         ss.append(indent1+self.oneliner())
 
         s1 = '* .ok() -> '+str(self.ok())
@@ -139,9 +139,11 @@ class Super:
         return ss
 
 
-    def display_end(self, ss=[], doprint=True):
+    def display_end(self, ss=[], pad=True, doprint=True):
         """Called at the end of a .display() function"""
-        ss.append('** end of '+self.type()+'.display()\n')
+        if pad: ss[0] = '\n'+ss[0]
+        ss.append('** end of '+self.type()+'.display()')
+        if pad: ss.append('\n')
         if doprint:
             for s in ss: print s
         return ss
