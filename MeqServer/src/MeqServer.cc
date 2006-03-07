@@ -111,12 +111,15 @@ MeqServer::MeqServer()
 
   // per-node commands  
   async_commands["Node.Get.State"] = &MeqServer::nodeGetState;
-  async_commands["Node.Set.State"] = &MeqServer::nodeSetState;
   sync_commands["Node.Execute"] = &MeqServer::nodeExecute;
-  sync_commands["Node.Clear.Cache"] = &MeqServer::nodeClearCache;
-  async_commands["Node.Publish.Results"] = &MeqServer::publishResults;
-  async_commands["Node.Set.Breakpoint"] = &MeqServer::nodeSetBreakpoint;
-  async_commands["Node.Clear.Breakpoint"] = &MeqServer::nodeClearBreakpoint;
+  // commands with a 0 pointer are automatically mapped to 
+  // Node::processCommand() with the Node prefix truncated. 
+  // A null map entry is used to mark sync-only commands.
+//  async_commands["Node.Set.State"] = 0; // &MeqServer::nodeSetState;
+  sync_commands["Node.Clear.Cache"] = 0; // &MeqServer::nodeClearCache;
+//  async_commands["Node.Publish.Results"] = 0; // &MeqServer::publishResults;
+//  async_commands["Node.Set.Breakpoint"] = 0; // &MeqServer::nodeSetBreakpoint;
+//  async_commands["Node.Clear.Breakpoint"] = 0; // &MeqServer::nodeClearBreakpoint;
   async_commands["Set.Forest.Breakpoint"] = &MeqServer::setForestBreakpoint;
   async_commands["Clear.Forest.Breakpoint"] = &MeqServer::clearForestBreakpoint;
   
@@ -456,22 +459,6 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
 }
 
 
-//##ModelId=400E5B6C01DD
-void MeqServer::nodeClearCache (DMI::Record::Ref &out,DMI::Record::Ref &in)
-{
-  setState(AidUpdating);
-  DMI::Record::Ref rec = in;
-  bool getstate;
-  Node & node = resolveNode(getstate,*rec);
-  bool recursive = (*rec)[FRecursive].as<bool>(false);
-  cdebug(2)<<"nodeClearCache for node "<<node.name()<<", recursive: "<<recursive<<endl;
-  node.clearCache(recursive);
-  out[AidMessage] = makeNodeMessage(node,recursive?"cache cleared recursively":"cache cleared");
-  if( getstate )
-    out[FNodeState] <<= node.syncState();
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-}
-
 //##ModelId=400E5B6C0247
 void MeqServer::saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
@@ -588,23 +575,6 @@ void MeqServer::clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
   out[FForestChanged] = incrementForestSerial();
 }
 
-void MeqServer::publishResults (DMI::Record::Ref &out,DMI::Record::Ref &in)
-{
-  DMI::Record::Ref rec = in;
-  bool getstate;
-  Node & node = resolveNode(getstate,*rec);
-  int level = rec[FLevel].as<int>(1);
-  cdebug(2)<<"publishResults: setting level "<<level<<" for node "<<node.name()<<endl;
-  node.setPublishingLevel(level);
-  if( level )
-    out[AidMessage] = makeNodeMessage(node,"publishing snapshots");
-  else
-    out[AidMessage] = makeNodeMessage(node,"not publishing snapshots");
-  if( getstate )
-    out[FNodeState] <<= node.syncState();
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-}
-
 void MeqServer::disablePublishResults (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   cdebug(2)<<"disablePublishResults: disabling for all nodes"<<endl;
@@ -613,40 +583,6 @@ void MeqServer::disablePublishResults (DMI::Record::Ref &out,DMI::Record::Ref &i
       forest.get(i).setPublishingLevel(0);
   out[AidMessage] = "snapshots disabled on all nodes";
   out[FDisabledAllPublishing] = true;
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-}
-
-void MeqServer::nodeSetBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in)
-{
-  DMI::Record::Ref rec = in;
-  bool getstate;
-  Node & node = resolveNode(getstate,*rec);
-  int bpmask = rec[FBreakpoint].as<int>(Node::breakpointMask(Node::CS_ES_REQUEST));
-  bool oneshot = rec[FSingleShot].as<bool>(false);
-  cdebug(2)<<"nodeSetBreakpoint: node "<<node.name()<<" mask "<<bpmask<<(oneshot?" single-shot\n":"\n");
-  node.setBreakpoint(bpmask,oneshot);
-  if( getstate )
-    out[FNodeState] <<= node.syncState();
-  out[AidMessage] = makeNodeMessage(node,ssprintf("set %sbreakpoint %X; "
-                                    "new bp mask is %X",
-                                    oneshot?"one-shot ":"",
-                                    bpmask,node.getBreakpoints(oneshot)));
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-}
-
-void MeqServer::nodeClearBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in)
-{
-  DMI::Record::Ref rec = in;
-  bool getstate;
-  Node & node = resolveNode(getstate,*rec);
-  int bpmask = rec[FBreakpoint].as<int>(Node::BP_ALL);
-  bool oneshot = rec[FSingleShot].as<bool>(false);
-  cdebug(2)<<"nodeClearBreakpoint: node "<<node.name()<<" mask "<<bpmask<<(oneshot?" single-shot\n":"\n");
-  node.clearBreakpoint(bpmask,oneshot);
-  if( getstate )
-    out[FNodeState] <<= node.syncState();
-  out[AidMessage] = makeNodeMessage(node,ssprintf("clearing breakpoint %X; "
-        "new bp mask is %X",bpmask,node.getBreakpoints(oneshot)));
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
@@ -881,26 +817,78 @@ AtomicID MeqServer::setState (AtomicID state,bool quiet)
   return oldstate;
 }
 
-void MeqServer::execCommandEntry (ExecQueueEntry &qe,bool savestate)
+bool MeqServer::execNodeCommand (DMI::Record::Ref &out,ExecQueueEntry &qe)
+{
+  bool verbose = false;
+  // verify inputs
+  Assert(qe.command[0] = AidNode);
+  HIID command = qe.command.subId(1);
+  // use argument record to resolve to a Node object, throw exception on failure
+  bool getstate;
+  int get_forest_status = (*qe.args)[FGetForestStatus].as<int>(0);
+  Node &node = resolveNode(getstate,*qe.args);
+  // add node name to output event record
+  out[AidNode] = node.name();
+  // pass command to node. Exceptions will be caught by our caller's handler
+  Result::Ref resref;
+  int retcode = node.processCommand(resref,command,qe.args,qe.silent?0:1); // verbosity=1 if not silent
+  // generate "unknown command" message if RES_OK not set in return value
+  if( !(retcode&Node::RES_OK) )
+  {
+    out[AidError] = "node '"+node.name()+"': unrecognized command '"+command.toString('.')+"'";
+    verbose = true;
+  }
+  // if node returns a valid Result, add to output record
+  if( resref.valid() )
+    out[AidResult] = resref;
+  // if state or forest status was requested, add to output record
+  if( getstate )
+    out[FNodeState] <<= node.syncState();
+  fillForestStatus(out(),get_forest_status);
+  return verbose;
+}
+
+DMI::Record::Ref MeqServer::execCommandEntry (ExecQueueEntry &qe,bool savestate,bool post_results)
 {
   AtomicID oldstate = state();    // save app state prior to command
   DMI::Record::Ref out(DMI::ANONWR);
-  bool post_reply = false;
+  // has_reply will be true if the command produces a result that needs
+  // to be posted back. Note that if post_results=false, then this will be
+  // ignored anyway, since in this mode we return the result or throw an error.
+  bool has_reply = !qe.silent;
+  Result::Ref resref;
   try
   {
-    (this->*(qe.proc))(out,qe.args);
-    post_reply = !qe.silent;
+    // qe.proc!=0: call specified command handler
+    if( qe.proc )
+      (this->*(qe.proc))(out,qe.args);\
+    // else this is a Node.* command. Call helper function and set the 
+    // has_reply flag if it returns true (which usually means an error)
+    else
+      has_reply |= execNodeCommand(out,qe);
   }
   catch( std::exception &exc )
   {
+    if( !post_results )
+    {
+      if( savestate )
+        setState(oldstate);
+      throw;
+    }
     // post error event
     out[AidError] = exceptionToObj(exc);
-    post_reply = true;
+    has_reply = true;
   }
   catch( ... )
   {
-    out[AidError] = "unknown exception while processing command "+qe.cmd_id.toString('.');
-    post_reply = true;
+    if( !post_results )
+    {
+      if( savestate )
+        setState(oldstate);
+      throw;
+    }
+    out[AidError] = "unknown exception while processing command "+qe.command.toString('.');
+    has_reply = true;
   }
   // if we need to clear the stop flag at end of command (i.e. when releasing
   // from breakpoint), lock the condition variable to keep the execution threads
@@ -914,142 +902,103 @@ void MeqServer::execCommandEntry (ExecQueueEntry &qe,bool savestate)
     forest.clearStopFlag();
     clear_stop_flag_ = false;
   }
-  // post reply, including state
-  if( post_reply )
+  // post reply if asked to, including state
+  if( post_results && has_reply )
   {
     if( savestate && state() != oldstate )
     {
-      setState(oldstate,true);  // quiet=true, no publish
+      setState(oldstate,true);  // quiet=true, no publish, since we post event anyway
       fillAppState(out());
     }
-    control().postEvent(MeqResultPrefix|qe.cmd_id,out);
+    control().postEvent(qe.reply,out);
+    out.detach();
+    return out;
   }
   else if( savestate ) // no reply, so simply reset state if needed
     setState(oldstate);
+  
+  return out;
 }
 
-DMI::Record::Ref MeqServer::executeCommand (const HIID &cmd,const ObjRef &argref)
+DMI::Record::Ref MeqServer::executeCommand (const HIID &cmdid,DMI::Record::Ref &cmd_data,bool post_results)
 {
-  DMI::Record::Ref retval(DMI::ANONWR);
-  DMI::Record::Ref args;
-  CommandMap::const_iterator iter = async_commands.find(cmd);
-  FailWhen(iter == async_commands.end(),"unknown command "+cmd.toString('.'));
-  // provide an args record
-  if( argref.valid() )
+  DMI::Record::Ref result;
+  // MeqCommands are expected to have a DMI::Record payload
+  if( !cmd_data.valid() || cmd_data->objectType() != TpDMIRecord )
   {
-    FailWhen(!argref->objectType()==TpDMIRecord,"invalid args field");
-    args = argref.ref_cast<DMI::Record>();
-  }
-  else
-    args <<= new DMI::Record;
-  AtomicID oldstate = state();
-  try
-  {
-    (this->*(iter->second))(retval,args);
-  }
-  catch(...)
-  {
-    setState(oldstate);
-    throw;
-  }
-  setState(oldstate);
-  return retval;
-}
-
-void MeqServer::processCommands ()
-{
-  // check for any commands from the control agent
-  HIID cmdid;
-  ObjRef cmd_data;
-  // get an event from the control channel
-  int state = control().getEvent(cmdid,cmd_data);
-  if( state == AppEvent::CLOSED )
-  {
-    running_ = false;   // closed? break out
-    return;
-  }
-  cdebug(4)<<"state "<<state<<", got event "<<cmdid.toString('.')<<endl;
-  if( state != AppEvent::SUCCESS ) // if unsuccessful, break out
-    return;
-  // is it a MeqCommand?
-  if( cmdid.matches(MeqCommandMask) )
-  {
-    // strip off the Meq command mask -- the -1 is there because 
-    // we know a wildcard is the last thing in the mask.
-    cmdid = cmdid.subId(MeqCommandMask.length()-1);
-    // MeqCommands are expected to have a DMI::Record payload
-    if( !cmd_data.valid() || cmd_data->objectType() != TpDMIRecord )
-    {
+    if( post_results )
       postError("command "+cmdid.toString('.')+" does not contain a record, ignoring");
-      return;
+    else
+      Throw("command "+cmdid.toString('.')+" does not contain a record, ignoring");
+    return result;
+  }
+  // extract payload and fill in an ExecQueueEntry
+  DMI::Record &cmddata = cmd_data.as<DMI::Record>();
+  cdebug(3)<<"received command "<<cmdid.toString('.')<<endl;
+  ExecQueueEntry qe;
+  qe.command = cmdid;
+  qe.reply = MeqResultPrefix|cmdid;
+  int command_index = cmddata[FCommandIndex].as<int>(0);
+  if( command_index )
+    qe.reply |= command_index;
+  qe.args    = cmddata[FArgs].remove();
+  if( !qe.args.valid() )
+    qe.args <<= new DMI::Record;
+  qe.silent  = !post_results || qe.args[FSilent].as<bool>(false);
+  // a command may be explicitly specified as sync (but not vice versa --
+  // sync=false is always overridden if command is in the sync map)
+  bool sync = qe.args[FSync].as<bool>(false);
+  // find command in async map first, then sync map
+  qe.proc = 0;
+  CommandMap::const_iterator iter = async_commands.find(qe.command);
+  if( iter != async_commands.end() )
+    qe.proc = iter->second;
+  else // not found in async map, try the sync map
+  {
+    iter = sync_commands.find(qe.command);
+    if( iter != sync_commands.end() )
+    {
+      qe.proc = iter->second;
+      sync = true; // it's a sync-only command, so force sync mode
     }
-    // extract payload
-    DMI::Record &cmddata = cmd_data.as<DMI::Record>();
-    cdebug(3)<<"received command "<<cmdid.toString('.')<<endl;
-    ExecQueueEntry qe;
-    qe.args    = cmddata[FArgs].remove();
-    if( !qe.args.valid() )
-      qe.args <<= new DMI::Record;
-    qe.silent  = qe.args[FSilent].as<bool>(false);
-    int cmd_index  = cmddata[FCommandIndex].as<int>(0);
-    qe.cmd_id  = cmdid;
-    if( cmd_index )
-      qe.cmd_id |= cmd_index;
-    // get value of sync flag (false will be overridden by true if
-    // command is in the sync map)
-    bool sync = qe.args[FSync].as<bool>(false);
-    // finc command in sync or async map
-    CommandMap::const_iterator iter = async_commands.find(cmdid);
-    if( iter == async_commands.end() )
-    {  
-      iter = sync_commands.find(cmdid);
-      if( iter == sync_commands.end() )
+    // else is it a Node.* command?
+    else if( qe.command[0] == AidNode )
+      qe.proc = 0;
+    // else not found at all
+    else
+    {
+      if( post_results )
       {
         DMI::Record::Ref out(DMI::ANONWR);
         out[AidError] = "unknown command "+cmdid.toString('.');
-        control().postEvent(MeqResultPrefix|qe.cmd_id,out);
-        return;
+        control().postEvent(qe.reply,out);
+        return result;
       }
-      sync = true; // it's a sync-only command, so force sync mode
-    }
-    // directly execute command if found in map
-    if( !sync )
-    {
-      qe.proc = iter->second;
-      // this posts and throws any exceptions
-      execCommandEntry(qe,false); // false=do not save/restore state
-    }
-    else
-    {
-      qe.proc = iter->second;
-      Thread::Mutex::Lock lock(exec_cond_);
-      int sz = exec_queue_.size();
-      exec_queue_.push_back(qe);
-      exec_cond_.broadcast();
-      if( sz )
-        postMessage(ssprintf("queueing %s command (%d)",cmdid.toString('.').c_str(),sz));
-      lock.release();
-    }
-  }
-  else // other commands 
-  {
-    if( cmdid == HIID("Request.State") )
-      publishState();
-    else if( cmdid == HIID("Halt") )
-    {
-      Thread::Mutex::Lock lock(exec_cond_);
-      bool busy = !exec_queue_.empty();
-      running_ = false;
-      exec_cond_.broadcast();
-      lock.release();
-      if( busy )
-        postMessage("halt command received, exiting once current command finishes");
       else
-        postMessage("halt command received, exiting");
+        Throw("unknown command "+cmdid.toString('.'));
     }
-    else
-      postError("ignoring unrecognized event "+cmdid.toString('.'));
   }
+  // qe.proc may now be 0 to indicate a Node.* command
+
+  // directly execute command if found in map
+  if( !sync )
+  {
+    result = execCommandEntry(qe,false,post_results); // false=do not save/restore state
+  }
+  // else push onto sync queue for exec thread to handle
+  else
+  {
+    Thread::Mutex::Lock lock(exec_cond_);
+    int sz = exec_queue_.size();
+    exec_queue_.push_back(qe);
+    exec_cond_.broadcast();
+    if( sz && post_results )
+      postMessage(ssprintf("queueing %s command (%d)",cmdid.toString('.').c_str(),sz));
+    lock.release();
+    // return empty result 
+    result <<= new DMI::Record;
+  }
+  return result;
 }
 
 //##ModelId=3F608106021C
@@ -1067,8 +1016,50 @@ void MeqServer::run ()
   setState(AidIdle);  
   while( running_ )
   {
-    // process any pending commands
-    processCommands();
+    // get an event from the control channel
+    HIID cmdid;
+    ObjRef cmd_data;
+    int state = control().getEvent(cmdid,cmd_data);
+    if( state == AppEvent::CLOSED )
+    {
+      running_ = false;   // closed? break out
+      break;
+    }
+    cdebug(4)<<"state "<<state<<", got event "<<cmdid.toString('.')<<endl;
+    if( state != AppEvent::SUCCESS ) // if unsuccessful, try again
+      continue;
+    // regular commands go to the generic interface
+    if( cmdid.matches(MeqCommandMask) )
+    {
+      // strip off the Meq command mask -- the -1 is there because 
+      // we know a wildcard is the last thing in the mask.
+      cmdid = cmdid.subId(MeqCommandMask.length()-1);
+      // all MeqCommands are expected to have a DMI::Record payload
+      if( !cmd_data.valid() || cmd_data->objectType() != TpDMIRecord )
+        postError("command "+cmdid.toString('.')+" does not contain a record, ignoring");
+      else
+      { 
+        DMI::Record::Ref cmdrec = cmd_data; 
+        executeCommand(cmdid,cmdrec,true); // true=post results to output
+      }
+    }
+    // else process some explicit commands
+    else if( cmdid == HIID("Request.State") )
+      publishState();
+    else if( cmdid == HIID("Halt") )
+    {
+      Thread::Mutex::Lock lock(exec_cond_);
+      bool busy = !exec_queue_.empty();
+      running_ = false;
+      exec_cond_.broadcast();
+      lock.release();
+      if( busy )
+        postMessage("halt command received, exiting once current command finishes");
+      else
+        postMessage("halt command received, exiting");
+    }
+    else
+      postError("unknown command "+cmdid.toString('.'));
   }
   // signal exec thread to exit (running_ = false)
   Thread::Mutex::Lock lock(exec_cond_);
@@ -1100,7 +1091,7 @@ void * MeqServer::runExecutionThread ()
     // else get request from queue and execute it
     ExecQueueEntry qe = exec_queue_.front();
     lock.release();
-    execCommandEntry(qe,true); // true = saves/restores state
+    execCommandEntry(qe,true,true); // 1st true: saves/restores state, 2nd true: post reply with results
     publishState();
     // relock queue and remove front entry (unless it's been flushed for us...)
     lock.relock(exec_cond_);
@@ -1125,3 +1116,5 @@ string MeqServer::sdebug(int detail, const string &prefix, const char *name) con
 }
 
 };
+
+

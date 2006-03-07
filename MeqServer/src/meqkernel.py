@@ -42,7 +42,7 @@ def set_state (node,**fields):
   else:
     raise TypeError,'illegal node argumnent';
   # pass command to kernel
-  meqserver_interface.mqexec('Node.Set.State',rec);
+  meqserver_interface.mqexec('Node.Set.State',rec,True); # True=silent
   
   
 def process_vis_header (header):

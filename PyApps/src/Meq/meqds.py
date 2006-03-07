@@ -525,7 +525,7 @@ def enable_node_publish (node,enable=True,get_state=True):
     level = 1;
   else:
     level = 0;
-  mqs().meq('Node.Publish.Results',record(nodeindex=ni,get_state=get_state,level=level),wait=False);
+  mqs().meq('Node.Set.Publish.Level',record(nodeindex=ni,get_state=get_state,level=level),wait=False);
 
 def disable_node_publish (node,disable=True):
   return enable_node_publish(node,not disable);

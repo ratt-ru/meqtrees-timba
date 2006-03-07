@@ -64,11 +64,13 @@ int Node::processCommand (Result::Ref &,
   else if( command == HIID("Clear.Cache.Recursive") )
   {
     clearCache(true);
-    postMessage("cache cleared recursively");
+    if( verbosity>0 )
+      postMessage("cache cleared recursively");
   }
   else if( command == HIID("Set.Publish.Level") )
   {
     int level = args.valid() ? args[FLevel].as<int>(1) : 1;
+    setPublishingLevel(level);
     if( verbosity>0 )
       postMessage(level?"publishing snapshots":"not publishing snapshots");
   }

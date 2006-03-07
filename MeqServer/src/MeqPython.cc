@@ -30,7 +30,8 @@ static PyObject * mqexec (PyObject *, PyObject *args)
 {
   char * command;
   PyObject *cmdrec = 0;
-  if( !PyArg_ParseTuple(args, "s|O", &command,&cmdrec) )
+  int silent;
+  if( !PyArg_ParseTuple(args, "s|Oi", &command,&cmdrec,&silent) )
     return NULL;
   if( !pmqs )
     returnError(NULL,OctoPython,"meqserver not initialized");
@@ -42,7 +43,11 @@ static PyObject * mqexec (PyObject *, PyObject *args)
     cdebug(2)<<"mqexec: command is "<<cmd<<endl;
     ObjRef args;
     FailWhen(!pyToDMI(args,cmdrec),"arg conversion failed");
-    DMI::Record::Ref retval = pmqs->executeCommand(cmd,args);
+    DMI::Record::Ref cmdrec(DMI::ANONWR);
+    cmdrec[AidArgs] = args;
+    cmdrec[AidSilent] = bool(silent);
+    args.detach();
+    DMI::Record::Ref retval = pmqs->executeCommand(cmd,cmdrec,false); // false=do not post reply but return it here
     return pyFromDMI(*retval);
   }
   catchStandardErrors(NULL);

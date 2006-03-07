@@ -777,8 +777,7 @@ class ParmFiddler (browsers.GriddedPlugin):
     for parmkey in self._parmlist:
 #      if not self._parmdict[parmkey]['publish']:
         if self.parmtable.isRowSelected(self._parmdict[parmkey]['row']):
-          cmd = record(name=parmkey,get_state=True,enable=not self._parmdict[parmkey]['publish']);
-          mqs().meq('Node.Publish.Results',cmd,wait=False);
+          meqds.enable_node_publish(parmkey,enable=not self._parmdict[parmkey]['publish']);
 
 
      

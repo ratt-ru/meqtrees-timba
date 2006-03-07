@@ -717,6 +717,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     wstat = os.waitpid(-1,os.WNOHANG);
     if wstat:
       (pid,st) = wstat;
+      if not pid:   # pid 0 means we got a STOP/CONT signal, ignore
+        return;
       if pid == self._kernel_pid:
         msg = "kernel process " + str(pid);
         self._kernel_pid = None;

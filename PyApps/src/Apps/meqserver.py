@@ -140,8 +140,8 @@ class meqserver (app_proxy):
     
   def publish (self,node,wait=False):
     rec = self.makenodespec(node);
-    rec.enable = True;
-    return self.meq('Node.Publish.Results',rec,wait=wait);
+    rec.level = 1;
+    return self.meq('Node.Set.Publish.Level',rec,wait=wait);
   
   def _result_handler (self,msg):
     try:

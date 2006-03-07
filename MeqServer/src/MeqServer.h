@@ -1,6 +1,6 @@
 #ifndef MEQSERVER_SRC_MEQSERVER_H_HEADER_INCLUDED_D338579D
 #define MEQSERVER_SRC_MEQSERVER_H_HEADER_INCLUDED_D338579D
-
+ 
 #include <DMI/Events.h>
 #include <MEQ/Forest.h>
 #include <AppAgent/EventChannel.h>
@@ -57,6 +57,19 @@ class MeqServer : public DMI::EventRecepient
     // runs command processing loop until Halt command is received or control 
     // channel is closed
     virtual void run ();
+    
+    // Generic command interface. Executes the given command with the given
+    // arguments. Two modes are available for dispensing with the command 
+    // results and reporting errors.
+    // If post_results=true:
+    //    Command results are posted to the output channel. Any exceptions
+    //    are caught and also posted, so none will be thrown by this
+    //    function. Return value is undefined.
+    // If post_results=false:
+    //    Command results are returned via a record ref. If command is sync
+    //    (i.e. has been placed on exec queue), this will be an empty record.
+    //    Any errors will be thrown as exceptions.
+    DMI::Record::Ref executeCommand (const HIID &cmd,DMI::Record::Ref &args,bool post_results=false);
 
     // halts the meqserver
     void halt (DMI::Record::Ref &out,DMI::Record::Ref &in);
@@ -87,8 +100,6 @@ class MeqServer : public DMI::EventRecepient
     
     //##ModelId=400E5B6C015E
     void nodeExecute  (DMI::Record::Ref &out,DMI::Record::Ref &in);
-    //##ModelId=400E5B6C01DD
-    void nodeClearCache (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=400E5B6C0247
     void saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=400E5B6C02B3
@@ -96,13 +107,10 @@ class MeqServer : public DMI::EventRecepient
     //##ModelId=400E5B6C0324
     void clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
-    void publishResults (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void disablePublishResults (DMI::Record::Ref &out,DMI::Record::Ref &in);
 
     void executeAbort (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
-    void nodeSetBreakpoint    (DMI::Record::Ref &out,DMI::Record::Ref &in);
-    void nodeClearBreakpoint  (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void setForestBreakpoint  (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void clearForestBreakpoint(DMI::Record::Ref &out,DMI::Record::Ref &in);
     
@@ -113,8 +121,11 @@ class MeqServer : public DMI::EventRecepient
     void debugContinue      (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void debugUntilNode     (DMI::Record::Ref &out,DMI::Record::Ref &in);
 
-    // alternative interface to execute a command. Only works for async commands
-    DMI::Record::Ref executeCommand (const HIID &cmd,const ObjRef &argref);
+    // public interface to execute a command. 
+    // Executes command and returns result in a record (unless command
+    // is async, in which case and invalid ref is returned). Errors
+    // are indicated by throwing an exception.
+    DMI::Record::Ref executeCommand (const HIID &cmd,ObjRef &argref);
     
     // returns control channel
     AppAgent::EventChannel & control ()
@@ -158,8 +169,6 @@ class MeqServer : public DMI::EventRecepient
     //##ModelId=3F6196800325
     Node & resolveNode (bool &getstate,const DMI::Record &rec);
 
-    void processCommands();
-    
     void reportNodeStatus  (Node &node,int oldstat,int newstat);
 
     void processBreakpoint (Node &node,int bpmask,bool global);
@@ -218,19 +227,46 @@ class MeqServer : public DMI::EventRecepient
     // queue of commands to execute, empty if nothing is executing
     typedef struct 
     {
-      PtrCommandMethod proc;; // command method
+      PtrCommandMethod proc;  // command method, 0 for Node::processCommand()
       DMI::Record::Ref args;  // command arguments
       bool silent;            // silent flag (if true, no result event is produced, unless an error occurs)
-      HIID cmd_id;            // id of result event
+      HIID command;           // command ID
+      HIID reply;             // reply ID
     } ExecQueueEntry;
+    
     typedef std::list<ExecQueueEntry> ExecQueue;
     ExecQueue exec_queue_;
     
     // condition variable indicating changes to queue or to running_ status
     Thread::Condition exec_cond_;
     
-    void execCommandEntry (ExecQueueEntry &qe,bool savestate=false);
+    // helper function used both by the exec thread and the main thread.
+    // This executes the command specified by the given queue entry
+    // (passed as non-const because args may be taken over).
+    // If savestate=true, saves/restores the current MeqServer state().
+    // If post_results=true:
+    //    Command results are posted to the output channel. Any exceptions
+    //    are caught and also posted, so none will be thrown by this
+    //    function. Return value is undefined.
+    // If post_results=false:
+    //    Command results are returned via a record ref. If command is sync
+    //    (i.e. has been placed on exec queue), this will be an empty record.
+    //    Some control commands will also return an empty record.
+    //    Any errors will be thrown as exceptions.
+    DMI::Record::Ref execCommandEntry (ExecQueueEntry &qe,bool savestate,bool post_results);
     
+    // helper function for execCommandEntry(). Executes a generic node 
+    // command by calling Node::processCommand() with the command and args
+    // found in qe. qe.command[0] must be "Node" (the actual command passed to
+    // the node is qe.command[1:]). qe.args are taken over, hence qe
+    // is passed in as non-const. The 'out' record is populated with
+    // with the command result (if any). Errors are reported by throwing
+    // exceptions.
+    // The return value is 'true' if out contains something to be posted
+    // as an output event (usually an error report), or false if things
+    // quietly succeed.
+    bool execNodeCommand (DMI::Record::Ref &out,ExecQueueEntry &qe);
+   
     // method that runs the exec thread loop
     void * runExecutionThread ();
     // static function to start MeqServer's exec thread

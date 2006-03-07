@@ -347,6 +347,41 @@ class Node : public NodeFace
     //====== NodeFace method
     //## Executes a request on the node
     virtual int execute (Result::Ref &resref, const Request &req) throw();
+    
+    //====== NodeFace method
+    //## Processes node-specific commands. Args is expected to contain 
+    //## a DMI::Record. Standard commands defined at this level are:
+    //## State, args: {any state sub-record} 
+    //##    Changes the state of the node for the fields found in args record.
+    //## Set.State, args: {state={any state sub-record}} 
+    //##    Alternative version. Changes the state of the node for the fields 
+    //##    found in args.state.
+    //## Clear.Cache, args: {recursive=bool} (optional, default false)
+    //##    Clears cache, optionally recursively
+    //## Clear.Cache.Recursive, args: none
+    //##    Clears cache recursively
+    //## Set.Publish.Level args: {level=int} (optional, default 1)
+    //##    equivalent to setPublishLevel(level)
+    //## Set.Breakpoint args: {breakpoint=int,    # optional, default REQUEST
+    //##                       single_shot=bool}  # optional, default false
+    //##    equivalent to setBreakpoint(breakpoint,single_shot)
+    //## Clear.Breakpoint args: {breakpoint=int,    # optional, default ALL
+    //##                         single_shot=bool}  # optional, default false
+    //##    equivalent to clearBreakpoint(breakpoint,single_shot)
+    //## None of the commands defined here return a Result. If the
+    //## command is passed in via a Request rider, this method will be
+    //## called from execute() BEFORE polling children. 
+    //## If subclasses that redefine this to return a Result for some commands,
+    //## note the following: normally the same Result is passed into
+    //## getResult() and discoverSpids(), so these methods should take care
+    //## to modify but not replace it. However, if a child poll fails and a 
+    //## collect-fails policy is in effect, the collected fails will be 
+    //## attached to the Result, so any Result returned from
+    //## processCommand() by a subclass will be lost.
+    virtual int processCommand (Result::Ref &resref,
+                                const HIID &command,
+                                DMI::Record::Ref &args,
+                                int verbosity=0);
 
     //## true while node is inside execute()
     bool isExecuting () const
@@ -519,41 +554,6 @@ class Node : public NodeFace
     virtual void checkChildren ()
     {}
     
-    //====== NodeFace method
-    //## Processes node-specific commands. Args is expected to contain 
-    //## a DMI::Record. Standard commands defined at this level are:
-    //## State, args: {any state sub-record} 
-    //##    Changes the state of the node for the fields found in args record.
-    //## Set.State, args: {state={any state sub-record}} 
-    //##    Alternative version. Changes the state of the node for the fields 
-    //##    found in args.state.
-    //## Clear.Cache, args: {recursive=bool} (optional, default false)
-    //##    Clears cache, optionally recursively
-    //## Clear.Cache.Recursive, args: none
-    //##    Clears cache recursively
-    //## Set.Publish.Level args: {level=int} (optional, default 1)
-    //##    equivalent to setPublishLevel(level)
-    //## Set.Breakpoint args: {breakpoint=int,    # optional, default REQUEST
-    //##                       single_shot=bool}  # optional, default false
-    //##    equivalent to setBreakpoint(breakpoint,single_shot)
-    //## Clear.Breakpoint args: {breakpoint=int,    # optional, default ALL
-    //##                         single_shot=bool}  # optional, default false
-    //##    equivalent to clearBreakpoint(breakpoint,single_shot)
-    //## None of the commands defined here return a Result. If the
-    //## command is passed in via a Request rider, this method will be
-    //## called from execute() BEFORE polling children. 
-    //## If subclasses that redefine this to return a Result for some commands,
-    //## note the following: normally the same Result is passed into
-    //## getResult() and discoverSpids(), so these methods should take care
-    //## to modify but not replace it. However, if a child poll fails and a 
-    //## collect-fails policy is in effect, the collected fails will be 
-    //## attached to the Result, so any Result returned from
-    //## processCommand() by a subclass will be lost.
-    virtual int processCommand (Result::Ref &resref,
-                                const HIID &command,
-                                DMI::Record::Ref &args,
-                                int verbosity=0);
-
     //## Called from execute() to collect the child results for a given request.
     //## Default behaviour is to call NodeNursery::syncPoll() on children,
     //## followed by NodeNursery::backgroundPoll() on stepchildren.

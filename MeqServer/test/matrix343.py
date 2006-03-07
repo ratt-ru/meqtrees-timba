@@ -1,6 +1,5 @@
 from Timba.TDL import *
 from Timba.Meq import meq
-from Timba.Trees import TDL_Joneset
 from numarray import *
 from copy import deepcopy
 import os
@@ -80,7 +79,7 @@ def set_MAB_node_state (mqs, node, fields_record):
 
 
 def publish_node_state(mqs, nodename):
-    mqs.meq('Node.Publish.results', record(name=nodename))
+    mqs.meq('Node.Set.Publish.Level',record(name=nodename,level=1))
     pass
 
 
