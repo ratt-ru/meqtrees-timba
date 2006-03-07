@@ -80,7 +80,7 @@ if test "$AIPSPP" != ""; then
 fi
 
 # Delete all possible files from previous test runs.
-\rm -f $1.stdout $1.run $1.in $1.log_prop $1.in_* $1.err $1.valgrind*
+\rm -f $1.err $1.valgrind*
 
 #
 # Copy expected files to current directory
