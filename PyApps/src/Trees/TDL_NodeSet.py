@@ -132,9 +132,14 @@ class NodeSet (TDL_common.Super):
         #------------------------
         if full:  
             ss.append(indent1+' - group riders ('+str(len(self.group_rider()))+'):')
+            empty = []
             for key in self.group_rider().keys():
                 if len(self.group_rider()[key])>0:
                     ss.append(indent2+' - '+key+':     '+str(self.group_rider()[key]))
+                else:
+                    empty.append(key)
+            if len(empty)>0:
+                ss.append(indent2+' empty ('+str(len(empty))+'): '+str(empty))
 
         #------------------------
         ss.append(indent1+' - Defined gogs ('+str(len(self.gog()))+'):')
@@ -144,9 +149,14 @@ class NodeSet (TDL_common.Super):
         #------------------------
         if full:
             ss.append(indent1+' - gog riders ('+str(len(self.gog_rider()))+'):')
+            empty = []
             for key in self.gog_rider().keys():
                 if len(self.gog_rider()[key])>0:
                     ss.append(indent2+' - '+key+':    '+str(self.gog_rider()[key]))
+                else:
+                    empty.append(key)
+            if len(empty)>0:
+                ss.append(indent2+' empty ('+str(len(empty))+'): '+str(empty))
 
         #------------------------
         if full:
@@ -219,7 +229,8 @@ class NodeSet (TDL_common.Super):
         return self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
 
 
-
+    #---------------------------------------------------------------------------
+    
     if False:
         # To be removed eventually:
         
@@ -357,9 +368,7 @@ class NodeSet (TDL_common.Super):
             self.gog(key, groups=key, automatic=True) 
 
             qq = TDL_common.unclutter_inarg(pp)
-            # self.history('** Defined group: '+key+':  rider = '+str(qq))
-            # self.history('** Defined group: '+key+':  rider keys: '+str(qq.keys()))
-            self.history('** Defined group: '+key)
+            self.history('** Defined group: '+key+':  nr of rider keys = '+str(len(qq)))
             return key                              # return the actual group/gog key name
         # Otherwise, return the specified (key) group (None = all):
         return self._fieldict (self.__group, key=key, name='.group()')
@@ -398,8 +407,8 @@ class NodeSet (TDL_common.Super):
 
     def nodes(self, group=None, select='*', trace=False):
         """Return a list of actual MeqNodes in the specified group(s)"""
-        if trace: print '\n** .nodes(',group,'):'
-        names = self.nodenames(group, select=select, trace=trace)
+        if trace: print '\n** .nodes(',group,select,'):'
+        names = self.nodenames(group, select=select, trace=False)
         if not isinstance(names, (list,tuple)): return False
         nn = []
         for name in names:
@@ -409,13 +418,19 @@ class NodeSet (TDL_common.Super):
 
     def nodenames (self, group=None, select='*', trace=False):
         """Return a list of the MeqNode names in the specified group(s)"""
-        if trace: print '** .nodenames(',group,'):'
+        if trace: print '** .nodenames(',group,select,'):'
         gg = self._extract_flat_grouplist(group, must_exist=True, origin='.nodes()')
         if not isinstance(gg, (list,tuple)): return False
         if trace: print '    -> groupnames(',len(gg),'):',gg
         names = []
         for key in gg:
-            names.extend(self.__group[key])
+            nn = self.__group[key]           # list of node-names for group 'key'
+            if select=='first':
+                names.append(nn[0])          # take the first one only
+            elif select=='last':
+                names.append(nn[len(nn)-1])  # take ths last one only
+            else:
+                names.extend(nn)             # take them all
         if trace: print '    -> nodenames(',len(names),'):',names
         return names
 
@@ -539,9 +554,7 @@ class NodeSet (TDL_common.Super):
             self.__gog_rider[key] = pp              # extra info associated with the gog
 
             qq = TDL_common.unclutter_inarg(pp)
-            # self.history('** Defined gog: '+key+':  '+str(groups)+',  rider = '+str(qq))
-            # self.history('** Defined gog: '+key+':  '+str(groups)+',  rider keys:'+str(qq.keys()))
-            self.history('** Defined gog: '+key+':  '+str(groups))
+            self.history('** Defined gog: '+key+':  '+str(groups)+',  nr of rider keys = '+str(len(qq)))
             return key                              # return the actual gog key name
         # Otherwise, return the specified (key) group (None = all):
         return self._fieldict (self.__gog, key=key, name='.gog()')
@@ -617,12 +630,12 @@ class NodeSet (TDL_common.Super):
             if isinstance(nodes, list): 
                 n = len(nodes)
                 if n>0: 
-                    bname = 'sum_'+str(g)+'('+str(n)+')'     # bundle name
+                    bname = 'sum'+str(n)+'('+str(g)+')'    # bundle name
                     if self.__MeqNode.has_key(bname):        # bundle exists already
                         node = self.__MeqNode[bname]         # use existing
                         self.__bundle[bname] += 1            # increment counter ....?
                     elif ns==None:                           # nodescope needed
-                        print '** .make_bundle(): nodescope required!'
+                        self.history(error='** .make_bundle(): nodescope required!')
                         return False                         # error ...
                     else:
                         node = ns[bname] << Meq.Add(children=nodes)
@@ -636,13 +649,16 @@ class NodeSet (TDL_common.Super):
 
         # Return the root node of a subtree:
         if not multiple:
-            if bname: return self.__MeqNode[bname]           # A single group bundle
+            if bname:
+                self.history ('.make_bundle('+str(bname)+'): '+str(group)+' '+str(bookpage))
+                return self.__MeqNode[bname]                 # A single group bundle
         elif len(cc)==0:
-            print '** .make_bundle(): len(cc)==0!'
+            self.history(error='** .make_bundle(): len(cc)==0!')
         elif ns==None:
-            print '** .make_bundle(): nodescope required!'
+            self.history(error='** .make_bundle(): nodescope required!')
         else:                                                # A bundle of group bundles 
             self.__MeqNode[bbname] = ns[bbname] << Meq.Composer(children=cc)
+            self.history ('.make_bundle('+str(bbname)+'): '+str(group)+' '+str(bookpage))
             return self.__MeqNode[bbname]
 
         # Something wrong if got to here:
@@ -712,6 +728,7 @@ class NodeSet (TDL_common.Super):
             # Return the bundle root node:
             if isinstance(bookpage, bool): bookpage = gogname
             node = self.make_bundle(ns, gogname, bookpage=bookpage)
+            self.history ('.apply_unop('+str(unop)+'): '+str(group)+' '+str(bookpage))
             return node
         # Something wrong if got to here:
         return False
@@ -769,6 +786,7 @@ class NodeSet (TDL_common.Super):
         # Return the bundle root node:
         if isinstance(bookpage, bool): bookpage = gname
         node = self.make_bundle(ns, gname, bookpage=bookpage)
+        self.history ('.apply_binop('+str(binop)+'): '+str(group)+' '+str(bookpage))
         return node
 
 
@@ -815,6 +833,7 @@ class NodeSet (TDL_common.Super):
         gogname = self._make_bundle_name(gnames)
         if isinstance(bookpage, bool): bookpage = gogname
         node = self.make_bundle(ns, gnames, bookpage=bookpage)
+        self.history ('.compare('+str(binop)+'): '+str(NodeSet.label())+' '+str(group)+' '+str(bookpage))
         return node
 
 
@@ -831,7 +850,6 @@ class NodeSet (TDL_common.Super):
         if len(self.__group[key])==0:
           self.__group.__delitem__(key)
           removed.append(key)
-      self.history ('.cleanup(): removed group(s): '+str(removed))
 
       # Remove gogs that have group members that do not exist:
       for skey in self.__gog.keys():
@@ -844,6 +862,7 @@ class NodeSet (TDL_common.Super):
       # Miscellaneous:
       self.ensure_bookpages(ns)                 # Make bookmarks if necessary
       self.buffer(clear=True)                   # Clear the temporary buffer
+      self.history ('.cleanup(): removed group(s): '+str(removed))
       return True
 
     #-----------------------------------------------------------------
@@ -945,7 +964,88 @@ def _counter (key, increment=0, reset=False, trace=True):
     return _counters[key]
 
 
+#========================================================================
+# Definition of some NodeSets, for testing:
+#========================================================================
 
+
+def test1(ns, nstat=2, mult=1.0):
+    """Definition of a NodeSet for testing"""
+
+    nst = NodeSet(label='test1')
+
+    # Register the nodegroups:
+    pp = dict(a=10, b=11)
+    a1 = nst.group('Ggain_X', aa=1, bb=1, cc=1, **pp)
+    a2 = nst.group('Ggain_Y', aa=1, bb=2, cc=1)
+    p1 = nst.group('Gphase_X', aa=1, bb=3, cc=2)
+    p2 = nst.group('Gphase_Y', aa=1, bb=4, cc=2)
+    
+    # Define extra gog(s) from combinations of nodegrouns:
+    nst.gog('GJones', [a1, p1, a2, p2])
+    nst.gog('Gpol1', [a1, p1])
+    nst.gog('Gpol2', [a2, p2])
+    nst.gog('Gampl', [a1, a2])
+    nst.gog('Gphase', [p1, p2])
+    nst.gog('grogog', [a1, p2, 'GJones'])
+
+    # Make nodes themselves:
+    freq = ns.freq << Meq.Freq()
+    for i in range(nstat):
+        for Ggain in [a1,a2]:
+            node = ns[Ggain](i=i) << Meq.Multiply(i*mult,freq)
+            nst.MeqNode (Ggain, node=node)
+         
+        for Gphase in [p1,p2]:
+            node = ns[Gphase](i=i) << Meq.Multiply(-i*mult,freq)
+            nst.MeqNode (Gphase, node=node)
+
+    nst.bookpage('GX', [a1,p1])
+    nst.bookpage('GY', [a2,p2])
+
+    nst.cleanup(ns)
+    return nst
+
+
+#--------------------------------------------------------------------
+
+def test2(ns, nstat=2, mult=1.1):
+    """Definition of a NodeSet for testing"""
+
+    nst = NodeSet(label='test2')
+
+    # Register the nodegroups:
+    pp = dict(a=10, b=11)
+    a1 = nst.group('Ggain_X', aa=1, bb=1, cc=1, **pp)
+    a2 = nst.group('Ggain_Y', aa=1, bb=2, cc=1)
+    p1 = nst.group('Gphase_X', aa=1, bb=3, cc=2)
+    p2 = nst.group('Gphase_Y', aa=1, bb=4, cc=2)
+    t2 = nst.group('test2', aa=1, bb=4, cc=2)
+    
+    # Define extra gog(s) from combinations of nodegrouns:
+    nst.gog('GJones', [a1, p1, a2, p2])
+    nst.gog('Gpol1', [a1, p1])
+    nst.gog('Gpol2', [a2, p2])
+    nst.gog('Gampl', [a1, a2])
+    nst.gog('Gphase', [p1, p2])
+    nst.gog('test2', [t2, a2])
+
+    # Make nodes themselves:
+    freq = ns.freq << Meq.Freq()
+    for i in range(nstat):
+        for Ggain in [a1,a2]:
+            node = ns[Ggain](i=i) << Meq.Multiply(i*mult,freq)
+            nst.MeqNode (Ggain, node=node)
+         
+        for Gphase in [p1,p2]:
+            node = ns[Gphase](i=i) << Meq.Multiply(-i*mult,freq)
+            nst.MeqNode ([Gphase,t2], node=node)
+
+    nst.bookpage('GX', [a1,p1])
+    nst.bookpage('GY', [a2,p2])
+
+    nst.cleanup(ns)
+    return nst
 
 
 
@@ -960,7 +1060,6 @@ if __name__ == '__main__':
     # from Timba.Trees import JEN_record
     ns = NodeScope()
     
-    # stations = range(3)
     nst = NodeSet(label='initial')
     nst.display('initial')
 
@@ -979,37 +1078,10 @@ if __name__ == '__main__':
             fnl = nst._extract_flat_grouplist(g, must_exist=False)
             print '\n** g =',g,'  ->',fnl
 
-
     if 1:
-        # Register the nodegrouns:
-        pp = dict(a=10, b=11)
-        a1 = nst.group('Ggain_X', aa=1, bb=1, cc=1, **pp)
-        a2 = nst.group('Ggain_Y', aa=1, bb=2, cc=1)
-        p1 = nst.group('Gphase_X', aa=1, bb=3, cc=2)
-        p2 = nst.group('Gphase_Y', aa=1, bb=4, cc=2)
-        
+        nst = test1(ns)
 
-        # Define extra gog(s) from combinations of nodegrouns:
-        nst.gog('GJones', [a1, p1, a2, p2])
-        nst.gog('Gpol1', [a1, p1])
-        nst.gog('Gpol2', [a2, p2])
-        nst.gog('Gampl', [a1, a2])
-        nst.gog('Gphase', [p1, p2])
-        nst.gog('grogog', [a1, p2, 'GJones'])
-
-        for i in range(2):
-            for Ggain in [a1,a2]:
-                node = ns[Ggain](i=i) << 1.0
-                nst.MeqNode (Ggain, node=node)
-                
-            for Gphase in [p1,p2]:
-                node = ns[Gphase](i=i) << 0.0
-                nst.MeqNode (Gphase, node=node)
-
-        nst.bookpage('GX', [a1,p1])
-        nst.bookpage('GY', [a2,p2])
-
-    if 1:
+    if 0:
         nst.cleanup(ns)
 
     if 0:
@@ -1020,6 +1092,18 @@ if __name__ == '__main__':
         # gg = ['GJones',['Gampl','Gpol1',['xxx']]]                      
         nn = nst.nodenames (gg, select='*', trace=True)
         nn = nst.nodes (gg, select='*', trace=True)
+
+    if 0:
+        print
+        for key in nst.group().keys():
+            print '- group:',key,':',nst.group(key)
+        print
+
+    if 0:
+        print
+        for key in nst.gog().keys():
+            print '- gog:',key,':',nst.gog(key)
+        print
 
     if 0:
         name = None
@@ -1049,22 +1133,17 @@ if __name__ == '__main__':
         nst.apply_unop(ns, 'GJones', 'Cos', bookpage=True)
 
     if 0:
-        nst.compare(ns, nst, 'GJones', bookpage=True)
-
-    if 0:
         nst.apply_binop(ns, [a1,p1], 'Polar', bookpage=True)
 
-    if 0:
-        print
-        for key in nst.group().keys():
-            print '- group:',key,':',nst.group(key)
-        print
+    if 1:
+        nst2 = test2(ns)
+        nst2.display('nst2', full=True)
+
+    if 1:
+        nst.compare(ns, nst2, 'GJones', bookpage=True)
 
     if 0:
-        print
-        for key in nst.gog().keys():
-            print '- gog:',key,':',nst.gog(key)
-        print
+        nst.update(nst2)
 
     if 1:
         nst.display(full=True)

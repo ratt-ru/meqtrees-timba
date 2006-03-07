@@ -403,7 +403,9 @@ class ParmSet (TDL_common.Super):
            print '\n**',funcname,':',key,'not recognised in:',self.__condeq.keys()
            return False
        rr = self.condeq(key)
-       nodes = self.parm_nodes(rr['parmgroup'], select=rr['select'])
+       print 'rr =',rr
+       nodes = self.NodeSet.nodes(rr['parmgroup'], select=rr['select'])
+       print 'nodes =',nodes
        uniqual = _counter(funcname, increment=-1)
        node = nodes[0]
        if rr['unop']:
@@ -783,7 +785,7 @@ if __name__ == '__main__':
     if 1:
         ps.cleanup(ns)
 
-    if 0:
+    if 1:
         for key in ps.condeq().keys():
             condeq = ps.make_condeq(ns, key)
             TDL_display.subtree(condeq, key, full=True, recurse=5)
@@ -793,21 +795,11 @@ if __name__ == '__main__':
         for key in ps.parmgroup().keys():
             print '- parmgroup:',key,':',ps.parmgroup(key)
         print
-
-    if 0:
-        print
         for key in ps.solvegroup().keys():
             print '- solvegroup:',key,':',ps.solvegroup(key)
         print
 
     if 0:
-        print
-        for sg in ps.solvegroup().keys():
-            ps.sg_rider(sg, key='condeq_corrs', trace=True)
-        print
-
-
-    if 1:
         # Display the final result:
         # k = 0 ; TDL_display.subtree(ps[k], 'ps['+str(k)+']', full=True, recurse=3)
         ps.display('final result', full=True)

@@ -36,7 +36,7 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 MG = MG_JEN_exec.MG_init('MG_JEN_NodeSet.py',
                          last_changed='d12feb2006',
                          ntime=1,
-                         nfreq=10,
+                         nfreq=30,
                          trace=False)    
 
 
