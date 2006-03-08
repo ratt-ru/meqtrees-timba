@@ -85,6 +85,7 @@ lfr_install=$lfr_install/installed/$lfr_cvdir
 
 # Get the configure and make options from the variants file.
 # Look first for a host specific one; if not found, for a general one.
+# See if the host specific file is redirected to another one.
 # Remove possible domain part from host name.
 lfr_host=`uname -n | sed -e "s%\..*%%"`
 cmpopts=
@@ -92,10 +93,43 @@ varopts=
 cmpmakes=
 varmakes=
 if [ -f $lfr_base/variants.$lfr_host ]; then
-  cmpopts=`egrep "^$lfr_cmp.compiler.conf:" $lfr_base/variants.$lfr_host`
-  varopts=`egrep "^$lfr_var.variant.conf:" $lfr_base/variants.$lfr_host`
-  cmpmakes=`egrep "^$lfr_cmp.compiler.make:" $lfr_base/variants.$lfr_host`
-  varmakes=`egrep "^$lfr_var.variant.make:" $lfr_base/variants.$lfr_host`
+  # Check for possible includes (recursively).
+  cp $lfr_base/variants.$lfr_host variants_local
+  while [ 1=1 ]; do
+    # Find all includes and remove whitespace and comment, so we get one word.
+    allinc=`grep '^[ \t]*include[ \t].*' variants_local | sed -e 's/#.*//' -e 's/ //g'`
+    if [ "$allinc" = "" ]; then
+      break;        # no includes
+    fi
+    # Handle all includes.
+    for INCFIL in $allinc
+    do
+      # Strip include from the name and see if anything is left.
+      fnm=`echo $INCFIL | sed -e 's/^include//'`
+      if [ "$fnm" = "" ]; then
+        echo "Error: no file name given in include"
+        exit 1
+      fi
+      if [ ! -f "$lfr_base/$fnm" ]; then
+        echo "Error: included file $fnm does not exist in $lfr_base"
+      fi
+      # Replace the include line by the contents of the file.
+      # Do it such that it works fine if the same file is multiply included.
+      # First get until the include line (inclusive) and outcomment the line.
+      sed -e "/^[ \t]*include[ \t]*$fnm/q" variants_local | sed -e "s/^\([ \t]*include[ \t]*$fnm\)/## \1/" > variants_local2
+      # Now insert the file contents.
+      cat $lfr_base/$fnm >> variants_local2
+      # Finally append the remainder (by deleting the first part).
+      sed -e "1,/^[ \t]*include[ \t]*$fnm/d" variants_local >> variants_local2
+      mv variants_local2 variants_local
+    done
+  done
+  # Extract the options from the generated file.
+  cmpopts=`egrep "^$lfr_cmp.compiler.conf:" variants_local`
+  varopts=`egrep "^$lfr_var.variant.conf:" variants_local`
+  cmpmakes=`egrep "^$lfr_cmp.compiler.make:" variants_local`
+  varmakes=`egrep "^$lfr_var.variant.make:" variants_local`
+  \rm variants_local
 fi
 if [ "x$cmpopts" = "x" ]; then
   cmpopts=`egrep "^$lfr_cmp.compiler.conf:" $lfr_base/variants`
