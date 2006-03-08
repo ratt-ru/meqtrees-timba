@@ -163,7 +163,7 @@ class ParmSet (TDL_common.Super):
 
         ss.append(indent1+' - parmgroup condeq definitions ('+str(len(self.__condeq))+'):')
         for key in self.__condeq.keys():
-            ss.append(indent2+' - '+key+': '+str(self.__condeq[key]))
+            ss.append(indent2+' - '+str(key)+': '+str(self.__condeq[key]))
 
         # Include the NodeSet display:
         nn = self.NodeSet.display(full=full, doprint=False, pad=False)
@@ -232,7 +232,7 @@ class ParmSet (TDL_common.Super):
 
         # The node-name qualifiers are the superset of the default ones
         # and the ones specified in this function call:
-        quals = deepcopy(self.quals())          # just in case.....
+        quals = deepcopy(self.NodeSet.quals())  # just in case.....
         if isinstance(qual, dict):
             for qkey in qual.keys():
                 quals[qkey] = str(qual[qkey])
@@ -310,7 +310,7 @@ class ParmSet (TDL_common.Super):
             pp.setdefault('default', 1.0)       # default value (usually c00)
             self.__default_value[key] = pp['default']
             qq = TDL_common.unclutter_inarg(pp)
-            self.history('** Created parmgroup: '+key+':   ')
+            self.history('** Created parmgroup: '+str(key)+':   ')
             # self.history('** Created parmgroup: '+key+':   '+str(qq))
         # Then the generic NodeSet part:
         return self.NodeSet.group(key, **pp)
@@ -337,7 +337,7 @@ class ParmSet (TDL_common.Super):
             # NB: This is inhibited if ParmSet is set 'unsolvable' (e.g. for simulated uv-data) 
             if self.unsolvable(): return False
             qq = TDL_common.unclutter_inarg(pp)
-            self.history('** Created explicit solvegroup: '+key+':'+str(groups))
+            self.history('** Created explicit solvegroup: '+str(key)+':'+str(groups))
             # self.history('** Created solvegroup: '+key+':'+str(groups)+str(qq))
         # Then the generic NodeSet part:
         return self.NodeSet.gog(key, groups, **pp)
@@ -403,9 +403,7 @@ class ParmSet (TDL_common.Super):
            print '\n**',funcname,':',key,'not recognised in:',self.__condeq.keys()
            return False
        rr = self.condeq(key)
-       print 'rr =',rr
        nodes = self.NodeSet.nodes(rr['parmgroup'], select=rr['select'])
-       print 'nodes =',nodes
        uniqual = _counter(funcname, increment=-1)
        node = nodes[0]
        if rr['unop']:
@@ -433,20 +431,8 @@ class ParmSet (TDL_common.Super):
         if self.unsolvable():
             self.history(append='not updated from (unsolvable): '+ParmSet.oneliner())
         elif not ParmSet.unsolvable():
-
-            # NB: update OVERWRITES existing fields with new versions!
-            # print 'ParmSet.update(): self.__parmgroup:\n    ',self.__parmgroup
-            if True:
-                self.__parmgroup.update(ParmSet.parmgroup())
-            # print '    ',self.__parmgroup,'\n'
-
-            self.__pg_rider.update(ParmSet.pg_rider())
+            self.NodeSet.update(ParmSet.NodeSet)
             self.__condeq.update(ParmSet.condeq())
-            self.NodeSet.MeqNode().update(ParmSet.MeqParm())
-            self.__solvegroup.update(ParmSet.solvegroup())
-            self.__plot_color.update(ParmSet.plot_color())
-            self.__plot_style.update(ParmSet.plot_style())
-            self.__plot_size.update(ParmSet.plot_size())
             self.__default_value.update(ParmSet.default_value())
             self.history(append='updated from (not unsolvable): '+ParmSet.oneliner())
         else:
@@ -463,69 +449,24 @@ class ParmSet (TDL_common.Super):
 #----------------------------------------------------------------------
 
     def clone(self):
-        """clone self such that no NodeStubs are present. This 
-           is needed to save the ParmSet."""
-        
-        #create new ParmSet
-        newp=ParmSet()
-        newp.__unsolvable=self.__unsolvable
-        newp.__parmtable=self.__parmtable
-        newp.__quals=self.__quals
-        newp.__parmgroup=self.__parmgroup
-        newp.__pg_rider=self.__pg_rider
-        newp.__condeq=self.__condeq
-        newp.__solvegroup=self.__solvegroup
-        newp.__plot_color=self.__plot_color
-        newp.__plot_style = self.__plot_style
-        newp.__plot_size = self.__plot_size
-        # do not copy buffer
-        newp.__node_groups=self.__node_groups
-        # convert MeqParm to a dict of strings
-        newp.__MeqParm={}
-        for key in self.NodeSet.MeqNode().keys():
-             pgk=self.NodeSet.MeqNode()[key]
-             if isinstance(pgk,Timba.TDL.TDLimpl._NodeStub):
-               newp.__MeqParm[key]={'__type__':'nodestub','name':pgk.name}
-             else:
-               newp.__MeqParm[key]=pgk
-
+        """clone self such that no NodeStubs are present.
+        This is needed to save the ParmSet."""
+        newp = ParmSet()
+        newp.__unsolvable = self.__unsolvable
+        newp.__parmtable = self.__parmtable
+        newp.__condeq = self.__condeq
+        newp.__node_groups = self.__node_groups
+        newp.NodeSet = self.NodeSet.clone()        # object!
         return newp
 
-    def restore(self,oldp,ns):
+    def restore(self, oldp, ns):
         """ recreate the ParmSet from a saved version 'oldp'"""
-        self.__unsolvable=oldp.__unsolvable
-        self.__parmtable=oldp.__parmtable
-        self.__quals=oldp.__quals
-        self.__parmgroup=oldp.__parmgroup
-        self.__pg_rider=oldp.__pg_rider
-        self.__condeq=oldp.__condeq
-        self.__solvegroup=oldp.__solvegroup
-        self.__plot_color=oldp.__plot_color
-        self.__plot_style = oldp.__plot_style
-        self.__plot_size = oldp.__plot_size
-        # do not copy buffer
-        self.__node_groups=oldp.__node_groups
-        # recreate links to NodeStubs, which have to exist in the 
-        # nodescope 'ns'
-        # self.NodeSet.MeqNode()={}
-        self.NodeSet.clear()
-        mydict=oldp.__MeqParm
-        for key in mydict.keys():
-           pgk=mydict[key]
-           if isinstance(pgk,dict):
-               if pgk.has_key('__type__') and pgk['__type__']=='nodestub':
-                   # look for canonical name
-                   alist=string.split(pgk['name'],":q=")
-                   #print alist
-                   nodestub=None
-                   if len(alist)==1:
-                      nodestub=ns[alist[0]]
-                      self.NodeSet.MeqNode()[pgk['name']]=nodestub
-                   else:
-                      wstr="nodestub=ns."+alist[0]+"(q='"+alist[1]+"')"
-                      exec wstr
-                      self.NodeSet.MeqNode()[pgk['name']]=nodestub
-
+        self.__unsolvable = oldp.__unsolvable
+        self.__parmtable = oldp.__parmtable
+        self.__condeq = oldp.__condeq
+        self.__node_groups = oldp.__node_groups
+        self.NodeSet.restore(ns, oldp.NodeSet)     # object
+        return True
  
 
 #===========================================================================================

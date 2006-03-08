@@ -14,6 +14,9 @@
 #    - 25 feb 2006: .unclutter_inarg()  (used by other functions too)
 #    - 06 mar 2006: added automatic error/warning printing to .history()
 #    - 06 mar 2006: .history() will return False if error/warning
+#    - 08 mar 2006: copied TDL_Cohset .rider() to ._rider()
+#    - 08 mar 2006: implemented ._save() and ._restore()
+#    - 08 mar 2006: implemented ._clear() and ._history()
 #
 # Remarks:
 #
@@ -55,20 +58,34 @@ class Super:
         pp.__delitem__('type')
         pp.__delitem__('origin')
 
-        # self.clear()
+        ## self.clear()
         self.__errors = 0
         self.__warnings = 0
 
-        # Start the object history:
+        # Initialise the rider record (see ._rider())
+        self.__rider = dict()
+
+        # Start the object history (see ._history()):
         s = str(self.__origin)+': Created '+str(self.type())+' object with label: '+str(self.label())
         self.history(s, reset=True)
-
         self.history('inarg = '+str(unclutter_inarg(pp)))
 
+        # Finished: The __init__ function MUST return None
         return None
 
     def __del__(self):
+        """Destructor"""
         pass
+
+    def clear(self):
+        """Expected to be overwritten."""
+        return True
+
+    def _clear(self):
+        """May be used in a (redefined) .clear() function"""
+        self._history(reset=True)
+        self._rider(clear=True)
+        return True
 
     def label(self, new=None):
         """Get/set the obect label"""
@@ -113,6 +130,7 @@ class Super:
         """Standard indentation, used in .display()"""
         return 6*' '
 
+
     def display(self, txt=None, end=True, full=False):
         """Generic part of displaying the contents of this object in an organised way.
         The specific part is added in the object itself"""
@@ -122,19 +140,32 @@ class Super:
         ss.append('** '+self.type()+'.display('+str(txt)+'):')
         ss.append(indent1+self.oneliner())
 
+        #-----------------------------------
         s1 = '* .ok() -> '+str(self.ok())
         s1 += ': .errors() -> '+str(self.errors())
         s1 += ' .warnings() -> '+str(self.warnings())
         ss.append(indent1+s1)
 
-        hh = self.history()
+        #-----------------------------------
+        rr = self._rider()
+        if not full:
+            ss.append(indent1+'* Object rider ('+str(len(rr))+' entries): (not shown)')
+        else:
+            ss.append(indent1+'* Object rider ('+str(len(rr))+' entries):')
+            for key in rr.keys():
+                ss.append(indent2+'* '+str(key)+': '+str(type(rr[key])))
+
+        #-----------------------------------
+        hh = self._history()
         if not full:
             ss.append(indent1+'* Object history ('+str(len(hh))+' entries): (not shown)')
         else:
             ss.append(indent1+'* Object history ('+str(len(hh))+' entries):')
             for i in range(len(hh)):
                 ss.append(indent2+'* '+str(i)+': '+hh[i])
-        # ss.append(indent1+'*')
+
+        #-----------------------------------
+        ss.append(indent1+' * ============')
         if end: ss = self.display_end(ss)
         return ss
 
@@ -160,7 +191,17 @@ class Super:
         return new
 
 
+    #---------------------------------------------------------------------------------
+    # Interaction with the object history (also contains errors/warnings)
+    #---------------------------------------------------------------------------------
+
     def history(self, append=None, error=None, warning=None, reset=False,
+                indent=False, trace=False):
+        """Obsolete version of self._history()"""
+        return self._history(append=append, error=error, warning=warning,
+                             reset=reset, indent=indent, trace=trace)
+
+    def _history(self, append=None, error=None, warning=None, reset=False,
                 indent=False, trace=False):
         """Simple mechanisms for storing the object history, including errors/warnings"""
         if reset: self.__history = []
@@ -188,10 +229,47 @@ class Super:
             return False         # this allows False return of the calling function 
         return self.__history    # return the entire history....
 
-    # Helper function for a frequent operation:
+
+
+    #-----------------------------------------------------------------------------------
+    # An object may carry arbitrary information in its 'rider' record 
+    #-----------------------------------------------------------------------------------
+
+    def _rider(self, key=None, append=None, clear=False, report=False):
+        """Interaction with rider info (lists) of various named (key) categories"""
+        if not isinstance(key, str):                  # no key specified
+            if clear: self.__rider = {}               # clear the entire rider dict
+            return self.__rider                       # return the entire rider dict
+
+        # A append item has been specified:
+        if append:                                    # append item(s) to the specified rider
+            if clear:
+                self.__rider[key] = []                # clear the rider BEFORE appending item(s)
+                clear = False                         # do not clear afterwards, of course
+            self.__rider.setdefault(key,[])           # create the rider (key) if necessary
+            if isinstance(append, (tuple, list)):     # assume list of items
+                self.__rider[key].extend(append)
+            else:                                     # assume single item
+                self.__rider[key].append(append)
+
+        # Prepare the return value:
+        if self.__rider.has_key(key):
+            cc = self.__rider[key]                    # copy the existing rider BEFORE clearing
+            if clear: self.__rider[key] = []          # clear the rider, if required
+            return cc                                 # Return a list (as it was before clearing)
+
+        # Not found, but always return a list:
+        if report: print '\n** _rider(',key,'): not recognised in:',self.__rider.keys()
+        return []
+
+
+    #---------------------------------------------------------------------------------
+    # Miscelleneous helper functions
+    #---------------------------------------------------------------------------------
 
     def _fieldict (self, rr=dict(), key=None, name='<name>'):
-        """Return the specified field (key) from the given dict (rr)"""
+        """Return the specified field (key) from the given dict (rr).
+        This functionality is needed very frequently."""
         if key==None:                               # no field specified
             return rr                               #   return the entire dict
         elif not isinstance(rr, dict):
@@ -201,16 +279,25 @@ class Super:
         return self.history(error=str(name)+': key not recognised: '+key)
 
 
-    # Some ideas for functions to be added:
 
-    def save(self, filename=None):
+    #---------------------------------------------------------------------------------
+    # Saving/restoring (nodestubs require special care) 
+    #---------------------------------------------------------------------------------
+
+    def _save(self, filename=None):
         """Save the object in a file... Not very useful?
         (Not implemented yet)"""
-        pass
+        return True
 
-    def clear(self):
-        """Called from self.__init__() above. Expected to be overwritten."""
-        pass
+    def _restore(self, filename=None):
+        """Save the object in a file... Not very useful?
+        (Not implemented yet)"""
+        return True
+
+
+
+    #---------------------------------------------------------------------------------
+    # Some ideas for functions to be added:
 
 
 #========================================================================
@@ -258,6 +345,44 @@ def unclutter_inarg(pp):
 
 
 #--------------------------------------------------------------------------
+# 
+#--------------------------------------------------------------------------
+
+def encode_nodestubs(rr=None):
+    """encode the nodestubs in the given dict (needed for saving)"""
+    if not isinstance(rr, dict): return rr
+    dictout = dict()
+    for key in rr.keys():
+        if isinstance(rr[key], Timba.TDL.TDLimpl._NodeStub):
+            return {'__type__':'nodestub','name':rr[key].name}
+        else:
+            dictout[key] = rr[key]
+    return dictout
+
+
+def decode_nodestubs(ns, rr=None):
+    """convert an dict (rr) of encoded nodestubs (rr) back to a nodestubs
+    in named fields of a new dict (dictout)"""
+    if not isinstance(rr, dict): return rr
+    dictout = dict()
+    for key in rr.keys():
+        if isinstance(rr[key], dict):
+            cc = rr[key]
+            if cc.has_key('__type__') and cc['__type__']=='nodestub':
+                # split off the name qualifiers (if any):
+                ss = string.split(cc['name'],':')    # split on qualifier colons
+                nodename = ss[0]
+                nodestub = None
+                if len(ss)==1:                       # no qualifiers
+                    nodestub = ns[nodename]
+                else:                                
+                    for i in range(1,len(ss)):
+                        nodename += ':('+ss[i]+')'   # repaste the qualifier
+                    seval = 'nodestub=ns.'+nodename
+                    exec seval
+                dictout[cc['name']] = nodestub
+    return dictout
+
 
 
 #========================================================================

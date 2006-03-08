@@ -22,6 +22,7 @@
 # - 14 jan 2006: referenced values prepended with @/@@
 # - 21 jan 2006: condeq_corr cats (corrI etc)
 # - 05 feb 2006: punit='uvp'
+# - 08 mar 2006: adopted Cohset._rider()
 
 # Copyright: The MeqTree Foundation 
 
@@ -155,12 +156,12 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     Cohset.scope('sinks')
 
     # Insert a master reqseq for solvers, if required:
-    solvers = Cohset.rider('master_reqseq')
+    solvers = Cohset._rider('master_reqseq')
     if len(solvers)>0:
         Cohset.graft(ns, solvers, name='master_reqseq')
 
     # Insert the end of the solver chain, if required:
-    solver = Cohset.rider('chain_solvers')
+    solver = Cohset._rider('chain_solvers')
     if len(solver)>0:
         Cohset.graft(ns, solver[0], name='chain_solvers')
 
@@ -173,8 +174,8 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     # Optional: visualise the sink (output) data:
     # But only if there are no dcoll/hcoll nodes to be inserted
     # (assume that the latter visualise the current status...?)
-    ncoll = len(Cohset.rider('dcoll'))               
-    ncoll += len(Cohset.rider('hcoll'))               
+    ncoll = len(Cohset._rider('dcoll'))               
+    ncoll += len(Cohset._rider('hcoll'))               
     if pp['visu'] and ncoll==0:
         visualise (ns, Cohset)
         visualise (ns, Cohset, type='spectra')
@@ -229,8 +230,8 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 
     # Attach any collected hcoll/dcoll nodes:
     post = []
-    post.extend(Cohset.rider('dcoll', clear=True))               
-    post.extend(Cohset.rider('hcoll', clear=True))
+    post.extend(Cohset._rider('dcoll', clear=True))               
+    post.extend(Cohset._rider('hcoll', clear=True))
 
     # Make MeqSinks
     Cohset.sinks(ns, start=start, post=post, output_col=pp['output_col'])
@@ -360,8 +361,8 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
 
     # Finished:
     MG_JEN_forest_state.object(Sixpack, funcname)
-    Cohset.history(funcname+' using '+Sixpack.oneliner())
-    Cohset.history(funcname+' -> '+Cohset.oneliner())
+    Cohset._history(funcname+' using '+Sixpack.oneliner())
+    Cohset._history(funcname+' -> '+Cohset.oneliner())
     MG_JEN_forest_state.history (funcname)
     # MG_JEN_forest_state.object(Cohset, funcname)
     return Cohset
@@ -417,9 +418,9 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
 
     # We need a Mohset copy, since it will be modified with condeqs etc
     Mohset = measured.copy(label='measured')
-    # Mohset.history(funcname+' input: '+str(pp))  # too much
-    Mohset.history(funcname+' measured: '+measured.oneliner())
-    Mohset.history(funcname+' predicted: '+predicted.oneliner())
+    # Mohset._history(funcname+' input: '+str(pp))  # too much
+    Mohset._history(funcname+' measured: '+measured.oneliner())
+    Mohset._history(funcname+' predicted: '+predicted.oneliner())
 
     # Optional: Insert a ReSampler node as counterpart to the ModRes node below.
     # This node resamples the full-resolution (f,t) measured uv-data onto
@@ -435,7 +436,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     else:                                        # normal: measured-predicted
         Mohset.Condeq(ns, predicted, unop=pp['condeq_unop'])        
     Mohset.scope('condeq_'+punit)
-    Mohset.history(funcname+' -> '+Mohset.oneliner())
+    Mohset._history(funcname+' -> '+Mohset.oneliner())
 
     # Update the measured Cohset with the Parmset from Mohset.
     # This contains the Joneset/Sixpack MeqParms, which may be re-executed
@@ -460,8 +461,8 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     # Obtain the current list of (full-resolution) hcoll/dcoll nodes, and clear: 
     # NB: These are the ones that get a request BEFORE the solver(s)
     coll_before = []
-    coll_before.extend(measured.rider('hcoll', clear=True))
-    coll_before.extend(measured.rider('dcoll', clear=True))
+    coll_before.extend(measured._rider('hcoll', clear=True))
+    coll_before.extend(measured._rider('dcoll', clear=True))
 
     # Optional: subtract the predicted (corrupted) Cohset from the measured data:
     # NB: This should be done BEFORE correct, since predicted contains corrupted values
@@ -493,8 +494,8 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     # Obtain the current list of (full-resolution) hcoll/dcoll nodes, and clear: 
     # NB: These are the ones that get a request AFTER the solver(s)
     coll_after = []
-    coll_after.extend(measured.rider('dcoll', clear=True))
-    coll_after.extend(measured.rider('hcoll', clear=True))
+    coll_after.extend(measured._rider('dcoll', clear=True))
+    coll_after.extend(measured._rider('hcoll', clear=True))
 
     # Make the 'full-resolution' reqseq with solver_subtree(s) and dcoll/hcoll nodes:
     cc = coll_before                                 # hcoll/dcoll nodes BEFORE the solver
@@ -512,7 +513,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     if pp['master_reqseq']:
         # Collect all solvers for a master reqseq before the sinks
         # (See .make_sinks())
-        measured.rider('master_reqseq', append=fullres)
+        measured._rider('master_reqseq', append=fullres)
     elif pp['chain_solvers']:
         # Chain the solvers, parallel to the main data-stream:
         measured.chain_solvers(ns, fullres) 
@@ -746,7 +747,7 @@ def insert_flagger (ns=None, Cohset=None, **inarg):
         visualise (ns, Cohset, scope=visu_scope, type='spectra')
 
     Cohset.scope('flagged')
-    Cohset.history(funcname+' -> '+Cohset.oneliner())
+    Cohset._history(funcname+' -> '+Cohset.oneliner())
     MG_JEN_forest_state.history (funcname)
     # MG_JEN_forest_state.object(Cohset, funcname)
     return True
@@ -857,11 +858,11 @@ def visualise(ns=None, Cohset=None, extra=None, **pp):
 
     else:
         # Return a list of dataCollect nodes that need requests:
-        Cohset.history(funcname+' -> '+'dconc '+str(len(dconc)))
+        Cohset._history(funcname+' -> '+'dconc '+str(len(dconc)))
         cc = []
         for key in dconc.keys():
            cc.append(dconc[key]['dcoll'])
-        Cohset.rider('dcoll', append=cc)                # collect in Cohset
+        Cohset._rider('dcoll', append=cc)                # collect in Cohset
         return cc
 
 

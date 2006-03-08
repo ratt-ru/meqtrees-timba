@@ -28,9 +28,13 @@ from Timba.TDL import *
 from copy import deepcopy
 
 from Timba.Trees import TDL_common
+from Timba.Trees import TDL_ParmSet
+# from Timba.Trees import TDL_LeafSet
+from Timba.Trees import TDL_radio_conventions
+
+# Old:
 from Timba.Trees import TDL_Parmset
 from Timba.Trees import TDL_Leafset
-from Timba.Trees import TDL_radio_conventions
 
 
 
@@ -65,10 +69,14 @@ class Joneset (TDL_common.Super):
         # Define its Parmset object (MeqParm services)
         self.Parmset = TDL_Parmset.Parmset(**pp)
         self.Parmset.quals(dict(q=self.__punit))
+        self.ParmSet = TDL_ParmSet.ParmSet(**pp)
+        self.ParmSet.quals(dict(q=self.__punit))
 
         # Define its Leafset object (simulation services) 
         self.Leafset = TDL_Leafset.Leafset(**pp)
         self.Leafset.quals(dict(q=self.__punit))
+        # self.LeafSet = TDL_Leafset.LeafSet(**pp)
+        # self.LeafSet.quals(dict(q=self.__punit))
 
         self.clear()
 
@@ -92,10 +100,14 @@ class Joneset (TDL_common.Super):
         """Clean up the object (or rather its Parmset/Leafset)"""
         self.Parmset.cleanup()
         self.Leafset.cleanup()
+        self.ParmSet.cleanup()
+        # self.LeafSet.cleanup()
         return True
 
     def buffer(self):
         """Get the relevant temporary buffer (from Parmset/Leafset)"""
+        ss = self.ParmSet.buffer()
+        # if len(ss)==0: ss = self.LeafSet.buffer()
         ss = self.Parmset.buffer()
         if len(ss)==0: ss = self.Leafset.buffer()
         return ss
@@ -149,9 +161,10 @@ class Joneset (TDL_common.Super):
 
         # Register the parmgroup:
         self.Parmset.parmgroup(key=key, rider=rider, **pp)
-        s1 = 'Register parmgroup: '+key+': '
+        self.ParmSet.parmgroup(key=key, condeq_corrs=corrs, **pp)
+        s1 = 'Register parmgroup: '+str(key)+': '
         s1 += str(pp['ipol'])+' '+str(pp['corrs'])
-        self.history(s1)
+        self._history(s1)
 
         # Register a leafgroup with the same name: 
         pp.__delitem__('corrs')
@@ -159,6 +172,7 @@ class Joneset (TDL_common.Super):
         pp['style'] = 'triangle'
         pp['size'] = 5
         self.Leafset.leafgroup(key=key, **pp)
+        # self.LeafSet.leafgroup(key=key, **pp)
 
         return key                                                  # return the actual key name
 
@@ -234,6 +248,8 @@ class Joneset (TDL_common.Super):
 
         ss.append(indent1+' - '+str(self.Parmset.oneliner()))
         ss.append(indent1+' - '+str(self.Leafset.oneliner()))
+        ss.append(indent1+' - '+str(self.ParmSet.oneliner()))
+        # ss.append(indent1+' - '+str(self.LeafSet.oneliner()))
 
         ss.append(indent1+' - Station jones matrix nodes ( '+str(self.len())+' ):')
         if full or self.len()<15:
@@ -254,19 +270,19 @@ class Joneset (TDL_common.Super):
         if Joneset==None: return False
         self.__jchar += Joneset.jchar()
         if self.Parmset.unsolvable():
-            self.history(append='not updated from (unsolvable): '+Joneset.oneliner())
+            self._history(append='not updated from (unsolvable): '+Joneset.oneliner())
         elif not Joneset.Parmset.unsolvable():
             self.__plot_color.update(Joneset.plot_color())
             self.__plot_style.update(Joneset.plot_style())
             self.__plot_size.update(Joneset.plot_size())
             self.update_from_Parmset(Joneset.Parmset)
-            self.history(append='updated from (not unsolvable): '+Joneset.oneliner())
+            self._history(append='updated from (not unsolvable): '+Joneset.oneliner())
         else:
             # A Joneset that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from solvable Jonesets.
             # Therefore, its parm info should NOT be copied here.
-            self.history(append='not updated from (unsolvable): '+Joneset.oneliner())
+            self._history(append='not updated from (unsolvable): '+Joneset.oneliner())
         return True
 
 
@@ -274,10 +290,20 @@ class Joneset (TDL_common.Super):
         """Update the internal info from a given Parmset"""
         if Parmset:
             self.Parmset.update(Parmset)
-            self.history(append='updated from: '+Parmset.oneliner())
+            self._history(append='updated from: '+Parmset.oneliner())
         self.__plot_color.update(self.Parmset.plot_color())
         self.__plot_style.update(self.Parmset.plot_style())
         self.__plot_size.update(self.Parmset.plot_size())
+        return True
+
+    def update_from_ParmSet(self, Parmset=None):
+        """Update the internal info from a given ParmSet"""
+        if ParmSet:
+            self.ParmSet.update(ParmSet)
+            self._history(append='updated from: '+ParmSet.oneliner())
+        self.__plot_color.update(self.Parmset.NodeSet.plot_color())
+        self.__plot_style.update(self.Parmset.NodeSet.plot_style())
+        self.__plot_size.update(self.Parmset.NodeSet.plot_size())
         return True
 
 
@@ -344,7 +370,7 @@ class Joneseq (TDL_common.Super):
         funcname = '.append():'
         jtype = Joneset.type()
         if not jtype=='Joneset':
-            self.history(error=funcname+'not a Joneset, but'+jtype)
+            self._history(error=funcname+'not a Joneset, but'+jtype)
             return False
 
         # The Jonesets in the sequence should be consistent with each other: 
@@ -356,18 +382,18 @@ class Joneseq (TDL_common.Super):
         else:
             # Compare with the info from the first one:
             if not Joneset.punit()==self.punit():
-                self.history(error=funcname+'conflicting punit')
+                self._history(error=funcname+'conflicting punit')
                 return False
             if not Joneset.polrep()==self.polrep():
-                self.history(error=funcname+'conflicting polrep')
+                self._history(error=funcname+'conflicting polrep')
                 return False
             if not Joneset.scope()==self.scope():
-                self.history(error=funcname+'conflicting scope')
+                self._history(error=funcname+'conflicting scope')
                 return False
 
         # OK, append to the internal sequence:
         self.__sequence.append(Joneset)
-        self.history(str(self.len())+': '+funcname+Joneset.label())
+        self._history(str(self.len())+': '+funcname+Joneset.label())
         return self.len()
 
 
@@ -377,14 +403,14 @@ class Joneseq (TDL_common.Super):
 
         # Some checks:
         if not self.ok():
-            self.history(error=funcname+'problems (not ok())')
+            self._history(error=funcname+'problems (not ok())')
             return False
         elif self.empty():
-            self.history(error=funcname+'empty sequence')
+            self._history(error=funcname+'empty sequence')
             return False
         elif self.len()==1:
             # The internal sequence has only one member:
-            self.__sequence[0].history('Extracted single item from: '+self.oneliner())
+            self.__sequence[0]._history('Extracted single item from: '+self.oneliner())
             return self.__sequence[0]              # just return the single one
 
         # The internal sequence has multiple Jonesets:
@@ -412,11 +438,11 @@ class Joneseq (TDL_common.Super):
         # Create a new Joneset
         newJoneset = Joneset(label=self.label(), punit=self.punit(),
                              polrep=self.polrep(), scope=self.scope())
-        newJoneset.history('Matrix multiplication of: '+self.oneliner())
+        newJoneset._history('Matrix multiplication of: '+self.oneliner())
         for key in keys:
             newJoneset[key] = ns.Jones(**kwquals[key])(*quals[key]) << Meq.MatrixMultiply(children=cc[key])
-        newJoneset.history('input sequence: '+str(labels))
-        newJoneset.history('input punits (should be the same!): '+str(punits))
+        newJoneset._history('input sequence: '+str(labels))
+        newJoneset._history('input punits (should be the same!): '+str(punits))
 
         # Update the parmgroup info from Joneset to Joneset:
         for js in self.sequence():
@@ -474,29 +500,30 @@ if __name__ == '__main__':
     if 0:
         js.parmtable('xxx')
 
-    if 0:
+    if 1:
         js = Joneset(label='GJones', polrep='circular')
         p1 = js.parmgroup('Gphase', ipol=1, color='red', corrs=js.corrs_paral1())
         a2 = js.parmgroup('Gampl', ipol=2, color='blue', corrs=js.corrs_paral2())
         a1 = js.parmgroup('Gampl', ipol=1, color='blue', corrs=js.corrs_paral1())
         d12 = js.parmgroup('Ddang', color='blue', corrs=js.corrs_cross())
         d2 = js.parmgroup('Ddang', ipol=2, color='blue', corrs=js.corrs_cross())
-        js.node_groups(['G','QQ'])
-        js.node_groups(['G'])
+        js.ParmSet.node_groups(['G','QQ'])
+        js.ParmSet.node_groups(['G'])
 
-        for station in range(14):
-          js.MeqParm(reset=True)
-          js.define_MeqParm(ns, p1, station=station, default=0)
-          js.define_MeqParm(ns, a2, station=station, default=1)
-          js.define_MeqParm(ns, a1, station=station, default=1)
-          js.define_MeqParm(ns, d2, station=station, default=0)
-          js.define_MeqParm(ns, d12, station=station, default=0)
-          ss = js.MeqParm(update=True)
+        for station in range(4):
+          js.ParmSet.define_MeqParm(ns, p1, default=0)
+          js.ParmSet.define_MeqParm(ns, a2, default=1)
+          js.ParmSet.define_MeqParm(ns, a1, default=1)
+          js.ParmSet.define_MeqParm(ns, d2, default=0)
+          js.ParmSet.define_MeqParm(ns, d12, default=0)
+          ss = js.ParmSet.buffer()
           js.append(station, '<jones_matrix for station '+str(station)+'>')
 
-        js.define_solvegroup('p1_a2', [p1, a2])
-        js.define_solvegroup('a1_a2', [a1, a2])
-        js.define_solvegroup('ALL', js.parmgroup().keys())
+        js.ParmSet.solvegroup('p1_a2', [p1, a2])
+        js.ParmSet.solvegroup('a1_a2', [a1, a2])
+
+        js.Parmset.display()
+        js.ParmSet.display()
 
     if 0:
         # Access to jones etc
@@ -535,7 +562,7 @@ if __name__ == '__main__':
         print js.parmtable('cal_BJones')
         print js.check_parmtable_extension()
 
-    if 1:
+    if 0:
         # Display the final result:
         k = 0 ; TDL_display.subtree(js[k], 'js['+str(k)+']', full=True, recurse=3)
         js.display('final result')

@@ -80,24 +80,6 @@ class NodeSet (TDL_common.Super):
         self.clear()
         return None
 
-    def clear(self):
-        """Clear the object"""
-        self.__MeqNode = dict()
-        self.__group = dict()
-        self.__group_rider = dict()
-        self.__plot_color = dict()
-        self.__plot_style = dict()
-        self.__plot_size = dict()
-        self.__gog = dict()
-        self.__gog_rider = dict()
-        self.__bundle = dict()
-        self.__bookmark = dict()
-        self.__bookpage = dict()
-        self.__bookfolder = dict()
-        self.__quals = dict()       
-        self.buffer(clear=True)
-        return True
-
 
     #--------------------------------------------------------------------------------
     # Display functions:
@@ -838,8 +820,9 @@ class NodeSet (TDL_common.Super):
 
 
 
-#---------------------------------------------------------------------------
-#---------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
+    # Some organising functions:
+    #---------------------------------------------------------------------------
 
     def cleanup(self, ns=None):
       """Remove empty groups/gogs"""
@@ -880,71 +863,78 @@ class NodeSet (TDL_common.Super):
         self.__bookmark.update(NodeSet.bookmark())
         self.__bookpage.update(NodeSet.bookpage())
         self.__bookfolder.update(NodeSet.bookfolder())
+        self.__bundle.update(NodeSet.bundle())
         self.__gog.update(NodeSet.gog())
         self.__gog_rider.update(NodeSet.gog_rider())
         self.history(append='updated from: '+NodeSet.oneliner())
         return True
 
+    #------------------------------------------------------------------
+    
+    def clear(self):
+        """Clear the object"""
+        self.__MeqNode = dict()
+        self.__group = dict()
+        self.__group_rider = dict()
+        self.__plot_color = dict()
+        self.__plot_style = dict()
+        self.__plot_size = dict()
+        self.__gog = dict()
+        self.__gog_rider = dict()
+        self.__bundle = dict()
+        self.__bookmark = dict()
+        self.__bookpage = dict()
+        self.__bookfolder = dict()
+        self.__quals = dict()       
+        self.buffer(clear=True)
+        return True
 
 #----------------------------------------------------------------------
 #   methods used in saving/restoring the NodeSet
 #----------------------------------------------------------------------
 
     def clone(self):
-        """clone self such that no NodeStubs are present. This 
-           is needed to save the NodeSet."""
-        
-        #create new NodeSet
-        newp=NodeSet()
-        newp.__quals=self.__quals
-        newp.__group=self.__group
-        newp.__group_rider=self.__group_rider
-        newp.__gog=self.__gog
-        newp.__plot_color=self.__plot_color
-        newp.__plot_style = self.__plot_style
-        newp.__plot_size = self.__plot_size
-        # convert MeqNode to a dict of strings
-        newp.__MeqNode={}
-        for key in self.__MeqNode.keys():
-             pgk=self.__MeqNode[key]
-             if isinstance(pgk,Timba.TDL.TDLimpl._NodeStub):
-               newp.__MeqNode[key]={'__type__':'nodestub','name':pgk.name}
-             else:
-               newp.__MeqNode[key]=pgk
+        """Clone self such that no NodeStubs are present.
+        This is needed to save the NodeSet."""
+        saved = NodeSet()
+        saved.__quals = self.__quals
+        saved.__group = self.__group
+        saved.__group_rider = self.__group_rider
+        saved.__gog = self.__gog
+        saved.__gog_rider = self.__gog_rider
+        saved.__plot_color = self.__plot_color
+        saved.__plot_style = self.__plot_style
+        saved.__plot_size = self.__plot_size
+        saved.__bundle = self.__bundle
+        saved.__bookmark = self.__bookmark
+        saved.__bookpage = self.__bookpage
+        saved.__bookfolder = self.__bookfolder
+        # Convert MeqNode to a dict of strings:
+        saved.__MeqNode = TDL_common.encode_nodestubs(self.__MeqNode)
+        self.history(append='cloned: ')
+        return saved
 
-        return newp
+    #-------------------------------------------------------------------------
 
-    def restore(self,oldp,ns):
-        """ recreate the NodeSet from a saved version 'oldp'"""
-        self.__quals=oldp.__quals
-        self.__group=oldp.__group
-        self.__group_rider=oldp.__group_rider
-        self.__gog=oldp.__gog
-        self.__plot_color=oldp.__plot_color
-        self.__plot_style = oldp.__plot_style
-        self.__plot_size = oldp.__plot_size
-        # recreate links to NodeStubs, which have to exist in the 
-        # nodescope 'ns'
-        self.__MeqNode={}
-        mydict=oldp.__MeqNode
-        for key in mydict.keys():
-           pgk=mydict[key]
-           if isinstance(pgk,dict):
-               if pgk.has_key('__type__') and pgk['__type__']=='nodestub':
-                   # look for canonical name
-                   alist=string.split(pgk['name'],":q=")
-                   #print alist
-                   nodestub=None
-                   if len(alist)==1:
-                      nodestub=ns[alist[0]]
-                      self.__MeqNode[pgk['name']]=nodestub
-                   else:
-                      wstr="nodestub=ns."+alist[0]+"(q='"+alist[1]+"')"
-                      exec wstr
-                      self.__MeqNode[pgk['name']]=nodestub
-
+    def restore(self, ns=None, saved=None):
+        """ recreate the NodeSet from a saved version 'saved'"""
+        self.__quals = saved.__quals
+        self.__group = saved.__group
+        self.__group_rider = saved.__group_rider
+        self.__gog = saved.__gog
+        self.__gog_rider = saved.__gog_rider
+        self.__plot_color = saved.__plot_color
+        self.__plot_style = saved.__plot_style
+        self.__plot_size = saved.__plot_size
+        self.__bundle = saved.__bundle
+        self.__bookmark = saved.__bookmark
+        self.__bookpage = saved.__bookpage
+        self.__bookfolder = saved.__bookfolder
+        # Recreate links to NodeStubs, which have to exist in the nodescope 'ns':
+        self.__MeqNode = TDL_common.decode_nodestubs(ns, saved.__MeqNode)
+        self.history(append='restored: ')
+        return True
  
-
 
 
 #========================================================================

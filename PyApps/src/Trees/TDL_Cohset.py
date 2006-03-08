@@ -29,7 +29,8 @@
 #    - 11 feb 2006: added .fullDomainMux()
 #    - 25 feb 2006: added .replace() and debugged .add() 
 #    - 25 feb 2006: added .addNoise() 
-#    - 25 feb 2006: added .Leafset 
+#    - 25 feb 2006: added .Leafset
+#    - 08 mar 2006: switched to ._rider()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -118,13 +119,13 @@ class Cohset (TDL_common.Super):
         if isinstance(pp['ifrs'], list):
             # Assume that pp.ifrs has been given explicitly
             pp['stations'] = ifrs2stations(pp['ifrs'])
-            self.history('input: len(ifrs)='+str(len(pp['ifrs'])))
+            self._history('input: len(ifrs)='+str(len(pp['ifrs'])))
         elif isinstance(pp['stations'], list):
             # Assume that pp.stations has been given explicitly
             pp['ifrs'] = stations2ifrs(pp['stations'])
-            self.history('input: stations='+str(pp['stations']))
+            self._history('input: stations='+str(pp['stations']))
         else:
-            self.history(error=hist+'neither stations/ifrs specified')
+            self._history(error=hist+'neither stations/ifrs specified')
             return F
 
         # The station_indexes are integers, used in spigot/sink:
@@ -472,32 +473,6 @@ class Cohset (TDL_common.Super):
         return self.__Joneset
 
 
-    def rider(self, key=None, append=None, clear=False, report=False):
-        """Interaction with rider info (lists) of various types (key)"""
-        if not isinstance(key, str):                  # no key specified
-            if clear: self.__rider = {}               # clear the entire rider dict
-            return self.__rider                       # return the entire rider dict
-
-        # A append item has been specified:
-        if append:                                    # append item(s) to the specified rider
-            if clear:
-                self.__rider[key] = []                # clear the rider BEFORE appending item(s)
-                clear = False                         # do not clear afterwards, of course
-            self.__rider.setdefault(key,[])           # create the rider (key) if necessary
-            if isinstance(append, (tuple, list)):     # assume list of items
-                self.__rider[key].extend(append)
-            else:                                     # assume single item
-                self.__rider[key].append(append)
-
-        # Prepare the return value:
-        if self.__rider.has_key(key):
-            cc = self.__rider[key]                    # copy the existing rider BEFORE clearing
-            if clear: self.__rider[key] = []          # clear the rider, if required
-            return cc                                 # Return a list (as it was before clearing)
-
-        # Not found, but always return a list:
-        if report: print '\n** Cohset.rider(',key,'): not recognised in:',self.__rider.keys()
-        return []
 
     #----------------------------------------------------------------
     # Methods that deal with selecting/deleting subsets of coh items:
@@ -601,11 +576,11 @@ class Cohset (TDL_common.Super):
                 # Assume that a de-selected item will eventually be an orphan node.
                 # NB: Attaching it to an orphan root node is safe, even if the node
                 #     is eventually used after all (see .sinks())
-                self.rider('selection_orphans', append=self.__coh[key])
+                self._rider('selection_orphans', append=self.__coh[key])
 
         # Finished:
-        self.history(append=funcname+' inarg = '+str(pp))
-        self.history(append=funcname+' -> '+str(pp['select'])+': '+str(len(keys))+': '+str(keys))
+        self._history(append=funcname+' inarg = '+str(pp))
+        self._history(append=funcname+' -> '+str(pp['select'])+': '+str(len(keys))+': '+str(keys))
         if trace: self.keys(trace=True)
         return True
 
@@ -640,10 +615,10 @@ class Cohset (TDL_common.Super):
         for key in self.keys(selected=selected, trace=False):
             if trace: print '-',funcname,key,':',self.__coh[key],'-> None'
             if self.__coh[key]:
-                self.rider('deletion_orphans', append=self.__coh[key])
+                self._rider('deletion_orphans', append=self.__coh[key])
                 self.__coh[key] = None
             kk.append(key)
-        self.history(append=funcname+' ('+str(len(kk))+'): '+str(kk))
+        self._history(append=funcname+' ('+str(len(kk))+'): '+str(kk))
         if trace: print '**',funcname,'\n'
         return True
     
@@ -707,7 +682,7 @@ class Cohset (TDL_common.Super):
             s12 = self.__stations[key]
             self.__coh[key] = ns.cxzero22(s1=s12[0], s2=s12[1]) << Meq.Constant(zz, dims=[2,2])
         # self.__dims = [2,2]
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
 
     def unity(self, ns):
         """Make unit coherency matrices for all ifrs"""
@@ -721,7 +696,7 @@ class Cohset (TDL_common.Super):
             # self.__coh[key] = ns.cxunity22(s1=s12[0], s2=s12[1]) << Meq.Constant(zz, dims=[2,2])
             self.__coh[key] = coh22
         # self.__dims = [2,2]
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
 
     def uniform(self, ns, coh22):
         """Uniform coherency matrices (coh22) for all ifrs(qual)"""
@@ -732,21 +707,21 @@ class Cohset (TDL_common.Super):
             # self.__coh[key] = ns.uniform(uniqual)(s1=s12[0], s2=s12[1]) << Meq.Selector(coh22)
             self.__coh[key] = coh22
         # self.__dims = [2,2]
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
 
 
     def chain_solvers(self, ns, node, name=None):
         """Chain the solver subtrees (node), parallel to the main data-stream"""
         funcname = '::chain_solvers():'
         # First check for a previous solver subtree:
-        previous = self.rider('chain_solvers', clear=True)
+        previous = self._rider('chain_solvers', clear=True)
         if len(previous)>0:
             if not name: name = 'reqseq_chain_solvers'
             uniqual = _counter('chain_solvers', increment=-1)
             node = ns[name](uniqual) << Meq.ReqSeq(children=[previous[0], node])
         # Keep the solver subtree for future chaining:
-        self.rider('chain_solvers', append=node)
-        self.history(append=funcname+': '+str(node))
+        self._rider('chain_solvers', append=node)
+        self._history(append=funcname+': '+str(node))
         return True
 
 
@@ -771,7 +746,7 @@ class Cohset (TDL_common.Super):
         # Make a deepcopy to avoid the risk of modifying the input node.
         gg = deepcopy(node)                                 # necessary....??
         if not isinstance(gg, (tuple, list)): gg = [gg]
-        self.history(funcname+' '+gname+': len(gg)='+str(len(gg)))
+        self._history(funcname+' '+gname+': len(gg)='+str(len(gg)))
         
         # OK, graft onto all ifr-branches (has synchronising effect!):
         for key in self.keys():
@@ -785,7 +760,7 @@ class Cohset (TDL_common.Super):
                 rix = len(children)-1                       # use only the result of the last (main stream) child
                 self[key] = ns[gname].qmerge(self[key])(uniqual) << Meq.ReqSeq(children=children, result_index=rix)
 
-        self.history(funcname+' -> '+self.oneliner())
+        self._history(funcname+' -> '+self.oneliner())
         return True
 
         
@@ -805,7 +780,7 @@ class Cohset (TDL_common.Super):
             for unop1 in unops:       
                 if isinstance(unop1, str):
                     self.__coh[key] = ns << getattr(Meq, unop1)(self.__coh[key])
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
 
@@ -816,7 +791,7 @@ class Cohset (TDL_common.Super):
         if not isinstance(binop, str): return False
         for key in self.keys():
             self.__coh[key] = ns << getattr(Meq, binop)(self.__coh[key], Cohset[key])
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
 
@@ -832,9 +807,9 @@ class Cohset (TDL_common.Super):
         """Add (gaussian) noise to the Cohset cohaerencies"""
         funcname = '::addNoise():'
         self.scope('addNoise')
-        # self.history(append=funcname+': rms='+str(rms)+'Jy')
-        self.history(append=funcname+' (not implemented yet)')
-        # self.history(append=funcname+' -> '+self.oneliner())
+        # self._history(append=funcname+': rms='+str(rms)+'Jy')
+        self._history(append=funcname+' (not implemented yet)')
+        # self._history(append=funcname+' -> '+self.oneliner())
         return True
 
     def replace(self, ns, Cohset=[]):
@@ -875,13 +850,13 @@ class Cohset (TDL_common.Super):
         if exclude_itself:
             self.scope('replaced')
             self.label('replaced')                
-            self.history(append=funcname+' replace by sum of '+str(n)+' Cohsets:')
+            self._history(append=funcname+' replace by sum of '+str(n)+' Cohsets:')
         else:
             self.scope('added')
-            self.history(append=funcname+' added '+str(n)+' Cohset(s) to itself:')
+            self._history(append=funcname+' added '+str(n)+' Cohset(s) to itself:')
         for cs in Cohset:
-            self.history(append=funcname+' ...... '+cs.oneliner())
-        self.history(append=funcname+' -> '+self.oneliner())
+            self._history(append=funcname+' ...... '+cs.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
 
@@ -909,8 +884,8 @@ class Cohset (TDL_common.Super):
         self.update_from_Joneset(Joneset)
         self.__Joneset = Joneset                     
         self.scope(scope)
-        self.history(append='corrected by: '+Joneset.oneliner())
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append='corrected by: '+Joneset.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
     def corrupt(self, ns, Joneset=None):
@@ -929,8 +904,8 @@ class Cohset (TDL_common.Super):
         self.scope(scope)
         self.update_from_Joneset(Joneset)
         self.__Joneset = Joneset                     
-        self.history(append='corrupted by: '+Joneset.oneliner())
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append='corrupted by: '+Joneset.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
     #----------------------------------------------------------------------------------
@@ -944,14 +919,14 @@ class Cohset (TDL_common.Super):
             # self.__plot_style.update(Sixpack.plot_style())
             # self.__plot_size.update(Sixpack.plot_size())
             self.update_from_Parmset(Sixpack.Parmset)
-            self.history(append='updated from (not unsolvable): '+Sixpack.oneliner())
+            self._history(append='updated from (not unsolvable): '+Sixpack.oneliner())
         else:
             # self.update_from_Leafset(Sixpack.Leafset)               #............??
             # A Sixpack that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from 'not unsolvable' Sixpacks.
             # Therefore, its parm info should not be copied here.
-            self.history(append='not updated from (unsolvable): '+Sixpack.oneliner())
+            self._history(append='not updated from (unsolvable): '+Sixpack.oneliner())
         return True
 
     def update_from_Joneset(self, Joneset=None):
@@ -964,14 +939,14 @@ class Cohset (TDL_common.Super):
             self.__plot_size.update(Joneset.plot_size())
             self.update_from_Parmset(Joneset.Parmset)
             self.update_from_Leafset(Joneset.Leafset)
-            self.history(append='updated from (not unsolvable): '+Joneset.oneliner())
+            self._history(append='updated from (not unsolvable): '+Joneset.oneliner())
         else:
             self.update_from_Leafset(Joneset.Leafset)
             # A Joneset that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from 'not unsolvable' Jonesets.
             # Therefore, its parm info should not be copied here.
-            self.history(append='not updated from (unsolvable): '+Joneset.oneliner())
+            self._history(append='not updated from (unsolvable): '+Joneset.oneliner())
         return True
 
     def update_from_Cohset(self, Cohset=None):
@@ -982,14 +957,14 @@ class Cohset (TDL_common.Super):
         self.__plot_size.update(Cohset.plot_size())
         self.update_from_Parmset(Cohset.Parmset)
         self.update_from_Leafset(Cohset.Leafset)
-        self.history(append='updated from: '+Cohset.oneliner())
+        self._history(append='updated from: '+Cohset.oneliner())
         return True
 
     def update_from_Parmset(self, Parmset=None):
         """Update the internal info from a given Parmset"""
         if Parmset:
             self.Parmset.update(Parmset)
-            self.history(append='updated from: '+Parmset.oneliner())
+            self._history(append='updated from: '+Parmset.oneliner())
         self.__plot_color.update(self.Parmset.plot_color())
         self.__plot_style.update(self.Parmset.plot_style())
         self.__plot_size.update(self.Parmset.plot_size())
@@ -999,7 +974,7 @@ class Cohset (TDL_common.Super):
         """Update the internal info from a given Leafset"""
         if Leafset:
             self.Leafset.update(Leafset)
-            self.history(append='updated from: '+Leafset.oneliner())
+            self._history(append='updated from: '+Leafset.oneliner())
         self.__plot_color.update(self.Leafset.plot_color())
         self.__plot_style.update(self.Leafset.plot_style())
         self.__plot_size.update(self.Leafset.plot_size())
@@ -1026,8 +1001,8 @@ class Cohset (TDL_common.Super):
                 flag_density=pp['flag_density'])
             self.__coh[key] = coh
         self.scope(scope)
-        self.history(append=funcname+' inarg = '+str(pp))
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' inarg = '+str(pp))
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
 
@@ -1041,7 +1016,7 @@ class Cohset (TDL_common.Super):
         # The input Cohset may contain parmgroup/solvegroup info:
         self.update_from_Joneset(Cohset.Joneset())
         self.scope('merged')
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
 
@@ -1072,14 +1047,14 @@ class Cohset (TDL_common.Super):
             if coh.has_key(key):
                 self.__coh[key] = coh[key]
             elif self.__coh[key]:          # existing node
-                self.rider('deletion_orphans', append=self.__coh[key])
+                self._rider('deletion_orphans', append=self.__coh[key])
                 self.__coh[key] = None     # delete
 
         # The input Cohset may contain parmgroup/solvegroup info:
         self.update_from_Joneset(Cohset.Joneset())
         self.update_from_Parmset(Cohset.Parmset)
         self.scope(scope)
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
 
@@ -1117,11 +1092,11 @@ class Cohset (TDL_common.Super):
             if coh.has_key(key):
                 self.__coh[key] = coh[key]
             elif self.__coh[key]:          # existing node
-                self.rider('deletion_orphans', append=self.__coh[key])
+                self._rider('deletion_orphans', append=self.__coh[key])
                 self.__coh[key] = None     # delete
 
         self.scope(scope)
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
 
@@ -1275,8 +1250,8 @@ class Cohset (TDL_common.Super):
 
         self.label('spigot')
         self.scope('spigot')
-        self.history(append=funcname+' inarg = '+str(pp))
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' inarg = '+str(pp))
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
 #------------------------------------------------------------------------------------
@@ -1341,9 +1316,9 @@ class Cohset (TDL_common.Super):
         # Bookkeeping:
         self.cleanup(ns)
         self.scope('sink')
-        self.history(append=funcname+' inarg = '+str(pp))
-        self.history(append=funcname+' MS_corr_index = '+str(MS_corr_index))
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' inarg = '+str(pp))
+        self._history(append=funcname+' MS_corr_index = '+str(MS_corr_index))
+        self._history(append=funcname+' -> '+self.oneliner())
         print '** End of: TDL_Cohset.sinks()\n'
         return True
 
@@ -1353,7 +1328,7 @@ class Cohset (TDL_common.Super):
         """Clean up the current Cohset"""
         # Bundle the collected orphans (minimise browser clutter)
         for key in ['deletion_orphans','selection_orphans']:
-            orphans = self.rider(key, clear=False, report=True)
+            orphans = self._rider(key, clear=False, report=True)
             print '\n** .cleanup():',key,'-> orphans(',len(orphans),'):',orphans
             if len(orphans)>0:
                 uniqual = _counter(key, increment=-1)
@@ -1393,8 +1368,8 @@ class Cohset (TDL_common.Super):
                                                                 post=pp['post'])
 
         # Bookkeeping:
-        self.history(append=funcname+' inarg = '+str(pp))
-        self.history(append=funcname+' -> '+self.oneliner())
+        self._history(append=funcname+' inarg = '+str(pp))
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
 
@@ -1494,10 +1469,10 @@ if __name__ == '__main__':
 
 
     if 1:
-        coll = cs.rider('dcoll', ns << Meq.DataCollect())
-        coll = cs.rider('hcoll', ns << Meq.HistoryCollect())
-        coll = cs.rider('hcoll', ns << Meq.HistoryCollect())
-        # cs.rider(clear=True)
+        coll = cs._rider('dcoll', ns << Meq.DataCollect())
+        coll = cs._rider('hcoll', ns << Meq.historyCollect())
+        coll = cs._rider('hcoll', ns << Meq.historyCollect())
+        # cs._rider(clear=True)
         cs.display('rider')
 
     if 0:
