@@ -197,13 +197,8 @@ def _tdl_job_ev_parms_over_reference_domain (mqs,parent):
   """Executes the 'verifier' node over the saved reference domain.
 Assuming this is successful, you may examine the children of the verifier
 node to compare past and current solutions.""";
-  #if _reference_cells is None:
-  #  raise RuntimeError,"""Reference domain not loaded, please run a source
-  #flux fit and save the domain.""";
-  #req = meq.request(_reference_cells,rqtype='ev');
-  #mqs.clearcache('solver');
-  #mqs.execute('verifier',req,wait=False);
-  msname   = 'what.ms'
+  global MG
+  msname   = 'what1.ms'
   inputrec = create_inputrec(msname,tile_size=4500)
   req = meq.request();
   req.input  = inputrec;
