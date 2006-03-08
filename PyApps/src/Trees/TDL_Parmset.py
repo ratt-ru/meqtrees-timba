@@ -819,14 +819,26 @@ class Parmset (TDL_common.Super):
            if isinstance(pgk,dict):
                if pgk.has_key('__type__') and pgk['__type__']=='nodestub':
                    # look for canonical name
-                   alist=string.split(pgk['name'],":q=")
+                   alist=string.split(pgk['name'],":")
                    #print alist
                    nodestub=None
                    if len(alist)==1:
                       nodestub=ns[alist[0]]
                       self.__MeqParm[pgk['name']]=nodestub
                    else:
-                      wstr="nodestub=ns."+alist[0]+"(q='"+alist[1]+"')"
+                      # we have qualifiers
+                      wstr="nodestub=ns['"+alist.pop(0)+"']("
+                      for qstr in alist:
+                        # try to split on the '=' sign
+                        blist=string.split(qstr,'=')
+                        if len(blist)==1:
+                           wstr=wstr+"'"+blist[0]+"',"
+                        else:
+                           wstr=wstr+blist[0]+"='"+blist[1]+"',"
+
+                      # finally
+                      wstr=wstr+")"
+                      #print wstr
                       exec wstr
                       self.__MeqParm[pgk['name']]=nodestub
 
