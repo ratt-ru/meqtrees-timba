@@ -46,7 +46,8 @@
 #         +comp is a special name; it is replaced by the compiler name.
 #         +vers is a special name; it is replaced by the package version
 #               which can be given as e.g.  --with-python-version=2.2
-#         default is
+#         The default is taken from the option --with-searchpath.
+#         If empty, the default is
 #          "+prefix +root /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers
 #           /usr/local /usr"
 #         The header and libraries are looked up in each directory of the
@@ -80,7 +81,7 @@ define(LOFAR_EXT_LIB,m4_tolower(patsubst([$1], [.*/])))
 ifelse($2, [], [lfr_option=0], [lfr_option=$2])
 ifelse($3, [], [lfr_hdr=""], [lfr_hdr=$3])
 ifelse($4, [], [lfr_libs=LOFAR_EXT_LIB], [lfr_libs=$4])
-ifelse($5, [], [lfr_search="+prefix +root /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers /usr/local /usr"], [lfr_search=$5])
+ifelse($5, [], [lfr_search=""], [lfr_search=$5])
 AC_ARG_WITH([LOFAR_EXT_LIB],
 	[  --with-LOFAR_EXT_LIB[[=PFX]]        path to $1 directory],
 	[with_external=$withval
@@ -99,7 +100,20 @@ AC_ARG_WITH([LOFAR_EXT_LIB][[-version]],
   [lfr_ext_version="$withval"],
   [lfr_ext_version=])
 
+AC_ARG_WITH([[searchpath]],
+  [  --with-searchpath="+prefix +root /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers /usr/local /usr"   package searchpath],
+  [lfr_ext_searchp="$withval"],
+  [lfr_ext_searchp=])
+
 [
+##
+## Set default searchpath if not given.
+## Append to search path given in 'call'.
+##
+if test "$lfr_ext_searchp" = ""  -o  "$lfr_ext_searchp" = "yes"  -o  "$lfr_ext_searchp" = "no"; then
+  lfr_ext_searchp="+prefix +root /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers /usr/local /usr"
+fi
+lfr_search="$lfr_search $lfr_ext_searchp"
 ##
 ## Set version to blank if it is yes or no.
 ##
