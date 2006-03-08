@@ -92,6 +92,7 @@ cmpopts=
 varopts=
 cmpmakes=
 varmakes=
+touch variants_local   # make sure there is always a local file
 if [ -f $lfr_base/variants.$lfr_host ]; then
   # Check for possible includes (recursively).
   cp $lfr_base/variants.$lfr_host variants_local
@@ -129,7 +130,6 @@ if [ -f $lfr_base/variants.$lfr_host ]; then
   varopts=`egrep "^$lfr_var.variant.conf:" variants_local`
   cmpmakes=`egrep "^$lfr_cmp.compiler.make:" variants_local`
   varmakes=`egrep "^$lfr_var.variant.make:" variants_local`
-  \rm variants_local
 fi
 if [ "x$cmpopts" = "x" ]; then
   cmpopts=`egrep "^$lfr_cmp.compiler.conf:" $lfr_base/variants`
@@ -203,3 +203,6 @@ if [ "$cmpmakes$varmakes" != "" ]; then
   echo "  $opts";
   echo "written into makeoptions file";
 fi
+
+# Delete the local variant file that has been created.
+\rm variants_local

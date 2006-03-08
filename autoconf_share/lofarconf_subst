@@ -56,12 +56,9 @@ do
   var=`echo "$opts" | sed -e 's/.*\$(\([^) ]\+\)).*/\1/'`
   r2=`echo "$opts" | sed -e 's/.*\$([^) ]\+)\(.*\)/\1/'`
   # Try to find the variable in one of the variant files.
-  varval=
-  if [ -f $lfr_base/variants.$lfr_host ]; then
-    varval=`egrep "^$lfr_cmp\.compiler\.$var\.var:" $lfr_base/variants.$lfr_host`
-    if [ "x$varval" = "x" ]; then
-      varval=`egrep "^$var\.var:" $lfr_base/variants.$lfr_host`
-    fi
+  varval=`egrep "^$lfr_cmp\.compiler\.$var\.var:" variants_local`
+  if [ "x$varval" = "x" ]; then
+    varval=`egrep "^$var\.var:" variants_local`
   fi
   if [ "x$varval" = "x" ]; then
     varval=`egrep "^$lfr_cmp\.compiler\.$var\.var:" $lfr_base/variants`
