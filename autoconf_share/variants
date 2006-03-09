@@ -1,8 +1,6 @@
 gnu.compiler.conf: CXX=/usr/bin/g++
 kcc.compiler.conf:
 icc.compiler.conf:
-xlc.compiler.conf: CC=blrts_xlc CXX=blrts_xlC
-blrts.compiler.conf: CC=blrts_xlc CXX=blrts_xlC
 
 profile.variant.conf:	  $(standard) $(profile) $(mpe)
 debug.variant.conf:	  $(standard) $(debug)
@@ -20,7 +18,6 @@ scampi.variant.conf:	  $(standard) $(scampi)
 scampi-opt.variant.conf:  $(standard) $(scampi) $(optimize)
 scampi-prof.variant.conf:  $(standard) $(scampi) $(optimize) --enable-mpi-profiler --with-cppflags="-DHAVE_MPE"
 mpich-prof.variant.conf:  $(standard) $(mpich) --enable-mpi-profiler --with-cppflags="-DHAVE_MPE"
-bgl.variant.conf:         $(lofar_root) $(debugopt) $(nothreads) $(noshmem) $(bgl_cpp) $(bgl_ldd) --without-log4cplus --with-bglmpich
 fakebgl.variant.conf:     $(lofar_root) $(debug) $(nothreads) $(noshmem) --without-log4cplus --with-cppflags="-DHAVE_BGL"
 nolog4cplus.variant.conf: $(standard) $(debug) --without-log4cplus 
 insure.variant.conf:	  $(standard) --with-insuretools --with-cppflags="-D__INSURE__"
@@ -47,5 +44,3 @@ sse.var:                  --without-sse
 shmem.var:                --with-shmem
 noshmem.var:              --with-shmem=no
 searchpath.var:           --with-searchpath="+prefix +root /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers /usr/local /usr /usr"
-bgl_cpp.var:              --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -I/bgl/dist/include -qlist -qsource -qmaxmem=64000 -qasm=gcc -I/bgl/BlueLight/ppcfloor/bglsys/include/ -DHAVE_BGL -DYY_NEVER_INTERACTIVE -DMPICH_SKIP_MPICXX'
-bgl_ldd.var:              --with-ldflags='-L/bgl/BlueLight/ppcfloor/bglsys/lib -L/bgl/dist/lib -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts -lstandalone.440 -lcrypt -lnss_files -lnss_dns -lresolv -lc -lnss_files -lnss_dns -lresolv -lm'
