@@ -25,6 +25,7 @@
 # - 14 feb 2006: Implemented DJones
 # - 24 feb 2006: DJones -> JJones
 # - 25 feb 2006: included simul (Leafset etc)
+# - 09 mar 2006: adopted TDL_ParmSet
 
 # Copyright: The MeqTree Foundation 
 
@@ -146,6 +147,10 @@ def inarg_polrep (pp, **kwargs):
 #------------------------------------------------------------------------------
 
 def inarg_Joneset_Parmset (pp, **kwargs):
+   """Semi-obsolete"""
+   return inarg_Joneset_ParmSet (pp, **kwargs)
+
+def inarg_Joneset_ParmSet (pp, **kwargs):
    """Some common JEN_inarg definitions for Joneset definition functions"""
    JEN_inarg.inarg_common(kwargs)
    JEN_inarg.define(pp, 'parmtable', None, slave=kwargs['slave'], trace=trace,
@@ -326,7 +331,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
     js.display('inside GJones')
     
-    # Register the parmgroups (in js.Parmset eventually):
+    # Register the parmgroups:
     a1 = js.parmgroup('Ggain', ipol=1, corrs='paral11', c00_default=1.0,
                       c00_scale=1.0, timescale_min=20, fdeg=0,
                       color='red', style='diamond', size=10, **pp)
@@ -340,32 +345,61 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
                       c00_scale=1.0, timescale_min=10, fdeg=0,
                       color='cyan', style='diamond', size=10, **pp)
 
+    if True:
+       # Define potential extra condition equations:
+       js.Parmset.define_condeq(p1, unop='Add', value=0.0)
+       js.Parmset.define_condeq(p1, select='first', value=0.0)
+       js.Parmset.define_condeq(p1, select='last', value=0.0)
+       
+       js.Parmset.define_condeq(p2, unop='Add', value=0.0)
+       js.Parmset.define_condeq(p2, select='first', value=0.0)
+       js.Parmset.define_condeq(p2, select='last', value=0.0)
+       
+       js.Parmset.define_condeq(a1, unop='Multiply', value=1.0)
+       js.Parmset.define_condeq(a1, select='first', value=1.0)
+       js.Parmset.define_condeq(a1, select='last', value=1.0)
+       
+       js.Parmset.define_condeq(a2, unop='Multiply', value=1.0)
+       js.Parmset.define_condeq(a2, select='first', value=1.0)
+       js.Parmset.define_condeq(a2, select='last', value=1.0)
+       
+       # MeqParm node_groups: add 'G' to default 'Parm':
+       js.Parmset.node_groups(label[0])
+       
+       # Define extra solvegroup(s) from combinations of parmgroups:
+       js.Parmset.solvegroup('GJones', [a1, p1, a2, p2])
+       js.Parmset.solvegroup('Gpol1', [a1, p1])
+       js.Parmset.solvegroup('Gpol2', [a2, p2])
+       js.Parmset.solvegroup('Ggain', [a1, a2])
+       js.Parmset.solvegroup('Gphase', [p1, p2])
+       
+    
     # Define potential extra condition equations:
-    js.Parmset.define_condeq(p1, unop='Add', value=0.0)
-    js.Parmset.define_condeq(p1, select='first', value=0.0)
-    js.Parmset.define_condeq(p1, select='last', value=0.0)
+    js.ParmSet.define_condeq(p1, unop='Add', value=0.0)
+    js.ParmSet.define_condeq(p1, select='first', value=0.0)
+    js.ParmSet.define_condeq(p1, select='last', value=0.0)
 
-    js.Parmset.define_condeq(p2, unop='Add', value=0.0)
-    js.Parmset.define_condeq(p2, select='first', value=0.0)
-    js.Parmset.define_condeq(p2, select='last', value=0.0)
+    js.ParmSet.define_condeq(p2, unop='Add', value=0.0)
+    js.ParmSet.define_condeq(p2, select='first', value=0.0)
+    js.ParmSet.define_condeq(p2, select='last', value=0.0)
 
-    js.Parmset.define_condeq(a1, unop='Multiply', value=1.0)
-    js.Parmset.define_condeq(a1, select='first', value=1.0)
-    js.Parmset.define_condeq(a1, select='last', value=1.0)
+    js.ParmSet.define_condeq(a1, unop='Multiply', value=1.0)
+    js.ParmSet.define_condeq(a1, select='first', value=1.0)
+    js.ParmSet.define_condeq(a1, select='last', value=1.0)
 
-    js.Parmset.define_condeq(a2, unop='Multiply', value=1.0)
-    js.Parmset.define_condeq(a2, select='first', value=1.0)
-    js.Parmset.define_condeq(a2, select='last', value=1.0)
+    js.ParmSet.define_condeq(a2, unop='Multiply', value=1.0)
+    js.ParmSet.define_condeq(a2, select='first', value=1.0)
+    js.ParmSet.define_condeq(a2, select='last', value=1.0)
 
     # MeqParm node_groups: add 'G' to default 'Parm':
-    js.Parmset.node_groups(label[0])
+    js.ParmSet.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.Parmset.solvegroup('GJones', [a1, p1, a2, p2])
-    js.Parmset.solvegroup('Gpol1', [a1, p1])
-    js.Parmset.solvegroup('Gpol2', [a2, p2])
-    js.Parmset.solvegroup('Ggain', [a1, a2])
-    js.Parmset.solvegroup('Gphase', [p1, p2])
+    js.ParmSet.solvegroup('GJones', [a1, p1, a2, p2])
+    js.ParmSet.solvegroup('Gpol1', [a1, p1])
+    js.ParmSet.solvegroup('Gpol2', [a2, p2])
+    js.ParmSet.solvegroup('Ggain', [a1, a2])
+    js.ParmSet.solvegroup('Gphase', [p1, p2])
     
     for station in pp['stations']:
        skey = TDL_radio_conventions.station_key(station)        
@@ -378,6 +412,9 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
              # default = MG_JEN_funklet.polc_ft (c00=pp['c00_Ggain'], stddev=pp['stddev_Ggain'],
              #                                  fdeg=pp['fdeg_Ggain'], tdeg=pp['tdeg_Ggain'],
              #                                  scale=pp['ft_coeff_scale']) 
+             js.ParmSet.MeqParm (ns, Ggain, qual=qual,
+                                 tfdeg=[pp['tdeg_Ggain'],pp['fdeg_Ggain']],
+                                 subtile_size=pp['subtile_size_Ggain'])
              js.Parmset.define_MeqParm (ns, Ggain, qual=qual,
                                         tfdeg=[pp['tdeg_Ggain'],pp['fdeg_Ggain']],
                                         subtile_size=pp['subtile_size_Ggain'])
@@ -389,6 +426,9 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
              # default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'], stddev=pp['stddev_Gphase'], 
              #                                  fdeg=pp['fdeg_Gphase'], tdeg=pp['tdeg_Gphase'],
              #                                  scale=pp['ft_coeff_scale']) 
+             js.ParmSet.MeqParm (ns, Gphase, qual=qual,
+                                 tfdeg=[pp['tdeg_Gphase'],pp['fdeg_Gphase']],
+                                 subtile_size=pp['subtile_size_Gphase'])
              js.Parmset.define_MeqParm (ns, Gphase, qual=qual,
                                         tfdeg=[pp['tdeg_Gphase'],pp['fdeg_Gphase']],
                                         subtile_size=pp['subtile_size_Gphase'])
@@ -1426,11 +1466,13 @@ if __name__ == '__main__':
      display_first_subtree (js, full=1)
 
   if 1:
-     js = GJones (ns, stations=stations, simul=True)
-     js.display(full=True)     
-     js.Parmset.display(full=True)     
-     js.Leafset.display(full=True)     
-     display_first_subtree (js, full=True)
+     js = GJones (ns, stations=stations, simul=False)
+     full = False
+     js.display(full=full)     
+     js.Parmset.display(full=full)     
+     js.ParmSet.display(full=full)     
+     # js.Leafset.display(full=True)     
+     # display_first_subtree (js, full=True)
 
   if 0:
      js = GJones (ns, stations=stations)

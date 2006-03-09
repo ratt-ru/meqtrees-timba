@@ -23,6 +23,7 @@
 # - 21 jan 2006: condeq_corr cats (corrI etc)
 # - 05 feb 2006: punit='uvp'
 # - 08 mar 2006: adopted Cohset._rider()
+# - 09 mar 2006: included new TDL_ParmSet
 
 # Copyright: The MeqTree Foundation 
 
@@ -204,6 +205,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         # Bundle the MeqParms per parmgroup:
         post = []
         post.append(Cohset.Parmset.subtree_parmgroups(ns))    
+        # post.append(Cohset.ParmSet.subtree_parmgroups(ns))    
 
         bookpage = 'Leafset.leafgroups'
         for key in Cohset.Leafset.leafgroup().keys():
@@ -240,6 +242,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     # Append the final Cohset to the forest state object:
     # MG_JEN_forest_state.object(Cohset, funcname)
     # MG_JEN_forest_state.object(Cohset.Parmset, funcname)
+    # MG_JEN_forest_state.object(Cohset.ParmSet, funcname)
     
     # Return a list of sink nodes:
     return sinks
@@ -263,7 +266,7 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
                             description=Jones.__doc__)
     # Arguments that should be common to all Jonesets in the sequence:
     MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
-    MG_JEN_Joneset.inarg_Joneset_Parmset(pp, slave=slave)
+    MG_JEN_Joneset.inarg_Joneset_ParmSet(pp, slave=slave)
     JEN_inarg.define (pp, 'Jsequence', [],
                       choice=[['GJones'],['BJones'],['FJones'],['KJones'],
                               ['DJones_WSRT'],['GJones','DJones_WSRT'],
@@ -442,6 +445,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     # This contains the Joneset/Sixpack MeqParms, which may be re-executed
     # separately for the full (MS) domain for inspection (see .make_sinks())
     measured.update_from_Parmset(Mohset.Parmset)
+    measured.update_from_ParmSet(Mohset.ParmSet)
 
     # Make a list of one or more MeqSolver subtree(s):
     # Assume that pp contains the relevant (qual) inarg record(s).
@@ -526,8 +530,10 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     # Finished: do some book-keeping:
     # MG_JEN_forest_state.object(Mohset, funcname)
     # MG_JEN_forest_state.object(Mohset.Parmset, funcname)
+    # MG_JEN_forest_state.object(Mohset.ParmSet, funcname)
     # MG_JEN_forest_state.object(predicted, funcname)
     # MG_JEN_forest_state.object(predicted.Parmset, funcname)
+    # MG_JEN_forest_state.object(predicted.ParmSet, funcname)
     MG_JEN_forest_state.history (funcname)
     Mohset.cleanup(ns)                
     return True
@@ -588,6 +594,7 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
 
     # Get a list of names of solvable MeqParms for the solver:
     corrs = Cohset.Parmset.sg_rider(pp['solvegroup'], key='condeq_corrs')
+    corrs = Cohset.ParmSet.condeq_corrs(pp['solvegroup'])
     was = corrs
     if not isinstance(corrs, (list, tuple)): corrs = [corrs]
     if corrs==['*']: corrs = Cohset.corrs()
@@ -599,6 +606,7 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
     if corrs==['corrV']: corrs = Cohset.corrV()
     print '** corrs: ',was,'->',corrs
     solvable = Cohset.Parmset.solveparm_names(pp['solvegroup'])
+    solvable = Cohset.ParmSet.solveparm_names(pp['solvegroup'])
     print '** solvable:',type(solvable),'=\n   ',solvable,'\n'
 
     dcoll_parm = []
@@ -639,6 +647,7 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
     for key in pp['condition']:
         if isinstance(key, str):
             condeq = Cohset.Parmset.make_condeq(ns, key)
+            condeq = Cohset.ParmSet.make_condeq(ns, key)
             if not isinstance(condeq, bool): extra_condeqs.append(condeq)
     solver_condeqs.extend(extra_condeqs)
 
@@ -993,7 +1002,7 @@ def inarg_Cohset_common (pp, last_changed='<undefined>', **kwargs):
     MG_JEN_exec.inarg_ms_name(pp)
     MG_JEN_exec.inarg_tile_size(pp)
     MG_JEN_Joneset.inarg_Joneset_common(pp)
-    MG_JEN_Joneset.inarg_Joneset_Parmset(pp)
+    MG_JEN_Joneset.inarg_Joneset_ParmSet(pp)
 
     # MG_JEN_Sixpack.inarg_punit(pp)
 

@@ -174,29 +174,30 @@ class ParmSet (TDL_common.Super):
 
 
 
-#--------------------------------------------------------------------------------
-# Functions related to MeqParm nodes: 
-#--------------------------------------------------------------------------------
+    #--------------------------------------------------------------------------------
+    # Functions related to MeqParm nodes: 
+    #--------------------------------------------------------------------------------
 
-    def MeqParm(self):
-        """The list of MeqParm nodes"""
-        return self.NodeSet.MeqNode()
-
-    def len(self):
-        """The number of MeqParm nodes in MeqParm"""
-        return len(self.NodeSet.MeqNode())
-
-    def keys(self):
-        """The list of MeqParm keys (names)"""
-        return self.NodeSet.MeqNode().keys()
-
-    def has_key(self, key):
-        """Test whether MeqParm contains an item with the specified key"""
-        return self.keys().__contains__(key)
+    if False:
+        def MeqParm(self):
+            """The list of MeqParm nodes"""
+            return self.NodeSet.MeqNode()
+        
+        def len(self):
+            """The number of MeqParm nodes in MeqParm"""
+            return len(self.NodeSet.MeqNode())
+        
+        def keys(self):
+            """The list of MeqParm keys (names)"""
+            return self.NodeSet.MeqNode().keys()
+        
+        def has_key(self, key):
+            """Test whether MeqParm contains an item with the specified key"""
+            return self.keys().__contains__(key)
 
     #-------------------------------------------------------------------------------------
 
-    def define_MeqParm(self, ns, key=None, qual=None, parmgroup=None,
+    def MeqParm(self, ns, key=None, qual=None, parmgroup=None,
                        init_funklet=None,  
                        default=None, shape=None, tfdeg=None, 
                        node_groups='Parm',
@@ -311,7 +312,9 @@ class ParmSet (TDL_common.Super):
             self.__default_value[key] = pp['default']
             qq = TDL_common.unclutter_inarg(pp)
             self.history('** Created parmgroup: '+str(key)+':   ')
-            # self.history('** Created parmgroup: '+key+':   '+str(qq))
+            result = self.NodeSet.group(key, **pp)
+            self.solvegroup(key, [key], gogtype='solvegroup')       
+            return result
         # Then the generic NodeSet part:
         return self.NodeSet.group(key, **pp)
 
@@ -332,23 +335,31 @@ class ParmSet (TDL_common.Super):
     def solvegroup (self, key=None, groups=None, **pp):
         """Get/define the named (key) solvegroup"""
         # First the ParmSet-specific part:
-        if len(pp)>0:
+        if groups:
             # solvegroup does not exist yet: Create it:
             # NB: This is inhibited if ParmSet is set 'unsolvable' (e.g. for simulated uv-data) 
             if self.unsolvable(): return False
-            qq = TDL_common.unclutter_inarg(pp)
-            self.history('** Created explicit solvegroup: '+str(key)+':'+str(groups))
-            # self.history('** Created solvegroup: '+key+':'+str(groups)+str(qq))
+            pp['gogtype'] = 'solvegroup'       
+            # qq = TDL_common.unclutter_inarg(pp)
+            self.history('** Created solvegroup: '+str(key)+':  group(s): '+str(groups))
         # Then the generic NodeSet part:
         return self.NodeSet.gog(key, groups, **pp)
 
     def solvegroup_keys (self):
         """Return the keys (names) of the available solvegroups"""
-        return self.NodeSet.group_keys()
+        return self.NodeSet.select_gogs (rider=dict(gogtype='solvegroup'))
 
     def default_value(self, key=None):
         """Get the specified (key) solvegroup default value (None = all)."""
         return self._fieldict (self.__default_value, key=key, name='.default_value()')
+
+
+    def solveparm_names(self, solvegroup=[], trace=False):
+        """Return a list of MeqParm names for the specified solvegroup (of parmgroup names)"""
+        if trace: print '\n** solveparm_names(',solvegroup,'):'
+        parms = self.NodeSet.nodenames(solvegroup)
+        if trace: print '   -> (solve)parms =',parms
+        return parms
 
 
 #--------------------------------------------------------------------------------
@@ -390,11 +401,8 @@ class ParmSet (TDL_common.Super):
  
     def condeq(self, key=None):
        """Access to condeq definitions"""
-       if not key: return self.__condeq
-       if self.__condeq.has_key(key):
-           return self.__condeq[key]
-       return False
-   
+       return self._fieldict (self.__condeq, key=key, name='.condeq()')
+
         
     def make_condeq(self, ns=None, key=None):
        """Make a condeq node, using the specified (key) condeq definition"""
@@ -414,6 +422,26 @@ class ParmSet (TDL_common.Super):
        condeq = ns['Condeq_'+key](uniqual) << Meq.Condeq(node, rr['value'])
        return condeq
 
+
+
+    def condeq_corrs(self, solvegroup=[], trace=False):
+        """Return a (unique) list of correlations (corrs, e.g. ['XX','YY'])
+        for the specified solvegroup"""
+        if trace: print '\n** condeq_corrs(',solvegroup,'):'
+        gg = self.NodeSet._extract_flat_grouplist(solvegroup, must_exist=True,
+                                                  origin='.condeq_corrs()')
+        corrs = []
+        for key in gg:
+            rr = self.NodeSet.group_rider(key)
+            if trace: print '-',key,':  rider =',rr
+            if rr.has_key('corrs'):
+                cc = rr['corrs']
+                if not isinstance(cc, (list,tuple)): cc = [cc]
+                for c in cc:
+                    if not c in corrs:             # avoid doubles
+                        corrs.append(c)
+        if trace: print '   -> corrs =',corrs
+        return corrs
 
 
 #---------------------------------------------------------------------------
@@ -717,26 +745,32 @@ if __name__ == '__main__':
             qual = dict(s=skey)
             for Gampl in [a1,a2]:
                 default = MG_JEN_funklet.polc_ft(c00=1.0)
-                ps.define_MeqParm (ns, Gampl, qual=qual, default=default)
+                ps.MeqParm (ns, Gampl, qual=qual, default=default)
 
             for Gphase in [p1,p2]:
                 default = MG_JEN_funklet.polc_ft(c00=0.0)
-                ps.define_MeqParm (ns, Gphase, qual=qual, default=default)
+                ps.MeqParm (ns, Gphase, qual=qual, default=default)
 
-    if 1:
+    if 0:
         ps.cleanup(ns)
 
-    if 1:
+    if 0:
         for key in ps.condeq().keys():
             condeq = ps.make_condeq(ns, key)
             TDL_display.subtree(condeq, key, full=True, recurse=5)
 
+    if 1:
+        ps.condeq_corrs([a1,p1], trace=True)
+
+    if 1:
+        ps.solveparm_names([a1,p1], trace=True)
+
     if 0:
         print
-        for key in ps.parmgroup().keys():
+        for key in ps.parmgroup_keys():
             print '- parmgroup:',key,':',ps.parmgroup(key)
         print
-        for key in ps.solvegroup().keys():
+        for key in ps.solvegroup_keys():
             print '- solvegroup:',key,':',ps.solvegroup(key)
         print
 

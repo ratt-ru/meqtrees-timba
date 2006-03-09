@@ -17,6 +17,7 @@
 #    - 08 mar 2006: copied TDL_Cohset .rider() to ._rider()
 #    - 08 mar 2006: implemented ._save() and ._restore()
 #    - 08 mar 2006: implemented ._clear() and ._history()
+#    - 09 mar 2006: added .format_initrec(node)
 #
 # Remarks:
 #
@@ -382,6 +383,24 @@ def decode_nodestubs(ns, rr=None):
                     exec seval
                 dictout[cc['name']] = nodestub
     return dictout
+
+#-------------------------------------------------------------------------------
+
+def format_initrec (node=None, trace=False):
+    """Format the init record of the given node"""
+    if not isinstance(node, Timba.TDL.TDLimpl._NodeStub):
+        return 'node='+str(type(node))
+    initrec = deepcopy(node.initrec())               # just in case....
+    if len(initrec.keys()) > 1:
+        hide = ['name','class','defined_at','children','stepchildren','step_children']
+        for field in hide:
+            if initrec.has_key(field):
+                initrec.__delitem__(field)
+            if initrec.has_key('default_funklet'):
+                coeff = initrec.default_funklet.coeff
+                initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
+    if trace: print '  ',initrec
+    return str(initrec)
 
 
 

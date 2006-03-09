@@ -32,8 +32,9 @@ def process_vis_header (hdr):
 
   # phase center
   (ra0,dec0) = hdr.phase_ref;
-  set_state('ra0',value=ra0);
-  set_state('dec0',value=dec0);
+  if True:
+    set_state('ra0',value=ra0);
+    set_state('dec0',value=dec0);
   if trace: print '- ra0 =',ra0
   if trace: print '- dec0 =',dec0
 
@@ -56,7 +57,8 @@ def process_vis_header (hdr):
         value = pos[j,station]
         if first: refpos[label] = value
         if trace: print '-',j,name,':',value,'  (relative =',value-refpos[label],')'
-        set_state(name, value=value)
+        if True:
+          set_state(name, value=value)
     except: pass
     first = False
 

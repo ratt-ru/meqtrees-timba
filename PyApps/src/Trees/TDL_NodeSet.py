@@ -106,14 +106,16 @@ class NodeSet (TDL_common.Super):
         for key in self.group().keys():
             group = self.group(key)
             n = len(group)
+            s1 = indent2+' - '+key+' (n='+str(n)+')'
+            s1 += ' (rider:'+str(len(self.group_rider(key)))+'):  '
             if full or n<3:
-                ss.append(indent2+' - '+key+' ('+str(n)+'):    '+str(group))
+                ss.append(s1+str(group))
             else:
-                ss.append(indent2+' - '+key+' ('+str(n)+'):    '+group[0]+' ... '+group[n-1])
+                ss.append(s1+group[0]+' ... '+group[n-1])
 
         #------------------------
+        ss.append(indent1+' - group riders ('+str(len(self.group_rider()))+'):')
         if full:  
-            ss.append(indent1+' - group riders ('+str(len(self.group_rider()))+'):')
             empty = []
             for key in self.group_rider().keys():
                 if len(self.group_rider()[key])>0:
@@ -126,11 +128,12 @@ class NodeSet (TDL_common.Super):
         #------------------------
         ss.append(indent1+' - Defined gogs ('+str(len(self.gog()))+'):')
         for key in self.gog().keys():
-            ss.append(indent2+' - '+key+' :     groups: '+str(self.gog(key)))
+            s1 = ' (rider:'+str(len(self.gog_rider(key)))+')'
+            ss.append(indent2+' - '+key+s1+':     group(s): '+str(self.gog(key)))
 
         #------------------------
+        ss.append(indent1+' - gog riders ('+str(len(self.gog_rider()))+'):')
         if full:
-            ss.append(indent1+' - gog riders ('+str(len(self.gog_rider()))+'):')
             empty = []
             for key in self.gog_rider().keys():
                 if len(self.gog_rider()[key])>0:
@@ -141,14 +144,14 @@ class NodeSet (TDL_common.Super):
                 ss.append(indent2+' empty ('+str(len(empty))+'): '+str(empty))
 
         #------------------------
+        ss.append(indent1+' - Bundles (gogs, really) ('+str(len(self.__bundle))+'):')
         if full:
-            ss.append(indent1+' - Bundles (gogs, really) ('+str(len(self.__bundle))+'):')
             for key in self.bundle().keys():
                 ss.append(indent2+' - '+key+':    '+str(self.bundle()[key]))
 
         #------------------------
+        ss.append(indent1+' - Contents of temporary buffer ('+str(len(self.__buffer))+'):')
         if full:
-            ss.append(indent1+' - Contents of temporary buffer ('+str(len(self.__buffer))+'):')
             for key in self.buffer().keys():
                 ss.append(indent2+' - '+key+':    '+str(self.buffer()[key]))
 
@@ -163,8 +166,8 @@ class NodeSet (TDL_common.Super):
             ss.append(indent2+' - '+key+':    '+str(self.bookfolder()[key]))
 
         #------------------------
+        ss.append(indent1+' - Accumulated bookmarks ('+str(len(self.__bookmark))+'):')
         if full:
-            ss.append(indent1+' - Accumulated bookmarks ('+str(len(self.__bookmark))+'):')
             for key in self.bookmark().keys():
                 ss.append(indent2+' - '+key+':    '+str(self.bookmark()[key]))
 
@@ -174,14 +177,16 @@ class NodeSet (TDL_common.Super):
         n = len(keys)
         if full or n<10:
             for key in keys:
-                ss.append(indent2+' - '+str(self.__MeqNode[key]))
+                s1 = TDL_common.format_initrec(self.__MeqNode[key])
+                ss.append(indent2+' - '+str(self.__MeqNode[key])+'  '+s1)
         else:
-            ss.append(indent2+' - first: '+str(self.__MeqNode[keys[0]]))
+            s1 = TDL_common.format_initrec(self.__MeqNode[keys[0]])
+            ss.append(indent2+' - first: '+str(self.__MeqNode[keys[0]])+'  '+s1)
             ss.append(indent2+'   ....')
-            ss.append(indent2+' - last:  '+str(self.__MeqNode[keys[n-1]]))
+            s1 = TDL_common.format_initrec(self.__MeqNode[keys[n-1]])
+            ss.append(indent2+' - last:  '+str(self.__MeqNode[keys[n-1]])+'  '+s1)
 
         return TDL_common.Super.display_end (self, ss, doprint=doprint, pad=pad)
-
 
 
     #--------------------------------------------------------------------------------
@@ -340,17 +345,19 @@ class NodeSet (TDL_common.Super):
             pp.setdefault('style', 'circle')        # plot style
             pp.setdefault('size', 10)               # size of plotted symbol
 
+            s1 = 'group: '+str(key)
+            s1 += self.format_rider_summary(pp)
+            if self.__group.has_key(key):
+                self.history(warning='** Overwritten '+s1)
+            else:
+                self.history('** Defined new '+s1)
+
             self.__group[key] = []                  # initialise the group with an empty list
             self.__group_rider[key] = pp            # extra info associated with the group
             self.__plot_color[key] = pp['color']
             self.__plot_style[key] = pp['style']
             self.__plot_size[key] = pp['size']
 
-            # Automatically create a gog of the same name...:
-            self.gog(key, groups=key, automatic=True) 
-
-            qq = TDL_common.unclutter_inarg(pp)
-            self.history('** Defined group: '+key+':  nr of rider keys = '+str(len(qq)))
             return key                              # return the actual group/gog key name
         # Otherwise, return the specified (key) group (None = all):
         return self._fieldict (self.__group, key=key, name='.group()')
@@ -408,11 +415,17 @@ class NodeSet (TDL_common.Super):
         for key in gg:
             nn = self.__group[key]           # list of node-names for group 'key'
             if select=='first':
-                names.append(nn[0])          # take the first one only
+                name = nn[0]
+                if not name in names:        # avoid doubles
+                    names.append(name)       # take the first one only
             elif select=='last':
-                names.append(nn[len(nn)-1])  # take ths last one only
+                name = nn[len(nn)-1]
+                if not name in names:        # avoid doubles
+                    names.append(name)       # take ths last one only
             else:
-                names.extend(nn)             # take them all
+                for name in nn:
+                    if not name in names:    # avoid doubles
+                        names.append(name)   # take them all
         if trace: print '    -> nodenames(',len(names),'):',names
         return names
 
@@ -530,18 +543,34 @@ class NodeSet (TDL_common.Super):
                 return self.history(error='gog('+str(groups)+'): no key specified')
             gg = self._extract_flat_grouplist(groups, must_exist=False)
             if not isinstance(gg, list): return False
-                
             if not isinstance(groups, list): groups = [groups]
+
+            s1 = 'gog: '+str(key)+':  '+str(groups)
+            s1 += self.format_rider_summary(pp)
+            if self.__gog.has_key(key):
+                self.history(warning='** Overwritten '+s1)
+            else:
+                self.history('** Defined new '+s1)
+
             self.__gog[key] = groups                # list of gog groups/gogs
             self.__gog_rider[key] = pp              # extra info associated with the gog
-
-            qq = TDL_common.unclutter_inarg(pp)
-            self.history('** Defined gog: '+key+':  '+str(groups)+',  nr of rider keys = '+str(len(qq)))
             return key                              # return the actual gog key name
         # Otherwise, return the specified (key) group (None = all):
         return self._fieldict (self.__gog, key=key, name='.gog()')
 
 
+    def format_rider_summary (self, pp):
+        """Format a summary of the given rider record pp"""
+        if not isinstance(pp, dict):
+            return 'rider='+str(type(pp)) 
+        elif len(pp)==0:
+            return ''
+        elif len(pp)<3:
+            qq = TDL_common.unclutter_inarg(pp)
+            return ',  rider = '+str(qq)
+        return ',  rider length = '+str(len(pp))
+
+                
     def gog_rider(self, key=None):
         """Get the specified (key) gog_rider (None = all)"""
         return self._fieldict (self.__gog_rider, key=key, name='.gog_rider()')

@@ -10,6 +10,7 @@
 # History:
 #    - 02 sep 2005: creation
 #    - 02 jan 2006: adopted TDL_Parmset.py
+#    - 09 mar 2006: included new TDL_ParmSet.py 
 #
 # Full description:
 #
@@ -17,6 +18,7 @@
 from Timba.Meq import meq
 from Timba.Trees import TDL_common
 from Timba.Trees import TDL_Parmset  
+from Timba.Trees import TDL_ParmSet  
 from Timba import utils
 from Timba.TDL import *
 import math
@@ -117,6 +119,8 @@ class Sixpack:
         # Define its Parmset object
         self.Parmset = TDL_Parmset.Parmset(**pp)
         self.Parmset.quals(dict(q=self.label()))       # punit...?
+        self.ParmSet = TDL_ParmSet.ParmSet(**pp)
+        self.ParmSet.quals(dict(q=self.label()))       # punit...?
         return None
 
 
@@ -207,6 +211,7 @@ class Sixpack:
         ss = self.__obj.display(txt, full=full)
         indent1=2*' '
         ss.append(indent1+' - '+str(self.Parmset.oneliner()))
+        ss.append(indent1+' - '+str(self.ParmSet.oneliner()))
         #--------------------------------------------------------
         ss.append('** end of '+self.type()+'.display()\n')
         for s in ss: print s

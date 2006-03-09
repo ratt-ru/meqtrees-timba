@@ -31,6 +31,7 @@
 #    - 25 feb 2006: added .addNoise() 
 #    - 25 feb 2006: added .Leafset
 #    - 08 mar 2006: switched to ._rider()
+#    - 09 mar 2006: included new TDL_ParmSet
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -67,6 +68,7 @@ from Timba.Trees import TDL_common
 from Timba.Trees import TDL_radio_conventions
 from Timba.Trees import TDL_Joneset
 from Timba.Trees import TDL_Parmset
+from Timba.Trees import TDL_ParmSet
 from Timba.Trees import TDL_Leafset
 # from Timba.Trees import TDL_Sixpack
 
@@ -161,6 +163,7 @@ class Cohset (TDL_common.Super):
 
         # Define its Parmset and Leafset objects:
         self.Parmset = TDL_Parmset.Parmset(**pp)
+        self.ParmSet = TDL_ParmSet.ParmSet(**pp)
         self.Leafset = TDL_Leafset.Leafset(**pp)
 
         # The Cohset may remember the Joneset with which it has been corrupted:
@@ -419,6 +422,8 @@ class Cohset (TDL_common.Super):
         ss.append(indent1+' - leafgroups:      '+str(self.Leafset.leafgroup().keys()))
         ss.append(indent1+' - parmgroups:      '+str(self.Parmset.parmgroup().keys()))
         ss.append(indent1+' - solvegroups:     '+str(self.Parmset.solvegroup().keys()))
+        ss.append(indent1+' - parmgroups:      '+str(self.ParmSet.parmgroup_keys()))
+        ss.append(indent1+' - solvegroups:     '+str(self.ParmSet.solvegroup_keys()))
 
         #.................................................................................
         ss.append(indent1+' - Available 2x2 cohaerency matrices ( '+str(self.len())+' ):')
@@ -914,11 +919,12 @@ class Cohset (TDL_common.Super):
         """Update the internal info from a Sixpack object
         (NB: Not yet implemented in Sixpack....)"""
         if Sixpack==None: return False
-        if not Sixpack.Parmset.unsolvable():
+        if not Sixpack.ParmSet.unsolvable():
             # self.__plot_color.update(Sixpack.plot_color())
             # self.__plot_style.update(Sixpack.plot_style())
             # self.__plot_size.update(Sixpack.plot_size())
-            self.update_from_Parmset(Sixpack.Parmset)
+            self.update_from_Parmset(Sixpack.Parmset)               # old
+            self.update_from_ParmSet(Sixpack.ParmSet)               # new
             self._history(append='updated from (not unsolvable): '+Sixpack.oneliner())
         else:
             # self.update_from_Leafset(Sixpack.Leafset)               #............??
@@ -933,11 +939,12 @@ class Cohset (TDL_common.Super):
         """Update the internal info from a (corrupting) Joneset object"""
         # (see Joneseq.Joneset())
         if Joneset==None: return False
-        if not Joneset.Parmset.unsolvable():
+        if not Joneset.ParmSet.unsolvable():
             self.__plot_color.update(Joneset.plot_color())
             self.__plot_style.update(Joneset.plot_style())
             self.__plot_size.update(Joneset.plot_size())
             self.update_from_Parmset(Joneset.Parmset)
+            self.update_from_ParmSet(Joneset.ParmSet)
             self.update_from_Leafset(Joneset.Leafset)
             self._history(append='updated from (not unsolvable): '+Joneset.oneliner())
         else:
@@ -956,6 +963,7 @@ class Cohset (TDL_common.Super):
         self.__plot_style.update(Cohset.plot_style())
         self.__plot_size.update(Cohset.plot_size())
         self.update_from_Parmset(Cohset.Parmset)
+        self.update_from_ParmSet(Cohset.ParmSet)
         self.update_from_Leafset(Cohset.Leafset)
         self._history(append='updated from: '+Cohset.oneliner())
         return True
@@ -968,6 +976,16 @@ class Cohset (TDL_common.Super):
         self.__plot_color.update(self.Parmset.plot_color())
         self.__plot_style.update(self.Parmset.plot_style())
         self.__plot_size.update(self.Parmset.plot_size())
+        return True
+
+    def update_from_ParmSet(self, ParmSet=None):
+        """Update the internal info from a given ParmSet"""
+        if ParmSet:
+            self.ParmSet.update(ParmSet)
+            self._history(append='updated from: '+ParmSet.oneliner())
+        # self.__plot_color.update(self.ParmSet.plot_color())
+        # self.__plot_style.update(self.ParmSet.plot_style())
+        # self.__plot_size.update(self.ParmSet.plot_size())
         return True
 
     def update_from_Leafset(self, Leafset=None):
@@ -1053,6 +1071,7 @@ class Cohset (TDL_common.Super):
         # The input Cohset may contain parmgroup/solvegroup info:
         self.update_from_Joneset(Cohset.Joneset())
         self.update_from_Parmset(Cohset.Parmset)
+        self.update_from_ParmSet(Cohset.ParmSet)
         self.scope(scope)
         self._history(append=funcname+' -> '+self.oneliner())
         return True
