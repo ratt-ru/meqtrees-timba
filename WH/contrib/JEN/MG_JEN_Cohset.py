@@ -23,7 +23,7 @@
 # - 21 jan 2006: condeq_corr cats (corrI etc)
 # - 05 feb 2006: punit='uvp'
 # - 08 mar 2006: adopted Cohset._rider()
-# - 09 mar 2006: included new TDL_ParmSet
+# - 09 mar 2006: included new TDL_ParmSet, removed TDL_Parmset
 
 # Copyright: The MeqTree Foundation 
 
@@ -204,8 +204,8 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 
         # Bundle the MeqParms per parmgroup:
         post = []
-        post.append(Cohset.Parmset.subtree_parmgroups(ns))    
-        # post.append(Cohset.ParmSet.subtree_parmgroups(ns))    
+        # post.append(Cohset.Parmset.subtree_parmgroups(ns))    
+        post.append(Cohset.ParmSet.NodeSet.bookpage_subtree(ns, scope='fDMux'))    
 
         bookpage = 'Leafset.leafgroups'
         for key in Cohset.Leafset.leafgroup().keys():
@@ -444,7 +444,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     # Update the measured Cohset with the Parmset from Mohset.
     # This contains the Joneset/Sixpack MeqParms, which may be re-executed
     # separately for the full (MS) domain for inspection (see .make_sinks())
-    measured.update_from_Parmset(Mohset.Parmset)
+    # measured.update_from_Parmset(Mohset.Parmset)
     measured.update_from_ParmSet(Mohset.ParmSet)
 
     # Make a list of one or more MeqSolver subtree(s):
@@ -593,29 +593,33 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
         if i>0: solver_name = solver_name+pp['solvegroup'][i]
 
     # Get a list of names of solvable MeqParms for the solver:
-    corrs = Cohset.Parmset.sg_rider(pp['solvegroup'], key='condeq_corrs')
-    corrs = Cohset.ParmSet.condeq_corrs(pp['solvegroup'])
-    was = corrs
-    if not isinstance(corrs, (list, tuple)): corrs = [corrs]
-    if corrs==['*']: corrs = Cohset.corrs()
-    if corrs==['paral']: corrs = Cohset.paral()
-    if corrs==['cross']: corrs = Cohset.cross()
-    if corrs==['corrI']: corrs = Cohset.corrI()
-    if corrs==['corrQ']: corrs = Cohset.corrQ()
-    if corrs==['corrU']: corrs = Cohset.corrU()
-    if corrs==['corrV']: corrs = Cohset.corrV()
-    print '** corrs: ',was,'->',corrs
-    solvable = Cohset.Parmset.solveparm_names(pp['solvegroup'])
+    # corrs = Cohset.Parmset.sg_rider(pp['solvegroup'], key='condeq_corrs')
+    # print '\n** corrs (Parmset):',corrs
+    corrs = Cohset.condeq_corrs(pp['solvegroup'])
+    print '\n** corrs (ParmSet):',corrs
+    # was = corrs
+    # if not isinstance(corrs, (list, tuple)): corrs = [corrs]
+    # if corrs==['*']: corrs = Cohset.corrs()
+    # if corrs==['paral']: corrs = Cohset.paral()
+    # if corrs==['cross']: corrs = Cohset.cross()
+    # if corrs==['corrI']: corrs = Cohset.corrI()
+    # if corrs==['corrQ']: corrs = Cohset.corrQ()
+    # if corrs==['corrU']: corrs = Cohset.corrU()
+    # if corrs==['corrV']: corrs = Cohset.corrV()
+    # print '** corrs: ',was,'->',corrs
+    
+    # solvable = Cohset.Parmset.solveparm_names(pp['solvegroup'])
+    # print '\n** solvable (Parmset):',type(solvable),'=\n   ',solvable,'\n'
     solvable = Cohset.ParmSet.solveparm_names(pp['solvegroup'])
-    print '** solvable:',type(solvable),'=\n   ',solvable,'\n'
+    print '\n** solvable (ParmSet):',type(solvable),'=\n   ',solvable,'\n'
 
     dcoll_parm = []
     hcoll_parm = []
     subtree_solvegroups = None
     if pp['visu']:
-        subtree_solvegroups = Cohset.Parmset.subtree_solvegroup(ns, pp['solvegroup'],
-                                                                solver_name,
-                                                                bookpage='solvegroup_'+solver_name)    
+        # subtree_solvegroups = Cohset.Parmset.subtree_solvegroup(ns, pp['solvegroup'],
+        #                                                        solver_name,
+        #                                                        bookpage='solvegroup_'+solver_name)    
         if len(solvable)<10:
             # If not too many, show all solvable MeqParms
             for s1 in solvable:
@@ -624,7 +628,8 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
                 hcoll_parm.append(hcoll)
         else:
             # Show the first MeqParm in each parmgroup:
-            ss1 = Cohset.Parmset.solveparm_names(pp['solvegroup'], select='first')
+            # ss1 = Cohset.Parmset.solveparm_names(pp['solvegroup'], select='first')
+            ss1 = []
             for s1 in ss1:
                 # MG_JEN_forest_state.bookmark (ns[s1], page='solvable')
                 hcoll = MG_JEN_historyCollect.insert_hcoll(ns, s1, page='hcoll_solvable', graft=False)
@@ -646,7 +651,7 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
     # Cohset.Parmset.display('extra_condeqs', full=True)
     for key in pp['condition']:
         if isinstance(key, str):
-            condeq = Cohset.Parmset.make_condeq(ns, key)
+            # condeq = Cohset.Parmset.make_condeq(ns, key)
             condeq = Cohset.ParmSet.make_condeq(ns, key)
             if not isinstance(condeq, bool): extra_condeqs.append(condeq)
     solver_condeqs.extend(extra_condeqs)

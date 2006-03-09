@@ -230,7 +230,11 @@ class Cohset (TDL_common.Super):
                 if i==3: self.__corrs.append('YY')
                 
         self.__paral = []                            # list of AVAILABLE 'parallel' corrs
+        self.__paral11 = []                          # list of AVAILABLE 'parallel' corrs with pol 1
+        self.__paral22 = []                          # list of AVAILABLE 'parallel' corrs with pol 2
         self.__cross = []                            # list of AVAILABLE cross-corrs
+        self.__cross12 = []                          # list of AVAILABLE cross-corrs 12
+        self.__cross21 = []                          # list of AVAILABLE cross-corrs 21
         self.__corrI = []                            # list of AVAILABLE corrs for stokesI
         self.__corrQ = []                            # list of AVAILABLE corrs for stokesQ
         self.__corrU = []                            # list of AVAILABLE corrs for stokesU
@@ -239,6 +243,10 @@ class Cohset (TDL_common.Super):
             if ['XX','YY','RR','LL'].__contains__(corr):
                 self.__paral.append(corr)
                 self.__corrI.append(corr)
+            if ['XX','RR'].__contains__(corr):
+                self.__paral11.append(corr)
+            if ['YY','LL'].__contains__(corr):
+                self.__paral22.append(corr)
             if ['XY','YX','RL','LR'].__contains__(corr):
                 self.__cross.append(corr)
                 self.__corrU.append(corr)
@@ -246,6 +254,10 @@ class Cohset (TDL_common.Super):
                 self.__corrQ.append(corr)
             if ['XY','YX','RR','LL'].__contains__(corr):
                 self.__corrV.append(corr)
+            if ['XY','RL'].__contains__(corr):
+                self.__cross12.append(corr)
+            if ['YX','LR'].__contains__(corr):
+                self.__cross21.append(corr)
         return True
 
     def corrs(self):
@@ -257,9 +269,21 @@ class Cohset (TDL_common.Super):
     def cross(self):
         """Return a list of AVAILABLE cross-correlation names (XY, RL, etc)"""
         return self.__cross
+    def cross12(self):
+        """Return a list of AVAILABLE cross-correlation names 12 (XY, RL)"""
+        return self.__cross12
+    def cross21(self):
+        """Return a list of AVAILABLE cross-correlation names 21 (YX, LR)"""
+        return self.__cross21
     def paral(self):
         """Return a list of AVAILABLE parallel correlation names (XX, LL, etc)"""
         return self.__paral
+    def paral11(self):
+        """Return a list of AVAILABLE parallel correlation names (XX, LL) for pol 1"""
+        return self.__paral11
+    def paral22(self):
+        """Return a list of AVAILABLE parallel correlation names (XX, LL) for pol 2"""
+        return self.__paral22
     def corrI(self):
         """Return a list of AVAILABLE corrs relevant for stokesI"""
         return self.__corrI
@@ -1119,7 +1143,32 @@ class Cohset (TDL_common.Super):
         return True
 
 
-
+    def condeq_corrs (self, solvegroup, trace=True):
+        """Return a (unique) list of correlations (corrs, e.g. ['XX','YY'])
+        for the specified solvegroup. See also MG_JEN_Cohset.py"""
+        pcorrs = self.ParmSet.condeq_corrs(solvegroup, trace=trace)
+        if not isinstance(pcorrs, (list, tuple)): pcorrs = [pcorrs]
+        # NB: This is VERY clumsy, but it works:
+        cc = []
+        for pc in pcorrs:
+            if pc=='*': cc.extend(self.corrs())
+            if pc=='paral': cc.extend(self.paral())
+            if pc=='paral11': cc.extend(self.paral11())
+            if pc=='paral22': cc.extend(self.paral22())
+            if pc=='cross': cc.extend(self.cross())
+            if pc=='cross12': cc.extend(self.cross12())
+            if pc=='cross21': cc.extend(self.cross21())
+            if pc=='corrI': cc.extend(self.corrI())
+            if pc=='corrQ': cc.extend(self.corrQ())
+            if pc=='corrU': cc.extend(self.corrU())
+            if pc=='corrV': cc.extend(self.corrV())
+        # Make unique list of corrs:
+        corrs = []
+        for c in cc:
+            if not corrs.__contains__(c):
+                corrs.append(c)
+        print '** condeq_corrs: ',pcorrs,'->',corrs
+        return corrs
 
 
 #======================================================================================

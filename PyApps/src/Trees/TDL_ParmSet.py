@@ -165,9 +165,7 @@ class ParmSet (TDL_common.Super):
         for key in self.__condeq.keys():
             ss.append(indent2+' - '+str(key)+': '+str(self.__condeq[key]))
 
-        # Include the NodeSet display:
-        nn = self.NodeSet.display(full=full, doprint=False, pad=False)
-        for s in nn: ss.append('.'+indent1+s)
+        ss = TDL_common.Super.display_insert_object (self, ss, self.NodeSet, full=full)
         
         return TDL_common.Super.display_end (self, ss)
 
@@ -178,24 +176,6 @@ class ParmSet (TDL_common.Super):
     # Functions related to MeqParm nodes: 
     #--------------------------------------------------------------------------------
 
-    if False:
-        def MeqParm(self):
-            """The list of MeqParm nodes"""
-            return self.NodeSet.MeqNode()
-        
-        def len(self):
-            """The number of MeqParm nodes in MeqParm"""
-            return len(self.NodeSet.MeqNode())
-        
-        def keys(self):
-            """The list of MeqParm keys (names)"""
-            return self.NodeSet.MeqNode().keys()
-        
-        def has_key(self, key):
-            """Test whether MeqParm contains an item with the specified key"""
-            return self.keys().__contains__(key)
-
-    #-------------------------------------------------------------------------------------
 
     def MeqParm(self, ns, key=None, qual=None, parmgroup=None,
                        init_funklet=None,  
@@ -327,6 +307,10 @@ class ParmSet (TDL_common.Super):
         """Get the specified (key) parmgroup default value (None = all)."""
         return self._fieldict (self.__default_value, key=key, name='.default_value()')
 
+    def subtree_parmgroups(ns, bookpage=True):
+        """Make a subtree of the available parmgroups, and return its roo node"""
+        node = self.NodeSet.make_bundle (ns, group=None, name=None, bookpage=bookpage)
+        return rootnode
 
 #--------------------------------------------------------------------------------
 # Functions related to solvegroups:
@@ -434,11 +418,11 @@ class ParmSet (TDL_common.Super):
         for key in gg:
             rr = self.NodeSet.group_rider(key)
             if trace: print '-',key,':  rider =',rr
-            if rr.has_key('corrs'):
-                cc = rr['corrs']
+            if rr.has_key('condeq_corrs'):                 # see TDL_Joneset.parmgroup().....??
+                cc = rr['condeq_corrs']
                 if not isinstance(cc, (list,tuple)): cc = [cc]
                 for c in cc:
-                    if not c in corrs:             # avoid doubles
+                    if not c in corrs:                     # avoid doubles
                         corrs.append(c)
         if trace: print '   -> corrs =',corrs
         return corrs
@@ -447,9 +431,9 @@ class ParmSet (TDL_common.Super):
 #---------------------------------------------------------------------------
 #---------------------------------------------------------------------------
 
-    def cleanup(self, ns=None):
+    def cleanup(self):
       """Remove empty parmgroups/solvegroups"""
-      self.NodeSet.cleanup(ns)
+      self.NodeSet.cleanup()
       return True
 
 
@@ -751,8 +735,8 @@ if __name__ == '__main__':
                 default = MG_JEN_funklet.polc_ft(c00=0.0)
                 ps.MeqParm (ns, Gphase, qual=qual, default=default)
 
-    if 0:
-        ps.cleanup(ns)
+        ps.cleanup()
+
 
     if 0:
         for key in ps.condeq().keys():

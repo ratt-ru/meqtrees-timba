@@ -170,6 +170,13 @@ class Super:
         if end: ss = self.display_end(ss)
         return ss
 
+    def display_insert_object (self, ss, object=None, full=False):
+        """Insert the .display() of another object"""
+        indent1 = self.display_indent1()
+        nn = object.display(full=full, doprint=False, pad=False)
+        for s in nn:
+            ss.append('.'+indent1+s)
+        return ss
 
     def display_end(self, ss=[], pad=True, doprint=True):
         """Called at the end of a .display() function"""

@@ -400,6 +400,8 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     js.ParmSet.solvegroup('Gpol2', [a2, p2])
     js.ParmSet.solvegroup('Ggain', [a1, a2])
     js.ParmSet.solvegroup('Gphase', [p1, p2])
+
+    js.ParmSet.NodeSet.bookpage('GJones', [a1, p1, a2, p2])
     
     for station in pp['stations']:
        skey = TDL_radio_conventions.station_key(station)        
@@ -1467,7 +1469,7 @@ if __name__ == '__main__':
 
   if 1:
      js = GJones (ns, stations=stations, simul=False)
-     full = False
+     full = True
      js.display(full=full)     
      js.Parmset.display(full=full)     
      js.ParmSet.display(full=full)     

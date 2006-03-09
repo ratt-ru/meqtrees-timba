@@ -216,34 +216,6 @@ class NodeSet (TDL_common.Super):
         return self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
 
 
-    #---------------------------------------------------------------------------
-    
-    if False:
-        # To be removed eventually:
-        
-        def __getitem__(self, key):
-            """Get a named (key) MeqNode node"""
-            # This allows indexing by key and by index nr:
-            if isinstance(key, int): key = self.__MeqNode.keys()[key]
-            return self.__MeqNode[key]
-
-        def __setitem__(self, key, value):
-            """Set a named (key) MeqNode node"""
-            self.__MeqNode[key] = value
-            return self.__MeqNode[key]
-
-        def len(self):
-            """The number of MeqNode entries in MeqNode"""
-            return len(self.__MeqNode)
-        
-        def keys(self):
-            """The list of MeqNode keys (names)"""
-            return self.__MeqNode.keys()
-
-        def has_key(self, key):
-            """Test whether MeqNode contains an item with the specified key"""
-            return self.keys().__contains__(key)
-
 
     #--------------------------------------------------------------------------------
     # Convenience (service): MeqBrowser bookmarks/pages/folders
@@ -270,34 +242,6 @@ class NodeSet (TDL_common.Super):
             self.__bookpage[key] = new
         return self._fieldict (self.__bookfolder, key=key, name='.bookfolder()')
 
-    #------------------------------------------------------------------------
-
-    def make_bookpage (self, ns, group=None, pagename=None, trace=False):
-        """Make a bookpage of bundles of the specified group(s)"""
-        if trace: print '** .make_bookpage(',group,pagename,'):'
-        if not isinstance(pagename, str):
-            pagename = self._make_bundle_name(group)
-        rootnode = self.make_bundle (ns, group, bookpage=pagename)
-        return rootnode
-
-
-    def ensure_bookpages(self, ns=None, trace=False):
-        """Make sure that all defined bookpages have actually been created
-        in the forest_state record"""
-        print '\n** .ensure_bookpages(): '
-        for key in self.bookpage().keys():
-            # pagename = 'bp_'+key              # NOT a good idea!
-            pagename = key
-            if not JEN_bookmarks.get_bookpage(pagename):
-                if trace: print '- create: ',pagename
-                for name in self.bookpage(key):
-                    node = self.make_bundle(ns, name)
-                    bms = JEN_bookmarks.bookmark(node, page=pagename)
-                    # self.__bookmark[bms.name] = bms
-                    if trace: print '  -',name,':',bms
-            elif trace:
-                print '- exists already: ',pagename
-        return True
 
     #--------------------------------------------------------------------------------
     # Convenience (service): temporary buffer
@@ -613,7 +557,6 @@ class NodeSet (TDL_common.Super):
     #================================================================================
 
 
-
     #--------------------------------------------------------------------------
     # Make a subtree of MeqNode bundles (also MeqNodes), e.g. for plotting:
     #--------------------------------------------------------------------------
@@ -633,6 +576,8 @@ class NodeSet (TDL_common.Super):
             bbname = '_bd_'+str(name)
             if self.__MeqNode.has_key(bbname):               # bbundle already exists
                 return self.__MeqNode[bbname]                # just return it
+            if isinstance(bookpage, bool) and bookpage:      # if bookpage==True: 
+                 bookpage = bbname                           #   make an automatic name
 
         cc = []
         bname = None                                         # bundle name
@@ -641,7 +586,7 @@ class NodeSet (TDL_common.Super):
             if isinstance(nodes, list): 
                 n = len(nodes)
                 if n>0: 
-                    bname = 'sum'+str(n)+'('+str(g)+')'    # bundle name
+                    bname = 'sum'+str(n)+'('+str(g)+')'      # bundle name
                     if self.__MeqNode.has_key(bname):        # bundle exists already
                         node = self.__MeqNode[bname]         # use existing
                         self.__bundle[bname] += 1            # increment counter ....?
@@ -705,6 +650,65 @@ class NodeSet (TDL_common.Super):
     def bundle(self, key=None):
         """Get the specified (key) bundle  (None = all)."""
         return self._fieldict (self.__bundle, key=key, name='.bundle()')
+
+
+    #--------------------------------------------------------------------------
+    # Making MeqBrowser bookpages:
+    #--------------------------------------------------------------------------
+    
+    def ensure_bookpages(self, ns=None, trace=False):
+        """Make sure that all defined bookpages have actually been created
+        in the forest_state record. Make group bundles if necessary"""
+        if trace: print '\n** .ensure_bookpages(): '
+        for key in self.bookpage().keys():
+            # pagename = 'bp_'+key              # NOT a good idea!
+            pagename = key
+            if JEN_bookmarks.get_bookpage(pagename):
+                if trace: print '- bookpage exists already: ',pagename
+            else:
+                if trace: print '- create bookpage: ',pagename
+                for name in self.bookpage(key):
+                    node = self.make_bundle(ns, name, bookpage=pagename)
+                    bms = JEN_bookmarks.bookmark(node, page=pagename)
+                    # self.__bookmark[bms.name] = bms
+                    if trace: print '  -',name,':',bms
+        return True
+
+    #----------------------------------------------------------------------------
+
+    def bookpage_subtree(self, ns=None, scope='<scope>', compare=None, trace=False):
+        """Return the rootnode of a subtree of all bookpage nodes (bundles).
+        This can be used to supply requests to these nodes."""
+        funcname = '.bookpage_subtree()'
+        if trace: print '\n**',funcname,':'
+        uniqual = _counter(funcname, increment=-1)
+        root = []
+        for key in self.bookpage().keys():
+            pagename = str(scope)+'_'+key
+            cc = []
+            for group in self.bookpage(key):
+                node = self.make_bundle(ns, group, bookpage=pagename)
+                cc.append(node)
+                if trace: print '  -',group,':',node.name
+            if len(cc)==0:
+                pass                                        # error ...?
+                if trace: print '  - empty:',group
+            elif len(cc)==1:
+                root.append(cc[0])
+                if trace: print '  - single:',group,'->',cc[0].name
+            else:
+                name = '_bookpage_'+key
+                node = ns[name](uniqual) << Meq.Composer(children=cc)
+                root.append(node)
+                if trace: print '  - subroot:',group,len(cc),'->',node.name
+        # Return a single root node:
+        if len(root)==0: return False                       # error ....?
+        rootnode = root[0]
+        if len(root)>1:
+            name = '_bookpage_subtree'
+            rootnode = ns[name](uniqual) << Meq.Composer(children=root)
+        if trace: print '  - rootnode:',node.name
+        return rootnode
 
 
     #--------------------------------------------------------------------------
@@ -795,7 +799,8 @@ class NodeSet (TDL_common.Super):
             self.MeqNode(gname, node)
 
         # Return the bundle root node:
-        if isinstance(bookpage, bool): bookpage = gname
+        if isinstance(bookpage, bool) and bookpage:  # if bookpage==True: 
+            bookpage = gname                         #   make an automatic name
         node = self.make_bundle(ns, gname, bookpage=bookpage)
         self.history ('.apply_binop('+str(binop)+'): '+str(group)+' '+str(bookpage))
         return node
@@ -842,7 +847,8 @@ class NodeSet (TDL_common.Super):
 
         # Return the bundle root node:
         gogname = self._make_bundle_name(gnames)
-        if isinstance(bookpage, bool): bookpage = gogname
+        if isinstance(bookpage, bool) and bookpage:          # if bookpage==True: 
+            bookpage = gogname                               #   make an automatic name
         node = self.make_bundle(ns, gnames, bookpage=bookpage)
         self.history ('.compare('+str(binop)+'): '+str(NodeSet.label())+' '+str(group)+' '+str(bookpage))
         return node
@@ -853,7 +859,7 @@ class NodeSet (TDL_common.Super):
     # Some organising functions:
     #---------------------------------------------------------------------------
 
-    def cleanup(self, ns=None):
+    def cleanup(self):
       """Remove empty groups/gogs"""
 
       # Remove empty groups:
@@ -872,9 +878,8 @@ class NodeSet (TDL_common.Super):
         if not ok: self.__gog.__delitem__(skey)
 
       # Miscellaneous:
-      self.ensure_bookpages(ns)                 # Make bookmarks if necessary
       self.buffer(clear=True)                   # Clear the temporary buffer
-      self.history ('.cleanup(): removed group(s): '+str(removed))
+      self.history ('.cleanup():  removed empty group(s): '+str(removed))
       return True
 
     #-----------------------------------------------------------------
@@ -1022,7 +1027,7 @@ def test1(ns, nstat=2, mult=1.0):
     nst.bookpage('GX', [a1,p1])
     nst.bookpage('GY', [a2,p2])
 
-    nst.cleanup(ns)
+    nst.cleanup()
     return nst
 
 
@@ -1063,7 +1068,7 @@ def test2(ns, nstat=2, mult=1.1):
     nst.bookpage('GX', [a1,p1])
     nst.bookpage('GY', [a2,p2])
 
-    nst.cleanup(ns)
+    nst.cleanup()
     return nst
 
 
@@ -1099,9 +1104,6 @@ if __name__ == '__main__':
 
     if 1:
         nst = test1(ns)
-
-    if 0:
-        nst.cleanup(ns)
 
     if 0:
         gg = nst.group_keys()
@@ -1141,12 +1143,8 @@ if __name__ == '__main__':
 
     if 0:
         # bb = nst.make_bundle(ns)
-        bb = nst.make_bundle(ns, 'grogog')
+        bb = nst.make_bundle(ns, 'grogog', bookpage=True)
         TDL_display.subtree(bb, 'bundle', full=True, recurse=3)
-        
-    if 0:
-        nst.make_bookpage(ns, 'grogog')
-        nst.make_bookpage(ns, 'grogog')
         
     if 0:
         nst.apply_unop(ns, 'GJones', 'Cos', bookpage=True)
@@ -1154,17 +1152,21 @@ if __name__ == '__main__':
     if 0:
         nst.apply_binop(ns, [a1,p1], 'Polar', bookpage=True)
 
-    if 1:
+    if 0:
         nst2 = test2(ns)
         nst2.display('nst2', full=True)
 
-    if 1:
+    if 0:
         nst.compare(ns, nst2, 'GJones', bookpage=True)
 
     if 0:
         nst.update(nst2)
 
     if 1:
+        root = nst.bookpage_subtree(ns, trace=True)
+        TDL_display.subtree(root, 'bookpage_subtree', full=True, recurse=3)
+
+    if 0:
         nst.display(full=True)
         # nst.display()
 

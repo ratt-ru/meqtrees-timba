@@ -145,7 +145,7 @@ class Joneset (TDL_common.Super):
         if isinstance(pp['ipol'], int):
             key = key+'_'+self.pols(pp['ipol'])
 
-        # Deal with correlation:
+        # Deal with correlation (obsolete):
         corrs = pp['corrs']
         if corrs=='*': corrs = self.corrs_all()
         if corrs=='paral': corrs = self.corrs_paral()
@@ -157,11 +157,12 @@ class Joneset (TDL_common.Super):
         if corrs=='cross12': corrs = self.corrs_cross12()
         if corrs=='cross21': corrs = self.corrs_cross21()
         # if self.corrs_all().__contains__(corrs): corrs = corrs      # single corr (e.g. 'RR')
-        rider = dict(condeq_corrs=corrs)
 
         # Register the parmgroup:
+        rider = dict(condeq_corrs=pp['corrs'])
         self.Parmset.parmgroup(key=key, rider=rider, **pp)
-        self.ParmSet.parmgroup(key=key, condeq_corrs=corrs, **pp)
+        # self.ParmSet.parmgroup(key=key, condeq_corrs=pp['corrs'], **pp)
+        self.ParmSet.parmgroup(key=key, **rider)
         s1 = 'Register parmgroup: '+str(key)+': '
         s1 += str(pp['ipol'])+' '+str(pp['corrs'])
         self._history(s1)
@@ -502,11 +503,11 @@ if __name__ == '__main__':
 
     if 1:
         js = Joneset(label='GJones', polrep='circular')
-        p1 = js.parmgroup('Gphase', ipol=1, color='red', corrs=js.corrs_paral1())
-        a2 = js.parmgroup('Gampl', ipol=2, color='blue', corrs=js.corrs_paral2())
-        a1 = js.parmgroup('Gampl', ipol=1, color='blue', corrs=js.corrs_paral1())
-        d12 = js.parmgroup('Ddang', color='blue', corrs=js.corrs_cross())
-        d2 = js.parmgroup('Ddang', ipol=2, color='blue', corrs=js.corrs_cross())
+        p1 = js.parmgroup('Gphase', ipol=1, color='red', corrs='paral11')
+        a2 = js.parmgroup('Gampl', ipol=2, color='blue', corrs='paral22')
+        a1 = js.parmgroup('Gampl', ipol=1, color='blue', corrs='paral11')
+        d12 = js.parmgroup('Ddang', color='blue', corrs='cross')
+        d2 = js.parmgroup('Ddang', ipol=2, color='blue', corrs='cross')
         js.ParmSet.node_groups(['G','QQ'])
         js.ParmSet.node_groups(['G'])
 

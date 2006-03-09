@@ -70,13 +70,13 @@ def _define_forest (ns):
    nst = make_NodeSet(ns)
 
    # Make a bookpage for all node groups:
-   cc.append(nst.make_bookpage(ns, nst.group_keys(), 'all_groups'))
+   # cc.append(nst.make_bookpage(ns, nst.group_keys(), 'all_groups'))
 
    # Make a bookpage for a particular group:
-   cc.append(nst.make_bookpage(ns, ['Ggain_X']))
+   # cc.append(nst.make_bookpage(ns, ['Ggain_X']))
 
-   # Make a bookpage for a particular group-of-groups (gog):
-   cc.append(nst.make_bookpage(ns, 'Gphase'))
+   # Make a subtree of all bookpages:
+   cc.append(nst.bookpage_subtree(ns))
 
    # Apply an unary operation on a group:
    cc.append(nst.apply_unop(ns, 'Ggain', unop='Cos', bookpage=True))
@@ -140,7 +140,7 @@ def make_NodeSet(ns):
    # Define some bookpages:
    nst.bookpage('GX', [a1,p1])
    nst.bookpage('GY', [a2,p2])
-   nst.cleanup(ns)
+   nst.cleanup()
    return nst
 
 
