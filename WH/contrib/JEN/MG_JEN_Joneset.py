@@ -47,6 +47,7 @@ from Timba.Trees import JEN_inarg
 from Timba.Trees import TDL_Joneset
 # from Timba.Trees import TDL_Parmset          # via TDL_Joneset.py
 from Timba.Trees import TDL_Leafset     
+from Timba.Trees import TDL_LeafSet     
 from Timba.Trees import TDL_radio_conventions
 
 from Timba.Contrib.JEN import MG_JEN_exec
@@ -283,11 +284,12 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
                      help='if True, use MeqPolar, otherwise MeqToComplex')
     
     if simul:                              # simulation mode
-       ls = TDL_Leafset.Leafset()
+       # ls = TDL_Leafset.Leafset()
+       ls = TDL_LeafSet.LeafSet()
        ls.inarg(pp)
 
     else:                                  # normal mode
-       inarg_Joneset_Parmset(pp, slave=slave)              
+       inarg_Joneset_ParmSet(pp, slave=slave)              
        # ** Solving instructions:
        JEN_inarg.define(pp, 'tdeg_Ggain', 0, choice=[0,1,2,3],  
                         help='degree of time polynomial')
@@ -345,7 +347,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
                       c00_scale=1.0, timescale_min=10, fdeg=0,
                       color='cyan', style='diamond', size=10, **pp)
 
-    if True:
+    if False:
        # Define potential extra condition equations:
        js.Parmset.define_condeq(p1, unop='Add', value=0.0)
        js.Parmset.define_condeq(p1, select='first', value=0.0)
@@ -401,7 +403,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     js.ParmSet.solvegroup('Ggain', [a1, a2])
     js.ParmSet.solvegroup('Gphase', [p1, p2])
 
-    js.ParmSet.NodeSet.bookpage('GJones', [a1, p1, a2, p2])
+    js.bookpage('GJones', [a1, p1, a2, p2])
     
     for station in pp['stations']:
        skey = TDL_radio_conventions.station_key(station)        
@@ -409,7 +411,8 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
        for Ggain in [a1,a2]:
           if simul:
-             js.Leafset.define_MeqLeaf (ns, Ggain, qual=qual, **pp)
+             # js.Leafset.define_MeqLeaf (ns, Ggain, qual=qual, **pp)
+             js.LeafSet.MeqLeaf (ns, Ggain, qual=qual, **pp)
           else:
              # default = MG_JEN_funklet.polc_ft (c00=pp['c00_Ggain'], stddev=pp['stddev_Ggain'],
              #                                  fdeg=pp['fdeg_Ggain'], tdeg=pp['tdeg_Ggain'],
@@ -423,7 +426,8 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
        for Gphase in [p1,p2]:
           if simul:
-             js.Leafset.define_MeqLeaf (ns, Gphase, qual=qual, **pp)
+             # js.Leafset.define_MeqLeaf (ns, Gphase, qual=qual, **pp)
+             js.LeafSet.MeqLeaf (ns, Gphase, qual=qual, **pp)
           else:
              # default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'], stddev=pp['stddev_Gphase'], 
              #                                  fdeg=pp['fdeg_Gphase'], tdeg=pp['tdeg_Gphase'],
@@ -1468,12 +1472,13 @@ if __name__ == '__main__':
      display_first_subtree (js, full=1)
 
   if 1:
-     js = GJones (ns, stations=stations, simul=False)
+     simul = True
+     js = GJones (ns, stations=stations, simul=simul)
      full = True
      js.display(full=full)     
-     js.Parmset.display(full=full)     
+     # js.Parmset.display(full=full)     
      js.ParmSet.display(full=full)     
-     # js.Leafset.display(full=True)     
+     js.LeafSet.display(full=True)     
      # display_first_subtree (js, full=True)
 
   if 0:

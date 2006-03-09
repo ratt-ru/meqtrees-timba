@@ -254,7 +254,7 @@ class ParmSet (TDL_common.Super):
                                                 node_groups=self.node_groups(),
                                                 table_name=self.parmtable())
             
-        # Store the new node n the NodeSet:
+        # Store the new node in the NodeSet:
         self.NodeSet.MeqNode(parmgroup, node)
         return node
 
@@ -296,7 +296,7 @@ class ParmSet (TDL_common.Super):
             self.solvegroup(key, [key], gogtype='solvegroup')       
             return result
         # Then the generic NodeSet part:
-        return self.NodeSet.group(key, **pp)
+        return self.NodeSet.group(key)
 
 
     def parmgroup_keys (self):
@@ -308,7 +308,7 @@ class ParmSet (TDL_common.Super):
         return self._fieldict (self.__default_value, key=key, name='.default_value()')
 
     def subtree_parmgroups(ns, bookpage=True):
-        """Make a subtree of the available parmgroups, and return its roo node"""
+        """Make a subtree of the available parmgroups, and return its root node"""
         node = self.NodeSet.make_bundle (ns, group=None, name=None, bookpage=bookpage)
         return rootnode
 

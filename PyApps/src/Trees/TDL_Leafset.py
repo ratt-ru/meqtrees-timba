@@ -68,7 +68,7 @@ class Leafset (TDL_common.Super):
 
 
     def clear(self):
-        """Clear the object"""
+        """Clear the object."""
         self.__quals = dict()                        # record of default node-name qualifiers
         self.__leafgroup = dict()
         self.__leafparms = dict()

@@ -228,7 +228,7 @@ class NodeSet (TDL_common.Super):
 
     def bookpage(self, key=None, new=None):
         """Get/define the specified (key) bookpage definition (None = all).
-        A definition consists of a list of MeqNodes (a gog, really)"""
+        A definition consists of a list of MeqNodes (a gog, really)."""
         if new:
             if not isinstance(new, (list,tuple)): new = [new]
             self.__bookpage[key] = new

@@ -44,6 +44,7 @@ from numarray import *
 
 from Timba.Trees import TDL_common
 from Timba.Trees import TDL_NodeSet
+from Timba.Trees import JEN_inarg
 
 
 
@@ -111,34 +112,144 @@ class LeafSet (TDL_common.Super):
         return TDL_common.Super.display_end (self, ss)
 
 
+    #-------------------------------------------------------------------------------------
+    # MeqLeaf definition:
+    #-------------------------------------------------------------------------------------
+
+
+    def MeqLeaf(self, ns, key=None, qual=None,
+                leafgroup=None, default=None, **pp):
+        """Convenience function to create a MeqLeaf node"""
+
+        # uniqual = _counter (leafgroup, increment=True)
+
+        # The node-name qualifiers are the superset of the default ones
+        # and the ones specified in this function call:
+        quals = deepcopy(self.NodeSet.quals())  # just in case.....
+        if isinstance(qual, dict):
+            for qkey in qual.keys():
+                quals[qkey] = str(qual[qkey])
+
+        # Start with the default value for this leafgroup:
+        if leafgroup==None:
+            leafgroup = key
+
+        # Get the associated leafparms fron the NodeSet rider record:
+        lgp = self.NodeSet.group_rider(key)
+
+        # Start with the MeqParm default value (funklet?) for this leafgroup:
+        if default==None:
+            default = lgp['c00_default']
+        aa = []
+        aa.append(ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default))
+
+        # Make the (additive) time-variation function:
+        # For the moment: A cos(MeqTime) with a certain period
+        mm = []
+        mean_sec = lgp['timescale_min']*60*pp['mean_period']
+        stddev_sec = lgp['timescale_min']*60*pp['stddev_period']
+        T_sec = ceil(gauss(mean_sec, stddev_sec))
+        if T_sec<10: T_sec = 10
+        mm.append(ns['2pi/T'](leafgroup)(**quals)(T=str(T_sec)+'sec') << Meq.Constant(2*pi/T_sec))
+        mm.append(ns['MeqTime'](leafgroup)(**quals) << Meq.Time())
+        node = ns['targ'](leafgroup)(**quals) << Meq.Multiply(children=mm)
+
+        mm = []
+        mm.append(ns << Meq.Cos(node))
+        mean = lgp['c00_scale']*pp['mean_c00']
+        stddev = lgp['c00_scale']*pp['stddev_c00']
+        ampl = gauss(mean, stddev)
+        mm.append(ns['tampl'](leafgroup)(**quals)(ampl=str(ampl)) << Meq.Constant(ampl))
+        aa.append(ns['tvar'](leafgroup)(**quals) << Meq.Multiply(children=mm))
+
+        # Combine the various components into a leaf with the desired name:
+        node = ns[key](**quals) << Meq.Add(children=aa)
+
+        # Store the new node in the NodeSet:
+        self.NodeSet.MeqNode(leafgroup, node)
+        return node
+
+
+    #------------------------------------------------------------------------
+
+    def inarg (self, pp, **kwargs):
+        """Definition of Leafset input arguments (see e.g. MG_JEN_Joneset.py)"""
+        kwargs.setdefault('mean_c00', 0.1)
+        kwargs.setdefault('stddev_c00', 0.01)
+        kwargs.setdefault('mean_period', 1.0)
+        kwargs.setdefault('stddev_period', 0.1)
+        JEN_inarg.define(pp, 'mean_c00', kwargs,
+                         choice=[0,0.1,0.2,0.5,-0.1],  
+                         help='mean of EXTRA c00 (fraction of c00_scale)')
+        JEN_inarg.define(pp, 'stddev_c00', kwargs,
+                         choice=[0,0.0001,0.001,0.01,0.1,1],  
+                         help='scatter in EXTRA c00 (fraction of c00_scale')
+        JEN_inarg.define(pp, 'mean_period', kwargs,
+                         choice=[0.3,0.5,1,2,3],  
+                         help='mean period T (fraction of timescale_min)')
+        JEN_inarg.define(pp, 'stddev_period', kwargs,
+                         choice=[0,0.01,0.1,0.2,0.5],  
+                         help='scatter in period T (fraction of timescale_min)')
+        JEN_inarg.define(pp, 'unop', 'Cos', hide=False,
+                         choice=['Cos','Sin',['Cos','Sin'],None],  
+                         help='time-variability function')
+        return True
 
 
     #--------------------------------------------------------------------------------
-    # Functions related to MeqParm nodes: 
+    # Functions related to leafgroups:
     #--------------------------------------------------------------------------------
 
+    def leafgroup (self, key=None, **pp):
+        """Get/define the named (key) leafgroup"""
+        # First the LeafSet-specific part:
+        if len(pp)>0:
+            # leafgroup does not exist yet: Create it:
+            # pp.setdefault('default', 1.0)       # default value (usually c00)
+            pp.setdefault('color', 'red')       # plot color
+            pp.setdefault('style', 'triangle')  # plot style
+            pp.setdefault('size', 5)            # size of plotted symbol
+            pp.setdefault('c00_default', 1.0)   # default c00 of the members of this leafgroup 
+            pp.setdefault('c00_scale', 1.0)     # scale of typical parameter value
+            pp.setdefault('timescale_min', 20)  # typical timescale (sec) of variation 
+            pp.setdefault('fdeg', 0)            # degree of freq-variation (polynomial)
+            qq = TDL_common.unclutter_inarg(pp)
+            self.history('** Created leafgroup: '+str(key)+':   ')
+            return self.NodeSet.group(key, **qq)
+        # Then the generic NodeSet part:
+        return self.NodeSet.group(key)
 
 
-#---------------------------------------------------------------------------
-#---------------------------------------------------------------------------
+    def leafgroup_keys (self):
+        """Return the keys (names) of the available leafgroups"""
+        return self.NodeSet.group_keys()
+
+    def subtree_leafgroups(ns, bookpage=True):
+        """Make a subtree of the available leafgroups, and return its root node"""
+        node = self.NodeSet.make_bundle (ns, group=None, name=None, bookpage=bookpage)
+        return rootnode
+
+
+    #---------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
 
     def cleanup(self):
-      """Remove empty parmgroups/solvegroups"""
+      """Remove empty leafgroups etc"""
       self.NodeSet.cleanup()
       return True
 
 
     def update(self, LeafSet=None):
-        """Update the solvegroup/parmgroup info from another LeafSet object"""
+        """Update the leafgroup info etc from another LeafSet object"""
         if LeafSet==None: return False
         self.NodeSet.update(LeafSet.NodeSet)
         self.history(append='updated from: '+LeafSet.oneliner())
         return True
 
 
-#----------------------------------------------------------------------
-#   methods used in saving/restoring the LeafSet
-#----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    #   methods used in saving/restoring the LeafSet
+    #----------------------------------------------------------------------
 
     def clone(self):
         """clone self such that no NodeStubs are present.

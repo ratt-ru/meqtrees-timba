@@ -74,7 +74,7 @@ def subtree (node, txt='<txt>', level=0, cindex=0, recurse=1000, count={}, full=
 
    if key in count.keys():
       count[key] += 1
-      if full: print '      (see above)'
+      if full: print '       (see above)'
 
    else:
       count[key] = 1
