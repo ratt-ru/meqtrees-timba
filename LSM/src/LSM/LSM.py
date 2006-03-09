@@ -1331,4 +1331,63 @@ class LSM:
      lpb.cancel()
      del lpb
  
+
+
+ # read in a saved .lsm file given by 'filename'
+ # and merge the sources included in it to this one.
+ # if we find sources with duplicate names, ignore them
+ def merge(self,filename,ns=None):
+  try:
+   f=open(filename,'rb') 
+   p=pickle.Unpickler(f)
+   tmpl=LSM()
+   tmpl=p.load()
+
+   # recreate the sixpacks
+   if tmpl.__root!=None:
+    if ns==None:
+     ns=self.__ns
+    my_dict=pickle.loads(tmpl.__root)
+    my_dict=reconstruct(my_dict,ns)
+   else:
+     tmpl.__root=self.__root
+   
+   # reconstruct PUnits and Sixpacks if possible
+   for sname in tmpl.p_table.keys(): 
+    punit=tmpl.p_table[sname]
+    punit.setLSM(self)
+    # now create the sixpack
+    tmp_dict=punit.getSP()
+    #print tmp_dict
+    if tmp_dict.has_key('patchroot'):
+     my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
+      ns=self.__ns, root=self.__ns[tmp_dict['patchroot']])
+    else: 
+     # NOTE: do not give the nodescope because then it tries to
+     # compose, but the tree is already composed
+     my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
+       ra=cname_node_stub(self.__ns,tmp_dict['ra']),\
+       dec=cname_node_stub(self.__ns,tmp_dict['dec']),\
+       stokesI=cname_node_stub(self.__ns,tmp_dict['I']),\
+       stokesQ=cname_node_stub(self.__ns,tmp_dict['Q']),\
+       stokesU=cname_node_stub(self.__ns,tmp_dict['U']),\
+      stokesV=cname_node_stub(self.__ns,tmp_dict['V']))
+     # set the root node
+     my_sp=my_sp.clone(sixpack=self.__ns[tmp_dict['pointroot']],ns=self.__ns)
+    punit.setSP(my_sp)
+    # recreate Parmset for this sixpack
+    punit.setParmset(tmp_dict['Parmset'],self.__ns)
+    # set the root
+    punit.sp.setRoot(my_sp.sixpack())
+    # add the new PUnit to self
+    self.insertPUnit(punit)
+
+   f.close()
+
+  except IOError:
+   print "file %s cannot be opened, load failed" % filename 
+  # next step: Load the MeqTrees if possible 
+  if self.mqs != None:
+   pass
+
 #########################################################################

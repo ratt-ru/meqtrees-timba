@@ -405,13 +405,25 @@ def get_default_parms(nd):
 ## extract a node stub from given nodescope using the 
 ## full name in the format 'a':q='b'
 def cname_node_stub(ns,nodename):
-  alist=string.split(nodename,":q=")
+  alist=string.split(nodename,":")
   nodestub=None
   if len(alist)==1:
    nodestub=ns[alist[0]]
   else:
-   wstr="nodestub=ns."+alist[0]+"(q='"+alist[1]+"')"
-   exec wstr# in globals(),locals()
+    # we have qualifiers
+    wstr="nodestub=ns['"+alist.pop(0)+"']("
+    for qstr in alist:
+      # try to split on the '=' sign
+      blist=string.split(qstr,'=')
+      if len(blist)==1:
+        wstr=wstr+"'"+blist[0]+"',"
+      else:
+        wstr=wstr+blist[0]+"='"+blist[1]+"',"
+
+    # finally
+    wstr=wstr+")"
+    #print wstr
+    exec wstr
   return nodestub
 
 #######################################################
