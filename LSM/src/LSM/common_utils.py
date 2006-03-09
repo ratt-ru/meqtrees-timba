@@ -227,8 +227,17 @@ def create_node_stub(mydict,stubs,ns,myname):
   for ch in chlist:
    if not stubs.has_key(ch):
     stubs[ch]=create_node_stub(mydict,stubs,ns,ch)
-  # stublist.append(stubs[ch])
   # now we have created the child list
+  
+  # first check the nodescope if the node given by the name already exists
+  if ns.AllNodes().has_key(myname):
+   print "WARNING: node %s already created"%myname
+   got_stub=cname_node_stub(ns,myname)
+   # add children
+   for child in stubs:
+    got_stub.add_children(child)
+   return got_stub
+
   # now deal with initrec()
   irec=myrec['initrec']
   #print 'My Rec==',myrec
@@ -292,7 +301,8 @@ def create_node_stub(mydict,stubs,ns,myname):
   #print "Total=",total_str
   exec total_str in globals(),locals()
   #print ns[myname].initrec()
-  return ns[myname]
+  #return ns[myname]
+  return cname_node_stub(ns,myname)
      
  
 # the basic assumption with the following method is 

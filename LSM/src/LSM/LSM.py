@@ -1382,6 +1382,12 @@ class LSM:
     # add the new PUnit to self
     self.insertPUnit(punit)
 
+   # reconstruct source table too...
+   ##self.s_table=
+   for sname in tmpl.s_table.keys():
+    if not self.s_table.has_key(sname):
+     # add source to source table
+     self.s_table[sname]=Source(sname)
    f.close()
 
   except IOError:
