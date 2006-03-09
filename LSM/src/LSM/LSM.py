@@ -195,6 +195,9 @@ class PUnit:
  # return a sixpack object (TDL_Sixpack) for this PUnit
  def getSixpack(self):
   return self.__sixpack
+ # set the sixpack object
+ def setSixpack(self,sp):
+  self.__sixpack=sp
 
  # change RA,Dec of myself, 
  def change_location(self,new_ra,new_dec,ns):
@@ -351,7 +354,8 @@ class LSM:
  # orders according to the brightness
  def insertPUnit(self,p):
   if self.p_table.has_key(p.name):
-   raise NameError, 'PUnit '+p.name+' is already present'
+   #raise NameError, 'PUnit '+p.name+' is already present'
+   print "WARNING: PUnit '"+p.name+"' is already present. Ignoring insertion"
   else:
    self.p_table[p.name]=p
   # now do the sorting of the brightness array
@@ -1354,36 +1358,38 @@ class LSM:
    
    # reconstruct PUnits and Sixpacks if possible
    for sname in tmpl.p_table.keys(): 
-    punit=tmpl.p_table[sname]
-    punit.setLSM(self)
-    # now create the sixpack
-    tmp_dict=punit.getSP()
-    #print tmp_dict
-    if tmp_dict.has_key('patchroot'):
-     my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
-      ns=self.__ns, root=self.__ns[tmp_dict['patchroot']])
-    else: 
-     # NOTE: do not give the nodescope because then it tries to
-     # compose, but the tree is already composed
-     my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
-       ra=cname_node_stub(self.__ns,tmp_dict['ra']),\
-       dec=cname_node_stub(self.__ns,tmp_dict['dec']),\
-       stokesI=cname_node_stub(self.__ns,tmp_dict['I']),\
-       stokesQ=cname_node_stub(self.__ns,tmp_dict['Q']),\
-       stokesU=cname_node_stub(self.__ns,tmp_dict['U']),\
-      stokesV=cname_node_stub(self.__ns,tmp_dict['V']))
-     # set the root node
-     my_sp=my_sp.clone(sixpack=self.__ns[tmp_dict['pointroot']],ns=self.__ns)
-    punit.setSP(my_sp)
-    # recreate Parmset for this sixpack
-    punit.setParmset(tmp_dict['Parmset'],self.__ns)
-    # set the root
-    punit.sp.setRoot(my_sp.sixpack())
-    # add the new PUnit to self
-    self.insertPUnit(punit)
+    if not self.p_table.has_key(sname):
+       punit=tmpl.p_table[sname]
+       punit.setLSM(self)
+       # now create the sixpack
+       tmp_dict=punit.getSixpack()
+       #print tmp_dict
+       if tmp_dict.has_key('patchroot'):
+           my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
+            ns=self.__ns, root=self.__ns[tmp_dict['patchroot']])
+       else: 
+       # NOTE: do not give the nodescope because then it tries to
+       # compose, but the tree is already composed
+          my_sp=TDL_Sixpack.Sixpack(label=tmp_dict['label'],\
+            ra=cname_node_stub(self.__ns,tmp_dict['ra']),\
+            dec=cname_node_stub(self.__ns,tmp_dict['dec']),\
+            stokesI=cname_node_stub(self.__ns,tmp_dict['I']),\
+            stokesQ=cname_node_stub(self.__ns,tmp_dict['Q']),\
+            stokesU=cname_node_stub(self.__ns,tmp_dict['U']),\
+            stokesV=cname_node_stub(self.__ns,tmp_dict['V']))
+       # set the root node
+       my_sp=my_sp.clone(sixpack=self.__ns[tmp_dict['pointroot']],ns=self.__ns)
+       punit.setSP(my_sp)
+       # recreate Parmset for this sixpack
+       punit.setParmset(tmp_dict['Parmset'],self.__ns)
+       # set the root
+       punit.sp.setRoot(my_sp.sixpack())
+       # add the new PUnit to self
+       self.insertPUnit(punit)
+    else:
+     print "WARNING: PUnit %s already found. Ignoring"%sname
 
    # reconstruct source table too...
-   ##self.s_table=
    for sname in tmpl.s_table.keys():
     if not self.s_table.has_key(sname):
      # add source to source table

@@ -234,7 +234,7 @@ def create_node_stub(mydict,stubs,ns,myname):
    print "WARNING: node %s already created"%myname
    got_stub=cname_node_stub(ns,myname)
    # add children
-   for child in stubs:
+   for child in chlist:
     got_stub.add_children(child)
    return got_stub
 
