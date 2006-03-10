@@ -42,8 +42,8 @@
 //#include <lattices/Lattices/Lattice.h>
 //#include <casa/BasicMath/Math.h>
 //#include <casa/BasicSL/Constants.h>
-#include <complex.h>
 #include <fftw3.h>
+#include <blitz/array/stencilops.h>
 
 namespace Meq {
   
@@ -212,6 +212,14 @@ int FFTBrick::getResult (Result::Ref &resref,
 
 };
 
+using namespace blitz;
+
+BZ_DECLARE_STENCIL4(make_interpolation_planes,U,V,UV,X)
+  U = (X(-1,0) + X(+1,0))/2;
+  V = (X(0,-1) + X(0,+1))/2;
+  UV = (X(-1,-1) + X(-1,+1) + X(+1,-1) + X(+1,+1))/4;
+BZ_END_STENCIL_WITH_SHAPE(shape(-1,-1),shape(+1,+1))
+
 void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
 {
   Vells::Shape input_shape = input_vells.shape();
@@ -370,15 +378,20 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
         fft_arr(makeLoRange(0,nu-nu1-1),makeLoRange(0,nv-nv1-1));
     
     // fill in interpolation coeffs
-    for (int i = 1; i < nu-1; i++)
-      for (int j = 1; j < nv-1; j++)
-      {
-        u_arr(i,j)  = (out_arr(i+1,j) + out_arr(i-1,j))/2.;
-        v_arr(i,j)  = (out_arr(i,j+1) + out_arr(i,j-1))/2.;
-        uv_arr(i,j) = (out_arr(i+1,j+1) + out_arr(i-1,j+1) +
-	 	       out_arr(i+1,j-1) + out_arr(i-1,j-1))/4.;
-
-      }
+    // use the Blitz stencil defined above for the central area
+    blitz::applyStencil(make_interpolation_planes(),u_arr,v_arr,uv_arr,out_arr);
+        
+    // the stencil leaves the edges alone, so we have to compute them separately
+    
+//     for (int i = 1; i < nu-1; i++)
+//       for (int j = 1; j < nv-1; j++)
+//       {
+//         u_arr(i,j)  = (out_arr(i+1,j) + out_arr(i-1,j))/2.;
+//         v_arr(i,j)  = (out_arr(i,j+1) + out_arr(i,j-1))/2.;
+//         uv_arr(i,j) = (out_arr(i+1,j+1) + out_arr(i-1,j+1) +
+// 	 	       out_arr(i+1,j-1) + out_arr(i-1,j-1))/4.;
+// 
+//       }
     // Assume periodicity: value at '-1' equals 'nu-1' or 'nv-1'
     //                     value at 'nu', 'nv' equals '0'
     // Check this!
