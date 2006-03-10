@@ -25,589 +25,431 @@
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 #include <MEQ/Vells.h>
+#include <MEQ/Axis.h>
+#include <MEQ/VellsSlicer.h>
+
+//#include <casa/aips.h>
+//#include <casa/Arrays.h>
+//#include <casa/Arrays/Vector.h>
+//#include <casa/BasicSL/String.h>
+//#include <images/Images/ImageInterface.h>
+//#include <images/Images/PagedImage.h>
+//#include <images/Images/ImageFFT.h>
+//#include <images/Images/TempImage.h>
+//#include <coordinates/Coordinates/CoordinateUtil.h>
+//#include <coordinates/Coordinates/CoordinateSystem.h>
+//#include <lattices/Lattices/LatticeIterator.h>
+//#include <lattices/Lattices/Lattice.h>
+//#include <casa/BasicMath/Math.h>
+//#include <casa/BasicSL/Constants.h>
 #include <complex.h>
 #include <fftw3.h>
 
 namespace Meq {
   
 
-  FFTBrick::FFTBrick()
-    :
-    // The parameter determining the factor of zero padding. 
-    // uvppw = 10 means a factor of 10 zero padding, 
-    //  resulting in approx. 10 points per wavelength in the UVBrick.
-    _uvppw(10.0)
-  {
-    // For now these axes are defined in the PatchComposer Node.
-    // However, these axes should be defined here, 
-    //  since the output will be defined on these axes.
-    //Axis::addAxis("U");
-    //Axis::addAxis("V");
-  };
-  
-  FFTBrick::~FFTBrick()
-  {
-  };
-  
-  int FFTBrick::getResult (Result::Ref &resref,
-			  const std::vector<Result::Ref> &childres,
-			  const Request &request,bool newreq){
+FFTBrick::FFTBrick()
+  : Node(1),     // exactly 1 child expected
+  _uvppw(2.0)
+{
+  _in_axis_id.resize(2);
+  _in_axis_id[0] = "L";
+  _in_axis_id[1] = "M";
+  _out_axis_id.resize(2);
+  _out_axis_id[0] = "U";
+  _out_axis_id[1] = "V";
+  // For now these axes are defined in the PatchComposer Node.
+  //Axis::addAxis("U");
+  //Axis::addAxis("V");
+};
 
-    // Get the Cells (Time, Freq, L, M) of the child
-    Cells child_cells = childres.at(0)->cells();
+FFTBrick::~FFTBrick()
+{
+};
+
+
+int FFTBrick::getResult (Result::Ref &resref,
+			const std::vector<Result::Ref> &child_results,
+			const Request &request,bool newreq)
+{
+  Assert(child_results.size()==1);
+  const Result & childres = child_results[0];
+  
+  // first, figure out the axes. Exception will be thrown for us if any are
+  // invalid
+  _inaxis0 = Axis::axis(_in_axis_id[0]);
+  _inaxis1 = Axis::axis(_in_axis_id[1]);
+  _outaxis0 = Axis::axis(_out_axis_id[0]);
+  _outaxis1 = Axis::axis(_out_axis_id[1]);
+  
+  // Get the Cells of the child and ensure that input axes are present and
+  // uniformly gridded
+  const Cells & input_cells = childres.cells();
+  FailWhen(!input_cells.isDefined(_inaxis0) || !input_cells.isDefined(_inaxis1),
+      "one or both input axes are not defined in the child cells");
+  FailWhen(input_cells.numSegments(_inaxis0)!=1 || input_cells.numSegments(_inaxis0)!=1,
+      "one or both input axes not uniformly gridded in the child cells");
+  
+  // Figure out the shapes 
+  // NB: for historical reasons, we'll use l,m to name variables referring to 
+  // the input axes, and u,v when referring to the output axes. The real axes
+  // in use are of course determined above.
+  nl = input_cells.ncells(Axis::axis("L"));
+  nu = int(_uvppw*nl)+1;
+
+  nm = input_cells.ncells(Axis::axis("M"));
+  nv = int(_uvppw*nm)+1;
+
+  nl1 = (nl-1)/2; // center point in LM plane
+  nm1 = (nm-1)/2;
+  nu1 = nu/2;  // center point in UV plane
+  nv1 = nv/2;
+  
+  // Now, the Result dimensions. Since we generate 4 output interpolation
+  // planes per a single input plane, we add an extra tensor dimension of 
+  // size 4
+  Result::Dims dims = childres.dims();
+  dims.push_back(4);
+  
+  // make a new Result
+  Result & result = resref <<= new Result(dims);
+  
+  // now loop over input VellSets and FFT them one by one
+  int ovs = 0;  // counter of output VellSets
+  for( int ivs = 0; ivs<childres.numVellSets(); ivs++ )
+  {
+    const VellSet &vs_input = childres.vellSet(ivs);
+    // create 4 new output VellSets
+    VellSet * pvs_output[4];
+    for( int i=0; i<4; i++,ovs++ )
+      pvs_output[i] = &( result.setNewVellSet(ovs) );
     
-    // This node applies the FFT on the L and M axes,
-    //   producing data on U and V axes.
-    // If the L and M axes do not exist, nothing is done yet. 
-    //   I guess something should be done. Error message?
-    // I assume all 4 Stokes parameters are available in different Planes.
-    //   What if this is not the case?
-    if ( child_cells.isDefined(Axis::axis("L")) && child_cells.isDefined(Axis::axis("M")) ){
-
-      // Construct the Result Cells from the Child Cells
-      // In my version the output is put on L and M axes. 
-      //   These should be U and V axes.
-      int nf = child_cells.ncells(Axis::FREQ);
-
-      const int nl = child_cells.ncells(Axis::axis("L"));
-      const int nu = int(_uvppw*nl)+1;
-
-      const int nm = child_cells.ncells(Axis::axis("M"));
-      const int nv = int(_uvppw*nm)+1;
-
-      // Make a new Result: 4 Stokes planes x 4 Interpolation planes
-      resref <<= new Result(16);
-
-      VellSet& vs0 = resref().setNewVellSet(0);
-      VellSet& vs1 = resref().setNewVellSet(1);
-      VellSet& vs2 = resref().setNewVellSet(2);
-      VellSet& vs3 = resref().setNewVellSet(3);
-
-      VellSet& vs0u = resref().setNewVellSet(4);
-      VellSet& vs1u = resref().setNewVellSet(5);
-      VellSet& vs2u = resref().setNewVellSet(6);
-      VellSet& vs3u = resref().setNewVellSet(7);
-
-      VellSet& vs0v = resref().setNewVellSet(8);
-      VellSet& vs1v = resref().setNewVellSet(9);
-      VellSet& vs2v = resref().setNewVellSet(10);
-      VellSet& vs3v = resref().setNewVellSet(11);
-
-      VellSet& vs0uv = resref().setNewVellSet(12);
-      VellSet& vs1uv = resref().setNewVellSet(13);
-      VellSet& vs2uv = resref().setNewVellSet(14);
-      VellSet& vs3uv = resref().setNewVellSet(15);
-
-      // For now, use the L & M axes instead of U & V (Visualisation)
-      // Chang this in actual U and V axes.
-      // size is the maximum size of the shape. 
-      // We want a shape having Freq, U, and V axes.
-      int size = std::max(Axis::axis("L"),Axis::axis("M"))+1;
-
-      Vells::Shape shape;
-      Axis::degenerateShape(shape,size);
-      shape[Axis::axis("L")] = nu;
-      shape[Axis::axis("M")] = nv;
-      shape[Axis::FREQ] = nf;
-
-      // Initialise all Vells to complex zero.
-      // change 'false' into 'true' to actually fill the vells
-      Vells& vells0 = vs0.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells1 = vs1.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells2 = vs2.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells3 = vs3.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells0u = vs0u.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells1u = vs1u.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells2u = vs2u.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells3u = vs3u.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells0v = vs0v.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells1v = vs1v.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells2v = vs2v.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells3v = vs3v.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells0uv = vs0uv.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells1uv = vs1uv.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells2uv = vs2uv.setValue(new Vells(dcomplex(0.0),shape,true));
-      Vells& vells3uv = vs3uv.setValue(new Vells(dcomplex(0.0),shape,true));
-
-      // An absent axis shows up with dimension 1 in the Vells Array
-      int nt = child_cells.ncells(Axis::TIME);
-      if (nt==0) nt=1;
-
-      // Get the Child Data
-      Vells vells11 = childres.at(0) -> vellSet(0).getValue();
-      Vells vells12 = childres.at(0) -> vellSet(1).getValue();
-      Vells vells21 = childres.at(0) -> vellSet(2).getValue();
-      Vells vells22 = childres.at(0) -> vellSet(3).getValue();
-
-      // Get the input data.
-      // Rearrange the data such that the center origin is tranformed 
-      //   to the (0,0) element and add additional zeros (zero padding).
-      // 
-
-      // Make a larger Vells to be used as input for the FFT
-      const blitz::Array<dcomplex,3> & arr0_in = vells11.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      const blitz::Array<dcomplex,3> & arr1_in = vells12.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      const blitz::Array<dcomplex,3> & arr2_in = vells21.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      const blitz::Array<dcomplex,3> & arr3_in = vells22.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      Vells pad0 = Vells(dcomplex(0.0),shape,true);
-      Vells pad1 = Vells(dcomplex(0.0),shape,true);
-      Vells pad2 = Vells(dcomplex(0.0),shape,true);
-      Vells pad3 = Vells(dcomplex(0.0),shape,true);     
-
-      blitz::Array<dcomplex,3> arr0 = pad0.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> arr1 = pad1.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> arr2 = pad2.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> arr3 = pad3.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      // Rearrange the data and pad with zeros
-      int nl1 = (nl-1)/2;
-      int nm1 = (nm-1)/2;
-
-      for (int k=0; k<nf; k++){
-
-	for (int i=0; i<nl1+1; i++){
-	  for (int j=0; j<nm1+1;j++){	    
-	    arr0(k,i,j) = arr0_in(k,nl1+i,nm1+j);
-	    arr1(k,i,j) = arr1_in(k,nl1+i,nm1+j);
-	    arr2(k,i,j) = arr2_in(k,nl1+i,nm1+j);
-	    arr3(k,i,j) = arr3_in(k,nl1+i,nm1+j);
-	  };
-	};
-
-	for (int i=0; i<nl1; i++){
-	  for (int j=0; j<nm1+1;j++){	    
-	    arr0(k,nu-nl1+i,j) = arr0_in(k,i,nm1+j);
-	    arr1(k,nu-nl1+i,j) = arr1_in(k,i,nm1+j);
-	    arr2(k,nu-nl1+i,j) = arr2_in(k,i,nm1+j);
-	    arr3(k,nu-nl1+i,j) = arr3_in(k,i,nm1+j);
-	  };
-	};
-
-	for (int i=0; i<nl1+1; i++){
-	  for (int j=0; j<nm1;j++){	    
-	    arr0(k,i,nv-nm1+j) = arr0_in(k,nl1+i,j);
-	    arr1(k,i,nv-nm1+j) = arr1_in(k,nl1+i,j);
-	    arr2(k,i,nv-nm1+j) = arr2_in(k,nl1+i,j);
-	    arr3(k,i,nv-nm1+j) = arr3_in(k,nl1+i,j);
-	  };
-	};
-
-	for (int i=0; i<nl1; i++){
-	  for (int j=0; j<nm1;j++){	    
-	    arr0(k,nu-nl1+i,nv-nm1+j) = arr0_in(k,i,j);
-	    arr1(k,nu-nl1+i,nv-nm1+j) = arr1_in(k,i,j);
-	    arr2(k,nu-nl1+i,nv-nm1+j) = arr2_in(k,i,j);
-	    arr3(k,nu-nl1+i,nv-nm1+j) = arr3_in(k,i,j);
-	  };
-	};
-
-
-      };
-
-
-      // The data is rearranged and zero-padded, hence ready to be FFT'd
-      //
-      // Prepare the FFT
-      fftw_complex *in1, *out1, *in2, *out2, *in3, *out3, *in4, *out4;
-      fftw_plan p;
-
-      Vells oad0 = Vells(dcomplex(0.0),shape,true);
-      Vells oad1 = Vells(dcomplex(0.0),shape,true);
-      Vells oad2 = Vells(dcomplex(0.0),shape,true);
-      Vells oad3 = Vells(dcomplex(0.0),shape,true);    
-
-      // The temporary mapping of the u-v data onto the l-m axes (see above) has no effect here
-      // A 2D FFT over the L and M planes (nl=nu, nm=nv) 
-      int rank = 2;
-      fftw_iodim dims[rank];
-      dims[1].n = nv;
-      dims[1].is = 1;
-      dims[1].os = 1;
-      dims[0].n = nu;
-      dims[0].is = nv;
-      dims[0].os = nv;     
-
-      // Iterate over the Time and Freq planes
-      int howmany_rank = 2;
-      fftw_iodim howmany_dims[howmany_rank];
-      howmany_dims[0].n = nt;
-      howmany_dims[0].is = nf*nu*nv;
-      howmany_dims[0].os = nf*nu*nv;
-      howmany_dims[1].n = nf;
-      howmany_dims[1].is = nu*nv;
-      howmany_dims[1].os = nu*nv;
-
-      // Cast Vells data pointers into the input and output pointers
-      in1 = static_cast<fftw_complex*>(const_cast<void*>(pad0.getConstDataPtr()));
-      out1 = static_cast<fftw_complex*>(oad0.getDataPtr());
-
-      // The FFT plan definition
-      p = fftw_plan_guru_dft(rank,dims,howmany_rank, howmany_dims,in1,out1,FFTW_FORWARD,FFTW_ESTIMATE);
-
-      // Execution of the FFT
-      fftw_execute(p);
-
-      // Cast Vells data pointers into the input and output pointers
-      in2 = static_cast<fftw_complex*>(const_cast<void*>(pad1.getConstDataPtr()));
-      out2 = static_cast<fftw_complex*>(oad1.getDataPtr());
-
-      // The FFT plan definition
-      p = fftw_plan_guru_dft(rank,dims,howmany_rank, howmany_dims,in2,out2,FFTW_FORWARD,FFTW_ESTIMATE);
-
-      // Execution of the FFT
-      fftw_execute(p);
-
-      // Cast Vells data pointers into the input and output pointers
-      in3 = static_cast<fftw_complex*>(const_cast<void*>(pad2.getConstDataPtr()));
-      out3 = static_cast<fftw_complex*>(oad2.getDataPtr());
-
-      // The FFT plan definition
-      p = fftw_plan_guru_dft(rank,dims,howmany_rank, howmany_dims,in3,out3,FFTW_FORWARD,FFTW_ESTIMATE);
-
-      // Execution of the FFT
-      fftw_execute(p);
-
-      // Cast Vells data pointers into the input and output pointers
-      in4 = static_cast<fftw_complex*>(const_cast<void*>(pad3.getConstDataPtr()));
-      out4 = static_cast<fftw_complex*>(oad3.getDataPtr());
-
-      // The FFT plan definition
-      p = fftw_plan_guru_dft(rank,dims,howmany_rank, howmany_dims,in4,out4,FFTW_FORWARD,FFTW_ESTIMATE);
-
-      // Execution of the FFT
-      fftw_execute(p);
-
-      // Destroy the plan 
-      if(p) fftw_destroy_plan(p);
-
-      // The data is FFt'd and now it should be rearranged 
-      //   to have the (0,0) element back to the center of the (uv) image.
-
-      // Rearrange the uv-data
-
-      //blitz::Array<dcomplex,3> brr0 = vells0.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      //blitz::Array<dcomplex,3> brr1 = vells1.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      //blitz::Array<dcomplex,3> brr2 = vells2.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      //blitz::Array<dcomplex,3> brr3 = vells3.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      blitz::Array<dcomplex,3> fft0 = vells0.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft1 = vells1.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft2 = vells2.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft3 = vells3.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      blitz::Array<dcomplex,3> crr0 = oad0.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> crr1 = oad1.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> crr2 = oad2.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> crr3 = oad3.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      int nu1 = nu/2;
-      int nv1 = nv/2;
-
-      for (int k=0; k<nf; k++){
-
-	for (int i=0; i<nu1; i++){
-	  for (int j=0; j<nv1;j++){	    
-	    fft0(k,i,j) = crr0(k,nu-nu1+i,nv-nv1+j);
-	    fft1(k,i,j) = crr1(k,nu-nu1+i,nv-nv1+j);
-	    fft2(k,i,j) = crr2(k,nu-nu1+i,nv-nv1+j);
-	    fft3(k,i,j) = crr3(k,nu-nu1+i,nv-nv1+j);
-	  };
-	};
-
-	for (int i=0; i<nu1; i++){
-	  for (int j=0; j<nv-nv1;j++){	    
-	    fft0(k,i,nv1+j) = crr0(k,nu-nu1+i,j);
-	    fft1(k,i,nv1+j) = crr1(k,nu-nu1+i,j);
-	    fft2(k,i,nv1+j) = crr2(k,nu-nu1+i,j);
-	    fft3(k,i,nv1+j) = crr3(k,nu-nu1+i,j);
-	  };
-	};
-
-	for (int i=0; i<nu-nu1; i++){
-	  for (int j=0; j<nv1;j++){	    
-	    fft0(k,nu1+i,j) = crr0(k,i,nv-nv1+j);
-	    fft1(k,nu1+i,j) = crr1(k,i,nv-nv1+j);
-	    fft2(k,nu1+i,j) = crr2(k,i,nv-nv1+j);
-	    fft3(k,nu1+i,j) = crr3(k,i,nv-nv1+j);
-	  };
-	};
-
-	for (int i=0; i<nu-nu1; i++){
-	  for (int j=0; j<nv-nv1;j++){	    
-	    fft0(k,nu1+i,nv1+j) = crr0(k,i,j);
-	    fft1(k,nu1+i,nv1+j) = crr1(k,i,j);
-	    fft2(k,nu1+i,nv1+j) = crr2(k,i,j);
-	    fft3(k,nu1+i,nv1+j) = crr3(k,i,j);
-	  };
-	};
-
-
-      };
-
-      // Now we're done FFT wise. For the UVInterpol node 
-      //   it is convenient to have additional planes 
-      //   containing extra info (say info on derivatives) 
-      //   to be used in the Bi-Cubic Interpolation scheme.  
-     
-      // Make the additional Vells planes for higher order Interpolation
-      //blitz::Array<dcomplex,3> fft0 = vells0.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      //blitz::Array<dcomplex,3> fft1 = vells1.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      //blitz::Array<dcomplex,3> fft2 = vells2.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      //blitz::Array<dcomplex,3> fft3 = vells3.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft0u = vells0u.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft1u = vells1u.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft2u = vells2u.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft3u = vells3u.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft0v = vells0v.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft1v = vells1v.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft2v = vells2v.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft3v = vells3v.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft0uv = vells0uv.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft1uv = vells1uv.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft2uv = vells2uv.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-      blitz::Array<dcomplex,3> fft3uv = vells3uv.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
-      // This could possibly be made optional by a Request parameter
-
-      for (int k=0; k<nf; k++){
-
-      for (int i = 1; i < nu-1; i++){
-	for (int j = 1; j < nv-1; j++){
-      	  fft0u(k,i,j) = (fft0(k,i+1,j) + fft0(k,i-1,j))/2.;
-	  fft0v(k,i,j) = (fft0(k,i,j+1) + fft0(k,i,j-1))/2.;
-	  fft0uv(k,i,j) = (fft0(k,i+1,j+1) + fft0(k,i-1,j+1) +
-	 		 fft0(k,i+1,j-1) + fft0(k,i-1,j-1))/4.;
-
-	  fft1u(k,i,j) = (fft1(k,i+1,j) + fft1(k,i-1,j))/2.;
-	  fft1v(k,i,j) = (fft1(k,i,j+1) + fft1(k,i,j-1))/2.;
-	  fft1uv(k,i,j) = (fft1(k,i+1,j+1) + fft1(k,i-1,j+1) +
-			 fft1(k,i+1,j-1) + fft1(k,i-1,j-1))/4.;
-
-	  fft2u(k,i,j) = (fft2(k,i+1,j) + fft2(k,i-1,j))/2.;
-	  fft2v(k,i,j) = (fft2(k,i,j+1) + fft2(k,i,j-1))/2.;
-	  fft2uv(k,i,j) = (fft2(k,i+1,j+1) + fft2(k,i-1,j+1) +
-			 fft2(k,i+1,j-1) + fft2(k,i-1,j-1))/4.;
-
-	  fft3u(k,i,j) = (fft3(k,i+1,j) + fft3(k,i-1,j))/2.;
-	  fft3v(k,i,j) = (fft3(k,i,j+1) + fft3(k,i,j-1))/2.;
-	  fft3uv(k,i,j) = (fft3(k,i+1,j+1) + fft3(k,i-1,j+1) +
-			 fft3(k,i+1,j-1) + fft3(k,i-1,j-1))/4.;
-	};
-      };
-
-      // Assume periodicity: value at '-1' equals 'nu-1' or 'nv-1'
-      //                     value at 'nu', 'nv' equals '0'
-      // Check this!
-
-      for (int i = 1; i < nu-1; i++){
-	  fft0u(k,i,0) = (fft0(k,i+1,0) + fft0(k,i-1,0))/2.;
-	  fft0v(k,i,0) = (fft0(k,i,1) + fft0(k,i,nv-1))/2.;
-	  fft0uv(k,i,0) = (fft0(k,i+1,1) + fft0(k,i-1,1) +
-			 fft0(k,i+1,nv-1) + fft0(k,i-1,nv-1))/4.;
-
-	  fft0u(k,i,nv-1) = (fft0(k,i+1,nv-1) + fft0(k,i-1,nv-1))/2.;
-	  fft0v(k,i,nv-1) = (fft0(k,i,0) + fft0(k,i,nv-2))/2.;
-	  fft0uv(k,i,nv-1) = (fft0(k,i+1,0) + fft0(k,i-1,0) +
-			 fft0(k,i+1,nv-2) + fft0(k,i-1,nv-2))/4.;
-
-	  fft1u(k,i,0) = (fft1(k,i+1,0) + fft1(k,i-1,0))/2.;
-	  fft1v(k,i,0) = (fft1(k,i,1) + fft1(k,i,nv-1))/2.;
-	  fft1uv(k,i,0) = (fft1(k,i+1,1) + fft1(k,i-1,1) +
-			 fft1(k,i+1,nv-1) + fft1(k,i-1,nv-1))/4.;
-
-	  fft1u(k,i,nv-1) = (fft1(k,i+1,nv-1) + fft1(k,i-1,nv-1))/2.;
-	  fft1v(k,i,nv-1) = (fft1(k,i,0) + fft1(k,i,nv-2))/2.;
-	  fft1uv(k,i,nv-1) = (fft1(k,i+1,0) + fft1(k,i-1,0) +
-			 fft1(k,i+1,nv-2) + fft1(k,i-1,nv-2))/4.;
-
-	  fft2u(k,i,0) = (fft2(k,i+1,0) + fft2(k,i-1,0))/2.;
-	  fft2v(k,i,0) = (fft2(k,i,1) + fft2(k,i,nv-1))/2.;
-	  fft2uv(k,i,0) = (fft2(k,i+1,1) + fft2(k,i-1,1) +
-			 fft2(k,i+1,nv-1) + fft2(k,i-1,nv-1))/4.;
-
-	  fft2u(k,i,nv-1) = (fft2(k,i+1,nv-1) + fft2(k,i-1,nv-1))/2.;
-	  fft2v(k,i,nv-1) = (fft2(k,i,0) + fft2(k,i,nv-2))/2.;
-	  fft2uv(k,i,nv-1) = (fft2(k,i+1,0) + fft2(k,i-1,0) +
-			 fft2(k,i+1,nv-2) + fft2(k,i-1,nv-2))/4.;
-
-	  fft3u(k,i,0) = (fft3(k,i+1,0) + fft3(k,i-1,0))/2.;
-	  fft3v(k,i,0) = (fft3(k,i,1) + fft3(k,i,nv-1))/2.;
-	  fft3uv(k,i,0) = (fft3(k,i+1,1) + fft3(k,i-1,1) +
-			 fft3(k,i+1,nv-1) + fft3(k,i-1,nv-1))/4.;
-
-	  fft3u(k,i,nv-1) = (fft3(k,i+1,nv-1) + fft3(k,i-1,nv-1))/2.;
-	  fft3v(k,i,nv-1) = (fft3(k,i,0) + fft3(k,i,nv-2))/2.;
-	  fft3uv(k,i,nv-1) = (fft3(k,i+1,0) + fft3(k,i-1,0) +
-			 fft3(k,i+1,nv-2) + fft3(k,i-1,nv-2))/4.;
-      };
-
-      for (int j = 1; j < nv-1; j++){
-	fft0u(k,0,j) = (fft0(k,1,j) + fft0(k,nu-1,j))/2.;
-	fft0v(k,0,j) = (fft0(k,0,j+1) + fft0(k,0,j-1))/2.;
-	fft0uv(k,0,j) = (fft0(k,1,j+1) + fft0(k,nu-1,j+1) +
-		       fft0(k,1,j-1) + fft0(k,nu-1,j-1))/4.;
-
-	fft0u(k,nu-1,j) = (fft0(k,0,j) + fft0(k,nu-1,j))/2.;
-	fft0v(k,nu-1,j) = (fft0(k,nu-1,j+1) + fft0(k,nu-1,j-1))/2.;
-	fft0uv(k,nu-1,j) = (fft0(k,0,j+1) + fft0(k,nu-2,j+1) +
-		          fft0(k,0,j-1) + fft0(k,nu-2,j-1))/4.;
-
-	fft1u(k,0,j) = (fft1(k,1,j) + fft1(k,nu-1,j))/2.;
-	fft1v(k,0,j) = (fft1(k,0,j+1) + fft1(k,0,j-1))/2.;
-	fft1uv(k,0,j) = (fft1(k,1,j+1) + fft1(k,nu-1,j+1) +
-		       fft1(k,1,j-1) + fft1(k,nu-1,j-1))/4.;
-
-	fft1u(k,nu-1,j) = (fft1(k,0,j) + fft1(k,nu-1,j))/2.;
-	fft1v(k,nu-1,j) = (fft1(k,nu-1,j+1) + fft1(k,nu-1,j-1))/2.;
-	fft1uv(k,nu-1,j) = (fft1(k,0,j+1) + fft1(k,nu-2,j+1) +
-		          fft1(k,0,j-1) + fft1(k,nu-2,j-1))/4.;
-
-	fft2u(k,0,j) = (fft2(k,1,j) + fft2(k,nu-1,j))/2.;
-	fft2v(k,0,j) = (fft2(k,0,j+1) + fft2(k,0,j-1))/2.;
-	fft2uv(k,0,j) = (fft2(k,1,j+1) + fft2(k,nu-1,j+1) +
-		       fft2(k,1,j-1) + fft2(k,nu-1,j-1))/4.;
-
-	fft2u(k,nu-1,j) = (fft2(k,0,j) + fft2(k,nu-1,j))/2.;
-	fft2v(k,nu-1,j) = (fft2(k,nu-1,j+1) + fft2(k,nu-1,j-1))/2.;
-	fft2uv(k,nu-1,j) = (fft2(k,0,j+1) + fft2(k,nu-2,j+1) +
-		          fft2(k,0,j-1) + fft2(k,nu-2,j-1))/4.;
-
-	fft3u(k,0,j) = (fft3(k,1,j) + fft3(k,nu-1,j))/2.;
-	fft3v(k,0,j) = (fft3(k,0,j+1) + fft3(k,0,j-1))/2.;
-	fft3uv(k,0,j) = (fft3(k,1,j+1) + fft3(k,nu-1,j+1) +
-		       fft3(k,1,j-1) + fft3(k,nu-1,j-1))/4.;
-
-	fft3u(k,nu-1,j) = (fft3(k,0,j) + fft3(k,nu-1,j))/2.;
-	fft3v(k,nu-1,j) = (fft3(k,nu-1,j+1) + fft3(k,nu-1,j-1))/2.;
-	fft3uv(k,nu-1,j) = (fft3(k,0,j+1) + fft3(k,nu-2,j+1) +
-		          fft3(k,0,j-1) + fft3(k,nu-2,j-1))/4.;
-      };
-
-      fft0u(k,0,0) = (fft0(k,1,0) + fft0(k,nu-1,0))/2.;
-      fft0v(k,0,0) = (fft0(k,0,1) + fft0(k,0,nv-1))/2.;
-      fft0uv(k,0,0) = (fft0(k,1,1) + fft0(k,nu-1,1) +
-		     fft0(k,1,nv-1) + fft0(k,nu-1,nv-1))/4.;
-
-      fft0u(k,0,nv-1) = (fft0(k,1,nv-1) + fft0(k,nu-1,nv-1))/2.;
-      fft0v(k,0,nv-1) = (fft0(k,0,0) + fft0(k,0,nv-2))/2.;
-      fft0uv(k,0,nv-1) = (fft0(k,1,0) + fft0(k,nu-1,0) +
-			fft0(k,1,nv-2) + fft0(k,nu-1,nv-2))/4.;
-
-      fft0u(k,nu-1,0) = (fft0(k,0,0) + fft0(k,nu-2,0))/2.;
-      fft0v(k,nu-1,0) = (fft0(k,nu-1,1) + fft0(k,nu-1,nv-1))/2.;
-      fft0uv(k,nu-1,0) = (fft0(k,0,1) + fft0(k,nu-2,1) +
-			fft0(k,0,nv-1) + fft0(k,nu-2,nv-1))/4.;
-
-      fft0u(k,nu-1,nv-1) = (fft0(k,0,nv-1) + fft0(k,nu-2,nv-1))/2.;
-      fft0v(k,nu-1,nv-1) = (fft0(k,nu-1,0) + fft0(k,nu-1,nv-2))/2.;
-      fft0uv(k,nu-1,nv-1) = (fft0(k,0,0) + fft0(k,nu-2,0) +
-			   fft0(k,0,nv-2) + fft0(k,nu-2,nv-2))/4.;
-
-      fft1u(k,0,0) = (fft1(k,1,0) + fft1(k,nu-1,0))/2.;
-      fft1v(k,0,0) = (fft1(k,0,1) + fft1(k,0,nv-1))/2.;
-      fft1uv(k,0,0) = (fft1(k,1,1) + fft1(k,nu-1,1) +
-		     fft1(k,1,nv-1) + fft1(k,nu-1,nv-1))/4.;
-
-      fft1u(k,0,nv-1) = (fft1(k,1,nv-1) + fft1(k,nu-1,nv-1))/2.;
-      fft1v(k,0,nv-1) = (fft1(k,0,0) + fft1(k,0,nv-2))/2.;
-      fft1uv(k,0,nv-1) = (fft1(k,1,0) + fft1(k,nu-1,0) +
-			fft1(k,1,nv-2) + fft1(k,nu-1,nv-2))/4.;
-
-      fft1u(k,nu-1,0) = (fft1(k,0,0) + fft1(k,nu-2,0))/2.;
-      fft1v(k,nu-1,0) = (fft1(k,nu-1,1) + fft1(k,nu-1,nv-1))/2.;
-      fft1uv(k,nu-1,0) = (fft1(k,0,1) + fft1(k,nu-2,1) +
-			fft1(k,0,nv-1) + fft1(k,nu-2,nv-1))/4.;
-
-      fft1u(k,nu-1,nv-1) = (fft1(k,0,nv-1) + fft1(k,nu-2,nv-1))/2.;
-      fft1v(k,nu-1,nv-1) = (fft1(k,nu-1,0) + fft1(k,nu-1,nv-2))/2.;
-      fft1uv(k,nu-1,nv-1) = (fft1(k,0,0) + fft1(k,nu-2,0) +
-			   fft1(k,0,nv-2) + fft1(k,nu-2,nv-2))/4.;
-
-      fft2u(k,0,0) = (fft2(k,1,0) + fft2(k,nu-1,0))/2.;
-      fft2v(k,0,0) = (fft2(k,0,1) + fft2(k,0,nv-1))/2.;
-      fft2uv(k,0,0) = (fft2(k,1,1) + fft2(k,nu-1,1) +
-		     fft2(k,1,nv-1) + fft2(k,nu-1,nv-1))/4.;
-
-      fft2u(k,0,nv-1) = (fft2(k,1,nv-1) + fft2(k,nu-1,nv-1))/2.;
-      fft2v(k,0,nv-1) = (fft2(k,0,0) + fft2(k,0,nv-2))/2.;
-      fft2uv(k,0,nv-1) = (fft2(k,1,0) + fft2(k,nu-1,0) +
-			fft2(k,1,nv-2) + fft2(k,nu-1,nv-2))/4.;
-
-      fft2u(k,nu-1,0) = (fft2(k,0,0) + fft2(k,nu-2,0))/2.;
-      fft2v(k,nu-1,0) = (fft2(k,nu-1,1) + fft2(k,nu-1,nv-1))/2.;
-      fft2uv(k,nu-1,0) = (fft2(k,0,1) + fft2(k,nu-2,1) +
-			fft2(k,0,nv-1) + fft2(k,nu-2,nv-1))/4.;
-
-      fft2u(k,nu-1,nv-1) = (fft2(k,0,nv-1) + fft2(k,nu-2,nv-1))/2.;
-      fft2v(k,nu-1,nv-1) = (fft2(k,nu-1,0) + fft2(k,nu-1,nv-2))/2.;
-      fft2uv(k,nu-1,nv-1) = (fft2(k,0,0) + fft2(k,nu-2,0) +
-			   fft2(k,0,nv-2) + fft2(k,nu-2,nv-2))/4.;
-
-      fft3u(k,0,0) = (fft3(k,1,0) + fft3(k,nu-1,0))/2.;
-      fft3v(k,0,0) = (fft3(k,0,1) + fft3(k,0,nv-1))/2.;
-      fft3uv(k,0,0) = (fft3(k,1,1) + fft3(k,nu-1,1) +
-		     fft3(k,1,nv-1) + fft3(k,nu-1,nv-1))/4.;
-
-      fft3u(k,0,nv-1) = (fft3(k,1,nv-1) + fft3(k,nu-1,nv-1))/2.;
-      fft3v(k,0,nv-1) = (fft3(k,0,0) + fft3(k,0,nv-2))/2.;
-      fft3uv(k,0,nv-1) = (fft3(k,1,0) + fft3(k,nu-1,0) +
-			fft3(k,1,nv-2) + fft3(k,nu-1,nv-2))/4.;
-
-      fft3u(k,nu-1,0) = (fft3(k,0,0) + fft3(k,nu-2,0))/2.;
-      fft3v(k,nu-1,0) = (fft3(k,nu-1,1) + fft3(k,nu-1,nv-1))/2.;
-      fft3uv(k,nu-1,0) = (fft3(k,0,1) + fft3(k,nu-2,1) +
-			fft3(k,0,nv-1) + fft3(k,nu-2,nv-1))/4.;
-
-      fft3u(k,nu-1,nv-1) = (fft3(k,0,nv-1) + fft3(k,nu-2,nv-1))/2.;
-      fft3v(k,nu-1,nv-1) = (fft3(k,nu-1,0) + fft3(k,nu-1,nv-2))/2.;
-      fft3uv(k,nu-1,nv-1) = (fft3(k,0,0) + fft3(k,nu-2,0) +
-			   fft3(k,0,nv-2) + fft3(k,nu-2,nv-2))/4.;
-
-      };
-
-      // Construction of the uv-grid
-      // Valid for both even and odd number of grid points
-
-      const double fmin = min(child_cells.cellStart(Axis::FREQ));
-      const double fmax = max(child_cells.cellEnd(Axis::FREQ));
-
-      const double dl = max(child_cells.cellSize(Axis::axis("L")));
-      const double dm = max(child_cells.cellSize(Axis::axis("M")));
+    // if the input VellSet is a null, make null outputs and continue
+    if( vs_input.isNull() )
+    {
+      Vells::Ref null_vells(DMI::ANONWR);
+      for( int i=0; i<4; i++,ovs++ )
+        pvs_output[i]->setValue(null_vells);
+      continue;
+    }
       
-      const double du = 1.0 / dl / nu;
-      const double dv = 1.0 / dm / nv;
-
-      const double umax = (nu-nu1-1+0.5)*du;
-      const double umin = -(nu1+0.5)*du;
-
-      const double vmax = (nv-nv1-1+0.5)*dv;
-      const double vmin = -(nv1+0.5)*dv;
-
-      // For now, use the L & M axes instead of U & V (Visualisation)
-      Domain::Ref domain(new Domain());
-      domain().defineAxis(Axis::FREQ,fmin,fmax);
-      domain().defineAxis(Axis::axis("L"),umin,umax);
-      domain().defineAxis(Axis::axis("M"),vmin,vmax);
-
-      // For now, use the L & M axes instead of U & V (Visualisation)
-      Cells::Ref cells(new Cells(*domain));
-      cells().setCells(Axis::FREQ,fmin,fmax,nf);
-      cells().setCells(Axis::axis("L"),umin,umax,nu);
-      cells().setCells(Axis::axis("M"),vmin,vmax,nv);
-
-      // Set the Cells to the Result
-      resref().setCells(*cells);
-
-    };  // end: if axis L and M. 
-	 
-    return 0;
+    // ok, we have actual values (main + possibly perturbed). 
+    // Setup copies of spid/perturbations.
+    for( int i=0; i<4; i++ )
+    {
+      pvs_output[i]->setNumPertSets(vs_input.numPertSets());
+      pvs_output[i]->copySpids(vs_input);
+      pvs_output[i]->copyPerturbations(vs_input);
+    }
     
-  };
+    // Now FFT all values
+    // this holds the 4 result Vells for each FFT
+    Vells::Ref output_vells[4];
+    
+    // FFT the main value
+    doFFT(output_vells,vs_input.getValue());
+    for( int i=0; i<4; i++ )
+      pvs_output[i]->setValue(output_vells[i]);
+    
+    // FFT each perturbed value
+    for( int ipset=0; ipset<vs_input.numPertSets(); ipset++ )
+      for( int ipert=0; ipset<vs_input.numSpids(); ipert++ )
+      {
+        doFFT(output_vells,vs_input.getPerturbedValue(ipert,ipset));
+        for( int i=0; i<4; i++ )
+          pvs_output[i]->setPerturbedValue(ipert,output_vells[i],ipset);
+      }
+      
+    // finalize shapes of output vellsets
+    for( int i=0; i<4; i++ )
+      pvs_output[i]->verifyShape();
+  }
   
-  void FFTBrick::setStateImpl (DMI::Record::Ref& rec, bool initializing)
+  // Now figure out the output cells
+  
+  // NB: cell size is uniform thanks to check at start of getResult()
+  const double dl = input_cells.cellSize(_inaxis0)(0); 
+  const double dm = input_cells.cellSize(_inaxis1)(0);
+
+  const double du = 1.0 / dl / nu;
+  const double dv = 1.0 / dm / nv;
+
+  const double umax = (nu-nu1-1+0.5)*du;
+  const double umin = -(nu1+0.5)*du;
+
+  const double vmax = (nv-nv1-1+0.5)*dv;
+  const double vmin = -(nv1+0.5)*dv;
+
+  // Construct the result domain 
+  Domain::Ref domain(DMI::ANONWR);
+  const Domain &input_domain = input_cells.domain();
+  // copy over all axes not involved in the FFT
+  for( uint i=0; i<uint(Axis::MaxAxis); i++ )
+    if( i != _inaxis0 && i != _inaxis1 && input_domain.isDefined(i) )
+      domain().defineAxis(i,input_domain.start(i),input_domain.end(i));
+  // define output axes
+  domain().defineAxis(_outaxis0,umin,umax);
+  domain().defineAxis(_outaxis1,vmin,vmax);
+  
+  // construct the result cells
+  Cells::Ref cells;
+  cells <<= new Cells(*domain);
+  // copy over all axes not involved in the FFT
+  for( uint i=0; i<uint(Axis::MaxAxis); i++ )
+    if( i != _inaxis0 && i != _inaxis1 && input_domain.isDefined(i) )
+    {
+      cells().setCells(i,input_cells.center(i),input_cells.cellSize(i));
+      cells().recomputeSegments(i);
+    }
+  // define output axes
+  cells().setCells(_outaxis0,umin,umax,nu);
+  cells().setCells(_outaxis1,vmin,vmax,nv);
+
+  // Set the Cells in the Result
+  result.setCells(*cells);
+
+  return 0;
+
+};
+
+void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
+{
+  Vells::Shape input_shape = input_vells.shape();
+  // check that input axes are present 
+  FailWhen(_inaxis0>=input_shape.size() && _inaxis1>=input_shape.size(),
+      "one or both input axes are not present in input Vells");
+  // check that output axes of input shape are trivial (unless we're
+  // transforming in-place)
+  FailWhen((_outaxis0!=_inaxis0 && _outaxis0<input_shape.size() && input_shape[_outaxis0]>1) ||
+           (_outaxis1!=_inaxis1 && _outaxis1<input_shape.size() && input_shape[_outaxis1]>1),
+      "one or both output axes are present in input Vells");
+  // check that input axes have the right nl x nm  shape.
+  // NB: ****** BUG
+  // This means we fail to deal with collapsed L,M axes. That is, if
+  // the input value is constant in L or M (so the Vells shape is 1),
+  // we simply fail. The correct behaviour is to expand the input 
+  // into the right shape (by populating the missing dimensions
+  // with copies of the data). This is a headache I want to avoid for now.
+  // Operationally, it's very unlikely that we will want to FFT something
+  // that is constant in L or M...
+  // NB2: perhaps it would be worthwhile to at least check for a scalar/zero
+  // input, and explicitly generate the appropriate FFT.
+  FailWhen(input_shape[_inaxis0]!=nl && input_shape[_inaxis1]!=nm,
+      "one or both input axes are collapsed in input Vells, this is not yet supported");
+  
+  // Make a padded Vells to be used as input for the FFT
+  Vells::Shape padded_shape = input_shape;
+  padded_shape[_inaxis0] = nu;
+  padded_shape[_inaxis1] = nv;
+  Vells padded_vells(dcomplex(0.0),padded_shape,false); // filled in below
+
+  // Rearrange the data and pad with zeros
+  // set up VellsSlicers over input vells and over padded vells, so that
+  // we go over all other axes
+  ConstVellsSlicer<dcomplex,2> input_slicer(input_vells,_inaxis0,_inaxis1);
+  VellsSlicer<dcomplex,2> padded_input_slicer(padded_vells,_inaxis0,_inaxis1);
+  for( ; padded_input_slicer.valid(); padded_input_slicer.incr(),input_slicer.incr())
   {
-    Node::setStateImpl(rec,initializing);
+    Assert(input_slicer.valid()); // must be true since all other axes have the same shape
+    const blitz::Array<dcomplex,2> in_arr = input_slicer();
+    blitz::Array<dcomplex,2> pad_arr = padded_input_slicer();
+    
+    pad_arr(makeLoRange(0,nl1),makeLoRange(0,nm1)) = 
+        in_arr(makeLoRange(nl1,nl1*2),makeLoRange(nm1,nm1*2));
+    
+    pad_arr(makeLoRange(nu-nl1,nu-1),makeLoRange(0,nm1)) = 
+        in_arr(makeLoRange(0,nl1-1),makeLoRange(nm1,nm1*2));
+    
+    pad_arr(makeLoRange(0,nl1),makeLoRange(nv-nm1,nv-1)) = 
+        in_arr(makeLoRange(nl1,nl1*2),makeLoRange(0,nm1-1));
+
+    pad_arr(makeLoRange(nu-nl1,nu-1),makeLoRange(nv-nm1,nv-1)) = 
+        in_arr(makeLoRange(0,nl1-1),makeLoRange(0,nm1-1));
   };
+  // figure out output vells shape and create intermediate Vells for the 
+  // FFT result
+  int maxrank = std::max(_outaxis0,_outaxis1);
+  Vells::Shape output_shape = input_shape;
+  output_shape.resize(maxrank+1,1); // resize to max rank and fill with 1s
+  output_shape[_inaxis0] = 1;       // collapse input axes
+  output_shape[_inaxis1] = 1;
+  output_shape[_outaxis0] = nu;     // fill output axes
+  output_shape[_outaxis1] = nv;
+  Vells fft_vells(dcomplex(0.0),output_shape,false); // no need to fill it, fft will do it
+
+  // Prepare the FFT
+  // compute array strides (using the Vells' convenience function)
+  Vells::Strides input_strides;
+  padded_vells.computeStrides(input_strides);
+  Vells::Strides output_strides;
+  fft_vells.computeStrides(output_strides);
+  
+  // fill in the FFT'd dimensions
+  fftw_iodim fft_dims[2];
+  fft_dims[0].n = nu;
+  fft_dims[0].is = input_strides[_inaxis0];
+  fft_dims[0].os = output_strides[_outaxis0];
+  fft_dims[1].n = nv;
+  fft_dims[1].is = input_strides[_inaxis1];
+  fft_dims[1].os = output_strides[_outaxis1];
+  // fill in the other (non-FFT'd) dimensions
+  // first, figure out how many "other" dimensions are present
+  int num_other_dims = 0;
+  for( uint i=0; i<padded_shape.size(); i++ )
+    if( i != _inaxis0 && i != _inaxis1 && padded_shape[i]>1 )
+      num_other_dims++;
+  fftw_iodim other_dims[num_other_dims];
+  int idim=0;
+  // note that the output axes will be skipped in this loop, 
+  // since we check for padded_shape[i]>1, and the FailWhen() statement
+  // above ensures that output axes are either the same as input, or degenerate
+  for( uint i=0; i<padded_shape.size(); i++ )
+    if( i != _inaxis0 && i != _inaxis1 && padded_shape[i]>1 )
+    {
+      other_dims[idim].n  = padded_shape[i];
+      other_dims[idim].is = input_strides[i];
+      other_dims[idim].os = output_strides[i];
+      idim++;
+    }
+  
+  // get pointers to data from padded_vells and fft_result
+  fftw_complex *pdata_in = static_cast<fftw_complex*>(const_cast<void*>(padded_vells.getConstDataPtr()));
+  fftw_complex *pdata_out = static_cast<fftw_complex*>(fft_vells.getDataPtr());
+
+  // define & execute FFT
+  fftw_plan p;
+  p = fftw_plan_guru_dft(2,fft_dims,num_other_dims,other_dims,pdata_in,pdata_out,FFTW_FORWARD,FFTW_ESTIMATE);
+  fftw_execute(p);
+  fftw_destroy_plan(p);
+  
+  // destroy the padded_vells since we no longer need it. This will free
+  // up some memory.
+  padded_vells = Vells();
+  
+  // ok, now we need to reshuffle the fft_result and generate interpolation
+  // planes. Create 4 output Vells for this
+  Vells & vells0  = output_vells[0] <<= new Vells(dcomplex(0.0),output_shape,true);
+  // create additional Vells for higher order interpolation coefficients
+  Vells & vells0u = output_vells[1] <<= new Vells(dcomplex(0.0),output_shape,false);
+  Vells & vells0v = output_vells[2] <<= new Vells(dcomplex(0.0),output_shape,false);
+  Vells & vells0uv = output_vells[3] <<= new Vells(dcomplex(0.0),output_shape,false);
+
+  // Reshuffle fft'd data around, and fill in the interpolation planes
+  // This is similar to the operation above.
+  // We'll use VellsSlicers to repeat this for all other dimensions
+  ConstVellsSlicer<dcomplex,2> fft_slicer(fft_vells,_outaxis0,_outaxis1);
+  VellsSlicer<dcomplex,2> result_slicer(vells0,_outaxis0,_outaxis1);
+  VellsSlicer<dcomplex,2> iu_slicer(vells0u,_outaxis0,_outaxis1);
+  VellsSlicer<dcomplex,2> iv_slicer(vells0v,_outaxis0,_outaxis1);
+  VellsSlicer<dcomplex,2> iuv_slicer(vells0uv,_outaxis0,_outaxis1);
+  for( ; fft_slicer.valid(); 
+       fft_slicer.incr(),result_slicer.incr(),iu_slicer.incr(),
+       iv_slicer.incr(),iuv_slicer.incr() )
+  {
+    Assert(result_slicer.valid()); // must be true since all other axes have the same shape
+    Assert(iu_slicer.valid()); // must be true since all other axes have the same shape
+    Assert(iv_slicer.valid()); // must be true since all other axes have the same shape
+    Assert(iuv_slicer.valid()); // must be true since all other axes have the same shape
+    const blitz::Array<dcomplex,2> fft_arr = fft_slicer();
+    blitz::Array<dcomplex,2> out_arr = result_slicer();
+    blitz::Array<dcomplex,2> u_arr = iu_slicer();
+    blitz::Array<dcomplex,2> v_arr = iv_slicer();
+    blitz::Array<dcomplex,2> uv_arr = iuv_slicer();
+    
+    // reshuffle fft data into output array
+    out_arr(makeLoRange(0,nu1-1),makeLoRange(0,nv1-1)) = 
+        fft_arr(makeLoRange(nu-nu1,nu-1),makeLoRange(nv-nv1,nv-1));
+    
+    out_arr(makeLoRange(0,nu1-1),makeLoRange(nv1,nv-1)) = 
+        fft_arr(makeLoRange(nu-nu1,nu-1),makeLoRange(0,nv-nv1-1));
+    
+    out_arr(makeLoRange(nu1,nu-1),makeLoRange(0,nv1-1)) = 
+        fft_arr(makeLoRange(0,nu-nu1-1),makeLoRange(nv-nv1,nv-1));
+    
+    out_arr(makeLoRange(nu1,nu-1),makeLoRange(nv1,nv-1)) = 
+        fft_arr(makeLoRange(0,nu-nu1-1),makeLoRange(0,nv-nv1-1));
+    
+    // fill in interpolation coeffs
+    for (int i = 1; i < nu-1; i++)
+      for (int j = 1; j < nv-1; j++)
+      {
+        u_arr(i,j)  = (out_arr(i+1,j) + out_arr(i-1,j))/2.;
+        v_arr(i,j)  = (out_arr(i,j+1) + out_arr(i,j-1))/2.;
+        uv_arr(i,j) = (out_arr(i+1,j+1) + out_arr(i-1,j+1) +
+	 	       out_arr(i+1,j-1) + out_arr(i-1,j-1))/4.;
+
+      }
+    // Assume periodicity: value at '-1' equals 'nu-1' or 'nv-1'
+    //                     value at 'nu', 'nv' equals '0'
+    // Check this!
+
+    for (int i = 1; i < nu-1; i++)
+    {
+        u_arr(i,0) = (out_arr(i+1,0) + out_arr(i-1,0))/2.;
+        v_arr(i,0) = (out_arr(i,1) + out_arr(i,nv-1))/2.;
+        uv_arr(i,0) = (out_arr(i+1,1) + out_arr(i-1,1) +
+		       out_arr(i+1,nv-1) + out_arr(i-1,nv-1))/4.;
+
+        u_arr(i,nv-1) = (out_arr(i+1,nv-1) + out_arr(i-1,nv-1))/2.;
+        v_arr(i,nv-1) = (out_arr(i,0) + out_arr(i,nv-2))/2.;
+        uv_arr(i,nv-1) = (out_arr(i+1,0) + out_arr(i-1,0) +
+		       out_arr(i+1,nv-2) + out_arr(i-1,nv-2))/4.;
+
+    };
+
+    for (int j = 1; j < nv-1; j++)
+    {
+      u_arr(0,j) = (out_arr(1,j) + out_arr(nu-1,j))/2.;
+      v_arr(0,j) = (out_arr(0,j+1) + out_arr(0,j-1))/2.;
+      uv_arr(0,j) = (out_arr(1,j+1) + out_arr(nu-1,j+1) +
+		     out_arr(1,j-1) + out_arr(nu-1,j-1))/4.;
+
+      u_arr(nu-1,j) = (out_arr(0,j) + out_arr(nu-1,j))/2.;
+      v_arr(nu-1,j) = (out_arr(nu-1,j+1) + out_arr(nu-1,j-1))/2.;
+      uv_arr(nu-1,j) = (out_arr(0,j+1) + out_arr(nu-2,j+1) +
+		        out_arr(0,j-1) + out_arr(nu-2,j-1))/4.;
+
+    };
+
+    u_arr(0,0) = (out_arr(1,0) + out_arr(nu-1,0))/2.;
+    v_arr(0,0) = (out_arr(0,1) + out_arr(0,nv-1))/2.;
+    uv_arr(0,0) = (out_arr(1,1) + out_arr(nu-1,1) +
+		   out_arr(1,nv-1) + out_arr(nu-1,nv-1))/4.;
+
+    u_arr(0,nv-1) = (out_arr(1,nv-1) + out_arr(nu-1,nv-1))/2.;
+    v_arr(0,nv-1) = (out_arr(0,0) + out_arr(0,nv-2))/2.;
+    uv_arr(0,nv-1) = (out_arr(1,0) + out_arr(nu-1,0) +
+		      out_arr(1,nv-2) + out_arr(nu-1,nv-2))/4.;
+
+    u_arr(nu-1,0) = (out_arr(0,0) + out_arr(nu-2,0))/2.;
+    v_arr(nu-1,0) = (out_arr(nu-1,1) + out_arr(nu-1,nv-1))/2.;
+    uv_arr(nu-1,0) = (out_arr(0,1) + out_arr(nu-2,1) +
+		      out_arr(0,nv-1) + out_arr(nu-2,nv-1))/4.;
+
+    u_arr(nu-1,nv-1) = (out_arr(0,nv-1) + out_arr(nu-2,nv-1))/2.;
+    v_arr(nu-1,nv-1) = (out_arr(nu-1,0) + out_arr(nu-1,nv-2))/2.;
+    uv_arr(nu-1,nv-1) = (out_arr(0,0) + out_arr(nu-2,0) +
+		         out_arr(0,nv-2) + out_arr(nu-2,nv-2))/4.;
+  }
+}
+
+void FFTBrick::setStateImpl (DMI::Record::Ref& rec, bool initializing)
+{
+  Node::setStateImpl(rec,initializing);
+
+  std::vector<HIID> in = _in_axis_id;
+  if( rec[FAxesIn].get_vector(in,initializing) )
+  {
+    FailWhen(in.size()!=2,FAxesIn.toString()+" field must have 2 elements");
+    _in_axis_id = in;
+  }
+  std::vector<HIID> out = _out_axis_id;
+  if( rec[FAxesOut].get_vector(out,initializing) )
+  {
+    FailWhen(out.size()!=2,FAxesOut.toString()+" field must have 2 elements");
+    _out_axis_id = out;
+  }
+  // do not check that axes are valid -- this is done in getResult()
+};
   
 } // namespace Meq

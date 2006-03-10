@@ -40,6 +40,7 @@ namespace Meq {
     _uvDelta(casa::C::pi/2.),
     _method(1)
   {
+    disableAutoResample();
     //    Axis::addAxis("U");
     //    Axis::addAxis("V");
   };

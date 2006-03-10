@@ -30,10 +30,17 @@
 
 
 #include <MeqNodes/TID-MeqNodes.h>
+#include <MeqNodes/AID-MeqNodes.h>
+
 #pragma aidgroup MeqNodes
 #pragma types #Meq::FFTBrick
 
+#pragma aid Axes In Out
+
 namespace Meq {
+
+const HIID FAxesIn = AidAxes|AidIn;
+const HIID FAxesOut = AidAxes|AidOut;
 
 
 class FFTBrick: public Node
@@ -60,8 +67,31 @@ public:
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
  private:
+  
+  // helper function to perform a single FFT.
+  // returns four outputs: the FFT, plus higher-order interpolation planes
+  void doFFT (Vells::Ref output_vells[4],const Vells &input_vells);
+     
+  // which 2 axes are treated as an input plane?
+  std::vector<HIID> _in_axis_id;
+  // which 2 axes are treated as the output plane?
+  std::vector<HIID> _out_axis_id;
 
   double _uvppw;
+  
+  // axis numbers -- filled in by getResult()
+  uint _inaxis0; 
+  uint _inaxis1; 
+  uint _outaxis0;
+  uint _outaxis1;
+  
+  // thse are shared between getResult() and doFFT(), so declare them
+  // without _ prefix to make code more readable
+  // NB: for historical reasons, we'll use l,m to name variables referring to 
+  // the input axes, and u,v when referring to the output axes. The real axes
+  // in use are of course determined above.
+  int nl,nm,nl1,nm1;
+  int nu,nv,nu1,nv1;
    
 };
 
