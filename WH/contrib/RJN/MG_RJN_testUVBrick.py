@@ -204,7 +204,10 @@ def _define_forest(ns):
 
  # FFT the 4 correlations
  # FFTBrick
- fft_root = ns['FFT['+pc_name+']']<<Meq.FFTBrick(children=stokes_root);
+ # NB: since UVInterpol expects LM axes instead of UV (why????),
+ # temporarily tell the FFTBrick to do just that
+ fft_root = ns['FFT['+pc_name+']'] << \
+    Meq.FFTBrick(children=stokes_root,axes_out=(dmi.hiid("l"),dmi.hiid("m")));
 
  for ifr in ifrs:
  # for every baseline
