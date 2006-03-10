@@ -1126,14 +1126,16 @@ if __name__ == '__main__':
     if 1:
         nst = test1(ns)
 
-    if 0:
+    if 1:
         gg = nst.group_keys()
         # gg.append('xxx')
         gg = 'GJones'                      
         gg = ['GJones',['Gampl','Gpol1',['Gpol2']]]                      
         # gg = ['GJones',['Gampl','Gpol1',['xxx']]]                      
-        nn = nst.nodenames (gg, select='*', trace=True)
-        nn = nst.nodes (gg, select='*', trace=True)
+        select = '*'
+        # select = 'first'
+        nn = nst.nodenames (gg, select=select, trace=True)
+        # nn = nst.nodes (gg, select=select, trace=True)
 
     if 0:
         print
@@ -1183,7 +1185,7 @@ if __name__ == '__main__':
     if 0:
         nst.update(nst2)
 
-    if 1:
+    if 0:
         root = nst.bookpage_subtree(ns, trace=True)
         TDL_display.subtree(root, 'bookpage_subtree', full=True, recurse=3)
 

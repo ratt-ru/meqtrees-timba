@@ -362,11 +362,15 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     js.ParmSet.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.ParmSet.solvegroup('GJones', [a1, p1, a2, p2], bookpage=True)
-    js.ParmSet.solvegroup('Gpol1', [a1, p1])
-    js.ParmSet.solvegroup('Gpol2', [a2, p2])
-    js.ParmSet.solvegroup('Ggain', [a1, a2])
-    js.ParmSet.solvegroup('Gphase', [p1, p2])
+    if simul:
+       js.LeafSet.NodeSet.bookpage('GJones', [a1, p1, a2, p2])
+    else:
+       js.ParmSet.solvegroup('GJones', [a1, p1, a2, p2], bookpage=True)
+       js.ParmSet.solvegroup('Gpol1', [a1, p1])
+       js.ParmSet.solvegroup('Gpol2', [a2, p2])
+       js.ParmSet.solvegroup('Ggain', [a1, a2])
+       js.ParmSet.solvegroup('Gphase', [p1, p2])
+
     
     for station in pp['stations']:
        skey = TDL_radio_conventions.station_key(station)        
@@ -466,7 +470,10 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    js.ParmSet.node_groups(label[0])
 
    # Define extra solvegroup(s) from combinations of parmgroups:
-   js.ParmSet.solvegroup('FJones', [RM])
+    if simul:
+       js.LeafSet.NodeSet.bookpage('FJones', [RM])
+    else:
+       js.ParmSet.solvegroup('FJones', [RM])
 
    # Make a node for the Faraday rotation (same for all stations...)
    if simul:
@@ -589,11 +596,14 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     js.ParmSet.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.ParmSet.solvegroup('BJones', [br1, bi1, br2, bi2], bookpage=True)
-    js.ParmSet.solvegroup('Bpol1', [br1, bi1])
-    js.ParmSet.solvegroup('Bpol2', [br2, bi2])
-    js.ParmSet.solvegroup('Breal', [br1, br2])
-    js.ParmSet.solvegroup('Bimag', [bi1, bi2])
+    if simul:
+       js.LeafSet.NodeSet.bookpage('BJones', [br1, bi1, br2, bi2])
+    else:
+       js.ParmSet.solvegroup('BJones', [br1, bi1, br2, bi2], bookpage=True)
+       js.ParmSet.solvegroup('Bpol1', [br1, bi1])
+       js.ParmSet.solvegroup('Bpol2', [br2, bi2])
+       js.ParmSet.solvegroup('Breal', [br1, br2])
+       js.ParmSet.solvegroup('Bimag', [bi1, bi2])
 
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
@@ -730,7 +740,13 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     js.ParmSet.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    if pp['diagonal_only']:
+    if simul:
+       if pp['diagonal_only']:
+          js.LeafSet.NodeSet.bookpage('JJones', [dr11, di11, dr22, di22])
+       else:
+          js.LeafSet.NodeSet.bookpage('Jreal', [dr11, dr12, dr21, dr22])
+          js.LeafSet.NodeSet.bookpage('Jimag', [di11, di12, di21, di22])
+    elif pp['diagonal_only']:
        js.ParmSet.solvegroup('JJones', [dr11, di11, dr22, di22], bookpage=True)
        js.ParmSet.solvegroup('Jreal', [dr11, dr22])
        js.ParmSet.solvegroup('Jimag', [di11, di22])
@@ -739,6 +755,7 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
                                         dr21, di21, dr22, di22])
        js.ParmSet.solvegroup('Jreal', [dr11, dr12, dr21, dr22], bookpage=True)
        js.ParmSet.solvegroup('Jimag', [di11, di12, di21, di22], bookpage=True)
+
 
     # Make station Jones matrices:
     if pp['diagonal_only']:
@@ -886,7 +903,16 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    js.ParmSet.node_groups(label[0])
 
    # Define extra solvegroup(s) from combinations of parmgroups:
-   if pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
+   if simul:
+      if pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
+         js.LeafSet.NodeSet.bookpage('DJones', [Dang, Dell, pzd])
+      elif pp['coupled_XY_Dang']:
+         js.LeafSet.NodeSet.bookpage('DJones', [Dang, Dell1, Dell2, pzd])
+      elif pp['coupled_XY_Dell']:
+         js.LeafSet.NodeSet.bookpage('DJones', [Dang1, Dang2, Dell, pzd])
+      else:
+         js.LeafSet.NodeSet.bookpage('DJones', [Dang1, Dang2, Dell1, Dell2, pzd])
+   elif pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
       js.ParmSet.solvegroup('DJones', [Dang, Dell, pzd], bookpage=True)
    elif pp['coupled_XY_Dang']:
       js.ParmSet.solvegroup('DJones', [Dang, Dell1, Dell2, pzd], bookpage=True)

@@ -341,10 +341,10 @@ class ParmSet (TDL_common.Super):
         return self._fieldict (self.__default_value, key=key, name='.default_value()')
 
 
-    def solveparm_names(self, solvegroup=[], trace=False):
+    def solveparm_names(self, solvegroup=[], select='*', trace=False):
         """Return a list of MeqParm names for the specified solvegroup (of parmgroup names)"""
         if trace: print '\n** solveparm_names(',solvegroup,'):'
-        parms = self.NodeSet.nodenames(solvegroup)
+        parms = self.NodeSet.nodenames(solvegroup, select=select)
         if trace: print '   -> (solve)parms =',parms
         return parms
 

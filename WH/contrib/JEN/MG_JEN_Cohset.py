@@ -205,8 +205,8 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 
         # Bundle the MeqParms per parmgroup:
         post = []
-        post.append(Cohset.ParmSet.NodeSet.bookpage_subtree(ns, scope='fDMux'))    
-        post.append(Cohset.LeafSet.NodeSet.bookpage_subtree(ns, scope='fDMux'))    
+        post.append(Cohset.ParmSet.NodeSet.bookpage_subtree(ns, scope='fDMux_ParmSet'))    
+        post.append(Cohset.LeafSet.NodeSet.bookpage_subtree(ns, scope='fDMux_LeafSet'))    
 
         # Make the VisDataMux:
         Cohset.fullDomainMux(ns, start=start, post=post)
@@ -590,31 +590,15 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
     hcoll_parm = []
     subtree_solvegroups = None
     if pp['visu']:
-        # subtree_solvegroups = Cohset.Parmset.subtree_solvegroup(ns, pp['solvegroup'],
-        #                                                        solver_name,
-        #                                                        bookpage='solvegroup_'+solver_name)    
-        # subtree_solvegroups = Cohset.Parmset.subtree_solvegroup(ns, pp['solvegroup'],
-        #                                                        solver_name,
-        #                                                        bookpage='solvegroup_'+solver_name)    
-        if len(solvable)<10:
-            # If not too many, show all solvable MeqParms
-            for s1 in solvable:
-                # MG_JEN_forest_state.bookmark (ns[s1], page='solvable')
-                hcoll = MG_JEN_historyCollect.insert_hcoll(ns, s1, page='hcoll_solvable', graft=False)
-                hcoll_parm.append(hcoll)
-        else:
-            # Show the first MeqParm in each parmgroup:
-            # ss1 = Cohset.Parmset.solveparm_names(pp['solvegroup'], select='first')
-            ss1 = []
-            for s1 in ss1:
-                # MG_JEN_forest_state.bookmark (ns[s1], page='solvable')
-                hcoll = MG_JEN_historyCollect.insert_hcoll(ns, s1, page='hcoll_solvable', graft=False)
-                hcoll_parm.append(hcoll)
-        # The following shows more than just the solvable parms....
-        if Cohset.Joneset():                                  # if Joneset available
-            dcoll_parm.extend(MG_JEN_Joneset.visualise (ns, Cohset.Joneset(),
-                                                        errorbars=True, show_mxel=True))
-
+        bs = Cohset.ParmSet.NodeSet.bookpage_subtree(ns, scope='solver_'+solver_name)
+        # subtree_solvegroups = bs
+        dcoll_parm.append(bs)
+        # Show the first MeqParm in each parmgroup:
+        ss1 = Cohset.ParmSet.solveparm_names(pp['solvegroup'], select='first')
+        for s1 in ss1:
+            # MG_JEN_forest_state.bookmark (ns[s1], page='solvable')
+            hcoll = MG_JEN_historyCollect.insert_hcoll(ns, s1, page='hcoll_solvable', graft=False)
+            hcoll_parm.append(hcoll)
 
     # Extract a list of condeq nodes for the specified corrs and baseline lengths:
     Cohset.select(rmin=pp['rmin'], rmax=pp['rmax'])
@@ -677,7 +661,8 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
        cc.append(ns.dcoll_parm(solver_name, q=punit) << Meq.Composer(children=dcoll_parm))
     if len(hcoll_parm)>0:                         # append MeqParm historyCollect nodes
        cc.append(ns.hcoll_parm(solver_name, q=punit) << Meq.Composer(children=hcoll_parm))
-    if subtree_solvegroups: cc.append(subtree_solvegroups) 
+    if subtree_solvegroups:
+        cc.append(subtree_solvegroups) 
     root = ns[subtree_name](q=punit) << Meq.ReqSeq(children=cc, result_index=0)
 
 
