@@ -161,8 +161,8 @@ class PUnit:
    newp.__sixpack={}
    pset=self.__sixpack.ParmSet
    # copy ParmSet
-   newp.__sixpack['Parmset']=pset.clone()
-   #print newp.__sixpack['Parmset']
+   newp.__sixpack['ParmSet']=pset.clone()
+   #print newp.__sixpack['ParmsSt']
    if self.__sixpack.ispoint():
     newp.__sixpack['I']=self.__sixpack.stokesI().name
     newp.__sixpack['Q']=self.__sixpack.stokesQ().name
@@ -215,17 +215,17 @@ class PUnit:
  # Try to recreate a TDL_ParmSet from a given dict.
  # Assume all needed nodes exist in the ns
  # Assume also the sixpack is present in this PUnit
- def setParmset(self,tmp_dict,ns):
+ def setParmSet(self,tmp_dict,ns):
   #print tmp_dict
   if self.__sixpack==None or ns==None:
-    print "WARNING: cannot reconstruct Parmset"
+    print "WARNING: cannot reconstruct ParmSet"
     return
-  # recreate Parmset
+  # recreate ParmSet
   pset=TDL_ParmSet.ParmSet()
   pset.restore(tmp_dict,ns)
   #pset.display()
   # attach it to sixpack 
-  self.__sixpack.Parmset=pset
+  self.__sixpack.ParmSet=pset
 ###############################################
 class LSM:
  """LSM Object:
@@ -680,8 +680,8 @@ class LSM:
      # set the root node
      my_sp=my_sp.clone(sixpack=self.__ns[tmp_dict['pointroot']],ns=self.__ns)
     punit.setSP(my_sp)
-    # recreate Parmset for this sixpack
-    punit.setParmset(tmp_dict['Parmset'],self.__ns)
+    # recreate ParmSet for this sixpack
+    punit.setParmSet(tmp_dict['ParmSet'],self.__ns)
     # set the root
     punit.sp.setRoot(my_sp.sixpack())
 
@@ -1380,8 +1380,8 @@ class LSM:
        # set the root node
        my_sp=my_sp.clone(sixpack=self.__ns[tmp_dict['pointroot']],ns=self.__ns)
        punit.setSP(my_sp)
-       # recreate Parmset for this sixpack
-       punit.setParmset(tmp_dict['Parmset'],self.__ns)
+       # recreate ParmSet for this sixpack
+       punit.setParmSet(tmp_dict['ParmSet'],self.__ns)
        # set the root
        punit.sp.setRoot(my_sp.sixpack())
        # add the new PUnit to self
