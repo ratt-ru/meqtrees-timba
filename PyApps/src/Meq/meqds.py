@@ -519,13 +519,24 @@ def subscribe_nodelist (callback):
 def ubsubscribe_nodelist (callback):
   QObject.disconnect(nodelist,PYSIGNAL("loaded()"),callback);
 
-def enable_node_publish (node,enable=True,get_state=True):
+def enable_node_publish (node,enable=True,get_state=True,sync=False):
   ni = nodeindex(node);
   if enable:
     level = 1;
   else:
     level = 0;
-  mqs().meq('Node.Set.Publish.Level',record(nodeindex=ni,get_state=get_state,level=level),wait=False);
+  mqs().meq('Node.Set.Publish.Level',
+    record(nodeindex=ni,get_state=get_state,level=level,sync=sync),
+    wait=False);
+
+def enable_node_publish_by_name (nodename,enable=True,get_state=True,sync=False):
+  if enable:
+    level = 1;
+  else:
+    level = 0;
+  mqs().meq('Node.Set.Publish.Level',
+    record(name=nodename,get_state=get_state,level=level,sync=sync),
+    wait=False);
 
 def disable_node_publish (node,disable=True):
   return enable_node_publish(node,not disable);

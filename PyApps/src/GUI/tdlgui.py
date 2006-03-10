@@ -612,12 +612,11 @@ class TDLEditor (QFrame,PersistentCurrier):
       self.set_error_list([value]);
       return None;
     # refresh the nodelist
-    allnodes = ns.AllNodes();
     meqds.request_nodelist(sync=True);
     # restore publishing nodes
     for name in pub_nodes: 
-      if name in allnodes:
-        meqds.enable_node_publish(name);
+      if name in ns.AllNodes():
+        meqds.enable_node_publish_by_name(name,sync=True);
     ### NB: presume this all was successful for now
 
     # does the script define an explicit job list?
