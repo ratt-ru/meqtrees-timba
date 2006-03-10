@@ -24,6 +24,7 @@
 # - 05 feb 2006: punit='uvp'
 # - 08 mar 2006: adopted Cohset._rider()
 # - 09 mar 2006: included new TDL_ParmSet, removed TDL_Parmset and TDL_Leafset
+# - 11 mar 2006: adopted TDL_Cohset.condeq_corrs()
 
 # Copyright: The MeqTree Foundation 
 

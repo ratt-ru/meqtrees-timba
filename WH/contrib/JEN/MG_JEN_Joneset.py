@@ -146,10 +146,6 @@ def inarg_polrep (pp, **kwargs):
 
 #------------------------------------------------------------------------------
 
-def inarg_Joneset_Parmset (pp, **kwargs):
-   """Semi-obsolete"""
-   return inarg_Joneset_ParmSet (pp, **kwargs)
-
 def inarg_Joneset_ParmSet (pp, **kwargs):
    """Some common JEN_inarg definitions for Joneset definition functions"""
    JEN_inarg.inarg_common(kwargs)
