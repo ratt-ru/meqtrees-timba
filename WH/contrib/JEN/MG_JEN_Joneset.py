@@ -362,13 +362,11 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     js.ParmSet.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.ParmSet.solvegroup('GJones', [a1, p1, a2, p2])
+    js.ParmSet.solvegroup('GJones', [a1, p1, a2, p2], bookpage=True)
     js.ParmSet.solvegroup('Gpol1', [a1, p1])
     js.ParmSet.solvegroup('Gpol2', [a2, p2])
     js.ParmSet.solvegroup('Ggain', [a1, a2])
     js.ParmSet.solvegroup('Gphase', [p1, p2])
-
-    js.bookpage('GJones', [a1, p1, a2, p2])
     
     for station in pp['stations']:
        skey = TDL_radio_conventions.station_key(station)        
@@ -394,9 +392,9 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
        ss = js.buffer()
        if pp['Gpolar']:
           stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
-             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Polar( ss[a1], ss[p1]),
+             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Polar(ss[a1], ss[p1]),
              0,0,
-             ns[label+'_22'](s=skey, q=pp['punit']) << Meq.Polar( ss[a2], ss[p2])
+             ns[label+'_22'](s=skey, q=pp['punit']) << Meq.Polar(ss[a2], ss[p2])
              )
        else:
           cos1 = ns << ss[a1] * Meq.Cos(ss[p1])
@@ -404,9 +402,9 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
           sin1 = ns << ss[a1] * Meq.Sin(ss[p1])
           sin2 = ns << ss[a2] * Meq.Sin(ss[p2])
           stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
-             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex( cos1, sin1),
+             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(cos1, sin1),
              0,0,
-             ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex( cos2, sin2)
+             ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(cos2, sin2)
              )
        js.append(skey, stub)
 
@@ -591,7 +589,7 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     js.ParmSet.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.ParmSet.solvegroup('BJones', [br1, bi1, br2, bi2])
+    js.ParmSet.solvegroup('BJones', [br1, bi1, br2, bi2], bookpage=True)
     js.ParmSet.solvegroup('Bpol1', [br1, bi1])
     js.ParmSet.solvegroup('Bpol2', [br2, bi2])
     js.ParmSet.solvegroup('Breal', [br1, br2])
@@ -655,6 +653,8 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
                             description=JJones.__doc__)
     inarg_Joneset_common(pp, jones=jones, slave=slave)              
     # ** Jones matrix elements:
+    JEN_inarg.define(pp, 'diagonal_only', tf=False,  
+                     help='if True, assume that the non-diagonal elements are zero')
 
     if simul:                              # simulation mode
        ls = TDL_LeafSet.LeafSet()
@@ -704,20 +704,21 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # Register the parmgroups (in js.ParmSet eventually):
     dr11 = js.parmgroup('Jreal_11', condeq_corrs='paral11', default=1.0,
                         color='red', style='square', size=7, **pp)
-    dr12 = js.parmgroup('Jreal_12', condeq_corrs='cross12', default=0.0,
-                        color='red', style='square', size=7, **pp)
-    dr21 = js.parmgroup('Jreal_21', condeq_corrs='cross21', default=0.0,
-                        color='red', style='square', size=7, **pp)
     dr22 = js.parmgroup('Jreal_22', condeq_corrs='paral22', default=1.0,
                         color='blue', style='square', size=7, **pp)
     di11 = js.parmgroup('Jimag_11', condeq_corrs='paral11', default=0.0,
                         color='magenta', style='square', size=7, **pp)
-    di12 = js.parmgroup('Jimag_12', condeq_corrs='cross12', default=0.0,
-                        color='magenta', style='square', size=7, **pp)
-    di21 = js.parmgroup('Jimag_21', condeq_corrs='cross21', default=0.0,
-                        color='magenta', style='square', size=7, **pp)
     di22 = js.parmgroup('Jimag_22', condeq_corrs='paral22', default=0.0,
                         color='cyan', style='square', size=7, **pp)
+    if not pp['diagonal_only']:
+       dr12 = js.parmgroup('Jreal_12', condeq_corrs='cross12', default=0.0,
+                           color='red', style='square', size=7, **pp)
+       dr21 = js.parmgroup('Jreal_21', condeq_corrs='cross21', default=0.0,
+                           color='red', style='square', size=7, **pp)
+       di12 = js.parmgroup('Jimag_12', condeq_corrs='cross12', default=0.0,
+                           color='magenta', style='square', size=7, **pp)
+       di21 = js.parmgroup('Jimag_21', condeq_corrs='cross21', default=0.0,
+                           color='magenta', style='square', size=7, **pp)
 
     # Define potential extra condition equations:
     # js.ParmSet.define_condeq(di11, unop='Add', value=0.0)
@@ -729,16 +730,28 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     js.ParmSet.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.ParmSet.solvegroup('JJones', [dr11, di11, dr12, di12,
-                                            dr21, di21, dr22, di22])
-    js.ParmSet.solvegroup('Jreal', [dr11, dr12, dr21, dr22])
-    js.ParmSet.solvegroup('Jimag', [di11, di12, di21, di22])
+    if pp['diagonal_only']:
+       js.ParmSet.solvegroup('JJones', [dr11, di11, dr22, di22], bookpage=True)
+       js.ParmSet.solvegroup('Jreal', [dr11, dr22])
+       js.ParmSet.solvegroup('Jimag', [di11, di22])
+    else:
+       js.ParmSet.solvegroup('JJones', [dr11, di11, dr12, di12,
+                                        dr21, di21, dr22, di22])
+       js.ParmSet.solvegroup('Jreal', [dr11, dr12, dr21, dr22], bookpage=True)
+       js.ParmSet.solvegroup('Jimag', [di11, di12, di21, di22], bookpage=True)
 
+    # Make station Jones matrices:
+    if pp['diagonal_only']:
+       JJreal = [dr11,dr22]
+       JJimag = [di11,di22]
+    else:
+       JJreal = [dr11,dr12,dr21,dr22]
+       JJimag = [di11,di12,di21,di22]
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
         qual = dict(s=skey)
 
-        for Jreal in [dr11,dr12,dr21,dr22]:
+        for Jreal in JJreal:
            if simul:
               js.LeafSet.MeqLeaf (ns, Jreal, qual=qual, **pp)
            else:
@@ -746,7 +759,7 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
                                   tfdeg=[pp['tdeg_Jreal'],pp['fdeg_Jreal']],
                                   subtile_size=pp['subtile_size_Jreal'])
 
-        for Jimag in [di11,di12,di21,di22]:
+        for Jimag in JJimag:
            if simul:
               js.LeafSet.MeqLeaf (ns, Jimag, qual=qual, **pp)
            else:
@@ -757,12 +770,19 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
         # Make the 2x2 Jones matrix
         ss = js.buffer()
-        stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
-            ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr11], ss[di11]),
-            ns[label+'_12'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr12], ss[di12]),
-            ns[label+'_21'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr21], ss[di21]),
-            ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr22], ss[di22])
-            )
+        if pp['diagonal_only']:
+           stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
+              ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr11], ss[di11]),
+              0,0,
+              ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr22], ss[di22])
+              )
+        else:
+           stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
+              ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr11], ss[di11]),
+              ns[label+'_12'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr12], ss[di12]),
+              ns[label+'_21'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr21], ss[di21]),
+              ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr22], ss[di22])
+              )
         js.append(skey, stub)
 
     # Finished:
@@ -867,15 +887,15 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
    # Define extra solvegroup(s) from combinations of parmgroups:
    if pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
-      js.ParmSet.solvegroup('DJones', [Dang, Dell, pzd])
+      js.ParmSet.solvegroup('DJones', [Dang, Dell, pzd], bookpage=True)
    elif pp['coupled_XY_Dang']:
-      js.ParmSet.solvegroup('DJones', [Dang, Dell1, Dell2, pzd])
+      js.ParmSet.solvegroup('DJones', [Dang, Dell1, Dell2, pzd], bookpage=True)
       js.ParmSet.solvegroup('Dell', [Dell1, Dell2, pzd])
    elif pp['coupled_XY_Dell']:
-      js.ParmSet.solvegroup('DJones', [Dang1, Dang2, Dell, pzd])
+      js.ParmSet.solvegroup('DJones', [Dang1, Dang2, Dell, pzd], bookpage=True)
       js.ParmSet.solvegroup('Dang', [Dang1, Dang2, pzd])
    else:
-      js.ParmSet.solvegroup('DJones', [Dang1, Dang2, Dell1, Dell2, pzd])
+      js.ParmSet.solvegroup('DJones', [Dang1, Dang2, Dell1, Dell2, pzd], bookpage=True)
       js.ParmSet.solvegroup('Dang', [Dang1, Dang2, pzd])
       js.ParmSet.solvegroup('Dell', [Dell1, Dell2, pzd])
 

@@ -356,6 +356,10 @@ def unclutter_inarg(pp):
 # 
 #--------------------------------------------------------------------------
 
+def is_nodestub(node):
+    """Test whether a nodestub has the correct type"""
+    return isinstance(node, Timba.TDL.TDLimpl._NodeStub)
+
 def encode_nodestubs(rr=None):
     """encode the nodestubs in the given dict (needed for saving)"""
     if not isinstance(rr, dict): return rr

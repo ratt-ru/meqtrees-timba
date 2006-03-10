@@ -593,6 +593,9 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
         # subtree_solvegroups = Cohset.Parmset.subtree_solvegroup(ns, pp['solvegroup'],
         #                                                        solver_name,
         #                                                        bookpage='solvegroup_'+solver_name)    
+        # subtree_solvegroups = Cohset.Parmset.subtree_solvegroup(ns, pp['solvegroup'],
+        #                                                        solver_name,
+        #                                                        bookpage='solvegroup_'+solver_name)    
         if len(solvable)<10:
             # If not too many, show all solvable MeqParms
             for s1 in solvable:

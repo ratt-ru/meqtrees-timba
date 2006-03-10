@@ -340,13 +340,13 @@ class NodeSet (TDL_common.Super):
 
     def nodes(self, group=None, select='*', trace=False):
         """Return a list of actual MeqNodes in the specified group(s)"""
-        if trace: print '\n** .nodes(',group,select,'):'
+        if trace: print '** .nodes(',group,select,'):',
         names = self.nodenames(group, select=select, trace=False)
         if not isinstance(names, (list,tuple)): return False
         nn = []
         for name in names:
             nn.append(self.__MeqNode[name])
-        if trace: print '(',len(nn),'):',nn,'\n'
+        if trace: print '-> (',len(nn),'):',names
         return nn
 
     def nodenames (self, group=None, select='*', trace=False):
@@ -438,12 +438,14 @@ class NodeSet (TDL_common.Super):
     # Helper function (very useful):
     #--------------------------------------------------------------------------------
 
-    def _extract_flat_grouplist (self, key=None, origin='<origin>',
+    def _extract_flat_grouplist (self, key=None, origin=None,
                                 must_exist=False, level=0):
         """Make a flat list of (unique) groupnames from the specified key.
         The latter may be a string (name of group or gog) or a list/tuple
-        of strings or lists/tuples, etc (recursive). Returns False if error."""  
-        s1 = '._extract_flat_group('+str(level)+','+str(origin)+'): '
+        of strings or lists/tuples, etc (recursive). Returns False if error."""
+
+        if origin==None: origin = self.tlabel()
+        s1 = '._extract_flat_group('+str(level)+', '+str(key)+', '+str(origin)+'): '
 
         if key==None:                                               # key not specified
             return self.group_keys()                                # return all available groups
@@ -453,7 +455,7 @@ class NodeSet (TDL_common.Super):
         for g in key:
             if isinstance(g, (list,tuple)):                         # recursive
                 gg1 = self._extract_flat_grouplist(g, origin=origin,
-                                                  must_exist=must_exist, level=level+1)
+                                                   must_exist=must_exist, level=level+1)
                 if not isinstance(gg1, list): return False
                 for g1 in gg1:
                     if not gg.__contains__(g1): gg.append(g1)
@@ -463,7 +465,7 @@ class NodeSet (TDL_common.Super):
                 if not gg.__contains__(g): gg.append(g)             # avoid doubles
             elif self.__gog.has_key(g):                             # gog exists
                 gg1 = self._extract_flat_grouplist(self.__gog[g], origin=origin,
-                                                  must_exist=must_exist, level=level+1)
+                                                   must_exist=must_exist, level=level+1)
                 if not isinstance(gg1, list): return False
                 for g1 in gg1:
                     if not gg.__contains__(g1): gg.append(g1)       # avoid doubles
@@ -485,7 +487,7 @@ class NodeSet (TDL_common.Super):
         if groups:                                  # define a new gog
             if key==None:                  
                 return self.history(error='gog('+str(groups)+'): no key specified')
-            gg = self._extract_flat_grouplist(groups, must_exist=False)
+            gg = self._extract_flat_grouplist(groups, must_exist=False, origin='.gog()')
             if not isinstance(gg, list): return False
             if not isinstance(groups, list): groups = [groups]
 
@@ -561,10 +563,11 @@ class NodeSet (TDL_common.Super):
     # Make a subtree of MeqNode bundles (also MeqNodes), e.g. for plotting:
     #--------------------------------------------------------------------------
     
-    def make_bundle (self, ns, group=None, name=None, bookpage=None):
+    def make_bundle (self, ns, group=None, name=None, bookpage=None, trace=False):
         """Return a subtree of (the sum(s) of) the nodes in the specified group(s)"""
-        if trace: print '\n** make_bundle(',group,name,bookpage,'):'
-        gg = self._extract_flat_grouplist(group, must_exist=True)
+
+        if trace: print '** make_bundle(',group,name,bookpage,'):'
+        gg = self._extract_flat_grouplist(group, must_exist=True, origin='.make_bundle()')
         if not isinstance(gg, list): return False
         if len(gg)==0: return False
 
@@ -575,9 +578,11 @@ class NodeSet (TDL_common.Super):
                 name = self._make_bundle_name(group)
             bbname = '_bd_'+str(name)
             if self.__MeqNode.has_key(bbname):               # bbundle already exists
+                if trace: print '  MeqNode',bbname,'already exists'
                 return self.__MeqNode[bbname]                # just return it
             if isinstance(bookpage, bool) and bookpage:      # if bookpage==True: 
                  bookpage = bbname                           #   make an automatic name
+            if trace: print '  bookpage =',bbname
 
         cc = []
         bname = None                                         # bundle name
@@ -606,7 +611,9 @@ class NodeSet (TDL_common.Super):
         # Return the root node of a subtree:
         if not multiple:
             if bname:
-                self.history ('.make_bundle('+str(bname)+'): '+str(group)+' '+str(bookpage))
+                s1 = '.make_bundle('+str(bname)+'): '+str(group)+' '+str(bookpage)
+                if trace: print s1
+                self.history (s1)
                 return self.__MeqNode[bname]                 # A single group bundle
         elif len(cc)==0:
             self.history(error='** .make_bundle(): len(cc)==0!')
@@ -614,7 +621,9 @@ class NodeSet (TDL_common.Super):
             self.history(error='** .make_bundle(): nodescope required!')
         else:                                                # A bundle of group bundles 
             self.__MeqNode[bbname] = ns[bbname] << Meq.Composer(children=cc)
-            self.history ('.make_bundle('+str(bbname)+'): '+str(group)+' '+str(bookpage))
+            s1 = '** .make_bundle('+str(bbname)+'): '+str(group)+' '+str(bookpage)
+            if trace: print s1
+            self.history (s1)
             return self.__MeqNode[bbname]
 
         # Something wrong if got to here:
@@ -637,7 +646,7 @@ class NodeSet (TDL_common.Super):
             if len(group)==1:
                 if trace: print '(list[0]):',group[0]
                 return group[0]
-        gg = self._extract_flat_grouplist(group, must_exist=True)
+        gg = self._extract_flat_grouplist(group, must_exist=True, origin='.make_bundle_name()')
         name = ''
         for g in gg:
             name += g[0]
@@ -679,35 +688,47 @@ class NodeSet (TDL_common.Super):
     def bookpage_subtree(self, ns=None, scope='<scope>', compare=None, trace=False):
         """Return the rootnode of a subtree of all bookpage nodes (bundles).
         This can be used to supply requests to these nodes."""
+
+        trace = True
+        
         funcname = '.bookpage_subtree()'
-        if trace: print '\n**',funcname,':'
+        if trace: print '\n**',self.tlabel(),':',funcname,':'
         uniqual = _counter(funcname, increment=-1)
         root = []
-        for key in self.bookpage().keys():
-            pagename = str(scope)+'_'+key
-            cc = []
-            for group in self.bookpage(key):
-                node = self.make_bundle(ns, group, bookpage=pagename)
-                cc.append(node)
-                if trace: print '  -',group,':',node.name
-            if len(cc)==0:
+        for key in self.bookpage().keys():                  # for all bookpage definitions
+            if trace: print '\n====== bookpage definition:',key,'========'
+            panels = []                                     # bookpage panels
+            for group in self.bookpage(key):                #  
+                pagename = str(scope)+'_'+key
+                node = self.make_bundle(ns, group, bookpage=pagename, trace=trace)
+                if TDL_common.is_nodestub(node):
+                    panels.append(node)
+                    if trace: print '  - group:',group,'-> bundle:',node.name
+                else:
+                    print self.tlabel(),funcname,': make_bundle(',group,') ->',type(node)
+
+            if len(panels)==0:                              # no panels
                 pass                                        # error ...?
-                if trace: print '  - empty:',group
-            elif len(cc)==1:
-                root.append(cc[0])
-                if trace: print '  - single:',group,'->',cc[0].name
+                if trace: print '- empty bookpage:',key
+            elif len(panels)==1:
+                root.append(panels[0])
+                if trace: print '- single panel:',key,':',panels[0].name
             else:
                 name = '_bookpage_'+key
-                node = ns[name](uniqual) << Meq.Composer(children=cc)
+                node = ns[name](uniqual) << Meq.Composer(children=panels)
                 root.append(node)
-                if trace: print '  - subroot:',group,len(cc),'->',node.name
+                if trace: print '- multi-panel bookpage:',key,'(',len(panels),') ->',node.name
+
         # Return a single root node:
-        if len(root)==0: return False                       # error ....?
-        rootnode = root[0]
-        if len(root)>1:
+        if len(root)==0:                                    # no root nodes collected..?
+            return False                                    # error ....
+        elif len(root)==1:                                  # only one bookpage root
+            rootnode = root[0]                              # 
+            if trace: print '\n**',funcname,'-> single-bookpage rootnode:',rootnode.name,'\n'
+        if len(root)>1:                                     # multiple bookpages: bundle
             name = '_bookpage_subtree'
             rootnode = ns[name](uniqual) << Meq.Composer(children=root)
-        if trace: print '  - rootnode:',node.name
+            if trace: print '\n**',funcname,'-> multi-bookpage rootnode:',rootnode.name,'\n'
         return rootnode
 
 
@@ -720,7 +741,7 @@ class NodeSet (TDL_common.Super):
         """Apply unary operation(s) to the nodes in the specified group(s).
         The resulting nodes are put into new groups, and a new gog is defined"""
         if trace: print '\n** apply_unop(',group,unop,'):'
-        gg = self._extract_flat_grouplist(group, must_exist=True)
+        gg = self._extract_flat_grouplist(group, must_exist=True, origin='.apply_unop()')
         if not isinstance(gg, list): return False
         if len(gg)==0: return False
         gog = []
@@ -775,7 +796,7 @@ class NodeSet (TDL_common.Super):
         """Apply binary operation(s) to the nodes in the specified group(s).
         The resulting nodes are put into new groups, and a new gog is defined"""
         if trace: print '\n** apply_binop(',group,binop,'):'
-        gg = self._extract_flat_grouplist(group, must_exist=True)
+        gg = self._extract_flat_grouplist(group, must_exist=True, origin='.apply_binop()')
         print 'gg =',gg
         if not isinstance(gg, list): return False
         print 'gg =',gg
@@ -820,7 +841,7 @@ class NodeSet (TDL_common.Super):
         The resulting nodes are put into new groups, and a new gog is defined."""
         if trace: print '\n** compare(',group,binop,'):'
 
-        gg = self._extract_flat_grouplist(group, must_exist=True)
+        gg = self._extract_flat_grouplist(group, must_exist=True, origin='.compare()')
         if not isinstance(gg, list): return False
 
         gnames = []

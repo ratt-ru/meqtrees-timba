@@ -324,7 +324,10 @@ class ParmSet (TDL_common.Super):
             # NB: This is inhibited if ParmSet is set 'unsolvable' (e.g. for simulated uv-data) 
             if self.unsolvable(): return False
             pp['gogtype'] = 'solvegroup'       
-            # qq = TDL_common.unclutter_inarg(pp)
+            if True:
+                # Optional: make a bookpage of this solvegroup
+                pp.setdefault('bookpage', False)
+                if pp['bookpage']: self.NodeSet.bookpage(key, groups)
             self.history('** Created solvegroup: '+str(key)+':  group(s): '+str(groups))
         # Then the generic NodeSet part:
         return self.NodeSet.gog(key, groups, **pp)

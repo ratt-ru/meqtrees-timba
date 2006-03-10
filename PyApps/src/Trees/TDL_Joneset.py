@@ -229,7 +229,7 @@ class Joneset (TDL_common.Super):
         return key                                                  # return the actual key name
 
     def cleanup(self):
-        """Clean up the object (or rather its ParmSet/LeafSet)"""
+        """Clean up the object (or rather its ParmSet/LeafSet NodeSets)"""
         self.LeafSet.cleanup()
         self.ParmSet.cleanup()
         return True
@@ -237,14 +237,9 @@ class Joneset (TDL_common.Super):
     def buffer(self):
         """Get the relevant temporary buffer (from ParmSet/LeafSet)"""
         ss = self.ParmSet.buffer()
+        # Kludge: If the ParmSet buffer is empty, try the LeafSet one:
         if len(ss)==0: ss = self.LeafSet.buffer()
         return ss
-
-    def bookpage(self, key=None, new=None):
-        """Define a Meqrowser bookpage in both NodeSets""" 
-        self.ParmSet.NodeSet.bookpage(key, new=new)
-        self.LeafSet.NodeSet.bookpage(key, new=new)
-
 
     #-----------------------------------------------------------------------
 
