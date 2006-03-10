@@ -435,7 +435,7 @@ def newstar_source (ns=0, predefine=False, **inarg):
    pset = Sixpack.Parmset              # old (to be removed eventually)
    ParmSet = Sixpack.ParmSet           # new
    
-   if True:
+   if False:
        # Register the parmgroups:
        sI = pset.parmgroup('stokesI', color='red', style='diamond', size=10,
                            rider=dict(condeq_corrs='corrI'))
@@ -460,16 +460,11 @@ def newstar_source (ns=0, predefine=False, **inarg):
        pset.solvegroup('stokesQUV', [sQ,sU,sV])
 
    # Register the parmgroups:
-   sI = ParmSet.parmgroup('stokesI', color='red', style='diamond', size=10,
-                       rider=dict(condeq_corrs='corrI'))
-   sQ = ParmSet.parmgroup('stokesQ', color='blue', style='diamond', size=10,
-                       rider=dict(condeq_corrs='corrQ'))
-   sU = ParmSet.parmgroup('stokesU', color='magenta', style='diamond', size=10, 
-                       rider=dict(condeq_corrs='corrU'))
-   sV = ParmSet.parmgroup('stokesV', color='cyan', style='diamond', size=10, 
-                       rider=dict(condeq_corrs='corrV'))
-   pg_radec = ParmSet.parmgroup('radec', color='black', style='circle', size=10, 
-                       rider=dict(condeq_corrs='corrI'))                       # <----- ?
+   sI = ParmSet.parmgroup('stokesI', color='red', style='diamond', size=10, condeq_corrs='corrI')
+   sQ = ParmSet.parmgroup('stokesQ', color='blue', style='diamond', size=10, condeq_corrs='corrQ')
+   sU = ParmSet.parmgroup('stokesU', color='magenta', style='diamond', size=10, condeq_corrs='corrU')
+   sV = ParmSet.parmgroup('stokesV', color='cyan', style='diamond', size=10, condeq_corrs='corrV')
+   pg_radec = ParmSet.parmgroup('radec', color='black', style='circle', size=10, condeq_corrs='corrI')   # <----- ?
    
    # MeqParm node_groups: add 'S' to default 'Parm':
    ParmSet.node_groups('S')
@@ -490,15 +485,15 @@ def newstar_source (ns=0, predefine=False, **inarg):
    parm = {}
    fmult = 1.0
    if pp['SI']==None:
-      parm['I0'] = pset.define_MeqParm (ns, 'I0', parmgroup=sI, default=pp['I0'])
+      # parm['I0'] = pset.define_MeqParm (ns, 'I0', parmgroup=sI, default=pp['I0'])
       parm['I0'] = ParmSet.MeqParm (ns, 'I0', parmgroup=sI, default=pp['I0'])
       iquv[n6.I] = parm['I0']
       fmult = iquv[n6.I]               
    else:
       polclog = polclog_SIF (SI=pp['SI'], I0=pp['I0'], f0=pp['f0'])
       print 'polclog =',polclog
-      parm['SIF'] = pset.define_MeqParm (ns, 'SIF_stokesI', parmgroup=sI,
-                                         init_funklet=polclog)
+      # parm['SIF'] = pset.define_MeqParm (ns, 'SIF_stokesI', parmgroup=sI,
+      #                                   init_funklet=polclog)
       parm['SIF'] = ParmSet.MeqParm (ns, 'SIF_stokesI', parmgroup=sI,
                                      init_funklet=polclog)
       iquv[n6.I] = ns['stokesI'](q=punit) << Meq.Pow(10.0, parm['SIF'])
@@ -509,7 +504,7 @@ def newstar_source (ns=0, predefine=False, **inarg):
        # iquv[n6.V] = zero
        iquv[n6.V] = ns[n6.V](q=punit) << Meq.Parm(0.0)
    else:
-      parm['Vpct'] = pset.define_MeqParm (ns, 'Vpct', parmgroup=sV, default=pp['Vpct'])
+      # parm['Vpct'] = pset.define_MeqParm (ns, 'Vpct', parmgroup=sV, default=pp['Vpct'])
       parm['Vpct'] = ParmSet.MeqParm (ns, 'Vpct', parmgroup=sV, default=pp['Vpct'])
       if isinstance(fmult, float):
          iquv[n6.V] = ns[n6.V](q=punit) << (parm['Vpct']*(fmult/100))
@@ -524,7 +519,7 @@ def newstar_source (ns=0, predefine=False, **inarg):
           # iquv[n6.Q] = zero
           iquv[n6.Q] = ns[n6.Q](q=punit) << Meq.Parm(0.0)
       else:
-         parm['Qpct'] = pset.define_MeqParm (ns, 'Qpct', parmgroup=sQ, default=pp['Qpct'])
+         # parm['Qpct'] = pset.define_MeqParm (ns, 'Qpct', parmgroup=sQ, default=pp['Qpct'])
          parm['Qpct'] = ParmSet.MeqParm (ns, 'Qpct', parmgroup=sQ, default=pp['Qpct'])
          if isinstance(fmult, float):
             iquv[n6.Q] = ns[n6.Q](q=punit) << (parm['Qpct']*(fmult/100))
@@ -536,7 +531,7 @@ def newstar_source (ns=0, predefine=False, **inarg):
           # iquv[n6.U] = zero
           iquv[n6.U] = ns[n6.U](q=punit) << Meq.Parm(0.0)
       else:
-         parm['Upct'] = pset.define_MeqParm (ns, 'Upct', parmgroup=sU, default=pp['Upct'])
+         # parm['Upct'] = pset.define_MeqParm (ns, 'Upct', parmgroup=sU, default=pp['Upct'])
          parm['Upct'] = ParmSet.MeqParm (ns, 'Upct', parmgroup=sU, default=pp['Upct'])
          if isinstance(fmult, float):
             iquv[n6.U] = ns[n6.U](q=punit) << (parm['Upct']*(fmult/100))
@@ -556,8 +551,8 @@ def newstar_source (ns=0, predefine=False, **inarg):
          # iquv['Q'] = MG_JEN_funklet.polclog_flux(ns, source=punit, stokes='stokesQ')
          # iquv['U'] = MG_JEN_funklet.polclog_flux(ns, source=punit, stokes='stokesU')
          # if not == 0.0, then ....
-      parm['Qpct'] = pset.define_MeqParm (ns, 'Qpct', parmgroup=sQ, default=pp['Qpct'])
-      parm['Upct'] = pset.define_MeqParm (ns, 'Upct', parmgroup=sU, default=pp['Upct'])
+      # parm['Qpct'] = pset.define_MeqParm (ns, 'Qpct', parmgroup=sQ, default=pp['Qpct'])
+      # parm['Upct'] = pset.define_MeqParm (ns, 'Upct', parmgroup=sU, default=pp['Upct'])
       parm['Qpct'] = ParmSet.MeqParm (ns, 'Qpct', parmgroup=sQ, default=pp['Qpct'])
       parm['Upct'] = ParmSet.MeqParm (ns, 'Upct', parmgroup=sU, default=pp['Upct'])
       if isinstance(fmult, float):
@@ -569,7 +564,7 @@ def newstar_source (ns=0, predefine=False, **inarg):
       QU = ns['QU'](q=punit) << Meq.Composer(children=[Q,U])  
 
       # Rotate QU by the RM matrix -> QURM
-      parm['RM'] = pset.define_MeqParm (ns, 'RM', parmgroup=sQ, default=pp['RM'])  
+      # parm['RM'] = pset.define_MeqParm (ns, 'RM', parmgroup=sQ, default=pp['RM'])  
       parm['RM'] = ParmSet.MeqParm (ns, 'RM', parmgroup=sQ, default=pp['RM'])  
       wvl2 = TDL_Leaf.MeqWavelength (ns, unop='Sqr')       
       farot = ns.farot(q=punit) << (parm['RM']*wvl2)
@@ -583,10 +578,10 @@ def newstar_source (ns=0, predefine=False, **inarg):
 
    # Source coordinates (RA, DEC)
    radec = {}
-   radec[n6.R] = pset.define_MeqParm (ns, n6.R, qual=dict(q=punit),
-                                      parmgroup=pg_radec, default=pp['RA'])  
-   radec[n6.D] = pset.define_MeqParm (ns, n6.D, qual=dict(q=punit),
-                                      parmgroup=pg_radec, default=pp['Dec'])  
+   # radec[n6.R] = pset.define_MeqParm (ns, n6.R, qual=dict(q=punit),
+   #                                   parmgroup=pg_radec, default=pp['RA'])  
+   # radec[n6.D] = pset.define_MeqParm (ns, n6.D, qual=dict(q=punit),
+   #                                   parmgroup=pg_radec, default=pp['Dec'])  
    radec[n6.R] = ParmSet.MeqParm (ns, n6.R, qual=dict(q=punit),
                                   parmgroup=pg_radec, default=pp['RA'])  
    radec[n6.D] = ParmSet.MeqParm (ns, n6.D, qual=dict(q=punit),

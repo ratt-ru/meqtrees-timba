@@ -362,7 +362,7 @@ def encode_nodestubs(rr=None):
     dictout = dict()
     for key in rr.keys():
         if isinstance(rr[key], Timba.TDL.TDLimpl._NodeStub):
-            return {'__type__':'nodestub','name':rr[key].name}
+            dictout[key] = {'__type__':'nodestub','name':rr[key].name}
         else:
             dictout[key] = rr[key]
     return dictout
@@ -379,14 +379,14 @@ def decode_nodestubs(ns, rr=None):
             if cc.has_key('__type__') and cc['__type__']=='nodestub':
                 # split off the name qualifiers (if any):
                 ss = string.split(cc['name'],':')    # split on qualifier colons
-                nodename = ss[0]
                 nodestub = None
                 if len(ss)==1:                       # no qualifiers
-                    nodestub = ns[nodename]
+                    nodestub = ns[ss[0]]
                 else:                                
+                    seval = 'nodestub=ns[\''+ss[0]+'\']'
                     for i in range(1,len(ss)):
-                        nodename += ':('+ss[i]+')'   # repaste the qualifier
-                    seval = 'nodestub=ns.'+nodename
+                        seval += '(\''+ss[i]+'\')'   # repaste the qualifier
+                    print 'seval =',seval
                     exec seval
                 dictout[cc['name']] = nodestub
     return dictout
@@ -436,7 +436,7 @@ if __name__ == '__main__':
         sup1 = sup.copy()
         sup1.display('copied')
 
-    if 1:
+    if 0:
         node = ns << 0
         print node
         print 'type(node) =',type(node)
@@ -447,6 +447,14 @@ if __name__ == '__main__':
         print 'type(ns) =',type(ns)
         print type(ns)==Timba.TDL.TDLimpl.NodeScope
         print isinstance(ns, Timba.TDL.TDLimpl.NodeScope)
+
+    if 1:
+        name = 'mean(stripper(visu)):-2:XX:s1=0:s2=1'
+        node = ns['mean(stripper(visu))'](-2)('XX')(s1=0)(s2=1) << Meq.Constant(-1)
+        rr = encode_nodestubs(dict(node=node))
+        print rr
+        xx = decode_nodestubs(ns,rr)
+        print xx
       
     if 0:
         # Display the final result:

@@ -178,10 +178,10 @@ class ParmSet (TDL_common.Super):
 
 
     def MeqParm(self, ns, key=None, qual=None, parmgroup=None,
-                       init_funklet=None,  
-                       default=None, shape=None, tfdeg=None, 
-                       node_groups='Parm',
-                       use_previous=True, subtile_size=None):
+                init_funklet=None,  
+                default=None, shape=None, tfdeg=None, 
+                node_groups='Parm',
+                use_previous=True, subtile_size=None):
         """Convenience function to create a MeqParm node"""
         
         # NB: If use_previous==True, the MeqParm will use its current funklet (if any)

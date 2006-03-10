@@ -420,9 +420,9 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
              js.ParmSet.MeqParm (ns, Ggain, qual=qual,
                                  tfdeg=[pp['tdeg_Ggain'],pp['fdeg_Ggain']],
                                  subtile_size=pp['subtile_size_Ggain'])
-             js.Parmset.define_MeqParm (ns, Ggain, qual=qual,
-                                        tfdeg=[pp['tdeg_Ggain'],pp['fdeg_Ggain']],
-                                        subtile_size=pp['subtile_size_Ggain'])
+             # js.Parmset.define_MeqParm (ns, Ggain, qual=qual,
+             #                           tfdeg=[pp['tdeg_Ggain'],pp['fdeg_Ggain']],
+             #                           subtile_size=pp['subtile_size_Ggain'])
 
        for Gphase in [p1,p2]:
           if simul:
@@ -435,9 +435,9 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
              js.ParmSet.MeqParm (ns, Gphase, qual=qual,
                                  tfdeg=[pp['tdeg_Gphase'],pp['fdeg_Gphase']],
                                  subtile_size=pp['subtile_size_Gphase'])
-             js.Parmset.define_MeqParm (ns, Gphase, qual=qual,
-                                        tfdeg=[pp['tdeg_Gphase'],pp['fdeg_Gphase']],
-                                        subtile_size=pp['subtile_size_Gphase'])
+             # js.Parmset.define_MeqParm (ns, Gphase, qual=qual,
+             #                           tfdeg=[pp['tdeg_Gphase'],pp['fdeg_Gphase']],
+             #                           subtile_size=pp['subtile_size_Gphase'])
 
 
        # Make the 2x2 Jones matrix:
