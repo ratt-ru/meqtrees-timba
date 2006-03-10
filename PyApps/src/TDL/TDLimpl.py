@@ -41,8 +41,8 @@ class TDLError (RuntimeError):
       s += "[%s:%d]" % (self.filename,self.lineno);
     if self.tb is not None:
       s += "[tb:%d]" % (len(self.tb),);
-    if self.next_error is not None:
-      s += '\n' + str(self.next_error);
+    # if self.next_error is not None:
+    #   s += '\n' + str(self.next_error);
     return s;
 
 class NodeRedefinedError (TDLError):
@@ -71,7 +71,7 @@ class CalledFrom (TDLError):
   "real" errors above to indicate where the offending code was called from""";
   pass;
 
-class CumulativeError (TDLError):
+class CumulativeError (RuntimeError):
   """this exception is raised at resolve time when errors have been reported
   but deferred. Its args tuple is composed of exception objects.
   """;

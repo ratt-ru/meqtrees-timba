@@ -137,6 +137,7 @@ def compile_file (mqs,filename,text=None,parent=None,
   except TDL.CumulativeError:
     _dprint(0,'exception compiling TDL file:',filename);
     traceback.print_exc();
+    _dprint(0,'error args {',sys.exc_info()[1].args,'}');
     raise;
   # Other exceptions wrapped in a CumulativeError, and
   # location information is added in
