@@ -355,6 +355,21 @@ inline int degenerateAxis (int total,bool &degenerate)
   return -total;
 }
 
+// computes strides corresponding to the given shape
+int Vells::computeStrides (Vells::Strides &strides,const Vells::Shape &shape)
+{
+  int cur_stride = 1;
+  int i;
+  for( i=Axis::MaxAxis-1; i>=int(shape.size()); i-- )
+    strides[i] = 0;
+  for( ; i>=0; i-- )
+  {
+    strides[i] = cur_stride;
+    cur_stride *= shape[i];
+  }
+  return cur_stride;
+}
+
 // general function to compute shape of output, plus strides required,
 // given N argument shapes.
 // note that strides are placed in reverse order, since Vells are now

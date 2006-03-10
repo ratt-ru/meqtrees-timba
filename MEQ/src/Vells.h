@@ -530,6 +530,13 @@ public:
   string sdebug (int detail=1,const string &prefix="",const char *nm=0) const;
   
   // =========================== Iterator and stride support 
+  // helper function to compute the stride along each axis, given a Vells shape
+  // returns the total number of elements corresponding to shape
+  static int computeStrides (Vells::Strides &strides,const Vells::Shape &shape);
+  
+  // same function, but returns the stride for this Vells
+  int computeStrides (Vells::Strides &strides)
+  { return computeStrides(strides,shape()); }
   
   // helper funtion to compute output shape and data strides, given two
   // input shapes. Used throughout Vells math
