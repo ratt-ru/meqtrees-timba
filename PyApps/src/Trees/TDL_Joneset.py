@@ -33,9 +33,6 @@ from Timba.Trees import TDL_ParmSet
 from Timba.Trees import TDL_LeafSet
 from Timba.Trees import TDL_radio_conventions
 
-# Old:
-from Timba.Trees import TDL_Parmset
-from Timba.Trees import TDL_Leafset
 
 
 
@@ -67,15 +64,11 @@ class Joneset (TDL_common.Super):
         if not isinstance(self.__jchar, str): self.__jchar = self.label()[0]
         self.__jchar = self.__jchar[0]               # single character
 
-        # Define its Parmset object (MeqParm services)
-        self.Parmset = TDL_Parmset.Parmset(**pp)
-        self.Parmset.quals(dict(q=self.__punit))
+        # Define its ParmSet object (MeqParm services)
         self.ParmSet = TDL_ParmSet.ParmSet(**pp)
         self.ParmSet.quals(dict(q=self.__punit))
 
-        # Define its Leafset object (simulation services) 
-        self.Leafset = TDL_Leafset.Leafset(**pp)
-        self.Leafset.quals(dict(q=self.__punit))
+        # Define its LeafSet object (simulation services) 
         self.LeafSet = TDL_LeafSet.LeafSet(**pp)
         self.LeafSet.quals(dict(q=self.__punit))
 
@@ -190,8 +183,6 @@ class Joneset (TDL_common.Super):
         indent1 = 2*' '
         indent2 = 6*' '
 
-        ss.append(indent1+' - '+str(self.Parmset.oneliner()))
-        ss.append(indent1+' - '+str(self.Leafset.oneliner()))
         ss.append(indent1+' - '+str(self.ParmSet.oneliner()))
         ss.append(indent1+' - '+str(self.LeafSet.oneliner()))
 
@@ -213,44 +204,38 @@ class Joneset (TDL_common.Super):
     #-----------------------------------------------------------------------
 
     def parmgroup (self, key=None, **pp):
-        """Register a parameter (MeqParm) group (frontend for Parmset.parmgroup())"""
+        """Register a parameter (MeqParm) group (frontend for ParmSet.parmgroup())"""
 
         pp.setdefault('ipol', None)
-        pp.setdefault('corrs', None)
+        pp.setdefault('condeq_corrs', None)
         
         # append (X,Y,R,L) if required
         if isinstance(pp['ipol'], int):
             key = key+'_'+self.pols(pp['ipol'])
 
         # Register the parmgroup:
-        rider = dict(condeq_corrs=pp['corrs'])
-        self.Parmset.parmgroup(key=key, rider=rider, **pp)
-        # self.ParmSet.parmgroup(key=key, condeq_corrs=pp['corrs'], **pp)
+        rider = dict(condeq_corrs=pp['condeq_corrs'])
         self.ParmSet.parmgroup(key=key, **rider)
         s1 = 'Register parmgroup: '+str(key)+': '
-        s1 += str(pp['ipol'])+' '+str(pp['corrs'])
+        s1 += str(pp['ipol'])+' '+str(pp['condeq_corrs'])
         self._history(s1)
 
         # Register a leafgroup with the same name: 
-        pp.__delitem__('corrs')
+        pp.__delitem__('condeq_corrs')
         pp.__delitem__('ipol')
         pp['style'] = 'triangle'
         pp['size'] = 5
-        self.Leafset.leafgroup(key=key, **pp)
         self.LeafSet.leafgroup(key=key, **pp)
         return key                                                  # return the actual key name
 
     def cleanup(self):
-        """Clean up the object (or rather its Parmset/Leafset)"""
-        self.Parmset.cleanup()
-        self.Leafset.cleanup()
+        """Clean up the object (or rather its ParmSet/LeafSet)"""
         self.LeafSet.cleanup()
         self.ParmSet.cleanup()
         return True
 
     def buffer(self):
         """Get the relevant temporary buffer (from ParmSet/LeafSet)"""
-        ss = self.Parmset.buffer()
         ss = self.ParmSet.buffer()
         if len(ss)==0: ss = self.LeafSet.buffer()
         return ss
@@ -269,13 +254,12 @@ class Joneset (TDL_common.Super):
         if Joneset==None: return False
         self.__jchar += Joneset.jchar()
         self.update_from_LeafSet(Joneset.LeafSet)
-        if self.Parmset.unsolvable():
+        if self.ParmSet.unsolvable():
             self._history(append='not updated from (unsolvable): '+Joneset.oneliner())
-        elif not Joneset.Parmset.unsolvable():
+        elif not Joneset.ParmSet.unsolvable():
             self.__plot_color.update(Joneset.plot_color())
             self.__plot_style.update(Joneset.plot_style())
             self.__plot_size.update(Joneset.plot_size())
-            self.update_from_Parmset(Joneset.Parmset)
             self.update_from_ParmSet(Joneset.ParmSet)
             self._history(append='updated from (not unsolvable): '+Joneset.oneliner())
         else:
@@ -286,18 +270,7 @@ class Joneset (TDL_common.Super):
             self._history(append='not updated from (unsolvable): '+Joneset.oneliner())
         return True
 
-
-    def update_from_Parmset(self, Parmset=None):
-        """Update the internal info from a given Parmset"""
-        if Parmset:
-            self.Parmset.update(Parmset)
-            self._history(append='updated from: '+Parmset.oneliner())
-        self.__plot_color.update(self.Parmset.plot_color())
-        self.__plot_style.update(self.Parmset.plot_style())
-        self.__plot_size.update(self.Parmset.plot_size())
-        return True
-
-    def update_from_ParmSet(self, Parmset=None):
+    def update_from_ParmSet(self, ParmSet=None):
         """Update the internal info from a given ParmSet"""
         if ParmSet:
             self.ParmSet.update(ParmSet)
@@ -305,7 +278,7 @@ class Joneset (TDL_common.Super):
         return True
 
 
-    def update_from_LeafSet(self, Parmset=None):
+    def update_from_LeafSet(self, LeafSet=None):
         """Update the internal info from a given LeafSet"""
         if LeafSet:
             self.LeafSet.update(LeafSet)
@@ -534,7 +507,7 @@ if __name__ == '__main__':
         js.bookpage('GX',[a1,p1])
         js.bookpage('GD',[a2,d12,d2])
 
-        # js.Parmset.display()
+        # js.ParmSet.display()
         js.ParmSet.display()
         js.LeafSet.display()
 

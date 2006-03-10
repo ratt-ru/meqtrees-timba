@@ -25,7 +25,8 @@
 # - 14 feb 2006: Implemented DJones
 # - 24 feb 2006: DJones -> JJones
 # - 25 feb 2006: included simul (Leafset etc)
-# - 09 mar 2006: adopted TDL_ParmSet
+# - 09 mar 2006: adopted TDL_ParmSet and TDL_LeafSet
+# - 11 mar 2006: removed TDL_Parmset and TDL_Leafset
 
 # Copyright: The MeqTree Foundation 
 
@@ -45,8 +46,6 @@ from numarray import *
 
 from Timba.Trees import JEN_inarg
 from Timba.Trees import TDL_Joneset
-# from Timba.Trees import TDL_Parmset          # via TDL_Joneset.py
-from Timba.Trees import TDL_Leafset     
 from Timba.Trees import TDL_LeafSet     
 from Timba.Trees import TDL_radio_conventions
 
@@ -284,7 +283,6 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
                      help='if True, use MeqPolar, otherwise MeqToComplex')
     
     if simul:                              # simulation mode
-       # ls = TDL_Leafset.Leafset()
        ls = TDL_LeafSet.LeafSet()
        ls.inarg(pp)
 
@@ -334,48 +332,19 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     js.display('inside GJones')
     
     # Register the parmgroups:
-    a1 = js.parmgroup('Ggain', ipol=1, corrs='paral11', c00_default=1.0,
+    a1 = js.parmgroup('Ggain', ipol=1, condeq_corrs='paral11', c00_default=1.0,
                       c00_scale=1.0, timescale_min=20, fdeg=0,
                       color='red', style='diamond', size=10, **pp)
-    a2 = js.parmgroup('Ggain', ipol=2, corrs='paral22', c00_default=1.0,
+    a2 = js.parmgroup('Ggain', ipol=2, condeq_corrs='paral22', c00_default=1.0,
                       c00_scale=1.0, timescale_min=20, fdeg=0,
                       color='blue', style='diamond', size=10, **pp)
-    p1 = js.parmgroup('Gphase', ipol=1, corrs='paral11', c00_default=0.0,
+    p1 = js.parmgroup('Gphase', ipol=1, condeq_corrs='paral11', c00_default=0.0,
                       c00_scale=1.0, timescale_min=10, fdeg=0,
                       color='magenta', style='diamond', size=10, **pp)
-    p2 = js.parmgroup('Gphase', ipol=2, corrs='paral22', c00_default=0.0,
+    p2 = js.parmgroup('Gphase', ipol=2, condeq_corrs='paral22', c00_default=0.0,
                       c00_scale=1.0, timescale_min=10, fdeg=0,
                       color='cyan', style='diamond', size=10, **pp)
 
-    if False:
-       # Define potential extra condition equations:
-       js.Parmset.define_condeq(p1, unop='Add', value=0.0)
-       js.Parmset.define_condeq(p1, select='first', value=0.0)
-       js.Parmset.define_condeq(p1, select='last', value=0.0)
-       
-       js.Parmset.define_condeq(p2, unop='Add', value=0.0)
-       js.Parmset.define_condeq(p2, select='first', value=0.0)
-       js.Parmset.define_condeq(p2, select='last', value=0.0)
-       
-       js.Parmset.define_condeq(a1, unop='Multiply', value=1.0)
-       js.Parmset.define_condeq(a1, select='first', value=1.0)
-       js.Parmset.define_condeq(a1, select='last', value=1.0)
-       
-       js.Parmset.define_condeq(a2, unop='Multiply', value=1.0)
-       js.Parmset.define_condeq(a2, select='first', value=1.0)
-       js.Parmset.define_condeq(a2, select='last', value=1.0)
-       
-       # MeqParm node_groups: add 'G' to default 'Parm':
-       js.Parmset.node_groups(label[0])
-       
-       # Define extra solvegroup(s) from combinations of parmgroups:
-       js.Parmset.solvegroup('GJones', [a1, p1, a2, p2])
-       js.Parmset.solvegroup('Gpol1', [a1, p1])
-       js.Parmset.solvegroup('Gpol2', [a2, p2])
-       js.Parmset.solvegroup('Ggain', [a1, a2])
-       js.Parmset.solvegroup('Gphase', [p1, p2])
-       
-    
     # Define potential extra condition equations:
     js.ParmSet.define_condeq(p1, unop='Add', value=0.0)
     js.ParmSet.define_condeq(p1, select='first', value=0.0)
@@ -411,34 +380,19 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
        for Ggain in [a1,a2]:
           if simul:
-             # js.Leafset.define_MeqLeaf (ns, Ggain, qual=qual, **pp)
              js.LeafSet.MeqLeaf (ns, Ggain, qual=qual, **pp)
           else:
-             # default = MG_JEN_funklet.polc_ft (c00=pp['c00_Ggain'], stddev=pp['stddev_Ggain'],
-             #                                  fdeg=pp['fdeg_Ggain'], tdeg=pp['tdeg_Ggain'],
-             #                                  scale=pp['ft_coeff_scale']) 
              js.ParmSet.MeqParm (ns, Ggain, qual=qual,
                                  tfdeg=[pp['tdeg_Ggain'],pp['fdeg_Ggain']],
                                  subtile_size=pp['subtile_size_Ggain'])
-             # js.Parmset.define_MeqParm (ns, Ggain, qual=qual,
-             #                           tfdeg=[pp['tdeg_Ggain'],pp['fdeg_Ggain']],
-             #                           subtile_size=pp['subtile_size_Ggain'])
 
        for Gphase in [p1,p2]:
           if simul:
-             # js.Leafset.define_MeqLeaf (ns, Gphase, qual=qual, **pp)
              js.LeafSet.MeqLeaf (ns, Gphase, qual=qual, **pp)
           else:
-             # default = MG_JEN_funklet.polc_ft (c00=pp['c00_Gphase'], stddev=pp['stddev_Gphase'], 
-             #                                  fdeg=pp['fdeg_Gphase'], tdeg=pp['tdeg_Gphase'],
-             #                                  scale=pp['ft_coeff_scale']) 
              js.ParmSet.MeqParm (ns, Gphase, qual=qual,
                                  tfdeg=[pp['tdeg_Gphase'],pp['fdeg_Gphase']],
                                  subtile_size=pp['subtile_size_Gphase'])
-             # js.Parmset.define_MeqParm (ns, Gphase, qual=qual,
-             #                           tfdeg=[pp['tdeg_Gphase'],pp['fdeg_Gphase']],
-             #                           subtile_size=pp['subtile_size_Gphase'])
-
 
        # Make the 2x2 Jones matrix:
        ss = js.buffer()
@@ -481,12 +435,12 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    inarg_Joneset_common(pp, jones=jones, slave=slave)              
 
    if simul:                              # simulation mode
-      ls = TDL_Leafset.Leafset()
+      ls = TDL_LeafSet.LeafSet()
       ls.inarg(pp, mean_period_s=500, stddev_period_s=50,
                mean_tampl=0.2, stddev_tampl=0.02)
       
    else:                                  # normal mode
-      inarg_Joneset_Parmset(pp, slave=slave)              
+      inarg_Joneset_ParmSet(pp, slave=slave)              
       # ** Solving instructions:
       JEN_inarg.define(pp, 'tdeg_RM', 0, choice=[0,1,2,3],  
                        help='degree of time polynomial')
@@ -510,21 +464,21 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    # Create a Joneset object:
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
-   # Register the parmgroups (in js.Parmset eventually):
-   RM = js.parmgroup('RM', corrs='cross', default=0.0,
+   # Register the parmgroups (in js.ParmSet eventually):
+   RM = js.parmgroup('RM', condeq_corrs='cross', default=0.0,
                      color='red', style='circle', size=10, **pp)
 
    # MeqParm node_groups: add 'F' to default 'Parm':
-   js.Parmset.node_groups(label[0])
+   js.ParmSet.node_groups(label[0])
 
    # Define extra solvegroup(s) from combinations of parmgroups:
-   js.Parmset.solvegroup('FJones', [RM])
+   js.ParmSet.solvegroup('FJones', [RM])
 
    # Make a node for the Faraday rotation (same for all stations...)
    if simul:
-      js.Leafset.define_MeqLeaf (ns, RM, **pp)
+      js.LeafSet.MeqLeaf (ns, RM, **pp)
    else:
-      js.Parmset.define_MeqParm(ns, RM, tfdeg=[pp['tdeg_RM'],pp['fdeg_RM']])
+      js.ParmSet.MeqParm(ns, RM, tfdeg=[pp['tdeg_RM'],pp['fdeg_RM']])
 
    ss = js.buffer()
    wvl2 = MG_JEN_twig.wavelength (ns, unop='Sqr')        # -> lambda squared
@@ -577,12 +531,12 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # ** Jones matrix elements:
 
     if simul:                              # simulation mode
-       ls = TDL_Leafset.Leafset()
+       ls = TDL_LeafSet.LeafSet()
        ls.inarg(pp, mean_period_s=5000, stddev_period_s=100,
                 mean_tampl=0.2, stddev_tampl=0.02)
 
     else:                                  # normal mode
-       inarg_Joneset_Parmset(pp, slave=slave)              
+       inarg_Joneset_ParmSet(pp, slave=slave)              
        # ** Solving instructions:
        JEN_inarg.define(pp, 'tdeg_Breal', 0, choice=[0,1,2,3],  
                         help='degree of time polynomial')
@@ -621,31 +575,31 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # Create a Joneset object:
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
-    # Register the parmgroups (in js.Parmset eventually):
-    br1 = js.parmgroup('Breal', ipol=1, corrs='paral11', default=1.0,
+    # Register the parmgroups (in js.ParmSet eventually):
+    br1 = js.parmgroup('Breal', ipol=1, condeq_corrs='paral11', default=1.0,
                        color='red', style='square', size=7, **pp)
-    br2 = js.parmgroup('Breal', ipol=2, corrs='paral22', default=1.0,
+    br2 = js.parmgroup('Breal', ipol=2, condeq_corrs='paral22', default=1.0,
                        color='blue', style='square', size=7, **pp)
-    bi1 = js.parmgroup('Bimag', ipol=1, corrs='paral11', default=0.0,
+    bi1 = js.parmgroup('Bimag', ipol=1, condeq_corrs='paral11', default=0.0,
                        color='magenta', style='square', size=7, **pp)
-    bi2 = js.parmgroup('Bimag', ipol=2, corrs='paral22', default=0.0,
+    bi2 = js.parmgroup('Bimag', ipol=2, condeq_corrs='paral22', default=0.0,
                        color='cyan', style='square', size=7, **pp)
 
     # Define potential extra condition equations:
-    js.Parmset.define_condeq(bi1, unop='Add', value=0.0)
-    js.Parmset.define_condeq(bi2, unop='Add', value=0.0)
-    js.Parmset.define_condeq(br1, unop='Multiply', value=1.0)
-    js.Parmset.define_condeq(br2, unop='Multiply', value=1.0)
+    js.ParmSet.define_condeq(bi1, unop='Add', value=0.0)
+    js.ParmSet.define_condeq(bi2, unop='Add', value=0.0)
+    js.ParmSet.define_condeq(br1, unop='Multiply', value=1.0)
+    js.ParmSet.define_condeq(br2, unop='Multiply', value=1.0)
 
     # MeqParm node_groups: add 'B' to default 'Parm':
-    js.Parmset.node_groups(label[0])
+    js.ParmSet.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.Parmset.solvegroup('BJones', [br1, bi1, br2, bi2])
-    js.Parmset.solvegroup('Bpol1', [br1, bi1])
-    js.Parmset.solvegroup('Bpol2', [br2, bi2])
-    js.Parmset.solvegroup('Breal', [br1, br2])
-    js.Parmset.solvegroup('Bimag', [bi1, bi2])
+    js.ParmSet.solvegroup('BJones', [br1, bi1, br2, bi2])
+    js.ParmSet.solvegroup('Bpol1', [br1, bi1])
+    js.ParmSet.solvegroup('Bpol2', [br2, bi2])
+    js.ParmSet.solvegroup('Breal', [br1, br2])
+    js.ParmSet.solvegroup('Bimag', [bi1, bi2])
 
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
@@ -653,19 +607,19 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
         for Breal in [br1,br2]:
            if simul:
-              js.Leafset.define_MeqLeaf (ns, Breal, qual=qual, **pp)
+              js.LeafSet.MeqLeaf (ns, Breal, qual=qual, **pp)
            else:
-              js.Parmset.define_MeqParm (ns, Breal, qual=qual,
-                                         tfdeg=[pp['tdeg_Breal'],pp['fdeg_Breal']],
-                                         subtile_size=pp['subtile_size_Breal'])
+              js.ParmSet.MeqParm (ns, Breal, qual=qual,
+                                  tfdeg=[pp['tdeg_Breal'],pp['fdeg_Breal']],
+                                  subtile_size=pp['subtile_size_Breal'])
 
         for Bimag in [bi1,bi2]:
            if simul:
-              js.Leafset.define_MeqLeaf (ns, Bimag, qual=qual, **pp)
+              js.LeafSet.MeqLeaf (ns, Bimag, qual=qual, **pp)
            else:
-              js.Parmset.define_MeqParm (ns, Bimag, qual=qual,
-                                         tfdeg=[pp['tdeg_Bimag'],pp['fdeg_Bimag']],
-                                         subtile_size=pp['subtile_size_Bimag'])
+              js.ParmSet.MeqParm (ns, Bimag, qual=qual,
+                                  tfdeg=[pp['tdeg_Bimag'],pp['fdeg_Bimag']],
+                                  subtile_size=pp['subtile_size_Bimag'])
 
 
         # Make the 2x2 Jones matrix
@@ -707,12 +661,12 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # ** Jones matrix elements:
 
     if simul:                              # simulation mode
-       ls = TDL_Leafset.Leafset()
+       ls = TDL_LeafSet.LeafSet()
        ls.inarg(pp, mean_period_s=500, stddev_period_s=50,
                 mean_tampl=0.2, stddev_tampl=0.02)
 
     else:                                  # normal mode
-       inarg_Joneset_Parmset(pp, slave=slave)              
+       inarg_Joneset_ParmSet(pp, slave=slave)              
        # ** Solving instructions:
        JEN_inarg.define(pp, 'tdeg_Jreal', 0, choice=[0,1,2,3],  
                         help='degree of time polynomial')
@@ -751,38 +705,38 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # Create a Joneset object:
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
-    # Register the parmgroups (in js.Parmset eventually):
-    dr11 = js.parmgroup('Jreal_11', corrs='paral11', default=1.0,
+    # Register the parmgroups (in js.ParmSet eventually):
+    dr11 = js.parmgroup('Jreal_11', condeq_corrs='paral11', default=1.0,
                         color='red', style='square', size=7, **pp)
-    dr12 = js.parmgroup('Jreal_12', corrs='cross12', default=0.0,
+    dr12 = js.parmgroup('Jreal_12', condeq_corrs='cross12', default=0.0,
                         color='red', style='square', size=7, **pp)
-    dr21 = js.parmgroup('Jreal_21', corrs='cross21', default=0.0,
+    dr21 = js.parmgroup('Jreal_21', condeq_corrs='cross21', default=0.0,
                         color='red', style='square', size=7, **pp)
-    dr22 = js.parmgroup('Jreal_22', corrs='paral22', default=1.0,
+    dr22 = js.parmgroup('Jreal_22', condeq_corrs='paral22', default=1.0,
                         color='blue', style='square', size=7, **pp)
-    di11 = js.parmgroup('Jimag_11', corrs='paral11', default=0.0,
+    di11 = js.parmgroup('Jimag_11', condeq_corrs='paral11', default=0.0,
                         color='magenta', style='square', size=7, **pp)
-    di12 = js.parmgroup('Jimag_12', corrs='cross12', default=0.0,
+    di12 = js.parmgroup('Jimag_12', condeq_corrs='cross12', default=0.0,
                         color='magenta', style='square', size=7, **pp)
-    di21 = js.parmgroup('Jimag_21', corrs='cross21', default=0.0,
+    di21 = js.parmgroup('Jimag_21', condeq_corrs='cross21', default=0.0,
                         color='magenta', style='square', size=7, **pp)
-    di22 = js.parmgroup('Jimag_22', corrs='paral22', default=0.0,
+    di22 = js.parmgroup('Jimag_22', condeq_corrs='paral22', default=0.0,
                         color='cyan', style='square', size=7, **pp)
 
     # Define potential extra condition equations:
-    # js.Parmset.define_condeq(di11, unop='Add', value=0.0)
-    # js.Parmset.define_condeq(di22, unop='Add', value=0.0)
-    # js.Parmset.define_condeq(dr11, unop='Multiply', value=1.0)
-    # js.Parmset.define_condeq(dr22, unop='Multiply', value=1.0)
+    # js.ParmSet.define_condeq(di11, unop='Add', value=0.0)
+    # js.ParmSet.define_condeq(di22, unop='Add', value=0.0)
+    # js.ParmSet.define_condeq(dr11, unop='Multiply', value=1.0)
+    # js.ParmSet.define_condeq(dr22, unop='Multiply', value=1.0)
 
     # MeqParm node_groups: add 'J' to default 'Parm':
-    js.Parmset.node_groups(label[0])
+    js.ParmSet.node_groups(label[0])
 
     # Define extra solvegroup(s) from combinations of parmgroups:
-    js.Parmset.solvegroup('JJones', [dr11, di11, dr12, di12,
+    js.ParmSet.solvegroup('JJones', [dr11, di11, dr12, di12,
                                             dr21, di21, dr22, di22])
-    js.Parmset.solvegroup('Jreal', [dr11, dr12, dr21, dr22])
-    js.Parmset.solvegroup('Jimag', [di11, di12, di21, di22])
+    js.ParmSet.solvegroup('Jreal', [dr11, dr12, dr21, dr22])
+    js.ParmSet.solvegroup('Jimag', [di11, di12, di21, di22])
 
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
@@ -790,19 +744,19 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
         for Jreal in [dr11,dr12,dr21,dr22]:
            if simul:
-              js.Leafset.define_MeqLeaf (ns, Jreal, qual=qual, **pp)
+              js.LeafSet.MeqLeaf (ns, Jreal, qual=qual, **pp)
            else:
-              js.Parmset.define_MeqParm (ns, Jreal, qual=qual,
-                                         tfdeg=[pp['tdeg_Jreal'],pp['fdeg_Jreal']],
-                                         subtile_size=pp['subtile_size_Jreal'])
+              js.ParmSet.MeqParm (ns, Jreal, qual=qual,
+                                  tfdeg=[pp['tdeg_Jreal'],pp['fdeg_Jreal']],
+                                  subtile_size=pp['subtile_size_Jreal'])
 
         for Jimag in [di11,di12,di21,di22]:
            if simul:
-              js.Leafset.define_MeqLeaf (ns, Jimag, qual=qual, **pp)
+              js.LeafSet.MeqLeaf (ns, Jimag, qual=qual, **pp)
            else:
-              js.Parmset.define_MeqParm (ns, Jimag, qual=qual,
-                                         tfdeg=[pp['tdeg_Jimag'],pp['fdeg_Jimag']],
-                                         subtile_size=pp['subtile_size_Jimag'])
+              js.ParmSet.MeqParm (ns, Jimag, qual=qual,
+                                  tfdeg=[pp['tdeg_Jimag'],pp['fdeg_Jimag']],
+                                  subtile_size=pp['subtile_size_Jimag'])
               
 
         # Make the 2x2 Jones matrix
@@ -845,12 +799,12 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
                     help='if True, XDell = -YDell per station')
 
    if simul:                              # simulation mode
-      ls = TDL_Leafset.Leafset()
+      ls = TDL_LeafSet.LeafSet()
       ls.inarg(pp, mean_period_s=3000, stddev_period_s=100,
                mean_tampl=0.002, stddev_tampl=0.0002)
 
    else:                                  # normal mode
-      inarg_Joneset_Parmset(pp, slave=slave)              
+      inarg_Joneset_ParmSet(pp, slave=slave)              
       # ** Solving instructions:
       JEN_inarg.define(pp, 'tdeg_Dang', 0, choice=[0,1,2,3],  
                        help='degree of time polynomial')
@@ -891,49 +845,49 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    # Create a Joneset object:
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
-   # Register the parmgroups (in js.Parmset eventually):
-   Dang = js.parmgroup('Dang', corrs='cross', default=0.0,
+   # Register the parmgroups (in js.ParmSet eventually):
+   Dang = js.parmgroup('Dang', condeq_corrs='cross', default=0.0,
                        color='green', style='triangle', size=7, **pp)
-   Dell = js.parmgroup('Dell', corrs='cross', default=0.0,
+   Dell = js.parmgroup('Dell', condeq_corrs='cross', default=0.0,
                        color='magenta', style='triangle', size=7, **pp)
-   Dang1 = js.parmgroup('Dang', ipol=1, corrs='cross', default=0.0,
+   Dang1 = js.parmgroup('Dang', ipol=1, condeq_corrs='cross', default=0.0,
                         color='green', style='triangle', size=7, **pp)
-   Dang2 = js.parmgroup('Dang', ipol=2, corrs='cross', default=0.0,
+   Dang2 = js.parmgroup('Dang', ipol=2, condeq_corrs='cross', default=0.0,
                         color='black', style='triangle', size=7, **pp)
-   Dell1 = js.parmgroup('Dell', ipol=1, corrs='cross', default=0.0,
+   Dell1 = js.parmgroup('Dell', ipol=1, condeq_corrs='cross', default=0.0,
                         color='magenta', style='triangle', size=7, **pp)
-   Dell2 = js.parmgroup('Dell', ipol=2, corrs='cross', default=0.0,
+   Dell2 = js.parmgroup('Dell', ipol=2, condeq_corrs='cross', default=0.0,
                         color='yellow', style='triangle', size=7, **pp)
-   pzd = js.parmgroup('PZD', corrs='cross', default=0.0,
+   pzd = js.parmgroup('PZD', condeq_corrs='cross', default=0.0,
                       color='blue', style='circle', size=10, **pp)
 
    # Define potential extra condition equations:
-   js.Parmset.define_condeq(Dang, unop='Add', value=0.0)
-   js.Parmset.define_condeq(Dang1, unop='Add', value=0.0)
-   js.Parmset.define_condeq(Dang2, unop='Add', value=0.0)
+   js.ParmSet.define_condeq(Dang, unop='Add', value=0.0)
+   js.ParmSet.define_condeq(Dang1, unop='Add', value=0.0)
+   js.ParmSet.define_condeq(Dang2, unop='Add', value=0.0)
 
    # MeqParm node_groups: add 'D' to default 'Parm':
-   js.Parmset.node_groups(label[0])
+   js.ParmSet.node_groups(label[0])
 
    # Define extra solvegroup(s) from combinations of parmgroups:
    if pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
-      js.Parmset.solvegroup('DJones', [Dang, Dell, pzd])
+      js.ParmSet.solvegroup('DJones', [Dang, Dell, pzd])
    elif pp['coupled_XY_Dang']:
-      js.Parmset.solvegroup('DJones', [Dang, Dell1, Dell2, pzd])
-      js.Parmset.solvegroup('Dell', [Dell1, Dell2, pzd])
+      js.ParmSet.solvegroup('DJones', [Dang, Dell1, Dell2, pzd])
+      js.ParmSet.solvegroup('Dell', [Dell1, Dell2, pzd])
    elif pp['coupled_XY_Dell']:
-      js.Parmset.solvegroup('DJones', [Dang1, Dang2, Dell, pzd])
-      js.Parmset.solvegroup('Dang', [Dang1, Dang2, pzd])
+      js.ParmSet.solvegroup('DJones', [Dang1, Dang2, Dell, pzd])
+      js.ParmSet.solvegroup('Dang', [Dang1, Dang2, pzd])
    else:
-      js.Parmset.solvegroup('DJones', [Dang1, Dang2, Dell1, Dell2, pzd])
-      js.Parmset.solvegroup('Dang', [Dang1, Dang2, pzd])
-      js.Parmset.solvegroup('Dell', [Dell1, Dell2, pzd])
+      js.ParmSet.solvegroup('DJones', [Dang1, Dang2, Dell1, Dell2, pzd])
+      js.ParmSet.solvegroup('Dang', [Dang1, Dang2, pzd])
+      js.ParmSet.solvegroup('Dell', [Dell1, Dell2, pzd])
 
    # The X/Y Phase-Zero-Difference (PZD) is shared by all stations:
    if simul:
-      js.Leafset.define_MeqLeaf (ns, pzd, **pp)
+      js.LeafSet.MeqLeaf (ns, pzd, **pp)
    else:
-      js.Parmset.define_MeqParm(ns, pzd)
+      js.ParmSet.MeqParm(ns, pzd)
       
    ss = js.buffer()
    matname = 'DJones_PZD_matrix'
@@ -951,22 +905,22 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
       matname = 'DJones_Dang_matrix'
       if pp['coupled_XY_Dang']:
          if simul:
-            js.Leafset.define_MeqLeaf (ns, Dang, qual=qual, **pp)
+            js.LeafSet.MeqLeaf (ns, Dang, qual=qual, **pp)
          else:
-            js.Parmset.define_MeqParm (ns, Dang, qual=qual,
-                                       tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
-                                       subtile_size=pp['subtile_size_Dang'])
+            js.ParmSet.MeqParm (ns, Dang, qual=qual,
+                                tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
+                                subtile_size=pp['subtile_size_Dang'])
          ss = js.buffer()
          rmat = MG_JEN_matrix.rotation (ns, angle=ss[Dang], qual=None, name=matname)
 
       else: 
          for Dang in [Dang1,Dang2]:
             if simul:
-               js.Leafset.define_MeqLeaf (ns, Dang, qual=qual, **pp)
+               js.LeafSet.MeqLeaf (ns, Dang, qual=qual, **pp)
             else:
-               js.Parmset.define_MeqParm (ns, Dang, qual=qual,
-                                          tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
-                                          subtile_size=pp['subtile_size_Dang'])
+               js.ParmSet.MeqParm (ns, Dang, qual=qual,
+                                   tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
+                                   subtile_size=pp['subtile_size_Dang'])
          ss = js.buffer()
          rmat = MG_JEN_matrix.rotation (ns, angle=[ss[Dang1],ss[Dang2]], qual=None, name=matname)
 
@@ -975,22 +929,22 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
       matname = 'DJones_Dell_matrix'
       if pp['coupled_XY_Dell']:
          if simul:
-            js.Leafset.define_MeqLeaf (ns, Dell, qual=qual, **pp)
+            js.LeafSet.MeqLeaf (ns, Dell, qual=qual, **pp)
          else:
-            js.Parmset.define_MeqParm (ns, Dell, qual=qual,
-                                       tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
-                                       subtile_size=pp['subtile_size_Dell'])
+            js.ParmSet.MeqParm (ns, Dell, qual=qual,
+                                tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
+                                subtile_size=pp['subtile_size_Dell'])
          ss = js.buffer()
          emat = MG_JEN_matrix.ellipticity (ns, angle=ss[Dell], qual=None, name=matname)
 
       else:
          for Dell in [Dell1,Dell2]:
             if simul:
-               js.Leafset.define_MeqLeaf (ns, Dell, qual=qual, **pp)
+               js.LeafSet.MeqLeaf (ns, Dell, qual=qual, **pp)
             else:
-               js.Parmset.define_MeqParm (ns, Dell, qual=qual,
-                                          tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
-                                          subtile_size=pp['subtile_size_Dell'])
+               js.ParmSet.MeqParm (ns, Dell, qual=qual,
+                                   tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
+                                   subtile_size=pp['subtile_size_Dell'])
          ss = js.buffer()
          emat = MG_JEN_matrix.ellipticity (ns, angle=[ss[Dell1],ss[Dell2]], qual=None, name=matname)
 
@@ -1119,15 +1073,15 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
     # Make dcolls per (specified) parm group:
     dcoll = []                                          # list of dcoll records
     if not isinstance(parmgroup, str):                  # no parmgroup specified
-        parmgroup = Joneset.Parmset.parmgroup().keys()  # default: all parmgroups
-    for key in Joneset.Parmset.parmgroup().keys():
+        parmgroup = Joneset.ParmSet.parmgroup().keys()  # default: all parmgroups
+    for key in Joneset.ParmSet.parmgroup().keys():
         if parmgroup.__contains__(key):                 # only if parmgroup specified 
-            pgk = Joneset.Parmset.parmgroup()[key]      # list of MeqParm node names
+            pgk = Joneset.ParmSet.parmgroup()[key]      # list of MeqParm node names
             if len(pgk)>0:                              # ignore if empty 
                 dc = MG_JEN_dataCollect.dcoll (ns, pgk, scope=visu_scope, tag=key,
                                                type=pp['type'], errorbars=pp['errorbars'],
-                                               color=Joneset.Parmset.plot_color()[key],
-                                               style=Joneset.Parmset.plot_style()[key])
+                                               color=Joneset.ParmSet.plot_color()[key],
+                                               style=Joneset.ParmSet.plot_style()[key])
                 dcoll.append(dc)
 
 
@@ -1476,7 +1430,6 @@ if __name__ == '__main__':
      js = GJones (ns, stations=stations, simul=simul)
      full = True
      js.display(full=full)     
-     # js.Parmset.display(full=full)     
      js.ParmSet.display(full=full)     
      js.LeafSet.display(full=True)     
      # display_first_subtree (js, full=True)
