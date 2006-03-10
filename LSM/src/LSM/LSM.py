@@ -16,7 +16,7 @@ from LSM_inner import *
 from Timba.Meq import meq
 from Timba.TDL import *
 from Timba.Trees import TDL_Sixpack
-from Timba.Trees import TDL_Parmset
+from Timba.Trees import TDL_ParmSet
 from Timba.Meq import meq
 
 from Timba.Apps import app_nogui
@@ -159,7 +159,7 @@ class PUnit:
   # root node namse of the IQUV,Ra,Dec subtrees
   if self.__sixpack!=None:
    newp.__sixpack={}
-   pset=self.__sixpack.Parmset
+   pset=self.__sixpack.ParmSet
    # copy ParmSet
    newp.__sixpack['Parmset']=pset.clone()
    #print newp.__sixpack['Parmset']
@@ -212,7 +212,7 @@ class PUnit:
    self.sp.set_staticRA(new_ra)
    self.sp.set_staticDec(new_dec)
 
- # Try to recreate a TDL_Parmset from a given dict.
+ # Try to recreate a TDL_ParmSet from a given dict.
  # Assume all needed nodes exist in the ns
  # Assume also the sixpack is present in this PUnit
  def setParmset(self,tmp_dict,ns):
@@ -221,7 +221,7 @@ class PUnit:
     print "WARNING: cannot reconstruct Parmset"
     return
   # recreate Parmset
-  pset=TDL_Parmset.Parmset()
+  pset=TDL_ParmSet.ParmSet()
   pset.restore(tmp_dict,ns)
   #pset.display()
   # attach it to sixpack 
