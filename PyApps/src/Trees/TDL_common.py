@@ -11,13 +11,17 @@
 # History:
 #    - 05 sep 2005: creation
 #    - 10 sep 2005: more or less stable
-#    - 25 feb 2006: .unclutter_inarg()  (used by other functions too)
+#    - 25 feb 2006: added unclutter_inarg()  (used by other functions too)
 #    - 06 mar 2006: added automatic error/warning printing to .history()
 #    - 06 mar 2006: .history() will return False if error/warning
+#    - 07 mar 2006: added ._fieldict()
+#    - 07 mar 2006: .history() -> ._history() (upward compatible)
 #    - 08 mar 2006: copied TDL_Cohset .rider() to ._rider()
 #    - 08 mar 2006: implemented ._save() and ._restore()
 #    - 08 mar 2006: implemented ._clear() and ._history()
-#    - 09 mar 2006: added .format_initrec(node)
+#    - 09 mar 2006: added format_initrec(node)
+#    - 11 mar 2006: added ._listuple()
+#    - 12 mar 2006: added ._updict() and ._updict_rider()
 #
 # Remarks:
 #
@@ -225,13 +229,13 @@ class Super:
             self.__errors += 1
             s1 = '** ERROR ** '+str(error)
             self.__history.append(s1)
-            print '\n',s1,'\n'
+            print '\n',self.tlabel(),':',s1,'\n'
             ok = False
         if not warning==None:
             self.__warnings += 1
             s1 = '** WARNING ** '+str(warning)
             self.__history.append(s1)
-            print '\n',s1,'\n'
+            print '\n',self.tlabel(),':',s1,'\n'
             ok = False
         if not ok:               # 
             return False         # this allows False return of the calling function 
@@ -272,20 +276,76 @@ class Super:
 
 
     #---------------------------------------------------------------------------------
-    # Miscelleneous helper functions
+    # Miscelleneous helper functions (rather useful):
     #---------------------------------------------------------------------------------
 
-    def _fieldict (self, rr=dict(), key=None, name='<name>'):
+    def _listuple (self, value=None,
+                   vtype=None, trace=False):
+        """Make sure that the given value is a list or a tuple"""
+        tval = type(value)
+        if not isinstance(value, (list, tuple)):
+            if vtype==None or isinstance(value, vtype):
+                value = [value]
+            else:
+                return self.history(error=str(value)+' has wrong type: '+str(type(value))+' != '+str(vtype))
+        if trace: print '**',self.tlabel(),'._listuple(',tval,type,') ->',len(value),value
+        return value                                # return list/tuple
+
+
+    def _fieldict (self, rr=dict(), key=None,
+                   clear=False, name='<name>', trace=False):
         """Return the specified field (key) from the given dict (rr).
-        This functionality is needed very frequently."""
+        If clear==True, clear the field (key) of the entire dict (key==None)."""
         if key==None:                               # no field specified
+            if clear: rr = dict()                   #   clear the entire dict
             return rr                               #   return the entire dict
         elif not isinstance(rr, dict):
             return self.history(error=str(name)+': rr not a dict, but: '+str(type(rr)))
         elif rr.has_key(key):                       # rr has the specified field
-            return rr[key]                          #   return it
+            if clear:
+                if isinstance(rr[key], dict):
+                    rr[key] = dict()                # empty dict
+                elif isinstance(rr[key], (list, tuple)):
+                    rr[key] = []                    # empty list
+                else:                               
+                    rr[key] = None                  # ....?
+            return rr[key]                          # return it
         return self.history(error=str(name)+': key not recognised: '+key)
 
+
+    def _updict_rider (self, rider=dict(), trace=False):
+        """Updict its own rider record with another"""
+        return self._updict (self.__rider, other=rider, trace=trace)
+
+    def _updict (self, rr=dict(), other=dict(), trace=False):
+        """Version of rr.update (other -> rr) that is really a merge.
+        The difference lies in the treatment of existing lists and dicts.
+        Procedure: Go through the fields (key) of the contributing dict (other):
+        - If rr[key] does not exist, just copy other[key] (like rr.update(other).
+        - If rr[key] is a list/tuple (this is the most useful case):
+          - extend rr[key] with the items of other[key], avoiding doubles.
+        - If rr[key] is a dict:
+          - if other[key] is also a dict: recurse: self._updict(rr[key],other[key')
+          - otherwise, rr[key]['_updict_'] = other[key]  
+        - otherwise: overwrite rr[key] with other[key] (like rr.update(other))"""
+        if not isinstance(rr, dict): return False
+        if not isinstance(other, dict): return False
+        for key in other.keys():                       # for all keys of 'other'
+            if not rr.has_key(key):                    # rr[key] does not exist
+                rr[key] = other[key]                   #   create it
+            elif isinstance(rr[key], (list,tuple)):    # rr[key] is a list
+                qq = other[key]                        #   append other[key], avoiding doubles
+                if not isinstance(qq, (list,tuple)): qq = [qq]
+                for item in qq:
+                    if not item in rr[key]: rr[key].append(item)
+            elif isinstance(rr[key], dict):            # rr[key] is dict
+                if isinstance(other[key], dict):       #   other[key] is also a dict
+                    self._updict (rr[key], other[key]) #     recursive 
+                else:                                  #   other[key] is not a dict
+                    rr[key]['_updict_'] = other[key]   #     attach to rr[key] as a special field.... 
+            else:                                      # rr[key] is something else
+                rr[key] = other[key]                   #   overwrite it.........??
+        return True
 
 
     #---------------------------------------------------------------------------------
@@ -324,6 +384,7 @@ def _counter (key, increment=0, reset=False, trace=True):
     if trace: print '** Super: _counters(',key,') =',_counters[key]
     return _counters[key]
 
+
 #--------------------------------------------------------------------------
 
 def unclutter_inarg(pp):
@@ -339,9 +400,9 @@ def unclutter_inarg(pp):
             if key=='_JEN_inarg_CTRL_record:':
                 pass
             else:
-                qq[key] = key+': '+str(type(v))+'['+str(len(v))+']'
+                qq[key] = str(type(v))+'['+str(len(v))+']'
         elif isinstance(v, (list,tuple)):                 # avoid clutter
-            qq[key] = key+': '+str(type(v))+'['+str(len(v))+'] = '
+            qq[key] = str(type(v))+'['+str(len(v))+'] = '
             nmax = 3
             if len(v)>nmax:
                 qq[key] += str(v[:nmax])+'...'
@@ -353,12 +414,16 @@ def unclutter_inarg(pp):
 
 
 #--------------------------------------------------------------------------
-# 
-#--------------------------------------------------------------------------
 
 def is_nodestub(node):
-    """Test whether a nodestub has the correct type"""
+    """Test whether a node is a nodestub (type)"""
     return isinstance(node, Timba.TDL.TDLimpl._NodeStub)
+
+def is_nodescope(ns):
+    """Test whether ns is a nodsecope (type)"""
+    return isinstance(ns, Timba.TDL.TDLimpl._NodeScope)
+
+#--------------------------------------------------------------------------
 
 def encode_nodestubs(rr=None):
     """encode the nodestubs in the given dict (needed for saving)"""
@@ -452,13 +517,24 @@ if __name__ == '__main__':
         print type(ns)==Timba.TDL.TDLimpl.NodeScope
         print isinstance(ns, Timba.TDL.TDLimpl.NodeScope)
 
-    if 1:
+    if 0:
         name = 'mean(stripper(visu)):-2:XX:s1=0:s2=1'
         node = ns['mean(stripper(visu))'](-2)('XX')(s1=0)(s2=1) << Meq.Constant(-1)
         rr = encode_nodestubs(dict(node=node))
         print rr
         xx = decode_nodestubs(ns,rr)
         print xx
+
+    if 1:
+        r = sup._listuple('string', trace=True); print r
+        r = sup._listuple(dict(a='dict'), trace=True); print r
+        r = sup._listuple(['list'], trace=True); print r
+        r = sup._listuple(10.0, trace=True); print r
+        r = sup._listuple(('tuple',), trace=True); print r
+        r = sup._listuple('string', vtype=type(''), trace=True); print r
+        r = sup._listuple(10, vtype=type(''), trace=True); print r
+        if not r: print '...'
+        print
       
     if 0:
         # Display the final result:

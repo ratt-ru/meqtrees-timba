@@ -96,8 +96,7 @@ class LeafSet (TDL_common.Super):
         """Make a one-line summary of this LeafSet object"""
         s = TDL_common.Super.oneliner(self)
         s += ' quals='+str(self.quals())
-        # s += ' pg:'+str(len(self.parmgroup()))
-        # s += ' sg:'+str(len(self.solvegroup()))
+        s += ' lg:'+str(len(self.leafgroup()))
         return s
 
 
@@ -121,7 +120,28 @@ class LeafSet (TDL_common.Super):
                 leafgroup=None, default=None, **pp):
         """Convenience function to create a MeqLeaf node"""
 
+        #---------------------------------------------------------
+        # First the part that depends on the leafgroup:
+        #---------------------------------------------------------
+
+        # Start with the default value for this leafgroup:
+        if leafgroup==None:
+            leafgroup = key
+
         # uniqual = _counter (leafgroup, increment=True)
+
+        # Get the associated leafparms fron the NodeSet rider record:
+        lgp = self.NodeSet.group_rider(leafgroup)
+
+        # Start with the MeqParm default value (funklet?) for this leafgroup:
+        if default==None:
+            default = lgp['c00_default']
+        aa = []
+        aa.append(ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default))
+
+        #---------------------------------------------------------
+        # Then the node-specific part:
+        #---------------------------------------------------------
 
         # The node-name qualifiers are the superset of the default ones
         # and the ones specified in this function call:
@@ -129,19 +149,6 @@ class LeafSet (TDL_common.Super):
         if isinstance(qual, dict):
             for qkey in qual.keys():
                 quals[qkey] = str(qual[qkey])
-
-        # Start with the default value for this leafgroup:
-        if leafgroup==None:
-            leafgroup = key
-
-        # Get the associated leafparms fron the NodeSet rider record:
-        lgp = self.NodeSet.group_rider(key)
-
-        # Start with the MeqParm default value (funklet?) for this leafgroup:
-        if default==None:
-            default = lgp['c00_default']
-        aa = []
-        aa.append(ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default))
 
         # Make the (additive) time-variation function:
         # For the moment: A cos(MeqTime) with a certain period
@@ -162,7 +169,7 @@ class LeafSet (TDL_common.Super):
         mm.append(ns['tampl'](leafgroup)(**quals)(ampl=str(ampl)) << Meq.Constant(ampl))
         aa.append(ns['tvar'](leafgroup)(**quals) << Meq.Multiply(children=mm))
 
-        # Combine the various components into a leaf with the desired name:
+        # Combine the various components into a leaf node with the desired name:
         node = ns[key](**quals) << Meq.Add(children=aa)
 
         # Store the new node in the NodeSet:
@@ -204,8 +211,6 @@ class LeafSet (TDL_common.Super):
         """Get/define the named (key) leafgroup"""
         # First the LeafSet-specific part:
         if len(pp)>0:
-            # leafgroup does not exist yet: Create it:
-            # pp.setdefault('default', 1.0)       # default value (usually c00)
             pp.setdefault('color', 'red')       # plot color
             pp.setdefault('style', 'triangle')  # plot style
             pp.setdefault('size', 5)            # size of plotted symbol
@@ -244,6 +249,13 @@ class LeafSet (TDL_common.Super):
         if LeafSet==None: return False
         self.NodeSet.update(LeafSet.NodeSet)
         self.history(append='updated from: '+LeafSet.oneliner())
+        return True
+
+    def updict(self, LeafSet=None):
+        """Updict the leafgroup info etc from another LeafSet object"""
+        if LeafSet==None: return False
+        self.NodeSet.updict(LeafSet.NodeSet)
+        self.history(append='updicted from: '+LeafSet.oneliner())
         return True
 
 

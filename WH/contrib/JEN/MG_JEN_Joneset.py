@@ -470,10 +470,10 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    js.ParmSet.node_groups(label[0])
 
    # Define extra solvegroup(s) from combinations of parmgroups:
-    if simul:
-       js.LeafSet.NodeSet.bookpage('FJones', [RM])
-    else:
-       js.ParmSet.solvegroup('FJones', [RM])
+   if simul:
+      js.LeafSet.NodeSet.bookpage('FJones', [RM])
+   else:
+      js.ParmSet.solvegroup('FJones', [RM])
 
    # Make a node for the Faraday rotation (same for all stations...)
    if simul:
@@ -664,7 +664,9 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     inarg_Joneset_common(pp, jones=jones, slave=slave)              
     # ** Jones matrix elements:
     JEN_inarg.define(pp, 'diagonal_only', tf=False,  
-                     help='if True, assume that the non-diagonal elements are zero')
+                     help='if True, solve for diagonal (11,22) elements only')
+    JEN_inarg.define(pp, 'all4_always', None, choice=[None, [14], 'WSRT/WHAT'],  
+                     help='stations for which all 4 elements will always be solved for')
 
     if simul:                              # simulation mode
        ls = TDL_LeafSet.LeafSet()
@@ -706,6 +708,14 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     label = jones+JEN_inarg.qualifier(pp)
 
     adjust_for_telescope(pp, origin=funcname)
+    # Special case (temporary kludge):
+    if not pp['all4_always']:
+       pp['all4_always'] = []
+    if pp['all4_always']=='WSRT/WHAT':
+       pp['all4_always'] = [14]
+    if not isinstance(pp['all4_always'], (list,tuple)):
+       pp['all4_always'] = [pp['all4_always']]
+
     pp['punit'] = get_punit(Sixpack, pp)
 
     # Create a Joneset object:
@@ -720,15 +730,14 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
                         color='magenta', style='square', size=7, **pp)
     di22 = js.parmgroup('Jimag_22', condeq_corrs='paral22', default=0.0,
                         color='cyan', style='square', size=7, **pp)
-    if not pp['diagonal_only']:
-       dr12 = js.parmgroup('Jreal_12', condeq_corrs='cross12', default=0.0,
-                           color='red', style='square', size=7, **pp)
-       dr21 = js.parmgroup('Jreal_21', condeq_corrs='cross21', default=0.0,
-                           color='red', style='square', size=7, **pp)
-       di12 = js.parmgroup('Jimag_12', condeq_corrs='cross12', default=0.0,
-                           color='magenta', style='square', size=7, **pp)
-       di21 = js.parmgroup('Jimag_21', condeq_corrs='cross21', default=0.0,
-                           color='magenta', style='square', size=7, **pp)
+    dr12 = js.parmgroup('Jreal_12', condeq_corrs='cross12', default=0.0,
+                        color='red', style='square', size=7, **pp)
+    dr21 = js.parmgroup('Jreal_21', condeq_corrs='cross21', default=0.0,
+                        color='red', style='square', size=7, **pp)
+    di12 = js.parmgroup('Jimag_12', condeq_corrs='cross12', default=0.0,
+                        color='magenta', style='square', size=7, **pp)
+    di21 = js.parmgroup('Jimag_21', condeq_corrs='cross21', default=0.0,
+                        color='magenta', style='square', size=7, **pp)
 
     # Define potential extra condition equations:
     # js.ParmSet.define_condeq(di11, unop='Add', value=0.0)
@@ -758,15 +767,16 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
 
     # Make station Jones matrices:
-    if pp['diagonal_only']:
-       JJreal = [dr11,dr22]
-       JJimag = [di11,di22]
-    else:
-       JJreal = [dr11,dr12,dr21,dr22]
-       JJimag = [di11,di12,di21,di22]
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
         qual = dict(s=skey)
+
+        if pp['diagonal_only'] and not (station in pp['all4_always']):
+           JJreal = [dr11,dr22]
+           JJimag = [di11,di22]
+        else:
+           JJreal = [dr11,dr12,dr21,dr22]
+           JJimag = [di11,di12,di21,di22]
 
         for Jreal in JJreal:
            if simul:
@@ -1467,13 +1477,23 @@ if __name__ == '__main__':
      js.display()     
      display_first_subtree (js, full=1)
 
-  if 1:
+  if 0:
      simul = True
      js = GJones (ns, stations=stations, simul=simul)
      full = True
      js.display(full=full)     
      js.ParmSet.display(full=full)     
-     js.LeafSet.display(full=True)     
+     js.LeafSet.display(full=full)     
+     # display_first_subtree (js, full=True)
+
+  if 1:
+     simul = True
+     js = JJones (ns, stations=stations, simul=simul,
+                  diagonal_only=True, all4_always=[14])
+     full = True
+     # js.display(full=full)     
+     js.ParmSet.display(full=full)     
+     js.LeafSet.display(full=full)     
      # display_first_subtree (js, full=True)
 
   if 0:

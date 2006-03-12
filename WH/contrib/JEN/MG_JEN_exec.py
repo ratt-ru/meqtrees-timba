@@ -553,7 +553,7 @@ def stream_control (slave=False, display=False, **inarg):
       Settings.forest_state[field][key] = ss[key]
    if True or display:
       ss = Settings.forest_state[field]
-      display_object(ss, funcname+'(ss)')
+      # display_object(ss, funcname+'(ss)')
 
    # Return the stream_control record:
    return Settings.forest_state[field]
@@ -781,7 +781,7 @@ def without_meqserver(MG=None, callback=None, **pp):
 
    display_object (MG, 'MG', 'after callback(_define_forest())')
 
-   display_forest_state()
+   # display_forest_state()
 
    # Display the result at the specified recursion level:
    display_subtree (root, MG.script_name, full=pp['full'], recurse=pp['recurse'])

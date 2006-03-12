@@ -231,6 +231,10 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     Cohset.sinks(ns, start=start, post=post, output_col=pp['output_col'])
     sinks = Cohset.cohs()
 
+    # Cohset.display(funcname, full=True)
+    # Cohset.ParmSet.display(funcname)
+    Cohset.LeafSet.display(funcname, full=True)
+
     # Append the final Cohset to the forest state object:
     # MG_JEN_forest_state.object(Cohset, funcname)
     # MG_JEN_forest_state.object(Cohset.ParmSet, funcname)
@@ -252,6 +256,9 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
     """Make a Joneset by creating and multiplying one ore more Jonesets"""
 
+    qual = None
+    if simul: qual = 'simul'
+
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::Jones()', version='25dec2005',
                             description=Jones.__doc__)
@@ -265,12 +272,12 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
                               []],
                       help='sequence of Jones matrices to be used')
     # Include default inarg records for various Jones matrix definition functions:
-    JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True, simul=simul, slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True, simul=simul, slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, simul=simul, slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, simul=simul, slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True, simul=simul, slave=True))
-    JEN_inarg.nest(pp, MG_JEN_Joneset.JJones(_getdefaults=True, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True, _qual=qual, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.JJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -292,18 +299,18 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
     jseq = TDL_Joneset.Joneseq()
     for jones in pp['Jsequence']:
         if jones=='GJones':
-            jseq.append(MG_JEN_Joneset.GJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp))
+            jseq.append(MG_JEN_Joneset.GJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp, _qual=qual))
         elif jones=='BJones':
-            jseq.append(MG_JEN_Joneset.BJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp))
+            jseq.append(MG_JEN_Joneset.BJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp, _qual=qual))
         elif jones=='FJones':
-            jseq.append(MG_JEN_Joneset.FJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp)) 
+            jseq.append(MG_JEN_Joneset.FJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp, _qual=qual)) 
         elif jones=='JJones':
-            jseq.append(MG_JEN_Joneset.JJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp))
+            jseq.append(MG_JEN_Joneset.JJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp, _qual=qual))
         elif jones=='DJones_WSRT':
-            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, Sixpack=Sixpack, simul=simul, _inarg=pp))
+            jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, Sixpack=Sixpack, simul=simul, _inarg=pp, _qual=qual))
         elif jones=='KJones':
             jseq.append(MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
-                                               MSauxinfo=MSauxinfo(), _inarg=pp))
+                                               MSauxinfo=MSauxinfo(), _inarg=pp, _qual=qual))
         else:
             print '** jones not recognised:',jones,'from:',pp['Jsequence']
                
@@ -435,6 +442,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     # This contains the Joneset/Sixpack MeqParms, which may be re-executed
     # separately for the full (MS) domain for inspection (see .make_sinks())
     measured.update_from_ParmSet(Mohset.ParmSet)
+    measured.update_from_LeafSet(Mohset.LeafSet)
 
     # Make a list of one or more MeqSolver subtree(s):
     # Assume that pp contains the relevant (qual) inarg record(s).

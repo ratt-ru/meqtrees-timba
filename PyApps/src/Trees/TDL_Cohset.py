@@ -33,6 +33,7 @@
 #    - 08 mar 2006: switched to ._rider()
 #    - 09 mar 2006: included new TDL_ParmSet
 #    - 11 mar 2006: remove TDL_Parmset and TDL_Leafset
+#    - 11 mar 2006: implement .splice()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -426,7 +427,7 @@ class Cohset (TDL_common.Super):
 
     def display(self, txt=None, full=False):
         """Display (print) the contents of the Cohset"""
-        ss = TDL_common.Super.display(self, txt=txt, end=False)
+        ss = TDL_common.Super.display(self, txt=txt, end=False, full=full)
         indent1 = 2*' '
         indent2 = 6*' '
         ss.append(indent1+' - phase_centre:    '+self.phase_centre())
@@ -753,11 +754,13 @@ class Cohset (TDL_common.Super):
 
     def graft(self, ns, node, name=None, key='*', stepchild=False):
         """Graft the specified node(s) onto the streams of the specified ifr(s).
-        By default, this is done by means of a MeqReqSeq, which obly uses the result
+        By default, this is done by means of a MeqReqSeq, which only uses the result
         of its LAST (main-stream) child. This synchronises the ifr-streams if the
         same node (e.g. a solver or a dcoll) is grafted on all ifr-streams.
         If stepchild=True, make the node(s) step-children of a MeqSelector
-        node that is inserted before the specified (key) coherency node"""
+        node that is inserted before the specified (key) coherency node.
+        NB: This method is (only?) used for grafting a solver chain to a Cohset"""
+        
         funcname = '::graft():'
 
         # Names and qualifiers:
@@ -786,6 +789,31 @@ class Cohset (TDL_common.Super):
                 rix = len(children)-1                       # use only the result of the last (main stream) child
                 self[key] = ns[gname].qmerge(self[key])(uniqual) << Meq.ReqSeq(children=children, result_index=rix)
 
+        self._history(funcname+' -> '+self.oneliner())
+        return True
+
+
+    def splice(self, ns, Cohset, name=None):
+        """Splice the specified Cohset into the current one (self), ifr-by-ifr.
+        (it is assumed that both Cohsets have the same ifrs).
+        This is done by means of a MeqReqSeq, which only uses the result
+        of its LAST (main-stream) child."""
+        funcname = '::splice():'
+
+        # Names and qualifiers:
+        uniqual = _counter(funcname, increment=-1)
+        gname = 'splice'
+        if isinstance(name, str): gname += '_'+name
+
+        # Make ReqSeqs for all ifrs:
+        for key in self.keys():
+            children = [Cohset[key], self[key]]     # put its own child LAST
+            rix = len(children)-1                   # use only the result of the last child
+            self[key] = ns[gname].qmerge(self[key])(uniqual) << Meq.ReqSeq(children=children,
+                                                                           result_index=rix)
+        # Bookkeeping:
+        self.update_from_Cohset(Cohset)
+        self._history(funcname+': '+Cohset.oneliner())
         self._history(funcname+' -> '+self.oneliner())
         return True
 
@@ -841,7 +869,6 @@ class Cohset (TDL_common.Super):
     def replace(self, ns, Cohset=[]):
         """Replace with the (sum of the) cohaerencies of the given (list of) Cohset(s)"""
         self.add(ns, Cohset, exclude_itself=True)
-        self.update_from_Cohset(Cohset)
         return True
 
     def add(self, ns, Cohset=[], exclude_itself=False):
@@ -872,6 +899,8 @@ class Cohset (TDL_common.Super):
             self.__coh[key] = ns[name].qmerge(itself)(uniqual) << Meq.Add(children=cc)
 
         # Reporting and book-keeping
+        for cs in Cohset:
+            self.update_from_Cohset(cs)
         n = len(Cohset)
         if exclude_itself:
             self.scope('replaced')
@@ -940,11 +969,15 @@ class Cohset (TDL_common.Super):
         """Update the internal info from a Sixpack object
         (NB: Not yet implemented in Sixpack....)"""
         if Sixpack==None: return False
+        if False:
+            #............................................................
+            # NB: The Sixpack object does not have a LeafSet (yet).....
+            self.update_from_LeafSet(Sixpack.LeafSet)
+            #............................................................
         if not Sixpack.ParmSet.unsolvable():
             self.update_from_ParmSet(Sixpack.ParmSet)    
             self._history(append='updated from (not unsolvable): '+Sixpack.oneliner())
         else:
-            # self.update_from_LeafSet(Sixpack.LeafSet)               #............??
             # A Sixpack that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from 'not unsolvable' Sixpacks.
@@ -952,19 +985,38 @@ class Cohset (TDL_common.Super):
             self._history(append='not updated from (unsolvable): '+Sixpack.oneliner())
         return True
 
+    def updict_from_Sixpack(self, Sixpack=None):
+        """Updict the internal info from a Sixpack object
+        (NB: Not yet implemented in Sixpack....)"""
+        if Sixpack==None: return False
+        if False:
+            #............................................................
+            # NB: The Sixpack object does not have a LeafSet (yet).....
+            self.updict_from_LeafSet(Sixpack.LeafSet)
+            #............................................................
+        if not Sixpack.ParmSet.unsolvable():
+            self.updict_from_ParmSet(Sixpack.ParmSet)    
+            self._history(append='updicted from (not unsolvable): '+Sixpack.oneliner())
+        else:
+            # A Sixpack that is 'unsolvable' has no solvegroups.
+            # However, its parmgroups might interfere with parmgroups
+            # of the same name (e.g. Gphase) from 'not unsolvable' Sixpacks.
+            # Therefore, its parm info should not be copied here.
+            self._history(append='not updicted from (unsolvable): '+Sixpack.oneliner())
+        return True
+
     def update_from_Joneset(self, Joneset=None):
         """Update the internal info from a (corrupting) Joneset object"""
         # (see Joneseq.Joneset())
         if Joneset==None: return False
+        self.update_from_LeafSet(Joneset.LeafSet)
         if not Joneset.ParmSet.unsolvable():
             self.__plot_color.update(Joneset.plot_color())
             self.__plot_style.update(Joneset.plot_style())
             self.__plot_size.update(Joneset.plot_size())
             self.update_from_ParmSet(Joneset.ParmSet)
-            self.update_from_LeafSet(Joneset.LeafSet)
             self._history(append='updated from (not unsolvable): '+Joneset.oneliner())
         else:
-            self.update_from_LeafSet(Joneset.LeafSet)
             # A Joneset that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from 'not unsolvable' Jonesets.
@@ -972,15 +1024,50 @@ class Cohset (TDL_common.Super):
             self._history(append='not updated from (unsolvable): '+Joneset.oneliner())
         return True
 
+    def updict_from_Joneset(self, Joneset=None):
+        """Updict the internal info from a (corrupting) Joneset object"""
+        # (see Joneseq.Joneset())
+        if Joneset==None: return False
+        self.updict_from_LeafSet(Joneset.LeafSet)
+        if not Joneset.ParmSet.unsolvable():
+            self._updict(self.__plot_color, Joneset.plot_color())
+            self._updict(self.__plot_style, Joneset.plot_style())
+            self._updict(self.__plot_size, Joneset.plot_size())
+            self.updict_from_ParmSet(Joneset.ParmSet)
+            self._history(append='updicted from (not unsolvable): '+Joneset.oneliner())
+        else:
+            # A Joneset that is 'unsolvable' has no solvegroups.
+            # However, its parmgroups might interfere with parmgroups
+            # of the same name (e.g. Gphase) from 'not unsolvable' Jonesets.
+            # Therefore, its parm info should not be copied here.
+            self._history(append='not updicted from (unsolvable): '+Joneset.oneliner())
+        return True
+
     def update_from_Cohset(self, Cohset=None):
         """Update the internal info from another Cohset object"""
         if Cohset==None: return False
+        self._updict_rider(Cohset._rider())
+        # NB: use self._updict(self.__plot_color, Cohset.plot_color()).....
+        # or rather self.updict_from_ParmSet(CohSet.ParmSet)...
+        # NB: use JEN_PlotAttrib objects (default and named attributes...)
         self.__plot_color.update(Cohset.plot_color())
         self.__plot_style.update(Cohset.plot_style())
         self.__plot_size.update(Cohset.plot_size())
         self.update_from_ParmSet(Cohset.ParmSet)
         self.update_from_LeafSet(Cohset.LeafSet)
         self._history(append='updated from: '+Cohset.oneliner())
+        return True
+
+    def updict_from_Cohset(self, Cohset=None):
+        """Updict the internal info from another Cohset object"""
+        if Cohset==None: return False
+        self._updict_rider(Cohset._rider())
+        self._updict( self.__plot_color, Cohset.plot_color())
+        self._updict(self.__plot_style, Cohset.plot_style())
+        self._updict(self.__plot_size, Cohset.plot_size())
+        self.updict_from_ParmSet(Cohset.ParmSet)
+        self.updict_from_LeafSet(Cohset.LeafSet)
+        self._history(append='updicted from: '+Cohset.oneliner())
         return True
 
     def update_from_ParmSet(self, ParmSet=None):
@@ -995,6 +1082,20 @@ class Cohset (TDL_common.Super):
         if LeafSet:
             self.LeafSet.update(LeafSet)
             self._history(append='updated from: '+LeafSet.oneliner())
+        return True
+
+    def updict_from_ParmSet(self, ParmSet=None):
+        """Updict the internal info from a given ParmSet"""
+        if ParmSet:
+            self.ParmSet.updict(ParmSet)
+            self._history(append='updicted from: '+ParmSet.oneliner())
+        return True
+
+    def updict_from_LeafSet(self, LeafSet=None):
+        """Updict the internal info from a given LeafSet"""
+        if LeafSet:
+            self.LeafSet.updict(LeafSet)
+            self._history(append='updicted from: '+LeafSet.oneliner())
         return True
 
     #---------------------------------------------------------------------------

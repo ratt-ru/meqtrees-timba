@@ -152,6 +152,8 @@ JEN_inarg.attach(MG, inarg)
 # Operations on the raw uv-data:
 #----------------------------------------------------------------------------------------------------
 
+JEN_inarg.separator(MG, 'operations on input uv-data')
+
 # inarg = MG_JEN_Cohset.insert_flagger(_getdefaults=True) 
 # JEN_inarg.attach(MG, inarg)
    
@@ -159,6 +161,8 @@ JEN_inarg.attach(MG, inarg)
 #----------------------------------------------------------------------------------------------------
 # Insert a solver:
 #----------------------------------------------------------------------------------------------------
+
+JEN_inarg.separator(MG, 'insert a solver')
 
 inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True) 
 JEN_inarg.attach(MG, inarg)
@@ -248,7 +252,6 @@ def _define_forest (ns, **kwargs):
 
 
     if MG['insert_solver']:
-        # Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit=MG['punit'])
         Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
         Joneset = MG_JEN_Cohset.Jones(ns, Sixpack=Sixpack, _inarg=MG)
         predicted = MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
@@ -272,7 +275,6 @@ def _define_forest (ns, **kwargs):
 
 
 
-# def _test_forest (mqs, parent):
 def _tdl_job_execute (mqs, parent):
    """Execute the tree""" 
    
@@ -285,6 +287,21 @@ def _tdl_job_execute (mqs, parent):
 
    # Start the sequence of requests issued by MeqSink:
    MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG)
+   return True
+
+def _tdl_job_execute_plus (mqs, parent):
+   """Execute the tree, followed by fullDomainMux()""" 
+   
+   # Timba.TDL.Settings.forest_state is a standard TDL name. 
+   # This is a record passed to Set.Forest.State. 
+   Settings.forest_state.cache_policy = 100;
+   
+   # Make sure our solver root node is not cleaned up
+   Settings.orphans_are_roots = True;
+
+   # Start the sequence of requests issued by MeqSink:
+   MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG)
+   MG_JEN_exec.fullDomainMux(mqs, parent, ctrl=MG)
    return True
 
 

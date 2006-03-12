@@ -17,6 +17,8 @@
 #    - 31 jan 2006: implemented .compare()
 #    - 03 feb 2006: implemented .essence()
 #    - 20 feb 2006: implemented _getpp option
+#    - 12 mar 2006: moved _qual to before localscope
+#    - 12 mar 2006: .separator()
 #
 # Full description:
 #    By obeying a simple (and unconstraining!) set of rules, the input
@@ -127,11 +129,27 @@ from Timba.Trees import JEN_record
 from copy import deepcopy
 from datetime import datetime
 
-# The name of the control-record
-CTRL_record = '_JEN_inarg_CTRL_record:'
+#----------------------------------------------------------------------------
+# Some global strings (bit of a kludge...)
+#----------------------------------------------------------------------------
 
-# The name of an (optional) option field (e.g. see .modify())
-option_field = '_JEN_inarg_option'
+def CTRL_record_string():
+   """Return the standard name of a control-record"""
+   return '_JEN_inarg_CTRL_record:'
+
+def sep_record_string():
+   """Return the standard name of a separator-record"""
+   return '_JEN_inarg_separator_record:'
+
+def option_field_string():
+   """Return the standard name of an (optional) option field (e.g. see .modify())"""
+   # return '_JEN_inarg_option_field'   # better....
+   return '_JEN_inarg_option'
+
+CTRL_record = CTRL_record_string()
+sep_record = sep_record_string()
+sep_record_counter = 0           
+option_field = option_field_string()
 
 #----------------------------------------------------------------------------
 
@@ -152,8 +170,7 @@ def init(target='<target>', version='15dec2005', description=None, **pp):
    # Attach/overwrite the inarg description string, if supplied:
    if isinstance(description, str):
       inarg[CTRL_record]['description'] = description
-      inarg[CTRL_record]['generic'] = description
-      inarg[CTRL_record]['specific'] = '<specific>'
+      # inarg[CTRL_record]['inarg_specific'] = description
 
    # The order (list) is needed by JEN_inargGui....
    inarg[CTRL_record]['order'] = inarg.keys()
@@ -390,12 +407,16 @@ def dissect_target (target='<dir>/<module>::<function>()', qual=None, trace=Fals
    # The localscope is the inarg record field-name:
    rr['localscope'] = '**** '
    rr['localscope'] = ''
+   # If the qualifier is at the beginning, it is more visible...
+   if qual:                                           # qualifier specified
+      rr['localscope'] += '['+str(qual)+']'
    rr['localscope'] += rr['target_dir']+'/'
    rr['localscope'] += rr['target_module']+'.'
    if len(rr['target_function'])>0:
       rr['localscope'] += rr['target_function']+'()'
-   if qual:                                           # qualifier specified
-      rr['localscope'] += '['+str(qual)+']'
+   # If the qualifier is at the end, it is less visible...
+   # if qual:                                           # qualifier specified
+   #    rr['localscope'] += '['+str(qual)+']'
 
    # The barescope is a stripped version of the localscope:
    rr['barescope'] = rr['target_module']+rr['target_function']
@@ -434,9 +455,8 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
       ss += '  version='+ctrl['version']
       ss += '  defined='+ctrl['datetime_defined']
       ctrl['oneliner'] = ss
-      ctrl['description'] = '** Description of: '+ctrl['oneliner'] 
-      ctrl['generic'] = '** Generic description of: '+ctrl['oneliner'] 
-      ctrl['specific'] = '** Specific description of: '+ctrl['oneliner'] 
+      ctrl['description'] = '** Description of script: '+ctrl['oneliner'] 
+      ctrl['inarg_specific'] = '** Specific description of inarg record for: '+ctrl['oneliner'] 
       rr[CTRL_record] = ctrl                          # Attach the CTRL_record
 
    elif not isinstance(rr[CTRL_record], dict):        # CTRL_record is not a record...??
@@ -527,22 +547,29 @@ def barescope(rr, trace=False):
 
 #----------------------------------------------------------------------------
 
-def description(rr, new=None, append=None, prepend=None, module=None):
-   """Get/modify the inarg description string"""
+def specific (rr, new=None, append=None, prepend=None):
+   """Get/modify the specific inarg description string"""
+   print '** specific(',new,'):'
+   ss = CTRL(rr, 'inarg_specific')
+   if isinstance(new, str):
+      ss = new
+   if isinstance(append, str):
+      ss += '\n'+append
+   if isinstance(prepend, str):
+      ss = prepend+'\n'+ss
+   ss = CTRL(rr, 'inarg_specific', ss)
+   print '    ss =',ss
+   return ss
+
+
+def description(rr, module=None):
+   """Get/set the script description string"""
 
    # Get a module-specific description, if required:
    if module:                                     # module specified
       return get_descr(rr, module=module)         # search 
 
-   # The specific part of the description may be modifed:
-   ss = CTRL(rr, 'specific')
-   if isinstance(new, str): ss = new
-   if isinstance(append, str): ss += '\n'+append
-   if isinstance(prepend, str): ss = prepend+'\n'+ss
-   ss = CTRL(rr, 'specific', ss)
-
-   # Return a combination of the generic and the specific part:
-   ss += '\n\n'+CTRL(rr, 'description')
+   ss = '\n\n'+CTRL(rr, 'description')
    return ss
 
 
@@ -559,7 +586,11 @@ def get_descr(rr, module=None, level=0):
       else:
          for key in rr.keys():
             if isinstance(rr[key], dict):
-               if not key==CTRL_record:          # recurse
+               if key==CTRL_record:              # CTRL record
+                  pass
+               elif key.rfind(sep_record)>-1:    # separator record
+                  pass
+               else:                             # recurse
                   ss = get_descr(rr[key], module=module, level=level+1)
                   if isinstance(ss, str): return ss
    # Not found:
@@ -616,7 +647,7 @@ def count(rr, field='MESSAGE', total=0, level=0):
 
 #------------------------------------------------------------------------------
 
-def view(rr, field='MESSAGE', ss='', level=0, trace=True):
+def view(rr, field='MESSAGE', ss='', recurse=True, level=0, trace=True):
    """View (recursively) the specified JEN_inarg_CTRL field entries"""
    if level==0:
       s = '\n** Recursive view of inarg CTRL_record field: '+field+'\n'
@@ -649,19 +680,29 @@ def view(rr, field='MESSAGE', ss='', level=0, trace=True):
          ss += '\n'+s
          
       # Recursive:
-      for key in rr.keys():
-         if isinstance(rr[key], dict):
-            if not key==CTRL_record:
-               skip = check_skip(rr, key)
-               if not skip:
-                  if True:            # Skip a line before each new record
-                     s = _prefix(level+1)
+      if recurse:
+         for key in order(rr, trace=False):
+            if isinstance(rr[key], dict):
+               if key==CTRL_record:              # CTRL record
+                  pass
+               elif key.rfind(sep_record)>-1:    # separator record
+                  ss += '\n\n   ************************************************************'
+                  s = '   ******************************* '+str(rr[key]['txt'])+' **********'
+                  ss += '\n'+s
+                  ss += '\n   ************************************************************'
+                  if trace: print s
+               else:
+                  skip = check_skip(rr, key)
+                  if not skip:
+                     if True:                    # Skip a line before each new record
+                        s = _prefix(level+1)
+                        if trace: print s
+                        ss += '\n'+s
+                     s = _prefix(level+1)+' ***** '+key+':'
                      if trace: print s
                      ss += '\n'+s
-                  s = _prefix(level+1)+' ***** '+key+':'
-                  if trace: print s
-                  ss += '\n'+s
-                  ss = view(rr[key], field=field, ss=ss, level=level+1, trace=trace)
+                     ss = view(rr[key], field=field, ss=ss,
+                               recurse=recurse, level=level+1, trace=trace)
    if level==0:
       ok = is_OK(rr)
       if ok: s = '\n** end of view of: '+field+'   (OK)\n'
@@ -1273,6 +1314,19 @@ def attach(rr=None, inarg=None, recurse=False, level=0, trace=False):
    order(rr, append=lscope)                   # Update the order-field of the CTRL_record:
    if trace: display(rr,'rr <- JEN_inarg.attach()', full=True)
    return rr
+
+#----------------------------------------------------------------------------
+
+def separator (rr, txt='<separator>'):
+   """Insert a separator field into rr (for script readability)"""
+   s0 = '** JEN_inarg.separator(): '
+   global sep_record_counter
+   sep_record_counter += 1                    # increment
+   name = sep_record+'_'+str(sep_record_counter)
+   rr[name] = dict(txt=str(txt))              # attach to rr
+   order(rr, append=name)                     # Update the order-field of the CTRL_record:
+   MESSAGE(rr, s0+': '+str(txt))
+   return True
 
 #----------------------------------------------------------------------------
 

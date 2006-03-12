@@ -49,6 +49,10 @@ CTRL_record = '_JEN_inarg_CTRL_record:'
 # The name of an (optional) option field (e.g. see .modify())
 option_field = '_JEN_inarg_option'
 
+CTRL_record = JEN_inarg.CTRL_record_string()
+sep_record = JEN_inarg.sep_record_string()
+option_field = JEN_inarg.option_field_string()
+
 # Name of record of unique local identification nrs:
 kident = 'JEN_inargGUI_ident'
 
@@ -225,11 +229,11 @@ class ArgBrowser(QMainWindow):
 
 
         menu = QPopupMenu(self)
-        menu.insertItem('MeqTrees', self.viewDescription)
-        menu.insertItem('MG scripts', self.viewDescription)
+        menu.insertItem('MeqTrees', self.viewMeqTrees)
+        menu.insertItem('MG scripts', self.viewMGScripts)
         self.__menubar.insertSeparator()
         menu.insertItem('this MG script', self.viewDescription)
-        menu.insertItem('this inarg', self.viewDescription)
+        menu.insertItem('this inarg', self.viewSpecific)
         self.__menubar.insertSeparator()
         # k = menu.insertItem('help', self.viewHelp)
         # menu.setWhatsThis(k, '...text...')    # better: QToolTip...
@@ -377,6 +381,7 @@ class ArgBrowser(QMainWindow):
         self.__setOpen = dict()        
         self.__CTRL_count = 1000                   # for generating unique numbers
         self.__record_count = 2000                 # for generating unique numbers
+        self.__sep_count = 5000                    # for generating unique numbers
         self.__item_count = 100000                 # for generating unique numbers
         return True
     
@@ -777,8 +782,8 @@ class ArgBrowser(QMainWindow):
     def viewHISTORY(self):
         return self.tw(self.view('HISTORY'))
 
-    def view (self, field='MESSAGE'):
-        return JEN_inarg.view(self.__inarg, field=field)
+    def view (self, field='MESSAGE', recurse=True):
+        return JEN_inarg.view(self.__inarg, field=field, recurse=recurse)
 
     #-------------------------------------------------------------------------------
 
@@ -786,8 +791,17 @@ class ArgBrowser(QMainWindow):
         ss = help.__doc__
         return self.tw(ss)
 
+    def viewMeqTrees(self):
+        return self.tw('MeqTrees')
+
+    def viewMGScripts(self):
+        return self.tw('MG Scripts')
+
     def viewDescription(self):
         return self.tw(self.view('description'))
+
+    def viewSpecific(self):
+        return self.tw(self.view('inarg_specific', recurse=False))
 
     def editDescription(self):
         ss = JEN_inarg.CTRL(self.__inarg, 'description')
@@ -889,7 +903,7 @@ class ArgBrowser(QMainWindow):
         self.refresh()
 
         # Display the description:
-        self.viewDescription()
+        self.viewSpecific()
 
         # Connect signals and slots, once a signal is detected the according slot is executed
         # QObject.connect(self.__listview, SIGNAL("doubleClicked (QListViewItem * )"), self.itemSelected)
@@ -968,6 +982,15 @@ class ArgBrowser(QMainWindow):
                             item.setOpen(self.__setOpen[key1]) # open or close    
                         self.recurse (rr[key], listview=item, color='green',
                                       level=level+1, makeitd=False)
+
+                elif key.rfind(sep_record)>-1:                 # is a separator         
+                    self.__sep_count += 1                      # increment the counter
+                    sep_ident = str(-self.__sep_count)
+                    item = MyListViewItem(listview, '*** '+str(rr[key]['txt'])+' ***',
+                                          '*********************', '************',
+                                          sep_ident, str(self.__item_count))
+                    item.set_text_color('magenta')
+                    item.setSelectable(False)
 
                 else:
                     skip = JEN_inarg.check_skip(rr, key)
@@ -1432,6 +1455,7 @@ class ArgBrowser(QMainWindow):
     def lsm_single(self, revert=False, save_protected=False):
         """Modify MG_JEN_lsm inarg for single operation"""
         if not self.macron_entry('MG_JEN_lsm', revert): return False
+        JEN_inarg.specific(self.__inarg, self.lsm_single.__doc__)
         JEN_inarg.modify(self.__inarg,
                          test_pattern='single',
                          _JEN_inarg_option=None)     
@@ -1440,6 +1464,7 @@ class ArgBrowser(QMainWindow):
     def lsm_grid(self, revert=False, save_protected=False):
         """Modify MG_JEN_lsm inarg for grid operation"""
         if not self.macron_entry('MG_JEN_lsm', revert): return False
+        JEN_inarg.specific(self.__inarg, self.lsm_grid.__doc__)
         JEN_inarg.modify(self.__inarg,
                          test_pattern='grid',
                          _JEN_inarg_option=None)     
@@ -1448,6 +1473,7 @@ class ArgBrowser(QMainWindow):
     def lsm_spiral(self, revert=False, save_protected=False):
         """Modify MG_JEN_lsm inarg for spiral operation"""
         if not self.macron_entry('MG_JEN_lsm', revert): return False
+        JEN_inarg.specific(self.__inarg, self.lsm_spiral.__doc__)
         JEN_inarg.modify(self.__inarg,
                          test_pattern='spiral',
                          _JEN_inarg_option=None)     
@@ -1469,18 +1495,22 @@ class ArgBrowser(QMainWindow):
     def simul_GJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_simul inarg for GJones corruption"""
         if not self.macron_entry('MG_JEN_simul', revert): return False
+        JEN_inarg.specific(self.__inarg, self.simul_GJones.__doc__)
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones'],
-                         mean_period_s=700,
+                         solvegroup=['GJones'],
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_simul_GJones', save_protected)
 
     def simul_DJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_simul inarg for DJones corruption"""
         if not self.macron_entry('MG_JEN_simul', revert): return False
+        JEN_inarg.specific(self.__inarg, self.simul_DJones.__doc__)
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['DJones_WSRT'],
+                         solvegroup=['DJones'],
                          _JEN_inarg_option=None)     
+        self.callback_punit('QU')
         return self.macron_exit('MG_JEN_simul_DJones', save_protected)
 
 
@@ -1508,6 +1538,7 @@ class ArgBrowser(QMainWindow):
         """Modify MG_JEN_cps inarg for GJones operation"""
         # if not self.macron_entry('MG_JEN_cps', revert): return False
         if revert==True: self.revert_inarg()
+        JEN_inarg.specific(self.__inarg, self.cps_GJones.__doc__)
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones'],
                          solvegroup=['GJones'],
@@ -1519,6 +1550,7 @@ class ArgBrowser(QMainWindow):
         """Modify MG_JEN_cps inarg for Gphase operation"""
         # if not self.macron_entry('MG_JEN_cps', revert): return False
         if revert==True: self.revert_inarg()
+        JEN_inarg.specific(self.__inarg, self.cps_Gphase.__doc__)
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones'],
                          solvegroup=['Gphase'],
@@ -1531,6 +1563,7 @@ class ArgBrowser(QMainWindow):
         """Modify MG_JEN_cps inarg for Ggain operation"""
         # if not self.macron_entry('MG_JEN_cps', revert): return False
         if revert==True: self.revert_inarg()
+        JEN_inarg.specific(self.__inarg, self.cps_Ggain.__doc__)
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones'],
                          solvegroup=['Ggain'],
@@ -1543,6 +1576,7 @@ class ArgBrowser(QMainWindow):
         """Modify MG_JEN_cps inarg for GDJones (WSRT) operation"""
         # if not self.macron_entry('MG_JEN_cps', revert): return False
         if revert==True: self.revert_inarg()
+        JEN_inarg.specific(self.__inarg, self.cps_GDJones.__doc__)
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['GJones','DJones_WSRT'],
                          solvegroup=['GJones','DJones'],
@@ -1554,6 +1588,7 @@ class ArgBrowser(QMainWindow):
         """Modify MG_JEN_cps inarg for JJones operation"""
         # if not self.macron_entry('MG_JEN_cps', revert): return False
         if revert==True: self.revert_inarg()
+        JEN_inarg.specific(self.__inarg, self.cps_JJones.__doc__)
         JEN_inarg.modify(self.__inarg,
                          Jsequence=['JJones'],
                          solvegroup=['JJones'],
@@ -1565,6 +1600,7 @@ class ArgBrowser(QMainWindow):
         """Modify MG_JEN_cps inarg for BJones operation"""
         # if not self.macron_entry('MG_JEN_cps', revert): return False
         if revert==True: self.revert_inarg()
+        JEN_inarg.specific(self.__inarg, self.cps_BJones.__doc__)
         JEN_inarg.modify(self.__inarg,
                          data_column_name='CORRECTED_DATA',
                          Jsequence=['BJones'],
@@ -1578,6 +1614,7 @@ class ArgBrowser(QMainWindow):
         """Modify MG_JEN_cps inarg for DJones (WSRT) operation"""
         # if not self.macron_entry('MG_JEN_cps', revert): return False
         if revert==True: self.revert_inarg()
+        JEN_inarg.specific(self.__inarg, self.cps_DJones.__doc__)
         JEN_inarg.modify(self.__inarg,
                          data_column_name='CORRECTED_DATA',
                          Jsequence=['DJones_WSRT'],
@@ -1590,6 +1627,7 @@ class ArgBrowser(QMainWindow):
         """Modify MG_JEN_cps inarg for stokesI operation"""
         # if not self.macron_entry('MG_JEN_cps', revert): return False
         if revert==True: self.revert_inarg()
+        JEN_inarg.specific(self.__inarg, self.cps_stokesI.__doc__)
         JEN_inarg.modify(self.__inarg,
                          data_column_name='CORRECTED_DATA',
                          solvegroup=['stokesI'],
@@ -1601,12 +1639,14 @@ class ArgBrowser(QMainWindow):
     def cps_inspect(self, revert=False, save_protected=False):
         """Modify MG_JEN_cps inarg for inspect operation(s)"""
         if not self.macron_entry('MG_JEN_cps', revert): return False
+        JEN_inarg.specific(self.__inarg, self.cps_inspect.__doc__)
         JEN_inarg.modify(self.__inarg,
                          insert_solver=False,
                          tile_size=1,
                          _JEN_inarg_option=None)     
         self.macron_exit('MG_JEN_cps_inspect', save_protected)
         #......................................................
+        JEN_inarg.specific(self.__inarg, self.cps_inspect.__doc__)
         JEN_inarg.modify(self.__inarg,
                          data_column_name='CORRECTED_DATA',
                          _JEN_inarg_option=None)     

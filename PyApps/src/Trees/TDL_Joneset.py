@@ -179,7 +179,7 @@ class Joneset (TDL_common.Super):
 
     def display(self, txt=None, full=False):
         """Display a description of the contents of this Joneset object"""
-        ss = TDL_common.Super.display (self, txt=txt, end=False)
+        ss = TDL_common.Super.display (self, txt=txt, end=False, full=full)
         indent1 = 2*' '
         indent2 = 6*' '
 
@@ -265,6 +265,28 @@ class Joneset (TDL_common.Super):
             self._history(append='not updated from (unsolvable): '+Joneset.oneliner())
         return True
 
+    def updict(self, Joneset=None):
+        """Updict the internal info from another Joneset object:
+        (used in Joneseq.make_Joneset())"""
+        if Joneset==None: return False
+        self.__jchar += Joneset.jchar()
+        self.updict_from_LeafSet(Joneset.LeafSet)
+        if self.ParmSet.unsolvable():
+            self._history(append='not updicted from (unsolvable): '+Joneset.oneliner())
+        elif not Joneset.ParmSet.unsolvable():
+            self._updict(self.__plot_color, Joneset.plot_color())
+            self._updict(self.__plot_style, Joneset.plot_style())
+            self._updict(self.__plot_size, Joneset.plot_size())
+            self.updict_from_ParmSet(Joneset.ParmSet)
+            self._history(append='updicted from (not unsolvable): '+Joneset.oneliner())
+        else:
+            # A Joneset that is 'unsolvable' has no solvegroups.
+            # However, its parmgroups might interfere with parmgroups
+            # of the same name (e.g. Gphase) from solvable Jonesets.
+            # Therefore, its parm info should NOT be copied here.
+            self._history(append='not updicted from (unsolvable): '+Joneset.oneliner())
+        return True
+
     def update_from_ParmSet(self, ParmSet=None):
         """Update the internal info from a given ParmSet"""
         if ParmSet:
@@ -272,12 +294,26 @@ class Joneset (TDL_common.Super):
             self._history(append='updated from: '+ParmSet.oneliner())
         return True
 
-
     def update_from_LeafSet(self, LeafSet=None):
         """Update the internal info from a given LeafSet"""
         if LeafSet:
             self.LeafSet.update(LeafSet)
             self._history(append='updated from: '+LeafSet.oneliner())
+        return True
+
+
+    def updict_from_ParmSet(self, ParmSet=None):
+        """Updict the internal info from a given ParmSet"""
+        if ParmSet:
+            self.ParmSet.updict(ParmSet)
+            self._history(append='updicted from: '+ParmSet.oneliner())
+        return True
+
+    def updict_from_LeafSet(self, LeafSet=None):
+        """Updict the internal info from a given LeafSet"""
+        if LeafSet:
+            self.LeafSet.updict(LeafSet)
+            self._history(append='updicted from: '+LeafSet.oneliner())
         return True
 
 

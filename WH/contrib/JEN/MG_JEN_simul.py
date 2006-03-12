@@ -64,13 +64,9 @@ except:
 
 def _description():
     """
-    Description of the input argument record: MG_JEN_simul_xxx.inarg
-    (to be used with the MeqTree TDL stript MG_JEN_simul.py) 
-    
-    ....
-
-    --------------------------------------------------------------------------
-    General description of the MeqTree TDL script MG_JEN_simul.py:
+    -------------------------------------------------------------
+    General description of the MeqTree TDL script MG_JEN_simul.py
+    -------------------------------------------------------------
 
     The MG_JEN_simul.py script is used to put simulated visibilities into the
     CORRECTED_DATA column of an existing Measurement Set (MS). The original DATA
@@ -89,14 +85,13 @@ def _description():
     * Optionally, the simulated visibilities may be added to the existing uv-data,
     either from the DATA column or the CORRECTED_DATA column of the MS
 
+    * Optionally, a parallel solver branch may be inserted, which uses the simulated
+    uv-data to solve for instrumental parameters. The latter may be compared with
+    the simulated instrumental parameters.
+
     Different types of simulations may be specified by loading (and editing) socalled
     'inarg' records from files (like this one). These contain input arguments
     for generating a suitable MeqTree forest for the desired operation.
-
-
-    --------------------------------------------------------------------------
-    Brief descriptions of the various sub-modules:
-
     """
     return True
 
@@ -121,6 +116,10 @@ JEN_inarg.define (MG, 'add_to_existing', tf=False,
 JEN_inarg.define (MG, 'rms_noise_Jy', 0.0, choice=[0,0.01,0.1,1],
                   help='rms noise, to be added')
 
+JEN_inarg.define (MG, 'insert_solver', tf=True,
+                  help='if True, insert a solver')
+
+
 #----------------------------------------------------------------------------------------------------
 # Interaction with the MS: spigots, sinks and stream control
 #----------------------------------------------------------------------------------------------------
@@ -136,19 +135,43 @@ JEN_inarg.attach(MG, inarg)
 inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)  
 JEN_inarg.attach(MG, inarg)
 
+
 #----------------------------------------------------------------------------------------------------
 
-inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True) 
+JEN_inarg.separator(MG, 'uv-data simulation')
+qual = 'simul'
+
+inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
 JEN_inarg.attach(MG, inarg)
 
-inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True, simul=True) 
+inarg = MG_JEN_Cohset.Jones(_getdefaults=True, _qual=qual, slave=True, simul=True) 
 JEN_inarg.attach(MG, inarg)
 
-inarg = MG_JEN_Cohset.predict(_getdefaults=True, slave=True)  
+inarg = MG_JEN_Cohset.predict(_getdefaults=True, _qual=qual, slave=True)  
 JEN_inarg.attach(MG, inarg)
 
     
 #----------------------------------------------------------------------------------------------------
+
+JEN_inarg.separator(MG, 'solver-branch')
+qual = 'solve'
+
+inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
+JEN_inarg.attach(MG, inarg)
+
+inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True, _qual=qual) 
+JEN_inarg.attach(MG, inarg)
+
+inarg = MG_JEN_Cohset.predict(_getdefaults=True, slave=True, _qual=qual)  
+JEN_inarg.attach(MG, inarg)
+
+inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, slave=True) 
+JEN_inarg.attach(MG, inarg)
+
+
+#----------------------------------------------------------------------------------------------------
+
+JEN_inarg.separator(MG, 'finishing touches')
 
 inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)   
 JEN_inarg.attach(MG, inarg)
@@ -200,32 +223,64 @@ def _define_forest (ns, **kwargs):
     # Perform some common functions, and return an empty list (cc=[]):
     cc = MG_JEN_exec.on_entry (ns, MG)
 
+    #------------------------------------------------------------------
+    # Part I: Create the main Cohset from spigots:
+    #------------------------------------------------------------------
+
     # Make MeqSpigot nodes that read the MS:
     Cohset = TDL_Cohset.Cohset(label=MG['script_name'],
                                polrep=MG['polrep'],
                                stations=MG['stations'])
     MG_JEN_Cohset.make_spigots(ns, Cohset, _inarg=MG)
 
+
+    #------------------------------------------------------------------
+    # Part II: Insert (replace/add) the simulated uv-data:
+    #------------------------------------------------------------------
+
+    nsim = ns.Subscope('_')
+    qual = 'simul'
+
     # Make a source Sixpack (I,Q,U,V,RA,Dec) from punit/LSM:
-    Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
+    Sixpack = MG_JEN_Sixpack.newstar_source(nsim, _inarg=MG, _qual=qual)
 
     # Optional: get corrupting (uv-plane) Jones matrices:
-    Joneset = MG_JEN_Cohset.Jones(ns, Sixpack=Sixpack, simul=True, _inarg=MG)
+    Joneset = MG_JEN_Cohset.Jones(nsim, Sixpack=Sixpack, simul=True, _inarg=MG, _qual=qual)
 
     # Predict nominal/corrupted visibilities: 
-    predicted = MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
+    predicted = MG_JEN_Cohset.predict (nsim, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
 
     # Opionally, add (gaussian) noise:
     if MG['rms_noise_Jy']>0:
-        Cohset.addNoise(ns, MG['rms_noise_Jy'])
+        Cohset.addNoise(nsim, MG['rms_noise_Jy'])
 
     # Replace/add the uv-data with/to the predicted visibilities: 
     if MG['add_to_existing']:
-        Cohset.add(ns, predicted)
+        Cohset.add(nsim, predicted)
     else:
-        Cohset.replace(ns, predicted)
-    MG_JEN_Cohset.visualise (ns, Cohset)
-    MG_JEN_Cohset.visualise (ns, Cohset, type='spectra')
+        Cohset.replace(nsim, predicted)
+    MG_JEN_Cohset.visualise (nsim, Cohset)
+    MG_JEN_Cohset.visualise (nsim, Cohset, type='spectra')
+
+
+    #------------------------------------------------------------------
+    # Part III: Optionally, insert a parallel solver branch:
+    #------------------------------------------------------------------
+
+    if MG['insert_solver']:
+        Sohset = Cohset.copy(label='solve_branch')
+        qual = 'solve'
+        Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG, _qual=qual)
+        Joneset = MG_JEN_Cohset.Jones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
+        predicted = MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
+        MG_JEN_Cohset.insert_solver (ns, measured=Sohset, predicted=predicted, _inarg=MG)
+        # Splice the Sohset branch back into Cohset:
+        Cohset.splice(ns, Sohset)
+
+
+    #------------------------------------------------------------------
+    # Part IV: Finishing touches:
+    #------------------------------------------------------------------
 
     # Make MeqSink nodes that write the MS:
     sinks = MG_JEN_Cohset.make_sinks(ns, Cohset, _inarg=MG)
@@ -245,7 +300,6 @@ def _define_forest (ns, **kwargs):
 
 
 
-# def _test_forest (mqs, parent):
 def _tdl_job_execute (mqs, parent):
    """Execute the tree""" 
    
@@ -258,6 +312,22 @@ def _tdl_job_execute (mqs, parent):
 
    # Start the sequence of requests issued by MeqSink:
    MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG)
+   return True
+
+
+def _tdl_job_execute_plus (mqs, parent):
+   """Execute the tree, followed by the fullDomain version""" 
+   
+   # Timba.TDL.Settings.forest_state is a standard TDL name. 
+   # This is a record passed to Set.Forest.State. 
+   Settings.forest_state.cache_policy = 100;
+   
+   # Make sure our solver root node is not cleaned up
+   Settings.orphans_are_roots = True;
+
+   # Start the sequence of requests issued by MeqSink:
+   MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG)
+   MG_JEN_exec.fullDomainMux(mqs, parent, ctrl=MG)
    return True
 
 

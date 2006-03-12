@@ -204,13 +204,14 @@ class NodeSet (TDL_common.Super):
             else:
                 self.__MeqNode[nodename] = node 
                 # Assume that key indicates group-name(s):
-                if not isinstance(key, (list,tuple)): key = [key]
+                # if not isinstance(key, (list,tuple)): key = [key]
+                key = self._listuple(key)
                 for groupname in key:
-                    print 'nodename =',nodename,' key=',key,':',groupname
                     self.__group[groupname].append(nodename)  
                     self.__buffer[groupname] = node   # see .buffer() service
-                if trace:
-                    print '\n** MeqNode(): new entry:',node,key 
+                s1 = 'MeqNode(): new entry: '+str(nodename)+' (group(s):'+str(key)+')'  
+                self.history(s1)
+                if trace: print '**',s1  
             return nodename
         # Otherwise, return the specified (key) group (None = all):
         return self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
@@ -226,21 +227,26 @@ class NodeSet (TDL_common.Super):
         A definition is a record as in the forest_state bookmark record"""
         return self._fieldict (self.__bookmark, key=key, name='.bookmark()')
 
-    def bookpage(self, key=None, new=None):
+    def bookpage(self, key=None, new=None, folder=None):
         """Get/define the specified (key) bookpage definition (None = all).
-        A definition consists of a list of MeqNodes (a gog, really)."""
+        A definition consists of a list of MeqNodes (a gog, really).
+        If a (bookpage)folder is specified, the bookpage is put in there."""
         if new:
-            if not isinstance(new, (list,tuple)): new = [new]
+            new = self._listuple(new)
+            # if not isinstance(new, (list,tuple)): new = [new]
             self.__bookpage[key] = new
         return self._fieldict (self.__bookpage, key=key, name='.bookpage()')
 
-    def bookfolder(self, key=None, new=None):
-        """Get/define the specified (key) bookfolder definition (None = all).
-        A definition consists of a list of MeqNodes (a gog, really)"""
-        if new:
-            if not isinstance(new, (list,tuple)): new = [new]
-            self.__bookpage[key] = new
-        return self._fieldict (self.__bookfolder, key=key, name='.bookfolder()')
+    def bookfolder(self, key=None, append=None, clear=False):
+        """Get/define the specified (key) bookpage folder definition (None = all).
+        A definition consists of a list of members, i.e. bookpages/bookmarks.
+        New members may be specified by means of the append keyword."""
+        if append:
+            append = self._listuple(append)
+            # if not isinstance(append, (list,tuple)): append = [append]
+            self.__bookpage.setdefault(key, [])
+            self.__bookpage[key].extend(append)
+        return self._fieldict (self.__bookfolder, key=key, clear=clear, name='.bookfolder()')
 
 
     #--------------------------------------------------------------------------------
@@ -342,7 +348,9 @@ class NodeSet (TDL_common.Super):
         """Return a list of actual MeqNodes in the specified group(s)"""
         if trace: print '** .nodes(',group,select,'):',
         names = self.nodenames(group, select=select, trace=False)
-        if not isinstance(names, (list,tuple)): return False
+        # if not isinstance(names, (list,tuple)): return False
+        # names = self._listuple(names)
+        if not names: return False
         nn = []
         for name in names:
             nn.append(self.__MeqNode[name])
@@ -353,7 +361,9 @@ class NodeSet (TDL_common.Super):
         """Return a list of the MeqNode names in the specified group(s)"""
         if trace: print '** .nodenames(',group,select,'):'
         gg = self._extract_flat_grouplist(group, must_exist=True, origin='.nodes()')
-        if not isinstance(gg, (list,tuple)): return False
+        # if not isinstance(gg, (list,tuple)): return False
+        # if not self._listuple(gg): return False
+        if not gg: return False
         if trace: print '    -> groupnames(',len(gg),'):',gg
         names = []
         for key in gg:
@@ -381,7 +391,8 @@ class NodeSet (TDL_common.Super):
         """Return a list of groups according to the selection criteria"""
         if trace: print '** .select_groups(',name,substring,rider,'):'
         gg = self._extract_flat_grouplist(name, must_exist=False, origin='.select_groups()')
-        if not isinstance(gg, (list,tuple)): return False
+        # if not isinstance(gg, (list,tuple)): return False
+        if not gg: return False
         if trace: print '    extract: groups(',len(gg),'):',gg
 
         # Match substrings in group keys, if required:
@@ -400,8 +411,10 @@ class NodeSet (TDL_common.Super):
 
     def _match_string (self, string, slist=[], substring=True, trace=False):
         """Select the strings in slist that match the given (sub)string(s)"""
-        if not isinstance(string, (list,tuple)): string = [string]
-        if not isinstance(slist, (list,tuple)): slist = [slist]
+        # if not isinstance(string, (list,tuple)): string = [string]
+        # if not isinstance(slist, (list,tuple)): slist = [slist]
+        string = self._listuple(string)
+        slist = self._listuple(slist)
         cc = []
         for ss in string:
             for s in slist:                         # e.g. self.group_keys()
@@ -450,7 +463,8 @@ class NodeSet (TDL_common.Super):
         if key==None:                                               # key not specified
             return self.group_keys()                                # return all available groups
         
-        if not isinstance(key, (list,tuple)): key = [key]           # make list
+        # if not isinstance(key, (list,tuple)): key = [key]           # make list
+        key = self._listuple(key)
         gg = []
         for g in key:
             if isinstance(g, (list,tuple)):                         # recursive
@@ -536,7 +550,8 @@ class NodeSet (TDL_common.Super):
         # NB: Eventually we might need self._extract_flat_goglist()....
         gg = name
         if name==None: gg = self.gog_keys()
-        if not isinstance(gg, (list,tuple)): gg = [gg]
+        gg = self._listuple(gg)
+        # if not isinstance(gg, (list,tuple)): gg = [gg]
         if trace: print '    extract: gogs(',len(gg),'):',gg
 
         # Match substrings in gog keys, if required:
@@ -563,13 +578,17 @@ class NodeSet (TDL_common.Super):
     # Make a subtree of MeqNode bundles (also MeqNodes), e.g. for plotting:
     #--------------------------------------------------------------------------
     
-    def make_bundle (self, ns, group=None, name=None, bookpage=None, trace=False):
+    def make_bundle (self, ns, group=None, name=None,
+                     bookpage=None, folder=None, trace=False):
         """Return a subtree of (the sum(s) of) the nodes in the specified group(s)"""
 
+        funcname = 'make_bundle()'
         if trace: print '** make_bundle(',group,name,bookpage,'):'
         gg = self._extract_flat_grouplist(group, must_exist=True, origin='.make_bundle()')
         if not isinstance(gg, list): return False
         if len(gg)==0: return False
+
+        uniqual = _counter(funcname, increment=-1)
 
         # The bundles of multiple groups are 'bbundled' also:
         multiple = (len(gg)>1)                               # True if multiple
@@ -599,7 +618,7 @@ class NodeSet (TDL_common.Super):
                         self.history(error='** .make_bundle(): nodescope required!')
                         return False                         # error ...
                     else:
-                        node = ns[bname] << Meq.Add(children=nodes)
+                        node = ns[bname](uniqual) << Meq.Add(children=nodes)
                         self.__MeqNode[bname] = node
                         self.__bundle[bname] = 1             # create
                     cc.append(node)  
@@ -620,7 +639,7 @@ class NodeSet (TDL_common.Super):
         elif ns==None:
             self.history(error='** .make_bundle(): nodescope required!')
         else:                                                # A bundle of group bundles 
-            self.__MeqNode[bbname] = ns[bbname] << Meq.Composer(children=cc)
+            self.__MeqNode[bbname] = ns[bbname](uniqual) << Meq.Composer(children=cc)
             s1 = '** .make_bundle('+str(bbname)+'): '+str(group)+' '+str(bookpage)
             if trace: print s1
             self.history (s1)
@@ -737,12 +756,14 @@ class NodeSet (TDL_common.Super):
     #--------------------------------------------------------------------------
     
 
-    def apply_unop (self, ns, group=None, unop=None, bookpage=None):
+    def apply_unop (self, ns, group=None, unop=None,
+                    bookpage=None, folder=None, trace=False):
         """Apply unary operation(s) to the nodes in the specified group(s).
         The resulting nodes are put into new groups, and a new gog is defined"""
         if trace: print '\n** apply_unop(',group,unop,'):'
         gg = self._extract_flat_grouplist(group, must_exist=True, origin='.apply_unop()')
-        if not isinstance(gg, list): return False
+        if not gg: return False
+        # if not isinstance(gg, list): return False
         if len(gg)==0: return False
         gog = []
         for g in gg:                                         # for all groups
@@ -773,7 +794,8 @@ class NodeSet (TDL_common.Super):
     def _apply_unop(self, ns, node=None, unop=None):
         """Recursive helper function to apply (optional) unary operation(s) to node"""
         if unop==None: return node
-        if not isinstance(unop, (list, tuple)): unop = [unop]
+        unop = self._listuple(unop)
+        # if not isinstance(unop, (list, tuple)): unop = [unop]
         for unop1 in unop:
             node = ns << getattr(Meq,unop1)(node)
         return node
@@ -781,7 +803,8 @@ class NodeSet (TDL_common.Super):
     def _make_unop_name(self, name=None, unop=None):
         """Helper function to make a inop name"""
         if unop==None: return False
-        if not isinstance(unop, (list, tuple)): unop = [unop]
+        unop = self._listuple(unop)
+        # if not isinstance(unop, (list, tuple)): unop = [unop]
         name = str(name)
         for unop1 in unop:
             name = str(unop1)+'('+name+')'
@@ -792,7 +815,8 @@ class NodeSet (TDL_common.Super):
     # Apply binary operations to the specified groups of MeqNodes:
     #--------------------------------------------------------------------------
     
-    def apply_binop (self, ns, group=None, binop=None, bookpage=None):
+    def apply_binop (self, ns, group=None, binop=None,
+                     bookpage=None, folder=None, trace=False):
         """Apply binary operation(s) to the nodes in the specified group(s).
         The resulting nodes are put into new groups, and a new gog is defined"""
         if trace: print '\n** apply_binop(',group,binop,'):'
@@ -836,7 +860,8 @@ class NodeSet (TDL_common.Super):
     # Compare corresponding groups in another NodeSet:
     #--------------------------------------------------------------------------
     
-    def compare (self, ns, NodeSet=None, group=None, binop='Subtract', bookpage=None):
+    def compare (self, ns, NodeSet=None, group=None, binop='Subtract',
+                 bookpage=None, folder=None, trace=False):
         """Compare (binop) with corresponding nodes in another Nodeset. 
         The resulting nodes are put into new groups, and a new gog is defined."""
         if trace: print '\n** compare(',group,binop,'):'
@@ -885,18 +910,20 @@ class NodeSet (TDL_common.Super):
 
       # Remove empty groups:
       removed = []
-      for key in self.__group.keys():
-        if len(self.__group[key])==0:
-          self.__group.__delitem__(key)
-          removed.append(key)
+      if True:
+          for key in self.__group.keys():
+              if len(self.__group[key])==0:
+                  self.__group.__delitem__(key)
+                  removed.append(key)
 
       # Remove gogs that have group members that do not exist:
+      # NB: One might do the same for bookpages etc....
       for skey in self.__gog.keys():
-        ok = True
-        for key in self.__gog[skey]:
-          if not self.__group.has_key(key):
-            ok = False
-        if not ok: self.__gog.__delitem__(skey)
+          ok = True
+          for key in self.__gog[skey]:
+              if not self.__group.has_key(key):
+                  ok = False
+          if not ok: self.__gog.__delitem__(skey)
 
       # Miscellaneous:
       self.buffer(clear=True)                   # Clear the temporary buffer
@@ -922,6 +949,27 @@ class NodeSet (TDL_common.Super):
         self.__gog.update(NodeSet.gog())
         self.__gog_rider.update(NodeSet.gog_rider())
         self.history(append='updated from: '+NodeSet.oneliner())
+        return True
+
+    def updict(self, NodeSet=None):
+        """Updict the essentials from another NodeSet object.
+        self._updict(dict,from) is an intelligent form of dict.update(from),
+        where the fields of dict are not over-written by the corresponding
+        fields of from, but merged according to their type (dict, list, etc)"""
+        if NodeSet==None: return False
+        self._updict(self.__MeqNode, NodeSet.MeqNode())
+        self._updict(self.__group, NodeSet.group())
+        self._updict(self.__group_rider, NodeSet.group_rider())
+        self._updict(self.__plot_color, NodeSet.plot_color())
+        self._updict(self.__plot_style, NodeSet.plot_style())
+        self._updict(self.__plot_size, NodeSet.plot_size())
+        self._updict(self.__bookmark, NodeSet.bookmark())
+        self._updict(self.__bookpage, NodeSet.bookpage())
+        self._updict(self.__bookfolder, NodeSet.bookfolder())
+        self._updict(self.__bundle, NodeSet.bundle())
+        self._updict(self.__gog, NodeSet.gog())
+        self._updict(self.__gog_rider, NodeSet.gog_rider())
+        self.history(append='updicted from: '+NodeSet.oneliner())
         return True
 
     #------------------------------------------------------------------
@@ -1126,7 +1174,7 @@ if __name__ == '__main__':
     if 1:
         nst = test1(ns)
 
-    if 1:
+    if 0:
         gg = nst.group_keys()
         # gg.append('xxx')
         gg = 'GJones'                      
@@ -1175,21 +1223,22 @@ if __name__ == '__main__':
     if 0:
         nst.apply_binop(ns, [a1,p1], 'Polar', bookpage=True)
 
-    if 0:
+    if 1:
         nst2 = test2(ns)
         nst2.display('nst2', full=True)
 
     if 0:
         nst.compare(ns, nst2, 'GJones', bookpage=True)
 
-    if 0:
-        nst.update(nst2)
+    if 1:
+        # nst.update(nst2)
+        nst.updict(nst2)
 
     if 0:
         root = nst.bookpage_subtree(ns, trace=True)
         TDL_display.subtree(root, 'bookpage_subtree', full=True, recurse=3)
 
-    if 0:
+    if 1:
         nst.display(full=True)
         # nst.display()
 

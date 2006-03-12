@@ -459,6 +459,25 @@ class ParmSet (TDL_common.Super):
         return True
 
 
+    def updict(self, ParmSet=None):
+        """Updict the solvegroup/parmgroup info from another ParmSet object"""
+        if ParmSet==None: return False
+        if self.unsolvable():
+            self.history(append='not updicted from (unsolvable): '+ParmSet.oneliner())
+        elif not ParmSet.unsolvable():
+            self.NodeSet.updict(ParmSet.NodeSet)
+            self._updict(self.__condeq, ParmSet.condeq())
+            self._updict(self.__default_value, ParmSet.default_value())
+            self.history(append='updicted from (not unsolvable): '+ParmSet.oneliner())
+        else:
+            # A ParmSet that is 'unsolvable' has no solvegroups.
+            # However, its parmgroups might interfere with parmgroups
+            # of the same name (e.g. Gphase) from solvable ParmSets.
+            # Therefore, its parm info should NOT be copied here.
+            self.history(append='not updicted from (unsolvable): '+ParmSet.oneliner())
+        return True
+
+
 #----------------------------------------------------------------------
 #   methods used in saving/restoring the ParmSet
 #----------------------------------------------------------------------
