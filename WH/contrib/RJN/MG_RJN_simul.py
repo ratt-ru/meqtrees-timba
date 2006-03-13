@@ -59,7 +59,7 @@ def _define_forest (ns):
 
     # Get all Cat. 1 P-Units
     #plist = lsm.queryLSM(cat=1);
-    plist = lsm.queryLSM(count=20);
+    plist = lsm.queryLSM(count=2);
 
     print lsm.getPUnits()
     print len(plist)
@@ -76,11 +76,12 @@ def _define_forest (ns):
     ifrs = TDL_Cohset.stations2ifrs(stations);
     rr = MG_JEN_forest_state.MS_interface_nodes(ns,ra0=RA_0,dec0=Dec_0);
 
-    child_list = [];
+    
 
     
     print "****************",ifrs;
     for ifr in ifrs:
+        child_list = [];
         for punit in plist:
            print 'Gotcha!', punit.name
            if (punit.type == 0) :
