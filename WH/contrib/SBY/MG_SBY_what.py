@@ -17,7 +17,7 @@ from Timba.Trees import JEN_inarg
 
 from Timba.LSM.LSM import *
 
-Settings.forest_state.cache_policy = 100;
+Settings.forest_state.cache_policy = 1;
 
 Settings.orphans_are_roots = True;
 
@@ -86,6 +86,15 @@ JEN_inarg.modify(inarg,
 JEN_inarg.modify(inarg,
                  fdeg_Jreal=0,
                  _JEN_inarg_option=None)
+JEN_inarg.modify(inarg,
+                 subtile_size_Jreal=None,
+                 _JEN_inarg_option=None)
+JEN_inarg.modify(inarg,
+		   all4_always=[14],
+                 _JEN_inarg_option=None)
+JEN_inarg.modify(inarg,
+                 diagonal_only=True,
+                 _JEN_inarg_option=None)
 JEN_inarg.attach(MG, inarg)
 
 
@@ -100,6 +109,12 @@ JEN_inarg.modify(inarg,
                  _JEN_inarg_option=None)
 JEN_inarg.modify(inarg,
                  num_cells=False,
+                 _JEN_inarg_option=None)
+JEN_inarg.modify(inarg,
+                 rmin=1,
+                 _JEN_inarg_option=None)
+JEN_inarg.modify(inarg,
+                 rmax=1500,
                  _JEN_inarg_option=None)
 JEN_inarg.attach(MG, inarg)
 
@@ -127,10 +142,7 @@ def _define_forest (ns):
    cohset=TDL_Cohset.Cohset(label=MG['label'],polrep=MG['polrep'],stations=MG['stations'])
    cohset.display()
    splist=MG_JEN_Cohset.make_spigots(ns,cohset, MS_corr_index=[0,1,2,3], stations=MG['stations'])
-   print "Spigots are"
-   for spnode in splist:
-    print spnode.name
-
+  
    # create the Jones set
    #jset=MG_JEN_Cohset.Jones(Jsequence=['JJones'],_inage=MG)
    #print "Jones set are"
@@ -139,17 +151,17 @@ def _define_forest (ns):
 
    # load the LSM
    lsm=LSM()
-   lsm.load("cyga1.lsm",ns)
+   lsm.load("cyga.lsm",ns)
    # get the PUnits (two)
    plist=lsm.queryLSM(count=2)
    punit=plist[0]
    sp=punit.getSP()
-   jset=MG_JEN_Cohset.Jones(ns,Sixpack=sp, stations=MG['stations'], Jsequence=['JJones'], _inarg=MG)
+   jset=MG_JEN_Cohset.Jones(ns,Sixpack=sp, stations=MG['stations'], Jsequence=['JJones'], all4_always='WSRT/WHAT', _inarg=MG)
    predicted=MG_JEN_Cohset.predict(ns,Sixpack=sp,Joneset=jset, stations=MG['stations'], _inarg=MG)
 
    punit=plist[1]
    sp=punit.getSP()
-   jset1=MG_JEN_Cohset.Jones(ns,Sixpack=sp, stations=MG['stations'], Jsequence=['JJones'], _inarg=MG)
+   jset1=MG_JEN_Cohset.Jones(ns,Sixpack=sp, stations=MG['stations'], Jsequence=['JJones'], all4_always='WSRT/WHAT',_inarg=MG)
    predicted1=MG_JEN_Cohset.predict(ns,Sixpack=sp,Joneset=jset1, stations=MG['stations'], _inarg=MG)
    predicted.add(ns,predicted1)
 
@@ -160,10 +172,7 @@ def _define_forest (ns):
 
    # make the sinks
    sinklist=MG_JEN_Cohset.make_sinks(ns,cohset,_inarg=MG)
-   print "Sinks are"
-   for sknode in sinklist:
-    print sknode.name
-
+ 
    ns.Resolve()
 
 
