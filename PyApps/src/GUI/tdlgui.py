@@ -314,8 +314,8 @@ class TDLEditor (QFrame,PersistentCurrier):
 #       self._jobmenu.popup(pos);
 
   def clear_message (self):
-    print "******* clear_message";
-    traceback.print_stack();
+    # print "******* clear_message";
+    # traceback.print_stack();
     self._message_box.hide();
     self._message.setText('');
     self._message_icon.setText('');
