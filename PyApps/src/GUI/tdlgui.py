@@ -244,14 +244,16 @@ class TDLEditor (QFrame,PersistentCurrier):
       return;
     self._tb_run.setEnabled(enable);
     self._tb_jobs.setEnabled(enable);
-    self.clear_message();
+    if not enable:
+      self.clear_message();
     
   def disable_controls (self,disable=True):
     if self._closed:
       return;
     self._tb_run.setDisabled(disable);
     self._tb_jobs.setDisabled(disable);
-    self.clear_message();
+    if disable:
+      self.clear_message();
     
   def get_filename (self):
     return self._filename;
@@ -312,6 +314,8 @@ class TDLEditor (QFrame,PersistentCurrier):
 #       self._jobmenu.popup(pos);
 
   def clear_message (self):
+    print "******* clear_message";
+    traceback.print_stack();
     self._message_box.hide();
     self._message.setText('');
     self._message_icon.setText('');
