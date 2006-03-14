@@ -301,17 +301,23 @@ class Super:
             return rr                               #   return the entire dict
         elif not isinstance(rr, dict):
             return self.history(error=str(name)+': rr not a dict, but: '+str(type(rr)))
-        elif rr.has_key(key):                       # rr has the specified field
-            if clear:
-                if isinstance(rr[key], dict):
-                    rr[key] = dict()                # empty dict
-                elif isinstance(rr[key], (list, tuple)):
-                    rr[key] = []                    # empty list
-                else:                               
-                    rr[key] = None                  # ....?
-            return rr[key]                          # return it
-        return self.history(error=str(name)+': key not recognised: '+key)
-
+        else:
+            if not isinstance(key, (list, tuple)): key = [key]
+            cc = dict()                             # initialise the result
+            for k in key:
+                if not rr.has_key(k):               # field (k) not recognised....
+                    self.history(error=str(name)+': key not recognised: '+k)
+                    cc[k] = None                    # ....?
+                else:                               # rr has the specified field (k)
+                    if clear:
+                        if isinstance(rr[k], dict):
+                            rr[k] = dict()          # empty dict
+                        elif isinstance(rr[k], (list, tuple)):
+                            rr[k] = []              # empty list
+                    cc[k] = rr[k]                   # collected output
+            if len(key)==1: return cc[key[0]]       # only one key asked: return the value
+            return cc                               # multiple keys asked: return a dict
+        return False
 
     def _updict_rider (self, rider=dict(), trace=False):
         """Updict its own rider record with another"""

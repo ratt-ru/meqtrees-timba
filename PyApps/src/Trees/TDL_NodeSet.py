@@ -10,24 +10,29 @@
 #
 # Full description:
 #   Many types of MeqTree nodes (e.g. MeqParms) come in groups of similar ones,
-#   which are dealt with as a group. The NodeSet object provides a convenient
+#   which are often dealt with as a group. The NodeSet object provides a convenient
 #   way to define and manipulate such groups in various ways. 
 #
 #   A NodeSet object contains the following main components:
 #   - A dict of named nodes (MeqNodes)
-#   - A dict of named groups, i.e. lists of MeqNode names. 
+#   - A dict of named groups, i.e. lists of MeqNode names.
+#     (each MeqNode entry belongs to ONE group only!)
 #   - A dict of named gogs, i.e. lists of one or more group (or gog) names.
 #     NB: A gog list may contain any combination group/gog names, or even
 #     nested lists of group/gog names.     
 #
-#   The idea is to first define a number of named groups. When an (externally
-#   created) node is put into the NodeSet, it must be accompanied with the name
-#   of one or more groups to which it belongs. The groups of MeqNodes can then be
-#   manipulated as a whole. Examples of such group manipulations are:
+#   The idea is to first define a number of named groups, which can have an
+#   arbitrary number of named attributes (e.g. color, default value, etc).
+#   These group attributes are stored in group_riders, and can be retrieved.
+#   When an (externally created) node is put into the NodeSet, it must be
+#   accompanied with the name of the group to which it belongs. The groups
+#   of MeqNodes can then be manipulated as a whole. Examples of such group
+#   manipulations are:
 #
 #   - Simple retrieval of a list of nodes (or their names) in a group.
 #   - Selection of subgroups by matching substrings to their names.
 #   - Bundling the nodes of a group with a MeqAdd or a MeqComposer.
+#   - Making MeqBrowser bookmarks/bookfolders of bundles nodes. 
 #   - Applying unary operations (unop) to all nodes of a group.
 #   - Applying 'binary' operations, e.g. MeqSubtract, or MeqToPolar to
 #     the corresponding members of two groups.
@@ -35,9 +40,6 @@
 #     same name in another NodeSet.
 #   - etc, etc
 #
-#   NB: When new nodes are created, the result is an (aptly named) new group,
-#   which contains a list of the new MeqNodes.
-#  
 #   NB: Since the members of a group have a fixed order (it is a list), this
 #   defines the concept of 'corresponding' members of two or more groups. 
 #
@@ -47,6 +49,7 @@
 #
 #   MeqNodes, groups and gogs may all be selected by matching substrings to
 #   their names.
+#
 
 #=================================================================================
 # Preamble:
@@ -189,34 +192,6 @@ class NodeSet (TDL_common.Super):
         return TDL_common.Super.display_end (self, ss, doprint=doprint, pad=pad)
 
 
-    #--------------------------------------------------------------------------------
-    # Functions related to MeqNodes: 
-    #--------------------------------------------------------------------------------
-
-    def MeqNode(self, key=None, node=None, trace=False):
-        """Get/create a named MeqNode entry (the nodes are defined externally!).
-        If a node is supplied, key is assumed to be a list of group-names to
-        which the new node belongs. Otherwise, key is the name of a MeqNode."""
-        if node:                                  # Create a new MeqNode entry
-            nodename = node.name
-            if self.__MeqNode.has_key(nodename):
-                self.history(warning='MeqNode(node): already exists: '+nodename)
-            else:
-                self.__MeqNode[nodename] = node 
-                # Assume that key indicates group-name(s):
-                # if not isinstance(key, (list,tuple)): key = [key]
-                key = self._listuple(key)
-                for groupname in key:
-                    self.__group[groupname].append(nodename)  
-                    self.__buffer[groupname] = node   # see .buffer() service
-                s1 = 'MeqNode(): new entry: '+str(nodename)+' (group(s):'+str(key)+')'  
-                self.history(s1)
-                if trace: print '**',s1  
-            return nodename
-        # Otherwise, return the specified (key) group (None = all):
-        return self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
-
-
 
     #--------------------------------------------------------------------------------
     # Convenience (service): MeqBrowser bookmarks/pages/folders
@@ -281,59 +256,75 @@ class NodeSet (TDL_common.Super):
         return self.__quals
 
 
+
+    #--------------------------------------------------------------------------------
+    # Functions related to MeqNodes: 
+    #--------------------------------------------------------------------------------
+
+    def MeqNode(self, key=None, node=None, trace=False):
+        """Get/create a named MeqNode entry (the nodes are defined externally!).
+        If a node is supplied, key is assumed to the name of the group (one only!)
+        to which the new MeqNode belongs. Otherwise, key is the name of a MeqNode."""
+        if node:                                           # Create a new MeqNode entry
+            nodename = node.name
+            if self.__MeqNode.has_key(nodename):
+                self.history(warning='MeqNode(node): already exists: '+nodename)
+            elif not isinstance(key, str):
+                return self.history('MeqNode(key='+str(type(key))+') key sould be string')
+            else:
+                self.__MeqNode[nodename] = node 
+                self.__group[key].append(nodename)  
+                self.__buffer[key] = node                  # see .buffer() service
+                s1 = 'MeqNode(): new entry: '+str(nodename)+' (in group:'+str(key)+')'  
+                self.history(s1)
+                if trace: print '**',s1  
+            return nodename
+        # Otherwise, return the specified (key) group (None = all):
+        return self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
+
+
+
     #--------------------------------------------------------------------------------
     # Functions related to groups (of MeqNode-names):
     #--------------------------------------------------------------------------------
 
-    def group (self, key=None, **pp):
+    def group (self, key=None, rider=None, **kwargs):
         """Get/define the named (key) group (flat list of MeqNode names)"""
-        if len(pp)>0:                               # define a new group
+        if not rider==None:
+        # if not rider==None or len(kwargs)>0:
+            # The rider usually contains the inarg record (pp) of the calling function.
+            if not isinstance(rider, dict): rider = dict()  # just in case
+            rider = deepcopy(rider)                         # necessary!
             if key==None:      
                 return self.history(error='group(pp): no key specified')
 
-            pp.setdefault('color', 'red')           # plot color
-            pp.setdefault('style', 'circle')        # plot style
-            pp.setdefault('size', 10)               # size of plotted symbol
+            rider.setdefault('color', 'red')           # plot color
+            rider.setdefault('style', 'circle')        # plot style
+            rider.setdefault('size', 10)               # size of plotted symbol
+
+            # The rider fields may be overridden by the keyword arguments kwargs, if any: 
+            for pkey in kwargs.keys():
+                rider[pkey] = kwargs[pkey]
 
             s1 = 'group: '+str(key)
-            s1 += self.format_rider_summary(pp)
+            s1 += self.format_rider_summary(rider)
             if self.__group.has_key(key):
                 self.history(warning='** Overwritten '+s1)
             else:
                 self.history('** Defined new '+s1)
 
-            self.__group[key] = []                  # initialise the group with an empty list
-            self.__group_rider[key] = pp            # extra info associated with the group
-            self.__plot_color[key] = pp['color']
-            self.__plot_style[key] = pp['style']
-            self.__plot_size[key] = pp['size']
+            self.__group[key] = []                     # initialise the group with an empty list
+            self.__group_rider[key] = rider            # extra info associated with the group
+
+            # Necessary?
+            self.__plot_color[key] = rider['color']
+            self.__plot_style[key] = rider['style']
+            self.__plot_size[key] = rider['size']
 
             return key                              # return the actual group/gog key name
         # Otherwise, return the specified (key) group (None = all):
         return self._fieldict (self.__group, key=key, name='.group()')
 
-
-    def group_rider(self, key=None):
-        """Get the specified (key) group_rider (None = all)"""
-        return self._fieldict (self.__group_rider, key=key, name='.group_rider()')
-
-    def plot_color(self, key=None):
-        """Get the specified (key) group plot_color (None = all)"""
-        return self._fieldict (self.__plot_color, key=key, name='.plot_color()')
-
-    def plot_style(self, key=None):
-        """Get the specified (key) group plot_style (None = all)"""
-        return self._fieldict (self.__plot_style, key=key, name='.plot_style()')
-
-    def plot_size(self, key=None):
-        """Get the specified (key) group plot_size (None = all)"""
-        return self._fieldict (self.__plot_size, key=key, name='.plot_size()')
-
-    def radio_conventions(self):
-        self.__plot_color = TDL_radio_conventions.plot_color()
-        self.__plot_style = TDL_radio_conventions.plot_style()
-        self.__plot_size = TDL_radio_conventions.plot_size()
-        return True
 
     def group_keys (self, select='*'):
         """Return the names (keys) of the available groups"""
@@ -382,6 +373,47 @@ class NodeSet (TDL_common.Super):
                         names.append(name)   # take them all
         if trace: print '    -> nodenames(',len(names),'):',names
         return names
+
+
+    #-----------------------------------------------------------------------------------
+    # Some group attributes:
+    #-----------------------------------------------------------------------------------
+
+    def group_rider(self, key=None):
+        """Get the specified (key) group_rider (None = all)"""
+        return self._fieldict (self.__group_rider, key=key, name='.group_rider()')
+
+    def group_rider_item(self, item=None, key=None, trace=False):
+        """Get the specified (key) item (e.g. color) from the group_rider (None = all)"""
+        s1 = '.group_rider_item('+str(item)+', '+str(key)+')'
+        if trace: print '\n**',s1,
+        cc = dict()
+        rr = self.group_rider()
+        for rkey in rr.keys():
+            if rr[rkey].has_key(item):
+                cc[rkey] = rr[rkey][item]
+        if trace: print '-> cc =',cc,
+        result = self._fieldict (cc, key=key, name=s1)
+        if trace: print '->',result
+        return result
+
+    def plot_color(self, key=None):
+        """Get the specified (key) group plot_color (None = all)"""
+        return self._fieldict (self.__plot_color, key=key, name='.plot_color()')
+
+    def plot_style(self, key=None):
+        """Get the specified (key) group plot_style (None = all)"""
+        return self._fieldict (self.__plot_style, key=key, name='.plot_style()')
+
+    def plot_size(self, key=None):
+        """Get the specified (key) group plot_size (None = all)"""
+        return self._fieldict (self.__plot_size, key=key, name='.plot_size()')
+
+    def radio_conventions(self):
+        self.__plot_color = TDL_radio_conventions.plot_color()
+        self.__plot_style = TDL_radio_conventions.plot_style()
+        self.__plot_size = TDL_radio_conventions.plot_size()
+        return True
 
     #-----------------------------------------------------------------------------------
     # Group selection:
@@ -935,6 +967,7 @@ class NodeSet (TDL_common.Super):
     def update(self, NodeSet=None):
         """Update the essentials from another NodeSet object"""
         if NodeSet==None: return False
+        self._updict_rider(NodeSet._rider())
         # NB: update OVERWRITES existing fields with new versions!
         self.__MeqNode.update(NodeSet.MeqNode())
         self.__group.update(NodeSet.group())
@@ -957,6 +990,7 @@ class NodeSet (TDL_common.Super):
         where the fields of dict are not over-written by the corresponding
         fields of from, but merged according to their type (dict, list, etc)"""
         if NodeSet==None: return False
+        self._updict_rider(NodeSet._rider())
         self._updict(self.__MeqNode, NodeSet.MeqNode())
         self._updict(self.__group, NodeSet.group())
         self._updict(self.__group_rider, NodeSet.group_rider())
@@ -1069,10 +1103,11 @@ def test1(ns, nstat=2, mult=1.0):
 
     # Register the nodegroups:
     pp = dict(a=10, b=11)
-    a1 = nst.group('Ggain_X', aa=1, bb=1, cc=1, **pp)
-    a2 = nst.group('Ggain_Y', aa=1, bb=2, cc=1)
-    p1 = nst.group('Gphase_X', aa=1, bb=3, cc=2)
-    p2 = nst.group('Gphase_Y', aa=1, bb=4, cc=2)
+    # pp = dict()
+    a1 = nst.group('Ggain_X', rider=pp, a=-56, aa=1, bb=1, cc=1)
+    a2 = nst.group('Ggain_Y', rider=pp, aa=1, bb=2, cc=1)
+    p1 = nst.group('Gphase_X', rider=pp, aa=1, bb=3, cc=2)
+    p2 = nst.group('Gphase_Y', rider=pp, aa=1, bb=4, cc=2)
     
     # Define extra gog(s) from combinations of nodegrouns:
     nst.gog('GJones', [a1, p1, a2, p2])
@@ -1108,12 +1143,12 @@ def test2(ns, nstat=2, mult=1.1):
     nst = NodeSet(label='test2')
 
     # Register the nodegroups:
-    pp = dict(a=10, b=11)
-    a1 = nst.group('Ggain_X', aa=1, bb=1, cc=1, **pp)
-    a2 = nst.group('Ggain_Y', aa=1, bb=2, cc=1)
-    p1 = nst.group('Gphase_X', aa=1, bb=3, cc=2)
-    p2 = nst.group('Gphase_Y', aa=1, bb=4, cc=2)
-    t2 = nst.group('test2', aa=1, bb=4, cc=2)
+    pp = dict(a=-10, b=-11)
+    a1 = nst.group('Ggain_X', rider=pp, aa=1, bb=1, cc=1)
+    a2 = nst.group('Ggain_Y', rider=pp, aa=1, bb=2, cc=1)
+    p1 = nst.group('Gphase_X', rider=pp, aa=1, bb=3, cc=2)
+    p2 = nst.group('Gphase_Y', rider=pp, aa=1, bb=4, cc=2)
+    t2 = nst.group('test2', rider=pp, aa=1, bb=4, cc=2)
     
     # Define extra gog(s) from combinations of nodegrouns:
     nst.gog('GJones', [a1, p1, a2, p2])
@@ -1223,14 +1258,14 @@ if __name__ == '__main__':
     if 0:
         nst.apply_binop(ns, [a1,p1], 'Polar', bookpage=True)
 
-    if 1:
+    if 0:
         nst2 = test2(ns)
         nst2.display('nst2', full=True)
 
     if 0:
         nst.compare(ns, nst2, 'GJones', bookpage=True)
 
-    if 1:
+    if 0:
         # nst.update(nst2)
         nst.updict(nst2)
 
@@ -1242,6 +1277,11 @@ if __name__ == '__main__':
         nst.display(full=True)
         # nst.display()
 
+    if 1:
+        kk = nst.group_keys()
+        r = nst.group_rider_item(item='color', key=None, trace=True)
+        r = nst.group_rider_item(item='color', key=kk[0], trace=True)
+        r = nst.group_rider_item(item='color', key=[kk[0],kk[1]], trace=True)
 
     if 0:
         # Display the final result:

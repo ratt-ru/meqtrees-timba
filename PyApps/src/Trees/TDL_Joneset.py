@@ -203,30 +203,31 @@ class Joneset (TDL_common.Super):
     # Functions related to ParmSet/LeafSet:
     #-----------------------------------------------------------------------
 
-    def parmgroup (self, key=None, **pp):
+    def parmgroup (self, key=None, ipol=None, rider=dict(), **kwargs):
         """Register a parameter (MeqParm) group (frontend for ParmSet.parmgroup())"""
 
-        pp.setdefault('ipol', None)
-        pp.setdefault('condeq_corrs', None)
-        
-        # append (X,Y,R,L) if required
-        if isinstance(pp['ipol'], int):
-            key = key+'_'+self.pols(pp['ipol'])
+        # The rider usually contains the inarg record (kwargs) of the calling function.
+        # The rider fields may be overridden by the keyword arguments kwargs, if any: 
+        for pkey in kwargs.keys():
+            rider[pkey] = kwargs[pkey]
 
+        # Append polarisation (X,Y,R,L) to the group-name (key), if required:
+        if isinstance(ipol, int):
+            key = key+'_'+self.pols(ipol)
+        rider['ipol'] = ipol
+            
         # Register the parmgroup:
-        rider = dict(condeq_corrs=pp['condeq_corrs'])
-        self.ParmSet.parmgroup(key=key, **rider)
-        s1 = 'Register parmgroup: '+str(key)+': '
-        s1 += str(pp['ipol'])+' '+str(pp['condeq_corrs'])
-        self._history(s1)
+        self.ParmSet.parmgroup(key, rider=rider)
+        self._history('Register parmgroup/leafgroup: '+str(key)+' (rider:'+str(len(rider))+')')
 
         # Register a leafgroup with the same name: 
-        pp.__delitem__('condeq_corrs')
-        pp.__delitem__('ipol')
-        pp['style'] = 'triangle'
-        pp['size'] = 5
-        self.LeafSet.leafgroup(key=key, **pp)
-        return key                                                  # return the actual key name
+        rider['style'] = 'triangle'
+        rider['size'] = 5
+        self.LeafSet.leafgroup(key, rider=rider)
+
+        # Return the actual parmgroup/leafgroup name (key):
+        return key
+
 
     def cleanup(self):
         """Clean up the object (or rather its ParmSet/LeafSet NodeSets)"""
@@ -271,6 +272,7 @@ class Joneset (TDL_common.Super):
         if Joneset==None: return False
         self.__jchar += Joneset.jchar()
         self.updict_from_LeafSet(Joneset.LeafSet)
+        self._updict_rider(Joneset._rider())
         if self.ParmSet.unsolvable():
             self._history(append='not updicted from (unsolvable): '+Joneset.oneliner())
         elif not Joneset.ParmSet.unsolvable():

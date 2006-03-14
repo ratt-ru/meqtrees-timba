@@ -232,8 +232,8 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     sinks = Cohset.cohs()
 
     # Cohset.display(funcname, full=True)
-    # Cohset.ParmSet.display(funcname)
-    Cohset.LeafSet.display(funcname, full=True)
+    Cohset.ParmSet.display(funcname, full=True)
+    # Cohset.LeafSet.display(funcname, full=True)
 
     # Append the final Cohset to the forest state object:
     # MG_JEN_forest_state.object(Cohset, funcname)

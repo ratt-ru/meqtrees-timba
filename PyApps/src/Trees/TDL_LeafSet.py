@@ -1,33 +1,28 @@
-# TDL_Leafset.py
+# TDL_LeafSet.py
 #
 # Author: J.E.Noordam
 #
 # Short description:
-#    A Leafset object encapsulates group(s) of leaf nodes
+#    A LeafSet object encapsulates group(s) of 'leaf' nodes
 #
 # History:
 #    - 24 feb 2006: creation, starting from TDL_Parmset.py
 #    - 09 mar 2006: recreated from TDL_ParmSet.py
 #
 # Full description:
-#   Leaf nodes have no children. They have their own ways to satisfy requests.
-#   Examples are MeqParm, MeqConstant, MeqFreq, MeqSpigot, MeqDetector, etc
+#   A LeafSet contains 'leaf' nodes in named groups.
 #   Leaf nodes may be used for providing simulated values for MeqParms.
-#   The Leafset object has methods to make that simpler to implement.
-#   For this reason, a Leafset is closely modelled on the Parmset.
-#   But a Leafset may be used for other things as well.
+#   The LeafSet object has methods to make that simpler to implement.
+#   For this reason, a LeafSet is closely modelled on the Parmset.
+#   But a LeafSet may be used for other things as well.
 #
-#   A Leafset object contains the following main components:
-#   - A list of named leafgroups, i.e. lists of MeqParm node names. 
+#   A LeafSet object contains the following main components:
+#   - A NodeSet object to adminster its groups/gogs of MeqLeaf nodes.
 #
-#   A Leafset object contains the following services:
+#   A LeafSet object contains the following services:
 #   - Creation of a named leafgroup, and addition of members.
 #   - Definition of a new MeqLeaf node (with all its various options)
 #     (this function may be used by itself too)
-#   - A buffer to temporarily hold new MeqLeafs by their 'root' name
-#     (this is useful where simular MeqLeafs are defined with different
-#     qualifiers, e.g. for the different stations in a Joneset)
-#   - etc
 
 
 
@@ -116,32 +111,17 @@ class LeafSet (TDL_common.Super):
     #-------------------------------------------------------------------------------------
 
 
-    def MeqLeaf(self, ns, key=None, qual=None,
-                leafgroup=None, default=None, **pp):
+    def MeqLeaf(self, ns, key=None, qual=None, leafgroup=None, **pp):
         """Convenience function to create a MeqLeaf node"""
 
-        #---------------------------------------------------------
-        # First the part that depends on the leafgroup:
-        #---------------------------------------------------------
-
-        # Start with the default value for this leafgroup:
+        # Get the associated leafparms from the NodeSet rider record:
         if leafgroup==None:
             leafgroup = key
+        rider = self.NodeSet.group_rider(leafgroup)
 
-        # uniqual = _counter (leafgroup, increment=True)
-
-        # Get the associated leafparms fron the NodeSet rider record:
-        lgp = self.NodeSet.group_rider(leafgroup)
-
-        # Start with the MeqParm default value (funklet?) for this leafgroup:
-        if default==None:
-            default = lgp['c00_default']
-        aa = []
-        aa.append(ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default))
-
-        #---------------------------------------------------------
-        # Then the node-specific part:
-        #---------------------------------------------------------
+        # The rider fields may be overridden by the keyword arguments kwargs, if any: 
+        for pkey in pp.keys():
+            rider[pkey] = pp[pkey]
 
         # The node-name qualifiers are the superset of the default ones
         # and the ones specified in this function call:
@@ -150,11 +130,14 @@ class LeafSet (TDL_common.Super):
             for qkey in qual.keys():
                 quals[qkey] = str(qual[qkey])
 
+        # uniqual = _counter (leafgroup, increment=True)
+
+        #--------------------------------------------------------------
         # Make the (additive) time-variation function:
         # For the moment: A cos(MeqTime) with a certain period
         mm = []
-        mean_sec = lgp['timescale_min']*60*pp['mean_period']
-        stddev_sec = lgp['timescale_min']*60*pp['stddev_period']
+        mean_sec = rider['timescale_min']*60*rider['mean_period']
+        stddev_sec = rider['timescale_min']*60*rider['stddev_period']
         T_sec = ceil(gauss(mean_sec, stddev_sec))
         if T_sec<10: T_sec = 10
         mm.append(ns['2pi/T'](leafgroup)(**quals)(T=str(T_sec)+'sec') << Meq.Constant(2*pi/T_sec))
@@ -163,28 +146,48 @@ class LeafSet (TDL_common.Super):
 
         mm = []
         mm.append(ns << Meq.Cos(node))
-        mean = lgp['c00_scale']*pp['mean_c00']
-        stddev = lgp['c00_scale']*pp['stddev_c00']
+        mean = rider['c00_scale']*rider['mean_c00']
+        stddev = rider['c00_scale']*rider['stddev_c00']
         ampl = gauss(mean, stddev)
         mm.append(ns['tampl'](leafgroup)(**quals)(ampl=str(ampl)) << Meq.Constant(ampl))
-        aa.append(ns['tvar'](leafgroup)(**quals) << Meq.Multiply(children=mm))
+        tvar = ns['tvar'](leafgroup)(**quals) << Meq.Multiply(children=mm)
 
-        # Combine the various components into a leaf node with the desired name:
-        node = ns[key](**quals) << Meq.Add(children=aa)
+        #----------------------------------------------------------------------
+
+        # The simulated variations tvar (t,f) are added to the MeqParm default value.
+        default = rider['c00_default']
+        c00 = ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default)
+        node = ns[key](**quals) << Meq.Add(c00, tvar)
 
         # Store the new node in the NodeSet:
         self.NodeSet.MeqNode(leafgroup, node)
         return node
 
 
-    #------------------------------------------------------------------------
+    #--------------------------------------------------------------------------------
+    # Functions related to leafgroups:
+    #--------------------------------------------------------------------------------
 
-    def inarg (self, pp, **kwargs):
-        """Definition of Leafset input arguments (see e.g. MG_JEN_Joneset.py)"""
-        kwargs.setdefault('mean_c00', 0.1)
-        kwargs.setdefault('stddev_c00', 0.01)
-        kwargs.setdefault('mean_period', 1.0)
-        kwargs.setdefault('stddev_period', 0.1)
+    def group_rider_defaults (self, rider):
+        """Default values for a leafgroup rider (see self.inarg() etc)"""
+        rider.setdefault('color', 'yellow')
+        rider.setdefault('style', 'triangle')
+        rider.setdefault('size', 5)
+        rider.setdefault('c00_default', 1.0)
+        rider.setdefault('c00_scale', 1.0)
+        rider.setdefault('timescale_min', 20)
+        rider.setdefault('fdeg', 0)
+        rider.setdefault('mean_c00', 0.1)
+        rider.setdefault('stddev_c00', 0.01)
+        rider.setdefault('mean_period', 1.0)
+        rider.setdefault('stddev_period', 0.1)
+        rider.setdefault('unop', 'Cos')
+        return True
+
+
+    def inarg_group_rider (self, pp, **kwargs):
+        """Definition of LeafSet input arguments (see e.g. MG_JEN_Joneset.py)"""
+        self.group_rider_defaults(kwargs)
         JEN_inarg.define(pp, 'mean_c00', kwargs,
                          choice=[0,0.1,0.2,0.5,-0.1],  
                          help='mean of EXTRA c00 (fraction of c00_scale)')
@@ -193,34 +196,52 @@ class LeafSet (TDL_common.Super):
                          help='scatter in EXTRA c00 (fraction of c00_scale')
         JEN_inarg.define(pp, 'mean_period', kwargs,
                          choice=[0.3,0.5,1,2,3],  
-                         help='mean period T (fraction of timescale_min)')
+                         help='mean time-period T (fraction of timescale_min)')
         JEN_inarg.define(pp, 'stddev_period', kwargs,
                          choice=[0,0.01,0.1,0.2,0.5],  
                          help='scatter in period T (fraction of timescale_min)')
         JEN_inarg.define(pp, 'unop', 'Cos', hide=False,
                          choice=['Cos','Sin',['Cos','Sin'],None],  
                          help='time-variability function')
+        # Hidden:
+        JEN_inarg.define(pp, 'timescale_min', kwargs, hide=True,
+                         help='group timescale in minutes')
+        JEN_inarg.define(pp, 'fdeg', kwargs, hide=True,
+                         help='degree of freq polynomial')
+        JEN_inarg.define(pp, 'color', kwargs, hide=True,
+                         help='plot_color')
+        JEN_inarg.define(pp, 'style', kwargs, hide=True,
+                         help='plot_style')
+        JEN_inarg.define(pp, 'size', kwargs, hide=True,
+                         help='size of plotted symbol')
+        JEN_inarg.define(pp, 'c00_default', kwargs, hide=True,
+                         help='default value of c00')
+        JEN_inarg.define(pp, 'c00_scale', kwargs, hide=True,
+                         help='scale of c00')
+
+       # Attach any other kwarg fields to pp also:
+        for key in kwargs.keys():
+            if not pp.has_key(key): pp[key] = kwargs[key]
         return True
 
 
-    #--------------------------------------------------------------------------------
-    # Functions related to leafgroups:
-    #--------------------------------------------------------------------------------
-
-    def leafgroup (self, key=None, **pp):
+    def leafgroup (self, key=None, rider=None, **kwargs):
         """Get/define the named (key) leafgroup"""
-        # First the LeafSet-specific part:
-        if len(pp)>0:
-            pp.setdefault('color', 'red')       # plot color
-            pp.setdefault('style', 'triangle')  # plot style
-            pp.setdefault('size', 5)            # size of plotted symbol
-            pp.setdefault('c00_default', 1.0)   # default c00 of the members of this leafgroup 
-            pp.setdefault('c00_scale', 1.0)     # scale of typical parameter value
-            pp.setdefault('timescale_min', 20)  # typical timescale (sec) of variation 
-            pp.setdefault('fdeg', 0)            # degree of freq-variation (polynomial)
-            qq = TDL_common.unclutter_inarg(pp)
-            self.history('** Created leafgroup: '+str(key)+':   ')
-            return self.NodeSet.group(key, **qq)
+        if not rider==None:
+        # if not rider==None or len(kwargs)>0:
+            # The rider usually contains the inarg record (pp) of the calling function.
+            if not isinstance(rider, dict): rider = dict()  # just in case
+            rider = deepcopy(rider)                         # necessary!
+            rider = TDL_common.unclutter_inarg(rider)
+
+            self.group_rider_defaults(rider)
+
+            # The rider fields may be overridden by the keyword arguments kwargs, if any: 
+            for pkey in kwargs.keys():
+                rider[pkey] = kwargs[pkey]
+            self._history('Created leafgroup: '+str(key)+' (rider:'+str(len(rider))+')')
+            result = self.NodeSet.group(key, rider=rider)      
+            return result
         # Then the generic NodeSet part:
         return self.NodeSet.group(key)
 
@@ -247,6 +268,7 @@ class LeafSet (TDL_common.Super):
     def update(self, LeafSet=None):
         """Update the leafgroup info etc from another LeafSet object"""
         if LeafSet==None: return False
+        self._updict_rider(LeafSet._rider())
         self.NodeSet.update(LeafSet.NodeSet)
         self.history(append='updated from: '+LeafSet.oneliner())
         return True
@@ -254,6 +276,7 @@ class LeafSet (TDL_common.Super):
     def updict(self, LeafSet=None):
         """Updict the leafgroup info etc from another LeafSet object"""
         if LeafSet==None: return False
+        self._updict_rider(LeafSet._rider())
         self.NodeSet.updict(LeafSet.NodeSet)
         self.history(append='updicted from: '+LeafSet.oneliner())
         return True
@@ -328,8 +351,17 @@ if __name__ == '__main__':
 
 
     if 1:
+        pp = dict(aa=6, bb=7)
+        ls.group_rider_defaults(pp)
+        g1 = ls.leafgroup('group_1', rider=pp, aa=89)
+        g2 = ls.leafgroup('group_2', rider=pp)
+        ls.MeqLeaf(ns, g1, qual=dict(s=7), **pp)
+        nodes = ls.NodeSet.nodes(g1)
+        print nodes
+        TDL_display.subtree(nodes[0], 'g1', full=True, recurse=3)
+
+    if 1:
         # Display the final result:
-        # k = 0 ; TDL_display.subtree(ls[k], 'ls['+str(k)+']', full=True, recurse=3)
         ls.display('final result', full=True)
         # ls.display('final result')
 
@@ -346,7 +378,7 @@ if __name__ == '__main__':
 # - register with:
 #   - color, style,etc
 #   - stddev,mean
-# - do via Joneset object (contains Parmset and Leafset)
+# - do via Joneset object (contains Parmset and LeafSet)
 #   - minimum change in .GJones()
 
 # leaf functions:

@@ -13,6 +13,7 @@
 # - 20 jan 2006: introduced Parmset
 # - 09 mar 2006: introduced new ParmSet as well
 # - 11 mar 2006: removed TDL_Parmset.py
+# - 15 mar 2006: adopted new .parmgroup() etc
 
 # Copyright: The MeqTree Foundation
 
@@ -402,6 +403,10 @@ def newstar_source (ns=0, predefine=False, **inarg):
    JEN_inarg.define(pp, 'pa', 0.0, choice=[0.0,1.0,-0.5], hide=True,  
                     help='position angle (rad)')
 
+   # ParmSet default parameters:
+   ps = TDL_ParmSet.ParmSet()
+   ps.inarg_group_rider(pp)
+
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
@@ -434,11 +439,16 @@ def newstar_source (ns=0, predefine=False, **inarg):
    ParmSet = Sixpack.ParmSet                # convenience
    
    # Register the parmgroups:
-   sI = ParmSet.parmgroup('stokesI', color='red', style='diamond', size=10, condeq_corrs='corrI')
-   sQ = ParmSet.parmgroup('stokesQ', color='blue', style='diamond', size=10, condeq_corrs='corrQ')
-   sU = ParmSet.parmgroup('stokesU', color='magenta', style='diamond', size=10, condeq_corrs='corrU')
-   sV = ParmSet.parmgroup('stokesV', color='cyan', style='diamond', size=10, condeq_corrs='corrV')
-   pg_radec = ParmSet.parmgroup('radec', color='black', style='circle', size=10, condeq_corrs='corrI')   # <----- ?
+   sI = ParmSet.parmgroup('stokesI', rider=pp,
+                          color='red', style='diamond', size=10, condeq_corrs='corrI')
+   sQ = ParmSet.parmgroup('stokesQ', rider=pp,
+                          color='blue', style='diamond', size=10, condeq_corrs='corrQ')
+   sU = ParmSet.parmgroup('stokesU', rider=pp,
+                          color='magenta', style='diamond', size=10, condeq_corrs='corrU')
+   sV = ParmSet.parmgroup('stokesV', rider=pp,
+                          color='cyan', style='diamond', size=10, condeq_corrs='corrV')
+   pg_radec = ParmSet.parmgroup('radec', rider=pp,
+                                color='black', style='circle', size=10, condeq_corrs='corrI')   # <----- ?
 
    # Define a named bookpage:
    ParmSet.NodeSet.bookpage('punit_'+punit, [sI,sQ,sU,sV])
@@ -785,7 +795,7 @@ if __name__ == '__main__':
       # Sixpack = newstar_source (ns)
       # Sixpack = newstar_source (ns, punit='QUV', RM=1, SI=-0.7)
       Sixpack.display()
-      Sixpack.ParmSet.display()
+      Sixpack.ParmSet.display(punit, full=True)
 
    if 0:
       inarg = predefined_inarg(punit='QU')

@@ -721,7 +721,9 @@ def check_skip(rr, key, trace=False):
    cc = rr[key]
    if not isinstance(cc, dict): return skip
    for ckey in cc.keys():
-      if ckey[0]=='@':
+      if len(ckey)==0:
+         pass
+      elif ckey[0]=='@':
          ukey = ckey.split('@')[1]
          if trace: print '** ckey =',ckey,cc[ckey],
          if rr.has_key(ukey):

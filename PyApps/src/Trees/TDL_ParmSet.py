@@ -52,6 +52,7 @@ from numarray import *
 
 from Timba.Trees import TDL_common
 from Timba.Trees import TDL_NodeSet
+from Timba.Trees import JEN_inarg
 
 
 
@@ -86,7 +87,6 @@ class ParmSet (TDL_common.Super):
 
     def clear(self):
         """Clear the ParmSet object"""
-        self.__default_value = dict()
         self.__condeq = dict()
         self.__node_groups = ['Parm']
         self.NodeSet.clear()
@@ -178,11 +178,28 @@ class ParmSet (TDL_common.Super):
 
 
     def MeqParm(self, ns, key=None, qual=None, parmgroup=None,
-                init_funklet=None,  
-                default=None, shape=None, tfdeg=None, 
-                node_groups='Parm',
-                use_previous=True, subtile_size=None):
+                init_funklet=None,  default=None, **pp):
         """Convenience function to create a MeqParm node"""
+
+        # Get the associated parmparms from the NodeSet rider record:
+        if parmgroup==None:
+            parmgroup = key
+        rider = self.NodeSet.group_rider(parmgroup)
+
+        # The rider fields may be overridden by the keyword arguments kwargs, if any: 
+        for pkey in pp.keys():
+            rider[pkey] = pp[pkey]
+
+        # The node-name qualifiers are the superset of the default ones
+        # and the ones specified in this function call:
+        quals = deepcopy(self.NodeSet.quals())  # just in case.....
+        if isinstance(qual, dict):
+            for qkey in qual.keys():
+                quals[qkey] = str(qual[qkey])
+
+        # uniqual = _counter (parmgroup, increment=True)
+
+        #------------------------------------------------------------------------
         
         # NB: If use_previous==True, the MeqParm will use its current funklet (if any)
         #     as starting point for the next snippet solution, unless a suitable funklet
@@ -208,8 +225,8 @@ class ParmSet (TDL_common.Super):
         # For the moment, only time-tiling is enabled...
 
         tiling = record()
-        if subtile_size:
-            tiling.time = subtile_size
+        if rider['subtile_size']:
+            tiling.time = rider['subtile_size']
 
         # The node-name qualifiers are the superset of the default ones
         # and the ones specified in this function call:
@@ -219,44 +236,50 @@ class ParmSet (TDL_common.Super):
                 quals[qkey] = str(qual[qkey])
 
         # The default value:
-        if parmgroup==None:
-            parmgroup = key
         if default==None:
-            default = self.__default_value[parmgroup]
+            default = rider['c00_default']
 
         # Use the shape (of coeff array, 1-relative) if specified.
         # Otherwise, use the [tdeg,fdeg] polc degree (0-relative)
+        shape = rider['funklet_shape']
         if shape==None:
             shape = [0,0]
-            if not tfdeg==None:
-                shape = deepcopy(tfdeg)         # just in case.....
+            if not rider['tfdeg']==None:
+                shape = deepcopy(rider['tfdeg'])         # just in case.....
             shape[0] += 1              
             shape[1] += 1
 
-        # Make the new MeqParm node (see also below):
+        # Make the new MeqParm node:
         if init_funklet:
-            print key,'init_funklet =',init_funklet
             node = ns[key](**quals) << Meq.Parm(init_funklet=init_funklet,
-                                                # default_value=....
                                                 # shape=shape,             # DON'T
                                                 # perturbation=1e-7,       # scale*1e-7
                                                 tiling=tiling,
-                                                use_previous=use_previous,
+                                                use_previous=rider['use_previous'],
+                                                reset_funklet=rider['reset_funklet'],
+                                                auto_save=rider['auto_save'],
                                                 node_groups=self.node_groups(),
                                                 table_name=self.parmtable())
 
         else:
             node = ns[key](**quals) << Meq.Parm(funklet=default,
-                                                # default_value=default,
                                                 shape=shape,
                                                 tiling=tiling,
-                                                use_previous=use_previous,
+                                                auto_save=rider['auto_save'],
+                                                reset_funklet=rider['reset_funklet'],
+                                                use_previous=rider['use_previous'],
                                                 node_groups=self.node_groups(),
                                                 table_name=self.parmtable())
             
         # Store the new node in the NodeSet:
         self.NodeSet.MeqNode(parmgroup, node)
         return node
+
+
+
+
+
+
 
 
 # From ../PyApps/src/TDL/MeqClasses.py (mar 2005):
@@ -283,16 +306,75 @@ class ParmSet (TDL_common.Super):
 # Functions related to parmgroups:
 #--------------------------------------------------------------------------------
 
-    def parmgroup (self, key=None, **pp):
+    def group_rider_defaults (self, rider):
+        """Default values for a parmgroup rider"""
+        rider.setdefault('condeq_corrs', '*')
+        rider.setdefault('c00_default', 1.0)
+        rider.setdefault('funklet_shape', None)
+        rider.setdefault('tfdeg', None)
+        rider.setdefault('subtile_size', None)
+        rider.setdefault('use_previous', True)
+        rider.setdefault('auto_save', True)
+        rider.setdefault('reset_funklet', True)
+        rider.setdefault('color', 'red')
+        rider.setdefault('style', 'circle')
+        rider.setdefault('size', 10)
+        return True
+
+
+    def inarg_group_rider (self, pp, **kwargs):
+        """Definition of ParmSet input arguments (see e.g. MG_JEN_Joneset.py)"""
+        self.group_rider_defaults(kwargs)
+        JEN_inarg.define(pp, 'use_previous', kwargs,
+                         choice=[True,False], editable=False,
+                         help='if True, start with the previous solution')
+        JEN_inarg.define(pp, 'auto_save', kwargs,
+                         choice=[True,False], editable=False,
+                         help='if True, save the result of every iteration (slow!)')
+        JEN_inarg.define(pp, 'reset_funklet', kwargs,
+                         choice=[True,False], editable=False,
+                         help='if True, do NOT use any MeqParm table values when solvable')
+
+        # Hidden:
+        JEN_inarg.define(pp, 'color', kwargs, hide=True,
+                         help='plot_color')
+        JEN_inarg.define(pp, 'style', kwargs, hide=True,
+                         help='plot_style')
+        JEN_inarg.define(pp, 'size', kwargs, hide=True,
+                         help='size of plotted symbol')
+        JEN_inarg.define(pp, 'c00_default', kwargs, hide=True,
+                         help='default value of c[0,0] coefficient')
+        JEN_inarg.define(pp, 'tfdeg', kwargs, hide=True,
+                         help='(time,freq) polynomial degree')
+        JEN_inarg.define(pp, 'funklet_shape', kwargs, hide=True,
+                         help='shape [time,freq] of default funklet')
+        JEN_inarg.define(pp, 'subtile_size', kwargs, hide=True,
+                         help='size (time-slots) of a domain sub-tile')
+        JEN_inarg.define(pp, 'condeq_corrs', kwargs, hide=True,
+                         help='correlations to be used for solving')
+
+        # Attach any other kwarg fields to pp also:
+        for key in kwargs.keys():
+            if not pp.has_key(key): pp[key] = kwargs[key]
+        return True
+
+
+    def parmgroup (self, key=None, rider=None, **kwargs):
         """Get/define the named (key) parmgroup"""
-        # First the ParmSet-specific part:
-        if len(pp)>0:
-            # parmgroup does not exist yet: Create it:
-            pp.setdefault('default', 1.0)       # default value (usually c00)
-            self.__default_value[key] = pp['default']
-            qq = TDL_common.unclutter_inarg(pp)
-            self.history('** Created parmgroup: '+str(key)+':   ')
-            result = self.NodeSet.group(key, **pp)
+        if not rider==None:
+        # if not rider==None or len(kwargs)>0:
+            if not isinstance(rider, dict): rider = dict()    # just in case
+            rider = deepcopy(rider)                           # necessary!
+            rider = TDL_common.unclutter_inarg(rider)
+
+            self.group_rider_defaults(rider)
+
+            # The rider usually contains the inarg record (pp) of the calling function.
+            # The rider fields may be overridden by the keyword arguments kwargs, if any: 
+            for pkey in kwargs.keys():
+                rider[pkey] = kwargs[pkey]
+            self._history('Created parmgroup: '+str(key)+' (rider:'+str(len(rider))+')')
+            result = self.NodeSet.group(key, rider=rider)      
             self.solvegroup(key, [key], gogtype='solvegroup')       
             return result
         # Then the generic NodeSet part:
@@ -302,10 +384,6 @@ class ParmSet (TDL_common.Super):
     def parmgroup_keys (self):
         """Return the keys (names) of the available parmgroups"""
         return self.NodeSet.group_keys()
-
-    def default_value(self, key=None):
-        """Get the specified (key) parmgroup default value (None = all)."""
-        return self._fieldict (self.__default_value, key=key, name='.default_value()')
 
     def subtree_parmgroups(ns, bookpage=True):
         """Make a subtree of the available parmgroups, and return its root node"""
@@ -335,11 +413,6 @@ class ParmSet (TDL_common.Super):
     def solvegroup_keys (self):
         """Return the keys (names) of the available solvegroups"""
         return self.NodeSet.select_gogs (rider=dict(gogtype='solvegroup'))
-
-    def default_value(self, key=None):
-        """Get the specified (key) solvegroup default value (None = all)."""
-        return self._fieldict (self.__default_value, key=key, name='.default_value()')
-
 
     def solveparm_names(self, solvegroup=[], select='*', trace=False):
         """Return a list of MeqParm names for the specified solvegroup (of parmgroup names)"""
@@ -443,12 +516,12 @@ class ParmSet (TDL_common.Super):
     def update(self, ParmSet=None):
         """Update the solvegroup/parmgroup info from another ParmSet object"""
         if ParmSet==None: return False
+        self._updict_rider(ParmSet._rider())
         if self.unsolvable():
             self.history(append='not updated from (unsolvable): '+ParmSet.oneliner())
         elif not ParmSet.unsolvable():
             self.NodeSet.update(ParmSet.NodeSet)
             self.__condeq.update(ParmSet.condeq())
-            self.__default_value.update(ParmSet.default_value())
             self.history(append='updated from (not unsolvable): '+ParmSet.oneliner())
         else:
             # A ParmSet that is 'unsolvable' has no solvegroups.
@@ -462,12 +535,12 @@ class ParmSet (TDL_common.Super):
     def updict(self, ParmSet=None):
         """Updict the solvegroup/parmgroup info from another ParmSet object"""
         if ParmSet==None: return False
+        self._updict_rider(ParmSet._rider())
         if self.unsolvable():
             self.history(append='not updicted from (unsolvable): '+ParmSet.oneliner())
         elif not ParmSet.unsolvable():
             self.NodeSet.updict(ParmSet.NodeSet)
             self._updict(self.__condeq, ParmSet.condeq())
-            self._updict(self.__default_value, ParmSet.default_value())
             self.history(append='updicted from (not unsolvable): '+ParmSet.oneliner())
         else:
             # A ParmSet that is 'unsolvable' has no solvegroups.
@@ -705,18 +778,23 @@ if __name__ == '__main__':
     if 1:
         # Register the parmgroups:
         pp = dict(stations=range(3))
-        a1 = ps.parmgroup('Ggain_X', corrs='paral11', c00_default=1.0,
+        ps.inarg_group_rider(pp)                  
+        a1 = ps.parmgroup('Ggain_X', rider=pp,
+                          condeq_corrs='paral11', c00_default=1.0,
                           c00_scale=1.0, timescale_min=10, fdeg=0,
-                          color='red', style='diamond', size=10, **pp)
-        a2 = ps.parmgroup('Ggain_Y', corrs='paral22', c00_default=1.0,
+                          color='red', style='diamond', size=10)
+        a2 = ps.parmgroup('Ggain_Y', rider=pp,
+                          condeq_corrs='paral22', c00_default=1.0,
                           c00_scale=1.0, timescale_min=10, fdeg=0,
-                          color='blue', style='diamond', size=10, **pp)
-        p1 = ps.parmgroup('Gphase_X', corrs='paral11', c00_default=0.0,
+                          color='blue', style='diamond', size=10)
+        p1 = ps.parmgroup('Gphase_X', rider=pp,
+                          condeq_corrs='paral11', c00_default=0.0,
                           c00_scale=1.0, timescale_min=10, fdeg=0,
-                          color='magenta', style='diamond', size=10, **pp)
-        p2 = ps.parmgroup('Gphase_Y', corrs='paral22', c00_default=0.0,
+                          color='magenta', style='diamond', size=10)
+        p2 = ps.parmgroup('Gphase_Y', rider=pp,
+                          condeq_corrs='paral22', c00_default=0.0,
                           c00_scale=1.0, timescale_min=10, fdeg=0,
-                          color='cyan', style='diamond', size=10, **pp)
+                          color='cyan', style='diamond', size=10)
         
         # MeqParm node_groups: add 'G' to default 'Parm':
         ps.node_groups('G')
@@ -765,10 +843,10 @@ if __name__ == '__main__':
             condeq = ps.make_condeq(ns, key)
             TDL_display.subtree(condeq, key, full=True, recurse=5)
 
-    if 1:
+    if 0:
         ps.condeq_corrs([a1,p1], trace=True)
 
-    if 1:
+    if 0:
         ps.solveparm_names([a1,p1], trace=True)
 
     if 0:
@@ -780,7 +858,7 @@ if __name__ == '__main__':
             print '- solvegroup:',key,':',ps.solvegroup(key)
         print
 
-    if 0:
+    if 1:
         # Display the final result:
         # k = 0 ; TDL_display.subtree(ps[k], 'ps['+str(k)+']', full=True, recurse=3)
         ps.display('final result', full=True)
