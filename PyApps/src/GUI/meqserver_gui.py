@@ -74,6 +74,10 @@ class meqserver_gui (app_proxy_gui):
     self.setIcon(pixmaps.trees48x48.pm());
     self.set_verbose(self.get_verbose());
     
+    # the _check_connection_status method is called every time we connect/disconnect/etc.
+    # This is meant to update relevant GUI elements, etc.
+    QObject.connect(self,PYSIGNAL("isConnected()"),self._check_connection_status);
+    
     _dprint(2,"meqserver-specifc init"); 
     # size window if stored in config
     width = Config.getint('browser-window-width',0);
@@ -139,6 +143,7 @@ class meqserver_gui (app_proxy_gui):
     self._qa_runtdl = QAction(pixmaps.blue_round_reload.iconset(),"&Re-run current TDL script",Qt.CTRL+Qt.Key_R,self);
     self._qa_runtdl.addTo(self.maintoolbar);
     QObject.connect(self,PYSIGNAL("isConnected()"),self._enable_run_current);
+    self._enable_run_current(False);
     QObject.connect(self._qa_runtdl,SIGNAL("activated()"),self._run_current_tdl_script);
     self._qa_runtdl.setWhatsThis("""This button re-runs the current TDL script, if one is loaded.""");
     self._qa_runtdl.setVisible(False);
@@ -205,20 +210,15 @@ class meqserver_gui (app_proxy_gui):
     help_menu_id = menubar.insertItem("&Help",help_menu);
     
     # some menus only available when connected
-    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(menubar.setItemVisible,_args=(bookmarks_menu_id,True)));
-    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(menubar.setItemVisible,_args=(debug_menu_id,True)));
-    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(menubar.setItemVisible,_args=(bookmarks_menu_id,False)));
-    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(menubar.setItemVisible,_args=(debug_menu_id,False)));
+    QObject.connect(self,PYSIGNAL("isConnected()"),self.curry(menubar.setItemVisible,bookmarks_menu_id));
     menubar.setItemVisible(bookmarks_menu_id,False);
-    menubar.setItemVisible(debug_menu_id,False);
 
     # --- MeqTimba menu
-    connect = QAction("Connect to kernel...",0,self);
+    connect = self._qa_connect = QAction("Connect to kernel...",0,self);
     connect.addTo(kernel_menu);
-    QObject.connect(self,PYSIGNAL("isConnected()"),connect.setDisabled);
-    stopkern = QAction(pixmaps.red_round_cross.iconset(),"&Stop kernel process",Qt.CTRL+Qt.Key_C,self);
-    QObject.connect(self,PYSIGNAL("isConnected()"),stopkern.setEnabled);
+    stopkern = self._qa_stopkern = QAction(pixmaps.red_round_cross.iconset(),"&Stop kernel process",Qt.CTRL+Qt.Key_C,self);
     QObject.connect(stopkern,SIGNAL("activated()"),self._stop_kernel);
+    stopkern.setDisabled(True);
     stopkern.addTo(kernel_menu);
     kernel_menu.insertSeparator();
     self.treebrowser._qa_refresh.addTo(kernel_menu);
@@ -255,6 +255,7 @@ class meqserver_gui (app_proxy_gui):
     loadruntdl = QAction("&Load && run TDL script...",Qt.CTRL+Qt.Key_T,self);
     loadruntdl.addTo(tdl_menu);
     QObject.connect(self,PYSIGNAL("isConnected()"),loadruntdl.setEnabled);
+    loadruntdl.setEnabled(False);
     QObject.connect(loadruntdl,SIGNAL("activated()"),self._run_tdl_script);
     QObject.connect(syncedit,SIGNAL("toggled(bool)"),self.curry(Config.set,'tdl-sync-to-external-editor'));
     QObject.connect(syncedit,SIGNAL("toggled(bool)"),tdlgui.set_external_sync);
@@ -328,11 +329,10 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self,PYSIGNAL("isConnected()"),collect_prof.setEnabled);
     
     debug_menu.insertSeparator();
-    attach_gdb = QAction("Attach binary debugger to kernel",0,self);
+    attach_gdb = self._qa_attach_gdb = QAction("Attach binary debugger to kernel",0,self);
     attach_gdb.addTo(debug_menu);
     attach_gdb.setEnabled(False); # for now
     QObject.connect(attach_gdb,SIGNAL("activated()"),self._debug_kernel);
-    QObject.connect(self,PYSIGNAL("isConnected()"),attach_gdb.setEnabled);
     
     # --- Help menu
     help_menu.insertItem(self._whatsthisbutton.iconSet(),
@@ -381,6 +381,9 @@ class meqserver_gui (app_proxy_gui):
     self._autoreq_sent = False;
     # timer is used to automatically request a nodelist
     QObject.connect(self._autoreq_timer,SIGNAL("timeout()"),self._auto_update_request);
+    # timer is used to connect to a kernel
+    self._connect_timer = QTimer(self);
+    QObject.connect(self._connect_timer,SIGNAL("timeout()"),self._connection_timeout);
     # if a nodelist is requested by other means, the timer is stopped
     QObject.connect(meqds.nodelist,PYSIGNAL("requested()"),self._autoreq_timer.stop);
     # tdl tabs
@@ -415,7 +418,15 @@ the displays will no longer refresh automatically. You can reactivate
 auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     
   def _debug_kernel (self):
-    pid = self.app.app_addr[2];    
+    pid = self._kernel_pid;
+    if not pid:
+      if self.app.app_addr:
+        pid = self.app.app_addr[2];    
+      else:
+        QMessageBox.warning(self,"No connection to MeqTimba kernel",
+          """<p>It seems we're not connected to a kernel, and we don't know a
+          PID for it, so I can't attach a debugger.</p>""","Cancel");
+        return;
     pathname = self._kernel_pathname or ( "/proc/%d/exe"%(pid,) );
     cmd0 = Config.get("debugger-command","ddd %f %p");
     cmd0 = cmd0.replace('%p',str(pid)).replace('%f',pathname);
@@ -430,6 +441,23 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self.log_message("running \""+cmd+"\"");
       os.spawnvp(os.P_NOWAIT,args[0],args);
     
+  def _check_connection_status (self,dum=None):
+    """this method is called whenever we connect/disconnect to a kernel.
+    The dum argument is provided to make it easy to connect single-argument
+    signals to this slot""";
+    _dprint(1,"pid",self._kernel_pid,"addr",self.app.app_addr);
+    connected = bool(self._kernel_pid or self.app.app_addr);
+    if self.app.app_addr:
+      self._connect_timer.stop();
+      try:
+        self._timeout_dialog.hide();
+      except AttributeError: 
+        pass;
+    _dprint(1,"connected is",connected);
+    self._qa_stopkern.setEnabled(connected);
+    self._qa_connect.setDisabled(connected);
+    self._qa_attach_gdb.setEnabled(connected);
+    
   def _start_kernel (self,pathname,args):
     _dprint(0,pathname,args);
     if pathname != self._default_meqserver_path:
@@ -437,26 +465,124 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       Config.set('meqserver-path',pathname);
     Config.set('meqserver-args',args);
     if not os.path.isfile(pathname) or not os.access(pathname,os.X_OK):
-      self.log_message("can't start kernel %s: not an executable file" % (pathname,), \
+      self.log_message("can't start kernel \"%s\": not an executable file" % (pathname,), \
         category=Logger.Error);
       return;
-    self.log_message(' '.join(('starting kernel process:',pathname,args)));
+    self.log_message("starting kernel process \"%s %s\" and waiting for connection"%(pathname,args));
     self._kernel_pid = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));
     self._kernel_pathname = pathname;
+    self._connect_timer.start(5000,True);  # start a 5-second timer
+    self._check_connection_status();
+  
+  def _connection_timeout (self):
+    """called by connection timer when it expires""";
+    if self._connected:
+      return;
+    # NB: since at the moment we don't really support remote kernels,
+    # always offer to kill the local kernel. In the future we need to be
+    # able to tell the difference.
+    try:
+      timeout_dialog = self._timeout_dialog;
+    except AttributeError:
+      timeout_dialog = self._timeout_dialog = QMessageBox("""Kernel timed out""",
+        """<p>We have started a local kernel process (pid %d), but we can't 
+        establish a connection to it. This may be due to an out-of-date
+        kernel build, or to a bug somewhere. You can try killing and
+        restarting the kernel process. If you're sure your build is up-to-date, 
+        then please report this as a bug.</p>""" % self._kernel_pid,
+        QMessageBox.Critical,
+        QMessageBox.Ok,QMessageBox.NoButton,QMessageBox.NoButton,
+        self);
+      timeout_dialog.setModal(False);
+    timeout_dialog.show();
     
   def _stop_kernel (self):
-    res = QMessageBox.warning(self,"Stopping MeqTimba kernel",
-      """<p>The normal way to stop the MeqTimba kernel is by sending it
-      a <tt>HALT</tt> command. If the kernel doesn't respond to this, we can always
-      brute-force it with a <tt>KILL</tt> signal. Which method do you want to use?""",
-      "HALT","KILL","Cancel",0,2);
-    if res == 0:
+    # check if we have a PID for the kernel 
+    pid = self._kernel_pid;
+    if not pid and self.app.app_addr:
+      pid = self.app.app_addr[2];
+    # show different dialogs depending on what we know about the meqserver
+    if pid and self.app.app_addr:
+      buttons = ("HALT","KILL","Cancel",0,2);
+      res = QMessageBox.warning(self,"Stopping MeqTimba kernel",
+        """<p>We are connected to a local kernel. The normal way to stop a MeqTimba kernel 
+        is by sending it a <tt>HALT</tt> command. If the kernel doesn't respond to this, 
+        we can always brute-force it with a <tt>KILL</tt> signal. Which method do you want 
+        to use?</p>""",
+        *buttons);
+      res = buttons[res];
+    elif pid:
+      buttons = ("KILL","Cancel",None,0,1);
+      res = QMessageBox.warning(self,"Stopping MeqTimba kernel",
+        """<p>It seems there's a kernel running (pid %d) but we can't
+        establish a connection to it. Should we try to stop it with 
+        a <tt>KILL</tt> signal?</p>""" % pid,
+        *buttons);
+      res = buttons[res];
+    elif self.app.app_addr:
+      buttons = ("HALT","Cancel",None,0,1);
+      res = QMessageBox.warning(self,"Stopping MeqTimba kernel",
+        """<p>We are connected to a remote kernel (%s), or at least we don't
+        have a local PID for it. Should we try to stop it with a <tt>HALT</tt> 
+        command?</p>""" % str(self.app.app_addr),
+        *buttons);
+      res = buttons[res];
+    else:
+      buttons = ("Cancel",);
+      QMessageBox.warning(self,"No connection to MeqTimba kernel",
+        """<p>It seems we're not connected to a kernel, and we don't know a
+        PID for it, so there's nothing for me to stop. In this situation you 
+        shouldn't have been able to get to this dialog in the first place,
+        so you may want to report a bug!</p>""",
+        *buttons);
+      res = "Cancel";
+    # stop kernel in one of many possible ways
+    if res == "HALT":
       self.log_message('sending HALT command to kernel');
       self.app.halt();
-    elif res == 1:
-      pid = self.app.app_addr[2];    
+    elif res == "KILL":
       self.log_message('sending KILL signal to kernel process '+str(pid));
       os.kill(pid,signal.SIGKILL);
+      
+  def _sigchld_handler (self,sig,stackframe):
+    _dprint(0,'signal',sig);
+    wstat = os.waitpid(-1,os.WNOHANG);
+    if wstat:
+      (pid,st) = wstat;
+      if not pid:   # pid 0 means we got a STOP/CONT signal, ignore
+        return;
+      if pid == self._kernel_pid:
+        msg = "kernel process " + str(pid);
+        self._kernel_pid = None;
+        cat = Logger.Error;
+        self._check_connection_status();
+      else:
+        msg = "child process " + str(pid);
+        cat = Logger.Normal;
+      if st&0x7F:
+        msg += " killed by signal " + str(st&0x7F);
+      else:
+        msg += " exited with status " + str(st>>8);
+      if st&0x80:
+        msg += " (core dumped)";
+      self.log_message(msg,category=cat);
+      
+  def _verify_quit (self):
+    if self._connected and self._kernel_pid:
+      res = QMessageBox.warning(self,"Quit browser",
+        """<p>We have started a kernel process (pid %d) from this browser. 
+        Would you like to quit the browser only, or kill the kernel as 
+        well?</p>""" % (self._kernel_pid,),
+        "&Quit only","Quit && &kill","Cancel",1,2);
+      if res == 0:
+        return True;
+      elif res == 1:
+        os.kill(self._kernel_pid,signal.SIGKILL);
+        return True;
+      else:
+        return False;
+    else:
+      return True;
       
   def _clear_tdl_jobs (self,dum=False):
     """removes the TDL Jobs submenu, if it exists""";
@@ -562,6 +688,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self._tdl_tabs[pathname] = tab;
       QObject.connect(self,PYSIGNAL("isConnected()"),tab.hide_jobs_menu);
       QObject.connect(self,PYSIGNAL("isConnected()"),tab.show_run_control);
+      tab.hide_jobs_menu(self._connected);
+      tab.show_run_control(self._connected);
       QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),tab.disable_controls);
       QObject.connect(tab,PYSIGNAL("fileSaved()"),self.curry(self._tdltab_change,tab));
       QObject.connect(tab,PYSIGNAL("hasErrors()"),self.curry(self._tdltab_errors,tab));
@@ -688,51 +816,12 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         return;
     raise ValueError,"tab not found in map";
 
-  def _verify_quit (self):
-    if self._connected and self._kernel_pid:
-      res = QMessageBox.warning(self,"Quit browser",
-        """<p>We have started a kernel process (pid %d) from this browser. 
-        Would you like to quit the browser only, or kill the kernel as 
-        well?</p>""" % (self._kernel_pid,),
-        "&Quit only","Quit && &kill","Cancel",1,2);
-      if res == 0:
-        return True;
-      elif res == 1:
-        os.kill(self._kernel_pid,signal.SIGKILL);
-        return True;
-      else:
-        return False;
-    else:
-      return True;
-      
   def closeEvent (self,event):
     if self._verify_quit():
       event.accept();
       mainapp().quit();
     else:
       event.ignore();
-    
-  def _sigchld_handler (self,sig,stackframe):
-    _dprint(0,'signal',sig);
-    wstat = os.waitpid(-1,os.WNOHANG);
-    if wstat:
-      (pid,st) = wstat;
-      if not pid:   # pid 0 means we got a STOP/CONT signal, ignore
-        return;
-      if pid == self._kernel_pid:
-        msg = "kernel process " + str(pid);
-        self._kernel_pid = None;
-        cat = Logger.Error;
-      else:
-        msg = "child process " + str(pid);
-        cat = Logger.Normal;
-      if st&0x7F:
-        msg += " killed by signal " + str(st&0x7F);
-      else:
-        msg += " exited with status " + str(st>>8);
-      if st&0x80:
-        msg += " (core dumped)";
-      self.log_message(msg,category=cat);
     
   def _add_bookmark (self):
     item = Grid.Services.getHighlightedItem();
