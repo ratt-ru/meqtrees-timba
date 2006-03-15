@@ -275,9 +275,39 @@ class Super:
         return []
 
 
+
     #---------------------------------------------------------------------------------
     # Miscelleneous helper functions (rather useful):
     #---------------------------------------------------------------------------------
+
+    def _format_rider_summary (self, rr, name=None):
+        """Format a summary of the given rider record rr"""
+        if not isinstance(rr, dict):
+            return 'rider='+str(type(rr)) 
+        elif len(rr)==0:
+            return ''
+        elif len(rr)<3:
+            qq = unclutter_inarg(rr)
+            return ',  rider = '+str(qq)
+        return ',  rider length = '+str(len(rr))
+
+    def _dictitem(self, rr=None, item=None, key=None, name=None, trace=False):
+        """Get the specified item (e.g. color) from the specified dicts (key, None=all)
+        in the given dict (rr). If rr==None, the object's own 'rider' dict is assumed."""
+        if rr==None: rr = self._rider()
+        s1 = '._dictitem('+str(type(rr))+', '+str(item)+', '+str(key)+')'
+        if trace: print '\n**',s1,
+        if not isinstance(rr, dict): return False
+        if not isinstance(item, str): return False
+        cc = dict()
+        for rkey in rr.keys():
+            if rr[rkey].has_key(item):
+                cc[rkey] = rr[rkey][item]
+        if trace: print '-> cc =',cc,
+        result = self._fieldict (cc, key=key, name=s1)
+        if trace: print '->',result
+        return result
+
 
     def _listuple (self, value=None,
                    vtype=None, trace=False):
@@ -305,7 +335,10 @@ class Super:
             if not isinstance(key, (list, tuple)): key = [key]
             cc = dict()                             # initialise the result
             for k in key:
-                if not rr.has_key(k):               # field (k) not recognised....
+                if not isinstance(k, str): 
+                    self.history(error=str(name)+': key type is:'+str(type(k)))
+                    cc[k] = None                    # ....?
+                elif not rr.has_key(k):               # field (k) not recognised....
                     self.history(error=str(name)+': key not recognised: '+k)
                     cc[k] = None                    # ....?
                 else:                               # rr has the specified field (k)
@@ -319,11 +352,13 @@ class Super:
             return cc                               # multiple keys asked: return a dict
         return False
 
+
     def _updict_rider (self, rider=dict(), trace=False):
         """Updict its own rider record with another"""
-        return self._updict (self.__rider, other=rider, trace=trace)
+        return self._updict (self.__rider, other=rider, name='_rider', trace=trace)
 
-    def _updict (self, rr=dict(), other=dict(), trace=False):
+
+    def _updict (self, rr=dict(), other=dict(), name=None, level=1, trace=False):
         """Version of rr.update (other -> rr) that is really a merge.
         The difference lies in the treatment of existing lists and dicts.
         Procedure: Go through the fields (key) of the contributing dict (other):
@@ -336,19 +371,26 @@ class Super:
         - otherwise: overwrite rr[key] with other[key] (like rr.update(other))"""
         if not isinstance(rr, dict): return False
         if not isinstance(other, dict): return False
+        prefix = (level*'..')+'._updict('+str(name)+'): '
         for key in other.keys():                       # for all keys of 'other'
             if not rr.has_key(key):                    # rr[key] does not exist
                 rr[key] = other[key]                   #   create it
+                self._history(prefix+str(key)+': copied: '+str(type(rr[key])))
             elif isinstance(rr[key], (list,tuple)):    # rr[key] is a list
                 qq = other[key]                        #   append other[key], avoiding doubles
                 if not isinstance(qq, (list,tuple)): qq = [qq]
+                aa = []
                 for item in qq:
-                    if not item in rr[key]: rr[key].append(item)
+                    if not item in rr[key]:
+                        aa.append(item)
+                        rr[key].append(item)
+                self._history(prefix+str(key)+': extended list with ('+str(len(aa))+'): '+str(aa))
             elif isinstance(rr[key], dict):            # rr[key] is dict
                 if isinstance(other[key], dict):       #   other[key] is also a dict
-                    self._updict (rr[key], other[key]) #     recursive 
+                    self._updict (rr[key], other[key], name=name, level=level+1)     # recursive 
                 else:                                  #   other[key] is not a dict
                     rr[key]['_updict_'] = other[key]   #     attach to rr[key] as a special field.... 
+                    self._history(prefix+str(key)+': attached [_updict_]:',str(type(other[key])))
             else:                                      # rr[key] is something else
                 rr[key] = other[key]                   #   overwrite it.........??
         return True
@@ -444,8 +486,9 @@ def encode_nodestubs(rr=None):
 
 
 def decode_nodestubs(ns, rr=None):
-    """convert an dict (rr) of encoded nodestubs (rr) back to a nodestubs
-    in named fields of a new dict (dictout)"""
+    """convert an dict (rr) of encoded nodestubs (rr) back to nodestubs
+    in named fields of a new dict (dictout). NB: It is assumed that the
+    nodes already exist in the given nodescope (ns)"""
     if not isinstance(rr, dict): return rr
     dictout = dict()
     for key in rr.keys():

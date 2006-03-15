@@ -307,7 +307,7 @@ class NodeSet (TDL_common.Super):
                 rider[pkey] = kwargs[pkey]
 
             s1 = 'group: '+str(key)
-            s1 += self.format_rider_summary(rider)
+            s1 += self._format_rider_summary(rider, 'group_rider')
             if self.__group.has_key(key):
                 self.history(warning='** Overwritten '+s1)
             else:
@@ -385,29 +385,20 @@ class NodeSet (TDL_common.Super):
 
     def group_rider_item(self, item=None, key=None, trace=False):
         """Get the specified (key) item (e.g. color) from the group_rider (None = all)"""
-        s1 = '.group_rider_item('+str(item)+', '+str(key)+')'
-        if trace: print '\n**',s1,
-        cc = dict()
-        rr = self.group_rider()
-        for rkey in rr.keys():
-            if rr[rkey].has_key(item):
-                cc[rkey] = rr[rkey][item]
-        if trace: print '-> cc =',cc,
-        result = self._fieldict (cc, key=key, name=s1)
-        if trace: print '->',result
-        return result
+        return self._dictitem(self.group_rider(), item=item, key=key,
+                              name='.group_rider_item()', trace=trace)
 
-    def plot_color(self, key=None):
+    def plot_color(self, key=None, trace=False):
         """Get the specified (key) group plot_color (None = all)"""
-        return self._fieldict (self.__plot_color, key=key, name='.plot_color()')
+        return self.group_rider_item ('color', key=key, trace=trace)
 
-    def plot_style(self, key=None):
+    def plot_style(self, key=None, trace=False):
         """Get the specified (key) group plot_style (None = all)"""
-        return self._fieldict (self.__plot_style, key=key, name='.plot_style()')
+        return self.group_rider_item ('style', key=key, trace=trace)
 
-    def plot_size(self, key=None):
+    def plot_size(self, key=None, trace=False):
         """Get the specified (key) group plot_size (None = all)"""
-        return self._fieldict (self.__plot_size, key=key, name='.plot_size()')
+        return self.group_rider_item ('size', key=key, trace=trace)
 
     def radio_conventions(self):
         self.__plot_color = TDL_radio_conventions.plot_color()
@@ -538,7 +529,7 @@ class NodeSet (TDL_common.Super):
             if not isinstance(groups, list): groups = [groups]
 
             s1 = 'gog: '+str(key)+':  '+str(groups)
-            s1 += self.format_rider_summary(pp)
+            s1 += self._format_rider_summary(pp, 'gog_rider')
             if self.__gog.has_key(key):
                 self.history(warning='** Overwritten '+s1)
             else:
@@ -550,22 +541,6 @@ class NodeSet (TDL_common.Super):
         # Otherwise, return the specified (key) group (None = all):
         return self._fieldict (self.__gog, key=key, name='.gog()')
 
-
-    def format_rider_summary (self, pp):
-        """Format a summary of the given rider record pp"""
-        if not isinstance(pp, dict):
-            return 'rider='+str(type(pp)) 
-        elif len(pp)==0:
-            return ''
-        elif len(pp)<3:
-            qq = TDL_common.unclutter_inarg(pp)
-            return ',  rider = '+str(qq)
-        return ',  rider length = '+str(len(pp))
-
-                
-    def gog_rider(self, key=None):
-        """Get the specified (key) gog_rider (None = all)"""
-        return self._fieldict (self.__gog_rider, key=key, name='.gog_rider()')
 
     def gog_keys (self, select='*'):
         """Return the names (keys) of the available gogs"""
@@ -598,7 +573,14 @@ class NodeSet (TDL_common.Super):
         return gg
 
 
+    def gog_rider(self, key=None):
+        """Get the specified (key) gog_rider (None = all)"""
+        return self._fieldict (self.__gog_rider, key=key, name='.gog_rider()')
 
+    def gog_rider_item(self, item=None, key=None, trace=False):
+        """Get the specified (key) item (e.g. color) from the gog_rider (None = all)"""
+        return self._dictitem(self.gog_rider(), item=item, key=key,
+                              name='.gog_rider_item()', trace=trace)
 
 
     #================================================================================
@@ -991,18 +973,18 @@ class NodeSet (TDL_common.Super):
         fields of from, but merged according to their type (dict, list, etc)"""
         if NodeSet==None: return False
         self._updict_rider(NodeSet._rider())
-        self._updict(self.__MeqNode, NodeSet.MeqNode())
-        self._updict(self.__group, NodeSet.group())
-        self._updict(self.__group_rider, NodeSet.group_rider())
-        self._updict(self.__plot_color, NodeSet.plot_color())
-        self._updict(self.__plot_style, NodeSet.plot_style())
-        self._updict(self.__plot_size, NodeSet.plot_size())
-        self._updict(self.__bookmark, NodeSet.bookmark())
-        self._updict(self.__bookpage, NodeSet.bookpage())
-        self._updict(self.__bookfolder, NodeSet.bookfolder())
-        self._updict(self.__bundle, NodeSet.bundle())
-        self._updict(self.__gog, NodeSet.gog())
-        self._updict(self.__gog_rider, NodeSet.gog_rider())
+        self._updict(self.__MeqNode, NodeSet.MeqNode(), name='MeqNode')
+        self._updict(self.__group, NodeSet.group(), name='group')
+        self._updict(self.__group_rider, NodeSet.group_rider(), name='group_rider')
+        self._updict(self.__plot_color, NodeSet.plot_color(), name='plot_color')
+        self._updict(self.__plot_style, NodeSet.plot_style(), name='plot_style')
+        self._updict(self.__plot_size, NodeSet.plot_size(), name='plot_size')
+        self._updict(self.__bookmark, NodeSet.bookmark(), name='bookmark')
+        self._updict(self.__bookpage, NodeSet.bookpage(), name='bookpage')
+        self._updict(self.__bookfolder, NodeSet.bookfolder(), name='bookfolder')
+        self._updict(self.__bundle, NodeSet.bundle(), name='bundle')
+        self._updict(self.__gog, NodeSet.gog(), name='gog')
+        self._updict(self.__gog_rider, NodeSet.gog_rider(), name='gog_rider')
         self.history(append='updicted from: '+NodeSet.oneliner())
         return True
 
@@ -1137,7 +1119,7 @@ def test1(ns, nstat=2, mult=1.0):
 
 #--------------------------------------------------------------------
 
-def test2(ns, nstat=2, mult=1.1):
+def test2(ns, nstat=3, mult=1.1):
     """Definition of a NodeSet for testing"""
 
     nst = NodeSet(label='test2')
@@ -1252,12 +1234,34 @@ if __name__ == '__main__':
         bb = nst.make_bundle(ns, 'grogog', bookpage=True)
         TDL_display.subtree(bb, 'bundle', full=True, recurse=3)
         
+    if 1:
+        kk = nst.group_keys()
+        r = nst.group_rider_item(item='color', key=None, trace=True)
+        r = nst.group_rider_item(item='color', key=kk[0], trace=True)
+        r = nst.group_rider_item(item='color', key=[kk[0],kk[1]], trace=True)
+
+    if 0:
+        kk = nst.group_keys()
+        r = nst.plot_color(key=None, trace=True)
+        r = nst.plot_color(key=kk[0], trace=True)
+        r = nst.plot_color(key=[kk[0],kk[1]], trace=True)
+        r = nst.plot_style(key=[kk[0],kk[1]], trace=True)
+        r = nst.plot_size(key=[kk[0],kk[1]], trace=True)
+
     if 0:
         nst.apply_unop(ns, 'GJones', 'Cos', bookpage=True)
 
     if 0:
         nst.apply_binop(ns, [a1,p1], 'Polar', bookpage=True)
 
+    if 0:
+        root = nst.bookpage_subtree(ns, trace=True)
+        TDL_display.subtree(root, 'bookpage_subtree', full=True, recurse=3)
+
+    #--------------------------------------------------------------------------
+    # Functions involving a second NodeSet:
+    #--------------------------------------------------------------------------
+    
     if 0:
         nst2 = test2(ns)
         nst2.display('nst2', full=True)
@@ -1269,19 +1273,12 @@ if __name__ == '__main__':
         # nst.update(nst2)
         nst.updict(nst2)
 
-    if 0:
-        root = nst.bookpage_subtree(ns, trace=True)
-        TDL_display.subtree(root, 'bookpage_subtree', full=True, recurse=3)
+    #--------------------------------------------------------------------------
 
-    if 1:
+    if 0:
         nst.display(full=True)
         # nst.display()
 
-    if 1:
-        kk = nst.group_keys()
-        r = nst.group_rider_item(item='color', key=None, trace=True)
-        r = nst.group_rider_item(item='color', key=kk[0], trace=True)
-        r = nst.group_rider_item(item='color', key=[kk[0],kk[1]], trace=True)
 
     if 0:
         # Display the final result:
