@@ -124,11 +124,13 @@ JEN_inarg.define (MG, 'insert_solver', tf=True,
 # Interaction with the MS: spigots, sinks and stream control
 #----------------------------------------------------------------------------------------------------
 
+JEN_inarg.separator(MG, 'uv-data (MS) stream_control')
+
 inarg = MG_JEN_exec.stream_control(_getdefaults=True, slave=True)
 JEN_inarg.modify(inarg,
                  data_column_name='CORRECTED_DATA',
-                 channel_start_index=0,
-                 channel_end_index=-1,
+                 channel_start_index=0,                         # <-------- !!
+                 channel_end_index=-1,                          # <-------- !!
                  _JEN_inarg_option=None)     
 JEN_inarg.attach(MG, inarg)
 
@@ -138,10 +140,13 @@ JEN_inarg.attach(MG, inarg)
 
 #----------------------------------------------------------------------------------------------------
 
-JEN_inarg.separator(MG, 'uv-data simulation')
+JEN_inarg.separator(MG, 'uv-data simulation (LeafSet)')
 qual = 'simul'
 
 inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
+JEN_inarg.attach(MG, inarg)
+
+inarg = MG_JEN_Cohset.KJones(_getdefaults=True, _qual=qual, slave=True) 
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.Jones(_getdefaults=True, _qual=qual, slave=True, simul=True) 
@@ -153,7 +158,7 @@ JEN_inarg.attach(MG, inarg)
     
 #----------------------------------------------------------------------------------------------------
 
-JEN_inarg.separator(MG, 'solver-branch')
+JEN_inarg.separator(MG, 'solver-branch (ParmSet)')
 qual = 'solve'
 
 inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
@@ -282,6 +287,9 @@ def _define_forest (ns, **kwargs):
     # Part IV: Finishing touches:
     #------------------------------------------------------------------
 
+    global parmlist
+    parmlist = Cohset.ParmSet.NodeSet.nodenames()
+
     # Make MeqSink nodes that write the MS:
     sinks = MG_JEN_Cohset.make_sinks(ns, Cohset, _inarg=MG)
     cc.extend(sinks)
@@ -327,7 +335,7 @@ def _tdl_job_execute_plus (mqs, parent):
 
    # Start the sequence of requests issued by MeqSink:
    MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG)
-   MG_JEN_exec.fullDomainMux(mqs, parent, ctrl=MG)
+   _tdl_job_fullDomainMux(mqs, parent)
    return True
 
 
@@ -342,8 +350,10 @@ def _tdl_job_fullDomainMux (mqs, parent):
    # Make sure our solver root node is not cleaned up
    Settings.orphans_are_roots = True;
 
+   global parmlist
+
    # Start the sequence of requests issued by MeqSink:
-   MG_JEN_exec.fullDomainMux(mqs, parent, ctrl=MG)
+   MG_JEN_exec.fullDomainMux(mqs, parent, ctrl=MG, parmlist=parmlist)
    return True
 
 

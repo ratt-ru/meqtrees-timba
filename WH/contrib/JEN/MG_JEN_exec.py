@@ -40,6 +40,8 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq                     # required in MG_JEN_exec !!
+from Timba.Meq import meqds                     
+#from Timba.meqkernel import set_state
 
 # The following bit still requires a bit of thought.....
 from Timba import utils
@@ -375,16 +377,22 @@ def importable_example(ns=None, **pp):
 # Execute the tree under (MS) stream_control:
 #================================================================================
 
-def fullDomainMux (mqs, parent, ctrl=None):
+def fullDomainMux (mqs, parent, ctrl=None, parmlist=None):
    """Execute the fullDomainMux with a large domain"""
 
    from Timba.Meq import meq
 
-   if True:
-      request = meq.request()
-      request.rider=record(parm=record(command_by_list=[record(state=record(solvable=False))]))
-      mqs.execute('post_fullDomainMux', request, wait=False)
+   # NB: The above will be replaced by a function that allows changing the state of
+   # all MeqParm nodes (e.g. to set reset_funklet=False), without the kludge of sending
+   # a request with a rider up the tree (does OMS agree with this?)
 
+   if isinstance(parmlist, list):
+      for parm in parmlist:
+         meqds.set_node_state(parm, reset_funklet=False, solvable=False)
+
+   # This opens the possibility to have a range of TDL_job functions that allow operations
+   # on the tree, without having to rebuild the tree....! This requires access to the
+   # nodescope, and the various Cohset/ParmSet/LeafSet objects.......
 
    # Make a minimum request:
    ss = stream_control (_inarg=ctrl)

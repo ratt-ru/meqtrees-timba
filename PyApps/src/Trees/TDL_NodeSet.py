@@ -898,7 +898,7 @@ class NodeSet (TDL_common.Super):
                 
                 # Make the new group:
                 gname = 'compare('+g+')'
-                self.group(gname, binop=binop)
+                self.group(gname, rider=dict())
                 for i in range(len(lhs)):
                     cc = [lhs[i],rhs[i]]
                     node = ns << getattr(Meq,binop)(children=cc)

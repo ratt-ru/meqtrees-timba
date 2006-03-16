@@ -414,9 +414,6 @@ def dissect_target (target='<dir>/<module>::<function>()', qual=None, trace=Fals
    rr['localscope'] += rr['target_module']+'.'
    if len(rr['target_function'])>0:
       rr['localscope'] += rr['target_function']+'()'
-   # If the qualifier is at the end, it is less visible...
-   # if qual:                                           # qualifier specified
-   #    rr['localscope'] += '['+str(qual)+']'
 
    # The barescope is a stripped version of the localscope:
    rr['barescope'] = rr['target_module']+rr['target_function']
@@ -532,8 +529,9 @@ def localscope(rr, trace=False):
    return lscope
 
 def qualifier(rr, trace=False):
-   """Get the localscope (funcname+qualifiers) from the CTRL record or rr"""
-   qual = CTRL(rr, 'qualifier', report=False)
+   """Get the localscope qualifier string from the CTRL record or rr"""
+   # qual = CTRL(rr, 'qualifier', report=False)
+   qual = CTRL(rr, 'qual', report=False, trace=trace)
    if qual==None: qual = ''                   # empty string
    if trace: print '.qualifier() ->',type(qual),len(qual),'=',qual
    return qual
@@ -1251,7 +1249,7 @@ def CTRL2toplevel (ctrl):
    """Make a top-level CTRL record from the given one"""
    cc = dict()
    # Copy some fields from the pp CTRL record:
-   ss = ['localscope','version','datetime_defined','last_edited',
+   ss = ['localscope','qual','version','datetime_defined','last_edited',
          'target_module','target_function','target_dir','target_definition']
    for key in ss:
       cc[key] = ctrl[key]
@@ -1697,8 +1695,9 @@ if __name__ == '__main__':
    if 1:
       # Test of basic inarg-operation:
       qual = '<qual>'
-      qual = None
+      # qual = None
       inarg = test1(_getdefaults=True, _qual=qual, trace=True)
+      qualifier(inarg, trace=True)
       if 0:
          # modify(trace=True)
          # modify(inarg, trace=True)

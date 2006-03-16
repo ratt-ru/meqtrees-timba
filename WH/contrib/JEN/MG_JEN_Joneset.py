@@ -122,8 +122,10 @@ def inarg_Joneset_common (pp, jones=None, **kwargs):
    JEN_inarg.inarg_common(kwargs)
    inarg_stations(pp, **kwargs)
    inarg_polrep(pp, **kwargs)
-   JEN_inarg.define(pp, '@Jsequence', jones, hide=True,
-                    help='list membership indication (used in JEN_inargGui)')
+   # The following is a bit of a kludge (see MG_JEN_Cohset.Jones()): 
+   for name in ['@Jsequence','@Jsequence_simul','@Jsequence_KJones']:
+      JEN_inarg.define(pp, name, jones, hide=True,
+                       help='list membership indication (used in JEN_inargGui)')
    return True
 
 
@@ -323,11 +325,11 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     # Register the parmgroups with specific rider parameters:
     a1 = js.parmgroup('Ggain', ipol=1, rider=pp,
                       condeq_corrs='paral11', c00_default=1.0,
-                      c00_scale=1.0, timescale_min=20, fdeg=0,
+                      c00_scale=1.0, timescale_min=30, fdeg=0,
                       color='red', style='diamond', size=10)
     a2 = js.parmgroup('Ggain', ipol=2, rider=pp,
                       condeq_corrs='paral22', c00_default=1.0,
-                      c00_scale=1.0, timescale_min=20, fdeg=0,
+                      c00_scale=1.0, timescale_min=40, fdeg=0,
                       color='blue', style='diamond', size=10)
     p1 = js.parmgroup('Gphase', ipol=1, rider=pp,
                       condeq_corrs='paral11', c00_default=0.0,
@@ -335,7 +337,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
                       color='magenta', style='diamond', size=10)
     p2 = js.parmgroup('Gphase', ipol=2, rider=pp,
                       condeq_corrs='paral22', c00_default=0.0,
-                      c00_scale=1.0, timescale_min=10, fdeg=0,
+                      c00_scale=1.0, timescale_min=20, fdeg=0,
                       color='cyan', style='diamond', size=10)
 
     # Define potential extra condition equations:
@@ -459,7 +461,9 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
 
    # Register the parmgroups (in js.ParmSet eventually):
-   RM = js.parmgroup('RM', rider=pp, condeq_corrs='cross', default=0.0,
+   RM = js.parmgroup('RM', rider=pp,
+                     condeq_corrs='cross', c00_default=0.0,
+                     c00_scale=1.0, timescale_min=25, fdeg=0,
                      color='red', style='circle', size=10)
 
    # MeqParm node_groups: add 'F' to default 'Parm':
@@ -567,16 +571,20 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Register the parmgroups (in js.ParmSet eventually):
     br1 = js.parmgroup('Breal', ipol=1, rider=pp,
-                       condeq_corrs='paral11', default=1.0,
+                       condeq_corrs='paral11', c00_default=1.0,
+                       c00_scale=1.0, timescale_min=200, fdeg=0,
                        color='red', style='square', size=7)
     br2 = js.parmgroup('Breal', ipol=2, rider=pp,
-                       condeq_corrs='paral22', default=1.0,
+                       condeq_corrs='paral22', c00_default=1.0,
+                       c00_scale=1.0, timescale_min=250, fdeg=0,
                        color='blue', style='square', size=7)
     bi1 = js.parmgroup('Bimag', ipol=1, rider=pp,
-                       condeq_corrs='paral11', default=0.0,
+                       condeq_corrs='paral11', c00_default=0.0,
+                       c00_scale=1.0, timescale_min=150, fdeg=0,
                        color='magenta', style='square', size=7)
     bi2 = js.parmgroup('Bimag', ipol=2, rider=pp,
-                       condeq_corrs='paral22', default=0.0,
+                       condeq_corrs='paral22', c00_default=0.0,
+                       c00_scale=1.0, timescale_min=300, fdeg=0,
                        color='cyan', style='square', size=7)
 
     # Define potential extra condition equations:
@@ -709,28 +717,36 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Register the parmgroups (in js.ParmSet eventually):
     dr11 = js.parmgroup('Jreal_11', rider=pp,
-                        condeq_corrs='paral11', default=1.0,
+                        condeq_corrs='paral11', c00_default=1.0,
+                        c00_scale=1.0, timescale_min=100, fdeg=0,
                         color='red', style='square', size=7)
     dr22 = js.parmgroup('Jreal_22', rider=pp,
-                        condeq_corrs='paral22', default=1.0,
+                        condeq_corrs='paral22', c00_default=1.0,
+                        c00_scale=1.0, timescale_min=50, fdeg=0,
                         color='blue', style='square', size=7)
     di11 = js.parmgroup('Jimag_11', rider=pp,
-                        condeq_corrs='paral11', default=0.0,
+                        condeq_corrs='paral11', c00_default=0.0,
+                        c00_scale=1.0, timescale_min=20, fdeg=0,
                         color='magenta', style='square', size=7)
     di22 = js.parmgroup('Jimag_22', rider=pp,
-                        condeq_corrs='paral22', default=0.0,
+                        condeq_corrs='paral22', c00_default=0.0,
+                        c00_scale=1.0, timescale_min=30, fdeg=0,
                         color='cyan', style='square', size=7)
     dr12 = js.parmgroup('Jreal_12', rider=pp,
-                        condeq_corrs='*', default=0.0,
+                        condeq_corrs='*', c00_default=0.0,
+                        c00_scale=1.0, timescale_min=200, fdeg=0,
                         color='red', style='square', size=7)
     dr21 = js.parmgroup('Jreal_21', rider=pp,
-                        condeq_corrs='*', default=0.0,
+                        condeq_corrs='*', c00_default=0.0,
+                        c00_scale=1.0, timescale_min=30, fdeg=0,
                         color='red', style='square', size=7)
     di12 = js.parmgroup('Jimag_12', rider=pp,
-                        condeq_corrs='*', default=0.0,
+                        condeq_corrs='*', c00_default=0.0,
+                        c00_scale=1.0, timescale_min=10, fdeg=0,
                         color='magenta', style='square', size=7)
     di21 = js.parmgroup('Jimag_21', rider=pp,
-                        condeq_corrs='*', default=0.0,
+                        condeq_corrs='*', c00_default=0.0,
+                        c00_scale=1.0, timescale_min=40, fdeg=0,
                         color='magenta', style='square', size=7)
 
     # Define potential extra condition equations:
@@ -877,25 +893,32 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
    # Register the parmgroups (in js.ParmSet eventually):
    Dang = js.parmgroup('Dang', rider=pp,
-                       condeq_corrs='cross', default=0.0,
+                       condeq_corrs='cross', c00_default=0.0,
+                       c00_scale=0.1, timescale_min=500, fdeg=0,
                        color='green', style='triangle', size=7)
    Dell = js.parmgroup('Dell', rider=pp,
-                       condeq_corrs='cross', default=0.0,
+                       condeq_corrs='cross', c00_default=0.0,
+                       c00_scale=0.1, timescale_min=400, fdeg=0,
                        color='magenta', style='triangle', size=7)
    Dang1 = js.parmgroup('Dang', ipol=1, rider=pp,
-                        condeq_corrs='cross', default=0.0,
+                        condeq_corrs='cross', c00_default=0.0,
+                        c00_scale=0.1, timescale_min=600, fdeg=0,
                         color='green', style='triangle', size=7)
    Dang2 = js.parmgroup('Dang', ipol=2, rider=pp,
-                        condeq_corrs='cross', default=0.0,
+                        condeq_corrs='cross', c00_default=0.0,
+                        c00_scale=0.1, timescale_min=700, fdeg=0,
                         color='black', style='triangle', size=7)
    Dell1 = js.parmgroup('Dell', ipol=1, rider=pp,
-                        condeq_corrs='cross', default=0.0,
+                        condeq_corrs='cross', c00_default=0.0,
+                        c00_scale=0.1, timescale_min=500, fdeg=0,
                         color='magenta', style='triangle', size=7)
    Dell2 = js.parmgroup('Dell', ipol=2, rider=pp,
-                        condeq_corrs='cross', default=0.0,
+                        condeq_corrs='cross', c00_default=0.0,
+                        c00_scale=0.1, timescale_min=300, fdeg=0,
                         color='yellow', style='triangle', size=7)
    pzd = js.parmgroup('PZD', rider=pp,
-                      condeq_corrs='cross', default=0.0,
+                      condeq_corrs='cross', c00_default=0.0,
+                      c00_scale=1.0, timescale_min=200, fdeg=0,
                       color='blue', style='circle', size=10)
 
    # Define potential extra condition equations:

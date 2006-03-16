@@ -25,6 +25,8 @@
 # - 08 mar 2006: adopted Cohset._rider()
 # - 09 mar 2006: included new TDL_ParmSet, removed TDL_Parmset and TDL_Leafset
 # - 11 mar 2006: adopted TDL_Cohset.condeq_corrs()
+# - 16 mar 2006: added KJones()
+# - 16 mar 2006: added predict_lsm()
 
 # Copyright: The MeqTree Foundation 
 
@@ -207,6 +209,13 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         post = []
         post.append(Cohset.ParmSet.NodeSet.bookpage_subtree(ns, scope='fDMux_ParmSet'))    
         post.append(Cohset.LeafSet.NodeSet.bookpage_subtree(ns, scope='fDMux_LeafSet'))    
+        if True:
+            node = Cohset.ParmSet.NodeSet.compare (ns, Cohset.LeafSet.NodeSet,
+                                                   # group=None, binop='Subtract',
+                                                   bookpage='fDMux_ParmLeaf',
+                                                   folder=None,
+                                                   trace=True)
+            post.append(node)
 
         # Make the VisDataMux:
         Cohset.fullDomainMux(ns, start=start, post=post)
@@ -248,16 +257,11 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 # Prediction:
 #======================================================================================
 
-
-
 #--------------------------------------------------------------------------------------
 # Make a Joneset from the specified sequence of Jones matrices:
 
 def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
-    """Make a Joneset by creating and multiplying one ore more Jonesets"""
-
-    qual = None
-    if simul: qual = 'simul'
+    """Make a Joneset by creating and multiplying a sequence of one ore more Jonesets"""
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::Jones()', version='25dec2005',
@@ -265,7 +269,13 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
     # Arguments that should be common to all Jonesets in the sequence:
     MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
     MG_JEN_Joneset.inarg_Joneset_ParmSet(pp, slave=slave)
-    JEN_inarg.define (pp, 'Jsequence', [],
+    jseq_name = 'Jsequence'
+    qual = JEN_inarg.qualifier(pp, trace=True)
+    # if simul: qual = 'simul'                                    # temporary
+    if isinstance(qual, str):
+        if len(qual)>0:
+            jseq_name += '_'+qual                             # e.g. 'Jsequence_simul'
+    JEN_inarg.define (pp, jseq_name, [],
                       choice=[['GJones'],['BJones'],['FJones'],['KJones'],
                               ['DJones_WSRT'],['GJones','DJones_WSRT'],
                               ['JJones'],
@@ -284,20 +294,20 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
     funcname = JEN_inarg.localscope(pp)
 
     # Check the Jones sequence:
-    if not isinstance(pp['Jsequence'], (list,tuple)):
-        pp['Jsequence'] = [pp['Jsequence']]
-    if len(pp['Jsequence'])==0: return None             # not needed
-    if pp['Jsequence']==None: return None               # not needed
+    if not isinstance(pp[jseq_name], (list,tuple)):
+        pp[jseq_name] = [pp[jseq_name]]
+    if len(pp[jseq_name])==0: return None             # not needed
+    if pp[jseq_name]==None: return None               # not needed
 
     # Make sure that there is a valid source/patch Sixpack:
-    # NB: This is just for the punit-name!
+    # This is just for the punit-name, and (RA,Dec) for KJones...
     if not Sixpack:
         Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
     punit = Sixpack.label()
     
     # Create a sequence of Jonesets for the specified punit:
     jseq = TDL_Joneset.Joneseq()
-    for jones in pp['Jsequence']:
+    for jones in pp[jseq_name]:
         if jones=='GJones':
             jseq.append(MG_JEN_Joneset.GJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp, _qual=qual))
         elif jones=='BJones':
@@ -312,11 +322,44 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
             jseq.append(MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
                                                MSauxinfo=MSauxinfo(), _inarg=pp, _qual=qual))
         else:
-            print '** jones not recognised:',jones,'from:',pp['Jsequence']
+            print '** jones not recognised:',jones,'from:',pp[jseq_name]
                
     # Matrix-multiply the collected jones matrices in jseq to a 2x2 Joneset:
     # MG_JEN_forest_state.object(jseq, funcname)
     Joneset = jseq.make_Joneset(ns)
+    # MG_JEN_forest_state.object(Joneset, funcname)
+    return Joneset
+    
+
+#--------------------------------------------------------------------------------------
+# Make a KJones from the specified sequence of Jones matrices:
+
+def KJones(ns=None, Sixpack=None, slave=False, **inarg):
+    """Make a KJones Joneset for the specified Sixpack (RA,Dec)"""
+
+    # Input arguments:
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::KJones()', version='20mar2006',
+                            description=Jones.__doc__)
+    qual = JEN_inarg.qualifier(pp)
+    # Arguments that should be common to all Jonesets in the sequence:
+    # MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
+    # MG_JEN_Joneset.inarg_Joneset_ParmSet(pp, slave=slave)
+
+    # Include default inarg records for various Jones matrix definition functions:
+    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, _qual=qual, slave=True))
+
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+    if not JEN_inarg.is_OK(pp): return False
+    funcname = JEN_inarg.localscope(pp)
+
+    # Make sure that there is a valid source/patch Sixpack:
+    if not Sixpack:
+        Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
+    punit = Sixpack.label()
+    
+    Joneset = MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
+                                     MSauxinfo=MSauxinfo(), _inarg=pp, _qual=qual)
+               
     # MG_JEN_forest_state.object(Joneset, funcname)
     return Joneset
     
@@ -1015,7 +1058,7 @@ JEN_inarg.modify(MG,
 
 
 # Simulation control, see below (not editable)
-MG['simul'] = True
+MG['simul'] = False
 
 #----------------------------------------------------------------------------------------------------
 # Interaction with the MS: spigots, sinks and stream control

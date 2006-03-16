@@ -567,7 +567,7 @@ class ArgBrowser(QMainWindow):
                  'parm','pol','uvplane','stations',
                  'flag','corr','subtr','rmin','rmax','cond',
                  'T_sec','stddev','rms','mean','unop','binop',
-                 'sequ','solve','condit','shape_','deg_','tile']
+                 'sequ','solve','condit','num_','shape_','deg_','tile']
         exclude = []
         ss = JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
         return self.floatw(ss)
@@ -1497,8 +1497,11 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_simul', revert): return False
         JEN_inarg.specific(self.__inarg, self.simul_GJones.__doc__)
         JEN_inarg.modify(self.__inarg,
-                         Jsequence=['GJones'],
+                         Jsequence_simul=['GJones'],
+                         Jsequence_solve=['GJones'],
                          solvegroup=['GJones'],
+                         parmtable='test',
+                         num_iter=2,
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_simul_GJones', save_protected)
 
@@ -1507,8 +1510,11 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_simul', revert): return False
         JEN_inarg.specific(self.__inarg, self.simul_DJones.__doc__)
         JEN_inarg.modify(self.__inarg,
-                         Jsequence=['DJones_WSRT'],
+                         Jsequence_simul=['DJones_WSRT'],
+                         Jsequence_solve=['DJones_WSRT'],
                          solvegroup=['DJones'],
+                         parmtable='test',
+                         num_iter=2,
                          _JEN_inarg_option=None)     
         self.callback_punit('QU')
         return self.macron_exit('MG_JEN_simul_DJones', save_protected)
