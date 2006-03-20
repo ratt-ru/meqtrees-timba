@@ -7,7 +7,7 @@ import os
 
 # bookmark
 Settings.forest_state = record(bookmarks=[
-  record(name='Flux solutions',page=[
+  record(name='Visibilities',page=[
     record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_1",pos=(0,0)),
     record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_2",pos=(1,0)),
     record(viewer="Result Plotter",udi="/node/predict:1:10",pos=(2,0)),
