@@ -9,15 +9,17 @@ import os
 Settings.forest_state = record(bookmarks=[
   record(name='Flux solutions',page=[
     record(viewer="Result Plotter",udi="/node/stokes:I:src_1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_2",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_3",pos=(2,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_4",pos=(3,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_5",pos=(4,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_6",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_7",pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/stokes:I:src_2",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/stokes:I:src_3",pos=(0,2)),
+    record(viewer="Result Plotter",udi="/node/stokes:I:src_4",pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/stokes:I:src_5",pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/stokes:I:src_6",pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/stokes:I:src_7",pos=(2,0)),
     record(viewer="Result Plotter",udi="/node/stokes:I:src_8",pos=(2,1)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_9",pos=(3,1)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_10",pos=(4,1)),
+    record(viewer="Result Plotter",udi="/node/stokes:I:src_9",pos=(2,2)),
+    record(viewer="Result Plotter",udi="/node/stokes:I:src_10",pos=(3,0)),
+    record(viewer="Result Plotter",udi="/node/predict:1:10",pos=(3,1)),
+    record(viewer="Result Plotter",udi="/node/solver",pos=(3,2))
   ]), \
   record(name='Phase solutions',page=[
 #    record(viewer="Result Plotter",udi="/node/JP:2:centre:11",pos=(0,0)),
@@ -373,9 +375,9 @@ def forest_source_subtrees (ns, source):
 					c00= source.IQUV[i])
       pass
     st = ns.stokes(stokes, source.name) << Meq.Parm(IQUVpolcs[i],
-					table_name=source.table,
+#					table_name=source.table,
 					node_groups='Parm')
-    create_refparms(st);
+#    create_refparms(st);
     pass    
   ns.xx(source.name) << (ns.stokes("I",source.name)+ns.stokes("Q",source.name))*0.5
   ns.yx(source.name) << Meq.ToComplex(ns.stokes("U",source.name),ns.stokes("V",source.name))*0.5
@@ -495,7 +497,7 @@ def create_inputrec(msname, tile_size=1500,short=False):
     boioname = "boio."+msname+"."+str(tile_size);
     # if boio dump for this tiling exists, use it to save time
     # but watch out if you change the visibility data set!
-    if not short and os.access(boioname,os.R_OK):
+    if False: # not short and os.access(boioname,os.R_OK):
       rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
     # else use MS, but tell the event channel to record itself to boio file
     else:

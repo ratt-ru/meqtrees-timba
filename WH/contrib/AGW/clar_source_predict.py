@@ -7,10 +7,19 @@ import os
 
 # bookmark
 Settings.forest_state = record(bookmarks=[
-  record(name='Visibilities',page=[
+  record(name='Predicts',page=[
     record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_2",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/predict:1:10",pos=(2,0)),
+    record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_2",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_3",pos=(0,2)),
+    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_1",pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_2",pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_3",pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(2,0)),
+    record(viewer="Result Plotter",udi="/node/E:1:src_5",pos=(2,1)),
+    record(viewer="Result Plotter",udi="/node/E:1:src_10",pos=(2,2)),
+    record(viewer="Result Plotter",udi="/node/predict:1:2",pos=(3,0)),
+    record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(3,1)),
+    record(viewer="Result Plotter",udi="/node/predict:1:14",pos=(3,2)),
 #   record(viewer="Result Plotter",udi="/node/stokes:Q:3C343",pos=(1,0)),
 #    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343_1",pos=(1,1)),
 #   record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
