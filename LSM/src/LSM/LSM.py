@@ -467,6 +467,15 @@ class LSM:
   return 12
  # return max,min values of RA and Dec
  def getBounds(self):
+  # handle empty case first
+  if len(self.p_table)==0:
+    result={}
+    result['min_RA']=0
+    result['max_RA']=math.pi-0.1
+    result['min_Dec']=-math.pi/2
+    result['max_Dec']=math.pi/2
+    return result
+
   max_RA=-100
   min_RA=100
   max_Dec=-100

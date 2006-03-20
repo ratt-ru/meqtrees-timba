@@ -30,6 +30,8 @@ class OptionsDialog(QDialog):
         self.cell_has_changed=0
         self.patch_center=-1# 0: geometric, 1: centroid 
         self.patch_method=-1# 0,1
+
+        self.proj_id=-1
 ################# Tab 1
         self.axisTab=QWidget(self.tabWidget,"axisTab")
 
@@ -456,6 +458,38 @@ class OptionsDialog(QDialog):
         ##########################################
 
         self.tabWidget.insertTab(self.patchTab,QString.fromLatin1(""))
+################### Tab 6
+        self.projTab=QWidget(self.tabWidget,"projTab")
+        projtabLayout=QVBoxLayout(self.projTab,11,6,"projtabLayout")
+  
+        ######## Group 1
+        self.projBG=QButtonGroup(self.projTab,"projBG")
+        self.projBG.setColumnLayout(0,Qt.Vertical)
+        self.projBG.layout().setSpacing(6)
+        self.projBG.layout().setMargin(6)
+        bgLayout=QVBoxLayout(self.projBG.layout())
+        bgLayout.setAlignment(Qt.AlignCenter)
+
+        layoutbgV=QVBoxLayout(None,0,6,"layoutbgV")
+        self.proj_none=QRadioButton(self.projBG,"proj_none")
+        layoutbgV.addWidget(self.proj_none)
+        self.proj_sin=QRadioButton(self.projBG,"proj_sin")
+        layoutbgV.addWidget(self.proj_sin)
+        bgLayout.addLayout(layoutbgV)
+        projtabLayout.addWidget(self.projBG)
+
+        if self.parentWidget().cview.proj.isOn():
+         self.proj_sin.setChecked(1)
+        else:
+         self.proj_none.setChecked(1)
+
+        self.connect(self.projBG, SIGNAL("clicked(int)"), self.projBGradioClick)
+        ###############################
+
+
+
+        self.tabWidget.insertTab(self.projTab,QString.fromLatin1(""))
+
 ############## end of Tabs
         LayoutWidget.addWidget(self.tabWidget)
 
@@ -549,6 +583,11 @@ class OptionsDialog(QDialog):
         self.patchMBG.setTitle(self.__tr("Method"))
         self.patch_method1.setText(self.__tr("One"))
         self.patch_method2.setText(self.__tr("Two"))
+
+        self.tabWidget.changeTab(self.projTab,self.__tr("Projection"))
+        self.projBG.setTitle(self.__tr("Projection Method"))
+        self.proj_sin.setText(self.__tr("SIN"))
+        self.proj_none.setText(self.__tr("None"))
 
         self.buttonHelp.setText(self.__tr("&Help"))
         self.buttonHelp.setAccel(self.__tr("F1"))
@@ -749,6 +788,10 @@ class OptionsDialog(QDialog):
     def patchMBGradioClick(self,id):
      self.patch_method=id
 
+    def projBGradioClick(self,id):
+     self.proj_id=id
+     #print "plot BG button %d clicked" %id
+
 
     def accept(self):
      if self.axes_changed==1:
@@ -868,6 +911,14 @@ class OptionsDialog(QDialog):
      if self.patch_method!=-1:
         self.parentWidget().cview.lsm.default_patch_method=self.patch_method+1
 
+     
+     if self.proj_id!=-1:
+       if self.proj_id==0:
+        self.parentWidget().cview.proj_on=0
+       else:
+        self.parentWidget().cview.proj_on=1
+       
+       self.parentWidget().cview.updateCanvas()
 
      self.parentWidget().canvas.update()
 
