@@ -560,7 +560,7 @@ def publish_node_state(mqs, nodename):
 
 ########### new-style TDL stuff ###############
 
-def _tdl_job_clar_flux(mqs,parent,write=True):
+def _tdl_job_clar_solve(mqs,parent,write=True):
 
 # we try to fit the flux density of the source over the entire
 # observation range

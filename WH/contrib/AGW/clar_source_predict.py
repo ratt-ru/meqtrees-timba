@@ -556,7 +556,7 @@ def publish_node_state(mqs, nodename):
 
 ########### new-style TDL stuff ###############
 
-def _tdl_job_clar_test(mqs,parent,write=True):
+def _tdl_job_clar_predict(mqs,parent,write=True):
     msname          = 'TEST_CLAR.MS'
 #   inputrec        = create_inputrec(msname, tile_size=6000)
     inputrec        = create_inputrec(msname, tile_size=500)
