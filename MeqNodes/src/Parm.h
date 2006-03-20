@@ -152,6 +152,7 @@ namespace Meq {
     bool _use_previous;// if available use previous funklet,  instead of default_funklet
 
     bool converged_; // only use previous if previous solution converged..
+    bool ignore_convergence_; // only use previous if previous solution converged..
 
     bool reset_funklet_;//reset funklet instead of using values from database
     //##ModelId=3F86886F0213

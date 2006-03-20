@@ -70,6 +70,7 @@ namespace Meq {
     FTiling = AidTiling,
     FInitFunklet  = AidInit|AidFunklet,
     FConverged  = AidConverged,
+    FSaveAll  = AidSave|AidAll,
     FResetFunklet = AidReset|AidFunklet;
   
     
@@ -82,6 +83,7 @@ namespace Meq {
       tiled_ (false),
       _use_previous(true),
       converged_(false),
+      ignore_convergence_(false),
       reset_funklet_(false),
       parmtable_(0),
       default_(1.),
@@ -646,6 +648,7 @@ namespace Meq {
     rec[FAutoSave].get(auto_save_,initializing);
     rec[FUsePrevious].get(_use_previous,initializing);
     rec[FConverged].get(converged_,initializing);
+    rec[FSaveAll].get(ignore_convergence_,initializing);
     rec[FSolvable].get(solvable_,initializing);
     rec[FIntegrated].get(integrated_,initializing);
     rec[FResetFunklet].get(reset_funklet_,initializing);
@@ -847,8 +850,11 @@ namespace Meq {
       cdebug(2)<<"saving funklets ? "<<args[FSaveFunklets].as<bool>(false)<<endl;
       if( !saved && args[FSaveFunklets].as<bool>(false) )
       {
-        save();
-        saved = true;
+	if(converged_||ignore_convergence_)
+	  {
+	    save();
+	    saved = true;
+	  }
       }
       if( saved && verbosity>0 )
         postMessage("funklets have been saved");
