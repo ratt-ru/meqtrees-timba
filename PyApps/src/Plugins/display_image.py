@@ -1828,8 +1828,8 @@ class QwtImageDisplay(QwtPlot):
             self.x_parm = self.second_axis_parm
             self.y_parm = self.first_axis_parm
 # now do a check in case we have selected the wrong plot axis
-          if  self.y_parm is None:
-            self.y_parm = self.x_parm
+          if  self.x_parm is None:
+            self.x_parm = self.y_parm
           delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
           x_step = delta_vells / num_elements 
           start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
