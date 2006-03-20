@@ -110,7 +110,7 @@ def _define_forest1 (ns):
    sixpack_list.append(my_sixpack)
    my_sixpack.display()
  
- lsm.build_from_sixpacks(sixpack_list,ns,1e6)
+ lsm.build_from_sixpacks(sixpack_list,ns)
  #remember node scope
  lsm.setNodeScope(ns)
 
