@@ -108,6 +108,10 @@ class Projector:
   def isOn(self):
    return (self.__state!=0)
 
+  # get projection info
+  def info(self):
+   return {'ra0':self.__ra0, 'dec0':self.__dec0, 'rot':self.__p, 'state':self.__state}
+
 if __name__=="__main__":
    import random
    p=Projector(random.random()*math.pi,random.random()*math.pi*0.5)

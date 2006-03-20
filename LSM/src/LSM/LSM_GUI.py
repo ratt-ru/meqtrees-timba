@@ -642,16 +642,24 @@ class LSMWindow(QMainWindow):
             pn.end()
  
             yPos=yPos+fm.lineSpacing()+self.canvas.height()
-            ttext=QString("Additional Information:")
+            ttext=QString("Additional Information :")
             pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
             yPos=yPos+fm.lineSpacing()
-            ttext=QString("Filename: "+self.lsm.getFileName())
+            ttext=QString("Filename : "+self.lsm.getFileName())
             pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
             yPos=yPos+fm.lineSpacing()
-            ttext=QString("PUnits: "+str(self.lsm.getPUnits())+" Sources: "+str(self.lsm.getSources()))
+            ttext=QString("PUnits : "+str(self.lsm.getPUnits())+" Sources : "+str(self.lsm.getSources()))
             pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
             yPos=yPos+fm.lineSpacing()
-            ttext=QString("Apparent Brightness Max: "+str(self.lsm.getMaxBrightness())+" Min: "+str(self.lsm.getMinBrightness()))
+            ttext=QString("Apparent Brightness : Max= "+str(self.lsm.getMaxBrightness())+" Min= "+str(self.lsm.getMinBrightness()))
+            pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
+            yPos=yPos+fm.lineSpacing()
+            # print some info on the projection
+            proj_info=self.cview.proj.info()
+            if proj_info['state']==1:
+             ttext=QString("Projection : phase centre = ("+str(proj_info['ra0'])+","+str(proj_info['dec0'])+"), rotation = "+str(proj_info['rot']))
+            else:
+             ttext=QString("Projection : None")
             pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
             yPos=yPos+fm.lineSpacing()
             n_punits=5
