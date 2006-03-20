@@ -39,7 +39,7 @@ class MyCanvasView(QCanvasView):
     self.title_on=0
     self.obsres_on=0 # beam
     self.obswin_on=0
-    self.proj_on=1 # projection
+    self.proj_on=0 # projection 0: off, 1:0n
     self.display_point_sources='pcross' #cross,point,pcross
 
     self.canvas().setDoubleBuffering(True) 
