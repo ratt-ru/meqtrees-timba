@@ -223,7 +223,7 @@ int pyToRecord (DMI::Record::Ref &rec,PyObject *pyobj)
     try 
     { 
       pyToDMI(ref,*pyval); 
-      rec().add(id,ref);
+      rec().add(id,ref,DMI::REPLACE);
       cdebug(4)<<objstr<<"assigned value for key " <<keystr<<" ("<<ikey<<")\n";
       num_assigned++;
     }
