@@ -19,7 +19,7 @@ Settings.forest_state = record(bookmarks=[
     record(viewer="Result Plotter",udi="/node/stokes:I:src_9",pos=(2,2)),
     record(viewer="Result Plotter",udi="/node/stokes:I:src_10",pos=(3,0)),
     record(viewer="Result Plotter",udi="/node/predict:1:10",pos=(3,1)),
-    record(viewer="Result Plotter",udi="/node/solver",pos=(3,2))
+    record(viewer="Result Plotter",udi="/node/width",pos=(3,2))
   ]), \
   record(name='Phase solutions',page=[
 #    record(viewer="Result Plotter",udi="/node/JP:2:centre:11",pos=(0,0)),
@@ -357,13 +357,21 @@ def create_constant_nodes(ns):
     ns.half << Meq.Constant(0.5)
     ns.ln_16 << Meq.Constant(-2.7725887)
 
-# create constant parameters for CLAR beam nodes
+# create parameters for CLAR beam nodes
 # eventually these should be a function of frequency
 # HPBW of 3 arcmin = 0.00087266 radians 1145.9156 = 1 / 0.00087266
-    ns.width_l << Meq.Constant(1145.9156)
-    ns.width_m << Meq.Constant(1145.9156)
-    ns.width_l_sq <<Meq.Sqr(ns.width_l)
-    ns.width_m_sq <<Meq.Sqr(ns.width_m)
+
+# Note: we use a value of 1145.9156 for the beam width in
+# clar_source_predict.py.
+# Here, we make this parameter too low (1000.0)  - i.e. beam is too broad,
+# and make it a solvable MeqParm to test if the system can 
+# recover the correct value. 
+# The solver finds a value of 1183.14, which is pretty good!
+# That equates to a beam width of 2.91 arcmin.
+    beam_width_polc = create_polc_ft(degree_f=0, degree_t=0, c00=1000.0)
+    ns.width << Meq.Parm(beam_width_polc, node_groups='Parm')
+    ns.width_l_sq <<Meq.Sqr(ns.width)
+    ns.width_m_sq <<Meq.Sqr(ns.width)
 
 # creates source-related nodes for a given source
 def forest_source_subtrees (ns, source):
@@ -575,13 +583,16 @@ def _tdl_job_clar_solve(mqs,parent,write=True):
 
 
     station_list = range(1,15)
-#get source list
+# get source list
     source_model = create_source_model()
 
+# We wish to solve for the intrinsic fluxes of the sources
     solvables = []
     for source in source_model:
       solvables.append('stokes:I:' + source.name)
       pass
+# And we wish to solve for the half-power width of the primary beam
+    solvables.append('width')
 
     print 'solvables ', solvables
     for s in solvables:
