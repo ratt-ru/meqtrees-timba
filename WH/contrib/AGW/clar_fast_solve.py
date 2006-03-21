@@ -49,43 +49,44 @@ class PointSource:
 def create_source_model(tablename=''):
     """ define model source positions and flux densities """
     source_model = []
-    source_model.append( PointSource(name="src_1",I=0.5, Q=0.0, U=0.0, V=0.0,
+    stokes_i = 0.8
+    source_model.append( PointSource(name="src_1",I=stokes_i, Q=0.0, U=0.0, V=0.0,
                     Iorder=0, ra=0.030272885, dec=0.575762621,
                     table=tablename))
 
-    source_model.append( PointSource(name="src_2",  I=0.5, Q=0.0, U=0.0, V=0.0,
+    source_model.append( PointSource(name="src_2",  I=stokes_i, Q=0.0, U=0.0, V=0.0,
                     Iorder=0, ra=0.0306782675, dec=0.575526087,
                     table=tablename))
 
-    source_model.append( PointSource(name="src_3",I=0.5, Q=0.0, U=0.0, V=0.0,
+    source_model.append( PointSource(name="src_3",I=stokes_i, Q=0.0, U=0.0, V=0.0,
                     Iorder=0, ra=0.0308948646, dec=0.5762655,
                     table=tablename))
 
-    source_model.append( PointSource(name="src_4",I=0.5, Q=0.0, U=0.0, V=0.0,
+    source_model.append( PointSource(name="src_4",I=stokes_i, Q=0.0, U=0.0, V=0.0,
                     Iorder=0, ra=0.0308043705, dec=0.576256621,
                     table=tablename))
 
-    source_model.append( PointSource(name="src_5",I=0.5, Q=0.0, U=0.0, V=0.0,
+    source_model.append( PointSource(name="src_5",I=stokes_i, Q=0.0, U=0.0, V=0.0,
                     Iorder=0, ra=0.030120036, dec=0.576310965,
                     table=tablename))
 
-    source_model.append( PointSource(name="src_6",I=0.5, Q=0.0, U=0.0, V=0.0,
+    source_model.append( PointSource(name="src_6",I=stokes_i, Q=0.0, U=0.0, V=0.0,
                     Iorder=0, ra=0.0301734016, dec=0.576108805,
                     table=tablename))
 
-    source_model.append( PointSource(name="src_7",I=0.5, Q=0.0, U=0.0, V=0.0,
+    source_model.append( PointSource(name="src_7",I=stokes_i, Q=0.0, U=0.0, V=0.0,
                     Iorder=0, ra=0.0302269161, dec=0.576333355,
                     table=tablename))
 
-    source_model.append( PointSource(name="src_8",I=0.5, Q=0.0, U=0.0, V=0.0,
+    source_model.append( PointSource(name="src_8",I=stokes_i, Q=0.0, U=0.0, V=0.0,
                     Iorder=0, ra=0.0304215356, dec=0.575777607,
                     table=tablename))
 
-    source_model.append( PointSource(name="src_9",I=0.5, Q=0.0, U=0.0, V=0.0,
+    source_model.append( PointSource(name="src_9",I=stokes_i, Q=0.0, U=0.0, V=0.0,
                     Iorder=0, ra=0.0307416105, dec=0.576347166,
                     table=tablename))
 
-    source_model.append( PointSource(name="src_10",I=0.5, Q=0.0, U=0.0, V=0.0,
+    source_model.append( PointSource(name="src_10",I=stokes_i, Q=0.0, U=0.0, V=0.0,
                     Iorder=0, ra=0.0306878027, dec=0.575851951,
                     table=tablename))
 
@@ -310,7 +311,7 @@ def create_constant_nodes(ns):
 # create constant parameters for CLAR beam nodes
 # eventually these should be a function of frequency
 # HPBW of 3 arcmin = 0.00087266 radians 1145.9156 = 1 / 0.00087266
-    beam_width_polc = create_polc_ft(degree_f=0, degree_t=0, c00=500.0)
+    beam_width_polc = create_polc_ft(degree_f=0, degree_t=0, c00=1000.0)
     ns.width << Meq.Parm(beam_width_polc, node_groups='Parm')
     ns.width_sq << Meq.Sqr(ns.width);
 
@@ -452,7 +453,7 @@ def _tdl_job_clar_solve(mqs,parent,write=True):
 # observation range
 
     msname          = 'TEST_CLAR.MS'
-    inputrec        = create_inputrec(msname, tile_size=5000)
+    inputrec        = create_inputrec(msname, tile_size=10000)
     outputrec       = create_outputrec()
     print 'input record ', inputrec
     print 'output record ', outputrec
