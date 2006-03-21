@@ -434,6 +434,10 @@ namespace Meq {
 	funklist.replace(funknr,partfunk);
 		
       }//loop over funklets
+    //also set shape of own coeff, for spid recovery
+    Funklet::Ref partfunk = funklist.get(0);
+    
+    setCoeff(partfunk->coeff());
   };
 
 }//namespace Meq
