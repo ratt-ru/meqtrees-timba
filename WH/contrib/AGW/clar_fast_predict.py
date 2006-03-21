@@ -471,7 +471,7 @@ def publish_node_state(mqs, nodename):
 def _tdl_job_clar_predict(mqs,parent,write=True):
     msname          = 'TEST_CLAR.MS'
 #   inputrec        = create_inputrec(msname, tile_size=6000)
-    inputrec        = create_inputrec(msname, tile_size=240)
+    inputrec        = create_inputrec(msname, tile_size=5000)
     outputrec       = create_outputrec(output_column='PREDICT')
     print 'input record ', inputrec
     print 'output record ', outputrec

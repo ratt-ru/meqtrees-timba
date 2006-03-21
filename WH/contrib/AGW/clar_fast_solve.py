@@ -14,12 +14,12 @@ Settings.forest_state = record(bookmarks=[
     record(viewer="Result Plotter",udi="/node/stokes:I:src_4",pos=(1,0)),
     record(viewer="Result Plotter",udi="/node/stokes:I:src_5",pos=(1,1)),
     record(viewer="Result Plotter",udi="/node/stokes:I:src_6",pos=(1,2)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_7",pos=(2,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_8",pos=(2,1)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_9",pos=(2,2)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_10",pos=(3,0)),
-    record(viewer="Result Plotter",udi="/node/predict:1:10",pos=(3,1)),
-    record(viewer="Result Plotter",udi="/node/solver",pos=(3,2))
+#    record(viewer="Result Plotter",udi="/node/stokes:I:src_7",pos=(2,0)),
+#    record(viewer="Result Plotter",udi="/node/stokes:I:src_8",pos=(2,1)),
+#    record(viewer="Result Plotter",udi="/node/stokes:I:src_9",pos=(2,2)),
+    record(viewer="Result Plotter",udi="/node/predict:1:10",pos=(2,0)),
+    record(viewer="Result Plotter",udi="/node/spigot:1:10",pos=(2,1)),
+    record(viewer="Result Plotter",udi="/node/corrected:1:10",pos=(2,2)),
   ]), \
   record(name='Phase solutions',page=[
 #    record(viewer="Result Plotter",udi="/node/JP:2:centre:11",pos=(0,0)),
@@ -222,17 +222,13 @@ def forest_baseline_correct_trees(ns, interferometer_list, sources):
         is a misnomer.
     """    
     for (ant1, ant2) in interferometer_list:
-        ns.subtract(ant1, ant2) << (ns.spigot(ant1,ant2) - \
-                                    ns.predict(ant1, ant2))
-        corrected_vis_list = []
-        for source in sources:
-          ns.corrected(ant1,ant2,source.name) << \
-                Meq.MatrixMultiply(Meq.MatrixInvert22(ns.E(ant1,source.name)), #                              Meq.MatrixInvert22(ns.G(ant1)),
-                                   ns.subtract(ant1,ant2), #           Meq.MatrixInvert22(ns.ctG(ant2)),
-                                   Meq.MatrixInvert22(ns.ctE(ant2, source.name)))
-          pass
-          corrected_vis_list.append(ns.corrected(ant1,ant2,source.name))
-        ns.corrected(ant1, ant2) << Meq.Add(children=deepcopy(corrected_vis_list))
+        ns.residual(ant1, ant2) << (ns.spigot(ant1,ant2) - \
+                                    ns.predict(ant1,ant2))
+        ns.corrected(ant1,ant2) << \
+                Meq.MatrixMultiply(Meq.MatrixInvert22(ns.E(ant1,sources[0].name)), #                              Meq.MatrixInvert22(ns.G(ant1)),
+                                   ns.residual(ant1,ant2), #           Meq.MatrixInvert22(ns.ctG(ant2)),
+                                   Meq.MatrixInvert22(ns.ctE(ant2,sources[0].name)))
+        # ns.corrected(ant1, ant2) << Meq.Add(children=deepcopy(corrected_vis_list))
     pass
 
 def forest_clean_predict_trees(ns, source, station_list):
@@ -500,7 +496,7 @@ def _tdl_job_clar_solve(mqs,parent,write=True):
     # req.input.max_tiles = 1;  # this can be used to shorten the processing, for testing
     if write:
       req.output = outputrec;
-    mqs.clearcache('verifier');
+    # mqs.clearcache('verifier');
     mqs.clearcache('VisDataMux');
     print 'VisDataMux request is ', req
     mqs.execute('VisDataMux',req,wait=(parent is None));
