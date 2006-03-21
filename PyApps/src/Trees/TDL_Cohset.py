@@ -700,15 +700,24 @@ class Cohset (TDL_common.Super):
 
     #------------------------------------------------------------------------------------
 
+    def zero_coh (self, ns):
+        """Make a 'zero' cohaerency, i.e. one that produces a complex vellset with
+        some freq dependence. This is needed until MeqSinks are upgraded (mar 2006)"""
+        if not self.has_key('__zero_coh'):
+            MeqFreq = ns.zero_coh_MeqFreq << Meq.Freq() 
+            self.__zero_coh = ns.zero_coh << complex(1e-20)*MeqFreq
+        return self.__zero_coh
+
     def zero(self, ns):
         """Make zero coherency matrices for all ifrs"""
         funcname = '::zero():'
-        c0 = complex(0)
-        zz = array([c0,c0,c0,c0])
+        # c0 = complex(0)
+        # zz = array([c0,c0,c0,c0])
+        c0 = self.zero_coh(ns)
+        zz = [c0,c0,c0,c0]
         for key in self.keys():
             s12 = self.__stations[key]
-            self.__coh[key] = ns.cxzero22(s1=s12[0], s2=s12[1]) << Meq.Constant(zz, dims=[2,2])
-        # self.__dims = [2,2]
+            self.__coh[key] = ns.cxzero22(s1=s12[0], s2=s12[1]) << Meq.Composer(dims=[2,2], *zz)
         self._history(append=funcname+' -> '+self.oneliner())
 
     def unity(self, ns):
@@ -717,12 +726,11 @@ class Cohset (TDL_common.Super):
         c0 = complex(0.0)
         c1 = complex(1.0)
         zz = array([c1,c0,c0,c1])
-        coh22 = ns.cxunity22 << Meq.Constant(zz, dims=[2,2])
+        coh22 = ns.cxunity22 << Meq.Constant(value=zz, dims=[2,2])
         for key in self.keys():
             s12 = self.__stations[key]
-            # self.__coh[key] = ns.cxunity22(s1=s12[0], s2=s12[1]) << Meq.Constant(zz, dims=[2,2])
+            # self.__coh[key] = ns.cxunity22(s1=s12[0], s2=s12[1]) << Meq.Constant(value=zz, dims=[2,2])
             self.__coh[key] = coh22
-        # self.__dims = [2,2]
         self._history(append=funcname+' -> '+self.oneliner())
 
     def uniform(self, ns, coh22):
@@ -733,7 +741,6 @@ class Cohset (TDL_common.Super):
             s12 = self.__stations[key]
             # self.__coh[key] = ns.uniform(uniqual)(s1=s12[0], s2=s12[1]) << Meq.Selector(coh22)
             self.__coh[key] = coh22
-        # self.__dims = [2,2]
         self._history(append=funcname+' -> '+self.oneliner())
 
 
@@ -876,23 +883,22 @@ class Cohset (TDL_common.Super):
         funcname = '::add():'
         if not isinstance(Cohset, (tuple,list)): Cohset = [Cohset]
         if len(Cohset)==0: return True                 # no change
-
+        # print funcname,len(Cohset)
+        
         # Prepare:
         uniqual = _counter(funcname, increment=-1)
-        if exclude_itself:
-            # The following is used to make 'zero' cohaerencies,
-            # i.e. complex vellsets with some freq dependence.
-            # This is needed until MeqSinks are upgraded (mar 2005)
-            MeqFreq = ns.MeqFreq(uniqual) << Meq.Freq() 
-            freqzero = ns.freqzero(uniqual) << complex(1e-20)*MeqFreq
+        c0 = self.zero_coh(ns)
 
         # Modify the internal cohaerencies:
         for key in self.keys():
             itself = self.__coh[key]                   # its own node
             name = 'added'
-            if exclude_itself:
+            if isinstance(itself, str):                # e.g. nodestub placeholder....
+                print funcname,': itself =',itself
+                return False                           # problem
+            elif exclude_itself:
                 name = 'replaced'
-                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, freqzero)
+                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, c0)
             cc = [itself]                              # make a list for MeqAdd
             for cs in Cohset:
                 cc.append(cs[key])                     # collect corresponding (key) nodes

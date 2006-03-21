@@ -10,6 +10,7 @@
 # - 23 aug 2005: creation
 # - 02 oct 2005: added demo for tiled solutions
 # - 03 oct 2005: added epsilon (iteration control)
+# - 21 mar 2006: -> JEN_bookmarks.py
 
 # Copyright: The MeqTree Foundation 
 
@@ -28,6 +29,7 @@ from numarray import *
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_funklet
+from Timba.Trees import JEN_bookmarks
 
 #-------------------------------------------------------------------------
 # Script control record (may be edited here):
@@ -106,11 +108,11 @@ def _define_forest (ns):
    
    # Make a page of bookmarks for easy viewing:
    page_name = 'solver_ab'
-   MG_JEN_forest_state.bookmark(a, page=page_name)
-   MG_JEN_forest_state.bookmark(b, page=page_name)
-   MG_JEN_forest_state.bookmark(solver, page=page_name)
-   MG_JEN_forest_state.bookmark(condeq, page=page_name)
-   MG_JEN_forest_state.bookmark(solver, page=page_name, viewer='ParmFiddler')
+   JEN_bookmarks.create(a, page=page_name)
+   JEN_bookmarks.create(b, page=page_name)
+   JEN_bookmarks.create(solver, page=page_name)
+   JEN_bookmarks.create(condeq, page=page_name)
+   JEN_bookmarks.create(solver, page=page_name, viewer='ParmFiddler')
    
    # Finished: 
    return MG_JEN_exec.on_exit (ns, MG, cc)

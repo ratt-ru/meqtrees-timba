@@ -12,6 +12,8 @@
 # - 05 jan 2006: made stream_control inarg-compatible
 # - 16 jan 2006: added inarg_stream_control()
 # - 03 feb 2006: added fullDomainMux()
+# - 21 mar 2006: -> JEN_bookmarks.py
+# - 21 mar 2006: -> JEN_object.py and TDL_display.py
 
 # Copyright: The MeqTree Foundation 
 
@@ -56,6 +58,9 @@ from copy import deepcopy
 import os       
 
 from Timba.Trees import JEN_inarg 
+from Timba.Trees import JEN_bookmarks 
+from Timba.Trees import TDL_display 
+from Timba.Trees import JEN_record 
 from Timba.Contrib.JEN import MG_JEN_forest_state
 
 
@@ -226,7 +231,8 @@ def on_entry (ns, MG, **pp):
    # other subtree-generating functions like MG_JEN_Joneset.KJones()
    if pp['create_ms_interface_nodes']:
       if entry_counter==1:
-         MG_JEN_forest_state.MS_interface_nodes(ns)
+         # MG_JEN_forest_state.MS_interface_nodes(ns)
+         pass
    
    # Return an empty list, to be filled with root nodes
    cc = []
@@ -259,7 +265,6 @@ def on_exit (ns, MG, cc=[], stepchildren=[], **pp):
 
    # Make a page of bookmarks
    if True or exit_counter==1:
-      # stepchildren.extend(MG_JEN_forest_state.bookpage_MS_interface_nodes(ns))
       pass
 
    root = bundle (ns, cc, _test_root, stepchildren=stepchildren,
@@ -270,7 +275,7 @@ def on_exit (ns, MG, cc=[], stepchildren=[], **pp):
 #===============================================================================
 # Bundle the given nodes by making them children of a new node:
 
-def bundle (ns, cc, name='bundle', stepchildren=[], **pp):
+def bundle (ns, cc, name='bundle', folder=None, stepchildren=[], **pp):
    """Bundles the given nodes (cc) by making them children of a new node"""
    
    pp.setdefault('make_bookmark', True)   # if False, inhibit bookmarks
@@ -282,15 +287,17 @@ def bundle (ns, cc, name='bundle', stepchildren=[], **pp):
 
       if pp['make_bookmark']:
          # Make a page of bookmarks for the parent:
-         MG_JEN_forest_state.bookmark(parent, page=name, viewer='Record Browser')
+         JEN_bookmarks.create(parent, page=name, folder=folder,
+                              viewer='Record Browser')
 
    elif len(cc) == 1:
       parent = ns[name] << Meq.Selector(cc[0])
          
       if pp['make_bookmark']:
          # Make a page of bookmarks for the parent:
-         MG_JEN_forest_state.bookmark(parent, page=name) 
-         MG_JEN_forest_state.bookmark(parent, page=name, viewer='Record Browser')
+         JEN_bookmarks.create(parent, page=name, folder=folder) 
+         JEN_bookmarks.create(parent, page=name, folder=folder,
+                              viewer='Record Browser')
 
    else:
       # Make a single parent node to tie the various results (cc) together:
@@ -299,9 +306,9 @@ def bundle (ns, cc, name='bundle', stepchildren=[], **pp):
       if pp['make_bookmark']:
          # Make a bookpage for all the elements of cc:
          for i in range(len(cc)):
-            MG_JEN_forest_state.bookmark(cc[i], page=name)
+            JEN_bookmarks.create(cc[i], page=name, folder=folder)
          if pp['show_parent']:
-            MG_JEN_forest_state.bookmark(parent, page=name) 
+            JEN_bookmarks.create(parent, page=name, folder=folder) 
 
    # If any stepchildren are specified, attach them to the parent node:
    if len(stepchildren)>0: ns[name].add_stepchildren(*stepchildren)
@@ -805,8 +812,15 @@ def without_meqserver(MG=None, callback=None, **pp):
 
 
 
+
+
+
+
+
+
 #================================================================================
 # Some useful display functions:
+# NB: Should be moved to more specialised modules....
 #================================================================================
 
 #--------------------------------------------------------------------------------
@@ -814,13 +828,17 @@ def without_meqserver(MG=None, callback=None, **pp):
 def display_forest_state():
    """Display the current forest state record"""
    rr = Settings.forest_state
-   display_object (rr, 'forest_state')
-   
+   JEN_record.display_object (rr, 'forest_state')
+   return True
 
 #--------------------------------------------------------------------------------
 
 def display_nodescope (ns, txt='<txt>', trace=1):
    """Display the given nodescope in an organised way"""
+   #=======================================================
+   return TDL_display.nodescope(ns, txt=txt, trace=trace)
+   #=======================================================
+   
    print '\n*** display of NodeScope (',txt,'):'
    print '** - ns.__class__ -> ',ns.__class__
    print '** - ns.__repr__ -> ',ns.__repr__
@@ -871,6 +889,10 @@ def display_nodescope (ns, txt='<txt>', trace=1):
 def display_subtree (node, txt='<txt>', level=0, cindex=0,
                      recurse=1000, count={}, full=0):
    """Recursively display the subtree starting at the given node"""
+   #=======================================================
+   return TDL_display.subtree(node, txt=txt, recurse=recurse,
+                              cindex=cindex, full=full)
+   #=======================================================
 
    # General:
    indent = level*'..'
@@ -981,6 +1003,9 @@ def display_subtree (node, txt='<txt>', level=0, cindex=0,
 
 def display_object (v, name='<name>', txt='', full=False, indent=0):
     """Display the given Python object"""
+    #============================================================================
+    return JEN_record.display_object (v, name, txt=txt, full=full, indent=indent)
+    #============================================================================
    
     if indent==0: print '\n** display of Python object:',name,': (',txt,'):'
     print '**',indent*'.',name,':',

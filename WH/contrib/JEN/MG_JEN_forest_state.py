@@ -9,6 +9,8 @@
 # - 22 aug 2005: creation
 # - 30 nov 2005: args ra0=0.0, dec0=1.0 to .create_MS_interface_nodes()
 # - 05 jan 2006: moved bookmark functions to JEN_bookmarks.py
+# - 21 mar 2006: removed bookmark functions
+# - 21 mar 2006: disabled MS_interface functions
 
 # Copyright: The MeqTree Foundation 
 
@@ -21,9 +23,9 @@
 
 
 from Timba.TDL import *
-# from Timba.Meq import meq
+from Timba.Meq import meq
 
-from Timba.Trees import create_MS_interface_nodes
+# from Timba.Trees import create_MS_interface_nodes
 from Timba.Trees import JEN_bookmarks
 
 # from numarray import *
@@ -64,33 +66,33 @@ def _define_forest (ns):
    cc.append(sum)
 
    # Make bookmark for the forest state record:
-   # bm = bookmark (..., viewer='Record Browser')           # <-----??
+   # bm = JEN_bookmarks.create (..., viewer='Record Browser')           # <-----??
  
    # Make bookmark for a single node:
-   bm = bookmark (a)
-   bm = bookmark (b)
-   bookfolder()
+   bm = JEN_bookmarks.create (a)
+   bm = JEN_bookmarks.create (b)
  
    # Make a named page with views of the same node:
    page_name = 'b+'
-   bookmark (b, page=page_name)
-   bookmark (b, udi='funklet/coeff', viewer='Record Browser', page=page_name)
-   bookfolder('ab')
+   folder_name = 'ab'
+   JEN_bookmarks.create (b, page=page_name, folder=folder_name)
+   JEN_bookmarks.create (b, udi='funklet/coeff', viewer='Record Browser',
+                         page=page_name, folder=folder_name)
  
    # Make a named page with views of diferent nodes:
    page_name = 'sum=a+b'
-   bookmark (a, page=page_name)
-   bookmark (b, page=page_name)
-   bookmark (sum, page=page_name)
-   bookfolder('absum')
+   folder_name = 'sumab'
+   JEN_bookmarks.create (a, page=page_name, folder=folder_name)
+   JEN_bookmarks.create (b, page=page_name, folder=folder_name)
+   JEN_bookmarks.create (sum, page=page_name, folder=folder_name)
  
    # Make a named page with multiple views of the same node:
    page_name = 'views of sum'
-   bookmark (sum, page=page_name)
-   bookmark (sum, page=page_name, viewer='ParmFiddler')
-   bookmark (sum, page=page_name, viewer='Record Browser')
-   bookmark (sum, page=page_name, viewer='Executor')
-   bookfolder('sum-views')
+   folder_name = 'sum_views'
+   JEN_bookmarks.create (sum, page=page_name, folder=folder_name)
+   JEN_bookmarks.create (sum, page=page_name, folder=folder_name, viewer='ParmFiddler')
+   JEN_bookmarks.create (sum, page=page_name, folder=folder_name, viewer='Record Browser')
+   JEN_bookmarks.create (sum, page=page_name, folder=folder_name, viewer='Executor')
 
    # Append items to the forest state record:
    for i in [1,2]:
@@ -149,6 +151,7 @@ def init (MG, mode='MeqGraft'):
 
    # Reset the bookmarks (if not, the old ones are retained) 
    Settings.forest_state.bookmarks = []
+   # JEN_bookmarks.current_settings(clear=True)         # alternative....
      
    # The default name for the .meqforest save file:
    s1 = split(MG['script_name'],'.')
@@ -194,53 +197,7 @@ def save_meqforest (mqs, **pp):
 
 
 
-#===============================================================================
-# Bookmark related functions (moved to JEN_bookmarks):
-#===============================================================================
-
-#------------------------------------------------------------------------------- 
-# Create a bookmark record (optionally, save in forest_state):
-
-
-def bookmark (node=None, name=None, udi=0, viewer='Result Plotter',
-              page=0, save=True, clear=0, trace=0):
-  """Create a forest_state bookmark for the given node""" 
-  #*****************************************************************************
-  return JEN_bookmarks.bookmark (node=node, name=name, udi=udi, viewer=viewer,
-                                 page=page, save=save, clear=clear, trace=trace)
-  #*****************************************************************************
-
-#----------------------------------------------------------------------
-# Access/display/clear the current bookmarks:
-
-def bookmarks (clear=0, trace=0):
-  """Access function to the current forest_state bookbark record"""
-  #************************************************************
-  return JEN_bookmarks.bookmarks (clear=clear, trace=trace)
-  #************************************************************
-
-#----------------------------------------------------------------------
-# Add the given bookmark to the named page, and reconfigure it
-
-def bookpage (bm={}, name='page', trace=0):
-  """Add the given bookmark (record) to the specified bookpage"""
-  #************************************************************
-  return JEN_bookmarks.bookpage (bm=bm, name=name, trace=trace)
-  #************************************************************
-
-#----------------------------------------------------------------------
-# Collect the specified (item) bookmarks/pages into a named folder:
-# If none specified, collect all the non-folder bookmarks.
-
-def bookfolder (name='bookfolder', item=None, trace=0):
-  """Collect the specified bookmarks/pages into a bookmark folder"""
-  #******************************************************************
-  return JEN_bookmarks.bookfolder (name=name, item=item, trace=trace)
-  #******************************************************************
-
   
-
-
 
 
 
@@ -365,13 +322,24 @@ def autoqual (key='<MG_JEN_forest_state.autoqual>', qual=None, **pp):
    return uniqual (key=key, qual=qual, **pp)
 
 
+
+
+
+
+
+
+
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 # Get/create the record of NAMES of the standard nodes that are expected by
 # the function Timba.Trees/read_MS_auxinfo.py.
 # This record is kept in the forest state record (where else?) 
 #-------------------------------------------------------------------------------
 
-def MS_interface_nodes(ns=None, ra0=0.0, dec0=0.0):
+def MS_interface_nodes_obsolete(ns=None, ra0=0.0, dec0=0.0):
   """Get/create the standard MS interface nodes"""
 
   field = 'MS_interface_nodes'
@@ -389,7 +357,7 @@ def MS_interface_nodes(ns=None, ra0=0.0, dec0=0.0):
 #---------------------------------------------------------
 # Display them:
 
-def display_MS_interface_nodes(ns=None, rr=None, level=1):
+def display_MS_interface_nodes_obsolete(ns=None, rr=None, level=1):
    if level==1:
       rr = MS_interface_nodes(ns)
       print '\n*** Start of MS_interface_nodes:'
@@ -407,14 +375,27 @@ def display_MS_interface_nodes(ns=None, rr=None, level=1):
 # Make a page of bookmarks for its dcoll nodes:
 # The show the array layout, etc
 
-def bookpage_MS_interface_nodes(ns):
+def bookpage_MS_interface_nodes_obsolete(ns):
    rr = MS_interface_nodes(ns)
    cc = []
    for key in rr.dcoll.keys():
       cc.append(ns[rr.dcoll[key]])
-      bookmark(ns[rr.dcoll[key]], page='array_configuration')
+      JEN_bookmarks.create(ns[rr.dcoll[key]], page='array_configuration')
    # Return a list of dcoll nodes (to be made step-children)
    return cc
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #********************************************************************************
 #********************************************************************************
@@ -469,10 +450,6 @@ if __name__ == '__main__':
       cs = TDL_Cohset.Cohset()
       ss = cs.display(MG.script_name)
       trace(ss, key=cs.label())
-
-   if 1:
-      # rr = MS_interface_nodes(ns)
-      display_MS_interface_nodes(ns)
 
    if 0:
       MG_JEN_exec.display_object(Settings.forest_state, 'forest_state', MG.script_name)

@@ -62,6 +62,7 @@ from Timba.Trees import TDL_Sixpack
 from Timba.Trees import TDL_ParmSet
 from Timba.Trees import TDL_Leaf
 from Timba.Trees import JEN_inarg
+# from Timba.Trees import JEN_bookmarks
 
 from Timba.Contrib.JEN import MG_JEN_funklet
 from Timba.Contrib.JEN import MG_JEN_matrix
@@ -451,7 +452,7 @@ def newstar_source (ns=0, predefine=False, **inarg):
                                 color='black', style='circle', size=10, condeq_corrs='corrI')   # <----- ?
 
    # Define a named bookpage:
-   ParmSet.NodeSet.bookpage('punit_'+punit, [sI,sQ,sU,sV])
+   ParmSet.NodeSet.bookmark('punit_'+punit, [sI,sQ,sU,sV])
    
    # MeqParm node_groups: add 'S' to default 'Parm':
    ParmSet.node_groups('S')
@@ -591,7 +592,7 @@ def make_bundle(ns, Sixpack, radec=None):
    return ns[Sixpack.label()] << Meq.Composer(children=bb)
 
 
-def make_bookmark(ns, Sixpack, radec=None):
+def make_bookmark(ns, Sixpack, folder=None, radec=None):
    """Make a bookmark of the I,Q,U,V nodes of the given Sixpack"""
    bb = []
    bb.append(Sixpack.stokesI())
@@ -599,7 +600,7 @@ def make_bookmark(ns, Sixpack, radec=None):
    bb.append(Sixpack.stokesU())
    bb.append(Sixpack.stokesV())
    if radec: collect_radec(radec, Sixpack)
-   return MG_JEN_exec.bundle(ns, bb, Sixpack.label())
+   return MG_JEN_exec.bundle(ns, bb, Sixpack.label(), folder=folder)
 
 
 def collect_radec(radec=[], Sixpack=None, ns=None):
@@ -684,11 +685,9 @@ def _define_forest (ns):
       ss = []
       for predef in group[key]:
          Sixpack = newstar_source (ns, predefine=True, punit=predef)
-         ss.append(make_bookmark(ns, Sixpack))
+         ss.append(make_bookmark(ns, Sixpack, folder=key))
          collect_radec(radec, Sixpack)
-      cc.append(MG_JEN_exec.bundle(ns, ss, key))
-      MG_JEN_forest_state.bookfolder(key)
-      # JEN_bookmarks.bookfolder(key)
+      cc.append(MG_JEN_exec.bundle(ns, ss, key, make_bookmark=False))
  
    # Make the radec_root node:
    collect_radec(radec, ns=ns)

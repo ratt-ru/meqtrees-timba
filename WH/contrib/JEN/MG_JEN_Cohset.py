@@ -26,7 +26,8 @@
 # - 09 mar 2006: included new TDL_ParmSet, removed TDL_Parmset and TDL_Leafset
 # - 11 mar 2006: adopted TDL_Cohset.condeq_corrs()
 # - 16 mar 2006: added KJones()
-# - 16 mar 2006: added predict_lsm()
+# - 20 mar 2006: added predict_lsm()
+# - 22 mar 2006: implemented bookfolders
 
 # Copyright: The MeqTree Foundation 
 
@@ -43,6 +44,8 @@ from numarray import *
 
 from Timba.Trees import JEN_inarg
 from Timba.Trees import JEN_inargGui
+from Timba.Trees import JEN_bookmarks
+
 from Timba.Trees import TDL_Cohset
 from Timba.Trees import TDL_Joneset
 from Timba.Trees import TDL_Leaf
@@ -188,6 +191,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     #----------------------------------------------------------------------
     # Make an extra VisDataMux for post-visualisation of the full domain:
     if pp['fullDomainMux']:
+        bookfolder = 'fullDomainMux'
 
         # Attach some test-nodes:
         start = []
@@ -195,25 +199,25 @@ def make_sinks(ns=None, Cohset=None, **inarg):
             bookpage = 'fDMux_test'
             node = TDL_Leaf.MeqFreqTime(ns, mean=0.0)
             start.append(node)
-            MG_JEN_forest_state.bookmark(node, page=bookpage)
+            JEN_bookmarks.create(node, page=bookpage, folder=bookfolder)
             if True:
                 # The same with the full time: truncation problems?
                 node = TDL_Leaf.MeqFreqTime(ns)
                 start.append(node)
-                MG_JEN_forest_state.bookmark(node, page=bookpage)
+                JEN_bookmarks.create (node, page=bookpage, folder=bookfolder)
 
         # NB: Do NOT include nodes that lead to spigots or solvers!!!!
         #     Just stick to MeqParms etc
 
         # Bundle the MeqParms per parmgroup:
         post = []
-        post.append(Cohset.ParmSet.NodeSet.bookpage_subtree(ns, scope='fDMux_ParmSet'))    
-        post.append(Cohset.LeafSet.NodeSet.bookpage_subtree(ns, scope='fDMux_LeafSet'))    
-        if True:
+        post.append(Cohset.ParmSet.NodeSet.bookmark_subtree(ns, folder=bookfolder))
+        post.append(Cohset.LeafSet.NodeSet.bookmark_subtree(ns, folder=bookfolder))    
+        if False:
             node = Cohset.ParmSet.NodeSet.compare (ns, Cohset.LeafSet.NodeSet,
                                                    # group=None, binop='Subtract',
-                                                   bookpage='fDMux_ParmLeaf',
-                                                   folder=None,
+                                                   bookpage='fDMux_Parm_Leaf',
+                                                   folder=bookfolder,
                                                    trace=True)
             post.append(node)
 
@@ -228,7 +232,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         dcoll = MSauxinfo().dcoll(ns)
         MSauxinfo().display(funcname)
         for i in range(len(dcoll)):
-            MG_JEN_forest_state.bookmark(dcoll[i], page='MSauxinfo_array_config')
+            JEN_bookmarks.bookmark(dcoll[i], page='MSauxinfo_array_config')
         start.extend(dcoll)
 
     # Attach any collected hcoll/dcoll nodes:
@@ -271,7 +275,6 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
     MG_JEN_Joneset.inarg_Joneset_ParmSet(pp, slave=slave)
     jseq_name = 'Jsequence'
     qual = JEN_inarg.qualifier(pp, trace=True)
-    # if simul: qual = 'simul'                                    # temporary
     if isinstance(qual, str):
         if len(qual)>0:
             jseq_name += '_'+qual                             # e.g. 'Jsequence_simul'
@@ -367,11 +370,17 @@ def KJones(ns=None, Sixpack=None, slave=False, **inarg):
 #------------------------------------------------------------------------------
 
 def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
-    """Make a Cohset with predicted uv-data for the source defined by Sixpack.
-    If a Joneset with instrumental effects is supplied, corrupt the data."""
+    """Obsolete (upward compatibility) version of .predict_cps()"""
+    return predict_cps (ns, Sixpack, Joneset=Joneset, slave=slave, **inarg)
+
+
+def predict_cps (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
+    """Make a Cohset with predicted uv-data for the Central Point Source (cps)
+    defined by Sixpack. If a Joneset with instrumental effects is supplied,
+    corrupt the predicted uv-data."""
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict()', version='25dec2005',
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict_cps()', version='20mar2006',
                             description=predict.__doc__)
     MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
@@ -383,7 +392,7 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
         Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
 
     # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
-    Cohset = TDL_Cohset.Cohset(label='predict', origin=funcname, **pp)
+    Cohset = TDL_Cohset.Cohset(label='predict_cps', origin=funcname, **pp)
 
     # Copy info (plot-styles, parmgroup/solvegroup etc):
     Cohset.update_from_Sixpack(Sixpack)
@@ -401,6 +410,79 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     if Joneset:
        Cohset.corrupt (ns, Joneset=Joneset)
        # Cohset.display('.predict(): after corruption')
+
+    # Finished:
+    MG_JEN_forest_state.object(Sixpack, funcname)
+    Cohset._history(funcname+' using '+Sixpack.oneliner())
+    Cohset._history(funcname+' -> '+Cohset.oneliner())
+    MG_JEN_forest_state.history (funcname)
+    # MG_JEN_forest_state.object(Cohset, funcname)
+    return Cohset
+
+#------------------------------------------------------------------------------
+
+def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
+    """Make a Cohset with predicted uv-data for the specified sources in
+    the given Local Sky Model (lsm). If a Joneset with (sky-interpolatable)
+    instrumental effects is supplied, corrupt the predicted uv-data."""
+
+    # Input arguments:
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict_lsm()', version='20mar2006',
+                            description=predict.__doc__)
+
+    JEN_inarg.define(pp, 'nr_lsm_sources', 1, choice=[1,2,3,5,10,20,100],
+                     help='nr of lsm sources to be included (in order of brightness')
+    MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
+    # Include default inarg records for the KJones matrix definition function:
+    qual_KJones = 'predict_lsm'
+    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, _qual=qual_KJones, slave=True))
+
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+    if not JEN_inarg.is_OK(pp): return False
+    funcname = JEN_inarg.localscope(pp)
+
+    print 'pp =',type(pp),pp['nr_lsm_sources']
+
+    # Obtain the Sixpacks of the brightest punits.
+    # Turn the point-sources in Cohsets with DFT KJonesets
+    plist = lsm.queryLSM(count=pp['nr_lsm_sources'])
+    print '\n** plist =',type(plist),len(plist)
+    cs = []                                  # list on source Cohsets
+    for punit in plist: 
+        Sixpack = punit.getSixpack()      
+        punit_name = str(Sixpack.label())
+        if Sixpack.ispoint():                # point source (Sixpack object)
+            # Make a new Cohset for this punit:
+            cs1 = TDL_Cohset.Cohset(label=punit_name, origin=funcname, **pp)
+            cs1.display(punit_name)
+            # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
+            # by multiplication its (I,Q,U,V) with the relevent (polrep) Stokes matrix:
+            nominal = Sixpack.coh22(ns, pp['polrep'])
+            # Put the same 'nominal' (i.e. uncorrupted) visibilities into all ifr-slots of cs1:
+            cs1.uniform(ns, nominal)
+            KJones = MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
+                                            _inarg=pp, _qual=qual_KJones)
+            print 'before cs1.corrupt()'
+            cs1.corrupt (ns, Joneset=KJones)
+            print 'after cs1.corrupt()'
+            # cs1.update_from_Sixpack(Sixpack)
+            cs.append(cs1)
+        else:	                             # patch (not a Sixpack object!)
+            node = Sixpack.root()
+            # cc.append(node)
+
+    # Add the point-source Cohsets together into the final predicted Cohset:
+    Cohset = TDL_Cohset.Cohset(label='predict_lsm', origin=funcname, **pp)
+    Cohset.zero(ns)
+    Cohset.display()
+    Cohset.add(ns, cs, exclude_itself=True)
+    Cohset.display()
+    # Cohset.display('after add')
+
+    # Optionally, corrupt the Cohset visibilities with the instrumental effects
+    # in the given Joneset of 2x2 station jones matrices:
+    if Joneset:
+       Cohset.corrupt (ns, Joneset=Joneset)
 
     # Finished:
     MG_JEN_forest_state.object(Sixpack, funcname)
@@ -517,7 +599,8 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
             pp['flag_residuals'] = False;                # see below
             pass
         if pp['visu']:
-            visualise (ns, measured, errorbars=True, graft=False)
+            visualise (ns, measured, errorbars=True, graft=False,
+                       bookfolder='subtracted')
         
     # Optional: Correct the measured data with the given Joneset.
     # NB: This should be done AFTER subtract, for the same reason as stated above
@@ -533,7 +616,9 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
         Joneset = predicted.Joneset() 
         if Joneset:                                  # if Joneset available
             measured.correct(ns, Joneset)            # correct 
-            if pp['visu']: visualise (ns, measured, errorbars=True, graft=False)
+            if pp['visu']:
+                visualise (ns, measured, errorbars=True, graft=False,
+                           bookfolder='corrected')
 
     # Obtain the current list of (full-resolution) hcoll/dcoll nodes, and clear: 
     # NB: These are the ones that get a request AFTER the solver(s)
@@ -629,6 +714,7 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
     solver_name = pp['solvegroup'][0]
     for i in range(len(pp['solvegroup'])):
         if i>0: solver_name = solver_name+pp['solvegroup'][i]
+    folder_name = 'solver: '+solver_name
 
     # Get a list of names of solvable MeqParms for the solver:
     corrs = Cohset.condeq_corrs(pp['solvegroup'])
@@ -641,14 +727,16 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
     hcoll_parm = []
     subtree_solvegroups = None
     if pp['visu']:
-        bs = Cohset.ParmSet.NodeSet.bookpage_subtree(ns, scope='solver_'+solver_name)
+        bs = Cohset.ParmSet.NodeSet.bookmark_subtree(ns, folder=folder_name)
         # subtree_solvegroups = bs
         dcoll_parm.append(bs)
         # Show the first MeqParm in each parmgroup:
         ss1 = Cohset.ParmSet.solveparm_names(pp['solvegroup'], select='first')
         for s1 in ss1:
-            # MG_JEN_forest_state.bookmark (ns[s1], page='solvable')
-            hcoll = MG_JEN_historyCollect.insert_hcoll(ns, s1, page='hcoll_solvable', graft=False)
+            # JEN_bookmarks.bookmark (ns[s1], page='solvable')
+            hcoll = MG_JEN_historyCollect.insert_hcoll(ns, s1, graft=False,
+                                                       bookpage='hcoll_solvable',
+                                                       bookfolder=folder_name)
             hcoll_parm.append(hcoll)
 
     # Extract a list of condeq nodes for the specified corrs and baseline lengths:
@@ -683,11 +771,12 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
                                                            debug_level=pp['debug_level'])
     # Make a bookmark for the solver plot:
     page_name = 'solver: '+solver_name
-    MG_JEN_forest_state.bookmark (solver, page=page_name, viewer='Result Plotter')
-    MG_JEN_forest_state.bookmark (solver, page=page_name, viewer='ParmFiddler')
+    JEN_bookmarks.create (solver, page=page_name, folder=folder_name)
+    JEN_bookmarks.create (solver, viewer='ParmFiddler',
+                          page=page_name, folder=folder_name)
     if pp['visu']:
         # Optional: also show the solver on the allcorrs page:
-        MG_JEN_forest_state.bookmark (solver, page='allcorrs', viewer='Result Plotter')
+        JEN_bookmarks.create (solver, page='allcorrs')
 
     # Make historyCollect nodes for the solver metrics
     hcoll_nodes = []
@@ -695,6 +784,7 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
         # Make a tensor node of solver metrics/debug hcoll nodes:
         hc = MG_JEN_historyCollect.make_hcoll_solver_metrics (ns, solver,
                                                               firstonly=True,
+                                                              bookfolder=folder_name,
                                                               name=solver_name)
         hcoll_nodes.append(hc)
 
@@ -795,6 +885,7 @@ def visualise(ns=None, Cohset=None, extra=None, **pp):
     pp.setdefault('crosscorr', False)       # if True, also make plots for cross corrs only  
     pp.setdefault('keypage', True)          # if True, make 'key' bookmarks
     pp.setdefault('bookpage', '<scope>')    # bookmark page to be used for scope... 
+    pp.setdefault('bookfolder', None)       # bookmark folder to be used 
 
     pp['graft'] = False                     # disabled permanently....?
 
@@ -850,10 +941,11 @@ def visualise(ns=None, Cohset=None, extra=None, **pp):
           # Since spectra plots are crowded, make separate plots for the 4 corrs.
           dc = dcoll[key]                                         # key = corr
           if pp['keypage']:
-              MG_JEN_forest_state.bookmark (dc['dcoll'], page=key)
-              MG_JEN_forest_state.bookmark (dc['dcoll'], page=dcoll_scope+'_spectra')
-          if pp['bookpage']:
-              MG_JEN_forest_state.bookmark (dc['dcoll'], page=pp['bookpage'])
+              JEN_bookmarks.create (dc['dcoll'], page=key, folder=str(Cohset.corrs()))
+              JEN_bookmarks.create (dc['dcoll'], page=dcoll_scope, folder='spectra')
+          if pp['bookpage'] or pp['bookfolder']:
+              JEN_bookmarks.create (dc['dcoll'], page=pp['bookpage'],
+                                    folder=pp['bookfolder'])
 
        elif pp['type']=='realvsimag':
           # For realvsimag plots it is better to plot multiple corrs in the same plot.
@@ -863,8 +955,9 @@ def visualise(ns=None, Cohset=None, extra=None, **pp):
           dc = MG_JEN_dataCollect.dconc(ns, dcoll[key], 
                                         scope=dcoll_scope,
                                         tag=key, bookpage=keypage)
-          if pp['bookpage']:
-              MG_JEN_forest_state.bookmark (dc['dcoll'], page=pp['bookpage'])
+          if pp['bookpage'] or pp['bookfolder']:
+              JEN_bookmarks.create (dc['dcoll'], page=pp['bookpage'],
+                                    folder=pp['bookfolder'])
 
        dconc[key] = dc                               # atach to output record
        sc.append (dc['dcoll'])                       # step-child for graft below

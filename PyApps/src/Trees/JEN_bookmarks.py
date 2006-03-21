@@ -8,25 +8,252 @@
 # History:
 # - 05 jan 2006: creation (copied from MG_JEN_forest_state.py)
 # - 12 mar 2006: .get_bookpage()
+# - 20 mar 2006: revamped (especially including folders)
+# - 25 mar 2006: separated the semi-obsolete functions
 
 
 # Copyright: The MeqTree Foundation 
+
 
 
 #********************************************************************************
 
 
 from Timba.TDL import *
-# from Timba.Meq import meq
-# from numarray import *
+from Timba.Trees import JEN_record
+
 from string import *
 from copy import deepcopy
 
 
 
 #===============================================================================
-# Bookmark related functions:
-#===============================================================================
+
+
+def create (node=None, name=None, udi=None, viewer='Result Plotter',
+            save=True, page=None, folder=None, trace=False):
+    """Create a forest_state bookmark for the given node.
+    - viewer = 'Result Plotter'   (default)
+    - viewer = 'History Plotter'
+    - viewer = 'ParmFiddler'
+    - viewer = 'Record Browser'
+    - viewer = 'Executor'
+    - udi += 'funklet/coeff'
+    - udi += 'cache/result'
+    If save==True (default), the bookmark will automatically be inserted
+    in the specified page/folder, creating the latter if necessary. 
+    NB: This is the only bookmark function that is needed normally.""" 
+
+    # Initialise the bookmark record:
+    bm = record(viewer=viewer, publish=True)
+
+    # The udi:
+    bm.udi = '/node/'+node.name                            # root part of udi
+    if isinstance(udi, str):                               # extension specified
+        bm.udi = bm.udi+'/'+udi                            #   append it
+    
+    # The name in the bookmark menu:
+    bm.name = node.name                                    # automatic name
+    if isinstance(name, str):                              # name specified
+        bm.name = name                                    #   override
+
+    # Dispose of the result:
+    if save:
+        return insert(bm, page=page, folder=folder, trace=trace)
+    else:
+        if trace: print '\n** JEN_bookmark (not saved):',bm,'\n'
+        return bm
+
+
+#-----------------------------------------------------------------------------
+
+def insert (bm=None, page=None, folder=None, level=0, bmlist=None, trace=False):
+    """Insert the specified bookmark (record) to the specified bookpage
+    [of the specified folder]. Create the latter if necessary."""
+
+    s1 = str(level)+(level*'..')+'.insert('
+    s1 += str(bm.name)
+    s1 += ','+str(page)+','+str(folder)+'): '
+    if trace: print '\n**',s1
+    
+    if level==0:
+        if isinstance(page, bool): page = None               # upwards compatibility
+        if isinstance(folder, bool): folder = None           # upwards compatibility
+        bmlist = current_settings()                          # bmlist is a list
+        if not isinstance(bmlist, list): bmlist = []
+    
+    # Check whether the specified page already exists:
+    found = 0
+    # bmc = record(bm.copy())
+    bmc = deepcopy(bm)
+
+    # Go through the list (of records):
+    inserted = 0
+    new = True
+    for i in range(len(bmlist)):
+        item = bmlist[i]                                  # convenience
+        if not isinstance(item, dict):
+            print s1,'** ERROR ** item not a dict, but:',type(item)
+
+        elif not item.has_key('name'):
+            print s1,'** ERROR ** item does not have name-field:',item.keys()
+
+        elif item.has_key('folder'):                      # item is a folder (record)
+            if not isinstance(item.folder, list):
+                print s1,'** ERROR ** item.folder not a list, but:',type(item.folder)
+            elif not isinstance(folder, str):             # folder not specified, or inside correct one
+                pass                                      # ignore this folder
+            elif not item.name == folder:                 # other folder
+                # NB: Do we have folders of folders..?
+                # NB: Do we allow multiple folders (lists)..?
+                pass                                      # ignore this folder
+            else:                                         # found specified folder
+                # Insert the bookmark into this folder (somehow):
+                if trace: print '- insert bookmark into specified folder:',folder,'(',page,bm.name,')'
+                inserted += insert (bm, page=page, folder=None,
+                                    level=level+1, bmlist=bmlist[i].folder,
+                                    trace=trace)
+
+        elif isinstance(folder, str):                     # folder specified explicitly
+            pass                                          # ignore page/bookmark items
+
+        elif item.has_key('page'):                        # item is a page (record)
+            if not isinstance(item.page, list):
+                print s1,'** ERROR ** item.page not a list, but:',type(item.page)
+            elif isinstance(page, str) and (not item.name == page):   # wrong page
+                pass                                      # ignore this page
+            else:                                         # found specified page
+                # Append the bookmark to bmlist[i].page (mutable):
+                new = True
+                for bm1 in item.page:                     # avoid doubles
+                    if is_equal(bm1, bm):
+                        new = False                       # bookmark already exists
+                if new:
+                    bmc = deepcopy(bm)
+                    n = len(bmlist[i].page)               # current page length
+                    autoplace(bmc, n)                     # Automatic placement of the panel:
+                    bmlist[i].page.append(bmc)            # append to page
+                    if trace: print '- appended (',n,') to existing page:',page,bmc
+                else:
+                    if trace: print '- not appended (double) to existing page:',page,bmc
+                inserted += 1
+
+        else:                                             # assume: item is bookmark (record)
+            if is_equal(bm, item):
+                new = False                               # used below
+          
+
+
+    # The bookmark (bm) should always be inserted somewhere:
+    if inserted==0:                                       # none inserted
+
+        # Create a new page, if required:
+        newpage = False
+        if isinstance(page, str):                 
+            bmc = deepcopy(bm)
+            bmc.pos = [0,0]
+            newpage = record(name=page, page=[bmc])
+
+        # Create a new folder, if required:
+        if isinstance(folder, str):               
+            if newpage:
+                newfolder = record(name=folder, folder=[newpage])
+            else:
+                newfolder = record(name=folder, folder=[bmc])
+            bmlist.append(newfolder)
+            if trace: print '- created new folder:',newfolder
+
+        elif newpage:
+            bmlist.append(newpage)
+            if trace: print '- created new page:',newpage
+        else:
+            bmlist.append(bm)
+            if trace: print '- attached new bookmark:',bm
+        inserted = 1
+
+    # Finished: Replace the current settings:
+    current_settings(bmlist, txt='end of bmark', trace=False)
+    return inserted
+
+
+
+#----------------------------------------------------------------------
+
+def autoplace(bm, n=0):
+    """Automatic placement of the given bookmark (bm) as the
+    nth panel on a bookpage"""
+
+    if n==0: bm.pos = [0,0]               # superfluous
+    
+    # 1st col:
+    if n==1: bm.pos = [1,0]
+    
+    # 2nd col:
+    if n==2: bm.pos = [0,1]
+    if n==3: bm.pos = [1,1]
+    
+    # 3rd row:
+    if n==4: bm.pos = [2,0]
+    if n==5: bm.pos = [2,1]
+    
+    # 3rd col:
+    if n==6: bm.pos = [0,2]
+    if n==7: bm.pos = [1,2]
+    if n==8: bm.pos = [2,2]
+    
+    # 4th row:
+    if n==9: bm.pos = [3,0]
+    if n==10: bm.pos = [3,1]
+    if n==11: bm.pos = [3,2]
+
+    # 4th col:
+    if n==12: bm.pos = [0,3]
+    if n==13: bm.pos = [1,3]
+    if n==14: bm.pos = [2,3]
+    if n==15: bm.pos = [3,3]
+    return True
+
+
+#-----------------------------------------------------------------------------
+
+def current_settings(new=None, txt='JEN_bookmarks.py', clear=False, trace=False):
+    """Get/set the current bookmark (list) from/to the global Settings"""
+    Settings.forest_state.setdefault('bookmarks',[])
+    if new:                                            # replace with new
+        Settings.forest_state.bookmarks = new
+    if clear:                                          # clear all
+        Settings.forest_state.bookmarks = []
+    if trace:
+        JEN_record.display_object(Settings.forest_state.bookmarks,
+                                  'forest_state.bookmarks', txt)
+    return Settings.forest_state.bookmarks
+
+
+#----------------------------------------------------------------------
+# Compare two bms records:
+
+def is_equal (bms1, bms2, trace=False):
+    """Check whether two bookmark records are equal"""
+    if not isinstance(bms1, dict): return False
+    if not isinstance(bms2, dict): return False
+    for key in ['name','udi','viewer']:
+        if not bms1.has_key(key): return False
+        if not bms2.has_key(key): return False
+        if not bms1[key]==bms2[key]: return False
+    return True
+
+
+
+
+
+
+
+#===================================================================================
+#===================================================================================
+#===================================================================================
+#===================================================================================
+# semi-obsolete:
+#===================================================================================
 
 
 #------------------------------------------------------------------------------- 
@@ -34,7 +261,8 @@ from copy import deepcopy
 
 
 def bookmark (node=None, name=None, udi=0, viewer='Result Plotter',
-              page=0, save=True, clear=0, trace=0):
+              page=None, folder=None,
+              save=True, clear=False, trace=False):
     """Create a forest_state bookmark for the given node""" 
     
     if clear: Settings.forest_state.bookmarks = [] 
@@ -67,24 +295,27 @@ def bookmark (node=None, name=None, udi=0, viewer='Result Plotter',
 
 def bookmarks (clear=0, trace=0):
     """Access function to the current forest_state bookbark record"""
-    if clear: Settings.forest_state.bookmarks = [] 
-    Settings.forest_state.setdefault('bookmarks',[])
-    bms = Settings.forest_state.bookmarks
-    return bms
+    return current_settings(clear=clear, trace=trace)
 
 
 #----------------------------------------------------------------------
-# Get the named bookmark (None = all):
+# Get the named bookmark (None = all) on the specified page of the specified folder:
 
-def get_bookmark (name=None, level=0, trace=False):
-    """Get the definition of the specified (name) bookmark"""
-    if trace: print '\n** .get_bookmark(',name,') ->',
-    Settings.forest_state.setdefault('bookmarks',[])
-    bms = Settings.forest_state.bookmarks
+def get_bookmark (name=None, page=None, folder=None, level=0, trace=False):
+    """Get a list of definition(s) of the specified (name) bookmark(s)
+    on the specified page(s) of the specified folder(s). None is all."""
+    if trace: print '\n** .get_bookmark(',name,page,folder,') ->',
+    bms = current_settings()
     marks = []
     names = []
     for i in range(len(bms)):
-      if bms[i].has_key('mark'):
+      if not bms[i].has_key('name'):
+          pass                         # error
+      elif bms[i].has_key('folder'):
+          pass
+      elif bms[i].has_key('page'):
+          pass
+      else:
         marks.append(bms[i])
         names.append(bms[i].name)
         if isinstance(name, str):
@@ -99,13 +330,13 @@ def get_bookmark (name=None, level=0, trace=False):
     return marks                       # return list of bookmarks
 
 #----------------------------------------------------------------------
-# Get the named bookpage (None = all):
+# Get the named bookpage (None = all) of the specified folder:
 
-def get_bookpage (name=None, level=0, trace=False):
-    """Get the definition of the specified (name) bookpage"""
-    if trace: print '\n** .get_bookpage(',name,') ->',
-    Settings.forest_state.setdefault('bookmarks',[])
-    bms = Settings.forest_state.bookmarks
+def get_bookpage (name=None, folder=None, level=0, trace=False):
+    """Get a list of definition(s) of the specified (name) bookpage(s)
+    in the specified folder(s). In all cases, None means all"""
+    if trace: print '\n** .get_bookpage(',name,folder,') ->',
+    bms = current_settings()
     pages = []
     names = []
     for i in range(len(bms)):
@@ -129,8 +360,7 @@ def get_bookpage (name=None, level=0, trace=False):
 def get_bookfolder (name=None, level=0, trace=False):
     """Get the definition of the specified (name) bookfolder"""
     if trace: print '\n** .get_bookfolder(',name,') ->',
-    Settings.forest_state.setdefault('bookmarks',[])
-    bms = Settings.forest_state.bookmarks
+    bms = current_settings()
     folders = []
     names = []
     for i in range(len(bms)):
@@ -149,28 +379,25 @@ def get_bookfolder (name=None, level=0, trace=False):
     return folders                     # return list of bookfolders
 
 
-#----------------------------------------------------------------------
-# Compare two bms records:
 
-def is_equal (bms1, bms2, trace=False):
-  """Check whether two bookmark records are equal"""
-  if not isinstance(bms1, dict): return False
-  if not isinstance(bms2, dict): return False
-  for key in ['name','udi','viewer']:
-    if not bms1.has_key(key): return False
-    if not bms2.has_key(key): return False
-    if not bms1[key]==bms2[key]: return False
-  return True
+#----------------------------------------------------------------------
+# Get the named bookmark (None = all) on the specified page of the specified folder:
+
+def set_bookmark (bm, page=None, folder=None, replace=True, level=0, trace=False):
+    """Put the specified bookmark(s) on the specified page(s) of the
+    specified folder(s)."""
+    return True
+
 
 
 #----------------------------------------------------------------------
-# Add the given bookmark to the named page, and reconfigure it
+# Add the given bookmark to the named page/folder, and reconfigure it
 
-def bookpage (bm={}, name='page', trace=False):
-  """Add the given bookmark (record) to the specified bookpage"""
+def bookpage (bm={}, name='page', folder=None, trace=False):
+  """Add the given bookmark (record) to the specified bookpage
+  [of the specified folder]"""
 
-  Settings.forest_state.setdefault('bookmarks',[])
-  bms = Settings.forest_state.bookmarks
+  bms = current_settings()
 
   # Check whether the specified page already exists:
   found = 0
@@ -183,34 +410,7 @@ def bookpage (bm={}, name='page', trace=False):
       
         # Automatic placement of the panel:
         n = len(bms[i].page)                      # current length
-        if n==0: bmc.pos = [0,0]               # superfluous
-
-        # 1st col:
-        if n==1: bmc.pos = [1,0]
-
-        # 2nd col:
-        if n==2: bmc.pos = [0,1]
-        if n==3: bmc.pos = [1,1]
-
-        # 3rd row:
-        if n==4: bmc.pos = [2,0]
-        if n==5: bmc.pos = [2,1]
-
-        # 3rd col:
-        if n==6: bmc.pos = [0,2]
-        if n==7: bmc.pos = [1,2]
-        if n==8: bmc.pos = [2,2]
-
-        # 4th row:
-        if n==9: bmc.pos = [3,0]
-        if n==10: bmc.pos = [3,1]
-        if n==11: bmc.pos = [3,2]
-
-        # 4th col:
-        if n==12: bmc.pos = [0,3]
-        if n==13: bmc.pos = [1,3]
-        if n==14: bmc.pos = [2,3]
-        if n==15: bmc.pos = [3,3]
+        autoplace(bmc, n)
 
         new = True
         for bm in bms[i].page:
@@ -229,10 +429,11 @@ def bookpage (bm={}, name='page', trace=False):
     if trace: print '- created new bookpage:',bmc
     bms.append(record(name=name, page=[bmc]))
       
-  Settings.forest_state.bookmarks = bms
-  return bms
+  # Replace (and return) the current settings:
+  return current_settings(bms)
 
 
+    
 #----------------------------------------------------------------------
 # Collect the specified (item) bookmarks/pages into a named folder:
 # If none specified, collect all the non-folder bookmarks.
@@ -242,8 +443,7 @@ def bookfolder (name='bookfolder', item=None, trace=False):
   
   if (trace): print '\n** .bookfolder(',name,'):'
 
-  Settings.forest_state.setdefault('bookmarks',[])
-  bms = Settings.forest_state.bookmarks
+  bms = current_settings()
 
   if item==None:     # if item=None, put ALL non-folder bookmarks in the folder
      pass
@@ -276,9 +476,12 @@ def bookfolder (name='bookfolder', item=None, trace=False):
      bmsnew.append(record(name=name, folder=folder)) 
      if (trace): print 'append folder to bmsnew:',folder
 
-  Settings.forest_state.bookmarks = bmsnew
-
+  # Replace the current settings:
+  current_settings(bmsnew)
   return folder
+
+
+
 
 
 
@@ -293,66 +496,33 @@ if __name__ == '__main__':
    # from Timba.Trees import TDL_display
    from Timba.Trees import JEN_record
 
-   ns = NodeScope()
-
-   # Parameters:
-   a = ns.a << Meq.Parm(array([[1,0.2],[-0.3,0.1]]))
-   b = ns.b << Meq.Parm(array([[1,-0.2],[0.3,0.1]]))
-   sumab = ns << Meq.Add (a, b)
-
-   if True:
-     # Make bookmark for a single node:
-     bm = bookmark (a)
-     bm = bookmark (b)
-     get_bookmark(trace=True)
-     bookfolder()
-
-   if True:
-     # Make a named page with views of the same node:
-     page_name = 'b+'
-     bookmark (b, page=page_name)
-     bookmark (b, udi='funklet/coeff', viewer='Record Browser', page=page_name)
-     get_bookpage(page_name, trace=True)
-     get_bookpage('xxx', trace=True)
-     get_bookpage(trace=True)
-     bookfolder('ab')
-     get_bookfolder(trace=True)
-     get_bookfolder('ab', trace=True)
-
-   if True:
-     # Make a named page with views of diferent nodes:
-     page_name = 'sumab=a+b'
-     bookmark (a, page=page_name)
-     bookmark (b, page=page_name)
-     bookmark (sumab, page=page_name)
-     get_bookpage(trace=True)
-     bookfolder('absum')
-     get_bookfolder(trace=True)
- 
-   if True:
-     # Make a named page with multiple views of the same node:
-     page_name = 'views of sumab'
-     bookmark (sumab, page=page_name)
-     bookmark (sumab, page=page_name, viewer='ParmFiddler')
-     bookmark (sumab, page=page_name, viewer='ParmFiddler')
-     bookmark (sumab, page=page_name, viewer='Record Browser')
-     bookmark (sumab, page=page_name, viewer='Executor')
-     get_bookpage(trace=True)
-     bookfolder('sumab-views')
-     get_bookfolder(trace=True)
-
-
-   if 0:
-      JEN_record.display_object(Settings.forest_state, 'forest_state', 'JEN_bookmarks.py')
-
-   if 1:
-     get_bookmark(trace=True)
-     get_bookpage(trace=True)
-     get_bookfolder(trace=True)
-
    if 0:
       print dir(__name__)
+
+   # Make some nodes:
+   ns = NodeScope()
+   a = ns.a << Meq.Parm(array([[1,0.2],[-0.3,0.1]]))
+   b = ns.b << Meq.Parm(array([[1,-0.2],[0.3,0.1]]))
+   c = ns.c << Meq.Parm(array([[6,-0.2],[0.3,0.1]]))
+   sumab = ns << Meq.Add (a, b)
+
       
+   if 1:
+       # Make bookmark for a single node:
+       create (a, page=None, folder='folder_1', trace=True)
+       create (a, page='page_1', folder='folder_1', trace=True)
+       create (b, page='page_2', folder='folder_1', trace=True)
+       create (c, page='page_2', folder='folder_1', trace=True)
+       create (b, page=None, folder=None, trace=True)
+       create (a, page='page_2', folder=None, trace=True)
+       create (b, page='page_2', folder=None, trace=True)
+       create (c, page='page_2', folder=None, trace=True)
+       create (c, page='page_2', folder='folder_2', trace=True)
+       create (c, page='page_2', folder='folder_1', trace=True)
+
+   if 1:
+       current_settings(trace=True)
+
    print '\n** End of local test of: JEN_bookmarks.py \n*************\n'
 
 #********************************************************************************

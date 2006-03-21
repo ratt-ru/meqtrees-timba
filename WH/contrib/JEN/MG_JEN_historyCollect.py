@@ -12,6 +12,7 @@
 # - 03 oct 2005: tdl_jobs for different dimensions
 # - 26 nov 2005: cleanup and simplification
 # - 29 dec 2005: adapted to plots for all iterations
+# - 22 mar 2006: adopted JEN_bookmarks.py
 
 # Copyright: The MeqTree Foundation 
 
@@ -24,6 +25,7 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
+from Timba.Trees import JEN_bookmarks
 
 from numarray import *
 
@@ -76,7 +78,8 @@ def _define_forest (ns):
    # Experiment 1: Just a hcoll
    # Any field from the result can be collected:
    input_index = 'VellSets/0/Value'                         # this is the default
-   reqseq = insert_hcoll (ns, freqtime, input_index=input_index, page='insert_hcoll')
+   reqseq = insert_hcoll (ns, freqtime, input_index=input_index,
+                          bookpage='insert_hcoll', bookfolder='hcoll')
    cc.append(reqseq)
 
    #---------------------------------------------------------------------------
@@ -98,9 +101,9 @@ def _define_forest (ns):
                                        # save_funklets=True,
                                        debug_level=10)
       # Make a bookmark for the solver plot:
-      # MG_JEN_forest_state.bookmark (solver, udi='cache/result')
-      MG_JEN_forest_state.bookmark (solver, viewer='Result Plotter')
-      # MG_JEN_forest_state.bookmark (solver, udi='cache/result', viewer='Result Plotter')
+      # JEN_bookmarks.bookmark (solver, udi='cache/result')
+      JEN_bookmarks.bookmark (solver, viewer='Result Plotter')
+      # JEN_bookmarks.bookmark (solver, udi='cache/result', viewer='Result Plotter')
 
       # Make a tensor node of hcoll nodes, and attach them to cc:
       cc.append(make_hcoll_solver_metrics (ns, solver, firstonly=True))
@@ -127,6 +130,7 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
    """Make a vector historyCollect nodes for solver metrics"""
 
    pp.setdefault('name', 'solver')      # Name of the solver
+   pp.setdefault('bookfolder', 'solver_metrics')    # Name of the bookpage folder
    pp.setdefault('debug', True)         # if True, plot the debug record fields also
    pp.setdefault('firstonly', False)    # if True, plot the first iterations only
    
@@ -145,7 +149,8 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
                                                             input_index=input_index,
                                                             top_label=hiid('history'))
       hcoll_nodes.append(hcoll)
-      MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
+      JEN_bookmarks.create(hcoll, viewer='History Plotter',
+                           page=pagename, folder=pp['bookfolder'])
 
    if pp['firstonly']:
       # Optional: The value of the first [0] iteration only:
@@ -157,7 +162,8 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
                                                                input_index=input_index,
                                                                top_label=hiid('history'))
          hcoll_nodes.append(hcoll)
-         MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
+         JEN_bookmarks.create(hcoll, viewer='History Plotter', 
+                              page=pagename, folder=pp['bookfolder'])
 
    if pp['debug']: 
       # Optional: make hcoll nodes for 'debug' solver metrics:
@@ -172,7 +178,8 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
                                                                input_index=input_index,
                                                                top_label=hiid('history'))
          hcoll_nodes.append(hcoll)
-         MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
+         JEN_bookmarks.create(hcoll, viewer='History Plotter', 
+                              page=pagename, folder=pp['bookfolder'])
 
       if pp['firstonly']:
          # Optional: The value of the first [0] iteration only:
@@ -184,7 +191,8 @@ def make_hcoll_solver_metrics (ns, solver, **pp):
                                                                   input_index=input_index,
                                                                   top_label=hiid('history'))
             hcoll_nodes.append(hcoll)
-            MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pagename)
+            JEN_bookmarks.create(hcoll, viewer='History Plotter', 
+                                 page=pagename, folder=pp['bookfolder'])
 
    # Return a tensor node of historyCollect nodes:
    root = ns.hcolls_solver_metrics(uniqual) << Meq.Composer(children=hcoll_nodes)
@@ -202,7 +210,8 @@ def insert_hcoll(ns, node, **pp):
    pp.setdefault('input_index', 'VellSets/0/Value')   
    pp.setdefault('strip', True)                      # if True, strip off perturbed vells   
    pp.setdefault('mean', False)                      # if True, take the mean first   
-   pp.setdefault('page', None)                       # if string, make a bookmark
+   pp.setdefault('bookpage', None)                       # if string, make a bookmark
+   pp.setdefault('bookfolder', None)                     # if string, make a bookfolder
    pp.setdefault('graft', True)                      # if True, insert a ReqSeq for requests
 
    # Make a qualifying integer to avoid node name clashes:
@@ -229,8 +238,9 @@ def insert_hcoll(ns, node, **pp):
                                                    # top_label=hiid('visu'))
                                                    top_label=hiid('history'))
    # Make a bookmark for the hcoll, if required:
-   if isinstance(pp['page'], str):
-      MG_JEN_forest_state.bookmark(hcoll, viewer='History Plotter', page=pp['page'])
+   if pp['bookpage'] or pp['bookfolder']:
+      JEN_bookmarks.create(hcoll, viewer='History Plotter',
+                           page=pp['bookpage'], folder=pp['bookfolder'])
 
    # Optionally, make a reqseq node to issue requests to hcoll,
    # while passing on the result of the original node

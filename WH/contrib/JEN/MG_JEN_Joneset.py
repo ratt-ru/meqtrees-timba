@@ -362,13 +362,15 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Define solvegroup(s) from combinations of parmgroups:
     if simul:
-       js.LeafSet.NodeSet.bookpage('GJones', [a1, p1, a2, p2])
+       js.LeafSet.NodeSet.bookmark('GJones', [a1, p1, a2, p2])
     else:
        js.ParmSet.solvegroup('GJones', [a1, p1, a2, p2], bookpage=True)
        js.ParmSet.solvegroup('Gpol1', [a1, p1])
        js.ParmSet.solvegroup('Gpol2', [a2, p2])
        js.ParmSet.solvegroup('Ggain', [a1, a2])
        js.ParmSet.solvegroup('Gphase', [p1, p2])
+       # js.ParmSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage='GJones')
+       # js.ParmSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage='GJones')
 
     
     for station in pp['stations']:
@@ -471,7 +473,7 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
    # Define solvegroup(s) from combinations of parmgroups:
    if simul:
-      js.LeafSet.NodeSet.bookpage('FJones', [RM])
+      js.LeafSet.NodeSet.bookmark('FJones', [RM])
    else:
       js.ParmSet.solvegroup('FJones', [RM])
 
@@ -598,7 +600,7 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Define solvegroup(s) from combinations of parmgroups:
     if simul:
-       js.LeafSet.NodeSet.bookpage('BJones', [br1, bi1, br2, bi2])
+       js.LeafSet.NodeSet.bookmark('BJones', [br1, bi1, br2, bi2])
     else:
        js.ParmSet.solvegroup('BJones', [br1, bi1, br2, bi2], bookpage=True)
        js.ParmSet.solvegroup('Bpol1', [br1, bi1])
@@ -761,10 +763,10 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # Define solvegroup(s) from combinations of parmgroups:
     if simul:
        if pp['diagonal_only'] and len(pp['all4_always'])==0:
-          js.LeafSet.NodeSet.bookpage('JJones', [dr11, di11, dr22, di22])
+          js.LeafSet.NodeSet.bookmark('JJones', [dr11, di11, dr22, di22])
        else:
-          js.LeafSet.NodeSet.bookpage('Jreal', [dr11, dr12, dr21, dr22])
-          js.LeafSet.NodeSet.bookpage('Jimag', [di11, di12, di21, di22])
+          js.LeafSet.NodeSet.bookmark('Jreal', [dr11, dr12, dr21, dr22])
+          js.LeafSet.NodeSet.bookmark('Jimag', [di11, di12, di21, di22])
     elif pp['diagonal_only'] and len(pp['all4_always'])==0:
        js.ParmSet.solvegroup('JJones', [dr11, di11, dr22, di22], bookpage=True)
        js.ParmSet.solvegroup('Jreal', [dr11, dr22])
@@ -932,13 +934,13 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    # Define solvegroup(s) from combinations of parmgroups:
    if simul:
       if pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
-         js.LeafSet.NodeSet.bookpage('DJones', [Dang, Dell, pzd])
+         js.LeafSet.NodeSet.bookmark('DJones', [Dang, Dell, pzd])
       elif pp['coupled_XY_Dang']:
-         js.LeafSet.NodeSet.bookpage('DJones', [Dang, Dell1, Dell2, pzd])
+         js.LeafSet.NodeSet.bookmark('DJones', [Dang, Dell1, Dell2, pzd])
       elif pp['coupled_XY_Dell']:
-         js.LeafSet.NodeSet.bookpage('DJones', [Dang1, Dang2, Dell, pzd])
+         js.LeafSet.NodeSet.bookmark('DJones', [Dang1, Dang2, Dell, pzd])
       else:
-         js.LeafSet.NodeSet.bookpage('DJones', [Dang1, Dang2, Dell1, Dell2, pzd])
+         js.LeafSet.NodeSet.bookmark('DJones', [Dang1, Dang2, Dell1, Dell2, pzd])
    elif pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
       js.ParmSet.solvegroup('DJones', [Dang, Dell, pzd], bookpage=True)
    elif pp['coupled_XY_Dang']:

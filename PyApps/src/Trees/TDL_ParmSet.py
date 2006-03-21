@@ -405,7 +405,8 @@ class ParmSet (TDL_common.Super):
             if True:
                 # Optional: make a bookpage of this solvegroup
                 pp.setdefault('bookpage', False)
-                if pp['bookpage']: self.NodeSet.bookpage(key, groups)
+                if pp['bookpage']:
+                    self.NodeSet.bookmark(key, groups)
             self.history('** Created solvegroup: '+str(key)+':  group(s): '+str(groups))
         # Then the generic NodeSet part:
         return self.NodeSet.gog(key, groups, **pp)
@@ -811,9 +812,9 @@ if __name__ == '__main__':
         ps.NodeSet.apply_binop('Gpol2', [a2, p2], binop='Polar')
 
         # Define bookpages:
-        ps.NodeSet.bookpage('GJones', [a1, p1, a2, p2])
-        ps.NodeSet.bookpage('Gpol1', [a1, p1])
-        ps.NodeSet.bookpage('Gpol2', [a2, p2])
+        ps.NodeSet.bookmark('GJones', [a1, p1, a2, p2])
+        ps.NodeSet.bookmark('Gpol1', [a1, p1])
+        ps.NodeSet.bookmark('Gpol2', [a2, p2])
 
         # Define condeqs for condition equations:
         if True:

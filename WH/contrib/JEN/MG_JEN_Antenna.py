@@ -39,6 +39,7 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 
 from Timba.Contrib.MXM import MG_MXM_functional
 
+from Timba.Trees import JEN_bookmarks
 from Timba.Trees import TDL_Antenna
 from Timba.Trees import TDL_Dipole
 
@@ -110,7 +111,7 @@ def _define_forest (ns):
          # Make a bookmark for the sky temperature:
          node = obj.subtree_Tsky(ns)
          cc.append(node)
-         MG_JEN_forest_state.bookmark(node, page='Tsky')
+         JEN_bookmarks.create(node, page='Tsky')
       _experiment(ns, obj, cc)
    
    if True:
@@ -167,12 +168,12 @@ def _experiment(ns, obj, cc=[], dcoll=True, sensit=False,
       node = obj.dcoll_xy(ns)
       node = obj.dcoll_xy(ns)
       cc.append(node)
-      MG_JEN_forest_state.bookmark(node, page='config')
+      JEN_bookmarks.create(node, page='config')
 
    if sensit:
       node = obj.subtree_sensit(ns)
       cc.append(node)
-      MG_JEN_forest_state.bookmark(node, page='sensitivity')
+      JEN_bookmarks.create(node, page='sensitivity')
 
    if vbeam:
       bb = obj.subtree_voltage_beam(ns)
@@ -180,16 +181,16 @@ def _experiment(ns, obj, cc=[], dcoll=True, sensit=False,
       bb = obj.subtree_voltage_beam(ns)
       for node in bb:
          cc.append(node)
-         MG_JEN_forest_state.bookmark(node, page='voltage_beam')
+         JEN_bookmarks.create(node, page='voltage_beam')
       node = obj.subtree_voltage_diff(ns)
       cc.append(node)
-      MG_JEN_forest_state.bookmark(node, page='voltage_diff')
+      JEN_bookmarks.create(node, page='voltage_diff')
 
    if pbeam:
       bb = obj.subtree_power_beam(ns)
       for node in bb:
          cc.append(node)
-         MG_JEN_forest_state.bookmark(node, page='power_beam')
+         JEN_bookmarks.create(node, page='power_beam')
 
    return True
 

@@ -22,6 +22,7 @@
 from Timba.TDL import *
 
 # from Timba.Meq import meq
+from Timba.Trees import JEN_bookmarks
 
 from numarray import *
 
@@ -141,7 +142,7 @@ def test_module(ns, name):
    exec s
 
    # Collect all the non-folder bookmarks into a nemed folder bookmark:
-   MG_JEN_forest_state.bookfolder('MG_JEN_'+name)
+   # JEN_bookmarks.bookfolder('MG_JEN_'+name)
 
    # Return the resulting root node:
    return result

@@ -28,6 +28,9 @@ from Timba.Trees import JEN_inargGui
 from Timba.Trees import TDL_Cohset
 from Timba.Trees import TDL_Joneset
 
+from Timba.LSM.LSM import *
+from Timba.LSM.LSM_GUI import *
+
 from Timba.Contrib.JEN import MG_JEN_Joneset
 from Timba.Contrib.JEN import MG_JEN_Cohset
 from Timba.Contrib.JEN import MG_JEN_Sixpack
@@ -143,18 +146,22 @@ JEN_inarg.attach(MG, inarg)
 JEN_inarg.separator(MG, 'uv-data simulation (LeafSet)')
 qual = 'simul'
 
-inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
-JEN_inarg.attach(MG, inarg)
+# Optional: Specify an LSM to get the Sixpack from:
+JEN_inarg.define (MG, 'from_LSM', None, browse='*.lsm', hide=False,
+                  help='(file)name of a Local Sky Model to be used'+
+                  '(instead of a predefined punit)')
 
-inarg = MG_JEN_Cohset.KJones(_getdefaults=True, _qual=qual, slave=True) 
+inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.Jones(_getdefaults=True, _qual=qual, slave=True, simul=True) 
 JEN_inarg.attach(MG, inarg)
 
-inarg = MG_JEN_Cohset.predict(_getdefaults=True, _qual=qual, slave=True)  
+inarg = MG_JEN_Cohset.predict_cps(_getdefaults=True, _qual=qual, slave=True)  
 JEN_inarg.attach(MG, inarg)
 
+inarg = MG_JEN_Cohset.predict_lsm(_getdefaults=True, slave=True, _qual=qual)  
+JEN_inarg.attach(MG, inarg)
     
 #----------------------------------------------------------------------------------------------------
 
@@ -167,7 +174,10 @@ JEN_inarg.attach(MG, inarg)
 inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True, _qual=qual) 
 JEN_inarg.attach(MG, inarg)
 
-inarg = MG_JEN_Cohset.predict(_getdefaults=True, slave=True, _qual=qual)  
+inarg = MG_JEN_Cohset.predict_cps(_getdefaults=True, slave=True, _qual=qual)  
+JEN_inarg.attach(MG, inarg)
+
+inarg = MG_JEN_Cohset.predict_lsm(_getdefaults=True, slave=True, _qual=qual)  
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, slave=True) 
@@ -246,15 +256,29 @@ def _define_forest (ns, **kwargs):
     nsim = ns.Subscope('_')
     qual = 'simul'
 
-    # Make a source Sixpack (I,Q,U,V,RA,Dec) from punit/LSM:
-    Sixpack = MG_JEN_Sixpack.newstar_source(nsim, _inarg=MG, _qual=qual)
+    # If a LSM (file) is specified, read source(s) from there
+    if MG['from_LSM']:
+        print '\n** from_LSM =',MG['from_LSM']
+        lsm = LSM()
+        lsm.load(MG['from_LSM'],ns)
+        lsm.display()
+        # Predict nominal/corrupted visibilities: 
+        predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm,
+                                               # Joneset=Joneset,
+                                               Joneset=None,
+                                               # _inarg=MG, _qual=dict())
+                                               _inarg=MG, _qual=qual)
+    else:
+        # Make a source Sixpack (I,Q,U,V,RA,Dec) from punit/LSM:
+        Sixpack = MG_JEN_Sixpack.newstar_source(nsim, _inarg=MG, _qual=qual)
+        # Optional: get corrupting (uv-plane) Jones matrices:
+        Joneset = MG_JEN_Cohset.Jones(nsim, Sixpack=Sixpack, simul=True,
+                                      _inarg=MG, _qual=qual)
+        # Predict nominal/corrupted visibilities: 
+        predicted = MG_JEN_Cohset.predict_cps (nsim, Sixpack=Sixpack, Joneset=Joneset,
+                                               _inarg=MG, _qual=qual)
 
-    # Optional: get corrupting (uv-plane) Jones matrices:
-    Joneset = MG_JEN_Cohset.Jones(nsim, Sixpack=Sixpack, simul=True, _inarg=MG, _qual=qual)
-
-    # Predict nominal/corrupted visibilities: 
-    predicted = MG_JEN_Cohset.predict (nsim, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
-
+        
     # Opionally, add (gaussian) noise:
     if MG['rms_noise_Jy']>0:
         Cohset.addNoise(nsim, MG['rms_noise_Jy'])
@@ -273,11 +297,18 @@ def _define_forest (ns, **kwargs):
     #------------------------------------------------------------------
 
     if MG['insert_solver']:
-        Sohset = Cohset.copy(label='solve_branch')
         qual = 'solve'
-        Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG, _qual=qual)
-        Joneset = MG_JEN_Cohset.Jones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
-        predicted = MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG, _qual=qual)
+        if MG['from_LSM']:
+            predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm,
+                                                   # Joneset=Joneset,
+                                                   Joneset=None,
+                                                   _inarg=MG, _qual=qual)
+        else:
+            Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG, _qual=qual)
+            Joneset = MG_JEN_Cohset.Jones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
+            predicted = MG_JEN_Cohset.predict_cps (ns, Sixpack=Sixpack, Joneset=Joneset,
+                                                   _inarg=MG, _qual=qual)
+        Sohset = Cohset.copy(label='solve_branch')
         MG_JEN_Cohset.insert_solver (ns, measured=Sohset, predicted=predicted, _inarg=MG)
         # Splice the Sohset branch back into Cohset:
         Cohset.splice(ns, Sohset)

@@ -567,7 +567,7 @@ class ArgBrowser(QMainWindow):
                  'parm','pol','uvplane','stations',
                  'flag','corr','subtr','rmin','rmax','cond',
                  'T_sec','stddev','rms','mean','unop','binop',
-                 'sequ','solve','condit','num_','shape_','deg_','tile']
+                 'sequ','solve','condit','num_','nr_','shape_','deg_','tile']
         exclude = []
         ss = JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
         return self.floatw(ss)
@@ -1489,8 +1489,25 @@ class ArgBrowser(QMainWindow):
         self.__message.setText('** recreating all MG_JEN_simul .inargs ...')
         self.simul_GJones(revert=True, save_protected=True)
         self.simul_DJones(revert=True, save_protected=True)
+        self.simul_lsm_GJones(revert=True, save_protected=True)
         self.__message.setText('** recreated all MG_JEN_simul .inargs (incl. protected)')
         return True
+
+    def simul_lsm_GJones(self, revert=False, save_protected=False):
+        """Modify MG_JEN_simul inarg for lsm_GJones corruption"""
+        if not self.macron_entry('MG_JEN_simul', revert): return False
+        JEN_inarg.specific(self.__inarg, self.simul_lsm_GJones.__doc__)
+        JEN_inarg.modify(self.__inarg,
+                         from_LSM='lsm_current.lsm',
+                         nr_lsm_sources=2,
+                         Jsequence_simul=['GJones'],
+                         insert_solver=False,
+                         Jsequence_solve=['GJones'],
+                         solvegroup=['GJones'],
+                         parmtable='simul_lsm_GJones',
+                         num_iter=2,
+                         _JEN_inarg_option=None)     
+        return self.macron_exit('MG_JEN_simul_lsm_GJones', save_protected)
 
     def simul_GJones(self, revert=False, save_protected=False):
         """Modify MG_JEN_simul inarg for GJones corruption"""
@@ -1500,7 +1517,7 @@ class ArgBrowser(QMainWindow):
                          Jsequence_simul=['GJones'],
                          Jsequence_solve=['GJones'],
                          solvegroup=['GJones'],
-                         parmtable='test',
+                         parmtable='simul_GJones',
                          num_iter=2,
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_simul_GJones', save_protected)
@@ -1513,7 +1530,7 @@ class ArgBrowser(QMainWindow):
                          Jsequence_simul=['DJones_WSRT'],
                          Jsequence_solve=['DJones_WSRT'],
                          solvegroup=['DJones'],
-                         parmtable='test',
+                         parmtable='simul_DJones',
                          num_iter=2,
                          _JEN_inarg_option=None)     
         self.callback_punit('QU')

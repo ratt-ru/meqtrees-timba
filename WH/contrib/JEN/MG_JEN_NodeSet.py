@@ -69,23 +69,17 @@ def _define_forest (ns):
 
    nst = make_NodeSet(ns)
 
-   # Make a bookpage for all node groups:
-   # cc.append(nst.make_bookpage(ns, nst.group_keys(), 'all_groups'))
-
-   # Make a bookpage for a particular group:
-   # cc.append(nst.make_bookpage(ns, ['Ggain_X']))
-
-   # Make a subtree of all bookpages:
-   cc.append(nst.bookpage_subtree(ns))
-
    # Apply an unary operation on a group:
-   cc.append(nst.apply_unop(ns, 'Ggain', unop='Cos', bookpage=True))
+   nst.apply_unop(ns, 'Ggain', unop='Cos', bookpage=True)
 
    # Apply an binary operation on two groups:
-   cc.append(nst.apply_binop(ns, ['Ggain_Y','Gphase_Y'], binop='Polar', bookpage=True))
+   nst.apply_binop(ns, ['Ggain_Y','Gphase_Y'], binop='ToComplex', bookpage=True)
 
    # Compare the Nodeset with itself:
-   cc.append(nst.compare(ns, nst, ['Gphase_Y'], bookpage=True))
+   # cc.append(nst.compare(ns, nst, ['Gphase_Y'], bookpage=True))
+
+   # Make a subtree of all bookpages:
+   cc.append(nst.bookmark_subtree(ns))
 
    # Show the contents of the final NodeSet:
    nst.display(MG['script_name'], full=True)
@@ -113,10 +107,10 @@ def make_NodeSet(ns):
     
    # Register the nodegroups:
    pp = dict(a=10, b=11)
-   a1 = nst.group('Ggain_X', aa=1, bb=1, cc=1, **pp)
-   a2 = nst.group('Ggain_Y', aa=1, bb=2, cc=1)
-   p1 = nst.group('Gphase_X', aa=1, bb=3, cc=2)
-   p2 = nst.group('Gphase_Y', aa=1, bb=4, cc=2)
+   a1 = nst.group('Ggain_X', rider=pp, aa=1, bb=1, cc=1, trace=True)
+   a2 = nst.group('Ggain_Y', rider=pp, aa=1, bb=2, cc=1)
+   p1 = nst.group('Gphase_X', rider=pp, aa=1, bb=3, cc=2)
+   p2 = nst.group('Gphase_Y', rider=pp, aa=1, bb=4, cc=2)
    
    # Define extra gog(s) from combinations of nodegrouns:
    nst.gog('GJones', [a1, p1, a2, p2])
@@ -138,8 +132,10 @@ def make_NodeSet(ns):
          nst.MeqNode (Gphase, node=node)
 
    # Define some bookpages:
-   nst.bookpage('GX', [a1,p1])
-   nst.bookpage('GY', [a2,p2])
+   # nst.bookmark('GX', [a1,p1])
+   # nst.bookmark('GY', [a2,p2])
+   nst.apply_binop(ns, [a1,p1], 'Polar', bookpage='GJones')
+   nst.apply_binop(ns, [a2,p2], 'Polar', bookpage='GJones')
    nst.cleanup()
    return nst
 

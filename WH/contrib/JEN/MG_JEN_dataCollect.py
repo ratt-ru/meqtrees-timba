@@ -23,7 +23,8 @@
 
 from Timba.TDL import *
 
-MG = record(script_name='MG_JEN_dataCollect.py', last_changed = 'h22sep2005')
+MG = record(script_name='MG_JEN_dataCollect.py',
+            last_changed = 'h22sep2005')
 
 from numarray import *
 # from string import *
@@ -33,6 +34,7 @@ from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_twig
 from Timba.Contrib.JEN import MG_JEN_funklet
+from Timba.Trees import JEN_bookmarks
 
 
 
@@ -72,7 +74,8 @@ def _define_forest (ns):
       mean = complex(cos(angle),sin(angle))
       print i,n,(float(i)/n),':',ckey,skey,angle,'->',mean
       style[skey] = MG_JEN_twig.cloud (ns, n=30, name=skey, qual=None, stddev=0.2, mean=mean)
-      dc = dcoll(ns, style[skey], scope=scope, tag=skey, color=ckey, style=skey, size=10, errorbars=False)
+      dc = dcoll(ns, style[skey], scope=scope, tag=skey,
+                 color=ckey, style=skey, size=10, errorbars=False)
       bb.append(dc['dcoll']) 
       dd.append(dc)
  
@@ -125,11 +128,12 @@ def _define_forest (ns):
             # default = MG_JEN_funklet.polc_ft(c00=1+(i+j)/10, fdeg=2, tdeg=1, stddev=0.01)
             default = MG_JEN_funklet.polc_ft(c00=1+(i+j), fdeg=2, tdeg=1, stddev=0.01)
             node = ns.parm(i=i,j=j)(corr) << Meq.Parm(default)
-            dc = dcoll(ns, node, scope=scope, tag=corr, type='spectra') 
+            dc = dcoll(ns, node, scope=scope, tag=corr, type='spectra',
+                       bookpage=corr, bookfolder='dcoll_spectra') 
             dd.append(dc)
          
    # Concatenate the dataCollect nodes in dd:
-   dc = dconc(ns, dd, scope=scope, tag='spectra') 
+   dc = dconc(ns, dd, scope=scope, tag='spectra', bookfolder='dconc_spectra') 
    bb.append(dc['dcoll'])
    cc.append(MG_JEN_exec.bundle(ns, bb, 'spectra', show_parent=False))
 
@@ -255,6 +259,7 @@ def dcoll (ns, node=[], **pp):
    pp.setdefault('errorbars', False)    # if True, plot stddev as crosses around mean
    pp.setdefault('bookmark', False)     # name of dcoll bookmark (False=none)
    pp.setdefault('bookpage', False)     # name of bookpage to be used (False=none)
+   pp.setdefault('bookfolder', False)   # name of bookfolder to be used (False=none)
    pp.setdefault('results_buffer', 20)  # size of the results-buffer in the browser
    pp = record(pp)
    
@@ -346,10 +351,8 @@ def dcoll (ns, node=[], **pp):
    dcoll['tag'] = dcoll['attrib']['tag']            # used by JEN_dconc() below
    
    # Optionally, make a bookmark for the dconc node:
-   if isinstance(pp.bookpage, str):
-      bm = MG_JEN_forest_state.bookmark (dconc['dcoll'], page=pp.bookpage)
-   elif isinstance(pp.bookmark, str):
-      bm = MG_JEN_forest_state.bookmark (dconc['dcoll'], pp.bookmark)
+   if pp.bookpage or pp.bookfolder:
+      JEN_bookmarks.create (dcoll['dcoll'], page=pp.bookpage, folder=pp.bookfolder)
       
    # If an graft-node is specified, make the dconc node a step-child of a
    # MeqSelector node just before it, to issue requests:
@@ -379,6 +382,7 @@ def dconc (ns, dcoll, **pp):
    pp.setdefault('ylabel', '<ylabel>')    # y-axis label
    pp.setdefault('bookmark', False)       # name of dcoll bookmark (False=none)
    pp.setdefault('bookpage', False)       # name of bookpage to be used (False=none)
+   pp.setdefault('bookfolder', False)     # name of bookfolder to be used (False=none)
    pp = record(pp)
 
 
@@ -405,10 +409,8 @@ def dconc (ns, dcoll, **pp):
                                                                attrib=attrib)
 
    # Optionally, make a bookmark for the dconc node:
-   if isinstance(pp.bookpage, str):
-      bm = MG_JEN_forest_state.bookmark (dconc['dcoll'], page=pp.bookpage)
-   elif isinstance(pp.bookmark, str):
-      bm = MG_JEN_forest_state.bookmark (dconc['dcoll'], pp.bookmark)
+   if pp.bookpage or pp.bookfolder:
+      JEN_bookmarks.create(dconc['dcoll'], page=pp.bookpage, folder=pp.bookfolder)
 
    # If a graft-node is specified, make the dconc node a step-child of a
    # MeqSelector node just before it, to issue requests:
@@ -618,11 +620,24 @@ def dconc (ns, dcoll, **pp):
 # NB: this section should always be at the end of the script
 #********************************************************************************
 
+
+#-------------------------------------------------------------------------
+# Script control record (may be edited here):
+
+MG = MG_JEN_exec.MG_init('MG_JEN_dataCollect.py',
+                         last_changed='d22mar2006',
+                         trace=False)    
+
+
+# Check the MG record, and replace any referenced values
+MG = MG_JEN_exec.MG_check(MG)
+
+
 #-------------------------------------------------------------------------
 # The forest state record will be included automatically in the tree.
 # Just assign fields to: Settings.forest_state[key] = ...
 
-MG_JEN_forest_state.init(MG.script_name)
+MG_JEN_forest_state.init(MG)
 
 
 
@@ -650,10 +665,10 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-   print '\n*******************\n** Local test of:',MG.script_name,':\n'
+   print '\n*******************\n** Local test of:',MG['script_name'],':\n'
 
    if 1:
-      MG_JEN_exec.without_meqserver(MG.script_name, callback=_define_forest)
+      MG_JEN_exec.without_meqserver(MG['script_name'], callback=_define_forest)
 
    ns = NodeScope()
 
@@ -672,10 +687,10 @@ if __name__ == '__main__':
    if 0:
       rr = 0
       # ............
-      # MG_JEN_exec.display_object (rr, 'rr', MG.script_name)
-      # MG_JEN_exec.display_subtree (rr, MG.script_name, full=1)
+      # MG_JEN_exec.display_object (rr, 'rr', MG['script_name'])
+      # MG_JEN_exec.display_subtree (rr, MG['script_name'], full=1)
 
-   print '\n** End of local test of:',MG.script_name,'\n*******************\n'
+   print '\n** End of local test of:',MG['script_name'],'\n*******************\n'
        
 #********************************************************************************
 #********************************************************************************

@@ -504,7 +504,7 @@ def decode_nodestubs(ns, rr=None):
                     seval = 'nodestub=ns[\''+ss[0]+'\']'
                     for i in range(1,len(ss)):
                         seval += '(\''+ss[i]+'\')'   # repaste the qualifier
-                    print 'seval =',seval
+                    # print 'seval =',seval
                     exec seval
                 dictout[cc['name']] = nodestub
     return dictout

@@ -208,7 +208,7 @@ def _define_forest (ns, **kwargs):
    lsm.load(MG['LSM'], ns) 
    # lsm.display()            # This locks the browser!
 
-   # Make an empty vector of Cohsets:
+   # Make an empty vector of predicted Cohsets:
    cs = []
  
    # Make MeqSpigot nodes that read the MS:
