@@ -281,11 +281,12 @@ def forest_solver(ns, station_list, sources):
         ce_list.append(ns.ce(sta,src.name))
 
     ns.solver << Meq.Solver(children=ce_list);
+    ns.modres << Meq.ModRes(ns.solver,num_cells=[480,1]);
 
 
 def forest_create_vdm (ns):
   global _vdm;
-  _vdm = ns.VisDataMux << Meq.VisDataMux(pre=ns.solver);
+  _vdm = ns.VisDataMux << Meq.VisDataMux(pre=ns.modres);
 
 
 def create_inputrec(msname, tile_size=1500,short=False):
@@ -365,11 +366,6 @@ def _tdl_job_fit_beams (mqs,parent,write=True):
       for station in station_list:
         solvables.append(':'.join(('EA',str(station),source.name)));
 
-    print 'solvables ', solvables
-    for s in solvables:
-      publish_node_state(mqs, s)
-      pass
-
     publish_node_state(mqs, 'solver')
 
     solver_defaults = create_solver_defaults(solvable=solvables)
@@ -379,7 +375,7 @@ def _tdl_job_fit_beams (mqs,parent,write=True):
 
     msname          = 'TEST_CLAR.MS'
 #   inputrec        = create_inputrec(msname, tile_size=6000)
-    inputrec        = create_inputrec(msname, tile_size=500)
+    inputrec        = create_inputrec(msname, tile_size=50000)
     outputrec       = create_outputrec(output_column='PREDICT')
     print 'input record ', inputrec
     print 'output record ', outputrec

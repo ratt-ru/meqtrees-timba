@@ -469,7 +469,7 @@ def _tdl_job_clar_solve(mqs,parent,write=True):
 # observation range
 
     msname          = 'TEST_CLAR.MS'
-    inputrec        = create_inputrec(msname, tile_size=500)
+    inputrec        = create_inputrec(msname, tile_size=5000)
     outputrec       = create_outputrec()
     print 'input record ', inputrec
     print 'output record ', outputrec

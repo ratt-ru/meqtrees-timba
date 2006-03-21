@@ -8,12 +8,12 @@ import os
 # bookmark
 Settings.forest_state = record(bookmarks=[
   record(name='Predicts',page=[
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_2",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:10:src_3",pos=(0,2)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_1",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_2",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:10:src_3",pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_1",pos=(0,0)),
+    record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_2",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_3",pos=(0,2)),
+    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_1",pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_2",pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_3",pos=(1,2)),
     record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(2,0)),
     record(viewer="Result Plotter",udi="/node/E:1:src_5",pos=(2,1)),
     record(viewer="Result Plotter",udi="/node/E:1:src_10",pos=(2,2)),
@@ -351,9 +351,14 @@ def forest_source_subtrees (ns, source):
   ns.xy(source.name) << Meq.Conj(ns.yx(source.name))
   ns.yy(source.name) << (ns.stokes("I",source.name)-ns.stokes("Q",source.name))*0.5
 
-# add in noise for xx, yy
-  ns.xx_noisy(source.name) << Meq.GaussNoise(ns.xx(source.name), stddev=0.1)
-  ns.yy_noisy(source.name) << Meq.GaussNoise(ns.yy(source.name), stddev=0.1)
+# create definition for a noise term -- this is reused repeatedly below to
+# define a separate noise node in each instance
+  noise = Meq.GaussNoise(stddev=0.1);
+# create a 2x2 complex noise matrix
+  ns.noise(source.name) << Meq.Matrix22(
+    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise),
+    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise)
+  );
 
   ra = ns.ra(source.name) << Meq.Parm(source.ra, table_name=source.table,
 			node_groups='Parm')
@@ -363,21 +368,18 @@ def forest_source_subtrees (ns, source):
   lmn   = ns.lmn  (source.name) << Meq.LMN(radec_0 = ns.radec0, radec = radec)
   n     = ns.n    (source.name) << Meq.Selector(lmn, index=2)
 
+  ns.clean_coh(source.name) << Meq.Matrix22(ns.xx(source.name),
+                                          ns.xy(source.name),
+                                          ns.yx(source.name),
+                                          ns.yy(source.name));
+  
   ns.lmn_minus1(source.name) << Meq.Paster(lmn, n-1, index=2)
-  ns.coherency(source.name) << Meq.Matrix22(ns.xx_noisy(source.name),
-                                   ns.xy(source.name),
-                                   ns.yx(source.name),
-                                   ns.yy_noisy(source.name))/ns.n(source.name)
-# ns.coherency(source.name) << Meq.Matrix22(ns.xx(source.name),
-#                                  ns.xy(source.name),
-#                                  ns.yx(source.name),
-#                                  ns.yy(source.name))/ns.n(source.name)
+  ns.coherency(source.name) << (ns.clean_coh(source.name) + ns.noise(source.name))/ns.n(source.name)
   pass
 
 
 
-def forest_create_sink_sequence(ns, interferometer_list, output_column='PREDICT'):
-    ns.VisDataMux << Meq.VisDataMux;
+def forest_create_sink_sequence(ns,station_list,interferometer_list, output_column='PREDICT'):
     for (ant1, ant2) in interferometer_list:
         ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1-1,
                                        station_2_index=ant2-1,
@@ -389,8 +391,14 @@ def forest_create_sink_sequence(ns, interferometer_list, output_column='PREDICT'
                                        )
         pass
     pass
+    # set a good child poll order for optimal parallelization
+    cpo = [];
+    for i in range(len(station_list)/2):
+      (ant1,ant2) = station_list[i*2:(i+1)*2];
+      cpo.append(ns.sink(ant1,ant2).name);
+    # create data mux
+    ns.VisDataMux << Meq.VisDataMux(child_poll_order=cpo);
     ns.VisDataMux.add_children(*[ns.sink(ant1,ant2) for (ant1, ant2) in interferometer_list]);
-#   ns.VisDataMux.add_stepchildren(*[ns.spigot(ant1,ant2) for (ant1, ant2) in interferometer_list]);
 
 
 def create_inputrec(msname, tile_size=1500,short=False):
@@ -463,7 +471,7 @@ def publish_node_state(mqs, nodename):
 def _tdl_job_clar_predict(mqs,parent,write=True):
     msname          = 'TEST_CLAR.MS'
 #   inputrec        = create_inputrec(msname, tile_size=6000)
-    inputrec        = create_inputrec(msname, tile_size=500)
+    inputrec        = create_inputrec(msname, tile_size=240)
     outputrec       = create_outputrec(output_column='PREDICT')
     print 'input record ', inputrec
     print 'output record ', outputrec
@@ -523,7 +531,7 @@ def _define_forest(ns):
     forest_baseline_predict_trees(ns, interferometer_list, source_model)
 
 # create sinks to drive system
-    forest_create_sink_sequence(ns, interferometer_list)
+    forest_create_sink_sequence(ns,station_list,interferometer_list)
     pass
 
 
