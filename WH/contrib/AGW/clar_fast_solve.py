@@ -402,6 +402,7 @@ def create_inputrec(msname, tile_size=1500,short=False):
 #        rec.record_input = boioname;
       rec = record(ms=rec);
     rec.python_init='AGW_read_msvis_header.py';
+    rec.mt_queue_size = input_queue_size;
     return rec;
 
 

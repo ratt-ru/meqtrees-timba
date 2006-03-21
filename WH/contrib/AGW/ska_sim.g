@@ -231,4 +231,4 @@ mkcomplist(num_sources,flux,ra,dec);
 print '*** calling mkcomps ***'
 mkcomps('mymodel.cl',flux,ra,dec);
 print '*** calling simms ***'
-simms('TEST_CLAR.MS','mymodel.cl');
+simms('TEST_CLAR_28.MS','mymodel.cl');

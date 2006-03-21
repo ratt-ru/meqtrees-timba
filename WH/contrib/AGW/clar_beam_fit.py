@@ -5,6 +5,18 @@ from numarray import *
 from copy import deepcopy
 import os
 
+# MS name
+msname = "TEST_CLAR_28-480.MS";
+tile_size = 100
+resample = None;
+# resample = [480,1];
+
+
+# MEP table for derived quantities fitted in this script
+mep_derived = 'CLAR_DQ_28-480.mep';
+
+
+
 # bookmark
 Settings.forest_state = record(bookmarks=[
   record(name='Derived quantities',page=[
@@ -17,7 +29,8 @@ Settings.forest_state = record(bookmarks=[
     record(viewer="Result Plotter",udi="/node/uvw:10",pos=(2,0)),
     record(viewer="Result Plotter",udi="/node/UVW:10",pos=(2,1)),
     record(viewer="Result Plotter",udi="/node/ce_uvw:10",pos=(2,2)),
-    record(viewer="Result Plotter",udi="/node/solver",pos=(3,0)),
+    record(viewer="Result Plotter",udi="/node/solver1",pos=(3,0)),
+    record(viewer="Result Plotter",udi="/node/solver2",pos=(3,1)),
 #    record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(3,1)),
 #    record(viewer="Result Plotter",udi="/node/predict:1:14",pos=(3,2)),
 #   record(viewer="Result Plotter",udi="/node/stokes:Q:3C343",pos=(1,0)),
@@ -26,8 +39,6 @@ Settings.forest_state = record(bookmarks=[
   ]) \
 ]);
 
-# MEP tablew for derived quantities fitted in this script
-mep_derived = 'CLAR_DQ.mep';
 
 class PointSource:
     name = ''
@@ -139,12 +150,12 @@ def create_constant_nodes(ns):
     ns.one << Meq.Constant(1.0)
     ns.half << Meq.Constant(0.5)
     ns.ln_16 << Meq.Constant(-2.7725887)
-# create constant parameters for CLAR beam nodes
-# eventually these should be a function of frequency
-# HPBW of 3 arcmin = 0.00087266 radians 1145.9156 = 1 / 0.00087266
-#    ns.width_l << Meq.Constant(1145.9156)
-    ns.width << Meq.Constant(1145.9156)
-    ns.width_sq << Meq.Sqr(ns.width)
+# create width parameter for CLAR beam nodes
+# base HPW is 647.868 1/rad at 800 Mhz
+    ns.width << Meq.Constant(647.868);
+    # this scales it with frequency
+    ns.width_fq << ns.width * ( Meq.Freq() / float(800*1e+6 ) );
+    ns.width_sq << Meq.Sqr(ns.width_fq)
 
 # creates source-related nodes for a given source
 def forest_source_subtrees (ns, source):
@@ -232,11 +243,12 @@ def tpolc (tdeg,c00=0.0):
   
 
 def forest_solver(ns, station_list, sources):
-  ce_list = []
+  ce_list1 = []
+  ce_list2 = []
   # Measurements
   for sta in station_list:
-    # condeq for station UVWs
-    ce_list.append(
+    # condeqs for station UVWs
+    ce_list2.append(
       ns.ce_uvw(sta) << Meq.Condeq(
         ns.uvw(sta),
         ns.UVW(sta) << Meq.Composer(
@@ -247,25 +259,31 @@ def forest_solver(ns, station_list, sources):
     for src in sources:
       # condeq for source-station E-term
       vgain = ns.V_GAIN(sta,src.name) << tpolc(5);
-      ce_list.append(
+      ce_list1.append(
         ns.ce_vgain(sta,src.name) << Meq.Condeq(
           ns.exp_v_gain(sta,src.name),
           ns.EXP_V_GAIN(sta,src.name) << Meq.Exp(vgain*ns.width_sq)
       ));
-  ns.solver << Meq.Solver(children=ce_list);
-  ns.modres << Meq.ModRes(ns.solver,num_cells=[480,1]);
+  ns.solver1 << Meq.Solver(children=ce_list1);
+  ns.solver2 << Meq.Solver(children=ce_list2);
+  ns.solvers << Meq.ReqMux(ns.solver1,ns.solver2);
+  if resample:
+    ns.modres << Meq.ModRes(ns.solvers,num_cells=resample);
 
 
 def forest_create_vdm (ns):
   global _vdm;
-  _vdm = ns.VisDataMux << Meq.VisDataMux(pre=ns.modres);
+  if resample:
+    _vdm = ns.VisDataMux << Meq.VisDataMux(pre=ns.modres);
+  else:
+    _vdm = ns.VisDataMux << Meq.VisDataMux(pre=ns.solvers);
 
 
 def create_inputrec(msname, tile_size=1500,short=False):
     boioname = "boio."+msname+"."+str(tile_size);
     # if boio dump for this tiling exists, use it to save time
     # but watch out if you change the visibility data set!
-    if not short and os.access(boioname,os.R_OK):
+    if False: # not short and os.access(boioname,os.R_OK):
       rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
     # else use MS, but tell the event channel to record itself to boio file
     else:
@@ -279,8 +297,8 @@ def create_inputrec(msname, tile_size=1500,short=False):
                              selection_string='')
       if short:
         rec.selection.selection_string = '';
-      else:
-        rec.record_input = boioname;
+#      else:
+#        rec.record_input = boioname;
       rec = record(ms=rec);
     rec.python_init='AGW_read_msvis_header.py';
     return rec;
@@ -333,24 +351,25 @@ def _tdl_job_fit_derived_parameters (mqs,parent,write=True):
 #get source list
     source_model = create_source_model()
 
-    solvables = []
+    solvables1 = []
+    solvables2 = []
     for station in station_list:
-      solvables += [ ':'.join(('U',str(station))),
+      solvables2 += [ ':'.join(('U',str(station))),
                      ':'.join(('V',str(station))),
                      ':'.join(('W',str(station))) ];
       for source in source_model:
-        solvables += [ ':'.join(('V_GAIN',str(station),source.name)) ];
+        solvables1 += [ ':'.join(('V_GAIN',str(station),source.name)) ];
 
-    publish_node_state(mqs, 'solver')
+    publish_node_state(mqs, 'solver1')
+    publish_node_state(mqs, 'solver2')
 
-    solver_defaults = create_solver_defaults(solvable=solvables)
-#   print solver_defaults
-    set_AGW_node_state(mqs, 'solver', solver_defaults)
+    solver_defaults1 = create_solver_defaults(solvable=solvables1)
+    set_AGW_node_state(mqs, 'solver1', solver_defaults1)
+    solver_defaults2 = create_solver_defaults(solvable=solvables2)
+    set_AGW_node_state(mqs, 'solver2', solver_defaults2)
 
-
-    msname          = 'TEST_CLAR.MS'
 #   inputrec        = create_inputrec(msname, tile_size=6000)
-    inputrec        = create_inputrec(msname, tile_size=50000)
+    inputrec        = create_inputrec(msname, tile_size=tile_size)
     outputrec       = create_outputrec(output_column='PREDICT')
     print 'input record ', inputrec
     print 'output record ', outputrec
@@ -378,7 +397,7 @@ def _define_forest(ns):
   create_constant_nodes(ns)
 
 # create default antenna station parameters (location, UVW)
-  num_antennas = 14
+  num_antennas = 28
   station_list = range(1, num_antennas+1)
   forest_measurement_set_info(ns, len(station_list))
 

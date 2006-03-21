@@ -5,7 +5,19 @@ from numarray import *
 from copy import deepcopy
 import os
 
-# bookmark
+# MS name
+msname = "TEST_CLAR_28-4800.MS";
+# number of timeslots to use at once
+tile_size = 480
+
+# MS input queue size -- must be at least equal to the no. of ifrs
+input_queue_size = 500
+
+# MEP table for derived quantities 
+# 
+mep_derived = 'CLAR_DQ_28-480.mep';
+
+# bookmarks
 Settings.forest_state = record(bookmarks=[
   record(name='Predicts',page=[
     record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_1",pos=(0,0)),
@@ -25,9 +37,6 @@ Settings.forest_state = record(bookmarks=[
 #   record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
   ]) \
 ]);
-
-mep_derived = 'CLAR_DQ.mep';
-
 
 class PointSource:
     name = ''
@@ -229,10 +238,11 @@ def create_constant_nodes(ns):
     ns.ln_16 << Meq.Constant(-2.7725887)
 
 # create constant parameters for CLAR beam nodes
-# eventually these should be a function of frequency
-# HPBW of 3 arcmin = 0.00087266 radians 1145.9156 = 1 / 0.00087266
-    ns.width << Meq.Constant(1145.9156)
-    ns.width_sq <<Meq.Sqr(ns.width)
+# base HPW is 647.868 1/rad at 800 Mhz
+    ns.width << Meq.Constant(647.868);
+    # this scales it with frequency
+    ns.width_fq << ns.width * ( Meq.Freq() / float(800*1e+6 ) );
+    ns.width_sq << Meq.Sqr(ns.width_fq)
     
 def noise_matrix (stddev=0.1):
   noise = Meq.GaussNoise(stddev=stddev);
@@ -316,16 +326,18 @@ def create_inputrec(msname, tile_size=1500,short=False):
       rec.ms_name          = msname
       rec.data_column_name = 'DATA'
       rec.tile_size        = tile_size
-      rec.selection = record(channel_start_index=0,
-                             channel_end_index=0,
-                             channel_increment=1,
-                             selection_string='')
+      rec.selection        = record();
+#      rec.selection = record(channel_start_index=0,
+#                             channel_end_index=0,
+#                             channel_increment=1,
+#                             selection_string='')
       if short:
         rec.selection.selection_string = '';
-      else:
-        rec.record_input = boioname;
+#      else:
+#        rec.record_input = boioname;
       rec = record(ms=rec);
-    rec.python_init='AGW_read_msvis_header.py';
+    rec.python_init = 'AGW_read_msvis_header.py';
+    rec.mt_queue_size = input_queue_size;
     return rec;
 
 
@@ -371,10 +383,9 @@ def publish_node_state(mqs, nodename):
 
 ########### new-style TDL stuff ###############
 
-def _tdl_job_clar_predict(mqs,parent,write=True):
-    msname          = 'TEST_CLAR.MS'
+def _tdl_job_clar_predict(mqs,parent,write=False):
 #   inputrec        = create_inputrec(msname, tile_size=6000)
-    inputrec        = create_inputrec(msname, tile_size=5000)
+    inputrec        = create_inputrec(msname, tile_size=tile_size)
     outputrec       = create_outputrec(output_column='PREDICT')
     print 'input record ', inputrec
     print 'output record ', outputrec
