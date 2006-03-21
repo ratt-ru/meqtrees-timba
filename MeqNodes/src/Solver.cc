@@ -969,8 +969,8 @@ int Solver::getResult (Result::Ref &resref,
     cdebug(4)<<num_conv_<<" subsolvers have converged ("<<need_conv_<<" needed)\n";
     converged = num_conv_ >= need_conv_;
     // fill in updates in request object
-    //    fillRider(reqref,do_save_funklets_&&converged,converged);
-    fillRider(reqref,do_save_funklets_,converged);
+    fillRider(reqref,do_save_funklets_&&(converged || (cur_iter_ == max_num_iter_-1)),converged);
+    //fillRider(reqref,do_save_funklets_,converged);
     // fill in metrics and debug info
     DMI::Vec * pmetvec;
     metricsList().addBack(pmetvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
