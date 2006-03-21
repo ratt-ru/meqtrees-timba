@@ -199,8 +199,9 @@ class NodeSet (TDL_common.Super):
             glist = self._extract_flat_grouplist (group, origin='.bookmark()',
                                                   must_exist=True)
             if folder==None: folder = self.tlabel()
-            if page==None: page = key
-            self.__bookmark[key] = dict(key=key, groups=glist, created=False,
+            if page==None: page = self.tlabel()+'_'+key
+            self.__bookmark[key] = dict(key=key, groups=glist,
+                                        created=False, panels=[],
                                         page=page, folder=folder)
         return self._fieldict (self.__bookmark, key=key, name='.bookmark()')
 
@@ -692,26 +693,34 @@ class NodeSet (TDL_common.Super):
             rr = self.bookmark(key)                           # convenience
             if trace: print '-',rr
             if not rr['created']:                             # create only once
-                panels = []
+
+                rr['panels'] = []
                 for name in rr['groups']:
                     node = self.make_bundle(ns, name)
                     if TDL_common.is_nodestub(node):          # result is valid node
-                        panels.append(node)
-                        folder = rr['folder']                 
-                        if override_folder: folder = override_folder
-                        if rr['page'] or folder:              # MeqBrowser bookpage specified 
-                            JEN_bookmarks.create (node, page=rr['page'], folder=folder)
-                if len(panels)==0:                            # should not happen...
+                        rr['panels'].append(node)
+
+                # Make a single rootnode:
+                if len(rr['panels'])==0:                      # should not happen...
                     pass
-                elif len(panels)==1:
-                    rr['rootnode'] = panels[0]
+                elif len(rr['panels'])==1:
+                    rr['rootnode'] = rr['panels'][0]
                 else:
                     name = '_bookmark_'+key
-                    node = ns[name](uniqual) << Meq.Composer(children=panels)
+                    node = ns[name](uniqual) << Meq.Composer(children=rr['panels'])
                     rr['rootnode'] = node
+
+                # Finished:
                 rr['created'] = True                          # avoid repeat
                 self.__bookmark[key] = rr                     # replace
                 self._history(funcname+': created bookmark definition: '+key)
+
+            # MeqBrowser bookmarks (always): 
+            folder = rr['folder']                 
+            if override_folder: folder = override_folder
+            if rr['page'] or folder:
+                for panel in rr['panels']:
+                    JEN_bookmarks.create (panel, page=rr['page'], folder=folder)
         return True
 
     #----------------------------------------------------------------------------
