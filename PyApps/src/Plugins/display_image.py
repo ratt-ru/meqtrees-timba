@@ -1876,8 +1876,8 @@ class QwtImageDisplay(QwtPlot):
           else:
             self.setAxisTitle(QwtPlot.yLeft, 'Value: real (black line / red dots)')
             self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (blue line / green dots)')
-          self.xrCrossSection = self.insertCurve('xCrossSection')
           self.yCrossSection = self.insertCurve('yCrossSection')
+          self.xrCrossSection = self.insertCurve('xCrossSection')
           self.setCurvePen(self.xrCrossSection, QPen(Qt.black, 2))
           self.setCurvePen(self.yCrossSection, QPen(Qt.blue, 2))
           self.setCurveYAxis(self.xrCrossSection, QwtPlot.yLeft)
