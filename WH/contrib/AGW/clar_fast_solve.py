@@ -7,34 +7,23 @@ import os
 
 # bookmark
 Settings.forest_state = record(bookmarks=[
-  record(name='Flux solutions',page=[
+  record(name='Solutions',page=[
     record(viewer="Result Plotter",udi="/node/stokes:I:src_1",pos=(0,0)),
     record(viewer="Result Plotter",udi="/node/stokes:I:src_2",pos=(0,1)),
     record(viewer="Result Plotter",udi="/node/stokes:I:src_3",pos=(0,2)),
     record(viewer="Result Plotter",udi="/node/stokes:I:src_4",pos=(1,0)),
     record(viewer="Result Plotter",udi="/node/stokes:I:src_5",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_6",pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/width",pos=(1,2)),
 #    record(viewer="Result Plotter",udi="/node/stokes:I:src_7",pos=(2,0)),
 #    record(viewer="Result Plotter",udi="/node/stokes:I:src_8",pos=(2,1)),
 #    record(viewer="Result Plotter",udi="/node/stokes:I:src_9",pos=(2,2)),
     record(viewer="Result Plotter",udi="/node/predict:1:10",pos=(2,0)),
     record(viewer="Result Plotter",udi="/node/spigot:1:10",pos=(2,1)),
     record(viewer="Result Plotter",udi="/node/corrected:1:10",pos=(2,2)),
-  ]), \
-  record(name='Phase solutions',page=[
-#    record(viewer="Result Plotter",udi="/node/JP:2:centre:11",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/EA:11:src_1:11",pos=(0,0)),
-#    record(viewer="Result Plotter",udi="/node/JP:2:edge:11",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
-#    record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
-  ]),
-#  record(name='Gain solutions',page=[
-#    record(viewer="Result Plotter",udi="/node/JA:2:centre:11",pos=(0,0)),
-#    record(viewer="Result Plotter",udi="/node/JA:2:edge:11",pos=(0,1)),
-#    record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
-#    record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
-#  ])
+  ]), 
 ]);
+
+mep_derived = 'CLAR_DQ.mep';
 
 class PointSource:
     name = ''
@@ -150,9 +139,11 @@ def forest_measurement_set_info(ns, num_ant):
         ns.xyz(station)  << Meq.Composer(ns.x(station),
                                          ns.y(station),
                                          ns.z(station))
-        ns.uvw(station) << Meq.UVW(radec= ns.radec0,
-                                   xyz_0= ns.xyz0,
-                                   xyz  = ns.xyz(station))
+        ns.uvw(station) << Meq.Composer(
+          ns.U(station) << Meq.Parm(table_name=mep_derived),
+          ns.V(station) << Meq.Parm(table_name=mep_derived),
+          ns.W(station) << Meq.Parm(table_name=mep_derived)
+        );
         pass
     pass
 
@@ -261,14 +252,11 @@ def forest_station_source_jones(ns, station_list, source_name, mep_table_name):
     """
     
     for station in station_list:
-      gain_polc  = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
-      ea = ns.EA(station, source_name) << Meq.Parm(gain_polc,
-                                                   table_name=mep_table_name,
-                                                   node_groups='Parm');
-      ediag = ns.Ediag(station,source_name) << Meq.Polar(ea,0)
-                                         
-      ee = ns.E(station,source_name) << Meq.Matrix22(ediag,0,0,ediag);
-      ns.ctE(station, source_name) << Meq.ConjTranspose(ee)
+      vgain = ns.V_GAIN(station, source_name) << Meq.Parm(table_name=mep_derived);
+      ediag = ns.ediag(station,source_name) << Meq.Sqrt(Meq.Exp(vgain*ns.width_sq));
+      e11 = ns.E11(station,source_name) << Meq.Polar(ediag,0)
+      ns.E(station,source_name) << Meq.Matrix22(e11,0,0,e11)
+      ns.ctE(station, source_name) << Meq.ConjTranspose(ns.E(station,source_name))
 
 def forest_solver(ns, interferometer_list, station_list, sources, input_column='DATA'):
     ce_list = []
@@ -322,10 +310,9 @@ def create_constant_nodes(ns):
 # create constant parameters for CLAR beam nodes
 # eventually these should be a function of frequency
 # HPBW of 3 arcmin = 0.00087266 radians 1145.9156 = 1 / 0.00087266
-    ns.width_l << Meq.Constant(1145.9156)
-    ns.width_m << Meq.Constant(1145.9156)
-    ns.width_l_sq <<Meq.Sqr(ns.width_l)
-    ns.width_m_sq <<Meq.Sqr(ns.width_m)
+    beam_width_polc = create_polc_ft(degree_f=0, degree_t=0, c00=1000.0)
+    ns.width << Meq.Parm(beam_width_polc, node_groups='Parm')
+    ns.width_sq << Meq.Sqr(ns.width);
 
 # creates source-related nodes for a given source
 def forest_source_subtrees (ns, source):
@@ -410,8 +397,8 @@ def create_inputrec(msname, tile_size=1500,short=False):
                              selection_string='')
       if short:
         rec.selection.selection_string = '';
-      else:
-        rec.record_input = boioname;
+#      else:
+#        rec.record_input = boioname;
       rec = record(ms=rec);
     rec.python_init='AGW_read_msvis_header.py';
     return rec;
@@ -479,6 +466,7 @@ def _tdl_job_clar_solve(mqs,parent,write=True):
     for source in source_model:
       solvables.append('stokes:I:' + source.name)
       pass
+    solvables.append("width");
 
     print 'solvables ', solvables
     for s in solvables:

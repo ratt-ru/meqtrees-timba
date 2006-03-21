@@ -7,37 +7,27 @@ import os
 
 # bookmark
 Settings.forest_state = record(bookmarks=[
-  record(name='Beam power',page=[
-    record(viewer="Result Plotter",udi="/node/EA_calc:1:src_1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/EA_calc:1:src_2",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/EA_calc:9:src_2",pos=(0,2)),
-    record(viewer="Result Plotter",udi="/node/EA:1:src_1",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/EA:1:src_2",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/EA:9:src_2",pos=(1,2)),
-    record(viewer="Result Plotter",udi="/node/ce:1:src_1",pos=(2,0)),
-    record(viewer="Result Plotter",udi="/node/ce:1:src_2",pos=(2,1)),
-    record(viewer="Result Plotter",udi="/node/ce:9:src_2",pos=(2,2)),
+  record(name='Derived quantities',page=[
+    record(viewer="Result Plotter",udi="/node/exp_v_gain:1:src_2",pos=(0,0)),
+    record(viewer="Result Plotter",udi="/node/EXP_V_GAIN:1:src_2",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/ce_vgain:1:src_2",pos=(0,2)),
+    record(viewer="Result Plotter",udi="/node/exp_v_gain:5:src_2",pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/EXP_V_GAIN:5:src_2",pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/ce_vgain:5:src_2",pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/uvw:10",pos=(2,0)),
+    record(viewer="Result Plotter",udi="/node/UVW:10",pos=(2,1)),
+    record(viewer="Result Plotter",udi="/node/ce_uvw:10",pos=(2,2)),
     record(viewer="Result Plotter",udi="/node/solver",pos=(3,0)),
 #    record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(3,1)),
 #    record(viewer="Result Plotter",udi="/node/predict:1:14",pos=(3,2)),
 #   record(viewer="Result Plotter",udi="/node/stokes:Q:3C343",pos=(1,0)),
 #    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343_1",pos=(1,1)),
 #   record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
-  ]), \
-  record(name='Phase solutions',page=[
-#    record(viewer="Result Plotter",udi="/node/JP:2:centre:11",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/EA:11:src_1:11",pos=(0,0)),
-#    record(viewer="Result Plotter",udi="/node/JP:2:edge:11",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
-#    record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
-  ]),
-#  record(name='Gain solutions',page=[
-#    record(viewer="Result Plotter",udi="/node/JA:2:centre:11",pos=(0,0)),
-#    record(viewer="Result Plotter",udi="/node/JA:2:edge:11",pos=(0,1)),
-#    record(viewer="Result Plotter",udi="/node/solver",pos=(1,0)),
-#    record(viewer="Result Plotter",udi="/node/corrected:2:11",pos=(1,1)) \
-#  ])
+  ]) \
 ]);
+
+# MEP tablew for derived quantities fitted in this script
+mep_derived = 'CLAR_DQ.mep';
 
 class PointSource:
     name = ''
@@ -152,36 +142,13 @@ def create_constant_nodes(ns):
 # create constant parameters for CLAR beam nodes
 # eventually these should be a function of frequency
 # HPBW of 3 arcmin = 0.00087266 radians 1145.9156 = 1 / 0.00087266
-    ns.width_l << Meq.Constant(1145.9156)
-    ns.width_m << Meq.Constant(1145.9156)
-    ns.width_l_sq <<Meq.Sqr(ns.width_l)
-    ns.width_m_sq <<Meq.Sqr(ns.width_m)
+#    ns.width_l << Meq.Constant(1145.9156)
+    ns.width << Meq.Constant(1145.9156)
+    ns.width_sq << Meq.Sqr(ns.width)
 
 # creates source-related nodes for a given source
 def forest_source_subtrees (ns, source):
   print 'source.name ', source.name
-  IQUVpolcs =[None]*4
-  STOKES=["I","Q","U","V"]
-  for (i,stokes) in enumerate(STOKES):
-    if(source.IQUV[i] != None):
-      print 'i source.IQUV[i] source.IQUVorder ', i, ' ', source.IQUV[i], ' ', source.IQUVorder[i]
-      IQUVpolcs[i] = create_polc_ft(degree_f=source.IQUVorder[i], 
-					c00= source.IQUV[i])
-      pass
-    st = ns.stokes(stokes, source.name) << Meq.Parm(IQUVpolcs[i],
-					table_name=source.table,
-					node_groups='Parm')
-#   create_refparms(st);
-    pass    
-  ns.xx(source.name) << (ns.stokes("I",source.name)+ns.stokes("Q",source.name))*0.5
-  ns.yx(source.name) << Meq.ToComplex(ns.stokes("U",source.name),ns.stokes("V",source.name))*0.5
-  ns.xy(source.name) << Meq.Conj(ns.yx(source.name))
-  ns.yy(source.name) << (ns.stokes("I",source.name)-ns.stokes("Q",source.name))*0.5
-
-# add in noise for xx, yy
-  ns.xx_noisy(source.name) << Meq.GaussNoise(ns.xx(source.name), stddev=0.1)
-  ns.yy_noisy(source.name) << Meq.GaussNoise(ns.yy(source.name), stddev=0.1)
-
   ra = ns.ra(source.name) << Meq.Parm(source.ra, table_name=source.table,
 			node_groups='Parm')
   dec= ns.dec(source.name) << Meq.Parm(source.dec, table_name=source.table,
@@ -190,15 +157,6 @@ def forest_source_subtrees (ns, source):
   lmn   = ns.lmn  (source.name) << Meq.LMN(radec_0 = ns.radec0, radec = radec)
   n     = ns.n    (source.name) << Meq.Selector(lmn, index=2)
 
-  ns.lmn_minus1(source.name) << Meq.Paster(lmn, n-1, index=2)
-  ns.coherency(source.name) << Meq.Matrix22(ns.xx_noisy(source.name),
-                                   ns.xy(source.name),
-                                   ns.yx(source.name),
-                                   ns.yy_noisy(source.name))/ns.n(source.name)
-# ns.coherency(source.name) << Meq.Matrix22(ns.xx(source.name),
-#                                  ns.xy(source.name),
-#                                  ns.yx(source.name),
-#                                  ns.yy(source.name))/ns.n(source.name)
   pass
 
 
@@ -212,12 +170,9 @@ def create_station_subtrees(ns,st):
   # then get elevation of FC as seen from this station as separate element
   ns.AzEl_el0(st) << Meq.Selector(ns.AzEl_fc(st),index=1)
 
-  # get sine of elevation of field centre - used later to determine CLAR
+  # get squared sine of elevation of field centre - used later to determine CLAR
   # beam broadening
-  ns.sine_el(st) << Meq.Sin(ns.AzEl_el0(st))
-
-  # square this sine value
-  ns.sine_el_sq(st) << Meq.Sqr(ns.sine_el(st))
+  ns.sin_el_sq(st) << Meq.Sqr(Meq.Sin(ns.AzEl_el0(st)))
 
 
 def create_beam_subtrees (ns, st,src):
@@ -250,16 +205,19 @@ def create_beam_subtrees (ns, st,src):
   ns.m_sq(st,src.name) << Meq.Sqr(ns.m_azel(st,src.name))
 
   # then multiply by width squared, for L, M
-  ns.l_vpsq(st,src.name) << ns.l_sq(st,src.name) * ns.width_l_sq
-  ns.m_vpsq(st,src.name) << ns.m_sq(st,src.name) * ns.width_m_sq
+#  ns.l_vpsq(st,src.name) << ns.l_sq(st,src.name) * ns.width_l_sq
+#  ns.m_vpsq(st,src.name) << ns.m_sq(st,src.name) * ns.width_m_sq
 
   # for M, adjust by sin of elevation squared
-  ns.m_vpsq_sin(st,src.name) << ns.m_vpsq(st,src.name) * ns.sine_el_sq(st)
+#  ns.m_vpsq_sin(st,src.name) << ns.m_vpsq(st,src.name) * ns.sine_el_sq(st)
 
   # add L and M gains together, then multiply by log 16
-  ns.v_gain(st,src.name) << (ns.l_vpsq(st,src.name) + ns.m_vpsq_sin(st,src.name))*ns.ln_16;
+  ns.v_gain(st,src.name) << \
+      (ns.l_sq(st,src.name) + ns.m_sq(st,src.name)*ns.sin_el_sq(st))*ns.ln_16;
+# this now needs to be multiplied by width and exponent taken to get the
+# true beam power
   # raise to exponent
-  ns.exp_v_gain(st,src.name) << Meq.Exp(ns.v_gain(st,src.name))
+  ns.exp_v_gain(st,src.name) << Meq.Exp(ns.v_gain(st,src.name)*ns.width_sq)
 
   # Note: this final node represents a source seen in a 'power pattern'
   # we take the square root of this value, so as to have a voltage response,
@@ -267,21 +225,35 @@ def create_beam_subtrees (ns, st,src):
 # ---
 
 
-def forest_solver(ns, station_list, sources):
-    ce_list = []
-    # Measurements
-    for sta in station_list:
-      for src in sources:
-        ns.ce(sta,src.name) << Meq.Condeq(
-          ns.EA_calc(sta,src.name) << Meq.Sqrt(ns.exp_v_gain(sta,src.name)),
-          ns.EA(sta,src.name) << 
-              Meq.Parm(create_polc_ft(degree_f=0, degree_t=5, c00=0.0),
-                       node_groups='Parm',
-                       table_name='CLAR.mep'));
-        ce_list.append(ns.ce(sta,src.name))
+def tpolc (tdeg,c00=0.0):
+  return Meq.Parm(create_polc_ft(degree_f=0, degree_t=tdeg,c00=c00),
+                  node_groups='Parm',
+                  table_name=mep_derived);
+  
 
-    ns.solver << Meq.Solver(children=ce_list);
-    ns.modres << Meq.ModRes(ns.solver,num_cells=[480,1]);
+def forest_solver(ns, station_list, sources):
+  ce_list = []
+  # Measurements
+  for sta in station_list:
+    # condeq for station UVWs
+    ce_list.append(
+      ns.ce_uvw(sta) << Meq.Condeq(
+        ns.uvw(sta),
+        ns.UVW(sta) << Meq.Composer(
+          ns.U(sta) << tpolc(6),
+          ns.V(sta) << tpolc(6),
+          ns.W(sta) << tpolc(6) )
+      ));
+    for src in sources:
+      # condeq for source-station E-term
+      vgain = ns.V_GAIN(sta,src.name) << tpolc(5);
+      ce_list.append(
+        ns.ce_vgain(sta,src.name) << Meq.Condeq(
+          ns.exp_v_gain(sta,src.name),
+          ns.EXP_V_GAIN(sta,src.name) << Meq.Exp(vgain*ns.width_sq)
+      ));
+  ns.solver << Meq.Solver(children=ce_list);
+  ns.modres << Meq.ModRes(ns.solver,num_cells=[480,1]);
 
 
 def forest_create_vdm (ns):
@@ -356,15 +328,18 @@ def publish_node_state(mqs, nodename):
 
 ########### new-style TDL stuff ###############
 
-def _tdl_job_fit_beams (mqs,parent,write=True):
+def _tdl_job_fit_derived_parameters (mqs,parent,write=True):
     station_list = range(1,15)
 #get source list
     source_model = create_source_model()
 
     solvables = []
-    for source in source_model:
-      for station in station_list:
-        solvables.append(':'.join(('EA',str(station),source.name)));
+    for station in station_list:
+      solvables += [ ':'.join(('U',str(station))),
+                     ':'.join(('V',str(station))),
+                     ':'.join(('W',str(station))) ];
+      for source in source_model:
+        solvables += [ ':'.join(('V_GAIN',str(station),source.name)) ];
 
     publish_node_state(mqs, 'solver')
 

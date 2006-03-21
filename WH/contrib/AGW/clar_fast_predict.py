@@ -10,13 +10,13 @@ Settings.forest_state = record(bookmarks=[
   record(name='Predicts',page=[
     record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_1",pos=(0,0)),
     record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_2",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_3",pos=(0,2)),
+    record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_5",pos=(0,2)),
     record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_1",pos=(1,0)),
     record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_2",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_3",pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_5",pos=(1,2)),
     record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(2,0)),
     record(viewer="Result Plotter",udi="/node/E:1:src_5",pos=(2,1)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_10",pos=(2,2)),
+    record(viewer="Result Plotter",udi="/node/E:14:src_5",pos=(2,2)),
     record(viewer="Result Plotter",udi="/node/predict:1:2",pos=(3,0)),
     record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(3,1)),
     record(viewer="Result Plotter",udi="/node/predict:1:14",pos=(3,2)),
@@ -25,6 +25,9 @@ Settings.forest_state = record(bookmarks=[
 #   record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
   ]) \
 ]);
+
+mep_derived = 'CLAR_DQ.mep';
+
 
 class PointSource:
     name = ''
@@ -140,9 +143,11 @@ def forest_measurement_set_info(ns, num_ant):
         ns.xyz(station)  << Meq.Composer(ns.x(station),
                                          ns.y(station),
                                          ns.z(station))
-        ns.uvw(station) << Meq.UVW(radec= ns.radec0,
-                                   xyz_0= ns.xyz0,
-                                   xyz  = ns.xyz(station))
+        ns.uvw(station) << Meq.Composer(
+          ns.U(station) << Meq.Parm(table_name=mep_derived),
+          ns.V(station) << Meq.Parm(table_name=mep_derived),
+          ns.W(station) << Meq.Parm(table_name=mep_derived)
+        );
         pass
     pass
 
@@ -150,43 +155,6 @@ def create_polc_ft(degree_f=0, degree_t=0, c00=0.0):
     polc = meq.polc(zeros((degree_t+1, degree_f+1))*0.0)
     polc.coeff[0,0] = c00
     return polc
-
-### initial stuff for station
-def forest_station_jones(ns, station, mep_table_name):
-    """
-    Station is a 1-based integer
-    """
-
-    for i in range(1,3):
-        for j in range(1,3):
-            elem      = str(i)+str(j)
-            if i != j:
-                gain_polc  = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
-                phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
-            else:
-                gain_polc  = create_polc_ft(degree_f=0, degree_t=1, c00=1.0)
-                phase_polc = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
-                pass
-            ga = ns.GA(station, elem) << Meq.Parm(gain_polc,
-                                             table_name=mep_table_name,
-                                             node_groups='Parm',
-                                             tiling=record(time=20))
-            gp = ns.GP(station, elem) << Meq.Parm(phase_polc,
-                                             table_name=mep_table_name,
-                                             node_groups='Parm',
-                                             tiling=record(time=1))
-            ns.G(station, elem) << Meq.Polar(ga,gp);
-            if i == j:
-              create_refparms(ga);
-              create_refparms(gp);
-            pass # for j ...
-        pass     # for i ...
-
-    ns.G(station) << Meq.Matrix22(ns.G(station, '11'),
-                                  ns.G(station, '12'),
-                                  ns.G(station, '21'),
-                                  ns.G(station, '22'))
-    ns.ctG(station) << Meq.ConjTranspose(ns.G(station))
 
 def forest_baseline_predict_trees(ns, interferometer_list, sources):
     """ create visibility for a source as seen by station combinations
@@ -201,28 +169,10 @@ def forest_baseline_predict_trees(ns, interferometer_list, sources):
                                  ns.ctE(ant2, source.name))
             corrupted_vis_list.append(ns.corrupted_vis(ant1,ant2,source.name))
             pass
-        ns.predict(ant1, ant2) << Meq.Add(children=deepcopy(corrupted_vis_list))
+        # add a noise term
+        corrupted_vis_list.append(ns.noise(ant1,ant2) << noise_matrix());
+        ns.predict(ant1, ant2) << Meq.Add(*corrupted_vis_list);
         pass
-    pass
-
-def forest_baseline_correct_trees(ns, interferometer_list, sources):
-    """ this generates a bunch of visibility 'correction factors' which
-        one could apply to the observed or 'spigot' data. The script
-        writes this stuff out to a CORRECTED_DATA column, but that
-        is a misnomer.
-    """
-    for (ant1, ant2) in interferometer_list:
-        ns.subtract(ant1, ant2) << (ns.spigot(ant1,ant2) - \
-                                    ns.predict(ant1, ant2))
-        corrected_vis_list = []
-        for source in sources:
-          ns.corrected(ant1,ant2,source.name) << \
-                Meq.MatrixMultiply(Meq.MatrixInvert22(ns.E(ant1,source.name)), #                              Meq.MatrixInvert22(ns.G(ant1)),
-                                   ns.subtract(ant1,ant2), #           Meq.MatrixInvert22(ns.ctG(ant2)),
-                                   Meq.MatrixInvert22(ns.ctE(ant2, source.name)))
-          pass
-          corrected_vis_list.append(ns.corrected(ant1,ant2,source.name))
-        ns.corrected(ant1, ant2) << Meq.Add(children=deepcopy(corrected_vis_list))
     pass
 
 def forest_clean_predict_trees(ns, source, station_list):
@@ -255,14 +205,11 @@ def forest_station_source_jones(ns, station_list, source_name, mep_table_name):
     """
     
     for station in station_list:
-      gain_polc  = create_polc_ft(degree_f=0, degree_t=0, c00=0.0)
-      ea = ns.EA(station, source_name) << Meq.Parm(gain_polc,
-                                                   table_name=mep_table_name,
-                                                   node_groups='Parm');
-      ediag = ns.Ediag(station,source_name) << Meq.Polar(ea,0)
-                                         
-      ee = ns.E(station,source_name) << Meq.Matrix22(ediag,0,0,ediag);
-      ns.ctE(station, source_name) << Meq.ConjTranspose(ee)
+      vgain = ns.V_GAIN(station, source_name) << Meq.Parm(table_name=mep_derived);
+      ediag = ns.ediag(station,source_name) << Meq.Sqrt(Meq.Exp(vgain*ns.width_sq));
+      # note that a scalar is equivalent to a diagonal matrix
+      ns.E(station,source_name) << Meq.Polar(ediag,0)
+      ns.ctE(station, source_name) << Meq.Conj(ns.E(station,source_name))
 
 def forest_sum_of_phases(ns, station_list, source_name, coeff):
     phase_list = []
@@ -325,10 +272,17 @@ def create_constant_nodes(ns):
 # create constant parameters for CLAR beam nodes
 # eventually these should be a function of frequency
 # HPBW of 3 arcmin = 0.00087266 radians 1145.9156 = 1 / 0.00087266
-    ns.width_l << Meq.Constant(1145.9156)
-    ns.width_m << Meq.Constant(1145.9156)
-    ns.width_l_sq <<Meq.Sqr(ns.width_l)
-    ns.width_m_sq <<Meq.Sqr(ns.width_m)
+    ns.width << Meq.Constant(1145.9156)
+    ns.width_sq <<Meq.Sqr(ns.width)
+    
+def noise_matrix (stddev=0.1):
+  noise = Meq.GaussNoise(stddev=stddev);
+# create a 2x2 complex noise matrix
+  return Meq.Matrix22(
+    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise),
+    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise)
+  );
+  pass;
 
 # creates source-related nodes for a given source
 def forest_source_subtrees (ns, source):
@@ -351,15 +305,6 @@ def forest_source_subtrees (ns, source):
   ns.xy(source.name) << Meq.Conj(ns.yx(source.name))
   ns.yy(source.name) << (ns.stokes("I",source.name)-ns.stokes("Q",source.name))*0.5
 
-# create definition for a noise term -- this is reused repeatedly below to
-# define a separate noise node in each instance
-  noise = Meq.GaussNoise(stddev=0.1);
-# create a 2x2 complex noise matrix
-  ns.noise(source.name) << Meq.Matrix22(
-    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise),
-    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise)
-  );
-
   ra = ns.ra(source.name) << Meq.Parm(source.ra, table_name=source.table,
 			node_groups='Parm')
   dec= ns.dec(source.name) << Meq.Parm(source.dec, table_name=source.table,
@@ -368,13 +313,12 @@ def forest_source_subtrees (ns, source):
   lmn   = ns.lmn  (source.name) << Meq.LMN(radec_0 = ns.radec0, radec = radec)
   n     = ns.n    (source.name) << Meq.Selector(lmn, index=2)
 
-  ns.clean_coh(source.name) << Meq.Matrix22(ns.xx(source.name),
+  ns.coherency(source.name) << Meq.Matrix22(ns.xx(source.name),
                                           ns.xy(source.name),
                                           ns.yx(source.name),
                                           ns.yy(source.name));
   
   ns.lmn_minus1(source.name) << Meq.Paster(lmn, n-1, index=2)
-  ns.coherency(source.name) << (ns.clean_coh(source.name) + ns.noise(source.name))/ns.n(source.name)
   pass
 
 
