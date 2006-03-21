@@ -207,53 +207,12 @@ def forest_station_source_jones(ns, station_list, source_name, mep_table_name):
     for station in station_list:
       vgain = ns.V_GAIN(station, source_name) << Meq.Parm(table_name=mep_derived);
       ediag = ns.ediag(station,source_name) << Meq.Sqrt(Meq.Exp(vgain*ns.width_sq));
+      # create a phase error term
+      phase_noise = Meq.GaussNoise(stddev=0.1);
       # note that a scalar is equivalent to a diagonal matrix
-      ns.E(station,source_name) << Meq.Polar(ediag,0)
+      ns.E(station,source_name) << Meq.Matrix22(
+            Meq.Polar(ediag,phase_noise),0,0,Meq.Polar(ediag,phase_noise));
       ns.ctE(station, source_name) << Meq.Conj(ns.E(station,source_name))
-
-def forest_sum_of_phases(ns, station_list, source_name, coeff):
-    phase_list = []
-    for station in station_list:
-        phase_list.append("EP:"+str(station)+":"+source_name+":"+coeff)
-        pass
-    ns.SumOfPhases(source_name, coeff)  << Meq.Add(children=phase_list)
-    ns.ce("Phases", source_name, coeff) << Meq.Condeq(0.0, ns.SumOfPhases(source_name, coeff))
-    pass
-
-
-def forest_solver(ns, interferometer_list, station_list, sources, input_column='DATA'):
-    ce_list = []
-    # Measurements
-    for (ant1,ant2) in interferometer_list:
-        ns.spigot(ant1, ant2) << Meq.Spigot(station_1_index=ant1-1,
-                                            station_2_index=ant2-1,
-                                            flag_bit=4,
-                                            input_col=input_column)
-        ns.ce(ant1, ant2) << Meq.Condeq(ns.spigot(ant1, ant2),
-                                        ns.predict(ant1, ant2))
-        ce_list.append(ns.ce(ant1, ant2))
-        pass
-    # Constraints
-    # Phase constraints
-    for source in sources:
-        forest_sum_of_phases(ns, station_list, source.name, "11");
-        forest_sum_of_phases(ns, station_list, source.name, "22");
-        ce_list.append(ns.ce("Phases", source.name, "11"));
-        ce_list.append(ns.ce("Phases", source.name, "22"));
-        pass
-
-    # set up a non-default child poll order for most efficient
-    # parallelization
-    # (i.e. poll child 1:2, 3:4, 5:6, ..., 13:14,
-    # then the rest)
-    cpo = [];
-    for i in range(len(station_list)/2):
-      (ant1,ant2) = station_list[i*2:(i+1)*2];
-      cpo.append(ns.ce(ant1,ant2).name);
-
-    ns.solver << Meq.Solver(children=ce_list,child_poll_order=cpo);
-    pass
-
 
 # creates common nodes (field centre):
 def create_common_nodes(ns):
