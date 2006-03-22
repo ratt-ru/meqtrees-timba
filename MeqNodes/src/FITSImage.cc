@@ -270,7 +270,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		int naxis;
 		int bitpix;
 
-		int ii,nkeys;
+		int ii,nkeys,jj,kk;
 		char card[81]; /*for keywords */
 		int datatype=0;
 		long int totalpix;
@@ -284,6 +284,9 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		char *header;
 		int ncard,nreject,nwcs;
 		//extern const char *wcshdr_errmsg[];
+		int ncoord;
+		double *pixelc, *imgc, *worldc, *phic, *thetac;
+		int *statc;
 
 		int stat[NWCSFIX];
 
@@ -405,7 +408,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 	  printf(" to (%ld %ld %ld %ld)\n",arr_dims.hpix[0],
 									arr_dims.hpix[1],	arr_dims.hpix[2], arr_dims.hpix[3]);
 	  
-	  /******* create new FITS file **********/	
+	  /******* create new array **********/	
 		new_naxis[0]=arr_dims.hpix[0]-arr_dims.lpix[0]+1;
 		new_naxis[1]=arr_dims.hpix[1]-arr_dims.lpix[1]+1;
 		new_naxis[2]=arr_dims.hpix[2]-arr_dims.lpix[2]+1;
@@ -433,7 +436,83 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
     
 
+		/* ******************BEGIN create grid for the cells using WCS */
+    printf("found axis %d\n",wcs->naxis);
+		/* allocate memory for pixel/world coordinate arrays */
+		ncoord=new_naxis[0]*new_naxis[1]*1*1; /* consider only one plane fron freq, and stokes axes because RA,Dec will not change */
+  	if ((pixelc=(double*)calloc((size_t)ncoord*4,sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+  	if ((imgc=(double*)calloc((size_t)ncoord*4,sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+  	if ((worldc=(double*)calloc((size_t)ncoord*4,sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+		if ((phic=(double*)calloc((size_t)ncoord,sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+		if ((thetac=(double*)calloc((size_t)ncoord,sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+		if ((statc=(int*)calloc((size_t)ncoord,sizeof(int)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
 
+/*		for (ii=0; ii<ncoord;ii++) {
+  	 if ((pixelc[ii]=(double*)calloc((size_t)wcs->naxis,sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		 }
+  	 if ((imgc[ii]=(double*)calloc((size_t)wcs->naxis,sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		 }
+  	 if ((worldc[ii]=(double*)calloc((size_t)wcs->naxis,sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		 }
+		} */
+		/* fill up the pixel coordinate array */
+    kk=0;
+    for (ii=arr_dims.lpix[0];ii<=arr_dims.hpix[0];ii++)
+     for (jj=arr_dims.lpix[1];jj<=arr_dims.hpix[1];jj++) {
+						 pixelc[kk+0]=(double)ii;
+						 pixelc[kk+1]=(double)jj;
+						 pixelc[kk+2]=(double)1.0;
+						 pixelc[kk+3]=(double)1.0;
+		printf("total %d, created %d\n",ncoord,kk);
+						 kk+=4;
+		 }
+
+		printf("total %d, created %d\n",ncoord,kk);
+		if (status = wcsp2s(wcs, ncoord, wcs->naxis, pixelc, imgc, phic, thetac,
+			 worldc, statc)) {
+			 fprintf(stderr,"wcsp2s ERROR %2d\n", status);
+			 /* Handle Invalid pixel coordinates. */
+			 if (status == 8) status = 0;
+	  }
+
+		printf("finished\n");
+		/* compare the results */
+    kk=0;
+    for (ii=arr_dims.lpix[0];ii<=arr_dims.hpix[0];ii++)
+     for (jj=arr_dims.lpix[1];jj<=arr_dims.hpix[1];jj++) {
+				printf("(%lf: %lf) : [%lf:%lf:%lf:%lf] : (%lf,%lf), [%lf:%lf:%lf:%lf] :: %d\n",pixelc[kk+0],pixelc[kk+1],
+				imgc[kk+0],imgc[kk+1],imgc[kk+2],imgc[kk+3],phic[kk/4],thetac[kk/4],
+				worldc[kk+0],worldc[kk+1],worldc[kk+2],worldc[kk+3],statc[kk/4]
+				);
+						 kk+=4;
+		 }
+
+
+		/* ******************END create grid for the cells using WCS */
     fits_close_file(fptr, &status);      /* all done */
 
     if (status) 
@@ -442,6 +521,21 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		free(arr_dims.d);
 		free(arr_dims.lpix);
 		free(arr_dims.hpix);
+		wcsfree(wcs);
     free(wcs);
+		free(header);
+		
+/*		for (ii=0; ii<ncoord;ii++) {
+			free(pixelc[ii]);
+			free(imgc[ii]);
+			free(worldc[ii]);
+		} */
+		free(pixelc);
+		free(imgc);
+		free(worldc);
+		free(phic);
+		free(thetac);
+		free(statc);
+
     return(status);
 }
