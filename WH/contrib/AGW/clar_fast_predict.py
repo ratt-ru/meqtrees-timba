@@ -8,10 +8,19 @@ import os
 # MS name
 msname = "TEST_CLAR_28-4800.MS";
 # number of timeslots to use at once
-tile_size = 480
+tile_size = 960
 
 # MS input queue size -- must be at least equal to the no. of ifrs
 input_queue_size = 500
+
+num_stations = 27
+
+ms_selection = record()
+#channel_start_index=0,
+#                      channel_end_index=0,
+#                      channel_increment=1,
+#                      selection_string='')
+
 
 # MEP table for derived quantities 
 # 
@@ -28,10 +37,10 @@ Settings.forest_state = record(bookmarks=[
     record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_5",pos=(1,2)),
     record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(2,0)),
     record(viewer="Result Plotter",udi="/node/E:1:src_5",pos=(2,1)),
-    record(viewer="Result Plotter",udi="/node/E:14:src_5",pos=(2,2)),
+    record(viewer="Result Plotter",udi="/node/E:%d:src_5"%num_stations,pos=(2,2)),
     record(viewer="Result Plotter",udi="/node/predict:1:2",pos=(3,0)),
     record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(3,1)),
-    record(viewer="Result Plotter",udi="/node/predict:1:14",pos=(3,2)),
+    record(viewer="Result Plotter",udi="/node/predict:1:%d"%num_stations,pos=(3,2)),
 #   record(viewer="Result Plotter",udi="/node/stokes:Q:3C343",pos=(1,0)),
 #    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343_1",pos=(1,1)),
 #   record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
@@ -318,7 +327,7 @@ def create_inputrec(msname, tile_size=1500,short=False):
     boioname = "boio."+msname+"."+str(tile_size);
     # if boio dump for this tiling exists, use it to save time
     # but watch out if you change the visibility data set!
-    if not short and os.access(boioname,os.R_OK):
+    if False: # not short and os.access(boioname,os.R_OK):
       rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
     # else use MS, but tell the event channel to record itself to boio file
     else:
@@ -327,12 +336,9 @@ def create_inputrec(msname, tile_size=1500,short=False):
       rec.data_column_name = 'DATA'
       rec.tile_size        = tile_size
       rec.selection        = record();
-#      rec.selection = record(channel_start_index=0,
-#                             channel_end_index=0,
-#                             channel_increment=1,
-#                             selection_string='')
-      if short:
-        rec.selection.selection_string = '';
+      rec.selection        = ms_selection;
+#      if short:
+#        rec.selection.selection_string = '';
 #      else:
 #        rec.record_input = boioname;
       rec = record(ms=rec);
@@ -348,34 +354,6 @@ def create_outputrec(output_column='CORRECTED_DATA'):
     rec.predict_column=output_column
 
     return record(ms=rec);
-
-def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvable=[]):
-    solver_defaults=record()
-    solver_defaults.num_iter     = num_iter
-    solver_defaults.epsilon      = epsilon
-    solver_defaults.convergence_quota = convergence_quota
-    solver_defaults.save_funklets= True
-    solver_defaults.last_update  = True
-#See example in TDL/MeqClasses.py
-    solver_defaults.solvable     = record(command_by_list=(record(name=solvable,
-                                         state=record(solvable=True)),
-                                         record(state=record(solvable=False))))
-    return solver_defaults
-
-def set_AGW_node_state (mqs, node, fields_record):
-    """helper function to set the state of a node specified by name or
-    nodeindex""";
-    rec = record(state=fields_record);
-    if isinstance(node,str):
-        rec.name = node;
-    elif isinstance(node,int):
-        rec.nodeindex = node;
-    else:
-        raise TypeError,'illegal node argument';
-# pass command to kernel
-    mqs.meq('Node.Set.State',rec);
-    pass
-
 
 def publish_node_state(mqs, nodename):
     mqs.meq('Node.Set.Publish.Level',record(name=nodename,level=1))
@@ -412,8 +390,8 @@ def _define_forest(ns):
     create_constant_nodes(ns)
 
 # create default antenna station parameters (location, UVW)
-    num_antennas = 14
-    station_list = range(1, num_antennas+1)
+    num_antennas = 27
+    station_list = range(1,num_stations+1)
     forest_measurement_set_info(ns, len(station_list))
 
 # create source list

@@ -7,10 +7,10 @@ import os
 
 # MS name
 msname = "TEST_CLAR_28-480.MS";
-tile_size = 100
+tile_size = 480
 resample = None;
 # resample = [480,1];
-
+num_stations = 27
 
 # MEP table for derived quantities fitted in this script
 mep_derived = 'CLAR_DQ_28-480.mep';
@@ -23,14 +23,15 @@ Settings.forest_state = record(bookmarks=[
     record(viewer="Result Plotter",udi="/node/exp_v_gain:1:src_2",pos=(0,0)),
     record(viewer="Result Plotter",udi="/node/EXP_V_GAIN:1:src_2",pos=(0,1)),
     record(viewer="Result Plotter",udi="/node/ce_vgain:1:src_2",pos=(0,2)),
-    record(viewer="Result Plotter",udi="/node/exp_v_gain:5:src_2",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/EXP_V_GAIN:5:src_2",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/ce_vgain:5:src_2",pos=(1,2)),
-    record(viewer="Result Plotter",udi="/node/uvw:10",pos=(2,0)),
-    record(viewer="Result Plotter",udi="/node/UVW:10",pos=(2,1)),
-    record(viewer="Result Plotter",udi="/node/ce_uvw:10",pos=(2,2)),
-    record(viewer="Result Plotter",udi="/node/solver1",pos=(3,0)),
-    record(viewer="Result Plotter",udi="/node/solver2",pos=(3,1)),
+    record(viewer="Result Plotter",udi="/node/exp_v_gain:%d:src_2"%num_stations,pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/EXP_V_GAIN:%d:src_2"%num_stations,pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/ce_vgain:%d:src_2"%num_stations,pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/uvw:%d"%(num_stations/2),pos=(2,0)),
+    record(viewer="Result Plotter",udi="/node/UVW:%d"%(num_stations/2),pos=(2,1)),
+    record(viewer="Result Plotter",udi="/node/ce_uvw:%d"%(num_stations/2),pos=(2,2)),
+    record(viewer="Result Plotter",udi="/node/solver_uvw:10",pos=(3,0)),
+    record(viewer="Result Plotter",udi="/node/solver_vgain:1",pos=(3,1)),
+    record(viewer="Result Plotter",udi="/node/solver_vgain:%d"%num_stations,pos=(3,2)),
 #    record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(3,1)),
 #    record(viewer="Result Plotter",udi="/node/predict:1:14",pos=(3,2)),
 #   record(viewer="Result Plotter",udi="/node/stokes:Q:3C343",pos=(1,0)),
@@ -242,31 +243,46 @@ def tpolc (tdeg,c00=0.0):
                   table_name=mep_derived);
   
 
+def create_solver_defaults(num_iter=30,epsilon=1e-5,convergence_quota=0.9,solvable=[]):
+    solver_defaults=record()
+    solver_defaults.num_iter     = num_iter
+    solver_defaults.epsilon      = epsilon
+    solver_defaults.convergence_quota = convergence_quota
+    solver_defaults.save_funklets= True
+    solver_defaults.last_update  = True
+#See example in TDL/MeqClasses.py
+    solver_defaults.solvable     = solvable
+    return solver_defaults
+    
 def forest_solver(ns, station_list, sources):
-  ce_list1 = []
-  ce_list2 = []
+  solver_list = []
   # Measurements
   for sta in station_list:
-    # condeqs for station UVWs
-    ce_list2.append(
-      ns.ce_uvw(sta) << Meq.Condeq(
-        ns.uvw(sta),
-        ns.UVW(sta) << Meq.Composer(
-          ns.U(sta) << tpolc(6),
-          ns.V(sta) << tpolc(6),
-          ns.W(sta) << tpolc(6) )
-      ));
+    # create solver + condeq for station UVWs
+    ns.ce_uvw(sta) << Meq.Condeq(
+      ns.uvw(sta),
+      ns.UVW(sta) << Meq.Composer(
+        ns.U(sta) << tpolc(6),
+        ns.V(sta) << tpolc(6),
+        ns.W(sta) << tpolc(6) )
+    );
+    defs = create_solver_defaults(solvable=[node(sta).name for node in (ns.U,ns.V,ns.W)])
+    solver_list.append(ns.solver_uvw(sta) << Meq.Solver(
+        ns.ce_uvw(sta),mt_polling=False,mt_solve=False,**defs));
+    # create solver for station beams patterns
     for src in sources:
       # condeq for source-station E-term
       vgain = ns.V_GAIN(sta,src.name) << tpolc(5);
-      ce_list1.append(
-        ns.ce_vgain(sta,src.name) << Meq.Condeq(
+      ns.ce_vgain(sta,src.name) << Meq.Condeq(
           ns.exp_v_gain(sta,src.name),
           ns.EXP_V_GAIN(sta,src.name) << Meq.Exp(vgain*ns.width_sq)
-      ));
-  ns.solver1 << Meq.Solver(children=ce_list1);
-  ns.solver2 << Meq.Solver(children=ce_list2);
-  ns.solvers << Meq.ReqMux(ns.solver1,ns.solver2);
+      );
+    condeqs = [ ns.ce_vgain(sta,src.name) for src in sources ];
+    defs = create_solver_defaults(solvable=[ns.V_GAIN(sta,src.name).name for src in sources]);
+    solver_list.append(ns.solver_vgain(sta) << Meq.Solver(mt_polling=False,mt_solve=False,
+        *[ns.ce_vgain(sta,src.name) for src in sources],**defs));
+  # create ReqMux for all solvers
+  ns.solvers << Meq.ReqMux(mt_polling=True,*solver_list);
   if resample:
     ns.modres << Meq.ModRes(ns.solvers,num_cells=resample);
 
@@ -312,19 +328,6 @@ def create_outputrec(output_column='CORRECTED_DATA'):
 
     return record(ms=rec);
 
-def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvable=[]):
-    solver_defaults=record()
-    solver_defaults.num_iter     = num_iter
-    solver_defaults.epsilon      = epsilon
-    solver_defaults.convergence_quota = convergence_quota
-    solver_defaults.save_funklets= True
-    solver_defaults.last_update  = True
-#See example in TDL/MeqClasses.py
-    solver_defaults.solvable     = record(command_by_list=(record(name=solvable,
-                                         state=record(solvable=True)),
-                                         record(state=record(solvable=False))))
-    return solver_defaults
-
 def set_AGW_node_state (mqs, node, fields_record):
     """helper function to set the state of a node specified by name or
     nodeindex""";
@@ -347,27 +350,6 @@ def publish_node_state(mqs, nodename):
 ########### new-style TDL stuff ###############
 
 def _tdl_job_fit_derived_parameters (mqs,parent,write=True):
-    station_list = range(1,15)
-#get source list
-    source_model = create_source_model()
-
-    solvables1 = []
-    solvables2 = []
-    for station in station_list:
-      solvables2 += [ ':'.join(('U',str(station))),
-                     ':'.join(('V',str(station))),
-                     ':'.join(('W',str(station))) ];
-      for source in source_model:
-        solvables1 += [ ':'.join(('V_GAIN',str(station),source.name)) ];
-
-    publish_node_state(mqs, 'solver1')
-    publish_node_state(mqs, 'solver2')
-
-    solver_defaults1 = create_solver_defaults(solvable=solvables1)
-    set_AGW_node_state(mqs, 'solver1', solver_defaults1)
-    solver_defaults2 = create_solver_defaults(solvable=solvables2)
-    set_AGW_node_state(mqs, 'solver2', solver_defaults2)
-
 #   inputrec        = create_inputrec(msname, tile_size=6000)
     inputrec        = create_inputrec(msname, tile_size=tile_size)
     outputrec       = create_outputrec(output_column='PREDICT')
@@ -397,8 +379,7 @@ def _define_forest(ns):
   create_constant_nodes(ns)
 
 # create default antenna station parameters (location, UVW)
-  num_antennas = 28
-  station_list = range(1, num_antennas+1)
+  station_list = range(1, num_stations+1)
   forest_measurement_set_info(ns, len(station_list))
 
 # create source list
