@@ -193,13 +193,20 @@ class NodeSet (TDL_common.Super):
         """Get/define the specified (key) bookmark definition (None = all).
         A definition consists of a list of groups (it is a gog, really).
         It is used to create nodes and actual bookmark(s) later.
-        If a page(name) and/or folder is specified, the bookmark is put
-        in there. The default folder is self.tlabel()"""
+        Default page and folder names are based on the NodeSet labels and
+        the bookmark key, but they may also be specified explicitly."""
         if group:
             glist = self._extract_flat_grouplist (group, origin='.bookmark()',
                                                   must_exist=True)
-            if folder==None: folder = self.tlabel()
-            if page==None: page = self.tlabel()+'_'+key
+            # Supply default page and folder names, if necessary:
+            if folder==None:
+                folder = self.tlabel()                              # always make automatic folder name
+            if page==None: page = True                              # default: make automatic page name
+            if isinstance(page, bool):              
+                if not page:                                        # page==False (explicit)
+                    page = None                                     #   no bookpage
+                else:                                               # page==True
+                    page = self.tlabel()+'_'+str(key)               #   make automatic page name
             self.__bookmark[key] = dict(key=key, groups=glist,
                                         created=False, panels=[],
                                         page=page, folder=folder)
@@ -499,11 +506,13 @@ class NodeSet (TDL_common.Super):
     # Functions related to group-of-groups (gogs):
     #================================================================================
 
-    def gog (self, key=None, groups=None, **pp):
+    def gog (self, key=None, groups=None, bookpage=None, **pp):
         """Get/define the named (key) group-of-groups (gog).
-        If groups specified, create a new gog (named key) for the specified groups.
-        Otherwise, just return the specified (key) gog(s)"""
-        if groups:                                  # define a new gog
+        If no groups specified, just return the specified (key) gog(s)
+        Otherwise create a named (key) gog for the specified groups.
+        If a bookpage is specified (string or True), define a gog bookmark."""
+        
+        if groups:                                               # define a new gog
             if key==None:                  
                 return self.history(error='gog('+str(groups)+'): no key specified')
             gg = self._extract_flat_grouplist(groups, must_exist=False, origin='.gog()')
@@ -516,6 +525,10 @@ class NodeSet (TDL_common.Super):
                 self.history(warning='** Overwritten '+s1)
             else:
                 self.history('** Defined new '+s1)
+
+            # If required, make a bookmark for this gog:
+            if bookpage:
+                self.bookmark(key, groups, page=bookpage)
 
             self.__gog[key] = groups                # list of gog groups/gogs
             self.__gog_rider[key] = pp              # extra info associated with the gog
@@ -595,6 +608,7 @@ class NodeSet (TDL_common.Super):
             bbname = '_bd_'+str(name)
             if self.__MeqNode.has_key(bbname):               # bbundle already exists
                 if trace: print '  MeqNode',bbname,'already exists'
+                # NB: Returning here inhibits separate bookmarks (see below)
                 return self.__MeqNode[bbname]                # just return it
             if isinstance(bookpage, bool) and bookpage:      # if bookpage==True: 
                  bookpage = bbname                           #   make an automatic name
@@ -617,12 +631,17 @@ class NodeSet (TDL_common.Super):
                     else:
                         node = ns[bname](uniqual) << Meq.Add(children=nodes)
                         self.__MeqNode[bname] = node
-                        self.__bundle[bname] = 1             # create
+                        self.__bundle[bname] = 1             # bundle book-keeping...?
                     cc.append(node)  
-                    if bookpage or folder:                   # MeqBrowser bookpage specified 
+
+                    # Make MeqBrowser bookmark(s), if required. NB: These are
+                    # made irrespective of whether the bundle already exists,
+                    # which allows different bookmarks for the same bundle.
+                    # Existing bookmarks/pages/folders are ignored.
+                    if bookpage or folder:
                         JEN_bookmarks.create (node, page=bookpage, folder=folder)
 
-        # Return the root node of a subtree:
+        # Return the root node of the bundle subtree:
         if not multiple:
             if bname:
                 s1 = '.make_bundle('+str(bname)+'): '+str(group)
@@ -640,7 +659,7 @@ class NodeSet (TDL_common.Super):
             s1 += '   (page='+str(bookpage)+', folder='+str(folder)+')'
             if trace: print s1
             self.history (s1)
-            return self.__MeqNode[bbname]
+            return self.__MeqNode[bbname]                    
 
         # Something wrong if got to here:
         return False
@@ -793,12 +812,12 @@ class NodeSet (TDL_common.Super):
 
             # Define a bookmark, if required:
             if bookpage or folder:
-                if isinstance(bookpage, bool):               # i.e. bookpage=True
-                    bookpage = gogname                       # automatic page name
                 self.bookmark(gogname, self.gog(gogname),
                               page=bookpage, folder=folder)
 
-            self.history ('.apply_unop('+str(unop)+'): '+str(group)+' '+str(bookpage))
+            self.history ('.apply_unop('+str(unop)+'): '+str(group)
+                          +' (bookpage='+str(bookpage)+')')
+
             # Return grouplist of the new gog:
             return gogname
         
@@ -838,6 +857,7 @@ class NodeSet (TDL_common.Super):
         """Apply binary operation(s) to the nodes in the specified group(s).
         The resulting nodes are put into a new group, whose name is returned"""
 
+        trace = True
         if trace: print '\n** apply_binop(',group,binop,'):'
         gg = self._extract_flat_grouplist(group, must_exist=True, origin='.apply_binop()')
         if not isinstance(gg, list): return False
@@ -861,11 +881,11 @@ class NodeSet (TDL_common.Super):
 
         # Define a bookpage, if required:
         if bookpage or folder:
-            if isinstance(bookpage, bool):               # i.e. bookpage=True
-                bookpage = gname                         # automatic page name
             self.bookmark(gname, gname, page=bookpage, folder=folder)
 
-        self.history ('.apply_binop('+str(binop)+'): '+str(group)+' '+str(bookpage))
+        self.history ('.apply_binop('+str(binop)+'): '+str(group)
+                      +' (bookpage='+str(bookpage)+')')
+        
         # Return the name of the new group:
         return gname
 

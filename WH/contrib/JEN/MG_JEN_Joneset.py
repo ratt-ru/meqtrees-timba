@@ -312,7 +312,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
     # JEN_inarg.display(inarg, funcname)
 
-    label = jones+JEN_inarg.qualifier(pp)
+    label = jones+'_'+str(JEN_inarg.qualifier(pp))
 
     # Some preparations:
     adjust_for_telescope(pp, origin=funcname)
@@ -364,15 +364,15 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     if simul:
        js.LeafSet.NodeSet.bookmark('GJones', [a1, p1, a2, p2])
     else:
-       js.ParmSet.solvegroup('GJones', [a1, p1, a2, p2], bookpage=True)
+       # NB: For the bookmark definition, see after stations.
+       js.ParmSet.solvegroup('GJones', [a1, p1, a2, p2], bookpage=None)
        js.ParmSet.solvegroup('Gpol1', [a1, p1])
        js.ParmSet.solvegroup('Gpol2', [a2, p2])
        js.ParmSet.solvegroup('Ggain', [a1, a2])
        js.ParmSet.solvegroup('Gphase', [p1, p2])
-       # js.ParmSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage='GJones')
-       # js.ParmSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage='GJones')
 
-    
+
+    # Create the station jones matrices:
     for station in pp['stations']:
        skey = TDL_radio_conventions.station_key(station)        
        qual = dict(s=skey)
@@ -412,6 +412,13 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
              ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(cos2, sin2)
              )
        js.append(skey, stub)
+
+
+    # Make nodes and bookmarks for some derived quantities (for display):
+    # NB: This must be done AFTER the station nodes have been defined!
+    bookpage = js.ParmSet.tlabel()+'_GJones'
+    js.ParmSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage=bookpage)
+    js.ParmSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage=bookpage)
 
     # Finished:
     js.cleanup()
@@ -454,8 +461,9 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
-   label = jones+JEN_inarg.qualifier(pp)
-   
+
+   label = jones+'_'+str(JEN_inarg.qualifier(pp))
+
    adjust_for_telescope(pp, origin=funcname)
    pp['punit'] = get_punit(Sixpack, pp)
    
@@ -495,6 +503,7 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
       matname = 'FJones_rotation_matrix'
       stub = MG_JEN_matrix.rotation (ns, angle=farot, name=matname)
 
+   # Create the station jones matrices:
    # For the moment, assume that FJones is the same for all stations:
    for station in pp['stations']:
       skey = TDL_radio_conventions.station_key(station)
@@ -563,7 +572,8 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
-    label = jones+JEN_inarg.qualifier(pp)
+
+    label = jones+'_'+str(JEN_inarg.qualifier(pp))
 
     adjust_for_telescope(pp, origin=funcname)
     pp['punit'] = get_punit(Sixpack, pp)
@@ -608,6 +618,7 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
        js.ParmSet.solvegroup('Breal', [br1, br2])
        js.ParmSet.solvegroup('Bimag', [bi1, bi2])
 
+    # Create the station jones matrices:
     for station in pp['stations']:
         skey = TDL_radio_conventions.station_key(station)      
         qual = dict(s=skey)
@@ -701,7 +712,8 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
-    label = jones+JEN_inarg.qualifier(pp)
+
+    label = jones+'_'+str(JEN_inarg.qualifier(pp))
 
     adjust_for_telescope(pp, origin=funcname)
     # Special case (temporary kludge):
@@ -885,7 +897,8 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
-   label = jones+JEN_inarg.qualifier(pp)
+
+   label = jones+'_'+str(JEN_inarg.qualifier(pp))
 
    adjust_for_telescope(pp, origin=funcname)
    pp['punit'] = get_punit(Sixpack, pp)
@@ -1050,8 +1063,9 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inar
    if not JEN_inarg.is_OK(pp): return False
 
    funcname = JEN_inarg.localscope(pp)
-   label = jones+JEN_inarg.qualifier(pp)
-   
+
+   label = jones+'_'+str(JEN_inarg.qualifier(pp))
+
    adjust_for_telescope(pp, origin=funcname)
 
    # Note the difference with other Jones matrices:
@@ -1474,7 +1488,7 @@ if __name__ == '__main__':
      js.display()     
      display_first_subtree (js, full=True)
 
-  if 1:
+  if 0:
      # inarg = FJones (_getdefaults=True)
      inarg = GJones (_getdefaults=True, simul=False)
      # inarg = BJones (_getdefaults=True)
@@ -1498,13 +1512,13 @@ if __name__ == '__main__':
      js.display()     
      display_first_subtree (js, full=1)
 
-  if 0:
-     simul = True
+  if 1:
+     simul = False
      js = GJones (ns, stations=stations, simul=simul)
      full = True
-     js.display(full=full)     
+     # js.display(full=full)     
      js.ParmSet.display(full=full)     
-     js.LeafSet.display(full=full)     
+     # js.LeafSet.display(full=full)     
      # display_first_subtree (js, full=True)
 
   if 0:

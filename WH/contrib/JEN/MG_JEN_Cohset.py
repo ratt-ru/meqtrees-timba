@@ -213,10 +213,10 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         post = []
         post.append(Cohset.ParmSet.NodeSet.bookmark_subtree(ns, folder=bookfolder))
         post.append(Cohset.LeafSet.NodeSet.bookmark_subtree(ns, folder=bookfolder))    
-        if False:
+        if True:
             node = Cohset.ParmSet.NodeSet.compare (ns, Cohset.LeafSet.NodeSet,
                                                    # group=None, binop='Subtract',
-                                                   bookpage='fDMux_Parm_Leaf',
+                                                   bookpage='fDMux_Parm-Leaf',
                                                    folder=bookfolder,
                                                    trace=True)
             post.append(node)

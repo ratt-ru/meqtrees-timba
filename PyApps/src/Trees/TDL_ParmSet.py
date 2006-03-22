@@ -394,22 +394,19 @@ class ParmSet (TDL_common.Super):
 # Functions related to solvegroups:
 #--------------------------------------------------------------------------------
 
-    def solvegroup (self, key=None, groups=None, **pp):
-        """Get/define the named (key) solvegroup"""
+    def solvegroup (self, key=None, groups=None, bookpage=None, **pp):
+        """Get/define the named (key) solvegroup, i.e. a NodeSet gog"""
         # First the ParmSet-specific part:
         if groups:
             # solvegroup does not exist yet: Create it:
             # NB: This is inhibited if ParmSet is set 'unsolvable' (e.g. for simulated uv-data) 
             if self.unsolvable(): return False
             pp['gogtype'] = 'solvegroup'       
-            if True:
-                # Optional: make a bookpage of this solvegroup
-                pp.setdefault('bookpage', False)
-                if pp['bookpage']:
-                    self.NodeSet.bookmark(key, groups)
-            self.history('** Created solvegroup: '+str(key)+':  group(s): '+str(groups))
+            s1 = '** Created solvegroup: '+str(key)+':  group(s): '+str(groups)
+            if bookpage: s1 += ' (bookpage='+str(bookpage)+')' 
+            self.history(s1)
         # Then the generic NodeSet part:
-        return self.NodeSet.gog(key, groups, **pp)
+        return self.NodeSet.gog(key, groups, bookpage=bookpage, **pp)
 
     def solvegroup_keys (self):
         """Return the keys (names) of the available solvegroups"""

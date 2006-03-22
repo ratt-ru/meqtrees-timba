@@ -7,6 +7,7 @@
 #
 # History:
 #    - 04 dec 2005: creation
+#    - ...
 #
 # Full description:
 #
