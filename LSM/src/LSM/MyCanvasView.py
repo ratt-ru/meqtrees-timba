@@ -622,14 +622,14 @@ class MyCanvasView(QCanvasView):
    # patches
    if self.grid_on==1:
     #print "creating patches from grid"
-    stp=(self.x_max-self.x_min)/self.xdivs
-    x_array=[self.x_min]
+    stp=(self.ra_max-self.ra_min)/self.xdivs
+    x_array=[self.ra_min]
     for ii in range(self.xdivs):
-     x_array.append(self.x_min+(ii+1)*stp)
-    stp=(self.y_max-self.y_min)/self.ydivs
-    y_array=[self.y_min]
+     x_array.append(self.ra_min+(ii+1)*stp)
+    stp=(self.dec_max-self.dec_min)/self.ydivs
+    y_array=[self.dec_min]
     for ii in range(self.ydivs):
-     y_array.append(self.y_min+(ii+1)*stp)
+     y_array.append(self.dec_min+(ii+1)*stp)
 
     retval_arr=self.lsm.createPatchesFromGrid(x_array,y_array,min_bright,max_bright,min_sources)
     #print retval_arr
