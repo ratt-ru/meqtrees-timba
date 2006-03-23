@@ -35,6 +35,7 @@ extern "C" {
 /* the following is w.r.t. /aips++/prod/code/casa */
 #include  <../../../cfitsio/fitsio.h>
 #include <wcslib/wcs.h>
+#include <wcslib/prj.h>
 #include <wcslib/wcshdr.h>
 #include <wcslib/wcsfix.h>
 
@@ -287,6 +288,8 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		int ncoord;
 		double *pixelc, *imgc, *worldc, *phic, *thetac;
 		int *statc;
+		double ra0,dec0,phi0,theta0;
+		struct prjprm prj;
 
 		int stat[NWCSFIX];
 
@@ -487,7 +490,6 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 						 pixelc[kk+1]=(double)jj;
 						 pixelc[kk+2]=(double)1.0;
 						 pixelc[kk+3]=(double)1.0;
-		printf("total %d, created %d\n",ncoord,kk);
 						 kk+=4;
 		 }
 
@@ -499,9 +501,8 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 			 if (status == 8) status = 0;
 	  }
 
-		printf("finished\n");
 		/* compare the results */
-    kk=0;
+    /*kk=0;
     for (ii=arr_dims.lpix[0];ii<=arr_dims.hpix[0];ii++)
      for (jj=arr_dims.lpix[1];jj<=arr_dims.hpix[1];jj++) {
 				printf("(%lf: %lf) : [%lf:%lf:%lf:%lf] : (%lf,%lf), [%lf:%lf:%lf:%lf] :: %d\n",pixelc[kk+0],pixelc[kk+1],
@@ -509,8 +510,34 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 				worldc[kk+0],worldc[kk+1],worldc[kk+2],worldc[kk+3],statc[kk/4]
 				);
 						 kk+=4;
-		 }
+		 } */
 
+    /* find the phase centre in RA,Dec */
+		/* now kk has passed the last pixel */
+		kk=(ncoord-1)*4;
+		printf("finished %d\n",kk);
+		ra0=(worldc[0]+worldc[kk])*0.5;
+		dec0=(worldc[1]+worldc[kk+1])*0.5;
+		phi0=(phic[0]+phic[kk/4])*0.5;
+		theta0=(thetac[0]+thetac[kk/4])*0.5;
+		printf("phase centre celestial=(%lf,%lf) native spherical=(%lf,%lf)\n",ra0,dec0,phi0,theta0);
+
+		/* recreate the l,m grid using the RA,Dec grid with the new phase 
+		 * centre -- use SIN projection
+		 */
+		/* new projection */
+		prjini(&prj);
+    /* copy projection params */
+		for (ii=0;ii<wcs->npv;ii++) {
+		 printf("For axis %d, param no. %d is %lf\n", wcs->pv[ii].i, wcs->pv[ii].m,wcs->pv[ii].value);
+		 prj.pv[wcs->pv[ii].m]=wcs->pv[ii].value;
+		}
+		prj.phi0=phi0;
+		prj.theta0=theta0;
+		strcpy(prj.code,"SIN");
+
+    prjset(&prj);
+    prjprt(&prj);
 
 		/* ******************END create grid for the cells using WCS */
     fits_close_file(fptr, &status);      /* all done */
