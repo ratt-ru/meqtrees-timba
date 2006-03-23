@@ -303,7 +303,7 @@ def forest_source_subtrees (ns, source):
 
 
 
-def forest_create_sink_sequence(ns,station_list,interferometer_list, output_column='DATA'):
+def forest_create_sink_sequence(ns,station_list,interferometer_list, output_column='PREDICT'):
     for (ant1, ant2) in interferometer_list:
         ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1-1,
                                        station_2_index=ant2-1,
