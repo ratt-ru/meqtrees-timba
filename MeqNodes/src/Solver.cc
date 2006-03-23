@@ -812,7 +812,9 @@ int Solver::getResult (Result::Ref &resref,
   // nothing for us to do until all children have returned
   std::vector<Result::Ref> child_results;
   timers().getresult.stop();
+  timers().children.start();
   int retcode = Node::pollChildren(resref,child_results,*reqref);
+  timers().children.stop();
   timers().getresult.start();
   if( retcode&(RES_FAIL|RES_WAIT|RES_ABORT) )
     return retcode;
@@ -906,6 +908,7 @@ int Solver::getResult (Result::Ref &resref,
     // start async child poll
     timers().getresult.stop();
     setExecState(CS_ES_POLLING);
+    timers().children.start();
     children().startAsyncPoll(*reqref);
     if( forest().abortFlag() )
       return RES_ABORT;
@@ -940,6 +943,7 @@ int Solver::getResult (Result::Ref &resref,
         timers().getresult.stop();
       }
     } // end of while loop over children
+    timers().children.stop();
     if( forest().abortFlag() )
       return RES_ABORT;
     setExecState(CS_ES_EVALUATING);
