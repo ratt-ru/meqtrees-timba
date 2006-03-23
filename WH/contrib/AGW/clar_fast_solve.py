@@ -4,6 +4,32 @@ from Timba.Trees import TDL_Joneset
 from numarray import *
 from copy import deepcopy
 import os
+import random
+
+# MS name
+msname = "TEST_CLAR_27-4800.MS";
+# number of timeslots to use at once
+tile_size = 120
+
+# MS input queue size -- must be at least equal to the no. of ifrs
+input_queue_size = 500
+
+num_stations = 27
+
+ms_selection = None
+#or record(channel_start_index=0,
+#          channel_end_index=0,
+#          channel_increment=1,
+#          selection_string='')
+
+# CLAR beam width
+# base HPW is 647.868 1/rad at 800 Mhz
+beam_width = 647.868
+ref_frequency = 800*1e+6
+
+# MEP table for derived quantities 
+mep_derived = 'CLAR_DQ_27-480.mep';
+
 
 # bookmark
 Settings.forest_state = record(bookmarks=[
@@ -13,7 +39,7 @@ Settings.forest_state = record(bookmarks=[
     record(viewer="Result Plotter",udi="/node/stokes:I:src_3",pos=(0,2)),
     record(viewer="Result Plotter",udi="/node/stokes:I:src_4",pos=(1,0)),
     record(viewer="Result Plotter",udi="/node/stokes:I:src_5",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/width",pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/width_fq",pos=(1,2)),
 #    record(viewer="Result Plotter",udi="/node/stokes:I:src_7",pos=(2,0)),
 #    record(viewer="Result Plotter",udi="/node/stokes:I:src_8",pos=(2,1)),
 #    record(viewer="Result Plotter",udi="/node/stokes:I:src_9",pos=(2,2)),
@@ -23,7 +49,12 @@ Settings.forest_state = record(bookmarks=[
   ]), 
 ]);
 
-mep_derived = 'CLAR_DQ.mep';
+# this dict holds the actual values for all potentially solvable parameters.
+parm_actual_polcs = {};
+# this dict holds the starting values (typically some way off from the known value) 
+# for all potentially solvable parameters.
+parm_starting_polcs = {};
+
 
 class PointSource:
     name = ''
@@ -49,7 +80,7 @@ class PointSource:
 def create_source_model(tablename=''):
     """ define model source positions and flux densities """
     source_model = []
-    stokes_i = 0.8
+    stokes_i = 1.0
     source_model.append( PointSource(name="src_1",I=stokes_i, Q=0.0, U=0.0, V=0.0,
                     Iorder=0, ra=0.030272885, dec=0.575762621,
                     table=tablename))
@@ -148,7 +179,7 @@ def forest_measurement_set_info(ns, num_ant):
         pass
     pass
 
-def create_polc_ft(degree_f=0, degree_t=0, c00=0.0):
+def create_polc_ft(c00=0.0,degree_f=0,degree_t=0):
     polc = meq.polc(zeros((degree_t+1, degree_f+1))*0.0)
     polc.coeff[0,0] = c00
     return polc
@@ -308,25 +339,34 @@ def create_constant_nodes(ns):
     ns.half << Meq.Constant(0.5)
     ns.ln_16 << Meq.Constant(-2.7725887)
 
-# create constant parameters for CLAR beam nodes
-# eventually these should be a function of frequency
-# HPBW of 3 arcmin = 0.00087266 radians 1145.9156 = 1 / 0.00087266
-    beam_width_polc = create_polc_ft(degree_f=0, degree_t=0, c00=1000.0)
+    # beam width at reference frequency
+    beam_width_polc = create_polc_ft(c00=beam_width)
     ns.width << Meq.Parm(beam_width_polc, node_groups='Parm')
-    ns.width_sq << Meq.Sqr(ns.width);
+    # create starting value of 70%
+    parm_actual_polcs[ns.width.name] = beam_width_polc;
+    parm_starting_polcs[ns.width.name] = create_polc_ft(c00=beam_width*0.7);
+    # this scales it with frequency
+    ns.width_fq << ns.width * ( Meq.Freq() / ref_frequency );
+    ns.width_sq << Meq.Sqr(ns.width_fq);
 
 # creates source-related nodes for a given source
 def forest_source_subtrees (ns, source):
-  IQUVpolcs =[None]*4
-  STOKES=["I","Q","U","V"]
-  for (i,stokes) in enumerate(STOKES):
-    if(source.IQUV[i] != None):
-      IQUVpolcs[i] = create_polc_ft(degree_f=source.IQUVorder[i], 
-					c00= source.IQUV[i])
-      pass
-    st = ns.stokes(stokes, source.name) << Meq.Parm(IQUVpolcs[i],
+  for (i,stokes) in enumerate(("I","Q","U","V")):
+    flux = source.IQUV[i];
+    if flux is None:
+      starting_polc = actual_polc = None;
+    else:
+      actual_polc = create_polc_ft(degree_f=source.IQUVorder[i],c00=flux);
+      # generate random starting value by throwing the actual value
+      # by +/- 20~40%
+      flux1 = flux*(1+random.uniform(.2,.4)*random.choice([-1,1]));
+      starting_polc = create_polc_ft(degree_f=source.IQUVorder[i],c00=flux1);
+    st = ns.stokes(stokes, source.name) << Meq.Parm(actual_polc,
 #					table_name=source.table,
 					node_groups='Parm')
+    parm_actual_polcs[st.name] = actual_polc;
+    parm_starting_polcs[st.name] = starting_polc;
+                                        
 #    create_refparms(st);
     pass    
   ns.xx(source.name) << (ns.stokes("I",source.name)+ns.stokes("Q",source.name))*0.5
@@ -378,11 +418,10 @@ def forest_create_sink_sequence(ns, interferometer_list, output_column='PREDICT'
     ns.VisDataMux.add_stepchildren(*[ns.spigot(ant1,ant2) for (ant1, ant2) in interferometer_list]);
 
 
-def create_inputrec(msname, tile_size=1500,short=False):
-    boioname = "boio."+msname+"."+str(tile_size);
+def create_inputrec():
+    boioname = "boio."+msname+".predict."+str(tile_size);
     # if boio dump for this tiling exists, use it to save time
-    # but watch out if you change the visibility data set!
-    if False: # not short and os.access(boioname,os.R_OK):
+    if os.access(boioname,os.R_OK):
       rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
     # else use MS, but tell the event channel to record itself to boio file
     else:
@@ -390,29 +429,23 @@ def create_inputrec(msname, tile_size=1500,short=False):
       rec.ms_name          = msname
       rec.data_column_name = 'DATA'
       rec.tile_size        = tile_size
-      rec.selection = record(channel_start_index=0,
-                             channel_end_index=0,
-                             channel_increment=1,
-#                             selection_string='ANTENNA1<6 && ANTENNA2<6')
-#                             selection_string='TIME_CENTROID < 4472026000')
-                             selection_string='')
-      if short:
-        rec.selection.selection_string = '';
-#      else:
-#        rec.record_input = boioname;
+      rec.selection = ms_selection or record();
       rec = record(ms=rec);
     rec.python_init='AGW_read_msvis_header.py';
     rec.mt_queue_size = input_queue_size;
     return rec;
 
 
-def create_outputrec(output_column='CORRECTED_DATA'):
+def create_outputrec(output_column='CORRECTED_DATA',ms=False):
     rec=record()
-
-    rec.write_flags=False
-    rec.predict_column=output_column
-
-    return record(ms=rec);
+    if ms:
+      rec.write_flags=False
+      rec.predict_column=output_column
+      return record(ms=rec);
+    else:
+      rec.boio_file_name = "boio."+msname+".solve."+str(tile_size);
+      rec.boio_file_mode = 'W';
+      return record(boio=rec);
 
 def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvable=[]):
     solver_defaults=record()
@@ -427,7 +460,7 @@ def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvab
                                          record(state=record(solvable=False))))
     return solver_defaults
 
-def set_AGW_node_state (mqs, node, fields_record):
+def set_node_state (mqs, node, fields_record):
     """helper function to set the state of a node specified by name or
     nodeindex""";
     rec = record(state=fields_record);
@@ -445,52 +478,46 @@ def set_AGW_node_state (mqs, node, fields_record):
 def publish_node_state(mqs, nodename):
     mqs.meq('Node.Set.Publish.Level',record(name=nodename,level=1))
     pass
+    
 
-########### new-style TDL stuff ###############
+def _run_solve_job (mqs,solvables,write=True):
+  """common helper method to run a solution with a bunch of solvables""";
+  inputrec        = create_inputrec()
+  outputrec       = create_outputrec()
+  publish_node_state(mqs, 'solver')
 
-def _tdl_job_clar_solve(mqs,parent,write=True):
+  # go through parameters and reset their values
+  for name in solvables:
+    set_node_state(mqs,name,record(init_funklet=parm_starting_polcs[name]));
 
-# we try to fit the flux density of the source over the entire
-# observation range
+  # set solvables list in solver
+  solver_defaults = create_solver_defaults(solvable=solvables)
+  set_node_state(mqs,'solver',solver_defaults)
 
-    msname          = 'TEST_CLAR.MS'
-    inputrec        = create_inputrec(msname, tile_size=10000)
-    outputrec       = create_outputrec()
-    print 'input record ', inputrec
-    print 'output record ', outputrec
+  req = meq.request();
+  req.input  = inputrec;
+  # req.input.max_tiles = 1;  # this can be used to shorten the processing, for testing
+  if write:
+    req.output = outputrec;
+  # mqs.clearcache('VisDataMux');
+  mqs.execute('VisDataMux',req,wait=False);
+  pass
 
+def _tdl_job_1_solve_for_fluxes_and_beam_width (mqs,parent,write=True,**kw):
+  solvables = [ 'stokes:I:'+src.name for src in source_model ];
+  solvables.append("width");
+  _run_solve_job(mqs,solvables,write=write);
 
-    station_list = range(1,15)
-#get source list
-    source_model = create_source_model()
+def _tdl_job_2_solve_for_fluxes_with_fixed_beam_width (mqs,parent,write=True,**kw):
+  solvables = [ 'stokes:I:'+src.name for src in source_model ];
+  _run_solve_job(mqs,solvables,write=write);
+  
+def _tdl_job_3_solve_for_beam_width_with_fixed_fluxes (mqs,parent,write=True,**kw):
+  _run_solve_job(mqs,["width"],write=write);
 
-    solvables = []
-    for source in source_model:
-      solvables.append('stokes:I:' + source.name)
-      pass
-    solvables.append("width");
-
-    print 'solvables ', solvables
-    for s in solvables:
-      publish_node_state(mqs, s)
-      pass
-
-    publish_node_state(mqs, 'solver')
-
-    solver_defaults = create_solver_defaults(solvable=solvables)
-#   print solver_defaults
-    set_AGW_node_state(mqs, 'solver', solver_defaults)
-
-    req = meq.request();
-    req.input  = inputrec;
-    # req.input.max_tiles = 1;  # this can be used to shorten the processing, for testing
-    if write:
-      req.output = outputrec;
-    # mqs.clearcache('verifier');
-    mqs.clearcache('VisDataMux');
-    print 'VisDataMux request is ', req
-    mqs.execute('VisDataMux',req,wait=(parent is None));
-    pass
+def _tdl_job_4_reset_parameters_to_true_values (mqs,parent,**kw):
+  for name,polc in parm_actual_polcs.iteritems():
+    set_node_state(mqs,name,record(init_funklet=polc));
 
 ####################
 def _define_forest(ns):
@@ -506,12 +533,12 @@ def _define_forest(ns):
     create_constant_nodes(ns)
 
 # create default antenna station parameters (location, UVW)
-    num_antennas = 14
-    station_list = range(1, num_antennas+1)
+    station_list = range(1,num_stations+1)
     forest_measurement_set_info(ns, len(station_list))
 
 # create source list
     source_mep_tablename= 'sourcemodel.mep'
+    global source_model;
     source_model = create_source_model(tablename=source_mep_tablename)
 
 # create nodes specific to individual sources in the source list

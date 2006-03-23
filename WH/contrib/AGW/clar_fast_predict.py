@@ -6,25 +6,28 @@ from copy import deepcopy
 import os
 
 # MS name
-msname = "TEST_CLAR_28-4800.MS";
+msname = "TEST_CLAR_27-4800.MS";
 # number of timeslots to use at once
-tile_size = 960
+tile_size = 480
 
 # MS input queue size -- must be at least equal to the no. of ifrs
 input_queue_size = 500
 
 num_stations = 27
 
-ms_selection = record()
-#channel_start_index=0,
-#                      channel_end_index=0,
-#                      channel_increment=1,
-#                      selection_string='')
+ms_selection = None
+#or record(channel_start_index=0,
+#          channel_end_index=0,
+#          channel_increment=1,
+#          selection_string='')
 
+# CLAR beam width
+# base HPW is 647.868 1/rad at 800 Mhz
+beam_width = 647.868
+ref_frequency = float(800*1e+6)
 
 # MEP table for derived quantities 
-# 
-mep_derived = 'CLAR_DQ_28-480.mep';
+mep_derived = 'CLAR_DQ_27-480.mep';
 
 # bookmarks
 Settings.forest_state = record(bookmarks=[
@@ -217,7 +220,7 @@ def forest_clean_predict_trees(ns, source, station_list):
     pass     # for ant1
 
 
-def forest_station_source_jones(ns, station_list, source_name, mep_table_name):
+def forest_station_source_jones(ns, station_list, source_name):
     """
     create E-Jones (primary beam effects) matrices: station_list is 1-based 
     """
@@ -246,11 +249,10 @@ def create_constant_nodes(ns):
     ns.half << Meq.Constant(0.5)
     ns.ln_16 << Meq.Constant(-2.7725887)
 
-# create constant parameters for CLAR beam nodes
-# base HPW is 647.868 1/rad at 800 Mhz
-    ns.width << Meq.Constant(647.868);
+    # beam width at reference frequency
+    ns.width << Meq.Constant(beam_width);
     # this scales it with frequency
-    ns.width_fq << ns.width * ( Meq.Freq() / float(800*1e+6 ) );
+    ns.width_fq << ns.width * ( Meq.Freq() / ref_frequency );
     ns.width_sq << Meq.Sqr(ns.width_fq)
     
 def noise_matrix (stddev=0.1):
@@ -301,7 +303,7 @@ def forest_source_subtrees (ns, source):
 
 
 
-def forest_create_sink_sequence(ns,station_list,interferometer_list, output_column='PREDICT'):
+def forest_create_sink_sequence(ns,station_list,interferometer_list, output_column='DATA'):
     for (ant1, ant2) in interferometer_list:
         ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1-1,
                                        station_2_index=ant2-1,
@@ -323,11 +325,11 @@ def forest_create_sink_sequence(ns,station_list,interferometer_list, output_colu
     ns.VisDataMux.add_children(*[ns.sink(ant1,ant2) for (ant1, ant2) in interferometer_list]);
 
 
-def create_inputrec(msname, tile_size=1500,short=False):
-    boioname = "boio."+msname+"."+str(tile_size);
+def create_inputrec():
+    boioname = "boio."+msname+".empty."+str(tile_size);
     # if boio dump for this tiling exists, use it to save time
     # but watch out if you change the visibility data set!
-    if False: # not short and os.access(boioname,os.R_OK):
+    if os.access(boioname,os.R_OK):
       rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
     # else use MS, but tell the event channel to record itself to boio file
     else:
@@ -335,25 +337,25 @@ def create_inputrec(msname, tile_size=1500,short=False):
       rec.ms_name          = msname
       rec.data_column_name = 'DATA'
       rec.tile_size        = tile_size
-      rec.selection        = record();
-      rec.selection        = ms_selection;
-#      if short:
-#        rec.selection.selection_string = '';
-#      else:
-#        rec.record_input = boioname;
+      rec.selection        = ms_selection or record();
+      rec.record_input     = boioname;
       rec = record(ms=rec);
     rec.python_init = 'AGW_read_msvis_header.py';
     rec.mt_queue_size = input_queue_size;
     return rec;
 
 
-def create_outputrec(output_column='CORRECTED_DATA'):
+def create_outputrec(output_column='DATA',ms=False):
     rec=record()
+    if ms:
+      rec.write_flags=False
+      rec.predict_column=output_column
+      return record(ms=rec);
+    else:
+      rec.boio_file_name = "boio."+msname+".predict."+str(tile_size);
+      rec.boio_file_mode = 'W';
+      return record(boio=rec);
 
-    rec.write_flags=False
-    rec.predict_column=output_column
-
-    return record(ms=rec);
 
 def publish_node_state(mqs, nodename):
     mqs.meq('Node.Set.Publish.Level',record(name=nodename,level=1))
@@ -361,17 +363,14 @@ def publish_node_state(mqs, nodename):
 
 ########### new-style TDL stuff ###############
 
-def _tdl_job_clar_predict(mqs,parent,write=False):
-#   inputrec        = create_inputrec(msname, tile_size=6000)
-    inputrec        = create_inputrec(msname, tile_size=tile_size)
-    outputrec       = create_outputrec(output_column='PREDICT')
-    print 'input record ', inputrec
-    print 'output record ', outputrec
+def _tdl_job_clar_predict(mqs,parent,write=True):
+    inputrec        = create_inputrec()
+    outputrec       = create_outputrec(output_column='DATA',ms=True)
     req = meq.request();
     req.input  = inputrec;
     if write:
       req.output = outputrec;
-    mqs.clearcache('VisDataMux');
+    # mqs.clearcache('VisDataMux');
     print 'VisDataMux request is ', req
     mqs.execute('VisDataMux',req,wait=(parent is None));
     pass
@@ -390,7 +389,6 @@ def _define_forest(ns):
     create_constant_nodes(ns)
 
 # create default antenna station parameters (location, UVW)
-    num_antennas = 27
     station_list = range(1,num_stations+1)
     forest_measurement_set_info(ns, len(station_list))
 
@@ -403,8 +401,6 @@ def _define_forest(ns):
         forest_source_subtrees(ns, source)
         pass
         
-    mep_table_name      = 'CLAR.mep'
-        
     for source in source_model:
 # First, compute CLAR beam parameters (power pattern) for all 
 # stations and source. 
@@ -413,7 +409,7 @@ def _define_forest(ns):
       forest_clean_predict_trees(ns, source, station_list)
 
 # Now compute Jones matrix components for this source and all stations
-      forest_station_source_jones(ns, station_list, source.name, mep_table_name)
+      forest_station_source_jones(ns, station_list, source.name)
       pass
 
 # Now using Jones Matrices, compute corrupted visibilities for sources 
