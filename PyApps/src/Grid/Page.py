@@ -25,7 +25,7 @@ class Page (object):
     def cells (self):
       return self._cells;
       
-  def __init__ (self,gw,parent_widget,max_nx=4,max_ny=4,fixed_cells=False):
+  def __init__ (self,gw,parent_widget,max_nx=5,max_ny=5,fixed_cells=False):
     self._topgrid = QSplitter(QSplitter.Vertical,parent_widget);
     self._gw = gw;
     self.max_nx     = max_nx;
