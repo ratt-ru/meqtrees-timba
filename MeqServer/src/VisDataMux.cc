@@ -787,12 +787,12 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,
     input_channel_().abort();
     if( output_channel_.valid() )
       output_channel_().abort();
-    timers().getresult.start();
+    timers().getresult.stop();
     throw; // rethrow
   }
   // post end event
   postEvent(FVisChannelClosed,endref);
-  timers().getresult.start();
+  timers().getresult.stop();
   // if we have accumulated any fails, return them here
   if( fail_list->isFail() )
   {

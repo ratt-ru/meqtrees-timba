@@ -144,6 +144,7 @@ def compile_file (mqs,filename,text=None,parent=None,
   except:
     (etype,exc,tb) = sys.exc_info();
     _dprint(0,'exception compiling TDL file:',filename);
+    traceback.print_exception(etype,exc,tb);
     # create new error object, with type: args message
     try:
       args = str(exc.args[0]);

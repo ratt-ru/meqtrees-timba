@@ -559,16 +559,17 @@ class _NodeRepository (dict):
         _dprint(3,"node",name,"is now a true root");
         self._roots[name] = node;
       return False;
+    _dprint(3,"deleting orphan node",name);
     # get list of children names (don't wanna hold refs to them because
     # it interferes with the orphaning)
-    children = map(lambda x:x[1].name,node.children) + map(lambda x:x[1].name,node.stepchildren);
-    _dprint(3,"deleting orphan node",name);
+    children = map(lambda x:x[1] and x[1].name,node.children) + map(lambda x:x[1] and x[1].name,node.stepchildren);
     del self[name];
     node = None;
     if children:
       _dprint(3,"checking potentially orphaned children: ",children);
       for ch in children:
-        self.deleteOrphan(ch);
+        if ch:
+          self.deleteOrphan(ch);
     return True;
     
   def rootmap (self):

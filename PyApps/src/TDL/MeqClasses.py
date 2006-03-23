@@ -78,6 +78,7 @@ class _MeqGen (TDLimpl.ClassGen):
     children = [ (nm,kw.get(nm,None)) for nm in ('start','pre','post') ];
     for ch in childlist:
       children.append((len(children),ch));
+    # extra children?
     return _NodeDef('Meq','VisDataMux',children=children,**kw);
     
   # now for some aliases
