@@ -209,7 +209,7 @@ int NodeNursery::startAsyncPoll (const Request &req)
     for( int i=numChildren()-1; i>=0; i-- )
     {
       int ichild = child_poll_order_[i];
-      if( isChildEnabled(i) )
+      if( isChildEnabled(ichild) )
       {
         mt.cur_brigade_->placeWorkOrder(new MTPool::WorkOrder(
             *this,&NodeNursery::mt_receiveAsyncChildResult,getChild(ichild),ichild,req));

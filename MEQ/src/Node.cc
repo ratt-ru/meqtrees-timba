@@ -805,19 +805,19 @@ int Node::pollChildren (Result::Ref &resref,
                         const Request &req)
 {
   setExecState(CS_ES_POLLING);
+  timers().children.start();
   int retcode = children().syncPoll(resref,childres,req);
   // if aborted, return without polling stepchildren
-  if( retcode&RES_ABORT )
+  if( retcode&RES_ABORT ||
+      ( retcode&RES_FAIL && children().failPolicy() == AidAbandonPropagate ) || 
+      ( retcode&RES_MISSING && children().failPolicy() == AidAbandonPropagate ) )
+  {
+    timers().children.stop();
     return retcode;
-  // if failed and AbandonPropagate is in effect, return without polling stepchildren
-  if( retcode&RES_FAIL && children().failPolicy() == AidAbandonPropagate )
-    return retcode;
-  // if missing data and AbandonPropagate is in effect, return without polling stepchildren
-  if( retcode&RES_MISSING && children().failPolicy() == AidAbandonPropagate )
-    return retcode;
+  }
   // do a background poll of the stepchildren
   stepchildren().backgroundPoll(req);
-  
+  timers().children.stop();
   return retcode;
 }
 
@@ -1042,6 +1042,11 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
         ref->show(Debug::getDebugStream());
       }
     }
+    // stop timers
+    if( timers().getresult.isRunning() )
+      timers().getresult.stop();
+    if( timers().children.isRunning() )
+      timers().children.stop();
     // cache & return accumulated return code
     lock.relock(execCond());
     int ret = cacheResult(ref,req,retcode) | RES_UPDATED;
@@ -1065,10 +1070,10 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
     MakeFailVellSet(res,"unknown exception in execute() while "+stage);
   }
   // clean up and return the fail
-  if( timers_.getresult.isRunning() )
-    timers_.getresult.stop();
-  if( timers_.children.isRunning() )
-    timers_.children.stop();
+  if( timers().getresult.isRunning() )
+    timers().getresult.stop();
+  if( timers().children.isRunning() )
+    timers().children.stop();
   int ret;
   // post local fails if any have accumulated
   if( !local_error.empty() )
