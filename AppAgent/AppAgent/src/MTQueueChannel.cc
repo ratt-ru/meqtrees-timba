@@ -289,14 +289,16 @@ int MTQueueChannel::hasEvent (const HIID &mask,HIID &out)
 
 void MTQueueChannel::close (const string &str)
 {
-  aborted_ = false;
-  flush();
   EventChannel::close(str);
   // do nothing if no remote is running
   if( !remote_thread_ )
     return;
+  // if closing normally (i.e. not from abort()), flush the output queue
+  if( !aborted_ )
+    flush();
   // clear all queues and signal remote to close
   Thread::Mutex::Lock lock(eventFlag().condVar());
+  assureRemoteInit();
   get_queue_.clear();
   post_queue_.clear();
   // raise event flag to notify remote
@@ -315,24 +317,6 @@ void MTQueueChannel::abort (const string &str)
 {
   aborted_ = true;
   EventChannel::abort(str);
-  // do nothing if no remote is running
-  if( !remote_thread_ )
-    return;
-  // clear all queues and signal remote to close
-  Thread::Mutex::Lock lock(eventFlag().condVar());
-  assureRemoteInit();
-  get_queue_.clear();
-  post_queue_.clear();
-  // raise event flag to notify remote
-  raiseEventFlag();
-  while( remote().state() != CLOSED )
-    eventFlag().condVar().wait();
-  lock.release();
-  // now rejoin remote thread
-  remote_thread_.join();
-  remote_thread_ = 0;
-  // check for errors
-  checkErrorQueue();
 }
 
 void MTQueueChannel::solicitEvent (const HIID &mask)
@@ -354,7 +338,7 @@ void MTQueueChannel::flush ()
   // flush the post queue
   Thread::Mutex::Lock lock(eventFlag().condVar());
   assureRemoteInit();
-  while( !post_queue_.empty() )
+  while( !aborted_ && !post_queue_.empty() )
     eventFlag().condVar().wait();
 }
 
