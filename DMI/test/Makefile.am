@@ -1,13 +1,17 @@
 CXXFLAGS += -D_GNU_SOURCE 
 # CXXFLAGS += -D_GNU_SOURCE -DUSE_THREADS -pthread
 
-check_PROGRAMS		= test_dmi test_thread tDataArray ncperf 
+check_PROGRAMS		= test_dmi test_thread tDataArray ncperf tLargeBOIO
 #test_reg
 bin_PROGRAMS      = 
 
 test_dmi_SOURCES 	= test_dmi.cc
 test_dmi_LDADD		= ../src/libdmi.la 
 test_dmi_DEPENDENCIES	= ../src/libdmi.la $(LOFAR_DEPEND)
+
+tLargeBOIO_SOURCES 	= tLargeBOIO.cc
+tLargeBOIO_LDADD		= ../src/libdmi.la 
+tLargeBOIO_DEPENDENCIES	= ../src/libdmi.la $(LOFAR_DEPEND)
 
 #test_reg_SOURCES 	= test_reg.cc
 #test_reg_LDADD		= ../src/libdmi.la 

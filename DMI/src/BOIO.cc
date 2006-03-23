@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <errno.h>
+#include <string.h>
 #include "BOIO.h"
 #include "DynamicTypeManager.h"
 
@@ -20,10 +22,10 @@ BOIO::~BOIO ()
 
 
 //##ModelId=3DB949AE024F
-BOIO::BOIO (const string &filename,int mode)
+BOIO::BOIO (const string &fname,int mode)
     : fp(0),fmode(CLOSED)
 {
-  open(filename,mode);
+  open(fname,mode);
 }
 
 // attaches to a file
@@ -39,8 +41,8 @@ int BOIO::open (const string &filename,int mode)
     case BOIO::APPEND:  mstr = "ab"; break;
     default:      Throw("open(): invalid mode");
   }
-  fp = fopen(filename.c_str(),mstr);
-  FailWhen( !fp,"error opening file "+filename );
+  fp = fopen64(filename.c_str(),mstr);
+  FailWhen( !fp,"error opening boio file "+fname+": "+strerror(errno) );
   fname = filename;
   fmode = mode;
   have_header = false;
@@ -66,15 +68,18 @@ int BOIO::close ()
 //##ModelId=3DB949AE025C
 TypeId BOIO::readAny (ObjRef &ref)
 {
-  FailWhen(fmode != READ,"not open for reading");
+  FailWhen(fmode != READ,"boio file "+fname+": not open for reading");
   TypeId tid = nextType();
   if( !tid )
     return 0;
   have_header = false;
   // read array of block sizes
   size_t sizes[header.nblocks];
-  if( feof(fp)  || fread(&sizes,sizeof(sizes),1,fp) != 1 )
-    return 0;
+  if( fread(&sizes,sizeof(sizes),1,fp) != 1 )
+  {
+    FailWhen(ferror(fp),"error reading boio file "+fname+": "+strerror(errno)); 
+    Throw("error reading file "+fname+": unexpected EOF");
+  }
   // allocate and read in blocks  
   BlockSet set;
   for( int i=0; i<header.nblocks; i++ )
@@ -82,7 +87,10 @@ TypeId BOIO::readAny (ObjRef &ref)
     SmartBlock *block = new SmartBlock(sizes[i]);
     set.pushNew() <<= block;
     if( fread(block->data(),sizes[i],1,fp) != 1 )
-      return 0;
+    {
+      FailWhen(ferror(fp),"error reading boio file "+fname+": "+strerror(errno)); 
+      Throw("error reading file "+fname+": unexpected EOF");
+    }
   }
   // create object
   ref = DynamicTypeManager::construct(tid,set);
@@ -94,14 +102,23 @@ TypeId BOIO::readAny (ObjRef &ref)
 //##ModelId=3DB949AE0265
 TypeId BOIO::nextType ()
 {
-  FailWhen(fmode != READ,"not open for reading");
+  FailWhen(fmode != READ,"boio file "+fname+": not open for reading");
   // if header already read in, return type
   if( have_header )
     return header.tid;
   //  else, read it in
+  header.tid = 0;
   have_header = true;
-  if( feof(fp) || fread(&header,sizeof(header),1,fp) != 1 )
-    header.tid = 0;
+  if( feof(fp) )
+    return 0;
+  else if( fread(&header,sizeof(header),1,fp) != 1 )
+  {
+    FailWhen(ferror(fp),"error reading boio file "+fname+": "+strerror(errno)); 
+    // check for EOF again
+    if( feof(fp) )
+      return 0;
+    Throw("unknown error reading file "+fname);
+  }
   return header.tid;
 }
 
@@ -110,7 +127,7 @@ TypeId BOIO::nextType ()
 //##ModelId=3DB949AE0266
 size_t BOIO::write (const DMI::BObj &obj)
 {
-  FailWhen(fmode!=WRITE && fmode!=APPEND,"not open for writing");
+  FailWhen(fmode!=WRITE && fmode!=APPEND,"boio file "+fname+": not open for writing");
   // convert object to blockset
   BlockSet set;
   obj.toBlock(set);
@@ -118,7 +135,7 @@ size_t BOIO::write (const DMI::BObj &obj)
   ObjHeader hdr;
   hdr.tid = obj.objectType();
   hdr.nblocks = set.size();
-  FailWhen( fwrite(&hdr,sizeof(hdr),1,fp) != 1,"write error" );
+  FailWhen(fwrite(&hdr,sizeof(hdr),1,fp)!= 1,"error writing boio file "+fname+": "+strerror(errno));
   size_t written = sizeof(hdr);
   // format and write size array
   size_t sizes[hdr.nblocks];
@@ -126,12 +143,12 @@ size_t BOIO::write (const DMI::BObj &obj)
   for( int i=0; i<set.size(); i++,iter++ )
     sizes[i] = (*iter)->size();
   DbgAssert(iter == set.end());
-  FailWhen( fwrite(&sizes,sizeof(sizes),1,fp) != 1,"write error" );
+  FailWhen( fwrite(&sizes,sizeof(sizes),1,fp) != 1,"error writing boio file "+fname+": "+strerror(errno));
   // write out the blocks
   iter = set.begin();
   for( int i=0; i<set.size(); i++,iter++ )
   {
-    FailWhen( fwrite((*iter)->data(),sizes[i],1,fp) != 1,"write error" );
+    FailWhen( fwrite((*iter)->data(),sizes[i],1,fp) != 1,"error writing boio file "+fname+": "+strerror(errno));
     written += sizes[i];
   }
   DbgAssert(iter == set.end());
