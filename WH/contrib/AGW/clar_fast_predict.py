@@ -8,7 +8,7 @@ import os
 # MS name
 msname = "TEST_CLAR_27-4800.MS";
 # number of timeslots to use at once
-tile_size = 480
+tile_size = 120
 
 # MS input queue size -- must be at least equal to the no. of ifrs
 input_queue_size = 500
@@ -20,6 +20,8 @@ ms_selection = None
 #          channel_end_index=0,
 #          channel_increment=1,
 #          selection_string='')
+
+ms_output = False   # if True, outputs to MS, else to BOIO dump
 
 # CLAR beam width
 # base HPW is 647.868 1/rad at 800 Mhz
@@ -303,7 +305,7 @@ def forest_source_subtrees (ns, source):
 
 
 
-def forest_create_sink_sequence(ns,station_list,interferometer_list, output_column='PREDICT'):
+def forest_create_sink_sequence(ns,station_list,interferometer_list, output_column='DATA'):
     for (ant1, ant2) in interferometer_list:
         ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1-1,
                                        station_2_index=ant2-1,
@@ -345,11 +347,11 @@ def create_inputrec():
     return rec;
 
 
-def create_outputrec(output_column='DATA',ms=False):
+def create_outputrec(output_column='DATA'):
     rec=record()
-    if ms:
+    if ms_output:
       rec.write_flags=False
-      rec.predict_column=output_column
+      rec.data_column=output_column
       return record(ms=rec);
     else:
       rec.boio_file_name = "boio."+msname+".predict."+str(tile_size);
@@ -365,7 +367,7 @@ def publish_node_state(mqs, nodename):
 
 def _tdl_job_clar_predict(mqs,parent,write=True):
     inputrec        = create_inputrec()
-    outputrec       = create_outputrec(output_column='DATA',ms=True)
+    outputrec       = create_outputrec(output_column='DATA')
     req = meq.request();
     req.input  = inputrec;
     if write:

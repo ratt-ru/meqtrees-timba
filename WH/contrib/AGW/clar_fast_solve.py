@@ -22,6 +22,9 @@ ms_selection = None
 #          channel_increment=1,
 #          selection_string='')
 
+write_output = False  # if False, disables output completely
+ms_output = False     # if True, outputs to MS, else to BOIO dump
+
 # CLAR beam width
 # base HPW is 647.868 1/rad at 800 Mhz
 beam_width = 647.868
@@ -436,9 +439,9 @@ def create_inputrec():
     return rec;
 
 
-def create_outputrec(output_column='CORRECTED_DATA',ms=False):
+def create_outputrec(output_column='CORRECTED_DATA'):
     rec=record()
-    if ms:
+    if ms_output:
       rec.write_flags=False
       rec.predict_column=output_column
       return record(ms=rec);
@@ -480,7 +483,7 @@ def publish_node_state(mqs, nodename):
     pass
     
 
-def _run_solve_job (mqs,solvables,write=True):
+def _run_solve_job (mqs,solvables):
   """common helper method to run a solution with a bunch of solvables""";
   inputrec        = create_inputrec()
   outputrec       = create_outputrec()
@@ -497,23 +500,23 @@ def _run_solve_job (mqs,solvables,write=True):
   req = meq.request();
   req.input  = inputrec;
   # req.input.max_tiles = 1;  # this can be used to shorten the processing, for testing
-  if write:
+  if write_output:
     req.output = outputrec;
   # mqs.clearcache('VisDataMux');
   mqs.execute('VisDataMux',req,wait=False);
   pass
 
-def _tdl_job_1_solve_for_fluxes_and_beam_width (mqs,parent,write=True,**kw):
+def _tdl_job_1_solve_for_fluxes_and_beam_width (mqs,parent,**kw):
   solvables = [ 'stokes:I:'+src.name for src in source_model ];
   solvables.append("width");
-  _run_solve_job(mqs,solvables,write=write);
+  _run_solve_job(mqs,solvables);
 
-def _tdl_job_2_solve_for_fluxes_with_fixed_beam_width (mqs,parent,write=True,**kw):
+def _tdl_job_2_solve_for_fluxes_with_fixed_beam_width (mqs,parent,**kw):
   solvables = [ 'stokes:I:'+src.name for src in source_model ];
-  _run_solve_job(mqs,solvables,write=write);
+  _run_solve_job(mqs,solvables);
   
-def _tdl_job_3_solve_for_beam_width_with_fixed_fluxes (mqs,parent,write=True,**kw):
-  _run_solve_job(mqs,["width"],write=write);
+def _tdl_job_3_solve_for_beam_width_with_fixed_fluxes (mqs,parent,**kw):
+  _run_solve_job(mqs,["width"]);
 
 def _tdl_job_4_reset_parameters_to_true_values (mqs,parent,**kw):
   for name,polc in parm_actual_polcs.iteritems():
