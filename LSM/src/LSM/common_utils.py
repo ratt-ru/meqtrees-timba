@@ -421,17 +421,16 @@ def cname_node_stub(ns,nodename):
    nodestub=ns[alist[0]]
   else:
     # we have qualifiers
-    wstr="nodestub=ns['"+alist.pop(0)+"']("
+    wstr="nodestub=ns['"+alist.pop(0)+"']"
     for qstr in alist:
       # try to split on the '=' sign
-      blist=string.split(qstr,'=')
-      if len(blist)==1:
-        wstr=wstr+"'"+blist[0]+"',"
-      else:
-        wstr=wstr+blist[0]+"='"+blist[1]+"',"
+      #blist=string.split(qstr,'=')
+      #if len(blist)==1:
+      #  wstr=wstr+"'"+blist[0]+"',"
+      #else:
+      #  wstr=wstr+blist[0]+"='"+blist[1]+"',"
+      wstr=wstr+"('"+qstr+"')"
 
-    # finally
-    wstr=wstr+")"
     #print wstr
     exec wstr
   return nodestub
