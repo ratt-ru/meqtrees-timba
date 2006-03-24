@@ -1103,7 +1103,7 @@ class LSM:
       self.__root_name=ns.MakeUniqueName('_lsmroot')
     self.__root=self.__ns[self.__root_name]<<Meq.Composer(children=child_list)
   else:
-   print "WARNING: cannot create _lsm_root. You are in serious trouble!. Try giving a nodescope to the LSM."
+   print "WARNING: cannot create _lsm_root. You are in serious trouble!. Try giving a nodescope to the LSM. If you use add_source() try add_sixpack() instead."
 
  # return the current NodeScope
  def getNodeScope(self):
