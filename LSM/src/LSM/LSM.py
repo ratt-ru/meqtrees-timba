@@ -1058,7 +1058,9 @@ class LSM:
   #print ns._name
   self.__ns=ns
   # create a single root not to accomodate all subtrees
-  # in the PUnit table
+  # in the PUnit table, if id does not already exist
+  if self.__root!=None:
+   return
   child_list=[]
   for pname in self.p_table.keys():
    punit=self.getPUnit(pname)
@@ -1086,6 +1088,19 @@ class LSM:
  def addToTree(self,child):
   if(self.__root!=None):
    self.__root.add_children(child)
+  elif self.__ns!=None:
+    # no root node still exist so create one
+    child_list=[]
+    child_list.append(child.name)
+    ns=self.__ns
+    prefix=ns._name# true if ns is a sub scope
+    if prefix!=None: 
+      self.__root_name=ns._name+ns.MakeUniqueName('_lsmroot')
+    else: 
+      self.__root_name=ns.MakeUniqueName('_lsmroot')
+    self.__root=self.__ns[self.__root_name]<<Meq.Composer(children=child_list)
+  else:
+   print "WARNING: cannot create _lsm_root. You are in serious trouble!"
 
  # return the current NodeScope
  def getNodeScope(self):
@@ -1201,6 +1216,8 @@ class LSM:
    my_sp=kw['sixpack']
    if kw.has_key('ns'):
     ns=kw['ns']
+    if self.__ns==None:
+     self.__ns=ns # update the LSM
    else:
     ns=self.__ns
 
