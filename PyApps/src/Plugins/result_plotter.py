@@ -708,19 +708,22 @@ class ResultPlotter(GriddedPlugin):
         self._vells_data = VellsData()
 # store the data
       self._vells_data.StoreVellsData(self._rec,self.label)
-      if self.num_possible_ND_axes is None:
-        vells_data_parms = self._vells_data.getVellsDataParms()
-        vells_axis_parms = vells_data_parms[0]
-        axis_labels = vells_data_parms[1]
-        self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels)
-        self.num_possible_ND_axes = vells_data_parms[2]
-        if len(vells_axis_parms) > 2 and self.num_possible_ND_axes > 2:
-          self.toggle_array_rank = self.num_possible_ND_axes
+      vells_data_parms = self._vells_data.getVellsDataParms()
+      vells_axis_parms = vells_data_parms[0]
+      axis_labels = vells_data_parms[1]
+      self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels)
+      self.num_possible_ND_axes = vells_data_parms[2]
+      if len(vells_axis_parms) > 2 and self.num_possible_ND_axes > 2:
+        self.toggle_array_rank = self.num_possible_ND_axes
+        if self.ND_Controls == None:
           self.set_ND_controls (axis_labels, vells_axis_parms)
+      else:
+        if not self.ND_Controls is None:
+          self.ND_Controls = None
 
-        # get initial axis parameters
-        axis_parms =  self._vells_data.getActiveAxisParms()
-        self._visu_plotter.setAxisParms(axis_parms)
+      # get initial axis parameters
+      axis_parms =  self._vells_data.getActiveAxisParms()
+      self._visu_plotter.setAxisParms(axis_parms)
 
 # generate basic menu
       self._visu_plotter.initVellsContextMenu()
