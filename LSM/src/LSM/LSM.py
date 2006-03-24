@@ -295,10 +295,8 @@ class LSM:
      ra=100
      dec=100
   
-     WARNING: this method will be phased out
+     WARNING: this method will be phased out from public to private
   """ 
-  # phasing this out
-  print "WARNING: please use add_sixpack() instead of add_source() method. In the future this will be removed!"
   # Source names have to be unique
   if self.s_table.has_key(s.name):
    # Print error
@@ -340,7 +338,8 @@ class LSM:
    # set the root
    my_sixpack=p.getSP()
    p.sp.setRoot(my_sixpack.sixpack())
-
+   # add this to the root
+   self.addToTree(my_sixpack.sixpack())
 
 #  # FIXME for the moment use static RA,Dec
   if kw.has_key('ra'):
@@ -1104,7 +1103,7 @@ class LSM:
       self.__root_name=ns.MakeUniqueName('_lsmroot')
     self.__root=self.__ns[self.__root_name]<<Meq.Composer(children=child_list)
   else:
-   print "WARNING: cannot create _lsm_root. You are in serious trouble!"
+   print "WARNING: cannot create _lsm_root. You are in serious trouble!. Try giving a nodescope to the LSM."
 
  # return the current NodeScope
  def getNodeScope(self):
@@ -1237,7 +1236,7 @@ class LSM:
 
    #self.setNodeScope(ns)
    #add to self root
-   self.addToTree(my_sp.sixpack())
+   #self.addToTree(my_sp.sixpack())
    print self.__root
   else:
    print "WARNING: add_sixpack() called without giving a sixpack. Ignored!"
