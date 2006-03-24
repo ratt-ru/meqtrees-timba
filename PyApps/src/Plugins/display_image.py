@@ -1335,6 +1335,9 @@ class QwtImageDisplay(QwtPlot):
                  QPen(Qt.black), QSize(10,10)))
 
     def insert_array_info(self):
+      if self.is_vector:
+        return
+
 # draw dividing line for complex array
       if self.complex_type:  
           self.complex_marker = self.insertLineMarker('', QwtPlot.xBottom)
