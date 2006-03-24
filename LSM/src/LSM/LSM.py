@@ -294,7 +294,11 @@ class LSM:
      sixpack='Sixpack object, in a composed state'
      ra=100
      dec=100
+  
+     WARNING: this method will be phased out
   """ 
+  # phasing this out
+  print "WARNING: please use add_sixpack() instead of add_source() method. In the future this will be removed!"
   # Source names have to be unique
   if self.s_table.has_key(s.name):
    # Print error
