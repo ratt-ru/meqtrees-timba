@@ -146,9 +146,8 @@ JEN_inarg.attach(MG, inarg)
 JEN_inarg.separator(MG, 'uv-data simulation (LeafSet)')
 qual = 'simul'
 
-# Optional: Specify an LSM to get the Sixpack from:
-JEN_inarg.define (MG, 'from_LSM', None, browse='*.lsm', hide=False,
-                  help='(file)name of a Local Sky Model to be used'+
+JEN_inarg.define (MG, 'LSM_simul', None, browse='*.lsm', hide=False,
+                  help='(file)name of a Local Sky Model to be used for simulation'+
                   '(instead of a predefined punit)')
 
 inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
@@ -167,6 +166,10 @@ JEN_inarg.attach(MG, inarg)
 
 JEN_inarg.separator(MG, 'solver-branch (ParmSet)')
 qual = 'solve'
+
+JEN_inarg.define (MG, 'LSM_solve', None, browse='*.lsm', hide=False,
+                  help='(file)name of a Local Sky Model to be used for solving'+
+                  '(instead of a predefined punit)')
 
 inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
 JEN_inarg.attach(MG, inarg)
@@ -243,6 +246,7 @@ def _define_forest (ns, **kwargs):
     #------------------------------------------------------------------
 
     # Make MeqSpigot nodes that read the MS:
+    global Cohset
     Cohset = TDL_Cohset.Cohset(label=MG['script_name'],
                                polrep=MG['polrep'],
                                stations=MG['stations'])
@@ -257,11 +261,9 @@ def _define_forest (ns, **kwargs):
     qual = 'simul'
 
     # If a LSM (file) is specified, read source(s) from there
-    if MG['from_LSM']:
-        print '\n** from_LSM =',MG['from_LSM']
-        lsm = LSM()
-        lsm.load(MG['from_LSM'],ns)
-        lsm.display()
+    if MG['LSM_simul']:
+        lsm = MG_JEN_Sixpack.readLSM (ns, filename=MG['LSM_simul'],
+                                      strip=True, display=True, trace=True)
         # Predict nominal/corrupted visibilities: 
         predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm,
                                                # Joneset=Joneset,
@@ -298,7 +300,10 @@ def _define_forest (ns, **kwargs):
 
     if MG['insert_solver']:
         qual = 'solve'
-        if MG['from_LSM']:
+        if MG['LSM_solve']:
+            lsm = MG_JEN_Sixpack.readLSM (ns, filename=MG['LSM_solve'],
+                                          strip=True, display=True, trace=True)
+            # Predict nominal/corrupted visibilities: 
             predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm,
                                                    # Joneset=Joneset,
                                                    Joneset=None,
@@ -385,6 +390,30 @@ def _tdl_job_fullDomainMux (mqs, parent):
 
    # Start the sequence of requests issued by MeqSink:
    MG_JEN_exec.fullDomainMux(mqs, parent, ctrl=MG, parmlist=parmlist)
+   return True
+
+
+
+#------------------------------------------------------------------------------
+
+def _tdl_job_display_Cohset (mqs, parent):
+   """Display the Cohset object used to generate this tree""" 
+   Cohset.display(full=True)
+   return True
+
+def _tdl_job_display_Cohset_ParmSet (mqs, parent):
+   """Display the Cohset.ParmSet object used to generate this tree""" 
+   Cohset.ParmSet.display(full=True)
+   return True
+
+def _tdl_job_display_Cohset_LeafSet (mqs, parent):
+   """Display the Cohset.LeafSet object used to generate this tree""" 
+   Cohset.LeafSet.display(full=True)
+   return True
+
+def _tdl_job_display_Cohset_Joneset (mqs, parent):
+   """Display the Cohset.Joneset() object used to generate this tree""" 
+   Cohset.Joneset().display(full=True)
    return True
 
 

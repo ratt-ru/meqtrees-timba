@@ -100,7 +100,7 @@ def inarg_punit (pp, **kwargs):
     JEN_inarg.inarg_common(kwargs)
     choice = ['unpol','unpol2','unpol10',
               'QUV','QU','Qonly','Uonly','Vonly',
-              '3c147','3c286','3c48','3c295',
+              '3c147','3c286','3c48','3c295','D1',
               'RMtest','SItest']
     JEN_inarg.define (pp, 'punit', 'unpol', choice=choice,
                       slave=kwargs['slave'], hide=kwargs['hide'],
@@ -121,12 +121,8 @@ def inarg_punit (pp, **kwargs):
                       '- 3c48:    \n'+
                       '- 3c295:   \n'+
                       '- 3c147:   \n'+
+                      '- D1:      cps in D1.MS \n'+
                       '')
-
-    # Optional: Specify an LSM to get the Sixpack from:
-    JEN_inarg.define (pp, 'from_LSM', None, browse='*.lsm', hide=False,
-                      help='(file)name of a Local Sky Model to be used'+
-                      '(instead of a predefined punit)')
 
     # Upward compatibility (temporary).
     # name has been changed into punit on friday 10 feb 2006....
@@ -197,6 +193,13 @@ def predefined (pp, trace=0):
        pp['Qpct'] = 10
        pp['Upct'] = -10
        pp['Vpct'] = 2
+    elif (pp['punit']=='D1'):                   # D1.MS 
+       predefined_reset(pp) 
+       pp['I0'] = 11.0
+       pp['Qpct'] = 10
+       pp['Upct'] = -10
+       pp['RA'] = 1.49488454017
+       pp['Dec'] = 0.870081695897
     elif (pp['punit']=='QU2'):
        predefined_reset(pp) 
        pp['I0'] = 2.0
@@ -347,16 +350,70 @@ def polclog_fmult (ns, source=None, SI=-0.7, f0=1e6):
    return node
    
 
+#--------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------
 
 
 
+def get_Sixpack (ns=None, **inarg):
+   """Get a Sixpack, either from a LSM or a Newstar source"""
 
+   # Input arguments:
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Sixpack::get_Sixpack()', version='22mar2006',
+                           description=get_Sixpack.__doc__)
+   qual = JEN_inarg.qualifier(pp)
+
+   JEN_inarg.define (pp, 'punit_from_LSM', None, browse='*.lsm', hide=False,
+                     help='(file)name of a Local Sky Model to be used'+
+                     '(instead of a predefined punit)')
+   JEN_inarg.nest(pp, newstar_source(_getdefaults=True, _qual=qual, slave=True))
+
+   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+   if not JEN_inarg.is_OK(pp): return False
+   funcname = JEN_inarg.localscope(pp)
+
+   # Upward compatibility (temporary)
+   JEN_inarg.obsolete (pp, old='name', new='punit')
+
+   # If an lsm is specified, obtain the Sixpack from there:
+   if pp['punit_from_LSM']:
+       lsm = readLSM (ns, filename=pp['punit_from_LSM'],
+                      strip=True, display=True, trace=True)
+       plist = lsm.queryLSM(count=1)
+       print '**',funcname,': plist =',type(plist),len(plist)
+       punit = plist[0]                     # take the first (the brightest)
+       Sixpack = punit.getSP()              # better: get_Sixpack()
+       Sixpack.display(funcname)
+       return Sixpack
+
+   # Otherwise, make a new Sixpack:
+   return newstar_source(ns, _inarg=pp, _qual=qual)
+
+#----------------------------------------------------------------------------------------
+
+def readLSM (ns, filename, strip=True, display=True, trace=False):
+    """Helper function to create and read a Local Sky Model from a file"""
+    if trace: print '\n** readLSM(',filename,'):'
+    if strip:
+        ss = filename.split('/')
+        filename = ss[len(ss)-1]                        # removed directories
+        if trace: print '** stripped: filename =',filename
+    lsm = LSM()
+    if trace: print '** created lsm'
+    lsm.load(filename, ns)
+    if trace: print '** after lsm.load()'
+    if display:
+        lsm.display()
+    if trace: print '**\n'
+    return lsm
 
 #=======================================================================================
 #=======================================================================================
 #=======================================================================================
 # Make Sixpack of subtrees for sources with 'NEWSTAR' parametrization:
 #=======================================================================================
+
 
 
 def newstar_source (ns=0, predefine=False, **inarg):
@@ -386,9 +443,12 @@ def newstar_source (ns=0, predefine=False, **inarg):
    JEN_inarg.define(pp, 'f0', 1e6, choice=[1e6], hide=True,
                     help='reference freq (Hz): I=I0 @ f=f0')
    # NB: (4.357,1.092) are the coordinates of 3c343...
-   JEN_inarg.define(pp, 'RA', 4.357, choice=[0.0,0.5,1.0,4.357],  
+   # NB: (1.495,0.870) are the coordinates of D1.MS
+   JEN_inarg.define(pp, 'RA', 1.495,
+                    choice=[0.0,0.5,1.0,1.495,4.357],  
                     help='Right Ascension (rad, J2000)')
-   JEN_inarg.define(pp, 'Dec', 1.092, choice=[0.5,1.0,1.0920],  
+   JEN_inarg.define(pp, 'Dec', 0.870,
+                    choice=[0.5,1.0,0.870,1.0920],  
                     help='Declination (rad, J2000)')
    JEN_inarg.define(pp, 'fsr_trace', tf=True, hide=True,   
                     help='If True, attach to forest state record')
@@ -414,19 +474,6 @@ def newstar_source (ns=0, predefine=False, **inarg):
 
    # Upward compatibility (temporary)
    JEN_inarg.obsolete (pp, old='name', new='punit')
-
-   # Hidden option: If a LSM (file) is specified, return the Sixpack
-   # that represents the brightest object:
-   if pp['from_LSM']:
-       print '\n**',funcname,': from_LSM =',pp['from_LSM']
-       lsm = LSM()
-       lsm.load(pp['from_LSM'],ns)
-       plist = lsm.queryLSM(count=1)
-       print '\n** plist =',type(plist),len(plist)
-       punit = plist[0]                     # take the first (the brightest)
-       Sixpack = punit.getSP()              # better: get_Sixpack()
-       Sixpack.display(funcname)
-       return Sixpack
   
    # Adjust parameters pp for some special cases:
    # NB: Normally disabled, to allow customisation via inargGui....

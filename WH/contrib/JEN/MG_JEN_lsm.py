@@ -10,6 +10,7 @@
 # History:
 # - 29 sep 2005: creation
 # - 11 feb 2006: total overhaul
+# - 22 mar 2006: standard lsm generation
 
 # Copyright: The MeqTree Foundation
 
@@ -60,15 +61,77 @@ from Timba.Contrib.JEN import MG_JEN_Sixpack
 
 
 
-def lsm_343(ns):
-   """Make a lsm from 3C343_nvss.txt"""
-   
-   lsm = LSM()
+def nvss_3c343(ns, trace=True):
+   """Make a lsm for 3C343 from an nvss txt-file"""
+   nvss2lsm (ns, nvss_file='/LOFAR/Timba/LSM/test/3C343_nvss.txt', trace=trace)
+   return True
 
+#-----------------------------------------------------------------------------
+   
+def nvss_Abell963(ns, trace=True):
+   """Make lsm(s) for Abell963 from nvss txt-file"""
+   nvss2lsm (ns, nvss_file='/LOFAR/Timba/LSM/test/abel963.txt', trace=trace)
+   if False:
+      # Empty
+      nvss2lsm (ns, nvss_file='/LOFAR/Timba/LSM/test/Abell963catb.txt', trace=trace)
+   return True
+
+#-----------------------------------------------------------------------------
+   
+def nvss_all(ns, trace=True):
+   """Regenerate lsm(s) for all available nvss txt-files"""
+   nvss_3c343(ns, trace=trace)
+   nvss_Abell963(ns, trace=trace)
+   return True
+
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+
+def nvss2lsm(ns, nvss_file=None, lsm_name=None, trace=True):
+   """Make a lsm from the given nvss (txt) file"""
+
+   if trace:
+      print '\n**************************************************************'
+      print '** nvss2lsm(',lsm_name,') <- nvss =',nvss_file
+      print '**************************************************************\n'
+
+   if not isinstance(nvss_file, str):
+      print '** ERROR **: nvss_file =',nvss_file
+      return False
+
+   # Make the lsm (file) name from the input nvss_file:
+   if not isinstance(lsm_name, str):
+      ss = nvss_file.split('/')
+      lsm_name = ss[len(ss)-1]                       # remove the directories
+      lsm_name = lsm_name.split('.')[0]              # remove the file extension (.txt)
+      lsm_name += '.lsm'                             # append .lsm extension
+      
+   # Use the global lsm.
+   global lsm
+   lsm = LSM()                                       # make a new one
+
+   #---------------------------------------------------------------------------
+   # Alternative:
+   if True:
+      home_dir = os.environ['HOME']
+      infile_name = home_dir + nvss_file
+      lsm.build_from_catalog(infile_name, ns)
+      if trace:
+         print '** Finished build_from_catalog()' 
+      lsm.save('lsm_current.lsm')                        # 
+      lsm.save(lsm_name)
+      lsm.display()
+      if trace:
+         print '** Saved as:',lsm_name,'   (and lsm_current.lsm)'
+         print '**************************************************************\n'
+      return True
+   #---------------------------------------------------------------------------
+
+   # Read the nvss text-file:
    home_dir = os.environ['HOME']
-   infile_name = home_dir + '/LOFAR/Timba/LSM/test/3C343_nvss.txt'
-   infile=open(infile_name,'r')
-   all=infile.readlines()
+   infile_name = home_dir + nvss_file
+   infile = open(infile_name, 'r')
+   all = infile.readlines()
    infile.close()
 
    # regexp pattern
@@ -102,49 +165,63 @@ def lsm_343(ns):
       \S+
       \s*$""",re.VERBOSE)
  
-   linecount=0
    # read each source and insert to LSM
+   linecount=0
    for eachline in all:
-      v=pp.search(eachline)
+      v = pp.search(eachline)
       if v!=None:
          linecount+=1
-         print v.group('col2'), v.group('col12')
+         if trace:
+            print linecount,':',v.group('col2'), v.group('col12')
          s=Source(v.group('col2'))
          source_RA=float(v.group('col3'))+(float(v.group('col5'))/60.0+float(v.group('col4')))/60.0
          source_RA*=math.pi/12.0
          source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
          source_Dec*=math.pi/180.0
 
-         my_sixpack=MG_JEN_Sixpack.newstar_source(ns, punit=s.name,
-                                                  I0=eval(v.group('col12')),
-                                                  SI=[random()],f0=1e6,
-                                                  RA=source_RA,
-                                                  Dec=source_Dec,
-                                                  fsr_trace=False,
-                                                  trace=False)
-         # first compose the sixpack before giving it to the LSM
-         SourceRoot=my_sixpack.sixpack(ns)
+         my_sixpack = MG_JEN_Sixpack.newstar_source(ns, punit=s.name,
+                                                    I0=eval(v.group('col12')),
+                                                    SI=[random()], f0=1e6,
+                                                    RA=source_RA,
+                                                    Dec=source_Dec,
+                                                    fsr_trace=False,
+                                                    trace=False)
+         if trace: print '  -> Sixpack:',my_sixpack.label()
+
+         # First compose the sixpack before giving it to the LSM
+         SourceRoot = my_sixpack.sixpack(ns)
          # my_sixpack.display()
-         # print my_sixpack.label()
-         lsm.add_source(s,brightness=eval(v.group('col12')),
+         lsm.add_source(s, brightness=eval(v.group('col12')),
                         sixpack=my_sixpack,
                         ra=source_RA, dec=source_Dec)
+   if trace:
+      print "** Inserted %d sources" % linecount
 
-   # Finished:
-   print "Inserted %d sources" % linecount 
-   lsm.setNodeScope(ns)                       # remember node scope....(!)
-   lsm.save('3c343.lsm')
-   # lsm.save(MG['lsm_current'])                        # 
-   return lsm
+   # Finishing touches:
+   lsm.setNodeScope(ns)                           # remember node scope....(!)
+   lsm.save('lsm_current.lsm')                        # 
+   lsm.save(lsm_name)
+   lsm.display()
+   if trace:
+      print '** Saved as:',lsm_name,'   (and lsm_current.lsm)'
+      print '**************************************************************\n'
+   return True
 
 
 
 
 
+#=================================================================================
 
-#--------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------
+# Create an empty global lsm, just in case:
+lsm = LSM()
+# lsm.display()    # QPaintDevice: Must construct a QApplication before a QPaintDevice
+
+
+#=================================================================================
+#=================================================================================
+#=================================================================================
+
 
 def arcmin2rad(arcmin=None):
    """Convert arcmin to radians"""
@@ -157,6 +234,8 @@ def deg2rad(deg=None):
    factor = pi/180                              # 180/pi = 57.2957795130....
    if not deg==None: return deg*factor          # if deg specified, convert
    return factor                                # return conversion factor
+
+
 
 #--------------------------------------------------------------------------------
 
@@ -324,13 +403,13 @@ def description ():
 MG = JEN_inarg.init('MG_JEN_lsm', description=description.__doc__)
 JEN_inarg.define (MG, 'last_changed', 'd30jan2006', editable=False)
 
-
-JEN_inarg.define (MG, 'input_LSM', 'lsm_current.lsm', browse='*.lsm',
-                  choice=['lsm_current.lsm','3c343.lsm',None],
+JEN_inarg.define (MG, 'input_LSM', None, browse='*.lsm',
+                  choice=['lsm_current.lsm','3c343_nvss.lsm',
+                          'abel963.lsm','D1.lsm',None],
                   help='(file)name of the Local Sky Model to be used')
 
-JEN_inarg.define (MG, 'saveAs', None, browse='*.lsm',
-                  choice=['auto',None,'lsm_current'],
+JEN_inarg.define (MG, 'saveAs', 'lsm_current.lsm', browse='*.lsm',
+                  choice=['auto',None,'lsm_current.lsm'],
                   help='Save the (modified) LSM afterwards as...')
 
 # Optional: add test-source(s) to the given lsm:
@@ -354,9 +433,6 @@ MG_JEN_forest_state.init(MG)
 #        as an orphan, and deletes it.....!?
 # Settings.orphans_are_roots = True
 
-
-# Create an empty global lsm, just in case:
-lsm = LSM()
 
 
 
@@ -397,12 +473,17 @@ def _define_forest (ns, **kwargs):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
    # Start with an empty lsm:
-   global lsm
-   # lsm = LSM()
+   global lsm 
+   lsm = LSM()
+   display_lsm = False
+   save_lsm = False
 
    # Optional: use an existing lsm
+   print '\n** MG[input_LSM] =',MG['input_LSM'],'\n'
    if MG['input_LSM']:
       lsm.load(MG['input_LSM'],ns)
+      display_lsm = True
+      save_lsm = True
    else:
       lsm.setNodeScope(ns)
 
@@ -410,6 +491,8 @@ def _define_forest (ns, **kwargs):
 
    # Optional: add one or more test-sources to the lsm:
    if isinstance(MG['test_pattern'], str):
+      display_lsm = True
+      save_lsm = True
       if MG['test_pattern']=='single':
          add_single(ns, lsm=lsm, _inarg=MG)
       elif MG['test_pattern']=='grid':
@@ -421,12 +504,16 @@ def _define_forest (ns, **kwargs):
 
    # Save the (possibly modified) lsm under a different name:
    if MG['saveAs']:
-      # print '** save not implemented:',MG['saveAs']
       lsm.save(MG['saveAs'])
+
+   # Save the lsm as 'lsm_current', for continuity:
+   if save_lsm:
+      lsm.save('lsm_current.lsm')
 
    # Display the current lsm AFTER saving (so we have the new name)
    # NB: The program does NOT wait for the control to be handed back!
-   lsm.display()
+   if display_lsm:
+      lsm.display()
 
    
    # Make the trees of all the lsm punits: 
@@ -475,40 +562,54 @@ def _test_forest (mqs, parent):
     # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm',nfreq=10, ntime=5)
 
 
-def _tdl_job_display (mqs, parent):
-   global lsm
-   # set the MQS proxy of LSM
-   lsm.setMQS(mqs)
-   cells = MG_JEN_exec.make_cells (domain='21cm',nfreq=10, ntime=5)
-   lsm.setCells(cells)
-   # query the MeqTrees using these cells
-   lsm.updateCells()
-   # display results
-   lsm.display()
-
-
-def _tdl_job_lsm_343 (mqs, parent):
-   """Create an lsm for NVSS 3c343"""
-   global lsm
+def _tdl_job_nvss_3c343 (mqs, parent):
+   """Create lsm(s) from nvss txt-file(s)"""
    ns = NodeScope()
-   lsm = lsm_343(ns)
-   # MG_SBY_grow_tree._update_forest(my_ns,mqs)
-   lsm.display()
+   return nvss_3c343(ns)
 
-def _tdl_job_lsm_query (mqs, parent):
-   """Read the 3 brightest punits from the lsm"""
-   global lsm
-   plist = lsm.queryLSM(count=3)
-   for pu in plist:
-      my_sp = pu.getSP()
-      my_sp.display()
+def _tdl_job_nvss_Abell963 (mqs, parent):
+   """Create lsm(s) from nvss txt-file(s)"""
+   ns = NodeScope()
+   return nvss_Abell963(ns)
 
-def _tdl_job_dirdir (mqs, parent):
-   """Show the contents(dir) of lsm and punit"""
-   global lsm
-   print '\n** dir(lsm):\n',dir(lsm)
-   plist = lsm.queryLSM(count=1)
-   print '\n** dir(punit):\n',dir(plist[0])
+def _tdl_job_nvss_all (mqs, parent):
+   """Create lsms from all available nvss txt-file"""
+   ns = NodeScope()
+   return nvss_all(ns)
+   
+
+
+
+#----------------------------------------------------------------
+# Obsolete?
+#----------------------------------------------------------------
+
+if False:
+   def _tdl_job_lsm_query (mqs, parent):
+      """Read the 3 brightest punits from the lsm"""
+      global lsm
+      plist = lsm.queryLSM(count=3)
+      for pu in plist:
+         my_sp = pu.getSP()
+         my_sp.display()
+
+   def _tdl_job_dirdir (mqs, parent):
+      """Show the contents(dir) of lsm and punit"""
+      global lsm
+      print '\n** dir(lsm):\n',dir(lsm)
+      plist = lsm.queryLSM(count=1)
+      print '\n** dir(punit):\n',dir(plist[0])
+
+   def _tdl_job_display (mqs, parent):
+      global lsm
+      # set the MQS proxy of LSM
+      lsm.setMQS(mqs)
+      cells = MG_JEN_exec.make_cells (domain='21cm',nfreq=10, ntime=5)
+      lsm.setCells(cells)
+      # query the MeqTrees using these cells
+      lsm.updateCells()
+      # display results
+      lsm.display()
 
 
 
@@ -531,7 +632,7 @@ if __name__ == '__main__':
    # Various specific tests:
    ns = NodeScope()
 
-   if 1:
+   if 0:
       igui = JEN_inargGui.ArgBrowser()
       igui.input(MG, set_open=False)
       igui.launch()
@@ -543,6 +644,13 @@ if __name__ == '__main__':
       for pu in plist:
          my_sp = pu.getSP()
          my_sp.display()
+
+   if 1:
+      lss = lsmSet()
+      lss.display()
+      lss.append()
+      lss.append()
+      lss.display()
 
    if 0:
       MG_JEN_exec.display_object (MG, 'MG', MG['script_name'])

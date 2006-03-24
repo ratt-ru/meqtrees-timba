@@ -105,7 +105,7 @@ class Joneset (TDL_common.Super):
         if self.__jones.has_key(key):
             return self.__jones[key]
         keys = self.__jones.keys()
-        print '** TDL_Jonesset.__getitem(',key,'): not recognised in (',len(keys),'):',keys
+        print '** TDL_Joneset.__getitem(',key,'): not recognised in (',len(keys),'):',keys
         return False
 
     def __setitem__(self, key, value):

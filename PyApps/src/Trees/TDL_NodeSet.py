@@ -748,7 +748,7 @@ class NodeSet (TDL_common.Super):
         """Return the rootnode of a subtree of all bookmark root nodes.
         This can be used to supply requests to these nodes."""
 
-        trace = True
+        # trace = True
         # First make sure that all bookmark trees have been created:
         self.ensure_bookmarks(ns, override_folder=folder, trace=trace)
         
@@ -857,7 +857,7 @@ class NodeSet (TDL_common.Super):
         """Apply binary operation(s) to the nodes in the specified group(s).
         The resulting nodes are put into a new group, whose name is returned"""
 
-        trace = True
+        # trace = True
         if trace: print '\n** apply_binop(',group,binop,'):'
         gg = self._extract_flat_grouplist(group, must_exist=True, origin='.apply_binop()')
         if not isinstance(gg, list): return False
@@ -1083,7 +1083,7 @@ class NodeSet (TDL_common.Super):
 
 _counters = {}
 
-def _counter (key, increment=0, reset=False, trace=True):
+def _counter (key, increment=0, reset=False, trace=False):
     global _counters
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0

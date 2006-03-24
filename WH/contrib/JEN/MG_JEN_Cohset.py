@@ -114,7 +114,7 @@ def make_spigots(ns=None, Cohset=None, **inarg):
     # Create the nodes expected by read_MS_auxinfo.py
     stations = Cohset.station_index()
     MSauxinfo().create_nodes(ns, stations=stations)
-    MSauxinfo().display(funcname)
+    # MSauxinfo().display(funcname)
 
     # Append the initial (spigot) Cohset to the forest state object:
     # MG_JEN_forest_state.object(Cohset, funcname)
@@ -218,7 +218,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
                                                    # group=None, binop='Subtract',
                                                    bookpage='fDMux_Parm-Leaf',
                                                    folder=bookfolder,
-                                                   trace=True)
+                                                   trace=False)
             post.append(node)
 
         # Make the VisDataMux:
@@ -230,7 +230,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     start = []
     if pp['visu_array_config']: 
         dcoll = MSauxinfo().dcoll(ns)
-        MSauxinfo().display(funcname)
+        # MSauxinfo().display(funcname)
         for i in range(len(dcoll)):
             JEN_bookmarks.bookmark(dcoll[i], page='MSauxinfo_array_config')
         start.extend(dcoll)
@@ -245,7 +245,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
     sinks = Cohset.cohs()
 
     # Cohset.display(funcname, full=True)
-    Cohset.ParmSet.display(funcname, full=True)
+    # Cohset.ParmSet.display(funcname, full=True)
     # Cohset.LeafSet.display(funcname, full=True)
 
     # Append the final Cohset to the forest state object:
@@ -441,12 +441,12 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
 
-    print 'pp =',type(pp),pp['nr_lsm_sources']
+    # print 'pp =',type(pp),pp['nr_lsm_sources']
 
     # Obtain the Sixpacks of the brightest punits.
     # Turn the point-sources in Cohsets with DFT KJonesets
     plist = lsm.queryLSM(count=pp['nr_lsm_sources'])
-    print '\n** plist =',type(plist),len(plist)
+    # print '\n** plist =',type(plist),len(plist)
     cs = []                                  # list on source Cohsets
     for punit in plist: 
         Sixpack = punit.getSixpack()      
@@ -454,7 +454,7 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
         if Sixpack.ispoint():                # point source (Sixpack object)
             # Make a new Cohset for this punit:
             cs1 = TDL_Cohset.Cohset(label=punit_name, origin=funcname, **pp)
-            cs1.display(punit_name)
+            # cs1.display(punit_name)
             # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
             # by multiplication its (I,Q,U,V) with the relevent (polrep) Stokes matrix:
             nominal = Sixpack.coh22(ns, pp['polrep'])
@@ -462,9 +462,7 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
             cs1.uniform(ns, nominal)
             KJones = MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
                                             _inarg=pp, _qual=qual_KJones)
-            print 'before cs1.corrupt()'
             cs1.corrupt (ns, Joneset=KJones)
-            print 'after cs1.corrupt()'
             # cs1.update_from_Sixpack(Sixpack)
             cs.append(cs1)
         else:	                             # patch (not a Sixpack object!)
@@ -474,9 +472,9 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
     # Add the point-source Cohsets together into the final predicted Cohset:
     Cohset = TDL_Cohset.Cohset(label='predict_lsm', origin=funcname, **pp)
     Cohset.zero(ns)
-    Cohset.display()
+    # Cohset.display()
     Cohset.add(ns, cs, exclude_itself=True)
-    Cohset.display()
+    # Cohset.display()
     # Cohset.display('after add')
 
     # Optionally, corrupt the Cohset visibilities with the instrumental effects
@@ -718,10 +716,10 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
 
     # Get a list of names of solvable MeqParms for the solver:
     corrs = Cohset.condeq_corrs(pp['solvegroup'])
-    print '\n** corrs (ParmSet):',corrs
+    # print '\n** corrs (ParmSet):',corrs
 
     solvable = Cohset.ParmSet.solveparm_names(pp['solvegroup'])
-    print '\n** solvable (ParmSet):',type(solvable),'=\n   ',solvable,'\n'
+    # print '\n** solvable (ParmSet):',type(solvable),'=\n   ',solvable,'\n'
 
     dcoll_parm = []
     hcoll_parm = []
@@ -997,7 +995,7 @@ def visualise(ns=None, Cohset=None, extra=None, **pp):
 
 _counters = {}
 
-def _counter (key, increment=0, reset=False, trace=True):
+def _counter (key, increment=0, reset=False, trace=False):
     global _counters
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0
@@ -1279,12 +1277,12 @@ def _define_forest (ns, **kwargs):
     # Perform some common functions, and return an empty list (cc=[]):
     cc = MG_JEN_exec.on_entry (ns, MG)
 
-    if True:
-        # Make MeqSpigot nodes that read the MS:
-        Cohset = TDL_Cohset.Cohset(label=MG['script_name'],
-                                   polrep=MG['polrep'],
-                                   stations=MG['stations'])
-        make_spigots(ns, Cohset, _inarg=MG)
+    # Make MeqSpigot nodes that read the MS:
+    global Cohset
+    Cohset = TDL_Cohset.Cohset(label=MG['script_name'],
+                               polrep=MG['polrep'],
+                               stations=MG['stations'])
+    make_spigots(ns, Cohset, _inarg=MG)
 
 
     if False:
@@ -1307,10 +1305,9 @@ def _define_forest (ns, **kwargs):
             # Insert a solver for a named solvegroup of MeqParms (e.g. 'GJones'):
             insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG)
 
-    if True:
-        # Make MeqSink nodes that write the MS:
-        sinks = make_sinks(ns, Cohset, _inarg=MG)
-        cc.extend(sinks)
+    # Make MeqSink nodes that write the MS:
+    sinks = make_sinks(ns, Cohset, _inarg=MG)
+    cc.extend(sinks)
 
     # Finished: 
     return MG_JEN_exec.on_exit (ns, MG, cc)
@@ -1326,8 +1323,8 @@ def _define_forest (ns, **kwargs):
 
 
 
-def _test_forest (mqs, parent):
-   
+def _tdl_job_execute (mqs, parent):
+   """Execute the forest"""
    # Timba.TDL.Settings.forest_state is a standard TDL name. 
    # This is a record passed to Set.Forest.State. 
    Settings.forest_state.cache_policy = 100;
@@ -1340,13 +1337,8 @@ def _test_forest (mqs, parent):
    return True
 
 
-def _tdl_job_noMS (mqs, parent):
-   return MG_JEN_exec.meqforest (mqs, parent)
-
-
-# Execute the forest for a sequence of requests:
-
 def _tdl_job_sequence(mqs, parent):
+    """Execute the forest for a sequence of requests"""
     for x in range(10):
         MG_JEN_exec.meqforest (mqs, parent, nfreq=20, ntime=19,
                                f1=x, f2=x+1, t1=x, t2=x+1,
@@ -1354,6 +1346,28 @@ def _tdl_job_sequence(mqs, parent):
     MG_JEN_exec.save_meqforest(mqs) 
     return True
 
+
+#------------------------------------------------------------------------------
+
+def _tdl_job_display_Cohset (mqs, parent):
+   """Display the Cohset object used to generate this tree""" 
+   Cohset.display(full=True)
+   return True
+
+def _tdl_job_display_Cohset_ParmSet (mqs, parent):
+   """Display the Cohset.ParmSet object used to generate this tree""" 
+   Cohset.ParmSet.display(full=True)
+   return True
+
+def _tdl_job_display_Cohset_LeafSet (mqs, parent):
+   """Display the Cohset.LeafSet object used to generate this tree""" 
+   Cohset.LeafSet.display(full=True)
+   return True
+
+def _tdl_job_display_Cohset_Joneset (mqs, parent):
+   """Display the Cohset.Joneset() object used to generate this tree""" 
+   Cohset.Joneset().display(full=True)
+   return True
 
 
 

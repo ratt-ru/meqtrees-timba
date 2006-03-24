@@ -608,7 +608,7 @@ class Cohset (TDL_common.Super):
         # Finished:
         self._history(append=funcname+' inarg = '+str(pp))
         self._history(append=funcname+' -> '+str(pp['select'])+': '+str(len(keys))+': '+str(keys))
-        if trace: self.keys(trace=True)
+        if trace: self.keys()
         return True
 
     #............................................................................
@@ -1164,7 +1164,7 @@ class Cohset (TDL_common.Super):
             basel = str(around(self.__rxyz[key]))+'m'
             coh[key] = ns[scope+'_'+basel](uniqual)(s1=s12[0], s2=s12[1], q=punit) << Meq.Condeq(
                 self.__coh[key], Cohset[key])
-            print '-',key,':',coh[key]
+            # print '-',key,':',coh[key]
 
         # Copy the new condeq nodes to self.__coh, deleting the rest:
         for key in self.__coh.keys():
@@ -1200,8 +1200,8 @@ class Cohset (TDL_common.Super):
         for key in self.keys():
             s12 = self.__stations[key]
             basel = str(around(self.__rxyz[key]))+'m'
-            print '-',key,basel,s12
-            print '---',self.__redun[key]
+            # print '-',key,basel,s12
+            # print '---',self.__redun[key]
             coh[key] = None
             redun = self.__redun[key]      # list of zero or more keys of redundant ifrs
             if len(redun)>0:
@@ -1225,7 +1225,7 @@ class Cohset (TDL_common.Super):
         return True
 
 
-    def condeq_corrs (self, solvegroup, trace=True):
+    def condeq_corrs (self, solvegroup, trace=False):
         """Return a (unique) list of correlations (corrs, e.g. ['XX','YY'])
         for the specified solvegroup. See also MG_JEN_Cohset.py"""
         pcorrs = self.ParmSet.condeq_corrs(solvegroup, trace=trace)
@@ -1249,7 +1249,7 @@ class Cohset (TDL_common.Super):
         for c in cc:
             if not corrs.__contains__(c):
                 corrs.append(c)
-        print '** condeq_corrs: ',pcorrs,'->',corrs
+        # print '** condeq_corrs: ',pcorrs,'->',corrs
         return corrs
 
 
@@ -1409,7 +1409,6 @@ class Cohset (TDL_common.Super):
     def sinks (self, ns, **pp):
         """Attaches the Cohset coherency matrices to MeqSink nodes""" 
         funcname = '::sinks():'
-        print '\n** Start of: TDL_Cohset.sinks()'
 
         # Input arguments:
         pp.setdefault('output_col', 'PREDICT')          # name of MS output column (NONE means inhibited)
@@ -1448,17 +1447,13 @@ class Cohset (TDL_common.Super):
             for key in ['start','pre','post']:
             # for key in ['start','post']:           # ignore 'pre' for the moment....
                 if isinstance(pp[key], (list,tuple)):
-                    print '-',key,':',type(pp[key]),len(pp[key])
-                    for node in pp[key]:
-                        print '  -',node
+                    # for node in pp[key]: print '  -',node
                     if len(pp[key])==0:
                         pp[key] = None             # empty list gives an error....!
                     else:
                         # pp[key] = ns[key+'_VisDataMux'] << Meq.ReqSeq(children=pp[key])
                         pp[key] = ns[key+'_VisDataMux'] << Meq.ReqMux(children=pp[key]) 
                         # pp[key] = ns[key+'_VisDataMux'] << Meq.Add(children=pp[key])
-                    print '-',key,':',pp[key]
-                print '-',key,':',pp[key]
             root = ns['Cohset_VisDataMux'] << Meq.VisDataMux(start=pp['start'],
                                                              pre=pp['pre'],
                                                              post=pp['post'])
@@ -1469,7 +1464,7 @@ class Cohset (TDL_common.Super):
         self._history(append=funcname+' inarg = '+str(pp))
         self._history(append=funcname+' MS_corr_index = '+str(MS_corr_index))
         self._history(append=funcname+' -> '+self.oneliner())
-        print '** End of: TDL_Cohset.sinks()\n'
+        # print '** End of: TDL_Cohset.sinks()\n'
         return True
 
 #------------------------------------------------------------------------------------
@@ -1479,11 +1474,11 @@ class Cohset (TDL_common.Super):
         # Bundle the collected orphans (minimise browser clutter)
         for key in ['deletion_orphans','selection_orphans']:
             orphans = self._rider(key, clear=False, report=True)
-            print '\n** .cleanup():',key,'-> orphans(',len(orphans),'):',orphans
+            # print '\n** .cleanup():',key,'-> orphans(',len(orphans),'):',orphans
             if len(orphans)>0:
                 uniqual = _counter(key, increment=-1)
                 root_node = ns[key](uniqual) << Meq.Composer(children=orphans)
-                print '   ->',root_node
+                # print '   ->',root_node
         return True
 
 
@@ -1504,15 +1499,14 @@ class Cohset (TDL_common.Super):
         if True:
             for key in ['start','pre','post']:
                 if isinstance(pp[key], (list,tuple)):
-                    print '-',key,':',type(pp[key]),len(pp[key])
-                    for node in pp[key]:
-                        print '  -',node
+                    # print '-',key,':',type(pp[key]),len(pp[key])
+                    # for node in pp[key]: print '  -',node
                     if len(pp[key])==0:
                         pp[key] = None                  # empty list gives an error....!
                     else:
                         pp[key] = ns[key+'_fullDomainMux'] << Meq.ReqMux(children=pp[key]) 
-                    print '-',key,':',pp[key]
-                print '-',key,':',pp[key]
+                    # print '-',key,':',pp[key]
+                # print '-',key,':',pp[key]
             root = ns['Cohset_fullDomainMux'] << Meq.VisDataMux(start=pp['start'],
                                                                 pre=pp['pre'],
                                                                 post=pp['post'])

@@ -1457,6 +1457,7 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_lsm', revert): return False
         JEN_inarg.specific(self.__inarg, self.lsm_single.__doc__)
         JEN_inarg.modify(self.__inarg,
+                         input_LSM='lsm_current.lsm',
                          test_pattern='single',
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_lsm_single', save_protected)
@@ -1466,6 +1467,7 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_lsm', revert): return False
         JEN_inarg.specific(self.__inarg, self.lsm_grid.__doc__)
         JEN_inarg.modify(self.__inarg,
+                         input_LSM='lsm_current.lsm',
                          test_pattern='grid',
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_lsm_grid', save_protected)
@@ -1475,9 +1477,11 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_lsm', revert): return False
         JEN_inarg.specific(self.__inarg, self.lsm_spiral.__doc__)
         JEN_inarg.modify(self.__inarg,
+                         input_LSM='lsm_current.lsm',
                          test_pattern='spiral',
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_lsm_spiral', save_protected)
+
 
     #------------------------------------------------------------------------
     # MG_JEN_simul.py
@@ -1498,10 +1502,11 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_simul', revert): return False
         JEN_inarg.specific(self.__inarg, self.simul_lsm_GJones.__doc__)
         JEN_inarg.modify(self.__inarg,
-                         from_LSM='lsm_current.lsm',
+                         LSM_simul='lsm_current.lsm',
                          nr_lsm_sources=2,
                          Jsequence_simul=['GJones'],
                          insert_solver=False,
+                         LSM_solve='lsm_current.lsm',
                          Jsequence_solve=['GJones'],
                          solvegroup=['GJones'],
                          parmtable='simul_lsm_GJones',

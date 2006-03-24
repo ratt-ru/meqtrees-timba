@@ -164,7 +164,8 @@ JEN_inarg.separator(MG, 'operations on input uv-data')
 
 JEN_inarg.separator(MG, 'insert a solver')
 
-inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True) 
+# inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True) 
+inarg = MG_JEN_Sixpack.get_Sixpack(_getdefaults=True) 
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True) 
@@ -239,6 +240,7 @@ def _define_forest (ns, **kwargs):
     cc = MG_JEN_exec.on_entry (ns, MG)
 
     # Make MeqSpigot nodes that read the MS:
+    global Cohset
     Cohset = TDL_Cohset.Cohset(label=MG['script_name'],
                                polrep=MG['polrep'],
                                stations=MG['stations'])
@@ -252,7 +254,8 @@ def _define_forest (ns, **kwargs):
 
 
     if MG['insert_solver']:
-        Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
+        # Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG)
+        Sixpack = MG_JEN_Sixpack.get_Sixpack(ns, _inarg=MG)
         Joneset = MG_JEN_Cohset.Jones(ns, Sixpack=Sixpack, _inarg=MG)
         predicted = MG_JEN_Cohset.predict (ns, Sixpack=Sixpack, Joneset=Joneset, _inarg=MG)
         MG_JEN_Cohset.insert_solver (ns, measured=Cohset, predicted=predicted, _inarg=MG)
@@ -318,6 +321,24 @@ def _tdl_job_fullDomainMux (mqs, parent):
 
    # Start the sequence of requests issued by MeqSink:
    MG_JEN_exec.fullDomainMux(mqs, parent, ctrl=MG)
+   return True
+
+
+#------------------------------------------------------------------------------
+
+def _tdl_job_display_Cohset (mqs, parent):
+   """Display the Cohset object used to generate this tree""" 
+   Cohset.display(full=True)
+   return True
+
+def _tdl_job_display_Cohset_ParmSet (mqs, parent):
+   """Display the Cohset.ParmSet object used to generate this tree""" 
+   Cohset.ParmSet.display(full=True)
+   return True
+
+def _tdl_job_display_Cohset_Joneset (mqs, parent):
+   """Display the Cohset.Joneset() object used to generate this tree""" 
+   Cohset.Joneset().display(full=True)
    return True
 
 

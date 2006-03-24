@@ -320,7 +320,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Create a Joneset object
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
-    js.display('inside GJones')
+    # js.display('inside GJones')
     
     # Register the parmgroups with specific rider parameters:
     a1 = js.parmgroup('Ggain', ipol=1, rider=pp,
@@ -416,9 +416,14 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Make nodes and bookmarks for some derived quantities (for display):
     # NB: This must be done AFTER the station nodes have been defined!
-    bookpage = js.ParmSet.tlabel()+'_GJones'
-    js.ParmSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage=bookpage)
-    js.ParmSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage=bookpage)
+    if simul:
+       bookpage = js.LeafSet.NodeSet.tlabel()+'_GJones'
+       js.LeafSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage=bookpage)
+       js.LeafSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage=bookpage)
+    else:
+       bookpage = js.ParmSet.NodeSet.tlabel()+'_GJones'
+       js.ParmSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage=bookpage)
+       js.ParmSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage=bookpage)
 
     # Finished:
     js.cleanup()
@@ -1273,7 +1278,7 @@ def visualise_Joneseq (ns, Joneseq, **pp):
 
 _counters = {}
 
-def _counter (key, increment=0, reset=False, trace=True):
+def _counter (key, increment=0, reset=False, trace=False):
     global _counters
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0
