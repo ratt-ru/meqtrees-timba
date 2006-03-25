@@ -6,14 +6,14 @@ from copy import deepcopy
 import os
 
 # MS name
-msname = "TEST_CLAR_28-480.MS";
+msname = "TEST_CLAR_27-480.MS";
 tile_size = 480
 resample = None;
 # resample = [480,1];
 num_stations = 27
 
 # MEP table for derived quantities fitted in this script
-mep_derived = 'CLAR_DQ_28-480.mep';
+mep_derived = 'CLAR_DQ_27-480.mep';
 
 
 

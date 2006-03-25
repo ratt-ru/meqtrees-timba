@@ -5,11 +5,13 @@ from numarray import *
 from copy import deepcopy
 import os
 import random
+from clar_source_model import *
+
 
 # MS name
 msname = "TEST_CLAR_27-4800.MS";
 # number of timeslots to use at once
-tile_size = 120
+tile_size = 30
 
 # MS input queue size -- must be at least equal to the no. of ifrs
 input_queue_size = 500
@@ -26,7 +28,8 @@ write_output = False  # if False, disables output completely
 ms_output = False     # if True, outputs to MS, else to BOIO dump
 
 # CLAR beam width
-# base HPW is 647.868 1/rad at 800 Mhz
+# This is actually the inverse of the half-power beam width, in radians.
+# base IHPW is 647.868 rad^-1 at 800 Mhz
 beam_width = 647.868
 ref_frequency = 800*1e+6
 
@@ -58,73 +61,6 @@ parm_actual_polcs = {};
 # for all potentially solvable parameters.
 parm_starting_polcs = {};
 
-
-class PointSource:
-    name = ''
-    ra   = 0.0
-    dec  = 0.0
-    IQUV      = zeros(4)*0.0
-    IQUVorder = zeros(4)*0.0
-    table  = ''
-
-    def __init__(self, name='', ra=0.0, dec=0.0,
-                 I=0.0, Q=0.0, U=0.0, V=0.0,
-                 Iorder=0, Qorder=0, Uorder=0, Vorder=0,
-                 table=''):
-        self.name   = name
-        self.ra     = ra
-        self.dec    = dec
-        self.IQUV   = array([I,Q,U,V])
-        self.IQUVorder = array([Iorder,Qorder,Uorder,Vorder])
-        self.table  = table
-        pass
-    pass
-
-def create_source_model(tablename=''):
-    """ define model source positions and flux densities """
-    source_model = []
-    stokes_i = 1.0
-    source_model.append( PointSource(name="src_1",I=stokes_i, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.030272885, dec=0.575762621,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_2",  I=stokes_i, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0306782675, dec=0.575526087,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_3",I=stokes_i, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0308948646, dec=0.5762655,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_4",I=stokes_i, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0308043705, dec=0.576256621,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_5",I=stokes_i, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.030120036, dec=0.576310965,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_6",I=stokes_i, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0301734016, dec=0.576108805,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_7",I=stokes_i, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0302269161, dec=0.576333355,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_8",I=stokes_i, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0304215356, dec=0.575777607,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_9",I=stokes_i, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0307416105, dec=0.576347166,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_10",I=stokes_i, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0306878027, dec=0.575851951,
-                    table=tablename))
-
-    return source_model
 
 def create_refparms (refnode):
   """For any given parm node, this creates:
@@ -341,6 +277,9 @@ def create_constant_nodes(ns):
     ns.one << Meq.Constant(1.0)
     ns.half << Meq.Constant(0.5)
     ns.ln_16 << Meq.Constant(-2.7725887)
+    ns.freq << Meq.Freq;
+    # f1/f0 is used for beam widths and spectral indices
+    ns.freq_ratio << ns.freq / ref_frequency;
 
     # beam width at reference frequency
     beam_width_polc = create_polc_ft(c00=beam_width)
@@ -349,12 +288,12 @@ def create_constant_nodes(ns):
     parm_actual_polcs[ns.width.name] = beam_width_polc;
     parm_starting_polcs[ns.width.name] = create_polc_ft(c00=beam_width*0.7);
     # this scales it with frequency
-    ns.width_fq << ns.width * ( Meq.Freq() / ref_frequency );
+    ns.width_fq << ns.width * ns.freq_ratio;
     ns.width_sq << Meq.Sqr(ns.width_fq);
 
 # creates source-related nodes for a given source
 def forest_source_subtrees (ns, source):
-  for (i,stokes) in enumerate(("I","Q","U","V")):
+  for (i,stokes) in enumerate(("I0","Q","U","V")):
     flux = source.IQUV[i];
     if flux is None:
       starting_polc = actual_polc = None;
@@ -372,6 +311,15 @@ def forest_source_subtrees (ns, source):
                                         
 #    create_refparms(st);
     pass    
+  spi_polc = create_polc_ft(c00=source.spi)
+  spi = ns.spi(source.name) << Meq.Parm(spi_polc,
+                               	        table_name=source.table,
+				        node_groups='Parm');
+  parm_actual_polcs[spi.name]   = spi_polc;
+  parm_starting_polcs[spi.name] = create_polc_ft(c00=0);
+  ns.stokes("I",source.name) << \
+      ns.stokes("I0",source.name) * Meq.Pow(ns.freq_ratio,spi);
+      
   ns.xx(source.name) << (ns.stokes("I",source.name)+ns.stokes("Q",source.name))*0.5
   ns.yx(source.name) << Meq.ToComplex(ns.stokes("U",source.name),ns.stokes("V",source.name))*0.5
   ns.xy(source.name) << Meq.Conj(ns.yx(source.name))
@@ -507,12 +455,14 @@ def _run_solve_job (mqs,solvables):
   pass
 
 def _tdl_job_1_solve_for_fluxes_and_beam_width (mqs,parent,**kw):
-  solvables = [ 'stokes:I:'+src.name for src in source_model ];
+  solvables = [ 'stokes:I0:'+src.name for src in source_model ];
+  solvables += [ 'spi:'+src.name for src in source_model ];
   solvables.append("width");
   _run_solve_job(mqs,solvables);
 
 def _tdl_job_2_solve_for_fluxes_with_fixed_beam_width (mqs,parent,**kw):
   solvables = [ 'stokes:I:'+src.name for src in source_model ];
+  solvables += [ 'spi:'+src.name for src in source_model ];
   _run_solve_job(mqs,solvables);
   
 def _tdl_job_3_solve_for_beam_width_with_fixed_fluxes (mqs,parent,**kw):
