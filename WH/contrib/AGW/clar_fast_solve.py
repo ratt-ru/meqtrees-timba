@@ -36,6 +36,11 @@ ref_frequency = 800*1e+6
 # MEP table for derived quantities 
 mep_derived = 'CLAR_DQ_27-480.mep';
 
+# if True, previous solutions will be resued for next time domain.
+# This speeds up convergence (especially when solvables have no variation 
+# in time), but makes the process less "educational"
+reuse_solutions = False
+
 
 # bookmark
 Settings.forest_state = record(bookmarks=[
@@ -284,7 +289,7 @@ def create_constant_nodes(ns):
     # beam width at reference frequency
     beam_width_polc = create_polc_ft(c00=beam_width)
     ns.width << Meq.Parm(beam_width_polc,
-                         use_previous=False,
+                         use_previous=reuse_solutions,
                          node_groups='Parm')
     # create starting value of 70%
     parm_actual_polcs[ns.width.name] = beam_width_polc;
@@ -306,7 +311,7 @@ def forest_source_subtrees (ns, source):
       flux1 = flux*(1+random.uniform(.2,.4)*random.choice([-1,1]));
       starting_polc = create_polc_ft(degree_f=source.IQUVorder[i],c00=flux1);
     st = ns.stokes(stokes, source.name) << Meq.Parm(actual_polc,
-                                        use_previous=False,
+                                        use_previous=reuse_solutions,
 					node_groups='Parm')
     parm_actual_polcs[st.name] = actual_polc;
     parm_starting_polcs[st.name] = starting_polc;
@@ -315,7 +320,7 @@ def forest_source_subtrees (ns, source):
     pass    
   spi_polc = create_polc_ft(c00=source.spi)
   spi = ns.spi(source.name) << Meq.Parm(spi_polc,
-                                        use_previous=False,
+                                        use_previous=reuse_solutions,
 				        node_groups='Parm');
   parm_actual_polcs[spi.name]   = spi_polc;
   parm_starting_polcs[spi.name] = create_polc_ft(c00=0);
