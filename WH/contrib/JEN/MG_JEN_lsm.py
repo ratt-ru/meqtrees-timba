@@ -408,7 +408,7 @@ JEN_inarg.define (MG, 'input_LSM', None, browse='*.lsm',
                           'abel963.lsm','D1.lsm',None],
                   help='(file)name of the Local Sky Model to be used')
 
-JEN_inarg.define (MG, 'saveAs', 'lsm_current.lsm', browse='*.lsm',
+JEN_inarg.define (MG, 'saveAs', None, browse='*.lsm',
                   choice=['auto',None,'lsm_current.lsm'],
                   help='Save the (modified) LSM afterwards as...')
 
@@ -490,6 +490,7 @@ def _define_forest (ns, **kwargs):
 
 
    # Optional: add one or more test-sources to the lsm:
+   print '\n** MG[test_pattern] =',MG['test_pattern'],'\n'
    if isinstance(MG['test_pattern'], str):
       display_lsm = True
       save_lsm = True
@@ -504,14 +505,18 @@ def _define_forest (ns, **kwargs):
 
    # Save the (possibly modified) lsm under a different name:
    if MG['saveAs']:
-      lsm.save(MG['saveAs'])
+      r = lsm.save(MG['saveAs'])
+      print '\n** lsm.save(saveAs',MG['saveAs'],') ->',r,'\n'
 
    # Save the lsm as 'lsm_current', for continuity:
+   print '** save_lsm =',save_lsm
    if save_lsm:
-      lsm.save('lsm_current.lsm')
+      r = lsm.save('lsm_current.lsm')
+      print '\n** lsm.save(lsm_current.lsm) ->',r,'\n'
 
    # Display the current lsm AFTER saving (so we have the new name)
    # NB: The program does NOT wait for the control to be handed back!
+   print '** display_lsm =',display_lsm
    if display_lsm:
       lsm.display()
 
@@ -576,6 +581,23 @@ def _tdl_job_nvss_all (mqs, parent):
    """Create lsms from all available nvss txt-file"""
    ns = NodeScope()
    return nvss_all(ns)
+
+   
+def _tdl_job_open_lsm_current (mqs, parent):
+   """Open and read the file lsm_current.lsm"""
+   ns = NodeScope()
+   lsm1 = LSM()
+   filename = 'lsm_current.lsm'
+   print '\n** created lsm1:',type(lsm1)
+   print '\n** before lsm1.load(',filename,', ns):\n'
+   r = lsm1.load(filename, ns)
+   print '\n** after lsm1.load(',filename,', ns): ->',r,'\n'
+   plist = lsm1.queryLSM(count=1000)
+   print '\n** lsm1.query():  -> plist =',type(plist),len(plist)
+   lsm1.display()
+   print '\n** after lsm1.display():\n'
+   return True
+
    
 
 
