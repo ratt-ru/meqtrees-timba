@@ -8,17 +8,19 @@ from clar_source_model import *
 # MS name
 msname = "TEST_CLAR_27-4800.MS";      
 # number of timeslots to use at once
-tile_size = 30
+tile_size = 960
 # MS input queue size -- must be at least equal to the no. of ifrs
 input_queue_size = 500
 # number of stations
 num_stations = 27
 # selection  applied to MS, None for full MS
+# note that if a selection is applied, i/o is always to MS
 ms_selection = None
-# e.g.: record(channel_start_index=0,
-#              channel_end_index=0,
-#              channel_increment=1,
-#              selection_string='')
+# or e.g.: 
+ms_selection = record(channel_start_index=0,
+                      channel_end_index=31,
+                      channel_increment=1,
+                      selection_string='')
 
 ms_output = False   # if True, outputs to MS, else to BOIO dump
 
@@ -288,7 +290,7 @@ def create_inputrec():
     boioname = "boio."+msname+".empty."+str(tile_size);
     # if boio dump for this tiling exists, use it to save time
     # but watch out if you change the visibility data set!
-    if os.access(boioname,os.R_OK):
+    if not ms_selection and os.access(boioname,os.R_OK):
       rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
     # else use MS, but tell the event channel to record itself to boio file
     else:
@@ -297,7 +299,8 @@ def create_inputrec():
       rec.data_column_name = 'DATA'
       rec.tile_size        = tile_size
       rec.selection        = ms_selection or record();
-      rec.record_input     = boioname;
+      if ms_selection:
+        rec.record_input     = boioname;
       rec = record(ms=rec);
     rec.python_init = 'AGW_read_msvis_header.py';
     rec.mt_queue_size = input_queue_size;
@@ -306,7 +309,7 @@ def create_inputrec():
 
 def create_outputrec(output_column='DATA'):
     rec=record()
-    if ms_output:
+    if ms_selection or ms_output:
       rec.write_flags=False
       rec.data_column=output_column
       return record(ms=rec);
