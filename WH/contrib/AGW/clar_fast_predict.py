@@ -17,10 +17,10 @@ num_stations = 27
 # note that if a selection is applied, i/o is always to MS
 ms_selection = None
 # or e.g.: 
-ms_selection = record(channel_start_index=0,
-                      channel_end_index=31,
-                      channel_increment=1,
-                      selection_string='')
+# ms_selection = record(channel_start_index=0,
+#                      channel_end_index=31,
+#                      channel_increment=1,
+#                      selection_string='')
 
 ms_output = False   # if True, outputs to MS, else to BOIO dump
 
@@ -299,7 +299,7 @@ def create_inputrec():
       rec.data_column_name = 'DATA'
       rec.tile_size        = tile_size
       rec.selection        = ms_selection or record();
-      if ms_selection:
+      if not ms_selection:
         rec.record_input     = boioname;
       rec = record(ms=rec);
     rec.python_init = 'AGW_read_msvis_header.py';
