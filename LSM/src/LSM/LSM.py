@@ -657,6 +657,7 @@ class LSM:
    self.default_patch_method=tmpl.default_patch_method
 
    self.__root_name=tmpl.__root_name
+   print "Root =",self.__root_name
    if tmpl.__root!=None:
     if ns==None:
      ns=NodeScope()
@@ -667,6 +668,8 @@ class LSM:
     #self.__ns.Resolve()
    else:
      self.__root=None
+     print "WARNING: cannot find a root node in the LSM. load will fail!"
+
    
    self.p_table=tmpl.p_table
    # reconstruct PUnits and Sixpacks if possible
@@ -1308,6 +1311,7 @@ class LSM:
      sixpack=my_sixpack,
      ra=source_RA, dec=source_Dec)
  
+  self.setNodeScope(ns)
   self.setFileName(infile_name)
 
 
