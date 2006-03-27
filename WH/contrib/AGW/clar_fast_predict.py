@@ -10,7 +10,7 @@ msname = "TEST_CLAR_27-4800.MS";
 # number of timeslots to use at once
 tile_size = 960
 # MS input queue size -- must be at least equal to the no. of ifrs
-input_queue_size = 500
+ms_queue_size = 500
 # number of stations
 num_stations = 27
 # selection  applied to MS, None for full MS
@@ -22,7 +22,7 @@ ms_selection = None
 #                      channel_increment=1,
 #                      selection_string='')
 
-ms_output = False   # if True, outputs to MS, else to BOIO dump
+ms_output = True # False   # if True, outputs to MS, else to BOIO dump
 
 # CLAR beam width
 # This is actually the inverse of the half-power beam width, in radians.
@@ -230,12 +230,9 @@ def forest_source_subtrees (ns, source):
 					c00= source.IQUV[i])
       pass
     st = ns.stokes(stokes,source.name) << Meq.Parm(IQUVpolcs[i],
-					table_name=source.table,
 					node_groups='Parm')
-#   create_refparms(st);
     pass
   ns.spi(source.name) << Meq.Parm(create_polc_ft(c00=source.spi),
-                               	  table_name=source.table,
 				  node_groups='Parm');
                                   
   ns.stokes("I",source.name) << \
@@ -303,12 +300,13 @@ def create_inputrec():
         rec.record_input     = boioname;
       rec = record(ms=rec);
     rec.python_init = 'AGW_read_msvis_header.py';
-    rec.mt_queue_size = input_queue_size;
+    rec.mt_queue_size = ms_queue_size;
     return rec;
 
 
 def create_outputrec(output_column='DATA'):
     rec=record()
+    rec.mt_queue_size = ms_queue_size;
     if ms_selection or ms_output:
       rec.write_flags=False
       rec.data_column=output_column

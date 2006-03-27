@@ -11,7 +11,7 @@ from clar_source_model import *
 # MS name
 msname = "TEST_CLAR_27-4800.MS";
 # number of timeslots to use at once
-tile_size = 30
+tile_size = 60
 
 # MS input queue size -- must be at least equal to the no. of ifrs
 input_queue_size = 500

@@ -243,7 +243,7 @@ def tpolc (tdeg,c00=0.0):
                   table_name=mep_derived);
   
 
-def create_solver_defaults(num_iter=30,epsilon=1e-5,convergence_quota=0.9,solvable=[]):
+def create_solver_defaults(num_iter=50,epsilon=1e-4,convergence_quota=0.9,solvable=[]):
     solver_defaults=record()
     solver_defaults.num_iter     = num_iter
     solver_defaults.epsilon      = epsilon
@@ -405,7 +405,7 @@ def _define_forest(ns):
   forest_create_vdm(ns);
 
 
-Settings.forest_state.cache_policy = 1  # 1 for smart caching, 100 for full caching
+Settings.forest_state.cache_policy = 100  # 1 for smart caching, 100 for full caching
 Settings.orphans_are_roots = False
 
 if __name__ == '__main__':
