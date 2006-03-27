@@ -667,6 +667,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
     // if we need to publish state, insert cache temporarily
     if( publishing_level_ )
     {
+      syncState();
       ObjRef stateref(staterec_);
       DMI::Record &st = stateref.as<DMI::Record>();  // causes COW
       cache_.set(ref,req,retcode&~RES_UPDATED);
