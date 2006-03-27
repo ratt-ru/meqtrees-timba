@@ -48,7 +48,8 @@ typedef struct nlimits_ {
 } nlims; /* struct to store array dimensions */
 int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
    int ncols, iteratorCol *cols, void *user_struct);
-int read_fits_file(const char *infilename, double cutoff, double **myarr, long int *naxis, double **lgrid, double **mgrid, double **lspace, double **mspace);
+int read_fits_file(const char *infilename, double cutoff, double **myarr, long int *naxis, double **lgrid, double **mgrid, double **lspace, double **mspace,
+								double *ra0, double *dec0);
 
 }/* extern C */
 
@@ -90,15 +91,28 @@ int FITSImage::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &childres,
                        const Request &request,bool)
 {
- double *arr, *lgrid, *mgrid, *lspace, *mspace;
+ double *arr, *lgrid, *mgrid, *lspace, *mspace, ra0, dec0;
  long int naxis[4]={0,0,0,0};
- int flag=read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace);
+ int flag=read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace, &ra0, &dec0);
  FailWhen(flag," Error Reading Fits File "+flag);
 
  for (int i=0;i<4;i++) {cout<<" i="<<i<<" "<<naxis[i]<<endl;}
- //create a result with 1 vellset, is integrated
+ //create a result with 3 vellset, is integrated
  //if integrated=0, cells is removed
- Result &result=resref<<= new Result(1,1); 
+ Result &result=resref<<= new Result(3,1); 
+
+ /* RA vellset */
+ VellSet::Ref ref0;
+ VellSet &vs0= ref0<<= new VellSet(0,1);
+ Vells ra_vells=vs0.setValue(new Vells(ra0));
+ result.setVellSet(0,ref0);
+
+ VellSet::Ref ref1;
+ VellSet &vs1= ref1<<= new VellSet(0,1);
+ Vells dec_vells=vs1.setValue(new Vells(dec0));
+ result.setVellSet(1,ref1);
+
+
  //the real business begins
  //create blitz arrays for new axes l,m
  blitz::Array<double,1> l_center(lgrid, blitz::shape(naxis[0]), blitz::duplicateData); 
@@ -158,7 +172,7 @@ int FITSImage::getResult (Result::Ref &resref,
 //cout<<"Output array: "<<out.getArray<double,5>();
  cout<<"Output array: "<<out.getArray<double,5>().shape();
 
- result.setVellSet(0,ref);
+ result.setVellSet(2,ref);
  result.setCells(cells);
 
  free(arr);
@@ -273,8 +287,12 @@ int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
  * new_naxis: array of dimensions of each axis
  * lgrid: grid points in l axis
  * mgrid: grid points in m axis
+ * lspace: spacing in l axis
+ * mspace: spacing in m axis
+ * ra0,dec0: coords of phase centre
  */
-int read_fits_file(const char *filename,double cutoff, double**myarr, long int *new_naxis, double **lgrid, double **mgrid, double **lspace, double **mspace) {
+int read_fits_file(const char *filename,double cutoff, double**myarr, long int *new_naxis, double **lgrid, double **mgrid, double **lspace, double **mspace, 
+								double *ra0, double *dec0) {
     fitsfile *fptr,*outfptr;
     iteratorCol cols[3];  /* structure used by the iterator function */
     int n_cols;
@@ -302,8 +320,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		int ncoord;
 		double *pixelc, *imgc, *worldc, *phic, *thetac;
 		int *statc;
-		double *x,*y;
-		double ra0,dec0,phi0,theta0,l0,m0;
+		double phi0,theta0,l0,m0;
 
 		int stat[NWCSFIX];
 
@@ -535,11 +552,11 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		/* now kk has passed the last pixel */
 		kk=(ncoord-1)*4;
 		printf("finished %d\n",kk);
-		ra0=(worldc[0]+worldc[kk])*0.5;
-		dec0=(worldc[1]+worldc[kk+1])*0.5;
+		*ra0=(worldc[0]+worldc[kk])*M_PI/360.0;
+		*dec0=(worldc[1]+worldc[kk+1])*M_PI/360.0;
 		l0=(imgc[0]+imgc[kk])*0.5;
 		m0=(imgc[1]+imgc[kk+1])*0.5;
-		printf("phase centre celestial=(%lf,%lf) native l,m=(%lf,%lf)\n",ra0,dec0,l0,m0);
+		printf("phase centre celestial=(%lf,%lf) native l,m=(%lf,%lf)\n",*ra0,*dec0,l0,m0);
 
 		/* recreate the l,m grid using the RA,Dec grid with the new phase 
 		 * centre -- just do a linear transform assuming shift is small
@@ -547,14 +564,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
 
 		/* now calculate new (l,m) values for the phi,theta values with the new phase centre */
-	if ((x=(double*)calloc((size_t)ncoord,sizeof(double)))==0) {
-			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
-			return 1;
-		}
-	if ((y=(double*)calloc((size_t)ncoord,sizeof(double)))==0) {
-			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
-			return 1;
-		}
+
 	if ((*lgrid=(double*)calloc((size_t)new_naxis[0],sizeof(double)))==0) {
 			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
 			return 1;
@@ -572,12 +582,6 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 			return 1;
 		}
 
-		/* print new l,m grid */
-		for (ii=0;ii<ncoord;ii++) {
-			x[ii]=imgc[ii*4]-l0;
-			y[ii]=imgc[ii*4+1]-m0;
-			printf("(%lf,%lf) --> (%lf,%lf) ==> (%lf,%lf)\n",phic[ii],thetac[ii],x[ii],y[ii], imgc[ii*4],imgc[ii*4+1]);
-		}  
 		for (ii=0;ii<new_naxis[0];ii++) {
 					(*lgrid)[new_naxis[0]-ii-1]=imgc[ii*4*new_naxis[1]]-l0;
 		}
@@ -620,7 +624,5 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		free(thetac);
 		free(statc);
 
-		free(x);
-		free(y);
     return(status);
 }
