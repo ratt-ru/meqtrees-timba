@@ -153,7 +153,7 @@ JEN_inarg.define (MG, 'LSM_simul', None, browse='*.lsm', hide=False,
 inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
 JEN_inarg.attach(MG, inarg)
 
-inarg = MG_JEN_Cohset.Jones(_getdefaults=True, _qual=qual, slave=True, simul=True) 
+inarg = MG_JEN_Cohset.Jones(_getdefaults=True, _qual=qual+'_uvp', slave=True, simul=True) 
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.predict_cps(_getdefaults=True, _qual=qual, slave=True)  
@@ -174,7 +174,7 @@ JEN_inarg.define (MG, 'LSM_solve', None, browse='*.lsm', hide=False,
 inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
 JEN_inarg.attach(MG, inarg)
 
-inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True, _qual=qual) 
+inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True, _qual=qual+'_uvp') 
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.predict_cps(_getdefaults=True, slave=True, _qual=qual)  
@@ -265,19 +265,21 @@ def _define_forest (ns, **kwargs):
         lsm = MG_JEN_Sixpack.readLSM (ns, filename=MG['LSM_simul'],
                                       strip=True, display=True, trace=True)
         # Predict nominal/corrupted visibilities: 
-        predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm,
-                                               # Joneset=Joneset,
-                                               Joneset=None,
-                                               # _inarg=MG, _qual=dict())
+        # Make a Joneset for uv_plane effects: 
+        Joneset = None
+        Joneset = MG_JEN_Cohset.Jones(nsim, simul=True, _inarg=MG, _qual=qual+'_uvp')
+        predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm, Joneset=Joneset,
                                                _inarg=MG, _qual=qual)
+
     else:
         # Make a source Sixpack (I,Q,U,V,RA,Dec) from punit/LSM:
         Sixpack = MG_JEN_Sixpack.newstar_source(nsim, _inarg=MG, _qual=qual)
         # Optional: get corrupting (uv-plane) Jones matrices:
         Joneset = MG_JEN_Cohset.Jones(nsim, Sixpack=Sixpack, simul=True,
-                                      _inarg=MG, _qual=qual)
+                                      _inarg=MG, _qual=qual+'_uvp')
         # Predict nominal/corrupted visibilities: 
-        predicted = MG_JEN_Cohset.predict_cps (nsim, Sixpack=Sixpack, Joneset=Joneset,
+        predicted = MG_JEN_Cohset.predict_cps (nsim, Sixpack=Sixpack,
+                                               Joneset=Joneset,
                                                _inarg=MG, _qual=qual)
 
         
@@ -303,14 +305,17 @@ def _define_forest (ns, **kwargs):
         if MG['LSM_solve']:
             lsm = MG_JEN_Sixpack.readLSM (ns, filename=MG['LSM_solve'],
                                           strip=True, display=True, trace=True)
+            # Make a Joneset for uv-plane effects:
+            Joneset = None
+            Joneset = MG_JEN_Cohset.Jones(ns, _inarg=MG, _qual=qual+'_uvp')
             # Predict nominal/corrupted visibilities: 
             predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm,
-                                                   # Joneset=Joneset,
-                                                   Joneset=None,
+                                                   Joneset=Joneset,
                                                    _inarg=MG, _qual=qual)
+
         else:
             Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG, _qual=qual)
-            Joneset = MG_JEN_Cohset.Jones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual)
+            Joneset = MG_JEN_Cohset.Jones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual+'_uvp')
             predicted = MG_JEN_Cohset.predict_cps (ns, Sixpack=Sixpack, Joneset=Joneset,
                                                    _inarg=MG, _qual=qual)
         Sohset = Cohset.copy(label='solve_branch')

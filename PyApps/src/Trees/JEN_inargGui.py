@@ -1457,7 +1457,8 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_lsm', revert): return False
         JEN_inarg.specific(self.__inarg, self.lsm_single.__doc__)
         JEN_inarg.modify(self.__inarg,
-                         input_LSM='lsm_current.lsm',
+                         # input_LSM='lsm_current.lsm',
+                         save_as_current=True,
                          test_pattern='single',
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_lsm_single', save_protected)
@@ -1467,7 +1468,8 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_lsm', revert): return False
         JEN_inarg.specific(self.__inarg, self.lsm_grid.__doc__)
         JEN_inarg.modify(self.__inarg,
-                         input_LSM='lsm_current.lsm',
+                         # input_LSM='lsm_current.lsm',
+                         save_as_current=True,
                          test_pattern='grid',
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_lsm_grid', save_protected)
@@ -1477,7 +1479,8 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_lsm', revert): return False
         JEN_inarg.specific(self.__inarg, self.lsm_spiral.__doc__)
         JEN_inarg.modify(self.__inarg,
-                         input_LSM='lsm_current.lsm',
+                         # input_LSM='lsm_current.lsm',
+                         save_as_current=True,
                          test_pattern='spiral',
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_lsm_spiral', save_protected)
@@ -1504,10 +1507,11 @@ class ArgBrowser(QMainWindow):
         JEN_inarg.modify(self.__inarg,
                          LSM_simul='lsm_current.lsm',
                          nr_lsm_sources=2,
-                         Jsequence_simul=['GJones'],
+                         Jsequence_simul_uvp=['GJones'],
+                         # Jsequence_simul_imp=[],
                          insert_solver=False,
                          LSM_solve='lsm_current.lsm',
-                         Jsequence_solve=['GJones'],
+                         Jsequence_solve_uvp=['GJones'],
                          solvegroup=['GJones'],
                          parmtable='simul_lsm_GJones',
                          num_iter=2,
@@ -1519,8 +1523,8 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_simul', revert): return False
         JEN_inarg.specific(self.__inarg, self.simul_GJones.__doc__)
         JEN_inarg.modify(self.__inarg,
-                         Jsequence_simul=['GJones'],
-                         Jsequence_solve=['GJones'],
+                         Jsequence_simul_uvp=['GJones'],
+                         Jsequence_solve_uvp=['GJones'],
                          solvegroup=['GJones'],
                          parmtable='simul_GJones',
                          num_iter=2,
@@ -1532,8 +1536,8 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_simul', revert): return False
         JEN_inarg.specific(self.__inarg, self.simul_DJones.__doc__)
         JEN_inarg.modify(self.__inarg,
-                         Jsequence_simul=['DJones_WSRT'],
-                         Jsequence_solve=['DJones_WSRT'],
+                         Jsequence_simul_uvp=['DJones_WSRT'],
+                         Jsequence_solve_uvp=['DJones_WSRT'],
                          solvegroup=['DJones'],
                          parmtable='simul_DJones',
                          num_iter=2,

@@ -258,6 +258,7 @@ class ParmSet (TDL_common.Super):
                                                 use_previous=rider['use_previous'],
                                                 reset_funklet=rider['reset_funklet'],
                                                 auto_save=rider['auto_save'],
+                                                save_all=rider['save_all'],
                                                 node_groups=self.node_groups(),
                                                 table_name=self.parmtable())
 
@@ -265,6 +266,7 @@ class ParmSet (TDL_common.Super):
             node = ns[key](**quals) << Meq.Parm(funklet=default,
                                                 shape=shape,
                                                 tiling=tiling,
+                                                save_all=rider['save_all'],
                                                 auto_save=rider['auto_save'],
                                                 reset_funklet=rider['reset_funklet'],
                                                 use_previous=rider['use_previous'],
@@ -315,7 +317,8 @@ class ParmSet (TDL_common.Super):
         rider.setdefault('subtile_size', None)
         rider.setdefault('use_previous', True)
         rider.setdefault('auto_save', True)
-        rider.setdefault('reset_funklet', True)
+        rider.setdefault('save_all', False)
+        rider.setdefault('reset_funklet', False)
         rider.setdefault('color', 'red')
         rider.setdefault('style', 'circle')
         rider.setdefault('size', 10)
@@ -331,6 +334,9 @@ class ParmSet (TDL_common.Super):
         JEN_inarg.define(pp, 'auto_save', kwargs,
                          choice=[True,False], editable=False,
                          help='if True, save the result of every iteration (slow!)')
+        JEN_inarg.define(pp, 'save_all', kwargs,
+                         choice=[True,False], editable=False,
+                         help='if True, save the update result even if not converged')
         JEN_inarg.define(pp, 'reset_funklet', kwargs,
                          choice=[True,False], editable=False,
                          help='if True, do NOT use any MeqParm table values when solvable')
@@ -485,9 +491,14 @@ class ParmSet (TDL_common.Super):
     def condeq_corrs(self, solvegroup=[], trace=False):
         """Return a (unique) list of correlations (corrs, e.g. ['XX','YY'])
         for the specified solvegroup"""
+	trace = True
         if trace: print '\n** condeq_corrs(',solvegroup,'):'
         gg = self.NodeSet._extract_flat_grouplist(solvegroup, must_exist=True,
                                                   origin='.condeq_corrs()')
+	if trace:
+	    print 'gg =',type(gg),gg
+            self.NodeSet.display()
+
         corrs = []
         for key in gg:
             rr = self.NodeSet.group_rider(key)

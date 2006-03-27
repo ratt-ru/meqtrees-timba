@@ -247,14 +247,22 @@ def add_single (ns=None, Sixpack=None, lsm=None, **inarg):
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::add_single()', version='10feb2006',
                            description=add_single.__doc__)
+
    JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
-   print 'funcname =',funcname
+   savefile = '<savefile>'                         # place-holder
 
    pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _qual=qual)
+   RA0 = pp1['RA']
+   Dec0 = pp1['Dec']
+
+   # Make an automatic .lsm file-name:
+   savefile = str(int(100*RA0))+'+'+str(int(100*Dec0))
+   savefile += '_single'
+   savefile += '.lsm'
 
    # Create the source defined by pp:
    Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual)
@@ -263,8 +271,9 @@ def add_single (ns=None, Sixpack=None, lsm=None, **inarg):
    Sixpack.sixpack(ns)
    Sixpack.display()
    lsm.add_sixpack(sixpack=Sixpack)
-   # Finished:
-   return True
+
+   # Finished: Return the suggested .lsm savefile name:
+   return savefile
 
 
 
@@ -279,26 +288,62 @@ def add_grid (ns=None, lsm=None, **inarg):
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::add_grid()', version='10feb2006',
                            description=add_grid.__doc__)
 
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
- 
    JEN_inarg.define(pp, 'nRA2', 1, choice=[0,1,2,3],   
                     help='(half) nr of sources in RA direction')
    JEN_inarg.define(pp, 'nDec2', 1, choice=[0,1,2,3],   
                     help='(half) nr of sources in DEC direction')
-   JEN_inarg.define(pp, 'dRA', 10, choice=[],    
+   JEN_inarg.define(pp, 'dRA', 20, choice=[],    
                     help='RA grid spacing (arcmin)')
-   JEN_inarg.define(pp, 'dDec', 10, choice=[],    
+   JEN_inarg.define(pp, 'dDec', 20, choice=[],    
                     help='Dec grid spacing (arcmin)')
+   JEN_inarg.define(pp, 'relpos', 'trq',
+                    choice=['center','top','bottom','left','right',
+                            'tlq','trq','blq','brq'],    
+                    help='Relative position w.r.t. the nominal punit (RA,Dec)')
 
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
+ 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
-   print 'funcname =',funcname
+   savefile = '<savefile>'                         # place-holder
 
    # Get the internal argument-record for .newstar_source():
    pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
+   rpos = pp['relpos']
+   r2 = pp['nRA2']*pp['dRA']*arcmin2rad()
+   d2 = pp['nDec2']*pp['dDec']*arcmin2rad()
+   if rpos=='center':                              # centered
+      pass                                         # ....
+   elif rpos=='top':                     
+      Dec0 += d2
+   elif rpos=='bottom':                     
+      Dec0 -= d2
+   elif rpos=='left':
+      RA0 += r2
+   elif rpos=='right':
+      RA0 -= r2
+   elif rpos=='tlq':                               # top-left quarter
+      RA0 += r2
+      Dec0 += d2
+   elif rpos=='trq':                               # top-right quarter
+      RA0 -= r2
+      Dec0 += d2
+   elif rpos=='blq':                               # bottom-left quarter
+      RA0 += r2
+      Dec0 -= d2
+   elif rpos=='brq':                               # bottom-right quarter
+      RA0 -= r2
+      Dec0 -= d2
+
+   # Make an automatic .lsm file-name:
+   savefile = str(int(100*RA0))+'+'+str(int(100*Dec0))
+   savefile += '_grid'+str(1+2*pp['nRA2'])+'x'+str(1+2*pp['nDec2'])
+   savefile += '_'+str(pp['dRA'])+'x'+str(pp['dDec'])
+   savefile += '_'+str(pp['relpos'])
+   savefile += '.lsm'
 
    # Create the sources defined by pp:
    for i in range(-pp['nRA2'],pp['nRA2']+1):
@@ -312,8 +357,10 @@ def add_grid (ns=None, lsm=None, **inarg):
          Sixpack.sixpack(ns)
          # lsm.add_sixpack(sixpack=Sixpack,ns=ns)
          lsm.add_sixpack(sixpack=Sixpack)
-   # Finished:
-   return True
+
+   # Finished: Return the suggested .lsm savefile name:
+   return savefile
+
 
 
 #--------------------------------------------------------------------------------
@@ -326,33 +373,41 @@ def add_spiral (ns=None, lsm=None, **inarg):
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::add_spiral()', version='10feb2006',
                            description=add_spiral.__doc__)
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
 
-   JEN_inarg.define(pp, 'nr', 20, choice=[2,3,4,5,10],   
+   JEN_inarg.define(pp, 'nr_of_sources', 5, choice=[2,3,4,5,10],   
                     help='nr of sources')
-   JEN_inarg.define(pp, 'rstart', 10, choice=[1,2,5,10,20,50,100],   
+   JEN_inarg.define(pp, 'rstart', 20, choice=[1,2,5,10,20,50,100],   
                     help='start position radius (arcmin)')
-   JEN_inarg.define(pp, 'astart', 0, choice=[1,2,5,10,20,50,100],   
+   JEN_inarg.define(pp, 'astart', 0, choice=[0,30,45,90,180,270],   
                     help='start position angle (deg)')
    JEN_inarg.define(pp, 'rmult', 1.1, choice=[1.01,1.1,1.2,1.5,2],    
                     help='radius multiplication factor')
    JEN_inarg.define(pp, 'ainc', 10, choice=[10,20,30,45,90,180,360,0],    
                     help='position angle increment (deg)')
 
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
+
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
-   print 'funcname =',funcname
+   savefile = '<savefile>'                         # place-holder
 
    # Get the internal argument-record for .newstar_source():
    pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
 
+   # Make an automatic .lsm file-name:
+   savefile = str(int(100*RA0))+'+'+str(int(100*Dec0))
+   savefile += '_spiral'+str(pp['nr_of_sources'])
+   savefile += '_r'+str(pp['rstart'])
+   savefile += '_a'+str(pp['astart'])
+   savefile += '.lsm'
+
    # Create the sources defined by pp:
    r = 0.0
    a = 0.0
-   for i in range(pp['nr']):
+   for i in range(pp['nr_of_sources']):
       RA = RA0 + r*cos(a)
       Dec = Dec0 + r*sin(a)
       punit = 'spiral:'+str(i)
@@ -369,8 +424,9 @@ def add_spiral (ns=None, lsm=None, **inarg):
       else:
          r *= pp['rmult']
          a += pp['ainc']*deg2rad()
-   # Finished:
-   return True
+
+   # Finished: Return the suggested .lsm savefile name:
+   return savefile
 
 
 
@@ -408,8 +464,11 @@ JEN_inarg.define (MG, 'input_LSM', None, browse='*.lsm',
                           'abel963.lsm','D1.lsm',None],
                   help='(file)name of the Local Sky Model to be used')
 
-JEN_inarg.define (MG, 'saveAs', None, browse='*.lsm',
-                  choice=['auto',None,'lsm_current.lsm'],
+JEN_inarg.define (MG, 'save_as_current', tf=False,
+                  help='Save the new LSM afterwards as lsm_current.lsm')
+
+JEN_inarg.define (MG, 'saveAs', '<automatic>', browse='*.lsm',
+                  choice=['<automatic>',None,'lsm_current.lsm'],
                   help='Save the (modified) LSM afterwards as...')
 
 # Optional: add test-source(s) to the given lsm:
@@ -476,14 +535,13 @@ def _define_forest (ns, **kwargs):
    global lsm 
    lsm = LSM()
    display_lsm = False
-   save_lsm = False
+   savefile = '<savefile>'
 
    # Optional: use an existing lsm
    print '\n** MG[input_LSM] =',MG['input_LSM'],'\n'
    if MG['input_LSM']:
       lsm.load(MG['input_LSM'],ns)
       display_lsm = True
-      save_lsm = True
    else:
       lsm.setNodeScope(ns)
 
@@ -493,30 +551,30 @@ def _define_forest (ns, **kwargs):
    print '\n** MG[test_pattern] =',MG['test_pattern'],'\n'
    if isinstance(MG['test_pattern'], str):
       display_lsm = True
-      save_lsm = True
       if MG['test_pattern']=='single':
-         add_single(ns, lsm=lsm, _inarg=MG)
+         savefile = add_single(ns, lsm=lsm, _inarg=MG)
       elif MG['test_pattern']=='grid':
-         add_grid(ns, lsm=lsm, _inarg=MG)
+         savefile = add_grid(ns, lsm=lsm, _inarg=MG)
       elif MG['test_pattern']=='spiral':
-         add_spiral(ns, lsm=lsm, _inarg=MG)
+         savefile = add_spiral(ns, lsm=lsm, _inarg=MG)
       else:
          print 'test_pattern not recognised:',MG['test_pattern']
 
-   # Save the (possibly modified) lsm under a different name:
-   if MG['saveAs']:
-      r = lsm.save(MG['saveAs'])
-      print '\n** lsm.save(saveAs',MG['saveAs'],') ->',r,'\n'
 
    # Save the lsm as 'lsm_current', for continuity:
-   print '** save_lsm =',save_lsm
-   if save_lsm:
+   if MG['save_as_current']:
       r = lsm.save('lsm_current.lsm')
       print '\n** lsm.save(lsm_current.lsm) ->',r,'\n'
 
+   # Save the (possibly modified) lsm under a different name:
+   if MG['saveAs']:
+      if MG['saveAs']=='<automatic>':
+         MG['saveAs'] = savefile              # use automaticallay generated name
+      r = lsm.save(MG['saveAs'])
+      print '\n** lsm.save(saveAs',MG['saveAs'],') ->',r,'\n'
+
    # Display the current lsm AFTER saving (so we have the new name)
    # NB: The program does NOT wait for the control to be handed back!
-   print '** display_lsm =',display_lsm
    if display_lsm:
       lsm.display()
 
@@ -530,14 +588,22 @@ def _define_forest (ns, **kwargs):
       for i in range(len(plist)):
          punit = plist[i] 
          Sixpack = punit.getSP()              # get_Sixpack()
+         print '-',i,':',Sixpack.label(),
+
+         # Display subtree:
          if i<5:
+            print 'make_bookmark',
             cc.append(MG_JEN_Sixpack.make_bookmark(ns, Sixpack, radec=radec))
          else:
+            print 'make_bundle',
             cc.append(MG_JEN_Sixpack.make_bundle(ns, Sixpack, radec=radec))
+
          # Actions depending on the type of source:
          if Sixpack.ispoint():                # point source (Sixpack object)
+            print 'point-source'
             pass
          else:	                              # patch (not a Sixpack object!)
+            print 'patch...'
             node = Sixpack.root()             # ONLY valid for a patch...#
             cc.append(node)                   # ....?
 

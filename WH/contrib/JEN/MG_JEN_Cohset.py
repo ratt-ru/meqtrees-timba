@@ -264,7 +264,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 #--------------------------------------------------------------------------------------
 # Make a Joneset from the specified sequence of Jones matrices:
 
-def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
+def Jones(ns=None, Sixpack=None, simul=False, slave=False, KJones=None, **inarg):
     """Make a Joneset by creating and multiplying a sequence of one ore more Jonesets"""
 
     # Input arguments:
@@ -299,6 +299,10 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
     # Check the Jones sequence:
     if not isinstance(pp[jseq_name], (list,tuple)):
         pp[jseq_name] = [pp[jseq_name]]
+    if KJones:
+        # If KJones==True, make sure that it is part of the sequence:
+        if not 'KJones' in pp[jseq_name]:
+            pp[jseq_name].append('KJones')
     if len(pp[jseq_name])==0: return None             # not needed
     if pp[jseq_name]==None: return None               # not needed
 
@@ -334,37 +338,6 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, **inarg):
     return Joneset
     
 
-#--------------------------------------------------------------------------------------
-# Make a KJones from the specified sequence of Jones matrices:
-
-def KJones(ns=None, Sixpack=None, slave=False, **inarg):
-    """Make a KJones Joneset for the specified Sixpack (RA,Dec)"""
-
-    # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::KJones()', version='20mar2006',
-                            description=Jones.__doc__)
-    qual = JEN_inarg.qualifier(pp)
-    # Arguments that should be common to all Jonesets in the sequence:
-    # MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
-    # MG_JEN_Joneset.inarg_Joneset_ParmSet(pp, slave=slave)
-
-    # Include default inarg records for various Jones matrix definition functions:
-    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, _qual=qual, slave=True))
-
-    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
-    if not JEN_inarg.is_OK(pp): return False
-    funcname = JEN_inarg.localscope(pp)
-
-    # Make sure that there is a valid source/patch Sixpack:
-    if not Sixpack:
-        Sixpack = MG_JEN_Joneset.punit2Sixpack(ns, punit='uvp')
-    punit = Sixpack.label()
-    
-    Joneset = MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
-                                     MSauxinfo=MSauxinfo(), _inarg=pp, _qual=qual)
-               
-    # MG_JEN_forest_state.object(Joneset, funcname)
-    return Joneset
     
 
 #------------------------------------------------------------------------------
@@ -422,9 +395,11 @@ def predict_cps (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
 #------------------------------------------------------------------------------
 
 def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
-    """Make a Cohset with predicted uv-data for the specified sources in
-    the given Local Sky Model (lsm). If a Joneset with (sky-interpolatable)
-    instrumental effects is supplied, corrupt the predicted uv-data."""
+    """Make a Cohset with the (sum of the) predicted uv-data for the specified sources in
+    the given Local Sky Model (lsm). Per source, the data may be corrupted with a Joneset
+    that contains at least a KJones matrix (DFT), and zero or more (sky-interpolatable)
+    image-plane effects like EJones (station beamshape) or IJones (ionosphere).
+    If a Joneset (with uv-plane effects) is supplied, corrupt the sum."""
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict_lsm()', version='20mar2006',
@@ -433,9 +408,12 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
     JEN_inarg.define(pp, 'nr_lsm_sources', 1, choice=[1,2,3,5,10,20,100],
                      help='nr of lsm sources to be included (in order of brightness')
     MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
-    # Include default inarg records for the KJones matrix definition function:
-    qual_KJones = 'predict_lsm'
-    JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, _qual=qual_KJones, slave=True))
+
+    # Joneset for image-plane effects (KJones at the very least)
+    qual = JEN_inarg.qualifier(pp, trace=True)
+    if not isinstance(qual, str): qual = ''
+    JEN_inarg.nest(pp, Jones(_getdefaults=True, _qual=qual+'_imp',
+                             slave=True, KJones=True))
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -460,9 +438,11 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
             nominal = Sixpack.coh22(ns, pp['polrep'])
             # Put the same 'nominal' (i.e. uncorrupted) visibilities into all ifr-slots of cs1:
             cs1.uniform(ns, nominal)
-            KJones = MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
-                                            _inarg=pp, _qual=qual_KJones)
-            cs1.corrupt (ns, Joneset=KJones)
+            # Corrupt with image-plane effects (KJones at the very least)
+            js1 = Jones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
+                         _inarg=pp, _qual=qual+'_imp', KJones=True)
+            # js1.display(funcname)
+            cs1.corrupt (ns, Joneset=js1)
             # cs1.update_from_Sixpack(Sixpack)
             cs.append(cs1)
         else:	                             # patch (not a Sixpack object!)
@@ -477,8 +457,8 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
     # Cohset.display()
     # Cohset.display('after add')
 
-    # Optionally, corrupt the Cohset visibilities with the instrumental effects
-    # in the given Joneset of 2x2 station jones matrices:
+    # Optionally, corrupt the Cohset visibilities with the instrumental
+    # uvplane effects in the given Joneset of 2x2 station jones matrices:
     if Joneset:
        Cohset.corrupt (ns, Joneset=Joneset)
 
