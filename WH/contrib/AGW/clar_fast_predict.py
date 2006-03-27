@@ -7,10 +7,10 @@ from clar_source_model import *
 
 # MS name
 msname = "TEST_CLAR_27-4800.MS";      # Oleg ...
-#msname = "TEST_CLAR_27-480.MS";       # Tony ...
+# msname = "TEST_CLAR_27-480.MS";       # Tony ...
 
 # number of timeslots to use at once
-tile_size = 30
+tile_size = 960
 # MS input queue size -- should be at least equal to the no. of ifrs
 ms_queue_size = 500
 # number of stations
@@ -18,10 +18,10 @@ num_stations = 27
 # selection  applied to MS, None for full MS
 ms_selection = None
 # or e.g.: 
-# ms_selection = record(channel_start_index=0,
-#                       channel_end_index=0,
-#                       channel_increment=1,
-#                       selection_string='')
+#ms_selection = record(channel_start_index=31,
+#                      channel_end_index=31,
+#                      channel_increment=1,
+#                      selection_string='')
 
 ms_output = False  # if True, outputs to MS, else to BOIO dump   
 # ms_output = True   # if True, outputs to MS, else to BOIO dump 

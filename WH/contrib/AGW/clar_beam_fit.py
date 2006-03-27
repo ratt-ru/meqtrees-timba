@@ -177,7 +177,7 @@ def tpolc (tdeg,c00=0.0):
                   table_name=mep_derived);
   
 
-def create_solver_defaults(num_iter=30,epsilon=1e-5,convergence_quota=0.9,solvable=[]):
+def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvable=[]):
     solver_defaults=record()
     solver_defaults.num_iter     = num_iter
     solver_defaults.epsilon      = epsilon
@@ -196,9 +196,9 @@ def forest_solver(ns, station_list, sources):
     ns.ce_uvw(sta) << Meq.Condeq(
       ns.uvw(sta),
       ns.UVW(sta) << Meq.Composer(
-        ns.U(sta) << tpolc(6),
-        ns.V(sta) << tpolc(6),
-        ns.W(sta) << tpolc(6) )
+        ns.U(sta) << tpolc(5),
+        ns.V(sta) << tpolc(5),
+        ns.W(sta) << tpolc(5) )
     );
     defs = create_solver_defaults(solvable=[node(sta).name for node in (ns.U,ns.V,ns.W)])
     solver_list.append(ns.solver_uvw(sta) << Meq.Solver(
@@ -206,7 +206,7 @@ def forest_solver(ns, station_list, sources):
     # create solver for station beams patterns
     for src in sources:
       # condeq for source-station E-term
-      vgain = ns.V_GAIN(sta,src.name) << tpolc(5);
+      vgain = ns.V_GAIN(sta,src.name) << tpolc(6);
       ns.ce_vgain(sta,src.name) << Meq.Condeq(
           ns.exp_v_gain(sta,src.name),
           ns.EXP_V_GAIN(sta,src.name) << Meq.Exp(vgain*ns.width_sq)
@@ -241,12 +241,12 @@ def create_inputrec(msname, tile_size=1500,short=False):
       rec.ms_name          = msname
       rec.data_column_name = 'DATA'
       rec.tile_size        = tile_size
-      rec.selection = record(channel_start_index=0,
-                             channel_end_index=0,
-                             channel_increment=1,
-                             selection_string='')
-      if short:
-        rec.selection.selection_string = '';
+#      rec.selection = record(channel_start_index=0,
+#                             channel_end_index=0,
+#                             channel_increment=1,
+#                             selection_string='')
+#      if short:
+#        rec.selection.selection_string = '';
 #      else:
 #        rec.record_input = boioname;
       rec = record(ms=rec);
