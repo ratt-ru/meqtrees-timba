@@ -288,7 +288,8 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		int ncoord;
 		double *pixelc, *imgc, *worldc, *phic, *thetac;
 		int *statc;
-		double ra0,dec0,phi0,theta0;
+		double *x,*y;
+		double ra0,dec0,phi0,theta0,c[3],alph,phi1,theta1,A[3][3];
 		struct prjprm prj;
 
 		int stat[NWCSFIX];
@@ -501,6 +502,11 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 			 if (status == 8) status = 0;
 	  }
 
+		/* convert to radians */
+		for (ii=0;ii<ncoord;ii++) {
+				phic[ii]*=M_PI/180.0;
+				thetac[ii]*=M_PI/180.0;
+		}
 		/* compare the results */
     /*kk=0;
     for (ii=arr_dims.lpix[0];ii<=arr_dims.hpix[0];ii++)
@@ -532,13 +538,94 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		 printf("For axis %d, param no. %d is %lf\n", wcs->pv[ii].i, wcs->pv[ii].m,wcs->pv[ii].value);
 		 prj.pv[wcs->pv[ii].m]=wcs->pv[ii].value;
 		}
-		prj.phi0=phi0;
-		prj.theta0=theta0;
+		prj.phi0=0;
+		prj.theta0=90.0;
 		strcpy(prj.code,"SIN");
 
     prjset(&prj);
-    prjprt(&prj);
+		/* now rotate the native spherical coords such that 0,90 pole is at the new 
+		 * phase centre. There are two rotations. first, rotate z axis by 90-theta0 about a vector on the xy plane . then rotate by phi0-45 about the z axis.*/
+		/* the rotation about the z axis can be direclty done by changing the phi 
+		 * coordinate */
 
+		for (ii=0;ii<ncoord;ii++) {
+				phic[ii]-=phi0+M_PI/4;
+		}
+
+		 /* coordinates of old pole in cartesian form is (0,0,1) */
+		phi1=phi0;
+		theta1=theta0;
+		/* coordinates of new pole is (cos(theta1)cos(phi1),cos(theta1)sin(phi1),sin(theta1)) */
+		/* cross product, ignore zero terms =a.b.sin(a^b)*/
+		/* this gives the first rotation vector*/
+	  c[0]=-cos(theta1)/sqrt(2);
+		c[1]= cos(theta1)/sqrt(2);
+		c[2]=0.0;
+		/* rotation angle*/
+		alph=(M_PI/2-theta1);
+		printf("rotation angle=%lf rad\n",alph);
+		/* compute the rotation matrix A,
+		 *             |1 0 0|              |c0c0 c0c1 c0c2|        |  0 -c2  c1|
+		 *    A=  cos a|0 1 0| + (1 - cos a)|c1c0 c1c1 c1c2| + sin a| c2   0 -c0| 
+		 *             |0 0 1|              |c2c0 c2c1 c2c2|        |-c1  c0   0|
+		 *  then (x',y',z')=A.(x,y,z)
+		 */
+    for (ii=0;ii<3;ii++) 
+			for(jj=0;jj<3;jj++)
+					A[ii][jj]=(1-cos(alph))*c[ii]*c[jj];
+		A[0][0]+=cos(alph);
+		A[1][1]+=cos(alph);
+		A[2][2]+=cos(alph);
+		A[0][1]+=-sin(alph)*c[2];
+		A[0][2]+=sin(alph)*c[1];
+		A[1][0]+=sin(alph)*c[2];
+		A[1][2]+=-sin(alph)*c[0];
+		A[2][0]+=-sin(alph)*c[1];
+		A[2][1]+=sin(alph)*c[0];
+    /* check */
+		c[0]=cos(theta0)*cos(0);
+		c[1]=cos(theta0)*sin(0);
+		c[2]=sin(theta0);
+
+	  theta1=asin(A[2][0]*c[0]+A[2][1]*c[1]+A[2][2]*c[2]);
+	  phi1=asin((A[1][0]*c[0]+A[1][1]*c[1]+A[1][2]*c[2])/cos(theta1));
+	  phi1=acos((A[0][0]*c[0]+A[0][1]*c[1]+A[0][2]*c[2])/cos(theta1));
+		printf("new phase centre (%lf,%lf)\n",phi1/M_PI*180.0,theta1/M_PI*180.0);
+		/* now do the linear transform */
+		for (ii=0;ii<ncoord;ii++) {
+        /* use c[] as a temp buffer */
+				c[0]=cos(thetac[ii])*cos(phic[ii]);
+				c[1]=cos(thetac[ii])*sin(phic[ii]);
+				c[2]=sin(thetac[ii]);
+				/* calculate theta first */
+				theta1=asin(A[2][0]*c[0]+A[2][1]*c[1]+A[2][2]*c[2]);
+				phi1=asin((A[1][0]*c[0]+A[1][1]*c[1]+A[1][2]*c[2])/cos(theta1));
+			/*	printf("tr (%lf,%lf) -- (%lf,%lf)\n",thetac[ii],phic[ii],theta1,phi1);
+			 */
+				thetac[ii]=theta1/M_PI*180.0;
+				phic[ii]=phi1/M_PI*180.0;
+		}
+
+		/* now calculate new (l,m) values for the phi,theta values with the new phase centre */
+	if ((x=(double*)calloc((size_t)ncoord,sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+	if ((y=(double*)calloc((size_t)ncoord,sizeof(double)))==0) {
+			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+			return 1;
+		}
+
+    prjprt(&prj);
+		/* syntax is prjprm, nphi,ntheta, stride1,stride2,phi,theta,x,y,statc */
+	  /* note make ntheta=0 so only the diagonal entries are calculated */
+		status=prj.prjs2x(&prj,ncoord,0,1,1,phic,thetac,x,y,statc);
+
+		/* print new l,m grid */
+		printf("status =%d\n",status);
+		for (ii=0;ii<ncoord;ii++) {
+			printf("(%lf,%lf) --> (%lf,%lf) /(%lf,%lf) :%d\n",phic[ii],thetac[ii],x[ii],y[ii], imgc[ii*4],imgc[ii*4+1],statc[ii]);
+		}  
 		/* ******************END create grid for the cells using WCS */
     fits_close_file(fptr, &status);      /* all done */
 
@@ -564,5 +651,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		free(thetac);
 		free(statc);
 
+		free(x);
+		free(y);
     return(status);
 }
