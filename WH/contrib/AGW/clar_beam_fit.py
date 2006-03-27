@@ -1,9 +1,11 @@
 from Timba.TDL import *
 from Timba.Meq import meq
-from Timba.Trees import TDL_Joneset
+#from Timba.Trees import TDL_Joneset
 from numarray import *
 from copy import deepcopy
 import os
+#from Timba.Contrib.AGW.clar_source_model import *
+from clar_source_model import *
 
 # MS name
 msname = "TEST_CLAR_27-480.MS";
@@ -14,8 +16,6 @@ num_stations = 27
 
 # MEP table for derived quantities fitted in this script
 mep_derived = 'CLAR_DQ_27-480.mep';
-
-
 
 # bookmark
 Settings.forest_state = record(bookmarks=[
@@ -40,72 +40,6 @@ Settings.forest_state = record(bookmarks=[
   ]) \
 ]);
 
-
-class PointSource:
-    name = ''
-    ra   = 0.0
-    dec  = 0.0
-    IQUV      = zeros(4)*0.0
-    IQUVorder = zeros(4)*0.0
-    table  = ''
-
-    def __init__(self, name='', ra=0.0, dec=0.0,
-                 I=0.0, Q=0.0, U=0.0, V=0.0,
-                 Iorder=0, Qorder=0, Uorder=0, Vorder=0,
-                 table=''):
-        self.name   = name
-        self.ra     = ra
-        self.dec    = dec
-        self.IQUV   = array([I,Q,U,V])
-        self.IQUVorder = array([Iorder,Qorder,Uorder,Vorder])
-        self.table  = table
-        pass
-    pass
-
-def create_source_model(tablename=''):
-    """ define model source positions and flux densities """
-    source_model = []
-    source_model.append( PointSource(name="src_1",I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.030272885, dec=0.575762621,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_2",  I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0306782675, dec=0.575526087,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_3",I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0308948646, dec=0.5762655,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_4",I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0308043705, dec=0.576256621,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_5",I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.030120036, dec=0.576310965,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_6",I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0301734016, dec=0.576108805,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_7",I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0302269161, dec=0.576333355,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_8",I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0304215356, dec=0.575777607,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_9",I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0307416105, dec=0.576347166,
-                    table=tablename))
-
-    source_model.append( PointSource(name="src_10",I=1.0, Q=0.0, U=0.0, V=0.0,
-                    Iorder=0, ra=0.0306878027, dec=0.575851951,
-                    table=tablename))
-
-    return source_model
 
 # define defaults for station locations, field centre etc
 def forest_measurement_set_info(ns, num_ant):
@@ -243,7 +177,7 @@ def tpolc (tdeg,c00=0.0):
                   table_name=mep_derived);
   
 
-def create_solver_defaults(num_iter=50,epsilon=1e-4,convergence_quota=0.9,solvable=[]):
+def create_solver_defaults(num_iter=30,epsilon=1e-5,convergence_quota=0.9,solvable=[]):
     solver_defaults=record()
     solver_defaults.num_iter     = num_iter
     solver_defaults.epsilon      = epsilon
@@ -405,7 +339,7 @@ def _define_forest(ns):
   forest_create_vdm(ns);
 
 
-Settings.forest_state.cache_policy = 100  # 1 for smart caching, 100 for full caching
+Settings.forest_state.cache_policy = 1  # 1 for smart caching, 100 for full caching
 Settings.orphans_are_roots = False
 
 if __name__ == '__main__':

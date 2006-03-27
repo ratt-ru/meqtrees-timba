@@ -5,16 +5,17 @@ from numarray import *
 from copy import deepcopy
 import os
 import random
+#from Timba.Contrib.AGW.clar_source_model import *
 from clar_source_model import *
 
-
 # MS name
-msname = "TEST_CLAR_27-4800.MS";
+msname = "TEST_CLAR_27-4800.MS";         # Oleg
+# msname = "TEST_CLAR_27-480.MS";          # Tony
 # number of timeslots to use at once
-tile_size = 60
+tile_size = 30       
 
 # MS input queue size -- must be at least equal to the no. of ifrs
-input_queue_size = 500
+ms_queue_size = 500
 
 num_stations = 27
 
@@ -24,8 +25,11 @@ ms_selection = None
 #          channel_increment=1,
 #          selection_string='')
 
-write_output = False  # if False, disables output completely
-ms_output = False     # if True, outputs to MS, else to BOIO dump
+write_output = False  # if False, disables output completely       Oleg
+ms_output = False     # if True, outputs to MS, else to BOIO dump  Oleg
+
+# write_output = True  # if False, disables output completely        Tony
+# ms_output = True     # if True, outputs to MS, else to BOIO dump   Tony
 
 # CLAR beam width
 # This is actually the inverse of the half-power beam width, in radians.
@@ -172,10 +176,16 @@ def forest_baseline_predict_trees(ns, interferometer_list, sources):
     for (ant1, ant2) in interferometer_list:
         corrupted_vis_list = []
         for source in sources:
+# WSRT UVW orientation
+#           ns.corrupted_vis(ant1,ant2,source.name) << \
+#                   Meq.MatrixMultiply(ns.E(ant1,source.name),
+#                                ns.clean_visibility(ant1,ant2, source.name),
+#                                ns.ctE(ant2, source.name))
+# VLA UVW orientation
             ns.corrupted_vis(ant1,ant2,source.name) << \
-                    Meq.MatrixMultiply(ns.E(ant1,source.name),
+                    Meq.MatrixMultiply(ns.E(ant2,source.name),
                                  ns.clean_visibility(ant1,ant2, source.name),
-                                 ns.ctE(ant2, source.name))
+                                 ns.ctE(ant1, source.name))
             corrupted_vis_list.append(ns.corrupted_vis(ant1,ant2,source.name))
             pass
         ns.predict(ant1, ant2) << Meq.Add(children=deepcopy(corrupted_vis_list))
@@ -191,10 +201,16 @@ def forest_baseline_correct_trees(ns, interferometer_list, sources):
     for (ant1, ant2) in interferometer_list:
         ns.residual(ant1, ant2) << (ns.spigot(ant1,ant2) - \
                                     ns.predict(ant1,ant2))
+# WSRT UV Orientation
+#       ns.corrected(ant1,ant2) << \
+#               Meq.MatrixMultiply(Meq.MatrixInvert22(ns.E(ant1,sources[0].name)), #                              Meq.MatrixInvert22(ns.G(ant1)),
+#                                  ns.residual(ant1,ant2), #           Meq.MatrixInvert22(ns.ctG(ant2)),
+#                                  Meq.MatrixInvert22(ns.ctE(ant2,sources[0].name)))
+# VLA UV Orientation
         ns.corrected(ant1,ant2) << \
-                Meq.MatrixMultiply(Meq.MatrixInvert22(ns.E(ant1,sources[0].name)), #                              Meq.MatrixInvert22(ns.G(ant1)),
+                Meq.MatrixMultiply(Meq.MatrixInvert22(ns.E(ant2,sources[0].name)), #                              Meq.MatrixInvert22(ns.G(ant1)),
                                    ns.residual(ant1,ant2), #           Meq.MatrixInvert22(ns.ctG(ant2)),
-                                   Meq.MatrixInvert22(ns.ctE(ant2,sources[0].name)))
+                                   Meq.MatrixInvert22(ns.ctE(ant1,sources[0].name)))
         # ns.corrected(ant1, ant2) << Meq.Add(children=deepcopy(corrected_vis_list))
     pass
 
@@ -215,9 +231,15 @@ def forest_clean_predict_trees(ns, source, station_list):
 # are not corrupted  
     for ant1 in range(len(station_list)):
         for ant2 in range(ant1+1, len(station_list)):
+# WSRT UVW Orientation
+#           ns.clean_visibility(station_list[ant1], station_list[ant2], source.name) << \
+#           Meq.MatrixMultiply(ns.dft(station_list[ant1], source.name),
+#                                 ns.conjdft(station_list[ant2], source.name),
+#                                 ns.coherency(source.name))
+# VLA UVW Orientation
             ns.clean_visibility(station_list[ant1], station_list[ant2], source.name) << \
-            Meq.MatrixMultiply(ns.dft(station_list[ant1], source.name),
-                                  ns.conjdft(station_list[ant2], source.name),
+            Meq.MatrixMultiply(ns.dft(station_list[ant2], source.name),
+                                  ns.conjdft(station_list[ant1], source.name),
                                   ns.coherency(source.name))
         pass # for ant2
     pass     # for ant1
@@ -379,7 +401,7 @@ def forest_create_sink_sequence(ns, interferometer_list, output_column='PREDICT'
 def create_inputrec():
     boioname = "boio."+msname+".predict."+str(tile_size);
     # if boio dump for this tiling exists, use it to save time
-    if os.access(boioname,os.R_OK):
+    if not ms_selection and os.access(boioname,os.R_OK):
       rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
     # else use MS, but tell the event channel to record itself to boio file
     else:
@@ -390,12 +412,13 @@ def create_inputrec():
       rec.selection = ms_selection or record();
       rec = record(ms=rec);
     rec.python_init='AGW_read_msvis_header.py';
-    rec.mt_queue_size = input_queue_size;
+    rec.mt_queue_size = ms_queue_size;
     return rec;
 
 
 def create_outputrec(output_column='CORRECTED_DATA'):
     rec=record()
+    rec.mt_queue_size = ms_queue_size;
     if ms_output:
       rec.write_flags=False
       rec.predict_column=output_column

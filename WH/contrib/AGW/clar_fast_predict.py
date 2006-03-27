@@ -6,27 +6,29 @@ import os
 from clar_source_model import *
 
 # MS name
-msname = "TEST_CLAR_27-4800.MS";      
+msname = "TEST_CLAR_27-4800.MS";      # Oleg ...
+#msname = "TEST_CLAR_27-480.MS";       # Tony ...
+
 # number of timeslots to use at once
-tile_size = 960
-# MS input queue size -- must be at least equal to the no. of ifrs
+tile_size = 30
+# MS input queue size -- should be at least equal to the no. of ifrs
 ms_queue_size = 500
 # number of stations
 num_stations = 27
 # selection  applied to MS, None for full MS
-# note that if a selection is applied, i/o is always to MS
 ms_selection = None
 # or e.g.: 
 # ms_selection = record(channel_start_index=0,
-#                      channel_end_index=31,
-#                      channel_increment=1,
-#                      selection_string='')
+#                       channel_end_index=0,
+#                       channel_increment=1,
+#                       selection_string='')
 
-ms_output = True # False   # if True, outputs to MS, else to BOIO dump
+ms_output = False  # if True, outputs to MS, else to BOIO dump   
+# ms_output = True   # if True, outputs to MS, else to BOIO dump 
 
 # CLAR beam width
 # This is actually the inverse of the half-power beam width, in radians.
-# base IHPW is 647.868 rad^-1 at 800 Mhz
+# base IHPW is 647.868 rad^-1 at 800 MHz
 beam_width = 647.868
 ref_frequency = float(800*1e+6)
 
@@ -35,22 +37,33 @@ mep_derived = 'CLAR_DQ_27-480.mep';
 
 # bookmarks
 Settings.forest_state = record(bookmarks=[
-  record(name='Predicts',page=[
+  record(name='Predicted visibilities',page=[
     record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_2",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_5",pos=(0,2)),
+    record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_5",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/clean_visibility:1:%d:src_5"%num_stations,pos=(0,2)),
     record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_1",pos=(1,0)),
     record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_2",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_5",pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:%d:src_5"%num_stations,pos=(1,2)),
     record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(2,0)),
     record(viewer="Result Plotter",udi="/node/E:1:src_5",pos=(2,1)),
     record(viewer="Result Plotter",udi="/node/E:%d:src_5"%num_stations,pos=(2,2)),
     record(viewer="Result Plotter",udi="/node/predict:1:2",pos=(3,0)),
     record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(3,1)),
     record(viewer="Result Plotter",udi="/node/predict:1:%d"%num_stations,pos=(3,2)),
-#   record(viewer="Result Plotter",udi="/node/stokes:Q:3C343",pos=(1,0)),
-#    record(viewer="Result Plotter",udi="/node/stokes:Q:3C343_1",pos=(1,1)),
-#   record(viewer="Result Plotter",udi="/node/solver",pos=(1,1)),
+  ]),
+  record(name='Beams',page=[
+    record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(0,0)),
+    record(viewer="Result Plotter",udi="/node/E:1:src_2",pos=(0,1)),
+    record(viewer="Result Plotter",udi="/node/E:1:src_3",pos=(0,2)),
+    record(viewer="Result Plotter",udi="/node/E:1:src_6",pos=(1,0)),
+    record(viewer="Result Plotter",udi="/node/E:1:src_9",pos=(1,1)),
+    record(viewer="Result Plotter",udi="/node/E:1:src_10",pos=(1,2)),
+    record(viewer="Result Plotter",udi="/node/E:%d:src_1"%num_stations,pos=(2,0)),
+    record(viewer="Result Plotter",udi="/node/E:%d:src_2"%num_stations,pos=(2,1)),
+    record(viewer="Result Plotter",udi="/node/E:%d:src_3"%num_stations,pos=(2,2)),
+    record(viewer="Result Plotter",udi="/node/E:%d:src_6"%num_stations,pos=(3,0)),
+    record(viewer="Result Plotter",udi="/node/E:%d:src_9"%num_stations,pos=(3,1)),
+    record(viewer="Result Plotter",udi="/node/E:%d:src_10"%num_stations,pos=(3,2)),
   ]),
   record(name='Source fluxes',page=[
     record(viewer="Result Plotter",udi="/node/stokes:I:src_1",pos=(0,0)),
@@ -135,10 +148,16 @@ def forest_baseline_predict_trees(ns, interferometer_list, sources):
     for (ant1, ant2) in interferometer_list:
         corrupted_vis_list = []
         for source in sources:
+# for WSRT UVW directions
+#           ns.corrupted_vis(ant1,ant2,source.name) << \
+#                   Meq.MatrixMultiply(ns.E(ant1,source.name),
+#                                ns.clean_visibility(ant1,ant2, source.name),
+#                                ns.ctE(ant2, source.name))
+# for VLA UVW directions
             ns.corrupted_vis(ant1,ant2,source.name) << \
-                    Meq.MatrixMultiply(ns.E(ant1,source.name),
+                    Meq.MatrixMultiply(ns.E(ant2,source.name),
                                  ns.clean_visibility(ant1,ant2, source.name),
-                                 ns.ctE(ant2, source.name))
+                                 ns.ctE(ant1, source.name))
             corrupted_vis_list.append(ns.corrupted_vis(ant1,ant2,source.name))
             pass
         # add a noise term
@@ -163,9 +182,15 @@ def forest_clean_predict_trees(ns, source, station_list):
 # are not corrupted  
     for ant1 in range(len(station_list)):
         for ant2 in range(ant1+1, len(station_list)):
+# for WSRT defined UVW orientation
+#           ns.clean_visibility(station_list[ant1], station_list[ant2], source.name) << \
+#           Meq.MatrixMultiply(ns.dft(station_list[ant1], source.name),
+#                                 ns.conjdft(station_list[ant2], source.name),
+#                                 ns.coherency(source.name))
+# for VLA defined UVW orientation
             ns.clean_visibility(station_list[ant1], station_list[ant2], source.name) << \
-            Meq.MatrixMultiply(ns.dft(station_list[ant1], source.name),
-                                  ns.conjdft(station_list[ant2], source.name),
+            Meq.MatrixMultiply(ns.dft(station_list[ant2], source.name),
+                                  ns.conjdft(station_list[ant1], source.name),
                                   ns.coherency(source.name))
         pass # for ant2
     pass     # for ant1
@@ -180,7 +205,7 @@ def forest_station_source_jones(ns, station_list, source_name):
       vgain = ns.V_GAIN(station, source_name) << Meq.Parm(table_name=mep_derived);
       ediag = ns.ediag(station,source_name) << Meq.Sqrt(Meq.Exp(vgain*ns.width_sq));
       # create a phase error term
-      phase_noise = Meq.GaussNoise(stddev=0.1);
+      phase_noise = Meq.GaussNoise(stddev=0.01);
       # note that a scalar is equivalent to a diagonal matrix
       ns.E(station,source_name) << Meq.Matrix22(
             Meq.Polar(ediag,phase_noise),0,0,Meq.Polar(ediag,phase_noise));
@@ -220,12 +245,10 @@ def noise_matrix (stddev=0.1):
 
 # creates source-related nodes for a given source
 def forest_source_subtrees (ns, source):
-  print 'source.name ', source.name
   IQUVpolcs =[None]*4
   STOKES=["I0","Q","U","V"]
   for (i,stokes) in enumerate(STOKES):
     if(source.IQUV[i] != None):
-      print 'i source.IQUV[i] source.IQUVorder ', i, ' ', source.IQUV[i], ' ', source.IQUVorder[i]
       IQUVpolcs[i] = create_polc_ft(degree_f=source.IQUVorder[i], 
 					c00= source.IQUV[i])
       pass
@@ -243,10 +266,8 @@ def forest_source_subtrees (ns, source):
   ns.xy(source.name) << Meq.Conj(ns.yx(source.name))
   ns.yy(source.name) << (ns.stokes("I",source.name)-ns.stokes("Q",source.name))*0.5
 
-  ra = ns.ra(source.name) << Meq.Parm(source.ra, table_name=source.table,
-			node_groups='Parm')
-  dec= ns.dec(source.name) << Meq.Parm(source.dec, table_name=source.table,
-			node_groups='Parm')
+  ra = ns.ra(source.name) << Meq.Parm(source.ra,node_groups='Parm')
+  dec= ns.dec(source.name) << Meq.Parm(source.dec,node_groups='Parm')
   radec = ns.radec(source.name) << Meq.Composer(ra, dec)
   lmn   = ns.lmn  (source.name) << Meq.LMN(radec_0 = ns.radec0, radec = radec)
   n     = ns.n    (source.name) << Meq.Selector(lmn, index=2)
@@ -305,7 +326,7 @@ def create_inputrec():
 
 
 def create_outputrec(output_column='DATA'):
-    rec=record()
+    rec=record();
     rec.mt_queue_size = ms_queue_size;
     if ms_selection or ms_output:
       rec.write_flags=False
