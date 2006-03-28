@@ -48,6 +48,8 @@ typedef struct nlimits_ {
 } nlims; /* struct to store array dimensions */
 int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
    int ncols, iteratorCol *cols, void *user_struct);
+int get_min_max(long totalrows, long offset, long firstrow, long nrows,
+   int ncols, iteratorCol *cols, void *user_struct);
 int read_fits_file(const char *infilename, double cutoff, double **myarr, long int *naxis, double **lgrid, double **mgrid, double **lspace, double **mspace,
 								double *ra0, double *dec0);
 
@@ -281,6 +283,40 @@ int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
 
 }
 
+/* function to read min-max values of fits file */
+int get_min_max(long totalrows, long offset, long firstrow, long nrows,
+   int ncols, iteratorCol *cols, void *user_struct) {
+
+		static double min_val;
+		static double max_val;
+		static double tmpval;
+		int ii;
+
+    double *xylims=(double*)user_struct;
+    static float *counts;
+    if (firstrow == 1)
+    {
+       if (ncols != 1)
+           return(-1);  /* number of columns incorrect */
+       /* assign the input pointers to the appropriate arrays and null ptrs*/
+       counts   = (float *)  fits_iter_get_array(&cols[0]);
+
+		min_val=1e6;
+		max_val=-1e6;
+    }
+
+    for (ii = 1; ii <= nrows; ii++) {
+			 tmpval=(double)counts[ii];
+		   if (min_val>tmpval) min_val=tmpval;
+		   if (max_val<tmpval) max_val=tmpval;
+    }
+
+		xylims[0]=min_val;
+		xylims[1]=max_val;
+		return 0;
+}
+ 
+
 /* filename: file name
  * cutoff: cutoff to truncate the image
  * myarr: 4D data array of truncated image
@@ -298,6 +334,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
     int n_cols;
     long rows_per_loop, offset;
 		nlims arr_dims;
+		double arr_limits[2];
 
     int status;
 		int naxis;
@@ -411,9 +448,17 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
     rows_per_loop = 0;  /* use default optimum number of rows */
     offset = 0;         /* process all the rows */
 
+		/* determine limits of image data */
+    fits_iterate_data(n_cols, cols, offset, rows_per_loop,
+                      get_min_max, (void*)&arr_limits, &status);
+
+		printf("Limits Min %lf, Max %lf\n",arr_limits[0],arr_limits[1]);
+		arr_dims.tol=cutoff*(arr_limits[1]-arr_limits[0])+arr_limits[0];
     /* apply the rate function to each row of the table */
     printf("Calling iterator function...%d\n", status);
 
+    rows_per_loop = 0;  /* use default optimum number of rows */
+    offset = 0;         /* process all the rows */
     fits_iterate_data(n_cols, cols, offset, rows_per_loop,
                       zero_image_float, (void*)&arr_dims, &status);
 
