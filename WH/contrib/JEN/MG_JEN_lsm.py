@@ -236,7 +236,19 @@ def deg2rad(deg=None):
    return factor                                # return conversion factor
 
 
+#--------------------------------------------------------------------------------
 
+def att (dRA_rad=0, dDec_rad=0, taper_deg=None, trace=False):
+   """Calculate gaussian primary beam attenuation"""
+   a = 1.0
+   if not taper_deg==None: 
+      drad = (dRA_rad**2 + dDec_rad**2)
+      trad = deg2rad(taper_deg)**2
+      a = exp(-drad/trad)
+   if trace: print '** att(',dRA_rad,dDec_rad,taper_deg,'): ->',a
+   return a
+   
+   
 #--------------------------------------------------------------------------------
 
 def add_single (ns=None, Sixpack=None, lsm=None, **inarg):
@@ -276,6 +288,63 @@ def add_single (ns=None, Sixpack=None, lsm=None, **inarg):
    return savefile
 
 
+#--------------------------------------------------------------------------------
+
+def add_double (ns=None, Sixpack=None, lsm=None, **inarg):
+   """Add a double test-source (Sixpack) to the given lsm"""
+
+   qual = 'double'
+   qual1 = qual+'_1'
+   qual2 = qual+'_2'
+   
+   # Input arguments:
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::add_double()', version='10feb2006',
+                           description=add_double.__doc__)
+
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual1))
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual2))
+   JEN_inarg.define(pp, 'dRA', 20, choice=[],    
+                    help='distance of 2nd source in RA (arcmin)')
+   JEN_inarg.define(pp, 'dDec', 20, choice=[],    
+                    help='distance of 2nd source in Dec (arcmin)')
+
+   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+   if not JEN_inarg.is_OK(pp): return False
+   funcname = JEN_inarg.localscope(pp)
+   savefile = '<savefile>'                         # place-holder
+
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _qual=qual1)
+   RA0 = pp1['RA']
+   Dec0 = pp1['Dec']
+
+   # Put the first source at its own position:
+   punit = qual1
+   Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual1,
+                                           punit=punit, RA=RA0, Dec=Dec0) 
+   Sixpack.sixpack(ns)
+   Sixpack.display()
+   lsm.add_sixpack(sixpack=Sixpack)
+
+   # Put the second source at the offset position:
+   RA = Dec0 + pp['dRA']*arcmin2rad()
+   Dec = Dec0 + pp['dDec']*arcmin2rad()
+   punit = qual2
+   Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual2,
+                                           punit=punit, RA=RA, Dec=Dec)
+   Sixpack.sixpack(ns)
+   Sixpack.display()
+   lsm.add_sixpack(sixpack=Sixpack)
+
+   # Make an automatic .lsm file-name:
+   savefile = str(int(100*RA0))+'+'+str(int(100*Dec0))
+   savefile += '_double'
+   savefile += '_'+str(pp['dRA'])+'_'+str(pp['dDec'])
+   savefile += '.lsm'
+
+   # Finished: Return the suggested .lsm savefile name:
+   return savefile
+
+
 
 #--------------------------------------------------------------------------------
 
@@ -292,10 +361,12 @@ def add_grid (ns=None, lsm=None, **inarg):
                     help='(half) nr of sources in RA direction')
    JEN_inarg.define(pp, 'nDec2', 1, choice=[0,1,2,3],   
                     help='(half) nr of sources in DEC direction')
-   JEN_inarg.define(pp, 'dRA', 20, choice=[],    
+   JEN_inarg.define(pp, 'dRA', 20, choice=[5,10,20],    
                     help='RA grid spacing (arcmin)')
-   JEN_inarg.define(pp, 'dDec', 20, choice=[],    
+   JEN_inarg.define(pp, 'dDec', 20, choice=[5,10,20],    
                     help='Dec grid spacing (arcmin)')
+   JEN_inarg.define(pp, 'taper', 1.0, choice=[0.5,1,2,5,10,100,None],    
+                    help='Scale (degr) of gaussian FOV taper')
    JEN_inarg.define(pp, 'relpos', 'trq',
                     choice=['center','top','bottom','left','right',
                             'tlq','trq','blq','brq'],    
@@ -312,46 +383,55 @@ def add_grid (ns=None, lsm=None, **inarg):
    pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
+   punit = pp1['punit']
+
    rpos = pp['relpos']
    r2 = pp['nRA2']*pp['dRA']*arcmin2rad()
    d2 = pp['nDec2']*pp['dDec']*arcmin2rad()
+   ii = range(-pp['nRA2'],pp['nRA2']+1)
+   jj = range(-pp['nDec2'],pp['nDec2']+1)
    if rpos=='center':                              # centered
       pass                                         # ....
    elif rpos=='top':                     
-      Dec0 += d2
+      jj = range(0,2*pp['nDec2']+1)
    elif rpos=='bottom':                     
-      Dec0 -= d2
+      jj = range(-2*pp['nDec2'],1)
    elif rpos=='left':
-      RA0 += r2
+      ii = range(0,2*pp['nRA2']+1)
    elif rpos=='right':
-      RA0 -= r2
+      ii = range(-2*pp['nRA2'],1)
    elif rpos=='tlq':                               # top-left quarter
-      RA0 += r2
-      Dec0 += d2
+      ii = range(0,2*pp['nRA2']+1)
+      jj = range(0,2*pp['nDec2']+1)
    elif rpos=='trq':                               # top-right quarter
-      RA0 -= r2
-      Dec0 += d2
+      ii = range(-2*pp['nRA2'],1)
+      jj = range(0,2*pp['nDec2']+1)
    elif rpos=='blq':                               # bottom-left quarter
-      RA0 += r2
-      Dec0 -= d2
+      ii = range(0,2*pp['nRA2']+1)
+      jj = range(-2*pp['nDec2'],1)
    elif rpos=='brq':                               # bottom-right quarter
-      RA0 -= r2
-      Dec0 -= d2
+      ii = range(-2*pp['nRA2'],1)
+      jj = range(-2*pp['nDec2'],1)
+   ii.reverse()                                    # RA increases to the left
 
    # Make an automatic .lsm file-name:
    savefile = str(int(100*RA0))+'+'+str(int(100*Dec0))
+   savefile += '_'+str(punit)
    savefile += '_grid'+str(1+2*pp['nRA2'])+'x'+str(1+2*pp['nDec2'])
    savefile += '_'+str(pp['dRA'])+'x'+str(pp['dDec'])
    savefile += '_'+str(pp['relpos'])
+   savefile += '_'+str(int(10*pp['taper']))
    savefile += '.lsm'
 
    # Create the sources defined by pp:
-   for i in range(-pp['nRA2'],pp['nRA2']+1):
+   for i in ii:
       RA = RA0 + i*pp['dRA']*arcmin2rad()
-      for j in range(-pp['nDec2'],pp['nDec2']+1):
+      for j in jj:
          Dec = Dec0 + j*pp['dDec']*arcmin2rad()
+         flux_att = att(RA-RA0, Dec-Dec0, pp['taper'], trace=False)
          punit = 'grid:'+str(i)+':'+str(j)
          Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
+                                                 flux_att=flux_att,
                                                  punit=punit, RA=RA, Dec=Dec)
          # Compose the sixpack before adding it to the lsm:
          Sixpack.sixpack(ns)
@@ -384,6 +464,8 @@ def add_spiral (ns=None, lsm=None, **inarg):
                     help='radius multiplication factor')
    JEN_inarg.define(pp, 'ainc', 10, choice=[10,20,30,45,90,180,360,0],    
                     help='position angle increment (deg)')
+   JEN_inarg.define(pp, 'taper', 1.0, choice=[0.5,1,2,5,10,100,None],    
+                    help='Scale (degr) of gaussian FOV taper')
 
    JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
 
@@ -396,12 +478,15 @@ def add_spiral (ns=None, lsm=None, **inarg):
    pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
+   punit = pp1['punit']
 
    # Make an automatic .lsm file-name:
    savefile = str(int(100*RA0))+'+'+str(int(100*Dec0))
+   savefile += '_'+str(punit)
    savefile += '_spiral'+str(pp['nr_of_sources'])
    savefile += '_r'+str(pp['rstart'])
    savefile += '_a'+str(pp['astart'])
+   savefile += '_t'+str(int(10*pp['taper']))
    savefile += '.lsm'
 
    # Create the sources defined by pp:
@@ -410,8 +495,10 @@ def add_spiral (ns=None, lsm=None, **inarg):
    for i in range(pp['nr_of_sources']):
       RA = RA0 + r*cos(a)
       Dec = Dec0 + r*sin(a)
+      flux_att = att(RA-RA0, Dec-Dec0, pp['taper'])
       punit = 'spiral:'+str(i)
       Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
+                                              flux_att=flux_att,
                                               punit=punit, RA=RA, Dec=Dec)
       # Compose the sixpack before adding it to the lsm:
       Sixpack.sixpack(ns)
@@ -473,9 +560,10 @@ JEN_inarg.define (MG, 'saveAs', '<automatic>', browse='*.lsm',
 
 # Optional: add test-source(s) to the given lsm:
 JEN_inarg.define (MG, 'test_pattern', None,
-                  choice=[None,'single','grid','spiral'],
+                  choice=[None,'single','double','grid','spiral'],
                   help='pattern of test-sources to be generated')
 JEN_inarg.nest(MG, add_single(_getdefaults=True))
+JEN_inarg.nest(MG, add_double(_getdefaults=True))
 JEN_inarg.nest(MG, add_grid(_getdefaults=True))
 JEN_inarg.nest(MG, add_spiral(_getdefaults=True))
 
@@ -553,6 +641,8 @@ def _define_forest (ns, **kwargs):
       display_lsm = True
       if MG['test_pattern']=='single':
          savefile = add_single(ns, lsm=lsm, _inarg=MG)
+      elif MG['test_pattern']=='double':
+         savefile = add_double(ns, lsm=lsm, _inarg=MG)
       elif MG['test_pattern']=='grid':
          savefile = add_grid(ns, lsm=lsm, _inarg=MG)
       elif MG['test_pattern']=='spiral':
@@ -733,12 +823,20 @@ if __name__ == '__main__':
          my_sp = pu.getSP()
          my_sp.display()
 
-   if 1:
+   if 0:
       lss = lsmSet()
       lss.display()
       lss.append()
       lss.append()
       lss.display()
+
+   if 1:
+      att (0, 0, None, trace=True)
+      att (0, 0, 57.0, trace=True)
+      att (1, 0, 57.0, trace=True)
+      att (0, 1, 57.0, trace=True)
+      att (1, 1, 57.0, trace=True)
+
 
    if 0:
       MG_JEN_exec.display_object (MG, 'MG', MG['script_name'])

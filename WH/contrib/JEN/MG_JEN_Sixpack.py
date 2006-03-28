@@ -416,7 +416,7 @@ def readLSM (ns, filename, strip=True, display=True, trace=False):
 
 
 
-def newstar_source (ns=0, predefine=False, **inarg):
+def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
    """Make a Sixpack (I,Q,U,V,Ra,Dec) for a source with NEWSTAR parametrisation"""
 
    # Input arguments:
@@ -520,11 +520,12 @@ def newstar_source (ns=0, predefine=False, **inarg):
    parm = {}
    fmult = 1.0
    if pp['SI']==None:
-      parm['I0'] = ParmSet.MeqParm (ns, 'I0', parmgroup=sI, default=pp['I0'])
+      parm['I0'] = ParmSet.MeqParm (ns, 'I0', parmgroup=sI,
+                                    default=pp['I0']*flux_att)
       iquv[n6.I] = parm['I0']
       fmult = iquv[n6.I]               
    else:
-      polclog = polclog_SIF (SI=pp['SI'], I0=pp['I0'], f0=pp['f0'])
+      polclog = polclog_SIF (SI=pp['SI'], I0=pp['I0']*flux_att, f0=pp['f0'])
       print 'polclog =',polclog
       parm['SIF'] = ParmSet.MeqParm (ns, 'SIF_stokesI', parmgroup=sI,
                                      init_funklet=polclog)

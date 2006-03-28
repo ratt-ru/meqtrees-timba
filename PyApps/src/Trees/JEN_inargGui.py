@@ -1447,6 +1447,7 @@ class ArgBrowser(QMainWindow):
         if not self.macron_entry('MG_JEN_lsm', revert=True): return False
         self.__message.setText('** recreating all MG_JEN_lsm .inargs ...')
         self.lsm_single(revert=True, save_protected=True)
+        self.lsm_double(revert=True, save_protected=True)
         self.lsm_grid(revert=True, save_protected=True)
         self.lsm_spiral(revert=True, save_protected=True)
         self.__message.setText('** recreated all MG_JEN_lsm .inargs (incl. protected)')
@@ -1462,6 +1463,17 @@ class ArgBrowser(QMainWindow):
                          test_pattern='single',
                          _JEN_inarg_option=None)     
         return self.macron_exit('MG_JEN_lsm_single', save_protected)
+
+    def lsm_double(self, revert=False, save_protected=False):
+        """Modify MG_JEN_lsm inarg for double operation"""
+        if not self.macron_entry('MG_JEN_lsm', revert): return False
+        JEN_inarg.specific(self.__inarg, self.lsm_double.__doc__)
+        JEN_inarg.modify(self.__inarg,
+                         # input_LSM='lsm_current.lsm',
+                         save_as_current=True,
+                         test_pattern='double',
+                         _JEN_inarg_option=None)     
+        return self.macron_exit('MG_JEN_lsm_double', save_protected)
 
     def lsm_grid(self, revert=False, save_protected=False):
         """Modify MG_JEN_lsm inarg for grid operation"""
