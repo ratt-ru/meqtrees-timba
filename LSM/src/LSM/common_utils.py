@@ -365,6 +365,49 @@ def extract_parms(sixpack,ns):
 
  print "RA,Dec,App.Bri=",myra,mydec,mybr
  return [myra,mydec,mybr]
+
+# utility function to extract polarization percentage [Q,U,V]
+# MeqParm information from a TDL_Sixpack
+# sixpack=sixpack object (in composed form)
+# ns=nodescope used for the sixpack
+def extract_polarization_parms(sixpack,ns):
+ # get name
+ myname=sixpack.label()
+ print "looking for QUV of ",myname
+ # first get I0 for further processing
+
+
+ allnodes=ns.Repository()
+ if allnodes.has_key('Qpct:q='+myname):
+   qq=allnodes['Qpct:q='+myname]
+   myqq=get_default_parms(qq)
+ elif allnodes.has_key('stokesQ:q='+myname):
+   qq=allnodes['stokesQ:q='+myname]
+   myqq=get_default_parms(qq)
+ else:
+   myqq=0
+ if allnodes.has_key('Upct:q='+myname):
+   uu=allnodes['Upct:q='+myname]
+   myuu=get_default_parms(uu)
+ elif allnodes.has_key('stokesU:q='+myname):
+   uu=allnodes['stokesU:q='+myname]
+   myuu=get_default_parms(uu)
+ else:
+   myuu=0
+ if allnodes.has_key('Vpct:q='+myname):
+   vv=allnodes['Vpct:q='+myname]
+   myvv=get_default_parms(vv)
+ elif allnodes.has_key('stokesV:q='+myname):
+   vv=allnodes['stokesV:q='+myname]
+   myvv=get_default_parms(vv)
+ else:
+   myvv=0
+
+
+ print "Q,U,V=",myqq,myuu,myvv
+ return [myqq,myuu,myvv]
+
+
 #
 # utility to extract the default parms (if any) of a given MeqParm
 # node. It will return the following in the given order, if they
@@ -484,7 +527,7 @@ def change_radec_patch(patch_name,new_ra,new_dec,ns):
 if __name__ == '__main__':
   from Timba.Contrib.JEN import MG_JEN_Sixpack
   ns=NodeScope()
-  my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit="foo",I0=1.0, f0=1e6,RA=2.0, Dec=2.1,trace=0)
+  my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit="foo",I0=1.0, f0=1e6,RA=2.0, Dec=2.1,trace=0, Qpct=0.1, Upct=1,Vpct=-0.1)
   my_sixpack.sixpack(ns)
   ns.Resolve()
   print ns.AllNodes()
@@ -494,6 +537,7 @@ if __name__ == '__main__':
   rr=my_sixpack.ra()
   print rr.name
   print extract_parms(my_sixpack,ns)
+  print extract_polarization_parms(my_sixpack,ns)
   change_radec(my_sixpack,3.0,4.5,ns)
   my_sixpack.display()
   print dir(ns)

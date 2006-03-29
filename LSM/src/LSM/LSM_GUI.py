@@ -614,12 +614,17 @@ class LSMWindow(QMainWindow):
 
     def filePrint(self):
         margin=10
+        tab_margin=10
         if not self.cview.printer:
             self.cview.printer = QPrinter()
         if  self.cview.printer.setup(self.cview):
             pp=QPainter(self.cview.printer)
             # set font
             pp.setFont(self.cview.fonts['default'])
+            # create special font as well
+            ufont=QFont(self.cview.fonts['default'])
+            ufont.setBold(1)
+            ufont.setItalic(1)
             yPos=margin
             fm=pp.fontMetrics()
             metrics=QPaintDeviceMetrics(self.cview.printer)
@@ -643,8 +648,12 @@ class LSMWindow(QMainWindow):
  
             yPos=yPos+fm.lineSpacing()+self.canvas.height()
             ttext=QString("Additional Information :")
-            pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
-            yPos=yPos+fm.lineSpacing()
+            # to draw this, use underlined font
+            pp.setFont(ufont)
+            ufm=pp.fontMetrics()
+            pp.drawText(margin,margin+yPos,metrics.width(),ufm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
+            yPos=yPos+ufm.lineSpacing()
+            pp.setFont(self.cview.fonts['default'])
             ttext=QString("Filename : "+self.lsm.getFileName())
             pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
             yPos=yPos+fm.lineSpacing()
@@ -666,17 +675,21 @@ class LSMWindow(QMainWindow):
             if self.lsm.getPUnits()<n_punits:
               n_punits=self.lsm.getPUnits()
             ttext=QString("First "+str(n_punits)+" PUnits are:")
-            pp.drawText(margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
-            yPos=yPos+fm.lineSpacing()
+            pp.setFont(ufont)
+            pp.drawText(margin,margin+yPos,metrics.width(),ufm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
+            yPos=yPos+ufm.lineSpacing()
+            pp.setFont(self.cview.fonts['default'])
             # get the PUnits
             l_punits=self.lsm.queryLSM(count=n_punits)
-            tab_margin=10
             for punit in l_punits:
               ttext=QString(punit.name+": brightness: "+str(punit.getBrightness())+", type: ")
               if punit.getType()==POINT_TYPE:
                 ttext=QString(ttext.ascii()+"Point")
               else:
                 ttext=QString(ttext.ascii()+"Patch")
+              # polarization
+              [qq,uu,vv]=extract_polarization_parms(punit.getSixpack(),self.lsm.getNodeScope())
+              ttext=QString(ttext.ascii()+" % ["+str(qq)+","+str(uu)+","+str(vv)+"]")
               pp.drawText(margin+tab_margin,margin+yPos,metrics.width(),fm.lineSpacing(),Qt.ExpandTabs|Qt.DontClip,ttext)
               yPos=yPos+fm.lineSpacing()
             # print each PUnit on a line
