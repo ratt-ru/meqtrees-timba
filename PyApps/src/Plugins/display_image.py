@@ -1139,8 +1139,17 @@ class QwtImageDisplay(QwtPlot):
     def calculate_cross_sections(self):
         """ calculate and display cross sections at specified location """
         _dprint(3, 'calculating cross-sections')
+
         shape = self.raw_array.shape
         _dprint(3, 'shape is ', shape)
+        q_line_size = 2
+        q_symbol_size = 5
+        q_flag_size = 20
+        q_size_split = 300
+        if shape[0] > q_size_split:
+          q_line_size = 1
+          q_symbol_size = 3
+          q_flag_size = 10
         self.x_array = zeros(shape[0], Float32)
         self.x_index = arange(shape[0])
         self.x_index = self.x_index + 0.5
@@ -1176,27 +1185,27 @@ class QwtImageDisplay(QwtPlot):
             self.xrCrossSection = self.insertCurve('xrCrossSection')
           else:
             self.xrCrossSection = self.insertCurve('xCrossSection')
-          self.setCurvePen(self.xrCrossSection, QPen(Qt.black, 2))
+          self.setCurvePen(self.xrCrossSection, QPen(Qt.black, q_line_size))
           plot_curve=self.curve(self.xrCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, 
-             QBrush(Qt.black), QPen(Qt.black), QSize(5,5)))
+             QBrush(Qt.black), QPen(Qt.black), QSize(q_symbol_size,q_symbol_size)))
         self.enableAxis(QwtPlot.yRight)
         self.setAxisTitle(QwtPlot.yRight, 'x cross-section value')
         self.setCurveYAxis(self.xrCrossSection, QwtPlot.yRight)
         if self.complex_type:
           if self.xiCrossSection is None:
             self.xiCrossSection = self.insertCurve('xiCrossSection')
-            self.setCurvePen(self.xiCrossSection, QPen(Qt.black, 2))
+            self.setCurvePen(self.xiCrossSection, QPen(Qt.black, q_line_size))
             plot_curve=self.curve(self.xiCrossSection)
             plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, 
-               QBrush(Qt.black), QPen(Qt.black), QSize(5,5)))
+               QBrush(Qt.black), QPen(Qt.black), QSize(q_symbol_size,q_symbol_size)))
             self.setCurveYAxis(self.xiCrossSection, QwtPlot.yRight)
         if self.yCrossSection is None:
           self.yCrossSection = self.insertCurve('yCrossSection')
-          self.setCurvePen(self.yCrossSection, QPen(Qt.white, 2))
+          self.setCurvePen(self.yCrossSection, QPen(Qt.white, q_line_size))
           plot_curve=self.curve(self.yCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, 
-             QBrush(Qt.white), QPen(Qt.white), QSize(5,5)))
+             QBrush(Qt.white), QPen(Qt.white), QSize(q_symbol_size,q_symbol_size)))
         self.enableAxis(QwtPlot.xTop)
         self.setAxisTitle(QwtPlot.xTop, 'y cross-section value')
         self.setCurveYAxis(self.yCrossSection, QwtPlot.yLeft)
@@ -1811,6 +1820,15 @@ class QwtImageDisplay(QwtPlot):
         self.setAxisScaleDraw(QwtPlot.yLeft, QwtScaleDraw())
         self._x_auto_scale = True
         self._y_auto_scale = True
+        q_line_size = 2
+        q_symbol_size = 5
+        q_flag_size = 20
+        q_size_split = 300
+        if num_elements > q_size_split:
+          q_line_size = 1
+          q_symbol_size = 3
+          q_flag_size = 10
+        
 
 # make sure grid markings are on in case an image was previously displayed
         self.enableGridX(True)
@@ -1881,16 +1899,16 @@ class QwtImageDisplay(QwtPlot):
             self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (blue line / green dots)')
           self.yCrossSection = self.insertCurve('yCrossSection')
           self.xrCrossSection = self.insertCurve('xCrossSection')
-          self.setCurvePen(self.xrCrossSection, QPen(Qt.black, 2))
-          self.setCurvePen(self.yCrossSection, QPen(Qt.blue, 2))
+          self.setCurvePen(self.xrCrossSection, QPen(Qt.black, q_line_size))
+          self.setCurvePen(self.yCrossSection, QPen(Qt.blue, q_line_size))
           self.setCurveYAxis(self.xrCrossSection, QwtPlot.yLeft)
           self.setCurveYAxis(self.yCrossSection, QwtPlot.yRight)
           plot_curve=self.curve(self.xrCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
-                     QPen(Qt.red), QSize(5,5)))
+                     QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
           plot_curve=self.curve(self.yCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
-                     QPen(Qt.green), QSize(5,5)))
+                     QPen(Qt.green), QSize(q_symbol_size,q_symbol_size)))
           self.x_array =  flattened_array.getreal()
           self.y_array =  flattened_array.getimag()
           if self.ampl_phase:
@@ -1902,8 +1920,8 @@ class QwtImageDisplay(QwtPlot):
           _dprint(3, 'plotting complex array with x values ', self.x_index)
           _dprint(3, 'plotting complex array with real values ', self.x_array)
           _dprint(3, 'plotting complex array with imag values ', self.y_array)
-          self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
           self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
+          self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
 
 # stuff for flags
           if not self._flags_array is None:
@@ -1913,7 +1931,7 @@ class QwtImageDisplay(QwtPlot):
             self.setCurveYAxis(self.real_flag_vector, QwtPlot.yLeft)
             plot_flag_curve = self.curve(self.real_flag_vector)
             plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
-                     QPen(Qt.black), QSize(20, 20)))
+                     QPen(Qt.black), QSize(q_flag_size, q_flag_size)))
             self.setCurveData(self.real_flag_vector, self.flags_x_index, self.flags_r_values)
 # Note: We don't show the flag data in the initial display
 # but toggle it on or off (ditto for imaginary data flags).
@@ -1924,7 +1942,7 @@ class QwtImageDisplay(QwtPlot):
             self.setCurveYAxis(self.imag_flag_vector, QwtPlot.yRight)
             plot_flag_curve = self.curve(self.imag_flag_vector)
             plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
-                     QPen(Qt.black), QSize(20, 20)))
+                     QPen(Qt.black), QSize(q_flag_size, q_flag_size)))
             self.setCurveData(self.imag_flag_vector, self.flags_x_index, self.flags_i_values)
             self.curve(self.imag_flag_vector).setEnabled(False)
 
@@ -1937,12 +1955,12 @@ class QwtImageDisplay(QwtPlot):
           self.y_array = zeros(num_elements, Float32)
           self.x_array =  flattened_array
           self.xrCrossSection = self.insertCurve('xCrossSection')
-          self.setCurvePen(self.xrCrossSection, QPen(Qt.black, 2))
+          self.setCurvePen(self.xrCrossSection, QPen(Qt.black, q_line_size))
           self.setCurveStyle(self.xrCrossSection,Qt.SolidLine)
           self.setCurveYAxis(self.xrCrossSection, QwtPlot.yLeft)
           plot_curve=self.curve(self.xrCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
-                     QPen(Qt.red), QSize(5,5)))
+                     QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
           self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
 
 # stuff for flags
@@ -1953,7 +1971,7 @@ class QwtImageDisplay(QwtPlot):
             self.setCurveYAxis(self.real_flag_vector, QwtPlot.yLeft)
             plot_flag_curve = self.curve(self.real_flag_vector)
             plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
-                     QPen(Qt.black), QSize(20, 20)))
+                     QPen(Qt.black), QSize(q_flag_size, q_flag_size)))
             self.setCurveData(self.real_flag_vector, self.flags_x_index, self.flags_r_values)
             self.curve(self.real_flag_vector).setEnabled(False)
 
