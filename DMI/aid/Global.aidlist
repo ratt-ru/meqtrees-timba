@@ -293,6 +293,7 @@ MeqClient                        1544       ; from /home/oms/LOFAR/Timba/MeqServ
 #MeqCompiledFunklet              1583       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/CompiledFunklet.h:18
 MeqComposedPolc                  1582       ; from /home/oms/LOFAR/Timba/MEQ/src/ComposedPolc.h:9
 #MeqComposer                     1442       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Composer.h:30
+#MeqCompounder                   1664       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Compounder.h:32
 #MeqCondeq                       1443       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:31
 #MeqConj                         1394       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Conj.h:30
 #MeqConstant                     1438       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Constant.h:34
@@ -317,7 +318,7 @@ MeqFunklet                       1321       ; from /home/oms/LOFAR/Timba/MEQ/src
 #MeqHistoryCollect               1574       ; from /home/oms/LOFAR/Timba/MeqNodes/src/HistoryCollect.h:29
 #MeqImag                         1427       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Imag.h:29
 MeqImage                         1646       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Image.h:32
-#MeqInterpolate                  1662       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Interpolate.h:32
+MeqInterpolate                   1662       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Interpolate.h:32
 #MeqInvert                       1507       ; from /home/assendorp/LOFAR/Timba/MeqNodes/src/Invert.h:29
 #MeqLMN                          1410       ; from /home/oms/LOFAR/Timba/MeqNodes/src/LMN.h:30
 #MeqLog                          1397       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Log.h:29
