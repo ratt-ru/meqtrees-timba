@@ -9,6 +9,7 @@
 #    - 16 oct 2005: creation
 #    - 18 oct 2005: move Dipole to TDL_Dipole.py
 #    - 03 dec 2005: TDL_display.py
+#    - 28 mar 2005: added mt_polling=True to some Meq.Add nodes
 #
 # Full description:
 # Various classes:
@@ -788,7 +789,7 @@ class Array (Antenna):
             for k in range(self.nantel()):
                 cc.append(self.antel()[k].subtree_sensit(ns, **pp))
             name = 'sensit_'+self.tlabel()
-            node = ns[name](uniqual) << Meq.Add(children=cc)
+            node = ns[name](uniqual) << Meq.Add(children=cc, mt_polling=True)
             Antenna.subtree_sensit(self, new=node)
         return Antenna.subtree_sensit(self)
 
@@ -807,7 +808,7 @@ class Array (Antenna):
             el = TDL_Leaf.MeqElevation(ns)
             dxcosaz = ns.xcosaz(uniqual) << Meq.Multiply(Meq.Cos(az),self.leaf_dx(ns))
             dysinaz = ns.ysinaz(uniqual) << Meq.Multiply(Meq.Sin(az),self.leaf_dy(ns))
-            xyaz = ns << Meq.Add(dxcosaz, dysinaz)
+            xyaz = ns << Meq.Add(dxcosaz, dysinaz, mt_polling=True)
             cosel = ns << Meq.Cos(el)
             pi2 = TDL_Leaf.const_2pi(ns)
             wvlinv = TDL_Leaf.MeqInverseWavelength(ns)
@@ -818,7 +819,7 @@ class Array (Antenna):
                 el0 = ns.el0(uniqual) << Meq.Parm(pp['el0'])
                 dxcosaz0 = ns.xcosaz0(uniqual) << Meq.Multiply(Meq.Cos(az0),self.leaf_dx(ns))
                 dysinaz0 = ns.ysinaz0(uniqual) << Meq.Multiply(Meq.Sin(az0),self.leaf_dy(ns))
-                xyaz0 = ns << Meq.Add(dxcosaz0, dysinaz0)
+                xyaz0 = ns << Meq.Add(dxcosaz0, dysinaz0, mt_polling=True)
                 cosel0 = ns << Meq.Cos(el0)
                 delay0 = ns.delay0(uniqual) << Meq.Multiply(cosel0, wvlinv, pi2, xyaz0)  # 2pi*sin(el0)*xyaz0/wvl
                 delay = ns.ddelay(uniqual) << Meq.Subtract(delay,delay0)
@@ -850,7 +851,7 @@ class Array (Antenna):
                         # Assume that elements have different voltage beams:
                         cc.append(ns[name](uniqual) << Meq.Multiply(bf_wgt[i],vbeam[i][k]))
                 name = 'voltage_beam_'+str(k+1)+'_'+self.tlabel()
-                vb = ns[name](uniqual) << Meq.Add(children=cc)
+                vb = ns[name](uniqual) << Meq.Add(children=cc, mt_polling=True)
                 Antenna.subtree_voltage_beam(self, clear=(k==0), append=vb)
 
                     

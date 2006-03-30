@@ -22,6 +22,7 @@
 #    - 01 mar 2006: implemented MG_JEN_simul support
 #    - 01 mar 2006: moved check_skip() to JEN_inarg.py
 #    - 02 mar 2006: elaborated help menu a bit....
+#    - 29 mar 2006: made .callback_punit() depend on qual
 #
 # Full description:
 #
@@ -88,7 +89,7 @@ class MyListViewItem (QListViewItem):
 
 class ArgBrowser(QMainWindow):
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, callback=None):
 
         if not parent:
             self.__QApp = QApplication(sys.argv)
@@ -185,26 +186,14 @@ class ArgBrowser(QMainWindow):
             submenu.insertItem('-> fdeg_6', self.fdeg_6)
             submenu.insertItem('-> fdeg_7', self.fdeg_7)
             menu.insertItem('-> tf_shape', submenu)
-        if True:
+        # Attach the specified callback functions as menu-items (if any):
+        # (See for instance MG_JEN_cps.py)
+        if isinstance(callback, dict):
             menu.insertSeparator()     
-            submenu = QPopupMenu(menu)
-            submenu.insertItem('-> cps_stokesI', self.cps_stokesI)
-            submenu.insertItem('-> cps_GJones', self.cps_GJones)
-            submenu.insertItem('-> cps_Gphase', self.cps_Gphase)
-            submenu.insertItem('-> cps_Ggain', self.cps_Ggain)
-            submenu.insertItem('-> cps_GDJones', self.cps_GDJones)
-            submenu.insertItem('-> cps_JJones', self.cps_JJones)
-            submenu.insertItem('-> cps_BJones', self.cps_BJones)
-            submenu.insertItem('-> cps_DJones', self.cps_DJones)
-            menu.insertItem('-> (cps_)XJones', submenu)
-        if True:
-            # Generate the 'standard' .inarg record files starting from the (new)
-            # default version. (NB: what about .upgrade()...?)
-            # NB: This one should perhaps only be available from the command-line....
-            menu.insertSeparator()     
-            menu.insertItem('-> cps_all(incl.protected)', self.cps_all)
-            menu.insertItem('-> lsm_all(incl.protected)', self.lsm_all)
-            menu.insertItem('-> simul_all(incl.protected)', self.simul_all)
+            self.__callback = callback
+            for key in self.__callback.keys():
+                rr = self.__callback[key]
+                menu.insertItem(rr['prompt'], self.__callback[key]['callback'])
         self.__menubar.insertItem('convert', menu)
 
 
@@ -255,17 +244,18 @@ class ArgBrowser(QMainWindow):
         self.__listview = QListView(self)
         # self.setCentralWidget(self.__listview)
         vbox.addWidget(self.__listview)
+        vbox.setStretchFactor(self.__listview, 5)
 
         color = QColor()
-        color.setRgb(240,240,255)           # 0-255
+        color.setRgb(240,240,255)                      # 0-255
         self.__listview.setPaletteBackgroundColor(color)
 
-        self.__listview.addColumn("name", 300)
+        self.__listview.addColumn("name", 350)
         self.__listview.addColumn("value",200)
         self.__listview.addColumn("help", 500)
         self.__listview.addColumn("iitd")
         self.__listview.addColumn("order")
-        self.__listview.setSorting(4)       # sort on 'order' 
+        self.__listview.setSorting(4)                  # sort on 'order' 
         self.__listview.setRootIsDecorated(1)
 
         self.__find_item = None
@@ -280,6 +270,8 @@ class ArgBrowser(QMainWindow):
             vtbox = QHBoxLayout(hbox)
             self.__tw = QTextEdit(self)
             self.__tw.setReadOnly(True)
+            # self.__tw.resizeContents(1000,500)  # has NO effect....
+            vbox.setStretchFactor(self.__tw, 1)
             hbox.addWidget(self.__tw)
             
             b = QPushButton('F\nl\no\na\nt', self)
@@ -378,7 +370,7 @@ class ArgBrowser(QMainWindow):
             self.__floatw.close()
             self.__floatw = None
         self.__itemdict = []                       # list of itd records
-        self.__setOpen = dict()        
+        # self.__setOpen = dict()        
         self.__CTRL_count = 1000                   # for generating unique numbers
         self.__record_count = 2000                 # for generating unique numbers
         self.__sep_count = 5000                    # for generating unique numbers
@@ -481,7 +473,7 @@ class ArgBrowser(QMainWindow):
     def test_OK(self, judgement=True):
         """Test whether the current inarg record is OK"""
         s1 = '** test:  '
-        ok = JEN_inarg.is_OK(self.__inarg, trace=True)
+        ok = JEN_inarg.is_OK(self.__inarg, trace=False)
         if not ok:
             for field in ['ERROR', 'WARNING']:
                 n = JEN_inarg.count(self.__inarg, field)
@@ -491,8 +483,8 @@ class ArgBrowser(QMainWindow):
         if True:
             # See whether there are any unresolved references:
             inarg = deepcopy(self.__inarg)
-            JEN_inarg._replace_reference(inarg, trace=True)
-            rr = JEN_inarg._count_reference(inarg, trace=True)
+            JEN_inarg._replace_reference(inarg, trace=False)
+            rr = JEN_inarg._count_reference(inarg, trace=False)
             if rr['n']>0:
                 ok = False
                 s1 += '  (unresolved: '+str(rr)+') '
@@ -504,7 +496,7 @@ class ArgBrowser(QMainWindow):
 
     def count_ref(self):
         """Count the nr of unresolved (@, @@) references"""
-        rr = JEN_inarg._count_reference(self.__inarg, trace=True)
+        rr = JEN_inarg._count_reference(self.__inarg, trace=False)
         s1 = '** unresolved references:  '
         s1 += '  @='+str(rr['n1'])+'  @@='+str(rr['n2'])
         self.__message.setText(s1)
@@ -512,7 +504,7 @@ class ArgBrowser(QMainWindow):
 
     def replace_ref(self):
         """Resolve any unresolved (@, @@) references"""
-        JEN_inarg._replace_reference(self.__inarg, trace=True)
+        JEN_inarg._replace_reference(self.__inarg, trace=False)
         self.refresh()
         return self.count_ref()
 
@@ -792,16 +784,18 @@ class ArgBrowser(QMainWindow):
         return self.tw(ss)
 
     def viewMeqTrees(self):
-        return self.tw('MeqTrees')
+        return self.tw('MeqTrees are great')
 
     def viewMGScripts(self):
-        return self.tw('MG Scripts')
+        return self.tw('MG Scripts are great')
 
     def viewDescription(self):
         return self.tw(self.view('description'))
 
     def viewSpecific(self):
-        return self.tw(self.view('inarg_specific', recurse=False))
+        # ss = self.view('inarg_specific', recurse=False)
+        ss = JEN_inarg.specific (self.__inarg)
+        return self.tw(ss)
 
     def editDescription(self):
         ss = JEN_inarg.CTRL(self.__inarg, 'description')
@@ -857,6 +851,10 @@ class ArgBrowser(QMainWindow):
         and record the result for later comparison (xxx.dataassay)"""
         return self.assay(switch='-assayrecord')
 
+    def inarg (self):
+        """Access to the current inarg record"""
+        return self.__inarg
+
     def inargDisplay (self):
         """Display the current inarg record"""
         ss = JEN_inarg.display(self.__inarg, full=False)
@@ -871,7 +869,7 @@ class ArgBrowser(QMainWindow):
         """Show the resulting pp record as it would be inside the target,
         with all the referenced values replaced"""
         pp = JEN_inarg.inarg2pp(self.__inarg)
-        JEN_inarg.getdefaults(pp, check=True, strip=False, trace=True)
+        JEN_inarg.getdefaults(pp, check=True, strip=False, trace=False)
         ss = JEN_inarg.display(pp, full=False)
         # NB: Use JEN_inspect.....
         return self.tw(ss)
@@ -1102,7 +1100,7 @@ class ArgBrowser(QMainWindow):
 
     def make_itd(self, key, value, ctrl=None,
                  color='black', hide=False,
-                 module='<module>',
+                 module='<module>', qual=None,
                  save=True, level=0, trace=False):
         """Make an itd record from the given value and ctrl-record"""
         itd = dict(key=str(key),
@@ -1121,6 +1119,7 @@ class ArgBrowser(QMainWindow):
                    browse=None,               # Extension of files ('e.g *.MS')
                    callback=None,             # see valueChanged()
                    module=module,             # name of the relevant function module
+                   qual=None,                 # its qualifier
                    oneliner='<oneliner>',
                    description='<description>',            
                    level=level,               # inarg hierarchy level
@@ -1128,8 +1127,8 @@ class ArgBrowser(QMainWindow):
 
         # If ctrl is a record, use its information:
         if isinstance(ctrl, dict):
-            # First some overall fields:
-            overall = ['color','oneliner','description']
+            # First some overall (script_specific) fields:
+            overall = ['color','oneliner','description','qual']
             for field in overall:
                 if ctrl.has_key(field):
                     itd[field] = ctrl[field]
@@ -1175,11 +1174,16 @@ class ArgBrowser(QMainWindow):
     def itemSelected(self, item):
         """Deal with a selected listview item"""
 
+        trace = False
+        s1 = '.itemSelected(): '
+
         # Disable (see also below):
         self.__find_item = None
 
         # If +/- clicked, the item is None:
-        if not item: return False
+        if not item:
+            print s1,'no item: type =',type(item)
+            return False
         
         # Read the (string) values from the columns:
         key = str(item.text(0))            
@@ -1192,14 +1196,18 @@ class ArgBrowser(QMainWindow):
 
         # Use the iitd string to get the relevant itemdict record:
         if iitd==' ': iitd = '-1'
+        s1 += ' key='+str(key)+' (iitd='+str(iitd)+', unique='+str(unique)+'): '
         try:
             iitd = int(iitd)
         except:
-            # print sys.exc_info()
+            if trace:
+                print s1,'error'
+                print sys.exc_info()
             return False
 
         if iitd>=0:
             # A regular item: launch a popup for editing:
+            if trace: print s1,'regular item: launch a popup'
             itd = self.__itemdict[iitd]
             self.__current_iitd = iitd
             self.__find_item = unique
@@ -1210,11 +1218,16 @@ class ArgBrowser(QMainWindow):
 
         elif iitd<-2000:
             # A record (see self.__record_count): open or close it (toggle):
+            had = self.__setOpen.has_key(key)
             self.__setOpen.setdefault(key, False)
+            was = self.__setOpen[key]
             self.__setOpen[key] = not self.__setOpen[key]   # toggle
             self.__find_item = unique
+            if trace: print s1,'record: setOpen[key]:',had,was,'->',self.__setOpen[key]
             self.refresh()
-            self.tw(JEN_inarg.description(self.__inarg, module=key))
+            # Display the description of this module:
+            descr = JEN_inarg.description(self.__inarg, module=key)
+            self.tw('** Description of module:   '+key+':\n\n   '+descr)
 
         elif iitd<-1000:
             # A CTRL record (see self.__CTRL_count):
@@ -1222,8 +1235,13 @@ class ArgBrowser(QMainWindow):
             key1 = CTRL_record+'_'+str(CTRL_ident)          # unique name
             self.__setOpen.setdefault(key1, False)
             self.__setOpen[key1] = not self.__setOpen[key1] # toggle
+            if trace: print s1,'CTRL record: setOpen[key1] ->',self.__setOpen[key1]
             self.__find_item = unique
             self.refresh()
+
+        else:
+            print s1,'** iitd not recognised **'
+            
         return True
 
     #-------------------------------------------------------------------------------
@@ -1244,17 +1262,17 @@ class ArgBrowser(QMainWindow):
         if itd['callback']:
             print '\n** popupOK(): callback =',itd['callback'],'\n'
             if itd['key']=='punit':
-                self.callback_punit(itd['value'])
+                self.callback_punit(itd['value'], qual=itd['qual'])
         self.refresh()
         return True
 
-    def callback_punit(self, punit):
-        """Kludge"""
+    def callback_punit(self, punit, qual=None):
+        """Kludge to modify all NEWSTAR parameters for a predefined punit"""
         from Timba.Contrib.JEN import MG_JEN_Sixpack
         pp = dict(punit=punit)
         MG_JEN_Sixpack.predefined(pp)
         print '** callback_punit(',punit,'): predefined(pp) ->\n   ',pp,'\n'
-        pp[option_field] = dict(severe=False)
+        pp[option_field] = dict(severe=False, qual=qual)
         JEN_inarg.modify(self.__inarg, **pp)
         return True
 
@@ -1436,265 +1454,6 @@ class ArgBrowser(QMainWindow):
         self.tdeg(2)
         self.__message.setText('** modified inarg for large_tile operation')
         return True
-
-
-    #------------------------------------------------------------------------
-    # MG_JEN_lsm.py
-    #------------------------------------------------------------------------
-
-    def lsm_all(self):
-        """Modify the MG_JEN_lsm inarg to multiple inarg files"""
-        if not self.macron_entry('MG_JEN_lsm', revert=True): return False
-        self.__message.setText('** recreating all MG_JEN_lsm .inargs ...')
-        self.lsm_single(revert=True, save_protected=True)
-        self.lsm_double(revert=True, save_protected=True)
-        self.lsm_grid(revert=True, save_protected=True)
-        self.lsm_spiral(revert=True, save_protected=True)
-        self.__message.setText('** recreated all MG_JEN_lsm .inargs (incl. protected)')
-        return True
-
-    def lsm_single(self, revert=False, save_protected=False):
-        """Modify MG_JEN_lsm inarg for single operation"""
-        if not self.macron_entry('MG_JEN_lsm', revert): return False
-        JEN_inarg.specific(self.__inarg, self.lsm_single.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         # input_LSM='lsm_current.lsm',
-                         save_as_current=True,
-                         test_pattern='single',
-                         _JEN_inarg_option=None)     
-        return self.macron_exit('MG_JEN_lsm_single', save_protected)
-
-    def lsm_double(self, revert=False, save_protected=False):
-        """Modify MG_JEN_lsm inarg for double operation"""
-        if not self.macron_entry('MG_JEN_lsm', revert): return False
-        JEN_inarg.specific(self.__inarg, self.lsm_double.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         # input_LSM='lsm_current.lsm',
-                         save_as_current=True,
-                         test_pattern='double',
-                         _JEN_inarg_option=None)     
-        return self.macron_exit('MG_JEN_lsm_double', save_protected)
-
-    def lsm_grid(self, revert=False, save_protected=False):
-        """Modify MG_JEN_lsm inarg for grid operation"""
-        if not self.macron_entry('MG_JEN_lsm', revert): return False
-        JEN_inarg.specific(self.__inarg, self.lsm_grid.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         # input_LSM='lsm_current.lsm',
-                         save_as_current=True,
-                         test_pattern='grid',
-                         _JEN_inarg_option=None)     
-        return self.macron_exit('MG_JEN_lsm_grid', save_protected)
-
-    def lsm_spiral(self, revert=False, save_protected=False):
-        """Modify MG_JEN_lsm inarg for spiral operation"""
-        if not self.macron_entry('MG_JEN_lsm', revert): return False
-        JEN_inarg.specific(self.__inarg, self.lsm_spiral.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         # input_LSM='lsm_current.lsm',
-                         save_as_current=True,
-                         test_pattern='spiral',
-                         _JEN_inarg_option=None)     
-        return self.macron_exit('MG_JEN_lsm_spiral', save_protected)
-
-
-    #------------------------------------------------------------------------
-    # MG_JEN_simul.py
-    #------------------------------------------------------------------------
-
-    def simul_all(self):
-        """Modify the MG_JEN_simul inarg to multiple inarg files"""
-        if not self.macron_entry('MG_JEN_simul', revert=True): return False
-        self.__message.setText('** recreating all MG_JEN_simul .inargs ...')
-        self.simul_GJones(revert=True, save_protected=True)
-        self.simul_DJones(revert=True, save_protected=True)
-        self.simul_lsm_GJones(revert=True, save_protected=True)
-        self.__message.setText('** recreated all MG_JEN_simul .inargs (incl. protected)')
-        return True
-
-    def simul_lsm_GJones(self, revert=False, save_protected=False):
-        """Modify MG_JEN_simul inarg for lsm_GJones corruption"""
-        if not self.macron_entry('MG_JEN_simul', revert): return False
-        JEN_inarg.specific(self.__inarg, self.simul_lsm_GJones.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         LSM_simul='lsm_current.lsm',
-                         nr_lsm_sources=2,
-                         Jsequence_simul_uvp=['GJones'],
-                         # Jsequence_simul_imp=[],
-                         insert_solver=False,
-                         LSM_solve='lsm_current.lsm',
-                         Jsequence_solve_uvp=['GJones'],
-                         solvegroup=['GJones'],
-                         parmtable='simul_lsm_GJones',
-                         num_iter=2,
-                         _JEN_inarg_option=None)     
-        return self.macron_exit('MG_JEN_simul_lsm_GJones', save_protected)
-
-    def simul_GJones(self, revert=False, save_protected=False):
-        """Modify MG_JEN_simul inarg for GJones corruption"""
-        if not self.macron_entry('MG_JEN_simul', revert): return False
-        JEN_inarg.specific(self.__inarg, self.simul_GJones.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         Jsequence_simul_uvp=['GJones'],
-                         Jsequence_solve_uvp=['GJones'],
-                         solvegroup=['GJones'],
-                         parmtable='simul_GJones',
-                         num_iter=2,
-                         _JEN_inarg_option=None)     
-        return self.macron_exit('MG_JEN_simul_GJones', save_protected)
-
-    def simul_DJones(self, revert=False, save_protected=False):
-        """Modify MG_JEN_simul inarg for DJones corruption"""
-        if not self.macron_entry('MG_JEN_simul', revert): return False
-        JEN_inarg.specific(self.__inarg, self.simul_DJones.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         Jsequence_simul_uvp=['DJones_WSRT'],
-                         Jsequence_solve_uvp=['DJones_WSRT'],
-                         solvegroup=['DJones'],
-                         parmtable='simul_DJones',
-                         num_iter=2,
-                         _JEN_inarg_option=None)     
-        self.callback_punit('QU')
-        return self.macron_exit('MG_JEN_simul_DJones', save_protected)
-
-
-    #------------------------------------------------------------------------
-    # MG_JEN_cps.py
-    #------------------------------------------------------------------------
-
-    def cps_all(self):
-        """Modify the MG_JEN_cps inarg to multiple inarg files"""
-        if not self.macron_entry('MG_JEN_cps', revert=True): return False
-        self.__message.setText('** recreating all MG_JEN_cps .inargs ...')
-        self.cps_inspect(revert=True, save_protected=True)
-        self.cps_GJones(revert=True, save_protected=True)
-        self.cps_Gphase(revert=True, save_protected=True)
-        self.cps_Ggain(revert=True, save_protected=True)
-        self.cps_GDJones(revert=True, save_protected=True)
-        self.cps_JJones(revert=True, save_protected=True)
-        self.cps_BJones(revert=True, save_protected=True)
-        self.cps_DJones(revert=True, save_protected=True)
-        self.cps_stokesI(revert=True, save_protected=True)
-        self.__message.setText('** recreated all MG_JEN_cps .inargs (incl. protected)')
-        return True
-
-    def cps_GJones(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for GJones operation"""
-        # if not self.macron_entry('MG_JEN_cps', revert): return False
-        if revert==True: self.revert_inarg()
-        JEN_inarg.specific(self.__inarg, self.cps_GJones.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         Jsequence=['GJones'],
-                         solvegroup=['GJones'],
-                         _JEN_inarg_option=None)     
-        self.per_timeslot()
-        return self.macron_exit('MG_JEN_cps_GJones', save_protected)
-
-    def cps_Gphase(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for Gphase operation"""
-        # if not self.macron_entry('MG_JEN_cps', revert): return False
-        if revert==True: self.revert_inarg()
-        JEN_inarg.specific(self.__inarg, self.cps_Gphase.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         Jsequence=['GJones'],
-                         solvegroup=['Gphase'],
-                         condeq_unop='Arg',
-                         _JEN_inarg_option=None)     
-        self.per_timeslot()
-        return self.macron_exit('MG_JEN_cps_Gphase', save_protected)
-
-    def cps_Ggain(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for Ggain operation"""
-        # if not self.macron_entry('MG_JEN_cps', revert): return False
-        if revert==True: self.revert_inarg()
-        JEN_inarg.specific(self.__inarg, self.cps_Ggain.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         Jsequence=['GJones'],
-                         solvegroup=['Ggain'],
-                         condeq_unop='Abs',
-                         _JEN_inarg_option=None)     
-        self.per_timeslot()
-        return self.macron_exit('MG_JEN_cps_Ggain', save_protected)
-
-    def cps_GDJones(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for GDJones (WSRT) operation"""
-        # if not self.macron_entry('MG_JEN_cps', revert): return False
-        if revert==True: self.revert_inarg()
-        JEN_inarg.specific(self.__inarg, self.cps_GDJones.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         Jsequence=['GJones','DJones_WSRT'],
-                         solvegroup=['GJones','DJones'],
-                         _JEN_inarg_option=None)     
-        self.callback_punit('QU')
-        return self.macron_exit('MG_JEN_cps_GDJones', save_protected)
-
-    def cps_JJones(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for JJones operation"""
-        # if not self.macron_entry('MG_JEN_cps', revert): return False
-        if revert==True: self.revert_inarg()
-        JEN_inarg.specific(self.__inarg, self.cps_JJones.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         Jsequence=['JJones'],
-                         solvegroup=['JJones'],
-                         _JEN_inarg_option=None)     
-        self.callback_punit('QUV')
-        return self.macron_exit('MG_JEN_cps_JJones', save_protected)
-
-    def cps_BJones(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for BJones operation"""
-        # if not self.macron_entry('MG_JEN_cps', revert): return False
-        if revert==True: self.revert_inarg()
-        JEN_inarg.specific(self.__inarg, self.cps_BJones.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         data_column_name='CORRECTED_DATA',
-                         Jsequence=['BJones'],
-                         solvegroup=['BJones'],
-                         tdeg_Breal=1, fdeg_Breal=6,
-                         tdeg_Bimag='@tdeg_Breal', fdeg_Bimag='@fdeg_Breal',
-                         _JEN_inarg_option=None)     
-        return self.macron_exit('MG_JEN_cps_BJones', save_protected)
-
-    def cps_DJones(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for DJones (WSRT) operation"""
-        # if not self.macron_entry('MG_JEN_cps', revert): return False
-        if revert==True: self.revert_inarg()
-        JEN_inarg.specific(self.__inarg, self.cps_DJones.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         data_column_name='CORRECTED_DATA',
-                         Jsequence=['DJones_WSRT'],
-                         solvegroup=['DJones'],
-                         _JEN_inarg_option=None)     
-        self.callback_punit('QU')
-        return self.macron_exit('MG_JEN_cps_DJones', save_protected)
-
-    def cps_stokesI(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for stokesI operation"""
-        # if not self.macron_entry('MG_JEN_cps', revert): return False
-        if revert==True: self.revert_inarg()
-        JEN_inarg.specific(self.__inarg, self.cps_stokesI.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         data_column_name='CORRECTED_DATA',
-                         solvegroup=['stokesI'],
-                         _JEN_inarg_option=None)     
-        return self.macron_exit('MG_JEN_cps_stokesI', save_protected)
-
-    #----------------------------------------------------------------------------
-
-    def cps_inspect(self, revert=False, save_protected=False):
-        """Modify MG_JEN_cps inarg for inspect operation(s)"""
-        if not self.macron_entry('MG_JEN_cps', revert): return False
-        JEN_inarg.specific(self.__inarg, self.cps_inspect.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         insert_solver=False,
-                         tile_size=1,
-                         _JEN_inarg_option=None)     
-        self.macron_exit('MG_JEN_cps_inspect', save_protected)
-        #......................................................
-        JEN_inarg.specific(self.__inarg, self.cps_inspect.__doc__)
-        JEN_inarg.modify(self.__inarg,
-                         data_column_name='CORRECTED_DATA',
-                         _JEN_inarg_option=None)     
-        return self.macron_exit('MG_JEN_cps_inspect_CORRECTED_DATA', save_protected)
 
 
 

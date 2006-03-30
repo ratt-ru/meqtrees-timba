@@ -22,6 +22,7 @@ from Timba.TDL import *
 # from Timba.Meq import meq
 
 from numarray import *
+from copy import deepcopy
 
 from Timba.Trees import JEN_inarg
 from Timba.Trees import JEN_inargGui
@@ -56,6 +57,187 @@ except:
 #********************************************************************************
 
 
+
+def predefine_inargs():
+   """Modify the default inarg record (MG) to predefined inarg record files"""
+   global MG
+   print '\n** Predefining',MG['script_name'],'inarg records...\n'
+   cps_inspect_DATA(deepcopy(MG), trace=True)
+   cps_inspect_CORRECTED_DATA(deepcopy(MG), trace=True)
+   cps_GJones(deepcopy(MG), trace=True)
+   cps_Gphase(deepcopy(MG), trace=True)
+   cps_Ggain(deepcopy(MG), trace=True)
+   cps_GDJones(deepcopy(MG), trace=True)
+   cps_JJones(deepcopy(MG), trace=True)
+   cps_BJones(deepcopy(MG), trace=True)
+   cps_DJones(deepcopy(MG), trace=True)
+   cps_stokesI(deepcopy(MG), trace=True)
+   print '\n** Predefined',MG['script_name'],'inarg records (incl. protected)\n'
+   return True
+
+#--------------------------------------------------------------------
+
+def cps_GJones(inarg, trace=True):
+   """Predefined inarg record for solving for GJones on a Central Point Source"""
+   filename = 'MG_JEN_cps_GJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, cps_GJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    Jsequence=['GJones'],
+                    solvegroup=['GJones'],
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.per_timeslot(inarg)
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def cps_Gphase(inarg, trace=True):
+   """Predefined inarg record for solving for Gphase on a Central Point Source"""
+   filename = 'MG_JEN_cps_Gphase'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, cps_Gphase.__doc__)
+   JEN_inarg.modify(inarg,
+                    Jsequence=['GJones'],
+                    solvegroup=['Gphase'],
+                    condeq_unop='Arg',
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.per_timeslot(inarg)
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def cps_Ggain(inarg, trace=True):
+   """Predefined inarg record for solving for Ggain on a Central Point Source"""
+   filename = 'MG_JEN_cps_Ggain'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, cps_Ggain.__doc__)
+   JEN_inarg.modify(inarg,
+                    Jsequence=['GJones'],
+                    solvegroup=['Ggain'],
+                    condeq_unop='Abs',
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.per_timeslot(inarg)
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def cps_GDJones(inarg, trace=True):
+   """Predefined inarg record for solving for GDJones on a Central Point Source"""
+   filename = 'MG_JEN_cps_GDJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, cps_GDJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    Jsequence=['GJones','DJones_WSRT'],
+                    solvegroup=['GJones','DJones'],
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.callback_punit(inarg, 'QU')
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def cps_JJones(inarg, trace=True):
+   """Predefined inarg record for solving for JJones on a Central Point Source"""
+   filename = 'MG_JEN_cps_JJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, cps_JJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    Jsequence=['JJones'],
+                    solvegroup=['JJones'],
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.callback_punit(inarg, 'QUV')
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def cps_BJones(inarg, trace=True):
+   """Predefined inarg record for solving for BJones on a Central Point Source"""
+   filename = 'MG_JEN_cps_BJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, cps_BJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    data_column_name='CORRECTED_DATA',
+                    Jsequence=['BJones'],
+                    solvegroup=['BJones'],
+                    tdeg_Breal=1, fdeg_Breal=6,
+                    tdeg_Bimag='@tdeg_Breal',
+                    fdeg_Bimag='@fdeg_Breal',
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def cps_DJones(inarg, trace=True):
+   """Predefined inarg record for solving for DJones on a Central Point Source"""
+   filename = 'MG_JEN_cps_DJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, cps_DJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    data_column_name='CORRECTED_DATA',
+                    Jsequence=['DJones_WSRT'],
+                    solvegroup=['DJones'],
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.callback_punit(inarg, 'QU')
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def cps_stokesI(inarg, trace=True):
+   """Predefined inarg record for solving for stokesI on a Central Point Source"""
+   filename = 'MG_JEN_cps_stokesI'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, cps_stokesI.__doc__)
+   JEN_inarg.modify(inarg,
+                    data_column_name='CORRECTED_DATA',
+                    solvegroup=['stokesI'],
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def cps_inspect_DATA(inarg, trace=True):
+   """Predefined inarg record for inspecting the MS DATA column"""
+   filename = 'MG_JEN_cps_inspect_DATA'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, cps_inspect_DATA.__doc__)
+   JEN_inarg.modify(inarg,
+                    insert_solver=False,
+                    tile_size=1,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def cps_inspect_CORRECTED_DATA(inarg, trace=True):
+   """Predefined inarg record for inspecting a MS CORRECTED_DATA column"""
+   filename = 'MG_JEN_cps_inspect_CORRECTED_DATA'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, cps_inspect_CORRECTED_DATA.__doc__)
+   JEN_inarg.modify(inarg,
+                    insert_solver=False,
+                    tile_size=1,
+                    data_column_name='CORRECTED_DATA',
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
 
 
 
@@ -112,13 +294,22 @@ def _description():
     """
     return True
 
+def default_inarg ():
+    """This default inarg record does nothing specific in its present form.
+    Of course it may be edited to create (or modify) a wide range of Local
+    Sky Models. But it is often more convenient to use one of the predefined
+    inarg records for this TDL script as a starting point (use Open).
+    """
+    return True
+
 
 
 #----------------------------------------------------------------------------------------------------
 # Intialise the MG control record with some overall arguments 
 #----------------------------------------------------------------------------------------------------
 
-MG = JEN_inarg.init('MG_JEN_cps', description=_description.__doc__)
+MG = JEN_inarg.init('MG_JEN_cps', description=_description.__doc__,
+                    inarg_specific=default_inarg.__doc__)
 
 JEN_inarg.define (MG, 'insert_solver', tf=True,
                   help='if True, insert a solver')
@@ -213,8 +404,10 @@ def _tdl_predefine (mqs, parent, **kwargs):
     res = True
     if parent:
         QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
+        callback = dict()
+        callback['0'] = dict(prompt='predefine inargs', callback=predefine_inargs)
         try:
-            igui = JEN_inargGui.ArgBrowser(parent)
+            igui = JEN_inargGui.ArgBrowser(parent, callback=callback)
             igui.input(MG, set_open=False)
             res = igui.exec_loop()
             if res is None:

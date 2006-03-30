@@ -37,7 +37,7 @@ from Timba.Trees import JEN_inargGui
 
 from numarray import *
 # from string import *
-# from copy import deepcopy
+from copy import deepcopy
 from random import *
 
 # Scripts needed to run a MG_JEN script: 
@@ -520,6 +520,89 @@ def add_spiral (ns=None, lsm=None, **inarg):
 
 
 
+#================================================================================
+#================================================================================
+#================================================================================
+# Predefined inarg records:
+#================================================================================
+
+
+def predefine_inargs():
+   """Modify the default inarg record (MG) to predefined inarg record files"""
+   global MG
+   print '\n** Predefining',MG['script_name'],'inarg records...\n'
+   lsm_single(deepcopy(MG), trace=True)
+   lsm_double(deepcopy(MG), trace=True)
+   lsm_grid(deepcopy(MG), trace=True)
+   lsm_spiral(deepcopy(MG), trace=True)
+   print '\n** Predefined',MG['script_name'],'inarg records (incl. protected)\n'
+   return True
+
+#--------------------------------------------------------------------
+
+def lsm_single(inarg, trace=True):
+   """Predefined inarg record for adding a single test-source to an LSM."""
+   filename = 'MG_JEN_lsm_single'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, lsm_single.__doc__)
+   JEN_inarg.modify(inarg,
+                    # input_LSM='lsm_current.lsm',
+                    save_as_current=True,
+                    test_pattern='single',
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def lsm_double(inarg, trace=True):
+   """Predefined inarg record for adding two (different) test-sources to an LSM"""
+   filename = 'MG_JEN_lsm_double'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, lsm_double.__doc__)
+   JEN_inarg.modify(inarg,
+                    # input_LSM='lsm_current.lsm',
+                    save_as_current=True,
+                    test_pattern='double',
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.callback_punit(inarg, 'unpol', qual='double_1')
+   JEN_inarg.callback_punit(inarg, 'QU', qual='double_2')
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def lsm_grid(inarg, trace=True):
+   """Predefined inarg record for adding a rectangular grid of test-sources to an LSM"""
+   filename = 'MG_JEN_lsm_grid'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, lsm_grid.__doc__)
+   JEN_inarg.modify(inarg,
+                    # input_LSM='lsm_current.lsm',
+                    save_as_current=True,
+                    test_pattern='grid',
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def lsm_spiral(inarg, trace=True):
+   """Predefined inarg record for adding a spiral patternof test-sources to an LSM"""
+   filename = 'MG_JEN_lsm_spiral'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, lsm_spiral.__doc__)
+   JEN_inarg.modify(inarg,
+                    # input_LSM='lsm_current.lsm',
+                    save_as_current=True,
+                    test_pattern='spiral',
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
 
 
 
@@ -538,12 +621,42 @@ def add_spiral (ns=None, lsm=None, **inarg):
 #----------------------------------------------------------------------------------------------------
 
 def description ():
-    """MG_JEN_lsm.py is used to create Local Sky Models (LSM) by hand"""
+    """MG_JEN_lsm.py is used to create (or modify) Local Sky Models by hand.
+    The result may be inspected via the LSM GUI, which pops up automatically.
+    The new LSM may be saved in a user-defined .lsm file, for later use. 
+    
+    It can generate the following patterns of test-sources (in either a new
+    or an existing LSM):
+      -) A single source at an arbitrary position.
+      -) Two sources (they may be different).
+      -) A rectangular grid of identical sources.
+      -) A spiral pattern of identical sources.
+    The sources have NEWSTAR parametrisation. The user may choose from a small
+    collection of predefined sources, whose parameters (position, flux, SI, RM)
+    may then be edited.
+    The larger patterns may have a kind of 'primary beam' applied to them,
+    i.e. a gaussian that attenuates their flux as a function of distance to
+    the central position (of the pattern!)
+    """
     return True
+
+
+def default_inarg ():
+    """This default inarg record does nothing specific in its present form.
+    Of course it may be edited to create (or modify) a wide range of Local
+    Sky Models. But it is often more convenient to use one of the predefined
+    inarg records for this TDL script as a starting point (use Open).
+
+    However, this default inarg is useful for generating various standard
+    Local Sky Models. Just press the Proceed button, and select any of the
+    TDL execute options."""
+    return True
+
 
 #-------------------------------------------------------------------------
 
-MG = JEN_inarg.init('MG_JEN_lsm', description=description.__doc__)
+MG = JEN_inarg.init('MG_JEN_lsm', description=description.__doc__,
+                    inarg_specific=default_inarg.__doc__)
 JEN_inarg.define (MG, 'last_changed', 'd30jan2006', editable=False)
 
 JEN_inarg.define (MG, 'input_LSM', None, browse='*.lsm',
@@ -594,8 +707,10 @@ def _tdl_predefine (mqs, parent, **kwargs):
    res = True
    if parent:
       QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
+      callback = dict()
+      callback['0'] = dict(prompt='predefine inargs', callback=predefine_inargs)
       try:
-         igui = JEN_inargGui.ArgBrowser(parent)
+         igui = JEN_inargGui.ArgBrowser(parent, callback=callback)
          igui.input(MG, set_open=False)
          res = igui.exec_loop()
          if res is None:
@@ -755,8 +870,6 @@ def _tdl_job_open_lsm_current (mqs, parent):
    return True
 
    
-
-
 
 #----------------------------------------------------------------
 # Obsolete?

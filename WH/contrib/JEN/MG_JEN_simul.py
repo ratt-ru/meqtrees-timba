@@ -22,6 +22,7 @@ from Timba.TDL import *
 # from Timba.Meq import meq
 
 from numarray import *
+from copy import deepcopy
 
 from Timba.Trees import JEN_inarg
 from Timba.Trees import JEN_inargGui
@@ -54,7 +55,104 @@ except:
 
 
 
+#===============================================================================
+# Predefined inarg records:
+#===============================================================================
 
+def predefine_inargs():
+   """Modify the default inarg record (MG) to predefined inarg record files"""
+   global MG
+   print '\n** Predefining',MG['script_name'],'inarg records...\n'
+   simul_GJones(deepcopy(MG), trace=True)
+   simul_DJones(deepcopy(MG), trace=True)
+   simul_lsm_GJones(deepcopy(MG), trace=True)
+   simul_lsm_DJones(deepcopy(MG), trace=True)
+   print '\n** Predefined',MG['script_name'],'inarg records (incl. protected)\n'
+   return True
+
+#--------------------------------------------------------------------
+
+def simul_lsm_GJones(inarg, trace=True):
+   """Predefined inarg record for simulating from LSM with GJones corruption"""
+   filename = 'MG_JEN_simul_lsm_GJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, simul_lsm_GJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    LSM_simul='lsm_current.lsm',
+                    nr_lsm_sources=100,
+                    Jsequence_simul_uvp=['GJones'],
+                    # Jsequence_simul_imp=[],
+                    insert_solver=False,
+                    LSM_solve='lsm_current.lsm',
+                    Jsequence_solve_uvp=['GJones'],
+                    solvegroup=['GJones'],
+                    parmtable='simul_lsm_GJones',
+                    num_iter=2,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def simul_lsm_DJones(inarg, trace=True):
+   """Predefined inarg record for simulating from LSM with DJones corruption"""
+   filename = 'MG_JEN_simul_lsm_DJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, simul_lsm_DJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    LSM_simul='lsm_current.lsm',
+                    nr_lsm_sources=100,
+                    Jsequence_simul_uvp=['DJones_WSRT'],
+                    # Jsequence_simul_imp=[],
+                    insert_solver=False,
+                    LSM_solve='lsm_current.lsm',
+                    Jsequence_solve_uvp=['DJones_WSRT'],
+                    solvegroup=['DJones'],
+                    parmtable='simul_lsm_DJones',
+                    num_iter=2,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.callback_punit(inarg,'QU')
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def simul_GJones(inarg, trace=True):
+   """Predefined inarg record for simulating with GJones corruption"""
+   filename = 'MG_JEN_simul_GJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, simul_GJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    Jsequence_simul_uvp=['GJones'],
+                    Jsequence_solve_uvp=['GJones'],
+                    solvegroup=['GJones'],
+                    parmtable='simul_GJones',
+                    num_iter=2,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def simul_DJones(inarg, trace=True):
+   """Predefined inarg record for simulating with DJones corruption"""
+   filename = 'MG_JEN_simul_DJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, simul_DJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    Jsequence_simul_uvp=['DJones_WSRT'],
+                    Jsequence_solve_uvp=['DJones_WSRT'],
+                    solvegroup=['DJones'],
+                    parmtable='simul_DJones',
+                    num_iter=2,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.callback_punit(inarg, 'QU')
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
 
 
 
@@ -98,13 +196,23 @@ def _description():
     """
     return True
 
+#------------------------------------------------------------------------------------------------
+
+def default_inarg ():
+    """This default inarg record does nothing specific in its present form.
+    Of course it may be edited to create (or modify) a wide range of Local
+    Sky Models. But it is often more convenient to use one of the predefined
+    inarg records for this TDL script as a starting point (use Open).
+    """
+    return True
 
 
 #----------------------------------------------------------------------------------------------------
 # Intialise the MG control record with some overall arguments 
 #----------------------------------------------------------------------------------------------------
 
-MG = JEN_inarg.init('MG_JEN_simul', description=_description.__doc__)
+MG = JEN_inarg.init('MG_JEN_simul', description=_description.__doc__,
+                    inarg_specific=default_inarg.__doc__)
 
 # Define some overall arguments:
 MG_JEN_Cohset.inarg_Cohset_common (MG, last_changed='d30jan2006')
@@ -215,8 +323,10 @@ def _tdl_predefine (mqs, parent, **kwargs):
     res = True
     if parent:
         QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
+        callback = dict()
+        callback['0'] = dict(prompt='predefine inargs', callback=predefine_inargs)
         try:
-            igui = JEN_inargGui.ArgBrowser(parent)
+            igui = JEN_inargGui.ArgBrowser(parent, callback=callback)
             igui.input(MG, set_open=False)
             res = igui.exec_loop()
             if res is None:

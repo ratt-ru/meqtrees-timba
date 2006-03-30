@@ -20,6 +20,7 @@
 #    - 20 feb 2006: implemented _getpp option
 #    - 12 mar 2006: moved _qual to before localscope
 #    - 12 mar 2006: .separator()
+#    - 29 mar 2006: made .modify() dependent on qualifier
 #
 # Full description:
 #    By obeying a simple (and unconstraining!) set of rules, the input
@@ -127,6 +128,8 @@
 from Timba.TDL import *
 from Timba.Trees import JEN_record
 
+import pickle
+
 from copy import deepcopy
 from datetime import datetime
 
@@ -154,7 +157,8 @@ option_field = option_field_string()
 
 #----------------------------------------------------------------------------
 
-def init(target='<target>', version='15dec2005', description=None, **pp):
+def init(target='<target>', version='15dec2005',
+         description=None, inarg_specific='default inarg', **pp):
    """Initialise a valid inarg record, with optional fields **pp.
    This is done when starting a composite inarg record, e.g. in MG_JEN_xxx.py"""
 
@@ -171,7 +175,7 @@ def init(target='<target>', version='15dec2005', description=None, **pp):
    # Attach/overwrite the inarg description string, if supplied:
    if isinstance(description, str):
       inarg[CTRL_record]['description'] = description
-      # inarg[CTRL_record]['inarg_specific'] = description
+      inarg[CTRL_record]['inarg_specific'] = inarg_specific
 
    # The order (list) is needed by JEN_inargGui....
    inarg[CTRL_record]['order'] = inarg.keys()
@@ -294,6 +298,7 @@ def modify(inarg, **arg):
       # MESSAGE(inarg,'.modify(): stripped off: '+option_field)
       arg.__delitem__(option_field)                  # just strip it off
    if not isinstance(opt, dict): opt = dict()
+   opt.setdefault('qual', None)
    opt.setdefault('trace', False)
    opt.setdefault('severe', False)
    opt.setdefault('match_substring', False)
@@ -332,31 +337,45 @@ def modify(inarg, **arg):
 def _modify_level(rr, arg, found, level=0, opt=dict()):
    """Recursive function that does the work for .modify()"""
    fname = localscope(rr)
-   # s0 = _prefix(level)
+   s0 = _prefix(level)+str(fname)+' (qual='+str(opt['qual'])+'): '
+   if fname==None: print s0
+
+   # If a qualifier has been specified, only modify arguments
+   # of inarg records with that match this qualifier:
+   matched_qual = True
+   if isinstance(opt['qual'], str):
+      qual = qualifier(rr)
+      matched_qual = (qual==opt['qual'])
+      # if opt['trace']: print s0,' qual =',qual,opt['qual'],'->',matched_qual
 
    # First replace the fields at this level (if present):
-   for key in arg.keys():
-      if opt['match_substring']:
-         for rkey in rr.keys():
-            if rkey.rfind(key)>=0:
-               print '** matched subtring:',key,'in',rkey
-               if not isinstance(rr[rkey],dict):
-                  found[key] += 1
-                  s1 = '.modify( '+rkey+' ): '
-                  if not rr[rkey]==arg[key]:     # different value
-                     was = rr[rkey]
-                     rr[rkey] = arg[key]         # replace with new value
-                     s1 += str(was)+'  ->  '+str(rr[rkey])
-                     MESSAGE(rr,s1)
-
-      elif rr.has_key(key):                      # key exists in rr[fname]
-         found[key] += 1                         # increment
-         s1 = '.modify( '+key+' ): '
-         if not rr[key]==arg[key]:               # different value
-            was = rr[key]
-            rr[key] = arg[key]                   # replace with new value
-            s1 += str(was)+'  ->  '+str(rr[key])
-            MESSAGE(rr,s1)
+   if matched_qual:
+      for key in arg.keys():
+         if opt['match_substring']:
+            for rkey in rr.keys():
+               if rkey.rfind(key)>=0:
+                  print '** matched substring:',key,'in',rkey
+                  if not isinstance(rr[rkey],dict):
+                     found[key] += 1
+                     s1 = s0+'.modify('+rkey+'):   '
+                     if not rr[rkey]==arg[key]:     # different value
+                        was = rr[rkey]
+                        rr[rkey] = arg[key]         # replace with new value
+                        s1 += str(was)+'  ->  '+str(rr[rkey])
+                        MESSAGE(rr,s1)
+                        if opt['trace']: print s1
+         elif rr.has_key(key):                      # key exists in rr[fname]
+            found[key] += 1                         # increment
+            s1 = s0+'.modify('+key+'):   '
+            if isinstance(rr[key], str) and rr[key].rfind('@@')>-1:
+               # if opt['trace']: print s1,rr[key],': ignored'
+               pass
+            elif not rr[key]==arg[key]:               # different value
+               was = rr[key]
+               rr[key] = arg[key]                   # replace with new value
+               s1 += str(was)+'  ->  '+str(rr[key])
+               MESSAGE(rr,s1)
+               if opt['trace']: print s1
 
    # Recursive:
    for key in rr.keys():
@@ -531,7 +550,6 @@ def localscope(rr, trace=False):
 
 def qualifier(rr, trace=False):
    """Get the localscope qualifier string from the CTRL record or rr"""
-   # qual = CTRL(rr, 'qualifier', report=False)
    qual = CTRL(rr, 'qual', report=False, trace=trace)
    if qual==None: qual = ''                   # empty string
    if trace: print '.qualifier() ->',type(qual),len(qual),'=',qual
@@ -546,19 +564,32 @@ def barescope(rr, trace=False):
 
 #----------------------------------------------------------------------------
 
-def specific (rr, new=None, append=None, prepend=None):
+def specific (rr, new=None):
    """Get/modify the specific inarg description string"""
-   print '** specific(',new,'):'
-   ss = CTRL(rr, 'inarg_specific')
+
    if isinstance(new, str):
-      ss = new
-   if isinstance(append, str):
-      ss += '\n'+append
-   if isinstance(prepend, str):
-      ss = prepend+'\n'+ss
-   ss = CTRL(rr, 'inarg_specific', ss)
-   print '    ss =',ss
-   return ss
+      CTRL(rr, 'inarg_specific', new)
+   
+   sout = '** Description of inarg record:   '+str(CTRL(rr,'save_file'))
+   sout += '\n    (to be used with TDL script:   '+str(CTRL(rr,'target_module'))+'):'
+   sout += '\n\n'+str(CTRL(rr, 'inarg_specific'))+'\n'
+   sout += """
+   
+   Some tips:
+   ** Customize this inarg record by editing the argument values.
+   ** Other predefined inarg records for this TDL script may be
+      loaded with the Open button.
+   ** A summary may be viewed with View menu item 'essence'.
+   ** Use the Save button (or the SaveAs menu item) to save this
+      inarg record for later use.
+   ** When clicking on a module name (blue), a description of this
+      module is displayed, and its arguments become visible/hidden.
+   ** When satisfied, push the Proceed button to generate the tree,
+      and use the TDL_execute menu to execute it.
+   ** When hitting Proceed, the current inarg record is automatically
+      saved, and can be reloaded with the Resume button the next time.
+   """
+   return sout
 
 
 def description(rr, module=None):
@@ -707,7 +738,7 @@ def view(rr, field='MESSAGE', ss='', recurse=True, level=0, trace=True):
       if ok: s = '\n** end of view of: '+field+'   (OK)\n'
       if not ok: s = '\n** end of view of: '+field+'                   .... NOT OK ....!!\n'
       if trace: print s
-      ss += '\n'+s
+      ss += '\n'+s+'\n'
    return ss
 
 #------------------------------------------------------------------------------
@@ -800,7 +831,7 @@ def essence(rr, match=[], exclude=[], ss='', level=0, trace=False):
 
 #------------------------------------------------------------------------------
 
-def compare(rr, other=None, ss='', level=0, trace=True):
+def compare(rr, other=None, ss='', level=0, trace=False):
    """Compare the given inarg record with another one"""
    if level==0:
       ss = '** JEN_inarg.compare('+str(type(rr))+str(type(other))+'):\n'
@@ -854,7 +885,7 @@ def compare(rr, other=None, ss='', level=0, trace=True):
 
 #------------------------------------------------------------------------------
 
-def upgrade(rr, other=None, ss='', level=0, trace=True):
+def upgrade(rr, other=None, ss='', level=0, trace=False):
    """Upgrade the given inarg record from another one.
    I.e. replace some of the supporting (CTRL) information,
    but NOT the values of the various arguments"""
@@ -903,7 +934,7 @@ def upgrade(rr, other=None, ss='', level=0, trace=True):
 
       # Upgrade specific fields (qq) of the CTRL_record:
       if rr.has_key(CTRL_record) and other.has_key(CTRL_record):
-         qq = ['description','help','choice',
+         qq = ['description','inarg_specific','help','choice',
                'hide','mutable','order','version']
          print 'qq =',qq
          for qey in qq:
@@ -956,7 +987,7 @@ def _strip(rr, key=CTRL_record, level=0, trace=False):
    qq = deepcopy(rr)
    # Remove the named field if present:
    if qq.has_key(key):
-      print _prefix(level),'_strip(',key,'): ',localscope(qq)
+      if trace: print _prefix(level),'_strip(',key,'): ',localscope(qq)
       qq.__delitem__(key)
    # Recurse:
    for key1 in qq.keys():
@@ -1364,6 +1395,69 @@ def nest(pp=None, inarg=None, trace=False):
    return attach(pp, inarg=inarg, trace=trace)
 
 
+#----------------------------------------------------------------------------
+# Saving inarg records in a .inarg file:
+#----------------------------------------------------------------------------
+
+def save (inarg, filename=None, protected=False, trace=True):
+   """Save the inarg record in a file for later use"""
+
+   # Chack the filename:
+   if filename==None:                           # routine save under same name
+      filename = CTRL(inarg, 'save_file') 
+   else:                                        # save under a different filename
+      oldfile = CTRL(inarg, 'save_file') 
+      HISTORY(inarg, 'Derived from: '+oldfile)
+
+   # Make sure that the current inarg has the correct save_file name:
+   filename = str(filename)
+   filename = filename.split('.inarg')[0]       # remove .inarg, if necessary 
+   filename = filename.split('_protected')[0]   # just in case
+   if protected:
+      filename += '_protected.inarg'            # repaste
+      CTRL(inarg, 'protected', True)            # modify
+   else:
+      filename += '.inarg'                      # append .inarg file extension 
+      CTRL(inarg, 'protected', False)           # modify
+   CTRL(inarg, 'save_file', filename)           # modify
+
+   # Write to file:
+   f = open(filename,'wb')
+   p = pickle.Pickler(f)
+   r = p.dump(inarg)
+   f.close()
+
+   # Finished: return the eventual filename:
+   if trace: print '.save(',filename,protected,'): ',filename
+   return filename
+
+#-----------------------------------------------------------------------------
+
+def callback_punit(inarg, punit, qual=None):
+   """Kludge to modify all NEWSTAR parameters for a predefined punit"""
+   from Timba.Contrib.JEN import MG_JEN_Sixpack
+   pp = dict(punit=punit)
+   MG_JEN_Sixpack.predefined(pp)
+   print '** callback_punit(',punit,'): predefined(pp) ->\n   ',pp
+   pp[option_field] = dict(severe=False, qual=qual)
+   modify(inarg, **pp)
+   return True
+
+#-----------------------------------------------------------------------------
+
+def per_timeslot(inarg):
+   """Modify the inarg for per_timeslot operation"""
+   modify(inarg,
+          tile_size=1,
+          epsilon=1e-4,
+          num_iter=5,
+          _JEN_inarg_option=None)     
+   modify(inarg,
+          tdeg_=0,
+          subtile_size_=None,
+          _JEN_inarg_option=dict(match_substring=True))     
+   return True
+
 
 
 #----------------------------------------------------------------------------
@@ -1376,7 +1470,7 @@ def nest(pp=None, inarg=None, trace=False):
 # In the future, it might be used to chain functions automaticaly....
 #----------------------------------------------------------------------------
 
-def result(rr=None, pp=None, attach=None, trace=True):
+def result(rr=None, pp=None, attach=None, trace=False):
    """Attach things to the result record (rr)"""
    if not isinstance(rr, dict):
       rr = dict()
@@ -1615,7 +1709,8 @@ def test1(ns=None, object=None, **inarg):
    if pp['nested']:
       # It is possible to include the default inarg records from other
       # functions that are used in the function body below:
-      nest(pp, inarg=test2(_getdefaults=True, trace=pp['trace']), trace=pp['trace'])
+      nest(pp, inarg=test2(_getdefaults=True, _qual='qual2', trace=pp['trace']),
+           trace=pp['trace'])
 
    # .test(_getdefaults=True) -> an inarg record with default values
    if getdefaults(pp, trace=pp['trace']): return pp2inarg(pp, trace=pp['trace'])
@@ -1665,7 +1760,7 @@ def test2(**inarg):
 
 _counters = {}
 
-def _counter (key, increment=0, reset=False, trace=True):
+def _counter (key, increment=0, reset=False, trace=False):
     global _counters
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0
@@ -1693,7 +1788,7 @@ if __name__ == '__main__':
       inarg_common(pp, hide=True)
       print 'pp =',pp
 
-   if 1:
+   if 0:
       # Test of basic inarg-operation:
       qual = '<qual>'
       # qual = None
@@ -1712,6 +1807,18 @@ if __name__ == '__main__':
       view(inarg, 'WARNING')
       for field in ['ERROR','WARNING','MESSAGE','HISTORY','XXX']:
          print '** count(',field,') ->',count(inarg, field)
+
+   if 1:
+      # Test of basic inarg-operation:
+      qual = 'qual1'
+      # qual = None
+      inarg = test1(_getdefaults=True, _qual=qual, trace=False)
+      # modify(trace=True)
+      # modify(inarg, trace=True)
+      modify(inarg, aa='aa_mod1', trace=True, _JEN_inarg_option=dict(qual='qual2', trace=True))
+      modify(inarg, aa='aa_mod2', bb='bb_mod2', _JEN_inarg_option=dict(trace=True))
+      # modify(inarg, aa='aaaa', cc='cc', trace=True)
+      display(inarg, 'after .modify()', full=False)
 
    if 0:
       # Test of traditional operation of the same function:

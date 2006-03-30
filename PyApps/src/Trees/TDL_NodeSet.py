@@ -629,7 +629,7 @@ class NodeSet (TDL_common.Super):
                         self.history(error='** .make_bundle(): nodescope required!')
                         return False                         # error ...
                     else:
-                        node = ns[bname](uniqual) << Meq.Add(children=nodes)
+                        node = ns[bname](uniqual) << Meq.Add(children=nodes, mt_polling=True)
                         self.__MeqNode[bname] = node
                         self.__bundle[bname] = 1             # bundle book-keeping...?
                     cc.append(node)  
