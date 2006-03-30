@@ -19,7 +19,8 @@ LOCALSRCS = \
     MatrixMultiply.cc MatrixInvert22.cc UVBrick.cc UVInterpol.cc \
     Stokes.cc PatchComposer.cc FFTBrick.cc \
     Resampler.cc ModRes.cc \
-    CompiledFunklet.cc ParmTable.cc 
+    CompiledFunklet.cc ParmTable.cc \
+    FITSImage.cc Compounder.cc
 
 
 DOCHDRS		= $(LOCALHDRS) \
