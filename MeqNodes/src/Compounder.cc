@@ -197,7 +197,7 @@ int Compounder::pollChildren (Result::Ref &resref,
 		cout<<"Axis 2="<<cen1<<endl;
 #endif
   }
-	//if the grid function is not monotinically increasing, we get
+	//if the grid function is not monotonically increasing, we get
 	//unsorted arrays for axes.
   //if cen0 or cen1 is not sorted, we recreate that
 	//axis to cover the whole range and interpolate the result
@@ -210,17 +210,17 @@ int Compounder::pollChildren (Result::Ref &resref,
 	}
 #ifdef DEBUG
 	cout<<"Before sort"<<endl;
-#endif
 	for (int i=0; i<sarray0.extent(0);i++) {
 		cout<<i<<"="<<sarray0(i).id<<","<<sarray0(i).val<<endl;
 	}
+#endif
 	std::sort(sarray0.data(), sarray0.data()+sarray0.extent(0));
 #ifdef DEBUG
 	cout<<"After sort"<<endl;
-#endif
 	for (int i=0; i<sarray0.extent(0);i++) {
 		cout<<i<<"="<<sarray0(i).id<<","<<sarray0(i).val<<endl;
 	}
+#endif
 	//overwrite the old array
 	for (int i=0; i<sarray0.extent(0);i++) {
 		cen0(i)=sarray0(i).val;
@@ -233,17 +233,17 @@ int Compounder::pollChildren (Result::Ref &resref,
 	}
 #ifdef DEBUG
 	cout<<"Before sort"<<endl;
-#endif
 	for (int i=0; i<sarray1.extent(0);i++) {
 		cout<<i<<"="<<sarray1(i).id<<","<<sarray1(i).val<<endl;
 	}
+#endif
 	std::sort(sarray1.data(), sarray1.data()+sarray1.extent(0));
 #ifdef DEBUG
 	cout<<"After sort"<<endl;
-#endif
 	for (int i=0; i<sarray1.extent(0);i++) {
 		cout<<i<<"="<<sarray1(i).id<<","<<sarray1(i).val<<endl;
 	}
+#endif
 	//overwrite the old array
 	for (int i=0; i<sarray1.extent(0);i++) {
 		cen1(i)=sarray1(i).val;
