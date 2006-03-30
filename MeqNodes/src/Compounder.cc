@@ -345,6 +345,42 @@ int Compounder::pollChildren (Result::Ref &resref,
 #endif
 		A(i,j)=B(i,j,k,l);
   }
+	// handle perturbed sets if any
+  int npset=res0().vellSet(0).numPertSets();
+  if (npset >0) {
+#ifdef DEBUG
+   cout<<"Found "<<npset<<" perturbed sets"<<endl;
+#endif
+   for (int ipset=0; ipset<npset; ipset++) 
+    for (int ipert=0; ipert<res0().vellSet(0).numSpids(); ipert++)  {
+	   const Vells pvl=res0().vellSet(0).getPerturbedValue(ipert,ipset);
+	   Vells &pin=const_cast<Vells &>(pvl);
+	   Vells &pout=vs.setPerturbedValue(ipert,new Vells(0.0,incells.shape()),ipset);
+
+    	blitz::Array<double,2> pA=pout.as<double,2>()(blitz::Range::all(),blitz::Range::all());
+	blitz::Array<double,4> pB=pin.getArray<double,4>();
+	for (int i=0;i<pA.extent(0);i++)
+	  for (int j=0;j<pA.extent(1);j++) {
+    //find the correct location for this (t,f) point in B
+		//need to look up axes a,b for this	
+		//Note: we only search for time (or i in this case)
+		int k=0;
+		while((sarray0(k).id!=i) && (k< sarray0.extent(0))) {k++;}
+		int l=0;
+		while((sarray1(l).id!=i) && (l< sarray1.extent(0))) {l++;}
+
+		//special case, if we overstep our k,l limits
+		//that means that particular axis is a scalar so use the value at 0
+		if(k==sarray0.extent(0)) {k=0;}
+		if(l==sarray0.extent(1)) {l=0;}
+#ifdef DEBUG
+		cout<<"for tf ("<<i<<","<<j<<") : ab ["<<k<<","<<l<<"]"<<endl;
+#endif
+		pA(i,j)=pB(i,j,k,l);
+  }
+
+	 }
+	}
 	res1.setVellSet(0,ref);
 	res1.setCells(incells);
 
