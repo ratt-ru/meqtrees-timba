@@ -202,6 +202,7 @@ class QwtImageDisplay(QwtPlot):
         self.zooming = True
         self.setlegend = 0
         self.log_offset = 0.0
+        self.current_width = 0
         self.setAutoLegend(self.setlegend)
         self.enableLegend(False)
         self.setLegendFont(font)
@@ -675,7 +676,7 @@ class QwtImageDisplay(QwtPlot):
         self.xmax = None
         self.ymin = None
         self.ymax = None
-        self.test_plot_array_sizes(False)
+        self.test_plot_array_sizes()
         self.refresh_marker_display()
         toggle_id = self.menu_table['Reset zoomer']
         self._menu.setItemVisible(toggle_id, False)
@@ -1137,19 +1138,35 @@ class QwtImageDisplay(QwtPlot):
               self.axis_ymax = ymax
               toggle_id = self.menu_table['Reset zoomer']
               self._menu.setItemVisible(toggle_id, True)
-              self.test_plot_array_sizes(True)
+              self.test_plot_array_sizes()
             self.replot()
             _dprint(3, 'called replot in onMouseReleased');
 
     # onMouseReleased()
 
-    def test_plot_array_sizes(self, zoom = True):
+    def resizeEvent(self, event):
+      self.current_width = event.size().width()
+      self.test_plot_array_sizes(event.size().width())
+      self.updateLayout();
+
+    # resizeEvent()
+
+
+    def test_plot_array_sizes(self, width=None):
 # adjust symbol sizes for any real / imaginary plots
       if not self.x_index is None:
+        zoom = False
+        if len(self.zoomStack):
+          zoom = True
+        if width is None:
+          if self.current_width == 0:
+            width = 300
+          else:
+            width = self.current_width
         q_line_size = 2
         q_symbol_size = 5
         q_flag_size = 20
-        q_size_split = 300
+
         if not zoom:
           num_valid_points = len(self.x_index)
         else:
@@ -1157,26 +1174,35 @@ class QwtImageDisplay(QwtPlot):
           for i in range(len(self.x_index)):
             if self.x_index[i] >= self.xmin and self.x_index[i]<= self.xmax:
               num_valid_points = num_valid_points + 1
-        if num_valid_points > q_size_split:
+
+        if num_valid_points > width:
           q_line_size = 1
           q_symbol_size = 3
           q_flag_size = 10
+          
         if self.yRightAxisEnabled() and not zoom:
           self.setAxisAutoScale(QwtPlot.yRight)
         if self.xTopAxisEnabled() and not zoom:
           self.setAxisAutoScale(QwtPlot.xTop)
         keys = self.curveKeys()
         for j in range(len(keys)):
+          plot_curve=self.curve(keys[j])
           if self.curveTitle(keys[j]) == 'imaginaries':
             self.setCurvePen(keys[j], QPen(Qt.blue, q_line_size))
-            plot_curve=self.curve(keys[j])
             plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
                   QPen(Qt.green), QSize(q_symbol_size,q_symbol_size)))
           if self.curveTitle(keys[j]) == 'reals':
             self.setCurvePen(keys[j], QPen(Qt.black, q_line_size))
-            plot_curve=self.curve(keys[j])
             plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
                   QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
+          if self.curveTitle(keys[j]) == 'xCrossSection' or self.curveTitle(keys[j]) == 'xrCrossSection' or self.curveTitle(keys[j]) == 'xiCrossSection':
+            self.setCurvePen(keys[j], QPen(Qt.black, q_line_size))
+            plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
+                  QPen(Qt.black), QSize(q_symbol_size,q_symbol_size)))
+          if self.curveTitle(keys[j]) == 'yCrossSection':
+            self.setCurvePen(keys[j], QPen(Qt.white, q_line_size))
+            plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,QBrush(Qt.white), 
+                  QPen(Qt.white), QSize(q_symbol_size,q_symbol_size)))
 
     def calculate_cross_sections(self):
         """ calculate and display cross sections at specified location """
@@ -1276,6 +1302,8 @@ class QwtImageDisplay(QwtPlot):
         else:
           self.setCurveData(self.xrCrossSection, self.x_index, self.x_array + self.log_offset)
         self.setCurveData(self.yCrossSection, self.y_array + self.log_offset, self.y_index)
+
+        self.test_plot_array_sizes()
 
         self.refresh_marker_display()
         self.show_x_sections = True
