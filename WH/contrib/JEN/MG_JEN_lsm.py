@@ -420,7 +420,7 @@ def add_grid (ns=None, lsm=None, **inarg):
    savefile += '_grid'+str(1+2*pp['nRA2'])+'x'+str(1+2*pp['nDec2'])
    savefile += '_'+str(pp['dRA'])+'x'+str(pp['dDec'])
    savefile += '_'+str(pp['relpos'])
-   savefile += '_'+str(int(10*pp['taper']))
+   if pp['taper']: savefile += '_'+str(int(10*pp['taper']))
    savefile += '.lsm'
 
    # Create the sources defined by pp:
@@ -486,7 +486,7 @@ def add_spiral (ns=None, lsm=None, **inarg):
    savefile += '_spiral'+str(pp['nr_of_sources'])
    savefile += '_r'+str(pp['rstart'])
    savefile += '_a'+str(pp['astart'])
-   savefile += '_t'+str(int(10*pp['taper']))
+   if pp['taper']: savefile += '_t'+str(int(10*pp['taper']))
    savefile += '.lsm'
 
    # Create the sources defined by pp:

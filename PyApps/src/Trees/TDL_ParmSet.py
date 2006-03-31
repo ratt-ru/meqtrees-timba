@@ -320,6 +320,8 @@ class ParmSet (TDL_common.Super):
         rider.setdefault('auto_save', True)
         rider.setdefault('save_all', False)
         rider.setdefault('reset_funklet', False)
+        rider.setdefault('descr', '<descr>')
+        rider.setdefault('unit', None)
         rider.setdefault('color', 'red')
         rider.setdefault('style', 'circle')
         rider.setdefault('size', 10)
@@ -341,8 +343,12 @@ class ParmSet (TDL_common.Super):
         JEN_inarg.define(pp, 'reset_funklet', kwargs,
                          choice=[True,False], editable=False,
                          help='if True, do NOT use any MeqParm table values when solvable')
-
+        
         # Hidden:
+        JEN_inarg.define(pp, 'descr', kwargs, hide=True,
+                         help='brief description')
+        JEN_inarg.define(pp, 'unit', kwargs, hide=True,
+                         help='unit')
         JEN_inarg.define(pp, 'color', kwargs, hide=True,
                          help='plot_color')
         JEN_inarg.define(pp, 'style', kwargs, hide=True,
@@ -359,13 +365,15 @@ class ParmSet (TDL_common.Super):
                          help='size (time-slots) of a domain sub-tile')
         JEN_inarg.define(pp, 'condeq_corrs', kwargs, hide=True,
                          help='correlations to be used for solving')
-
+        
+        
         # Attach any other kwarg fields to pp also:
         for key in kwargs.keys():
             if not pp.has_key(key): pp[key] = kwargs[key]
+          
         return True
-
-
+    
+    
     def parmgroup (self, key=None, rider=None, **kwargs):
         """Get/define the named (key) parmgroup"""
         if not rider==None:

@@ -291,6 +291,7 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, KJones=None, **inarg)
     JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.KJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.DJones_WSRT(_getdefaults=True, _qual=qual, simul=simul, slave=True))
+    JEN_inarg.nest(pp, MG_JEN_Joneset.EJones_WSRT(_getdefaults=True, _qual=qual, simul=simul, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.JJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
@@ -423,12 +424,9 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
 
-    # print 'pp =',type(pp),pp['nr_lsm_sources']
-
     # Obtain the Sixpacks of the brightest punits.
     # Turn the point-sources in Cohsets with DFT KJonesets
     plist = lsm.queryLSM(count=pp['nr_lsm_sources'])
-    # print '\n** plist =',type(plist),len(plist)
     cs = []                                  # list on source Cohsets
     for punit in plist: 
         Sixpack = punit.getSixpack()      

@@ -8,6 +8,7 @@
 # History:
 #    - 24 feb 2006: creation, starting from TDL_Parmset.py
 #    - 09 mar 2006: recreated from TDL_ParmSet.py
+#    - 31 mar 2006: added MeqLeaf(init_funklet=...)
 #
 # Full description:
 #   A LeafSet contains 'leaf' nodes in named groups.
@@ -111,7 +112,8 @@ class LeafSet (TDL_common.Super):
     #-------------------------------------------------------------------------------------
 
 
-    def MeqLeaf(self, ns, key=None, qual=None, leafgroup=None, **pp):
+    def MeqLeaf(self, ns, key=None, qual=None, leafgroup=None,
+                init_funklet=None, **pp):
         """Convenience function to create a MeqLeaf node"""
 
         # Get the associated leafparms from the NodeSet rider record:
@@ -132,32 +134,37 @@ class LeafSet (TDL_common.Super):
 
         # uniqual = _counter (leafgroup, increment=True)
 
-        #--------------------------------------------------------------
-        # Make the (additive) time-variation function:
-        # For the moment: A cos(MeqTime) with a certain period
-        mm = []
-        mean_sec = rider['timescale_min']*60*rider['mean_period']
-        stddev_sec = rider['timescale_min']*60*rider['stddev_period']
-        T_sec = ceil(gauss(mean_sec, stddev_sec))
-        if T_sec<10: T_sec = 10
-        mm.append(ns['2pi/T'](leafgroup)(**quals)(T=str(T_sec)+'sec') << Meq.Constant(2*pi/T_sec))
-        mm.append(ns['MeqTime'](leafgroup)(**quals) << Meq.Time())
-        node = ns['targ'](leafgroup)(**quals) << Meq.Multiply(children=mm)
+        if init_funklet:
+            # Special case: Make a MeqParm node.
+            # Used for interpolatable Jones matrices like EJones or MIM etc
+            node = ns[key](**quals) << Meq.Parm(init_funklet=init_funklet)
 
-        mm = []
-        mm.append(ns << Meq.Cos(node))
-        mean = rider['c00_scale']*rider['mean_c00']
-        stddev = rider['c00_scale']*rider['stddev_c00']
-        ampl = gauss(mean, stddev)
-        mm.append(ns['tampl'](leafgroup)(**quals)(ampl=str(ampl)) << Meq.Constant(ampl))
-        tvar = ns['tvar'](leafgroup)(**quals) << Meq.Multiply(children=mm)
+        else:
+            #--------------------------------------------------------------
+            # Make the (additive) time-variation function:
+            # For the moment: A cos(MeqTime) with a certain period
+            mm = []
+            mean_sec = rider['timescale_min']*60*rider['mean_period']
+            stddev_sec = rider['timescale_min']*60*rider['stddev_period']
+            T_sec = ceil(gauss(mean_sec, stddev_sec))
+            if T_sec<10: T_sec = 10
+            mm.append(ns['2pi/T'](leafgroup)(**quals)(T=str(T_sec)+'sec') << Meq.Constant(2*pi/T_sec))
+            mm.append(ns['MeqTime'](leafgroup)(**quals) << Meq.Time())
+            node = ns['targ'](leafgroup)(**quals) << Meq.Multiply(children=mm)
+            
+            mm = []
+            mm.append(ns << Meq.Cos(node))
+            mean = rider['c00_scale']*rider['mean_c00']
+            stddev = rider['c00_scale']*rider['stddev_c00']
+            ampl = gauss(mean, stddev)
+            mm.append(ns['tampl'](leafgroup)(**quals)(ampl=str(ampl)) << Meq.Constant(ampl))
+            tvar = ns['tvar'](leafgroup)(**quals) << Meq.Multiply(children=mm)
 
-        #----------------------------------------------------------------------
-
-        # The simulated variations tvar (t,f) are added to the MeqParm default value.
-        default = rider['c00_default']
-        c00 = ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default)
-        node = ns[key](**quals) << Meq.Add(c00, tvar)
+            #----------------------------------------------------------------------
+            # The simulated variations tvar (t,f) are added to the MeqParm default value.
+            default = rider['c00_default']
+            c00 = ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default)
+            node = ns[key](**quals) << Meq.Add(c00, tvar)
 
         # Store the new node in the NodeSet:
         self.NodeSet.MeqNode(leafgroup, node)
@@ -170,6 +177,8 @@ class LeafSet (TDL_common.Super):
 
     def group_rider_defaults (self, rider):
         """Default values for a leafgroup rider (see self.inarg() etc)"""
+        rider.setdefault('descr', '<descr>')
+        rider.setdefault('unit', None)
         rider.setdefault('color', 'yellow')
         rider.setdefault('style', 'triangle')
         rider.setdefault('size', 5)
@@ -218,10 +227,16 @@ class LeafSet (TDL_common.Super):
                          help='default value of c00')
         JEN_inarg.define(pp, 'c00_scale', kwargs, hide=True,
                          help='scale of c00')
+        JEN_inarg.define(pp, 'descr', kwargs, hide=True,
+                         help='brief description')
+        JEN_inarg.define(pp, 'unit', kwargs, hide=True,
+                         help='unit')
 
-       # Attach any other kwarg fields to pp also:
+        # Attach any other kwarg fields to pp also:
         for key in kwargs.keys():
-            if not pp.has_key(key): pp[key] = kwargs[key]
+            if not pp.has_key(key):
+                pp[key] = kwargs[key]
+                
         return True
 
 

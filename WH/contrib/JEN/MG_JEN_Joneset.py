@@ -41,7 +41,7 @@
 #********************************************************************************
 
 from Timba.TDL import *
-# from Timba.Meq import meq
+from Timba.Meq import meq
 
 from numarray import *
 
@@ -1085,9 +1085,9 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inar
    # Calculate punit (l,m,n) from input Sixpack:
    radec = Sixpack.radec(ns)
    radec0 = MSauxinfo.radec0()
-   lmn    = ns.lmn(q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
-   ncoord = ns.ncoord(q=pp['punit']) << Meq.Selector(lmn, index=2)
-   lmn1   = ns.lmn_minus1(q=pp['punit']) << Meq.Paster(lmn, ncoord-1, index=2)
+   lmn    = ns['lmn'](q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
+   ncoord = ns['ncoord'](q=pp['punit']) << Meq.Selector(lmn, index=2)
+   lmn1   = ns['lmn_minus1'](q=pp['punit']) << Meq.Paster(lmn, ncoord-1, index=2)
    sqrtn  = ns << Meq.Sqrt(ncoord)
 
    if False:
@@ -1106,7 +1106,7 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inar
       skey = TDL_radio_conventions.station_key(station)
       qual = dict(s=skey)
       uvw = MSauxinfo.node_station_uvw(skey, ns=ns)
-      Kmel = ns.dft(s=skey, q=pp['punit']) << Meq.VisPhaseShift(lmn=lmn1, uvw=uvw)/sqrtn
+      Kmel = ns['dft'](s=skey, q=pp['punit']) << Meq.VisPhaseShift(lmn=lmn1, uvw=uvw)/sqrtn
       stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (Kmel,0,0,Kmel)
       js.append(skey, stub)
 
@@ -1116,63 +1116,6 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inar
    MG_JEN_forest_state.object(js, funcname)
    return js
 
-
-#--------------------------------------------------------------------------------
-# KJones: diagonal 2x2 matrix for DFT Fourier kernel
-# This function requires a Sixpack as input!
-# And also an MSauxinfo object (see TDL_MSauxinfo.py and MG_JEN_Cohset.py)
-#--------------------------------------------------------------------------------
-
-def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inarg):
-   """defines EJones (voltage beamshape) matrices for WSRT (l,m interpolatable)""";
-
-   jones = 'EJones_WSRT'
-   
-   # Input arguments:
-   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='30mar2006',
-                            description=EJones_WSRT.__doc__)
-   inarg_Joneset_common(pp, jones=jones, slave=slave)              
-
-   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
-   if not JEN_inarg.is_OK(pp): return False
-
-   funcname = JEN_inarg.localscope(pp)
-
-   label = jones+'_'+str(JEN_inarg.qualifier(pp))
-
-   adjust_for_telescope(pp, origin=funcname)
-
-   # Note the difference with other Jones matrices:
-   if not Sixpack:
-      Sixpack = punit2Sixpack(ns, punit='uvp')
-   pp['punit'] = get_punit(Sixpack)
-
-   # Create a Joneset object
-   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
-
-   # Calculate punit (l,m,n) from input Sixpack:
-   radec = Sixpack.radec(ns)
-   radec0 = MSauxinfo.radec0()
-   lmn    = ns.lmn(q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
-   ncoord = ns.ncoord(q=pp['punit']) << Meq.Selector(lmn, index=2)
-   lm = ns.ncoord(q=pp['punit']) << Meq.Selector(lmn, index=[0,1])
-   lmn1   = ns.lmn_minus1(q=pp['punit']) << Meq.Paster(lmn, ncoord-1, index=2)
-   sqrtn  = ns << Meq.Sqrt(ncoord)
-
-   # The 2x2 EJones_WSRT matrix is diagonal.... 
-   for station in pp['stations']:
-      skey = TDL_radio_conventions.station_key(station)
-      qual = dict(s=skey)
-      # uvw = MSauxinfo.node_station_uvw(skey, ns=ns)
-      # Kmel = ns.dft(s=skey, q=pp['punit']) << Meq.VisPhaseShift(lmn=lmn1, uvw=uvw)/sqrtn
-      stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (Kmel,0,0,Kmel)
-      js.append(skey, stub)
-
-
-   # Finished:
-   js.cleanup()
-   MG_JEN_forest_state.object(js, funcname)
-   return js
 
 
 
@@ -1202,9 +1145,7 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
                             description=EJones_WSRT.__doc__)
     inarg_Joneset_common(pp, jones=jones, slave=slave)              
     # ** Jones matrix elements:
-    JEN_inarg.define(pp, 'Epolar', tf=True, hide=True, 
-                     help='obsolete, kept only for upward compatibility')
-    
+
     if simul:                              # simulation mode
        ls = TDL_LeafSet.LeafSet()
        ls.inarg_group_rider(pp)
@@ -1212,20 +1153,20 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     else:                                  # normal mode
        inarg_Joneset_ParmSet(pp, slave=slave)              
        # ** Solving instructions:
-       JEN_inarg.define(pp, 'tdeg_Egain', 0, choice=[0,1,2,3],  
+       JEN_inarg.define(pp, 'tdeg_Edl', 0, choice=[0,1,2,3],  
                         help='degree of time polynomial')
-       JEN_inarg.define(pp, 'tdeg_Ephase', '@tdeg_Egain',
-                        choice=[0,1,2,3,'@tdeg_Egain'],  
+       JEN_inarg.define(pp, 'tdeg_Edm', '@tdeg_Edl',
+                        choice=[0,1,2,3,'@tdeg_Edl'],  
                         help='degree of time polynomial')
-       JEN_inarg.define(pp, 'fdeg_Egain', 0, choice=[0,1,2,3],  
+       JEN_inarg.define(pp, 'fdeg_Edl', 0, choice=[0,1,2,3],  
                         help='degree of freq polynomial')
-       JEN_inarg.define(pp, 'fdeg_Ephase', '@fdeg_Egain',
-                        choice=[0,1,2,3,'@fdeg_Egain'],  
+       JEN_inarg.define(pp, 'fdeg_Edm', '@fdeg_Edl',
+                        choice=[0,1,2,3,'@fdeg_Edl'],  
                         help='degree of freq polynomial')
-       JEN_inarg.define(pp, 'subtile_size_Egain', 1,
+       JEN_inarg.define(pp, 'subtile_size_Edl', None,
                         choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                         help='sub-tile size (None=entire tile)')
-       JEN_inarg.define(pp, 'subtile_size_Ephase', '@subtile_size_Egain',  
+       JEN_inarg.define(pp, 'subtile_size_Edm', '@subtile_size_Edl',  
                         choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
                         help='sub-tile size (None=entire tile)')
        ps = TDL_ParmSet.ParmSet()
@@ -1244,108 +1185,83 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
        Sixpack = punit2Sixpack(ns, punit='uvp')
     pp['punit'] = get_punit(Sixpack)
        
-    # Calculate punit (l,m,n) from input Sixpack:
-    radec = Sixpack.radec(ns)
-    radec0 = MSauxinfo.radec0()
-    lmn    = ns.lmn(q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
-    lm = ns.ncoord(q=pp['punit']) << Meq.Selector(lmn, index=[0,1])
-    # ncoord = ns.ncoord(q=pp['punit']) << Meq.Selector(lmn, index=2)
-    # lmn1   = ns.lmn_minus1(q=pp['punit']) << Meq.Paster(lmn, ncoord-1, index=2)
-    # sqrtn  = ns << Meq.Sqrt(ncoord)
-
-
     # Create a Joneset object
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
     
     # Register the parmgroups with specific rider parameters:
-    a1 = js.parmgroup('Egain', ipol=1, rider=pp,
-                      condeq_corrs='paral11', c00_default=1.0,
-                      c00_scale=1.0, timescale_min=30, fdeg=0,
+    b1 = js.parmgroup('EJones', ipol=1, rider=pp, 
+                      descr='Station X voltage beam shape (l,m,t,f)',
                       color='red', style='diamond', size=10)
-    a2 = js.parmgroup('Egain', ipol=2, rider=pp,
-                      condeq_corrs='paral22', c00_default=1.0,
-                      c00_scale=1.0, timescale_min=40, fdeg=0,
+    b2 = js.parmgroup('EJones', ipol=2, rider=pp, 
+                      descr='Station Y voltage beam shape (l,m,t,f)',
                       color='blue', style='diamond', size=10)
-    p1 = js.parmgroup('Ephase', ipol=1, rider=pp,
-                      condeq_corrs='paral11', c00_default=0.0,
-                      c00_scale=1.0, timescale_min=10, fdeg=0,
-                      color='magenta', style='diamond', size=10)
-    p2 = js.parmgroup('Ephase', ipol=2, rider=pp,
-                      condeq_corrs='paral22', c00_default=0.0,
-                      c00_scale=1.0, timescale_min=20, fdeg=0,
-                      color='cyan', style='diamond', size=10)
-
-    # Define potential extra condition equations:
-    js.ParmSet.define_condeq(p1, unop='Add', value=0.0)
-    js.ParmSet.define_condeq(p1, select='first', value=0.0)
-    js.ParmSet.define_condeq(p1, select='last', value=0.0)
-
-    js.ParmSet.define_condeq(p2, unop='Add', value=0.0)
-    js.ParmSet.define_condeq(p2, select='first', value=0.0)
-    js.ParmSet.define_condeq(p2, select='last', value=0.0)
-
-    js.ParmSet.define_condeq(a1, unop='Multiply', value=1.0)
-    js.ParmSet.define_condeq(a1, select='first', value=1.0)
-    js.ParmSet.define_condeq(a1, select='last', value=1.0)
-
-    js.ParmSet.define_condeq(a2, unop='Multiply', value=1.0)
-    js.ParmSet.define_condeq(a2, select='first', value=1.0)
-    js.ParmSet.define_condeq(a2, select='last', value=1.0)
+    dl = js.parmgroup('Edl', rider=pp, unit='rad',
+                      descr='Station pointing error in l-direction',
+                      condeq_corrs='paral', c00_default=0.0,
+                      c00_scale=0.001, timescale_min=100, fdeg=0,
+                      color='red', style='diamond', size=10)
+    dm = js.parmgroup('Edm', rider=pp, unit='rad',
+                      descr='Station pointing error in m-direction',
+                      condeq_corrs='paral', c00_default=0.0,
+                      c00_scale=0.001, timescale_min=100, fdeg=0,
+                      color='blue', style='diamond', size=10)
+    d0 = js.parmgroup('dummy_zero', rider=pp)
 
     # MeqParm node_groups: add 'E' to default 'Parm':
     js.ParmSet.node_groups(label[0])
 
     # Define solvegroup(s) from combinations of parmgroups:
     if simul:
-       js.LeafSet.NodeSet.bookmark('EJones', [a1, p1, a2, p2])
+       js.LeafSet.NodeSet.bookmark('EJones', [dl,dm])
     else:
        # NB: For the bookmark definition, see after stations.
-       js.ParmSet.solvegroup('EJones', [a1, p1, a2, p2], bookpage=None)
-       js.ParmSet.solvegroup('Epol1', [a1, p1])
-       js.ParmSet.solvegroup('Epol2', [a2, p2])
-       js.ParmSet.solvegroup('Egain', [a1, a2])
-       js.ParmSet.solvegroup('Ephase', [p1, p2])
+       js.ParmSet.solvegroup('EJones', [dl,dm], bookpage=None)
 
+
+    # Calculate punit (l,m) from input Sixpack:
+    radec = Sixpack.radec(ns)
+    radec0 = MSauxinfo.radec0()
+    lmn    = ns['lmn'](q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
+    lm = ns['lm'](q=pp['punit']) << Meq.Selector(lmn, index=[0,1], multi=True)
+    # cax = [hiid('a'),hiid('b')]
+    cax = [hiid('l'),hiid('m')]                           # <---- necessary?
+
+    # The two voltage beams are slightly elongated in the L or M direction:
+    X_beam = WSRT_voltage_beam_funklet(a_rad=0.01, b_rad=0.011)
+    Y_beam = WSRT_voltage_beam_funklet(a_rad=0.011, b_rad=0.01)
+    dummy_zero = dummy_zero_funklet()
 
     # Create the station jones matrices:
     for station in pp['stations']:
        skey = TDL_radio_conventions.station_key(station)        
        qual = dict(s=skey)
 
-       for Egain in [a1,a2]:
-          if simul:
-             js.LeafSet.MeqLeaf (ns, Egain, qual=qual)
-          else:
-             js.ParmSet.MeqParm (ns, Egain, qual=qual,
-                                 tfdeg=[pp['tdeg_Egain'],pp['fdeg_Egain']],
-                                 subtile_size=pp['subtile_size_Egain'])
-
-       for Ephase in [p1,p2]:
-          if simul:
-             js.LeafSet.MeqLeaf (ns, Ephase, qual=qual)
-          else:
-             js.ParmSet.MeqParm (ns, Ephase, qual=qual,
-                                 tfdeg=[pp['tdeg_Ephase'],pp['fdeg_Ephase']],
-                                 subtile_size=pp['subtile_size_Ephase'])
+       if simul:
+          js.LeafSet.MeqLeaf (ns, b1, qual=qual, init_funklet=X_beam)
+          js.LeafSet.MeqLeaf (ns, b2, qual=qual, init_funklet=Y_beam)
+          js.LeafSet.MeqLeaf (ns, dl, qual=qual)
+          js.LeafSet.MeqLeaf (ns, dm, qual=qual)
+       else:
+          js.ParmSet.MeqParm (ns, b1, qual=qual, init_funklet=X_beam)
+          js.ParmSet.MeqParm (ns, b2, qual=qual, init_funklet=Y_beam)
+          js.ParmSet.MeqParm (ns, dl, qual=qual,
+                              tfdeg=[pp['tdeg_Edl'],pp['fdeg_Edl']],
+                              subtile_size=pp['subtile_size_Edl'])
+          js.ParmSet.MeqParm (ns, dm, qual=qual,
+                              tfdeg=[pp['tdeg_Edm'],pp['fdeg_Edm']],
+                              subtile_size=pp['subtile_size_Edm'])
 
        # Make the 2x2 Jones matrix:
        ss = js.buffer()
-       if pp['Epolar']:                  # Preferred (fewer nodes)
-          stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
-             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Polar(ss[a1], ss[p1]),
-             0,0,
-             ns[label+'_22'](s=skey, q=pp['punit']) << Meq.Polar(ss[a2], ss[p2])
-             )
-       else:
-          cos1 = ns << ss[a1] * Meq.Cos(ss[p1])
-          cos2 = ns << ss[a2] * Meq.Cos(ss[p2])
-          sin1 = ns << ss[a1] * Meq.Sin(ss[p1])
-          sin2 = ns << ss[a2] * Meq.Sin(ss[p2])
-          stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
-             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(cos1, sin1),
-             0,0,
-             ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(cos2, sin2)
-             )
+       dlm = ns['pointing_error'](s=skey, q=pp['punit']) << Meq.Composer(ss[dl],ss[dm])
+       lmtot = ns['lm'](s=skey, q=pp['punit']) << Meq.Add(lm,dlm)
+       stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
+          ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Compounder(children=[lmtot, ss[b1]],
+                                                                   common_axes=cax),
+          ns[label+'_12'](s=skey, q=pp['punit']) << Meq.Parm(init_funklet=dummy_zero),
+          ns[label+'_21'](s=skey, q=pp['punit']) << Meq.Parm(init_funklet=dummy_zero),
+          ns[label+'_22'](s=skey, q=pp['punit']) << Meq.Compounder(children=[lmtot, ss[b2]],
+                                                                   common_axes=cax))
        js.append(skey, stub)
 
 
@@ -1353,12 +1269,10 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     # NB: This must be done AFTER the station nodes have been defined!
     if simul:
        bookpage = js.LeafSet.NodeSet.tlabel()+'_EJones'
-       js.LeafSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage=bookpage)
-       js.LeafSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage=bookpage)
+       js.LeafSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
     else:
        bookpage = js.ParmSet.NodeSet.tlabel()+'_EJones'
-       js.ParmSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage=bookpage)
-       js.ParmSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage=bookpage)
+       js.ParmSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
 
     # Finished:
     js.cleanup()
@@ -1366,7 +1280,47 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     return js
 
 
+#---------------------------------------------------------------------------------
 
+def WSRT_voltage_beam_funklet(a_rad=0.1, b_rad=0.1, trace=False):
+   """Creation of a compiled 4D funklet for the WSRT voltage beam.
+       EJones (L,M) = cos((L/a)^2+(M/b)^2)^3    (L,M,a,b in rad)
+   in which the parameters a and b are polcs(freq,time)""" 
+
+   # Polynomials in (t,f) for function coeff a and b:
+   t = 'x0'
+   f = 'x1'
+   a_poly = 'p0+p1*'+t+'+p2*'+f
+   b_poly = 'p3+p4*'+t+'+p5*'+f
+
+   # Initial values for the various coefficients
+   coeff = [a_rad,0,0,b_rad,0,0]       # [p0,p1,p2,p3,p4,p5]
+   
+   L ='x2'                             # L axis
+   M ='x3'                             # M axis
+   beamshape = '(cos((('+L+')/('+a_poly+'))^2+(('+M+')/('+b_poly+'))^2))^3'
+
+   funklet = meq.polc(coeff=coeff, subclass=meq._funklet_type)
+   funklet.function = beamshape
+
+   if trace:
+      print '- t=',t,' f=',f,' L=',L,' M=',M,'   [p0,p1,p2,p3,p4,p5] =',coeff
+      print '- a_poly =',a_poly,'  b_poly =',b_poly
+      print '->',funklet
+   return funklet
+
+
+#---------------------------------------------------------------------------------
+
+def dummy_zero_funklet(trace=False):
+   """Creation of a compiled 4D funklet that represents zero."""
+
+   funklet = meq.polc(coeff=[0.0], subclass=meq._funklet_type)
+   funklet.function = 'p0'
+
+   if trace:
+      print '->',funklet
+   return funklet
 
 
 
@@ -1732,12 +1686,13 @@ if __name__ == '__main__':
      MSauxinfo = TDL_MSauxinfo.MSauxinfo(label='MG_JEN_Cohset')
      MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
      MSauxinfo.create_nodes(ns)
-     # Sixpack = punit2Sixpack(ns, punit='uvp')
-     inarg = KJones (_getdefaults=True)
-     JEN_inarg.modify(inarg, stations=stations)
-     js = KJones (ns, MSauxinfo=MSauxinfo,_inarg=inarg)
+     if 1:
+        js = EJones_WSRT (ns, MSauxinfo=MSauxinfo, stations=stations)
+     if 0:
+        js = KJones (ns, MSauxinfo=MSauxinfo, stations=stations)
      js.display()     
      display_first_subtree (js, full=True)
+
 
   if 0:
      # inarg = FJones (_getdefaults=True)
@@ -1763,7 +1718,7 @@ if __name__ == '__main__':
      js.display()     
      display_first_subtree (js, full=1)
 
-  if 1:
+  if 0:
      simul = False
      js = GJones (ns, stations=stations, simul=simul)
      full = True
@@ -1772,15 +1727,13 @@ if __name__ == '__main__':
      # js.LeafSet.display(full=full)     
      # display_first_subtree (js, full=True)
 
+  if 1:
+     WSRT_voltage_beam_funklet(a_rad=0.1, b_rad=0.1, trace=True)
+     dummy_zero_funklet(trace=True)
+
   if 0:
-     simul = True
-     js = JJones (ns, stations=stations, simul=simul,
+     js = JJones (ns, stations=stations, simul=True,
                   diagonal_only=True, all4_always=[14])
-     full = True
-     # js.display(full=full)     
-     js.ParmSet.display(full=full)     
-     js.LeafSet.display(full=full)     
-     # display_first_subtree (js, full=True)
 
   if 0:
      js = GJones (ns, stations=stations)
@@ -1788,6 +1741,12 @@ if __name__ == '__main__':
      MG_JEN_exec.display_object (dconc, 'dconc')
      MG_JEN_exec.display_subtree (dconc, 'dconc', full=1)
 
+  if 0:
+     full = True
+     # js.display(full=full)     
+     js.ParmSet.display(full=full)     
+     js.LeafSet.display(full=full)     
+     # display_first_subtree (js, full=True)
 
   if 0:
      MG_JEN_exec.display_object (MG, 'MG', MG['script_name'])
