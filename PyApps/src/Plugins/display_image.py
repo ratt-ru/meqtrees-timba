@@ -339,6 +339,7 @@ class QwtImageDisplay(QwtPlot):
         self.xrCrossSection = None
         self.xiCrossSection = None
         self.yCrossSection = None
+        self.x_index = None
         self.x_arrayloc = None
         self.y_arrayloc = None
         self.enableAxis(QwtPlot.yRight, False)
@@ -674,6 +675,7 @@ class QwtImageDisplay(QwtPlot):
         self.xmax = None
         self.ymin = None
         self.ymax = None
+        self.test_plot_array_sizes(False)
         self.refresh_marker_display()
         toggle_id = self.menu_table['Reset zoomer']
         self._menu.setItemVisible(toggle_id, False)
@@ -1062,7 +1064,11 @@ class QwtImageDisplay(QwtPlot):
 
     def onMouseReleased(self, e):
         """ callback to handle MouseReleased event """
-        if Qt.LeftButton == e.button():
+        if Qt.RightButton == e.button():
+          return
+        elif Qt.MidButton == e.button():
+          return
+        elif Qt.LeftButton == e.button():
             self.refresh_marker_display()
             if self.zooming:
 # assume a change of <= 2 screen pixels is just due to clicking
@@ -1070,11 +1076,18 @@ class QwtImageDisplay(QwtPlot):
               if abs(self.xpos - e.pos().x()) <=2 and abs(self.ypos - e.pos().y())<=2:
                 return
 
+              self.setOutlineStyle(Qwt.Cross)
+
               xmin = min(self.xpos, e.pos().x())
               xmax = max(self.xpos, e.pos().x())
               ymin = min(self.ypos, e.pos().y())
               ymax = max(self.ypos, e.pos().y())
-              self.setOutlineStyle(Qwt.Cross)
+              if self.xTopAxisEnabled():
+                xmin_t = self.invTransform(QwtPlot.xTop, xmin)
+                xmax_t = self.invTransform(QwtPlot.xTop, xmax)
+              if self.yRightAxisEnabled():
+                ymin_r = self.invTransform(QwtPlot.yRight, ymin)
+                ymax_r = self.invTransform(QwtPlot.yRight, ymax)
               xmin = self.invTransform(QwtPlot.xBottom, xmin)
               xmax = self.invTransform(QwtPlot.xBottom, xmax)
               ymin = self.invTransform(QwtPlot.yLeft, ymin)
@@ -1105,36 +1118,65 @@ class QwtImageDisplay(QwtPlot):
               self.zoomStack.append(self.zoomState)
               self.zoomState = (xmin, xmax, ymin, ymax)
               self.enableOutline(0)
-        elif Qt.RightButton == e.button():
-            if self.zooming:
-              if len(self.zoomStack):
-                 xmin, xmax, ymin, ymax = self.zoomStack.pop()
-              else:
-                return
-            else:
-              return
-        elif Qt.MidButton == e.button():
-          return
-        if self.zooming:
-          self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
-          self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
-          self._x_auto_scale = False
-          self._y_auto_scale = False
-          self.xmin = xmin
-          self.xmax = xmax
-          self.ymin = ymin
-          self.ymax = ymax
-          self.axis_xmin = xmin
-          self.axis_xmax = xmax
-          self.axis_ymin = ymin
-          self.axis_ymax = ymax
-          toggle_id = self.menu_table['Reset zoomer']
-          self._menu.setItemVisible(toggle_id, True)
-        self.replot()
-        _dprint(3, 'called replot in onMouseReleased');
+        
+              self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+              self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+              if self.yRightAxisEnabled():
+                self.setAxisScale(QwtPlot.yRight, ymin_r, ymax_r)
+              if self.xTopAxisEnabled():
+                self.setAxisScale(QwtPlot.xTop, xmin_t, xmax_t)
+              self._x_auto_scale = False
+              self._y_auto_scale = False
+              self.xmin = xmin
+              self.xmax = xmax
+              self.ymin = ymin
+              self.ymax = ymax
+              self.axis_xmin = xmin
+              self.axis_xmax = xmax
+              self.axis_ymin = ymin
+              self.axis_ymax = ymax
+              toggle_id = self.menu_table['Reset zoomer']
+              self._menu.setItemVisible(toggle_id, True)
+              self.test_plot_array_sizes(True)
+            self.replot()
+            _dprint(3, 'called replot in onMouseReleased');
 
     # onMouseReleased()
 
+    def test_plot_array_sizes(self, zoom = True):
+# adjust symbol sizes for any real / imaginary plots
+      if not self.x_index is None:
+        q_line_size = 2
+        q_symbol_size = 5
+        q_flag_size = 20
+        q_size_split = 300
+        if not zoom:
+          num_valid_points = len(self.x_index)
+        else:
+          num_valid_points = 0
+          for i in range(len(self.x_index)):
+            if self.x_index[i] >= self.xmin and self.x_index[i]<= self.xmax:
+              num_valid_points = num_valid_points + 1
+        if num_valid_points > q_size_split:
+          q_line_size = 1
+          q_symbol_size = 3
+          q_flag_size = 10
+        if self.yRightAxisEnabled() and not zoom:
+          self.setAxisAutoScale(QwtPlot.yRight)
+        if self.xTopAxisEnabled() and not zoom:
+          self.setAxisAutoScale(QwtPlot.xTop)
+        keys = self.curveKeys()
+        for j in range(len(keys)):
+          if self.curveTitle(keys[j]) == 'imaginaries':
+            self.setCurvePen(keys[j], QPen(Qt.blue, q_line_size))
+            plot_curve=self.curve(keys[j])
+            plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
+                  QPen(Qt.green), QSize(q_symbol_size,q_symbol_size)))
+          if self.curveTitle(keys[j]) == 'reals':
+            self.setCurvePen(keys[j], QPen(Qt.black, q_line_size))
+            plot_curve=self.curve(keys[j])
+            plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
+                  QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
 
     def calculate_cross_sections(self):
         """ calculate and display cross sections at specified location """
@@ -1631,6 +1673,7 @@ class QwtImageDisplay(QwtPlot):
       _dprint(3, 'actual array rank ', actual_array_rank)
       if actual_array_rank == 1:
         self.is_vector = True;
+      
 
 # I don't think we should ever see the N-D controller in the vector case.
 # If self.toggle_array_rank > 2 that means that the cells dimensions are
@@ -1820,6 +1863,7 @@ class QwtImageDisplay(QwtPlot):
         self.setAxisScaleDraw(QwtPlot.yLeft, QwtScaleDraw())
         self._x_auto_scale = True
         self._y_auto_scale = True
+
         q_line_size = 2
         q_symbol_size = 5
         q_flag_size = 20
@@ -1897,8 +1941,8 @@ class QwtImageDisplay(QwtPlot):
           else:
             self.setAxisTitle(QwtPlot.yLeft, 'Value: real (black line / red dots)')
             self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (blue line / green dots)')
-          self.yCrossSection = self.insertCurve('yCrossSection')
-          self.xrCrossSection = self.insertCurve('xCrossSection')
+          self.yCrossSection = self.insertCurve('imaginaries')
+          self.xrCrossSection = self.insertCurve('reals')
           self.setCurvePen(self.xrCrossSection, QPen(Qt.black, q_line_size))
           self.setCurvePen(self.yCrossSection, QPen(Qt.blue, q_line_size))
           self.setCurveYAxis(self.xrCrossSection, QwtPlot.yLeft)
@@ -1954,7 +1998,7 @@ class QwtImageDisplay(QwtPlot):
           self.x_array = zeros(num_elements, Float32)
           self.y_array = zeros(num_elements, Float32)
           self.x_array =  flattened_array
-          self.xrCrossSection = self.insertCurve('xCrossSection')
+          self.xrCrossSection = self.insertCurve('reals')
           self.setCurvePen(self.xrCrossSection, QPen(Qt.black, q_line_size))
           self.setCurveStyle(self.xrCrossSection,Qt.SolidLine)
           self.setCurveYAxis(self.xrCrossSection, QwtPlot.yLeft)
