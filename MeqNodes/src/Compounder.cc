@@ -154,7 +154,31 @@ int Compounder::pollChildren (Result::Ref &resref,
 	cout<<"Got "<<nvs<<" Vellsets"<<endl;
 #endif
 	/* if we do not have any result, do not do anything, just pass it up */
-	if (nvs==0) { result_=child_res; return code; }
+	if (nvs==0) {  
+   //increment request sub id
+	Request::Ref newreq(request);
+	//increment request sub id
+	RequestId rqid=request.id();
+	RqId::incrSubId(rqid,seq_depmask_);
+	newreq().setId(rqid);
+
+	 unlockStateMutex();
+	 code=children().getChild(1).execute(child_res,*newreq);
+	 lockStateMutex();
+	 cout<<"Result ="<<child_res()<<endl;
+	 result_=child_res;
+	 resref.xfer(child_res);
+	 unlockStateMutex();
+	 stepchildren().backgroundPoll(request);
+	 timers().children.stop();
+	 lockStateMutex();
+
+
+
+	 return code; 
+	}
+
+
 	FailWhen(nvs!=2,"We need 2 vellsets, but got "+nvs);
 	// get input cells
 	const Cells &incells=request.cells();
@@ -320,8 +344,13 @@ int Compounder::pollChildren (Result::Ref &resref,
 	const Vells vl=res0().vellSet(0).getValue();
 	Vells &in=const_cast<Vells &>(vl);
 	//create new vellset
+  int npsets=res0().vellSet(0).numPertSets();
+	int nspids=res0().vellSet(0).numSpids();
 	VellSet::Ref ref;
-	VellSet &vs=ref <<=new VellSet(0,1);
+	VellSet &vs=ref <<=new VellSet(incells.shape(),nspids,npsets);
+	vs.copySpids(res0().vellSet(0));
+	vs.copyPerturbations(res0().vellSet(0));
+
 	Vells &out=vs.setValue(new Vells(0.0,incells.shape()));
 	//now fill in the values only defined at the original grid points
 	//imagine the axes are (t,f,a,b): then for each (t,f) grid point
@@ -349,12 +378,11 @@ int Compounder::pollChildren (Result::Ref &resref,
 		A(i,j)=B(i,j,k,l);
   }
 	// handle perturbed sets if any
-  int npset=res0().vellSet(0).numPertSets();
-  if (npset >0) {
+  if (npsets >0) {
 #ifdef DEBUG
-   cout<<"Found "<<npset<<" perturbed sets"<<endl;
+   cout<<"Found "<<npsets<<" perturbed sets"<<endl;
 #endif
-   for (int ipset=0; ipset<npset; ipset++) 
+   for (int ipset=0; ipset<npsets; ipset++) 
     for (int ipert=0; ipert<res0().vellSet(0).numSpids(); ipert++)  {
 	   const Vells pvl=res0().vellSet(0).getPerturbedValue(ipert,ipset);
 	   Vells &pin=const_cast<Vells &>(pvl);
