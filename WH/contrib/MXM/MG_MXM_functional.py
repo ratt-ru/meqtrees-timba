@@ -13,6 +13,10 @@ from Timba.Meq import meq
 from Timba.Meq import meqds
 from numarray import *
 
+from Timba.Contrib.MXM.TDL_Functional import *
+
+
+
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
 # This is a record passed to Set.Forest.State. 
 Settings.forest_state.cache_policy = 100;
@@ -20,7 +24,7 @@ Settings.forest_state.cache_policy = 100;
 # Make sure our solver root node is not cleaned up
 Settings.orphans_are_roots = True;
 
-def _define_forest (ns):
+def _define_forest1 (ns):
   """define_forest() is a standard TDL name. When a forest script is
   loaded by, e.g., the browser, this method is automatically called to
   define the forest. The 'ns' argument is a NodeScope object in which
@@ -58,6 +62,41 @@ def _define_forest (ns):
     );
 
   ns.dummy<<Meq.Parm([[0,1],[1,0]],node_groups='Parm');
+
+
+
+def _define_forest2(ns):
+  """example function to show how to use the  Functional class"""
+  _add_axes_to_forest_state();
+  
+  f1=Functional("p0+p1*x0",[1],2);
+  
+
+
+  f2=Functional("p0+p1*x1",[1],2);
+
+  
+
+  f4=create_polc(shape=[3,2]);
+
+  f3=Functional("p0*x2+p1*x3+p2*x2*x3",[f1,f2,f4]); #replaces p0 by f1,p1 by f2...etc..
+  #if the second argument contains number this will be the init_value of te coefficient
+
+  polc=f3.getFunklet();
+
+  print "created funklet",polc;
+
+  ns['solver'] << Meq.Solver(
+      num_iter=5,debug_level=10,solvable="x",
+      children = Meq.Condeq(
+        ns.y<<Meq.Parm(polc,node_groups='Parm'),
+        (0 + (ns.x << Meq.Parm(polc,node_groups='Parm')))
+      ),
+    );
+
+
+def _define_forest(ns):
+  _define_forest2(ns);
 
 
 def _test_forest (mqs,parent):
