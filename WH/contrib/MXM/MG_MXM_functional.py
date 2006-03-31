@@ -89,11 +89,12 @@ def _define_forest2(ns):
   ns['solver'] << Meq.Solver(
       num_iter=5,debug_level=10,solvable="x",
       children = Meq.Condeq(
-        ns.y<<Meq.Parm(polc,node_groups='Parm'),
+        ns.y<<Meq.Parm([[1,2,3]],node_groups='Parm'),
         (0 + (ns.x << Meq.Parm(polc,node_groups='Parm')))
       ),
     );
 
+  ns.dummy<<Meq.Parm([[0,1],[1,0]],node_groups='Parm');
 
 def _define_forest(ns):
   _define_forest2(ns);
@@ -118,7 +119,7 @@ def _dummy(mqs,parent):
   # run tests on the forest 
   dom = meq.domain(0,1,0,1);
   cells = meq.cells(dom,num_freq=2,num_time=2);
-  request = meq.request(cells,eval_mode=1);
+  request = meq.request(cells);
   a = mqs.meq('Node.Execute',record(name='dummy',request=request),wait=True);
 
 
@@ -175,7 +176,7 @@ def _make_request(Ndim=4,dom_range=[0.,1.],nr_cells=5):
       cells.segments[id]=record(start_index=0,end_index=nr_c[dim]-1);
 
   cells.domain=dom;
-  request = meq.request(cells,eval_mode=1);
+  request = meq.request(cells);
   return request;
 
 def _polc2d(startp=0,shape=[1,1],x0="x0",x1="x1",coeff=[]):
