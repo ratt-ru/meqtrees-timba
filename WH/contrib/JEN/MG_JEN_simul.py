@@ -63,58 +63,12 @@ def predefine_inargs():
    """Modify the default inarg record (MG) to predefined inarg record files"""
    global MG
    print '\n** Predefining',MG['script_name'],'inarg records...\n'
+   simul_cps_GJones(deepcopy(MG), trace=True)
+   simul_cps_DJones(deepcopy(MG), trace=True)
    simul_GJones(deepcopy(MG), trace=True)
    simul_DJones(deepcopy(MG), trace=True)
-   simul_lsm_GJones(deepcopy(MG), trace=True)
-   simul_lsm_DJones(deepcopy(MG), trace=True)
+   simul_EJones(deepcopy(MG), trace=True)
    print '\n** Predefined',MG['script_name'],'inarg records (incl. protected)\n'
-   return True
-
-#--------------------------------------------------------------------
-
-def simul_lsm_GJones(inarg, trace=True):
-   """Predefined inarg record for simulating from LSM with GJones corruption"""
-   filename = 'MG_JEN_simul_lsm_GJones'
-   if trace: print '\n** predefine inarg record:',filename
-   JEN_inarg.specific(inarg, simul_lsm_GJones.__doc__)
-   JEN_inarg.modify(inarg,
-                    LSM_simul='lsm_current.lsm',
-                    nr_lsm_sources=100,
-                    Jsequence_simul_uvp=['GJones'],
-                    # Jsequence_simul_imp=[],
-                    insert_solver=False,
-                    LSM_solve='lsm_current.lsm',
-                    Jsequence_solve_uvp=['GJones'],
-                    solvegroup=['GJones'],
-                    parmtable='simul_lsm_GJones',
-                    num_iter=2,
-                    _JEN_inarg_option=dict(trace=trace))     
-   JEN_inarg.save(inarg, filename, trace=trace)
-   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
-   return True
-
-#--------------------------------------------------------------------
-
-def simul_lsm_DJones(inarg, trace=True):
-   """Predefined inarg record for simulating from LSM with DJones corruption"""
-   filename = 'MG_JEN_simul_lsm_DJones'
-   if trace: print '\n** predefine inarg record:',filename
-   JEN_inarg.specific(inarg, simul_lsm_DJones.__doc__)
-   JEN_inarg.modify(inarg,
-                    LSM_simul='lsm_current.lsm',
-                    nr_lsm_sources=100,
-                    Jsequence_simul_uvp=['DJones_WSRT'],
-                    # Jsequence_simul_imp=[],
-                    insert_solver=False,
-                    LSM_solve='lsm_current.lsm',
-                    Jsequence_solve_uvp=['DJones_WSRT'],
-                    solvegroup=['DJones'],
-                    parmtable='simul_lsm_DJones',
-                    num_iter=2,
-                    _JEN_inarg_option=dict(trace=trace))     
-   JEN_inarg.callback_punit(inarg,'QU')
-   JEN_inarg.save(inarg, filename, trace=trace)
-   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
    return True
 
 #--------------------------------------------------------------------
@@ -125,7 +79,12 @@ def simul_GJones(inarg, trace=True):
    if trace: print '\n** predefine inarg record:',filename
    JEN_inarg.specific(inarg, simul_GJones.__doc__)
    JEN_inarg.modify(inarg,
+                    LSM_simul='lsm_current.lsm',
+                    nr_sources=100,
                     Jsequence_simul_uvp=['GJones'],
+                    # Jsequence_simul_imp=[],
+                    insert_solver=False,
+                    LSM_solve='lsm_current.lsm',
                     Jsequence_solve_uvp=['GJones'],
                     solvegroup=['GJones'],
                     parmtable='simul_GJones',
@@ -143,10 +102,83 @@ def simul_DJones(inarg, trace=True):
    if trace: print '\n** predefine inarg record:',filename
    JEN_inarg.specific(inarg, simul_DJones.__doc__)
    JEN_inarg.modify(inarg,
+                    LSM_simul='lsm_current.lsm',
+                    nr_sources=100,
                     Jsequence_simul_uvp=['DJones_WSRT'],
+                    # Jsequence_simul_imp=[],
+                    insert_solver=False,
+                    LSM_solve='lsm_current.lsm',
                     Jsequence_solve_uvp=['DJones_WSRT'],
                     solvegroup=['DJones'],
                     parmtable='simul_DJones',
+                    num_iter=2,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.callback_punit(inarg,'QU')
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def simul_EJones(inarg, trace=True):
+   """Predefined inarg record for simulating with EJones corruption"""
+   filename = 'MG_JEN_simul_EJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, simul_EJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    LSM_simul='lsm_current.lsm',
+                    nr_sources=100,
+                    # Jsequence_simul_uvp=['GJones'],
+                    Jsequence_simul_imp=['EJones_WSRT'],
+                    insert_solver=False,
+                    LSM_solve='lsm_current.lsm',
+                    Jsequence_solve_imp=['EJones_WSRT'],
+                    solvegroup=['EJones'],
+                    parmtable='simul_EJones',
+                    num_iter=2,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+
+
+#--------------------------------------------------------------------
+# Versions for Central Point Source (cps):
+#--------------------------------------------------------------------
+
+def simul_cps_GJones(inarg, trace=True):
+   """Predefined inarg record for simulating a central point source with GJones corruption"""
+   filename = 'MG_JEN_simul_cps_GJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, simul_cps_GJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    LSM_simul=None,
+                    insert_solver=True,
+                    Jsequence_simul_uvp=['GJones'],
+                    Jsequence_solve_uvp=['GJones'],
+                    solvegroup=['GJones'],
+                    parmtable='simul_cps_GJones',
+                    num_iter=2,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def simul_cps_DJones(inarg, trace=True):
+   """Predefined inarg record for simulating a central point source with DJones corruption"""
+   filename = 'MG_JEN_simul_cps_DJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, simul_cps_DJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    LSM_simul=None,
+                    insert_solver=True,
+                    Jsequence_simul_uvp=['DJones_WSRT'],
+                    Jsequence_solve_uvp=['DJones_WSRT'],
+                    solvegroup=['DJones'],
+                    parmtable='simul_cps_DJones',
                     num_iter=2,
                     _JEN_inarg_option=dict(trace=trace))     
    JEN_inarg.callback_punit(inarg, 'QU')

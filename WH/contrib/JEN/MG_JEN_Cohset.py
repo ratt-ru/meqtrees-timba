@@ -28,6 +28,7 @@
 # - 16 mar 2006: added KJones()
 # - 20 mar 2006: added predict_lsm()
 # - 22 mar 2006: implemented bookfolders
+# - 31 mar 2006: added EJones_WSRT
 
 # Copyright: The MeqTree Foundation 
 
@@ -281,8 +282,8 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, KJones=None, **inarg)
     JEN_inarg.define (pp, jseq_name, [],
                       choice=[['GJones'],['BJones'],['FJones'],['KJones'],
                               ['DJones_WSRT'],['GJones','DJones_WSRT'],
-                              ['JJones'],
-                              []],
+                              ['EJones_WSRT'],['GJones','EJones_WSRT'],
+                              ['JJones'],[]],
                       help='sequence of Jones matrices to be used')
     # Include default inarg records for various Jones matrix definition functions:
     JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
@@ -325,9 +326,12 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, KJones=None, **inarg)
             jseq.append(MG_JEN_Joneset.JJones (ns, Sixpack=Sixpack, simul=simul, _inarg=pp, _qual=qual))
         elif jones=='DJones_WSRT':
             jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, Sixpack=Sixpack, simul=simul, _inarg=pp, _qual=qual))
+        elif jones=='EJones_WSRT':
+            jseq.append(MG_JEN_Joneset.EJones_WSRT (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
+                                                    simul=simul, _inarg=pp, _qual=qual))
         elif jones=='KJones':
-            jseq.append(MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack,
-                                               MSauxinfo=MSauxinfo(), _inarg=pp, _qual=qual))
+            jseq.append(MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
+                                               _inarg=pp, _qual=qual))
         else:
             print '** jones not recognised:',jones,'from:',pp[jseq_name]
                
@@ -441,7 +445,6 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
             # Corrupt with image-plane effects (KJones at the very least)
             js1 = Jones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
                          _inarg=pp, _qual=qual+'_imp', KJones=True)
-            # js1.display(funcname)
             cs1.corrupt (ns, Joneset=js1)
             # cs1.update_from_Sixpack(Sixpack)
             cs.append(cs1)

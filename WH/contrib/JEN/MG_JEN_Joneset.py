@@ -27,6 +27,7 @@
 # - 25 feb 2006: included simul (Leafset etc)
 # - 09 mar 2006: adopted TDL_ParmSet and TDL_LeafSet
 # - 11 mar 2006: removed TDL_Parmset and TDL_Leafset
+# - 30 mar 2006: implemented EJones_WSRT()
 
 # Copyright: The MeqTree Foundation 
 
@@ -1116,8 +1117,253 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inar
    return js
 
 
+#--------------------------------------------------------------------------------
+# KJones: diagonal 2x2 matrix for DFT Fourier kernel
+# This function requires a Sixpack as input!
+# And also an MSauxinfo object (see TDL_MSauxinfo.py and MG_JEN_Cohset.py)
+#--------------------------------------------------------------------------------
+
+def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inarg):
+   """defines EJones (voltage beamshape) matrices for WSRT (l,m interpolatable)""";
+
+   jones = 'EJones_WSRT'
+   
+   # Input arguments:
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='30mar2006',
+                            description=EJones_WSRT.__doc__)
+   inarg_Joneset_common(pp, jones=jones, slave=slave)              
+
+   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+   if not JEN_inarg.is_OK(pp): return False
+
+   funcname = JEN_inarg.localscope(pp)
+
+   label = jones+'_'+str(JEN_inarg.qualifier(pp))
+
+   adjust_for_telescope(pp, origin=funcname)
+
+   # Note the difference with other Jones matrices:
+   if not Sixpack:
+      Sixpack = punit2Sixpack(ns, punit='uvp')
+   pp['punit'] = get_punit(Sixpack)
+
+   # Create a Joneset object
+   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+
+   # Calculate punit (l,m,n) from input Sixpack:
+   radec = Sixpack.radec(ns)
+   radec0 = MSauxinfo.radec0()
+   lmn    = ns.lmn(q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
+   ncoord = ns.ncoord(q=pp['punit']) << Meq.Selector(lmn, index=2)
+   lm = ns.ncoord(q=pp['punit']) << Meq.Selector(lmn, index=[0,1])
+   lmn1   = ns.lmn_minus1(q=pp['punit']) << Meq.Paster(lmn, ncoord-1, index=2)
+   sqrtn  = ns << Meq.Sqrt(ncoord)
+
+   # The 2x2 EJones_WSRT matrix is diagonal.... 
+   for station in pp['stations']:
+      skey = TDL_radio_conventions.station_key(station)
+      qual = dict(s=skey)
+      # uvw = MSauxinfo.node_station_uvw(skey, ns=ns)
+      # Kmel = ns.dft(s=skey, q=pp['punit']) << Meq.VisPhaseShift(lmn=lmn1, uvw=uvw)/sqrtn
+      stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (Kmel,0,0,Kmel)
+      js.append(skey, stub)
 
 
+   # Finished:
+   js.cleanup()
+   MG_JEN_forest_state.object(js, funcname)
+   return js
+
+
+
+
+
+#--------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
+# EJones_WSRT: diagonal 2x2 matrix for WSRT voltage beams
+#--------------------------------------------------------------------------------
+
+def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inarg):
+    """defines EJones (voltage beamshape) matrices for WSRT (l,m interpolatable)
+    Ejones(station,source) matrix elements:
+    - E_11 = Egain_X*exp(iEphase_X)
+    - E_12 = 0
+    - E_21 = 0
+    - E_22 = Egain_Y*exp(iEphase_Y)
+    For circular polarisation, R and L are used rather than X and Y
+    """
+
+    jones = 'EJones_WSRT'
+
+    # Input arguments:
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005',
+                            description=EJones_WSRT.__doc__)
+    inarg_Joneset_common(pp, jones=jones, slave=slave)              
+    # ** Jones matrix elements:
+    JEN_inarg.define(pp, 'Epolar', tf=True, hide=True, 
+                     help='obsolete, kept only for upward compatibility')
+    
+    if simul:                              # simulation mode
+       ls = TDL_LeafSet.LeafSet()
+       ls.inarg_group_rider(pp)
+
+    else:                                  # normal mode
+       inarg_Joneset_ParmSet(pp, slave=slave)              
+       # ** Solving instructions:
+       JEN_inarg.define(pp, 'tdeg_Egain', 0, choice=[0,1,2,3],  
+                        help='degree of time polynomial')
+       JEN_inarg.define(pp, 'tdeg_Ephase', '@tdeg_Egain',
+                        choice=[0,1,2,3,'@tdeg_Egain'],  
+                        help='degree of time polynomial')
+       JEN_inarg.define(pp, 'fdeg_Egain', 0, choice=[0,1,2,3],  
+                        help='degree of freq polynomial')
+       JEN_inarg.define(pp, 'fdeg_Ephase', '@fdeg_Egain',
+                        choice=[0,1,2,3,'@fdeg_Egain'],  
+                        help='degree of freq polynomial')
+       JEN_inarg.define(pp, 'subtile_size_Egain', 1,
+                        choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
+                        help='sub-tile size (None=entire tile)')
+       JEN_inarg.define(pp, 'subtile_size_Ephase', '@subtile_size_Egain',  
+                        choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
+                        help='sub-tile size (None=entire tile)')
+       ps = TDL_ParmSet.ParmSet()
+       ps.inarg_group_rider(pp)
+
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+    if not JEN_inarg.is_OK(pp): return False
+    funcname = JEN_inarg.localscope(pp)
+
+    label = jones+'_'+str(JEN_inarg.qualifier(pp))
+
+    # Some preparations:
+    adjust_for_telescope(pp, origin=funcname)
+
+    if not Sixpack:
+       Sixpack = punit2Sixpack(ns, punit='uvp')
+    pp['punit'] = get_punit(Sixpack)
+       
+    # Calculate punit (l,m,n) from input Sixpack:
+    radec = Sixpack.radec(ns)
+    radec0 = MSauxinfo.radec0()
+    lmn    = ns.lmn(q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
+    lm = ns.ncoord(q=pp['punit']) << Meq.Selector(lmn, index=[0,1])
+    # ncoord = ns.ncoord(q=pp['punit']) << Meq.Selector(lmn, index=2)
+    # lmn1   = ns.lmn_minus1(q=pp['punit']) << Meq.Paster(lmn, ncoord-1, index=2)
+    # sqrtn  = ns << Meq.Sqrt(ncoord)
+
+
+    # Create a Joneset object
+    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    
+    # Register the parmgroups with specific rider parameters:
+    a1 = js.parmgroup('Egain', ipol=1, rider=pp,
+                      condeq_corrs='paral11', c00_default=1.0,
+                      c00_scale=1.0, timescale_min=30, fdeg=0,
+                      color='red', style='diamond', size=10)
+    a2 = js.parmgroup('Egain', ipol=2, rider=pp,
+                      condeq_corrs='paral22', c00_default=1.0,
+                      c00_scale=1.0, timescale_min=40, fdeg=0,
+                      color='blue', style='diamond', size=10)
+    p1 = js.parmgroup('Ephase', ipol=1, rider=pp,
+                      condeq_corrs='paral11', c00_default=0.0,
+                      c00_scale=1.0, timescale_min=10, fdeg=0,
+                      color='magenta', style='diamond', size=10)
+    p2 = js.parmgroup('Ephase', ipol=2, rider=pp,
+                      condeq_corrs='paral22', c00_default=0.0,
+                      c00_scale=1.0, timescale_min=20, fdeg=0,
+                      color='cyan', style='diamond', size=10)
+
+    # Define potential extra condition equations:
+    js.ParmSet.define_condeq(p1, unop='Add', value=0.0)
+    js.ParmSet.define_condeq(p1, select='first', value=0.0)
+    js.ParmSet.define_condeq(p1, select='last', value=0.0)
+
+    js.ParmSet.define_condeq(p2, unop='Add', value=0.0)
+    js.ParmSet.define_condeq(p2, select='first', value=0.0)
+    js.ParmSet.define_condeq(p2, select='last', value=0.0)
+
+    js.ParmSet.define_condeq(a1, unop='Multiply', value=1.0)
+    js.ParmSet.define_condeq(a1, select='first', value=1.0)
+    js.ParmSet.define_condeq(a1, select='last', value=1.0)
+
+    js.ParmSet.define_condeq(a2, unop='Multiply', value=1.0)
+    js.ParmSet.define_condeq(a2, select='first', value=1.0)
+    js.ParmSet.define_condeq(a2, select='last', value=1.0)
+
+    # MeqParm node_groups: add 'E' to default 'Parm':
+    js.ParmSet.node_groups(label[0])
+
+    # Define solvegroup(s) from combinations of parmgroups:
+    if simul:
+       js.LeafSet.NodeSet.bookmark('EJones', [a1, p1, a2, p2])
+    else:
+       # NB: For the bookmark definition, see after stations.
+       js.ParmSet.solvegroup('EJones', [a1, p1, a2, p2], bookpage=None)
+       js.ParmSet.solvegroup('Epol1', [a1, p1])
+       js.ParmSet.solvegroup('Epol2', [a2, p2])
+       js.ParmSet.solvegroup('Egain', [a1, a2])
+       js.ParmSet.solvegroup('Ephase', [p1, p2])
+
+
+    # Create the station jones matrices:
+    for station in pp['stations']:
+       skey = TDL_radio_conventions.station_key(station)        
+       qual = dict(s=skey)
+
+       for Egain in [a1,a2]:
+          if simul:
+             js.LeafSet.MeqLeaf (ns, Egain, qual=qual)
+          else:
+             js.ParmSet.MeqParm (ns, Egain, qual=qual,
+                                 tfdeg=[pp['tdeg_Egain'],pp['fdeg_Egain']],
+                                 subtile_size=pp['subtile_size_Egain'])
+
+       for Ephase in [p1,p2]:
+          if simul:
+             js.LeafSet.MeqLeaf (ns, Ephase, qual=qual)
+          else:
+             js.ParmSet.MeqParm (ns, Ephase, qual=qual,
+                                 tfdeg=[pp['tdeg_Ephase'],pp['fdeg_Ephase']],
+                                 subtile_size=pp['subtile_size_Ephase'])
+
+       # Make the 2x2 Jones matrix:
+       ss = js.buffer()
+       if pp['Epolar']:                  # Preferred (fewer nodes)
+          stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
+             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Polar(ss[a1], ss[p1]),
+             0,0,
+             ns[label+'_22'](s=skey, q=pp['punit']) << Meq.Polar(ss[a2], ss[p2])
+             )
+       else:
+          cos1 = ns << ss[a1] * Meq.Cos(ss[p1])
+          cos2 = ns << ss[a2] * Meq.Cos(ss[p2])
+          sin1 = ns << ss[a1] * Meq.Sin(ss[p1])
+          sin2 = ns << ss[a2] * Meq.Sin(ss[p2])
+          stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
+             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(cos1, sin1),
+             0,0,
+             ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(cos2, sin2)
+             )
+       js.append(skey, stub)
+
+
+    # Make nodes and bookmarks for some derived quantities (for display):
+    # NB: This must be done AFTER the station nodes have been defined!
+    if simul:
+       bookpage = js.LeafSet.NodeSet.tlabel()+'_EJones'
+       js.LeafSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage=bookpage)
+       js.LeafSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage=bookpage)
+    else:
+       bookpage = js.ParmSet.NodeSet.tlabel()+'_EJones'
+       js.ParmSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage=bookpage)
+       js.ParmSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage=bookpage)
+
+    # Finished:
+    js.cleanup()
+    MG_JEN_forest_state.object(js, funcname)
+    return js
 
 
 
