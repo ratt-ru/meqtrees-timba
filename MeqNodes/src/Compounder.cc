@@ -148,17 +148,20 @@ int Compounder::pollChildren (Result::Ref &resref,
 	/*** end poll child 0 **********************/
 
 	/**** begin poll child 1 ******************/
-	// get input cells
-	const Cells &incells=request.cells();
-	Cells::Ref outcells_ref;
-	const Domain &old_dom=incells.domain();
-	Domain::Ref domain(new Domain());
 	// extract values from the result of child 0 to define our axes
   int nvs=child_res().numVellSets();
 #ifdef DEBUG
 	cout<<"Got "<<nvs<<" Vellsets"<<endl;
 #endif
+	/* if we do not have any result, do not do anything, just pass it up */
+	if (nvs==0) { result_=child_res; return code; }
 	FailWhen(nvs!=2,"We need 2 vellsets, but got "+nvs);
+	// get input cells
+	const Cells &incells=request.cells();
+	Cells::Ref outcells_ref;
+	const Domain &old_dom=incells.domain();
+	Domain::Ref domain(new Domain());
+
 	double start0,end0,start1,end1;
   blitz::Array<double,1> cen0;
 	blitz::Array<double,1> cen1;
@@ -313,7 +316,7 @@ int Compounder::pollChildren (Result::Ref &resref,
 
 	/**** begin processing of the result to correct for grid sorting */
   /** also create a new result with one vellset */
-  Result &res1=result_<<= new Result(1,1);
+  Result &res1=result_<<= new Result(1,child_res().isIntegrated());
 	const Vells vl=res0().vellSet(0).getValue();
 	Vells &in=const_cast<Vells &>(vl);
 	//create new vellset
