@@ -59,9 +59,9 @@ MG.parm = record(height=0.25, # dipole height from ground plane, in wavelengths
                               # model this variation, use the t,f polynomial
                               # given below
                  ntime=1,     # no. of grid points in time [0,1]
-                 nfreq=3,     # no. of grid points in frequency [0,1]
-                 naz=50,      # no. of grid points in azimuth [0,2*pi]
-                 nel=50,      # no. of grid points in elevation [0,pi/2]
+                 nfreq=20,     # no. of grid points in frequency [0,1]
+                 naz=200,      # no. of grid points in azimuth [0,2*pi]
+                 nel=200,      # no. of grid points in elevation [0,pi/2]
                  debug_level=10)    # debug level
 
 # Check the MG record, and replace any referenced values
@@ -165,11 +165,11 @@ def _define_forest (ns):
 #********************************************************************************
 
 
-def _test_forest (mqs, parent):
-    """Execute the forest with a default domain"""
-    return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')
-    # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')
-    # return MG_JEN_exec.meqforest (mqs, parent)
+#def _test_forest (mqs, parent):
+#  """Execute the forest with a default domain"""
+#   return MG_JEN_exec.meqforest (mqs, parent, domain='lofar')
+#    # return MG_JEN_exec.meqforest (mqs, parent, domain='21cm')
+#    # return MG_JEN_exec.meqforest (mqs, parent)
 
 def _tdl_job_4D_request (mqs,parent):
    """ evaluate beam pattern for the upper hemisphere
