@@ -894,7 +894,7 @@ class LSM:
 
    #Timba.TDL._dbg.set_verbose(0);
    # save the lsm
-   self.save('lsm_current.lsm')
+   # self.save('lsm_current.lsm')
    # return [patch name, x_min,y_min,x_max,y_max]
    # for the plotting method
    return [patch_name,x_min,y_min,x_max,y_max]
