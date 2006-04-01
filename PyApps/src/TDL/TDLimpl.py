@@ -273,6 +273,9 @@ def _mergeQualifiers (qual0,kwqual0,qual,kwqual,uniq=False):
       val = [val];
     val0.extend([q for q in val if q not in val0]);
     kwqual0[kw] = val0;
+    
+def NodeType ():
+  return _NodeStub;
   
 class _NodeStub (object):
   """A NodeStub represents a node. Initially a stub is created with only
@@ -322,13 +325,22 @@ class _NodeStub (object):
     if isinstance(arg,str):
       arg = _NodeDef(arg,*args,**kwargs);
     return self << arg;
+  def __pow__ (self,arg):
+    """The ** operator is an optional-bind: it binds a node with a 
+    definition, but only if the node is not already bound.""";
+    if self.initialized():
+      return self;
+    return self << arg;
+  
   def __lshift__ (self,arg):
+    """The << operator binds a node with a definition""";
     try:
       # resolve argument to a node spec. This will throw an exception on error
       nodedef = _NodeDef.resolve(arg);
       _dprint(4,self.name,self.quals,self.kwquals,'<<',nodedef);
       # can't resolve? error
       if nodedef is None:
+        traceback.print_stack();
         raise TypeError,"can't bind node name (operator <<) with argument of type "+type(arg).__name__;
       # error NodeDef? raise it as a proper exception
       if nodedef.error:
@@ -377,9 +389,8 @@ class _NodeStub (object):
     # uninitialized and return ourselves
     except:
       (exctype,excvalue,tb) = sys.exc_info();
+      traceback.print_exc();
       _dprint(0,"caught",exctype,excvalue);
-      if _dbg.verbose > 0:
-        traceback.print_exc(None);
       tb = getattr(excvalue,'tb',None) or traceback.extract_tb(tb,None);
       self.scope.Repository().add_error(excvalue,tb=tb);
       return self;
