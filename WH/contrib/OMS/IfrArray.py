@@ -24,7 +24,7 @@ class IfrArray (object):
     
   def xyz0 (self):
     """Returns array reference position node""";
-    xyz();
+    self.xyz();
     return self.ns.xyz0;
     
   def xyz (self):
@@ -56,15 +56,15 @@ class IfrArray (object):
         # if a table is specified, UVW will be read in directly
         if self._uvw_table:
           uvw_def = Meq.Composer(
-            self.ns.U.qadd(radec0)(station) << Meq.Parm(table_name=self._uvw_table),
-            self.ns.V.qadd(radec0)(station) << Meq.Parm(table_name=self._uvw_table),
-            self.ns.W.qadd(radec0)(station) << Meq.Parm(table_name=self._uvw_table)
+            self.ns.u.qadd(radec0)(station) << Meq.Parm(table_name=self._uvw_table),
+            self.ns.v.qadd(radec0)(station) << Meq.Parm(table_name=self._uvw_table),
+            self.ns.w.qadd(radec0)(station) << Meq.Parm(table_name=self._uvw_table)
           );
         # else create MeqUVW node to compute them
         else:
           uvw_def = Meq.UVW(radec = radec0,
                             xyz_0 = xyz0,
-                            xyz   = xyz);
+                            xyz   = xyz(station));
         # do UVW need to be mirrored?
         if self._mirror_uvw:
           uvw(station) << Meq.Negate(self.ns.m_uvw(station) << uvw_def );

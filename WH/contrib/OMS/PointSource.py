@@ -87,7 +87,7 @@ class PointSource(SkyComponent):
     # use L,M,(N-1) for lmn (fringe stopping?). NB: this could be made
     # an Array option in the future
     lmn = self.lmn(radec0);
-    lmn_1 = self.ns.lmn_minus1.qadd(lmn) << Meq.Paster(lmn,self.n(radec0)-1);
+    lmn_1 = self.ns.lmn_minus1.qadd(lmn) << Meq.Paster(lmn,self.n(radec0)-1,index=2);
     uvw = array.uvw(observation);
     Kj = self.ns.K(self.name).qadd(radec0);
     for station in array.stations():
