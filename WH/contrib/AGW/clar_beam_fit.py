@@ -318,7 +318,7 @@ def _define_forest(ns):
 
 # create source list
   source_mep_tablename= 'sourcemodel.mep'
-  source_model = create_source_model(tablename=source_mep_tablename)
+  source_model = create_clar_sources(ns,tablename=source_mep_tablename)
 
 # create nodes specific to individual sources in the source list
   for source in source_model:

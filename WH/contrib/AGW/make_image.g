@@ -1,31 +1,35 @@
-# glish script to make simple image from TEST_CLAR.MS
-# create, clean, and display image
-mkimage:=function(msname)
-{
-    include 'imager.g';
-    myimager := imager(msname)
-    cellsize := '0.4arcsec'
-    imsize := 1024
-    myimager.setdata(mode="channel" , nchan=1, start=1, step=1,
-                   spwid=1, fieldid=1);
-    myimager.setimage(mode="channel", nchan=1, start=1, step=1,cellx=cellsize, celly=cellsize, nx=imsize, ny=imsize)
-    restored_image := 'test_skaim.restored'
-    model_image := 'test_skaim.clean'
-    residual_image := 'test_skaim.residual'
-    print 'calling clean'
-    myimager.clean(image=restored_image, model=model_image,
-                  residual=residual_image)
+# script written by imagerwizard.g
+include 'imager.g'
+include 'viewer.g'
+myimager:=imager("TEST_CLAR_27-480.MS" )
+myimager.setdata(mode='channel',fieldid=1, spwid=1,
+             nchan=32,
+             start=1,
+             step=1,async=F);
 
-    include 'image.g'
-    print 'calling image'
-    myimage := image(restored_image)
-    myimage.tofits('test_ska_image.fits')
-    myimage.view()
-}
+myimager.setimage(nx=1024,ny=1024,cellx='0.25arcsec',celly='0.25arcsec', 
+  stokes='I',fieldid=1, spwid=1,   
+  mode='channel',
+  nchan=32,start=1,step=1)
+  
+myimager.setoptions(cache=100000000);
 
-print '*** deleting previous stuff ***'
-shell('rm -rf test_skaim*')
-# to do a run ...
-print '*** calling mkimage ***'
-mkimage('TEST_CLAR.MS')
-print '*** finished clarsim ***'
+#myimager.weight(type="uniform" , async=F)
+#myimager.filter(type="gaussian", bmaj='300.0arcsec', bmin='200.0arcsec');
+
+#myimager.weight(type="natural" , async=F)
+#myimager.uvrange(uvmin=0, uvmax=2050.68817, async=F)
+
+imgfile := "clar_data.img";
+myimager.makeimage(type="observed",image=imgfile,async=F);
+
+# imgfile := "clar_corrected.img";
+# myimager.makeimage(type="corrected",image=imgfile,async=F);
+
+myimager.done()
+
+im := image(imgfile);
+im.view();
+
+# plot
+# dv.gui()

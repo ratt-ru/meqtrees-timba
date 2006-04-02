@@ -1,9 +1,14 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 from numarray import *
-from copy import deepcopy
 import os
-from clar_source_model import *
+import random
+
+from clar_model import *
+from Timba.Contrib.OMS.IfrArray import IfrArray
+from Timba.Contrib.OMS.Observation import Observation
+from Timba.Contrib.OMS.Patch import Patch
+from Timba.Contrib.OMS import Bookmarks
 
 # MS name
 msname = "TEST_CLAR_27-4800.MS";      # Oleg ...
@@ -26,283 +31,107 @@ ms_selection = None
 ms_output = False  # if True, outputs to MS, else to BOIO dump   
 # ms_output = True   # if True, outputs to MS, else to BOIO dump 
 
-# CLAR beam width
-# This is actually the inverse of the half-power beam width, in radians.
-# base IHPW is 647.868 rad^-1 at 800 MHz
-beam_width = 647.868
-ref_frequency = float(800*1e+6)
 
-# MEP table for derived quantities 
+# MEP table for various derived quantities 
 mep_derived = 'CLAR_DQ_27-480.mep';
 
 # bookmarks
 Settings.forest_state = record(bookmarks=[
-  record(name='Predicted visibilities',page=[
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:2:src_5",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/clean_visibility:1:%d:src_5"%num_stations,pos=(0,2)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_1",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:2:src_2",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/corrupted_vis:1:%d:src_5"%num_stations,pos=(1,2)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(2,0)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_5",pos=(2,1)),
-    record(viewer="Result Plotter",udi="/node/E:%d:src_5"%num_stations,pos=(2,2)),
-    record(viewer="Result Plotter",udi="/node/predict:1:2",pos=(3,0)),
-    record(viewer="Result Plotter",udi="/node/predict:1:6",pos=(3,1)),
-    record(viewer="Result Plotter",udi="/node/predict:1:%d"%num_stations,pos=(3,2)),
-  ]),
-  record(name='Beams',page=[
-    record(viewer="Result Plotter",udi="/node/E:1:src_1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_2",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_3",pos=(0,2)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_6",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_9",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/E:1:src_10",pos=(1,2)),
-    record(viewer="Result Plotter",udi="/node/E:%d:src_1"%num_stations,pos=(2,0)),
-    record(viewer="Result Plotter",udi="/node/E:%d:src_2"%num_stations,pos=(2,1)),
-    record(viewer="Result Plotter",udi="/node/E:%d:src_3"%num_stations,pos=(2,2)),
-    record(viewer="Result Plotter",udi="/node/E:%d:src_6"%num_stations,pos=(3,0)),
-    record(viewer="Result Plotter",udi="/node/E:%d:src_9"%num_stations,pos=(3,1)),
-    record(viewer="Result Plotter",udi="/node/E:%d:src_10"%num_stations,pos=(3,2)),
-  ]),
-  record(name='Source fluxes',page=[
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_1",pos=(0,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_2",pos=(0,1)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_3",pos=(0,2)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_4",pos=(1,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_5",pos=(1,1)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_6",pos=(1,2)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_7",pos=(2,0)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_8",pos=(2,1)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_9",pos=(2,2)),
-    record(viewer="Result Plotter",udi="/node/stokes:I:src_10",pos=(3,0)),
-    record(viewer="Result Plotter",udi="/node/width_fq",pos=(3,1)),
-  ]) \
+  record(name='Predicted visibilities',page=Bookmarks.PlotPage(
+      ["visibility:S1:cln:1:2",
+       "visibility:S1:cln:1:6","visibility:S1:cln:9:%d"%num_stations ],
+      ["visibility:S1:1:2",
+       "visibility:S1:1:6","visibility:S1:9:%d"%num_stations ],
+      ["E:S1:1","E:S1:%d"%num_stations,"G:1"],
+      ["noisy_predict:1:2",
+       "noisy_predict:1:6","noisy_predict:9:%d"%num_stations]
+  )),
+  record(name='Beams',page=Bookmarks.PlotPage(
+      ["E:S1:1","E:S2:1","E:S3:1"],
+      ["E:S6:1","E:S9:1","E:S10:1"],
+      ["E:S1:%d"%num_stations,"E:S2:%d"%num_stations,"E:S3:%d"%num_stations],
+      ["E:S6:%d"%num_stations,"E:S9:%d"%num_stations,"E:S10:%d"%num_stations]
+  )),
+  record(name='G Jones',page=Bookmarks.PlotPage(
+      ["G:1","G:2","G:3"],
+      ["G:4","G:5","G:6"],
+      ["G:7","G:8","G:9"],
+      ["G:10","G:11","G:12"]
+  )),
+  record(name='Source fluxes',page=Bookmarks.PlotPage(
+      ["I:S1","I:S2","I:S3"],
+      ["I:S4","I:S5","I:S6"],
+      ["I:S7","I:S8","I:S9"],
+      ["I:S10","ihpbw"]
+  )) \
 ]);
 
-def create_refparms (refnode):
-  """For any given parm node, this creates:
-  * a reference parms with the same name, linked to a "reference" MEP table called "mep-ref/<meptable>".
-  * a Subtract node taking the difference between the two.
-  The subtract node is made a child of a root node called "verifier".
-  The idea is that it is then easy to execute the verifier node with a request
-  corresponding to the entire MS (or a part thereof), and obtain comparisons
-  for all parameters between the new solution, and an older solution saved
-  in mep-ref/.
-  """;
- # ### temp kludge!!!
- # for q in refnode.quals:
- # if isinstance(q,int) and q>3:
- #    return;
-  nodename = refnode.name;
-  mepname = refnode.initrec().table_name;
-  r0 = refnode('ref') << Meq.Parm(0,table_name="mep-ref/"+mepname,node_groups='Ref',parm_name=nodename,cache_policy=100);
-  d  = refnode('diff') << Meq.Subtract(r0,refnode,cache_policy=100);
-  # create verifier node if not already created
-  global _verifier;  # holding global ref to it ensures that it is not cleaned up as an orpan node
-  _verifier = refnode.scope.verifier;
-  if not _verifier.initialized():
-    _verifier << Meq.VisDataMux(pre=\
-      refnode.scope.vdc << Meq.DataCollect(cache_policy=100));
-  # add to its children
-  refnode.scope.vdc.add_children(d);
 
-
-# define defaults for station locations, field centre etc
-def forest_measurement_set_info(ns, num_ant):
-    ns.ra0    << Meq.Constant(0.0)
-    ns.dec0   << Meq.Constant(0.0)
-    ns.radec0 << Meq.Composer(ns.ra0, ns.dec0)
-
-
-    for i in range(num_ant):
-        station= str(i+1)
-
-        ns.x(station) << Meq.Constant(0.0)
-        ns.y(station) << Meq.Constant(0.0)
-        ns.z(station) << Meq.Constant(0.0)
-        if i == 0:
-            ns.xyz0 << Meq.Composer(ns.x(1), ns.y(1),ns.z(1))
-            pass
-
-        ns.xyz(station)  << Meq.Composer(ns.x(station),
-                                         ns.y(station),
-                                         ns.z(station))
-        ns.uvw(station) << Meq.Composer(
-          ns.U(station) << Meq.Parm(table_name=mep_derived),
-          ns.V(station) << Meq.Parm(table_name=mep_derived),
-          ns.W(station) << Meq.Parm(table_name=mep_derived)
-        );
-        pass
-    pass
-
-def create_polc_ft(degree_f=0, degree_t=0, c00=0.0):
-    polc = meq.polc(zeros((degree_t+1, degree_f+1))*0.0)
-    polc.coeff[0,0] = c00
-    return polc
-
-def forest_baseline_predict_trees(ns, interferometer_list, sources):
-    """ create visibility for a source as seen by station combinations
-        with original theoretical visibilities corrupted by Jones matrices
-    """    
-    for (ant1, ant2) in interferometer_list:
-        corrupted_vis_list = []
-        for source in sources:
-# for WSRT UVW directions
-#           ns.corrupted_vis(ant1,ant2,source.name) << \
-#                   Meq.MatrixMultiply(ns.E(ant1,source.name),
-#                                ns.clean_visibility(ant1,ant2, source.name),
-#                                ns.ctE(ant2, source.name))
-# for VLA UVW directions
-            ns.corrupted_vis(ant1,ant2,source.name) << \
-                    Meq.MatrixMultiply(ns.E(ant2,source.name),
-                                 ns.clean_visibility(ant1,ant2, source.name),
-                                 ns.ctE(ant1, source.name))
-            corrupted_vis_list.append(ns.corrupted_vis(ant1,ant2,source.name))
-            pass
-        # add a noise term
-        corrupted_vis_list.append(ns.noise(ant1,ant2) << noise_matrix());
-        ns.predict(ant1, ant2) << Meq.Add(*corrupted_vis_list);
-        pass
-    pass
-
-def forest_clean_predict_trees(ns, source, station_list):
-    """ create visibility for a source as seen by station combinations
-        without any corruption 
-    """    
-    for station in station_list:
-# compute station-based component of phase shift for this source and station
-      ns.dft(station, source.name) << Meq.VisPhaseShift(
-                                     lmn=ns.lmn_minus1(source.name),
-                                     uvw=ns.uvw(station))
-      ns.conjdft(station, source.name) << Meq.Conj(ns.dft(station, source.name))
-      pass # for station
-    
-# Now for this source create baseline-based source visibilities that
-# are not corrupted  
-    for ant1 in range(len(station_list)):
-        for ant2 in range(ant1+1, len(station_list)):
-# for WSRT defined UVW orientation
-#           ns.clean_visibility(station_list[ant1], station_list[ant2], source.name) << \
-#           Meq.MatrixMultiply(ns.dft(station_list[ant1], source.name),
-#                                 ns.conjdft(station_list[ant2], source.name),
-#                                 ns.coherency(source.name))
-# for VLA defined UVW orientation
-            ns.clean_visibility(station_list[ant1], station_list[ant2], source.name) << \
-            Meq.MatrixMultiply(ns.dft(station_list[ant2], source.name),
-                                  ns.conjdft(station_list[ant1], source.name),
-                                  ns.coherency(source.name))
-        pass # for ant2
-    pass     # for ant1
-
-
-def forest_station_source_jones(ns, station_list, source_name):
-    """
-    create E-Jones (primary beam effects) matrices: station_list is 1-based 
-    """
-    
-    for station in station_list:
-      vgain = ns.V_GAIN(station, source_name) << Meq.Parm(table_name=mep_derived);
-      ediag = ns.ediag(station,source_name) << Meq.Sqrt(Meq.Exp(vgain*ns.width_sq));
-      # create a phase error term
-      phase_noise = Meq.GaussNoise(stddev=0.01);
-      # note that a scalar is equivalent to a diagonal matrix
-      ns.E(station,source_name) << Meq.Matrix22(
-            Meq.Polar(ediag,phase_noise),0,0,Meq.Polar(ediag,phase_noise));
-      ns.ctE(station, source_name) << Meq.Conj(ns.E(station,source_name))
-
-# creates common nodes (field centre):
-def create_common_nodes(ns):
-    """ set up various nodes with default or constant values """
-# field centre: these two values will be over-written later with
-# values obtained from the input MS
-    ns.ra0 << Meq.Constant(0.0)
-    ns.dec0 << Meq.Constant(0.0)
-
-def create_constant_nodes(ns):
-# numeric constants
-    ns.one << Meq.Constant(1.0)
-    ns.half << Meq.Constant(0.5)
-    ns.ln_16 << Meq.Constant(-2.7725887)
-    ns.freq << Meq.Freq;
-    # f1/f0 is used for beam widths and spectral indices
-    ns.freq_ratio << ns.freq / ref_frequency;
-
-    # beam width at reference frequency
-    ns.width << Meq.Constant(beam_width);
-    # this scales it with frequency
-    ns.width_fq << ns.width * ns.freq_ratio;
-    ns.width_sq << Meq.Sqr(ns.width_fq)
     
 def noise_matrix (stddev=0.1):
+  """helper function to create a 2x2 complex gaussian noise matrix""";
   noise = Meq.GaussNoise(stddev=stddev);
-# create a 2x2 complex noise matrix
   return Meq.Matrix22(
     Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise),
     Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise)
   );
-  pass;
 
-# creates source-related nodes for a given source
-def forest_source_subtrees (ns, source):
-  IQUVpolcs =[None]*4
-  STOKES=["I0","Q","U","V"]
-  for (i,stokes) in enumerate(STOKES):
-    if(source.IQUV[i] != None):
-      IQUVpolcs[i] = create_polc_ft(degree_f=source.IQUVorder[i], 
-					c00= source.IQUV[i])
-      pass
-    st = ns.stokes(stokes,source.name) << Meq.Parm(IQUVpolcs[i],
-					node_groups='Parm')
-    pass
-  ns.spi(source.name) << Meq.Parm(create_polc_ft(c00=source.spi),
-				  node_groups='Parm');
-                                  
-  ns.stokes("I",source.name) << \
-      ns.stokes("I0",source.name) * Meq.Pow(ns.freq_ratio,ns.spi(source.name));
+
+
+def _define_forest(ns):
+  # create array model
+  stations = range(1,num_stations+1);
+  array = IfrArray(ns,stations,uvw_table=mep_derived,mirror_uvw=True);
+  observation = Observation(ns);
   
-  ns.xx(source.name) << (ns.stokes("I",source.name)+ns.stokes("Q",source.name))*0.5
-  ns.yx(source.name) << Meq.ToComplex(ns.stokes("U",source.name),ns.stokes("V",source.name))*0.5
-  ns.xy(source.name) << Meq.Conj(ns.yx(source.name))
-  ns.yy(source.name) << (ns.stokes("I",source.name)-ns.stokes("Q",source.name))*0.5
+  # create CLAR source model
+  source_model = create_clar_sources(ns);
+                     
+  # create all-sky patch for CLAR source model
+  allsky = Patch(ns,'all');
+  allsky.add(*source_model);
 
-  ra = ns.ra(source.name) << Meq.Parm(source.ra,node_groups='Parm')
-  dec= ns.dec(source.name) << Meq.Parm(source.dec,node_groups='Parm')
-  radec = ns.radec(source.name) << Meq.Composer(ra, dec)
-  lmn   = ns.lmn  (source.name) << Meq.LMN(radec_0 = ns.radec0, radec = radec)
-  n     = ns.n    (source.name) << Meq.Selector(lmn, index=2)
+  # create CLAR beam model
+  create_beam_model(ns,array,source_model);
+    
+  # Now, create a series of G Jones for simulated phase and gain errors
+  ns.time << Meq.Time;
+  for station in array.stations():
+    # create a random station phase 
+    phase = Meq.GaussNoise(stddev=0.1);
+    # create sinusoidal gain errors with random period and amplitude of 2-5%
+    ns.Gx(station) << 1 + Meq.Sin(ns.time/random.uniform(500,2000)) * random.uniform(-.05,.05);
+    ns.Gy(station) << 1 + Meq.Sin(ns.time/random.uniform(500,2000)) * random.uniform(-.05,.05);
+    # put them together into a G matrix
+    ns.G(station) << Meq.Matrix22(
+      Meq.Polar(ns.Gx(station),phase),0,0,Meq.Polar(ns.Gy(station),phase));
+  # attach the G Jones series to the all-sky patch
+  allsky.add_station_jones(ns.G);
 
-  ns.coherency(source.name) << Meq.Matrix22(ns.xx(source.name),
-                                          ns.xy(source.name),
-                                          ns.yx(source.name),
-                                          ns.yy(source.name));
+  # create simulated visibilities for sky
+  predict = allsky.visibility(array,observation);
   
-  ns.lmn_minus1(source.name) << Meq.Paster(lmn, n-1, index=2)
-  pass
-
-
-
-def forest_create_sink_sequence(ns,station_list,interferometer_list, output_column='DATA'):
-    for (ant1, ant2) in interferometer_list:
-        ns.sink(ant1,ant2) << Meq.Sink(station_1_index=ant1-1,
-                                       station_2_index=ant2-1,
-                                       flag_bit=4,
-                                       corr_index=[0,1,2,3],
-                                       flag_mask=-1,
-                                       output_col=output_column,
-                                       children= ns.predict(ant1, ant2)
-                                       )
-        pass
-    pass
-    # set a good child poll order for optimal parallelization
-    cpo = [];
-    for i in range(len(station_list)/2):
-      (ant1,ant2) = station_list[i*2:(i+1)*2];
-      cpo.append(ns.sink(ant1,ant2).name);
-    # create data mux
-    ns.VisDataMux << Meq.VisDataMux(child_poll_order=cpo);
-    ns.VisDataMux.add_children(*[ns.sink(ant1,ant2) for (ant1, ant2) in interferometer_list]);
-
+  # create the sinks and attach predicts to them, adding in a noise term
+  for sta1,sta2 in array.ifrs():
+    noisy = ns.noisy_predict(sta1,sta2) << \
+        predict(sta1,sta2) + (ns.noise(sta1,sta2) << noise_matrix(.05));
+    ns.sink(sta1,sta2) << Meq.Sink(station_1_index=sta1-1,
+                                   station_2_index=sta2-1,
+                                   flag_bit=4,
+                                   corr_index=[0,1,2,3],
+                                   flag_mask=-1,
+                                   output_col='DATA',
+                                   children=noisy
+                                   );
+  # set a good sink poll order for optimal parallelization
+  # this is an optional step
+  cpo = [];
+  for i in range(array.num_stations()/2):
+    (ant1,ant2) = array.stations()[i*2:(i+1)*2];
+    cpo.append(ns.sink(ant1,ant2).name);
+  # create visdata mux
+  ns.VisDataMux << Meq.VisDataMux(child_poll_order=cpo);
+  ns.VisDataMux.add_children(*[ns.sink(ant1,ant2) for (ant1, ant2) in array.ifrs()]);
 
 def create_inputrec():
     boioname = "boio."+msname+".empty."+str(tile_size);
@@ -324,7 +153,6 @@ def create_inputrec():
     rec.mt_queue_size = ms_queue_size;
     return rec;
 
-
 def create_outputrec(output_column='DATA'):
     rec=record();
     rec.mt_queue_size = ms_queue_size;
@@ -338,11 +166,6 @@ def create_outputrec(output_column='DATA'):
       return record(boio=rec);
 
 
-def publish_node_state(mqs, nodename):
-    mqs.meq('Node.Set.Publish.Level',record(name=nodename,level=1))
-    pass
-
-########### new-style TDL stuff ###############
 
 def _tdl_job_clar_predict(mqs,parent,write=True):
     inputrec        = create_inputrec()
@@ -356,65 +179,23 @@ def _tdl_job_clar_predict(mqs,parent,write=True):
     mqs.execute('VisDataMux',req,wait=(parent is None));
     pass
 
-####################
-def _define_forest(ns):
 
-# Note: To create a predictor:just eliminate the ReqSeqs, Spigots, Solver,
-# Condeqs and Subtracts, and make each predict node (i.e. the non-spigot
-# side of the condeq) a direct child of the corresponding Sink
-
-# define default field centre
-    create_common_nodes(ns)
-
-# create constant value nodes for CLAR
-    create_constant_nodes(ns)
-
-# create default antenna station parameters (location, UVW)
-    station_list = range(1,num_stations+1)
-    forest_measurement_set_info(ns, len(station_list))
-
-# create source list
-    source_mep_tablename= 'sourcemodel.mep'
-    source_model = create_source_model(tablename=source_mep_tablename)
-
-# create nodes specific to individual sources in the source list
-    for source in source_model:
-        forest_source_subtrees(ns, source)
-        pass
-        
-    for source in source_model:
-# First, compute CLAR beam parameters (power pattern) for all 
-# stations and source. 
-# Then compute uncorrupted visibilities for the source as seen by each
-# baseline pair
-      forest_clean_predict_trees(ns, source, station_list)
-
-# Now compute Jones matrix components for this source and all stations
-      forest_station_source_jones(ns, station_list, source.name)
-      pass
-
-# Now using Jones Matrices, compute corrupted visibilities for sources 
-# and baselines. Essentially we are predicting that the observed
-# visibilities should look like those computed in this step.
-    interferometer_list = [(ant1, ant2) for ant1 in station_list for ant2 in station_list if ant1 < ant2]
-    forest_baseline_predict_trees(ns, interferometer_list, source_model)
-
-# create sinks to drive system
-    forest_create_sink_sequence(ns,station_list,interferometer_list)
-    pass
+Settings.forest_state.cache_policy = 1;  # 1 for smart caching, 100 for full caching
+Settings.orphans_are_roots = False;
 
 
-Settings.forest_state.cache_policy = 1  # 1 for smart caching, 100 for full caching
-Settings.orphans_are_roots = False
+
+
+def _test_compilation ():
+  ns = NodeScope();
+  _define_forest(ns);
+  ns.Resolve();
 
 if __name__ == '__main__':
-
-
-    Timba.TDL._dbg.set_verbose(5);
-    ns = NodeScope();
-    _define_forest(ns);
-
-
-    ns.Resolve();
-    pass
+  if '-prof' in sys.argv:
+    import profile
+    profile.run('_test_compilation()','clar_fast_predict.prof');
+  else:
+#    Timba.TDL._dbg.set_verbose(5);
+    _test_compilation();
               
