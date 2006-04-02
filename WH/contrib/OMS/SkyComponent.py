@@ -17,7 +17,7 @@ class SkyComponent(object):
   associated with that direction.
   """;
   def __init__(self,ns,name,ra=0.0,dec=0.0,
-               node_groups='Parm',table=''):
+               parm_options=record(node_groups='Parm')):
     self.ns     = ns;
     self.name   = name;
     self._polcs = record();
@@ -31,8 +31,7 @@ class SkyComponent(object):
     # init empty list of Jones matrices
     self._jones = [];
     # store other attributes
-    self._table  = table;
-    self._node_groups = node_groups;
+    self._parm_options = parm_options;
     pass
     
   def add_station_jones (self,jones,prepend=False):
@@ -61,7 +60,8 @@ class SkyComponent(object):
     the polc stored in self._polcs.""";
     polc = self._polcs[parmname];
     node = self.ns[parmname](self.name) << \
-        Meq.Parm(polc,table_name=self._table,node_groups=self._node_groups);
+        Meq.Parm(polc,real_polc=polc,  # real polc also saved in parm state
+                 **self._parm_options);
     # self._solvables[parmname] = node.name;
     return node;
     

@@ -10,8 +10,8 @@ class PointSource(SkyComponent):
                I=0.0,Q=0.0,U=0.0,V=0.0,
                Iorder=0,Qorder=0,Uorder=0,Vorder=0,
                spi=0.0,freq0=None,   
-               node_groups='Parm',table=''):
-    SkyComponent.__init__(self,ns,name,ra,dec,node_groups=node_groups,table=table);
+               parm_options=record(node_groups='Parm')):
+    SkyComponent.__init__(self,ns,name,ra,dec,parm_options=parm_options);
     # create flux polcs
     for stokes in STOKES:
       # if given stokes variable is not a polc, create a polc from it
