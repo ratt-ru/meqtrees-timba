@@ -144,9 +144,9 @@ def simul_EJones(inarg, trace=True):
                     _JEN_inarg_option=dict(trace=trace, qual='solve_imp'))     
    JEN_inarg.modify(inarg,
                     test_pattern='grid',
-                    insert_solver=False,
+                    insert_solver=True,
                     solvegroup=['EJones'],
-                    parmtable='simul_EJones',
+                    # parmtable='simul_EJones',
                     num_iter=2,
                     _JEN_inarg_option=dict(trace=trace))     
    JEN_inarg.save(inarg, filename, trace=trace)
