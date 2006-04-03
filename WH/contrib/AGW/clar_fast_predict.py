@@ -38,8 +38,8 @@ mep_derived = 'CLAR_DQ_27-480.mep';
 # bookmarks
 Settings.forest_state = record(bookmarks=[
   record(name='Predicted visibilities',page=Bookmarks.PlotPage(
-      ["visibility:S1:cln:1:2",
-       "visibility:S1:cln:1:6","visibility:S1:cln:9:%d"%num_stations ],
+      ["visibility:S1:nom:1:2",
+       "visibility:S1:nom:1:6","visibility:S1:nom:9:%d"%num_stations ],
       ["visibility:S1:1:2",
        "visibility:S1:1:6","visibility:S1:9:%d"%num_stations ],
       ["E:S1:1","E:S1:%d"%num_stations,"G:1"],
