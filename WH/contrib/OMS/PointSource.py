@@ -79,7 +79,7 @@ class PointSource(SkyComponent):
       coh_node << Meq.Matrix22(xx,xy,yx,yy) / self.n(radec0);
     return coh_node;
     
-  def make_clean_visibilities (self,visnode,array,observation):
+  def make_nominal_visibilities (self,visnode,array,observation):
     """creates nodes computing visibilities of given source for all ifrs."""
     radec0 = observation.radec0();
     cohnode = self.coherency(radec0);

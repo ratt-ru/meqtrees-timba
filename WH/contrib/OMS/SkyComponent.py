@@ -105,11 +105,16 @@ class SkyComponent(object):
       vis(sta1,sta2) << Meq.MatrixMultiply(*terms);
     return vis;
     
-  def make_clean_visibilities (self,visnode,array,observation):
+  def make_nominal_visibilities (self,visnode,array,observation):
+    """Creates nodes computing nominal (i.e. uncorrupted) visibilities 
+    of component.
+    Nodes are created as visnode(sta1,sta2) for all array.ifrs().
+    """;
     raise TypeError,type(self).__name__+".make_clean_visibilities() not defined";
     
   def visibility (self,array,observation):
-    """creates nodes computing visibilities of component for all ifrs.
+    """Creates nodes computing visibilities of component for all ifrs.
+    If Jones terms are attached, corrupts them with the Jones terms.
     Returns unqualified visibility node which must be qualified 
     with an (sta1,sta2) pair.""";
     radec0 = observation.radec0();
@@ -120,10 +125,10 @@ class SkyComponent(object):
     if not visnode(*(array.ifrs()[0])).initialized():
       # do we have extra jones terms?
       if self._jones:
-        visclean = visnode('cln');
-        self.make_clean_visibilities(visclean,array,observation);
-        self.apply_jones(visnode,visclean,array.ifrs());
-      # no jones terms, use clean visibilities directly
+        visnom = visnode('nom');
+        self.make_nominal_visibilities(visnom,array,observation);
+        self.apply_jones(visnode,visnom,array.ifrs());
+      # no jones terms, use nominal visibilities directly
       else:
-        self.make_clean_visibilities(visnode,array,observation);
+        self.make_nominal_visibilities(visnode,array,observation);
     return visnode;
