@@ -737,7 +737,6 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
 {
   if( auto_resample_ == RESAMPLE_NONE )
     return;
-  const Cells *pcells = 0;
 //  rescells <<= pcells = &( childres[0]->cells() );
   bool need_resampling = false;
   for( uint ich=0; ich<childres.size(); ich++ )
@@ -746,24 +745,21 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
     if( chres.hasCells() )
     {
       const Cells &cc = childres[ich]->cells();
-      if( !pcells ) // first cells? Init pcells with it
-        rescells <<= pcells = &cc;
+      if( !rescells.valid() ) // first cells? Init pcells with it
+        rescells <<= &cc;
       else
       {
-        // check if resolution matches
-        int res = pcells->compare(cc);
-        if( res<0 )       // result<0: domains differ, fail
-        {
-          res = pcells->compare(cc); // again, for debugging
-          NodeThrow1("domains of child results do not match");
-        }
-        else if( res>0 )  // result>0: domains same, resolutions differ
+        // try to merge the cells
+        Cells::superset(rescells,*rescells,cc);
+        if( !rescells.valid() )
         {
           // fail if auto-resampling is disabled
           if( auto_resample_ == RESAMPLE_FAIL )
           {
-            NodeThrow1("resolutions of child results do not match and auto-resampling is disabled");
+            NodeThrow1("domains or resolutions of child results do not match and auto-resampling is disabled");
           }
+          else
+            rescells <<= &cc;
         }
       }
     }

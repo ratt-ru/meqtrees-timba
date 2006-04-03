@@ -469,6 +469,67 @@ void Cells::getCellStartEnd (LoVec_double &start,LoVec_double &end,int iaxis) co
   end   = cen + hw;
 }
 
+void Cells::superset (Cells::Ref &ref,const Cells &a,const Cells &b) 
+{
+  if( !a.domain_.valid() )
+  {
+    ref.attach(b);
+    return;
+  }
+  if( !b.domain_.valid() ) 
+  {
+    ref.attach(a);
+    return;
+  }
+  bool asup=true,bsup=true;
+  // loop over axes to check compatibility first, and to see if one is a superset
+  int iaxis;
+  for( iaxis=0; iaxis<std::min(a.rank(),b.rank()); iaxis++ )
+  {
+    int na = a.ncells(iaxis);
+    int nb = b.ncells(iaxis);
+    if( na )
+    {
+      if( nb )
+      {
+        if( na != nb ||
+            a.domain().start(iaxis) != b.domain().start(iaxis) ||
+            a.domain().end(iaxis)   != b.domain().end(iaxis)   )
+        {
+          ref.detach();
+          return;
+        }
+      }
+      else // axis not b
+        bsup = false;
+    }
+    else if( nb ) // axis not in a
+      asup = false;
+  }
+  // check for supersets again
+  if( asup && a.rank() >= b.rank() )
+  {
+    ref.attach(a);
+    return;
+  }
+  if( bsup && b.rank() >= a.rank() )
+  {
+    ref.attach(b);
+    return;
+  }
+  // ok, get on with the merge
+  Cells & cells = ref <<= new Cells;
+  for( iaxis=0; iaxis<std::max(a.rank(),b.rank()); iaxis++ )
+  {
+    if( a.isDefined(iaxis) )
+      cells.setCells(iaxis,a.center(iaxis),a.cellSize(iaxis));
+    else if( b.isDefined(iaxis) )
+      cells.setCells(iaxis,b.center(iaxis),b.cellSize(iaxis));
+  }
+  cells.recomputeDomain();
+}
+
+
 int Cells::compare (const Cells &that) const
 {
   if( !domain_.valid() ) // are we empty?

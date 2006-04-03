@@ -187,6 +187,22 @@ public:
   // of setCells(), otherwise the Cells object is left in an inconsistent state.
   void recomputeDomain ();
 
+  
+  // Method used to merge cells with different sets of axes
+  // Returns ref to Cells containing superset of all axes. If a/b is 
+  // already a superset, returns ref to that directly, otherwise
+  // makes a new Cells.
+  // If an axis is present in both Cells but does not match, returns invalid 
+  // ref.
+  static void superset (Cells::Ref &ref,const Cells &a,const Cells &b);
+  
+  static Cells::Ref superset (const Cells &a,const Cells &b)
+  { 
+    Cells::Ref ref; 
+    superset(ref,a,b);
+    return ref;
+  }
+  
   // method used to compare cells & resolutions
   // returns:  0 if cells are the same
   //          >0 if domains match but resolutions are different
