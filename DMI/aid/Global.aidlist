@@ -285,7 +285,7 @@ Meq                              1622       ; from /home/oms/LOFAR/Timba/MeqServ
 #MeqArg                          1457       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Arg.h:29
 #MeqAsin                         1399       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Asin.h:29
 #MeqAtan                         1428       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Atan.h:29
-#MeqAxis                         1665       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Axis.h:30
+MeqAxis                          1665       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Axis.h:30
 #MeqAzEl                         1551       ; from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:31
 MeqBeam                          1594       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Beam.h:31
 #MeqCeil                         1437       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
@@ -316,6 +316,7 @@ MeqFuncTest                      1571       ; from /home/mevius/LOFAR/Timba/MEQ/
 MeqFunction                      1283       ; from /home/oms/LOFAR/Timba/MEQ/src/Function.h:29
 MeqFunklet                       1321       ; from /home/oms/LOFAR/Timba/MEQ/src/Funklet.h:31
 #MeqGaussNoise                   1449       ; from /home/oms/LOFAR/Timba/MeqNodes/src/GaussNoise.h:31
+#MeqGridPoints                   1666       ; from /home/oms/LOFAR/Timba/MeqNodes/src/GridPoints.h:30
 #MeqHistoryCollect               1574       ; from /home/oms/LOFAR/Timba/MeqNodes/src/HistoryCollect.h:29
 #MeqImag                         1427       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Imag.h:29
 MeqImage                         1646       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Image.h:32
