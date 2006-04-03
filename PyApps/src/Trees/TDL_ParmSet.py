@@ -250,9 +250,13 @@ class ParmSet (TDL_common.Super):
             shape[0] += 1              
             shape[1] += 1
 
-        # Make the new MeqParm node:
-        if init_funklet:
-            node = ns[key](**quals) << Meq.Parm(init_funklet=init_funklet,
+        # Make the new MeqParm node (if necessary):
+        node = ns[key](**quals)
+        if node.initialized():                           # node already exists
+            return node
+        
+        elif init_funklet:
+              node << Meq.Parm(init_funklet=init_funklet,
                                                 # shape=shape,             # DON'T
                                                 # perturbation=1e-7,       # scale*1e-7
                                                 tiling=tiling,

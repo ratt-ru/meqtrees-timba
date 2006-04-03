@@ -134,7 +134,12 @@ class LeafSet (TDL_common.Super):
 
         # uniqual = _counter (leafgroup, increment=True)
 
-        if init_funklet:
+        # Make the new MeqLeaf subtree (if necessary):
+        node = ns[key](**quals)
+        if node.initialized():                           # node already exists
+            return node
+        
+        elif init_funklet:
             # Special case: Make a MeqParm node.
             # Used for interpolatable Jones matrices like EJones or MIM etc
             node = ns[key](**quals) << Meq.Parm(init_funklet=init_funklet)

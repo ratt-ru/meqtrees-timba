@@ -66,11 +66,9 @@ class Joneset (TDL_common.Super):
 
         # Define its ParmSet object (MeqParm services)
         self.ParmSet = TDL_ParmSet.ParmSet(**pp)
-        self.ParmSet.quals(dict(q=self.__punit))
 
         # Define its LeafSet object (simulation services) 
         self.LeafSet = TDL_LeafSet.LeafSet(**pp)
-        self.LeafSet.quals(dict(q=self.__punit))
 
         self.clear()
 
@@ -473,7 +471,7 @@ class Joneseq (TDL_common.Super):
 
 _counters = {}
 
-def _counter (key, increment=0, reset=False, trace=True):
+def _counter (key, increment=0, reset=False, trace=False):
     global _counters
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0

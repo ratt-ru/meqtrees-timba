@@ -324,7 +324,8 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Create a Joneset object
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
-    # js.display('inside GJones')
+    js.ParmSet.quals(dict(q=pp['punit']))
+    js.LeafSet.quals(dict(q=pp['punit']))
     
     # Register the parmgroups with specific rider parameters:
     a1 = js.parmgroup('Ggain', ipol=1, rider=pp,
@@ -478,6 +479,8 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    
    # Create a Joneset object:
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+   js.ParmSet.quals(dict(q=pp['punit']))
+   js.LeafSet.quals(dict(q=pp['punit']))
 
    # Register the parmgroups (in js.ParmSet eventually):
    RM = js.parmgroup('RM', rider=pp,
@@ -589,6 +592,8 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Create a Joneset object:
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    js.ParmSet.quals(dict(q=pp['punit']))
+    js.LeafSet.quals(dict(q=pp['punit']))
 
     # Register the parmgroups (in js.ParmSet eventually):
     br1 = js.parmgroup('Breal', ipol=1, rider=pp,
@@ -737,6 +742,8 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Create a Joneset object:
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    js.ParmSet.quals(dict(q=pp['punit']))
+    js.LeafSet.quals(dict(q=pp['punit']))
 
     # Register the parmgroups (in js.ParmSet eventually):
     dr11 = js.parmgroup('Jreal_11', rider=pp,
@@ -914,6 +921,8 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
    # Create a Joneset object:
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+   js.ParmSet.quals(dict(q=pp['punit']))
+   js.LeafSet.quals(dict(q=pp['punit']))
 
    # Register the parmgroups (in js.ParmSet eventually):
    Dang = js.parmgroup('Dang', rider=pp,
@@ -1084,6 +1093,8 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inar
 
    # Create a Joneset object
    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+   js.ParmSet.quals(dict(q=pp['punit']))
+   js.LeafSet.quals(dict(q=pp['punit']))
 
    # Calculate punit (l,m,n) from input Sixpack:
    radec = Sixpack.radec(ns)
@@ -1131,7 +1142,7 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inar
 # EJones_WSRT: diagonal 2x2 matrix for WSRT voltage beams
 #--------------------------------------------------------------------------------
 
-def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inarg):
+def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, first=True, **inarg):
     """defines EJones (voltage beamshape) matrices for WSRT (l,m interpolatable)
     Ejones(station,source) matrix elements:
     - E_11 = Egain_X*exp(iEphase_X)
@@ -1190,6 +1201,8 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
        
     # Create a Joneset object
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    ## js.ParmSet.quals(dict(q=pp['punit']))
+    ## js.LeafSet.quals(dict(q=pp['punit']))
     
     # Register the parmgroups with specific rider parameters:
     b1 = js.parmgroup('EJones', ipol=1, rider=pp, 
@@ -1209,17 +1222,19 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
                       c00_scale=0.001, timescale_min=100, fdeg=0,
                       color='blue', style='diamond', size=10)
     d0 = js.parmgroup('dummy_zero', rider=pp)
-
+    
     # MeqParm node_groups: add 'E' to default 'Parm':
     js.ParmSet.node_groups(label[0])
-
+    
     # Define solvegroup(s) from combinations of parmgroups:
     if simul:
-       js.LeafSet.NodeSet.bookmark('EJones', [b1,b2,dl,dm])
+       # js.LeafSet.NodeSet.bookmark('EJones', [b1,b2,dl,dm])
+       js.LeafSet.NodeSet.bookmark('EJones', [b1,b2])
        js.LeafSet.NodeSet.bookmark('Epointing', [dl,dm])
     else:
        # NB: For the bookmark definition, see after stations.
-       js.ParmSet.solvegroup('EJones', [b1,b2,dl,dm], bookpage=None)
+       # js.ParmSet.solvegroup('EJones', [b1,b2,dl,dm], bookpage=None)
+       js.ParmSet.solvegroup('EJones', [b1,b2], bookpage=None)
        js.ParmSet.solvegroup('Epointing', [dl,dm], bookpage=None)
 
 
@@ -1228,7 +1243,6 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     radec0 = MSauxinfo.radec0()
     lmn    = ns['lmn'](q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
     lm = ns['lm'](q=pp['punit']) << Meq.Selector(lmn, index=[0,1], multi=True)
-    # cax = [hiid('a'),hiid('b')]
     cax = [hiid('l'),hiid('m')]                           # <---- necessary?
 
     # The two voltage beams are slightly elongated in the L or M direction:
@@ -1241,25 +1255,29 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
        skey = TDL_radio_conventions.station_key(station)        
        qual = dict(s=skey)
 
+       # Create MeqParm/MeqLeaf nodes, to be used below (using ss):
+       ss = dict()
        if simul:
-          js.LeafSet.MeqLeaf (ns, b1, qual=qual, init_funklet=X_beam)
-          js.LeafSet.MeqLeaf (ns, b2, qual=qual, init_funklet=Y_beam)
-          js.LeafSet.MeqLeaf (ns, dl, qual=qual)
-          js.LeafSet.MeqLeaf (ns, dm, qual=qual)
+          ss[b1] = js.LeafSet.MeqLeaf (ns, b1, qual=qual, init_funklet=X_beam)
+          ss[b2] = js.LeafSet.MeqLeaf (ns, b2, qual=qual, init_funklet=Y_beam)
+          ss[dl] = js.LeafSet.MeqLeaf (ns, dl, qual=qual)
+          ss[dm] = js.LeafSet.MeqLeaf (ns, dm, qual=qual)
        else:
-          js.ParmSet.MeqParm (ns, b1, qual=qual, init_funklet=X_beam)
-          js.ParmSet.MeqParm (ns, b2, qual=qual, init_funklet=Y_beam)
-          js.ParmSet.MeqParm (ns, dl, qual=qual,
-                              tfdeg=[pp['tdeg_Edl'],pp['fdeg_Edl']],
-                              subtile_size=pp['subtile_size_Edl'])
-          js.ParmSet.MeqParm (ns, dm, qual=qual,
-                              tfdeg=[pp['tdeg_Edm'],pp['fdeg_Edm']],
-                              subtile_size=pp['subtile_size_Edm'])
+          ss[b1] = js.ParmSet.MeqParm (ns, b1, qual=qual, init_funklet=X_beam)
+          ss[b2] = js.ParmSet.MeqParm (ns, b2, qual=qual, init_funklet=Y_beam)
+          ss[dl] = js.ParmSet.MeqParm (ns, dl, qual=qual,
+                                       tfdeg=[pp['tdeg_Edl'],pp['fdeg_Edl']],
+                                       subtile_size=pp['subtile_size_Edl'])
+          ss[dm] = js.ParmSet.MeqParm (ns, dm, qual=qual,
+                                       tfdeg=[pp['tdeg_Edm'],pp['fdeg_Edm']],
+                                       subtile_size=pp['subtile_size_Edm'])
 
        # Make the 2x2 Jones matrix:
-       ss = js.buffer()
-       dlm = ns['pointing_error'](s=skey, q=pp['punit']) << Meq.Composer(ss[dl],ss[dm])
-       lmtot = ns['lm'](s=skey, q=pp['punit']) << Meq.Add(lm,dlm)
+       lmtot = lm
+       if False:
+          # Temporarily disabled, until Sarod has implemented solving for (l,m) branch:
+          dlm = ns['pointing_error'](s=skey, q=pp['punit']) << Meq.Composer(ss[dl],ss[dm])
+          lmtot = ns['lm'](s=skey, q=pp['punit']) << Meq.Add(lm,dlm)
        stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
           ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Compounder(children=[lmtot, ss[b1]],
                                                                    common_axes=cax),
@@ -1273,14 +1291,15 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
 
     # Make nodes and bookmarks for some derived quantities (for display):
     # NB: This must be done AFTER the station nodes have been defined!
-    if simul:
-       bookpage = js.LeafSet.NodeSet.tlabel()+'_EJones'
-       js.LeafSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
-       js.LeafSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
-    else:
-       bookpage = js.ParmSet.NodeSet.tlabel()+'_EJones'
-       js.ParmSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
-       js.ParmSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
+    if first:
+       if simul:
+          bookpage = js.LeafSet.NodeSet.tlabel()+'_EJones'
+          js.LeafSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
+          js.LeafSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
+       else:
+          bookpage = js.ParmSet.NodeSet.tlabel()+'_EJones'
+          js.ParmSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
+          js.ParmSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
 
     # Finished:
     js.cleanup()

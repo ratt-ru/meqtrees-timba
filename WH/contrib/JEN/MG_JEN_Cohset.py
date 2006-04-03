@@ -265,7 +265,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 #--------------------------------------------------------------------------------------
 # Make a Joneset from the specified sequence of Jones matrices:
 
-def Jones(ns=None, Sixpack=None, simul=False, slave=False, KJones=None, **inarg):
+def Jones(ns=None, Sixpack=None, simul=False, slave=False, KJones=None, first=True, **inarg):
     """Make a Joneset by creating and multiplying a sequence of one ore more Jonesets"""
 
     # Input arguments:
@@ -329,7 +329,7 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, KJones=None, **inarg)
             jseq.append(MG_JEN_Joneset.DJones_WSRT (ns, Sixpack=Sixpack, simul=simul, _inarg=pp, _qual=qual))
         elif jones=='EJones_WSRT':
             jseq.append(MG_JEN_Joneset.EJones_WSRT (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
-                                                    simul=simul, _inarg=pp, _qual=qual))
+                                                    simul=simul, first=first, _inarg=pp, _qual=qual))
         elif jones=='KJones':
             jseq.append(MG_JEN_Joneset.KJones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
                                                _inarg=pp, _qual=qual))
@@ -428,6 +428,7 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
     # Turn the point-sources in Cohsets with DFT KJonesets
     plist = lsm.queryLSM(count=pp['nr_lsm_sources'])
     cs = []                                  # list on source Cohsets
+    first = True
     for punit in plist: 
         Sixpack = punit.getSixpack()      
         punit_name = str(Sixpack.label())
@@ -442,13 +443,15 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
             cs1.uniform(ns, nominal)
             # Corrupt with image-plane effects (KJones at the very least)
             js1 = Jones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
-                         _inarg=pp, _qual=qual+'_imp', KJones=True)
+                         _inarg=pp, _qual=qual+'_imp',
+                         KJones=True, first=first)
             cs1.corrupt (ns, Joneset=js1)
             # cs1.update_from_Sixpack(Sixpack)
             cs.append(cs1)
         else:	                             # patch (not a Sixpack object!)
             node = Sixpack.root()
             # cc.append(node)
+        first = False
 
     # Add the point-source Cohsets together into the final predicted Cohset:
     Cohset = TDL_Cohset.Cohset(label='predict_lsm', origin=funcname, **pp)
