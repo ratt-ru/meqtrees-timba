@@ -18,7 +18,7 @@ LOCALSRCS = \
     WSum.cc WMean.cc Negate.cc Invert.cc \
     MatrixMultiply.cc MatrixInvert22.cc UVBrick.cc UVInterpol.cc \
     Stokes.cc PatchComposer.cc FFTBrick.cc \
-    Resampler.cc ModRes.cc \
+    GridPoints.cc Resampler.cc ModRes.cc \
     CompiledFunklet.cc ParmTable.cc \
     FITSImage.cc Compounder.cc
 
