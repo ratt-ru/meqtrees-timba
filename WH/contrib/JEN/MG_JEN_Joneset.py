@@ -178,21 +178,21 @@ def inarg_uvplane_effect (pp, **kwargs):
 def inarg_solvegroup (pp, **kwargs):
    """To be used by functions that call Joneset functions"""
    kwargs.setdefault('Jsequence','*')        # not yet used (for customisation)
-   s_choice = []
+   sg_choice = []
    cond_choice = [None]
-   s_default = []
+   sg_default = []
    cond_default = None
-   s_help = 'group (list) of parmgroups, to be solved for:'
+   sg_help = 'solvegroup: list of parmgroups, to be solved for:'
    cond_help = '(list of) extra condition equations:'
 
    # Make the choice and help, depending on Jsequence:
-   s_choice.extend([['GJones'],['Ggain'],['Gphase']])
-   s_help += '\n- [GJones]:  all GJones MeqParms'
-   s_help += '\n- [Ggain]:   GJones station gains (both pols)'
-   s_help += '\n- [Gphase]:  GJones station phases (both pols)'
-   s_choice.extend([['Gpol1'],['Gpol2']])
-   s_help += '\n- [Gpol1]:   All GJones MeqParms for pol1 (X or R)'
-   s_help += '\n- [Gpol2]:   All GJones MeqParms for pol2 (Y or L)'
+   sg_choice.extend([['GJones'],['Ggain'],['Gphase']])
+   sg_help += '\n- [GJones]:  all GJones MeqParms'
+   sg_help += '\n- [Ggain]:   GJones station gains (both pols)'
+   sg_help += '\n- [Gphase]:  GJones station phases (both pols)'
+   sg_choice.extend([['Gpol1'],['Gpol2']])
+   sg_help += '\n- [Gpol1]:   All GJones MeqParms for pol1 (X or R)'
+   sg_help += '\n- [Gpol2]:   All GJones MeqParms for pol2 (Y or L)'
 
    cond_choice.extend(['Gphase_X_sum=0.0','Gphase_Y_sum=0.0'])
    cond_choice.append(['Gphase_X_sum=0.0','Gphase_Y_sum=0.0'])
@@ -202,44 +202,47 @@ def inarg_solvegroup (pp, **kwargs):
    cond_help += '\n- [...phase_first=0.0]: phase of first station = zero'
    cond_help += '\n- [...phase_last=0.0]:  phase of last station = zero'
 
-   s_choice.append(['JJones'])
-   s_choice.append(['JJones','stokesU'])
-   s_choice.append(['JJones','stokesQ'])
-   s_choice.append(['JJones','stokesV'])
-   s_choice.append(['stokesQU','JJones'])
-   s_choice.append(['stokesQUV','JJones'])
-   s_help += '\n- [JJones,stokesU]:     actually solves for U!'
-   s_help += '\n- [JJones,stokesQ]:     -> zero Q(?), but better freq sol(?)'
-   s_help += '\n- [JJones,stokesV]:     -> punit V(?)...'
+   sg_choice.append(['JJones'])
+   sg_choice.append(['JJones','stokesU'])
+   sg_choice.append(['JJones','stokesQ'])
+   sg_choice.append(['JJones','stokesV'])
+   sg_choice.append(['stokesQU','JJones'])
+   sg_choice.append(['stokesQUV','JJones'])
+   sg_help += '\n- [JJones,stokesU]:     actually solves for U!'
+   sg_help += '\n- [JJones,stokesQ]:     -> zero Q(?), but better freq sol(?)'
+   sg_help += '\n- [JJones,stokesV]:     -> punit V(?)...'
 
-   s_choice.append(['GJones','stokesI'])
-   s_choice.extend([['stokesI'],['stokesIQU'],['stokesIQUV']])
-   s_choice.extend([['stokesIV'],['stokesQU'],['stokesQUV']])
-   s_help += '\n- [stokesI]:    stokes I (incl SI(f), if relevant)'
-   s_help += '\n- [stokesIQU]:  stokes I,Q,U (incl RM and SI(f))'
-   s_help += '\n- [stokesIQUV]: stokes I,Q,U,V (incl RM and SI(f))'
+   sg_choice.append(['GJones','stokesI'])
+   sg_choice.extend([['stokesI'],['stokesIQU'],['stokesIQUV']])
+   sg_choice.extend([['stokesIV'],['stokesQU'],['stokesQUV']])
+   sg_help += '\n- [stokesI]:    stokes I (incl SI(f), if relevant)'
+   sg_help += '\n- [stokesIQU]:  stokes I,Q,U (incl RM and SI(f))'
+   sg_help += '\n- [stokesIQUV]: stokes I,Q,U,V (incl RM and SI(f))'
 
-   s_choice.append(['GJones','DJones'])
-   s_choice.extend([['DJones'],['Dang'],['Dell']])
+   sg_choice.append(['GJones','DJones'])
+   sg_choice.extend([['DJones'],['Dang'],['Dell']])
    cond_choice.extend(['Dang_sum=0.0'])
    cond_help += '\n- [Dang_sum=0.0]:   sum of dipole pos.angle errors = zero'
-   s_choice.extend([['Dreal'],['Dimag']])
+   sg_choice.extend([['Dreal'],['Dimag']])
    # cond_choice.append(['Dimag_X_sum=0.0','Dimag_Y_sum=0.0'])
    # cond_choice.append(['Dreal_X_product=1.0','Dreal_Y_product=1.0'])
 
-   s_choice.append(['GJones','DJones','FJones'])
-   s_choice.extend([['FJones']])
+   sg_choice.append(['GJones','DJones','FJones'])
+   sg_choice.extend([['FJones']])
 
-   s_choice.append(['GJones','BJones'])
-   s_choice.extend([['BJones'],['Breal'],['Bimag']])
-   s_choice.extend([['Bpol1'],['Bpol2']])
+   sg_choice.append(['EJones'])
+   sg_choice.append(['Epointing'])
+
+   sg_choice.append(['GJones','BJones'])
+   sg_choice.extend([['BJones'],['Breal'],['Bimag']])
+   sg_choice.extend([['Bpol1'],['Bpol2']])
    cond_choice.append(['Bimag_X_sum=0.0','Bimag_Y_sum=0.0'])
    cond_choice.append(['Breal_X_product=1.0','Breal_Y_product=1.0'])
    cond_help += '\n- [...imag_sum=0.0]:   sum of imag.parts = zero'
    cond_help += '\n- [...real_product=1.0]:   product of real.parts = unity'
 
 
-   JEN_inarg.define(pp, 'solvegroup', s_default, choice=s_choice, help=s_help)
+   JEN_inarg.define(pp, 'solvegroup', sg_default, choice=sg_choice, help=sg_help)
    JEN_inarg.define(pp, 'condition', cond_default, choice=cond_choice, help=cond_help)
    return True
 
@@ -1212,10 +1215,12 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
 
     # Define solvegroup(s) from combinations of parmgroups:
     if simul:
-       js.LeafSet.NodeSet.bookmark('EJones', [dl,dm])
+       js.LeafSet.NodeSet.bookmark('EJones', [b1,b2,dl,dm])
+       js.LeafSet.NodeSet.bookmark('Epointing', [dl,dm])
     else:
        # NB: For the bookmark definition, see after stations.
-       js.ParmSet.solvegroup('EJones', [dl,dm], bookpage=None)
+       js.ParmSet.solvegroup('EJones', [b1,b2,dl,dm], bookpage=None)
+       js.ParmSet.solvegroup('Epointing', [dl,dm], bookpage=None)
 
 
     # Calculate punit (l,m) from input Sixpack:
@@ -1258,8 +1263,9 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
        stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
           ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Compounder(children=[lmtot, ss[b1]],
                                                                    common_axes=cax),
-          ns[label+'_12'](s=skey, q=pp['punit']) << Meq.Parm(init_funklet=dummy_zero),
-          ns[label+'_21'](s=skey, q=pp['punit']) << Meq.Parm(init_funklet=dummy_zero),
+          0,0,
+          # ns[label+'_12'](s=skey, q=pp['punit']) << Meq.Parm(init_funklet=dummy_zero),
+          # ns[label+'_21'](s=skey, q=pp['punit']) << Meq.Parm(init_funklet=dummy_zero),
           ns[label+'_22'](s=skey, q=pp['punit']) << Meq.Compounder(children=[lmtot, ss[b2]],
                                                                    common_axes=cax))
        js.append(skey, stub)
@@ -1269,9 +1275,11 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     # NB: This must be done AFTER the station nodes have been defined!
     if simul:
        bookpage = js.LeafSet.NodeSet.tlabel()+'_EJones'
+       js.LeafSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
        js.LeafSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
     else:
        bookpage = js.ParmSet.NodeSet.tlabel()+'_EJones'
+       js.ParmSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
        js.ParmSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
 
     # Finished:

@@ -518,6 +518,90 @@ def add_spiral (ns=None, lsm=None, **inarg):
 
 
 
+#================================================================================
+#================================================================================
+#================================================================================
+
+def get_lsm (ns=None, **inarg):
+   """Generate an existing/new/modified Local Sky Model"""
+
+   # Input arguments:
+   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::get_lsm()', version='02apr2006',
+                           description=get_lsm.__doc__)
+
+   JEN_inarg.define (pp, 'input_LSM', None, browse='*.lsm',
+                     choice=['lsm_current.lsm','3c343_nvss.lsm',
+                             'abel963.lsm','D1.lsm',None],
+                     help='(file)name of the Local Sky Model to be added to')
+   JEN_inarg.define (pp, 'display', tf=True,
+                     help='Display the new/modified LSM')
+   JEN_inarg.define (pp, 'save_as_current', tf=True,
+                     help='Save the new/modified LSM afterwards as lsm_current.lsm')
+   JEN_inarg.define (pp, 'saveAs', None, browse='*.lsm',
+                     choice=['<automatic>',None],
+                     help='Save the new/modified LSM afterwards as...')
+
+   JEN_inarg.define (pp, 'test_pattern', 'single',
+                     choice=[None,'single','double','grid','spiral'],
+                     help='pattern of test-sources to be generated')
+   JEN_inarg.nest(pp, add_single(_getdefaults=True))
+   JEN_inarg.nest(pp, add_double(_getdefaults=True))
+   JEN_inarg.nest(pp, add_grid(_getdefaults=True))
+   JEN_inarg.nest(pp, add_spiral(_getdefaults=True))
+
+   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+   if not JEN_inarg.is_OK(pp): return False
+   funcname = JEN_inarg.localscope(pp)
+   savefile = '<savefile>'                         # place-holder
+
+
+   #---------------------------------------------------------------------
+   # Start with an empty lsm:
+   global lsm 
+   lsm = LSM()
+
+   # Optional: use an existing lsm
+   if pp['input_LSM']:
+      lsm.load(pp['input_LSM'],ns)
+   else:
+      lsm.setNodeScope(ns)
+
+   # Optional: add one or more test-sources to the lsm:
+   savefile = '<automatic_lsm_savefile>'
+   if isinstance(pp['test_pattern'], str):
+      if pp['test_pattern']=='single':
+         savefile = add_single(ns, lsm=lsm, _inarg=pp)
+      elif pp['test_pattern']=='double':
+         savefile = add_double(ns, lsm=lsm, _inarg=pp)
+      elif pp['test_pattern']=='grid':
+         savefile = add_grid(ns, lsm=lsm, _inarg=pp)
+      elif pp['test_pattern']=='spiral':
+         savefile = add_spiral(ns, lsm=lsm, _inarg=pp)
+      else:
+         print 'test_pattern not recognised:',pp['test_pattern']
+         return False
+
+   # Save the lsm as 'lsm_current', for continuity:
+   if pp['save_as_current']:
+      r = lsm.save('lsm_current.lsm')
+      print '\n** lsm.save(lsm_current.lsm) ->',r,'\n'
+
+   # Save the (possibly modified) lsm under a different name:
+   if pp['saveAs']:
+      if pp['saveAs']=='<automatic>':
+         pp['saveAs'] = savefile              # use automaticallay generated name
+      r = lsm.save(pp['saveAs'])
+      print '\n** lsm.save(saveAs',pp['saveAs'],') ->',r,'\n'
+
+   # Display the current lsm AFTER saving (so we have the new name)
+   # NB: The program does NOT wait for the control to be handed back!
+   if pp['display']:
+      lsm.display()
+
+   # Finished: Return the new/modified lsm object:
+   return lsm
+
+
 
 
 #================================================================================
@@ -537,6 +621,18 @@ def predefine_inargs():
    lsm_spiral(deepcopy(MG), trace=True)
    print '\n** Predefined',MG['script_name'],'inarg records (incl. protected)\n'
    return True
+
+
+def describe_inargs():
+   """Collate descriptions of all available predefined inarg record(s)"""
+   ss = JEN_inarg.describe_inargs_start(MG)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_lsm_single', lsm_single.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_lsm_double', lsm_double.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_lsm_grid', lsm_grid.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_lsm_spiral', lsm_spiral.__doc__)
+   return JEN_inarg.describe_inargs_end(ss, MG)
+
+
 
 #--------------------------------------------------------------------
 
@@ -657,29 +753,12 @@ def default_inarg ():
 
 MG = JEN_inarg.init('MG_JEN_lsm', description=description.__doc__,
                     inarg_specific=default_inarg.__doc__)
-JEN_inarg.define (MG, 'last_changed', 'd30jan2006', editable=False)
+JEN_inarg.define (MG, 'last_changed', '02apr2006', editable=False)
+JEN_inarg.available_inargs(MG, describe_inargs())
 
-JEN_inarg.define (MG, 'input_LSM', None, browse='*.lsm',
-                  choice=['lsm_current.lsm','3c343_nvss.lsm',
-                          'abel963.lsm','D1.lsm',None],
-                  help='(file)name of the Local Sky Model to be used')
-
-JEN_inarg.define (MG, 'save_as_current', tf=False,
-                  help='Save the new LSM afterwards as lsm_current.lsm')
-
-JEN_inarg.define (MG, 'saveAs', '<automatic>', browse='*.lsm',
-                  choice=['<automatic>',None,'lsm_current.lsm'],
-                  help='Save the (modified) LSM afterwards as...')
-
-# Optional: add test-source(s) to the given lsm:
-JEN_inarg.define (MG, 'test_pattern', None,
-                  choice=[None,'single','double','grid','spiral'],
-                  help='pattern of test-sources to be generated')
-JEN_inarg.nest(MG, add_single(_getdefaults=True))
-JEN_inarg.nest(MG, add_double(_getdefaults=True))
-JEN_inarg.nest(MG, add_grid(_getdefaults=True))
-JEN_inarg.nest(MG, add_spiral(_getdefaults=True))
-
+# JEN_inarg.nest(MG, get_lsm(_getdefaults=True))
+inarg = get_lsm(_getdefaults=True, _qual='xxx')
+JEN_inarg.attach(MG, inarg)
 
 
 
@@ -707,10 +786,11 @@ def _tdl_predefine (mqs, parent, **kwargs):
    res = True
    if parent:
       QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
-      callback = dict()
-      callback['0'] = dict(prompt='predefine inargs', callback=predefine_inargs)
+      rr = []
+      rr.append(dict(prompt='predefine inargs', callback=predefine_inargs))
+      # rr.append(dict(prompt='available inargs', callback=describe_inargs, display=True))
       try:
-         igui = JEN_inargGui.ArgBrowser(parent, callback=callback)
+         igui = JEN_inargGui.ArgBrowser(parent, externalMenuItems=rr)
          igui.input(MG, set_open=False)
          res = igui.exec_loop()
          if res is None:
@@ -734,60 +814,13 @@ def _define_forest (ns, **kwargs):
    # Perform some common functions, and return an empty list (cc=[]):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
-   # Start with an empty lsm:
-   global lsm 
-   lsm = LSM()
-   display_lsm = False
-   savefile = '<savefile>'
-
-   # Optional: use an existing lsm
-   print '\n** MG[input_LSM] =',MG['input_LSM'],'\n'
-   if MG['input_LSM']:
-      lsm.load(MG['input_LSM'],ns)
-      display_lsm = True
-   else:
-      lsm.setNodeScope(ns)
-
-
-
-   # Optional: add one or more test-sources to the lsm:
-   print '\n** MG[test_pattern] =',MG['test_pattern'],'\n'
-   if isinstance(MG['test_pattern'], str):
-      display_lsm = True
-      if MG['test_pattern']=='single':
-         savefile = add_single(ns, lsm=lsm, _inarg=MG)
-      elif MG['test_pattern']=='double':
-         savefile = add_double(ns, lsm=lsm, _inarg=MG)
-      elif MG['test_pattern']=='grid':
-         savefile = add_grid(ns, lsm=lsm, _inarg=MG)
-      elif MG['test_pattern']=='spiral':
-         savefile = add_spiral(ns, lsm=lsm, _inarg=MG)
-      else:
-         print 'test_pattern not recognised:',MG['test_pattern']
-
-
-   # Save the lsm as 'lsm_current', for continuity:
-   if MG['save_as_current']:
-      r = lsm.save('lsm_current.lsm')
-      print '\n** lsm.save(lsm_current.lsm) ->',r,'\n'
-
-   # Save the (possibly modified) lsm under a different name:
-   if MG['saveAs']:
-      if MG['saveAs']=='<automatic>':
-         MG['saveAs'] = savefile              # use automaticallay generated name
-      r = lsm.save(MG['saveAs'])
-      print '\n** lsm.save(saveAs',MG['saveAs'],') ->',r,'\n'
-
-   # Display the current lsm AFTER saving (so we have the new name)
-   # NB: The program does NOT wait for the control to be handed back!
-   if display_lsm:
-      lsm.display()
-
+   # Get/create/modify an LSM:
+   lsm = get_lsm(ns, _inarg=MG, _qual='xxx')
    
    # Make the trees of all the lsm punits: 
    radec = []                                 # for collect_radec()
    if True:
-      plist = lsm.queryLSM(count=1000)
+      plist = lsm.queryLSM(count=10000)
       print '\n** plist =',type(plist),len(plist)
       bb = []
       for i in range(len(plist)):

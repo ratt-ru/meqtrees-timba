@@ -338,7 +338,7 @@ def _modify_level(rr, arg, found, level=0, opt=dict()):
    """Recursive function that does the work for .modify()"""
    fname = localscope(rr)
    s0 = _prefix(level)+str(fname)+' (qual='+str(opt['qual'])+'): '
-   if fname==None: print s0
+   # if fname==None: print s0
 
    # If a qualifier has been specified, only modify arguments
    # of inarg records with that match this qualifier:
@@ -474,6 +474,7 @@ def _ensure_CTRL_record(rr, target='<target>', version=None, qual=None):
       ctrl['oneliner'] = ss
       ctrl['description'] = '** Description of script: '+ctrl['oneliner'] 
       ctrl['inarg_specific'] = '** Specific description of inarg record for: '+ctrl['oneliner'] 
+      ctrl['available_inargs'] = '** Description of available inarg record(s) for: '+ctrl['oneliner'] 
       rr[CTRL_record] = ctrl                          # Attach the CTRL_record
 
    elif not isinstance(rr[CTRL_record], dict):        # CTRL_record is not a record...??
@@ -601,6 +602,12 @@ def description(rr, module=None):
 
    ss = '\n\n'+CTRL(rr, 'description')
    return ss
+
+
+def available_inargs(rr, new=None):
+   """Get/set the description of available inargs"""
+   if new: CTRL(rr, 'available_inargs', new)
+   return CTRL(rr, 'available_inargs')
 
 
 def get_descr(rr, module=None, level=0):
@@ -934,9 +941,9 @@ def upgrade(rr, other=None, ss='', level=0, trace=False):
 
       # Upgrade specific fields (qq) of the CTRL_record:
       if rr.has_key(CTRL_record) and other.has_key(CTRL_record):
-         qq = ['description','inarg_specific','help','choice',
-               'hide','mutable','order','version']
-         print 'qq =',qq
+         qq = ['description','inarg_specific','available_inargs',
+               'help','choice','hide','mutable','order','version']
+         # print 'qq =',qq
          for qey in qq:
             print '-',qey
             if rr[CTRL_record].has_key(qey) and other[CTRL_record].has_key(qey):
@@ -1658,6 +1665,34 @@ def obsolete(pp=None, old=None, new=None):
          pp[new] = pp[old]
    return True
   
+
+
+
+#********************************************************************************
+# Some helper functions to collate the description(s) of available inarg record(s)
+#********************************************************************************
+
+def describe_inargs_start(rr):
+   ss = '\n===================================================='
+   ss += '\n** Description of available predefined inarg records (files)'
+   ss += '\n   for the TDL script: '+str(CTRL(rr,'target_module'))+':\n'
+   ss += '\n====================================================\n'
+   return ss
+
+def describe_inargs_append(ss, filename, descr):
+   ss += '\n\n** Description of predefined inarg record (file): '+filename+'.inarg:\n'
+   ss += descr+'\n'
+   return ss
+
+def describe_inargs_end(ss, rr=None):
+   ss += '====================================================\n'
+   # ss += '\n** End of description of available predefined inarg records **\n'
+   # print ss
+   return ss
+
+
+
+
 
 
 

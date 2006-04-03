@@ -9,6 +9,7 @@
 
 # History:
 # - 27 feb 2006: creation (starting from MG_JEN_cps.py
+# - 02 apr 2006: completely reworked it
 
 # Copyright: The MeqTree Foundation 
 
@@ -35,6 +36,7 @@ from Timba.LSM.LSM_GUI import *
 from Timba.Contrib.JEN import MG_JEN_Joneset
 from Timba.Contrib.JEN import MG_JEN_Cohset
 from Timba.Contrib.JEN import MG_JEN_Sixpack
+from Timba.Contrib.JEN import MG_JEN_lsm
 
 from Timba.Contrib.JEN import MG_JEN_exec
 from Timba.Contrib.JEN import MG_JEN_forest_state
@@ -63,13 +65,20 @@ def predefine_inargs():
    """Modify the default inarg record (MG) to predefined inarg record files"""
    global MG
    print '\n** Predefining',MG['script_name'],'inarg records...\n'
-   simul_cps_GJones(deepcopy(MG), trace=True)
-   simul_cps_DJones(deepcopy(MG), trace=True)
    simul_GJones(deepcopy(MG), trace=True)
    simul_DJones(deepcopy(MG), trace=True)
    simul_EJones(deepcopy(MG), trace=True)
    print '\n** Predefined',MG['script_name'],'inarg records (incl. protected)\n'
    return True
+
+
+def describe_inargs():
+   """Collate descriptions of all available predefined inarg record(s)"""
+   ss = JEN_inarg.describe_inargs_start(MG)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_GJones', simul_GJones.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_DJones', simul_DJones.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_EJones', simul_EJones.__doc__)
+   return JEN_inarg.describe_inargs_end(ss, MG)
 
 #--------------------------------------------------------------------
 
@@ -79,13 +88,13 @@ def simul_GJones(inarg, trace=True):
    if trace: print '\n** predefine inarg record:',filename
    JEN_inarg.specific(inarg, simul_GJones.__doc__)
    JEN_inarg.modify(inarg,
-                    LSM_simul='lsm_current.lsm',
-                    nr_sources=100,
-                    Jsequence_simul_uvp=['GJones'],
-                    # Jsequence_simul_imp=[],
+                    Jsequence=['GJones'],
+                    _JEN_inarg_option=dict(trace=trace, qual='simul_uvp'))     
+   JEN_inarg.modify(inarg,
+                    Jsequence=['GJones'],
+                    _JEN_inarg_option=dict(trace=trace, qual='solve_uvp'))     
+   JEN_inarg.modify(inarg,
                     insert_solver=False,
-                    LSM_solve='lsm_current.lsm',
-                    Jsequence_solve_uvp=['GJones'],
                     solvegroup=['GJones'],
                     parmtable='simul_GJones',
                     num_iter=2,
@@ -93,6 +102,7 @@ def simul_GJones(inarg, trace=True):
    JEN_inarg.save(inarg, filename, trace=trace)
    JEN_inarg.save(inarg, filename, protected=True, trace=trace)
    return True
+
 
 #--------------------------------------------------------------------
 
@@ -102,21 +112,22 @@ def simul_DJones(inarg, trace=True):
    if trace: print '\n** predefine inarg record:',filename
    JEN_inarg.specific(inarg, simul_DJones.__doc__)
    JEN_inarg.modify(inarg,
-                    LSM_simul='lsm_current.lsm',
-                    nr_sources=100,
-                    Jsequence_simul_uvp=['DJones_WSRT'],
-                    # Jsequence_simul_imp=[],
+                    Jsequence=['DJones_WSRT'],
+                    _JEN_inarg_option=dict(trace=trace, qual='simul_uvp'))     
+   JEN_inarg.modify(inarg,
+                    Jsequence=['DJones_WSRT'],
+                    _JEN_inarg_option=dict(trace=trace, qual='solve_uvp'))     
+   JEN_inarg.modify(inarg,
                     insert_solver=False,
-                    LSM_solve='lsm_current.lsm',
-                    Jsequence_solve_uvp=['DJones_WSRT'],
                     solvegroup=['DJones'],
                     parmtable='simul_DJones',
                     num_iter=2,
                     _JEN_inarg_option=dict(trace=trace))     
-   JEN_inarg.callback_punit(inarg,'QU')
+   JEN_inarg.callback_punit(inarg, 'QU')
    JEN_inarg.save(inarg, filename, trace=trace)
    JEN_inarg.save(inarg, filename, protected=True, trace=trace)
    return True
+
 
 #--------------------------------------------------------------------
 
@@ -126,13 +137,14 @@ def simul_EJones(inarg, trace=True):
    if trace: print '\n** predefine inarg record:',filename
    JEN_inarg.specific(inarg, simul_EJones.__doc__)
    JEN_inarg.modify(inarg,
-                    LSM_simul='lsm_current.lsm',
-                    nr_sources=100,
-                    # Jsequence_simul_uvp=['GJones'],
-                    Jsequence_simul_imp=['EJones_WSRT'],
+                    Jsequence=['EJones_WSRT'],
+                    _JEN_inarg_option=dict(trace=trace, qual='simul_imp'))     
+   JEN_inarg.modify(inarg,
+                    Jsequence=['EJones_WSRT'],
+                    _JEN_inarg_option=dict(trace=trace, qual='solve_imp'))     
+   JEN_inarg.modify(inarg,
+                    test_pattern='grid',
                     insert_solver=False,
-                    LSM_solve='lsm_current.lsm',
-                    Jsequence_solve_imp=['EJones_WSRT'],
                     solvegroup=['EJones'],
                     parmtable='simul_EJones',
                     num_iter=2,
@@ -142,49 +154,6 @@ def simul_EJones(inarg, trace=True):
    return True
 
 
-
-#--------------------------------------------------------------------
-# Versions for Central Point Source (cps):
-#--------------------------------------------------------------------
-
-def simul_cps_GJones(inarg, trace=True):
-   """Predefined inarg record for simulating a central point source with GJones corruption"""
-   filename = 'MG_JEN_simul_cps_GJones'
-   if trace: print '\n** predefine inarg record:',filename
-   JEN_inarg.specific(inarg, simul_cps_GJones.__doc__)
-   JEN_inarg.modify(inarg,
-                    LSM_simul=None,
-                    insert_solver=True,
-                    Jsequence_simul_uvp=['GJones'],
-                    Jsequence_solve_uvp=['GJones'],
-                    solvegroup=['GJones'],
-                    parmtable='simul_cps_GJones',
-                    num_iter=2,
-                    _JEN_inarg_option=dict(trace=trace))     
-   JEN_inarg.save(inarg, filename, trace=trace)
-   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
-   return True
-
-#--------------------------------------------------------------------
-
-def simul_cps_DJones(inarg, trace=True):
-   """Predefined inarg record for simulating a central point source with DJones corruption"""
-   filename = 'MG_JEN_simul_cps_DJones'
-   if trace: print '\n** predefine inarg record:',filename
-   JEN_inarg.specific(inarg, simul_cps_DJones.__doc__)
-   JEN_inarg.modify(inarg,
-                    LSM_simul=None,
-                    insert_solver=True,
-                    Jsequence_simul_uvp=['DJones_WSRT'],
-                    Jsequence_solve_uvp=['DJones_WSRT'],
-                    solvegroup=['DJones'],
-                    parmtable='simul_cps_DJones',
-                    num_iter=2,
-                    _JEN_inarg_option=dict(trace=trace))     
-   JEN_inarg.callback_punit(inarg, 'QU')
-   JEN_inarg.save(inarg, filename, trace=trace)
-   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
-   return True
 
 
 
@@ -245,6 +214,7 @@ def default_inarg ():
 
 MG = JEN_inarg.init('MG_JEN_simul', description=_description.__doc__,
                     inarg_specific=default_inarg.__doc__)
+JEN_inarg.available_inargs(MG, describe_inargs())
 
 # Define some overall arguments:
 MG_JEN_Cohset.inarg_Cohset_common (MG, last_changed='d30jan2006')
@@ -286,17 +256,13 @@ JEN_inarg.attach(MG, inarg)
 JEN_inarg.separator(MG, 'uv-data simulation (LeafSet)')
 qual = 'simul'
 
-JEN_inarg.define (MG, 'LSM_simul', None, browse='*.lsm', hide=False,
-                  help='(file)name of a Local Sky Model to be used for simulation'+
-                  '(instead of a predefined punit)')
-
-inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
+inarg = MG_JEN_lsm.get_lsm(_getdefaults=True, _qual=qual)
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.Jones(_getdefaults=True, _qual=qual+'_uvp', slave=True, simul=True) 
 JEN_inarg.attach(MG, inarg)
 
-inarg = MG_JEN_Cohset.predict_cps(_getdefaults=True, _qual=qual, slave=True)  
+inarg = MG_JEN_Cohset.Jones(_getdefaults=True, _qual=qual+'_imp', slave=True, simul=True) 
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.predict_lsm(_getdefaults=True, slave=True, _qual=qual)  
@@ -307,17 +273,14 @@ JEN_inarg.attach(MG, inarg)
 JEN_inarg.separator(MG, 'solver-branch (ParmSet)')
 qual = 'solve'
 
-JEN_inarg.define (MG, 'LSM_solve', None, browse='*.lsm', hide=False,
-                  help='(file)name of a Local Sky Model to be used for solving'+
-                  '(instead of a predefined punit)')
-
-inarg = MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual) 
-JEN_inarg.attach(MG, inarg)
+if False:
+    inarg = MG_JEN_lsm.get_lsm(_getdefaults=True, _qual=qual)
+    JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True, _qual=qual+'_uvp') 
 JEN_inarg.attach(MG, inarg)
 
-inarg = MG_JEN_Cohset.predict_cps(_getdefaults=True, slave=True, _qual=qual)  
+inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True, _qual=qual+'_imp') 
 JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.predict_lsm(_getdefaults=True, slave=True, _qual=qual)  
@@ -355,10 +318,10 @@ def _tdl_predefine (mqs, parent, **kwargs):
     res = True
     if parent:
         QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
-        callback = dict()
-        callback['0'] = dict(prompt='predefine inargs', callback=predefine_inargs)
+        rr = []
+        rr.append(dict(prompt='predefine inargs', callback=predefine_inargs))
         try:
-            igui = JEN_inargGui.ArgBrowser(parent, callback=callback)
+            igui = JEN_inargGui.ArgBrowser(parent, externalMenuItems=rr)
             igui.input(MG, set_open=False)
             res = igui.exec_loop()
             if res is None:
@@ -402,28 +365,15 @@ def _define_forest (ns, **kwargs):
     nsim = ns.Subscope('_')
     qual = 'simul'
 
-    # If a LSM (file) is specified, read source(s) from there
-    if MG['LSM_simul']:
-        lsm = MG_JEN_Sixpack.readLSM (ns, filename=MG['LSM_simul'],
-                                      strip=True, display=True, trace=True)
-        # Predict nominal/corrupted visibilities: 
-        # Make a Joneset for uv_plane effects: 
-        Joneset = None
-        Joneset = MG_JEN_Cohset.Jones(nsim, simul=True, _inarg=MG, _qual=qual+'_uvp')
-        predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm, Joneset=Joneset,
-                                               _inarg=MG, _qual=qual)
+    # Get/create/modify an LSM:
+    lsm = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual)
 
-    else:
-        # Make a source Sixpack (I,Q,U,V,RA,Dec) from punit/LSM:
-        Sixpack = MG_JEN_Sixpack.newstar_source(nsim, _inarg=MG, _qual=qual)
-        # Optional: get corrupting (uv-plane) Jones matrices:
-        Joneset = MG_JEN_Cohset.Jones(nsim, Sixpack=Sixpack, simul=True,
-                                      _inarg=MG, _qual=qual+'_uvp')
-        # Predict nominal/corrupted visibilities: 
-        predicted = MG_JEN_Cohset.predict_cps (nsim, Sixpack=Sixpack,
-                                               Joneset=Joneset,
-                                               _inarg=MG, _qual=qual)
-
+    # Predict nominal/corrupted visibilities: 
+    # Make a Joneset for uv_plane effects: 
+    Joneset = None
+    Joneset = MG_JEN_Cohset.Jones(nsim, simul=True, _inarg=MG, _qual=qual+'_uvp')
+    predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm, Joneset=Joneset,
+                                           _inarg=MG, _qual=qual)
         
     # Opionally, add (gaussian) noise:
     if MG['rms_noise_Jy']>0:
@@ -444,22 +394,20 @@ def _define_forest (ns, **kwargs):
 
     if MG['insert_solver']:
         qual = 'solve'
-        if MG['LSM_solve']:
-            lsm = MG_JEN_Sixpack.readLSM (ns, filename=MG['LSM_solve'],
-                                          strip=True, display=True, trace=True)
-            # Make a Joneset for uv-plane effects:
-            Joneset = None
-            Joneset = MG_JEN_Cohset.Jones(ns, _inarg=MG, _qual=qual+'_uvp')
-            # Predict nominal/corrupted visibilities: 
-            predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm,
-                                                   Joneset=Joneset,
-                                                   _inarg=MG, _qual=qual)
 
-        else:
-            Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=MG, _qual=qual)
-            Joneset = MG_JEN_Cohset.Jones(ns, Sixpack=Sixpack, _inarg=MG, _qual=qual+'_uvp')
-            predicted = MG_JEN_Cohset.predict_cps (ns, Sixpack=Sixpack, Joneset=Joneset,
-                                                   _inarg=MG, _qual=qual)
+        if False:
+            # Optionally, get/create/modify a different LSM:
+            # (Otherwise use the one used for simulation
+            lsm = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual)
+
+        # Make a Joneset for uv-plane effects:
+        Joneset = None
+        Joneset = MG_JEN_Cohset.Jones(ns, _inarg=MG, _qual=qual+'_uvp')
+        # Predict nominal/corrupted visibilities: 
+        predicted = MG_JEN_Cohset.predict_lsm (ns, lsm=lsm,
+                                               Joneset=Joneset,
+                                               _inarg=MG, _qual=qual)
+
         Sohset = Cohset.copy(label='solve_branch')
         MG_JEN_Cohset.insert_solver (ns, measured=Sohset, predicted=predicted, _inarg=MG)
         # Splice the Sohset branch back into Cohset:

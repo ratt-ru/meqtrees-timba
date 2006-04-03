@@ -275,10 +275,10 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, KJones=None, **inarg)
     MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
     MG_JEN_Joneset.inarg_Joneset_ParmSet(pp, slave=slave)
     jseq_name = 'Jsequence'
-    qual = JEN_inarg.qualifier(pp, trace=True)
-    if isinstance(qual, str):
-        if len(qual)>0:
-            jseq_name += '_'+qual                             # e.g. 'Jsequence_simul'
+    qual = JEN_inarg.qualifier(pp)
+    # if isinstance(qual, str):
+    #    if len(qual)>0:
+    #        jseq_name += '_'+qual                     
     JEN_inarg.define (pp, jseq_name, [],
                       choice=[['GJones'],['BJones'],['FJones'],['KJones'],
                               ['DJones_WSRT'],['GJones','DJones_WSRT'],
@@ -343,7 +343,6 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, KJones=None, **inarg)
     return Joneset
     
 
-    
 
 #------------------------------------------------------------------------------
 
@@ -410,12 +409,13 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict_lsm()', version='20mar2006',
                             description=predict.__doc__)
 
-    JEN_inarg.define(pp, 'nr_lsm_sources', 1, choice=[1,2,3,5,10,20,100],
-                     help='nr of lsm sources to be included (in order of brightness')
+    JEN_inarg.define(pp, 'nr_lsm_sources', 10000,
+                     choice=[1,2,3,5,10,20,100,1000,10000],
+                     help='nr of lsm sources to be included (in order of brightness)')
     MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
 
     # Joneset for image-plane effects (KJones at the very least)
-    qual = JEN_inarg.qualifier(pp, trace=True)
+    qual = JEN_inarg.qualifier(pp)
     if not isinstance(qual, str): qual = ''
     JEN_inarg.nest(pp, Jones(_getdefaults=True, _qual=qual+'_imp',
                              slave=True, KJones=True))

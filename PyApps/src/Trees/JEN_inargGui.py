@@ -23,6 +23,7 @@
 #    - 01 mar 2006: moved check_skip() to JEN_inarg.py
 #    - 02 mar 2006: elaborated help menu a bit....
 #    - 29 mar 2006: made .callback_punit() depend on qual
+#    - 01 apr 2006: external addition of menu items
 #
 # Full description:
 #
@@ -89,7 +90,10 @@ class MyListViewItem (QListViewItem):
 
 class ArgBrowser(QMainWindow):
     
-    def __init__(self, parent=None, callback=None):
+    def __init__(self, parent=None, externalMenuItems=[]):
+
+        # Attach the (optional) list of external menu item definitions:
+        self.__externalMenuItems = externalMenuItems
 
         if not parent:
             self.__QApp = QApplication(sys.argv)
@@ -186,14 +190,7 @@ class ArgBrowser(QMainWindow):
             submenu.insertItem('-> fdeg_6', self.fdeg_6)
             submenu.insertItem('-> fdeg_7', self.fdeg_7)
             menu.insertItem('-> tf_shape', submenu)
-        # Attach the specified callback functions as menu-items (if any):
-        # (See for instance MG_JEN_cps.py)
-        if isinstance(callback, dict):
-            menu.insertSeparator()     
-            self.__callback = callback
-            for key in self.__callback.keys():
-                rr = self.__callback[key]
-                menu.insertItem(rr['prompt'], self.__callback[key]['callback'])
+        self.insertExternalMenuItems(menu)
         self.__menubar.insertItem('convert', menu)
 
 
@@ -218,11 +215,13 @@ class ArgBrowser(QMainWindow):
 
 
         menu = QPopupMenu(self)
-        menu.insertItem('MeqTrees', self.viewMeqTrees)
-        menu.insertItem('MG scripts', self.viewMGScripts)
         self.__menubar.insertSeparator()
-        menu.insertItem('this MG script', self.viewDescription)
         menu.insertItem('this inarg', self.viewSpecific)
+        menu.insertItem('this MG script', self.viewDescription)
+        menu.insertItem('available inargs', self.viewAvailable)
+        self.__menubar.insertSeparator()
+        menu.insertItem('MG scripts', self.viewMGScripts)
+        menu.insertItem('MeqTrees', self.viewMeqTrees)
         self.__menubar.insertSeparator()
         # k = menu.insertItem('help', self.viewHelp)
         # menu.setWhatsThis(k, '...text...')    # better: QToolTip...
@@ -339,6 +338,25 @@ class ArgBrowser(QMainWindow):
         self.__closed = False
         return None
 
+
+    def insertExternalMenuItems(self, menu, name='*'):
+        """Insert the relevant (menuname) external item(s) in into the given menu.
+        The list will have been passed in the constructor (see above).
+        (See for instance MG_JEN_cps.py)"""
+        menu.insertSeparator()
+        # print 'len(emi) =',len(self.__externalMenuItems)
+        for i in range(len(self.__externalMenuItems)):
+            rr = self.__externalMenuItems[i]
+            rr.setdefault('menu', '*')
+            rr.setdefault('display', False)
+            # print rr
+            if rr['menu']==name:
+                if rr['display']:
+                    menu.insertItem(rr['prompt'], rr['callback'])
+                else:
+                    menu.insertItem(rr['prompt'], rr['callback'])
+        menu.insertSeparator()     
+        return True
 
     def QApp (self):
         """Access to the QApplication"""
@@ -793,8 +811,11 @@ class ArgBrowser(QMainWindow):
         return self.tw(self.view('description'))
 
     def viewSpecific(self):
-        # ss = self.view('inarg_specific', recurse=False)
         ss = JEN_inarg.specific (self.__inarg)
+        return self.tw(ss)
+
+    def viewAvailable(self):
+        ss = JEN_inarg.CTRL (self.__inarg, 'available_inargs')
         return self.tw(ss)
 
     def editDescription(self):

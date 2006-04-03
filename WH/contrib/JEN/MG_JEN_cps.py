@@ -75,6 +75,22 @@ def predefine_inargs():
    print '\n** Predefined',MG['script_name'],'inarg records (incl. protected)\n'
    return True
 
+def describe_inargs():
+   """Collate descriptions of all available predefined inarg record(s)"""
+   ss = JEN_inarg.describe_inargs_start(MG)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_cps_inspect_DATA', cps_inspect_DATA.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_cps_inspect_CORRECTED_DATA',
+                                         cps_inspect_CORRECTED_DATA.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_cps_GJones', cps_GJones.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_cps_Gphase', cps_Gphase.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_cps_Ggain', cps_Ggain.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_cps_GDJones', cps_GDJones.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_cps_JJones', cps_JJones.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_cps_BJones', cps_BJones.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_cps_DJones', cps_DJones.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_cps_stokesI', cps_stokesI.__doc__)
+   return JEN_inarg.describe_inargs_end(ss, MG)
+
 #--------------------------------------------------------------------
 
 def cps_GJones(inarg, trace=True):
@@ -310,6 +326,8 @@ def default_inarg ():
 
 MG = JEN_inarg.init('MG_JEN_cps', description=_description.__doc__,
                     inarg_specific=default_inarg.__doc__)
+JEN_inarg.available_inargs(MG, describe_inargs())
+
 
 JEN_inarg.define (MG, 'insert_solver', tf=True,
                   help='if True, insert a solver')
@@ -404,10 +422,10 @@ def _tdl_predefine (mqs, parent, **kwargs):
     res = True
     if parent:
         QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
-        callback = dict()
-        callback['0'] = dict(prompt='predefine inargs', callback=predefine_inargs)
+        rr = []
+        rr.append(dict(prompt='predefine inargs', callback=predefine_inargs))
         try:
-            igui = JEN_inargGui.ArgBrowser(parent, callback=callback)
+            igui = JEN_inargGui.ArgBrowser(parent, externalMenuItems=rr)
             igui.input(MG, set_open=False)
             res = igui.exec_loop()
             if res is None:
