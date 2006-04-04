@@ -117,6 +117,8 @@ void Compounder::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 
 	rec[FSequenceSymdeps].get_vector(seq_symdeps_,initializing);
 
+	//do not resample
+	disableAutoResample();
 
 }
 
@@ -221,10 +223,10 @@ int Compounder::pollChildren (Result::Ref &resref,
 	 return code; 
 	}
 
+  int nvs=child_res().numVellSets();
 #ifdef DEBUG
 	cout<<"Got "<<nvs<<" Vellsets"<<endl;
 #endif
-  int nvs=child_res().numVellSets();
 
 	FailWhen(nvs!=2,"We need 2 vellsets, but got "+nvs);
 	// get input cells
