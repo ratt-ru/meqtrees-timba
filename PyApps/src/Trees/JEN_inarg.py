@@ -353,8 +353,12 @@ def _modify_level(rr, arg, found, level=0, opt=dict()):
       for key in arg.keys():
          if opt['match_substring']:
             for rkey in rr.keys():
-               if rkey.rfind(key)>=0:
-                  print '** matched substring:',key,'in',rkey
+               s1 = s0+'.modify('+rkey+', match_substring):   '
+               if isinstance(rr[rkey], str) and rr[rkey].rfind('@@')>-1:
+                  if opt['trace']: print s1,rr[rkey],': ignored'
+                  pass
+               elif rkey.rfind(key)>=0:
+                  print s1,'matched',key,'in',rkey
                   if not isinstance(rr[rkey],dict):
                      found[key] += 1
                      s1 = s0+'.modify('+rkey+'):   '
@@ -368,7 +372,7 @@ def _modify_level(rr, arg, found, level=0, opt=dict()):
             found[key] += 1                         # increment
             s1 = s0+'.modify('+key+'):   '
             if isinstance(rr[key], str) and rr[key].rfind('@@')>-1:
-               # if opt['trace']: print s1,rr[key],': ignored'
+               if opt['trace']: print s1,rr[key],': ignored'
                pass
             elif not rr[key]==arg[key]:               # different value
                was = rr[key]
@@ -1452,17 +1456,17 @@ def callback_punit(inarg, punit, qual=None):
 
 #-----------------------------------------------------------------------------
 
-def per_timeslot(inarg):
+def per_timeslot(inarg, trace=True):
    """Modify the inarg for per_timeslot operation"""
    modify(inarg,
           tile_size=1,
           epsilon=1e-4,
           num_iter=5,
-          _JEN_inarg_option=None)     
+          _JEN_inarg_option=dict(trace=trace))     
    modify(inarg,
           tdeg_=0,
           subtile_size_=None,
-          _JEN_inarg_option=dict(match_substring=True))     
+          _JEN_inarg_option=dict(match_substring=True, trace=trace))     
    return True
 
 

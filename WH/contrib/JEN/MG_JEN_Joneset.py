@@ -382,24 +382,24 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
        skey = TDL_radio_conventions.station_key(station)        
        qual = dict(s=skey)
 
+       ss = dict()
        for Ggain in [a1,a2]:
           if simul:
-             js.LeafSet.MeqLeaf (ns, Ggain, qual=qual)
+             ss[Ggain] = js.LeafSet.MeqLeaf (ns, Ggain, qual=qual)
           else:
-             js.ParmSet.MeqParm (ns, Ggain, qual=qual,
-                                 tfdeg=[pp['tdeg_Ggain'],pp['fdeg_Ggain']],
-                                 subtile_size=pp['subtile_size_Ggain'])
+             ss[Ggain] = js.ParmSet.MeqParm (ns, Ggain, qual=qual,
+                                             tfdeg=[pp['tdeg_Ggain'],pp['fdeg_Ggain']],
+                                             subtile_size=pp['subtile_size_Ggain'])
 
        for Gphase in [p1,p2]:
           if simul:
-             js.LeafSet.MeqLeaf (ns, Gphase, qual=qual)
+             ss[Gphase] = js.LeafSet.MeqLeaf (ns, Gphase, qual=qual)
           else:
-             js.ParmSet.MeqParm (ns, Gphase, qual=qual,
-                                 tfdeg=[pp['tdeg_Gphase'],pp['fdeg_Gphase']],
-                                 subtile_size=pp['subtile_size_Gphase'])
+             ss[Gphase] = js.ParmSet.MeqParm (ns, Gphase, qual=qual,
+                                              tfdeg=[pp['tdeg_Gphase'],pp['fdeg_Gphase']],
+                                              subtile_size=pp['subtile_size_Gphase'])
 
        # Make the 2x2 Jones matrix:
-       ss = js.buffer()
        if pp['Gpolar']:                  # Preferred (fewer nodes)
           stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
              ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Polar(ss[a1], ss[p1]),
@@ -498,12 +498,12 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
       js.ParmSet.solvegroup('FJones', [RM])
 
    # Make a node for the Faraday rotation (same for all stations...)
+   ss = dict()
    if simul:
-      js.LeafSet.MeqLeaf (ns, RM)
+      ss[RM] = js.LeafSet.MeqLeaf (ns, RM)
    else:
-      js.ParmSet.MeqParm(ns, RM, tfdeg=[pp['tdeg_RM'],pp['fdeg_RM']])
+      ss[RM] = js.ParmSet.MeqParm(ns, RM, tfdeg=[pp['tdeg_RM'],pp['fdeg_RM']])
 
-   ss = js.buffer()
    wvl2 = MG_JEN_twig.wavelength (ns, unop='Sqr')        # -> lambda squared
    farot = ns.farot(q=pp['punit']) << (ss[RM] * wvl2)       # Faraday rotation angle
   
@@ -637,25 +637,26 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
         skey = TDL_radio_conventions.station_key(station)      
         qual = dict(s=skey)
 
+        # Define MeqParm/MeqLeaf nodes, to be used below:
+        ss = dict()
         for Breal in [br1,br2]:
            if simul:
-              js.LeafSet.MeqLeaf (ns, Breal, qual=qual)
+              ss[Breal] = js.LeafSet.MeqLeaf (ns, Breal, qual=qual)
            else:
-              js.ParmSet.MeqParm (ns, Breal, qual=qual,
-                                  tfdeg=[pp['tdeg_Breal'],pp['fdeg_Breal']],
-                                  subtile_size=pp['subtile_size_Breal'])
+              ss[Breal] = js.ParmSet.MeqParm (ns, Breal, qual=qual,
+                                              tfdeg=[pp['tdeg_Breal'],pp['fdeg_Breal']],
+                                              subtile_size=pp['subtile_size_Breal'])
 
         for Bimag in [bi1,bi2]:
            if simul:
-              js.LeafSet.MeqLeaf (ns, Bimag, qual=qual)
+              ss[Bimag] = js.LeafSet.MeqLeaf (ns, Bimag, qual=qual)
            else:
-              js.ParmSet.MeqParm (ns, Bimag, qual=qual,
-                                  tfdeg=[pp['tdeg_Bimag'],pp['fdeg_Bimag']],
-                                  subtile_size=pp['subtile_size_Bimag'])
+              ss[Bimag] = js.ParmSet.MeqParm (ns, Bimag, qual=qual,
+                                              tfdeg=[pp['tdeg_Bimag'],pp['fdeg_Bimag']],
+                                              subtile_size=pp['subtile_size_Bimag'])
 
 
         # Make the 2x2 Jones matrix
-        ss = js.buffer()
         stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
             ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[br1], ss[bi1]),
             0,0,
@@ -820,25 +821,25 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
            JJreal = [dr11,dr12,dr21,dr22]
            JJimag = [di11,di12,di21,di22]
 
+        ss = dict()
         for Jreal in JJreal:
            if simul:
-              js.LeafSet.MeqLeaf (ns, Jreal, qual=qual)
+              ss[Jreal] = js.LeafSet.MeqLeaf (ns, Jreal, qual=qual)
            else:
-              js.ParmSet.MeqParm (ns, Jreal, qual=qual,
-                                  tfdeg=[pp['tdeg_Jreal'],pp['fdeg_Jreal']],
-                                  subtile_size=pp['subtile_size_Jreal'])
+              ss[Jreal] = js.ParmSet.MeqParm (ns, Jreal, qual=qual,
+                                              tfdeg=[pp['tdeg_Jreal'],pp['fdeg_Jreal']],
+                                              subtile_size=pp['subtile_size_Jreal'])
 
         for Jimag in JJimag:
            if simul:
-              js.LeafSet.MeqLeaf (ns, Jimag, qual=qual)
+              ss[Jimag] = js.LeafSet.MeqLeaf (ns, Jimag, qual=qual)
            else:
-              js.ParmSet.MeqParm (ns, Jimag, qual=qual,
-                                  tfdeg=[pp['tdeg_Jimag'],pp['fdeg_Jimag']],
-                                  subtile_size=pp['subtile_size_Jimag'])
+              ss[Jimag] = js.ParmSet.MeqParm (ns, Jimag, qual=qual,
+                                              tfdeg=[pp['tdeg_Jimag'],pp['fdeg_Jimag']],
+                                              subtile_size=pp['subtile_size_Jimag'])
               
 
         # Make the 2x2 Jones matrix
-        ss = js.buffer()
         if diagonal:
            stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
               ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr11], ss[di11]),
@@ -985,20 +986,19 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
       js.ParmSet.solvegroup('Dang', [Dang1, Dang2, pzd])
       js.ParmSet.solvegroup('Dell', [Dell1, Dell2, pzd])
 
+
    # The X/Y Phase-Zero-Difference (PZD) is shared by all stations:
+   ss = dict()
    if simul:
-      js.LeafSet.MeqLeaf (ns, pzd)
+      ss[pzd] = js.LeafSet.MeqLeaf (ns, pzd)
    else:
-      js.ParmSet.MeqParm(ns, pzd)
-      
-   ss = js.buffer()
+      ss[pzd] = js.ParmSet.MeqParm(ns, pzd)
    matname = 'DJones_PZD_matrix'
    pmat = MG_JEN_matrix.phase (ns, angle=ss[pzd], name=matname)
 
 
    # Make the jones matrices per station:
    jones = {}
-   ss = {}
    for station in pp['stations']:
       skey = TDL_radio_conventions.station_key(station)  
       qual = dict(s=skey)
@@ -1007,23 +1007,21 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
       matname = 'DJones_Dang_matrix'
       if pp['coupled_XY_Dang']:
          if simul:
-            js.LeafSet.MeqLeaf (ns, Dang, qual=qual)
+            ss[Dang] = js.LeafSet.MeqLeaf (ns, Dang, qual=qual)
          else:
-            js.ParmSet.MeqParm (ns, Dang, qual=qual,
-                                tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
-                                subtile_size=pp['subtile_size_Dang'])
-         ss = js.buffer()
+            ss[Dang] = js.ParmSet.MeqParm (ns, Dang, qual=qual,
+                                           tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
+                                           subtile_size=pp['subtile_size_Dang'])
          rmat = MG_JEN_matrix.rotation (ns, angle=ss[Dang], qual=None, name=matname)
 
       else: 
          for Dang in [Dang1,Dang2]:
             if simul:
-               js.LeafSet.MeqLeaf (ns, Dang, qual=qual)
+               ss[Dang] = js.LeafSet.MeqLeaf (ns, Dang, qual=qual)
             else:
-               js.ParmSet.MeqParm (ns, Dang, qual=qual,
-                                   tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
-                                   subtile_size=pp['subtile_size_Dang'])
-         ss = js.buffer()
+               ss[Dang] = js.ParmSet.MeqParm (ns, Dang, qual=qual,
+                                              tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
+                                              subtile_size=pp['subtile_size_Dang'])
          rmat = MG_JEN_matrix.rotation (ns, angle=[ss[Dang1],ss[Dang2]], qual=None, name=matname)
 
 
@@ -1031,23 +1029,21 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
       matname = 'DJones_Dell_matrix'
       if pp['coupled_XY_Dell']:
          if simul:
-            js.LeafSet.MeqLeaf (ns, Dell, qual=qual)
+            ss[Dell] = js.LeafSet.MeqLeaf (ns, Dell, qual=qual)
          else:
-            js.ParmSet.MeqParm (ns, Dell, qual=qual,
-                                tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
-                                subtile_size=pp['subtile_size_Dell'])
-         ss = js.buffer()
+            ss[Dell] = js.ParmSet.MeqParm (ns, Dell, qual=qual,
+                                           tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
+                                           subtile_size=pp['subtile_size_Dell'])
          emat = MG_JEN_matrix.ellipticity (ns, angle=ss[Dell], qual=None, name=matname)
 
       else:
          for Dell in [Dell1,Dell2]:
             if simul:
-               js.LeafSet.MeqLeaf (ns, Dell, qual=qual)
+               ss[Dell] = js.LeafSet.MeqLeaf (ns, Dell, qual=qual)
             else:
-               js.ParmSet.MeqParm (ns, Dell, qual=qual,
-                                   tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
-                                   subtile_size=pp['subtile_size_Dell'])
-         ss = js.buffer()
+               ss[Dell] = js.ParmSet.MeqParm (ns, Dell, qual=qual,
+                                              tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
+                                              subtile_size=pp['subtile_size_Dell'])
          emat = MG_JEN_matrix.ellipticity (ns, angle=[ss[Dell1],ss[Dell2]], qual=None, name=matname)
 
       # Make the 2x2 Jones matrix by multiplying the sub-matrices:
@@ -1142,7 +1138,7 @@ def KJones (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inar
 # EJones_WSRT: diagonal 2x2 matrix for WSRT voltage beams
 #--------------------------------------------------------------------------------
 
-def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, first=True, **inarg):
+def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inarg):
     """defines EJones (voltage beamshape) matrices for WSRT (l,m interpolatable)
     Ejones(station,source) matrix elements:
     - E_11 = Egain_X*exp(iEphase_X)
@@ -1291,15 +1287,14 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, f
 
     # Make nodes and bookmarks for some derived quantities (for display):
     # NB: This must be done AFTER the station nodes have been defined!
-    if first:
-       if simul:
-          bookpage = js.LeafSet.NodeSet.tlabel()+'_EJones'
-          js.LeafSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
-          js.LeafSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
-       else:
-          bookpage = js.ParmSet.NodeSet.tlabel()+'_EJones'
-          js.ParmSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
-          js.ParmSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
+    if simul:
+       bookpage = js.LeafSet.NodeSet.tlabel()+'_EJones'
+       js.LeafSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
+       js.LeafSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
+    else:
+       bookpage = js.ParmSet.NodeSet.tlabel()+'_EJones'
+       js.ParmSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
+       js.ParmSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
 
     # Finished:
     js.cleanup()

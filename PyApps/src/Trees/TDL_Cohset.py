@@ -893,16 +893,21 @@ class Cohset (TDL_common.Super):
         for key in self.keys():
             itself = self.__coh[key]                   # its own node
             name = 'added'
+            cc = [itself]                              # make a list for MeqAdd
             if isinstance(itself, str):                # e.g. nodestub placeholder....
                 print funcname,': itself =',itself
                 return False                           # problem
             elif exclude_itself:
                 name = 'replaced'
-                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, c0)
-            cc = [itself]                              # make a list for MeqAdd
+                # itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, c0)
+                cc = []
             for cs in Cohset:
                 cc.append(cs[key])                     # collect corresponding (key) nodes
-            self.__coh[key] = ns[name].qmerge(itself)(uniqual) << Meq.Add(children=cc)
+            if exclude_itself:
+                self.__coh[key] = ns[name].qmerge(itself)(uniqual) << Meq.Add(children=cc,
+                                                                              stepchildren=[itself])
+            else:
+                self.__coh[key] = ns[name].qmerge(itself)(uniqual) << Meq.Add(children=cc)
 
         # Reporting and book-keeping
         for cs in Cohset:
@@ -914,6 +919,49 @@ class Cohset (TDL_common.Super):
             self._history(append=funcname+' replace by sum of '+str(n)+' Cohsets:')
         else:
             self.scope('added')
+            self._history(append=funcname+' added '+str(n)+' Cohset(s) to itself:')
+        for cs in Cohset:
+            self._history(append=funcname+' ...... '+cs.oneliner())
+        self._history(append=funcname+' -> '+self.oneliner())
+        return True
+
+
+    def add_old(self, ns, Cohset=[], exclude_itself=False):
+        """Add the cohaerencies of the given (list of) Cohset(s)"""
+        funcname = '::add_old():'
+        if not isinstance(Cohset, (tuple,list)): Cohset = [Cohset]
+        if len(Cohset)==0: return True                 # no change
+        # print funcname,len(Cohset)
+        
+        # Prepare:
+        uniqual = _counter(funcname, increment=-1)
+        c0 = self.zero_coh(ns)
+
+        # Modify the internal cohaerencies:
+        for key in self.keys():
+            itself = self.__coh[key]                   # its own node
+            name = 'added_old'
+            if isinstance(itself, str):                # e.g. nodestub placeholder....
+                print funcname,': itself =',itself
+                return False                           # problem
+            elif exclude_itself:
+                name = 'replaced_old'
+                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, c0)
+            cc = [itself]                              # make a list for MeqAdd
+            for cs in Cohset:
+                cc.append(cs[key])                     # collect corresponding (key) nodes
+            self.__coh[key] = ns[name].qmerge(itself)(uniqual) << Meq.Add(children=cc)
+
+        # Reporting and book-keeping
+        for cs in Cohset:
+            self.update_from_Cohset(cs)
+        n = len(Cohset)
+        if exclude_itself:
+            self.scope('replaced_old')
+            self.label('replaced_old')                
+            self._history(append=funcname+' replace by sum of '+str(n)+' Cohsets:')
+        else:
+            self.scope('added_old')
             self._history(append=funcname+' added '+str(n)+' Cohset(s) to itself:')
         for cs in Cohset:
             self._history(append=funcname+' ...... '+cs.oneliner())

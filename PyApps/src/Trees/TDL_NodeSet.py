@@ -9,6 +9,7 @@
 #    - 03 mar 2006: creation from TDL_Parmset.py
 #    - 20 mar 2006: removed .bookfolder() again
 #    - 21 mar 2006: upgraded .bookmark() definition
+#    - 04 apr 2006: removed self.__buffer
 #
 # Full description:
 #   Many types of MeqTree nodes (e.g. MeqParms) come in groups of similar ones,
@@ -156,12 +157,6 @@ class NodeSet (TDL_common.Super):
             for key in self.bundle().keys():
                 ss.append(indent2+' - '+key+':    '+str(self.bundle()[key]))
 
-        #------------------------
-        ss.append(indent1+' - Contents of temporary buffer ('+str(len(self.__buffer))+'):')
-        if full:
-            for key in self.buffer().keys():
-                ss.append(indent2+' - '+key+':    '+str(self.buffer()[key]))
-
         ss.append(indent1+' - Defined bookmarks ('+str(len(self.__bookmark))+'):')
         for key in self.bookmark().keys():
             ss.append(indent2+' - '+key+':    '+str(self.bookmark()[key]))
@@ -214,21 +209,6 @@ class NodeSet (TDL_common.Super):
 
 
     #--------------------------------------------------------------------------------
-    # Convenience (service): temporary buffer
-    #--------------------------------------------------------------------------------
-
-    # When a new MeqNode entry is made (see .MeqNode(), the node stub is put into the
-    # internal buffer for later use. This is a convenience service that allows access
-    # to the most recently defined MeqNodes by means of their group name, rather than
-    # their full name (e.g. see MG_JEN_Joneset.py) 
-
-    def buffer(self, clear=False):
-        """Get/clear the temporary helper record self.__buffer"""
-        if clear: self.__buffer = dict()
-        return self.__buffer
-
-
-    #--------------------------------------------------------------------------------
     # Convenience (service): quals
     #--------------------------------------------------------------------------------
 
@@ -263,7 +243,6 @@ class NodeSet (TDL_common.Super):
             else:
                 self.__MeqNode[nodename] = node 
                 self.__group[key].append(nodename)  
-                self.__buffer[key] = node                  # see .buffer() service
                 s1 = 'MeqNode(): new entry: '+str(nodename)+' (in group:'+str(key)+')'  
                 self.history(s1)
                 if trace: print '**',s1  
@@ -969,7 +948,6 @@ class NodeSet (TDL_common.Super):
           if not ok: self.__gog.__delitem__(skey)
 
       # Miscellaneous:
-      self.buffer(clear=True)                   # Clear the temporary buffer
       self.history ('.cleanup():  removed empty group(s): '+str(removed))
       return True
 
@@ -1028,7 +1006,6 @@ class NodeSet (TDL_common.Super):
         self.__bundle = dict()
         self.__bookmark = dict()
         self.__quals = dict()       
-        self.buffer(clear=True)
         return True
 
 #----------------------------------------------------------------------

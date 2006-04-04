@@ -82,10 +82,6 @@ class LeafSet (TDL_common.Super):
         """Get/set the default MeqParm node-name qualifier(s)"""
         return self.NodeSet.quals(new=new, clear=clear)
         
-    def buffer(self, clear=False):
-        """Get the temporary helper record self.__buffer"""
-        return self.NodeSet.buffer(clear=clear)
-
     #--------------------------------------------------------------------------------
             
     def oneliner(self):

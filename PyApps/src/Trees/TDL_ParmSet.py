@@ -34,9 +34,6 @@
 #   - Definition of a solvegroup as a list of parmgroup names
 #   - Creation of MeqCondeq nodes for standard condition equations
 #     (e.g. to equate the sum of the GJones phases to zero)
-#   - A buffer to temporarily hold new MeqParms by their 'root' name
-#     (this is useful where simular MeqParms are defined with different
-#     qualifiers, e.g. for the different stations in a Joneset)
 #   - etc
 
 
@@ -132,10 +129,6 @@ class ParmSet (TDL_common.Super):
         """Get/set the default MeqParm node-name qualifier(s)"""
         return self.NodeSet.quals(new=new, clear=clear)
         
-    def buffer(self, clear=False):
-        """Get the temporary helper record self.__buffer"""
-        return self.NodeSet.buffer(clear=clear)
-
 #--------------------------------------------------------------------------------
             
     def oneliner(self):

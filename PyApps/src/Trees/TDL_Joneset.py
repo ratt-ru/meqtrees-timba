@@ -233,13 +233,6 @@ class Joneset (TDL_common.Super):
         self.ParmSet.cleanup()
         return True
 
-    def buffer(self):
-        """Get the relevant temporary buffer (from ParmSet/LeafSet)"""
-        ss = self.ParmSet.buffer()
-        # Kludge: If the ParmSet buffer is empty, try the LeafSet one:
-        if len(ss)==0: ss = self.LeafSet.buffer()
-        return ss
-
     #-----------------------------------------------------------------------
 
     def update(self, Joneset=None):
