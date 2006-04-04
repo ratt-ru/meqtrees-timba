@@ -69,22 +69,28 @@ def _define_forest2(ns):
   """example function to show how to use the  Functional class"""
   _add_axes_to_forest_state();
   
-  f1=Functional("p0+p1*x0",[1],2);
+  f1=Functional("p0+p1*x0",pp=dict(p1=1),Npar=2);
   
-
-
-  f2=Functional("p0+p1*x1",[1],2);
+  print "f1",f1.getFunklet();
+  
+  f2=Functional("p0+p1*x1",pp=dict(p1=1),Npar=2);
+  print "f2",f2.getFunklet();
 
   
 
   f4=create_polc(shape=[3,2]);
+  print "f4",f4.getFunklet();
 
-  f3=Functional("p0*x2+p1*x3+p2*x2*x3",[f1,f2,f4]); #replaces p0 by f1,p1 by f2...etc..
-  #if the second argument contains number this will be the init_value of te coefficient
+  f3=Functional(function = "p0*x2+p1*x3+p2*x2*x3",pp=dict(p0=f1,p1=f2,p2=f4),test=dict(x0=1,x1=2,x2=2,x3=5)); #replaces p0 by f1,p1 by f2...etc..
+  #if the pp argument contains number this will be the init_value of te coefficient,
+  #therefore, for the moment the only allowed keys in the dictionary are p0...pN
+  #test contains x values for test evaluation
 
   polc=f3.getFunklet();
 
   print "created funklet",polc;
+
+  print"eval:",f3.eval();
 
   ns['solver'] << Meq.Solver(
       num_iter=5,debug_level=10,solvable="x",
