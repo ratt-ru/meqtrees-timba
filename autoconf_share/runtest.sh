@@ -101,6 +101,10 @@ if test -f "$srcdir/$1.run"; then
     \rm -f $1.run
     \cp $srcdir/$1.run .
 fi
+if test -f "$srcdir/$1.parset"; then
+    \rm -f $1.parset
+    \cp $srcdir/$1.parset .
+fi
 if test -f "$srcdir/$1.log_prop"; then
     \rm -f $1.log_prop
     \cp $srcdir/$1.log_prop .
@@ -119,5 +123,5 @@ $lfr_share_dir/assay $1 $MAXTIME $PREC
 STS=$?
 
 # Cleanup (mainly for make distcheck).
-\rm -f $1.stdout $1.run $1.in $1.log_prop $1.in_*
+\rm -f $1.stdout $1.run $1.in $1.parset $1.log_prop $1.in_*
 exit $STS
