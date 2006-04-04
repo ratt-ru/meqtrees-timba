@@ -22,6 +22,7 @@
 
 #include <MeqNodes/Compounder.h>
 #include <MEQ/MeqVocabulary.h>
+#include <MEQ/Node.h>
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
 #include <MEQ/Forest.h>
@@ -53,7 +54,9 @@ bool operator <(const IdVal& a, const IdVal& b);
 
 class IdVal {
 				public:
-				int id;
+				blitz::Array<int,1> id; //sequence of axes t,f,perturbed values...
+				// if no f or perturbed values are defined
+				// they are set to -1
 				double val;
         friend bool operator <(const IdVal& a, const IdVal& b);
 
@@ -72,7 +75,9 @@ Compounder::Compounder()
 	mode_(1),res_index_(0)
 {
   // our own result depends on domain & resolution
+	res_symdeps_.resize(1);
   res_symdeps_.assign(1,AidResolution);
+
 	comm_axes_.resize(2);
 	//default axes
 	comm_axes_[0]="L";
@@ -122,6 +127,10 @@ int Compounder::pollChildren (Result::Ref &resref,
   res_depmask_ = symdeps().getMask(res_symdeps_);
   seq_depmask_ = symdeps().getMask(seq_symdeps_);
 
+	//handle parm update the default way 
+	if( request.requestType() ==RequestType::PARM_UPDATE )
+					    return Node::pollChildren(resref,childres,request);
+
 	/******************* poll child 0 ********/
   setExecState(CS_ES_POLLING);
 	timers().children.start();
@@ -149,27 +158,61 @@ int Compounder::pollChildren (Result::Ref &resref,
 
 	/**** begin poll child 1 ******************/
 	// extract values from the result of child 0 to define our axes
-  int nvs=child_res().numVellSets();
-#ifdef DEBUG
-	cout<<"Got "<<nvs<<" Vellsets"<<endl;
-#endif
-	/* if we do not have any result, do not do anything, just pass it up */
-	if (nvs==0) {  
-   //increment request sub id
 	Request::Ref newreq(request);
-	//increment request sub id
+
+	childres.resize(2);
+	childres[0]=child_res;
+	/* if we discover spids */
+	if ( request.requestType() ==RequestType::DISCOVER_SPIDS ) {  
+
+	const Cells &incells=request.cells();
+	const Domain &old_dom=incells.domain();
+	Domain::Ref domain(new Domain());
+	if (old_dom.isDefined(Axis::TIME))
+	 domain().defineAxis(Axis::TIME, old_dom.start(Axis::TIME), old_dom.end(Axis::TIME));
+	if (old_dom.isDefined(Axis::FREQ))
+	 domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
+	//add two more defined in the initrec()
+	domain().defineAxis(Axis::axis(comm_axes_[0]),-10000,10000);
+	domain().defineAxis(Axis::axis(comm_axes_[1]),-10000,10000);
+	Cells::Ref outcells_ref0;
+	Cells &outcells=outcells_ref0<<=new Cells(*domain);
+	outcells.setCells(Axis::TIME,incells.center(Axis::TIME),incells.cellSize(Axis::TIME));
+	outcells.setCells(Axis::FREQ,incells.center(Axis::FREQ),incells.cellSize(Axis::FREQ));
+
+	  outcells.setCells(Axis::axis(comm_axes_[0]),-10000,10000,1);
+	  outcells.setCells(Axis::axis(comm_axes_[1]),-10000,10000,1);
+
+
+
+
+	 newreq().setCells(outcells);
+	//increment request sequence sub id
 	RequestId rqid=request.id();
 	RqId::incrSubId(rqid,seq_depmask_);
+	//set resolution sub id to node index of this node
+	RqId::setSubId(rqid,res_depmask_,nodeIndex());
 	newreq().setId(rqid);
 
+
+	Result::Ref child_res1;
 	 unlockStateMutex();
-	 code=children().getChild(1).execute(child_res,*newreq);
+	 code=children().getChild(1).execute(child_res1,*newreq);
 	 lockStateMutex();
-	 cout<<"Result ="<<child_res()<<endl;
-	 result_=child_res;
-	 resref.xfer(child_res);
+	 cout<<"Request Id="<<newreq().id()<<endl;
+	 //cout<<"Result has cells="<<child_res1().hasCells()<<endl;
+	 //cout<<"Result ="<<*child_res1<<endl;
+	 //FailWhen(child_res1().hasFails(),"Got Fails in spid discovery");
+	 //if (!child_res1().hasCells())
+	//	child_res1().setCells(outcells);
+
+	 childres[0]=child_res;
+	 childres[1]=child_res1;
+	 // resref.xfer(child_res1);
+	 resref.detach();
+	 //result_=child_res1;
 	 unlockStateMutex();
-	 stepchildren().backgroundPoll(request);
+	// stepchildren().backgroundPoll(*newreq);
 	 timers().children.stop();
 	 lockStateMutex();
 
@@ -178,6 +221,10 @@ int Compounder::pollChildren (Result::Ref &resref,
 	 return code; 
 	}
 
+#ifdef DEBUG
+	cout<<"Got "<<nvs<<" Vellsets"<<endl;
+#endif
+  int nvs=child_res().numVellSets();
 
 	FailWhen(nvs!=2,"We need 2 vellsets, but got "+nvs);
 	// get input cells
@@ -232,7 +279,8 @@ int Compounder::pollChildren (Result::Ref &resref,
 	blitz::Array<IdVal,1> sarray0(cen0.extent(0));
 	//copy data
 	for (int i=0; i<cen0.extent(0);i++) {
-		sarray0(i).id=i;
+		sarray0(i).id.resize(1);
+		sarray0(i).id(0)=i;
 		sarray0(i).val=cen0(i);
 	}
 #ifdef DEBUG
@@ -255,7 +303,8 @@ int Compounder::pollChildren (Result::Ref &resref,
 	blitz::Array<IdVal,1> sarray1(cen1.extent(0));
 	//copy data
 	for (int i=0; i<cen1.extent(0);i++) {
-		sarray1(i).id=i;
+		sarray1(i).id.resize(1);
+		sarray1(i).id(0)=i;
 		sarray1(i).val=cen1(i);
 	}
 #ifdef DEBUG
@@ -322,7 +371,6 @@ int Compounder::pollChildren (Result::Ref &resref,
 	  outcells.setCells(Axis::axis(comm_axes_[0]),cen0,space0);
 	  outcells.setCells(Axis::axis(comm_axes_[1]),cen1,space1);
 
-	Request::Ref newreq(request);
 	newreq().setCells(outcells);
 	//increment request sub id
 	RequestId rqid=request.id();
@@ -358,22 +406,23 @@ int Compounder::pollChildren (Result::Ref &resref,
 	//go to the new grid point (t,f)
 	blitz::Array<double,2> A=out.as<double,2>()(blitz::Range::all(),blitz::Range::all());
 	blitz::Array<double,4> B=in.getArray<double,4>();
+	//reindexing arrays
 	for (int i=0;i<A.extent(0);i++)
 	  for (int j=0;j<A.extent(1);j++) {
     //find the correct location for this (t,f) point in B
 		//need to look up axes a,b for this	
 		//Note: we only search for time (or i in this case)
 		int k=0;
-		while((sarray0(k).id!=i) && (k< sarray0.extent(0))) {k++;}
+		while( (k< sarray0.extent(0)) && (sarray0(k).id(0)!=i) ) {k++;}
 		int l=0;
-		while((sarray1(l).id!=i) && (l< sarray1.extent(0))) {l++;}
+		while( (l< sarray1.extent(0)) && (sarray1(l).id(0)!=i)) {l++;}
 
 		//special case, if we overstep our k,l limits
 		//that means that particular axis is a scalar so use the value at 0
 		if(k==sarray0.extent(0)) {k=0;}
 		if(l==sarray0.extent(1)) {l=0;}
 #ifdef DEBUG
-		cout<<"for tf ("<<i<<","<<j<<") : ab ["<<k<<","<<l<<"]"<<endl;
+		//cout<<"for tf ("<<i<<","<<j<<") : ab ["<<k<<","<<l<<"]"<<endl;
 #endif
 		A(i,j)=B(i,j,k,l);
   }
@@ -383,7 +432,7 @@ int Compounder::pollChildren (Result::Ref &resref,
    cout<<"Found "<<npsets<<" perturbed sets"<<endl;
 #endif
    for (int ipset=0; ipset<npsets; ipset++) 
-    for (int ipert=0; ipert<res0().vellSet(0).numSpids(); ipert++)  {
+    for (int ipert=0; ipert<nspids; ipert++)  {
 	   const Vells pvl=res0().vellSet(0).getPerturbedValue(ipert,ipset);
 	   Vells &pin=const_cast<Vells &>(pvl);
 	   Vells &pout=vs.setPerturbedValue(ipert,new Vells(0.0,incells.shape()),ipset);
@@ -396,16 +445,16 @@ int Compounder::pollChildren (Result::Ref &resref,
 		//need to look up axes a,b for this	
 		//Note: we only search for time (or i in this case)
 		int k=0;
-		while((sarray0(k).id!=i) && (k< sarray0.extent(0))) {k++;}
+		while( (k< sarray0.extent(0)) && (sarray0(k).id(0)!=i)) {k++;}
 		int l=0;
-		while((sarray1(l).id!=i) && (l< sarray1.extent(0))) {l++;}
+		while( (l< sarray1.extent(0)) && (sarray1(l).id(0)!=i)) {l++;}
 
 		//special case, if we overstep our k,l limits
 		//that means that particular axis is a scalar so use the value at 0
 		if(k==sarray0.extent(0)) {k=0;}
 		if(l==sarray0.extent(1)) {l=0;}
 #ifdef DEBUG
-		cout<<"for tf ("<<i<<","<<j<<") : ab ["<<k<<","<<l<<"]"<<endl;
+		//cout<<"for tf ("<<i<<","<<j<<") : ab ["<<k<<","<<l<<"]"<<endl;
 #endif
 		pA(i,j)=pB(i,j,k,l);
   }
@@ -415,6 +464,7 @@ int Compounder::pollChildren (Result::Ref &resref,
 	res1.setVellSet(0,ref);
 	res1.setCells(incells);
 
+	childres[1]=child_res;
   //return Node::pollChildren(resref,childres,newreq);
 	unlockStateMutex();
 	stepchildren().backgroundPoll(request);
