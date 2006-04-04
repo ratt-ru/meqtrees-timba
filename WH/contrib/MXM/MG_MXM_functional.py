@@ -81,7 +81,7 @@ def _define_forest2(ns):
   f4=create_polc(shape=[3,2]);
   print "f4",f4.getFunklet();
 
-  f3=Functional(function = "p0*x2+p1*x3+p2*x2*x3",pp=dict(p0=f1,p1=f2,p2=f4),test=dict(x0=1,x1=2,x2=2,x3=5)); #replaces p0 by f1,p1 by f2...etc..
+  f3=Functional(function = "sin(p0*x2)+p1*x3+p2*x2*x3",pp=dict(p0=f1,p1=f2,p2=f4),test=dict(x0=1,x1=2,x2=2,x3=5)); #replaces p0 by f1,p1 by f2...etc..
   #if the pp argument contains number this will be the init_value of te coefficient,
   #therefore, for the moment the only allowed keys in the dictionary are p0...pN
   #test contains x values for test evaluation

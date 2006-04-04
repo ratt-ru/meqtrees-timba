@@ -1,7 +1,7 @@
 # Helper class to compose the the function string for functionals
 
 from Timba.Meq import meq
-
+from numarray import *
 
 class Functional:
     def __init__(self,function="",pp={},test=None,Npar=0):
