@@ -1778,7 +1778,7 @@ class QwtImageDisplay(QwtPlot):
             if self.array_flip:
               self.x_parm = self.second_axis_parm
               self.y_parm = self.first_axis_parm
-            self.myXScale = ComplexScaleSeparate(self.vells_axis_parms[self.x_parm][0], self.vells_axis_parms[self.x_parm][1])
+            self.myXScale = ComplexScaleDraw(start_value=self.vells_axis_parms[self.x_parm][0], end_value=self.vells_axis_parms[self.x_parm][1])
             self.complex_divider = self.vells_axis_parms[self.x_parm][1]
 
             self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
@@ -1813,13 +1813,13 @@ class QwtImageDisplay(QwtPlot):
             else:
               self._y_title = 'Array/Channel Number'
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
-            self.myXScale = ComplexScaleDraw(plot_array.shape[0])
+            self.myXScale = ComplexScaleDraw(divisor=plot_array.shape[0])
             self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
 	    self.split_axis = plot_array.shape[0]
             _dprint(3,'testing self.y_marker_step ', self.y_marker_step)
 	    if not self.y_marker_step is None:
               _dprint(3, 'creating split Y scale for Y axis')
-              self.myYScale = ComplexScaleDraw(self.y_marker_step)
+              self.myYScale = ComplexScaleDraw(divisor=self.y_marker_step)
               self.setAxisScaleDraw(QwtPlot.yLeft, self.myYScale)
 
           if self.ampl_phase:
@@ -1863,7 +1863,7 @@ class QwtImageDisplay(QwtPlot):
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
 	    if not self.y_marker_step is None:
               _dprint(3, 'creating split Y scale for Y axis ', self.y_marker_step)
-              self.myYScale = ComplexScaleDraw(self.y_marker_step)
+              self.myYScale = ComplexScaleDraw(divisor=self.y_marker_step)
               self.setAxisScaleDraw(QwtPlot.yLeft, self.myYScale)
           self.display_image(plot_array)
 
