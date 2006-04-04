@@ -83,6 +83,32 @@ DISTCLEANFILES=\
 # Rule to build all test programs.
 test: $(check_PROGRAMS)
 
+# Rule to build and run one or more test programs.
+# The programs to build/run must be defined in the PGM variable.
+checkrun:
+	@if [ "$(PGM)" = "" ] ; then \
+	   echo "Use as: make checkrun PGM=testprogram"; \
+	 else \
+	   srcdir=$(srcdir); export srcdir; \
+	   for PGMVAR in $(PGM) ; \
+	   do \
+	     if make $$PGMVAR; then \
+	       PGMTST=$$PGMVAR; \
+	       if [ -f $(srcdir)/$$PGMVAR.sh ] ; then \
+	         PGMTST=$(srcdir)/$$PGMVAR.sh; \
+	       elif [ -f $(srcdir)/$$PGMVAR_test.sh ] ; then \
+	         PGMTST=$(srcdir)/$$PGMVAR_test.sh; \
+	       fi; \
+	       if $(TESTS_ENVIRONMENT) $$PGMTST; then \
+	         echo "  ** $$PGMTST succeeded **"; \
+	       else \
+	         echo "  ** $$PGMTST failed **"; \
+		 cat $$PGMVAR.log; \
+	       fi; \
+	     fi; \
+	   done; \
+	 fi
+
 
 # Rules for building documentation using doxygen or doc++.
 # Default output directory is docxxhtml.
