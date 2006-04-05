@@ -311,7 +311,7 @@ int Compounder::pollChildren (Result::Ref &resref,
 	blitz::Array<IdVal,1> sarray0(cen0.extent(0));
 	//copy data
 	for (int i=0; i<cen0.extent(0);i++) {
-		sarray0(i).id=new int(3);
+		sarray0(i).id=new int[3];
 		sarray0(i).id[0]=i;
 		sarray0(i).id[1]=0;
 		sarray0(i).id[2]=0;
@@ -338,7 +338,7 @@ int Compounder::pollChildren (Result::Ref &resref,
 		aa[0]=sarray0(i).id[0];
 		aa[1]=sarray0(i).id[1];
 		aa[2]=sarray0(i).id[2];
-		int *bb=new int(2);
+		int *bb=new int[2];
 		bb[0]=i;
 		bb[1]=0; //not yet defined
 		revmap[aa]=bb;
@@ -347,7 +347,7 @@ int Compounder::pollChildren (Result::Ref &resref,
 	blitz::Array<IdVal,1> sarray1(cen1.extent(0));
 	//copy data
 	for (int i=0; i<cen1.extent(0);i++) {
-		sarray1(i).id=new int(3);
+		sarray1(i).id=new int[3];
 		sarray1(i).id[0]=i;
 		sarray1(i).id[1]=0;
 		sarray1(i).id[2]=0;
@@ -377,7 +377,7 @@ int Compounder::pollChildren (Result::Ref &resref,
 		//
 		if(revmap.find(aa)==revmap.end()) {
 				//not found
-		    int *bb=new int(2);
+		    int *bb=new int[2];
 		    bb[0]=0;//not yet defined
 		    bb[1]=i; 
 		    revmap[aa]=bb;
@@ -482,6 +482,9 @@ int Compounder::pollChildren (Result::Ref &resref,
 	
 	int intime=incells.ncells(Axis::TIME);
 	int infreq=incells.ncells(Axis::FREQ);
+#ifdef DEBUG
+	cout<<"In "<<intime<<","<<infreq<<endl;
+#endif
 	int itime, ifreq,iplane;
 	mapiter=revmap.begin();
 	while(mapiter!=revmap.end()) {
@@ -492,14 +495,22 @@ int Compounder::pollChildren (Result::Ref &resref,
 		iplane=key[2];
     
 		A(itime,ifreq)=B(itime,ifreq,value[0],value[1]);
-		//hangle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
+		//handle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
 		if ((ntime==1) && (intime> 1)) {
-			for (int i=1; i<intime;i++)
+			for (int i=1; i<intime;i++) {
+#ifdef DEBUG
+		cout<<"[["<<i<<","<<ifreq<<"]="<<itime<<","<<ifreq<<","<<value[0]<<","<<value[1]<<"]]"<<endl;
+#endif
 		   A(i,ifreq)=B(itime,ifreq,value[0],value[1]);
+			}
 		}
 		if ((nfreq==1) && (infreq> 1)) {
-			for (int i=1; i<infreq;i++)
+			for (int i=1; i<infreq;i++) {
+#ifdef DEBUG
+		cout<<"[["<<itime<<","<<i<<"]="<<itime<<","<<ifreq<<","<<value[0]<<","<<value[1]<<"]]"<<endl;
+#endif
 		   A(itime,i)=B(itime,ifreq,value[0],value[1]);
+			}
 		}
 #ifdef DEBUG
 		cout<<"["<<key[0]<<","<<key[1]<<","<<key[2]<<"] = ["<<value[0]<<","<<value[1]<<"]"<<endl;
@@ -556,15 +567,15 @@ int Compounder::pollChildren (Result::Ref &resref,
 	//delete map
 	mapiter=revmap.begin();
 	while(mapiter!=revmap.end()) {
-		delete mapiter->second;
+		delete [] mapiter->second;
 		mapiter++;
 	}
 
 	for (int i=0; i<sarray0.extent(0);i++) {
-			delete sarray0(i).id;
+			delete [] sarray0(i).id;
 	}
 	for (int i=0; i<sarray1.extent(0);i++) {
-			delete sarray1(i).id;
+			delete [] sarray1(i).id;
 	}
 
 	childres[1]=child_res;
