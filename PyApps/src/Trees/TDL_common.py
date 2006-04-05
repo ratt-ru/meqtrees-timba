@@ -158,7 +158,8 @@ class Super:
         else:
             ss.append(indent1+'* Object rider ('+str(len(rr))+' entries):')
             for key in rr.keys():
-                ss.append(indent2+'* '+str(key)+': '+str(type(rr[key])))
+                # ss.append(indent2+'* '+str(key)+': '+str(type(rr[key])))
+                ss.append(indent2+'* '+str(key)+': '+str(type(rr[key]))+' = '+str(rr[key]))
 
         #-----------------------------------
         hh = self._history()

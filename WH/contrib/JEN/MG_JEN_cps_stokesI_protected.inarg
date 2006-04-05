@@ -120,7 +120,7 @@ S'Defines diagonal 2x2 Jones matrices that represent the IF bandpass:\n    Bjone
 p46
 sS'oneliner'
 p47
-S'MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-04 22:43'
+S'MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-05 17:38'
 p48
 sS'target_function'
 p49
@@ -357,14 +357,14 @@ S''
 p122
 sS'available_inargs'
 p123
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-04 22:43'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-05 17:38'
 p124
 sS'protected'
 p125
 I00
 sS'datetime_defined'
 p126
-S'2006-04-04 22:43'
+S'2006-04-05 17:38'
 p127
 sS'version'
 p128
@@ -387,7 +387,7 @@ sg13
 I00
 ssS'inarg_specific'
 p134
-S'** Specific description of inarg record for: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-04 22:43'
+S'** Specific description of inarg record for: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-05 17:38'
 p135
 sS'mutable'
 p136
@@ -632,7 +632,7 @@ sg45
 S'defines 2x2 DJones_WSRT (polarisation leakage) matrices'
 p178
 sg47
-S'MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-04 22:43'
+S'MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-05 17:38'
 p179
 sg49
 S'DJones_WSRT'
@@ -872,12 +872,12 @@ p249
 assg121
 g122
 sg123
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-04 22:43'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-05 17:38'
 p250
 sg125
 I00
 sg126
-S'2006-04-04 22:43'
+S'2006-04-05 17:38'
 p251
 sg128
 g129
@@ -899,7 +899,7 @@ I00
 sg65
 I00
 ssg134
-S'** Specific description of inarg record for: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-04 22:43'
+S'** Specific description of inarg record for: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-05 17:38'
 p254
 sg136
 (dp255
@@ -1113,7 +1113,7 @@ sg45
 S'defines diagonal FJones Faraday rotation matrices'
 p271
 sg47
-S'MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-04 22:43'
+S'MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-05 17:38'
 p272
 sg49
 S'FJones'
@@ -1305,12 +1305,12 @@ p328
 assg121
 g122
 sg123
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-04 22:43'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-05 17:38'
 p329
 sg125
 I00
 sg126
-S'2006-04-04 22:43'
+S'2006-04-05 17:38'
 p330
 sg128
 g129
@@ -1328,7 +1328,7 @@ I00
 sg13
 I00
 ssg134
-S'** Specific description of inarg record for: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-04 22:43'
+S'** Specific description of inarg record for: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-05 17:38'
 p333
 sg136
 (dp334
@@ -1544,7 +1544,7 @@ sg45
 S'defines EJones (voltage beamshape) matrices for WSRT (l,m interpolatable)\n    Ejones(station,source) matrix elements:\n    - E_11 = Egain_X*exp(iEphase_X)\n    - E_12 = 0\n    - E_21 = 0\n    - E_22 = Egain_Y*exp(iEphase_Y)\n    For circular polarisation, R and L are used rather than X and Y\n    '
 p356
 sg47
-S'MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-04 22:43'
+S'MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-05 17:38'
 p357
 sg49
 S'EJones_WSRT'
@@ -1768,12 +1768,12 @@ p419
 assg121
 g122
 sg123
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-04 22:43'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-05 17:38'
 p420
 sg125
 I00
 sg126
-S'2006-04-04 22:43'
+S'2006-04-05 17:38'
 p421
 sg128
 S'15dec2005'
@@ -1792,7 +1792,7 @@ I00
 sg13
 I00
 ssg134
-S'** Specific description of inarg record for: MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-04 22:43'
+S'** Specific description of inarg record for: MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-05 17:38'
 p425
 sg136
 (dp426
@@ -1944,7 +1944,7 @@ p435
 sg43
 g44
 sg47
-S'MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-04 22:43'
+S'MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-05 17:38'
 p436
 sg49
 S'Jones'
@@ -2056,12 +2056,12 @@ NaS'@@@Jsequence'
 p468
 assg121
 Nsg123
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-04 22:43'
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-05 17:38'
 p469
 sg125
 I00
 sg126
-S'2006-04-04 22:43'
+S'2006-04-05 17:38'
 p470
 sg128
 S'25dec2005'
@@ -2070,7 +2070,7 @@ sg130
 S'MG_JEN_Cohset'
 p472
 sg134
-S'** Specific description of inarg record for: MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-04 22:43'
+S'** Specific description of inarg record for: MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-05 17:38'
 p473
 sS'MESSAGE'
 p474
@@ -2194,7 +2194,7 @@ sg45
 S'defines diagonal KJones matrices for DFT Fourier kernel'
 p505
 sg47
-S'MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-04 22:43'
+S'MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-05 17:38'
 p506
 sg49
 S'KJones'
@@ -2273,12 +2273,12 @@ p520
 assg121
 g122
 sg123
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-04 22:43'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-05 17:38'
 p521
 sg125
 I00
 sg126
-S'2006-04-04 22:43'
+S'2006-04-05 17:38'
 p522
 sg128
 S'12dec2005'
@@ -2287,7 +2287,7 @@ sg130
 S'MG_JEN_Joneset'
 p524
 sg134
-S'** Specific description of inarg record for: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-04 22:43'
+S'** Specific description of inarg record for: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-05 17:38'
 p525
 sg136
 (dp526
@@ -2410,7 +2410,7 @@ sg45
 S'Defines diagonal 2x2 Jones matrices for full polarisation:\n    Jjones(station,source) matrix elements:\n    - J_11 = (Jreal_11,Jimag_11)\n    - J_12 = (Jreal_12,Jimag_12)\n    - J_21 = (Jreal_21,Jimag_21)\n    - J_22 = (Jreal_22,Jimag_22)\n    For circular polarisation, R and L are used rather than X and Y\n    '
 p541
 sg47
-S'MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-04 22:43'
+S'MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-05 17:38'
 p542
 sg49
 S'JJones'
@@ -2652,12 +2652,12 @@ p613
 assg121
 g122
 sg123
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-04 22:43'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-05 17:38'
 p614
 sg125
 I00
 sg126
-S'2006-04-04 22:43'
+S'2006-04-05 17:38'
 p615
 sg128
 S'14feb2006'
@@ -2678,7 +2678,7 @@ I00
 sg13
 I00
 ssg134
-S'** Specific description of inarg record for: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-04 22:43'
+S'** Specific description of inarg record for: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-05 17:38'
 p619
 sg136
 (dp620
@@ -2904,7 +2904,7 @@ sg45
 S'Defines diagonal 2x2 Jones matrices that represent complex gain:\n    Gjones(station,source) matrix elements:\n    - G_11 = Ggain_X*exp(iGphase_X)\n    - G_12 = 0\n    - G_21 = 0\n    - G_22 = Ggain_Y*exp(iGphase_Y)\n    For circular polarisation, R and L are used rather than X and Y\n    '
 p639
 sg47
-S'MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-04 22:43'
+S'MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-05 17:38'
 p640
 sg49
 S'GJones'
@@ -3137,12 +3137,12 @@ p707
 assg121
 g122
 sg123
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-04 22:43'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-05 17:38'
 p708
 sg125
 I00
 sg126
-S'2006-04-04 22:43'
+S'2006-04-05 17:38'
 p709
 sg128
 g422
@@ -3162,7 +3162,7 @@ I00
 sg13
 I00
 ssg134
-S'** Specific description of inarg record for: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-04 22:43'
+S'** Specific description of inarg record for: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-05 17:38'
 p712
 sg136
 (dp713
@@ -3418,7 +3418,7 @@ sg45
 S'Make a Sixpack (I,Q,U,V,Ra,Dec) for a source with NEWSTAR parametrisation'
 p748
 sg47
-S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-04 22:43'
+S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-05 17:38'
 p749
 sg49
 S'newstar_source'
@@ -3608,63 +3608,65 @@ aS'RMtest'
 p819
 aS'SItest'
 p820
-aS'@@punit'
+aS'ellgauss'
 p821
-asS'Dec'
+aS'@@punit'
 p822
-(lp823
+asS'Dec'
+p823
+(lp824
 F0.5
 aF1.0
 aF0.87
 aF1.0920000000000001
 aS'@@Dec'
-p824
+p825
 asg741
-(lp825
+(lp826
 NaS'@@name'
-p826
+p827
 asg743
-(lp827
+(lp828
 I01
 aI00
 aS'@@fsr_trace'
-p828
+p829
 asg112
-(lp829
+(lp830
 I01
 aI00
 aS'@@use_previous'
-p830
+p831
 asg35
-(lp831
+(lp832
 NaS'@@subtile_size'
-p832
+p833
 asg36
-(lp833
+(lp834
 NaS'@@tfdeg'
-p834
+p835
 asg65
-(lp835
+(lp836
 I01
 aI00
 aS'@@auto_save'
-p836
+p837
 assg121
 g122
 sg123
-S'** Description of available inarg record(s) for: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-04 22:43'
-p837
+S'** Description of available inarg record(s) for: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-05 17:38'
+p838
 sg128
 S'10feb2006'
-p838
-sg126
-S'2006-04-04 22:43'
 p839
+sg126
+S'2006-04-05 17:38'
+p840
 sg130
 S'MG_JEN_Sixpack'
-p840
+p841
 sg132
-(dp841
+(dp842
 g7
 I00
 sg730
@@ -3678,14 +3680,14 @@ I00
 sg65
 I00
 ssg134
-S'** Specific description of inarg record for: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-04 22:43'
-p842
+S'** Specific description of inarg record for: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-05 17:38'
+p843
 sg125
 I00
 sg138
-g839
+g840
 sg139
-(lp843
+(lp844
 g25
 ag744
 ag741
@@ -3699,7 +3701,7 @@ ag795
 ag735
 ag728
 ag792
-ag822
+ag823
 ag743
 ag731
 ag729
@@ -3720,31 +3722,31 @@ ag24
 ag35
 ag22
 asg141
-(dp844
+(dp845
 g728
 S'reference freq (Hz): I=I0 @ f=f0'
-p845
+p846
 sg7
 g143
 sg729
 S'major axis (arcsec)'
-p846
+p847
 sg730
 S'if True, do NOT store solvegroup/parmgroup info'
-p847
+p848
 sg9
 g145
 sg13
 g147
 sg731
 S'source shape'
-p848
+p849
 sg37
 S'name of the MeqParm table (AIPS++)'
-p849
+p850
 sg733
 S'Stokes U (percentage of I)'
-p850
+p851
 sg15
 g15
 sg16
@@ -3755,43 +3757,43 @@ sg19
 g151
 sg734
 S'Stokes I: Total intensity @ f=f0 (usually 1 MHz)'
-p851
+p852
 sg735
 S'Spectral Index (generalised)\n   A scalar represents the classical SI: I(f)=I0*(f/f0)^SI\n   A vector represents a freq-dependent SI (....)'
-p852
+p853
 sg22
 g153
 sg736
 S'Stokes V (percentage of I)'
-p853
+p854
 sg24
 g154
 sg737
 S'position angle (rad)'
-p854
+p855
 sg792
 S'Right Ascension (rad, J2000)'
-p855
+p856
 sg795
 S'Intrinsic Rotation Measure (rad/m2)'
-p856
+p857
 sg742
 S'minor axis (arcsec)'
-p857
+p858
 sg32
 g157
 sg802
 S'Stokes Q (percentage of I)'
-p858
-sg744
-S'name of calibrator source/patch \n- unpol:   unpolarised, I=1Jy \n- unpol2:  idem, I=2Jy \n- unpol10: idem, I=10Jy \n- RMtest:  Rotation Measure \n- SItest:  Spectral Index \n- QUV:     non-zero Q,U,V \n- QU:      non-zero Q,U \n- QU2:     stronger version of QU \n- Qonly:   non-zero Q \n- Uonly:   non-zero U \n- Vonly:   non-zero V \n- 3c286:   \n- 3c48:    \n- 3c295:   \n- 3c147:   \n- D1:      cps in D1.MS \n'
 p859
-sg822
-S'Declination (rad, J2000)'
+sg744
+S'name of calibrator source/patch \n- unpol:     unpolarised, I=1Jy \n- unpol2:    idem, I=2Jy \n- unpol10:   idem, I=10Jy \n- RMtest:    Rotation Measure \n- SItest:    Spectral Index \n- ellgauss:  Elliptic Gaussian \n- QUV:       non-zero Q,U,V \n- QU:        non-zero Q,U \n- QU2:       stronger version of QU \n- Qonly:     non-zero Q \n- Uonly:     non-zero U \n- Vonly:     non-zero V \n- 3c286:     \n- 3c48:      \n- 3c295:     \n- 3c147:     \n- D1:        cps in D1.MS \n'
 p860
+sg823
+S'Declination (rad, J2000)'
+p861
 sg743
 S'If True, attach to forest state record'
-p861
+p862
 sg112
 g161
 sg35
@@ -3806,14 +3808,14 @@ F0.0
 sg792
 F1.4950000000000001
 sS'slave'
-p862
+p863
 I01
 sg32
 F1.0
 sg802
 Nsg744
 g806
-sg822
+sg823
 F0.87
 sg741
 Nsg743
@@ -3825,122 +3827,122 @@ Nsg36
 Nsg65
 I01
 ssg25
-(dp863
+(dp864
 g27
 S'MG_JEN_Sixpack::get_Sixpack()'
-p864
+p865
 sg29
 g724
 sg30
-(dp865
+(dp866
 S'punit_from_LSM'
-p866
+p867
 I00
 ssg41
 S'MG_JEN_Sixpackget_Sixpack'
-p867
-sS'browse'
 p868
-(dp869
-g866
+sS'browse'
+p869
+(dp870
+g867
 S'*.lsm'
-p870
+p871
 ssg43
 g44
 sg47
-S'MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-04 22:43'
-p871
+S'MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-05 17:38'
+p872
 sg49
 S'get_Sixpack'
-p872
+p873
 sg51
-(dp873
-g866
-(lp874
+(dp874
+g867
+(lp875
 NaS'@@punit_from_LSM'
-p875
+p876
 assg121
 Nsg123
-S'** Description of available inarg record(s) for: MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-04 22:43'
-p876
+S'** Description of available inarg record(s) for: MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-05 17:38'
+p877
 sg125
 I00
 sg126
-S'2006-04-04 22:43'
-p877
+S'2006-04-05 17:38'
+p878
 sg128
 S'22mar2006'
-p878
+p879
 sg130
 S'MG_JEN_Sixpack'
-p879
-sg134
-S'** Specific description of inarg record for: MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-04 22:43'
 p880
+sg134
+S'** Specific description of inarg record for: MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-05 17:38'
+p881
 sg474
-(dp881
+(dp882
 g478
 S'** JEN_inarg.attach(): attached: ./MG_JEN_Sixpack.newstar_source()'
-p882
+p883
 ssg138
-g877
+g878
 sg139
-(lp883
+(lp884
 g25
-ag866
+ag867
 ag726
 asg141
-(dp884
-g866
+(dp885
+g867
 S'(file)name of a Local Sky Model to be used(instead of a predefined punit)'
-p885
+p886
 ssg45
 S'Get a Sixpack, either from a LSM or a Newstar source'
-p886
-ssg866
-NssS'ms_name'
 p887
-S'D1.MS'
+ssg867
+NssS'ms_name'
 p888
+S'D1.MS'
+p889
 sg37
 Nsg25
-(dp889
+(dp890
 g29
 S'./MG_JEN_cps.'
-p890
+p891
 sg141
-(dp891
+(dp892
 g1
 g144
 sS'master_reqseq'
-p892
-S'if True, use a master reqseq for solver(s)'
 p893
+S'if True, use a master reqseq for solver(s)'
+p894
 sg33
 g160
 sS'insert_flagger'
-p894
-S'if True, insert a flagger'
 p895
-sS'redun'
+S'if True, insert a flagger'
 p896
-S'if True, redundant spacing calibration'
+sS'redun'
 p897
-sS'insert_solver'
+S'if True, redundant spacing calibration'
 p898
-S'if True, insert a solver'
+sS'insert_solver'
 p899
-sg887
-S'name of the (AIPS++) Measurement Set'
+S'if True, insert a solver'
 p900
-sS'chain_solvers'
+sg888
+S'name of the (AIPS++) Measurement Set'
 p901
-S'if True, chain the solvers (recommended)'
+sS'chain_solvers'
 p902
-sS'num_cells'
+S'if True, chain the solvers (recommended)'
 p903
-S'if defined, ModRes argument [ntime,nfreq]'
+sS'num_cells'
 p904
+S'if defined, ModRes argument [ntime,nfreq]'
+p905
 sg37
 g159
 sg38
@@ -3948,39 +3950,39 @@ g155
 sg39
 g155
 sS'tile_size'
-p905
-S'(inputrec) size (in time-slots) of the input data-tile'
 p906
+S'(inputrec) size (in time-slots) of the input data-tile'
+p907
 sg34
 g158
 sg40
 g155
 ssS'reference'
-p907
+p908
 I00
 sg43
 g44
 sg130
 S'MG_JEN_cps'
-p908
+p909
 sg30
-(dp909
+(dp910
 g1
 I00
-sg892
+sg893
 I01
 sg33
 I00
 sS'last_changed'
-p910
+p911
 I01
-sg896
+sg897
 I00
 sg34
 I00
-sg901
+sg902
 I01
-sg903
+sg904
 I00
 sg38
 I01
@@ -3988,54 +3990,54 @@ sg39
 I01
 sg40
 I01
-ssg868
-(dp911
-g887
+ssg869
+(dp912
+g888
 S'*.MS'
-p912
+p913
 ssg128
 g422
 sg45
 S"\n    Description of the input argument record: MG_JEN_cps_xxx.inarg\n    (to be used with the MeqTree TDL stript MG_JEN_cps.py) \n    \n    ....\n\n    --------------------------------------------------------------------------\n    General description of the MeqTree TDL script MG_JEN_cps.py:\n\n    The MG_JEN_cps.py script is the basis for a range of uv-data operations\n    that require only a Central Point Source (cps) as a selfcal model. This is\n    particularly useful for reducing calibrator observations, i.e. fields with\n    a strong point source with known parameters, in the centre of the field.\n    But it can also be used for initial calibration of observations that have\n    significant other sources in the field (but a dominating point-like source\n    in the centre.\n\n\n    * The selfcal model is a point source in the centre of the field.\n        A range of source models for standard calibrators (e.g. 3c147 etc)\n        is available, and also some customised source models (for experimentation)\n\n    * uvplane_effect=True: All instrumental MeqParms have qualifier q=uvp.\n        The uv-data are read from the MS DATA column\n        and written to the MS CORRECTED_DATA column\n\n    * In order to minimises contamination from other sources on the solution:\n        - It solves for MeqParms that vary slowly in time, over large domains.\n        - The short baselines are ignored (e.g. rmin=150m)\n\n\n    Different operations may be specified by loading (and editing) socalled\n    'inarg' records from files (like this one). These contain input arguments\n    for generating a suitable MeqTree forest for the desired operation.\n\n\n    --------------------------------------------------------------------------\n    Brief descriptions of the various sub-modules:\n\n    "
-p913
+p914
 sg132
-(dp914
-g892
+(dp915
+g893
 I00
-sg894
+sg895
 I00
-sg896
+sg897
 I00
-sg898
+sg899
 I00
-sg910
+sg911
 I00
 ssg47
 S'** Top-level CTRL-record of: MG_JEN_cps.inarg'
-p915
+p916
 sg51
-(dp916
+(dp917
 g1
-(lp917
+(lp918
 g2
 ag56
 aS'@@polrep'
-p918
-asg892
-(lp919
+p919
+asg893
+(lp920
 I01
 aI00
 aS'@@master_reqseq'
-p920
+p921
 asg33
-(lp921
 (lp922
+(lp923
 I0
 aI1
 aI2
 aI3
 aI4
-aa(lp923
+aa(lp924
 I0
 aI1
 aI2
@@ -4043,7 +4045,7 @@ aI3
 aI4
 aI5
 aI6
-aa(lp924
+aa(lp925
 I0
 aI1
 aI2
@@ -4058,7 +4060,7 @@ aI10
 aI11
 aI12
 aI13
-aa(lp925
+aa(lp926
 I0
 aI1
 aI2
@@ -4076,69 +4078,69 @@ aI13
 aI14
 aag107
 aS'@@stations'
-p926
-asg894
-(lp927
+p927
+asg895
+(lp928
 I01
 aI00
 aS'@@insert_flagger'
-p928
-asg910
-(lp929
+p929
+asg911
+(lp930
 S'd30jan2006'
-p930
-aS'@@last_changed'
 p931
-asg898
-(lp932
+aS'@@last_changed'
+p932
+asg899
+(lp933
 I01
 aI00
 aS'@@insert_solver'
-p933
-asg896
-(lp934
+p934
+asg897
+(lp935
 I01
 aI00
 aS'@@redun'
-p935
-asg887
-(lp936
-g888
+p936
+asg888
+(lp937
+g889
 aS'@@ms_name'
-p937
-asg901
-(lp938
+p938
+asg902
+(lp939
 I01
 aS'@@chain_solvers'
-p939
-asg903
-(lp940
-Na(lp941
+p940
+asg904
+(lp941
+Na(lp942
 I5
 aI2
-aa(lp942
+aa(lp943
 I2
 aI2
-aa(lp943
+aa(lp944
 I3
 aI3
 aaS'@@num_cells'
-p944
+p945
 asg37
-(lp945
+(lp946
 Nag100
 aS'@@parmtable'
-p946
+p947
 asg38
-(lp947
+(lp948
 NaS'@@@Jsequence_KJones'
-p948
+p949
 asg39
-(lp949
+(lp950
 NaS'@@@Jsequence_simul'
-p950
-asg905
-(lp951
+p951
+asg906
+(lp952
 I1
 aI2
 aI3
@@ -4148,105 +4150,105 @@ aI20
 aI50
 aI100
 aS'@@tile_size'
-p952
+p953
 asg34
-(lp953
+(lp954
 I00
 aS'@@uvplane_effect'
-p954
+p955
 asg40
-(lp955
+(lp956
 NaS'@@@Jsequence'
-p956
+p957
 assg121
 Nsg138
-S'2006-04-04 22:43'
-p957
-sS'HISTORY'
+S'2006-04-05 17:38'
 p958
-(dp959
+sS'HISTORY'
+p959
+(dp960
 g476
-S'2006-04-04 22:43: Derived from: MG_JEN_cps_stokesI.inarg'
-p960
-sg478
-S'2006-04-04 22:43: Derived from: MG_JEN_cps.inarg'
+S'2006-04-05 17:40: Derived from: MG_JEN_cps_stokesI.inarg'
 p961
+sg478
+S'2006-04-05 17:40: Derived from: MG_JEN_cps.inarg'
+p962
 ssg27
 S'MG_JEN_cps'
-p962
+p963
 sg134
 S'Predefined inarg record for solving for stokesI on a Central Point Source'
-p963
-sS'save_file'
 p964
-S'MG_JEN_cps_stokesI_protected.inarg'
+sS'save_file'
 p965
-sS'file_filter'
+S'MG_JEN_cps_stokesI_protected.inarg'
 p966
-S'MG_JEN_cps*.inarg'
+sS'file_filter'
 p967
+S'MG_JEN_cps*.inarg'
+p968
 sg49
 g122
 sg123
 S'\n====================================================\n** Description of available predefined inarg records (files)\n   for the TDL script: MG_JEN_cps:\n\n====================================================\n\n\n** Description of predefined inarg record (file): MG_JEN_cps_inspect_DATA.inarg:\nPredefined inarg record for inspecting the MS DATA column\n\n\n** Description of predefined inarg record (file): MG_JEN_cps_inspect_CORRECTED_DATA.inarg:\nPredefined inarg record for inspecting a MS CORRECTED_DATA column\n\n\n** Description of predefined inarg record (file): MG_JEN_cps_GJones.inarg:\nPredefined inarg record for solving for GJones on a Central Point Source\n\n\n** Description of predefined inarg record (file): MG_JEN_cps_Gphase.inarg:\nPredefined inarg record for solving for Gphase on a Central Point Source\n\n\n** Description of predefined inarg record (file): MG_JEN_cps_Ggain.inarg:\nPredefined inarg record for solving for Ggain on a Central Point Source\n\n\n** Description of predefined inarg record (file): MG_JEN_cps_GDJones.inarg:\nPredefined inarg record for solving for GDJones on a Central Point Source\n\n\n** Description of predefined inarg record (file): MG_JEN_cps_JJones.inarg:\nPredefined inarg record for solving for JJones on a Central Point Source\n\n\n** Description of predefined inarg record (file): MG_JEN_cps_BJones.inarg:\nPredefined inarg record for solving for BJones on a Central Point Source\n\n\n** Description of predefined inarg record (file): MG_JEN_cps_DJones.inarg:\nPredefined inarg record for solving for DJones on a Central Point Source\n\n\n** Description of predefined inarg record (file): MG_JEN_cps_stokesI.inarg:\nPredefined inarg record for solving for stokesI on a Central Point Source\n====================================================\n'
-p968
+p969
 sg125
 I01
 sg126
-g957
+g958
 sg474
-(dp969
+(dp970
 S'11'
-p970
-S".modify():   ** OK ** (['data_column_name', 'solvegroup'])"
 p971
-sS'10'
+S".modify():   ** OK ** (['data_column_name', 'solvegroup'])"
 p972
-S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.make_sinks()'
+sS'10'
 p973
+S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.make_sinks()'
+p974
 sg476
 S".modify():   ** OK ** (['uvplane_effect'])"
-p974
+p975
 sg478
 S'  0: ./MG_JEN_cps. (qual=None): .modify(uvplane_effect):   False  ->  True'
-p975
+p976
 sg480
 S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.make_spigots()'
-p976
+p977
 sg482
 S'** JEN_inarg.attach(): attached: ./MG_JEN_exec.stream_control()'
-p977
+p978
 sg484
 S'** JEN_inarg.separator(): : insert a solver'
-p978
+p979
 sg486
 S'** JEN_inarg.separator(): : operations on input uv-data'
-p979
-sS'7'
 p980
-S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.Jones()'
+sS'7'
 p981
+S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.Jones()'
+p982
 sg488
 S'** JEN_inarg.attach(): attached: ./MG_JEN_Sixpack.get_Sixpack()'
-p982
-sS'9'
 p983
-S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.insert_solver()'
+sS'9'
 p984
-sS'8'
+S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.insert_solver()'
 p985
-S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.predict_cps()'
+sS'8'
 p986
+S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.predict_cps()'
+p987
 ssg139
-(lp987
+(lp988
 g25
 aS'script_name'
-p988
-ag898
-ag894
-ag910
-ag887
-ag905
+p989
+ag899
+ag895
+ag911
+ag888
+ag906
 ag33
 ag1
 ag40
@@ -4254,307 +4256,307 @@ ag39
 ag38
 ag37
 ag34
-ag901
-ag892
-ag896
-ag903
+ag902
+ag893
+ag897
+ag904
 aS'./MG_JEN_exec.stream_control()'
-p989
-aS'./MG_JEN_Cohset.make_spigots()'
 p990
+aS'./MG_JEN_Cohset.make_spigots()'
+p991
 ag720
 aS'_JEN_inarg_separator_record:_2'
-p991
+p992
 ag724
 ag3
 aS'./MG_JEN_Cohset.predict_cps()'
-p992
-aS'./MG_JEN_Cohset.insert_solver()'
 p993
-aS'./MG_JEN_Cohset.make_sinks()'
+aS'./MG_JEN_Cohset.insert_solver()'
 p994
-assg994
-(dp995
+aS'./MG_JEN_Cohset.make_sinks()'
+p995
+assg995
+(dp996
 S'fullDomainMux'
-p996
+p997
 I01
 sS'output_col'
-p997
-S'PREDICT'
 p998
-sS'visu'
+S'PREDICT'
 p999
+sS'visu'
+p1000
 I01
 sS'flag'
-p1000
+p1001
 I00
 sg25
-(dp1001
+(dp1002
 g27
 S'MG_JEN_Cohset::make_sinks()'
-p1002
-sg29
-g994
-sg138
-S'2006-04-04 22:43'
 p1003
-sg134
-S'** Specific description of inarg record for: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-04 22:43'
+sg29
+g995
+sg138
+S'2006-04-05 17:38'
 p1004
+sg134
+S'** Specific description of inarg record for: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-05 17:38'
+p1005
 sg41
 S'MG_JEN_Cohsetmake_sinks'
-p1005
+p1006
 sg43
 g44
 sg47
-S'MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-04 22:43'
-p1006
+S'MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-05 17:38'
+p1007
 sg49
 S'make_sinks'
-p1007
+p1008
 sg51
-(dp1008
-g1000
-(lp1009
+(dp1009
+g1001
+(lp1010
 I01
 aI00
 aS'@@flag'
-p1010
-asg999
-(lp1011
+p1011
+asg1000
+(lp1012
 I01
 aI00
 aS'@@visu'
-p1012
-asg996
-(lp1013
+p1013
+asg997
+(lp1014
 I01
 aI00
 aS'@@fullDomainMux'
-p1014
-asg997
-(lp1015
-g998
+p1015
+asg998
+(lp1016
+g999
 aS'RESIDUALS'
-p1016
-aS'DATA'
 p1017
-aS'@@output_col'
+aS'DATA'
 p1018
-asS'visu_array_config'
+aS'@@output_col'
 p1019
-(lp1020
+asS'visu_array_config'
+p1020
+(lp1021
 I01
 aI00
 aS'@@visu_array_config'
-p1021
+p1022
 assg121
 Nsg123
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-04 22:43'
-p1022
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-05 17:38'
+p1023
 sg128
 g471
 sg126
-g1003
+g1004
 sg130
 S'MG_JEN_Cohset'
-p1023
+p1024
 sg132
-(dp1024
-g1000
+(dp1025
+g1001
 I00
-sg999
+sg1000
 I00
-sg996
+sg997
 I00
-sg1019
+sg1020
 I00
 ssg125
 I00
 sg139
-(lp1025
+(lp1026
 g25
-ag997
-ag1019
-ag999
+ag998
+ag1020
 ag1000
-ag996
+ag1001
+ag997
 asg141
-(dp1026
-g1000
+(dp1027
+g1001
 S'if True, insert a flagger for the output uv-data'
-p1027
-sg999
-S'if True, visualise the output uv-data'
 p1028
-sg996
-S'if True, attach an extra VisDataMux'
+sg1000
+S'if True, visualise the output uv-data'
 p1029
 sg997
-S'name of the logical (VisTile) output column'
+S'if True, attach an extra VisDataMux'
 p1030
-sg1019
-S'if True, visualise the array config (from MS)'
+sg998
+S'name of the logical (VisTile) output column'
 p1031
+sg1020
+S'if True, visualise the array config (from MS)'
+p1032
 ssg45
 S'Make sink nodes in the given Cohset object'
-p1032
-ssg1019
+p1033
+ssg1020
 I01
-ssg905
+ssg906
 I10
-sg990
-(dp1033
-g1000
+sg991
+(dp1034
+g1001
 I00
-sg999
+sg1000
 I01
 sg25
-(dp1034
+(dp1035
 g27
 S'MG_JEN_Cohset::make_spigots()'
-p1035
-sg29
-g990
-sg138
-S'2006-04-04 22:43'
 p1036
+sg29
+g991
+sg138
+S'2006-04-05 17:38'
+p1037
 sg30
-(dp1037
+(dp1038
 S'input_col'
-p1038
+p1039
 I01
 ssg41
 S'MG_JEN_Cohsetmake_spigots'
-p1039
+p1040
 sg43
 g44
 sg47
-S'MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-04 22:43'
-p1040
+S'MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-05 17:38'
+p1041
 sg49
 S'make_spigots'
-p1041
+p1042
 sg51
-(dp1042
-g1000
-(lp1043
+(dp1043
+g1001
+(lp1044
 I01
 aI00
 aS'@@flag'
-p1044
-asS'MS_corr_index'
 p1045
-(lp1046
+asS'MS_corr_index'
+p1046
 (lp1047
+(lp1048
 I0
 aI1
 aI2
 aI3
-aa(lp1048
+aa(lp1049
 I0
 aI-1
 aI-1
 aI1
-aa(lp1049
+aa(lp1050
 I0
 aI-1
 aI-1
 aI3
 aaS'@@MS_corr_index'
-p1050
-asg1038
-(lp1051
-g1017
-ag998
-ag1016
+p1051
+asg1039
+(lp1052
+g1018
+ag999
+ag1017
 aS'@@input_col'
-p1052
-asg999
-(lp1053
+p1053
+asg1000
+(lp1054
 I01
 aI00
 aS'@@visu'
-p1054
+p1055
 assg121
 Nsg123
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-04 22:43'
-p1055
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-05 17:38'
+p1056
 sg128
 g471
 sg126
-g1036
+g1037
 sg130
 S'MG_JEN_Cohset'
-p1056
+p1057
 sg132
-(dp1057
-g1000
+(dp1058
+g1001
 I00
-sg999
+sg1000
 I00
 ssg134
-S'** Specific description of inarg record for: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-04 22:43'
-p1058
+S'** Specific description of inarg record for: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-05 17:38'
+p1059
 sg125
 I00
 sg139
-(lp1059
+(lp1060
 g25
-ag1038
-ag1045
-ag999
+ag1039
+ag1046
 ag1000
+ag1001
 asg141
-(dp1060
-g1000
+(dp1061
+g1001
 S'if True, insert a flagger for the input uv-data'
-p1061
-sg1045
-S'correlations to be used: \n- [0,1,2,3]:   all corrs available, use all \n- [0,-1,-1,1]: only XX/YY (or RR/LL) available \n- [0,-1,-1,3]: all available, but use only XX/YY or RR/LL'
 p1062
-sg1038
-S'name of the logical (VisTile) input column'
+sg1046
+S'correlations to be used: \n- [0,1,2,3]:   all corrs available, use all \n- [0,-1,-1,1]: only XX/YY (or RR/LL) available \n- [0,-1,-1,3]: all available, but use only XX/YY or RR/LL'
 p1063
-sg999
-S'if True, visualise the input uv-data'
+sg1039
+S'name of the logical (VisTile) input column'
 p1064
+sg1000
+S'if True, visualise the input uv-data'
+p1065
 ssg45
 S'Make spigot nodes in the given Cohset object'
-p1065
-ssg1038
-g1017
-sg1045
-(lp1066
+p1066
+ssg1039
+g1018
+sg1046
+(lp1067
 I0
 aI1
 aI2
 aI3
 assg40
 Nsg38
-Nsg894
+Nsg895
 I00
-sg910
-g930
+sg911
+g931
 sg34
 I01
-sg992
-(dp1067
+sg993
+(dp1068
 g1
 S'@@polrep'
-p1068
+p1069
 sg33
 S'@@stations'
-p1069
+p1070
 sg25
-(dp1070
+(dp1071
 g27
 S'MG_JEN_Cohset::predict_cps()'
-p1071
+p1072
 sg29
-g992
+g993
 sg30
-(dp1072
+(dp1073
 g38
 I01
 sg39
@@ -4567,43 +4569,43 @@ sg33
 I01
 ssg41
 S'MG_JEN_Cohsetpredict_cps'
-p1073
+p1074
 sg43
 g44
 sg47
-S'MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-04 22:43'
-p1074
+S'MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-05 17:38'
+p1075
 sg49
 S'predict_cps'
-p1075
+p1076
 sg51
-(dp1076
+(dp1077
 g38
-(lp1077
+(lp1078
 NaS'@@@Jsequence_KJones'
-p1078
+p1079
 asg39
-(lp1079
+(lp1080
 NaS'@@@Jsequence_simul'
-p1080
+p1081
 asg40
-(lp1081
+(lp1082
 NaS'@@@Jsequence'
-p1082
+p1083
 asg1
-(lp1083
+(lp1084
 g2
 ag56
-ag1068
+ag1069
 asg33
-(lp1084
 (lp1085
+(lp1086
 I0
 aI1
 aI2
 aI3
 aI4
-aa(lp1086
+aa(lp1087
 I0
 aI1
 aI2
@@ -4611,7 +4613,7 @@ aI3
 aI4
 aI5
 aI6
-aa(lp1087
+aa(lp1088
 I0
 aI1
 aI2
@@ -4626,7 +4628,7 @@ aI10
 aI11
 aI12
 aI13
-aa(lp1088
+aa(lp1089
 I0
 aI1
 aI2
@@ -4643,35 +4645,35 @@ aI12
 aI13
 aI14
 aag107
-ag1069
+ag1070
 assg121
 Nsg123
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-04 22:43'
-p1089
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-05 17:38'
+p1090
 sg125
 I00
 sg126
-S'2006-04-04 22:43'
-p1090
+S'2006-04-05 17:38'
+p1091
 sg128
 S'20mar2006'
-p1091
+p1092
 sg130
 S'MG_JEN_Cohset'
-p1092
-sg134
-S'** Specific description of inarg record for: MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-04 22:43'
 p1093
+sg134
+S'** Specific description of inarg record for: MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-05 17:38'
+p1094
 sg136
-(dp1094
+(dp1095
 g1
 I00
 sg33
 I00
 ssg138
-g1090
+g1091
 sg139
-(lp1095
+(lp1096
 g25
 ag33
 ag1
@@ -4679,7 +4681,7 @@ ag40
 ag39
 ag38
 asg141
-(dp1096
+(dp1097
 g38
 g155
 sg39
@@ -4692,127 +4694,127 @@ sg33
 g160
 ssg45
 S'Obsolete (upward compatibility) version of .predict_cps()'
-p1097
+p1098
 ssg38
 Nsg39
 Nsg40
-Nssg988
-g962
-sg903
-Nsg892
+Nssg989
+g963
+sg904
+Nsg893
 I00
 sg33
-g922
-sg989
-(dp1098
+g923
+sg990
+(dp1099
 S'channel_start_index'
-p1099
+p1100
 I10
 sS'data_column_name'
-p1100
-S'CORRECTED_DATA'
 p1101
-sS'predict_column'
+S'CORRECTED_DATA'
 p1102
-g1101
-sg887
-S'@@ms_name'
+sS'predict_column'
 p1103
+g1102
+sg888
+S'@@ms_name'
+p1104
 sg25
-(dp1104
-g29
-g989
-sg141
 (dp1105
-g1099
+g29
+g990
+sg141
+(dp1106
+g1100
 S'(inputrec.sel) index of first selected freq channel'
-p1106
-sg1100
-S'(inputrec) MS input column'
 p1107
-sg1102
-S'MS output column to be associated with the VisTile predict-column'
+sg1101
+S'(inputrec) MS input column'
 p1108
-sg887
-g900
-sg905
-g906
-sS'channel_increment'
+sg1103
+S'MS output column to be associated with the VisTile predict-column'
 p1109
-S'(inputrec.sel) take every nth channel (1=all)'
+sg888
+g901
+sg906
+g907
+sS'channel_increment'
 p1110
-sS'channel_end_index'
+S'(inputrec.sel) take every nth channel (1=all)'
 p1111
-S'(inputrec.sel) index of last selected freq channel'
+sS'channel_end_index'
 p1112
-sS'write_flags'
+S'(inputrec.sel) index of last selected freq channel'
 p1113
-S'(outputrec) if True, write flags to MS'
+sS'write_flags'
 p1114
+S'(outputrec) if True, write flags to MS'
+p1115
 ssg43
 g44
 sg130
 S'MG_JEN_exec'
-p1115
+p1116
 sg30
-(dp1116
-g887
-I01
-sg905
-I01
-ssg868
 (dp1117
-g887
-g912
+g888
+I01
+sg906
+I01
+ssg869
+(dp1118
+g888
+g913
 ssg128
 S'20jan2006'
-p1118
+p1119
 sg136
-(dp1119
-g887
+(dp1120
+g888
 I00
-sg905
+sg906
 I00
 ssg45
-S'** Description of script: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-04 22:43'
-p1120
+S'** Description of script: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-05 17:38'
+p1121
 sg132
-(dp1121
-g1113
+(dp1122
+g1114
 I00
 ssg47
-S'MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-04 22:43'
-p1122
+S'MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-05 17:38'
+p1123
 sg51
-(dp1123
-g1099
-(lp1124
+(dp1124
+g1100
+(lp1125
 I0
 aI5
 aI10
 aI20
 aS'@@channel_start_index'
-p1125
-asg1100
-(lp1126
-g1017
-ag1101
+p1126
+asg1101
+(lp1127
+g1018
+ag1102
 aS'@@data_column_name'
-p1127
-asg1102
-(lp1128
-g1017
-ag1101
+p1128
+asg1103
+(lp1129
+g1018
+ag1102
 aS'MODEL_DATA'
-p1129
-aS'@@predict_column'
 p1130
-asg887
-(lp1131
-g888
-ag1103
-asg905
+aS'@@predict_column'
+p1131
+asg888
 (lp1132
+g889
+ag1104
+asg906
+(lp1133
 I1
 aI2
 aI3
@@ -4822,716 +4824,719 @@ aI20
 aI50
 aI100
 aS'@@tile_size'
-p1133
-asg1109
-(lp1134
+p1134
+asg1110
+(lp1135
 I1
 aI2
 aI3
 aI5
 aI10
 aS'@@channel_increment'
-p1135
-asg1111
-(lp1136
+p1136
+asg1112
+(lp1137
 I-1
 aI25
 aI50
 aI100
 aS'@@channel_end_index'
-p1137
-asg1113
-(lp1138
+p1138
+asg1114
+(lp1139
 I01
 aI00
 aS'@@write_flags'
-p1139
+p1140
 assg121
 Nsg138
-S'2006-04-04 22:43'
-p1140
+S'2006-04-05 17:38'
+p1141
 sg27
 S'MG_JEN_exec::stream_control()'
-p1141
-sg134
-S'** Specific description of inarg record for: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-04 22:43'
 p1142
+sg134
+S'** Specific description of inarg record for: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-05 17:38'
+p1143
 sg41
 S'MG_JEN_execstream_control'
-p1143
+p1144
 sg49
 S'stream_control'
-p1144
-sg123
-S'** Description of available inarg record(s) for: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-04 22:43'
 p1145
+sg123
+S'** Description of available inarg record(s) for: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-05 17:38'
+p1146
 sg125
 I00
 sg126
-g1140
+g1141
 sg474
-(dp1146
+(dp1147
 g478
 S'  1: .../MG_JEN_exec.stream_control() (qual=None): .modify(data_column_name):   DATA  ->  CORRECTED_DATA'
-p1147
+p1148
 ssg139
-(lp1148
+(lp1149
 g25
-ag887
-ag905
+ag888
+ag906
+ag1101
 ag1100
-ag1099
-ag1111
-ag1109
-ag1113
-ag1102
-assg905
-g1133
-sg1109
+ag1112
+ag1110
+ag1114
+ag1103
+assg906
+g1134
+sg1110
 I1
-sg1111
+sg1112
 I50
-sg1113
+sg1114
 I00
-ssg896
+ssg897
 I00
-sg898
+sg899
 I01
-sg991
-(dp1149
+sg992
+(dp1150
 g722
 S'insert a solver'
-p1150
-ssg901
+p1151
+ssg902
 I01
 sg39
-Nsg993
-(dp1151
+Nsg994
+(dp1152
 S'correct_after'
-p1152
-I01
-sg892
-S'@@master_reqseq'
 p1153
-sS'condeq_unop'
-p1154
-Nsg999
 I01
-sg896
-S'@@redun'
+sg893
+S'@@master_reqseq'
+p1154
+sS'condeq_unop'
 p1155
-sS'solver_subtree'
+Nsg1000
+I01
+sg897
+S'@@redun'
 p1156
-NsS'subtract_after'
+sS'solver_subtree'
 p1157
-I00
-sg901
-S'@@chain_solvers'
+NsS'subtract_after'
 p1158
+I00
+sg902
+S'@@chain_solvers'
+p1159
 sg25
-(dp1159
-g29
-g993
-sg141
 (dp1160
-g1152
+g29
+g994
+sg141
+(dp1161
+g1153
 S'if True, correct measured with predicted.Joneset'
-p1161
-sg892
-g893
-sg1154
-S'Optional unary operation on Condeq inputs'
 p1162
-sg999
-S'if True, include full visualisation'
+sg893
+g894
+sg1155
+S'Optional unary operation on Condeq inputs'
 p1163
-sg896
-g897
-sg1156
-S'solver subtree qualifier(s)'
+sg1000
+S'if True, include full visualisation'
 p1164
+sg897
+g898
 sg1157
-S'if True, subtract predicted from measured'
+S'solver subtree qualifier(s)'
 p1165
-sg901
-g902
-sS'flag_residuals'
+sg1158
+S'if True, subtract predicted from measured'
 p1166
-S'if True, flag the residuals'
+sg902
+g903
+sS'flag_residuals'
 p1167
-sg903
-g904
+S'if True, flag the residuals'
+p1168
+sg904
+g905
 ssg43
 g44
 sg130
 S'MG_JEN_Cohset'
-p1168
+p1169
 sg30
-(dp1169
-g892
+(dp1170
+g893
 I01
-sg896
+sg897
 I01
-sg1156
+sg1157
 I01
-sg901
+sg902
 I01
-sg1166
+sg1167
 I01
-sg903
+sg904
 I01
 ssg128
 g471
 sg136
-(dp1170
-g896
+(dp1171
+g897
 I00
-sg901
+sg902
 I00
-sg892
+sg893
 I00
-sg903
+sg904
 I00
 ssg45
 S'insert one or more solver subtrees in the data stream'
-p1171
+p1172
 sg132
-(dp1172
-g1152
+(dp1173
+g1153
 I00
-sg892
+sg893
 I00
-sg999
+sg1000
 I00
-sg896
+sg897
 I00
-sg1157
+sg1158
 I00
-sg1166
+sg1167
 I00
 ssg47
-S'MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-04 22:43'
-p1173
+S'MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-05 17:38'
+p1174
 sg51
-(dp1174
-g1152
-(lp1175
+(dp1175
+g1153
+(lp1176
 I01
 aI00
 aS'@@correct_after'
-p1176
-asg892
-(lp1177
+p1177
+asg893
+(lp1178
 I01
 aI00
-ag1153
-asg1154
-(lp1178
+ag1154
+asg1155
+(lp1179
 NaS'Abs'
-p1179
-aS'Arg'
 p1180
-aS'@@condeq_unop'
+aS'Arg'
 p1181
-asg999
-(lp1182
+aS'@@condeq_unop'
+p1182
+asg1000
+(lp1183
 I01
 aI00
 aS'@@visu'
-p1183
-asg896
-(lp1184
+p1184
+asg897
+(lp1185
 I01
 aI00
-ag1155
-asg1156
-(lp1185
-NaS'@@solver_subtree'
-p1186
+ag1156
 asg1157
-(lp1187
+(lp1186
+NaS'@@solver_subtree'
+p1187
+asg1158
+(lp1188
 I01
 aI00
 aS'@@subtract_after'
-p1188
-asg901
-(lp1189
-I01
-ag1158
-asg1166
+p1189
+asg902
 (lp1190
+I01
+ag1159
+asg1167
+(lp1191
 I01
 aI00
 aS'@@flag_residuals'
-p1191
-asg903
-(lp1192
-Na(lp1193
+p1192
+asg904
+(lp1193
+Na(lp1194
 I5
 aI2
-aa(lp1194
+aa(lp1195
 I2
 aI2
-aa(lp1195
+aa(lp1196
 I3
 aI3
 aaS'@@num_cells'
-p1196
+p1197
 assg121
 Nsg138
-S'2006-04-04 22:43'
-p1197
+S'2006-04-05 17:38'
+p1198
 sg27
 S'MG_JEN_Cohset::insert_solver()'
-p1198
-sg134
-S'** Specific description of inarg record for: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-04 22:43'
 p1199
+sg134
+S'** Specific description of inarg record for: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-05 17:38'
+p1200
 sg41
 S'MG_JEN_Cohsetinsert_solver'
-p1200
+p1201
 sg49
 S'insert_solver'
-p1201
-sg123
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-04 22:43'
 p1202
+sg123
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-05 17:38'
+p1203
 sg125
 I00
 sg126
-g1197
+g1198
 sg474
-(dp1203
+(dp1204
 g478
 S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.solver_subtree()'
-p1204
+p1205
 ssg139
-(lp1205
+(lp1206
 g25
-ag1156
-ag896
-ag903
-ag901
-ag892
-ag1154
-ag999
 ag1157
-ag1152
-ag1166
+ag897
+ag904
+ag902
+ag893
+ag1155
+ag1000
+ag1158
+ag1153
+ag1167
 aS'./MG_JEN_Cohset.solver_subtree()'
-p1206
-assg903
-g1196
-sg1206
-(dp1207
+p1207
+assg904
+g1197
+sg1207
+(dp1208
 S'rmin'
-p1208
-NsS'setBalanced'
 p1209
+NsS'setBalanced'
+p1210
 I00
-sg999
+sg1000
 I01
 sS'epsilon'
-p1210
+p1211
 F0.0001
 sS'rmax'
-p1211
-NsS'derivative_eps'
 p1212
+NsS'derivative_eps'
+p1213
 F1e-08
 sS'usesvd'
-p1213
+p1214
 I01
 sS'debug_level'
-p1214
+p1215
 I10
 sS'solvegroup'
-p1215
-(lp1216
+p1216
+(lp1217
 S'stokesI'
-p1217
+p1218
 asg25
-(dp1218
+(dp1219
 g27
 S'MG_JEN_Cohset::solver_subtree()'
-p1219
+p1220
 sg29
-g1206
+g1207
 sg474
-(dp1220
+(dp1221
 g478
 S"  2: ...../MG_JEN_Cohset.solver_subtree() (qual=None): .modify(solvegroup):   []  ->  ['stokesI']"
-p1221
+p1222
 ssg30
-(dp1222
-g1214
+(dp1223
+g1215
 I01
-sg1212
+sg1213
 I01
-sg1209
+sg1210
 I01
 sS'epsval'
-p1223
+p1224
 I01
-sg903
+sg904
 I00
 ssg41
 S'MG_JEN_Cohsetsolver_subtree'
-p1224
+p1225
 sg43
 g44
 sg45
 S'Make a solver-subtree for the given Condeq Cohset'
-p1225
-sg47
-S'MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-04 22:43'
 p1226
+sg47
+S'MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-05 17:38'
+p1227
 sg49
 S'solver_subtree'
-p1227
+p1228
 sg51
-(dp1228
-g1208
-(lp1229
+(dp1229
+g1209
+(lp1230
 NaI100
 aI200
 aI500
 aS'@@rmin'
-p1230
-asg999
-(lp1231
+p1231
+asg1000
+(lp1232
 I01
 aI00
 aS'@@visu'
-p1232
-asg1210
-(lp1233
+p1233
+asg1211
+(lp1234
 F0.001
 aF0.0001
 aF1.0000000000000001e-05
 aS'@@epsilon'
-p1234
-asS'colin_factor'
 p1235
-(lp1236
+asS'colin_factor'
+p1236
+(lp1237
 F1e-08
 aF0.0
 aS'@@colin_factor'
-p1237
-asg1211
-(lp1238
+p1238
+asg1212
+(lp1239
 NaI500
 aI1000
 aI2000
 aS'@@rmax'
-p1239
-asg1212
-(lp1240
+p1240
+asg1213
+(lp1241
 F1e-08
 aF0.001
 aF0.0001
 aF1.0000000000000001e-05
 aS'@@derivative_eps'
-p1241
-asg1213
-(lp1242
+p1242
+asg1214
+(lp1243
 I01
 aI00
 aS'@@usesvd'
-p1243
-asg1214
-(lp1244
+p1244
+asg1215
+(lp1245
 I10
 aS'@@debug_level'
-p1245
-asg1215
-(lp1246
+p1246
+asg1216
 (lp1247
-a(lp1248
+(lp1248
+a(lp1249
 g454
-aa(lp1249
+aa(lp1250
 S'Ggain'
-p1250
-aa(lp1251
+p1251
+aa(lp1252
 S'Gphase'
-p1252
-aa(lp1253
+p1253
+aa(lp1254
 S'Gpol1'
-p1254
-aa(lp1255
+p1255
+aa(lp1256
 S'Gpol2'
-p1256
-aa(lp1257
-g464
+p1257
 aa(lp1258
 g464
+aa(lp1259
+g464
 aS'stokesU'
-p1259
-aa(lp1260
+p1260
+aa(lp1261
 g464
 aS'stokesQ'
-p1261
-aa(lp1262
+p1262
+aa(lp1263
 g464
 aS'stokesV'
-p1263
-aa(lp1264
+p1264
+aa(lp1265
 S'stokesQU'
-p1265
+p1266
 ag464
-aa(lp1266
+aa(lp1267
 S'stokesQUV'
-p1267
+p1268
 ag464
-aa(lp1268
-g454
-ag1217
 aa(lp1269
-g1217
+g454
+ag1218
 aa(lp1270
-S'stokesIQU'
-p1271
+g1218
+ag731
+aa(lp1271
+g1218
 aa(lp1272
-S'stokesIQUV'
+S'stokesIQU'
 p1273
 aa(lp1274
-S'stokesIV'
+S'stokesIQUV'
 p1275
 aa(lp1276
-g1265
-aa(lp1277
-g1267
+S'stokesIV'
+p1277
 aa(lp1278
+g1266
+aa(lp1279
+g1268
+aa(lp1280
 g454
 aS'DJones'
-p1279
-aa(lp1280
-g1279
-aa(lp1281
-S'Dang'
-p1282
+p1281
+aa(lp1282
+g1281
 aa(lp1283
-S'Dell'
+S'Dang'
 p1284
 aa(lp1285
-S'Dreal'
+S'Dell'
 p1286
 aa(lp1287
-S'Dimag'
+S'Dreal'
 p1288
 aa(lp1289
-g454
-ag1279
-ag299
-aa(lp1290
-g299
+S'Dimag'
+p1290
 aa(lp1291
-S'EJones'
-p1292
+g454
+ag1281
+ag299
+aa(lp1292
+g299
 aa(lp1293
-S'Epointing'
+S'EJones'
 p1294
 aa(lp1295
+S'Epointing'
+p1296
+aa(lp1297
 g454
 ag83
-aa(lp1296
+aa(lp1298
 g83
-aa(lp1297
-S'Breal'
-p1298
 aa(lp1299
-S'Bimag'
+S'Breal'
 p1300
 aa(lp1301
-S'Bpol1'
+S'Bimag'
 p1302
 aa(lp1303
-S'Bpol2'
+S'Bpol1'
 p1304
+aa(lp1305
+S'Bpol2'
+p1306
 aaS'@@solvegroup'
-p1305
-asg1223
-(lp1306
+p1307
+asg1224
+(lp1308
 F1e-08
 aF0.001
 aF0.0001
 aF1.0000000000000001e-05
 aS'@@epsval'
-p1307
-asg903
-(lp1308
-Na(lp1309
+p1309
+asg904
+(lp1310
+Na(lp1311
 I5
 aI2
-aa(lp1310
+aa(lp1312
 I2
 aI2
-aa(lp1311
+aa(lp1313
 I3
 aI3
 aaS'@@num_cells'
-p1312
-asg1209
-(lp1313
+p1314
+asg1210
+(lp1315
 I01
 aI00
 aS'@@setBalanced'
-p1314
+p1316
 asS'num_iter'
-p1315
-(lp1316
+p1317
+(lp1318
 I1
 aI3
 aI5
 aI10
 aI20
 aS'@@num_iter'
-p1317
+p1319
 asS'condition'
-p1318
-(lp1319
-NaS'Gphase_X_sum=0.0'
 p1320
+(lp1321
+NaS'Gphase_X_sum=0.0'
+p1322
 aS'Gphase_Y_sum=0.0'
-p1321
-a(lp1322
-g1320
-ag1321
-aa(lp1323
+p1323
+a(lp1324
+g1322
+ag1323
+aa(lp1325
 S'Gphase_X_first=0.0'
-p1324
+p1326
 aS'Gphase_Y_first=0.0'
-p1325
-aa(lp1326
-S'Gphase_X_last=0.0'
 p1327
-aS'Gphase_Y_last=0.0'
-p1328
-aaS'Dang_sum=0.0'
+aa(lp1328
+S'Gphase_X_last=0.0'
 p1329
-a(lp1330
-S'Bimag_X_sum=0.0'
+aS'Gphase_Y_last=0.0'
+p1330
+aaS'Dang_sum=0.0'
 p1331
+a(lp1332
+S'Bimag_X_sum=0.0'
+p1333
 aS'Bimag_Y_sum=0.0'
-p1332
-aa(lp1333
-S'Breal_X_product=1.0'
 p1334
-aS'Breal_Y_product=1.0'
-p1335
-aaS'@@condition'
+aa(lp1335
+S'Breal_X_product=1.0'
 p1336
-asS'history'
+aS'Breal_Y_product=1.0'
 p1337
-(lp1338
+aaS'@@condition'
+p1338
+asS'history'
+p1339
+(lp1340
 I01
 aI00
 aS'@@history'
-p1339
+p1341
 assg121
 Nsg123
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-04 22:43'
-p1340
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-05 17:38'
+p1342
 sg128
 S'20dec2005'
-p1341
+p1343
 sg126
-S'2006-04-04 22:43'
-p1342
+S'2006-04-05 17:38'
+p1344
 sg130
 S'MG_JEN_Cohset'
-p1343
+p1345
 sg132
-(dp1344
-g1213
+(dp1346
+g1214
 I00
-sg1209
+sg1210
 I00
-sg999
+sg1000
 I00
-sg1337
+sg1339
 I00
 ssg134
-S'** Specific description of inarg record for: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-04 22:43'
-p1345
+S'** Specific description of inarg record for: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-05 17:38'
+p1347
 sg125
 I00
 sg138
-g1342
+g1344
 sg139
-(lp1346
+(lp1348
 g25
-ag1215
-ag1318
-ag1208
-ag1211
-ag903
-ag1315
-ag1210
-ag1223
-ag1212
-ag1235
-ag1213
+ag1216
+ag1320
 ag1209
+ag1212
+ag904
+ag1317
+ag1211
+ag1224
+ag1213
+ag1236
 ag1214
-ag999
-ag1337
+ag1210
+ag1215
+ag1000
+ag1339
 asg141
-(dp1347
-g1208
+(dp1349
+g1209
 S'if specified, only use baselines>=rmin'
-p1348
-sg999
-S'if True, include visualisation'
-p1349
-sg1210
-S'iteration control criterion...'
 p1350
-sg1235
-S'colinearity factor'
+sg1000
+S'if True, include visualisation'
 p1351
 sg1211
-S'if specified, only use baselines<=rmax'
+S'iteration control criterion...'
 p1352
-sg1212
-S'NEW: also iteration control...'
+sg1236
+S'colinearity factor'
 p1353
-sg1213
-S'if True, use Singular Value Decomposition (SVD)'
+sg1212
+S'if specified, only use baselines<=rmax'
 p1354
-sg1214
-S'solver debug_level'
+sg1213
+S'NEW: also iteration control...'
 p1355
-sg1215
-S'solvegroup: list of parmgroups, to be solved for:\n- [GJones]:  all GJones MeqParms\n- [Ggain]:   GJones station gains (both pols)\n- [Gphase]:  GJones station phases (both pols)\n- [Gpol1]:   All GJones MeqParms for pol1 (X or R)\n- [Gpol2]:   All GJones MeqParms for pol2 (Y or L)\n- [JJones,stokesU]:     actually solves for U!\n- [JJones,stokesQ]:     -> zero Q(?), but better freq sol(?)\n- [JJones,stokesV]:     -> punit V(?)...\n- [stokesI]:    stokes I (incl SI(f), if relevant)\n- [stokesIQU]:  stokes I,Q,U (incl RM and SI(f))\n- [stokesIQUV]: stokes I,Q,U,V (incl RM and SI(f))'
+sg1214
+S'if True, use Singular Value Decomposition (SVD)'
 p1356
-sg1223
-S'NEW: WNB version of epsilon....'
+sg1215
+S'solver debug_level'
 p1357
-sg903
-g904
-sg1209
-S'NEW: if True, add (..) to diagonal, otherwise multiply (1+lambda)'
+sg1216
+S'solvegroup: list of parmgroups, to be solved for:\n- [GJones]:  all GJones MeqParms\n- [Ggain]:   GJones station gains (both pols)\n- [Gphase]:  GJones station phases (both pols)\n- [Gpol1]:   All GJones MeqParms for pol1 (X or R)\n- [Gpol2]:   All GJones MeqParms for pol2 (Y or L)\n- [JJones,stokesU]:     actually solves for U!\n- [JJones,stokesQ]:     -> zero Q(?), but better freq sol(?)\n- [JJones,stokesV]:     -> punit V(?)...\n- [stokesI]:    stokes I (incl SI(f), if relevant)\n- [shape]:      parameters of extended source(s)\n- [stokesIQU]:  stokes I,Q,U (incl RM and SI(f))\n- [stokesIQUV]: stokes I,Q,U,V (incl RM and SI(f))'
 p1358
-sg1315
-S'max number of iterations (now also in fitter)'
+sg1224
+S'NEW: WNB version of epsilon....'
 p1359
-sg1318
-S'(list of) extra condition equations:\n- [...phase_sum=0.0]:   sum of phases = zero\n- [...phase_first=0.0]: phase of first station = zero\n- [...phase_last=0.0]:  phase of last station = zero\n- [Dang_sum=0.0]:   sum of dipole pos.angle errors = zero\n- [...imag_sum=0.0]:   sum of imag.parts = zero\n- [...real_product=1.0]:   product of real.parts = unity'
+sg904
+g905
+sg1210
+S'NEW: if True, add (..) to diagonal, otherwise multiply (1+lambda)'
 p1360
-sg1337
-S'if True, include history collection of metrics'
+sg1317
+S'max number of iterations (now also in fitter)'
 p1361
-sssg903
-Nsg1223
+sg1320
+S'(list of) extra condition equations:\n- [...phase_sum=0.0]:   sum of phases = zero\n- [...phase_first=0.0]: phase of first station = zero\n- [...phase_last=0.0]:  phase of last station = zero\n- [Dang_sum=0.0]:   sum of dipole pos.angle errors = zero\n- [...imag_sum=0.0]:   sum of imag.parts = zero\n- [...real_product=1.0]:   product of real.parts = unity'
+p1362
+sg1339
+S'if True, include history collection of metrics'
+p1363
+sssg904
+Nsg1224
 F1e-08
-sg1337
+sg1339
 I01
-sg1315
+sg1317
 I5
-sg1318
-Nsg1235
+sg1320
+Nsg1236
 F0.0
-ssg1166
+ssg1167
 I00
 ss.

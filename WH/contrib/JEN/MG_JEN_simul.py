@@ -137,18 +137,23 @@ def simul_EJones(inarg, trace=True):
    if trace: print '\n** predefine inarg record:',filename
    JEN_inarg.specific(inarg, simul_EJones.__doc__)
    JEN_inarg.modify(inarg,
+                    test_pattern='grid',
+                    insert_solver=True,
+                    use_same_LSM=False,
+                    solvegroup=['EJones'],
+                    # parmtable='simul_EJones',
+                    num_iter=2,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.modify(inarg,
+                    relpos='tlq',
+                    taper=None,
+                    _JEN_inarg_option=dict(trace=trace, qual='solve'))     
+   JEN_inarg.modify(inarg,
                     Jsequence=['EJones_WSRT'],
                     _JEN_inarg_option=dict(trace=trace, qual='simul_imp'))     
    JEN_inarg.modify(inarg,
                     Jsequence=['EJones_WSRT'],
                     _JEN_inarg_option=dict(trace=trace, qual='solve_imp'))     
-   JEN_inarg.modify(inarg,
-                    test_pattern='grid',
-                    insert_solver=True,
-                    solvegroup=['EJones'],
-                    # parmtable='simul_EJones',
-                    num_iter=2,
-                    _JEN_inarg_option=dict(trace=trace))     
    JEN_inarg.save(inarg, filename, trace=trace)
    JEN_inarg.save(inarg, filename, protected=True, trace=trace)
    return True
@@ -273,9 +278,11 @@ JEN_inarg.attach(MG, inarg)
 JEN_inarg.separator(MG, 'solver-branch (ParmSet)')
 qual = 'solve'
 
-if False:
-    inarg = MG_JEN_lsm.get_lsm(_getdefaults=True, _qual=qual)
-    JEN_inarg.attach(MG, inarg)
+JEN_inarg.define (MG, 'use_same_LSM', tf=True,
+                  help='if True, use same (simul) LSM for solving too')
+
+inarg = MG_JEN_lsm.get_lsm(_getdefaults=True, _qual=qual)
+JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True, _qual=qual+'_uvp') 
 JEN_inarg.attach(MG, inarg)
@@ -366,6 +373,7 @@ def _define_forest (ns, **kwargs):
     qual = 'simul'
 
     # Get/create/modify an LSM:
+    # lsm = MG_JEN_lsm.get_lsm(nsim, _inarg=MG, _qual=qual)
     lsm = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual)
 
     # Predict nominal/corrupted visibilities: 
@@ -395,16 +403,18 @@ def _define_forest (ns, **kwargs):
     if MG['insert_solver']:
         qual = 'solve'
 
-        if False:
+        if MG['use_same_LSM']:
+            # Use the LSM that was used for simulation
+            lsm2 = lsm
+        else:
             # Optionally, get/create/modify a different LSM:
-            # (Otherwise use the one used for simulation
-            lsm = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual)
+            lsm2 = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual)
 
         # Make a Joneset for uv-plane effects:
         Joneset = None
         Joneset = MG_JEN_Cohset.Jones(ns, _inarg=MG, _qual=qual+'_uvp')
         # Predict nominal/corrupted visibilities: 
-        predicted = MG_JEN_Cohset.predict_lsm (ns, lsm=lsm,
+        predicted = MG_JEN_Cohset.predict_lsm (ns, lsm=lsm2,
                                                Joneset=Joneset,
                                                _inarg=MG, _qual=qual)
 

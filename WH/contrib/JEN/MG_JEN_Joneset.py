@@ -213,9 +213,11 @@ def inarg_solvegroup (pp, **kwargs):
    sg_help += '\n- [JJones,stokesV]:     -> punit V(?)...'
 
    sg_choice.append(['GJones','stokesI'])
+   sg_choice.append(['stokesI','shape'])
    sg_choice.extend([['stokesI'],['stokesIQU'],['stokesIQUV']])
    sg_choice.extend([['stokesIV'],['stokesQU'],['stokesQUV']])
    sg_help += '\n- [stokesI]:    stokes I (incl SI(f), if relevant)'
+   sg_help += '\n- [shape]:      parameters of extended source(s)'
    sg_help += '\n- [stokesIQU]:  stokes I,Q,U (incl RM and SI(f))'
    sg_help += '\n- [stokesIQUV]: stokes I,Q,U,V (incl RM and SI(f))'
 
@@ -1287,7 +1289,9 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
 
     # Make nodes and bookmarks for some derived quantities (for display):
     # NB: This must be done AFTER the station nodes have been defined!
-    if simul:
+    if True:
+       pass
+    elif simul:
        bookpage = js.LeafSet.NodeSet.tlabel()+'_EJones'
        js.LeafSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
        js.LeafSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)

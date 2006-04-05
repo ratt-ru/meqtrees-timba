@@ -34,6 +34,7 @@
 #    - 09 mar 2006: included new TDL_ParmSet
 #    - 11 mar 2006: remove TDL_Parmset and TDL_Leafset
 #    - 11 mar 2006: implement .splice()
+#    - 05 apr 2006: implement .uncorrupted()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -1017,7 +1018,51 @@ class Cohset (TDL_common.Super):
         self._history(append=funcname+' -> '+self.oneliner())
         return True
 
-    #----------------------------------------------------------------------------------
+    #=================================================================================
+    # Insertion of source visibilities:
+    #=================================================================================
+
+    def punit2coh(self, ns=None, Sixpack=None, Joneset=None):
+        """Convert a prediction unit (punit, Sixpack) to source cohaerencies
+        (visibilities) for all ifrs. If Joneset is specified, corrupt them with
+        instrumental effects."""
+        funcname = '::punit2coh():'
+        uniqual = _counter(funcname, increment=-1)
+        punit_name = str(Sixpack.label())
+
+        # Information about source shape may be passed via the ParmSet rider:
+        # See MG_JEN_Sixpack.py
+        rider = Sixpack.ParmSet._rider('shape')        # -> list
+        if len(rider)>0: rider = rider[0]              # assume dict (see below)
+
+        if Sixpack.ispoint():                          # point source (or ell.gauss) 
+            nominal = Sixpack.coh22(ns, self.polrep())
+            if True:
+                # Put the same 'nominal' (i.e. uncorrupted) visibilities into all ifr-slots of cs1:
+                self.uniform(ns, nominal)
+            else:
+                # Put in an extra subtree for an elliptic gaussian extended source
+                # rider (dict) fields: ['shape','major','minor','pa']
+                # they contain node names, of nodes that should be in ns....
+                pass
+
+            # Optionally, corrupt the visibilities with instrumental effects:
+            if Joneset:
+                self.corrupt (ns, Joneset)
+        else:                                          # patch
+            # Not yet implemented....
+            node = Sixpack.root()
+
+        # Finished: bookkeeping:
+        self.update_from_Sixpack(Sixpack)
+        self._history(append=funcname+' -> '+self.oneliner())
+        return True
+
+
+    #=================================================================================
+    # Update/updict from various objects
+    #=================================================================================
+
 
     def update_from_Sixpack(self, Sixpack=None):
         """Update the internal info from a Sixpack object
@@ -1330,7 +1375,7 @@ class Cohset (TDL_common.Super):
             self.calc_baselines_xyz()
         return self.__station_xyz
 
-#-------------------------------------------------------------------------------------
+    #-------------------------------------------------------------------------------------
 
     def calc_baselines_xyz(self):
         """Calculate baseline-lengths (m) in xyz-space"""
@@ -1348,14 +1393,14 @@ class Cohset (TDL_common.Super):
         self.find_strong_redundancy()
         return True
 
-#-------------------------------------------------------------------------------------
+    #-------------------------------------------------------------------------------------
 
     def dxyz(self): return self.__dxyz
     def rxyz(self): return self.__rxyz
     def rxyz_redun(self): return self.__rxyz_redun
     def redun(self): return self.__redun
 
-#-------------------------------------------------------------------------------------
+    #-------------------------------------------------------------------------------------
 
     def find_strong_redundancy(self, margin=0.001):
         """For each ifr, find the baselines that are 'exactly' the same"""
@@ -1403,9 +1448,9 @@ class Cohset (TDL_common.Super):
         return True
 
 
-#======================================================================================
-# Interface with MS (spigots, sinks):
-#======================================================================================
+    #======================================================================================
+    # Interface with MS (spigots, sinks):
+    #======================================================================================
 
     def spigots (self, ns=0, **pp):
         """Fill the Cohset with spigot nodes for all its ifrs"""
@@ -1452,7 +1497,7 @@ class Cohset (TDL_common.Super):
         self._history(append=funcname+' -> '+self.oneliner())
         return True
 
-#------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
 
     def sinks (self, ns, **pp):
         """Attaches the Cohset coherency matrices to MeqSink nodes""" 
@@ -1515,7 +1560,7 @@ class Cohset (TDL_common.Super):
         # print '** End of: TDL_Cohset.sinks()\n'
         return True
 
-#------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
 
     def cleanup(self, ns=None):
         """Clean up the current Cohset"""
@@ -1530,7 +1575,7 @@ class Cohset (TDL_common.Super):
         return True
 
 
-#------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
 
     def fullDomainMux (self, ns, **pp):
         """Optionally, create another VisDataMux with a fixed name (fullDomainMux),
@@ -1565,10 +1610,7 @@ class Cohset (TDL_common.Super):
         return True
 
 
-        
-
-
-#------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
 
     def simul_sink (self, ns=None):
         """makes a common root node for all entries in Cohset""" 
@@ -1578,7 +1620,6 @@ class Cohset (TDL_common.Super):
         node = ns.simul_sink << Meq.Add(children=cc)
         self.cleanup(ns)
         return node
-
 
 
 

@@ -275,10 +275,6 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, KJones=None, **inarg)
     MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
     MG_JEN_Joneset.inarg_Joneset_ParmSet(pp, slave=slave)
     jseq_name = 'Jsequence'
-    qual = JEN_inarg.qualifier(pp)
-    # if isinstance(qual, str):
-    #    if len(qual)>0:
-    #        jseq_name += '_'+qual                     
     JEN_inarg.define (pp, jseq_name, [],
                       choice=[['GJones'],['BJones'],['FJones'],['KJones'],
                               ['DJones_WSRT'],['GJones','DJones_WSRT'],
@@ -286,6 +282,7 @@ def Jones(ns=None, Sixpack=None, simul=False, slave=False, KJones=None, **inarg)
                               ['JJones'],[]],
                       help='sequence of Jones matrices to be used')
     # Include default inarg records for various Jones matrix definition functions:
+    qual = JEN_inarg.qualifier(pp)
     JEN_inarg.nest(pp, MG_JEN_Joneset.GJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.FJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
     JEN_inarg.nest(pp, MG_JEN_Joneset.BJones(_getdefaults=True, _qual=qual, simul=simul, slave=True))
@@ -351,6 +348,7 @@ def predict (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     return predict_cps (ns, Sixpack, Joneset=Joneset, slave=slave, **inarg)
 
 
+
 def predict_cps (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     """Make a Cohset with predicted uv-data for the Central Point Source (cps)
     defined by Sixpack. If a Joneset with instrumental effects is supplied,
@@ -371,22 +369,24 @@ def predict_cps (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
     Cohset = TDL_Cohset.Cohset(label='predict_cps', origin=funcname, **pp)
 
-    # Copy info (plot-styles, parmgroup/solvegroup etc):
-    Cohset.update_from_Sixpack(Sixpack)
+    if True:
+        Cohset.punit2coh(ns, Sixpack, Joneset)
 
-    # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
-    # by multiplication its (I,Q,U,V) with the Stokes matrix:
-    nominal = Sixpack.coh22(ns, pp['polrep'])
-
-    # Put the same 'nominal' (i.e. uncorrupted) visibilities into all
-    # ifr-slots of the Cohset:
-    Cohset.uniform(ns, nominal)
-
-    # Optionally, corrupt the Cohset visibilities with the instrumental effects
-    # in the given Joneset of 2x2 station jones matrices:
-    if Joneset:
-       Cohset.corrupt (ns, Joneset=Joneset)
-       # Cohset.display('.predict(): after corruption')
+    else:
+        # Obsolete:
+        # Copy info (plot-styles, parmgroup/solvegroup etc):
+        Cohset.update_from_Sixpack(Sixpack)
+        # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
+        # by multiplication its (I,Q,U,V) with the Stokes matrix:
+        nominal = Sixpack.coh22(ns, pp['polrep'])
+        # Put the same 'nominal' (i.e. uncorrupted) visibilities into all
+        # ifr-slots of the Cohset:
+        Cohset.uniform(ns, nominal)
+        # Optionally, corrupt the Cohset visibilities with the instrumental effects
+        # in the given Joneset of 2x2 station jones matrices:
+        if Joneset:
+            Cohset.corrupt (ns, Joneset=Joneset)
+            # Cohset.display('.predict(): after corruption')
 
     # Finished:
     MG_JEN_forest_state.object(Sixpack, funcname)
@@ -429,22 +429,26 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
     plist = lsm.queryLSM(count=pp['nr_lsm_sources'])
     cs = []                                  # list on source Cohsets
     for punit in plist: 
-        Sixpack = punit.getSixpack()      
+        Sixpack = punit.getSixpack()
         punit_name = str(Sixpack.label())
         if Sixpack.ispoint():                # point source (Sixpack object)
             # Make a new Cohset for this punit:
             cs1 = TDL_Cohset.Cohset(label=punit_name, origin=funcname, **pp)
-            # cs1.display(punit_name)
-            # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
-            # by multiplication its (I,Q,U,V) with the relevent (polrep) Stokes matrix:
-            nominal = Sixpack.coh22(ns, pp['polrep'])
-            # Put the same 'nominal' (i.e. uncorrupted) visibilities into all ifr-slots of cs1:
-            cs1.uniform(ns, nominal)
-            # Corrupt with image-plane effects (KJones at the very least)
+            # Corrupt with image-plane effects (including KJones/DFT):
             js1 = Jones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
                          _inarg=pp, _qual=qual+'_imp', KJones=True)
-            cs1.corrupt (ns, Joneset=js1)
-            # cs1.update_from_Sixpack(Sixpack)
+            if True:
+                cs1.punit2coh(ns, Sixpack, js1)
+            else:
+                # Obsolete:
+                # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
+                # by multiplication its (I,Q,U,V) with the relevent (polrep) Stokes matrix:
+                nominal = Sixpack.coh22(ns, pp['polrep'])
+                # Put the same 'nominal' (i.e. uncorrupted) visibilities into all ifr-slots of cs1:
+                cs1.uniform(ns, nominal)
+                cs1.corrupt (ns, Joneset=js1)
+                # cs1.update_from_Sixpack(Sixpack)
+                
             cs.append(cs1)
         else:	                             # patch (not a Sixpack object!)
             node = Sixpack.root()

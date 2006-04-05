@@ -790,7 +790,7 @@ if __name__ == '__main__':
         print ps.check_parmtable_extension()
 
 
-    if 1:
+    if 0:
         # Register the parmgroups:
         pp = dict(stations=range(3))
         ps.inarg_group_rider(pp)                  
@@ -872,6 +872,14 @@ if __name__ == '__main__':
         for key in ps.solvegroup_keys():
             print '- solvegroup:',key,':',ps.solvegroup(key)
         print
+
+    if 1:
+        print ps._rider('xxx', range(4))
+        print ps._rider('yyy', True)
+        print ps._rider('xxx', True)
+        print ps._rider('qqq', dict(a=2, b=5))
+        print ps._rider('xxx')
+        print ps._rider('zzz')
 
     if 1:
         # Display the final result:

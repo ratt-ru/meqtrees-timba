@@ -430,6 +430,7 @@ def add_grid (ns=None, lsm=None, **inarg):
          Dec = Dec0 + j*pp['dDec']*arcmin2rad()
          flux_att = att(RA-RA0, Dec-Dec0, pp['taper'], trace=False)
          punit = 'grid:'+str(i)+':'+str(j)
+         if not rpos=='center': punit += ':'+rpos
          Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
                                                  flux_att=flux_att,
                                                  punit=punit, RA=RA, Dec=Dec)
@@ -544,10 +545,11 @@ def get_lsm (ns=None, **inarg):
    JEN_inarg.define (pp, 'test_pattern', 'single',
                      choice=[None,'single','double','grid','spiral'],
                      help='pattern of test-sources to be generated')
-   JEN_inarg.nest(pp, add_single(_getdefaults=True))
-   JEN_inarg.nest(pp, add_double(_getdefaults=True))
-   JEN_inarg.nest(pp, add_grid(_getdefaults=True))
-   JEN_inarg.nest(pp, add_spiral(_getdefaults=True))
+   qual = JEN_inarg.qualifier(pp)
+   JEN_inarg.nest(pp, add_single(_getdefaults=True, _qual=qual))
+   JEN_inarg.nest(pp, add_double(_getdefaults=True, _qual=qual))
+   JEN_inarg.nest(pp, add_grid(_getdefaults=True, _qual=qual))
+   JEN_inarg.nest(pp, add_spiral(_getdefaults=True, _qual=qual))
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -570,13 +572,13 @@ def get_lsm (ns=None, **inarg):
    savefile = '<automatic_lsm_savefile>'
    if isinstance(pp['test_pattern'], str):
       if pp['test_pattern']=='single':
-         savefile = add_single(ns, lsm=lsm, _inarg=pp)
+         savefile = add_single(ns, lsm=lsm, _inarg=pp, _qual=qual)
       elif pp['test_pattern']=='double':
-         savefile = add_double(ns, lsm=lsm, _inarg=pp)
+         savefile = add_double(ns, lsm=lsm, _inarg=pp, _qual=qual)
       elif pp['test_pattern']=='grid':
-         savefile = add_grid(ns, lsm=lsm, _inarg=pp)
+         savefile = add_grid(ns, lsm=lsm, _inarg=pp, _qual=qual)
       elif pp['test_pattern']=='spiral':
-         savefile = add_spiral(ns, lsm=lsm, _inarg=pp)
+         savefile = add_spiral(ns, lsm=lsm, _inarg=pp, _qual=qual)
       else:
          print 'test_pattern not recognised:',pp['test_pattern']
          return False
@@ -827,6 +829,18 @@ def _define_forest (ns, **kwargs):
          punit = plist[i] 
          Sixpack = punit.getSP()              # get_Sixpack()
          print '-',i,':',Sixpack.label(),
+
+         # Information about source shape may be passed via the ParmSet rider:
+         # See MG_JEN_Sixpack.py
+         rider = Sixpack.ParmSet._rider('shape')        # -> list
+         print '  -- rider:',rider
+         if len(rider)>0: rider = rider[0]              # assume dict (see below)
+         if True:
+            if isinstance(rider, dict):
+               for key in ['major','minor','pa']:
+                  nodename = rider[key]
+                  print '  ---',key,': ns[',nodename,'] =',ns[nodename]
+            print ' '
 
          # Display subtree:
          if i<5:

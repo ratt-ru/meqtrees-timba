@@ -14,6 +14,7 @@
 # - 09 mar 2006: introduced new ParmSet as well
 # - 11 mar 2006: removed TDL_Parmset.py
 # - 15 mar 2006: adopted new .parmgroup() etc
+# - 06 apr 2006: implemented extended sources
 
 # Copyright: The MeqTree Foundation
 
@@ -101,27 +102,28 @@ def inarg_punit (pp, **kwargs):
     choice = ['unpol','unpol2','unpol10',
               'QUV','QU','Qonly','Uonly','Vonly',
               '3c147','3c286','3c48','3c295','D1',
-              'RMtest','SItest']
+              'RMtest','SItest','ellgauss']
     JEN_inarg.define (pp, 'punit', 'unpol', choice=choice,
                       slave=kwargs['slave'], hide=kwargs['hide'],
                       callback=True,
                       help='name of calibrator source/patch \n'+
-                      '- unpol:   unpolarised, I=1Jy \n'+
-                      '- unpol2:  idem, I=2Jy \n'+
-                      '- unpol10: idem, I=10Jy \n'+
-                      '- RMtest:  Rotation Measure \n'+
-                      '- SItest:  Spectral Index \n'+
-                      '- QUV:     non-zero Q,U,V \n'+
-                      '- QU:      non-zero Q,U \n'+
-                      '- QU2:     stronger version of QU \n'+
-                      '- Qonly:   non-zero Q \n'+
-                      '- Uonly:   non-zero U \n'+
-                      '- Vonly:   non-zero V \n'+
-                      '- 3c286:   \n'+
-                      '- 3c48:    \n'+
-                      '- 3c295:   \n'+
-                      '- 3c147:   \n'+
-                      '- D1:      cps in D1.MS \n'+
+                      '- unpol:     unpolarised, I=1Jy \n'+
+                      '- unpol2:    idem, I=2Jy \n'+
+                      '- unpol10:   idem, I=10Jy \n'+
+                      '- RMtest:    Rotation Measure \n'+
+                      '- SItest:    Spectral Index \n'+
+                      '- ellgauss:  Elliptic Gaussian \n'+
+                      '- QUV:       non-zero Q,U,V \n'+
+                      '- QU:        non-zero Q,U \n'+
+                      '- QU2:       stronger version of QU \n'+
+                      '- Qonly:     non-zero Q \n'+
+                      '- Uonly:     non-zero U \n'+
+                      '- Vonly:     non-zero V \n'+
+                      '- 3c286:     \n'+
+                      '- 3c48:      \n'+
+                      '- 3c295:     \n'+
+                      '- 3c147:     \n'+
+                      '- D1:        cps in D1.MS \n'+
                       '')
 
     # Upward compatibility (temporary).
@@ -213,6 +215,12 @@ def predefined (pp, trace=0):
     elif (pp['punit']=='SItest'):
        predefined_reset(pp) 
        pp['SI'] = -0.7
+    elif (pp['punit']=='ellgauss'):
+       predefined_reset(pp) 
+       pp['shape'] = 'ell.gauss'
+       pp['major'] = 200                # arcsec
+       pp['minor'] = 100
+       pp['pa'] = 0.0
     elif (pp['punit']=='I0polc'):
        predefined_reset(pp) 
        pp['I0'] = array([[2,-.3,.1],[.3,-.1,0.03]]),
@@ -235,6 +243,10 @@ def predefined_reset(pp):
     pp.setdefault('Vpct', None) 
     pp.setdefault('RM', None) 
     pp.setdefault('SI', None) 
+    pp.setdefault('shape', 'point') 
+    pp.setdefault('major', 0.0) 
+    pp.setdefault('minor', 0.0) 
+    pp.setdefault('pa', 0.0) 
     return True
 
 
@@ -483,8 +495,10 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
 
    # Make the Sixpack and get its ParmSet object:
    punit = pp['punit']
-   Sixpack = TDL_Sixpack.Sixpack(label=punit, **pp)
-   ParmSet = Sixpack.ParmSet                # convenience
+   Sixpack = TDL_Sixpack.Sixpack(label=punit, **pp)   
+   Sixpack.ParmSet.quals(dict(q=pp['punit']))         # check TDL_Sixpack....! 
+   # Sixpack.LeafSet.quals(dict(q=pp['punit']))
+   ParmSet = Sixpack.ParmSet                          # convenience
    
    # Register the parmgroups:
    sI = ParmSet.parmgroup('stokesI', rider=pp,
@@ -496,6 +510,8 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
    sV = ParmSet.parmgroup('stokesV', rider=pp,
                           color='cyan', style='diamond', size=10, condeq_corrs='corrV')
    pg_radec = ParmSet.parmgroup('radec', rider=pp,
+                                color='black', style='circle', size=10, condeq_corrs='corrI')   # <----- ?
+   pg_shape = ParmSet.parmgroup('shape', rider=pp,
                                 color='black', style='circle', size=10, condeq_corrs='corrI')   # <----- ?
 
    # Define a named bookpage:
@@ -602,6 +618,16 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
       iquv[n6.Q] = ns[n6.Q](q=punit) <<  Meq.Selector(QURM, index=0)
       iquv[n6.U] = ns[n6.U](q=punit) <<  Meq.Selector(QURM, index=1)
 
+
+   # Extended sources: The relevant information is passed via the ParmSet rider
+   # record, to be retrieved by the script that connects the Sixpack to a user
+   # tree. See MG_JEN_Cohset.py.
+   if pp['shape']=='ell.gauss':
+       rider = dict()
+       for key in ['major','minor','pa']:
+           node = ParmSet.MeqParm (ns, key, parmgroup=pg_shape, default=pp[key])
+           rider[key] = node.name
+       ParmSet._rider('shape', rider)   
 
    # Source coordinates (RA, DEC)
    radec = {}
