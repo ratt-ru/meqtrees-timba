@@ -4,20 +4,21 @@ from numarray import *
 import os
 import random
 
-from clar_model import *
+import clar_model 
 from Timba.Contrib.OMS.IfrArray import IfrArray
 from Timba.Contrib.OMS.Observation import Observation
 from Timba.Contrib.OMS.Patch import Patch
+from Timba.Contrib.OMS.CorruptComponent import CorruptComponent 
 from Timba.Contrib.OMS import Bookmarks
 
 
-# MS name
+### MS name
 # msname = "TEST_CLAR_27-4800.MS";         # Oleg
 msname = "TEST_CLAR_27-480.MS";          # Tony
-# number of timeslots to use at once
+### number of timeslots to use at once
 tile_size = 30       
 
-# MS input queue size -- must be at least equal to the no. of ifrs
+### MS input queue size -- must be at least equal to the no. of ifrs
 ms_queue_size = 500
 
 num_stations = 27
@@ -35,23 +36,27 @@ ms_output = False    # if True, outputs to MS, else to BOIO dump  Oleg
 # ms_output = True     # if True, outputs to MS, else to BOIO dump   Tony
 
 
-# MEP table for derived quantities 
+### MEP table for derived quantities 
 mep_derived = 'CLAR_DQ_27-480.mep';
 
-# MEP table for fitted parameters
-# If set to a table name, results of solution will be stored and reused
-# in future runs. This is usually not what we want for testing, so we can 
-# set it to None to solve from scratch every time.
+### MEP table for fitted parameters
+### If set to a table name, results of solution will be stored and reused
+### in future runs. This is usually not what we want for testing, so we can 
+### set it to None to solve from scratch every time.
 mep_sources = None;
 # mep_sources = 'CLAR.mep';
 
-# if True, previous solutions will be reused for successive time domains.
-# This speeds up convergence (especially when solvables have no variation 
-# in time), but makes the process less "educational".
+### which source model to use
+# source_model = clar_model.point_and_extended_sources;
+source_model = clar_model.point_sources_only
+
+### if True, previous solutions will be reused for successive time domains.
+### This speeds up convergence (especially when solvables have no variation 
+### in time), but makes the process less "educational".
 reuse_solutions = False
 
 
-# bookmark
+# bookmarks
 Settings.forest_state = record(bookmarks=[
   record(name='Predicted visibilities',page=Bookmarks.PlotPage(
       ["I:S1","I:S2","I:S3"],
@@ -75,19 +80,25 @@ def _define_forest(ns):
   observation = Observation(ns);
   
   # create CLAR source model
-  global source_model;
-  source_model = create_clar_sources(ns,tablename=mep_sources);
+  # create nominal CLAR source model by calling the specified
+  # function
+  global source_list;
+  source_list = source_model(ns);
+  
+  Ej = clar_model.EJones(ns,array,source_list);
+  corrupt_list = [ 
+    CorruptComponent(ns,src,label='E',jones=Ej(src.name))
+    for src in source_list
+  ];
                      
   # create all-sky patch for CLAR source model
   allsky = Patch(ns,'all');
-  allsky.add(*source_model);
+  allsky.add(*corrupt_list);
   
-  create_beam_model(ns,array,source_model);
-
   # For now, there are no G jones in the fitted model
 
   # create simulated visibilities for sky
-  predict = allsky.visibility(array,observation);
+  predict = allsky.visibilities(array,observation);
   
   # now create spigots, condeqs and residuals
   for sta1,sta2 in array.ifrs():
@@ -224,15 +235,15 @@ def _run_solve_job (mqs,solvables):
 
 
 def _tdl_job_1_solve_for_fluxes_and_beam_width (mqs,parent,**kw):
-  solvables = _perturb_solvables(mqs,['I0:'+src.name for src in source_model]);
-  solvables += _reset_solvables(mqs,[ 'spi:'+src.name for src in source_model],0);
+  solvables = _perturb_solvables(mqs,['I0:'+src.name for src in source_list]);
+  solvables += _reset_solvables(mqs,[ 'spi:'+src.name for src in source_list],0);
   solvables += _reset_solvables(mqs,["ihpbw0"],400);
   _run_solve_job(mqs,solvables);
   
 
 def _tdl_job_2_solve_for_fluxes_with_fixed_beam_width (mqs,parent,**kw):
-  solvables = _perturb_solvables(mqs,['I0:'+src.name for src in source_model]);
-  solvables += _reset_solvables(mqs,[ 'spi:'+src.name for src in source_model],0);
+  solvables = _perturb_solvables(mqs,['I0:'+src.name for src in source_list]);
+  solvables += _reset_solvables(mqs,[ 'spi:'+src.name for src in source_list],0);
   _run_solve_job(mqs,solvables);
   
   
@@ -242,8 +253,8 @@ def _tdl_job_3_solve_for_beam_width_with_fixed_fluxes (mqs,parent,**kw):
   
 
 def _tdl_job_4_reset_parameters_to_true_values (mqs,parent,**kw):
-  _reset_solvables(mqs,['I0:'+src.name for src in source_model]);
-  _reset_solvables(mqs,[ 'spi:'+src.name for src in source_model]);
+  _reset_solvables(mqs,['I0:'+src.name for src in source_list]);
+  _reset_solvables(mqs,[ 'spi:'+src.name for src in source_list]);
   _reset_solvables(mqs,["ihpbw0"]);
 
 

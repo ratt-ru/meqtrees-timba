@@ -1,5 +1,6 @@
 from Timba.TDL import *
 from Timba.Contrib.OMS.PointSource import *
+from Timba.Contrib.OMS.GaussianSource import *
 
 # some CLAR constants
 
@@ -16,7 +17,79 @@ mep_derived = 'CLAR_DQ_27-480.mep';
 reuse_solutions = False;
 
 
-def create_clar_sources (ns,tablename=''):
+def point_and_extended_sources (ns,tablename=''):
+  """ define model source positions and flux densities """
+  parm_options = record(
+      use_previous=reuse_solutions,
+      table_name=tablename,
+      node_groups='Parm');
+  
+  source_model = []
+  source_model.append( PointSource(ns,name="S1",I=1.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.0307416105, dec=0.576347166,
+                  spi=0.5,freq0=ref_frequency,
+                  parm_options=parm_options));
+  
+  # 1" ~ 4.8e-6 rad
+
+  source_model.append( GaussianSource(ns,name="S2e",I=4.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.0302269161, dec=0.576333355,
+                  spi=1,freq0=ref_frequency,
+                  size=[0.0002,0.0001],phi=.5,
+                  parm_options=parm_options));
+                  
+  source_model.append( PointSource(ns,name="S2p",I=1.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.0302269161, dec=0.576333355,
+                  spi=-1.5,freq0=ref_frequency,
+                  parm_options=parm_options));
+
+  source_model.append( PointSource(ns,name="S3",I=1.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.030120036, dec=0.576310965,
+                  spi=-1.0,freq0=ref_frequency,
+                  parm_options=parm_options));
+
+  source_model.append( GaussianSource(ns,name="S4",I=5.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.0308948646, dec=0.5762655,
+                  spi=4,freq0=ref_frequency,
+                  size=[.00005,.0002],phi=0,
+                  parm_options=parm_options));
+
+  source_model.append( PointSource(ns,name="S5",I=1.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.0308043705, dec=0.576256621,
+                  spi=0.0,freq0=ref_frequency,
+                  parm_options=parm_options));
+
+  source_model.append( PointSource(ns,name="S6",I=1.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.0301734016, dec=0.576108805,
+                  spi=0.0,freq0=ref_frequency,
+                  parm_options=parm_options));
+
+  source_model.append( GaussianSource(ns,name="S7",I=4.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.0306878027, dec=0.575851951,
+                  spi=0.5,freq0=ref_frequency,
+                  size=[.00002,.0001],phi=1.5,
+                  parm_options=parm_options));
+
+  source_model.append( PointSource(ns,name="S8",I=1.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.0304215356, dec=0.575777607,
+                  spi=1.0,freq0=ref_frequency,
+                  parm_options=parm_options));
+
+  source_model.append( PointSource(ns,name="S9",I=1.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.030272885, dec=0.575762621,
+                  spi=1.5,freq0=ref_frequency,
+                  parm_options=parm_options));
+
+  source_model.append( GaussianSource(ns,name="S10",  I=5.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.0306782675, dec=0.575526087,
+                  spi=2.0,freq0=ref_frequency,
+                  size=[.00002,.00003],phi=1.0,
+                  parm_options=parm_options));
+
+  return source_model
+
+
+def point_sources_only (ns,tablename=''):
   """ define model source positions and flux densities """
   parm_options = record(
       use_previous=reuse_solutions,
@@ -77,9 +150,8 @@ def create_clar_sources (ns,tablename=''):
   return source_model
 
 
-def create_beam_model (ns,array,sources):
-  """creates common nodes for simulating the CLAR beam,
-  then creates E Jones matrices for every source in source_model.
+def EJones (ns,array,sources):
+  """creates E nodes for simulating the CLAR beam,
   """;
   ns.freq << Meq.Freq;
   # this is the inverse half-power beam width at reference frequency
@@ -90,17 +162,17 @@ def create_beam_model (ns,array,sources):
   ns.ihpbw << ns.ihpbw0 * ns.freq / ref_frequency;
   # ...squared
   ns.ihpbw_sq << Meq.Sqr(ns.ihpbw)
-  
+
+  Ejones = ns.E;
   # create per-source,per-station E Jones matrices and attach them
   # to sources
   for src in sources:
-    Ejones = ns.E(src.name);
     for station in array.stations():
       # voltage gain parameter read from mep_derived table (see clar_beam_fit)
       vgain = ns.V_GAIN(station,src.name) << Meq.Parm(table_name=mep_derived);
       # derive diagonal term
       ediag = ns.ediag(station,src.name) << Meq.Sqrt(Meq.Exp(vgain*ns.ihpbw_sq));
       # create E matrix
-      Ejones(station) << Meq.Matrix22(ediag,0,0,ediag);
-    # add all E matrices to this src
-    src.add_station_jones(Ejones);
+      Ejones(src.name,station) << Meq.Matrix22(ediag,0,0,ediag);
+      
+  return Ejones;

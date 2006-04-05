@@ -4,18 +4,19 @@ from numarray import *
 import os
 import random
 
-from clar_model import *
+import clar_model 
 from Timba.Contrib.OMS.IfrArray import IfrArray
 from Timba.Contrib.OMS.Observation import Observation
 from Timba.Contrib.OMS.Patch import Patch
+from Timba.Contrib.OMS.CorruptComponent import CorruptComponent
 from Timba.Contrib.OMS import Bookmarks
 
 # MS name
-msname = "TEST_CLAR_27-4800.MS";      # Oleg ...
-# msname = "TEST_CLAR_27-480.MS";       # Tony ...
+# msname = "TEST_CLAR_27-4800.MS";      # Oleg ...
+msname = "TEST_CLAR_27-480.MS";       # Tony ...
 
 # number of timeslots to use at once
-tile_size = 960
+tile_size = 30
 # MS input queue size -- should be at least equal to the no. of ifrs
 ms_queue_size = 500
 # number of stations
@@ -28,23 +29,38 @@ ms_selection = None
 #                      channel_increment=1,
 #                      selection_string='')
 
-ms_output = False  # if True, outputs to MS, else to BOIO dump   
-# ms_output = True   # if True, outputs to MS, else to BOIO dump 
-
+# ms_output = False  # if True, outputs to MS, else to BOIO dump   
+ms_output = True   # if True, outputs to MS, else to BOIO dump 
 
 # MEP table for various derived quantities 
 mep_derived = 'CLAR_DQ_27-480.mep';
 
+# if true, a G Jones simulating phase and gain errors will be inserted
+add_g_jones = False;
+# add_g_jones = True;
+
+# if true, an E Jones simulating beam effects will be inserted
+add_e_jones = True;
+# add_e_jones = False;
+
+# if not None, a per-ifr noise term with the given stddev will be added
+noise_stddev = None;
+# noise_stddev = 0.05;
+
+# which source model to use
+# source_model = clar_model.point_and_extended_sources;
+source_model = clar_model.point_sources_only
+
 # bookmarks
 Settings.forest_state = record(bookmarks=[
   record(name='Predicted visibilities',page=Bookmarks.PlotPage(
-      ["visibility:S1:nom:1:2",
-       "visibility:S1:nom:1:6","visibility:S1:nom:9:%d"%num_stations ],
       ["visibility:S1:1:2",
        "visibility:S1:1:6","visibility:S1:9:%d"%num_stations ],
+      ["visibility:S1:E:1:2",
+       "visibility:S1:E:1:6","visibility:S1:E:9:%d"%num_stations ],
       ["E:S1:1","E:S1:%d"%num_stations,"G:1"],
-      ["noisy_predict:1:2",
-       "noisy_predict:1:6","noisy_predict:9:%d"%num_stations]
+      ["visibility:all:1:2",
+       "visibility:all:1:6","visibility:all:9:%d"%num_stations]
   )),
   record(name='Beams',page=Bookmarks.PlotPage(
       ["E:S1:1","E:S2:1","E:S3:1"],
@@ -63,7 +79,15 @@ Settings.forest_state = record(bookmarks=[
       ["I:S4","I:S5","I:S6"],
       ["I:S7","I:S8","I:S9"],
       ["I:S10","ihpbw"]
-  )) \
+  )),
+  record(name="Sources 1/2",page=Bookmarks.PlotPage(
+      ["visibility:S1:1:2",
+       "visibility:S1:1:6","visibility:S1:9:%d"%num_stations ],
+      ["visibility:S2p:1:2",
+       "visibility:S2p:1:6","visibility:S2p:9:%d"%num_stations ],
+      ["visibility:S2e:1:2",
+       "visibility:S2e:1:6","visibility:S2e:9:%d"%num_stations ]
+  )),
 ]);
 
 
@@ -84,44 +108,55 @@ def _define_forest(ns):
   array = IfrArray(ns,stations,uvw_table=mep_derived,mirror_uvw=True);
   observation = Observation(ns);
   
-  # create CLAR source model
-  source_model = create_clar_sources(ns);
+  # create nominal CLAR source model by calling the specified
+  # function
+  source_list = source_model(ns);
+  
+  if add_e_jones:
+    Ej = clar_model.EJones(ns,array,source_list);
+    corrupt_list = [ 
+      CorruptComponent(ns,src,label='E',jones=Ej(src.name))
+      for src in source_list
+    ];
+  else:
+    corrupt_list = source_list;
                      
   # create all-sky patch for CLAR source model
   allsky = Patch(ns,'all');
-  allsky.add(*source_model);
-
-  # create CLAR beam model
-  create_beam_model(ns,array,source_model);
-    
-  # Now, create a series of G Jones for simulated phase and gain errors
-  ns.time << Meq.Time;
-  for station in array.stations():
-    # create a random station phase 
-    phase = Meq.GaussNoise(stddev=0.1);
-    # create sinusoidal gain errors with random period and amplitude of 2-5%
-    ns.Gx(station) << 1 + Meq.Sin(ns.time/random.uniform(500,2000)) * random.uniform(-.05,.05);
-    ns.Gy(station) << 1 + Meq.Sin(ns.time/random.uniform(500,2000)) * random.uniform(-.05,.05);
-    # put them together into a G matrix
-    ns.G(station) << Meq.Matrix22(
-      Meq.Polar(ns.Gx(station),phase),0,0,Meq.Polar(ns.Gy(station),phase));
-  # attach the G Jones series to the all-sky patch
-  allsky.add_station_jones(ns.G);
+  allsky.add(*corrupt_list);
+  
+  if add_g_jones:
+    # Now, create a series of G Jones for simulated phase and gain errors
+    ns.time << Meq.Time;
+    for station in array.stations():
+      # create a random station phase 
+      phase = Meq.GaussNoise(stddev=0.1);
+      # create sinusoidal gain errors with random period and amplitude of 2-5%
+      ns.Gx(station) << 1 + Meq.Sin(ns.time/random.uniform(500,2000)) * random.uniform(-.05,.05);
+      ns.Gy(station) << 1 + Meq.Sin(ns.time/random.uniform(500,2000)) * random.uniform(-.05,.05);
+      # put them together into a G matrix
+      ns.G(station) << Meq.Matrix22(
+        Meq.Polar(ns.Gx(station),phase),0,0,Meq.Polar(ns.Gy(station),phase));
+    # attach the G Jones series to the all-sky patch
+    allsky = CorruptComponent(ns,allsky,label='G',jones=ns.G);
 
   # create simulated visibilities for sky
-  predict = allsky.visibility(array,observation);
+  visibilities = allsky.visibilities(array,observation);
   
   # create the sinks and attach predicts to them, adding in a noise term
   for sta1,sta2 in array.ifrs():
-    noisy = ns.noisy_predict(sta1,sta2) << \
-        predict(sta1,sta2) + (ns.noise(sta1,sta2) << noise_matrix(.05));
+    if noise_stddev is not None:
+      predict = ns.noisy_predict(sta1,sta2) << \
+        visibilities(sta1,sta2) + (ns.noise(sta1,sta2) << noise_matrix(noise_stddev));
+    else:
+      predict = visibilities(sta1,sta2);
     ns.sink(sta1,sta2) << Meq.Sink(station_1_index=sta1-1,
                                    station_2_index=sta2-1,
                                    flag_bit=4,
                                    corr_index=[0,1,2,3],
                                    flag_mask=-1,
                                    output_col='DATA',
-                                   children=noisy
+                                   children=predict
                                    );
   # set a good sink poll order for optimal parallelization
   # this is an optional step
