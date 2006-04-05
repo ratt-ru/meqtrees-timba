@@ -43,24 +43,20 @@ add_g_jones = False;
 add_e_jones = True;
 # add_e_jones = False;
 
-# if not None, a per-ifr noise term with the given stddev will be added
-noise_stddev = None;
-# noise_stddev = 0.05;
-
 # which source model to use
 # source_model = clar_model.point_and_extended_sources;
 source_model = clar_model.point_sources_only
 
 # bookmarks
 Settings.forest_state = record(bookmarks=[
-  record(name='Predicted visibilities',page=Bookmarks.PlotPage(
-      ["visibility:S1:1:2",
-       "visibility:S1:1:6","visibility:S1:9:%d"%num_stations ],
+  record(name='Predicted residuals',page=Bookmarks.PlotPage(
       ["visibility:S1:E:1:2",
        "visibility:S1:E:1:6","visibility:S1:E:9:%d"%num_stations ],
-      ["E:S1:1","E:S1:%d"%num_stations,"G:1"],
-      ["visibility:all:1:2",
-       "visibility:all:1:6","visibility:all:9:%d"%num_stations]
+      ["visibility:S1:E0:1:2",
+       "visibility:S1:E0:1:6","visibility:S1:E0:9:%d"%num_stations ],
+      ["residual:1:2",
+       "residual:1:6","residual:9:%d"%num_stations ],
+      ["E0:S1","E:S1:1","E:S1:%d"%num_stations,],
   )),
   record(name='Beams',page=Bookmarks.PlotPage(
       ["E:S1:1","E:S2:1","E:S3:1"],
@@ -80,26 +76,7 @@ Settings.forest_state = record(bookmarks=[
       ["I:S7","I:S8","I:S9"],
       ["I:S10","ihpbw"]
   )),
-  record(name="Sources 1/2",page=Bookmarks.PlotPage(
-      ["visibility:S1:1:2",
-       "visibility:S1:1:6","visibility:S1:9:%d"%num_stations ],
-      ["visibility:S2p:1:2",
-       "visibility:S2p:1:6","visibility:S2p:9:%d"%num_stations ],
-      ["visibility:S2e:1:2",
-       "visibility:S2e:1:6","visibility:S2e:9:%d"%num_stations ]
-  )),
 ]);
-
-
-    
-def noise_matrix (stddev=0.1):
-  """helper function to create a 2x2 complex gaussian noise matrix""";
-  noise = Meq.GaussNoise(stddev=stddev);
-  return Meq.Matrix22(
-    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise),
-    Meq.ToComplex(noise,noise),Meq.ToComplex(noise,noise)
-  );
-
 
 
 def _define_forest(ns):
@@ -114,16 +91,24 @@ def _define_forest(ns):
   
   if add_e_jones:
     Ej = clar_model.EJones(ns,array,source_list);
+    Ej0 = clar_model.EJones_unbroadened(ns,observation,source_list);
     corrupt_list = [ 
       CorruptComponent(ns,src,label='E',station_jones=Ej(src.name))
       for src in source_list
     ];
+    nom_list = [ 
+      CorruptComponent(ns,src,label='E0',jones=Ej0(src.name))
+      for src in source_list
+    ];
   else:
-    corrupt_list = source_list;
-                     
+    corrupt_list = nom_list = source_list;
+    
   # create all-sky patch for CLAR source model
   allsky = Patch(ns,'all');
   allsky.add(*corrupt_list);
+  
+  nomsky = Patch(ns,'all0');
+  nomsky.add(*nom_list);
   
   if add_g_jones:
     # Now, create a series of G Jones for simulated phase and gain errors
@@ -141,22 +126,19 @@ def _define_forest(ns):
     allsky = CorruptComponent(ns,allsky,label='G',station_jones=ns.G);
 
   # create simulated visibilities for sky
-  visibilities = allsky.visibilities(array,observation);
+  vis0 = allsky.visibilities(array,observation);
+  vis1 = nomsky.visibilities(array,observation);
   
-  # create the sinks and attach predicts to them, adding in a noise term
+  # create the sinks and attach residuals to them, adding in a noise term
   for sta1,sta2 in array.ifrs():
-    if noise_stddev is not None:
-      predict = ns.noisy_predict(sta1,sta2) << \
-        visibilities(sta1,sta2) + (ns.noise(sta1,sta2) << noise_matrix(noise_stddev));
-    else:
-      predict = visibilities(sta1,sta2);
+    res = ns.residual(sta1,sta2) << vis0(sta1,sta2) - vis1(sta1,sta2);
     ns.sink(sta1,sta2) << Meq.Sink(station_1_index=sta1-1,
                                    station_2_index=sta2-1,
                                    flag_bit=4,
                                    corr_index=[0,1,2,3],
                                    flag_mask=-1,
                                    output_col='DATA',
-                                   children=predict
+                                   children=res
                                    );
   # set a good sink poll order for optimal parallelization
   # this is an optional step

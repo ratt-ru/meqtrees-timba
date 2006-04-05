@@ -87,7 +87,7 @@ def _define_forest(ns):
   
   Ej = clar_model.EJones(ns,array,source_list);
   corrupt_list = [ 
-    CorruptComponent(ns,src,label='E',jones=Ej(src.name))
+    CorruptComponent(ns,src,label='E',station_jones=Ej(src.name))
     for src in source_list
   ];
                      

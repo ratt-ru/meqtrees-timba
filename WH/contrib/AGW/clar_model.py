@@ -150,8 +150,9 @@ def point_sources_only (ns,tablename=''):
   return source_model
 
 
-def EJones (ns,array,sources):
-  """creates E nodes for simulating the CLAR beam,
+def EJones (ns,array,sources,name="E"):
+  """creates E nodes for simulating the CLAR beam, with elevation-dependent
+  broadening.
   """;
   ns.freq << Meq.Freq;
   # this is the inverse half-power beam width at reference frequency
@@ -163,7 +164,7 @@ def EJones (ns,array,sources):
   # ...squared
   ns.ihpbw_sq << Meq.Sqr(ns.ihpbw)
 
-  Ejones = ns.E;
+  Ejones = ns[name];
   # create per-source,per-station E Jones matrices and attach them
   # to sources
   for src in sources:
@@ -174,5 +175,44 @@ def EJones (ns,array,sources):
       ediag = ns.ediag(station,src.name) << Meq.Sqrt(Meq.Exp(vgain*ns.ihpbw_sq));
       # create E matrix
       Ejones(src.name,station) << Meq.Matrix22(ediag,0,0,ediag);
+      
+  return Ejones;
+
+def EJones_unbroadened (ns,observation,sources,name="E0"):
+  """creates E nodes for simulating the CLAR beam without
+  elevation-dependent broadening.
+  """;
+  ns.freq << Meq.Freq;
+  # this is the inverse half-power beam width at reference frequency
+  width_polc = create_polc(c00=ihpbeam_width);
+  ns.ihpbw0 << Meq.Parm(width_polc,real_polc=width_polc,
+                        use_previous=reuse_solutions,node_groups='Parm');
+  # this is the IHPBW at the given frequency
+  ns.ihpbw << ns.ihpbw0 * ns.freq / ref_frequency;
+  # ...squared
+  ns.ihpbw_sq << Meq.Sqr(ns.ihpbw)
+  ln16 = ns.ln16 << -2.7725887;
+ 
+  Ejones = ns[name];
+  # create per-source,per-station E Jones matrices and attach them
+  # to sources
+  for src in sources:
+    lmn = src.lmn(observation.radec0());
+    l = ns.l(src.name) << Meq.Selector(lmn,index=0);
+    m = ns.m(src.name) << Meq.Selector(lmn,index=1);
+
+    # compute CLAR voltage gain as seen for this source at this station
+    # first square L and M
+    l_sq = ns.l_sq(src.name) << Meq.Sqr(l);
+    m_sq = ns.m_sq(src.name) << Meq.Sqr(m);
+
+    # add L and M gains together, then multiply by log 16
+    vgain = ns.v_gain(name,src.name) << ( l_sq + m_sq )*ln16;
+
+    # this now needs to be multiplied by width and exponent taken to get the
+    # true beam power
+    ediag = ns.ediag(name,src.name) << Meq.Sqrt(Meq.Exp(vgain*ns.ihpbw_sq));
+    
+    Ejones(src.name) << Meq.Matrix22(ediag,0,0,ediag);
       
   return Ejones;
