@@ -29,6 +29,7 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 #include <algorithm>
+#include <map>
 
 
 //#define DEBUG
@@ -54,7 +55,7 @@ bool operator <(const IdVal& a, const IdVal& b);
 
 class IdVal {
 				public:
-				blitz::Array<int,1> id; //sequence of axes t,f,perturbed values...
+				int *id; //sequence of axes t,f,perturbed values...
 				// if no f or perturbed values are defined
 				// they are set to -1
 				double val;
@@ -65,6 +66,15 @@ bool operator <(const IdVal& a, const IdVal& b)
 {
   return a.val< b.val;
 }
+// for the map less than comparison
+struct compare_vec{
+   bool operator()(const std::vector<int> v1, const std::vector<int> v2) const
+	 {
+	   return ((v1[0] < v2[0]) 
+			||( (v1[0] == v2[0]) && (v1[1] < v2[1]))
+		 	||( (v1[0] == v2[0]) && (v1[1] == v2[1]) && (v1[2] < v2[2])));
+	 }
+};
 /********************************************/
 
 
@@ -139,9 +149,11 @@ int Compounder::pollChildren (Result::Ref &resref,
 	
 
 	Result::Ref child_res;
+	childres.resize(2);
 	unlockStateMutex();
 	int code=result_code_=children().getChild(0).execute(child_res,request);
 	lockStateMutex();
+	childres[0]=child_res;
 	//handle standard error states
 	if(forest().abortFlag())
 			return RES_ABORT;
@@ -162,8 +174,6 @@ int Compounder::pollChildren (Result::Ref &resref,
 	// extract values from the result of child 0 to define our axes
 	Request::Ref newreq(request);
 
-	childres.resize(2);
-	childres[0]=child_res;
 	/* if we discover spids */
 	if ( request.requestType() ==RequestType::DISCOVER_SPIDS ) {  
 
@@ -201,19 +211,14 @@ int Compounder::pollChildren (Result::Ref &resref,
 	 unlockStateMutex();
 	 code=children().getChild(1).execute(child_res1,*newreq);
 	 lockStateMutex();
+#ifdef DEBUG
 	 cout<<"Request Id="<<newreq().id()<<endl;
-	 //cout<<"Result has cells="<<child_res1().hasCells()<<endl;
-	 //cout<<"Result ="<<*child_res1<<endl;
-	 //FailWhen(child_res1().hasFails(),"Got Fails in spid discovery");
-	 //if (!child_res1().hasCells())
-	//	child_res1().setCells(outcells);
+#endif
 
-	 childres[0]=child_res;
 	 childres[1]=child_res1;
-	 // resref.xfer(child_res1);
 	 resref.detach();
-	 //result_=child_res1;
 	 unlockStateMutex();
+	 //we do not have any step children ??
 	// stepchildren().backgroundPoll(*newreq);
 	 timers().children.stop();
 	 lockStateMutex();
@@ -238,11 +243,16 @@ int Compounder::pollChildren (Result::Ref &resref,
 	double start0,end0,start1,end1;
   blitz::Array<double,1> cen0;
 	blitz::Array<double,1> cen1;
+
+	int ntime,nfreq,nplanes;
+
   // get first vellset
   if (nvs>0) { 		
 		Vells vl0=child_res().vellSet(0).getValue();
-		int nx=vl0.extent(0);
-		int ny=vl0.extent(1);
+		int nx=ntime=vl0.extent(0);
+		int ny=nfreq=vl0.extent(1);
+		nplanes=child_res().vellSet(0).numPertSets()*child_res().vellSet(0).numSpids();
+
 #ifdef DEBUG
 		cout<<"Dimension "<<nx<<","<<ny<<endl;
 #endif
@@ -260,6 +270,10 @@ int Compounder::pollChildren (Result::Ref &resref,
 		Vells vl0=child_res().vellSet(1).getValue();
 		int nx=vl0.extent(0);
 		int ny=vl0.extent(1);
+
+		if (ntime<nx) {ntime=nx;}
+		if (nfreq<ny) {nfreq=ny;}
+		if (nplanes<child_res().vellSet(1).numPertSets()*child_res().vellSet(1).numSpids()) { nplanes=child_res().vellSet(1).numPertSets()*child_res().vellSet(1).numSpids();}
 #ifdef DEBUG
 		cout<<"Dimension "<<nx<<","<<ny<<endl;
 #endif
@@ -273,6 +287,22 @@ int Compounder::pollChildren (Result::Ref &resref,
 		cout<<"Axis 2="<<cen1<<endl;
 #endif
   }
+	nplanes++; //we consider the value[] vells as the 0-th plane
+
+
+#ifdef DEBUG
+	cout<<"Time ="<<ntime<<" Freq="<<nfreq<<" Planes="<<nplanes<<endl;
+#endif
+
+	// the array for reverse mapping of sorted values
+	// length =ntime*nfreq*nplanes
+	// columns are= time, freq, plane, axis1, axis2
+	// where axis1, axis2 are the location of the value on
+	// sorted axis arrays
+	// key=(time,freq,plane), value=(axis1,axis2)
+	map<const std::vector<int>, int *, compare_vec> revmap;
+	//blitz::Array<int,2> revmap(ntime*nfreq*nplanes,5)=0;
+
 	//if the grid function is not monotonically increasing, we get
 	//unsorted arrays for axes.
   //if cen0 or cen1 is not sorted, we recreate that
@@ -281,52 +311,92 @@ int Compounder::pollChildren (Result::Ref &resref,
 	blitz::Array<IdVal,1> sarray0(cen0.extent(0));
 	//copy data
 	for (int i=0; i<cen0.extent(0);i++) {
-		sarray0(i).id.resize(1);
-		sarray0(i).id(0)=i;
+		sarray0(i).id=new int(3);
+		sarray0(i).id[0]=i;
+		sarray0(i).id[1]=0;
+		sarray0(i).id[2]=0;
 		sarray0(i).val=cen0(i);
 	}
 #ifdef DEBUG
 	cout<<"Before sort"<<endl;
 	for (int i=0; i<sarray0.extent(0);i++) {
-		cout<<i<<"="<<sarray0(i).id<<","<<sarray0(i).val<<endl;
+		cout<<i<<"="<<sarray0(i).id[0]<<","<<sarray0(i).val<<endl;
 	}
 #endif
 	std::sort(sarray0.data(), sarray0.data()+sarray0.extent(0));
 #ifdef DEBUG
 	cout<<"After sort"<<endl;
 	for (int i=0; i<sarray0.extent(0);i++) {
-		cout<<i<<"="<<sarray0(i).id<<","<<sarray0(i).val<<endl;
+		cout<<i<<"="<<sarray0(i).id[0]<<","<<sarray0(i).val<<endl;
 	}
 #endif
 	//overwrite the old array
+	//also build rev map
+	std::vector<int> aa(3);
 	for (int i=0; i<sarray0.extent(0);i++) {
 		cen0(i)=sarray0(i).val;
+		aa[0]=sarray0(i).id[0];
+		aa[1]=sarray0(i).id[1];
+		aa[2]=sarray0(i).id[2];
+		int *bb=new int(2);
+		bb[0]=i;
+		bb[1]=0; //not yet defined
+		revmap[aa]=bb;
 	}
+
 	blitz::Array<IdVal,1> sarray1(cen1.extent(0));
 	//copy data
 	for (int i=0; i<cen1.extent(0);i++) {
-		sarray1(i).id.resize(1);
-		sarray1(i).id(0)=i;
+		sarray1(i).id=new int(3);
+		sarray1(i).id[0]=i;
+		sarray1(i).id[1]=0;
+		sarray1(i).id[2]=0;
 		sarray1(i).val=cen1(i);
 	}
 #ifdef DEBUG
 	cout<<"Before sort"<<endl;
 	for (int i=0; i<sarray1.extent(0);i++) {
-		cout<<i<<"="<<sarray1(i).id<<","<<sarray1(i).val<<endl;
+		cout<<i<<"="<<sarray1(i).id[0]<<","<<sarray1(i).val<<endl;
 	}
 #endif
 	std::sort(sarray1.data(), sarray1.data()+sarray1.extent(0));
 #ifdef DEBUG
 	cout<<"After sort"<<endl;
 	for (int i=0; i<sarray1.extent(0);i++) {
-		cout<<i<<"="<<sarray1(i).id<<","<<sarray1(i).val<<endl;
+		cout<<i<<"="<<sarray1(i).id[0]<<","<<sarray1(i).val<<endl;
 	}
 #endif
 	//overwrite the old array
+	//also update rev map
 	for (int i=0; i<sarray1.extent(0);i++) {
 		cen1(i)=sarray1(i).val;
-	}
+		aa[0]=sarray1(i).id[0];
+		aa[1]=sarray1(i).id[1];
+		aa[2]=sarray1(i).id[2];
+		//try to get value
+		//
+		if(revmap.find(aa)==revmap.end()) {
+				//not found
+		    int *bb=new int(2);
+		    bb[0]=0;//not yet defined
+		    bb[1]=i; 
+		    revmap[aa]=bb;
+		} else {
+		    int *bb=revmap[aa];
+		    bb[1]=i; 
+		}
 
+	}
+	map<const std::vector<int>, int *, compare_vec>::iterator mapiter=revmap.begin();
+  //first: key, second: value
+#ifdef DEBUG
+	while(mapiter!=revmap.end()) {
+		std::vector<int> key=mapiter->first;
+		int *value=mapiter->second;
+		cout<<"["<<key[0]<<","<<key[1]<<","<<key[2]<<"] = ["<<value[0]<<","<<value[1]<<"]"<<endl;
+		mapiter++;
+	}
+#endif
 	//calculate grid spacing and bounds
 	blitz::Array<double,1> space0(cen0.extent(0));
 		//create a space grid
@@ -409,25 +479,35 @@ int Compounder::pollChildren (Result::Ref &resref,
 	blitz::Array<double,2> A=out.as<double,2>()(blitz::Range::all(),blitz::Range::all());
 	blitz::Array<double,4> B=in.getArray<double,4>();
 	//reindexing arrays
-	for (int i=0;i<A.extent(0);i++)
-	  for (int j=0;j<A.extent(1);j++) {
-    //find the correct location for this (t,f) point in B
-		//need to look up axes a,b for this	
-		//Note: we only search for time (or i in this case)
-		int k=0;
-		while( (k< sarray0.extent(0)) && (sarray0(k).id(0)!=i) ) {k++;}
-		int l=0;
-		while( (l< sarray1.extent(0)) && (sarray1(l).id(0)!=i)) {l++;}
-
-		//special case, if we overstep our k,l limits
-		//that means that particular axis is a scalar so use the value at 0
-		if(k==sarray0.extent(0)) {k=0;}
-		if(l==sarray0.extent(1)) {l=0;}
+	
+	int intime=incells.ncells(Axis::TIME);
+	int infreq=incells.ncells(Axis::FREQ);
+	int itime, ifreq,iplane;
+	mapiter=revmap.begin();
+	while(mapiter!=revmap.end()) {
+		std::vector<int> key=mapiter->first;
+		int *value=mapiter->second;
+		itime=key[0];
+		ifreq=key[1];
+		iplane=key[2];
+    
+		A(itime,ifreq)=B(itime,ifreq,value[0],value[1]);
+		//hangle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
+		if ((ntime==1) && (intime> 1)) {
+			for (int i=1; i<intime;i++)
+		   A(i,ifreq)=B(itime,ifreq,value[0],value[1]);
+		}
+		if ((nfreq==1) && (infreq> 1)) {
+			for (int i=1; i<infreq;i++)
+		   A(itime,i)=B(itime,ifreq,value[0],value[1]);
+		}
 #ifdef DEBUG
-		//cout<<"for tf ("<<i<<","<<j<<") : ab ["<<k<<","<<l<<"]"<<endl;
+		cout<<"["<<key[0]<<","<<key[1]<<","<<key[2]<<"] = ["<<value[0]<<","<<value[1]<<"]"<<endl;
 #endif
-		A(i,j)=B(i,j,k,l);
-  }
+		mapiter++;
+	}
+
+
 	// handle perturbed sets if any
   if (npsets >0) {
 #ifdef DEBUG
@@ -441,30 +521,51 @@ int Compounder::pollChildren (Result::Ref &resref,
 
     	blitz::Array<double,2> pA=pout.as<double,2>()(blitz::Range::all(),blitz::Range::all());
 	blitz::Array<double,4> pB=pin.getArray<double,4>();
-	for (int i=0;i<pA.extent(0);i++)
-	  for (int j=0;j<pA.extent(1);j++) {
-    //find the correct location for this (t,f) point in B
-		//need to look up axes a,b for this	
-		//Note: we only search for time (or i in this case)
-		int k=0;
-		while( (k< sarray0.extent(0)) && (sarray0(k).id(0)!=i)) {k++;}
-		int l=0;
-		while( (l< sarray1.extent(0)) && (sarray1(l).id(0)!=i)) {l++;}
 
-		//special case, if we overstep our k,l limits
-		//that means that particular axis is a scalar so use the value at 0
-		if(k==sarray0.extent(0)) {k=0;}
-		if(l==sarray0.extent(1)) {l=0;}
+	mapiter=revmap.begin();
+	while(mapiter!=revmap.end()) {
+		std::vector<int> key=mapiter->first;
+		int *value=mapiter->second;
+		itime=key[0];
+		ifreq=key[1];
+		iplane=key[2];
+    
+		pA(itime,ifreq)=pB(itime,ifreq,value[0],value[1]);
+		//hangle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
+		if ((ntime==1) && (intime> 1)) {
+			for (int i=1; i<intime;i++)
+		   pA(i,ifreq)=pB(itime,ifreq,value[0],value[1]);
+		}
+		if ((nfreq==1) && (infreq> 1)) {
+			for (int i=1; i<infreq;i++)
+		   pA(itime,i)=pB(itime,ifreq,value[0],value[1]);
+		}
 #ifdef DEBUG
-		//cout<<"for tf ("<<i<<","<<j<<") : ab ["<<k<<","<<l<<"]"<<endl;
+		cout<<"["<<key[0]<<","<<key[1]<<","<<key[2]<<"] = ["<<value[0]<<","<<value[1]<<"]"<<endl;
 #endif
-		pA(i,j)=pB(i,j,k,l);
-  }
+		mapiter++;
+	}
+
 
 	 }
 	}
 	res1.setVellSet(0,ref);
 	res1.setCells(incells);
+
+
+	//delete map
+	mapiter=revmap.begin();
+	while(mapiter!=revmap.end()) {
+		delete mapiter->second;
+		mapiter++;
+	}
+
+	for (int i=0; i<sarray0.extent(0);i++) {
+			delete sarray0(i).id;
+	}
+	for (int i=0; i<sarray1.extent(0);i++) {
+			delete sarray1(i).id;
+	}
 
 	childres[1]=child_res;
   //return Node::pollChildren(resref,childres,newreq);
