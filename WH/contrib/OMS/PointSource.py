@@ -79,10 +79,8 @@ class PointSource(SkyComponent):
       coh_node << Meq.Matrix22(xx,xy,yx,yy) / self.n(radec0);
     return coh_node;
     
-  def make_nominal_visibilities (self,visnode,array,observation):
-    """creates nodes computing visibilities of given source for all ifrs."""
+  def make_phase_shift (self,vis,vis0,array,observation):
     radec0 = observation.radec0();
-    cohnode = self.coherency(radec0);
     # create station-based K Jones (phase shift) for this source.
     # use L,M,(N-1) for lmn (fringe stopping?). NB: this could be made
     # an Array option in the future
@@ -94,8 +92,14 @@ class PointSource(SkyComponent):
       Kj(station) << Meq.VisPhaseShift(lmn=lmn_1,uvw=uvw(station));
     # work out visibilities
     for (sta1,sta2) in array.ifrs():
-      visnode(sta1,sta2) << Meq.MatrixMultiply(
+      vis(sta1,sta2) << Meq.MatrixMultiply(
         Kj(sta1),
-        cohnode,
+        vis0(sta1,sta2),
         Kj(sta2,'conj') ** Meq.ConjTranspose(Kj(sta2)));
     pass;
+    
+  def make_visibilities (self,nodes,array,observation):
+    cohnode = lambda sta1,sta2: self.coherency(observation.radec0());
+    self.make_phase_shift(nodes,cohnode,array,observation);
+    return nodes;
+   

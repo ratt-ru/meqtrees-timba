@@ -28,33 +28,10 @@ class SkyComponent(object):
     if not isinstance(dec,(int,float)):
       raise TypeError,"dec: numeric value expected";
     self._polcs.dec = create_polc(c00=dec);
-    # init empty list of Jones matrices
-    self._jones = [];
     # store other attributes
     self._parm_options = parm_options;
     pass
     
-  def add_station_jones (self,jones,prepend=False):
-    """adds a per-station image-plane effect represented by a Jones
-    matrix. 'jones' should be a callable object (e.g. an unqualified node)
-    such that jones(x) returns the Jones matrix node for station x, or None
-    if no matrix is to be applied""";
-    # prepend to list
-    if prepend:
-      self._jones.insert(0,jones);
-    else:
-      self._jones.append(jones);
-    
-  def add_jones (self,jones,prepend=False):
-    """adds an station-independent image-plane effect represented by the 
-    given Jones matrix. Argument should be an valid node.""";
-    # emulate a per-station jones so that we may jones matrices uniformly 
-    # in visibility()
-    self.add_station_jones(lambda sta : jones,prepend);
-    
-  def jones_list (self):
-    return self._jones;
-
   def _parm (self,parmname):
     """Helper function. Creates a Meq.Parm node for the given parameter, using
     the polc stored in self._polcs.""";
@@ -82,53 +59,24 @@ class SkyComponent(object):
       lmn << Meq.LMN(radec_0=radec0,radec=self.radec());
     return lmn;
     
-  def apply_jones (self,vis,vis0,ifr_list):
-    """Creates nodes to apply the Jones chain associated with this 
-    component.
-    'ifr_list' should be a list of (sta1,sta2) pairs
-    'vis' is the output node which will be qualified with (sta1,sta2)
-    'vis0' is an input visibility node which will be qualified with (sta1,sta2)
+  def make_visibilities (self,nodes,array,observation):
+    """Abstract method.
+    Creates nodes computing nominal visibilities of this component 
+    Actual nodes are then created as nodes(name,sta1,sta2) for all array.ifrs().
+    Returns partially qualified visibility node which must be qualified 
+    with an (sta1,sta2) pair.
     """;
-    # multiply input visibilities by our jones list
-    for (sta1,sta2) in ifr_list:
-      # collect list of per-source station-qualified Jones terms
-      terms = [ jones(sta1) for jones in self.jones_list() if jones(sta1) is not None ];
-      # reverse list since they are applied in reverse order
-      # first (J2*J1*C*...)
-      terms.reverse();
-      terms.append(vis0(sta1,sta2));
-      # collect list of conjugate terms. The '**' operator
-      # is for init-if-not-initialized
-      terms += [ jones(sta2)('conj') ** Meq.ConjTranspose(jones(sta2))
-                 for jones in self.jones_list() if jones(sta2) is not None ];
-      # create multiplication node
-      vis(sta1,sta2) << Meq.MatrixMultiply(*terms);
-    return vis;
+    raise TypeError,type(self).__name__+".make_visibilities() not defined";
     
-  def make_nominal_visibilities (self,visnode,array,observation):
-    """Creates nodes computing nominal (i.e. uncorrupted) visibilities 
-    of component.
-    Nodes are created as visnode(sta1,sta2) for all array.ifrs().
-    """;
-    raise TypeError,type(self).__name__+".make_clean_visibilities() not defined";
-    
-  def visibility (self,array,observation):
-    """Creates nodes computing visibilities of component for all ifrs.
-    If Jones terms are attached, corrupts them with the Jones terms.
-    Returns unqualified visibility node which must be qualified 
+  def visibilities  (self,array,observation,nodes=None):
+    """Creates nodes computing visibilities of component.
+    If nodes=None, creates nodes as ns.visibility:'name', with extra
+    qualifiers from observation.radec0(), otherwise uses 'nodes' directly. 
+    Actual nodes are then created as node(name,sta1,sta2) for all array.ifrs().
+    Returns partially qualified visibility node which must be qualified 
     with an (sta1,sta2) pair.""";
-    radec0 = observation.radec0();
-    # check if a vis node is initialized for first ifr, if it is
-    # we don't need to do anything
-    # look for visibility node relative to this direction
-    visnode = self.ns.visibility(self.name).qadd(radec0);
-    if not visnode(*(array.ifrs()[0])).initialized():
-      # do we have extra jones terms?
-      if self._jones:
-        visnom = visnode('nom');
-        self.make_nominal_visibilities(visnom,array,observation);
-        self.apply_jones(visnode,visnom,array.ifrs());
-      # no jones terms, use nominal visibilities directly
-      else:
-        self.make_nominal_visibilities(visnode,array,observation);
-    return visnode;
+    if nodes is None:
+      nodes = self.ns.visibility(self.name).qadd(observation.radec0());
+    if not nodes(*(array.ifrs()[0])).initialized():
+      self.make_visibilities(nodes,array,observation);
+    return nodes;

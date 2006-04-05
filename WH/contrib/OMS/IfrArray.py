@@ -43,7 +43,7 @@ class IfrArray (object):
     return self.ns.xyz;
     
   def uvw (self,observation,*quals):
-    """returns UVW node(s) for a given observation.
+    """returns station UVW node(s) for a given observation.
     If a station is supplied, returns UVW node for that station""";
     radec0 = observation.radec0();
     uvw = self.ns.uvw.qadd(radec0);
@@ -72,3 +72,35 @@ class IfrArray (object):
           uvw(station) << uvw_def;
     return uvw(*quals);
   
+  def uvw_ifr (self,observation,*quals):
+    """returns interferometer UV node(s) for a given observation.
+    If an IFR is supplied, returns UV node for that IFR""";
+    radec0 = observation.radec0();
+    uvw_ifr = self.ns.uvw_ifr.qadd(radec0);
+    if not uvw_ifr(*(self.ifrs()[0])).initialized():
+      uvw = self.uvw(observation);
+      for sta1,sta2 in self.ifrs():
+        uvw_ifr(sta1,sta2) << uvw(sta2) - uvw(sta1);
+    return uvw_ifr(*quals);
+    
+  def uv (self,observation,*quals):
+    """returns station UV node(s) for a given observation.
+    If a station is supplied, returns UV node for that station""";
+    radec0 = observation.radec0();
+    uv = self.ns.uv.qadd(radec0);
+    if not uv(self.stations()[0]).initialized():
+      uvw = self.uvw(observation);
+      for station in self.stations():
+        uv(station) << Meq.Selector(uvw(station),index=(0,1),multi=True);
+    return uv(*quals);
+
+  def uv_ifr (self,observation,*quals):
+    """returns station UV node(s) for a given observation.
+    If a station is supplied, returns UV node for that station""";
+    radec0 = observation.radec0();
+    uv_ifr = self.ns.uv_ifr.qadd(radec0);
+    if not uv_ifr(*(self.ifrs()[0])).initialized():
+      uvw_ifr = self.uvw_ifr(observation);
+      for ifr in self.ifrs():
+        uv_ifr(*ifr) << Meq.Selector(uvw_ifr(*ifr),index=(0,1),multi=True);
+    return uv_ifr(*quals);
