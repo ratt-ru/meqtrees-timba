@@ -90,14 +90,25 @@ def _define_forest(ns):
   source_list = source_model(ns);
   
   if add_e_jones:
+    ## this uses the "true" CLAR beam with elevation broadening in
+    ## effect, with a separate E per station
     Ej = clar_model.EJones(ns,array,source_list);
-    Ej0 = clar_model.EJones_unbroadened(ns,observation,source_list);
     corrupt_list = [ 
       CorruptComponent(ns,src,label='E',station_jones=Ej(src.name))
       for src in source_list
     ];
+#     ## this uses a CLAR beam without elevation broadening
+#     Ej0 = clar_model.EJones_unbroadened(ns,observation,source_list);
+#     nom_list = [ 
+#       CorruptComponent(ns,src,label='E0',jones=Ej0(src.name))
+#       for src in source_list
+#     ];
+    ## this uses a broadened beam, but a single "average" E for
+    ## every station, rather than computing the per-station Es
+    for src in source_list:
+      ns.E0(src.name) << Meq.Add(*[ns.E(src.name,st) for st in array.stations()])/array.num_stations();
     nom_list = [ 
-      CorruptComponent(ns,src,label='E0',jones=Ej0(src.name))
+      CorruptComponent(ns,src,label='E0',jones=ns.E0(src.name))
       for src in source_list
     ];
   else:
