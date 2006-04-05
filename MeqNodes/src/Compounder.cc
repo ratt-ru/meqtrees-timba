@@ -495,29 +495,29 @@ int Compounder::pollChildren (Result::Ref &resref,
 		iplane=key[2];
     
 		A(itime,ifreq)=B(itime,ifreq,value[0],value[1]);
-		//handle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
-		if ((ntime==1) && (intime> 1)) {
-			for (int i=1; i<intime;i++) {
-#ifdef DEBUG
-		cout<<"[["<<i<<","<<ifreq<<"]="<<itime<<","<<ifreq<<","<<value[0]<<","<<value[1]<<"]]"<<endl;
-#endif
-		   A(i,ifreq)=B(itime,ifreq,value[0],value[1]);
-			}
-		}
-		if ((nfreq==1) && (infreq> 1)) {
-			for (int i=1; i<infreq;i++) {
-#ifdef DEBUG
-		cout<<"[["<<itime<<","<<i<<"]="<<itime<<","<<ifreq<<","<<value[0]<<","<<value[1]<<"]]"<<endl;
-#endif
-		   A(itime,i)=B(itime,ifreq,value[0],value[1]);
-			}
-		}
-#ifdef DEBUG
-		cout<<"["<<key[0]<<","<<key[1]<<","<<key[2]<<"] = ["<<value[0]<<","<<value[1]<<"]"<<endl;
-#endif
+
 		mapiter++;
 	}
 
+		//handle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
+	if ((ntime<intime) || (nfreq<infreq)) {
+	   //we have degeneracy here
+	   if ((ntime==intime) && (infreq>nfreq)) {
+				//degeneracy in frequency, copy values from freq 0
+				for (int i=1; i<infreq; i++)
+				  A(blitz::Range::all(),i)=A(blitz::Range::all(),0);
+		 } else if ((intime>ntime) && (infreq==nfreq)) {
+			 // degeneracy in time, copy values from time 0
+				for (int i=1; i<intime; i++)
+				  A(i,blitz::Range::all())=A(0,blitz::Range::all());
+		 } else {
+			//degeneracy in both, copy values from t,f 0,0
+				for (int i=1; i<intime; i++)
+				  A(i,0)=A(0,0);
+				for (int i=1; i<infreq; i++)
+				  A(blitz::Range::all(),i)=A(blitz::Range::all(),0);
+		 }
+	}
 
 	// handle perturbed sets if any
   if (npsets >0) {
@@ -542,20 +542,29 @@ int Compounder::pollChildren (Result::Ref &resref,
 		iplane=key[2];
     
 		pA(itime,ifreq)=pB(itime,ifreq,value[0],value[1]);
-		//hangle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
-		if ((ntime==1) && (intime> 1)) {
-			for (int i=1; i<intime;i++)
-		   pA(i,ifreq)=pB(itime,ifreq,value[0],value[1]);
-		}
-		if ((nfreq==1) && (infreq> 1)) {
-			for (int i=1; i<infreq;i++)
-		   pA(itime,i)=pB(itime,ifreq,value[0],value[1]);
-		}
-#ifdef DEBUG
-		cout<<"["<<key[0]<<","<<key[1]<<","<<key[2]<<"] = ["<<value[0]<<","<<value[1]<<"]"<<endl;
-#endif
 		mapiter++;
 	}
+
+		//handle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
+	if ((ntime<intime) || (nfreq<infreq)) {
+	   //we have degeneracy here
+	   if ((ntime==intime) && (infreq>nfreq)) {
+				//degeneracy in frequency, copy values from freq 0
+				for (int i=1; i<infreq; i++)
+				  pA(blitz::Range::all(),i)=pA(blitz::Range::all(),0);
+		 } else if ((intime>ntime) && (infreq==nfreq)) {
+			 // degeneracy in time, copy values from time 0
+				for (int i=1; i<intime; i++)
+				  pA(i,blitz::Range::all())=pA(0,blitz::Range::all());
+		 } else {
+			//degeneracy in both, copy values from t,f 0,0
+				for (int i=1; i<intime; i++)
+				  pA(i,0)=pA(0,0);
+				for (int i=1; i<infreq; i++)
+				  pA(blitz::Range::all(),i)=pA(blitz::Range::all(),0);
+		 }
+	}
+
 
 
 	 }
