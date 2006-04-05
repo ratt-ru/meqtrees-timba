@@ -7,7 +7,7 @@ class CorruptComponent(SkyComponent):
   """A CorruptComponent represents an SkyComponent, plus a set of
   associated Jones matrices that corrupt the SkyComponent's visibilities.
   """;
-  def __init__(self,ns,skycomp,label='corrupt',jones=None):
+  def __init__(self,ns,skycomp,label='corrupt',station_jones=None,jones=None):
     """Initializes a corrupt component. skycomp is a SkyComponent
     object. 
     'label' is used to qualify visibilities.
@@ -17,8 +17,10 @@ class CorruptComponent(SkyComponent):
     self.ns       = ns;
     self.skycomp = skycomp;
     self._jones = [];
+    if station_jones is not None:
+      self.add_station_jones(station_jones);
     if jones is not None:
-      self.add_station_jones(jones);
+      self.add_jones(jones);
     
   def add_station_jones (self,jones,prepend=False):
     """adds a per-station image-plane effect represented by a Jones

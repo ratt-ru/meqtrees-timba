@@ -48,8 +48,8 @@ noise_stddev = None;
 # noise_stddev = 0.05;
 
 # which source model to use
-# source_model = clar_model.point_and_extended_sources;
-source_model = clar_model.point_sources_only
+source_model = clar_model.point_and_extended_sources;
+# source_model = clar_model.point_sources_only
 
 # bookmarks
 Settings.forest_state = record(bookmarks=[
