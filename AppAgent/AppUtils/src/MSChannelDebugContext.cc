@@ -3,6 +3,6 @@
 namespace AppAgent
 {
 
-InitDebugContext(MSChannelDebugContext,"MSVisAgent");
+InitDebugContext(MSChannelDebugContext,"MSChannel");
 
 };

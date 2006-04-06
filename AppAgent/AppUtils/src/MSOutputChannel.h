@@ -20,8 +20,8 @@
 //
 //  $Id$
 
-#ifndef MSVISAGENT_SRC_MSVISOUTPUTAGENT_H_HEADER_INCLUDED_F5146265
-#define MSVISAGENT_SRC_MSVISOUTPUTAGENT_H_HEADER_INCLUDED_F5146265
+#ifndef MSVISAGENT_SRC_MSOUTPUTCHANNEL_H_HEADER_INCLUDED_F5146265
+#define MSVISAGENT_SRC_MSOUTPUTCHANNEL_H_HEADER_INCLUDED_F5146265
     
 #include <AppAgent/FileChannel.h>
 #include <AppUtils/MSChannelDebugContext.h>
@@ -85,13 +85,16 @@ class MSOutputChannel : public FileChannel
     ImportDebugContext(MSChannelDebugContext);
     
   protected:
+    //## closes and detaches from the MS
+    void close_ms ();
+      
+      
     //##ModelId=3EC25F74033F
     //##Documentation
     //## called to put more objects on the stream. Returns SUCCESS if something
     //## was put on, or <0 code (ERROR/CLOSED/whatever)
     virtual int refillStream();
 
-  private:
     //##ModelId=3E2ED3290292
     typedef struct 
     {
@@ -129,6 +132,9 @@ class MSOutputChannel : public FileChannel
     //##          WAIT      stream has been suspended from other end    
     //##          CLOSED    stream closed
     virtual void doPutTile (const VTile &tile);
+    
+    
+    virtual void doPutFooter (const DMI::Record &footer);
 
     //##ModelId=3F5F436303AB
     void putColumn (Column &col,int irow,const LoMat_fcomplex &data);
@@ -151,7 +157,12 @@ class MSOutputChannel : public FileChannel
     int tilecount_;
     //##ModelId=3E2D61D9024A
     int rowcount_;
-        
+    
+    bool flip_freq_;
+    
+    int channels_[2];
+    int chan_incr_;
+
     //##ModelId=3E2D5FF60119
     casa::Slicer column_slicer_;
     
@@ -169,8 +180,6 @@ class MSOutputChannel : public FileChannel
     
     //##ModelId=3F5F43630379
     casa::Array<casa::Complex> null_cell_;
-    
-    bool flip_freq_;
 };
 
 

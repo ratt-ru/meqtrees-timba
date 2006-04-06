@@ -72,10 +72,20 @@ int MSOutputChannel::init (const DMI::Record &params)
 void MSOutputChannel::close (const string &msg)
 {
   FileChannel::close(msg);
+  close_ms();
+  cdebug(1)<<"closed\n";
+}
+
+void MSOutputChannel::close_ms ()
+{
   Mutex::Lock lock(aipspp_mutex);
+  rowFlagCol_.reference(casa::ScalarColumn<casa::Bool>());
+  flagCol_.reference(casa::ArrayColumn<casa::Bool>());
+  datacol_.col.reference(casa::ArrayColumn<casa::Complex>());
+  predictcol_.col.reference(casa::ArrayColumn<casa::Complex>());
+  rescol_.col.reference(casa::ArrayColumn<casa::Complex>());
   ms_ = MeasurementSet();
   msname_ = "(none)";
-  cdebug(1)<<"closed\n";
 }
 
 //##ModelId=3EC25BF002D4
@@ -106,13 +116,11 @@ void MSOutputChannel::postEvent (const HIID &id, const ObjRef &data,AtomicID cat
     }
     else if( code == FOOTER )
     {
-      if( state() == DATA )
+      if( state() == DATA || state() == HEADER )
       {
-        cdebug(2)<<"got footer event, flushing & closing ms\n";
+        DMI::Record::Ref ref = data;
+        doPutFooter(*ref);
         setState(CLOSED);
-        ms_.unlock();
-        ms_.flush();
-        ms_ = MeasurementSet();
       }
       else
       {
@@ -123,10 +131,12 @@ void MSOutputChannel::postEvent (const HIID &id, const ObjRef &data,AtomicID cat
   catch( std::exception &exc )
   {
     cdebug(1)<<"error handling event ["<<id<<"]: "<<exceptionToString(exc);
+    throw;
   }
   catch( ... )
   {
     cdebug(1)<<"unknown exception handling event ["<<id<<"]\n";
+    throw;
   }
 }
 
@@ -168,13 +178,13 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
   msname_ = header[FMSName].as<string>();
   ms_ = MeasurementSet(msname_,TableLock(TableLock::AutoNoReadLocking),Table::Update);
   // get range of channels from header and setup slicer
-  int chan0 = header[FChannelStartIndex].as<int>(),
-      chan1 = header[FChannelEndIndex].as<int>(),
-      chan_incr_ = header[FChannelIncrement].as<int>(1);
+  channels_[0] = header[FChannelStartIndex].as<int>();
+  channels_[1] = header[FChannelEndIndex].as<int>();
+  chan_incr_ = header[FChannelIncrement].as<int>(1);
   int ncorr = header[FCorr].size(Tpstring);
   flip_freq_ = header[FFlipFreq].as<bool>(false);
-  column_slicer_ = Slicer(IPosition(2,0,chan0),
-                          IPosition(2,ncorr-1,chan1),
+  column_slicer_ = Slicer(IPosition(2,0,channels_[0]),
+                          IPosition(2,ncorr-1,channels_[1]),
                           IPosition(2,1,chan_incr_),
                           Slicer::endIsLast);
   IPosition origshape = LoShape(header[FOriginalDataShape].as_vector<int>());
@@ -208,7 +218,7 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
 
   cdebug(2)<<"got header for MS "<<msname_<<endl;
   cdebug(2)<<"  orig shape: "<<origshape<<endl;
-  cdebug(2)<<"  channels: "<<chan0<<"-"<<chan1<<endl;
+  cdebug(2)<<"  channels: "<<channels_[0]<<"-"<<channels_[1]<<endl;
   cdebug(2)<<"  correlations: "<<ncorr<<endl;
   cdebug(2)<<"  write_flags: "<<write_flags_<<endl;
   cdebug(2)<<"  flagmask: "<<flagmask_<<endl;
@@ -218,6 +228,15 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
   // set state to indicate success
   tilecount_ = rowcount_ = 0;
 }
+
+void MSOutputChannel::doPutFooter (const DMI::Record &)
+{
+  cdebug(2)<<"got footer event, flushing & closing ms\n";
+  ms_.unlock();
+  ms_.flush();
+  ms_ = MeasurementSet();
+}
+
 
 //##ModelId=3F5F436303AB
 void MSOutputChannel::putColumn (Column &col,int irow,const LoMat_fcomplex &data)

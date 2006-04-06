@@ -3,7 +3,7 @@ lib_LTLIBRARIES = libapputils.la
 DOCHDRS = MSInputChannel.h MSOutputChannel.h MSChannelVocabulary.h 
 
 libapputils_la_SOURCES = AID-AppUtils-Registry.cc \
-  MSInputChannel.cc MSOutputChannel.cc \
+  MSInputChannel.cc MSOutputChannel.cc MSSeqOutputChannel.cc \
   MSChannelDebugContext.cc 
 
 glishdir = $(libexecdir)/glish/appagent

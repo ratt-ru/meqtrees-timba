@@ -30,7 +30,7 @@
 #include <AppAgent/VisDataVocabulary.h>
 #include <AppAgent/MTQueueChannel.h>
 #include <AppUtils/MSInputChannel.h>
-#include <AppUtils/MSOutputChannel.h>
+#include <AppUtils/MSSeqOutputChannel.h>
 #include <MeqServer/MeqPython.h>
 #include <MeqServer/Spigot.h>
 #include <MeqServer/Sink.h>
@@ -46,6 +46,7 @@ InitDebugContext(Meq::VisDataMux,"VisDataMux");
 const HIID FInput    = AidInput;
 const HIID FOutput   = AidOutput;
 const HIID FMS       = AidMS;
+const HIID FMS0      = AidMS|0;
 const HIID FBOIO     = AidBOIO;
 const HIID FDefault  = AidDefault;
 const HIID FMaxTiles = AidMax|AidTiles;
@@ -132,6 +133,8 @@ void Meq::VisDataMux::initOutput (const DMI::Record &rec)
   // instantiate one of a number of channel types depending on record
   const DMI::Record * prec = 0;
   if( (prec = rec[FMS].as_po<DMI::Record>()) != 0 )
+    newchannel <<= new MSSeqOutputChannel;
+  else if( (prec = rec[FMS0].as_po<DMI::Record>()) != 0 )
     newchannel <<= new MSOutputChannel;
   else if( (prec = rec[FBOIO].as_po<DMI::Record>()) != 0 )
     newchannel <<= new BOIOChannel;
