@@ -1276,6 +1276,7 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
           # Temporarily disabled, until Sarod has implemented solving for (l,m) branch:
           dlm = ns['pointing_error'](s=skey, q=pp['punit']) << Meq.Composer(ss[dl],ss[dm])
           lmtot = ns['lm'](s=skey, q=pp['punit']) << Meq.Add(lm,dlm)
+
        stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
           ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Compounder(children=[lmtot, ss[b1]],
                                                                    common_axes=cax),
@@ -1316,21 +1317,29 @@ def WSRT_voltage_beam_funklet(a_rad=0.1, b_rad=0.1, trace=False):
    # Polynomials in (t,f) for function coeff a and b:
    t = 'x0'
    f = 'x1'
-   a_poly = 'p0+p1*'+t+'+p2*'+f
-   b_poly = 'p3+p4*'+t+'+p5*'+f
-
-   # Initial values for the various coefficients
-   coeff = [a_rad,0,0,b_rad,0,0]       # [p0,p1,p2,p3,p4,p5]
+   if False:
+      a_poly = 'p0'
+      b_poly = 'p1'
+      coeff = [a_rad,b_rad]               # [p0,p1]
+   elif True:
+      a_poly = 'p0+p1*'+f
+      b_poly = 'p2+p3*'+f
+      coeff = [a_rad,0,b_rad,0]       # [p0,p1,p2,p3]
+   else:
+      a_poly = 'p0+p1*'+t+'+p2*'+f
+      b_poly = 'p3+p4*'+t+'+p5*'+f
+      coeff = [a_rad,0,0,b_rad,0,0]       # [p0,p1,p2,p3,p4,p5]
    
-   L ='x2'                             # L axis
-   M ='x3'                             # M axis
-   beamshape = '(cos((('+L+')/('+a_poly+'))^2+(('+M+')/('+b_poly+'))^2))^3'
+   L ='x2'                                # L axis
+   M ='x3'                                # M axis
+   # beamshape = '(cos((('+L+')/('+a_poly+'))^2+(('+M+')/('+b_poly+'))^2))^3'
+   beamshape = 'exp(-(('+L+')/('+a_poly+'))^2-(('+M+')/('+b_poly+'))^2)'
 
    funklet = meq.polc(coeff=coeff, subclass=meq._funklet_type)
    funklet.function = beamshape
 
    if trace:
-      print '- t=',t,' f=',f,' L=',L,' M=',M,'   [p0,p1,p2,p3,p4,p5] =',coeff
+      print '- t=',t,' f=',f,' L=',L,' M=',M,'   coeff =',coeff
       print '- a_poly =',a_poly,'  b_poly =',b_poly
       print '->',funklet
    return funklet

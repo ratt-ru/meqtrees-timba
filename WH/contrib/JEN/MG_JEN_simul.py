@@ -138,14 +138,15 @@ def simul_EJones(inarg, trace=True):
    JEN_inarg.specific(inarg, simul_EJones.__doc__)
    JEN_inarg.modify(inarg,
                     test_pattern='grid',
+                    # relpos='tlq',
                     insert_solver=True,
                     use_same_LSM=False,
+                    saveAs='<automatic>',
                     solvegroup=['EJones'],
                     # parmtable='simul_EJones',
                     num_iter=2,
                     _JEN_inarg_option=dict(trace=trace))     
    JEN_inarg.modify(inarg,
-                    relpos='tlq',
                     taper=None,
                     _JEN_inarg_option=dict(trace=trace, qual='solve'))     
    JEN_inarg.modify(inarg,
@@ -373,8 +374,8 @@ def _define_forest (ns, **kwargs):
     qual = 'simul'
 
     # Get/create/modify an LSM:
-    # lsm = MG_JEN_lsm.get_lsm(nsim, _inarg=MG, _qual=qual)
-    lsm = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual)
+    lsm = MG_JEN_lsm.get_lsm(nsim, _inarg=MG, _qual=qual)
+    # lsm = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual)
 
     # Predict nominal/corrupted visibilities: 
     # Make a Joneset for uv_plane effects: 

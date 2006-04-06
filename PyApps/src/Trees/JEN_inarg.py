@@ -21,6 +21,7 @@
 #    - 12 mar 2006: moved _qual to before localscope
 #    - 12 mar 2006: .separator()
 #    - 29 mar 2006: made .modify() dependent on qualifier
+#    - 06 apr 2006: added append/prepend to .qualifier()
 #
 # Full description:
 #    By obeying a simple (and unconstraining!) set of rules, the input
@@ -553,12 +554,27 @@ def localscope(rr, trace=False):
    if trace: print '.localscope() ->',type(lscope),len(lscope),'=',lscope
    return lscope
 
-def qualifier(rr, trace=False):
+def qualifier(rr, append=None, prepend=None, trace=False):
    """Get the localscope qualifier string from the CTRL record or rr"""
    qual = CTRL(rr, 'qual', report=False, trace=trace)
+
+   # Optionally, prepend another string to its own qualifier (if any):
+   if isinstance(prepend, str):
+      if isinstance(qual, str):
+         qual = prepend+'_'+qual
+      else:
+         qual = prepend
+
+   # Optionally, append another string to its own qualifier (if any):
+   if isinstance(append, str):
+      if isinstance(qual, str):
+         qual += '_'+append
+      else:
+         qual = append
+
    if qual==None: qual = ''                   # empty string
-   if trace: print '.qualifier() ->',type(qual),len(qual),'=',qual
-   return qual
+   if trace: print '.qualifier(',append,prepend,') ->',type(qual),len(qual),'=',qual
+   return str(qual)                           # always return string.....                               
 
 def barescope(rr, trace=False):
    """Get the funcname (localscope without qualifiers) from the CTRL record or rr"""

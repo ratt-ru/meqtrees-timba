@@ -736,7 +736,9 @@ class NodeSet (TDL_common.Super):
         root = []
         for key in self.bookmark().keys():                  # for all bookmark definitions
             rr = self.bookmark(key)
-            root.append(rr['rootnode'])
+            # print '**',funcname,': key=',key,' rr=',rr
+            if rr.has_key('rootnode'):                      # ....?
+                root.append(rr['rootnode'])
                         
         # Return a single root node:
         if len(root)==0:                                    # no root nodes collected..?

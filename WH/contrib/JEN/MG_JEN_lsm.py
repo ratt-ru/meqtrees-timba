@@ -254,11 +254,10 @@ def att (dRA_rad=0, dDec_rad=0, taper_deg=None, trace=False):
 def add_single (ns=None, Sixpack=None, lsm=None, **inarg):
    """Add a test-source (Sixpack) to the given lsm"""
 
-   qual = 'single'
-   
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::add_single()', version='10feb2006',
                            description=add_single.__doc__)
+   qual = JEN_inarg.qualifier(pp, append='single')
 
    JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
 
@@ -293,13 +292,12 @@ def add_single (ns=None, Sixpack=None, lsm=None, **inarg):
 def add_double (ns=None, Sixpack=None, lsm=None, **inarg):
    """Add a double test-source (Sixpack) to the given lsm"""
 
-   qual = 'double'
-   qual1 = qual+'_1'
-   qual2 = qual+'_2'
-   
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::add_double()', version='10feb2006',
                            description=add_double.__doc__)
+   qual = JEN_inarg.qualifier(pp, append='double')
+   qual1 = qual+'_1'
+   qual2 = qual+'_2'
 
    JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual1))
    JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual2))
@@ -351,11 +349,10 @@ def add_double (ns=None, Sixpack=None, lsm=None, **inarg):
 def add_grid (ns=None, lsm=None, **inarg):
    """Add a rectangular grid of identical test-sources to the given lsm"""
 
-   qual='grid'
-
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::add_grid()', version='10feb2006',
                            description=add_grid.__doc__)
+   qual = JEN_inarg.qualifier(pp, append='grid')
 
    JEN_inarg.define(pp, 'nRA2', 1, choice=[0,1,2,3],   
                     help='(half) nr of sources in RA direction')
@@ -415,12 +412,13 @@ def add_grid (ns=None, lsm=None, **inarg):
    ii.reverse()                                    # RA increases to the left
 
    # Make an automatic .lsm file-name:
-   savefile = str(int(100*RA0))+'+'+str(int(100*Dec0))
+   savefile = qual
+   savefile += '_'+str(1+2*pp['nRA2'])+'x'+str(1+2*pp['nDec2'])
    savefile += '_'+str(punit)
-   savefile += '_grid'+str(1+2*pp['nRA2'])+'x'+str(1+2*pp['nDec2'])
-   savefile += '_'+str(pp['dRA'])+'x'+str(pp['dDec'])
-   savefile += '_'+str(pp['relpos'])
-   if pp['taper']: savefile += '_'+str(int(10*pp['taper']))
+   savefile += '_'+str(int(100*RA0))+'+'+str(int(100*Dec0))
+   # if pp['taper']: savefile += '_'+str(int(10*pp['taper']))
+   # savefile += '_'+str(pp['relpos'])
+   # savefile += '_'+str(pp['dRA'])+'x'+str(pp['dDec'])
    savefile += '.lsm'
 
    # Create the sources defined by pp:
@@ -429,15 +427,18 @@ def add_grid (ns=None, lsm=None, **inarg):
       for j in jj:
          Dec = Dec0 + j*pp['dDec']*arcmin2rad()
          flux_att = att(RA-RA0, Dec-Dec0, pp['taper'], trace=False)
-         punit = 'grid:'+str(i)+':'+str(j)
-         if not rpos=='center': punit += ':'+rpos
+         # punit = 'grid:'+str(i)+':'+str(j)
+         punit = qual+':'+str(i)+':'+str(j)
+         # if not rpos=='center': punit += ':'+rpos
          Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
                                                  flux_att=flux_att,
                                                  punit=punit, RA=RA, Dec=Dec)
          # Compose the sixpack before adding it to the lsm:
          Sixpack.sixpack(ns)
          # lsm.add_sixpack(sixpack=Sixpack,ns=ns)
+         Sixpack.display('before')
          lsm.add_sixpack(sixpack=Sixpack)
+         Sixpack.display('after')
 
    # Finished: Return the suggested .lsm savefile name:
    return savefile
@@ -449,11 +450,10 @@ def add_grid (ns=None, lsm=None, **inarg):
 def add_spiral (ns=None, lsm=None, **inarg):
    """Add a spiral pattern of identical test-sources to the given lsm"""
 
-   qual = 'spiral'
-
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::add_spiral()', version='10feb2006',
                            description=add_spiral.__doc__)
+   qual = JEN_inarg.qualifier(pp, append='spiral')
 
    JEN_inarg.define(pp, 'nr_of_sources', 5, choice=[2,3,4,5,10],   
                     help='nr of sources')
@@ -529,6 +529,7 @@ def get_lsm (ns=None, **inarg):
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_lsm::get_lsm()', version='02apr2006',
                            description=get_lsm.__doc__)
+   qual = JEN_inarg.qualifier(pp)
 
    JEN_inarg.define (pp, 'input_LSM', None, browse='*.lsm',
                      choice=['lsm_current.lsm','3c343_nvss.lsm',
@@ -545,7 +546,6 @@ def get_lsm (ns=None, **inarg):
    JEN_inarg.define (pp, 'test_pattern', 'single',
                      choice=[None,'single','double','grid','spiral'],
                      help='pattern of test-sources to be generated')
-   qual = JEN_inarg.qualifier(pp)
    JEN_inarg.nest(pp, add_single(_getdefaults=True, _qual=qual))
    JEN_inarg.nest(pp, add_double(_getdefaults=True, _qual=qual))
    JEN_inarg.nest(pp, add_grid(_getdefaults=True, _qual=qual))
@@ -817,7 +817,8 @@ def _define_forest (ns, **kwargs):
    cc = MG_JEN_exec.on_entry (ns, MG)
 
    # Get/create/modify an LSM:
-   lsm = get_lsm(ns, _inarg=MG, _qual='xxx')
+   nsim = ns.Subscope('_')
+   lsm = get_lsm(nsim, _inarg=MG, _qual='xxx')
    
    # Make the trees of all the lsm punits: 
    radec = []                                 # for collect_radec()
