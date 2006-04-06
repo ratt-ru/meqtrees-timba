@@ -230,12 +230,16 @@ def create_node_stub(mydict,stubs,ns,myname):
   # now we have created the child list
   
   # first check the nodescope if the node given by the name already exists
-  if ns.AllNodes().has_key(myname):
+  if ns[myname].initialized():
    print "WARNING: node %s already created"%myname
    got_stub=cname_node_stub(ns,myname)
    # add children
    for child in chlist:
-    got_stub.add_children(child)
+    # handle differently if this is a sub scope
+    if ns._name:
+      got_stub.add_children(ns._name+'::'+child)
+    else:
+      got_stub.add_children(child)
    return got_stub
 
   # now deal with initrec()
@@ -245,7 +249,14 @@ def create_node_stub(mydict,stubs,ns,myname):
   myclass=myrec.pop('classname')
   mygentype=myclass.replace("Meq","")
   if len(chlist)>0:
-   fstr="ns['"+myname+"']<<Meq."+mygentype+'(children='+str(chlist)+','
+   # handle differently if it is a subscope
+   if ns._name:
+     full_chlist=[]
+     for child in chlist:
+       full_chlist.append(ns._name+'::'+child)
+   else:
+       full_chlist=chlist
+   fstr="ns['"+myname+"']<<Meq."+mygentype+'(children='+str(full_chlist)+','
   else:
    fstr="ns['"+myname+"']<<Meq."+mygentype+'('
   irec_str=""
@@ -259,6 +270,9 @@ def create_node_stub(mydict,stubs,ns,myname):
   # remove name
   if irec.has_key('name'):
    irec.pop('name')
+  # remove node index
+  if irec.has_key('nodeindex'):
+   irec.pop('nodeindex')
   # remove children
   if irec.has_key('children'):
    irec.pop('children')
@@ -299,7 +313,8 @@ def create_node_stub(mydict,stubs,ns,myname):
   #if myclass.lstrip('Meq')=='Parm':
   # total_str="ns['"+myname+"']<<Meq.Parm(default_funklet_value)"
   #print "Total=",total_str
-  exec total_str in globals(),locals()
+  #exec total_str in globals(),locals()
+  exec total_str
   #print ns[myname].initrec()
   #return ns[myname]
   return cname_node_stub(ns,myname)
@@ -458,6 +473,9 @@ def get_default_parms(nd):
 ## extract a node stub from given nodescope using the 
 ## full name in the format 'a':q='b'
 def cname_node_stub(ns,nodename):
+  # first strip any subscopes
+  sblist=string.split(nodename,"::")
+  nodename=sblist.pop()# get last item
   alist=string.split(nodename,":")
   nodestub=None
   if len(alist)==1:

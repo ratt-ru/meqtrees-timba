@@ -641,6 +641,9 @@ class LSM:
    #self.mqs.meq('Save.Forest',meq.record(file_name=forest_filename));
 
  # load from a file 
+ # Note if the saved LSM was created using a Subscope
+ # the new LSM will ignore that subscope, i.e. will change
+ # all node names such that the subscope part is not present
  def load(self,filename,ns=None):
   try:
    f=open(filename,'rb') 
@@ -657,12 +660,23 @@ class LSM:
    self.default_patch_method=tmpl.default_patch_method
 
    self.__root_name=tmpl.__root_name
-   print "Root =",self.__root_name
+   #print "Root =",self.__root_name
    if tmpl.__root!=None:
     if ns==None:
      ns=NodeScope()
     self.__ns=ns
     my_dict=pickle.loads(tmpl.__root)
+    #print my_dict[self.__root_name]
+    # if there is already a node with the root name, we remove it from our dict
+    # and change root name
+    if ns[self.__root_name].initialized():
+      # create a unique name
+      new_root_name=ns.MakeUniqueName(self.__root_name)
+      oldroot=my_dict.pop(self.__root_name)
+      print "WARNING: changing name from %s to %s"%(self.__root_name,new_root_name)
+      self.__root_name=new_root_name
+      my_dict[self.__root_name]=oldroot
+
     my_dict=reconstruct(my_dict,ns)
     self.__root=my_dict[self.__root_name]
     #self.__ns.Resolve()
@@ -1106,7 +1120,7 @@ class LSM:
       self.__root_name=ns.MakeUniqueName('_lsmroot')
     self.__root=self.__ns[self.__root_name]<<Meq.Composer(children=child_list)
   else:
-   print "WARNING: cannot create _lsm_root. You are in serious trouble!. Try giving a nodescope to the LSM. If you use add_source() try add_sixpack() instead."
+   print "WARNING: cannot create _lsm_root. please ignore this if you used add_sixpack() method."
 
  # return the current NodeScope
  def getNodeScope(self):
