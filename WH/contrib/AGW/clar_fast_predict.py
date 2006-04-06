@@ -16,7 +16,7 @@ from Timba.Contrib.OMS import Bookmarks
 msname = "TEST_CLAR_27-480.MS";       # Tony ...
 
 # number of timeslots to use at once
-tile_size = 30
+tile_size = 60
 # MS input queue size -- should be at least equal to the no. of ifrs
 ms_queue_size = 500
 # number of stations
@@ -48,8 +48,8 @@ noise_stddev = None;
 # noise_stddev = 0.05;
 
 # which source model to use
-source_model = clar_model.point_and_extended_sources;
-# source_model = clar_model.point_sources_only
+# source_model = clar_model.point_and_extended_sources;
+source_model = clar_model.point_sources_only
 
 # bookmarks
 Settings.forest_state = record(bookmarks=[
@@ -172,7 +172,7 @@ def create_inputrec():
     boioname = "boio."+msname+".empty."+str(tile_size);
     # if boio dump for this tiling exists, use it to save time
     # but watch out if you change the visibility data set!
-    if not ms_selection and os.access(boioname,os.R_OK):
+    if False: # not ms_selection and os.access(boioname,os.R_OK):
       rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
     # else use MS, but tell the event channel to record itself to boio file
     else:
@@ -181,8 +181,8 @@ def create_inputrec():
       rec.data_column_name = 'DATA'
       rec.tile_size        = tile_size
       rec.selection        = ms_selection or record();
-      if not ms_selection:
-        rec.record_input     = boioname;
+#      if not ms_selection:
+#        rec.record_input     = boioname;
       rec = record(ms=rec);
     rec.python_init = 'AGW_read_msvis_header.py';
     rec.mt_queue_size = ms_queue_size;

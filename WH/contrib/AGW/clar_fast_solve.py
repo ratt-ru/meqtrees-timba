@@ -53,7 +53,7 @@ source_model = clar_model.point_sources_only
 ### if True, previous solutions will be reused for successive time domains.
 ### This speeds up convergence (especially when solvables have no variation 
 ### in time), but makes the process less "educational".
-reuse_solutions = False
+clar_model.reuse_solutions = True
 
 
 # bookmarks
