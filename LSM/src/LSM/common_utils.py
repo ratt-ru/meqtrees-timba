@@ -361,19 +361,30 @@ def serialize_funklet(fnklt):
 def extract_parms(sixpack,ns):
  # get name
  myname=sixpack.label()
+ if ns._name:
+  ra_name=ns._name+'::ra:q='+myname
+  dec_name=ns._name+'::dec:q='+myname
+  I0_name=ns._name+'::I0:q='+myname
+  SIFI_name=ns._name+'::SIF_stokesI:q='+myname
+ else:
+  ra_name='ra:q='+myname
+  dec_name='dec:q='+myname
+  I0_name='I0:q='+myname
+  SIFI_name='SIF_stokesI:q='+myname
+ 
  print "looking for params of ",myname
  # RA
  allnodes=ns.Repository()
- ra=allnodes['ra:q='+myname]
+ ra=allnodes[ra_name]
  # look for the meqparms in this node
  myra=get_default_parms(ra)
- dec=allnodes['dec:q='+myname]
+ dec=allnodes[dec_name]
  mydec=get_default_parms(dec)
- if allnodes.has_key('I0:q='+myname):
-  br=allnodes['I0:q='+myname]
+ if allnodes.has_key(I0_name):
+  br=allnodes[I0_name]
   mybr=get_default_parms(br)
- elif allnodes.has_key('SIF_stokesI:q='+myname):
-  br=allnodes['SIF_stokesI:q='+myname]
+ elif allnodes.has_key(SIFI_name):
+  br=allnodes[SIFI_name]
   mybr=get_default_parms(br)
  else:
   mybr=0.0
