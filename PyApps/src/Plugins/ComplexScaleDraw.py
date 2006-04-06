@@ -73,7 +73,9 @@ class ComplexScaleDraw(QwtScaleDraw):
                 QwtScaleDraw.drawTick(
                     self, painter, scldiv.minMark(i), minLen)
         else:
-            # do minor ticks - no changs here compared to QwtScaleDraw
+            # do minor ticks - no changes here yet compared to QwtScaleDraw
+            # But modifications are needed because the minor ticks 
+            # don't necessarily come out correctly
             kmax = scldiv.majCnt() - 1
             if kmax > 0:
                 majTick = scldiv.majMark(0)
