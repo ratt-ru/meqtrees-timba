@@ -401,30 +401,44 @@ def extract_polarization_parms(sixpack,ns):
  myname=sixpack.label()
  print "looking for QUV of ",myname
  # first get I0 for further processing
-
+ if ns._name:
+  Q_name=ns._name+'::Qpct:q='+myname
+  sQ_name=ns._name+'::stokesQ:q='+myname
+  U_name=ns._name+'::Upct:q='+myname
+  sU_name=ns._name+'::stokesU:q='+myname
+  V_name=ns._name+'::Vpct:q='+myname
+  sV_name=ns._name+'::stokesV:q='+myname
+ else:
+  Q_name='Qpct:q='+myname
+  sQ_name='stokesQ:q='+myname
+  U_name='Upct:q='+myname
+  sU_name='stokesU:q='+myname
+  V_name='Vpct:q='+myname
+  sV_name='stokesV:q='+myname
+ 
 
  allnodes=ns.Repository()
- if allnodes.has_key('Qpct:q='+myname):
-   qq=allnodes['Qpct:q='+myname]
+ if allnodes.has_key(Q_name):
+   qq=allnodes[Q_name]
    myqq=get_default_parms(qq)
- elif allnodes.has_key('stokesQ:q='+myname):
-   qq=allnodes['stokesQ:q='+myname]
+ elif allnodes.has_key(sQ_name):
+   qq=allnodes[sQ_name]
    myqq=get_default_parms(qq)
  else:
    myqq=0
- if allnodes.has_key('Upct:q='+myname):
-   uu=allnodes['Upct:q='+myname]
+ if allnodes.has_key(U_name):
+   uu=allnodes[U_name]
    myuu=get_default_parms(uu)
- elif allnodes.has_key('stokesU:q='+myname):
-   uu=allnodes['stokesU:q='+myname]
+ elif allnodes.has_key(sU_name):
+   uu=allnodes[sU_name]
    myuu=get_default_parms(uu)
  else:
    myuu=0
- if allnodes.has_key('Vpct:q='+myname):
-   vv=allnodes['Vpct:q='+myname]
+ if allnodes.has_key(V_name):
+   vv=allnodes[V_name]
    myvv=get_default_parms(vv)
- elif allnodes.has_key('stokesV:q='+myname):
-   vv=allnodes['stokesV:q='+myname]
+ elif allnodes.has_key(sV_name):
+   vv=allnodes[sV_name]
    myvv=get_default_parms(vv)
  else:
    myvv=0
