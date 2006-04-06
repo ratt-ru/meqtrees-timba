@@ -29,11 +29,11 @@ ms_selection = None
 #          channel_increment=1,
 #          selection_string='')
 
-write_output = False  # if False, disables output completely       Oleg
-ms_output = False    # if True, outputs to MS, else to BOIO dump  Oleg
+# write_output = False  # if False, disables output completely       Oleg
+# ms_output = False    # if True, outputs to MS, else to BOIO dump  Oleg
 
-# write_output = True  # if False, disables output completely        Tony
-# ms_output = True     # if True, outputs to MS, else to BOIO dump   Tony
+write_output = True  # if False, disables output completely        Tony
+ms_output = True     # if True, outputs to MS, else to BOIO dump   Tony
 
 
 ### MEP table for derived quantities 
