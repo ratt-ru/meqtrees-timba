@@ -200,9 +200,18 @@ def rec_parse(myrec):
      new_dict[kk]=myrec[kk]
   return new_dict
 
-def traverse(root,node_dict):
+def traverse(root,node_dict,subscope=None):
+  # if subscope  is not None, that means the nodes
+  # have a leadins 'subscope':: part in their names. 
+  # so we need to strip it before saving
+  #print "Subscope=",subscope
   chlist=root.children
   name=root.name
+  if subscope:
+   nlist=string.split(name,"::")
+   name=nlist.pop()# get last item
+ 
+  #print "My name",name
   classname=root.classname
   if not node_dict.has_key(name):
    node_dict[name]={'name':name, 'classname':classname, 'initrec':{},\
@@ -211,11 +220,16 @@ def traverse(root,node_dict):
    #print ir
    myrec=node_dict[name]
    myrec['initrec']=rec_parse(ir)
-   #print node_dict[name]
    # if any children, traverse
    for idx,ch in chlist:
-    traverse(ch,node_dict)
-    myrec['children'].append(ch.name)
+    traverse(ch,node_dict,subscope)
+    if subscope:
+      nlist=string.split(ch.name,"::")
+      chname=nlist.pop()# get last item
+      myrec['children'].append(chname)
+    else:
+      myrec['children'].append(ch.name)
+   #print "Rec ",node_dict[name]
 
 def create_node_stub(mydict,stubs,ns,myname):
   myrec=mydict[myname]
@@ -520,6 +534,13 @@ def cname_node_stub(ns,nodename):
     #print wstr
     exec wstr
   return nodestub
+
+
+######################################################
+## strip subscope name from a given node name
+def strip_subscope(nodename):
+  nlist=string.split(nodename,"::")
+  return nlist.pop()
 
 #######################################################
 ### change value of MeqParm

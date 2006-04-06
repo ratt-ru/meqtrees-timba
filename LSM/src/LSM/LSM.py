@@ -141,13 +141,16 @@ class PUnit:
    temp_str+=",sp="+str(self.sp)
    temp_str+=",FOV="+str(self.FOV_distance)
    temp_str+=",sixpack="+str(self.__sixpack)
+   temp_str+=",FOV="+str(self.FOV_distance)
+   temp_str+=",patch="+str(self._patch_name)
    temp_str+=" |"
    return temp_str
 
 
  # clone the PUnit without circular references to the LSM
  # or references to MeqTree systems so that it can be saved
- def clone(self):
+ # if subscope is true, will strip names with a leading 'something'::
+ def clone(self,subscope=None):
   newp=PUnit(self.name,None)
   newp.type=self.type
   newp.s_list=self.s_list
@@ -165,15 +168,23 @@ class PUnit:
    #print newp.__sixpack['ParmsSt']
    if self.__sixpack.ispoint():
     newp.__sixpack['I']=self.__sixpack.stokesI().name
+    if subscope: newp.__sixpack['I']=strip_subscope(newp.__sixpack['I'])
     newp.__sixpack['Q']=self.__sixpack.stokesQ().name
+    if subscope: newp.__sixpack['Q']=strip_subscope(newp.__sixpack['Q'])
     newp.__sixpack['U']=self.__sixpack.stokesQ().name
+    if subscope: newp.__sixpack['U']=strip_subscope(newp.__sixpack['U'])
     newp.__sixpack['V']=self.__sixpack.stokesV().name
+    if subscope: newp.__sixpack['V']=strip_subscope(newp.__sixpack['V'])
     newp.__sixpack['ra']=self.__sixpack.ra().name
+    if subscope: newp.__sixpack['ra']=strip_subscope(newp.__sixpack['ra'])
     newp.__sixpack['dec']=self.__sixpack.dec().name
+    if subscope: newp.__sixpack['dec']=strip_subscope(newp.__sixpack['dec'])
     newp.__sixpack['label']=self.__sixpack.label()
     newp.__sixpack['pointroot']=self.__sixpack.sixpack().name
+    if subscope: newp.__sixpack['pointroot']=strip_subscope(newp.__sixpack['pointroot'])
    else:
     newp.__sixpack['patchroot']=self.__sixpack.root().name
+    if subscope: newp.__sixpack['patchroot']=strip_subscope(newp.__sixpack['patchroot'])
     newp.__sixpack['label']=self.__sixpack.label()
   else:
    newp.__sixpack=None
@@ -609,7 +620,7 @@ class LSM:
    g.p_table={}
    for sname in self.p_table.keys(): 
     punit=self.p_table[sname]
-    g.p_table[sname]=punit.clone()
+    g.p_table[sname]=punit.clone(self.__ns.__name)
     g.p_table[sname].setLSM(g)
    g.mqs=None
    g.cells=None
@@ -621,11 +632,16 @@ class LSM:
    # serialize the root
    if self.__root!=None:
     gdict={}
-    traverse(self.__root,gdict)
+    traverse(self.__root,gdict,self.__ns._name)
     g.__root=pickle.dumps(gdict)
    else:
     g.__root=None
-   g.__root_name=self.__root_name
+   # if the nodescope has a subscope, strip the subscope 
+   # name from the root name
+   if self.__ns.name_:
+     g.__root_name=strip_subscope(self.__root_name)
+   else: 
+     g.__root_name=self.__root_name
    p.dump(g)
    f.close()
 
