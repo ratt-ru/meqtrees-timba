@@ -67,7 +67,7 @@ void MSSeqOutputChannel::doPutHeader (const DMI::Record &header)
   // init row map
   ms_num_rows_ = ms_.nrow();
   row_to_tile_.resize(ms_num_rows_);
-  memset(&(row_to_tile_[0]),ms_num_rows_*sizeof(row_to_tile_[0]),0xFF);
+  memset(&(row_to_tile_[0]),0xFF,ms_num_rows_*sizeof(row_to_tile_[0]));
   
   current_seqnr_ = -1;
   min_ms_row_ = ms_num_rows_;
@@ -101,7 +101,7 @@ void MSSeqOutputChannel::flushOutputTiles ()
       const TileMapping & tm = row_to_tile_[msrow];
       if( tm.tile_num < 0 )
         continue;
-      const VTile & tile = tiles_[tm.tile_num];
+      const VTile & tile = *(tiles_[tm.tile_num]);
       // ok, this is the right row
       if( tile.defined(VTile::DATA) && datacol_.valid )
         putColumn(datacol_,msrow,tile.data()(LoRange::all(),LoRange::all(),tm.tile_row));
