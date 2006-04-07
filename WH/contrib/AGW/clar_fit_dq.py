@@ -72,7 +72,9 @@ def _define_forest(ns):
   obs = Observation(ns);
   
   # create CLAR source model
-  sources = create_clar_sources(ns);
+# sources = point_sources_only(ns)
+  sources = point_and_extended_sources(ns)
+
                      
   # create nodes for simulating the CLAR beam
   ns.freq << Meq.Freq;
