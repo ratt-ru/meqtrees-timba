@@ -382,31 +382,31 @@ def add_grid (ns=None, lsm=None, **inarg):
    Dec0 = pp1['Dec']
    punit = pp1['punit']
 
-   rpos = pp['relpos']
+   relpos = pp['relpos']
    r2 = pp['nRA2']*pp['dRA']*arcmin2rad()
    d2 = pp['nDec2']*pp['dDec']*arcmin2rad()
    ii = range(-pp['nRA2'],pp['nRA2']+1)
    jj = range(-pp['nDec2'],pp['nDec2']+1)
-   if rpos=='center':                              # centered
+   if relpos=='center':                              # centered
       pass                                         # ....
-   elif rpos=='top':                     
+   elif relpos=='top':                     
       jj = range(0,2*pp['nDec2']+1)
-   elif rpos=='bottom':                     
+   elif relpos=='bottom':                     
       jj = range(-2*pp['nDec2'],1)
-   elif rpos=='left':
+   elif relpos=='left':
       ii = range(0,2*pp['nRA2']+1)
-   elif rpos=='right':
+   elif relpos=='right':
       ii = range(-2*pp['nRA2'],1)
-   elif rpos=='tlq':                               # top-left quarter
+   elif relpos=='tlq':                               # top-left quarter
       ii = range(0,2*pp['nRA2']+1)
       jj = range(0,2*pp['nDec2']+1)
-   elif rpos=='trq':                               # top-right quarter
+   elif relpos=='trq':                               # top-right quarter
       ii = range(-2*pp['nRA2'],1)
       jj = range(0,2*pp['nDec2']+1)
-   elif rpos=='blq':                               # bottom-left quarter
+   elif relpos=='blq':                               # bottom-left quarter
       ii = range(0,2*pp['nRA2']+1)
       jj = range(-2*pp['nDec2'],1)
-   elif rpos=='brq':                               # bottom-right quarter
+   elif relpos=='brq':                               # bottom-right quarter
       ii = range(-2*pp['nRA2'],1)
       jj = range(-2*pp['nDec2'],1)
    ii.reverse()                                    # RA increases to the left
@@ -427,9 +427,8 @@ def add_grid (ns=None, lsm=None, **inarg):
       for j in jj:
          Dec = Dec0 + j*pp['dDec']*arcmin2rad()
          flux_att = att(RA-RA0, Dec-Dec0, pp['taper'], trace=False)
-         # punit = 'grid:'+str(i)+':'+str(j)
-         punit = qual+':'+str(i)+':'+str(j)
-         # if not rpos=='center': punit += ':'+rpos
+         punit = qual+str(i)+str(j)
+         # if not relpos=='center': punit += ':'+relpos
          Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
                                                  flux_att=flux_att,
                                                  punit=punit, RA=RA, Dec=Dec)

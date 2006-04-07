@@ -16,6 +16,7 @@
 #    - 24 feb 2006: adopted new MXM MeqParm init keywords
 #    - 03 mar 2006: introduced plotgroups and derivates
 #    - 06 mar 2006: adopted TDL_NodeSet objects
+#    - 07 apr 2006: added MeqParm compounder_children
 #
 # Full description:
 #   The (many) MeqParms of a Measurement Equation are usually solved in groups
@@ -172,6 +173,7 @@ class ParmSet (TDL_common.Super):
 
 
     def MeqParm(self, ns, key=None, qual=None, parmgroup=None,
+                compounder_children=None, common_axes=None, qual2=None,
                 init_funklet=None,  default=None, **pp):
         """Convenience function to create a MeqParm node"""
 
@@ -247,29 +249,55 @@ class ParmSet (TDL_common.Super):
         node = ns[key](**quals)
         if node.initialized():                           # node already exists
             return node
+
+        elif compounder_children:
+            parm = ns[key](**quals)('funklet')
+            if not parm.initialized():                   # made only once
+                parm << Meq.Parm(init_funklet=init_funklet,
+                                 tiling=tiling,
+                                 use_previous=rider['use_previous'],
+                                 reset_funklet=rider['reset_funklet'],
+                                 auto_save=rider['auto_save'],
+                                 save_all=rider['save_all'],
+                                 node_groups=self.node_groups(),
+                                 table_name=self.parmtable())
+                self.NodeSet.MeqNode(parmgroup, parm)
+            cc = compounder_children
+            if not isinstance(cc, (list, tuple)): cc = [cc]
+            cc.append(parm)
+            # The Compounder has more qualifiers than the Parm.
+            # E.g. EJones_X is per station, but the compounder and its
+            # children (l,m) are for a specific source (q=3c84)
+            if isinstance(qual2, dict):
+                for qkey in qual2.keys():
+                    quals[qkey] = str(qual2[qkey])
+            node = ns[key](**quals)
+            node << Meq.Compounder(children=cc, common_axes=common_axes)
+            return node
         
         elif init_funklet:
-              node << Meq.Parm(init_funklet=init_funklet,
-                                                # shape=shape,             # DON'T
-                                                # perturbation=1e-7,       # scale*1e-7
-                                                tiling=tiling,
-                                                use_previous=rider['use_previous'],
-                                                reset_funklet=rider['reset_funklet'],
-                                                auto_save=rider['auto_save'],
-                                                save_all=rider['save_all'],
-                                                node_groups=self.node_groups(),
-                                                table_name=self.parmtable())
-
+            node << Meq.Parm(init_funklet=init_funklet,
+                             # shape=shape,             # DON'T
+                             # perturbation=1e-7,       # scale*1e-7
+                             tiling=tiling,
+                             use_previous=rider['use_previous'],
+                             reset_funklet=rider['reset_funklet'],
+                             auto_save=rider['auto_save'],
+                             save_all=rider['save_all'],
+                             node_groups=self.node_groups(),
+                             table_name=self.parmtable())
+            
         else:
-            node = ns[key](**quals) << Meq.Parm(funklet=default,
-                                                shape=shape,
-                                                tiling=tiling,
-                                                save_all=rider['save_all'],
-                                                auto_save=rider['auto_save'],
-                                                reset_funklet=rider['reset_funklet'],
-                                                use_previous=rider['use_previous'],
-                                                node_groups=self.node_groups(),
-                                                table_name=self.parmtable())
+            # node = ns[key](**quals) << Meq.Parm(funklet=default,
+            node << Meq.Parm(funklet=default,
+                             shape=shape,
+                             tiling=tiling,
+                             save_all=rider['save_all'],
+                             auto_save=rider['auto_save'],
+                             reset_funklet=rider['reset_funklet'],
+                             use_previous=rider['use_previous'],
+                             node_groups=self.node_groups(),
+                             table_name=self.parmtable())
             
         # Store the new node in the NodeSet:
         self.NodeSet.MeqNode(parmgroup, node)

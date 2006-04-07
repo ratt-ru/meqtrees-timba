@@ -369,24 +369,7 @@ def predict_cps (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
     # Create a Cohset object for the 2x2 cohaerencies of the given ifrs:
     Cohset = TDL_Cohset.Cohset(label='predict_cps', origin=funcname, **pp)
 
-    if True:
-        Cohset.punit2coh(ns, Sixpack, Joneset)
-
-    else:
-        # Obsolete:
-        # Copy info (plot-styles, parmgroup/solvegroup etc):
-        Cohset.update_from_Sixpack(Sixpack)
-        # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
-        # by multiplication its (I,Q,U,V) with the Stokes matrix:
-        nominal = Sixpack.coh22(ns, pp['polrep'])
-        # Put the same 'nominal' (i.e. uncorrupted) visibilities into all
-        # ifr-slots of the Cohset:
-        Cohset.uniform(ns, nominal)
-        # Optionally, corrupt the Cohset visibilities with the instrumental effects
-        # in the given Joneset of 2x2 station jones matrices:
-        if Joneset:
-            Cohset.corrupt (ns, Joneset=Joneset)
-            # Cohset.display('.predict(): after corruption')
+    Cohset.punit2coh(ns, Sixpack, Joneset)
 
     # Finished:
     MG_JEN_forest_state.object(Sixpack, funcname)
@@ -398,27 +381,33 @@ def predict_cps (ns=None, Sixpack=None, Joneset=None, slave=False, **inarg):
 
 #------------------------------------------------------------------------------
 
-def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
+def predict_lsm (ns=None, lsm=None, Joneset=None, uvp_Joneset=False,
+                 simul=False, slave=False, **inarg):
     """Make a Cohset with the (sum of the) predicted uv-data for the specified sources in
     the given Local Sky Model (lsm). Per source, the data may be corrupted with a Joneset
     that contains at least a KJones matrix (DFT), and zero or more (sky-interpolatable)
     image-plane effects like EJones (station beamshape) or IJones (ionosphere).
-    If a Joneset (with uv-plane effects) is supplied, corrupt the sum."""
+    If a Joneset (with uv-plane effects) is supplied, corrupt the sum also.
+    (If uvp_Joneset==True, the uv-plane Joneset is generated inside this routine.)"""
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Cohset::predict_lsm()', version='20mar2006',
                             description=predict.__doc__)
+    qual = JEN_inarg.qualifier(pp)
 
     JEN_inarg.define(pp, 'nr_lsm_sources', 10000,
                      choice=[1,2,3,5,10,20,100,1000,10000],
                      help='nr of lsm sources to be included (in order of brightness)')
     MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
 
-    # Joneset for image-plane effects (KJones at the very least)
-    qual = JEN_inarg.qualifier(pp)
-    if not isinstance(qual, str): qual = ''
+    # Arguments for a Joneset for image-plane effects:
     JEN_inarg.nest(pp, Jones(_getdefaults=True, _qual=qual+'_imp',
-                             slave=True, KJones=True))
+                             simul=simul, slave=True, KJones=True))
+
+    # Optional: arguments for a Joneset for uv-plane effects:
+    if uvp_Joneset:
+        JEN_inarg.nest(pp, Jones(_getdefaults=True, _qual=qual+'_uvp',
+                                 simul=simul, slave=True))
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -436,7 +425,7 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
             cs1 = TDL_Cohset.Cohset(label=punit_name, origin=funcname, **pp)
             # Corrupt with image-plane effects (including KJones/DFT):
             js1 = Jones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
-                         _inarg=pp, _qual=qual+'_imp', KJones=True)
+                         _inarg=pp, _qual=qual+'_imp', simul=simul, KJones=True)
             if True:
                 cs1.punit2coh(ns, Sixpack, js1)
             else:
@@ -457,15 +446,14 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, slave=False, **inarg):
     # Add the point-source Cohsets together into the final predicted Cohset:
     Cohset = TDL_Cohset.Cohset(label='predict_lsm', origin=funcname, **pp)
     Cohset.zero(ns)
-    # Cohset.display()
     Cohset.add(ns, cs, exclude_itself=True)
-    # Cohset.display()
-    # Cohset.display('after add')
 
     # Optionally, corrupt the Cohset visibilities with the instrumental
     # uvplane effects in the given Joneset of 2x2 station jones matrices:
+    if uvp_Joneset:
+        Joneset = Jones (ns, _inarg=pp, _qual=qual+'_uvp', simul=simul)
     if Joneset:
-       Cohset.corrupt (ns, Joneset=Joneset)
+        Cohset.corrupt (ns, Joneset=Joneset)
 
     # Finished:
     MG_JEN_forest_state.object(Sixpack, funcname)

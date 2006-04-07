@@ -238,6 +238,7 @@ JEN_inarg.define (MG, 'rms_noise_Jy', 0.0, choice=[0,0.01,0.1,1],
 JEN_inarg.define (MG, 'insert_solver', tf=True,
                   help='if True, insert a solver')
 
+MG['external_uvp_Joneset'] = False
 
 #----------------------------------------------------------------------------------------------------
 # Interaction with the MS: spigots, sinks and stream control
@@ -265,14 +266,15 @@ qual = 'simul'
 inarg = MG_JEN_lsm.get_lsm(_getdefaults=True, _qual=qual)
 JEN_inarg.attach(MG, inarg)
 
-inarg = MG_JEN_Cohset.Jones(_getdefaults=True, _qual=qual+'_uvp', slave=True, simul=True) 
-JEN_inarg.attach(MG, inarg)
-
-inarg = MG_JEN_Cohset.Jones(_getdefaults=True, _qual=qual+'_imp', slave=True, simul=True) 
-JEN_inarg.attach(MG, inarg)
-
-inarg = MG_JEN_Cohset.predict_lsm(_getdefaults=True, slave=True, _qual=qual)  
-JEN_inarg.attach(MG, inarg)
+if MG['external_uvp_Joneset']:
+    inarg = MG_JEN_Cohset.Jones(_getdefaults=True, _qual=qual+'_uvp', slave=True, simul=True) 
+    JEN_inarg.attach(MG, inarg)
+    inarg = MG_JEN_Cohset.predict_lsm(_getdefaults=True, slave=True, _qual=qual, simul=True)  
+    JEN_inarg.attach(MG, inarg)
+else:
+    inarg = MG_JEN_Cohset.predict_lsm(_getdefaults=True, uvp_Joneset=True,
+                                      slave=True, _qual=qual, simul=True)  
+    JEN_inarg.attach(MG, inarg)
     
 #----------------------------------------------------------------------------------------------------
 
@@ -285,14 +287,15 @@ JEN_inarg.define (MG, 'use_same_LSM', tf=True,
 inarg = MG_JEN_lsm.get_lsm(_getdefaults=True, _qual=qual)
 JEN_inarg.attach(MG, inarg)
 
-inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True, _qual=qual+'_uvp') 
-JEN_inarg.attach(MG, inarg)
-
-inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True, _qual=qual+'_imp') 
-JEN_inarg.attach(MG, inarg)
-
-inarg = MG_JEN_Cohset.predict_lsm(_getdefaults=True, slave=True, _qual=qual)  
-JEN_inarg.attach(MG, inarg)
+if MG['external_uvp_Joneset']:
+    inarg = MG_JEN_Cohset.Jones(_getdefaults=True, slave=True, _qual=qual+'_uvp') 
+    JEN_inarg.attach(MG, inarg)
+    inarg = MG_JEN_Cohset.predict_lsm(_getdefaults=True, slave=True, _qual=qual)  
+    JEN_inarg.attach(MG, inarg)
+else:
+    inarg = MG_JEN_Cohset.predict_lsm(_getdefaults=True, uvp_Joneset=True,
+                                      slave=True, _qual=qual)  
+    JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, slave=True) 
 JEN_inarg.attach(MG, inarg)
@@ -378,11 +381,14 @@ def _define_forest (ns, **kwargs):
     # lsm = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual)
 
     # Predict nominal/corrupted visibilities: 
-    # Make a Joneset for uv_plane effects: 
-    Joneset = None
-    Joneset = MG_JEN_Cohset.Jones(nsim, simul=True, _inarg=MG, _qual=qual+'_uvp')
-    predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm, Joneset=Joneset,
-                                           _inarg=MG, _qual=qual)
+    if MG['external_uvp_Joneset']:
+        # Make an external Joneset for uv-plane effects:
+        Joneset = MG_JEN_Cohset.Jones(nsim, simul=True, _inarg=MG, _qual=qual+'_uvp')
+        predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm, Joneset=Joneset, 
+                                               simul=True, _inarg=MG, _qual=qual)
+    else:
+        predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm, uvp_Joneset=True, 
+                                               simul=True, _inarg=MG, _qual=qual)
         
     # Opionally, add (gaussian) noise:
     if MG['rms_noise_Jy']>0:
@@ -411,13 +417,15 @@ def _define_forest (ns, **kwargs):
             # Optionally, get/create/modify a different LSM:
             lsm2 = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual)
 
-        # Make a Joneset for uv-plane effects:
-        Joneset = None
-        Joneset = MG_JEN_Cohset.Jones(ns, _inarg=MG, _qual=qual+'_uvp')
         # Predict nominal/corrupted visibilities: 
-        predicted = MG_JEN_Cohset.predict_lsm (ns, lsm=lsm2,
-                                               Joneset=Joneset,
-                                               _inarg=MG, _qual=qual)
+        if MG['external_uvp_Joneset']:
+            # Make an external Joneset for uv-plane effects:
+            Joneset = MG_JEN_Cohset.Jones(ns, _inarg=MG, _qual=qual+'_uvp')
+            predicted = MG_JEN_Cohset.predict_lsm (ns, lsm=lsm2, Joneset=Joneset,
+                                                   _inarg=MG, _qual=qual)
+        else:
+            predicted = MG_JEN_Cohset.predict_lsm (ns, lsm=lsm2, uvp_Joneset=True,
+                                                   _inarg=MG, _qual=qual)
 
         Sohset = Cohset.copy(label='solve_branch')
         MG_JEN_Cohset.insert_solver (ns, measured=Sohset, predicted=predicted, _inarg=MG)

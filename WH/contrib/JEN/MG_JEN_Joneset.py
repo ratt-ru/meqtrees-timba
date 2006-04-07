@@ -1205,9 +1205,13 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     # Register the parmgroups with specific rider parameters:
     b1 = js.parmgroup('EJones', ipol=1, rider=pp, 
                       descr='Station X voltage beam shape (l,m,t,f)',
+                      condeq_corrs='paral', c00_default=1.0,
+                      c00_scale=1.0, timescale_min=100000, fdeg=0,
                       color='red', style='diamond', size=10)
     b2 = js.parmgroup('EJones', ipol=2, rider=pp, 
                       descr='Station Y voltage beam shape (l,m,t,f)',
+                      condeq_corrs='paral', c00_default=1.0,
+                      c00_scale=1.0, timescale_min=100000, fdeg=0,
                       color='blue', style='diamond', size=10)
     dl = js.parmgroup('Edl', rider=pp, unit='rad',
                       descr='Station pointing error in l-direction',
@@ -1219,7 +1223,6 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
                       condeq_corrs='paral', c00_default=0.0,
                       c00_scale=0.001, timescale_min=100, fdeg=0,
                       color='blue', style='diamond', size=10)
-    d0 = js.parmgroup('dummy_zero', rider=pp)
     
     # MeqParm node_groups: add 'E' to default 'Parm':
     js.ParmSet.node_groups(label[0])
@@ -1242,11 +1245,11 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     lmn    = ns['lmn'](q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
     lm = ns['lm'](q=pp['punit']) << Meq.Selector(lmn, index=[0,1], multi=True)
     cax = [hiid('l'),hiid('m')]                           # <---- necessary?
+    qual_punit = dict(q=pp['punit'])
 
     # The two voltage beams are slightly elongated in the L or M direction:
     X_beam = WSRT_voltage_beam_funklet(a_rad=0.01, b_rad=0.011)
     Y_beam = WSRT_voltage_beam_funklet(a_rad=0.011, b_rad=0.01)
-    dummy_zero = dummy_zero_funklet()
 
     # Create the station jones matrices:
     for station in pp['stations']:
@@ -1256,13 +1259,9 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
        # Create MeqParm/MeqLeaf nodes, to be used below (using ss):
        ss = dict()
        if simul:
-          ss[b1] = js.LeafSet.MeqLeaf (ns, b1, qual=qual, init_funklet=X_beam)
-          ss[b2] = js.LeafSet.MeqLeaf (ns, b2, qual=qual, init_funklet=Y_beam)
           ss[dl] = js.LeafSet.MeqLeaf (ns, dl, qual=qual)
           ss[dm] = js.LeafSet.MeqLeaf (ns, dm, qual=qual)
        else:
-          ss[b1] = js.ParmSet.MeqParm (ns, b1, qual=qual, init_funklet=X_beam)
-          ss[b2] = js.ParmSet.MeqParm (ns, b2, qual=qual, init_funklet=Y_beam)
           ss[dl] = js.ParmSet.MeqParm (ns, dl, qual=qual,
                                        tfdeg=[pp['tdeg_Edl'],pp['fdeg_Edl']],
                                        subtile_size=pp['subtile_size_Edl'])
@@ -1270,21 +1269,30 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
                                        tfdeg=[pp['tdeg_Edm'],pp['fdeg_Edm']],
                                        subtile_size=pp['subtile_size_Edm'])
 
-       # Make the 2x2 Jones matrix:
+
+       # Create MeqParm/MeqLeaf nodes with 4D (l,m,f,t) beam funklets:
        lmtot = lm
        if False:
           # Temporarily disabled, until Sarod has implemented solving for (l,m) branch:
           dlm = ns['pointing_error'](s=skey, q=pp['punit']) << Meq.Composer(ss[dl],ss[dm])
           lmtot = ns['lm'](s=skey, q=pp['punit']) << Meq.Add(lm,dlm)
+       if simul:
+          ss[b1] = js.LeafSet.MeqLeaf (ns, b1, qual=qual, init_funklet=X_beam,
+                                       qual2=qual_punit,
+                                       compounder_children=lmtot, common_axes=cax)
+          ss[b2] = js.LeafSet.MeqLeaf (ns, b2, qual=qual, init_funklet=Y_beam,
+                                       qual2=qual_punit,
+                                       compounder_children=lmtot, common_axes=cax)
+       else:
+          ss[b1] = js.ParmSet.MeqParm (ns, b1, qual=qual, init_funklet=X_beam,
+                                       qual2=qual_punit,
+                                       compounder_children=lmtot, common_axes=cax)
+          ss[b2] = js.ParmSet.MeqParm (ns, b2, qual=qual, init_funklet=Y_beam,
+                                       qual2=qual_punit,
+                                       compounder_children=lmtot, common_axes=cax)
 
-       stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
-          ns[label+'_11'](s=skey, q=pp['punit']) << Meq.Compounder(children=[lmtot, ss[b1]],
-                                                                   common_axes=cax),
-          0,0,
-          # ns[label+'_12'](s=skey, q=pp['punit']) << Meq.Parm(init_funklet=dummy_zero),
-          # ns[label+'_21'](s=skey, q=pp['punit']) << Meq.Parm(init_funklet=dummy_zero),
-          ns[label+'_22'](s=skey, q=pp['punit']) << Meq.Compounder(children=[lmtot, ss[b2]],
-                                                                   common_axes=cax))
+       # Make the 2x2 Jones matrix:
+       stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22(ss[b1],0,0,ss[b2])
        js.append(skey, stub)
 
 

@@ -9,6 +9,7 @@
 #    - 24 feb 2006: creation, starting from TDL_Parmset.py
 #    - 09 mar 2006: recreated from TDL_ParmSet.py
 #    - 31 mar 2006: added MeqLeaf(init_funklet=...)
+#    - 07 apr 2006: added MeqLeaf compounder_children
 #
 # Full description:
 #   A LeafSet contains 'leaf' nodes in named groups.
@@ -109,6 +110,7 @@ class LeafSet (TDL_common.Super):
 
 
     def MeqLeaf(self, ns, key=None, qual=None, leafgroup=None,
+                compounder_children=None, common_axes=None, qual2=None,
                 init_funklet=None, **pp):
         """Convenience function to create a MeqLeaf node"""
 
@@ -134,11 +136,30 @@ class LeafSet (TDL_common.Super):
         node = ns[key](**quals)
         if node.initialized():                           # node already exists
             return node
+
+        elif compounder_children:
+            # Special case: Make a MeqCompounder node with a ND funklet.
+            # Used for interpolatable Jones matrices like EJones or MIM etc
+            parm = ns[key](**quals)('funklet')
+            if not parm.initialized():
+                parm << Meq.Parm(init_funklet=init_funklet)
+                self.NodeSet.MeqNode(leafgroup, parm)
+            cc = compounder_children
+            if not isinstance(cc, (list, tuple)): cc = [cc]
+            cc.append(parm)
+            # The Compounder has more qualifiers than the Parm.
+            # E.g. EJones_X is per station, but the compounder and its
+            # children (l,m) are for a specific source (q=3c84)
+            if isinstance(qual2, dict):
+                for qkey in qual2.keys():
+                    quals[qkey] = str(qual2[qkey])
+            node = ns[key](**quals)
+            node << Meq.Compounder(children=cc, common_axes=common_axes)
+            return node
         
         elif init_funklet:
-            # Special case: Make a MeqParm node.
-            # Used for interpolatable Jones matrices like EJones or MIM etc
-            node = ns[key](**quals) << Meq.Parm(init_funklet=init_funklet)
+            # Special case: Make a MeqParm node with an ND funklet.....(?)
+            node << Meq.Parm(init_funklet=init_funklet)
 
         else:
             #--------------------------------------------------------------
@@ -165,7 +186,7 @@ class LeafSet (TDL_common.Super):
             # The simulated variations tvar (t,f) are added to the MeqParm default value.
             default = rider['c00_default']
             c00 = ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default)
-            node = ns[key](**quals) << Meq.Add(c00, tvar)
+            node = ns[key](**quals) << Meq.Add(c00, tvar, MeqLeaf_rider=record(rider))
 
         # Store the new node in the NodeSet:
         self.NodeSet.MeqNode(leafgroup, node)
