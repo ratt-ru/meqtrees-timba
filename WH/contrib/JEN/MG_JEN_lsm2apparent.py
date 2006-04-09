@@ -224,9 +224,9 @@ def _define_forest (ns, **kwargs):
            node = sp.root()
            cc.append(node)
 
-   # Add the point-source Cohsets to the mainstream Cohset:
-   Cohset.add(ns, cs, exclude_itself=True)
-   Cohset.display('after add')
+   # Replace the mainstream Cohset with (the sum of) the Cohset(s) cs:
+   Cohset.replace(ns, cs)
+   Cohset.display('after replace')
 
    # Make MeqSink nodes that write the MS:
    sinks = MG_JEN_Cohset.make_sinks(ns, Cohset, _inarg=MG)

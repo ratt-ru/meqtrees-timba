@@ -443,10 +443,10 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, uvp_Joneset=False,
             node = Sixpack.root()
             # cc.append(node)
 
-    # Add the point-source Cohsets together into the final predicted Cohset:
+    # Add the point-source Cohsets (cs) together into the final predicted Cohset:
     Cohset = TDL_Cohset.Cohset(label='predict_lsm', origin=funcname, **pp)
-    Cohset.zero(ns)
-    Cohset.add(ns, cs, exclude_itself=True)
+    # Cohset.zero(ns)
+    Cohset.replace(ns, cs)
 
     # Optionally, corrupt the Cohset visibilities with the instrumental
     # uvplane effects in the given Joneset of 2x2 station jones matrices:
@@ -946,7 +946,7 @@ def visualise(ns=None, Cohset=None, extra=None, **pp):
 
     else:
         # Return a list of dataCollect nodes that need requests:
-        Cohset._history(funcname+' -> '+'dconc '+str(len(dconc)))
+        Cohset._history(funcname+' -> '+'dconc keys: '+str(dconc.keys()))
         cc = []
         for key in dconc.keys():
            cc.append(dconc[key]['dcoll'])
