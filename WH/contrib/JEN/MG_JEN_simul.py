@@ -429,6 +429,10 @@ def _define_forest (ns, **kwargs):
 
         Sohset = Cohset.copy(label='solve_branch')
         MG_JEN_Cohset.insert_solver (ns, measured=Sohset, predicted=predicted, _inarg=MG)
+        Sohset.display('Sohset after insert_solver', full=True)
+        Cohset.display('Cohset after insert_solver', full=True)
+        # return False
+    
         # Splice the Sohset branch back into Cohset:
         Cohset.splice(ns, Sohset)
 

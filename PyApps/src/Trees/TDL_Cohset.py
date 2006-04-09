@@ -34,7 +34,8 @@
 #    - 09 mar 2006: included new TDL_ParmSet
 #    - 11 mar 2006: remove TDL_Parmset and TDL_Leafset
 #    - 11 mar 2006: implement .splice()
-#    - 05 apr 2006: implement .uncorrupted()
+#    - 05 apr 2006: implement .punit2coh()
+#    - 07 apr 2006: re-implemented .replace() and .add()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -876,98 +877,55 @@ class Cohset (TDL_common.Super):
 
     def replace(self, ns, Cohset=[]):
         """Replace with the (sum of the) cohaerencies of the given (list of) Cohset(s)"""
-        self.add(ns, Cohset, exclude_itself=True)
+        funcname = '::replace():'
+        if not isinstance(Cohset, (tuple,list)): Cohset = [Cohset]
+        if len(Cohset)==0:
+            return True                                # no change....?
+        elif len(Cohset)>1:                            # more than one Cohset:
+            Cohset[0].add(ns, Cohset[1:])              #   add them all in Cohset[0]
+        # Replace the internal cohaerencies with those of Cohset[0]:
+        for key in self.keys():
+            self.__coh[key] = Cohset[0][key]
+        # Reporting and book-keeping
+        self.scope('replaced')
+        self.update_from_Cohset(Cohset[0])
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
 
-    def add(self, ns, Cohset=[], exclude_itself=False):
-        """Add the cohaerencies of the given (list of) Cohset(s)"""
+    def common_quals(self, trace=False):
+        """Find the common qualifiers of the Cohset cohaerencies"""
+        funcname = '::common_quals():'
+        cc = []
+        for key in self.keys():
+            cc.append(self.__coh[key])
+        return TDL_common.common_quals(cc, trace=trace)
+
+
+    def add(self, ns, Cohset=[]):
+        """Add the cohaerencies of the given (list of) Cohset(s) to itself"""
         funcname = '::add():'
         if not isinstance(Cohset, (tuple,list)): Cohset = [Cohset]
         if len(Cohset)==0: return True                 # no change
-        # print funcname,len(Cohset)
-        
-        # Prepare:
-        uniqual = _counter(funcname, increment=-1)
-        c0 = self.zero_coh(ns)
-
         # Modify the internal cohaerencies:
+        uniqual = _counter(funcname, increment=-1)
         for key in self.keys():
             itself = self.__coh[key]                   # its own node
-            name = 'added'
-            cc = [itself]                              # make a list for MeqAdd
             if isinstance(itself, str):                # e.g. nodestub placeholder....
                 print funcname,': itself =',itself
                 return False                           # problem
-            elif exclude_itself:
-                name = 'replaced'
-                # itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, c0)
-                cc = []
+            cc = [itself]                              # make a list of children for MeqAdd
             for cs in Cohset:
                 cc.append(cs[key])                     # collect corresponding (key) nodes
-            if exclude_itself:
-                self.__coh[key] = ns[name].qmerge(itself)(uniqual) << Meq.Add(children=cc,
-                                                                              stepchildren=[itself])
-            else:
-                self.__coh[key] = ns[name].qmerge(itself)(uniqual) << Meq.Add(children=cc)
-
-        # Reporting and book-keeping
+            cq = TDL_common.common_quals(cc)           # find their common qualifiers
+            self.__coh[key] = ns['sum'](uniqual)(**cq) << Meq.Add(children=cc)
+        # Reporting and book-keeping:
+        self.scope('added')
         for cs in Cohset:
             self.update_from_Cohset(cs)
-        n = len(Cohset)
-        if exclude_itself:
-            self.scope('replaced')
-            self.label('replaced')                
-            self._history(append=funcname+' replace by sum of '+str(n)+' Cohsets:')
-        else:
-            self.scope('added')
-            self._history(append=funcname+' added '+str(n)+' Cohset(s) to itself:')
-        for cs in Cohset:
-            self._history(append=funcname+' ...... '+cs.oneliner())
+            # self._history(append=funcname+'- added Cohset:'+cs.oneliner())
         self._history(append=funcname+' -> '+self.oneliner())
         return True
 
-
-    def add_old(self, ns, Cohset=[], exclude_itself=False):
-        """Add the cohaerencies of the given (list of) Cohset(s)"""
-        funcname = '::add_old():'
-        if not isinstance(Cohset, (tuple,list)): Cohset = [Cohset]
-        if len(Cohset)==0: return True                 # no change
-        # print funcname,len(Cohset)
-        
-        # Prepare:
-        uniqual = _counter(funcname, increment=-1)
-        c0 = self.zero_coh(ns)
-
-        # Modify the internal cohaerencies:
-        for key in self.keys():
-            itself = self.__coh[key]                   # its own node
-            name = 'added_old'
-            if isinstance(itself, str):                # e.g. nodestub placeholder....
-                print funcname,': itself =',itself
-                return False                           # problem
-            elif exclude_itself:
-                name = 'replaced_old'
-                itself = ns.tozero.qmerge(itself)(uniqual) << Meq.Multiply(itself, c0)
-            cc = [itself]                              # make a list for MeqAdd
-            for cs in Cohset:
-                cc.append(cs[key])                     # collect corresponding (key) nodes
-            self.__coh[key] = ns[name].qmerge(itself)(uniqual) << Meq.Add(children=cc)
-
-        # Reporting and book-keeping
-        for cs in Cohset:
-            self.update_from_Cohset(cs)
-        n = len(Cohset)
-        if exclude_itself:
-            self.scope('replaced_old')
-            self.label('replaced_old')                
-            self._history(append=funcname+' replace by sum of '+str(n)+' Cohsets:')
-        else:
-            self.scope('added_old')
-            self._history(append=funcname+' added '+str(n)+' Cohset(s) to itself:')
-        for cs in Cohset:
-            self._history(append=funcname+' ...... '+cs.oneliner())
-        self._history(append=funcname+' -> '+self.oneliner())
-        return True
 
 
     def shift_phase_centre(self, ns, punit=None):
@@ -1605,7 +1563,8 @@ class Cohset (TDL_common.Super):
                                                                 post=pp['post'])
 
         # Bookkeeping:
-        self._history(append=funcname+' inarg = '+str(pp))
+        qq = TDL_common.unclutter_inarg(pp)
+        self._history(append=funcname+' inarg = '+str(qq))
         self._history(append=funcname+' -> '+self.oneliner())
         return True
 

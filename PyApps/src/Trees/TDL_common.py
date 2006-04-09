@@ -444,7 +444,9 @@ def unclutter_inarg(pp):
     for key in pp.keys():
         v = pp[key]
         if isinstance(v, Timba.TDL.TDLimpl._NodeStub):    # avoid clutter
-            qq[key] = key+': <nodestub>'
+            s1 = key+': <nodestub>'
+            s1 += str(v.name)
+            qq[key] = s1
         elif isinstance(v, dict):                         # avoid clutter
             if key=='_JEN_inarg_CTRL_record:':
                 pass
@@ -527,6 +529,35 @@ def format_initrec (node=None, trace=False):
                 initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
     if trace: print '  ',initrec
     return str(initrec)
+
+
+#---------------------------------------------------------------------------------
+
+def common_quals(cc=[], trace=False):
+    """Find the common qualifiers if the given list of nodes"""
+    funcname = 'TDL_common.common_quals():'
+    if trace: print '\n**',funcname
+    if not isinstance(cc, (list, tuple)): cc = [cc]
+    if len(cc)==0: return dict()
+    if len(cc)==1: return cc[0].kwquals
+    quals = cc[0].kwquals
+    count = dict()
+    for key in quals.keys():
+        count[key] = 1
+    for node in cc[1:]: 
+        if trace: print '-',node.quals,':',node.kwquals
+        kwquals = node.kwquals
+        for key in quals.keys():
+            if kwquals.has_key(key):
+                if kwquals[key]==quals[key]:
+                    count[key] += 1
+    cq = dict()
+    for key in quals.keys():
+        if count[key]>1:
+            cq[key] = quals[key]
+    if trace: print '->',cq,'\n'
+    return cq
+
 
 
 
