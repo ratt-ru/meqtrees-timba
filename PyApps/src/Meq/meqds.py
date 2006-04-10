@@ -106,8 +106,7 @@ class NodeList (QObject):
   NodeAttrs = ('name','class','children','step_children','control_status');
   RequestRecord = record(**dict.fromkeys(NodeAttrs,True));
   RequestRecord.nodeindex=True;
-  RequestRecord.get_forest_status = True;
-  RequestRecord.get_forest_state  = True;
+  RequestRecord.get_forest_status = 2;
   
   class Node (QObject):
     def __init__ (self,ni,parent=None):

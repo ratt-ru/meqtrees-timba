@@ -195,7 +195,7 @@ void MeqServer::setForestState (DMI::Record::Ref &out,DMI::Record::Ref &in)
   cdebug(3)<<"setForestState()"<<endl;
   DMI::Record::Ref ref = in[AidState].ref();
   forest.setState(ref);
-  fillForestStatus(out(),2);
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(2));
 }
 
 void MeqServer::getForestState (DMI::Record::Ref &out,DMI::Record::Ref &in)

@@ -112,14 +112,17 @@ def compile_file (mqs,filename,text=None,parent=None,
       return (_tdlmod,ns,"Script has run successfully, but no nodes were defined.");
     # try to run stuff
     meqds.clear_forest();
-    mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
-    mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())));
-
-    # is a forest state defined?
+    # is a forest state defined? send it on then
     fst = getattr(Timba.TDL.Settings,'forest_state',record());
     # add in source code
     fst.tdl_source = record(**{os.path.basename(filename):text});
-    mqs.meq('Set.Forest.State',record(state=fst));
+    mqs.meq('Set.Forest.State',record(state=fst,get_forest_status=0));
+    
+    mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
+    mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())));
+    ## do not request frest state here, let the GUI do it for us
+    ## this ensures that bookmarks show up only after all nodes are available
+    # mqs.meq('Get.Forest.State',record(sync=2));
 
     msg = """Script has run successfully. %d node definitions 
 (of which %d are root nodes) sent to the kernel.""" \
