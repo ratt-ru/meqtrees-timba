@@ -388,6 +388,8 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(meqds.nodelist,PYSIGNAL("requested()"),self._autoreq_timer.stop);
     # tdl tabs
     self._tdl_tabs = {};
+    # wait cursor object
+    self._wait_cursor = None;
     
   def resizeEvent (self,ev):
     app_proxy_gui.resizeEvent(self,ev);
@@ -716,6 +718,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     basename = os.path.basename(self._main_tdlfile);
     self.log_message("compiling TDL script "+basename);
     QApplication.flush();
+    self._wait_cursor = self.wait_cursor();
     self._main_tdlfile = tab.get_filename();
     self._tb_jobs.hide();
     if tab.compile_content():
@@ -738,6 +741,11 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         self._tb_jobs.show();
       else:
         self._mi_tdljobs = None;
+    else:
+      # if compilation failed, restore the wait-cursor
+      # (and if successful, wait for a node list to arrive -- it will
+      # be handled in ce_LoadNodeList() below)
+      self._wait_cursor = None;
     
   def _tdl_compile_file (self,filename,show=True):
     tab = self._tdl_tabs.get(filename,None);
@@ -964,6 +972,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     self._qa_addpagemark.setEnabled(enable_pgmark);
         
   def _connected_event (self,ev,value):  
+    self._wait_cursor = None;     # clear any wait-cursors
     app_proxy_gui._connected_event(self,ev,value);
     self._wstat.show();
     self._wstat.emit(PYSIGNAL("shown()"),(True,));
@@ -976,6 +985,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     meqds.request_forest_state();
       
   def _disconnected_event (self,ev,value):  
+    self._wait_cursor = None;     # clear any wait-cursors
     app_proxy_gui._disconnected_event(self,ev,value);
     self._autoreq_timer.stop();
     self._autoreq_sent = False;
@@ -1097,7 +1107,9 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       _dprint(2,"got nodelist but it is not valid, ignoring");
       return;
     self._autoreq_timer.stop();
-    tmp = self.wait_cursor();
+    # create a wait-cursor if not already waiting
+    if self._wait_cursor is not None:
+      self._wait_cursor = self.wait_cursor();
     self._have_nodelist = True;
     self._autoreq_timer.stop();
     meqds.nodelist.load(meqnl);
@@ -1106,6 +1118,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     try: fst = meqnl.forest_status;
     except AttributeError: pass;
     else: self.treebrowser.update_forest_status(fst);
+    # clear wait-cursor
+    self._wait_cursor = None;
     
   def update_node_state (self,node,event=None):
     meqds.reclassify_nodestate(node);
