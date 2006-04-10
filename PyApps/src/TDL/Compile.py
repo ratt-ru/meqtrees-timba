@@ -135,9 +135,11 @@ def compile_file (mqs,filename,text=None,parent=None,
     return (_tdlmod,ns,msg);
   # CumulativeError exceptions returned as is  
   except TDL.CumulativeError:
-    _dprint(0,'exception compiling TDL file:',filename);
+    _dprint(0,'cumulative error compiling TDL file:',filename);
     traceback.print_exc();
-    _dprint(0,'error args {',sys.exc_info()[1].args,'}');
+    args = sys.exc_info()[1].args;
+    _dprint(0,'number of errors in list:',len(args));
+    _dprint(1,'errors are: {',args,'}');
     raise;
   # Other exceptions wrapped in a CumulativeError, and
   # location information is added in
@@ -145,26 +147,33 @@ def compile_file (mqs,filename,text=None,parent=None,
     (etype,exc,tb) = sys.exc_info();
     _dprint(0,'exception compiling TDL file:',filename);
     traceback.print_exception(etype,exc,tb);
-    # create new error object, with type: args message
-    try:
-      args = str(exc.args[0]);
-      err = etype("%s: %s"%(etype.__name__,args));
-    except AttributeError:
-      err = etype(etype.__name__);
-    # figure out where it was raised
-    tb = traceback.extract_tb(tb);
-    internal = ( os.path.dirname(tb[-1][0]) == _MODULE_DIRNAME );
-    # get location info from original exception
-    filename = getattr(exc,'filename',None);
-    lineno   = getattr(exc,'lineno',None);
-    offset   = getattr(exc,'offset',0) or 0;
-    # if not provided, get from traceback
-    if filename is None and not internal:
-      filename = tb and tb[-1][-0];
-      lineno = tb[-1][1];
-      offset = 0;
-    # put into error object
-    setattr(err,'filename',filename);
-    setattr(err,'lineno',lineno);
-    setattr(err,'offset',offset);
-    raise TDL.CumulativeError(err);
+    # use TDL add_error() to process the error, since this automatically
+    # adds location information
+    ns.AddError(exc,traceback.extract_tb(tb),error_limit=None);
+    # re-raise as a CumulativeError
+    raise TDL.CumulativeError(*ns.GetErrors());
+    
+#     # create new error object, with type: args message
+#     try:
+#       args = str(exc.args[0]);
+#       err = etype("%s: %s"%(etype.__name__,args));
+#     except AttributeError:
+#       err = etype(etype.__name__);
+#     # figure out where it was raised
+#     tb = traceback.extract_tb(tb);
+#     internal = ( os.path.dirname(tb[-1][0]) == _MODULE_DIRNAME );
+#     # get location info from original exception
+#     filename = getattr(exc,'filename',None);
+#     lineno   = getattr(exc,'lineno',None);
+#     offset   = getattr(exc,'offset',0) or 0;
+#     # if not provided, get from traceback
+#     _dprint(0,'file',filename,'exception is internal:',internal);
+#     if filename is None and not internal:
+#       filename = tb and tb[-1][-0];
+#       lineno = tb[-1][1];
+#       offset = 0;
+#     # put into error object
+#     setattr(err,'filename',filename);
+#     setattr(err,'lineno',lineno);
+#     setattr(err,'offset',offset);
+#     raise TDL.CumulativeError(err);

@@ -207,6 +207,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._werrlist.addColumn(''); 
     self._werrlist.addColumn(''); 
     self._werrlist.addColumn(''); 
+    self._werrlist.setSorting(-1); 
     # self._werrlist.setColumnAlignment(0,Qt.AlignRight);
     self._werrlist.setRootIsDecorated(True);
     self._werrlist.setAllColumnsShowFocus(True);
@@ -380,7 +381,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     if errlist:
       self._error_items = [];
       self._error_at_line = {};
-      previtem = self._werrlist;
+      mainitem = None;      # previous main-level item
+      subitem = None;       # previous sub-item
       nerr = 1;
       nhere = 0;
       for index,err in enumerate(errlist):
@@ -391,9 +393,19 @@ class TDLEditor (QFrame,PersistentCurrier):
         # effectively, this makes CalledFrom errors child items
         # of the previous non-error item (previtem)
         if isinstance(err,TDL.CalledFrom):
-          item = QListViewItem(previtem,'');
+          _dprint(1,"called from",filename);
+          if subitem is not None:
+            item = QListViewItem(mainitem or self._werrlist,subitem,'');
+          else:
+            item = QListViewItem(mainitem or self._werrlist,'');
+          subitem = item;
         else:
-          previtem = item = QListViewItem(self._werrlist,"%d:"%(nerr,));
+          _dprint(1,errmsg,"at",filename);
+          if mainitem is not None:
+            mainitem = item = QListViewItem(self._werrlist,mainitem,"%d:"%(nerr,));
+          else:
+            mainitem = item = QListViewItem(self._werrlist,"%d:"%(nerr,));
+          subitem = None;
           nerr += 1;
           if filename == self._filename:
             nhere += 1;
@@ -609,9 +621,11 @@ class TDLEditor (QFrame,PersistentCurrier):
         QApplication.restoreOverrideCursor();
     # catch compilation errors
     except TDL.CumulativeError,value:
+      _dprint(0,"caught cumulative error, length",len(value.args));
       self.set_error_list(value.args);
       return None;
     except Exception,value:
+      _dprint(0,"caught other error, traceback follows");
       traceback.print_exc();
       self.set_error_list([value]);
       return None;

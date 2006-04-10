@@ -22,9 +22,6 @@ class _MeqGen (TDLimpl.ClassGen):
   def __init__ (self):
     TDLimpl.ClassGen.__init__(self,'Meq');
     
-  def Constant (self,value):
-    return _NodeDef('Meq','Constant',value=value);
-    
   def Parm (self,funklet=None,**kw):
     if funklet is not None:
       if isinstance(funklet,dmi.dmi_type('MeqFunklet')):
@@ -49,7 +46,7 @@ class _MeqGen (TDLimpl.ClassGen):
     elif isinstance(value,(int,long)):
       value = float(value);
     elif not isinstance(value,(float,complex,dmi.array_class)):
-      raise TypeError,"can't create Meq.Constant from value of type "+type(value).__name__;
+      return _NodeDef(NodeDefError("can't create Meq.Constant from value of type "+type(value).__name__));
     kw['value'] = value;
     return _NodeDef('Meq','Constant',**kw);
     
@@ -66,7 +63,7 @@ class _MeqGen (TDLimpl.ClassGen):
         if not isinstance(s,str):
           try: s = s.name;
           except AttributeError: 
-            raise TypeError,"can't specify a solvable as something of type "+type(s).__name__;
+            return _NodeDef(NodeDefError("can't specify a solvable as something of type "+type(s).__name__));
         solvnames.append(s);
       # create solvable command
       kw['solvable'] = dmi.record(

@@ -64,6 +64,15 @@ class ChildError (TDLError):
 
 class NodeDefError (TDLError):
   """this error is raised when a node is incorrectly defined""";
+  def __init__(self,message,next=None,tb=None,filename=None,lineno=None):
+    # trim the top frame from the stack traceback; this excludes the
+    # point where the error was actually created, since the error actually
+    # originates at the _caller_ of the error creator.
+    if tb is None:
+      tb = traceback.extract_stack();
+      tb.pop(-1);
+      tb.pop(-1);
+    TDLError.__init__(self,message,next,tb,filename,lineno);
   pass;
 
 class CalledFrom (TDLError):
@@ -588,8 +597,10 @@ class _NodeRepository (dict):
     except:
       raise TDLError,"Repository must be resolve()d to determine root nodes";
   
-  def add_error (self,err,tb=None):
+  def add_error (self,err,tb=None,error_limit=100):
     """adds an error object to internal error list. 
+    If error_limit is not None, raises exception if the length of the error
+    list exceeds error_limit.
     The object is augumented with location information (err.filename, err.lineno)
     as follows:
       * if err.filename and err.lineno exist, they are left as-is
@@ -599,9 +610,13 @@ class _NodeRepository (dict):
     processed, and all stack frames leading up to the error are added
     to the list as CalledFrom() errors.
     Note that the stack traceback is trimmed as follows:
-      * consecutive frames from the top of the stack that belong to files in
-        the same directory as ours
       * frames from bottom up to and including our caller_filename (see above).
+      * consecutive frames from the top of the stack that belong to 
+        this module here
+      (NB: the old behaviour was:
+          * consecutive frames from the top of the stack that belong to files in
+            the same directory as ours
+       but this led to some confusing error messages so I changed it).
     Hopefully, this leaves a stack list with only 'user code' frames in it.
     Finally, if err.next_error is defined, add_error() is called on it
     recursively.
@@ -610,8 +625,9 @@ class _NodeRepository (dict):
     tb = tb or getattr(err,'tb',None) or traceback.extract_stack();
     _dprint(1,'error',err,'tb',len(tb));
     _dprint(2,'traceback',tb);
-    # trim TDLimpl etc. frames from top of stack
-    while tb and os.path.dirname(tb[-1][0]) == _MODULE_DIRNAME:
+    # trim our own frames from top of stack
+    # while tb and os.path.dirname(tb[-1][0]) == _MODULE_DIRNAME:
+    while tb and tb[-1][0] == _MODULE_FILENAME:
       tb.pop(-1);
     # put error location into object
     if not ( getattr(err,'filename',None) and getattr(err,'lineno',None) is not None ):
@@ -630,16 +646,17 @@ class _NodeRepository (dict):
     self._errors.append(err);
     # add traceback
     for (filename,lineno,funcname,text) in tb[-1::-1]:
+      _dprint(2,'next traceback frame',filename,lineno);
       if filename == self._caller_filename:
         break;
       if (filename,lineno) != (err.filename,err.lineno):
-        self._errors.append(CalledFrom("called from here",filename=filename,lineno=lineno));
+        self._errors.append(CalledFrom("called from "+filename,filename=filename,lineno=lineno));
     # add chained error if appropriate
     next = getattr(err,'next_error',None);
     if next:
       self.add_error(next);
     # raise cumulative error if we get too many
-    if len(self._errors) > 100:
+    if error_limit is not None and len(self._errors) >= error_limit:
       raise CumulativeError(*self._errors);
       
   def get_errors (self):
@@ -807,6 +824,9 @@ class NodeScope (object):
   
   def GetErrors (self):
     return self._repository.get_errors();
+    
+  def AddError (self,*args,**kwargs):
+    return self._repository.add_error(*args,**kwargs);
     
   def MakeUniqueName (self,name):
     num = self._uniqname_counters.get(name,0);
