@@ -120,16 +120,17 @@ def compile_file (mqs,filename,text=None,parent=None,
     # add in source code
     fst.tdl_source = record(**{os.path.basename(filename):text});
     mqs.meq('Set.Forest.State',record(state=fst,get_forest_status=0));
-    
-    mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
-    mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())));
+    if num_nodes:
+      mqs.meq('Create.Node.Batch',record(batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
+      mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())));
+      msg = """Script has run successfully. %d node definitions 
+(of which %d are root nodes) sent to the kernel.""" \
+        % (num_nodes,len(ns.RootNodes()));
+    else:  
+      msg = "Script has run successfully, but no nodes were defined.";    
     ## do not request frest state here, let the GUI do it for us
     ## this ensures that bookmarks show up only after all nodes are available
     # mqs.meq('Get.Forest.State',record(sync=2));
-
-    msg = """Script has run successfully. %d node definitions 
-(of which %d are root nodes) sent to the kernel.""" \
-      % (num_nodes,len(ns.RootNodes()));
     
     # call the post-define function
     postdefine_func = getattr(_tdlmod,'_tdl_postdefine',None);

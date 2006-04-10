@@ -16,6 +16,8 @@ runtime_options = [];
 Config = None;
 
 def clear_options ():
+  global compile_options;
+  global runtime_options;
   compile_options = [];
   runtime_options = [];
   
@@ -26,11 +28,19 @@ def init_options (filename):
   global Config;
   Config = config.DualConfigParser(filename);
   
+def get_compile_options ():
+  return compile_options;
+  
+def get_runtime_options ():
+  return runtime_options;
+  
 class TDLOptionItem(object):
   def __init__ (self,caller,symbol,value):
     self.caller = caller;
     self.symbol = symbol;
     self._set(value);
+    self.name = None;
+    self.doc = None;
     
   def set_name (self,name):
     self.name = name;
@@ -65,6 +75,7 @@ class TDLBoolOptionItem (TDLOptionItem):
 class TDLListOptionItem (TDLOptionItem):
   def __init__ (self,caller,symbol,value,default=None):
     self.option_list = value;
+    self.inline = False;
     # verify default arg
     if default is None:
       default = 0;
@@ -74,18 +85,32 @@ class TDLListOptionItem (TDLOptionItem):
       raise ValueError,"'default': index out of range";
     # try to read from config
     try:
-      def1 = Config.getint(symbol,default=default);
+      # get config entry, split off last part which is "(index)"
+      def1 = Config.get(symbol,default="("+str(default)+")").split(" ")[-1];
+      def1 = int(def1[1:-1]);  # strip "()" from around index
       if def1 >= 0 and def1 < len(self.option_list):
         default = def1;
     except:
-      _dprint(0,"error reading value from configuration file");
-      traceback.print_exc();
+      _dprint(1,"error reading value from configuration file");
+      if _dbg.verbose > 0:
+        traceback.print_exc();
+    self.selected = default;
     TDLOptionItem.__init__(self,caller,symbol,self.option_list[default]);
     
+  def num_options (self):
+    return len(self.option_list);
+    
+  def get_option (self,num):
+    name = getattr(self.option_list[num],'__name__',None);
+    if name is None:
+      return str(self.option_list[num]);
+    else:
+      return name;
+    
   def set (self,value):
-    value = int(value);
-    Config.set(self.symbol,value);
-    self._set(self.option_list[default]);
+    self.selected = value = int(value);
+    self._set(self.option_list[value]);
+    Config.set(self.symbol,self.get_str()+" ("+str(value)+")");
     
   
 
@@ -101,7 +126,7 @@ def make_option_item (caller,symbol,name,value,default=None,inline=False,doc=Non
     raise TDLError,"Illegal type for TDL option: "+type(value).__name__;
   item.set_name(name);
   item.set_doc(doc);
-    
+  return item;
 
 def TDLCompileOption (symbol,name,value,default=None,inline=False,doc=None):
   # find calling module

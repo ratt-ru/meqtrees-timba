@@ -10,6 +10,7 @@ from Timba.Meq import meqds
 from Timba import TDL
 import Timba.TDL.Settings
 import Timba.TDL.Compile
+from Timba.TDL import TDLOptions
 
 from qt import *
 from qtext import *
@@ -672,7 +673,12 @@ class TDLEditor (QFrame,PersistentCurrier):
 
     # create list of job actions
     self._jobmenu.clear();
+    _dprint(0,"jobmenu count",self._jobmenu.count());
     if joblist:
+      opts = TDLOptions.get_runtime_options();
+      if opts:
+        self.populate_option_menu(self._jobmenu,opts);
+        self._jobmenu.insertSeparator();
       self._tb_jobs.show();
       for func in joblist:
         name = re.sub("^_tdl_job_","",func.__name__);
@@ -723,6 +729,61 @@ class TDLEditor (QFrame,PersistentCurrier):
     
   def get_jobs_popup (self):
     return self._jobmenu;
+    
+  def populate_option_menu (self,menu,option_list):
+    """populates menu with an option list (using TDLOptions)""";
+    havesep = True;
+    for opt in option_list:
+      if isinstance(opt,TDLOptions.TDLBoolOptionItem):
+        # create toggla action for bool options
+        qa = QAction(opt.name or opt.symbol,0,menu);
+        if opt.doc:
+          qa.setToolTip(opt.doc);
+        qa.setToggleAction(True);
+        qa.setOn(opt.value);
+        QObject.connect(qa,SIGNAL("toggled(bool)"),opt.set);
+        qa.addTo(menu);
+        havesep = False;
+      elif isinstance(opt,TDLOptions.TDLListOptionItem):
+        # create QActionGroup for items
+        groupname = opt.name or opt.symbol;
+        qag = QActionGroup(menu);
+        qag._groupname = groupname;
+        qag.setExclusive(True);
+        if opt.inline:
+          qag.setUsesDropDown(False);
+          if not havesep: 
+            menu.insertSeparator();
+        else:
+          qag.setUsesDropDown(True);
+        # create QActions within group
+        for ival in range(opt.num_options()):
+          name = opt.get_option(ival);
+          if opt.inline:
+            name = groupname + ": " + name;
+          qa = QAction(name,0,qag);
+          qa.setToggleAction(True);
+          if opt.doc:
+            qa.setToolTip(opt.doc);
+          if ival == opt.selected:
+            qa.setOn(True);
+          qa._togglefunc = curry(self._set_selected_list_option,qag,opt,ival);
+          QObject.connect(qa,SIGNAL("toggled(bool)"),qa._togglefunc);
+        # add to menu
+        qag.addTo(menu);
+        if opt.inline:
+          menu.insertSeparator();
+          havesep = True;
+        else:
+          qag.setMenuText(groupname + ": " + opt.get_str());
+          havesep = False;
+  
+  def _set_selected_list_option (self,qa,option,value,toggle):
+    if not toggle:
+      return;
+    option.set(value);
+    if not option.inline:
+      qa.setMenuText(qa._groupname+": "+option.get_str());
 
   def _set_mainfile (self,mainfile):
     """adjusts GUI controls based on whether we are a mainfile or not""";
