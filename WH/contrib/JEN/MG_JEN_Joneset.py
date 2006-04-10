@@ -1325,11 +1325,11 @@ def WSRT_voltage_beam_funklet(a_rad=0.1, b_rad=0.1, trace=False):
    # Polynomials in (t,f) for function coeff a and b:
    t = 'x0'
    f = 'x1'
-   if True:
+   if False:
       a_poly = 'p0'
       b_poly = 'p1'
       coeff = [a_rad,b_rad]               # [p0,p1]
-   elif True:
+   elif False:
       a_poly = 'p0+p1*'+f
       b_poly = 'p2+p3*'+f
       coeff = [a_rad,0,b_rad,0]       # [p0,p1,p2,p3]

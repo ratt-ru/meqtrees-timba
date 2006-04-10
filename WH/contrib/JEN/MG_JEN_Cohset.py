@@ -432,7 +432,7 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, uvp_Joneset=False,
             cs1.punit2coh(ns, Sixpack, js1)
             cs.append(cs1)                       # append to list of source Cohsets
             if len(cc_visu)==0:
-                klong = cs1.select(key='longest')[0] # key of longest baseline
+                klong = cs1.find_keys('longest')[0] # key of longest baseline
             cc_visu.append(cs1[klong])           # visualise  one coh of each source
         else:	                                 # patch (not a Sixpack object!)
             # Not really supported yet.....
