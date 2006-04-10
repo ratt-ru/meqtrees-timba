@@ -661,9 +661,9 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     if self._main_tdlfile is None:
       self._main_tdlfile = pathname;
       self._enable_run_current();  # update GUI
-    self._tb_jobs.hide();
     tab = self._tdl_tabs.get(pathname,None);
     if tab is None:
+      self._tb_jobs.hide();
       _dprint(1,'No tab open, loading',pathname);
     # try to load file into new tab
       try:
@@ -698,14 +698,13 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       QObject.connect(tab,PYSIGNAL("textModified()"),self.curry(self._tdltab_modified,tab));
       QObject.connect(tab,PYSIGNAL("fileClosed()"),self.curry(self._tdltab_close,tab));
       QObject.connect(tab,PYSIGNAL("showError()"),self.curry(self._tdltab_show_error,tab));
+      QObject.connect(tab,PYSIGNAL("showEditor()"),self.curry(self._tdltab_show,tab));
       QObject.connect(tab,PYSIGNAL("compileFile()"),self._tdl_compile_file);
       QObject.connect(tab,PYSIGNAL("fileChanged()"),self.curry(self._tdltab_reset_label,tab));
     else:
       _dprint(1,'we already have a tab for',pathname);
     if show:
-      self.show_tab(tab);
-      self.gw_panel.hide();
-      self.maintab_panel.show();
+      self._tdltab_show(tab);
     # ok, we have a working tab now
     # run if requested
     if run:
@@ -748,6 +747,10 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self._wait_cursor = None;
     
   def _tdl_compile_file (self,filename,show=True):
+    # reset all tab icons
+    for tab in self._tdl_tabs.itervalues():
+      self.maintab.setTabIconSet(tab,QIconSet());
+    # load file as needed
     tab = self._tdl_tabs.get(filename,None);
     if tab is None:
       _dprint(1,'No tab open, loading',pathname);
@@ -757,6 +760,11 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         self.show_tab(tab);
       self._tdl_compile_tab_contents(tab);
     
+  def _tdltab_show (self,tab):
+    self.show_tab(tab);
+    self.gw_panel.hide();
+    self.maintab_panel.show();
+      
   def _tdltab_reset_label (self,tab):
     name = os.path.basename(tab.get_filename());
     if tab.get_mainfile():

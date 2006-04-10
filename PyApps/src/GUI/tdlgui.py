@@ -39,6 +39,11 @@ def set_external_sync (value):
   global _external_sync;
   _external_sync = value;
 
+# this is information about ourselves
+_MODULE_FILENAME = traceback.extract_stack()[-1][0];
+_MODULE_DIRNAME = os.path.dirname(_MODULE_FILENAME);
+
+
 class TDLEditor (QFrame,PersistentCurrier):
   ErrorMarker = 0;
   CurrentErrorMarker = 1;
@@ -198,7 +203,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._qa_runmain.addTo(errlist_hdr);
     # error list itself
     # self._werrlist = QListBox(self._werrlist_box);
-    # QObject.connect(self._werrlist,SIGNAL("highlighted(int)"),self._highlight_error);
+    # QObject.connect(self._werrlist,SIGNAL("highlighted(int)"),self.highlight_error);
     self._werrlist = QListView(self._werrlist_box);
     QObject.connect(self._werrlist,SIGNAL("currentChanged(QListViewItem*)"),self._highlight_error_item);
     QObject.connect(self._werrlist,SIGNAL("clicked(QListViewItem*)"),self._highlight_error_item);
@@ -366,7 +371,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     """returns the current error list."""
     return self._error_list;
       
-  def set_error_list (self,errlist,signal=True,show_item=True):
+  def set_error_list (self,errlist,signal=True,show_item=True,highlight=False,
+                      message="TDL compile failed"):
     """Shows an error list. errlist should be a sequence of Exception
     objects following the TDL error convention.
     """;
@@ -426,14 +432,16 @@ class TDLEditor (QFrame,PersistentCurrier):
             item._err_location = index,filename,line,column;
             item.setText(2,"[line %d of %s]" % (line,filename));
       if nhere == nerr-1:
-        self._error_count_label.setText('<b>%d</b> errors total'%(nhere,));
+        self._error_count_label.setText('%s. <b>%d</b> errors total'%(message,nhere,));
       else:
-        self._error_count_label.setText('<b>%d</b> errors here, <b>%d</b> total'%(nhere,nerr-1,));
+        self._error_count_label.setText('%s. <b>%d</b> errors here, <b>%d</b> total'%(message,nhere,nerr-1,));
       self._werrlist_box.show();
       if show_item:
         self._show_error_item(self._error_items[0]);
       if signal:
         self.emit(PYSIGNAL("hasErrors()"),(nhere,));
+      if highlight:
+        self._highlight_error_item(self._error_items[0]);
       # self._highlight_error(0);
       # disable run control until something gets modified
       # self._qa_run.setVisible(False);
@@ -636,6 +644,8 @@ class TDLEditor (QFrame,PersistentCurrier):
       if name in ns.AllNodes():
         meqds.enable_node_publish_by_name(name,sync=True);
     ### NB: presume this all was successful for now
+    # insert node scope into TDL module
+    setattr(_tdlmod,'_tdl_nodescope',ns);
 
     # does the script define an explicit job list?
     joblist = getattr(_tdlmod,'_tdl_job_list',[]);
@@ -670,17 +680,46 @@ class TDLEditor (QFrame,PersistentCurrier):
         qa = QAction(pixmaps.gear.iconset(),name,0,self._jobmenu);
         if func.__doc__:
           qa.setToolTip(func.__doc__);
-        qa._call = curry(func,meqds.mqs(),self);
+        qa._call = curry(self.execute_tdl_job,name,func,_tdlmod,ns);
         QObject.connect(qa,SIGNAL("activated()"),qa._call);
         qa.addTo(self._jobmenu);
     else:
       self._tb_jobs.hide();
 
     if joblist:
-      msg += " %d predefined function(s) available." % (len(joblist),);
+      msg += " %d predefined function(s) available, please use the Exec menu to run them." % (len(joblist),);
       
     self.show_message(msg,transient=True);
     return True;
+    
+  def execute_tdl_job (self,name,func,_tdlmod,ns):
+    """executes a predefined TDL job given by func""";
+    try:
+      QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
+      try:
+        func(meqds.mqs(),self);
+      finally:
+        QApplication.restoreOverrideCursor();
+      # no errors, so clear error list, if any
+      self.clear_error_list();
+      self.show_message("TDL job '"+name+"' executed.",transient=True);
+    except:
+      (etype,exc,tb) = sys.exc_info();
+      _dprint(0,'exception running TDL job',func.__name__);
+      traceback.print_exception(etype,exc,tb);
+      # use TDL add_error() to process the error, since this automatically
+      # adds location information. However, we want to remove ourselves
+      # from the stack traceback first
+      tb = traceback.extract_tb(tb);
+      # pop everything leading up to our filename
+      while tb[0][0] != _MODULE_FILENAME:
+        tb.pop(0);
+      # pop frame with our filename, this should leave only TDL-code frames
+      tb.pop(0);
+      ns.AddError(exc,tb,error_limit=None);
+      msg = "TDL job '"+name+"' failed";
+      self.set_error_list(ns.GetErrors(),signal=True,message=msg);
+      self.emit(PYSIGNAL("showEditor()"),());
     
   def get_jobs_popup (self):
     return self._jobmenu;
