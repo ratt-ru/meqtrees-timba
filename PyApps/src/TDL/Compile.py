@@ -3,6 +3,7 @@ from Timba.utils import *
 from Timba import TDL
 from Timba.Meq import meqds
 import Timba.TDL.Settings
+from Timba.TDL import TDLOptions
 
 import imp
 import sys
@@ -54,6 +55,8 @@ def compile_file (mqs,filename,text=None,parent=None,
   """;
   _dprint(1,"compiling",filename);
   reload(Timba.TDL.Settings);
+  # reset TDL script options
+  TDLOptions.init_options(filename);
   # initialize global nodescope (and repository)
   ns = TDL.NodeScope();
   try:
