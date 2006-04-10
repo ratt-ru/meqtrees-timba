@@ -36,6 +36,7 @@
 #    - 11 mar 2006: implement .splice()
 #    - 05 apr 2006: implement .punit2coh()
 #    - 07 apr 2006: re-implemented .replace() and .add()
+#    - 10 apr 2006: implement .bookmark()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -74,6 +75,9 @@ from Timba.Trees import TDL_Joneset
 from Timba.Trees import TDL_ParmSet
 from Timba.Trees import TDL_LeafSet
 # from Timba.Trees import TDL_Sixpack
+
+from Timba.Trees import JEN_bookmarks
+# JEN_bookmarks.create (node, page=page_name, folder=folder_name)
 
 
 
@@ -172,9 +176,6 @@ class Cohset (TDL_common.Super):
         self.__Joneset = None
         # self.__Joneset = dict(correct_with=None, corrected_by=None,
         #                       corrupt_with=None, corrupted_by=None)
-
-        # The Cohset may collect various bits of information along the way:
-        self.__rider = {}
 
         # Plot information (standard, but extended from Jonesets):
         self.__plot_color = TDL_radio_conventions.plot_color()
@@ -488,11 +489,6 @@ class Cohset (TDL_common.Super):
             ss.append(indent1+' - Joneset (applied by .corrupt():')
             ss.append(indent2+' - '+str(self.__Joneset.oneliner()))
 
-        ss.append(indent1+' - rider (things collected along the way):')
-        for key in self.__rider.keys():
-            n = len(self.__rider[key])
-            ss.append(indent2+' - '+key+'('+str(n)+'):'+str(self.__rider[key]))       
-
         return TDL_common.Super.display_end(self, ss)
 
 
@@ -521,7 +517,7 @@ class Cohset (TDL_common.Super):
         pp.setdefault('init', False)       # if True, initialise
         pp.setdefault('trace', False)      # if True, print messages
 
-        trace = False
+        trace = pp['trace']
         if trace: print '\n**',funcname,pp
 
         # Initial call (from self.__init__())
@@ -550,6 +546,20 @@ class Cohset (TDL_common.Super):
                 affected = cohkeys                 # all available keys
             elif pp['key']=='first':
                 affected = cohkeys[0]              # first key
+            elif pp['key']=='last':
+                affected = cohkeys[len(cohkeys)-1] # last key
+            elif pp['key']=='shortest':            # key(s) of shortest baseline
+                rmin = 100000000
+                for key in cohkeys:
+                    if self.__rxyz[key]<rmin:
+                        rmin = self.__rxyz[key]
+                        affected = [key]           # one key only!
+            elif pp['key']=='longest':             # key(s) of longest baseline
+                rmax = 0
+                for key in cohkeys:
+                    if self.__rxyz[key]>rmax:
+                        rmax = self.__rxyz[key]
+                        affected = [key]           # one key only!
             else:                                  # Assume specific key name
                 affected = [pp['key']]             # a list with one element
         elif isinstance(pp['key'], (list, tuple)): # list
@@ -563,7 +573,7 @@ class Cohset (TDL_common.Super):
         # Make a list (keys) of existing coh items to be processed:
         keys = []
         for key in affected:
-            if trace: s0 = '- '+key+': '
+            s0 = '- '+key+': '
             if not key in cohkeys:                 # key does not exist
                 print s0,'does not exist in:',cohkeys
                 pass                               # error...?
@@ -610,8 +620,7 @@ class Cohset (TDL_common.Super):
         # Finished:
         self._history(append=funcname+' inarg = '+str(pp))
         self._history(append=funcname+' -> '+str(pp['select'])+': '+str(len(keys))+': '+str(keys))
-        if trace: self.keys()
-        return True
+        return keys
 
     #............................................................................
 
@@ -634,6 +643,15 @@ class Cohset (TDL_common.Super):
             if trace: print '--',key,self.__coh[key],(self.__coh[key]==None),': kk =',kk
         if trace: print '** .keys(',selected,deleted,') ->',len(kk),':',kk
         return kk
+
+
+    def bookmark (self, key='*', page=None, folder=None, trace=False):
+        """Make bookmark(s) of the selected node(s)"""
+        keys = self.keys()
+        if len(keys)==0: return False
+        cc = []
+        for key1 in keys: cc.append(self.__coh[key1])
+        return JEN_bookmarks.create (cc, page=page, folder=folder)
 
 
     def delete (self, selected=True, trace=False):
@@ -699,6 +717,7 @@ class Cohset (TDL_common.Super):
             cohs.append(coh)
             if trace: print s1,len(cohs),': coh =',coh
         return cohs
+
 
     #------------------------------------------------------------------------------------
 
@@ -1634,6 +1653,10 @@ if __name__ == '__main__':
         print '** cs.__module__ ->',cs.__module__
         print
 
+    if 1:
+        kk = cs.select(key='longest', trace=True)
+        print 'kk =',kk
+
     if 0:
         # cs.select(trace=True)
         cs.select(rmin=150, trace=True)
@@ -1660,7 +1683,7 @@ if __name__ == '__main__':
         cs.display('spigots')
 
 
-    if 1:
+    if 0:
         coll = cs._rider('dcoll', ns << Meq.DataCollect())
         coll = cs._rider('hcoll', ns << Meq.historyCollect())
         coll = cs._rider('hcoll', ns << Meq.historyCollect())

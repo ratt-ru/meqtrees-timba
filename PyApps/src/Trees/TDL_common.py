@@ -159,7 +159,8 @@ class Super:
             ss.append(indent1+'* Object rider ('+str(len(rr))+' entries):')
             for key in rr.keys():
                 # ss.append(indent2+'* '+str(key)+': '+str(type(rr[key])))
-                ss.append(indent2+'* '+str(key)+': '+str(type(rr[key]))+' = '+str(rr[key]))
+                qq = unclutter_inarg(rr[key])
+                ss.append(indent2+'* '+str(key)+': '+str(type(rr[key]))+' = '+str(qq))
 
         #-----------------------------------
         hh = self._history()
@@ -291,6 +292,7 @@ class Super:
             qq = unclutter_inarg(rr)
             return ',  rider = '+str(qq)
         return ',  rider length = '+str(len(rr))
+
 
     def _dictitem(self, rr=None, item=None, key=None, name=None, trace=False):
         """Get the specified item (e.g. color) from the specified dicts (key, None=all)
@@ -437,30 +439,44 @@ def _counter (key, increment=0, reset=False, trace=True):
 #--------------------------------------------------------------------------
 
 def unclutter_inarg(pp):
-    """Strip the given input argument record to avoid clutter (e.g. when printing it)"""
+    """Strip the given input argument record/list (pp) to avoid clutter (e.g. when printing it)"""
     # Dont use deepcopy because it cannot handle nodestubs 
-    # qq = deepcopy(pp)
-    qq = {}                                               # strip a copy
-    for key in pp.keys():
-        v = pp[key]
-        if isinstance(v, Timba.TDL.TDLimpl._NodeStub):    # avoid clutter
-            s1 = key+': <nodestub>'
-            s1 += str(v.name)
-            qq[key] = s1
-        elif isinstance(v, dict):                         # avoid clutter
-            if key=='_JEN_inarg_CTRL_record:':
-                pass
+    ## qq = deepcopy(pp)
+
+    if isinstance(pp, (list, tuple)):
+        qq = []
+        for v in pp:
+            if isinstance(v, Timba.TDL.TDLimpl._NodeStub):    # avoid clutter
+                qq.append('<nodestub>'+str(v.name))
             else:
-                qq[key] = str(type(v))+'['+str(len(v))+']'
-        elif isinstance(v, (list,tuple)):                 # avoid clutter
-            qq[key] = str(type(v))+'['+str(len(v))+'] = '
-            nmax = 3
-            if len(v)>nmax:
-                qq[key] += str(v[:nmax])+'...'
+                qq.append(v)
+                
+    elif isinstance(pp, dict):
+        qq = {}                                               # strip a copy
+        for key in pp.keys():
+            v = pp[key]
+            if isinstance(v, Timba.TDL.TDLimpl._NodeStub):    # avoid clutter
+                qq[key] = key+': <nodestub>'+str(v.name)
+            elif isinstance(v, dict):                         # avoid clutter
+                if key=='_JEN_inarg_CTRL_record:':
+                    pass
+                else:
+                    qq[key] = str(type(v))+'['+str(len(v))+']'
+            elif isinstance(v, (list,tuple)):                 # avoid clutter
+                qq[key] = str(type(v))+'['+str(len(v))+'] = '
+                nmax = 3
+                if len(v)>nmax:
+                    qq[key] += str(v[:nmax])+'...'
+                else:
+                    qq[key] += str(v)
             else:
-                qq[key] += str(v)
-        else:
-            qq[key] = v
+                qq[key] = v
+
+    elif isinstance(pp, Timba.TDL.TDLimpl._NodeStub):         # avoid clutter
+        qq = '<nodestub>'+str(pp.name)
+    else:                                                     # any other type
+        # Error message?
+        qq = False
     return qq
 
 

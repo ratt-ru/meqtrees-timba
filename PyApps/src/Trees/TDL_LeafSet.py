@@ -147,6 +147,7 @@ class LeafSet (TDL_common.Super):
             cc = compounder_children
             if not isinstance(cc, (list, tuple)): cc = [cc]
             cc.append(parm)
+            ## cc.insert(0,parm)                           # temporary: prepend
             # The Compounder has more qualifiers than the Parm.
             # E.g. EJones_X is per station, but the compounder and its
             # children (l,m) are for a specific source (q=3c84)

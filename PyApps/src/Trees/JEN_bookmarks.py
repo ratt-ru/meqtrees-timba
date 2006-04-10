@@ -31,7 +31,7 @@ from copy import deepcopy
 
 
 def create (node=None, name=None, udi=None, viewer='Result Plotter',
-            save=True, page=None, folder=None, trace=False):
+            save=True, page=None, folder=None, perpage=6, trace=False):
     """Create a forest_state bookmark for the given node.
     - viewer = 'Result Plotter'   (default)
     - viewer = 'History Plotter'
@@ -42,7 +42,32 @@ def create (node=None, name=None, udi=None, viewer='Result Plotter',
     - udi += 'cache/result'
     If save==True (default), the bookmark will automatically be inserted
     in the specified page/folder, creating the latter if necessary. 
-    NB: This is the only bookmark function that is needed normally.""" 
+    NB: This is the only bookmark function that is needed normally.
+    If node is a list (of nodes), make pages of multiple bookmarks.""" 
+
+    #------------------------------------------------------------------
+    # If node is a list, make multiple bookmarks:
+    if isinstance(node, (list, tuple)):
+        if not isinstance(folder, str): folder = '** AUTO_GROUPS **'
+        if not isinstance(page, str): page = 'autopage'
+        if isinstance(name, str): page += '_'+name         # ....?
+        n = _counter (page, increment=-1)
+        if n<-1: page += '('+str(n)+')'
+        pagecount = 1
+        itemcount = 0
+        for item in node:
+            itemcount += 1                                 # increment
+            if itemcount>perpage:                          # max nr of items per page
+                itemcount = 1                              # reset
+                pagecount += 1                             # increment
+            pagename = page
+            if pagecount>1: pagename = page+'_'+str(pagecount)
+            print '-',itemcount,pagecount,pagename,item.name
+            create (item, name=name, udi=udi, viewer=viewer,
+                    save=save, page=pagename, folder=folder,
+                    perpage=perpage, trace=trace)
+        return True
+    #------------------------------------------------------------------
 
     # Initialise the bookmark record:
     bm = record(viewer=viewer, publish=True)
@@ -55,7 +80,7 @@ def create (node=None, name=None, udi=None, viewer='Result Plotter',
     # The name in the bookmark menu:
     bm.name = node.name                                    # automatic name
     if isinstance(name, str):                              # name specified
-        bm.name = name                                    #   override
+        bm.name = name                                     #   override
 
     # Dispose of the result:
     if save:
@@ -180,6 +205,41 @@ def insert (bm=None, page=None, folder=None, level=0, bmlist=None, trace=False):
 #----------------------------------------------------------------------
 
 def autoplace(bm, n=0):
+    """Automatic placement of the given bookmark (bm) as the
+    nth panel on a bookpage"""
+
+    if n==0: bm.pos = [0,0]               # superfluous
+    
+    # 1st col:
+    if n==1: bm.pos = [1,0]
+    
+    # 2nd col:
+    if n==2: bm.pos = [0,1]
+    if n==3: bm.pos = [1,1]
+    
+    # 3rd col:
+    if n==4: bm.pos = [0,2]
+    if n==5: bm.pos = [1,2]
+    
+    # 3rd row:
+    if n==6: bm.pos = [2,0]
+    if n==7: bm.pos = [2,1]
+    if n==8: bm.pos = [2,2]
+    
+    # 4th col:
+    if n==9: bm.pos = [3,0]
+    if n==10: bm.pos = [3,1]
+    if n==11: bm.pos = [3,2]
+
+    # 4th col:
+    if n==12: bm.pos = [3,0]
+    if n==13: bm.pos = [3,1]
+    if n==14: bm.pos = [3,2]
+    if n==15: bm.pos = [3,3]
+    return True
+
+
+def autoplace_old(bm, n=0):
     """Automatic placement of the given bookmark (bm) as the
     nth panel on a bookpage"""
 
@@ -484,6 +544,23 @@ def bookfolder (name='bookfolder', item=None, trace=False):
 
 
 
+#========================================================================
+# Helper routines:
+#========================================================================
+
+# Counter service (use to automatically generate unique node names)
+
+_counters = {}
+
+def _counter (key, increment=0, reset=False, trace=False):
+    global _counters
+    _counters.setdefault(key, 0)
+    if reset: _counters[key] = 0
+    _counters[key] += increment
+    if trace: print '** JEN_bookmarks: _counters(',key,') =',_counters[key]
+    return _counters[key]
+
+
 
 
 
@@ -507,7 +584,7 @@ if __name__ == '__main__':
    sumab = ns << Meq.Add (a, b)
 
       
-   if 1:
+   if 0:
        # Make bookmark for a single node:
        create (a, page=None, folder='folder_1', trace=True)
        create (a, page='page_1', folder='folder_1', trace=True)
@@ -519,6 +596,11 @@ if __name__ == '__main__':
        create (c, page='page_2', folder=None, trace=True)
        create (c, page='page_2', folder='folder_2', trace=True)
        create (c, page='page_2', folder='folder_1', trace=True)
+
+   if 1:
+       # List of nodes:
+       cc = [a,b,c,a,b,c,a,b,c]
+       create (cc, perpage=2, trace=True)
 
    if 1:
        current_settings(trace=True)

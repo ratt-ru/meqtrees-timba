@@ -238,8 +238,8 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 
     # Attach any collected hcoll/dcoll nodes:
     post = []
-    post.extend(Cohset._rider('dcoll', clear=True))               
-    post.extend(Cohset._rider('hcoll', clear=True))
+    post.extend(Cohset._rider('dcoll'))               
+    post.extend(Cohset._rider('hcoll'))
 
     # Make MeqSinks
     Cohset.sinks(ns, start=start, post=post, output_col=pp['output_col'])
@@ -398,6 +398,8 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, uvp_Joneset=False,
     JEN_inarg.define(pp, 'nr_lsm_sources', 10000,
                      choice=[1,2,3,5,10,20,100,1000,10000],
                      help='nr of lsm sources to be included (in order of brightness)')
+    JEN_inarg.define(pp, 'visu', tf=True,
+                     help='if True, visualise the source contribitions')
     MG_JEN_Joneset.inarg_Joneset_common(pp, slave=slave)
 
     # Arguments for a Joneset for image-plane effects:
@@ -416,40 +418,36 @@ def predict_lsm (ns=None, lsm=None, Joneset=None, uvp_Joneset=False,
     # Obtain the Sixpacks of the brightest punits.
     # Turn the point-sources in Cohsets with DFT KJonesets
     plist = lsm.queryLSM(count=pp['nr_lsm_sources'])
-    cs = []                                  # list on source Cohsets
+    cs = []                                      # list of source Cohsets
+    cc_visu = []                                 # list of nodes for visualisation
     for punit in plist: 
         Sixpack = punit.getSixpack()
         punit_name = str(Sixpack.label())
-        if Sixpack.ispoint():                # point source (Sixpack object)
+        if Sixpack.ispoint():                    # point source (Sixpack object)
             # Make a new Cohset for this punit:
             cs1 = TDL_Cohset.Cohset(label=punit_name, origin=funcname, **pp)
             # Corrupt with image-plane effects (including KJones/DFT):
             js1 = Jones (ns, Sixpack=Sixpack, MSauxinfo=MSauxinfo(),
                          _inarg=pp, _qual=qual+'_imp', simul=simul, KJones=True)
-            if True:
-                cs1.punit2coh(ns, Sixpack, js1)
-            else:
-                # Obsolete:
-                # Make a 'nominal' 2x2 coherency matrix (coh0) for the source/patch
-                # by multiplication its (I,Q,U,V) with the relevent (polrep) Stokes matrix:
-                nominal = Sixpack.coh22(ns, pp['polrep'])
-                # Put the same 'nominal' (i.e. uncorrupted) visibilities into all ifr-slots of cs1:
-                cs1.uniform(ns, nominal)
-                cs1.corrupt (ns, Joneset=js1)
-                # cs1.update_from_Sixpack(Sixpack)
-                
-            cs.append(cs1)
-        else:	                             # patch (not a Sixpack object!)
+            cs1.punit2coh(ns, Sixpack, js1)
+            cs.append(cs1)                       # append to list of source Cohsets
+            if len(cc_visu)==0:
+                klong = cs1.select(key='longest')[0] # key of longest baseline
+            cc_visu.append(cs1[klong])           # visualise  one coh of each source
+        else:	                                 # patch (not a Sixpack object!)
+            # Not really supported yet.....
             node = Sixpack.root()
-            # cc.append(node)
 
     # Add the point-source Cohsets (cs) together into the final predicted Cohset:
     Cohset = TDL_Cohset.Cohset(label='predict_lsm', origin=funcname, **pp)
-    # Cohset.zero(ns)
     Cohset.replace(ns, cs)
+    cc_visu.append(Cohset[klong])                # visualise the sum too
+
+    if pp['visu']:
+        JEN_bookmarks.create (cc_visu, page='predict_lsm', folder=None)
 
     # Optionally, corrupt the Cohset visibilities with the instrumental
-    # uvplane effects in the given Joneset of 2x2 station jones matrices:
+    # uv_plane effects in the given Joneset of 2x2 station jones matrices:
     if uvp_Joneset:
         Joneset = Jones (ns, _inarg=pp, _qual=qual+'_uvp', simul=simul)
     if Joneset:

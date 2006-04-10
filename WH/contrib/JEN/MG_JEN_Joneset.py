@@ -1188,7 +1188,8 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     if not JEN_inarg.is_OK(pp): return False
     funcname = JEN_inarg.localscope(pp)
 
-    label = jones+'_'+str(JEN_inarg.qualifier(pp))
+    label = jones
+    # label = JEN_inarg.qualifier(pp, prepend=jones)
 
     # Some preparations:
     adjust_for_telescope(pp, origin=funcname)
@@ -1269,7 +1270,6 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
                                        tfdeg=[pp['tdeg_Edm'],pp['fdeg_Edm']],
                                        subtile_size=pp['subtile_size_Edm'])
 
-
        # Create MeqParm/MeqLeaf nodes with 4D (l,m,f,t) beam funklets:
        lmtot = lm
        if False:
@@ -1325,7 +1325,7 @@ def WSRT_voltage_beam_funklet(a_rad=0.1, b_rad=0.1, trace=False):
    # Polynomials in (t,f) for function coeff a and b:
    t = 'x0'
    f = 'x1'
-   if False:
+   if True:
       a_poly = 'p0'
       b_poly = 'p1'
       coeff = [a_rad,b_rad]               # [p0,p1]

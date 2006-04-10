@@ -298,6 +298,10 @@ else:
     JEN_inarg.attach(MG, inarg)
 
 inarg = MG_JEN_Cohset.insert_solver(_getdefaults=True, slave=True) 
+JEN_inarg.modify(inarg,
+                 correct_after=False,
+                 subtract_after=True,
+                 _JEN_inarg_option=None)     
 JEN_inarg.attach(MG, inarg)
 
 
@@ -429,9 +433,8 @@ def _define_forest (ns, **kwargs):
 
         Sohset = Cohset.copy(label='solve_branch')
         MG_JEN_Cohset.insert_solver (ns, measured=Sohset, predicted=predicted, _inarg=MG)
-        Sohset.display('Sohset after insert_solver', full=True)
-        Cohset.display('Cohset after insert_solver', full=True)
-        # return False
+        # Sohset.display('Sohset after insert_solver', full=True)
+        # Cohset.display('Cohset after insert_solver', full=True)
     
         # Splice the Sohset branch back into Cohset:
         Cohset.splice(ns, Sohset)
