@@ -7,7 +7,7 @@ class IfrArray (object):
     self._stations = station_list;
     self._ifrs = [ (s1,s2) for s1 in station_list for s2 in station_list if s1<s2 ];
     self._uvw_table = uvw_table;
-    self._mirror_uvw = False;
+    self._mirror_uvw = mirror_uvw;
     self._jones = [];
 
   def stations (self):
