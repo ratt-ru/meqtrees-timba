@@ -41,6 +41,9 @@ class StickyListViewItem (QListViewItem):
     try: val = cmp(self._key,other._key);
     except AttributeError:  # other item not keyed
       val = self._key;
+    # invert value if sort order is decending
+    # this effectively makes us ignore the ascending/descending parameter,
+    # and always return the same order 
     if ascending:
       return val;
     return -val;
@@ -218,8 +221,6 @@ class TreeBrowser (QObject):
       if self._expanded:
         return;
       i1 = self;
-      # format string for enumerating children -- need to use sufficient digits
-      chform = '%%0%dd: %%s' % (math.floor(math.log10(len(self.node.children)))+1,);
       # generate items for each child
       for (key,ni) in self.node.children:
         if ni > 0:
@@ -229,11 +230,28 @@ class TreeBrowser (QObject):
         else:  # missing child, generate dummy item with <none> in it
           name = self.node.child_label_format() % (key,'<none>');
           i1 = QListViewItem(self,i1,name);
+        setattr(i1,'_sort_label',key);
       for ni in self.node.step_children:
         node = meqds.nodelist[ni];
         name = "(" + node.name +")";
         i1 = self.__class__(self.tb,node,name,self,i1,stepchild=True);
       self._expanded = True;
+      
+    def compare (self,other,col,ascending):
+      """reimplementation of QListViewItem.compare(), which enforces
+      proper ordering of child nodes under their parent nodes.""";
+      # if column is not 0 ('name'), default to normal compare
+      if col:
+        return QListViewItem.compare(self,other,col,ascending);
+      # use _sort_label as the comparison key, and try to convert it to int
+      try:
+        try:  a = int(self._sort_label);
+        except ValueError: a = self._sort_label;
+        try:  b = int(other._sort_label);
+        except ValueError: b = other._sort_label;
+      except AttributeError:  # if missing, fall back to default compare
+        return QListViewItem.compare(self,other,col,ascending);
+      return cmp(a,b);
       
     def curry (self,*args,**kwargs):
       cb = curry(*args,**kwargs);

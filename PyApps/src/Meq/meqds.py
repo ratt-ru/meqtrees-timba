@@ -125,12 +125,15 @@ class NodeList (QObject):
       self.profiling_stats = self.cache_stats = 0;
     def child_label_format (self):
       try: format = self._child_label_format;
+      # creates a format string for formatting child labels.
       except AttributeError:
         if self.children:
-          if isinstance(self.children[0][0],int):
-            format = '%%0%dd: %%s' % (math.floor(math.log10(len(self.children)))+1,);
+          keylengths = map(lambda ch:len(str(ch[0])),self.children);
+          if len(keylengths) > 1:
+            maxlen = max(*keylengths);
           else:
-            format = '%s: %s';
+            maxlen = keylengths[0];
+          format = '%%%ds: %%s' % maxlen;
         else:
           format = '';
         self._child_label_format = format;
