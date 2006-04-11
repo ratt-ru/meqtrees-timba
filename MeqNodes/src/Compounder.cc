@@ -75,11 +75,20 @@ struct compare_vec{
 		 	||( (v1[0] == v2[0]) && (v1[1] == v2[1]) && (v1[2] < v2[2])));
 	 }
 };
+
+// helper func to convert anything to string
+template<class T> std::string 
+__to_string(T x) {
+std::stringstream ss;
+std::string str;
+ss << x;
+ss >> str;
+return str;
+}
 /********************************************/
 
 
 
-//##ModelId=400E5355029C
 Compounder::Compounder()
 : Node(2), // 2 children expected
 	mode_(1),res_index_(0)
@@ -99,7 +108,6 @@ Compounder::Compounder()
 
 }
 
-//##ModelId=400E5355029D
 Compounder::~Compounder()
 {}
 
@@ -233,7 +241,7 @@ int Compounder::pollChildren (Result::Ref &resref,
 	cout<<"Got "<<nvs<<" Vellsets"<<endl;
 #endif
 
-	FailWhen(nvs!=2,"We need 2 vellsets, but got "+nvs);
+	FailWhen(nvs!=2,"We need 2 vellsets, but got "+__to_string(nvs));
 	// get input cells
 	const Cells &incells=request.cells();
 	Cells::Ref outcells_ref;
@@ -554,6 +562,9 @@ int Compounder::pollChildren (Result::Ref &resref,
 	}
 
 		//handle degenerate axes here, if ntime or nfreq is less that the request shape copy the same value
+		//three cases: | |    ------------------      _
+		//             | |    ------------------     | |
+		//             | |                            -
 	if ((ntime<intime) || (nfreq<infreq)) {
 	   //we have degeneracy here
 	   if ((ntime==intime) && (infreq>nfreq)) {
