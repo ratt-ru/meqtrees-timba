@@ -14,6 +14,7 @@ from Timba.Meq import meqds
 from numarray import *
 
 from Timba.Contrib.MXM.TDL_Functional import *
+from Timba.Contrib.MXM.TDL_Funklet import *
 
 
 
@@ -54,10 +55,10 @@ def _define_forest1 (ns):
   polc2.function = gaussian;
 
   ns['solver'] << Meq.Solver(
-      num_iter=5,debug_level=10,solvable="x",
+      num_iter=5,debug_level=10,solvable="x",last_update=True,save_funklets=True,
       children = Meq.Condeq(
         ns.y<<Meq.Parm(polc2,node_groups='Parm'),
-        (0 + (ns.x << Meq.Parm(polc,node_groups='Parm')))
+        (0 + (ns.x << Meq.Parm(node_groups='Parm',table_name='test_compiled',save_all=True)))
       ),
     );
 
@@ -78,20 +79,35 @@ def _define_forest2(ns):
 
   
 
-  f4=create_polc(shape=[3,2]);
-  print "f4",f4.getFunklet();
+  f3=create_polc(shape=[3,2]);
+  print "f3",f3.getFunklet();
+  f3.display();
 
-  f3=Functional(function = "sin(p0*x2)+p1*x3+p2*x2*x3",pp=dict(p0=f1,p1=f2,p2=f4),test=dict(x0=1,x1=2,x2=2,x3=5)); #replaces p0 by f1,p1 by f2...etc..
+  f4=Functional(function = "sin(p0)+p1+p2*x2*x3",pp=dict(p0=f1,p1=f2,p2=f3),test=dict(x0=1,x1=2,x2=2,x3=5)); #replaces p0 by f1,p1 by f2...etc..
   #if the pp argument contains number this will be the init_value of te coefficient,
   #therefore, for the moment the only allowed keys in the dictionary are p0...pN
   #test contains x values for test evaluation
 
-  polc=f3.getFunklet();
+  polc=f4.getFunklet();
 
   print "created funklet",polc;
 
-  print"eval:",f3.eval();
+  print"eval:",f4.eval();
 
+  f4.display(var_def={'x0':"time",'x1':"freq",'p0':"TheFirstParameter"});
+  
+  dom = meq.domain(0,1,0,2);
+  cells = meq.cells(dom,num_time=10,num_freq=5);
+
+  print cells;
+  f4.setCoeff(0,2.);
+  f4.setCoeff(1,3.);
+  f4.setCoeff(2,4.);
+  result = f4.plot(cells=cells);
+
+
+
+  print result;
   ns['solver'] << Meq.Solver(
       num_iter=5,debug_level=10,solvable="x",
       children = Meq.Condeq(

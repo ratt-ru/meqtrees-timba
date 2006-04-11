@@ -2,9 +2,10 @@
 
 from Timba.Meq import meq
 from numarray import *
+from Timba.Contrib.MXM.TDL_Funklet import *
 
 class Functional:
-    def __init__(self,function="",pp={},test=None,Npar=0):
+    def __init__(self,function="",pp={},test=None,var_def={'x0':"time",'x1':"freq"},Npar=0):
         """create the function_string, function is a string with parameters p0,...,pN, parlist is list of parramters.
         This can be either another functional or a number initializing the parameter.
         For simplicity one could  specify the number of parameters
@@ -12,7 +13,7 @@ class Functional:
         be initialised with 0.For safety reasons NO other keywords than p0..pN are allowed..."""
 
         if Npar<=0:
-            print "Number of parameters not specified, assuming",len(pp);
+            #print "Number of parameters not specified, assuming",len(pp);
             Npar=self._npar=len(pp);
         self._function=function;
         self._start_par=0;
@@ -20,11 +21,11 @@ class Functional:
         self._last_par=Npar;
         self._coeff=[];
         self._test=test;
-
-
+        self._funklet=None;
+        self._var_def=var_def;
         if isinstance(pp,list):
             """if pp is list assume these are all numbers, initializing the parameters"""
-            print "pp is a list, assuming these are just numerical coefficients",pp;
+            #print "pp is a list, assuming these are just numerical coefficients",pp;
             self._coeff=pp;
             if Npar>len(pp):
                 for i in range(len(coeff),Npar):
@@ -52,14 +53,21 @@ class Functional:
                     tmp_start_par+=1;
                     self._coeff.append(this_par);
 
+        self._funklet = Funklet(funklet = record(function = self._function,coeff=self._coeff));
+
     def eval(self,test=None):
         """evaluate functional at point test"""
+
 
         if(test):
             self._test=test;
         if not self._test:
             print "Please specify variables,assuming (x0=0,x1=0,x2=0,x3=0)"
             self._test=dict(x0=0,x1=0,x2=0,x3=0);
+
+
+        if self._funklet:
+            return self._funklet.eval(self._test);
         self._eval_string = self._function;
         for i in range(len(self._coeff)):
             par_str="p"+str(i);
@@ -72,6 +80,14 @@ class Functional:
         return eval(self._eval_string);
 
 
+    def plot(self,cells=None):
+        print self._funklet;
+        if self._funklet is None:
+            return;
+        else:
+            
+            return self._funklet.plot(cells=cells);
+        
     
     def _shift(self,start,shift):
         for n in range(self._last_par-1,start-1,-1):
@@ -116,15 +132,23 @@ class Functional:
     def setCoeff(self,i,cf):
         if i<self._npar:
             self._coeff[i]=cf;
-
+            self._funklet.setCoeff(self._coeff);
 
     def getFunklet(self):
         funklet=meq.polc(coeff=self._coeff,subclass=meq._funklet_type);
         funklet.function=self._function;
         return funklet;
 
-
-
+    def display(self,var_def=None):
+        """returns a more readable string,any keys in axis_def are replaced"""
+        if var_def is not None:
+            self._var_def=var_def;
+        print_str = self._function;
+        if self._var_def is not None:
+            for key in self._var_def:
+                print_str=print_str.replace(key,self._var_def[key]);
+        print print_str;
+        return print_str;
 
 def create_polc(shape=[1,1],coeff=[]):
     """helper function,creates functional for polc with shape shape,
