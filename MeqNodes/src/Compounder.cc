@@ -247,46 +247,102 @@ int Compounder::pollChildren (Result::Ref &resref,
 	int ntime,nfreq,nplanes;
 
   // get first vellset
-  if (nvs>0) { 		
 		Vells vl0=child_res().vellSet(0).getValue();
 		int nx=ntime=vl0.extent(0);
 		int ny=nfreq=vl0.extent(1);
 		nplanes=child_res().vellSet(0).numPertSets()*child_res().vellSet(0).numSpids();
 
 #ifdef DEBUG
-		cout<<"Dimension "<<nx<<","<<ny<<endl;
+		cout<<"Dimension "<<nx<<","<<ny<<","<<nplanes<<endl;
 #endif
-	  FailWhen(ny!=1,"We need a 1D array here, but got a 2D array");
 		//create axis vector
-		const double *data=vl0.realStorage();
+		if (ny==1) {
+		blitz::Array<double,1> data=vl0.as<double,1>()(blitz::Range::all());
+#ifdef DEBUG
+		cout<<"Axis 1 (in)="<<data<<endl;
+#endif
 		cen0.resize(nx);
 		//cen0=vl0.as<double,1>();
-		cen0=blitz::Array<double,1>(const_cast<double*>(data),blitz::shape(nx),blitz::neverDeleteData);
+		cen0=data(blitz::Range::all(),0);
+		} else  {
+		  blitz::Array<double,2> data=vl0.as<double,2>()(blitz::Range::all(),blitz::Range::all());
+#ifdef DEBUG
+		cout<<"Axis 1 (in)="<<data<<endl;
+#endif
+		  cen0.resize(nx*ny);
+			//copy each columns from column 0 to ny-1
+      for (int i=0; i<ny;i++)  {
+			  cen0(blitz::Range(i*nx,(i+1)*nx-1))=data(blitz::Range::all(),i);
+		  }
+		}
 #ifdef DEBUG
 		cout<<"Axis 1="<<cen0<<endl;
 #endif
-	} 
-	if (nvs>1) { 		
-		Vells vl0=child_res().vellSet(1).getValue();
-		int nx=vl0.extent(0);
-		int ny=vl0.extent(1);
+	//if the grid function is not monotonically increasing, we get
+	//unsorted arrays for axes.
+  //if cen0 or cen1 is not sorted, we recreate that
+	//axis to cover the whole range and interpolate the result
+	//use STL
+	blitz::Array<IdVal,1> sarray0(cen0.extent(0));
+	//copy data
+	int k=0;
+	for (int i=0; i<ny;i++) {
+	  for (int j=0; j<nx;j++) {
+		sarray0(k).id=new int[3];
+		sarray0(k).id[0]=j;
+		sarray0(k).id[1]=i;
+		sarray0(k).id[2]=0;
+		sarray0(k).val=cen0(k);
+		k++;
+		}
+	}
+
+		vl0=child_res().vellSet(1).getValue();
+		nx=vl0.extent(0);
+		ny=vl0.extent(1);
 
 		if (ntime<nx) {ntime=nx;}
 		if (nfreq<ny) {nfreq=ny;}
 		if (nplanes<child_res().vellSet(1).numPertSets()*child_res().vellSet(1).numSpids()) { nplanes=child_res().vellSet(1).numPertSets()*child_res().vellSet(1).numSpids();}
 #ifdef DEBUG
-		cout<<"Dimension "<<nx<<","<<ny<<endl;
+		cout<<"Dimension "<<nx<<","<<ny<<","<<nplanes<<endl;
 #endif
-	  FailWhen(ny!=1,"We need a 1D array here, but got a 2D array");
 		//create axis vector
+		if (ny==1) {
+		blitz::Array<double,1> data=vl0.as<double,1>()(blitz::Range::all());
+#ifdef DEBUG
+		cout<<"Axis 2 (in)="<<data<<endl;
+#endif
 		cen1.resize(nx);
-		//cen1=vl0.as<double,1>();
-		const double *data=vl0.realStorage();
-		cen1=blitz::Array<double,1>(const_cast<double*>(data),blitz::shape(nx),blitz::neverDeleteData);
+		cen1=data(blitz::Range::all(),0);
+		} else {
+		  blitz::Array<double,2> data=vl0.as<double,2>()(blitz::Range::all(),blitz::Range::all());
+#ifdef DEBUG
+		cout<<"Axis 2 (in)="<<data<<endl;
+#endif
+		  cen1.resize(nx*ny);
+			//copy each columns from column 0 to ny-1
+      for (int i=0; i<ny;i++)  {
+			  cen1(blitz::Range(i*nx,(i+1)*nx-1))=data(blitz::Range::all(),i);
+		  }
+		}
 #ifdef DEBUG
 		cout<<"Axis 2="<<cen1<<endl;
 #endif
-  }
+	blitz::Array<IdVal,1> sarray1(cen1.extent(0));
+	//copy data
+	k=0;
+	for (int i=0; i<ny;i++) {
+		for (int j=0; j<nx; j++) {
+		sarray1(k).id=new int[3];
+		sarray1(k).id[0]=j;
+		sarray1(k).id[1]=i;
+		sarray1(k).id[2]=0;
+		sarray1(k).val=cen1(k);
+		k++;
+		}
+	}
+
 	nplanes++; //we consider the value[] vells as the 0-th plane
 
 
@@ -303,31 +359,17 @@ int Compounder::pollChildren (Result::Ref &resref,
 	map<const std::vector<int>, int *, compare_vec> revmap;
 	//blitz::Array<int,2> revmap(ntime*nfreq*nplanes,5)=0;
 
-	//if the grid function is not monotonically increasing, we get
-	//unsorted arrays for axes.
-  //if cen0 or cen1 is not sorted, we recreate that
-	//axis to cover the whole range and interpolate the result
-	//use STL
-	blitz::Array<IdVal,1> sarray0(cen0.extent(0));
-	//copy data
-	for (int i=0; i<cen0.extent(0);i++) {
-		sarray0(i).id=new int[3];
-		sarray0(i).id[0]=i;
-		sarray0(i).id[1]=0;
-		sarray0(i).id[2]=0;
-		sarray0(i).val=cen0(i);
-	}
 #ifdef DEBUG
 	cout<<"Before sort"<<endl;
 	for (int i=0; i<sarray0.extent(0);i++) {
-		cout<<i<<"="<<sarray0(i).id[0]<<","<<sarray0(i).val<<endl;
+		cout<<i<<"="<<sarray0(i).id[0]<<","<<sarray0(i).id[1]<<","<<sarray0(i).id[2]<<","<<sarray0(i).val<<endl;
 	}
 #endif
 	std::sort(sarray0.data(), sarray0.data()+sarray0.extent(0));
 #ifdef DEBUG
 	cout<<"After sort"<<endl;
 	for (int i=0; i<sarray0.extent(0);i++) {
-		cout<<i<<"="<<sarray0(i).id[0]<<","<<sarray0(i).val<<endl;
+		cout<<i<<"="<<sarray0(i).id[0]<<","<<sarray0(i).id[1]<<","<<sarray0(i).id[2]<<","<<sarray0(i).val<<endl;
 	}
 #endif
 	//overwrite the old array
@@ -344,26 +386,17 @@ int Compounder::pollChildren (Result::Ref &resref,
 		revmap[aa]=bb;
 	}
 
-	blitz::Array<IdVal,1> sarray1(cen1.extent(0));
-	//copy data
-	for (int i=0; i<cen1.extent(0);i++) {
-		sarray1(i).id=new int[3];
-		sarray1(i).id[0]=i;
-		sarray1(i).id[1]=0;
-		sarray1(i).id[2]=0;
-		sarray1(i).val=cen1(i);
-	}
 #ifdef DEBUG
 	cout<<"Before sort"<<endl;
 	for (int i=0; i<sarray1.extent(0);i++) {
-		cout<<i<<"="<<sarray1(i).id[0]<<","<<sarray1(i).val<<endl;
+		cout<<i<<"="<<sarray1(i).id[0]<<","<<sarray1(i).id[1]<<","<<sarray1(i).id[2]<<","<<sarray1(i).val<<endl;
 	}
 #endif
 	std::sort(sarray1.data(), sarray1.data()+sarray1.extent(0));
 #ifdef DEBUG
 	cout<<"After sort"<<endl;
 	for (int i=0; i<sarray1.extent(0);i++) {
-		cout<<i<<"="<<sarray1(i).id[0]<<","<<sarray1(i).val<<endl;
+		cout<<i<<"="<<sarray1(i).id[0]<<","<<sarray1(i).id[1]<<","<<sarray1(i).id[2]<<","<<sarray1(i).val<<endl;
 	}
 #endif
 	//overwrite the old array
@@ -433,25 +466,41 @@ int Compounder::pollChildren (Result::Ref &resref,
 	if (old_dom.isDefined(Axis::FREQ))
 	 domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
 	//add two more defined in the initrec()
-	domain().defineAxis(Axis::axis(comm_axes_[0]),start0,end0);
-	domain().defineAxis(Axis::axis(comm_axes_[1]),start1,end1);
+	//domain().defineAxis(Axis::axis(comm_axes_[0]),start0,end0);
+	domain().defineAxis(Axis::axis(comm_axes_[0]),-10000,10000);
+	//domain().defineAxis(Axis::axis(comm_axes_[1]),start1,end1);
+	domain().defineAxis(Axis::axis(comm_axes_[1]),-10000,10000);
 	Cells &outcells=outcells_ref<<=new Cells(*domain);
 
 	outcells.setCells(Axis::TIME,incells.center(Axis::TIME),incells.cellSize(Axis::TIME));
 	outcells.setCells(Axis::FREQ,incells.center(Axis::FREQ),incells.cellSize(Axis::FREQ));
 
+#ifdef DEBUG
+	 cout<<"Request "<<cen0<<" space "<<space0<<endl;
+	 cout<<"Request "<<cen1<<" space "<<space1<<endl;
+#endif
+
 	  outcells.setCells(Axis::axis(comm_axes_[0]),cen0,space0);
 	  outcells.setCells(Axis::axis(comm_axes_[1]),cen1,space1);
+#ifdef DEBUG
+	 cout<<"Request "<<outcells.center(Axis::axis(comm_axes_[0]))<<" space "<< outcells.cellSize(Axis::axis(comm_axes_[0]))<<endl;
+	 cout<<"Request "<<outcells.center(Axis::axis(comm_axes_[1]))<<" space "<< outcells.cellSize(Axis::axis(comm_axes_[1]))<<endl;
+#endif
+
 
 	newreq().setCells(outcells);
 	//increment request sub id
 	RequestId rqid=request.id();
 	RqId::incrSubId(rqid,seq_depmask_);
+	RqId::setSubId(rqid,res_depmask_,nodeIndex());
 	newreq().setId(rqid);
 	unlockStateMutex();
 	code=children().getChild(1).execute(child_res,*newreq);
 	lockStateMutex();
 
+#ifdef DEBUG
+	cout<<"Req Id "<<rqid<<endl;
+#endif
 	//remember this result
 	Result::Ref res0=child_res;
 	result_code_|=code;
@@ -484,6 +533,11 @@ int Compounder::pollChildren (Result::Ref &resref,
 	int infreq=incells.ncells(Axis::FREQ);
 #ifdef DEBUG
 	cout<<"In "<<intime<<","<<infreq<<endl;
+#endif
+#ifdef DEBUG
+	cout<<"InCells from funklet"<<endl;
+	cout<<res0().cells().center(Axis::axis(comm_axes_[0]))<<endl;
+	cout<<res0().cells().center(Axis::axis(comm_axes_[1]))<<endl;
 #endif
 	int itime, ifreq,iplane;
 	mapiter=revmap.begin();
