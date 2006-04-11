@@ -38,7 +38,7 @@ def point_and_extended_sources (ns,tablename=''):
                   size=[0.0002,0.0001],phi=.5,
                   parm_options=parm_options));
                   
-  source_model.append( PointSource(ns,name="S2p",I=1.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S2",I=1.0, Q=0.0, U=0.0, V=0.0,
                   Iorder=0, ra=0.0302269161, dec=0.576333355,
                   spi=-1.5,freq0=ref_frequency,
                   parm_options=parm_options));

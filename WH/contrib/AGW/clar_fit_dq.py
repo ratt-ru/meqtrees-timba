@@ -6,7 +6,7 @@ import os
 from Timba.Contrib.OMS.IfrArray import IfrArray
 from Timba.Contrib.OMS.Observation import Observation
 from Timba.Contrib.OMS.SkyComponent import *
-from clar_model import *
+import clar_model
 
 # MS name
 msname = "TEST_CLAR_27-480.MS";
@@ -71,10 +71,7 @@ def _define_forest(ns):
   array = IfrArray(ns,stations);
   obs = Observation(ns);
   
-  # create CLAR source model
-# sources = point_sources_only(ns)
-  sources = point_and_extended_sources(ns)
-
+  sources = clar_model.point_and_extended_sources(ns);
                      
   # create nodes for simulating the CLAR beam
   ns.freq << Meq.Freq;
