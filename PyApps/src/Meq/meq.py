@@ -13,6 +13,7 @@ _polclog_type = dmi_type('MeqPolcLog',_polc_type);
 _domain_type = dmi_type('MeqDomain',record);
 _cells_type = dmi_type('MeqCells',record);
 _request_type = dmi_type('MeqRequest',record);
+_result_type = dmi_type('MeqResult',record);
 
 def node (classname,name,children=None,groups=None,**kwargs):
   "creates a node record";
@@ -239,8 +240,32 @@ def cells(domain=None,num_freq=None,num_time=None,
                  cell_size = record(freq=freq_cell_size,time=time_cell_size),
                  segments  = record(freq=fs,time=ts));
   return rec;
+
+
+# #-- meq.result() -------------------------------------------------------------
+# # Creates a Meq::Result, data should be numarray, matching the cells grid?? 
+#
+def result(cells=None,data = None,rqid=hiid(0)):
+  # decompose domain into axis ranges
+  if cells is not None:
+    if not isinstance(cells,_cells_type):
+      raise TypeError,'cells argument must be a MeqCells object';
+  else:
+    raise ValueError,'cells should be specified';
+
+  if data is None:
+    raise ValueError,'data should be specified';
+
+  # create record
+  rec = _result_type(cells = cells,
+                 vellsets      = record(shape=data.shape,value=data),
+                 result_code = 0,
+                 request_id = rqid);
+  return rec;
   
-  
+
+
+
 # #-- meq.reclist() -------------------------------------------------------------
 # # Creates a record list from its arguments.
 # # A record list is turned into a DataField of DataRecords on the C++ side.
