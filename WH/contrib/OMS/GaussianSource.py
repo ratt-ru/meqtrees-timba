@@ -22,7 +22,7 @@ class GaussianSource(PointSource):
     if symmetric:
       if not isinstance(size,(int,float)):
         raise TypeError,"size: numeric value expected";
-      self._polcs.sigma = size;
+      self._polcs.sigma = create_polc(c00=size);
     else:
       if isinstance(size,(int,float)):
         s1 = s2 = size;
