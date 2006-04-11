@@ -534,59 +534,8 @@ class Cohset (TDL_common.Super):
         if pp['save']:
             self.__saved_selection = self.__selected
 
-        # Make a list (keys) of affected coh item keys:
-        cohkeys = self.__coh.keys()
-        affected = []
-        if len(cohkeys)==0:                        # none available
-            pass
-        elif not pp['key']:                        # none selected
-            pass
-        elif isinstance(pp['key'], str):           # string
-            if pp['key']=='*':
-                affected = cohkeys                 # all available keys
-            elif pp['key']=='first':
-                affected = cohkeys[0]              # first key
-            elif pp['key']=='last':
-                affected = cohkeys[len(cohkeys)-1] # last key
-            elif pp['key']=='shortest':            # key(s) of shortest baseline
-                rmin = 100000000
-                for key in cohkeys:
-                    if self.__rxyz[key]<rmin:
-                        rmin = self.__rxyz[key]
-                        affected = [key]           # one key only!
-            elif pp['key']=='longest':             # key(s) of longest baseline
-                rmax = 0
-                for key in cohkeys:
-                    if self.__rxyz[key]>rmax:
-                        rmax = self.__rxyz[key]
-                        affected = [key]           # one key only!
-            else:                                  # Assume specific key name
-                affected = [pp['key']]             # a list with one element
-        elif isinstance(pp['key'], (list, tuple)): # list
-            affected = pp['key']                   # existence checked below
-        else:                                      # neither string nor list...?
-            pass                                   # error?
-        # if trace: print 'affected =',len(affected),':',affected
-        if len(affected)==0:
-            return False                           # do nothing....?
-
-        # Make a list (keys) of existing coh items to be processed:
-        keys = []
-        for key in affected:
-            s0 = '- '+key+': '
-            if not key in cohkeys:                 # key does not exist
-                print s0,'does not exist in:',cohkeys
-                pass                               # error...?
-            else:
-                if not self.__coh[key]:              # item has been deleted
-                    if trace: print s0,'was deleted:',self.__coh[key]
-                    pass                               # 
-                elif isinstance(self.__coh[key], str):          
-                    if trace: print s0,'not a node:',self.__coh[key]
-                    pass
-                else:
-                    keys.append(key)                   # OK, include in keys
-        if trace: print 'keys = ',len(keys),':',keys
+        # Get a list of keys specified by pp['key']:
+        keys = self.find_keys (pp['key'], trace=trace)
 
         # Do the actual (de-)selection:
         for key in keys:
@@ -623,6 +572,58 @@ class Cohset (TDL_common.Super):
         return keys
 
     #............................................................................
+
+    def find_keys (self, key=None, trace=False):
+        """Get a list of keys, specified by key"""
+        keyin = key
+        cohkeys = self.__coh.keys()
+        affected = []
+        if len(cohkeys)==0:                        # none available
+            pass
+        elif not key:                              # none selected
+            pass
+        elif isinstance(key, (list, tuple)):       # list
+            affected = key                         # existence checked below
+        elif isinstance(key, str):                 # string
+            if key=='*':
+                affected = cohkeys                 # all available keys
+            elif key=='first':
+                affected = [cohkeys[0]]            # first key
+            elif key=='last':
+                affected = [cohkeys[len(cohkeys)-1]] # last key
+            elif key=='shortest':                  # key of shortest baseline
+                rmin = 100000000
+                for key in cohkeys:
+                    if self.__rxyz[key]<rmin:
+                        rmin = self.__rxyz[key]
+                        affected = [key]           # one key only!
+            elif key=='longest':                   # key of longest baseline
+                rmax = 0
+                for key in cohkeys:
+                    if self.__rxyz[key]>rmax:
+                        rmax = self.__rxyz[key]
+                        affected = [key]           # one key only!
+            else:                                  # Assume specific key name
+                affected = [key]                   # a list with one element
+        else:                                      # neither string nor list...?
+            pass                                   # error?
+
+        # Make a list (keys) of existing coh items to be processed:
+        keys = []
+        for key in affected:
+            s0 = '- '+key+': '
+            if not key in cohkeys:                 # key does not exist
+                print s0,'does not exist in:',cohkeys
+            else:
+                if not self.__coh[key]:            # item has been deleted
+                    if trace: print s0,'was deleted:',self.__coh[key]
+                elif isinstance(self.__coh[key], str):          
+                    if trace: print s0,'not a node:',self.__coh[key]
+                else:
+                    keys.append(key)               # OK, include in keys
+        if trace: print '** .find_keys(',keyin,') ->',len(keys),':',keys
+        return keys
+
 
     def keys (self, selected=True, deleted=False, trace=False):
         """Return a list of keys for the (de-)selected coh items.
@@ -1654,8 +1655,11 @@ if __name__ == '__main__':
         print
 
     if 1:
-        kk = cs.select(key='longest', trace=True)
-        print 'kk =',kk
+        cs.find_keys('longest', trace=True)
+        cs.find_keys('shortest', trace=True)
+        cs.find_keys('first', trace=True)
+        cs.find_keys('last', trace=True)
+        cs.find_keys('xxx', trace=True)
 
     if 0:
         # cs.select(trace=True)
