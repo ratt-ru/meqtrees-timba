@@ -15,7 +15,77 @@ ref_frequency = float(800*1e+6)
 mep_derived = 'CLAR_DQ_27-480.mep';
 
 reuse_solutions = False;
+def radio_galaxy (ns,tablename=''):
+  """ define model source positions and flux densities """
+  parm_options = record(
+      use_previous=reuse_solutions,
+      table_name=tablename,
+      node_groups='Parm');
+  
+  source_model = []
+  
+  # 1" ~ 4.8e-6 rad
 
+  # NE extended lobe 30 x 10 arcsec in PA 45 deg
+  source_model.append( GaussianSource(ns,name="S1",I=20.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.031181034, dec=0.57629802,
+                  spi=-0.8,freq0=ref_frequency,
+                  size=[0.000144,4.8e-5],phi=2.3561945,
+                  parm_options=parm_options));
+
+  # NE 'hot spot' 4 x 3 arcsec in PA 135 deg 
+  source_model.append( GaussianSource(ns,name="S2",I=3.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.03119776, dec=0.57632226,
+                  spi=-0.55,freq0=ref_frequency,
+                  size=[1.9e-5,1.44e-5],phi=0.785,
+                  parm_options=parm_options));
+
+  # central 'nuclear' point source with flat spectrum
+  source_model.append( PointSource(ns,name="S3",I=1.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.030906872, dec=0.5761041,
+                  spi=0.0,freq0=ref_frequency,
+                  parm_options=parm_options));
+  
+  # SW extended lobe 21 x 15 srcsec in PA 33 deg
+  source_model.append( GaussianSource(ns,name="S4",I=15.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.030761428, dec=0.57588593,
+                  spi=-0.75,freq0=ref_frequency,
+                  size=[0.0001,7.2e-5],phi=2.15,
+                  parm_options=parm_options));
+
+  # SW 'hot spot' 2 x 2 arc sec symmetric
+  source_model.append( GaussianSource(ns,name="S5",I=5.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.030732848, dec=0.57585781,
+                  spi=-0.4,freq0=ref_frequency,
+                  size=9.6e-6, symmetric=True,
+                  parm_options=parm_options));
+  return source_model
+
+def combined_extended_source (ns,tablename=''):
+  """ define model source positions and flux densities """
+  parm_options = record(
+      use_previous=reuse_solutions,
+      table_name=tablename,
+      node_groups='Parm');
+  
+  source_model = []
+
+  # 1" ~ 4.8e-6 rad
+
+  source_model.append( GaussianSource(ns,name="S1",I=2.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.030598749, dec=0.5758966,
+                  spi=0.0,freq0=ref_frequency,
+                  size=.00008, symmetric=True,
+                  parm_options=parm_options));
+
+
+  source_model.append( GaussianSource(ns,name="S2",I=60.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.0306878027, dec=0.575851951,
+                  spi=-0.75,freq0=ref_frequency,
+                  size=0.0005, symmetric=True,
+                  parm_options=parm_options));
+
+  return source_model
 
 def point_and_extended_sources (ns,tablename=''):
   """ define model source positions and flux densities """
