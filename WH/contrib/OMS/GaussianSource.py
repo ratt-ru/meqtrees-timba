@@ -35,6 +35,9 @@ class GaussianSource(PointSource):
       self._polcs.sigma1 = create_polc(c00=s1);
       self._polcs.sigma2 = create_polc(c00=s2);
     # setup orientation
+    # note: the orientation angle, phi, of the major axis
+    # is defined in the direction East through South; i.e.
+    # an angle of zero defines a Gaussian oriented east-west
     if not isinstance(phi,(int,float)):
       raise TypeError,"phi: numeric value expected";
     self._polcs.phi = create_polc(c00=phi);
