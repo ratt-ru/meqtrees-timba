@@ -98,7 +98,7 @@ namespace Meq {
     // The default depmask includes Domain. This is done in such that the fuklet gets reinitialized in case of a Fail
     //solve_depend_mask 
     // is added if the parm is solvable
-    setActiveSymDeps(symdeps_default,0);
+    setActiveSymDeps(symdeps_default,3);
   }
 
 
