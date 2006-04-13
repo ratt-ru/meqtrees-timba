@@ -28,39 +28,28 @@ class CompileError (RuntimeError):
   def __init__ (self,*errlist):
     self.errlist = errlist;
 
-def compile_file (mqs,filename,text=None,parent=None,
-                  predef_args={},define_args={},postdef_args={}):
-  """Compiles a TDL script and sends it to meqserver given by mqs.
+def import_tdl_module (filename,text=None):
+  """Imports a TDL module.
   Parameters:
-    mqs:      a meqserver object
     filename: script location
-    text:     script text for putting into forest (if None, will be read from file)
-    parent:   parent widget passed to TDL script (if a GUI is running)
-    predef_args: dict of extra arguments for _tdl_predefine()
-    define_args: dict of extra arguments for _define_forest()
-    postdef_args: dict of extra arguments for _tdl_postdefine()
-    busy_callback: this function is called whenever the compiler gets busy.
-              Normal use is to set an hourglass cursor in GUIs.
-    free_callback: this function is called whenever the compiler is no longer busy.
-              Normal use is to restore normal cursor in GUIs.
-              
+    text: text of module. If none, file will be re-read.
           
   Return value:
-    a tuple of (module,ns,message), where module is the newly-imported 
-    TDL module, ns is the global NodeScope object, and message is an 
-    informational message.
+    a tuple of (module,text), where module is the newly-imported 
+    TDL module, and text is the module text.
+    
   Exceptions thrown:
-    Any compilation error results in an exception. This is either a 
-    TDL.CumulativeError containing an error list, or a regular exception
+    Any import error results in an exception. This is always
+    a TDL.CumulativeError exception containing an error list.
+    Other exceptions may indicate an internal failure.
   """;
-  _dprint(1,"compiling",filename);
-  reload(Timba.TDL.Settings);
-  # reset TDL script options
-  TDLOptions.init_options(filename);
+  _dprint(1,"importing",filename);
   # initialize global nodescope (and repository)
-  ns = TDL.NodeScope();
   try:
-  # open file
+    reload(Timba.TDL.Settings);
+    # reset TDL script options
+    TDLOptions.init_options(filename);
+    # open file
     infile = file(filename,'r');
     if text is None:
       text = infile.read();
@@ -84,15 +73,64 @@ def compile_file (mqs,filename,text=None,parent=None,
       infile.close();
       _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
       _dprint(1,'TDL run imported',_tdlmodlist);
+    return (_tdlmod,text);
     
+  # CumulativeError exceptions returned as is  
+  except TDL.CumulativeError:
+    _dprint(0,'cumulative error importing TDL file:',filename);
+    traceback.print_exc();
+    args = sys.exc_info()[1].args;
+    _dprint(0,'number of errors in list:',len(args));
+    _dprint(1,'errors are: {',args,'}');
+    raise;
+  # Other exceptions wrapped in a CumulativeError, and
+  # location information is added in
+  except:
+    (etype,exc,tb) = sys.exc_info();
+    _dprint(0,'exception importing TDL file:',filename);
+    traceback.print_exception(etype,exc,tb);
+    # use TDL add_error() to process the error, since this automatically
+    # adds location information
+    ns = TDL.NodeScope();
+    ns.AddError(exc,traceback.extract_tb(tb),error_limit=None);
+    # re-raise as a CumulativeError
+    raise TDL.CumulativeError(*ns.GetErrors());
+    
+def run_forest_definition (mqs,filename,tdlmod,text,
+                           parent=None,
+                           predef_args={},define_args={},postdef_args={}):
+  """Compiles a TDL script and sends it to meqserver given by mqs.
+  Parameters:
+    mqs:      a meqserver object
+    filename: the filename of the script (used for error reporting)
+    tdlmod:   the imported TDL module, as returned by import_tdl_module()
+    text:     script text for putting into forest
+    parent:   parent widget passed to TDL script (if a GUI is running)
+    predef_args: dict of extra arguments for _tdl_predefine()
+    define_args: dict of extra arguments for _define_forest()
+    postdef_args: dict of extra arguments for _tdl_postdefine()
+          
+  Return value:
+    a tuple of (module,ns,message), where module is the newly-imported 
+    TDL module, ns is a NodeScope object, and message is an 
+    informational message.
+    
+  Exceptions thrown:
+    Any compilation error results in an exception. This is always
+    a TDL.CumulativeError exception containing an error list.
+    Other exceptions may indicate an internal failure.
+  """;
+  _dprint(1,"defining forest");
+  try:
+    ns = TDL.NodeScope();
     # module here, call functions
     errlist = [];
     # find define_forest func
-    define_func = getattr(_tdlmod,'_define_forest',None);
+    define_func = getattr(tdlmod,'_define_forest',None);
     if not callable(define_func):
       raise TDL.TDLError("No _define_forest() function found",filename=filename,lineno=1);
     # now find predefine function and call it
-    predefine_func = getattr(_tdlmod,'_tdl_predefine',None);
+    predefine_func = getattr(tdlmod,'_tdl_predefine',None);
     if callable(predefine_func):
       predef_result = predefine_func(mqs,parent,**predef_args);
     else:
@@ -112,7 +150,7 @@ def compile_file (mqs,filename,text=None,parent=None,
     num_nodes = len(allnodes);
     # no nodes? return
     if not num_nodes:
-      return (_tdlmod,ns,"Script has run successfully, but no nodes were defined.");
+      return (tdlmod,ns,"Script has run successfully, but no nodes were defined.");
     # try to run stuff
     meqds.clear_forest();
     # is a forest state defined? send it on then
@@ -133,16 +171,16 @@ def compile_file (mqs,filename,text=None,parent=None,
     # mqs.meq('Get.Forest.State',record(sync=2));
     
     # call the post-define function
-    postdefine_func = getattr(_tdlmod,'_tdl_postdefine',None);
+    postdefine_func = getattr(tdlmod,'_tdl_postdefine',None);
     if callable(postdefine_func):
       res = postdefine_func(mqs,parent,**postdef_args);
       if isinstance(res,str):
         msg += "\n" + res;
 
-    return (_tdlmod,ns,msg);
+    return (tdlmod,ns,msg);
   # CumulativeError exceptions returned as is  
   except TDL.CumulativeError:
-    _dprint(0,'cumulative error compiling TDL file:',filename);
+    _dprint(0,'cumulative error defining forest from TDL file:',filename);
     traceback.print_exc();
     args = sys.exc_info()[1].args;
     _dprint(0,'number of errors in list:',len(args));
@@ -152,7 +190,7 @@ def compile_file (mqs,filename,text=None,parent=None,
   # location information is added in
   except:
     (etype,exc,tb) = sys.exc_info();
-    _dprint(0,'exception compiling TDL file:',filename);
+    _dprint(0,'exception defining forest from TDL file:',filename);
     traceback.print_exception(etype,exc,tb);
     # use TDL add_error() to process the error, since this automatically
     # adds location information
@@ -160,27 +198,13 @@ def compile_file (mqs,filename,text=None,parent=None,
     # re-raise as a CumulativeError
     raise TDL.CumulativeError(*ns.GetErrors());
     
-#     # create new error object, with type: args message
-#     try:
-#       args = str(exc.args[0]);
-#       err = etype("%s: %s"%(etype.__name__,args));
-#     except AttributeError:
-#       err = etype(etype.__name__);
-#     # figure out where it was raised
-#     tb = traceback.extract_tb(tb);
-#     internal = ( os.path.dirname(tb[-1][0]) == _MODULE_DIRNAME );
-#     # get location info from original exception
-#     filename = getattr(exc,'filename',None);
-#     lineno   = getattr(exc,'lineno',None);
-#     offset   = getattr(exc,'offset',0) or 0;
-#     # if not provided, get from traceback
-#     _dprint(0,'file',filename,'exception is internal:',internal);
-#     if filename is None and not internal:
-#       filename = tb and tb[-1][-0];
-#       lineno = tb[-1][1];
-#       offset = 0;
-#     # put into error object
-#     setattr(err,'filename',filename);
-#     setattr(err,'lineno',lineno);
-#     setattr(err,'offset',offset);
-#     raise TDL.CumulativeError(err);
+    
+def compile_file (mqs,filename,text=None,parent=None,
+                  predef_args={},define_args={},postdef_args={}):
+  """imports TDL module and runs forest deifnition.
+  Basically a compound of the above two functions.""";
+  (tdlmod,text) = import_tdl_module(filename,text=text);
+  return run_forest_definition(mqs,filename,tdlmod,text,
+                  predef_args=predef_args,define_args=define_args,postdef_args=postdef_args);
+
+

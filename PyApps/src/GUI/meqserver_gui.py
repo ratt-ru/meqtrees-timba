@@ -149,6 +149,15 @@ class meqserver_gui (app_proxy_gui):
     self._qa_runtdl.setVisible(False);
     self._qa_runtdl.setEnabled(False);
     self._main_tdlfile = None; # this is used by _run_current
+    # add TDL options button
+    self._tb_opts = QToolButton(self.maintoolbar);
+    self._tb_opts.setIconSet(pixmaps.wrench.iconset());
+    self._tb_opts.setTextLabel("TDL Options");
+    self._tb_opts.setUsesTextLabel(True);
+    self._tb_opts.setTextPosition(QToolButton.BesideIcon);
+    QToolTip.add(self._tb_opts,"Access compile-time options for this TDL script");
+    self._tb_opts.setPopupDelay(1);
+    self._tb_opts.hide();
     # disable TDL job controls while running
     QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._tb_jobs.setDisabled);
     QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._qa_runtdl.setDisabled);
@@ -262,7 +271,7 @@ class meqserver_gui (app_proxy_gui):
     self._qa_runtdl.addTo(tdl_menu);
     # menu for tdl jobs is inserted when TDL script is run
     QObject.connect(self,PYSIGNAL("isConnected()"),self._clear_tdl_jobs);
-    self._mi_tdljobs = None;
+    self._mi_tdljobs = self._mi_tdlopts = None;
     
     # --- View menu
     self.qa_viewpanels.addTo(view_menu);
@@ -682,7 +691,6 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       _dprint(1,'Creating editor tab for',pathname);
       # create editor tab with item
       tab = tdlgui.TDLEditor(self.maintab,close_button=True);
-      tab.load_file(pathname,text,mainfile=mainfile);
       label = os.path.basename(pathname);
       if mainfile:
         label = '(' + label + ')';
@@ -692,6 +700,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       QObject.connect(self,PYSIGNAL("isConnected()"),tab.show_run_control);
       tab.hide_jobs_menu(self._connected);
       tab.show_run_control(self._connected);
+      if show:
+        self._tdltab_show(tab);
       QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),tab.disable_controls);
       QObject.connect(tab,PYSIGNAL("fileSaved()"),self.curry(self._tdltab_change,tab));
       QObject.connect(tab,PYSIGNAL("hasErrors()"),self.curry(self._tdltab_errors,tab));
@@ -701,16 +711,36 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       QObject.connect(tab,PYSIGNAL("showEditor()"),self.curry(self._tdltab_show,tab));
       QObject.connect(tab,PYSIGNAL("compileFile()"),self._tdl_compile_file);
       QObject.connect(tab,PYSIGNAL("fileChanged()"),self.curry(self._tdltab_reset_label,tab));
+      QObject.connect(tab,PYSIGNAL("hasCompileOptions()"),self.curry(self._tdltab_refresh_compile_options,tab));
+      tab.load_file(pathname,text,mainfile=mainfile);
     else:
       _dprint(1,'we already have a tab for',pathname);
-    if show:
-      self._tdltab_show(tab);
+      if show:
+        self._tdltab_show(tab);
     # ok, we have a working tab now
     # run if requested
     if run:
       self._tdl_compile_tab_contents(tab);
     self.splitter.refresh();
     return tab;
+    
+  def _tdltab_refresh_compile_options (self,tab,nopt=None):
+    """called when a tab has a new TDL Options popup""";
+    _dprint(0,"new compile options",nopt);
+    if self._mi_tdlopts is not None:
+      self._tdlmenu.removeItem(self._mi_tdlopts);
+    if nopt:
+      popup = tab.get_options_popup();
+      basename = os.path.basename(tab.get_filename());
+      self._mi_tdlopts = self._tdlmenu.insertItem(pixmaps.wrench.iconset(),
+        "Change compile-time &options",popup);
+      self._tdlmenu.setWhatsThis(self._mi_tdlopts,"Access compile-time options for TDL script "+basename);
+      self._tb_opts.setPopup(popup);
+      QToolTip.add(self._tb_opts,"Access compile-time options for TDL script "+basename);
+      self._tb_opts.show();
+    else:
+      self._tb_opts.hide();
+      self._mi_tdlopts = None;
     
   def _tdl_compile_tab_contents (self,tab):
     self._main_tdlfile = tab.get_filename();
@@ -791,17 +821,22 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       if getattr(self,'_tdltab_show_error_lock',False):
         return;
       self._tdltab_show_error_lock = True;
+      _dprint(1,"showing error in",filename,"signalled by",tab.get_filename());
       if filename != tab.get_filename():
         mainfile = tab.get_mainfile() or tab.get_filename();
       else:
         mainfile = None;
-      newtab = self.show_tdl_file(filename,mainfile=mainfile);
-      newtab.set_error_list(tab.get_error_list(),show_item=False);
-      newtab.show_error_number(index);
+      message = tab.get_error_title();
+      newtab = self.show_tdl_file(filename,mainfile=mainfile,show=True);
+      newtab.set_error_list(tab.get_error_list(),message=message,show_item=False,signal=False);
+      _dprint(1,"showing error #",index);
+      newtab.show_error_number(index,signal=False);
     finally:
       self._tdltab_show_error_lock = False;
   
   def _tdltab_errors (self,tab,nerr):
+    if getattr(self,'_tdltab_show_error_lock',False):
+      return;
     # nerr indicates the # of errors in that actual file
     if nerr:
       self.maintab.setTabIconSet(tab,pixmaps.red_round_cross.iconset());
@@ -813,9 +848,10 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     _dprint(1,len(errlist),"errors in",tab.get_filename(),tab.get_mainfile());
     if not tab.get_mainfile():
       filename = tab.get_filename();
+      message = tab.get_error_title();
       for tab1 in self._tdl_tabs.itervalues():
         if tab1.get_mainfile() == filename:
-          tab1.set_error_list(errlist,show_item=False);
+          tab1.set_error_list(errlist,show_item=False,signal=False,message=message);
     
   def _tdltab_modified (self,tab,mod):
     if mod:

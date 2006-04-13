@@ -72,6 +72,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     lo.addWidget(self._toolbar);
     
     #### populate toolbar
+    
+    # Exec button and menu
     self._tb_jobs = QToolButton(self._toolbar);
     self._tb_jobs.setIconSet(pixmaps.gear.iconset());
     self._tb_jobs.setTextLabel("Exec");
@@ -118,6 +120,18 @@ class TDLEditor (QFrame,PersistentCurrier):
     qa_runthis_as.setToolTip("Saves and reruns this script as a top-level TDL script");
     QObject.connect(qa_runthis_as,SIGNAL("activated()"),self._run_as_main_file);
     qa_runthis_as.addTo(self._tb_runmenu);
+    
+    # Compile-time options and menu
+    self._tb_opts = QToolButton(self._toolbar);
+    self._tb_opts.setIconSet(pixmaps.wrench.iconset());
+    self._tb_opts.setTextLabel("Options");
+    self._tb_opts.setUsesTextLabel(True);
+    self._tb_opts.setTextPosition(QToolButton.BesideIcon);
+    QToolTip.add(self._tb_opts,"Access compile-time options for this TDL script");
+    self._options_menu = QPopupMenu(self);
+    self._tb_opts.setPopup(self._options_menu);
+    self._tb_opts.setPopupDelay(1);
+    self._tb_opts.hide();
     
     # self._qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.ALT+Qt.Key_R,self);
     # self._qa_run.addTo(self._toolbar);
@@ -221,6 +235,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     
     eblo.addWidget(self._werrlist);
     self._werrlist_box.hide();
+    self._error_title = "";
     self._error_list = [];
     self._error_at_line = {};
 
@@ -371,8 +386,12 @@ class TDLEditor (QFrame,PersistentCurrier):
   def get_error_list (self):
     """returns the current error list."""
     return self._error_list;
+    
+  def get_error_title (self):
+    """returns the current error list."""
+    return self._error_title;
       
-  def set_error_list (self,errlist,signal=True,show_item=True,highlight=False,
+  def set_error_list (self,errlist,signal=True,show_item=True,
                       message="TDL compile failed"):
     """Shows an error list. errlist should be a sequence of Exception
     objects following the TDL error convention.
@@ -382,6 +401,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     # do nothing if already set
     if self._error_list is errlist:
       return;
+    self._error_title = message;
     self.clear_error_list(signal=False);
     self._error_list = errlist;
     _dprint(1,self._filename,"processing list");
@@ -423,7 +443,7 @@ class TDLEditor (QFrame,PersistentCurrier):
           item.setText(2,"["+errmsg+"]");
           item.setText(1,"internal compilation error; see text console for more info");
         else:
-          item.setText(1,errmsg);
+          item.setText(1,err.__class__.__name__+": "+errmsg);
           if filename == self._filename:
             item._err_location = index,None,line,column;
             item.setText(2,"[line %d]" % (line,));
@@ -437,19 +457,17 @@ class TDLEditor (QFrame,PersistentCurrier):
       else:
         self._error_count_label.setText('%s. <b>%d</b> errors here, <b>%d</b> total'%(message,nhere,nerr-1,));
       self._werrlist_box.show();
-      if show_item:
-        self._show_error_item(self._error_items[0]);
       if signal:
         self.emit(PYSIGNAL("hasErrors()"),(nhere,));
-      if highlight:
-        self._highlight_error_item(self._error_items[0]);
+      if show_item:
+        self._show_error_item(self._error_items[0]);
       # self._highlight_error(0);
       # disable run control until something gets modified
       # self._qa_run.setVisible(False);
     else:
       self._werrlist_box.hide();
       
-  def _highlight_error_item (self,item):
+  def _highlight_error_item (self,item,signal=True):
     self._qa_prev_err.setEnabled(item is not self._error_items[0]);
     self._qa_next_err.setEnabled(item is not self._error_items[-1]);
     self._editor.markerDeleteAll(self.CurrentErrorMarker);
@@ -457,6 +475,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     try: index,filename,line,column = item._err_location;
     except AttributeError: return;
     # indicate location
+    _dprint(1,"highlighting error in",filename);
     if filename is None:
       self.show_position(line-1,column,mark_error=True);
     else:
@@ -490,14 +509,14 @@ class TDLEditor (QFrame,PersistentCurrier):
     if item:
       self._show_error_item(item);
   
-  def show_error_number (self,index):
-    self._show_error_item(self._error_items[index]);
+  def show_error_number (self,index,signal=True):
+    self._show_error_item(self._error_items[index],signal=signal);
     
-  def _show_error_item (self,item):
+  def _show_error_item (self,item,signal=True):
     _dprint(1,item);
     self._werrlist.ensureItemVisible(item);
     self._werrlist.setCurrentItem(item);
-    self._highlight_error_item(item);
+    self._highlight_error_item(item,signal=signal);
       
   def _process_margin_click (self,margin,line,button):
     _dprint(1,margin,line,button);
@@ -599,14 +618,11 @@ class TDLEditor (QFrame,PersistentCurrier):
         "Revert","Cancel",None,0,1):
         return;
     self.load_file(self._filename);
-        
-  def compile_content (self):
-    _dprint(1,self._filename,"compiling");
+    
+  def import_content (self):
+    _dprint(1,self._filename,"importing");
     self.clear_message();
     self.clear_error_list();
-    # clear predefined functions
-    self._tb_jobs.hide();
-    dum = None;
     # The Python imp module expects text to reside in a disk file, which is
     # a pain in the ass for us if we're dealing with modified text or text
     # entered on-the-fly. So, either save or sync before proceeding
@@ -617,7 +633,53 @@ class TDLEditor (QFrame,PersistentCurrier):
     else:
       if not self._sync_external_file(self._filename,ask=False):
         return None;
+    # if we already have an imported module and sisk file hasn't changed, do
+    # nothing and return success.
+    if self._tdlmod is not None and self._tdlmod_filetime == self._file_disktime:
+      return True;
+    # reset data members
+    self._tb_opts.hide();
+    _dprint(2,self._filename,"emitting signal for 0 compile-time options");
+    self.emit(PYSIGNAL("hasCompileOptions()"),(0,));
+    self._options_menu.clear();
+    self._tdlmod = None;
+    # get text from editor
     tdltext = str(self._editor.text());
+    try:
+      tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
+    # catch import errors
+    except TDL.CumulativeError,value:
+      _dprint(0,"caught cumulative error, length",len(value.args));
+      self.set_error_list(value.args,message="TDL import failed");
+      return None;
+    except Exception,value:
+      _dprint(0,"caught other error, traceback follows");
+      traceback.print_exc();
+      self.set_error_list([value],message="TDL import failed");
+      return None;
+    # remember module and nodescope
+    self._tdlmod = tdlmod;
+    self._tdltext = tdltext;
+    self._tdlmod_filetime = self._file_disktime;
+    # build options menu from compile-time options
+    self._options_menu.clear();
+    opts = TDLOptions.get_compile_options();
+    if opts:
+      self._options_menu.insertTearOffHandle();
+      for opt in opts:
+        opt.add_to_menu(self._options_menu);
+      self._tb_opts.show();
+      _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
+      self.emit(PYSIGNAL("hasCompileOptions()"),(len(opts),));
+    return True;
+        
+  def compile_content (self):
+    # import content first, and return if failed
+    if not self.import_content():
+      return None;
+    _dprint(1,self._filename,"compiling forest");
+    # clear predefined functions
+    self._tb_jobs.hide();
     # make list of publishing nodes 
     pub_nodes = [ node.name for node in meqds.nodelist.iternodes() 
                   if node.is_publishing() ];
@@ -625,7 +687,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     try:
       QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
       try:
-        (_tdlmod,ns,msg) = TDL.Compile.compile_file(meqds.mqs(),self._filename,tdltext,parent=self);
+        (_tdlmod,ns,msg) = \
+          TDL.Compile.run_forest_definition(
+              meqds.mqs(),self._filename,self._tdlmod,self._tdltext,
+              parent=self);
       finally:
         QApplication.restoreOverrideCursor();
     # catch compilation errors
@@ -674,6 +739,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     # create list of job actions
     self._jobmenu.clear();
     if joblist:
+      self._jobmenu.insertTearOffHandle();
       opts = TDLOptions.get_runtime_options();
       if opts:
         for opt in opts:
@@ -732,6 +798,9 @@ class TDLEditor (QFrame,PersistentCurrier):
   def get_jobs_popup (self):
     return self._jobmenu;
     
+  def get_options_popup (self):
+    return self._options_menu;
+    
   def _set_mainfile (self,mainfile):
     """adjusts GUI controls based on whether we are a mainfile or not""";
     self._mainfile = mainfile;
@@ -776,6 +845,11 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._text_modified(False);
     # emit signals
     self.emit(PYSIGNAL("fileLoaded()"),(filename,));
+    # if module is a main-level file (i.e. not slaved to another mainfile), 
+    # pre-import it so that compile-time menus become available
+    self._tdlmod = None;
+    if not mainfile:
+      self.import_content();
     
   def adjust_editor_font (self):
     # sets the editor font size based on our own size

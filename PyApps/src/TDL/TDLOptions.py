@@ -193,6 +193,8 @@ def make_option_item (namespace,symbol,name,value,default=None,inline=False,doc=
 def _add_option (option_list,namespace,*args,**kwargs):
   if namespace is None:
     namespace = inspect.stack()[2][0].f_globals;
+  elif inspect.ismodule(namespace):
+    namespace = namespace.__dict__;
   opt = make_option_item(namespace,*args,**kwargs);
   option_list.append(opt);
   return opt;
