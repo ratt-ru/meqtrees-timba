@@ -51,7 +51,7 @@ namespace Meq {
   const HIID symdeps_all[]     = { FDataset,FDomain,FResolution,FState,FIteration };
   const HIID symdeps_domain[]  = { FDataset,FDomain,FResolution };
   const HIID symdeps_solve[]   = { FIteration,FState };
-  const HIID symdeps_default[] = { };
+  const HIID symdeps_default[] = { FDataset,FDomain,FResolution };
 
   const HIID
   // Parm staterec fields
@@ -95,9 +95,8 @@ namespace Meq {
       solve_domain_(2),
       integrated_(false)
   {
-    // The default depmask only includes Solution. Solution is meant to be updated
-    // whenever the parm solvable state is changed, or when fiddling.
-    // Domain mask will be added if the funklet has >1 coefficient; solve_depend_mask 
+    // The default depmask includes Domain. This is done in such that the fuklet gets reinitialized in case of a Fail
+    //solve_depend_mask 
     // is added if the parm is solvable
     setActiveSymDeps(symdeps_default,0);
   }
