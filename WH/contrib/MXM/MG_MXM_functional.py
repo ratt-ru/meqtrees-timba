@@ -99,7 +99,6 @@ def _define_forest2(ns):
   dom = meq.domain(0,1,0,2);
   cells = meq.cells(dom,num_time=10,num_freq=5);
 
-  print cells;
   f4.setCoeff(0,2.);
   f4.setCoeff(1,3.);
   f4.setCoeff(2,4.);
@@ -107,7 +106,6 @@ def _define_forest2(ns):
 
 
 
-  print result;
   ns['solver'] << Meq.Solver(
       num_iter=5,debug_level=10,solvable="x",
       children = Meq.Condeq(

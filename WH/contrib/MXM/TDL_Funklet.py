@@ -1,12 +1,15 @@
 from Timba.TDL import *
+from Timba.Grid import DataItem
+from Timba.Grid import Services
 from Timba.Meq import meq
 from Timba.Meq import meqds
 from numarray import *
+from qt import *
 
 
 
 class Funklet:
-    def __init__(self,funklet=record(function="MeqPolc",coeff=array([[0]]),domain= meq.domain(0,1,0,1),offset=[0,0],scale=[1,1])):
+    def __init__(self,funklet=record(function="MeqPolc",coeff=array([[0]]),domain= meq.domain(0,1,0,1),offset=[0,0],scale=[1,1]),name=None):
         self._funklet=funklet;
         self._type = "MeqPolc";
         if funklet.has_field('function'):
@@ -27,6 +30,15 @@ class Funklet:
         self._domain = meq.domain(0,1,0,1);
         if funklet.has_field('domain'):
             self._domain = funklet.domain;
+        if funklet.has_field('name'):
+            self._name = funklet.name;
+        else:
+            self._name=name;
+        if self._name:
+            self._udi = "/funklet/"+name;
+        else:
+            self._udi = "/funklet/noname";
+
         self.init_function();
         
 
@@ -252,14 +264,28 @@ class Funklet:
         #print result;
         return result;
 
-    def plot(self,cells=None):
+    def plot(self,cells=None,parent=None):
         if cells is None:
             print "no cells specified"
             return;
         if not isinstance(cells,meq._cells_type):
             raise TypeError,'cells argument must be a MeqCells object';
-        return self.get_result(cells=cells);
-        
+        result = self.get_result(cells=cells);
+        self.emit_display_signal(result=result,parent=parent);
+        return result;
+
+
+    def emit_display_signal (self,result=None,parent=None,**kwargs):
+        name="test"
+        caption="TEST"
+        dataitem=DataItem(self._udi,data=result,viewer='Result Plotter',name=name,caption=caption);
+        if dataitem:
+            if parent:
+                parent.emit(PYSIGNAL("displayDataItem()"),(dataitem,kwargs));
+            else:
+                print "plotting"
+                Services.addDataItem(dataitem);
+            
 
 class ComposedFunklet(Funklet):
     """ class for a list of funklets...reimplement eval"""
@@ -271,6 +297,10 @@ class ComposedFunklet(Funklet):
         for funk in self._funklet_list:
             if funk.getNX()>self._nx:
                 self._nx = funk.getNX();
+        funk=funklet_list[0];
+        self._name = funk._name;
+        self._udi = funk._udi;
+
         
 
     def eval(self,point={}):
@@ -299,6 +329,8 @@ class ComposedFunklet(Funklet):
             match=True;
             #print "domain",domain,axis_map,str(axis_map[0]['id']).lower();
             for x in pointlist:
+                if not axis_map[axisi].has_key('id'):
+                    break;
                 if not domain.has_key(str(axis_map[axisi]['id']).lower()):
                     break;
                 #print "testing",str(axis_map[axisi]['id']).lower(),domain[str(axis_map[axisi]['id']).lower()][0],x,domain[str(axis_map[axisi]['id']).lower()][1]
