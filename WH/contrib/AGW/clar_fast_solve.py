@@ -21,7 +21,7 @@ TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTE
 TDLRuntimeOption('output_column',"Output residuals to MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
 
 # number of timeslots to use at once
-TDLRuntimeOption('tile_size',"Tile size",[30,60,480,960]);
+TDLRuntimeOption('tile_size',"Tile size",[30,48,60,96,480,960]);
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
@@ -30,7 +30,8 @@ TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
 # source_model = clar_model.point_and_extended_sources;
 TDLCompileOption('source_model',"Source model",[
     clar_model.point_and_extended_sources,
-    clar_model.point_sources_only
+    clar_model.point_sources_only,
+    clar_model.radio_galaxy
   ],default=0);
 
 ### if True, previous solutions will be reused for successive time domains.
@@ -67,10 +68,10 @@ mep_sources = None;
 # bookmarks
 Settings.forest_state = record(bookmarks=[
   record(name='Predicted visibilities',page=Bookmarks.PlotPage(
-      ["I:S1","I:S2","I:S3"],
-      ["I:S4","I:S5","ihpbw"],
       ["visibility:all:1:2","spigot:1:2","residual:1:2"],
-      ["visibility:all:1:9","spigot:1:9","residual:1:9"]
+      ["visibility:all:1:9","spigot:1:9","residual:1:9"],
+      ["visibility:all:18:27","spigot:18:27","residual:18:27"],
+      ["visibility:all:26:27","spigot:26:27","residual:26:27"]
   )), 
   record(name='Source fluxes',page=Bookmarks.PlotPage(
       ["I:S1","I:S2","I:S3"],
@@ -263,6 +264,19 @@ def _tdl_job_4_reset_parameters_to_true_values (mqs,parent,**kw):
   _reset_solvables(mqs,[ 'spi:'+src.name for src in source_list]);
   _reset_solvables(mqs,["ihpbw0"]);
 
+def _tdl_job_5_solve_for_gaussian_parameters (mqs,parent,**kw):
+  solvables = _reset_solvables(mqs,["I0:S1"],1.36)
+  solvables += _reset_solvables(mqs,["I0:S2"],1.77)
+  solvables += _reset_solvables(mqs,["I0:S3"],0.35)
+  solvables += _reset_solvables(mqs,["I0:S4"],1.12)
+  solvables += _reset_solvables(mqs,["I0:S5"],3.66)
+  solvables += _reset_solvables(mqs,["sigma1:S1"],0.0001)
+  solvables += _reset_solvables(mqs,["sigma2:S1"],0.0001)
+  solvables += _reset_solvables(mqs,["sigma1:S2"],0.0001)
+  solvables += _reset_solvables(mqs,["sigma2:S2"],0.0001)
+  solvables += _reset_solvables(mqs,["sigma1:S4"],0.0001)
+  solvables += _reset_solvables(mqs,["sigma2:S4"],0.0001)
+  _run_solve_job(mqs,solvables);
 
 
 Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
