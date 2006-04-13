@@ -1296,13 +1296,6 @@ def _define_forest (ns, **kwargs):
 
 def _tdl_job_execute (mqs, parent):
    """Execute the forest"""
-   # Timba.TDL.Settings.forest_state is a standard TDL name. 
-   # This is a record passed to Set.Forest.State. 
-   Settings.forest_state.cache_policy = 100;
-   
-   # Make sure our solver root node is not cleaned up
-   Settings.orphans_are_roots = True;
-
    # Start the sequence of requests issued by MeqSink:
    MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG)
    return True

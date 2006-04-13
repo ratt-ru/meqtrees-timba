@@ -823,19 +823,19 @@ if __name__ == '__main__':
         ps.inarg_group_rider(pp)                  
         a1 = ps.parmgroup('Ggain_X', rider=pp,
                           condeq_corrs='paral11', c00_default=1.0,
-                          c00_scale=1.0, timescale_min=10, fdeg=0,
+                          # c00_scale=1.0, timescale_min=10, fdeg=0,
                           color='red', style='diamond', size=10)
         a2 = ps.parmgroup('Ggain_Y', rider=pp,
                           condeq_corrs='paral22', c00_default=1.0,
-                          c00_scale=1.0, timescale_min=10, fdeg=0,
+                          # c00_scale=1.0, timescale_min=10, fdeg=0,
                           color='blue', style='diamond', size=10)
         p1 = ps.parmgroup('Gphase_X', rider=pp,
                           condeq_corrs='paral11', c00_default=0.0,
-                          c00_scale=1.0, timescale_min=10, fdeg=0,
+                          # c00_scale=1.0, timescale_min=10, fdeg=0,
                           color='magenta', style='diamond', size=10)
         p2 = ps.parmgroup('Gphase_Y', rider=pp,
                           condeq_corrs='paral22', c00_default=0.0,
-                          c00_scale=1.0, timescale_min=10, fdeg=0,
+                          # c00_scale=1.0, timescale_min=10, fdeg=0,
                           color='cyan', style='diamond', size=10)
         
         # MeqParm node_groups: add 'G' to default 'Parm':

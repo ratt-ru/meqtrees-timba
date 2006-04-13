@@ -491,45 +491,20 @@ def _define_forest (ns, **kwargs):
 
 def _tdl_job_execute (mqs, parent):
    """Execute the tree""" 
-   
-   # Timba.TDL.Settings.forest_state is a standard TDL name. 
-   # This is a record passed to Set.Forest.State. 
-   Settings.forest_state.cache_policy = 100;
-   
-   # Make sure our solver root node is not cleaned up
-   Settings.orphans_are_roots = True;
-
    # Start the sequence of requests issued by MeqSink:
    MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG)
    return True
 
 def _tdl_job_execute_plus (mqs, parent):
    """Execute the tree, followed by fullDomainMux()""" 
-   
-   # Timba.TDL.Settings.forest_state is a standard TDL name. 
-   # This is a record passed to Set.Forest.State. 
-   Settings.forest_state.cache_policy = 100;
-   
-   # Make sure our solver root node is not cleaned up
-   Settings.orphans_are_roots = True;
-
    # Start the sequence of requests issued by MeqSink:
    MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG)
    MG_JEN_exec.fullDomainMux(mqs, parent, ctrl=MG)
    return True
 
 
-
 def _tdl_job_fullDomainMux (mqs, parent):
    """Special for post-visualisation""" 
-   
-   # Timba.TDL.Settings.forest_state is a standard TDL name. 
-   # This is a record passed to Set.Forest.State. 
-   Settings.forest_state.cache_policy = 100;
-   
-   # Make sure our solver root node is not cleaned up
-   Settings.orphans_are_roots = True;
-
    # Start the sequence of requests issued by MeqSink:
    MG_JEN_exec.fullDomainMux(mqs, parent, ctrl=MG)
    return True

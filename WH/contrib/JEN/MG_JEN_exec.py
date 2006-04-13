@@ -14,6 +14,7 @@
 # - 03 feb 2006: added fullDomainMux()
 # - 21 mar 2006: -> JEN_bookmarks.py
 # - 21 mar 2006: -> JEN_object.py and TDL_display.py
+# - 15 apr 2006: added cache_policy etc to stream_control
 
 # Copyright: The MeqTree Foundation 
 
@@ -73,7 +74,6 @@ from Timba.Contrib.JEN import MG_JEN_forest_state
 def MG_init(script_name, **pp):
    """Initialise a MG script control record"""
    MG = record(script_name=script_name, **pp)
-   # MG.setdefault('stream_control',record())
    return MG
 
 #-------------------------------------------------------------------------------
@@ -402,12 +402,10 @@ def fullDomainMux (mqs, parent, ctrl=None, parmlist=None):
    # nodescope, and the various Cohset/ParmSet/LeafSet objects.......
 
    # Make a minimum request:
-   ss = stream_control (_inarg=ctrl)
+   ss = stream_control (_inarg=ctrl, mqs=mqs)
    ss.inputrec.tile_size = 1000
    req = meq.request()
    req.input = record(ms=ss.inputrec)
-   # req.output = record(ms=ss.outputrec)       # not needed
-
 
    # NB: The name of the node is defined in TDL_Cohset.sinks():
    mqs.clearcache('Cohset_fullDomainMux')
@@ -426,11 +424,9 @@ def spigot2sink (mqs, parent, ctrl=None, **pp):
    pp.setdefault('trace', False)
    pp.setdefault('save', False)       
 
-   ss = stream_control (_inarg=ctrl)
-   # path = os.environ['HOME']+'/LOFAR/Timba/WH/contrib/JEN/'
+   ss = stream_control (_inarg=ctrl, mqs=mqs)
    path = os.environ['HOME']+'/LOFAR/Timba/PyApps/src/Trees/'
    python_init = path+'read_MS_auxinfo.py'
-   # python_init = path+'read_msvis_header.py'
    
    req = meq.request()
    req.input = record(ms=ss.inputrec, python_init=python_init)
@@ -492,7 +488,7 @@ def inarg_selection (inarg, **kwargs):
 # Access to MG_JEN_stream_control record (kept in the forest state record):
 
 
-def stream_control (slave=False, display=False, **inarg):
+def stream_control (mqs=None, slave=False, display=False, **inarg):
    """Access to the MG_JEN_stream_control record in the forest_state record
    If init==True, initialise it with default settings."""
 
@@ -533,6 +529,13 @@ def stream_control (slave=False, display=False, **inarg):
                         choice=['DATA','CORRECTED_DATA','MODEL_DATA'],
                         help='MS output column to be associated with the VisTile residuals-column')
 
+   # Control of MeqTree operation:
+   JEN_inarg.define (pp, 'cache_policy', 0,
+                     choice=[-10,-1,0,100],
+                     help='MeqTree caching policy (0=smart, 100=all)')
+   JEN_inarg.define (pp, 'orphans_are_roots', tf=True,
+                     help='If False, delete all orphaned nodes')
+
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
@@ -566,9 +569,12 @@ def stream_control (slave=False, display=False, **inarg):
    Settings.forest_state[field] = record()
    for key in ss.keys():
       Settings.forest_state[field][key] = ss[key]
-   if True or display:
-      ss = Settings.forest_state[field]
-      # display_object(ss, funcname+'(ss)')
+
+   # Set other control parameters:
+   if mqs:
+      mqs.meq('Set.Forest.State',
+              record(state=record(cache_policy=pp['cache_policy'],
+                                  orphans_are_roots = pp['orphans_are_roots'])))
 
    # Return the stream_control record:
    return Settings.forest_state[field]
@@ -1143,7 +1149,7 @@ if __name__ == '__main__':
       pp = importable_example()
 
    if 1:
-      inarg = stream_control_new(_getdefaults=True)  
+      inarg = stream_control(_getdefaults=True)  
       JEN_inarg.modify(inarg,
                        tile_size=12,       
                        _JEN_inarg_option=None)       
@@ -1152,7 +1158,7 @@ if __name__ == '__main__':
          igui.input(inarg, MG['script_name'])
          igui.launch()
       else:
-         stream_control_new(_inarg=inarg)  
+         stream_control(_inarg=inarg)  
 
 
    if 0:

@@ -159,6 +159,7 @@ class LeafSet (TDL_common.Super):
                 pass
             node << Meq.Parm(init_funklet=init_funklet)
 
+
         elif compounder_children:
             # Special case: Make a MeqCompounder node with a ND funklet.
             # Used for interpolatable Jones matrices like EJones or MIM etc
@@ -186,31 +187,8 @@ class LeafSet (TDL_common.Super):
             node << Meq.Parm(init_funklet=init_funklet)
 
         else:
-            #--------------------------------------------------------------
-            # Make the (additive) time-variation function:
-            # For the moment: A cos(MeqTime) with a certain period
-            mm = []
-            mean_sec = rider['timescale_min']*60*rider['mean_period']
-            stddev_sec = rider['timescale_min']*60*rider['stddev_period']
-            T_sec = ceil(gauss(mean_sec, stddev_sec))
-            if T_sec<10: T_sec = 10
-            mm.append(ns['2pi/T'](leafgroup)(**quals)(T=str(T_sec)+'sec') << Meq.Constant(2*pi/T_sec))
-            mm.append(ns['MeqTime'](leafgroup)(**quals) << Meq.Time())
-            node = ns['targ'](leafgroup)(**quals) << Meq.Multiply(children=mm)
-            
-            mm = []
-            mm.append(ns << Meq.Cos(node))
-            mean = rider['c00_scale']*rider['mean_c00']
-            stddev = rider['c00_scale']*rider['stddev_c00']
-            ampl = gauss(mean, stddev)
-            mm.append(ns['tampl'](leafgroup)(**quals)(ampl=str(ampl)) << Meq.Constant(ampl))
-            tvar = ns['tvar'](leafgroup)(**quals) << Meq.Multiply(children=mm)
-
-            #----------------------------------------------------------------------
-            # The simulated variations tvar (t,f) are added to the MeqParm default value.
-            default = rider['c00_default']
-            c00 = ns['default'](leafgroup)(value=str(default)) << Meq.Constant(default)
-            node = ns[key](**quals) << Meq.Add(c00, tvar, MeqLeaf_rider=record(rider))
+            # Error?
+            pass
 
         # Store the new node in the NodeSet:
         self.NodeSet.set_MeqNode(node, group=leafgroup)
@@ -223,20 +201,12 @@ class LeafSet (TDL_common.Super):
 
     def group_rider_defaults (self, rider):
         """Default values for a leafgroup rider (see self.inarg() etc)"""
+
         rider.setdefault('descr', '<descr>')
         rider.setdefault('unit', None)
         rider.setdefault('color', 'yellow')
         rider.setdefault('style', 'triangle')
         rider.setdefault('size', 5)
-        rider.setdefault('c00_default', 1.0)
-        rider.setdefault('c00_scale', 1.0)
-        rider.setdefault('timescale_min', 20)
-        rider.setdefault('fdeg', 0)
-        rider.setdefault('mean_c00', 0.1)
-        rider.setdefault('stddev_c00', 0.01)
-        rider.setdefault('mean_period', 1.0)
-        rider.setdefault('stddev_period', 0.1)
-        rider.setdefault('unop', 'Cos')
 
         rider.setdefault('simul_funklet', None)
         rider.setdefault('p0_mean_stddev', [0.0,0.0])
@@ -255,44 +225,20 @@ class LeafSet (TDL_common.Super):
     def inarg_group_rider (self, pp, **kwargs):
         """Definition of LeafSet input arguments (see e.g. MG_JEN_Joneset.py)"""
         self.group_rider_defaults(kwargs)
-
-        # Old:
-        JEN_inarg.define(pp, 'mean_c00', kwargs,
-                         choice=[0,0.1,0.2,0.5,-0.1],  
-                         help='mean of EXTRA c00 (fraction of c00_scale)')
-        JEN_inarg.define(pp, 'stddev_c00', kwargs,
-                         choice=[0,0.0001,0.001,0.01,0.1,1],  
-                         help='scatter in EXTRA c00 (fraction of c00_scale')
-        JEN_inarg.define(pp, 'mean_period', kwargs,
-                         choice=[0.3,0.5,1,2,3],  
-                         help='mean time-period T (fraction of timescale_min)')
-        JEN_inarg.define(pp, 'stddev_period', kwargs,
-                         choice=[0,0.01,0.1,0.2,0.5],  
-                         help='scatter in period T (fraction of timescale_min)')
-        JEN_inarg.define(pp, 'unop', 'Cos', hide=False,
-                         choice=['Cos','Sin',['Cos','Sin'],None],  
-                         help='time-variability function')
+            
         # Hidden:
-        JEN_inarg.define(pp, 'timescale_min', kwargs, hide=True,
-                         help='group timescale in minutes')
-        JEN_inarg.define(pp, 'fdeg', kwargs, hide=True,
-                         help='degree of freq polynomial')
+        JEN_inarg.define(pp, 'descr', kwargs, hide=True,
+                         help='brief description')
+        JEN_inarg.define(pp, 'unit', kwargs, hide=True,
+                         help='unit')
         JEN_inarg.define(pp, 'color', kwargs, hide=True,
                          help='plot_color')
         JEN_inarg.define(pp, 'style', kwargs, hide=True,
                          help='plot_style')
         JEN_inarg.define(pp, 'size', kwargs, hide=True,
                          help='size of plotted symbol')
-        JEN_inarg.define(pp, 'c00_default', kwargs, hide=True,
-                         help='default value of c00')
-        JEN_inarg.define(pp, 'c00_scale', kwargs, hide=True,
-                         help='scale of c00')
-        JEN_inarg.define(pp, 'descr', kwargs, hide=True,
-                         help='brief description')
-        JEN_inarg.define(pp, 'unit', kwargs, hide=True,
-                         help='unit')
 
-        # New: funklet-based:
+        # Specification of funklet and its coeff:
         JEN_inarg.define(pp, 'simul_funklet', kwargs, hide=True,
                          choice=['p0*cos(6.28*x0/p1)',None],
                          help='(x0=time, x1=freq)')
