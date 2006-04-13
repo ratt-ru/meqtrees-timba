@@ -131,7 +131,8 @@ def _define_forest(ns):
   
   # create sinks and reqseqs 
   for sta1,sta2 in array.ifrs():
-    reqseq = Meq.ReqSeq(ns.solver,ns.residual(sta1,sta2),result_index=1);
+    reqseq = Meq.ReqSeq(ns.solver,ns.residual(sta1,sta2),
+                  result_index=1,cache_num_active_parents=1);
     ns.sink(sta1,sta2) << Meq.Sink(station_1_index=sta1-1,
                                    station_2_index=sta2-1,
                                    flag_bit=4,
