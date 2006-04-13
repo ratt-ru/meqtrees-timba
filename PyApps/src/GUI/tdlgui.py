@@ -619,7 +619,16 @@ class TDLEditor (QFrame,PersistentCurrier):
         return;
     self.load_file(self._filename);
     
-  def import_content (self):
+  def import_content (self,force=False):
+    """imports TDL module but does not run _define_forest().
+    Depending on autosync/modified state, asks to save or revert.
+    If module is already imported, does nothing, unless force=True,
+    in which case it imports unconditionally.
+    Return value:
+      True on successful import
+      None if cancelled by user.
+    Import errors are posted to the error dialog.
+    """;
     _dprint(1,self._filename,"importing");
     self.clear_message();
     self.clear_error_list();
@@ -635,7 +644,7 @@ class TDLEditor (QFrame,PersistentCurrier):
         return None;
     # if we already have an imported module and sisk file hasn't changed, do
     # nothing and return success.
-    if self._tdlmod is not None and self._tdlmod_filetime == self._file_disktime:
+    if not force and self._tdlmod is not None and self._tdlmod_filetime == self._file_disktime:
       return True;
     # reset data members
     self._tb_opts.hide();
@@ -675,7 +684,7 @@ class TDLEditor (QFrame,PersistentCurrier):
         
   def compile_content (self):
     # import content first, and return if failed
-    if not self.import_content():
+    if not self.import_content(force=True):
       return None;
     _dprint(1,self._filename,"compiling forest");
     # clear predefined functions
