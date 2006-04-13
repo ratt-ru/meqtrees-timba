@@ -12,15 +12,33 @@ from Timba.Contrib.OMS.CorruptComponent import CorruptComponent
 from Timba.Contrib.OMS import Bookmarks
 
 # MS name
-# msname = "TEST_CLAR_27-4800.MS";      # Oleg ...
-msname = "TEST_CLAR_27-480.MS";       # Tony ...
+TDLRuntimeOption('msname',"MS",["TEST_CLAR_27-480.MS","TEST_CLAR_27-4800.MS"],inline=True);
+
+# ms_output = False  # if True, outputs to MS, else to BOIO dump   
+TDLRuntimeOption('output_column',"Output MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=1);
 
 # number of timeslots to use at once
-tile_size = 60
-# MS input queue size -- should be at least equal to the no. of ifrs
-ms_queue_size = 500
+TDLRuntimeOption('tile_size',"Tile size",[30,60,480,960]);
+
 # number of stations
-num_stations = 27
+TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
+
+# if true, a G Jones simulating phase and gain errors will be inserted
+TDLCompileOption('add_g_jones',"Simulate G Jones",False);
+
+# if true, an E Jones simulating beam effects will be inserted
+TDLCompileOption('add_e_jones',"Simulate E Jones",True);
+
+# if not None, a per-ifr noise term with the given stddev will be added
+TDLCompileOption('noise_stddev',"Noise level",[None,0.05,0.1]);
+
+# which source model to use
+# source_model = clar_model.point_and_extended_sources;
+TDLCompileOption('source_model',"Source model",[
+    clar_model.point_and_extended_sources,
+    clar_model.point_sources_only
+  ],default=0);
+  
 # selection  applied to MS, None for full MS
 ms_selection = None
 # or e.g.: 
@@ -29,27 +47,15 @@ ms_selection = None
 #                      channel_increment=1,
 #                      selection_string='')
 
-# ms_output = False  # if True, outputs to MS, else to BOIO dump   
-ms_output = True   # if True, outputs to MS, else to BOIO dump 
 
 # MEP table for various derived quantities 
 mep_derived = 'CLAR_DQ_27-480.mep';
 
-# if true, a G Jones simulating phase and gain errors will be inserted
-add_g_jones = False;
-# add_g_jones = True;
+# MS input queue size -- should be at least equal to the no. of ifrs
+ms_queue_size = 500
 
-# if true, an E Jones simulating beam effects will be inserted
-add_e_jones = True;
-# add_e_jones = False;
-
-# if not None, a per-ifr noise term with the given stddev will be added
-noise_stddev = None;
-# noise_stddev = 0.05;
-
-# which source model to use
-# source_model = clar_model.point_and_extended_sources;
-source_model = clar_model.point_sources_only
+# if False, BOIO dump will be generated instead of MS. Useful for benchmarking
+ms_output = True;
 
 # bookmarks
 Settings.forest_state = record(bookmarks=[
@@ -169,56 +175,52 @@ def _define_forest(ns):
   ns.VisDataMux.add_children(*[ns.sink(ant1,ant2) for (ant1, ant2) in array.ifrs()]);
 
 def create_inputrec():
-    boioname = "boio."+msname+".empty."+str(tile_size);
-    # if boio dump for this tiling exists, use it to save time
-    # but watch out if you change the visibility data set!
-    if False: # not ms_selection and os.access(boioname,os.R_OK):
-      rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
-    # else use MS, but tell the event channel to record itself to boio file
-    else:
-      rec = record();
-      rec.ms_name          = msname
-      rec.data_column_name = 'DATA'
-      rec.tile_size        = tile_size
-      rec.selection        = ms_selection or record();
+  boioname = "boio."+msname+".empty."+str(tile_size);
+  # if boio dump for this tiling exists, use it to save time
+  # but watch out if you change the visibility data set!
+  if False: # not ms_selection and os.access(boioname,os.R_OK):
+    rec = record(boio=record(boio_file_name=boioname,boio_file_mode="r"));
+  # else use MS, but tell the event channel to record itself to boio file
+  else:
+    rec = record();
+    rec.ms_name          = msname
+    rec.data_column_name = 'DATA'
+    rec.tile_size        = tile_size
+    rec.selection        = ms_selection or record();
 #      if not ms_selection:
 #        rec.record_input     = boioname;
-      rec = record(ms=rec);
-    rec.python_init = 'AGW_read_msvis_header.py';
-    rec.mt_queue_size = ms_queue_size;
-    return rec;
+    rec = record(ms=rec);
+  rec.python_init = 'AGW_read_msvis_header.py';
+  rec.mt_queue_size = ms_queue_size;
+  return rec;
 
-def create_outputrec(output_column='DATA'):
-    rec=record();
-    rec.mt_queue_size = ms_queue_size;
-    if ms_selection or ms_output:
-      rec.write_flags=False
-      rec.data_column=output_column
-      return record(ms=rec);
-    else:
-      rec.boio_file_name = "boio."+msname+".predict."+str(tile_size);
-      rec.boio_file_mode = 'W';
-      return record(boio=rec);
+def create_outputrec (outcol):
+  rec = record();
+  rec.mt_queue_size = ms_queue_size;
+  if ms_selection or ms_output:
+    rec.write_flags = False;
+    rec.data_column = outcol;
+    return record(ms=rec);
+  else:
+    rec.boio_file_name = "boio."+msname+".predict."+str(tile_size);
+    rec.boio_file_mode = 'W';
+    return record(boio=rec);
 
 
 
 def _tdl_job_clar_predict(mqs,parent,write=True):
-    inputrec        = create_inputrec()
-    outputrec       = create_outputrec(output_column='DATA')
-    req = meq.request();
-    req.input  = inputrec;
-    if write:
-      req.output = outputrec;
-    # mqs.clearcache('VisDataMux');
-    print 'VisDataMux request is ', req
-    mqs.execute('VisDataMux',req,wait=(parent is None));
-    pass
+  req = meq.request();
+  req.input  = create_inputrec();
+  if write and output_column:
+    req.output = create_outputrec(output_column);
+  print 'VisDataMux request is ', req
+  mqs.execute('VisDataMux',req,wait=(parent is None));
+  pass
 
 
 Settings.forest_state.cache_policy = 1;  # 1 for smart caching, 100 for full caching
+
 Settings.orphans_are_roots = False;
-
-
 
 
 def _test_compilation ():

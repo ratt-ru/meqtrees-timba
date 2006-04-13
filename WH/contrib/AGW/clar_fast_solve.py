@@ -12,16 +12,37 @@ from Timba.Contrib.OMS.CorruptComponent import CorruptComponent
 from Timba.Contrib.OMS import Bookmarks
 
 
-### MS name
-# msname = "TEST_CLAR_27-4800.MS";         # Oleg
-msname = "TEST_CLAR_27-480.MS";          # Tony
-### number of timeslots to use at once
-tile_size = 30       
+# MS name
+TDLRuntimeOption('msname',"MS",["TEST_CLAR_27-480.MS","TEST_CLAR_27-4800.MS"],inline=True);
 
+TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
+
+# ms_output = False  # if True, outputs to MS, else to BOIO dump   
+TDLRuntimeOption('output_column',"Output residuals to MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
+
+# number of timeslots to use at once
+TDLRuntimeOption('tile_size',"Tile size",[30,60,480,960]);
+
+# number of stations
+TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
+
+# which source model to use
+# source_model = clar_model.point_and_extended_sources;
+TDLCompileOption('source_model',"Source model",[
+    clar_model.point_and_extended_sources,
+    clar_model.point_sources_only
+  ],default=0);
+
+### if True, previous solutions will be reused for successive time domains.
+### This speeds up convergence (especially when solvables have no variation 
+### in time), but makes the process less "educational".
+TDLCompileOption('reuse_solutions',"Reuse previous solution",False,namespace=clar_model,
+  doc="""If True, solutions for successive time domains will start with
+  the solution for a previous domain. Normally this speeds up convergence; you
+  may turn it off to re-test convergence at each domain.""");
+  
 ### MS input queue size -- must be at least equal to the no. of ifrs
 ms_queue_size = 500
-
-num_stations = 27
 
 ms_selection = None
 #or record(channel_start_index=0,
@@ -29,12 +50,7 @@ ms_selection = None
 #          channel_increment=1,
 #          selection_string='')
 
-# write_output = False  # if False, disables output completely       Oleg
-# ms_output = False    # if True, outputs to MS, else to BOIO dump  Oleg
-
-write_output = True  # if False, disables output completely        Tony
 ms_output = True     # if True, outputs to MS, else to BOIO dump   Tony
-
 
 ### MEP table for derived quantities 
 mep_derived = 'CLAR_DQ_27-480.mep';
@@ -46,14 +62,6 @@ mep_derived = 'CLAR_DQ_27-480.mep';
 mep_sources = None;
 # mep_sources = 'CLAR.mep';
 
-### which source model to use
-# source_model = clar_model.point_and_extended_sources;
-source_model = clar_model.point_sources_only
-
-### if True, previous solutions will be reused for successive time domains.
-### This speeds up convergence (especially when solvables have no variation 
-### in time), but makes the process less "educational".
-clar_model.reuse_solutions = True
 
 
 # bookmarks
@@ -76,7 +84,7 @@ Settings.forest_state = record(bookmarks=[
 def _define_forest(ns):
   # create array model
   stations = range(1,num_stations+1);
-  array = IfrArray(ns,stations,uvw_table=mep_derived);
+  array = IfrArray(ns,stations,uvw_table=mep_derived,mirror_uvw=True);
   observation = Observation(ns);
   
   # create CLAR source model
@@ -193,7 +201,7 @@ def create_inputrec ():
   else:
     rec = record();
     rec.ms_name          = msname
-    rec.data_column_name = 'DATA'
+    rec.data_column_name = input_column;
     rec.tile_size        = tile_size
     rec.selection = ms_selection or record();
     rec = record(ms=rec);
@@ -202,12 +210,12 @@ def create_inputrec ():
   return rec;
 
 
-def create_outputrec (output_column='CORRECTED_DATA'):
+def create_outputrec (outcol):
   rec=record()
   rec.mt_queue_size = ms_queue_size;
   if ms_output:
     rec.write_flags=False
-    rec.predict_column=output_column
+    rec.predict_column=outcol;
     return record(ms=rec);
   else:
     rec.boio_file_name = "boio."+msname+".solve."+str(tile_size);
@@ -217,19 +225,16 @@ def create_outputrec (output_column='CORRECTED_DATA'):
 
 def _run_solve_job (mqs,solvables):
   """common helper method to run a solution with a bunch of solvables""";
-  inputrec        = create_inputrec()
-  outputrec       = create_outputrec()
+  req = meq.request();
+  req.input  = create_inputrec();
+  if output_column is not None:
+    req.output = create_outputrec(output_column);
 
   # set solvables list in solver
   solver_defaults = create_solver_defaults(solvable=solvables)
   set_node_state(mqs,'solver',solver_defaults)
 
-  req = meq.request();
-  req.input  = inputrec;
   # req.input.max_tiles = 1;  # this can be used to shorten the processing, for testing
-  if write_output:
-    req.output = outputrec;
-  # mqs.clearcache('VisDataMux');
   mqs.execute('VisDataMux',req,wait=False);
   pass
 
