@@ -955,6 +955,8 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
       setExecState(CS_ES_IDLE,control_status_|CS_RES_MISSING);
       return exitExecute(ret);
     }
+    // add in default depend mask
+    retcode |= getDependMask();
     //if( forest().abortFlag() )
     //      return exitAbort(RES_ABORT);
     // does request have a Cells object? Compute our Result then
@@ -977,7 +979,7 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
         int code = getResult(ref,child_results_,req,new_request_);
         timers_.getresult.stop();
         // default dependency mask added to return code
-        retcode |= code | getDependMask();
+        retcode |= code;
         cdebug(3)<<"  getResult() returns code "<<ssprintf("0x%x",code)<<
             ", cumulative "<<ssprintf("0x%x",retcode)<<endl;
         // a WAIT is returned immediately with no valid result expected
@@ -1079,13 +1081,13 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
   try
   {
     lock.relock(execCond());
-    ret = cacheResult(ref,req,RES_FAIL) | RES_UPDATED;
+    ret = cacheResult(ref,req,retcode|RES_FAIL) | RES_UPDATED;
   }
   catch( ... )
   {
     setExecState(CS_ES_IDLE,
           (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
-    exitExecute(ret);
+    exitExecute(retcode|RES_FAIL);
     throw;
   }
   // no error, return
