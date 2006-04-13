@@ -37,6 +37,7 @@
 #    - 05 apr 2006: implement .punit2coh()
 #    - 07 apr 2006: re-implemented .replace() and .add()
 #    - 10 apr 2006: implement .bookmark()
+#    - 14 apr 2006: implemented .addNoise()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -68,6 +69,7 @@ from Timba.TDL import *
 from copy import deepcopy
 from numarray import *
 # from math import *
+from random import *
 
 from Timba.Trees import TDL_common
 from Timba.Trees import TDL_radio_conventions
@@ -886,14 +888,27 @@ class Cohset (TDL_common.Super):
         return self.binop(ns, binop='Subtract', Cohset=Cohset)
 
 
-    def addNoise(self, ns, rms=0.0, mean=0.0):
+    def addNoise(self, ns, stddev=0.0, mean=0):
         """Add (gaussian) noise to the Cohset cohaerencies"""
         funcname = '::addNoise():'
         self.scope('addNoise')
-        # self._history(append=funcname+': rms='+str(rms)+'Jy')
-        self._history(append=funcname+' (not implemented yet)')
-        # self._history(append=funcname+' -> '+self.oneliner())
+        if not isinstance(mean, complex): mean = complex(mean) 
+        uniqual = _counter(funcname, increment=-1)
+        for key in self.keys():
+            cc = []
+            for i in range(4):
+		real = ns.real(uniqual)(i) << Meq.GaussNoise(stddev=stddev)
+		imag = ns.imag(uniqual)(i) << Meq.GaussNoise(stddev=stddev)
+		cc.append(ns.gaussnoise(uniqual)(i) << Meq.ToComplex(children=[real, imag]))
+            noise = ns['noise'].qmerge(self.__coh[key])(uniqual) << Meq.Matrix22(cc[0],cc[1],cc[2],cc[3])
+            # Optional: Add the specified mean (not very useful...?):
+            if abs(mean)>0:
+                noise = ns << noise + mean
+            self.__coh[key] = ns['addNoise'].qmerge(self.__coh[key])(uniqual) << Meq.Add(self.__coh[key], noise)
+        self._history(append=funcname+': stddev='+str(stddev)+'Jy  (mean='+str(mean)+')')
+        self._history(append=funcname+' -> '+self.oneliner())
         return True
+
 
     def replace(self, ns, Cohset=[]):
         """Replace with the (sum of the) cohaerencies of the given (list of) Cohset(s)"""
@@ -942,7 +957,6 @@ class Cohset (TDL_common.Super):
         self.scope('added')
         for cs in Cohset:
             self.update_from_Cohset(cs)
-            # self._history(append=funcname+'- added Cohset:'+cs.oneliner())
         self._history(append=funcname+' -> '+self.oneliner())
         return True
 

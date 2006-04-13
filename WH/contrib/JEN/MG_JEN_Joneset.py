@@ -330,21 +330,34 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     js.LeafSet.quals(dict(q=pp['punit']))
     
     # Register the parmgroups with specific rider parameters:
+    
     a1 = js.parmgroup('Ggain', ipol=1, rider=pp,
                       condeq_corrs='paral11', c00_default=1.0,
-                      c00_scale=1.0, timescale_min=30, fdeg=0,
+                      # c00_scale=1.0, timescale_min=30, fdeg=0,
+                      simul_funklet='1+p0*cos(6.28*x0/p1)', # simul funklet expression
+                      p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                      p1_mean_stddev=[200,10],              # simul variation time-scale (sec)
                       color='red', style='diamond', size=10)
     a2 = js.parmgroup('Ggain', ipol=2, rider=pp,
                       condeq_corrs='paral22', c00_default=1.0,
-                      c00_scale=1.0, timescale_min=40, fdeg=0,
+                      # c00_scale=1.0, timescale_min=40, fdeg=0,
+                      simul_funklet='1+p0*cos(6.28*x0/p1)', # simul funklet expression
+                      p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                      p1_mean_stddev=[300,10],              # simul variation time-scale (sec)
                       color='blue', style='diamond', size=10)
     p1 = js.parmgroup('Gphase', ipol=1, rider=pp,
                       condeq_corrs='paral11', c00_default=0.0,
-                      c00_scale=1.0, timescale_min=10, fdeg=0,
+                      # c00_scale=1.0, timescale_min=10, fdeg=0,
+                      simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                      p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                      p1_mean_stddev=[400,10],              # simul variation time-scale (sec)
                       color='magenta', style='diamond', size=10)
     p2 = js.parmgroup('Gphase', ipol=2, rider=pp,
                       condeq_corrs='paral22', c00_default=0.0,
-                      c00_scale=1.0, timescale_min=20, fdeg=0,
+                      # c00_scale=1.0, timescale_min=20, fdeg=0,
+                      simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                      p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                      p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                       color='cyan', style='diamond', size=10)
 
     # Define potential extra condition equations:
@@ -487,7 +500,10 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    # Register the parmgroups (in js.ParmSet eventually):
    RM = js.parmgroup('RM', rider=pp,
                      condeq_corrs='cross', c00_default=0.0,
-                     c00_scale=1.0, timescale_min=25, fdeg=0,
+                     # c00_scale=1.0, timescale_min=25, fdeg=0,
+                     simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                     p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                     p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                      color='red', style='circle', size=10)
 
    # MeqParm node_groups: add 'F' to default 'Parm':
@@ -600,19 +616,31 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # Register the parmgroups (in js.ParmSet eventually):
     br1 = js.parmgroup('Breal', ipol=1, rider=pp,
                        condeq_corrs='paral11', c00_default=1.0,
-                       c00_scale=1.0, timescale_min=200, fdeg=0,
+                       # c00_scale=1.0, timescale_min=200, fdeg=0,
+                       simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                       p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                       p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                        color='red', style='square', size=7)
     br2 = js.parmgroup('Breal', ipol=2, rider=pp,
                        condeq_corrs='paral22', c00_default=1.0,
-                       c00_scale=1.0, timescale_min=250, fdeg=0,
+                       # c00_scale=1.0, timescale_min=250, fdeg=0,
+                       simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                       p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                       p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                        color='blue', style='square', size=7)
     bi1 = js.parmgroup('Bimag', ipol=1, rider=pp,
                        condeq_corrs='paral11', c00_default=0.0,
-                       c00_scale=1.0, timescale_min=150, fdeg=0,
+                       # c00_scale=1.0, timescale_min=150, fdeg=0,
+                       simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                       p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                       p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                        color='magenta', style='square', size=7)
     bi2 = js.parmgroup('Bimag', ipol=2, rider=pp,
                        condeq_corrs='paral22', c00_default=0.0,
-                       c00_scale=1.0, timescale_min=300, fdeg=0,
+                       # c00_scale=1.0, timescale_min=300, fdeg=0,
+                       simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                       p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                       p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                        color='cyan', style='square', size=7)
 
     # Define potential extra condition equations:
@@ -751,35 +779,59 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # Register the parmgroups (in js.ParmSet eventually):
     dr11 = js.parmgroup('Jreal_11', rider=pp,
                         condeq_corrs='paral11', c00_default=1.0,
-                        c00_scale=1.0, timescale_min=100, fdeg=0,
+                        # c00_scale=1.0, timescale_min=100, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[5000,100],             # simul variation time-scale (sec)
                         color='red', style='square', size=7)
     dr22 = js.parmgroup('Jreal_22', rider=pp,
                         condeq_corrs='paral22', c00_default=1.0,
-                        c00_scale=1.0, timescale_min=50, fdeg=0,
+                        # c00_scale=1.0, timescale_min=50, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[4000,100],            # simul variation time-scale (sec)
                         color='blue', style='square', size=7)
     di11 = js.parmgroup('Jimag_11', rider=pp,
                         condeq_corrs='paral11', c00_default=0.0,
-                        c00_scale=1.0, timescale_min=20, fdeg=0,
+                        # c00_scale=1.0, timescale_min=20, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[3000,100],            # simul variation time-scale (sec)
                         color='magenta', style='square', size=7)
     di22 = js.parmgroup('Jimag_22', rider=pp,
                         condeq_corrs='paral22', c00_default=0.0,
-                        c00_scale=1.0, timescale_min=30, fdeg=0,
+                        # c00_scale=1.0, timescale_min=30, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[5000,100],            # simul variation time-scale (sec)
                         color='cyan', style='square', size=7)
     dr12 = js.parmgroup('Jreal_12', rider=pp,
                         condeq_corrs='*', c00_default=0.0,
-                        c00_scale=1.0, timescale_min=200, fdeg=0,
+                        # c00_scale=1.0, timescale_min=200, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[8000,100],            # simul variation time-scale (sec)
                         color='red', style='square', size=7)
     dr21 = js.parmgroup('Jreal_21', rider=pp,
                         condeq_corrs='*', c00_default=0.0,
-                        c00_scale=1.0, timescale_min=30, fdeg=0,
+                        # c00_scale=1.0, timescale_min=30, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[5000,100],            # simul variation time-scale (sec)
                         color='red', style='square', size=7)
     di12 = js.parmgroup('Jimag_12', rider=pp,
                         condeq_corrs='*', c00_default=0.0,
-                        c00_scale=1.0, timescale_min=10, fdeg=0,
+                        # c00_scale=1.0, timescale_min=10, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                         color='magenta', style='square', size=7)
     di21 = js.parmgroup('Jimag_21', rider=pp,
                         condeq_corrs='*', c00_default=0.0,
-                        c00_scale=1.0, timescale_min=40, fdeg=0,
+                        # c00_scale=1.0, timescale_min=40, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[5000,100],            # simul variation time-scale (sec)
                         color='magenta', style='square', size=7)
 
     # Define potential extra condition equations:
@@ -930,31 +982,52 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    # Register the parmgroups (in js.ParmSet eventually):
    Dang = js.parmgroup('Dang', rider=pp,
                        condeq_corrs='cross', c00_default=0.0,
-                       c00_scale=0.1, timescale_min=500, fdeg=0,
+                       # c00_scale=0.1, timescale_min=500, fdeg=0,
+                       simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                       p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                       p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                        color='green', style='triangle', size=7)
    Dell = js.parmgroup('Dell', rider=pp,
                        condeq_corrs='cross', c00_default=0.0,
-                       c00_scale=0.1, timescale_min=400, fdeg=0,
+                       # c00_scale=0.1, timescale_min=400, fdeg=0,
+                       simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                       p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                       p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                        color='magenta', style='triangle', size=7)
    Dang1 = js.parmgroup('Dang', ipol=1, rider=pp,
                         condeq_corrs='cross', c00_default=0.0,
-                        c00_scale=0.1, timescale_min=600, fdeg=0,
+                        # c00_scale=0.1, timescale_min=600, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                         color='green', style='triangle', size=7)
    Dang2 = js.parmgroup('Dang', ipol=2, rider=pp,
                         condeq_corrs='cross', c00_default=0.0,
-                        c00_scale=0.1, timescale_min=700, fdeg=0,
+                        # c00_scale=0.1, timescale_min=700, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                         color='black', style='triangle', size=7)
    Dell1 = js.parmgroup('Dell', ipol=1, rider=pp,
                         condeq_corrs='cross', c00_default=0.0,
-                        c00_scale=0.1, timescale_min=500, fdeg=0,
+                        # c00_scale=0.1, timescale_min=500, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                         color='magenta', style='triangle', size=7)
    Dell2 = js.parmgroup('Dell', ipol=2, rider=pp,
                         condeq_corrs='cross', c00_default=0.0,
-                        c00_scale=0.1, timescale_min=300, fdeg=0,
+                        # c00_scale=0.1, timescale_min=300, fdeg=0,
+                        simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                        p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                        p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                         color='yellow', style='triangle', size=7)
    pzd = js.parmgroup('PZD', rider=pp,
                       condeq_corrs='cross', c00_default=0.0,
-                      c00_scale=1.0, timescale_min=200, fdeg=0,
+                      # c00_scale=1.0, timescale_min=200, fdeg=0,
+                      simul_funklet='p0*cos(6.28*x0/p1)',   # simul funklet expression
+                      p0_mean_stddev=[0.0,0.1],             # simul variation amplitude 
+                      p1_mean_stddev=[500,10],              # simul variation time-scale (sec)
                       color='blue', style='circle', size=10)
 
    # Define potential extra condition equations:
@@ -1207,22 +1280,22 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     b1 = js.parmgroup('EJones', ipol=1, rider=pp, 
                       descr='Station X voltage beam shape (l,m,t,f)',
                       condeq_corrs='paral', c00_default=1.0,
-                      c00_scale=1.0, timescale_min=100000, fdeg=0,
+                      # c00_scale=1.0, timescale_min=100000, fdeg=0,
                       color='red', style='diamond', size=10)
     b2 = js.parmgroup('EJones', ipol=2, rider=pp, 
                       descr='Station Y voltage beam shape (l,m,t,f)',
                       condeq_corrs='paral', c00_default=1.0,
-                      c00_scale=1.0, timescale_min=100000, fdeg=0,
+                      # c00_scale=1.0, timescale_min=100000, fdeg=0,
                       color='blue', style='diamond', size=10)
     dl = js.parmgroup('Edl', rider=pp, unit='rad',
                       descr='Station pointing error in l-direction',
                       condeq_corrs='paral', c00_default=0.0,
-                      c00_scale=0.001, timescale_min=100, fdeg=0,
+                      # c00_scale=0.001, timescale_min=100, fdeg=0,
                       color='red', style='diamond', size=10)
     dm = js.parmgroup('Edm', rider=pp, unit='rad',
                       descr='Station pointing error in m-direction',
                       condeq_corrs='paral', c00_default=0.0,
-                      c00_scale=0.001, timescale_min=100, fdeg=0,
+                      # c00_scale=0.001, timescale_min=100, fdeg=0,
                       color='blue', style='diamond', size=10)
     
     # MeqParm node_groups: add 'E' to default 'Parm':

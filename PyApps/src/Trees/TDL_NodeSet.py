@@ -10,6 +10,7 @@
 #    - 20 mar 2006: removed .bookfolder() again
 #    - 21 mar 2006: upgraded .bookmark() definition
 #    - 04 apr 2006: removed self.__buffer
+#    - 12 apr 2006: split .MeqNode() into .get_/.set_MeqNode()
 #
 # Full description:
 #   Many types of MeqTree nodes (e.g. MeqParms) come in groups of similar ones,
@@ -127,7 +128,8 @@ class NodeSet (TDL_common.Super):
             empty = []
             for key in self.group_rider().keys():
                 if len(self.group_rider()[key])>0:
-                    ss.append(indent2+' - '+key+':     '+str(self.group_rider()[key]))
+                    rider = TDL_common.unclutter(self.group_rider()[key])
+                    ss.append(indent2+' - '+key+':     '+str(rider))
                 else:
                     empty.append(key)
             if len(empty)>0:
@@ -144,8 +146,9 @@ class NodeSet (TDL_common.Super):
         if full:
             empty = []
             for key in self.gog_rider().keys():
+                rider = TDL_common.unclutter(self.gog_rider()[key])
                 if len(self.gog_rider()[key])>0:
-                    ss.append(indent2+' - '+key+':    '+str(self.gog_rider()[key]))
+                    ss.append(indent2+' - '+key+':    '+str(rider))
                 else:
                     empty.append(key)
             if len(empty)>0:
@@ -230,26 +233,25 @@ class NodeSet (TDL_common.Super):
     # Functions related to MeqNodes: 
     #--------------------------------------------------------------------------------
 
-    def MeqNode(self, key=None, node=None, trace=False):
-        """Get/create a named MeqNode entry (the nodes are defined externally!).
-        If a node is supplied, key is assumed to the name of the group (one only!)
-        to which the new MeqNode belongs. Otherwise, key is the name of a MeqNode."""
-        if node:                                           # Create a new MeqNode entry
-            nodename = node.name
-            if self.__MeqNode.has_key(nodename):
-                self.history(warning='MeqNode(node): already exists: '+nodename)
-            elif not isinstance(key, str):
-                return self.history('MeqNode(key='+str(type(key))+') key sould be string')
-            else:
-                self.__MeqNode[nodename] = node 
-                self.__group[key].append(nodename)  
-                s1 = 'MeqNode(): new entry: '+str(nodename)+' (in group:'+str(key)+')'  
-                self.history(s1)
-                if trace: print '**',s1  
-            return nodename
-        # Otherwise, return the specified (key) group (None = all):
-        return self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
+    def set_MeqNode(self, node=None, group='<undefined>', trace=False):
+        """Create a named MeqNode entry (the nodes are defined externally!)."""
+        nodename = node.name
+        if self.__MeqNode.has_key(nodename):
+            self.history(warning='MeqNode(node): already exists: '+nodename)
+        elif not isinstance(group, str):
+            return self.history('MeqNode(group='+str(type(group))+') key sould be string')
+        else:
+            self.__MeqNode[nodename] = node 
+            self.__group[group].append(nodename)  
+            s1 = 'MeqNode(): new entry: '+str(nodename)+' (in group:'+str(group)+')'  
+            self.history(s1)
+            if trace: print '**',s1  
+        return nodename
 
+
+    def MeqNode(self, key=None, trace=False):
+        """Get a named (key) MeqNode entry."""
+        return self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
 
 
     #--------------------------------------------------------------------------------
@@ -781,7 +783,7 @@ class NodeSet (TDL_common.Super):
                 self.group(gname, rider=dict(unop=unop))     # define a new group gname
                 for node in nodes:
                     node = self._apply_unop(ns, node, unop)
-                    self.MeqNode(gname, node)             
+                    self.set_MeqNode(node, group=gname)             
                 gog.append(gname)                            # groups for gog (below)
 
         # Make a gog for the new groups:
@@ -858,7 +860,7 @@ class NodeSet (TDL_common.Super):
         for i in range(len(lhs)):
             cc = [lhs[i],rhs[i]]
             node = ns << getattr(Meq,binop)(children=cc)
-            self.MeqNode(gname, node)
+            self.set_MeqNode(node, group=gname)             
 
         # Define a bookpage, if required:
         if bookpage or folder:
@@ -911,7 +913,7 @@ class NodeSet (TDL_common.Super):
                 for i in range(len(lhs)):
                     cc = [lhs[i],rhs[i]]
                     node = ns << getattr(Meq,binop)(children=cc)
-                    self.MeqNode(gname, node)
+                    self.set_MeqNode(node, group=gname)             
                 gnames.append(gname)
 
         # Return the bundle root node:
@@ -1102,11 +1104,11 @@ def test1(ns, nstat=2, mult=1.0):
     for i in range(nstat):
         for Ggain in [a1,a2]:
             node = ns[Ggain](i=i) << Meq.Multiply(i*mult,freq)
-            nst.MeqNode (Ggain, node=node)
+            nst.set_MeqNode(node, group=Ggain)             
          
         for Gphase in [p1,p2]:
             node = ns[Gphase](i=i) << Meq.Multiply(-i*mult,freq)
-            nst.MeqNode (Gphase, node=node)
+            nst.set_MeqNode(node, group=Gphase)             
 
     # nst.bookmark('GX', [a1,p1])
     # nst.bookmark('GY', [a2,p2])
@@ -1145,11 +1147,11 @@ def test2(ns, nstat=3, mult=1.1):
     for i in range(nstat):
         for Ggain in [a1,a2]:
             node = ns[Ggain](i=i) << Meq.Multiply(i*mult,freq)
-            nst.MeqNode (Ggain, node=node)
+            nst.set_MeqNode(node, group=Ggain)             
          
         for Gphase in [p1,p2]:
             node = ns[Gphase](i=i) << Meq.Multiply(-i*mult,freq)
-            nst.MeqNode ([Gphase,t2], node=node)
+            nst.set_MeqNode(node, group=Gphase)             
 
     nst.bookmark('GX', [a1,p1], folder='test2')
     nst.bookmark('GY', [a2,p2], folder='test2')

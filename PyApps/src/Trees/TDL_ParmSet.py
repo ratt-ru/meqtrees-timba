@@ -261,7 +261,7 @@ class ParmSet (TDL_common.Super):
                                  save_all=rider['save_all'],
                                  node_groups=self.node_groups(),
                                  table_name=self.parmtable())
-                self.NodeSet.MeqNode(parmgroup, parm)
+                self.NodeSet.set_MeqNode(parm, group=parmgroup)
             cc = compounder_children
             if not isinstance(cc, (list, tuple)): cc = [cc]
             cc.append(parm)
@@ -300,7 +300,7 @@ class ParmSet (TDL_common.Super):
                              table_name=self.parmtable())
             
         # Store the new node in the NodeSet:
-        self.NodeSet.MeqNode(parmgroup, node)
+        self.NodeSet.set_MeqNode(node, group=parmgroup)
         return node
 
 
@@ -342,7 +342,7 @@ class ParmSet (TDL_common.Super):
         rider.setdefault('tfdeg', None)
         rider.setdefault('subtile_size', None)
         rider.setdefault('use_previous', True)
-        rider.setdefault('auto_save', True)
+        rider.setdefault('auto_save', False)
         rider.setdefault('save_all', False)
         rider.setdefault('reset_funklet', False)
         rider.setdefault('descr', '<descr>')
@@ -405,7 +405,6 @@ class ParmSet (TDL_common.Super):
         # if not rider==None or len(kwargs)>0:
             if not isinstance(rider, dict): rider = dict()    # just in case
             rider = deepcopy(rider)                           # necessary!
-            rider = TDL_common.unclutter_inarg(rider)
 
             self.group_rider_defaults(rider)
 
@@ -536,7 +535,7 @@ class ParmSet (TDL_common.Super):
         corrs = []
         for key in gg:
             rr = self.NodeSet.group_rider(key)
-            if trace: print '-',key,':  rider =',rr
+            if trace: print '-',key,':  rider =',TDL_common.unclutter(rr)
             if rr.has_key('condeq_corrs'):                 # see TDL_Joneset.parmgroup().....??
                 cc = rr['condeq_corrs']
                 if not isinstance(cc, (list,tuple)): cc = [cc]

@@ -125,11 +125,11 @@ def make_NodeSet(ns):
    for i in range(12):
       for Ggain in [a1,a2]:
          node = ns[Ggain](i=i) << Meq.Multiply(i,freq)
-         nst.MeqNode (Ggain, node=node)
+         nst.set_MeqNode (node, group=Ggain)
          
       for Gphase in [p1,p2]:
          node = ns[Gphase](i=i) << Meq.Multiply(-i,freq)
-         nst.MeqNode (Gphase, node=node)
+         nst.set_MeqNode (node, group=Gphase)
 
    # Define some bookpages:
    # nst.bookmark('GX', [a1,p1])

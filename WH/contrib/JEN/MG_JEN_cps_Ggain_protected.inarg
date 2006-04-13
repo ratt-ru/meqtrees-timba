@@ -223,7 +223,7 @@ sg12
 I00
 ssS'oneliner'
 p78
-S'MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-05 17:38'
+S'MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-13 12:20'
 p79
 sS'choice'
 p80
@@ -452,7 +452,7 @@ S''
 p147
 sS'last_edited'
 p148
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p149
 sS'target_definition'
 p150
@@ -460,7 +460,7 @@ S'MG_JEN_Joneset::BJones()'
 p151
 sS'inarg_specific'
 p152
-S'** Specific description of inarg record for: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-13 12:20'
 p153
 sS'barescope'
 p154
@@ -472,7 +472,7 @@ S'BJones'
 p157
 sS'available_inargs'
 p158
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::BJones()  version=16dec2005  defined=2006-04-13 12:20'
 p159
 sS'protected'
 p160
@@ -547,7 +547,7 @@ Nsg61
 Nsg63
 g112
 sg34
-I01
+I00
 ssg1
 S'@@polrep'
 p170
@@ -580,7 +580,7 @@ p178
 sS'subtile_size_Dang'
 p179
 Nsg34
-I01
+I00
 sg15
 I10
 sg16
@@ -735,7 +735,7 @@ I00
 sg34
 I00
 ssg78
-S'MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-05 17:38'
+S'MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-13 12:20'
 p197
 sg80
 (dp198
@@ -967,13 +967,13 @@ p261
 assg146
 g147
 sg148
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p262
 sg150
 S'MG_JEN_Joneset::DJones_WSRT()'
 p263
 sg152
-S'** Specific description of inarg record for: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-13 12:20'
 p264
 sg154
 S'MG_JEN_JonesetDJones_WSRT'
@@ -982,7 +982,7 @@ sg156
 S'DJones_WSRT'
 p266
 sg158
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::DJones_WSRT()  version=16dec2005  defined=2006-04-13 12:20'
 p267
 sg160
 I00
@@ -1205,7 +1205,7 @@ I00
 sg12
 I00
 ssg78
-S'MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-05 17:38'
+S'MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-13 12:20'
 p289
 sg80
 (dp290
@@ -1391,13 +1391,13 @@ p341
 assg146
 g147
 sg148
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p342
 sg150
 S'MG_JEN_Joneset::FJones()'
 p343
 sg152
-S'** Specific description of inarg record for: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-13 12:20'
 p344
 sg154
 S'MG_JEN_JonesetFJones'
@@ -1406,7 +1406,7 @@ sg156
 S'FJones'
 p346
 sg158
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::FJones()  version=16dec2005  defined=2006-04-13 12:20'
 p347
 sg160
 I00
@@ -1466,7 +1466,7 @@ Nsg282
 Nsg63
 g315
 sg34
-I01
+I00
 ssg50
 S'@@uvplane_effect'
 p351
@@ -1490,7 +1490,7 @@ Nsg52
 S'@@parmtable'
 p356
 sg34
-I01
+I00
 sg15
 I10
 sS'tdeg_Edl'
@@ -1643,7 +1643,7 @@ I00
 sg12
 I00
 ssg78
-S'MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-05 17:38'
+S'MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-13 12:20'
 p374
 sg80
 (dp375
@@ -1864,13 +1864,13 @@ p435
 assg146
 g147
 sg148
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p436
 sg150
 S'MG_JEN_Joneset::EJones_WSRT()'
 p437
 sg152
-S'** Specific description of inarg record for: MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-13 12:20'
 p438
 sg154
 S'MG_JEN_JonesetEJones_WSRT'
@@ -1879,7 +1879,7 @@ sg156
 S'EJones_WSRT'
 p440
 sg158
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::EJones_WSRT()  version=15dec2005  defined=2006-04-13 12:20'
 p441
 sg160
 I00
@@ -1972,7 +1972,7 @@ p449
 sg64
 g65
 sg78
-S'MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-05 17:38'
+S'MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-13 12:20'
 p450
 sg156
 S'Jones'
@@ -2084,12 +2084,12 @@ NaS'@@@Jsequence'
 p482
 assg146
 Nsg158
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-13 12:20'
 p483
 sg160
 I00
 sg161
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p484
 sg70
 S'25dec2005'
@@ -2098,7 +2098,7 @@ sg66
 S'MG_JEN_Cohset'
 p486
 sg152
-S'** Specific description of inarg record for: MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Cohset::Jones()  version=25dec2005  defined=2006-04-13 12:20'
 p487
 sg162
 (dp488
@@ -2223,7 +2223,7 @@ sg74
 S'defines diagonal KJones matrices for DFT Fourier kernel'
 p518
 sg78
-S'MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-05 17:38'
+S'MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-13 12:20'
 p519
 sg156
 S'KJones'
@@ -2302,12 +2302,12 @@ p533
 assg146
 g147
 sg158
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-13 12:20'
 p534
 sg160
 I00
 sg161
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p535
 sg70
 S'12dec2005'
@@ -2316,7 +2316,7 @@ sg66
 S'MG_JEN_Joneset'
 p537
 sg152
-S'** Specific description of inarg record for: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Joneset::KJones()  version=12dec2005  defined=2006-04-13 12:20'
 p538
 sg72
 (dp539
@@ -2529,7 +2529,7 @@ I00
 sg12
 I00
 ssg78
-S'MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-05 17:38'
+S'MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-13 12:20'
 p566
 sg80
 (dp567
@@ -2765,13 +2765,13 @@ p633
 assg146
 g147
 sg148
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p634
 sg150
 S'MG_JEN_Joneset::JJones()'
 p635
 sg152
-S'** Specific description of inarg record for: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-13 12:20'
 p636
 sg154
 S'MG_JEN_JonesetJJones'
@@ -2780,7 +2780,7 @@ sg156
 S'JJones'
 p638
 sg158
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::JJones()  version=14feb2006  defined=2006-04-13 12:20'
 p639
 sg160
 I00
@@ -2850,7 +2850,7 @@ g478
 sg46
 g478
 sg34
-I01
+I00
 ssg42
 Nsg63
 Nsg465
@@ -3027,7 +3027,7 @@ I00
 sg12
 I00
 ssg78
-S'MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-05 17:38'
+S'MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-13 12:20'
 p666
 sg80
 (dp667
@@ -3253,13 +3253,13 @@ p728
 assg146
 g147
 sg148
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p729
 sg150
 S'MG_JEN_Joneset::GJones()'
 p730
 sg152
-S'** Specific description of inarg record for: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-13 12:20'
 p731
 sg154
 S'MG_JEN_JonesetGJones'
@@ -3268,7 +3268,7 @@ sg156
 S'GJones'
 p733
 sg158
-S'** Description of available inarg record(s) for: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Joneset::GJones()  version=15dec2005  defined=2006-04-13 12:20'
 p734
 sg160
 I00
@@ -3342,7 +3342,7 @@ Nsg61
 Nsg63
 g468
 sg34
-I01
+I00
 ssg46
 NssS'_JEN_inarg_separator_record:_1'
 p740
@@ -3464,7 +3464,7 @@ sg74
 S'Make a Sixpack (I,Q,U,V,Ra,Dec) for a source with NEWSTAR parametrisation'
 p768
 sg78
-S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-05 17:38'
+S'MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-13 12:20'
 p769
 sg156
 S'newstar_source'
@@ -3700,13 +3700,13 @@ p857
 assg146
 g147
 sg158
-S'** Description of available inarg record(s) for: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-13 12:20'
 p858
 sg70
 S'10feb2006'
 p859
 sg161
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p860
 sg66
 S'MG_JEN_Sixpack'
@@ -3726,7 +3726,7 @@ I00
 sg34
 I00
 ssg152
-S'** Specific description of inarg record for: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Sixpack::newstar_source()  version=10feb2006  defined=2006-04-13 12:20'
 p863
 sg160
 I00
@@ -3871,7 +3871,7 @@ I01
 sg59
 Nsg61
 Nsg34
-I01
+I00
 ssg24
 (dp884
 g150
@@ -3896,7 +3896,7 @@ p891
 ssg64
 g65
 sg78
-S'MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-05 17:38'
+S'MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-13 12:20'
 p892
 sg156
 S'get_Sixpack'
@@ -3909,12 +3909,12 @@ NaS'@@punit_from_LSM'
 p896
 assg146
 Nsg158
-S'** Description of available inarg record(s) for: MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-13 12:20'
 p897
 sg160
 I00
 sg161
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p898
 sg70
 S'22mar2006'
@@ -3923,7 +3923,7 @@ sg66
 S'MG_JEN_Sixpack'
 p900
 sg152
-S'** Specific description of inarg record for: MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Sixpack::get_Sixpack()  version=22mar2006  defined=2006-04-13 12:20'
 p901
 sg162
 (dp902
@@ -4208,16 +4208,16 @@ NaS'@@@Jsequence'
 p977
 assg146
 Nsg148
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p978
 sS'HISTORY'
 p979
 (dp980
 g164
-S'2006-04-05 17:39: Derived from: MG_JEN_cps_Ggain.inarg'
+S'2006-04-13 12:20: Derived from: MG_JEN_cps_Ggain.inarg'
 p981
 sg166
-S'2006-04-05 17:39: Derived from: MG_JEN_cps.inarg'
+S'2006-04-13 12:20: Derived from: MG_JEN_cps.inarg'
 p982
 ssg150
 S'MG_JEN_cps'
@@ -4355,10 +4355,10 @@ p1028
 sg26
 g1020
 sg148
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p1029
 sg152
-S'** Specific description of inarg record for: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-13 12:20'
 p1030
 sg154
 S'MG_JEN_Cohsetmake_sinks'
@@ -4366,7 +4366,7 @@ p1031
 sg64
 g65
 sg78
-S'MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-05 17:38'
+S'MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-13 12:20'
 p1032
 sg156
 S'make_sinks'
@@ -4409,7 +4409,7 @@ aS'@@visu_array_config'
 p1047
 assg146
 Nsg158
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::make_sinks()  version=25dec2005  defined=2006-04-13 12:20'
 p1048
 sg70
 g485
@@ -4476,7 +4476,7 @@ p1061
 sg26
 g1016
 sg148
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p1062
 sg68
 (dp1063
@@ -4489,7 +4489,7 @@ p1065
 sg64
 g65
 sg78
-S'MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-05 17:38'
+S'MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-13 12:20'
 p1066
 sg156
 S'make_spigots'
@@ -4537,7 +4537,7 @@ aS'@@visu'
 p1080
 assg146
 Nsg158
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-13 12:20'
 p1081
 sg70
 g485
@@ -4553,7 +4553,7 @@ I00
 sg1025
 I00
 ssg152
-S'** Specific description of inarg record for: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Cohset::make_spigots()  version=25dec2005  defined=2006-04-13 12:20'
 p1084
 sg160
 I00
@@ -4630,7 +4630,7 @@ p1099
 sg64
 g65
 sg78
-S'MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-05 17:38'
+S'MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-13 12:20'
 p1100
 sg156
 S'predict_cps'
@@ -4705,12 +4705,12 @@ aag134
 ag1095
 assg146
 Nsg158
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-13 12:20'
 p1115
 sg160
 I00
 sg161
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p1116
 sg70
 S'20mar2006'
@@ -4719,7 +4719,7 @@ sg66
 S'MG_JEN_Cohset'
 p1118
 sg152
-S'** Specific description of inarg record for: MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Cohset::predict_cps()  version=20mar2006  defined=2006-04-13 12:20'
 p1119
 sg72
 (dp1120
@@ -4833,14 +4833,14 @@ I00
 sg926
 I00
 ssg74
-S'** Description of script: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-05 17:38'
+S'** Description of script: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-13 12:20'
 p1146
 sg76
 (dp1147
 g1139
 I00
 ssg78
-S'MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-05 17:38'
+S'MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-13 12:20'
 p1148
 sg80
 (dp1149
@@ -4907,13 +4907,13 @@ aS'@@write_flags'
 p1165
 assg146
 Nsg148
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p1166
 sg150
 S'MG_JEN_exec::stream_control()'
 p1167
 sg152
-S'** Specific description of inarg record for: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-13 12:20'
 p1168
 sg154
 S'MG_JEN_execstream_control'
@@ -4922,7 +4922,7 @@ sg156
 S'stream_control'
 p1170
 sg158
-S'** Description of available inarg record(s) for: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_exec::stream_control()  version=20jan2006  defined=2006-04-13 12:20'
 p1171
 sg160
 I00
@@ -5066,7 +5066,7 @@ I00
 sg1191
 I00
 ssg78
-S'MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-05 17:38'
+S'MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-13 12:20'
 p1198
 sg80
 (dp1199
@@ -5134,13 +5134,13 @@ aaS'@@num_cells'
 p1220
 assg146
 Nsg148
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p1221
 sg150
 S'MG_JEN_Cohset::insert_solver()'
 p1222
 sg152
-S'** Specific description of inarg record for: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-13 12:20'
 p1223
 sg154
 S'MG_JEN_Cohsetinsert_solver'
@@ -5149,7 +5149,7 @@ sg156
 S'insert_solver'
 p1225
 sg158
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::insert_solver()  version=25dec2005  defined=2006-04-13 12:20'
 p1226
 sg160
 I00
@@ -5242,7 +5242,7 @@ sg74
 S'Make a solver-subtree for the given Condeq Cohset'
 p1250
 sg78
-S'MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-05 17:38'
+S'MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-13 12:20'
 p1251
 sg156
 S'solver_subtree'
@@ -5491,13 +5491,13 @@ aS'@@history'
 p1365
 assg146
 Nsg158
-S'** Description of available inarg record(s) for: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-05 17:38'
+S'** Description of available inarg record(s) for: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-13 12:20'
 p1366
 sg70
 S'20dec2005'
 p1367
 sg161
-S'2006-04-05 17:38'
+S'2006-04-13 12:20'
 p1368
 sg66
 S'MG_JEN_Cohset'
@@ -5513,7 +5513,7 @@ I00
 sg1363
 I00
 ssg152
-S'** Specific description of inarg record for: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-05 17:38'
+S'** Specific description of inarg record for: MG_JEN_Cohset::solver_subtree()  version=20dec2005  defined=2006-04-13 12:20'
 p1371
 sg160
 I00

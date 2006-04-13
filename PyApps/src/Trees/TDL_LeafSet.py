@@ -33,6 +33,7 @@
 #=================================================================================
 
 from Timba.TDL import *
+from Timba.Meq import meq
 
 from copy import deepcopy
 from random import *
@@ -41,6 +42,8 @@ from numarray import *
 
 from Timba.Trees import TDL_common
 from Timba.Trees import TDL_NodeSet
+# from Timba.Contrib.MXM import TDL_Functional 
+# from Timba.Trees import TDL_Functional 
 from Timba.Trees import JEN_inarg
 
 
@@ -137,13 +140,32 @@ class LeafSet (TDL_common.Super):
         if node.initialized():                           # node already exists
             return node
 
+        elif rider['simul_funklet']:
+            # A simulation funklet (expression) has been specified
+            # The funklet coeff have a probability distribution:
+            expr = rider['simul_funklet']
+            coeff = []
+            for k in range(10):
+                s1 = 'p'+str(k)
+                if expr.rfind(s1)<0: break
+                ms = rider[s1+'_mean_stddev']
+                coeff.append(gauss(ms[0], ms[1]))
+                # print '-',k,s1,ms,coeff
+            if True:
+                init_funklet = meq.polc(coeff=coeff, subclass=meq._funklet_type)
+                init_funklet.function = rider['simul_funklet']
+            else:
+                # init_funklet = TDL_Functional(rider['simul_funklet'], coeff)
+                pass
+            node << Meq.Parm(init_funklet=init_funklet)
+
         elif compounder_children:
             # Special case: Make a MeqCompounder node with a ND funklet.
             # Used for interpolatable Jones matrices like EJones or MIM etc
             parm = ns[key](**quals)('funklet')
             if not parm.initialized():
                 parm << Meq.Parm(init_funklet=init_funklet)
-                self.NodeSet.MeqNode(leafgroup, parm)
+                self.NodeSet.set_MeqNode(parm, group=leafgroup)
             cc = compounder_children
             if not isinstance(cc, (list, tuple)): cc = [cc]
             cc.append(parm)
@@ -156,6 +178,7 @@ class LeafSet (TDL_common.Super):
                     quals[qkey] = str(qual2[qkey])
             node = ns[key](**quals)
             node << Meq.Compounder(children=cc, common_axes=common_axes)
+            # Special case, return from here:
             return node
         
         elif init_funklet:
@@ -190,7 +213,7 @@ class LeafSet (TDL_common.Super):
             node = ns[key](**quals) << Meq.Add(c00, tvar, MeqLeaf_rider=record(rider))
 
         # Store the new node in the NodeSet:
-        self.NodeSet.MeqNode(leafgroup, node)
+        self.NodeSet.set_MeqNode(node, group=leafgroup)
         return node
 
 
@@ -214,12 +237,26 @@ class LeafSet (TDL_common.Super):
         rider.setdefault('mean_period', 1.0)
         rider.setdefault('stddev_period', 0.1)
         rider.setdefault('unop', 'Cos')
+
+        rider.setdefault('simul_funklet', None)
+        rider.setdefault('p0_mean_stddev', [0.0,0.0])
+        rider.setdefault('p1_mean_stddev', [0.0,0.0])
+        rider.setdefault('p2_mean_stddev', [0.0,0.0])
+        rider.setdefault('p3_mean_stddev', [0.0,0.0])
+        rider.setdefault('p4_mean_stddev', [0.0,0.0])
+        rider.setdefault('p5_mean_stddev', [0.0,0.0])
+        rider.setdefault('p6_mean_stddev', [0.0,0.0])
+        rider.setdefault('p7_mean_stddev', [0.0,0.0])
+        rider.setdefault('p8_mean_stddev', [0.0,0.0])
+        rider.setdefault('p9_mean_stddev', [0.0,0.0])
         return True
 
 
     def inarg_group_rider (self, pp, **kwargs):
         """Definition of LeafSet input arguments (see e.g. MG_JEN_Joneset.py)"""
         self.group_rider_defaults(kwargs)
+
+        # Old:
         JEN_inarg.define(pp, 'mean_c00', kwargs,
                          choice=[0,0.1,0.2,0.5,-0.1],  
                          help='mean of EXTRA c00 (fraction of c00_scale)')
@@ -255,6 +292,31 @@ class LeafSet (TDL_common.Super):
         JEN_inarg.define(pp, 'unit', kwargs, hide=True,
                          help='unit')
 
+        # New: funklet-based:
+        JEN_inarg.define(pp, 'simul_funklet', kwargs, hide=True,
+                         choice=['p0*cos(6.28*x0/p1)',None],
+                         help='(x0=time, x1=freq)')
+        JEN_inarg.define(pp, 'p0_mean_stddev', kwargs, hide=True,
+                         help='[mean, stddev] of funklet coeff p0')
+        JEN_inarg.define(pp, 'p1_mean_stddev', kwargs, hide=True,
+                         help='[mean, stddev] of funklet coeff p1')
+        JEN_inarg.define(pp, 'p2_mean_stddev', kwargs, hide=True,
+                         help='[mean, stddev] of funklet coeff p2')
+        JEN_inarg.define(pp, 'p3_mean_stddev', kwargs, hide=True,
+                         help='[mean, stddev] of funklet coeff p3')
+        JEN_inarg.define(pp, 'p4_mean_stddev', kwargs, hide=True,
+                         help='[mean, stddev] of funklet coeff p4')
+        JEN_inarg.define(pp, 'p5_mean_stddev', kwargs, hide=True,
+                         help='[mean, stddev] of funklet coeff p5')
+        JEN_inarg.define(pp, 'p6_mean_stddev', kwargs, hide=True,
+                         help='[mean, stddev] of funklet coeff p6')
+        JEN_inarg.define(pp, 'p7_mean_stddev', kwargs, hide=True,
+                         help='[mean, stddev] of funklet coeff p7')
+        JEN_inarg.define(pp, 'p8_mean_stddev', kwargs, hide=True,
+                         help='[mean, stddev] of funklet coeff p8')
+        JEN_inarg.define(pp, 'p9_mean_stddev', kwargs, hide=True,
+                         help='[mean, stddev] of funklet coeff p9')
+
         # Attach any other kwarg fields to pp also:
         for key in kwargs.keys():
             if not pp.has_key(key):
@@ -270,7 +332,6 @@ class LeafSet (TDL_common.Super):
             # The rider usually contains the inarg record (pp) of the calling function.
             if not isinstance(rider, dict): rider = dict()  # just in case
             rider = deepcopy(rider)                         # necessary!
-            rider = TDL_common.unclutter_inarg(rider)
 
             self.group_rider_defaults(rider)
 

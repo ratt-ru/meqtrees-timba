@@ -148,6 +148,9 @@ def simul_EJones(inarg, trace=True):
                     _JEN_inarg_option=dict(trace=trace))     
    JEN_inarg.modify(inarg,
                     taper=None,
+                    _JEN_inarg_option=dict(trace=trace, qual='simul'))     
+   JEN_inarg.modify(inarg,
+                    taper=None,
                     _JEN_inarg_option=dict(trace=trace, qual='solve'))     
    JEN_inarg.modify(inarg,
                     Jsequence=['EJones_WSRT'],
@@ -232,8 +235,8 @@ JEN_inarg.modify(MG,
 JEN_inarg.define (MG, 'add_to_existing', tf=False,
                   help='if True, add to existing uv-data (from MS column)')
 
-JEN_inarg.define (MG, 'rms_noise_Jy', 0.0, choice=[0,0.01,0.1,1],
-                  help='rms noise, to be added')
+JEN_inarg.define (MG, 'stddev_noise_Jy', 0.01, choice=[0,0.001,0.003,0.01,0.03,0.1,0.3,1,3],
+                  help='stddev of gaussian noise, to be added')
 
 JEN_inarg.define (MG, 'insert_solver', tf=True,
                   help='if True, insert a solver')
@@ -394,15 +397,16 @@ def _define_forest (ns, **kwargs):
         predicted = MG_JEN_Cohset.predict_lsm (nsim, lsm=lsm, uvp_Joneset=True, 
                                                simul=True, _inarg=MG, _qual=qual)
         
-    # Opionally, add (gaussian) noise:
-    if MG['rms_noise_Jy']>0:
-        Cohset.addNoise(nsim, MG['rms_noise_Jy'])
-
     # Replace/add the uv-data with/to the predicted visibilities: 
     if MG['add_to_existing']:
         Cohset.add(nsim, predicted)
     else:
         Cohset.replace(nsim, predicted)
+
+    # Opionally, add (gaussian) noise:
+    if MG['stddev_noise_Jy']>0:
+        Cohset.addNoise(nsim, stddev=MG['stddev_noise_Jy'])
+
     MG_JEN_Cohset.visualise (nsim, Cohset)
     MG_JEN_Cohset.visualise (nsim, Cohset, type='spectra')
 

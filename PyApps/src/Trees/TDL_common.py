@@ -159,7 +159,7 @@ class Super:
             ss.append(indent1+'* Object rider ('+str(len(rr))+' entries):')
             for key in rr.keys():
                 # ss.append(indent2+'* '+str(key)+': '+str(type(rr[key])))
-                qq = unclutter_inarg(rr[key])
+                qq = unclutter(rr[key])
                 ss.append(indent2+'* '+str(key)+': '+str(type(rr[key]))+' = '+str(qq))
 
         #-----------------------------------
@@ -437,6 +437,11 @@ def _counter (key, increment=0, reset=False, trace=True):
 
 
 #--------------------------------------------------------------------------
+
+def unclutter(pp):
+    """Strip the given input argument record/list (pp) to avoid clutter (e.g. when printing it)"""
+    return unclutter_inarg(pp)
+
 
 def unclutter_inarg(pp):
     """Strip the given input argument record/list (pp) to avoid clutter (e.g. when printing it)"""
