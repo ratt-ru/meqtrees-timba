@@ -257,8 +257,9 @@ def result(cells=None,data = None,rqid=hiid(0)):
     raise ValueError,'data should be specified';
 
   # create record
+  
   rec = _result_type(cells = cells,
-                 vellsets      = record(shape=data.shape,value=data),
+                 vellsets      = [record(shape=data.shape,value=data)],
                  result_code = 0,
                  request_id = rqid);
   return rec;
