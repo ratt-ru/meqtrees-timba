@@ -170,7 +170,7 @@ string TableFormat::sdebug ( int detail,const string &,const char *name ) const
   string out;
   if( detail >= 0 ) // basic detail
   {
-    appendf(out,"%s/%08x",name?name:"TableFormat",(int)this);
+    appendf(out,"%s/%p",name?name:"TableFormat",this);
   }
   if( detail == 1 || detail == -1 )   // normal detail
   {

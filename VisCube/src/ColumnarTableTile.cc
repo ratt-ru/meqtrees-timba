@@ -448,7 +448,7 @@ string ColumnarTableTile::sdebug ( int detail,const string &,const char *name ) 
   string out;
   if( detail >= 0 ) // basic detail
   {
-    appendf(out,"%s/%08x",name?name:"ColTableTile",(int)this);
+    appendf(out,"%s/%p",name?name:"ColTableTile",this);
   }
   if( detail >= 1 || detail == -1 )
   {

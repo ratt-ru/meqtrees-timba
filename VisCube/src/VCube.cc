@@ -736,7 +736,7 @@ string VCube::sdebug ( int detail,const string &prefix,const char *name ) const
   string out;
   if( detail >= 0 ) // basic detail
   {
-    appendf(out,"%s/%08x",name?name:"VCube",(int)this);
+    appendf(out,"%s/%p",name?name:"VCube",this);
   }
   if( detail >= 1 || detail == -1 )
   {
@@ -776,7 +776,7 @@ string VCube::ConstIterator::sdebug ( int detail,const string &prefix,const char
   string out;
   if( detail >= 0 ) // basic detail
   {
-    appendf(out,"%s/%08x",name?name:"CI:VCube",(int)this);
+    appendf(out,"%s/%p",name?name:"CI:VCube",this);
   }
   if( detail >= 1 || detail <= -1 )
   {

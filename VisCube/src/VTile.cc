@@ -391,7 +391,7 @@ string VTile::ConstIterator::sdebug ( int detail,const string &prefix,const char
   string out;
   if( detail >= 0 ) // basic detail
   {
-    appendf(out,"%s/%08x",name?name:"CI:VTile",(int)this);
+    appendf(out,"%s/%p",name?name:"CI:VTile",this);
   }
   if( detail >= 1 || detail == -1 )
   {

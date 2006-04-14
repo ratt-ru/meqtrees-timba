@@ -7,7 +7,7 @@
 #include <DMI/BOIO.h>
 #include <DMI/ContainerIter.h>
     
-#define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
+#define paddr(x) printf("=== " #x ": %8p\n",&x)
     
 //using DMI::HIID;
 using namespace DebugDefault;

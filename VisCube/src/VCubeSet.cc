@@ -209,7 +209,7 @@ string VCubeSet::sdebug ( int detail,const string &prefix,
   string out;
   if( detail >= 0 ) // basic detail
   {
-    appendf(out,"%s/%08x",name?name:"CI:VCubeSet",(int)this);
+    appendf(out,"%s/%p",name?name:"CI:VCubeSet",this);
   }
   if( detail >= 1 || detail == -1 )
   {

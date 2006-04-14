@@ -186,7 +186,7 @@ string MSSeqOutputChannel::sdebug (int detail,const string &prefix,const char *n
   string out;
   if( detail >= 0 ) // basic detail
   {
-    appendf(out,"%s/%08x",name?name:"MSSeqOutputChannel",(int)this);
+    appendf(out,"%s/%p",name?name:"MSSeqOutputChannel",this);
   }
   return out;
 }

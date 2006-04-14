@@ -425,7 +425,7 @@ string MSInputChannel::sdebug ( int detail,const string &prefix,const char *name
   string out;
   if( detail >= 0 ) // basic detail
   {
-    appendf(out,"%s/%08x",name?name:"MSInputChannel",(int)this);
+    appendf(out,"%s/%p",name?name:"MSInputChannel",this);
   }
   if( detail >= 1 || detail == -1 )
   {

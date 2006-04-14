@@ -382,7 +382,7 @@ void Vells::computeStrides (Vells::Shape &outshape,
 {
   uint rnk = 0;
   for( int i=0; i<nshapes; i++ )
-    rnk = std::max(rnk,shapes[i]->size());
+    rnk = std::max(rnk,uint(shapes[i]->size()));
   outshape.resize(rnk);
   // initialize per-shape arrays for loop below
   int tot[nshapes];

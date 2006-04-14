@@ -166,7 +166,7 @@ static Base * createSubclass (PyObject *pyobj)
     delete bo;
     throwError(Type,tid.toString()+"is not a subclass of "+TpOfPtr(pbase).toString());
   }
-  dprintf(5)("%s created at address %x\n",pbase->objectType().toString().c_str(),(int)pbase);
+  dprintf(5)("%s created at address %p\n",pbase->objectType().toString().c_str(),pbase);
   return pbase;
 }
 
