@@ -140,7 +140,7 @@ class meqserver_gui (app_proxy_gui):
     self._tb_jobs.setPopupDelay(1);
     self._tb_jobs.hide();
     # add TDL run button
-    self._qa_runtdl = QAction(pixmaps.blue_round_reload.iconset(),"&Re-run current TDL script",Qt.CTRL+Qt.Key_R,self);
+    self._qa_runtdl = QAction(pixmaps.blue_round_reload.iconset(),"&Recompile current TDL script",Qt.CTRL+Qt.Key_R,self);
     self._qa_runtdl.addTo(self.maintoolbar);
     QObject.connect(self,PYSIGNAL("isConnected()"),self._enable_run_current);
     self._enable_run_current(False);
@@ -258,10 +258,10 @@ class meqserver_gui (app_proxy_gui):
     sync = Config.getbool('tdl-sync-to-external-editor',True);
     syncedit.setOn(sync);
     tdlgui.set_external_sync(sync);
-    loadtdl = QAction("Load TDL script...",0,self);
+    loadtdl = QAction("&Load TDL script...",Qt.CTRL+Qt.Key_L,self);
     loadtdl.addTo(tdl_menu);
     QObject.connect(loadtdl,SIGNAL("activated()"),self._load_tdl_script);
-    loadruntdl = QAction("&Load && run TDL script...",Qt.CTRL+Qt.Key_T,self);
+    loadruntdl = QAction("Load && &compile TDL script...",Qt.CTRL+Qt.Key_T,self);
     loadruntdl.addTo(tdl_menu);
     QObject.connect(self,PYSIGNAL("isConnected()"),loadruntdl.setEnabled);
     loadruntdl.setEnabled(False);

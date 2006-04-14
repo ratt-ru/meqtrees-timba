@@ -112,12 +112,12 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_run.setPopup(self._tb_runmenu);
     self._tb_run.setPopupDelay(0);
     self._qa_runmain = QAction(pixmaps.blue_round_reload.iconset(),
-                              "&Save & run main script",Qt.ALT+Qt.Key_R,self);
+                              "&Save & compile main script",Qt.ALT+Qt.Key_R,self);
     QObject.connect(self._qa_runmain,SIGNAL("activated()"),self._run_main_file);
     QObject.connect(self._tb_run,SIGNAL("clicked()"),self._run_main_file);
     self._qa_runmain.addTo(self._tb_runmenu);
     qa_runthis_as = QAction(pixmaps.blue_round_reload.iconset(),"Save & run this script as main script...",0,self);
-    qa_runthis_as.setToolTip("Saves and reruns this script as a top-level TDL script");
+    qa_runthis_as.setToolTip("Saves and recompiles this script as a top-level TDL script");
     QObject.connect(qa_runthis_as,SIGNAL("activated()"),self._run_as_main_file);
     qa_runthis_as.addTo(self._tb_runmenu);
     
@@ -132,6 +132,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_opts.setPopup(self._options_menu);
     self._tb_opts.setPopupDelay(1);
     self._tb_opts.hide();
+    
+    self._qa_recompile = qa_recomp = QAction(pixmaps.blue_round_reload.iconset(),"Re&compile script to apply new options",0,self);
+    qa_recomp.setToolTip("You must recompile this script for new options to take effect");
+    QObject.connect(qa_recomp,SIGNAL("activated()"),self._run_main_file);
     
     # self._qa_run = QAction(pixmaps.blue_round_reload.iconset(),"&Run script",Qt.ALT+Qt.Key_R,self);
     # self._qa_run.addTo(self._toolbar);
@@ -619,6 +623,13 @@ class TDLEditor (QFrame,PersistentCurrier):
         return;
     self.load_file(self._filename);
     
+  def _add_menu_label (self,menu,label):
+    tlab = QLabel("<b>"+label+"</b>",menu);
+    tlab.setAlignment(Qt.AlignCenter);
+    tlab.setFrameShape(QFrame.ToolBarPanel);
+    tlab.setFrameShadow(QFrame.Sunken);
+    menu.insertItem(tlab);
+    
   def import_content (self,force=False):
     """imports TDL module but does not run _define_forest().
     Depending on autosync/modified state, asks to save or revert.
@@ -675,8 +686,12 @@ class TDLEditor (QFrame,PersistentCurrier):
     opts = TDLOptions.get_compile_options();
     if opts:
       self._options_menu.insertTearOffHandle();
+      self._add_menu_label(self._options_menu,"Compile-time options");
+      # add options
       for opt in opts:
         opt.add_to_menu(self._options_menu);
+      # add re-run button
+      self._qa_recompile.addTo(self._options_menu);
       self._tb_opts.show();
       _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
       self.emit(PYSIGNAL("hasCompileOptions()"),(len(opts),));
@@ -751,11 +766,13 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._jobmenu.insertTearOffHandle();
       opts = TDLOptions.get_runtime_options();
       if opts:
+        self._add_menu_label(self._jobmenu,"Run-time options");
         for opt in opts:
           opt.add_to_menu(self._jobmenu);
         # add separator if menu doesn't end with one already
-        if not getattr(self._jobmenu,'_end_with_separator',False):
-          self._jobmenu.insertSeparator();
+        # if not getattr(self._jobmenu,'_end_with_separator',False):
+        #  self._jobmenu.insertSeparator();
+      self._add_menu_label(self._jobmenu,"Predefined jobs");
       self._tb_jobs.show();
       for func in joblist:
         name = re.sub("^_tdl_job_","",func.__name__);
