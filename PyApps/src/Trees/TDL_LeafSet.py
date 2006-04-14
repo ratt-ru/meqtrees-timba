@@ -240,7 +240,7 @@ class LeafSet (TDL_common.Super):
 
         # Specification of funklet and its coeff:
         JEN_inarg.define(pp, 'simul_funklet', kwargs, hide=True,
-                         choice=['p0*cos(6.28*x0/p1)',None],
+                         choice=['p0*cos(0.1*x0/p1)',None],
                          help='(x0=time, x1=freq)')
         JEN_inarg.define(pp, 'p0_mean_stddev', kwargs, hide=True,
                          help='[mean, stddev] of funklet coeff p0')
@@ -267,7 +267,6 @@ class LeafSet (TDL_common.Super):
         for key in kwargs.keys():
             if not pp.has_key(key):
                 pp[key] = kwargs[key]
-                
         return True
 
 

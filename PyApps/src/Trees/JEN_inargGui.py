@@ -576,7 +576,7 @@ class ArgBrowser(QMainWindow):
         match = ['ms_','_col','LSM','punit','simul',
                  'parm','pol','uvplane','stations',
                  'flag','corr','subtr','rmin','rmax','cond',
-                 'T_sec','stddev','rms','mean','unop','binop',
+                 'funklet','stddev','rms','mean','unop','binop',
                  'sequ','solve','condit','num_','nr_','shape_','deg_','tile']
         exclude = []
         ss = JEN_inarg.essence(self.__inarg, match=match, exclude=exclude)
