@@ -73,10 +73,15 @@ int main ( int argc,const char *argv[] )
       cout << "running benchmark " << test << endl;
     else
       cout <<
-        "EXPSCA: sum of exp(complex scalar)\n"
-        "EXPSCV: sum of exp(complex scalar vells)\n"
-        "S2HIID: convert strings to HIIDs\n"
-        "RSINIT: init 3-element record\n"
+        "SEXPSC: sum of exp(complex scalar)\n"
+        "SEXPSV: sum of exp(complex scalar vells)\n"
+        "SEXPVV: sum of exp(vector vells)\n"
+        "SEXPV1: sum of exp(1xN vector vells)\n"
+        "SEXPVM: sum of exp(matrix vells)\n"
+        "SUM_V1: sum of vector vells\n"
+        "SUM_1V: sum of 1xN vector vells\n"
+        "SUMV1V: sum of vector and 1xN vector vells\n"
+        "SUM_MM: sum of matrix vells\n"
         
         <<endl<<indent<<Stopwatch::header(1)<<endl;
     
