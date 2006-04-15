@@ -1,6 +1,6 @@
 from Timba.dmi import *
 from Timba.utils import *
-from Timba.Apps import config 
+from Timba.Apps.config import Config 
 
 import traceback
 import inspect
@@ -15,11 +15,11 @@ _dbg = verbosity(0,name='tdlopt');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+# current config section, this is set to the script name by init_options()
+config_section = "tdl scripts";
 
 compile_options = [];
 runtime_options = [];
-
-Config = None;
 
 def clear_options ():
   global compile_options;
@@ -31,8 +31,8 @@ def init_options (filename):
   """initializes option list for given script. This also
   reads in the config file specifiied by filename."""
   clear_options();
-  global Config;
-  Config = config.DualConfigParser(filename);
+  global config_section;
+  config_section = filename;
   
 def get_compile_options ():
   return compile_options;
@@ -77,7 +77,7 @@ class TDLBoolOptionItem (TDLOptionItem):
     
   def set (self,value):
     value = bool(value);
-    Config.set(self.symbol,value);
+    Config.set(self.symbol,value,section=config_section);
     self._set(value);
 
   def add_to_menu (self,menu):
@@ -129,7 +129,7 @@ class TDLListOptionItem (TDLOptionItem):
   def set (self,value):
     self.selected = value = int(value);
     self._set(self.get_option(value));
-    Config.set(self.symbol,self.get_option_str(value));
+    Config.set(self.symbol,self.get_option_str(value),section=config_section);
     
   def add_to_menu (self,menu):
     """adds entry for option to menu object (usually of class QPopupMenu).

@@ -726,7 +726,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     
   def _tdltab_refresh_compile_options (self,tab,nopt=None):
     """called when a tab has a new TDL Options popup""";
-    _dprint(0,"new compile options",nopt);
+    _dprint(2,"new compile options",nopt);
     if self._mi_tdlopts is not None:
       self._tdlmenu.removeItem(self._mi_tdlopts);
     if nopt:
