@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
 import sys
-import dl
+import DLFCN
 # this ensures that C++ symbols (RTTI, DMI registries, etc.) are
 # shared across dynamically-loaded modules
-sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
+sys.setdlopenflags(DLFCN.RTLD_NOW | DLFCN.RTLD_GLOBAL);
 
 import Timba.octopython
 octopython = Timba.octopython
