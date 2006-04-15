@@ -81,10 +81,6 @@ int main (int argc,const char *argv[])
     Node &child5 = forest.create(index_child5,rec_child5);
     cout << "created child5 "<<index_child5<<": "<<child5.sdebug(5)<<endl;
     
-    cout << "============ resolving children on parent1 =========\n";
-    parent1.resolveChildren();
-    cout << "parent1: "<<parent1.sdebug(5)<<endl;
-    
 //     cout << "============ creating vec of funklets ==============\n";
 //     DMI::Vec::Ref vecref;
 //     vecref <<= new DMI::Vec(TpMeqFunklet,2);
