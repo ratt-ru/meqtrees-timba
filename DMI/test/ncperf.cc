@@ -330,7 +330,7 @@ int main ( int argc,const char *argv[] )
       
     RUNTEST(1,ADSM1M)
     {
-      ndone = size*size;
+      ndone = 1;
       for( nloops=0; !watch.fired(); nloops+=10 )
       {
         for( int count=0; count<10; count++ )
@@ -344,12 +344,11 @@ int main ( int argc,const char *argv[] )
         }
       }
       cout<<watch.dump("ADSM1M",ndone*nloops)<<endl;
-      cerr<<dum<<endl;
     }
     
     RUNTEST(1,ADSA1M)
     {
-      ndone = size*size;
+      ndone = 1;
       for( nloops=0; !watch.fired(); nloops+=10 )
       {
         for( int count=0; count<10; count++ )
@@ -359,12 +358,11 @@ int main ( int argc,const char *argv[] )
         }
       }
       cout<<watch.dump("ADSA1M",ndone*nloops)<<endl;
-      cerr<<dum<<endl;
     }
       
     RUNTEST(1,ADSI1M)
     {
-      ndone = size*size;
+      ndone = 1;
       watch.reset();
       double *tmp = arr(10,10).as_wp<double>();
       ConstContainerIter<double> iter(arr[HIID()]);
@@ -379,7 +377,6 @@ int main ( int argc,const char *argv[] )
         }
       }
       cout<<watch.dump("ADSI1M",ndone*nloops)<<endl;
-      cerr<<dum<<endl;
     }
 
         
@@ -388,7 +385,7 @@ int main ( int argc,const char *argv[] )
     
     RUNTEST(1,ADAM1M)
     {
-      ndone = size*size;
+      ndone = 1;
       LoMat_double   mat(arr[HIID()].as<LoMat_double>()),
                      mat2(arr2[HIID()].as<LoMat_double>()),
                      mat3(arr3[HIID()].as<LoMat_double>());
@@ -406,12 +403,11 @@ int main ( int argc,const char *argv[] )
         }
       }
       cout<<watch.dump("ADAM1M",ndone*nloops)<<endl;
-      cerr<<sum(mat3)<<endl;
     }
     
     RUNTEST(1,ADAA1M)
     {
-      ndone = size*size;
+      ndone = 1;
       LoMat_double mat(arr[HIID()].as<LoMat_double>()),
                    mat2(arr2[HIID()].as<LoMat_double>());
       watch.reset();
@@ -424,18 +420,18 @@ int main ( int argc,const char *argv[] )
         }
       }
       cout<<watch.dump("ADAA1M",ndone*nloops)<<endl;
-      cerr<<sum(mat)<<endl;
     }
       
     RUNTEST(1,ADAI1M)
     {
-      ndone = size*size;
+      ndone = 1;
       watch.reset();
       double *tmp = arr(10,10).as_wp<double>();
-      ConstContainerIter<double> iter(arr[HIID()]);
-      ConstContainerIter<double> iter2(arr2[HIID()]);
-      ContainerIter<double> iter3(arr3[HIID()]);
       for( nloops=0; !watch.fired(); nloops+=10 )
+      {
+        ConstContainerIter<double> iter(arr[HIID()]);
+        ConstContainerIter<double> iter2(arr2[HIID()]);
+        ContainerIter<double> iter3(arr3[HIID()]);
         for( int count=0; count<10; count++ )
         {
           *tmp = nloops;
@@ -443,8 +439,26 @@ int main ( int argc,const char *argv[] )
           while( !iter.end() )
             { iter3.next( iter2.next()+iter.next() ); }
         }
+      }
       cout<<watch.dump("ADAI1M",ndone*nloops)<<endl;
-      cerr<<sum(arr3[HIID()].as<LoMat_double>())<<endl;
+    }
+    
+    RUNTEST(2,ADAA25M)
+    {
+      size = 5000;
+      DMI::NumArray arr(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
+      DMI::NumArray arr2(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
+      
+      LoMat_double mat(arr[HIID()].as<LoMat_double>()),
+                   mat2(arr2[HIID()].as<LoMat_double>());
+      watch.reset();
+      double dum=0;
+      for( nloops=0; !watch.fired(); nloops++ )
+      {
+        LoMat_double mat3(mat + mat2);
+        dum += mat3(0,0);
+      }
+      cout<<watch.dump("ADAA25M",nloops)<<endl;
     }
     
     RUNTEST(2,ADAI25M)
@@ -452,29 +466,22 @@ int main ( int argc,const char *argv[] )
       size = 5000;
       DMI::NumArray arr(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
       DMI::NumArray arr2(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
-      
-      watch.reset();
       DMI::NumArray arr3(Tpdouble,makeLoShape(size,size),DMI::WRITE);
-      ConstContainerIter<double> iter(arr[HIID()]);
-      ConstContainerIter<double> iter2(arr2[HIID()]);
-      ContainerIter<double> iter3(arr3[HIID()]);
-      while( !iter.end() )
-      { 
-        iter3.next( iter2.next()+iter.next() ); 
+      
+      watch.reset();
+      for( nloops=0; !watch.fired(); nloops++ )
+      {
+        ConstContainerIter<double> iter(arr[HIID()]);
+        ConstContainerIter<double> iter2(arr2[HIID()]);
+        ContainerIter<double> iter3(arr3[HIID()]);
+        while( !iter.end() )
+        { 
+          iter3.next( iter2.next()+iter.next() ); 
+        }
       }
-      cout<<watch.dump("ADAI25M",size*size)<<endl;
-      cerr<<sum(arr3[HIID()].as<LoMat_double>())<<endl;
+      cout<<watch.dump("ADAI25M",nloops)<<endl;
     }
       
-    RUNTEST(2,ADAA25M)
-    {
-      LoMat_double mat(arr[HIID()].as<LoMat_double>()),
-                   mat2(arr2[HIID()].as<LoMat_double>());
-      watch.reset();
-      LoMat_double mat3(mat + mat2);
-      cout<<watch.dump("ADAA25M",size*size)<<endl;
-      cerr<<sum(mat3)<<endl;
-    }
         
 //     cout<<"=== Randomly assigning to container\n";
 //     Timestamp::now(&start);
