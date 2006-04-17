@@ -276,7 +276,10 @@ namespace Meq {
     cen0.resize(nx*ny*(nplanes+1));
     //create axis vector
     if (ny==1) {
-      blitz::Array<double,1> data=vl0.as<double,1>()(blitz::Range::all());
+			//note: even when ny==1, we might get a 2D array here
+      //blitz::Array<double,1> data=vl0.as<double,1>()(blitz::Range::all());
+      double *data_=vl0.getStorage<double>();
+      blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
 #ifdef DEBUG
       cout<<"Axis 1 (in)="<<data<<endl;
 #endif
@@ -309,7 +312,10 @@ namespace Meq {
 
 	  blitz::Array<double,1> pB(nx*ny);
 	  if (ny==1) {
-	    blitz::Array<double,1> data=pvl.as<double,1>()(blitz::Range::all());
+      //note: even when ny==1, we might get a 2D array here
+	    //blitz::Array<double,1> data=pvl.as<double,1>()(blitz::Range::all());
+      double *data_=pvl.getStorage<double>();
+      blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
 #ifdef DEBUG
 	    cout<<"Axis 1 (in)="<<data<<endl;
 #endif
@@ -406,7 +412,10 @@ namespace Meq {
     //create axis vector
     cen1.resize(nx*ny*(ipert1*ispid1+1));
     if (ny==1) {
-      blitz::Array<double,1> data=vl0.as<double,1>()(blitz::Range::all());
+    	//note: even when ny==1, we might get a 2D array here
+      //blitz::Array<double,1> data=vl0.as<double,1>()(blitz::Range::all());
+      double *data_=vl0.getStorage<double>();
+      blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
 #ifdef DEBUG
       cout<<"Axis 2 (in)="<<data<<endl;
 #endif
@@ -429,7 +438,10 @@ namespace Meq {
 
 	    blitz::Array<double,1> pB(nx*ny);
 	  if (ny==1) {
-	    blitz::Array<double,1> data=pvl.as<double,1>()(blitz::Range::all());
+    	//note: even when ny==1, we might get a 2D array here
+	    //blitz::Array<double,1> data=pvl.as<double,1>()(blitz::Range::all());
+      double *data_=pvl.getStorage<double>();
+      blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
 #ifdef DEBUG
 	    cout<<"Axis 2 (in)="<<data<<endl;
 #endif
