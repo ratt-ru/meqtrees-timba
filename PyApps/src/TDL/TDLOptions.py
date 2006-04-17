@@ -69,10 +69,11 @@ class TDLOptionItem(object):
 class TDLBoolOptionItem (TDLOptionItem):
   def __init__ (self,namespace,symbol,value):
     try:
-      value = Config.getbool(symbol,default=value)
+      value = Config.getbool(symbol,default=value,section=config_section)
     except:
-      _dprint(0,"error reading value from configuration file");
+      _dprint(1,"error reading",symbol,"from config");
       traceback.print_exc();
+    _dprint(1,"read",symbol,"=",value,"from config");
     TDLOptionItem.__init__(self,namespace,symbol,value);
     
   def set (self,value):
@@ -108,7 +109,8 @@ class TDLListOptionItem (TDLOptionItem):
       raise ValueError,"'default': index out of range";
     # try to read from config
     try:
-      def1 = Config.get(symbol);
+      def1 = Config.get(symbol,section=config_section);
+      _dprint(1,"read",symbol,"=",def1,"from config");
       default = self.option_list_str.index(def1);
     except:
       _dprint(1,"error reading value from configuration file");
