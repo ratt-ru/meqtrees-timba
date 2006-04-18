@@ -567,7 +567,7 @@ namespace Meq {
 
     // init depend mask
     // if we are solvable, then we always depend on solution progress
-    int depend = isSolvable() ? solve_depend_mask_ : 0;
+    int depend = isSolvable() ? (solve_depend_mask_|domain_depend_mask_): domain_depend_mask_;
     // Create result object and attach to the ref that was passed in
     //    Result &result = resref <<= new Result(1,request); // result has one vellset
     Result &result = resref <<= new Result(1); // result has one vellset
@@ -593,11 +593,11 @@ namespace Meq {
     // snippets, we don't want the previous solution to be cached anywhere
     //   if( !pfunklet->isConstant() || integrated_ )
     //    if( !pfunklet->isConstant() || integrated_ || parmtable_)
-    depend |= domain_depend_mask_;
+    //depend |= domain_depend_mask_;
 
     // set cells in result as needed
     result.setCells(request.cells());
-  
+ 
     // integrate over cell if so specified
     if( integrated_ )
       result.integrate();

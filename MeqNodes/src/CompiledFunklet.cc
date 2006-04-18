@@ -59,12 +59,20 @@ CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int dep
 {
    
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-    for(int i=0;i<res_shape[dimN];i++){
-      xval[dimN]=grid[dimN](i);
-      if(dimN < (Ndim-1.) ){
-	fill_values(value,pertValPtr,xval,res_shape,dimN+1,grid,perts,spidIndex,makePerturbed,pos);
-      }
+    for(int datai=0;datai<res_shape[dimN];datai++){
+      xval[dimN]=grid[dimN](datai);
+      if(dimN < (Ndim-1.) && (dimN <(res_shape.size()-1)))
+
+	
+	{
+	  fill_values(value,pertValPtr,xval,res_shape,dimN+1,grid,perts,spidIndex,makePerturbed,pos);
+	}
       else{//the real filling
+	//fill missing x's with 0
+	for(int i = dimN+1;i<Ndim;i++)
+	  xval[i]=0.;
+
+
 	value[pos] = itsFunction(xval);
 	if( makePerturbed ) 
 	  {
@@ -100,9 +108,9 @@ void CompiledFunklet::do_evaluate (VellSet &vs,const Cells &cells,
   Vells::Shape res_shape;
   Axis::degenerateShape(res_shape,cells.rank());
   Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-  int ndim = itsFunction.ndim();
-
-  LoVec_double grid[ndim];
+  int ndim = Ndim;
+  int ndim2 = std::min(ndim,cells.rank());
+  LoVec_double grid[ndim2];
   if(ndim==0){
     //constant 
     if( makePerturbed )
@@ -135,9 +143,17 @@ void CompiledFunklet::do_evaluate (VellSet &vs,const Cells &cells,
   
 
       int iaxis = getAxis(i);
-      FailWhen(!cells.isDefined(iaxis),
-            "Meq::CompiledFunklet: axis " + Axis::axisId(iaxis).toString() + 
-            " is not defined in Cells");
+      //FailWhen(!cells.isDefined(iaxis),
+      //       "Meq::CompiledFunklet: axis " + Axis::axisId(iaxis).toString() + 
+      //" is not defined in Cells");
+      
+
+      if (!cells.isDefined(iaxis))
+	{
+	  cdebug(2)<<"Warning: axis "<<Axis::axisId(iaxis).toString()<<" is not defined in Cells, assume 0"<<endl;
+	  continue;
+	}
+
       //faster to multiply could be done init of course...
       //apply axis function here
       // if(_function_axis[i])

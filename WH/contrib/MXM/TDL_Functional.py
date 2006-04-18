@@ -150,10 +150,12 @@ class Functional:
         print print_str;
         return print_str;
 
-def create_polc(shape=[1,1],coeff=[]):
+def create_polc(shape=[1,1],coeff=None):
     """helper function,creates functional for polc with shape shape,
     you can initialize any parameters by specifying coeff, coeff will be assumed 0 for all missing """
     func=""
+    if coeff is None:
+        coeff=[];
     if len(shape)==1: 
         shape.append(1);
     if shape[0]==0:
@@ -174,6 +176,7 @@ def create_polc(shape=[1,1],coeff=[]):
                 func = func + '*'+ "x1";
             func = func + "+"
             startp=startp+1;
+            #print "createing polc",nr_par,coeff,i,j;
     #remove last +
   
     fstr= func[0:len(func)-1];  

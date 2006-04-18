@@ -93,6 +93,7 @@ class Funklet:
         axis = [];
         if shapex > 1 :
             axis.append("x0");
+            self._nx=1;
         if shapey > 1 :
             axis.append("x1");
             self._nx =2;
@@ -206,6 +207,8 @@ class Funklet:
     
 
     def get_data(self,cells=None):
+        if self.isConstant:
+            return array([self._constant]);
         if cells is None :
             return None;
         
@@ -300,6 +303,10 @@ class ComposedFunklet(Funklet):
         funk=funklet_list[0];
         self._name = funk._name;
         self._udi = funk._udi;
+        self.isConstant = False;
+        if len(self._funklet_list)==1 and funk.isConstant: 
+            self.isConstant = True;
+            self._constant = funk._constant;
 
         
 
