@@ -106,10 +106,36 @@ checkrun:
 
 # Rule to run test programs using valgrind's memcheck tool.
 memcheck:
-	make check CHECKTOOL='valgrind --tool=memcheck --num-callers=50 --leak-check=yes --track-fds=yes'
+	@$(RM) *.valgrind.*
+	make check CHECKTOOL='valgrind --tool=memcheck --num-callers=50 --leak-check=yes --track-fds=yes --log-file=[PROGNAME].valgrind'
+	@fils="*.valgrind.*"
+	@if [ "$fils" != "*.valgrind.*" ]; then \
+	  nrvg=`ls *.valgrind.* | wc -l`; \
+	  nrvg=`echo $$nrvg`; \
+	  echo ''; \
+	  echo "memcheck error summary from $$nrvg *.valgrind.* file(s)"; \
+	  echo '--------------------------------------------------'; \
+	  (grep "ERROR SUMMARY: " *.valgrind.* | grep -v " 0 errors ") || echo "No memory check errors"; \
+	  (grep "definitely lost: " *.valgrind.* | grep -v " 0 bytes ") || echo "No definite memory leaks"; \
+	  (grep "possibly lost: " *.valgrind.* | grep -v " 0 bytes ") || echo "No possible memory leaks"; \
+	  (grep " open file descriptor " *.valgrind.* | grep -v "descriptor [012]:") || echo "No file descriptor leaks"; \
+	fi
 
 memcheckrun:
-	make checkrun CHECKTOOL='valgrind --tool=memcheck --num-callers=50 --leak-check=yes --track-fds=yes' PGM="$(PGM)"
+	@$(RM) *.valgrind.*
+	make checkrun CHECKTOOL='valgrind --tool=memcheck --num-callers=50 --leak-check=yes --track-fds=yes --log-file=[PROGNAME].valgrind' PGM="$(PGM)"
+	@fils="*.valgrind.*"
+	@if [ "$fils" != "*.valgrind.*" ]; then \
+	  nrvg=`ls *.valgrind.* | wc -l`; \
+	  nrvg=`echo $$nrvg`; \
+	  echo ''; \
+	  echo "memcheck error summary from $$nrvg *.valgrind.* file(s)"; \
+	  echo '--------------------------------------------------'; \
+	  (grep "ERROR SUMMARY: " *.valgrind.* | grep -v " 0 errors ") || echo "No memory check errors"; \
+	  (grep "definitely lost: " *.valgrind.* | grep -v " 0 bytes ") || echo "No definite memory leaks"; \
+	  (grep "possibly lost: " *.valgrind.* | grep -v " 0 bytes ") || echo "No possible memory leaks"; \
+	  (grep " open file descriptor " *.valgrind.* | grep -v "descriptor [012]:") || echo "No file descriptor leaks"; \
+	fi
 
 
 # Rules for building documentation using doxygen or doc++.
