@@ -72,7 +72,8 @@ class TDLBoolOptionItem (TDLOptionItem):
       value = Config.getbool(symbol,default=value,section=config_section)
     except:
       _dprint(1,"error reading",symbol,"from config");
-      traceback.print_exc();
+      if _dbg.verbose > 0:
+        traceback.print_exc();
     _dprint(1,"read",symbol,"=",value,"from config");
     TDLOptionItem.__init__(self,namespace,symbol,value);
     
