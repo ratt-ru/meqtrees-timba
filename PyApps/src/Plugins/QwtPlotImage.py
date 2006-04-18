@@ -390,6 +390,7 @@ class QwtPlotImage(QwtPlotMappedItem):
 #           self.plot.setAxisScale(QwtPlot.xBottom, *xScale)
             temp_scale = (xScale[0],xScale[1])
             self.plot.setAxisScale(QwtPlot.xBottom, *temp_scale)
+            _dprint(3, 'xScale is ', xScale)
         else:
             self.xMap = QwtDiMap(0, shape0, 0, shape0 )
             self.plot.setAxisScale(QwtPlot.xBottom, 0, shape0)
@@ -421,9 +422,8 @@ class QwtPlotImage(QwtPlotMappedItem):
         if self.Qimage is None:
           return
 
-#       print 'in drawImage'
-#       print 'incoming x map ranges ',xMap.d1(), ' ', xMap.d2()
-#       print 'incoming y map ranges ',yMap.d1(), ' ', yMap.d2()
+        _dprint(3, 'incoming x map ranges ',xMap.d1(), ' ', xMap.d2())
+        _dprint(3, 'incoming y map ranges ',yMap.d1(), ' ', yMap.d2())
         # calculate y1, y2
         y1 = y2 = self.Qimage.height()
         _dprint(3, 'image height ', self.Qimage.height())
@@ -447,12 +447,12 @@ class QwtPlotImage(QwtPlotMappedItem):
 #       print 'starting image width ', x1
         x1 *= (xMap.d1() - self.xMap.d1())
         x1 /= (self.xMap.d2() - self.xMap.d1())
-#       print 'float x1 ', x1
+        _dprint(3, 'float x1 ', x1)
 #       x1 = max(0, int(x1-0.5))
         x1 = max(0, int(x1))
         x2 *= (xMap.d2() - self.xMap.d1())
         x2 /= (self.xMap.d2() - self.xMap.d1())
-#       print 'float x2 ', x2
+        _dprint(3, 'float x2 ', x2)
         x2 = min(self.Qimage.width(), int(x2+0.5))
         _dprint(3, 'int x1, x2 ', x1, ' ',x2)
         # copy

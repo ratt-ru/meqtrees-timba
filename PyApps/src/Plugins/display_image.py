@@ -1083,6 +1083,7 @@ class QwtImageDisplay(QwtPlot):
               xmax = max(self.xpos, e.pos().x())
               ymin = min(self.ypos, e.pos().y())
               ymax = max(self.ypos, e.pos().y())
+              #print 'zoom: raw xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
               if self.xTopAxisEnabled():
                 xmin_t = self.invTransform(QwtPlot.xTop, xmin)
                 xmax_t = self.invTransform(QwtPlot.xTop, xmax)
@@ -1093,27 +1094,31 @@ class QwtImageDisplay(QwtPlot):
               xmax = self.invTransform(QwtPlot.xBottom, xmax)
               ymin = self.invTransform(QwtPlot.yLeft, ymin)
               ymax = self.invTransform(QwtPlot.yLeft, ymax)
-            #print 'raw xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
+              #print 'zoom: transformed xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
               if not self.is_vector:
 # if we have a vells plot, adjust bounds of image display to be an integer
 # number of pixels
                 if self._vells_plot:
                   if not self.first_axis_inc is None:
-                    xmin = int((xmin + 0.5 * self.first_axis_inc) / self.first_axis_inc)
-                    xmax = int((xmax + 0.5 * self.first_axis_inc) / self.first_axis_inc)
-                    xmin = xmin * self.first_axis_inc
-                    xmax = xmax * self.first_axis_inc
+                    offset = int((xmin - self.vells_axis_parms[self.x_parm][0])/self.first_axis_inc)
+                    xmin = self.vells_axis_parms[self.x_parm][0] + offset * self.first_axis_inc
+                    offset = int((xmax + (0.5 * self.first_axis_inc) - self.vells_axis_parms[self.x_parm][0])/self.first_axis_inc)
+
+                    xmax = self.vells_axis_parms[self.x_parm][0] + offset * self.first_axis_inc
+
+#           delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
+#           self.second_axis_inc = delta_vells / plot_array.shape[1] 
                   if not self.second_axis_inc is None:
-                    ymin = int((ymin + 0.5 * self.second_axis_inc) / self.second_axis_inc)
-                    ymax = int((ymax + 0.5 * self.second_axis_inc) / self.second_axis_inc)
-                    ymin = ymin * self.second_axis_inc
-                    ymax = ymax * self.second_axis_inc
+                    offset = int((ymin + (0.5 * self.second_axis_inc) - self.vells_axis_parms[self.y_parm][0])/self.second_axis_inc)
+                    ymin = self.vells_axis_parms[self.y_parm][0] + offset * self.second_axis_inc
+                    offset = int((ymax - self.vells_axis_parms[self.y_parm][0])//self.second_axis_inc)
+                    ymax = self.vells_axis_parms[self.y_parm][0] + offset * self.second_axis_inc
                 else:
                     ymax = int (ymax)
                     ymin = int (ymin + 0.5)
                     xmax = int (xmax + 0.5)
                     xmin = int (xmin)
-            #print 'final xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
+              #print 'zoom: final xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
               if xmin == xmax or ymin == ymax:
                 return
               self.zoomStack.append(self.zoomState)
