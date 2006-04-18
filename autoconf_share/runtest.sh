@@ -89,7 +89,8 @@ if test -f "$srcdir/$1.in"; then
     \rm -f $1.in
     \cp $srcdir/$1.in  .
 fi
-\cp $srcdir/$1.in_* . > /dev/null 2>&1
+\rm -rf $1.in_*
+\cp -r $srcdir/$1.in_* . > /dev/null 2>&1
 if test -f "$srcdir/$1.stdout"; then
     \rm -f $1.stdout
     \cp $srcdir/$1.stdout .
@@ -123,5 +124,6 @@ $lfr_share_dir/assay $1 $MAXTIME $PREC
 STS=$?
 
 # Cleanup (mainly for make distcheck).
-\rm -f $1.stdout $1.run $1.in $1.parset $1.log_prop $1.in_*
+\rm -f $1.stdout $1.run $1.in $1.parset $1.log_prop
+\rm -rf $1.in_*
 exit $STS

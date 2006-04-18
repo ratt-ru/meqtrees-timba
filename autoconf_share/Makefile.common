@@ -89,25 +89,27 @@ checkrun:
 	@if [ "$(PGM)" = "" ] ; then \
 	   echo "Use as: make checkrun PGM=testprogram"; \
 	 else \
-	   srcdir=$(srcdir); export srcdir; \
+	   PGMT=; \
 	   for PGMVAR in $(PGM) ; \
 	   do \
-	     if make $$PGMVAR; then \
-	       PGMTST=$$PGMVAR; \
-	       if [ -f $(srcdir)/$$PGMVAR.sh ] ; then \
-	         PGMTST=$(srcdir)/$$PGMVAR.sh; \
-	       elif [ -f $(srcdir)/$$PGMVAR_test.sh ] ; then \
-	         PGMTST=$(srcdir)/$$PGMVAR_test.sh; \
-	       fi; \
-	       if $(TESTS_ENVIRONMENT) $$PGMTST; then \
-	         echo "  ** $$PGMTST succeeded **"; \
-	       else \
-	         echo "  ** $$PGMTST failed **"; \
-		 cat $$PGMVAR.log; \
-	       fi; \
+	     PGMTST=$$PGMVAR; \
+	     if [ -f $(srcdir)/$${PGMVAR}.sh ] ; then \
+	       PGMTST=$(srcdir)/$${PGMVAR}.sh; \
+	     elif [ -f $(srcdir)/$${PGMVAR}_test.sh ] ; then \
+	       PGMTST=$(srcdir)/$${PGMVAR}_test.sh; \
 	     fi; \
+	     PGMT="$$PGMT $$PGMTST"; \
 	   done; \
+	   echo "make check CHECKTOOL='$(CHECKTOOL)' check_PROGRAMS='$$PGM' TESTS='$$PGMT'"; \
+	   make check CHECKTOOL="$(CHECKTOOL)" check_PROGRAMS="$$PGM" TESTS="$$PGMT"; \
 	 fi
+
+# Rule to run test programs using valgrind's memcheck tool.
+memcheck:
+	make check CHECKTOOL='valgrind --tool=memcheck --num-callers=50 --leak-check=yes --track-fds=yes'
+
+memcheckrun:
+	make checkrun CHECKTOOL='valgrind --tool=memcheck --num-callers=50 --leak-check=yes --track-fds=yes' PGM="$(PGM)"
 
 
 # Rules for building documentation using doxygen or doc++.
@@ -175,7 +177,7 @@ build_system:
 	fi;
 
 # Show the important make variables.
-show_env:
+show:
 	@echo "CXX      = $(CXX)";
 	@echo "   `$(CXX) --version | head -1`";
 	@echo "CPPFLAGS = $(CPPFLAGS)";
@@ -184,3 +186,27 @@ show_env:
 	@echo "LIBS     = $(LIBS)";
 	@echo "MPIBIN   = $(MPIBIN)";
 	@echo "AIPSPP   = $(AIPSPP)";
+	@echo "prefix   = $(prefix)";
+
+help:
+	@echo "make targets";
+	@echo "------------";
+	@echo "show              show important make variables";
+	@echo "pgm               build test program pgm (in test directory)";
+	@echo "test              build all test programs";
+	@echo "check             build, run, and check all test programs";
+	@echo "check CHECKTOOL=  check test programs with a checktool (like valgrind)";
+	@echo "memcheck          check CHECKTOOL='valgrind --tool=memcheck"
+	@echo "                    --num-callers=50 --leak-check=yes --track-fds=yes'"
+	@echo "checkrun PGM=     build, run, and check given test program(s)";
+	@echo "memcheckrun PGM=  build, run, and memcheck given test program(s)";
+	@echo ""
+	@echo "file.o            make object file (in src or test directory)";
+	@echo "file.i            make preprocessed file";
+	@echo "file.s            make assembly file";
+	@echo "clean             remove object files, etc."
+	@echo "cleandist         remove almost everything; requires a new configure";
+	@echo "install           install package in $(prefix)";
+	@echo "dist              make a distribution";
+	@echo "distcheck         make and check a distribution";
+	@echo "rpm               make an rpm";
