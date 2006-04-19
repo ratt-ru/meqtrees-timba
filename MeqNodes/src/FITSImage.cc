@@ -28,7 +28,7 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
-//#define DEBUG
+#define DEBUG
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,6 +46,7 @@ typedef struct nlimits_ {
 		long int *lpix;
 		long int *hpix;
 		double tol;
+		int datatype;
 } nlims; /* struct to store array dimensions */
 int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
    int ncols, iteratorCol *cols, void *user_struct);
@@ -53,6 +54,11 @@ int get_min_max(long totalrows, long offset, long firstrow, long nrows,
    int ncols, iteratorCol *cols, void *user_struct);
 int read_fits_file(const char *infilename, double cutoff, double **myarr, long int *naxis, double **lgrid, double **mgrid, double **lspace, double **mspace,
 								double *ra0, double *dec0);
+
+typedef struct drange_ {
+		double lims[2]; /* min, max values */
+		int datatype;
+} drange; /* struct to store min, max limits of image, needs the data type used in the pixels as well */
 
 }/* extern C */
 
@@ -67,9 +73,9 @@ FITSImage::FITSImage()
 	: Node(0),cutoff_(0.1)
 {
 
-	//create 4 axes -- Freq is already present
-	Axis::addAxis("L"); //RA
-	Axis::addAxis("M"); //Dec
+	//create 2 new axes -- Freq is already present
+	Axis::addAxis("L"); //L
+	Axis::addAxis("M"); //M
 }
 
 //##ModelId=400E5355029D
@@ -134,14 +140,20 @@ int FITSImage::getResult (Result::Ref &resref,
 #endif
 
  Domain::Ref domain(new Domain());
- domain().defineAxis(Axis::FREQ,0,1);
+ //get the frequency from the request
+ const Cells &incells=request.cells();
+ const Domain &old_dom=incells.domain();
+ if (old_dom.isDefined(Axis::TIME))
+	domain().defineAxis(Axis::TIME, old_dom.start(Axis::TIME), old_dom.end(Axis::TIME));
+ if (old_dom.isDefined(Axis::FREQ))
+	domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
  domain().defineAxis(Axis::axis("L"),l_center(0)-l_space(0)/2,l_center(naxis[0]-1)+l_space(naxis[0]-1)/2);
  domain().defineAxis(Axis::axis("M"),m_center(0)-m_space(0)/2,m_center(naxis[1]-1)+m_space(naxis[1]-1)/2);
  Cells::Ref cells_ref;
  Cells &cells=cells_ref<<=new Cells(*domain);
 
  //axis, [left,right], segments
- cells.setCells(Axis::FREQ,0,1,naxis[3]);
+ cells.setCells(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ),naxis[3]);
  cells.setCells(Axis::axis("L"),l_center,l_space);
  cells.setCells(Axis::axis("M"),m_center,m_space);
 
@@ -247,13 +259,19 @@ int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
 
     /* declare counts static to preserve the values between calls */
 		/* so it traverses the whole array */
-    static float *counts;
+		static char *charp;
+		static short int *sintp;
+		static long int *lintp;
+		static float *fptr;
+		static double *dptr;
+
 		static double tmpval;
 		static long int pt,d1,d2,d3,d4;
     static long int xmin;
 		static long int ymin,xmax,ymax;
 
     nlims *arr_dims=(nlims*)user_struct;
+		int datatype=arr_dims->datatype;
     /*for (ii=0;ii<arr_dims->naxis;ii++) {
 			printf("%d %ld\n",ii,arr_dims->d[ii]);
 		}*/
@@ -270,7 +288,23 @@ int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
 			printf("%d %ld\n",ii,arr_dims->d[ii]);
 		}
        /* assign the input pointers to the appropriate arrays and null ptrs*/
-       counts   = (float *)  fits_iter_get_array(&cols[0]);
+    switch (datatype) {
+			case TBYTE:
+       charp= (char *)  fits_iter_get_array(&cols[0]);
+			 break;
+		  case TSHORT:
+       sintp= (short int*)  fits_iter_get_array(&cols[0]);
+       break;
+			case TLONG:
+       lintp= (long int*)  fits_iter_get_array(&cols[0]);
+       break;
+			case TFLOAT:
+       fptr= (float *)  fits_iter_get_array(&cols[0]);
+			 break;
+			case TDOUBLE:
+       dptr= (double *)  fits_iter_get_array(&cols[0]);
+			 
+		}
 			 /* initialize the limits */
 			 xmin=arr_dims->d[0];
 			 xmax=-1;
@@ -286,41 +320,194 @@ int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
     /*  NOTE: 1st element of array is the null pixel value!  */
     /*  Loop from 1 to nrows, not 0 to nrows - 1.  */
 
-    for (ii = 1; ii <= nrows; ii++)
-    {
-			//printf("arr =%f\n",counts[ii]);
-       //counts[ii] = 1.;
-			 tmpval=(double)counts[ii];
-			 if (arr_dims->tol<=fabs(tmpval)) {
-			  //printf("arr =%lf\n",tmpval);
-				/* calculate 4D coords */
-				pt=firstrow+ii-1;
-				//printf("coord point=%ld ",pt);
-				d4=pt/(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2]);
-				pt-=(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2])*d4;
-				d3=pt/(arr_dims->d[0]*arr_dims->d[1]);
-				pt-=(arr_dims->d[0]*arr_dims->d[1])*d3;
-				d2=pt/(arr_dims->d[0]);
-				pt-=(arr_dims->d[0])*d2;
-				d1=pt;
-				//printf("coords =(%ld,%ld,%ld,%ld)\n",d1,d2,d3,d4);
-				/* find current limit */
-				if (xmin>d1) {
-						xmin=d1;
-				}
-				if(xmax<d1) {
-					  xmax=d1;
-				}
-				if (ymin>d2) {
-						ymin=d2;
-				}
-				if(ymax<d2) {
-					  ymax=d2;
-				}
+    switch (datatype) {
+			case TBYTE:
+         for (ii = 1; ii <= nrows; ii++) {
+			     //printf("arr =%f\n",counts[ii]);
+           //counts[ii] = 1.;
+			     tmpval=(double)charp[ii];
+			     if (arr_dims->tol<=fabs(tmpval)) {
+			       //printf("arr =%lf\n",tmpval);
+				     /* calculate 4D coords */
+				     pt=firstrow+ii-1;
+				     //printf("coord point=%ld ",pt);
+				     d4=pt/(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2]);
+				     pt-=(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2])*d4;
+				     d3=pt/(arr_dims->d[0]*arr_dims->d[1]);
+				     pt-=(arr_dims->d[0]*arr_dims->d[1])*d3;
+				     d2=pt/(arr_dims->d[0]);
+				     pt-=(arr_dims->d[0])*d2;
+				     d1=pt;
+				     //printf("coords =(%ld,%ld,%ld,%ld)\n",d1,d2,d3,d4);
+				     /* find current limit */
+				     if (xmin>d1) {
+						    xmin=d1;
+				     }
+				     if(xmax<d1) {
+					      xmax=d1;
+				     }
+				     if (ymin>d2) {
+						    ymin=d2;
+				     }
+				     if(ymax<d2) {
+					      ymax=d2;
+				     }
 			
-			 }
+			    }
 
-    }
+       }
+			 break;
+
+			case TSHORT:
+         for (ii = 1; ii <= nrows; ii++) {
+			     //printf("arr =%f\n",counts[ii]);
+           //counts[ii] = 1.;
+			     tmpval=(double)sintp[ii];
+			     if (arr_dims->tol<=fabs(tmpval)) {
+			       //printf("arr =%lf\n",tmpval);
+				     /* calculate 4D coords */
+				     pt=firstrow+ii-1;
+				     //printf("coord point=%ld ",pt);
+				     d4=pt/(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2]);
+				     pt-=(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2])*d4;
+				     d3=pt/(arr_dims->d[0]*arr_dims->d[1]);
+				     pt-=(arr_dims->d[0]*arr_dims->d[1])*d3;
+				     d2=pt/(arr_dims->d[0]);
+				     pt-=(arr_dims->d[0])*d2;
+				     d1=pt;
+				     //printf("coords =(%ld,%ld,%ld,%ld)\n",d1,d2,d3,d4);
+				     /* find current limit */
+				     if (xmin>d1) {
+						    xmin=d1;
+				     }
+				     if(xmax<d1) {
+					      xmax=d1;
+				     }
+				     if (ymin>d2) {
+						    ymin=d2;
+				     }
+				     if(ymax<d2) {
+					      ymax=d2;
+				     }
+			
+			    }
+
+       }
+			 break;
+
+			case TLONG:
+         for (ii = 1; ii <= nrows; ii++) {
+			     //printf("arr =%f\n",counts[ii]);
+           //counts[ii] = 1.;
+			     tmpval=(double)lintp[ii];
+			     if (arr_dims->tol<=fabs(tmpval)) {
+			       //printf("arr =%lf\n",tmpval);
+				     /* calculate 4D coords */
+				     pt=firstrow+ii-1;
+				     //printf("coord point=%ld ",pt);
+				     d4=pt/(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2]);
+				     pt-=(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2])*d4;
+				     d3=pt/(arr_dims->d[0]*arr_dims->d[1]);
+				     pt-=(arr_dims->d[0]*arr_dims->d[1])*d3;
+				     d2=pt/(arr_dims->d[0]);
+				     pt-=(arr_dims->d[0])*d2;
+				     d1=pt;
+				     //printf("coords =(%ld,%ld,%ld,%ld)\n",d1,d2,d3,d4);
+				     /* find current limit */
+				     if (xmin>d1) {
+						    xmin=d1;
+				     }
+				     if(xmax<d1) {
+					      xmax=d1;
+				     }
+				     if (ymin>d2) {
+						    ymin=d2;
+				     }
+				     if(ymax<d2) {
+					      ymax=d2;
+				     }
+			
+			    }
+
+       }
+			 break;
+
+			case TFLOAT:
+         for (ii = 1; ii <= nrows; ii++) {
+			     //printf("arr =%f\n",counts[ii]);
+           //counts[ii] = 1.;
+			     tmpval=(double)fptr[ii];
+			     if (arr_dims->tol<=fabs(tmpval)) {
+			       //printf("arr =%lf\n",tmpval);
+				     /* calculate 4D coords */
+				     pt=firstrow+ii-1;
+				     //printf("coord point=%ld ",pt);
+				     d4=pt/(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2]);
+				     pt-=(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2])*d4;
+				     d3=pt/(arr_dims->d[0]*arr_dims->d[1]);
+				     pt-=(arr_dims->d[0]*arr_dims->d[1])*d3;
+				     d2=pt/(arr_dims->d[0]);
+				     pt-=(arr_dims->d[0])*d2;
+				     d1=pt;
+				     //printf("coords =(%ld,%ld,%ld,%ld)\n",d1,d2,d3,d4);
+				     /* find current limit */
+				     if (xmin>d1) {
+						    xmin=d1;
+				     }
+				     if(xmax<d1) {
+					      xmax=d1;
+				     }
+				     if (ymin>d2) {
+						    ymin=d2;
+				     }
+				     if(ymax<d2) {
+					      ymax=d2;
+				     }
+			
+			    }
+
+       }
+			 break;
+
+			case TDOUBLE:
+         for (ii = 1; ii <= nrows; ii++) {
+			     //printf("arr =%f\n",counts[ii]);
+           //counts[ii] = 1.;
+			     tmpval=(double)dptr[ii];
+			     if (arr_dims->tol<=fabs(tmpval)) {
+			       //printf("arr =%lf\n",tmpval);
+				     /* calculate 4D coords */
+				     pt=firstrow+ii-1;
+				     //printf("coord point=%ld ",pt);
+				     d4=pt/(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2]);
+				     pt-=(arr_dims->d[0]*arr_dims->d[1]*arr_dims->d[2])*d4;
+				     d3=pt/(arr_dims->d[0]*arr_dims->d[1]);
+				     pt-=(arr_dims->d[0]*arr_dims->d[1])*d3;
+				     d2=pt/(arr_dims->d[0]);
+				     pt-=(arr_dims->d[0])*d2;
+				     d1=pt;
+				     //printf("coords =(%ld,%ld,%ld,%ld)\n",d1,d2,d3,d4);
+				     /* find current limit */
+				     if (xmin>d1) {
+						    xmin=d1;
+				     }
+				     if(xmax<d1) {
+					      xmax=d1;
+				     }
+				     if (ymin>d2) {
+						    ymin=d2;
+				     }
+				     if(ymax<d2) {
+					      ymax=d2;
+				     }
+			
+			    }
+
+       }
+			 break;
+
+
+		}
     //printf("cols =%d, starting row=%ld, nrows = %ld\n", ncols, firstrow, nrows);
     //printf("limit (%ld,%ld)---(%ld,%ld)\n",xmin,ymin,xmax,ymax); 
 		/* set the current limit */
@@ -346,27 +533,82 @@ int get_min_max(long totalrows, long offset, long firstrow, long nrows,
 		static double tmpval;
 		int ii;
 
-    double *xylims=(double*)user_struct;
-    static float *counts;
+    drange *xylims=(drange *)user_struct;
+		static char *charp;
+		static short int *sintp;
+		static long int *lintp;
+		static float *fptr;
+		static double *dptr;
+	  int		datatype=xylims->datatype;
+
+
     if (firstrow == 1)
     {
        if (ncols != 1)
            return(-1);  /* number of columns incorrect */
        /* assign the input pointers to the appropriate arrays and null ptrs*/
-       counts   = (float *)  fits_iter_get_array(&cols[0]);
+    switch (datatype) {
+			case TBYTE:
+       charp= (char *)  fits_iter_get_array(&cols[0]);
+			 break;
+		  case TSHORT:
+       sintp= (short int*)  fits_iter_get_array(&cols[0]);
+       break;
+			case TLONG:
+       lintp= (long int*)  fits_iter_get_array(&cols[0]);
+       break;
+			case TFLOAT:
+       fptr= (float *)  fits_iter_get_array(&cols[0]);
+			 break;
+			case TDOUBLE:
+       dptr= (double *)  fits_iter_get_array(&cols[0]);
+			 
+		}
 
 		min_val=1e6;
 		max_val=-1e6;
     }
 
-    for (ii = 1; ii <= nrows; ii++) {
-			 tmpval=(double)counts[ii];
-		   if (min_val>tmpval) min_val=tmpval;
-		   if (max_val<tmpval) max_val=tmpval;
-    }
+   switch (datatype) {
+			case TBYTE:
+        for (ii = 1; ii <= nrows; ii++) {
+			    tmpval=(double)charp[ii];
+		      if (min_val>tmpval) min_val=tmpval;
+		      if (max_val<tmpval) max_val=tmpval;
+        }
+				break;
+		  case TSHORT:
+        for (ii = 1; ii <= nrows; ii++) {
+			    tmpval=(double)sintp[ii];
+		      if (min_val>tmpval) min_val=tmpval;
+		      if (max_val<tmpval) max_val=tmpval;
+        }
+				break;
+			case TLONG:
+        for (ii = 1; ii <= nrows; ii++) {
+			    tmpval=(double)lintp[ii];
+		      if (min_val>tmpval) min_val=tmpval;
+		      if (max_val<tmpval) max_val=tmpval;
+        }
+				break;
+			case TFLOAT:
+        for (ii = 1; ii <= nrows; ii++) {
+			    tmpval=(double)fptr[ii];
+		      if (min_val>tmpval) min_val=tmpval;
+		      if (max_val<tmpval) max_val=tmpval;
+        }
+				break;
+			case TDOUBLE:
+        for (ii = 1; ii <= nrows; ii++) {
+			    tmpval=(double)dptr[ii];
+		      if (min_val>tmpval) min_val=tmpval;
+		      if (max_val<tmpval) max_val=tmpval;
+        }
+				break;
+	 }
 
-		xylims[0]=min_val;
-		xylims[1]=max_val;
+		xylims->lims[0]=min_val;
+		xylims->lims[1]=max_val;
 		return 0;
 }
  
@@ -388,7 +630,8 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
     int n_cols;
     long rows_per_loop, offset;
 		nlims arr_dims;
-		double arr_limits[2];
+		drange arr_limits;
+		//double arr_limits[2];
 
     int status;
 		int naxis;
@@ -456,9 +699,6 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
 
 
-
-
-
 		fits_get_img_dim(fptr, &naxis, &status);
 		if ((arr_dims.d=(long int*)calloc((size_t)naxis,sizeof(long int)))==0) {
 			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
@@ -517,13 +757,14 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
     offset = 0;         /* process all the rows */
 
 		/* determine limits of image data */
+		arr_limits.datatype=datatype;
     fits_iterate_data(n_cols, cols, offset, rows_per_loop,
                       get_min_max, (void*)&arr_limits, &status);
 
 #ifdef DEBUG
-		printf("Limits Min %lf, Max %lf\n",arr_limits[0],arr_limits[1]);
+		printf("Limits Min %lf, Max %lf\n",arr_limits.lims[0],arr_limits.lims[1]);
 #endif
-		arr_dims.tol=cutoff*(arr_limits[1]-arr_limits[0])+arr_limits[0];
+		arr_dims.tol=cutoff*(arr_limits.lims[1]-arr_limits.lims[0])+arr_limits.lims[0];
     /* apply the rate function to each row of the table */
 #ifdef DEBUG
     printf("Calling iterator function...%d\n", status);
@@ -531,6 +772,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
     rows_per_loop = 0;  /* use default optimum number of rows */
     offset = 0;         /* process all the rows */
+		arr_dims.datatype=datatype;
     fits_iterate_data(n_cols, cols, offset, rows_per_loop,
                       zero_image_float, (void*)&arr_dims, &status);
 
@@ -622,20 +864,6 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 			return 1;
 		}
 
-/*		for (ii=0; ii<ncoord;ii++) {
-  	 if ((pixelc[ii]=(double*)calloc((size_t)wcs->naxis,sizeof(double)))==0) {
-			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
-			return 1;
-		 }
-  	 if ((imgc[ii]=(double*)calloc((size_t)wcs->naxis,sizeof(double)))==0) {
-			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
-			return 1;
-		 }
-  	 if ((worldc[ii]=(double*)calloc((size_t)wcs->naxis,sizeof(double)))==0) {
-			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
-			return 1;
-		 }
-		} */
 		/* fill up the pixel coordinate array */
     kk=0;
     for (ii=arr_dims.lpix[0];ii<=arr_dims.hpix[0];ii++)
