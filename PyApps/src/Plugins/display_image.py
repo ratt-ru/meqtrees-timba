@@ -431,6 +431,8 @@ class QwtImageDisplay(QwtPlot):
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
         _dprint(3, 'calling display_image')
         if self.is_vector:
+          # make sure we unzoom as axes will probably change drastically
+          self.reset_zoom()
           self.array_plot(self._window_title, self.complex_image, False)
         else:
           self.adjust_color_bar = True
