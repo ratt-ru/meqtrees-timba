@@ -300,22 +300,22 @@ def create_node_stub(mydict,stubs,ns,myname):
    else:
     if (kname=='init_funklet'):
      if krec['type']=='meqpolclog':
-      irec_str=irec_str+" "+"init_funklet="+"meq.polclog(default_funklet_value),"
+      irec_str=irec_str+" "+"init_funklet="+"default_funklet_value,"
       # deserialize the value
       default_funklet_value=krec['funk']
       #print dir(default_funklet_value)
      else:# assume to be a meqpolc()
-      irec_str=irec_str+" "+"init_funklet="+"meq.polc(default_funklet_value),"
+      irec_str=irec_str+" "+"init_funklet="+"default_funklet_value,"
       # deserialize the value
       default_funklet_value=krec['funk']
     elif (kname=='funklet'):
      if krec['type']=='meqpolclog':
-      irec_str=irec_str+" "+"funklet="+"meq.polclog(default_funklet_value),"
+      irec_str=irec_str+" "+"funklet="+"default_funklet_value,"
       # deserialize the value
       default_funklet_value=krec['funk']
       #print dir(default_funklet_value)
      else:# assume to be a meqpolc()
-      irec_str=irec_str+" "+"funklet="+"meq.polc(default_funklet_value),"
+      irec_str=irec_str+" "+"funklet="+"default_funklet_value,"
       # deserialize the value
       default_funklet_value=krec['funk']
  
@@ -357,6 +357,7 @@ def is_meqpolc(obj):
 
 def serialize_funklet(fnklt):
  #print fnklt
+ return fnklt
  coeff=fnklt['coeff'] # this is a numarray
  if coeff.size()>1:
   return coeff.tolist()
