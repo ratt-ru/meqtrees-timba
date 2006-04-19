@@ -184,7 +184,7 @@ int FITSImage::getResult (Result::Ref &resref,
  //create 3D vells Time=1,Freq,L,M
  Vells &out=vs.setValue(new Vells(0.0,shape));
  vs.setShape(shape);
- //select all 3 axes of the output (slice through axes 1,2,3,4)
+ //select all 3 axes of the output (slice through axes 1,2,3)
  VellsSlicer<double,3> slout(out,1,2,3);
  //copy A to the time slice of varr
  slout=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),0);
@@ -357,9 +357,9 @@ int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
 
 			case TSHORT:
          for (ii = 1; ii <= nrows; ii++) {
-			     //printf("arr =%f\n",counts[ii]);
            //counts[ii] = 1.;
 			     tmpval=(double)sintp[ii];
+			     //printf("arr =%lf\n",tmpval);
 			     if (arr_dims->tol<=fabs(tmpval)) {
 			       //printf("arr =%lf\n",tmpval);
 				     /* calculate 4D coords */
@@ -577,6 +577,7 @@ int get_min_max(long totalrows, long offset, long firstrow, long nrows,
 		  case TSHORT:
         for (ii = 1; ii <= nrows; ii++) {
 			    tmpval=(double)sintp[ii];
+					//printf("%lf==%d\n",tmpval,sintp[ii]);
 		      if (min_val>tmpval) min_val=tmpval;
 		      if (max_val<tmpval) max_val=tmpval;
         }
@@ -606,6 +607,9 @@ int get_min_max(long totalrows, long offset, long firstrow, long nrows,
 
 		xylims->lims[0]=min_val;
 		xylims->lims[1]=max_val;
+#ifdef DEBUG
+		printf("min_max: min=%lf max=%lf\n",min_val,max_val);
+#endif
 		return 0;
 }
  
@@ -692,8 +696,18 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		}
 
 	  /* Print the struct. */
+#ifdef DEBUG
 	  if (status = wcsprt(wcs)) return status;
+#endif
 
+    //read scaling parameters
+    //fits_read_key(fptr, TDOUBLE, "BSCALE", &bscale_in, NULL, &status);
+    //fits_read_key(fptr, TDOUBLE, "BZERO", &bzero_in, NULL, &status);
+		//printf("Bscale=%lf Bzero=%lf\n",bscale_in,bzero_in);
+
+		/* turn off scaling so that we copy the pixel values */
+		bscale=1.0; bzero=0.0;
+    fits_set_bscale(fptr,  bscale, bzero, &status);
 
 
 		fits_get_img_dim(fptr, &naxis, &status);
@@ -753,6 +767,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
     rows_per_loop = 0;  /* use default optimum number of rows */
     offset = 0;         /* process all the rows */
 
+
 		/* determine limits of image data */
 		arr_limits.datatype=datatype;
     fits_iterate_data(n_cols, cols, offset, rows_per_loop,
@@ -761,11 +776,21 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 #ifdef DEBUG
 		printf("Limits Min %lf, Max %lf\n",arr_limits.lims[0],arr_limits.lims[1]);
 #endif
-		arr_dims.tol=cutoff*(arr_limits.lims[1]-arr_limits.lims[0])+arr_limits.lims[0];
+		arr_dims.tol=(1-cutoff)*(arr_limits.lims[1]-arr_limits.lims[0])+arr_limits.lims[0];
+		/* need to transfer this to real value in the FITS file */
+		/* using the inverse scaling , zero */
+#ifdef DEBUG
+		printf("cutoff for %lfx100 %% is %lf\n",cutoff,arr_dims.tol);
+#endif
     /* apply the rate function to each row of the table */
 #ifdef DEBUG
     printf("Calling iterator function...%d\n", status);
 #endif
+
+		/* turn off scaling so that we copy the pixel values */
+		//bscale=1.0; bzero=0.0;
+    //fits_set_bscale(fptr,  bscale, bzero, &status);
+
 
     rows_per_loop = 0;  /* use default optimum number of rows */
     offset = 0;         /* process all the rows */
@@ -812,7 +837,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
      *(arr_dims.hpix[3]-arr_dims.lpix[3]+1));
 
 #ifdef DEBUG
-		printf("writing %ld pixels\n",totalpix);
+		printf("selecting %ld pixels\n",totalpix);
 #endif
 		
 		if ((*myarr=(double*)calloc((size_t)totalpix,sizeof(double)))==0) {
@@ -821,8 +846,8 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		}
 
 		/* turn off scaling so that we copy the pixel values */
-		bscale=1.0; bzero=0.0;
-    fits_set_bscale(fptr,  bscale, bzero, &status);
+		//bscale=1.0; bzero=0.0;
+    //fits_set_bscale(fptr,  bscale, bzero, &status);
 
 		/* read the subset increment=[1,1,1,..]*/
 		fits_read_subset(fptr, TDOUBLE, arr_dims.lpix, arr_dims.hpix, increment,
