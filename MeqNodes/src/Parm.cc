@@ -22,14 +22,9 @@
 
 
 #include <MeqNodes/Parm.h>
-#include <MEQ/ComposedPolc.h>
-#include <MEQ/Polc.h>
-#include <MEQ/PolcLog.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
-#include <MEQ/MeqVocabulary.h>
-#include <MeqNodes/AID-MeqNodes.h>
 #include <TimBase/Debug.h>
 #include <TimBase/Lorrays.h>
 #include <casa/BasicMath/Math.h>
@@ -53,25 +48,6 @@ namespace Meq {
   const HIID symdeps_solve[]   = { FIteration,FState };
   const HIID symdeps_default[] = { FDataset,FDomain,FResolution };
 
-  const HIID
-  // Parm staterec fields
-    FSolvable        = AidSolvable,
-    FTableName       = AidTable|AidName,
-    FParmName        = AidParm|AidName,
-    FAutoSave        = AidAuto|AidSave,
-    FDomainId        = AidDomain|AidId,
-  // FDomain      defined previously
-    FFunklet         = AidFunklet,
-    FDefaultFunklet  = AidDefault|AidFunklet,
-    FDefaultValue  = AidDefault|AidValue,
-    FSolveDomain = AidSolve|AidDomain,
-    FUsePrevious = AidUse|AidPrevious,
-    FTileSize = AidTile|AidSize,
-    FTiling = AidTiling,
-    FInitFunklet  = AidInit|AidFunklet,
-    FConverged  = AidConverged,
-    FSaveAll  = AidSave|AidAll,
-    FResetFunklet = AidReset|AidFunklet;
   
     
 
@@ -104,7 +80,10 @@ namespace Meq {
 
   //##ModelId=3F86886F021E
   Parm::~Parm()
-  {}
+  {
+    if(parmtable_)
+      closeTable();
+  }
 
 
   Funklet * Parm::findRelevantFunklet (Funklet::Ref &funkletref,const Domain &domain)
@@ -115,49 +94,10 @@ namespace Meq {
     funkletref.detach();
     if( parmtable_ )
       {
-	//reimplement different function for (non)solvable
-	vector<Funklet::Ref> funklets;
-#ifdef HAVE_PARMDB	    
-	int n=0;
-#else
-	parmtable_ = ParmTable::openTable(parmtable_name_);
-	int n = parmtable_->getFunklets(funklets,name_,domain);
-#endif
-	
-	cdebug(3)<<n<<" funklets found in MEP table"<<endl;
-	if( n>1 )
-	  {
-	    cdebug(3)<<"discarding multiple funklets as only one is currently suported, unless ? "<<(!isSolvable()||tiled_)<< "= true "<<endl;
-	    if(!reset_funklet_ && (tiled_ || !isSolvable()) ){
-	      funkletref <<=new ComposedPolc(funklets);
-	      cdebug(3)<<"composed funklet found? "<<funkletref-> objectType()<<endl;
-	      funkletref().setDomain(domain);
-	      if(force_shape_)
-		funkletref().setCoeffShape(shape_);
+	Funklet *pfunklet = getFunkletFromDB(funkletref,domain);
+	if (pfunklet && !reset_funklet_) 
+	  return pfunklet;
 
-	      return funkletref.dewr_p();
-	    }
-	  }
-	if( n )
-	  {
-	    //get the one with best fitting domain....
-	    funkletref <<= funklets.front();
-	    
-	    //reset dbid if funklet domain not matching 
-	    if(funkletref->domain().start(0)!=domain.start(0) || funkletref->domain().start(1)!=domain.start(1) ||
-	       funkletref->domain().end(0)!=domain.end(0) || funkletref->domain().end(1)!=domain.end(1))
-	      {
-		cdebug(3)<<" resetting dbid" <<funkletref->domain().start(0)<<" == "<<domain.start(0)<<endl;
-		cdebug(3)<<funkletref->domain().start(1)<<" == "<<domain.start(1)<<endl;
-		cdebug(3)<<funkletref->domain().end(1)<<" == "<<domain.end(1)<<endl;
-		cdebug(3)<<funkletref->domain().end(1)<<" == "<<domain.end(1)<<endl;
-		funkletref(). setDbId (-1);
-		funkletref().setDomain(domain);
-	      }
-	    if(force_shape_)
-	      funkletref().setCoeffShape(shape_);
-	    if (!reset_funklet_) return funkletref.dewr_p();
-	  }
       }
     else
       {
@@ -171,16 +111,7 @@ namespace Meq {
     if( !funkletref.valid())
       {
 	if( parmtable_ )
-	  {
-	    //MMMM change for parmdb
-#ifdef HAVE_PARMDB	    
-	    int n=0;
-#else
-	    parmtable_ = ParmTable::openTable(parmtable_name_);
-	    int n = parmtable_->getInitCoeff(funkletref,name_);
-#endif
-	    cdebug(3)<<"looking for funklets in defaults subtable: "<<n<<endl;
-	  }
+	  getDefaultFromDB(funkletref);
 	if( !funkletref.valid())
 	  {
 	    
@@ -606,36 +537,6 @@ namespace Meq {
   }
 
 
-  void Parm::save()
-  {
-#ifdef HAVE_PARMDB	    
-    return;
-#else
-    if( !parmtable_ )
-      return;
-
-    if( !its_funklet_.valid() ) 
-      return;
-    parmtable_ = ParmTable::openTable(parmtable_name_);
-
-    if(its_funklet_->objectType()==TpMeqComposedPolc){
-      DMI::List *funklist = its_funklet_()[FFunkletList].as_wpo<DMI::List>();
-      if(!funklist) return;
-      int nr_funk=funklist->size();
-      cdebug(2)<<"saving "<<nr_funk<<" funklets"<<endl;
-      for (int ifunk=0;ifunk<nr_funk;ifunk++)
-	{
-	  Funklet::Ref partfunk = funklist->get(ifunk);
-	  parmtable_->putCoeff1(name_,partfunk,false);
-	  cdebug(4)<<" put in database "<<partfunk->getDbId()<<endl;
- 	  funklist->replace(ifunk,partfunk);
-	}
-    }
-    else
-      parmtable_->putCoeff1(name_,its_funklet_,false);
-#endif
-
-  }
 
   void Parm::setStateImpl (DMI::Record::Ref& rec, bool initializing)
   {
@@ -724,7 +625,9 @@ namespace Meq {
 
     if(rec->hasField(FShape)){
 	 std::vector<int> shape;    
-	 rec[FShape].get_vector(shape,initializing);
+	 FailWhen( !rec[FShape].get_vector(shape,initializing),
+		   "shape should be a vector");
+
 	 if(!(shape.size())) return;
 	 if(shape.size()>1)
 	   shape_=LoShape(shape[0],shape[1]);
@@ -763,14 +666,10 @@ namespace Meq {
 	}
 	else    // else open a table
 	  {
-	    cdebug(2)<<"opening table: "<<parmtable_name_<<endl;
-	    //check if table exists, otherwise create.
-	    //MMMM: change to new tableinterface...wait fo rbetter defaults??
-#ifdef HAVE_PARMDB	    
-	    parmtable_ = new  LOFAR::ParmDB::ParmDB(LOFAR::ParmDB::ParmDBMeta("aips",parmtable_name_));
-#else
-	    parmtable_ = ParmTable::openTable(parmtable_name_);
-#endif
+
+	    openTable();
+
+
 	  }
       }//if rec[TableName]
     
@@ -890,12 +789,7 @@ namespace Meq {
   {
     string out = Node::sdebug(detail,prefix,nm);
     if( detail>=2 || detail == -2) {
-#ifdef HAVE_PARMDB
-      Debug::appendf(out,"  parmtable=%s", parmtable_->getParmDBMeta().getTableName().c_str());
-      
-#else
-      Debug::appendf(out,"  parmtable=%s", parmtable_->name().c_str());
-#endif
+      Debug::appendf(out,"  parmtable=%s", parmtable_name_.c_str());
     }
     return out;
   }

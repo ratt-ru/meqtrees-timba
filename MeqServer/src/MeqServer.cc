@@ -5,10 +5,13 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
+
+#ifndef HAVE_PARMDB
 #include <MeqNodes/ParmTable.h>
+#endif
+
 #include <DMI/BOIO.h>
 #include <DMI/List.h>
-#include <MeqNodes/ParmTable.h>
 #include <MeqServer/MeqPython.h>
 #include <MeqServer/Sink.h>
 #include <MeqServer/Spigot.h>
@@ -387,7 +390,9 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
   try
   {
     // close all parm tables to free up memory
+#ifndef HAVE_PARMDB
     ParmTable::closeTables();
+#endif
     forest.clearAbortFlag();
     DMI::Record::Ref rec = in;
     bool getstate;
@@ -568,7 +573,9 @@ void MeqServer::clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
   forest.clear();
 // ****
 // **** added this to relinquish parm tables --- really ought to go away
+#ifndef HAVE_PARMDB
   ParmTable::closeTables();
+#endif
 // ****
   out[AidMessage] = "all nodes deleted";
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
@@ -1070,7 +1077,9 @@ void MeqServer::run ()
   // clear the forest
   forest.clear();
   // close any parm tables
+#ifndef HAVE_PARMDB
   ParmTable::closeTables();
+#endif
   // close control channel
   control().close();
   // destroy python interface

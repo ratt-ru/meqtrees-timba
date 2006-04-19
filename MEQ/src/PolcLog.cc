@@ -12,32 +12,19 @@ namespace Meq {
   PolcLog::PolcLog()
   {
     (*this)[FClass]=objectType().toString();
+
+    axis_vector_.resize(Axis::MaxAxis);
     axis_vector_[0]=axis_vector_[1]=1;
 
     for(int i=2;i<Axis::MaxAxis;i++)
       axis_vector_[i]=0;
 
-    Field * fld = Record::findField(FAxisList);
-    DMI::Record::Ref *axisArray = (fld) ? &(fld->ref.ref_cast<DMI::Record>()) : 0;
-    if(axisArray){
-      for(int i=0;i<Axis::MaxAxis;i++){
-	axis_vector_[i]=0;
-	(*axisArray)[Axis::axisId(i)].get(axis_vector_[i],0);
-	
-      }
-    }
-    else
-      {
-	DMI::Record & axisArrayL =(*this)[FAxisList]<<= new DMI::Record();
-	axisArrayL[Axis::axisId(0)]=1;
-	axisArrayL[Axis::axisId(1)]=1;
-	(*this)[FAxisList]= axisArrayL;
-      }
   }
 
   PolcLog::PolcLog (const DMI::Record  &other,int flags,int depth): Polc(other,flags,depth){
     //    scale0=1.;
-    (*this)[FClass]=objectType().toString();
+   (*this)[FClass]=objectType().toString();
+    axis_vector_.resize(Axis::MaxAxis);
     axis_vector_[0]=axis_vector_[1]=1;
 
     for(int i=2;i<Axis::MaxAxis;i++)
@@ -49,7 +36,7 @@ namespace Meq {
       for(int i=0;i<Axis::MaxAxis;i++){
 	axis_vector_[i]=0;
 	(*axisArray)[Axis::axisId(i)].get(axis_vector_[i],0);
-	
+
       }
     }
     else
@@ -62,8 +49,9 @@ namespace Meq {
    }
 
   PolcLog::PolcLog (const PolcLog &other,int flags,int depth): Polc(other,flags,depth){
-    (*this)[FClass]=objectType().toString();
-     axis_vector_[0]=axis_vector_[1]=1;
+     (*this)[FClass]=objectType().toString();
+    axis_vector_.resize(Axis::MaxAxis);
+    axis_vector_[0]=axis_vector_[1]=1;
 
     for(int i=2;i<Axis::MaxAxis;i++)
       axis_vector_[i]=0;
@@ -90,7 +78,7 @@ namespace Meq {
   PolcLog::PolcLog(const LoVec_double &coeff,
 	     int iaxis,double x0,double xsc,
 		   double pert,double weight,DbId id,std::vector<double> scale_vector)
-    : Polc(coeff,iaxis,x0,xsc,pert,weight,id)
+    : Polc(coeff,iaxis,x0,xsc,pert,weight,id),axis_vector_(scale_vector)
   {
     (*this)[FClass]=objectType().toString();
     int size = scale_vector.size()-1;
@@ -103,7 +91,7 @@ namespace Meq {
   PolcLog::PolcLog(const LoMat_double &coeff,
            const int iaxis[],const double offset[],const double scale[],
 	     double pert,double weight,DbId id,std::vector<double> scale_vector)
-    : Polc(coeff,iaxis,offset,scale,pert,weight,id)
+    : Polc(coeff,iaxis,offset,scale,pert,weight,id),axis_vector_(scale_vector)
   {
     (*this)[FClass]=objectType().toString();
     int size = scale_vector.size()-1;
@@ -116,8 +104,9 @@ namespace Meq {
   PolcLog::PolcLog(DMI::NumArray *pcoeff,
 	     const int iaxis[],const double offset[],const double scale[],
 		   double pert,double weight,DbId id,std::vector<double> scale_vector)
-    : Polc(pcoeff,iaxis,offset,scale,pert,weight,id)
+    : Polc(pcoeff,iaxis,offset,scale,pert,weight,id),axis_vector_(scale_vector)
   {
+
     (*this)[FClass]=objectType().toString();
     int size = scale_vector.size()-1;
     if(size<0) return;
@@ -126,7 +115,27 @@ namespace Meq {
       axisArrayL[Axis::axisId(i)]=scale_vector[std::min(size,i)];
   }
     
+  void PolcLog::validateContent (bool recursive){
 
+    Field * fld = Record::findField(FAxisList);
+    DMI::Record::Ref *axisArray = (fld) ? &(fld->ref.ref_cast<DMI::Record>()) : 0;
+    if(axisArray){
+       for(int i=0;i<Axis::MaxAxis;i++){
+	axis_vector_[i]=0;
+	(*axisArray)[Axis::axisId(i)].get(axis_vector_[i],0);
+	
+      }
+    }
+    else
+      {
+	DMI::Record & axisArrayL =(*this)[FAxisList]<<= new DMI::Record();
+	axisArrayL[Axis::axisId(0)]=1;
+	axisArrayL[Axis::axisId(1)]=1;
+	(*this)[FAxisList]= axisArrayL;
+      }
+    if(recursive)
+      Funklet::validateContent(recursive);
+  }
 
   void PolcLog::axis_function(int axis, LoVec_double &grid) const
   {

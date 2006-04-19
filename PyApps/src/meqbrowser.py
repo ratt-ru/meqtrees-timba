@@ -37,6 +37,7 @@ importPlugin('result_plotter');
 importPlugin('history_plotter');
 importPlugin('parm_plotter');
 importPlugin('parmfiddler');
+importPlugin('TableInspector');
 importPlugin('stream_control');
 
 #-------- update default debuglevels

@@ -1,11 +1,11 @@
 dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
-AC_INIT(src/Makefile.am)
+AC_INIT
 dnl AC_CONFIG_AUX_DIR(config)
 dnl AM_CONFIG_HEADER(config/config.h)
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(MeqNodes, 0.1)
+AM_INIT_AUTOMAKE(PyApps, 0.1)
 
 dnl Initialize for LOFAR (may set compilers)
 lofar_INIT
@@ -18,7 +18,6 @@ AC_PROG_CXX
 AM_PROG_LEX
 AC_PROG_INSTALL
 AC_PROG_LN_S
-AC_DISABLE_SHARED
 AC_PROG_LIBTOOL
 
 dnl Checks for libraries.
@@ -51,18 +50,15 @@ dnl
 dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL
-lofar_AIPSPP(1,"-limages -lmir -lcomponents -lcoordinates -lwcs -llattices -ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa -lglish -lsos -lnpd")
-# lofar_AIPSPP(1)
 lofar_BLITZ(1)
-# lofar_FFTW2
+lofar_PACKAGE(Timba/OCTOPython)
 lofar_PACKAGE(Timba/MEQ)
 lofar_INTERNAL(CEP/BB/ParmDB,ParmDB,,1,ParmDB/ParmDB.h)
-
+lofar_AIPSPP(1,"-ltables -lscimath -lscimath_f -lcasa")
 dnl
 dnl Output Makefiles
 dnl
 AC_OUTPUT(
 src/Makefile
-test/Makefile 
 Makefile
 )

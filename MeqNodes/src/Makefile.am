@@ -19,7 +19,7 @@ LOCALSRCS = \
     MatrixMultiply.cc MatrixInvert22.cc UVBrick.cc UVInterpol.cc \
     Stokes.cc PatchComposer.cc FFTBrick.cc \
     GridPoints.cc Resampler.cc ModRes.cc \
-    CompiledFunklet.cc ParmTable.cc \
+    CompiledFunklet.cc ParmTable.cc ParmDBInterface.cc \
     FITSImage.cc Compounder.cc
 
 

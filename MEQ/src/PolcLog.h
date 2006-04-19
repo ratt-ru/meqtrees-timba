@@ -62,17 +62,23 @@ namespace Meq
   virtual void axis_function(int axis, LoVec_double & grid) const ;  
   virtual void changeSolveDomain(const Domain & solveDomain);
   virtual void changeSolveDomain(const std::vector<double> & solveDomain);
+  
+  // validate record contents and setup shortcuts to them. This is called 
+  // automatically whenever a Funklet is made from a DMI::Record
+  //i.e if an empty funklet is created from python and the fields are filled afterwards, initialization should be done inthis function
+  virtual void validateContent (bool recursive);
 
   // returns scales of axis_function (overwritten by PolcLog)
-  virtual LoVec_double getLScaleVector () const {
-    double temp_scales[]={axis_vector_[0],axis_vector_[1]} ;
-    LoVec_double axis_scales(temp_scales, LoVecShape(2),
-			     blitz::duplicateData);
-    return axis_scales;
+  virtual vector<double> getConstants () const {
+/*     double temp_scales[]={axis_vector_[0],axis_vector_[1]} ; */
+/*     LoVec_double axis_scales(temp_scales, LoVecShape(2), */
+/* 			     blitz::duplicateData); */
+/*     return axis_scales; */
+    return axis_vector_;
   }
 
   private:
-  double axis_vector_[Axis::MaxAxis]; //contains scale L_0 for every axis, if 0 or not defined, no transformationis applied
+  std::vector<double> axis_vector_; //contains scale L_0 for every axis, if 0 or not defined, no transformationis applied
   };
 }
  // namespace Meq

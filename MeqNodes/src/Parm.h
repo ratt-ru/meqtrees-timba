@@ -27,15 +27,20 @@
 #include <MEQ/Vells.h>
 #include <MEQ/Funklet.h>
 #include <MeqNodes/CompiledFunklet.h>
+#include <MEQ/ComposedPolc.h>
+#include <MEQ/Polc.h>
+#include <MEQ/PolcLog.h>
 
 
 
 #ifdef HAVE_PARMDB
 #include <ParmDB/ParmDB.h>
-#else 
+#else
 #include <MeqNodes/ParmTable.h>
 #endif
 #include <TimBase/lofar_vector.h>
+#include <MEQ/MeqVocabulary.h>
+#include <MeqNodes/AID-MeqNodes.h>
 
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Parm
@@ -51,7 +56,7 @@
 //  active funklet. A funklet object (e.g. meq.polc()) may be provided. 
 //  This will be reused for subsequent requests if the domains match, or
 //  if no domain is specified.
-//field: default [=]
+//field: default_value [=]
 //  default value. The c00 coefficient of a polc.
 //  This is used when an applicable funklet is not found in the table, or 
 //  a table is not provided.
@@ -71,6 +76,25 @@
 //defrec end
 
 namespace Meq {
+const HIID
+  // Parm staterec fields
+    FSolvable        = AidSolvable,
+    FTableName       = AidTable|AidName,
+    FParmName        = AidParm|AidName,
+    FAutoSave        = AidAuto|AidSave,
+    FDomainId        = AidDomain|AidId,
+  // FDomain      defined previously
+    FFunklet         = AidFunklet,
+    FDefaultFunklet  = AidDefault|AidFunklet,
+    FDefaultValue  = AidDefault|AidValue,
+    FSolveDomain = AidSolve|AidDomain,
+    FUsePrevious = AidUse|AidPrevious,
+    FTileSize = AidTile|AidSize,
+    FTiling = AidTiling,
+    FInitFunklet  = AidInit|AidFunklet,
+    FConverged  = AidConverged,
+    FSaveAll  = AidSave|AidAll,
+    FResetFunklet = AidReset|AidFunklet;
   // This class contains the coeff of any funklet, either solvable or unsolvable.
   class Parm: public Node
   {
@@ -134,8 +158,12 @@ namespace Meq {
     Funklet * findRelevantFunklet (Funklet::Ref &funkletref,const Domain &domain);
   
     // Initialize the funklet for the given solve domain. First
-    int Parm::initSolvable (Funklet &funklet,const Request &request);
+    int initSolvable (Funklet &funklet,const Request &request);
 
+    void openTable(); 
+    void closeTable(); 
+    Funklet *getFunkletFromDB(Funklet::Ref &funkletref,const Domain &domain);
+    void getDefaultFromDB(Funklet::Ref &funkletref);
     //##ModelId=400E5353033A
     virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
   

@@ -324,7 +324,14 @@ public:
 
   virtual void setFunction(string funcstring){
     //reset in CompiledFunklet, default is just the string of the type
+    (*this)[FFunction] = funcstring;
    }
+  virtual vector<double> getConstants () const {
+        return vector<double>();
+  }
+  virtual void setConstants () const {
+    // return vector<double>();
+  }
 
 protected:
   Record::protectField;  

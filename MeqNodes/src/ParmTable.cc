@@ -20,6 +20,9 @@
 //#
 //# $Id$
 
+#ifndef HAVE_PARMDB
+
+
 #include <MeqNodes/ParmTable.h>
 #include <MeqNodes/CompiledFunklet.h>
 #include <MEQ/Meq.h>
@@ -415,8 +418,11 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
     }
     PolcLog polclog(polc);
     ArrayColumn<Double> lscaleCol(itsTable, ColLScale);
-    LoVec_double logscales = polclog.getLScaleVector();
-    lscaleCol.put(rownr,toParmVector(logscales));
+//     LoVec_double logscales = polclog.getConstants();
+//     lscaleCol.put(rownr,toParmVector(logscales));
+    const vector<double> logscales = polclog.getConstants();
+    Vector<Double> constants(logscales);
+    lscaleCol.put(rownr,constants);
   }
   return rownr;
 }
@@ -532,3 +538,4 @@ void ParmTable::unlockTables()
 }
 
 } // namespace Meq
+#endif

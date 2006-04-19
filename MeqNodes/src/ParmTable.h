@@ -20,6 +20,8 @@
 //#
 //# $Id$
 
+#ifndef HAVE_PARMDB
+
 #ifndef MEQNODES_PARMTABLE_H
 #define MEQNODES_PARMTABLE_H
 
@@ -143,4 +145,5 @@ private:
 
 } // namespace Meq
 
+#endif
 #endif

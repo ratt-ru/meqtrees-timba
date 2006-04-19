@@ -58,9 +58,6 @@ class CompiledFunklet: public Funklet{
     if(hasField(FFunction)){
       (*this)[FFunction].get(fstr,0);
     }
-    else
-      (*this)[FFunction] = fstr;
-
     setFunction(fstr);
     
     init(Ndim,iaxis,offset,scale,pert,weight,id);
@@ -82,8 +79,6 @@ class CompiledFunklet: public Funklet{
     if(hasField(FFunction)){
       (*this)[FFunction].get(fstr,0);
     }
-    else
-      (*this)[FFunction] = fstr;
 
     setFunction(fstr);
   
@@ -109,8 +104,6 @@ class CompiledFunklet: public Funklet{
     if(hasField(FFunction)){
       (*this)[FFunction].get(fstr,0);
     }
-    else
-      (*this)[FFunction] = fstr;
 
     setFunction(fstr);
     
@@ -124,6 +117,7 @@ class CompiledFunklet: public Funklet{
 
   void setFunction(string funcstring){
     //check if this is a valid string
+    (*this)[FFunction] = funcstring;
     FailWhen(!itsFunction.setFunction(funcstring),std::string(itsFunction.errorMessage()));
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     Npar = itsFunction.nparameters();

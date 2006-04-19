@@ -33,12 +33,13 @@
 #include <MEQ/Rider.h>
 #include <MeqNodes/Solver.h>
 #include <MeqNodes/Condeq.h>
-#include <MeqNodes/ParmTable.h>
 #include <MeqNodes/AID-MeqNodes.h>
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/Vector.h>
 #include <DMI/List.h>
-
+#ifndef HAVE_PARMDB
+#include <MeqNodes/ParmTable.h>
+#endif
 #include <iostream>
 
 using namespace std;
@@ -1038,12 +1039,18 @@ int Solver::getResult (Result::Ref &resref,
     // any state changes
     lastreq.copyRider(*reqref);
     lastreq.setNextId(request.nextId());
+
+#ifndef HAVE_PARMDB
     ParmTable::lockTables();
+#endif
+
     timers().getresult.stop();
     Node::pollChildren(resref,child_results,lastreq);
     child_results.clear();
     timers().getresult.start();
+#ifndef HAVE_PARMDB
     ParmTable::unlockTables();
+#endif
   }
   if( forest().abortFlag() )
     return RES_ABORT;
@@ -1246,7 +1253,9 @@ void Solver::fillRider (Request::Ref &reqref,bool save_funklets,bool converged)
   }
   // make sure the request rider is validated
   reqref().validateRider();
+#ifndef HAVE_PARMDB
   ParmTable::unlockTables();
+#endif
 }
 
 
