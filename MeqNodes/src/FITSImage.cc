@@ -28,6 +28,7 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
+//#define DEBUG
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,9 +68,8 @@ FITSImage::FITSImage()
 {
 
 	//create 4 axes -- Freq is already present
-	Axis::addAxis("R"); //RA
-	Axis::addAxis("D"); //Dec
-	Axis::addAxis("S"); //Stokes
+	Axis::addAxis("L"); //RA
+	Axis::addAxis("M"); //Dec
 }
 
 //##ModelId=400E5355029D
@@ -81,9 +81,13 @@ void FITSImage::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 	Node::setStateImpl(rec,initializing);
 
 	rec[FFilename].get(filename_,initializing);
+#ifdef DEBUG
   cout<<"File Name ="<<filename_<<endl;
+#endif
 	if(rec[FCutoff].get(cutoff_,initializing)) {
+#ifdef DEBUG
    cout<<"Cutoff ="<<cutoff_<<endl;
+#endif
 	}
 
 }
@@ -98,17 +102,20 @@ int FITSImage::getResult (Result::Ref &resref,
  int flag=read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace, &ra0, &dec0);
  FailWhen(flag," Error Reading Fits File "+flag);
 
+#ifdef DEBUG
  for (int i=0;i<4;i++) {cout<<" i="<<i<<" "<<naxis[i]<<endl;}
- //create a result with 3 vellset, is integrated
+#endif
+ //create a result with 6 vellsets, is integrated
  //if integrated=0, cells is removed
- Result &result=resref<<= new Result(3,1); 
+ Result &result=resref<<= new Result(6,1); 
 
- /* RA vellset */
+ /* RA0 vellset */
  VellSet::Ref ref0;
  VellSet &vs0= ref0<<= new VellSet(0,1);
  Vells ra_vells=vs0.setValue(new Vells(ra0));
  result.setVellSet(0,ref0);
 
+ /* Dec0 vellset */
  VellSet::Ref ref1;
  VellSet &vs1= ref1<<= new VellSet(0,1);
  Vells dec_vells=vs1.setValue(new Vells(dec0));
@@ -121,60 +128,107 @@ int FITSImage::getResult (Result::Ref &resref,
  blitz::Array<double,1> l_space(lspace, blitz::shape(naxis[0]), blitz::duplicateData); 
  blitz::Array<double,1> m_center(mgrid, blitz::shape(naxis[1]), blitz::duplicateData); 
  blitz::Array<double,1> m_space(mspace, blitz::shape(naxis[1]), blitz::duplicateData); 
+#ifdef DEBUG
  cout<<"Grid :"<<l_center<<m_center<<endl;
  cout<<"Space:"<<l_space<<m_space<<endl;
+#endif
 
  Domain::Ref domain(new Domain());
- domain().defineAxis(Axis::TIME,0,1);
  domain().defineAxis(Axis::FREQ,0,1);
- domain().defineAxis(Axis::axis("R"),l_center(0)-l_space(0)/2,l_center(naxis[0]-1)+l_space(naxis[0]-1)/2);
- domain().defineAxis(Axis::axis("D"),m_center(0)-m_space(0)/2,m_center(naxis[1]-1)+m_space(naxis[1]-1)/2);
- domain().defineAxis(Axis::axis("S"),0,1);
+ domain().defineAxis(Axis::axis("L"),l_center(0)-l_space(0)/2,l_center(naxis[0]-1)+l_space(naxis[0]-1)/2);
+ domain().defineAxis(Axis::axis("M"),m_center(0)-m_space(0)/2,m_center(naxis[1]-1)+m_space(naxis[1]-1)/2);
  Cells::Ref cells_ref;
  Cells &cells=cells_ref<<=new Cells(*domain);
 
  //axis, [left,right], segments
- cells.setCells(Axis::TIME,0,1,1);
  cells.setCells(Axis::FREQ,0,1,naxis[3]);
- cells.setCells(Axis::axis("R"),l_center,l_space);
- cells.setCells(Axis::axis("D"),m_center,m_space);
- cells.setCells(Axis::axis("S"),0,1,naxis[2]);
+ cells.setCells(Axis::axis("L"),l_center,l_space);
+ cells.setCells(Axis::axis("M"),m_center,m_space);
 
+#ifdef DEBUG
  cout<<"Cells ="<<cells<<endl;
- cout<<"Axis T "<<cells.ncells(Axis::TIME)<<endl;
  cout<<"Axis F "<<cells.ncells(Axis::FREQ)<<endl;
- cout<<"Axis R "<<cells.ncells(Axis::axis("R"))<<endl;
- cout<<"Axis D "<<cells.ncells(Axis::axis("D"))<<endl;
- cout<<"Axis S "<<cells.ncells(Axis::axis("S"))<<endl;
- Vells::Shape shape(1,naxis[3],naxis[0],naxis[1],naxis[2]);
- //Axis::degenerateShape(shape,cells.rank());
+ cout<<"Axis L "<<cells.ncells(Axis::axis("L"))<<endl;
+ cout<<"Axis M "<<cells.ncells(Axis::axis("M"))<<endl;
+#endif
+ //shape is time=1,freq,l,m
+ Vells::Shape shape(1,naxis[3],naxis[0],naxis[1]);
+#ifdef DEBUG
  cout<<"Ranks "<<shape.size()<<"and "<<cells.rank()<<endl;
  cout<<"Shapes "<<shape<<cells.shape()<<endl;
  cout<<"Ranks "<<shape.size()<<"and "<<cells.rank()<<endl;
- // axes are RA(0),Dec(1),Stokes(2),Freq(3)
- // but here we have Freq,Stokes,Dec,RA
+#endif
+ // axes are L(0),M(1),Stokes(2),Freq(3)
+ // but here we have Freq,Stokes,L,M
  blitz::Array<double,4> A(arr, blitz::shape(naxis[3],naxis[2],naxis[1],naxis[0]), blitz::duplicateData); 
 
- //cout<<"Original ="<<A<<endl;
- //transpose array such that Freq,RA,Dec,Stokes
+ //transpose array such that Freq,L,M,Stokes
  A.transposeSelf(0,3,2,1);
  //cout<<"Transpose ="<<A<<endl;
+#ifdef DEBUG
  cout<<"Transpose ="<<A.shape()<<endl;
+#endif
 
- VellSet::Ref ref;
- VellSet &vs= ref<<= new VellSet(0,1);
- //create 5D vells Time,Freq,RA,Dec,Stokes
+ ///Stokes I
+ VellSet::Ref refI;
+ VellSet &vs= refI<<= new VellSet(0,1);
+ //create 3D vells Time=1,Freq,L,M
  Vells &out=vs.setValue(new Vells(0.0,shape));
  vs.setShape(shape);
- VellsSlicer<double,4> slout(out,1,2,3,4);
+ //select all 3 axes of the output (slice through axes 1,2,3,4)
+ VellsSlicer<double,3> slout(out,1,2,3);
  //copy A to the time slice of varr
- slout=A;
- //blitz::Array<double,5> varr(out.getArray<double,5>());
- //varr(0,LoRange::all(),LoRange::all(),LoRange::all(),LoRange::all())=A;
-//cout<<"Output array: "<<out.getArray<double,5>();
- cout<<"Output array: "<<out.getArray<double,5>().shape();
+ slout=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),0);
+#ifdef DEBUG
+ cout<<"Output array: "<<out.getArray<double,4>().shape();
+#endif
+ result.setVellSet(2,refI);
 
- result.setVellSet(2,ref);
+
+ //Stokes Q
+ VellSet::Ref refQ;
+ if (naxis[2]>1) {
+  VellSet &vsQ= refQ<<= new VellSet(0,1);
+  Vells &outQ=vsQ.setValue(new Vells(0.0,shape));
+  vsQ.setShape(shape);
+  VellsSlicer<double,3> sloutQ(outQ,1,2,3);
+  sloutQ=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),1);
+  result.setVellSet(3,refQ);
+ } else {
+  VellSet &vsQ=refQ<<= new VellSet(0,1);
+  vsQ.setValue(new Vells(0.0));
+  result.setVellSet(3,refQ);
+ }
+
+ //Stokes U
+ VellSet::Ref refU;
+ if (naxis[2]>2) {
+  VellSet &vsU= refU<<= new VellSet(0,1);
+  Vells &outU=vsU.setValue(new Vells(0.0,shape));
+  vsU.setShape(shape);
+  VellsSlicer<double,3> sloutU(outU,1,2,3);
+  sloutU=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),2);
+  result.setVellSet(4,refU);
+ } else {
+  VellSet &vsU=refU<<= new VellSet(0,1);
+  Vells &outU=vsU.setValue(new Vells(0.0));
+  result.setVellSet(4,refU);
+ }
+
+ //Stokes V
+ VellSet::Ref refV;
+ if (naxis[2]>3) {
+  VellSet &vsV= refV<<= new VellSet(0,1);
+  Vells &outV=vsV.setValue(new Vells(0.0,shape));
+  vsV.setShape(shape);
+  VellsSlicer<double,3> sloutV(outV,1,2,3);
+  sloutV=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),3);
+  result.setVellSet(5,refV);
+ } else {
+  VellSet &vsV=refV<<= new VellSet(0,1);
+  Vells &outV=vsV.setValue(new Vells(0.0));
+  result.setVellSet(5,refV);
+ }
  result.setCells(cells);
 
  free(arr);
@@ -363,7 +417,9 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
 		
     status = 0; 
+#ifdef DEBUG
     printf("File =%s\n",filename);
+#endif
     fits_open_file(&fptr, filename, READWRITE, &status); /* open file */
 
 /* WCSLIB et al. */
@@ -373,7 +429,9 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		 return 1;
 		}
 
+#ifdef DEBUG
 		printf("header %s\n",header); 
+#endif
 /* Parse the primary header of the FITS file. */
     if (status = wcspih(header, ncard, WCSHDR_all, 2, &nreject, &nwcs, &wcs)) {
 	      fprintf(stderr, "wcspih ERROR %d\n", status);
@@ -421,19 +479,29 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		/* get data type */
 		fits_get_img_type(fptr, &bitpix, &status);
 		if(bitpix==BYTE_IMG) {
+#ifdef DEBUG
 			printf("Type Bytes\n");
+#endif
 			datatype=TBYTE;
 		}else if(bitpix==SHORT_IMG) {
+#ifdef DEBUG
 			printf("Type Short Int\n");
+#endif
 			datatype=TSHORT;
 		}else if(bitpix==LONG_IMG) {
+#ifdef DEBUG
 			printf("Type Long Int\n");
+#endif
 			datatype=TLONG;
 		}else if(bitpix==FLOAT_IMG) {
+#ifdef DEBUG
 			printf("Type Float\n");
+#endif
 			datatype=TFLOAT;
 		}else if(bitpix==DOUBLE_IMG) {
+#ifdef DEBUG
 			printf("Type Double\n");
+#endif
 			datatype=TDOUBLE;
 		}
 
@@ -452,10 +520,14 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
     fits_iterate_data(n_cols, cols, offset, rows_per_loop,
                       get_min_max, (void*)&arr_limits, &status);
 
+#ifdef DEBUG
 		printf("Limits Min %lf, Max %lf\n",arr_limits[0],arr_limits[1]);
+#endif
 		arr_dims.tol=cutoff*(arr_limits[1]-arr_limits[0])+arr_limits[0];
     /* apply the rate function to each row of the table */
+#ifdef DEBUG
     printf("Calling iterator function...%d\n", status);
+#endif
 
     rows_per_loop = 0;  /* use default optimum number of rows */
     offset = 0;         /* process all the rows */
@@ -482,11 +554,13 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
      arr_dims.lpix[1]++;
      arr_dims.lpix[2]++;
      arr_dims.lpix[3]++;
+
+#ifdef DEBUG
 	  printf("(%ld %ld %ld %ld) ",arr_dims.lpix[0],
 									arr_dims.lpix[1],	arr_dims.lpix[2], arr_dims.lpix[3]);
 	  printf(" to (%ld %ld %ld %ld)\n",arr_dims.hpix[0],
 									arr_dims.hpix[1],	arr_dims.hpix[2], arr_dims.hpix[3]);
-	  
+#endif
 	  /******* create new array **********/	
 		new_naxis[0]=arr_dims.hpix[0]-arr_dims.lpix[0]+1;
 		new_naxis[1]=arr_dims.hpix[1]-arr_dims.lpix[1]+1;
@@ -498,7 +572,9 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
      *(arr_dims.hpix[2]-arr_dims.lpix[2]+1)
      *(arr_dims.hpix[3]-arr_dims.lpix[3]+1));
 
+#ifdef DEBUG
 		printf("writing %ld pixels\n",totalpix);
+#endif
 		
 		if ((*myarr=(double*)calloc((size_t)totalpix,sizeof(double)))==0) {
 			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
@@ -516,7 +592,9 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
     
 
 		/* ******************BEGIN create grid for the cells using WCS */
+#ifdef DEBUG
     printf("found axis %d\n",wcs->naxis);
+#endif
 		/* allocate memory for pixel/world coordinate arrays */
 		ncoord=new_naxis[0]*new_naxis[1]*1*1; /* consider only one plane fron freq, and stokes axes because RA,Dec will not change */
   	if ((pixelc=(double*)calloc((size_t)ncoord*4,sizeof(double)))==0) {
@@ -569,7 +647,9 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 						 kk+=4;
 		 }
 
+#ifdef DEBUG
 		printf("total %d, created %d\n",ncoord,kk);
+#endif
 		if (status = wcsp2s(wcs, ncoord, wcs->naxis, pixelc, imgc, phic, thetac,
 			 worldc, statc)) {
 			 fprintf(stderr,"wcsp2s ERROR %2d\n", status);
@@ -596,12 +676,18 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
     /* find the phase centre in RA,Dec */
 		/* now kk has passed the last pixel */
 		kk=(ncoord-1)*4;
+
+#ifdef DEBUG
 		printf("finished %d\n",kk);
+#endif
 		*ra0=(worldc[0]+worldc[kk])*M_PI/360.0;
 		*dec0=(worldc[1]+worldc[kk+1])*M_PI/360.0;
 		l0=(imgc[0]+imgc[kk])*0.5;
 		m0=(imgc[1]+imgc[kk+1])*0.5;
+
+#ifdef DEBUG
 		printf("phase centre celestial=(%lf,%lf) native l,m=(%lf,%lf)\n",*ra0,*dec0,l0,m0);
+#endif
 
 		/* recreate the l,m grid using the RA,Dec grid with the new phase 
 		 * centre -- just do a linear transform assuming shift is small
