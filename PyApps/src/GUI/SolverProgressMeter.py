@@ -22,6 +22,7 @@ class SolverProgressMeter (QHBox):
     self.curry = self._currier.curry;
     self.xcurry = self._currier.xcurry;
     self._hidetimer = QTimer(self);
+    self._ips_iter0 = self._ips_time0 = None;
     QObject.connect(self._hidetimer,SIGNAL("timeout()"),self._timed_reset);
     
   def connect_app_signals (self,app):
@@ -48,12 +49,25 @@ class SolverProgressMeter (QHBox):
       msg = "<b>%(node)s</b> p:%(num_spids)d u:<b>%(num_unknowns)d</b>"%rec;
     self._wlabel.setText("<nobr>"+msg+"</nobr>");
     self._show();
+    self._ips_iter0 = self._ips_time0 = None;
     
   def solver_iter (self,rec):
     """processes solver.iter record. Usually connected to a Solver.Iter signal""";
+    # for basic message
     msg = "<b>%(node)s</b> i<b>%(iterations)d</b> fit:<b>%(fit).4g</b> r:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
     if rec.num_tiles > 1:
       msg += "c:%(num_converged)d/%(num_tiles)d"%rec;
+    # start the iteration timer at iteration 1, or at a later iteration
+    # if we somehow missed iteration 1
+    if rec.iterations == 1 or self._ips_time0 is None:
+      self._ips_time0 = time.time();
+      self._ips_iter0 = rec.iterations;
+    # else update label
+    elif self._ips_time0 is not None:
+      niter = rec.iterations - self._ips_iter0;
+      dt = time.time() - self._ips_time0;
+      if dt and niter:
+        msg += " (%.3g sec/iter)" % (dt/niter); 
     self._wlabel.setText("<nobr>"+msg+"</nobr>");
     self._show();
     
@@ -77,6 +91,7 @@ class SolverProgressMeter (QHBox):
     
   def reset (self):
     """resets and hides meter."""
+    self._ips_iter0 = self._ips_time0 = None;
     self._wlabel.setText(""); 
     self._wlabel.hide();
     self.hide();
