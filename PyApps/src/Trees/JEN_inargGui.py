@@ -981,6 +981,7 @@ class ArgBrowser(QMainWindow):
             self.__item_count += 1                             # overall item count
             if trace:
                 print JEN_inarg._prefix(level),self.__item_count,key
+
             if isinstance(rr[key], dict):   
                 if key==CTRL_record:                           # is a CTRL record         
                     self.__CTRL_count += 1                     # increment the counter
@@ -1234,7 +1235,7 @@ class ArgBrowser(QMainWindow):
             self.__find_item = unique
             # Make the popup object:
             self.__popup = Popup(self, name=itd['key'], itd=itd)
-            QObject.connect(self.__popup, PYSIGNAL("popupOK()"), self.popupOK)
+            QObject.connect(self.__popup, PYSIGNAL("popupCommit()"), self.popupCommit)
             QObject.connect(self.__popup, PYSIGNAL("popupCancel()"), self.popupCancel)
 
         elif iitd<-2000:
@@ -1273,7 +1274,7 @@ class ArgBrowser(QMainWindow):
         self.__message.setText('** popup cancelled')
         return True
 
-    def popupOK(self, itd):
+    def popupCommit(self, itd):
         """Action upon pressing the popup OK (Commit) button"""
         # Replace the relevant itemdict with the modified one:
         iitd = self.__current_iitd                # its position in self.__itemdict
@@ -1281,7 +1282,7 @@ class ArgBrowser(QMainWindow):
         self.__modified = True                    # self.__inarg has been modified
         self.replace (self.__inarg, itd, trace=False)
         if itd['callback']:
-            print '\n** popupOK(): callback =',itd['callback'],'\n'
+            print '\n** popupCommit(): callback =',itd['callback'],'\n'
             if itd['key']=='punit':
                 self.callback_punit(itd['value'], qual=itd['qual'])
         self.refresh()
@@ -1690,7 +1691,7 @@ class Popup(QDialog):
             button = QPushButton('Commit',self)
             QToolTip.add(button,'Modify the inarg value, and close this popup')
             hbox.addWidget(button)
-            QObject.connect(button, SIGNAL("pressed ()"), self.onOK)
+            QObject.connect(button, SIGNAL("pressed ()"), self.onCommit)
 
             button = QPushButton('Cancel',self)
             QToolTip.add(button,'Close this popup, and do nothing')
@@ -1715,9 +1716,9 @@ class Popup(QDialog):
     # Popup buttons:
     #-------------------------------------------------------------------------
 
-    def onOK (self):
-        """Action on pressing the OK button"""
-        self.emit(PYSIGNAL("popupOK()"),(self.__itemdict,))
+    def onCommit (self):
+        """Action on pressing the Commit button"""
+        self.emit(PYSIGNAL("popupCommit()"),(self.__itemdict,))
         self.__status.setText('... inarg record updated ...')
         return self.closeAll()
 	

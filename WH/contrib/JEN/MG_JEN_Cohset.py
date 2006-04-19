@@ -1315,22 +1315,22 @@ def _tdl_job_sequence(mqs, parent):
 
 def _tdl_job_display_Cohset (mqs, parent):
    """Display the Cohset object used to generate this tree""" 
-   Cohset.display(full=True)
+   Cohset.display(MG['script_name'], full=True)
    return True
 
 def _tdl_job_display_Cohset_ParmSet (mqs, parent):
    """Display the Cohset.ParmSet object used to generate this tree""" 
-   Cohset.ParmSet.display(full=True)
+   Cohset.ParmSet.display(MG['script_name'], full=True)
    return True
 
 def _tdl_job_display_Cohset_LeafSet (mqs, parent):
    """Display the Cohset.LeafSet object used to generate this tree""" 
-   Cohset.LeafSet.display(full=True)
+   Cohset.LeafSet.display(MG['script_name'], full=True)
    return True
 
 def _tdl_job_display_Cohset_Joneset (mqs, parent):
    """Display the Cohset.Joneset() object used to generate this tree""" 
-   Cohset.Joneset().display(full=True)
+   Cohset.Joneset().display(MG['script_name'], full=True)
    return True
 
 

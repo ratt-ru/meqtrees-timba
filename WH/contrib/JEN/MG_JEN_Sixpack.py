@@ -478,7 +478,13 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
 
    # ParmSet default parameters:
    ps = TDL_ParmSet.ParmSet()
-   ps.inarg_group_rider(pp)
+   # ps.inarg_solve (pp, 'stokesI', tdeg=0, fdeg=0, subtile_size=None)
+   # ps.inarg_solve (pp, 'stokesQ', tdeg=0, fdeg=0, subtile_size=None)
+   # ps.inarg_solve (pp, 'stokesU', tdeg=0, fdeg=0, subtile_size=None)
+   # ps.inarg_solve (pp, 'stokesV', tdeg=0, fdeg=0, subtile_size=None)
+   # ps.inarg_solve (pp, 'radec', tdeg=0, fdeg=0, subtile_size=None)
+   # ps.inarg_solve (pp, 'shape', tdeg=0, fdeg=0, subtile_size=None)
+   ps.inarg_parmgroup_rider(pp)
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -501,18 +507,18 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
    ParmSet = Sixpack.ParmSet                          # convenience
    
    # Register the parmgroups:
-   sI = ParmSet.parmgroup('stokesI', rider=pp,
-                          color='red', style='diamond', size=10, condeq_corrs='corrI')
-   sQ = ParmSet.parmgroup('stokesQ', rider=pp,
-                          color='blue', style='diamond', size=10, condeq_corrs='corrQ')
-   sU = ParmSet.parmgroup('stokesU', rider=pp,
-                          color='magenta', style='diamond', size=10, condeq_corrs='corrU')
-   sV = ParmSet.parmgroup('stokesV', rider=pp,
-                          color='cyan', style='diamond', size=10, condeq_corrs='corrV')
-   pg_radec = ParmSet.parmgroup('radec', rider=pp,
-                                color='black', style='circle', size=10, condeq_corrs='corrI')   # <----- ?
-   pg_shape = ParmSet.parmgroup('shape', rider=pp,
-                                color='black', style='circle', size=10, condeq_corrs='corrI')   # <----- ?
+   sI = ParmSet.parmgroup('stokesI', rider=pp, condeq_corrs='corrI',
+                          color='red', style='diamond', size=10)
+   sQ = ParmSet.parmgroup('stokesQ', rider=pp, condeq_corrs='corrQ',
+                          color='blue', style='diamond', size=10)
+   sU = ParmSet.parmgroup('stokesU', rider=pp, condeq_corrs='corrU',
+                          color='magenta', style='diamond', size=10)
+   sV = ParmSet.parmgroup('stokesV', rider=pp, condeq_corrs='corrV',
+                          color='cyan', style='diamond', size=10)
+   pg_radec = ParmSet.parmgroup('radec', rider=pp, condeq_corrs='corrI',      # <----- ?
+                                color='black', style='circle', size=10)
+   pg_shape = ParmSet.parmgroup('shape', rider=pp, condeq_corrs='corrI',      # <----- ?
+                                color='black', style='circle', size=10)
 
    # Define a named bookpage:
    ParmSet.NodeSet.bookmark('punit_'+punit, [sI,sQ,sU,sV])

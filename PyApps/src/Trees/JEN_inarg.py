@@ -190,15 +190,21 @@ def init(target='<target>', version='15dec2005',
 
 #----------------------------------------------------------------------------
 
-def TDL_record(rr, level=0):
+def TDL_record(rr, level=0, trace=False):
    """Convert the given dict/record (rr) into a TDL record"""
    if not isinstance(rr, dict): return rr                     #.....??
    cc = record()
-   trace = False
    if trace: s1 = _prefix(level)
    for key in rr.keys():
       if isinstance(rr[key], dict):
-         cc[key] = TDL_record(rr[key], level=level+1)
+         cc[key] = TDL_record(rr[key], level=level+1, trace=trace)
+      elif isinstance(rr[key], (list,tuple)):
+         cc[key] = []
+         for v in rr[key]:
+            if isinstance(v, dict):
+               cc[key].append(TDL_record(v, level=level+1, trace=trace))
+            else:
+               cc[key].append(v)
       else:
          cc[key] = rr[key]
       if trace: print s1,key,':',type(rr[key]),' -> ',type(cc[key])
@@ -986,6 +992,11 @@ def upgrade(rr, other=None, ss='', level=0, trace=False):
 
 def display(rr, txt=None, name=None, full=False):
    """Display the argument record (inarg or pp)"""
+
+   if True:
+      print '\n** JEN_inarg.display(',txt,name,full,'): inhibited **\n'
+      return True
+   
    if not isinstance(rr, dict):
       print '** JEN_inarg.display(rr): not a record, but:',type(rr)
       return False
@@ -1627,8 +1638,9 @@ def define(pp, key=None, default=None, slave=False,
    if isinstance(default, dict):
       if default.has_key(key):
          default = default[key]
-      else:                           # do NOT accept dict default values...?
-         default = str(default)
+#      else:                           # do NOT accept dict default values...?
+#         # Yes, do (e.g. TDL_LeafSet simul_scatter etc....)
+#         default = str(default)
 
    # Make sure that the default value is among the choice:
    if not (default in choice):        

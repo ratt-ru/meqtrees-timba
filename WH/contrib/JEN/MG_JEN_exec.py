@@ -345,7 +345,7 @@ def noexec(pp=None, MG=None, help=None):
    MG = MG_check(MG)
    pp['_MG'] = MG
 
-   display_object(pp,'pp', 'MG_JEN_exec.noexec()')
+   # display_object(pp,'pp', 'MG_JEN_exec.noexec()')
    return pp
    
 
@@ -540,7 +540,7 @@ def stream_control (mqs=None, slave=False, display=False, **inarg):
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
 
-   display_object(pp, funcname+'(pp)')
+   # display_object(pp, funcname+'(pp)')
 
 
    # Specify the MG_JEN_stream_control record(s):
@@ -601,7 +601,7 @@ def execute (mqs, parent, request=None, **pp):
    """The function that does the actual work for the _test_forest()
    functions in the various MG_JEN_ scripts."""
 
-   display_object (MG, 'MG', 'inside MG_JEN_exec.execute()')
+   # display_object (MG, 'MG', 'inside MG_JEN_exec.execute()')
 
    from Timba.Meq import meq
 
@@ -800,7 +800,7 @@ def without_meqserver(MG=None, callback=None, **pp):
    root = callback(ns)
    ns.Resolve();
 
-   display_object (MG, 'MG', 'after callback(_define_forest())')
+   # display_object (MG, 'MG', 'after callback(_define_forest())')
 
    # display_forest_state()
 
@@ -845,49 +845,6 @@ def display_nodescope (ns, txt='<txt>', trace=1):
    return TDL_display.nodescope(ns, txt=txt, trace=trace)
    #=======================================================
    
-   print '\n*** display of NodeScope (',txt,'):'
-   print '** - ns.__class__ -> ',ns.__class__
-   print '** - ns.__repr__ -> ',ns.__repr__
-   # print '** - ns.__init__() -> ',ns.__init__()              # don't !!
-   print '** - ns.__str__ -> ',ns.__str__
-   print '** - ns.__new__ -> ',ns.__new__
-   print '** - ns.__hash__ -> ',ns.__hash__
-   # print '** - ns.__reduce__() -> ',ns.__reduce__()
-   # print '** - ns.__reduce_ex__() -> ',ns.__reduce_ex__()
-   print '** - ns._name -> ',ns._name
-   print '** - ns.name -> ',ns.name
-   print '** - ns._constants -> ',ns._constants
-   print '** - ns._roots -> ',ns._roots
-   print '** - ns.ROOT -> ',ns.ROOT
-   print '** - ns.__weakref__ -> ',ns.__weakref__
-   print '** - ns.__dict__ -> ',type(ns.__dict__),'[',len(ns.__dict__),']'
-   print '** - ns.__contains__ -> ',ns.__contains__
-   print '** - ns.GetErrors() -> ',ns.GetErrors()
-   # print '** - ns.MakeConstant(1) -> ',ns.MakeConstant(1)
-   print '** - ns.MakeUniqueName -> ',ns.MakeUniqueName
-   print '** - ns._uniqueName_counters -> ',ns._uniqueName_counters
-   print '** - ns.SubScope() -> ',ns.SubScope()
-   print '** - ns.Subscope -> ',ns.Subscope                   # takes 2 arguments
-   print '** - ns.Resolve() -> ',ns.Resolve()
-   print '**'
-   print '** - dir(ns) -> ',dir(ns)
-   
-   print '**'
-   display_object (ns.AllNodes(), 'ns.AllNodes()')
-   print '** - ns.AllNodes() : ',type(ns.AllNodes()),'[',len(ns.AllNodes()),']'
-   print '** - ns.Repository() : ',type(ns.Repository()),'[',len(ns.Repository()),']'
-   print '** - ns.RootNodes() : ',type(ns.RootNodes()),'[',len(ns.RootNodes()),']'
-   print '** - ns.RootNodes() -> ',ns.RootNodes()
-   display_object (ns.RootNodes(), 'ns.RootNodes()')
-   root = ns.RootNodes()
-   for key in root.keys(): display_subtree (root[key],'root['+key+']', full=False)
-      
-   print '**'
-   print '** - ns.__doc__ -> ',ns.__doc__
-   print '*** End of NodeScope ()\n'
-   return
-
-
 
 #----------------------------------------------------------------------------------
 # Recursively display the subtree underneath a NodeStub object (node):
@@ -900,109 +857,6 @@ def display_subtree (node, txt='<txt>', level=0, cindex=0,
                               cindex=cindex, full=full)
    #=======================================================
 
-   # General:
-   indent = level*'..'
-   indent1 = (level+1)*'..'
-   total = '_total_count'
-   klasses = '_classes'
-   inhibited = '_inhibited'
-
-   # Start (outer level):
-   if level == 0:
-      print
-      print '** TDL subtree (',txt,') ( recurse =',recurse,'):'
-      if not full: print '   (use full=1 to display the subtree itself)'
-      count = {}
-      count[total] = 1
-      count[inhibited] = 0
-      count[klasses] = {}
-      
-
-   # Display the node:
-   if full: print level,indent,cindex,':',node,
-   key = str(node)
-
-   if key in count.keys():
-      count[key] += 1
-      if full: print '      (see above)'
-
-   else:
-      count[key] = 1
-      count[total] += 1
-      klass = node.classname
-      if not count[klasses].has_key(klass): count[klasses][klass] = 0
-      count[klasses][klass] += 1
-      initrec = deepcopy(node.initrec())
-
-      if len(initrec.keys()) > 1:
-         hide = ['name','class','defined_at','children','stepchildren','step_children']
-         for field in hide:
-            if initrec.has_key(field): initrec.__delitem__(field)
-         if initrec.has_key('default_funklet'):
-            coeff = initrec.default_funklet.coeff
-            initrec.default_funklet.coeff = [coeff.shape,coeff.flat]
-         if full: print '  ',initrec,
-
-      if not recurse>0:
-         if full: print
-         inhibit = 0
-         for i in range(len(node.children)):
-            inhibit += 1
-            print ' ',indent,'      .children[',i,']:',node.children[i][1]
-         for i in range(len(node.stepchildren)):
-            inhibit += 1
-            print ' ',indent,'      .stepchildren[',-1-i,']:',node.stepchildren[i][1]
-         if inhibit>0:
-            print ' ',indent,'      (further recursion inhibited)'
-            count[inhibited] += inhibit
-
-      else:
-         if full: print
-         inhibit = 0
-
-         classname = None
-         c5 = None
-         for i in range(len(node.stepchildren)):
-            stepchild = node.stepchildren[i][1]
-            cindex = '('+str(i)+')'
-            if stepchild.classname == classname and stepchild.name[0:5]==c5:
-               inhibit += 1
-               print level+1,indent1,cindex,':',node.stepchildren[i][1],' (similar stepchild, not shown)'
-            else:
-               classname = stepchild.classname
-               c5 = stepchild.name[0:5]
-               display_subtree (stepchild, level=level+1, cindex=cindex,
-                                recurse=recurse-1, count=count, full=full)
-            count[inhibited] += inhibit
-
-         classname = None
-         c5 = None
-         for i in range(len(node.children)):
-            child = node.children[i][1]
-            cindex = str(i)
-            if child.classname == classname and child.name[0:5]==c5:
-               # print child.name,len(child.name),child.name[0:5]
-               inhibit += 1
-               print level+1,indent1,cindex,':',node.children[i][1],' (similar child, not shown)'
-            else:
-               classname = child.classname
-               c5 = child.name[0:5]
-               display_subtree (child, level=level+1, cindex=cindex,
-                                recurse=recurse-1, count=count, full=full)
-            count[inhibited] += inhibit
-          
-
-   # Finished (outer level):
-   if level==0:
-      print '** Some subtree statistics:'
-      for klass in count[klasses].keys():
-         print '**   class:',klass,':',count[klasses][klass]
-      print '** Total nr of nodes scanned:',count[total]
-      print '** Further recursion inhibited for',count[inhibited],'children and/or stepchildren'
-      print
-
-   return True
-
 
 #----------------------------------------------------------------------------------
 # Display any Python object(v):
@@ -1012,75 +866,6 @@ def display_object (v, name='<name>', txt='', full=False, indent=0):
     #============================================================================
     return JEN_record.display_object (v, name, txt=txt, full=full, indent=indent)
     #============================================================================
-   
-    if indent==0: print '\n** display of Python object:',name,': (',txt,'):'
-    print '**',indent*'.',name,':',
-    
-    if isinstance(v, (str, list, tuple, dict, record)):
-        # sizeable types (otherwise, len(v) gives an error):
-        vlen = len(v)
-        slen = '['+str(vlen)+']'
-
-        if isinstance(v, str):
-            print 'str',slen,
-            print '=',v
-      
-        elif isinstance(v, list):
-            print 'list',slen,
-            separate = False
-            types = {}
-            for i in range(vlen):
-                stype = str(type(v[i]))
-                types[stype] = 1
-                s1 = stype.split(' ')
-                if s1[0] == '<class': separate = True
-                if isinstance(v[i], (dict, record)): separate = True
-            if len(types) > 1: separate = True
-
-            if separate:
-                print ':'
-                for i in range(vlen): display_object (v[i], '['+str(i)+']', full=full, indent=indent+2)
-            elif vlen == 1:
-                print '=',[v[0]]
-            elif full or vlen < 5:
-                print '=',v
-            else:
-                print '=',[v[0],'...',v[vlen-1]]
-
-        elif isinstance(v, tuple):
-            print 'tuple',slen,
-            print '=',v
-          
-        elif isinstance(v, (dict, record)):
-            if isinstance(v, record):
-                print 'record',slen,':'
-            elif isinstance(v, dict):
-                print 'dict',slen,':'
-            keys = v.keys()
-            n = len(keys)
-            types = {}
-            for key in keys: types[str(type(v[key]))] = 1
-            if len(types) > 1:
-                for key in v.keys(): display_object (v[key], key, full=full, indent=indent+2)
-            elif full or n<10:
-                for key in v.keys(): display_object (v[key], key, full=full, indent=indent+2)
-            else:
-                for key in [keys[0]]: display_object (v[key], key, full=full, indent=indent+2)
-                if n > 20:
-                    print '**',(indent+2)*' ','.... (',n-2,'more fields of the same type )'
-                else:
-                    print '**',(indent+2)*' ','.... ( skipped keys:',keys[1:n-1],')'
-                for key in [keys[n-1]]: display_object (v[key], key, full=full, indent=indent+2) 
-        
-
-        else: 
-            print type(v),'=',v
-
-    else: 
-        # All other types:
-        print type(v),'=',v
-
-    if indent == 0: print
 
 
 

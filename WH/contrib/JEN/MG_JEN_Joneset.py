@@ -123,10 +123,15 @@ def inarg_Joneset_common (pp, jones=None, **kwargs):
    JEN_inarg.inarg_common(kwargs)
    inarg_stations(pp, **kwargs)
    inarg_polrep(pp, **kwargs)
-   # The following is a bit of a kludge (see MG_JEN_Cohset.Jones()): 
-   for name in ['@Jsequence','@Jsequence_simul','@Jsequence_KJones']:
-      JEN_inarg.define(pp, name, jones, hide=True,
+   # The following is a bit of a kludge (see MG_JEN_Cohset.Jones()):
+   if True:
+      JEN_inarg.define(pp, '@Jsequence', jones, hide=True,
                        help='list membership indication (used in JEN_inargGui)')
+   else:
+      # obsolete since the use of qualifiers...
+      for name in ['@Jsequence','@Jsequence_simul','@Jsequence_KJones']:
+         JEN_inarg.define(pp, name, jones, hide=True,
+                          help='list membership indication (used in JEN_inargGui)')
    return True
 
 
@@ -277,6 +282,8 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     """
 
     jones = 'GJones'
+    pol1 = 'A'
+    pol2 = 'B'
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005',
@@ -286,31 +293,24 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     JEN_inarg.define(pp, 'Gpolar', tf=True, hide=True, 
                      help='obsolete, kept only for upward compatibility')
     
-    if simul:                              # simulation mode
+    if simul:                                          # simulation mode
+       # Input arguments for simulation instructions:
        ls = TDL_LeafSet.LeafSet()
-       ls.inarg_group_rider(pp)
+       ls.inarg_simul (pp, 'Ggain_'+pol1, offset=1, time_scale_min=100)
+       ls.inarg_simul (pp, 'Ggain_'+pol2, offset=1, time_scale_min=100)
+       ls.inarg_simul (pp, 'Gphase_'+pol1, time_scale_min=10, fdeg=1)
+       ls.inarg_simul (pp, 'Gphase_'+pol2, time_scale_min=10)
+       ls.inarg_leafgroup_rider(pp)
 
-    else:                                  # normal mode
+    else:                                              # normal mode
+       # Input arguments for solving instructions:
        inarg_Joneset_ParmSet(pp, slave=slave)              
-       # ** Solving instructions:
-       JEN_inarg.define(pp, 'tdeg_Ggain', 0, choice=[0,1,2,3],  
-                        help='degree of time polynomial')
-       JEN_inarg.define(pp, 'tdeg_Gphase', '@tdeg_Ggain',
-                        choice=[0,1,2,3,'@tdeg_Ggain'],  
-                        help='degree of time polynomial')
-       JEN_inarg.define(pp, 'fdeg_Ggain', 0, choice=[0,1,2,3],  
-                        help='degree of freq polynomial')
-       JEN_inarg.define(pp, 'fdeg_Gphase', '@fdeg_Ggain',
-                        choice=[0,1,2,3,'@fdeg_Ggain'],  
-                        help='degree of freq polynomial')
-       JEN_inarg.define(pp, 'subtile_size_Ggain', 1,
-                        choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
-                        help='sub-tile size (None=entire tile)')
-       JEN_inarg.define(pp, 'subtile_size_Gphase', '@subtile_size_Ggain',  
-                        choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
-                        help='sub-tile size (None=entire tile)')
        ps = TDL_ParmSet.ParmSet()
-       ps.inarg_group_rider(pp)
+       ps.inarg_solve (pp, 'Ggain_'+pol1, tdeg=0, fdeg=0, subtile_size=1)
+       ps.inarg_solve (pp, 'Ggain_'+pol2, follows='Ggain_'+pol1)
+       ps.inarg_solve (pp, 'Gphase_'+pol1, follows='Ggain_'+pol1, fdeg=1)
+       ps.inarg_solve (pp, 'Gphase_'+pol2, follows='Ggain_'+pol1)
+       ps.inarg_parmgroup_rider(pp)
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -329,32 +329,18 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     js.ParmSet.quals(dict(q=pp['punit']))
     js.LeafSet.quals(dict(q=pp['punit']))
     
-    # Register the parmgroups with specific rider parameters:
-    a1 = js.parmgroup('Ggain', ipol=1, rider=pp,
-                      condeq_corrs='paral11', c00_default=1.0,    # ParmSet parameters
-                      # simul_funklet='1+p0*cos(0.1*x0/p1)',        # simul funklet expression
-                      simul_funklet='(1+p0*cos(0.1*x0/p1))*(p2*x1/1000000000)',   
-                      p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                      p1_mean_stddev=[5,0.5],                     # simul error time-scale (min)
-                      p2_mean_stddev=[1,0.1],                     # simul freq gradient
+    # Register the parmgroup/leafgroups with specific rider parameters:
+    a1 = js.parmgroup('Ggain_'+pol1, rider=pp,
+                      condeq_corrs='paral11', c00_default=1.0, 
                       color='red', style='diamond', size=10)
-    a2 = js.parmgroup('Ggain', ipol=2, rider=pp,
+    a2 = js.parmgroup('Ggain_'+pol2, rider=pp,
                       condeq_corrs='paral22', c00_default=1.0,
-                      simul_funklet='1+p0*cos(0.1*x0/p1)',        # simul funklet expression
-                      p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                      p1_mean_stddev=[300,1],                     # simul error time-scale (min)
                       color='blue', style='diamond', size=10)
-    p1 = js.parmgroup('Gphase', ipol=1, rider=pp,
+    p1 = js.parmgroup('Gphase_'+pol1, rider=pp,
                       condeq_corrs='paral11', c00_default=0.0,
-                      simul_funklet='p0*cos(0.1*x0/p1)',          # simul funklet expression
-                      p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                      p1_mean_stddev=[400,1],                     # simul error time-scale (min)
                       color='magenta', style='diamond', size=10)
-    p2 = js.parmgroup('Gphase', ipol=2, rider=pp,
+    p2 = js.parmgroup('Gphase_'+pol2, rider=pp,
                       condeq_corrs='paral22', c00_default=0.0,
-                      simul_funklet='p0*cos(0.1*x0/p1)',          # simul funklet expression
-                      p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                      p1_mean_stddev=[500,1],                     # simul error time-scale (min)
                       color='cyan', style='diamond', size=10)
 
     # Define potential extra condition equations:
@@ -394,22 +380,13 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
        skey = TDL_radio_conventions.station_key(station)        
        qual = dict(s=skey)
 
+       # Define MeqParm/MeqLeaf nodes, to be used below:
        ss = dict()
-       for Ggain in [a1,a2]:
+       for group in [a1,a2,p1,p2]:
           if simul:
-             ss[Ggain] = js.LeafSet.MeqLeaf (ns, Ggain, qual=qual)
+             ss[group] = js.LeafSet.MeqLeaf (ns, group, qual=qual)
           else:
-             ss[Ggain] = js.ParmSet.MeqParm (ns, Ggain, qual=qual,
-                                             tfdeg=[pp['tdeg_Ggain'],pp['fdeg_Ggain']],
-                                             subtile_size=pp['subtile_size_Ggain'])
-
-       for Gphase in [p1,p2]:
-          if simul:
-             ss[Gphase] = js.LeafSet.MeqLeaf (ns, Gphase, qual=qual)
-          else:
-             ss[Gphase] = js.ParmSet.MeqParm (ns, Gphase, qual=qual,
-                                              tfdeg=[pp['tdeg_Gphase'],pp['fdeg_Gphase']],
-                                              subtile_size=pp['subtile_size_Gphase'])
+             ss[group] = js.ParmSet.MeqParm (ns, group, qual=qual)
 
        # Make the 2x2 Jones matrix:
        if pp['Gpolar']:                  # Preferred (fewer nodes)
@@ -463,22 +440,17 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    inarg_Joneset_common(pp, jones=jones, slave=slave)              
 
    if simul:                                    # simulation mode
+      # Input arguments for simulation instructions:
       ls = TDL_LeafSet.LeafSet()
-      ls.inarg_group_rider(pp, mean_period_s=500, stddev_period_s=50,
-                           mean_tampl=0.2, stddev_tampl=0.02)
+      ls.inarg_simul (pp, 'RM', time_scale_min=100)
+      ls.inarg_leafgroup_rider(pp)
       
    else:                                  # normal mode
+      # Input arguments for solving instructions:
       inarg_Joneset_ParmSet(pp, slave=slave)              
-      # ** Solving instructions:
-      JEN_inarg.define(pp, 'tdeg_RM', 0, choice=[0,1,2,3],  
-                       help='degree of time polynomial')
-      JEN_inarg.define(pp, 'fdeg_RM', 2, choice=[0,1,2,3],  
-                       help='degree of freq polynomial')
-      JEN_inarg.define(pp, 'subtile_size_RM', 1,  
-                       choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
-                       help='sub-tile size (None=entire tile)')
       ps = TDL_ParmSet.ParmSet()
-      ps.inarg_group_rider(pp)
+      ps.inarg_solve (pp, 'RM', tdeg=0, fdeg=2, subtile_size=1)
+      ps.inarg_parmgroup_rider(pp)
        
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -497,9 +469,6 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    # Register the parmgroups (in js.ParmSet eventually):
    RM = js.parmgroup('RM', rider=pp,
                      condeq_corrs='cross', c00_default=0.0,
-                     simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                     p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                     p1_mean_stddev=[25,5],                    # simul error time-scale (min)
                      color='red', style='circle', size=10)
 
    # MeqParm node_groups: add 'F' to default 'Parm':
@@ -516,7 +485,7 @@ def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    if simul:
       ss[RM] = js.LeafSet.MeqLeaf (ns, RM)
    else:
-      ss[RM] = js.ParmSet.MeqParm(ns, RM, tfdeg=[pp['tdeg_RM'],pp['fdeg_RM']])
+      ss[RM] = js.ParmSet.MeqParm(ns, RM)
 
    wvl2 = MG_JEN_twig.wavelength (ns, unop='Sqr')        # -> lambda squared
    farot = ns.farot(q=pp['punit']) << (ss[RM] * wvl2)       # Faraday rotation angle
@@ -561,6 +530,8 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     """
 
     jones = 'BJones'
+    pol1 = 'A'
+    pol2 = 'B'
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005',
@@ -569,31 +540,23 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # ** Jones matrix elements:
 
     if simul:                                    # simulation mode
+       # Input arguments for simulation instructions:
        ls = TDL_LeafSet.LeafSet()
-       ls.inarg_group_rider(pp, mean_period_s=5000, stddev_period_s=100,
-                            mean_tampl=0.2, stddev_tampl=0.02)
+       ls.inarg_simul (pp, 'Breal_'+pol1, offset=1, time_scale_min=500)
+       ls.inarg_simul (pp, 'Breal_'+pol2, offset=1, time_scale_min=500)
+       ls.inarg_simul (pp, 'Bimag_'+pol1, time_scale_min=300)
+       ls.inarg_simul (pp, 'Bimag_'+pol2, time_scale_min=300)
+       ls.inarg_leafgroup_rider(pp)
 
     else:                                  # normal mode
+       # Input arguments for solving instructions:
        inarg_Joneset_ParmSet(pp, slave=slave)              
-       # ** Solving instructions:
-       JEN_inarg.define(pp, 'tdeg_Breal', 0, choice=[0,1,2,3],  
-                        help='degree of time polynomial')
-       JEN_inarg.define(pp, 'tdeg_Bimag', '@tdeg_Breal',
-                        choice=[0,1,2,3,'@tdeg_Breal'],  
-                        help='degree of time polynomial')
-       JEN_inarg.define(pp, 'fdeg_Breal', 5, choice=[3,4,5,6],  
-                        help='degree of freq polynomial')
-       JEN_inarg.define(pp, 'fdeg_Bimag', '@fdeg_Breal',
-                        choice=[3,4,5,6,'@fdeg_Breal'],  
-                        help='degree of freq polynomial')
-       JEN_inarg.define(pp, 'subtile_size_Breal', None,
-                        choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
-                        help='sub-tile size (None=entire tile)')
-       JEN_inarg.define(pp, 'subtile_size_Bimag', '@subtile_size_Breal',  
-                        choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
-                        help='sub-tile size (None=entire tile)')
        ps = TDL_ParmSet.ParmSet()
-       ps.inarg_group_rider(pp)
+       ps.inarg_solve (pp, 'Breal_'+pol1, tdeg=0, fdeg=5, subtile_size=None)
+       ps.inarg_solve (pp, 'Breal_'+pol2, follows='Breal_'+pol1)
+       ps.inarg_solve (pp, 'Bimag_'+pol1, follows='Breal_'+pol1)
+       ps.inarg_solve (pp, 'Bimag_'+pol2, follows='Breal_'+pol1)
+       ps.inarg_parmgroup_rider(pp)
        
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -610,29 +573,17 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     js.LeafSet.quals(dict(q=pp['punit']))
 
     # Register the parmgroups (in js.ParmSet eventually):
-    br1 = js.parmgroup('Breal', ipol=1, rider=pp,
+    br1 = js.parmgroup('Breal_'+pol1, rider=pp,
                        condeq_corrs='paral11', c00_default=1.0,
-                       simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                       p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                       p1_mean_stddev=[200,10],                    # simul error time-scale (min)
                        color='red', style='square', size=7)
-    br2 = js.parmgroup('Breal', ipol=2, rider=pp,
+    br2 = js.parmgroup('Breal_'+pol2, rider=pp,
                        condeq_corrs='paral22', c00_default=1.0,
-                       simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                       p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                       p1_mean_stddev=[250,10],                    # simul error time-scale (min)
                        color='blue', style='square', size=7)
-    bi1 = js.parmgroup('Bimag', ipol=1, rider=pp,
+    bi1 = js.parmgroup('Bimag_'+pol1, rider=pp,
                        condeq_corrs='paral11', c00_default=0.0,
-                       simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                       p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                       p1_mean_stddev=[150,10],                    # simul error time-scale (min)
                        color='magenta', style='square', size=7)
-    bi2 = js.parmgroup('Bimag', ipol=2, rider=pp,
+    bi2 = js.parmgroup('Bimag_'+pol2, rider=pp,
                        condeq_corrs='paral22', c00_default=0.0,
-                       simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                       p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                       p1_mean_stddev=[300,10],                    # simul error time-scale (min)
                        color='cyan', style='square', size=7)
 
     # Define potential extra condition equations:
@@ -661,22 +612,11 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
         # Define MeqParm/MeqLeaf nodes, to be used below:
         ss = dict()
-        for Breal in [br1,br2]:
+        for group in [br1,br2,bi1,bi2]:
            if simul:
-              ss[Breal] = js.LeafSet.MeqLeaf (ns, Breal, qual=qual)
+              ss[group] = js.LeafSet.MeqLeaf (ns, group, qual=qual)
            else:
-              ss[Breal] = js.ParmSet.MeqParm (ns, Breal, qual=qual,
-                                              tfdeg=[pp['tdeg_Breal'],pp['fdeg_Breal']],
-                                              subtile_size=pp['subtile_size_Breal'])
-
-        for Bimag in [bi1,bi2]:
-           if simul:
-              ss[Bimag] = js.LeafSet.MeqLeaf (ns, Bimag, qual=qual)
-           else:
-              ss[Bimag] = js.ParmSet.MeqParm (ns, Bimag, qual=qual,
-                                              tfdeg=[pp['tdeg_Bimag'],pp['fdeg_Bimag']],
-                                              subtile_size=pp['subtile_size_Bimag'])
-
+              ss[group] = js.ParmSet.MeqParm (ns, group, qual=qual)
 
         # Make the 2x2 Jones matrix
         stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
@@ -720,31 +660,32 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
                      help='stations for which all 4 elements will always be solved for')
 
     if simul:                                    # simulation mode
+       # Input arguments for simulation instructions:
        ls = TDL_LeafSet.LeafSet()
-       ls.inarg_group_rider(pp, mean_period_s=500, stddev_period_s=50,
-                            mean_tampl=0.2, stddev_tampl=0.02)
+       ls.inarg_simul (pp, 'Jreal_11', offset=1, time_scale_min=500)
+       ls.inarg_simul (pp, 'Jreal_12', offset=1, scale=0.1, time_scale_min=500)
+       ls.inarg_simul (pp, 'Jreal_21', offset=1, scale=0.1, time_scale_min=500)
+       ls.inarg_simul (pp, 'Jreal_22', offset=1, time_scale_min=500)
+       ls.inarg_simul (pp, 'Jimag_11', scale=0.1, time_scale_min=300)
+       ls.inarg_simul (pp, 'Jimag_12', scale=0.1, time_scale_min=300)
+       ls.inarg_simul (pp, 'Jimag_21', scale=0.1, time_scale_min=300)
+       ls.inarg_simul (pp, 'Jimag_22', scale=0.1, time_scale_min=300)
+       # ls.inarg_simul (pp, 'Dang', scale=0.01, time_scale_min=720)
+       ls.inarg_leafgroup_rider(pp)
 
     else:                                  # normal mode
+       # Input arguments for solving instructions:
        inarg_Joneset_ParmSet(pp, slave=slave)              
-       # ** Solving instructions:
-       JEN_inarg.define(pp, 'tdeg_Jreal', 0, choice=[0,1,2,3],  
-                        help='degree of time polynomial')
-       JEN_inarg.define(pp, 'tdeg_Jimag', '@tdeg_Jreal',
-                        choice=[0,1,2,3,'@tdeg_Jreal'],  
-                        help='degree of time polynomial')
-       JEN_inarg.define(pp, 'fdeg_Jreal', 0, choice=[0,1,2,3],  
-                        help='degree of freq polynomial')
-       JEN_inarg.define(pp, 'fdeg_Jimag', '@fdeg_Jreal',
-                        choice=[0,1,2,3,'@fdeg_Jreal'],  
-                        help='degree of freq polynomial')
-       JEN_inarg.define(pp, 'subtile_size_Jreal', None,
-                        choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
-                        help='sub-tile size (None=entire tile)')
-       JEN_inarg.define(pp, 'subtile_size_Jimag', '@subtile_size_Jreal',  
-                        choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
-                        help='sub-tile size (None=entire tile)')
        ps = TDL_ParmSet.ParmSet()
-       ps.inarg_group_rider(pp)
+       ps.inarg_solve (pp, 'Jreal_11', tdeg=0, fdeg=0, subtile_size=None)
+       ps.inarg_solve (pp, 'Jreal_12', follows='Jreal_11')
+       ps.inarg_solve (pp, 'Jreal_21', follows='Jreal_11')
+       ps.inarg_solve (pp, 'Jreal_22', follows='Jreal_11')
+       ps.inarg_solve (pp, 'Jimag_11', follows='Jreal_11')
+       ps.inarg_solve (pp, 'Jimag_12', follows='Jreal_11')
+       ps.inarg_solve (pp, 'Jimag_21', follows='Jreal_11')
+       ps.inarg_solve (pp, 'Jimag_22', follows='Jreal_11')
+       ps.inarg_parmgroup_rider(pp)
        
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -753,6 +694,7 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     label = jones+'_'+str(JEN_inarg.qualifier(pp))
 
     adjust_for_telescope(pp, origin=funcname)
+
     # Special case (temporary kludge):
     if not pp['all4_always']:
        pp['all4_always'] = []
@@ -771,51 +713,27 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # Register the parmgroups (in js.ParmSet eventually):
     dr11 = js.parmgroup('Jreal_11', rider=pp,
                         condeq_corrs='paral11', c00_default=1.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                        p1_mean_stddev=[100,10],                   # simul error time-scale (min)
                         color='red', style='square', size=7)
     dr22 = js.parmgroup('Jreal_22', rider=pp,
                         condeq_corrs='paral22', c00_default=1.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                        p1_mean_stddev=[50,10],                  # simul error time-scale (min)
                         color='blue', style='square', size=7)
     di11 = js.parmgroup('Jimag_11', rider=pp,
                         condeq_corrs='paral11', c00_default=0.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                        p1_mean_stddev=[20,5],                  # simul error time-scale (min)
                         color='magenta', style='square', size=7)
     di22 = js.parmgroup('Jimag_22', rider=pp,
                         condeq_corrs='paral22', c00_default=0.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                        p1_mean_stddev=[30,5],                  # simul error time-scale (min)
                         color='cyan', style='square', size=7)
     dr12 = js.parmgroup('Jreal_12', rider=pp,
                         condeq_corrs='*', c00_default=0.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                        p1_mean_stddev=[200,10],                  # simul error time-scale (min)
                         color='red', style='square', size=7)
     dr21 = js.parmgroup('Jreal_21', rider=pp,
                         condeq_corrs='*', c00_default=0.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                        p1_mean_stddev=[30,5],                  # simul error time-scale (min)
                         color='red', style='square', size=7)
     di12 = js.parmgroup('Jimag_12', rider=pp,
                         condeq_corrs='*', c00_default=0.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                        p1_mean_stddev=[10,1],                    # simul error time-scale (min)
                         color='magenta', style='square', size=7)
     di21 = js.parmgroup('Jimag_21', rider=pp,
                         condeq_corrs='*', c00_default=0.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                        p1_mean_stddev=[40,5],                  # simul error time-scale (min)
                         color='magenta', style='square', size=7)
 
     # Define potential extra condition equations:
@@ -852,30 +770,17 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
         if pp['diagonal_only'] and not (station in pp['all4_always']):
            diagonal = True
-           JJreal = [dr11,dr22]
-           JJimag = [di11,di22]
+           JJ = [dr11,dr22,di11,di22]
         else:
            diagonal = False
-           JJreal = [dr11,dr12,dr21,dr22]
-           JJimag = [di11,di12,di21,di22]
+           JJ = [dr11,dr12,dr21,dr22,di11,di12,di21,di22]
 
         ss = dict()
-        for Jreal in JJreal:
+        for group in JJ:
            if simul:
-              ss[Jreal] = js.LeafSet.MeqLeaf (ns, Jreal, qual=qual)
+              ss[group] = js.LeafSet.MeqLeaf (ns, group, qual=qual)
            else:
-              ss[Jreal] = js.ParmSet.MeqParm (ns, Jreal, qual=qual,
-                                              tfdeg=[pp['tdeg_Jreal'],pp['fdeg_Jreal']],
-                                              subtile_size=pp['subtile_size_Jreal'])
-
-        for Jimag in JJimag:
-           if simul:
-              ss[Jimag] = js.LeafSet.MeqLeaf (ns, Jimag, qual=qual)
-           else:
-              ss[Jimag] = js.ParmSet.MeqParm (ns, Jimag, qual=qual,
-                                              tfdeg=[pp['tdeg_Jimag'],pp['fdeg_Jimag']],
-                                              subtile_size=pp['subtile_size_Jimag'])
-              
+              ss[group] = js.ParmSet.MeqParm (ns, group, qual=qual)
 
         # Make the 2x2 Jones matrix
         if diagonal:
@@ -910,6 +815,8 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    """defines 2x2 DJones_WSRT (polarisation leakage) matrices""";
 
    jones = 'DJones_WSRT'
+   pol1 = 'A'
+   pol2 = 'B'
 
    # Input arguments:
    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005',
@@ -923,31 +830,29 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
                     help='if True, XDell = -YDell per station')
 
    if simul:                                    # simulation mode
+      # Input arguments for simulation instructions:
       ls = TDL_LeafSet.LeafSet()
-      ls.inarg_group_rider(pp, mean_period_s=3000, stddev_period_s=100,
-                           mean_tampl=0.002, stddev_tampl=0.0002)
+      ls.inarg_simul (pp, 'Dang', scale=0.01, time_scale_min=720)
+      ls.inarg_simul (pp, 'Dell', scale=0.01, time_scale_min=720)
+      ls.inarg_simul (pp, 'Dang_'+pol1, scale=0.01, time_scale_min=720)
+      ls.inarg_simul (pp, 'Dang_'+pol2, scale=0.01, time_scale_min=720)
+      ls.inarg_simul (pp, 'Dell_'+pol1, scale=0.01, time_scale_min=720)
+      ls.inarg_simul (pp, 'Dell_'+pol2, scale=0.01, time_scale_min=720)
+      ls.inarg_simul (pp, 'PZD', time_scale_min=300)
+      ls.inarg_leafgroup_rider(pp)
 
    else:                                  # normal mode
+      # Input arguments for solving instructions:
       inarg_Joneset_ParmSet(pp, slave=slave)              
-      # ** Solving instructions:
-      JEN_inarg.define(pp, 'tdeg_Dang', 0, choice=[0,1,2,3],  
-                       help='degree of time polynomial')
-      JEN_inarg.define(pp, 'tdeg_Dell', '@tdeg_Dang',
-                       choice=[0,1,2,3,'@tdeg_Dang'],  
-                       help='degree of time polynomial')
-      JEN_inarg.define(pp, 'fdeg_Dang', 0, choice=[0,1,2,3],  
-                       help='degree of freq polynomial')
-      JEN_inarg.define(pp, 'fdeg_Dell', '@fdeg_Dang',
-                       choice=[0,1,2,3,'@fdeg_Dang'],  
-                       help='degree of freq polynomial')
-      JEN_inarg.define(pp, 'subtile_size_Dang', None,
-                       choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
-                       help='sub-tile size (None=entire tile)')
-      JEN_inarg.define(pp, 'subtile_size_Dell', '@subtile_size_Dang',  
-                       choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
-                       help='sub-tile size (None=entire tile)')
       ps = TDL_ParmSet.ParmSet()
-      ps.inarg_group_rider(pp)
+      ps.inarg_solve (pp, 'Dang', tdeg=0, fdeg=0, subtile_size=None)
+      ps.inarg_solve (pp, 'Dell', follows='Dang')
+      ps.inarg_solve (pp, 'Dang_'+pol1, follows='Dang')
+      ps.inarg_solve (pp, 'Dang_'+pol2, follows='Dang')
+      ps.inarg_solve (pp, 'Dell_'+pol1, follows='Dang')
+      ps.inarg_solve (pp, 'Dell_'+pol2, follows='Dang')
+      ps.inarg_solve (pp, 'PZD', tdeg=0, fdeg=0, subtile_size=None)
+      ps.inarg_parmgroup_rider(pp)
       
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -966,45 +871,24 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
    # Register the parmgroups (in js.ParmSet eventually):
    Dang = js.parmgroup('Dang', rider=pp,
                        condeq_corrs='cross', c00_default=0.0,
-                       simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                       p0_mean_stddev=[0.0,0.01],                   # simul error amplitude 
-                       p1_mean_stddev=[500,10],                    # simul error time-scale (min)
                        color='green', style='triangle', size=7)
    Dell = js.parmgroup('Dell', rider=pp,
                        condeq_corrs='cross', c00_default=0.0,
-                       simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                       p0_mean_stddev=[0.0,0.01],                   # simul error amplitude 
-                       p1_mean_stddev=[400,10],                    # simul error time-scale (min)
                        color='magenta', style='triangle', size=7)
-   Dang1 = js.parmgroup('Dang', ipol=1, rider=pp,
+   Dang1 = js.parmgroup('Dang_'+pol1, rider=pp,
                         condeq_corrs='cross', c00_default=0.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.01],                   # simul error amplitude 
-                        p1_mean_stddev=[600,10],                    # simul error time-scale (min)
                         color='green', style='triangle', size=7)
-   Dang2 = js.parmgroup('Dang', ipol=2, rider=pp,
+   Dang2 = js.parmgroup('Dang_'+pol2, rider=pp,
                         condeq_corrs='cross', c00_default=0.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.01],                   # simul error amplitude 
-                        p1_mean_stddev=[700,10],                    # simul error time-scale (min)
                         color='black', style='triangle', size=7)
-   Dell1 = js.parmgroup('Dell', ipol=1, rider=pp,
+   Dell1 = js.parmgroup('Dell_'+pol1, rider=pp,
                         condeq_corrs='cross', c00_default=0.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.01],                   # simul error amplitude 
-                        p1_mean_stddev=[500,10],                    # simul error time-scale (min)
                         color='magenta', style='triangle', size=7)
-   Dell2 = js.parmgroup('Dell', ipol=2, rider=pp,
+   Dell2 = js.parmgroup('Dell_'+pol2, rider=pp,
                         condeq_corrs='cross', c00_default=0.0,
-                        simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                        p0_mean_stddev=[0.0,0.01],                   # simul error amplitude 
-                        p1_mean_stddev=[300,10],                    # simul error time-scale (min)
                         color='yellow', style='triangle', size=7)
    pzd = js.parmgroup('PZD', rider=pp,
                       condeq_corrs='cross', c00_default=0.0,
-                      simul_funklet='p0*cos(0.1*x0/p1)',         # simul funklet expression
-                      p0_mean_stddev=[0.0,0.1],                   # simul error amplitude 
-                      p1_mean_stddev=[60,10],                    # simul error time-scale (min)
                       color='blue', style='circle', size=10)
 
    # Define potential extra condition equations:
@@ -1061,9 +945,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
          if simul:
             ss[Dang] = js.LeafSet.MeqLeaf (ns, Dang, qual=qual)
          else:
-            ss[Dang] = js.ParmSet.MeqParm (ns, Dang, qual=qual,
-                                           tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
-                                           subtile_size=pp['subtile_size_Dang'])
+            ss[Dang] = js.ParmSet.MeqParm (ns, Dang, qual=qual)
          rmat = MG_JEN_matrix.rotation (ns, angle=ss[Dang], qual=None, name=matname)
 
       else: 
@@ -1071,9 +953,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
             if simul:
                ss[Dang] = js.LeafSet.MeqLeaf (ns, Dang, qual=qual)
             else:
-               ss[Dang] = js.ParmSet.MeqParm (ns, Dang, qual=qual,
-                                              tfdeg=[pp['tdeg_Dang'],pp['fdeg_Dang']],
-                                              subtile_size=pp['subtile_size_Dang'])
+               ss[Dang] = js.ParmSet.MeqParm (ns, Dang, qual=qual)
          rmat = MG_JEN_matrix.rotation (ns, angle=[ss[Dang1],ss[Dang2]], qual=None, name=matname)
 
 
@@ -1083,9 +963,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
          if simul:
             ss[Dell] = js.LeafSet.MeqLeaf (ns, Dell, qual=qual)
          else:
-            ss[Dell] = js.ParmSet.MeqParm (ns, Dell, qual=qual,
-                                           tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
-                                           subtile_size=pp['subtile_size_Dell'])
+            ss[Dell] = js.ParmSet.MeqParm (ns, Dell, qual=qual)
          emat = MG_JEN_matrix.ellipticity (ns, angle=ss[Dell], qual=None, name=matname)
 
       else:
@@ -1093,9 +971,7 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
             if simul:
                ss[Dell] = js.LeafSet.MeqLeaf (ns, Dell, qual=qual)
             else:
-               ss[Dell] = js.ParmSet.MeqParm (ns, Dell, qual=qual,
-                                              tfdeg=[pp['tdeg_Dell'],pp['fdeg_Dell']],
-                                              subtile_size=pp['subtile_size_Dell'])
+               ss[Dell] = js.ParmSet.MeqParm (ns, Dell, qual=qual)
          emat = MG_JEN_matrix.ellipticity (ns, angle=[ss[Dell1],ss[Dell2]], qual=None, name=matname)
 
       # Make the 2x2 Jones matrix by multiplying the sub-matrices:
@@ -1201,7 +1077,9 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     """
 
     jones = 'EJones_WSRT'
-
+    pol1 = 'A'
+    pol2 = 'B'
+ 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005',
                             description=EJones_WSRT.__doc__)
@@ -1209,30 +1087,19 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     # ** Jones matrix elements:
 
     if simul:                                    # simulation mode
+       # Input arguments for simulation instructions:
        ls = TDL_LeafSet.LeafSet()
-       ls.inarg_group_rider(pp)
+       ls.inarg_simul (pp, 'EJones_'+pol1, offset=1, time_scale_min=1000)
+       ls.inarg_simul (pp, 'EJones_'+pol2, offset=1, time_scale_min=1000)
+       ls.inarg_leafgroup_rider(pp)
 
-    else:                                  # normal mode
+    else:                                        # normal mode
+       # Input arguments for solving instructions:
        inarg_Joneset_ParmSet(pp, slave=slave)              
-       # ** Solving instructions:
-       JEN_inarg.define(pp, 'tdeg_Edl', 0, choice=[0,1,2,3],  
-                        help='degree of time polynomial')
-       JEN_inarg.define(pp, 'tdeg_Edm', '@tdeg_Edl',
-                        choice=[0,1,2,3,'@tdeg_Edl'],  
-                        help='degree of time polynomial')
-       JEN_inarg.define(pp, 'fdeg_Edl', 0, choice=[0,1,2,3],  
-                        help='degree of freq polynomial')
-       JEN_inarg.define(pp, 'fdeg_Edm', '@fdeg_Edl',
-                        choice=[0,1,2,3,'@fdeg_Edl'],  
-                        help='degree of freq polynomial')
-       JEN_inarg.define(pp, 'subtile_size_Edl', None,
-                        choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
-                        help='sub-tile size (None=entire tile)')
-       JEN_inarg.define(pp, 'subtile_size_Edm', '@subtile_size_Edl',  
-                        choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
-                        help='sub-tile size (None=entire tile)')
        ps = TDL_ParmSet.ParmSet()
-       ps.inarg_group_rider(pp)
+       ps.inarg_solve (pp, 'EJones_'+pol1, tdeg=0, fdeg=0, subtile_size=1)
+       ps.inarg_solve (pp, 'EJones_'+pol2, follows='EJones_'+pol1)
+       ps.inarg_parmgroup_rider(pp)
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
@@ -1254,25 +1121,13 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     ## js.LeafSet.quals(dict(q=pp['punit']))
     
     # Register the parmgroups with specific rider parameters:
-    b1 = js.parmgroup('EJones', ipol=1, rider=pp, 
+    b1 = js.parmgroup('EJones_'+pol1, rider=pp, evaluable=False,
                       descr='Station X voltage beam shape (l,m,t,f)',
                       condeq_corrs='paral', c00_default=1.0,
-                      # c00_scale=1.0, timescale_min=100000, fdeg=0,
                       color='red', style='diamond', size=10)
-    b2 = js.parmgroup('EJones', ipol=2, rider=pp, 
+    b2 = js.parmgroup('EJones_'+pol2, rider=pp, evaluable=False,
                       descr='Station Y voltage beam shape (l,m,t,f)',
                       condeq_corrs='paral', c00_default=1.0,
-                      # c00_scale=1.0, timescale_min=100000, fdeg=0,
-                      color='blue', style='diamond', size=10)
-    dl = js.parmgroup('Edl', rider=pp, unit='rad',
-                      descr='Station pointing error in l-direction',
-                      condeq_corrs='paral', c00_default=0.0,
-                      # c00_scale=0.001, timescale_min=100, fdeg=0,
-                      color='red', style='diamond', size=10)
-    dm = js.parmgroup('Edm', rider=pp, unit='rad',
-                      descr='Station pointing error in m-direction',
-                      condeq_corrs='paral', c00_default=0.0,
-                      # c00_scale=0.001, timescale_min=100, fdeg=0,
                       color='blue', style='diamond', size=10)
     
     # MeqParm node_groups: add 'E' to default 'Parm':
@@ -1313,12 +1168,8 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
           ss[dl] = js.LeafSet.MeqLeaf (ns, dl, qual=qual)
           ss[dm] = js.LeafSet.MeqLeaf (ns, dm, qual=qual)
        else:
-          ss[dl] = js.ParmSet.MeqParm (ns, dl, qual=qual,
-                                       tfdeg=[pp['tdeg_Edl'],pp['fdeg_Edl']],
-                                       subtile_size=pp['subtile_size_Edl'])
-          ss[dm] = js.ParmSet.MeqParm (ns, dm, qual=qual,
-                                       tfdeg=[pp['tdeg_Edm'],pp['fdeg_Edm']],
-                                       subtile_size=pp['subtile_size_Edm'])
+          ss[dl] = js.ParmSet.MeqParm (ns, dl, qual=qual)
+          ss[dm] = js.ParmSet.MeqParm (ns, dm, qual=qual)
 
        # Create MeqParm/MeqLeaf nodes with 4D (l,m,f,t) beam funklets:
        lmtot = lm
@@ -1392,6 +1243,8 @@ def WSRT_voltage_beam_funklet(a_rad=0.1, b_rad=0.1, trace=False):
    M ='x3'                                # M axis
    # beamshape = '(cos((('+L+')/('+a_poly+'))^2+(('+M+')/('+b_poly+'))^2))^3'
    beamshape = 'exp(-(('+L+')/('+a_poly+'))^2-(('+M+')/('+b_poly+'))^2)'
+   # beamshape = 'exp(-((x2)/('+a_poly+'))^2-((x3)/('+b_poly+'))^2)'
+   # beamshape = '(cos(((x2)/('+a_poly+'))^2+((x3)/('+b_poly+'))^2))^3'
 
    funklet = meq.polc(coeff=coeff, subclass=meq._funklet_type)
    funklet.function = beamshape

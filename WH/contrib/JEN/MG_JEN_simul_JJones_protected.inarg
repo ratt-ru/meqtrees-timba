@@ -26,7 +26,7 @@ S'D1.MS'
 p12
 sS'parmtable'
 p13
-S'simul_GJones'
+S'simul_JJones'
 p14
 sS'insert_solver'
 p15
@@ -564,7 +564,7 @@ p213
 (dp214
 S'0'
 p215
-S'  3: ......[simul_single]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_GJones'
+S'  3: ......[simul_single]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_JJones'
 p216
 ssS'order'
 p217
@@ -1089,7 +1089,7 @@ g312
 sg213
 (dp318
 g215
-S'  3: ......[simul_grid]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_GJones'
+S'  3: ......[simul_grid]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_JJones'
 p319
 ssg217
 (lp320
@@ -1868,7 +1868,7 @@ g500
 sg213
 (dp506
 g215
-S'  3: ......[simul_spiral]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_GJones'
+S'  3: ......[simul_spiral]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_JJones'
 p507
 ssg217
 (lp508
@@ -2495,7 +2495,7 @@ g623
 sg213
 (dp629
 g215
-S'  3: ......[simul_double_2]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_GJones'
+S'  3: ......[simul_double_2]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_JJones'
 p630
 ssg217
 (lp631
@@ -3038,7 +3038,7 @@ g730
 sg213
 (dp736
 g215
-S'  3: ......[simul_double_1]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_GJones'
+S'  3: ......[simul_double_1]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_JJones'
 p737
 ssg217
 (lp738
@@ -5480,7 +5480,7 @@ S'** JEN_inarg.attach(): attached: [simul_uvp]./MG_JEN_Joneset.DJones_WSRT()'
 p1377
 sS'7'
 p1378
-S"  2: ....[simul_uvp]./MG_JEN_Cohset.Jones() (qual=simul_uvp): .modify(Jsequence):   []  ->  ['GJones']"
+S"  2: ....[simul_uvp]./MG_JEN_Cohset.Jones() (qual=simul_uvp): .modify(Jsequence):   []  ->  ['JJones']"
 p1379
 sS'6'
 p1380
@@ -5535,7 +5535,7 @@ sg779
 g944
 sssg1347
 (lp1390
-g1350
+g854
 asg1384
 (dp1391
 S'simul_funklet_Gphase_A'
@@ -9901,7 +9901,7 @@ sS'HISTORY'
 p2463
 (dp2464
 g405
-S'2006-04-19 10:50: Derived from: MG_JEN_simul_GJones.inarg'
+S'2006-04-19 10:50: Derived from: MG_JEN_simul_JJones.inarg'
 p2465
 sg215
 S'2006-04-19 10:50: Derived from: MG_JEN_simul.inarg'
@@ -9909,11 +9909,11 @@ p2466
 ssg199
 g10
 sg201
-S'Predefined inarg record for simulating with GJones corruption'
+S'Predefined inarg record for simulating with JJones corruption'
 p2467
 sS'save_file'
 p2468
-S'MG_JEN_simul_GJones_protected.inarg'
+S'MG_JEN_simul_JJones_protected.inarg'
 p2469
 sS'file_filter'
 p2470
@@ -9957,7 +9957,7 @@ S'** JEN_inarg.attach(): attached: ./MG_JEN_Cohset.make_sinks()'
 p2486
 sS'17'
 p2487
-S'  0: ./MG_JEN_simul. (qual=None): .modify(parmtable):   None  ->  simul_GJones'
+S'  0: ./MG_JEN_simul. (qual=None): .modify(parmtable):   None  ->  simul_JJones'
 p2488
 sS'16'
 p2489
@@ -14705,7 +14705,7 @@ S'@@stations'
 p3402
 sg1347
 (lp3403
-g1350
+g854
 asS'[solve_uvp]./MG_JEN_Joneset.KJones()'
 p3404
 (dp3405
@@ -15604,7 +15604,7 @@ sg1376
 S'** JEN_inarg.attach(): attached: [solve_uvp]./MG_JEN_Joneset.DJones_WSRT()'
 p3569
 sg1378
-S"  2: ....[solve_uvp]./MG_JEN_Cohset.Jones() (qual=solve_uvp): .modify(Jsequence):   []  ->  ['GJones']"
+S"  2: ....[solve_uvp]./MG_JEN_Cohset.Jones() (qual=solve_uvp): .modify(Jsequence):   []  ->  ['JJones']"
 p3570
 sg1380
 S'** JEN_inarg.attach(): attached: [solve_uvp]./MG_JEN_Joneset.JJones()'
@@ -19512,7 +19512,7 @@ g4248
 sg213
 (dp4254
 g215
-S'  3: ......[solve_double_1]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_GJones'
+S'  3: ......[solve_double_1]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_JJones'
 p4255
 ssg217
 (lp4256
@@ -20053,7 +20053,7 @@ g4351
 sg213
 (dp4357
 g215
-S'  3: ......[solve_double_2]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_GJones'
+S'  3: ......[solve_double_2]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_JJones'
 p4358
 ssg217
 (lp4359
@@ -20523,7 +20523,7 @@ g4438
 sg213
 (dp4444
 g215
-S'  3: ......[solve_single]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_GJones'
+S'  3: ......[solve_single]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_JJones'
 p4445
 ssg217
 (lp4446
@@ -21045,7 +21045,7 @@ g4536
 sg213
 (dp4542
 g215
-S'  3: ......[solve_grid]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_GJones'
+S'  3: ......[solve_grid]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_JJones'
 p4543
 ssg217
 (lp4544
@@ -21775,7 +21775,7 @@ g4676
 sg213
 (dp4682
 g215
-S'  3: ......[solve_spiral]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_GJones'
+S'  3: ......[solve_spiral]./MG_JEN_Sixpack.newstar_source() (qual=None): .modify(parmtable):   None  ->  simul_JJones'
 p4683
 ssg217
 (lp4684
@@ -22225,7 +22225,7 @@ I10
 sS'solvegroup'
 p4776
 (lp4777
-g1350
+g854
 asg49
 (dp4778
 g199
@@ -22239,7 +22239,7 @@ g405
 S'  2: ...../MG_JEN_Cohset.solver_subtree() (qual=None): .modify(num_iter):   5  ->  2'
 p4781
 sg215
-S"  2: ...../MG_JEN_Cohset.solver_subtree() (qual=None): .modify(solvegroup):   []  ->  ['GJones']"
+S"  2: ...../MG_JEN_Cohset.solver_subtree() (qual=None): .modify(solvegroup):   []  ->  ['JJones']"
 p4782
 ssg100
 (dp4783

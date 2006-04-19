@@ -107,13 +107,104 @@ class LeafSet (TDL_common.Super):
         return TDL_common.Super.display_end (self, ss)
 
 
-    #-------------------------------------------------------------------------------------
-    # MeqLeaf definition:
-    #-------------------------------------------------------------------------------------
 
+    #=====================================================================================
+    # MeqLeaf definition:
+    #=====================================================================================
+
+    def inarg_simul (self, pp, name='<name>', hide=False,
+                     offset=0, scale=1, time_scale_min=100, fdeg=0,
+                     funklet=None,
+                     expr=None, default=None, scatter=None):
+        """Specification of simulation funklet and its coeff"""
+
+        # If a funklet is specified, use that:
+        if funklet:
+            # expr = funklet.function()
+            # default = ...
+            # scatter = ...
+            pass
+
+        #-----------------------------------------
+        # Some default funklet expressions (the first is the default):
+        if expr:
+            # expr is explicitly specified: make it the first
+            if not isinstance(expr, (list,tuple)): expr = [expr]
+        else:  
+            expr = []                          
+        nexpr = len(expr)
+
+        # A cosine(time) variation around some constant 'offset' value.
+        # The variation has an amplitude (p0) and a time_scale (p1) in minutes.
+        costime = 'offset+p0*cos(0.1*x0/p1)'
+        expr.append(costime)
+
+        # Various degrees of frequency dependence:
+        fdeg1 = 'p2*fGHz'
+        fdeg2 = fdeg1+'+p3*(fGHz**2)'
+        fdeg3 = fdeg2+'+p4*(fGHz**3)'
+        fdeg4 = fdeg3+'+p5*(fGHz**4)'
+        expr.append('('+costime+')*('+fdeg1+')')
+        expr.append('('+costime+')*('+fdeg2+')')
+        expr.append('('+costime+')*('+fdeg3+')')
+        expr.append('('+costime+')*('+fdeg4+')')
+        if fdeg==1: expr.insert(nexpr, '('+costime+')*('+fdeg1+')')
+        if fdeg==2: expr.insert(nexpr, '('+costime+')*('+fdeg2+')')
+        if fdeg==3: expr.insert(nexpr, '('+costime+')*('+fdeg3+')')
+        if fdeg==4: expr.insert(nexpr, '('+costime+')*('+fdeg4+')')
+
+        #-----------------------------------------
+        # The corresponding sets of default funklet values (the first is the default):
+        if default:
+            # default is explicitly specified: make it the first
+            if not isinstance(default, (list,tuple)): default = [default]
+        else:
+            default=[]
+        # NB: Any missing fields (p3, p4 etc) are assumed to be zero
+        if fdeg==0: default.append(dict(p0=0, p1=time_scale_min))
+        if fdeg==1: default.append(dict(p0=0, p1=time_scale_min, p2=1.0))
+        if fdeg==2: default.append(dict(p0=0, p1=time_scale_min, p2=1.0, p3=0.1))
+        if fdeg==3: default.append(dict(p0=0, p1=time_scale_min, p2=1.0, p3=0.1, p4=0.03))
+        if fdeg==4: default.append(dict(p0=0, p1=time_scale_min, p2=1.0, p3=0.1, p4=0.03, p5=0.01))
+
+        #-----------------------------------------
+        # Scatter (stddev) in default values:
+        if scatter:
+            # scatter is explicitly specified: make it the first
+            if not isinstance(scatter, (list,tuple)): scatter = [scatter]
+        else:
+            scatter=[]
+        # NB: Any missing fields (p3, p4 etc) are assumed to be zero
+        scatter.append(dict(p0=float(scale)/10, p1=float(time_scale_min)/10))
+
+        #-----------------------------------------
+        # Replace some substrings (see above): 
+        for i in range(len(expr)):
+            expr[i] = expr[i].replace('fGHz','(x1/1000000000)')
+            expr[i] = expr[i].replace('fMHz','(x1/1000000)')
+            if offset==0:
+                expr[i] = expr[i].replace('offset+','')
+            else:
+                expr[i] = expr[i].replace('offset',str(offset))
+
+        #-----------------------------------------
+        # Define the input arguments in pp:
+        JEN_inarg.define(pp, 'simul_funklet_'+name,
+                         expr[0], choice=expr, hide=hide,
+                         help='p1 in minutes (x0=time, x1=freq)')
+        JEN_inarg.define(pp, 'simul_default_coeff_'+name,
+                         default[0], choice=default, hide=hide,
+                         help='default values of '+name+' funklet coeff p0,p1,etc')
+        JEN_inarg.define(pp, 'simul_scatter_coeff_'+name,
+                         scatter[0], choice=scatter, hide=hide,
+                         help='scatter (stddev) of '+name+' funklet coeff p0,p1,etc')
+        return True
+
+    #------------------------------------------------------------------------------
 
     def MeqLeaf(self, ns, key=None, qual=None, leafgroup=None,
                 compounder_children=None, common_axes=None, qual2=None,
+                default_coeff=None, scatter_coeff=None,
                 init_funklet=None, **pp):
         """Convenience function to create a MeqLeaf node"""
 
@@ -135,42 +226,21 @@ class LeafSet (TDL_common.Super):
 
         # uniqual = _counter (leafgroup, increment=True)
 
-        # Make the new MeqLeaf subtree (if necessary):
+        # Make the new MeqLeaf node/subtree (if necessary):
         node = ns[key](**quals)
-        if node.initialized():                           # node already exists
-            return node
 
-        elif rider['simul_funklet']:
-            # A simulation funklet (expression) has been specified
-            # The funklet coeff have a probability distribution:
-            expr = rider['simul_funklet']
-            coeff = []
-            for k in range(10):
-                s1 = 'p'+str(k)
-                if expr.rfind(s1)<0: break
-                ms = rider[s1+'_mean_stddev']
-                coeff.append(gauss(ms[0], ms[1]))
-                # print '-',k,s1,ms,coeff
-            if True:
-                init_funklet = meq.polc(coeff=coeff, subclass=meq._funklet_type)
-                init_funklet.function = rider['simul_funklet']
-            else:
-                # init_funklet = TDL_Functional(rider['simul_funklet'], coeff)
-                pass
-            node << Meq.Parm(init_funklet=init_funklet)
-
-
-        elif compounder_children:
+        if compounder_children:
             # Special case: Make a MeqCompounder node with a ND funklet.
             # Used for interpolatable Jones matrices like EJones or MIM etc
+
+            # The parm is the one to be used by the solver, but it cannot
+            # be evaluated by itself (evaluable=False)
             parm = ns[key](**quals)('funklet')
             if not parm.initialized():
                 parm << Meq.Parm(init_funklet=init_funklet)
-                self.NodeSet.set_MeqNode(parm, group=leafgroup)
-            cc = compounder_children
-            if not isinstance(cc, (list, tuple)): cc = [cc]
-            cc.append(parm)
-            ## cc.insert(0,parm)                           # temporary: prepend
+                self.NodeSet.set_MeqNode(parm, group=leafgroup+'_parm',
+                                         evaluable=False)
+            
             # The Compounder has more qualifiers than the Parm.
             # E.g. EJones_X is per station, but the compounder and its
             # children (l,m) are for a specific source (q=3c84)
@@ -178,99 +248,83 @@ class LeafSet (TDL_common.Super):
                 for qkey in qual2.keys():
                     quals[qkey] = str(qual2[qkey])
             node = ns[key](**quals)
-            node << Meq.Compounder(children=cc, common_axes=common_axes)
-            # Special case, return from here:
-            return node
-        
-        elif init_funklet:
-            # Special case: Make a MeqParm node with an ND funklet.....(?)
-            node << Meq.Parm(init_funklet=init_funklet)
+            if not node.initialized():
+                cc = compounder_children
+                if not isinstance(cc, (list, tuple)): cc = [cc]
+                cc.append(parm)
+                node << Meq.Compounder(children=cc, common_axes=common_axes)
+                self.NodeSet.set_MeqNode(node, group=leafgroup)
 
-        else:
-            # Error?
+        
+        elif node.initialized():                         # node already exists
+            # Don't do anything, but return the existing node.
             pass
 
-        # Store the new node in the NodeSet:
-        self.NodeSet.set_MeqNode(node, group=leafgroup)
+
+        else:
+            # Assume that a simulation funklet (expression) has been specified
+            # The funklet coeff have a probability distribution (scatter):
+            expr = rider['simul_funklet']
+            default = rider['simul_default_coeff']
+            scatter = rider['simul_scatter_coeff']
+            if default==None: default = dict()           # see default.setdefault() below
+            if scatter==None: scatter = dict()           # see scatter.setdefault() below
+            coeff = []
+            for k in range(10):                          
+                s1 = 'p'+str(k)                          # search for p0,p1,p2,...
+                if expr.rfind(s1)<0: break               
+                default.setdefault(s1,1.0)               # default value: 1.0
+                scatter.setdefault(s1,0)                 # default: zero scatter
+                coeff.append(gauss(default[s1], scatter[s1]))
+            if True:
+                init_funklet = meq.polc(coeff=coeff, subclass=meq._funklet_type)
+                init_funklet.function = expr
+            else:
+                # init_funklet = TDL_Functional(rider['simul_funklet'], coeff)
+                pass
+            node << Meq.Parm(init_funklet=init_funklet)
+            self.NodeSet.set_MeqNode(node, group=leafgroup)
+
+        # Finished: return the node that is to be inserted in the tree.
         return node
 
 
-    #--------------------------------------------------------------------------------
+    #===================================================================================
     # Functions related to leafgroups:
-    #--------------------------------------------------------------------------------
+    #===================================================================================
 
-    def group_rider_defaults (self, rider):
+    def leafgroup_rider_defaults (self, rider):
         """Default values for a leafgroup rider (see self.inarg() etc)"""
-
         rider.setdefault('descr', '<descr>')
         rider.setdefault('unit', None)
         rider.setdefault('color', 'yellow')
         rider.setdefault('style', 'triangle')
         rider.setdefault('size', 5)
-
-        rider.setdefault('simul_funklet', None)
-        rider.setdefault('p0_mean_stddev', [0.0,0.0])
-        rider.setdefault('p1_mean_stddev', [0.0,0.0])
-        rider.setdefault('p2_mean_stddev', [0.0,0.0])
-        rider.setdefault('p3_mean_stddev', [0.0,0.0])
-        rider.setdefault('p4_mean_stddev', [0.0,0.0])
-        rider.setdefault('p5_mean_stddev', [0.0,0.0])
-        rider.setdefault('p6_mean_stddev', [0.0,0.0])
-        rider.setdefault('p7_mean_stddev', [0.0,0.0])
-        rider.setdefault('p8_mean_stddev', [0.0,0.0])
-        rider.setdefault('p9_mean_stddev', [0.0,0.0])
         return True
 
 
-    def inarg_group_rider (self, pp, **kwargs):
+    def inarg_leafgroup_rider (self, pp, hide=True, **kwargs):
         """Definition of LeafSet input arguments (see e.g. MG_JEN_Joneset.py)"""
-        self.group_rider_defaults(kwargs)
-            
-        # Hidden:
-        JEN_inarg.define(pp, 'descr', kwargs, hide=True,
+        self.leafgroup_rider_defaults(kwargs)
+        JEN_inarg.define(pp, 'descr', kwargs, hide=hide,
                          help='brief description')
-        JEN_inarg.define(pp, 'unit', kwargs, hide=True,
+        JEN_inarg.define(pp, 'unit', kwargs, hide=hide,
                          help='unit')
-        JEN_inarg.define(pp, 'color', kwargs, hide=True,
+        JEN_inarg.define(pp, 'color', kwargs, hide=hide,
                          help='plot_color')
-        JEN_inarg.define(pp, 'style', kwargs, hide=True,
+        JEN_inarg.define(pp, 'style', kwargs, hide=hide,
                          help='plot_style')
-        JEN_inarg.define(pp, 'size', kwargs, hide=True,
+        JEN_inarg.define(pp, 'size', kwargs, hide=hide,
                          help='size of plotted symbol')
-
-        # Specification of funklet and its coeff:
-        JEN_inarg.define(pp, 'simul_funklet', kwargs, hide=True,
-                         choice=['p0*cos(0.1*x0/p1)',None],
-                         help='(x0=time, x1=freq)')
-        JEN_inarg.define(pp, 'p0_mean_stddev', kwargs, hide=True,
-                         help='[mean, stddev] of funklet coeff p0')
-        JEN_inarg.define(pp, 'p1_mean_stddev', kwargs, hide=True,
-                         help='[mean, stddev] of funklet coeff p1')
-        JEN_inarg.define(pp, 'p2_mean_stddev', kwargs, hide=True,
-                         help='[mean, stddev] of funklet coeff p2')
-        JEN_inarg.define(pp, 'p3_mean_stddev', kwargs, hide=True,
-                         help='[mean, stddev] of funklet coeff p3')
-        JEN_inarg.define(pp, 'p4_mean_stddev', kwargs, hide=True,
-                         help='[mean, stddev] of funklet coeff p4')
-        JEN_inarg.define(pp, 'p5_mean_stddev', kwargs, hide=True,
-                         help='[mean, stddev] of funklet coeff p5')
-        JEN_inarg.define(pp, 'p6_mean_stddev', kwargs, hide=True,
-                         help='[mean, stddev] of funklet coeff p6')
-        JEN_inarg.define(pp, 'p7_mean_stddev', kwargs, hide=True,
-                         help='[mean, stddev] of funklet coeff p7')
-        JEN_inarg.define(pp, 'p8_mean_stddev', kwargs, hide=True,
-                         help='[mean, stddev] of funklet coeff p8')
-        JEN_inarg.define(pp, 'p9_mean_stddev', kwargs, hide=True,
-                         help='[mean, stddev] of funklet coeff p9')
-
         # Attach any other kwarg fields to pp also:
         for key in kwargs.keys():
             if not pp.has_key(key):
                 pp[key] = kwargs[key]
         return True
 
+    #----------------------------------------------------------------------
 
-    def leafgroup (self, key=None, rider=None, **kwargs):
+    def leafgroup (self, key=None, rider=None, evaluable=True, **kwargs):
         """Get/define the named (key) leafgroup"""
         if not rider==None:
         # if not rider==None or len(kwargs)>0:
@@ -278,13 +332,24 @@ class LeafSet (TDL_common.Super):
             if not isinstance(rider, dict): rider = dict()  # just in case
             rider = deepcopy(rider)                         # necessary!
 
-            self.group_rider_defaults(rider)
+            self.leafgroup_rider_defaults(rider)                # ....necessary...?
+
+            # Kludge, but convenient....:
+            rider.setdefault('simul_funklet_'+key,None)
+            rider.setdefault('simul_default_coeff_'+key,None)
+            rider.setdefault('simul_scatter_coeff_'+key,None)
+            rider['simul_funklet'] = rider['simul_funklet_'+key]
+            rider['simul_default_coeff'] = rider['simul_default_coeff_'+key]
+            rider['simul_scatter_coeff'] = rider['simul_scatter_coeff_'+key]
 
             # The rider fields may be overridden by the keyword arguments kwargs, if any: 
             for pkey in kwargs.keys():
                 rider[pkey] = kwargs[pkey]
-            self._history('Created leafgroup: '+str(key)+' (rider:'+str(len(rider))+')')
             result = self.NodeSet.group(key, rider=rider)      
+            if not evaluable:
+                # If a Compounder (ND funklet), create an extra group:
+                self.NodeSet.group(key+'_parm', rider=dict(evaluable=False))
+            self._history('Created leafgroup: '+str(key)+' (rider:'+str(len(rider))+')')
             return result
         # Then the generic NodeSet part:
         return self.NodeSet.group(key)
@@ -358,7 +423,7 @@ class LeafSet (TDL_common.Super):
 
 _counters = {}
 
-def _counter (key, increment=0, reset=False, trace=True):
+def _counter (key, increment=0, reset=False, trace=False):
     global _counters
     _counters.setdefault(key, 0)
     if reset: _counters[key] = 0
@@ -396,7 +461,7 @@ if __name__ == '__main__':
 
     if 1:
         pp = dict(aa=6, bb=7)
-        ls.group_rider_defaults(pp)
+        ls.leafgroup_rider_defaults(pp)
         g1 = ls.leafgroup('group_1', rider=pp, aa=89)
         g2 = ls.leafgroup('group_2', rider=pp)
         ls.MeqLeaf(ns, g1, qual=dict(s=7), **pp)

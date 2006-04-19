@@ -11,6 +11,7 @@
 #    - 21 mar 2006: upgraded .bookmark() definition
 #    - 04 apr 2006: removed self.__buffer
 #    - 12 apr 2006: split .MeqNode() into .get_/.set_MeqNode()
+#    - 16 apr 2006: MeqNode entries are dict(node=node, ....)
 #
 # Full description:
 #   Many types of MeqTree nodes (e.g. MeqParms) come in groups of similar ones,
@@ -19,6 +20,7 @@
 #
 #   A NodeSet object contains the following main components:
 #   - A dict of named nodes (MeqNodes)
+#     (each entry is a dict with at least a field node=node)
 #   - A dict of named groups, i.e. lists of MeqNode names.
 #     (each MeqNode entry belongs to ONE group only!)
 #   - A dict of named gogs, i.e. lists of one or more group (or gog) names.
@@ -162,22 +164,29 @@ class NodeSet (TDL_common.Super):
 
         ss.append(indent1+' - Defined bookmarks ('+str(len(self.__bookmark))+'):')
         for key in self.bookmark().keys():
-            ss.append(indent2+' - '+key+':    '+str(self.bookmark()[key]))
+            bm = TDL_common.unclutter(self.bookmark()[key])
+            ss.append(indent2+' - '+key+':    '+str(bm))
 
         #------------------------
-        ss.append(indent1+' - Available MeqNode nodes ('+str(len(self.__MeqNode))+'):')
-        keys = self.__MeqNode.keys()
+        ss.append(indent1+' - Available MeqNode nodes ('+str(self.len())+'):')
+        keys = self.keys()
         n = len(keys)
         if full or n<10:
             for key in keys:
-                s1 = TDL_common.format_initrec(self.__MeqNode[key])
-                ss.append(indent2+' - '+str(self.__MeqNode[key])+'  '+s1)
+                node = self.MeqNode(key)
+                s1 = TDL_common.format_initrec(node)
+                s2 = ' - '+str(node.name)+'  '+s1
+                if not self.MeqNode(key, field='evaluable'):
+                    s2 += ' (not evaluable)' 
+                ss.append(indent2+s2)
         else:
-            s1 = TDL_common.format_initrec(self.__MeqNode[keys[0]])
-            ss.append(indent2+' - first: '+str(self.__MeqNode[keys[0]])+'  '+s1)
+            node = self.MeqNode(keys[0])
+            s1 = TDL_common.format_initrec(node)
+            ss.append(indent2+' - first: '+str(node.name)+'  '+s1)
             ss.append(indent2+'   ....')
-            s1 = TDL_common.format_initrec(self.__MeqNode[keys[n-1]])
-            ss.append(indent2+' - last:  '+str(self.__MeqNode[keys[n-1]])+'  '+s1)
+            node = self.MeqNode(keys[n-1])
+            s1 = TDL_common.format_initrec(node)
+            ss.append(indent2+' - last:  '+str(node.name)+'  '+s1)
 
         return TDL_common.Super.display_end (self, ss, doprint=doprint, pad=pad)
 
@@ -233,25 +242,51 @@ class NodeSet (TDL_common.Super):
     # Functions related to MeqNodes: 
     #--------------------------------------------------------------------------------
 
-    def set_MeqNode(self, node=None, group='<undefined>', trace=False):
+    def set_MeqNode(self, node=None, group='<undefined>', evaluable=True, trace=False):
         """Create a named MeqNode entry (the nodes are defined externally!)."""
         nodename = node.name
-        if self.__MeqNode.has_key(nodename):
-            self.history(warning='MeqNode(node): already exists: '+nodename)
+        if self.has_key(nodename):
+            self.history(warning='set_MeqNode(node): already exists: '+nodename)
         elif not isinstance(group, str):
-            return self.history('MeqNode(group='+str(type(group))+') key sould be string')
+            return self.history('set_MeqNode(group='+str(type(group))+') key sould be string')
         else:
-            self.__MeqNode[nodename] = node 
-            self.__group[group].append(nodename)  
-            s1 = 'MeqNode(): new entry: '+str(nodename)+' (in group:'+str(group)+')'  
+            # MeqNode entries are dicts, with the node in the field 'node'.
+            # In addidition, the entry contains other fields with aux info:
+            # - evaluable=True/False: Some MeqParms need a MeqCompunder for evaluation
+            self.__MeqNode[nodename] = dict(node=node, evaluable=evaluable) 
+            if isinstance(group, str):
+                self.__group.setdefault(group, [])
+                self.__group_rider.setdefault(group, dict())
+                self.__group[group].append(nodename)  
+            s1 = 'set_MeqNode(): new entry: '+str(nodename)+' (in group: '+str(group)+')'
+            if not evaluable: s1 += ' (not evaluable)'
             self.history(s1)
             if trace: print '**',s1  
         return nodename
 
 
-    def MeqNode(self, key=None, trace=False):
-        """Get a named (key) MeqNode entry."""
-        return self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
+    def MeqNode(self, key=None, field='node', trace=False):
+        """Get a named (key) MeqNode entry (dict).
+        If a field is specified, return that only."""
+        rr = self._fieldict (self.__MeqNode, key=key, name='.MeqNode()')
+        if key==None: return rr                         # return entire MeqNode dict
+        if not isinstance(rr, dict): return rr          # entry (key) not found....
+        if isinstance(field, str):                      # field specified
+            if not rr.has_key(field): return False      # error message?
+            return rr[field]                            # return the field only
+        return rr                                       # return MeqNode entry dict
+
+    def len(self):
+        """Return the total nr of MeqNode entries."""
+        return len(self.__MeqNode)
+
+    def keys(self):
+        """Return the MeqNode entry keys."""
+        return self.__MeqNode.keys()
+
+    def has_key(self, key):
+        """Check whether the specified (key) MeqNode entry exists."""
+        return self.__MeqNode.has_key(key)
 
 
     #--------------------------------------------------------------------------------
@@ -260,41 +295,45 @@ class NodeSet (TDL_common.Super):
 
     def group (self, key=None, rider=None, **kwargs):
         """Get/define the named (key) group (flat list of MeqNode names)"""
-        if not rider==None:
-        # if not rider==None or len(kwargs)>0:
-            # The rider usually contains the inarg record (pp) of the calling function.
-            if not isinstance(rider, dict): rider = dict()  # just in case
-            rider = deepcopy(rider)                         # necessary!
-            if key==None:      
-                return self.history(error='group(pp): no key specified')
+        if rider==None:
+            # Otherwise, return the specified (key) group (None = all):
+            return self._fieldict (self.__group, key=key, name='.group()')
+        
+        # The rider usually contains the inarg record (pp) of the calling function.
+        if not isinstance(rider, dict): rider = dict()  # just in case
+        rider = deepcopy(rider)                         # necessary!
+        if key==None:      
+            return self.history(error='group(pp): no key specified')
 
-            rider.setdefault('color', 'red')           # plot color
-            rider.setdefault('style', 'circle')        # plot style
-            rider.setdefault('size', 10)               # size of plotted symbol
+        rider.setdefault('color', 'red')           # plot color
+        rider.setdefault('style', 'circle')        # plot style
+        rider.setdefault('size', 10)               # size of plotted symbol
 
-            # The rider fields may be overridden by the keyword arguments kwargs, if any: 
-            for pkey in kwargs.keys():
-                rider[pkey] = kwargs[pkey]
+        # The rider fields may be overridden by the keyword arguments kwargs, if any: 
+        for pkey in kwargs.keys():
+            rider[pkey] = kwargs[pkey]
 
-            s1 = 'group: '+str(key)
-            s1 += self._format_rider_summary(rider, 'group_rider')
-            if self.__group.has_key(key):
-                self.history(warning='** Overwritten '+s1)
-            else:
-                self.history('** Defined new '+s1)
+        # Some checks and bookkeeping:
+        s1 = 'group: '+str(key)
+        s1 += self._format_rider_summary(rider, 'group_rider')
+        if self.__group.has_key(key):
+            self.history(warning='** Overwritten '+s1)
+        else:
+            self.history('** Defined new '+s1)
 
-            self.__group[key] = []                     # initialise the group with an empty list
-            self.__group_rider[key] = rider            # extra info associated with the group
+        # Create the group, with its auxiliary fields:
+        self.__group[key] = []                     # initialise the group with an empty list
+        self.__group_rider[key] = rider            # extra info associated with the group
+        
+        # Necessary?
+        self.__plot_color[key] = rider['color']
+        self.__plot_style[key] = rider['style']
+        self.__plot_size[key] = rider['size']
 
-            # Necessary?
-            self.__plot_color[key] = rider['color']
-            self.__plot_style[key] = rider['style']
-            self.__plot_size[key] = rider['size']
+        # return the actual group/gog key name
+        return key
 
-            return key                              # return the actual group/gog key name
-        # Otherwise, return the specified (key) group (None = all):
-        return self._fieldict (self.__group, key=key, name='.group()')
-
+    #-----------------------------------------------------------------------
 
     def group_keys (self, select='*'):
         """Return the names (keys) of the available groups"""
@@ -309,12 +348,10 @@ class NodeSet (TDL_common.Super):
         """Return a list of actual MeqNodes in the specified group(s)"""
         if trace: print '** .nodes(',group,select,'):',
         names = self.nodenames(group, select=select, trace=False)
-        # if not isinstance(names, (list,tuple)): return False
-        # names = self._listuple(names)
         if not names: return False
         nn = []
-        for name in names:
-            nn.append(self.__MeqNode[name])
+        for key in names:
+            nn.append(self.MeqNode(key))
         if trace: print '-> (',len(nn),'):',names
         return nn
 
@@ -322,8 +359,6 @@ class NodeSet (TDL_common.Super):
         """Return a list of the MeqNode names in the specified group(s)"""
         if trace: print '** .nodenames(',group,select,'):'
         gg = self._extract_flat_grouplist(group, must_exist=True, origin='.nodes()')
-        # if not isinstance(gg, (list,tuple)): return False
-        # if not self._listuple(gg): return False
         if not gg: return False
         if trace: print '    -> groupnames(',len(gg),'):',gg
         names = []
@@ -587,10 +622,10 @@ class NodeSet (TDL_common.Super):
             if not isinstance(name, str):
                 name = self._make_bundle_name(group)
             bbname = '_bd_'+str(name)
-            if self.__MeqNode.has_key(bbname):               # bbundle already exists
+            if self.has_key(bbname):                         # bbundle already exists
                 if trace: print '  MeqNode',bbname,'already exists'
                 # NB: Returning here inhibits separate bookmarks (see below)
-                return self.__MeqNode[bbname]                # just return it
+                return self.MeqNode(bbname)       # just return it
             if isinstance(bookpage, bool) and bookpage:      # if bookpage==True: 
                  bookpage = bbname                           #   make an automatic name
             if trace: print '  bookpage =',bbname
@@ -603,15 +638,17 @@ class NodeSet (TDL_common.Super):
                 n = len(nodes)
                 if n>0: 
                     bname = 'sum'+str(n)+'('+str(g)+')'      # bundle name
-                    if self.__MeqNode.has_key(bname):        # bundle exists already
-                        node = self.__MeqNode[bname]         # use existing
+                    if self.has_key(bname):                  # bundle exists already
+                        node = self.MeqNode(bname)           # use existing
                         self.__bundle[bname] += 1            # increment counter ....?
                     elif ns==None:                           # nodescope needed
                         self.history(error='** .make_bundle(): nodescope required!')
                         return False                         # error ...
                     else:
-                        node = ns[bname](uniqual) << Meq.Add(children=nodes, mt_polling=True)
-                        self.__MeqNode[bname] = node
+                        node = ns[bname]
+                        if not node.initialized():           # node does not exists yet
+                            node << Meq.Add(children=nodes, mt_polling=True)
+                            self.set_MeqNode(node, trace=trace)   
                         self.__bundle[bname] = 1             # bundle book-keeping...?
                     cc.append(node)  
 
@@ -625,22 +662,23 @@ class NodeSet (TDL_common.Super):
         # Return the root node of the bundle subtree:
         if not multiple:
             if bname:
-                s1 = '.make_bundle('+str(bname)+'): '+str(group)
+                s1 = '.make_bundle('+str(bname)+') single: '+str(group)
                 s1 += '   (page='+str(bookpage)+', folder='+str(folder)+')'
                 if trace: print s1
                 self.history (s1)
-                return self.__MeqNode[bname]                 # A single group bundle
+                return self.MeqNode(bname)                   # A single group bundle
         elif len(cc)==0:
             self.history(error='** .make_bundle(): len(cc)==0!')
         elif ns==None:
             self.history(error='** .make_bundle(): nodescope required!')
         else:                                                # A bundle of group bundles 
-            self.__MeqNode[bbname] = ns[bbname](uniqual) << Meq.Composer(children=cc)
-            s1 = '** .make_bundle('+str(bbname)+'): '+str(group)
+            node = ns[bbname](uniqual) << Meq.Composer(children=cc)
+            self.set_MeqNode(node, trace=trace)
+            s1 = '** .make_bundle('+str(bbname)+') multiple: '+str(group)
             s1 += '   (page='+str(bookpage)+', folder='+str(folder)+')'
             if trace: print s1
             self.history (s1)
-            return self.__MeqNode[bbname]                    
+            return self.MeqNode(bbname)                    
 
         # Something wrong if got to here:
         return False
@@ -696,7 +734,8 @@ class NodeSet (TDL_common.Super):
 
                 rr['panels'] = []
                 for name in rr['groups']:
-                    node = self.make_bundle(ns, name)
+                    node = self.make_bundle(ns, name, trace=trace)
+                    print '-- node =',node
                     if TDL_common.is_nodestub(node):          # result is valid node
                         rr['panels'].append(node)
 
@@ -738,7 +777,7 @@ class NodeSet (TDL_common.Super):
         root = []
         for key in self.bookmark().keys():                  # for all bookmark definitions
             rr = self.bookmark(key)
-            # print '**',funcname,': key=',key,' rr=',rr
+            if trace: print '**',funcname,': key=',key,' rr=',rr
             if rr.has_key('rootnode'):                      # ....?
                 root.append(rr['rootnode'])
                         
@@ -1031,7 +1070,8 @@ class NodeSet (TDL_common.Super):
         saved.__bundle = self.__bundle
         saved.__bookmark = self.__bookmark
         # Convert MeqNode to a dict of strings:
-        saved.__MeqNode = TDL_common.encode_nodestubs(self.__MeqNode)
+        # NB: self.__MeqNode entries are now dicts...!
+        # saved.__MeqNode = TDL_common.encode_nodestubs(self.__MeqNode)
         self.history(append='cloned: ')
         return saved
 
@@ -1050,7 +1090,8 @@ class NodeSet (TDL_common.Super):
         self.__bundle = saved.__bundle
         self.__bookmark = saved.__bookmark
         # Recreate links to NodeStubs, which have to exist in the nodescope 'ns':
-        self.__MeqNode = TDL_common.decode_nodestubs(ns, saved.__MeqNode)
+        # NB: self.__MeqNode entries are now dicts...!
+        # self.__MeqNode = TDL_common.decode_nodestubs(ns, saved.__MeqNode)
         self.history(append='restored: ')
         return True
  
@@ -1104,7 +1145,7 @@ def test1(ns, nstat=2, mult=1.0):
     for i in range(nstat):
         for Ggain in [a1,a2]:
             node = ns[Ggain](i=i) << Meq.Multiply(i*mult,freq)
-            nst.set_MeqNode(node, group=Ggain)             
+            nst.set_MeqNode(node, group=Ggain, evaluable=False)             
          
         for Gphase in [p1,p2]:
             node = ns[Gphase](i=i) << Meq.Multiply(-i*mult,freq)
@@ -1285,7 +1326,7 @@ if __name__ == '__main__':
         nst.display(full=True)
         # nst.display()
 
-    if 0:
+    if 1:
         # Display the final result:
         # k = 0 ; TDL_display.subtree(ns[k], 'ns['+str(k)+']', full=True, recurse=3)
         nst.display('final result', full=True)

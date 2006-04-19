@@ -120,26 +120,44 @@ class Joneset (TDL_common.Super):
 
 
     def scope(self, new=None):
+        """Return the scope of this Joneset"""
         if isinstance(new, str): self.__scope = new
         return self.__scope
-    def jchar(self): return self.__jchar
-    def punit(self): return self.__punit
-    def polrep(self): return self.__polrep
+    def jchar(self):
+        """Return the Joneset character (G,B,E,D etc)"""
+        return self.__jchar
+    def punit(self):
+        """Return the name of the predict-unit (source/patch) for which
+        this Joneset is relevant"""
+        return self.__punit
+    def polrep(self):
+        """Return the polarisation representation (linear or circular)"""
+        return self.__polrep
+    def pol1(self):
+        """Return the first station polarisation (X or R)"""
+        return self.__pols[0]
+    def pol2(self):
+        """Return the second station polarisation (Y or L)"""
+        return self.__pols[1]
     def pols(self, ipol=None):
+        """Return the station polarisations [X,Y] or [R,L]"""
         if ipol==None: return self.__pols
         return self.__pols[ipol-1]
 
     def corrs_paral(self):
+        """Return the parallel correlations [XX,YY] or [RR,LL]"""
         return [self.pols(1)+self.pols(1), self.pols(2)+self.pols(2)]
     def corrs_paral11(self): return [self.pols(1)+self.pols(1)]
     def corrs_paral22(self): return [self.pols(2)+self.pols(2)]
     def corrs_paral1(self): return self.corrs_paral11()           # obsolete
     def corrs_paral2(self): return self.corrs_paral22()           # obsolete
     def corrs_cross(self):
+        """Return the cross correlations [XY,YX] or [RL,LR]"""
         return [self.pols(1)+self.pols(2), self.pols(2)+self.pols(1)]
     def corrs_cross12(self): return [self.pols(1)+self.pols(2)]
     def corrs_cross21(self): return [self.pols(2)+self.pols(1)]
     def corrs_all(self):
+        """Return all 4 correlations [XX,XY,YX,YY] or [RR,RL,LR,LL]"""
         return [self.pols(1)+self.pols(1), self.pols(1)+self.pols(1),
                 self.pols(2)+self.pols(2), self.pols(2)+self.pols(2)]
 
@@ -175,6 +193,7 @@ class Joneset (TDL_common.Super):
         s += ' ('+str(self.nodenames('first'))+',...)'
         return s
 
+
     def display(self, txt=None, full=False):
         """Display a description of the contents of this Joneset object"""
         ss = TDL_common.Super.display (self, txt=txt, end=False, full=full)
@@ -201,27 +220,25 @@ class Joneset (TDL_common.Super):
     # Functions related to ParmSet/LeafSet:
     #-----------------------------------------------------------------------
 
-    def parmgroup (self, key=None, ipol=None, rider=dict(), **kwargs):
-        """Register a parameter (MeqParm) group (frontend for ParmSet.parmgroup())"""
+    def parmgroup (self, key=None, rider=dict(), evaluable=True, **kwargs):
+        """Register a parameter group and a simulation 'leaf' group, with the same name.
+        If evaluable=False, two extra groups (named <key>_parm) will be registered.
+        This is a frontend for ParmSet.parmgroup() and LeafSet.leafgroup().
+        Note that only one of the groups will be filled in a particular mode."""
 
         # The rider usually contains the inarg record (kwargs) of the calling function.
         # The rider fields may be overridden by the keyword arguments kwargs, if any: 
         for pkey in kwargs.keys():
             rider[pkey] = kwargs[pkey]
 
-        # Append polarisation (X,Y,R,L) to the group-name (key), if required:
-        if isinstance(ipol, int):
-            key = key+'_'+self.pols(ipol)
-        rider['ipol'] = ipol
-            
         # Register the parmgroup:
-        self.ParmSet.parmgroup(key, rider=rider)
+        self.ParmSet.parmgroup(key, rider=rider, evaluable=evaluable)
         self._history('Register parmgroup/leafgroup: '+str(key)+' (rider:'+str(len(rider))+')')
 
-        # Register a leafgroup with the same name: 
+        # Register a leafgroup with the same name:
         rider['style'] = 'triangle'
         rider['size'] = 5
-        self.LeafSet.leafgroup(key, rider=rider)
+        self.LeafSet.leafgroup(key, rider=rider, evaluable=evaluable)
 
         # Return the actual parmgroup/leafgroup name (key):
         return key

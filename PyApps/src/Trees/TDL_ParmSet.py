@@ -171,6 +171,31 @@ class ParmSet (TDL_common.Super):
     # Functions related to MeqParm nodes: 
     #--------------------------------------------------------------------------------
 
+    def inarg_solve(self, pp, key='<key>', follows=None, hide=False,
+                    tdeg=None, fdeg=None, subtile_size=None,
+                    tdeg_choice=[0,1,2,3], fdeg_choice=[0,1,2,3]):
+        """Input arguments for solving instructions"""
+
+        if isinstance(follows, str):                    
+            # Field-values prepended with '@' are referred to other inarg fields:
+            if tdeg==None: tdeg = '@tdeg_'+follows       # follows may be overridden
+            if fdeg==None: fdeg = '@fdeg_'+follows       # follows may be overridden
+            subtile_size = '@subtile_size_'+follows
+        else:
+            if tdeg==None: tdeg = 0
+            if fdeg==None: fdeg = 0
+
+        JEN_inarg.define(pp, 'tdeg_'+key, tdeg, choice=tdeg_choice, hide=hide,   
+                         help='degree of '+key+' time solution polynomial')
+        JEN_inarg.define(pp, 'fdeg_'+key, fdeg, choice=fdeg_choice, hide=hide,  
+                         help='degree of '+key+' freq solution polynomial')
+        JEN_inarg.define(pp, 'subtile_size_'+key, subtile_size, hide=hide, 
+                         choice=[None, 1, 2, 5, 10, 20, 50, 100, 200, 500],  
+                         help='solution sub-tile size (None=entire tile)')
+        return True
+
+
+    #--------------------------------------------------------------------------
 
     def MeqParm(self, ns, key=None, qual=None, parmgroup=None,
                 compounder_children=None, common_axes=None, qual2=None,
@@ -182,8 +207,12 @@ class ParmSet (TDL_common.Super):
             parmgroup = key
         rider = self.NodeSet.group_rider(parmgroup)
 
-        # The rider fields may be overridden by the keyword arguments kwargs, if any: 
+        s0 = '\n** MeqParm('+str(key)+','+str(qual)+'): '
+
+        # The rider fields may be overridden by the keyword arguments kwargs, if any:
+        # print s0,'pp -> rider:'
         for pkey in pp.keys():
+            # print '-',pkey,'->',pp[pkey]
             rider[pkey] = pp[pkey]
 
         # The node-name qualifiers are the superset of the default ones
@@ -192,8 +221,6 @@ class ParmSet (TDL_common.Super):
         if isinstance(qual, dict):
             for qkey in qual.keys():
                 quals[qkey] = str(qual[qkey])
-
-        # uniqual = _counter (parmgroup, increment=True)
 
         #------------------------------------------------------------------------
         
@@ -224,26 +251,20 @@ class ParmSet (TDL_common.Super):
         if rider['subtile_size']:
             tiling.time = rider['subtile_size']
 
-        # The node-name qualifiers are the superset of the default ones
-        # and the ones specified in this function call:
-        quals = deepcopy(self.NodeSet.quals())  # just in case.....
-        if isinstance(qual, dict):
-            for qkey in qual.keys():
-                quals[qkey] = str(qual[qkey])
-
         # The default value:
         if default==None:
             default = rider['c00_default']
 
         # Use the shape (of coeff array, 1-relative) if specified.
         # Otherwise, use the [tdeg,fdeg] polc degree (0-relative)
-        shape = rider['funklet_shape']
+        shape = rider['funklet_shape']                   #............??
         if shape==None:
             shape = [0,0]
             if not rider['tfdeg']==None:
                 shape = deepcopy(rider['tfdeg'])         # just in case.....
-            shape[0] += 1              
-            shape[1] += 1
+            shape[0] += 1                                # make 1-relative              
+            shape[1] += 1                                # make 1-relative
+        # print s0,'shape ->',shape,'\n'
 
         # Make the new MeqParm node (if necessary):
         node = ns[key](**quals)
@@ -261,10 +282,9 @@ class ParmSet (TDL_common.Super):
                                  save_all=rider['save_all'],
                                  node_groups=self.node_groups(),
                                  table_name=self.parmtable())
-                self.NodeSet.set_MeqNode(parm, group=parmgroup)
-            cc = compounder_children
-            if not isinstance(cc, (list, tuple)): cc = [cc]
-            cc.append(parm)
+                self.NodeSet.set_MeqNode(parm, group=parmgroup+'_parm',
+                                         evaluable=False)
+
             # The Compounder has more qualifiers than the Parm.
             # E.g. EJones_X is per station, but the compounder and its
             # children (l,m) are for a specific source (q=3c84)
@@ -272,7 +292,11 @@ class ParmSet (TDL_common.Super):
                 for qkey in qual2.keys():
                     quals[qkey] = str(qual2[qkey])
             node = ns[key](**quals)
-            node << Meq.Compounder(children=cc, common_axes=common_axes)
+            if not node.initialized():                   # made only once
+                cc = compounder_children
+                if not isinstance(cc, (list, tuple)): cc = [cc]
+                cc.append(parm)
+                node << Meq.Compounder(children=cc, common_axes=common_axes)
             return node
         
         elif init_funklet:
@@ -334,7 +358,7 @@ class ParmSet (TDL_common.Super):
 # Functions related to parmgroups:
 #--------------------------------------------------------------------------------
 
-    def group_rider_defaults (self, rider):
+    def parmgroup_rider_defaults (self, rider):
         """Default values for a parmgroup rider"""
         rider.setdefault('condeq_corrs', '*')
         rider.setdefault('c00_default', 1.0)
@@ -353,9 +377,9 @@ class ParmSet (TDL_common.Super):
         return True
 
 
-    def inarg_group_rider (self, pp, **kwargs):
+    def inarg_parmgroup_rider (self, pp, hide=True, **kwargs):
         """Definition of ParmSet input arguments (see e.g. MG_JEN_Joneset.py)"""
-        self.group_rider_defaults(kwargs)
+        self.parmgroup_rider_defaults(kwargs)
         JEN_inarg.define(pp, 'use_previous', kwargs,
                          choice=[True,False], editable=False,
                          help='if True, start with the previous solution')
@@ -370,50 +394,63 @@ class ParmSet (TDL_common.Super):
                          help='if True, do NOT use any MeqParm table values when solvable')
         
         # Hidden:
-        JEN_inarg.define(pp, 'descr', kwargs, hide=True,
+        JEN_inarg.define(pp, 'descr', kwargs, hide=hide,
                          help='brief description')
-        JEN_inarg.define(pp, 'unit', kwargs, hide=True,
+        JEN_inarg.define(pp, 'unit', kwargs, hide=hide,
                          help='unit')
-        JEN_inarg.define(pp, 'color', kwargs, hide=True,
+        JEN_inarg.define(pp, 'color', kwargs, hide=hide,
                          help='plot_color')
-        JEN_inarg.define(pp, 'style', kwargs, hide=True,
+        JEN_inarg.define(pp, 'style', kwargs, hide=hide,
                          help='plot_style')
-        JEN_inarg.define(pp, 'size', kwargs, hide=True,
+        JEN_inarg.define(pp, 'size', kwargs, hide=hide,
                          help='size of plotted symbol')
-        JEN_inarg.define(pp, 'c00_default', kwargs, hide=True,
+        JEN_inarg.define(pp, 'c00_default', kwargs, hide=hide,
                          help='default value of c[0,0] coefficient')
-        JEN_inarg.define(pp, 'tfdeg', kwargs, hide=True,
+        JEN_inarg.define(pp, 'tfdeg', kwargs, hide=hide,
                          help='(time,freq) polynomial degree')
-        JEN_inarg.define(pp, 'funklet_shape', kwargs, hide=True,
+        JEN_inarg.define(pp, 'funklet_shape', kwargs, hide=hide,
                          help='shape [time,freq] of default funklet')
-        JEN_inarg.define(pp, 'subtile_size', kwargs, hide=True,
+        JEN_inarg.define(pp, 'subtile_size', kwargs, hide=hide,
                          help='size (time-slots) of a domain sub-tile')
-        JEN_inarg.define(pp, 'condeq_corrs', kwargs, hide=True,
+        JEN_inarg.define(pp, 'condeq_corrs', kwargs, hide=hide,
                          help='correlations to be used for solving')
-        
         
         # Attach any other kwarg fields to pp also:
         for key in kwargs.keys():
             if not pp.has_key(key): pp[key] = kwargs[key]
           
         return True
+
+    #---------------------------------------------------------------------------------
     
-    
-    def parmgroup (self, key=None, rider=None, **kwargs):
+    def parmgroup (self, key=None, rider=None, evaluable=True, **kwargs):
         """Get/define the named (key) parmgroup"""
         if not rider==None:
-        # if not rider==None or len(kwargs)>0:
             if not isinstance(rider, dict): rider = dict()    # just in case
-            rider = deepcopy(rider)                           # necessary!
-
-            self.group_rider_defaults(rider)
-
+            trace = False
+            if trace:
+                print '\n------------- key =',key,':'
+                print '\n** input rider.keys() =',rider.keys()
+            qq = JEN_inarg._strip(rider)                  # does a deepcopy() too
+            self.parmgroup_rider_defaults(qq)             # ...necessary...?
             # The rider usually contains the inarg record (pp) of the calling function.
             # The rider fields may be overridden by the keyword arguments kwargs, if any: 
             for pkey in kwargs.keys():
-                rider[pkey] = kwargs[pkey]
-            self._history('Created parmgroup: '+str(key)+' (rider:'+str(len(rider))+')')
-            result = self.NodeSet.group(key, rider=rider)      
+                qq[pkey] = kwargs[pkey]
+            if qq.has_key('tdeg_'+key):
+                qq['tfdeg'] = [qq['tdeg_'+key],qq['fdeg_'+key]]
+                qq['subtile_size'] = qq['subtile_size_'+key]
+                if trace:
+                    print '--- qq[tfdeg] =',qq['tfdeg']
+                    print '--- qq[subtile_size] =',qq['subtile_size']
+            if trace:
+                print '** qq.keys() =',qq.keys()
+            result = self.NodeSet.group(key, rider=qq)
+            if not evaluable:
+                # If a Compounder (ND funklet), create an extra group:
+                self.NodeSet.group(key+'_parm', rider=dict(evaluable=False))
+            self._history('Created parmgroup: '+str(key)+' (rider:'+str(len(qq))+')')
+
             self.solvegroup(key, [key], gogtype='solvegroup')       
             return result
         # Then the generic NodeSet part:
@@ -435,21 +472,31 @@ class ParmSet (TDL_common.Super):
 
     def solvegroup (self, key=None, groups=None, bookpage=None, **pp):
         """Get/define the named (key) solvegroup, i.e. a NodeSet gog"""
-        # First the ParmSet-specific part:
-        if groups:
-            # solvegroup does not exist yet: Create it:
-            # NB: This is inhibited if ParmSet is set 'unsolvable' (e.g. for simulated uv-data) 
-            if self.unsolvable(): return False
-            pp['gogtype'] = 'solvegroup'       
-            s1 = '** Created solvegroup: '+str(key)+':  group(s): '+str(groups)
-            if bookpage: s1 += ' (bookpage='+str(bookpage)+')' 
-            self.history(s1)
-        # Then the generic NodeSet part:
-        return self.NodeSet.gog(key, groups, bookpage=bookpage, **pp)
+        if groups==None:
+            # No groups specified: just return the specified solvegroup:
+            return self.NodeSet.gog(key, groups, bookpage=bookpage, **pp)
+        elif self.unsolvable():
+            # NB: do nothing if ParmSet is set 'unsolvable' (....?) 
+            return False
+
+        # Create a solvegroup (key) for the specified parmgroups (groups):
+        gg = deepcopy(groups)                              # just in case
+        for i in range(len(gg)):
+            gkey = gg[i]+'_parm'                           # derived group
+            if self.NodeSet.has_key(gkey):                 # exists
+                gg[i] = gkey
+        pp['gogtype'] = 'solvegroup'       
+        s1 = '** Created solvegroup: '+str(key)+':  group(s): '+str(groups)
+        if bookpage: s1 += ' (bookpage='+str(bookpage)+')' 
+        self.history(s1)
+        # Create a new solvegroup for parmgroups gg:
+        return self.NodeSet.gog(key, gg, bookpage=bookpage, **pp)
+
 
     def solvegroup_keys (self):
         """Return the keys (names) of the available solvegroups"""
         return self.NodeSet.select_gogs (rider=dict(gogtype='solvegroup'))
+
 
     def solveparm_names(self, solvegroup=[], select='*', trace=False):
         """Return a list of MeqParm names for the specified solvegroup (of parmgroup names)"""
@@ -524,7 +571,7 @@ class ParmSet (TDL_common.Super):
     def condeq_corrs(self, solvegroup=[], trace=False):
         """Return a (unique) list of correlations (corrs, e.g. ['XX','YY'])
         for the specified solvegroup"""
-	trace = True
+	# trace = True
         if trace: print '\n** condeq_corrs(',solvegroup,'):'
         gg = self.NodeSet._extract_flat_grouplist(solvegroup, must_exist=True,
                                                   origin='.condeq_corrs()')
@@ -817,25 +864,21 @@ if __name__ == '__main__':
         print ps.check_parmtable_extension()
 
 
-    if 0:
+    if 1:
         # Register the parmgroups:
         pp = dict(stations=range(3))
-        ps.inarg_group_rider(pp)                  
+        ps.inarg_parmgroup_rider(pp)                  
         a1 = ps.parmgroup('Ggain_X', rider=pp,
                           condeq_corrs='paral11', c00_default=1.0,
-                          # c00_scale=1.0, timescale_min=10, fdeg=0,
                           color='red', style='diamond', size=10)
         a2 = ps.parmgroup('Ggain_Y', rider=pp,
                           condeq_corrs='paral22', c00_default=1.0,
-                          # c00_scale=1.0, timescale_min=10, fdeg=0,
                           color='blue', style='diamond', size=10)
         p1 = ps.parmgroup('Gphase_X', rider=pp,
                           condeq_corrs='paral11', c00_default=0.0,
-                          # c00_scale=1.0, timescale_min=10, fdeg=0,
                           color='magenta', style='diamond', size=10)
         p2 = ps.parmgroup('Gphase_Y', rider=pp,
                           condeq_corrs='paral22', c00_default=0.0,
-                          # c00_scale=1.0, timescale_min=10, fdeg=0,
                           color='cyan', style='diamond', size=10)
         
         # MeqParm node_groups: add 'G' to default 'Parm':
@@ -900,7 +943,7 @@ if __name__ == '__main__':
             print '- solvegroup:',key,':',ps.solvegroup(key)
         print
 
-    if 1:
+    if 0:
         print ps._rider('xxx', range(4))
         print ps._rider('yyy', True)
         print ps._rider('xxx', True)

@@ -66,7 +66,9 @@ def predefine_inargs():
    global MG
    print '\n** Predefining',MG['script_name'],'inarg records...\n'
    simul_GJones(deepcopy(MG), trace=True)
+   simul_BJones(deepcopy(MG), trace=True)
    simul_DJones(deepcopy(MG), trace=True)
+   simul_JJones(deepcopy(MG), trace=True)
    simul_EJones(deepcopy(MG), trace=True)
    print '\n** Predefined',MG['script_name'],'inarg records (incl. protected)\n'
    return True
@@ -76,7 +78,9 @@ def describe_inargs():
    """Collate descriptions of all available predefined inarg record(s)"""
    ss = JEN_inarg.describe_inargs_start(MG)
    ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_GJones', simul_GJones.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_BJones', simul_BJones.__doc__)
    ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_DJones', simul_DJones.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_JJones', simul_JJones.__doc__)
    ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_EJones', simul_EJones.__doc__)
    return JEN_inarg.describe_inargs_end(ss, MG)
 
@@ -97,6 +101,53 @@ def simul_GJones(inarg, trace=True):
                     insert_solver=False,
                     solvegroup=['GJones'],
                     parmtable='simul_GJones',
+                    num_iter=2,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+#--------------------------------------------------------------------
+
+def simul_BJones(inarg, trace=True):
+   """Predefined inarg record for simulating with BJones corruption"""
+   filename = 'MG_JEN_simul_BJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, simul_BJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    Jsequence=['BJones'],
+                    _JEN_inarg_option=dict(trace=trace, qual='simul_uvp'))     
+   JEN_inarg.modify(inarg,
+                    Jsequence=['BJones'],
+                    _JEN_inarg_option=dict(trace=trace, qual='solve_uvp'))     
+   JEN_inarg.modify(inarg,
+                    insert_solver=False,
+                    solvegroup=['BJones'],
+                    parmtable='simul_BJones',
+                    num_iter=2,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+
+#--------------------------------------------------------------------
+
+def simul_JJones(inarg, trace=True):
+   """Predefined inarg record for simulating with JJones corruption"""
+   filename = 'MG_JEN_simul_JJones'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, simul_JJones.__doc__)
+   JEN_inarg.modify(inarg,
+                    Jsequence=['JJones'],
+                    _JEN_inarg_option=dict(trace=trace, qual='simul_uvp'))     
+   JEN_inarg.modify(inarg,
+                    Jsequence=['JJones'],
+                    _JEN_inarg_option=dict(trace=trace, qual='solve_uvp'))     
+   JEN_inarg.modify(inarg,
+                    insert_solver=False,
+                    solvegroup=['JJones'],
+                    parmtable='simul_JJones',
                     num_iter=2,
                     _JEN_inarg_option=dict(trace=trace))     
    JEN_inarg.save(inarg, filename, trace=trace)
@@ -500,22 +551,22 @@ def _tdl_job_fullDomainMux (mqs, parent):
 
 def _tdl_job_display_Cohset (mqs, parent):
    """Display the Cohset object used to generate this tree""" 
-   Cohset.display(full=True)
+   Cohset.display(MG['script_name'], full=True)
    return True
 
 def _tdl_job_display_Cohset_ParmSet (mqs, parent):
    """Display the Cohset.ParmSet object used to generate this tree""" 
-   Cohset.ParmSet.display(full=True)
+   Cohset.ParmSet.display(MG['script_name'], full=True)
    return True
 
 def _tdl_job_display_Cohset_LeafSet (mqs, parent):
    """Display the Cohset.LeafSet object used to generate this tree""" 
-   Cohset.LeafSet.display(full=True)
+   Cohset.LeafSet.display(MG['script_name'], full=True)
    return True
 
 def _tdl_job_display_Cohset_Joneset (mqs, parent):
    """Display the Cohset.Joneset() object used to generate this tree""" 
-   Cohset.Joneset().display(full=True)
+   Cohset.Joneset().display(MG['script_name'], full=True)
    return True
 
 

@@ -491,6 +491,9 @@ class Cohset (TDL_common.Super):
             ss.append(indent1+' - Joneset (applied by .corrupt():')
             ss.append(indent2+' - '+str(self.__Joneset.oneliner()))
 
+        ss.append(indent2+' - '+str(self.ParmSet.oneliner()))
+        ss.append(indent2+' - '+str(self.LeafSet.oneliner()))
+
         return TDL_common.Super.display_end(self, ss)
 
 

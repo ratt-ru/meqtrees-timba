@@ -216,7 +216,13 @@ def trace (*item, **kwitem):
 
 def object(object, txt='<txt>'):
   """Special case of trace(), where the input is a Python object"""
-  ss = object.display(txt)
+
+  if True:
+     ss = 'MG_JEN_forest_state.object(',txt,'): inhibited'
+  else:
+     ss = object.display(txt)
+  
+     
   if ss==None:
      ss = MG.script_name+' '+object.type()+' '+object.label()+': '
      ss += '.display() -> None (?)'
