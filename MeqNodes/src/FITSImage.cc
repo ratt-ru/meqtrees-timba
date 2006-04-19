@@ -28,7 +28,7 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
-#define DEBUG
+//#define DEBUG
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
@@ -143,10 +143,7 @@ int FITSImage::getResult (Result::Ref &resref,
  //get the frequency from the request
  const Cells &incells=request.cells();
  const Domain &old_dom=incells.domain();
- if (old_dom.isDefined(Axis::TIME))
-	domain().defineAxis(Axis::TIME, old_dom.start(Axis::TIME), old_dom.end(Axis::TIME));
- if (old_dom.isDefined(Axis::FREQ))
-	domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
+ domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
  domain().defineAxis(Axis::axis("L"),l_center(0)-l_space(0)/2,l_center(naxis[0]-1)+l_space(naxis[0]-1)/2);
  domain().defineAxis(Axis::axis("M"),m_center(0)-m_space(0)/2,m_center(naxis[1]-1)+m_space(naxis[1]-1)/2);
  Cells::Ref cells_ref;
