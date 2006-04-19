@@ -922,7 +922,7 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
     Cells::Ref rescells;
     if( req.hasCells() )
     {
-      rescells.attach(req.cells());
+      // rescells.attach(req.cells());
       retcode = 0;
     }
     // Pass request on to children and accumulate their results
