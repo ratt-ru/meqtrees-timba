@@ -234,26 +234,29 @@ class LeafSet (TDL_common.Super):
             # Used for interpolatable Jones matrices like EJones or MIM etc
 
             # The parm is the one to be used by the solver, but it cannot
-            # be evaluated by itself (evaluable=False)
+            # be evaluated by itself...
             parm = ns[key](**quals)('funklet')
             if not parm.initialized():
                 parm << Meq.Parm(init_funklet=init_funklet)
-                self.NodeSet.set_MeqNode(parm, group=leafgroup+'_parm',
-                                         evaluable=False)
+                self.NodeSet.set_MeqNode(parm, group=leafgroup)
             
             # The Compounder has more qualifiers than the Parm.
             # E.g. EJones_X is per station, but the compounder and its
             # children (l,m) are for a specific source (q=3c84)
+            group = leafgroup                            # e.g. 'EJones'
             if isinstance(qual2, dict):
                 for qkey in qual2.keys():
-                    quals[qkey] = str(qual2[qkey])
+                    s1 = str(qual2[qkey])
+                    quals[qkey] = s1
+                    group += '_'+s1                      # e.g. 'EJones_3c84'
             node = ns[key](**quals)
             if not node.initialized():
                 cc = compounder_children
                 if not isinstance(cc, (list, tuple)): cc = [cc]
                 cc.append(parm)
                 node << Meq.Compounder(children=cc, common_axes=common_axes)
-                self.NodeSet.set_MeqNode(node, group=leafgroup)
+                self.NodeSet.set_MeqNode(node, group=group)
+                self.NodeSet.append_MeqNode_eval(parm.name, append=node)
 
         
         elif node.initialized():                         # node already exists
@@ -269,24 +272,31 @@ class LeafSet (TDL_common.Super):
             scatter = rider['simul_scatter_coeff']
             if default==None: default = dict()           # see default.setdefault() below
             if scatter==None: scatter = dict()           # see scatter.setdefault() below
-            coeff = []
-            for k in range(10):                          
-                s1 = 'p'+str(k)                          # search for p0,p1,p2,...
-                if expr.rfind(s1)<0: break               
-                default.setdefault(s1,1.0)               # default value: 1.0
-                scatter.setdefault(s1,0)                 # default: zero scatter
-                coeff.append(gauss(default[s1], scatter[s1]))
-            if True:
-                init_funklet = meq.polc(coeff=coeff, subclass=meq._funklet_type)
-                init_funklet.function = expr
-            else:
-                # init_funklet = TDL_Functional(rider['simul_funklet'], coeff)
-                pass
+            init_funklet = make_init_funklet (expr, default, scatter)
             node << Meq.Parm(init_funklet=init_funklet)
             self.NodeSet.set_MeqNode(node, group=leafgroup)
 
         # Finished: return the node that is to be inserted in the tree.
         return node
+
+    #--------------------------------------------------------------------------
+
+    def make_init_funklet (self, expr, default, scatter):
+        """Helper function to make an init_funklet"""
+        coeff = []
+        for k in range(10):                          
+            s1 = 'p'+str(k)                          # search for p0,p1,p2,...
+            if expr.rfind(s1)<0: break               
+            default.setdefault(s1,1.0)               # default value: 1.0
+            scatter.setdefault(s1,0)                 # default: zero scatter
+            coeff.append(gauss(default[s1], scatter[s1]))
+        if True:
+            init_funklet = meq.polc(coeff=coeff, subclass=meq._funklet_type)
+            init_funklet.function = expr
+        else:
+            # init_funklet = TDL_Functional(rider['simul_funklet'], coeff)
+            pass
+        return init_funklet
 
 
     #===================================================================================
@@ -324,7 +334,7 @@ class LeafSet (TDL_common.Super):
 
     #----------------------------------------------------------------------
 
-    def leafgroup (self, key=None, rider=None, evaluable=True, **kwargs):
+    def leafgroup (self, key=None, rider=None, **kwargs):
         """Get/define the named (key) leafgroup"""
         if not rider==None:
         # if not rider==None or len(kwargs)>0:
@@ -346,9 +356,6 @@ class LeafSet (TDL_common.Super):
             for pkey in kwargs.keys():
                 rider[pkey] = kwargs[pkey]
             result = self.NodeSet.group(key, rider=rider)      
-            if not evaluable:
-                # If a Compounder (ND funklet), create an extra group:
-                self.NodeSet.group(key+'_parm', rider=dict(evaluable=False))
             self._history('Created leafgroup: '+str(key)+' (rider:'+str(len(rider))+')')
             return result
         # Then the generic NodeSet part:

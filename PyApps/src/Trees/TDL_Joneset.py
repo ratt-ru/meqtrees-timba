@@ -220,9 +220,8 @@ class Joneset (TDL_common.Super):
     # Functions related to ParmSet/LeafSet:
     #-----------------------------------------------------------------------
 
-    def parmgroup (self, key=None, rider=dict(), evaluable=True, **kwargs):
+    def parmgroup (self, key=None, rider=dict(), **kwargs):
         """Register a parameter group and a simulation 'leaf' group, with the same name.
-        If evaluable=False, two extra groups (named <key>_parm) will be registered.
         This is a frontend for ParmSet.parmgroup() and LeafSet.leafgroup().
         Note that only one of the groups will be filled in a particular mode."""
 
@@ -232,13 +231,13 @@ class Joneset (TDL_common.Super):
             rider[pkey] = kwargs[pkey]
 
         # Register the parmgroup:
-        self.ParmSet.parmgroup(key, rider=rider, evaluable=evaluable)
+        self.ParmSet.parmgroup(key, rider=rider)
         self._history('Register parmgroup/leafgroup: '+str(key)+' (rider:'+str(len(rider))+')')
 
         # Register a leafgroup with the same name:
         rider['style'] = 'triangle'
         rider['size'] = 5
-        self.LeafSet.leafgroup(key, rider=rider, evaluable=evaluable)
+        self.LeafSet.leafgroup(key, rider=rider)
 
         # Return the actual parmgroup/leafgroup name (key):
         return key

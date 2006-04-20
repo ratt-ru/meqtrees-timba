@@ -176,8 +176,11 @@ class NodeSet (TDL_common.Super):
                 node = self.MeqNode(key)
                 s1 = TDL_common.format_initrec(node)
                 s2 = ' - '+str(node.name)+'  '+s1
-                if not self.MeqNode(key, field='evaluable'):
-                    s2 += ' (not evaluable)' 
+                eval = self.MeqNode(key, field='eval')
+                if len(eval)>0:
+                    s2 += '  (eval('+str(len(eval))+'): '+str(eval[0])
+                    if len(eval)>1: s2 += '...'
+                    s2 += ')'
                 ss.append(indent2+s2)
         else:
             node = self.MeqNode(keys[0])
@@ -242,7 +245,7 @@ class NodeSet (TDL_common.Super):
     # Functions related to MeqNodes: 
     #--------------------------------------------------------------------------------
 
-    def set_MeqNode(self, node=None, group='<undefined>', evaluable=True, trace=False):
+    def set_MeqNode(self, node=None, group='<undefined>', trace=False):
         """Create a named MeqNode entry (the nodes are defined externally!)."""
         nodename = node.name
         if self.has_key(nodename):
@@ -252,18 +255,61 @@ class NodeSet (TDL_common.Super):
         else:
             # MeqNode entries are dicts, with the node in the field 'node'.
             # In addidition, the entry contains other fields with aux info:
-            # - evaluable=True/False: Some MeqParms need a MeqCompunder for evaluation
-            self.__MeqNode[nodename] = dict(node=node, evaluable=evaluable) 
+            # - eval contains (a list of) nodes that are to be used for evaluation.
+            #   The default is itself. Eval nodes are usually MeqCompunder nodes.
+            self.__MeqNode[nodename] = dict(node=node, eval=[]) 
             if isinstance(group, str):
-                self.__group.setdefault(group, [])
-                self.__group_rider.setdefault(group, dict())
-                self.__group[group].append(nodename)  
+                self.__group.setdefault(group, [])      # make sure that group exists
+                self.__group[group].append(nodename)    # append this node to the group
+                self.__group_rider.setdefault(group, dict()) # make empty group rider
             s1 = 'set_MeqNode(): new entry: '+str(nodename)+' (in group: '+str(group)+')'
-            if not evaluable: s1 += ' (not evaluable)'
             self.history(s1)
             if trace: print '**',s1  
         return nodename
 
+    #-----------------------------------------------------------------------------
+ 
+    def append_MeqNode_eval(self, key=None, append=None, trace=False):
+        """Append one or more nodes (append) to the list of eval-nodes in the
+        specified (key) MeqNode entry. See also .MeqNode_eval()."""
+        if not self.__MeqNode.has_key(key):
+            return False                                # error message....
+        if not isinstance(append, (list,tuple)): append = [append]
+        for node in append:
+            name = node.name                            # store the node NAME
+            s1 = 'MeqNode_eval('+str(key)+'): append: '+str(name)
+            if not self.__MeqNode.has_key(name):        # MeqNode entry should exist
+                self.set_MeqNode(node)                  # create if necessary
+            self.__MeqNode[key]['eval'].append(name)    # append to eval list
+            self.history(s1)
+            if trace: print s1
+        return True
+
+    #-----------------------------------------------------------------------------
+ 
+    def MeqNode_eval(self, key=None, result='nodes', trace=False):
+        """Return the node(s) that should be evaluated to get a result from the
+        specified (key) MeqNode entry. Usually, this will be the node itself.
+        But if the MeqNode entry has a list of eval-nodes, return those.
+        The latter are usually MeqCompounder nodes that interpolate an ND MeqParm."""
+        nodes = []
+        names = []
+        if not self.__MeqNode.has_key(key):
+            return False                                # error message....
+        elif len(self.__MeqNode[key]['eval'])==0:
+            names = [key]
+            nodes = [self.__MeqNode[key]['node']]       # a list of one node: itself
+        else:
+            for name in self.__MeqNode[key]['eval']:
+                nodes.append(self.__MeqNode[name]['node'])
+                names.append(name)
+        # Return a list (!) of zero or more nodes to be evaluated.
+        if trace:
+            print '** MeqNode_eval(',key,'): node-names =',names
+        if result=='names': return names
+        return nodes
+
+    #-----------------------------------------------------------------------------
 
     def MeqNode(self, key=None, field='node', trace=False):
         """Get a named (key) MeqNode entry (dict).
@@ -276,6 +322,8 @@ class NodeSet (TDL_common.Super):
             return rr[field]                            # return the field only
         return rr                                       # return MeqNode entry dict
 
+    #-----------------------------------------------------------------------------
+
     def len(self):
         """Return the total nr of MeqNode entries."""
         return len(self.__MeqNode)
@@ -287,6 +335,7 @@ class NodeSet (TDL_common.Super):
     def has_key(self, key):
         """Check whether the specified (key) MeqNode entry exists."""
         return self.__MeqNode.has_key(key)
+
 
 
     #--------------------------------------------------------------------------------
@@ -344,9 +393,9 @@ class NodeSet (TDL_common.Super):
         return self.__group.has_key(key)
 
 
-    def nodes(self, group=None, select='*', trace=False):
+    def nodes(self, group=None, select='*', eval=False, trace=False):
         """Return a list of actual MeqNodes in the specified group(s)"""
-        if trace: print '** .nodes(',group,select,'):',
+        if trace: print '** .nodes(',group,select,', eval=',eval,'):',
         names = self.nodenames(group, select=select, trace=False)
         if not names: return False
         nn = []
@@ -355,9 +404,10 @@ class NodeSet (TDL_common.Super):
         if trace: print '-> (',len(nn),'):',names
         return nn
 
-    def nodenames (self, group=None, select='*', trace=False):
-        """Return a list of the MeqNode names in the specified group(s)"""
-        if trace: print '** .nodenames(',group,select,'):'
+    def nodenames (self, group=None, select='*', eval=False, trace=False):
+        """Return a list of the MeqNode names in the specified group(s).
+        If eval==True, return the names of their eval-nodes."""
+        if trace: print '** .nodenames(',group,select,', eval=',eval,'):'
         gg = self._extract_flat_grouplist(group, must_exist=True, origin='.nodes()')
         if not gg: return False
         if trace: print '    -> groupnames(',len(gg),'):',gg
@@ -376,7 +426,17 @@ class NodeSet (TDL_common.Super):
                 for name in nn:
                     if not name in names:    # avoid doubles
                         names.append(name)   # take them all
-        if trace: print '    -> nodenames(',len(names),'):',names
+
+        # Special case: return the names of the corresponding eval-nodes:
+        if eval:
+            nn = []
+            for name in names:
+                n1 = self.MeqNode_eval(name, result='names', trace=False)
+                for n in n1:
+                    if not n in nn:
+                        nn.append(n)         # avoid doubles
+            names = nn
+        if trace: print '   ->',len(names),'nodenames: ',names
         return names
 
 
@@ -625,7 +685,7 @@ class NodeSet (TDL_common.Super):
             if self.has_key(bbname):                         # bbundle already exists
                 if trace: print '  MeqNode',bbname,'already exists'
                 # NB: Returning here inhibits separate bookmarks (see below)
-                return self.MeqNode(bbname)       # just return it
+                return self.MeqNode(bbname)                  # just return it
             if isinstance(bookpage, bool) and bookpage:      # if bookpage==True: 
                  bookpage = bbname                           #   make an automatic name
             if trace: print '  bookpage =',bbname
@@ -633,7 +693,7 @@ class NodeSet (TDL_common.Super):
         cc = []
         bname = None                                         # bundle name
         for g in gg:                                         # for all groups
-            nodes = self.nodes(g, trace=trace)               # their nodes
+            nodes = self.eval_nodes(g, trace=trace)          # the eval-nodes of group g
             if isinstance(nodes, list): 
                 n = len(nodes)
                 if n>0: 
@@ -816,8 +876,8 @@ class NodeSet (TDL_common.Super):
 
         gog = []
         for g in gg:                                         # for all groups
-            gname = self._make_unop_name(g, unop=unop)            # e.g. Cos(g)
-            nodes = self.nodes(g, trace=trace)               # the nodes of group g
+            gname = self._make_unop_name(g, unop=unop)       # e.g. Cos(g)
+            nodes = self.nodes(g, eval=True, trace=trace)    # the eval-nodes of group g
             if isinstance(nodes, list) and len(nodes)>0: 
                 self.group(gname, rider=dict(unop=unop))     # define a new group gname
                 for node in nodes:
@@ -886,9 +946,9 @@ class NodeSet (TDL_common.Super):
         if not len(gg)==2: return False
 
         # Get two lists of nodes:
-        lhs = self.nodes(gg[0], trace=trace)          # left-hand side nodes        
+        lhs = self.nodes(gg[0], eval=True, trace=trace)          # left-hand side nodes        
         if not isinstance(lhs, list): return False 
-        rhs = self.nodes(gg[1], trace=trace)          # right-hand side nodes
+        rhs = self.nodes(gg[1], eval=True, trace=trace)          # right-hand side nodes
         if not isinstance(rhs, list): return False 
         if not len(lhs)==len(rhs): return False
         if len(lhs)==0: return False
@@ -936,12 +996,12 @@ class NodeSet (TDL_common.Super):
         gnames = []
         for g in gg:
             if not NodeSet.has_group(g):
-                pass                           # error...?
+                pass                                             # error...?
             else:
                 # Get two lists of nodes:
-                lhs = self.nodes(g, trace=trace)             # left-hand side nodes        
+                lhs = self.nodes(g, eval=True, trace=trace)      # left-hand side nodes        
                 if not isinstance(lhs, list): return False 
-                rhs = NodeSet.nodes(g, trace=trace)          # right-hand side nodes
+                rhs = NodeSet.nodes(g, eval=True, trace=trace)   # right-hand side nodes
                 if not isinstance(rhs, list): return False 
                 if not len(lhs)==len(rhs): return False
                 if len(lhs)==0: return False
@@ -1140,16 +1200,22 @@ def test1(ns, nstat=2, mult=1.0):
     nst.gog('Gphase', [p1, p2])
     nst.gog('grogog', [a1, p2, 'GJones'])
 
+    dummy11 = ns.dummy_test11 << 0.1
+    dummy12 = ns.dummy_test12 << 0.1
+
     # Make nodes themselves:
     freq = ns.freq << Meq.Freq()
     for i in range(nstat):
         for Ggain in [a1,a2]:
             node = ns[Ggain](i=i) << Meq.Multiply(i*mult,freq)
-            nst.set_MeqNode(node, group=Ggain, evaluable=False)             
+            nst.set_MeqNode(node, group=Ggain)             
          
         for Gphase in [p1,p2]:
             node = ns[Gphase](i=i) << Meq.Multiply(-i*mult,freq)
             nst.set_MeqNode(node, group=Gphase)             
+            # nst.append_MeqNode_eval(node.name, append=dummy11)             
+            # nst.append_MeqNode_eval(node.name, append=dummy12)             
+            nst.append_MeqNode_eval(node.name, append=[dummy12,dummy11])             
 
     # nst.bookmark('GX', [a1,p1])
     # nst.bookmark('GY', [a2,p2])
@@ -1234,6 +1300,12 @@ if __name__ == '__main__':
     if 1:
         nst = test1(ns)
 
+    if 1:
+        for key in nst.keys():
+            nst.MeqNode_eval(key, trace=True)
+        nst.nodenames(trace=True)
+        nst.nodenames(eval=True, trace=True)
+
     if 0:
         gg = nst.group_keys()
         # gg.append('xxx')
@@ -1291,7 +1363,7 @@ if __name__ == '__main__':
         r = nst.plot_style(key=[kk[0],kk[1]], trace=True)
         r = nst.plot_size(key=[kk[0],kk[1]], trace=True)
 
-    if 0:
+    if 1:
         nst.apply_unop(ns, 'GJones', 'Cos', bookpage=True)
 
     if 0:
@@ -1301,7 +1373,7 @@ if __name__ == '__main__':
         nst.ensure_bookmarks(ns)
         JEN_bookmarks.current_settings(trace=True)
 
-    if 1:
+    if 0:
         root = nst.bookmark_subtree(ns, trace=True)
         TDL_display.subtree(root, 'bookpage_subtree', full=True, recurse=3)
 

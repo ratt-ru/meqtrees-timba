@@ -210,9 +210,7 @@ class ParmSet (TDL_common.Super):
         s0 = '\n** MeqParm('+str(key)+','+str(qual)+'): '
 
         # The rider fields may be overridden by the keyword arguments kwargs, if any:
-        # print s0,'pp -> rider:'
         for pkey in pp.keys():
-            # print '-',pkey,'->',pp[pkey]
             rider[pkey] = pp[pkey]
 
         # The node-name qualifiers are the superset of the default ones
@@ -264,7 +262,6 @@ class ParmSet (TDL_common.Super):
                 shape = deepcopy(rider['tfdeg'])         # just in case.....
             shape[0] += 1                                # make 1-relative              
             shape[1] += 1                                # make 1-relative
-        # print s0,'shape ->',shape,'\n'
 
         # Make the new MeqParm node (if necessary):
         node = ns[key](**quals)
@@ -282,26 +279,30 @@ class ParmSet (TDL_common.Super):
                                  save_all=rider['save_all'],
                                  node_groups=self.node_groups(),
                                  table_name=self.parmtable())
-                self.NodeSet.set_MeqNode(parm, group=parmgroup+'_parm',
-                                         evaluable=False)
+                self.NodeSet.set_MeqNode(parm, group=parmgroup)
 
             # The Compounder has more qualifiers than the Parm.
             # E.g. EJones_X is per station, but the compounder and its
             # children (l,m) are for a specific source (q=3c84)
+            group = parmgroup                            # e.g. 'EJones'
             if isinstance(qual2, dict):
                 for qkey in qual2.keys():
-                    quals[qkey] = str(qual2[qkey])
+                    s1 = str(qual2[qkey])
+                    quals[qkey] = s1
+                    group += '_'+s1                      # e.g. 'EJones_3c84'
             node = ns[key](**quals)
             if not node.initialized():                   # made only once
                 cc = compounder_children
                 if not isinstance(cc, (list, tuple)): cc = [cc]
                 cc.append(parm)
                 node << Meq.Compounder(children=cc, common_axes=common_axes)
+                self.NodeSet.set_MeqNode(node, group=group)
+                self.NodeSet.append_MeqNode_eval(parm.name, append=node)
             return node
         
         elif init_funklet:
             node << Meq.Parm(init_funklet=init_funklet,
-                             # shape=shape,             # DON'T
+                             ### shape=shape,             # DON'T
                              # perturbation=1e-7,       # scale*1e-7
                              tiling=tiling,
                              use_previous=rider['use_previous'],
@@ -312,7 +313,6 @@ class ParmSet (TDL_common.Super):
                              table_name=self.parmtable())
             
         else:
-            # node = ns[key](**quals) << Meq.Parm(funklet=default,
             node << Meq.Parm(funklet=default,
                              shape=shape,
                              tiling=tiling,
@@ -423,7 +423,7 @@ class ParmSet (TDL_common.Super):
 
     #---------------------------------------------------------------------------------
     
-    def parmgroup (self, key=None, rider=None, evaluable=True, **kwargs):
+    def parmgroup (self, key=None, rider=None, **kwargs):
         """Get/define the named (key) parmgroup"""
         if not rider==None:
             if not isinstance(rider, dict): rider = dict()    # just in case
@@ -446,9 +446,6 @@ class ParmSet (TDL_common.Super):
             if trace:
                 print '** qq.keys() =',qq.keys()
             result = self.NodeSet.group(key, rider=qq)
-            if not evaluable:
-                # If a Compounder (ND funklet), create an extra group:
-                self.NodeSet.group(key+'_parm', rider=dict(evaluable=False))
             self._history('Created parmgroup: '+str(key)+' (rider:'+str(len(qq))+')')
 
             self.solvegroup(key, [key], gogtype='solvegroup')       
