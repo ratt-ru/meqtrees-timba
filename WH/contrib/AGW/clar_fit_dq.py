@@ -8,8 +8,16 @@ from Timba.Contrib.OMS.Observation import Observation
 from Timba.Contrib.OMS.SkyComponent import *
 import clar_model
 
+TDLCompileOption('source_model',"Source model",[
+    clar_model.point_and_extended_sources,
+    clar_model.point_sources_only,
+    clar_model.radio_galaxy
+  ],default=0);
+
 # MS name
-msname = "TEST_CLAR_27-480.MS";
+TDLRuntimeOption('msname',"MS",["TEST_CLAR_27-480.MS","TEST_CLAR_27-4800.MS"],inline=True);
+
+
 tile_size = 480
 resample = None;
 # resample = [480,1];
@@ -71,7 +79,7 @@ def _define_forest(ns):
   array = IfrArray(ns,stations);
   obs = Observation(ns);
   
-  sources = clar_model.point_and_extended_sources(ns);
+  sources = source_model(ns);
                      
   # create nodes for simulating the CLAR beam
   ns.freq << Meq.Freq;
