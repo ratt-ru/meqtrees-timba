@@ -1310,7 +1310,7 @@ def visualise(ns, Joneset, parmgroup=False, compare=None, **pp):
     dcoll = []                                          # list of dcoll records
     if not isinstance(parmgroup, str):                  # no parmgroup specified
         parmgroup = Joneset.ParmSet.parmgroup().keys()  # default: all parmgroups
-    for key in Joneset.ParmSet.parmgroup().keys():
+    for key in Joneset.ParmSet.parmgroup_keys():
         if parmgroup.__contains__(key):                 # only if parmgroup specified 
             pgk = Joneset.ParmSet.parmgroup()[key]      # list of MeqParm node names
             if len(pgk)>0:                              # ignore if empty 

@@ -12,6 +12,8 @@
 #    - 04 apr 2006: removed self.__buffer
 #    - 12 apr 2006: split .MeqNode() into .get_/.set_MeqNode()
 #    - 16 apr 2006: MeqNode entries are dict(node=node, ....)
+#    - 20 apr 2006: added eval-list to MeqNode entry dicts
+#    - 20 apr 2006: implemented .dataCollect()
 #
 # Full description:
 #   Many types of MeqTree nodes (e.g. MeqParms) come in groups of similar ones,
@@ -74,6 +76,9 @@ from Timba.Trees import TDL_common
 from Timba.Trees import TDL_radio_conventions
 from Timba.Trees import JEN_bookmarks
 
+# Temporary, until TDL_dataCollect.py:
+from Timba.Contrib.JEN import MG_JEN_dataCollect
+# from Timba.Contrib.JEN import MG_JEN_historyCollect
 
 
 
@@ -476,7 +481,7 @@ class NodeSet (TDL_common.Super):
     #-----------------------------------------------------------------------------------
 
     def select_groups (self, name=None, substring=True, rider=None, trace=False):
-        """Return a list of groups according to the selection criteria"""
+        """Return a list of groups according to the selection criteria (None=all)"""
         if trace: print '** .select_groups(',name,substring,rider,'):'
         gg = self._extract_flat_grouplist(name, must_exist=False, origin='.select_groups()')
         # if not isinstance(gg, (list,tuple)): return False
@@ -530,7 +535,7 @@ class NodeSet (TDL_common.Super):
                         if not v.__contains__(rr[key]): ok = False
                     else:
                         if (not v==rr[key]): ok = False
-                    print '     -',g,key,':',v,'<->',rr[key],'    ok =',ok
+                    if trace: print '     -',g,key,':',v,'<->',rr[key],'    ok =',ok
             if ok: cc.append(g)
         if trace: print '    ** _match_rider() ->',len(cc),'):',cc
         return cc
@@ -658,6 +663,41 @@ class NodeSet (TDL_common.Super):
     #================================================================================
     # Functions that generate new MeqNodes (i.e. that require a nodescope(ns)):
     #================================================================================
+
+    
+    def dataCollect (self, ns, group=None, name=None,
+                     bookpage=None, folder=None, trace=False):
+        """Return a contatenation (dconc) of dataCollect nodes for the specified group(s)"""
+
+        funcname = 'dataCollect()'
+        if trace: print '** dataCollect(',group,name,bookpage,folder,'):'
+        gg = self._extract_flat_grouplist(group, must_exist=True, origin='.make_bundle()')
+        if not isinstance(gg, list): return False
+        if len(gg)==0: return False
+
+        uniqual = _counter(funcname, increment=-1)
+
+        # Make dcolls per (available) corr, and collect groups of corrs:
+        dcoll = []
+        for g in gg:                                         # for all groups
+            # rider = self.group_rider(g)                      # the group rider
+            nodes = self.nodes(g, eval=True, trace=trace)    # the eval-nodes of group g
+            if isinstance(nodes, list): 
+                dc = MG_JEN_dataCollect.dcoll (ns, nodes, 
+                                               scope='<scope>', tag=str(g),
+                                               type='realvsimag', errorbars=True,
+                                               color=self.plot_color(g),
+                                               # size=self.plot_size(g),
+                                               # pen=self.plot_pen(g),
+                                               style=self.plot_style(g))
+                dcoll.append(dc)
+
+        # Concatenate:
+        dconc = MG_JEN_dataCollect.dconc(ns, dcoll, 
+                                         scope='<dconc_scope>',
+                                         tag='all', bookpage='NodeSet')
+        # Return the root node:
+        return dconc['dcoll']
 
 
     #--------------------------------------------------------------------------
@@ -1301,6 +1341,10 @@ if __name__ == '__main__':
         nst = test1(ns)
 
     if 1:
+        rootnode = nst.dataCollect(ns)
+        TDL_display.subtree(rootnode, 'dataCollect')
+
+    if 0:
         for key in nst.keys():
             nst.MeqNode_eval(key, trace=True)
         nst.nodenames(trace=True)

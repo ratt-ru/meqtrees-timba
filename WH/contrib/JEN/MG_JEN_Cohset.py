@@ -214,6 +214,7 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         post = []
         post.append(Cohset.ParmSet.NodeSet.bookmark_subtree(ns, folder=bookfolder))
         post.append(Cohset.LeafSet.NodeSet.bookmark_subtree(ns, folder=bookfolder))    
+        post.append(Cohset.LeafSet.NodeSet.dataCollect(ns, folder=bookfolder))    
         if True:
             node = Cohset.ParmSet.NodeSet.compare (ns, Cohset.LeafSet.NodeSet,
                                                    # group=None, binop='Subtract',

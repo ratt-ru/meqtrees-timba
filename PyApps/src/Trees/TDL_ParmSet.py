@@ -430,9 +430,6 @@ class ParmSet (TDL_common.Super):
         if not rider==None:
             if not isinstance(rider, dict): rider = dict()    # just in case
             trace = False
-            if trace:
-                print '\n------------- key =',key,':'
-                print '\n** input rider.keys() =',rider.keys()
             qq = JEN_inarg._strip(rider)                  # does a deepcopy() too
             self.parmgroup_rider_defaults(qq)             # ...necessary...?
             # The rider usually contains the inarg record (pp) of the calling function.
@@ -442,11 +439,7 @@ class ParmSet (TDL_common.Super):
             if qq.has_key('tdeg_'+key):
                 qq['tfdeg'] = [qq['tdeg_'+key],qq['fdeg_'+key]]
                 qq['subtile_size'] = qq['subtile_size_'+key]
-                if trace:
-                    print '--- qq[tfdeg] =',qq['tfdeg']
-                    print '--- qq[subtile_size] =',qq['subtile_size']
-            if trace:
-                print '** qq.keys() =',qq.keys()
+            qq['grouptype'] = 'parmgroup'                 # see .parmgroup_keys()
             result = self.NodeSet.group(key, rider=qq)
             self._history('Created parmgroup: '+str(key)+' (rider:'+str(len(qq))+')')
 
@@ -458,11 +451,12 @@ class ParmSet (TDL_common.Super):
 
     def parmgroup_keys (self):
         """Return the keys (names) of the available parmgroups"""
-        return self.NodeSet.group_keys()
+        return self.NodeSet.select_groups (rider=dict(grouptype='parmgroup'))
 
     def subtree_parmgroups(ns, bookpage=True):
         """Make a subtree of the available parmgroups, and return its root node"""
-        node = self.NodeSet.make_bundle (ns, group=None, name=None, bookpage=bookpage)
+        node = self.NodeSet.make_bundle (ns, group=self.parmgroup_keys(),
+                                         name=None, bookpage=bookpage)
         return rootnode
 
 #--------------------------------------------------------------------------------
@@ -512,7 +506,7 @@ class ParmSet (TDL_common.Super):
     def define_condeq(self, parmgroup=None, unop='Add', value=0.0, select='*', trace=False):
         """Provide information for named (key) condeq equations"""
         if not self.NodeSet.has_group(parmgroup):
-            print '\n** parmgroup not recognised in:',self.__parmgroup.keys(),'\n'
+            print '\n** parmgroup not recognised in:',self.parmgroup_keys(),'\n'
             return False
         # Make the name (key) of the condeq defnition:
         key = parmgroup
@@ -921,6 +915,9 @@ if __name__ == '__main__':
 
         ps.cleanup()
 
+
+    if 1:
+        print '\n** parmgroup_keys() ->',ps.parmgroup_keys()
 
     if 0:
         for key in ps.condeq().keys():
