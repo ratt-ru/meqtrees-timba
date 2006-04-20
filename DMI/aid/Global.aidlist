@@ -21,6 +21,7 @@ Auto                             1213       ; from /home/oms/LOFAR/Timba/AppAgen
 Axes                             1346       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 Axis                             1318       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 B                                1019       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+Balanced                         1668       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
 Bandwidth                        1176       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:32
 Batch                            1563       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:13
 Beam                             1178       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:35
@@ -143,6 +144,7 @@ Enabled                          1537       ; from /home/oms/LOFAR/Timba/MEQ/src
 End                              1276       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 Epsilon                          1377       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
 EQ                               1444       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
+Equations                        1667       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
 Error                            1056       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 Errors                           1310       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 ev                               1620       ; from /home/oms/LOFAR/Timba/MEQ/src/Request.h:34
@@ -497,6 +499,7 @@ Range                            1638       ; from /home/oms/LOFAR/Timba/AppAgen
 Rank                             1304       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 Raw                              1132       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 Read                             1488       ; from /home/oms/LOFAR/Timba/MeqServer/src/VisHandlerNode.h:12
+Ready                            1669       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
 Receive                          1236       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:12
 Receptor                         1158       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 Reconnect                        1044       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
