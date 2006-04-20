@@ -9,8 +9,6 @@
 //#include <casa/Arrays/ArrayMath.h>
 #include <stdlib.h>
         
-#define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
-
 using namespace LOFAR;
 using namespace DMI;
 using namespace DebugDefault;

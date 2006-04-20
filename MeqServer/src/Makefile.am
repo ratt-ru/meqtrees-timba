@@ -3,7 +3,9 @@ CXXFLAGS += -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE -I/usr/include/py
 dmi_dir = $(lofar_sharedir)/../DMI
 
 LDFLAGS += -L/usr/lib -Wl,-v
-LIBS += -llapack -lblas -lg2c -lfftw3
+
+## these ought to be brought in via configure
+# LIBS += -llapack -lblas -lg2c -lfftw3
 
 lib_LTLIBRARIES = libmeqserver.la
 
