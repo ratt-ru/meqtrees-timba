@@ -36,11 +36,11 @@ extern "C" {
 // the following is available from the libcfitsio-dev package on Debian,
 // in a perfect world it should be found by configure
 #include <fitsio.h>
-// the following is w.r.t. the aips++ include path
-#include <wcslib/wcs.h>
-#include <wcslib/prj.h>
-#include <wcslib/wcshdr.h>
-#include <wcslib/wcsfix.h>
+// the following is w.r.t. the aips++ include path, kinda kludgy
+#include <../casa/wcslib/wcs.h>
+#include <../casa/wcslib/prj.h>
+#include <../casa/wcslib/wcshdr.h>
+#include <../casa/wcslib/wcsfix.h>
 
 typedef struct nlimits_ {
 		int naxis;
