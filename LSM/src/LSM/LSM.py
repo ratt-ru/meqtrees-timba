@@ -60,6 +60,8 @@ class PUnit:
   self._patch_name=None # FIXME: only temporary
 
   self.__sixpack=None
+  self._nodes=None# buffer to store any nodes associated with this PUnit,
+                   # useful for dealing with ParmSet and NodeSet objects
  
  # change type (point: flag=POINT_TYPE, patch: flag=PATCH_TYPE)
  def setType(self,flag):
@@ -163,6 +165,10 @@ class PUnit:
   if self.__sixpack!=None:
    newp.__sixpack={}
    pset=self.__sixpack.ParmSet
+   nodes=pset.NodeSet.MeqNode()
+   print nodes
+   # attach all nodes to the temp buffer
+   newp._nodes=nodes.keys()
    # copy ParmSet
    newp.__sixpack['ParmSet']=pset.clone()
    #print newp.__sixpack['ParmsSt']
@@ -727,6 +733,13 @@ class LSM:
     punit.setSP(my_sp)
     # recreate ParmSet for this sixpack
     punit.setParmSet(tmp_dict['ParmSet'],self.__ns)
+    # recreate the NodeSet nodes, if any
+    print punit._nodes
+    if hasattr(punit,"_nodes") and punit._nodes!=None:
+       my_sp=punit.getSixpack()
+       for nodename in punit._nodes:
+         my_sp.ParmSet.NodeSet.set_MeqNode(self.__ns[nodename])
+       punit._nodes=None
     # set the root
     punit.sp.setRoot(my_sp.sixpack())
 
