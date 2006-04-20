@@ -310,6 +310,11 @@ DMI::BObj * __construct_MeqCompounder (int n) { return n>0 ? new Meq::Compounder
         AtomicID::registerId(-1604,"MT")+
         AtomicID::registerId(-1643,"Begin")+
         AtomicID::registerId(-1276,"End")+
+        AtomicID::registerId(-1324,"Deriv")+
+        AtomicID::registerId(-1668,"Balanced")+
+        AtomicID::registerId(-1667,"Equations")+
+        AtomicID::registerId(-1669,"Ready")+
+        AtomicID::registerId(-48,"String")+
         AtomicID::registerId(-1437,"MeqCeil")+
         TypeInfoReg::addToRegistry(-1437,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1437,__construct_MeqCeil)+

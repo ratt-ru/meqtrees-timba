@@ -34,7 +34,7 @@
 #pragma aid Solve Result Incremental Solutions Tile Tiles Info Size Iterations 
 #pragma aid Converged Array Convergence Quota Tiling Tilings Super Size Stride
 #pragma aid Total SS Uk Unknown Unknowns Spid Set Stride Map Colin LM Factor MT 
-#pragma aid Begin End
+#pragma aid Begin End Deriv Balanced Equations Ready String
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -137,8 +137,11 @@ private:
   {
     bool            use_svd;        // use SVD?
     double          epsilon;        // epsilon threshold
+    double          epsilon_deriv;  // epsilon derivative threshold. New Apr 06
+    bool            is_balanced;    // assume balanced equations? New Apr 06
     double          colin_factor;   // colinearity factor, passed to LSQFit.set(double,double)
     double          lm_factor;      // L-M factor, passed to LSQFit.set(double,double)
+    int             max_iter;       // equal to Solver::max_num_iter_
   } SolverSettings;
   
   int             eval_mode_;         // 1 for single, 2 for double-deriv
@@ -344,6 +347,7 @@ private:
       // info for current solve step
       uint rank;
       double fit;
+      double chi;
       bool solFlag;
       DMI::Record::Ref metrics;       // metric record
       DMI::Record::Ref debugrec;      // debug record -- only filled in debug mode

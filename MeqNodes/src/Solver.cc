@@ -60,6 +60,11 @@ const HIID
     
     // various solver parameters
     FEpsilon         = AidEpsilon,          // convergence criterion, if fit parameter drops below this value, we have converged
+    // new option for Apr 2006 LSQFit updates
+    FEpsilonDeriv    = AidEpsilon|AidDeriv,
+    // new option for Apr 2006 LSQFit updates
+    FBalancedEquations = AidBalanced|AidEquations,
+    
     FUseSVD          = AidUseSVD,           // use SVD? passed to LSQFit
     FColinFactor     = AidColin|AidFactor,  // collinearity factor, passed to LSQFit::set(double,double)
     FLMFactor        = AidLM|AidFactor,     // LM factor, passed to LSQFit::set(double,double)
@@ -81,6 +86,8 @@ const HIID
     FMu              = AidMu,
     FStdDev          = AidStdDev,
     FChi             = AidChi,
+    FReady           = AidReady,            // ready code, new Apr 06
+    FReadyString     = AidReady|AidString,  // ready string, new Apr 06
     
     FDebug           = AidDebug;
 
@@ -131,6 +138,8 @@ Solver::Solver()
   // set ddefault settings
   settings_.use_svd       = true;
   settings_.epsilon       = 0;
+  settings_.epsilon_deriv = 0;
+  settings_.is_balanced   = false;
   settings_.colin_factor  = 1e-8;
   settings_.lm_factor     = 1e-3;
   // set Solver dependencies
@@ -868,6 +877,7 @@ int Solver::getResult (Result::Ref &resref,
   LoMat_double & incr_solutions = allSolNA.getArray<double,2>();
   // now go over allocated subsolvers and init them
   int uk0 = 0;
+  settings_.max_iter = max_num_iter_; // this is the same for all solvers
   for( int i=0; i<numSubsolvers(); i++ )
     subsolvers_[i].initSolution(uk0,incr_solutions,settings_,debugList.valid());
   cdebug(2)<<numSubsolvers()<<" sub-solvers initialized for "<<num_unknowns_<<" unknowns\n";
@@ -993,11 +1003,13 @@ int Solver::getResult (Result::Ref &resref,
     if( debug_lvl_ >= 0 )
     {
       double sumfit = 0;
+      double sumchi = 0;
       int sumrank = 0;
       for( int i=0; i<numSubsolvers(); i++ )
       {
         sumrank += subsolvers_[i].rank;
         sumfit += subsolvers_[i].fit;
+        sumchi += subsolvers_[i].chi;
       }
       // generate event as needed
       evrec[FNumConverged] = num_conv_;
@@ -1005,6 +1017,7 @@ int Solver::getResult (Result::Ref &resref,
       evrec[FIterations] = cur_iter_+1;
       evrec[FRank] = sumrank;
       evrec[FFit] = sumfit/numSubsolvers();
+      evrec[FChi] = sumchi/numSubsolvers();
       // attach more info with higher debug levels
       if( debug_lvl_ >= 1 )
       {
@@ -1139,6 +1152,17 @@ void Solver::Subsolver::initSolution (int &uk0,LoMat_double &incr_sol,
   Assert1(nuk);
   solver.set(nuk);
   solver.set(settings.colin_factor,settings.lm_factor);
+#ifndef USE_OLD_LSQFIT
+  solver.setMaxIter(settings.max_iter);
+  solver.setEpsValue(settings.epsilon);
+  solver.setEpsDerivative(settings.epsilon_deriv);
+  solver.setBalanced(settings.is_balanced);
+  cdebug1(1)<<"solver settings: "
+      <<settings.max_iter<<" "
+      <<settings.epsilon<<" "
+      <<settings.epsilon_deriv<<" "
+      <<settings.is_balanced<<endl;
+#endif
   solution.resize(nuk);
   incr_solutions.reference(incr_sol(LoRange::all(),LoRange(uk0,uk0+nuk-1)));
   uk0 += nuk;
@@ -1170,7 +1194,12 @@ bool Solver::Subsolver::solve (int step)
   mrec[FMu]     = solver.getWeightedSD();
   mrec[FStdDev] = solver.getSD();
   mrec[FNumUnknowns] = nuk;
-  mrec[FChi   ] = solver.getChi();
+  mrec[FChi   ] = chi = solver.getChi();
+  #ifndef USE_OLD_LSQFIT
+  mrec[FReady]  = solver.isReady();
+  mrec[FReadyString] = solver.readyText();
+  #endif
+
   
 // getCovariance() and getErrors() seem to destroy the matrix.
 // so comment them out for now. The right way is to make a copy of the LSQFit
@@ -1205,7 +1234,11 @@ bool Solver::Subsolver::solve (int step)
   }
 
   // check if converged;
+#ifdef USE_OLD_LSQFIT
   converged = ((abs(fit) <= settings.epsilon) && fit <= 0.0);
+#else
+  converged = solver.isReady();
+#endif
   
   // copy solution to incr_solutions matrix
   incr_solutions(step,LoRange::all()) = B2A::refAipsToBlitz<double,1>(solution);
@@ -1289,6 +1322,8 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
   newst[FConvergenceQuota].get(conv_quota_,initializing);
   newst[FUseSVD].get(settings_.use_svd,initializing);  
   newst[FEpsilon].get(settings_.epsilon,initializing);
+  newst[FEpsilonDeriv].get(settings_.epsilon_deriv,initializing);
+  newst[FBalancedEquations].get(settings_.is_balanced,initializing);
   newst[FColinFactor].get(settings_.colin_factor,initializing);
   newst[FLMFactor].get(settings_.lm_factor,initializing);
   

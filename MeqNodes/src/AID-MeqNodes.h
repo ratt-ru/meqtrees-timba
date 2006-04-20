@@ -28,6 +28,11 @@ const int AidAttrib_int = -1382;
 const DMI::AtomicID AidAxes(-1346);               // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 const int AidAxes_int = -1346;
 #endif
+#ifndef _defined_id_AidBalanced
+#define _defined_id_AidBalanced 1
+const DMI::AtomicID AidBalanced(-1668);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
+const int AidBalanced_int = -1668;
+#endif
 #ifndef _defined_id_AidBegin
 #define _defined_id_AidBegin 1
 const DMI::AtomicID AidBegin(-1643);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
@@ -103,6 +108,11 @@ const int AidDec_int = -1446;
 const DMI::AtomicID AidDensity(-1590);            // from /home/sarod/LOFAR/Timba/MeqNodes/src/Resampler.h:32
 const int AidDensity_int = -1590;
 #endif
+#ifndef _defined_id_AidDeriv
+#define _defined_id_AidDeriv 1
+const DMI::AtomicID AidDeriv(-1324);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
+const int AidDeriv_int = -1324;
+#endif
 #ifndef _defined_id_AidDownsample
 #define _defined_id_AidDownsample 1
 const DMI::AtomicID AidDownsample(-1600);         // from /home/oms/LOFAR/Timba/MeqNodes/src/Resampler.h:32
@@ -117,6 +127,11 @@ const int AidEQ_int = -1444;
 #define _defined_id_AidEnd 1
 const DMI::AtomicID AidEnd(-1276);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 const int AidEnd_int = -1276;
+#endif
+#ifndef _defined_id_AidEquations
+#define _defined_id_AidEquations 1
+const DMI::AtomicID AidEquations(-1667);          // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
+const int AidEquations_int = -1667;
 #endif
 #ifndef _defined_id_AidError
 #define _defined_id_AidError 1
@@ -743,6 +758,11 @@ const int AidRA_int = -1435;
 const DMI::AtomicID AidRADec(-1566);              // from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:32
 const int AidRADec_int = -1566;
 #endif
+#ifndef _defined_id_AidReady
+#define _defined_id_AidReady 1
+const DMI::AtomicID AidReady(-1669);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
+const int AidReady_int = -1669;
+#endif
 #ifndef _defined_id_AidResult
 #define _defined_id_AidResult 1
 const DMI::AtomicID AidResult(-1242);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
@@ -792,6 +812,11 @@ const int AidStdDev_int = -1350;
 #define _defined_id_AidStride 1
 const DMI::AtomicID AidStride(-1634);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:35
 const int AidStride_int = -1634;
+#endif
+#ifndef _defined_id_AidString
+#define _defined_id_AidString 1
+const DMI::AtomicID AidString(-48);               // from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:109
+const int AidString_int = -48;
 #endif
 #ifndef _defined_id_AidStyle
 #define _defined_id_AidStyle 1
