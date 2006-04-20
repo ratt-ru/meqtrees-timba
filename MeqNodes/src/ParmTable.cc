@@ -421,7 +421,9 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
 //     LoVec_double logscales = polclog.getConstants();
 //     lscaleCol.put(rownr,toParmVector(logscales));
     const vector<double> logscales = polclog.getConstants();
-    Vector<Double> constants(logscales);
+    Vector<double> constants(logscales.size());
+    for (int i=0;i<logscales.size();i++)
+      constants[i]=logscales[i];
     lscaleCol.put(rownr,constants);
   }
   return rownr;
