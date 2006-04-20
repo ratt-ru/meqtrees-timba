@@ -166,7 +166,6 @@ class PUnit:
    newp.__sixpack={}
    pset=self.__sixpack.ParmSet
    nodes=pset.NodeSet.MeqNode()
-   print nodes
    # attach all nodes to the temp buffer
    nset_nodenames=nodes.keys()
    newp._nodes=[]
@@ -300,6 +299,10 @@ class LSM:
 
   # undo buffer, stores a command and a variable if any
   self.__undo=None
+
+  # a placeholder for extra nodes associated with the LSM
+  # but not yet part of a tree
+  self._extra_node_list=[]
 
 
  # Much more important method
@@ -628,12 +631,6 @@ class LSM:
    g.m_table=self.m_table
    g.tmpl_table=self.tmpl_table
    g.__barr=self.__barr
-   # remove circular references to the old LSM
-   g.p_table={}
-   for sname in self.p_table.keys(): 
-    punit=self.p_table[sname]
-    g.p_table[sname]=punit.clone(self.__ns.__name)
-    g.p_table[sname].setLSM(g)
    g.mqs=None
    g.cells=None
    g.__patch_count=self.__patch_count
@@ -642,18 +639,46 @@ class LSM:
 
 
    # serialize the root
+   gdict={}
    if self.__root!=None:
-    gdict={}
+    # serialize the whole subtree
     traverse(self.__root,gdict,self.__ns._name)
-    g.__root=pickle.dumps(gdict)
-   else:
-    g.__root=None
+
    # if the nodescope has a subscope, strip the subscope 
    # name from the root name
-   if self.__ns.name_:
+   if self.__ns._name:
      g.__root_name=strip_subscope(self.__root_name)
    else: 
      g.__root_name=self.__root_name
+
+   # remove circular references to the old LSM
+   # serialize the PUnit table 
+   g.p_table={}
+
+   extra_node_list=[]
+   for sname in self.p_table.keys(): 
+    punit=self.p_table[sname]
+    # this is just for testing, add a dummy node thats not in the LSM
+    ####punit.getSixpack().ParmSet.NodeSet.set_MeqNode(self.__ns<<Meq.Parm(-1))
+    g.p_table[sname]=punit.clone(self.__ns._name)
+    g.p_table[sname].setLSM(g)
+    # get the nodes of the NodeSet of the ParmSet of this PUnit
+    # because we may need to save them with the LSM too.
+    my_nodes=punit.getSixpack().ParmSet.NodeSet.MeqNode()
+    # store them if they are not already saved by the LSM subtree
+    for my_name in my_nodes.keys():
+      # get stripped name without subscope
+      last_name=my_name
+      if self.__ns._name: last_name=strip_subscope(my_name)
+      if not gdict.has_key(last_name):
+       # we need to save this node
+       traverse(my_nodes[my_name]['node'],gdict,self.__ns._name)
+       extra_node_list.append(last_name)
+
+   g.__root=pickle.dumps(gdict)
+   g._extra_node_list=extra_node_list
+   #print g._extra_node_list
+
    p.dump(g)
    f.close()
 
@@ -712,6 +737,12 @@ class LSM:
      self.__root=None
      print "WARNING: cannot find a root node in the LSM. load will fail!"
 
+   # recreate the extra node list, if any
+   if hasattr(tmpl,"_extra_node_list") and len(tmpl._extra_node_list)>0:
+     print "Found extra nodes"
+     extra_root_name=ns.MakeUniqueName(self.__root_name+"_extra")
+     ns[extra_root_name]<<Meq.Composer(children=tmpl._extra_node_list)
+
    
    self.p_table=tmpl.p_table
    # reconstruct PUnits and Sixpacks if possible
@@ -741,7 +772,6 @@ class LSM:
     punit.setParmSet(tmp_dict['ParmSet'],self.__ns)
     # recreate the NodeSet nodes, if any
     if hasattr(punit,"_nodes") and punit._nodes!=None:
-       print punit._nodes
        my_sp=punit.getSixpack()
        for nodename in punit._nodes:
          my_sp.ParmSet.NodeSet.set_MeqNode(cname_node_stub(self.__ns,nodename))
@@ -1289,7 +1319,7 @@ class LSM:
    #self.setNodeScope(ns)
    #add to self root
    #self.addToTree(my_sp.sixpack())
-   print self.__root
+   #print self.__root
   else:
    print "WARNING: add_sixpack() called without giving a sixpack. Ignored!"
    pass
