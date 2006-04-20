@@ -168,7 +168,13 @@ class PUnit:
    nodes=pset.NodeSet.MeqNode()
    print nodes
    # attach all nodes to the temp buffer
-   newp._nodes=nodes.keys()
+   nset_nodenames=nodes.keys()
+   newp._nodes=[]
+   # strip subscope from node names
+   for nodename in nset_nodenames:
+    if subscope: newp._nodes.append(strip_subscope(nodename))
+    else: newp._nodes.append(nodename)
+
    # copy ParmSet
    newp.__sixpack['ParmSet']=pset.clone()
    #print newp.__sixpack['ParmsSt']
@@ -734,11 +740,11 @@ class LSM:
     # recreate ParmSet for this sixpack
     punit.setParmSet(tmp_dict['ParmSet'],self.__ns)
     # recreate the NodeSet nodes, if any
-    print punit._nodes
     if hasattr(punit,"_nodes") and punit._nodes!=None:
+       print punit._nodes
        my_sp=punit.getSixpack()
        for nodename in punit._nodes:
-         my_sp.ParmSet.NodeSet.set_MeqNode(self.__ns[nodename])
+         my_sp.ParmSet.NodeSet.set_MeqNode(cname_node_stub(self.__ns,nodename))
        punit._nodes=None
     # set the root
     punit.sp.setRoot(my_sp.sixpack())
