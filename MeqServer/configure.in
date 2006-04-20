@@ -52,7 +52,7 @@ dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL
 lofar_BLITZ(1)
-lofar_AIPSPP(1)
+lofar_AIPSPP(1,"-ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa")
 lofar_PACKAGE(Timba/OCTOPython)
 lofar_PACKAGE(Timba/VisCube)
 lofar_PACKAGE(Timba/AppAgent/AppAgent)
