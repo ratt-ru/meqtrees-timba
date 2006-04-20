@@ -34,7 +34,8 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 /* the following is w.r.t. /aips++/prod/code/casa */
-#include  </aips++/cfitsio/fitsio.h>
+//#include  </aips++/cfitsio/fitsio.h>
+#include <fitsio.h>
 #include <../casa/wcslib/wcs.h>
 #include <../casa/wcslib/prj.h>
 #include <../casa/wcslib/wcshdr.h>
