@@ -679,6 +679,7 @@ namespace Meq {
 		//will be created to match those values. Else, the vellset
 		//will be created to math the spid/perturbations of the funklet
 		int npsets, nspids;
+		npsets=nspids=0;
 		if ( have_perturbed_sets!=-1) {
 			if (have_perturbed_sets==0 || have_perturbed_sets==1) {
 				//copy from axis 1
@@ -821,6 +822,7 @@ namespace Meq {
       cout<<"Found "<<nplanes<<" perturbed sets from the grid child case:"<<have_perturbed_sets<<endl;
 #endif
 			int nnpert,nnspid;
+			nnpert=nnspid=0;
 				if (have_perturbed_sets==0 || have_perturbed_sets==1) {
 				//copy from axis 1
 				//
@@ -884,6 +886,12 @@ namespace Meq {
     res1.setVellSet(0,ref);
     res1.setCells(incells);
 
+
+		/*cout<<"Spids=";
+    for (int i=0; i<res1.vellSet(0).numSpids(); i++) {
+				cout<<res1.vellSet(0).getSpid(i)<<",";
+		}*/
+		cout<<endl;
 
     //delete map
     mapiter=revmap.begin();
