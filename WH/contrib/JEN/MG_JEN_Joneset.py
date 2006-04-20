@@ -1084,7 +1084,6 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005',
                             description=EJones_WSRT.__doc__)
     inarg_Joneset_common(pp, jones=jones, slave=slave)              
-    # ** Jones matrix elements:
 
     if simul:                                    # simulation mode
        # Input arguments for simulation instructions:
@@ -1121,11 +1120,11 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     ## js.LeafSet.quals(dict(q=pp['punit']))
     
     # Register the parmgroups with specific rider parameters:
-    b1 = js.parmgroup('EJones_'+pol1, rider=pp, evaluable=False,
+    b1 = js.parmgroup('EJones_'+pol1, rider=pp, 
                       descr='Station X voltage beam shape (l,m,t,f)',
                       condeq_corrs='paral', c00_default=1.0,
                       color='red', style='diamond', size=10)
-    b2 = js.parmgroup('EJones_'+pol2, rider=pp, evaluable=False,
+    b2 = js.parmgroup('EJones_'+pol2, rider=pp, 
                       descr='Station Y voltage beam shape (l,m,t,f)',
                       condeq_corrs='paral', c00_default=1.0,
                       color='blue', style='diamond', size=10)
@@ -1137,12 +1136,11 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     if simul:
        # js.LeafSet.NodeSet.bookmark('EJones', [b1,b2,dl,dm])
        js.LeafSet.NodeSet.bookmark('EJones', [b1,b2])
-       js.LeafSet.NodeSet.bookmark('Epointing', [dl,dm])
+       # js.LeafSet.NodeSet.bookmark('Epointing', [dl,dm])
     else:
        # NB: For the bookmark definition, see after stations.
-       # js.ParmSet.solvegroup('EJones', [b1,b2,dl,dm], bookpage=None)
        js.ParmSet.solvegroup('EJones', [b1,b2], bookpage=None)
-       js.ParmSet.solvegroup('Epointing', [dl,dm], bookpage=None)
+       # js.ParmSet.solvegroup('Epointing', [dl,dm], bookpage=None)
 
 
     # Calculate punit (l,m) from input Sixpack:
@@ -1164,12 +1162,13 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
 
        # Create MeqParm/MeqLeaf nodes, to be used below (using ss):
        ss = dict()
-       if simul:
-          ss[dl] = js.LeafSet.MeqLeaf (ns, dl, qual=qual)
-          ss[dm] = js.LeafSet.MeqLeaf (ns, dm, qual=qual)
-       else:
-          ss[dl] = js.ParmSet.MeqParm (ns, dl, qual=qual)
-          ss[dm] = js.ParmSet.MeqParm (ns, dm, qual=qual)
+       if False:
+          if simul:
+             ss[dl] = js.LeafSet.MeqLeaf (ns, dl, qual=qual)
+             ss[dm] = js.LeafSet.MeqLeaf (ns, dm, qual=qual)
+          else:
+             ss[dl] = js.ParmSet.MeqParm (ns, dl, qual=qual)
+             ss[dm] = js.ParmSet.MeqParm (ns, dm, qual=qual)
 
        # Create MeqParm/MeqLeaf nodes with 4D (l,m,f,t) beam funklets:
        lmtot = lm
@@ -1177,6 +1176,7 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
           # Temporarily disabled, until Sarod has implemented solving for (l,m) branch:
           dlm = ns['pointing_error'](s=skey, q=pp['punit']) << Meq.Composer(ss[dl],ss[dm])
           lmtot = ns['lm'](s=skey, q=pp['punit']) << Meq.Add(lm,dlm)
+
        if simul:
           ss[b1] = js.LeafSet.MeqLeaf (ns, b1, qual=qual, init_funklet=X_beam,
                                        qual2=qual_punit,
@@ -1204,11 +1204,11 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     elif simul:
        bookpage = js.LeafSet.NodeSet.tlabel()+'_EJones'
        js.LeafSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
-       js.LeafSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
+       # js.LeafSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
     else:
        bookpage = js.ParmSet.NodeSet.tlabel()+'_EJones'
        js.ParmSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
-       js.ParmSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
+       # js.ParmSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
 
     # Finished:
     js.cleanup()
@@ -1226,7 +1226,7 @@ def WSRT_voltage_beam_funklet(a_rad=0.1, b_rad=0.1, trace=False):
    # Polynomials in (t,f) for function coeff a and b:
    t = 'x0'
    f = 'x1'
-   if False:
+   if True:
       a_poly = 'p0'
       b_poly = 'p1'
       coeff = [a_rad,b_rad]               # [p0,p1]
@@ -1627,13 +1627,13 @@ if __name__ == '__main__':
   ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
   scope = MG['script_name']
 
-  if 0:
+  if 1:
      from Timba.Trees import TDL_MSauxinfo
      MSauxinfo = TDL_MSauxinfo.MSauxinfo(label='MG_JEN_Cohset')
      MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
      MSauxinfo.create_nodes(ns)
      if 1:
-        js = EJones_WSRT (ns, MSauxinfo=MSauxinfo, stations=stations)
+        js = EJones_WSRT (ns, MSauxinfo=MSauxinfo, stations=stations, simul=False)
      if 0:
         js = KJones (ns, MSauxinfo=MSauxinfo, stations=stations)
      js.display()     
@@ -1673,7 +1673,7 @@ if __name__ == '__main__':
      # js.LeafSet.display(full=full)     
      # display_first_subtree (js, full=True)
 
-  if 1:
+  if 0:
      WSRT_voltage_beam_funklet(a_rad=0.1, b_rad=0.1, trace=True)
      dummy_zero_funklet(trace=True)
 
@@ -1687,7 +1687,7 @@ if __name__ == '__main__':
      MG_JEN_exec.display_object (dconc, 'dconc')
      MG_JEN_exec.display_subtree (dconc, 'dconc', full=1)
 
-  if 0:
+  if 1:
      full = True
      # js.display(full=full)     
      js.ParmSet.display(full=full)     

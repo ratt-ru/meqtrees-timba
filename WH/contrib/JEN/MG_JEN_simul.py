@@ -551,21 +551,43 @@ def _tdl_job_fullDomainMux (mqs, parent):
 
 def _tdl_job_display_Cohset (mqs, parent):
    """Display the Cohset object used to generate this tree""" 
-   Cohset.display(MG['script_name'], full=True)
+   Cohset.display(MG['script_name'], full=False)
    return True
 
 def _tdl_job_display_Cohset_ParmSet (mqs, parent):
    """Display the Cohset.ParmSet object used to generate this tree""" 
-   Cohset.ParmSet.display(MG['script_name'], full=True)
+   Cohset.ParmSet.display(MG['script_name'], full=False)
    return True
 
 def _tdl_job_display_Cohset_LeafSet (mqs, parent):
    """Display the Cohset.LeafSet object used to generate this tree""" 
-   Cohset.LeafSet.display(MG['script_name'], full=True)
+   Cohset.LeafSet.display(MG['script_name'], full=False)
    return True
 
 def _tdl_job_display_Cohset_Joneset (mqs, parent):
    """Display the Cohset.Joneset() object used to generate this tree""" 
+   Cohset.Joneset().display(MG['script_name'], full=False)
+   return True
+
+#------------------------------------------------------------------------------
+
+def _tdl_job_display_full_Cohset (mqs, parent):
+   """Display (full) the Cohset object used to generate this tree""" 
+   Cohset.display(MG['script_name'], full=True)
+   return True
+
+def _tdl_job_display__full_Cohset_ParmSet (mqs, parent):
+   """Display (full) the Cohset.ParmSet object used to generate this tree""" 
+   Cohset.ParmSet.display(MG['script_name'], full=True)
+   return True
+
+def _tdl_job_display_full_Cohset_LeafSet (mqs, parent):
+   """Display (full) the Cohset.LeafSet object used to generate this tree""" 
+   Cohset.LeafSet.display(MG['script_name'], full=True)
+   return True
+
+def _tdl_job_display_full_Cohset_Joneset (mqs, parent):
+   """Display (full) the Cohset.Joneset() object used to generate this tree""" 
    Cohset.Joneset().display(MG['script_name'], full=True)
    return True
 

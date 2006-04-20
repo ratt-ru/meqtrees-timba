@@ -161,11 +161,14 @@ class LeafSet (TDL_common.Super):
         else:
             default=[]
         # NB: Any missing fields (p3, p4 etc) are assumed to be zero
-        if fdeg==0: default.append(dict(p0=0, p1=time_scale_min))
-        if fdeg==1: default.append(dict(p0=0, p1=time_scale_min, p2=1.0))
-        if fdeg==2: default.append(dict(p0=0, p1=time_scale_min, p2=1.0, p3=0.1))
-        if fdeg==3: default.append(dict(p0=0, p1=time_scale_min, p2=1.0, p3=0.1, p4=0.03))
-        if fdeg==4: default.append(dict(p0=0, p1=time_scale_min, p2=1.0, p3=0.1, p4=0.03, p5=0.01))
+        default.append(dict(p0=0, p1=time_scale_min, p2=1.0, p3=1.0, p4=1.0, p5=1.0))
+        # NB: At this moment, dict inarg values cannot be edited, so we cannot add p's
+        #     Therefore, we have to supply values for all expected p's in the default dict....
+        # if fdeg==0: default.append(dict(p0=0, p1=time_scale_min))
+        # if fdeg==1: default.append(dict(p0=0, p1=time_scale_min, p2=1.0))
+        # if fdeg==2: default.append(dict(p0=0, p1=time_scale_min, p2=1.0, p3=0.1))
+        # if fdeg==3: default.append(dict(p0=0, p1=time_scale_min, p2=1.0, p3=0.1, p4=0.03))
+        # if fdeg==4: default.append(dict(p0=0, p1=time_scale_min, p2=1.0, p3=0.1, p4=0.03, p5=0.01))
 
         #-----------------------------------------
         # Scatter (stddev) in default values:
@@ -235,7 +238,7 @@ class LeafSet (TDL_common.Super):
 
             # The parm is the one to be used by the solver, but it cannot
             # be evaluated by itself...
-            parm = ns[key](**quals)('funklet')
+            parm = ns[key](**quals)
             if not parm.initialized():
                 parm << Meq.Parm(init_funklet=init_funklet)
                 self.NodeSet.set_MeqNode(parm, group=leafgroup)
@@ -264,6 +267,11 @@ class LeafSet (TDL_common.Super):
             pass
 
 
+        elif init_funklet:
+            # An init_funklet has been specified explicitly (scatter...?)
+            node << Meq.Parm(init_funklet=init_funklet)
+            self.NodeSet.set_MeqNode(node, group=leafgroup)
+
         else:
             # Assume that a simulation funklet (expression) has been specified
             # The funklet coeff have a probability distribution (scatter):
@@ -272,7 +280,7 @@ class LeafSet (TDL_common.Super):
             scatter = rider['simul_scatter_coeff']
             if default==None: default = dict()           # see default.setdefault() below
             if scatter==None: scatter = dict()           # see scatter.setdefault() below
-            init_funklet = make_init_funklet (expr, default, scatter)
+            init_funklet = self.make_init_funklet (expr, default, scatter)
             node << Meq.Parm(init_funklet=init_funklet)
             self.NodeSet.set_MeqNode(node, group=leafgroup)
 

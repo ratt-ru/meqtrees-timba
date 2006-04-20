@@ -265,11 +265,8 @@ class ParmSet (TDL_common.Super):
 
         # Make the new MeqParm node (if necessary):
         node = ns[key](**quals)
-        if node.initialized():                           # node already exists
-            return node
-
-        elif compounder_children:
-            parm = ns[key](**quals)('funklet')
+        if compounder_children:
+            parm = ns[key](**quals)
             if not parm.initialized():                   # made only once
                 parm << Meq.Parm(init_funklet=init_funklet,
                                  tiling=tiling,
@@ -298,8 +295,12 @@ class ParmSet (TDL_common.Super):
                 node << Meq.Compounder(children=cc, common_axes=common_axes)
                 self.NodeSet.set_MeqNode(node, group=group)
                 self.NodeSet.append_MeqNode_eval(parm.name, append=node)
-            return node
-        
+
+
+        elif node.initialized():                           # node already exists
+            # Don't do anything, but return the existing node.
+            pass
+
         elif init_funklet:
             node << Meq.Parm(init_funklet=init_funklet,
                              ### shape=shape,             # DON'T
@@ -311,6 +312,7 @@ class ParmSet (TDL_common.Super):
                              save_all=rider['save_all'],
                              node_groups=self.node_groups(),
                              table_name=self.parmtable())
+            self.NodeSet.set_MeqNode(node, group=parmgroup)
             
         else:
             node << Meq.Parm(funklet=default,
@@ -322,9 +324,9 @@ class ParmSet (TDL_common.Super):
                              use_previous=rider['use_previous'],
                              node_groups=self.node_groups(),
                              table_name=self.parmtable())
+            self.NodeSet.set_MeqNode(node, group=parmgroup)
             
         # Store the new node in the NodeSet:
-        self.NodeSet.set_MeqNode(node, group=parmgroup)
         return node
 
 

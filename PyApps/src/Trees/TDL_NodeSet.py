@@ -693,7 +693,7 @@ class NodeSet (TDL_common.Super):
         cc = []
         bname = None                                         # bundle name
         for g in gg:                                         # for all groups
-            nodes = self.eval_nodes(g, trace=trace)          # the eval-nodes of group g
+            nodes = self.nodes(g, eval=True, trace=trace)    # the eval-nodes of group g
             if isinstance(nodes, list): 
                 n = len(nodes)
                 if n>0: 
