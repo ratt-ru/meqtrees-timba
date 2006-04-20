@@ -37,9 +37,7 @@ check_PROGRAMS =
 glishdir = $(libexecdir)/glish/meq
 dist_glish_SCRIPTS = meptable.g
 
-# --- end generate defrec maps
-
 include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
-AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL
+AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL -DUSE_OLD_LSQFIT
