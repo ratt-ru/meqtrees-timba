@@ -1,4 +1,3 @@
-#ifdef HAVE_PARMDB
 #include "Python.h"
 #include "ParmDB/ParmDBMeta.h"
 #include "ParmDB/ParmDB.h"
@@ -14,6 +13,8 @@
 #include "OCTOPython/OctoPython.h"
 using namespace std;
 using namespace LOFAR::ParmDB;
+
+#ifdef HAVE_PARMDB
 
 Meq::Domain::Ref MeqfromParmDomain(const ParmDomain & pdom){
   const std::vector<double> start=pdom.getStart();
@@ -261,6 +262,8 @@ static PyObject * GetNames_wrapper(PyObject *pSelf,
   
 }
  
+#endif
+
 static PyMethodDef TableMethods[] = {
     { "openParmDB", ParmDB_wrapper, METH_VARARGS,
       "opens a parm DB" },
@@ -280,4 +283,3 @@ initpyparmdb(void)
     (void) Py_InitModule("pyparmdb", TableMethods);
 }
 
-#endif

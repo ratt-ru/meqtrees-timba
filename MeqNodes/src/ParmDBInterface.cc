@@ -25,14 +25,17 @@
 using namespace LOFAR::ParmDB;
 
 ParmDomain toParmDomain(const Meq::Domain &domain){
+  Thread::Mutex::Lock lock(parmdbMutex());
   return ParmDomain(domain.start(0),domain.end(0),domain.start(1),domain.end(1));
 }
 
 Meq::Domain fromParmDomain(const ParmDomain &domain){
+  Thread::Mutex::Lock lock(parmdbMutex());
   return Meq::Domain(domain.getStart()[0],domain.getEnd()[0],domain.getStart()[1],domain.getEnd()[1]);
 }
 
 Meq::Funklet::Ref  ParmValue2Funklet(const ParmValue &pv){
+  Thread::Mutex::Lock lock(parmdbMutex());
 
   Meq::Funklet::Ref funkletref;
   string type=pv.rep().itsType;
@@ -76,6 +79,7 @@ Meq::Funklet::Ref  ParmValue2Funklet(const ParmValue &pv){
 }
 
 ParmValue Funklet2ParmValue(Meq::Funklet::Ref  funklet){
+  Thread::Mutex::Lock lock(parmdbMutex());
   ParmValue pv;
   ParmValueRep &pval= pv.rep();
   string type;
@@ -134,6 +138,7 @@ namespace Meq {
 #ifdef HAVE_PARMDB
   void Parm::save()
   {
+    Thread::Mutex::Lock lock(parmdbMutex());
     if( !parmtable_ )
       return;
     
@@ -171,6 +176,7 @@ namespace Meq {
   
 
   void Parm::openTable(){
+    Thread::Mutex::Lock lock(parmdbMutex());
     cdebug(2)<<"opening table: "<<parmtable_name_<<endl;
     //check if table exists, otherwise create.
     if(parmtable_)
@@ -179,6 +185,7 @@ namespace Meq {
   }
   
   void Parm::closeTable(){
+    Thread::Mutex::Lock lock(parmdbMutex());
     if (parmtable_)
       delete parmtable_;
   }
@@ -186,6 +193,7 @@ namespace Meq {
 
   
   Funklet * Parm::getFunkletFromDB(Funklet::Ref &funkletref,const Domain &domain){
+    Thread::Mutex::Lock lock(parmdbMutex());
     if( !parmtable_ )
       return 0;
 
@@ -243,6 +251,7 @@ namespace Meq {
 
 
   void Parm::getDefaultFromDB(Funklet::Ref &funkletref){
+    Thread::Mutex::Lock lock(parmdbMutex());
   
     int n=0;
     cdebug(3)<<"looking for funklets in defaults subtable: "<<n<<endl;
