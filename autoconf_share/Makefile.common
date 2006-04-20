@@ -206,9 +206,9 @@ build_system:
 show:
 	@echo "CXX      = $(CXX)";
 	@echo "   `$(CXX) --version | head -1`";
-	@echo "CPPFLAGS = $(CPPFLAGS)";
-	@echo "CXXFLAGS = $(CXXFLAGS)";
-	@echo "LDFLAGS  = $(LDFLAGS)";
+	@echo "CPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS)";
+	@echo "CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)";
+	@echo "LDFLAGS  = $(AM_LDFLAGS) $(LDFLAGS)";
 	@echo "LIBS     = $(LIBS)";
 	@echo "MPIBIN   = $(MPIBIN)";
 	@echo "AIPSPP   = $(AIPSPP)";
