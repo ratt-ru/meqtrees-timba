@@ -63,8 +63,10 @@ def tpolc (tdeg,c00=0.0):
 
 def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvable=[]):
     solver_defaults=record()
-    solver_defaults.num_iter     = num_iter
-    solver_defaults.epsilon      = epsilon
+    solver_defaults.num_iter      = num_iter
+    solver_defaults.epsilon       = epsilon
+    solver_defaults.epsilon_deriv = epsilon
+    solver_defaults.balanced_equations = False
     solver_defaults.convergence_quota = convergence_quota
     solver_defaults.save_funklets= True
     solver_defaults.last_update  = True

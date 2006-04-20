@@ -73,11 +73,11 @@ Settings.forest_state = record(bookmarks=[
       ["visibility:all:18:27","spigot:18:27","residual:18:27"],
       ["visibility:all:26:27","spigot:26:27","residual:26:27"]
   )), 
-  record(name='Source fluxes',page=Bookmarks.PlotPage(
+  record(name='Solutions',page=Bookmarks.PlotPage(
       ["I:S1","I:S2","I:S3"],
       ["I:S4","I:S5","I:S6"],
       ["I:S7","I:S8","I:S9"],
-      ["I:S10","ihpbw"]
+      ["I:S10","ihpbw","solver"]
   )) 
 ]);
 
@@ -152,9 +152,11 @@ def _define_forest(ns):
   
 def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvable=[]):
   solver_defaults=record()
-  solver_defaults.num_iter     = num_iter
-  solver_defaults.epsilon      = epsilon
+  solver_defaults.num_iter      = num_iter
+  solver_defaults.epsilon       = epsilon
+  solver_defaults.epsilon_deriv = epsilon
   solver_defaults.convergence_quota = convergence_quota
+  solver_defaults.balanced_equations = False
   solver_defaults.save_funklets= True
   solver_defaults.last_update  = True
 #See example in TDL/MeqClasses.py

@@ -18,7 +18,7 @@ TDLRuntimeOption('msname',"MS",["TEST_CLAR_27-480.MS","TEST_CLAR_27-4800.MS"],in
 TDLRuntimeOption('output_column',"Output MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=1);
 
 # number of timeslots to use at once
-TDLRuntimeOption('tile_size',"Tile size",[30,48,60,96,480,960]);
+TDLRuntimeOption('tile_size',"Tile size",[30,48,60,96,480,960,2400]);
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
