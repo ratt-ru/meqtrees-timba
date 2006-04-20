@@ -1,3 +1,4 @@
+#ifdef HAVE_PARMDB
 #include "Python.h"
 #include "ParmDB/ParmDBMeta.h"
 #include "ParmDB/ParmDB.h"
@@ -279,3 +280,4 @@ initpyparmdb(void)
     (void) Py_InitModule("pyparmdb", TableMethods);
 }
 
+#endif

@@ -53,7 +53,7 @@ lofar_GENERAL
 lofar_BLITZ(1)
 lofar_PACKAGE(Timba/OCTOPython)
 lofar_PACKAGE(Timba/MEQ)
-lofar_INTERNAL(CEP/BB/ParmDB,ParmDB,,1,ParmDB/ParmDB.h)
+lofar_INTERNAL(CEP/BB/ParmDB,ParmDB,,0,ParmDB/ParmDB.h)
 lofar_AIPSPP(1,"-ltables -lscimath -lscimath_f -lcasa")
 dnl
 dnl Output Makefiles
