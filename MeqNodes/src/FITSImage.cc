@@ -195,13 +195,10 @@ int FITSImage::getResult (Result::Ref &resref,
  //create 3D vells Time=1,Freq,L,M
  Vells &out=vs.setValue(new Vells(0.0,shape));
  vs.setShape(shape);
- //select all 3 axes of the output (slice through axes 1,2,3)
- VellsSlicer<double,3> slout(out,1,2,3);
+ //select all 3 axes of the output (slice through axes Freq,L,M)
+ VellsSlicer<double,3> slout(out,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
  //copy A to the time slice of varr
  slout=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),0);
-#ifdef DEBUG
- cout<<"Output array: "<<out.getArray<double,4>().shape();
-#endif
  result.setVellSet(2,refI);
 
 
@@ -211,7 +208,7 @@ int FITSImage::getResult (Result::Ref &resref,
   VellSet &vsQ= refQ<<= new VellSet(0,1);
   Vells &outQ=vsQ.setValue(new Vells(0.0,shape));
   vsQ.setShape(shape);
-  VellsSlicer<double,3> sloutQ(outQ,1,2,3);
+  VellsSlicer<double,3> sloutQ(outQ,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
   sloutQ=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),1);
   result.setVellSet(3,refQ);
  } else {
@@ -226,7 +223,7 @@ int FITSImage::getResult (Result::Ref &resref,
   VellSet &vsU= refU<<= new VellSet(0,1);
   Vells &outU=vsU.setValue(new Vells(0.0,shape));
   vsU.setShape(shape);
-  VellsSlicer<double,3> sloutU(outU,1,2,3);
+  VellsSlicer<double,3> sloutU(outU,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
   sloutU=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),2);
   result.setVellSet(4,refU);
  } else {
@@ -241,7 +238,7 @@ int FITSImage::getResult (Result::Ref &resref,
   VellSet &vsV= refV<<= new VellSet(0,1);
   Vells &outV=vsV.setValue(new Vells(0.0,shape));
   vsV.setShape(shape);
-  VellsSlicer<double,3> sloutV(outV,1,2,3);
+  VellsSlicer<double,3> sloutV(outV,Axis::FREQ,Axis::axis("L"),Axis::axis("M"));
   sloutV=A(blitz::Range::all(), blitz::Range::all(), blitz::Range::all(),3);
   result.setVellSet(5,refV);
  } else {
