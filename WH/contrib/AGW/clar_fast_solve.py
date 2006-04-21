@@ -29,6 +29,9 @@ TDLRuntimeOption('perturbation',"Perturb solvables",["random",.1,.2,-.1,-.2]);
 # solver debug level
 TDLRuntimeOption('solver_debug_level',"Solver debug level",[0,1,10]);
 
+# solver debug level
+TDLRuntimeOption('solver_lm_factor',"Initial solver LM factor",[1,.1,.01,.001]);
+
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
 
@@ -161,6 +164,7 @@ def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvab
   solver_defaults.num_iter      = num_iter
   solver_defaults.epsilon       = epsilon
   solver_defaults.epsilon_deriv = epsilon
+  solver_defaults.lm_factor     = solver_lm_factor
   solver_defaults.convergence_quota = convergence_quota
   solver_defaults.balanced_equations = False
   solver_defaults.debug_level = solver_debug_level;
