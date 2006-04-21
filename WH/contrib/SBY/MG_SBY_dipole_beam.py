@@ -28,6 +28,8 @@ from Timba.Contrib.MXM import MG_MXM_functional
 from Timba.Contrib.JEN import MG_JEN_forest_state
 from Timba.Contrib.JEN import MG_JEN_exec
 
+from Timba.Trees import JEN_bookmarks
+
 import math
 # enable cache
 Settings.forest_state.cache_policy = 100;
@@ -37,7 +39,6 @@ Settings.orphans_are_roots = True;
 
 ##########################################################################
 # Script control record (may be edited here):
-
 MG = MG_JEN_exec.MG_init('MG_SBY_dipole_beam.py',
                          last_changed='$Date$',
                          trace=False) # If True, produce progress messages  
@@ -90,21 +91,21 @@ def _define_forest (ns):
   x_node=_create_dipole_beam_h(par,coeff,h)
   ns.x<<x_node
   # create bookmark for easy viewing
-  MG_JEN_forest_state.bookmark(ns.x, page='main beam (XX)', viewer='Result Plotter')
-  MG_JEN_forest_state.bookmark(ns.x, page='All beams', viewer='Result Plotter')
+  JEN_bookmarks.create(ns.x, page='main beam (XX)', viewer='Result Plotter')
+  JEN_bookmarks.create(ns.x, page='All beams', viewer='Result Plotter')
 
   # create YY beam
   y_node=_create_dipole_beam_h(par,coeff,h,'x2-'+pi+'/2')
   ns.y<<y_node
   # create bookmark for easy viewing
-  MG_JEN_forest_state.bookmark(ns.y, page='cross beam (YY)', viewer='Result Plotter')
-  MG_JEN_forest_state.bookmark(ns.y, page='All beams', viewer='Result Plotter')
+  JEN_bookmarks.create(ns.y, page='cross beam (YY)', viewer='Result Plotter')
+  JEN_bookmarks.create(ns.y, page='All beams', viewer='Result Plotter')
 
   # create product beam as root
   ns.z<<Meq.Multiply(ns.x,ns.y)
   # create bookmark for easy viewing
-  MG_JEN_forest_state.bookmark(ns.z, page='product beam', viewer='Result Plotter')
-  MG_JEN_forest_state.bookmark(ns.z, page='All beams', viewer='Result Plotter')
+  JEN_bookmarks.create(ns.z, page='product beam', viewer='Result Plotter')
+  JEN_bookmarks.create(ns.z, page='All beams', viewer='Result Plotter')
 
   ns.Resolve()
 

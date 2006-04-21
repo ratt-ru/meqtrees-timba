@@ -24,26 +24,28 @@ Settings.orphans_are_roots = True;
 
 ######## initialization of the MG dict
 MG=JEN_inarg.init('MG_SBY_what')
-#JEN_inarg.define(MG,'channel_start_index',1)
-#JEN_inarg.define(MG,'channel_end_index',1)
 MG_JEN_exec.inarg_ms_name(MG)
+MG_JEN_exec.inarg_tile_size(MG)
 MG_JEN_Cohset.inarg_parmtable(MG)
-JEN_inarg.define(MG,'tile_size',10)
+#JEN_inarg.define(MG,'tile_size',10)
+JEN_inarg.define(MG,'ms_name','what1.ms')
 JEN_inarg.define(MG,'polrep','linear')
 JEN_inarg.define(MG,'stations',range(15))
 JEN_inarg.define(MG,'label','foo')
 #JEN_inarg.define(MG,'predict_column','CORRECTED_DATA')
 #JEN_inarg.define(MG,'output_col','CORRECTED_DATA')
 
+
 inarg = MG_JEN_exec.stream_control(_getdefaults=True, slave=True)
+print inarg['./MG_JEN_exec.stream_control()'].keys()
 JEN_inarg.modify(inarg,
-                 tile_size=5,
+                 tile_size=20,
                  _JEN_inarg_option=None)
 JEN_inarg.modify(inarg,
-                 ms_name='what.ms',
-                 _JEN_inarg_option=None)
+                 ms_name='what1.ms',
+                 )
 JEN_inarg.modify(inarg,
-                 channel_start_index=0,
+                 channel_start_index=3,
                  _JEN_inarg_option=None)
 JEN_inarg.modify(inarg,
                  channel_end_index=9,
@@ -55,13 +57,15 @@ JEN_inarg.modify(inarg,
                  stations=range(15),
                  _JEN_inarg_option=None)
 JEN_inarg.modify(inarg,
-                 output_col='CORRECTED_DATA',
+                 predict_col='CORRECTED_DATA',
                  _JEN_inarg_option=None)
 
+inarg['./MG_JEN_exec.stream_control()']['ms_name']="what1.ms"
+inarg['./MG_JEN_exec.stream_control()']['tile_size']=20
+print inarg['./MG_JEN_exec.stream_control()']['ms_name']
 
 
 JEN_inarg.attach(MG, inarg)
-
 
 inarg = MG_JEN_Cohset.make_spigots(_getdefaults=True)
 JEN_inarg.modify(inarg,
@@ -87,7 +91,7 @@ JEN_inarg.modify(inarg,
                  fdeg_Jreal=0,
                  _JEN_inarg_option=None)
 JEN_inarg.modify(inarg,
-                 subtile_size_Jreal=None,
+                 subtile_size_Jreal=5,
                  _JEN_inarg_option=None)
 JEN_inarg.modify(inarg,
 		   all4_always=[14],
@@ -116,11 +120,17 @@ JEN_inarg.modify(inarg,
 JEN_inarg.modify(inarg,
                  rmax=1500,
                  _JEN_inarg_option=None)
+JEN_inarg.modify(inarg,
+                 num_iter=15,
+                 _JEN_inarg_option=None)
 JEN_inarg.attach(MG, inarg)
 
 #-------------------------------------------------------------------------
 
 inarg = MG_JEN_Cohset.make_sinks(_getdefaults=True)
+JEN_inarg.modify(inarg,
+                 ms_name='what1.ms',
+                 _JEN_inarg_option=None)
 JEN_inarg.modify(inarg,
                  _JEN_inarg_option=None)
 JEN_inarg.attach(MG, inarg)
@@ -156,22 +166,25 @@ def _define_forest (ns):
    plist=lsm.queryLSM(count=2)
    punit=plist[0]
    sp=punit.getSP()
+   sp.ParmSet.parmtable('foo.mep')
+   sp.display()
    jset=MG_JEN_Cohset.Jones(ns,Sixpack=sp, stations=MG['stations'], Jsequence=['JJones'], all4_always='WSRT/WHAT', _inarg=MG)
    predicted=MG_JEN_Cohset.predict(ns,Sixpack=sp,Joneset=jset, stations=MG['stations'], _inarg=MG)
 
    punit=plist[1]
    sp=punit.getSP()
+   sp.ParmSet.parmtable('foo.mep')
    jset1=MG_JEN_Cohset.Jones(ns,Sixpack=sp, stations=MG['stations'], Jsequence=['JJones'], all4_always='WSRT/WHAT',_inarg=MG)
    predicted1=MG_JEN_Cohset.predict(ns,Sixpack=sp,Joneset=jset1, stations=MG['stations'], _inarg=MG)
    predicted.add(ns,predicted1)
 
-   MG_JEN_Cohset.insert_solver(ns,measured=cohset,predicted=predicted, redun=False, stations=MG['stations'], \
+   MG_JEN_Cohset.insert_solver(ns,measured=cohset,predicted=predicted, redun=False, num_cells=None,stations=MG['stations'],\
                            _inarg=MG)
 
 
 
    # make the sinks
-   sinklist=MG_JEN_Cohset.make_sinks(ns,cohset,_inarg=MG)
+   sinklist=MG_JEN_Cohset.make_sinks(ns,cohset, _inarg=MG)
  
    ns.Resolve()
 
