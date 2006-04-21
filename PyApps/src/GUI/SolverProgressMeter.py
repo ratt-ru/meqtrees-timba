@@ -58,10 +58,10 @@ class SolverProgressMeter (QHBox):
   def solver_iter (self,rec):
     """processes solver.iter record. Usually connected to a Solver.Iter signal""";
     # form basic message
-    if 'chi' in rec:  # new-style solver reports chi value
-      msg = ("<b>%(node)s</b> i<b>%(iterations)d</b> "+chisqr+":<b>%(chi).4g</b> rank:<b>%(rank)d</b>/%(num_unknowns)d ")%rec;
+    if 'chi_0' in rec:  # new-style solver reports chi value
+      msg = ("<b>%(node)s</b> i<b>%(iterations)d</b> "+chisqr+":<b>%(chi_0).3g</b> rank:<b>%(rank)d</b>/%(num_unknowns)d ")%rec;
     else: # old-style meter reports fit value only
-      msg = "<b>%(node)s</b> i<b>%(iterations)d</b> fit:<b>%(fit).4g</b> rank:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
+      msg = "<b>%(node)s</b> i<b>%(iterations)d</b> fit:<b>%(fit).3g</b> rank:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
     if rec.num_tiles > 1:
       msg += "c:%(num_converged)d/%(num_tiles)d"%rec;
     # start the iteration timer at iteration 1, or at a later iteration
@@ -85,10 +85,10 @@ class SolverProgressMeter (QHBox):
     else:
       color="red";
     rec.final_iter = "<font color=\"%s\">i<b>%d</b></font>"%(color,rec.iterations);
-    if 'chi' in rec:  # new-style solver reports chi value
-      msg = ("<b>%(node)s</b> %(final_iter)s "+chisqr+":<b>%(chi).4g</b> rank:<b>%(rank)d</b>/%(num_unknowns)d ")%rec;
+    if 'chi_0' in rec:  # new-style solver reports chi value
+      msg = ("<b>%(node)s</b> %(final_iter)s "+chisqr+":<b>%(chi_0).3g</b> rank:<b>%(rank)d</b>/%(num_unknowns)d ")%rec;
     else: # old-style meter reports fit value only
-      msg = "<b>%(node)s</b> %(final_iter)s fit:<b>%(fit).4g</b> rank:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
+      msg = "<b>%(node)s</b> %(final_iter)s fit:<b>%(fit).3g</b> rank:<b>%(rank)d</b>/%(num_unknowns)d "%rec;
     if rec.num_tiles > 1:
       msg += "c:%(num_converged)d/%(num_tiles)d"%rec;
 #    if not rec.converged:
