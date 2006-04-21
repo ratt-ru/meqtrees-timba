@@ -23,8 +23,11 @@ TDLRuntimeOption('output_column',"Output residuals to MS column",[None,"DATA","M
 # number of timeslots to use at once
 TDLRuntimeOption('tile_size',"Tile size",[30,48,60,96,480,960]);
 
-# number of timeslots to use at once
+# how much to perturb starting values of solvables
 TDLRuntimeOption('perturbation',"Perturb solvables",["random",.1,.2,-.1,-.2]);
+
+# solver debug level
+TDLRuntimeOption('solver_debug_level',"Solver debug level",[0,1,10]);
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
@@ -160,6 +163,7 @@ def create_solver_defaults(num_iter=30,epsilon=1e-4,convergence_quota=0.9,solvab
   solver_defaults.epsilon_deriv = epsilon
   solver_defaults.convergence_quota = convergence_quota
   solver_defaults.balanced_equations = False
+  solver_defaults.debug_level = solver_debug_level;
   solver_defaults.save_funklets= True
   solver_defaults.last_update  = True
 #See example in TDL/MeqClasses.py
