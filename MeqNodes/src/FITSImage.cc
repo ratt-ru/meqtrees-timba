@@ -162,12 +162,21 @@ int FITSImage::getResult (Result::Ref &resref,
  cout<<"Axis L "<<cells.ncells(Axis::axis("L"))<<endl;
  cout<<"Axis M "<<cells.ncells(Axis::axis("M"))<<endl;
 #endif
- //shape is time=1,freq,l,m
- Vells::Shape shape(1,naxis[3],naxis[0],naxis[1]);
+  Vells::Shape shape(incells.shape());
+
+ int maxrank=std::max(Axis::axis("L"),Axis::axis("M"));
+ if (shape.size()<maxrank+1) {
+		shape.resize(maxrank+1,1);//resize, and make a all 1 vector
+ }
+ //shape is time=1,freq,l,m and other axes (u,v)
+ shape[Axis::TIME]=1;
+ shape[Axis::FREQ]=naxis[3];
+ shape[Axis::axis("L")]=naxis[0];
+ shape[Axis::axis("M")]=naxis[1];
+ //Vells::Shape shape(1,naxis[3],naxis[0],naxis[1]);
 #ifdef DEBUG
  cout<<"Ranks "<<shape.size()<<"and "<<cells.rank()<<endl;
  cout<<"Shapes "<<shape<<cells.shape()<<endl;
- cout<<"Ranks "<<shape.size()<<"and "<<cells.rank()<<endl;
 #endif
  // axes are L(0),M(1),Stokes(2),Freq(3)
  // but here we have Freq,Stokes,L,M
