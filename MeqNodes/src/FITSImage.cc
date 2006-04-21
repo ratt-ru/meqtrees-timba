@@ -164,7 +164,7 @@ int FITSImage::getResult (Result::Ref &resref,
 #endif
   Vells::Shape shape(incells.shape());
 
- int maxrank=std::max(Axis::axis("L"),Axis::axis("M"));
+ unsigned int maxrank=std::max(Axis::axis("L"),Axis::axis("M"));
  if (shape.size()<maxrank+1) {
 		shape.resize(maxrank+1,1);//resize, and make a all 1 vector
  }
