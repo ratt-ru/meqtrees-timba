@@ -28,7 +28,7 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
-//#define DEBUG
+#define DEBUG
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
@@ -610,7 +610,7 @@ int get_min_max(long totalrows, long offset, long firstrow, long nrows,
 		xylims->lims[0]=min_val;
 		xylims->lims[1]=max_val;
 #ifdef DEBUG
-		printf("min_max: min=%lf max=%lf\n",min_val,max_val);
+		//printf("min_max: min=%lf max=%lf\n",min_val,max_val);
 #endif
 		return 0;
 }
