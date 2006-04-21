@@ -23,6 +23,9 @@ TDLRuntimeOption('output_column',"Output residuals to MS column",[None,"DATA","M
 # number of timeslots to use at once
 TDLRuntimeOption('tile_size',"Tile size",[30,48,60,96,480,960]);
 
+# number of timeslots to use at once
+TDLRuntimeOption('perturbation',"Perturb solvables",["random",.1,.2,-.1,-.2]);
+
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
 
@@ -181,9 +184,13 @@ def set_node_state (mqs,node,fields_record):
   
 
 def _perturb_solvables (mqs,solvables,rng=[0.2,0.3]):
+  global perturbation;
   for name in solvables:
     polc = mqs.getnodestate(name).real_polc;
-    polc.coeff[0,0] *= 1 + random.uniform(*rng)*random.choice([-1,1]);
+    if perturbation == "random":
+      polc.coeff[0,0] *= 1 + random.uniform(*rng)*random.choice([-1,1]);
+    else:
+      polc.coeff[0,0] *= 1+perturbation;
     set_node_state(mqs,name,record(init_funklet=polc));
   return solvables;
     
