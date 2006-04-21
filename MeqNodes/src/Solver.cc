@@ -86,6 +86,7 @@ const HIID
     FMu              = AidMu,
     FStdDev          = AidStdDev,
     FChi             = AidChi,
+    FChi0            = AidChi|0,
     FReady           = AidReady,            // ready code, new Apr 06
     FReadyString     = AidReady|AidString,  // ready string, new Apr 06
     
@@ -1003,13 +1004,13 @@ int Solver::getResult (Result::Ref &resref,
     if( debug_lvl_ >= 0 )
     {
       double sumfit = 0;
-      double sumchi = 0;
+      double sumchi0 = 0;
       int sumrank = 0;
       for( int i=0; i<numSubsolvers(); i++ )
       {
         sumrank += subsolvers_[i].rank;
         sumfit += subsolvers_[i].fit;
-        sumchi += subsolvers_[i].chi;
+        sumchi0 += subsolvers_[i].chi0;
       }
       // generate event as needed
       evrec[FNumConverged] = num_conv_;
@@ -1017,7 +1018,7 @@ int Solver::getResult (Result::Ref &resref,
       evrec[FIterations] = cur_iter_+1;
       evrec[FRank] = sumrank;
       evrec[FFit] = sumfit/numSubsolvers();
-      evrec[FChi] = sumchi/numSubsolvers();
+      evrec[FChi0] = sumchi0/numSubsolvers();
       // attach more info with higher debug levels
       if( debug_lvl_ >= 1 )
       {
@@ -1090,6 +1091,8 @@ int Solver::getResult (Result::Ref &resref,
     DMI::Record & metrics = allmetrics[i] <<= new DMI::Record;
     metrics[FRank]   = flattenScalarList<int>(*metricsList,AtomicID(i)|AidSlash|FRank);
     metrics[FFit]    = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FFit);
+    metrics[FChi]    = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FChi);
+    metrics[FChi0]   = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FChi0);
     metrics[FCoVar]  = flattenArrayList<double,1>(*metricsList,AtomicID(i)|AidSlash|FErrors);
     metrics[FErrors] = flattenArrayList<double,1>(*metricsList,AtomicID(i)|AidSlash|FErrors);
     metrics[FFlag]   = flattenScalarList<bool>(*metricsList,AtomicID(i)|AidSlash|FFlag);
@@ -1176,6 +1179,39 @@ bool Solver::Subsolver::solve (int step)
   solution = 0;
   if( converged )
     return true;
+  // get debug info -- only valid before a solveLoop() call
+  uint nun,np,ncon,ner,rank_dbg;
+  double * nEq,*known,*constr,*er,*sEq,*sol,prec,nonlin;
+  uint * piv;
+  solver.debugIt(nun,np,ncon,ner,rank_dbg,nEq,known,constr,er,piv, sEq,sol,prec,nonlin);
+  // compute input chi^2
+  chi0 = 0;
+  if( er )
+    chi0 = er[2]/std::max(int(er[0])+nuk,1);
+//    chi0 = er[LSQFit::SUMLL]/std::max(er[LSQFit::NC]+nuk,1);
+  // place debug info in record, if so asked
+  if( use_debug )
+  {
+    DMI::Record &dbg = debugrec <<= new DMI::Record;
+    if( nEq )
+      dbg["$nEq"] = triMatrix(nEq,nun);
+    if( known )
+      dbg["$known"] = LoVec_double(known,LoShape1(np),blitz::neverDeleteData);
+    if( ncon )
+      dbg["$constr"] = LoMat_double(constr,LoShape2(ncon,nun),blitz::neverDeleteData,blitz::ColumnMajorArray<2>());
+    if( er )
+      dbg["$er"] = LoVec_double(er,LoShape1(ner),blitz::neverDeleteData);
+    if( piv )
+      dbg["$piv"] = LoVec_int(reinterpret_cast<int*>(piv),LoShape1(np),blitz::neverDeleteData);
+    if( sEq )
+      dbg["$sEq"] = triMatrix(sEq,np);
+    if( sol )
+      dbg["$sol"] = LoVec_double(sol,LoShape1(np),blitz::neverDeleteData);
+    dbg["$prec"] = prec;
+    dbg["$nonlin"] = nonlin;
+  }
+
+  // do a solution loop
   solFlag = solver.solveLoop(fit,rank,solution,settings.use_svd);
 
     // both of these calls produce SEGV in certain situations; commented out until
@@ -1185,6 +1221,7 @@ bool Solver::Subsolver::solve (int step)
     //cdebug(1) << "result_errors = solver_.getErrors (errors);" << endl;
   
   cdebug1(4)<<"solution after: " << solution << ", rank " << rank << endl;
+  
   // Put the statistics in a record of the result.
   DMI::Record & mrec = metrics <<= new DMI::Record;
   mrec[FRank]   = int(rank);
@@ -1195,12 +1232,12 @@ bool Solver::Subsolver::solve (int step)
   mrec[FStdDev] = solver.getSD();
   mrec[FNumUnknowns] = nuk;
   mrec[FChi   ] = chi = solver.getChi();
-  #ifndef USE_OLD_LSQFIT
+  mrec[FChi0  ] = chi0;
+#ifndef USE_OLD_LSQFIT
   mrec[FReady]  = solver.isReady();
   mrec[FReadyString] = solver.readyText();
-  #endif
+#endif
 
-  
 // getCovariance() and getErrors() seem to destroy the matrix.
 // so comment them out for now. The right way is to make a copy of the LSQFit
 // object, and get it from there. Since this is potentially expensive,
@@ -1211,28 +1248,6 @@ bool Solver::Subsolver::solve (int step)
 //   solver.getCovariance(static_cast<double*>(covar.getDataPtr()));
 //   solver.getErrors(static_cast<double*>(errors.getDataPtr()));
   
-  // Put debug info
-  if( use_debug )
-  {
-    DMI::Record &dbg = debugrec <<= new DMI::Record;
-    uint nun,np,ncon,ner,rank;
-    double * nEq,*known,*constr,*er,*sEq,*sol,prec,nonlin;
-    uint * piv;
-    solver.debugIt(nun,np,ncon,ner,rank,nEq,known,constr,er,piv, sEq,sol,prec,nonlin);
-    if( nEq )
-      dbg["$nEq"] = triMatrix(nEq,nun);
-    dbg["$known"] = LoVec_double(known,LoShape1(np),blitz::neverDeleteData);
-    if( ncon )
-      dbg["$constr"] = LoMat_double(constr,LoShape2(ncon,nun),blitz::neverDeleteData,blitz::ColumnMajorArray<2>());
-    dbg["$er"] = LoVec_double(er,LoShape1(ner),blitz::neverDeleteData);
-    dbg["$piv"] = LoVec_int(reinterpret_cast<int*>(piv),LoShape1(np),blitz::neverDeleteData);
-    if( sEq )
-      dbg["$sEq"] = triMatrix(sEq,np);
-    dbg["$sol"] = LoVec_double(sol,LoShape1(np),blitz::neverDeleteData);
-    dbg["$prec"] = prec;
-    dbg["$nonlin"] = nonlin;
-  }
-
   // check if converged;
 #ifdef USE_OLD_LSQFIT
   converged = ((abs(fit) <= settings.epsilon) && fit <= 0.0);

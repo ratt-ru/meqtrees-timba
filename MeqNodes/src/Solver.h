@@ -34,7 +34,7 @@
 #pragma aid Solve Result Incremental Solutions Tile Tiles Info Size Iterations 
 #pragma aid Converged Array Convergence Quota Tiling Tilings Super Size Stride
 #pragma aid Total SS Uk Unknown Unknowns Spid Set Stride Map Colin LM Factor MT 
-#pragma aid Begin End Deriv Balanced Equations Ready String
+#pragma aid Begin End Deriv Balanced Equations Ready String 
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -347,7 +347,8 @@ private:
       // info for current solve step
       uint rank;
       double fit;
-      double chi;
+      double chi0;     // input chi^2
+      double chi;      // chi^2 after solve loop
       bool solFlag;
       DMI::Record::Ref metrics;       // metric record
       DMI::Record::Ref debugrec;      // debug record -- only filled in debug mode
