@@ -55,6 +55,9 @@ namespace Axis
 // initialized default mapping. Should be called automatically from _init()
   extern void initDefaultMaps ();
   
+// resets to default axis mapping
+  extern void resetDefaultMap ();
+  
 // internal initialization functions (called only once)
   inline void _init ()
   {
@@ -64,7 +67,7 @@ namespace Axis
     if( !done )
     {
       done = true;
-      initDefaultMaps();
+      resetDefaultMap();
     }
   }
   
@@ -80,6 +83,14 @@ namespace Axis
   inline int axis (const HIID &id,bool nothrow=false)
   { 
     _init();
+    // if name is "n", return that n directly
+    if( id.size() == 1 )
+    {
+      int index = id[0].index();
+      if( index >= 0 )
+        return index;
+    }
+    // else look in map
     std::map<HIID,int>::const_iterator f = _num_map.find(id);
     if( f == _num_map.end() )
     {

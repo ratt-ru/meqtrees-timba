@@ -103,11 +103,7 @@ class Forest
     // specified by content
     int getNodeList (DMI::Record &list,int content = NL_DEFAULT);
     
-    DMI::Record::Ref state () const
-    { 
-      Thread::Mutex::Lock lock(forestMutex());
-      return staterec_.copy(); 
-    }
+    DMI::Record::Ref state () const;
     
     // sets forest state from rec. If complete = true,
     // sets complete state, else only overwrites the fields specified in rec
@@ -271,7 +267,7 @@ class Forest
     void initDefaultState ();
     void setStateImpl (DMI::Record::Ref &rec);
       
-    DMI::Record::Ref staterec_;  
+    mutable DMI::Record::Ref staterec_;  
       
     int breakpoints;
     int breakpoints_ss;

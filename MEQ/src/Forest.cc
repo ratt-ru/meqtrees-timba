@@ -75,6 +75,7 @@ void Forest::clear ()
   nodes.resize(1);
   name_map.clear();
   num_valid_nodes = 0;
+  Axis::resetDefaultMap();
 }
 
 //##ModelId=3F5F572601B2
@@ -307,6 +308,14 @@ void Forest::initDefaultState ()
   st[FBreakpointSingleShot] = breakpoints_ss;
 }
 
+DMI::Record::Ref Forest::state () const
+{ 
+  Thread::Mutex::Lock lock(forestMutex());
+  // update axis map
+  staterec_()[FAxisMap] = Axis::getAxisRecords();
+  return staterec_.copy(); 
+}
+    
 void Forest::setStateImpl (DMI::Record::Ref &rec)
 {
   // always ignore cwd field

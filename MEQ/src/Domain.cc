@@ -87,8 +87,8 @@ void Domain::validateContent (bool)
   {
     Record::Field * paxismap = findField(FAxisMap);
     map_attached_ = (paxismap != 0);
-    // if axis map is still default, we can change it from the domain record
-    if( Axis::isDefaultMap() && map_attached_ )
+    // change map using domain record, if needed
+    if( map_attached_ )
     {
       Axis::setAxisMap(paxismap->ref.as<DMI::Vec>());
       paxismap->protect = true;
