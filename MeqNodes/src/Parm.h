@@ -131,6 +131,7 @@ const HIID
     virtual int processCommand (Result::Ref &resref,
                                 const HIID &command,
                                 DMI::Record::Ref &args,
+                                const RequestId &rqid = RequestId(),
                                 int verbosity=0);
     
     // clears out any current funklets

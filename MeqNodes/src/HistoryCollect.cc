@@ -79,9 +79,10 @@ void HistoryCollect::fillResult (Result::Ref &resref,const DMI::List &list)
 int HistoryCollect::processCommand (Result::Ref &resref,
                                     const HIID &command,
                                     DMI::Record::Ref &args,
+                                    const RequestId &rqid,
                                     int verbosity)
 {
-  int retcode = Node::processCommand(resref,command,args,verbosity);
+  int retcode = Node::processCommand(resref,command,args,rqid,verbosity);
   if( command == CmdGetHistory )
   {
     fillResult(resref,state()[FHistoryList].as<DMI::List>());

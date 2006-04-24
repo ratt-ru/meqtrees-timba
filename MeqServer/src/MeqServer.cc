@@ -838,7 +838,7 @@ bool MeqServer::execNodeCommand (DMI::Record::Ref &out,ExecQueueEntry &qe)
   out[AidNode] = node.name();
   // pass command to node. Exceptions will be caught by our caller's handler
   Result::Ref resref;
-  int retcode = node.processCommand(resref,command,qe.args,qe.silent?0:1); // verbosity=1 if not silent
+  int retcode = node.processCommand(resref,command,qe.args,RequestId(),qe.silent?0:1); // verbosity=1 if not silent
   // generate "unknown command" message if RES_OK not set in return value
   if( !(retcode&Node::RES_OK) )
   {

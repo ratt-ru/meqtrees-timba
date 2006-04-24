@@ -716,10 +716,11 @@ namespace Meq {
   }
 
   int Parm::processCommand (Result::Ref &resref,const HIID &command,
-                            DMI::Record::Ref &args,int verbosity)
+                            DMI::Record::Ref &args,
+                            const RequestId &rqid,int verbosity)
   {
     // process parent class commands
-    int retcode = Node::processCommand(resref,command,args,verbosity);
+    int retcode = Node::processCommand(resref,command,args,rqid,verbosity);
     
 
     //dont update if nothing but res_id changed.

@@ -38,6 +38,7 @@ using Debug::ssprintf;
 int Node::processCommand (Result::Ref &,
                           const HIID &command,
                           DMI::Record::Ref &args,
+                          const RequestId &,
                           int verbosity)
 {
   int retcode = RES_OK;
@@ -105,7 +106,7 @@ int Node::processCommand (Result::Ref &,
 }
 
 
-int Node::processCommands (Result::Ref &resref,const DMI::Record &list)
+int Node::processCommands (Result::Ref &resref,const DMI::Record &list,const RequestId &rqid)
 {
   int retcode = 0;
   for( DMI::Record::const_iterator iter = list.begin(); iter != list.end(); iter++ )
@@ -117,7 +118,7 @@ int Node::processCommands (Result::Ref &resref,const DMI::Record &list)
       continue;
     // assignment will throw an error if not referencing a DMI::Record
     DMI::Record::Ref args = iter.ref();
-    retcode |= processCommand(resref,command,args,0);
+    retcode |= processCommand(resref,command,args,rqid,0);
   }
   return retcode;
 }
@@ -142,7 +143,7 @@ int Node::processRequestRider (Result::Ref &resref,const Request &req)
         if( hlist.exists() )
         {
           cdebug(4)<<"    found "<<FCommandAll<<", calling processCommands()"<<endl;
-          retcode |= processCommands(resref,hlist.as<DMI::Record>());
+          retcode |= processCommands(resref,hlist.as<DMI::Record>(),req.id());
         }
       }
       // process command_by_list (pattern matching list)
@@ -179,7 +180,7 @@ int Node::processRequestRider (Result::Ref &resref,const Request &req)
             if( matched )
             {
               cdebug(4)<<"        node matched, calling processCommands()"<<endl;
-              retcode |= processCommands(resref,entry);
+              retcode |= processCommands(resref,entry,req.id());
             }
           }
           if( !matched ) {
@@ -193,7 +194,7 @@ int Node::processRequestRider (Result::Ref &resref,const Request &req)
         if( hlist.exists() && hlist[nodeIndex()].exists() )
         {
           cdebug(4)<<"    found "<<FCommandByNodeIndex<<"["<<nodeIndex()<<"], calling processCommands()"<<endl;
-          retcode |= processCommands(resref,hlist.as<DMI::Record>());
+          retcode |= processCommands(resref,hlist.as<DMI::Record>(),req.id());
         }
       }
     }

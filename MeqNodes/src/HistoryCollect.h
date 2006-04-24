@@ -52,6 +52,7 @@ public:
   virtual int processCommand (Result::Ref &resref,
                               const HIID &command,
                               DMI::Record::Ref &args,
+                              const RequestId &rqid = RequestId(),
                               int verbosity=0);
 protected:
   virtual int getResult (Result::Ref &resref, 

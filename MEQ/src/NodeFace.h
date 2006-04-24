@@ -155,6 +155,8 @@ class NodeFace : public DMI::BObj
     //##    over, its up to the caller to save a copy if needed.
     //##    By convention, an invalid args ref may be interpreted as a 
     //##    boolean "false" or "None" if appropriate.
+    //## rqid: if command comes from a request rider, this is the request ID.
+    //##    If command comes from another source, this is empty.
     //## Verbosity level: if >0, node may issue events/messages describing
     //##    the operation. 
     //## resref (output): a Result record may be returned by attaching it here.
@@ -167,6 +169,7 @@ class NodeFace : public DMI::BObj
     virtual int processCommand (CountedRef<Result> &resref,
                                 const HIID &command,
                                 DMI::Record::Ref &args,
+                                const RequestId &rqid = RequestId(),
                                 int verbosity=0) =0;
     
     

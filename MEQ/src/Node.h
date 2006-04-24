@@ -381,6 +381,7 @@ class Node : public NodeFace
     virtual int processCommand (Result::Ref &resref,
                                 const HIID &command,
                                 DMI::Record::Ref &args,
+                                const RequestId &rqid = RequestId(),
                                 int verbosity=0);
 
     //## true while node is inside execute()
@@ -716,7 +717,7 @@ class Node : public NodeFace
     //## helper function for above. Calls processCommand() for every field
     //## in the list. List must therefore may only contain sub-records
     //## (or invalid refs)
-    int processCommands (Result::Ref &resref,const DMI::Record &list);
+    int processCommands (Result::Ref &resref,const DMI::Record &list,const RequestId &rqid);
     
     //## The state mutex is locked whenever a node is liable to change its
     //## state. Normally this is locked through all of execute(), except 

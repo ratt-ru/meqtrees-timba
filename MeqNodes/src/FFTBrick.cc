@@ -451,16 +451,20 @@ void FFTBrick::setStateImpl (DMI::Record::Ref& rec, bool initializing)
   Node::setStateImpl(rec,initializing);
 
   std::vector<HIID> in = _in_axis_id;
-  if( rec[FAxesIn].get_vector(in,initializing) )
+  if( rec[FAxesIn].get_vector(in,initializing) || initializing )
   {
     FailWhen(in.size()!=2,FAxesIn.toString()+" field must have 2 elements");
     _in_axis_id = in;
+    Axis::addAxis(_in_axis_id[0]);
+    Axis::addAxis(_in_axis_id[1]);
   }
   std::vector<HIID> out = _out_axis_id;
-  if( rec[FAxesOut].get_vector(out,initializing) )
+  if( rec[FAxesOut].get_vector(out,initializing) || initializing )
   {
     FailWhen(out.size()!=2,FAxesOut.toString()+" field must have 2 elements");
     _out_axis_id = out;
+    Axis::addAxis(_out_axis_id[0]);
+    Axis::addAxis(_out_axis_id[1]);
   }
   // do not check that axes are valid -- this is done in getResult()
 };
