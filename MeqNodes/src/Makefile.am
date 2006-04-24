@@ -40,4 +40,6 @@ dist_glish_SCRIPTS = meptable.g
 include $(top_srcdir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
-AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL -DUSE_OLD_LSQFIT
+AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL 
+# add this for old (pre 20/04/2006) aips++ versions
+# -DUSE_OLD_LSQFIT
