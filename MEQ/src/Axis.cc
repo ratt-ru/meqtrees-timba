@@ -139,13 +139,13 @@ void setAxisRecords (const DMI::Vec & vec)
   _default_mapping = false;
 }
 
-int addAxis (const HIID &name)
+void addAxis (const HIID &name)
 {
   _init();
   // return axis if found
   int n = axis(name,true);
   if( n >= 0 )
-    return n;
+    return;
   // allocate new
   for( int i=0; i<MaxAxis; i++ )
     if( _name_map[i] == AtomicID(i) )
@@ -153,7 +153,7 @@ int addAxis (const HIID &name)
       defineAxis(i,name);
       // mapping no longer default
       _default_mapping = false;
-      return i;
+      return;
     }
   // out of axes
   Throw("too many axes defined");
