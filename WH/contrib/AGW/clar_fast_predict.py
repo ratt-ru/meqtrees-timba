@@ -218,6 +218,11 @@ def _tdl_job_clar_predict(mqs,parent,write=True):
   mqs.execute('VisDataMux',req,wait=(parent is None));
   pass
 
+def _tdl_job_make_dirty_image (mqs,parent,**kw):
+  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g']);
+  pass
+
+
 
 Settings.forest_state.cache_policy = 1;  # 1 for smart caching, 100 for full caching
 
