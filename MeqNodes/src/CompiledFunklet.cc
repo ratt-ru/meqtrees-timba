@@ -14,7 +14,8 @@ namespace Meq {
 static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
 
 CompiledFunklet::CompiledFunklet(double pert,double weight,DbId id)
-  : Funklet(pert,weight,id)
+  : constructor_lock(aipspp_mutex),
+    Funklet(pert,weight,id)
 {
      if(hasField(FFunction)){
 	string fstr;
@@ -23,11 +24,13 @@ CompiledFunklet::CompiledFunklet(double pert,double weight,DbId id)
 	setFunction(fstr);
       }
     itsState<<=new Funklet(*this);
+    constructor_lock.release();
 }
 
 
 CompiledFunklet::CompiledFunklet (const DMI::Record &other,int flags,int depth)
-  : Funklet(other,flags,depth)
+  : constructor_lock(aipspp_mutex),
+    Funklet(other,flags,depth)
 {
   
   if(hasField(FFunction)){
@@ -37,16 +40,19 @@ CompiledFunklet::CompiledFunklet (const DMI::Record &other,int flags,int depth)
     setFunction(fstr);
   }
   itsState<<=new Funklet(*this);
+  constructor_lock.release();
  }
 
 CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int depth)
-  : Funklet(other,flags,depth),
+  : constructor_lock(aipspp_mutex),
+    Funklet(other,flags,depth),
     itsDerFunction(other.itsDerFunction),
     itsFunction(other.itsFunction),Npar(other.Npar),Ndim(other.Ndim)
   {
     
 
     itsState<<=new Funklet(*this);
+    constructor_lock.release();
   }
 
 
@@ -58,7 +64,7 @@ CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int dep
   void CompiledFunklet::fill_values(double *value, double * pertValPtr[],double *xval,const Vells::Shape & res_shape ,const int dimN, const LoVec_double grid[],const std::vector<double> &perts, const std::vector<int> &spidIndex, const int makePerturbed, int &pos) const
 {
    
-    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+  //    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     for(int datai=0;datai<res_shape[dimN];datai++){
       xval[dimN]=grid[dimN](datai);
       if(dimN < (Ndim-1.) && (dimN <(res_shape.size()-1)))
@@ -87,7 +93,7 @@ CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int dep
 		
 		for( int ipert=0; ipert<makePerturbed; ipert++ ,d=-d)
 		  {
-		    //	      cdebug(0)<<"der "<<ispid<<" : "<<deriv<<endl;
+		    //	      cdebug(3)<<"der "<<ispid<<" : "<<deriv<<endl;
 		    ((pertValPtr[ipert*spidIndex.size()+ispid][pos])) = d*deriv[ispid]*perts[ispid]+ value[pos];
 		  }
 	      }
@@ -220,11 +226,11 @@ void CompiledFunklet::do_update (const double values[],const std::vector<int> &s
   {
     if( spidIndex[i] >= 0 ) 
       {
-	cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
+	cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<" "<<spidIndex[i]<<endl;
 	coeff[i] += values[spidIndex[i]];
-	setParam();
       }
   }
+  setParam();
   itsState().setCoeff(this->coeff());
 }
 

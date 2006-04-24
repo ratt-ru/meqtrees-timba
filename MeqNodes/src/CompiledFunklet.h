@@ -49,6 +49,7 @@ class CompiledFunklet: public Funklet{
 		    const double scale[]  = defaultFunkletScale,
 		    double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
 			   DbId id=-1,string fstr  = "p0") 
+    : constructor_lock(aipspp_mutex)
   {
     //   setCoeff(coeff);
     //set by hand since setcoeff calls init too early
@@ -62,6 +63,7 @@ class CompiledFunklet: public Funklet{
     
     init(Ndim,iaxis,offset,scale,pert,weight,id);
     itsState<<=new Funklet(*this);
+    constructor_lock.release();
   }
 
   explicit CompiledFunklet(const LoMat_double &coeff,
@@ -70,6 +72,7 @@ class CompiledFunklet: public Funklet{
 		    const double scale[]  = defaultFunkletScale,
 		    double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
 		    DbId id=-1,string fstr  = "p0") 
+    : constructor_lock(aipspp_mutex)
   {
     //    setCoeff(coeff);
     //set by hand since setcoeff calls init before we know about Ndim
@@ -85,6 +88,7 @@ class CompiledFunklet: public Funklet{
     init(Ndim,iaxis,offset,scale,pert,weight,id);
    
     itsState<<=new Funklet(*this);
+    constructor_lock.release();
   }
  
 
@@ -94,6 +98,7 @@ class CompiledFunklet: public Funklet{
 		     const double scale[]  = defaultFunkletScale,
 		     double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
 		     DbId id=-1,string fstr  = "p0") 
+    : constructor_lock(aipspp_mutex)
   {
     ObjRef ref(pcoeff);
     FailWhen(pcoeff->elementType() != Tpdouble,"can't create Meq::CompiledFunklet from this array: not double");
@@ -111,6 +116,7 @@ class CompiledFunklet: public Funklet{
 
     init(Ndim,iaxis,offset,scale,pert,weight,id);
     itsState<<=new Funklet(*this);
+    constructor_lock.release();
   }
 
   ~CompiledFunklet(){}
@@ -175,6 +181,7 @@ class CompiledFunklet: public Funklet{
 
   virtual void do_update (const double values[],const std::vector<int> &spidIndex);
   private:
+  Thread::Mutex::Lock constructor_lock;
 
   //autodiff is only calculated if the parm is solvable
   casa::CompiledFunction<casa::AutoDiff<casa::Double> > itsDerFunction;

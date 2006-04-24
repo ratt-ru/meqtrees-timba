@@ -44,9 +44,10 @@ namespace Meq {
   InitDebugContext(Parm,"MeqParm");
 
   const HIID symdeps_all[]     = { FDataset,FDomain,FResolution,FState,FIteration };
-  const HIID symdeps_domain[]  = { FDataset,FDomain,FResolution };
+  const HIID symdeps_domain[]  = { FDataset,FDomain,FResolution}; 
   const HIID symdeps_solve[]   = { FIteration,FState };
   const HIID symdeps_default[] = { FDataset,FDomain,FResolution };
+
 
   
     
@@ -287,8 +288,9 @@ namespace Meq {
 
     GetTiledDomains(domref,cells,domainV);
     if(domainV.size()<=1)
-      return funkletref.dewr_p();
-
+      {
+	return funkletref.dewr_p();
+      }
     if(checkTiledFunklet(funkletref,domainV))     
       return funkletref.dewr_p();
 
@@ -316,9 +318,15 @@ namespace Meq {
   {
     const Domain &domain = request.cells().domain();
     const Cells &cells = request.cells();
+    std::vector<HIID>  domdep(2);
+    std::vector<HIID>  resdep(1);
+    domdep[0]=FDomain;
+    domdep[1]=FDataset;
+    resdep[0]=FResolution;
 
     //    HIID rq_dom_id = RqId::maskSubId(request.id(),forest().getDependMask(FDomain));
-    HIID rq_dom_id = RqId::maskSubId(request.id(),domain_depend_mask_);
+    HIID rq_dom_id = RqId::maskSubId(request.id(),symdeps().getMask(domdep));
+    HIID rq_res_id = RqId::maskSubId(request.id(),symdeps().getMask(resdep));
 
     // NB: OMS 20/02/2006: I have removed the newrid variable, since
     // the domain_depend_mask now includes FDataset, so the rq_dom_id
@@ -329,6 +337,8 @@ namespace Meq {
     //parm should keep a reference to the funklet object, snce it doesnt have to be equal to the wstate...
     //    Funklet * pfunklet = wstate()[FFunklet].as_wpo<Funklet>();
     Funklet * pfunklet(0);
+    Funklet::Ref funkref;
+
     cdebug(3)<<" getting old funklet"<<endl;
     if(its_funklet_.valid())
       pfunklet= its_funklet_.dewr_p();
@@ -336,12 +346,25 @@ namespace Meq {
     
     if( pfunklet )
       {
+	funkref<<=pfunklet;
 	// reuse the funklet if domain and dataset do not change
          if( !rq_dom_id.empty() && rq_dom_id == domain_id_ )
           {
-            cdebug(3)<<"current funklet request ID matches, re-using"<<endl;
-            return its_funklet_.dewr_p();
-          }
+	    if(!tiled_ || (rq_res_id == res_id_)){
+	      cdebug(3)<<"current funklet request ID matches, re-using"<<endl;
+	      return its_funklet_.dewr_p();
+	    }
+	    else{
+	      //resolution has changed, reinit tiled funklet?
+	      //only if the funklet doesnt match (resolution can change in non-tiling direction)
+	      Funklet *newfunklet = initTiledFunklet(funkref,domain,cells);
+	      funkref().setDomain(domain);
+	      its_funklet_<<=funkref;
+	      wstate()[FFunklet].replace() = its_funklet_().getState();
+	      res_id_=rq_res_id;
+	      return its_funklet_.dewr_p();
+	    }
+	  }
  
         // (b) no domain in funklet (i.e. effectively infinite domain of applicability)
         if( ! tiled_ && (pfunklet->objectType()!=TpMeqComposedPolc) && !pfunklet->hasDomain() )
@@ -349,6 +372,7 @@ namespace Meq {
             cdebug(3)<<"current funklet has infinite domain, re-using"<<endl;
             wstate()[FDomainId] = domain_id_ = rq_dom_id;
             wstate()[FDomain].replace() <<= &domain;
+	    res_id_=rq_res_id;
 
 	    const LoShape shape=pfunklet->getCoeffShape();
 	    if(force_shape_)
@@ -371,6 +395,7 @@ namespace Meq {
 	      }
             wstate()[FDomainId] = domain_id_ = rq_dom_id;
             wstate()[FDomain].replace() <<= &domain;
+	    res_id_=rq_res_id;
 	    const LoShape shape=pfunklet->getCoeffShape();
 	    if(force_shape_)
 	      pfunklet->setCoeffShape(shape_);
@@ -380,38 +405,40 @@ namespace Meq {
 
       }
     // no funklet, or funklet not suitable -- get a new one
-    Funklet::Ref funkref;
     pfunklet = findRelevantFunklet(funkref,domain);
     FailWhen(!pfunklet,"no funklets found for specified domain");
     cdebug(2)<<"found relevant funklet, type "<<pfunklet->objectType()<<endl;
     if(pfunklet->objectType()!=TpMeqCompiledFunklet && pfunklet->hasField(FFunction))
       {
-        cdebug(4)<<"function found in state, creating new compiled funklet"<<endl;
-        its_funklet_<<=new CompiledFunklet(*pfunklet);
-        pfunklet = its_funklet_.dewr_p();
+        cdebug(3)<<"function found in state, creating new compiled funklet"<<endl;
+        funkref<<=new CompiledFunklet(*pfunklet);
+        pfunklet = funkref.dewr_p();
       }
     else
       {
 	if(force_shape_)
 	  pfunklet->setCoeffShape(shape_);
-	its_funklet_<<=pfunklet;
+	funkref<<=pfunklet;
       }
     
     if(tiled_ && isSolvable()){
 
-        cdebug(4)<<"tiling funklet, "<<endl;
+        cdebug(3)<<"tiling funklet, "<<endl;
         Funklet *newfunklet = initTiledFunklet(funkref,domain,cells);
         funkref().setDomain(domain);
-        its_funklet_=funkref;
+	its_funklet_<<=funkref;
         wstate()[FFunklet].replace() = its_funklet_().getState();
         wstate()[FDomainId] = domain_id_ = rq_dom_id;
         wstate()[FDomain].replace() <<= &domain;
-        cdebug(2)<<"found relevant funklet,after tiling type "<<newfunklet->objectType()<<endl;
+	res_id_=rq_res_id;
+        cdebug(3)<<"found relevant funklet,after tiling type "<<newfunklet->objectType()<<endl;
         return its_funklet_.dewr_p();
       }
+    its_funklet_<<=funkref;
     wstate()[FFunklet].replace() = its_funklet_().getState();
     wstate()[FDomainId] = domain_id_ = rq_dom_id;
     wstate()[FDomain].replace() <<= &domain;
+    res_id_=rq_res_id;
     return its_funklet_.dewr_p();
     
    
@@ -446,7 +473,8 @@ namespace Meq {
 
 
     wstate()[FFunklet].replace() = pfunklet->getState();
-
+    its_funklet_<<=pfunklet;
+    
     // get spids from funklet
     const std::vector<int> & spids = pfunklet->getSpids();
     ref <<= new Result(0);
@@ -495,7 +523,7 @@ namespace Meq {
 	pfunklet->clearSolvable();
       }
     wstate()[FFunklet].replace() = pfunklet->getState();
-
+    its_funklet_<<=pfunklet;
     // init depend mask
     // if we are solvable, then we always depend on solution progress
     int depend = isSolvable() ? (solve_depend_mask_|domain_depend_mask_): domain_depend_mask_;
@@ -586,7 +614,7 @@ namespace Meq {
     if( pfunklet )
       {
 	
-	if(pfunklet->objectType()!=TpMeqCompiledFunklet  && pfunklet->hasField(FFunction))
+	if(pfunklet->objectType()==TpMeqCompiledFunklet  || pfunklet->hasField(FFunction))
 	  {
 	    cdebug(4)<<"function found in state, creating new compiled funklet"<<endl;
 	    its_funklet_<<= new CompiledFunklet(*pfunklet);
@@ -609,6 +637,7 @@ namespace Meq {
 	    cdebug(2)<<"resetting domainID"<<endl;
 	    wstate()[FDomain].remove(); 
 	    wstate()[FDomainId] = domain_id_ = HIID();
+	    res_id_ = HIID();
 	  }
       }
     // get domain IDs, if specified
@@ -683,6 +712,7 @@ namespace Meq {
     wstate()[FDomain].remove();
     wstate()[FDomainId].remove();
     domain_id_ = HIID();
+    res_id_= HIID();
   }
 
   int Parm::processCommand (Result::Ref &resref,const HIID &command,
@@ -691,6 +721,9 @@ namespace Meq {
     // process parent class commands
     int retcode = Node::processCommand(resref,command,args,verbosity);
     
+
+    //dont update if nothing but res_id changed.
+    //HIID rq_all_id = RqId::maskSubId(request.id(),symdeps().getMask({FDataSet,FDomain,FState,FIteration}));
     if( command == FUpdateParm )
     {
       retcode |= RES_OK;

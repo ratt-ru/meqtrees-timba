@@ -199,7 +199,7 @@ const HIID
     Funklet::Ref its_funklet_; //keep a ref to the funklet 
 
 
-    HIID        domain_id_;
+    HIID        domain_id_,res_id_;
     int         domain_depend_mask_;
     int         solve_depend_mask_;
     std::vector<HIID> domain_symdeps_;
