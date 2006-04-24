@@ -480,7 +480,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         category=Logger.Error);
       return;
     self.log_message("starting kernel process \"%s %s\" and waiting for connection"%(pathname,args));
-    self._kernel_pid = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));
+    self._kernel_pid = self._kernel_pid0 = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));
+    _dprint(0,"started kernel process",self._kernel_pid);
     self._kernel_pathname = pathname;
     self._connect_timer.start(5000,True);  # start a 5-second timer
     self._check_connection_status();
@@ -496,11 +497,11 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       timeout_dialog = self._timeout_dialog;
     except AttributeError:
       timeout_dialog = self._timeout_dialog = QMessageBox("""Kernel timed out""",
-        """<p>We have started a local kernel process (pid %d), but we can't 
+        """<p>We have started a local kernel process (pid %s), but we can't 
         establish a connection to it. This may be due to an out-of-date
         kernel build, or to a bug somewhere. You can try killing and
         restarting the kernel process. If you're sure your build is up-to-date, 
-        then please report this as a bug.</p>""" % self._kernel_pid,
+        then please report this as a bug.</p>""" % str(self._kernel_pid0),
         QMessageBox.Critical,
         QMessageBox.Ok,QMessageBox.NoButton,QMessageBox.NoButton,
         self);
@@ -556,7 +557,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       os.kill(pid,signal.SIGKILL);
       
   def _sigchld_handler (self,sig,stackframe):
-    _dprint(0,'signal',sig);
+    _dprint(0,'got signal',sig);
     wstat = os.waitpid(-1,os.WNOHANG);
     if wstat:
       (pid,st) = wstat;
