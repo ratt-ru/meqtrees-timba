@@ -200,11 +200,13 @@ const HIID
     Funklet::Ref its_funklet_; //keep a ref to the funklet 
 
 
-    HIID        domain_id_,res_id_;
+    HIID        domain_id_,res_id_,rq_all_id_;
     int         domain_depend_mask_;
     int         solve_depend_mask_;
+    int         res_depend_mask_;
     std::vector<HIID> domain_symdeps_;
     std::vector<HIID> solve_symdeps_;
+    std::vector<HIID> resolution_symdeps_;
 
     std::vector<double> solve_domain_; //solve domain, default = [0,1]
     bool        integrated_;

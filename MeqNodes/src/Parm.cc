@@ -46,6 +46,7 @@ namespace Meq {
   const HIID symdeps_all[]     = { FDataset,FDomain,FResolution,FState,FIteration };
   const HIID symdeps_domain[]  = { FDataset,FDomain,FResolution}; 
   const HIID symdeps_solve[]   = { FIteration,FState };
+  const HIID symdeps_resolution[]   = { FResolution};
   const HIID symdeps_default[] = { FDataset,FDomain,FResolution };
 
 
@@ -67,6 +68,7 @@ namespace Meq {
       force_shape_(false),
       domain_depend_mask_(0),
       solve_depend_mask_(0),
+      res_depend_mask_(0),
       domain_symdeps_(symdeps_domain,symdeps_domain+sizeof(symdeps_domain)/sizeof(symdeps_domain[0])),
       solve_symdeps_(symdeps_solve,symdeps_solve+sizeof(symdeps_solve)/sizeof(symdeps_solve[0])),
       solve_domain_(2),
@@ -456,6 +458,7 @@ namespace Meq {
       return 0;
     domain_depend_mask_ = symdeps().getMask(domain_symdeps_);
     solve_depend_mask_ = symdeps().getMask(solve_symdeps_);
+    res_depend_mask_ = symdeps().getMask(resolution_symdeps_);
     // init solvable funklet for this request
     Funklet * pfunklet = initFunklet(request,True);
     cdebug(3)<<"init funklet "<<pfunklet->objectType()<<" "<<pfunklet->isSolvable()<<endl;
@@ -506,6 +509,7 @@ namespace Meq {
     cdebug(3)<<"evaluating parm for domain "<<request.cells().domain()<<endl;
     domain_depend_mask_ = symdeps().getMask(domain_symdeps_);
     solve_depend_mask_ = symdeps().getMask(solve_symdeps_);
+    res_depend_mask_ = symdeps().getMask(resolution_symdeps_);
     
     // is request for solvable parm values?
     bool solve = isSolvable() && request.evalMode() > 0;
@@ -724,7 +728,16 @@ namespace Meq {
     
 
     //dont update if nothing but res_id changed.
-    //HIID rq_all_id = RqId::maskSubId(request.id(),symdeps().getMask({FDataSet,FDomain,FState,FIteration}));
+    if (!rqid.empty()){
+      if(! rq_all_id_.empty())
+	if(!(RqId::diffMask(rqid,rq_all_id_) & !(res_depend_mask_)))
+	  //differs only on resolution do not proceed;
+	  {
+	    rq_all_id_ = rqid;
+	    return retcode;
+	  }
+    }
+    rq_all_id_ = rqid;
     if( command == FUpdateParm )
     {
       retcode |= RES_OK;
