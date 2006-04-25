@@ -261,6 +261,34 @@ static PyObject * GetNames_wrapper(PyObject *pSelf,
   return nameList;
   
 }
+
+static PyObject * GetRange_wrapper(PyObject *pSelf,
+				   PyObject *pArgs)
+{
+  //  getnames from pattern, default=*
+
+  PyObject *pyParmDB;
+
+  char *pattern;
+  int ok = PyArg_ParseTuple(pArgs,"Os",&pyParmDB,&pattern);
+  if(!ok) {
+    //exception
+    return NULL;
+  }
+  
+  // Convert the PyCObject to a void pointer:
+  void * temp = PyCObject_AsVoidPtr(pyParmDB);
+  // Cast the void pointer to a Numbers pointer:
+  LOFAR::ParmDB::ParmDB * thisDB = static_cast<LOFAR::ParmDB::ParmDB *>(temp);
+  cout<<"getting range for parms  with namepattern: "<<pattern<<endl;
+
+  LOFAR::ParmDB::ParmDomain result = thisDB->getRange(pattern);  
+  
+  Meq::Domain resultdomain = MeqfromParmDomain(result);
+
+  return OctoPython::pyFromDMI(resultdomain);
+  
+}
  
 #endif
 
@@ -273,6 +301,8 @@ static PyMethodDef TableMethods[] = {
       "getvalues from db following name + domain" },
     { "getAllValues", GetAllValues_wrapper, METH_VARARGS,
       "getvalues from db following name +infinite domain" },
+    { "getRange", GetRange_wrapper, METH_VARARGS,
+      "getrange from db following namepattern" },
     { NULL, NULL, 0, NULL}        /* Sentinel */
 
 };

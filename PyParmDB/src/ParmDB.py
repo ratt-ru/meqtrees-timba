@@ -15,6 +15,14 @@ class Parmdb:
         #print "names",names;
         return names;
 
+    def getRange(self,pattern="*"):
+        if not self._db:
+            print "no db opened, try reopen"
+            return;
+        domain=getRange(self._db,pattern);
+        #print "names",names;
+        return domain;
+
     def getFunklets(self,name,domain="all",parentId=-1):
         if not self._db:
             print "no db opened, try reopen"

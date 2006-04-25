@@ -90,13 +90,19 @@ class TableInspector(browsers.GriddedPlugin):
         self.parmtable.horizontalHeader () .setLabel(1,"nr. funklets");
         self.parmtable.setColumnWidth(0,200);
         self.parmtable.setColumnWidth(1,150);
+
+        QObject.connect(self.parmtable,SIGNAL("selectionChanged()"),self._get_selected);
+
+
         self._parm_button = QPushButton(self._parmbox);
         self._parm_button.setText("Get Parms");
 
         self._parmlist = [];
         self._funklist = {};
+        self._Comp_funklet={};
         QObject.connect(self._parm_button,SIGNAL("clicked()"),self._get_parms);
 
+        self._domain = meq.domain(0,1,0,1);
         
         self._plot_button = QPushButton(self._parmbox);
         self._plot_button.setText("Plot Selection");
@@ -149,6 +155,35 @@ class TableInspector(browsers.GriddedPlugin):
         self.nsteps.append(QLineEdit(axis));
         self._axes.append(axis)
         axis.show();
+
+
+    def _get_range(self,pattern="*"):
+        #gets the total domain for a given (sest of)parm(s) and fills the axes wiht these as default values
+        self._domain = self._db.getRange(pattern);
+        
+
+    def _get_selected(self,parm=None):
+        if parm == None:
+            row = self.parmtable.currentRow();
+            parm = str(self.parmtable.item(row,0).text());
+        self._get_range(parm);
+        if not self._funklist.has_key(parm):
+            self._get_funklets(parm=parm);
+            self._Comp_funklet[parm]=ComposedFunklet(self._funklist[parm]);
+
+        self._Comp_funklet[parm].setDomain(self._domain);
+        self._Comp_funklet[parm].getNX();
+        self._Naxis=self._Comp_funklet[parm].getNAxis();
+        
+        for n in range(len(self._axes)):
+            axis_name = str(self._axis_list[n]).lower(); 
+            if not  self._domain.has_key(axis_name):
+                break;
+            self.xfrom[n].setText(str(self._domain[axis_name][0]));
+            self.xto[n].setText(str(self._domain[axis_name][1]));
+            self.nsteps[n].setText(str(self._Naxis[n]));
+        return;
+        
 
     def _remove_axis(self):
         if len(self._axes)<=1:
@@ -207,6 +242,7 @@ class TableInspector(browsers.GriddedPlugin):
             else:
                 self.parmtable.clearCell(parmnr,1);
             parmnr+=1;
+        self._get_range();
 
     def _get_all_funklets(self):
         self._funklist = {};
@@ -223,7 +259,7 @@ class TableInspector(browsers.GriddedPlugin):
         if parm == "all":
             self._get_all_funklets();
         else:
-            print "getting funklets",parm;
+            #print "getting funklets",parm;
             self._funklist[parm] = self._db.getFunklets(parm);
             self._helplist=[];
             for funk in self._funklist[parm]:
@@ -242,16 +278,22 @@ class TableInspector(browsers.GriddedPlugin):
             return;
         if not self._funklist.has_key(parm):
             self._get_funklets(parm);
-        #print "plotting",self._funklist[parm];
+            #print "plotting",self._funklist[parm];
         
-        funklet =  ComposedFunklet(self._funklist[parm]);
-        print funklet.eval({'x0':.4,'x1':.2,'x2':3,'x5':4});
-        dom = meq.domain(0,1,0,1);
-        cells = meq.cells(dom,num_time=1,num_freq=25);
+            self._Comp_funklet[parm] =  ComposedFunklet(self._funklist[parm]);
+        #print self._Comp_funklet[parm].eval({'x0':.4,'x1':.2,'x2':3,'x5':4});
+        cells = self._getCells();
 
-        #        print cells;
-        funklet.plot(cells=cells,parent=self._wtop);
+        #print cells;
+        self._Comp_funklet[parm].plot(cells=cells,parent=self._wtop);
         
+
+    def _getCells(self):
+      dom = self._domain;
+      cells = meq.cells(dom,num_time=self._Naxis[0],num_freq=self._Naxis[1]);
+      #add more axes here...
+      return cells;
+
 
 def _start_table_inspector ():
   _dprint(2,'adding a table inspector');

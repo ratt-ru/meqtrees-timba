@@ -219,7 +219,12 @@ class Funklet:
         #print "axis_map",axis_map;
         #print "grid",grid,len(grid),grid[str(axis_map[0]['id']).lower()];
         shape= ();
+        if self._nx > len(axis_map):
+            self._nx = len(axis_map);
         for i in range(self._nx):
+            if not axis_map[i].has_key('id'):
+                self._nx=i;
+                break;
             if grid.has_key(str(axis_map[i]['id']).lower()):
            
                 shape += (len(grid[str(axis_map[i]['id']).lower()]),);
@@ -228,13 +233,13 @@ class Funklet:
         data = zeros(shape, Float32);
 
         if not len(grid) == self._nx:
-            print "axis missing in cells, assuming 0" #not sure if this is a problem
+            print "axis missing in cells, assuming 0",grid,self._nx #not sure if this is a problem
         k=zeros((self._nx,));
         while k[0]<(shape[0]):
             x=[];
             p = ();
             for i in range(self._nx):
-                if grid.has_key(str(axis_map[i]['id']).lower()):
+                if axis_map[i].has_key('id') and grid.has_key(str(axis_map[i]['id']).lower()):
                     x.append(grid[str(axis_map[i]['id']).lower()][k[i]]);
                 else:
                     x.append(0.);
@@ -286,29 +291,63 @@ class Funklet:
             if parent:
                 parent.emit(PYSIGNAL("displayDataItem()"),(dataitem,kwargs));
             else:
-                print "plotting"
+                #print "plotting"
                 Services.addDataItem(dataitem);
             
 
 class ComposedFunklet(Funklet):
     """ class for a list of funklets...reimplement eval"""
     
-    def __init__(self,funklet_list):
+    def __init__(self,funklet_list,domain=meq.domain(0,1,0,1)):
+        self._Naxis=[];
+        self._domain=domain;
         self._funklet_list = funklet_list;
         # initialize domain;
-        self._nx=0;
-        for funk in self._funklet_list:
-            if funk.getNX()>self._nx:
-                self._nx = funk.getNX();
         funk=funklet_list[0];
         self._name = funk._name;
         self._udi = funk._udi;
         self.isConstant = False;
+        forest_state=meqds.get_forest_state();
+        self._axis_map=forest_state.axis_map;
         if len(self._funklet_list)==1 and funk.isConstant: 
             self.isConstant = True;
             self._constant = funk._constant;
+            self._nx = 0;
+        else:
+            self.getNX();
 
+
+    def setDomain(self,domain=meq.domain(0,1,0,1)):
+        self._domain=domain;
+        self.getNX();
+
+    def getNX(self):
+        #mkae guess based on regular gridding
+        self._nx=0;
+        for funk in self._funklet_list:
+            if funk.getNX()>self._nx:
+                self._nx = funk.getNX();
+        funk=self._funklet_list[0];
+        tiled = funk.getDomain();
+        self._Naxis=[];
+        for i in self._axis_map:
+            if not i.has_key('id'):
+                break;
+            if not self._domain.has_key(str(i['id']).lower()):
+                break;
+            if not tiled.has_key(str(i['id']).lower()):
+                break;
+            dom_size = self._domain[str(i['id']).lower()][1]-self._domain[str(i['id']).lower()][0];
+            tile_size = tiled[str(i['id']).lower()][1]-tiled[str(i['id']).lower()][0];
+            N = int(dom_size/tile_size+0.5);
+            self._Naxis.append(N);
+        self._nx=len(self._Naxis);
         
+        return self._nx;
+
+    def getNAxis(self):
+        return self._Naxis;
+
 
     def eval(self,point={}):
         #evaluate for the right  funklet, check on domain;
@@ -327,8 +366,7 @@ class ComposedFunklet(Funklet):
             if isinstance(point,list):
                 pointlist = point;
         #print "pointlist:",pointlist;
-        forest_state=meqds.get_forest_state();
-        axis_map=forest_state.axis_map;
+        axis_map=self._axis_map;
         for funklet in self._funklet_list:
             # get first matching funklet:
             domain = funklet.getDomain();
