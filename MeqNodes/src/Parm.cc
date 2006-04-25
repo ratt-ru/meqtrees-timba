@@ -71,6 +71,7 @@ namespace Meq {
       res_depend_mask_(0),
       domain_symdeps_(symdeps_domain,symdeps_domain+sizeof(symdeps_domain)/sizeof(symdeps_domain[0])),
       solve_symdeps_(symdeps_solve,symdeps_solve+sizeof(symdeps_solve)/sizeof(symdeps_solve[0])),
+      resolution_symdeps_(symdeps_resolution,symdeps_resolution+sizeof(symdeps_resolution)/sizeof(symdeps_resolution[0])),
       solve_domain_(2),
       integrated_(false)
   {
@@ -726,16 +727,19 @@ namespace Meq {
     // process parent class commands
     int retcode = Node::processCommand(resref,command,args,rqid,verbosity);
     
+    res_depend_mask_ = symdeps().getMask(resolution_symdeps_);
 
     //dont update if nothing but res_id changed.
     if (!rqid.empty()){
       if(! rq_all_id_.empty())
-	if(!(RqId::diffMask(rqid,rq_all_id_) & !(res_depend_mask_)))
-	  //differs only on resolution do not proceed;
-	  {
-	    rq_all_id_ = rqid;
-	    return retcode;
-	  }
+	{
+	  if(!(RqId::diffMask(rqid,rq_all_id_) & (~res_depend_mask_)))
+	  //differs only on resolution, do not proceed;
+	    {
+	      rq_all_id_ = rqid;
+	      return retcode;
+	    }
+	}
     }
     rq_all_id_ = rqid;
     if( command == FUpdateParm )

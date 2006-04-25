@@ -17,6 +17,8 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
     Funklet(pert,weight,id)
 {
   Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+    itsFunction = new casa::CompiledFunction<casa::Double>();
+    itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
      if(hasField(FFunction)){
 	string fstr;
 	(*this)[FFunction].get(fstr,0);
@@ -31,6 +33,8 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
     Funklet(other,flags,depth)
 {
   Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+  itsFunction = new casa::CompiledFunction<casa::Double>();
+  itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
 
   if(hasField(FFunction)){
     string fstr;

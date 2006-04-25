@@ -53,6 +53,8 @@ class CompiledFunklet: public Funklet{
     //   setCoeff(coeff);
     //set by hand since setcoeff calls init too early
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+    itsFunction = new casa::CompiledFunction<casa::Double>();
+    itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
     ObjRef ref(new DMI::NumArray(coeff));
     Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
     pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
@@ -75,6 +77,8 @@ class CompiledFunklet: public Funklet{
     //    setCoeff(coeff);
     //set by hand since setcoeff calls init before we know about Ndim
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+    itsFunction = new casa::CompiledFunction<casa::Double>();
+    itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
     ObjRef ref(new DMI::NumArray(coeff));
     Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
     pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
@@ -98,6 +102,8 @@ class CompiledFunklet: public Funklet{
 		     DbId id=-1,string fstr  = "p0") 
   {
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+    itsFunction = new casa::CompiledFunction<casa::Double>();
+    itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
     ObjRef ref(pcoeff);
     FailWhen(pcoeff->elementType() != Tpdouble,"can't create Meq::CompiledFunklet from this array: not double");
     FailWhen(pcoeff->rank()>maxFunkletRank(),"can't create Meq::CompiledFunklet from this array: rank too high");
@@ -126,8 +132,6 @@ class CompiledFunklet: public Funklet{
     //check if this is a valid string
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     (*this)[FFunction] = funcstring;
-    itsFunction = new casa::CompiledFunction<casa::Double>();
-    itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
 
     FailWhen(!itsFunction->setFunction(funcstring),std::string(itsFunction->errorMessage()));
     Npar = itsFunction->nparameters();
