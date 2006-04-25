@@ -49,10 +49,10 @@ class CompiledFunklet: public Funklet{
 		    const double scale[]  = defaultFunkletScale,
 		    double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
 			   DbId id=-1,string fstr  = "p0") 
-    : constructor_lock(aipspp_mutex)
   {
     //   setCoeff(coeff);
     //set by hand since setcoeff calls init too early
+    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     ObjRef ref(new DMI::NumArray(coeff));
     Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
     pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
@@ -63,7 +63,6 @@ class CompiledFunklet: public Funklet{
     
     init(Ndim,iaxis,offset,scale,pert,weight,id);
     itsState<<=new Funklet(*this);
-    constructor_lock.release();
   }
 
   explicit CompiledFunklet(const LoMat_double &coeff,
@@ -72,10 +71,10 @@ class CompiledFunklet: public Funklet{
 		    const double scale[]  = defaultFunkletScale,
 		    double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
 		    DbId id=-1,string fstr  = "p0") 
-    : constructor_lock(aipspp_mutex)
   {
     //    setCoeff(coeff);
     //set by hand since setcoeff calls init before we know about Ndim
+    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     ObjRef ref(new DMI::NumArray(coeff));
     Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
     pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
@@ -88,7 +87,6 @@ class CompiledFunklet: public Funklet{
     init(Ndim,iaxis,offset,scale,pert,weight,id);
    
     itsState<<=new Funklet(*this);
-    constructor_lock.release();
   }
  
 
@@ -98,8 +96,8 @@ class CompiledFunklet: public Funklet{
 		     const double scale[]  = defaultFunkletScale,
 		     double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
 		     DbId id=-1,string fstr  = "p0") 
-    : constructor_lock(aipspp_mutex)
   {
+    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     ObjRef ref(pcoeff);
     FailWhen(pcoeff->elementType() != Tpdouble,"can't create Meq::CompiledFunklet from this array: not double");
     FailWhen(pcoeff->rank()>maxFunkletRank(),"can't create Meq::CompiledFunklet from this array: rank too high");
@@ -116,19 +114,25 @@ class CompiledFunklet: public Funklet{
 
     init(Ndim,iaxis,offset,scale,pert,weight,id);
     itsState<<=new Funklet(*this);
-    constructor_lock.release();
   }
 
-  ~CompiledFunklet(){}
+  ~CompiledFunklet(){
+    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+    delete itsFunction;
+    delete itsDerFunction;
+  }
 
   void setFunction(string funcstring){
     //check if this is a valid string
-    (*this)[FFunction] = funcstring;
-    FailWhen(!itsFunction.setFunction(funcstring),std::string(itsFunction.errorMessage()));
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-    Npar = itsFunction.nparameters();
-    Ndim = itsFunction.ndim();
-    itsDerFunction.setFunction(funcstring);
+    (*this)[FFunction] = funcstring;
+    itsFunction = new casa::CompiledFunction<casa::Double>();
+    itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
+
+    FailWhen(!itsFunction->setFunction(funcstring),std::string(itsFunction->errorMessage()));
+    Npar = itsFunction->nparameters();
+    Ndim = itsFunction->ndim();
+    itsDerFunction->setFunction(funcstring);
     int dim=0;
     for(uint i=0;i<Ndim;i++) {
       depend_[i]=0;
@@ -154,8 +158,8 @@ class CompiledFunklet: public Funklet{
     
     for(uint i=0;i< Npar;i++){
       //	  cdebug(0)<<"setting par "<<i<<" :"<<coeffData[i]<<endl;
-      itsDerFunction[i]=casa::AutoDiff<casa::Double>(coeffData[i],  Npar,i);
-      itsFunction[i]=coeffData[i];
+      (*itsDerFunction)[i]=casa::AutoDiff<casa::Double>(coeffData[i],  Npar,i);
+      (*itsFunction)[i]=coeffData[i];
     }
 	
   }
@@ -163,7 +167,7 @@ class CompiledFunklet: public Funklet{
 
   virtual string getFunction() const{
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-    return string(itsFunction.getText());
+    return string(itsFunction->getText());
   }
 
   virtual Funklet::Ref getState() const{
@@ -181,12 +185,11 @@ class CompiledFunklet: public Funklet{
 
   virtual void do_update (const double values[],const std::vector<int> &spidIndex);
   private:
-  Thread::Mutex::Lock constructor_lock;
 
   //autodiff is only calculated if the parm is solvable
-  casa::CompiledFunction<casa::AutoDiff<casa::Double> > itsDerFunction;
+  casa::CompiledFunction<casa::AutoDiff<casa::Double> >  * itsDerFunction;
   //otherwise use this one, initialize both
-  casa::CompiledFunction<casa::Double> itsFunction;
+  casa::CompiledFunction<casa::Double> * itsFunction;
   // casa::CompiledFunction<casa::Double> itsFunction;
   uint Npar,Ndim,realDim;
   uint depend_[Axis::MaxAxis];

@@ -13,10 +13,10 @@ namespace Meq {
 
 static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
 
-CompiledFunklet::CompiledFunklet(double pert,double weight,DbId id)
-  : constructor_lock(aipspp_mutex),
+  CompiledFunklet::CompiledFunklet(double pert,double weight,DbId id):
     Funklet(pert,weight,id)
 {
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
      if(hasField(FFunction)){
 	string fstr;
 	(*this)[FFunction].get(fstr,0);
@@ -24,15 +24,14 @@ CompiledFunklet::CompiledFunklet(double pert,double weight,DbId id)
 	setFunction(fstr);
       }
     itsState<<=new Funklet(*this);
-    constructor_lock.release();
 }
 
 
-CompiledFunklet::CompiledFunklet (const DMI::Record &other,int flags,int depth)
-  : constructor_lock(aipspp_mutex),
+  CompiledFunklet::CompiledFunklet (const DMI::Record &other,int flags,int depth):
     Funklet(other,flags,depth)
 {
-  
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+
   if(hasField(FFunction)){
     string fstr;
     (*this)[FFunction].get(fstr,0);
@@ -40,19 +39,17 @@ CompiledFunklet::CompiledFunklet (const DMI::Record &other,int flags,int depth)
     setFunction(fstr);
   }
   itsState<<=new Funklet(*this);
-  constructor_lock.release();
  }
 
-CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int depth)
-  : constructor_lock(aipspp_mutex),
-    Funklet(other,flags,depth),
-    itsDerFunction(other.itsDerFunction),
-    itsFunction(other.itsFunction),Npar(other.Npar),Ndim(other.Ndim)
+  CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int depth):
+    Funklet(other,flags,depth),Npar(other.Npar),Ndim(other.Ndim)
   {
-    
-
+    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+  
+    itsFunction=new casa::CompiledFunction<casa::Double>((*other.itsFunction));
+    itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >(*(other.itsDerFunction));
+      
     itsState<<=new Funklet(*this);
-    constructor_lock.release();
   }
 
 
@@ -79,11 +76,11 @@ CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int dep
 	  xval[i]=0.;
 
 
-	value[pos] = itsFunction(xval);
+	value[pos] = (*itsFunction)(xval);
 	if( makePerturbed ) 
 	  {
 	    
-	    const casa::Vector<casa::Double> deriv=itsDerFunction(xval).derivatives();
+	    const casa::Vector<casa::Double> deriv=(*itsDerFunction)(xval).derivatives();
 
 
 	    for( uint ispid=0; ispid<spidIndex.size(); ispid++) 
@@ -121,7 +118,7 @@ void CompiledFunklet::do_evaluate (VellSet &vs,const Cells &cells,
     //constant 
     if( makePerturbed )
       {
-	const casa::AutoDiff<casa::Double> thederval = itsDerFunction();
+	const casa::AutoDiff<casa::Double> thederval = (*itsDerFunction)();
 	vs.setValue(new Vells(thederval.value(),false));
 	for( uint ispid=0; ispid<spidIndex.size(); ispid++) 
 	  if( spidIndex[ispid] >= 0 ){
@@ -137,7 +134,7 @@ void CompiledFunklet::do_evaluate (VellSet &vs,const Cells &cells,
       }
     else
       {
-	vs.setValue(new Vells(itsFunction(),false));
+	vs.setValue(new Vells((*itsFunction)(),false));
       }
     return;
   }
