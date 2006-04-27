@@ -113,11 +113,103 @@ def openHTMLPage(file,title,withHeader):
   file.write("<html>\n")
   file.write("<head>\n")
   file.write("<title>"+title+"</title>\n")
-  file.write("<body>\n")
-  if withHeader:
-    file.write("<center>\n")
-    file.write("<h1>"+title+"</h1>\n")
-    file.write("</center>\n")
+  # css stuff
+  file.write("<style type="text/css">\n")
+  file.write("  td {\n")
+  file.write("      text-align:center;\n")
+  file.write("    } \n")
+  file.write("    th, td {\n")
+  file.write("    vertical-align:baseline;\n")
+  file.write("    white-space:nowrap;\n")
+  file.write("    padding:2px\n")
+  file.write("  }\n")
+  file.write("  table {\n")
+  file.write("    margin:0em;\n")
+  file.write("  }\n")
+  file.write("  .tableBoxOuter {\n")
+  file.write("    width:100%;\n")
+  file.write("    height:29em;\n")
+  file.write("  }\n")
+  # javascript to generate headers
+  file.write("<script type="text/javascript">\n")
+  file.write("/* Copyright Richard Cornford 2004 */\n")
+  file.write("var finalizeMe = (function(){\n")
+  file.write("  var global = this,base,safe = false,svType = (global.addEventListener && 2)||(global.attachEvent && 3)|| 0;\n")
+  file.write("  function addFnc(next, f){function t(ev){if(next)next(ev);f(ev);};t.addItem = function(d){if(f != d.getFunc()){if(next){next.addItem(d);}else{next = d;}}return this;};t.remove = function(d){if(f == d){f = null;return next;}else if(next){next = next.remove(d);}return this;};t.getFunc = function(){return f;};t.finalize = function(){if(next)next = next.finalize();return (f = null);};return t;};\n")
+  file.write("  function addFunction(f){if(base){base = base.addItem(addFnc(null, f));}else{base = addFnc(null, f);}};\n")
+  file.write("  function ulQue(f){addFunction(f);if(!safe){switch(svType){case 2:global.addEventListener("unload", base, false);safe = true;break;case 3:global.attachEvent("onunload", base);safe = true;break;default:if(global.onunload != base){if(global.onunload)addFunction(global.onunload);global.onunload = base;}break;}}};\n")
+  file.write("  ulQue.remove = function(f){if(base)base.remove(f);};\n")
+  file.write("  function finalize(){if(base){base.finalize();switch(svType){case 3:global.detachEvent("onunload", base);break;case 2:global.removeEventListener("unload", base, false);break;default:global.onunload = null;break;}base = null;}safe = false;};\n")
+  file.write("  ulQue(finalize);return ulQue;\n")
+  file.write("  })();\n")
+  file.write("\n")
+  file.write("\n")
+  file.write("  var InitializeMe = (function(){\n")
+  file.write("  var global = this,base = null,safe = false;\n")
+  file.write("  var listenerType = (global.addEventListener && 2)||(global.attachEvent && 3)|| 0;\n")
+  file.write("  function getStackFunc(next, funcRef, arg1,arg2,arg3,arg4){function l(ev){funcRef((ev?ev:global.event), arg1,arg2,arg3,arg4);if(next)next = next(ev);return (funcRef = null);};l.addItem = function(d){if(next){next.addItem(d);}else{next = d;}};return l;};\n")
+  file.write("  return (function(funcRef, arg1,arg2,arg3,arg4){if(base){base.addItem(getStackFunc(null, funcRef, arg1,arg2,arg3,arg4));}else{base = getStackFunc(null, funcRef, arg1,arg2,arg3,arg4);}if(!safe){switch(listenerType){case 2:global.addEventListener("load", base, false);safe = true;break;case 3:global.attachEvent("onload", base);safe = true;break;default:if(global.onload != base){if(global.onload){base.addItem(getStackFunc(null, global.onload));}global.onload = base;}break;}}});\n")
+  file.write("  })();\n")
+  file.write("var queryStrings = (function(out){\n")
+  file.write("  if(typeof location != 'undefined'){\n")
+  file.write("    var temp = location.search||location.href||'';\n")
+  file.write("    var nvp, ofSet;\n")
+  file.write("    if((ofSet = temp.indexOf('?')) > -1){\n")
+  file.write("      temp = temp.split("#")[0];\n")
+  file.write("      temp = temp.substring((ofSet+1), temp.length);\n")
+  file.write("      var workAr = temp.split('&');\n")
+  file.write("      for(var c = workAr.length;c--;){\n")
+  file.write("        nvp = workAr[c].split('=');\n")
+  file.write("        if(nvp.length > 1){out[nvp[0]] = nvp[1];}\n")
+  file.write("      }\n")
+  file.write("    }\n")
+  file.write("   }\n")
+  file.write("   return out;\n")
+  file.write("})({});\n")
+
+  file.write("var TimedQue = (function(){\n")
+  file.write("  var base, timer;\n")
+  file.write("  var interval = 60;\n")
+  file.write("  var newFncs = null;\n")
+  file.write("  function addFnc(next, f){function t(){next = next&&next();if(f()){return t;}else{f = null;return next;}}t.addItem = function(d){if(next){next.addItem(d);}else{next = d;}return this;};t.finalize = function(){return ((next)&&(next = next.finalize())||(f = null));};return t;}\n")
+  file.write("  function tmQue(fc){if(newFncs){newFncs = newFncs.addItem(addFnc(null, fc));}else{newFncs = addFnc(null, fc);}if(!timer){timer = setTimeout(tmQue.act, interval);}}\n")
+  file.write("  tmQue.act = function(){var fn = newFncs, strt = new Date().getTime();if(fn){newFncs = null;if(base){base.addItem(fn);}else{base = fn;}}base = base&&base();if(base||newFncs){var t = interval - (new Date().getTime() - strt);timer = setTimeout(tmQue.act, ((t > 0)?t:1));}else{timer = null;}};\n")
+  file.write("  tmQue.act.toString = function(){return 'TimedQue.act()';};\n")
+  file.write("  tmQue.finalize = function(){timer = timer&&clearTimeout(timer);base = base&&base.finalize();newFncs = null;};\n")
+  file.write("  return tmQue;\n")
+  file.write("})();\n")
+
+ file.write("var getElementWithId = (function(){if(document.getElementById){return (function(id){return document.getElementById(id);});}else if(document.all){return (function(id){return document.all[id];});}return (function(id){return null;});})();\n")
+
+  file.write("function getSimpleExtPxIn(el){\n")
+  file.write("  var temp, temp2, tick = 0, getBorders = retFalse, doCompStyle = retFalse,defaultView,objList = [];\n")
+  file.write("  function retFalse(){return false;}\n")
+  file.write("  retFalse.elTest = retFalse;\n")
+  file.write("  retFalse.iY = retFalse.iX = retFalse.y = retFalse.x = retFalse.w = retFalse.h = retFalse.bb = retFalse.bt = retFalse.bl = retFalset[objList.length] = p;}\n")
+  file.write("  if((typeof el.offsetParent != 'undefined')&&(typeof el.offsetTop == 'number')&&(typeof el.offsetWidth == 'number')){if((typeof el.clirderLeft','borderRight','borderTop'],value:'0px none #FFFFFF'},\n")
+  file.write("  {  keys:['borderWidth','borderLeftWidth','borderRightWidth','borderBottomWidth','borderTopWidth'],value:'0pRelinerDivStyle = midRelinerDiv =\n")
+  file.write("     midAbsinerDivStyle =  tableDim = vHeaderAbsStyle = vHeaderRelStyle ])&&\n")
+  file.write("     global.setTimeout&&\n")
+  file.write("     global.document&&\n")
+  file.write("     document.createElement\n")
+  file.write("     ){\n")
+  file.write("     finalizeMe((finalise = getNewFILCFncStac(function(){\n")
+  file.write("     finalise = tableList = null;\n")
+  file.write("})));\n")
+  file.write("return main;\n")
+  file.write("}else{\n")
+  file.write("return retFalse;\n")
+  file.write("}\n")
+  file.write("})();\n")
+  file.write("</script>\n")
+  # rest of start make up
+  file.write("</style>\n")
+  file.write("</head>\n")\n")
+  file.write("<body>\n")\n")
+  file.write("if withHeader:\n")
+  file.write("<center>\n")
+  file.write("<h1>"+title+"</h1>\n")
+  file.write("</center>\n")
     
 
 def closeHTMLPage(file):
@@ -127,6 +219,9 @@ def closeHTMLPage(file):
   # args:
   #  - file               file to write the html stuff to
 
+  file.write("<script type="text/javascript">\n")
+  file.write("  if(typeof tableScroll == 'function'){tableScroll('mainTable');}\n")
+  file.write("</script>\n")
   file.write("</body>\n")
   file.write("</html>\n")
   file.close()
@@ -626,8 +721,8 @@ def main(argv):
   #
   # Start the table
   #
-  htmlFile.write("<table border cellspacing=2 cellpadding=5>\n")
-
+  htmlFile.write("<table id="mainTable" border cellspacing="2" cellpadding="5">\n")
+  htmlFile.write("<thead>\n")
   #
   # add all different variants to the collumns
   #
@@ -635,6 +730,8 @@ def main(argv):
   for entry in variantPackageArray:
     htmlFile.write("<th align=left>"+entry[0]+"</th>\n")
   htmlFile.write("</tr>\n")
+  htmlFile.write("</thead>\n")
+  htmlFile.write("<tbody>\n")
 
 
 
@@ -673,6 +770,7 @@ def main(argv):
       else:
         htmlFile.write('<td bgcolor="GRAY"> &nbsp</td>\n')    
     htmlFile.write("</tr>")
+  htmlFile.write("</tbody>\n")
   htmlFile.write("</table>\n")
 
   #
