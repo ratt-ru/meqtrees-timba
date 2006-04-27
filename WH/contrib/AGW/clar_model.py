@@ -4,9 +4,8 @@ from Timba.Contrib.OMS.GaussianSource import *
 
 # some CLAR constants
 
-# This is actually the inverse of the CLAR half-power beam width, in radians.
-# base IHPW is 647.868 rad^-1 at 800 MHz
-ihpbeam_width = 647.868
+# base HPBW is 5.3 arcmin at 800 MHz
+hpbeam_width = 5.3
 
 # reference frequency for IHPBW above, also for spectral index in sources below
 ref_frequency = float(800*1e+6)
@@ -53,11 +52,49 @@ def point_and_extended_sources (ns,tablename=''):
   source_model = radio_galaxy(ns,tablename)
 
 # add other point sources 
-  source_model = source_model + additional_point_sources(ns,tablename)
+  source_model = source_model + additional_point_sources(ns,tablename) +faint_source(ns,tablename)
 
   return source_model
 
+def solve_point_and_extended_sources (ns,tablename=''):
+  """ define model source positions and flux densities """
+  parm_options = record(
+      use_previous=reuse_solutions,
+      table_name=tablename,
+      node_groups='Parm');
+  
+# first get radio galaxy components
+  source_model = radio_galaxy(ns,tablename)
+
+# add other point sources 
+  source_model = source_model + additional_point_sources(ns,tablename) 
+  return source_model
+
 def point_sources_only (ns,tablename=''):
+  """ define model source positions and flux densities """
+  parm_options = record(
+      use_previous=reuse_solutions,
+      table_name=tablename,
+      node_groups='Parm');
+  
+  source_model = radio_galaxy_point_sources(ns,tablename) 
+# add other point sources 
+  source_model = source_model + additional_point_sources(ns,tablename) + faint_source(ns,tablename)
+  return source_model
+
+def solve_point_sources_only (ns,tablename=''):
+  """ define model source positions and flux densities """
+  parm_options = record(
+      use_previous=reuse_solutions,
+      table_name=tablename,
+      node_groups='Parm');
+  
+  source_model = radio_galaxy_point_sources(ns,tablename) 
+# add other point sources 
+  source_model = source_model + additional_point_sources(ns,tablename) 
+  return source_model
+
+def radio_galaxy_point_sources (ns,tablename=''):
   """ define model source positions and flux densities """
   parm_options = record(
       use_previous=reuse_solutions,
@@ -90,10 +127,6 @@ def point_sources_only (ns,tablename=''):
                   Iorder=0, ra=0.030732848, dec=0.57585781,
                   spi=1.5,freq0=ref_frequency,
                   parm_options=parm_options));
-
-# add other point sources 
-  source_model = source_model + additional_point_sources(ns,tablename)
-
   return source_model
 
 def radio_galaxy (ns,tablename=''):
@@ -178,6 +211,21 @@ def additional_point_sources (ns,tablename=''):
 
   return source_model
 
+def faint_source (ns,tablename=''):
+  """ define model source positions and flux densities """
+  parm_options = record(
+      use_previous=reuse_solutions,
+      table_name=tablename,
+      node_groups='Parm');
+  
+  source_model = []
+# note - with 16 channels and sample step of 60 sec a source of 0.01
+# turns out to be ~ 5 sigma with 600 MHz BW if we use test noise units of 1
+  source_model.append( PointSource(ns,name="S11",I=0.01, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.03037222, dec=0.57590435,
+                  spi=0.0,freq0=ref_frequency,
+                  parm_options=parm_options));
+  return source_model
 
 def EJones (ns,array,sources,name="E"):
   """creates E nodes for simulating the CLAR beam, with elevation-dependent
@@ -185,12 +233,14 @@ def EJones (ns,array,sources,name="E"):
   """;
   ns.freq << Meq.Freq;
   # this is the inverse half-power beam width at reference frequency
-  width_polc = create_polc(c00=ihpbeam_width);
-  ns.ihpbw0 << Meq.Parm(width_polc,real_polc=width_polc,
+  width_polc = create_polc(c00=hpbeam_width);
+  ns.hpbw0 << Meq.Parm(width_polc,real_polc=width_polc,
                         use_previous=reuse_solutions,node_groups='Parm');
   # this is the IHPBW at the given frequency
-  ns.ihpbw << ns.ihpbw0 * ns.freq / ref_frequency;
-  # ...squared
+  ns.hpbw << ns.hpbw0 * ref_frequency / ns.freq 
+  # take inverse and square
+  arcmin_radian = ns.arcmin_radian << 3437.75
+  ns.ihpbw = arcmin_radian / ns.hpbw
   ns.ihpbw_sq << Meq.Sqr(ns.ihpbw)
 
   Ejones = ns[name];
@@ -213,12 +263,14 @@ def EJones_unbroadened (ns,observation,sources,name="E0"):
   """;
   ns.freq << Meq.Freq;
   # this is the inverse half-power beam width at reference frequency
-  width_polc = create_polc(c00=ihpbeam_width);
-  ns.ihpbw0 << Meq.Parm(width_polc,real_polc=width_polc,
+  width_polc = create_polc(c00=hpbeam_width);
+  ns.hpbw0 << Meq.Parm(width_polc,real_polc=width_polc,
                         use_previous=reuse_solutions,node_groups='Parm');
   # this is the IHPBW at the given frequency
-  ns.ihpbw << ns.ihpbw0 * ns.freq / ref_frequency;
-  # ...squared
+  ns.hpbw << ns.hpbw0 * ref_frequency / ns.freq 
+  # take inverse and square
+  arcmin_radian = ns.arcmin_radian << 3437.75
+  ns.ihpbw = arcmin_radian / ns.hpbw
   ns.ihpbw_sq << Meq.Sqr(ns.ihpbw)
   ln16 = ns.ln16 << -2.7725887;
  

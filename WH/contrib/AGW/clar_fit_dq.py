@@ -11,7 +11,8 @@ import clar_model
 TDLCompileOption('source_model',"Source model",[
     clar_model.point_and_extended_sources,
     clar_model.point_sources_only,
-    clar_model.radio_galaxy
+    clar_model.radio_galaxy,
+    clar_model.faint_source
   ],default=0);
 
 # MS name
@@ -24,9 +25,8 @@ resample = None;
 num_stations = 27
 
 # CLAR beam width
-# This is actually the inverse of the half-power beam width, in radians.
-# base IHPW is 647.868 rad^-1 at 800 MHz
-beam_width = 647.868
+# base HPBW is 5.3 arcmin at 800 MHz
+beam_width = 5.3
 ref_frequency = float(800*1e+6)
 
 # MEP table for derived quantities fitted in this script
@@ -85,11 +85,13 @@ def _define_forest(ns):
                      
   # create nodes for simulating the CLAR beam
   ns.freq << Meq.Freq;
-  # this is the inverse half-power beam width at reference frequency
-  ns.ihpbw0 << Meq.Constant(beam_width);
-  # this is the IHPBW at the given frequency
-  ns.ihpbw << ns.ihpbw0 * ns.freq / ref_frequency;
-  # ...squared
+  # this is the half-power beam width at reference frequency
+  ns.hpbw0 << Meq.Constant(beam_width);
+  # this is the HPBW at the given frequency
+  ns.hpbw << ns.hpbw0 * ref_frequency / ns.freq 
+  # take inverse and square
+  arcmin_radian = ns.arcmin_radian << 3437.75
+  ns.ihpbw = arcmin_radian / ns.hpbw 
   ns.ihpbw_sq << Meq.Sqr(ns.ihpbw)
 
   # create nodes used to calculate AzEl of field centre as seen

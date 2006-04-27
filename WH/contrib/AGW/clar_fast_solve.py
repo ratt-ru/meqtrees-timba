@@ -38,8 +38,8 @@ TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
 # which source model to use
 # source_model = clar_model.point_and_extended_sources;
 TDLCompileOption('source_model',"Source model",[
-    clar_model.point_and_extended_sources,
-    clar_model.point_sources_only,
+    clar_model.solve_point_and_extended_sources,
+    clar_model.solve_point_sources_only,
     clar_model.radio_galaxy
   ],default=0);
 
@@ -86,7 +86,7 @@ Settings.forest_state = record(bookmarks=[
       ["I:S1","I:S2","I:S3"],
       ["I:S4","I:S5","I:S6"],
       ["I:S7","I:S8","I:S9"],
-      ["I:S10","ihpbw","solver"]
+      ["I:S10","hpbw","solver"]
   )) 
 ]);
 
@@ -261,7 +261,7 @@ def _run_solve_job (mqs,solvables):
 def _tdl_job_1_solve_for_fluxes_and_beam_width (mqs,parent,**kw):
   solvables = _perturb_solvables(mqs,['I0:'+src.name for src in source_list]);
   solvables += _reset_solvables(mqs,[ 'spi:'+src.name for src in source_list],0);
-  solvables += _reset_solvables(mqs,["ihpbw0"],400);
+  solvables += _reset_solvables(mqs,["hpbw0"],7);
   _run_solve_job(mqs,solvables);
   
 
@@ -272,14 +272,14 @@ def _tdl_job_2_solve_for_fluxes_with_fixed_beam_width (mqs,parent,**kw):
   
   
 def _tdl_job_3_solve_for_beam_width_with_fixed_fluxes (mqs,parent,**kw):
-  solvables = _reset_solvables(mqs,["ihpbw0"],400);
+  solvables = _reset_solvables(mqs,["hpbw0"],7);
   _run_solve_job(mqs,solvables);
   
 
 def _tdl_job_4_reset_parameters_to_true_values (mqs,parent,**kw):
   _reset_solvables(mqs,['I0:'+src.name for src in source_list]);
   _reset_solvables(mqs,[ 'spi:'+src.name for src in source_list]);
-  _reset_solvables(mqs,["ihpbw0"]);
+  _reset_solvables(mqs,["hpbw0"]);
 
 def _tdl_job_5_solve_for_gaussian_parameters (mqs,parent,**kw):
   solvables = _reset_solvables(mqs,["I0:S1"],1.36)

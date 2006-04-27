@@ -37,7 +37,8 @@ TDLCompileOption('noise_stddev',"Noise level",[None,0.05,0.1,1.0]);
 TDLCompileOption('source_model',"Source model",[
     clar_model.point_and_extended_sources,
     clar_model.point_sources_only,
-    clar_model.radio_galaxy
+    clar_model.radio_galaxy,
+    clar_model.faint_source
   ],default=0);
   
 # selection  applied to MS, None for full MS
