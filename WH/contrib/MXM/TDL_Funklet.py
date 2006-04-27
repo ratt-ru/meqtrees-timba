@@ -200,8 +200,14 @@ class Funklet:
             nr+=1;
             
         C=self._coeff;
-               
-        value = eval(self._function);
+
+
+        eval_str = self._function;
+
+        #replace  ^ with **
+        eval_str=  eval_str.replace("^","**");
+
+        value = eval(eval_str);
         return value;
 
     

@@ -310,7 +310,7 @@ public:
 
 
   //reimplement in FuncTest (CompiledFunklet) since browser doesnt know about aips++ contaminated classes
-  virtual Funklet::Ref getState() const{
+  virtual Funklet::Ref getState(){
  
     Funklet::Ref funkref;
     funkref<<=this;

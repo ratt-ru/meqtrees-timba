@@ -15,35 +15,33 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
 
   CompiledFunklet::CompiledFunklet(double pert,double weight,DbId id):
     Funklet(pert,weight,id)
-{
-  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+  {
+    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     itsFunction = new casa::CompiledFunction<casa::Double>();
     itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
-     if(hasField(FFunction)){
-	string fstr;
-	(*this)[FFunction].get(fstr,0);
-	
-	setFunction(fstr);
-      }
-    itsState<<=new Funklet(*this);
-}
-
+    if(hasField(FFunction)){
+      string fstr;
+      (*this)[FFunction].get(fstr,0);
+      
+      setFunction(fstr);
+    }
+  }
+  
 
   CompiledFunklet::CompiledFunklet (const DMI::Record &other,int flags,int depth):
     Funklet(other,flags,depth)
-{
-  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-  itsFunction = new casa::CompiledFunction<casa::Double>();
-  itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
+  {
+    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+    itsFunction = new casa::CompiledFunction<casa::Double>();
+    itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
 
-  if(hasField(FFunction)){
-    string fstr;
-    (*this)[FFunction].get(fstr,0);
+    if(hasField(FFunction)){
+      string fstr;
+      (*this)[FFunction].get(fstr,0);
     
-    setFunction(fstr);
+      setFunction(fstr);
+    }
   }
-  itsState<<=new Funklet(*this);
- }
 
   CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int depth):
     Funklet(other,flags,depth),Npar(other.Npar),Ndim(other.Ndim)
@@ -53,7 +51,6 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
     itsFunction=new casa::CompiledFunction<casa::Double>((*other.itsFunction));
     itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >(*(other.itsDerFunction));
       
-    itsState<<=new Funklet(*this);
   }
 
 
@@ -232,7 +229,6 @@ void CompiledFunklet::do_update (const double values[],const std::vector<int> &s
       }
   }
   setParam();
-  itsState().setCoeff(this->coeff());
 }
 
 

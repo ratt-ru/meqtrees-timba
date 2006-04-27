@@ -20,18 +20,47 @@
 //#
 
 #include <MeqNodes/ParmDBInterface.h>
+#include <MEQ/Axis.h>
 
 #ifdef HAVE_PARMDB
 using namespace LOFAR::ParmDB;
 
 ParmDomain toParmDomain(const Meq::Domain &domain){
   Thread::Mutex::Lock lock(parmdbMutex());
-  return ParmDomain(domain.start(0),domain.end(0),domain.start(1),domain.end(1));
+
+  vector<double> start,end;
+  for(int axisi = 0; axisi< Meq::Axis::MaxAxis;axisi++)
+    {
+      if(domain.isDefined(axisi))
+	{
+	  start.push_back(domain.start(axisi));
+	  end.push_back(domain.end(axisi));
+
+	 
+	}
+      else
+	break;
+    }
+  return ParmDomain(start,end);
+
+
+
+
+
 }
 
 Meq::Domain fromParmDomain(const ParmDomain &domain){
   Thread::Mutex::Lock lock(parmdbMutex());
-  return Meq::Domain(domain.getStart()[0],domain.getEnd()[0],domain.getStart()[1],domain.getEnd()[1]);
+  vector<double> start,end;
+  start= domain.getStart();
+  end = domain.getEnd();
+  Meq::Domain Mdomain(start[0],end[0],start[1],end[1]);
+  for (int i =2 ; i < start.size();i++)
+    {
+      Mdomain.defineAxis (i,start[i],end[i]);
+	
+    }
+  return Mdomain;
 }
 
 Meq::Funklet::Ref  ParmValue2Funklet(const ParmValue &pv){
@@ -52,17 +81,31 @@ Meq::Funklet::Ref  ParmValue2Funklet(const ParmValue &pv){
     data[j]=cf[i];
   }
   const LoMat_double theCoeff(data,LoShape(nx,ny)); 
-  double offset[]={pv.rep().itsOffset[0],pv.rep().itsOffset[1]};
-  double scale[]={pv.rep().itsScale[0],pv.rep().itsScale[1]};
 
-  // what about more dmensions??
+  vector<double> offsets,scales,constants;
+  offsets = pv.rep().itsOffset;
+  scales = pv.rep().itsScale;
+  constants = pv.rep().itsConstants;
+  const int ndim = offsets.size();
+  double offset[ndim];
+  double scale[ndim];
+
+
+
+  for(int i=0;i<ndim;i++)
+    {
+      offset[i]=offsets[i];
+      scale[i]=scales[i];
+    }
+
+  // what about more dmensions?? working on it...
 
 
 
   if (type== "PolcLog" || type =="polclog"||type=="MeqPolcLog")
     funkletref<<=new Meq::PolcLog(theCoeff,axis,offset,scale,
 				  pv.rep().itsPerturbation,pv.rep().itsWeight,
-				  pv.rep().itsDBRowRef,pv.rep().itsConstants);
+				  pv.rep().itsDBRowRef,constants);
   else if(type=="Polc"||type =="polc"||type=="MeqPolc")
     funkletref<<=new Meq::Polc(theCoeff,axis,offset,scale,
 			       pv.rep().itsPerturbation,pv.rep().itsWeight,pv.rep().itsDBRowRef);
@@ -72,7 +115,7 @@ Meq::Funklet::Ref  ParmValue2Funklet(const ParmValue &pv){
 					  pv.rep().itsDBRowRef,type);
   
 
- 
+  
   Meq::Domain domain = fromParmDomain(pv.rep().itsDomain);
   funkletref().setDomain(domain);
   return funkletref;
@@ -106,13 +149,17 @@ ParmValue Funklet2ParmValue(Meq::Funklet::Ref  funklet){
   // Set domain and default offset/scale.
   pval.setDomain (toParmDomain(funklet->domain()));
 
-  vector<double> offset(2);
-  vector<double> scale(2);
+  const int ndim =  pval.itsDomain.getStart().size();
 
-  offset[0]=funklet->getOffset(0);
-  offset[1]=funklet->getOffset(1);
-  scale[0]=funklet->getScale(0);
-  scale[1]=funklet->getScale(1);
+  vector<double> offset(ndim);
+  vector<double> scale(ndim);
+
+  for(int i=0;i<ndim;i++)
+    {
+      offset[i]=funklet->getOffset(i);
+      scale[i]=funklet->getScale(i);
+    }
+  
   pval.itsOffset = offset;
   pval.itsScale = scale;
 
@@ -199,6 +246,8 @@ namespace Meq {
 
     //reimplement different function for (non)solvable
     vector<Funklet::Ref> funklets;
+
+
     const ParmValueSet pvs = parmtable_->getValues(name_,toParmDomain(domain));
     std::vector<ParmValue> pvV=pvs.getValues();
     funklets.resize(pvV.size());

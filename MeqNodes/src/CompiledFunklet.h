@@ -174,7 +174,8 @@ class CompiledFunklet: public Funklet{
     return string(itsFunction->getText());
   }
 
-  virtual Funklet::Ref getState() const{
+  virtual Funklet::Ref getState() {
+    itsState<<=new Funklet(*this);
     return itsState;
   }
 

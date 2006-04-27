@@ -76,6 +76,13 @@ class Functional:
         for xkey in self._test:
             self._eval_string = self._eval_string.replace(xkey,str(self._test[xkey]));
             
+
+
+
+
+        #replace  ^ with **
+        self._eval_string=  self._eval_string.replace("^","**");
+        
         #print "evaluating",self._eval_string;
         return eval(self._eval_string);
 
