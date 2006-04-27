@@ -61,7 +61,7 @@ LoShape VisPhaseShift::getResultDims (const vector<const LoShape *> &input_dims)
 }
 
 
-void VisPhaseShift::evaluate (std::vector<Vells> & out,   
+void VisPhaseShift::evaluateTensors (std::vector<Vells> & out,   
      const std::vector<std::vector<const Vells *> > &args )
 {
   // lmn

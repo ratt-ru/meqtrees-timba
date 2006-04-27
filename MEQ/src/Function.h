@@ -44,6 +44,15 @@ public:
     //##ModelId=3F86886E03D1
   virtual ~Function();
 
+  // Returns the class TypeId
+    //##ModelId=400E53070274
+  virtual TypeId objectType() const;
+  
+  // helper func: find all spids for this node by merging the spids in all results.
+    //##ModelId=3F86886F0108
+  static vector<int> findSpids (int & npertsets,const vector<const VellSet*> &);
+
+protected:
   // Evaluate the value for the given request. The output shape is
   // passed in as the shape argument (usually taken from first child, rest
   // must conform).
@@ -62,15 +71,6 @@ public:
     //##ModelId=3F86886F00B0
   virtual void evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const VellSet *> &pvs);
 
-  // Returns the class TypeId
-    //##ModelId=400E53070274
-  virtual TypeId objectType() const;
-  
-  // helper func: find all spids for this node by merging the spids in all results.
-    //##ModelId=3F86886F0108
-  static vector<int> findSpids (int & npertsets,const vector<const VellSet*> &);
-
-protected:
 
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 

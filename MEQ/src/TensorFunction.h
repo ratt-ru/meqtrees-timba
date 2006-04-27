@@ -57,7 +57,7 @@ protected:
     
   // Virtual method to be redefined by subclasses.
   // Evaluates one result tensor based on N child tensors
-  virtual void evaluate (
+  virtual void evaluateTensors (
        // output should be assigned here. The vector is pre-sized 
        // according to what is returned by getResultDims()
        std::vector<Vells> & out,   
@@ -79,7 +79,7 @@ protected:
   //  * bitwise-ANDs these with each child's flagmask
   //  * merges this across all children
   //  * assigns this value to all output flags
-  virtual void evaluateFlags (
+  virtual void evaluateTensorFlags (
         std::vector<Vells::Ref> & out_flags,
         const std::vector<std::vector<const VellSet *> > &pvs );
         
@@ -87,12 +87,12 @@ protected:
   // This method does most of the spid looping work
   //  * calls getResultDims() to establish result dimensions
   //  * creates Result object
-  //  * calls evaluate() to compute main values and puts them into
+  //  * calls evaluateTensors() to compute main values and puts them into
   //    the result
-  //  * calls evaluateFlags() to compute flags, puts them into result
+  //  * calls evaluateTensorFlags() to compute flags, puts them into result
   //  * collects spids from child results, then loops over all spids,
-  //    calls evaluate() to compute the perturbed value, and puts them into
-  //    result.
+  //    calls evaluateTensors() to compute the perturbed value, and puts them 
+  //    into result.
   // Note that this function makes no assumptions about children 
   // or node state or whatever; so it may in fact be used with a 
   // compleely different childres vector than that passed to getResult()
@@ -142,6 +142,11 @@ protected:
   }
   
 private:
+  // hide these methods since they don't apply to tensor functions
+  Function::evaluate;
+  Function::evaluateFlags;
+  
+    
   // data members for informational stuff above
   const Cells * presult_cells_;
   std::vector<const LoShape *> dims_vector_;

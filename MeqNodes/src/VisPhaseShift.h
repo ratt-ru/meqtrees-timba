@@ -56,7 +56,7 @@ protected:
     
   // method required by TensorFunction
   // Evaluates for a given set of children values
-  virtual void evaluate (std::vector<Vells> & out,   
+  virtual void evaluateTensors (std::vector<Vells> & out,   
        const std::vector<std::vector<const Vells *> > &args);
        
 };

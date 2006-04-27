@@ -42,7 +42,7 @@ LoShape TensorFunction::getResultDims (const vector<const LoShape *> &)
 }
 
    
-void TensorFunction::evaluateFlags (
+void TensorFunction::evaluateTensorFlags (
         std::vector<Vells::Ref> & out_flags,
         const std::vector<std::vector<const VellSet *> > &pvs )
 {
@@ -126,8 +126,8 @@ void TensorFunction::computeTensorResult (Result::Ref &resref,
     flag_vector_[i].detach();
   
   // now compute main value and flags
-  evaluate(resval_vector_,mainval_vector_);
-  evaluateFlags(flag_vector_,pvs_vector_);
+  evaluateTensors(resval_vector_,mainval_vector_);
+  evaluateTensorFlags(flag_vector_,pvs_vector_);
   
   // now we need to collect all vellsets into a flat array, to use
   // the findSpids() function
@@ -221,7 +221,7 @@ void TensorFunction::computeTensorResult (Result::Ref &resref,
       FailWhen(found_at_child[ipert]<0,
                ssprintf("spid %d, perturbation set %d: no value found",
                         ipert,spids[ispid]));
-      evaluate(resval_vector_,pert_vectors_[ipert]);
+      evaluateTensors(resval_vector_,pert_vectors_[ipert]);
       for( int ivs=0; ivs<nvs_result; ivs++ )
       {
         VellSet &vs = result.vellSetWr(ivs);

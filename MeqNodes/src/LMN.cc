@@ -63,7 +63,7 @@ LoShape LMN::getResultDims (const vector<const LoShape *> &input_dims)
   return LoShape(3);
 }
     
-void LMN::evaluate (std::vector<Vells> & out,   
+void LMN::evaluateTensors (std::vector<Vells> & out,   
      const std::vector<std::vector<const Vells *> > &args )
 {
   // thanks to checks in getResultDims(), we can expect all 
