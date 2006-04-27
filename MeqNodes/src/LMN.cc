@@ -40,7 +40,7 @@ using Debug::ssprintf;
 
 //##ModelId=400E535502D1
 LMN::LMN()
-: CompoundFunction(num_children,child_labels)
+: TensorFunction(num_children,child_labels)
 {
   setAutoResample(RESAMPLE_FAIL); // children must return the same cells
 }
@@ -49,46 +49,40 @@ LMN::LMN()
 LMN::~LMN()
 {}
 
-void LMN::evalResult (std::vector<Vells> &res,const std::vector<const Vells*> &values,const Cells *)
+
+LoShape LMN::getResultDims (const vector<const LoShape *> &input_dims)
 {
-  // phase center pos
-  #define vra0   (*(values[0]))
-  #define vdec0  (*(values[1]))
-  // source pos
-  #define vra    (*(values[2]))
-  #define vdec   (*(values[3]))
+  Assert(input_dims.size()==2);
+  // inputs are 2-vectors
+  for( int i=0; i<2; i++ )
+  {
+    const LoShape &dim = *input_dims[i];
+    FailWhen(dim.size()!=1 || dim[0]!=2,"child '"+child_labels[i].toString()+"': 2-vector expected");
+  }
+  // result is a 3-vector
+  return LoShape(3);
+}
+    
+void LMN::evaluate (std::vector<Vells> & out,   
+     const std::vector<std::vector<const Vells *> > &args )
+{
+  // thanks to checks in getResultDims(), we can expect all 
+  // vectors to have the right sizes
+  
+  // phase center position
+  const Vells & vra0  = *(args[0][0]);
+  const Vells & vdec0 = *(args[0][1]);
+  // source position
+  const Vells & vra   = *(args[1][0]);
+  const Vells & vdec  = *(args[1][1]);
   // outputs
-  #define L res[0]
-  #define M res[1]
-  #define N res[2]
+  Vells & L = out[0];
+  Vells & M = out[1];
+  Vells & N = out[2];
   
   L = cos(vdec) * sin(vra-vra0);
-  L.makeNonTemp(); // just in case
   M = sin(vdec) * cos(vdec0) - cos(vdec) * sin(vdec0) * cos(vra-vra0);
-  M.makeNonTemp();
   N = sqrt(1 - sqr(L) - sqr(M));
-  N.makeNonTemp();
-}
-
-//##ModelId=400E535502D6
-int LMN::getResult (Result::Ref &resref, 
-                    const std::vector<Result::Ref> &childres,
-                    const Request &request,bool newreq)
-{
-  const int expect_nvs[]        = {2,2};
-  const int expect_integrated[] = {0,0};
-  Assert(int(childres.size()) == num_children);
-  vector<const VellSet *> child_vs(4);
-  // Check that child results are all OK (no fails, expected # of vellsets per child)
-  if( checkChildResults(resref,child_vs,childres,expect_nvs,
-        expect_integrated) == RES_FAIL )
-    return RES_FAIL;
-  
-  // allocate proper output result (integrated=false)
-  Result &result = resref <<= new Result(3,false);
-  // fill it
-  computeValues(result,child_vs,0);
-  return 0;
 }
 
 } // namespace Meq

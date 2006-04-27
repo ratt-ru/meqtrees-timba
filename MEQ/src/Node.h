@@ -392,6 +392,9 @@ class Node : public NodeFace
     const HIID & currentRequestId () const
     { return current_reqid_; }
     
+    const Request & currentRequest () const
+    { return *current_request_; }
+    
     //====== NodeFace method
     //## Clears cache (optionally recursively)
     //## If quiet is false, updates control_status but does not advertise

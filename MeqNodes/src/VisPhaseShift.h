@@ -24,7 +24,7 @@
 #define MEQNODES_VISPHASESHIFT_H
 
 //# Includes
-#include <MEQ/CompoundFunction.h>
+#include <MEQ/TensorFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -36,7 +36,7 @@ namespace Meq {
 
 //! This node implements exp(-2*pi*i*(ul +vm +wn)*freq/c)
     
-class VisPhaseShift: public CompoundFunction
+class VisPhaseShift: public TensorFunction
 {
 public:
   //! The default constructor.
@@ -47,19 +47,18 @@ public:
   virtual TypeId objectType() const
     { return TpMeqVisPhaseShift; }
 
-  //! Get the result for the given request.
-  virtual int getResult (Result::Ref &resref, 
-                         const std::vector<Result::Ref> &childres,
-                         const Request &req,bool newreq);
 
 protected:
-  virtual void evalResult (std::vector<Vells> &res,
-          const std::vector<const Vells*> &values,
-          const Cells *);
-
-  int           itsNtime;
-  int           itsNfreq;
-  Vells::Shape  itsResult_shape;
+  // method required by TensorFunction
+  // Returns shape of result.
+  // Also check child results for consistency
+  virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
+    
+  // method required by TensorFunction
+  // Evaluates for a given set of children values
+  virtual void evaluate (std::vector<Vells> & out,   
+       const std::vector<std::vector<const Vells *> > &args);
+       
 };
 
 } // namespace Meq

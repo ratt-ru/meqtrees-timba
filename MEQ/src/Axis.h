@@ -158,6 +158,7 @@ namespace Axis
     shape.resize(rank);
     shape.assign(rank,1);
   }
+  
   inline Shape degenerateShape (int rank)
   {
     Shape out;
@@ -172,6 +173,14 @@ namespace Axis
     degenerateShape(out,iaxis+1);
     out[iaxis] = np;
     return out;
+  }
+  
+  inline Shape & addAxisToShape (LoShape &shape,int iaxis,int np)
+  {
+    if( shape.size() <= uint(iaxis) )
+      shape.resize(iaxis+1,1);
+    shape[iaxis] = np;
+    return shape;
   }
   
   // creates a "matrix" shape of nx x ny points along axes ix,iy

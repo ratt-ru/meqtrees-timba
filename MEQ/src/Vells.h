@@ -221,13 +221,13 @@ public:
   // Default constructor creates a null Vells (double 0.0)
   Vells();
     
-  // Creates a (temp by default) scalar Vells
-  inline Vells(double value,bool temp=true)
-  : NumArray(Tpdouble,LoShape(1),DMI::NOZERO,TpMeqVells),is_temp_(temp)
+  // Creates a scalar Vells
+  inline Vells(double value)
+  : NumArray(Tpdouble,LoShape(1),DMI::NOZERO,TpMeqVells)
   { init_scalar(value); }
   
-  inline Vells(const dcomplex &value,bool temp=true)
-  : NumArray(Tpdcomplex,LoShape(1),DMI::NOZERO,TpMeqVells),is_temp_(temp)
+  inline Vells(const dcomplex &value)
+  : NumArray(Tpdcomplex,LoShape(1),DMI::NOZERO,TpMeqVells)
   { init_scalar(value); }
   
   // Create a Vells of given shape.
@@ -236,13 +236,13 @@ public:
   // NB: the argument type really ought to be VellsTraits::DataType<T,0>::ParamType
   // and not just T, but stupid compiler won't recognize it for some reason...
   inline Vells(double value,const Shape &shape,bool init=true)
-  : NumArray(Tpdouble,shape,DMI::NOZERO,TpMeqVells),is_temp_(false)
+  : NumArray(Tpdouble,shape,DMI::NOZERO,TpMeqVells)
   { 
     if( init )
       init_array(value);
   }
   inline Vells(const dcomplex &value,const Shape &shape,bool init=true)
-  : NumArray(Tpdcomplex,shape,DMI::NOZERO,TpMeqVells),is_temp_(false)
+  : NumArray(Tpdcomplex,shape,DMI::NOZERO,TpMeqVells)
   { 
     if( init )
       init_array(value);
@@ -254,7 +254,7 @@ public:
   // unintentionally create a flag vells when a normal one was intended 
   // simply by using Vells(0,shape).
   inline Vells(const Shape &shape,VellsFlagType value,bool init=true)
-  : NumArray(VellsFlagTypeId,shape,DMI::NOZERO,TpMeqVells),is_temp_(false)
+  : NumArray(VellsFlagTypeId,shape,DMI::NOZERO,TpMeqVells)
   { 
     if( init )
       init_array(value);
@@ -320,23 +320,6 @@ public:
   void clearDataFlags ()
   { dataflags_.detach(); }
 
-  // Is the Vells a temporary object? The constructors above always
-  // produce a non-temp Vells. Vells math (below) uses the private
-  // constructors to produce temp Vells. Temp Vells allow for efficient 
-  // re-use of storage.
-    //##ModelId=400E53560092
-  bool isTemp () const
-  { return is_temp_; }
-  
-  // changes the temp property
-    //##ModelId=400E5356009D
-  Vells & makeTemp (bool temp=true) 
-  { is_temp_ = temp; return *this; }
-  
-    //##ModelId=400E535600A9
-  Vells & makeNonTemp () 
-  { is_temp_ = false; return *this; }
-  
   static int extent (const Vells::Shape &shp,uint idim)
   { return idim < shp.size() ? shp[idim] : 1; }
   
@@ -720,7 +703,6 @@ private:
   static Shape null_flag_shape_;
 
   //##ModelId=400E5356002F
-  bool    is_temp_;
 //  void *  storage_;
   
   // temp storage for scalar Vells -- big enough for biggest scalar type

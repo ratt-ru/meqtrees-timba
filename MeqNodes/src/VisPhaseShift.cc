@@ -35,7 +35,7 @@ const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 const HIID FDomain = AidDomain;
 
 VisPhaseShift::VisPhaseShift()
-: CompoundFunction(num_children,child_labels)
+: TensorFunction(num_children,child_labels)
 {
   // dependence on frequency 
   const HIID symdeps[] = { AidDomain,AidResolution };
@@ -45,98 +45,93 @@ VisPhaseShift::VisPhaseShift()
 VisPhaseShift::~VisPhaseShift()
 {}
 
-void VisPhaseShift::evalResult (std::vector<Vells> &res,
-                            const std::vector<const Vells*> &values,
-                            const Cells *pcells)
+LoShape VisPhaseShift::getResultDims (const vector<const LoShape *> &input_dims)
 {
-  // Get L,M,N and U,V,W.
-  #define vl (*(values[0]))
-  #define vm (*(values[1]))
-  #define vn (*(values[2]))
-  #define vu (*(values[3]))
-  #define vv (*(values[4]))
-  #define vw (*(values[5]))
-  Assert(pcells);
+  Assert(input_dims.size()==2);
+  // inputs are 2-vectors
+  for( int i=0; i<2; i++ )
+  {
+    const LoShape &dim = *input_dims[i];
+    FailWhen(dim.size()!=1 || dim[0]!=3,"child '"+child_labels[i].toString()+"': 3-vector expected");
+  }
+  // check cells
+  FailWhen(!hasResultCells(),"no cells found in either child results or request");
+  // result is a scalar
+  return LoShape();
+}
+
+
+void VisPhaseShift::evaluate (std::vector<Vells> & out,   
+     const std::vector<std::vector<const Vells *> > &args )
+{
+  // lmn
+  const Vells & vl = *(args[0][0]);
+  const Vells & vm = *(args[0][1]);
+  const Vells & vn = *(args[0][2]);
+  // uvw 
+  const Vells & vu = *(args[1][0]);
+  const Vells & vv = *(args[1][1]);
+  const Vells & vw = *(args[1][2]);
+  // cells
+  const Cells & cells = resultCells();
   
-  // Some important assumptions
-  // For the time being we only support scalars for LMN, 
-  Assert(vl.isScalar() && vm.isScalar() && vn.isScalar() );
-  // and only time-variable UVW
-  Assert(vu.extent(Axis::TIME) == vu.nelements());
-  Assert(vv.extent(Axis::TIME) == vv.nelements());
-  Assert(vw.extent(Axis::TIME) == vw.nelements());
-  Assert(pcells->numSegments(Axis::FREQ) == 1);
-  // Loop over all frequency segments, and generate an F0/DF pair for each
-  //  for( int iseg = 0; iseg < pcells->numSegments(Axis::FREQ); iseg++ )
-  //  {
-  int seg0 = pcells->segmentStart(Axis::FREQ)(0);
-  // Calculate 2pi/wavelength, where wavelength=c/freq.
-  // Calculate it for the frequency step if needed.
-  double f0 = pcells->center(Axis::FREQ)(seg0);
-  double df = pcells->cellSize(Axis::FREQ)(seg0);
-  double wavel0 = casa::C::_2pi * f0 / casa::C::c;
-  double dwavel = df / f0;
+  // compute phase term
+  Vells r1 = -(vu*vl + vv*vm + vw*vn);
+  const double _2pi_over_c = casa::C::_2pi / casa::C::c;
+
+  // Now, if r1 is only variable in time, and we only have one
+  // regularly-spaced frequency segment, we can use a quick algorithm
+  // to compute only the exponent at freq0 and df, and then multiply
+  // the rest.
+  // Otherwise we fall back to the (potentially slower) full VellsMath
   
-  Vells r1 = -(vu*vl + vv*vm +vw*vn ) * wavel0;
+  if( r1.extent(Axis::TIME) == r1.nelements()  &&
+      cells.numSegments(Axis::FREQ) == 1        )  // fast eval possible
+  {
+    // Calculate 2pi/wavelength, where wavelength=c/freq.
+    // Calculate it for the frequency step if needed.
+    double f0 = cells.center(Axis::FREQ)(0);
+    double df = cells.cellSize(Axis::FREQ)(0);
+    double wavel0 = f0 * _2pi_over_c;
+    double dwavel = df / f0;
 
-  Vells vf0 = polar(1,r1);
-  Vells vdf = polar(1,r1*dwavel);
+    r1 *= wavel0;
 
-  res[0]              = Vells(dcomplex(0), itsResult_shape, false);
-  dcomplex* resdata   = res[0].complexStorage();
-  const dcomplex* pf0 = vf0.complexStorage();
-  const dcomplex* pdf = vdf.complexStorage();
+    Vells vf0 = polar(1,r1);
+    Vells vdf = polar(1,r1*dwavel);
+    
+    int ntime = r1.extent(Axis::TIME);
+    int nfreq = cells.ncells(Axis::FREQ);
+    LoShape result_shape(ntime,nfreq);
 
-  int step = (vf0.extent(Axis::TIME) > 1 ? 1 : 0);
-  for(int i = 0; i < itsNtime; i++){
+    out[0]              = Vells(dcomplex(0),result_shape);
+    dcomplex* resdata   = out[0].complexStorage();
+    const dcomplex* pf0 = vf0.complexStorage();
+    const dcomplex* pdf = vdf.complexStorage();
+
+    int step = (ntime > 1 ? 1 : 0);
+    for(int i = 0; i < ntime; i++)
+    {
       dcomplex val0 = *pf0;
       *resdata++    = val0;
       dcomplex dval = *pdf;
-      for(int j=1; j < itsNfreq; j++){
-          val0      *= dval;
-          *resdata++ = val0;
+      for(int j=1; j < nfreq; j++)
+      {
+        val0      *= dval;
+        *resdata++ = val0;
       }// for j (freq)
       pf0 += step;
       pdf += step;
-  }// for i (time)
-
-//    res[iout++] = polar(1,r1);
-//    res[iout++] = polar(1,r1*dwavel);
-//  }
-}
-
-
-int VisPhaseShift::getResult (Result::Ref &resref, 
-				   const std::vector<Result::Ref> &childres,
-				   const Request &request, bool newreq)
-{
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  const int expect_nvs[]        = {3,3}; // number of Vells in children
-  const int expect_integrated[] = {-1,-1};
-  Assert(int(childres.size()) == num_children);
-
-  // Check that child results are all OK (no fails, expected # of vellsets per child)
-  vector<const VellSet *> child_vs(6);
-  if( checkChildResults(resref,child_vs,childres,expect_nvs,
-        expect_integrated) == RES_FAIL ){
-      return RES_FAIL;
+    }// for i (time)
+  }
+  else // slower but much simpler
+  {
+    // create freq vells from grid 
+    Vells freq = Vells(cells.center(Axis::FREQ));
+    out[0] = polar(1,r1*(_2pi_over_c*freq));
   }
 
-  // allocate proper output result (integrated=false??)
-  const Cells &cells = request.cells();
-  FailWhen(!cells.isDefined(Axis::FREQ),"Cells must define a frequency axis");
-  FailWhen(!cells.isDefined(Axis::TIME),"Cells must define a time axis");
-  
-  Result& result = resref <<= new Result(1);
-  itsNfreq        = cells.ncells(Axis::FREQ);
-  itsNtime        = cells.ncells(Axis::TIME);
-  itsResult_shape = Axis::freqTimeMatrix(itsNfreq, itsNtime);
-  
-  // fill it
-  computeValues(resref(),child_vs,&cells);
-  result.setCells(cells);
-  
-  return 0;
 }
+
 
 } // namespace Meq

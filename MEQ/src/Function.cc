@@ -218,12 +218,9 @@ int Function::getResult (Result::Ref &resref,
         Vells::Ref flagref;
         evaluateFlags(flagref,request,res_shape,child_vs);
         if( flagref.valid() )
-        {
-          flagref().makeNonTemp();
           vellset.setDataFlags(flagref);
-        }
         // Evaluate the main value.
-        vellset.setValue(evaluate(request,res_shape,values).makeNonTemp());
+        vellset.setValue(evaluate(request,res_shape,values));
         // Evaluate all perturbed values.
         vector<vector<const Vells*> > pert_values(npertsets);
         vector<double> pert(npertsets);
@@ -276,7 +273,7 @@ int Function::getResult (Result::Ref &resref,
                      ssprintf("no perturbation set %d found for spid %d",
                               ipert,spids[j]));
             vellset.setPerturbation(j,pert[ipert],ipert);
-            vellset.setPerturbedValue(j,evaluate(request,res_shape,pert_values[ipert]).makeNonTemp(),ipert);
+            vellset.setPerturbedValue(j,evaluate(request,res_shape,pert_values[ipert]),ipert);
           }
         } // end for(j) over spids
       }

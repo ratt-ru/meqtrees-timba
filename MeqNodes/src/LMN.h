@@ -23,7 +23,7 @@
 #ifndef MEQNODES_LMN_H
 #define MEQNODES_LMN_H
     
-#include <MEQ/CompoundFunction.h>
+#include <MEQ/TensorFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -31,7 +31,7 @@
 
 namespace Meq {    
 
-class LMN : public CompoundFunction
+class LMN : public TensorFunction
 {
 public:
   LMN();
@@ -41,15 +41,16 @@ public:
   virtual TypeId objectType() const
     { return TpMeqLMN; }
 
-  // Get the result for the given request.
-  virtual int getResult (Result::Ref &resref, 
-                         const std::vector<Result::Ref> &childres,
-                         const Request &req,bool newreq);
-
 protected:
-  virtual void evalResult (std::vector<Vells> &res,
-          const std::vector<const Vells*> &values,
-          const Cells *);
+  // method required by TensorFunction
+  // Returns shape of result.
+  // Also check child results for consistency
+  virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
+    
+  // method required by TensorFunction
+  // Evaluates LMN for a given set of children values
+  virtual void evaluate (std::vector<Vells> & out,   
+       const std::vector<std::vector<const Vells *> > &args );
 };
 
 } // namespace Meq

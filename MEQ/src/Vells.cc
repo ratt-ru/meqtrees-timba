@@ -75,8 +75,7 @@ void Vells::mergeFlags (Vells::Ref &flags0,const Vells &flags1,VellsFlagType fm)
 //##ModelId=3F86887001D4
 // default constructor initializes a by-ref copy of nullVells
 Vells::Vells()
-: NumArray(Null(),0,0,TpMeqVells),
-  is_temp_(false)
+: NumArray(Null(),0,0,TpMeqVells)
 {
 }
 
@@ -128,18 +127,13 @@ Vells::Vells()
 // }
 
 Vells::Vells (const NumArray &that,int flags,int depth)
-: NumArray(that,flags,depth,TpMeqVells),
-  // Assigning or copying a temp vells always yields a non-temp vells.
-  // This means that temp Vells can only occur as intermediate objects
-  // in Vells math expressions (unless created/set as temp explicitly).
-  is_temp_(false)
+: NumArray(that,flags,depth,TpMeqVells)
 {
   validateContent(false);
 }
 
 Vells::Vells (const Vells &that,int flags,int depth)
-: NumArray(that,flags,depth,TpMeqVells),
-  is_temp_(false)
+: NumArray(that,flags,depth,TpMeqVells)
 {
   dataflags_.copy(that.dataflags_);
 }
@@ -150,7 +144,6 @@ Vells& Vells::operator= (const Vells& other)
   if( this != &other) 
   {
     NumArray::operator = (other);
-    is_temp_ = false;
     dataflags_ = other.dataflags_;
   }
   return *this;
@@ -158,7 +151,6 @@ Vells& Vells::operator= (const Vells& other)
 
 void Vells::validateContent (bool)
 {
-  is_temp_ = false;
   FailWhen(rank()>Axis::MaxAxis,"can't init Meq::Vells from array: rank too high");
 //  FailWhen(elementType()!=Tpdouble && elementType()!=Tpdcomplex,
 //      "can't init Meq::Vells from array of type "+elementType().toString());
@@ -268,7 +260,6 @@ TypeId Vells::getResultType (int flags,bool arg_is_complex)
 // constructor for a temp vells in unary expression
 //##ModelId=3F8688700231
 Vells::Vells (const Vells &other,int flags,const std::string &opname)
-: is_temp_ (true)
 {
   // check input if requested by flags
   FailWhen(flags&VF_CHECKREAL && other.isComplex(),
@@ -426,7 +417,6 @@ void Vells::computeStrides (Vells::Shape &outshape,
 //##ModelId=400E53560174
 Vells::Vells (const Vells &a,const Vells &b,int flags,
               Strides strides[],const std::string &opname)
-: is_temp_ (true)
 {
   // check input if requested by flags
   FailWhen(flags&VF_FLAGTYPE && !(a.isFlags() && b.isFlags()),

@@ -82,9 +82,6 @@ protected:
   // <li> First it calls evaluate for the main value. 
   // <li> For the calculation of all perturbed values the same function as
   //   for the main value is used.
-  // <li> Usually the fastest way to go is to overload function getResult
-  //   in the derived class, because in that way some values can be
-  //   calculated once for main value and perturbed values.
   // </ul>
     //##ModelId=3F86886E03DD
   virtual int getResult (Result::Ref &resref, 
