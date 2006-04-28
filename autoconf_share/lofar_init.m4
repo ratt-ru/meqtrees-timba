@@ -366,6 +366,14 @@ AC_CHECK_FILE([$lfr_find], [lfr_var=yes], [lfr_var=no])
     AC_MSG_WARN([   set to /home/lofar/stable/LOFAR/${lofar_compiler}_opt])
   [fi]
 
+  # Make sure that libraries are installed in lib64 on x86_64 architectures.
+  if test "`arch`" == "x86_64"; then
+    if test "$libdir" = '${exec_prefix}/lib'; then
+      libdir='${exec_prefix}/lib64'
+      AC_SUBST(libdir, "$libdir")
+    fi
+  fi
+
 
   AC_SUBST(lofar_root)
   AC_SUBST(lofar_root_libdir)
