@@ -110,95 +110,11 @@ def nvss2lsm(ns, nvss_file=None, lsm_name=None, trace=True):
    global lsm
    lsm = LSM()                                       # make a new one
 
-   #---------------------------------------------------------------------------
-   # Alternative:
-   if True:
-      home_dir = os.environ['HOME']
-      infile_name = home_dir + nvss_file
-      lsm.build_from_catalog(infile_name, ns)
-      if trace:
-         print '** Finished build_from_catalog()' 
-      lsm.save('lsm_current.lsm')                        # 
-      lsm.save(lsm_name)
-      lsm.display()
-      if trace:
-         print '** Saved as:',lsm_name,'   (and lsm_current.lsm)'
-         print '**************************************************************\n'
-      return True
-   #---------------------------------------------------------------------------
-
-   # Read the nvss text-file:
    home_dir = os.environ['HOME']
    infile_name = home_dir + nvss_file
-   infile = open(infile_name, 'r')
-   all = infile.readlines()
-   infile.close()
-
-   # regexp pattern
-   pp=re.compile(r"""
-      ^(?P<col1>\S+)  # column 1 'NVSS'
-      \s*             # skip white space
-      (?P<col2>[A-Za-z]\w+\+\w+)  # source name i.e. 'J163002+631308'
-      \s*             # skip white space
-      (?P<col3>\d+)   # RA angle - hr 
-      \s*             # skip white space
-      (?P<col4>\d+)   # RA angle - min 
-      \s*             # skip white space
-      (?P<col5>\d+(\.\d+)?)   # RA angle - sec
-      \s*             # skip white space
-      (?P<col6>\d+(\.\d+)?)   # eRA angle - sec
-      \s*             # skip white space
-      (?P<col7>\d+)   # Dec angle - hr 
-      \s*             # skip white space
-      (?P<col8>\d+)   # Dec angle - min 
-      \s*             # skip white space
-      (?P<col9>\d+(\.\d+)?)   # Dec angle - sec
-      \s*             # skip white space
-      (?P<col10>\d+(\.\d+)?)   # eDec angle - sec
-      \s*             # skip white space
-      (?P<col11>\d+)   # freq
-      \s*             # skip white space
-      (?P<col12>\d+(\.\d+)?)   # brightness - Flux
-      \s*             # skip white space
-      (?P<col13>\d*\.\d+)   # brightness - eFlux
-      \s*
-      \S+
-      \s*$""",re.VERBOSE)
- 
-   # read each source and insert to LSM
-   linecount=0
-   for eachline in all:
-      v = pp.search(eachline)
-      if v!=None:
-         linecount+=1
-         if trace:
-            print linecount,':',v.group('col2'), v.group('col12')
-         s=Source(v.group('col2'))
-         source_RA=float(v.group('col3'))+(float(v.group('col5'))/60.0+float(v.group('col4')))/60.0
-         source_RA*=math.pi/12.0
-         source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
-         source_Dec*=math.pi/180.0
-
-         my_sixpack = MG_JEN_Sixpack.newstar_source(ns, punit=s.name,
-                                                    I0=eval(v.group('col12')),
-                                                    SI=[random()], f0=1e6,
-                                                    RA=source_RA,
-                                                    Dec=source_Dec,
-                                                    fsr_trace=False,
-                                                    trace=False)
-         if trace: print '  -> Sixpack:',my_sixpack.label()
-
-         # First compose the sixpack before giving it to the LSM
-         SourceRoot = my_sixpack.sixpack(ns)
-         # my_sixpack.display()
-         lsm.add_source(s, brightness=eval(v.group('col12')),
-                        sixpack=my_sixpack,
-                        ra=source_RA, dec=source_Dec)
+   lsm.build_from_catalog(infile_name, ns)
    if trace:
-      print "** Inserted %d sources" % linecount
-
-   # Finishing touches:
-   lsm.setNodeScope(ns)                           # remember node scope....(!)
+      print '** Finished build_from_catalog()' 
    lsm.save('lsm_current.lsm')                        # 
    lsm.save(lsm_name)
    lsm.display()
@@ -251,7 +167,7 @@ def att (dRA_rad=0, dDec_rad=0, taper_deg=None, trace=False):
    
 #--------------------------------------------------------------------------------
 
-def add_single (ns=None, Sixpack=None, lsm=None, **inarg):
+def add_single (ns=None, Sixpack=None, lsm=None, simul=False, **inarg):
    """Add a test-source (Sixpack) to the given lsm"""
 
    # Input arguments:
@@ -259,14 +175,14 @@ def add_single (ns=None, Sixpack=None, lsm=None, **inarg):
                            description=add_single.__doc__)
    qual = JEN_inarg.qualifier(pp, append='single')
 
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual, simul=simul))
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
    funcname = JEN_inarg.localscope(pp)
    savefile = '<savefile>'                         # place-holder
 
-   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _qual=qual)
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _qual=qual, simul=simul)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
 
@@ -276,7 +192,7 @@ def add_single (ns=None, Sixpack=None, lsm=None, **inarg):
    savefile += '.lsm'
 
    # Create the source defined by pp:
-   Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual)
+   Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual, simul=simul)
 
    # Compose the sixpack before adding it to the lsm:
    Sixpack.sixpack(ns)
@@ -289,7 +205,7 @@ def add_single (ns=None, Sixpack=None, lsm=None, **inarg):
 
 #--------------------------------------------------------------------------------
 
-def add_double (ns=None, Sixpack=None, lsm=None, **inarg):
+def add_double (ns=None, Sixpack=None, lsm=None, simul=False, **inarg):
    """Add a double test-source (Sixpack) to the given lsm"""
 
    # Input arguments:
@@ -299,8 +215,8 @@ def add_double (ns=None, Sixpack=None, lsm=None, **inarg):
    qual1 = qual+'_1'
    qual2 = qual+'_2'
 
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual1))
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual2))
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual1, simul=simul))
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual2, simul=simul))
    JEN_inarg.define(pp, 'dRA', 20, choice=[],    
                     help='distance of 2nd source in RA (arcmin)')
    JEN_inarg.define(pp, 'dDec', 20, choice=[],    
@@ -311,7 +227,7 @@ def add_double (ns=None, Sixpack=None, lsm=None, **inarg):
    funcname = JEN_inarg.localscope(pp)
    savefile = '<savefile>'                         # place-holder
 
-   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _qual=qual1)
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _qual=qual1, simul=simul)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
 
@@ -327,7 +243,7 @@ def add_double (ns=None, Sixpack=None, lsm=None, **inarg):
    RA = Dec0 + pp['dRA']*arcmin2rad()
    Dec = Dec0 + pp['dDec']*arcmin2rad()
    punit = qual2
-   Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual2,
+   Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual2, simul=simul,
                                            punit=punit, RA=RA, Dec=Dec)
    Sixpack.sixpack(ns)
    Sixpack.display()
@@ -346,7 +262,7 @@ def add_double (ns=None, Sixpack=None, lsm=None, **inarg):
 
 #--------------------------------------------------------------------------------
 
-def add_grid (ns=None, lsm=None, **inarg):
+def add_grid (ns=None, lsm=None, simul=False, **inarg):
    """Add a rectangular grid of identical test-sources to the given lsm"""
 
    # Input arguments:
@@ -369,7 +285,7 @@ def add_grid (ns=None, lsm=None, **inarg):
                             'tlq','trq','blq','brq'],    
                     help='Relative position w.r.t. the nominal punit (RA,Dec)')
 
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual, simul=simul))
  
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -377,7 +293,7 @@ def add_grid (ns=None, lsm=None, **inarg):
    savefile = '<savefile>'                         # place-holder
 
    # Get the internal argument-record for .newstar_source():
-   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual)
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual, simul=simul)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
    punit = pp1['punit']
@@ -429,7 +345,7 @@ def add_grid (ns=None, lsm=None, **inarg):
          flux_att = att(RA-RA0, Dec-Dec0, pp['taper'], trace=False)
          punit = qual+str(i)+str(j)
          # if not relpos=='center': punit += ':'+relpos
-         Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
+         Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual, simul=simul,
                                                  flux_att=flux_att,
                                                  punit=punit, RA=RA, Dec=Dec)
          # Compose the sixpack before adding it to the lsm:
@@ -446,7 +362,7 @@ def add_grid (ns=None, lsm=None, **inarg):
 
 #--------------------------------------------------------------------------------
 
-def add_spiral (ns=None, lsm=None, **inarg):
+def add_spiral (ns=None, lsm=None, simul=False, **inarg):
    """Add a spiral pattern of identical test-sources to the given lsm"""
 
    # Input arguments:
@@ -467,7 +383,7 @@ def add_spiral (ns=None, lsm=None, **inarg):
    JEN_inarg.define(pp, 'taper', 1.0, choice=[0.5,1,2,5,10,100,None],    
                     help='Scale (degr) of gaussian FOV taper')
 
-   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual))
+   JEN_inarg.nest(pp, MG_JEN_Sixpack.newstar_source(_getdefaults=True, _qual=qual, simul=simul))
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -475,7 +391,7 @@ def add_spiral (ns=None, lsm=None, **inarg):
    savefile = '<savefile>'                         # place-holder
 
    # Get the internal argument-record for .newstar_source():
-   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual)
+   pp1 = MG_JEN_Sixpack.newstar_source(_getpp=True, _inarg=pp, _qual=qual, simul=simul)
    RA0 = pp1['RA']
    Dec0 = pp1['Dec']
    punit = pp1['punit']
@@ -497,7 +413,7 @@ def add_spiral (ns=None, lsm=None, **inarg):
       Dec = Dec0 + r*sin(a)
       flux_att = att(RA-RA0, Dec-Dec0, pp['taper'])
       punit = 'spiral:'+str(i)
-      Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual,
+      Sixpack = MG_JEN_Sixpack.newstar_source(ns, _inarg=pp, _qual=qual, simul=simul,
                                               flux_att=flux_att,
                                               punit=punit, RA=RA, Dec=Dec)
       # Compose the sixpack before adding it to the lsm:
@@ -522,7 +438,7 @@ def add_spiral (ns=None, lsm=None, **inarg):
 #================================================================================
 #================================================================================
 
-def get_lsm (ns=None, **inarg):
+def get_lsm (ns=None, simul=False, **inarg):
    """Generate an existing/new/modified Local Sky Model"""
 
    # Input arguments:
@@ -545,10 +461,10 @@ def get_lsm (ns=None, **inarg):
    JEN_inarg.define (pp, 'test_pattern', 'single',
                      choice=[None,'single','double','grid','spiral'],
                      help='pattern of test-sources to be generated')
-   JEN_inarg.nest(pp, add_single(_getdefaults=True, _qual=qual))
-   JEN_inarg.nest(pp, add_double(_getdefaults=True, _qual=qual))
-   JEN_inarg.nest(pp, add_grid(_getdefaults=True, _qual=qual))
-   JEN_inarg.nest(pp, add_spiral(_getdefaults=True, _qual=qual))
+   JEN_inarg.nest(pp, add_single(_getdefaults=True, _qual=qual, simul=simul))
+   JEN_inarg.nest(pp, add_double(_getdefaults=True, _qual=qual, simul=simul))
+   JEN_inarg.nest(pp, add_grid(_getdefaults=True, _qual=qual, simul=simul))
+   JEN_inarg.nest(pp, add_spiral(_getdefaults=True, _qual=qual, simul=simul))
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -571,13 +487,13 @@ def get_lsm (ns=None, **inarg):
    savefile = '<automatic_lsm_savefile>'
    if isinstance(pp['test_pattern'], str):
       if pp['test_pattern']=='single':
-         savefile = add_single(ns, lsm=lsm, _inarg=pp, _qual=qual)
+         savefile = add_single(ns, lsm=lsm, _inarg=pp, _qual=qual, simul=simul)
       elif pp['test_pattern']=='double':
-         savefile = add_double(ns, lsm=lsm, _inarg=pp, _qual=qual)
+         savefile = add_double(ns, lsm=lsm, _inarg=pp, _qual=qual, simul=simul)
       elif pp['test_pattern']=='grid':
-         savefile = add_grid(ns, lsm=lsm, _inarg=pp, _qual=qual)
+         savefile = add_grid(ns, lsm=lsm, _inarg=pp, _qual=qual, simul=simul)
       elif pp['test_pattern']=='spiral':
-         savefile = add_spiral(ns, lsm=lsm, _inarg=pp, _qual=qual)
+         savefile = add_spiral(ns, lsm=lsm, _inarg=pp, _qual=qual, simul=simul)
       else:
          print 'test_pattern not recognised:',pp['test_pattern']
          return False
@@ -755,10 +671,13 @@ def default_inarg ():
 MG = JEN_inarg.init('MG_JEN_lsm', description=description.__doc__,
                     inarg_specific=default_inarg.__doc__)
 JEN_inarg.define (MG, 'last_changed', '02apr2006', editable=False)
+
+JEN_inarg.define (MG, 'simul', tf=True, editable=False,
+                  help='If True, generate simulated (LeafSet) parameters')
+
 JEN_inarg.available_inargs(MG, describe_inargs())
 
-# JEN_inarg.nest(MG, get_lsm(_getdefaults=True))
-inarg = get_lsm(_getdefaults=True, _qual='xxx')
+inarg = get_lsm(_getdefaults=True, _qual='xxx', simul=MG['simul'])
 JEN_inarg.attach(MG, inarg)
 
 
@@ -817,7 +736,7 @@ def _define_forest (ns, **kwargs):
 
    # Get/create/modify an LSM:
    nsim = ns.Subscope('_')
-   lsm = get_lsm(nsim, _inarg=MG, _qual='xxx')
+   lsm = get_lsm(nsim, _inarg=MG, _qual='xxx', simul=MG['simul'])
    
    # Make the trees of all the lsm punits: 
    radec = []                                 # for collect_radec()

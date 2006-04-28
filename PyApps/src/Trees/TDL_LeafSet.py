@@ -96,7 +96,7 @@ class LeafSet (TDL_common.Super):
         return s
 
 
-    def display(self, txt=None, full=False):
+    def display(self, txt=None, full=False, doprint=True, pad=True):
         """Display a description of the contents of this LeafSet object"""
         ss = TDL_common.Super.display (self, txt=txt, end=False, full=full)
         indent1 = 2*' '
@@ -104,7 +104,7 @@ class LeafSet (TDL_common.Super):
  
         ss = TDL_common.Super.display_insert_object (self, ss, self.NodeSet, full=full)
         
-        return TDL_common.Super.display_end (self, ss)
+        return TDL_common.Super.display_end (self, ss, doprint=doprint, pad=pad)
 
 
 
@@ -112,11 +112,14 @@ class LeafSet (TDL_common.Super):
     # MeqLeaf definition:
     #=====================================================================================
 
-    def inarg_simul (self, pp, name='<name>', hide=False,
+    def inarg_simul (self, pp, key='<key>', hide=False,
                      offset=0, scale=1, time_scale_min=100, fdeg=0,
-                     funklet=None,
-                     expr=None, default=None, scatter=None):
+                     funklet=None, MeqConstant=None,
+                     expr=None, default=None, scatter=None,
+                     **kwargs):
         """Specification of simulation funklet and its coeff"""
+
+        self.inarg_leafgroup_rider(pp, hide=hide)
 
         # If a funklet is specified, use that:
         if funklet:
@@ -192,23 +195,55 @@ class LeafSet (TDL_common.Super):
 
         #-----------------------------------------
         # Define the input arguments in pp:
-        JEN_inarg.define(pp, 'simul_funklet_'+name,
+        JEN_inarg.define(pp, 'simul_funklet_'+key,
                          expr[0], choice=expr, hide=hide,
                          help='p1 in minutes (x0=time, x1=freq)')
-        JEN_inarg.define(pp, 'simul_default_coeff_'+name,
+        JEN_inarg.define(pp, 'simul_default_coeff_'+key,
                          default[0], choice=default, hide=hide,
-                         help='default values of '+name+' funklet coeff p0,p1,etc')
-        JEN_inarg.define(pp, 'simul_scatter_coeff_'+name,
+                         help='default values of '+key+' funklet coeff p0,p1,etc')
+        JEN_inarg.define(pp, 'simul_scatter_coeff_'+key,
                          scatter[0], choice=scatter, hide=hide,
-                         help='scatter (stddev) of '+name+' funklet coeff p0,p1,etc')
-        return True
+                         help='scatter (stddev) of '+key+' funklet coeff p0,p1,etc')
+
+        # Replace the referenced values (prepended with @) in pp:
+        qq = JEN_inarg._strip(pp)                        # does a deepcopy() too
+        JEN_inarg._replace_reference(qq)                 # required here....
+
+        substrings = []
+        for pkey in qq.keys():
+            i = pkey.rfind(key)
+            if i>0:
+                ss = pkey[0:i]
+                if not ss in substrings:
+                    substrings.append(ss)
+        # print '**',key,': substrings =',substrings
+
+        # The parmgroup rider is a combination of the relevant keywords in qq
+        # and the (override) fields of kwargs (if any):
+        rider = kwargs
+        rider.setdefault('MeqConstant', None)           # temporary kludge
+        for pkey in qq.keys():
+            found = False
+            for substring in substrings:
+                if pkey.rfind(substring)>-1:
+                    found = True
+                    if pkey.rfind(key)>-1:
+                        rider[pkey] = qq[pkey]
+            if not found: rider.setdefault(pkey,qq[pkey])
+
+        # Define a named (key) parmgroup:
+        return self.define_leafgroup (key, rider=rider)
+
+
+
+
 
     #------------------------------------------------------------------------------
 
     def MeqLeaf(self, ns, key=None, qual=None, leafgroup=None,
                 compounder_children=None, common_axes=None, qual2=None,
                 default_coeff=None, scatter_coeff=None,
-                init_funklet=None, **pp):
+                default_value=None, init_funklet=None, **pp):
         """Convenience function to create a MeqLeaf node"""
 
         # Get the associated leafparms from the NodeSet rider record:
@@ -266,16 +301,30 @@ class LeafSet (TDL_common.Super):
             # Don't do anything, but return the existing node.
             pass
 
+        elif rider['MeqConstant']:
+            if not default_value:
+                default_value = rider['MeqConstant']
+            node << Meq.Constant(default_value)
+            self.NodeSet.set_MeqNode(node, group=leafgroup)
 
         elif init_funklet:
             # An init_funklet has been specified explicitly (scatter...?)
             node << Meq.Parm(init_funklet=init_funklet)
             self.NodeSet.set_MeqNode(node, group=leafgroup)
 
+        elif not default_value==None:
+            # A default_value has been specified explicitly.
+            # NB: This is also a temporary kludge to avoid the
+            #     use of default_funklet below (see MG_JEN_Sixpack.py)
+            node << Meq.Parm(default_value)
+            self.NodeSet.set_MeqNode(node, group=leafgroup)
+
         else:
             # Assume that a simulation funklet (expression) has been specified
             # The funklet coeff have a probability distribution (scatter):
             expr = rider['simul_funklet']
+            if default_value:                            # explicit default value....
+                expr = str(default_value)+'+'+expr       # ........!!
             default = rider['simul_default_coeff']
             scatter = rider['simul_scatter_coeff']
             if default==None: default = dict()           # see default.setdefault() below
@@ -323,6 +372,10 @@ class LeafSet (TDL_common.Super):
 
     def inarg_leafgroup_rider (self, pp, hide=True, **kwargs):
         """Definition of LeafSet input arguments (see e.g. MG_JEN_Joneset.py)"""
+
+        # Avoid doing this twice:
+        if pp.has_key('descr') and pp.has_key('unit'): return True
+        
         self.leafgroup_rider_defaults(kwargs)
         JEN_inarg.define(pp, 'descr', kwargs, hide=hide,
                          help='brief description')
@@ -334,41 +387,45 @@ class LeafSet (TDL_common.Super):
                          help='plot_style')
         JEN_inarg.define(pp, 'size', kwargs, hide=hide,
                          help='size of plotted symbol')
-        # Attach any other kwarg fields to pp also:
-        for key in kwargs.keys():
-            if not pp.has_key(key):
-                pp[key] = kwargs[key]
+
+        if False:
+            # Obsolete....
+            # Attach any other kwarg fields to pp also:
+            for key in kwargs.keys():
+                if not pp.has_key(key):
+                    pp[key] = kwargs[key]
+                    
         return True
 
     #----------------------------------------------------------------------
 
-    def leafgroup (self, key=None, rider=None, **kwargs):
-        """Get/define the named (key) leafgroup"""
-        if not rider==None:
-        # if not rider==None or len(kwargs)>0:
-            # The rider usually contains the inarg record (pp) of the calling function.
-            if not isinstance(rider, dict): rider = dict()  # just in case
-            rider = deepcopy(rider)                         # necessary!
 
-            self.leafgroup_rider_defaults(rider)                # ....necessary...?
+    def define_leafgroup (self, key=None, rider=None, **kwargs):
+        """Define the named (key) parmgroup with the specified rider (with parmgroup info).
+        The rider fields may be overridden with keyword arguments in kwargs.
+        If simul==True, define a leafgroup (simulation)."""
+        # The rider usually contains the inarg record (pp) of the calling function.
+        if not isinstance(rider, dict): rider = dict()  # just in case
+        trace = False
+        qq = JEN_inarg._strip(rider)                      # does a deepcopy() too
+        self.leafgroup_rider_defaults(qq)                 # ...necessary...?
+        # Kludge, but convenient....:
+        qq.setdefault('simul_funklet_'+key,None)
+        qq.setdefault('simul_default_coeff_'+key,None)
+        qq.setdefault('simul_scatter_coeff_'+key,None)
+        qq['simul_funklet'] = qq['simul_funklet_'+key]
+        qq['simul_default_coeff'] = qq['simul_default_coeff_'+key]
+        qq['simul_scatter_coeff'] = qq['simul_scatter_coeff_'+key]
+        # The rider fields may be overridden by the keyword arguments kwargs, if any: 
+        for pkey in kwargs.keys():
+            qq[pkey] = kwargs[pkey]
+        result = self.NodeSet.group(key, rider=qq)      
+        self._history('Created leafgroup: '+str(key)+' (rider:'+str(len(qq))+')')
+        return result
 
-            # Kludge, but convenient....:
-            rider.setdefault('simul_funklet_'+key,None)
-            rider.setdefault('simul_default_coeff_'+key,None)
-            rider.setdefault('simul_scatter_coeff_'+key,None)
-            rider['simul_funklet'] = rider['simul_funklet_'+key]
-            rider['simul_default_coeff'] = rider['simul_default_coeff_'+key]
-            rider['simul_scatter_coeff'] = rider['simul_scatter_coeff_'+key]
-
-            # The rider fields may be overridden by the keyword arguments kwargs, if any: 
-            for pkey in kwargs.keys():
-                rider[pkey] = kwargs[pkey]
-            result = self.NodeSet.group(key, rider=rider)      
-            self._history('Created leafgroup: '+str(key)+' (rider:'+str(len(rider))+')')
-            return result
-        # Then the generic NodeSet part:
+    def leafgroup (self, key=None):
+        """Get the named (key) leafgroup"""
         return self.NodeSet.group(key)
-
 
     def leafgroup_keys (self):
         """Return the keys (names) of the available leafgroups"""

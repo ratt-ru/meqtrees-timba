@@ -28,6 +28,7 @@
 # - 09 mar 2006: adopted TDL_ParmSet and TDL_LeafSet
 # - 11 mar 2006: removed TDL_Parmset and TDL_Leafset
 # - 30 mar 2006: implemented EJones_WSRT()
+# - 24 apr 2006: recast ParmSet/LeafSet
 
 # Copyright: The MeqTree Foundation 
 
@@ -49,7 +50,7 @@ from numarray import *
 from Timba.Trees import JEN_inarg
 from Timba.Trees import TDL_Joneset
 from Timba.Trees import TDL_ParmSet     
-from Timba.Trees import TDL_LeafSet     
+from Timba.Trees import TDL_LeafSet                   # <--------- remove...     
 from Timba.Trees import TDL_radio_conventions
 
 from Timba.Contrib.JEN import MG_JEN_exec
@@ -258,7 +259,17 @@ def inarg_solvegroup (pp, **kwargs):
 
 
 
+def station_pol1 (polrep='linear'):
+   """Return the name (X or R) of the first station polarisation,
+   depending on the polarisation representation."""
+   if polrep=='circular': return 'R'
+   return 'X'
 
+def station_pol2 (polrep='linear'):
+   """Return the name (X or R) of the first station polarisation,
+   depending on the polarisation representation."""
+   if polrep=='circular': return 'L'
+   return 'Y'
 
 
 
@@ -282,43 +293,46 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     """
 
     jones = 'GJones'
-    pol1 = 'A'
-    pol2 = 'B'
 
     # Input arguments:
-    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005',
-                            description=GJones.__doc__)
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()',
+                            version='26apr2006', description=GJones.__doc__)
     inarg_Joneset_common(pp, jones=jones, slave=slave)              
     # ** Jones matrix elements:
     JEN_inarg.define(pp, 'Gpolar', tf=True, hide=True, 
                      help='obsolete, kept only for upward compatibility')
-    
+
+    pol1 = station_pol1(pp['polrep'])
+    pol2 = station_pol2(pp['polrep'])
+
+    # Input arguments for ParmSet parmgroups:
+    ps = TDL_ParmSet.ParmSet(label=jones)
+    inarg_Joneset_ParmSet(pp, slave=slave)
+    a1 = ps.inarg_parmgroup (pp, 'Ggain_'+pol1, hide=simul,
+                         tdeg=0, fdeg=0, subtile_size=1,
+                         condeq_corrs='paral11', c00_default=1.0, 
+                         color='red', style='diamond', size=10)
+    a2 = ps.inarg_parmgroup (pp, 'Ggain_'+pol2, hide=simul, follows=a1,
+                         condeq_corrs='paral22', c00_default=1.0,
+                         color='blue', style='diamond', size=10)
+    p1 = ps.inarg_parmgroup (pp, 'Gphase_'+pol1, hide=simul, follows=a1, fdeg=1,
+                         condeq_corrs='paral11', c00_default=0.0,
+                         color='magenta', style='diamond', size=10)
+    p2 = ps.inarg_parmgroup (pp, 'Gphase_'+pol2, hide=simul, follows=a1,
+                         condeq_corrs='paral22', c00_default=0.0,
+                         color='cyan', style='diamond', size=10)
     if simul:                                          # simulation mode
        # Input arguments for simulation instructions:
-       ls = TDL_LeafSet.LeafSet()
-       ls.inarg_simul (pp, 'Ggain_'+pol1, offset=1, time_scale_min=100)
-       ls.inarg_simul (pp, 'Ggain_'+pol2, offset=1, time_scale_min=100)
-       ls.inarg_simul (pp, 'Gphase_'+pol1, time_scale_min=10, fdeg=1)
-       ls.inarg_simul (pp, 'Gphase_'+pol2, time_scale_min=10)
-       ls.inarg_leafgroup_rider(pp)
-
-    else:                                              # normal mode
-       # Input arguments for solving instructions:
-       inarg_Joneset_ParmSet(pp, slave=slave)              
-       ps = TDL_ParmSet.ParmSet()
-       ps.inarg_solve (pp, 'Ggain_'+pol1, tdeg=0, fdeg=0, subtile_size=1)
-       ps.inarg_solve (pp, 'Ggain_'+pol2, follows='Ggain_'+pol1)
-       ps.inarg_solve (pp, 'Gphase_'+pol1, follows='Ggain_'+pol1, fdeg=1)
-       ps.inarg_solve (pp, 'Gphase_'+pol2, follows='Ggain_'+pol1)
-       ps.inarg_parmgroup_rider(pp)
+       ps.LeafSet.inarg_simul (pp, a1, offset=1, time_scale_min=100)
+       ps.LeafSet.inarg_simul (pp, a2, offset=1, time_scale_min=100)
+       ps.LeafSet.inarg_simul (pp, p1, time_scale_min=10, fdeg=1)
+       ps.LeafSet.inarg_simul (pp, p2, time_scale_min=10)
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
+
     funcname = JEN_inarg.localscope(pp)
-
-    # JEN_inarg.display(inarg, funcname)
-
-    label = jones+'_'+str(JEN_inarg.qualifier(pp))
+    label = JEN_inarg.qualifier(pp, prepend=jones)
 
     # Some preparations:
     adjust_for_telescope(pp, origin=funcname)
@@ -326,23 +340,9 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Create a Joneset object
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    js.ParmSet = ps                           # attach the ParmSet object
     js.ParmSet.quals(dict(q=pp['punit']))
-    js.LeafSet.quals(dict(q=pp['punit']))
     
-    # Register the parmgroup/leafgroups with specific rider parameters:
-    a1 = js.parmgroup('Ggain_'+pol1, rider=pp,
-                      condeq_corrs='paral11', c00_default=1.0, 
-                      color='red', style='diamond', size=10)
-    a2 = js.parmgroup('Ggain_'+pol2, rider=pp,
-                      condeq_corrs='paral22', c00_default=1.0,
-                      color='blue', style='diamond', size=10)
-    p1 = js.parmgroup('Gphase_'+pol1, rider=pp,
-                      condeq_corrs='paral11', c00_default=0.0,
-                      color='magenta', style='diamond', size=10)
-    p2 = js.parmgroup('Gphase_'+pol2, rider=pp,
-                      condeq_corrs='paral22', c00_default=0.0,
-                      color='cyan', style='diamond', size=10)
-
     # Define potential extra condition equations:
     js.ParmSet.define_condeq(p1, unop='Add', value=0.0)
     js.ParmSet.define_condeq(p1, select='first', value=0.0)
@@ -365,7 +365,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Define solvegroup(s) from combinations of parmgroups:
     if simul:
-       js.LeafSet.NodeSet.bookmark('GJones', [a1, p1, a2, p2])
+       js.ParmSet.LeafSet.NodeSet.bookmark('GJones', [a1, p1, a2, p2])
     else:
        # NB: For the bookmark definition, see after stations.
        js.ParmSet.solvegroup('GJones', [a1, p1, a2, p2], bookpage=None)
@@ -383,10 +383,7 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
        # Define MeqParm/MeqLeaf nodes, to be used below:
        ss = dict()
        for group in [a1,a2,p1,p2]:
-          if simul:
-             ss[group] = js.LeafSet.MeqLeaf (ns, group, qual=qual)
-          else:
-             ss[group] = js.ParmSet.MeqParm (ns, group, qual=qual)
+          ss[group] = js.ParmSet.MeqParm (ns, group, qual=qual, simul=simul)
 
        # Make the 2x2 Jones matrix:
        if pp['Gpolar']:                  # Preferred (fewer nodes)
@@ -411,16 +408,16 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
     # Make nodes and bookmarks for some derived quantities (for display):
     # NB: This must be done AFTER the station nodes have been defined!
     if simul:
-       bookpage = js.LeafSet.NodeSet.tlabel()+'_GJones'
-       js.LeafSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage=bookpage)
-       js.LeafSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage=bookpage)
+       bookpage = js.ParmSet.LeafSet.NodeSet.tlabel()+'_GJones'
+       js.ParmSet.LeafSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage=bookpage)
+       js.ParmSet.LeafSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage=bookpage)
     else:
        bookpage = js.ParmSet.NodeSet.tlabel()+'_GJones'
        js.ParmSet.NodeSet.apply_binop(ns, [a1,p1], 'Polar', bookpage=bookpage)
        js.ParmSet.NodeSet.apply_binop(ns, [a2,p2], 'Polar', bookpage=bookpage)
 
     # Finished:
-    js.cleanup()
+    js.ParmSet.cleanup()
     MG_JEN_forest_state.object(js, funcname)
     return js
 
@@ -430,85 +427,79 @@ def GJones (ns=None, Sixpack=None, slave=False, simul=False, **inarg):
 #--------------------------------------------------------------------------------
 
 def FJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
-   """defines diagonal FJones Faraday rotation matrices""";
+    """defines diagonal FJones Faraday rotation matrices""";
 
-   jones = 'FJones'
-
-   # Input arguments:
-   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005',
+    jones = 'FJones'
+    
+    # Input arguments:
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005',
                             description=FJones.__doc__)
-   inarg_Joneset_common(pp, jones=jones, slave=slave)              
+    inarg_Joneset_common(pp, jones=jones, slave=slave)              
 
-   if simul:                                    # simulation mode
-      # Input arguments for simulation instructions:
-      ls = TDL_LeafSet.LeafSet()
-      ls.inarg_simul (pp, 'RM', time_scale_min=100)
-      ls.inarg_leafgroup_rider(pp)
-      
-   else:                                  # normal mode
-      # Input arguments for solving instructions:
-      inarg_Joneset_ParmSet(pp, slave=slave)              
-      ps = TDL_ParmSet.ParmSet()
-      ps.inarg_solve (pp, 'RM', tdeg=0, fdeg=2, subtile_size=1)
-      ps.inarg_parmgroup_rider(pp)
-       
-   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
-   if not JEN_inarg.is_OK(pp): return False
-   funcname = JEN_inarg.localscope(pp)
 
-   label = jones+'_'+str(JEN_inarg.qualifier(pp))
+    # Input arguments for ParmSet parmgroups:
+    ps = TDL_ParmSet.ParmSet(label=jones)
+    inarg_Joneset_ParmSet(pp, slave=slave)
+    RM = ps.inarg_parmgroup (pp, 'RM',
+                             tdeg=0, fdeg=2, subtile_size=1,
+                             condeq_corrs='cross', c00_default=0.0,
+                             color='red', style='circle', size=10)
+    if simul:                    
+       # Input arguments for simulation instructions:
+       ps.LeafSet.inarg_simul (pp, RM, time_scale_min=100)
 
-   adjust_for_telescope(pp, origin=funcname)
-   pp['punit'] = get_punit(Sixpack, pp)
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+    if not JEN_inarg.is_OK(pp): return False
+
+    funcname = JEN_inarg.localscope(pp)
+    label = JEN_inarg.qualifier(pp, prepend=jones)
+
+    adjust_for_telescope(pp, origin=funcname)
+    pp['punit'] = get_punit(Sixpack, pp)
    
-   # Create a Joneset object:
-   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
-   js.ParmSet.quals(dict(q=pp['punit']))
-   js.LeafSet.quals(dict(q=pp['punit']))
+    # Create a Joneset object:
+    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    js.ParmSet = ps                           # attach the ParmSet object
+    js.ParmSet.quals(dict(q=pp['punit']))
 
-   # Register the parmgroups (in js.ParmSet eventually):
-   RM = js.parmgroup('RM', rider=pp,
-                     condeq_corrs='cross', c00_default=0.0,
-                     color='red', style='circle', size=10)
+    # MeqParm node_groups: add 'F' to default 'Parm':
+    js.ParmSet.node_groups(label[0])
+    
+    # Define solvegroup(s) from combinations of parmgroups:
+    if simul:
+       js.ParmSet.LeafSet.NodeSet.bookmark('FJones', [RM])
+    else:
+       js.ParmSet.solvegroup('FJones', [RM])
 
-   # MeqParm node_groups: add 'F' to default 'Parm':
-   js.ParmSet.node_groups(label[0])
+    # Make a node for the Faraday rotation (same for all stations...)
+    ss = dict()
+    if simul:
+       ss[RM] = js.ParmSet.LeafSet.MeqLeaf (ns, RM)
+    else:
+       ss[RM] = js.ParmSet.MeqParm(ns, RM)
 
-   # Define solvegroup(s) from combinations of parmgroups:
-   if simul:
-      js.LeafSet.NodeSet.bookmark('FJones', [RM])
-   else:
-      js.ParmSet.solvegroup('FJones', [RM])
-
-   # Make a node for the Faraday rotation (same for all stations...)
-   ss = dict()
-   if simul:
-      ss[RM] = js.LeafSet.MeqLeaf (ns, RM)
-   else:
-      ss[RM] = js.ParmSet.MeqParm(ns, RM)
-
-   wvl2 = MG_JEN_twig.wavelength (ns, unop='Sqr')        # -> lambda squared
-   farot = ns.farot(q=pp['punit']) << (ss[RM] * wvl2)       # Faraday rotation angle
+    wvl2 = MG_JEN_twig.wavelength (ns, unop='Sqr')        # -> lambda squared
+    farot = ns.farot(q=pp['punit']) << (ss[RM] * wvl2)       # Faraday rotation angle
   
-   # The FJones matrix depends on the polarisation representation:
-   if pp['polrep']=='circular':
-      matname = 'FJones_phase_matrix'
-      stub = MG_JEN_matrix.phase (ns, angle=farot, name=matname)
-   else:
-      matname = 'FJones_rotation_matrix'
-      stub = MG_JEN_matrix.rotation (ns, angle=farot, name=matname)
+    # The FJones matrix depends on the polarisation representation:
+    if pp['polrep']=='circular':
+       matname = 'FJones_phase_matrix'
+       stub = MG_JEN_matrix.phase (ns, angle=farot, name=matname)
+    else:
+       matname = 'FJones_rotation_matrix'
+       stub = MG_JEN_matrix.rotation (ns, angle=farot, name=matname)
 
-   # Create the station jones matrices:
-   # For the moment, assume that FJones is the same for all stations:
-   for station in pp['stations']:
-      skey = TDL_radio_conventions.station_key(station)
-      qual = dict(s=skey)
-      js.append(skey, stub)
+    # Create the station jones matrices:
+    # For the moment, assume that FJones is the same for all stations:
+    for station in pp['stations']:
+       skey = TDL_radio_conventions.station_key(station)
+       qual = dict(s=skey)
+       js.append(skey, stub)
 
-   # Finished:
-   js.cleanup()
-   MG_JEN_forest_state.object(js, funcname)
-   return js
+    # Finished:
+    js.ParmSet.cleanup()
+    MG_JEN_forest_state.object(js, funcname)
+    return js
 
 
 
@@ -530,8 +521,8 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     """
 
     jones = 'BJones'
-    pol1 = 'A'
-    pol2 = 'B'
+    pol1 = station_pol1()
+    pol2 = station_pol2()
 
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005',
@@ -539,52 +530,42 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     inarg_Joneset_common(pp, jones=jones, slave=slave)              
     # ** Jones matrix elements:
 
-    if simul:                                    # simulation mode
+    # Input arguments for ParmSet parmgroups:
+    ps = TDL_ParmSet.ParmSet(label=jones)
+    inarg_Joneset_ParmSet(pp, slave=slave)
+    br1 = ps.inarg_parmgroup (pp, 'Breal_'+pol1,
+                              tdeg=0, fdeg=5, subtile_size=None,
+                              condeq_corrs='paral11', c00_default=1.0,
+                              color='red', style='square', size=7)
+    br2 = ps.inarg_parmgroup (pp, 'Breal_'+pol2, follows=br1,
+                              condeq_corrs='paral22', c00_default=1.0,
+                              color='blue', style='square', size=7)
+    bi1 = ps.inarg_parmgroup (pp, 'Bimag_'+pol1, follows=br1,
+                              condeq_corrs='paral11', c00_default=0.0,
+                              color='magenta', style='square', size=7)
+    bi2 = ps.inarg_parmgroup (pp, 'Bimag_'+pol2, follows=br1,
+                              condeq_corrs='paral22', c00_default=0.0,
+                              color='cyan', style='square', size=7)
+    if simul:
        # Input arguments for simulation instructions:
-       ls = TDL_LeafSet.LeafSet()
-       ls.inarg_simul (pp, 'Breal_'+pol1, offset=1, time_scale_min=500)
-       ls.inarg_simul (pp, 'Breal_'+pol2, offset=1, time_scale_min=500)
-       ls.inarg_simul (pp, 'Bimag_'+pol1, time_scale_min=300)
-       ls.inarg_simul (pp, 'Bimag_'+pol2, time_scale_min=300)
-       ls.inarg_leafgroup_rider(pp)
+       ps.LeafSet.inarg_simul (pp, br1, offset=1, time_scale_min=500)
+       ps.LeafSet.inarg_simul (pp, br2, offset=1, time_scale_min=500)
+       ps.LeafSet.inarg_simul (pp, bi1, time_scale_min=300)
+       ps.LeafSet.inarg_simul (pp, bi2, time_scale_min=300)
 
-    else:                                  # normal mode
-       # Input arguments for solving instructions:
-       inarg_Joneset_ParmSet(pp, slave=slave)              
-       ps = TDL_ParmSet.ParmSet()
-       ps.inarg_solve (pp, 'Breal_'+pol1, tdeg=0, fdeg=5, subtile_size=None)
-       ps.inarg_solve (pp, 'Breal_'+pol2, follows='Breal_'+pol1)
-       ps.inarg_solve (pp, 'Bimag_'+pol1, follows='Breal_'+pol1)
-       ps.inarg_solve (pp, 'Bimag_'+pol2, follows='Breal_'+pol1)
-       ps.inarg_parmgroup_rider(pp)
-       
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
-    funcname = JEN_inarg.localscope(pp)
 
-    label = jones+'_'+str(JEN_inarg.qualifier(pp))
+    funcname = JEN_inarg.localscope(pp)
+    label = JEN_inarg.qualifier(pp, prepend=jones)
 
     adjust_for_telescope(pp, origin=funcname)
     pp['punit'] = get_punit(Sixpack, pp)
 
     # Create a Joneset object:
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    js.ParmSet = ps                           # attach the ParmSet object
     js.ParmSet.quals(dict(q=pp['punit']))
-    js.LeafSet.quals(dict(q=pp['punit']))
-
-    # Register the parmgroups (in js.ParmSet eventually):
-    br1 = js.parmgroup('Breal_'+pol1, rider=pp,
-                       condeq_corrs='paral11', c00_default=1.0,
-                       color='red', style='square', size=7)
-    br2 = js.parmgroup('Breal_'+pol2, rider=pp,
-                       condeq_corrs='paral22', c00_default=1.0,
-                       color='blue', style='square', size=7)
-    bi1 = js.parmgroup('Bimag_'+pol1, rider=pp,
-                       condeq_corrs='paral11', c00_default=0.0,
-                       color='magenta', style='square', size=7)
-    bi2 = js.parmgroup('Bimag_'+pol2, rider=pp,
-                       condeq_corrs='paral22', c00_default=0.0,
-                       color='cyan', style='square', size=7)
 
     # Define potential extra condition equations:
     js.ParmSet.define_condeq(bi1, unop='Add', value=0.0)
@@ -597,7 +578,7 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Define solvegroup(s) from combinations of parmgroups:
     if simul:
-       js.LeafSet.NodeSet.bookmark('BJones', [br1, bi1, br2, bi2])
+       js.ParmSet.LeafSet.NodeSet.bookmark('BJones', [br1, bi1, br2, bi2])
     else:
        js.ParmSet.solvegroup('BJones', [br1, bi1, br2, bi2], bookpage=True)
        js.ParmSet.solvegroup('Bpol1', [br1, bi1])
@@ -614,7 +595,7 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
         ss = dict()
         for group in [br1,br2,bi1,bi2]:
            if simul:
-              ss[group] = js.LeafSet.MeqLeaf (ns, group, qual=qual)
+              ss[group] = js.ParmSet.LeafSet.MeqLeaf (ns, group, qual=qual)
            else:
               ss[group] = js.ParmSet.MeqParm (ns, group, qual=qual)
 
@@ -627,7 +608,7 @@ def BJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
         js.append(skey, stub)
 
     # Finished:
-    js.cleanup()
+    js.ParmSet.cleanup()
     MG_JEN_forest_state.object(js, funcname)
     return js
 
@@ -659,39 +640,51 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     JEN_inarg.define(pp, 'all4_always', None, choice=[None, [14], [1], 'WSRT/WHAT'],  
                      help='stations for which all 4 elements will always be solved for')
 
-    if simul:                                    # simulation mode
+    # Input arguments for ParmSet parmgroups:
+    ps = TDL_ParmSet.ParmSet(label=jones)
+    inarg_Joneset_ParmSet(pp, slave=slave)
+    jr11 = ps.inarg_parmgroup (pp, 'Jreal_11',
+                               tdeg=0, fdeg=0, subtile_size=None,
+                               condeq_corrs='paral11', c00_default=1.0,
+                               color='red', style='square', size=7)
+    jr12 = ps.inarg_parmgroup (pp, 'Jreal_12', follows=jr11,
+                               condeq_corrs='*', c00_default=0.0,
+                               color='red', style='square', size=7)
+    jr21 = ps.inarg_parmgroup (pp, 'Jreal_21', follows=jr11,
+                               condeq_corrs='*', c00_default=0.0,
+                               color='red', style='square', size=7)
+    jr22 = ps.inarg_parmgroup (pp, 'Jreal_22', follows=jr11,
+                               condeq_corrs='paral22', c00_default=1.0,
+                               color='blue', style='square', size=7)
+    ji11 = ps.inarg_parmgroup (pp, 'Jimag_11', follows=jr11,
+                               condeq_corrs='paral11', c00_default=0.0,
+                               color='magenta', style='square', size=7)
+    ji12 = ps.inarg_parmgroup (pp, 'Jimag_12', follows=jr11,
+                               condeq_corrs='*', c00_default=0.0,
+                               color='magenta', style='square', size=7)
+    ji21 = ps.inarg_parmgroup (pp, 'Jimag_21', follows=jr11,
+                               condeq_corrs='*', c00_default=0.0,
+                               color='magenta', style='square', size=7)
+    ji22 = ps.inarg_parmgroup (pp, 'Jimag_22', follows=jr11,
+                               condeq_corrs='paral22', c00_default=0.0,
+                               color='cyan', style='square', size=7)
+    if simul:               
        # Input arguments for simulation instructions:
-       ls = TDL_LeafSet.LeafSet()
-       ls.inarg_simul (pp, 'Jreal_11', offset=1, time_scale_min=500)
-       ls.inarg_simul (pp, 'Jreal_12', offset=1, scale=0.1, time_scale_min=500)
-       ls.inarg_simul (pp, 'Jreal_21', offset=1, scale=0.1, time_scale_min=500)
-       ls.inarg_simul (pp, 'Jreal_22', offset=1, time_scale_min=500)
-       ls.inarg_simul (pp, 'Jimag_11', scale=0.1, time_scale_min=300)
-       ls.inarg_simul (pp, 'Jimag_12', scale=0.1, time_scale_min=300)
-       ls.inarg_simul (pp, 'Jimag_21', scale=0.1, time_scale_min=300)
-       ls.inarg_simul (pp, 'Jimag_22', scale=0.1, time_scale_min=300)
-       # ls.inarg_simul (pp, 'Dang', scale=0.01, time_scale_min=720)
-       ls.inarg_leafgroup_rider(pp)
-
-    else:                                  # normal mode
-       # Input arguments for solving instructions:
-       inarg_Joneset_ParmSet(pp, slave=slave)              
-       ps = TDL_ParmSet.ParmSet()
-       ps.inarg_solve (pp, 'Jreal_11', tdeg=0, fdeg=0, subtile_size=None)
-       ps.inarg_solve (pp, 'Jreal_12', follows='Jreal_11')
-       ps.inarg_solve (pp, 'Jreal_21', follows='Jreal_11')
-       ps.inarg_solve (pp, 'Jreal_22', follows='Jreal_11')
-       ps.inarg_solve (pp, 'Jimag_11', follows='Jreal_11')
-       ps.inarg_solve (pp, 'Jimag_12', follows='Jreal_11')
-       ps.inarg_solve (pp, 'Jimag_21', follows='Jreal_11')
-       ps.inarg_solve (pp, 'Jimag_22', follows='Jreal_11')
-       ps.inarg_parmgroup_rider(pp)
+       ps.LeafSet.inarg_simul (pp, jr11, offset=1, time_scale_min=500)
+       ps.LeafSet.inarg_simul (pp, jr12, offset=1, scale=0.1, time_scale_min=500)
+       ps.LeafSet.inarg_simul (pp, jr21, offset=1, scale=0.1, time_scale_min=500)
+       ps.LeafSet.inarg_simul (pp, jr22, offset=1, time_scale_min=500)
+       ps.LeafSet.inarg_simul (pp, ji11, scale=0.1, time_scale_min=300)
+       ps.LeafSet.inarg_simul (pp, ji12, scale=0.1, time_scale_min=300)
+       ps.LeafSet.inarg_simul (pp, ji21, scale=0.1, time_scale_min=300)
+       ps.LeafSet.inarg_simul (pp, ji22, scale=0.1, time_scale_min=300)
+       # ps.LeafSet.inarg_simul (pp, 'Dang', scale=0.01, time_scale_min=720)
        
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
-    funcname = JEN_inarg.localscope(pp)
 
-    label = jones+'_'+str(JEN_inarg.qualifier(pp))
+    funcname = JEN_inarg.localscope(pp)
+    label = JEN_inarg.qualifier(pp, prepend=jones)
 
     adjust_for_telescope(pp, origin=funcname)
 
@@ -707,40 +700,14 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
     # Create a Joneset object:
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    js.ParmSet = ps                           # attach the ParmSet object
     js.ParmSet.quals(dict(q=pp['punit']))
-    js.LeafSet.quals(dict(q=pp['punit']))
-
-    # Register the parmgroups (in js.ParmSet eventually):
-    dr11 = js.parmgroup('Jreal_11', rider=pp,
-                        condeq_corrs='paral11', c00_default=1.0,
-                        color='red', style='square', size=7)
-    dr22 = js.parmgroup('Jreal_22', rider=pp,
-                        condeq_corrs='paral22', c00_default=1.0,
-                        color='blue', style='square', size=7)
-    di11 = js.parmgroup('Jimag_11', rider=pp,
-                        condeq_corrs='paral11', c00_default=0.0,
-                        color='magenta', style='square', size=7)
-    di22 = js.parmgroup('Jimag_22', rider=pp,
-                        condeq_corrs='paral22', c00_default=0.0,
-                        color='cyan', style='square', size=7)
-    dr12 = js.parmgroup('Jreal_12', rider=pp,
-                        condeq_corrs='*', c00_default=0.0,
-                        color='red', style='square', size=7)
-    dr21 = js.parmgroup('Jreal_21', rider=pp,
-                        condeq_corrs='*', c00_default=0.0,
-                        color='red', style='square', size=7)
-    di12 = js.parmgroup('Jimag_12', rider=pp,
-                        condeq_corrs='*', c00_default=0.0,
-                        color='magenta', style='square', size=7)
-    di21 = js.parmgroup('Jimag_21', rider=pp,
-                        condeq_corrs='*', c00_default=0.0,
-                        color='magenta', style='square', size=7)
 
     # Define potential extra condition equations:
-    # js.ParmSet.define_condeq(di11, unop='Add', value=0.0)
-    # js.ParmSet.define_condeq(di22, unop='Add', value=0.0)
-    # js.ParmSet.define_condeq(dr11, unop='Multiply', value=1.0)
-    # js.ParmSet.define_condeq(dr22, unop='Multiply', value=1.0)
+    # js.ParmSet.define_condeq(ji11, unop='Add', value=0.0)
+    # js.ParmSet.define_condeq(ji22, unop='Add', value=0.0)
+    # js.ParmSet.define_condeq(jr11, unop='Multiply', value=1.0)
+    # js.ParmSet.define_condeq(jr22, unop='Multiply', value=1.0)
 
     # MeqParm node_groups: add 'J' to default 'Parm':
     js.ParmSet.node_groups(label[0])
@@ -748,19 +715,19 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
     # Define solvegroup(s) from combinations of parmgroups:
     if simul:
        if pp['diagonal_only'] and len(pp['all4_always'])==0:
-          js.LeafSet.NodeSet.bookmark('JJones', [dr11, di11, dr22, di22])
+          js.ParmSet.LeafSet.NodeSet.bookmark('JJones', [jr11, ji11, jr22, ji22])
        else:
-          js.LeafSet.NodeSet.bookmark('Jreal', [dr11, dr12, dr21, dr22])
-          js.LeafSet.NodeSet.bookmark('Jimag', [di11, di12, di21, di22])
+          js.ParmSet.LeafSet.NodeSet.bookmark('Jreal', [jr11, jr12, jr21, jr22])
+          js.ParmSet.LeafSet.NodeSet.bookmark('Jimag', [ji11, ji12, ji21, ji22])
     elif pp['diagonal_only'] and len(pp['all4_always'])==0:
-       js.ParmSet.solvegroup('JJones', [dr11, di11, dr22, di22], bookpage=True)
-       js.ParmSet.solvegroup('Jreal', [dr11, dr22])
-       js.ParmSet.solvegroup('Jimag', [di11, di22])
+       js.ParmSet.solvegroup('JJones', [jr11, ji11, jr22, ji22], bookpage=True)
+       js.ParmSet.solvegroup('Jreal', [jr11, jr22])
+       js.ParmSet.solvegroup('Jimag', [ji11, ji22])
     else:
-       js.ParmSet.solvegroup('JJones', [dr11, di11, dr12, di12,
-                                        dr21, di21, dr22, di22])
-       js.ParmSet.solvegroup('Jreal', [dr11, dr12, dr21, dr22], bookpage=True)
-       js.ParmSet.solvegroup('Jimag', [di11, di12, di21, di22], bookpage=True)
+       js.ParmSet.solvegroup('JJones', [jr11, ji11, jr12, ji12,
+                                        jr21, ji21, jr22, ji22])
+       js.ParmSet.solvegroup('Jreal', [jr11, jr12, jr21, jr22], bookpage=True)
+       js.ParmSet.solvegroup('Jimag', [ji11, ji12, ji21, ji22], bookpage=True)
 
 
     # Make station Jones matrices:
@@ -770,36 +737,36 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 
         if pp['diagonal_only'] and not (station in pp['all4_always']):
            diagonal = True
-           JJ = [dr11,dr22,di11,di22]
+           JJ = [jr11,jr22,ji11,ji22]
         else:
            diagonal = False
-           JJ = [dr11,dr12,dr21,dr22,di11,di12,di21,di22]
+           JJ = [jr11,jr12,jr21,jr22,ji11,ji12,ji21,ji22]
 
         ss = dict()
         for group in JJ:
            if simul:
-              ss[group] = js.LeafSet.MeqLeaf (ns, group, qual=qual)
+              ss[group] = js.ParmSet.LeafSet.MeqLeaf (ns, group, qual=qual)
            else:
               ss[group] = js.ParmSet.MeqParm (ns, group, qual=qual)
 
         # Make the 2x2 Jones matrix
         if diagonal:
            stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
-              ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr11], ss[di11]),
+              ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[jr11], ss[ji11]),
               0,0,
-              ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr22], ss[di22])
+              ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[jr22], ss[ji22])
               )
         else:
            stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (
-              ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr11], ss[di11]),
-              ns[label+'_12'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr12], ss[di12]),
-              ns[label+'_21'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr21], ss[di21]),
-              ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[dr22], ss[di22])
+              ns[label+'_11'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[jr11], ss[ji11]),
+              ns[label+'_12'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[jr12], ss[ji12]),
+              ns[label+'_21'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[jr21], ss[ji21]),
+              ns[label+'_22'](s=skey, q=pp['punit']) << Meq.ToComplex(ss[jr22], ss[ji22])
               )
         js.append(skey, stub)
 
     # Finished:
-    js.cleanup()
+    js.ParmSet.cleanup()
     MG_JEN_forest_state.object(js, funcname)
     return js
 
@@ -812,176 +779,166 @@ def JJones (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 #--------------------------------------------------------------------------------
 
 def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
-   """defines 2x2 DJones_WSRT (polarisation leakage) matrices""";
+    """defines 2x2 DJones_WSRT (polarisation leakage) matrices""";
 
-   jones = 'DJones_WSRT'
-   pol1 = 'A'
-   pol2 = 'B'
+    jones = 'DJones_WSRT'
+    pol1 = station_pol1()
+    pol2 = station_pol2()
 
-   # Input arguments:
-   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005',
+    # Input arguments:
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='16dec2005',
                             description=DJones_WSRT.__doc__)
-   inarg_Joneset_common(pp, jones=jones, slave=slave)              
+    inarg_Joneset_common(pp, jones=jones, slave=slave)              
 
-   # ** Jones matrix elements:
-   JEN_inarg.define(pp, 'coupled_XY_Dang', tf=True,  
-                    help='if True, XDang = YDang per station')
-   JEN_inarg.define(pp, 'coupled_XY_Dell', tf=True,  
-                    help='if True, XDell = -YDell per station')
+    # ** Jones matrix elements:
+    JEN_inarg.define(pp, 'coupled_XY_Dang', tf=True,  
+                     help='if True, XDang = YDang per station')
+    JEN_inarg.define(pp, 'coupled_XY_Dell', tf=True,  
+                     help='if True, XDell = -YDell per station')
 
-   if simul:                                    # simulation mode
-      # Input arguments for simulation instructions:
-      ls = TDL_LeafSet.LeafSet()
-      ls.inarg_simul (pp, 'Dang', scale=0.01, time_scale_min=720)
-      ls.inarg_simul (pp, 'Dell', scale=0.01, time_scale_min=720)
-      ls.inarg_simul (pp, 'Dang_'+pol1, scale=0.01, time_scale_min=720)
-      ls.inarg_simul (pp, 'Dang_'+pol2, scale=0.01, time_scale_min=720)
-      ls.inarg_simul (pp, 'Dell_'+pol1, scale=0.01, time_scale_min=720)
-      ls.inarg_simul (pp, 'Dell_'+pol2, scale=0.01, time_scale_min=720)
-      ls.inarg_simul (pp, 'PZD', time_scale_min=300)
-      ls.inarg_leafgroup_rider(pp)
+    # Input arguments for ParmSet parmgroups:
+    ps = TDL_ParmSet.ParmSet(label=jones)
+    inarg_Joneset_ParmSet(pp, slave=slave)
+    Dang = ps.inarg_parmgroup (pp, 'Dang',
+                               tdeg=0, fdeg=0, subtile_size=None,
+                               condeq_corrs='cross', c00_default=0.0,
+                               color='green', style='triangle', size=7)
+    Dell = ps.inarg_parmgroup (pp, 'Dell', follows=Dang,
+                               condeq_corrs='cross', c00_default=0.0,
+                               color='magenta', style='triangle', size=7)
+    Dang1 = ps.inarg_parmgroup (pp, 'Dang_'+pol1, follows=Dang,
+                                condeq_corrs='cross', c00_default=0.0,
+                                color='green', style='triangle', size=7)
+    Dang2 = ps.inarg_parmgroup (pp, 'Dang_'+pol2, follows=Dang,
+                                condeq_corrs='cross', c00_default=0.0,
+                                color='black', style='triangle', size=7)
+    Dell1 = ps.inarg_parmgroup (pp, 'Dell_'+pol1, follows=Dang,
+                                condeq_corrs='cross', c00_default=0.0,
+                                color='magenta', style='triangle', size=7)
+    Dell2 = ps.inarg_parmgroup (pp, 'Dell_'+pol2, follows=Dang,
+                                condeq_corrs='cross', c00_default=0.0,
+                                color='yellow', style='triangle', size=7)
+    pzd = ps.inarg_parmgroup (pp, 'PZD',
+                              tdeg=0, fdeg=0, subtile_size=None,
+                              condeq_corrs='cross', c00_default=0.0,
+                              color='blue', style='circle', size=10)
+    if simul:
+       # Input arguments for simulation instructions:
+       ps.LeafSet.inarg_simul (pp, Dang, scale=0.01, time_scale_min=720)
+       ps.LeafSet.inarg_simul (pp, Dell, scale=0.01, time_scale_min=720)
+       ps.LeafSet.inarg_simul (pp, Dang1, scale=0.01, time_scale_min=720)
+       ps.LeafSet.inarg_simul (pp, Dang2, scale=0.01, time_scale_min=720)
+       ps.LeafSet.inarg_simul (pp, Dell1, scale=0.01, time_scale_min=720)
+       ps.LeafSet.inarg_simul (pp, Dell2, scale=0.01, time_scale_min=720)
+       ps.LeafSet.inarg_simul (pp, pzd, time_scale_min=300)
 
-   else:                                  # normal mode
-      # Input arguments for solving instructions:
-      inarg_Joneset_ParmSet(pp, slave=slave)              
-      ps = TDL_ParmSet.ParmSet()
-      ps.inarg_solve (pp, 'Dang', tdeg=0, fdeg=0, subtile_size=None)
-      ps.inarg_solve (pp, 'Dell', follows='Dang')
-      ps.inarg_solve (pp, 'Dang_'+pol1, follows='Dang')
-      ps.inarg_solve (pp, 'Dang_'+pol2, follows='Dang')
-      ps.inarg_solve (pp, 'Dell_'+pol1, follows='Dang')
-      ps.inarg_solve (pp, 'Dell_'+pol2, follows='Dang')
-      ps.inarg_solve (pp, 'PZD', tdeg=0, fdeg=0, subtile_size=None)
-      ps.inarg_parmgroup_rider(pp)
-      
-   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
-   if not JEN_inarg.is_OK(pp): return False
-   funcname = JEN_inarg.localscope(pp)
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+    if not JEN_inarg.is_OK(pp): return False
 
-   label = jones+'_'+str(JEN_inarg.qualifier(pp))
+    funcname = JEN_inarg.localscope(pp)
+    label = JEN_inarg.qualifier(pp, prepend=jones)
 
-   adjust_for_telescope(pp, origin=funcname)
-   pp['punit'] = get_punit(Sixpack, pp)
+    adjust_for_telescope(pp, origin=funcname)
+    pp['punit'] = get_punit(Sixpack, pp)
+    
+    # Create a Joneset object:
+    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    js.ParmSet = ps                           # attach the ParmSet object
+    js.ParmSet.quals(dict(q=pp['punit']))
+    
+    # Define potential extra condition equations:
+    js.ParmSet.define_condeq(Dang, unop='Add', value=0.0)
+    js.ParmSet.define_condeq(Dang1, unop='Add', value=0.0)
+    js.ParmSet.define_condeq(Dang2, unop='Add', value=0.0)
+    
+    # MeqParm node_groups: add 'D' to default 'Parm':
+    js.ParmSet.node_groups(label[0])
 
-   # Create a Joneset object:
-   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
-   js.ParmSet.quals(dict(q=pp['punit']))
-   js.LeafSet.quals(dict(q=pp['punit']))
+    # Define solvegroup(s) from combinations of parmgroups:
+    if simul:
+       if pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
+          js.ParmSet.LeafSet.NodeSet.bookmark('DJones', [Dang, Dell, pzd])
+       elif pp['coupled_XY_Dang']:
+          js.ParmSet.LeafSet.NodeSet.bookmark('DJones', [Dang, Dell1, Dell2, pzd])
+       elif pp['coupled_XY_Dell']:
+          js.ParmSet.LeafSet.NodeSet.bookmark('DJones', [Dang1, Dang2, Dell, pzd])
+       else:
+          js.ParmSet.LeafSet.NodeSet.bookmark('DJones', [Dang1, Dang2, Dell1, Dell2, pzd])
+    elif pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
+       js.ParmSet.solvegroup('DJones', [Dang, Dell, pzd], bookpage=True)
+    elif pp['coupled_XY_Dang']:
+       js.ParmSet.solvegroup('DJones', [Dang, Dell1, Dell2, pzd], bookpage=True)
+       js.ParmSet.solvegroup('Dell', [Dell1, Dell2, pzd])
+    elif pp['coupled_XY_Dell']:
+       js.ParmSet.solvegroup('DJones', [Dang1, Dang2, Dell, pzd], bookpage=True)
+       js.ParmSet.solvegroup('Dang', [Dang1, Dang2, pzd])
+    else:
+       js.ParmSet.solvegroup('DJones', [Dang1, Dang2, Dell1, Dell2, pzd], bookpage=True)
+       js.ParmSet.solvegroup('Dang', [Dang1, Dang2, pzd])
+       js.ParmSet.solvegroup('Dell', [Dell1, Dell2, pzd])
 
-   # Register the parmgroups (in js.ParmSet eventually):
-   Dang = js.parmgroup('Dang', rider=pp,
-                       condeq_corrs='cross', c00_default=0.0,
-                       color='green', style='triangle', size=7)
-   Dell = js.parmgroup('Dell', rider=pp,
-                       condeq_corrs='cross', c00_default=0.0,
-                       color='magenta', style='triangle', size=7)
-   Dang1 = js.parmgroup('Dang_'+pol1, rider=pp,
-                        condeq_corrs='cross', c00_default=0.0,
-                        color='green', style='triangle', size=7)
-   Dang2 = js.parmgroup('Dang_'+pol2, rider=pp,
-                        condeq_corrs='cross', c00_default=0.0,
-                        color='black', style='triangle', size=7)
-   Dell1 = js.parmgroup('Dell_'+pol1, rider=pp,
-                        condeq_corrs='cross', c00_default=0.0,
-                        color='magenta', style='triangle', size=7)
-   Dell2 = js.parmgroup('Dell_'+pol2, rider=pp,
-                        condeq_corrs='cross', c00_default=0.0,
-                        color='yellow', style='triangle', size=7)
-   pzd = js.parmgroup('PZD', rider=pp,
-                      condeq_corrs='cross', c00_default=0.0,
-                      color='blue', style='circle', size=10)
-
-   # Define potential extra condition equations:
-   js.ParmSet.define_condeq(Dang, unop='Add', value=0.0)
-   js.ParmSet.define_condeq(Dang1, unop='Add', value=0.0)
-   js.ParmSet.define_condeq(Dang2, unop='Add', value=0.0)
-
-   # MeqParm node_groups: add 'D' to default 'Parm':
-   js.ParmSet.node_groups(label[0])
-
-   # Define solvegroup(s) from combinations of parmgroups:
-   if simul:
-      if pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
-         js.LeafSet.NodeSet.bookmark('DJones', [Dang, Dell, pzd])
-      elif pp['coupled_XY_Dang']:
-         js.LeafSet.NodeSet.bookmark('DJones', [Dang, Dell1, Dell2, pzd])
-      elif pp['coupled_XY_Dell']:
-         js.LeafSet.NodeSet.bookmark('DJones', [Dang1, Dang2, Dell, pzd])
-      else:
-         js.LeafSet.NodeSet.bookmark('DJones', [Dang1, Dang2, Dell1, Dell2, pzd])
-   elif pp['coupled_XY_Dang'] and pp['coupled_XY_Dell']:
-      js.ParmSet.solvegroup('DJones', [Dang, Dell, pzd], bookpage=True)
-   elif pp['coupled_XY_Dang']:
-      js.ParmSet.solvegroup('DJones', [Dang, Dell1, Dell2, pzd], bookpage=True)
-      js.ParmSet.solvegroup('Dell', [Dell1, Dell2, pzd])
-   elif pp['coupled_XY_Dell']:
-      js.ParmSet.solvegroup('DJones', [Dang1, Dang2, Dell, pzd], bookpage=True)
-      js.ParmSet.solvegroup('Dang', [Dang1, Dang2, pzd])
-   else:
-      js.ParmSet.solvegroup('DJones', [Dang1, Dang2, Dell1, Dell2, pzd], bookpage=True)
-      js.ParmSet.solvegroup('Dang', [Dang1, Dang2, pzd])
-      js.ParmSet.solvegroup('Dell', [Dell1, Dell2, pzd])
+    # The X/Y Phase-Zero-Difference (PZD) is shared by all stations:
+    ss = dict()
+    if simul:
+       ss[pzd] = js.ParmSet.LeafSet.MeqLeaf (ns, pzd)
+    else:
+       ss[pzd] = js.ParmSet.MeqParm(ns, pzd)
+    matname = 'DJones_PZD_matrix'
+    pmat = MG_JEN_matrix.phase (ns, angle=ss[pzd], name=matname)
 
 
-   # The X/Y Phase-Zero-Difference (PZD) is shared by all stations:
-   ss = dict()
-   if simul:
-      ss[pzd] = js.LeafSet.MeqLeaf (ns, pzd)
-   else:
-      ss[pzd] = js.ParmSet.MeqParm(ns, pzd)
-   matname = 'DJones_PZD_matrix'
-   pmat = MG_JEN_matrix.phase (ns, angle=ss[pzd], name=matname)
+    # Make the jones matrices per station:
+    jones = {}
+    for station in pp['stations']:
+       skey = TDL_radio_conventions.station_key(station)  
+       qual = dict(s=skey)
 
+       # Dipole angle errors (Dang) may be coupled (Dang(X)=Dang(Y)) or not:
+       matname = 'DJones_Dang_matrix'
+       if pp['coupled_XY_Dang']:
+          if simul:
+             ss[Dang] = js.ParmSet.LeafSet.MeqLeaf (ns, Dang, qual=qual)
+          else:
+             ss[Dang] = js.ParmSet.MeqParm (ns, Dang, qual=qual)
+          rmat = MG_JEN_matrix.rotation (ns, angle=ss[Dang],
+                                         qual=None, name=matname)
 
-   # Make the jones matrices per station:
-   jones = {}
-   for station in pp['stations']:
-      skey = TDL_radio_conventions.station_key(station)  
-      qual = dict(s=skey)
+       else: 
+          for Dang in [Dang1,Dang2]:
+             if simul:
+                ss[Dang] = js.ParmSet.LeafSet.MeqLeaf (ns, Dang, qual=qual)
+             else:
+                ss[Dang] = js.ParmSet.MeqParm (ns, Dang, qual=qual)
+          rmat = MG_JEN_matrix.rotation (ns, angle=[ss[Dang1],ss[Dang2]],
+                                         qual=None, name=matname)
 
-      # Dipole angle errors (Dang) may be coupled (Dang(X)=Dang(Y)) or not:
-      matname = 'DJones_Dang_matrix'
-      if pp['coupled_XY_Dang']:
-         if simul:
-            ss[Dang] = js.LeafSet.MeqLeaf (ns, Dang, qual=qual)
-         else:
-            ss[Dang] = js.ParmSet.MeqParm (ns, Dang, qual=qual)
-         rmat = MG_JEN_matrix.rotation (ns, angle=ss[Dang], qual=None, name=matname)
+       # Dipole ellipticities (Dell) may be coupled (Dell(X)=-Dell(Y)) or not:
+       matname = 'DJones_Dell_matrix'
+       if pp['coupled_XY_Dell']:
+          if simul:
+             ss[Dell] = js.ParmSet.LeafSet.MeqLeaf (ns, Dell, qual=qual)
+          else:
+             ss[Dell] = js.ParmSet.MeqParm (ns, Dell, qual=qual)
+          emat = MG_JEN_matrix.ellipticity (ns, angle=ss[Dell],
+                                            qual=None, name=matname)
 
-      else: 
-         for Dang in [Dang1,Dang2]:
-            if simul:
-               ss[Dang] = js.LeafSet.MeqLeaf (ns, Dang, qual=qual)
-            else:
-               ss[Dang] = js.ParmSet.MeqParm (ns, Dang, qual=qual)
-         rmat = MG_JEN_matrix.rotation (ns, angle=[ss[Dang1],ss[Dang2]], qual=None, name=matname)
+       else:
+          for Dell in [Dell1,Dell2]:
+             if simul:
+                ss[Dell] = js.ParmSet.LeafSet.MeqLeaf (ns, Dell, qual=qual)
+             else:
+                ss[Dell] = js.ParmSet.MeqParm (ns, Dell, qual=qual)
+          emat = MG_JEN_matrix.ellipticity (ns, angle=[ss[Dell1],ss[Dell2]],
+                                            qual=None, name=matname)
 
+       # Make the 2x2 Jones matrix by multiplying the sub-matrices:
+       stub = ns[label](s=skey, q=pp['punit']) << Meq.MatrixMultiply (rmat, emat, pmat)
+       js.append(skey, stub)
 
-      # Dipole ellipticities (Dell) may be coupled (Dell(X)=-Dell(Y)) or not:
-      matname = 'DJones_Dell_matrix'
-      if pp['coupled_XY_Dell']:
-         if simul:
-            ss[Dell] = js.LeafSet.MeqLeaf (ns, Dell, qual=qual)
-         else:
-            ss[Dell] = js.ParmSet.MeqParm (ns, Dell, qual=qual)
-         emat = MG_JEN_matrix.ellipticity (ns, angle=ss[Dell], qual=None, name=matname)
-
-      else:
-         for Dell in [Dell1,Dell2]:
-            if simul:
-               ss[Dell] = js.LeafSet.MeqLeaf (ns, Dell, qual=qual)
-            else:
-               ss[Dell] = js.ParmSet.MeqParm (ns, Dell, qual=qual)
-         emat = MG_JEN_matrix.ellipticity (ns, angle=[ss[Dell1],ss[Dell2]], qual=None, name=matname)
-
-      # Make the 2x2 Jones matrix by multiplying the sub-matrices:
-      stub = ns[label](s=skey, q=pp['punit']) << Meq.MatrixMultiply (rmat, emat, pmat)
-      js.append(skey, stub)
-
-   # Finished:
-   js.cleanup()
-   MG_JEN_forest_state.object(js, funcname)
-   return js
+    # Finished:
+    js.ParmSet.cleanup()
+    MG_JEN_forest_state.object(js, funcname)
+    return js
 
 
 
@@ -992,67 +949,54 @@ def DJones_WSRT (ns=0, Sixpack=None, slave=False, simul=False, **inarg):
 #--------------------------------------------------------------------------------
 
 def KJones (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, **inarg):
-   """defines diagonal KJones matrices for DFT Fourier kernel""";
+    """defines diagonal KJones matrices for DFT Fourier kernel""";
 
-   jones = 'KJones'
+    jones = 'KJones'
    
-   # Input arguments:
-   pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='12dec2005',
+    # Input arguments:
+    pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='12dec2005',
                             description=KJones.__doc__)
-   inarg_Joneset_common(pp, jones=jones, slave=slave)              
+    inarg_Joneset_common(pp, jones=jones, slave=slave)              
 
-   if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
-   if not JEN_inarg.is_OK(pp): return False
+    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
+    if not JEN_inarg.is_OK(pp): return False
 
-   funcname = JEN_inarg.localscope(pp)
+    funcname = JEN_inarg.localscope(pp)
+    label = JEN_inarg.qualifier(pp, prepend=jones)
+    
+    adjust_for_telescope(pp, origin=funcname)
 
-   label = jones+'_'+str(JEN_inarg.qualifier(pp))
+    # Note the difference with other Jones matrices:
+    if not Sixpack:
+       Sixpack = punit2Sixpack(ns, punit='uvp')
+    pp['punit'] = get_punit(Sixpack)
 
-   adjust_for_telescope(pp, origin=funcname)
+    # Create a Joneset object
+    js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    # js.ParmSet = ps                           # attach the ParmSet object
+    js.ParmSet.quals(dict(q=pp['punit']))
 
-   # Note the difference with other Jones matrices:
-   if not Sixpack:
-      Sixpack = punit2Sixpack(ns, punit='uvp')
-   pp['punit'] = get_punit(Sixpack)
-
-   # Create a Joneset object
-   js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
-   js.ParmSet.quals(dict(q=pp['punit']))
-   js.LeafSet.quals(dict(q=pp['punit']))
-
-   # Calculate punit (l,m,n) from input Sixpack:
-   radec = Sixpack.radec(ns)
-   radec0 = MSauxinfo.radec0()
-   lmn    = ns['lmn'](q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
-   ncoord = ns['ncoord'](q=pp['punit']) << Meq.Selector(lmn, index=2)
-   lmn1   = ns['lmn_minus1'](q=pp['punit']) << Meq.Paster(lmn, ncoord-1, index=2)
-   sqrtn  = ns << Meq.Sqrt(ncoord)
-
-   if False:
-      # Sixpack.display(full=True)
-      print '\n KJones:'
-      print '- radec  =',radec
-      print '- radec0 =',radec0
-      print '- lmn    =',lmn
-      print '- lmn1   =',lmn1
-      print '- ncoord =',ncoord
-      print '- sqrtn  =',sqrtn
-      print
+    # Calculate punit (l,m,n) from input Sixpack:
+    radec = Sixpack.radec(ns)
+    radec0 = MSauxinfo.radec0()
+    lmn    = ns['lmn'](q=pp['punit']) << Meq.LMN(radec_0=radec0, radec=radec)
+    ncoord = ns['ncoord'](q=pp['punit']) << Meq.Selector(lmn, index=2)
+    lmn1   = ns['lmn_minus1'](q=pp['punit']) << Meq.Paster(lmn, ncoord-1, index=2)
+    sqrtn  = ns << Meq.Sqrt(ncoord)
    
-   # The 2x2 KJones matrix is diagonal, with identical elements (Kmel) 
-   for station in pp['stations']:
-      skey = TDL_radio_conventions.station_key(station)
-      qual = dict(s=skey)
-      uvw = MSauxinfo.node_station_uvw(skey, ns=ns)
-      Kmel = ns['dft'](s=skey, q=pp['punit']) << Meq.VisPhaseShift(lmn=lmn1, uvw=uvw)/sqrtn
-      stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (Kmel,0,0,Kmel)
-      js.append(skey, stub)
+    # The 2x2 KJones matrix is diagonal, with identical elements (Kmel) 
+    for station in pp['stations']:
+       skey = TDL_radio_conventions.station_key(station)
+       qual = dict(s=skey)
+       uvw = MSauxinfo.node_station_uvw(skey, ns=ns)
+       Kmel = ns['dft'](s=skey, q=pp['punit']) << Meq.VisPhaseShift(lmn=lmn1, uvw=uvw)/sqrtn
+       stub = ns[label](s=skey, q=pp['punit']) << Meq.Matrix22 (Kmel,0,0,Kmel)
+       js.append(skey, stub)
 
-
-   # Finished:
-   js.cleanup()
-   MG_JEN_forest_state.object(js, funcname)
-   return js
+    # Finished:
+    js.ParmSet.cleanup()
+    MG_JEN_forest_state.object(js, funcname)
+    return js
 
 
 
@@ -1077,35 +1021,36 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     """
 
     jones = 'EJones_WSRT'
-    pol1 = 'A'
-    pol2 = 'B'
+    pol1 = station_pol1()
+    pol2 = station_pol2()
  
     # Input arguments:
     pp = JEN_inarg.inarg2pp(inarg, 'MG_JEN_Joneset::'+jones+'()', version='15dec2005',
                             description=EJones_WSRT.__doc__)
     inarg_Joneset_common(pp, jones=jones, slave=slave)              
 
-    if simul:                                    # simulation mode
+    # Input arguments for ParmSet parmgroups:
+    ps = TDL_ParmSet.ParmSet(label=jones)
+    inarg_Joneset_ParmSet(pp, slave=slave)
+    b1 = ps.inarg_parmgroup (pp, 'EJones_'+pol1,
+                             tdeg=0, fdeg=0, subtile_size=1,
+                             descr='Station X voltage beam shape (l,m,t,f)',
+                             condeq_corrs='paral', c00_default=1.0,
+                             color='red', style='diamond', size=10)
+    b2 = ps.inarg_parmgroup (pp, 'EJones_'+pol2, follows=b1,
+                             descr='Station Y voltage beam shape (l,m,t,f)',
+                             condeq_corrs='paral', c00_default=1.0,
+                             color='blue', style='diamond', size=10)
+    if simul:
        # Input arguments for simulation instructions:
-       ls = TDL_LeafSet.LeafSet()
-       ls.inarg_simul (pp, 'EJones_'+pol1, offset=1, time_scale_min=1000)
-       ls.inarg_simul (pp, 'EJones_'+pol2, offset=1, time_scale_min=1000)
-       ls.inarg_leafgroup_rider(pp)
-
-    else:                                        # normal mode
-       # Input arguments for solving instructions:
-       inarg_Joneset_ParmSet(pp, slave=slave)              
-       ps = TDL_ParmSet.ParmSet()
-       ps.inarg_solve (pp, 'EJones_'+pol1, tdeg=0, fdeg=0, subtile_size=1)
-       ps.inarg_solve (pp, 'EJones_'+pol2, follows='EJones_'+pol1)
-       ps.inarg_parmgroup_rider(pp)
+       ps.LeafSet.inarg_simul (pp, b1, offset=1, time_scale_min=1000)
+       ps.LeafSet.inarg_simul (pp, b2, offset=1, time_scale_min=1000)
 
     if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
     if not JEN_inarg.is_OK(pp): return False
-    funcname = JEN_inarg.localscope(pp)
 
-    label = jones
-    # label = JEN_inarg.qualifier(pp, prepend=jones)
+    funcname = JEN_inarg.localscope(pp)
+    label = JEN_inarg.qualifier(pp, prepend=jones)
 
     # Some preparations:
     adjust_for_telescope(pp, origin=funcname)
@@ -1116,27 +1061,17 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
        
     # Create a Joneset object
     js = TDL_Joneset.Joneset(label=label, origin=funcname, **pp)
+    js.ParmSet = ps                           # attach the ParmSet object
     ## js.ParmSet.quals(dict(q=pp['punit']))
-    ## js.LeafSet.quals(dict(q=pp['punit']))
-    
-    # Register the parmgroups with specific rider parameters:
-    b1 = js.parmgroup('EJones_'+pol1, rider=pp, 
-                      descr='Station X voltage beam shape (l,m,t,f)',
-                      condeq_corrs='paral', c00_default=1.0,
-                      color='red', style='diamond', size=10)
-    b2 = js.parmgroup('EJones_'+pol2, rider=pp, 
-                      descr='Station Y voltage beam shape (l,m,t,f)',
-                      condeq_corrs='paral', c00_default=1.0,
-                      color='blue', style='diamond', size=10)
-    
+        
     # MeqParm node_groups: add 'E' to default 'Parm':
     js.ParmSet.node_groups(label[0])
     
     # Define solvegroup(s) from combinations of parmgroups:
     if simul:
-       # js.LeafSet.NodeSet.bookmark('EJones', [b1,b2,dl,dm])
-       js.LeafSet.NodeSet.bookmark('EJones', [b1,b2])
-       # js.LeafSet.NodeSet.bookmark('Epointing', [dl,dm])
+       # js.ParmSet.LeafSet.NodeSet.bookmark('EJones', [b1,b2,dl,dm])
+       js.ParmSet.LeafSet.NodeSet.bookmark('EJones', [b1,b2])
+       # js.ParmSet.LeafSet.NodeSet.bookmark('Epointing', [dl,dm])
     else:
        # NB: For the bookmark definition, see after stations.
        js.ParmSet.solvegroup('EJones', [b1,b2], bookpage=None)
@@ -1164,8 +1099,8 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
        ss = dict()
        if False:
           if simul:
-             ss[dl] = js.LeafSet.MeqLeaf (ns, dl, qual=qual)
-             ss[dm] = js.LeafSet.MeqLeaf (ns, dm, qual=qual)
+             ss[dl] = js.ParmSet.LeafSet.MeqLeaf (ns, dl, qual=qual)
+             ss[dm] = js.ParmSet.LeafSet.MeqLeaf (ns, dm, qual=qual)
           else:
              ss[dl] = js.ParmSet.MeqParm (ns, dl, qual=qual)
              ss[dm] = js.ParmSet.MeqParm (ns, dm, qual=qual)
@@ -1178,10 +1113,10 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
           lmtot = ns['lm'](s=skey, q=pp['punit']) << Meq.Add(lm,dlm)
 
        if simul:
-          ss[b1] = js.LeafSet.MeqLeaf (ns, b1, qual=qual, init_funklet=X_beam,
+          ss[b1] = js.ParmSet.LeafSet.MeqLeaf (ns, b1, qual=qual, init_funklet=X_beam,
                                        qual2=qual_punit,
                                        compounder_children=lmtot, common_axes=cax)
-          ss[b2] = js.LeafSet.MeqLeaf (ns, b2, qual=qual, init_funklet=Y_beam,
+          ss[b2] = js.ParmSet.LeafSet.MeqLeaf (ns, b2, qual=qual, init_funklet=Y_beam,
                                        qual2=qual_punit,
                                        compounder_children=lmtot, common_axes=cax)
        else:
@@ -1202,16 +1137,16 @@ def EJones_WSRT (ns=0, Sixpack=None, MSauxinfo=None, simul=False, slave=False, *
     if True:
        pass
     elif simul:
-       bookpage = js.LeafSet.NodeSet.tlabel()+'_EJones'
-       js.LeafSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
-       # js.LeafSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
+       bookpage = js.ParmSet.LeafSet.NodeSet.tlabel()+'_EJones'
+       js.ParmSet.LeafSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
+       # js.ParmSet.LeafSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
     else:
        bookpage = js.ParmSet.NodeSet.tlabel()+'_EJones'
        js.ParmSet.NodeSet.apply_binop(ns, [b1,b2], 'Polar', bookpage=bookpage)
        # js.ParmSet.NodeSet.apply_binop(ns, [dl,dm], 'Polar', bookpage=bookpage)
 
     # Finished:
-    js.cleanup()
+    js.ParmSet.cleanup()
     MG_JEN_forest_state.object(js, funcname)
     return js
 
@@ -1623,6 +1558,7 @@ if __name__ == '__main__':
       MG_JEN_exec.without_meqserver(MG['script_name'], callback=_define_forest)
 
   ns = NodeScope()
+  nsim = ns.Subscope('_')
   stations = range(0,3)
   ifrs  = [ (s1,s2) for s1 in stations for s2 in stations if s1<s2 ];
   scope = MG['script_name']
@@ -1632,6 +1568,8 @@ if __name__ == '__main__':
      MSauxinfo = TDL_MSauxinfo.MSauxinfo(label='MG_JEN_Cohset')
      MSauxinfo.station_config_default()           # WSRT (15 stations), incl WHAT
      MSauxinfo.create_nodes(ns)
+
+  if 0:
      if 1:
         js = EJones_WSRT (ns, MSauxinfo=MSauxinfo, stations=stations, simul=False)
      if 0:
@@ -1641,36 +1579,53 @@ if __name__ == '__main__':
 
 
   if 0:
-     # inarg = FJones (_getdefaults=True)
-     inarg = GJones (_getdefaults=True, simul=False)
-     # inarg = BJones (_getdefaults=True)
-     # inarg = DJones_WSRT (_getdefaults=True)
+     simul = False
+     inarg = FJones (_getdefaults=True, simul=simul)
+     # inarg = GJones (_getdefaults=True, simul=simul)
+     # inarg = BJones (_getdefaults=True, simul=simul)
+     # inarg = JJones (_getdefaults=True, simul=simul)
+     # inarg = EJones (_getdefaults=True, simul=simul)
+     # inarg = KJones (_getdefaults=True, simul=simul)
+     # inarg = DJones_WSRT (_getdefaults=True, simul=simul)
      from Timba.Trees import JEN_inargGui
      igui = JEN_inargGui.ArgBrowser()
      igui.input(inarg)
      igui.launch()
 
-  if 0:
+  if 1:
      simul = False
      # simul = True
      jseq = Joneseq()
      jseq.append(GJones (ns, scope=scope, stations=stations, simul=simul))
-     jseq.append(BJones (ns, scope=scope, stations=stations, simul=simul))
-     jseq.append(FJones (ns, scope=scope, stations=stations, simul=simul))
-     jseq.append(DJones_WSRT (ns, scope=scope, stations=stations, simul=simul))
-     jseq.append(JJones (ns, scope=scope, stations=stations, simul=simul))
+     # jseq.append(BJones (ns, scope=scope, stations=stations, simul=simul))
+     # jseq.append(FJones (ns, scope=scope, stations=stations, simul=simul))
+     # jseq.append(JJones (ns, scope=scope, stations=stations, simul=simul))
+     # jseq.append(DJones_WSRT (ns, scope=scope, stations=stations, simul=simul))
+     # jseq.append(KJones (ns, MSauxinfo=MSauxinfo, stations=stations, simul=simul))
+     # jseq.append(EJones_WSRT (ns, MSauxinfo=MSauxinfo, stations=stations, simul=simul))
      jseq.display()
      js = jseq.make_Joneset(ns)
-     js.display()     
+     # js.display()     
      display_first_subtree (js, full=1)
 
   if 0:
-     simul = False
-     js = GJones (ns, stations=stations, simul=simul)
+     if True:
+        js = GJones (nsim, stations=stations, simul=True)
+     else:
+        js = GJones (ns, stations=stations)
      full = True
      # js.display(full=full)     
      js.ParmSet.display(full=full)     
-     # js.LeafSet.display(full=full)     
+     # display_first_subtree (js, full=True)
+
+  if 0:
+     simul = True
+     inarg = GJones (_getdefaults=True, stations=stations, simul=simul)
+     js = GJones (ns, _inarg=inarg, simul=simul)
+     full = True
+     # js.display(full=full)     
+     js.ParmSet.display(full=full)     
+     # js.ParmSet.LeafSet.display(full=full)     
      # display_first_subtree (js, full=True)
 
   if 0:
@@ -1687,11 +1642,11 @@ if __name__ == '__main__':
      MG_JEN_exec.display_object (dconc, 'dconc')
      MG_JEN_exec.display_subtree (dconc, 'dconc', full=1)
 
-  if 1:
+  if 0:
      full = True
      # js.display(full=full)     
      js.ParmSet.display(full=full)     
-     js.LeafSet.display(full=full)     
+     # js.ParmSet.LeafSet.display(full=full)     
      # display_first_subtree (js, full=True)
 
   if 0:

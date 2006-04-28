@@ -321,18 +321,18 @@ def dcoll (ns, node=[], **pp):
          attr = deepcopy(attrib)
          if not isinstance(attr.tag, list): attr.tag = [attr.tag]
          attr.tag.append('Mean')
-         dc_mean = ns[dcoll_name+'_mean'] << Meq.DataCollect(children=dcoll['mean'],
-                                                            top_label=hiid('visu'),
-                                                            attrib=attr)
+         dc_mean = ns[dcoll_name+'_mean'](uniqual) << Meq.DataCollect(children=dcoll['mean'],
+                                                                      top_label=hiid('visu'),
+                                                                      attrib=attr)
          dcoll['dcoll_mean'] = dc_mean
          
          # Make a separate dcoll for the stddevs:
          attr = deepcopy(attrib)
          if not isinstance(attr.tag, list): attr.tag = [attr.tag]
          attr.tag.append('StdDev')
-         dc_stddev = ns[dcoll_name+'_stddev'] << Meq.DataCollect(children=dcoll['stddev'],
-                                                                top_label=hiid('visu'),
-                                                                attrib=attr)
+         dc_stddev = ns[dcoll_name+'_stddev'](uniqual) << Meq.DataCollect(children=dcoll['stddev'],
+                                                                          top_label=hiid('visu'),
+                                                                          attrib=attr)
          dcoll['dcoll_stddev'] = dc_stddev
          
          # Combine the mean and stddev dcolls:

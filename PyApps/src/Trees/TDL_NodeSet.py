@@ -337,6 +337,10 @@ class NodeSet (TDL_common.Super):
         """Return the MeqNode entry keys."""
         return self.__MeqNode.keys()
 
+    def empty(self):
+        """Return True if the NodeSet is empty (has no nodes)."""
+        return self.len()==0
+
     def has_key(self, key):
         """Check whether the specified (key) MeqNode entry exists."""
         return self.__MeqNode.has_key(key)
@@ -453,24 +457,29 @@ class NodeSet (TDL_common.Super):
         """Get the specified (key) group_rider (None = all)"""
         return self._fieldict (self.__group_rider, key=key, name='.group_rider()')
 
-    def group_rider_item(self, item=None, key=None, trace=False):
+    def group_rider_item(self, item=None, key=None, default=None, trace=False):
         """Get the specified (key) item (e.g. color) from the group_rider (None = all)"""
-        return self._dictitem(self.group_rider(), item=item, key=key,
+        return self._dictitem(self.group_rider(), item=item, key=key, default=default,
                               name='.group_rider_item()', trace=trace)
 
     def plot_color(self, key=None, trace=False):
         """Get the specified (key) group plot_color (None = all)"""
-        return self.group_rider_item ('color', key=key, trace=trace)
+        return self.group_rider_item ('color', key=key, default='yellow', trace=trace)
 
     def plot_style(self, key=None, trace=False):
         """Get the specified (key) group plot_style (None = all)"""
-        return self.group_rider_item ('style', key=key, trace=trace)
+        return self.group_rider_item ('style', key=key, default='circle', trace=trace)
 
     def plot_size(self, key=None, trace=False):
         """Get the specified (key) group plot_size (None = all)"""
-        return self.group_rider_item ('size', key=key, trace=trace)
+        return self.group_rider_item ('size', key=key, default=20, trace=trace)
+
+    def plot_pen(self, key=None, trace=False):
+        """Get the specified (key) group plot_size (None = all)"""
+        return self.group_rider_item ('pen', key=key, default=1, trace=trace)
 
     def radio_conventions(self):
+        """Some standard plot colors/styles etc"""
         self.__plot_color = TDL_radio_conventions.plot_color()
         self.__plot_style = TDL_radio_conventions.plot_style()
         self.__plot_size = TDL_radio_conventions.plot_size()
@@ -1079,6 +1088,7 @@ class NodeSet (TDL_common.Super):
           for key in self.__group.keys():
               if len(self.__group[key])==0:
                   self.__group.__delitem__(key)
+                  self.__group_rider.__delitem__(key)
                   removed.append(key)
 
       # Remove gogs that have group members that do not exist:
@@ -1088,7 +1098,9 @@ class NodeSet (TDL_common.Super):
           for key in self.__gog[skey]:
               if not self.__group.has_key(key):
                   ok = False
-          if not ok: self.__gog.__delitem__(skey)
+          if not ok:
+              self.__gog.__delitem__(skey)
+              self.__gog_rider.__delitem__(skey)
 
       # Miscellaneous:
       self.history ('.cleanup():  removed empty group(s): '+str(removed))

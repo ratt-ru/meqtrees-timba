@@ -155,6 +155,7 @@ class Super:
         rr = self._rider()
         if not full:
             ss.append(indent1+'* Object rider ('+str(len(rr))+' entries): (not shown)')
+            ss.append(indent2+'- rider field-names: '+str(rr.keys()))
         else:
             ss.append(indent1+'* Object rider ('+str(len(rr))+' entries):')
             for key in rr.keys():
@@ -294,20 +295,20 @@ class Super:
         return ',  rider length = '+str(len(rr))
 
 
-    def _dictitem(self, rr=None, item=None, key=None, name=None, trace=False):
+    def _dictitem(self, rr=None, item=None, key=None, name=None, default=None, trace=False):
         """Get the specified item (e.g. color) from the specified dicts (key, None=all)
         in the given dict (rr). If rr==None, the object's own 'rider' dict is assumed."""
         if rr==None: rr = self._rider()
         s1 = '._dictitem('+str(type(rr))+', '+str(item)+', '+str(key)+')'
         if trace: print '\n**',s1,
-        if not isinstance(rr, dict): return False
-        if not isinstance(item, str): return False
+        if not isinstance(rr, dict): return default
+        if not isinstance(item, str): return default
         cc = dict()
         for rkey in rr.keys():
             if rr[rkey].has_key(item):
                 cc[rkey] = rr[rkey][item]
         if trace: print '-> cc =',cc,
-        result = self._fieldict (cc, key=key, name=s1)
+        result = self._fieldict (cc, key=key, name=s1, default=default)
         if trace: print '->',result
         return result
 
@@ -325,7 +326,7 @@ class Super:
         return value                                # return list/tuple
 
 
-    def _fieldict (self, rr=dict(), key=None,
+    def _fieldict (self, rr=dict(), key=None, default=None,
                    clear=False, name='<name>', trace=False):
         """Return the specified field (key) from the given dict (rr).
         If clear==True, clear the field (key) of the entire dict (key==None)."""
@@ -340,10 +341,10 @@ class Super:
             for k in key:
                 if not isinstance(k, str): 
                     self.history(error=str(name)+': key type is:'+str(type(k)))
-                    cc[k] = None                    # ....?
-                elif not rr.has_key(k):               # field (k) not recognised....
+                    cc[k] = default                 # ....?
+                elif not rr.has_key(k):             # field (k) not recognised....
                     self.history(error=str(name)+': key not recognised: '+k)
-                    cc[k] = None                    # ....?
+                    cc[k] = default                 # ....?
                 else:                               # rr has the specified field (k)
                     if clear:
                         if isinstance(rr[k], dict):
@@ -353,7 +354,8 @@ class Super:
                     cc[k] = rr[k]                   # collected output
             if len(key)==1: return cc[key[0]]       # only one key asked: return the value
             return cc                               # multiple keys asked: return a dict
-        return False
+        # Problem: return the default value:
+        return default
 
 
     def _updict_rider (self, rider=dict(), trace=False):

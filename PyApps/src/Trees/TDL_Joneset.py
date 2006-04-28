@@ -15,6 +15,9 @@
 #    - 02 jan 2006: adopted TDL_Parmset.py
 #    - 25 feb 2006: adopted TDL_Leafset.py
 #    - 09 mar 2006: switched over to TDL_ParmSet and TDL_LeafSet
+#    - 23 apr 2006: moved LeafSet into Parmset
+#    - 23 apr 2006: removed .parmgroup() and .cleanup() etc
+#    - 28 apr 2006: called updict from update routines
 #
 # Full description:
 #
@@ -30,7 +33,7 @@ from copy import deepcopy
 
 from Timba.Trees import TDL_common
 from Timba.Trees import TDL_ParmSet
-from Timba.Trees import TDL_LeafSet
+# from Timba.Trees import TDL_LeafSet
 from Timba.Trees import TDL_radio_conventions
 
 
@@ -68,7 +71,7 @@ class Joneset (TDL_common.Super):
         self.ParmSet = TDL_ParmSet.ParmSet(**pp)
 
         # Define its LeafSet object (simulation services) 
-        self.LeafSet = TDL_LeafSet.LeafSet(**pp)
+        # self.LeafSet = TDL_LeafSet.LeafSet(**pp)             # ....obsolete..
 
         self.clear()
 
@@ -201,7 +204,7 @@ class Joneset (TDL_common.Super):
         indent2 = 6*' '
 
         ss.append(indent1+' - '+str(self.ParmSet.oneliner()))
-        ss.append(indent1+' - '+str(self.LeafSet.oneliner()))
+        ss.append(indent1+' - '+str(self.ParmSet.LeafSet.oneliner()))
 
         ss.append(indent1+' - Station jones matrix nodes ( '+str(self.len())+' ):')
         if full or self.len()<15:
@@ -220,43 +223,14 @@ class Joneset (TDL_common.Super):
     # Functions related to ParmSet/LeafSet:
     #-----------------------------------------------------------------------
 
-    def parmgroup (self, key=None, rider=dict(), **kwargs):
-        """Register a parameter group and a simulation 'leaf' group, with the same name.
-        This is a frontend for ParmSet.parmgroup() and LeafSet.leafgroup().
-        Note that only one of the groups will be filled in a particular mode."""
-
-        # The rider usually contains the inarg record (kwargs) of the calling function.
-        # The rider fields may be overridden by the keyword arguments kwargs, if any: 
-        for pkey in kwargs.keys():
-            rider[pkey] = kwargs[pkey]
-
-        # Register the parmgroup:
-        self.ParmSet.parmgroup(key, rider=rider)
-        self._history('Register parmgroup/leafgroup: '+str(key)+' (rider:'+str(len(rider))+')')
-
-        # Register a leafgroup with the same name:
-        rider['style'] = 'triangle'
-        rider['size'] = 5
-        self.LeafSet.leafgroup(key, rider=rider)
-
-        # Return the actual parmgroup/leafgroup name (key):
-        return key
-
-
-    def cleanup(self):
-        """Clean up the object (or rather its ParmSet/LeafSet NodeSets)"""
-        self.LeafSet.cleanup()
-        self.ParmSet.cleanup()
-        return True
-
-    #-----------------------------------------------------------------------
-
     def update(self, Joneset=None):
         """Update the internal info from another Joneset object:
         (used in Joneseq.make_Joneset())"""
+        #==========================
+        return self.updict(Joneset)
+        #==========================
         if Joneset==None: return False
         self.__jchar += Joneset.jchar()
-        self.update_from_LeafSet(Joneset.LeafSet)
         if self.ParmSet.unsolvable():
             self._history(append='not updated from (unsolvable): '+Joneset.oneliner())
         elif not Joneset.ParmSet.unsolvable():
@@ -266,6 +240,7 @@ class Joneset (TDL_common.Super):
             self.update_from_ParmSet(Joneset.ParmSet)
             self._history(append='updated from (not unsolvable): '+Joneset.oneliner())
         else:
+            self.update_from_LeafSet(Joneset.ParmSet.LeafSet)
             # A Joneset that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from solvable Jonesets.
@@ -278,7 +253,6 @@ class Joneset (TDL_common.Super):
         (used in Joneseq.make_Joneset())"""
         if Joneset==None: return False
         self.__jchar += Joneset.jchar()
-        self.updict_from_LeafSet(Joneset.LeafSet)
         self._updict_rider(Joneset._rider())
         if self.ParmSet.unsolvable():
             self._history(append='not updicted from (unsolvable): '+Joneset.oneliner())
@@ -289,6 +263,7 @@ class Joneset (TDL_common.Super):
             self.updict_from_ParmSet(Joneset.ParmSet)
             self._history(append='updicted from (not unsolvable): '+Joneset.oneliner())
         else:
+            self.updict_from_LeafSet(Joneset.ParmSet.LeafSet)
             # A Joneset that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from solvable Jonesets.
@@ -298,30 +273,37 @@ class Joneset (TDL_common.Super):
 
     def update_from_ParmSet(self, ParmSet=None):
         """Update the internal info from a given ParmSet"""
+        #=======================================
+        return self.updict_from_ParmSet(ParmSet)
+        #=======================================
         if ParmSet:
             self.ParmSet.update(ParmSet)
+            self.ParmSet.LeafSet.update(ParmSet.LeafSet)
             self._history(append='updated from: '+ParmSet.oneliner())
         return True
-
-    def update_from_LeafSet(self, LeafSet=None):
-        """Update the internal info from a given LeafSet"""
-        if LeafSet:
-            self.LeafSet.update(LeafSet)
-            self._history(append='updated from: '+LeafSet.oneliner())
-        return True
-
 
     def updict_from_ParmSet(self, ParmSet=None):
         """Updict the internal info from a given ParmSet"""
         if ParmSet:
             self.ParmSet.updict(ParmSet)
+            self.ParmSet.LeafSet.updict(ParmSet.LeafSet)
             self._history(append='updicted from: '+ParmSet.oneliner())
+        return True
+
+    def update_from_LeafSet(self, LeafSet=None):
+        """Update the internal info from a given LeafSet"""
+        #=======================================
+        return self.updict_from_LeafSet(LeafSet)
+        #=======================================
+        if LeafSet:
+            self.ParmSet.LeafSet.update(LeafSet)
+            self._history(append='updated from: '+LeafSet.oneliner())
         return True
 
     def updict_from_LeafSet(self, LeafSet=None):
         """Updict the internal info from a given LeafSet"""
         if LeafSet:
-            self.LeafSet.updict(LeafSet)
+            self.ParmSet.LeafSet.updict(LeafSet)
             self._history(append='updicted from: '+LeafSet.oneliner())
         return True
 
@@ -465,7 +447,7 @@ class Joneseq (TDL_common.Super):
 
         # Update the parmgroup info from Joneset to Joneset:
         for js in self.sequence():
-            newJoneset.update(js)
+            newJoneset.updict(js)
 
         return newJoneset
 
@@ -535,9 +517,9 @@ if __name__ == '__main__':
           js.ParmSet.MeqParm(ns, d2, default=0)
           js.ParmSet.MeqParm(ns, d12, default=0)
           pp = dict()
-          js.LeafSet.inarg(pp)
-          js.LeafSet.MeqLeaf(ns, p1, **pp)
-          js.LeafSet.MeqLeaf(ns, d12, **pp)
+          # js.LeafSet.inarg(pp)
+          # js.LeafSet.MeqLeaf(ns, p1, **pp)
+          # js.LeafSet.MeqLeaf(ns, d12, **pp)
           ss = js.ParmSet.buffer()
           js.append(station, '<jones_matrix for station '+str(station)+'>')
 
@@ -549,7 +531,7 @@ if __name__ == '__main__':
 
         # js.ParmSet.display()
         js.ParmSet.display()
-        js.LeafSet.display()
+        # js.LeafSet.display()
 
     if 0:
         # Access to jones etc

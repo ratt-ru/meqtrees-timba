@@ -38,6 +38,9 @@
 #    - 07 apr 2006: re-implemented .replace() and .add()
 #    - 10 apr 2006: implement .bookmark()
 #    - 14 apr 2006: implemented .addNoise()
+#    - 26 apr 2006: make LeafSet part of ParmSet object
+#    - 28 apr 2006: called updict from update routines
+#    - 28 apr 2006: implemented .TDLRuntimeOption()
 #
 # Full description:
 #    A Cohset can also be seen as a 'travelling cohaerency front': For each ifr, it
@@ -66,6 +69,7 @@
 #=================================================================================
 
 from Timba.TDL import *
+# from Timba.meqkernel import set_state
 from copy import deepcopy
 from numarray import *
 # from math import *
@@ -75,7 +79,6 @@ from Timba.Trees import TDL_common
 from Timba.Trees import TDL_radio_conventions
 from Timba.Trees import TDL_Joneset
 from Timba.Trees import TDL_ParmSet
-from Timba.Trees import TDL_LeafSet
 # from Timba.Trees import TDL_Sixpack
 
 from Timba.Trees import JEN_bookmarks
@@ -172,7 +175,6 @@ class Cohset (TDL_common.Super):
 
         # Define its ParmSet and LeafSet objects:
         self.ParmSet = TDL_ParmSet.ParmSet(**pp)
-        self.LeafSet = TDL_LeafSet.LeafSet(**pp)
 
         # The Cohset may remember the Joneset with which it has been corrupted:
         self.__Joneset = None
@@ -448,7 +450,7 @@ class Cohset (TDL_common.Super):
         ss.append(indent1+' - plot_style:      '+str(self.plot_style()))
         ss.append(indent1+' - plot_size:       '+str(self.plot_size()))
         ss.append(indent1+' - plot_pen:        '+str(self.plot_pen()))
-        ss.append(indent1+' - leafgroups:      '+str(self.LeafSet.leafgroup().keys()))
+        ss.append(indent1+' - leafgroups:      '+str(self.ParmSet.LeafSet.leafgroup().keys()))
         ss.append(indent1+' - parmgroups:      '+str(self.ParmSet.parmgroup_keys()))
         ss.append(indent1+' - solvegroups:     '+str(self.ParmSet.solvegroup_keys()))
 
@@ -492,7 +494,7 @@ class Cohset (TDL_common.Super):
             ss.append(indent2+' - '+str(self.__Joneset.oneliner()))
 
         ss.append(indent2+' - '+str(self.ParmSet.oneliner()))
-        ss.append(indent2+' - '+str(self.LeafSet.oneliner()))
+        ss.append(indent2+' - '+str(self.ParmSet.LeafSet.oneliner()))
 
         return TDL_common.Super.display_end(self, ss)
 
@@ -846,7 +848,7 @@ class Cohset (TDL_common.Super):
             self[key] = ns[gname].qmerge(self[key])(uniqual) << Meq.ReqSeq(children=children,
                                                                            result_index=rix)
         # Bookkeeping:
-        self.update_from_Cohset(Cohset)
+        self.updict_from_Cohset(Cohset)
         self._history(funcname+': '+Cohset.oneliner())
         self._history(funcname+' -> '+self.oneliner())
         return True
@@ -926,7 +928,7 @@ class Cohset (TDL_common.Super):
             self.__coh[key] = Cohset[0][key]
         # Reporting and book-keeping
         self.scope('replaced')
-        self.update_from_Cohset(Cohset[0])
+        self.updict_from_Cohset(Cohset[0])
         self._history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -959,7 +961,7 @@ class Cohset (TDL_common.Super):
         # Reporting and book-keeping:
         self.scope('added')
         for cs in Cohset:
-            self.update_from_Cohset(cs)
+            self.updict_from_Cohset(cs)
         self._history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -986,7 +988,7 @@ class Cohset (TDL_common.Super):
                 self.__coh[key],
                 ns << Meq.MatrixInvert22(ns << Meq.ConjTranspose(Joneset[s12[1]]))) 
             self.__coh[key] = coh 
-        self.update_from_Joneset(Joneset)
+        self.updict_from_Joneset(Joneset)
         self.__Joneset = Joneset                     
         self.scope(scope)
         self._history(append='corrected by: '+Joneset.oneliner())
@@ -1007,7 +1009,7 @@ class Cohset (TDL_common.Super):
                 ns << Meq.ConjTranspose(Joneset[s12[1]]))   
             self.__coh[key] = coh
         self.scope(scope)
-        self.update_from_Joneset(Joneset)
+        self.updict_from_Joneset(Joneset)
         self.__Joneset = Joneset                     
         self._history(append='corrupted by: '+Joneset.oneliner())
         self._history(append=funcname+' -> '+self.oneliner())
@@ -1049,7 +1051,7 @@ class Cohset (TDL_common.Super):
             node = Sixpack.root()
 
         # Finished: bookkeeping:
-        self.update_from_Sixpack(Sixpack)
+        self.updict_from_Sixpack(Sixpack)
         self._history(append=funcname+' -> '+self.oneliner())
         return True
 
@@ -1062,16 +1064,15 @@ class Cohset (TDL_common.Super):
     def update_from_Sixpack(self, Sixpack=None):
         """Update the internal info from a Sixpack object
         (NB: Not yet implemented in Sixpack....)"""
+        #=======================================
+        return self.updict_from_Sixpack(Sixpack)
+        #=======================================
         if Sixpack==None: return False
-        if False:
-            #............................................................
-            # NB: The Sixpack object does not have a LeafSet (yet).....
-            self.update_from_LeafSet(Sixpack.LeafSet)
-            #............................................................
         if not Sixpack.ParmSet.unsolvable():
             self.update_from_ParmSet(Sixpack.ParmSet)    
             self._history(append='updated from (not unsolvable): '+Sixpack.oneliner())
         else:
+            self.update_from_LeafSet(Sixpack.ParmSet.LeafSet)    
             # A Sixpack that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from 'not unsolvable' Sixpacks.
@@ -1083,15 +1084,11 @@ class Cohset (TDL_common.Super):
         """Updict the internal info from a Sixpack object
         (NB: Not yet implemented in Sixpack....)"""
         if Sixpack==None: return False
-        if False:
-            #............................................................
-            # NB: The Sixpack object does not have a LeafSet (yet).....
-            self.updict_from_LeafSet(Sixpack.LeafSet)
-            #............................................................
         if not Sixpack.ParmSet.unsolvable():
             self.updict_from_ParmSet(Sixpack.ParmSet)    
             self._history(append='updicted from (not unsolvable): '+Sixpack.oneliner())
-        else:
+        else: 
+            self.updict_from_LeafSet(Sixpack.ParmSet.LeafSet)    
             # A Sixpack that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from 'not unsolvable' Sixpacks.
@@ -1101,9 +1098,11 @@ class Cohset (TDL_common.Super):
 
     def update_from_Joneset(self, Joneset=None):
         """Update the internal info from a (corrupting) Joneset object"""
+        #=======================================
+        return self.updict_from_Joneset(Joneset)
+        #=======================================
         # (see Joneseq.Joneset())
         if Joneset==None: return False
-        self.update_from_LeafSet(Joneset.LeafSet)
         if not Joneset.ParmSet.unsolvable():
             self.__plot_color.update(Joneset.plot_color())
             self.__plot_style.update(Joneset.plot_style())
@@ -1111,6 +1110,7 @@ class Cohset (TDL_common.Super):
             self.update_from_ParmSet(Joneset.ParmSet)
             self._history(append='updated from (not unsolvable): '+Joneset.oneliner())
         else:
+            self.update_from_LeafSet(Joneset.ParmSet.LeafSet)
             # A Joneset that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from 'not unsolvable' Jonesets.
@@ -1122,7 +1122,6 @@ class Cohset (TDL_common.Super):
         """Updict the internal info from a (corrupting) Joneset object"""
         # (see Joneseq.Joneset())
         if Joneset==None: return False
-        self.updict_from_LeafSet(Joneset.LeafSet)
         if not Joneset.ParmSet.unsolvable():
             self._updict(self.__plot_color, Joneset.plot_color())
             self._updict(self.__plot_style, Joneset.plot_style())
@@ -1130,6 +1129,7 @@ class Cohset (TDL_common.Super):
             self.updict_from_ParmSet(Joneset.ParmSet)
             self._history(append='updicted from (not unsolvable): '+Joneset.oneliner())
         else:
+            self.updict_from_LeafSet(Joneset.ParmSet.LeafSet)
             # A Joneset that is 'unsolvable' has no solvegroups.
             # However, its parmgroups might interfere with parmgroups
             # of the same name (e.g. Gphase) from 'not unsolvable' Jonesets.
@@ -1139,6 +1139,9 @@ class Cohset (TDL_common.Super):
 
     def update_from_Cohset(self, Cohset=None):
         """Update the internal info from another Cohset object"""
+        #=======================================
+        return self.updict_from_Cohset(Cohset)
+        #=======================================
         if Cohset==None: return False
         self._updict_rider(Cohset._rider())
         # NB: use self._updict(self.__plot_color, Cohset.plot_color()).....
@@ -1148,7 +1151,7 @@ class Cohset (TDL_common.Super):
         self.__plot_style.update(Cohset.plot_style())
         self.__plot_size.update(Cohset.plot_size())
         self.update_from_ParmSet(Cohset.ParmSet)
-        self.update_from_LeafSet(Cohset.LeafSet)
+        # self.update_from_LeafSet(Cohset.LeafSet)
         self._history(append='updated from: '+Cohset.oneliner())
         return True
 
@@ -1160,35 +1163,43 @@ class Cohset (TDL_common.Super):
         self._updict(self.__plot_style, Cohset.plot_style())
         self._updict(self.__plot_size, Cohset.plot_size())
         self.updict_from_ParmSet(Cohset.ParmSet)
-        self.updict_from_LeafSet(Cohset.LeafSet)
+        # self.updict_from_LeafSet(Cohset.LeafSet)
         self._history(append='updicted from: '+Cohset.oneliner())
         return True
 
     def update_from_ParmSet(self, ParmSet=None):
         """Update the internal info from a given ParmSet"""
+        #=======================================
+        return self.updict_from_ParmSet(ParmSet)
+        #=======================================
         if ParmSet:
             self.ParmSet.update(ParmSet)
+            self.ParmSet.LeafSet.update(ParmSet.LeafSet)
             self._history(append='updated from: '+ParmSet.oneliner())
-        return True
-
-    def update_from_LeafSet(self, LeafSet=None):
-        """Update the internal info from a given LeafSet"""
-        if LeafSet:
-            self.LeafSet.update(LeafSet)
-            self._history(append='updated from: '+LeafSet.oneliner())
         return True
 
     def updict_from_ParmSet(self, ParmSet=None):
         """Updict the internal info from a given ParmSet"""
         if ParmSet:
             self.ParmSet.updict(ParmSet)
+            self.ParmSet.LeafSet.updict(ParmSet.LeafSet)
             self._history(append='updicted from: '+ParmSet.oneliner())
+        return True
+
+    def update_from_LeafSet(self, LeafSet=None):
+        """Update the internal info from a given LeafSet"""
+        #=======================================
+        return self.updict_from_LeafSet(LeafSet)
+        #=======================================
+        if LeafSet:
+            self.ParmSet.LeafSet.update(LeafSet)
+            self._history(append='updated from: '+LeafSet.oneliner())
         return True
 
     def updict_from_LeafSet(self, LeafSet=None):
         """Updict the internal info from a given LeafSet"""
         if LeafSet:
-            self.LeafSet.updict(LeafSet)
+            self.ParmSet.LeafSet.updict(LeafSet)
             self._history(append='updicted from: '+LeafSet.oneliner())
         return True
 
@@ -1226,7 +1237,7 @@ class Cohset (TDL_common.Super):
             if not self.__cok[key]:            # if deleted
                 self.__coh[key] = Cohset[key]  # use the one from Cohset
         # The input Cohset may contain parmgroup/solvegroup info:
-        self.update_from_Joneset(Cohset.Joneset())
+        self.updict_from_Joneset(Cohset.Joneset())
         self.scope('merged')
         self._history(append=funcname+' -> '+self.oneliner())
         return True
@@ -1263,9 +1274,8 @@ class Cohset (TDL_common.Super):
                 self.__coh[key] = None     # delete
 
         # The input Cohset may contain parmgroup/solvegroup info:
-        self.update_from_Joneset(Cohset.Joneset())
-        self.update_from_ParmSet(Cohset.ParmSet)
-        self.update_from_LeafSet(Cohset.LeafSet)
+        self.updict_from_Joneset(Cohset.Joneset())
+        self.updict_from_ParmSet(Cohset.ParmSet)
         self.scope(scope)
         self._history(append=funcname+' -> '+self.oneliner())
         return True
@@ -1617,6 +1627,21 @@ class Cohset (TDL_common.Super):
         self.cleanup(ns)
         return node
 
+
+    #------------------------------------------------------------------------------------
+
+    def TDLRuntimeOption (self, key=None, value=None, trace=True):
+        """Change the state of existing node(s) before execution"""
+        s1 = '** Cohset.TDLRuntimeOption('+str(key)+'='+str(value)+'): '
+        solvers = self._rider('solver')
+        if key=='num_iter':
+            print '\n',s1,' solvers=',solvers,'\n'
+            for solver in solvers:
+                # set_state(solver.name, num_iter=value)
+                print '** set_state() not available (Timba.meqkernel error)'
+        else:
+            print '\n',s1,'not recognised\n'
+        return True
 
 
 #========================================================================

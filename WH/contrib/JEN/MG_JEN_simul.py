@@ -22,6 +22,8 @@
 from Timba.TDL import *
 # from Timba.Meq import meq
 
+import os
+
 from numarray import *
 from copy import deepcopy
 
@@ -35,7 +37,7 @@ from Timba.LSM.LSM_GUI import *
 
 from Timba.Contrib.JEN import MG_JEN_Joneset
 from Timba.Contrib.JEN import MG_JEN_Cohset
-from Timba.Contrib.JEN import MG_JEN_Sixpack
+# from Timba.Contrib.JEN import MG_JEN_Sixpack
 from Timba.Contrib.JEN import MG_JEN_lsm
 
 from Timba.Contrib.JEN import MG_JEN_exec
@@ -70,6 +72,7 @@ def predefine_inargs():
    simul_DJones(deepcopy(MG), trace=True)
    simul_JJones(deepcopy(MG), trace=True)
    simul_EJones(deepcopy(MG), trace=True)
+   simul_stokesI(deepcopy(MG), trace=True)
    print '\n** Predefined',MG['script_name'],'inarg records (incl. protected)\n'
    return True
 
@@ -82,6 +85,7 @@ def describe_inargs():
    ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_DJones', simul_DJones.__doc__)
    ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_JJones', simul_JJones.__doc__)
    ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_EJones', simul_EJones.__doc__)
+   ss = JEN_inarg.describe_inargs_append(ss, 'MG_JEN_simul_stokesI', simul_stokesI.__doc__)
    return JEN_inarg.describe_inargs_end(ss, MG)
 
 #--------------------------------------------------------------------
@@ -98,7 +102,7 @@ def simul_GJones(inarg, trace=True):
                     Jsequence=['GJones'],
                     _JEN_inarg_option=dict(trace=trace, qual='solve_uvp'))     
    JEN_inarg.modify(inarg,
-                    insert_solver=False,
+                    insert_solver=True,
                     solvegroup=['GJones'],
                     parmtable='simul_GJones',
                     num_iter=2,
@@ -121,7 +125,7 @@ def simul_BJones(inarg, trace=True):
                     Jsequence=['BJones'],
                     _JEN_inarg_option=dict(trace=trace, qual='solve_uvp'))     
    JEN_inarg.modify(inarg,
-                    insert_solver=False,
+                    insert_solver=True,
                     solvegroup=['BJones'],
                     parmtable='simul_BJones',
                     num_iter=2,
@@ -145,7 +149,7 @@ def simul_JJones(inarg, trace=True):
                     Jsequence=['JJones'],
                     _JEN_inarg_option=dict(trace=trace, qual='solve_uvp'))     
    JEN_inarg.modify(inarg,
-                    insert_solver=False,
+                    insert_solver=True,
                     solvegroup=['JJones'],
                     parmtable='simul_JJones',
                     num_iter=2,
@@ -169,7 +173,7 @@ def simul_DJones(inarg, trace=True):
                     Jsequence=['DJones_WSRT'],
                     _JEN_inarg_option=dict(trace=trace, qual='solve_uvp'))     
    JEN_inarg.modify(inarg,
-                    insert_solver=False,
+                    insert_solver=True,
                     solvegroup=['DJones'],
                     parmtable='simul_DJones',
                     num_iter=2,
@@ -189,7 +193,6 @@ def simul_EJones(inarg, trace=True):
    JEN_inarg.specific(inarg, simul_EJones.__doc__)
    JEN_inarg.modify(inarg,
                     test_pattern='grid',
-                    # relpos='tlq',
                     insert_solver=True,
                     use_same_LSM=False,
                     saveAs='<automatic>',
@@ -208,6 +211,41 @@ def simul_EJones(inarg, trace=True):
                     _JEN_inarg_option=dict(trace=trace, qual='simul_imp'))     
    JEN_inarg.modify(inarg,
                     Jsequence=['EJones_WSRT'],
+                    _JEN_inarg_option=dict(trace=trace, qual='solve_imp'))     
+   JEN_inarg.save(inarg, filename, trace=trace)
+   JEN_inarg.save(inarg, filename, protected=True, trace=trace)
+   return True
+
+
+#--------------------------------------------------------------------
+
+def simul_stokesI(inarg, trace=True):
+   """Predefined inarg record for simulating with EJones corruption,
+   and solving for the stokesI fluxes of the 3x3 test-sources."""
+   filename = 'MG_JEN_simul_stokesI'
+   if trace: print '\n** predefine inarg record:',filename
+   JEN_inarg.specific(inarg, simul_stokesI.__doc__)
+   JEN_inarg.modify(inarg,
+                    test_pattern='grid',
+                    # relpos='tlq',
+                    insert_solver=True,
+                    use_same_LSM=False,
+                    saveAs='<automatic>',
+                    solvegroup=['stokesI'],
+                    # parmtable='simul_stokesI',
+                    num_iter=2,
+                    _JEN_inarg_option=dict(trace=trace))     
+   JEN_inarg.modify(inarg,
+                    taper=1.0,
+                    _JEN_inarg_option=dict(trace=trace, qual='simul'))     
+   JEN_inarg.modify(inarg,
+                    taper=None,
+                    _JEN_inarg_option=dict(trace=trace, qual='solve'))     
+   JEN_inarg.modify(inarg,
+                    Jsequence=['EJones_WSRT'],
+                    _JEN_inarg_option=dict(trace=trace, qual='simul_imp'))     
+   JEN_inarg.modify(inarg,
+                    Jsequence=['stokesI_WSRT'],
                     _JEN_inarg_option=dict(trace=trace, qual='solve_imp'))     
    JEN_inarg.save(inarg, filename, trace=trace)
    JEN_inarg.save(inarg, filename, protected=True, trace=trace)
@@ -317,7 +355,7 @@ JEN_inarg.attach(MG, inarg)
 JEN_inarg.separator(MG, 'uv-data simulation (LeafSet)')
 qual = 'simul'
 
-inarg = MG_JEN_lsm.get_lsm(_getdefaults=True, _qual=qual)
+inarg = MG_JEN_lsm.get_lsm(_getdefaults=True, _qual=qual, simul=True)
 JEN_inarg.attach(MG, inarg)
 
 if MG['external_uvp_Joneset']:
@@ -435,8 +473,7 @@ def _define_forest (ns, **kwargs):
     qual = 'simul'
 
     # Get/create/modify an LSM:
-    lsm = MG_JEN_lsm.get_lsm(nsim, _inarg=MG, _qual=qual)
-    # lsm = MG_JEN_lsm.get_lsm(ns, _inarg=MG, _qual=qual)
+    lsm = MG_JEN_lsm.get_lsm(nsim, _inarg=MG, _qual=qual, simul=True)
 
     # Predict nominal/corrupted visibilities: 
     if MG['external_uvp_Joneset']:
@@ -518,11 +555,14 @@ def _define_forest (ns, **kwargs):
 #********************************************************************************
 #********************************************************************************
 
+TDLRuntimeOption('num_iter', 'number of solver iterations',
+                  [2,3,5,10], default=3)
 
 
 def _tdl_job_execute (mqs, parent):
    """Execute the tree""" 
    # Start the sequence of requests issued by MeqSink:
+   Cohset.TDLRuntimeOption('num_iter', num_iter)
    MG_JEN_exec.spigot2sink(mqs, parent, ctrl=MG)
    return True
 
@@ -538,14 +578,18 @@ def _tdl_job_execute_plus (mqs, parent):
 
 def _tdl_job_fullDomainMux (mqs, parent):
    """Special for post-visualisation""" 
-   
    global parmlist
-
    # Start the sequence of requests issued by MeqSink:
    MG_JEN_exec.fullDomainMux(mqs, parent, ctrl=MG, parmlist=parmlist)
    return True
 
 
+#------------------------------------------------------------------------------
+
+def _tdl_job_make_dirty_image (mqs,parent,**kw):
+   """Make an AIPS++ image (edit make_image.g first), and display it."""
+   os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g']);
+   pass
 
 #------------------------------------------------------------------------------
 
@@ -557,11 +601,6 @@ def _tdl_job_display_Cohset (mqs, parent):
 def _tdl_job_display_Cohset_ParmSet (mqs, parent):
    """Display the Cohset.ParmSet object used to generate this tree""" 
    Cohset.ParmSet.display(MG['script_name'], full=False)
-   return True
-
-def _tdl_job_display_Cohset_LeafSet (mqs, parent):
-   """Display the Cohset.LeafSet object used to generate this tree""" 
-   Cohset.LeafSet.display(MG['script_name'], full=False)
    return True
 
 def _tdl_job_display_Cohset_Joneset (mqs, parent):
@@ -579,11 +618,6 @@ def _tdl_job_display_full_Cohset (mqs, parent):
 def _tdl_job_display__full_Cohset_ParmSet (mqs, parent):
    """Display (full) the Cohset.ParmSet object used to generate this tree""" 
    Cohset.ParmSet.display(MG['script_name'], full=True)
-   return True
-
-def _tdl_job_display_full_Cohset_LeafSet (mqs, parent):
-   """Display (full) the Cohset.LeafSet object used to generate this tree""" 
-   Cohset.LeafSet.display(MG['script_name'], full=True)
    return True
 
 def _tdl_job_display_full_Cohset_Joneset (mqs, parent):

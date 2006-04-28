@@ -29,6 +29,7 @@
 # - 20 mar 2006: added predict_lsm()
 # - 22 mar 2006: implemented bookfolders
 # - 31 mar 2006: added EJones_WSRT
+# - 26 apr 2006: LeafSet into ParmSet object
 
 # Copyright: The MeqTree Foundation 
 
@@ -213,14 +214,15 @@ def make_sinks(ns=None, Cohset=None, **inarg):
         # Bundle the MeqParms per parmgroup:
         post = []
         post.append(Cohset.ParmSet.NodeSet.bookmark_subtree(ns, folder=bookfolder))
-        post.append(Cohset.LeafSet.NodeSet.bookmark_subtree(ns, folder=bookfolder))    
-        post.append(Cohset.LeafSet.NodeSet.dataCollect(ns, folder=bookfolder))    
+        post.append(Cohset.ParmSet.LeafSet.NodeSet.bookmark_subtree(ns, folder=bookfolder))    
+        # post.append(Cohset.ParmSet.NodeSet.dataCollect(ns, folder=bookfolder))    
+        # post.append(Cohset.ParmSet.LeafSet.NodeSet.dataCollect(ns, folder=bookfolder))    
         if True:
-            node = Cohset.ParmSet.NodeSet.compare (ns, Cohset.LeafSet.NodeSet,
+            # Compare corresponding nodes/groups in ParmSet and its LeafSet:
+            node = Cohset.ParmSet.NodeSet.compare (ns, Cohset.ParmSet.LeafSet.NodeSet,
                                                    # group=None, binop='Subtract',
                                                    bookpage='fDMux_Parm-Leaf',
-                                                   folder=bookfolder,
-                                                   trace=False)
+                                                   folder=bookfolder, trace=False)
             post.append(node)
 
         # Make the VisDataMux:
@@ -248,7 +250,6 @@ def make_sinks(ns=None, Cohset=None, **inarg):
 
     # Cohset.display(funcname, full=True)
     # Cohset.ParmSet.display(funcname, full=True)
-    # Cohset.LeafSet.display(funcname, full=True)
 
     # Append the final Cohset to the forest state object:
     # MG_JEN_forest_state.object(Cohset, funcname)
@@ -536,8 +537,7 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     # Update the measured Cohset with the ParmSet from Mohset.
     # This contains the Joneset/Sixpack MeqParms, which may be re-executed
     # separately for the full (MS) domain for inspection (see .make_sinks())
-    measured.update_from_ParmSet(Mohset.ParmSet)
-    measured.update_from_LeafSet(Mohset.LeafSet)
+    measured.updict_from_ParmSet(Mohset.ParmSet)
 
     # Make a list of one or more MeqSolver subtree(s):
     # Assume that pp contains the relevant (qual) inarg record(s).
@@ -553,6 +553,9 @@ def insert_solver(ns=None, measured=None, predicted=None, slave=False, **inarg):
     else:
         sst = solver_subtree(ns, Mohset, _inarg=pp, num_cells=pp['num_cells'])
         solver_subtrees = [sst]
+
+    # Transfer the Mohset solvers (nodenames) to the rider of measured:
+    measured._rider('solver', append=Mohset._rider('solver'))
 
     # Obtain the current list of (full-resolution) hcoll/dcoll nodes, and clear: 
     # NB: These are the ones that get a request BEFORE the solver(s)
@@ -739,6 +742,9 @@ def solver_subtree (ns=None, Cohset=None, slave=False, **inarg):
                                                            last_update=True,
                                                            save_funklets=True,
                                                            debug_level=pp['debug_level'])
+    # Keep track of the solver nodes:
+    Cohset._rider('solver',append=solver)
+    
     # Make a bookmark for the solver plot:
     page_name = 'solver: '+solver_name
     JEN_bookmarks.create (solver, page=page_name, folder=folder_name)
@@ -1322,11 +1328,6 @@ def _tdl_job_display_Cohset (mqs, parent):
 def _tdl_job_display_Cohset_ParmSet (mqs, parent):
    """Display the Cohset.ParmSet object used to generate this tree""" 
    Cohset.ParmSet.display(MG['script_name'], full=True)
-   return True
-
-def _tdl_job_display_Cohset_LeafSet (mqs, parent):
-   """Display the Cohset.LeafSet object used to generate this tree""" 
-   Cohset.LeafSet.display(MG['script_name'], full=True)
    return True
 
 def _tdl_job_display_Cohset_Joneset (mqs, parent):

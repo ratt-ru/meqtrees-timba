@@ -566,17 +566,17 @@ def qualifier(rr, append=None, prepend=None, trace=False):
 
    # Optionally, prepend another string to its own qualifier (if any):
    if isinstance(prepend, str):
-      if isinstance(qual, str):
-         qual = prepend+'_'+qual
-      else:
+      if not isinstance(qual, str):
          qual = prepend
+      elif qual.rfind(prepend)<0:             # avoid doubles....
+         qual = prepend+'_'+qual
 
    # Optionally, append another string to its own qualifier (if any):
    if isinstance(append, str):
-      if isinstance(qual, str):
-         qual += '_'+append
-      else:
+      if not isinstance(qual, str):
          qual = append
+      elif qual.rfind(append)<0:              # avoid doubles....
+         qual += '_'+append
 
    if qual==None: qual = ''                   # empty string
    if trace: print '.qualifier(',append,prepend,') ->',type(qual),len(qual),'=',qual
@@ -1093,7 +1093,7 @@ def _replace_reference(rr, acc=dict(), repeat=0, level=0, trace=False):
    - a field name (prepended with @@) in the parent record(s)
    replace it with the value of the referenced field"""
 
-   trace = False
+   # trace = True
    
    if trace and level==0:
       print '\n** _replace_reference(',repeat,'):',type(rr)
@@ -1137,7 +1137,7 @@ def _replace_reference(rr, acc=dict(), repeat=0, level=0, trace=False):
                   count += 1                  # count the number of replacements
                   s1 = _prefix(level)+'qq['+key+']: '+str(value)+' -> '+str(qq[vkey])
                   if trace: print s1
-                  MESSAGE(rr, s1)
+                  # MESSAGE(rr, s1)             # ........?
                   rr[key] = qq[vkey]          # replace with the value of the referenced field
 
    # Repeat this if necessary, i.e. if at least one value has been replaced

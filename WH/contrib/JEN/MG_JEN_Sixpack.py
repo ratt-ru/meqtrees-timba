@@ -428,7 +428,7 @@ def readLSM (ns, filename, strip=True, display=True, trace=False):
 
 
 
-def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
+def newstar_source (ns=0, predefine=False, flux_att=1.0, simul=False, **inarg):
    """Make a Sixpack (I,Q,U,V,Ra,Dec) for a source with NEWSTAR parametrisation"""
 
    # Input arguments:
@@ -478,13 +478,32 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
 
    # ParmSet default parameters:
    ps = TDL_ParmSet.ParmSet()
-   # ps.inarg_solve (pp, 'stokesI', tdeg=0, fdeg=0, subtile_size=None)
-   # ps.inarg_solve (pp, 'stokesQ', tdeg=0, fdeg=0, subtile_size=None)
-   # ps.inarg_solve (pp, 'stokesU', tdeg=0, fdeg=0, subtile_size=None)
-   # ps.inarg_solve (pp, 'stokesV', tdeg=0, fdeg=0, subtile_size=None)
-   # ps.inarg_solve (pp, 'radec', tdeg=0, fdeg=0, subtile_size=None)
-   # ps.inarg_solve (pp, 'shape', tdeg=0, fdeg=0, subtile_size=None)
-   ps.inarg_parmgroup_rider(pp)
+   sI = ps.inarg_parmgroup (pp, 'stokesI', hide=simul,
+                            condeq_corrs='corrI',
+                            color='red', style='diamond', size=10)
+   sQ = ps.inarg_parmgroup (pp, 'stokesQ', hide=simul,
+                            condeq_corrs='corrQ',
+                            color='blue', style='diamond', size=10)
+   sU = ps.inarg_parmgroup (pp, 'stokesU', hide=simul,
+                            condeq_corrs='corrU',
+                            color='magenta', style='diamond', size=10)
+   sV = ps.inarg_parmgroup (pp, 'stokesV', hide=simul,
+                            condeq_corrs='corrV',
+                            color='cyan', style='diamond', size=10)
+   pg_radec = ps.inarg_parmgroup (pp, 'radec', hide=simul,
+                                  condeq_corrs='corrI',                        # <----- ?
+                                  color='black', style='circle', size=10)
+   pg_shape = ps.inarg_parmgroup (pp, 'shape', hide=simul,
+                                  condeq_corrs='corrI',                        # <----- ?
+                                  color='black', style='circle', size=10)
+   if simul:
+       # NB: MeqConstant is a temporary kludge....
+       ps.LeafSet.inarg_simul (pp, sI, time_scale_min=1000, MeqConstant=True)
+       ps.LeafSet.inarg_simul (pp, sQ, time_scale_min=1000, MeqConstant=True)
+       ps.LeafSet.inarg_simul (pp, sU, time_scale_min=1000, MeqConstant=True)
+       ps.LeafSet.inarg_simul (pp, sV, time_scale_min=1000, MeqConstant=True)
+       ps.LeafSet.inarg_simul (pp, pg_radec, time_scale_min=1000, MeqConstant=True)
+       ps.LeafSet.inarg_simul (pp, pg_shape, time_scale_min=1000, MeqConstant=True)
 
    if JEN_inarg.getdefaults(pp): return JEN_inarg.pp2inarg(pp)
    if not JEN_inarg.is_OK(pp): return False
@@ -501,56 +520,41 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
 
    # Make the Sixpack and get its ParmSet object:
    punit = pp['punit']
-   Sixpack = TDL_Sixpack.Sixpack(label=punit, **pp)   
+   Sixpack = TDL_Sixpack.Sixpack(label=punit, **pp)
+   Sixpack.ParmSet = ps                               # attach ParmSet to Sixpack
    Sixpack.ParmSet.quals(dict(q=pp['punit']))         # check TDL_Sixpack....! 
-   # Sixpack.LeafSet.quals(dict(q=pp['punit']))
    ParmSet = Sixpack.ParmSet                          # convenience
-   
-   # Register the parmgroups:
-   sI = ParmSet.parmgroup('stokesI', rider=pp, condeq_corrs='corrI',
-                          color='red', style='diamond', size=10)
-   sQ = ParmSet.parmgroup('stokesQ', rider=pp, condeq_corrs='corrQ',
-                          color='blue', style='diamond', size=10)
-   sU = ParmSet.parmgroup('stokesU', rider=pp, condeq_corrs='corrU',
-                          color='magenta', style='diamond', size=10)
-   sV = ParmSet.parmgroup('stokesV', rider=pp, condeq_corrs='corrV',
-                          color='cyan', style='diamond', size=10)
-   pg_radec = ParmSet.parmgroup('radec', rider=pp, condeq_corrs='corrI',      # <----- ?
-                                color='black', style='circle', size=10)
-   pg_shape = ParmSet.parmgroup('shape', rider=pp, condeq_corrs='corrI',      # <----- ?
-                                color='black', style='circle', size=10)
-
-   # Define a named bookpage:
-   ParmSet.NodeSet.bookmark('punit_'+punit, [sI,sQ,sU,sV])
    
    # MeqParm node_groups: add 'S' to default 'Parm':
    ParmSet.node_groups('S')
    
    # Define extra solvegroup(s) from combinations of parmgroups:
-   # NB A solvegroup is automatically creates for each parmgroup (e.g. stokesI)
-   ParmSet.solvegroup('stokesIQUV', [sI,sQ,sU,sV])
-   ParmSet.solvegroup('stokesIQU', [sI,sQ,sU])
-   ParmSet.solvegroup('stokesIV', [sI,sV])
-   ParmSet.solvegroup('stokesQU', [sQ,sU])
-   ParmSet.solvegroup('stokesQUV', [sQ,sU,sV])
+   # NB A solvegroup is automatically created for each parmgroup (e.g. stokesI)
+   if simul:
+       ParmSet.LeafSet.NodeSet.bookmark('punit_'+punit, [sI,sQ,sU,sV])
+   else:
+       ParmSet.NodeSet.bookmark('punit_'+punit, [sI,sQ,sU,sV])
+       ParmSet.solvegroup('stokesIQUV', [sI,sQ,sU,sV])
+       ParmSet.solvegroup('stokesIQU', [sI,sQ,sU])
+       ParmSet.solvegroup('stokesIV', [sI,sV])
+       ParmSet.solvegroup('stokesQU', [sQ,sU])
+       ParmSet.solvegroup('stokesQUV', [sQ,sU,sV])
 
    # Make the Sixpack of 6 standard subtree root-nodes: 
    n6 = record(I='stokesI', Q='stokesQ', U='stokesU', V='stokesV', R='ra', D='dec') 
-   # zero = ns.zero << Meq.Constant(0)
-   
    iquv = {}
    parm = {}
    fmult = 1.0
    if pp['SI']==None:
-      parm['I0'] = ParmSet.MeqParm (ns, 'I0', parmgroup=sI,
-                                    default=pp['I0']*flux_att)
+      parm['I0'] = ParmSet.MeqParm (ns, 'I0', simul=simul,
+                                    parmgroup=sI, default=pp['I0']*flux_att)
       iquv[n6.I] = parm['I0']
       fmult = iquv[n6.I]               
    else:
       polclog = polclog_SIF (SI=pp['SI'], I0=pp['I0']*flux_att, f0=pp['f0'])
       print 'polclog =',polclog
-      parm['SIF'] = ParmSet.MeqParm (ns, 'SIF_stokesI', parmgroup=sI,
-                                     init_funklet=polclog)
+      parm['SIF'] = ParmSet.MeqParm (ns, 'SIF_stokesI', simul=simul,
+                                     parmgroup=sI, init_funklet=polclog)
       iquv[n6.I] = ns['stokesI'](q=punit) << Meq.Pow(10.0, parm['SIF'])
       # fmult = ...??
 
@@ -559,7 +563,8 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
        # iquv[n6.V] = zero
        iquv[n6.V] = ns[n6.V](q=punit) << Meq.Parm(0.0)
    else:
-      parm['Vpct'] = ParmSet.MeqParm (ns, 'Vpct', parmgroup=sV, default=pp['Vpct'])
+      parm['Vpct'] = ParmSet.MeqParm (ns, 'Vpct', simul=simul,
+                                      parmgroup=sV, default=pp['Vpct'])
       if isinstance(fmult, float):
          iquv[n6.V] = ns[n6.V](q=punit) << (parm['Vpct']*(fmult/100))
       else:
@@ -573,7 +578,8 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
           # iquv[n6.Q] = zero
           iquv[n6.Q] = ns[n6.Q](q=punit) << Meq.Parm(0.0)
       else:
-         parm['Qpct'] = ParmSet.MeqParm (ns, 'Qpct', parmgroup=sQ, default=pp['Qpct'])
+         parm['Qpct'] = ParmSet.MeqParm (ns, 'Qpct', simul=simul,
+                                         parmgroup=sQ, default=pp['Qpct'])
          if isinstance(fmult, float):
             iquv[n6.Q] = ns[n6.Q](q=punit) << (parm['Qpct']*(fmult/100))
          else:
@@ -584,7 +590,8 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
           # iquv[n6.U] = zero
           iquv[n6.U] = ns[n6.U](q=punit) << Meq.Parm(0.0)
       else:
-         parm['Upct'] = ParmSet.MeqParm (ns, 'Upct', parmgroup=sU, default=pp['Upct'])
+         parm['Upct'] = ParmSet.MeqParm (ns, 'Upct', simul=simul,
+                                         parmgroup=sU, default=pp['Upct'])
          if isinstance(fmult, float):
             iquv[n6.U] = ns[n6.U](q=punit) << (parm['Upct']*(fmult/100))
          else:
@@ -603,8 +610,10 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
          # iquv['Q'] = MG_JEN_funklet.polclog_flux(ns, source=punit, stokes='stokesQ')
          # iquv['U'] = MG_JEN_funklet.polclog_flux(ns, source=punit, stokes='stokesU')
          # if not == 0.0, then ....
-      parm['Qpct'] = ParmSet.MeqParm (ns, 'Qpct', parmgroup=sQ, default=pp['Qpct'])
-      parm['Upct'] = ParmSet.MeqParm (ns, 'Upct', parmgroup=sU, default=pp['Upct'])
+      parm['Qpct'] = ParmSet.MeqParm (ns, 'Qpct', simul=simul,
+                                      parmgroup=sQ, default=pp['Qpct'])
+      parm['Upct'] = ParmSet.MeqParm (ns, 'Upct', simul=simul,
+                                      parmgroup=sU, default=pp['Upct'])
       if isinstance(fmult, float):
          Q = ns['Q'](q=punit) << (parm['Qpct']*(fmult/100))
          U = ns['U'](q=punit) << (parm['Upct']*(fmult/100))
@@ -614,7 +623,8 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
       QU = ns['QU'](q=punit) << Meq.Composer(children=[Q,U])  
 
       # Rotate QU by the RM matrix -> QURM
-      parm['RM'] = ParmSet.MeqParm (ns, 'RM', parmgroup=sQ, default=pp['RM'])  
+      parm['RM'] = ParmSet.MeqParm (ns, 'RM', simul=simul,
+                                    parmgroup=sQ, default=pp['RM'])  
       wvl2 = TDL_Leaf.MeqWavelength (ns, unop='Sqr')       
       farot = ns.farot(q=punit) << (parm['RM']*wvl2)
       rotmat = MG_JEN_matrix.rotation (ns, angle=farot)
@@ -631,15 +641,16 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
    if pp['shape']=='ell.gauss':
        rider = dict()
        for key in ['major','minor','pa']:
-           node = ParmSet.MeqParm (ns, key, parmgroup=pg_shape, default=pp[key])
+           node = ParmSet.MeqParm (ns, key, simul=simul,
+                                   parmgroup=pg_shape, default=pp[key])
            rider[key] = node.name
        ParmSet._rider('shape', rider)   
 
    # Source coordinates (RA, DEC)
    radec = {}
-   radec[n6.R] = ParmSet.MeqParm (ns, n6.R, qual=dict(q=punit),
+   radec[n6.R] = ParmSet.MeqParm (ns, n6.R, simul=simul,
                                   parmgroup=pg_radec, default=pp['RA'])  
-   radec[n6.D] = ParmSet.MeqParm (ns, n6.D, qual=dict(q=punit),
+   radec[n6.D] = ParmSet.MeqParm (ns, n6.D, simul=simul,
                                   parmgroup=pg_radec, default=pp['Dec'])  
 
    # Finished: Fill the Sixpack and return it:
@@ -650,10 +661,7 @@ def newstar_source (ns=0, predefine=False, flux_att=1.0, **inarg):
    # Sixpack.radec([iquv[n6.R],iquv[n6.D]])
    Sixpack.ra(radec[n6.R])
    Sixpack.dec(radec[n6.D])
-
-   # Sixpack.display()
-   # if pp['fsr_trace']:
-   #   MG_JEN_forest_state.object(Sixpack)
+   ParmSet.cleanup()
    return Sixpack
 
 
@@ -855,22 +863,30 @@ if __name__ == '__main__':
 
    # Various specific tests:
    ns = NodeScope()
+   nsim = ns.Subscope('_')
    Sixpack = None
 
    if 1:
+      simul = True 
       punit = '3c286'
       punit = '3c147'
       punit = 'RMtest'
-      punit = 'unpol'
       punit = 'SItest'
+      punit = 'unpol'
       unsolvable = False
       # unsolvable = True
       parmtable = None
       # parmtable = '<lsm-parmtable>'
-      Sixpack = newstar_source (ns, predefine=True,
-                                punit=punit, 
-                                unsolvable=unsolvable,
-                                parmtable=parmtable)
+      if simul:
+          Sixpack = newstar_source (nsim, simul=True,
+                                    predefine=True, punit=punit, 
+                                    unsolvable=unsolvable,
+                                    parmtable=parmtable)
+      else:
+          Sixpack = newstar_source (ns,
+                                    predefine=True, punit=punit, 
+                                    unsolvable=unsolvable,
+                                    parmtable=parmtable)
       # Sixpack = newstar_source (ns)
       # Sixpack = newstar_source (ns, punit='QUV', RM=1, SI=-0.7)
       Sixpack.display()
