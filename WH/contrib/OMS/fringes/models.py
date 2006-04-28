@@ -3,7 +3,8 @@ from Timba.Contrib.OMS.PointSource import *
 from Timba.Contrib.OMS.GaussianSource import *
 
 # reference frequency for IHPBW above, also for spectral index in sources below
-ref_frequency = float(800*1e+6)
+ref_frequency = float(800*1e+6);
+ref_bandwidth = float(600*1e+6);
 
 # MEP table for various derived quantities 
 mep_derived = 'CLAR_DQ_27-480.mep';
@@ -59,14 +60,14 @@ def two_point_sources (ns,tablename=''):
       node_groups='Parm');
   
   source_model = []
-  source_model.append( PointSource(ns,name="S1",I=2.0, Q=0.0, U=0.0, V=0.0,
+  source_model.append( PointSource(ns,name="S1",I=1.0, Q=0.0, U=0.0, V=0.0,
                   Iorder=0, ra=0.03119776, dec=0.57632226,
-                  spi=-1.5,freq0=ref_frequency,
+                  spi=-0.5,freq0=ref_frequency,
                   parm_options=parm_options));
 
-  source_model.append( PointSource(ns,name="S2",I=2.0, Q=0.0, U=0.0, V=0.0,
-                  Iorder=0, ra=0.031181034, dec=0.57629802,
-                  spi=-1.0,freq0=ref_frequency,
+  source_model.append( PointSource(ns,name="S5",I=1.0, Q=0.0, U=0.0, V=0.0,
+                  Iorder=0, ra=0.030732848, dec=0.57585781,
+                  spi=0.5,freq0=ref_frequency,
                   parm_options=parm_options));
 
   return source_model

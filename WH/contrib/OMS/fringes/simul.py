@@ -26,11 +26,11 @@ TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
 # if true, a G Jones simulating phase and gain errors will be inserted
 TDLCompileOption('add_g_jones',"Simulate G Jones",False);
 
-# if true, an E Jones simulating beam effects will be inserted
-TDLCompileOption('add_e_jones',"Simulate E Jones",True);
+# phase noise
+TDLCompileOption('phase_stddev',"Add phase noise (deg)",[None,0.5,1,2,5,10]);
 
 # if not None, a per-ifr noise term with the given stddev will be added
-TDLCompileOption('noise_stddev',"Noise level",[None,0.05,0.1,1.0]);
+TDLCompileOption('noise_stddev',"Add background noise (Jy)",[None,0.05,0.1,0.2]);
 
 # which source model to use
 TDLCompileOption('source_model',"Source model",[
@@ -66,31 +66,14 @@ Settings.forest_state = record(bookmarks=[
       ["visibility:all:1:2",
        "visibility:all:1:6","visibility:all:9:%d"%num_stations]
   )),
-  record(name='Beams',page=Bookmarks.PlotPage(
-      ["E:S1:1","E:S2:1","E:S3:1"],
-      ["E:S6:1","E:S9:1","E:S10:1"],
-      ["E:S1:%d"%num_stations,"E:S2:%d"%num_stations,"E:S3:%d"%num_stations],
-      ["E:S6:%d"%num_stations,"E:S9:%d"%num_stations,"E:S10:%d"%num_stations]
-  )),
-  record(name='G Jones',page=Bookmarks.PlotPage(
-      ["G:1","G:2","G:3"],
-      ["G:4","G:5","G:6"],
-      ["G:7","G:8","G:9"],
-      ["G:10","G:11","G:12"]
+  record(name='Phases',page=Bookmarks.PlotPage(
+      ["phase:1","phase:2","phase:3"],
+      ["phase:4","phase:5","phase:6"],
+      ["phase:7","phase:8","phase:9"],
+      ["phase:10","phase:11","phase:12"]
   )),
   record(name='Source fluxes',page=Bookmarks.PlotPage(
-      ["I:S1","I:S2","I:S3"],
-      ["I:S4","I:S5","I:S6"],
-      ["I:S7","I:S8","I:S9"],
-      ["I:S10","ihpbw"]
-  )),
-  record(name="Sources 1/2",page=Bookmarks.PlotPage(
-      ["visibility:S1:1:2",
-       "visibility:S1:1:6","visibility:S1:9:%d"%num_stations ],
-      ["visibility:S2p:1:2",
-       "visibility:S2p:1:6","visibility:S2p:9:%d"%num_stations ],
-      ["visibility:S2e:1:2",
-       "visibility:S2e:1:6","visibility:S2e:9:%d"%num_stations ]
+      ["I:S1","I:S5"],
   )),
 ]);
 
@@ -117,31 +100,38 @@ def _define_forest(ns):
   # function
   source_list = source_model(ns);
   
-  if add_e_jones:
-    Ej = clar_model.EJones(ns,array,source_list);
-    corrupt_list = [ 
-      CorruptComponent(ns,src,label='E',station_jones=Ej(src.name))
-      for src in source_list
-    ];
-  else:
-    corrupt_list = source_list;
-                     
-  # create all-sky patch for CLAR source model
+  # create all-sky patch for source model
   allsky = Patch(ns,'all');
-  allsky.add(*corrupt_list);
+  allsky.add(*source_list);
   
   if add_g_jones:
-    # Now, create a series of G Jones for simulated phase and gain errors
+    # Now, create a series of G Jones for simulated phase gradients
     ns.time << Meq.Time;
+    
+    # rel_freq is just a node whose value goes from 0 to 1 over the band
+    ns.rel_freq << (ns.freq - models.ref_frequency)/models.ref_bandwidth;
+    
     for station in array.stations():
-      # create a random station phase 
-      phase = Meq.GaussNoise(stddev=0.1);
-      # create sinusoidal gain errors with random period and amplitude of 2-5%
-      ns.Gx(station) << 1 + Meq.Sin(ns.time/random.uniform(500,2000)) * random.uniform(-.05,.05);
-      ns.Gy(station) << 1 + Meq.Sin(ns.time/random.uniform(500,2000)) * random.uniform(-.05,.05);
-      # put them together into a G matrix
-      ns.G(station) << Meq.Matrix22(
-        Meq.Polar(ns.Gx(station),phase),0,0,Meq.Polar(ns.Gy(station),phase));
+      # model phase evolution in time by a sine
+      # we want phase to be linear over, say, 10 timeslots
+      # (10 minutes), so the sine period should be ~60-80 minutes
+      time_period = random.uniform(60*60,90*60) / (2*math.pi);
+      # in frequency, we'll use a linear slope with slow variation,
+      # going up to +/- pi in phase over the whole band
+      freq_slope = random.uniform(-math.pi,math.pi);
+      freq_slope_period = random.uniform(3600,7200) / (2*math.pi);
+      # so, the freq component of the phase
+      ns.phase_fq(station) << ns.rel_freq*freq_slope*Meq.Sin(ns.time/freq_slope_period);
+      # the time component of the phase
+      ns.phase_tm(station) << math.pi*Meq.Sin(ns.time/time_period);
+      # compute actual phase as sum of two components, plus a bit of noise
+      # for good measure
+      if phase_stddev is not None:
+        ns.phase(station) << ns.phase_fq(station)+ns.phase_tm(station) \
+                      +Meq.GaussNoise(stddev=phase_stddev*math.pi/180);
+      else:
+        ns.phase(station) << ns.phase_fq(station)+ns.phase_tm(station);
+      ns.G(station) << Meq.Polar(1,ns.phase(station));
     # attach the G Jones series to the all-sky patch
     allsky = CorruptComponent(ns,allsky,label='G',station_jones=ns.G);
 
@@ -217,7 +207,7 @@ def _tdl_job_simulate_sky (mqs,parent,write=True):
   pass
 
 def _tdl_job_make_dirty_image (mqs,parent,**kw):
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g']);
+  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',output_column]);
   pass
 
 

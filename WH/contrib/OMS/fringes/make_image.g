@@ -1,7 +1,18 @@
-# script written by imagerwizard.g
 include 'imager.g'
 include 'viewer.g'
-myimager:=imager("TEST_CLAR_27-480.MS" )
+
+imagetype:="observed"
+
+if( any(argv=='DATA') )
+  imagetype:="observed";
+if( any(argv=='MODEL_DATA') )
+  imagetype:="model";
+if( any(argv=='CORRECTED_DATA') )
+  imagetype:="corrected";
+
+  
+
+myimager:=imager("TEST_CLAR_27-480.MS")
 myimager.setdata(mode='channel',fieldid=1, spwid=1,
              nchan=32,
              start=1,
@@ -20,8 +31,9 @@ myimager.setoptions(cache=100000000);
 #myimager.weight(type="natural" , async=F)
 #myimager.uvrange(uvmin=0, uvmax=2050.68817, async=F)
 
-imgfile := "clar_data.img";
-myimager.makeimage(type="observed",image=imgfile,async=F);
+imgname := spaste("clar-",imagetype);
+imgfile := spaste(imgname,".img");
+myimager.makeimage(type=imagetype,image=imgfile,async=F);
 
 # imgfile := "clar_corrected.img";
 # myimager.makeimage(type="corrected",image=imgfile,async=F);
@@ -29,7 +41,10 @@ myimager.makeimage(type="observed",image=imgfile,async=F);
 myimager.done()
 
 im := image(imgfile);
+im.tofits(spaste(imgname,'.fits'));
 im.view();
+
+print "\n\n--------- press Ctrl+D to exit Glish ---------\n";
 
 # plot
 # dv.gui()
