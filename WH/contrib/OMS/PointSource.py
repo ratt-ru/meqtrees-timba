@@ -41,6 +41,14 @@ class PointSource(SkyComponent):
       iquv << Meq.Composer(*[stokes(st) for st in STOKES]);
     return iquv;
     
+  def has_spectral_index (self):
+    return bool(self._freq0);
+    
+  def spectral_index (self):
+    if not self.has_spectral_index():
+      return None;
+    return self._parm("spi");
+    
   def stokes (self,st):
     """Returns flux node for this source. 'st' must be one of 'I','Q','U','V'.""";
     if st not in STOKES:
