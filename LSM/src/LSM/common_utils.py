@@ -585,6 +585,30 @@ def change_radec_patch(patch_name,new_ra,new_dec,ns):
 
 
 
+################################################################
+## convert l,m coordinates to RA,Dec coordinates
+def lm_to_radec(ra0,dec0,l,m):
+    sind0=math.sin(dec0)
+    cosd0=math.cos(dec0)
+    dl=l
+    dm=m
+    d0=dm*dm*sind0*sind0+dl*dl-2*dm*cosd0*sind0
+    sind=math.sqrt(abs(sind0*sind0-d0))
+    cosd=math.sqrt(abs(cosd0*cosd0+d0))
+    if (sind0>0):
+     sind=abs(sind)
+    else:
+     sind=-abs(sind)
+
+    dec=math.atan(sind/cosd)
+
+    if l!=0:
+     ra=math.atan(-dl/(cosd0-dm*sind0))+ra0
+    else:
+     ra=math.atan((1e-10)/(cosd0-dm*sind0))+ra0
+
+
+    return (ra,dec)
 
 
 

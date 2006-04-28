@@ -8,6 +8,7 @@
 # 
 
 import sys,time
+import math,struct
 import pickle # for serialization and file io
 from Dummy import *
 
@@ -1185,7 +1186,8 @@ class LSM:
       self.__root_name=ns.MakeUniqueName('_lsmroot')
     self.__root=self.__ns[self.__root_name]<<Meq.Composer(children=child_list)
   else:
-   print "WARNING: cannot create _lsm_root. please ignore this if you used add_sixpack() method."
+   pass
+   #print "WARNING: cannot create _lsm_root. please ignore this if you used add_sixpack() method."
 
  # return the current NodeScope
  def getNodeScope(self):
@@ -1513,5 +1515,173 @@ class LSM:
   # next step: Load the MeqTrees if possible 
   if self.mqs != None:
    pass
+
+
+
+ # build the LSM from a NewStar .MDL model file
+ def build_from_newstar(self,infile_name,ns,verbose=1):
+    from Timba.Contrib.JEN import MG_JEN_Sixpack
+
+    ff=open(infile_name,mode="rb")
+    #### read header -- 512 bytes
+    gfh=numarray.fromfile(ff,'b',(512,1))
+    gfh=gfh.flat
+    ## type
+    ftype=gfh[0:4].tostring()
+    ftype=ftype[0]
+    ## length
+    fhlen=struct.unpack('i',gfh[4:8])
+    fhlen=fhlen[0]
+    ### version
+    fver=struct.unpack('i',gfh[5:9])
+    fver=fver[0]
+    ### creation date
+    crdate=gfh[12:23].tostring()
+    ### creation time
+    crtime=gfh[23:28].tostring()
+    ### revision date
+    rrdate=gfh[28:39].tostring()
+    ### revision time
+    rrtime=gfh[39:44].tostring()
+    ### revision count
+    rcount=struct.unpack('i',gfh[44:48])
+    rcount=rcount[0]
+    #### node name
+    nname=gfh[48:128].tostring()
+
+    ### the remaining info is not needed
+
+
+    ####### Model Header -- 64 bytes 
+    mdh=numarray.fromfile(ff,'b',(64,1))
+    mdh=mdh.flat 
+
+    ### Max. # of lines in model or disk version
+    maxlin=struct.unpack('i',mdh[12:16])
+    maxlin=maxlin[0]
+
+    ### pointer to model ???
+    modptr=struct.unpack('i',mdh[16:20])
+    modptr=modptr[0]
+
+    #### no of sources in model
+    nsources=struct.unpack('i',mdh[20:24])
+    nsources=nsources[0]
+
+    ### model type(0: no ra,dec, 1=app, 2=epoch)
+    mtype=struct.unpack('i',mdh[24:28])
+    mtype=mtype[0]
+
+    ### Epoch (e.g. 1950) if TYP=2 (float) : 4 bytes
+    mepoch=struct.unpack('f',mdh[28:32])
+    mepoch=mepoch[0]
+
+    ###  Model centre RA (circles) : double
+    ra0=struct.unpack('d',mdh[32:40])
+    ra0=ra0[0]*math.pi*2
+
+    ### Model centre DEC (circles)
+    dec0=struct.unpack('d',mdh[40:48])
+    dec0=dec0[0]*math.pi*2
+
+    ### Model centre FRQ (MHz)
+    freq0=struct.unpack('d',mdh[48:56])
+    freq0=freq0[0]*1e6
+
+    ###### the remaining is not needed
+
+
+
+
+    ########## Models -- 56 bytes
+    for ii in range(0,nsources):
+    #for ii in range(0,4):
+       mdl=numarray.fromfile(ff,'b',(56,1))
+       mdl=mdl.flat
+
+       ### Amplitude (Stokes I)
+       sI=struct.unpack('f',mdl[0:4])
+       sI=sI[0]*0.005 # convert from WU to Jy
+
+       ### L offset
+       ll=struct.unpack('f',mdl[4:8])
+       ll=ll[0]
+
+       ### M offset
+       mm=struct.unpack('f',mdl[8:12])
+       mm=mm[0]
+
+       ### Identification
+       id=struct.unpack('i',mdl[12:16])
+       id=id[0]
+
+       ### Q fraction
+       sQ=struct.unpack('f',mdl[16:20])
+       sQ=sQ[0]
+       ### U fraction
+       sU=struct.unpack('f',mdl[20:24])
+       sU=sU[0]
+       ### V fraction
+       sV=struct.unpack('f',mdl[24:28])
+       sV=sV[0]
+
+       ### extended source params: in arcsec, so multiply by ???
+       eX=struct.unpack('f',mdl[28:32])
+       eX=eX[0]
+       eY=struct.unpack('f',mdl[32:36])
+       eY=eY[0]
+       eP=struct.unpack('f',mdl[36:40])
+       eP=eP[0]
+       r0=math.cos(eP/(360/math.pi))
+       r1=-math.sin(eP/(360/math.pi))
+       r2=(0.5*eX/3600/(360/math.pi))
+       r2=r2*r2
+       r3=(0.5*eY/3600/(360/math.pi))
+       r3=r3*r3
+       # fortran code snippet from nscan/nmoext.for
+       # R0=COS(IMDLE(MDL_EXT_E+2)/DEG)    !P.A.
+       # R1=-SIN(IMDLE(MDL_EXT_E+2)/DEG)
+       # R2=(.5*IMDLE(MDL_EXT_E)/3600./DEG)**2
+       # R3=(.5*IMDLE(MDL_EXT_E+1)/3600./DEG)**2
+       # IMDLE(MDL_EXT_E+0)=R2*R1*R1+R3*R0*R0    !INTERNAL FORMAT
+       # IMDLE(MDL_EXT_E+1)=R2*R0*R0+R3*R1*R1
+       # IMDLE(MDL_EXT_E+2)=2*(R2-R3)*R0*R1
+       eX=r2*r1*r1+r3*r0*r0
+       eY=r2*r0*r0+r3*r1*r1
+       eP=2*(r2-r3)*r0*r1
+
+
+       ### spectral index
+       SI=struct.unpack('f',mdl[40:44])
+       SI=SI[0]
+       ### rotation measure
+       RM=struct.unpack('f',mdl[44:48])
+       RM=RM[0]
+
+       ###### the remaining is not needed
+
+       #print ii,id,ll,mm,sI,sQ,sU,sV,eX,eY,eP,SI,RM
+       #print ii,id,ll,mm,
+
+       s=Source('NEWS'+str(id))
+       (source_RA,source_Dec)=lm_to_radec(ra0,dec0,ll,mm)
+
+       if SI==0 and sQ==0 and sU==0 and sV==0:
+        my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
+       else:
+        my_sixpack=MG_JEN_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
+       # first compose the sixpack before giving it to the LSM
+       my_sixpack.sixpack(ns)
+       self.add_source(s,brightness=sI,
+                sixpack=my_sixpack,
+                ra=source_RA, dec=source_Dec)
+ 
+    ff.close()
+    self.setNodeScope(ns)
+    self.setFileName(infile_name+'.lsm')
+    
+    if verbose==1:
+      print "Read %d sources from NewStar file %s created %s:%s"%(nsources,infile_name,crdate,crtime)
+
 
 #########################################################################

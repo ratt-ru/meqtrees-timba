@@ -488,7 +488,7 @@ class MyCanvasView(QCanvasView):
     if self.max_brightness==0:
      return QColor(1,1,1) # no color : when Q,U,V is zero
 
-    cl=z/self.max_brightness # normalized in [0,1] 
+    cl=(z-self.min_brightness)/(self.max_brightness-self.min_brightness) # normalized in [0,1] 
     if cl < 0.25:
      return QColor(0,int(cl*256*4),255)
     elif cl < 0.5:
