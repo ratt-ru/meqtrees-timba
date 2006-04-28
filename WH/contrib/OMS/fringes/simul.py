@@ -12,7 +12,7 @@ from Timba.Contrib.OMS.CorruptComponent import CorruptComponent
 from Timba.Contrib.OMS import Bookmarks
 
 # MS name
-TDLRuntimeOption('msname',"MS",["TEST_CLAR_27-480.MS"],inline=True);
+TDLRuntimeOption('msname',"MS",["TEST_CLAR_27-480.MS","TEST_CLAR_27-480-cps.MS"],inline=True);
 
 # ms_output = False  # if True, outputs to MS, else to BOIO dump   
 TDLRuntimeOption('output_column',"Output MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=1);
@@ -26,16 +26,24 @@ TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
 # if true, a G Jones simulating phase and gain errors will be inserted
 TDLCompileOption('add_g_jones',"Simulate G Jones",False);
 
+TDLCompileOption('phase_scale_time',"Max. phase variation in time (deg)",[30,60,90,180]);
+TDLCompileOption('phase_scale_freq',"Max. phase variation in freq (deg)",[30,60,90,180]);
 # phase noise
 TDLCompileOption('phase_stddev',"Add phase noise (deg)",[None,0.5,1,2,5,10]);
 
 # if not None, a per-ifr noise term with the given stddev will be added
-TDLCompileOption('noise_stddev',"Add background noise (Jy)",[None,0.05,0.1,0.2]);
+TDLCompileOption('noise_stddev',"Add background noise (Jy)",[0,0.05,0.1,0.2,0.5]);
 
 # which source model to use
 TDLCompileOption('source_model',"Source model",[
-    models.two_point_sources
+    models.two_point_sources,
+    models.two_point_sources_plus_faint_extended,
+    models.cps,
+    models.cps_plus_faint_extended
   ],default=0);
+
+# number of timeslots to use at once
+TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
   
 # selection  applied to MS, None for full MS
 ms_selection = None
@@ -60,11 +68,10 @@ Settings.forest_state = record(bookmarks=[
   record(name='Predicted visibilities',page=Bookmarks.PlotPage(
       ["visibility:S1:1:2",
        "visibility:S1:1:6","visibility:S1:9:%d"%num_stations ],
-      ["visibility:S1:E:1:2",
-       "visibility:S1:E:1:6","visibility:S1:E:9:%d"%num_stations ],
-      ["E:S1:1","E:S1:%d"%num_stations,"G:1"],
-      ["visibility:all:1:2",
-       "visibility:all:1:6","visibility:all:9:%d"%num_stations]
+      ["visibility:S5:1:2",
+       "visibility:S5:1:6","visibility:S5:9:%d"%num_stations ],
+      ["noisy_predict:1:2",
+       "noisy_predict:1:6","noisy_predict:9:%d"%num_stations]
   )),
   record(name='Phases',page=Bookmarks.PlotPage(
       ["phase:1","phase:2","phase:3"],
@@ -107,23 +114,31 @@ def _define_forest(ns):
   if add_g_jones:
     # Now, create a series of G Jones for simulated phase gradients
     ns.time << Meq.Time;
+    ns.freq << Meq.Freq;
     
     # rel_freq is just a node whose value goes from 0 to 1 over the band
     ns.rel_freq << (ns.freq - models.ref_frequency)/models.ref_bandwidth;
     
+    ph_scale_time_rad = phase_scale_time*(math.pi/180);
+    ph_scale_freq_rad = phase_scale_freq*(math.pi/180);
+    
     for station in array.stations():
+      # take a random starting phase for this station
+      phase0 = random.uniform(-math.pi,math.pi);
       # model phase evolution in time by a sine
       # we want phase to be linear over, say, 10 timeslots
-      # (10 minutes), so the sine period should be ~60-80 minutes
-      time_period = random.uniform(60*60,90*60) / (2*math.pi);
-      # in frequency, we'll use a linear slope with slow variation,
-      # going up to +/- pi in phase over the whole band
-      freq_slope = random.uniform(-math.pi,math.pi);
-      freq_slope_period = random.uniform(3600,7200) / (2*math.pi);
-      # so, the freq component of the phase
-      ns.phase_fq(station) << ns.rel_freq*freq_slope*Meq.Sin(ns.time/freq_slope_period);
+      # (10 minutes), so the sine period should be hours
+      time_period = random.uniform(7200,9000) / (2*math.pi);
+      # in frequency, we'll use a linear phase slope
+      # going from 0 to +/-PHS (where PHS is random and <phase_scale)
+      #  over the whole band
+      freq_slope = random.uniform(-ph_scale_freq_rad,ph_scale_freq_rad);
+      # also, make the slope vary slowly in time
+      freq_slope_period = random.uniform(7200,9000) / (2*math.pi);
+      # so, this is the freq component of the phase
+      ns.phase_fq(station) << phase0 + ns.rel_freq*freq_slope*Meq.Sin(ns.time/freq_slope_period);
       # the time component of the phase
-      ns.phase_tm(station) << math.pi*Meq.Sin(ns.time/time_period);
+      ns.phase_tm(station) << ph_scale_time_rad*Meq.Sin(ns.time/time_period);
       # compute actual phase as sum of two components, plus a bit of noise
       # for good measure
       if phase_stddev is not None:
@@ -142,7 +157,7 @@ def _define_forest(ns):
   for sta1,sta2 in array.ifrs():
     if noise_stddev is not None:
       predict = ns.noisy_predict(sta1,sta2) << \
-        visibilities(sta1,sta2) + (ns.noise(sta1,sta2) << noise_matrix(noise_stddev));
+        visibilities(sta1,sta2) + (ns.noise(sta1,sta2) << noise_matrix(noise_stddev/2));
     else:
       predict = visibilities(sta1,sta2);
     ns.sink(sta1,sta2) << Meq.Sink(station_1_index=sta1-1,
@@ -197,7 +212,7 @@ def create_outputrec (outcol):
 
 
 
-def _tdl_job_simulate_sky (mqs,parent,write=True):
+def _tdl_job_1_simulate_sky (mqs,parent,write=True):
   req = meq.request();
   req.input  = create_inputrec();
   if write and output_column:
@@ -206,9 +221,9 @@ def _tdl_job_simulate_sky (mqs,parent,write=True):
   mqs.execute('VisDataMux',req,wait=(parent is None));
   pass
 
-def _tdl_job_make_dirty_image (mqs,parent,**kw):
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',output_column]);
-  pass
+def _tdl_job_2_make_dirty_image (mqs,parent,**kw):
+  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',output_column,
+      'ms='+msname,'mode='+imaging_mode]);
 
 
 

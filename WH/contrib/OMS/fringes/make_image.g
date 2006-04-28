@@ -10,9 +10,19 @@ if( any(argv=='MODEL_DATA') )
 if( any(argv=='CORRECTED_DATA') )
   imagetype:="corrected";
 
-  
+msname := "TEST_CLAR_27-480.MS"
+mode := "mfs";
 
-myimager:=imager("TEST_CLAR_27-480.MS")
+for ( a in argv )
+{
+  if( a =~ s/ms=// )
+    msname := a;
+  else if( a =~ s/mode=// )
+    mode := a;
+}
+print "MS name is ",msname; 
+
+myimager:=imager(msname)
 myimager.setdata(mode='channel',fieldid=1, spwid=1,
              nchan=32,
              start=1,
@@ -20,7 +30,7 @@ myimager.setdata(mode='channel',fieldid=1, spwid=1,
 
 myimager.setimage(nx=1024,ny=1024,cellx='0.25arcsec',celly='0.25arcsec', 
   stokes='I',fieldid=1, spwid=1,   
-  mode='channel',
+  mode=mode,
   nchan=32,start=1,step=1)
   
 myimager.setoptions(cache=100000000);
@@ -41,10 +51,16 @@ myimager.makeimage(type=imagetype,image=imgfile,async=F);
 myimager.done()
 
 im := image(imgfile);
-im.tofits(spaste(imgname,'.fits'));
-im.view();
+fitsname := spaste(imgname,'.fits');
+im.tofits(fitsname,overwrite=T);
+# im.view();
 
-print "\n\n--------- press Ctrl+D to exit Glish ---------\n";
+print "\n\n--------- wrote AIPS++ image: ",imgfile;
+print "\n\n--------- wrote FITS image: ",fitsname," ---------\n";
+
+shell(spaste('kvis ',fitsname));
+# print "\n\n--------- press Ctrl+D to exit Glish ---------\n";
 
 # plot
 # dv.gui()
+exit

@@ -10,18 +10,18 @@ from Timba.Contrib.OMS.Observation import Observation
 from Timba.Contrib.OMS.Patch import Patch
 from Timba.Contrib.OMS.CorruptComponent import CorruptComponent 
 from Timba.Contrib.OMS.SkyComponent import create_polc 
+from Timba.Contrib.OMS.PointSource import PointSource 
+from Timba.Contrib.OMS.GaussianSource import GaussianSource 
+from Timba.Contrib.OMS import Jones
 from Timba.Contrib.OMS import Bookmarks
 
 
 # MS name
-TDLRuntimeOption('msname',"MS",["TEST_CLAR_27-480.MS","TEST_CLAR_27-4800.MS"],inline=True);
+TDLRuntimeOption('msname',"MS",["TEST_CLAR_27-480.MS","TEST_CLAR_27-480-cps.MS"],inline=True);
 
 TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
 
-TDLRuntimeOption('output_column',"Output residuals to MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
-
-# number of timeslots to use at once
-TDLRuntimeOption('tile_size',"Tile size",[10,30,48,60,96,480,960]);
+TDLRuntimeOption('output_column',"Output corrected data to MS column",[None,"DATA","MODEL_DATA","CORRECTED_DATA"],default=3);
 
 # how much to perturb starting values of solvables
 TDLRuntimeOption('flux_perturbation',"Perturb fluxes by (rel.)",["random",.1,.2,-.1,-.2]);
@@ -31,8 +31,12 @@ TDLRuntimeOption('pos_perturbation',"Perturb positions by (arcsec)",[.1,.25,1,2]
 # solver debug level
 TDLRuntimeOption('solver_debug_level',"Solver debug level",[0,1,10]);
 
-# solver debug level
+# solver options
 TDLRuntimeOption('solver_lm_factor',"Initial solver LM factor",[1,.1,.01,.001]);
+TDLRuntimeOption('solver_epsilon',"Solver convergence threshold",[.01,.001,.0001]);
+TDLRuntimeOption('solver_num_iter',"Max number of solver iterations",[30,50,100]);
+
+TDLCompileOption('fringe_deg',"Polc degree for fringe fitting",[0,1,2]);
 
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
@@ -40,19 +44,30 @@ TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
 # which source model to use
 # source_model = clar_model.point_and_extended_sources;
 TDLCompileOption('source_model',"Source model",[
+    models.cps,
+    models.cps_plus_faint_extended,
     models.two_point_sources
   ],default=0);
 
-# number of stations
-TDLCompileOption('mep_table',"Save solutions to MEP table",[None,"fringes.mep"]);
+source_table = "sources.mep";
+mep_table = "calib.mep";
 
-### if True, previous solutions will be reused for successive time domains.
-### This speeds up convergence (especially when solvables have no variation 
-### in time), but makes the process less "educational".
-TDLCompileOption('reuse_solutions',"Reuse previous solution",False,namespace=models,
+def get_source_table ():
+  return msname+"/"+source_table;
+
+def get_mep_table ():
+  return msname+"/"+mep_table;
+
+TDLRuntimeOption('use_previous',"Reuse solution from previous timeslot",False,
   doc="""If True, solutions for successive time domains will start with
-  the solution for a previous domain. Normally this speeds up convergence; you
-  may turn it off to re-test convergence at each domain.""");
+the solution for a previous domain. Normally this speeds up convergence; you
+may turn it off to re-test convergence at each domain.""");
+TDLRuntimeOption('use_mep',"Reuse solutions from MEP table",False,
+  doc="""If True, solutions from the MEP table (presumably, from a previous
+run) will be used as starting points. Turn this off to solve from scratch.""");
+
+# number of timeslots to use at once
+TDLRuntimeOption('imaging_mode',"Imaging mode",["mfs","channel"]);
   
 ### MS input queue size -- must be at least equal to the no. of ifrs
 ms_queue_size = 500
@@ -109,7 +124,7 @@ def _define_forest(ns):
   # create nominal CLAR source model by calling the specified
   # function
   global source_list;
-  source_list = source_model(ns);
+  source_list = source_model(ns,get_source_table());
   
   # create all-sky patch for CLAR source model
   allsky = Patch(ns,'all');
@@ -117,17 +132,21 @@ def _define_forest(ns):
   
   # Add solvable G jones terms
   for station in array.stations():
-    # create 1-st degree polc in freq/time
-    polc = create_polc(0.0,1,1);
+    # create polc in freq/time
+    polc = create_polc(0.0,fringe_deg,fringe_deg);
     ns.phase(station) << \
-      Meq.Parm(polc,real_polc=polc,node_groups='Parm',table_name=mep_table);
-    ns.G(station) << Meq.Polar(1,ns.phase(station));
+      Meq.Parm(polc,real_polc=polc,node_groups='Parm',table_name=get_mep_table());
+    diag = ns.Gdiag(station) << Meq.Polar(1,ns.phase(station));
+    ns.G(station) << Meq.Matrix22(diag,0,0,diag);
     
   # attach the G Jones series to the all-sky patch
-  allsky = CorruptComponent(ns,allsky,label='G',station_jones=ns.G);
+  corrupt_sky = CorruptComponent(ns,allsky,label='G',station_jones=ns.G);
 
-  # create simulated visibilities for sky
-  predict = allsky.visibilities(array,observation);
+  # create simulated visibilities for the sky
+  predict = corrupt_sky.visibilities(array,observation);
+  
+  # create a "clean" predict for the sky
+  clean_predict = allsky.visibilities(array,observation);
   
   # now create spigots, condeqs and residuals
   for sta1,sta2 in array.ifrs():
@@ -137,9 +156,13 @@ def _define_forest(ns):
                                                  input_col='DATA');
     pred = predict(sta1,sta2);
     ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred);
-    # residual is data-model, we're not applying any correction since we
-    # don't have a G Jones in the model. 
+    # residual visibilities
     ns.residual(sta1,sta2) << spigot - pred;
+  # compute corrected residuals
+  Jones.apply_correction(ns.corr_residual,ns.residual,ns.G,array.ifrs());
+  # add "clean" predict back into residuals
+  for sta1,sta2 in array.ifrs():
+    ns.corrected(sta1,sta2) << ns.corr_residual(sta1,sta2) + clean_predict(sta1,sta2);
     
   # set up a non-default condeq poll order for efficient parallelization 
   # (i.e. poll child 1:2, 3:4, 5:6, ..., 25:26, then the rest)
@@ -152,7 +175,7 @@ def _define_forest(ns):
   
   # create sinks and reqseqs 
   for sta1,sta2 in array.ifrs():
-    reqseq = Meq.ReqSeq(ns.solver,ns.residual(sta1,sta2),
+    reqseq = Meq.ReqSeq(ns.solver,ns.corrected(sta1,sta2),
                   result_index=1,cache_num_active_parents=1);
     ns.sink(sta1,sta2) << Meq.Sink(station_1_index=sta1-1,
                                    station_2_index=sta2-1,
@@ -170,11 +193,11 @@ def _define_forest(ns):
   ns.VisDataMux.add_stepchildren(*[ns.spigot(*ifr) for ifr in array.ifrs()]);
   
   
-def create_solver_defaults(num_iter=60,epsilon=1e-4,convergence_quota=0.9,solvable=[]):
+def create_solver_defaults(num_iter=60,convergence_quota=0.9,solvable=[]):
   solver_defaults=record()
-  solver_defaults.num_iter      = num_iter
-  solver_defaults.epsilon       = epsilon
-  solver_defaults.epsilon_deriv = epsilon
+  solver_defaults.num_iter      = solver_num_iter
+  solver_defaults.epsilon       = solver_epsilon
+  solver_defaults.epsilon_deriv = solver_epsilon
   solver_defaults.lm_factor     = solver_lm_factor
   solver_defaults.convergence_quota = convergence_quota
   solver_defaults.balanced_equations = False
@@ -248,7 +271,8 @@ def _run_solve_job (mqs,solvables):
   mqs.execute('VisDataMux',req,wait=False);
   pass
 
-def _perturb_solvables (mqs,solvables,pert="random",absolute=False,random_range=[0.2,0.3]):
+def _perturb_parameters (mqs,solvables,pert="random",
+                        absolute=False,random_range=[0.2,0.3]):
   global perturbation;
   for name in solvables:
     polc = mqs.getnodestate(name).real_polc;
@@ -258,40 +282,111 @@ def _perturb_solvables (mqs,solvables,pert="random",absolute=False,random_range=
       polc.coeff[0,0] *= 1 + random.uniform(*random_range)*random.choice([-1,1]);
     else: # else perturb in relative terms
       polc.coeff[0,0] *= (1 + pert);
-    set_node_state(mqs,name,record(init_funklet=polc));
+    set_node_state(mqs,name,record(init_funklet=polc,
+      use_previous=use_previous,reset_funklet=not use_mep));
   return solvables;
     
-def _reset_solvables (mqs,solvables,value=None):
+def _reset_parameters (mqs,solvables,value=None,use_table=False):
   for name in solvables:
     polc = mqs.getnodestate(name).real_polc;
     if value is not None:
       polc.coeff[()] = value;
-    set_node_state(mqs,name,record(init_funklet=polc));
+    set_node_state(mqs,name,record(init_funklet=polc,
+      use_previous=use_previous,reset_funklet=not (use_table or use_mep)));
   return solvables;
 
 arcsec_to_rad = math.pi/(180*3600);
 
-def _tdl_job_1_solve_for_flux_and_source_positions (mqs,parent,**kw):
-  solvables = _perturb_solvables(mqs,['I0:'+src.name for src in source_list],
+def _tdl_job_1a_solve_for_all_source_parameters (mqs,parent,**kw):
+  global tile_size;
+  tile_size = 60;
+  solvables = [];
+  for src in source_list:
+    pert_ra = random.uniform(-pos_perturbation,pos_perturbation);
+    solvables += _perturb_parameters(mqs,['ra:'+src.name],
+                  pert=arcsec_to_rad*pert_ra,absolute=True);
+    pert_dec = random.uniform(-pos_perturbation,pos_perturbation);
+    solvables += _perturb_parameters(mqs,['dec:'+src.name],
+                  pert=arcsec_to_rad*pert_dec,absolute=True);
+    if src.has_spectral_index():
+      solvables += _perturb_parameters(mqs,['I0:'+src.name],
+                    pert=flux_perturbation,absolute=False);
+      solvables += _reset_parameters(mqs,[src.spectral_index().name],0);
+    else:
+      solvables += _perturb_parameters(mqs,['I:'+src.name],
+                    pert=flux_perturbation,absolute=False);
+    if isinstance(src,GaussianSource):
+      solvables += _perturb_parameters(mqs,['sigma1:'+src.name]);
+      solvables += _perturb_parameters(mqs,['sigma2:'+src.name]);
+      solvables += _reset_parameters(mqs,['phi:'+src.name],0);
+  _run_solve_job(mqs,solvables);
+#   
+# def _tdl_job_1b_solve_for_flat_flux_and_source_positions (mqs,parent,**kw):
+#   global tile_size;
+#   tile_size = 60;
+#   solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
+#                 pert=flux_perturbation,absolute=False);
+#   # reset spi to zero for this solution            
+#   _reset_parameters(mqs,[ 'spi:'+src.name for src in source_list],0);                
+#   solvables += _perturb_parameters(mqs,[ 'ra:'+src.name for src in source_list],
+#                 pert=arcsec_to_rad*pos_perturbation,absolute=True);
+#   solvables += _perturb_parameters(mqs,[ 'dec:'+src.name for src in source_list],
+#                 pert=arcsec_to_rad*pos_perturbation,absolute=True);
+#   _run_solve_job(mqs,solvables);
+  
+def _tdl_job_2a_solve_for_phases_with_given_flux (mqs,parent,**kw):
+  global tile_size;
+  tile_size = 10;
+  solvables = _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
+  _run_solve_job(mqs,solvables);
+
+def _tdl_job_2b_solve_for_phases_with_perturbed_flux (mqs,parent,**kw):
+  global tile_size;
+  tile_size = 10;
+  _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
+                     pert=flux_perturbation,absolute=False);
+  solvables = _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
+  _run_solve_job(mqs,solvables);
+
+def _tdl_job_3a_solve_for_phases_and_fluxes (mqs,parent,**kw):
+  global tile_size;
+  tile_size = 10;
+  solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
                 pert=flux_perturbation,absolute=False);
-  solvables += _reset_solvables(mqs,[ 'spi:'+src.name for src in source_list],0);
-  solvables += _perturb_solvables(mqs,[ 'ra:'+src.name for src in source_list],
-                pert=arcsec_to_rad*pos_perturbation,absolute=True);
-  solvables += _perturb_solvables(mqs,[ 'dec:'+src.name for src in source_list],
-                pert=arcsec_to_rad*pos_perturbation,absolute=True);
+#  solvables += _reset_parameters(mqs,[ 'spi:'+src.name for src in source_list],0);
+  solvables += _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
   _run_solve_job(mqs,solvables);
   
-def _tdl_job_2_solve_for_phases (mqs,parent,**kw):
-  solvables = _reset_solvables(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
+def _tdl_job_3b_solve_for_phases_and_flat_flux (mqs,parent,**kw):
+  global tile_size;
+  tile_size = 10;
+  solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
+                pert=flux_perturbation,absolute=False);
+  solvables += _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
   _run_solve_job(mqs,solvables);
 
-def _tdl_job_8_reset_parameters_to_true_values (mqs,parent,**kw):
-  _reset_solvables(mqs,['I0:'+src.name for src in source_list]);
-  _reset_solvables(mqs,['spi:'+src.name for src in source_list]);
-  _reset_solvables(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)]);
 
-def _tdl_job_9_make_residual_image (mqs,parent,**kw):
-  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',output_column]);
+def _tdl_job_4_solve_for_phases_flux_and_one_position (mqs,parent,**kw):
+  global tile_size;
+  tile_size = 10;
+  # solve for both fluxes but keep positions fixed
+  solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
+                pert=flux_perturbation,absolute=False);
+  solvables += _reset_parameters(mqs,[ 'spi:'+src.name for src in source_list],0);
+  solvables += _perturb_parameters(mqs,[ 'ra:'+src.name for src in source_list[0:1]],
+                pert=arcsec_to_rad*pos_perturbation,absolute=True);
+  solvables += _perturb_parameters(mqs,[ 'dec:'+src.name for src in source_list[0:1]],
+                pert=arcsec_to_rad*pos_perturbation,absolute=True);
+  solvables += _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
+  _run_solve_job(mqs,solvables);
+
+def _tdl_job_8_clear_out_all_previous_solutiuons (mqs,parent,**kw):
+  os.system("rm -fr "+get_source_table());
+  os.system("rm -fr "+get_mep_table());
+
+def _tdl_job_9_make_corrected_image (mqs,parent,**kw):
+  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',output_column,
+      'ms='+msname,'mode='+imaging_mode]);
   pass
 
 
