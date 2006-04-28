@@ -527,13 +527,17 @@ class MyCanvasView(QCanvasView):
    for sname in self.lsm.p_table.keys():
      punit=self.lsm.p_table[sname]
      #if punit.getBrightness()/self.max_brightness*500 <self.parent.slider1.value():
+     if (self.min_brightness<0):
+         abs_min=1e-10
+     else: abs_min=self.min_brightness
+
      if punit.getType()==POINT_TYPE and\
-       math.log(punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index)/self.min_brightness)/math.log(self.max_brightness/self.min_brightness) <self.parent.sliderCut.value()/100.0: 
+       math.log(abs(punit.getBrightness(self.default_mode,self.default_freq_index, self.default_time_index))/abs_min)/math.log(abs(self.max_brightness)/abs_min) <self.parent.sliderCut.value()/100.0: 
       self.p_tab[sname].hide()
      else:
       self.p_tab[sname].show()
  
-   tmpstr="%4.3f"%(math.pow(math.e,math.log(self.max_brightness/self.min_brightness)*self.parent.sliderCut.value()/100.0)*self.min_brightness)
+   tmpstr="%4.3f"%(math.pow(math.e,math.log(abs(self.max_brightness)/abs_min)*self.parent.sliderCut.value()/100.0)*abs_min)
    self.slabel.setText(tmpstr) 
    self.canvas().update()  
 
