@@ -68,7 +68,7 @@ Settings.forest_state = record(bookmarks=[
        "visibility:S1:E:1:6","visibility:S1:E:9:%d"%num_stations ],
       ["E:S1:1","E:S1:%d"%num_stations,"G:1"],
       ["visibility:all:1:2",
-       "visibility:all:1:6","visibility:all:9:%d"%num_stations]
+       "visibility:all:18:27","visibility:all:9:%d"%num_stations]
   )),
   record(name='Beams',page=Bookmarks.PlotPage(
       ["E:S1:1","E:S2:1","E:S3:1"],
