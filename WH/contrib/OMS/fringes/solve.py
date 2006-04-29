@@ -65,7 +65,7 @@ def get_source_table ():
 def get_mep_table ():
   return msname+"/"+mep_table;
 
-TDLRuntimeOption('use_previous',"Reuse solution from previous timeslot",False,
+TDLRuntimeOption('use_previous',"Reuse solution from previous time interval",False,
   doc="""If True, solutions for successive time domains will start with
 the solution for a previous domain. Normally this speeds up convergence; you
 may turn it off to re-test convergence at each domain.""");
@@ -153,7 +153,7 @@ def _define_forest(ns):
   predict = corrupt_sky.visibilities(array,observation);
   
   # create a "clean" predict for the sky
-  clean_predict = allsky.visibilities(array,observation);
+  # clean_predict = allsky.visibilities(array,observation);
   
   # now create spigots, condeqs and residuals
   condeqs = [];
@@ -165,13 +165,11 @@ def _define_forest(ns):
     pred = predict(sta1,sta2);
     ce = ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred);
     condeqs.append(ce);
-    # residual visibilities
-    ns.residual(sta1,sta2) << spigot - pred;
-  # compute corrected residuals
-  Jones.apply_correction(ns.corr_residual,ns.residual,ns.G,array.ifrs());
-  # add "clean" predict back into residuals
-  for sta1,sta2 in array.ifrs():
-    ns.corrected(sta1,sta2) << ns.corr_residual(sta1,sta2) + clean_predict(sta1,sta2);
+    
+  # compute corrected data. We don't need to subtract-correct-add since
+  # we're dealing with uv-plane effects only, so we can directly apply
+  # the inverse G jones to the spigots.
+  Jones.apply_correction(ns.corrected,ns.spigot,ns.G,array.ifrs());
     
   # set up a non-default condeq poll order for efficient parallelization 
   # (i.e. poll child 1:2, 3:4, 5:6, ..., 25:26, then the rest)
@@ -318,7 +316,7 @@ def _reset_parameters (mqs,solvables,value=None,use_table=False):
 
 arcsec_to_rad = math.pi/(180*3600);
 
-def _tdl_job_1a_solve_for_all_source_parameters (mqs,parent,**kw):
+def _tdl_job_1_solve_for_all_source_parameters (mqs,parent,**kw):
   global tile_size;
   tile_size = 60;
   solvables = [];
@@ -341,63 +339,12 @@ def _tdl_job_1a_solve_for_all_source_parameters (mqs,parent,**kw):
       solvables += _perturb_parameters(mqs,['sigma2:'+src.name]);
       solvables += _reset_parameters(mqs,['phi:'+src.name],0);
   _run_solve_job(mqs,solvables);
-#   
-# def _tdl_job_1b_solve_for_flat_flux_and_source_positions (mqs,parent,**kw):
-#   global tile_size;
-#   tile_size = 60;
-#   solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
-#                 pert=flux_perturbation,absolute=False);
-#   # reset spi to zero for this solution            
-#   _reset_parameters(mqs,[ 'spi:'+src.name for src in source_list],0);                
-#   solvables += _perturb_parameters(mqs,[ 'ra:'+src.name for src in source_list],
-#                 pert=arcsec_to_rad*pos_perturbation,absolute=True);
-#   solvables += _perturb_parameters(mqs,[ 'dec:'+src.name for src in source_list],
-#                 pert=arcsec_to_rad*pos_perturbation,absolute=True);
-#   _run_solve_job(mqs,solvables);
   
-def _tdl_job_2a_solve_for_phases_with_given_flux (mqs,parent,**kw):
-  global tile_size;
-  tile_size = 10;
-  solvables = _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
-  _run_solve_job(mqs,solvables);
-
-def _tdl_job_2b_solve_for_phases_with_perturbed_flux (mqs,parent,**kw):
-  global tile_size;
-  tile_size = 10;
-  _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
-                     pert=flux_perturbation,absolute=False);
-  solvables = _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
-  _run_solve_job(mqs,solvables);
-
-def _tdl_job_3a_solve_for_phases_and_fluxes (mqs,parent,**kw):
+def _tdl_job_2_solve_for_phases_and_fluxes (mqs,parent,**kw):
   global tile_size;
   tile_size = 10;
   solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
                 pert=flux_perturbation,absolute=False);
-#  solvables += _reset_parameters(mqs,[ 'spi:'+src.name for src in source_list],0);
-  solvables += _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
-  _run_solve_job(mqs,solvables);
-  
-def _tdl_job_3b_solve_for_phases_and_flat_flux (mqs,parent,**kw):
-  global tile_size;
-  tile_size = 10;
-  solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
-                pert=flux_perturbation,absolute=False);
-  solvables += _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
-  _run_solve_job(mqs,solvables);
-
-
-def _tdl_job_4_solve_for_phases_flux_and_one_position (mqs,parent,**kw):
-  global tile_size;
-  tile_size = 10;
-  # solve for both fluxes but keep positions fixed
-  solvables = _perturb_parameters(mqs,['I0:'+src.name for src in source_list],
-                pert=flux_perturbation,absolute=False);
-  solvables += _reset_parameters(mqs,[ 'spi:'+src.name for src in source_list],0);
-  solvables += _perturb_parameters(mqs,[ 'ra:'+src.name for src in source_list[0:1]],
-                pert=arcsec_to_rad*pos_perturbation,absolute=True);
-  solvables += _perturb_parameters(mqs,[ 'dec:'+src.name for src in source_list[0:1]],
-                pert=arcsec_to_rad*pos_perturbation,absolute=True);
   solvables += _reset_parameters(mqs,['phase:'+str(sta) for sta in range(1,num_stations+1)],0);
   _run_solve_job(mqs,solvables);
 
