@@ -12,8 +12,10 @@ def process_vis_header (hdr):
     """handler for the visheader""";
     # phase center
     (ra0,dec0) = hdr.phase_ref;
-    set_state('ra0',value=ra0);
-    set_state('dec0',value=dec0);
+    try:
+      set_state('ra0',value=ra0);
+      set_state('dec0',value=dec0);
+    except: pass;
     # antenna positions
     pos = hdr.antenna_pos;
     if pos.rank != 2 or pos.shape[0] != 3:

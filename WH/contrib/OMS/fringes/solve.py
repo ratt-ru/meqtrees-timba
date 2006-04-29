@@ -17,7 +17,10 @@ from Timba.Contrib.OMS import Bookmarks
 
 
 # MS name
-TDLRuntimeOption('msname',"MS",["TEST_CLAR_27-480.MS","TEST_CLAR_27-480-cps.MS"],inline=True);
+TDLRuntimeOption('msname',"MS",[
+      "TEST.MS",
+      "TEST-cps.MS",
+      "TEST-grid.MS"]);
 
 TDLRuntimeOption('input_column',"Input MS column",["DATA","MODEL_DATA","CORRECTED_DATA"],default=0);
 
@@ -33,8 +36,11 @@ TDLRuntimeOption('solver_debug_level',"Solver debug level",[0,1,10]);
 
 # solver options
 TDLRuntimeOption('solver_lm_factor',"Initial solver LM factor",[1,.1,.01,.001]);
-TDLRuntimeOption('solver_epsilon',"Solver convergence threshold",[.01,.001,.0001]);
+TDLRuntimeOption('solver_epsilon',"Solver convergence threshold",[.01,.001,.0001,1e-5]);
 TDLRuntimeOption('solver_num_iter',"Max number of solver iterations",[30,50,100]);
+
+TDLCompileOption('flux_constraint',"Lower boundary for flux constraint",[None,0,.1,.5]);
+TDLCompileOption('constraint_weight',"Weight of flux constraint",[1,100,1000,10000]);
 
 TDLCompileOption('fringe_deg',"Polc degree for fringe fitting",[0,1,2]);
 
@@ -46,7 +52,8 @@ TDLCompileOption('num_stations',"Number of stations",[27,14,3]);
 TDLCompileOption('source_model',"Source model",[
     models.cps,
     models.cps_plus_faint_extended,
-    models.two_point_sources
+    models.two_point_sources,
+    models.two_bright_one_faint_point_source
   ],default=0);
 
 source_table = "sources.mep";
@@ -149,13 +156,15 @@ def _define_forest(ns):
   clean_predict = allsky.visibilities(array,observation);
   
   # now create spigots, condeqs and residuals
+  condeqs = [];
   for sta1,sta2 in array.ifrs():
     spigot = ns.spigot(sta1,sta2) << Meq.Spigot( station_1_index=sta1-1,
                                                  station_2_index=sta2-1,
                                                  flag_bit=4,
                                                  input_col='DATA');
     pred = predict(sta1,sta2);
-    ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred);
+    ce = ns.ce(sta1,sta2) << Meq.Condeq(spigot,pred);
+    condeqs.append(ce);
     # residual visibilities
     ns.residual(sta1,sta2) << spigot - pred;
   # compute corrected residuals
@@ -170,8 +179,20 @@ def _define_forest(ns):
   for i in range(array.num_stations()/2):
     (sta1,sta2) = array.stations()[i*2:(i+1)*2];
     cpo.append(ns.ce(sta1,sta2).name);
+  if flux_constraint is not None:
+    ns.flux_constraint << flux_constraint;
+    # create boundary constraints for fluxes
+    for src in source_list:
+      sti = src.stokes("I");
+      base = ns.base_constr("I",src.name) << \
+        (src.stokes("I") - ns.flux_constraint)*constraint_weight;
+      bound = ns.constraint(src.name) << Meq.Condeq(
+        Meq.Sqr(base) - Meq.Abs(base)*base,0
+      );
+      condeqs.append(bound);
+    
   # create solver node
-  ns.solver << Meq.Solver(children=[ns.ce(*ifr) for ifr in array.ifrs()],child_poll_order=cpo);
+  ns.solver << Meq.Solver(children=condeqs,child_poll_order=cpo);
   
   # create sinks and reqseqs 
   for sta1,sta2 in array.ifrs():
@@ -384,8 +405,13 @@ def _tdl_job_8_clear_out_all_previous_solutiuons (mqs,parent,**kw):
   os.system("rm -fr "+get_source_table());
   os.system("rm -fr "+get_mep_table());
 
-def _tdl_job_9_make_corrected_image (mqs,parent,**kw):
+def _tdl_job_9a_make_corrected_image (mqs,parent,**kw):
   os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g',output_column,
+      'ms='+msname,'mode='+imaging_mode]);
+  pass
+  
+def _tdl_job_9b_make_residual_image (mqs,parent,**kw):
+  os.spawnvp(os.P_NOWAIT,'glish',['glish','-l','make_image.g','RESIDUAL',
       'ms='+msname,'mode='+imaging_mode]);
   pass
 

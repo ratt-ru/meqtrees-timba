@@ -9,6 +9,8 @@ if( any(argv=='MODEL_DATA') )
   imagetype:="model";
 if( any(argv=='CORRECTED_DATA') )
   imagetype:="corrected";
+if( any(argv=='RESIDUAL') )
+  imagetype:="residual";
 
 msname := "TEST_CLAR_27-480.MS"
 mode := "mfs";
@@ -41,7 +43,9 @@ myimager.setoptions(cache=100000000);
 #myimager.weight(type="natural" , async=F)
 #myimager.uvrange(uvmin=0, uvmax=2050.68817, async=F)
 
-imgname := spaste("clar-",imagetype);
+imgname := msname
+imgname =~ s/\..*//;
+imgname := spaste(imgname,".",imagetype,"-",mode);
 imgfile := spaste(imgname,".img");
 myimager.makeimage(type=imagetype,image=imgfile,async=F);
 
