@@ -28,7 +28,7 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
-#define DEBUG
+//#define DEBUG
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
@@ -972,11 +972,11 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		}
 
 		for (ii=0;ii<new_naxis[0];ii++) {
-					(*lgrid)[new_naxis[0]-ii-1]=imgc[ii*4*new_naxis[1]]-l0;
+					(*lgrid)[new_naxis[0]-ii-1]=(imgc[ii*4*new_naxis[1]]-l0)*M_PI/180.0;
 		}
 		/* different strides */
 		for (ii=0;ii<new_naxis[1];ii++) {
-					(*mgrid)[ii]=imgc[ii*4+1]-m0;
+					(*mgrid)[ii]=(imgc[ii*4+1]-m0)*M_PI/180.0;
 		}
 		/* calculate spacing */
 		for (ii=1;ii<new_naxis[0];ii++) {
