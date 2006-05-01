@@ -427,14 +427,14 @@ void Funklet::evaluate (VellSet &vs,const Request &request) const
 {
   evaluate(vs,request.cells(),childres,request.evalMode());
 }
-void Funklet::update (const double values[])
+void Funklet::update (const double values[],bool force_positive)
 {
-  do_update(values,spidInx_);
+  do_update(values,spidInx_,force_positive);
 }
 
-void Funklet::update (const double values[],const std::vector<double>& constraints)
+void Funklet::update (const double values[],const std::vector<double>& constraints,bool force_positive)
 {
-  do_update(values,spidInx_,constraints);
+  do_update(values,spidInx_,constraints,force_positive);
 }
 
 void Funklet::do_evaluate (VellSet &,const Cells &,
@@ -454,15 +454,15 @@ void Funklet::do_evaluate (VellSet &,const Cells &,
   Throw("do_evaluate() not implemented by Funklet subclass"); 
 }
 
-void Funklet::do_update (const double [],const std::vector<int> &)
+void Funklet::do_update (const double [],const std::vector<int> &,bool force_positive)
 { 
   Throw("do_update() not implemented by Funklet subclass"); 
 }
 
-void Funklet::do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &cnstrnts)
+void Funklet::do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &cnstrnts,bool force_positive)
 { 
   //ignore constraints if not implemented;
-  do_update(values,spidIndex);
+  do_update(values,spidIndex,force_positive);
 }
 
 } // namespace Meq

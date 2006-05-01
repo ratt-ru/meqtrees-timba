@@ -379,7 +379,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
 }
 
 //##ModelId=3F86886F03BE
-void Polc::do_update (const double values[],const std::vector<int> &spidIndex)
+void Polc::do_update (const double values[],const std::vector<int> &spidIndex,bool force_positive)
 {
   Thread::Mutex::Lock lock(mutex());
   double* coeff = static_cast<double*>(coeffWr().getDataPtr());
@@ -389,12 +389,14 @@ void Polc::do_update (const double values[],const std::vector<int> &spidIndex)
       {
 	cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
 	coeff[i] += values[spidIndex[i]];
+	if(force_positive && isConstant())
+	  coeff[i]=std::fabs(coeff[i]);
       }
   }
 }
 
 //##ModelId=3F86886F03BE
-void Polc::do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints)
+void Polc::do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints,bool force_positive)
 {
   Thread::Mutex::Lock lock(mutex());
   if(! isConstant()) {do_update (values,spidIndex); return;}//only contraint if constant 
@@ -407,6 +409,8 @@ void Polc::do_update (const double values[],const std::vector<int> &spidIndex,co
 	coeff[i] += values[spidIndex[i]];
 	coeff[i] = std::min(coeff[i],constraints[1]);
 	coeff[i] = std::max(coeff[i],constraints[0]);
+	if(force_positive && isConstant())
+	  coeff[i]=std::fabs(coeff[i]);
       }
   }
 }

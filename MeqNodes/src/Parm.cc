@@ -67,6 +67,7 @@ namespace Meq {
       default_(1.),
       force_shape_(false),
       constrained_(false),
+      force_positive_(false),
       domain_depend_mask_(0),
       solve_depend_mask_(0),
       res_depend_mask_(0),
@@ -586,6 +587,7 @@ namespace Meq {
     rec[FSolvable].get(solvable_,initializing);
     rec[FIntegrated].get(integrated_,initializing);
     rec[FResetFunklet].get(reset_funklet_,initializing);
+    rec[FForcePositive].get(force_positive_,initializing);
 
     //default
     solve_domain_[0]=0.;
@@ -778,10 +780,10 @@ namespace Meq {
 	  if(constrained_)
 	    {
 	      
-	      its_funklet_().update(values.data(),its_constraints_);
+	      its_funklet_().update(values.data(),its_constraints_,force_positive_);
 	    }
 	  else
-	    its_funklet_().update(values.data());
+	    its_funklet_().update(values.data(),force_positive_);
 	  wstate()[FFunklet].replace()=its_funklet_().getState();
 	  if( auto_save_ )
 	  {

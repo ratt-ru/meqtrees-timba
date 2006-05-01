@@ -318,7 +318,7 @@ namespace Meq {
 
 
 
-  void ComposedPolc::do_update(const double values[],const std::vector<int> &spidIndex)
+  void ComposedPolc::do_update(const double values[],const std::vector<int> &spidIndex,bool force_positive)
   {
     Thread::Mutex::Lock lock(mutex());
     const Field * fld = Record::findField(FFunkletList);
@@ -345,6 +345,8 @@ namespace Meq {
 	      {
 		cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
 		coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
+		if(force_positive && partfunk->isConstant())
+		  coeff[i]=std::fabs(coeff[i]);
 	      }
 	  }
 	
@@ -358,7 +360,7 @@ namespace Meq {
   }
 
 
-  void ComposedPolc::do_update(const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints)
+  void ComposedPolc::do_update(const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints,bool force_positive)
   {
     Thread::Mutex::Lock lock(mutex());
     const Field * fld = Record::findField(FFunkletList);
@@ -392,6 +394,8 @@ namespace Meq {
 		  coeff[i] = std::max(coeff[i],constraints[0]);
 
 		}
+		if(force_positive && partfunk->isConstant())
+		  coeff[i]=std::fabs(coeff[i]);
 
 	      }
 	  }

@@ -162,6 +162,9 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1562,"Tiling")+
         AtomicID::registerId(-1560,"Sizes")+
         AtomicID::registerId(-1670,"Constrain")+
+        AtomicID::registerId(-1498,"Force")+
+        AtomicID::registerId(-1671,"Positive")+
+        AtomicID::registerId(-1672,"Negative")+
         AtomicID::registerId(-1032,"L")+
         AtomicID::registerId(-1030,"M")+
         AtomicID::registerId(-1028,"N")+

@@ -298,6 +298,11 @@ const int AidFlag_int = -1134;
 const DMI::AtomicID AidFlags(-1253);              // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 const int AidFlags_int = -1253;
 #endif
+#ifndef _defined_id_AidForce
+#define _defined_id_AidForce 1
+const DMI::AtomicID AidForce(-1498);              // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
+const int AidForce_int = -1498;
+#endif
 #ifndef _defined_id_AidFreq
 #define _defined_id_AidFreq 1
 const DMI::AtomicID AidFreq(-1177);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:31
@@ -588,6 +593,11 @@ const int AidName_int = -1122;
 const DMI::AtomicID AidNames(-1328);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:36
 const int AidNames_int = -1328;
 #endif
+#ifndef _defined_id_AidNegative
+#define _defined_id_AidNegative 1
+const DMI::AtomicID AidNegative(-1672);           // from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:43
+const int AidNegative_int = -1672;
+#endif
 #ifndef _defined_id_AidNew
 #define _defined_id_AidNew 1
 const DMI::AtomicID AidNew(-1320);                // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:40
@@ -702,6 +712,11 @@ const int AidPoll_int = -1602;
 #define _defined_id_AidPolling 1
 const DMI::AtomicID AidPolling(-1603);            // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45
 const int AidPolling_int = -1603;
+#endif
+#ifndef _defined_id_AidPositive
+#define _defined_id_AidPositive 1
+const DMI::AtomicID AidPositive(-1671);           // from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:43
+const int AidPositive_int = -1671;
 #endif
 #ifndef _defined_id_AidPrevious
 #define _defined_id_AidPrevious 1

@@ -218,10 +218,10 @@ public:
 
   // Updates solvable parms of funklet. Size of values must be equal to the number 
   // of solvable parms.
-  void update (const double values[]);
+  void update (const double values[],bool force_positive=false);
   // Updates solvable parms of funklet. Size of values must be equal to the number 
   // of solvable parms. constraints, only valid for constant funklets, should be vector of min,max
-  void update (const double values[],const std::vector<double> &contraints);
+  void update (const double values[],const std::vector<double> &contraints,bool force_positive=false);
 
 
   // Get vector of parm perturbations (set up by the makeSolvable() methods above)
@@ -379,12 +379,12 @@ protected:
   // spidIndex has the same meaning as for do_evaluate(): for each solvable parm,
   // it gives the index of its updated in values[]; for each non-solvable parm,
   // a -1
-  virtual void do_update (const double values[],const std::vector<int> &spidIndex);
+  virtual void do_update (const double values[],const std::vector<int> &spidIndex,bool force_positive=false);
   // Update the solvable parameters with the new values. Called by public update(). 
   // spidIndex has the same meaning as for do_evaluate(): for each solvable parm,
   // it gives the index of its updated in values[]; for each non-solvable parm,
   // a -1. Constrained (only for constant funklets)
-  virtual void do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints);
+  virtual void do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints,bool force_positive=false);
   
   // This method is called when a Funklet is marked as solvable (by makeSolvable() above).
   // This should fill the perts vector (which has been pre-sized to getNumParms()) with

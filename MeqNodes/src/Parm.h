@@ -95,8 +95,9 @@ namespace Meq {
     FConverged  = AidConverged,
     FSaveAll  = AidSave|AidAll,
     FResetFunklet = AidReset|AidFunklet,
+    FForcePositive = AidForce|AidPositive,
     FConstrain = AidConstrain;
- 
+  
 
   // This class contains the coeff of any funklet, either solvable or unsolvable.
   class Parm: public Node
@@ -199,6 +200,7 @@ namespace Meq {
     double  default_;
     bool force_shape_;
     bool constrained_;
+    bool force_positive_;
     LoShape shape_;//shape of  polctype funklets
     Funklet::Ref init_funklet_;//funklet for initialisation 
     Funklet::Ref its_funklet_; //keep a ref to the funklet 

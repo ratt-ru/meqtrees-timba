@@ -216,7 +216,7 @@ void CompiledFunklet::do_evaluate (VellSet &vs,const Cells &cells,
 
 
 
-void CompiledFunklet::do_update (const double values[],const std::vector<int> &spidIndex)
+void CompiledFunklet::do_update (const double values[],const std::vector<int> &spidIndex,bool force_positive)
 {
   Thread::Mutex::Lock lock(mutex());
   double* coeff = static_cast<double*>(coeffWr().getDataPtr());

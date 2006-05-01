@@ -188,7 +188,7 @@ class CompiledFunklet: public Funklet{
                             const std::vector<int>    &spidIndex,
                             int makePerturbed) const;
 
-  virtual void do_update (const double values[],const std::vector<int> &spidIndex);
+  virtual void do_update (const double values[],const std::vector<int> &spidIndex,bool force_positive=false);
   private:
 
   //autodiff is only calculated if the parm is solvable
